@@ -9,6 +9,9 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
+  ChevronUp,
+  ChevronDown,
+  ChevronsUpDown,
   MoreHorizontal,
   Eye,
   Pencil,
@@ -49,6 +52,7 @@ import {
 } from "@/app/actions/customers";
 
 const PAGE_SIZE = 25;
+const SORTABLE = ["name", "code", "city", "createdAt"] as const;
 
 interface CustomersViewProps {
   rows:            CustomerRow[];
@@ -60,7 +64,50 @@ interface CustomersViewProps {
   initialSearch:   string;
   initialSectorId: string;
   initialStatus:   string;
+  initialSort:     string;
+  initialDir:      string;
 }
+
+// ─── Sortable header cell ─────────────────────────────────────────────────────
+
+function SortHeader({
+  label,
+  columnKey,
+  currentSort,
+  currentDir,
+  onSort,
+}: {
+  label:       string;
+  columnKey:   string;
+  currentSort: string;
+  currentDir:  string;
+  onSort:      (key: string) => void;
+}) {
+  const active = currentSort === columnKey;
+  return (
+    <th className="px-4 py-3 text-left">
+      <button
+        type="button"
+        onClick={() => onSort(columnKey)}
+        className="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider transition-colors hover:opacity-80"
+        style={{ color: active ? "#00B7B3" : "#64748B" }}
+      >
+        {label}
+        {active ? (
+          currentDir === "asc" ? (
+            <ChevronUp className="h-3 w-3" />
+          ) : (
+            <ChevronDown className="h-3 w-3" />
+          )
+        ) : (
+          <ChevronsUpDown className="h-3 w-3 opacity-40" />
+        )}
+      </button>
+    </th>
+  );
+}
+
+// ─── Main component ───────────────────────────────────────────────────────────
 
 export function CustomersView({
   rows,
@@ -72,20 +119,16 @@ export function CustomersView({
   initialSearch,
   initialSectorId,
   initialStatus,
+  initialSort,
+  initialDir,
 }: CustomersViewProps) {
   const router   = useRouter();
   const pathname = usePathname();
 
-  // Sheet state
-  const [sheetOpen,  setSheetOpen]  = useState(false);
-  const [editingId,  setEditingId]  = useState<string | null>(null);
-
-  // Bulk selection
-  const [selected, setSelected] = useState<Set<string>>(new Set());
-
-  // Filter inputs (local, applied on search submit / select change)
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [selected,  setSelected]  = useState<Set<string>>(new Set());
   const [searchInput, setSearchInput] = useState(initialSearch);
-
   const [bulkPending, startBulkTransition] = useTransition();
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -93,16 +136,16 @@ export function CustomersView({
   // ─── URL helpers ─────────────────────────────────────────────────────────────
   function buildUrl(overrides: Record<string, string | undefined>): string {
     const params = new URLSearchParams();
-    const merged = {
-      search:   initialSearch,
-      sectorId: initialSectorId,
-      status:   initialStatus === "all" ? undefined : initialStatus,
+    const merged: Record<string, string | undefined> = {
+      search:   initialSearch  || undefined,
+      sectorId: initialSectorId || undefined,
+      status:   initialStatus !== "all" ? initialStatus : undefined,
+      sort:     initialSort   !== "name" ? initialSort : undefined,
+      dir:      initialDir    !== "asc"  ? initialDir  : undefined,
       page:     page > 1 ? String(page) : undefined,
       ...overrides,
     };
-    Object.entries(merged).forEach(([k, v]) => {
-      if (v) params.set(k, v);
-    });
+    Object.entries(merged).forEach(([k, v]) => { if (v) params.set(k, v); });
     const qs = params.toString();
     return qs ? `${pathname}?${qs}` : pathname;
   }
@@ -116,7 +159,14 @@ export function CustomersView({
     applyFilter("search", searchInput);
   }
 
-  // ─── Selection helpers ───────────────────────────────────────────────────────
+  function handleSort(column: string) {
+    if (!SORTABLE.includes(column as typeof SORTABLE[number])) return;
+    const newDir =
+      initialSort === column && initialDir === "asc" ? "desc" : "asc";
+    router.replace(buildUrl({ sort: column, dir: newDir, page: undefined }));
+  }
+
+  // ─── Selection ───────────────────────────────────────────────────────────────
   const allSelected =
     rows.length > 0 && rows.every((r) => selected.has(r.id));
 
@@ -145,20 +195,9 @@ export function CustomersView({
   }
 
   // ─── Sheet helpers ────────────────────────────────────────────────────────────
-  function openCreate() {
-    setEditingId(null);
-    setSheetOpen(true);
-  }
-
-  function openEdit(id: string) {
-    setEditingId(id);
-    setSheetOpen(true);
-  }
-
-  function handleFormSuccess() {
-    setSheetOpen(false);
-    setEditingId(null);
-  }
+  function openCreate() { setEditingId(null); setSheetOpen(true); }
+  function openEdit(id: string) { setEditingId(id); setSheetOpen(true); }
+  function handleFormSuccess() { setSheetOpen(false); setEditingId(null); }
 
   // ─── Mutations ────────────────────────────────────────────────────────────────
   function handleStatusToggle(id: string, isActive: boolean) {
@@ -174,7 +213,9 @@ export function CustomersView({
       const result = await bulkSetCustomerStatus(ids, isActive);
       if (result.success) {
         setSelected(new Set());
-        toast.success(`${ids.length} customer${ids.length > 1 ? "s" : ""} ${isActive ? "activated" : "deactivated"}`);
+        toast.success(
+          `${ids.length} customer${ids.length > 1 ? "s" : ""} ${isActive ? "activated" : "deactivated"}`,
+        );
       } else {
         toast.error(result.message);
       }
@@ -186,8 +227,10 @@ export function CustomersView({
     <>
       {/* Toolbar */}
       <div className="flex items-center gap-3 mb-5 flex-wrap">
-        {/* Search */}
-        <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1 min-w-[200px] max-w-xs">
+        <form
+          onSubmit={handleSearchSubmit}
+          className="flex items-center gap-2 flex-1 min-w-[200px] max-w-xs"
+        >
           <div className="relative flex-1">
             <Search
               className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none"
@@ -205,7 +248,6 @@ export function CustomersView({
           </Button>
         </form>
 
-        {/* Sector filter */}
         <Select
           value={initialSectorId || "ALL"}
           onValueChange={(v) => applyFilter("sectorId", v === "ALL" ? "" : v)}
@@ -216,14 +258,11 @@ export function CustomersView({
           <SelectContent>
             <SelectItem value="ALL">All sectors</SelectItem>
             {sectors.map((s) => (
-              <SelectItem key={s.id} value={s.id}>
-                {s.name}
-              </SelectItem>
+              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
 
-        {/* Status filter */}
         <Select
           value={initialStatus || "all"}
           onValueChange={(v) => applyFilter("status", v === "all" ? "" : v)}
@@ -254,9 +293,7 @@ export function CustomersView({
           className="flex items-center gap-3 px-4 py-2 mb-4 rounded-lg text-sm"
           style={{ backgroundColor: "#E0FAFB", border: "1px solid #00B7B3" }}
         >
-          <span style={{ color: "#081D3A" }}>
-            {selected.size} selected
-          </span>
+          <span style={{ color: "#081D3A" }}>{selected.size} selected</span>
           <div className="flex gap-2 ml-auto">
             <Button
               variant="outline"
@@ -302,19 +339,37 @@ export function CustomersView({
                     />
                   </th>
                 )}
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>
-                  Name
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>
-                  Code
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>
+                <SortHeader
+                  label="Name"
+                  columnKey="name"
+                  currentSort={initialSort}
+                  currentDir={initialDir}
+                  onSort={handleSort}
+                />
+                <SortHeader
+                  label="Code"
+                  columnKey="code"
+                  currentSort={initialSort}
+                  currentDir={initialDir}
+                  onSort={handleSort}
+                />
+                <th
+                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
+                  style={{ color: "#64748B" }}
+                >
                   Sector
                 </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>
-                  City
-                </th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>
+                <SortHeader
+                  label="City"
+                  columnKey="city"
+                  currentSort={initialSort}
+                  currentDir={initialDir}
+                  onSort={handleSort}
+                />
+                <th
+                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
+                  style={{ color: "#64748B" }}
+                >
                   Status
                 </th>
                 <th className="w-12 px-4 py-3" />
@@ -394,7 +449,9 @@ export function CustomersView({
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
-                                onSelect={() => handleStatusToggle(row.id, row.isActive)}
+                                onSelect={() =>
+                                  handleStatusToggle(row.id, row.isActive)
+                                }
                               >
                                 {row.isActive ? (
                                   <>
@@ -434,7 +491,9 @@ export function CustomersView({
               size="sm"
               className="h-8 w-8 p-0"
               disabled={page <= 1}
-              onClick={() => router.replace(buildUrl({ page: String(page - 1) }))}
+              onClick={() =>
+                router.replace(buildUrl({ page: String(page - 1) }))
+              }
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -446,7 +505,9 @@ export function CustomersView({
               size="sm"
               className="h-8 w-8 p-0"
               disabled={page >= totalPages}
-              onClick={() => router.replace(buildUrl({ page: String(page + 1) }))}
+              onClick={() =>
+                router.replace(buildUrl({ page: String(page + 1) }))
+              }
             >
               <ChevronRight className="h-4 w-4" />
             </Button>

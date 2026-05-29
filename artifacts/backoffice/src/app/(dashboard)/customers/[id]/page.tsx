@@ -14,6 +14,7 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { CustomerDetailActions } from "@/components/customers/CustomerDetailActions";
+import { CustomerDetailObjectCreate } from "@/components/customers/CustomerDetailObjectCreate";
 import { getCustomer, listSectors } from "@/app/actions/customers";
 import { listObjectsForCustomer } from "@/app/actions/objects";
 
@@ -22,9 +23,15 @@ interface Props {
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
-  const { id } = await params;
-  const customer = await getCustomer(id);
-  return { title: customer?.name ?? "Customer" };
+  try {
+    const canRead = await hasPermission("customers", "read");
+    if (!canRead) return { title: "Access Denied" };
+    const { id } = await params;
+    const customer = await getCustomer(id);
+    return { title: customer?.name ?? "Customer" };
+  } catch {
+    return { title: "Customer" };
+  }
 }
 
 export default async function CustomerDetailPage({ params }: Props) {
@@ -244,13 +251,22 @@ export default async function CustomerDetailPage({ params }: Props) {
                 ({objects.length})
               </span>
             </h2>
-            <Link
-              href={`/objects?customerId=${customer.id}`}
-              className="text-xs font-medium hover:underline"
-              style={{ color: "#00B7B3" }}
-            >
-              View all objects →
-            </Link>
+            <div className="flex items-center gap-3">
+              {canWrite && (
+                <CustomerDetailObjectCreate
+                  customerId={customer.id}
+                  customerName={customer.name}
+                  sectors={sectors}
+                />
+              )}
+              <Link
+                href={`/objects?customerId=${customer.id}`}
+                className="text-xs font-medium hover:underline"
+                style={{ color: "#00B7B3" }}
+              >
+                View all →
+              </Link>
+            </div>
           </div>
           <div className="overflow-x-auto">
             <table className="w-full">

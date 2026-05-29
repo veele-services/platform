@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Check, ChevronsUpDown, Loader2 } from "lucide-react";
+import { z } from "zod/v4";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -39,6 +40,26 @@ import {
 } from "@/app/actions/objects";
 import type { SectorOption } from "@/app/actions/customers";
 
+// ─── Client-side Zod schema ───────────────────────────────────────────────────
+
+const objectFormSchema = z.object({
+  customerId: z.string().min(1, "Customer is required"),
+  sectorId:   z.string(),
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .max(255, "Name must be 255 characters or fewer"),
+  code:        z.string().max(50, "Code must be 50 characters or fewer"),
+  address:     z.string(),
+  city:        z.string().max(100, "City must be 100 characters or fewer"),
+  postalCode:  z.string().max(20, "Postal code must be 20 characters or fewer"),
+  description: z.string(),
+});
+
+type FormValues = z.infer<typeof objectFormSchema>;
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 interface ObjectFormProps {
   mode: "create" | "edit";
   objectId?: string;
@@ -48,17 +69,6 @@ interface ObjectFormProps {
   onSuccess: (id: string) => void;
   onCancel: () => void;
 }
-
-type FormValues = {
-  customerId:  string;
-  sectorId:    string;
-  name:        string;
-  code:        string;
-  address:     string;
-  city:        string;
-  postalCode:  string;
-  description: string;
-};
 
 const DEFAULTS: FormValues = {
   customerId:  "",
@@ -80,8 +90,8 @@ export function ObjectForm({
   onSuccess,
   onCancel,
 }: ObjectFormProps) {
-  const [loading, setLoading]       = useState(mode === "edit");
-  const [pending, startTransition]  = useTransition();
+  const [loading, setLoading]          = useState(mode === "edit");
+  const [pending, startTransition]     = useTransition();
   const [customerOpen, setCustomerOpen] = useState(false);
 
   const form = useForm<FormValues>({
@@ -109,28 +119,34 @@ export function ObjectForm({
     setLoading(true);
     getObject(objectId).then((o) => {
       if (o) {
-        setValue("customerId",  o.customerId       ?? "");
-        setValue("sectorId",    o.sectorId         ?? "");
-        setValue("name",        o.name             ?? "");
-        setValue("code",        o.code             ?? "");
-        setValue("address",     o.address          ?? "");
-        setValue("city",        o.city             ?? "");
-        setValue("postalCode",  o.postalCode       ?? "");
-        setValue("description", o.description      ?? "");
+        setValue("customerId",  o.customerId        ?? "");
+        setValue("sectorId",    o.sectorId          ?? "");
+        setValue("name",        o.name              ?? "");
+        setValue("code",        o.code              ?? "");
+        setValue("address",     o.address           ?? "");
+        setValue("city",        o.city              ?? "");
+        setValue("postalCode",  o.postalCode        ?? "");
+        setValue("description", o.description       ?? "");
       }
       setLoading(false);
     });
   }, [mode, objectId, setValue]);
 
   const onSubmit = handleSubmit((data) => {
-    if (!data.customerId) {
-      setError("customerId", { message: "Customer is required" });
+    // ── Client-side Zod validation ───────────────────
+    const parsed = objectFormSchema.safeParse(data);
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        const path = issue.path.map(String).join(".");
+        if (path) setError(path as keyof FormValues, { message: issue.message });
+      }
       return;
     }
+
     startTransition(async () => {
       const input: ObjectFormInput = {
-        ...data,
-        sectorId: data.sectorId === "NONE" ? undefined : data.sectorId || undefined,
+        ...parsed.data,
+        sectorId: parsed.data.sectorId === "NONE" ? undefined : parsed.data.sectorId || undefined,
       };
 
       const result =
@@ -150,9 +166,7 @@ export function ObjectForm({
 
       toast.success(mode === "create" ? "Object created" : "Object updated");
       const id =
-        mode === "create" && result.data
-          ? result.data.id
-          : (objectId ?? "");
+        mode === "create" && result.data ? result.data.id : (objectId ?? "");
       onSuccess(id);
     });
   });
@@ -250,7 +264,7 @@ export function ObjectForm({
             </Label>
             <Input
               id="name"
-              {...register("name", { required: "Name is required" })}
+              {...register("name")}
               placeholder="Object name"
               aria-invalid={!!errors.name}
             />
@@ -261,11 +275,7 @@ export function ObjectForm({
 
           <div className="space-y-1">
             <Label htmlFor="code">Code</Label>
-            <Input
-              id="code"
-              {...register("code")}
-              placeholder="e.g. OBJ-001"
-            />
+            <Input id="code" {...register("code")} placeholder="e.g. OBJ-001" />
           </div>
 
           <div className="space-y-1">
@@ -302,19 +312,31 @@ export function ObjectForm({
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2 space-y-1">
             <Label htmlFor="address">Street &amp; Number</Label>
-            <Input
-              id="address"
-              {...register("address")}
-              placeholder="Hoofdstraat 1"
-            />
+            <Input id="address" {...register("address")} placeholder="Hoofdstraat 1" />
           </div>
           <div className="space-y-1">
             <Label htmlFor="city">City</Label>
-            <Input id="city" {...register("city")} placeholder="Amsterdam" />
+            <Input
+              id="city"
+              {...register("city")}
+              placeholder="Amsterdam"
+              aria-invalid={!!errors.city}
+            />
+            {errors.city && (
+              <p className="text-xs text-destructive">{errors.city.message}</p>
+            )}
           </div>
           <div className="space-y-1">
             <Label htmlFor="postalCode">Postal Code</Label>
-            <Input id="postalCode" {...register("postalCode")} placeholder="1234 AB" />
+            <Input
+              id="postalCode"
+              {...register("postalCode")}
+              placeholder="1234 AB"
+              aria-invalid={!!errors.postalCode}
+            />
+            {errors.postalCode && (
+              <p className="text-xs text-destructive">{errors.postalCode.message}</p>
+            )}
           </div>
         </div>
       </section>

@@ -57,6 +57,8 @@ export default async function CustomersPage({ searchParams }: Props) {
         initialSearch={search}
         initialSectorId={sectorId}
         initialStatus={status}
+        initialSort={sort}
+        initialDir={dir}
       />
     </div>
   );

@@ -4,6 +4,7 @@ import { useEffect, useState, useTransition } from "react";
 import { useForm } from "react-hook-form";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
+import { z } from "zod/v4";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +25,37 @@ import {
   type CustomerFormInput,
 } from "@/app/actions/customers";
 
+// ─── Client-side Zod schema ───────────────────────────────────────────────────
+
+const customerFormSchema = z.object({
+  name: z
+    .string()
+    .min(1, "Name is required")
+    .max(255, "Name must be 255 characters or fewer"),
+  code: z.string().max(50, "Code must be 50 characters or fewer"),
+  sectorId: z.string(),
+  contactName: z.string().max(200, "Contact name must be 200 characters or fewer"),
+  contactEmail: z
+    .string()
+    .refine(
+      (v) => !v.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()),
+      "Invalid email address",
+    ),
+  contactPhone: z.string().max(50, "Phone must be 50 characters or fewer"),
+  address: z.string(),
+  city: z.string().max(100, "City must be 100 characters or fewer"),
+  postalCode: z.string().max(20, "Postal code must be 20 characters or fewer"),
+  country: z
+    .string()
+    .min(1, "Country is required")
+    .max(100, "Country must be 100 characters or fewer"),
+  notes: z.string(),
+});
+
+type FormValues = z.infer<typeof customerFormSchema>;
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
 interface CustomerFormProps {
   mode: "create" | "edit";
   customerId?: string;
@@ -32,20 +64,6 @@ interface CustomerFormProps {
   onSuccess: (id: string) => void;
   onCancel: () => void;
 }
-
-type FormValues = {
-  name: string;
-  code: string;
-  sectorId: string;
-  contactName: string;
-  contactEmail: string;
-  contactPhone: string;
-  address: string;
-  city: string;
-  postalCode: string;
-  country: string;
-  notes: string;
-};
 
 const DEFAULTS: FormValues = {
   name:         "",
@@ -69,8 +87,8 @@ export function CustomerForm({
   onSuccess,
   onCancel,
 }: CustomerFormProps) {
-  const [loading, setLoading]   = useState(mode === "edit");
-  const [pending, startTransition] = useTransition();
+  const [loading, setLoading]       = useState(mode === "edit");
+  const [pending, startTransition]  = useTransition();
 
   const form = useForm<FormValues>({ defaultValues: DEFAULTS });
   const {
@@ -84,6 +102,7 @@ export function CustomerForm({
 
   const sectorIdValue = watch("sectorId") || "NONE";
 
+  // Load existing customer when editing
   useEffect(() => {
     if (mode !== "edit" || !customerId) return;
     setLoading(true);
@@ -106,10 +125,20 @@ export function CustomerForm({
   }, [mode, customerId, setValue]);
 
   const onSubmit = handleSubmit((data) => {
+    // ── Client-side Zod validation ───────────────────
+    const parsed = customerFormSchema.safeParse(data);
+    if (!parsed.success) {
+      for (const issue of parsed.error.issues) {
+        const path = issue.path.map(String).join(".");
+        if (path) setError(path as keyof FormValues, { message: issue.message });
+      }
+      return;
+    }
+
     startTransition(async () => {
       const input: CustomerFormInput = {
-        ...data,
-        sectorId: data.sectorId === "NONE" ? undefined : data.sectorId || undefined,
+        ...parsed.data,
+        sectorId: parsed.data.sectorId === "NONE" ? undefined : parsed.data.sectorId || undefined,
       };
 
       const result =
@@ -127,13 +156,9 @@ export function CustomerForm({
         return;
       }
 
-      toast.success(
-        mode === "create" ? "Customer created" : "Customer updated",
-      );
+      toast.success(mode === "create" ? "Customer created" : "Customer updated");
       const id =
-        mode === "create" && result.data
-          ? result.data.id
-          : (customerId ?? "");
+        mode === "create" && result.data ? result.data.id : (customerId ?? "");
       onSuccess(id);
     });
   });
@@ -161,7 +186,7 @@ export function CustomerForm({
             </Label>
             <Input
               id="name"
-              {...register("name", { required: "Name is required" })}
+              {...register("name")}
               placeholder="Customer name"
               aria-invalid={!!errors.name}
             />
@@ -221,7 +246,11 @@ export function CustomerForm({
               id="contactName"
               {...register("contactName")}
               placeholder="Full name"
+              aria-invalid={!!errors.contactName}
             />
+            {errors.contactName && (
+              <p className="text-xs text-destructive">{errors.contactName.message}</p>
+            )}
           </div>
           <div className="space-y-1">
             <Label htmlFor="contactEmail">Email</Label>
@@ -242,7 +271,11 @@ export function CustomerForm({
               id="contactPhone"
               {...register("contactPhone")}
               placeholder="+31 6 00 00 00 00"
+              aria-invalid={!!errors.contactPhone}
             />
+            {errors.contactPhone && (
+              <p className="text-xs text-destructive">{errors.contactPhone.message}</p>
+            )}
           </div>
         </div>
       </section>
@@ -269,7 +302,11 @@ export function CustomerForm({
               id="city"
               {...register("city")}
               placeholder="Amsterdam"
+              aria-invalid={!!errors.city}
             />
+            {errors.city && (
+              <p className="text-xs text-destructive">{errors.city.message}</p>
+            )}
           </div>
           <div className="space-y-1">
             <Label htmlFor="postalCode">Postal Code</Label>
@@ -277,7 +314,11 @@ export function CustomerForm({
               id="postalCode"
               {...register("postalCode")}
               placeholder="1234 AB"
+              aria-invalid={!!errors.postalCode}
             />
+            {errors.postalCode && (
+              <p className="text-xs text-destructive">{errors.postalCode.message}</p>
+            )}
           </div>
           <div className="col-span-2 space-y-1">
             <Label htmlFor="country">Country</Label>
@@ -285,7 +326,11 @@ export function CustomerForm({
               id="country"
               {...register("country")}
               placeholder="NL"
+              aria-invalid={!!errors.country}
             />
+            {errors.country && (
+              <p className="text-xs text-destructive">{errors.country.message}</p>
+            )}
           </div>
         </div>
       </section>
