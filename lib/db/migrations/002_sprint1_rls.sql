@@ -1,5 +1,5 @@
 -- ============================================================================
--- Sprint 1 — Row Level Security (Supabase PostgreSQL)
+-- Sprint 1 — Row Level Security + Portal View (Supabase PostgreSQL)
 -- ============================================================================
 --
 -- Prerequisite: 001_rbac_rls.sql must have been applied first.
@@ -9,13 +9,13 @@
 --   psql $SUPABASE_DB_URL -f lib/db/migrations/002_sprint1_rls.sql
 --
 -- Authorization model:
---   Management role → full access to all tables
---   Customer users  → SELECT own customer row (matched by contact_email,
---                     unique constraint prevents cross-customer leakage)
---                     SELECT own objects via customer_id subquery
---                     ZERO access to customer_notes (DB-enforced, not app layer)
+--   Management role → full access to all tables (base tables, notes visible)
+--   Customer users  → SELECT only via v_customers_portal / v_objects_portal
+--                     views which physically exclude the `notes` column.
+--                     contact_email unique constraint prevents cross-customer
+--                     leakage when matching by JWT email.
 --   Employees       → SELECT their own personnel record (via user_id)
---   All others      → no access to customers, objects, personnel, or notes
+--   All others      → no access to customers, objects, or personnel
 --   Sectors/task_codes → SELECT for all authenticated (reference data)
 -- ============================================================================
 
@@ -40,19 +40,12 @@ ALTER TABLE objects
   REFERENCES auth.users(id)
   ON DELETE SET NULL;
 
-ALTER TABLE customer_notes
-  ADD CONSTRAINT customer_notes_created_by_fkey
-  FOREIGN KEY (created_by)
-  REFERENCES auth.users(id)
-  ON DELETE SET NULL;
-
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Indexes
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_customers_sector_id      ON customers(sector_id);
 CREATE INDEX IF NOT EXISTS idx_customers_is_active      ON customers(is_active);
 CREATE INDEX IF NOT EXISTS idx_customers_contact_email  ON customers(contact_email);
-CREATE INDEX IF NOT EXISTS idx_customer_notes_customer  ON customer_notes(customer_id);
 CREATE INDEX IF NOT EXISTS idx_objects_customer_id      ON objects(customer_id);
 CREATE INDEX IF NOT EXISTS idx_objects_sector_id        ON objects(sector_id);
 CREATE INDEX IF NOT EXISTS idx_objects_is_active        ON objects(is_active);
@@ -61,6 +54,47 @@ CREATE INDEX IF NOT EXISTS idx_personnel_role_id        ON personnel(role_id);
 CREATE INDEX IF NOT EXISTS idx_personnel_is_active      ON personnel(is_active);
 CREATE INDEX IF NOT EXISTS idx_task_codes_sector_id     ON task_codes(sector_id);
 CREATE INDEX IF NOT EXISTS idx_task_codes_is_active     ON task_codes(is_active);
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- Customer portal views — exclude the internal `notes` column at the DB level.
+-- Customer-facing queries MUST use these views; management uses the base tables.
+-- SECURITY INVOKER = RLS of the underlying tables still applies to the caller.
+-- ─────────────────────────────────────────────────────────────────────────────
+CREATE OR REPLACE VIEW v_customers_portal
+  WITH (security_invoker = true) AS
+  SELECT
+    id,
+    name,
+    code,
+    sector_id,
+    address,
+    city,
+    postal_code,
+    country,
+    contact_name,
+    contact_email,
+    contact_phone,
+    is_active,
+    created_at,
+    updated_at
+  FROM customers;
+
+CREATE OR REPLACE VIEW v_objects_portal
+  WITH (security_invoker = true) AS
+  SELECT
+    id,
+    customer_id,
+    sector_id,
+    name,
+    code,
+    address,
+    city,
+    postal_code,
+    description,
+    is_active,
+    created_at,
+    updated_at
+  FROM objects;
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- sectors
@@ -87,11 +121,11 @@ CREATE POLICY sectors_delete_management ON sectors
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- customers
--- Management: full access.
--- Customer portal users: SELECT own record matched by contact_email.
--- contact_email has a UNIQUE constraint (schema/customers.ts) so a single
--- JWT email cannot match more than one customer record.
--- Internal notes are stored in customer_notes (separate table, below).
+-- Base table — Management full access including `notes` column.
+-- Customer portal users: access only via v_customers_portal view (no notes).
+-- The view has SECURITY INVOKER so these RLS policies still apply to portal
+-- queries through the view.
+-- contact_email is UNIQUE (schema constraint) — prevents cross-customer leakage.
 -- ─────────────────────────────────────────────────────────────────────────────
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 
@@ -105,22 +139,9 @@ CREATE POLICY customers_select_own ON customers
   USING (contact_email = (auth.jwt() ->> 'email'));
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- customer_notes
--- DB-enforced internal-only table.
--- Management: full access.
--- All other roles: zero access (no SELECT / INSERT / UPDATE / DELETE policy).
--- ─────────────────────────────────────────────────────────────────────────────
-ALTER TABLE customer_notes ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY customer_notes_management ON customer_notes
-  TO authenticated
-  USING (is_management())
-  WITH CHECK (is_management());
-
--- ─────────────────────────────────────────────────────────────────────────────
 -- objects
 -- Management: full access.
--- Customer portal users: SELECT objects belonging to their own customer.
+-- Customer portal users: access only via v_objects_portal view.
 -- ─────────────────────────────────────────────────────────────────────────────
 ALTER TABLE objects ENABLE ROW LEVEL SECURITY;
 
@@ -157,7 +178,6 @@ CREATE POLICY personnel_select_own ON personnel
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- task_codes
--- Reference data needed for planning.
 -- All authenticated users may read; only Management may write.
 -- ─────────────────────────────────────────────────────────────────────────────
 ALTER TABLE task_codes ENABLE ROW LEVEL SECURITY;

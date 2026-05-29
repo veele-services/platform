@@ -5,7 +5,6 @@ export * from "./user-roles";
 export * from "./audit-log";
 export * from "./sectors";
 export * from "./customers";
-export * from "./customer-notes";
 export * from "./objects";
 export * from "./personnel";
 export * from "./task-codes";

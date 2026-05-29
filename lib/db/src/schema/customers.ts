@@ -23,9 +23,10 @@ export const customersTable = pgTable("customers", {
 
   contactName:  varchar("contact_name", { length: 200 }),
   /**
-   * Customer portal identity — used by Supabase RLS to scope SELECT access.
-   * Unique so a single email cannot match more than one customer record.
-   * (Supabase RLS: WHERE contact_email = auth.jwt() ->> 'email')
+   * Customer portal identity key.
+   * Unique constraint prevents a single JWT email from matching multiple rows
+   * (cross-customer data leakage).
+   * RLS policy: WHERE contact_email = (auth.jwt() ->> 'email')
    */
   contactEmail: varchar("contact_email", { length: 255 }).unique(),
   contactPhone: varchar("contact_phone", { length: 50 }),
@@ -33,10 +34,19 @@ export const customersTable = pgTable("customers", {
   isActive:     boolean("is_active").notNull().default(true),
 
   /**
-   * Internal notes have been moved to the `customer_notes` table so that
-   * Supabase RLS can deny customer-portal users at the database level
-   * without any application-layer filtering.
+   * Internal staff notes — must never be exposed to customer-portal users.
+   *
+   * DB-level protection:
+   *   The `v_customers_portal` view (migrations/002_sprint1_rls.sql) excludes
+   *   this column.  Customer-portal Server Components MUST query the view,
+   *   not the base table.  Management Server Components query the base table.
+   *
+   * Application-layer protection:
+   *   Customer-facing API routes and Server Actions must omit this field.
+   *   RLS on the base table further restricts rows (not columns) for
+   *   customer-role users.
    */
+  notes:        text("notes"),
 
   createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:    timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
@@ -51,8 +61,8 @@ export const insertCustomerSchema = createInsertSchema(customersTable).omit({
 });
 
 export const selectCustomerSchema = createSelectSchema(customersTable);
-export const updateCustomerSchema = insertCustomerSchema.partial();
+export const updateCustomerSchema  = insertCustomerSchema.partial();
 
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
 export type UpdateCustomer = z.infer<typeof updateCustomerSchema>;
-export type Customer = z.infer<typeof selectCustomerSchema>;
+export type Customer       = z.infer<typeof selectCustomerSchema>;
