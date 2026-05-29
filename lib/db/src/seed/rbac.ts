@@ -59,6 +59,9 @@ const ALL_PERMISSIONS: { resource: string; action: string; description: string }
   { resource: "documents",   action: "write",   description: "Upload and edit documents" },
   { resource: "documents",   action: "delete",  description: "Delete documents" },
 
+  { resource: "task_codes",  action: "read",    description: "View task codes" },
+  { resource: "task_codes",  action: "write",   description: "Create and edit task codes" },
+
   { resource: "settings",    action: "read",    description: "View settings" },
   { resource: "settings",    action: "write",   description: "Change platform settings" },
 
@@ -81,6 +84,7 @@ const ROLE_PERMISSION_MAP: Record<string, string[]> = {
     "assignments:read", "assignments:write", "assignments:approve",
     "planning:read", "planning:write",
     "personnel:read", "personnel:write",
+    "task_codes:read", "task_codes:write",
     "reports:read", "reports:export",
     "invoices:read", "invoices:write", "invoices:send",
     "documents:read", "documents:write", "documents:delete",
@@ -95,6 +99,7 @@ const ROLE_PERMISSION_MAP: Record<string, string[]> = {
     "assignments:read", "assignments:write",
     "planning:read", "planning:write",
     "personnel:read",
+    "task_codes:read",
     "reports:read",
   ],
 

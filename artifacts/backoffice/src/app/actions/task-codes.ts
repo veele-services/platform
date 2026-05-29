@@ -14,6 +14,27 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/permissions";
 import type { ActionResult } from "./customers";
+import { z } from "zod/v4";
+
+// ─── Server-side business rule refinements ────────────────────────────────────
+// These constraints go beyond what Drizzle-Zod auto-generates from column types.
+
+const serverPayloadSchema = z.object({
+  price: z
+    .string()
+    .nullable()
+    .optional()
+    .refine(
+      (v) => v == null || v === "" || (parseFloat(v) >= 0 && !isNaN(parseFloat(v))),
+      "Price must be a number ≥ 0",
+    ),
+  durationMinutes: z
+    .number()
+    .int("Duration must be a whole number")
+    .positive("Duration must be greater than 0")
+    .nullable()
+    .optional(),
+});
 
 export type { ActionResult };
 
@@ -266,6 +287,21 @@ export async function createTaskCode(
   if (!user) return { success: false, message: "Not authenticated." };
 
   const payload = buildPayload(data);
+
+  // Server-side business rule validation (price ≥ 0, duration > 0)
+  const bizCheck = serverPayloadSchema.safeParse({
+    price:           payload.price,
+    durationMinutes: payload.durationMinutes,
+  });
+  if (!bizCheck.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of bizCheck.error.issues) {
+      const path = issue.path.map(String).join(".");
+      if (path) fieldErrors[path] = issue.message;
+    }
+    return { success: false, message: "Validation failed.", fieldErrors };
+  }
+
   const parsed  = insertTaskCodeSchema.safeParse(payload);
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
@@ -315,6 +351,21 @@ export async function updateTaskCode(
   if (!user) return { success: false, message: "Not authenticated." };
 
   const payload = buildPayload(data);
+
+  // Server-side business rule validation (price ≥ 0, duration > 0)
+  const bizCheck = serverPayloadSchema.safeParse({
+    price:           payload.price,
+    durationMinutes: payload.durationMinutes,
+  });
+  if (!bizCheck.success) {
+    const fieldErrors: Record<string, string> = {};
+    for (const issue of bizCheck.error.issues) {
+      const path = issue.path.map(String).join(".");
+      if (path) fieldErrors[path] = issue.message;
+    }
+    return { success: false, message: "Validation failed.", fieldErrors };
+  }
+
   const parsed  = updateTaskCodeSchema.safeParse(payload);
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
