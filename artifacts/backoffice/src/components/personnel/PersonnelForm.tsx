@@ -330,20 +330,18 @@ export function PersonnelForm({
             />
           </div>
 
-          {mode === "edit" && (
-            <div className="flex items-center justify-between rounded-lg border px-4 py-3" style={{ borderColor: "#E2E8F0" }}>
-              <div>
-                <p className="text-sm font-medium" style={{ color: "#081D3A" }}>Active</p>
-                <p className="text-xs" style={{ color: "#94A3B8" }}>
-                  Inactive personnel are hidden from planning and assignment flows.
-                </p>
-              </div>
-              <Switch
-                checked={isActive}
-                onCheckedChange={setIsActive}
-              />
+          <div className="flex items-center justify-between rounded-lg border px-4 py-3" style={{ borderColor: "#E2E8F0" }}>
+            <div>
+              <p className="text-sm font-medium" style={{ color: "#081D3A" }}>Active</p>
+              <p className="text-xs" style={{ color: "#94A3B8" }}>
+                Inactive personnel are hidden from planning and assignment flows.
+              </p>
             </div>
-          )}
+            <Switch
+              checked={isActive}
+              onCheckedChange={setIsActive}
+            />
+          </div>
         </div>
       </section>
 
