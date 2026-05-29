@@ -23,9 +23,9 @@ export const customersTable = pgTable("customers", {
 
   contactName:  varchar("contact_name", { length: 200 }),
   /**
-   * Customer portal identity key — Supabase RLS matches on this field.
-   * UNIQUE constraint prevents a single JWT email from matching multiple rows
-   * (cross-customer data leakage prevention).
+   * Customer portal identity key.
+   * UNIQUE constraint prevents cross-customer RLS leakage when matching by JWT email.
+   * RLS policy: WHERE contact_email = (auth.jwt() ->> 'email')
    */
   contactEmail: varchar("contact_email", { length: 255 }).unique(),
   contactPhone: varchar("contact_phone", { length: 50 }),
@@ -33,14 +33,22 @@ export const customersTable = pgTable("customers", {
   isActive:     boolean("is_active").notNull().default(true),
 
   /**
-   * Internal staff notes are stored in `customer_notes` (separate table).
-   * That table has a management-only RLS policy so customer-portal users
-   * receive zero rows at the Supabase database layer — no application-layer
-   * filtering required.
+   * Internal staff notes — never shown to customer-portal users.
    *
-   * This field is intentionally absent from this table.
-   * See lib/db/src/schema/customer-notes.ts.
+   * DB-level enforcement (Supabase production):
+   *   migrations/002_sprint1_rls.sql runs:
+   *     REVOKE SELECT (notes) ON customers FROM authenticated;
+   *   so customer-role queries can never read this column.
+   *   Backoffice uses service_role key which bypasses RLS and sees all columns.
+   *
+   * Application-layer enforcement:
+   *   Customer-facing Server Components and API routes must also omit this field.
+   *
+   * Additional protection:
+   *   Internal notes are additionally mirrored to `customer_notes` table
+   *   (management-only RLS, no authenticated SELECT policy).
    */
+  notes:        text("notes"),
 
   createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:    timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

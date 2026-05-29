@@ -63,6 +63,7 @@ CREATE TABLE "customers" (
 	"contact_email" varchar(255),
 	"contact_phone" varchar(50),
 	"is_active" boolean DEFAULT true NOT NULL,
+	"notes" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"created_by" uuid,
