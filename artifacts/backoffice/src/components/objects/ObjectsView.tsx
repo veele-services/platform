@@ -14,6 +14,7 @@ import {
   ChevronsUpDown,
   MoreHorizontal,
   Pencil,
+  Trash2,
   ToggleLeft,
   ToggleRight,
 } from "lucide-react";
@@ -41,11 +42,22 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { ObjectForm } from "@/components/objects/ObjectForm";
 import {
   bulkSetObjectStatus,
   setObjectStatus,
+  deleteObject,
   type ObjectRow,
   type CustomerOption,
 } from "@/app/actions/objects";
@@ -127,11 +139,12 @@ export function ObjectsView({
   const router   = useRouter();
   const pathname = usePathname();
 
-  const [sheetOpen,  setSheetOpen]  = useState(false);
-  const [editingId,  setEditingId]  = useState<string | null>(null);
-  const [selected,   setSelected]   = useState<Set<string>>(new Set());
-  const [searchInput, setSearchInput] = useState(initialSearch);
-  const [bulkPending, startBulkTransition] = useTransition();
+  const [sheetOpen,     setSheetOpen]     = useState(false);
+  const [editingId,     setEditingId]     = useState<string | null>(null);
+  const [selected,      setSelected]      = useState<Set<string>>(new Set());
+  const [searchInput,   setSearchInput]   = useState(initialSearch);
+  const [deleteTarget,  setDeleteTarget]  = useState<{ id: string; name: string } | null>(null);
+  const [bulkPending,   startBulkTransition] = useTransition();
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -208,6 +221,20 @@ export function ObjectsView({
       } else {
         toast.error(result.message);
       }
+    });
+  }
+
+  function handleConfirmDelete() {
+    if (!deleteTarget) return;
+    const { id, name } = deleteTarget;
+    startBulkTransition(async () => {
+      const result = await deleteObject(id);
+      if (result.success) {
+        toast.success(`Object "${name}" deleted`);
+      } else {
+        toast.error(result.message);
+      }
+      setDeleteTarget(null);
     });
   }
 
@@ -458,6 +485,16 @@ export function ObjectsView({
                                   </>
                                 )}
                               </DropdownMenuItem>
+                              <DropdownMenuSeparator />
+                              <DropdownMenuItem
+                                onSelect={() =>
+                                  setDeleteTarget({ id: row.id, name: row.name })
+                                }
+                                className="text-destructive focus:text-destructive"
+                              >
+                                <Trash2 className="mr-2 h-4 w-4" />
+                                Delete
+                              </DropdownMenuItem>
                             </>
                           )}
                         </DropdownMenuContent>
@@ -532,6 +569,32 @@ export function ObjectsView({
           />
         </SheetContent>
       </Sheet>
+
+      {/* Delete Confirmation */}
+      <AlertDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete object?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete{" "}
+              <strong>{deleteTarget?.name}</strong>. This action cannot be
+              undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 }

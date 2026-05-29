@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import {
   customersTable,
   customerNotesTable,
+  objectsTable,
   sectorsTable,
   auditLogTable,
   insertCustomerSchema,
@@ -12,7 +13,7 @@ import {
 import { eq, ilike, or, and, asc, desc, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requirePermission } from "@/lib/auth/permissions";
+import { requirePermission, hasPermission } from "@/lib/auth/permissions";
 
 // ─── Shared Types ─────────────────────────────────────────────────────────────
 
@@ -155,6 +156,8 @@ export async function listCustomers(params: {
 
 export async function getCustomer(id: string): Promise<CustomerDetail | null> {
   await requirePermission("customers", "read");
+  // Notes are internal management data — only callers with write permission may see them.
+  const canSeeNotes = await hasPermission("customers", "write");
 
   const rows = await db
     .select({
@@ -184,9 +187,57 @@ export async function getCustomer(id: string): Promise<CustomerDetail | null> {
   const r = rows[0];
   return {
     ...r,
+    notes:    canSeeNotes ? r.notes : null,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
   };
+}
+
+export async function deleteCustomer(id: string): Promise<ActionResult> {
+  await requirePermission("customers", "write");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Not authenticated." };
+
+  // Prevent deletion if the customer still has objects linked to it
+  const [countRow] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(objectsTable)
+    .where(eq(objectsTable.customerId, id));
+
+  const linkedObjects = countRow?.count ?? 0;
+  if (linkedObjects > 0) {
+    return {
+      success: false,
+      message: `Cannot delete: this customer has ${linkedObjects} object${linkedObjects > 1 ? "s" : ""}. Delete all objects first.`,
+    };
+  }
+
+  const [customer] = await db
+    .select({ name: customersTable.name })
+    .from(customersTable)
+    .where(eq(customersTable.id, id))
+    .limit(1);
+
+  if (!customer) return { success: false, message: "Customer not found." };
+
+  // Remove notes mirror first (no FK cascade on this table)
+  await db.delete(customerNotesTable).where(eq(customerNotesTable.customerId, id));
+  await db.delete(customersTable).where(eq(customersTable.id, id));
+
+  await db.insert(auditLogTable).values({
+    userId:     user.id,
+    action:     "delete",
+    resource:   "customers",
+    resourceId: id,
+    metadata:   { name: customer.name },
+  });
+
+  revalidatePath("/customers");
+  return { success: true };
 }
 
 export async function listSectors(): Promise<SectorOption[]> {

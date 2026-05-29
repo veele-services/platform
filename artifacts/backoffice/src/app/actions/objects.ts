@@ -389,6 +389,38 @@ export async function setObjectStatus(
   return { success: true };
 }
 
+export async function deleteObject(id: string): Promise<ActionResult> {
+  await requirePermission("objects", "write");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Not authenticated." };
+
+  const [obj] = await db
+    .select({ name: objectsTable.name, customerId: objectsTable.customerId })
+    .from(objectsTable)
+    .where(eq(objectsTable.id, id))
+    .limit(1);
+
+  if (!obj) return { success: false, message: "Object not found." };
+
+  await db.delete(objectsTable).where(eq(objectsTable.id, id));
+
+  await db.insert(auditLogTable).values({
+    userId:     user.id,
+    action:     "delete",
+    resource:   "objects",
+    resourceId: id,
+    metadata:   { name: obj.name, customerId: obj.customerId },
+  });
+
+  revalidatePath("/objects");
+  revalidatePath(`/customers/${obj.customerId}`);
+  return { success: true };
+}
+
 export async function bulkSetObjectStatus(
   ids: string[],
   isActive: boolean,
