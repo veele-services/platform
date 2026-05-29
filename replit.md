@@ -13,12 +13,19 @@ An operational SaaS platform that replaces WhatsApp, Excel, manual planning, man
 
 ## Stack
 
+- **Framework**: Next.js App Router
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS + shadcn/ui
+- **Auth**: Supabase Auth
+- **Database**: Supabase PostgreSQL + Drizzle ORM
+- **Storage**: Supabase Storage
+- **Security**: Supabase RLS
+- **App type**: PWA
+- **Payments**: Mollie
+- **Validation**: Zod (`zod/v4`), `drizzle-zod`
+- **API codegen**: Orval (from OpenAPI spec)
+- **Build**: esbuild (CJS bundle)
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
-- DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
 
 ## Where things live
 
@@ -130,17 +137,29 @@ Three-surface platform:
 2. **Personnel PWA** — mobile-first app for field workers
 3. **Customer PWA** — mobile-first portal for clients
 
+---
+
 ## User preferences
 
-_Populate as you build — explicit user instructions worth remembering across sessions._
+- Production-ready code only — no placeholders, no mocks
+- Minimal-diff changes — never redesign unrelated modules
+- Dynamic configuration over hardcoded values
+- RLS-first security — never bypass unless explicitly required
+- All sensitive actions must be logged
+
+## Development Skill
+
+See `.local/skills/veele-dev/SKILL.md` for full coding rules, security rules, UI style, and sprint plan.
 
 ## Gotchas
 
 - Assignments are the central entity — never model around shifts first
 - Planning eligibility is complex (availability + leave + sick + role + certs + knowledge + region + conflicts)
 - Dynamic RBAC — permissions are configurable, not hard-coded
+- Personnel names and internal notes are hidden from customers (enforced via RLS)
 
 ## Pointers
 
 - See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
 - Canon is defined above — all product decisions must align with it
+- Development rules in `.local/skills/veele-dev/SKILL.md`
