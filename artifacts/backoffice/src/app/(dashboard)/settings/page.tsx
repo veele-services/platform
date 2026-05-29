@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Settings } from "lucide-react";
+import Link from "next/link";
+import { ClipboardList, ChevronRight } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 
@@ -19,18 +20,56 @@ export default async function SettingsPage() {
           Settings
         </h1>
         <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-          Platform configuration and RBAC management
+          Platform configuration and catalog management
         </p>
       </div>
-      <div className="veele-card flex flex-col items-center justify-center py-16 gap-4">
-        <Settings className="w-12 h-12" style={{ color: "#00B7B3" }} strokeWidth={1.5} />
-        <p className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>
-          Settings &amp; Configuration
-        </p>
-        <p className="text-sm text-center max-w-xs" style={{ color: "#64748B" }}>
-          Role management, platform settings, and integrations will be available here.
-        </p>
+
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <SettingsCard
+          href="/settings/task-codes"
+          icon={<ClipboardList className="h-6 w-6" style={{ color: "#00B7B3" }} strokeWidth={1.5} />}
+          title="Task Codes"
+          description="Manage the central catalog of task types used in assignments, planning, and invoicing."
+        />
       </div>
     </div>
+  );
+}
+
+function SettingsCard({
+  href,
+  icon,
+  title,
+  description,
+}: {
+  href:        string;
+  icon:        React.ReactNode;
+  title:       string;
+  description: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="veele-card flex items-start gap-4 transition-shadow hover:shadow-md group"
+    >
+      <div
+        className="flex-shrink-0 flex items-center justify-center rounded-lg w-10 h-10"
+        style={{ backgroundColor: "#E0FAFB" }}
+      >
+        {icon}
+      </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold group-hover:underline" style={{ color: "#081D3A" }}>
+          {title}
+        </p>
+        <p className="mt-0.5 text-xs leading-relaxed" style={{ color: "#64748B" }}>
+          {description}
+        </p>
+      </div>
+      <ChevronRight
+        className="flex-shrink-0 h-4 w-4 mt-0.5 transition-transform group-hover:translate-x-0.5"
+        style={{ color: "#94A3B8" }}
+      />
+    </Link>
   );
 }
