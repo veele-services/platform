@@ -23,10 +23,9 @@ export const customersTable = pgTable("customers", {
 
   contactName:  varchar("contact_name", { length: 200 }),
   /**
-   * Customer portal identity key.
-   * Unique constraint prevents a single JWT email from matching multiple rows
-   * (cross-customer data leakage).
-   * RLS policy: WHERE contact_email = (auth.jwt() ->> 'email')
+   * Customer portal identity key — Supabase RLS matches on this field.
+   * UNIQUE constraint prevents a single JWT email from matching multiple rows
+   * (cross-customer data leakage prevention).
    */
   contactEmail: varchar("contact_email", { length: 255 }).unique(),
   contactPhone: varchar("contact_phone", { length: 50 }),
@@ -34,19 +33,14 @@ export const customersTable = pgTable("customers", {
   isActive:     boolean("is_active").notNull().default(true),
 
   /**
-   * Internal staff notes — must never be exposed to customer-portal users.
+   * Internal staff notes are stored in `customer_notes` (separate table).
+   * That table has a management-only RLS policy so customer-portal users
+   * receive zero rows at the Supabase database layer — no application-layer
+   * filtering required.
    *
-   * DB-level protection:
-   *   The `v_customers_portal` view (migrations/002_sprint1_rls.sql) excludes
-   *   this column.  Customer-portal Server Components MUST query the view,
-   *   not the base table.  Management Server Components query the base table.
-   *
-   * Application-layer protection:
-   *   Customer-facing API routes and Server Actions must omit this field.
-   *   RLS on the base table further restricts rows (not columns) for
-   *   customer-role users.
+   * This field is intentionally absent from this table.
+   * See lib/db/src/schema/customer-notes.ts.
    */
-  notes:        text("notes"),
 
   createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:    timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

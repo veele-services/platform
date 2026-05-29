@@ -9,24 +9,27 @@ import { z } from "zod/v4";
 import { customersTable } from "./customers";
 
 /**
- * Internal-only notes for a customer.
+ * Internal staff notes for a customer.
  *
- * Stored in a separate table so Supabase RLS can deny all access to
- * non-management users at the database level — no application-layer
- * filtering required.
+ * Stored in a dedicated table so Supabase RLS can enforce management-only
+ * access at the database level.  Because this is a separate table, the
+ * `authenticated` role (used by all portal users) simply receives zero rows
+ * from the customer-portal RLS policy — no application-layer filtering needed.
  *
- * RLS policy in migrations/002_sprint1_rls.sql:
- *   Only the Management role may SELECT / INSERT / UPDATE / DELETE.
- *   Customer-portal users receive zero rows.
+ * RLS in migrations/002_sprint1_rls.sql:
+ *   - Management: full access (SELECT / INSERT / UPDATE / DELETE)
+ *   - All other roles: denied — no policy, no rows returned
  */
 export const customerNotesTable = pgTable("customer_notes", {
   id:         uuid("id").primaryKey().defaultRandom(),
-  customerId: uuid("customer_id").notNull().references(() => customersTable.id, { onDelete: "cascade" }),
+  customerId: uuid("customer_id")
+    .notNull()
+    .references(() => customersTable.id, { onDelete: "cascade" }),
   notes:      text("notes").notNull(),
   createdAt:  timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:  timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
-  /** Staff member who last updated the notes. */
-  createdBy:  uuid("created_by"),
+  /** Supabase Auth user UUID of the staff member who last updated the notes. */
+  updatedBy:  uuid("updated_by"),
 });
 
 export const insertCustomerNoteSchema = createInsertSchema(customerNotesTable).omit({
@@ -36,8 +39,8 @@ export const insertCustomerNoteSchema = createInsertSchema(customerNotesTable).o
 });
 
 export const selectCustomerNoteSchema = createSelectSchema(customerNotesTable);
-export const updateCustomerNoteSchema = insertCustomerNoteSchema.partial();
+export const updateCustomerNoteSchema  = insertCustomerNoteSchema.partial();
 
 export type InsertCustomerNote = z.infer<typeof insertCustomerNoteSchema>;
 export type UpdateCustomerNote = z.infer<typeof updateCustomerNoteSchema>;
-export type CustomerNote = z.infer<typeof selectCustomerNoteSchema>;
+export type CustomerNote       = z.infer<typeof selectCustomerNoteSchema>;

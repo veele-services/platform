@@ -63,12 +63,20 @@ CREATE TABLE "customers" (
 	"contact_email" varchar(255),
 	"contact_phone" varchar(50),
 	"is_active" boolean DEFAULT true NOT NULL,
-	"notes" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"created_by" uuid,
 	CONSTRAINT "customers_code_unique" UNIQUE("code"),
 	CONSTRAINT "customers_contact_email_unique" UNIQUE("contact_email")
+);
+--> statement-breakpoint
+CREATE TABLE "customer_notes" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"customer_id" uuid NOT NULL,
+	"notes" text NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	"updated_by" uuid
 );
 --> statement-breakpoint
 CREATE TABLE "objects" (
@@ -132,6 +140,7 @@ ALTER TABLE "role_permissions" ADD CONSTRAINT "role_permissions_role_id_roles_id
 ALTER TABLE "role_permissions" ADD CONSTRAINT "role_permissions_permission_id_permissions_id_fk" FOREIGN KEY ("permission_id") REFERENCES "public"."permissions"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "user_roles" ADD CONSTRAINT "user_roles_role_id_roles_id_fk" FOREIGN KEY ("role_id") REFERENCES "public"."roles"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "customers" ADD CONSTRAINT "customers_sector_id_sectors_id_fk" FOREIGN KEY ("sector_id") REFERENCES "public"."sectors"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "customer_notes" ADD CONSTRAINT "customer_notes_customer_id_customers_id_fk" FOREIGN KEY ("customer_id") REFERENCES "public"."customers"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "objects" ADD CONSTRAINT "objects_customer_id_customers_id_fk" FOREIGN KEY ("customer_id") REFERENCES "public"."customers"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "objects" ADD CONSTRAINT "objects_sector_id_sectors_id_fk" FOREIGN KEY ("sector_id") REFERENCES "public"."sectors"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "personnel" ADD CONSTRAINT "personnel_role_id_roles_id_fk" FOREIGN KEY ("role_id") REFERENCES "public"."roles"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
