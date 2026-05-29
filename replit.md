@@ -43,11 +43,25 @@ Every task must comply with all three skills. No exceptions.
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+| Artifact | Path | Purpose |
+|---|---|---|
+| Backoffice | `artifacts/backoffice/` | Management UI — Next.js 15 App Router, port 22138, preview `/` |
+| API Server | `artifacts/api-server/` | Express 5 REST API, port 8080, path `/api` |
+| API Spec | `lib/api-spec/openapi.yaml` | OpenAPI source of truth — run codegen after changes |
+| DB Schema | `lib/db/src/schema/` | Drizzle ORM schema files |
+| API Zod | `lib/api-zod/src/generated/api.ts` | Generated Zod validation schemas (server-side) |
+| API Client | `lib/api-client-react/src/generated/api.ts` | Generated React Query hooks (client-side) |
+| Design tokens | `artifacts/backoffice/src/app/globals.css` | Tailwind v4 `@theme {}` block — all Veele CSS tokens |
+| shadcn/ui components | `artifacts/backoffice/src/components/ui/` | Radix-based UI primitives |
+| Custom layout | `artifacts/backoffice/src/components/layout/` | Sidebar with nav, header |
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- **Next.js instead of Vite/SPA** — App Router enables per-route `metadata`, RSC for data-heavy pages, and a clean server/client boundary. Matches the `replit.md` stack requirement.
+- **Tailwind v4 CSS-first config** — All design tokens live in `@theme {}` in `globals.css` instead of `tailwind.config.ts`. This is the v4 canonical approach; no `tailwind.config.*` file exists.
+- **Dev binds to `0.0.0.0`, production to `127.0.0.1`** — Replit's preview proxy needs `0.0.0.0` in dev; VPS NGINX reverse-proxy only needs loopback in production. Flags are in `package.json` scripts.
+- **shadcn/ui components kept minimal** — Only components with all dependencies installed are included. Components requiring `recharts`, `embla-carousel-react`, etc. are added on demand per sprint, not pre-installed.
+- **PORT from env only** — No fallback port in Next.js scripts. The workflow always sets `PORT=22138` via `artifact.toml [services.env]`. Local dev without the workflow should use the workflow path.
 
 ---
 
