@@ -10,21 +10,17 @@
 --
 -- Authorization model:
 --   Management role → full access to all tables
---   Customer users  → SELECT own customer record (matched by contact_email)
---                     SELECT own objects (via customer_id)
---                     The `notes` column on customers is excluded at the
---                     application layer for Customer-role users; RLS cannot
---                     restrict individual columns, so this must be enforced
---                     in the API / Server Component layer.
+--   Customer users  → SELECT own customer row (matched by contact_email,
+--                     unique constraint prevents cross-customer leakage)
+--                     SELECT own objects via customer_id subquery
+--                     ZERO access to customer_notes (DB-enforced, not app layer)
 --   Employees       → SELECT their own personnel record (via user_id)
---   All others      → no access to customers, objects, or personnel
---   Task codes      → SELECT for all authenticated users (needed for planning)
+--   All others      → no access to customers, objects, personnel, or notes
+--   Sectors/task_codes → SELECT for all authenticated (reference data)
 -- ============================================================================
 
 -- ─────────────────────────────────────────────────────────────────────────────
--- FK constraints to auth.users
--- These cross-schema FKs cannot be expressed in Drizzle schema definitions,
--- so they are created here instead.
+-- FK constraints to auth.users (cross-schema — cannot be expressed in Drizzle)
 -- ─────────────────────────────────────────────────────────────────────────────
 ALTER TABLE personnel
   ADD CONSTRAINT personnel_user_id_fkey
@@ -44,12 +40,19 @@ ALTER TABLE objects
   REFERENCES auth.users(id)
   ON DELETE SET NULL;
 
+ALTER TABLE customer_notes
+  ADD CONSTRAINT customer_notes_created_by_fkey
+  FOREIGN KEY (created_by)
+  REFERENCES auth.users(id)
+  ON DELETE SET NULL;
+
 -- ─────────────────────────────────────────────────────────────────────────────
 -- Indexes
 -- ─────────────────────────────────────────────────────────────────────────────
 CREATE INDEX IF NOT EXISTS idx_customers_sector_id      ON customers(sector_id);
 CREATE INDEX IF NOT EXISTS idx_customers_is_active      ON customers(is_active);
 CREATE INDEX IF NOT EXISTS idx_customers_contact_email  ON customers(contact_email);
+CREATE INDEX IF NOT EXISTS idx_customer_notes_customer  ON customer_notes(customer_id);
 CREATE INDEX IF NOT EXISTS idx_objects_customer_id      ON objects(customer_id);
 CREATE INDEX IF NOT EXISTS idx_objects_sector_id        ON objects(sector_id);
 CREATE INDEX IF NOT EXISTS idx_objects_is_active        ON objects(is_active);
@@ -86,7 +89,9 @@ CREATE POLICY sectors_delete_management ON sectors
 -- customers
 -- Management: full access.
 -- Customer portal users: SELECT own record matched by contact_email.
---   (The `notes` column must be filtered at the application layer.)
+-- contact_email has a UNIQUE constraint (schema/customers.ts) so a single
+-- JWT email cannot match more than one customer record.
+-- Internal notes are stored in customer_notes (separate table, below).
 -- ─────────────────────────────────────────────────────────────────────────────
 ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
 
@@ -95,10 +100,22 @@ CREATE POLICY customers_management ON customers
   USING (is_management())
   WITH CHECK (is_management());
 
--- Customer users identify themselves by the email in their Supabase JWT.
 CREATE POLICY customers_select_own ON customers
   FOR SELECT TO authenticated
   USING (contact_email = (auth.jwt() ->> 'email'));
+
+-- ─────────────────────────────────────────────────────────────────────────────
+-- customer_notes
+-- DB-enforced internal-only table.
+-- Management: full access.
+-- All other roles: zero access (no SELECT / INSERT / UPDATE / DELETE policy).
+-- ─────────────────────────────────────────────────────────────────────────────
+ALTER TABLE customer_notes ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY customer_notes_management ON customer_notes
+  TO authenticated
+  USING (is_management())
+  WITH CHECK (is_management());
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- objects
@@ -140,7 +157,7 @@ CREATE POLICY personnel_select_own ON personnel
 
 -- ─────────────────────────────────────────────────────────────────────────────
 -- task_codes
--- Task codes are reference data needed for planning.
+-- Reference data needed for planning.
 -- All authenticated users may read; only Management may write.
 -- ─────────────────────────────────────────────────────────────────────────────
 ALTER TABLE task_codes ENABLE ROW LEVEL SECURITY;

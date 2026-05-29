@@ -6,7 +6,7 @@ import {
   boolean,
   timestamp,
 } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
 export const sectorsTable = pgTable("sectors", {
@@ -24,8 +24,9 @@ export const insertSectorSchema = createInsertSchema(sectorsTable).omit({
   updatedAt: true,
 });
 
-export const updateSectorSchema = insertSectorSchema.partial();
+export const selectSectorSchema = createSelectSchema(sectorsTable);
+export const updateSectorSchema  = insertSectorSchema.partial();
 
 export type InsertSector = z.infer<typeof insertSectorSchema>;
 export type UpdateSector = z.infer<typeof updateSectorSchema>;
-export type Sector = typeof sectorsTable.$inferSelect;
+export type Sector       = z.infer<typeof selectSectorSchema>;

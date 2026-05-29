@@ -6,7 +6,7 @@ import {
   boolean,
   timestamp,
 } from "drizzle-orm/pg-core";
-import { createInsertSchema } from "drizzle-zod";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { customersTable } from "./customers";
 import { sectorsTable } from "./sectors";
@@ -42,8 +42,9 @@ export const insertObjectSchema = createInsertSchema(objectsTable).omit({
   updatedAt: true,
 });
 
-export const updateObjectSchema = insertObjectSchema.partial();
+export const selectObjectSchema = createSelectSchema(objectsTable);
+export const updateObjectSchema  = insertObjectSchema.partial();
 
-export type InsertObject = z.infer<typeof insertObjectSchema>;
-export type UpdateObject = z.infer<typeof updateObjectSchema>;
-export type ServiceObject = typeof objectsTable.$inferSelect;
+export type InsertObject  = z.infer<typeof insertObjectSchema>;
+export type UpdateObject  = z.infer<typeof updateObjectSchema>;
+export type ServiceObject = z.infer<typeof selectObjectSchema>;

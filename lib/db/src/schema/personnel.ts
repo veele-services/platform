@@ -7,7 +7,7 @@ import {
   jsonb,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { createInsertSchema } from "drizzle-zod";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { rolesTable } from "./roles";
 
@@ -53,8 +53,9 @@ export const insertPersonnelSchema = createInsertSchema(personnelTable).omit({
   updatedAt: true,
 });
 
-export const updatePersonnelSchema = insertPersonnelSchema.partial();
+export const selectPersonnelSchema = createSelectSchema(personnelTable);
+export const updatePersonnelSchema  = insertPersonnelSchema.partial();
 
 export type InsertPersonnel = z.infer<typeof insertPersonnelSchema>;
 export type UpdatePersonnel = z.infer<typeof updatePersonnelSchema>;
-export type Personnel = typeof personnelTable.$inferSelect;
+export type Personnel       = z.infer<typeof selectPersonnelSchema>;

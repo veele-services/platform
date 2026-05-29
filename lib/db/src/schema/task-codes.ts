@@ -10,7 +10,7 @@ import {
   numeric,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { createInsertSchema } from "drizzle-zod";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { sectorsTable } from "./sectors";
 import { rolesTable } from "./roles";
@@ -56,8 +56,9 @@ export const insertTaskCodeSchema = createInsertSchema(taskCodesTable).omit({
   updatedAt: true,
 });
 
-export const updateTaskCodeSchema = insertTaskCodeSchema.partial();
+export const selectTaskCodeSchema = createSelectSchema(taskCodesTable);
+export const updateTaskCodeSchema  = insertTaskCodeSchema.partial();
 
 export type InsertTaskCode = z.infer<typeof insertTaskCodeSchema>;
 export type UpdateTaskCode = z.infer<typeof updateTaskCodeSchema>;
-export type TaskCode = typeof taskCodesTable.$inferSelect;
+export type TaskCode       = z.infer<typeof selectTaskCodeSchema>;
