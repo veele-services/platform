@@ -2,6 +2,20 @@
 
 An operational SaaS platform that replaces WhatsApp, Excel, manual planning, manual work orders, and fragmented administration for service businesses.
 
+---
+
+## BEFORE STARTING ANY TASK — READ THE SKILLSET FIRST
+
+Before implementing anything, always read and apply the following skills in order:
+
+1. `.local/skills/veele-dev/SKILL.md` — coding principles, stack, sprint plan, security rules
+2. `.local/skills/veele-design/SKILL.md` — color system, typography, layout, component rules
+3. `.local/skills/veele-deployment/SKILL.md` — deployment model, branch rules, definition of done
+
+Every task must comply with all three skills. No exceptions.
+
+---
+
 ## Run & Operate
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)

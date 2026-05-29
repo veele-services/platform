@@ -1,0 +1,83 @@
+
+# Replit Skill — Existing Secure VPS/GitHub Deployment Context ## Important Context The VPS and GitHub repository are managed outside Replit. Replit must NOT: - create VPS users - change SSH configuration - configure UFW - configure Fail2Ban - configure NGINX - create deploy keys - create GitHub branches - change GitHub Actions secrets - edit production secrets - invent domain settings - assume a domain exists The VPS foundation and GitHub deployment architecture are prepared manually by the project owner. Replit only needs to understand the deployment model and build the application in a way that fits this structure. --- # Current Temporary Environment Project: ```text PROJECT_NAME=Veele Services Platform PROJECT_SLUG=veele TEMP_VPS_IP=62.129.138.103 DOMAIN=not configured yet 
+Until a real domain is connected, the application may be tested through:
+http://62.129.138.103 
+or, if NGINX routes by port internally:
+http://62.129.138.103 
+Replit must not hardcode the VPS IP into the application unless explicitly instructed.
+GitHub Branch Model
+The repository uses:
+staging production 
+Flow:
+feature/* ↓ staging ↓ production 
+Meaning:
+• staging is used for testing.
+• production is the live VPS branch.
+• staging is merged into production only after testing.
+• Replit should prepare code changes in feature branches or clearly explain what should be merged.
+• Replit must never assume main is the production branch.
+Deployment Model
+Deployments are handled outside Replit through GitHub Actions and a hardened VPS.
+Replit must understand:
+GitHub production branch ↓ GitHub Actions ↓ forced-command SSH ↓ /opt/veele/deploy-production.sh ↓ /var/www/veele ↓ PM2 + Next.js ↓ NGINX ↓ temporary VPS IP 62.129.138.103 
+Staging works similarly:
+GitHub staging branch ↓ GitHub Actions ↓ forced-command SSH ↓ /opt/veele/deploy-staging.sh ↓ /var/www/veele-staging ↓ PM2 + Next.js ↓ NGINX ↓ temporary VPS IP / staging route 
+Replit Responsibilities
+Replit is responsible for:
+• building the application
+• keeping the code deployable
+• keeping Next.js at version 15.5 or higher
+• using pnpm
+• keeping secrets out of the repo
+• creating safe .env.example files
+• respecting the staging → production workflow
+• not changing deployment architecture without approval
+• not adding Docker unless explicitly requested
+• not adding unsafe install scripts
+• not adding curl | sh or wget | sh
+• not adding suspicious package lifecycle scripts
+Replit Must Not Touch
+Replit must not modify or generate commands for:
+/etc/ssh/sshd_config /etc/nginx /etc/fstab /etc/audit /home/deploy/.ssh /opt/veele/secrets /opt/veele/deploy-production.sh /opt/veele/deploy-staging.sh GitHub Actions secrets server private keys 
+Unless explicitly asked.
+Runtime Assumptions
+The app will run behind NGINX.
+The Next.js server should bind to:
+127.0.0.1 
+Not:
+0.0.0.0 
+The production app will likely use:
+PORT=3000 
+The staging app will likely use:
+PORT=3001 
+These values must come from environment variables, not hardcoded application logic.
+Required App Standard
+The application must use:
+Next.js >= 15.5 React React DOM TypeScript Tailwind CSS shadcn/ui pnpm 
+Replit must verify package versions before making deployment-related changes.
+Environment Handling
+Replit may create:
+.env.example 
+Replit must not create real production secrets.
+Allowed example:
+NEXT_PUBLIC_APP_NAME="Veele Services" NEXT_PUBLIC_APP_URL="http://62.129.138.103" DATABASE_URL="" SESSION_SECRET="" 
+Production values are managed manually on the VPS.
+Temporary URL Rule
+Until a real domain exists:
+• use http://62.129.138.103 only as a temporary public app URL
+• do not hardcode it deeply into business logic
+• keep app URL configurable via NEXT_PUBLIC_APP_URL
+• later replacement with a real domain must be easy
+Security Review Rule
+Before any merge to staging or production, Replit must check that it did not introduce:
+preinstall postinstall prepare curl | sh wget | sh eval( child_process exec( spawn( base64 obfuscation hardcoded secrets private keys Docker files without approval 
+Definition of Done for Replit Work
+Every Replit implementation phase is done only when:
+• code builds successfully
+• typecheck passes
+• no real secrets are committed
+• .env.example is updated when env vars change
+• Next.js remains 15.5 or higher
+• deployment assumptions remain compatible with VPS setup
+• changes are intended for staging first
+• no direct production shortcuts are introduced
