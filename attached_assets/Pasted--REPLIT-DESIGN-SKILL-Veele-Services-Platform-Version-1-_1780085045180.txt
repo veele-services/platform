@@ -1,0 +1,771 @@
+# REPLIT DESIGN SKILL
+# Veele Services Platform
+
+Version: 1.0
+Applies To:
+- Management Backoffice
+- Planning Dashboard
+- Administration Dashboard
+- Customer PWA
+- Personnel PWA
+
+---
+
+# DESIGN PHILOSOPHY
+
+The Veele Services Platform is not a startup app.
+
+It is not social.
+
+It is not playful.
+
+It is not consumer-focused.
+
+It is a professional operational platform used daily by planners, managers, administrators, customers and personnel.
+
+The design must communicate:
+
+- reliability
+- professionalism
+- control
+- trust
+- efficiency
+- operational clarity
+
+Users must feel:
+
+"We know exactly what is happening."
+
+---
+
+# DESIGN STYLE
+
+Style:
+
+Premium Operational SaaS
+
+Comparable to:
+
+- Monday.com
+- ClickUp
+- Asana
+- Deel
+- Rippling
+- HubSpot
+- ServiceNow
+
+But cleaner and more operational.
+
+The platform should feel like:
+
+"A professional company command center."
+
+---
+
+# BRAND POSITIONING
+
+Veele Services is:
+
+- Security
+- Cleaning
+- Facility Services
+
+The visual identity must represent:
+
+- trust
+- safety
+- structure
+- service
+
+The platform should never feel cold or governmental.
+
+It should feel:
+
+Professional + Human.
+
+---
+
+# COLOR SYSTEM
+
+Primary Navy
+
+#081D3A
+
+Used for:
+
+- sidebars
+- navigation
+- headers
+- branding
+
+---
+
+Secondary Blue
+
+#133D6B
+
+Used for:
+
+- secondary panels
+- charts
+- information blocks
+
+---
+
+Primary Teal
+
+#00B7B3
+
+Used for:
+
+- primary actions
+- highlights
+- success indicators
+- active states
+
+---
+
+Soft Teal
+
+#44D6D1
+
+Used for:
+
+- subtle highlights
+- backgrounds
+- badges
+
+---
+
+Light Background
+
+#F8FAFC
+
+Used for:
+
+- pages
+- dashboard backgrounds
+
+---
+
+Card Background
+
+#FFFFFF
+
+Used for:
+
+- cards
+- tables
+- forms
+
+---
+
+Text Primary
+
+#081D3A
+
+---
+
+Text Secondary
+
+#64748B
+
+---
+
+Success
+
+#22C55E
+
+---
+
+Warning
+
+#F59E0B
+
+---
+
+Danger
+
+#EF4444
+
+---
+
+# TYPOGRAPHY
+
+Headings:
+
+Poppins
+
+Weights:
+
+600
+700
+
+Used for:
+
+- page titles
+- cards
+- dashboard headers
+
+---
+
+Body
+
+Inter
+
+Weights:
+
+400
+500
+
+Used for:
+
+- forms
+- descriptions
+- tables
+
+---
+
+Never use decorative fonts.
+
+Never use script fonts.
+
+Never use condensed fonts.
+
+---
+
+# GENERAL LAYOUT
+
+The platform uses:
+
+Fixed viewport application layout.
+
+Desktop:
+
+Sidebar left
+
+Content center
+
+Utility actions right
+
+---
+
+Maximum content width:
+
+1600px
+
+---
+
+Page structure:
+
+Header
+
+Page title
+
+Page actions
+
+Statistics row
+
+Main content
+
+---
+
+Spacing:
+
+8px grid system
+
+Use:
+
+8
+16
+24
+32
+48
+64
+
+---
+
+# BACKOFFICE DESIGN
+
+Desktop-first.
+
+The backoffice is used by:
+
+- Management
+- Planning
+- Administration
+
+Main layout:
+
+Sidebar left
+
+Content center
+
+Action panels right where appropriate
+
+---
+
+Sidebar Sections
+
+Dashboard
+
+Planning
+
+Assignments
+
+Customers
+
+Objects
+
+Personnel
+
+Reports
+
+Invoices
+
+Documents
+
+Settings
+
+---
+
+Sidebar:
+
+Dark navy
+
+Active item:
+
+Teal background
+
+White icon
+
+White text
+
+---
+
+# DASHBOARD DESIGN
+
+Dashboard is data-first.
+
+Show:
+
+Statistics cards
+
+Charts
+
+Open actions
+
+Alerts
+
+Upcoming assignments
+
+Recent reports
+
+Open invoices
+
+Personnel availability
+
+---
+
+Avoid decorative graphics.
+
+Everything must serve a purpose.
+
+---
+
+# KANBAN DESIGN
+
+Kanban is critical.
+
+Used for:
+
+Assignments
+
+Requests
+
+Tickets
+
+Planning
+
+---
+
+Columns:
+
+New
+
+Review
+
+Quote
+
+Awaiting Approval
+
+Plannable
+
+Scheduled
+
+In Progress
+
+Completed
+
+Invoiced
+
+Paid
+
+---
+
+Cards show:
+
+Assignment number
+
+Customer
+
+Object
+
+Sector
+
+Date
+
+Status
+
+Assigned personnel
+
+Priority
+
+---
+
+Drag and drop must feel smooth.
+
+---
+
+# TABLE DESIGN
+
+Tables are heavily used.
+
+Features:
+
+Search
+
+Filters
+
+Sorting
+
+Bulk actions
+
+Export
+
+Pagination
+
+Column selection
+
+---
+
+Use zebra striping subtly.
+
+Never use heavy borders.
+
+Use soft shadows and spacing.
+
+---
+
+# PERSONNEL PWA
+
+Mobile-first.
+
+Personnel must be able to perform work quickly.
+
+Target:
+
+Maximum 3 taps to important actions.
+
+---
+
+Bottom Navigation
+
+Dashboard
+
+Assignments
+
+Availability
+
+Hours
+
+More
+
+---
+
+Main actions:
+
+Start Assignment
+
+Finish Assignment
+
+Upload Photos
+
+Submit Report
+
+Request Leave
+
+Mark Available
+
+View Open Assignments
+
+---
+
+Large buttons.
+
+Thumb-friendly.
+
+Minimal typing.
+
+---
+
+# CUSTOMER PWA
+
+Mobile-first.
+
+Customers need visibility.
+
+Not complexity.
+
+---
+
+Bottom Navigation
+
+Dashboard
+
+Assignments
+
+Reports
+
+Invoices
+
+Profile
+
+---
+
+Customer sees:
+
+Veele Services
+
+Not employee names.
+
+Not internal notes.
+
+Not internal planning.
+
+---
+
+Customer can:
+
+Create assignment
+
+Approve quote
+
+View reports
+
+View photos
+
+Pay invoice
+
+Submit request
+
+Open ticket
+
+---
+
+# CARD DESIGN
+
+Cards are primary UI blocks.
+
+Card style:
+
+White
+
+24px padding
+
+12-16px radius
+
+Soft shadow
+
+Clear hierarchy
+
+---
+
+Every card contains:
+
+Title
+
+Status
+
+Content
+
+Actions
+
+---
+
+# STATUS SYSTEM
+
+New
+
+Blue
+
+---
+
+Pending
+
+Orange
+
+---
+
+Approved
+
+Teal
+
+---
+
+In Progress
+
+Purple
+
+---
+
+Completed
+
+Green
+
+---
+
+Cancelled
+
+Grey
+
+---
+
+Rejected
+
+Red
+
+---
+
+# FORMS
+
+Large labels
+
+Clear descriptions
+
+Logical grouping
+
+Multi-step where appropriate
+
+Autosave where possible
+
+---
+
+Never overwhelm users.
+
+Break long forms into sections.
+
+---
+
+# ICONOGRAPHY
+
+Lucide Icons
+
+Only.
+
+No mixed icon sets.
+
+No colorful icons.
+
+Use:
+
+Outline style
+
+Consistent sizing
+
+---
+
+# REPORTING UI
+
+Reporting is evidence.
+
+Photos are important.
+
+Photos must always be prominent.
+
+Report structure:
+
+Summary
+
+Tasks
+
+Photos
+
+Incidents
+
+Comments
+
+Approval
+
+---
+
+# RESPONSIVENESS
+
+Desktop:
+
+Management
+Planning
+Administration
+
+---
+
+Tablet:
+
+Secondary support
+
+---
+
+Mobile:
+
+Personnel
+
+Customer
+
+---
+
+Backoffice should never feel like a stretched mobile app.
+
+PWA should never feel like a shrunk desktop app.
+
+Both must be designed separately.
+
+---
+
+# USER EXPERIENCE RULES
+
+Always prioritize:
+
+1. Clarity
+2. Speed
+3. Structure
+4. Reliability
+
+Never prioritize:
+
+Fancy animations
+
+Trendy effects
+
+Visual gimmicks
+
+---
+
+# FINAL DESIGN GOAL
+
+When a user opens the platform they should immediately feel:
+
+"Everything is organized."
+
+The platform must feel like:
+
+The digital command center of Veele Services.

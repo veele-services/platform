@@ -151,6 +151,10 @@ Three-surface platform:
 
 See `.local/skills/veele-dev/SKILL.md` for full coding rules, security rules, UI style, and sprint plan.
 
+## Design Skill
+
+See `.local/skills/veele-design/SKILL.md` for the full design system (colors, typography, layout, components, PWA rules).
+
 ## Gotchas
 
 - Assignments are the central entity — never model around shifts first
