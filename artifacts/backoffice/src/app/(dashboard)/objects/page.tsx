@@ -1,36 +1,67 @@
 import type { Metadata } from "next";
-import { Building2 } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
+import { ObjectsView } from "@/components/objects/ObjectsView";
+import { listObjects, listCustomerOptions } from "@/app/actions/objects";
+import { listSectors } from "@/app/actions/customers";
 
-export const metadata: Metadata = {
-  title: "Objects",
-};
+export const metadata: Metadata = { title: "Objects" };
 
-export default async function ObjectsPage() {
-  if (!(await hasPermission("objects", "read"))) {
-    return <ForbiddenPage resource="objects" action="read" />;
-  }
+interface Props {
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}
+
+function str(v: string | string[] | undefined, fallback = ""): string {
+  return typeof v === "string" ? v : fallback;
+}
+
+export default async function ObjectsPage({ searchParams }: Props) {
+  const [canRead, canWrite] = await Promise.all([
+    hasPermission("objects", "read"),
+    hasPermission("objects", "write"),
+  ]);
+
+  if (!canRead) return <ForbiddenPage resource="objects" action="read" />;
+
+  const sp         = await searchParams;
+  const search     = str(sp.search);
+  const customerId = str(sp.customerId);
+  const sectorId   = str(sp.sectorId);
+  const status     = str(sp.status, "all");
+  const page       = Math.max(1, parseInt(str(sp.page, "1")) || 1);
+  const sort       = str(sp.sort, "name");
+  const dir        = str(sp.dir, "asc");
+
+  const [{ rows, total }, sectors, customers] = await Promise.all([
+    listObjects({ search, customerId, sectorId, status, page, sort, dir }),
+    listSectors(),
+    listCustomerOptions(),
+  ]);
 
   return (
     <div className="p-8">
-      <div className="mb-8">
+      <div className="mb-6">
         <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
           Objects
         </h1>
         <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-          Service locations and assets linked to customers
+          {total} object{total !== 1 ? "s" : ""}
+          {search ? ` matching "${search}"` : ""}
         </p>
       </div>
-      <div className="veele-card flex flex-col items-center justify-center py-16 gap-4">
-        <Building2 className="w-12 h-12" style={{ color: "#00B7B3" }} strokeWidth={1.5} />
-        <p className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>
-          Objects &amp; Locations
-        </p>
-        <p className="text-sm text-center max-w-xs" style={{ color: "#64748B" }}>
-          Object management will be built alongside Customers in Sprint 2.
-        </p>
-      </div>
+
+      <ObjectsView
+        rows={rows}
+        total={total}
+        sectors={sectors}
+        customers={customers}
+        canWrite={canWrite}
+        page={page}
+        initialSearch={search}
+        initialCustomerId={customerId}
+        initialSectorId={sectorId}
+        initialStatus={status}
+      />
     </div>
   );
 }
