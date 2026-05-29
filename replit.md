@@ -1,6 +1,6 @@
-# [Project name]
+# Veele Services Platform
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+An operational SaaS platform that replaces WhatsApp, Excel, manual planning, manual work orders, and fragmented administration for service businesses.
 
 ## Run & Operate
 
@@ -28,9 +28,107 @@ _Populate as you build — short repo map plus pointers to the source-of-truth f
 
 _Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
 
+---
+
+## Canon — Veele Services Platform
+
+### Product Type
+
+Operational SaaS Platform
+
+### Primary Goal
+
+Replace WhatsApp, Excel, manual planning, manual work orders and fragmented administration.
+
+### Core Model
+
+```
+Customer
+→ Sector
+→ Object
+→ Assignment
+→ Tasks
+→ Personnel
+→ Reporting
+→ Invoicing
+```
+
+**Assignments are the central entity.**
+
+- Never design the system around shifts first.
+- Assignments generate planning.
+- Assignments generate reporting.
+- Assignments generate invoicing.
+
+---
+
+### Application Structure
+
+#### Management Backoffice (Desktop-first)
+
+Modules: Dashboard, Customers, Objects, Assignments, Planning, Personnel, Reports, Invoices, Payments, Settings
+
+#### Personnel PWA (Mobile-first)
+
+Modules: Dashboard, My Assignments, Open Assignments, Availability, Leave, Hours, Reports, Documents, Payslips
+
+#### Customer PWA (Mobile-first)
+
+Modules: Dashboard, Objects, New Assignment, Assignments, Quotes, Reports, Invoices, Payments, Documents
+
+---
+
+### Roles (Dynamic RBAC)
+
+Base roles: Management, Administration, Planning, Teamlead, Employee, Flex Employee, Customer, Support
+
+Permissions must be configurable.
+
+---
+
+### Assignment Lifecycle
+
+```
+Requested → Review → Quote Preparation → Awaiting Approval → Approved
+→ Plannable → Scheduled → Seen → In Progress
+→ Not Completed | Completed → Report Submitted → Report Approved
+→ Invoice Ready → Invoiced → Paid → Closed
+```
+
+---
+
+### Planning Rules
+
+Only show employees that:
+- Are available
+- Not on leave
+- Not sick
+- Have required role
+- Have required certificates
+- Have required knowledge
+- Match region
+- Have no conflicts
+
+---
+
+### Task Codes
+
+Task codes are centrally managed. Fields: Code, Name, Sector, Description, Price, Duration, Required certificates, Required diploma, Required knowledge, Required role, Photo required, Report required, Invoiceable.
+
+---
+
+### Future Modules (Phase 3+ — NOT MVP)
+
+AI, NFC, QR, GPS, WhatsApp Business API, Accounting Integrations, PDF Generation
+
+---
+
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Three-surface platform:
+1. **Management Backoffice** — desktop-first admin for managing the full service operation
+2. **Personnel PWA** — mobile-first app for field workers
+3. **Customer PWA** — mobile-first portal for clients
 
 ## User preferences
 
@@ -38,8 +136,11 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
+- Assignments are the central entity — never model around shifts first
+- Planning eligibility is complex (availability + leave + sick + role + certs + knowledge + region + conflicts)
+- Dynamic RBAC — permissions are configurable, not hard-coded
 
 ## Pointers
 
 - See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Canon is defined above — all product decisions must align with it
