@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
 import { Settings } from "lucide-react";
+import { hasPermission } from "@/lib/auth/permissions";
+import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 
 export const metadata: Metadata = {
   title: "Settings",
 };
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  if (!(await hasPermission("settings", "read"))) {
+    return <ForbiddenPage resource="settings" action="read" />;
+  }
+
   return (
     <div className="p-8">
       <div className="mb-8">

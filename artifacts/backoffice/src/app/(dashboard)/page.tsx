@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { hasPermission } from "@/lib/auth/permissions";
+import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -11,7 +13,11 @@ const STAT_CARDS = [
   { label: "Completed Today", value: "—", accent: "#22C55E" },
 ];
 
-export default function DashboardPage() {
+export default async function DashboardPage() {
+  if (!(await hasPermission("dashboard", "read"))) {
+    return <ForbiddenPage resource="dashboard" action="read" />;
+  }
+
   return (
     <div className="p-8">
       <div className="mb-8">

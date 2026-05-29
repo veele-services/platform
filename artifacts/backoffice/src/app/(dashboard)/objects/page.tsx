@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
 import { Building2 } from "lucide-react";
+import { hasPermission } from "@/lib/auth/permissions";
+import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 
 export const metadata: Metadata = {
   title: "Objects",
 };
 
-export default function ObjectsPage() {
+export default async function ObjectsPage() {
+  if (!(await hasPermission("objects", "read"))) {
+    return <ForbiddenPage resource="objects" action="read" />;
+  }
+
   return (
     <div className="p-8">
       <div className="mb-8">

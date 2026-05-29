@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
 import { BarChart3 } from "lucide-react";
+import { hasPermission } from "@/lib/auth/permissions";
+import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 
 export const metadata: Metadata = {
   title: "Reports",
 };
 
-export default function ReportsPage() {
+export default async function ReportsPage() {
+  if (!(await hasPermission("reports", "read"))) {
+    return <ForbiddenPage resource="reports" action="read" />;
+  }
+
   return (
     <div className="p-8">
       <div className="mb-8">

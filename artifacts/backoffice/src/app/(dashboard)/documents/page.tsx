@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
 import { FolderOpen } from "lucide-react";
+import { hasPermission } from "@/lib/auth/permissions";
+import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 
 export const metadata: Metadata = {
   title: "Documents",
 };
 
-export default function DocumentsPage() {
+export default async function DocumentsPage() {
+  if (!(await hasPermission("documents", "read"))) {
+    return <ForbiddenPage resource="documents" action="read" />;
+  }
+
   return (
     <div className="p-8">
       <div className="mb-8">

@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
 import { ClipboardList } from "lucide-react";
+import { hasPermission } from "@/lib/auth/permissions";
+import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 
 export const metadata: Metadata = {
   title: "Assignments",
 };
 
-export default function AssignmentsPage() {
+export default async function AssignmentsPage() {
+  if (!(await hasPermission("assignments", "read"))) {
+    return <ForbiddenPage resource="assignments" action="read" />;
+  }
+
   return (
     <div className="p-8">
       <div className="mb-8">

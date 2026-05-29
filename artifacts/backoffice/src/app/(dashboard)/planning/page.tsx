@@ -1,11 +1,17 @@
 import type { Metadata } from "next";
 import { Calendar } from "lucide-react";
+import { hasPermission } from "@/lib/auth/permissions";
+import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 
 export const metadata: Metadata = {
   title: "Planning",
 };
 
-export default function PlanningPage() {
+export default async function PlanningPage() {
+  if (!(await hasPermission("planning", "read"))) {
+    return <ForbiddenPage resource="planning" action="read" />;
+  }
+
   return (
     <div className="p-8">
       <div className="mb-8">
