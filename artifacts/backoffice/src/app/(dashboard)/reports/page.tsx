@@ -1,28 +1,28 @@
 import type { Metadata } from "next";
-import { UserCog } from "lucide-react";
+import { BarChart3 } from "lucide-react";
 
 export const metadata: Metadata = {
-  title: "Personnel",
+  title: "Reports",
 };
 
-export default function PersonnelPage() {
+export default function ReportsPage() {
   return (
     <div className="p-8">
       <div className="mb-8">
         <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-          Personnel
+          Reports
         </h1>
         <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-          Manage field workers, roles, and availability
+          Operational reports from completed assignments
         </p>
       </div>
       <div className="veele-card flex flex-col items-center justify-center py-16 gap-4">
-        <UserCog className="w-12 h-12" style={{ color: "#00B7B3" }} strokeWidth={1.5} />
+        <BarChart3 className="w-12 h-12" style={{ color: "#00B7B3" }} strokeWidth={1.5} />
         <p className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>
-          Personnel Management
+          Reporting
         </p>
         <p className="text-sm text-center max-w-xs" style={{ color: "#64748B" }}>
-          Employee profiles, certificates, knowledge, and availability will be built in Sprint 2.
+          Reporting will be available once assignments are live in Sprint 2.
         </p>
       </div>
     </div>

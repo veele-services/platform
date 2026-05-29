@@ -13,20 +13,23 @@ import {
   FileText,
   FolderOpen,
   Settings,
+  LogOut,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { usePermissions } from "@/providers/permissions-provider";
+import { signOut } from "@/app/actions/auth";
 
 const NAV_ITEMS = [
-  { href: "/",            icon: LayoutDashboard, label: "Dashboard"   },
-  { href: "/planning",    icon: Calendar,        label: "Planning"    },
-  { href: "/assignments", icon: ClipboardList,   label: "Assignments" },
-  { href: "/customers",   icon: Users,           label: "Customers"   },
-  { href: "/objects",     icon: Building2,       label: "Objects"     },
-  { href: "/personnel",   icon: UserCog,         label: "Personnel"   },
-  { href: "/reports",     icon: BarChart3,       label: "Reports"     },
-  { href: "/invoices",    icon: FileText,        label: "Invoices"    },
-  { href: "/documents",   icon: FolderOpen,      label: "Documents"   },
-  { href: "/settings",    icon: Settings,        label: "Settings"    },
+  { href: "/",            icon: LayoutDashboard, label: "Dashboard",   permission: "dashboard:read"   },
+  { href: "/planning",    icon: Calendar,        label: "Planning",    permission: "planning:read"    },
+  { href: "/assignments", icon: ClipboardList,   label: "Assignments", permission: "assignments:read" },
+  { href: "/customers",   icon: Users,           label: "Customers",   permission: "customers:read"   },
+  { href: "/objects",     icon: Building2,       label: "Objects",     permission: "objects:read"     },
+  { href: "/personnel",   icon: UserCog,         label: "Personnel",   permission: "personnel:read"   },
+  { href: "/reports",     icon: BarChart3,       label: "Reports",     permission: "reports:read"     },
+  { href: "/invoices",    icon: FileText,        label: "Invoices",    permission: "invoices:read"    },
+  { href: "/documents",   icon: FolderOpen,      label: "Documents",   permission: "documents:read"   },
+  { href: "/settings",    icon: Settings,        label: "Settings",    permission: "settings:read"    },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {
@@ -34,8 +37,17 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || pathname.startsWith(href + "/");
 }
 
-export function Sidebar() {
-  const pathname = usePathname();
+interface SidebarProps {
+  userEmail:   string;
+  userInitial: string;
+  userRole:    string;
+}
+
+export function Sidebar({ userEmail, userInitial, userRole }: SidebarProps) {
+  const pathname    = usePathname();
+  const permissions = usePermissions();
+
+  const visibleItems = NAV_ITEMS.filter((item) => permissions.has(item.permission));
 
   return (
     <aside
@@ -67,54 +79,62 @@ export function Sidebar() {
 
       {/* ── Navigation ── */}
       <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
-        {NAV_ITEMS.map(({ href, icon: Icon, label }) => {
-          const active = isActive(pathname, href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              className={cn(
-                "sidebar-link",
-                active && "active"
-              )}
-            >
-              <Icon
-                className="flex-shrink-0"
-                style={{ width: "15px", height: "15px" }}
-                strokeWidth={active ? 2.5 : 1.75}
-              />
-              <span>{label}</span>
-            </Link>
-          );
-        })}
+        {visibleItems.length === 0 ? (
+          <p
+            className="px-3 py-4 text-center"
+            style={{
+              fontFamily: "var(--font-inter), Inter, sans-serif",
+              fontSize: "12px",
+              color: "rgba(255,255,255,0.35)",
+              lineHeight: "1.5",
+            }}
+          >
+            No modules assigned.
+            <br />
+            Contact your administrator.
+          </p>
+        ) : (
+          visibleItems.map(({ href, icon: Icon, label }) => {
+            const active = isActive(pathname, href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                className={cn("sidebar-link", active && "active")}
+              >
+                <Icon
+                  className="flex-shrink-0"
+                  style={{ width: "15px", height: "15px" }}
+                  strokeWidth={active ? 2.5 : 1.75}
+                />
+                <span>{label}</span>
+              </Link>
+            );
+          })
+        )}
       </nav>
 
-      {/* ── User avatar ── */}
-      <div
-        className="px-4 py-4 border-t border-white/10 flex-shrink-0"
-      >
+      {/* ── User footer ── */}
+      <div className="px-4 py-3 border-t border-white/10 flex-shrink-0">
         <div className="flex items-center gap-3">
           <div
             className="flex items-center justify-center rounded-full flex-shrink-0"
-            style={{
-              width: "32px",
-              height: "32px",
-              backgroundColor: "#133D6B",
-            }}
+            style={{ width: "32px", height: "32px", backgroundColor: "#133D6B" }}
           >
             <span
               className="text-white font-semibold"
               style={{ fontFamily: "var(--font-inter), Inter, sans-serif", fontSize: "11px" }}
             >
-              A
+              {userInitial}
             </span>
           </div>
-          <div className="flex flex-col overflow-hidden">
+
+          <div className="flex flex-col overflow-hidden flex-1 min-w-0">
             <span
               className="text-white font-medium truncate"
               style={{ fontFamily: "var(--font-inter), Inter, sans-serif", fontSize: "12px" }}
             >
-              Admin
+              {userEmail}
             </span>
             <span
               className="truncate"
@@ -124,9 +144,23 @@ export function Sidebar() {
                 color: "rgba(255,255,255,0.45)",
               }}
             >
-              Management
+              {userRole}
             </span>
           </div>
+
+          {/* Logout */}
+          <form action={signOut}>
+            <button
+              type="submit"
+              title="Sign out"
+              className="flex-shrink-0 rounded p-1 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
+            >
+              <LogOut
+                style={{ width: "14px", height: "14px", color: "rgba(255,255,255,0.45)" }}
+                strokeWidth={1.75}
+              />
+            </button>
+          </form>
         </div>
       </div>
     </aside>
