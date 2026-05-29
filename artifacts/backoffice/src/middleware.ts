@@ -1,18 +1,28 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { verifyPermissions, COOKIE_NAME } from "@/lib/auth/session-permissions";
+import { getRoutePermission } from "@/lib/auth/route-permissions";
 
 /**
- * Next.js Middleware — runs on every matched request.
+ * Next.js Middleware — runs on every matched request (Edge Runtime).
  *
- * Responsibilities:
- *   1. Refresh the Supabase session cookie (required for SSR auth).
- *   2. Redirect unauthenticated users to /login.
- *   3. Redirect authenticated users away from /login → /.
+ * Layer 1 — Authentication:
+ *   Refreshes the Supabase session cookie on every request.
+ *   Unauthenticated users are redirected to /login.
+ *   Authenticated users are redirected away from /login → /.
  *
- * Configuration guard:
- *   If Supabase env vars are not set, ALL protected routes redirect to /login.
- *   The login page then shows a "Supabase not configured" error banner.
- *   This is explicit failure — unauthenticated users NEVER reach protected routes.
+ * Layer 2 — RBAC route guard:
+ *   Reads the signed `veele_perms` cookie written at sign-in.
+ *   When present and verified, checks whether the user holds the required
+ *   permission for the requested path and redirects to / if not.
+ *
+ *   If the cookie is absent (e.g., legacy session, cookie cleared):
+ *   access is not blocked here — Server Components perform the authoritative
+ *   hasPermission() check and return <ForbiddenPage> when needed.
+ *
+ * NOTE: Never make database calls in middleware.  The Edge Runtime does not
+ * support the Node.js `pg` driver.  All DB-backed permission checks live in
+ * Server Components and Server Actions.
  */
 export async function middleware(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -21,16 +31,17 @@ export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isLoginPage  = pathname === "/login";
 
-  // Supabase not configured → block all protected routes, leave /login open.
+  // ── Config guard ──────────────────────────────────────────────────────────
+  // When Supabase is not configured, /login is accessible (shows setup notice);
+  // all other routes redirect to /login.  Never silently allow access.
   if (!url || !key) {
-    if (isLoginPage) {
-      return NextResponse.next();
-    }
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/login";
-    return NextResponse.redirect(redirectUrl);
+    if (isLoginPage) return NextResponse.next();
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    return NextResponse.redirect(loginUrl);
   }
 
+  // ── Layer 1: Authentication ───────────────────────────────────────────────
   let supabaseResponse = NextResponse.next({ request });
 
   const supabase = createServerClient(url, key, {
@@ -50,23 +61,50 @@ export async function middleware(request: NextRequest) {
     },
   });
 
-  // Refresh session — do not remove this call.
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Authenticated user visiting /login → redirect to dashboard.
   if (user && isLoginPage) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/";
-    return NextResponse.redirect(redirectUrl);
+    const dashUrl = request.nextUrl.clone();
+    dashUrl.pathname = "/";
+    return NextResponse.redirect(dashUrl);
   }
 
-  // Unauthenticated user visiting a protected route → redirect to /login.
   if (!user && !isLoginPage) {
-    const redirectUrl = request.nextUrl.clone();
-    redirectUrl.pathname = "/login";
-    return NextResponse.redirect(redirectUrl);
+    const loginUrl = request.nextUrl.clone();
+    loginUrl.pathname = "/login";
+    return NextResponse.redirect(loginUrl);
+  }
+
+  // ── Layer 2: RBAC route guard ─────────────────────────────────────────────
+  // Only runs for authenticated users on protected routes.
+  if (user && !isLoginPage) {
+    const required = getRoutePermission(pathname);
+
+    if (required) {
+      const permsCookieValue = request.cookies.get(COOKIE_NAME)?.value;
+
+      if (permsCookieValue) {
+        // Cookie is present — verify signature and check permission.
+        const permissions = await verifyPermissions(permsCookieValue);
+
+        if (
+          permissions !== null &&
+          !permissions.includes(`${required.resource}:${required.action}`)
+        ) {
+          // Verified cookie confirms user lacks the required permission.
+          // Redirect to dashboard root rather than an error page for smoother UX.
+          // The server component ForbiddenPage is the definitive access denial.
+          const dashUrl = request.nextUrl.clone();
+          dashUrl.pathname = "/";
+          return NextResponse.redirect(dashUrl);
+        }
+        // If permissions === null the signature was invalid — fall through to
+        // server component checks (don't block access on a bad/expired cookie).
+      }
+      // If cookie absent — fall through; server components enforce RBAC.
+    }
   }
 
   return supabaseResponse;
@@ -74,13 +112,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths EXCEPT:
-     * - _next/static  (static assets)
-     * - _next/image   (image optimisation)
-     * - favicon.ico, robots.txt, sitemap.xml
-     * - public image extensions
-     */
     "/((?!_next/static|_next/image|favicon\\.ico|robots\\.txt|sitemap\\.xml|.*\\.(?:svg|png|jpg|jpeg|gif|webp|ico)$).*)",
   ],
 };

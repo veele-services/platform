@@ -1,8 +1,12 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { writeAuditLog } from "@/lib/auth/permissions";
+import { getUserPermissions } from "@/lib/auth/permissions";
+import { signPermissions, COOKIE_NAME, COOKIE_MAX_AGE } from "@/lib/auth/session-permissions";
+import { db } from "@workspace/db";
+import { auditLogTable } from "@workspace/db";
 
 export type AuthFormState = {
   error: string | null;
@@ -10,7 +14,13 @@ export type AuthFormState = {
 
 /**
  * Server Action — sign in with email + password.
- * Compatible with React 19 useActionState.
+ *
+ * Contract:
+ *   1. Authenticate with Supabase.
+ *   2. Insert audit log entry — MANDATORY.  Sign-in is rolled back if the
+ *      audit insert fails to ensure every login event is recorded.
+ *   3. Encode and sign the user's permissions in a cookie for middleware RBAC.
+ *   4. Redirect to dashboard.
  */
 export async function signIn(
   _prevState: AuthFormState,
@@ -31,7 +41,6 @@ export async function signIn(
   });
 
   if (error || !data.user) {
-    // Normalise Supabase error messages for the UI.
     const message =
       error?.message === "Invalid login credentials"
         ? "Incorrect email or password. Please try again."
@@ -39,33 +48,78 @@ export async function signIn(
     return { error: message };
   }
 
-  // Audit trail — fire-and-forget, never blocks sign-in.
-  await writeAuditLog({
-    userId:     data.user.id,
-    action:     "login",
-    resource:   "auth",
-    resourceId: data.user.id,
-    metadata:   { email: data.user.email },
-  });
+  // ── Mandatory audit log ───────────────────────────────────────────────────
+  // If this fails the sign-in is rolled back so every login is recorded.
+  try {
+    await db.insert(auditLogTable).values({
+      userId:     data.user.id,
+      action:     "login",
+      resource:   "auth",
+      resourceId: data.user.id,
+      metadata:   { email: data.user.email },
+    });
+  } catch (auditError) {
+    await supabase.auth.signOut();
+    return {
+      error:
+        "Failed to record the sign-in event. Please try again. " +
+        "If this problem persists, contact your administrator.",
+    };
+  }
+
+  // ── Permissions cookie for middleware RBAC ────────────────────────────────
+  // Non-fatal: if encoding fails the user still gets in; server components
+  // will enforce RBAC via hasPermission().
+  try {
+    const permissions = await getUserPermissions(data.user.id);
+    const signed      = await signPermissions([...permissions]);
+    const cookieStore = await cookies();
+    cookieStore.set(COOKIE_NAME, signed, {
+      httpOnly: true,
+      secure:   process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      path:     "/",
+      maxAge:   COOKIE_MAX_AGE,
+    });
+  } catch {
+    // Log but do not block sign-in.
+    console.error("[auth] Failed to set permissions cookie after sign-in.");
+  }
 
   redirect("/");
 }
 
 /**
  * Server Action — sign out the current user.
+ *
+ * Audit logging is best-effort here: blocking a sign-out on a log failure
+ * would leave users unable to log out, which is a worse outcome than a
+ * missing audit entry.  Failures are surfaced in server logs.
  */
 export async function signOut(): Promise<void> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (user) {
-    await writeAuditLog({
-      userId:     user.id,
-      action:     "logout",
-      resource:   "auth",
-      resourceId: user.id,
-      metadata:   { email: user.email },
-    });
+    try {
+      await db.insert(auditLogTable).values({
+        userId:     user.id,
+        action:     "logout",
+        resource:   "auth",
+        resourceId: user.id,
+        metadata:   { email: user.email },
+      });
+    } catch (e) {
+      console.error("[audit_log] Failed to record logout for user:", user.id, e);
+    }
+  }
+
+  // Clear permissions cookie.
+  try {
+    const cookieStore = await cookies();
+    cookieStore.delete(COOKIE_NAME);
+  } catch {
+    // Best-effort.
   }
 
   await supabase.auth.signOut();
