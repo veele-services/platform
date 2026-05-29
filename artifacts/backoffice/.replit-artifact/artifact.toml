@@ -17,14 +17,18 @@ localPort = 22138
 [services.development]
 run = "pnpm --filter @workspace/backoffice run dev"
 
-[services.production]
-build = [ "pnpm", "--filter", "@workspace/backoffice", "run", "build" ]
-publicDir = "artifacts/backoffice/dist/public"
-serve = "static"
+[services.production.build]
+args = [ "pnpm", "--filter", "@workspace/backoffice", "run", "build" ]
 
-[[services.production.rewrites]]
-from = "/*"
-to = "/index.html"
+[services.production.build.env]
+NODE_ENV = "production"
+
+[services.production.run]
+args = [ "pnpm", "--filter", "@workspace/backoffice", "run", "start" ]
+
+[services.production.run.env]
+PORT = "22138"
+NODE_ENV = "production"
 
 [services.env]
 PORT = "22138"
