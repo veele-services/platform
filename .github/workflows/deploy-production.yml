@@ -1,0 +1,30 @@
+name: Deploy Production
+
+on:
+  push:
+    branches:
+      - production
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    name: Deploy Production to VPS
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Trigger secure production deploy
+        env:
+          VPS_SSH_KEY: ${{ secrets.PRODUCTION_VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.PRODUCTION_VPS_HOST }}
+          VPS_USER: ${{ secrets.PRODUCTION_VPS_USER }}
+          VPS_PORT: ${{ secrets.PRODUCTION_VPS_PORT }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$VPS_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+          ssh -o StrictHostKeyChecking=no \
+            -p "$VPS_PORT" \
+            -i ~/.ssh/id_ed25519 \
+            "$VPS_USER@$VPS_HOST"
