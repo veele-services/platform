@@ -274,7 +274,7 @@ export async function submitReport(
   hoursWorked: string | null,
   submitterNotes: string | null,
 ): Promise<ActionResult<{ id: string }>> {
-  await requirePermission("assignments", "write");
+  await requirePermission("reports", "submit");
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();

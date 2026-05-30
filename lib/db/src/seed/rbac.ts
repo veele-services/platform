@@ -49,6 +49,8 @@ const ALL_PERMISSIONS: { resource: string; action: string; description: string }
   { resource: "personnel",   action: "delete",  description: "Archive / delete personnel" },
 
   { resource: "reports",     action: "read",    description: "View reports" },
+  { resource: "reports",     action: "submit",  description: "Submit a report for a completed assignment" },
+  { resource: "reports",     action: "write",   description: "Approve or reject submitted reports" },
   { resource: "reports",     action: "export",  description: "Export reports" },
 
   { resource: "invoices",    action: "read",    description: "View invoices" },
@@ -85,7 +87,7 @@ const ROLE_PERMISSION_MAP: Record<string, string[]> = {
     "planning:read", "planning:write",
     "personnel:read", "personnel:write",
     "task_codes:read", "task_codes:write",
-    "reports:read", "reports:export",
+    "reports:read", "reports:submit", "reports:write", "reports:export",
     "invoices:read", "invoices:write", "invoices:send",
     "documents:read", "documents:write", "documents:delete",
     "settings:read",
@@ -100,7 +102,7 @@ const ROLE_PERMISSION_MAP: Record<string, string[]> = {
     "planning:read", "planning:write",
     "personnel:read",
     "task_codes:read",
-    "reports:read",
+    "reports:read", "reports:submit",
   ],
 
   "Teamlead": [
@@ -108,19 +110,20 @@ const ROLE_PERMISSION_MAP: Record<string, string[]> = {
     "assignments:read", "assignments:write",
     "planning:read",
     "personnel:read",
-    "reports:read",
+    "reports:read", "reports:submit",
     "documents:read",
   ],
 
   "Employee": [
     "dashboard:read",
     "assignments:read",
-    "reports:read",
+    "reports:read", "reports:submit",
     "documents:read",
   ],
 
   "Flex Employee": [
     "assignments:read",
+    "reports:read", "reports:submit",
     "documents:read",
   ],
 

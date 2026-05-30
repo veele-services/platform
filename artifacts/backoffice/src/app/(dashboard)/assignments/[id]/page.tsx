@@ -78,10 +78,11 @@ export default async function AssignmentDetailPage({ params }: Props) {
 
   const { id } = await params;
 
-  const [assignment, canWrite, canReadReports] = await Promise.all([
+  const [assignment, canWrite, canReadReports, canSubmitReport] = await Promise.all([
     getAssignment(id),
     hasPermission("assignments", "write"),
     hasPermission("reports", "read"),
+    hasPermission("reports", "submit"),
   ]);
 
   if (!assignment) notFound();
@@ -250,7 +251,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
           {/* ── Report section ────────────────────────────── */}
           {assignment.status === "completed" &&
             (!existingReport || existingReport.status === "rejected") &&
-            canWrite && (
+            canSubmitReport && (
             <SubmitReportForm assignmentId={assignment.id} rejectedReport={existingReport ?? null} />
           )}
 
