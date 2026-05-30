@@ -30,7 +30,7 @@ export async function signIn(
   const password = (formData.get("password") as string | null) ?? "";
 
   if (!email || !password) {
-    return { error: "Email and password are required." };
+    return { error: "E-mailadres en wachtwoord zijn verplicht." };
   }
 
   const supabase = await createClient();
@@ -43,8 +43,8 @@ export async function signIn(
   if (error || !data.user) {
     const message =
       error?.message === "Invalid login credentials"
-        ? "Incorrect email or password. Please try again."
-        : (error?.message ?? "An unexpected error occurred. Please try again.");
+        ? "Onjuist e-mailadres of wachtwoord. Probeer het opnieuw."
+        : "Er is een onverwachte fout opgetreden. Probeer het opnieuw.";
     return { error: message };
   }
 
@@ -62,8 +62,8 @@ export async function signIn(
     await supabase.auth.signOut();
     return {
       error:
-        "Failed to record the sign-in event. Please try again. " +
-        "If this problem persists, contact your administrator.",
+        "Inloggebeurtenis kon niet worden geregistreerd. Probeer het opnieuw. " +
+        "Neem contact op met uw beheerder als dit probleem aanhoudt.",
     };
   }
 

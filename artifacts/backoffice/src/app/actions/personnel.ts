@@ -223,7 +223,7 @@ export async function createPersonnel(
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const payload = {
     firstName:    data.firstName.trim(),
@@ -246,7 +246,7 @@ export async function createPersonnel(
       const path = issue.path.map(String).join(".");
       if (path) fieldErrors[path] = issue.message;
     }
-    return { success: false, message: "Validation failed.", fieldErrors };
+    return { success: false, message: "Validatie mislukt.", fieldErrors };
   }
 
   try {
@@ -269,11 +269,11 @@ export async function createPersonnel(
     if (isUniqueViolation(err)) {
       return {
         success: false,
-        message: "A personnel record with this email already exists.",
-        fieldErrors: { email: "Email is already in use" },
+        message: "Er bestaat al een medewerker met dit e-mailadres.",
+        fieldErrors: { email: "E-mailadres is al in gebruik" },
       };
     }
-    return { success: false, message: "Failed to create personnel record." };
+    return { success: false, message: "Medewerker aanmaken mislukt." };
   }
 }
 
@@ -285,7 +285,7 @@ export async function updatePersonnel(
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const payload = {
     firstName:    data.firstName.trim(),
@@ -308,7 +308,7 @@ export async function updatePersonnel(
       const path = issue.path.map(String).join(".");
       if (path) fieldErrors[path] = issue.message;
     }
-    return { success: false, message: "Validation failed.", fieldErrors };
+    return { success: false, message: "Validatie mislukt.", fieldErrors };
   }
 
   try {
@@ -332,11 +332,11 @@ export async function updatePersonnel(
     if (isUniqueViolation(err)) {
       return {
         success: false,
-        message: "A personnel record with this email already exists.",
-        fieldErrors: { email: "Email is already in use" },
+        message: "Er bestaat al een medewerker met dit e-mailadres.",
+        fieldErrors: { email: "E-mailadres is al in gebruik" },
       };
     }
-    return { success: false, message: "Failed to update personnel record." };
+    return { success: false, message: "Medewerker bijwerken mislukt." };
   }
 }
 
@@ -348,7 +348,7 @@ export async function setPersonnelStatus(
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   await db
     .update(personnelTable)
@@ -377,7 +377,7 @@ export async function bulkSetPersonnelStatus(
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   await db
     .update(personnelTable)
@@ -401,7 +401,7 @@ export async function deletePersonnel(id: string): Promise<ActionResult> {
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const [person] = await db
     .select({ firstName: personnelTable.firstName, lastName: personnelTable.lastName })
@@ -409,7 +409,7 @@ export async function deletePersonnel(id: string): Promise<ActionResult> {
     .where(eq(personnelTable.id, id))
     .limit(1);
 
-  if (!person) return { success: false, message: "Personnel record not found." };
+  if (!person) return { success: false, message: "Medewerker niet gevonden." };
 
   await db.delete(personnelTable).where(eq(personnelTable.id, id));
 
