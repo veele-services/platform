@@ -30,7 +30,7 @@ export function CustomerDetailActions({
     <>
       <Button size="sm" onClick={() => setSheetOpen(true)}>
         <Pencil className="mr-1.5 h-4 w-4" />
-        Edit
+        Bewerken
       </Button>
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
@@ -39,8 +39,8 @@ export function CustomerDetailActions({
           className="w-[520px] sm:max-w-[520px] overflow-y-auto"
         >
           <SheetHeader>
-            <SheetTitle>Edit Customer</SheetTitle>
-            <SheetDescription>Update customer details below.</SheetDescription>
+            <SheetTitle>Klant bewerken</SheetTitle>
+            <SheetDescription>Werk de klantgegevens bij.</SheetDescription>
           </SheetHeader>
           <CustomerForm
             mode="edit"

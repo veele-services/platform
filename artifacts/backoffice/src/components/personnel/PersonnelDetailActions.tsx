@@ -30,15 +30,15 @@ export function PersonnelDetailActions({
     <>
       <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
         <Pencil className="mr-1.5 h-4 w-4" />
-        Edit
+        Bewerken
       </Button>
 
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetContent side="right" className="w-[540px] sm:max-w-[540px] overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>Edit Personnel</SheetTitle>
+            <SheetTitle>Personeel bewerken</SheetTitle>
             <SheetDescription>
-              Update the record for <strong>{personnelName}</strong>.
+              Werk het record bij voor <strong>{personnelName}</strong>.
             </SheetDescription>
           </SheetHeader>
           <PersonnelForm

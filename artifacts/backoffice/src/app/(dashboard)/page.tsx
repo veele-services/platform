@@ -7,10 +7,10 @@ export const metadata: Metadata = {
 };
 
 const STAT_CARDS = [
-  { label: "New Requests",    value: "—", accent: "#3B82F6" },
-  { label: "Plannable",       value: "—", accent: "#F59E0B" },
-  { label: "In Progress",     value: "—", accent: "#8B5CF6" },
-  { label: "Completed Today", value: "—", accent: "#22C55E" },
+  { label: "Nieuwe aanvragen", value: "—", accent: "#3B82F6" },
+  { label: "Inplanbaar",       value: "—", accent: "#F59E0B" },
+  { label: "In uitvoering",    value: "—", accent: "#8B5CF6" },
+  { label: "Vandaag afgerond", value: "—", accent: "#22C55E" },
 ];
 
 export default async function DashboardPage() {
@@ -25,7 +25,7 @@ export default async function DashboardPage() {
           Dashboard
         </h1>
         <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-          Overview of your operations
+          Overzicht van uw activiteiten
         </p>
       </div>
 
@@ -51,18 +51,18 @@ export default async function DashboardPage() {
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <div className="veele-card lg:col-span-2">
           <h2 className="font-heading text-base font-semibold mb-4" style={{ color: "#081D3A" }}>
-            Recent Assignments
+            Recente opdrachten
           </h2>
           <p className="text-sm" style={{ color: "#64748B" }}>
-            Assignment data will be available after Sprint 2.
+            Opdrachtgegevens beschikbaar na Sprint 2.
           </p>
         </div>
         <div className="veele-card">
           <h2 className="font-heading text-base font-semibold mb-4" style={{ color: "#081D3A" }}>
-            Upcoming Tasks
+            Aankomende taken
           </h2>
           <p className="text-sm" style={{ color: "#64748B" }}>
-            Task data will be available after Sprint 2.
+            Taakgegevens beschikbaar na Sprint 2.
           </p>
         </div>
       </div>

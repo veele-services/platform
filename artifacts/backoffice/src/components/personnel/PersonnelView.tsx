@@ -240,7 +240,7 @@ export function PersonnelView({
       const result = await bulkSetPersonnelStatus(ids, isActive);
       if (result.success) {
         setSelected(new Set());
-        toast.success(`${ids.length} record${ids.length > 1 ? "s" : ""} ${isActive ? "activated" : "deactivated"}`);
+        toast.success(`${ids.length} record${ids.length > 1 ? "s" : ""} ${isActive ? "geactiveerd" : "gedeactiveerd"}`);
       } else {
         toast.error(result.message);
       }
@@ -253,7 +253,7 @@ export function PersonnelView({
     startBulkTransition(async () => {
       const result = await deletePersonnel(id);
       if (result.success) {
-        toast.success(`"${name}" deleted`);
+        toast.success(`"${name}" verwijderd`);
       } else {
         toast.error(result.message);
       }
@@ -278,18 +278,18 @@ export function PersonnelView({
             <Input
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search by name or email…"
+              placeholder="Zoek op naam of e-mail…"
               className="pl-8 h-9"
             />
           </div>
           <Input
             value={regionInput}
             onChange={(e) => setRegionInput(e.target.value)}
-            placeholder="Region…"
+            placeholder="Regio…"
             className="w-32 h-9"
           />
           <Button type="submit" variant="outline" size="sm" className="h-9">
-            Search
+            Zoeken
           </Button>
         </form>
 
@@ -298,10 +298,10 @@ export function PersonnelView({
           onValueChange={(v) => applyFilter("roleId", v === "ALL" ? "" : v)}
         >
           <SelectTrigger className="w-[160px] h-9">
-            <SelectValue placeholder="All roles" />
+            <SelectValue placeholder="Alle rollen" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">All roles</SelectItem>
+            <SelectItem value="ALL">Alle rollen</SelectItem>
             {roles.map((r) => (
               <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
             ))}
@@ -313,12 +313,12 @@ export function PersonnelView({
           onValueChange={(v) => applyFilter("status", v === "all" ? "" : v)}
         >
           <SelectTrigger className="w-[130px] h-9">
-            <SelectValue placeholder="All statuses" />
+            <SelectValue placeholder="Alle statussen" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
+            <SelectItem value="all">Alle statussen</SelectItem>
+            <SelectItem value="active">Actief</SelectItem>
+            <SelectItem value="inactive">Inactief</SelectItem>
           </SelectContent>
         </Select>
 
@@ -326,7 +326,7 @@ export function PersonnelView({
           {canWrite && (
             <Button size="sm" onClick={openCreate}>
               <Plus className="mr-1.5 h-4 w-4" />
-              New Personnel
+              Nieuw personeelslid
             </Button>
           )}
         </div>
@@ -338,15 +338,15 @@ export function PersonnelView({
           className="flex items-center gap-3 px-4 py-2 mb-4 rounded-lg text-sm"
           style={{ backgroundColor: "#E0FAFB", border: "1px solid #00B7B3" }}
         >
-          <span style={{ color: "#081D3A" }}>{selected.size} selected</span>
+          <span style={{ color: "#081D3A" }}>{selected.size} geselecteerd</span>
           <div className="flex gap-2 ml-auto">
             <Button variant="outline" size="sm" onClick={() => handleBulkStatus(true)}  disabled={bulkPending}>
-              <ToggleRight className="mr-1.5 h-3.5 w-3.5" />Activate
+              <ToggleRight className="mr-1.5 h-3.5 w-3.5" />Activeren
             </Button>
             <Button variant="outline" size="sm" onClick={() => handleBulkStatus(false)} disabled={bulkPending}>
-              <ToggleLeft  className="mr-1.5 h-3.5 w-3.5" />Deactivate
+              <ToggleLeft  className="mr-1.5 h-3.5 w-3.5" />Deactiveren
             </Button>
-            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>Clear</Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>Wissen</Button>
           </div>
         </div>
       )}
@@ -362,11 +362,11 @@ export function PersonnelView({
                     <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" />
                   </th>
                 )}
-                <SortHeader label="Name"      columnKey="lastName"  currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
-                <SortHeader label="Email"     columnKey="email"     currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Role</th>
-                <SortHeader label="Region"    columnKey="region"    currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Certificates</th>
+                <SortHeader label="Naam"      columnKey="lastName"  currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
+                <SortHeader label="E-mail"    columnKey="email"     currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Rol</th>
+                <SortHeader label="Regio"     columnKey="region"    currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Certificaten</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Status</th>
                 <th className="w-12 px-4 py-3" />
               </tr>
@@ -379,7 +379,7 @@ export function PersonnelView({
                     className="px-4 py-12 text-center text-sm"
                     style={{ color: "#94A3B8" }}
                   >
-                    No personnel records found
+                    Geen personeelsrecords gevonden
                   </td>
                 </tr>
               ) : (
@@ -436,28 +436,28 @@ export function PersonnelView({
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                             <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Open menu</span>
+                            <span className="sr-only">Menu openen</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
                             <Link href={`/personnel/${row.id}`}>
                               <Eye className="mr-2 h-4 w-4" />
-                              View
+                              Bekijken
                             </Link>
                           </DropdownMenuItem>
                           {canWrite && (
                             <>
                               <DropdownMenuItem onSelect={() => openEdit(row.id)}>
                                 <Pencil className="mr-2 h-4 w-4" />
-                                Edit
+                                Bewerken
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem onSelect={() => handleStatusToggle(row.id, row.isActive)}>
                                 {row.isActive ? (
-                                  <><ToggleLeft className="mr-2 h-4 w-4" />Deactivate</>
+                                  <><ToggleLeft className="mr-2 h-4 w-4" />Deactiveren</>
                                 ) : (
-                                  <><ToggleRight className="mr-2 h-4 w-4" />Activate</>
+                                  <><ToggleRight className="mr-2 h-4 w-4" />Activeren</>
                                 )}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
@@ -466,7 +466,7 @@ export function PersonnelView({
                                 className="text-destructive focus:text-destructive"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
+                                Verwijderen
                               </DropdownMenuItem>
                             </>
                           )}
@@ -485,7 +485,7 @@ export function PersonnelView({
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-4 text-sm">
           <span style={{ color: "#64748B" }}>
-            Showing {Math.min((page - 1) * PAGE_SIZE + 1, total)}–{Math.min(page * PAGE_SIZE, total)} of {total}
+            Resultaten {Math.min((page - 1) * PAGE_SIZE + 1, total)}–{Math.min(page * PAGE_SIZE, total)} van {total}
           </span>
           <div className="flex items-center gap-1">
             <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled={page <= 1}
@@ -505,11 +505,11 @@ export function PersonnelView({
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent side="right" className="w-[540px] sm:max-w-[540px] overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>{editingId ? "Edit Personnel" : "New Personnel"}</SheetTitle>
+            <SheetTitle>{editingId ? "Personeel bewerken" : "Nieuw personeelslid"}</SheetTitle>
             <SheetDescription>
               {editingId
-                ? "Update personnel details below."
-                : "Fill in the details to create a new personnel record."}
+                ? "Werk de personeelsgegevens bij."
+                : "Vul de gegevens in om een nieuw personeelsrecord aan te maken."}
             </SheetDescription>
           </SheetHeader>
           <PersonnelForm
@@ -529,19 +529,19 @@ export function PersonnelView({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete personnel record?</AlertDialogTitle>
+            <AlertDialogTitle>Personeelsrecord verwijderen?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete the record for{" "}
-              <strong>{deleteTarget?.name}</strong>. This action cannot be undone.
+              Dit verwijdert permanent het record van{" "}
+              <strong>{deleteTarget?.name}</strong>. Deze actie kan niet ongedaan worden gemaakt.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              Verwijderen
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

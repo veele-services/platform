@@ -217,7 +217,7 @@ export function ObjectsView({
       const result = await bulkSetObjectStatus(ids, isActive);
       if (result.success) {
         setSelected(new Set());
-        toast.success(`${ids.length} object${ids.length > 1 ? "s" : ""} ${isActive ? "activated" : "deactivated"}`);
+        toast.success(`${ids.length} object${ids.length > 1 ? "en" : ""} ${isActive ? "geactiveerd" : "gedeactiveerd"}`);
       } else {
         toast.error(result.message);
       }
@@ -230,7 +230,7 @@ export function ObjectsView({
     startBulkTransition(async () => {
       const result = await deleteObject(id);
       if (result.success) {
-        toast.success(`Object "${name}" deleted`);
+        toast.success(`Object "${name}" verwijderd`);
       } else {
         toast.error(result.message);
       }
@@ -254,12 +254,12 @@ export function ObjectsView({
             <Input
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search by name or code..."
+              placeholder="Zoek op naam of code..."
               className="pl-8 h-9"
             />
           </div>
           <Button type="submit" variant="outline" size="sm" className="h-9">
-            Search
+            Zoeken
           </Button>
         </form>
 
@@ -268,10 +268,10 @@ export function ObjectsView({
           onValueChange={(v) => applyFilter("customerId", v === "ALL" ? "" : v)}
         >
           <SelectTrigger className="w-[180px] h-9">
-            <SelectValue placeholder="All customers" />
+            <SelectValue placeholder="Alle klanten" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">All customers</SelectItem>
+            <SelectItem value="ALL">Alle klanten</SelectItem>
             {customers.map((c) => (
               <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
             ))}
@@ -283,10 +283,10 @@ export function ObjectsView({
           onValueChange={(v) => applyFilter("sectorId", v === "ALL" ? "" : v)}
         >
           <SelectTrigger className="w-[160px] h-9">
-            <SelectValue placeholder="All sectors" />
+            <SelectValue placeholder="Alle sectoren" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">All sectors</SelectItem>
+            <SelectItem value="ALL">Alle sectoren</SelectItem>
             {sectors.map((s) => (
               <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
             ))}
@@ -298,12 +298,12 @@ export function ObjectsView({
           onValueChange={(v) => applyFilter("status", v === "all" ? "" : v)}
         >
           <SelectTrigger className="w-[130px] h-9">
-            <SelectValue placeholder="All statuses" />
+            <SelectValue placeholder="Alle statussen" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
+            <SelectItem value="all">Alle statussen</SelectItem>
+            <SelectItem value="active">Actief</SelectItem>
+            <SelectItem value="inactive">Inactief</SelectItem>
           </SelectContent>
         </Select>
 
@@ -311,7 +311,7 @@ export function ObjectsView({
           {canWrite && (
             <Button size="sm" onClick={openCreate}>
               <Plus className="mr-1.5 h-4 w-4" />
-              New Object
+              Nieuw object
             </Button>
           )}
         </div>
@@ -323,16 +323,16 @@ export function ObjectsView({
           className="flex items-center gap-3 px-4 py-2 mb-4 rounded-lg text-sm"
           style={{ backgroundColor: "#E0FAFB", border: "1px solid #00B7B3" }}
         >
-          <span style={{ color: "#081D3A" }}>{selected.size} selected</span>
+          <span style={{ color: "#081D3A" }}>{selected.size} geselecteerd</span>
           <div className="flex gap-2 ml-auto">
             <Button variant="outline" size="sm" onClick={() => handleBulkStatus(true)}  disabled={bulkPending}>
-              <ToggleRight className="mr-1.5 h-3.5 w-3.5" />Activate
+              <ToggleRight className="mr-1.5 h-3.5 w-3.5" />Activeren
             </Button>
             <Button variant="outline" size="sm" onClick={() => handleBulkStatus(false)} disabled={bulkPending}>
-              <ToggleLeft  className="mr-1.5 h-3.5 w-3.5" />Deactivate
+              <ToggleLeft  className="mr-1.5 h-3.5 w-3.5" />Deactiveren
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>
-              Clear
+              Wissen
             </Button>
           </div>
         </div>
@@ -354,7 +354,7 @@ export function ObjectsView({
                   </th>
                 )}
                 <SortHeader
-                  label="Name"
+                  label="Naam"
                   columnKey="name"
                   currentSort={initialSort}
                   currentDir={initialDir}
@@ -371,7 +371,7 @@ export function ObjectsView({
                   className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
                   style={{ color: "#64748B" }}
                 >
-                  Customer
+                  Klant
                 </th>
                 <th
                   className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
@@ -380,7 +380,7 @@ export function ObjectsView({
                   Sector
                 </th>
                 <SortHeader
-                  label="City"
+                  label="Stad"
                   columnKey="city"
                   currentSort={initialSort}
                   currentDir={initialDir}
@@ -403,7 +403,7 @@ export function ObjectsView({
                     className="px-4 py-12 text-center text-sm"
                     style={{ color: "#94A3B8" }}
                   >
-                    No objects found
+                    Geen objecten gevonden
                   </td>
                 </tr>
               ) : (
@@ -457,7 +457,7 @@ export function ObjectsView({
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                             <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Open menu</span>
+                            <span className="sr-only">Menu openen</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -465,7 +465,7 @@ export function ObjectsView({
                             <>
                               <DropdownMenuItem onSelect={() => openEdit(row.id)}>
                                 <Pencil className="mr-2 h-4 w-4" />
-                                Edit
+                                Bewerken
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
@@ -476,12 +476,12 @@ export function ObjectsView({
                                 {row.isActive ? (
                                   <>
                                     <ToggleLeft className="mr-2 h-4 w-4" />
-                                    Deactivate
+                                    Deactiveren
                                   </>
                                 ) : (
                                   <>
                                     <ToggleRight className="mr-2 h-4 w-4" />
-                                    Activate
+                                    Activeren
                                   </>
                                 )}
                               </DropdownMenuItem>
@@ -493,7 +493,7 @@ export function ObjectsView({
                                 className="text-destructive focus:text-destructive"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
+                                Verwijderen
                               </DropdownMenuItem>
                             </>
                           )}
@@ -512,8 +512,8 @@ export function ObjectsView({
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-4 text-sm">
           <span style={{ color: "#64748B" }}>
-            Showing {Math.min((page - 1) * PAGE_SIZE + 1, total)}–
-            {Math.min(page * PAGE_SIZE, total)} of {total}
+            Resultaten {Math.min((page - 1) * PAGE_SIZE + 1, total)}–
+            {Math.min(page * PAGE_SIZE, total)} van {total}
           </span>
           <div className="flex items-center gap-1">
             <Button
@@ -552,11 +552,11 @@ export function ObjectsView({
           className="w-[520px] sm:max-w-[520px] overflow-y-auto"
         >
           <SheetHeader>
-            <SheetTitle>{editingId ? "Edit Object" : "New Object"}</SheetTitle>
+            <SheetTitle>{editingId ? "Object bewerken" : "Nieuw object"}</SheetTitle>
             <SheetDescription>
               {editingId
-                ? "Update object details below."
-                : "Fill in the details to create a new object."}
+                ? "Werk de objectgegevens bij."
+                : "Vul de gegevens in om een nieuw object aan te maken."}
             </SheetDescription>
           </SheetHeader>
           <ObjectForm
@@ -577,20 +577,19 @@ export function ObjectsView({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete object?</AlertDialogTitle>
+            <AlertDialogTitle>Object verwijderen?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete{" "}
-              <strong>{deleteTarget?.name}</strong>. This action cannot be
-              undone.
+              Dit verwijdert permanent{" "}
+              <strong>{deleteTarget?.name}</strong>. Deze actie kan niet ongedaan worden gemaakt.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              Verwijderen
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -30,13 +30,13 @@ export function ForbiddenPage({
           className="font-heading text-xl font-semibold mb-2"
           style={{ color: "#081D3A" }}
         >
-          Access Denied
+          Toegang geweigerd
         </h2>
         <p
           className="text-sm max-w-xs"
           style={{ color: "#64748B", lineHeight: "1.5" }}
         >
-          You don&apos;t have permission to access this page.{" "}
+          U heeft geen toestemming om deze pagina te bekijken.{" "}
           <span style={{ color: "#94A3B8", fontSize: "12px" }}>
             ({resource}:{action})
           </span>
@@ -48,7 +48,7 @@ export function ForbiddenPage({
         className="text-sm font-medium transition-colors"
         style={{ color: "#00B7B3" }}
       >
-        ← Back to Dashboard
+        ← Terug naar dashboard
       </Link>
     </div>
   );

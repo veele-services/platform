@@ -30,25 +30,25 @@ import {
 const customerFormSchema = z.object({
   name: z
     .string()
-    .min(1, "Name is required")
-    .max(255, "Name must be 255 characters or fewer"),
-  code: z.string().max(50, "Code must be 50 characters or fewer"),
+    .min(1, "Naam is verplicht")
+    .max(255, "Naam mag maximaal 255 tekens bevatten"),
+  code: z.string().max(50, "Code mag maximaal 50 tekens bevatten"),
   sectorId: z.string(),
-  contactName: z.string().max(200, "Contact name must be 200 characters or fewer"),
+  contactName: z.string().max(200, "Contactnaam mag maximaal 200 tekens bevatten"),
   contactEmail: z
     .string()
     .refine(
       (v) => !v.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()),
-      "Invalid email address",
+      "Ongeldig e-mailadres",
     ),
-  contactPhone: z.string().max(50, "Phone must be 50 characters or fewer"),
+  contactPhone: z.string().max(50, "Telefoon mag maximaal 50 tekens bevatten"),
   address: z.string(),
-  city: z.string().max(100, "City must be 100 characters or fewer"),
-  postalCode: z.string().max(20, "Postal code must be 20 characters or fewer"),
+  city: z.string().max(100, "Stad mag maximaal 100 tekens bevatten"),
+  postalCode: z.string().max(20, "Postcode mag maximaal 20 tekens bevatten"),
   country: z
     .string()
-    .min(1, "Country is required")
-    .max(100, "Country must be 100 characters or fewer"),
+    .min(1, "Land is verplicht")
+    .max(100, "Land mag maximaal 100 tekens bevatten"),
   notes: z.string(),
 });
 
@@ -156,7 +156,7 @@ export function CustomerForm({
         return;
       }
 
-      toast.success(mode === "create" ? "Customer created" : "Customer updated");
+      toast.success(mode === "create" ? "Klant aangemaakt" : "Klant bijgewerkt");
       const id =
         mode === "create" && result.data ? result.data.id : (customerId ?? "");
       onSuccess(id);
@@ -177,17 +177,17 @@ export function CustomerForm({
       {/* ── General Info ──────────────────────────────── */}
       <section>
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          General Info
+          Algemene info
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2 space-y-1">
             <Label htmlFor="name">
-              Name <span className="text-destructive">*</span>
+              Naam <span className="text-destructive">*</span>
             </Label>
             <Input
               id="name"
               {...register("name")}
-              placeholder="Customer name"
+              placeholder="Klantnaam"
               aria-invalid={!!errors.name}
             />
             {errors.name && (
@@ -200,7 +200,7 @@ export function CustomerForm({
             <Input
               id="code"
               {...register("code")}
-              placeholder="e.g. CUST-001"
+              placeholder="bijv. KLANT-001"
               aria-invalid={!!errors.code}
             />
             {errors.code && (
@@ -217,10 +217,10 @@ export function CustomerForm({
               }
             >
               <SelectTrigger id="sectorId">
-                <SelectValue placeholder="Select sector..." />
+                <SelectValue placeholder="Selecteer sector..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="NONE">— No sector —</SelectItem>
+                <SelectItem value="NONE">— Geen sector —</SelectItem>
                 {sectors.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
                     {s.name}
@@ -241,11 +241,11 @@ export function CustomerForm({
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2 space-y-1">
-            <Label htmlFor="contactName">Contact Person</Label>
+            <Label htmlFor="contactName">Contactpersoon</Label>
             <Input
               id="contactName"
               {...register("contactName")}
-              placeholder="Full name"
+              placeholder="Volledige naam"
               aria-invalid={!!errors.contactName}
             />
             {errors.contactName && (
@@ -253,12 +253,12 @@ export function CustomerForm({
             )}
           </div>
           <div className="space-y-1">
-            <Label htmlFor="contactEmail">Email</Label>
+            <Label htmlFor="contactEmail">E-mail</Label>
             <Input
               id="contactEmail"
               type="email"
               {...register("contactEmail")}
-              placeholder="email@example.com"
+              placeholder="email@voorbeeld.nl"
               aria-invalid={!!errors.contactEmail}
             />
             {errors.contactEmail && (
@@ -266,7 +266,7 @@ export function CustomerForm({
             )}
           </div>
           <div className="space-y-1">
-            <Label htmlFor="contactPhone">Phone</Label>
+            <Label htmlFor="contactPhone">Telefoon</Label>
             <Input
               id="contactPhone"
               {...register("contactPhone")}
@@ -285,11 +285,11 @@ export function CustomerForm({
       {/* ── Address ───────────────────────────────────── */}
       <section>
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Address
+          Adres
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2 space-y-1">
-            <Label htmlFor="address">Street &amp; Number</Label>
+            <Label htmlFor="address">Straat &amp; Huisnummer</Label>
             <Input
               id="address"
               {...register("address")}
@@ -297,7 +297,7 @@ export function CustomerForm({
             />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="city">City</Label>
+            <Label htmlFor="city">Stad</Label>
             <Input
               id="city"
               {...register("city")}
@@ -309,7 +309,7 @@ export function CustomerForm({
             )}
           </div>
           <div className="space-y-1">
-            <Label htmlFor="postalCode">Postal Code</Label>
+            <Label htmlFor="postalCode">Postcode</Label>
             <Input
               id="postalCode"
               {...register("postalCode")}
@@ -321,7 +321,7 @@ export function CustomerForm({
             )}
           </div>
           <div className="col-span-2 space-y-1">
-            <Label htmlFor="country">Country</Label>
+            <Label htmlFor="country">Land</Label>
             <Input
               id="country"
               {...register("country")}
@@ -341,14 +341,14 @@ export function CustomerForm({
           <Separator />
           <section>
             <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: "#64748B" }}>
-              Internal Notes
+              Interne notities
             </p>
             <p className="text-xs mb-3" style={{ color: "#94A3B8" }}>
-              Only visible to management — never shown to customer portal users.
+              Alleen zichtbaar voor management — nooit getoond aan klantportal gebruikers.
             </p>
             <Textarea
               {...register("notes")}
-              placeholder="Internal notes about this customer..."
+              placeholder="Interne notities over deze klant..."
               rows={3}
               className="resize-none"
             />
@@ -359,11 +359,11 @@ export function CustomerForm({
       {/* ── Actions ───────────────────────────────────── */}
       <div className="flex justify-end gap-2 pt-2 border-t">
         <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>
-          Cancel
+          Annuleren
         </Button>
         <Button type="submit" disabled={pending}>
           {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {mode === "create" ? "Create Customer" : "Save Changes"}
+          {mode === "create" ? "Klant aanmaken" : "Wijzigingen opslaan"}
         </Button>
       </div>
     </form>

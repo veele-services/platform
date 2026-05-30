@@ -45,7 +45,7 @@ export function CustomerDetailObjectCreate({
     <>
       <Button size="sm" variant="outline" onClick={() => setOpen(true)}>
         <Plus className="mr-1.5 h-4 w-4" />
-        New Object
+        Nieuw object
       </Button>
 
       <Sheet open={open} onOpenChange={setOpen}>
@@ -54,9 +54,9 @@ export function CustomerDetailObjectCreate({
           className="w-[520px] sm:max-w-[520px] overflow-y-auto"
         >
           <SheetHeader>
-            <SheetTitle>New Object</SheetTitle>
+            <SheetTitle>Nieuw object</SheetTitle>
             <SheetDescription>
-              Create a new object for <strong>{customerName}</strong>.
+              Maak een nieuw object aan voor <strong>{customerName}</strong>.
             </SheetDescription>
           </SheetHeader>
           <ObjectForm

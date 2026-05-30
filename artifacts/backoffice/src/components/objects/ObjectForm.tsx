@@ -43,16 +43,16 @@ import type { SectorOption } from "@/app/actions/customers";
 // ─── Client-side Zod schema ───────────────────────────────────────────────────
 
 const objectFormSchema = z.object({
-  customerId: z.string().min(1, "Customer is required"),
+  customerId: z.string().min(1, "Klant is verplicht"),
   sectorId:   z.string(),
   name: z
     .string()
-    .min(1, "Name is required")
-    .max(255, "Name must be 255 characters or fewer"),
-  code:        z.string().max(50, "Code must be 50 characters or fewer"),
+    .min(1, "Naam is verplicht")
+    .max(255, "Naam mag maximaal 255 tekens bevatten"),
+  code:        z.string().max(50, "Code mag maximaal 50 tekens bevatten"),
   address:     z.string(),
-  city:        z.string().max(100, "City must be 100 characters or fewer"),
-  postalCode:  z.string().max(20, "Postal code must be 20 characters or fewer"),
+  city:        z.string().max(100, "Stad mag maximaal 100 tekens bevatten"),
+  postalCode:  z.string().max(20, "Postcode mag maximaal 20 tekens bevatten"),
   description: z.string(),
 });
 
@@ -164,7 +164,7 @@ export function ObjectForm({
         return;
       }
 
-      toast.success(mode === "create" ? "Object created" : "Object updated");
+      toast.success(mode === "create" ? "Object aangemaakt" : "Object bijgewerkt");
       const id =
         mode === "create" && result.data ? result.data.id : (objectId ?? "");
       onSuccess(id);
@@ -185,11 +185,11 @@ export function ObjectForm({
       {/* ── Customer ──────────────────────────────────── */}
       <section>
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Customer
+          Klant
         </p>
         <div className="space-y-1">
           <Label htmlFor="customerId">
-            Customer <span className="text-destructive">*</span>
+            Klant <span className="text-destructive">*</span>
           </Label>
           <Popover open={customerOpen} onOpenChange={setCustomerOpen}>
             <PopoverTrigger asChild>
@@ -206,15 +206,15 @@ export function ObjectForm({
               >
                 {selectedCustomer
                   ? `${selectedCustomer.name}${selectedCustomer.code ? ` (${selectedCustomer.code})` : ""}`
-                  : "Select customer..."}
+                  : "Selecteer klant..."}
                 <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
               </Button>
             </PopoverTrigger>
             <PopoverContent className="w-[320px] p-0">
               <Command>
-                <CommandInput placeholder="Search customers..." />
+                <CommandInput placeholder="Zoek klanten..." />
                 <CommandList>
-                  <CommandEmpty>No customers found.</CommandEmpty>
+                  <CommandEmpty>Geen klanten gevonden.</CommandEmpty>
                   <CommandGroup>
                     {customers.map((c) => (
                       <CommandItem
@@ -255,17 +255,17 @@ export function ObjectForm({
       {/* ── General Info ──────────────────────────────── */}
       <section>
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          General Info
+          Algemene info
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2 space-y-1">
             <Label htmlFor="name">
-              Name <span className="text-destructive">*</span>
+              Naam <span className="text-destructive">*</span>
             </Label>
             <Input
               id="name"
               {...register("name")}
-              placeholder="Object name"
+              placeholder="Objectnaam"
               aria-invalid={!!errors.name}
             />
             {errors.name && (
@@ -275,7 +275,7 @@ export function ObjectForm({
 
           <div className="space-y-1">
             <Label htmlFor="code">Code</Label>
-            <Input id="code" {...register("code")} placeholder="e.g. OBJ-001" />
+            <Input id="code" {...register("code")} placeholder="bijv. OBJ-001" />
           </div>
 
           <div className="space-y-1">
@@ -287,10 +287,10 @@ export function ObjectForm({
               }
             >
               <SelectTrigger id="sectorId">
-                <SelectValue placeholder="Select sector..." />
+                <SelectValue placeholder="Selecteer sector..." />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="NONE">— No sector —</SelectItem>
+                <SelectItem value="NONE">— Geen sector —</SelectItem>
                 {sectors.map((s) => (
                   <SelectItem key={s.id} value={s.id}>
                     {s.name}
@@ -307,15 +307,15 @@ export function ObjectForm({
       {/* ── Address ───────────────────────────────────── */}
       <section>
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Address
+          Adres
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2 space-y-1">
-            <Label htmlFor="address">Street &amp; Number</Label>
+            <Label htmlFor="address">Straat &amp; Huisnummer</Label>
             <Input id="address" {...register("address")} placeholder="Hoofdstraat 1" />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="city">City</Label>
+            <Label htmlFor="city">Stad</Label>
             <Input
               id="city"
               {...register("city")}
@@ -327,7 +327,7 @@ export function ObjectForm({
             )}
           </div>
           <div className="space-y-1">
-            <Label htmlFor="postalCode">Postal Code</Label>
+            <Label htmlFor="postalCode">Postcode</Label>
             <Input
               id="postalCode"
               {...register("postalCode")}
@@ -346,11 +346,11 @@ export function ObjectForm({
       {/* ── Description ───────────────────────────────── */}
       <section>
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Description
+          Omschrijving
         </p>
         <Textarea
           {...register("description")}
-          placeholder="Optional description of this object..."
+          placeholder="Optionele omschrijving van dit object..."
           rows={3}
           className="resize-none"
         />
@@ -359,11 +359,11 @@ export function ObjectForm({
       {/* ── Actions ───────────────────────────────────── */}
       <div className="flex justify-end gap-2 pt-2 border-t">
         <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>
-          Cancel
+          Annuleren
         </Button>
         <Button type="submit" disabled={pending}>
           {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {mode === "create" ? "Create Object" : "Save Changes"}
+          {mode === "create" ? "Object aanmaken" : "Wijzigingen opslaan"}
         </Button>
       </div>
     </form>

@@ -22,14 +22,14 @@ import { signOut } from "@/app/actions/auth";
 const NAV_ITEMS = [
   { href: "/",            icon: LayoutDashboard, label: "Dashboard",   permission: "dashboard:read"   },
   { href: "/planning",    icon: Calendar,        label: "Planning",    permission: "planning:read"    },
-  { href: "/assignments", icon: ClipboardList,   label: "Assignments", permission: "assignments:read" },
-  { href: "/customers",   icon: Users,           label: "Customers",   permission: "customers:read"   },
-  { href: "/objects",     icon: Building2,       label: "Objects",     permission: "objects:read"     },
-  { href: "/personnel",   icon: UserCog,         label: "Personnel",   permission: "personnel:read"   },
-  { href: "/reports",     icon: BarChart3,       label: "Reports",     permission: "reports:read"     },
-  { href: "/invoices",    icon: FileText,        label: "Invoices",    permission: "invoices:read"    },
-  { href: "/documents",   icon: FolderOpen,      label: "Documents",   permission: "documents:read"   },
-  { href: "/settings",    icon: Settings,        label: "Settings",    permission: "settings:read"    },
+  { href: "/assignments", icon: ClipboardList,   label: "Opdrachten",  permission: "assignments:read" },
+  { href: "/customers",   icon: Users,           label: "Klanten",     permission: "customers:read"   },
+  { href: "/objects",     icon: Building2,       label: "Objecten",    permission: "objects:read"     },
+  { href: "/personnel",   icon: UserCog,         label: "Personeel",   permission: "personnel:read"   },
+  { href: "/reports",     icon: BarChart3,       label: "Rapporten",   permission: "reports:read"     },
+  { href: "/invoices",    icon: FileText,        label: "Facturen",    permission: "invoices:read"    },
+  { href: "/documents",   icon: FolderOpen,      label: "Documenten",  permission: "documents:read"   },
+  { href: "/settings",    icon: Settings,        label: "Instellingen",permission: "settings:read"    },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {
@@ -89,9 +89,9 @@ export function Sidebar({ userEmail, userInitial, userRole }: SidebarProps) {
               lineHeight: "1.5",
             }}
           >
-            No modules assigned.
+            Geen modules toegewezen.
             <br />
-            Contact your administrator.
+            Neem contact op met uw beheerder.
           </p>
         ) : (
           visibleItems.map(({ href, icon: Icon, label }) => {
@@ -152,7 +152,7 @@ export function Sidebar({ userEmail, userInitial, userRole }: SidebarProps) {
           <form action={signOut}>
             <button
               type="submit"
-              title="Sign out"
+              title="Uitloggen"
               className="flex-shrink-0 rounded p-1 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
             >
               <LogOut
