@@ -23,7 +23,28 @@ import { getRoutePermission } from "@/lib/auth/route-permissions";
  * NOTE: Never make database calls in middleware.  The Edge Runtime does not
  * support the Node.js `pg` driver.  All DB-backed permission checks live in
  * Server Components and Server Actions.
+ *
+ * PROXY NOTE: Behind NGINX, request.nextUrl may reflect the internal server
+ * address (127.0.0.1:3000) rather than the external host.  All redirects
+ * must be built via proxyAwareUrl() which reads X-Forwarded-Host / Host
+ * headers set by NGINX to get the real external origin.
  */
+
+/**
+ * Build a redirect URL using the external origin as seen by the client.
+ * Reads X-Forwarded-Host (set by NGINX) with Host as fallback, and
+ * X-Forwarded-Proto for the scheme — never trusts request.nextUrl.origin
+ * which may reflect the internal bind address (127.0.0.1:3000).
+ */
+function proxyAwareUrl(pathname: string, request: NextRequest): URL {
+  const host =
+    request.headers.get("x-forwarded-host") ??
+    request.headers.get("host") ??
+    "localhost";
+  const proto = request.headers.get("x-forwarded-proto") ?? "http";
+  return new URL(pathname, `${proto}://${host}`);
+}
+
 export async function middleware(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -36,9 +57,7 @@ export async function middleware(request: NextRequest) {
   // all other routes redirect to /login.  Never silently allow access.
   if (!url || !key) {
     if (isLoginPage) return NextResponse.next();
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/login";
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(proxyAwareUrl("/login", request));
   }
 
   // ── Layer 1: Authentication ───────────────────────────────────────────────
@@ -66,15 +85,11 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   if (user && isLoginPage) {
-    const dashUrl = request.nextUrl.clone();
-    dashUrl.pathname = "/";
-    return NextResponse.redirect(dashUrl);
+    return NextResponse.redirect(proxyAwareUrl("/", request));
   }
 
   if (!user && !isLoginPage) {
-    const loginUrl = request.nextUrl.clone();
-    loginUrl.pathname = "/login";
-    return NextResponse.redirect(loginUrl);
+    return NextResponse.redirect(proxyAwareUrl("/login", request));
   }
 
   // ── Layer 2: RBAC route guard ─────────────────────────────────────────────
@@ -96,9 +111,7 @@ export async function middleware(request: NextRequest) {
           // Verified cookie confirms user lacks the required permission.
           // Redirect to dashboard root rather than an error page for smoother UX.
           // The server component ForbiddenPage is the definitive access denial.
-          const dashUrl = request.nextUrl.clone();
-          dashUrl.pathname = "/";
-          return NextResponse.redirect(dashUrl);
+          return NextResponse.redirect(proxyAwareUrl("/", request));
         }
         // If permissions === null the signature was invalid — fall through to
         // server component checks (don't block access on a bad/expired cookie).
