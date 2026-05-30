@@ -22,7 +22,7 @@ export type { ActionResult };
 export type CustomerOption = {
   id: string;
   name: string;
-  code: string | null;
+  code: string;
 };
 
 export type ObjectRow = {
@@ -32,7 +32,7 @@ export type ObjectRow = {
   sectorId: string | null;
   sectorName: string | null;
   name: string;
-  code: string | null;
+  code: string;
   city: string | null;
   isActive: boolean;
   createdAt: string;
@@ -46,7 +46,7 @@ export type ObjectDetail = {
   sectorId: string | null;
   sectorName: string | null;
   name: string;
-  code: string | null;
+  code: string;
   address: string | null;
   city: string | null;
   postalCode: string | null;
@@ -60,7 +60,6 @@ export type ObjectFormInput = {
   customerId: string;
   sectorId?: string;
   name: string;
-  code?: string;
   address?: string;
   city?: string;
   postalCode?: string;
@@ -252,7 +251,6 @@ export async function createObject(
     customerId:  data.customerId,
     sectorId:    data.sectorId    || null,
     name:        data.name.trim(),
-    code:        data.code?.trim()        || null,
     address:     data.address?.trim()     || null,
     city:        data.city?.trim()        || null,
     postalCode:  data.postalCode?.trim()  || null,
@@ -311,7 +309,6 @@ export async function updateObject(
     customerId:  data.customerId,
     sectorId:    data.sectorId    || null,
     name:        data.name.trim(),
-    code:        data.code?.trim()        || null,
     address:     data.address?.trim()     || null,
     city:        data.city?.trim()        || null,
     postalCode:  data.postalCode?.trim()  || null,

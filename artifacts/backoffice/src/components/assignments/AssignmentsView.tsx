@@ -303,6 +303,7 @@ export function AssignmentsView({
           <table className="w-full">
             <thead>
               <tr style={{ borderBottom: "1px solid #E2E8F0" }}>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Code</th>
                 <SortHeader label="Titel"    columnKey="title"         currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>
                   Klant
@@ -325,7 +326,7 @@ export function AssignmentsView({
               {rows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={8}
+                    colSpan={9}
                     className="px-4 py-12 text-center text-sm"
                     style={{ color: "#94A3B8" }}
                   >
@@ -341,6 +342,11 @@ export function AssignmentsView({
                       borderBottom: i < rows.length - 1 ? "1px solid #F1F5F9" : undefined,
                     }}
                   >
+                    <td className="px-4 py-3">
+                      <span className="inline-block font-mono text-xs rounded px-1.5 py-0.5 bg-slate-100" style={{ color: "#475569" }}>
+                        {row.code}
+                      </span>
+                    </td>
                     <td className="px-4 py-3 max-w-[220px]">
                       <Link
                         href={`/assignments/${row.id}`}

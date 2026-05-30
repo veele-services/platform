@@ -128,12 +128,17 @@ export default async function AssignmentDetailPage({ params }: Props) {
 
         <div className="flex items-start justify-between gap-4 flex-wrap">
           <div>
-            <h1
-              className="font-heading text-2xl font-bold mb-2"
-              style={{ color: "#081D3A" }}
-            >
-              {assignment.title}
-            </h1>
+            <div className="flex items-center gap-2 mb-1">
+              <h1
+                className="font-heading text-2xl font-bold"
+                style={{ color: "#081D3A" }}
+              >
+                {assignment.title}
+              </h1>
+              <span className="font-mono text-xs rounded px-1.5 py-0.5 bg-slate-100 self-center" style={{ color: "#475569" }}>
+                {assignment.code}
+              </span>
+            </div>
             <div className="flex items-center gap-2 flex-wrap">
               <AssignmentStatusBadge status={assignment.status} />
               <AssignmentPriorityBadge priority={assignment.priority} />

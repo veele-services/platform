@@ -58,6 +58,9 @@ export default async function PersonnelDetailPage({ params }: Props) {
               <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
                 {fullName}
               </h1>
+              <span className="font-mono text-xs rounded px-1.5 py-0.5 bg-slate-100" style={{ color: "#475569" }}>
+                {person.code}
+              </span>
               {person.roleName && (
                 <span
                   className="text-xs font-semibold px-2.5 py-0.5 rounded"

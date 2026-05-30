@@ -64,7 +64,7 @@ import {
 } from "@/app/actions/personnel";
 
 const PAGE_SIZE = 25;
-const SORTABLE = ["lastName", "firstName", "email", "region", "createdAt"] as const;
+const SORTABLE = ["lastName", "firstName", "email", "code", "region", "createdAt"] as const;
 
 // ─── Sortable header cell ─────────────────────────────────────────────────────
 
@@ -363,6 +363,7 @@ export function PersonnelView({
                   </th>
                 )}
                 <SortHeader label="Naam"      columnKey="lastName"  currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
+                <SortHeader label="Code"      columnKey="code"      currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
                 <SortHeader label="E-mail"    columnKey="email"     currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Rol</th>
                 <SortHeader label="Regio"     columnKey="region"    currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
@@ -375,7 +376,7 @@ export function PersonnelView({
               {rows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={canWrite ? 8 : 7}
+                    colSpan={canWrite ? 9 : 8}
                     className="px-4 py-12 text-center text-sm"
                     style={{ color: "#94A3B8" }}
                   >
@@ -406,6 +407,11 @@ export function PersonnelView({
                       >
                         {row.lastName}, {row.firstName}
                       </Link>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="inline-block font-mono text-xs rounded px-1.5 py-0.5 bg-slate-100" style={{ color: "#475569" }}>
+                        {row.code}
+                      </span>
                     </td>
                     <td className="px-4 py-3 text-sm" style={{ color: "#64748B" }}>
                       {row.email}

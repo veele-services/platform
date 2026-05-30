@@ -22,7 +22,7 @@ export type SectorOption = { id: string; name: string };
 export type CustomerRow = {
   id: string;
   name: string;
-  code: string | null;
+  code: string;
   sectorId: string | null;
   sectorName: string | null;
   city: string | null;
@@ -34,7 +34,7 @@ export type CustomerRow = {
 export type CustomerDetail = {
   id: string;
   name: string;
-  code: string | null;
+  code: string;
   sectorId: string | null;
   sectorName: string | null;
   address: string | null;
@@ -52,7 +52,6 @@ export type CustomerDetail = {
 
 export type CustomerFormInput = {
   name: string;
-  code?: string;
   sectorId?: string;
   contactName?: string;
   contactEmail?: string;
@@ -263,7 +262,6 @@ export async function createCustomer(
 
   const payload = {
     name:         data.name.trim(),
-    code:         data.code?.trim()        || null,
     sectorId:     data.sectorId            || null,
     contactName:  data.contactName?.trim() || null,
     contactEmail: data.contactEmail?.trim()|| null,
@@ -314,8 +312,8 @@ export async function createCustomer(
     if (isUniqueViolation(err)) {
       return {
         success: false,
-        message: "Er bestaat al een klant met deze code of dit e-mailadres.",
-        fieldErrors: { code: "Code is al in gebruik" },
+        message: "Er bestaat al een klant met dit e-mailadres.",
+        fieldErrors: { contactEmail: "E-mailadres is al in gebruik" },
       };
     }
     return { success: false, message: "Klant aanmaken mislukt." };
@@ -336,7 +334,6 @@ export async function updateCustomer(
 
   const payload = {
     name:         data.name.trim(),
-    code:         data.code?.trim()        || null,
     sectorId:     data.sectorId            || null,
     contactName:  data.contactName?.trim() || null,
     contactEmail: data.contactEmail?.trim()|| null,
@@ -392,8 +389,8 @@ export async function updateCustomer(
     if (isUniqueViolation(err)) {
       return {
         success: false,
-        message: "Er bestaat al een klant met deze code of dit e-mailadres.",
-        fieldErrors: { code: "Code is al in gebruik" },
+        message: "Er bestaat al een klant met dit e-mailadres.",
+        fieldErrors: { contactEmail: "E-mailadres is al in gebruik" },
       };
     }
     return { success: false, message: "Klant bijwerken mislukt." };

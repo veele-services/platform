@@ -32,7 +32,6 @@ const customerFormSchema = z.object({
     .string()
     .min(1, "Naam is verplicht")
     .max(255, "Naam mag maximaal 255 tekens bevatten"),
-  code: z.string().max(50, "Code mag maximaal 50 tekens bevatten"),
   sectorId: z.string(),
   contactName: z.string().max(200, "Contactnaam mag maximaal 200 tekens bevatten"),
   contactEmail: z
@@ -67,7 +66,6 @@ interface CustomerFormProps {
 
 const DEFAULTS: FormValues = {
   name:         "",
-  code:         "",
   sectorId:     "",
   contactName:  "",
   contactEmail: "",
@@ -87,8 +85,9 @@ export function CustomerForm({
   onSuccess,
   onCancel,
 }: CustomerFormProps) {
-  const [loading, setLoading]       = useState(mode === "edit");
-  const [pending, startTransition]  = useTransition();
+  const [loading, setLoading]         = useState(mode === "edit");
+  const [pending, startTransition]    = useTransition();
+  const [generatedCode, setGeneratedCode] = useState<string | null>(null);
 
   const form = useForm<FormValues>({ defaultValues: DEFAULTS });
   const {
@@ -108,8 +107,8 @@ export function CustomerForm({
     setLoading(true);
     getCustomer(customerId).then((c) => {
       if (c) {
+        setGeneratedCode(c.code ?? null);
         setValue("name",         c.name         ?? "");
-        setValue("code",         c.code         ?? "");
         setValue("sectorId",     c.sectorId     ?? "");
         setValue("contactName",  c.contactName  ?? "");
         setValue("contactEmail", c.contactEmail ?? "");
@@ -196,16 +195,16 @@ export function CustomerForm({
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="code">Code</Label>
-            <Input
-              id="code"
-              {...register("code")}
-              placeholder="bijv. KLANT-001"
-              aria-invalid={!!errors.code}
-            />
-            {errors.code && (
-              <p className="text-xs text-destructive">{errors.code.message}</p>
-            )}
+            <Label>Code</Label>
+            <div className="flex items-center h-9 px-3 rounded-md border bg-muted/40">
+              {generatedCode ? (
+                <span className="font-mono text-sm">{generatedCode}</span>
+              ) : (
+                <span className="text-sm text-muted-foreground">
+                  {mode === "edit" ? "—" : "Wordt automatisch aangemaakt"}
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="space-y-1">

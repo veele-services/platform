@@ -49,6 +49,7 @@ export type TaskCodeOption  = { id: string; code: string; name: string };
 
 export type AssignmentRow = {
   id:             string;
+  code:           string;
   title:          string;
   status:         AssignmentStatus;
   priority:       AssignmentPriority;
@@ -65,6 +66,7 @@ export type AssignmentRow = {
 
 export type AssignmentDetail = {
   id:             string;
+  code:           string;
   title:          string;
   description:    string | null;
   status:         AssignmentStatus;
@@ -155,7 +157,8 @@ export async function listAssignments(params: {
     conditions.push(
       or(
         ilike(assignmentsTable.title, `%${search.trim()}%`),
-        ilike(customersTable.name, `%${search.trim()}%`),
+        ilike(assignmentsTable.code,  `%${search.trim()}%`),
+        ilike(customersTable.name,    `%${search.trim()}%`),
       ),
     );
   }
@@ -182,6 +185,7 @@ export async function listAssignments(params: {
     db
       .select({
         id:             assignmentsTable.id,
+        code:           assignmentsTable.code,
         title:          assignmentsTable.title,
         status:         assignmentsTable.status,
         priority:       assignmentsTable.priority,
@@ -238,6 +242,7 @@ export async function getAssignment(id: string): Promise<AssignmentDetail | null
   const [row] = await db
     .select({
       id:             assignmentsTable.id,
+      code:           assignmentsTable.code,
       title:          assignmentsTable.title,
       description:    assignmentsTable.description,
       status:         assignmentsTable.status,

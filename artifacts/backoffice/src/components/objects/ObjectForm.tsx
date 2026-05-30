@@ -49,7 +49,6 @@ const objectFormSchema = z.object({
     .string()
     .min(1, "Naam is verplicht")
     .max(255, "Naam mag maximaal 255 tekens bevatten"),
-  code:        z.string().max(50, "Code mag maximaal 50 tekens bevatten"),
   address:     z.string(),
   city:        z.string().max(100, "Stad mag maximaal 100 tekens bevatten"),
   postalCode:  z.string().max(20, "Postcode mag maximaal 20 tekens bevatten"),
@@ -74,7 +73,6 @@ const DEFAULTS: FormValues = {
   customerId:  "",
   sectorId:    "",
   name:        "",
-  code:        "",
   address:     "",
   city:        "",
   postalCode:  "",
@@ -90,9 +88,10 @@ export function ObjectForm({
   onSuccess,
   onCancel,
 }: ObjectFormProps) {
-  const [loading, setLoading]          = useState(mode === "edit");
-  const [pending, startTransition]     = useTransition();
-  const [customerOpen, setCustomerOpen] = useState(false);
+  const [loading, setLoading]             = useState(mode === "edit");
+  const [pending, startTransition]        = useTransition();
+  const [customerOpen, setCustomerOpen]   = useState(false);
+  const [generatedCode, setGeneratedCode] = useState<string | null>(null);
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -119,10 +118,10 @@ export function ObjectForm({
     setLoading(true);
     getObject(objectId).then((o) => {
       if (o) {
+        setGeneratedCode(o.code ?? null);
         setValue("customerId",  o.customerId        ?? "");
         setValue("sectorId",    o.sectorId          ?? "");
         setValue("name",        o.name              ?? "");
-        setValue("code",        o.code              ?? "");
         setValue("address",     o.address           ?? "");
         setValue("city",        o.city              ?? "");
         setValue("postalCode",  o.postalCode        ?? "");
@@ -274,8 +273,16 @@ export function ObjectForm({
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="code">Code</Label>
-            <Input id="code" {...register("code")} placeholder="bijv. OBJ-001" />
+            <Label>Code</Label>
+            <div className="flex items-center h-9 px-3 rounded-md border bg-muted/40">
+              {generatedCode ? (
+                <span className="font-mono text-sm">{generatedCode}</span>
+              ) : (
+                <span className="text-sm text-muted-foreground">
+                  {mode === "edit" ? "—" : "Wordt automatisch aangemaakt"}
+                </span>
+              )}
+            </div>
           </div>
 
           <div className="space-y-1">

@@ -39,7 +39,7 @@ export function CustomerDetailObjectCreate({
   const customerList =
     customers.length > 0
       ? customers
-      : [{ id: customerId, name: customerName, code: null }];
+      : [{ id: customerId, name: customerName, code: "" }];
 
   return (
     <>

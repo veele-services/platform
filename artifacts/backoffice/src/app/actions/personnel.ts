@@ -28,6 +28,7 @@ export type RoleOption = { id: string; name: string };
  */
 export type PersonnelRow = {
   id:           string;
+  code:         string;
   firstName:    string;
   lastName:     string;
   email:        string;
@@ -43,6 +44,7 @@ export type PersonnelRow = {
 
 export type PersonnelDetail = {
   id:           string;
+  code:         string;
   userId:       string | null;
   firstName:    string;
   lastName:     string;
@@ -112,6 +114,7 @@ export async function listPersonnel(params: {
       ilike(personnelTable.firstName, term),
       ilike(personnelTable.lastName,  term),
       ilike(personnelTable.email,     term),
+      ilike(personnelTable.code,      term),
     );
     if (clause) conditions.push(clause as ReturnType<typeof eq>);
   }
@@ -126,6 +129,7 @@ export async function listPersonnel(params: {
     lastName:  personnelTable.lastName,
     firstName: personnelTable.firstName,
     email:     personnelTable.email,
+    code:      personnelTable.code,
     region:    personnelTable.region,
     createdAt: personnelTable.createdAt,
   };
@@ -136,6 +140,7 @@ export async function listPersonnel(params: {
     db
       .select({
         id:           personnelTable.id,
+        code:         personnelTable.code,
         firstName:    personnelTable.firstName,
         lastName:     personnelTable.lastName,
         email:        personnelTable.email,
@@ -176,6 +181,7 @@ export async function getPersonnel(id: string): Promise<PersonnelDetail | null> 
   const rows = await db
     .select({
       id:           personnelTable.id,
+      code:         personnelTable.code,
       userId:       personnelTable.userId,
       firstName:    personnelTable.firstName,
       lastName:     personnelTable.lastName,
