@@ -24,7 +24,7 @@ export default async function TaskCodesPage({ searchParams }: Props) {
     hasPermission("task_codes", "write"),
   ]);
 
-  if (!canRead) return <ForbiddenPage resource="task codes" action="read" />;
+  if (!canRead) return <ForbiddenPage resource="taakcodes" action="read" />;
 
   const sp       = await searchParams;
   const search   = str(sp.search);
@@ -45,17 +45,17 @@ export default async function TaskCodesPage({ searchParams }: Props) {
     <div className="p-8">
       <div className="mb-6">
         <div className="flex items-center gap-2 text-sm mb-3" style={{ color: "#94A3B8" }}>
-          <span>Settings</span>
+          <span>Instellingen</span>
           <span>/</span>
-          <span style={{ color: "#081D3A" }}>Task Codes</span>
+          <span style={{ color: "#081D3A" }}>Taakcodes</span>
         </div>
         <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-          Task Codes
+          Taakcodes
         </h1>
         <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
           {total} code{total !== 1 ? "s" : ""}
-          {search ? ` matching "${search}"` : ""}
-          {" — "}Centrally managed catalog used across assignments, planning, and invoicing.
+          {search ? ` die overeenkomen met "${search}"` : ""}
+          {" — "}Centraal beheerde catalogus voor opdrachten, planning en facturering.
         </p>
       </div>
 

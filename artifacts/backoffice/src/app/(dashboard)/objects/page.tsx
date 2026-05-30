@@ -42,11 +42,11 @@ export default async function ObjectsPage({ searchParams }: Props) {
     <div className="p-8">
       <div className="mb-6">
         <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-          Objects
+          Objecten
         </h1>
         <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-          {total} object{total !== 1 ? "s" : ""}
-          {search ? ` matching "${search}"` : ""}
+          {total} object{total !== 1 ? "en" : ""}
+          {search ? ` die overeenkomen met "${search}"` : ""}
         </p>
       </div>
 
