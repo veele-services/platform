@@ -354,15 +354,15 @@ export function ObjectsView({
                   </th>
                 )}
                 <SortHeader
-                  label="Naam"
-                  columnKey="name"
+                  label="Code"
+                  columnKey="code"
                   currentSort={initialSort}
                   currentDir={initialDir}
                   onSort={handleSort}
                 />
                 <SortHeader
-                  label="Code"
-                  columnKey="code"
+                  label="Naam"
+                  columnKey="name"
                   currentSort={initialSort}
                   currentDir={initialDir}
                   onSort={handleSort}
@@ -424,13 +424,13 @@ export function ObjectsView({
                         />
                       </td>
                     )}
-                    <td className="px-4 py-3 font-medium text-sm" style={{ color: "#081D3A" }}>
-                      {row.name}
-                    </td>
                     <td className="px-4 py-3">
                       <span className="inline-block font-mono text-xs rounded px-1.5 py-0.5 bg-slate-100" style={{ color: "#475569" }}>
                         {row.code}
                       </span>
+                    </td>
+                    <td className="px-4 py-3 font-medium text-sm" style={{ color: "#081D3A" }}>
+                      {row.name}
                     </td>
                     <td className="px-4 py-3 text-sm">
                       {row.customerName ? (

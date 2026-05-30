@@ -4,7 +4,7 @@
 -- never needs to supply them.
 --
 -- Prefixes:  KLA (customers)  OBJ (objects)  MED (personnel)  OPD (assignments)
--- Format:    <PREFIX>-<zero-padded-seq>   e.g. KLA-0001, OPD-00042
+-- Format:    <PREFIX>-<zero-padded-seq>   e.g. KLA-001, OPD-042 (auto-grows beyond 3 digits)
 
 -- ─── Sequence registry ────────────────────────────────────────────────────────
 
@@ -16,10 +16,10 @@ CREATE TABLE IF NOT EXISTS code_sequences (
 );
 
 INSERT INTO code_sequences (entity, prefix, last_value, padding) VALUES
-  ('customers',   'KLA', 0, 4),
-  ('objects',     'OBJ', 0, 4),
-  ('personnel',   'MED', 0, 4),
-  ('assignments', 'OPD', 0, 5)
+  ('customers',   'KLA', 0, 3),
+  ('objects',     'OBJ', 0, 3),
+  ('personnel',   'MED', 0, 3),
+  ('assignments', 'OPD', 0, 3)
 ON CONFLICT (entity) DO NOTHING;
 
 -- ─── Atomic sequence function ─────────────────────────────────────────────────
@@ -90,7 +90,7 @@ ALTER TABLE assignments ADD CONSTRAINT assignments_code_unique UNIQUE (code);
 CREATE OR REPLACE FUNCTION trg_customers_set_code()
 RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-  IF NEW.code IS NULL THEN
+  IF NEW.code IS NULL OR NEW.code = '' THEN
     NEW.code := next_entity_code('customers');
   END IF;
   RETURN NEW;
@@ -100,7 +100,7 @@ $$;
 CREATE OR REPLACE FUNCTION trg_objects_set_code()
 RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-  IF NEW.code IS NULL THEN
+  IF NEW.code IS NULL OR NEW.code = '' THEN
     NEW.code := next_entity_code('objects');
   END IF;
   RETURN NEW;
@@ -110,7 +110,7 @@ $$;
 CREATE OR REPLACE FUNCTION trg_personnel_set_code()
 RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-  IF NEW.code IS NULL THEN
+  IF NEW.code IS NULL OR NEW.code = '' THEN
     NEW.code := next_entity_code('personnel');
   END IF;
   RETURN NEW;
@@ -120,7 +120,7 @@ $$;
 CREATE OR REPLACE FUNCTION trg_assignments_set_code()
 RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-  IF NEW.code IS NULL THEN
+  IF NEW.code IS NULL OR NEW.code = '' THEN
     NEW.code := next_entity_code('assignments');
   END IF;
   RETURN NEW;

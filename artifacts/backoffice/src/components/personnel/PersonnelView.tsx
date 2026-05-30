@@ -362,8 +362,8 @@ export function PersonnelView({
                     <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" />
                   </th>
                 )}
-                <SortHeader label="Naam"      columnKey="lastName"  currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
                 <SortHeader label="Code"      columnKey="code"      currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
+                <SortHeader label="Naam"      columnKey="lastName"  currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
                 <SortHeader label="E-mail"    columnKey="email"     currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Rol</th>
                 <SortHeader label="Regio"     columnKey="region"    currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
@@ -400,6 +400,11 @@ export function PersonnelView({
                       </td>
                     )}
                     <td className="px-4 py-3">
+                      <span className="inline-block font-mono text-xs rounded px-1.5 py-0.5 bg-slate-100" style={{ color: "#475569" }}>
+                        {row.code}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3">
                       <Link
                         href={`/personnel/${row.id}`}
                         className="font-medium text-sm hover:underline"
@@ -407,11 +412,6 @@ export function PersonnelView({
                       >
                         {row.lastName}, {row.firstName}
                       </Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="inline-block font-mono text-xs rounded px-1.5 py-0.5 bg-slate-100" style={{ color: "#475569" }}>
-                        {row.code}
-                      </span>
                     </td>
                     <td className="px-4 py-3 text-sm" style={{ color: "#64748B" }}>
                       {row.email}
