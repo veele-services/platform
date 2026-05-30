@@ -13,3 +13,4 @@ export * from "./assignments";
 export * from "./reports";
 export * from "./invoices";
 export * from "./quotes";
+export * from "./organization-settings";
