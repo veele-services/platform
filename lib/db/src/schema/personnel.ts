@@ -1,0 +1,61 @@
+import {
+  pgTable,
+  uuid,
+  varchar,
+  boolean,
+  timestamp,
+  jsonb,
+} from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { z } from "zod/v4";
+import { rolesTable } from "./roles";
+
+/**
+ * Field worker / employee profile.
+ *
+ * user_id links to Supabase auth.users (nullable — a personnel record can
+ * exist before the employee has been invited to create a portal account).
+ * The FK to auth.users is enforced in migrations/002_sprint1_rls.sql.
+ *
+ * RLS: employees may SELECT their own record (WHERE user_id = auth.uid()).
+ *      Management has full access.
+ */
+export const personnelTable = pgTable("personnel", {
+  id:           uuid("id").primaryKey().defaultRandom(),
+  /** Supabase Auth UUID — nullable until the employee activates their account. */
+  userId:       uuid("user_id").unique(),
+
+  firstName:    varchar("first_name", { length: 100 }).notNull(),
+  lastName:     varchar("last_name", { length: 100 }).notNull(),
+  email:        varchar("email", { length: 255 }).notNull().unique(),
+  phone:        varchar("phone", { length: 50 }),
+
+  /** Primary role used for planning eligibility checks. */
+  roleId:       uuid("role_id").references(() => rolesTable.id, { onDelete: "set null" }),
+  region:       varchar("region", { length: 100 }),
+
+  /** Arrays of string identifiers, e.g. ["VCA", "BHV"] */
+  certificates: jsonb("certificates").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  diplomas:     jsonb("diplomas").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  knowledge:    jsonb("knowledge").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+
+  isActive:     boolean("is_active").notNull().default(true),
+  isAvailable:  boolean("is_available").notNull().default(true),
+
+  createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:    timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+});
+
+export const insertPersonnelSchema = createInsertSchema(personnelTable).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const selectPersonnelSchema = createSelectSchema(personnelTable);
+export const updatePersonnelSchema  = insertPersonnelSchema.partial();
+
+export type InsertPersonnel = z.infer<typeof insertPersonnelSchema>;
+export type UpdatePersonnel = z.infer<typeof updatePersonnelSchema>;
+export type Personnel       = z.infer<typeof selectPersonnelSchema>;

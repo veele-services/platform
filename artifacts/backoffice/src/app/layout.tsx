@@ -1,7 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Poppins } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 import "./globals.css";
-import { Sidebar } from "@/components/layout/Sidebar";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -38,14 +38,8 @@ export default function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <body className={`${inter.variable} ${poppins.variable}`}>
-        <div className="flex h-screen overflow-hidden" style={{ backgroundColor: "#F8FAFC" }}>
-          <Sidebar />
-          <div className="flex flex-col flex-1 overflow-hidden">
-            <main className="flex-1 overflow-y-auto">
-              {children}
-            </main>
-          </div>
-        </div>
+        {children}
+        <Toaster position="bottom-right" richColors />
       </body>
     </html>
   );
