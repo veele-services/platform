@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import {
   reportsTable,
   assignmentsTable,
+  assignmentPersonnelTable,
   customersTable,
   objectsTable,
   personnelTable,
@@ -13,7 +14,7 @@ import {
   type AssignmentStatus,
 } from "@workspace/db";
 import { alias } from "drizzle-orm/pg-core";
-import { eq, ilike, or, and, desc, sql } from "drizzle-orm";
+import { eq, ilike, or, and, desc, sql, exists } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
@@ -66,6 +67,15 @@ export type ReportDetail = {
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
+/**
+ * Returns true if the current user may see all reports.
+ * Management/Administration (reports:write) see everything.
+ * All other roles see only their own submitted reports.
+ */
+async function canSeeAllReports(): Promise<boolean> {
+  return hasPermission("reports", "write");
+}
+
 export async function listReports(params: {
   page?:   number;
   search?: string;
@@ -74,9 +84,21 @@ export async function listReports(params: {
   const canRead = await hasPermission("reports", "read");
   if (!canRead) return { rows: [], total: 0 };
 
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { rows: [], total: 0 };
+
+  const seeAll = await canSeeAllReports();
+
   const { page = 1, search = "", status = "" } = params;
 
   const conditions = [];
+
+  // Non-management users only see their own submitted reports
+  if (!seeAll) {
+    conditions.push(eq(reportsTable.submittedBy, user.id));
+  }
+
   if (search.trim()) {
     conditions.push(
       or(
@@ -231,8 +253,20 @@ export async function getReport(id: string): Promise<ReportDetail | null> {
   const canRead = await hasPermission("reports", "read");
   if (!canRead) return null;
 
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const seeAll = await canSeeAllReports();
+
+  const conditions = [eq(reportsTable.id, id)];
+  if (!seeAll) {
+    // Non-management users may only read their own reports
+    conditions.push(eq(reportsTable.submittedBy, user.id));
+  }
+
   const [row] = await detailBaseQuery()
-    .where(eq(reportsTable.id, id))
+    .where(and(...conditions))
     .limit(1);
 
   return row ? mapReportDetail(row) : null;
@@ -240,14 +274,26 @@ export async function getReport(id: string): Promise<ReportDetail | null> {
 
 /**
  * Returns the most recent report for an assignment (latest submitted_at).
- * Returns null if no report exists yet.
+ * Non-management users only see their own report for the assignment.
+ * Returns null if no matching report exists.
  */
 export async function getReportForAssignment(assignmentId: string): Promise<ReportDetail | null> {
   const canRead = await hasPermission("reports", "read");
   if (!canRead) return null;
 
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const seeAll = await canSeeAllReports();
+
+  const conditions = [eq(reportsTable.assignmentId, assignmentId)];
+  if (!seeAll) {
+    conditions.push(eq(reportsTable.submittedBy, user.id));
+  }
+
   const [row] = await detailBaseQuery()
-    .where(eq(reportsTable.assignmentId, assignmentId))
+    .where(and(...conditions))
     .orderBy(desc(reportsTable.submittedAt))
     .limit(1);
 
@@ -298,6 +344,27 @@ export async function submitReport(
   const allowedNext = ASSIGNMENT_STATUS_TRANSITIONS[currentStatus];
   if (!allowedNext.includes("report_submitted")) {
     return { success: false, message: `Rapport indienen is niet mogelijk vanuit status "${currentStatus}".` };
+  }
+
+  // Verify the user is assigned to this assignment — unless they have write access
+  // (management/admin may submit on behalf of field workers)
+  const canWriteAssignments = await hasPermission("assignments", "write");
+  if (!canWriteAssignments) {
+    const [membership] = await db
+      .select({ id: assignmentPersonnelTable.id })
+      .from(assignmentPersonnelTable)
+      .innerJoin(personnelTable, eq(personnelTable.id, assignmentPersonnelTable.personnelId))
+      .where(
+        and(
+          eq(assignmentPersonnelTable.assignmentId, assignmentId),
+          eq(personnelTable.userId, user.id),
+        ),
+      )
+      .limit(1);
+
+    if (!membership) {
+      return { success: false, message: "U bent niet gekoppeld aan deze opdracht." };
+    }
   }
 
   try {
