@@ -248,8 +248,10 @@ export default async function AssignmentDetailPage({ params }: Props) {
           )}
 
           {/* ── Report section ────────────────────────────── */}
-          {assignment.status === "completed" && !existingReport && canWrite && (
-            <SubmitReportForm assignmentId={assignment.id} />
+          {assignment.status === "completed" &&
+            (!existingReport || existingReport.status === "rejected") &&
+            canWrite && (
+            <SubmitReportForm assignmentId={assignment.id} rejectedReport={existingReport ?? null} />
           )}
 
           {existingReport && (

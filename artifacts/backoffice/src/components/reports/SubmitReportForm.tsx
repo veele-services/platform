@@ -2,20 +2,22 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Send, FileText } from "lucide-react";
+import { Loader2, Send, FileText, AlertTriangle } from "lucide-react";
 import { submitReport } from "@/app/actions/reports";
+import type { ReportDetail } from "@/app/actions/reports";
 
 interface Props {
-  assignmentId: string;
+  assignmentId:  string;
+  rejectedReport: ReportDetail | null;
 }
 
-export function SubmitReportForm({ assignmentId }: Props) {
+export function SubmitReportForm({ assignmentId, rejectedReport }: Props) {
   const router     = useRouter();
   const [, startT] = useTransition();
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [content, setContent]     = useState("");
+  const [content, setContent]         = useState("");
   const [hoursWorked, setHoursWorked] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
@@ -47,6 +49,24 @@ export function SubmitReportForm({ assignmentId }: Props) {
         <FileText className="h-4 w-4" style={{ color: "#00B7B3" }} />
         Rapport indienen
       </h3>
+
+      {/* Show rejection reason if resubmitting */}
+      {rejectedReport && (
+        <div
+          className="mb-4 rounded-lg p-3 flex items-start gap-2"
+          style={{ backgroundColor: "#FEE2E2", border: "1px solid #FECACA" }}
+        >
+          <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: "#DC2626" }} />
+          <div>
+            <p className="text-xs font-semibold mb-0.5" style={{ color: "#991B1B" }}>
+              Vorig rapport afgewezen
+            </p>
+            <p className="text-xs whitespace-pre-wrap" style={{ color: "#7F1D1D" }}>
+              {rejectedReport.notes}
+            </p>
+          </div>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="flex flex-col gap-4">
         {error && (
@@ -104,7 +124,7 @@ export function SubmitReportForm({ assignmentId }: Props) {
           ) : (
             <Send className="h-4 w-4" />
           )}
-          Rapport indienen
+          {rejectedReport ? "Nieuw rapport indienen" : "Rapport indienen"}
         </button>
       </form>
     </div>

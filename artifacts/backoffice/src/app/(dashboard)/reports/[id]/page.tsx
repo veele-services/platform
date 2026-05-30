@@ -153,10 +153,24 @@ export default async function ReportDetailPage({ params }: Props) {
                   <span className="flex items-center gap-1">
                     <User className="h-3.5 w-3.5" style={{ color: "#94A3B8" }} />
                     {formatDate(report.reviewedAt)}
+                    {report.reviewedByName && (
+                      <span style={{ color: "#64748B" }}>
+                        &nbsp;door {report.reviewedByName}
+                      </span>
+                    )}
                   </span>
                 }
               />
             )}
+            <InfoRow
+              label="Ingediend door"
+              value={
+                <span className="flex items-center gap-1">
+                  <User className="h-3.5 w-3.5" style={{ color: "#94A3B8" }} />
+                  {report.submittedByName}
+                </span>
+              }
+            />
           </div>
 
           {/* Report body */}

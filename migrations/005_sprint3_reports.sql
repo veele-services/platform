@@ -12,8 +12,9 @@ CREATE TABLE IF NOT EXISTS reports (
   submitted_by    uuid         NOT NULL,
   submitted_at    timestamptz  NOT NULL DEFAULT now(),
 
+  -- draft: saved but not yet submitted; submitted: awaiting review; approved/rejected: reviewed
   status          varchar(20)  NOT NULL DEFAULT 'submitted'
-                               CHECK (status IN ('submitted', 'approved', 'rejected')),
+                               CHECK (status IN ('draft', 'submitted', 'approved', 'rejected')),
 
   content         text         NOT NULL,
   hours_worked    numeric(5,2),
@@ -23,10 +24,8 @@ CREATE TABLE IF NOT EXISTS reports (
   reviewed_at     timestamptz,
 
   created_at      timestamptz  NOT NULL DEFAULT now(),
-  updated_at      timestamptz  NOT NULL DEFAULT now(),
-
-  -- Only one report allowed per assignment
-  UNIQUE (assignment_id)
+  updated_at      timestamptz  NOT NULL DEFAULT now()
+  -- No UNIQUE(assignment_id): multiple submissions allowed after rejection
 );
 
 -- ── 2. Indexes ────────────────────────────────────────────────────────────────

@@ -10,7 +10,7 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { assignmentsTable } from "./assignments";
 
-export const REPORT_STATUSES = ["submitted", "approved", "rejected"] as const;
+export const REPORT_STATUSES = ["draft", "submitted", "approved", "rejected"] as const;
 export type ReportStatus = (typeof REPORT_STATUSES)[number];
 
 /**

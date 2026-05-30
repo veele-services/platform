@@ -3,18 +3,26 @@
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback, useTransition } from "react";
 import Link from "next/link";
-import { FileText, Search, CheckCircle2, XCircle, Clock } from "lucide-react";
+import { FileText, Search, CheckCircle2, XCircle, Clock, PenLine } from "lucide-react";
 import type { ReportRow, ReportStatus } from "@/app/actions/reports";
 
 const PAGE_SIZE = 25;
 
 const STATUS_LABELS: Record<ReportStatus, string> = {
+  draft:     "Concept",
   submitted: "Ingediend",
   approved:  "Goedgekeurd",
   rejected:  "Afgewezen",
 };
 
-const STATUS_COLORS: Record<ReportStatus, { bg: string; text: string; icon: React.ReactNode }> = {
+type StatusStyle = { bg: string; text: string; icon: React.ReactNode };
+
+const STATUS_COLORS: Record<ReportStatus, StatusStyle> = {
+  draft: {
+    bg:   "#F1F5F9",
+    text: "#475569",
+    icon: <PenLine className="h-3 w-3" />,
+  },
   submitted: {
     bg:   "#FEF3C7",
     text: "#92400E",
@@ -59,9 +67,10 @@ const STATUS_OPTIONS = [
   { value: "submitted", label: "Ingediend" },
   { value: "approved",  label: "Goedgekeurd" },
   { value: "rejected",  label: "Afgewezen" },
+  { value: "draft",     label: "Concept" },
 ];
 
-export function ReportsView({ rows, total, page, search, statusFilter, canWrite }: Props) {
+export function ReportsView({ rows, total, page, search, statusFilter }: Props) {
   const router     = useRouter();
   const pathname   = usePathname();
   const sp         = useSearchParams();
@@ -163,6 +172,9 @@ export function ReportsView({ rows, total, page, search, statusFilter, canWrite 
                   Uren
                 </th>
                 <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#94A3B8" }}>
+                  Ingediend door
+                </th>
+                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#94A3B8" }}>
                   Ingediend op
                 </th>
               </tr>
@@ -181,12 +193,12 @@ export function ReportsView({ rows, total, page, search, statusFilter, canWrite 
                       style={{ color: "#081D3A" }}
                     >
                       <span
-                        className="font-mono text-xs rounded px-1.5 py-0.5"
+                        className="font-mono text-xs rounded px-1.5 py-0.5 flex-shrink-0"
                         style={{ backgroundColor: "#F1F5F9", color: "#64748B" }}
                       >
                         {r.assignmentCode}
                       </span>
-                      <span className="truncate max-w-[200px]">{r.assignmentTitle}</span>
+                      <span className="truncate max-w-[180px]">{r.assignmentTitle}</span>
                     </Link>
                   </td>
                   <td className="px-5 py-3.5" style={{ color: "#374151" }}>
@@ -197,6 +209,9 @@ export function ReportsView({ rows, total, page, search, statusFilter, canWrite 
                   </td>
                   <td className="px-5 py-3.5 font-mono text-xs" style={{ color: "#374151" }}>
                     {r.hoursWorked ? `${r.hoursWorked}u` : "—"}
+                  </td>
+                  <td className="px-5 py-3.5 text-sm" style={{ color: "#374151" }}>
+                    {r.submittedByName}
                   </td>
                   <td className="px-5 py-3.5" style={{ color: "#64748B" }}>
                     {formatDate(r.submittedAt)}

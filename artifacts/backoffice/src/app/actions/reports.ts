@@ -5,11 +5,13 @@ import {
   reportsTable,
   assignmentsTable,
   customersTable,
+  personnelTable,
   auditLogTable,
   ASSIGNMENT_STATUS_TRANSITIONS,
   type ReportStatus,
   type AssignmentStatus,
 } from "@workspace/db";
+import { alias } from "drizzle-orm/pg-core";
 import { eq, ilike, or, and, asc, desc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -20,34 +22,42 @@ export type { ActionResult, ReportStatus };
 
 const PAGE_SIZE = 25;
 
+// ─── Aliases for double personnel join ────────────────────────────────────────
+
+const submitterPersonnel = alias(personnelTable, "submitter_personnel");
+const reviewerPersonnel  = alias(personnelTable, "reviewer_personnel");
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type ReportRow = {
-  id:             string;
-  assignmentId:   string;
-  assignmentCode: string;
-  assignmentTitle: string;
-  customerName:   string;
-  status:         ReportStatus;
-  submittedAt:    string;
-  hoursWorked:    string | null;
+  id:               string;
+  assignmentId:     string;
+  assignmentCode:   string;
+  assignmentTitle:  string;
+  customerName:     string;
+  status:           ReportStatus;
+  submittedAt:      string;
+  submittedByName:  string;
+  hoursWorked:      string | null;
 };
 
 export type ReportDetail = {
-  id:             string;
-  assignmentId:   string;
-  assignmentCode: string;
-  assignmentTitle: string;
-  customerName:   string;
-  status:         ReportStatus;
-  content:        string;
-  hoursWorked:    string | null;
-  notes:          string | null;
-  submittedBy:    string;
-  submittedAt:    string;
-  reviewedBy:     string | null;
-  reviewedAt:     string | null;
-  createdAt:      string;
+  id:               string;
+  assignmentId:     string;
+  assignmentCode:   string;
+  assignmentTitle:  string;
+  customerName:     string;
+  status:           ReportStatus;
+  content:          string;
+  hoursWorked:      string | null;
+  notes:            string | null;
+  submittedBy:      string;
+  submittedByName:  string;
+  submittedAt:      string;
+  reviewedBy:       string | null;
+  reviewedByName:   string | null;
+  reviewedAt:       string | null;
+  createdAt:        string;
 };
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
@@ -72,7 +82,7 @@ export async function listReports(params: {
       ),
     );
   }
-  if (status && (["submitted", "approved", "rejected"] as string[]).includes(status)) {
+  if (status && (["draft", "submitted", "approved", "rejected"] as string[]).includes(status)) {
     conditions.push(eq(reportsTable.status, status));
   }
 
@@ -88,11 +98,15 @@ export async function listReports(params: {
         customerName:    customersTable.name,
         status:          reportsTable.status,
         submittedAt:     reportsTable.submittedAt,
+        submittedBy:     reportsTable.submittedBy,
+        submitterFirst:  submitterPersonnel.firstName,
+        submitterLast:   submitterPersonnel.lastName,
         hoursWorked:     reportsTable.hoursWorked,
       })
       .from(reportsTable)
       .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
       .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
+      .leftJoin(submitterPersonnel, eq(submitterPersonnel.userId, reportsTable.submittedBy))
       .where(where)
       .orderBy(desc(reportsTable.submittedAt))
       .limit(PAGE_SIZE)
@@ -115,6 +129,9 @@ export async function listReports(params: {
       customerName:    r.customerName ?? "",
       status:          r.status as ReportStatus,
       submittedAt:     r.submittedAt.toISOString(),
+      submittedByName: r.submitterFirst && r.submitterLast
+        ? `${r.submitterFirst} ${r.submitterLast}`.trim()
+        : r.submittedBy.slice(0, 8) + "…",
       hoursWorked:     r.hoursWorked ?? null,
     })),
     total: count,
@@ -137,14 +154,20 @@ export async function getReport(id: string): Promise<ReportDetail | null> {
       hoursWorked:     reportsTable.hoursWorked,
       notes:           reportsTable.notes,
       submittedBy:     reportsTable.submittedBy,
+      submitterFirst:  submitterPersonnel.firstName,
+      submitterLast:   submitterPersonnel.lastName,
       submittedAt:     reportsTable.submittedAt,
       reviewedBy:      reportsTable.reviewedBy,
+      reviewerFirst:   reviewerPersonnel.firstName,
+      reviewerLast:    reviewerPersonnel.lastName,
       reviewedAt:      reportsTable.reviewedAt,
       createdAt:       reportsTable.createdAt,
     })
     .from(reportsTable)
     .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
     .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
+    .leftJoin(submitterPersonnel, eq(submitterPersonnel.userId, reportsTable.submittedBy))
+    .leftJoin(reviewerPersonnel, eq(reviewerPersonnel.userId, reportsTable.reviewedBy!))
     .where(eq(reportsTable.id, id))
     .limit(1);
 
@@ -161,13 +184,23 @@ export async function getReport(id: string): Promise<ReportDetail | null> {
     hoursWorked:     row.hoursWorked ?? null,
     notes:           row.notes ?? null,
     submittedBy:     row.submittedBy,
+    submittedByName: row.submitterFirst && row.submitterLast
+      ? `${row.submitterFirst} ${row.submitterLast}`.trim()
+      : row.submittedBy.slice(0, 8) + "…",
     submittedAt:     row.submittedAt.toISOString(),
     reviewedBy:      row.reviewedBy ?? null,
+    reviewedByName:  row.reviewerFirst && row.reviewerLast
+      ? `${row.reviewerFirst} ${row.reviewerLast}`.trim()
+      : row.reviewedBy ? row.reviewedBy.slice(0, 8) + "…" : null,
     reviewedAt:      row.reviewedAt?.toISOString() ?? null,
     createdAt:       row.createdAt.toISOString(),
   };
 }
 
+/**
+ * Returns the most recent report for an assignment (latest submitted_at).
+ * Returns null if no report exists yet.
+ */
 export async function getReportForAssignment(assignmentId: string): Promise<ReportDetail | null> {
   const canRead = await hasPermission("reports", "read");
   if (!canRead) return null;
@@ -184,15 +217,22 @@ export async function getReportForAssignment(assignmentId: string): Promise<Repo
       hoursWorked:     reportsTable.hoursWorked,
       notes:           reportsTable.notes,
       submittedBy:     reportsTable.submittedBy,
+      submitterFirst:  submitterPersonnel.firstName,
+      submitterLast:   submitterPersonnel.lastName,
       submittedAt:     reportsTable.submittedAt,
       reviewedBy:      reportsTable.reviewedBy,
+      reviewerFirst:   reviewerPersonnel.firstName,
+      reviewerLast:    reviewerPersonnel.lastName,
       reviewedAt:      reportsTable.reviewedAt,
       createdAt:       reportsTable.createdAt,
     })
     .from(reportsTable)
     .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
     .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
+    .leftJoin(submitterPersonnel, eq(submitterPersonnel.userId, reportsTable.submittedBy))
+    .leftJoin(reviewerPersonnel, eq(reviewerPersonnel.userId, reportsTable.reviewedBy!))
     .where(eq(reportsTable.assignmentId, assignmentId))
+    .orderBy(desc(reportsTable.submittedAt))
     .limit(1);
 
   if (!row) return null;
@@ -208,8 +248,14 @@ export async function getReportForAssignment(assignmentId: string): Promise<Repo
     hoursWorked:     row.hoursWorked ?? null,
     notes:           row.notes ?? null,
     submittedBy:     row.submittedBy,
+    submittedByName: row.submitterFirst && row.submitterLast
+      ? `${row.submitterFirst} ${row.submitterLast}`.trim()
+      : row.submittedBy.slice(0, 8) + "…",
     submittedAt:     row.submittedAt.toISOString(),
     reviewedBy:      row.reviewedBy ?? null,
+    reviewedByName:  row.reviewerFirst && row.reviewerLast
+      ? `${row.reviewerFirst} ${row.reviewerLast}`.trim()
+      : row.reviewedBy ? row.reviewedBy.slice(0, 8) + "…" : null,
     reviewedAt:      row.reviewedAt?.toISOString() ?? null,
     createdAt:       row.createdAt.toISOString(),
   };
@@ -289,13 +335,7 @@ export async function submitReport(
     revalidatePath(`/assignments/${assignmentId}`);
     revalidatePath("/reports");
     return { success: true, data: { id: created!.id } };
-  } catch (err) {
-    if (
-      typeof err === "object" && err !== null &&
-      "code" in err && (err as { code: string }).code === "23505"
-    ) {
-      return { success: false, message: "Er is al een rapport ingediend voor deze opdracht." };
-    }
+  } catch {
     return { success: false, message: "Rapport indienen mislukt." };
   }
 }
