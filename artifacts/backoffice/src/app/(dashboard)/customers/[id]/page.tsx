@@ -63,7 +63,7 @@ export default async function CustomerDetailPage({ params }: Props) {
             style={{ color: "#64748B" }}
           >
             <ArrowLeft className="h-4 w-4" />
-            Customers
+            Klanten
           </Link>
           <div>
             <div className="flex items-center gap-3">
@@ -114,12 +114,12 @@ export default async function CustomerDetailPage({ params }: Props) {
             </h2>
             <dl className="space-y-3">
               {customer.contactName && (
-                <InfoRow icon={<Tag className="h-4 w-4" />} label="Contact person" value={customer.contactName} />
+                <InfoRow icon={<Tag className="h-4 w-4" />} label="Contactpersoon" value={customer.contactName} />
               )}
               {customer.contactEmail && (
                 <InfoRow
                   icon={<Mail className="h-4 w-4" />}
-                  label="Email"
+                  label="E-mail"
                   value={
                     <a
                       href={`mailto:${customer.contactEmail}`}
@@ -134,7 +134,7 @@ export default async function CustomerDetailPage({ params }: Props) {
               {customer.contactPhone && (
                 <InfoRow
                   icon={<Phone className="h-4 w-4" />}
-                  label="Phone"
+                  label="Telefoon"
                   value={
                     <a
                       href={`tel:${customer.contactPhone}`}
@@ -147,7 +147,7 @@ export default async function CustomerDetailPage({ params }: Props) {
                 />
               )}
               {!customer.contactName && !customer.contactEmail && !customer.contactPhone && (
-                <p className="text-sm" style={{ color: "#94A3B8" }}>No contact details added yet.</p>
+                <p className="text-sm" style={{ color: "#94A3B8" }}>Nog geen contactgegevens toegevoegd.</p>
               )}
             </dl>
           </div>
@@ -158,7 +158,7 @@ export default async function CustomerDetailPage({ params }: Props) {
               className="font-heading text-sm font-semibold mb-4"
               style={{ color: "#081D3A" }}
             >
-              Address
+              Adres
             </h2>
             {customer.address || customer.city || customer.postalCode ? (
               <div className="flex items-start gap-2">
@@ -174,7 +174,7 @@ export default async function CustomerDetailPage({ params }: Props) {
                 </div>
               </div>
             ) : (
-              <p className="text-sm" style={{ color: "#94A3B8" }}>No address added yet.</p>
+              <p className="text-sm" style={{ color: "#94A3B8" }}>Nog geen adres toegevoegd.</p>
             )}
           </div>
 
@@ -185,17 +185,17 @@ export default async function CustomerDetailPage({ params }: Props) {
                 className="font-heading text-sm font-semibold mb-1"
                 style={{ color: "#081D3A" }}
               >
-                Internal Notes
+                Interne notities
               </h2>
               <p className="text-xs mb-3" style={{ color: "#94A3B8" }}>
-                Only visible to management
+                Alleen zichtbaar voor management
               </p>
               {customer.notes ? (
                 <p className="text-sm whitespace-pre-wrap" style={{ color: "#475569" }}>
                   {customer.notes}
                 </p>
               ) : (
-                <p className="text-sm" style={{ color: "#94A3B8" }}>No internal notes.</p>
+                <p className="text-sm" style={{ color: "#94A3B8" }}>Geen interne notities.</p>
               )}
             </div>
           )}
@@ -208,7 +208,7 @@ export default async function CustomerDetailPage({ params }: Props) {
               className="font-heading text-sm font-semibold mb-4"
               style={{ color: "#081D3A" }}
             >
-              Details
+              Gegevens
             </h2>
             <dl className="space-y-3">
               <InfoRow
@@ -223,8 +223,8 @@ export default async function CustomerDetailPage({ params }: Props) {
               />
               <InfoRow
                 icon={<Calendar className="h-4 w-4" />}
-                label="Created"
-                value={new Date(customer.createdAt).toLocaleDateString("en-NL", {
+                label="Aangemaakt"
+                value={new Date(customer.createdAt).toLocaleDateString("nl-NL", {
                   day: "2-digit",
                   month: "short",
                   year: "numeric",
@@ -243,7 +243,7 @@ export default async function CustomerDetailPage({ params }: Props) {
               className="font-heading text-sm font-semibold"
               style={{ color: "#081D3A" }}
             >
-              Objects
+              Objecten
               <span
                 className="ml-2 text-xs font-normal"
                 style={{ color: "#94A3B8" }}
@@ -264,7 +264,7 @@ export default async function CustomerDetailPage({ params }: Props) {
                 className="text-xs font-medium hover:underline"
                 style={{ color: "#00B7B3" }}
               >
-                View all →
+                Alle bekijken →
               </Link>
             </div>
           </div>
@@ -272,10 +272,10 @@ export default async function CustomerDetailPage({ params }: Props) {
             <table className="w-full">
               <thead>
                 <tr style={{ borderTop: "1px solid #E2E8F0", borderBottom: "1px solid #E2E8F0" }}>
-                  <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Name</th>
+                  <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Naam</th>
                   <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Code</th>
                   <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Sector</th>
-                  <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>City</th>
+                  <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Stad</th>
                   <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Status</th>
                 </tr>
               </thead>
@@ -283,7 +283,7 @@ export default async function CustomerDetailPage({ params }: Props) {
                 {objects.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="px-5 py-8 text-center text-sm" style={{ color: "#94A3B8" }}>
-                      No objects linked to this customer yet.
+                      Nog geen objecten gekoppeld aan deze klant.
                     </td>
                   </tr>
                 ) : (

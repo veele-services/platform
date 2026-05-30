@@ -282,7 +282,7 @@ export function TaskCodeForm({
             <Input
               id="price"
               {...register("price")}
-              placeholder="e.g. 45.00"
+              placeholder="bijv. 45.00"
               aria-invalid={!!errors.price}
             />
             {errors.price && (
@@ -297,7 +297,7 @@ export function TaskCodeForm({
               type="number"
               min={1}
               {...register("durationMinutes")}
-              placeholder="e.g. 60"
+              placeholder="bijv. 60"
               aria-invalid={!!errors.durationMinutes}
             />
             {errors.durationMinutes && (

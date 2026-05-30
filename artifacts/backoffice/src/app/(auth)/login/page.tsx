@@ -57,7 +57,7 @@ export default function LoginPage() {
             letterSpacing: "-0.01em",
           }}
         >
-          Backoffice Sign In
+          Backoffice Inloggen
         </h1>
         <p
           className="mt-1"
@@ -67,7 +67,7 @@ export default function LoginPage() {
             color: "#64748B",
           }}
         >
-          Sign in with your Veele account
+          Inloggen met uw Veele account
         </p>
       </div>
 
@@ -90,7 +90,7 @@ export default function LoginPage() {
                 color: "#92400E",
               }}
             >
-              Supabase not configured
+              Supabase niet geconfigureerd
             </p>
             <p
               className="mt-0.5"
@@ -101,11 +101,11 @@ export default function LoginPage() {
                 lineHeight: "1.4",
               }}
             >
-              Set{" "}
+              Stel{" "}
               <code style={{ fontSize: "10px" }}>NEXT_PUBLIC_SUPABASE_URL</code>{" "}
-              and{" "}
+              en{" "}
               <code style={{ fontSize: "10px" }}>NEXT_PUBLIC_SUPABASE_ANON_KEY</code>{" "}
-              to enable authentication.
+              in om authenticatie in te schakelen.
             </p>
           </div>
         </div>

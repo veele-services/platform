@@ -240,7 +240,7 @@ export function PersonnelView({
       const result = await bulkSetPersonnelStatus(ids, isActive);
       if (result.success) {
         setSelected(new Set());
-        toast.success(`${ids.length} record${ids.length > 1 ? "s" : ""} ${isActive ? "geactiveerd" : "gedeactiveerd"}`);
+        toast.success(`${ids.length} medewerker${ids.length > 1 ? "s" : ""} ${isActive ? "geactiveerd" : "gedeactiveerd"}`);
       } else {
         toast.error(result.message);
       }
@@ -531,7 +531,7 @@ export function PersonnelView({
           <AlertDialogHeader>
             <AlertDialogTitle>Personeelsrecord verwijderen?</AlertDialogTitle>
             <AlertDialogDescription>
-              Dit verwijdert permanent het record van{" "}
+              Dit verwijdert permanent de medewerker{" "}
               <strong>{deleteTarget?.name}</strong>. Deze actie kan niet ongedaan worden gemaakt.
             </AlertDialogDescription>
           </AlertDialogHeader>

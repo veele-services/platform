@@ -309,7 +309,7 @@ export function PersonnelForm({
             <Input
               id="region"
               {...register("region")}
-              placeholder="e.g. Noord-Holland"
+              placeholder="bijv. Noord-Holland"
               aria-invalid={!!errors.region}
             />
             {errors.region && (
