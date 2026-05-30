@@ -75,9 +75,19 @@ export type InvoiceDetail = {
 };
 
 export type InvoiceSummary = {
-  outstandingCount:  number;
-  outstandingAmount: string;
-  paidThisMonth:     string;
+  draftCount:    number;
+  draftAmount:   string;
+  sentCount:     number;
+  sentAmount:    string;
+  paidTotal:     string;
+  paidThisMonth: string;
+  totalCount:    number;
+};
+
+export type InvoiceStatusEvent = {
+  action:    string;
+  label:     string;
+  timestamp: string;
 };
 
 export type AssignmentInvoiceData = {
@@ -331,24 +341,63 @@ export async function getOutstandingInvoicesCount(): Promise<number> {
 
 export async function getInvoiceSummary(): Promise<InvoiceSummary> {
   const canRead = await hasPermission("invoices", "read");
-  if (!canRead) return { outstandingCount: 0, outstandingAmount: "0.00", paidThisMonth: "0.00" };
+  if (!canRead) {
+    return { draftCount: 0, draftAmount: "0.00", sentCount: 0, sentAmount: "0.00", paidTotal: "0.00", paidThisMonth: "0.00", totalCount: 0 };
+  }
 
   const now = new Date();
   const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 
   const [summary] = await db
     .select({
-      outstandingCount:  sql<number>`count(*) FILTER (WHERE status IN ('draft', 'sent'))::int`,
-      outstandingAmount: sql<string>`coalesce(sum(total_amount) FILTER (WHERE status IN ('draft', 'sent')), 0)::text`,
-      paidThisMonth:     sql<string>`coalesce(sum(total_amount) FILTER (WHERE status = 'paid' AND paid_date >= ${startOfMonth}), 0)::text`,
+      draftCount:    sql<number>`count(*) FILTER (WHERE status = 'draft')::int`,
+      draftAmount:   sql<string>`coalesce(sum(total_amount) FILTER (WHERE status = 'draft'), 0)::text`,
+      sentCount:     sql<number>`count(*) FILTER (WHERE status = 'sent')::int`,
+      sentAmount:    sql<string>`coalesce(sum(total_amount) FILTER (WHERE status = 'sent'), 0)::text`,
+      paidTotal:     sql<string>`coalesce(sum(total_amount) FILTER (WHERE status = 'paid'), 0)::text`,
+      paidThisMonth: sql<string>`coalesce(sum(total_amount) FILTER (WHERE status = 'paid' AND paid_date >= ${startOfMonth}), 0)::text`,
+      totalCount:    sql<number>`count(*)::int`,
     })
     .from(invoicesTable);
 
   return {
-    outstandingCount:  summary?.outstandingCount  ?? 0,
-    outstandingAmount: parseFloat(summary?.outstandingAmount ?? "0").toFixed(2),
-    paidThisMonth:     parseFloat(summary?.paidThisMonth     ?? "0").toFixed(2),
+    draftCount:    summary?.draftCount    ?? 0,
+    draftAmount:   parseFloat(summary?.draftAmount   ?? "0").toFixed(2),
+    sentCount:     summary?.sentCount     ?? 0,
+    sentAmount:    parseFloat(summary?.sentAmount    ?? "0").toFixed(2),
+    paidTotal:     parseFloat(summary?.paidTotal     ?? "0").toFixed(2),
+    paidThisMonth: parseFloat(summary?.paidThisMonth ?? "0").toFixed(2),
+    totalCount:    summary?.totalCount    ?? 0,
   };
+}
+
+export async function getInvoiceStatusHistory(invoiceId: string): Promise<InvoiceStatusEvent[]> {
+  const canRead = await hasPermission("invoices", "read");
+  if (!canRead) return [];
+
+  const ACTION_LABELS: Record<string, string> = {
+    create_invoice:       "Factuur aangemaakt",
+    mark_invoice_sent:    "Gemarkeerd als verzonden",
+    mark_invoice_paid:    "Gemarkeerd als betaald",
+    cancel_invoice:       "Factuur geannuleerd",
+  };
+
+  const rows = await db
+    .select({ action: auditLogTable.action, createdAt: auditLogTable.createdAt })
+    .from(auditLogTable)
+    .where(
+      and(
+        eq(auditLogTable.resource, "invoices"),
+        eq(auditLogTable.resourceId, invoiceId),
+      )
+    )
+    .orderBy(asc(auditLogTable.createdAt));
+
+  return rows.map((r) => ({
+    action:    r.action,
+    label:     ACTION_LABELS[r.action] ?? r.action,
+    timestamp: r.createdAt.toISOString(),
+  }));
 }
 
 // ─── Mutations ────────────────────────────────────────────────────────────────

@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
-import { getInvoice } from "@/app/actions/invoices";
+import { getInvoice, getInvoiceStatusHistory } from "@/app/actions/invoices";
 import { InvoiceActions } from "@/components/invoices/InvoiceActions";
 
 interface Props {
@@ -84,6 +84,8 @@ export default async function InvoiceDetailPage({ params }: Props) {
   ]);
 
   if (!invoice) notFound();
+
+  const statusHistory = await getInvoiceStatusHistory(id);
 
   const statusStyle = STATUS_STYLES[invoice.status] ?? STATUS_STYLES.draft;
   const isOverdue   = invoice.status === "sent" && new Date(invoice.dueDate) < new Date();
@@ -327,7 +329,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
           )}
         </div>
 
-        {/* Right: actions + status info */}
+        {/* Right: actions + status info + history */}
         <div className="flex flex-col gap-4">
 
           {/* Due date card */}
@@ -359,6 +361,41 @@ export default async function InvoiceDetailPage({ params }: Props) {
           {/* Actions */}
           {canWrite && (
             <InvoiceActions invoiceId={invoice.id} status={invoice.status} />
+          )}
+
+          {/* Status history */}
+          {statusHistory.length > 0 && (
+            <div className="veele-card">
+              <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "#94A3B8" }}>
+                Statusgeschiedenis
+              </p>
+              <ol className="relative ml-2" style={{ borderLeft: "2px solid #F1F5F9" }}>
+                {statusHistory.map((event, i) => {
+                  const isLast = i === statusHistory.length - 1;
+                  const dt = new Date(event.timestamp);
+                  const dateStr = dt.toLocaleDateString("nl-NL", {
+                    day: "numeric", month: "short", year: "numeric",
+                  });
+                  const timeStr = dt.toLocaleTimeString("nl-NL", {
+                    hour: "2-digit", minute: "2-digit",
+                  });
+                  return (
+                    <li key={i} className={`pl-4 ${isLast ? "" : "pb-4"}`}>
+                      <span
+                        className="absolute -left-1.5 flex items-center justify-center w-3 h-3 rounded-full"
+                        style={{ backgroundColor: isLast ? "#00B7B3" : "#CBD5E1" }}
+                      />
+                      <p className="text-xs font-semibold" style={{ color: "#081D3A" }}>
+                        {event.label}
+                      </p>
+                      <p className="text-xs" style={{ color: "#94A3B8" }}>
+                        {dateStr} · {timeStr}
+                      </p>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
           )}
         </div>
       </div>

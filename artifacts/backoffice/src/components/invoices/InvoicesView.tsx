@@ -73,25 +73,32 @@ export function InvoicesView({ rows, total, page, search, statusFilter, summary 
       </div>
 
       {/* ── Summary cards ── */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        <SummaryCard
+          icon={<FileText className="h-5 w-5" />}
+          label="Concept"
+          value={formatEur(summary.draftAmount)}
+          sub={`${summary.draftCount} factuur${summary.draftCount !== 1 ? "en" : ""}`}
+          color="#64748B"
+        />
         <SummaryCard
           icon={<Clock className="h-5 w-5" />}
-          label="Openstaand"
-          value={formatEur(summary.outstandingAmount)}
-          sub={`${summary.outstandingCount} factuur${summary.outstandingCount !== 1 ? "en" : ""}`}
+          label="Verzonden"
+          value={formatEur(summary.sentAmount)}
+          sub={`${summary.sentCount} factuur${summary.sentCount !== 1 ? "en" : ""}`}
           color="#F59E0B"
         />
         <SummaryCard
           icon={<CheckCircle2 className="h-5 w-5" />}
-          label="Betaald deze maand"
-          value={formatEur(summary.paidThisMonth)}
+          label="Betaald (totaal)"
+          value={formatEur(summary.paidTotal)}
+          sub={`incl. vorige maanden`}
           color="#10B981"
         />
         <SummaryCard
           icon={<TrendingUp className="h-5 w-5" />}
-          label="Totaal facturen"
-          value={String(total)}
-          sub="alle statussen"
+          label="Betaald deze maand"
+          value={formatEur(summary.paidThisMonth)}
           color="#00B7B3"
         />
       </div>
