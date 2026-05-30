@@ -11,6 +11,7 @@ import {
   UserCog,
   BarChart3,
   FileText,
+  FileCheck2,
   FolderOpen,
   Settings,
   LogOut,
@@ -23,6 +24,7 @@ const NAV_ITEMS = [
   { href: "/",            icon: LayoutDashboard, label: "Dashboard",   permission: "dashboard:read"   },
   { href: "/planning",    icon: Calendar,        label: "Planning",    permission: "planning:read"    },
   { href: "/assignments", icon: ClipboardList,   label: "Opdrachten",  permission: "assignments:read" },
+  { href: "/quotes",      icon: FileCheck2,      label: "Offertes",    permission: "quotes:read"      },
   { href: "/customers",   icon: Users,           label: "Klanten",     permission: "customers:read"   },
   { href: "/objects",     icon: Building2,       label: "Objecten",    permission: "objects:read"     },
   { href: "/personnel",   icon: UserCog,         label: "Personeel",   permission: "personnel:read"   },
@@ -43,6 +45,7 @@ interface SidebarProps {
   userRole:                 string;
   pendingReportsCount?:     number;
   outstandingInvoicesCount?: number;
+  pendingQuotesCount?:      number;
 }
 
 export function Sidebar({
@@ -51,6 +54,7 @@ export function Sidebar({
   userRole,
   pendingReportsCount = 0,
   outstandingInvoicesCount = 0,
+  pendingQuotesCount = 0,
 }: SidebarProps) {
   const pathname    = usePathname();
   const permissions = usePermissions();
@@ -106,10 +110,12 @@ export function Sidebar({
             const active  = isActive(pathname, href);
             const hasBadge =
               (href === "/reports"  && pendingReportsCount > 0) ||
-              (href === "/invoices" && outstandingInvoicesCount > 0);
+              (href === "/invoices" && outstandingInvoicesCount > 0) ||
+              (href === "/quotes"   && pendingQuotesCount > 0);
             const badgeCount =
               href === "/reports"  ? pendingReportsCount :
-              href === "/invoices" ? outstandingInvoicesCount : 0;
+              href === "/invoices" ? outstandingInvoicesCount :
+              href === "/quotes"   ? pendingQuotesCount : 0;
             return (
               <Link
                 key={href}

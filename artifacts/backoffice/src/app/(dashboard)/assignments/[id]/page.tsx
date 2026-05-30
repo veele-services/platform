@@ -13,6 +13,8 @@ import {
   CheckCircle2,
   Clock3,
   Receipt,
+  FileCheck2,
+  AlertTriangle,
 } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
@@ -31,6 +33,10 @@ import { getReportForAssignment } from "@/app/actions/reports";
 import { SubmitReportForm } from "@/components/reports/SubmitReportForm";
 import { getInvoiceForAssignment, getAssignmentInvoiceData } from "@/app/actions/invoices";
 import { CreateInvoiceForm } from "@/components/invoices/CreateInvoiceForm";
+import { getQuoteForAssignment, getAssignmentQuoteData } from "@/app/actions/quotes";
+import { CreateQuoteForm } from "@/components/quotes/CreateQuoteForm";
+import { DirectApprovalButton } from "@/components/quotes/DirectApprovalButton";
+import type { QuoteStatus } from "@/app/actions/quotes";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -81,19 +87,31 @@ export default async function AssignmentDetailPage({ params }: Props) {
 
   const { id } = await params;
 
-  const [assignment, canWrite, canReadReports, canSubmitReport, canReadInvoices, canWriteInvoices] = await Promise.all([
+  const [
+    assignment,
+    canWrite,
+    canReadReports,
+    canSubmitReport,
+    canReadInvoices,
+    canWriteInvoices,
+    canReadQuotes,
+    canWriteQuotes,
+  ] = await Promise.all([
     getAssignment(id),
     hasPermission("assignments", "write"),
     hasPermission("reports", "read"),
     hasPermission("reports", "submit"),
     hasPermission("invoices", "read"),
     hasPermission("invoices", "write"),
+    hasPermission("quotes", "read"),
+    hasPermission("quotes", "write"),
   ]);
 
   if (!assignment) notFound();
 
-  const REPORT_STATUSES   = ["completed", "report_submitted", "report_approved", "invoice_ready", "invoiced", "paid", "closed"];
-  const INVOICE_STATUSES  = ["invoice_ready", "invoiced", "paid", "closed"];
+  const REPORT_STATUSES  = ["completed", "report_submitted", "report_approved", "invoice_ready", "invoiced", "paid", "closed"];
+  const INVOICE_STATUSES = ["invoice_ready", "invoiced", "paid", "closed"];
+  const QUOTE_STATUSES_SHOW = ["quote_preparation", "awaiting_approval", "approved", "plannable", "scheduled", "seen", "in_progress", "not_completed", "completed", "report_submitted", "report_approved", "invoice_ready", "invoiced", "paid", "closed"];
 
   const existingReport = canReadReports && REPORT_STATUSES.includes(assignment.status)
     ? await getReportForAssignment(id)
@@ -106,6 +124,17 @@ export default async function AssignmentDetailPage({ params }: Props) {
           : Promise.resolve(null),
         assignment.status === "report_approved" && canWriteInvoices
           ? getAssignmentInvoiceData(id)
+          : Promise.resolve(null),
+      ])
+    : [null, null];
+
+  const [existingQuote, quotePrefill] = canReadQuotes
+    ? await Promise.all([
+        QUOTE_STATUSES_SHOW.includes(assignment.status)
+          ? getQuoteForAssignment(id)
+          : Promise.resolve(null),
+        assignment.status === "review" && canWriteQuotes
+          ? getAssignmentQuoteData(id)
           : Promise.resolve(null),
       ])
     : [null, null];
@@ -266,6 +295,88 @@ export default async function AssignmentDetailPage({ params }: Props) {
             </div>
           )}
 
+          {/* ── Quote section — status: review ────────────── */}
+          {assignment.status === "review" && canReadQuotes && quotePrefill && (
+            <CreateQuoteForm assignmentId={assignment.id} prefill={quotePrefill} />
+          )}
+
+          {/* ── Existing quote info card ──────────────────── */}
+          {existingQuote && (
+            <div className="veele-card">
+              <h2
+                className="font-heading text-base font-semibold mb-3 flex items-center gap-2"
+                style={{ color: "#081D3A" }}
+              >
+                <FileCheck2 className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                Offerte
+                {existingQuote.isExpired ? (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ml-1"
+                    style={{ backgroundColor: "#FEF3C7", color: "#92400E" }}
+                  >
+                    <AlertTriangle className="h-3 w-3" />
+                    Verlopen
+                  </span>
+                ) : existingQuote.status === "sent" ? (
+                  <span
+                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ml-1"
+                    style={{ backgroundColor: "#EFF6FF", color: "#1D4ED8" }}
+                  >
+                    Ter goedkeuring
+                  </span>
+                ) : existingQuote.status === "approved" ? (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ml-1"
+                    style={{ backgroundColor: "#D1FAE5", color: "#065F46" }}
+                  >
+                    <CheckCircle2 className="h-3 w-3" />
+                    Goedgekeurd
+                  </span>
+                ) : existingQuote.status === "rejected" ? (
+                  <span
+                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ml-1"
+                    style={{ backgroundColor: "#FEE2E2", color: "#991B1B" }}
+                  >
+                    Afgewezen
+                  </span>
+                ) : (
+                  <span
+                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ml-1"
+                    style={{ backgroundColor: "#F1F5F9", color: "#475569" }}
+                  >
+                    Concept
+                  </span>
+                )}
+              </h2>
+              <div className="flex items-center justify-between text-sm mb-2">
+                <span className="font-mono text-xs rounded px-1.5 py-0.5" style={{ background: "#F1F5F9", color: "#475569" }}>
+                  {existingQuote.quoteNumber}
+                </span>
+                <span className="font-semibold" style={{ color: "#081D3A" }}>
+                  {new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(
+                    parseFloat(existingQuote.amount) || 0
+                  )}
+                </span>
+              </div>
+              {existingQuote.validityDate && (
+                <p className="text-xs mb-3" style={{ color: existingQuote.isExpired ? "#DC2626" : "#64748B" }}>
+                  {existingQuote.isExpired && <AlertTriangle className="inline h-3 w-3 mr-1 mb-0.5" />}
+                  Geldig tot{" "}
+                  {new Date(existingQuote.validityDate + "T00:00:00").toLocaleDateString("nl-NL", {
+                    day: "numeric", month: "long", year: "numeric",
+                  })}
+                </p>
+              )}
+              <Link
+                href={`/quotes/${existingQuote.id}`}
+                className="text-sm font-medium hover:underline"
+                style={{ color: "#00B7B3" }}
+              >
+                Offerte bekijken →
+              </Link>
+            </div>
+          )}
+
           {/* ── Report section ────────────────────────────── */}
           {assignment.status === "completed" &&
             (!existingReport || existingReport.status === "rejected") &&
@@ -375,6 +486,12 @@ export default async function AssignmentDetailPage({ params }: Props) {
 
         {/* Right: interactive actions panel (or read-only for viewers) */}
         <div className="flex flex-col gap-4">
+
+          {/* Direct approval button — only when status is review and user can write quotes */}
+          {assignment.status === "review" && canWrite && canReadQuotes && (
+            <DirectApprovalButton assignmentId={assignment.id} />
+          )}
+
           {canWrite ? (
             <AssignmentDetailActions
               assignmentId={assignment.id}

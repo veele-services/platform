@@ -773,6 +773,48 @@ export async function removeAssignmentTask(
   return { success: true };
 }
 
+export async function approveDirectly(id: string): Promise<ActionResult> {
+  await requirePermission("assignments", "write");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [current] = await db
+    .select({ status: assignmentsTable.status, title: assignmentsTable.title })
+    .from(assignmentsTable)
+    .where(eq(assignmentsTable.id, id))
+    .limit(1);
+
+  if (!current) return { success: false, message: "Opdracht niet gevonden." };
+  if (current.status !== "review") {
+    return { success: false, message: "Directe goedkeuring is alleen mogelijk voor opdrachten met status 'review'." };
+  }
+
+  // review → approved → plannable (skip quote)
+  await db
+    .update(assignmentsTable)
+    .set({ status: "approved", updatedAt: new Date() })
+    .where(eq(assignmentsTable.id, id));
+
+  await db
+    .update(assignmentsTable)
+    .set({ status: "plannable", updatedAt: new Date() })
+    .where(eq(assignmentsTable.id, id));
+
+  await db.insert(auditLogTable).values({
+    userId:     user.id,
+    action:     "direct_approve",
+    resource:   "assignments",
+    resourceId: id,
+    metadata:   { title: current.title, from: "review", to: "plannable" },
+  });
+
+  revalidatePath("/assignments");
+  revalidatePath(`/assignments/${id}`);
+  return { success: true };
+}
+
 export async function deleteAssignment(id: string): Promise<ActionResult> {
   await requirePermission("assignments", "write");
 
