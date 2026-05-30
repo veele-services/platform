@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS organization_settings (
   updated_by          uuid
 );
 
--- Singleton enforcement: only one row allowed
+-- Singleton enforcement: only one row allowed (unique index on constant TRUE)
 CREATE UNIQUE INDEX IF NOT EXISTS org_settings_singleton_idx
   ON organization_settings ((TRUE));
 
@@ -27,14 +27,38 @@ INSERT INTO organization_settings (naam)
 VALUES ('')
 ON CONFLICT DO NOTHING;
 
--- ── 2. RLS ───────────────────────────────────────────────────────────────────
+-- ── 2. updated_at trigger ────────────────────────────────────────────────────
+
+CREATE OR REPLACE FUNCTION trg_set_org_settings_updated_at()
+RETURNS TRIGGER LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.updated_at = now();
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_org_settings_updated_at ON organization_settings;
+CREATE TRIGGER trg_org_settings_updated_at
+  BEFORE UPDATE ON organization_settings
+  FOR EACH ROW EXECUTE FUNCTION trg_set_org_settings_updated_at();
+
+-- ── 3. RLS ───────────────────────────────────────────────────────────────────
 
 ALTER TABLE organization_settings ENABLE ROW LEVEL SECURITY;
 
--- Backoffice uses service_role key which bypasses RLS.
--- Future: add policy for authenticated management users if needed.
+-- Allow authenticated sessions to read org settings (used by SSR rendering).
+-- All write operations go through the service-role admin client (bypasses RLS).
+CREATE POLICY IF NOT EXISTS "org_settings_authenticated_read"
+  ON organization_settings
+  FOR SELECT
+  TO authenticated
+  USING (TRUE);
 
--- ── 3. Add settings:write permission (settings:read already seeded in RBAC) ──
+-- Explicit deny: no INSERT/UPDATE/DELETE from authenticated role directly.
+-- Writes are done via the service-role key in server actions only.
+-- (No additional policy needed — RLS denies by default when no policy matches.)
+
+-- ── 4. Add permissions ───────────────────────────────────────────────────────
 
 INSERT INTO permissions (resource, action, description)
 VALUES
@@ -47,8 +71,9 @@ VALUES
   ('users',    'write', 'Gebruikers uitnodigen, bewerken en deactiveren')
 ON CONFLICT (resource, action) DO NOTHING;
 
--- ── 4. Grant settings/roles/users permissions to Management ──────────────────
+-- ── 5. Grant permissions to roles ────────────────────────────────────────────
 
+-- Management: full access to settings, roles, and users
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r, permissions p
@@ -56,11 +81,14 @@ WHERE r.name = 'Management'
   AND p.resource IN ('settings', 'roles', 'users')
 ON CONFLICT DO NOTHING;
 
--- Grant settings:read and users:read/write to Administration
+-- Administration: settings:read/write, users:read/write (no role management)
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r, permissions p
 WHERE r.name = 'Administration'
-  AND p.resource IN ('settings', 'users')
-  AND p.action IN ('read', 'write')
+  AND (
+    (p.resource = 'settings' AND p.action IN ('read', 'write'))
+    OR
+    (p.resource = 'users'    AND p.action IN ('read', 'write'))
+  )
 ON CONFLICT DO NOTHING;

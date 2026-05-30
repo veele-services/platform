@@ -15,6 +15,9 @@ import {
   FolderOpen,
   Settings,
   LogOut,
+  Shield,
+  ClipboardList as TaskIcon,
+  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/providers/permissions-provider";
@@ -31,7 +34,13 @@ const NAV_ITEMS = [
   { href: "/reports",     icon: BarChart3,       label: "Rapporten",   permission: "reports:read"     },
   { href: "/invoices",    icon: FileText,        label: "Facturen",    permission: "invoices:read"    },
   { href: "/documents",   icon: FolderOpen,      label: "Documenten",  permission: "documents:read"   },
-  { href: "/settings",    icon: Settings,        label: "Instellingen",permission: "settings:read"    },
+] as const;
+
+const SETTINGS_SUB_ITEMS = [
+  { href: "/settings/organisatie",  label: "Organisatie",      permission: "settings:write" },
+  { href: "/settings/rollen",       label: "Rollen & rechten", permission: "roles:read"     },
+  { href: "/settings/gebruikers",   label: "Gebruikers",       permission: "users:read"     },
+  { href: "/settings/task-codes",   label: "Taakcodes",        permission: "task_codes:read"},
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {
@@ -59,7 +68,10 @@ export function Sidebar({
   const pathname    = usePathname();
   const permissions = usePermissions();
 
-  const visibleItems = NAV_ITEMS.filter((item) => permissions.has(item.permission));
+  const visibleItems    = NAV_ITEMS.filter((item) => permissions.has(item.permission));
+  const canReadSettings = permissions.has("settings:read");
+  const visibleSubItems = SETTINGS_SUB_ITEMS.filter((item) => permissions.has(item.permission));
+  const inSettings      = pathname.startsWith("/settings");
 
   return (
     <aside
@@ -91,7 +103,7 @@ export function Sidebar({
 
       {/* ── Navigation ── */}
       <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
-        {visibleItems.length === 0 ? (
+        {visibleItems.length === 0 && !canReadSettings ? (
           <p
             className="px-3 py-4 text-center"
             style={{
@@ -147,6 +159,62 @@ export function Sidebar({
           })
         )}
       </nav>
+
+      {/* ── Instellingen section ── */}
+      {canReadSettings && visibleSubItems.length > 0 && (
+        <div className="px-3 pb-2 flex-shrink-0 border-t border-white/10">
+          {/* Section header */}
+          <Link
+            href="/settings"
+            className="flex items-center gap-2 px-3 py-2.5 mt-2 rounded-lg transition-colors hover:bg-white/5"
+            style={{
+              fontFamily: "var(--font-inter), Inter, sans-serif",
+              fontSize: "11px",
+              fontWeight: 600,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              color: inSettings ? "#44D6D1" : "rgba(255,255,255,0.45)",
+            }}
+          >
+            <Settings
+              style={{ width: "13px", height: "13px", flexShrink: 0 }}
+              strokeWidth={inSettings ? 2.5 : 1.75}
+            />
+            <span className="flex-1">Instellingen</span>
+          </Link>
+
+          {/* Sub-items */}
+          <div className="ml-3 space-y-0.5">
+            {visibleSubItems.map(({ href, label }) => {
+              const active = isActive(pathname, href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className="flex items-center gap-2 rounded-md px-3 py-1.5 transition-colors"
+                  style={{
+                    fontFamily: "var(--font-inter), Inter, sans-serif",
+                    fontSize: "12px",
+                    fontWeight: active ? 600 : 400,
+                    color: active ? "#FFFFFF" : "rgba(255,255,255,0.55)",
+                    backgroundColor: active ? "rgba(255,255,255,0.08)" : "transparent",
+                  }}
+                >
+                  <span
+                    className="flex-shrink-0 rounded-full"
+                    style={{
+                      width: "4px",
+                      height: "4px",
+                      backgroundColor: active ? "#00B7B3" : "rgba(255,255,255,0.3)",
+                    }}
+                  />
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── User footer ── */}
       <div className="px-4 py-3 border-t border-white/10 flex-shrink-0">
