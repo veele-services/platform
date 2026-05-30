@@ -18,6 +18,9 @@ CREATE TABLE IF NOT EXISTS reports (
 
   content         text         NOT NULL,
   hours_worked    numeric(5,2),
+  -- Optional extra observations/remarks from the field worker
+  submitter_notes text,
+  -- Management feedback — filled on approval or rejection
   notes           text,
 
   reviewed_by     uuid,

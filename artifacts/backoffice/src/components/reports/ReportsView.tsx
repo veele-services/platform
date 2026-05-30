@@ -64,7 +64,7 @@ interface Props {
 
 const STATUS_OPTIONS = [
   { value: "",          label: "Alle statussen" },
-  { value: "submitted", label: "Ingediend" },
+  { value: "submitted", label: "Te beoordelen" },
   { value: "approved",  label: "Goedgekeurd" },
   { value: "rejected",  label: "Afgewezen" },
   { value: "draft",     label: "Concept" },

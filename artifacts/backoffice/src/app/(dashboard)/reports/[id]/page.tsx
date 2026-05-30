@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, FileText, Clock, CheckCircle2, XCircle, User, Calendar } from "lucide-react";
+import { ArrowLeft, FileText, Clock, CheckCircle2, XCircle, User, Calendar, MapPin } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { getReport } from "@/app/actions/reports";
@@ -22,10 +22,18 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 const STATUS_LABELS: Record<string, string> = {
-  submitted: "Ingediend",
+  draft:     "Concept",
+  submitted: "Te beoordelen",
   approved:  "Goedgekeurd",
   rejected:  "Afgewezen",
 };
+
+function formatScheduledDate(dateStr: string): string {
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("nl-NL", {
+    weekday: "long", day: "numeric", month: "long", year: "numeric",
+  });
+}
 
 const STATUS_STYLES: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
   submitted: { bg: "#FEF3C7", text: "#92400E", icon: <Clock className="h-4 w-4" /> },
@@ -129,6 +137,28 @@ export default async function ReportDetailPage({ params }: Props) {
               }
             />
             <InfoRow label="Klant" value={report.customerName} />
+            {report.objectName && (
+              <InfoRow
+                label="Object"
+                value={
+                  <span className="flex items-center gap-1">
+                    <MapPin className="h-3.5 w-3.5" style={{ color: "#94A3B8" }} />
+                    {report.objectName}
+                  </span>
+                }
+              />
+            )}
+            {report.scheduledDate && (
+              <InfoRow
+                label="Geplande datum"
+                value={
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-3.5 w-3.5" style={{ color: "#94A3B8" }} />
+                    {formatScheduledDate(report.scheduledDate)}
+                  </span>
+                }
+              />
+            )}
             {report.hoursWorked && (
               <InfoRow
                 label="Gewerkte uren"
@@ -185,6 +215,17 @@ export default async function ReportDetailPage({ params }: Props) {
             <p className="text-sm whitespace-pre-wrap leading-relaxed" style={{ color: "#374151" }}>
               {report.content}
             </p>
+
+            {report.submitterNotes && (
+              <div className="mt-4 pt-4" style={{ borderTop: "1px solid #F1F5F9" }}>
+                <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "#94A3B8" }}>
+                  Opmerkingen medewerker
+                </p>
+                <p className="text-sm whitespace-pre-wrap" style={{ color: "#374151" }}>
+                  {report.submitterNotes}
+                </p>
+              </div>
+            )}
           </div>
 
           {/* Management feedback (rejection notes) */}

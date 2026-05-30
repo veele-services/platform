@@ -31,13 +31,16 @@ export const reportsTable = pgTable("reports", {
   status:       varchar("status", { length: 20 }).notNull().default("submitted"),
 
   /** The narrative report body written by the field worker. */
-  content:      text("content").notNull(),
+  content:        text("content").notNull(),
 
   /** Hours worked on this assignment, as reported by the field worker. */
-  hoursWorked:  numeric("hours_worked", { precision: 5, scale: 2 }),
+  hoursWorked:    numeric("hours_worked", { precision: 5, scale: 2 }),
+
+  /** Optional extra observations or remarks from the field worker. */
+  submitterNotes: text("submitter_notes"),
 
   /** Management feedback — filled on approval or rejection. */
-  notes:        text("notes"),
+  notes:          text("notes"),
 
   /** Supabase Auth UUID of the manager who approved or rejected the report. */
   reviewedBy:   uuid("reviewed_by"),

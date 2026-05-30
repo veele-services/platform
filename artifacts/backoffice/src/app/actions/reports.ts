@@ -5,6 +5,7 @@ import {
   reportsTable,
   assignmentsTable,
   customersTable,
+  objectsTable,
   personnelTable,
   auditLogTable,
   ASSIGNMENT_STATUS_TRANSITIONS,
@@ -12,7 +13,7 @@ import {
   type AssignmentStatus,
 } from "@workspace/db";
 import { alias } from "drizzle-orm/pg-core";
-import { eq, ilike, or, and, asc, desc, sql } from "drizzle-orm";
+import { eq, ilike, or, and, desc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
@@ -47,9 +48,12 @@ export type ReportDetail = {
   assignmentCode:   string;
   assignmentTitle:  string;
   customerName:     string;
+  objectName:       string | null;
+  scheduledDate:    string | null;
   status:           ReportStatus;
   content:          string;
   hoursWorked:      string | null;
+  submitterNotes:   string | null;
   notes:            string | null;
   submittedBy:      string;
   submittedByName:  string;
@@ -138,50 +142,41 @@ export async function listReports(params: {
   };
 }
 
-export async function getReport(id: string): Promise<ReportDetail | null> {
-  const canRead = await hasPermission("reports", "read");
-  if (!canRead) return null;
-
-  const [row] = await db
-    .select({
-      id:              reportsTable.id,
-      assignmentId:    reportsTable.assignmentId,
-      assignmentCode:  assignmentsTable.code,
-      assignmentTitle: assignmentsTable.title,
-      customerName:    customersTable.name,
-      status:          reportsTable.status,
-      content:         reportsTable.content,
-      hoursWorked:     reportsTable.hoursWorked,
-      notes:           reportsTable.notes,
-      submittedBy:     reportsTable.submittedBy,
-      submitterFirst:  submitterPersonnel.firstName,
-      submitterLast:   submitterPersonnel.lastName,
-      submittedAt:     reportsTable.submittedAt,
-      reviewedBy:      reportsTable.reviewedBy,
-      reviewerFirst:   reviewerPersonnel.firstName,
-      reviewerLast:    reviewerPersonnel.lastName,
-      reviewedAt:      reportsTable.reviewedAt,
-      createdAt:       reportsTable.createdAt,
-    })
-    .from(reportsTable)
-    .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
-    .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
-    .leftJoin(submitterPersonnel, eq(submitterPersonnel.userId, reportsTable.submittedBy))
-    .leftJoin(reviewerPersonnel, eq(reviewerPersonnel.userId, reportsTable.reviewedBy!))
-    .where(eq(reportsTable.id, id))
-    .limit(1);
-
-  if (!row) return null;
-
+function mapReportDetail(row: {
+  id: string;
+  assignmentId: string;
+  assignmentCode: string;
+  assignmentTitle: string;
+  customerName: string | null;
+  objectName: string | null;
+  scheduledDate: string | null;
+  status: string;
+  content: string;
+  hoursWorked: string | null;
+  submitterNotes: string | null;
+  notes: string | null;
+  submittedBy: string;
+  submitterFirst: string | null;
+  submitterLast: string | null;
+  submittedAt: Date;
+  reviewedBy: string | null;
+  reviewerFirst: string | null;
+  reviewerLast: string | null;
+  reviewedAt: Date | null;
+  createdAt: Date;
+}): ReportDetail {
   return {
     id:              row.id,
     assignmentId:    row.assignmentId,
     assignmentCode:  row.assignmentCode,
     assignmentTitle: row.assignmentTitle,
     customerName:    row.customerName ?? "",
+    objectName:      row.objectName ?? null,
+    scheduledDate:   row.scheduledDate ?? null,
     status:          row.status as ReportStatus,
     content:         row.content,
     hoursWorked:     row.hoursWorked ?? null,
+    submitterNotes:  row.submitterNotes ?? null,
     notes:           row.notes ?? null,
     submittedBy:     row.submittedBy,
     submittedByName: row.submitterFirst && row.submitterLast
@@ -197,6 +192,52 @@ export async function getReport(id: string): Promise<ReportDetail | null> {
   };
 }
 
+const REPORT_DETAIL_SELECT = {
+  id:              reportsTable.id,
+  assignmentId:    reportsTable.assignmentId,
+  assignmentCode:  assignmentsTable.code,
+  assignmentTitle: assignmentsTable.title,
+  customerName:    customersTable.name,
+  objectName:      objectsTable.name,
+  scheduledDate:   assignmentsTable.scheduledDate,
+  status:          reportsTable.status,
+  content:         reportsTable.content,
+  hoursWorked:     reportsTable.hoursWorked,
+  submitterNotes:  reportsTable.submitterNotes,
+  notes:           reportsTable.notes,
+  submittedBy:     reportsTable.submittedBy,
+  submitterFirst:  submitterPersonnel.firstName,
+  submitterLast:   submitterPersonnel.lastName,
+  submittedAt:     reportsTable.submittedAt,
+  reviewedBy:      reportsTable.reviewedBy,
+  reviewerFirst:   reviewerPersonnel.firstName,
+  reviewerLast:    reviewerPersonnel.lastName,
+  reviewedAt:      reportsTable.reviewedAt,
+  createdAt:       reportsTable.createdAt,
+} as const;
+
+function detailBaseQuery() {
+  return db
+    .select(REPORT_DETAIL_SELECT)
+    .from(reportsTable)
+    .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
+    .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
+    .leftJoin(objectsTable,   eq(assignmentsTable.objectId,   objectsTable.id))
+    .leftJoin(submitterPersonnel, eq(submitterPersonnel.userId, reportsTable.submittedBy))
+    .leftJoin(reviewerPersonnel,  eq(reviewerPersonnel.userId,  reportsTable.reviewedBy!));
+}
+
+export async function getReport(id: string): Promise<ReportDetail | null> {
+  const canRead = await hasPermission("reports", "read");
+  if (!canRead) return null;
+
+  const [row] = await detailBaseQuery()
+    .where(eq(reportsTable.id, id))
+    .limit(1);
+
+  return row ? mapReportDetail(row) : null;
+}
+
 /**
  * Returns the most recent report for an assignment (latest submitted_at).
  * Returns null if no report exists yet.
@@ -205,60 +246,12 @@ export async function getReportForAssignment(assignmentId: string): Promise<Repo
   const canRead = await hasPermission("reports", "read");
   if (!canRead) return null;
 
-  const [row] = await db
-    .select({
-      id:              reportsTable.id,
-      assignmentId:    reportsTable.assignmentId,
-      assignmentCode:  assignmentsTable.code,
-      assignmentTitle: assignmentsTable.title,
-      customerName:    customersTable.name,
-      status:          reportsTable.status,
-      content:         reportsTable.content,
-      hoursWorked:     reportsTable.hoursWorked,
-      notes:           reportsTable.notes,
-      submittedBy:     reportsTable.submittedBy,
-      submitterFirst:  submitterPersonnel.firstName,
-      submitterLast:   submitterPersonnel.lastName,
-      submittedAt:     reportsTable.submittedAt,
-      reviewedBy:      reportsTable.reviewedBy,
-      reviewerFirst:   reviewerPersonnel.firstName,
-      reviewerLast:    reviewerPersonnel.lastName,
-      reviewedAt:      reportsTable.reviewedAt,
-      createdAt:       reportsTable.createdAt,
-    })
-    .from(reportsTable)
-    .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
-    .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
-    .leftJoin(submitterPersonnel, eq(submitterPersonnel.userId, reportsTable.submittedBy))
-    .leftJoin(reviewerPersonnel, eq(reviewerPersonnel.userId, reportsTable.reviewedBy!))
+  const [row] = await detailBaseQuery()
     .where(eq(reportsTable.assignmentId, assignmentId))
     .orderBy(desc(reportsTable.submittedAt))
     .limit(1);
 
-  if (!row) return null;
-
-  return {
-    id:              row.id,
-    assignmentId:    row.assignmentId,
-    assignmentCode:  row.assignmentCode,
-    assignmentTitle: row.assignmentTitle,
-    customerName:    row.customerName ?? "",
-    status:          row.status as ReportStatus,
-    content:         row.content,
-    hoursWorked:     row.hoursWorked ?? null,
-    notes:           row.notes ?? null,
-    submittedBy:     row.submittedBy,
-    submittedByName: row.submitterFirst && row.submitterLast
-      ? `${row.submitterFirst} ${row.submitterLast}`.trim()
-      : row.submittedBy.slice(0, 8) + "…",
-    submittedAt:     row.submittedAt.toISOString(),
-    reviewedBy:      row.reviewedBy ?? null,
-    reviewedByName:  row.reviewerFirst && row.reviewerLast
-      ? `${row.reviewerFirst} ${row.reviewerLast}`.trim()
-      : row.reviewedBy ? row.reviewedBy.slice(0, 8) + "…" : null,
-    reviewedAt:      row.reviewedAt?.toISOString() ?? null,
-    createdAt:       row.createdAt.toISOString(),
-  };
+  return row ? mapReportDetail(row) : null;
 }
 
 export async function getPendingReportsCount(): Promise<number> {
@@ -279,6 +272,7 @@ export async function submitReport(
   assignmentId: string,
   content: string,
   hoursWorked: string | null,
+  submitterNotes: string | null,
 ): Promise<ActionResult<{ id: string }>> {
   await requirePermission("assignments", "write");
 
@@ -311,10 +305,11 @@ export async function submitReport(
       .insert(reportsTable)
       .values({
         assignmentId,
-        submittedBy:  user.id,
-        status:       "submitted",
-        content:      trimmedContent,
-        hoursWorked:  hoursWorked?.trim() || null,
+        submittedBy:     user.id,
+        status:          "submitted",
+        content:         trimmedContent,
+        hoursWorked:     hoursWorked?.trim() || null,
+        submitterNotes:  submitterNotes?.trim() || null,
       })
       .returning({ id: reportsTable.id });
 

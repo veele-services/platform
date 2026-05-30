@@ -7,18 +7,19 @@ import { submitReport } from "@/app/actions/reports";
 import type { ReportDetail } from "@/app/actions/reports";
 
 interface Props {
-  assignmentId:  string;
+  assignmentId:   string;
   rejectedReport: ReportDetail | null;
 }
 
 export function SubmitReportForm({ assignmentId, rejectedReport }: Props) {
   const router     = useRouter();
   const [, startT] = useTransition();
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState<string | null>(null);
+  const [loading, setLoading]     = useState(false);
+  const [error, setError]         = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [content, setContent]         = useState("");
   const [hoursWorked, setHoursWorked] = useState("");
+  const [submitterNotes, setSubmitterNotes] = useState("");
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -26,7 +27,12 @@ export function SubmitReportForm({ assignmentId, rejectedReport }: Props) {
     setFieldErrors({});
     setLoading(true);
 
-    const result = await submitReport(assignmentId, content, hoursWorked || null);
+    const result = await submitReport(
+      assignmentId,
+      content,
+      hoursWorked || null,
+      submitterNotes || null,
+    );
     setLoading(false);
 
     if (!result.success) {
@@ -75,6 +81,7 @@ export function SubmitReportForm({ assignmentId, rejectedReport }: Props) {
           </p>
         )}
 
+        {/* Rapportinhoud — required */}
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium" style={{ color: "#374151" }}>
             Rapportinhoud <span style={{ color: "#DC2626" }}>*</span>
@@ -96,6 +103,7 @@ export function SubmitReportForm({ assignmentId, rejectedReport }: Props) {
           )}
         </div>
 
+        {/* Gewerkte uren — optional */}
         <div className="flex flex-col gap-1">
           <label className="text-xs font-medium" style={{ color: "#374151" }}>
             Gewerkte uren
@@ -109,6 +117,21 @@ export function SubmitReportForm({ assignmentId, rejectedReport }: Props) {
             onChange={(e) => setHoursWorked(e.target.value)}
             placeholder="bijv. 2.5"
             className="w-full px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2 transition"
+            style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
+          />
+        </div>
+
+        {/* Opmerkingen — optional submitter notes */}
+        <div className="flex flex-col gap-1">
+          <label className="text-xs font-medium" style={{ color: "#374151" }}>
+            Opmerkingen <span className="font-normal" style={{ color: "#94A3B8" }}>(optioneel)</span>
+          </label>
+          <textarea
+            value={submitterNotes}
+            onChange={(e) => setSubmitterNotes(e.target.value)}
+            placeholder="Aanvullende opmerkingen voor de beheerder…"
+            rows={2}
+            className="w-full px-3 py-2 text-sm rounded-lg border outline-none resize-none focus:ring-2 transition"
             style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
           />
         </div>
