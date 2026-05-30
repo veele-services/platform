@@ -10,6 +10,8 @@ import {
   FileText,
   StickyNote,
   Users,
+  CheckCircle2,
+  Clock3,
 } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
@@ -24,6 +26,8 @@ import {
   getPersonnelOptions,
   getTaskCodeOptions,
 } from "@/app/actions/assignments";
+import { getReportForAssignment } from "@/app/actions/reports";
+import { SubmitReportForm } from "@/components/reports/SubmitReportForm";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -74,12 +78,18 @@ export default async function AssignmentDetailPage({ params }: Props) {
 
   const { id } = await params;
 
-  const [assignment, canWrite] = await Promise.all([
+  const [assignment, canWrite, canReadReports] = await Promise.all([
     getAssignment(id),
     hasPermission("assignments", "write"),
+    hasPermission("reports", "read"),
   ]);
 
   if (!assignment) notFound();
+
+  const REPORT_STATUSES = ["completed", "report_submitted", "report_approved", "invoice_ready", "invoiced", "paid", "closed"];
+  const existingReport = canReadReports && REPORT_STATUSES.includes(assignment.status)
+    ? await getReportForAssignment(id)
+    : null;
 
   const [customers, personnelList, taskCodes] = canWrite
     ? await Promise.all([
@@ -234,6 +244,51 @@ export default async function AssignmentDetailPage({ params }: Props) {
               <p className="text-sm whitespace-pre-wrap" style={{ color: "#78350F" }}>
                 {assignment.notes}
               </p>
+            </div>
+          )}
+
+          {/* ── Report section ────────────────────────────── */}
+          {assignment.status === "completed" && !existingReport && canWrite && (
+            <SubmitReportForm assignmentId={assignment.id} />
+          )}
+
+          {existingReport && (
+            <div className="veele-card">
+              <h2
+                className="font-heading text-base font-semibold mb-3 flex items-center gap-2"
+                style={{ color: "#081D3A" }}
+              >
+                <FileText className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                Rapport
+                {existingReport.status === "submitted" && (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ml-1"
+                    style={{ backgroundColor: "#FEF3C7", color: "#92400E" }}
+                  >
+                    <Clock3 className="h-3 w-3" />
+                    Ingediend
+                  </span>
+                )}
+                {existingReport.status === "approved" && (
+                  <span
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ml-1"
+                    style={{ backgroundColor: "#D1FAE5", color: "#065F46" }}
+                  >
+                    <CheckCircle2 className="h-3 w-3" />
+                    Goedgekeurd
+                  </span>
+                )}
+              </h2>
+              <p className="text-sm whitespace-pre-wrap line-clamp-4 mb-3" style={{ color: "#374151" }}>
+                {existingReport.content}
+              </p>
+              <Link
+                href={`/reports/${existingReport.id}`}
+                className="text-sm font-medium hover:underline"
+                style={{ color: "#00B7B3" }}
+              >
+                Rapport bekijken →
+              </Link>
             </div>
           )}
         </div>

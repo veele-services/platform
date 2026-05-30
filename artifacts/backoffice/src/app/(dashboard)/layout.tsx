@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserPermissions, getUserRoles } from "@/lib/auth/permissions";
 import { PermissionsProvider } from "@/providers/permissions-provider";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { getPendingReportsCount } from "@/app/actions/reports";
 
 export default async function DashboardLayout({
   children,
@@ -27,6 +28,9 @@ export default async function DashboardLayout({
     getUserRoles(user.id),
   ]);
 
+  const canReadReports = permissions.has("reports:read");
+  const pendingReportsCount = canReadReports ? await getPendingReportsCount() : 0;
+
   const userEmail   = user.email ?? "";
   const userInitial = (userEmail[0] ?? "U").toUpperCase();
   const userRole    = roles[0] ?? "User";
@@ -41,6 +45,7 @@ export default async function DashboardLayout({
           userEmail={userEmail}
           userInitial={userInitial}
           userRole={userRole}
+          pendingReportsCount={pendingReportsCount}
         />
         <div className="flex flex-col flex-1 overflow-hidden">
           <main className="flex-1 overflow-y-auto">{children}</main>

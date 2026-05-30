@@ -38,12 +38,13 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 interface SidebarProps {
-  userEmail:   string;
-  userInitial: string;
-  userRole:    string;
+  userEmail:            string;
+  userInitial:          string;
+  userRole:             string;
+  pendingReportsCount?: number;
 }
 
-export function Sidebar({ userEmail, userInitial, userRole }: SidebarProps) {
+export function Sidebar({ userEmail, userInitial, userRole, pendingReportsCount = 0 }: SidebarProps) {
   const pathname    = usePathname();
   const permissions = usePermissions();
 
@@ -95,7 +96,8 @@ export function Sidebar({ userEmail, userInitial, userRole }: SidebarProps) {
           </p>
         ) : (
           visibleItems.map(({ href, icon: Icon, label }) => {
-            const active = isActive(pathname, href);
+            const active  = isActive(pathname, href);
+            const hasBadge = href === "/reports" && pendingReportsCount > 0;
             return (
               <Link
                 key={href}
@@ -107,7 +109,21 @@ export function Sidebar({ userEmail, userInitial, userRole }: SidebarProps) {
                   style={{ width: "15px", height: "15px" }}
                   strokeWidth={active ? 2.5 : 1.75}
                 />
-                <span>{label}</span>
+                <span className="flex-1">{label}</span>
+                {hasBadge && (
+                  <span
+                    className="flex-shrink-0 rounded-full flex items-center justify-center text-white font-semibold"
+                    style={{
+                      backgroundColor: "#00B7B3",
+                      fontSize: "10px",
+                      minWidth: "18px",
+                      height: "18px",
+                      padding: "0 4px",
+                    }}
+                  >
+                    {pendingReportsCount > 99 ? "99+" : pendingReportsCount}
+                  </span>
+                )}
               </Link>
             );
           })
