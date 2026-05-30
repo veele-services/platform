@@ -9,6 +9,7 @@ import {
   updatePersonnelSchema,
 } from "@workspace/db";
 import { eq, ilike, or, and, asc, desc, inArray, sql } from "drizzle-orm";
+import { getBatchAvailabilityStatus } from "./availability";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -16,6 +17,7 @@ import { requirePermission } from "@/lib/auth/permissions";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult };
+export type { AvailabilityStatus } from "./availability";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -38,9 +40,10 @@ export type PersonnelRow = {
   roleName:     string | null;
   region:       string | null;
   certificates: string[];
-  isActive:     boolean;
-  isAvailable:  boolean;
-  createdAt:    string;
+  isActive:           boolean;
+  isAvailable:        boolean;
+  availabilityStatus: import("./availability").AvailabilityStatus;
+  createdAt:          string;
 };
 
 export type PersonnelDetail = {
@@ -167,10 +170,15 @@ export async function listPersonnel(params: {
       .where(where),
   ]);
 
+  const today     = new Date().toISOString().slice(0, 10);
+  const ids       = rows.map((r) => r.id);
+  const statusMap = await getBatchAvailabilityStatus(ids, today);
+
   return {
     rows: rows.map((r) => ({
       ...r,
-      createdAt: r.createdAt.toISOString(),
+      createdAt:          r.createdAt.toISOString(),
+      availabilityStatus: statusMap[r.id] ?? "niet_ingesteld",
     })),
     total: countRows[0]?.total ?? 0,
   };

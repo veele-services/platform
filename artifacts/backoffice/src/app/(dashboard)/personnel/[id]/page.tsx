@@ -7,6 +7,8 @@ import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PersonnelDetailActions } from "@/components/personnel/PersonnelDetailActions";
 import { getPersonnel, listRoles } from "@/app/actions/personnel";
+import { getAvailabilityWindows, listLeavePeriods } from "@/app/actions/availability";
+import { BeschikbaarheidView } from "@/components/personnel/BeschikbaarheidView";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -31,9 +33,11 @@ export default async function PersonnelDetailPage({ params }: Props) {
   const { id }   = await params;
   const canWrite = await hasPermission("personnel", "write");
 
-  const [person, roles] = await Promise.all([
+  const [person, roles, windows, leavePeriods] = await Promise.all([
     getPersonnel(id),
     listRoles(),
+    getAvailabilityWindows(id),
+    listLeavePeriods(id),
   ]);
 
   if (!person) notFound();
@@ -84,6 +88,19 @@ export default async function PersonnelDetailPage({ params }: Props) {
             roles={roles}
           />
         )}
+      </div>
+
+      {/* ── Beschikbaarheid & verlof ─────────────────────────────── */}
+      <div className="mb-6">
+        <h2 className="font-heading text-base font-semibold mb-4" style={{ color: "#081D3A" }}>
+          Beschikbaarheid &amp; verlof
+        </h2>
+        <BeschikbaarheidView
+          personnelId={id}
+          windows={windows}
+          leavePeriods={leavePeriods}
+          canWrite={canWrite}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">

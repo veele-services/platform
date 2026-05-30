@@ -62,9 +62,36 @@ import {
   type PersonnelRow,
   type RoleOption,
 } from "@/app/actions/personnel";
+import type { AvailabilityStatus } from "@/app/actions/availability";
 
 const PAGE_SIZE = 25;
 const SORTABLE = ["lastName", "firstName", "email", "code", "region", "createdAt"] as const;
+
+// ─── Availability badge ───────────────────────────────────────────────────────
+
+const AVAIL_BADGE: Record<AvailabilityStatus, { label: string; bg: string; color: string; dot: string }> = {
+  beschikbaar:      { label: "Beschikbaar",      bg: "#D1FAE5", color: "#065F46", dot: "#10B981" },
+  op_verlof:        { label: "Op verlof",         bg: "#DBEAFE", color: "#1D4ED8", dot: "#3B82F6" },
+  ziek:             { label: "Ziek",              bg: "#FEE2E2", color: "#991B1B", dot: "#EF4444" },
+  niet_beschikbaar: { label: "Niet beschikbaar",  bg: "#FEF3C7", color: "#92400E", dot: "#F59E0B" },
+  niet_ingesteld:   { label: "Niet ingesteld",    bg: "#F1F5F9", color: "#94A3B8", dot: "#CBD5E1" },
+};
+
+function AvailabilityBadge({ status }: { status: AvailabilityStatus }) {
+  const s = AVAIL_BADGE[status];
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
+      style={{ backgroundColor: s.bg, color: s.color }}
+    >
+      <span
+        className="flex-shrink-0 rounded-full"
+        style={{ width: "6px", height: "6px", backgroundColor: s.dot }}
+      />
+      {s.label}
+    </span>
+  );
+}
 
 // ─── Sortable header cell ─────────────────────────────────────────────────────
 
@@ -369,6 +396,7 @@ export function PersonnelView({
                 <SortHeader label="Regio"     columnKey="region"    currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Certificaten</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Beschikbaarheid</th>
                 <th className="w-12 px-4 py-3" />
               </tr>
             </thead>
@@ -376,7 +404,7 @@ export function PersonnelView({
               {rows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={canWrite ? 9 : 8}
+                    colSpan={canWrite ? 10 : 9}
                     className="px-4 py-12 text-center text-sm"
                     style={{ color: "#94A3B8" }}
                   >
@@ -436,6 +464,9 @@ export function PersonnelView({
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge isActive={row.isActive} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <AvailabilityBadge status={row.availabilityStatus} />
                     </td>
                     <td className="pr-4 py-3 text-right">
                       <DropdownMenu>

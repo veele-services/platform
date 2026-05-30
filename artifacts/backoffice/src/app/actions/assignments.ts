@@ -10,6 +10,8 @@ import {
   personnelTable,
   taskCodesTable,
   auditLogTable,
+  leavePeriodsTable,
+  availabilityWindowsTable,
   insertAssignmentSchema,
   updateAssignmentSchema,
   ASSIGNMENT_STATUSES,
@@ -641,12 +643,19 @@ export async function setAssignmentStatus(
 export async function assignPersonnel(
   assignmentId: string,
   personnelId: string,
-): Promise<ActionResult> {
+): Promise<ActionResult & { warning?: string }> {
   await requirePermission("assignments", "write");
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  // Fetch the scheduled date to evaluate availability
+  const [assignment] = await db
+    .select({ scheduledDate: assignmentsTable.scheduledDate })
+    .from(assignmentsTable)
+    .where(eq(assignmentsTable.id, assignmentId))
+    .limit(1);
 
   try {
     await db.insert(assignmentPersonnelTable).values({
@@ -664,7 +673,54 @@ export async function assignPersonnel(
     });
 
     revalidatePath(`/assignments/${assignmentId}`);
-    return { success: true };
+
+    // ── Availability warning (non-blocking) ───────────────────────────────
+    let warning: string | undefined;
+    const dateStr = assignment?.scheduledDate;
+
+    if (dateStr) {
+      const [leave] = await db
+        .select({ leaveType: leavePeriodsTable.leaveType })
+        .from(leavePeriodsTable)
+        .where(
+          and(
+            eq(leavePeriodsTable.personnelId, personnelId),
+            lte(leavePeriodsTable.startDate, dateStr),
+            gte(leavePeriodsTable.endDate,   dateStr),
+          ),
+        )
+        .limit(1);
+
+      if (leave?.leaveType === "ziekte") {
+        warning = "Let op: medewerker is ziek op de geplande datum.";
+      } else if (leave) {
+        warning = "Let op: medewerker is op verlof op de geplande datum.";
+      } else {
+        const dayOfWeek = new Date(dateStr + "T00:00:00").getDay();
+        const [[todayWindow], [anyWindow]] = await Promise.all([
+          db
+            .select({ id: availabilityWindowsTable.id })
+            .from(availabilityWindowsTable)
+            .where(
+              and(
+                eq(availabilityWindowsTable.personnelId, personnelId),
+                eq(availabilityWindowsTable.dayOfWeek,   dayOfWeek),
+              ),
+            )
+            .limit(1),
+          db
+            .select({ id: availabilityWindowsTable.id })
+            .from(availabilityWindowsTable)
+            .where(eq(availabilityWindowsTable.personnelId, personnelId))
+            .limit(1),
+        ]);
+        if (!todayWindow && anyWindow) {
+          warning = "Let op: medewerker is normaal gesproken niet beschikbaar op deze dag.";
+        }
+      }
+    }
+
+    return { success: true, warning };
   } catch (err) {
     if (isUniqueViolation(err)) {
       return { success: false, message: "Deze medewerker is al gekoppeld aan deze opdracht." };

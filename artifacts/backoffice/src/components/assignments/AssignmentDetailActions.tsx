@@ -135,7 +135,11 @@ export function AssignmentDetailActions({
     startTransition(async () => {
       const result = await assignPersonnel(assignmentId, selectedPersonnel);
       if (result.success) {
-        toast.success("Medewerker gekoppeld");
+        if (result.warning) {
+          toast.warning(result.warning, { duration: 6000 });
+        } else {
+          toast.success("Medewerker gekoppeld");
+        }
         setSelectedPersonnel("");
       } else {
         toast.error(result.message);
