@@ -1,32 +1,5 @@
 {
-  "node": {
-    "003068e1dfb55d4b70f66e67d1be03b7fe41147551": {
-      "workers": {
-        "app/(auth)/login/page": {
-          "moduleId": "(action-browser)/../../node_modules/.pnpm/next@15.5.18_react-dom@19.1.0_react@19.1.0__react@19.1.0/node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fhome%2Frunner%2Fworkspace%2Fartifacts%2Fbackoffice%2Fsrc%2Fapp%2Factions%2Fauth.ts%22%2C%5B%7B%22id%22%3A%22003068e1dfb55d4b70f66e67d1be03b7fe41147551%22%2C%22exportedName%22%3A%22signOut%22%2C%22filename%22%3A%22app%2Factions%2Fauth.ts%22%7D%2C%7B%22id%22%3A%226088664ecbfb0758f9fe4c1f9d8e3d3515409b1f5b%22%2C%22exportedName%22%3A%22signIn%22%2C%22filename%22%3A%22app%2Factions%2Fauth.ts%22%7D%5D%5D%5D&__client_imported__=true!",
-          "async": false
-        }
-      },
-      "layer": {
-        "app/(auth)/login/page": "action-browser"
-      },
-      "filename": "app/actions/auth.ts",
-      "exportedName": "signOut"
-    },
-    "6088664ecbfb0758f9fe4c1f9d8e3d3515409b1f5b": {
-      "workers": {
-        "app/(auth)/login/page": {
-          "moduleId": "(action-browser)/../../node_modules/.pnpm/next@15.5.18_react-dom@19.1.0_react@19.1.0__react@19.1.0/node_modules/next/dist/build/webpack/loaders/next-flight-action-entry-loader.js?actions=%5B%5B%22%2Fhome%2Frunner%2Fworkspace%2Fartifacts%2Fbackoffice%2Fsrc%2Fapp%2Factions%2Fauth.ts%22%2C%5B%7B%22id%22%3A%22003068e1dfb55d4b70f66e67d1be03b7fe41147551%22%2C%22exportedName%22%3A%22signOut%22%2C%22filename%22%3A%22app%2Factions%2Fauth.ts%22%7D%2C%7B%22id%22%3A%226088664ecbfb0758f9fe4c1f9d8e3d3515409b1f5b%22%2C%22exportedName%22%3A%22signIn%22%2C%22filename%22%3A%22app%2Factions%2Fauth.ts%22%7D%5D%5D%5D&__client_imported__=true!",
-          "async": false
-        }
-      },
-      "layer": {
-        "app/(auth)/login/page": "action-browser"
-      },
-      "filename": "app/actions/auth.ts",
-      "exportedName": "signIn"
-    }
-  },
+  "node": {},
   "edge": {},
   "encryptionKey": "vm4vCX8G69QND0j9NECJobvl3yDldAT6+vJ5agHwmhU="
 }
