@@ -11,6 +11,7 @@ import {
 import { eq, ilike, or, and, asc, desc, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/auth/permissions";
 import type { ActionResult } from "./customers";
 
@@ -399,6 +400,62 @@ export async function bulkSetPersonnelStatus(
   });
 
   revalidatePath("/personnel");
+  return { success: true };
+}
+
+export async function invitePersonnel(id: string): Promise<ActionResult> {
+  await requirePermission("personnel", "write");
+
+  const supabase = await createClient();
+  const { data: { user: actor } } = await supabase.auth.getUser();
+  if (!actor) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [person] = await db
+    .select({
+      firstName: personnelTable.firstName,
+      lastName:  personnelTable.lastName,
+      email:     personnelTable.email,
+      userId:    personnelTable.userId,
+    })
+    .from(personnelTable)
+    .where(eq(personnelTable.id, id))
+    .limit(1);
+
+  if (!person) return { success: false, message: "Medewerker niet gevonden." };
+  if (person.userId) {
+    return { success: false, message: "Medewerker heeft al een gekoppeld account." };
+  }
+
+  const admin = createAdminClient();
+  const { data: inviteData, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
+    person.email,
+  );
+
+  if (inviteError || !inviteData?.user) {
+    return {
+      success: false,
+      message: inviteError?.message ?? "Uitnodiging versturen mislukt.",
+    };
+  }
+
+  await db
+    .update(personnelTable)
+    .set({ userId: inviteData.user.id, updatedAt: new Date() })
+    .where(eq(personnelTable.id, id));
+
+  await db.insert(auditLogTable).values({
+    userId:     actor.id,
+    action:     "invite",
+    resource:   "personnel",
+    resourceId: id,
+    metadata:   {
+      name:           `${person.firstName} ${person.lastName}`,
+      email:          person.email,
+      invitedUserId:  inviteData.user.id,
+    },
+  });
+
+  revalidatePath(`/personnel/${id}`);
   return { success: true };
 }
 

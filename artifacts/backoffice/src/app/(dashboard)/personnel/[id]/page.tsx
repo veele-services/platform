@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Mail, Phone, MapPin, Calendar, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, Calendar, CheckCircle2, XCircle, UserCheck, UserX } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -79,6 +79,8 @@ export default async function PersonnelDetailPage({ params }: Props) {
           <PersonnelDetailActions
             personnelId={person.id}
             personnelName={fullName}
+            personnelEmail={person.email}
+            userId={person.userId}
             roles={roles}
           />
         )}
@@ -147,6 +149,17 @@ export default async function PersonnelDetailPage({ params }: Props) {
                 value={
                   <span style={{ color: person.isAvailable ? "#00B7B3" : "#94A3B8" }}>
                     {person.isAvailable ? "Ja" : "Nee"}
+                  </span>
+                }
+              />
+              <InfoRow
+                icon={person.userId
+                  ? <UserCheck className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                  : <UserX     className="h-4 w-4" style={{ color: "#94A3B8" }} />}
+                label="Portaalaccount"
+                value={
+                  <span style={{ color: person.userId ? "#00B7B3" : "#94A3B8" }}>
+                    {person.userId ? "Gekoppeld" : "Geen account"}
                   </span>
                 }
               />
