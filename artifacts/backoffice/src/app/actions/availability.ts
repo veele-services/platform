@@ -9,7 +9,7 @@ import {
   type LeaveType,
   type AvailabilityStatus,
 } from "@workspace/db";
-import { eq, and, lte, gte, inArray } from "drizzle-orm";
+import { eq, and, lte, gte, inArray, isNull, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/permissions";
@@ -32,7 +32,7 @@ export type LeavePeriod = {
   id:          string;
   personnelId: string;
   startDate:   string;
-  endDate:     string;
+  endDate:     string | null;
   leaveType:   LeaveType;
   reason:      string | null;
   createdAt:   string;
@@ -62,7 +62,7 @@ export async function getAvailabilityWindows(
 
 /**
  * Bulk-replace all availability windows for a personnel member.
- * Deletes all existing and re-inserts the provided list atomically.
+ * Deletes all existing and re-inserts the provided list.
  */
 export async function setAvailabilityWindows(
   personnelId: string,
@@ -138,7 +138,7 @@ export async function listLeavePeriods(personnelId: string): Promise<LeavePeriod
 export async function addLeavePeriod(data: {
   personnelId: string;
   startDate:   string;
-  endDate:     string;
+  endDate?:    string;
   leaveType:   LeaveType;
   reason?:     string;
 }): Promise<ActionResult<{ id: string }>> {
@@ -148,14 +148,18 @@ export async function addLeavePeriod(data: {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  if (!data.startDate || !data.endDate) {
-    return { success: false, message: "Begin- en einddatum zijn verplicht." };
+  if (!data.startDate) {
+    return { success: false, message: "Begindatum is verplicht." };
   }
-  if (data.startDate > data.endDate) {
-    return { success: false, message: "Begindatum moet vóór einddatum liggen." };
-  }
-  if (!LEAVE_TYPES.includes(data.leaveType)) {
+  if (!data.leaveType || !LEAVE_TYPES.includes(data.leaveType)) {
     return { success: false, message: "Ongeldig verloftype." };
+  }
+  // endDate required for vakantie and overig; optional for ziekte
+  if (data.leaveType !== "ziekte" && !data.endDate) {
+    return { success: false, message: "Einddatum is verplicht voor dit verloftype." };
+  }
+  if (data.endDate && data.startDate > data.endDate) {
+    return { success: false, message: "Begindatum moet vóór einddatum liggen." };
   }
 
   const [inserted] = await db
@@ -163,7 +167,7 @@ export async function addLeavePeriod(data: {
     .values({
       personnelId: data.personnelId,
       startDate:   data.startDate,
-      endDate:     data.endDate,
+      endDate:     data.endDate || null,
       leaveType:   data.leaveType,
       reason:      data.reason?.trim() || null,
       createdBy:   user.id,
@@ -179,12 +183,74 @@ export async function addLeavePeriod(data: {
       action:    "add_leave_period",
       leaveType: data.leaveType,
       startDate: data.startDate,
-      endDate:   data.endDate,
+      endDate:   data.endDate ?? null,
     },
   });
 
   revalidatePath(`/personnel/${data.personnelId}`);
   return { success: true, data: { id: inserted!.id } };
+}
+
+export async function updateLeavePeriod(
+  id:          string,
+  personnelId: string,
+  data: {
+    startDate: string;
+    endDate?:  string;
+    leaveType: LeaveType;
+    reason?:   string;
+  },
+): Promise<ActionResult> {
+  await requirePermission("personnel", "write");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  if (!data.startDate) {
+    return { success: false, message: "Begindatum is verplicht." };
+  }
+  if (!data.leaveType || !LEAVE_TYPES.includes(data.leaveType)) {
+    return { success: false, message: "Ongeldig verloftype." };
+  }
+  if (data.leaveType !== "ziekte" && !data.endDate) {
+    return { success: false, message: "Einddatum is verplicht voor dit verloftype." };
+  }
+  if (data.endDate && data.startDate > data.endDate) {
+    return { success: false, message: "Begindatum moet vóór einddatum liggen." };
+  }
+
+  await db
+    .update(leavePeriodsTable)
+    .set({
+      startDate: data.startDate,
+      endDate:   data.endDate || null,
+      leaveType: data.leaveType,
+      reason:    data.reason?.trim() || null,
+    })
+    .where(
+      and(
+        eq(leavePeriodsTable.id, id),
+        eq(leavePeriodsTable.personnelId, personnelId),
+      ),
+    );
+
+  await db.insert(auditLogTable).values({
+    userId:     user.id,
+    action:     "update",
+    resource:   "personnel",
+    resourceId: personnelId,
+    metadata:   {
+      action:    "update_leave_period",
+      leavePeriodId: id,
+      leaveType: data.leaveType,
+      startDate: data.startDate,
+      endDate:   data.endDate ?? null,
+    },
+  });
+
+  revalidatePath(`/personnel/${personnelId}`);
+  return { success: true };
 }
 
 export async function deleteLeavePeriod(
@@ -222,13 +288,14 @@ export async function deleteLeavePeriod(
 
 /**
  * Compute availability status for a personnel member on a specific date.
- * Internal helper — no permission check, for use within server actions only.
+ * Internal helper — no permission check, for server-side use only.
+ * Handles open-ended sick leave (endDate IS NULL).
  */
 export async function computeAvailabilityStatus(
   personnelId: string,
   dateStr:     string, // YYYY-MM-DD
 ): Promise<AvailabilityStatus> {
-  // 1. Active leave period covering this date?
+  // 1. Active leave period covering this date (endDate IS NULL means still ongoing)
   const [leave] = await db
     .select({ leaveType: leavePeriodsTable.leaveType })
     .from(leavePeriodsTable)
@@ -236,7 +303,10 @@ export async function computeAvailabilityStatus(
       and(
         eq(leavePeriodsTable.personnelId, personnelId),
         lte(leavePeriodsTable.startDate, dateStr),
-        gte(leavePeriodsTable.endDate,   dateStr),
+        or(
+          isNull(leavePeriodsTable.endDate),
+          gte(leavePeriodsTable.endDate, dateStr),
+        ),
       ),
     )
     .limit(1);
@@ -286,6 +356,7 @@ export async function getAvailabilityStatus(
  * Batch-compute availability status for multiple personnel on the same date.
  * Returns a map of personnelId → AvailabilityStatus.
  * 3 queries regardless of personnel count — suitable for list views.
+ * Handles open-ended sick leave (endDate IS NULL).
  */
 export async function getBatchAvailabilityStatus(
   personnelIds: string[],
@@ -306,7 +377,10 @@ export async function getBatchAvailabilityStatus(
         and(
           inArray(leavePeriodsTable.personnelId, personnelIds),
           lte(leavePeriodsTable.startDate, dateStr),
-          gte(leavePeriodsTable.endDate,   dateStr),
+          or(
+            isNull(leavePeriodsTable.endDate),
+            gte(leavePeriodsTable.endDate, dateStr),
+          ),
         ),
       ),
 

@@ -142,7 +142,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
   const [customers, personnelList, taskCodes] = canWrite
     ? await Promise.all([
         getCustomerOptions(),
-        getPersonnelOptions(),
+        getPersonnelOptions(assignment.scheduledDate),
         getTaskCodeOptions(),
       ])
     : [[], [], []];

@@ -55,7 +55,7 @@ export const leavePeriodsTable = pgTable("leave_periods", {
     .notNull()
     .references(() => personnelTable.id, { onDelete: "cascade" }),
   startDate:   varchar("start_date", { length: 10 }).notNull(),
-  endDate:     varchar("end_date",   { length: 10 }).notNull(),
+  endDate:     varchar("end_date",   { length: 10 }),
   leaveType:   varchar("leave_type", { length: 20 }).notNull().$type<LeaveType>(),
   reason:      text("reason"),
   createdBy:   uuid("created_by"),

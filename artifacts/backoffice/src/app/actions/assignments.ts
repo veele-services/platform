@@ -20,7 +20,8 @@ import {
   type AssignmentStatus,
   type AssignmentPriority,
 } from "@workspace/db";
-import { eq, ilike, or, and, asc, desc, inArray, sql, gte, lte } from "drizzle-orm";
+import { eq, ilike, or, and, asc, desc, inArray, sql, gte, lte, isNull } from "drizzle-orm";
+import { getBatchAvailabilityStatus, type AvailabilityStatus } from "./availability";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
@@ -46,7 +47,12 @@ const PAGE_SIZE = 25;
 
 export type CustomerOption  = { id: string; name: string };
 export type ObjectOption    = { id: string; name: string };
-export type PersonnelOption = { id: string; firstName: string; lastName: string };
+export type PersonnelOption = {
+  id:                  string;
+  firstName:           string;
+  lastName:            string;
+  availabilityStatus?: AvailabilityStatus;
+};
 export type TaskCodeOption  = { id: string; code: string; name: string };
 
 export type AssignmentRow = {
@@ -447,7 +453,7 @@ export async function getObjectsByCustomer(customerId: string): Promise<ObjectOp
   return rows;
 }
 
-export async function getPersonnelOptions(): Promise<PersonnelOption[]> {
+export async function getPersonnelOptions(scheduledDate?: string | null): Promise<PersonnelOption[]> {
   const rows = await db
     .select({
       id:        personnelTable.id,
@@ -462,7 +468,16 @@ export async function getPersonnelOptions(): Promise<PersonnelOption[]> {
       ),
     )
     .orderBy(asc(personnelTable.lastName), asc(personnelTable.firstName));
-  return rows;
+
+  if (!scheduledDate || rows.length === 0) return rows;
+
+  const ids       = rows.map((r) => r.id);
+  const statusMap = await getBatchAvailabilityStatus(ids, scheduledDate);
+
+  return rows.map((r) => ({
+    ...r,
+    availabilityStatus: statusMap[r.id],
+  }));
 }
 
 export async function getTaskCodeOptions(): Promise<TaskCodeOption[]> {
@@ -686,7 +701,10 @@ export async function assignPersonnel(
           and(
             eq(leavePeriodsTable.personnelId, personnelId),
             lte(leavePeriodsTable.startDate, dateStr),
-            gte(leavePeriodsTable.endDate,   dateStr),
+            or(
+              isNull(leavePeriodsTable.endDate),
+              gte(leavePeriodsTable.endDate, dateStr),
+            ),
           ),
         )
         .limit(1);

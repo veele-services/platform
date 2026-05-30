@@ -44,6 +44,7 @@ import {
   type PersonnelOption,
   type TaskCodeOption,
 } from "@/app/actions/assignments";
+import type { AvailabilityStatus } from "@/app/actions/availability";
 
 const STATUS_LABELS: Record<AssignmentStatus, string> = {
   requested:         "Aangevraagd",
@@ -293,9 +294,23 @@ export function AssignmentDetailActions({
                 <SelectItem value="NONE">— Selecteer medewerker —</SelectItem>
                 {personnelList
                   .filter((p) => !personnel.some((ap) => ap.personnelId === p.id))
+                  .sort((a, b) => {
+                    const order: Record<string, number> = {
+                      beschikbaar:    0,
+                      niet_ingesteld: 1,
+                      niet_beschikbaar: 2,
+                      op_verlof:      3,
+                      ziek:           4,
+                    };
+                    return (order[a.availabilityStatus ?? "niet_ingesteld"] ?? 1)
+                         - (order[b.availabilityStatus ?? "niet_ingesteld"] ?? 1);
+                  })
                   .map((p) => (
                     <SelectItem key={p.id} value={p.id}>
-                      {p.firstName} {p.lastName}
+                      <span className="flex items-center gap-2">
+                        <AvailDot status={p.availabilityStatus} />
+                        {p.lastName}, {p.firstName}
+                      </span>
                     </SelectItem>
                   ))}
               </SelectContent>
@@ -422,5 +437,26 @@ export function AssignmentDetailActions({
         </SheetContent>
       </Sheet>
     </>
+  );
+}
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+const AVAIL_DOT_COLORS: Record<AvailabilityStatus, string> = {
+  beschikbaar:      "#10B981",
+  niet_ingesteld:   "#CBD5E1",
+  niet_beschikbaar: "#F59E0B",
+  op_verlof:        "#3B82F6",
+  ziek:             "#EF4444",
+};
+
+function AvailDot({ status }: { status?: AvailabilityStatus }) {
+  if (!status) return null;
+  return (
+    <span
+      className="inline-block flex-shrink-0 rounded-full"
+      style={{ width: "7px", height: "7px", backgroundColor: AVAIL_DOT_COLORS[status] }}
+      title={status.replace(/_/g, " ")}
+    />
   );
 }
