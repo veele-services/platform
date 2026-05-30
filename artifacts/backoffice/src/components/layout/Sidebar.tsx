@@ -38,13 +38,20 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 interface SidebarProps {
-  userEmail:            string;
-  userInitial:          string;
-  userRole:             string;
-  pendingReportsCount?: number;
+  userEmail:                string;
+  userInitial:              string;
+  userRole:                 string;
+  pendingReportsCount?:     number;
+  outstandingInvoicesCount?: number;
 }
 
-export function Sidebar({ userEmail, userInitial, userRole, pendingReportsCount = 0 }: SidebarProps) {
+export function Sidebar({
+  userEmail,
+  userInitial,
+  userRole,
+  pendingReportsCount = 0,
+  outstandingInvoicesCount = 0,
+}: SidebarProps) {
   const pathname    = usePathname();
   const permissions = usePermissions();
 
@@ -97,7 +104,12 @@ export function Sidebar({ userEmail, userInitial, userRole, pendingReportsCount 
         ) : (
           visibleItems.map(({ href, icon: Icon, label }) => {
             const active  = isActive(pathname, href);
-            const hasBadge = href === "/reports" && pendingReportsCount > 0;
+            const hasBadge =
+              (href === "/reports"  && pendingReportsCount > 0) ||
+              (href === "/invoices" && outstandingInvoicesCount > 0);
+            const badgeCount =
+              href === "/reports"  ? pendingReportsCount :
+              href === "/invoices" ? outstandingInvoicesCount : 0;
             return (
               <Link
                 key={href}
@@ -121,7 +133,7 @@ export function Sidebar({ userEmail, userInitial, userRole, pendingReportsCount 
                       padding: "0 4px",
                     }}
                   >
-                    {pendingReportsCount > 99 ? "99+" : pendingReportsCount}
+                    {badgeCount > 99 ? "99+" : badgeCount}
                   </span>
                 )}
               </Link>

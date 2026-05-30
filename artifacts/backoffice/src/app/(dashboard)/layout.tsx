@@ -6,6 +6,7 @@ import { getCurrentUserPermissions, getUserRoles } from "@/lib/auth/permissions"
 import { PermissionsProvider } from "@/providers/permissions-provider";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { getPendingReportsCount } from "@/app/actions/reports";
+import { getOutstandingInvoicesCount } from "@/app/actions/invoices";
 
 export default async function DashboardLayout({
   children,
@@ -28,8 +29,13 @@ export default async function DashboardLayout({
     getUserRoles(user.id),
   ]);
 
-  const canReadReports = permissions.has("reports:read");
-  const pendingReportsCount = canReadReports ? await getPendingReportsCount() : 0;
+  const canReadReports   = permissions.has("reports:read");
+  const canReadInvoices  = permissions.has("invoices:read");
+
+  const [pendingReportsCount, outstandingInvoicesCount] = await Promise.all([
+    canReadReports  ? getPendingReportsCount()         : Promise.resolve(0),
+    canReadInvoices ? getOutstandingInvoicesCount()    : Promise.resolve(0),
+  ]);
 
   const userEmail   = user.email ?? "";
   const userInitial = (userEmail[0] ?? "U").toUpperCase();
@@ -46,6 +52,7 @@ export default async function DashboardLayout({
           userInitial={userInitial}
           userRole={userRole}
           pendingReportsCount={pendingReportsCount}
+          outstandingInvoicesCount={outstandingInvoicesCount}
         />
         <div className="flex flex-col flex-1 overflow-hidden">
           <main className="flex-1 overflow-y-auto">{children}</main>
