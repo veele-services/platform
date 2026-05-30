@@ -15,9 +15,6 @@ import {
   FolderOpen,
   Settings,
   LogOut,
-  Shield,
-  ClipboardList as TaskIcon,
-  ChevronDown,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/providers/permissions-provider";
@@ -37,10 +34,10 @@ const NAV_ITEMS = [
 ] as const;
 
 const SETTINGS_SUB_ITEMS = [
-  { href: "/settings/organisatie",  label: "Organisatie",      permission: "settings:write" },
-  { href: "/settings/rollen",       label: "Rollen & rechten", permission: "roles:read"     },
-  { href: "/settings/gebruikers",   label: "Gebruikers",       permission: "users:read"     },
-  { href: "/settings/task-codes",   label: "Taakcodes",        permission: "task_codes:read"},
+  { href: "/instellingen/organisatie",  label: "Organisatie",      permission: "settings:write"  },
+  { href: "/instellingen/rollen",       label: "Rollen & rechten", permission: "roles:read"      },
+  { href: "/instellingen/gebruikers",   label: "Gebruikers",       permission: "users:read"      },
+  { href: "/settings/task-codes",       label: "Taakcodes",        permission: "task_codes:read" },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {
@@ -71,7 +68,7 @@ export function Sidebar({
   const visibleItems    = NAV_ITEMS.filter((item) => permissions.has(item.permission));
   const canReadSettings = permissions.has("settings:read");
   const visibleSubItems = SETTINGS_SUB_ITEMS.filter((item) => permissions.has(item.permission));
-  const inSettings      = pathname.startsWith("/settings");
+  const inSettings      = pathname.startsWith("/settings") || pathname.startsWith("/instellingen");
 
   return (
     <aside
@@ -160,7 +157,7 @@ export function Sidebar({
         )}
       </nav>
 
-      {/* ── Instellingen section ── */}
+      {/* ── Instellingen section (separate from main modules) ── */}
       {canReadSettings && visibleSubItems.length > 0 && (
         <div className="px-3 pb-2 flex-shrink-0 border-t border-white/10">
           {/* Section header */}

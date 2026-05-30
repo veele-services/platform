@@ -29,7 +29,7 @@ export default async function RolDetailPage({ params }: Props) {
         <div className="flex items-center gap-2 text-sm mb-3" style={{ color: "#94A3B8" }}>
           <a href="/settings" className="hover:underline">Instellingen</a>
           <span>/</span>
-          <a href="/settings/rollen" className="hover:underline">Rollen & rechten</a>
+          <a href="/instellingen/rollen" className="hover:underline">Rollen & rechten</a>
           <span>/</span>
           <span style={{ color: "#081D3A" }}>{role.name}</span>
         </div>

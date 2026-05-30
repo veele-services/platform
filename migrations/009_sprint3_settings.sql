@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS organization_settings (
   updated_by          uuid
 );
 
--- Singleton enforcement: only one row allowed (unique index on constant TRUE)
+-- Singleton enforcement: unique index on constant TRUE permits at most one row
 CREATE UNIQUE INDEX IF NOT EXISTS org_settings_singleton_idx
   ON organization_settings ((TRUE));
 
@@ -46,49 +46,34 @@ CREATE TRIGGER trg_org_settings_updated_at
 
 ALTER TABLE organization_settings ENABLE ROW LEVEL SECURITY;
 
--- Allow authenticated sessions to read org settings (used by SSR rendering).
+-- Allow authenticated sessions to SELECT (used by SSR).
 -- All write operations go through the service-role admin client (bypasses RLS).
-CREATE POLICY IF NOT EXISTS "org_settings_authenticated_read"
+DROP POLICY IF EXISTS "org_settings_authenticated_read" ON organization_settings;
+CREATE POLICY "org_settings_authenticated_read"
   ON organization_settings
   FOR SELECT
   TO authenticated
   USING (TRUE);
 
--- Explicit deny: no INSERT/UPDATE/DELETE from authenticated role directly.
--- Writes are done via the service-role key in server actions only.
--- (No additional policy needed — RLS denies by default when no policy matches.)
-
 -- ── 4. Add permissions ───────────────────────────────────────────────────────
 
 INSERT INTO permissions (resource, action, description)
 VALUES
-  ('settings', 'read',  'Instellingen bekijken'),
-  ('settings', 'write', 'Instellingen wijzigen'),
-  ('roles',    'read',  'Rollen en rechten bekijken'),
-  ('roles',    'write', 'Rollen aanmaken en bewerken'),
-  ('roles',    'delete','Rollen verwijderen'),
-  ('users',    'read',  'Gebruikersaccounts bekijken'),
-  ('users',    'write', 'Gebruikers uitnodigen, bewerken en deactiveren')
+  ('settings', 'read',   'Instellingen bekijken'),
+  ('settings', 'write',  'Instellingen wijzigen'),
+  ('roles',    'read',   'Rollen en rechten bekijken'),
+  ('roles',    'write',  'Rollen aanmaken en bewerken'),
+  ('roles',    'delete', 'Rollen verwijderen'),
+  ('users',    'read',   'Gebruikersaccounts bekijken'),
+  ('users',    'write',  'Gebruikers uitnodigen, bewerken en deactiveren')
 ON CONFLICT (resource, action) DO NOTHING;
 
--- ── 5. Grant permissions to roles ────────────────────────────────────────────
+-- ── 5. Grant permissions to Management only ───────────────────────────────────
+-- Management is the only role with settings, roles, and users admin access.
 
--- Management: full access to settings, roles, and users
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r, permissions p
 WHERE r.name = 'Management'
   AND p.resource IN ('settings', 'roles', 'users')
-ON CONFLICT DO NOTHING;
-
--- Administration: settings:read/write, users:read/write (no role management)
-INSERT INTO role_permissions (role_id, permission_id)
-SELECT r.id, p.id
-FROM roles r, permissions p
-WHERE r.name = 'Administration'
-  AND (
-    (p.resource = 'settings' AND p.action IN ('read', 'write'))
-    OR
-    (p.resource = 'users'    AND p.action IN ('read', 'write'))
-  )
 ON CONFLICT DO NOTHING;

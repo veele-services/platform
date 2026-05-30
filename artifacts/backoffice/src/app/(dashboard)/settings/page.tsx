@@ -31,7 +31,7 @@ export default async function SettingsPage() {
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {canWriteSettings && (
           <SettingsCard
-            href="/settings/organisatie"
+            href="/instellingen/organisatie"
             icon={<Building2 className="h-6 w-6" style={{ color: "#00B7B3" }} strokeWidth={1.5} />}
             title="Organisatie"
             description="Naam, adres, KVK- en BTW-nummer, logo, standaard betalingstermijn en e-mailafzender."
@@ -39,7 +39,7 @@ export default async function SettingsPage() {
         )}
         {canReadRoles && (
           <SettingsCard
-            href="/settings/rollen"
+            href="/instellingen/rollen"
             icon={<Shield className="h-6 w-6" style={{ color: "#00B7B3" }} strokeWidth={1.5} />}
             title="Rollen & rechten"
             description="Beheer rollen en stel per rol de permissie-matrix in voor alle modules en acties."
@@ -47,7 +47,7 @@ export default async function SettingsPage() {
         )}
         {canReadUsers && (
           <SettingsCard
-            href="/settings/gebruikers"
+            href="/instellingen/gebruikers"
             icon={<Users className="h-6 w-6" style={{ color: "#00B7B3" }} strokeWidth={1.5} />}
             title="Gebruikers"
             description="Bekijk alle gebruikers, nodig nieuwe gebruikers uit en deactiveer accounts."

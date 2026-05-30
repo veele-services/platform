@@ -22,8 +22,9 @@ export const ROUTE_PERMISSIONS: RoutePermission[] = [
   { prefix: "/reports",     resource: "reports",     action: "read" },
   { prefix: "/invoices",    resource: "invoices",    action: "read" },
   { prefix: "/quotes",      resource: "quotes",      action: "read" },
-  { prefix: "/documents",   resource: "documents",   action: "read" },
-  { prefix: "/settings",    resource: "settings",    action: "read" },
+  { prefix: "/documents",      resource: "documents", action: "read" },
+  { prefix: "/settings",       resource: "settings",  action: "read" },
+  { prefix: "/instellingen",   resource: "settings",  action: "read" },
 ];
 
 /**

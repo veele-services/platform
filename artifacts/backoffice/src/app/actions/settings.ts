@@ -9,7 +9,7 @@ import {
   userRolesTable,
   auditLogTable,
 } from "@workspace/db";
-import { eq, and, asc, sql, inArray, notInArray } from "drizzle-orm";
+import { eq, and, asc, sql, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -32,9 +32,9 @@ export type OrgSettings = {
 };
 
 export type PermissionItem = {
-  id:       string;
-  resource: string;
-  action:   string;
+  id:          string;
+  resource:    string;
+  action:      string;
   description: string | null;
 };
 
@@ -48,16 +48,17 @@ export type RoleRow = {
 };
 
 export type RoleDetail = {
-  id:          string;
-  name:        string;
-  description: string | null;
-  isSystem:    boolean;
-  permissions: PermissionItem[];
+  id:             string;
+  name:           string;
+  description:    string | null;
+  isSystem:       boolean;
+  permissions:    PermissionItem[];
   allPermissions: PermissionItem[];
 };
 
 export type UserRow = {
   userId:    string;
+  name:      string | null;
   email:     string;
   roles:     string[];
   status:    "actief" | "uitgenodigd" | "inactief";
@@ -115,7 +116,7 @@ export async function updateOrganizationSettings(data: {
     metadata:  { fields: Object.keys(data) },
   });
 
-  revalidatePath("/settings/organisatie");
+  revalidatePath("/instellingen/organisatie");
   return { success: true };
 }
 
@@ -135,8 +136,8 @@ export async function uploadOrgLogo(formData: FormData): Promise<ActionResult<{ 
     return { success: false, message: "Logo mag maximaal 2 MB zijn." };
   }
 
-  const ext  = file.name.split(".").pop() ?? "png";
-  const path = `logo.${ext}?t=${Date.now()}`;
+  const ext   = file.name.split(".").pop() ?? "png";
+  const path  = `logo.${ext}`;
   const bytes = await file.arrayBuffer();
 
   const { error } = await supabase.storage
@@ -166,7 +167,7 @@ export async function uploadOrgLogo(formData: FormData): Promise<ActionResult<{ 
     metadata:  { field: "logo_url" },
   });
 
-  revalidatePath("/settings/organisatie");
+  revalidatePath("/instellingen/organisatie");
   return { success: true, data: { url: publicUrl } };
 }
 
@@ -210,7 +211,8 @@ export async function getRole(id: string): Promise<RoleDetail | null> {
 
   const [allPerms, rolePermRows] = await Promise.all([
     db.select().from(permissionsTable).orderBy(asc(permissionsTable.resource), asc(permissionsTable.action)),
-    db.select({ permissionId: rolePermissionsTable.permissionId })
+    db
+      .select({ permissionId: rolePermissionsTable.permissionId })
       .from(rolePermissionsTable)
       .where(eq(rolePermissionsTable.roleId, id)),
   ]);
@@ -274,10 +276,14 @@ export async function createRole(data: {
     metadata:  { name },
   });
 
-  revalidatePath("/settings/rollen");
+  revalidatePath("/instellingen/rollen");
   return { success: true, data: { id: inserted.id } };
 }
 
+/**
+ * Toggle a single permission on/off for a role.
+ * Used by the permission matrix checkboxes for optimistic per-toggle saves.
+ */
 export async function toggleRolePermission(
   roleId:       string,
   permissionId: string,
@@ -313,7 +319,45 @@ export async function toggleRolePermission(
     metadata:  { permissionId, enabled },
   });
 
-  revalidatePath(`/settings/rollen/${roleId}`);
+  revalidatePath(`/instellingen/rollen/${roleId}`);
+  return { success: true };
+}
+
+/**
+ * Batch-replace all permissions for a role.
+ * Deletes all existing role-permissions and re-inserts the provided set.
+ */
+export async function updateRolePermissions(
+  roleId:        string,
+  permissionIds: string[],
+): Promise<ActionResult> {
+  await requirePermission("roles", "write");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  // Delete all existing and re-insert in a single transaction-like sequence
+  await db
+    .delete(rolePermissionsTable)
+    .where(eq(rolePermissionsTable.roleId, roleId));
+
+  if (permissionIds.length > 0) {
+    await db
+      .insert(rolePermissionsTable)
+      .values(permissionIds.map((permissionId) => ({ roleId, permissionId })))
+      .onConflictDoNothing();
+  }
+
+  await db.insert(auditLogTable).values({
+    userId:    user.id,
+    action:    "update_permissions",
+    resource:  "roles",
+    resourceId: roleId,
+    metadata:  { permissionCount: permissionIds.length },
+  });
+
+  revalidatePath(`/instellingen/rollen/${roleId}`);
   return { success: true };
 }
 
@@ -327,8 +371,7 @@ export async function listUsersWithRoles(): Promise<UserRow[]> {
   if (error) throw new Error(`Kan gebruikers niet ophalen: ${error.message}`);
 
   const authUsers = data.users;
-
-  const userIds = authUsers.map((u) => u.id);
+  const userIds   = authUsers.map((u) => u.id);
   if (userIds.length === 0) return [];
 
   const roleRows = await db
@@ -352,8 +395,13 @@ export async function listUsersWithRoles(): Promise<UserRow[]> {
     if (!u.confirmed_at) status = "uitgenodigd";
     else if (u.banned_until && new Date(u.banned_until) > new Date()) status = "inactief";
 
+    // Extract name from auth metadata (set by invite/profile update)
+    const meta = u.user_metadata as Record<string, unknown> | undefined;
+    const name = (meta?.full_name ?? meta?.name ?? null) as string | null;
+
     return {
       userId:    u.id,
+      name,
       email:     u.email ?? "",
       roles:     rolesByUser.get(u.id) ?? [],
       status,
@@ -402,7 +450,7 @@ export async function inviteUser(data: {
     metadata:  { email, role: role?.name ?? data.roleId },
   });
 
-  revalidatePath("/settings/gebruikers");
+  revalidatePath("/instellingen/gebruikers");
   return { success: true };
 }
 
@@ -433,11 +481,15 @@ export async function deactivateUser(userId: string): Promise<ActionResult> {
     metadata:  {},
   });
 
-  revalidatePath("/settings/gebruikers");
+  revalidatePath("/instellingen/gebruikers");
   return { success: true };
 }
 
-export async function resendInvite(email: string): Promise<ActionResult> {
+/**
+ * Resend an invitation by user ID.
+ * Looks up the user's email via Admin API, then re-invites.
+ */
+export async function resendInvite(userId: string): Promise<ActionResult> {
   await requirePermission("users", "write");
 
   const supabase = await createClient();
@@ -445,7 +497,12 @@ export async function resendInvite(email: string): Promise<ActionResult> {
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const admin = createAdminClient();
-  const { error } = await admin.auth.admin.inviteUserByEmail(email.trim().toLowerCase());
+  const { data: targetUser, error: fetchError } = await admin.auth.admin.getUserById(userId);
+  if (fetchError || !targetUser.user.email) {
+    return { success: false, message: "Gebruiker niet gevonden of heeft geen e-mailadres." };
+  }
+
+  const { error } = await admin.auth.admin.inviteUserByEmail(targetUser.user.email);
   if (error) {
     return { success: false, message: `Opnieuw versturen mislukt: ${error.message}` };
   }
@@ -454,9 +511,10 @@ export async function resendInvite(email: string): Promise<ActionResult> {
     userId:    user.id,
     action:    "resend_invite",
     resource:  "users",
-    metadata:  { email },
+    resourceId: userId,
+    metadata:  { email: targetUser.user.email },
   });
 
-  revalidatePath("/settings/gebruikers");
+  revalidatePath("/instellingen/gebruikers");
   return { success: true };
 }

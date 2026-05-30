@@ -26,7 +26,7 @@ export function RollenView({ roles, canWrite }: Props) {
     startTransition(async () => {
       const result = await createRole({ name: name.trim(), description: desc.trim() || null });
       if (result.success && result.data) {
-        router.push(`/settings/rollen/${result.data.id}`);
+        router.push(`/instellingen/rollen/${result.data.id}`);
       } else {
         setError((result as { message?: string }).message ?? "Aanmaken mislukt.");
       }
@@ -156,7 +156,7 @@ export function RollenView({ roles, canWrite }: Props) {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <Link
-                    href={`/settings/rollen/${role.id}`}
+                    href={`/instellingen/rollen/${role.id}`}
                     className="inline-flex items-center gap-1 text-xs font-medium rounded px-2 py-1 transition-colors hover:bg-slate-100"
                     style={{ color: "#00B7B3" }}
                   >

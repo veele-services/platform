@@ -47,8 +47,8 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
     });
   }
 
-  function handleDeactivate(userId: string, userEmail: string) {
-    if (!confirm(`Weet u zeker dat u ${userEmail} wilt deactiveren?`)) return;
+  function handleDeactivate(userId: string, displayName: string) {
+    if (!confirm(`Weet u zeker dat u ${displayName} wilt deactiveren?`)) return;
     setActionError((prev) => ({ ...prev, [userId]: "" }));
     startTransition(async () => {
       const result = await deactivateUser(userId);
@@ -66,9 +66,9 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
     });
   }
 
-  function handleResend(userEmail: string) {
+  function handleResend(userId: string) {
     startTransition(async () => {
-      const result = await resendInvite(userEmail);
+      const result = await resendInvite(userId);
       if (result.success) {
         showFlash("Uitnodiging opnieuw verstuurd.", false);
       } else {
@@ -161,7 +161,7 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: "1px solid #F1F5F9" }}>
-              {["E-mail", "Rollen", "Status", "Aangemeld", ""].map((h) => (
+              {["Naam", "E-mail", "Rollen", "Status", "Aangemeld", ""].map((h) => (
                 <th
                   key={h}
                   className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide"
@@ -174,10 +174,18 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
           </thead>
           <tbody>
             {users.map((u) => {
-              const st = STATUS_LABELS[u.status];
+              const st          = STATUS_LABELS[u.status];
+              const displayName = u.name ?? u.email.split("@")[0];
               return (
                 <tr key={u.userId} style={{ borderBottom: "1px solid #F8FAFC" }} className="hover:bg-slate-50">
                   <td className="px-4 py-3 font-medium" style={{ color: "#081D3A" }}>
+                    {u.name ? (
+                      u.name
+                    ) : (
+                      <span style={{ color: "#94A3B8" }}>—</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: "#475569" }}>
                     {u.email || <span style={{ color: "#94A3B8" }}>—</span>}
                   </td>
                   <td className="px-4 py-3">
@@ -214,10 +222,11 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
                     {canWrite && (
                       <ActionMenu
                         user={u}
+                        displayName={displayName}
                         isPending={isPending}
                         actionError={actionError[u.userId]}
-                        onDeactivate={() => handleDeactivate(u.userId, u.email)}
-                        onResend={() => handleResend(u.email)}
+                        onDeactivate={() => handleDeactivate(u.userId, displayName)}
+                        onResend={() => handleResend(u.userId)}
                       />
                     )}
                   </td>
@@ -240,14 +249,16 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
 
 function ActionMenu({
   user,
+  displayName,
   isPending,
   actionError,
   onDeactivate,
   onResend,
 }: {
-  user:        UserRow;
-  isPending:   boolean;
-  actionError: string | undefined;
+  user:         UserRow;
+  displayName:  string;
+  isPending:    boolean;
+  actionError:  string | undefined;
   onDeactivate: () => void;
   onResend:     () => void;
 }) {
@@ -267,7 +278,7 @@ function ActionMenu({
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div
-            className="absolute right-0 z-20 mt-1 min-w-[160px] rounded-lg border bg-white py-1 shadow-lg"
+            className="absolute right-0 z-20 mt-1 min-w-[180px] rounded-lg border bg-white py-1 shadow-lg"
             style={{ borderColor: "#E2E8F0" }}
           >
             {user.status === "uitgenodigd" && (
