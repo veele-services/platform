@@ -9,3 +9,4 @@ export * from "./customer-notes";
 export * from "./objects";
 export * from "./personnel";
 export * from "./task-codes";
+export * from "./assignments";

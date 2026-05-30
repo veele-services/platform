@@ -1,0 +1,156 @@
+import {
+  pgTable,
+  uuid,
+  varchar,
+  text,
+  boolean,
+  timestamp,
+  integer,
+  uniqueIndex,
+} from "drizzle-orm/pg-core";
+import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { z } from "zod/v4";
+import { customersTable } from "./customers";
+import { objectsTable } from "./objects";
+import { personnelTable } from "./personnel";
+import { taskCodesTable } from "./task-codes";
+
+// ─── Status & Priority enums ───────────────────────────────────────────────────
+
+export const ASSIGNMENT_STATUSES = [
+  "requested",
+  "review",
+  "quote_preparation",
+  "awaiting_approval",
+  "approved",
+  "plannable",
+  "scheduled",
+  "seen",
+  "in_progress",
+  "not_completed",
+  "completed",
+  "report_submitted",
+  "report_approved",
+  "invoice_ready",
+  "invoiced",
+  "paid",
+  "closed",
+] as const;
+
+export type AssignmentStatus = (typeof ASSIGNMENT_STATUSES)[number];
+
+export const ASSIGNMENT_PRIORITIES = ["low", "normal", "high", "urgent"] as const;
+export type AssignmentPriority = (typeof ASSIGNMENT_PRIORITIES)[number];
+
+// ─── Allowed status transitions ────────────────────────────────────────────────
+
+export const ASSIGNMENT_STATUS_TRANSITIONS: Record<AssignmentStatus, AssignmentStatus[]> = {
+  requested:         ["review", "plannable"],
+  review:            ["quote_preparation", "approved", "plannable"],
+  quote_preparation: ["awaiting_approval"],
+  awaiting_approval: ["approved", "review"],
+  approved:          ["plannable"],
+  plannable:         ["scheduled"],
+  scheduled:         ["seen", "in_progress", "plannable"],
+  seen:              ["in_progress", "scheduled"],
+  in_progress:       ["completed", "not_completed"],
+  not_completed:     ["in_progress", "plannable"],
+  completed:         ["report_submitted"],
+  report_submitted:  ["report_approved", "completed"],
+  report_approved:   ["invoice_ready"],
+  invoice_ready:     ["invoiced"],
+  invoiced:          ["paid"],
+  paid:              ["closed"],
+  closed:            [],
+};
+
+// ─── Tables ────────────────────────────────────────────────────────────────────
+
+/**
+ * Central entity — drives planning, reporting, and invoicing.
+ * Always linked to a customer; optionally to a specific object.
+ *
+ * scheduledDate / scheduledStart / scheduledEnd are stored as plain strings
+ * (YYYY-MM-DD and HH:MM) to avoid timezone ambiguity in a multinational context.
+ */
+export const assignmentsTable = pgTable("assignments", {
+  id:             uuid("id").primaryKey().defaultRandom(),
+  title:          varchar("title", { length: 255 }).notNull(),
+  description:    text("description"),
+
+  customerId:     uuid("customer_id")
+    .notNull()
+    .references(() => customersTable.id, { onDelete: "cascade" }),
+  objectId:       uuid("object_id")
+    .references(() => objectsTable.id, { onDelete: "set null" }),
+
+  /** Current lifecycle status — see ASSIGNMENT_STATUS_TRANSITIONS for allowed moves. */
+  status:         varchar("status", { length: 50 })
+    .notNull()
+    .default("requested"),
+  priority:       varchar("priority", { length: 20 })
+    .notNull()
+    .default("normal"),
+
+  /** YYYY-MM-DD — timezone-safe date string */
+  scheduledDate:  varchar("scheduled_date", { length: 10 }),
+  /** HH:MM */
+  scheduledStart: varchar("scheduled_start", { length: 5 }),
+  /** HH:MM */
+  scheduledEnd:   varchar("scheduled_end", { length: 5 }),
+
+  /** Management-only internal notes. */
+  notes:          text("notes"),
+
+  isActive:       boolean("is_active").notNull().default(true),
+  createdAt:      timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:      timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+  /** Supabase Auth UUID of the staff member who created the record. */
+  createdBy:      uuid("created_by"),
+});
+
+/** Many-to-many: personnel assigned to an assignment. */
+export const assignmentPersonnelTable = pgTable(
+  "assignment_personnel",
+  {
+    id:           uuid("id").primaryKey().defaultRandom(),
+    assignmentId: uuid("assignment_id")
+      .notNull()
+      .references(() => assignmentsTable.id, { onDelete: "cascade" }),
+    personnelId:  uuid("personnel_id")
+      .notNull()
+      .references(() => personnelTable.id, { onDelete: "cascade" }),
+    assignedAt:   timestamp("assigned_at", { withTimezone: true }).notNull().defaultNow(),
+    assignedBy:   uuid("assigned_by"),
+  },
+  (t) => [
+    uniqueIndex("assignment_personnel_unique_idx").on(t.assignmentId, t.personnelId),
+  ],
+);
+
+/** Task codes scoped to an assignment (the actual work to be performed). */
+export const assignmentTasksTable = pgTable("assignment_tasks", {
+  id:           uuid("id").primaryKey().defaultRandom(),
+  assignmentId: uuid("assignment_id")
+    .notNull()
+    .references(() => assignmentsTable.id, { onDelete: "cascade" }),
+  taskCodeId:   uuid("task_code_id")
+    .references(() => taskCodesTable.id, { onDelete: "set null" }),
+  notes:        text("notes"),
+  sortOrder:    integer("sort_order").notNull().default(0),
+});
+
+// ─── Zod schemas ───────────────────────────────────────────────────────────────
+
+export const insertAssignmentSchema = createInsertSchema(assignmentsTable).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const selectAssignmentSchema = createSelectSchema(assignmentsTable);
+export const updateAssignmentSchema  = insertAssignmentSchema.partial();
+
+export type InsertAssignment = z.infer<typeof insertAssignmentSchema>;
+export type UpdateAssignment = z.infer<typeof updateAssignmentSchema>;
+export type Assignment       = z.infer<typeof selectAssignmentSchema>;
