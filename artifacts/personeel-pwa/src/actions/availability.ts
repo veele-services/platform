@@ -1,9 +1,6 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { db } from "@workspace/db";
-import { availabilityWindowsTable, personnelTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export type AvailabilityWindow = {
@@ -12,43 +9,49 @@ export type AvailabilityWindow = {
   endTime: string;
 };
 
-async function getMyPersonnelId(): Promise<string | null> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+const TIME_RE = /^\d{2}:\d{2}$/;
 
-  const [row] = await db
-    .select({ id: personnelTable.id })
-    .from(personnelTable)
-    .where(eq(personnelTable.userId, user.id))
-    .limit(1);
-
-  return row?.id ?? null;
+async function getPersonnelId(
+  supabase: Awaited<ReturnType<typeof createClient>>,
+  userId: string,
+): Promise<string | null> {
+  const { data } = await supabase
+    .from("personnel")
+    .select("id")
+    .eq("user_id", userId)
+    .single();
+  return data?.id ?? null;
 }
 
 export async function getMyAvailabilityWindows(): Promise<AvailabilityWindow[]> {
-  const personnelId = await getMyPersonnelId();
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const personnelId = await getPersonnelId(supabase, user.id);
   if (!personnelId) return [];
 
-  const rows = await db
-    .select({
-      dayOfWeek: availabilityWindowsTable.dayOfWeek,
-      startTime: availabilityWindowsTable.startTime,
-      endTime: availabilityWindowsTable.endTime,
-    })
-    .from(availabilityWindowsTable)
-    .where(eq(availabilityWindowsTable.personnelId, personnelId));
+  const { data } = await supabase
+    .from("availability_windows")
+    .select("day_of_week, start_time, end_time")
+    .eq("personnel_id", personnelId);
 
-  return rows;
+  if (!data) return [];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  return (data as any[]).map((r) => ({
+    dayOfWeek: r.day_of_week,
+    startTime: r.start_time,
+    endTime: r.end_time,
+  }));
 }
-
-const TIME_RE = /^\d{2}:\d{2}$/;
 
 export async function saveAvailabilityWindows(
   windows: AvailabilityWindow[],
 ): Promise<{ success: boolean; error?: string }> {
-  const personnelId = await getMyPersonnelId();
-  if (!personnelId) return { success: false, error: "Niet ingelogd" };
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Niet ingelogd" };
 
   if (windows.length > 7) {
     return { success: false, error: "Maximaal 7 dagen per week" };
@@ -66,19 +69,28 @@ export async function saveAvailabilityWindows(
     }
   }
 
-  await db
-    .delete(availabilityWindowsTable)
-    .where(eq(availabilityWindowsTable.personnelId, personnelId));
+  const personnelId = await getPersonnelId(supabase, user.id);
+  if (!personnelId) return { success: false, error: "Personeelsprofiel niet gevonden" };
+
+  const { error: deleteError } = await supabase
+    .from("availability_windows")
+    .delete()
+    .eq("personnel_id", personnelId);
+
+  if (deleteError) return { success: false, error: "Opslaan mislukt" };
 
   if (windows.length > 0) {
-    await db.insert(availabilityWindowsTable).values(
-      windows.map((w) => ({
-        personnelId,
-        dayOfWeek: w.dayOfWeek,
-        startTime: w.startTime,
-        endTime: w.endTime,
-      })),
-    );
+    const { error: insertError } = await supabase
+      .from("availability_windows")
+      .insert(
+        windows.map((w) => ({
+          personnel_id: personnelId,
+          day_of_week: w.dayOfWeek,
+          start_time: w.startTime,
+          end_time: w.endTime,
+        })),
+      );
+    if (insertError) return { success: false, error: "Opslaan mislukt" };
   }
 
   revalidatePath("/beschikbaarheid");
