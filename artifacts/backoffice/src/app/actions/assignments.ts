@@ -822,8 +822,10 @@ export async function getPersonnelEligibilityForAssignment(
     const meetsKnowledge    = requiredKnowledge.every((k) => personKnow.includes(k));
     const meetsRole         = requiredRoleIds.length === 0 ||
                               requiredRoleIds.every((r) => p.roleId === r);
-    // Region: match personnel.region against the object's city (case-insensitive).
-    // If either side is absent, the check is skipped (passes).
+    // Region: compare personnel.region against the assignment object's city.
+    // The objects table has no dedicated region column; city is the canonical
+    // regional identifier in the current schema (matches the PWA implementation).
+    // Skip the check (pass) when either value is absent.
     const meetsRegion = !objectCity || !p.region
       ? true
       : p.region.trim().toLowerCase() === objectCity;
@@ -870,7 +872,13 @@ export async function getPersonnelEligibilityForAssignment(
 
 /**
  * Move an assignment to a different date (drag-to-reschedule in week planning).
- * Only updates scheduledDate; leaves scheduledStart/scheduledEnd unchanged.
+ *
+ * Guards:
+ *   1. Assignment must be in 'plannable' or 'scheduled' status.
+ *   2. If personnel are confirmed ('assigned'), each is validated on newDate:
+ *        a. Availability status must not be ziek / op_verlof / niet_beschikbaar.
+ *        b. No time-overlap conflict with another confirmed assignment on newDate
+ *           (only when the assignment has scheduledStart + scheduledEnd set).
  */
 export async function rescheduleAssignment(
   id:      string,
@@ -886,8 +894,15 @@ export async function rescheduleAssignment(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
+  // ── 1. Fetch assignment ────────────────────────────────────────────────────
   const [existing] = await db
-    .select({ id: assignmentsTable.id, scheduledDate: assignmentsTable.scheduledDate })
+    .select({
+      id:             assignmentsTable.id,
+      status:         assignmentsTable.status,
+      scheduledDate:  assignmentsTable.scheduledDate,
+      scheduledStart: assignmentsTable.scheduledStart,
+      scheduledEnd:   assignmentsTable.scheduledEnd,
+    })
     .from(assignmentsTable)
     .where(eq(assignmentsTable.id, id))
     .limit(1);
@@ -895,6 +910,84 @@ export async function rescheduleAssignment(
   if (!existing) return { success: false, message: "Opdracht niet gevonden." };
   if (existing.scheduledDate === newDate) return { success: true };
 
+  // ── 2. Status guard ────────────────────────────────────────────────────────
+  const RESCHEDULABLE: AssignmentStatus[] = ["plannable", "scheduled"];
+  if (!RESCHEDULABLE.includes(existing.status as AssignmentStatus)) {
+    return {
+      success: false,
+      message: `Alleen opdrachten met status 'plannable' of 'scheduled' kunnen worden verplaatst (huidige status: ${existing.status}).`,
+    };
+  }
+
+  // ── 3. Personnel availability on newDate ───────────────────────────────────
+  const assignedLinks = await db
+    .select({ personnelId: assignmentPersonnelTable.personnelId })
+    .from(assignmentPersonnelTable)
+    .where(
+      and(
+        eq(assignmentPersonnelTable.assignmentId, id),
+        eq(assignmentPersonnelTable.status, "assigned"),
+      ),
+    );
+
+  if (assignedLinks.length > 0) {
+    const personnelIds = assignedLinks.map((p) => p.personnelId);
+
+    // 3a. Availability status check
+    const statusMap = await getBatchAvailabilityStatus(personnelIds, newDate);
+    const blockedByStatus = personnelIds.filter((pid) => {
+      const s = statusMap[pid] as AvailabilityStatus | undefined;
+      return s === "ziek" || s === "op_verlof" || s === "niet_beschikbaar";
+    });
+
+    if (blockedByStatus.length > 0) {
+      const nameRows = await db
+        .select({ id: personnelTable.id, firstName: personnelTable.firstName, lastName: personnelTable.lastName })
+        .from(personnelTable)
+        .where(inArray(personnelTable.id, blockedByStatus));
+      const nameList = nameRows.map((n) => `${n.firstName} ${n.lastName}`.trim()).join(", ");
+      return {
+        success: false,
+        message: `Verplaatsing geblokkeerd: ${nameList} ${blockedByStatus.length === 1 ? "is" : "zijn"} niet beschikbaar op ${newDate}.`,
+      };
+    }
+
+    // 3b. Conflict check (only when the assignment has a time slot)
+    if (existing.scheduledStart && existing.scheduledEnd) {
+      const conflictRows = await db
+        .select({ personnelId: assignmentPersonnelTable.personnelId })
+        .from(assignmentPersonnelTable)
+        .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
+        .where(
+          and(
+            eq(assignmentsTable.scheduledDate, newDate),
+            inArray(assignmentPersonnelTable.personnelId, personnelIds),
+            ne(assignmentPersonnelTable.assignmentId, id),
+            eq(assignmentPersonnelTable.status, "assigned"),
+            or(
+              isNull(assignmentsTable.scheduledStart),
+              isNull(assignmentsTable.scheduledEnd),
+              sql<boolean>`${assignmentsTable.scheduledStart} < ${existing.scheduledEnd} AND ${assignmentsTable.scheduledEnd} > ${existing.scheduledStart}`,
+            ),
+          ),
+        );
+
+      if (conflictRows.length > 0) {
+        const conflictIds = [...new Set(conflictRows.map((r) => r.personnelId))];
+        const nameRows = await db
+          .select({ id: personnelTable.id, firstName: personnelTable.firstName, lastName: personnelTable.lastName })
+          .from(personnelTable)
+          .where(inArray(personnelTable.id, conflictIds));
+        const nameList = nameRows.map((n) => `${n.firstName} ${n.lastName}`.trim()).join(", ");
+        return {
+          success: false,
+          message: `Verplaatsing geblokkeerd: ${nameList} ${conflictIds.length === 1 ? "heeft" : "hebben"} een conflicterende inplanning op ${newDate}.`,
+        };
+      }
+    }
+  }
+
+  // ── 4. Persist ─────────────────────────────────────────────────────────────
   await db
     .update(assignmentsTable)
     .set({ scheduledDate: newDate })
