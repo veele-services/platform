@@ -10,7 +10,7 @@ import {
   type LeaveType,
   type AvailabilityStatus,
 } from "@workspace/db";
-import { eq, and, lte, gte, inArray, isNull, or, asc } from "drizzle-orm";
+import { eq, and, lte, gte, inArray, isNull, or, asc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/permissions";
@@ -332,6 +332,7 @@ export async function approveLeavePeriod(
 
   revalidatePath(`/personnel/${personnelId}`);
   revalidatePath("/personnel");
+  revalidatePath("/personnel/verlof");
   return { success: true };
 }
 
@@ -377,6 +378,7 @@ export async function rejectLeavePeriod(
 
   revalidatePath(`/personnel/${personnelId}`);
   revalidatePath("/personnel");
+  revalidatePath("/personnel/verlof");
   return { success: true };
 }
 
@@ -393,6 +395,22 @@ export type PendingLeaveRequest = {
   reason:      string | null;
   createdAt:   string;
 };
+
+/**
+ * Count pending leave requests — for sidebar badge.
+ */
+export async function getPendingLeaveCount(): Promise<number> {
+  try {
+    await requirePermission("personnel", "read");
+  } catch {
+    return 0;
+  }
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(leavePeriodsTable)
+    .where(eq(leavePeriodsTable.status, "pending"));
+  return row?.count ?? 0;
+}
 
 /**
  * List all pending leave requests across all personnel — for management inbox.

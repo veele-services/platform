@@ -8,6 +8,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { getPendingReportsCount } from "@/app/actions/reports";
 import { getOutstandingInvoicesCount } from "@/app/actions/invoices";
 import { getPendingQuotesCount } from "@/app/actions/quotes";
+import { getPendingLeaveCount } from "@/app/actions/availability";
 
 export default async function DashboardLayout({
   children,
@@ -33,11 +34,13 @@ export default async function DashboardLayout({
   const canReadReports   = permissions.has("reports:read");
   const canReadInvoices  = permissions.has("invoices:read");
   const canReadQuotes    = permissions.has("quotes:read");
+  const canReadPersonnel = permissions.has("personnel:read");
 
-  const [pendingReportsCount, outstandingInvoicesCount, pendingQuotesCount] = await Promise.all([
-    canReadReports  ? getPendingReportsCount()         : Promise.resolve(0),
-    canReadInvoices ? getOutstandingInvoicesCount()    : Promise.resolve(0),
-    canReadQuotes   ? getPendingQuotesCount()          : Promise.resolve(0),
+  const [pendingReportsCount, outstandingInvoicesCount, pendingQuotesCount, pendingLeaveCount] = await Promise.all([
+    canReadReports   ? getPendingReportsCount()      : Promise.resolve(0),
+    canReadInvoices  ? getOutstandingInvoicesCount() : Promise.resolve(0),
+    canReadQuotes    ? getPendingQuotesCount()        : Promise.resolve(0),
+    canReadPersonnel ? getPendingLeaveCount()         : Promise.resolve(0),
   ]);
 
   const userEmail   = user.email ?? "";
@@ -57,6 +60,7 @@ export default async function DashboardLayout({
           pendingReportsCount={pendingReportsCount}
           outstandingInvoicesCount={outstandingInvoicesCount}
           pendingQuotesCount={pendingQuotesCount}
+          pendingLeaveCount={pendingLeaveCount}
         />
         <div className="flex flex-col flex-1 overflow-hidden">
           <main className="flex-1 overflow-y-auto">{children}</main>

@@ -648,21 +648,25 @@ export async function getPersonnelEligibilityForAssignment(
   const canRead = await hasPermission("assignments", "read");
   if (!canRead) return [];
 
-  // ── 1. Fetch assignment meta (date + times) ────────────────────────────────
+  // ── 1. Fetch assignment meta (date + times + object city for region check) ──
   const [asgn] = await db
     .select({
       scheduledDate:  assignmentsTable.scheduledDate,
       scheduledStart: assignmentsTable.scheduledStart,
       scheduledEnd:   assignmentsTable.scheduledEnd,
+      objectCity:     objectsTable.city,
     })
     .from(assignmentsTable)
+    .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
     .where(eq(assignmentsTable.id, assignmentId))
     .limit(1);
 
-  const dateStr  = asgn?.scheduledDate  ?? null;
+  const dateStr   = asgn?.scheduledDate  ?? null;
   const asgnStart = asgn?.scheduledStart ?? null; // "HH:MM" or null
   const asgnEnd   = asgn?.scheduledEnd   ?? null; // "HH:MM" or null
   const asgnHasTimes = Boolean(asgnStart && asgnEnd);
+  // Object city for region eligibility check (lowercased, trimmed; null = skip check)
+  const objectCity = asgn?.objectCity?.trim().toLowerCase() || null;
 
   // Day-of-week for availability window lookup (0=Sun … 6=Sat)
   const dayOfWeek = dateStr
@@ -818,9 +822,11 @@ export async function getPersonnelEligibilityForAssignment(
     const meetsKnowledge    = requiredKnowledge.every((k) => personKnow.includes(k));
     const meetsRole         = requiredRoleIds.length === 0 ||
                               requiredRoleIds.every((r) => p.roleId === r);
-    // Region: always passes — assignments have no required_region field yet.
-    // The personnel.region field is present and ready; constraint requires a schema migration.
-    const meetsRegion = true;
+    // Region: match personnel.region against the object's city (case-insensitive).
+    // If either side is absent, the check is skipped (passes).
+    const meetsRegion = !objectCity || !p.region
+      ? true
+      : p.region.trim().toLowerCase() === objectCity;
 
     const reasons: string[] = [];
     if (availStatus === "ziek")               reasons.push("Ziek gemeld");
@@ -832,6 +838,7 @@ export async function getPersonnelEligibilityForAssignment(
     if (!meetsCertificates)                   reasons.push("Benodigde certificaten ontbreken");
     if (!meetsDiploma)                        reasons.push("Benodigd diploma ontbreekt");
     if (!meetsKnowledge)                      reasons.push("Benodigde kennis ontbreekt");
+    if (!meetsRegion)                         reasons.push("Regio komt niet overeen");
 
     const eligible =
       (availStatus === "beschikbaar" || availStatus === "niet_ingesteld") &&
@@ -840,7 +847,8 @@ export async function getPersonnelEligibilityForAssignment(
       meetsRole &&
       meetsCertificates &&
       meetsDiploma &&
-      meetsKnowledge;
+      meetsKnowledge &&
+      meetsRegion;
 
     return {
       id:                      p.id,
@@ -858,6 +866,50 @@ export async function getPersonnelEligibilityForAssignment(
       eligibilityReasons:      reasons,
     };
   });
+}
+
+/**
+ * Move an assignment to a different date (drag-to-reschedule in week planning).
+ * Only updates scheduledDate; leaves scheduledStart/scheduledEnd unchanged.
+ */
+export async function rescheduleAssignment(
+  id:      string,
+  newDate: string,
+): Promise<ActionResult> {
+  await requirePermission("planning", "write");
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
+    return { success: false, message: "Ongeldige datum." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [existing] = await db
+    .select({ id: assignmentsTable.id, scheduledDate: assignmentsTable.scheduledDate })
+    .from(assignmentsTable)
+    .where(eq(assignmentsTable.id, id))
+    .limit(1);
+
+  if (!existing) return { success: false, message: "Opdracht niet gevonden." };
+  if (existing.scheduledDate === newDate) return { success: true };
+
+  await db
+    .update(assignmentsTable)
+    .set({ scheduledDate: newDate })
+    .where(eq(assignmentsTable.id, id));
+
+  await db.insert(auditLogTable).values({
+    userId:     user.id,
+    action:     "update",
+    resource:   "assignments",
+    resourceId: id,
+    metadata:   { action: "reschedule", from: existing.scheduledDate, to: newDate },
+  });
+
+  revalidatePath("/planning");
+  return { success: true };
 }
 
 export async function getTaskCodeOptions(): Promise<TaskCodeOption[]> {

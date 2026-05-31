@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Calendar,
+  CalendarClock,
   ClipboardList,
   Users,
   Building2,
@@ -27,8 +28,9 @@ const NAV_ITEMS = [
   { href: "/quotes",      icon: FileCheck2,      label: "Offertes",    permission: "quotes:read"      },
   { href: "/customers",   icon: Users,           label: "Klanten",     permission: "customers:read"   },
   { href: "/objects",     icon: Building2,       label: "Objecten",    permission: "objects:read"     },
-  { href: "/personnel",   icon: UserCog,         label: "Personeel",   permission: "personnel:read"   },
-  { href: "/reports",     icon: BarChart3,       label: "Rapporten",   permission: "reports:read"     },
+  { href: "/personnel",         icon: UserCog,       label: "Personeel",    permission: "personnel:read"   },
+  { href: "/personnel/verlof", icon: CalendarClock, label: "Verlof-inbox", permission: "personnel:read"   },
+  { href: "/reports",          icon: BarChart3,     label: "Rapporten",    permission: "reports:read"     },
   { href: "/invoices",    icon: FileText,        label: "Facturen",    permission: "invoices:read"    },
   { href: "/documents",   icon: FolderOpen,      label: "Documenten",  permission: "documents:read"   },
 ] as const;
@@ -52,6 +54,7 @@ interface SidebarProps {
   pendingReportsCount?:     number;
   outstandingInvoicesCount?: number;
   pendingQuotesCount?:      number;
+  pendingLeaveCount?:       number;
 }
 
 export function Sidebar({
@@ -61,6 +64,7 @@ export function Sidebar({
   pendingReportsCount = 0,
   outstandingInvoicesCount = 0,
   pendingQuotesCount = 0,
+  pendingLeaveCount = 0,
 }: SidebarProps) {
   const pathname    = usePathname();
   const permissions = usePermissions();
@@ -118,13 +122,15 @@ export function Sidebar({
           visibleItems.map(({ href, icon: Icon, label }) => {
             const active  = isActive(pathname, href);
             const hasBadge =
-              (href === "/reports"  && pendingReportsCount > 0) ||
-              (href === "/invoices" && outstandingInvoicesCount > 0) ||
-              (href === "/quotes"   && pendingQuotesCount > 0);
+              (href === "/reports"           && pendingReportsCount > 0) ||
+              (href === "/invoices"          && outstandingInvoicesCount > 0) ||
+              (href === "/quotes"            && pendingQuotesCount > 0) ||
+              (href === "/personnel/verlof"  && pendingLeaveCount > 0);
             const badgeCount =
-              href === "/reports"  ? pendingReportsCount :
-              href === "/invoices" ? outstandingInvoicesCount :
-              href === "/quotes"   ? pendingQuotesCount : 0;
+              href === "/reports"          ? pendingReportsCount :
+              href === "/invoices"         ? outstandingInvoicesCount :
+              href === "/quotes"           ? pendingQuotesCount :
+              href === "/personnel/verlof" ? pendingLeaveCount : 0;
             return (
               <Link
                 key={href}

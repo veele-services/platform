@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import { ChevronLeft, ChevronRight, Clock, Users, Plus } from "lucide-react";
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import { AssignmentStatusBadge } from "./AssignmentStatusBadge";
 import { AssignmentForm } from "./AssignmentForm";
+import { rescheduleAssignment } from "@/app/actions/assignments";
 import type { WeekAssignment, CustomerOption } from "@/app/actions/assignments";
 
 const NL_DAYS = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
@@ -57,6 +58,14 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
   const [createSheetOpen, setCreateSheetOpen] = useState(false);
   const [createDate,      setCreateDate]      = useState("");
 
+  // Drag-and-drop state
+  const [draggingId,   setDraggingId]   = useState<string | null>(null);
+  const [dragOverDate, setDragOverDate] = useState<string | null>(null);
+  const [isPending,    startTransition] = useTransition();
+  // Optimistic moved assignments: id → newDate (applied before server confirm)
+  const [movedMap, setMovedMap] = useState<Map<string, string>>(new Map());
+  const dragRef = useRef<string | null>(null); // sync fallback for drag events
+
   const weekStart = new Date(weekStartStr + "T00:00:00");
   const weekEnd   = addDays(weekStart, 6);
   const weekNum   = getWeekNumber(weekStart);
@@ -79,8 +88,14 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
   const nextWeek = formatDateKey(addDays(weekStart,  7));
   const todayStr = formatDateKey(new Date());
 
+  // Build date → assignments map, applying optimistic moves
+  const effectiveAssignments = assignments.map((a) => ({
+    ...a,
+    scheduledDate: movedMap.get(a.id) ?? a.scheduledDate,
+  }));
+
   const byDate = new Map<string, WeekAssignment[]>();
-  for (const a of assignments) {
+  for (const a of effectiveAssignments) {
     const list = byDate.get(a.scheduledDate) ?? [];
     list.push(a);
     byDate.set(a.scheduledDate, list);
@@ -98,11 +113,75 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
     };
   });
 
-  const totalForWeek = assignments.length;
+  const totalForWeek = effectiveAssignments.length;
 
   function openCreate(dateStr: string) {
     setCreateDate(dateStr);
     setCreateSheetOpen(true);
+  }
+
+  // ── Drag handlers ──────────────────────────────────────────────────────────
+
+  function handleDragStart(e: React.DragEvent, assignmentId: string) {
+    dragRef.current = assignmentId;
+    setDraggingId(assignmentId);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", assignmentId);
+  }
+
+  function handleDragEnd() {
+    dragRef.current = null;
+    setDraggingId(null);
+    setDragOverDate(null);
+  }
+
+  function handleDragOver(e: React.DragEvent, dateStr: string) {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    setDragOverDate(dateStr);
+  }
+
+  function handleDragLeave() {
+    setDragOverDate(null);
+  }
+
+  function handleDrop(e: React.DragEvent, targetDate: string) {
+    e.preventDefault();
+    const id = e.dataTransfer.getData("text/plain") || dragRef.current;
+    setDragOverDate(null);
+    setDraggingId(null);
+    dragRef.current = null;
+
+    if (!id) return;
+
+    // Find current date of the dragged assignment
+    const original = assignments.find((a) => a.id === id);
+    const currentDate = movedMap.get(id) ?? original?.scheduledDate;
+    if (!original || currentDate === targetDate) return;
+
+    // Optimistic update
+    setMovedMap((prev) => {
+      const next = new Map(prev);
+      next.set(id, targetDate);
+      return next;
+    });
+
+    startTransition(async () => {
+      const result = await rescheduleAssignment(id, targetDate);
+      if (!result.success) {
+        // Roll back optimistic move
+        setMovedMap((prev) => {
+          const next = new Map(prev);
+          next.delete(id);
+          return next;
+        });
+      } else {
+        // Server did a revalidatePath; router.refresh picks up new data
+        router.refresh();
+        // Keep movedMap until refresh completes (harmless)
+        setMovedMap(new Map());
+      }
+    });
   }
 
   return (
@@ -148,105 +227,109 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
 
       {/* Week grid */}
       <div className="grid grid-cols-7 gap-3">
-        {days.map((day) => (
-          <div key={day.dateStr} className="min-w-0">
-            {/* Day header — click to day view */}
-            <Link
-              href={`${pathname}?day=${day.dateStr}`}
-              className="flex flex-col items-center justify-center pb-2 mb-2 group"
-              style={{ borderBottom: "1px solid #E2E8F0" }}
+        {days.map((day) => {
+          const isDragTarget = canWrite && dragOverDate === day.dateStr && draggingId !== null;
+          return (
+            <div
+              key={day.dateStr}
+              className="min-w-0"
+              onDragOver={canWrite ? (e) => handleDragOver(e, day.dateStr) : undefined}
+              onDragLeave={canWrite ? handleDragLeave : undefined}
+              onDrop={canWrite ? (e) => handleDrop(e, day.dateStr) : undefined}
             >
-              <span
-                className="text-xs font-semibold uppercase tracking-wider"
-                style={{ color: day.isToday ? "#00B7B3" : "#64748B" }}
+              {/* Day header — click to day view */}
+              <Link
+                href={`${pathname}?day=${day.dateStr}`}
+                className="flex flex-col items-center justify-center pb-2 mb-2 group"
+                style={{ borderBottom: "1px solid #E2E8F0" }}
               >
-                {day.label}
-              </span>
-              <span
-                className="font-heading text-xl font-bold mt-0.5 w-8 h-8 flex items-center justify-center rounded-full transition-colors group-hover:ring-2"
+                <span
+                  className="text-xs font-semibold uppercase tracking-wider"
+                  style={{ color: day.isToday ? "#00B7B3" : "#64748B" }}
+                >
+                  {day.label}
+                </span>
+                <span
+                  className="font-heading text-xl font-bold mt-0.5 w-8 h-8 flex items-center justify-center rounded-full transition-colors group-hover:ring-2"
+                  style={
+                    day.isToday
+                      ? { background: "#00B7B3", color: "#fff" }
+                      : { color: "#081D3A" }
+                  }
+                >
+                  {day.date.getDate()}
+                </span>
+              </Link>
+
+              {/* Drop zone + assignment cards */}
+              <div
+                className="flex flex-col gap-2 rounded-lg transition-colors min-h-[40px]"
                 style={
-                  day.isToday
-                    ? { background: "#00B7B3", color: "#fff" }
-                    : { color: "#081D3A" }
+                  isDragTarget
+                    ? { background: "rgba(0,183,179,0.06)", outline: "2px dashed #00B7B3", outlineOffset: "2px" }
+                    : undefined
                 }
               >
-                {day.date.getDate()}
-              </span>
-            </Link>
+                {day.items.map((a) => {
+                  const isBeingDragged = draggingId === a.id;
+                  return canWrite ? (
+                    <div
+                      key={a.id}
+                      draggable
+                      onDragStart={(e) => handleDragStart(e, a.id)}
+                      onDragEnd={handleDragEnd}
+                      className="rounded p-2 transition-shadow hover:shadow-md cursor-grab active:cursor-grabbing"
+                      style={{
+                        background: "#fff",
+                        border: "1px solid #E2E8F0",
+                        opacity: isBeingDragged ? 0.4 : isPending ? 0.7 : 1,
+                        transition: "opacity 0.15s, box-shadow 0.15s",
+                        userSelect: "none",
+                      }}
+                    >
+                      <AssignmentCardContent a={a} />
+                    </div>
+                  ) : (
+                    <Link
+                      key={a.id}
+                      href={`/assignments/${a.id}`}
+                      className="block rounded p-2 transition-shadow hover:shadow-md"
+                      style={{ background: "#fff", border: "1px solid #E2E8F0" }}
+                    >
+                      <AssignmentCardContent a={a} />
+                    </Link>
+                  );
+                })}
 
-            {/* Assignment cards */}
-            <div className="flex flex-col gap-2">
-              {day.items.map((a) => (
-                <Link
-                  key={a.id}
-                  href={`/assignments/${a.id}`}
-                  className="block rounded p-2 transition-shadow hover:shadow-md"
-                  style={{
-                    background: "#fff",
-                    border: "1px solid #E2E8F0",
-                  }}
-                >
-                  <p
-                    className="text-xs font-semibold leading-snug mb-1 line-clamp-2"
-                    style={{ color: "#081D3A" }}
+                {/* Add button */}
+                {canWrite ? (
+                  <button
+                    type="button"
+                    onClick={() => openCreate(day.dateStr)}
+                    className="flex items-center justify-center gap-1 rounded py-2 text-xs transition-colors hover:opacity-80"
+                    style={{
+                      border: "1px dashed #CBD5E1",
+                      color: "#94A3B8",
+                      background: "transparent",
+                      cursor: "pointer",
+                    }}
+                    aria-label={`Opdracht toevoegen op ${day.dateStr}`}
                   >
-                    {a.title}
-                  </p>
-                  <p
-                    className="text-xs mb-1.5 truncate"
-                    style={{ color: "#64748B" }}
+                    <Plus className="h-3 w-3" />
+                    <span>Nieuw</span>
+                  </button>
+                ) : day.items.length === 0 ? (
+                  <div
+                    className="text-xs text-center py-4 rounded"
+                    style={{ color: "#CBD5E1" }}
                   >
-                    {a.customerName}
-                  </p>
-                  <div className="mb-1.5">
-                    <AssignmentStatusBadge status={a.status} />
+                    —
                   </div>
-                  {(a.scheduledStart || a.scheduledEnd) && (
-                    <p className="text-xs flex items-center gap-1" style={{ color: "#94A3B8" }}>
-                      <Clock className="h-3 w-3 flex-shrink-0" />
-                      {a.scheduledStart ?? ""}
-                      {a.scheduledStart && a.scheduledEnd ? " – " : ""}
-                      {a.scheduledEnd ?? ""}
-                    </p>
-                  )}
-                  {a.personnelNames.length > 0 && (
-                    <p className="text-xs flex items-center gap-1 mt-1" style={{ color: "#94A3B8" }}>
-                      <Users className="h-3 w-3 flex-shrink-0" />
-                      {a.personnelNames.slice(0, 2).join(", ")}
-                      {a.personnelNames.length > 2 && ` +${a.personnelNames.length - 2}`}
-                    </p>
-                  )}
-                </Link>
-              ))}
-
-              {/* Add button */}
-              {canWrite ? (
-                <button
-                  type="button"
-                  onClick={() => openCreate(day.dateStr)}
-                  className="flex items-center justify-center gap-1 rounded py-2 text-xs transition-colors hover:opacity-80"
-                  style={{
-                    border: "1px dashed #CBD5E1",
-                    color: "#94A3B8",
-                    background: "transparent",
-                    cursor: "pointer",
-                  }}
-                  aria-label={`Opdracht toevoegen op ${day.dateStr}`}
-                >
-                  <Plus className="h-3 w-3" />
-                  <span>Nieuw</span>
-                </button>
-              ) : day.items.length === 0 ? (
-                <div
-                  className="text-xs text-center py-4 rounded"
-                  style={{ color: "#CBD5E1" }}
-                >
-                  —
-                </div>
-              ) : null}
+                ) : null}
+              </div>
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Create assignment sheet */}
@@ -276,5 +359,41 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
         </Sheet>
       )}
     </div>
+  );
+}
+
+// ── Shared card content (used for both draggable div and Link) ────────────────
+
+function AssignmentCardContent({ a }: { a: WeekAssignment }) {
+  return (
+    <>
+      <p
+        className="text-xs font-semibold leading-snug mb-1 line-clamp-2"
+        style={{ color: "#081D3A" }}
+      >
+        {a.title}
+      </p>
+      <p className="text-xs mb-1.5 truncate" style={{ color: "#64748B" }}>
+        {a.customerName}
+      </p>
+      <div className="mb-1.5">
+        <AssignmentStatusBadge status={a.status} />
+      </div>
+      {(a.scheduledStart || a.scheduledEnd) && (
+        <p className="text-xs flex items-center gap-1" style={{ color: "#94A3B8" }}>
+          <Clock className="h-3 w-3 flex-shrink-0" />
+          {a.scheduledStart ?? ""}
+          {a.scheduledStart && a.scheduledEnd ? " – " : ""}
+          {a.scheduledEnd ?? ""}
+        </p>
+      )}
+      {a.personnelNames.length > 0 && (
+        <p className="text-xs flex items-center gap-1 mt-1" style={{ color: "#94A3B8" }}>
+          <Users className="h-3 w-3 flex-shrink-0" />
+          {a.personnelNames.slice(0, 2).join(", ")}
+          {a.personnelNames.length > 2 && ` +${a.personnelNames.length - 2}`}
+        </p>
+      )}
+    </>
   );
 }
