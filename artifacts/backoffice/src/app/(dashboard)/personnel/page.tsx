@@ -40,11 +40,11 @@ export default async function PersonnelPage({ searchParams }: Props) {
     <div className="p-8">
       <div className="mb-6">
         <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-          Personnel
+          Personeel
         </h1>
         <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-          {total} record{total !== 1 ? "s" : ""}
-          {search ? ` matching "${search}"` : ""}
+          {total} medewerker{total !== 1 ? "s" : ""}
+          {search ? ` die overeenkomen met "${search}"` : ""}
         </p>
       </div>
 

@@ -133,6 +133,30 @@
     font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
   }
 
+  /* Input utility — matches shadcn/ui Input appearance */
+  .veele-input {
+    display: block;
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid #E2E8F0;
+    background-color: #FFFFFF;
+    padding: 6px 10px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #0F172A;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .veele-input:focus {
+    border-color: #00B7B3;
+    box-shadow: 0 0 0 3px rgba(0,183,179,0.12);
+  }
+  .veele-input:disabled {
+    background-color: #F8FAFC;
+    color: #94A3B8;
+    cursor: not-allowed;
+  }
+
   /* Card utility */
   .veele-card {
     background-color: #FFFFFF;

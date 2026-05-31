@@ -22,7 +22,7 @@ export type SectorOption = { id: string; name: string };
 export type CustomerRow = {
   id: string;
   name: string;
-  code: string | null;
+  code: string;
   sectorId: string | null;
   sectorName: string | null;
   city: string | null;
@@ -34,7 +34,7 @@ export type CustomerRow = {
 export type CustomerDetail = {
   id: string;
   name: string;
-  code: string | null;
+  code: string;
   sectorId: string | null;
   sectorName: string | null;
   address: string | null;
@@ -52,7 +52,6 @@ export type CustomerDetail = {
 
 export type CustomerFormInput = {
   name: string;
-  code?: string;
   sectorId?: string;
   contactName?: string;
   contactEmail?: string;
@@ -200,7 +199,7 @@ export async function deleteCustomer(id: string): Promise<ActionResult> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   // Prevent deletion if the customer still has objects linked to it
   const [countRow] = await db
@@ -212,7 +211,7 @@ export async function deleteCustomer(id: string): Promise<ActionResult> {
   if (linkedObjects > 0) {
     return {
       success: false,
-      message: `Cannot delete: this customer has ${linkedObjects} object${linkedObjects > 1 ? "s" : ""}. Delete all objects first.`,
+      message: `Kan niet verwijderen: deze klant heeft ${linkedObjects} object${linkedObjects > 1 ? "en" : ""}. Verwijder eerst alle objecten.`,
     };
   }
 
@@ -222,7 +221,7 @@ export async function deleteCustomer(id: string): Promise<ActionResult> {
     .where(eq(customersTable.id, id))
     .limit(1);
 
-  if (!customer) return { success: false, message: "Customer not found." };
+  if (!customer) return { success: false, message: "Klant niet gevonden." };
 
   // Remove notes mirror first (no FK cascade on this table)
   await db.delete(customerNotesTable).where(eq(customerNotesTable.customerId, id));
@@ -259,11 +258,10 @@ export async function createCustomer(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const payload = {
     name:         data.name.trim(),
-    code:         data.code?.trim()        || null,
     sectorId:     data.sectorId            || null,
     contactName:  data.contactName?.trim() || null,
     contactEmail: data.contactEmail?.trim()|| null,
@@ -283,7 +281,7 @@ export async function createCustomer(
       const path = issue.path.map(String).join(".");
       if (path) fieldErrors[path] = issue.message;
     }
-    return { success: false, message: "Validation failed.", fieldErrors };
+    return { success: false, message: "Validatie mislukt.", fieldErrors };
   }
 
   try {
@@ -314,11 +312,11 @@ export async function createCustomer(
     if (isUniqueViolation(err)) {
       return {
         success: false,
-        message: "A customer with this code or email already exists.",
-        fieldErrors: { code: "Code is already in use" },
+        message: "Er bestaat al een klant met dit e-mailadres.",
+        fieldErrors: { contactEmail: "E-mailadres is al in gebruik" },
       };
     }
-    return { success: false, message: "Failed to create customer." };
+    return { success: false, message: "Klant aanmaken mislukt." };
   }
 }
 
@@ -332,11 +330,10 @@ export async function updateCustomer(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const payload = {
     name:         data.name.trim(),
-    code:         data.code?.trim()        || null,
     sectorId:     data.sectorId            || null,
     contactName:  data.contactName?.trim() || null,
     contactEmail: data.contactEmail?.trim()|| null,
@@ -355,7 +352,7 @@ export async function updateCustomer(
       const path = issue.path.map(String).join(".");
       if (path) fieldErrors[path] = issue.message;
     }
-    return { success: false, message: "Validation failed.", fieldErrors };
+    return { success: false, message: "Validatie mislukt.", fieldErrors };
   }
 
   try {
@@ -392,11 +389,11 @@ export async function updateCustomer(
     if (isUniqueViolation(err)) {
       return {
         success: false,
-        message: "A customer with this code or email already exists.",
-        fieldErrors: { code: "Code is already in use" },
+        message: "Er bestaat al een klant met dit e-mailadres.",
+        fieldErrors: { contactEmail: "E-mailadres is al in gebruik" },
       };
     }
-    return { success: false, message: "Failed to update customer." };
+    return { success: false, message: "Klant bijwerken mislukt." };
   }
 }
 
@@ -410,7 +407,7 @@ export async function setCustomerStatus(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   await db
     .update(customersTable)
@@ -441,7 +438,7 @@ export async function bulkSetCustomerStatus(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   await db
     .update(customersTable)

@@ -33,27 +33,27 @@ import {
 const taskCodeFormSchema = z.object({
   code: z
     .string()
-    .min(1, "Code is required")
-    .max(50, "Max 50 characters")
+    .min(1, "Code is verplicht")
+    .max(50, "Max 50 tekens")
     .refine((v) => /^[\w\-.]+$/.test(v.trim()), {
-      message: "Code may only contain letters, numbers, hyphens, and underscores",
+      message: "Code mag alleen letters, cijfers, koppeltekens en underscores bevatten",
     }),
-  name:            z.string().min(1, "Name is required").max(200, "Max 200 characters"),
+  name:            z.string().min(1, "Naam is verplicht").max(200, "Max 200 tekens"),
   sectorId:        z.string(),
-  description:     z.string().max(5000, "Max 5000 characters"),
+  description:     z.string().max(5000, "Max 5000 tekens"),
   price: z
     .string()
     .refine(
       (v) => v === "" || /^\d+(\.\d{0,2})?$/.test(v.trim()),
-      "Must be a valid price (e.g. 45.00)",
+      "Moet een geldig bedrag zijn (bijv. 45.00)",
     ),
   durationMinutes: z
     .string()
     .refine(
       (v) => v === "" || (/^\d+$/.test(v.trim()) && parseInt(v.trim()) > 0),
-      "Must be a positive whole number",
+      "Moet een positief geheel getal zijn",
     ),
-  requiredDiploma: z.string().max(200, "Max 200 characters"),
+  requiredDiploma: z.string().max(200, "Max 200 tekens"),
   requiredRoleId:  z.string(),
 });
 
@@ -183,7 +183,7 @@ export function TaskCodeForm({
         return;
       }
 
-      toast.success(mode === "create" ? "Task code created" : "Task code updated");
+      toast.success(mode === "create" ? "Taakcode aangemaakt" : "Taakcode bijgewerkt");
       const id =
         mode === "create" && result.data ? result.data.id : (taskCodeId ?? "");
       onSuccess(id);
@@ -204,7 +204,7 @@ export function TaskCodeForm({
       {/* ── Identity ──────────────────────────────────── */}
       <section>
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Identity
+          Identificatie
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
@@ -214,7 +214,7 @@ export function TaskCodeForm({
             <Input
               id="code"
               {...register("code")}
-              placeholder="e.g. CLEAN-01"
+              placeholder="bijv. SCHOON-01"
               className="font-mono uppercase"
               onBlur={(e) => setValue("code", e.target.value.toUpperCase())}
               aria-invalid={!!errors.code}
@@ -231,10 +231,10 @@ export function TaskCodeForm({
               onValueChange={(v) => setValue("sectorId", v === "NONE" ? "" : v)}
             >
               <SelectTrigger id="sectorId">
-                <SelectValue placeholder="Select sector…" />
+                <SelectValue placeholder="Selecteer sector…" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="NONE">— No sector —</SelectItem>
+                <SelectItem value="NONE">— Geen sector —</SelectItem>
                 {sectors.map((s) => (
                   <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                 ))}
@@ -244,12 +244,12 @@ export function TaskCodeForm({
 
           <div className="col-span-2 space-y-1">
             <Label htmlFor="name">
-              Name <span className="text-destructive">*</span>
+              Naam <span className="text-destructive">*</span>
             </Label>
             <Input
               id="name"
               {...register("name")}
-              placeholder="Descriptive task name"
+              placeholder="Beschrijvende taaknaam"
               aria-invalid={!!errors.name}
             />
             {errors.name && (
@@ -258,11 +258,11 @@ export function TaskCodeForm({
           </div>
 
           <div className="col-span-2 space-y-1">
-            <Label htmlFor="description">Description</Label>
+            <Label htmlFor="description">Omschrijving</Label>
             <Textarea
               id="description"
               {...register("description")}
-              placeholder="Optional description of the task…"
+              placeholder="Optionele omschrijving van de taak…"
               rows={3}
             />
           </div>
@@ -274,15 +274,15 @@ export function TaskCodeForm({
       {/* ── Pricing & Duration ─────────────────────────── */}
       <section>
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Pricing &amp; Duration
+          Prijs &amp; Duur
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
-            <Label htmlFor="price">Price (€)</Label>
+            <Label htmlFor="price">Prijs (€)</Label>
             <Input
               id="price"
               {...register("price")}
-              placeholder="e.g. 45.00"
+              placeholder="bijv. 45.00"
               aria-invalid={!!errors.price}
             />
             {errors.price && (
@@ -291,13 +291,13 @@ export function TaskCodeForm({
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="durationMinutes">Duration (minutes)</Label>
+            <Label htmlFor="durationMinutes">Duur (minuten)</Label>
             <Input
               id="durationMinutes"
               type="number"
               min={1}
               {...register("durationMinutes")}
-              placeholder="e.g. 60"
+              placeholder="bijv. 60"
               aria-invalid={!!errors.durationMinutes}
             />
             {errors.durationMinutes && (
@@ -312,47 +312,47 @@ export function TaskCodeForm({
       {/* ── Planning Eligibility ───────────────────────── */}
       <section>
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Planning Eligibility
+          Planningsgeschiktheid
         </p>
         <div className="flex flex-col gap-3">
           <div className="space-y-1">
-            <Label>Required Certificates</Label>
+            <Label>Vereiste certificaten</Label>
             <TagInput
               value={requiredCertificates}
               onChange={setRequiredCertificates}
-              placeholder="e.g. VCA, BHV — type and press Enter"
+              placeholder="bijv. VCA, BHV — typ en druk op Enter"
             />
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="requiredDiploma">Required Diploma</Label>
+            <Label htmlFor="requiredDiploma">Vereist diploma</Label>
             <Input
               id="requiredDiploma"
               {...register("requiredDiploma")}
-              placeholder="e.g. MBO-3"
+              placeholder="bijv. MBO-3"
             />
           </div>
 
           <div className="space-y-1">
-            <Label>Required Knowledge</Label>
+            <Label>Vereiste kennis</Label>
             <TagInput
               value={requiredKnowledge}
               onChange={setRequiredKnowledge}
-              placeholder="e.g. Electrical, Plumbing — type and press Enter"
+              placeholder="bijv. Elektra, Loodgieten — typ en druk op Enter"
             />
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="requiredRoleId">Required Role</Label>
+            <Label htmlFor="requiredRoleId">Vereiste rol</Label>
             <Select
               value={requiredRoleValue}
               onValueChange={(v) => setValue("requiredRoleId", v === "NONE" ? "" : v)}
             >
               <SelectTrigger id="requiredRoleId">
-                <SelectValue placeholder="Any role…" />
+                <SelectValue placeholder="Elke rol…" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="NONE">— Any role —</SelectItem>
+                <SelectItem value="NONE">— Elke rol —</SelectItem>
                 {roles.map((r) => (
                   <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                 ))}
@@ -367,34 +367,34 @@ export function TaskCodeForm({
       {/* ── Requirements & Settings ────────────────────── */}
       <section>
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Requirements &amp; Settings
+          Vereisten &amp; Instellingen
         </p>
         <div className="flex flex-col gap-3">
           <SwitchRow
             id="photoRequired"
-            label="Photo Required"
-            description="Field workers must upload photos when completing this task."
+            label="Foto verplicht"
+            description="Medewerkers moeten foto's uploaden bij het voltooien van deze taak."
             checked={photoRequired}
             onChange={setPhotoRequired}
           />
           <SwitchRow
             id="reportRequired"
-            label="Report Required"
-            description="A written report must be submitted upon completion."
+            label="Rapport verplicht"
+            description="Een schriftelijk rapport moet worden ingediend bij voltooiing."
             checked={reportRequired}
             onChange={setReportRequired}
           />
           <SwitchRow
             id="invoiceable"
-            label="Invoiceable"
-            description="This task generates an invoice line when completed."
+            label="Factureerbaar"
+            description="Deze taak genereert een factuurregel bij voltooiing."
             checked={invoiceable}
             onChange={setInvoiceable}
           />
           <SwitchRow
             id="isActive"
-            label="Active"
-            description="Inactive task codes cannot be used in new assignments."
+            label="Actief"
+            description="Inactieve taakcodes kunnen niet worden gebruikt in nieuwe opdrachten."
             checked={isActive}
             onChange={setIsActive}
           />
@@ -404,11 +404,11 @@ export function TaskCodeForm({
       {/* ── Actions ────────────────────────────────────── */}
       <div className="flex justify-end gap-2 pt-2 border-t">
         <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>
-          Cancel
+          Annuleren
         </Button>
         <Button type="submit" disabled={pending}>
           {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {mode === "create" ? "Create Task Code" : "Save Changes"}
+          {mode === "create" ? "Taakcode aanmaken" : "Wijzigingen opslaan"}
         </Button>
       </div>
     </form>

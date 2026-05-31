@@ -22,7 +22,7 @@ export function StatusBadge({ isActive, className }: StatusBadgeProps) {
           isActive ? "bg-emerald-500" : "bg-slate-400",
         )}
       />
-      {isActive ? "Active" : "Inactive"}
+      {isActive ? "Actief" : "Inactief"}
     </span>
   );
 }

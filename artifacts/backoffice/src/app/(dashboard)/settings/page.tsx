@@ -1,36 +1,73 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ClipboardList, ChevronRight } from "lucide-react";
+import { Building2, Shield, Users, ClipboardList, ChevronRight, History } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 
-export const metadata: Metadata = {
-  title: "Settings",
-};
+export const metadata: Metadata = { title: "Instellingen" };
 
 export default async function SettingsPage() {
   if (!(await hasPermission("settings", "read"))) {
     return <ForbiddenPage resource="settings" action="read" />;
   }
 
+  const [canWriteSettings, canReadRoles, canReadUsers, canReadSettings] = await Promise.all([
+    hasPermission("settings", "write"),
+    hasPermission("roles",    "read"),
+    hasPermission("users",    "read"),
+    hasPermission("settings", "read"),
+  ]);
+
   return (
     <div className="p-8">
       <div className="mb-8">
         <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-          Settings
+          Instellingen
         </h1>
         <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-          Platform configuration and catalog management
+          Platformconfiguratie, rollen, rechten en gebruikersbeheer.
         </p>
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {canWriteSettings && (
+          <SettingsCard
+            href="/instellingen/organisatie"
+            icon={<Building2 className="h-6 w-6" style={{ color: "#00B7B3" }} strokeWidth={1.5} />}
+            title="Organisatie"
+            description="Naam, adres, KVK- en BTW-nummer, logo, standaard betalingstermijn en e-mailafzender."
+          />
+        )}
+        {canReadRoles && (
+          <SettingsCard
+            href="/instellingen/rollen"
+            icon={<Shield className="h-6 w-6" style={{ color: "#00B7B3" }} strokeWidth={1.5} />}
+            title="Rollen & rechten"
+            description="Beheer rollen en stel per rol de permissie-matrix in voor alle modules en acties."
+          />
+        )}
+        {canReadUsers && (
+          <SettingsCard
+            href="/instellingen/gebruikers"
+            icon={<Users className="h-6 w-6" style={{ color: "#00B7B3" }} strokeWidth={1.5} />}
+            title="Gebruikers"
+            description="Bekijk alle gebruikers, nodig nieuwe gebruikers uit en deactiveer accounts."
+          />
+        )}
         <SettingsCard
           href="/settings/task-codes"
           icon={<ClipboardList className="h-6 w-6" style={{ color: "#00B7B3" }} strokeWidth={1.5} />}
-          title="Task Codes"
-          description="Manage the central catalog of task types used in assignments, planning, and invoicing."
+          title="Taakcodes"
+          description="Centraal beheerde catalogus van taaktypes voor opdrachten, planning en facturering."
         />
+        {canReadSettings && (
+          <SettingsCard
+            href="/instellingen/activiteitslog"
+            icon={<History className="h-6 w-6" style={{ color: "#00B7B3" }} strokeWidth={1.5} />}
+            title="Activiteitslog"
+            description="Bekijk de laatste 200 wijzigingen in instellingen, rollen en gebruikers, inclusief wie wat wanneer heeft gewijzigd."
+          />
+        )}
       </div>
     </div>
   );

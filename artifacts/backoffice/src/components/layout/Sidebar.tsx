@@ -11,6 +11,7 @@ import {
   UserCog,
   BarChart3,
   FileText,
+  FileCheck2,
   FolderOpen,
   Settings,
   LogOut,
@@ -22,14 +23,21 @@ import { signOut } from "@/app/actions/auth";
 const NAV_ITEMS = [
   { href: "/",            icon: LayoutDashboard, label: "Dashboard",   permission: "dashboard:read"   },
   { href: "/planning",    icon: Calendar,        label: "Planning",    permission: "planning:read"    },
-  { href: "/assignments", icon: ClipboardList,   label: "Assignments", permission: "assignments:read" },
-  { href: "/customers",   icon: Users,           label: "Customers",   permission: "customers:read"   },
-  { href: "/objects",     icon: Building2,       label: "Objects",     permission: "objects:read"     },
-  { href: "/personnel",   icon: UserCog,         label: "Personnel",   permission: "personnel:read"   },
-  { href: "/reports",     icon: BarChart3,       label: "Reports",     permission: "reports:read"     },
-  { href: "/invoices",    icon: FileText,        label: "Invoices",    permission: "invoices:read"    },
-  { href: "/documents",   icon: FolderOpen,      label: "Documents",   permission: "documents:read"   },
-  { href: "/settings",    icon: Settings,        label: "Settings",    permission: "settings:read"    },
+  { href: "/assignments", icon: ClipboardList,   label: "Opdrachten",  permission: "assignments:read" },
+  { href: "/quotes",      icon: FileCheck2,      label: "Offertes",    permission: "quotes:read"      },
+  { href: "/customers",   icon: Users,           label: "Klanten",     permission: "customers:read"   },
+  { href: "/objects",     icon: Building2,       label: "Objecten",    permission: "objects:read"     },
+  { href: "/personnel",   icon: UserCog,         label: "Personeel",   permission: "personnel:read"   },
+  { href: "/reports",     icon: BarChart3,       label: "Rapporten",   permission: "reports:read"     },
+  { href: "/invoices",    icon: FileText,        label: "Facturen",    permission: "invoices:read"    },
+  { href: "/documents",   icon: FolderOpen,      label: "Documenten",  permission: "documents:read"   },
+] as const;
+
+const SETTINGS_SUB_ITEMS = [
+  { href: "/instellingen/organisatie",  label: "Organisatie",      permission: "settings:write"  },
+  { href: "/instellingen/rollen",       label: "Rollen & rechten", permission: "roles:read"      },
+  { href: "/instellingen/gebruikers",   label: "Gebruikers",       permission: "users:read"      },
+  { href: "/settings/task-codes",       label: "Taakcodes",        permission: "task_codes:read" },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {
@@ -38,16 +46,29 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 interface SidebarProps {
-  userEmail:   string;
-  userInitial: string;
-  userRole:    string;
+  userEmail:                string;
+  userInitial:              string;
+  userRole:                 string;
+  pendingReportsCount?:     number;
+  outstandingInvoicesCount?: number;
+  pendingQuotesCount?:      number;
 }
 
-export function Sidebar({ userEmail, userInitial, userRole }: SidebarProps) {
+export function Sidebar({
+  userEmail,
+  userInitial,
+  userRole,
+  pendingReportsCount = 0,
+  outstandingInvoicesCount = 0,
+  pendingQuotesCount = 0,
+}: SidebarProps) {
   const pathname    = usePathname();
   const permissions = usePermissions();
 
-  const visibleItems = NAV_ITEMS.filter((item) => permissions.has(item.permission));
+  const visibleItems    = NAV_ITEMS.filter((item) => permissions.has(item.permission));
+  const canReadSettings = permissions.has("settings:read");
+  const visibleSubItems = SETTINGS_SUB_ITEMS.filter((item) => permissions.has(item.permission));
+  const inSettings      = pathname.startsWith("/settings") || pathname.startsWith("/instellingen");
 
   return (
     <aside
@@ -79,7 +100,7 @@ export function Sidebar({ userEmail, userInitial, userRole }: SidebarProps) {
 
       {/* ── Navigation ── */}
       <nav className="flex-1 px-3 py-3 space-y-0.5 overflow-y-auto">
-        {visibleItems.length === 0 ? (
+        {visibleItems.length === 0 && !canReadSettings ? (
           <p
             className="px-3 py-4 text-center"
             style={{
@@ -89,13 +110,21 @@ export function Sidebar({ userEmail, userInitial, userRole }: SidebarProps) {
               lineHeight: "1.5",
             }}
           >
-            No modules assigned.
+            Geen modules toegewezen.
             <br />
-            Contact your administrator.
+            Neem contact op met uw beheerder.
           </p>
         ) : (
           visibleItems.map(({ href, icon: Icon, label }) => {
-            const active = isActive(pathname, href);
+            const active  = isActive(pathname, href);
+            const hasBadge =
+              (href === "/reports"  && pendingReportsCount > 0) ||
+              (href === "/invoices" && outstandingInvoicesCount > 0) ||
+              (href === "/quotes"   && pendingQuotesCount > 0);
+            const badgeCount =
+              href === "/reports"  ? pendingReportsCount :
+              href === "/invoices" ? outstandingInvoicesCount :
+              href === "/quotes"   ? pendingQuotesCount : 0;
             return (
               <Link
                 key={href}
@@ -107,12 +136,82 @@ export function Sidebar({ userEmail, userInitial, userRole }: SidebarProps) {
                   style={{ width: "15px", height: "15px" }}
                   strokeWidth={active ? 2.5 : 1.75}
                 />
-                <span>{label}</span>
+                <span className="flex-1">{label}</span>
+                {hasBadge && (
+                  <span
+                    className="flex-shrink-0 rounded-full flex items-center justify-center text-white font-semibold"
+                    style={{
+                      backgroundColor: "#00B7B3",
+                      fontSize: "10px",
+                      minWidth: "18px",
+                      height: "18px",
+                      padding: "0 4px",
+                    }}
+                  >
+                    {badgeCount > 99 ? "99+" : badgeCount}
+                  </span>
+                )}
               </Link>
             );
           })
         )}
       </nav>
+
+      {/* ── Instellingen section (separate from main modules) ── */}
+      {canReadSettings && visibleSubItems.length > 0 && (
+        <div className="px-3 pb-2 flex-shrink-0 border-t border-white/10">
+          {/* Section header */}
+          <Link
+            href="/settings"
+            className="flex items-center gap-2 px-3 py-2.5 mt-2 rounded-lg transition-colors hover:bg-white/5"
+            style={{
+              fontFamily: "var(--font-inter), Inter, sans-serif",
+              fontSize: "11px",
+              fontWeight: 600,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              color: inSettings ? "#44D6D1" : "rgba(255,255,255,0.45)",
+            }}
+          >
+            <Settings
+              style={{ width: "13px", height: "13px", flexShrink: 0 }}
+              strokeWidth={inSettings ? 2.5 : 1.75}
+            />
+            <span className="flex-1">Instellingen</span>
+          </Link>
+
+          {/* Sub-items */}
+          <div className="ml-3 space-y-0.5">
+            {visibleSubItems.map(({ href, label }) => {
+              const active = isActive(pathname, href);
+              return (
+                <Link
+                  key={href}
+                  href={href}
+                  className="flex items-center gap-2 rounded-md px-3 py-1.5 transition-colors"
+                  style={{
+                    fontFamily: "var(--font-inter), Inter, sans-serif",
+                    fontSize: "12px",
+                    fontWeight: active ? 600 : 400,
+                    color: active ? "#FFFFFF" : "rgba(255,255,255,0.55)",
+                    backgroundColor: active ? "rgba(255,255,255,0.08)" : "transparent",
+                  }}
+                >
+                  <span
+                    className="flex-shrink-0 rounded-full"
+                    style={{
+                      width: "4px",
+                      height: "4px",
+                      backgroundColor: active ? "#00B7B3" : "rgba(255,255,255,0.3)",
+                    }}
+                  />
+                  {label}
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── User footer ── */}
       <div className="px-4 py-3 border-t border-white/10 flex-shrink-0">
@@ -152,7 +251,7 @@ export function Sidebar({ userEmail, userInitial, userRole }: SidebarProps) {
           <form action={signOut}>
             <button
               type="submit"
-              title="Sign out"
+              title="Uitloggen"
               className="flex-shrink-0 rounded p-1 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
             >
               <LogOut

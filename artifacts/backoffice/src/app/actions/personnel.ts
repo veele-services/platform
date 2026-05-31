@@ -9,12 +9,15 @@ import {
   updatePersonnelSchema,
 } from "@workspace/db";
 import { eq, ilike, or, and, asc, desc, inArray, sql } from "drizzle-orm";
+import { getBatchAvailabilityStatus } from "./availability";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/auth/permissions";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult };
+export type { AvailabilityStatus } from "./availability";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -28,6 +31,7 @@ export type RoleOption = { id: string; name: string };
  */
 export type PersonnelRow = {
   id:           string;
+  code:         string;
   firstName:    string;
   lastName:     string;
   email:        string;
@@ -36,13 +40,15 @@ export type PersonnelRow = {
   roleName:     string | null;
   region:       string | null;
   certificates: string[];
-  isActive:     boolean;
-  isAvailable:  boolean;
-  createdAt:    string;
+  isActive:           boolean;
+  isAvailable:        boolean;
+  availabilityStatus: import("./availability").AvailabilityStatus;
+  createdAt:          string;
 };
 
 export type PersonnelDetail = {
   id:           string;
+  code:         string;
   userId:       string | null;
   firstName:    string;
   lastName:     string;
@@ -112,6 +118,7 @@ export async function listPersonnel(params: {
       ilike(personnelTable.firstName, term),
       ilike(personnelTable.lastName,  term),
       ilike(personnelTable.email,     term),
+      ilike(personnelTable.code,      term),
     );
     if (clause) conditions.push(clause as ReturnType<typeof eq>);
   }
@@ -126,6 +133,7 @@ export async function listPersonnel(params: {
     lastName:  personnelTable.lastName,
     firstName: personnelTable.firstName,
     email:     personnelTable.email,
+    code:      personnelTable.code,
     region:    personnelTable.region,
     createdAt: personnelTable.createdAt,
   };
@@ -136,6 +144,7 @@ export async function listPersonnel(params: {
     db
       .select({
         id:           personnelTable.id,
+        code:         personnelTable.code,
         firstName:    personnelTable.firstName,
         lastName:     personnelTable.lastName,
         email:        personnelTable.email,
@@ -161,10 +170,15 @@ export async function listPersonnel(params: {
       .where(where),
   ]);
 
+  const today     = new Date().toISOString().slice(0, 10);
+  const ids       = rows.map((r) => r.id);
+  const statusMap = await getBatchAvailabilityStatus(ids, today);
+
   return {
     rows: rows.map((r) => ({
       ...r,
-      createdAt: r.createdAt.toISOString(),
+      createdAt:          r.createdAt.toISOString(),
+      availabilityStatus: statusMap[r.id] ?? "niet_ingesteld",
     })),
     total: countRows[0]?.total ?? 0,
   };
@@ -176,6 +190,7 @@ export async function getPersonnel(id: string): Promise<PersonnelDetail | null> 
   const rows = await db
     .select({
       id:           personnelTable.id,
+      code:         personnelTable.code,
       userId:       personnelTable.userId,
       firstName:    personnelTable.firstName,
       lastName:     personnelTable.lastName,
@@ -223,7 +238,7 @@ export async function createPersonnel(
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const payload = {
     firstName:    data.firstName.trim(),
@@ -246,7 +261,7 @@ export async function createPersonnel(
       const path = issue.path.map(String).join(".");
       if (path) fieldErrors[path] = issue.message;
     }
-    return { success: false, message: "Validation failed.", fieldErrors };
+    return { success: false, message: "Validatie mislukt.", fieldErrors };
   }
 
   try {
@@ -269,11 +284,11 @@ export async function createPersonnel(
     if (isUniqueViolation(err)) {
       return {
         success: false,
-        message: "A personnel record with this email already exists.",
-        fieldErrors: { email: "Email is already in use" },
+        message: "Er bestaat al een medewerker met dit e-mailadres.",
+        fieldErrors: { email: "E-mailadres is al in gebruik" },
       };
     }
-    return { success: false, message: "Failed to create personnel record." };
+    return { success: false, message: "Medewerker aanmaken mislukt." };
   }
 }
 
@@ -285,7 +300,7 @@ export async function updatePersonnel(
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const payload = {
     firstName:    data.firstName.trim(),
@@ -308,7 +323,7 @@ export async function updatePersonnel(
       const path = issue.path.map(String).join(".");
       if (path) fieldErrors[path] = issue.message;
     }
-    return { success: false, message: "Validation failed.", fieldErrors };
+    return { success: false, message: "Validatie mislukt.", fieldErrors };
   }
 
   try {
@@ -332,11 +347,11 @@ export async function updatePersonnel(
     if (isUniqueViolation(err)) {
       return {
         success: false,
-        message: "A personnel record with this email already exists.",
-        fieldErrors: { email: "Email is already in use" },
+        message: "Er bestaat al een medewerker met dit e-mailadres.",
+        fieldErrors: { email: "E-mailadres is al in gebruik" },
       };
     }
-    return { success: false, message: "Failed to update personnel record." };
+    return { success: false, message: "Medewerker bijwerken mislukt." };
   }
 }
 
@@ -348,7 +363,7 @@ export async function setPersonnelStatus(
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   await db
     .update(personnelTable)
@@ -377,7 +392,7 @@ export async function bulkSetPersonnelStatus(
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   await db
     .update(personnelTable)
@@ -396,12 +411,68 @@ export async function bulkSetPersonnelStatus(
   return { success: true };
 }
 
+export async function invitePersonnel(id: string): Promise<ActionResult> {
+  await requirePermission("personnel", "write");
+
+  const supabase = await createClient();
+  const { data: { user: actor } } = await supabase.auth.getUser();
+  if (!actor) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [person] = await db
+    .select({
+      firstName: personnelTable.firstName,
+      lastName:  personnelTable.lastName,
+      email:     personnelTable.email,
+      userId:    personnelTable.userId,
+    })
+    .from(personnelTable)
+    .where(eq(personnelTable.id, id))
+    .limit(1);
+
+  if (!person) return { success: false, message: "Medewerker niet gevonden." };
+  if (person.userId) {
+    return { success: false, message: "Medewerker heeft al een gekoppeld account." };
+  }
+
+  const admin = createAdminClient();
+  const { data: inviteData, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
+    person.email,
+  );
+
+  if (inviteError || !inviteData?.user) {
+    return {
+      success: false,
+      message: inviteError?.message ?? "Uitnodiging versturen mislukt.",
+    };
+  }
+
+  await db
+    .update(personnelTable)
+    .set({ userId: inviteData.user.id, updatedAt: new Date() })
+    .where(eq(personnelTable.id, id));
+
+  await db.insert(auditLogTable).values({
+    userId:     actor.id,
+    action:     "invite",
+    resource:   "personnel",
+    resourceId: id,
+    metadata:   {
+      name:           `${person.firstName} ${person.lastName}`,
+      email:          person.email,
+      invitedUserId:  inviteData.user.id,
+    },
+  });
+
+  revalidatePath(`/personnel/${id}`);
+  return { success: true };
+}
+
 export async function deletePersonnel(id: string): Promise<ActionResult> {
   await requirePermission("personnel", "write");
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const [person] = await db
     .select({ firstName: personnelTable.firstName, lastName: personnelTable.lastName })
@@ -409,7 +480,7 @@ export async function deletePersonnel(id: string): Promise<ActionResult> {
     .where(eq(personnelTable.id, id))
     .limit(1);
 
-  if (!person) return { success: false, message: "Personnel record not found." };
+  if (!person) return { success: false, message: "Medewerker niet gevonden." };
 
   await db.delete(personnelTable).where(eq(personnelTable.id, id));
 

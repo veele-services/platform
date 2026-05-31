@@ -1,36 +1,36 @@
 import type { Metadata } from "next";
-import { FileText } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
+import { listInvoices, getInvoiceSummary } from "@/app/actions/invoices";
+import { InvoicesView } from "@/components/invoices/InvoicesView";
 
-export const metadata: Metadata = {
-  title: "Invoices",
-};
+export const metadata: Metadata = { title: "Facturen" };
 
-export default async function InvoicesPage() {
-  if (!(await hasPermission("invoices", "read"))) {
-    return <ForbiddenPage resource="invoices" action="read" />;
-  }
+interface Props {
+  searchParams: Promise<{ page?: string; search?: string; status?: string }>;
+}
+
+export default async function InvoicesPage({ searchParams }: Props) {
+  const canRead = await hasPermission("invoices", "read");
+  if (!canRead) return <ForbiddenPage resource="invoices" action="read" />;
+
+  const { page = "1", search = "", status = "" } = await searchParams;
+  const canWrite = await hasPermission("invoices", "write");
+
+  const [{ rows, total }, summary] = await Promise.all([
+    listInvoices({ page: parseInt(page, 10) || 1, search, status }),
+    getInvoiceSummary(),
+  ]);
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-          Invoices
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-          Invoice generation from completed assignments
-        </p>
-      </div>
-      <div className="veele-card flex flex-col items-center justify-center py-16 gap-4">
-        <FileText className="w-12 h-12" style={{ color: "#00B7B3" }} strokeWidth={1.5} />
-        <p className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>
-          Invoice Management
-        </p>
-        <p className="text-sm text-center max-w-xs" style={{ color: "#64748B" }}>
-          Invoice generation and Mollie payment integration will be built in Sprint 4.
-        </p>
-      </div>
-    </div>
+    <InvoicesView
+      rows={rows}
+      total={total}
+      page={parseInt(page, 10) || 1}
+      search={search}
+      statusFilter={status}
+      canWrite={canWrite}
+      summary={summary}
+    />
   );
 }

@@ -209,7 +209,7 @@ export function TaskCodesView({
     startTransition(async () => {
       const result = await deleteTaskCode(id);
       if (result.success) {
-        toast.success(`"${label}" deleted`);
+        toast.success(`"${label}" verwijderd`);
       } else {
         toast.error(result.message);
       }
@@ -234,12 +234,12 @@ export function TaskCodesView({
             <Input
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Search code or name…"
+              placeholder="Zoek code of naam…"
               className="pl-8 h-9"
             />
           </div>
           <Button type="submit" variant="outline" size="sm" className="h-9">
-            Search
+            Zoeken
           </Button>
         </form>
 
@@ -248,10 +248,10 @@ export function TaskCodesView({
           onValueChange={(v) => applyFilter("sectorId", v === "ALL" ? "" : v)}
         >
           <SelectTrigger className="w-[150px] h-9">
-            <SelectValue placeholder="All sectors" />
+            <SelectValue placeholder="Alle sectoren" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="ALL">All sectors</SelectItem>
+            <SelectItem value="ALL">Alle sectoren</SelectItem>
             {sectors.map((s) => (
               <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
             ))}
@@ -263,12 +263,12 @@ export function TaskCodesView({
           onValueChange={(v) => applyFilter("invoice", v === "all" ? "" : v)}
         >
           <SelectTrigger className="w-[150px] h-9">
-            <SelectValue placeholder="Invoiceable" />
+            <SelectValue placeholder="Factureerbaar" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All</SelectItem>
-            <SelectItem value="yes">Invoiceable</SelectItem>
-            <SelectItem value="no">Not invoiceable</SelectItem>
+            <SelectItem value="all">Alle</SelectItem>
+            <SelectItem value="yes">Factureerbaar</SelectItem>
+            <SelectItem value="no">Niet factureerbaar</SelectItem>
           </SelectContent>
         </Select>
 
@@ -277,12 +277,12 @@ export function TaskCodesView({
           onValueChange={(v) => applyFilter("status", v === "all" ? "" : v)}
         >
           <SelectTrigger className="w-[130px] h-9">
-            <SelectValue placeholder="All statuses" />
+            <SelectValue placeholder="Alle statussen" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All statuses</SelectItem>
-            <SelectItem value="active">Active</SelectItem>
-            <SelectItem value="inactive">Inactive</SelectItem>
+            <SelectItem value="all">Alle statussen</SelectItem>
+            <SelectItem value="active">Actief</SelectItem>
+            <SelectItem value="inactive">Inactief</SelectItem>
           </SelectContent>
         </Select>
 
@@ -290,7 +290,7 @@ export function TaskCodesView({
           {canWrite && (
             <Button size="sm" onClick={openCreate}>
               <Plus className="mr-1.5 h-4 w-4" />
-              New Task Code
+              Nieuwe taakcode
             </Button>
           )}
         </div>
@@ -302,12 +302,12 @@ export function TaskCodesView({
           <table className="w-full">
             <thead>
               <tr style={{ borderBottom: "1px solid #E2E8F0" }}>
-                <SortHeader label="Code"     columnKey="code"            currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
-                <SortHeader label="Name"     columnKey="name"            currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
+                <SortHeader label="Code"          columnKey="code"            currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
+                <SortHeader label="Naam"          columnKey="name"            currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Sector</th>
-                <SortHeader label="Price"    columnKey="price"           currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
-                <SortHeader label="Duration" columnKey="durationMinutes" currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Invoiceable</th>
+                <SortHeader label="Prijs"         columnKey="price"           currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
+                <SortHeader label="Duur"          columnKey="durationMinutes" currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Factureerbaar</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Status</th>
                 <th className="w-12 px-4 py-3" />
               </tr>
@@ -320,7 +320,7 @@ export function TaskCodesView({
                     className="px-4 py-12 text-center text-sm"
                     style={{ color: "#94A3B8" }}
                   >
-                    No task codes found
+                    Geen taakcodes gevonden
                   </td>
                 </tr>
               ) : (
@@ -362,11 +362,11 @@ export function TaskCodesView({
                     <td className="px-4 py-3">
                       {row.invoiceable ? (
                         <span className="flex items-center gap-1 text-xs" style={{ color: "#00B7B3" }}>
-                          <CheckCircle2 className="h-3.5 w-3.5" />Yes
+                          <CheckCircle2 className="h-3.5 w-3.5" />Ja
                         </span>
                       ) : (
                         <span className="flex items-center gap-1 text-xs" style={{ color: "#94A3B8" }}>
-                          <XCircle className="h-3.5 w-3.5" />No
+                          <XCircle className="h-3.5 w-3.5" />Nee
                         </span>
                       )}
                     </td>
@@ -378,7 +378,7 @@ export function TaskCodesView({
                         <DropdownMenuTrigger asChild>
                           <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
                             <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Open menu</span>
+                            <span className="sr-only">Menu openen</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
@@ -386,7 +386,7 @@ export function TaskCodesView({
                             <>
                               <DropdownMenuItem onSelect={() => openEdit(row.id)}>
                                 <Pencil className="mr-2 h-4 w-4" />
-                                Edit
+                                Bewerken
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
@@ -394,9 +394,9 @@ export function TaskCodesView({
                                 onSelect={() => handleStatusToggle(row.id, row.isActive)}
                               >
                                 {row.isActive ? (
-                                  <><ToggleLeft  className="mr-2 h-4 w-4" />Deactivate</>
+                                  <><ToggleLeft  className="mr-2 h-4 w-4" />Deactiveren</>
                                 ) : (
-                                  <><ToggleRight className="mr-2 h-4 w-4" />Activate</>
+                                  <><ToggleRight className="mr-2 h-4 w-4" />Activeren</>
                                 )}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
@@ -405,7 +405,7 @@ export function TaskCodesView({
                                 className="text-destructive focus:text-destructive"
                               >
                                 <Trash2 className="mr-2 h-4 w-4" />
-                                Delete
+                                Verwijderen
                               </DropdownMenuItem>
                             </>
                           )}
@@ -424,7 +424,7 @@ export function TaskCodesView({
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-4 text-sm">
           <span style={{ color: "#64748B" }}>
-            Showing {Math.min((page - 1) * PAGE_SIZE + 1, total)}–{Math.min(page * PAGE_SIZE, total)} of {total}
+            Resultaten {Math.min((page - 1) * PAGE_SIZE + 1, total)}–{Math.min(page * PAGE_SIZE, total)} van {total}
           </span>
           <div className="flex items-center gap-1">
             <Button
@@ -450,11 +450,11 @@ export function TaskCodesView({
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent side="right" className="w-[560px] sm:max-w-[560px] overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>{editingId ? "Edit Task Code" : "New Task Code"}</SheetTitle>
+            <SheetTitle>{editingId ? "Taakcode bewerken" : "Nieuwe taakcode"}</SheetTitle>
             <SheetDescription>
               {editingId
-                ? "Update task code details below."
-                : "Define a new reusable task code for assignments and invoicing."}
+                ? "Werk de taakcodegegevens bij."
+                : "Definieer een nieuwe herbruikbare taakcode voor opdrachten en facturering."}
             </SheetDescription>
           </SheetHeader>
           <TaskCodeForm
@@ -475,19 +475,19 @@ export function TaskCodesView({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete task code?</AlertDialogTitle>
+            <AlertDialogTitle>Taakcode verwijderen?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete{" "}
-              <strong>{deleteTarget?.label}</strong>. This action cannot be undone.
+              Dit verwijdert permanent{" "}
+              <strong>{deleteTarget?.label}</strong>. Deze actie kan niet ongedaan worden gemaakt.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              Delete
+              Verwijderen
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

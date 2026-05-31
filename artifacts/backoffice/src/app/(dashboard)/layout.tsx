@@ -5,6 +5,9 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserPermissions, getUserRoles } from "@/lib/auth/permissions";
 import { PermissionsProvider } from "@/providers/permissions-provider";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { getPendingReportsCount } from "@/app/actions/reports";
+import { getOutstandingInvoicesCount } from "@/app/actions/invoices";
+import { getPendingQuotesCount } from "@/app/actions/quotes";
 
 export default async function DashboardLayout({
   children,
@@ -27,6 +30,16 @@ export default async function DashboardLayout({
     getUserRoles(user.id),
   ]);
 
+  const canReadReports   = permissions.has("reports:read");
+  const canReadInvoices  = permissions.has("invoices:read");
+  const canReadQuotes    = permissions.has("quotes:read");
+
+  const [pendingReportsCount, outstandingInvoicesCount, pendingQuotesCount] = await Promise.all([
+    canReadReports  ? getPendingReportsCount()         : Promise.resolve(0),
+    canReadInvoices ? getOutstandingInvoicesCount()    : Promise.resolve(0),
+    canReadQuotes   ? getPendingQuotesCount()          : Promise.resolve(0),
+  ]);
+
   const userEmail   = user.email ?? "";
   const userInitial = (userEmail[0] ?? "U").toUpperCase();
   const userRole    = roles[0] ?? "User";
@@ -41,6 +54,9 @@ export default async function DashboardLayout({
           userEmail={userEmail}
           userInitial={userInitial}
           userRole={userRole}
+          pendingReportsCount={pendingReportsCount}
+          outstandingInvoicesCount={outstandingInvoicesCount}
+          pendingQuotesCount={pendingQuotesCount}
         />
         <div className="flex flex-col flex-1 overflow-hidden">
           <main className="flex-1 overflow-y-auto">{children}</main>

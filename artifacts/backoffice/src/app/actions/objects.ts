@@ -22,7 +22,7 @@ export type { ActionResult };
 export type CustomerOption = {
   id: string;
   name: string;
-  code: string | null;
+  code: string;
 };
 
 export type ObjectRow = {
@@ -32,7 +32,7 @@ export type ObjectRow = {
   sectorId: string | null;
   sectorName: string | null;
   name: string;
-  code: string | null;
+  code: string;
   city: string | null;
   isActive: boolean;
   createdAt: string;
@@ -46,7 +46,7 @@ export type ObjectDetail = {
   sectorId: string | null;
   sectorName: string | null;
   name: string;
-  code: string | null;
+  code: string;
   address: string | null;
   city: string | null;
   postalCode: string | null;
@@ -60,7 +60,6 @@ export type ObjectFormInput = {
   customerId: string;
   sectorId?: string;
   name: string;
-  code?: string;
   address?: string;
   city?: string;
   postalCode?: string;
@@ -246,13 +245,12 @@ export async function createObject(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const payload = {
     customerId:  data.customerId,
     sectorId:    data.sectorId    || null,
     name:        data.name.trim(),
-    code:        data.code?.trim()        || null,
     address:     data.address?.trim()     || null,
     city:        data.city?.trim()        || null,
     postalCode:  data.postalCode?.trim()  || null,
@@ -267,7 +265,7 @@ export async function createObject(
       const path = issue.path.map(String).join(".");
       if (path) fieldErrors[path] = issue.message;
     }
-    return { success: false, message: "Validation failed.", fieldErrors };
+    return { success: false, message: "Validatie mislukt.", fieldErrors };
   }
 
   try {
@@ -289,9 +287,9 @@ export async function createObject(
     return { success: true, data: { id: created!.id } };
   } catch (err) {
     if (isUniqueViolation(err)) {
-      return { success: false, message: "An object with this code already exists." };
+      return { success: false, message: "Er bestaat al een object met deze code." };
     }
-    return { success: false, message: "Failed to create object." };
+    return { success: false, message: "Object aanmaken mislukt." };
   }
 }
 
@@ -305,13 +303,12 @@ export async function updateObject(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const payload = {
     customerId:  data.customerId,
     sectorId:    data.sectorId    || null,
     name:        data.name.trim(),
-    code:        data.code?.trim()        || null,
     address:     data.address?.trim()     || null,
     city:        data.city?.trim()        || null,
     postalCode:  data.postalCode?.trim()  || null,
@@ -325,7 +322,7 @@ export async function updateObject(
       const path = issue.path.map(String).join(".");
       if (path) fieldErrors[path] = issue.message;
     }
-    return { success: false, message: "Validation failed.", fieldErrors };
+    return { success: false, message: "Validatie mislukt.", fieldErrors };
   }
 
   try {
@@ -347,9 +344,9 @@ export async function updateObject(
     return { success: true };
   } catch (err) {
     if (isUniqueViolation(err)) {
-      return { success: false, message: "An object with this code already exists." };
+      return { success: false, message: "Er bestaat al een object met deze code." };
     }
-    return { success: false, message: "Failed to update object." };
+    return { success: false, message: "Object bijwerken mislukt." };
   }
 }
 
@@ -363,7 +360,7 @@ export async function setObjectStatus(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const [row] = await db
     .select({ customerId: objectsTable.customerId })
@@ -396,7 +393,7 @@ export async function deleteObject(id: string): Promise<ActionResult> {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const [obj] = await db
     .select({ name: objectsTable.name, customerId: objectsTable.customerId })
@@ -404,7 +401,7 @@ export async function deleteObject(id: string): Promise<ActionResult> {
     .where(eq(objectsTable.id, id))
     .limit(1);
 
-  if (!obj) return { success: false, message: "Object not found." };
+  if (!obj) return { success: false, message: "Object niet gevonden." };
 
   await db.delete(objectsTable).where(eq(objectsTable.id, id));
 
@@ -432,7 +429,7 @@ export async function bulkSetObjectStatus(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   await db
     .update(objectsTable)

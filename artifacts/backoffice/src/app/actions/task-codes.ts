@@ -284,7 +284,7 @@ export async function createTaskCode(
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const payload = buildPayload(data);
 
@@ -299,7 +299,7 @@ export async function createTaskCode(
       const path = issue.path.map(String).join(".");
       if (path) fieldErrors[path] = issue.message;
     }
-    return { success: false, message: "Validation failed.", fieldErrors };
+    return { success: false, message: "Validatie mislukt.", fieldErrors };
   }
 
   const parsed  = insertTaskCodeSchema.safeParse(payload);
@@ -309,7 +309,7 @@ export async function createTaskCode(
       const path = issue.path.map(String).join(".");
       if (path) fieldErrors[path] = issue.message;
     }
-    return { success: false, message: "Validation failed.", fieldErrors };
+    return { success: false, message: "Validatie mislukt.", fieldErrors };
   }
 
   try {
@@ -332,11 +332,11 @@ export async function createTaskCode(
     if (isUniqueViolation(err)) {
       return {
         success: false,
-        message: `Code "${payload.code}" is already in use.`,
-        fieldErrors: { code: "Code must be unique" },
+        message: `Code "${payload.code}" is al in gebruik.`,
+        fieldErrors: { code: "Code moet uniek zijn" },
       };
     }
-    return { success: false, message: "Failed to create task code." };
+    return { success: false, message: "Taakcode aanmaken mislukt." };
   }
 }
 
@@ -348,7 +348,7 @@ export async function updateTaskCode(
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const payload = buildPayload(data);
 
@@ -363,7 +363,7 @@ export async function updateTaskCode(
       const path = issue.path.map(String).join(".");
       if (path) fieldErrors[path] = issue.message;
     }
-    return { success: false, message: "Validation failed.", fieldErrors };
+    return { success: false, message: "Validatie mislukt.", fieldErrors };
   }
 
   const parsed  = updateTaskCodeSchema.safeParse(payload);
@@ -373,7 +373,7 @@ export async function updateTaskCode(
       const path = issue.path.map(String).join(".");
       if (path) fieldErrors[path] = issue.message;
     }
-    return { success: false, message: "Validation failed.", fieldErrors };
+    return { success: false, message: "Validatie mislukt.", fieldErrors };
   }
 
   try {
@@ -396,11 +396,11 @@ export async function updateTaskCode(
     if (isUniqueViolation(err)) {
       return {
         success: false,
-        message: `Code "${payload.code}" is already in use.`,
-        fieldErrors: { code: "Code must be unique" },
+        message: `Code "${payload.code}" is al in gebruik.`,
+        fieldErrors: { code: "Code moet uniek zijn" },
       };
     }
-    return { success: false, message: "Failed to update task code." };
+    return { success: false, message: "Taakcode bijwerken mislukt." };
   }
 }
 
@@ -412,7 +412,7 @@ export async function setTaskCodeStatus(
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   await db
     .update(taskCodesTable)
@@ -436,7 +436,7 @@ export async function deleteTaskCode(id: string): Promise<ActionResult> {
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Not authenticated." };
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const [tc] = await db
     .select({ code: taskCodesTable.code, name: taskCodesTable.name })
@@ -444,7 +444,7 @@ export async function deleteTaskCode(id: string): Promise<ActionResult> {
     .where(eq(taskCodesTable.id, id))
     .limit(1);
 
-  if (!tc) return { success: false, message: "Task code not found." };
+  if (!tc) return { success: false, message: "Taakcode niet gevonden." };
 
   await db.delete(taskCodesTable).where(eq(taskCodesTable.id, id));
 

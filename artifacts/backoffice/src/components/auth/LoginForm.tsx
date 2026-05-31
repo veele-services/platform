@@ -25,7 +25,7 @@ function SubmitButton({ disabled }: { disabled?: boolean }) {
       }}
     >
       {pending && <Loader2 className="w-4 h-4 animate-spin" />}
-      {pending ? "Signing in…" : "Sign In"}
+      {pending ? "Bezig met inloggen…" : "Inloggen"}
     </button>
   );
 }
@@ -74,7 +74,7 @@ export function LoginForm({ supabaseConfigured }: LoginFormProps) {
             color: "#081D3A",
           }}
         >
-          Email address
+          E-mailadres
         </Label>
         <Input
           id="email"
@@ -84,7 +84,7 @@ export function LoginForm({ supabaseConfigured }: LoginFormProps) {
           autoFocus
           required
           disabled={!supabaseConfigured}
-          placeholder="you@company.com"
+          placeholder="jij@bedrijf.nl"
           style={{ fontSize: "14px" }}
         />
       </div>
@@ -99,7 +99,7 @@ export function LoginForm({ supabaseConfigured }: LoginFormProps) {
             color: "#081D3A",
           }}
         >
-          Password
+          Wachtwoord
         </Label>
         <Input
           id="password"

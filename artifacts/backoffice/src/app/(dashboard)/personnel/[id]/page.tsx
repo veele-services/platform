@@ -1,12 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Mail, Phone, MapPin, Calendar, CheckCircle2, XCircle } from "lucide-react";
+import { ArrowLeft, Mail, Phone, MapPin, Calendar, CheckCircle2, XCircle, UserCheck, UserX } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PersonnelDetailActions } from "@/components/personnel/PersonnelDetailActions";
 import { getPersonnel, listRoles } from "@/app/actions/personnel";
+import { getAvailabilityWindows, listLeavePeriods } from "@/app/actions/availability";
+import { BeschikbaarheidView } from "@/components/personnel/BeschikbaarheidView";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -31,9 +33,11 @@ export default async function PersonnelDetailPage({ params }: Props) {
   const { id }   = await params;
   const canWrite = await hasPermission("personnel", "write");
 
-  const [person, roles] = await Promise.all([
+  const [person, roles, windows, leavePeriods] = await Promise.all([
     getPersonnel(id),
     listRoles(),
+    getAvailabilityWindows(id),
+    listLeavePeriods(id),
   ]);
 
   if (!person) notFound();
@@ -51,13 +55,16 @@ export default async function PersonnelDetailPage({ params }: Props) {
             style={{ color: "#64748B" }}
           >
             <ArrowLeft className="h-4 w-4" />
-            Personnel
+            Personeel
           </Link>
           <div>
             <div className="flex items-center gap-3 flex-wrap">
               <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
                 {fullName}
               </h1>
+              <span className="font-mono text-xs rounded px-1.5 py-0.5 bg-slate-100" style={{ color: "#475569" }}>
+                {person.code}
+              </span>
               {person.roleName && (
                 <span
                   className="text-xs font-semibold px-2.5 py-0.5 rounded"
@@ -76,9 +83,24 @@ export default async function PersonnelDetailPage({ params }: Props) {
           <PersonnelDetailActions
             personnelId={person.id}
             personnelName={fullName}
+            personnelEmail={person.email}
+            userId={person.userId}
             roles={roles}
           />
         )}
+      </div>
+
+      {/* ── Beschikbaarheid & verlof ─────────────────────────────── */}
+      <div className="mb-6">
+        <h2 className="font-heading text-base font-semibold mb-4" style={{ color: "#081D3A" }}>
+          Beschikbaarheid &amp; verlof
+        </h2>
+        <BeschikbaarheidView
+          personnelId={id}
+          windows={windows}
+          leavePeriods={leavePeriods}
+          canWrite={canWrite}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
@@ -91,20 +113,20 @@ export default async function PersonnelDetailPage({ params }: Props) {
               Contact
             </h2>
             <dl className="space-y-3">
-              <InfoRow icon={<Mail className="h-4 w-4" />} label="Email" value={
+              <InfoRow icon={<Mail className="h-4 w-4" />} label="E-mail" value={
                 <a href={`mailto:${person.email}`} className="hover:underline" style={{ color: "#00B7B3" }}>
                   {person.email}
                 </a>
               } />
               {person.phone && (
-                <InfoRow icon={<Phone className="h-4 w-4" />} label="Phone" value={
+                <InfoRow icon={<Phone className="h-4 w-4" />} label="Telefoon" value={
                   <a href={`tel:${person.phone}`} className="hover:underline" style={{ color: "#00B7B3" }}>
                     {person.phone}
                   </a>
                 } />
               )}
               {person.region && (
-                <InfoRow icon={<MapPin className="h-4 w-4" />} label="Region" value={person.region} />
+                <InfoRow icon={<MapPin className="h-4 w-4" />} label="Regio" value={person.region} />
               )}
             </dl>
           </div>
@@ -112,12 +134,12 @@ export default async function PersonnelDetailPage({ params }: Props) {
           {/* Qualifications */}
           <div className="veele-card">
             <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "#081D3A" }}>
-              Qualifications
+              Kwalificaties
             </h2>
             <div className="space-y-4">
-              <QualSection label="Certificates" tags={person.certificates} color="#0A7E7A" bg="#E0FAFB" />
-              <QualSection label="Diplomas"     tags={person.diplomas}     color="#5A3B9A" bg="#F0EBFF" />
-              <QualSection label="Knowledge"    tags={person.knowledge}    color="#7C5A00" bg="#FFF7E0" />
+              <QualSection label="Certificaten" tags={person.certificates} color="#0A7E7A" bg="#E0FAFB" />
+              <QualSection label="Diploma's"    tags={person.diplomas}     color="#5A3B9A" bg="#F0EBFF" />
+              <QualSection label="Kennis"       tags={person.knowledge}    color="#7C5A00" bg="#FFF7E0" />
             </div>
           </div>
         </div>
@@ -126,13 +148,13 @@ export default async function PersonnelDetailPage({ params }: Props) {
         <div className="flex flex-col gap-5">
           <div className="veele-card">
             <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "#081D3A" }}>
-              Details
+              Gegevens
             </h2>
             <dl className="space-y-3">
               <InfoRow
                 icon={<Calendar className="h-4 w-4" />}
-                label="Created"
-                value={new Date(person.createdAt).toLocaleDateString("en-NL", {
+                label="Aangemaakt"
+                value={new Date(person.createdAt).toLocaleDateString("nl-NL", {
                   day: "2-digit", month: "short", year: "numeric",
                 })}
               />
@@ -140,10 +162,21 @@ export default async function PersonnelDetailPage({ params }: Props) {
                 icon={person.isAvailable
                   ? <CheckCircle2 className="h-4 w-4" style={{ color: "#00B7B3" }} />
                   : <XCircle     className="h-4 w-4" style={{ color: "#94A3B8" }} />}
-                label="Available for Planning"
+                label="Beschikbaar voor planning"
                 value={
                   <span style={{ color: person.isAvailable ? "#00B7B3" : "#94A3B8" }}>
-                    {person.isAvailable ? "Yes" : "No"}
+                    {person.isAvailable ? "Ja" : "Nee"}
+                  </span>
+                }
+              />
+              <InfoRow
+                icon={person.userId
+                  ? <UserCheck className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                  : <UserX     className="h-4 w-4" style={{ color: "#94A3B8" }} />}
+                label="Portaalaccount"
+                value={
+                  <span style={{ color: person.userId ? "#00B7B3" : "#94A3B8" }}>
+                    {person.userId ? "Gekoppeld" : "Geen account"}
                   </span>
                 }
               />
@@ -192,7 +225,7 @@ function QualSection({
     <div>
       <p className="text-xs font-medium mb-1.5" style={{ color: "#94A3B8" }}>{label}</p>
       {tags.length === 0 ? (
-        <p className="text-sm" style={{ color: "#94A3B8" }}>None</p>
+        <p className="text-sm" style={{ color: "#94A3B8" }}>Geen</p>
       ) : (
         <div className="flex flex-wrap gap-1.5">
           {tags.map((t) => (

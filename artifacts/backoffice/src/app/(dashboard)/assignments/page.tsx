@@ -1,36 +1,71 @@
 import type { Metadata } from "next";
-import { ClipboardList } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
+import { AssignmentsView } from "@/components/assignments/AssignmentsView";
+import {
+  listAssignments,
+  getCustomerOptions,
+} from "@/app/actions/assignments";
 
 export const metadata: Metadata = {
   title: "Assignments",
 };
 
-export default async function AssignmentsPage() {
-  if (!(await hasPermission("assignments", "read"))) {
-    return <ForbiddenPage resource="assignments" action="read" />;
-  }
+interface Props {
+  searchParams: Promise<{
+    page?:     string;
+    search?:   string;
+    status?:   string;
+    priority?: string;
+    sort?:     string;
+    dir?:      string;
+  }>;
+}
+
+export default async function AssignmentsPage({ searchParams }: Props) {
+  const canRead = await hasPermission("assignments", "read");
+  if (!canRead) return <ForbiddenPage resource="assignments" action="read" />;
+
+  const sp = await searchParams;
+
+  const page     = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
+  const search   = sp.search   ?? "";
+  const status   = sp.status   ?? "";
+  const priority = sp.priority ?? "";
+  const sort     = sp.sort     ?? "createdAt";
+  const dir      = sp.dir      ?? "desc";
+
+  const [{ rows, total }, customers, canWrite] = await Promise.all([
+    listAssignments({ page, search, status, priority, sort, dir }),
+    getCustomerOptions(),
+    hasPermission("assignments", "write"),
+  ]);
 
   return (
     <div className="p-8">
       <div className="mb-8">
         <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-          Assignments
+          Opdrachten
         </h1>
         <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-          Central entity — drives planning, reporting, and invoicing
+          {total === 0
+            ? "Nog geen opdrachten aangemaakt."
+            : `${total} opdracht${total !== 1 ? "en" : ""} in totaal`}
         </p>
       </div>
-      <div className="veele-card flex flex-col items-center justify-center py-16 gap-4">
-        <ClipboardList className="w-12 h-12" style={{ color: "#00B7B3" }} strokeWidth={1.5} />
-        <p className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>
-          Assignment Management
-        </p>
-        <p className="text-sm text-center max-w-xs" style={{ color: "#64748B" }}>
-          Assignment CRUD, lifecycle management, and task linking will be built in Sprint 2.
-        </p>
-      </div>
+
+      <AssignmentsView
+        rows={rows}
+        total={total}
+        customers={customers}
+        canWrite={canWrite}
+        page={page}
+        initialSearch={search}
+        initialStatus={status}
+        initialPriority={priority}
+        initialSort={sort}
+        initialDir={dir}
+      />
     </div>
   );
 }

@@ -29,17 +29,17 @@ import {
 // ─── Client-side Zod schema ────────────────────────────────────────────────────
 
 const personnelFormSchema = z.object({
-  firstName: z.string().min(1, "First name is required").max(100, "Max 100 characters"),
-  lastName:  z.string().min(1, "Last name is required").max(100, "Max 100 characters"),
+  firstName: z.string().min(1, "Voornaam is verplicht").max(100, "Max 100 tekens"),
+  lastName:  z.string().min(1, "Achternaam is verplicht").max(100, "Max 100 tekens"),
   email:     z.string()
-    .min(1, "Email is required")
+    .min(1, "E-mail is verplicht")
     .refine(
       (v) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()),
-      "Invalid email address",
+      "Ongeldig e-mailadres",
     ),
-  phone:  z.string().max(50, "Max 50 characters"),
+  phone:  z.string().max(50, "Max 50 tekens"),
   roleId: z.string(),
-  region: z.string().max(100, "Max 100 characters"),
+  region: z.string().max(100, "Max 100 tekens"),
 });
 
 type TextFormValues = z.infer<typeof personnelFormSchema>;
@@ -155,7 +155,7 @@ export function PersonnelForm({
         return;
       }
 
-      toast.success(mode === "create" ? "Personnel record created" : "Personnel record updated");
+      toast.success(mode === "create" ? "Personeelsrecord aangemaakt" : "Personeelsrecord bijgewerkt");
       const id =
         mode === "create" && result.data ? result.data.id : (personnelId ?? "");
       onSuccess(id);
@@ -176,17 +176,17 @@ export function PersonnelForm({
       {/* ── Personal Info ─────────────────────────────── */}
       <section>
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Personal Info
+          Persoonlijke gegevens
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1">
             <Label htmlFor="firstName">
-              First Name <span className="text-destructive">*</span>
+              Voornaam <span className="text-destructive">*</span>
             </Label>
             <Input
               id="firstName"
               {...register("firstName")}
-              placeholder="First name"
+              placeholder="Voornaam"
               aria-invalid={!!errors.firstName}
             />
             {errors.firstName && (
@@ -196,12 +196,12 @@ export function PersonnelForm({
 
           <div className="space-y-1">
             <Label htmlFor="lastName">
-              Last Name <span className="text-destructive">*</span>
+              Achternaam <span className="text-destructive">*</span>
             </Label>
             <Input
               id="lastName"
               {...register("lastName")}
-              placeholder="Last name"
+              placeholder="Achternaam"
               aria-invalid={!!errors.lastName}
             />
             {errors.lastName && (
@@ -211,13 +211,13 @@ export function PersonnelForm({
 
           <div className="col-span-2 space-y-1">
             <Label htmlFor="email">
-              Email <span className="text-destructive">*</span>
+              E-mail <span className="text-destructive">*</span>
             </Label>
             <Input
               id="email"
               type="email"
               {...register("email")}
-              placeholder="employee@company.com"
+              placeholder="medewerker@bedrijf.nl"
               aria-invalid={!!errors.email}
             />
             {errors.email && (
@@ -226,7 +226,7 @@ export function PersonnelForm({
           </div>
 
           <div className="col-span-2 space-y-1">
-            <Label htmlFor="phone">Phone</Label>
+            <Label htmlFor="phone">Telefoon</Label>
             <Input
               id="phone"
               {...register("phone")}
@@ -241,11 +241,11 @@ export function PersonnelForm({
       {/* ── Role & Qualifications ─────────────────────── */}
       <section>
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Role &amp; Qualifications
+          Rol &amp; Kwalificaties
         </p>
         <div className="flex flex-col gap-3">
           <div className="space-y-1">
-            <Label htmlFor="roleId">Role</Label>
+            <Label htmlFor="roleId">Rol</Label>
             <Select
               value={roleIdValue}
               onValueChange={(val) =>
@@ -253,10 +253,10 @@ export function PersonnelForm({
               }
             >
               <SelectTrigger id="roleId">
-                <SelectValue placeholder="Select role…" />
+                <SelectValue placeholder="Selecteer rol…" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="NONE">— No role —</SelectItem>
+                <SelectItem value="NONE">— Geen rol —</SelectItem>
                 {roles.map((r) => (
                   <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
                 ))}
@@ -265,32 +265,32 @@ export function PersonnelForm({
           </div>
 
           <div className="space-y-1">
-            <Label>Certificates</Label>
+            <Label>Certificaten</Label>
             <TagInput
               value={certificates}
               onChange={setCertificates}
-              placeholder="e.g. VCA, BHV — type and press Enter"
+              placeholder="bijv. VCA, BHV — typ en druk op Enter"
             />
             <p className="text-xs" style={{ color: "#94A3B8" }}>
-              Press Enter or Tab to add each certificate.
+              Druk op Enter of Tab om een certificaat toe te voegen.
             </p>
           </div>
 
           <div className="space-y-1">
-            <Label>Diplomas</Label>
+            <Label>Diploma&apos;s</Label>
             <TagInput
               value={diplomas}
               onChange={setDiplomas}
-              placeholder="e.g. MBO-3, HBO — type and press Enter"
+              placeholder="bijv. MBO-3, HBO — typ en druk op Enter"
             />
           </div>
 
           <div className="space-y-1">
-            <Label>Knowledge</Label>
+            <Label>Kennis</Label>
             <TagInput
               value={knowledge}
               onChange={setKnowledge}
-              placeholder="e.g. Electrical, Plumbing — type and press Enter"
+              placeholder="bijv. Elektra, Loodgieten — typ en druk op Enter"
             />
           </div>
         </div>
@@ -301,15 +301,15 @@ export function PersonnelForm({
       {/* ── Availability & Region ─────────────────────── */}
       <section>
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Availability &amp; Region
+          Beschikbaarheid &amp; Regio
         </p>
         <div className="flex flex-col gap-4">
           <div className="space-y-1">
-            <Label htmlFor="region">Region</Label>
+            <Label htmlFor="region">Regio</Label>
             <Input
               id="region"
               {...register("region")}
-              placeholder="e.g. Noord-Holland"
+              placeholder="bijv. Noord-Holland"
               aria-invalid={!!errors.region}
             />
             {errors.region && (
@@ -319,9 +319,9 @@ export function PersonnelForm({
 
           <div className="flex items-center justify-between rounded-lg border px-4 py-3" style={{ borderColor: "#E2E8F0" }}>
             <div>
-              <p className="text-sm font-medium" style={{ color: "#081D3A" }}>Available for Planning</p>
+              <p className="text-sm font-medium" style={{ color: "#081D3A" }}>Beschikbaar voor planning</p>
               <p className="text-xs" style={{ color: "#94A3B8" }}>
-                When off, this person will not appear in the planning eligibility results.
+                Wanneer uitgeschakeld, verschijnt deze persoon niet in de planningsresultaten.
               </p>
             </div>
             <Switch
@@ -332,9 +332,9 @@ export function PersonnelForm({
 
           <div className="flex items-center justify-between rounded-lg border px-4 py-3" style={{ borderColor: "#E2E8F0" }}>
             <div>
-              <p className="text-sm font-medium" style={{ color: "#081D3A" }}>Active</p>
+              <p className="text-sm font-medium" style={{ color: "#081D3A" }}>Actief</p>
               <p className="text-xs" style={{ color: "#94A3B8" }}>
-                Inactive personnel are hidden from planning and assignment flows.
+                Inactief personeel wordt verborgen in planning en opdrachtstromen.
               </p>
             </div>
             <Switch
@@ -348,11 +348,11 @@ export function PersonnelForm({
       {/* ── Actions ────────────────────────────────────── */}
       <div className="flex justify-end gap-2 pt-2 border-t">
         <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>
-          Cancel
+          Annuleren
         </Button>
         <Button type="submit" disabled={pending}>
           {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-          {mode === "create" ? "Create Personnel" : "Save Changes"}
+          {mode === "create" ? "Personeelslid aanmaken" : "Wijzigingen opslaan"}
         </Button>
       </div>
     </form>
