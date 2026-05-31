@@ -17,6 +17,12 @@ import { AssignmentForm } from "./AssignmentForm";
 import { rescheduleAssignment } from "@/app/actions/assignments";
 import type { WeekAssignment, CustomerOption } from "@/app/actions/assignments";
 import { AlertTriangle, X } from "lucide-react";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const NL_DAYS = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
 const NL_MONTHS = [
@@ -398,13 +404,27 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
 
 function AssignmentCardContent({ a }: { a: WeekAssignment }) {
   return (
-    <>
-      <p
-        className="text-xs font-semibold leading-snug mb-1 line-clamp-2"
-        style={{ color: "#081D3A" }}
-      >
-        {a.title}
-      </p>
+    <TooltipProvider>
+      <div className="flex items-start justify-between gap-1 mb-1">
+        <p
+          className="text-xs font-semibold leading-snug line-clamp-2 flex-1 min-w-0"
+          style={{ color: "#081D3A" }}
+        >
+          {a.title}
+        </p>
+        {a.hasConflict && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span className="flex-shrink-0 mt-0.5 cursor-default" aria-label="Conflict gedetecteerd">
+                <AlertTriangle className="h-3.5 w-3.5" style={{ color: "#F59E0B" }} />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent side="top">
+              Ten minste één medewerker is niet beschikbaar of heeft een conflicterende inplanning.
+            </TooltipContent>
+          </Tooltip>
+        )}
+      </div>
       <p className="text-xs mb-1.5 truncate" style={{ color: "#64748B" }}>
         {a.customerName}
       </p>
@@ -426,6 +446,6 @@ function AssignmentCardContent({ a }: { a: WeekAssignment }) {
           {a.personnelNames.length > 2 && ` +${a.personnelNames.length - 2}`}
         </p>
       )}
-    </>
+    </TooltipProvider>
   );
 }

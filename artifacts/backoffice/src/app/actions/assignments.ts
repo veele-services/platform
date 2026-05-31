@@ -132,6 +132,7 @@ export type WeekAssignment = {
   customerName:   string;
   objectName:     string | null;
   personnelNames: string[];
+  hasConflict:    boolean;
 };
 
 export type TimelineAssignment = {
@@ -398,6 +399,7 @@ export async function getAssignmentsForWeek(
   const personnelRows = await db
     .select({
       assignmentId: assignmentPersonnelTable.assignmentId,
+      personnelId:  assignmentPersonnelTable.personnelId,
       firstName:    personnelTable.firstName,
       lastName:     personnelTable.lastName,
     })
@@ -412,26 +414,101 @@ export async function getAssignmentsForWeek(
     );
 
   const personnelByAssignment = new Map<string, string[]>();
+  // Also track personnel IDs per assignment for conflict checking
+  const personnelIdsByAssignment = new Map<string, string[]>();
   for (const p of personnelRows) {
     const names = personnelByAssignment.get(p.assignmentId) ?? [];
     names.push(`${p.firstName ?? ""} ${p.lastName ?? ""}`.trim());
     personnelByAssignment.set(p.assignmentId, names);
+
+    const ids = personnelIdsByAssignment.get(p.assignmentId) ?? [];
+    ids.push(p.personnelId);
+    personnelIdsByAssignment.set(p.assignmentId, ids);
   }
 
-  return rows
-    .filter((r) => r.scheduledDate !== null)
-    .map((r) => ({
-      id:             r.id,
-      title:          r.title,
-      status:         r.status   as AssignmentStatus,
-      priority:       r.priority as AssignmentPriority,
-      scheduledDate:  r.scheduledDate!,
-      scheduledStart: r.scheduledStart ?? null,
-      scheduledEnd:   r.scheduledEnd   ?? null,
-      customerName:   r.customerName   ?? "",
-      objectName:     r.objectName     ?? null,
-      personnelNames: personnelByAssignment.get(r.id) ?? [],
-    }));
+  // ── Conflict detection ────────────────────────────────────────────────────
+  // Build date → unique personnelId[] map for batch availability lookup
+  const validRows = rows.filter((r) => r.scheduledDate !== null);
+
+  const datePersonnelMap = new Map<string, Set<string>>();
+  for (const r of validRows) {
+    const pIds = personnelIdsByAssignment.get(r.id);
+    if (!pIds || pIds.length === 0) continue;
+    const set = datePersonnelMap.get(r.scheduledDate!) ?? new Set<string>();
+    for (const pid of pIds) set.add(pid);
+    datePersonnelMap.set(r.scheduledDate!, set);
+  }
+
+  // Fetch availability per date (parallel, at most 7 queries × 3 = 21 DB round-trips)
+  const availabilityByDate = new Map<string, Record<string, AvailabilityStatus>>();
+  await Promise.all(
+    Array.from(datePersonnelMap.entries()).map(async ([date, pidSet]) => {
+      const statusMap = await getBatchAvailabilityStatus(Array.from(pidSet), date);
+      availabilityByDate.set(date, statusMap);
+    }),
+  );
+
+  // Determine which assignments have conflicts
+  const conflictAssignmentIds = new Set<string>();
+
+  // 1. Availability conflict: personnel is ziek / op_verlof / niet_beschikbaar
+  for (const r of validRows) {
+    const pIds = personnelIdsByAssignment.get(r.id);
+    if (!pIds || pIds.length === 0) continue;
+    const statusMap = availabilityByDate.get(r.scheduledDate!);
+    if (!statusMap) continue;
+    for (const pid of pIds) {
+      const s = statusMap[pid] as AvailabilityStatus | undefined;
+      if (s === "ziek" || s === "op_verlof" || s === "niet_beschikbaar") {
+        conflictAssignmentIds.add(r.id);
+        break;
+      }
+    }
+  }
+
+  // 2. Double-booking conflict: same personnel, same date, overlapping times
+  //    Group per-personnel their assignments on each date, then check each pair.
+  const personnelDayAssignments = new Map<string, typeof validRows>();
+  for (const p of personnelRows) {
+    const r = validRows.find((x) => x.id === p.assignmentId);
+    if (!r) continue;
+    const key = `${p.personnelId}:${r.scheduledDate!}`;
+    const list = personnelDayAssignments.get(key) ?? [];
+    list.push(r);
+    personnelDayAssignments.set(key, list);
+  }
+
+  for (const dayList of personnelDayAssignments.values()) {
+    if (dayList.length < 2) continue;
+    for (let i = 0; i < dayList.length; i++) {
+      for (let j = i + 1; j < dayList.length; j++) {
+        const a = dayList[i]!;
+        const b = dayList[j]!;
+        // No times → whole-day booking, always a conflict if double-booked
+        if (!a.scheduledStart || !a.scheduledEnd || !b.scheduledStart || !b.scheduledEnd) {
+          conflictAssignmentIds.add(a.id);
+          conflictAssignmentIds.add(b.id);
+        } else if (a.scheduledStart < b.scheduledEnd && a.scheduledEnd > b.scheduledStart) {
+          conflictAssignmentIds.add(a.id);
+          conflictAssignmentIds.add(b.id);
+        }
+      }
+    }
+  }
+
+  return validRows.map((r) => ({
+    id:             r.id,
+    title:          r.title,
+    status:         r.status   as AssignmentStatus,
+    priority:       r.priority as AssignmentPriority,
+    scheduledDate:  r.scheduledDate!,
+    scheduledStart: r.scheduledStart ?? null,
+    scheduledEnd:   r.scheduledEnd   ?? null,
+    customerName:   r.customerName   ?? "",
+    objectName:     r.objectName     ?? null,
+    personnelNames: personnelByAssignment.get(r.id) ?? [],
+    hasConflict:    conflictAssignmentIds.has(r.id),
+  }));
 }
 
 export async function getDashboardCounts(): Promise<{
