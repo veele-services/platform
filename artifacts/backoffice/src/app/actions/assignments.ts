@@ -20,7 +20,7 @@ import {
   type AssignmentStatus,
   type AssignmentPriority,
 } from "@workspace/db";
-import { eq, ilike, or, and, asc, desc, inArray, sql, gte, lte, isNull } from "drizzle-orm";
+import { eq, ilike, or, and, asc, desc, inArray, sql, gte, lte, isNull, ne } from "drizzle-orm";
 import { getBatchAvailabilityStatus, type AvailabilityStatus } from "./availability";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -477,6 +477,168 @@ export async function getPersonnelOptions(scheduledDate?: string | null): Promis
     ...r,
     availabilityStatus: statusMap[r.id],
   }));
+}
+
+// ─── Personnel Eligibility ────────────────────────────────────────────────────
+
+export type PersonnelEligibilityResult = {
+  id:                  string;
+  firstName:           string;
+  lastName:            string;
+  availabilityStatus:  AvailabilityStatus;
+  hasConflict:         boolean;
+  meetsRole:           boolean;
+  meetsCertificates:   boolean;
+  meetsDiploma:        boolean;
+  meetsKnowledge:      boolean;
+  eligible:            boolean;
+  eligibilityReasons:  string[];
+};
+
+/**
+ * Returns all active personnel with full eligibility data for an assignment.
+ * Checks: availability, leave/sick, conflicts (same day), role, certs, diplomas, knowledge.
+ */
+export async function getPersonnelEligibilityForAssignment(
+  assignmentId: string,
+): Promise<PersonnelEligibilityResult[]> {
+  const canRead = await hasPermission("assignments", "read");
+  if (!canRead) return [];
+
+  // 1. Get assignment date
+  const [asgn] = await db
+    .select({ scheduledDate: assignmentsTable.scheduledDate })
+    .from(assignmentsTable)
+    .where(eq(assignmentsTable.id, assignmentId))
+    .limit(1);
+
+  const dateStr = asgn?.scheduledDate ?? null;
+
+  // 2. Get task codes linked to this assignment
+  let requiredCertificates: string[] = [];
+  let requiredDiplomas:     string[] = [];
+  let requiredKnowledge:    string[] = [];
+  let requiredRoleIds:      string[] = [];
+
+  const taskRows = await db
+    .select({ taskCodeId: assignmentTasksTable.taskCodeId })
+    .from(assignmentTasksTable)
+    .where(eq(assignmentTasksTable.assignmentId, assignmentId));
+
+  const taskCodeIds = taskRows.map((t) => t.taskCodeId).filter(Boolean) as string[];
+
+  if (taskCodeIds.length > 0) {
+    const tcRows = await db
+      .select({
+        requiredCertificates: taskCodesTable.requiredCertificates,
+        requiredDiploma:      taskCodesTable.requiredDiploma,
+        requiredKnowledge:    taskCodesTable.requiredKnowledge,
+        requiredRoleId:       taskCodesTable.requiredRoleId,
+      })
+      .from(taskCodesTable)
+      .where(inArray(taskCodesTable.id, taskCodeIds));
+
+    for (const tc of tcRows) {
+      requiredCertificates.push(...(tc.requiredCertificates ?? []));
+      if (tc.requiredDiploma) requiredDiplomas.push(tc.requiredDiploma);
+      requiredKnowledge.push(...(tc.requiredKnowledge ?? []));
+      if (tc.requiredRoleId) requiredRoleIds.push(tc.requiredRoleId);
+    }
+    requiredCertificates = [...new Set(requiredCertificates)];
+    requiredDiplomas     = [...new Set(requiredDiplomas)];
+    requiredKnowledge    = [...new Set(requiredKnowledge)];
+    requiredRoleIds      = [...new Set(requiredRoleIds)];
+  }
+
+  // 3. Get all active personnel
+  const personnelRows = await db
+    .select({
+      id:           personnelTable.id,
+      firstName:    personnelTable.firstName,
+      lastName:     personnelTable.lastName,
+      roleId:       personnelTable.roleId,
+      certificates: personnelTable.certificates,
+      diplomas:     personnelTable.diplomas,
+      knowledge:    personnelTable.knowledge,
+    })
+    .from(personnelTable)
+    .where(and(eq(personnelTable.isActive, true), eq(personnelTable.isAvailable, true)))
+    .orderBy(asc(personnelTable.lastName), asc(personnelTable.firstName));
+
+  if (personnelRows.length === 0) return [];
+
+  const personnelIds = personnelRows.map((p) => p.id);
+
+  // 4. Batch availability + conflicts (parallel)
+  const [statusMap, conflictRows] = await Promise.all([
+    dateStr ? getBatchAvailabilityStatus(personnelIds, dateStr) : Promise.resolve({} as Record<string, AvailabilityStatus>),
+    dateStr
+      ? db
+          .select({ personnelId: assignmentPersonnelTable.personnelId })
+          .from(assignmentPersonnelTable)
+          .innerJoin(
+            assignmentsTable,
+            eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id),
+          )
+          .where(
+            and(
+              eq(assignmentsTable.scheduledDate, dateStr),
+              inArray(assignmentPersonnelTable.personnelId, personnelIds),
+              ne(assignmentPersonnelTable.assignmentId, assignmentId),
+            ),
+          )
+      : Promise.resolve([] as Array<{ personnelId: string }>),
+  ]);
+
+  const conflictSet = new Set(conflictRows.map((r) => r.personnelId));
+
+  // 5. Compute eligibility per person
+  return personnelRows.map((p) => {
+    const availStatus = statusMap[p.id] ?? "niet_ingesteld" as AvailabilityStatus;
+    const hasConflict = conflictSet.has(p.id);
+
+    const personCerts    = (p.certificates ?? []) as string[];
+    const personDiplomas = (p.diplomas     ?? []) as string[];
+    const personKnow     = (p.knowledge    ?? []) as string[];
+
+    const meetsCertificates = requiredCertificates.every((c) => personCerts.includes(c));
+    const meetsDiploma      = requiredDiplomas.every((d) => personDiplomas.includes(d));
+    const meetsKnowledge    = requiredKnowledge.every((k) => personKnow.includes(k));
+    const meetsRole         = requiredRoleIds.length === 0 ||
+                              requiredRoleIds.every((r) => p.roleId === r);
+
+    const reasons: string[] = [];
+    if (availStatus === "ziek")             reasons.push("Ziek gemeld");
+    if (availStatus === "op_verlof")        reasons.push("Op verlof");
+    if (availStatus === "niet_beschikbaar") reasons.push("Niet beschikbaar op deze dag");
+    if (hasConflict)                        reasons.push("Al ingepland op deze dag");
+    if (!meetsRole)                         reasons.push("Benodigde rol ontbreekt");
+    if (!meetsCertificates)                 reasons.push("Benodigde certificaten ontbreken");
+    if (!meetsDiploma)                      reasons.push("Benodigd diploma ontbreekt");
+    if (!meetsKnowledge)                    reasons.push("Benodigde kennis ontbreekt");
+
+    const eligible =
+      (availStatus === "beschikbaar" || availStatus === "niet_ingesteld") &&
+      !hasConflict &&
+      meetsRole &&
+      meetsCertificates &&
+      meetsDiploma &&
+      meetsKnowledge;
+
+    return {
+      id:                 p.id,
+      firstName:          p.firstName,
+      lastName:           p.lastName,
+      availabilityStatus: availStatus,
+      hasConflict,
+      meetsRole,
+      meetsCertificates,
+      meetsDiploma,
+      meetsKnowledge,
+      eligible,
+      eligibilityReasons: reasons,
+    };
+  });
 }
 
 export async function getTaskCodeOptions(): Promise<TaskCodeOption[]> {

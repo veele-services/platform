@@ -96,6 +96,7 @@ interface AssignmentFormProps {
   mode:           "create" | "edit";
   assignmentId?:  string;
   customers:      CustomerOption[];
+  defaultDate?:   string;
   onSuccess:      (id: string) => void;
   onCancel:       () => void;
 }
@@ -106,6 +107,7 @@ export function AssignmentForm({
   mode,
   assignmentId,
   customers,
+  defaultDate,
   onSuccess,
   onCancel,
 }: AssignmentFormProps) {
@@ -114,7 +116,11 @@ export function AssignmentForm({
   const [objects,  setObjects]       = useState<ObjectOption[]>([]);
   const [loadingObjects, setLoadingObjects] = useState(false);
 
-  const form = useForm<FormValues>({ defaultValues: DEFAULTS });
+  const form = useForm<FormValues>({
+    defaultValues: defaultDate && mode === "create"
+      ? { ...DEFAULTS, scheduledDate: defaultDate }
+      : DEFAULTS,
+  });
   const {
     register,
     handleSubmit,

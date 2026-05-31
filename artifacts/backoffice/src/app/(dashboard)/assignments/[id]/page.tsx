@@ -26,7 +26,7 @@ import { AssignmentDetailActions } from "@/components/assignments/AssignmentDeta
 import {
   getAssignment,
   getCustomerOptions,
-  getPersonnelOptions,
+  getPersonnelEligibilityForAssignment,
   getTaskCodeOptions,
 } from "@/app/actions/assignments";
 import { getReportForAssignment } from "@/app/actions/reports";
@@ -152,7 +152,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
   const [customers, personnelList, taskCodes] = canWrite
     ? await Promise.all([
         getCustomerOptions(),
-        getPersonnelOptions(assignment.scheduledDate),
+        getPersonnelEligibilityForAssignment(id),
         getTaskCodeOptions(),
       ])
     : [[], [], []];

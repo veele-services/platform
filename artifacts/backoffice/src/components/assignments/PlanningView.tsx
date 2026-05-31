@@ -1,11 +1,20 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { ChevronLeft, ChevronRight, Clock, Users } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Users, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { AssignmentStatusBadge } from "./AssignmentStatusBadge";
-import type { WeekAssignment } from "@/app/actions/assignments";
+import { AssignmentForm } from "./AssignmentForm";
+import type { WeekAssignment, CustomerOption } from "@/app/actions/assignments";
 
 const NL_DAYS = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
 const NL_MONTHS = [
@@ -35,14 +44,18 @@ function getWeekNumber(d: Date): number {
 }
 
 interface PlanningViewProps {
-  weekStartStr: string;  // YYYY-MM-DD of the Monday
+  weekStartStr: string;
   assignments:  WeekAssignment[];
   canWrite:     boolean;
+  customers:    CustomerOption[];
 }
 
-export function PlanningView({ weekStartStr, assignments, canWrite }: PlanningViewProps) {
+export function PlanningView({ weekStartStr, assignments, canWrite, customers }: PlanningViewProps) {
   const router   = useRouter();
   const pathname = usePathname();
+
+  const [createSheetOpen, setCreateSheetOpen] = useState(false);
+  const [createDate,      setCreateDate]      = useState("");
 
   const weekStart = new Date(weekStartStr + "T00:00:00");
   const weekEnd   = addDays(weekStart, 6);
@@ -66,7 +79,6 @@ export function PlanningView({ weekStartStr, assignments, canWrite }: PlanningVi
   const nextWeek = formatDateKey(addDays(weekStart,  7));
   const todayStr = formatDateKey(new Date());
 
-  // Group assignments by date
   const byDate = new Map<string, WeekAssignment[]>();
   for (const a of assignments) {
     const list = byDate.get(a.scheduledDate) ?? [];
@@ -74,20 +86,24 @@ export function PlanningView({ weekStartStr, assignments, canWrite }: PlanningVi
     byDate.set(a.scheduledDate, list);
   }
 
-  // Build 7-day columns
   const days = Array.from({ length: 7 }, (_, i) => {
     const date    = addDays(weekStart, i);
     const dateStr = formatDateKey(date);
     return {
-      label:    NL_DAYS[i],
+      label:   NL_DAYS[i],
       dateStr,
       date,
-      isToday:  dateStr === todayStr,
-      items:    byDate.get(dateStr) ?? [],
+      isToday: dateStr === todayStr,
+      items:   byDate.get(dateStr) ?? [],
     };
   });
 
   const totalForWeek = assignments.length;
+
+  function openCreate(dateStr: string) {
+    setCreateDate(dateStr);
+    setCreateSheetOpen(true);
+  }
 
   return (
     <div>
@@ -134,9 +150,10 @@ export function PlanningView({ weekStartStr, assignments, canWrite }: PlanningVi
       <div className="grid grid-cols-7 gap-3">
         {days.map((day) => (
           <div key={day.dateStr} className="min-w-0">
-            {/* Day header */}
-            <div
-              className="flex flex-col items-center justify-center pb-2 mb-2"
+            {/* Day header — click to day view */}
+            <Link
+              href={`${pathname}?day=${day.dateStr}`}
+              className="flex flex-col items-center justify-center pb-2 mb-2 group"
               style={{ borderBottom: "1px solid #E2E8F0" }}
             >
               <span
@@ -146,7 +163,7 @@ export function PlanningView({ weekStartStr, assignments, canWrite }: PlanningVi
                 {day.label}
               </span>
               <span
-                className="font-heading text-xl font-bold mt-0.5 w-8 h-8 flex items-center justify-center rounded-full"
+                className="font-heading text-xl font-bold mt-0.5 w-8 h-8 flex items-center justify-center rounded-full transition-colors group-hover:ring-2"
                 style={
                   day.isToday
                     ? { background: "#00B7B3", color: "#fff" }
@@ -155,65 +172,109 @@ export function PlanningView({ weekStartStr, assignments, canWrite }: PlanningVi
               >
                 {day.date.getDate()}
               </span>
-            </div>
+            </Link>
 
             {/* Assignment cards */}
             <div className="flex flex-col gap-2">
-              {day.items.length === 0 ? (
+              {day.items.map((a) => (
+                <Link
+                  key={a.id}
+                  href={`/assignments/${a.id}`}
+                  className="block rounded p-2 transition-shadow hover:shadow-md"
+                  style={{
+                    background: "#fff",
+                    border: "1px solid #E2E8F0",
+                  }}
+                >
+                  <p
+                    className="text-xs font-semibold leading-snug mb-1 line-clamp-2"
+                    style={{ color: "#081D3A" }}
+                  >
+                    {a.title}
+                  </p>
+                  <p
+                    className="text-xs mb-1.5 truncate"
+                    style={{ color: "#64748B" }}
+                  >
+                    {a.customerName}
+                  </p>
+                  <div className="mb-1.5">
+                    <AssignmentStatusBadge status={a.status} />
+                  </div>
+                  {(a.scheduledStart || a.scheduledEnd) && (
+                    <p className="text-xs flex items-center gap-1" style={{ color: "#94A3B8" }}>
+                      <Clock className="h-3 w-3 flex-shrink-0" />
+                      {a.scheduledStart ?? ""}
+                      {a.scheduledStart && a.scheduledEnd ? " – " : ""}
+                      {a.scheduledEnd ?? ""}
+                    </p>
+                  )}
+                  {a.personnelNames.length > 0 && (
+                    <p className="text-xs flex items-center gap-1 mt-1" style={{ color: "#94A3B8" }}>
+                      <Users className="h-3 w-3 flex-shrink-0" />
+                      {a.personnelNames.slice(0, 2).join(", ")}
+                      {a.personnelNames.length > 2 && ` +${a.personnelNames.length - 2}`}
+                    </p>
+                  )}
+                </Link>
+              ))}
+
+              {/* Add button */}
+              {canWrite ? (
+                <button
+                  type="button"
+                  onClick={() => openCreate(day.dateStr)}
+                  className="flex items-center justify-center gap-1 rounded py-2 text-xs transition-colors hover:opacity-80"
+                  style={{
+                    border: "1px dashed #CBD5E1",
+                    color: "#94A3B8",
+                    background: "transparent",
+                    cursor: "pointer",
+                  }}
+                  aria-label={`Opdracht toevoegen op ${day.dateStr}`}
+                >
+                  <Plus className="h-3 w-3" />
+                  <span>Nieuw</span>
+                </button>
+              ) : day.items.length === 0 ? (
                 <div
                   className="text-xs text-center py-4 rounded"
                   style={{ color: "#CBD5E1" }}
                 >
                   —
                 </div>
-              ) : (
-                day.items.map((a) => (
-                  <Link
-                    key={a.id}
-                    href={`/assignments/${a.id}`}
-                    className="block rounded p-2 transition-shadow hover:shadow-md"
-                    style={{
-                      background: "#fff",
-                      border: "1px solid #E2E8F0",
-                    }}
-                  >
-                    <p
-                      className="text-xs font-semibold leading-snug mb-1 line-clamp-2"
-                      style={{ color: "#081D3A" }}
-                    >
-                      {a.title}
-                    </p>
-                    <p
-                      className="text-xs mb-1.5 truncate"
-                      style={{ color: "#64748B" }}
-                    >
-                      {a.customerName}
-                    </p>
-                    <div className="mb-1.5">
-                      <AssignmentStatusBadge status={a.status} />
-                    </div>
-                    {(a.scheduledStart || a.scheduledEnd) && (
-                      <p className="text-xs flex items-center gap-1" style={{ color: "#94A3B8" }}>
-                        <Clock className="h-3 w-3 flex-shrink-0" />
-                        {a.scheduledStart ?? ""}
-                        {a.scheduledStart && a.scheduledEnd ? " – " : ""}
-                        {a.scheduledEnd ?? ""}
-                      </p>
-                    )}
-                    {a.personnelNames.length > 0 && (
-                      <p className="text-xs flex items-center gap-1 mt-1" style={{ color: "#94A3B8" }}>
-                        <Users className="h-3 w-3 flex-shrink-0" />
-                        {a.personnelNames.slice(0, 2).join(", ")}
-                        {a.personnelNames.length > 2 && ` +${a.personnelNames.length - 2}`}
-                      </p>
-                    )}
-                  </Link>
-                ))
-              )}
+              ) : null}
             </div>
           </div>
         ))}
       </div>
+
+      {/* Create assignment sheet */}
+      {canWrite && (
+        <Sheet open={createSheetOpen} onOpenChange={setCreateSheetOpen}>
+          <SheetContent side="right" className="w-[560px] sm:max-w-[560px] overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>Nieuwe opdracht aanmaken</SheetTitle>
+              <SheetDescription>
+                {createDate
+                  ? `Datum voorgeselecteerd: ${new Date(createDate + "T00:00:00").toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long" })}`
+                  : "Vul de opdrachtgegevens in."}
+              </SheetDescription>
+            </SheetHeader>
+            <AssignmentForm
+              key={createDate}
+              mode="create"
+              customers={customers}
+              defaultDate={createDate}
+              onSuccess={(id) => {
+                setCreateSheetOpen(false);
+                router.push(`/assignments/${id}`);
+              }}
+              onCancel={() => setCreateSheetOpen(false)}
+            />
+          </SheetContent>
+        </Sheet>
+      )}
     </div>
   );
 }
