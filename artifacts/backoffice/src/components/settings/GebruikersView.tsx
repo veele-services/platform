@@ -1,8 +1,16 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Users, Plus, Mail, MoreHorizontal, CheckCircle2, AlertCircle, UserX } from "lucide-react";
-import { inviteUser, deactivateUser, resendInvite } from "@/app/actions/settings";
+import {
+  Users, Plus, Mail, MoreHorizontal, CheckCircle2, AlertCircle,
+  UserX, Pencil, X,
+} from "lucide-react";
+import {
+  inviteUser,
+  deactivateUser,
+  resendInvite,
+  updateUserRoles,
+} from "@/app/actions/settings";
 import type { UserRow, RoleRow } from "@/app/actions/settings";
 
 const STATUS_LABELS: Record<UserRow["status"], { label: string; bg: string; color: string }> = {
@@ -18,14 +26,18 @@ interface Props {
 }
 
 export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) {
-  const [users, setUsers]         = useState(initialUsers);
-  const [showInvite, setShowInvite] = useState(false);
-  const [email, setEmail]         = useState("");
-  const [roleId, setRoleId]       = useState(roles[0]?.id ?? "");
-  const [isPending, startTransition] = useTransition();
-  const [error, setError]         = useState<string | null>(null);
-  const [success, setSuccess]     = useState<string | null>(null);
+  const [users, setUsers]             = useState(initialUsers);
+  const [showInvite, setShowInvite]   = useState(false);
+  const [email, setEmail]             = useState("");
+  const [roleId, setRoleId]           = useState(roles[0]?.id ?? "");
+  const [isPending, startTransition]  = useTransition();
+  const [error, setError]             = useState<string | null>(null);
+  const [success, setSuccess]         = useState<string | null>(null);
   const [actionError, setActionError] = useState<Record<string, string>>({});
+
+  // Role-editing state
+  const [editingRolesFor, setEditingRolesFor] = useState<string | null>(null);
+  const [editRoleIds, setEditRoleIds]          = useState<string[]>([]);
 
   function showFlash(msg: string, isErr: boolean) {
     if (isErr) { setError(msg); setTimeout(() => setError(null), 3000); }
@@ -77,6 +89,48 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
     });
   }
 
+  function startEditRoles(userId: string, currentRoleIds: string[]) {
+    setEditingRolesFor(userId);
+    setEditRoleIds([...currentRoleIds]);
+    setShowInvite(false);
+  }
+
+  function cancelEditRoles() {
+    setEditingRolesFor(null);
+    setEditRoleIds([]);
+  }
+
+  function toggleRoleId(roleId: string) {
+    setEditRoleIds((prev) =>
+      prev.includes(roleId) ? prev.filter((id) => id !== roleId) : [...prev, roleId],
+    );
+  }
+
+  function handleSaveRoles(userId: string) {
+    startTransition(async () => {
+      const result = await updateUserRoles(userId, editRoleIds);
+      if (result.success) {
+        const newRoleNames = roles
+          .filter((r) => editRoleIds.includes(r.id))
+          .map((r) => r.name);
+        setUsers((prev) =>
+          prev.map((u) =>
+            u.userId === userId
+              ? { ...u, roles: newRoleNames, roleIds: [...editRoleIds] }
+              : u,
+          ),
+        );
+        cancelEditRoles();
+        showFlash("Rollen bijgewerkt.", false);
+      } else {
+        setActionError((prev) => ({
+          ...prev,
+          [userId]: (result as { message?: string }).message ?? "Opslaan mislukt.",
+        }));
+      }
+    });
+  }
+
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between">
@@ -86,7 +140,7 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
         </div>
         {canWrite && (
           <button
-            onClick={() => setShowInvite((v) => !v)}
+            onClick={() => { setShowInvite((v) => !v); cancelEditRoles(); }}
             className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white"
             style={{ backgroundColor: "#081D3A" }}
           >
@@ -131,9 +185,7 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
             </div>
           </div>
 
-          {error && (
-            <p className="text-sm" style={{ color: "#DC2626" }}>{error}</p>
-          )}
+          {error && <p className="text-sm" style={{ color: "#DC2626" }}>{error}</p>}
 
           <div className="flex gap-2">
             <button
@@ -176,61 +228,136 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
             {users.map((u) => {
               const st          = STATUS_LABELS[u.status];
               const displayName = u.name ?? u.email.split("@")[0];
+              const isEditing   = editingRolesFor === u.userId;
+
               return (
-                <tr key={u.userId} style={{ borderBottom: "1px solid #F8FAFC" }} className="hover:bg-slate-50">
-                  <td className="px-4 py-3 font-medium" style={{ color: "#081D3A" }}>
-                    {u.name ? (
-                      u.name
-                    ) : (
-                      <span style={{ color: "#94A3B8" }}>—</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3" style={{ color: "#475569" }}>
-                    {u.email || <span style={{ color: "#94A3B8" }}>—</span>}
-                  </td>
-                  <td className="px-4 py-3">
-                    {u.roles.length > 0 ? (
-                      <div className="flex flex-wrap gap-1">
-                        {u.roles.map((r) => (
-                          <span
-                            key={r}
-                            className="inline-flex items-center rounded px-1.5 py-0.5 text-xs"
-                            style={{ backgroundColor: "#F1F5F9", color: "#475569" }}
-                          >
-                            {r}
-                          </span>
-                        ))}
-                      </div>
-                    ) : (
-                      <span style={{ color: "#CBD5E1" }}>Geen rol</span>
-                    )}
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                      style={{ backgroundColor: st.bg, color: st.color }}
-                    >
-                      {st.label}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-xs" style={{ color: "#64748B" }}>
-                    {new Date(u.createdAt).toLocaleDateString("nl-NL", {
-                      day: "numeric", month: "short", year: "numeric",
-                    })}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    {canWrite && (
-                      <ActionMenu
-                        user={u}
-                        displayName={displayName}
-                        isPending={isPending}
-                        actionError={actionError[u.userId]}
-                        onDeactivate={() => handleDeactivate(u.userId, displayName)}
-                        onResend={() => handleResend(u.userId)}
-                      />
-                    )}
-                  </td>
-                </tr>
+                <>
+                  <tr
+                    key={u.userId}
+                    style={{ borderBottom: isEditing ? "none" : "1px solid #F8FAFC" }}
+                    className="hover:bg-slate-50"
+                  >
+                    <td className="px-4 py-3 font-medium" style={{ color: "#081D3A" }}>
+                      {u.name ?? <span style={{ color: "#94A3B8" }}>—</span>}
+                    </td>
+                    <td className="px-4 py-3" style={{ color: "#475569" }}>
+                      {u.email || <span style={{ color: "#94A3B8" }}>—</span>}
+                    </td>
+                    <td className="px-4 py-3">
+                      {u.roles.length > 0 ? (
+                        <div className="flex flex-wrap gap-1">
+                          {u.roles.map((r) => (
+                            <span
+                              key={r}
+                              className="inline-flex items-center rounded px-1.5 py-0.5 text-xs"
+                              style={{ backgroundColor: "#F1F5F9", color: "#475569" }}
+                            >
+                              {r}
+                            </span>
+                          ))}
+                        </div>
+                      ) : (
+                        <span style={{ color: "#CBD5E1" }}>Geen rol</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                        style={{ backgroundColor: st.bg, color: st.color }}
+                      >
+                        {st.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-xs" style={{ color: "#64748B" }}>
+                      {new Date(u.createdAt).toLocaleDateString("nl-NL", {
+                        day: "numeric", month: "short", year: "numeric",
+                      })}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {canWrite && (
+                        <ActionMenu
+                          user={u}
+                          displayName={displayName}
+                          isPending={isPending}
+                          actionError={actionError[u.userId]}
+                          onDeactivate={() => handleDeactivate(u.userId, displayName)}
+                          onResend={() => handleResend(u.userId)}
+                          onEditRoles={() => startEditRoles(u.userId, u.roleIds)}
+                        />
+                      )}
+                    </td>
+                  </tr>
+
+                  {/* Inline role editor */}
+                  {isEditing && (
+                    <tr key={`${u.userId}-edit`} style={{ borderBottom: "1px solid #F8FAFC" }}>
+                      <td colSpan={6} className="px-4 pb-4 pt-1">
+                        <div
+                          className="rounded-lg p-4 space-y-3"
+                          style={{ backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0" }}
+                        >
+                          <div className="flex items-center justify-between">
+                            <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+                              Rollen bewerken voor <em className="not-italic" style={{ color: "#00B7B3" }}>{displayName}</em>
+                            </p>
+                            <button
+                              type="button"
+                              onClick={cancelEditRoles}
+                              className="rounded p-1 hover:bg-slate-200 transition-colors"
+                            >
+                              <X className="h-4 w-4" style={{ color: "#64748B" }} />
+                            </button>
+                          </div>
+
+                          <div className="flex flex-wrap gap-3">
+                            {roles.map((r) => (
+                              <label
+                                key={r.id}
+                                className="flex items-center gap-2 cursor-pointer select-none"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={editRoleIds.includes(r.id)}
+                                  onChange={() => toggleRoleId(r.id)}
+                                  disabled={isPending}
+                                  className="rounded border-gray-300"
+                                />
+                                <span className="text-sm" style={{ color: "#374151" }}>{r.name}</span>
+                                {r.description && (
+                                  <span className="text-xs" style={{ color: "#94A3B8" }}>— {r.description}</span>
+                                )}
+                              </label>
+                            ))}
+                          </div>
+
+                          {actionError[u.userId] && (
+                            <p className="text-sm" style={{ color: "#DC2626" }}>{actionError[u.userId]}</p>
+                          )}
+
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => handleSaveRoles(u.userId)}
+                              disabled={isPending}
+                              className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+                              style={{ backgroundColor: "#081D3A" }}
+                            >
+                              {isPending ? "Opslaan…" : "Rollen opslaan"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={cancelEditRoles}
+                              className="rounded-lg px-3 py-1.5 text-sm font-medium border"
+                              style={{ borderColor: "#E2E8F0", color: "#475569" }}
+                            >
+                              Annuleren
+                            </button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </>
               );
             })}
           </tbody>
@@ -254,6 +381,7 @@ function ActionMenu({
   actionError,
   onDeactivate,
   onResend,
+  onEditRoles,
 }: {
   user:         UserRow;
   displayName:  string;
@@ -261,6 +389,7 @@ function ActionMenu({
   actionError:  string | undefined;
   onDeactivate: () => void;
   onResend:     () => void;
+  onEditRoles:  () => void;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -278,9 +407,17 @@ function ActionMenu({
         <>
           <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
           <div
-            className="absolute right-0 z-20 mt-1 min-w-[180px] rounded-lg border bg-white py-1 shadow-lg"
+            className="absolute right-0 z-20 mt-1 min-w-[200px] rounded-lg border bg-white py-1 shadow-lg"
             style={{ borderColor: "#E2E8F0" }}
           >
+            <button
+              onClick={() => { setOpen(false); onEditRoles(); }}
+              className="flex w-full items-center gap-2 px-3 py-2 text-xs hover:bg-slate-50 text-left"
+              style={{ color: "#374151" }}
+            >
+              <Pencil className="h-3.5 w-3.5" style={{ color: "#64748B" }} />
+              Rollen bewerken
+            </button>
             {user.status === "uitgenodigd" && (
               <button
                 onClick={() => { setOpen(false); onResend(); }}

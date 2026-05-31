@@ -9,7 +9,7 @@ import {
   userRolesTable,
   auditLogTable,
 } from "@workspace/db";
-import { eq, and, asc, sql, inArray } from "drizzle-orm";
+import { eq, and, asc, desc, sql, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -61,8 +61,21 @@ export type UserRow = {
   name:      string | null;
   email:     string;
   roles:     string[];
+  roleIds:   string[];
   status:    "actief" | "uitgenodigd" | "inactief";
   createdAt: string;
+};
+
+export type AuditLogEntry = {
+  id:         string;
+  userId:     string;
+  userEmail:  string;
+  userName:   string | null;
+  action:     string;
+  resource:   string;
+  resourceId: string | null;
+  metadata:   Record<string, unknown> | null;
+  createdAt:  string;
 };
 
 // ─── Organisation settings ────────────────────────────────────────────────────
@@ -377,16 +390,18 @@ export async function listUsersWithRoles(): Promise<UserRow[]> {
   const roleRows = await db
     .select({
       userId:   userRolesTable.userId,
+      roleId:   rolesTable.id,
       roleName: rolesTable.name,
     })
     .from(userRolesTable)
     .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
     .where(inArray(userRolesTable.userId, userIds));
 
-  const rolesByUser = new Map<string, string[]>();
+  const rolesByUser = new Map<string, { names: string[]; ids: string[] }>();
   for (const r of roleRows) {
-    const existing = rolesByUser.get(r.userId) ?? [];
-    existing.push(r.roleName);
+    const existing = rolesByUser.get(r.userId) ?? { names: [], ids: [] };
+    existing.names.push(r.roleName);
+    existing.ids.push(r.roleId);
     rolesByUser.set(r.userId, existing);
   }
 
@@ -403,7 +418,8 @@ export async function listUsersWithRoles(): Promise<UserRow[]> {
       userId:    u.id,
       name,
       email:     u.email ?? "",
-      roles:     rolesByUser.get(u.id) ?? [],
+      roles:     rolesByUser.get(u.id)?.names ?? [],
+      roleIds:   rolesByUser.get(u.id)?.ids ?? [],
       status,
       createdAt: u.created_at,
     };
@@ -517,4 +533,97 @@ export async function resendInvite(userId: string): Promise<ActionResult> {
 
   revalidatePath("/instellingen/gebruikers");
   return { success: true };
+}
+
+/**
+ * Batch-replace all roles for a user.
+ * Deletes existing user_roles entries and re-inserts the provided set.
+ */
+export async function updateUserRoles(
+  userId:  string,
+  roleIds: string[],
+): Promise<ActionResult> {
+  await requirePermission("users", "write");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  if (userId === user.id && roleIds.length === 0) {
+    return { success: false, message: "U kunt uw eigen rollen niet volledig verwijderen." };
+  }
+
+  await db.delete(userRolesTable).where(eq(userRolesTable.userId, userId));
+
+  if (roleIds.length > 0) {
+    await db
+      .insert(userRolesTable)
+      .values(roleIds.map((roleId) => ({ userId, roleId })))
+      .onConflictDoNothing();
+  }
+
+  const assignedRoles = roleIds.length > 0
+    ? await db
+        .select({ name: rolesTable.name })
+        .from(rolesTable)
+        .where(inArray(rolesTable.id, roleIds))
+    : [];
+
+  await db.insert(auditLogTable).values({
+    userId:     user.id,
+    action:     "update_roles",
+    resource:   "users",
+    resourceId: userId,
+    metadata:   { roleIds, roleNames: assignedRoles.map((r) => r.name) },
+  });
+
+  revalidatePath("/instellingen/gebruikers");
+  return { success: true };
+}
+
+/**
+ * Fetch the last 200 audit log entries for settings-relevant resources.
+ * Enriches each entry with the actor's email/name from Supabase Auth.
+ */
+export async function listAuditLog(): Promise<AuditLogEntry[]> {
+  await requirePermission("settings", "read");
+
+  const rows = await db
+    .select()
+    .from(auditLogTable)
+    .where(inArray(auditLogTable.resource, ["settings", "roles", "users"]))
+    .orderBy(desc(auditLogTable.createdAt))
+    .limit(200);
+
+  if (rows.length === 0) return [];
+
+  const admin = createAdminClient();
+  const { data } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  const userMap = new Map(
+    (data?.users ?? []).map((u) => {
+      const meta = u.user_metadata as { full_name?: string; name?: string } | undefined;
+      return [
+        u.id,
+        {
+          email: u.email ?? u.id,
+          name:  (meta?.full_name ?? meta?.name) ?? null,
+        },
+      ] as const;
+    }),
+  );
+
+  return rows.map((r) => {
+    const info = userMap.get(r.userId);
+    return {
+      id:         r.id,
+      userId:     r.userId,
+      userEmail:  info?.email ?? r.userId,
+      userName:   info?.name ?? null,
+      action:     r.action,
+      resource:   r.resource,
+      resourceId: r.resourceId,
+      metadata:   r.metadata as Record<string, unknown> | null,
+      createdAt:  r.createdAt.toISOString(),
+    };
+  });
 }
