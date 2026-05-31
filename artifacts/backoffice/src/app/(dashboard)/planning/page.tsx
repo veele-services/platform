@@ -3,7 +3,11 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { PlanningView } from "@/components/assignments/PlanningView";
 import { PlanningDayView } from "@/components/assignments/PlanningDayView";
-import { getAssignmentsForWeek, getCustomerOptions } from "@/app/actions/assignments";
+import {
+  getAssignmentsForWeek,
+  getCustomerOptions,
+  getDayTimelineData,
+} from "@/app/actions/assignments";
 
 export const metadata: Metadata = {
   title: "Planning",
@@ -50,7 +54,7 @@ export default async function PlanningPage({ searchParams }: Props) {
 
   // ── Day view ─────────────────────────────────────────────────────────────
   if (day && isValidDate(day)) {
-    const dayAssignments = await getAssignmentsForWeek(day, day);
+    const { rows, unassigned } = await getDayTimelineData(day);
 
     return (
       <div className="p-8">
@@ -65,7 +69,8 @@ export default async function PlanningPage({ searchParams }: Props) {
 
         <PlanningDayView
           dateStr={day}
-          assignments={dayAssignments}
+          rows={rows}
+          unassigned={unassigned}
           canWrite={canWrite}
           customers={customers}
         />

@@ -266,9 +266,9 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
               mode="create"
               customers={customers}
               defaultDate={createDate}
-              onSuccess={(id) => {
+              onSuccess={() => {
                 setCreateSheetOpen(false);
-                router.push(`/assignments/${id}`);
+                router.refresh();
               }}
               onCancel={() => setCreateSheetOpen(false)}
             />

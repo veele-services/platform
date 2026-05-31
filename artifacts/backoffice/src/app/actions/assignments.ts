@@ -131,6 +131,22 @@ export type WeekAssignment = {
   personnelNames: string[];
 };
 
+export type TimelineAssignment = {
+  id:             string;
+  title:          string;
+  status:         AssignmentStatus;
+  scheduledStart: string | null;
+  scheduledEnd:   string | null;
+  customerName:   string;
+};
+
+export type TimelinePersonnelRow = {
+  personnelId: string;
+  firstName:   string;
+  lastName:    string;
+  assignments: TimelineAssignment[];
+};
+
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
 export async function listAssignments(params: {
@@ -477,6 +493,91 @@ export async function getPersonnelOptions(scheduledDate?: string | null): Promis
     ...r,
     availabilityStatus: statusMap[r.id],
   }));
+}
+
+// ─── Day Timeline ─────────────────────────────────────────────────────────────
+
+/**
+ * Returns per-personnel timeline data for a single day.
+ * Used by the day-view planning component.
+ */
+export async function getDayTimelineData(dateStr: string): Promise<{
+  rows:       TimelinePersonnelRow[];
+  unassigned: TimelineAssignment[];
+}> {
+  const canRead = await hasPermission("planning", "read");
+  if (!canRead) return { rows: [], unassigned: [] };
+
+  // All assignments on this day
+  const asgnRows = await db
+    .select({
+      id:             assignmentsTable.id,
+      title:          assignmentsTable.title,
+      status:         assignmentsTable.status,
+      scheduledStart: assignmentsTable.scheduledStart,
+      scheduledEnd:   assignmentsTable.scheduledEnd,
+      customerName:   customersTable.name,
+    })
+    .from(assignmentsTable)
+    .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
+    .where(eq(assignmentsTable.scheduledDate, dateStr))
+    .orderBy(asc(assignmentsTable.scheduledStart));
+
+  if (asgnRows.length === 0) return { rows: [], unassigned: [] };
+
+  const assignmentIds = asgnRows.map((a) => a.id);
+
+  // Personnel assignments for these assignments
+  const pRows = await db
+    .select({
+      assignmentId: assignmentPersonnelTable.assignmentId,
+      personnelId:  assignmentPersonnelTable.personnelId,
+      firstName:    personnelTable.firstName,
+      lastName:     personnelTable.lastName,
+    })
+    .from(assignmentPersonnelTable)
+    .leftJoin(personnelTable, eq(assignmentPersonnelTable.personnelId, personnelTable.id))
+    .where(inArray(assignmentPersonnelTable.assignmentId, assignmentIds))
+    .orderBy(asc(personnelTable.lastName), asc(personnelTable.firstName));
+
+  const asgnMap = new Map(
+    asgnRows.map((a) => [a.id, {
+      id:             a.id,
+      title:          a.title,
+      status:         a.status as AssignmentStatus,
+      scheduledStart: a.scheduledStart ?? null,
+      scheduledEnd:   a.scheduledEnd   ?? null,
+      customerName:   a.customerName   ?? "",
+    } satisfies TimelineAssignment])
+  );
+
+  const rowMap = new Map<string, TimelinePersonnelRow>();
+  const assignedIds = new Set<string>();
+
+  for (const p of pRows) {
+    const asgn = asgnMap.get(p.assignmentId);
+    if (!asgn) continue;
+
+    const row = rowMap.get(p.personnelId) ?? {
+      personnelId: p.personnelId,
+      firstName:   p.firstName ?? "",
+      lastName:    p.lastName  ?? "",
+      assignments: [],
+    };
+    row.assignments.push(asgn);
+    rowMap.set(p.personnelId, row);
+    assignedIds.add(asgn.id);
+  }
+
+  const rows = Array.from(rowMap.values()).sort((a, b) =>
+    `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, "nl"),
+  );
+
+  const unassigned = asgnRows
+    .filter((a) => !assignedIds.has(a.id))
+    .map((a) => asgnMap.get(a.id)!);
+
+  return { rows, unassigned };
 }
 
 // ─── Personnel Eligibility ────────────────────────────────────────────────────
