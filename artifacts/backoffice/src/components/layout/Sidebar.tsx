@@ -141,7 +141,7 @@ export function Sidebar({
       <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
         {visibleItems.length === 0 && !canReadSettings ? (
           <p
-            className="px-3 py-4 text-center hidden lg:block"
+            className="px-3 py-4 text-center md:hidden lg:block"
             style={{
               fontFamily: "var(--font-inter), Inter, sans-serif",
               fontSize:   "12px",
@@ -183,19 +183,19 @@ export function Sidebar({
                     style={{ width: "15px", height: "15px" }}
                     strokeWidth={active ? 2.5 : 1.75}
                   />
-                  {/* Badge dot on tablet (label hidden) */}
+                  {/* Badge dot — tablet only (when label is hidden) */}
                   {hasBadge && (
                     <span
-                      className="absolute -top-1 -right-1 block h-2 w-2 rounded-full bg-[#00B7B3] lg:hidden"
+                      className="absolute -top-1 -right-1 hidden md:block lg:hidden h-2 w-2 rounded-full bg-[#00B7B3]"
                     />
                   )}
                 </div>
-                {/* Label — hidden on tablet */}
-                <span className="flex-1 hidden lg:inline">{label}</span>
-                {/* Badge count — hidden on tablet */}
+                {/* Label — visible on mobile & desktop, hidden on tablet */}
+                <span className="flex-1 md:hidden lg:inline">{label}</span>
+                {/* Badge count — visible on mobile & desktop, hidden on tablet */}
                 {hasBadge && (
                   <span
-                    className="hidden lg:flex flex-shrink-0 rounded-full items-center justify-center text-white font-semibold"
+                    className="md:hidden lg:flex flex-shrink-0 rounded-full items-center justify-center text-white font-semibold"
                     style={{
                       backgroundColor: "#00B7B3",
                       fontSize:        "10px",
@@ -235,11 +235,11 @@ export function Sidebar({
               style={{ width: "13px", height: "13px", flexShrink: 0 }}
               strokeWidth={inSettings ? 2.5 : 1.75}
             />
-            <span className="flex-1 hidden lg:inline">Instellingen</span>
+            <span className="flex-1 md:hidden lg:inline">Instellingen</span>
           </Link>
 
-          {/* Sub-items — hidden on tablet */}
-          <div className="ml-3 space-y-0.5 hidden lg:block">
+          {/* Sub-items — visible on mobile & desktop, hidden on tablet */}
+          <div className="ml-3 space-y-0.5 md:hidden lg:block">
             {visibleSubItems.map(({ href, label }) => {
               const active = isActive(pathname, href);
               return (
