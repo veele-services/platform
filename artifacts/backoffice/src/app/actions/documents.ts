@@ -298,9 +298,9 @@ export async function uploadDocument(
     });
 
     revalidatePath("/documents");
-    if (safeEntityType === "assignment" && entityId) {
-      revalidatePath(`/assignments/${entityId}`);
-    }
+    if (safeEntityType === "assignment" && entityId) revalidatePath(`/assignments/${entityId}`);
+    if (safeEntityType === "customer"   && entityId) revalidatePath(`/customers/${entityId}`);
+    if (safeEntityType === "personnel"  && entityId) revalidatePath(`/personnel/${entityId}`);
 
     return { success: true, data: { id: inserted.id } };
   } catch (err) {
@@ -354,9 +354,9 @@ export async function deleteDocument(id: string): Promise<ActionResult> {
     });
 
     revalidatePath("/documents");
-    if (doc.entityType === "assignment" && doc.entityId) {
-      revalidatePath(`/assignments/${doc.entityId}`);
-    }
+    if (doc.entityType === "assignment" && doc.entityId) revalidatePath(`/assignments/${doc.entityId}`);
+    if (doc.entityType === "customer"   && doc.entityId) revalidatePath(`/customers/${doc.entityId}`);
+    if (doc.entityType === "personnel"  && doc.entityId) revalidatePath(`/personnel/${doc.entityId}`);
 
     return { success: true };
   } catch (err) {

@@ -1279,3 +1279,79 @@ export async function deleteAssignment(id: string): Promise<ActionResult> {
   revalidatePath("/assignments");
   return { success: true };
 }
+
+// ─── Assignment History ────────────────────────────────────────────────────────
+
+export type AssignmentHistoryRow = {
+  id:            string;
+  code:          string;
+  title:         string;
+  status:        AssignmentStatus;
+  scheduledDate: string | null;
+  objectName:    string | null;
+};
+
+export async function listAssignmentsForCustomer(
+  customerId: string,
+  limit = 10,
+): Promise<AssignmentHistoryRow[]> {
+  const canRead = await hasPermission("assignments", "read");
+  if (!canRead) return [];
+
+  const rows = await db
+    .select({
+      id:            assignmentsTable.id,
+      code:          assignmentsTable.code,
+      title:         assignmentsTable.title,
+      status:        assignmentsTable.status,
+      scheduledDate: assignmentsTable.scheduledDate,
+      objectName:    objectsTable.name,
+    })
+    .from(assignmentsTable)
+    .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
+    .where(eq(assignmentsTable.customerId, customerId))
+    .orderBy(desc(assignmentsTable.scheduledDate))
+    .limit(limit);
+
+  return rows.map((r) => ({
+    id:            r.id,
+    code:          r.code,
+    title:         r.title,
+    status:        r.status        as AssignmentStatus,
+    scheduledDate: r.scheduledDate ?? null,
+    objectName:    r.objectName    ?? null,
+  }));
+}
+
+export async function listAssignmentsForPersonnel(
+  personnelId: string,
+  limit = 10,
+): Promise<AssignmentHistoryRow[]> {
+  const canRead = await hasPermission("assignments", "read");
+  if (!canRead) return [];
+
+  const rows = await db
+    .select({
+      id:            assignmentsTable.id,
+      code:          assignmentsTable.code,
+      title:         assignmentsTable.title,
+      status:        assignmentsTable.status,
+      scheduledDate: assignmentsTable.scheduledDate,
+      objectName:    objectsTable.name,
+    })
+    .from(assignmentsTable)
+    .innerJoin(assignmentPersonnelTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
+    .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
+    .where(eq(assignmentPersonnelTable.personnelId, personnelId))
+    .orderBy(desc(assignmentsTable.scheduledDate))
+    .limit(limit);
+
+  return rows.map((r) => ({
+    id:            r.id,
+    code:          r.code,
+    title:         r.title,
+    status:        r.status        as AssignmentStatus,
+    scheduledDate: r.scheduledDate ?? null,
+    objectName:    r.objectName    ?? null,
+  }));
+}

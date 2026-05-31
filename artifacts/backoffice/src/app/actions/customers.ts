@@ -13,6 +13,7 @@ import {
 import { eq, ilike, or, and, asc, desc, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
 
 // ─── Shared Types ─────────────────────────────────────────────────────────────
@@ -66,6 +67,14 @@ export type CustomerFormInput = {
 export type ActionResult<T = undefined> =
   | { success: true; data?: T }
   | { success: false; message: string; fieldErrors?: Record<string, string> };
+
+export type CustomerNoteRow = {
+  id: string;
+  content: string;
+  createdAt: string;
+  authorEmail: string;
+  authorName: string | null;
+};
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -155,7 +164,6 @@ export async function listCustomers(params: {
 
 export async function getCustomer(id: string): Promise<CustomerDetail | null> {
   await requirePermission("customers", "read");
-  // Notes are internal management data — only callers with write permission may see them.
   const canSeeNotes = await hasPermission("customers", "write");
 
   const rows = await db
@@ -186,7 +194,7 @@ export async function getCustomer(id: string): Promise<CustomerDetail | null> {
   const r = rows[0];
   return {
     ...r,
-    notes:    canSeeNotes ? r.notes : null,
+    notes:     canSeeNotes ? r.notes : null,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
   };
@@ -201,7 +209,6 @@ export async function deleteCustomer(id: string): Promise<ActionResult> {
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  // Prevent deletion if the customer still has objects linked to it
   const [countRow] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(objectsTable)
@@ -223,7 +230,7 @@ export async function deleteCustomer(id: string): Promise<ActionResult> {
 
   if (!customer) return { success: false, message: "Klant niet gevonden." };
 
-  // Remove notes mirror first (no FK cascade on this table)
+  // Remove notes first (no FK cascade on customer_notes)
   await db.delete(customerNotesTable).where(eq(customerNotesTable.customerId, id));
   await db.delete(customersTable).where(eq(customersTable.id, id));
 
@@ -290,14 +297,6 @@ export async function createCustomer(
       .values(parsed.data)
       .returning({ id: customersTable.id });
 
-    if (parsed.data.notes && created?.id) {
-      await db.insert(customerNotesTable).values({
-        customerId: created.id,
-        notes:      parsed.data.notes,
-        updatedBy:  user.id,
-      });
-    }
-
     await db.insert(auditLogTable).values({
       userId:     user.id,
       action:     "create",
@@ -360,19 +359,6 @@ export async function updateCustomer(
       .update(customersTable)
       .set({ ...parsed.data, updatedAt: new Date() })
       .where(eq(customersTable.id, id));
-
-    // Sync notes to customer_notes (defense in depth)
-    await db
-      .delete(customerNotesTable)
-      .where(eq(customerNotesTable.customerId, id));
-
-    if (parsed.data.notes) {
-      await db.insert(customerNotesTable).values({
-        customerId: id,
-        notes:      parsed.data.notes,
-        updatedBy:  user.id,
-      });
-    }
 
     await db.insert(auditLogTable).values({
       userId:     user.id,
@@ -454,5 +440,104 @@ export async function bulkSetCustomerStatus(
   });
 
   revalidatePath("/customers");
+  return { success: true };
+}
+
+// ─── Customer Notes ────────────────────────────────────────────────────────────
+
+export async function listCustomerNotes(customerId: string): Promise<CustomerNoteRow[]> {
+  const canRead = await hasPermission("customers", "write");
+  if (!canRead) return [];
+
+  const rows = await db
+    .select({
+      id:        customerNotesTable.id,
+      notes:     customerNotesTable.notes,
+      createdAt: customerNotesTable.createdAt,
+      updatedBy: customerNotesTable.updatedBy,
+    })
+    .from(customerNotesTable)
+    .where(eq(customerNotesTable.customerId, customerId))
+    .orderBy(desc(customerNotesTable.createdAt));
+
+  if (rows.length === 0) return [];
+
+  const admin = createAdminClient();
+  const { data } = await admin.auth.admin.listUsers({ perPage: 1000 });
+  const userMap = new Map<string, { email: string; name: string | null }>();
+  for (const u of data?.users ?? []) {
+    const meta = u.user_metadata as { full_name?: string; name?: string } | undefined;
+    userMap.set(u.id, {
+      email: u.email ?? u.id,
+      name:  (meta?.full_name ?? meta?.name) ?? null,
+    });
+  }
+
+  return rows.map((r) => {
+    const author = r.updatedBy ? userMap.get(r.updatedBy) : undefined;
+    return {
+      id:          r.id,
+      content:     r.notes,
+      createdAt:   r.createdAt.toISOString(),
+      authorEmail: author?.email ?? (r.updatedBy ?? "—"),
+      authorName:  author?.name ?? null,
+    };
+  });
+}
+
+export async function addCustomerNote(
+  customerId: string,
+  content: string,
+): Promise<ActionResult<{ id: string; createdAt: string }>> {
+  await requirePermission("customers", "write");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const trimmed = content.trim();
+  if (!trimmed) return { success: false, message: "Notitie mag niet leeg zijn." };
+  if (trimmed.length > 4000) return { success: false, message: "Maximaal 4000 tekens toegestaan." };
+
+  const [inserted] = await db
+    .insert(customerNotesTable)
+    .values({ customerId, notes: trimmed, updatedBy: user.id })
+    .returning({ id: customerNotesTable.id, createdAt: customerNotesTable.createdAt });
+
+  await db.insert(auditLogTable).values({
+    userId:     user.id,
+    action:     "create",
+    resource:   "customer_notes",
+    resourceId: inserted.id,
+    metadata:   { customerId },
+  });
+
+  revalidatePath(`/customers/${customerId}`);
+  return { success: true, data: { id: inserted.id, createdAt: inserted.createdAt.toISOString() } };
+}
+
+export async function deleteCustomerNote(
+  noteId: string,
+  customerId: string,
+): Promise<ActionResult> {
+  await requirePermission("customers", "write");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  await db
+    .delete(customerNotesTable)
+    .where(and(eq(customerNotesTable.id, noteId), eq(customerNotesTable.customerId, customerId)));
+
+  await db.insert(auditLogTable).values({
+    userId:     user.id,
+    action:     "delete",
+    resource:   "customer_notes",
+    resourceId: noteId,
+    metadata:   { customerId },
+  });
+
+  revalidatePath(`/customers/${customerId}`);
   return { success: true };
 }
