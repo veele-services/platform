@@ -27,6 +27,8 @@ export type AvailabilityWindow = {
   endTime:     string;
 };
 
+export type LeaveStatus = "pending" | "approved" | "rejected";
+
 export type LeavePeriod = {
   id:          string;
   personnelId: string;
@@ -34,6 +36,7 @@ export type LeavePeriod = {
   endDate:     string | null;
   leaveType:   LeaveType;
   reason:      string | null;
+  status:      LeaveStatus;
   createdAt:   string;
 };
 
@@ -130,6 +133,7 @@ export async function listLeavePeriods(personnelId: string): Promise<LeavePeriod
     endDate:     r.endDate,
     leaveType:   r.leaveType as LeaveType,
     reason:      r.reason,
+    status:      (r.status ?? "approved") as LeaveStatus,
     createdAt:   r.createdAt.toISOString(),
   }));
 }

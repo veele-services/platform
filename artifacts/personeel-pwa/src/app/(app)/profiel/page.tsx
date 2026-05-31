@@ -1,6 +1,7 @@
 import { getMyPersonnel } from "@/actions/personnel";
 import { signOut } from "@/actions/auth";
-import { User, Mail, Phone, MapPin, Award } from "lucide-react";
+import { Mail, MapPin, Award } from "lucide-react";
+import { PhoneEditForm } from "./PhoneEditForm";
 
 export default async function ProfielPage() {
   const profile = await getMyPersonnel();
@@ -15,10 +16,9 @@ export default async function ProfielPage() {
     );
   }
 
-  const fields = [
-    { icon: Mail,   label: "E-mail",  value: profile.email },
-    { icon: Phone,  label: "Telefoon",value: profile.phone },
-    { icon: MapPin, label: "Regio",   value: profile.region },
+  const readOnlyFields = [
+    { icon: Mail,   label: "E-mail", value: profile.email },
+    { icon: MapPin, label: "Regio",  value: profile.region },
   ].filter((f) => f.value);
 
   const hasBadges =
@@ -33,6 +33,7 @@ export default async function ProfielPage() {
       </h1>
 
       <div className="rounded-2xl bg-white p-5 shadow-sm">
+        {/* Avatar */}
         <div className="mb-5 flex flex-col items-center gap-3">
           <div
             className="flex h-20 w-20 items-center justify-center rounded-full text-2xl font-bold text-white"
@@ -45,27 +46,50 @@ export default async function ProfielPage() {
           </p>
         </div>
 
-        {fields.length > 0 && (
-          <div className="space-y-3 border-t pt-4" style={{ borderColor: "var(--color-border)" }}>
-            {fields.map((f) => {
-              const Icon = f.icon;
-              return (
-                <div key={f.label} className="flex items-center gap-3">
-                  <div
-                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                    style={{ backgroundColor: "rgba(0,183,179,0.1)" }}
-                  >
-                    <Icon size={16} style={{ color: "var(--color-accent)" }} />
-                  </div>
-                  <div>
-                    <p className="text-xs" style={{ color: "var(--color-muted-fg)" }}>{f.label}</p>
-                    <p className="text-sm font-medium" style={{ color: "var(--color-primary)" }}>{f.value}</p>
-                  </div>
+        <div className="space-y-3 border-t pt-4" style={{ borderColor: "var(--color-border)" }}>
+          {/* Read-only fields */}
+          {readOnlyFields.map((f) => {
+            const Icon = f.icon;
+            return (
+              <div key={f.label} className="flex items-center gap-3">
+                <div
+                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                  style={{ backgroundColor: "rgba(0,183,179,0.1)" }}
+                >
+                  <Icon size={16} style={{ color: "var(--color-accent)" }} />
                 </div>
-              );
-            })}
+                <div>
+                  <p className="text-xs" style={{ color: "var(--color-muted-fg)" }}>{f.label}</p>
+                  <p className="text-sm font-medium" style={{ color: "var(--color-primary)" }}>{f.value}</p>
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Editable phone field */}
+          <div className="flex items-start gap-3">
+            <div
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+              style={{ backgroundColor: "rgba(0,183,179,0.1)" }}
+            >
+              <svg
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="var(--color-accent)"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.07 12a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3 1.18h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.09 8.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 21 16a2 2 0 0 1 .92.92z" />
+              </svg>
+            </div>
+            <div className="flex-1 min-w-0">
+              <PhoneEditForm currentPhone={profile.phone} />
+            </div>
           </div>
-        )}
+        </div>
       </div>
 
       {hasBadges && (
@@ -97,7 +121,7 @@ export default async function ProfielPage() {
           {profile.diplomas.length > 0 && (
             <div className="mb-3">
               <p className="mb-1.5 text-xs font-medium uppercase" style={{ color: "var(--color-muted-fg)" }}>
-                Diploma's
+                Diploma&apos;s
               </p>
               <div className="flex flex-wrap gap-1.5">
                 {profile.diplomas.map((d) => (

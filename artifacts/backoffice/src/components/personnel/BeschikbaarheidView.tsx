@@ -10,6 +10,7 @@ import {
   type AvailabilityWindow,
   type LeavePeriod,
   type LeaveType,
+  type LeaveStatus,
 } from "@/app/actions/availability";
 import { LEAVE_TYPES } from "@/types/availability";
 
@@ -303,7 +304,7 @@ export function BeschikbaarheidView({
           <table className="w-full text-sm">
             <thead>
               <tr style={{ borderBottom: "1px solid #F1F5F9" }}>
-                {["Begindatum", "Einddatum", "Type", "Reden", ""].map((h) => (
+                {["Begindatum", "Einddatum", "Type", "Status", "Reden", ""].map((h) => (
                   <th
                     key={h}
                     className="pb-2 text-left text-xs font-semibold uppercase tracking-wide"
@@ -324,7 +325,7 @@ export function BeschikbaarheidView({
                 if (editingLeaveId === lp.id) {
                   return (
                     <tr key={lp.id}>
-                      <td colSpan={5} className="py-2">
+                      <td colSpan={6} className="py-2">
                         <LeaveForm
                           personnelId={personnelId}
                           initial={lp}
@@ -353,6 +354,9 @@ export function BeschikbaarheidView({
                     </td>
                     <td className="py-2.5 pr-4">
                       <LeaveBadge type={lp.leaveType} isCurrent={isCurrent} />
+                    </td>
+                    <td className="py-2.5 pr-4">
+                      <LeaveStatusBadge status={lp.status} />
                     </td>
                     <td className="py-2.5 pr-4 max-w-xs truncate" style={{ color: "#64748B" }}>
                       {lp.reason ?? <span style={{ color: "#CBD5E1" }}>—</span>}
@@ -463,6 +467,7 @@ function LeaveForm({
             endDate:     endDate || null,
             leaveType,
             reason:      reason || null,
+            status:      "approved",
             createdAt:   new Date().toISOString(),
           });
         } else {
@@ -588,6 +593,23 @@ function formatDate(dateStr: string): string {
   return new Date(y!, m! - 1, d!).toLocaleDateString("nl-NL", {
     day: "numeric", month: "short", year: "numeric",
   });
+}
+
+function LeaveStatusBadge({ status }: { status: LeaveStatus }) {
+  const styles: Record<LeaveStatus, { bg: string; color: string; label: string }> = {
+    pending:  { bg: "#FEF9C3", color: "#A16207", label: "In afwachting" },
+    approved: { bg: "#DCFCE7", color: "#15803D", label: "Goedgekeurd" },
+    rejected: { bg: "#FEE2E2", color: "#991B1B", label: "Afgewezen" },
+  };
+  const s = styles[status];
+  return (
+    <span
+      className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+      style={{ backgroundColor: s.bg, color: s.color }}
+    >
+      {s.label}
+    </span>
+  );
 }
 
 function LeaveBadge({ type, isCurrent }: { type: LeaveType; isCurrent: boolean }) {

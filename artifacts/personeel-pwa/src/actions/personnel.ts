@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { db } from "@workspace/db";
 import { personnelTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
 
 export type PersonnelProfile = {
   id: string;
@@ -39,4 +40,33 @@ export async function getMyPersonnel(): Promise<PersonnelProfile | null> {
     .limit(1);
 
   return row ?? null;
+}
+
+export async function updateMyPhone(
+  phone: string,
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Niet ingelogd" };
+
+  const cleaned = phone.trim();
+  if (cleaned.length > 0 && !/^\+?[\d\s\-().]{7,20}$/.test(cleaned)) {
+    return { success: false, error: "Ongeldig telefoonnummer" };
+  }
+
+  const [row] = await db
+    .select({ id: personnelTable.id })
+    .from(personnelTable)
+    .where(eq(personnelTable.userId, user.id))
+    .limit(1);
+
+  if (!row) return { success: false, error: "Personeelsprofiel niet gevonden" };
+
+  await db
+    .update(personnelTable)
+    .set({ phone: cleaned || null })
+    .where(eq(personnelTable.id, row.id));
+
+  revalidatePath("/profiel");
+  return { success: true };
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
-import { markInProgress } from "@/actions/assignments";
+import { setAssignmentStatus } from "@/actions/assignments";
 import { Play } from "lucide-react";
 
 type State = { success?: boolean; error?: string } | undefined;
@@ -9,7 +9,7 @@ type State = { success?: boolean; error?: string } | undefined;
 export function InProgressButton({ assignmentId }: { assignmentId: string }) {
   const [state, formAction, isPending] = useActionState(
     async (_prev: State, _formData: FormData): Promise<State> => {
-      return markInProgress(assignmentId);
+      return setAssignmentStatus(assignmentId, "in_progress");
     },
     undefined,
   );

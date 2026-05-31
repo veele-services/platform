@@ -117,8 +117,9 @@ export async function getMyAssignment(
   };
 }
 
-export async function markInProgress(
+export async function setAssignmentStatus(
   assignmentId: string,
+  newStatus: string,
 ): Promise<{ success: boolean; error?: string }> {
   const personnelId = await getMyPersonnelId();
   if (!personnelId) return { success: false, error: "Niet ingelogd" };
@@ -138,14 +139,21 @@ export async function markInProgress(
 
   if (!assignment) return { success: false, error: "Opdracht niet gevonden" };
 
-  const allowedFromStatuses = ["plannable", "scheduled", "seen"];
-  if (!allowedFromStatuses.includes(assignment.status)) {
+  const TRANSITIONS: Record<string, string[]> = {
+    plannable:  ["scheduled", "in_progress"],
+    scheduled:  ["seen", "in_progress"],
+    seen:       ["in_progress"],
+    in_progress: ["completed", "not_completed"],
+  };
+
+  const allowed = TRANSITIONS[assignment.status] ?? [];
+  if (!allowed.includes(newStatus)) {
     return { success: false, error: "Status-overgang niet toegestaan" };
   }
 
   await db
     .update(assignmentsTable)
-    .set({ status: "in_progress" })
+    .set({ status: newStatus })
     .where(eq(assignmentsTable.id, assignmentId));
 
   revalidatePath("/opdrachten");
