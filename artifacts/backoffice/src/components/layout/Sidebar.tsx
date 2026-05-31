@@ -238,8 +238,8 @@ export function Sidebar({
             <span className="flex-1 md:hidden lg:inline">Instellingen</span>
           </Link>
 
-          {/* Sub-items — visible on mobile & desktop, hidden on tablet */}
-          <div className="ml-3 space-y-0.5 md:hidden lg:block">
+          {/* Sub-items — always visible; compact dot-links on tablet, full text on mobile & desktop */}
+          <div className="space-y-0.5 md:flex md:flex-col md:items-center lg:ml-3 lg:items-stretch">
             {visibleSubItems.map(({ href, label }) => {
               const active = isActive(pathname, href);
               return (
@@ -247,7 +247,8 @@ export function Sidebar({
                   key={href}
                   href={href}
                   onClick={close}
-                  className="flex items-center gap-2 rounded-md px-3 py-1.5 transition-colors"
+                  title={label}
+                  className="flex items-center gap-2 rounded-md transition-colors px-3 py-1.5 md:w-full md:justify-center md:px-0 md:py-1.5 lg:px-3 lg:justify-start"
                   style={{
                     fontFamily:      "var(--font-inter), Inter, sans-serif",
                     fontSize:        "12px",
@@ -259,12 +260,13 @@ export function Sidebar({
                   <span
                     className="flex-shrink-0 rounded-full"
                     style={{
-                      width:           "4px",
-                      height:          "4px",
+                      width:           active ? "6px" : "4px",
+                      height:          active ? "6px" : "4px",
                       backgroundColor: active ? "#00B7B3" : "rgba(255,255,255,0.3)",
                     }}
                   />
-                  {label}
+                  {/* Label text — visible on mobile & desktop, hidden on tablet */}
+                  <span className="md:hidden lg:inline">{label}</span>
                 </Link>
               );
             })}
