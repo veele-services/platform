@@ -5,6 +5,7 @@ import {
   assignmentsTable,
   assignmentPersonnelTable,
   invoicesTable,
+  paymentsTable,
   reportsTable,
   quotesTable,
   personnelTable,
@@ -16,6 +17,13 @@ import { getBatchAvailabilityStatus } from "./availability";
 import type { AvailabilityStatus } from "./availability";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
+
+export type DashboardPayments = {
+  paidThisMonthCount:   number;
+  paidThisMonthAmount:  number;
+  mollieOpenCount:      number;
+  mollieOpenAmountEur:  number;
+};
 
 export type DashboardFinancials = {
   revenueThisMonth:    number;
@@ -113,6 +121,38 @@ const RESOURCE_LABELS: Record<string, string> = {
   users:       "Gebruikers",
   settings:    "Instellingen",
 };
+
+// ─── Betalingen-widget ────────────────────────────────────────────────────────
+
+export async function getDashboardPayments(): Promise<DashboardPayments | null> {
+  const canRead = await hasPermission("invoices", "read");
+  if (!canRead) return null;
+
+  const now = new Date();
+  const startOfMonth = toDateString(new Date(now.getFullYear(), now.getMonth(), 1));
+
+  const [invoiceRow] = await db
+    .select({
+      paidThisMonthCount:  sql<number>`count(*) FILTER (WHERE status = 'paid' AND paid_date >= ${startOfMonth})::int`,
+      paidThisMonthAmount: sql<string>`coalesce(sum(total_amount) FILTER (WHERE status = 'paid' AND paid_date >= ${startOfMonth}), 0)::text`,
+    })
+    .from(invoicesTable);
+
+  const [paymentRow] = await db
+    .select({
+      mollieOpenCount:      sql<number>`count(*)::int`,
+      mollieOpenAmountCents: sql<string>`coalesce(sum(amount_cents), 0)::text`,
+    })
+    .from(paymentsTable)
+    .where(eq(paymentsTable.status, "open"));
+
+  return {
+    paidThisMonthCount:  invoiceRow?.paidThisMonthCount  ?? 0,
+    paidThisMonthAmount: parseFloat(invoiceRow?.paidThisMonthAmount ?? "0"),
+    mollieOpenCount:     paymentRow?.mollieOpenCount     ?? 0,
+    mollieOpenAmountEur: Math.round((parseInt(paymentRow?.mollieOpenAmountCents ?? "0", 10)) / 100),
+  };
+}
 
 // ─── Financieel widget ────────────────────────────────────────────────────────
 
