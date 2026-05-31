@@ -10,10 +10,10 @@ import {
   uploadDocument,
   deleteDocument,
   getDocumentDownloadUrl,
-  DOCUMENT_ENTITY_TYPES,
   type DocumentRow,
   type DocumentEntityType,
 } from "@/app/actions/documents";
+import { DOCUMENT_ENTITY_TYPES } from "@/types/documents";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 

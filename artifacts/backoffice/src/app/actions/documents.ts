@@ -20,7 +20,6 @@ import { requirePermission, hasPermission } from "@/lib/auth/permissions";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, DocumentEntityType };
-export { DOCUMENT_ENTITY_TYPES };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
