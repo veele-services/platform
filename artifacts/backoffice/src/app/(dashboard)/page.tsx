@@ -195,7 +195,7 @@ export default async function DashboardPage() {
             {weekCounts.map((day) => (
               <Link
                 key={day.date}
-                href={`/planning?date=${day.date}`}
+                href={`/planning?day=${day.date}`}
                 className="flex flex-col items-center rounded-lg px-2 py-3 text-center transition-colors hover:bg-slate-50"
                 style={{
                   backgroundColor: day.isToday ? "#EFF6FF" : undefined,
@@ -298,7 +298,7 @@ export default async function DashboardPage() {
                 <h2 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>
                   Activiteit
                 </h2>
-                <Link href="/instellingen/auditlog" className="text-xs font-medium hover:underline" style={{ color: "#00B7B3" }}>
+                <Link href="/instellingen/activiteitslog" className="text-xs font-medium hover:underline" style={{ color: "#00B7B3" }}>
                   Alles →
                 </Link>
               </div>
@@ -351,7 +351,7 @@ function ActionItemsPanel({ items }: { items: DashboardActionItems }) {
       bg:    "#F5F3FF",
     },
     items.canReadAssignments && items.plannableNoPersonnel > 0 && {
-      href:  "/assignments?status=plannable",
+      href:  "/planning",
       label: `${items.plannableNoPersonnel} inplanbare opdracht${items.plannableNoPersonnel !== 1 ? "en" : ""} zonder personeel`,
       color: "#F59E0B",
       bg:    "#FFFBEB",
