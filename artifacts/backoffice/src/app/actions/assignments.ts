@@ -879,19 +879,36 @@ export async function getPersonnelEligibilityForAssignment(
 }
 
 /**
+ * Result type for rescheduleAssignment.
+ *
+ * `success: true`  — move was applied. Optional `warning` contains a human-readable
+ *                    description of personnel conflicts/availability issues that the
+ *                    planner should be aware of but that did NOT block the move.
+ * `success: false` — hard block: invalid date, missing assignment, status guard.
+ */
+export type RescheduleResult =
+  | { success: true;  warning?: string }
+  | { success: false; message: string };
+
+/**
  * Move an assignment to a different date (drag-to-reschedule in week planning).
  *
- * Guards:
- *   1. Assignment must be in 'plannable' or 'scheduled' status.
- *   2. If personnel are confirmed ('assigned'), each is validated on newDate:
- *        a. Availability status must not be ziek / op_verlof / niet_beschikbaar.
- *        b. No time-overlap conflict with another confirmed assignment on newDate
- *           (only when the assignment has scheduledStart + scheduledEnd set).
+ * Hard blocks (return success: false):
+ *   1. Invalid date format.
+ *   2. Assignment not found.
+ *   3. Assignment status is not 'plannable' or 'scheduled'.
+ *
+ * Soft warnings (move proceeds, warning returned in result):
+ *   - Personnel is ziek / op_verlof / niet_beschikbaar on newDate.
+ *   - Time-slot conflict with another confirmed assignment on newDate.
+ *   - Availability window does not cover the assignment's time slot.
+ *
+ * Planners retain full control — only the status guard hard-blocks a move.
  */
 export async function rescheduleAssignment(
   id:      string,
   newDate: string,
-): Promise<ActionResult> {
+): Promise<RescheduleResult> {
   await requirePermission("planning", "write");
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
@@ -918,7 +935,7 @@ export async function rescheduleAssignment(
   if (!existing) return { success: false, message: "Opdracht niet gevonden." };
   if (existing.scheduledDate === newDate) return { success: true };
 
-  // ── 2. Status guard ────────────────────────────────────────────────────────
+  // ── 2. Status guard (hard block) ───────────────────────────────────────────
   const RESCHEDULABLE: AssignmentStatus[] = ["plannable", "scheduled"];
   if (!RESCHEDULABLE.includes(existing.status as AssignmentStatus)) {
     return {
@@ -927,7 +944,9 @@ export async function rescheduleAssignment(
     };
   }
 
-  // ── 3. Personnel availability on newDate ───────────────────────────────────
+  // ── 3. Personnel checks → collect as warnings (do not block) ──────────────
+  const warningParts: string[] = [];
+
   const assignedLinks = await db
     .select({ personnelId: assignmentPersonnelTable.personnelId })
     .from(assignmentPersonnelTable)
@@ -941,32 +960,31 @@ export async function rescheduleAssignment(
   if (assignedLinks.length > 0) {
     const personnelIds = assignedLinks.map((p) => p.personnelId);
 
-    // 3a. Availability status check
+    // 3a. Availability status (ziek / op_verlof / niet_beschikbaar)
     const statusMap = await getBatchAvailabilityStatus(personnelIds, newDate);
-    const blockedByStatus = personnelIds.filter((pid) => {
+    const unavailable = personnelIds.filter((pid) => {
       const s = statusMap[pid] as AvailabilityStatus | undefined;
       return s === "ziek" || s === "op_verlof" || s === "niet_beschikbaar";
     });
 
-    if (blockedByStatus.length > 0) {
+    if (unavailable.length > 0) {
       const nameRows = await db
         .select({ id: personnelTable.id, firstName: personnelTable.firstName, lastName: personnelTable.lastName })
         .from(personnelTable)
-        .where(inArray(personnelTable.id, blockedByStatus));
+        .where(inArray(personnelTable.id, unavailable));
       const nameList = nameRows.map((n) => `${n.firstName} ${n.lastName}`.trim()).join(", ");
-      return {
-        success: false,
-        message: `Verplaatsing geblokkeerd: ${nameList} ${blockedByStatus.length === 1 ? "is" : "zijn"} niet beschikbaar op ${newDate}.`,
-      };
+      warningParts.push(
+        `${nameList} ${unavailable.length === 1 ? "is" : "zijn"} niet beschikbaar op ${newDate}.`,
+      );
     }
 
-    // 3b. Time-slot checks (only when the assignment has start + end times)
+    // 3b. Time-slot checks (only when assignment has start + end times)
     if (existing.scheduledStart && existing.scheduledEnd) {
       const asgnStartMin = timeToMin(existing.scheduledStart);
       const asgnEndMin   = timeToMin(existing.scheduledEnd);
       const dayOfWeek    = new Date(newDate + "T00:00:00").getDay();
 
-      // 3b-i. Conflict check — other confirmed assignments that overlap in time
+      // 3b-i. Double-booking conflict
       const conflictRows = await db
         .select({ personnelId: assignmentPersonnelTable.personnelId })
         .from(assignmentPersonnelTable)
@@ -992,14 +1010,12 @@ export async function rescheduleAssignment(
           .from(personnelTable)
           .where(inArray(personnelTable.id, conflictIds));
         const nameList = nameRows.map((n) => `${n.firstName} ${n.lastName}`.trim()).join(", ");
-        return {
-          success: false,
-          message: `Verplaatsing geblokkeerd: ${nameList} ${conflictIds.length === 1 ? "heeft" : "hebben"} een conflicterende inplanning op ${newDate}.`,
-        };
+        warningParts.push(
+          `${nameList} ${conflictIds.length === 1 ? "heeft" : "hebben"} een conflicterende inplanning op ${newDate}.`,
+        );
       }
 
-      // 3b-ii. Availability window coverage — window must span the full time slot
-      // (mirrors the meetsAvailabilityWindow logic in getPersonnelEligibilityForAssignment)
+      // 3b-ii. Availability window does not cover the full time slot
       const windowRows = await db
         .select({
           personnelId: availabilityWindowsTable.personnelId,
@@ -1023,29 +1039,26 @@ export async function rescheduleAssignment(
         }
       }
 
-      // Only "beschikbaar" personnel are subject to window enforcement;
-      // other statuses have already been blocked or will pass naturally.
-      const blockedByWindow = personnelIds.filter((pid) => {
+      const outsideWindow = personnelIds.filter((pid) => {
         const s = statusMap[pid] as AvailabilityStatus | undefined;
         if (s !== "beschikbaar") return false;
         return !(coverageMap.get(pid) ?? false);
       });
 
-      if (blockedByWindow.length > 0) {
+      if (outsideWindow.length > 0) {
         const nameRows = await db
           .select({ id: personnelTable.id, firstName: personnelTable.firstName, lastName: personnelTable.lastName })
           .from(personnelTable)
-          .where(inArray(personnelTable.id, blockedByWindow));
+          .where(inArray(personnelTable.id, outsideWindow));
         const nameList = nameRows.map((n) => `${n.firstName} ${n.lastName}`.trim()).join(", ");
-        return {
-          success: false,
-          message: `Verplaatsing geblokkeerd: het beschikbaarheidsvenster van ${nameList} dekt het tijdslot (${existing.scheduledStart}–${existing.scheduledEnd}) niet op ${newDate}.`,
-        };
+        warningParts.push(
+          `Het beschikbaarheidsvenster van ${nameList} dekt het tijdslot (${existing.scheduledStart}–${existing.scheduledEnd}) niet op ${newDate}.`,
+        );
       }
     }
   }
 
-  // ── 4. Persist ─────────────────────────────────────────────────────────────
+  // ── 4. Persist (always, if status guard passed) ────────────────────────────
   await db
     .update(assignmentsTable)
     .set({ scheduledDate: newDate })
@@ -1056,11 +1069,19 @@ export async function rescheduleAssignment(
     action:     "update",
     resource:   "assignments",
     resourceId: id,
-    metadata:   { action: "reschedule", from: existing.scheduledDate, to: newDate },
+    metadata:   {
+      action:   "reschedule",
+      from:     existing.scheduledDate,
+      to:       newDate,
+      warnings: warningParts.length > 0 ? warningParts : undefined,
+    },
   });
 
   revalidatePath("/planning");
-  return { success: true };
+
+  return warningParts.length > 0
+    ? { success: true, warning: `Let op: ${warningParts.join(" ")}` }
+    : { success: true };
 }
 
 export async function getTaskCodeOptions(): Promise<TaskCodeOption[]> {

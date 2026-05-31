@@ -16,6 +16,7 @@ import { AssignmentStatusBadge } from "./AssignmentStatusBadge";
 import { AssignmentForm } from "./AssignmentForm";
 import { rescheduleAssignment } from "@/app/actions/assignments";
 import type { WeekAssignment, CustomerOption } from "@/app/actions/assignments";
+import { AlertTriangle, X } from "lucide-react";
 
 const NL_DAYS = ["Ma", "Di", "Wo", "Do", "Vr", "Za", "Zo"];
 const NL_MONTHS = [
@@ -59,12 +60,14 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
   const [createDate,      setCreateDate]      = useState("");
 
   // Drag-and-drop state
-  const [draggingId,   setDraggingId]   = useState<string | null>(null);
-  const [dragOverDate, setDragOverDate] = useState<string | null>(null);
-  const [isPending,    startTransition] = useTransition();
+  const [draggingId,      setDraggingId]      = useState<string | null>(null);
+  const [dragOverDate,    setDragOverDate]     = useState<string | null>(null);
+  const [isPending,       startTransition]     = useTransition();
   // Optimistic moved assignments: id → newDate (applied before server confirm)
-  const [movedMap, setMovedMap] = useState<Map<string, string>>(new Map());
+  const [movedMap,        setMovedMap]         = useState<Map<string, string>>(new Map());
   const dragRef = useRef<string | null>(null); // sync fallback for drag events
+  // Conflict warning banner
+  const [conflictWarning, setConflictWarning]  = useState<string | null>(null);
 
   const weekStart = new Date(weekStartStr + "T00:00:00");
   const weekEnd   = addDays(weekStart, 6);
@@ -125,6 +128,7 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
   function handleDragStart(e: React.DragEvent, assignmentId: string) {
     dragRef.current = assignmentId;
     setDraggingId(assignmentId);
+    setConflictWarning(null); // clear any previous warning when a new drag starts
     e.dataTransfer.effectAllowed = "move";
     e.dataTransfer.setData("text/plain", assignmentId);
   }
@@ -169,16 +173,20 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
     startTransition(async () => {
       const result = await rescheduleAssignment(id, targetDate);
       if (!result.success) {
-        // Roll back optimistic move
+        // Hard block — roll back optimistic move and show error
         setMovedMap((prev) => {
           const next = new Map(prev);
           next.delete(id);
           return next;
         });
+        setConflictWarning(result.message);
       } else {
+        // Move succeeded — show warning if any (conflicts that didn't block)
+        if (result.warning) {
+          setConflictWarning(result.warning);
+        }
         // Server did a revalidatePath; router.refresh picks up new data
         router.refresh();
-        // Keep movedMap until refresh completes (harmless)
         setMovedMap(new Map());
       }
     });
@@ -186,6 +194,30 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
 
   return (
     <div>
+      {/* Conflict / hard-block warning banner */}
+      {conflictWarning && (
+        <div
+          className="flex items-start gap-3 rounded-lg px-4 py-3 mb-4 text-sm"
+          style={{
+            background: "#FFFBEB",
+            border:     "1px solid #F59E0B",
+            color:      "#92400E",
+          }}
+          role="alert"
+        >
+          <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: "#F59E0B" }} />
+          <span className="flex-1">{conflictWarning}</span>
+          <button
+            type="button"
+            onClick={() => setConflictWarning(null)}
+            className="flex-shrink-0 rounded p-0.5 transition-opacity hover:opacity-70"
+            aria-label="Melding sluiten"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
       {/* Week navigation */}
       <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
         <div>
