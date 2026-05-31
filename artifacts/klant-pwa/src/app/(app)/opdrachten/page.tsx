@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ClipboardList, PlusCircle } from "lucide-react";
+import { ClipboardList, PlusCircle, FileText } from "lucide-react";
 import { getMyAssignments } from "@/actions/assignments";
 import { STATUS_LABEL, STATUS_COLOR } from "@/types/assignments";
 import { OfferteActieButtons } from "@/components/OfferteActieButtons";
@@ -11,14 +11,17 @@ function formatDate(dateStr: string | null): string {
 }
 
 const ACTIVE_STATUSES = new Set(["scheduled", "seen", "in_progress", "plannable"]);
-const OPEN_STATUSES   = new Set(["requested", "review", "quote_preparation", "awaiting_approval", "approved"]);
+const OPEN_STATUSES   = new Set(["requested", "review", "quote_preparation", "approved"]);
 
 export default async function OpdrachtenPage() {
   const assignments = await getMyAssignments();
 
+  const quotes  = assignments.filter((a) => a.status === "awaiting_approval");
   const active  = assignments.filter((a) => ACTIVE_STATUSES.has(a.status));
   const open    = assignments.filter((a) => OPEN_STATUSES.has(a.status));
-  const history = assignments.filter((a) => !ACTIVE_STATUSES.has(a.status) && !OPEN_STATUSES.has(a.status));
+  const history = assignments.filter(
+    (a) => a.status !== "awaiting_approval" && !ACTIVE_STATUSES.has(a.status) && !OPEN_STATUSES.has(a.status),
+  );
 
   return (
     <div className="space-y-4 p-4">
@@ -54,6 +57,59 @@ export default async function OpdrachtenPage() {
             Opdracht aanvragen
           </Link>
         </div>
+      )}
+
+      {quotes.length > 0 && (
+        <section>
+          <div className="mb-2 flex items-center gap-1.5">
+            <FileText size={14} style={{ color: "#92400E" }} />
+            <h2
+              className="text-sm font-semibold uppercase tracking-wide"
+              style={{ color: "#92400E" }}
+            >
+              Offertes — actie vereist
+            </h2>
+          </div>
+          <div
+            className="rounded-2xl p-1 space-y-2"
+            style={{ backgroundColor: "#FEF9C3" }}
+          >
+            {quotes.map((a) => {
+              const s = STATUS_COLOR[a.status] ?? { bg: "#F1F5F9", color: "#64748B" };
+              return (
+                <div key={a.id} className="rounded-xl bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span
+                          className="font-mono text-xs rounded px-1.5 py-0.5 shrink-0"
+                          style={{ backgroundColor: "var(--color-muted)", color: "var(--color-secondary)" }}
+                        >
+                          {a.code}
+                        </span>
+                      </div>
+                      <p className="truncate font-semibold" style={{ color: "var(--color-primary)" }}>
+                        {a.title}
+                      </p>
+                      {a.objectName && (
+                        <p className="mt-0.5 truncate text-xs" style={{ color: "var(--color-muted-fg)" }}>
+                          {a.objectName}{a.objectCity ? ` · ${a.objectCity}` : ""}
+                        </p>
+                      )}
+                    </div>
+                    <span
+                      className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                      style={{ backgroundColor: s.bg, color: s.color }}
+                    >
+                      {STATUS_LABEL[a.status] ?? a.status}
+                    </span>
+                  </div>
+                  <OfferteActieButtons assignmentId={a.id} title={a.title} />
+                </div>
+              );
+            })}
+          </div>
+        </section>
       )}
 
       {active.length > 0 && (
@@ -118,9 +174,6 @@ function AssignmentGroup({
                   {STATUS_LABEL[a.status] ?? a.status}
                 </span>
               </div>
-              {a.status === "awaiting_approval" && (
-                <OfferteActieButtons assignmentId={a.id} title={a.title} />
-              )}
             </div>
           );
         })}
