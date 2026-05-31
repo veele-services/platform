@@ -46,6 +46,14 @@ export const personnelTable = pgTable("personnel", {
   isActive:     boolean("is_active").notNull().default(true),
   isAvailable:  boolean("is_available").notNull().default(true),
 
+  /**
+   * Timestamp of when the last invite email was sent.
+   * NULL  = no invite sent yet.
+   * NOT NULL + user_id NULL = invite sent, account not yet activated.
+   * user_id NOT NULL = account activated (linked on first PWA login).
+   */
+  inviteSentAt: timestamp("invite_sent_at", { withTimezone: true }),
+
   createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:    timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
@@ -53,6 +61,7 @@ export const personnelTable = pgTable("personnel", {
 export const insertPersonnelSchema = createInsertSchema(personnelTable).omit({
   id: true,
   code: true,
+  inviteSentAt: true,
   createdAt: true,
   updatedAt: true,
 });

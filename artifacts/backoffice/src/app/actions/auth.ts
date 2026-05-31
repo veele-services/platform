@@ -2,11 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
+import { eq } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
-import { getUserPermissions } from "@/lib/auth/permissions";
+import { getUserPermissions, requirePermission } from "@/lib/auth/permissions";
 import { signPermissions, COOKIE_NAME, COOKIE_MAX_AGE } from "@/lib/auth/session-permissions";
 import { db } from "@workspace/db";
-import { auditLogTable } from "@workspace/db";
+import { auditLogTable, personnelTable } from "@workspace/db";
+import type { ActionResult } from "./customers";
 
 export type AuthFormState = {
   error: string | null;
@@ -124,4 +126,46 @@ export async function signOut(): Promise<void> {
 
   await supabase.auth.signOut();
   redirect("/login");
+}
+
+/**
+ * Server Action — send a password-reset e-mail to a personnel member.
+ *
+ * Only callable by users with personnel:write permission.
+ * The employee must have an active portal account (user_id set).
+ * Supabase sends the reset e-mail via its configured SMTP transport.
+ */
+export async function sendPasswordReset(personnelId: string): Promise<ActionResult> {
+  await requirePermission("personnel", "write");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [person] = await db
+    .select({ email: personnelTable.email, userId: personnelTable.userId })
+    .from(personnelTable)
+    .where(eq(personnelTable.id, personnelId))
+    .limit(1);
+
+  if (!person) return { success: false, message: "Medewerker niet gevonden." };
+  if (!person.userId) {
+    return { success: false, message: "Medewerker heeft nog geen actief portaalaccount." };
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(person.email);
+
+  if (error) {
+    return { success: false, message: error.message ?? "Wachtwoord-reset mislukt." };
+  }
+
+  await db.insert(auditLogTable).values({
+    userId:     user.id,
+    action:     "password_reset_sent",
+    resource:   "personnel",
+    resourceId: personnelId,
+    metadata:   { email: person.email },
+  });
+
+  return { success: true };
 }
