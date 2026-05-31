@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@workspace/db";
 import { availabilityWindowsTable, personnelTable } from "@workspace/db";
-import { and, eq, inArray } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 export type AvailabilityWindow = {
@@ -42,28 +42,33 @@ export async function getMyAvailabilityWindows(): Promise<AvailabilityWindow[]> 
   return rows;
 }
 
+const TIME_RE = /^\d{2}:\d{2}$/;
+
 export async function saveAvailabilityWindows(
   windows: AvailabilityWindow[],
 ): Promise<{ success: boolean; error?: string }> {
   const personnelId = await getMyPersonnelId();
   if (!personnelId) return { success: false, error: "Niet ingelogd" };
 
-  const daysToSave = windows.map((w) => w.dayOfWeek);
-
-  if (daysToSave.length > 0) {
-    await db
-      .delete(availabilityWindowsTable)
-      .where(
-        and(
-          eq(availabilityWindowsTable.personnelId, personnelId),
-          inArray(availabilityWindowsTable.dayOfWeek, daysToSave),
-        ),
-      );
-  } else {
-    await db
-      .delete(availabilityWindowsTable)
-      .where(eq(availabilityWindowsTable.personnelId, personnelId));
+  if (windows.length > 7) {
+    return { success: false, error: "Maximaal 7 dagen per week" };
   }
+
+  for (const w of windows) {
+    if (w.dayOfWeek < 0 || w.dayOfWeek > 6) {
+      return { success: false, error: "Ongeldige dag van de week" };
+    }
+    if (!TIME_RE.test(w.startTime) || !TIME_RE.test(w.endTime)) {
+      return { success: false, error: "Ongeldig tijdformaat (verwacht HH:MM)" };
+    }
+    if (w.startTime >= w.endTime) {
+      return { success: false, error: "Begintijd moet vóór eindtijd liggen" };
+    }
+  }
+
+  await db
+    .delete(availabilityWindowsTable)
+    .where(eq(availabilityWindowsTable.personnelId, personnelId));
 
   if (windows.length > 0) {
     await db.insert(availabilityWindowsTable).values(

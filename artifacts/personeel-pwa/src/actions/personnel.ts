@@ -2,7 +2,7 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@workspace/db";
-import { personnelTable } from "@workspace/db";
+import { personnelTable, rolesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
@@ -13,6 +13,7 @@ export type PersonnelProfile = {
   email: string;
   phone: string | null;
   region: string | null;
+  roleName: string | null;
   certificates: string[];
   diplomas: string[];
   knowledge: string[];
@@ -31,11 +32,13 @@ export async function getMyPersonnel(): Promise<PersonnelProfile | null> {
       email: personnelTable.email,
       phone: personnelTable.phone,
       region: personnelTable.region,
+      roleName: rolesTable.name,
       certificates: personnelTable.certificates,
       diplomas: personnelTable.diplomas,
       knowledge: personnelTable.knowledge,
     })
     .from(personnelTable)
+    .leftJoin(rolesTable, eq(rolesTable.id, personnelTable.roleId))
     .where(eq(personnelTable.userId, user.id))
     .limit(1);
 

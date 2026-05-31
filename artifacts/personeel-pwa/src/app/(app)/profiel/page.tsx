@@ -1,7 +1,10 @@
 import { getMyPersonnel } from "@/actions/personnel";
 import { signOut } from "@/actions/auth";
-import { Mail, MapPin, Award } from "lucide-react";
+import { Mail, MapPin, Award, Shield } from "lucide-react";
 import { PhoneEditForm } from "./PhoneEditForm";
+import type { LucideIcon } from "lucide-react";
+
+type ReadOnlyField = { Icon: LucideIcon; label: string; value: string };
 
 export default async function ProfielPage() {
   const profile = await getMyPersonnel();
@@ -16,10 +19,13 @@ export default async function ProfielPage() {
     );
   }
 
-  const readOnlyFields = [
-    { icon: Mail,   label: "E-mail", value: profile.email },
-    { icon: MapPin, label: "Regio",  value: profile.region },
-  ].filter((f) => f.value);
+  const readOnlyFields: ReadOnlyField[] = (
+    [
+      { Icon: Mail,   label: "E-mail", value: profile.email },
+      { Icon: Shield, label: "Rol",    value: profile.roleName },
+      { Icon: MapPin, label: "Regio",  value: profile.region },
+    ] as { Icon: LucideIcon; label: string; value: string | null }[]
+  ).filter((f): f is ReadOnlyField => !!f.value);
 
   const hasBadges =
     profile.certificates.length > 0 ||
@@ -47,24 +53,21 @@ export default async function ProfielPage() {
         </div>
 
         <div className="space-y-3 border-t pt-4" style={{ borderColor: "var(--color-border)" }}>
-          {/* Read-only fields */}
-          {readOnlyFields.map((f) => {
-            const Icon = f.icon;
-            return (
-              <div key={f.label} className="flex items-center gap-3">
-                <div
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                  style={{ backgroundColor: "rgba(0,183,179,0.1)" }}
-                >
-                  <Icon size={16} style={{ color: "var(--color-accent)" }} />
-                </div>
-                <div>
-                  <p className="text-xs" style={{ color: "var(--color-muted-fg)" }}>{f.label}</p>
-                  <p className="text-sm font-medium" style={{ color: "var(--color-primary)" }}>{f.value}</p>
-                </div>
+          {/* Read-only fields: email, rol, regio */}
+          {readOnlyFields.map(({ Icon, label, value }) => (
+            <div key={label} className="flex items-center gap-3">
+              <div
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                style={{ backgroundColor: "rgba(0,183,179,0.1)" }}
+              >
+                <Icon size={16} style={{ color: "var(--color-accent)" }} />
               </div>
-            );
-          })}
+              <div>
+                <p className="text-xs" style={{ color: "var(--color-muted-fg)" }}>{label}</p>
+                <p className="text-sm font-medium" style={{ color: "var(--color-primary)" }}>{value}</p>
+              </div>
+            </div>
+          ))}
 
           {/* Editable phone field */}
           <div className="flex items-start gap-3">
