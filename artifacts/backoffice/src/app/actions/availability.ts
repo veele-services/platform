@@ -16,7 +16,6 @@ import { requirePermission } from "@/lib/auth/permissions";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, LeaveType, AvailabilityStatus };
-export { LEAVE_TYPES };
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 

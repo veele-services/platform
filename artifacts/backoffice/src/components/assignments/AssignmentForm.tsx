@@ -22,8 +22,6 @@ import {
   createAssignment,
   updateAssignment,
   getObjectsByCustomer,
-  ASSIGNMENT_STATUSES,
-  ASSIGNMENT_PRIORITIES,
   type CustomerOption,
   type ObjectOption,
   type AssignmentFormInput,
@@ -31,6 +29,7 @@ import {
   type AssignmentPriority,
   type ActionResult,
 } from "@/app/actions/assignments";
+import { ASSIGNMENT_STATUSES, ASSIGNMENT_PRIORITIES } from "@/types/assignments";
 
 // ─── Dutch labels ─────────────────────────────────────────────────────────────
 
