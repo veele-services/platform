@@ -213,7 +213,14 @@ export async function getDashboardActionItems(): Promise<DashboardActionItems> {
                 db
                   .select({ id: assignmentPersonnelTable.id })
                   .from(assignmentPersonnelTable)
-                  .where(eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id)),
+                  .where(
+                    and(
+                      eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id),
+                      // Only confirmed (assigned) links count — 'suggested' candidates
+                      // don't yet constitute confirmed personnel for this assignment
+                      eq(assignmentPersonnelTable.status, "assigned"),
+                    ),
+                  ),
               ),
             ),
           )

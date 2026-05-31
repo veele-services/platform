@@ -94,6 +94,8 @@ export type AssignmentDetail = {
     personnelId: string;
     firstName:   string;
     lastName:    string;
+    /** 'assigned' = confirmed by planner; 'suggested' = self-applied via PWA pending confirmation */
+    linkStatus:  string;
   }>;
   tasks: Array<{
     id:           string;
@@ -223,6 +225,7 @@ export async function listAssignments(params: {
         personnelCount: sql<number>`(
           SELECT count(*)::int FROM assignment_personnel ap
           WHERE ap.assignment_id = ${assignmentsTable.id}
+            AND ap.status = 'assigned'
         )`,
       })
       .from(assignmentsTable)
@@ -295,11 +298,13 @@ export async function getAssignment(id: string): Promise<AssignmentDetail | null
       .select({
         id:          assignmentPersonnelTable.id,
         personnelId: assignmentPersonnelTable.personnelId,
+        linkStatus:  assignmentPersonnelTable.status,
         firstName:   personnelTable.firstName,
         lastName:    personnelTable.lastName,
       })
       .from(assignmentPersonnelTable)
       .leftJoin(personnelTable, eq(assignmentPersonnelTable.personnelId, personnelTable.id))
+      // Show ALL links (assigned + suggested) so planner can review and confirm candidates
       .where(eq(assignmentPersonnelTable.assignmentId, id))
       .orderBy(asc(personnelTable.lastName)),
 
@@ -333,8 +338,9 @@ export async function getAssignment(id: string): Promise<AssignmentDetail | null
     personnel: personnel.map((p) => ({
       id:          p.id,
       personnelId: p.personnelId,
-      firstName:   p.firstName ?? "",
-      lastName:    p.lastName  ?? "",
+      firstName:   p.firstName  ?? "",
+      lastName:    p.lastName   ?? "",
+      linkStatus:  p.linkStatus,
     })),
     tasks: tasks.map((t) => ({
       id:           t.id,
@@ -389,7 +395,13 @@ export async function getAssignmentsForWeek(
     })
     .from(assignmentPersonnelTable)
     .leftJoin(personnelTable, eq(assignmentPersonnelTable.personnelId, personnelTable.id))
-    .where(inArray(assignmentPersonnelTable.assignmentId, assignmentIds));
+    .where(
+      and(
+        inArray(assignmentPersonnelTable.assignmentId, assignmentIds),
+        // Only confirmed personnel in the week-view summary names list
+        eq(assignmentPersonnelTable.status, "assigned"),
+      ),
+    );
 
   const personnelByAssignment = new Map<string, string[]>();
   for (const p of personnelRows) {
@@ -527,7 +539,7 @@ export async function getDayTimelineData(dateStr: string): Promise<{
 
   const assignmentIds = asgnRows.map((a) => a.id);
 
-  // Personnel assignments for these assignments
+  // Personnel assignments for these assignments — only confirmed (assigned) links
   const pRows = await db
     .select({
       assignmentId: assignmentPersonnelTable.assignmentId,
@@ -537,7 +549,12 @@ export async function getDayTimelineData(dateStr: string): Promise<{
     })
     .from(assignmentPersonnelTable)
     .leftJoin(personnelTable, eq(assignmentPersonnelTable.personnelId, personnelTable.id))
-    .where(inArray(assignmentPersonnelTable.assignmentId, assignmentIds))
+    .where(
+      and(
+        inArray(assignmentPersonnelTable.assignmentId, assignmentIds),
+        eq(assignmentPersonnelTable.status, "assigned"),
+      ),
+    )
     .orderBy(asc(personnelTable.lastName), asc(personnelTable.firstName));
 
   const asgnMap = new Map(
@@ -735,6 +752,8 @@ export async function getPersonnelEligibilityForAssignment(
               eq(assignmentsTable.scheduledDate, dateStr),
               inArray(assignmentPersonnelTable.personnelId, personnelIds),
               ne(assignmentPersonnelTable.assignmentId, assignmentId),
+              // Only confirmed links count as conflicts — suggestions are not yet scheduled
+              eq(assignmentPersonnelTable.status, "assigned"),
               conflictWhereExtra,
             ),
           )
