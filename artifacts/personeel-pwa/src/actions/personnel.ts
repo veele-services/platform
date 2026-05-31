@@ -51,15 +51,17 @@ export async function getMyPersonnel(): Promise<PersonnelProfile | null> {
   if (byId) return mapProfile(byId);
 
   // ── First-login account-linking ───────────────────────────────────────────
-  // The employee was invited (invite_sent_at set) but user_id is still null
-  // in our DB because we don't set it at invite time. On first successful login
-  // we find their personnel record by email and link it.
+  // The employee was invited (invite_sent_at NOT NULL) but user_id is still null
+  // because we don't set it at invite time — we set it here on first PWA login.
+  // Requires invite_sent_at IS NOT NULL to ensure only genuinely invited personnel
+  // can self-link; anonymous sign-ups or unrelated accounts cannot claim records.
   const admin = createAdminClient();
   const { data: byEmail } = await admin
     .from("personnel")
-    .select("id, user_id")
+    .select("id, user_id, invite_sent_at")
     .eq("email", user.email!)
     .is("user_id", null)
+    .not("invite_sent_at", "is", null)
     .single();
 
   if (!byEmail) return null;

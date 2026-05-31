@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { getUserPermissions, requirePermission } from "@/lib/auth/permissions";
 import { signPermissions, COOKIE_NAME, COOKIE_MAX_AGE } from "@/lib/auth/session-permissions";
 import { db } from "@workspace/db";
@@ -153,7 +154,15 @@ export async function sendPasswordReset(personnelId: string): Promise<ActionResu
     return { success: false, message: "Medewerker heeft nog geen actief portaalaccount." };
   }
 
-  const { error } = await supabase.auth.resetPasswordForEmail(person.email);
+  // Use the admin API to generate and send the recovery link.
+  // generateLink({ type: 'recovery' }) sends the email via Supabase's configured
+  // SMTP transport AND returns the link — preferred over resetPasswordForEmail
+  // because it bypasses per-user rate limits and ensures the user exists first.
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.generateLink({
+    type:  "recovery",
+    email: person.email,
+  });
 
   if (error) {
     return { success: false, message: error.message ?? "Wachtwoord-reset mislukt." };
