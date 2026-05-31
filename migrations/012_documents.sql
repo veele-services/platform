@@ -78,12 +78,11 @@ WHERE r.name IN ('Management', 'Administration')
   AND p.resource = 'documents'
 ON CONFLICT DO NOTHING;
 
--- Grant documents:read to Planning (field planning team needs to see documents)
+-- Grant documents:read and documents:write to Planning (planners need to upload/manage documents)
 INSERT INTO role_permissions (role_id, permission_id)
 SELECT r.id, p.id
 FROM roles r
 CROSS JOIN permissions p
 WHERE r.name = 'Planning'
   AND p.resource = 'documents'
-  AND p.action = 'read'
 ON CONFLICT DO NOTHING;

@@ -93,15 +93,18 @@ export function AssignmentDocumentsPanel({
       const result = await uploadDocument(fd);
       if (result.success && result.data) {
         const newDoc: DocumentRow = {
-          id:         result.data.id,
-          name:       uploadName.trim(),
-          filename:   uploadFile.name,
-          mimeType:   uploadFile.type,
-          sizeBytes:  uploadFile.size,
-          entityType: "assignment",
-          entityId:   assignmentId,
-          uploadedBy: "",
-          createdAt:  new Date().toISOString(),
+          id:            result.data.id,
+          name:          uploadName.trim(),
+          filename:      uploadFile.name,
+          mimeType:      uploadFile.type,
+          sizeBytes:     uploadFile.size,
+          entityType:    "assignment",
+          entityId:      assignmentId,
+          entityName:    null,
+          uploadedBy:    "",
+          uploaderEmail: "",
+          uploaderName:  null,
+          createdAt:     new Date().toISOString(),
         };
         setDocuments((prev) => [newDoc, ...prev]);
         resetForm();

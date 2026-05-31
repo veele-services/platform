@@ -4,6 +4,7 @@ import { useState, useTransition, useRef } from "react";
 import {
   Upload, Download, Trash2, FileText, FileSpreadsheet,
   Image as ImageIcon, File, Plus, X, AlertCircle, CheckCircle2,
+  Link2,
 } from "lucide-react";
 import {
   uploadDocument,
@@ -25,12 +26,20 @@ const ENTITY_TYPE_LABELS: Record<DocumentEntityType | "all", string> = {
   general:    "Algemeen",
 };
 
-const UPLOAD_ENTITY_LABELS: Record<DocumentEntityType, string> = {
+const ENTITY_TYPE_SINGULAR: Record<DocumentEntityType, string> = {
   general:    "Algemeen",
   assignment: "Opdracht",
   customer:   "Klant",
   personnel:  "Personeelslid",
   object:     "Object",
+};
+
+const ENTITY_HREF: Record<DocumentEntityType, string> = {
+  general:    "",
+  assignment: "/assignments",
+  customer:   "/customers",
+  personnel:  "/personnel",
+  object:     "",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -48,18 +57,14 @@ function formatDate(iso: string): string {
 }
 
 function getMimeIcon(mimeType: string) {
-  if (mimeType === "application/pdf") {
+  if (mimeType === "application/pdf")
     return <FileText className="h-4 w-4 flex-shrink-0" style={{ color: "#DC2626" }} />;
-  }
-  if (mimeType.includes("spreadsheet") || mimeType.includes("excel")) {
+  if (mimeType.includes("spreadsheet") || mimeType.includes("excel"))
     return <FileSpreadsheet className="h-4 w-4 flex-shrink-0" style={{ color: "#16A34A" }} />;
-  }
-  if (mimeType.startsWith("image/")) {
+  if (mimeType.startsWith("image/"))
     return <ImageIcon className="h-4 w-4 flex-shrink-0" style={{ color: "#7C3AED" }} />;
-  }
-  if (mimeType.includes("word") || mimeType.includes("wordprocessing")) {
+  if (mimeType.includes("word") || mimeType.includes("wordprocessing"))
     return <FileText className="h-4 w-4 flex-shrink-0" style={{ color: "#1D4ED8" }} />;
-  }
   return <File className="h-4 w-4 flex-shrink-0" style={{ color: "#64748B" }} />;
 }
 
@@ -70,6 +75,40 @@ function getMimeBadge(mimeType: string): string {
   if (mimeType.includes("presentation") || mimeType.includes("powerpoint")) return "PPT";
   if (mimeType.startsWith("image/")) return "Afbeelding";
   return "Bestand";
+}
+
+function EntityLink({ doc }: { doc: DocumentRow }) {
+  if (doc.entityType === "general" || !doc.entityId) {
+    return <span style={{ color: "#94A3B8" }}>—</span>;
+  }
+
+  const label = doc.entityName ?? doc.entityId.slice(0, 8) + "…";
+  const base  = ENTITY_HREF[doc.entityType];
+
+  if (base && doc.entityName) {
+    return (
+      <a
+        href={`${base}/${doc.entityId}`}
+        className="inline-flex items-center gap-1 text-xs hover:underline truncate max-w-[180px]"
+        style={{ color: "#00B7B3" }}
+        title={doc.entityName}
+      >
+        <Link2 className="h-3 w-3 flex-shrink-0" />
+        {label}
+      </a>
+    );
+  }
+
+  return (
+    <span
+      className="inline-flex items-center gap-1 text-xs truncate max-w-[180px]"
+      style={{ color: "#475569" }}
+      title={doc.entityId}
+    >
+      <Link2 className="h-3 w-3 flex-shrink-0" />
+      {label}
+    </span>
+  );
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -131,15 +170,18 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
       const result = await uploadDocument(fd);
       if (result.success && result.data) {
         const newDoc: DocumentRow = {
-          id:         result.data.id,
-          name:       uploadName.trim(),
-          filename:   uploadFile.name,
-          mimeType:   uploadFile.type,
-          sizeBytes:  uploadFile.size,
-          entityType: uploadEntityType,
-          entityId:   uploadEntityId.trim() || null,
-          uploadedBy: "",
-          createdAt:  new Date().toISOString(),
+          id:            result.data.id,
+          name:          uploadName.trim(),
+          filename:      uploadFile.name,
+          mimeType:      uploadFile.type,
+          sizeBytes:     uploadFile.size,
+          entityType:    uploadEntityType,
+          entityId:      uploadEntityId.trim() || null,
+          entityName:    null,
+          uploadedBy:    "",
+          uploaderEmail: "",
+          uploaderName:  null,
+          createdAt:     new Date().toISOString(),
         };
         setDocuments((prev) => [newDoc, ...prev]);
         resetUploadForm();
@@ -159,10 +201,7 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
       if (result.success && result.data) {
         window.open(result.data.url, "_blank", "noopener,noreferrer");
       } else {
-        showFlash(
-          (result as { message?: string }).message ?? "Download mislukt.",
-          true,
-        );
+        showFlash((result as { message?: string }).message ?? "Download mislukt.", true);
       }
     });
   }
@@ -177,10 +216,7 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
         setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
         showFlash("Document verwijderd.", false);
       } else {
-        showFlash(
-          (result as { message?: string }).message ?? "Verwijderen mislukt.",
-          true,
-        );
+        showFlash((result as { message?: string }).message ?? "Verwijderen mislukt.", true);
       }
     });
   }
@@ -274,12 +310,15 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
               </label>
               <select
                 value={uploadEntityType}
-                onChange={(e) => setUploadEntityType(e.target.value as DocumentEntityType)}
+                onChange={(e) => {
+                  setUploadEntityType(e.target.value as DocumentEntityType);
+                  setUploadEntityId("");
+                }}
                 className="veele-input w-full"
                 disabled={isPending}
               >
                 {DOCUMENT_ENTITY_TYPES.map((t) => (
-                  <option key={t} value={t}>{UPLOAD_ENTITY_LABELS[t]}</option>
+                  <option key={t} value={t}>{ENTITY_TYPE_SINGULAR[t]}</option>
                 ))}
               </select>
             </div>
@@ -288,7 +327,10 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
           {uploadEntityType !== "general" && (
             <div>
               <label className="block text-xs font-medium mb-1" style={{ color: "#374151" }}>
-                Entiteit-ID <span className="font-normal" style={{ color: "#94A3B8" }}>(optioneel, UUID van de gekoppelde {UPLOAD_ENTITY_LABELS[uploadEntityType].toLowerCase()})</span>
+                Entiteit-ID{" "}
+                <span className="font-normal" style={{ color: "#94A3B8" }}>
+                  (optioneel — UUID van de gekoppelde {ENTITY_TYPE_SINGULAR[uploadEntityType].toLowerCase()})
+                </span>
               </label>
               <input
                 type="text"
@@ -357,8 +399,7 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
             <p className="text-sm">
               {activeFilter === "all"
                 ? "Nog geen documenten opgeslagen."
-                : `Geen documenten gevonden in categorie "${ENTITY_TYPE_LABELS[activeFilter]}".`
-              }
+                : `Geen documenten in categorie "${ENTITY_TYPE_LABELS[activeFilter]}".`}
             </p>
             {canWrite && !showUpload && (
               <button
@@ -372,96 +413,138 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
             )}
           </div>
         ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ borderBottom: "1px solid #F1F5F9" }}>
-                {["Naam", "Type", "Categorie", "Grootte", "Geüpload op", ""].map((h) => (
-                  <th
-                    key={h}
-                    className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide"
-                    style={{ color: "#94A3B8" }}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr style={{ borderBottom: "1px solid #F1F5F9" }}>
+                  {["Naam", "Type", "Categorie", "Koppeling", "Geüpload door", "Grootte", "Datum", ""].map((h) => (
+                    <th
+                      key={h}
+                      className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide whitespace-nowrap"
+                      style={{ color: "#94A3B8" }}
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((doc) => (
+                  <tr
+                    key={doc.id}
+                    className="hover:bg-slate-50"
+                    style={{ borderBottom: "1px solid #F8FAFC" }}
                   >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map((doc) => (
-                <tr
-                  key={doc.id}
-                  className="hover:bg-slate-50"
-                  style={{ borderBottom: "1px solid #F8FAFC" }}
-                >
-                  <td className="px-4 py-3">
-                    <div className="flex items-center gap-2 min-w-0">
-                      {getMimeIcon(doc.mimeType)}
-                      <span
-                        className="font-medium truncate max-w-[200px]"
-                        style={{ color: "#081D3A" }}
-                        title={doc.name}
-                      >
-                        {doc.name}
-                      </span>
-                    </div>
-                    <p className="text-xs mt-0.5 ml-6 truncate max-w-[200px]" style={{ color: "#94A3B8" }} title={doc.filename}>
-                      {doc.filename}
-                    </p>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium"
-                      style={{ backgroundColor: "#F1F5F9", color: "#475569" }}
-                    >
-                      {getMimeBadge(doc.mimeType)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3">
-                    <span
-                      className="inline-flex items-center rounded-full px-2 py-0.5 text-xs"
-                      style={{ backgroundColor: "#EFF6FF", color: "#1D4ED8" }}
-                    >
-                      {ENTITY_TYPE_LABELS[doc.entityType]}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: "#64748B" }}>
-                    {formatFileSize(doc.sizeBytes)}
-                  </td>
-                  <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: "#64748B" }}>
-                    {formatDate(doc.createdAt)}
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <button
-                        onClick={() => handleDownload(doc)}
-                        disabled={isPending && downloadingId === doc.id}
-                        title="Downloaden"
-                        className="rounded p-1.5 hover:bg-slate-100 transition-colors disabled:opacity-50"
-                      >
-                        <Download
-                          className="h-4 w-4"
-                          style={{ color: downloadingId === doc.id ? "#94A3B8" : "#00B7B3" }}
-                        />
-                      </button>
-                      {canWrite && (
-                        <button
-                          onClick={() => handleDelete(doc)}
-                          disabled={isPending && deletingId === doc.id}
-                          title="Verwijderen"
-                          className="rounded p-1.5 hover:bg-red-50 transition-colors disabled:opacity-50"
+                    {/* Naam + bestandsnaam */}
+                    <td className="px-4 py-3">
+                      <div className="flex items-center gap-2 min-w-0">
+                        {getMimeIcon(doc.mimeType)}
+                        <span
+                          className="font-medium truncate max-w-[160px]"
+                          style={{ color: "#081D3A" }}
+                          title={doc.name}
                         >
-                          <Trash2
+                          {doc.name}
+                        </span>
+                      </div>
+                      <p
+                        className="text-xs mt-0.5 ml-6 truncate max-w-[160px]"
+                        style={{ color: "#94A3B8" }}
+                        title={doc.filename}
+                      >
+                        {doc.filename}
+                      </p>
+                    </td>
+
+                    {/* Type badge */}
+                    <td className="px-4 py-3">
+                      <span
+                        className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium"
+                        style={{ backgroundColor: "#F1F5F9", color: "#475569" }}
+                      >
+                        {getMimeBadge(doc.mimeType)}
+                      </span>
+                    </td>
+
+                    {/* Categorie */}
+                    <td className="px-4 py-3">
+                      <span
+                        className="inline-flex items-center rounded-full px-2 py-0.5 text-xs"
+                        style={{ backgroundColor: "#EFF6FF", color: "#1D4ED8" }}
+                      >
+                        {ENTITY_TYPE_SINGULAR[doc.entityType]}
+                      </span>
+                    </td>
+
+                    {/* Koppeling */}
+                    <td className="px-4 py-3">
+                      <EntityLink doc={doc} />
+                    </td>
+
+                    {/* Uploader */}
+                    <td className="px-4 py-3">
+                      <div className="text-xs max-w-[140px]">
+                        {doc.uploaderName ? (
+                          <>
+                            <p className="font-medium truncate" style={{ color: "#374151" }} title={doc.uploaderName}>
+                              {doc.uploaderName}
+                            </p>
+                            <p className="truncate" style={{ color: "#94A3B8" }} title={doc.uploaderEmail}>
+                              {doc.uploaderEmail}
+                            </p>
+                          </>
+                        ) : (
+                          <p className="truncate" style={{ color: "#475569" }} title={doc.uploaderEmail}>
+                            {doc.uploaderEmail}
+                          </p>
+                        )}
+                      </div>
+                    </td>
+
+                    {/* Grootte */}
+                    <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: "#64748B" }}>
+                      {formatFileSize(doc.sizeBytes)}
+                    </td>
+
+                    {/* Datum */}
+                    <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: "#64748B" }}>
+                      {formatDate(doc.createdAt)}
+                    </td>
+
+                    {/* Acties */}
+                    <td className="px-4 py-3 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleDownload(doc)}
+                          disabled={isPending && downloadingId === doc.id}
+                          title="Downloaden"
+                          className="rounded p-1.5 hover:bg-slate-100 transition-colors disabled:opacity-50"
+                        >
+                          <Download
                             className="h-4 w-4"
-                            style={{ color: deletingId === doc.id ? "#94A3B8" : "#DC2626" }}
+                            style={{ color: downloadingId === doc.id ? "#94A3B8" : "#00B7B3" }}
                           />
                         </button>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                        {canWrite && (
+                          <button
+                            onClick={() => handleDelete(doc)}
+                            disabled={isPending && deletingId === doc.id}
+                            title="Verwijderen"
+                            className="rounded p-1.5 hover:bg-red-50 transition-colors disabled:opacity-50"
+                          >
+                            <Trash2
+                              className="h-4 w-4"
+                              style={{ color: deletingId === doc.id ? "#94A3B8" : "#DC2626" }}
+                            />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 

@@ -5,12 +5,17 @@ import { db } from "@workspace/db";
 import {
   documentsTable,
   auditLogTable,
+  assignmentsTable,
+  customersTable,
+  personnelTable,
+  objectsTable,
   DOCUMENT_ENTITY_TYPES,
   type DocumentEntityType,
 } from "@workspace/db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
 import type { ActionResult } from "./customers";
 
@@ -20,15 +25,18 @@ export { DOCUMENT_ENTITY_TYPES };
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type DocumentRow = {
-  id:          string;
-  name:        string;
-  filename:    string;
-  mimeType:    string;
-  sizeBytes:   number;
-  entityType:  DocumentEntityType;
-  entityId:    string | null;
-  uploadedBy:  string;
-  createdAt:   string;
+  id:            string;
+  name:          string;
+  filename:      string;
+  mimeType:      string;
+  sizeBytes:     number;
+  entityType:    DocumentEntityType;
+  entityId:      string | null;
+  entityName:    string | null;
+  uploadedBy:    string;
+  uploaderEmail: string;
+  uploaderName:  string | null;
+  createdAt:     string;
 };
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -67,6 +75,68 @@ function buildStoragePath(
   return `general/${docId}.${ext}`;
 }
 
+// ─── Entity name enrichment ───────────────────────────────────────────────────
+
+async function enrichEntityNames(
+  rows: Array<{ entityType: string; entityId: string | null }>,
+): Promise<Map<string, string>> {
+  // Group entity IDs by type
+  const byType: Record<string, string[]> = {};
+  for (const r of rows) {
+    if (!r.entityId) continue;
+    if (!byType[r.entityType]) byType[r.entityType] = [];
+    if (!byType[r.entityType].includes(r.entityId)) {
+      byType[r.entityType].push(r.entityId);
+    }
+  }
+
+  const nameMap = new Map<string, string>(); // entityId → display name
+
+  await Promise.all([
+    byType["assignment"]?.length
+      ? db
+          .select({ id: assignmentsTable.id, title: assignmentsTable.title })
+          .from(assignmentsTable)
+          .where(inArray(assignmentsTable.id, byType["assignment"]))
+          .then((rows) => rows.forEach((r) => nameMap.set(r.id, r.title)))
+      : Promise.resolve(),
+
+    byType["customer"]?.length
+      ? db
+          .select({ id: customersTable.id, name: customersTable.name })
+          .from(customersTable)
+          .where(inArray(customersTable.id, byType["customer"]))
+          .then((rows) => rows.forEach((r) => nameMap.set(r.id, r.name)))
+      : Promise.resolve(),
+
+    byType["personnel"]?.length
+      ? db
+          .select({
+            id:        personnelTable.id,
+            firstName: personnelTable.firstName,
+            lastName:  personnelTable.lastName,
+          })
+          .from(personnelTable)
+          .where(inArray(personnelTable.id, byType["personnel"]))
+          .then((rows) =>
+            rows.forEach((r) =>
+              nameMap.set(r.id, `${r.firstName ?? ""} ${r.lastName ?? ""}`.trim()),
+            ),
+          )
+      : Promise.resolve(),
+
+    byType["object"]?.length
+      ? db
+          .select({ id: objectsTable.id, name: objectsTable.name })
+          .from(objectsTable)
+          .where(inArray(objectsTable.id, byType["object"]))
+          .then((rows) => rows.forEach((r) => nameMap.set(r.id, r.name)))
+      : Promise.resolve(),
+  ]);
+
+  return nameMap;
+}
+
 // ─── listDocuments ────────────────────────────────────────────────────────────
 
 export async function listDocuments(filter?: {
@@ -98,20 +168,45 @@ export async function listDocuments(filter?: {
     })
     .from(documentsTable)
     .where(conditions.length > 0 ? and(...conditions) : undefined)
-    .orderBy(desc(documentsTable.createdAt))
-    .limit(200);
+    .orderBy(desc(documentsTable.createdAt));
 
-  return rows.map((r) => ({
-    id:         r.id,
-    name:       r.name,
-    filename:   r.filename,
-    mimeType:   r.mimeType,
-    sizeBytes:  r.sizeBytes,
-    entityType: r.entityType as DocumentEntityType,
-    entityId:   r.entityId ?? null,
-    uploadedBy: r.uploadedBy,
-    createdAt:  r.createdAt.toISOString(),
-  }));
+  if (rows.length === 0) return [];
+
+  // Parallel enrichment: entity names + uploader names
+  const [entityNameMap, userMap] = await Promise.all([
+    enrichEntityNames(rows),
+    (async () => {
+      const admin = createAdminClient();
+      const { data } = await admin.auth.admin.listUsers({ perPage: 1000 });
+      const map = new Map<string, { email: string; name: string | null }>();
+      for (const u of data?.users ?? []) {
+        const meta = u.user_metadata as { full_name?: string; name?: string } | undefined;
+        map.set(u.id, {
+          email: u.email ?? u.id,
+          name:  (meta?.full_name ?? meta?.name) ?? null,
+        });
+      }
+      return map;
+    })(),
+  ]);
+
+  return rows.map((r) => {
+    const uploader = userMap.get(r.uploadedBy);
+    return {
+      id:            r.id,
+      name:          r.name,
+      filename:      r.filename,
+      mimeType:      r.mimeType,
+      sizeBytes:     r.sizeBytes,
+      entityType:    r.entityType as DocumentEntityType,
+      entityId:      r.entityId ?? null,
+      entityName:    r.entityId ? (entityNameMap.get(r.entityId) ?? null) : null,
+      uploadedBy:    r.uploadedBy,
+      uploaderEmail: uploader?.email ?? r.uploadedBy,
+      uploaderName:  uploader?.name ?? null,
+      createdAt:     r.createdAt.toISOString(),
+    };
+  });
 }
 
 // ─── uploadDocument ───────────────────────────────────────────────────────────
@@ -295,7 +390,7 @@ export async function getDocumentDownloadUrl(
     const supabase = await createClient();
     const { data, error } = await supabase.storage
       .from(BUCKET)
-      .createSignedUrl(doc.storagePath, 3600); // 1 hour TTL
+      .createSignedUrl(doc.storagePath, 3600); // 1-hour TTL
 
     if (error || !data) {
       return { success: false, message: "Kan download-URL niet genereren." };
