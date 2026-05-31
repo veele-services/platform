@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Receipt, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { Receipt, CheckCircle2, Clock, XCircle, Download } from "lucide-react";
 import { getMyInvoices } from "@/actions/invoices";
 import { PaidBanner } from "@/components/PaidBanner";
 
@@ -125,17 +125,35 @@ function InvoiceGroup({
                 </span>
               </div>
 
-              {inv.status === "sent" && inv.checkoutUrl && (
+              {(inv.status === "sent" || inv.status === "paid") && (
                 <div className="mt-3 border-t pt-3" style={{ borderColor: "var(--color-border)" }}>
-                  <Link
-                    href={inv.checkoutUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
-                    style={{ backgroundColor: "var(--color-accent)" }}
-                  >
-                    Nu betalen
-                  </Link>
+                  <div className="flex flex-col gap-2">
+                    {inv.status === "sent" && inv.checkoutUrl && (
+                      <Link
+                        href={inv.checkoutUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
+                        style={{ backgroundColor: "var(--color-accent)" }}
+                      >
+                        Nu betalen
+                      </Link>
+                    )}
+                    <Link
+                      href={`/api/factuur/${inv.id}/pdf`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      prefetch={false}
+                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-medium"
+                      style={{
+                        backgroundColor: "var(--color-muted)",
+                        color:           "var(--color-secondary)",
+                      }}
+                    >
+                      <Download size={14} />
+                      PDF downloaden
+                    </Link>
+                  </div>
                 </div>
               )}
             </div>

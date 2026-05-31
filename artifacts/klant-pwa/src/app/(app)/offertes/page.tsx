@@ -1,6 +1,7 @@
 import { FileText, CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
 import { getMyQuotes } from "@/actions/quotes";
 import { OfferteActieButtons } from "@/components/OfferteActieButtons";
+import { OfferteRegelitems } from "@/components/OfferteRegelitems";
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "";
@@ -110,6 +111,8 @@ function QuoteGroup({
                   {cfg.label}
                 </span>
               </div>
+
+              <OfferteRegelitems lineItems={q.lineItems} amount={q.amount} />
 
               {needsAction && (
                 <OfferteActieButtons assignmentId={q.assignmentId} title={q.assignmentTitle} />
