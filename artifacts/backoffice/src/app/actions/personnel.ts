@@ -43,6 +43,8 @@ export type PersonnelRow = {
   isActive:           boolean;
   isAvailable:        boolean;
   availabilityStatus: import("./availability").AvailabilityStatus;
+  userId:       string | null;
+  inviteSentAt: string | null;
   createdAt:          string;
 };
 
@@ -50,6 +52,7 @@ export type PersonnelDetail = {
   id:           string;
   code:         string;
   userId:       string | null;
+  inviteSentAt: string | null;
   firstName:    string;
   lastName:     string;
   email:        string;
@@ -155,6 +158,8 @@ export async function listPersonnel(params: {
         certificates: personnelTable.certificates,
         isActive:     personnelTable.isActive,
         isAvailable:  personnelTable.isAvailable,
+        userId:       personnelTable.userId,
+        inviteSentAt: personnelTable.inviteSentAt,
         createdAt:    personnelTable.createdAt,
       })
       .from(personnelTable)
@@ -178,6 +183,7 @@ export async function listPersonnel(params: {
     rows: rows.map((r) => ({
       ...r,
       createdAt:          r.createdAt.toISOString(),
+      inviteSentAt:       r.inviteSentAt ? r.inviteSentAt.toISOString() : null,
       availabilityStatus: statusMap[r.id] ?? "niet_ingesteld",
     })),
     total: countRows[0]?.total ?? 0,
@@ -192,6 +198,7 @@ export async function getPersonnel(id: string): Promise<PersonnelDetail | null> 
       id:           personnelTable.id,
       code:         personnelTable.code,
       userId:       personnelTable.userId,
+      inviteSentAt: personnelTable.inviteSentAt,
       firstName:    personnelTable.firstName,
       lastName:     personnelTable.lastName,
       email:        personnelTable.email,
@@ -216,6 +223,7 @@ export async function getPersonnel(id: string): Promise<PersonnelDetail | null> 
   const r = rows[0];
   return {
     ...r,
+    inviteSentAt: r.inviteSentAt ? r.inviteSentAt.toISOString() : null,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
   };
@@ -420,10 +428,11 @@ export async function invitePersonnel(id: string): Promise<ActionResult> {
 
   const [person] = await db
     .select({
-      firstName: personnelTable.firstName,
-      lastName:  personnelTable.lastName,
-      email:     personnelTable.email,
-      userId:    personnelTable.userId,
+      firstName:    personnelTable.firstName,
+      lastName:     personnelTable.lastName,
+      email:        personnelTable.email,
+      userId:       personnelTable.userId,
+      inviteSentAt: personnelTable.inviteSentAt,
     })
     .from(personnelTable)
     .where(eq(personnelTable.id, id))
@@ -431,7 +440,7 @@ export async function invitePersonnel(id: string): Promise<ActionResult> {
 
   if (!person) return { success: false, message: "Medewerker niet gevonden." };
   if (person.userId) {
-    return { success: false, message: "Medewerker heeft al een gekoppeld account." };
+    return { success: false, message: "Medewerker heeft al een actief portaalaccount." };
   }
 
   const admin = createAdminClient();
@@ -439,16 +448,50 @@ export async function invitePersonnel(id: string): Promise<ActionResult> {
     person.email,
   );
 
-  if (inviteError || !inviteData?.user) {
+  if (inviteError) {
+    // User already confirmed their Supabase account (clicked a previous invite link).
+    // Look up their ID via generateLink and link the personnel record.
+    const isAlreadyRegistered =
+      inviteError.message?.toLowerCase().includes("already registered") ||
+      inviteError.code === "email_exists";
+
+    if (isAlreadyRegistered) {
+      const { data: linkData } = await admin.auth.admin.generateLink({
+        type:  "recovery",
+        email: person.email,
+      });
+      if (linkData?.user?.id) {
+        await db
+          .update(personnelTable)
+          .set({ userId: linkData.user.id, inviteSentAt: new Date(), updatedAt: new Date() })
+          .where(eq(personnelTable.id, id));
+        await db.insert(auditLogTable).values({
+          userId:     actor.id,
+          action:     "invite_linked",
+          resource:   "personnel",
+          resourceId: id,
+          metadata:   { name: `${person.firstName} ${person.lastName}`, email: person.email },
+        });
+        revalidatePath(`/personnel/${id}`);
+        return { success: true };
+      }
+    }
+
     return {
       success: false,
-      message: inviteError?.message ?? "Uitnodiging versturen mislukt.",
+      message: inviteError.message ?? "Uitnodiging versturen mislukt.",
     };
   }
 
+  if (!inviteData?.user) {
+    return { success: false, message: "Uitnodiging versturen mislukt." };
+  }
+
+  // Invite sent — record timestamp. Do NOT set userId yet; that happens when the
+  // employee logs into the Personeel-PWA for the first time (account-linking).
   await db
     .update(personnelTable)
-    .set({ userId: inviteData.user.id, updatedAt: new Date() })
+    .set({ inviteSentAt: new Date(), updatedAt: new Date() })
     .where(eq(personnelTable.id, id));
 
   await db.insert(auditLogTable).values({
@@ -456,11 +499,7 @@ export async function invitePersonnel(id: string): Promise<ActionResult> {
     action:     "invite",
     resource:   "personnel",
     resourceId: id,
-    metadata:   {
-      name:           `${person.firstName} ${person.lastName}`,
-      email:          person.email,
-      invitedUserId:  inviteData.user.id,
-    },
+    metadata:   { name: `${person.firstName} ${person.lastName}`, email: person.email },
   });
 
   revalidatePath(`/personnel/${id}`);

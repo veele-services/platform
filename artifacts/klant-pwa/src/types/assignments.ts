@@ -1,0 +1,41 @@
+import type { AssignmentStatus } from "@workspace/db";
+
+export const STATUS_LABEL: Record<AssignmentStatus, string> = {
+  requested:         "Aangevraagd",
+  review:            "In beoordeling",
+  quote_preparation: "Offerte voorbereiding",
+  awaiting_approval: "Wacht op goedkeuring",
+  approved:          "Goedgekeurd",
+  plannable:         "Wordt ingepland",
+  scheduled:         "Ingepland",
+  seen:              "Gezien",
+  in_progress:       "In uitvoering",
+  not_completed:     "Niet afgerond",
+  completed:         "Afgerond",
+  report_submitted:  "Rapport ingediend",
+  report_approved:   "Rapport goedgekeurd",
+  invoice_ready:     "Factuur klaar",
+  invoiced:          "Gefactureerd",
+  paid:              "Betaald",
+  closed:            "Gesloten",
+};
+
+export const STATUS_COLOR: Record<AssignmentStatus, { bg: string; color: string }> = {
+  requested:         { bg: "#EFF6FF", color: "#1D4ED8" },
+  review:            { bg: "#FEF9C3", color: "#A16207" },
+  quote_preparation: { bg: "#FEF9C3", color: "#A16207" },
+  awaiting_approval: { bg: "#FEF9C3", color: "#A16207" },
+  approved:          { bg: "#DCFCE7", color: "#15803D" },
+  plannable:         { bg: "#E0F2FE", color: "#0369A1" },
+  scheduled:         { bg: "#E0F2FE", color: "#0369A1" },
+  seen:              { bg: "#E0F2FE", color: "#0369A1" },
+  in_progress:       { bg: "#FEF3C7", color: "#D97706" },
+  not_completed:     { bg: "#FEE2E2", color: "#DC2626" },
+  completed:         { bg: "#DCFCE7", color: "#15803D" },
+  report_submitted:  { bg: "#F0FDF4", color: "#16A34A" },
+  report_approved:   { bg: "#F0FDF4", color: "#16A34A" },
+  invoice_ready:     { bg: "#EDE9FE", color: "#6D28D9" },
+  invoiced:          { bg: "#EDE9FE", color: "#6D28D9" },
+  paid:              { bg: "#DCFCE7", color: "#15803D" },
+  closed:            { bg: "#F1F5F9", color: "#64748B" },
+};

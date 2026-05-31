@@ -101,6 +101,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
             personnelName={fullName}
             personnelEmail={person.email}
             userId={person.userId}
+            inviteSentAt={person.inviteSentAt}
             roles={roles}
           />
         )}
@@ -203,14 +204,27 @@ export default async function PersonnelDetailPage({ params }: Props) {
                 }
               />
               <InfoRow
-                icon={person.userId
-                  ? <UserCheck className="h-4 w-4" style={{ color: "#00B7B3" }} />
-                  : <UserX     className="h-4 w-4" style={{ color: "#94A3B8" }} />}
+                icon={
+                  person.userId
+                    ? <UserCheck className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                    : person.inviteSentAt
+                      ? <Mail className="h-4 w-4" style={{ color: "#F59E0B" }} />
+                      : <UserX className="h-4 w-4" style={{ color: "#94A3B8" }} />
+                }
                 label="Portaalaccount"
                 value={
-                  <span style={{ color: person.userId ? "#00B7B3" : "#94A3B8" }}>
-                    {person.userId ? "Gekoppeld" : "Geen account"}
-                  </span>
+                  person.userId ? (
+                    <span style={{ color: "#00B7B3" }}>Portaal actief</span>
+                  ) : person.inviteSentAt ? (
+                    <span style={{ color: "#92400E" }}>
+                      Uitnodiging verstuurd op{" "}
+                      {new Date(person.inviteSentAt).toLocaleDateString("nl-NL", {
+                        day: "2-digit", month: "short", year: "numeric",
+                      })}
+                    </span>
+                  ) : (
+                    <span style={{ color: "#94A3B8" }}>Geen account</span>
+                  )
                 }
               />
             </dl>

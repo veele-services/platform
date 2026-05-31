@@ -4,12 +4,13 @@ import { db } from "@workspace/db";
 import {
   availabilityWindowsTable,
   leavePeriodsTable,
+  personnelTable,
   auditLogTable,
   LEAVE_TYPES,
   type LeaveType,
   type AvailabilityStatus,
 } from "@workspace/db";
-import { eq, and, lte, gte, inArray, isNull, or } from "drizzle-orm";
+import { eq, and, lte, gte, inArray, isNull, or, asc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/permissions";
@@ -287,24 +288,186 @@ export async function deleteLeavePeriod(
   return { success: true };
 }
 
+// ─── Leave Approval Workflow ──────────────────────────────────────────────────
+
+/**
+ * Management-only: approve a pending leave request from personnel.
+ */
+export async function approveLeavePeriod(
+  id:          string,
+  personnelId: string,
+): Promise<ActionResult> {
+  await requirePermission("personnel", "write");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [period] = await db
+    .select({ id: leavePeriodsTable.id, status: leavePeriodsTable.status })
+    .from(leavePeriodsTable)
+    .where(
+      and(
+        eq(leavePeriodsTable.id, id),
+        eq(leavePeriodsTable.personnelId, personnelId),
+      ),
+    )
+    .limit(1);
+
+  if (!period) return { success: false, message: "Verlofperiode niet gevonden." };
+  if (period.status !== "pending") return { success: false, message: "Alleen aanvragen in afwachting kunnen worden goedgekeurd." };
+
+  await db
+    .update(leavePeriodsTable)
+    .set({ status: "approved" })
+    .where(eq(leavePeriodsTable.id, id));
+
+  await db.insert(auditLogTable).values({
+    userId:     user.id,
+    action:     "update",
+    resource:   "personnel",
+    resourceId: personnelId,
+    metadata:   { action: "approve_leave_period", leavePeriodId: id },
+  });
+
+  revalidatePath(`/personnel/${personnelId}`);
+  revalidatePath("/personnel");
+  revalidatePath("/personnel/verlof");
+  return { success: true };
+}
+
+/**
+ * Management-only: reject a pending leave request from personnel.
+ */
+export async function rejectLeavePeriod(
+  id:          string,
+  personnelId: string,
+): Promise<ActionResult> {
+  await requirePermission("personnel", "write");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [period] = await db
+    .select({ id: leavePeriodsTable.id, status: leavePeriodsTable.status })
+    .from(leavePeriodsTable)
+    .where(
+      and(
+        eq(leavePeriodsTable.id, id),
+        eq(leavePeriodsTable.personnelId, personnelId),
+      ),
+    )
+    .limit(1);
+
+  if (!period) return { success: false, message: "Verlofperiode niet gevonden." };
+  if (period.status !== "pending") return { success: false, message: "Alleen aanvragen in afwachting kunnen worden afgewezen." };
+
+  await db
+    .update(leavePeriodsTable)
+    .set({ status: "rejected" })
+    .where(eq(leavePeriodsTable.id, id));
+
+  await db.insert(auditLogTable).values({
+    userId:     user.id,
+    action:     "update",
+    resource:   "personnel",
+    resourceId: personnelId,
+    metadata:   { action: "reject_leave_period", leavePeriodId: id },
+  });
+
+  revalidatePath(`/personnel/${personnelId}`);
+  revalidatePath("/personnel");
+  revalidatePath("/personnel/verlof");
+  return { success: true };
+}
+
+// ─── Global pending leave requests ───────────────────────────────────────────
+
+export type PendingLeaveRequest = {
+  id:          string;
+  personnelId: string;
+  firstName:   string;
+  lastName:    string;
+  startDate:   string;
+  endDate:     string | null;
+  leaveType:   LeaveType;
+  reason:      string | null;
+  createdAt:   string;
+};
+
+/**
+ * Count pending leave requests — for sidebar badge.
+ */
+export async function getPendingLeaveCount(): Promise<number> {
+  try {
+    await requirePermission("personnel", "read");
+  } catch {
+    return 0;
+  }
+  const [row] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(leavePeriodsTable)
+    .where(eq(leavePeriodsTable.status, "pending"));
+  return row?.count ?? 0;
+}
+
+/**
+ * List all pending leave requests across all personnel — for management inbox.
+ */
+export async function listAllPendingLeaveRequests(): Promise<PendingLeaveRequest[]> {
+  await requirePermission("personnel", "read");
+
+  const rows = await db
+    .select({
+      id:          leavePeriodsTable.id,
+      personnelId: leavePeriodsTable.personnelId,
+      firstName:   personnelTable.firstName,
+      lastName:    personnelTable.lastName,
+      startDate:   leavePeriodsTable.startDate,
+      endDate:     leavePeriodsTable.endDate,
+      leaveType:   leavePeriodsTable.leaveType,
+      reason:      leavePeriodsTable.reason,
+      createdAt:   leavePeriodsTable.createdAt,
+    })
+    .from(leavePeriodsTable)
+    .innerJoin(personnelTable, eq(leavePeriodsTable.personnelId, personnelTable.id))
+    .where(eq(leavePeriodsTable.status, "pending"))
+    .orderBy(asc(leavePeriodsTable.startDate));
+
+  return rows.map((r) => ({
+    id:          r.id,
+    personnelId: r.personnelId,
+    firstName:   r.firstName,
+    lastName:    r.lastName,
+    startDate:   r.startDate,
+    endDate:     r.endDate,
+    leaveType:   r.leaveType as LeaveType,
+    reason:      r.reason,
+    createdAt:   r.createdAt.toISOString(),
+  }));
+}
+
 // ─── Availability Status ──────────────────────────────────────────────────────
 
 /**
  * Compute availability status for a personnel member on a specific date.
  * Internal helper — no permission check, for server-side use only.
  * Handles open-ended sick leave (endDate IS NULL).
+ * Only counts APPROVED leave periods — pending/rejected are ignored.
  */
 export async function computeAvailabilityStatus(
   personnelId: string,
   dateStr:     string, // YYYY-MM-DD
 ): Promise<AvailabilityStatus> {
-  // 1. Active leave period covering this date (endDate IS NULL means still ongoing)
+  // 1. Active APPROVED leave period covering this date
   const [leave] = await db
     .select({ leaveType: leavePeriodsTable.leaveType })
     .from(leavePeriodsTable)
     .where(
       and(
         eq(leavePeriodsTable.personnelId, personnelId),
+        eq(leavePeriodsTable.status, "approved"),
         lte(leavePeriodsTable.startDate, dateStr),
         or(
           isNull(leavePeriodsTable.endDate),
@@ -360,6 +523,7 @@ export async function getAvailabilityStatus(
  * Returns a map of personnelId → AvailabilityStatus.
  * 3 queries regardless of personnel count — suitable for list views.
  * Handles open-ended sick leave (endDate IS NULL).
+ * Only counts APPROVED leave periods.
  */
 export async function getBatchAvailabilityStatus(
   personnelIds: string[],
@@ -379,6 +543,7 @@ export async function getBatchAvailabilityStatus(
       .where(
         and(
           inArray(leavePeriodsTable.personnelId, personnelIds),
+          eq(leavePeriodsTable.status, "approved"),
           lte(leavePeriodsTable.startDate, dateStr),
           or(
             isNull(leavePeriodsTable.endDate),

@@ -7,18 +7,46 @@ import type { Request, Response } from "express";
 const router = Router();
 
 /**
- * POST /api/webhooks/mollie
+ * POST /api/webhooks/mollie?secret=<MOLLIE_WEBHOOK_SECRET>
  *
  * Mollie sends a form-encoded POST with a single field: `id` (the payment ID).
  * We re-fetch the payment from Mollie to verify the status (re-verification pattern).
  *
  * Security: Mollie does not use webhook signatures. Security is guaranteed by:
- *   1. Always re-fetching the payment status from the Mollie API (never trusting the body alone).
- *   2. The Mollie API key is required to retrieve the payment.
+ *   1. A pre-shared secret token in the query-string (`?secret=…`), validated before
+ *      any processing. Configure MOLLIE_WEBHOOK_SECRET in env and append it to the
+ *      webhook URL registered in the Mollie dashboard.
+ *   2. Always re-fetching the payment status from the Mollie API (never trusting the body).
+ *   3. The Mollie API key is required to retrieve the payment.
  *
  * Spec: https://docs.mollie.com/docs/webhooks
  */
 router.post("/webhooks/mollie", async (req: Request, res: Response) => {
+  // ── Secret token guard (fail-closed) ────────────────────────────────────────
+  // MOLLIE_WEBHOOK_SECRET is REQUIRED. If it is not configured, ALL webhook
+  // calls are rejected and an error is logged so operators are alerted.
+  // Set it in the environment and append ?secret=<value> to the Mollie webhook URL.
+  const expectedSecret = process.env.MOLLIE_WEBHOOK_SECRET;
+  if (!expectedSecret) {
+    req.log.error(
+      "MOLLIE_WEBHOOK_SECRET is not configured — Mollie webhook rejected (fail-closed). " +
+      "Set this env var and register the URL as /api/webhooks/mollie?secret=<value> in Mollie.",
+    );
+    // Return 200 so Mollie does not retry; the problem is our misconfiguration, not Mollie's.
+    res.status(200).send("ok");
+    return;
+  }
+
+  const providedSecret = (req.query as Record<string, string | undefined>)["secret"];
+  if (providedSecret !== expectedSecret) {
+    req.log.warn(
+      { ip: req.ip, hasSecret: !!providedSecret },
+      "Mollie webhook rejected — invalid or missing secret token",
+    );
+    res.status(200).send("ok");
+    return;
+  }
+
   const mollieKey = process.env.MOLLIE_API_KEY;
   if (!mollieKey) {
     req.log.error("MOLLIE_API_KEY not configured — cannot process webhook");

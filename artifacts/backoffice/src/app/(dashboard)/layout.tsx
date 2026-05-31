@@ -4,10 +4,14 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserPermissions, getUserRoles } from "@/lib/auth/permissions";
 import { PermissionsProvider } from "@/providers/permissions-provider";
+import { SidebarProvider } from "@/providers/sidebar-provider";
 import { Sidebar } from "@/components/layout/Sidebar";
+import { MobileHeader } from "@/components/layout/MobileHeader";
+import { SidebarOverlay } from "@/components/layout/SidebarOverlay";
 import { getPendingReportsCount } from "@/app/actions/reports";
 import { getOutstandingInvoicesCount } from "@/app/actions/invoices";
 import { getPendingQuotesCount } from "@/app/actions/quotes";
+import { getPendingLeaveCount } from "@/app/actions/availability";
 
 export default async function DashboardLayout({
   children,
@@ -19,8 +23,6 @@ export default async function DashboardLayout({
     data: { user },
   } = await supabase.auth.getUser();
 
-  // Belt-and-suspenders: middleware already handles this redirect,
-  // but Server Components must never trust implicit state.
   if (!user) {
     redirect("/login");
   }
@@ -33,11 +35,13 @@ export default async function DashboardLayout({
   const canReadReports   = permissions.has("reports:read");
   const canReadInvoices  = permissions.has("invoices:read");
   const canReadQuotes    = permissions.has("quotes:read");
+  const canReadPersonnel = permissions.has("personnel:read");
 
-  const [pendingReportsCount, outstandingInvoicesCount, pendingQuotesCount] = await Promise.all([
-    canReadReports  ? getPendingReportsCount()         : Promise.resolve(0),
-    canReadInvoices ? getOutstandingInvoicesCount()    : Promise.resolve(0),
-    canReadQuotes   ? getPendingQuotesCount()          : Promise.resolve(0),
+  const [pendingReportsCount, outstandingInvoicesCount, pendingQuotesCount, pendingLeaveCount] = await Promise.all([
+    canReadReports   ? getPendingReportsCount()      : Promise.resolve(0),
+    canReadInvoices  ? getOutstandingInvoicesCount() : Promise.resolve(0),
+    canReadQuotes    ? getPendingQuotesCount()        : Promise.resolve(0),
+    canReadPersonnel ? getPendingLeaveCount()         : Promise.resolve(0),
   ]);
 
   const userEmail   = user.email ?? "";
@@ -46,22 +50,33 @@ export default async function DashboardLayout({
 
   return (
     <PermissionsProvider permissions={[...permissions]}>
-      <div
-        className="flex h-screen overflow-hidden"
-        style={{ backgroundColor: "#F8FAFC" }}
-      >
-        <Sidebar
-          userEmail={userEmail}
-          userInitial={userInitial}
-          userRole={userRole}
-          pendingReportsCount={pendingReportsCount}
-          outstandingInvoicesCount={outstandingInvoicesCount}
-          pendingQuotesCount={pendingQuotesCount}
-        />
-        <div className="flex flex-col flex-1 overflow-hidden">
-          <main className="flex-1 overflow-y-auto">{children}</main>
+      <SidebarProvider>
+        <div
+          className="flex h-screen overflow-hidden"
+          style={{ backgroundColor: "#F8FAFC" }}
+        >
+          {/* Sidebar — responsive: drawer on mobile, compact on tablet, full on desktop */}
+          <Sidebar
+            userEmail={userEmail}
+            userInitial={userInitial}
+            userRole={userRole}
+            pendingReportsCount={pendingReportsCount}
+            outstandingInvoicesCount={outstandingInvoicesCount}
+            pendingQuotesCount={pendingQuotesCount}
+            pendingLeaveCount={pendingLeaveCount}
+          />
+
+          {/* Backdrop overlay — closes drawer on tap outside (mobile only) */}
+          <SidebarOverlay />
+
+          {/* Main content column */}
+          <div className="flex flex-col flex-1 overflow-hidden min-w-0">
+            {/* Sticky mobile header with hamburger — hidden on desktop */}
+            <MobileHeader />
+            <main className="flex-1 overflow-y-auto">{children}</main>
+          </div>
         </div>
-      </div>
+      </SidebarProvider>
     </PermissionsProvider>
   );
 }

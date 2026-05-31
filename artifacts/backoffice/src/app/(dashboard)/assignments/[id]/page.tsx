@@ -119,7 +119,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
     ? await listDocuments({ entityType: "assignment", entityId: id })
     : [];
 
-  const REPORT_STATUSES  = ["completed", "report_submitted", "report_approved", "invoice_ready", "invoiced", "paid", "closed"];
+  const REPORT_STATUSES  = ["completed", "not_completed", "report_submitted", "report_approved", "invoice_ready", "invoiced", "paid", "closed"];
   const INVOICE_STATUSES = ["invoice_ready", "invoiced", "paid", "closed"];
   const QUOTE_STATUSES_SHOW = ["quote_preparation", "awaiting_approval", "approved", "plannable", "scheduled", "seen", "in_progress", "not_completed", "completed", "report_submitted", "report_approved", "invoice_ready", "invoiced", "paid", "closed"];
 
@@ -388,7 +388,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
           )}
 
           {/* ── Report section ────────────────────────────── */}
-          {assignment.status === "completed" &&
+          {(assignment.status === "completed" || assignment.status === "not_completed") &&
             (!existingReport || existingReport.status === "rejected") &&
             canSubmitReport && (
             <SubmitReportForm assignmentId={assignment.id} rejectedReport={existingReport ?? null} />

@@ -64,6 +64,39 @@ import {
 } from "@/app/actions/personnel";
 import type { AvailabilityStatus } from "@/app/actions/availability";
 
+// ─── Invite status badge ──────────────────────────────────────────────────────
+
+type InviteStatus = "none" | "invited" | "active";
+
+function getInviteStatus(userId: string | null, inviteSentAt: string | null): InviteStatus {
+  if (userId) return "active";
+  if (inviteSentAt) return "invited";
+  return "none";
+}
+
+const INVITE_BADGE: Record<InviteStatus, { label: string; bg: string; color: string; dot: string }> = {
+  none:    { label: "Geen account",            bg: "#F1F5F9", color: "#94A3B8", dot: "#CBD5E1" },
+  invited: { label: "Uitnodiging verstuurd",   bg: "#FEF3C7", color: "#92400E", dot: "#F59E0B" },
+  active:  { label: "Portaal actief",          bg: "#D1FAE5", color: "#065F46", dot: "#10B981" },
+};
+
+function InviteBadge({ userId, inviteSentAt }: { userId: string | null; inviteSentAt: string | null }) {
+  const status = getInviteStatus(userId, inviteSentAt);
+  const s = INVITE_BADGE[status];
+  return (
+    <span
+      className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
+      style={{ backgroundColor: s.bg, color: s.color }}
+    >
+      <span
+        className="flex-shrink-0 rounded-full"
+        style={{ width: "6px", height: "6px", backgroundColor: s.dot }}
+      />
+      {s.label}
+    </span>
+  );
+}
+
 const PAGE_SIZE = 25;
 const SORTABLE = ["lastName", "firstName", "email", "code", "region", "createdAt"] as const;
 
@@ -396,6 +429,7 @@ export function PersonnelView({
                 <SortHeader label="Regio"     columnKey="region"    currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Certificaten</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Status</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Portaal</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Beschikbaarheid</th>
                 <th className="w-12 px-4 py-3" />
               </tr>
@@ -404,7 +438,7 @@ export function PersonnelView({
               {rows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={canWrite ? 10 : 9}
+                    colSpan={canWrite ? 11 : 10}
                     className="px-4 py-12 text-center text-sm"
                     style={{ color: "#94A3B8" }}
                   >
@@ -464,6 +498,9 @@ export function PersonnelView({
                     </td>
                     <td className="px-4 py-3">
                       <StatusBadge isActive={row.isActive} />
+                    </td>
+                    <td className="px-4 py-3">
+                      <InviteBadge userId={row.userId} inviteSentAt={row.inviteSentAt} />
                     </td>
                     <td className="px-4 py-3">
                       <AvailabilityBadge status={row.availabilityStatus} />

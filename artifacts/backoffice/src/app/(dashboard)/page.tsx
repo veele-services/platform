@@ -6,16 +6,19 @@ import { getDashboardCounts, listAssignments } from "@/app/actions/assignments";
 import { AssignmentStatusBadge } from "@/components/assignments/AssignmentStatusBadge";
 import {
   getDashboardFinancials,
+  getDashboardPayments,
   getDashboardActionItems,
   getDashboardStaffAvailability,
   getDashboardRecentActivity,
   getDashboardWeekCounts,
   type DashboardFinancials,
+  type DashboardPayments,
   type DashboardActionItems,
   type StaffAvailabilityEntry,
   type ActivityEntry,
   type WeekDayCount,
 } from "@/app/actions/dashboard";
+import { DashboardRefresher } from "@/components/dashboard/DashboardRefresher";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -69,6 +72,7 @@ export default async function DashboardPage() {
   const [
     counts,
     financials,
+    payments,
     actionItems,
     staffAvailability,
     recentActivity,
@@ -79,6 +83,7 @@ export default async function DashboardPage() {
       : Promise.resolve({ requested: 0, plannable: 0, inProgress: 0, completedToday: 0 }),
 
     getDashboardFinancials().catch(() => null),
+    getDashboardPayments().catch(() => null),
     getDashboardActionItems().catch(() => null),
     canReadPersonnel
       ? getDashboardStaffAvailability(todayStr).catch(() => [] as StaffAvailabilityEntry[])
@@ -104,6 +109,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="p-8 space-y-6">
+      <DashboardRefresher />
 
       {/* Header */}
       <div>
@@ -175,6 +181,62 @@ export default async function DashboardPage() {
               <Link href="/invoices?status=sent" className="text-xs mt-1 hover:underline block" style={{ color: "#00B7B3" }}>
                 {financials.outstandingCount} factuur{financials.outstandingCount !== 1 ? "en" : ""} openstaand →
               </Link>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ── Row 2b: Betalingen-widget ── */}
+      {payments && (
+        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+          <Link
+            href="/invoices?status=paid"
+            className="veele-card transition-shadow hover:shadow-md"
+          >
+            <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: "#64748B" }}>
+              Betaald deze maand
+            </p>
+            <p className="font-heading text-2xl font-bold" style={{ color: "#16A34A" }}>
+              {payments.paidThisMonthCount}
+            </p>
+            <p className="text-xs mt-1 font-medium" style={{ color: "#64748B" }}>
+              {formatEuro(payments.paidThisMonthAmount)}
+            </p>
+          </Link>
+
+          <Link
+            href="/invoices?status=sent"
+            className="veele-card transition-shadow hover:shadow-md"
+          >
+            <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: "#64748B" }}>
+              Openstaande facturen
+            </p>
+            <p className="font-heading text-2xl font-bold" style={{ color: financials ? (financials.outstandingAmount > 0 ? "#F59E0B" : "#081D3A") : "#081D3A" }}>
+              {financials ? formatEuro(financials.outstandingAmount) : "—"}
+            </p>
+            {financials && financials.outstandingCount > 0 && (
+              <p className="text-xs mt-1 font-medium" style={{ color: "#64748B" }}>
+                {financials.outstandingCount} factuur{financials.outstandingCount !== 1 ? "en" : ""}
+              </p>
+            )}
+          </Link>
+
+          <div className="veele-card">
+            <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: "#64748B" }}>
+              Mollie in behandeling
+            </p>
+            <p className="font-heading text-2xl font-bold" style={{ color: payments.mollieOpenCount > 0 ? "#8B5CF6" : "#081D3A" }}>
+              {payments.mollieOpenCount}
+            </p>
+            {payments.mollieOpenCount > 0 && (
+              <p className="text-xs mt-1 font-medium" style={{ color: "#64748B" }}>
+                {formatEuro(payments.mollieOpenAmountEur)} openstaand
+              </p>
+            )}
+            {payments.mollieOpenCount === 0 && (
+              <p className="text-xs mt-1" style={{ color: "#94A3B8" }}>
+                Geen openstaande betalingen
+              </p>
             )}
           </div>
         </div>

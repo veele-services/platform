@@ -68,6 +68,7 @@ export type AssignmentRow = {
   objectId:       string | null;
   objectName:     string | null;
   personnelCount: number;
+  reportStatus:   string | null;
   createdAt:      string;
 };
 
@@ -94,6 +95,8 @@ export type AssignmentDetail = {
     personnelId: string;
     firstName:   string;
     lastName:    string;
+    /** 'assigned' = confirmed by planner; 'suggested' = self-applied via PWA pending confirmation */
+    linkStatus:  string;
   }>;
   tasks: Array<{
     id:           string;
@@ -129,6 +132,7 @@ export type WeekAssignment = {
   customerName:   string;
   objectName:     string | null;
   personnelNames: string[];
+  hasConflict:    boolean;
 };
 
 export type TimelineAssignment = {
@@ -138,6 +142,7 @@ export type TimelineAssignment = {
   scheduledStart: string | null;
   scheduledEnd:   string | null;
   customerName:   string;
+  hasConflict:    boolean;
 };
 
 export type TimelinePersonnelRow = {
@@ -223,6 +228,13 @@ export async function listAssignments(params: {
         personnelCount: sql<number>`(
           SELECT count(*)::int FROM assignment_personnel ap
           WHERE ap.assignment_id = ${assignmentsTable.id}
+            AND ap.status = 'assigned'
+        )`,
+        reportStatus: sql<string | null>`(
+          SELECT status FROM reports r
+          WHERE r.assignment_id = ${assignmentsTable.id}
+          ORDER BY r.submitted_at DESC
+          LIMIT 1
         )`,
       })
       .from(assignmentsTable)
@@ -252,6 +264,7 @@ export async function listAssignments(params: {
       scheduledStart: r.scheduledStart ?? null,
       scheduledEnd:   r.scheduledEnd   ?? null,
       customerName: r.customerName ?? "",
+      reportStatus: r.reportStatus ?? null,
       createdAt:    r.createdAt.toISOString(),
     })),
     total: count,
@@ -295,11 +308,13 @@ export async function getAssignment(id: string): Promise<AssignmentDetail | null
       .select({
         id:          assignmentPersonnelTable.id,
         personnelId: assignmentPersonnelTable.personnelId,
+        linkStatus:  assignmentPersonnelTable.status,
         firstName:   personnelTable.firstName,
         lastName:    personnelTable.lastName,
       })
       .from(assignmentPersonnelTable)
       .leftJoin(personnelTable, eq(assignmentPersonnelTable.personnelId, personnelTable.id))
+      // Show ALL links (assigned + suggested) so planner can review and confirm candidates
       .where(eq(assignmentPersonnelTable.assignmentId, id))
       .orderBy(asc(personnelTable.lastName)),
 
@@ -333,8 +348,9 @@ export async function getAssignment(id: string): Promise<AssignmentDetail | null
     personnel: personnel.map((p) => ({
       id:          p.id,
       personnelId: p.personnelId,
-      firstName:   p.firstName ?? "",
-      lastName:    p.lastName  ?? "",
+      firstName:   p.firstName  ?? "",
+      lastName:    p.lastName   ?? "",
+      linkStatus:  p.linkStatus,
     })),
     tasks: tasks.map((t) => ({
       id:           t.id,
@@ -384,34 +400,116 @@ export async function getAssignmentsForWeek(
   const personnelRows = await db
     .select({
       assignmentId: assignmentPersonnelTable.assignmentId,
+      personnelId:  assignmentPersonnelTable.personnelId,
       firstName:    personnelTable.firstName,
       lastName:     personnelTable.lastName,
     })
     .from(assignmentPersonnelTable)
     .leftJoin(personnelTable, eq(assignmentPersonnelTable.personnelId, personnelTable.id))
-    .where(inArray(assignmentPersonnelTable.assignmentId, assignmentIds));
+    .where(
+      and(
+        inArray(assignmentPersonnelTable.assignmentId, assignmentIds),
+        // Only confirmed personnel in the week-view summary names list
+        eq(assignmentPersonnelTable.status, "assigned"),
+      ),
+    );
 
   const personnelByAssignment = new Map<string, string[]>();
+  // Also track personnel IDs per assignment for conflict checking
+  const personnelIdsByAssignment = new Map<string, string[]>();
   for (const p of personnelRows) {
     const names = personnelByAssignment.get(p.assignmentId) ?? [];
     names.push(`${p.firstName ?? ""} ${p.lastName ?? ""}`.trim());
     personnelByAssignment.set(p.assignmentId, names);
+
+    const ids = personnelIdsByAssignment.get(p.assignmentId) ?? [];
+    ids.push(p.personnelId);
+    personnelIdsByAssignment.set(p.assignmentId, ids);
   }
 
-  return rows
-    .filter((r) => r.scheduledDate !== null)
-    .map((r) => ({
-      id:             r.id,
-      title:          r.title,
-      status:         r.status   as AssignmentStatus,
-      priority:       r.priority as AssignmentPriority,
-      scheduledDate:  r.scheduledDate!,
-      scheduledStart: r.scheduledStart ?? null,
-      scheduledEnd:   r.scheduledEnd   ?? null,
-      customerName:   r.customerName   ?? "",
-      objectName:     r.objectName     ?? null,
-      personnelNames: personnelByAssignment.get(r.id) ?? [],
-    }));
+  // ── Conflict detection ────────────────────────────────────────────────────
+  // Build date → unique personnelId[] map for batch availability lookup
+  const validRows = rows.filter((r) => r.scheduledDate !== null);
+
+  const datePersonnelMap = new Map<string, Set<string>>();
+  for (const r of validRows) {
+    const pIds = personnelIdsByAssignment.get(r.id);
+    if (!pIds || pIds.length === 0) continue;
+    const set = datePersonnelMap.get(r.scheduledDate!) ?? new Set<string>();
+    for (const pid of pIds) set.add(pid);
+    datePersonnelMap.set(r.scheduledDate!, set);
+  }
+
+  // Fetch availability per date (parallel, at most 7 queries × 3 = 21 DB round-trips)
+  const availabilityByDate = new Map<string, Record<string, AvailabilityStatus>>();
+  await Promise.all(
+    Array.from(datePersonnelMap.entries()).map(async ([date, pidSet]) => {
+      const statusMap = await getBatchAvailabilityStatus(Array.from(pidSet), date);
+      availabilityByDate.set(date, statusMap);
+    }),
+  );
+
+  // Determine which assignments have conflicts
+  const conflictAssignmentIds = new Set<string>();
+
+  // 1. Availability conflict: personnel is ziek / op_verlof / niet_beschikbaar
+  for (const r of validRows) {
+    const pIds = personnelIdsByAssignment.get(r.id);
+    if (!pIds || pIds.length === 0) continue;
+    const statusMap = availabilityByDate.get(r.scheduledDate!);
+    if (!statusMap) continue;
+    for (const pid of pIds) {
+      const s = statusMap[pid] as AvailabilityStatus | undefined;
+      if (s === "ziek" || s === "op_verlof" || s === "niet_beschikbaar") {
+        conflictAssignmentIds.add(r.id);
+        break;
+      }
+    }
+  }
+
+  // 2. Double-booking conflict: same personnel, same date, overlapping times
+  //    Group per-personnel their assignments on each date, then check each pair.
+  const personnelDayAssignments = new Map<string, typeof validRows>();
+  for (const p of personnelRows) {
+    const r = validRows.find((x) => x.id === p.assignmentId);
+    if (!r) continue;
+    const key = `${p.personnelId}:${r.scheduledDate!}`;
+    const list = personnelDayAssignments.get(key) ?? [];
+    list.push(r);
+    personnelDayAssignments.set(key, list);
+  }
+
+  for (const dayList of personnelDayAssignments.values()) {
+    if (dayList.length < 2) continue;
+    for (let i = 0; i < dayList.length; i++) {
+      for (let j = i + 1; j < dayList.length; j++) {
+        const a = dayList[i]!;
+        const b = dayList[j]!;
+        // No times → whole-day booking, always a conflict if double-booked
+        if (!a.scheduledStart || !a.scheduledEnd || !b.scheduledStart || !b.scheduledEnd) {
+          conflictAssignmentIds.add(a.id);
+          conflictAssignmentIds.add(b.id);
+        } else if (a.scheduledStart < b.scheduledEnd && a.scheduledEnd > b.scheduledStart) {
+          conflictAssignmentIds.add(a.id);
+          conflictAssignmentIds.add(b.id);
+        }
+      }
+    }
+  }
+
+  return validRows.map((r) => ({
+    id:             r.id,
+    title:          r.title,
+    status:         r.status   as AssignmentStatus,
+    priority:       r.priority as AssignmentPriority,
+    scheduledDate:  r.scheduledDate!,
+    scheduledStart: r.scheduledStart ?? null,
+    scheduledEnd:   r.scheduledEnd   ?? null,
+    customerName:   r.customerName   ?? "",
+    objectName:     r.objectName     ?? null,
+    personnelNames: personnelByAssignment.get(r.id) ?? [],
+    hasConflict:    conflictAssignmentIds.has(r.id),
+  }));
 }
 
 export async function getDashboardCounts(): Promise<{
@@ -527,7 +625,7 @@ export async function getDayTimelineData(dateStr: string): Promise<{
 
   const assignmentIds = asgnRows.map((a) => a.id);
 
-  // Personnel assignments for these assignments
+  // Personnel assignments for these assignments — only confirmed (assigned) links
   const pRows = await db
     .select({
       assignmentId: assignmentPersonnelTable.assignmentId,
@@ -537,8 +635,76 @@ export async function getDayTimelineData(dateStr: string): Promise<{
     })
     .from(assignmentPersonnelTable)
     .leftJoin(personnelTable, eq(assignmentPersonnelTable.personnelId, personnelTable.id))
-    .where(inArray(assignmentPersonnelTable.assignmentId, assignmentIds))
+    .where(
+      and(
+        inArray(assignmentPersonnelTable.assignmentId, assignmentIds),
+        eq(assignmentPersonnelTable.status, "assigned"),
+      ),
+    )
     .orderBy(asc(personnelTable.lastName), asc(personnelTable.firstName));
+
+  // ── Conflict detection (mirrors week-view logic) ─────────────────────────
+
+  // Build personnelId → assignmentIds map for overlap detection
+  const personnelIdsByAssignment = new Map<string, string[]>();
+  for (const p of pRows) {
+    const ids = personnelIdsByAssignment.get(p.assignmentId) ?? [];
+    ids.push(p.personnelId);
+    personnelIdsByAssignment.set(p.assignmentId, ids);
+  }
+
+  // Collect all unique personnel IDs that have assignments on this day
+  const allPersonnelIds = new Set<string>();
+  for (const p of pRows) allPersonnelIds.add(p.personnelId);
+
+  // 1. Availability conflicts: fetch batch status for all personnel on this date
+  const availabilityStatusMap =
+    allPersonnelIds.size > 0
+      ? await getBatchAvailabilityStatus(Array.from(allPersonnelIds), dateStr)
+      : ({} as Record<string, AvailabilityStatus>);
+
+  const conflictAssignmentIds = new Set<string>();
+
+  for (const r of asgnRows) {
+    const pIds = personnelIdsByAssignment.get(r.id);
+    if (!pIds || pIds.length === 0) continue;
+    for (const pid of pIds) {
+      const s = availabilityStatusMap[pid] as AvailabilityStatus | undefined;
+      if (s === "ziek" || s === "op_verlof" || s === "niet_beschikbaar") {
+        conflictAssignmentIds.add(r.id);
+        break;
+      }
+    }
+  }
+
+  // 2. Double-booking conflicts: same personnel, overlapping times on this day
+  const personnelDayAssignments = new Map<string, typeof asgnRows>();
+  for (const p of pRows) {
+    const r = asgnRows.find((x) => x.id === p.assignmentId);
+    if (!r) continue;
+    const list = personnelDayAssignments.get(p.personnelId) ?? [];
+    list.push(r);
+    personnelDayAssignments.set(p.personnelId, list);
+  }
+
+  for (const dayList of personnelDayAssignments.values()) {
+    if (dayList.length < 2) continue;
+    for (let i = 0; i < dayList.length; i++) {
+      for (let j = i + 1; j < dayList.length; j++) {
+        const a = dayList[i]!;
+        const b = dayList[j]!;
+        if (!a.scheduledStart || !a.scheduledEnd || !b.scheduledStart || !b.scheduledEnd) {
+          conflictAssignmentIds.add(a.id);
+          conflictAssignmentIds.add(b.id);
+        } else if (a.scheduledStart < b.scheduledEnd && a.scheduledEnd > b.scheduledStart) {
+          conflictAssignmentIds.add(a.id);
+          conflictAssignmentIds.add(b.id);
+        }
+      }
+    }
+  }
+
+  // ── Build result maps ────────────────────────────────────────────────────
 
   const asgnMap = new Map(
     asgnRows.map((a) => [a.id, {
@@ -548,6 +714,7 @@ export async function getDayTimelineData(dateStr: string): Promise<{
       scheduledStart: a.scheduledStart ?? null,
       scheduledEnd:   a.scheduledEnd   ?? null,
       customerName:   a.customerName   ?? "",
+      hasConflict:    conflictAssignmentIds.has(a.id),
     } satisfies TimelineAssignment])
   );
 
@@ -631,21 +798,25 @@ export async function getPersonnelEligibilityForAssignment(
   const canRead = await hasPermission("assignments", "read");
   if (!canRead) return [];
 
-  // ── 1. Fetch assignment meta (date + times) ────────────────────────────────
+  // ── 1. Fetch assignment meta (date + times + object city for region check) ──
   const [asgn] = await db
     .select({
       scheduledDate:  assignmentsTable.scheduledDate,
       scheduledStart: assignmentsTable.scheduledStart,
       scheduledEnd:   assignmentsTable.scheduledEnd,
+      objectCity:     objectsTable.city,
     })
     .from(assignmentsTable)
+    .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
     .where(eq(assignmentsTable.id, assignmentId))
     .limit(1);
 
-  const dateStr  = asgn?.scheduledDate  ?? null;
+  const dateStr   = asgn?.scheduledDate  ?? null;
   const asgnStart = asgn?.scheduledStart ?? null; // "HH:MM" or null
   const asgnEnd   = asgn?.scheduledEnd   ?? null; // "HH:MM" or null
   const asgnHasTimes = Boolean(asgnStart && asgnEnd);
+  // Object city for region eligibility check (lowercased, trimmed; null = skip check)
+  const objectCity = asgn?.objectCity?.trim().toLowerCase() || null;
 
   // Day-of-week for availability window lookup (0=Sun … 6=Sat)
   const dayOfWeek = dateStr
@@ -735,6 +906,8 @@ export async function getPersonnelEligibilityForAssignment(
               eq(assignmentsTable.scheduledDate, dateStr),
               inArray(assignmentPersonnelTable.personnelId, personnelIds),
               ne(assignmentPersonnelTable.assignmentId, assignmentId),
+              // Only confirmed links count as conflicts — suggestions are not yet scheduled
+              eq(assignmentPersonnelTable.status, "assigned"),
               conflictWhereExtra,
             ),
           )
@@ -799,9 +972,13 @@ export async function getPersonnelEligibilityForAssignment(
     const meetsKnowledge    = requiredKnowledge.every((k) => personKnow.includes(k));
     const meetsRole         = requiredRoleIds.length === 0 ||
                               requiredRoleIds.every((r) => p.roleId === r);
-    // Region: always passes — assignments have no required_region field yet.
-    // The personnel.region field is present and ready; constraint requires a schema migration.
-    const meetsRegion = true;
+    // Region: compare personnel.region against the assignment object's city.
+    // The objects table has no dedicated region column; city is the canonical
+    // regional identifier in the current schema (matches the PWA implementation).
+    // Skip the check (pass) when either value is absent.
+    const meetsRegion = !objectCity || !p.region
+      ? true
+      : p.region.trim().toLowerCase() === objectCity;
 
     const reasons: string[] = [];
     if (availStatus === "ziek")               reasons.push("Ziek gemeld");
@@ -813,6 +990,7 @@ export async function getPersonnelEligibilityForAssignment(
     if (!meetsCertificates)                   reasons.push("Benodigde certificaten ontbreken");
     if (!meetsDiploma)                        reasons.push("Benodigd diploma ontbreekt");
     if (!meetsKnowledge)                      reasons.push("Benodigde kennis ontbreekt");
+    if (!meetsRegion)                         reasons.push("Regio komt niet overeen");
 
     const eligible =
       (availStatus === "beschikbaar" || availStatus === "niet_ingesteld") &&
@@ -821,7 +999,8 @@ export async function getPersonnelEligibilityForAssignment(
       meetsRole &&
       meetsCertificates &&
       meetsDiploma &&
-      meetsKnowledge;
+      meetsKnowledge &&
+      meetsRegion;
 
     return {
       id:                      p.id,
@@ -839,6 +1018,408 @@ export async function getPersonnelEligibilityForAssignment(
       eligibilityReasons:      reasons,
     };
   });
+}
+
+/**
+ * Result type for rescheduleAssignment.
+ *
+ * `success: true`  — move was applied. Optional `warning` contains a human-readable
+ *                    description of personnel conflicts/availability issues that the
+ *                    planner should be aware of but that did NOT block the move.
+ * `success: false` — hard block: invalid date, missing assignment, status guard.
+ */
+export type RescheduleResult =
+  | { success: true;  warning?: string }
+  | { success: false; message: string };
+
+/**
+ * Move an assignment to a different date (drag-to-reschedule in week planning).
+ *
+ * Hard blocks (return success: false):
+ *   1. Invalid date format.
+ *   2. Assignment not found.
+ *   3. Assignment status is not 'plannable' or 'scheduled'.
+ *
+ * Soft warnings (move proceeds, warning returned in result):
+ *   - Personnel is ziek / op_verlof / niet_beschikbaar on newDate.
+ *   - Time-slot conflict with another confirmed assignment on newDate.
+ *   - Availability window does not cover the assignment's time slot.
+ *
+ * Planners retain full control — only the status guard hard-blocks a move.
+ */
+export async function rescheduleAssignment(
+  id:      string,
+  newDate: string,
+): Promise<RescheduleResult> {
+  await requirePermission("planning", "write");
+
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
+    return { success: false, message: "Ongeldige datum." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  // ── 1. Fetch assignment ────────────────────────────────────────────────────
+  const [existing] = await db
+    .select({
+      id:             assignmentsTable.id,
+      status:         assignmentsTable.status,
+      scheduledDate:  assignmentsTable.scheduledDate,
+      scheduledStart: assignmentsTable.scheduledStart,
+      scheduledEnd:   assignmentsTable.scheduledEnd,
+    })
+    .from(assignmentsTable)
+    .where(eq(assignmentsTable.id, id))
+    .limit(1);
+
+  if (!existing) return { success: false, message: "Opdracht niet gevonden." };
+  if (existing.scheduledDate === newDate) return { success: true };
+
+  // ── 2. Status guard (hard block) ───────────────────────────────────────────
+  const RESCHEDULABLE: AssignmentStatus[] = ["plannable", "scheduled"];
+  if (!RESCHEDULABLE.includes(existing.status as AssignmentStatus)) {
+    return {
+      success: false,
+      message: `Alleen opdrachten met status 'plannable' of 'scheduled' kunnen worden verplaatst (huidige status: ${existing.status}).`,
+    };
+  }
+
+  // ── 3. Personnel checks → collect as warnings (do not block) ──────────────
+  const warningParts: string[] = [];
+
+  const assignedLinks = await db
+    .select({ personnelId: assignmentPersonnelTable.personnelId })
+    .from(assignmentPersonnelTable)
+    .where(
+      and(
+        eq(assignmentPersonnelTable.assignmentId, id),
+        eq(assignmentPersonnelTable.status, "assigned"),
+      ),
+    );
+
+  if (assignedLinks.length > 0) {
+    const personnelIds = assignedLinks.map((p) => p.personnelId);
+
+    // 3a. Availability status (ziek / op_verlof / niet_beschikbaar)
+    const statusMap = await getBatchAvailabilityStatus(personnelIds, newDate);
+    const unavailable = personnelIds.filter((pid) => {
+      const s = statusMap[pid] as AvailabilityStatus | undefined;
+      return s === "ziek" || s === "op_verlof" || s === "niet_beschikbaar";
+    });
+
+    if (unavailable.length > 0) {
+      const nameRows = await db
+        .select({ id: personnelTable.id, firstName: personnelTable.firstName, lastName: personnelTable.lastName })
+        .from(personnelTable)
+        .where(inArray(personnelTable.id, unavailable));
+      const nameList = nameRows.map((n) => `${n.firstName} ${n.lastName}`.trim()).join(", ");
+      warningParts.push(
+        `${nameList} ${unavailable.length === 1 ? "is" : "zijn"} niet beschikbaar op ${newDate}.`,
+      );
+    }
+
+    // 3b. Time-slot checks (only when assignment has start + end times)
+    if (existing.scheduledStart && existing.scheduledEnd) {
+      const asgnStartMin = timeToMin(existing.scheduledStart);
+      const asgnEndMin   = timeToMin(existing.scheduledEnd);
+      const dayOfWeek    = new Date(newDate + "T00:00:00").getDay();
+
+      // 3b-i. Double-booking conflict
+      const conflictRows = await db
+        .select({ personnelId: assignmentPersonnelTable.personnelId })
+        .from(assignmentPersonnelTable)
+        .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
+        .where(
+          and(
+            eq(assignmentsTable.scheduledDate, newDate),
+            inArray(assignmentPersonnelTable.personnelId, personnelIds),
+            ne(assignmentPersonnelTable.assignmentId, id),
+            eq(assignmentPersonnelTable.status, "assigned"),
+            or(
+              isNull(assignmentsTable.scheduledStart),
+              isNull(assignmentsTable.scheduledEnd),
+              sql<boolean>`${assignmentsTable.scheduledStart} < ${existing.scheduledEnd} AND ${assignmentsTable.scheduledEnd} > ${existing.scheduledStart}`,
+            ),
+          ),
+        );
+
+      if (conflictRows.length > 0) {
+        const conflictIds = [...new Set(conflictRows.map((r) => r.personnelId))];
+        const nameRows = await db
+          .select({ id: personnelTable.id, firstName: personnelTable.firstName, lastName: personnelTable.lastName })
+          .from(personnelTable)
+          .where(inArray(personnelTable.id, conflictIds));
+        const nameList = nameRows.map((n) => `${n.firstName} ${n.lastName}`.trim()).join(", ");
+        warningParts.push(
+          `${nameList} ${conflictIds.length === 1 ? "heeft" : "hebben"} een conflicterende inplanning op ${newDate}.`,
+        );
+      }
+
+      // 3b-ii. Availability window does not cover the full time slot
+      const windowRows = await db
+        .select({
+          personnelId: availabilityWindowsTable.personnelId,
+          startTime:   availabilityWindowsTable.startTime,
+          endTime:     availabilityWindowsTable.endTime,
+        })
+        .from(availabilityWindowsTable)
+        .where(
+          and(
+            inArray(availabilityWindowsTable.personnelId, personnelIds),
+            eq(availabilityWindowsTable.dayOfWeek, dayOfWeek),
+          ),
+        );
+
+      const coverageMap = new Map<string, boolean>();
+      for (const w of windowRows) {
+        if (!coverageMap.has(w.personnelId)) {
+          const wStart = timeToMin(w.startTime);
+          const wEnd   = timeToMin(w.endTime);
+          coverageMap.set(w.personnelId, wStart <= asgnStartMin && wEnd >= asgnEndMin);
+        }
+      }
+
+      const outsideWindow = personnelIds.filter((pid) => {
+        const s = statusMap[pid] as AvailabilityStatus | undefined;
+        if (s !== "beschikbaar") return false;
+        return !(coverageMap.get(pid) ?? false);
+      });
+
+      if (outsideWindow.length > 0) {
+        const nameRows = await db
+          .select({ id: personnelTable.id, firstName: personnelTable.firstName, lastName: personnelTable.lastName })
+          .from(personnelTable)
+          .where(inArray(personnelTable.id, outsideWindow));
+        const nameList = nameRows.map((n) => `${n.firstName} ${n.lastName}`.trim()).join(", ");
+        warningParts.push(
+          `Het beschikbaarheidsvenster van ${nameList} dekt het tijdslot (${existing.scheduledStart}–${existing.scheduledEnd}) niet op ${newDate}.`,
+        );
+      }
+    }
+  }
+
+  // ── 4. Persist (always, if status guard passed) ────────────────────────────
+  await db
+    .update(assignmentsTable)
+    .set({ scheduledDate: newDate })
+    .where(eq(assignmentsTable.id, id));
+
+  await db.insert(auditLogTable).values({
+    userId:     user.id,
+    action:     "update",
+    resource:   "assignments",
+    resourceId: id,
+    metadata:   {
+      action:   "reschedule",
+      from:     existing.scheduledDate,
+      to:       newDate,
+      warnings: warningParts.length > 0 ? warningParts : undefined,
+    },
+  });
+
+  revalidatePath("/planning");
+
+  return warningParts.length > 0
+    ? { success: true, warning: `Let op: ${warningParts.join(" ")}` }
+    : { success: true };
+}
+
+/**
+ * Shift an assignment to a different time slot on the same day
+ * (drag-to-reshift in day-view planning).
+ *
+ * Hard blocks (return success: false):
+ *   1. Invalid time format.
+ *   2. Assignment not found or has no scheduled date.
+ *   3. Assignment status is not 'plannable' or 'scheduled'.
+ *
+ * Soft warnings (shift proceeds, warning returned in result):
+ *   - Personnel is ziek / op_verlof / niet_beschikbaar.
+ *   - Time-slot conflict with another confirmed assignment on the same day.
+ *   - Availability window does not cover the new time slot.
+ */
+export async function reshiftAssignment(
+  id:       string,
+  newStart: string,
+  newEnd:   string | null,
+): Promise<RescheduleResult> {
+  await requirePermission("planning", "write");
+
+  const TIME_RE = /^\d{2}:\d{2}$/;
+  if (!TIME_RE.test(newStart)) {
+    return { success: false, message: "Ongeldig tijdstip." };
+  }
+  if (newEnd !== null && !TIME_RE.test(newEnd)) {
+    return { success: false, message: "Ongeldig eindtijdstip." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [existing] = await db
+    .select({
+      id:             assignmentsTable.id,
+      status:         assignmentsTable.status,
+      scheduledDate:  assignmentsTable.scheduledDate,
+      scheduledStart: assignmentsTable.scheduledStart,
+      scheduledEnd:   assignmentsTable.scheduledEnd,
+    })
+    .from(assignmentsTable)
+    .where(eq(assignmentsTable.id, id))
+    .limit(1);
+
+  if (!existing) return { success: false, message: "Opdracht niet gevonden." };
+  if (!existing.scheduledDate) {
+    return { success: false, message: "Opdracht heeft geen ingeplande datum." };
+  }
+
+  if (existing.scheduledStart === newStart && existing.scheduledEnd === newEnd) {
+    return { success: true };
+  }
+
+  const RESHIFTABLE: AssignmentStatus[] = ["plannable", "scheduled"];
+  if (!RESHIFTABLE.includes(existing.status as AssignmentStatus)) {
+    return {
+      success: false,
+      message: `Alleen opdrachten met status 'plannable' of 'scheduled' kunnen worden verplaatst (huidige status: ${existing.status}).`,
+    };
+  }
+
+  const warningParts: string[] = [];
+  const scheduledDate = existing.scheduledDate;
+
+  const assignedLinks = await db
+    .select({ personnelId: assignmentPersonnelTable.personnelId })
+    .from(assignmentPersonnelTable)
+    .where(
+      and(
+        eq(assignmentPersonnelTable.assignmentId, id),
+        eq(assignmentPersonnelTable.status, "assigned"),
+      ),
+    );
+
+  if (assignedLinks.length > 0) {
+    const personnelIds = assignedLinks.map((p) => p.personnelId);
+    const dayOfWeek   = new Date(scheduledDate + "T00:00:00").getDay();
+    const newStartMin = timeToMin(newStart);
+    const newEndMin   = newEnd ? timeToMin(newEnd) : newStartMin + 60;
+
+    // 1. Availability status
+    const statusMap = await getBatchAvailabilityStatus(personnelIds, scheduledDate);
+    const unavailable = personnelIds.filter((pid) => {
+      const s = statusMap[pid] as AvailabilityStatus | undefined;
+      return s === "ziek" || s === "op_verlof" || s === "niet_beschikbaar";
+    });
+    if (unavailable.length > 0) {
+      const nameRows = await db
+        .select({ id: personnelTable.id, firstName: personnelTable.firstName, lastName: personnelTable.lastName })
+        .from(personnelTable)
+        .where(inArray(personnelTable.id, unavailable));
+      const nameList = nameRows.map((n) => `${n.firstName} ${n.lastName}`.trim()).join(", ");
+      warningParts.push(
+        `${nameList} ${unavailable.length === 1 ? "is" : "zijn"} niet beschikbaar op ${scheduledDate}.`,
+      );
+    }
+
+    // 2. Double-booking conflict (exclude this assignment)
+    const conflictRows = await db
+      .select({ personnelId: assignmentPersonnelTable.personnelId })
+      .from(assignmentPersonnelTable)
+      .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
+      .where(
+        and(
+          eq(assignmentsTable.scheduledDate, scheduledDate),
+          inArray(assignmentPersonnelTable.personnelId, personnelIds),
+          ne(assignmentPersonnelTable.assignmentId, id),
+          eq(assignmentPersonnelTable.status, "assigned"),
+          or(
+            isNull(assignmentsTable.scheduledStart),
+            isNull(assignmentsTable.scheduledEnd),
+            sql<boolean>`${assignmentsTable.scheduledStart} < ${newEnd ?? newStart} AND ${assignmentsTable.scheduledEnd} > ${newStart}`,
+          ),
+        ),
+      );
+
+    if (conflictRows.length > 0) {
+      const conflictIds = [...new Set(conflictRows.map((r) => r.personnelId))];
+      const nameRows = await db
+        .select({ id: personnelTable.id, firstName: personnelTable.firstName, lastName: personnelTable.lastName })
+        .from(personnelTable)
+        .where(inArray(personnelTable.id, conflictIds));
+      const nameList = nameRows.map((n) => `${n.firstName} ${n.lastName}`.trim()).join(", ");
+      warningParts.push(
+        `${nameList} ${conflictIds.length === 1 ? "heeft" : "hebben"} een conflicterende inplanning op ${scheduledDate}.`,
+      );
+    }
+
+    // 3. Availability window coverage
+    const windowRows = await db
+      .select({
+        personnelId: availabilityWindowsTable.personnelId,
+        startTime:   availabilityWindowsTable.startTime,
+        endTime:     availabilityWindowsTable.endTime,
+      })
+      .from(availabilityWindowsTable)
+      .where(
+        and(
+          inArray(availabilityWindowsTable.personnelId, personnelIds),
+          eq(availabilityWindowsTable.dayOfWeek, dayOfWeek),
+        ),
+      );
+
+    const coverageMap = new Map<string, boolean>();
+    for (const w of windowRows) {
+      if (!coverageMap.has(w.personnelId)) {
+        const wStart = timeToMin(w.startTime);
+        const wEnd   = timeToMin(w.endTime);
+        coverageMap.set(w.personnelId, wStart <= newStartMin && wEnd >= newEndMin);
+      }
+    }
+
+    const outsideWindow = personnelIds.filter((pid) => {
+      const s = statusMap[pid] as AvailabilityStatus | undefined;
+      if (s !== "beschikbaar") return false;
+      return !(coverageMap.get(pid) ?? false);
+    });
+
+    if (outsideWindow.length > 0) {
+      const nameRows = await db
+        .select({ id: personnelTable.id, firstName: personnelTable.firstName, lastName: personnelTable.lastName })
+        .from(personnelTable)
+        .where(inArray(personnelTable.id, outsideWindow));
+      const nameList = nameRows.map((n) => `${n.firstName} ${n.lastName}`.trim()).join(", ");
+      warningParts.push(
+        `Het beschikbaarheidsvenster van ${nameList} dekt het tijdslot (${newStart}–${newEnd ?? ""}) niet.`,
+      );
+    }
+  }
+
+  await db
+    .update(assignmentsTable)
+    .set({ scheduledStart: newStart, scheduledEnd: newEnd })
+    .where(eq(assignmentsTable.id, id));
+
+  await db.insert(auditLogTable).values({
+    userId:     user.id,
+    action:     "update",
+    resource:   "assignments",
+    resourceId: id,
+    metadata:   {
+      action:   "reshift",
+      from:     { start: existing.scheduledStart, end: existing.scheduledEnd },
+      to:       { start: newStart, end: newEnd },
+      warnings: warningParts.length > 0 ? warningParts : undefined,
+    },
+  });
+
+  revalidatePath("/planning");
+
+  return warningParts.length > 0
+    ? { success: true, warning: `Let op: ${warningParts.join(" ")}` }
+    : { success: true };
 }
 
 export async function getTaskCodeOptions(): Promise<TaskCodeOption[]> {

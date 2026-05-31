@@ -1,0 +1,32 @@
+kind = "web"
+previewPath = "/klant/"
+title = "Veele Klantportaal"
+version = "1.0.0"
+id = "artifacts/klant-pwa"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/klant/" ]
+localPort = 3003
+
+[services.development]
+run = "pnpm --filter @workspace/klant-pwa run dev"
+
+[services.development.health.startup]
+path = "/klant/healthz"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/klant-pwa", "run", "build" ]
+run = "pnpm --filter @workspace/klant-pwa run start"
+
+[services.production.health.startup]
+path = "/klant/healthz"
+
+[services.env]
+PORT = "3003"
+BASE_PATH = "/klant/"

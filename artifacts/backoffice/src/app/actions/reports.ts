@@ -358,6 +358,8 @@ export async function submitReport(
         and(
           eq(assignmentPersonnelTable.assignmentId, assignmentId),
           eq(personnelTable.userId, user.id),
+          // Only confirmed (assigned) links may submit reports — not self-applied candidates
+          eq(assignmentPersonnelTable.status, "assigned"),
         ),
       )
       .limit(1);

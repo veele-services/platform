@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { DevNav } from "@/components/DevNav";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -42,7 +43,10 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body>{children}</body>
+      <body>
+        <DevNav current="personeel" />
+        {children}
+      </body>
     </html>
   );
 }

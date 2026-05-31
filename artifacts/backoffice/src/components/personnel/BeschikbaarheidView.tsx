@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Save, Plus, Trash2, Pencil, X, AlertCircle, CheckCircle2, Calendar } from "lucide-react";
+import { Save, Plus, Trash2, Pencil, X, AlertCircle, CheckCircle2, Calendar, Check, XCircle } from "lucide-react";
 import {
   setAvailabilityWindows,
   addLeavePeriod,
   updateLeavePeriod,
   deleteLeavePeriod,
+  approveLeavePeriod,
+  rejectLeavePeriod,
   type AvailabilityWindow,
   type LeavePeriod,
   type LeaveType,
@@ -69,8 +71,9 @@ export function BeschikbaarheidView({
   const [scheduleError, setScheduleError] = useState<string | null>(null);
   const [leaveError, setLeaveError]       = useState<string | null>(null);
 
-  const [schedulePending, startSchedule]  = useTransition();
-  const [leavePending, startLeave]        = useTransition();
+  const [schedulePending, startSchedule]    = useTransition();
+  const [leavePending, startLeave]          = useTransition();
+  const [approvalPending, startApproval]    = useTransition();
 
   // ─── Weekschema ────────────────────────────────────────────────────────────
 
@@ -130,6 +133,35 @@ export function BeschikbaarheidView({
       [...prev, period].sort((a, b) => a.startDate.localeCompare(b.startDate)),
     );
     setShowAddLeave(false);
+  }
+
+  function handleApprove(id: string) {
+    setLeaveError(null);
+    startApproval(async () => {
+      const result = await approveLeavePeriod(id, personnelId);
+      if (result.success) {
+        setLeavePeriods((prev) =>
+          prev.map((l) => l.id === id ? { ...l, status: "approved" as LeaveStatus } : l),
+        );
+      } else {
+        setLeaveError((result as { message?: string }).message ?? "Goedkeuren mislukt.");
+      }
+    });
+  }
+
+  function handleReject(id: string) {
+    if (!confirm("Weet u zeker dat u deze verlofaanvraag wilt afwijzen?")) return;
+    setLeaveError(null);
+    startApproval(async () => {
+      const result = await rejectLeavePeriod(id, personnelId);
+      if (result.success) {
+        setLeavePeriods((prev) =>
+          prev.map((l) => l.id === id ? { ...l, status: "rejected" as LeaveStatus } : l),
+        );
+      } else {
+        setLeaveError((result as { message?: string }).message ?? "Afwijzen mislukt.");
+      }
+    });
   }
 
   function handleLeaveUpdated(updated: LeavePeriod) {
@@ -362,28 +394,58 @@ export function BeschikbaarheidView({
                       {lp.reason ?? <span style={{ color: "#CBD5E1" }}>—</span>}
                     </td>
                     <td className="py-2.5 text-right">
-                      {canWrite && !isPast && (
-                        <div className="inline-flex items-center gap-1">
-                          <button
-                            type="button"
-                            onClick={() => { setEditingLeaveId(lp.id); setShowAddLeave(false); }}
-                            disabled={leavePending}
-                            className="rounded p-1 hover:bg-slate-100 transition-colors disabled:opacity-40"
-                            title="Bewerken"
-                          >
-                            <Pencil className="h-3.5 w-3.5" style={{ color: "#64748B" }} />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteLeave(lp.id)}
-                            disabled={leavePending}
-                            className="rounded p-1 hover:bg-red-50 transition-colors disabled:opacity-40"
-                            title="Verwijderen"
-                          >
-                            <Trash2 className="h-3.5 w-3.5" style={{ color: "#EF4444" }} />
-                          </button>
-                        </div>
-                      )}
+                      <div className="inline-flex items-center gap-1">
+                        {/* Approve/reject buttons for pending requests */}
+                        {canWrite && lp.status === "pending" && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => handleApprove(lp.id)}
+                              disabled={approvalPending}
+                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors disabled:opacity-40"
+                              style={{ backgroundColor: "#DCFCE7", color: "#15803D" }}
+                              title="Goedkeuren"
+                            >
+                              <Check className="h-3 w-3" />
+                              Goedkeuren
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleReject(lp.id)}
+                              disabled={approvalPending}
+                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors disabled:opacity-40"
+                              style={{ backgroundColor: "#FEE2E2", color: "#991B1B" }}
+                              title="Afwijzen"
+                            >
+                              <XCircle className="h-3 w-3" />
+                              Afwijzen
+                            </button>
+                          </>
+                        )}
+                        {/* Edit/delete for non-past, non-pending leave */}
+                        {canWrite && !isPast && lp.status !== "pending" && (
+                          <>
+                            <button
+                              type="button"
+                              onClick={() => { setEditingLeaveId(lp.id); setShowAddLeave(false); }}
+                              disabled={leavePending}
+                              className="rounded p-1 hover:bg-slate-100 transition-colors disabled:opacity-40"
+                              title="Bewerken"
+                            >
+                              <Pencil className="h-3.5 w-3.5" style={{ color: "#64748B" }} />
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteLeave(lp.id)}
+                              disabled={leavePending}
+                              className="rounded p-1 hover:bg-red-50 transition-colors disabled:opacity-40"
+                              title="Verwijderen"
+                            >
+                              <Trash2 className="h-3.5 w-3.5" style={{ color: "#EF4444" }} />
+                            </button>
+                          </>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 );
