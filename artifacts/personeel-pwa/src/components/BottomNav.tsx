@@ -2,14 +2,16 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ClipboardList, Calendar, Plane, User } from "lucide-react";
+import { Home, ClipboardList, ClipboardCheck, Clock, Calendar, Plane, User } from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/",               icon: Home,          label: "Home" },
-  { href: "/opdrachten",     icon: ClipboardList, label: "Opdrachten" },
-  { href: "/beschikbaarheid",icon: Calendar,      label: "Beschikbaar" },
-  { href: "/verlof",         icon: Plane,         label: "Verlof" },
-  { href: "/profiel",        icon: User,          label: "Profiel" },
+  { href: "/",                icon: Home,           label: "Home" },
+  { href: "/opdrachten",      icon: ClipboardList,  label: "Opdrachten" },
+  { href: "/openstaand",      icon: ClipboardCheck, label: "Openstaand" },
+  { href: "/uren",            icon: Clock,          label: "Uren" },
+  { href: "/beschikbaarheid", icon: Calendar,       label: "Beschikbaar" },
+  { href: "/verlof",          icon: Plane,          label: "Verlof" },
+  { href: "/profiel",         icon: User,           label: "Profiel" },
 ];
 
 export function BottomNav() {
@@ -19,7 +21,7 @@ export function BottomNav() {
     <nav
       className="fixed bottom-0 left-0 right-0 border-t bg-white"
       style={{
-        borderColor: "var(--color-border)",
+        borderColor:   "var(--color-border)",
         paddingBottom: "var(--safe-bottom)",
       }}
     >
@@ -33,17 +35,13 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className="flex flex-1 flex-col items-center justify-center gap-1 py-2 transition-colors"
+              className="flex flex-1 flex-col items-center justify-center gap-0.5 py-2 transition-colors"
               style={{
                 color: isActive ? "var(--color-accent)" : "var(--color-secondary)",
               }}
             >
-              <Icon size={22} strokeWidth={isActive ? 2.5 : 1.75} />
-              <span
-                className="text-[10px] font-medium leading-none"
-              >
-                {item.label}
-              </span>
+              <Icon size={18} strokeWidth={isActive ? 2.5 : 1.75} />
+              <span className="text-[9px] font-medium leading-none">{item.label}</span>
             </Link>
           );
         })}
