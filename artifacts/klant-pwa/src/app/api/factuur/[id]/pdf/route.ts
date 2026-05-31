@@ -172,13 +172,17 @@ export async function GET(
     // ── Table header ─────────────────────────────────────────────────────────
     const colCode  = L;
     const colName  = L + 60;
-    const colPrice = R - 80;
+    const colQty   = R - 200;
+    const colUnit  = R - 140;
+    const colTotal = R - 75;
 
     const hdrY = tableTopY + 8;
     doc.fontSize(8).fillColor(SECONDARY).font("Helvetica-Bold");
     doc.text("Code",        colCode,  hdrY, { width: 55 });
-    doc.text("Omschrijving",colName,  hdrY, { width: 280 });
-    doc.text("Prijs",       colPrice, hdrY, { width: 80, align: "right" });
+    doc.text("Omschrijving",colName,  hdrY, { width: 130 });
+    doc.text("Aantal",      colQty,   hdrY, { width: 55, align: "right" });
+    doc.text("Prijs/st.",   colUnit,  hdrY, { width: 60, align: "right" });
+    doc.text("Totaal",      colTotal, hdrY, { width: 75, align: "right" });
 
     const hdrLineY = hdrY + 14;
     doc.moveTo(L, hdrLineY).lineTo(R, hdrLineY).strokeColor(MUTED).lineWidth(0.5).stroke();
@@ -189,9 +193,14 @@ export async function GET(
 
     for (const item of lineItems) {
       if (rowY > 680) break;
-      doc.fillColor(SECONDARY).text(item.code ?? "—", colCode, rowY, { width: 55 });
-      doc.fillColor(PRIMARY).text(item.name ?? "—", colName, rowY, { width: 270 });
-      doc.fillColor(PRIMARY).text(fmtEur(item.price), colPrice, rowY, { width: 80, align: "right" });
+      const qty       = 1;
+      const unitPrice = parseFloat(item.price ?? "0");
+      const lineTotal = qty * unitPrice;
+      doc.fillColor(SECONDARY).text(item.code ?? "—",  colCode,  rowY, { width: 55 });
+      doc.fillColor(PRIMARY).text(item.name ?? "—",    colName,  rowY, { width: 130 });
+      doc.fillColor(SECONDARY).text(String(qty),       colQty,   rowY, { width: 55, align: "right" });
+      doc.fillColor(PRIMARY).text(fmtEur(item.price),  colUnit,  rowY, { width: 60, align: "right" });
+      doc.fillColor(PRIMARY).text(fmtEur(item.price ? String(lineTotal) : null), colTotal, rowY, { width: 75, align: "right" });
       rowY += 18;
     }
 

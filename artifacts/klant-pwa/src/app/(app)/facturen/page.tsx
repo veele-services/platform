@@ -125,7 +125,7 @@ function InvoiceGroup({
                 </span>
               </div>
 
-              {(inv.status === "sent" || inv.status === "paid") && (
+              {inv.status !== "draft" && (
                 <div className="mt-3 border-t pt-3" style={{ borderColor: "var(--color-border)" }}>
                   <div className="flex flex-col gap-2">
                     {inv.status === "sent" && inv.checkoutUrl && (
