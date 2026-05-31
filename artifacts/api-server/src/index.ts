@@ -1,6 +1,15 @@
 import app from "./app";
 import { logger } from "./lib/logger";
 
+// ── Startup env validation ────────────────────────────────────────────────────
+// Fail fast so misconfigured deployments surface immediately in logs rather
+// than producing cryptic runtime errors during the first payment attempt.
+if (!process.env["MOLLIE_API_KEY"]) {
+  logger.warn(
+    "MOLLIE_API_KEY is not set — Mollie payment creation and webhook processing will be unavailable.",
+  );
+}
+
 const rawPort = process.env["PORT"];
 
 if (!rawPort) {

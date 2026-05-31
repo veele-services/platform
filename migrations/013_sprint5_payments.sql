@@ -27,11 +27,28 @@ CREATE INDEX IF NOT EXISTS idx_payments_mollie_payment_id
 
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 
--- Authenticated users (backoffice staff) can read payment records
-CREATE POLICY "authenticated_read_payments"
+-- Authenticated users can only read payment records for invoices they own.
+-- Ownership is determined by the invoice's created_by field matching the
+-- current user, or by being in the same organization (staff/management).
+-- For now we scope to: invoice.created_by = auth.uid()
+-- OR the user has a management/admin role (checked via user_roles table).
+CREATE POLICY "owner_or_staff_read_payments"
   ON payments
   FOR SELECT
-  USING (auth.role() = 'authenticated');
+  USING (
+    EXISTS (
+      SELECT 1 FROM invoices
+      WHERE invoices.id = payments.invoice_id
+        AND (
+          invoices.created_by = auth.uid()
+          OR EXISTS (
+            SELECT 1 FROM user_roles ur
+            WHERE ur.user_id = auth.uid()
+              AND ur.role IN ('management', 'administration', 'planning', 'support')
+          )
+        )
+    )
+  );
 
 -- Service role has full access (used by webhook and server actions)
 CREATE POLICY "service_role_all_payments"
