@@ -72,6 +72,7 @@ export type CustomerNoteRow = {
   id: string;
   content: string;
   createdAt: string;
+  updatedAt: string | null;
   authorEmail: string;
   authorName: string | null;
 };
@@ -454,6 +455,7 @@ export async function listCustomerNotes(customerId: string): Promise<CustomerNot
       id:        customerNotesTable.id,
       notes:     customerNotesTable.notes,
       createdAt: customerNotesTable.createdAt,
+      updatedAt: customerNotesTable.updatedAt,
       updatedBy: customerNotesTable.updatedBy,
     })
     .from(customerNotesTable)
@@ -479,6 +481,7 @@ export async function listCustomerNotes(customerId: string): Promise<CustomerNot
       id:          r.id,
       content:     r.notes,
       createdAt:   r.createdAt.toISOString(),
+      updatedAt:   r.updatedAt ? r.updatedAt.toISOString() : null,
       authorEmail: author?.email ?? (r.updatedBy ?? "—"),
       authorName:  author?.name ?? null,
     };
@@ -516,6 +519,50 @@ export async function addCustomerNote(
   return { success: true, data: { id: inserted.id, createdAt: inserted.createdAt.toISOString() } };
 }
 
+export async function updateCustomerNote(
+  noteId: string,
+  customerId: string,
+  content: string,
+): Promise<ActionResult> {
+  await requirePermission("customers", "write");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const trimmed = content.trim();
+  if (!trimmed) return { success: false, message: "Notitie mag niet leeg zijn." };
+  if (trimmed.length > 4000) return { success: false, message: "Maximaal 4000 tekens toegestaan." };
+
+  // Security: verify the note belongs to this customer
+  const [existing] = await db
+    .select({ id: customerNotesTable.id })
+    .from(customerNotesTable)
+    .where(and(
+      eq(customerNotesTable.id, noteId),
+      eq(customerNotesTable.customerId, customerId),
+    ))
+    .limit(1);
+
+  if (!existing) return { success: false, message: "Notitie niet gevonden." };
+
+  await db
+    .update(customerNotesTable)
+    .set({ notes: trimmed, updatedBy: user.id })
+    .where(eq(customerNotesTable.id, noteId));
+
+  await db.insert(auditLogTable).values({
+    userId:     user.id,
+    action:     "update",
+    resource:   "customer_notes",
+    resourceId: noteId,
+    metadata:   { customerId },
+  });
+
+  revalidatePath(`/customers/${customerId}`);
+  return { success: true };
+}
+
 export async function deleteCustomerNote(
   noteId: string,
   customerId: string,
@@ -528,7 +575,10 @@ export async function deleteCustomerNote(
 
   await db
     .delete(customerNotesTable)
-    .where(and(eq(customerNotesTable.id, noteId), eq(customerNotesTable.customerId, customerId)));
+    .where(and(
+      eq(customerNotesTable.id, noteId),
+      eq(customerNotesTable.customerId, customerId),
+    ));
 
   await db.insert(auditLogTable).values({
     userId:     user.id,

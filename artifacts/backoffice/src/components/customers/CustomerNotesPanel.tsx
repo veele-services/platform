@@ -1,20 +1,21 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { MessageSquarePlus, Trash2, AlertCircle, StickyNote } from "lucide-react";
+import {
+  MessageSquarePlus, Trash2, Pencil, Check, X,
+  AlertCircle, StickyNote,
+} from "lucide-react";
 import {
   addCustomerNote,
+  updateCustomerNote,
   deleteCustomerNote,
   type CustomerNoteRow,
 } from "@/app/actions/customers";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("nl-NL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    hour: "2-digit",
-    minute: "2-digit",
+    day: "numeric", month: "short", year: "numeric",
+    hour: "2-digit", minute: "2-digit",
   });
 }
 
@@ -24,17 +25,20 @@ interface Props {
 }
 
 export function CustomerNotesPanel({ customerId, initialNotes }: Props) {
-  const [notes, setNotes]            = useState(initialNotes);
-  const [content, setContent]        = useState("");
-  const [isPending, startTransition] = useTransition();
-  const [error, setError]            = useState<string | null>(null);
-  const [deletingId, setDeletingId]  = useState<string | null>(null);
+  const [notes, setNotes]             = useState(initialNotes);
+  const [content, setContent]         = useState("");
+  const [isPending, startTransition]  = useTransition();
+  const [error, setError]             = useState<string | null>(null);
+  const [deletingId, setDeletingId]   = useState<string | null>(null);
+  const [editingId, setEditingId]     = useState<string | null>(null);
+  const [editContent, setEditContent] = useState("");
+
+  // ── Add ────────────────────────────────────────────────────────────────────
 
   function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     if (!content.trim()) return;
     setError(null);
-
     startTransition(async () => {
       const result = await addCustomerNote(customerId, content);
       if (result.success && result.data) {
@@ -42,6 +46,7 @@ export function CustomerNotesPanel({ customerId, initialNotes }: Props) {
           id:          result.data.id,
           content:     content.trim(),
           createdAt:   result.data.createdAt,
+          updatedAt:   null,
           authorEmail: "—",
           authorName:  null,
         };
@@ -52,6 +57,44 @@ export function CustomerNotesPanel({ customerId, initialNotes }: Props) {
       }
     });
   }
+
+  // ── Edit ───────────────────────────────────────────────────────────────────
+
+  function startEdit(note: CustomerNoteRow) {
+    setEditingId(note.id);
+    setEditContent(note.content);
+    setError(null);
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditContent("");
+    setError(null);
+  }
+
+  function handleUpdate() {
+    if (!editingId || !editContent.trim()) return;
+    setError(null);
+    startTransition(async () => {
+      const result = await updateCustomerNote(editingId, customerId, editContent);
+      if (result.success) {
+        const now = new Date().toISOString();
+        setNotes((prev) =>
+          prev.map((n) =>
+            n.id === editingId
+              ? { ...n, content: editContent.trim(), updatedAt: now }
+              : n,
+          ),
+        );
+        setEditingId(null);
+        setEditContent("");
+      } else {
+        setError(result.message);
+      }
+    });
+  }
+
+  // ── Delete ─────────────────────────────────────────────────────────────────
 
   function handleDelete(noteId: string) {
     if (!confirm("Notitie verwijderen?")) return;
@@ -66,6 +109,8 @@ export function CustomerNotesPanel({ customerId, initialNotes }: Props) {
       }
     });
   }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div className="veele-card space-y-4">
@@ -96,11 +141,7 @@ export function CustomerNotesPanel({ customerId, initialNotes }: Props) {
           maxLength={4000}
           disabled={isPending}
           className="w-full rounded-lg border px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-offset-0"
-          style={{
-            borderColor:     "#E2E8F0",
-            color:           "#081D3A",
-            backgroundColor: "#FAFCFF",
-          }}
+          style={{ borderColor: "#E2E8F0", color: "#081D3A", backgroundColor: "#FAFCFF" }}
         />
         <div className="flex items-center gap-2">
           <button
@@ -134,21 +175,83 @@ export function CustomerNotesPanel({ customerId, initialNotes }: Props) {
               className="rounded-lg p-3 space-y-1.5"
               style={{ backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0" }}
             >
-              <div className="flex items-start justify-between gap-2">
-                <p className="flex-1 text-sm whitespace-pre-wrap" style={{ color: "#334155" }}>
-                  {note.content}
-                </p>
-                <button
-                  onClick={() => handleDelete(note.id)}
-                  disabled={isPending && deletingId === note.id}
-                  title="Verwijderen"
-                  className="flex-shrink-0 rounded p-1 hover:bg-red-50 transition-colors disabled:opacity-50"
-                >
-                  <Trash2 className="h-3.5 w-3.5" style={{ color: "#DC2626" }} />
-                </button>
-              </div>
+              {editingId === note.id ? (
+                /* ── Inline edit mode ───────────────── */
+                <div className="space-y-2">
+                  <textarea
+                    value={editContent}
+                    onChange={(e) => setEditContent(e.target.value)}
+                    rows={3}
+                    maxLength={4000}
+                    disabled={isPending}
+                    // eslint-disable-next-line jsx-a11y/no-autofocus
+                    autoFocus
+                    className="w-full rounded border px-2 py-1.5 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-offset-0"
+                    style={{ borderColor: "#00B7B3", color: "#081D3A", backgroundColor: "#fff" }}
+                  />
+                  <div className="flex items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={handleUpdate}
+                      disabled={isPending || !editContent.trim()}
+                      className="inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs font-medium text-white disabled:opacity-50"
+                      style={{ backgroundColor: "#00B7B3" }}
+                    >
+                      <Check className="h-3 w-3" />
+                      {isPending ? "Opslaan…" : "Opslaan"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={cancelEdit}
+                      disabled={isPending}
+                      className="inline-flex items-center gap-1 rounded px-2.5 py-1 text-xs font-medium border disabled:opacity-50"
+                      style={{ borderColor: "#E2E8F0", color: "#475569" }}
+                    >
+                      <X className="h-3 w-3" />
+                      Annuleren
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                /* ── Read mode ──────────────────────── */
+                <div className="flex items-start justify-between gap-2">
+                  <p className="flex-1 text-sm whitespace-pre-wrap" style={{ color: "#334155" }}>
+                    {note.content}
+                  </p>
+                  <div className="flex items-center gap-0.5 flex-shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => startEdit(note)}
+                      disabled={isPending}
+                      title="Bewerken"
+                      className="rounded p-1 hover:bg-slate-100 transition-colors disabled:opacity-50"
+                    >
+                      <Pencil className="h-3.5 w-3.5" style={{ color: "#64748B" }} />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDelete(note.id)}
+                      disabled={isPending && deletingId === note.id}
+                      title="Verwijderen"
+                      className="rounded p-1 hover:bg-red-50 transition-colors disabled:opacity-50"
+                    >
+                      <Trash2 className="h-3.5 w-3.5" style={{ color: "#DC2626" }} />
+                    </button>
+                  </div>
+                </div>
+              )}
               <p className="text-xs" style={{ color: "#94A3B8" }}>
-                {note.authorName ?? note.authorEmail} · {formatDate(note.createdAt)}
+                {note.authorName ?? note.authorEmail}
+                {" · "}
+                {formatDate(note.createdAt)}
+                {note.updatedAt && note.updatedAt !== note.createdAt && (
+                  <>
+                    {" · "}
+                    <span style={{ fontStyle: "italic" }}>
+                      bewerkt {formatDate(note.updatedAt)}
+                    </span>
+                  </>
+                )}
               </p>
             </li>
           ))}

@@ -9,6 +9,7 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PersonnelDetailActions } from "@/components/personnel/PersonnelDetailActions";
+import { PersonnelCompetenciesEditButton } from "@/components/personnel/PersonnelCompetenciesEditButton";
 import { AssignmentHistoryTable } from "@/components/assignments/AssignmentHistoryTable";
 import { EntityDocumentsPanel } from "@/components/documents/EntityDocumentsPanel";
 import { getPersonnel, listRoles } from "@/app/actions/personnel";
@@ -39,10 +40,11 @@ export default async function PersonnelDetailPage({ params }: Props) {
 
   const { id } = await params;
 
-  const [canWrite, canReadAssignments, canReadDocuments] = await Promise.all([
+  const [canWrite, canReadAssignments, canReadDocuments, canWriteDocuments] = await Promise.all([
     hasPermission("personnel", "write"),
     hasPermission("assignments", "read"),
     hasPermission("documents", "read"),
+    hasPermission("documents", "write"),
   ]);
 
   const [person, roles, windows, leavePeriods, assignmentHistory, documents] = await Promise.all([
@@ -127,17 +129,25 @@ export default async function PersonnelDetailPage({ params }: Props) {
               Contact
             </h2>
             <dl className="space-y-3">
-              <InfoRow icon={<Mail className="h-4 w-4" />} label="E-mail" value={
-                <a href={`mailto:${person.email}`} className="hover:underline" style={{ color: "#00B7B3" }}>
-                  {person.email}
-                </a>
-              } />
-              {person.phone && (
-                <InfoRow icon={<Phone className="h-4 w-4" />} label="Telefoon" value={
-                  <a href={`tel:${person.phone}`} className="hover:underline" style={{ color: "#00B7B3" }}>
-                    {person.phone}
+              <InfoRow
+                icon={<Mail className="h-4 w-4" />}
+                label="E-mail"
+                value={
+                  <a href={`mailto:${person.email}`} className="hover:underline" style={{ color: "#00B7B3" }}>
+                    {person.email}
                   </a>
-                } />
+                }
+              />
+              {person.phone && (
+                <InfoRow
+                  icon={<Phone className="h-4 w-4" />}
+                  label="Telefoon"
+                  value={
+                    <a href={`tel:${person.phone}`} className="hover:underline" style={{ color: "#00B7B3" }}>
+                      {person.phone}
+                    </a>
+                  }
+                />
               )}
               {person.region && (
                 <InfoRow icon={<MapPin className="h-4 w-4" />} label="Regio" value={person.region} />
@@ -147,9 +157,18 @@ export default async function PersonnelDetailPage({ params }: Props) {
 
           {/* Qualifications */}
           <div className="veele-card">
-            <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "#081D3A" }}>
-              Kwalificaties
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
+                Kwalificaties
+              </h2>
+              {canWrite && (
+                <PersonnelCompetenciesEditButton
+                  personnelId={person.id}
+                  personnelName={fullName}
+                  roles={roles}
+                />
+              )}
+            </div>
             <div className="space-y-4">
               <QualSection label="Certificaten" tags={person.certificates} color="#0A7E7A" bg="#E0FAFB" />
               <QualSection label="Diploma&apos;s"    tags={person.diplomas}     color="#5A3B9A" bg="#F0EBFF" />
@@ -237,7 +256,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
             entityType="personnel"
             entityId={id}
             initialDocuments={documents}
-            canWrite={canWrite}
+            canWrite={canWriteDocuments}
           />
         </div>
       )}
