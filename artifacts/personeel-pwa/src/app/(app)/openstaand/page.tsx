@@ -1,6 +1,20 @@
-import { ClipboardCheck, Calendar, MapPin, Tag } from "lucide-react";
+import { ClipboardCheck, Calendar, MapPin, Tag, AlertCircle } from "lucide-react";
 import { getOpenAssignments } from "@/actions/open-assignments";
 import { ApplyButton } from "./ApplyButton";
+
+const PRIORITY_LABELS: Record<string, string> = {
+  low:      "Laag",
+  normal:   "Normaal",
+  high:     "Hoog",
+  urgent:   "Urgent",
+};
+
+const PRIORITY_COLORS: Record<string, { bg: string; fg: string }> = {
+  low:    { bg: "#f1f5f9", fg: "#64748b" },
+  normal: { bg: "#eff6ff", fg: "#3b82f6" },
+  high:   { bg: "#fef3c7", fg: "#d97706" },
+  urgent: { bg: "#fee2e2", fg: "#dc2626" },
+};
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "";
@@ -77,11 +91,31 @@ function AssignmentCard({
 }: {
   assignment: Awaited<ReturnType<typeof getOpenAssignments>>[number];
 }) {
+  const priorityStyle = assignment.priority
+    ? (PRIORITY_COLORS[assignment.priority] ?? PRIORITY_COLORS.normal)
+    : null;
+  const priorityLabel = assignment.priority
+    ? (PRIORITY_LABELS[assignment.priority] ?? assignment.priority)
+    : null;
+
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm">
-      <p className="font-semibold" style={{ color: "var(--color-primary)" }}>
-        {assignment.title}
-      </p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="font-semibold" style={{ color: "var(--color-primary)" }}>
+          {assignment.title}
+        </p>
+        {priorityLabel && priorityStyle && (
+          <span
+            className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+            style={{ backgroundColor: priorityStyle.bg, color: priorityStyle.fg }}
+          >
+            {priorityLabel === "Urgent" && (
+              <AlertCircle size={10} className="mr-0.5 inline-block" />
+            )}
+            {priorityLabel}
+          </span>
+        )}
+      </div>
 
       <div className="mt-2 space-y-1.5">
         {assignment.scheduledDate && (

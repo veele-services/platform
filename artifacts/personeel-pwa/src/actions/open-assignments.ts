@@ -9,7 +9,7 @@ import {
   personnelTable,
   objectsTable,
 } from "@workspace/db";
-import { eq, and, inArray, desc } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -51,13 +51,21 @@ export type OpenAssignment = {
   id:               string;
   title:            string;
   scheduledDate:    string | null;
+  priority:         string | null;
   objectAddress:    string | null;
   objectCity:       string | null;
   taskCodes:        string[];
   isAlreadyApplied: boolean;
 };
 
-// ─── Eligibility check ────────────────────────────────────────────────────────
+// ─── Eligibility helpers ──────────────────────────────────────────────────────
+
+type TaskRequirements = {
+  requiredRoleId:       string | null;
+  requiredCertificates: string[];
+  requiredDiploma:      string | null;
+  requiredKnowledge:    string[];
+};
 
 /**
  * Check whether a personnel member meets ALL requirements of a task code.
@@ -65,12 +73,7 @@ export type OpenAssignment = {
  */
 function meetsTaskRequirements(
   personnel: PersonnelProfile,
-  task: {
-    requiredRoleId:       string | null;
-    requiredCertificates: string[];
-    requiredDiploma:      string | null;
-    requiredKnowledge:    string[];
-  },
+  task: TaskRequirements,
 ): boolean {
   if (task.requiredRoleId && personnel.roleId !== task.requiredRoleId) return false;
   if (task.requiredCertificates.length > 0) {
@@ -85,21 +88,47 @@ function meetsTaskRequirements(
   return true;
 }
 
+/**
+ * Check region scope: if the personnel member has a region configured,
+ * only show assignments whose object city contains that region (case-insensitive).
+ * Assignments whose object city is null are shown to everyone.
+ *
+ * NOTE: assignments have no dedicated region column. City-based matching is
+ * the best approximation without a DB migration. When a `region` column is
+ * added to assignments (see task #82), replace this check.
+ */
+function meetsRegionScope(personnel: PersonnelProfile, objectCity: string | null): boolean {
+  if (!personnel.region) return true; // no region set → no filter
+  if (!objectCity) return true; // no object city → don't exclude
+  return objectCity.toLowerCase().includes(personnel.region.toLowerCase());
+}
+
+function isEligibleForAssignment(
+  personnel: PersonnelProfile,
+  tasks: TaskRequirements[],
+  objectCity: string | null,
+): boolean {
+  if (!meetsRegionScope(personnel, objectCity)) return false;
+  if (tasks.length === 0) return true; // no task requirements → open to all
+  return tasks.every((t) => meetsTaskRequirements(personnel, t));
+}
+
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
 /**
- * List plannable assignments eligible for this personnel member.
+ * List plannable assignments that this personnel member is eligible for.
  *
- * Eligibility rules (parity with backoffice planning):
- *   - Role: if a task requires a role, personnel's role must match
- *   - Certificates: personnel must hold all required certificates
- *   - Diploma: personnel must hold the required diploma
- *   - Knowledge: personnel must have all required knowledge tags
- *   - Region: deferred — assignments have no region column yet
- *             (see migration 016 + future enhancement)
+ * Eligibility rules (parity with backoffice planning eligibility):
+ *   - Region: if personnel has a region, only show assignments whose object
+ *             city contains that region string (city-based approximation).
+ *   - Role: if a task requires a role, personnel's roleId must match.
+ *   - Certificates: personnel must hold all required certificates.
+ *   - Diploma: personnel must hold the required diploma.
+ *   - Knowledge: personnel must have all required knowledge tags.
  *
  * Uses @workspace/db (Drizzle / service-role connection) to bypass RLS so
- * that ALL plannable assignments are visible regardless of existing links.
+ * that ALL plannable assignments are visible for the eligibility check.
+ * No SELECT policy is granted to authenticated users — service-role bypasses RLS.
  */
 export async function getOpenAssignments(): Promise<OpenAssignment[]> {
   const personnel = await getPersonnelProfile();
@@ -110,6 +139,7 @@ export async function getOpenAssignments(): Promise<OpenAssignment[]> {
       id:            assignmentsTable.id,
       title:         assignmentsTable.title,
       scheduledDate: assignmentsTable.scheduledDate,
+      priority:      assignmentsTable.priority,
       objectAddress: objectsTable.address,
       objectCity:    objectsTable.city,
     })
@@ -148,52 +178,49 @@ export async function getOpenAssignments(): Promise<OpenAssignment[]> {
 
   const myIds = new Set(myLinks.map((l) => l.assignmentId));
 
-  // Group tasks by assignment
-  const tasksByAssignment = new Map<string, typeof taskRows>();
+  // Group tasks by assignment — separate requirements from display names
+  const reqsByAssignment  = new Map<string, TaskRequirements[]>();
+  const namesByAssignment = new Map<string, string[]>();
+
   for (const t of taskRows) {
-    if (!tasksByAssignment.has(t.assignmentId)) {
-      tasksByAssignment.set(t.assignmentId, []);
+    if (!reqsByAssignment.has(t.assignmentId)) {
+      reqsByAssignment.set(t.assignmentId, []);
+      namesByAssignment.set(t.assignmentId, []);
     }
-    tasksByAssignment.get(t.assignmentId)!.push(t);
+    reqsByAssignment.get(t.assignmentId)!.push({
+      requiredRoleId:       t.requiredRoleId ?? null,
+      requiredCertificates: (t.requiredCertificates as string[]) ?? [],
+      requiredDiploma:      t.requiredDiploma ?? null,
+      requiredKnowledge:    (t.requiredKnowledge as string[]) ?? [],
+    });
+    if (t.taskCodeName) {
+      namesByAssignment.get(t.assignmentId)!.push(t.taskCodeName);
+    }
   }
 
   return assignments
     .filter((a) => {
-      const tasks = tasksByAssignment.get(a.id) ?? [];
-      if (tasks.length === 0) return true; // No task requirements — open to all
-
-      // ALL tasks must be eligible (most restrictive interpretation)
-      return tasks.every((t) =>
-        meetsTaskRequirements(personnel, {
-          requiredRoleId:       t.requiredRoleId ?? null,
-          requiredCertificates: (t.requiredCertificates as string[]) ?? [],
-          requiredDiploma:      t.requiredDiploma ?? null,
-          requiredKnowledge:    (t.requiredKnowledge as string[]) ?? [],
-        }),
-      );
+      const reqs = reqsByAssignment.get(a.id) ?? [];
+      return isEligibleForAssignment(personnel, reqs, a.objectCity ?? null);
     })
-    .map((a) => {
-      const tasks = tasksByAssignment.get(a.id) ?? [];
-      return {
-        id:               a.id,
-        title:            a.title,
-        scheduledDate:    a.scheduledDate,
-        objectAddress:    a.objectAddress ?? null,
-        objectCity:       a.objectCity ?? null,
-        taskCodes:        tasks.map((t) => t.taskCodeName).filter(Boolean) as string[],
-        isAlreadyApplied: myIds.has(a.id),
-      };
-    });
+    .map((a) => ({
+      id:               a.id,
+      title:            a.title,
+      scheduledDate:    a.scheduledDate,
+      priority:         a.priority ?? null,
+      objectAddress:    a.objectAddress ?? null,
+      objectCity:       a.objectCity ?? null,
+      taskCodes:        namesByAssignment.get(a.id) ?? [],
+      isAlreadyApplied: myIds.has(a.id),
+    }));
 }
 
 // ─── Mutations ────────────────────────────────────────────────────────────────
 
 /**
  * Apply for a plannable assignment.
- * Inserts an assignment_personnel row with status='suggested'.
- *
- * Requires migration 016_assignment_personnel_status.sql to be run first.
- * Falls back gracefully if the status column doesn't exist yet.
+ * Re-checks eligibility server-side before inserting assignment_personnel row
+ * with status='suggested'. Requires migration 016 to be run first.
  */
 export async function applyForAssignment(
   assignmentId: string,
@@ -203,9 +230,15 @@ export async function applyForAssignment(
     return { success: false, error: "Niet ingelogd of personeelsprofiel niet gevonden" };
   }
 
+  // Verify assignment is still plannable + fetch object for region check
   const [assignment] = await db
-    .select({ id: assignmentsTable.id })
+    .select({
+      id:          assignmentsTable.id,
+      objectId:    assignmentsTable.objectId,
+      objectCity:  objectsTable.city,
+    })
     .from(assignmentsTable)
+    .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
     .where(
       and(
         eq(assignmentsTable.id, assignmentId),
@@ -219,6 +252,31 @@ export async function applyForAssignment(
     return { success: false, error: "Opdracht is niet meer beschikbaar" };
   }
 
+  // Fetch task requirements for this assignment
+  const taskRows = await db
+    .select({
+      requiredRoleId:       taskCodesTable.requiredRoleId,
+      requiredCertificates: taskCodesTable.requiredCertificates,
+      requiredDiploma:      taskCodesTable.requiredDiploma,
+      requiredKnowledge:    taskCodesTable.requiredKnowledge,
+    })
+    .from(assignmentTasksTable)
+    .leftJoin(taskCodesTable, eq(assignmentTasksTable.taskCodeId, taskCodesTable.id))
+    .where(eq(assignmentTasksTable.assignmentId, assignmentId));
+
+  const requirements: TaskRequirements[] = taskRows.map((t) => ({
+    requiredRoleId:       t.requiredRoleId ?? null,
+    requiredCertificates: (t.requiredCertificates as string[]) ?? [],
+    requiredDiploma:      t.requiredDiploma ?? null,
+    requiredKnowledge:    (t.requiredKnowledge as string[]) ?? [],
+  }));
+
+  // Server-side eligibility re-check (prevents direct action calls bypassing UI filters)
+  if (!isEligibleForAssignment(personnel, requirements, assignment.objectCity ?? null)) {
+    return { success: false, error: "U komt niet in aanmerking voor deze opdracht" };
+  }
+
+  // Check for duplicate application
   const [existing] = await db
     .select({ id: assignmentPersonnelTable.id })
     .from(assignmentPersonnelTable)
