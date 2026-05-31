@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Receipt, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { getMyInvoices } from "@/actions/invoices";
+import { PaidBanner } from "@/components/PaidBanner";
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "";
@@ -23,7 +24,12 @@ const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string; 
   cancelled: { label: "Geannuleerd", bg: "#FEE2E2", color: "#991B1B", Icon: XCircle },
 };
 
-export default async function FacturenPage() {
+interface Props {
+  searchParams: Promise<{ paid?: string }>;
+}
+
+export default async function FacturenPage({ searchParams }: Props) {
+  const { paid } = await searchParams;
   const invoices = await getMyInvoices();
 
   const openInvoices  = invoices.filter((i) => i.status === "sent");
@@ -35,6 +41,8 @@ export default async function FacturenPage() {
       <h1 className="text-xl font-bold" style={{ color: "var(--color-primary)" }}>
         Facturen
       </h1>
+
+      {paid === "1" && <PaidBanner />}
 
       {invoices.length === 0 ? (
         <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
