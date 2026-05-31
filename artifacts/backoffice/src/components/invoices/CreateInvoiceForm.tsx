@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, FileText, Receipt, Link as LinkIcon, Copy, Check } from "lucide-react";
+import { Loader2, FileText, Receipt, Link as LinkIcon } from "lucide-react";
 import { createInvoice } from "@/app/actions/invoices";
 import type { AssignmentInvoiceData } from "@/app/actions/invoices";
 
@@ -32,12 +32,7 @@ export function CreateInvoiceForm({ assignmentId, prefill }: Props) {
   const [vatPercentage, setVat]             = useState("21");
   const [dueDate, setDueDate]               = useState(defaultDueDate());
   const [notes, setNotes]                   = useState("");
-  const [createPaymentLink, setCreateLink]  = useState(true);
-
-  // Post-creation state
-  const [createdInvoiceId, setCreatedId]    = useState<string | null>(null);
-  const [checkoutUrl, setCheckoutUrl]       = useState<string | null>(null);
-  const [copied, setCopied]                 = useState(false);
+  const [goToPayment, setGoToPayment] = useState(true);
 
   const vatAmount   = (parseFloat(amount || "0") * parseFloat(vatPercentage || "0") / 100);
   const totalAmount = parseFloat(amount || "0") + vatAmount;
@@ -63,77 +58,11 @@ export function CreateInvoiceForm({ assignmentId, prefill }: Props) {
       ? (result as { success: true; data: { id: string } }).data?.id
       : null;
 
-    // Optionally create Mollie payment link immediately after invoice creation
-    if (invoiceId && createPaymentLink) {
-      // First mark the invoice as sent so createMolliePayment accepts it
-      // (the invoice was just created in draft status — we need to send it first)
-      // Actually: createMolliePayment requires status=sent. We create the link
-      // after the user manually marks it sent from the detail page.
-      // Instead: just redirect to detail page where they can create the link.
-      setLoading(false);
-      setCreatedId(invoiceId);
-      // Auto-navigate after short delay
-      startT(() => {
-        router.refresh();
-        router.push(`/invoices/${invoiceId}`);
-      });
-      return;
-    }
-
     setLoading(false);
     startT(() => {
       router.refresh();
       if (invoiceId) router.push(`/invoices/${invoiceId}`);
     });
-  }
-
-  async function handleCopy(url: string) {
-    try {
-      await navigator.clipboard.writeText(url);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2500);
-    } catch {
-      setError("Kopiëren naar klembord mislukt. Kopieer de URL handmatig.");
-    }
-  }
-
-  // ── After creation: show payment link if available ───────────────────────────
-  if (createdInvoiceId && checkoutUrl) {
-    return (
-      <div className="veele-card flex flex-col gap-4">
-        <div
-          className="rounded-lg p-4"
-          style={{ background: "#F0FDFA", border: "1px solid #99F6E4" }}
-        >
-          <p className="text-sm font-semibold mb-1" style={{ color: "#0F766E" }}>
-            Factuur aangemaakt en betaallink gereed
-          </p>
-          <p className="text-xs mb-3" style={{ color: "#374151" }}>
-            Stuur de onderstaande link naar de klant om de betaling te voltooien.
-          </p>
-          <p
-            className="text-xs break-all font-mono mb-3 p-2 rounded"
-            style={{ background: "#E6FFFA", color: "#0F766E" }}
-          >
-            {checkoutUrl}
-          </p>
-          <button
-            onClick={() => handleCopy(checkoutUrl)}
-            className="flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-semibold transition-colors"
-            style={{
-              background: copied ? "#D1FAE5" : "#00B7B3",
-              color:      copied ? "#065F46" : "#FFFFFF",
-            }}
-          >
-            {copied ? (
-              <><Check className="h-3.5 w-3.5" />Gekopieerd!</>
-            ) : (
-              <><Copy className="h-3.5 w-3.5" />Link kopiëren</>
-            )}
-          </button>
-        </div>
-      </div>
-    );
   }
 
   return (
@@ -275,8 +204,8 @@ export function CreateInvoiceForm({ assignmentId, prefill }: Props) {
         <label className="flex items-start gap-2.5 cursor-pointer select-none">
           <input
             type="checkbox"
-            checked={createPaymentLink}
-            onChange={(e) => setCreateLink(e.target.checked)}
+            checked={goToPayment}
+            onChange={(e) => setGoToPayment(e.target.checked)}
             className="mt-0.5 h-4 w-4 rounded accent-teal-500"
           />
           <span className="flex flex-col gap-0.5">

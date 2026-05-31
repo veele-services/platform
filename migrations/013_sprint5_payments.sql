@@ -27,11 +27,10 @@ CREATE INDEX IF NOT EXISTS idx_payments_mollie_payment_id
 
 ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 
--- Authenticated users can only read payment records for invoices they own.
--- Ownership is determined by the invoice's created_by field matching the
--- current user, or by being in the same organization (staff/management).
--- For now we scope to: invoice.created_by = auth.uid()
--- OR the user has a management/admin role (checked via user_roles table).
+-- Authenticated users can only read payment records for invoices they own
+-- (invoice.created_by = auth.uid()) OR if they have a staff role.
+-- Staff roles: management, administration, planning, support.
+-- Roles are stored in the `roles` table; user assignments in `user_roles` (role_id FK).
 CREATE POLICY "owner_or_staff_read_payments"
   ON payments
   FOR SELECT
@@ -42,9 +41,11 @@ CREATE POLICY "owner_or_staff_read_payments"
         AND (
           invoices.created_by = auth.uid()
           OR EXISTS (
-            SELECT 1 FROM user_roles ur
+            SELECT 1
+            FROM user_roles ur
+            JOIN roles r ON r.id = ur.role_id
             WHERE ur.user_id = auth.uid()
-              AND ur.role IN ('management', 'administration', 'planning', 'support')
+              AND r.name IN ('management', 'administration', 'planning', 'support')
           )
         )
     )

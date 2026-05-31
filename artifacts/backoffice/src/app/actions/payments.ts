@@ -247,8 +247,11 @@ export async function markInvoicePaidByMollie(
       .set({ status: "closed", updatedAt: new Date() })
       .where(eq(assignmentsTable.id, invoice.assignmentId));
 
+    // audit_log.user_id is UUID NOT NULL; use dedicated system actor UUID
+    // for webhook/background events that have no real Supabase auth user.
+    const SYSTEM_ACTOR_UUID = "00000000-0000-0000-0000-000000000001";
     await db.insert(auditLogTable).values({
-      userId:     "webhook",
+      userId:     SYSTEM_ACTOR_UUID,
       action:     "mollie_payment_received",
       resource:   "invoices",
       resourceId: invoice.id,
