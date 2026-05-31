@@ -388,6 +388,7 @@ export function PlanningDayView({
               <SheetDescription>{`Datum: ${label}`}</SheetDescription>
             </SheetHeader>
             <AssignmentForm
+              key={dateStr}
               mode="create"
               customers={customers}
               defaultDate={dateStr}

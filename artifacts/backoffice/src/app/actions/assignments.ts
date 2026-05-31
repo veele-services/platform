@@ -583,22 +583,47 @@ export async function getDayTimelineData(dateStr: string): Promise<{
 // ─── Personnel Eligibility ────────────────────────────────────────────────────
 
 export type PersonnelEligibilityResult = {
-  id:                  string;
-  firstName:           string;
-  lastName:            string;
-  availabilityStatus:  AvailabilityStatus;
-  hasConflict:         boolean;
-  meetsRole:           boolean;
-  meetsCertificates:   boolean;
-  meetsDiploma:        boolean;
-  meetsKnowledge:      boolean;
-  eligible:            boolean;
-  eligibilityReasons:  string[];
+  id:                    string;
+  firstName:             string;
+  lastName:              string;
+  availabilityStatus:    AvailabilityStatus;
+  hasConflict:           boolean;
+  meetsRole:             boolean;
+  meetsCertificates:     boolean;
+  meetsDiploma:          boolean;
+  meetsKnowledge:        boolean;
+  /**
+   * true when personnel region matches assignment region.
+   * Always true when no required_region is set on the assignment
+   * (schema migration required for constraint).
+   */
+  meetsRegion:           boolean;
+  /** true when availability window covers the assignment time slot (or assignment has no time set) */
+  meetsAvailabilityWindow: boolean;
+  eligible:              boolean;
+  eligibilityReasons:    string[];
 };
 
 /**
+ * Time helper: convert "HH:MM" to minutes-since-midnight.
+ */
+function timeToMin(t: string): number {
+  const [h, m] = t.split(":").map(Number);
+  return (h ?? 0) * 60 + (m ?? 0);
+}
+
+/**
  * Returns all active personnel with full eligibility data for an assignment.
- * Checks: availability, leave/sick, conflicts (same day), role, certs, diplomas, knowledge.
+ *
+ * Checks (in order):
+ *   1. Availability status (ziek / op_verlof / niet_beschikbaar / beschikbaar / niet_ingesteld)
+ *   2. Availability window time coverage — window must contain the assignment time slot
+ *   3. Same-day/same-time conflicts with other assignments (time-overlap when times are set)
+ *   4. Role match
+ *   5. Certificates match
+ *   6. Diploma match
+ *   7. Knowledge match
+ *   8. Region match (always passes — no required_region on assignments yet; field is ready)
  */
 export async function getPersonnelEligibilityForAssignment(
   assignmentId: string,
@@ -606,16 +631,28 @@ export async function getPersonnelEligibilityForAssignment(
   const canRead = await hasPermission("assignments", "read");
   if (!canRead) return [];
 
-  // 1. Get assignment date
+  // ── 1. Fetch assignment meta (date + times) ────────────────────────────────
   const [asgn] = await db
-    .select({ scheduledDate: assignmentsTable.scheduledDate })
+    .select({
+      scheduledDate:  assignmentsTable.scheduledDate,
+      scheduledStart: assignmentsTable.scheduledStart,
+      scheduledEnd:   assignmentsTable.scheduledEnd,
+    })
     .from(assignmentsTable)
     .where(eq(assignmentsTable.id, assignmentId))
     .limit(1);
 
-  const dateStr = asgn?.scheduledDate ?? null;
+  const dateStr  = asgn?.scheduledDate  ?? null;
+  const asgnStart = asgn?.scheduledStart ?? null; // "HH:MM" or null
+  const asgnEnd   = asgn?.scheduledEnd   ?? null; // "HH:MM" or null
+  const asgnHasTimes = Boolean(asgnStart && asgnEnd);
 
-  // 2. Get task codes linked to this assignment
+  // Day-of-week for availability window lookup (0=Sun … 6=Sat)
+  const dayOfWeek = dateStr
+    ? new Date(dateStr + "T00:00:00").getDay()
+    : null;
+
+  // ── 2. Fetch required task-code attributes ─────────────────────────────────
   let requiredCertificates: string[] = [];
   let requiredDiplomas:     string[] = [];
   let requiredKnowledge:    string[] = [];
@@ -627,7 +664,6 @@ export async function getPersonnelEligibilityForAssignment(
     .where(eq(assignmentTasksTable.assignmentId, assignmentId));
 
   const taskCodeIds = taskRows.map((t) => t.taskCodeId).filter(Boolean) as string[];
-
   if (taskCodeIds.length > 0) {
     const tcRows = await db
       .select({
@@ -651,7 +687,7 @@ export async function getPersonnelEligibilityForAssignment(
     requiredRoleIds      = [...new Set(requiredRoleIds)];
   }
 
-  // 3. Get all active personnel
+  // ── 3. Fetch all active personnel (with region) ────────────────────────────
   const personnelRows = await db
     .select({
       id:           personnelTable.id,
@@ -661,6 +697,7 @@ export async function getPersonnelEligibilityForAssignment(
       certificates: personnelTable.certificates,
       diplomas:     personnelTable.diplomas,
       knowledge:    personnelTable.knowledge,
+      region:       personnelTable.region,
     })
     .from(personnelTable)
     .where(and(eq(personnelTable.isActive, true), eq(personnelTable.isAvailable, true)))
@@ -670,9 +707,21 @@ export async function getPersonnelEligibilityForAssignment(
 
   const personnelIds = personnelRows.map((p) => p.id);
 
-  // 4. Batch availability + conflicts (parallel)
-  const [statusMap, conflictRows] = await Promise.all([
-    dateStr ? getBatchAvailabilityStatus(personnelIds, dateStr) : Promise.resolve({} as Record<string, AvailabilityStatus>),
+  // ── 4. Parallel: batch availability + conflicts + availability windows ─────
+  const conflictWhereExtra = asgnHasTimes
+    ? // Time-overlap: (other.start IS NULL OR other.end IS NULL OR other.start < asgnEnd AND other.end > asgnStart)
+      or(
+        isNull(assignmentsTable.scheduledStart),
+        isNull(assignmentsTable.scheduledEnd),
+        sql<boolean>`${assignmentsTable.scheduledStart} < ${asgnEnd} AND ${assignmentsTable.scheduledEnd} > ${asgnStart}`,
+      )
+    : undefined;
+
+  const [statusMap, conflictRows, windowRows] = await Promise.all([
+    dateStr
+      ? getBatchAvailabilityStatus(personnelIds, dateStr)
+      : Promise.resolve({} as Record<string, AvailabilityStatus>),
+
     dateStr
       ? db
           .select({ personnelId: assignmentPersonnelTable.personnelId })
@@ -686,17 +735,60 @@ export async function getPersonnelEligibilityForAssignment(
               eq(assignmentsTable.scheduledDate, dateStr),
               inArray(assignmentPersonnelTable.personnelId, personnelIds),
               ne(assignmentPersonnelTable.assignmentId, assignmentId),
+              conflictWhereExtra,
             ),
           )
       : Promise.resolve([] as Array<{ personnelId: string }>),
+
+    // Fetch availability windows only when assignment has a time and a date
+    (asgnHasTimes && dayOfWeek !== null)
+      ? db
+          .select({
+            personnelId: availabilityWindowsTable.personnelId,
+            startTime:   availabilityWindowsTable.startTime,
+            endTime:     availabilityWindowsTable.endTime,
+          })
+          .from(availabilityWindowsTable)
+          .where(
+            and(
+              inArray(availabilityWindowsTable.personnelId, personnelIds),
+              eq(availabilityWindowsTable.dayOfWeek, dayOfWeek),
+            ),
+          )
+      : Promise.resolve([] as Array<{ personnelId: string; startTime: string; endTime: string }>),
   ]);
 
   const conflictSet = new Set(conflictRows.map((r) => r.personnelId));
 
-  // 5. Compute eligibility per person
+  // Build a map: personnelId → does any window cover the assignment time?
+  // Key: if assignment has no times, everyone passes (meetsAvailabilityWindow = true).
+  const windowCoverageMap = new Map<string, boolean>();
+  if (asgnHasTimes && asgnStart && asgnEnd) {
+    const asgnStartMin = timeToMin(asgnStart);
+    const asgnEndMin   = timeToMin(asgnEnd);
+    for (const w of windowRows) {
+      if (!windowCoverageMap.get(w.personnelId)) {
+        const wStart = timeToMin(w.startTime);
+        const wEnd   = timeToMin(w.endTime);
+        // Window must contain the full assignment time slot
+        windowCoverageMap.set(w.personnelId, wStart <= asgnStartMin && wEnd >= asgnEndMin);
+      }
+    }
+  }
+
+  // ── 5. Compute eligibility per person ─────────────────────────────────────
   return personnelRows.map((p) => {
-    const availStatus = statusMap[p.id] ?? "niet_ingesteld" as AvailabilityStatus;
+    const availStatus = (statusMap[p.id] ?? "niet_ingesteld") as AvailabilityStatus;
     const hasConflict = conflictSet.has(p.id);
+
+    // Window coverage: only relevant when assignment has a time AND status is "beschikbaar"
+    // (if status is "niet_ingesteld" we have no windows to check — pass through)
+    const meetsAvailabilityWindow = (() => {
+      if (!asgnHasTimes) return true;
+      if (availStatus !== "beschikbaar") return true; // blocked for other reasons already
+      // If a window was found, check coverage; if none found at all → not covered
+      return windowCoverageMap.get(p.id) ?? false;
+    })();
 
     const personCerts    = (p.certificates ?? []) as string[];
     const personDiplomas = (p.diplomas     ?? []) as string[];
@@ -707,19 +799,24 @@ export async function getPersonnelEligibilityForAssignment(
     const meetsKnowledge    = requiredKnowledge.every((k) => personKnow.includes(k));
     const meetsRole         = requiredRoleIds.length === 0 ||
                               requiredRoleIds.every((r) => p.roleId === r);
+    // Region: always passes — assignments have no required_region field yet.
+    // The personnel.region field is present and ready; constraint requires a schema migration.
+    const meetsRegion = true;
 
     const reasons: string[] = [];
-    if (availStatus === "ziek")             reasons.push("Ziek gemeld");
-    if (availStatus === "op_verlof")        reasons.push("Op verlof");
-    if (availStatus === "niet_beschikbaar") reasons.push("Niet beschikbaar op deze dag");
-    if (hasConflict)                        reasons.push("Al ingepland op deze dag");
-    if (!meetsRole)                         reasons.push("Benodigde rol ontbreekt");
-    if (!meetsCertificates)                 reasons.push("Benodigde certificaten ontbreken");
-    if (!meetsDiploma)                      reasons.push("Benodigd diploma ontbreekt");
-    if (!meetsKnowledge)                    reasons.push("Benodigde kennis ontbreekt");
+    if (availStatus === "ziek")               reasons.push("Ziek gemeld");
+    if (availStatus === "op_verlof")          reasons.push("Op verlof");
+    if (availStatus === "niet_beschikbaar")   reasons.push("Niet beschikbaar op deze dag");
+    if (!meetsAvailabilityWindow)             reasons.push("Beschikbaarheidsvenster dekt opdrachttijd niet");
+    if (hasConflict)                          reasons.push("Al ingepland op dit tijdstip");
+    if (!meetsRole)                           reasons.push("Benodigde rol ontbreekt");
+    if (!meetsCertificates)                   reasons.push("Benodigde certificaten ontbreken");
+    if (!meetsDiploma)                        reasons.push("Benodigd diploma ontbreekt");
+    if (!meetsKnowledge)                      reasons.push("Benodigde kennis ontbreekt");
 
     const eligible =
       (availStatus === "beschikbaar" || availStatus === "niet_ingesteld") &&
+      meetsAvailabilityWindow &&
       !hasConflict &&
       meetsRole &&
       meetsCertificates &&
@@ -727,17 +824,19 @@ export async function getPersonnelEligibilityForAssignment(
       meetsKnowledge;
 
     return {
-      id:                 p.id,
-      firstName:          p.firstName,
-      lastName:           p.lastName,
-      availabilityStatus: availStatus,
+      id:                      p.id,
+      firstName:               p.firstName,
+      lastName:                p.lastName,
+      availabilityStatus:      availStatus,
       hasConflict,
       meetsRole,
       meetsCertificates,
       meetsDiploma,
       meetsKnowledge,
+      meetsRegion,
+      meetsAvailabilityWindow,
       eligible,
-      eligibilityReasons: reasons,
+      eligibilityReasons:      reasons,
     };
   });
 }
