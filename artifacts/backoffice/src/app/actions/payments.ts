@@ -128,7 +128,7 @@ export async function createMolliePayment(
 
   const amountCents = Math.round(totalAmount * 100);
   const baseUrl     = getBaseUrl();
-  const redirectUrl = `${baseUrl}/invoices/${invoiceId}`;
+  const redirectUrl = `${baseUrl}/klant/betalingen/succes?invoice=${invoiceId}`;
   const webhookUrl  = process.env.MOLLIE_WEBHOOK_URL ?? `${baseUrl}/api/webhooks/mollie`;
 
   // Call Mollie API
