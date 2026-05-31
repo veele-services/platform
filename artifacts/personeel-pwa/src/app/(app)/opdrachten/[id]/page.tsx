@@ -2,8 +2,11 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, MapPin, Clock, Calendar } from "lucide-react";
 import { getMyAssignment } from "@/actions/assignments";
+import { getMyReportForAssignment } from "@/actions/reports";
 import { StatusBadge } from "@/components/StatusBadge";
 import { InProgressButton } from "./InProgressButton";
+import { RapportForm } from "./RapportForm";
+import { RapportDetail } from "./RapportDetail";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -20,11 +23,16 @@ function formatDate(dateStr: string | null): string {
 
 export default async function OpdrachtenDetailPage({ params }: Props) {
   const { id } = await params;
-  const assignment = await getMyAssignment(id);
+  const [assignment, report] = await Promise.all([
+    getMyAssignment(id),
+    getMyReportForAssignment(id),
+  ]);
 
   if (!assignment) notFound();
 
-  const canStartWork = ["plannable", "scheduled", "seen"].includes(assignment.status);
+  const canStartWork   = ["plannable", "scheduled", "seen"].includes(assignment.status);
+  const canSubmitReport = assignment.status === "completed" && !report;
+  const showReport     = !!report || assignment.status === "report_submitted" || assignment.status === "report_approved";
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "var(--color-muted)" }}>
@@ -42,6 +50,7 @@ export default async function OpdrachtenDetailPage({ params }: Props) {
       </div>
 
       <div className="space-y-4 p-4">
+        {/* Assignment info */}
         <div className="rounded-2xl bg-white p-4 shadow-sm">
           <h2 className="text-lg font-bold" style={{ color: "var(--color-primary)" }}>
             {assignment.title}
@@ -80,9 +89,13 @@ export default async function OpdrachtenDetailPage({ params }: Props) {
           </div>
         </div>
 
+        {/* Description */}
         {assignment.description && (
           <div className="rounded-2xl bg-white p-4 shadow-sm">
-            <h3 className="mb-2 text-sm font-semibold uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
+            <h3
+              className="mb-2 text-sm font-semibold uppercase tracking-wide"
+              style={{ color: "var(--color-secondary)" }}
+            >
               Omschrijving
             </h3>
             <p className="text-sm leading-relaxed" style={{ color: "var(--color-primary)" }}>
@@ -91,9 +104,13 @@ export default async function OpdrachtenDetailPage({ params }: Props) {
           </div>
         )}
 
+        {/* Tasks */}
         {assignment.tasks.length > 0 && (
           <div className="rounded-2xl bg-white p-4 shadow-sm">
-            <h3 className="mb-3 text-sm font-semibold uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
+            <h3
+              className="mb-3 text-sm font-semibold uppercase tracking-wide"
+              style={{ color: "var(--color-secondary)" }}
+            >
               Taken
             </h3>
             <div className="space-y-2">
@@ -120,7 +137,27 @@ export default async function OpdrachtenDetailPage({ params }: Props) {
           </div>
         )}
 
+        {/* In-progress button (only for pre-completion statuses) */}
         {canStartWork && <InProgressButton assignmentId={assignment.id} />}
+
+        {/* Report section */}
+        {canSubmitReport && <RapportForm assignmentId={assignment.id} />}
+        {showReport && report && <RapportDetail report={report} />}
+
+        {/* not_completed message */}
+        {assignment.status === "not_completed" && (
+          <div
+            className="rounded-2xl p-4 text-center text-sm"
+            style={{ backgroundColor: "#FEF3C7" }}
+          >
+            <p className="font-semibold" style={{ color: "#92400E" }}>
+              Opdracht niet afgerond
+            </p>
+            <p className="mt-1" style={{ color: "#B45309" }}>
+              Neem contact op met de planner voor verdere instructies.
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
