@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, FileText, Receipt } from "lucide-react";
+import { Loader2, FileText, Receipt, Link as LinkIcon } from "lucide-react";
 import { createInvoice } from "@/app/actions/invoices";
 import type { AssignmentInvoiceData } from "@/app/actions/invoices";
 
@@ -25,13 +25,14 @@ export function CreateInvoiceForm({ assignmentId, prefill }: Props) {
   const router     = useRouter();
   const [, startT] = useTransition();
 
-  const [loading, setLoading]         = useState(false);
-  const [error, setError]             = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
-  const [amount, setAmount]           = useState(prefill.suggestedAmount);
-  const [vatPercentage, setVat]       = useState("21");
-  const [dueDate, setDueDate]         = useState(defaultDueDate());
-  const [notes, setNotes]             = useState("");
+  const [loading, setLoading]               = useState(false);
+  const [error, setError]                   = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors]       = useState<Record<string, string>>({});
+  const [amount, setAmount]                 = useState(prefill.suggestedAmount);
+  const [vatPercentage, setVat]             = useState("21");
+  const [dueDate, setDueDate]               = useState(defaultDueDate());
+  const [notes, setNotes]                   = useState("");
+  const [goToPayment, setGoToPayment] = useState(true);
 
   const vatAmount   = (parseFloat(amount || "0") * parseFloat(vatPercentage || "0") / 100);
   const totalAmount = parseFloat(amount || "0") + vatAmount;
@@ -43,9 +44,9 @@ export function CreateInvoiceForm({ assignmentId, prefill }: Props) {
     setLoading(true);
 
     const result = await createInvoice(assignmentId, { amount, vatPercentage, dueDate, notes });
-    setLoading(false);
 
     if (!result.success) {
+      setLoading(false);
       setError(result.message);
       if ("fieldErrors" in result && result.fieldErrors) {
         setFieldErrors(result.fieldErrors);
@@ -53,10 +54,14 @@ export function CreateInvoiceForm({ assignmentId, prefill }: Props) {
       return;
     }
 
-    const id = result.success && "data" in result ? (result as { success: true; data: { id: string } }).data?.id : null;
+    const invoiceId = result.success && "data" in result
+      ? (result as { success: true; data: { id: string } }).data?.id
+      : null;
+
+    setLoading(false);
     startT(() => {
       router.refresh();
-      if (id) router.push(`/invoices/${id}`);
+      if (invoiceId) router.push(`/invoices/${invoiceId}`);
     });
   }
 
@@ -194,6 +199,25 @@ export function CreateInvoiceForm({ assignmentId, prefill }: Props) {
             style={{ borderColor: "#E2E8F0", color: "#081D3A" }}
           />
         </div>
+
+        {/* Optie: meteen betaallink aanmaken */}
+        <label className="flex items-start gap-2.5 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={goToPayment}
+            onChange={(e) => setGoToPayment(e.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded accent-teal-500"
+          />
+          <span className="flex flex-col gap-0.5">
+            <span className="text-xs font-medium" style={{ color: "#374151" }}>
+              <LinkIcon className="inline h-3.5 w-3.5 mr-1" style={{ color: "#00B7B3" }} />
+              Direct doorsturen naar factuurpagina
+            </span>
+            <span className="text-xs" style={{ color: "#94A3B8" }}>
+              Na aanmaken wordt u doorgestuurd naar de factuurpagina om een betaallink aan te maken en te versturen.
+            </span>
+          </span>
+        </label>
 
         <button
           type="submit"

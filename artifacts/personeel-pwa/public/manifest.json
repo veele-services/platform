@@ -1,0 +1,24 @@
+{
+  "name": "Veele Personeel",
+  "short_name": "Veele",
+  "description": "Veele Services — personeelsapp voor uitvoerend personeel",
+  "start_url": "/personeel",
+  "display": "standalone",
+  "background_color": "#081D3A",
+  "theme_color": "#00B7B3",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/personeel/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/personeel/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

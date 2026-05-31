@@ -9,14 +9,24 @@ import {
   MapPin,
   Tag,
   Calendar,
+  ClipboardList,
 } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { CustomerDetailActions } from "@/components/customers/CustomerDetailActions";
 import { CustomerDetailObjectCreate } from "@/components/customers/CustomerDetailObjectCreate";
-import { getCustomer, listSectors } from "@/app/actions/customers";
+import { CustomerNotesPanel } from "@/components/customers/CustomerNotesPanel";
+import { EntityDocumentsPanel } from "@/components/documents/EntityDocumentsPanel";
+import { AssignmentHistoryTable } from "@/components/assignments/AssignmentHistoryTable";
+import {
+  getCustomer,
+  listSectors,
+  listCustomerNotes,
+} from "@/app/actions/customers";
 import { listObjectsForCustomer } from "@/app/actions/objects";
+import { listAssignmentsForCustomer } from "@/app/actions/assignments";
+import { listDocuments } from "@/app/actions/documents";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -38,18 +48,26 @@ export default async function CustomerDetailPage({ params }: Props) {
   const canRead = await hasPermission("customers", "read");
   if (!canRead) return <ForbiddenPage resource="customers" action="read" />;
 
-  const { id }   = await params;
-  const canWrite = await hasPermission("customers", "write");
+  const { id } = await params;
 
-  const [customer, sectors, objects] = await Promise.all([
+  const [canWrite, canReadAssignments, canReadDocuments, canWriteDocuments] = await Promise.all([
+    hasPermission("customers", "write"),
+    hasPermission("assignments", "read"),
+    hasPermission("documents", "read"),
+    hasPermission("documents", "write"),
+  ]);
+
+  const [customer, sectors, objects, customerNotes, assignmentHistory, documents] = await Promise.all([
     getCustomer(id),
     listSectors(),
     listObjectsForCustomer(id),
+    listCustomerNotes(id),
+    listAssignmentsForCustomer(id),
+    listDocuments({ entityType: "customer", entityId: id }),
   ]);
 
   if (!customer) notFound();
 
-  // Strip notes from data when user is not allowed to see them
   const safeCustomer = canWrite ? customer : { ...customer, notes: null };
 
   return (
@@ -67,10 +85,7 @@ export default async function CustomerDetailPage({ params }: Props) {
           </Link>
           <div>
             <div className="flex items-center gap-3">
-              <h1
-                className="font-heading text-2xl font-bold"
-                style={{ color: "#081D3A" }}
-              >
+              <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
                 {customer.name}
               </h1>
               {customer.code && (
@@ -101,15 +116,12 @@ export default async function CustomerDetailPage({ params }: Props) {
       </div>
 
       <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        {/* ── Left column (main info) ──────────────────── */}
+        {/* ── Left column ──────────────────────────────── */}
         <div className="lg:col-span-2 flex flex-col gap-5">
 
           {/* Contact */}
           <div className="veele-card">
-            <h2
-              className="font-heading text-sm font-semibold mb-4"
-              style={{ color: "#081D3A" }}
-            >
+            <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "#081D3A" }}>
               Contact
             </h2>
             <dl className="space-y-3">
@@ -121,11 +133,7 @@ export default async function CustomerDetailPage({ params }: Props) {
                   icon={<Mail className="h-4 w-4" />}
                   label="E-mail"
                   value={
-                    <a
-                      href={`mailto:${customer.contactEmail}`}
-                      className="hover:underline"
-                      style={{ color: "#00B7B3" }}
-                    >
+                    <a href={`mailto:${customer.contactEmail}`} className="hover:underline" style={{ color: "#00B7B3" }}>
                       {customer.contactEmail}
                     </a>
                   }
@@ -136,11 +144,7 @@ export default async function CustomerDetailPage({ params }: Props) {
                   icon={<Phone className="h-4 w-4" />}
                   label="Telefoon"
                   value={
-                    <a
-                      href={`tel:${customer.contactPhone}`}
-                      className="hover:underline"
-                      style={{ color: "#00B7B3" }}
-                    >
+                    <a href={`tel:${customer.contactPhone}`} className="hover:underline" style={{ color: "#00B7B3" }}>
                       {customer.contactPhone}
                     </a>
                   }
@@ -154,10 +158,7 @@ export default async function CustomerDetailPage({ params }: Props) {
 
           {/* Address */}
           <div className="veele-card">
-            <h2
-              className="font-heading text-sm font-semibold mb-4"
-              style={{ color: "#081D3A" }}
-            >
+            <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "#081D3A" }}>
               Adres
             </h2>
             {customer.address || customer.city || customer.postalCode ? (
@@ -166,9 +167,7 @@ export default async function CustomerDetailPage({ params }: Props) {
                 <div className="text-sm" style={{ color: "#64748B" }}>
                   {customer.address && <p>{customer.address}</p>}
                   {(customer.postalCode || customer.city) && (
-                    <p>
-                      {[customer.postalCode, customer.city].filter(Boolean).join("  ")}
-                    </p>
+                    <p>{[customer.postalCode, customer.city].filter(Boolean).join("  ")}</p>
                   )}
                   <p>{customer.country}</p>
                 </div>
@@ -178,13 +177,10 @@ export default async function CustomerDetailPage({ params }: Props) {
             )}
           </div>
 
-          {/* Internal Notes — management only */}
+          {/* Internal Notes — management only (single text blob from customers.notes) */}
           {canWrite && (
             <div className="veele-card">
-              <h2
-                className="font-heading text-sm font-semibold mb-1"
-                style={{ color: "#081D3A" }}
-              >
+              <h2 className="font-heading text-sm font-semibold mb-1" style={{ color: "#081D3A" }}>
                 Interne notities
               </h2>
               <p className="text-xs mb-3" style={{ color: "#94A3B8" }}>
@@ -199,15 +195,20 @@ export default async function CustomerDetailPage({ params }: Props) {
               )}
             </div>
           )}
+
+          {/* Threaded Notes — management only */}
+          {canWrite && (
+            <CustomerNotesPanel
+              customerId={id}
+              initialNotes={customerNotes}
+            />
+          )}
         </div>
 
         {/* ── Right column (metadata) ──────────────────── */}
         <div className="flex flex-col gap-5">
           <div className="veele-card">
-            <h2
-              className="font-heading text-sm font-semibold mb-4"
-              style={{ color: "#081D3A" }}
-            >
+            <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "#081D3A" }}>
               Gegevens
             </h2>
             <dl className="space-y-3">
@@ -225,9 +226,7 @@ export default async function CustomerDetailPage({ params }: Props) {
                 icon={<Calendar className="h-4 w-4" />}
                 label="Aangemaakt"
                 value={new Date(customer.createdAt).toLocaleDateString("nl-NL", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
+                  day: "2-digit", month: "short", year: "numeric",
                 })}
               />
             </dl>
@@ -239,15 +238,9 @@ export default async function CustomerDetailPage({ params }: Props) {
       <div className="mt-5">
         <div className="veele-card overflow-hidden p-0">
           <div className="flex items-center justify-between px-5 py-4">
-            <h2
-              className="font-heading text-sm font-semibold"
-              style={{ color: "#081D3A" }}
-            >
+            <h2 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
               Objecten
-              <span
-                className="ml-2 text-xs font-normal"
-                style={{ color: "#94A3B8" }}
-              >
+              <span className="ml-2 text-xs font-normal" style={{ color: "#94A3B8" }}>
                 ({objects.length})
               </span>
             </h2>
@@ -306,6 +299,49 @@ export default async function CustomerDetailPage({ params }: Props) {
           </div>
         </div>
       </div>
+
+      {/* ── Assignment history ────────────────────────── */}
+      {canReadAssignments && (
+        <div className="mt-5">
+          <div className="veele-card overflow-hidden p-0">
+            <div className="flex items-center justify-between px-5 py-4">
+              <h2
+                className="font-heading text-sm font-semibold flex items-center gap-2"
+                style={{ color: "#081D3A" }}
+              >
+                <ClipboardList className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                Opdrachten
+                <span className="text-xs font-normal" style={{ color: "#94A3B8" }}>
+                  (laatste 10)
+                </span>
+              </h2>
+              <Link
+                href={`/assignments?customerId=${customer.id}`}
+                className="text-xs font-medium hover:underline"
+                style={{ color: "#00B7B3" }}
+              >
+                Alle bekijken →
+              </Link>
+            </div>
+            <AssignmentHistoryTable
+              rows={assignmentHistory}
+              emptyMessage="Nog geen opdrachten voor deze klant."
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── Documents ─────────────────────────────────── */}
+      {canReadDocuments && (
+        <div className="mt-5">
+          <EntityDocumentsPanel
+            entityType="customer"
+            entityId={id}
+            initialDocuments={documents}
+            canWrite={canWriteDocuments}
+          />
+        </div>
+      )}
     </div>
   );
 }
@@ -317,15 +353,13 @@ function InfoRow({
   label,
   value,
 }: {
-  icon: React.ReactNode;
+  icon:  React.ReactNode;
   label: string;
   value: React.ReactNode;
 }) {
   return (
     <div className="flex items-start gap-2">
-      <span className="mt-0.5 flex-shrink-0" style={{ color: "#94A3B8" }}>
-        {icon}
-      </span>
+      <span className="mt-0.5 flex-shrink-0" style={{ color: "#94A3B8" }}>{icon}</span>
       <div className="flex flex-col gap-0.5 min-w-0">
         <span className="text-xs" style={{ color: "#94A3B8" }}>{label}</span>
         <span className="text-sm" style={{ color: "#475569" }}>{value}</span>

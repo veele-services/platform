@@ -17,7 +17,77 @@ import {
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { getInvoice, getInvoiceStatusHistory } from "@/app/actions/invoices";
+import { getPaymentHistory, type PaymentRecord } from "@/app/actions/payments";
 import { InvoiceActions } from "@/components/invoices/InvoiceActions";
+
+// ── Read-only payment history (for users without write permission) ─────────────
+
+const PAYMENT_STATUS_LABELS: Record<string, string> = {
+  open:     "In afwachting",
+  paid:     "Betaald",
+  canceled: "Geannuleerd",
+  expired:  "Verlopen",
+  failed:   "Mislukt",
+};
+
+const PAYMENT_STATUS_BG: Record<string, string> = {
+  open:     "#FEF3C7",
+  paid:     "#D1FAE5",
+  canceled: "#FEE2E2",
+  expired:  "#F1F5F9",
+  failed:   "#FEE2E2",
+};
+
+const PAYMENT_STATUS_TEXT: Record<string, string> = {
+  open:     "#92400E",
+  paid:     "#065F46",
+  canceled: "#991B1B",
+  expired:  "#475569",
+  failed:   "#991B1B",
+};
+
+function PaymentHistoryReadOnly({ paymentHistory }: { paymentHistory: PaymentRecord[] }) {
+  return (
+    <div className="veele-card">
+      <h3 className="font-heading text-sm font-semibold mb-3" style={{ color: "#081D3A" }}>
+        Betalingshistorie
+      </h3>
+      <div className="flex flex-col gap-2">
+        {paymentHistory.map((p) => {
+          const amountStr = new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" })
+            .format(p.amountCents / 100);
+          const dateStr = p.paidAt
+            ? new Date(p.paidAt).toLocaleDateString("nl-NL", { day: "numeric", month: "short", year: "numeric" })
+            : new Date(p.createdAt).toLocaleDateString("nl-NL", { day: "numeric", month: "short", year: "numeric" });
+          return (
+            <div
+              key={p.id}
+              className="rounded-lg p-3 flex flex-col gap-1"
+              style={{ background: "#F8FAFC", border: "1px solid #F1F5F9" }}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-xs font-semibold" style={{ color: "#081D3A" }}>{amountStr}</span>
+                <span
+                  className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+                  style={{
+                    backgroundColor: PAYMENT_STATUS_BG[p.status]  ?? "#F1F5F9",
+                    color:           PAYMENT_STATUS_TEXT[p.status] ?? "#475569",
+                  }}
+                >
+                  {PAYMENT_STATUS_LABELS[p.status] ?? p.status}
+                </span>
+              </div>
+              <p className="text-xs font-mono" style={{ color: "#94A3B8" }}>{p.molliePaymentId}</p>
+              <p className="text-xs" style={{ color: "#94A3B8" }}>
+                {p.paidAt ? `Betaald op ${dateStr}` : `Aangemaakt op ${dateStr}`}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -85,7 +155,10 @@ export default async function InvoiceDetailPage({ params }: Props) {
 
   if (!invoice) notFound();
 
-  const statusHistory = await getInvoiceStatusHistory(id);
+  const [statusHistory, paymentHistory] = await Promise.all([
+    getInvoiceStatusHistory(id),
+    getPaymentHistory(id),
+  ]);
 
   const statusStyle = STATUS_STYLES[invoice.status] ?? STATUS_STYLES.draft;
   const isOverdue   = invoice.status === "sent" && new Date(invoice.dueDate) < new Date();
@@ -358,9 +431,18 @@ export default async function InvoiceDetailPage({ params }: Props) {
             </div>
           </div>
 
-          {/* Actions */}
+          {/* Actions — write-gated; read-only users see payment history separately below */}
           {canWrite && (
-            <InvoiceActions invoiceId={invoice.id} status={invoice.status} />
+            <InvoiceActions
+              invoiceId={invoice.id}
+              status={invoice.status}
+              paymentHistory={paymentHistory}
+            />
+          )}
+
+          {/* Payment history for read-only users (not shown inside InvoiceActions) */}
+          {!canWrite && paymentHistory.length > 0 && (
+            <PaymentHistoryReadOnly paymentHistory={paymentHistory} />
           )}
 
           {/* Status history */}

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Pencil, ChevronRight, Plus, X, Loader2, UserPlus } from "lucide-react";
+import { Pencil, ChevronRight, Plus, X, Loader2, UserPlus, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -12,6 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   Sheet,
   SheetContent,
@@ -40,8 +46,8 @@ import {
   type AssignmentStatus,
   type AssignmentPriority,
   type CustomerOption,
-  type PersonnelOption,
   type TaskCodeOption,
+  type PersonnelEligibilityResult,
 } from "@/app/actions/assignments";
 import { ASSIGNMENT_STATUS_TRANSITIONS } from "@/types/assignments";
 import type { AvailabilityStatus } from "@/app/actions/availability";
@@ -89,7 +95,7 @@ interface AssignmentDetailActionsProps {
   priority:      AssignmentPriority;
   canWrite:      boolean;
   customers:     CustomerOption[];
-  personnelList: PersonnelOption[];
+  personnelList: PersonnelEligibilityResult[];
   taskCodes:     TaskCodeOption[];
   personnel:     Personnel[];
   tasks:         Task[];
@@ -292,27 +298,50 @@ export function AssignmentDetailActions({
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="NONE">— Selecteer medewerker —</SelectItem>
-                {personnelList
-                  .filter((p) => !personnel.some((ap) => ap.personnelId === p.id))
-                  .sort((a, b) => {
-                    const order: Record<string, number> = {
-                      beschikbaar:    0,
-                      niet_ingesteld: 1,
-                      niet_beschikbaar: 2,
-                      op_verlof:      3,
-                      ziek:           4,
-                    };
-                    return (order[a.availabilityStatus ?? "niet_ingesteld"] ?? 1)
-                         - (order[b.availabilityStatus ?? "niet_ingesteld"] ?? 1);
-                  })
-                  .map((p) => (
-                    <SelectItem key={p.id} value={p.id}>
-                      <span className="flex items-center gap-2">
-                        <AvailDot status={p.availabilityStatus} />
-                        {p.lastName}, {p.firstName}
-                      </span>
-                    </SelectItem>
-                  ))}
+                <TooltipProvider delayDuration={200}>
+                  {personnelList
+                    .filter((p) => !personnel.some((ap) => ap.personnelId === p.id))
+                    .sort((a, b) => {
+                      const scoreA = a.eligible ? 0 : 1;
+                      const scoreB = b.eligible ? 0 : 1;
+                      if (scoreA !== scoreB) return scoreA - scoreB;
+                      return `${a.lastName} ${a.firstName}`.localeCompare(`${b.lastName} ${b.firstName}`, "nl");
+                    })
+                    .map((p) => {
+                      const isHardBlock =
+                        p.availabilityStatus === "ziek" ||
+                        p.availabilityStatus === "op_verlof" ||
+                        p.hasConflict;
+                      const icon = p.eligible
+                        ? <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#10B981" }} />
+                        : isHardBlock
+                          ? <XCircle className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#EF4444" }} />
+                          : <AlertTriangle className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#F59E0B" }} />;
+
+                      return (
+                        <SelectItem key={p.id} value={p.id}>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <span className="flex items-center gap-1.5 cursor-default">
+                                <AvailDot status={p.availabilityStatus} />
+                                {icon}
+                                <span>{p.lastName}, {p.firstName}</span>
+                              </span>
+                            </TooltipTrigger>
+                            {p.eligibilityReasons.length > 0 && (
+                              <TooltipContent side="right" className="max-w-[220px]">
+                                <ul className="text-xs space-y-0.5">
+                                  {p.eligibilityReasons.map((r, i) => (
+                                    <li key={i}>• {r}</li>
+                                  ))}
+                                </ul>
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        </SelectItem>
+                      );
+                    })}
+                </TooltipProvider>
               </SelectContent>
             </Select>
             <Button

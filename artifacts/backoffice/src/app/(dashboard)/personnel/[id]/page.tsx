@@ -1,14 +1,22 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Mail, Phone, MapPin, Calendar, CheckCircle2, XCircle, UserCheck, UserX } from "lucide-react";
+import {
+  ArrowLeft, Mail, Phone, MapPin, Calendar,
+  CheckCircle2, XCircle, UserCheck, UserX, ClipboardList,
+} from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PersonnelDetailActions } from "@/components/personnel/PersonnelDetailActions";
+import { PersonnelCompetenciesEditButton } from "@/components/personnel/PersonnelCompetenciesEditButton";
+import { AssignmentHistoryTable } from "@/components/assignments/AssignmentHistoryTable";
+import { EntityDocumentsPanel } from "@/components/documents/EntityDocumentsPanel";
 import { getPersonnel, listRoles } from "@/app/actions/personnel";
 import { getAvailabilityWindows, listLeavePeriods } from "@/app/actions/availability";
 import { BeschikbaarheidView } from "@/components/personnel/BeschikbaarheidView";
+import { listAssignmentsForPersonnel } from "@/app/actions/assignments";
+import { listDocuments } from "@/app/actions/documents";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -30,14 +38,22 @@ export default async function PersonnelDetailPage({ params }: Props) {
   const canRead = await hasPermission("personnel", "read");
   if (!canRead) return <ForbiddenPage resource="personnel" action="read" />;
 
-  const { id }   = await params;
-  const canWrite = await hasPermission("personnel", "write");
+  const { id } = await params;
 
-  const [person, roles, windows, leavePeriods] = await Promise.all([
+  const [canWrite, canReadAssignments, canReadDocuments, canWriteDocuments] = await Promise.all([
+    hasPermission("personnel", "write"),
+    hasPermission("assignments", "read"),
+    hasPermission("documents", "read"),
+    hasPermission("documents", "write"),
+  ]);
+
+  const [person, roles, windows, leavePeriods, assignmentHistory, documents] = await Promise.all([
     getPersonnel(id),
     listRoles(),
     getAvailabilityWindows(id),
     listLeavePeriods(id),
+    listAssignmentsForPersonnel(id),
+    listDocuments({ entityType: "personnel", entityId: id }),
   ]);
 
   if (!person) notFound();
@@ -113,17 +129,25 @@ export default async function PersonnelDetailPage({ params }: Props) {
               Contact
             </h2>
             <dl className="space-y-3">
-              <InfoRow icon={<Mail className="h-4 w-4" />} label="E-mail" value={
-                <a href={`mailto:${person.email}`} className="hover:underline" style={{ color: "#00B7B3" }}>
-                  {person.email}
-                </a>
-              } />
-              {person.phone && (
-                <InfoRow icon={<Phone className="h-4 w-4" />} label="Telefoon" value={
-                  <a href={`tel:${person.phone}`} className="hover:underline" style={{ color: "#00B7B3" }}>
-                    {person.phone}
+              <InfoRow
+                icon={<Mail className="h-4 w-4" />}
+                label="E-mail"
+                value={
+                  <a href={`mailto:${person.email}`} className="hover:underline" style={{ color: "#00B7B3" }}>
+                    {person.email}
                   </a>
-                } />
+                }
+              />
+              {person.phone && (
+                <InfoRow
+                  icon={<Phone className="h-4 w-4" />}
+                  label="Telefoon"
+                  value={
+                    <a href={`tel:${person.phone}`} className="hover:underline" style={{ color: "#00B7B3" }}>
+                      {person.phone}
+                    </a>
+                  }
+                />
               )}
               {person.region && (
                 <InfoRow icon={<MapPin className="h-4 w-4" />} label="Regio" value={person.region} />
@@ -133,12 +157,21 @@ export default async function PersonnelDetailPage({ params }: Props) {
 
           {/* Qualifications */}
           <div className="veele-card">
-            <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "#081D3A" }}>
-              Kwalificaties
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
+                Kwalificaties
+              </h2>
+              {canWrite && (
+                <PersonnelCompetenciesEditButton
+                  personnelId={person.id}
+                  personnelName={fullName}
+                  roles={roles}
+                />
+              )}
+            </div>
             <div className="space-y-4">
               <QualSection label="Certificaten" tags={person.certificates} color="#0A7E7A" bg="#E0FAFB" />
-              <QualSection label="Diploma's"    tags={person.diplomas}     color="#5A3B9A" bg="#F0EBFF" />
+              <QualSection label="Diploma&apos;s"    tags={person.diplomas}     color="#5A3B9A" bg="#F0EBFF" />
               <QualSection label="Kennis"       tags={person.knowledge}    color="#7C5A00" bg="#FFF7E0" />
             </div>
           </div>
@@ -184,6 +217,49 @@ export default async function PersonnelDetailPage({ params }: Props) {
           </div>
         </div>
       </div>
+
+      {/* ── Assignment history ────────────────────────── */}
+      {canReadAssignments && (
+        <div className="mt-5">
+          <div className="veele-card overflow-hidden p-0">
+            <div className="flex items-center justify-between px-5 py-4">
+              <h2
+                className="font-heading text-sm font-semibold flex items-center gap-2"
+                style={{ color: "#081D3A" }}
+              >
+                <ClipboardList className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                Opdrachten
+                <span className="text-xs font-normal" style={{ color: "#94A3B8" }}>
+                  (laatste 10)
+                </span>
+              </h2>
+              <Link
+                href={`/assignments?personnelId=${person.id}`}
+                className="text-xs font-medium hover:underline"
+                style={{ color: "#00B7B3" }}
+              >
+                Alle bekijken →
+              </Link>
+            </div>
+            <AssignmentHistoryTable
+              rows={assignmentHistory}
+              emptyMessage="Nog geen opdrachten voor dit personeelslid."
+            />
+          </div>
+        </div>
+      )}
+
+      {/* ── Documents ─────────────────────────────────── */}
+      {canReadDocuments && (
+        <div className="mt-5">
+          <EntityDocumentsPanel
+            entityType="personnel"
+            entityId={id}
+            initialDocuments={documents}
+            canWrite={canWriteDocuments}
+          />
+        </div>
+      )}
     </div>
   );
 }

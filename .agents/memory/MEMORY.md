@@ -2,3 +2,4 @@
 - [Supabase TCP blocked in Replit](supabase-tcp.md) — port 5432/6543 unreachable; all migrations must be run manually via Supabase SQL Editor.
 - [Sprint 2 assignments schema](sprint2-schema.md) — assignments + assignment_personnel + assignment_tasks tables; migration at migrations/003_sprint2_assignments.sql; permissions added for assignments/planning resources.
 - [use-server runtime export rule](use-server-exports.md) — "use server" files may only export async functions; all constants/arrays must live in src/types/* (client-safe, no Node imports).
+- [Replit workflow port detection](replit-workflow-ports.md) — restart_workflow requires --turbopack for Next.js dev; bind to 0.0.0.0 and add a public /healthz route; set dev health check path in artifact.toml.

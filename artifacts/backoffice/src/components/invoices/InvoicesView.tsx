@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Search, FileText, ChevronLeft, ChevronRight, TrendingUp, Clock, CheckCircle2 } from "lucide-react";
+import { Search, FileText, ChevronLeft, ChevronRight, TrendingUp, Clock, CheckCircle2, Link as LinkIcon, Copy, Check, Loader2 } from "lucide-react";
+import { createMolliePayment } from "@/app/actions/payments";
 import type { InvoiceRow, InvoiceSummary } from "@/app/actions/invoices";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -39,18 +41,45 @@ function formatDate(dateStr: string): string {
 }
 
 interface Props {
-  rows:        InvoiceRow[];
-  total:       number;
-  page:        number;
-  search:      string;
+  rows:         InvoiceRow[];
+  total:        number;
+  page:         number;
+  search:       string;
   statusFilter: string;
-  canWrite:    boolean;
-  summary:     InvoiceSummary;
+  canWrite:     boolean;
+  summary:      InvoiceSummary;
 }
 
-export function InvoicesView({ rows, total, page, search, statusFilter, summary }: Props) {
+export function InvoicesView({ rows, total, page, search, statusFilter, canWrite, summary }: Props) {
   const router   = useRouter();
   const pathname = usePathname();
+
+  const [paymentLoading, setPaymentLoading] = useState<string | null>(null);
+  const [copiedId, setCopiedId]             = useState<string | null>(null);
+
+  async function handleCreatePaymentLink(e: React.MouseEvent, invoiceId: string) {
+    e.stopPropagation();
+    if (!canWrite) return;
+    setPaymentLoading(invoiceId);
+    const result = await createMolliePayment(invoiceId);
+    setPaymentLoading(null);
+
+    if (result.success && "data" in result && result.data) {
+      const url = (result as { success: true; data: { checkoutUrl: string } }).data.checkoutUrl;
+      if (url) {
+        try {
+          await navigator.clipboard.writeText(url);
+          setCopiedId(invoiceId);
+          setTimeout(() => setCopiedId((c) => (c === invoiceId ? null : c)), 3000);
+        } catch {
+          // clipboard failed — navigate to detail page
+          router.push(`/invoices/${invoiceId}`);
+        }
+      }
+    } else {
+      router.push(`/invoices/${invoiceId}`);
+    }
+  }
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -147,7 +176,7 @@ export function InvoicesView({ rows, total, page, search, statusFilter, summary 
             <table className="w-full text-sm">
               <thead>
                 <tr style={{ borderBottom: "1px solid #F1F5F9" }}>
-                  {["Factuurnummer", "Klant", "Opdracht", "Bedrag (incl. BTW)", "Status", "Vervaldatum"].map((h) => (
+                  {["Factuurnummer", "Klant", "Opdracht", "Bedrag (incl. BTW)", "Status", "Vervaldatum", ""].map((h) => (
                     <th
                       key={h}
                       className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
@@ -160,8 +189,11 @@ export function InvoicesView({ rows, total, page, search, statusFilter, summary 
               </thead>
               <tbody>
                 {rows.map((row) => {
-                  const style = STATUS_STYLES[row.status] ?? STATUS_STYLES.draft;
+                  const style     = STATUS_STYLES[row.status] ?? STATUS_STYLES.draft;
                   const isOverdue = row.status === "sent" && new Date(row.dueDate) < new Date();
+                  const isLoading = paymentLoading === row.id;
+                  const isCopied  = copiedId === row.id;
+
                   return (
                     <tr
                       key={row.id}
@@ -209,6 +241,31 @@ export function InvoicesView({ rows, total, page, search, statusFilter, summary 
                           <span className="ml-1 text-xs" style={{ color: "#DC2626" }}>
                             (te laat)
                           </span>
+                        )}
+                      </td>
+                      {/* Betaallink actie */}
+                      <td className="px-4 py-3">
+                        {canWrite && row.status === "sent" && (
+                          <button
+                            disabled={isLoading}
+                            onClick={(e) => handleCreatePaymentLink(e, row.id)}
+                            title={isCopied ? "Link gekopieerd!" : "Betaallink aanmaken en kopiëren"}
+                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded text-xs font-medium transition-colors disabled:opacity-50"
+                            style={{
+                              background: isCopied ? "#D1FAE5" : "#F0FDFA",
+                              color:      isCopied ? "#065F46" : "#0F766E",
+                              border:     `1px solid ${isCopied ? "#6EE7B7" : "#99F6E4"}`,
+                            }}
+                          >
+                            {isLoading ? (
+                              <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                            ) : isCopied ? (
+                              <Check className="h-3.5 w-3.5" />
+                            ) : (
+                              <LinkIcon className="h-3.5 w-3.5" />
+                            )}
+                            {isCopied ? "Gekopieerd" : "Betaallink"}
+                          </button>
                         )}
                       </td>
                     </tr>
