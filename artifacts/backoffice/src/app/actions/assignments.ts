@@ -142,6 +142,7 @@ export type TimelineAssignment = {
   scheduledStart: string | null;
   scheduledEnd:   string | null;
   customerName:   string;
+  hasConflict:    boolean;
 };
 
 export type TimelinePersonnelRow = {
@@ -642,6 +643,69 @@ export async function getDayTimelineData(dateStr: string): Promise<{
     )
     .orderBy(asc(personnelTable.lastName), asc(personnelTable.firstName));
 
+  // ── Conflict detection (mirrors week-view logic) ─────────────────────────
+
+  // Build personnelId → assignmentIds map for overlap detection
+  const personnelIdsByAssignment = new Map<string, string[]>();
+  for (const p of pRows) {
+    const ids = personnelIdsByAssignment.get(p.assignmentId) ?? [];
+    ids.push(p.personnelId);
+    personnelIdsByAssignment.set(p.assignmentId, ids);
+  }
+
+  // Collect all unique personnel IDs that have assignments on this day
+  const allPersonnelIds = new Set<string>();
+  for (const p of pRows) allPersonnelIds.add(p.personnelId);
+
+  // 1. Availability conflicts: fetch batch status for all personnel on this date
+  const availabilityStatusMap =
+    allPersonnelIds.size > 0
+      ? await getBatchAvailabilityStatus(Array.from(allPersonnelIds), dateStr)
+      : ({} as Record<string, AvailabilityStatus>);
+
+  const conflictAssignmentIds = new Set<string>();
+
+  for (const r of asgnRows) {
+    const pIds = personnelIdsByAssignment.get(r.id);
+    if (!pIds || pIds.length === 0) continue;
+    for (const pid of pIds) {
+      const s = availabilityStatusMap[pid] as AvailabilityStatus | undefined;
+      if (s === "ziek" || s === "op_verlof" || s === "niet_beschikbaar") {
+        conflictAssignmentIds.add(r.id);
+        break;
+      }
+    }
+  }
+
+  // 2. Double-booking conflicts: same personnel, overlapping times on this day
+  const personnelDayAssignments = new Map<string, typeof asgnRows>();
+  for (const p of pRows) {
+    const r = asgnRows.find((x) => x.id === p.assignmentId);
+    if (!r) continue;
+    const list = personnelDayAssignments.get(p.personnelId) ?? [];
+    list.push(r);
+    personnelDayAssignments.set(p.personnelId, list);
+  }
+
+  for (const dayList of personnelDayAssignments.values()) {
+    if (dayList.length < 2) continue;
+    for (let i = 0; i < dayList.length; i++) {
+      for (let j = i + 1; j < dayList.length; j++) {
+        const a = dayList[i]!;
+        const b = dayList[j]!;
+        if (!a.scheduledStart || !a.scheduledEnd || !b.scheduledStart || !b.scheduledEnd) {
+          conflictAssignmentIds.add(a.id);
+          conflictAssignmentIds.add(b.id);
+        } else if (a.scheduledStart < b.scheduledEnd && a.scheduledEnd > b.scheduledStart) {
+          conflictAssignmentIds.add(a.id);
+          conflictAssignmentIds.add(b.id);
+        }
+      }
+    }
+  }
+
+  // ── Build result maps ────────────────────────────────────────────────────
+
   const asgnMap = new Map(
     asgnRows.map((a) => [a.id, {
       id:             a.id,
@@ -650,6 +714,7 @@ export async function getDayTimelineData(dateStr: string): Promise<{
       scheduledStart: a.scheduledStart ?? null,
       scheduledEnd:   a.scheduledEnd   ?? null,
       customerName:   a.customerName   ?? "",
+      hasConflict:    conflictAssignmentIds.has(a.id),
     } satisfies TimelineAssignment])
   );
 

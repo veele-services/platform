@@ -6,6 +6,12 @@ import { useRouter } from "next/navigation";
 import { ArrowLeft, Clock, Plus, CalendarDays, Users, AlertTriangle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import {
   Sheet,
   SheetContent,
   SheetHeader,
@@ -545,17 +551,48 @@ export function PlanningDayView({
                         if (!block) {
                           // No time set — show as inline tag (not draggable)
                           return (
-                            <Link
-                              key={a.id}
-                              href={`/assignments/${a.id}`}
-                              title={`${a.title} · ${a.customerName}`}
-                              className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded mr-1 font-medium truncate max-w-[200px]"
-                              style={{ background: bg, color: text, border: "1px solid rgba(0,0,0,0.06)" }}
-                            >
-                              {a.title}
-                            </Link>
+                            <TooltipProvider key={a.id}>
+                              <span className="inline-flex items-center gap-1 mr-1">
+                                <Link
+                                  href={`/assignments/${a.id}`}
+                                  title={`${a.title} · ${a.customerName}`}
+                                  className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded font-medium truncate max-w-[200px]"
+                                  style={{ background: bg, color: text, border: "1px solid rgba(0,0,0,0.06)" }}
+                                >
+                                  {a.title}
+                                </Link>
+                                {a.hasConflict && (
+                                  <Tooltip>
+                                    <TooltipTrigger asChild>
+                                      <span className="flex-shrink-0 cursor-default" aria-label="Conflict gedetecteerd">
+                                        <AlertTriangle className="h-3 w-3" style={{ color: "#F59E0B" }} />
+                                      </span>
+                                    </TooltipTrigger>
+                                    <TooltipContent side="top">
+                                      Ten minste één medewerker is niet beschikbaar of heeft een conflicterende inplanning.
+                                    </TooltipContent>
+                                  </Tooltip>
+                                )}
+                              </span>
+                            </TooltipProvider>
                           );
                         }
+
+                        // Conflict indicator (shared between both block variants)
+                        const conflictIcon = a.hasConflict ? (
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="flex-shrink-0 ml-1 cursor-default" aria-label="Conflict gedetecteerd">
+                                  <AlertTriangle className="h-3 w-3" style={{ color: "#F59E0B" }} />
+                                </span>
+                              </TooltipTrigger>
+                              <TooltipContent side="top">
+                                Ten minste één medewerker is niet beschikbaar of heeft een conflicterende inplanning.
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        ) : null;
 
                         // Time is set — render as draggable positioned block
                         const blockEl = (
@@ -579,7 +616,8 @@ export function PlanningDayView({
                               zIndex: isBeingDragged ? 0 : 1,
                             }}
                           >
-                            <span className="truncate">{a.title}</span>
+                            <span className="truncate flex-1 min-w-0">{a.title}</span>
+                            {conflictIcon}
                           </div>
                         );
 
@@ -601,7 +639,8 @@ export function PlanningDayView({
                               border: "1px solid rgba(0,0,0,0.06)",
                             }}
                           >
-                            <span className="truncate">{a.title}</span>
+                            <span className="truncate flex-1 min-w-0">{a.title}</span>
+                            {conflictIcon}
                           </Link>
                         );
                       })}
