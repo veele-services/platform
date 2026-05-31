@@ -952,8 +952,13 @@ export async function rescheduleAssignment(
       };
     }
 
-    // 3b. Conflict check (only when the assignment has a time slot)
+    // 3b. Time-slot checks (only when the assignment has start + end times)
     if (existing.scheduledStart && existing.scheduledEnd) {
+      const asgnStartMin = timeToMin(existing.scheduledStart);
+      const asgnEndMin   = timeToMin(existing.scheduledEnd);
+      const dayOfWeek    = new Date(newDate + "T00:00:00").getDay();
+
+      // 3b-i. Conflict check — other confirmed assignments that overlap in time
       const conflictRows = await db
         .select({ personnelId: assignmentPersonnelTable.personnelId })
         .from(assignmentPersonnelTable)
@@ -982,6 +987,51 @@ export async function rescheduleAssignment(
         return {
           success: false,
           message: `Verplaatsing geblokkeerd: ${nameList} ${conflictIds.length === 1 ? "heeft" : "hebben"} een conflicterende inplanning op ${newDate}.`,
+        };
+      }
+
+      // 3b-ii. Availability window coverage — window must span the full time slot
+      // (mirrors the meetsAvailabilityWindow logic in getPersonnelEligibilityForAssignment)
+      const windowRows = await db
+        .select({
+          personnelId: availabilityWindowsTable.personnelId,
+          startTime:   availabilityWindowsTable.startTime,
+          endTime:     availabilityWindowsTable.endTime,
+        })
+        .from(availabilityWindowsTable)
+        .where(
+          and(
+            inArray(availabilityWindowsTable.personnelId, personnelIds),
+            eq(availabilityWindowsTable.dayOfWeek, dayOfWeek),
+          ),
+        );
+
+      const coverageMap = new Map<string, boolean>();
+      for (const w of windowRows) {
+        if (!coverageMap.has(w.personnelId)) {
+          const wStart = timeToMin(w.startTime);
+          const wEnd   = timeToMin(w.endTime);
+          coverageMap.set(w.personnelId, wStart <= asgnStartMin && wEnd >= asgnEndMin);
+        }
+      }
+
+      // Only "beschikbaar" personnel are subject to window enforcement;
+      // other statuses have already been blocked or will pass naturally.
+      const blockedByWindow = personnelIds.filter((pid) => {
+        const s = statusMap[pid] as AvailabilityStatus | undefined;
+        if (s !== "beschikbaar") return false;
+        return !(coverageMap.get(pid) ?? false);
+      });
+
+      if (blockedByWindow.length > 0) {
+        const nameRows = await db
+          .select({ id: personnelTable.id, firstName: personnelTable.firstName, lastName: personnelTable.lastName })
+          .from(personnelTable)
+          .where(inArray(personnelTable.id, blockedByWindow));
+        const nameList = nameRows.map((n) => `${n.firstName} ${n.lastName}`.trim()).join(", ");
+        return {
+          success: false,
+          message: `Verplaatsing geblokkeerd: het beschikbaarheidsvenster van ${nameList} dekt het tijdslot (${existing.scheduledStart}–${existing.scheduledEnd}) niet op ${newDate}.`,
         };
       }
     }
