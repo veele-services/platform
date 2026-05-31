@@ -47,7 +47,9 @@ export async function getMyAssignments(): Promise<MyAssignment[]> {
         objects(address, city)
       )
     `)
-    .eq("personnel_id", personnelId);
+    .eq("personnel_id", personnelId)
+    // Only confirmed assignments — 'suggested' rows are not yet accepted by planner
+    .eq("status", "assigned");
 
   if (!data) return [];
 
@@ -88,6 +90,8 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
     `)
     .eq("personnel_id", personnelId)
     .eq("assignment_id", id)
+    // Only confirmed assignments — 'suggested' rows are not yet accepted by planner
+    .eq("status", "assigned")
     .single();
 
   if (!data) return null;
@@ -133,14 +137,16 @@ export async function setAssignmentStatus(
   const personnelId = await getPersonnelId(supabase, user.id);
   if (!personnelId) return { success: false, error: "Personeelsprofiel niet gevonden" };
 
+  // Only allow status transitions for confirmed (assigned) links, not suggestions
   const { data: ap } = await supabase
     .from("assignment_personnel")
     .select("assignments!inner(id, status)")
     .eq("personnel_id", personnelId)
     .eq("assignment_id", assignmentId)
+    .eq("status", "assigned")
     .single();
 
-  if (!ap) return { success: false, error: "Opdracht niet gevonden" };
+  if (!ap) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const currentStatus: string = (ap as any).assignments?.status ?? "";
