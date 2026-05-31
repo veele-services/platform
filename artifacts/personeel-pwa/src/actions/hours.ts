@@ -1,5 +1,8 @@
 "use server";
 
+import { db } from "@workspace/db";
+import { reportsTable, assignmentsTable } from "@workspace/db";
+import { eq, and, desc } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 
 export type HoursEntry = {
@@ -19,38 +22,47 @@ export type MonthSummary = {
 };
 
 /**
- * Fetch all approved reports submitted by the current user, grouped by month.
- * Uses submitted_by (auth UUID) to scope to the logged-in field worker.
+ * Fetch all approved reports for the current user, grouped by month.
+ * Uses submitted_by (Supabase Auth UUID) to scope to the logged-in field worker.
+ * Uses Drizzle (service-role connection) to bypass RLS on reports.
  */
 export async function getMyHours(): Promise<MonthSummary[]> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const { data } = await supabase
-    .from("reports")
-    .select(`
-      id, hours_worked, submitted_at,
-      assignments!inner(title, scheduled_date)
-    `)
-    .eq("submitted_by", user.id)
-    .eq("status", "approved")
-    .order("submitted_at", { ascending: false });
+  const rows = await db
+    .select({
+      reportId:        reportsTable.id,
+      assignmentId:    reportsTable.assignmentId,
+      assignmentTitle: assignmentsTable.title,
+      scheduledDate:   assignmentsTable.scheduledDate,
+      hoursWorked:     reportsTable.hoursWorked,
+      submittedAt:     reportsTable.submittedAt,
+    })
+    .from(reportsTable)
+    .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
+    .where(
+      and(
+        eq(reportsTable.submittedBy, user.id),
+        eq(reportsTable.status, "approved"),
+      ),
+    )
+    .orderBy(desc(reportsTable.submittedAt));
 
-  if (!data) return [];
-
+  // Group by YYYY-MM
   const byMonth: Record<string, HoursEntry[]> = {};
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  for (const r of data as any[]) {
-    const month = (r.submitted_at as string).slice(0, 7); // YYYY-MM
+  for (const r of rows) {
+    const month = r.submittedAt.toISOString().slice(0, 7);
+    const hours = r.hoursWorked ? parseFloat(r.hoursWorked) : 0;
     const entry: HoursEntry = {
-      reportId:        r.id,
-      assignmentId:    r.assignments?.id ?? "",
-      assignmentTitle: r.assignments?.title ?? "Onbekend",
-      scheduledDate:   r.assignments?.scheduled_date ?? null,
-      hoursWorked:     r.hours_worked ? parseFloat(r.hours_worked) : 0,
-      submittedAt:     r.submitted_at,
+      reportId:        r.reportId,
+      assignmentId:    r.assignmentId,
+      assignmentTitle: r.assignmentTitle,
+      scheduledDate:   r.scheduledDate ?? null,
+      hoursWorked:     hours,
+      submittedAt:     r.submittedAt.toISOString(),
     };
     if (!byMonth[month]) byMonth[month] = [];
     byMonth[month].push(entry);

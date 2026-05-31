@@ -122,6 +122,13 @@ export const assignmentPersonnelTable = pgTable(
     personnelId:  uuid("personnel_id")
       .notNull()
       .references(() => personnelTable.id, { onDelete: "cascade" }),
+    /**
+     * 'assigned'  — planned by the planner (default).
+     * 'suggested' — self-applied by the field worker via the personeels-PWA.
+     * 'declined'  — planner rejected the self-application.
+     * Requires migration 016_assignment_personnel_status.sql to be run first.
+     */
+    status:       varchar("status", { length: 20 }).notNull().default("assigned"),
     assignedAt:   timestamp("assigned_at", { withTimezone: true }).notNull().defaultNow(),
     assignedBy:   uuid("assigned_by"),
   },
