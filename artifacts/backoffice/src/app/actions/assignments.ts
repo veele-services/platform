@@ -68,6 +68,7 @@ export type AssignmentRow = {
   objectId:       string | null;
   objectName:     string | null;
   personnelCount: number;
+  reportStatus:   string | null;
   createdAt:      string;
 };
 
@@ -227,6 +228,12 @@ export async function listAssignments(params: {
           WHERE ap.assignment_id = ${assignmentsTable.id}
             AND ap.status = 'assigned'
         )`,
+        reportStatus: sql<string | null>`(
+          SELECT status FROM reports r
+          WHERE r.assignment_id = ${assignmentsTable.id}
+          ORDER BY r.submitted_at DESC
+          LIMIT 1
+        )`,
       })
       .from(assignmentsTable)
       .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
@@ -255,6 +262,7 @@ export async function listAssignments(params: {
       scheduledStart: r.scheduledStart ?? null,
       scheduledEnd:   r.scheduledEnd   ?? null,
       customerName: r.customerName ?? "",
+      reportStatus: r.reportStatus ?? null,
       createdAt:    r.createdAt.toISOString(),
     })),
     total: count,

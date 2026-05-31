@@ -18,6 +18,10 @@ import {
   Trash2,
   Users,
   Calendar,
+  FileText,
+  Clock3,
+  CheckCircle2,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -65,6 +69,45 @@ import { ASSIGNMENT_STATUSES, ASSIGNMENT_PRIORITIES } from "@/types/assignments"
 
 const PAGE_SIZE = 25;
 const SORTABLE = ["title", "scheduledDate", "createdAt", "status", "priority"] as const;
+
+const REPORT_ELIGIBLE: AssignmentStatus[] = [
+  "completed", "not_completed", "report_submitted", "report_approved",
+  "invoice_ready", "invoiced", "paid", "closed",
+];
+
+function ReportDot({ reportStatus, assignmentStatus }: { reportStatus: string | null; assignmentStatus: AssignmentStatus }) {
+  if (!REPORT_ELIGIBLE.includes(assignmentStatus)) return null;
+
+  if (!reportStatus) {
+    return (
+      <span title="Geen rapport ingediend">
+        <FileText className="h-3.5 w-3.5" style={{ color: "#CBD5E1" }} />
+      </span>
+    );
+  }
+  if (reportStatus === "submitted") {
+    return (
+      <span title="Rapport ingediend — wacht op beoordeling">
+        <Clock3 className="h-3.5 w-3.5" style={{ color: "#D97706" }} />
+      </span>
+    );
+  }
+  if (reportStatus === "approved") {
+    return (
+      <span title="Rapport goedgekeurd">
+        <CheckCircle2 className="h-3.5 w-3.5" style={{ color: "#16A34A" }} />
+      </span>
+    );
+  }
+  if (reportStatus === "rejected") {
+    return (
+      <span title="Rapport afgekeurd">
+        <XCircle className="h-3.5 w-3.5" style={{ color: "#DC2626" }} />
+      </span>
+    );
+  }
+  return null;
+}
 
 const STATUS_LABELS: Record<AssignmentStatus, string> = {
   requested:         "Aangevraagd",
@@ -362,7 +405,10 @@ export function AssignmentsView({
                       {row.objectName ?? "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <AssignmentStatusBadge status={row.status} />
+                      <div className="flex items-center gap-1.5">
+                        <AssignmentStatusBadge status={row.status} />
+                        <ReportDot reportStatus={row.reportStatus} assignmentStatus={row.status} />
+                      </div>
                     </td>
                     <td className="px-4 py-3">
                       <AssignmentPriorityBadge priority={row.priority} />

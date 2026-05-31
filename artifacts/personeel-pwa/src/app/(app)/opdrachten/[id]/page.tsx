@@ -141,7 +141,9 @@ export default async function OpdrachtenDetailPage({ params }: Props) {
         {canStartWork && <InProgressButton assignmentId={assignment.id} />}
 
         {/* Report section */}
-        {canSubmitReport && <RapportForm assignmentId={assignment.id} />}
+        {canSubmitReport && (
+          <RapportForm assignmentId={assignment.id} assignmentStatus={assignment.status} />
+        )}
         {showReport && report && <RapportDetail report={report} />}
 
         {/* not_completed: after report is submitted, planner follows up */}

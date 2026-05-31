@@ -3,28 +3,38 @@
 import { useActionState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { submitMyReport } from "@/actions/reports";
-import { FileText } from "lucide-react";
+import { FileText, AlertTriangle } from "lucide-react";
 
 type State = { success?: boolean; error?: string } | undefined;
 
-export function RapportForm({ assignmentId }: { assignmentId: string }) {
+interface Props {
+  assignmentId:     string;
+  assignmentStatus: string;
+}
+
+export function RapportForm({ assignmentId, assignmentStatus }: Props) {
   const router  = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
+  const isNotCompleted = assignmentStatus === "not_completed";
 
   const [state, formAction, isPending] = useActionState(
     async (_prev: State, formData: FormData): Promise<State> => {
+      const content     = formData.get("content") as string ?? "";
+      const hoursWorked = formData.get("hoursWorked") as string ?? "";
+      const submitterNotes = isNotCompleted
+        ? (formData.get("reason") as string ?? "")
+        : (formData.get("submitterNotes") as string ?? "");
+
       const result = await submitMyReport(assignmentId, {
-        content:         formData.get("content") as string ?? "",
-        hoursWorked:     formData.get("hoursWorked") as string ?? "",
-        submitterNotes:  formData.get("submitterNotes") as string ?? "",
+        content,
+        hoursWorked,
+        submitterNotes,
       });
       return result.success ? { success: true } : { error: result.error };
     },
     undefined,
   );
 
-  // After successful submission refresh the page so the server re-fetches
-  // the report and replaces this form with the read-only RapportDetail.
   useEffect(() => {
     if (state?.success) {
       router.refresh();
@@ -50,25 +60,65 @@ export function RapportForm({ assignmentId }: { assignmentId: string }) {
 
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm">
+
+      {isNotCompleted && (
+        <div
+          className="mb-4 flex items-start gap-2 rounded-xl p-3"
+          style={{ backgroundColor: "#FEF3C7" }}
+        >
+          <AlertTriangle size={16} className="mt-0.5 shrink-0" style={{ color: "#92400E" }} />
+          <p className="text-sm" style={{ color: "#92400E" }}>
+            De opdracht is niet afgerond. Geef aan wat de reden is en wat er wel is uitgevoerd.
+          </p>
+        </div>
+      )}
+
       <h3 className="mb-4 font-semibold" style={{ color: "var(--color-primary)" }}>
-        Rapport indienen
+        {isNotCompleted ? "Rapport — niet afgerond" : "Rapport indienen"}
       </h3>
 
       <form ref={formRef} action={formAction} className="space-y-4">
+
+        {isNotCompleted && (
+          <div>
+            <label
+              htmlFor="rapport-reason"
+              className="block text-sm font-medium mb-1.5"
+              style={{ color: "var(--color-primary)" }}
+            >
+              Reden voor niet-afronden <span style={{ color: "#EF4444" }}>*</span>
+            </label>
+            <textarea
+              id="rapport-reason"
+              name="reason"
+              rows={3}
+              required
+              placeholder="Wat was de reden dat de opdracht niet afgerond kon worden?"
+              className="w-full resize-none rounded-xl border px-4 py-3.5 text-base outline-none"
+              style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+            />
+          </div>
+        )}
+
         <div>
           <label
             htmlFor="rapport-content"
             className="block text-sm font-medium mb-1.5"
             style={{ color: "var(--color-primary)" }}
           >
-            Verslag <span style={{ color: "#EF4444" }}>*</span>
+            {isNotCompleted ? "Wat is er wel uitgevoerd?" : "Verslag"}{" "}
+            <span style={{ color: "#EF4444" }}>*</span>
           </label>
           <textarea
             id="rapport-content"
             name="content"
             rows={5}
             required
-            placeholder="Beschrijf wat er is uitgevoerd…"
+            placeholder={
+              isNotCompleted
+                ? "Beschrijf wat er wel is gedaan voordat de opdracht gestopt is…"
+                : "Beschrijf wat er is uitgevoerd…"
+            }
             className="w-full resize-none rounded-xl border px-4 py-3.5 text-base outline-none"
             style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
           />
@@ -95,23 +145,25 @@ export function RapportForm({ assignmentId }: { assignmentId: string }) {
           />
         </div>
 
-        <div>
-          <label
-            htmlFor="rapport-notes"
-            className="block text-sm font-medium mb-1.5"
-            style={{ color: "var(--color-primary)" }}
-          >
-            Aanvullende opmerkingen
-          </label>
-          <textarea
-            id="rapport-notes"
-            name="submitterNotes"
-            rows={3}
-            placeholder="Bijzonderheden, veiligheidsincidenten, materiaal gebruikt…"
-            className="w-full resize-none rounded-xl border px-4 py-3.5 text-base outline-none"
-            style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
-          />
-        </div>
+        {!isNotCompleted && (
+          <div>
+            <label
+              htmlFor="rapport-notes"
+              className="block text-sm font-medium mb-1.5"
+              style={{ color: "var(--color-primary)" }}
+            >
+              Aanvullende opmerkingen
+            </label>
+            <textarea
+              id="rapport-notes"
+              name="submitterNotes"
+              rows={3}
+              placeholder="Bijzonderheden, veiligheidsincidenten, materiaal gebruikt…"
+              className="w-full resize-none rounded-xl border px-4 py-3.5 text-base outline-none"
+              style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+            />
+          </div>
+        )}
 
         {state?.error && (
           <p
