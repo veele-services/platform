@@ -3,3 +3,4 @@
 - [Sprint 2 assignments schema](sprint2-schema.md) — assignments + assignment_personnel + assignment_tasks tables; migration at migrations/003_sprint2_assignments.sql; permissions added for assignments/planning resources.
 - [use-server runtime export rule](use-server-exports.md) — "use server" files may only export async functions; all constants/arrays must live in src/types/* (client-safe, no Node imports).
 - [Replit workflow port detection](replit-workflow-ports.md) — restart_workflow requires --turbopack for Next.js dev; bind to 0.0.0.0 and add a public /healthz route; set dev health check path in artifact.toml.
+- [klant-pwa customer portal pattern](klant-pwa-pattern.md) — new Next.js PWA at /klant/ (port 3003); customers identified by contact_email; verifyAndReplaceArtifactToml requires real file to exist first; STATUS_LABEL/STATUS_COLOR belong in src/types/ not "use server" actions.
