@@ -150,12 +150,20 @@ export async function setAssignmentStatus(
     return { success: false, error: "Status-overgang niet toegestaan" };
   }
 
-  const { error } = await supabase
-    .from("assignments")
-    .update({ status: newStatus })
-    .eq("id", assignmentId);
+  // Use a SECURITY DEFINER RPC so only the `status` column is mutated —
+  // a direct UPDATE policy would expose all other columns to personnel.
+  const { data: rpcResult, error } = await supabase.rpc(
+    "pwa_set_assignment_status",
+    { p_assignment_id: assignmentId, p_new_status: newStatus },
+  );
 
   if (error) return { success: false, error: "Bijwerken mislukt" };
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const result = rpcResult as any;
+  if (!result?.success) {
+    return { success: false, error: result?.error ?? "Bijwerken mislukt" };
+  }
 
   revalidatePath("/opdrachten");
   revalidatePath(`/opdrachten/${assignmentId}`);
