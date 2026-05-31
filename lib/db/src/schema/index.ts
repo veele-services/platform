@@ -15,3 +15,4 @@ export * from "./invoices";
 export * from "./quotes";
 export * from "./organization-settings";
 export * from "./availability";
+export * from "./documents";

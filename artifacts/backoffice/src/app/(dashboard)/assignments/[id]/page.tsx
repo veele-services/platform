@@ -37,6 +37,8 @@ import { getQuoteForAssignment, getAssignmentQuoteData } from "@/app/actions/quo
 import { CreateQuoteForm } from "@/components/quotes/CreateQuoteForm";
 import { DirectApprovalButton } from "@/components/quotes/DirectApprovalButton";
 import type { QuoteStatus } from "@/app/actions/quotes";
+import { listDocuments } from "@/app/actions/documents";
+import { AssignmentDocumentsPanel } from "@/components/documents/AssignmentDocumentsPanel";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -96,6 +98,8 @@ export default async function AssignmentDetailPage({ params }: Props) {
     canWriteInvoices,
     canReadQuotes,
     canWriteQuotes,
+    canReadDocuments,
+    canWriteDocuments,
   ] = await Promise.all([
     getAssignment(id),
     hasPermission("assignments", "write"),
@@ -105,9 +109,15 @@ export default async function AssignmentDetailPage({ params }: Props) {
     hasPermission("invoices", "write"),
     hasPermission("quotes", "read"),
     hasPermission("quotes", "write"),
+    hasPermission("documents", "read"),
+    hasPermission("documents", "write"),
   ]);
 
   if (!assignment) notFound();
+
+  const assignmentDocuments = canReadDocuments
+    ? await listDocuments({ entityType: "assignment", entityId: id })
+    : [];
 
   const REPORT_STATUSES  = ["completed", "report_submitted", "report_approved", "invoice_ready", "invoiced", "paid", "closed"];
   const INVOICE_STATUSES = ["invoice_ready", "invoiced", "paid", "closed"];
@@ -563,6 +573,17 @@ export default async function AssignmentDetailPage({ params }: Props) {
           )}
         </div>
       </div>
+
+      {/* ── Bijlagen ─────────────────────────────────────── */}
+      {canReadDocuments && (
+        <div className="mt-6">
+          <AssignmentDocumentsPanel
+            assignmentId={assignment.id}
+            initialDocuments={assignmentDocuments}
+            canWrite={canWriteDocuments}
+          />
+        </div>
+      )}
     </div>
   );
 }
