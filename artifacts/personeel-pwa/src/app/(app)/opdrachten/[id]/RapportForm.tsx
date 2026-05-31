@@ -1,12 +1,14 @@
 "use client";
 
-import { useActionState, useRef } from "react";
+import { useActionState, useRef, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { submitMyReport } from "@/actions/reports";
 import { FileText } from "lucide-react";
 
 type State = { success?: boolean; error?: string } | undefined;
 
 export function RapportForm({ assignmentId }: { assignmentId: string }) {
+  const router  = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
 
   const [state, formAction, isPending] = useActionState(
@@ -20,6 +22,14 @@ export function RapportForm({ assignmentId }: { assignmentId: string }) {
     },
     undefined,
   );
+
+  // After successful submission refresh the page so the server re-fetches
+  // the report and replaces this form with the read-only RapportDetail.
+  useEffect(() => {
+    if (state?.success) {
+      router.refresh();
+    }
+  }, [state?.success, router]);
 
   if (state?.success) {
     return (

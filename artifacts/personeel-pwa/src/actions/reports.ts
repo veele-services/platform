@@ -163,7 +163,7 @@ export async function submitMyReport(
     .limit(1);
 
   if (!assignment) return { success: false, error: "Opdracht niet gevonden" };
-  if (assignment.status !== "completed") {
+  if (assignment.status !== "completed" && assignment.status !== "not_completed") {
     return { success: false, error: "Rapport indienen is alleen mogelijk na afronding van de opdracht" };
   }
 
@@ -194,16 +194,11 @@ export async function submitMyReport(
       submitterNotes,
     });
 
-    // Advance assignment to report_submitted
+    // Advance assignment to report_submitted (works from both 'completed' and 'not_completed')
     await db
       .update(assignmentsTable)
       .set({ status: "report_submitted", updatedAt: new Date() })
-      .where(
-        and(
-          eq(assignmentsTable.id, assignmentId),
-          eq(assignmentsTable.status, "completed"),
-        ),
-      );
+      .where(eq(assignmentsTable.id, assignmentId));
 
     revalidatePath("/opdrachten");
     revalidatePath(`/opdrachten/${assignmentId}`);

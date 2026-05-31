@@ -30,9 +30,9 @@ export default async function OpdrachtenDetailPage({ params }: Props) {
 
   if (!assignment) notFound();
 
-  const canStartWork   = ["plannable", "scheduled", "seen"].includes(assignment.status);
-  const canSubmitReport = assignment.status === "completed" && !report;
-  const showReport     = !!report || assignment.status === "report_submitted" || assignment.status === "report_approved";
+  const canStartWork    = ["plannable", "scheduled", "seen"].includes(assignment.status);
+  const canSubmitReport = (assignment.status === "completed" || assignment.status === "not_completed") && !report;
+  const showReport      = !!report || assignment.status === "report_submitted" || assignment.status === "report_approved";
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "var(--color-muted)" }}>
@@ -144,8 +144,8 @@ export default async function OpdrachtenDetailPage({ params }: Props) {
         {canSubmitReport && <RapportForm assignmentId={assignment.id} />}
         {showReport && report && <RapportDetail report={report} />}
 
-        {/* not_completed message */}
-        {assignment.status === "not_completed" && (
+        {/* not_completed: after report is submitted, planner follows up */}
+        {assignment.status === "not_completed" && report && (
           <div
             className="rounded-2xl p-4 text-center text-sm"
             style={{ backgroundColor: "#FEF3C7" }}
@@ -154,7 +154,7 @@ export default async function OpdrachtenDetailPage({ params }: Props) {
               Opdracht niet afgerond
             </p>
             <p className="mt-1" style={{ color: "#B45309" }}>
-              Neem contact op met de planner voor verdere instructies.
+              Uw rapport is ontvangen. De planner neemt contact op voor vervolgstappen.
             </p>
           </div>
         )}

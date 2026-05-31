@@ -54,7 +54,7 @@ export const ASSIGNMENT_STATUS_TRANSITIONS: Record<AssignmentStatus, AssignmentS
   scheduled:         ["seen", "in_progress", "plannable"],
   seen:              ["in_progress", "scheduled"],
   in_progress:       ["completed", "not_completed"],
-  not_completed:     ["in_progress", "plannable"],
+  not_completed:     ["in_progress", "plannable", "report_submitted"],
   completed:         ["report_submitted"],
   report_submitted:  ["report_approved", "completed"],
   report_approved:   ["invoice_ready"],
