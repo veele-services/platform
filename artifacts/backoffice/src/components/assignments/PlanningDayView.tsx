@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition, useRef } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Clock, Plus, CalendarDays, Users } from "lucide-react";
+import { ArrowLeft, Clock, Plus, CalendarDays, Users, AlertTriangle, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import { AssignmentStatusBadge } from "./AssignmentStatusBadge";
 import { AssignmentForm } from "./AssignmentForm";
+import { reshiftAssignment } from "@/app/actions/assignments";
 import type {
   TimelinePersonnelRow,
   TimelineAssignment,
@@ -52,6 +53,12 @@ function parseTimeMin(t: string | null): number | null {
   if (!t) return null;
   const [h, m] = t.split(":").map(Number);
   return (h ?? 0) * 60 + (m ?? 0);
+}
+
+function minToTime(min: number): string {
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
 function timeBlock(start: string | null, end: string | null): { left: number; width: number } | null {
@@ -104,6 +111,37 @@ const STATUS_BLOCK_TEXT: Record<string, string> = {
   in_progress: "#fff",
 };
 
+// ── DnD helpers ─────────────────────────────────────────────────────────────
+
+interface GhostInfo {
+  rowId:    string;
+  leftPct:  number;
+  widthPct: number;
+  label:    string;
+}
+
+function calcDropSlot(
+  e: React.DragEvent<HTMLDivElement>,
+  durationMin: number,
+): { newStart: string; newEnd: string; leftPct: number; widthPct: number; label: string } {
+  const rect = e.currentTarget.getBoundingClientRect();
+  const x    = Math.max(0, Math.min(e.clientX - rect.left, rect.width));
+  const pct  = x / rect.width;
+  const rawStart    = DAY_START_MIN + pct * DAY_SPAN;
+  const snapped     = Math.round(rawStart / 15) * 15;
+  const clampStart  = Math.max(DAY_START_MIN, Math.min(DAY_END_MIN - durationMin, snapped));
+  const clampEnd    = clampStart + durationMin;
+  return {
+    newStart: minToTime(clampStart),
+    newEnd:   minToTime(clampEnd),
+    leftPct:  ((clampStart - DAY_START_MIN) / DAY_SPAN) * 100,
+    widthPct: ((clampEnd   - clampStart)    / DAY_SPAN) * 100,
+    label:    `${minToTime(clampStart)}–${minToTime(clampEnd)}`,
+  };
+}
+
+// ── Props ────────────────────────────────────────────────────────────────────
+
 interface PlanningDayViewProps {
   dateStr:    string;
   rows:       TimelinePersonnelRow[];
@@ -122,6 +160,16 @@ export function PlanningDayView({
   const router = useRouter();
   const [createOpen, setCreateOpen] = useState(false);
 
+  // ── DnD state ──────────────────────────────────────────────────────────────
+  const [draggingId,       setDraggingId]       = useState<string | null>(null);
+  const [draggingDuration, setDraggingDuration] = useState<number>(60);
+  const [ghostInfo,        setGhostInfo]        = useState<GhostInfo | null>(null);
+  const [optimisticShifts, setOptimisticShifts] = useState<Map<string, { start: string; end: string }>>(new Map());
+  const [conflictWarning,  setConflictWarning]  = useState<string | null>(null);
+  const [isPending,        startTransition]     = useTransition();
+  const dragRef = useRef<string | null>(null);
+
+  // ── Derived ────────────────────────────────────────────────────────────────
   const date    = new Date(dateStr + "T00:00:00");
   const weekday = NL_WEEKDAYS[date.getDay()];
   const dayNum  = date.getDate();
@@ -139,11 +187,122 @@ export function PlanningDayView({
   const prevDay  = addDaysLocal(dateStr, -1);
   const nextDay  = addDaysLocal(dateStr,  1);
 
+  // Apply optimistic shifts to the rows
+  const effectiveRows: TimelinePersonnelRow[] = rows.map((row) => ({
+    ...row,
+    assignments: row.assignments.map((a) => {
+      const shift = optimisticShifts.get(a.id);
+      if (!shift) return a;
+      return { ...a, scheduledStart: shift.start, scheduledEnd: shift.end };
+    }),
+  }));
+
   const totalAssignments = rows.reduce((s, r) => s + r.assignments.length, 0) + unassigned.length;
+
+  // ── Drag handlers ──────────────────────────────────────────────────────────
+
+  function handleDragStart(e: React.DragEvent, a: TimelineAssignment) {
+    if (!canWrite) return;
+    const s = parseTimeMin(a.scheduledStart);
+    const end = parseTimeMin(a.scheduledEnd);
+    const duration = (s !== null && end !== null) ? Math.max(15, end - s) : 60;
+    dragRef.current = a.id;
+    setDraggingId(a.id);
+    setDraggingDuration(duration);
+    setConflictWarning(null);
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("text/plain", a.id);
+  }
+
+  function handleDragEnd() {
+    dragRef.current = null;
+    setDraggingId(null);
+    setGhostInfo(null);
+  }
+
+  function handleTimelineDragOver(e: React.DragEvent<HTMLDivElement>, rowId: string) {
+    if (!draggingId) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = "move";
+    const slot = calcDropSlot(e, draggingDuration);
+    setGhostInfo({ rowId, leftPct: slot.leftPct, widthPct: slot.widthPct, label: slot.label });
+  }
+
+  function handleTimelineDragLeave() {
+    setGhostInfo(null);
+  }
+
+  function handleTimelineDrop(e: React.DragEvent<HTMLDivElement>) {
+    e.preventDefault();
+    const id = e.dataTransfer.getData("text/plain") || dragRef.current;
+    const slot = calcDropSlot(e, draggingDuration);
+    setGhostInfo(null);
+    setDraggingId(null);
+    dragRef.current = null;
+
+    if (!id) return;
+
+    // Check no-op: compare with current effective times
+    const currentRow = rows.find((r) => r.assignments.some((a) => a.id === id));
+    const currentA   = currentRow?.assignments.find((a) => a.id === id);
+    const currentShift = optimisticShifts.get(id);
+    const currentStart = currentShift?.start ?? currentA?.scheduledStart;
+    const currentEnd   = currentShift?.end   ?? currentA?.scheduledEnd;
+    if (currentStart === slot.newStart && currentEnd === slot.newEnd) return;
+
+    // Optimistic update
+    setOptimisticShifts((prev) => {
+      const next = new Map(prev);
+      next.set(id, { start: slot.newStart, end: slot.newEnd });
+      return next;
+    });
+
+    startTransition(async () => {
+      const result = await reshiftAssignment(id, slot.newStart, slot.newEnd);
+      if (!result.success) {
+        setOptimisticShifts((prev) => {
+          const next = new Map(prev);
+          next.delete(id);
+          return next;
+        });
+        setConflictWarning(result.message);
+      } else {
+        if (result.warning) setConflictWarning(result.warning);
+        router.refresh();
+        setOptimisticShifts(new Map());
+      }
+    });
+  }
+
+  // ── Render ─────────────────────────────────────────────────────────────────
 
   return (
     <div>
-      {/* ── Header ─────────────────────────────────────────────── */}
+      {/* ── Conflict / error warning banner ─────────────────────────── */}
+      {conflictWarning && (
+        <div
+          className="flex items-start gap-3 rounded-lg px-4 py-3 mb-4 text-sm"
+          style={{
+            background: "#FFFBEB",
+            border:     "1px solid #F59E0B",
+            color:      "#92400E",
+          }}
+          role="alert"
+        >
+          <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: "#F59E0B" }} />
+          <span className="flex-1">{conflictWarning}</span>
+          <button
+            type="button"
+            onClick={() => setConflictWarning(null)}
+            className="flex-shrink-0 rounded p-0.5 transition-opacity hover:opacity-70"
+            aria-label="Melding sluiten"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* ── Header ─────────────────────────────────────────────────── */}
       <div className="mb-6 flex items-start justify-between flex-wrap gap-4">
         <div>
           <button
@@ -199,7 +358,14 @@ export function PlanningDayView({
         </div>
       </div>
 
-      {/* ── Empty state ─────────────────────────────────────────── */}
+      {/* ── DnD hint ────────────────────────────────────────────────── */}
+      {canWrite && rows.some((r) => r.assignments.some((a) => a.scheduledStart)) && (
+        <p className="text-xs mb-3" style={{ color: "#94A3B8" }}>
+          Sleep een opdracht naar een ander tijdslot om de starttijd aan te passen.
+        </p>
+      )}
+
+      {/* ── Empty state ─────────────────────────────────────────────── */}
       {rows.length === 0 && unassigned.length === 0 && (
         <div
           className="flex flex-col items-center justify-center py-16 rounded-lg text-center"
@@ -223,7 +389,7 @@ export function PlanningDayView({
         </div>
       )}
 
-      {/* ── Unassigned assignments ───────────────────────────────── */}
+      {/* ── Unassigned assignments ───────────────────────────────────── */}
       {unassigned.length > 0 && (
         <div className="mb-6 veele-card">
           <h3
@@ -264,9 +430,9 @@ export function PlanningDayView({
         </div>
       )}
 
-      {/* ── Per-medewerker tijdlijn ──────────────────────────────── */}
+      {/* ── Per-medewerker tijdlijn ──────────────────────────────────── */}
       {rows.length > 0 && (
-        <div className="veele-card overflow-x-auto">
+        <div className="veele-card overflow-x-auto" style={{ opacity: isPending ? 0.85 : 1, transition: "opacity 0.15s" }}>
           <h3
             className="font-heading text-sm font-semibold mb-4 flex items-center gap-2"
             style={{ color: "#081D3A" }}
@@ -311,75 +477,144 @@ export function PlanningDayView({
               </div>
 
               {/* Personnel rows */}
-              {rows.map((row, idx) => (
-                <div
-                  key={row.personnelId}
-                  className="flex items-center"
-                  style={{
-                    minHeight: "44px",
-                    borderTop: idx === 0 ? "1px solid #E2E8F0" : undefined,
-                    borderBottom: "1px solid #F1F5F9",
-                  }}
-                >
-                  {/* Name column */}
+              {effectiveRows.map((row, idx) => {
+                const isGhostRow = ghostInfo?.rowId === row.personnelId;
+                return (
                   <div
-                    className="flex-shrink-0 pr-3 py-2 text-sm font-medium truncate"
-                    style={{ width: "160px", color: "#081D3A" }}
-                    title={`${row.firstName} ${row.lastName}`}
+                    key={row.personnelId}
+                    className="flex items-center"
+                    style={{
+                      minHeight: "44px",
+                      borderTop:    idx === 0 ? "1px solid #E2E8F0" : undefined,
+                      borderBottom: "1px solid #F1F5F9",
+                    }}
                   >
-                    {row.lastName}, {row.firstName}
-                  </div>
+                    {/* Name column */}
+                    <div
+                      className="flex-shrink-0 pr-3 py-2 text-sm font-medium truncate"
+                      style={{ width: "160px", color: "#081D3A" }}
+                      title={`${row.firstName} ${row.lastName}`}
+                    >
+                      {row.lastName}, {row.firstName}
+                    </div>
 
-                  {/* Timeline area */}
-                  <div className="relative flex-1 py-2" style={{ minHeight: "44px" }}>
-                    {row.assignments.map((a) => {
-                      const block = timeBlock(a.scheduledStart, a.scheduledEnd);
-                      const bg   = STATUS_BLOCK_BG[a.status] ?? "#F1F5F9";
-                      const text = STATUS_BLOCK_TEXT[a.status] ?? "#081D3A";
+                    {/* Timeline area — also serves as drop zone */}
+                    <div
+                      className="relative flex-1 py-2"
+                      style={{
+                        minHeight: "44px",
+                        cursor: canWrite && draggingId ? "copy" : undefined,
+                        outline: isGhostRow ? "1px dashed #00B7B3" : undefined,
+                        outlineOffset: isGhostRow ? "-1px" : undefined,
+                        borderRadius: "4px",
+                        background:   isGhostRow ? "rgba(0,183,179,0.04)" : undefined,
+                        transition: "background 0.1s, outline 0.1s",
+                      }}
+                      onDragOver={canWrite ? (e) => handleTimelineDragOver(e, row.personnelId) : undefined}
+                      onDragLeave={canWrite ? handleTimelineDragLeave : undefined}
+                      onDrop={canWrite ? handleTimelineDrop : undefined}
+                    >
+                      {/* Ghost indicator */}
+                      {isGhostRow && ghostInfo && (
+                        <div
+                          className="absolute top-2 bottom-2 flex items-center justify-center rounded pointer-events-none z-10"
+                          style={{
+                            left:    `${ghostInfo.leftPct}%`,
+                            width:   `${ghostInfo.widthPct}%`,
+                            minWidth: "40px",
+                            background: "rgba(0,183,179,0.18)",
+                            border: "2px dashed #00B7B3",
+                          }}
+                        >
+                          <span
+                            className="text-xs font-semibold px-1 truncate"
+                            style={{ color: "#00B7B3" }}
+                          >
+                            {ghostInfo.label}
+                          </span>
+                        </div>
+                      )}
 
-                      if (!block) {
-                        // No time set — show as a full-width tag
-                        return (
+                      {/* Assignment blocks */}
+                      {row.assignments.map((a) => {
+                        const block = timeBlock(a.scheduledStart, a.scheduledEnd);
+                        const bg    = STATUS_BLOCK_BG[a.status] ?? "#F1F5F9";
+                        const text  = STATUS_BLOCK_TEXT[a.status] ?? "#081D3A";
+                        const isBeingDragged = draggingId === a.id;
+
+                        if (!block) {
+                          // No time set — show as inline tag (not draggable)
+                          return (
+                            <Link
+                              key={a.id}
+                              href={`/assignments/${a.id}`}
+                              title={`${a.title} · ${a.customerName}`}
+                              className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded mr-1 font-medium truncate max-w-[200px]"
+                              style={{ background: bg, color: text, border: "1px solid rgba(0,0,0,0.06)" }}
+                            >
+                              {a.title}
+                            </Link>
+                          );
+                        }
+
+                        // Time is set — render as draggable positioned block
+                        const blockEl = (
+                          <div
+                            key={a.id}
+                            draggable={canWrite}
+                            onDragStart={canWrite ? (e) => handleDragStart(e, a) : undefined}
+                            onDragEnd={canWrite ? handleDragEnd : undefined}
+                            title={`${a.title} · ${a.scheduledStart}–${a.scheduledEnd} · ${a.customerName}`}
+                            className="absolute top-2 bottom-2 flex items-center px-2 text-xs font-medium rounded overflow-hidden"
+                            style={{
+                              left:    `${block.left}%`,
+                              width:   `${block.width}%`,
+                              minWidth: "40px",
+                              background:  bg,
+                              color:       text,
+                              border: "1px solid rgba(0,0,0,0.06)",
+                              cursor: canWrite ? (isBeingDragged ? "grabbing" : "grab") : "default",
+                              opacity: isBeingDragged ? 0.35 : 1,
+                              transition: "opacity 0.15s",
+                              zIndex: isBeingDragged ? 0 : 1,
+                            }}
+                          >
+                            <span className="truncate">{a.title}</span>
+                          </div>
+                        );
+
+                        // Wrap with a link-on-click when NOT actively dragging
+                        return canWrite ? (
+                          blockEl
+                        ) : (
                           <Link
                             key={a.id}
                             href={`/assignments/${a.id}`}
-                            title={`${a.title} · ${a.customerName}`}
-                            className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded mr-1 font-medium truncate max-w-[200px]"
-                            style={{ background: bg, color: text, border: "1px solid rgba(0,0,0,0.06)" }}
+                            title={`${a.title} · ${a.scheduledStart}–${a.scheduledEnd} · ${a.customerName}`}
+                            className="absolute top-2 bottom-2 flex items-center px-2 text-xs font-medium rounded overflow-hidden"
+                            style={{
+                              left:    `${block.left}%`,
+                              width:   `${block.width}%`,
+                              minWidth: "40px",
+                              background: bg,
+                              color:      text,
+                              border: "1px solid rgba(0,0,0,0.06)",
+                            }}
                           >
-                            {a.title}
+                            <span className="truncate">{a.title}</span>
                           </Link>
                         );
-                      }
-
-                      return (
-                        <Link
-                          key={a.id}
-                          href={`/assignments/${a.id}`}
-                          title={`${a.title} · ${a.scheduledStart}–${a.scheduledEnd} · ${a.customerName}`}
-                          className="absolute top-2 bottom-2 flex items-center px-2 text-xs font-medium rounded overflow-hidden"
-                          style={{
-                            left:    `${block.left}%`,
-                            width:   `${block.width}%`,
-                            minWidth: "40px",
-                            background: bg,
-                            color:      text,
-                            border: "1px solid rgba(0,0,0,0.06)",
-                          }}
-                        >
-                          <span className="truncate">{a.title}</span>
-                        </Link>
-                      );
-                    })}
+                      })}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </div>
         </div>
       )}
 
-      {/* ── Create assignment sheet ──────────────────────────────── */}
+      {/* ── Create assignment sheet ──────────────────────────────────── */}
       {canWrite && (
         <Sheet open={createOpen} onOpenChange={setCreateOpen}>
           <SheetContent side="right" className="w-[560px] sm:max-w-[560px] overflow-y-auto">
