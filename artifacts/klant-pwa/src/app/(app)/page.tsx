@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { MapPin, ClipboardList, PlusCircle } from "lucide-react";
+import { MapPin, ClipboardList, PlusCircle, Receipt, FileText } from "lucide-react";
 import { getMyCustomerProfile } from "@/actions/customer";
 import { getMyAssignments } from "@/actions/assignments";
-import { getMyObjects } from "@/actions/objects";
+import { getMyInvoiceSummary } from "@/actions/invoices";
+import { getMyPendingQuoteCount } from "@/actions/quotes";
 import { STATUS_LABEL, STATUS_COLOR } from "@/types/assignments";
 
 function formatDate(dateStr: string | null): string {
@@ -12,11 +13,21 @@ function formatDate(dateStr: string | null): string {
   return d.toLocaleDateString("nl-NL", { day: "numeric", month: "short" });
 }
 
+function formatAmount(amount: string): string {
+  return parseFloat(amount).toLocaleString("nl-NL", {
+    style:    "currency",
+    currency: "EUR",
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  });
+}
+
 export default async function DashboardPage() {
-  const [profile, assignments, objects] = await Promise.all([
+  const [profile, assignments, invoiceSummary, pendingQuoteCount] = await Promise.all([
     getMyCustomerProfile(),
     getMyAssignments(),
-    getMyObjects(),
+    getMyInvoiceSummary(),
+    getMyPendingQuoteCount(),
   ]);
 
   if (!profile) {
@@ -72,22 +83,47 @@ export default async function DashboardPage() {
             {recentRequests}
           </p>
         </div>
-        <div className="rounded-2xl bg-white p-4 shadow-sm">
+        <Link
+          href="/klant/facturen"
+          className="rounded-2xl bg-white p-4 shadow-sm"
+        >
           <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
-            Objecten
+            Open facturen
           </p>
-          <p className="mt-2 text-3xl font-bold" style={{ color: "var(--color-primary)" }}>
-            {objects.length}
-          </p>
-        </div>
-        <div className="rounded-2xl bg-white p-4 shadow-sm">
+          {invoiceSummary.openCount > 0 ? (
+            <>
+              <p className="mt-2 text-3xl font-bold" style={{ color: "var(--color-destructive)" }}>
+                {invoiceSummary.openCount}
+              </p>
+              <p className="mt-0.5 text-xs font-medium" style={{ color: "var(--color-secondary)" }}>
+                {formatAmount(invoiceSummary.openTotal)} te betalen
+              </p>
+            </>
+          ) : (
+            <p className="mt-2 text-3xl font-bold" style={{ color: "var(--color-success)" }}>
+              0
+            </p>
+          )}
+        </Link>
+        <Link
+          href="/klant/offertes"
+          className="rounded-2xl bg-white p-4 shadow-sm"
+        >
           <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
-            Totaal opdrachten
+            Te beoordelen
           </p>
-          <p className="mt-2 text-3xl font-bold" style={{ color: "var(--color-primary)" }}>
-            {assignments.length}
+          <p
+            className="mt-2 text-3xl font-bold"
+            style={{ color: pendingQuoteCount > 0 ? "var(--color-warning)" : "var(--color-primary)" }}
+          >
+            {pendingQuoteCount}
           </p>
-        </div>
+          {pendingQuoteCount > 0 && (
+            <p className="mt-0.5 text-xs font-medium" style={{ color: "var(--color-secondary)" }}>
+              {pendingQuoteCount === 1 ? "offerte wacht" : "offertes wachten"}
+            </p>
+          )}
+        </Link>
       </div>
 
       {/* Quick actions */}
