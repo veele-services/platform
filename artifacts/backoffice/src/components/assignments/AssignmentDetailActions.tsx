@@ -37,13 +37,13 @@ import {
   removePersonnel,
   addAssignmentTask,
   removeAssignmentTask,
-  ASSIGNMENT_STATUS_TRANSITIONS,
   type AssignmentStatus,
   type AssignmentPriority,
   type CustomerOption,
   type PersonnelOption,
   type TaskCodeOption,
 } from "@/app/actions/assignments";
+import { ASSIGNMENT_STATUS_TRANSITIONS } from "@/types/assignments";
 import type { AvailabilityStatus } from "@/app/actions/availability";
 
 const STATUS_LABELS: Record<AssignmentStatus, string> = {

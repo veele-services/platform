@@ -1,2 +1,14 @@
-export { DOCUMENT_ENTITY_TYPES } from "@workspace/db";
-export type { DocumentEntityType } from "@workspace/db";
+export type DocumentEntityType =
+  | "assignment"
+  | "customer"
+  | "personnel"
+  | "object"
+  | "general";
+
+export const DOCUMENT_ENTITY_TYPES: DocumentEntityType[] = [
+  "assignment",
+  "customer",
+  "personnel",
+  "object",
+  "general",
+];

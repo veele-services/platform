@@ -28,7 +28,6 @@ import { requirePermission, hasPermission } from "@/lib/auth/permissions";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, AssignmentStatus, AssignmentPriority };
-export { ASSIGNMENT_STATUSES, ASSIGNMENT_PRIORITIES, ASSIGNMENT_STATUS_TRANSITIONS };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 

@@ -56,13 +56,12 @@ import { AssignmentStatusBadge, AssignmentPriorityBadge } from "./AssignmentStat
 import { AssignmentForm } from "./AssignmentForm";
 import {
   deleteAssignment,
-  ASSIGNMENT_STATUSES,
-  ASSIGNMENT_PRIORITIES,
   type AssignmentRow,
   type CustomerOption,
   type AssignmentStatus,
   type AssignmentPriority,
 } from "@/app/actions/assignments";
+import { ASSIGNMENT_STATUSES, ASSIGNMENT_PRIORITIES } from "@/types/assignments";
 
 const PAGE_SIZE = 25;
 const SORTABLE = ["title", "scheduledDate", "createdAt", "status", "priority"] as const;

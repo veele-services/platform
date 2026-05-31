@@ -7,11 +7,11 @@ import {
   addLeavePeriod,
   updateLeavePeriod,
   deleteLeavePeriod,
-  LEAVE_TYPES,
   type AvailabilityWindow,
   type LeavePeriod,
   type LeaveType,
 } from "@/app/actions/availability";
+import { LEAVE_TYPES } from "@/types/availability";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
