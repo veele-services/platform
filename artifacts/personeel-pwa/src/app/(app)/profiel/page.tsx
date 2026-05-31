@@ -1,0 +1,151 @@
+import { getMyPersonnel } from "@/actions/personnel";
+import { signOut } from "@/actions/auth";
+import { User, Mail, Phone, MapPin, Award } from "lucide-react";
+
+export default async function ProfielPage() {
+  const profile = await getMyPersonnel();
+
+  if (!profile) {
+    return (
+      <div className="p-4">
+        <p className="py-16 text-center text-sm" style={{ color: "var(--color-secondary)" }}>
+          Geen profielgegevens gevonden
+        </p>
+      </div>
+    );
+  }
+
+  const fields = [
+    { icon: Mail,   label: "E-mail",  value: profile.email },
+    { icon: Phone,  label: "Telefoon",value: profile.phone },
+    { icon: MapPin, label: "Regio",   value: profile.region },
+  ].filter((f) => f.value);
+
+  const hasBadges =
+    profile.certificates.length > 0 ||
+    profile.diplomas.length > 0 ||
+    profile.knowledge.length > 0;
+
+  return (
+    <div className="space-y-4 p-4">
+      <h1 className="text-xl font-bold" style={{ color: "var(--color-primary)" }}>
+        Mijn profiel
+      </h1>
+
+      <div className="rounded-2xl bg-white p-5 shadow-sm">
+        <div className="mb-5 flex flex-col items-center gap-3">
+          <div
+            className="flex h-20 w-20 items-center justify-center rounded-full text-2xl font-bold text-white"
+            style={{ backgroundColor: "var(--color-accent)" }}
+          >
+            {profile.firstName[0]}{profile.lastName[0]}
+          </div>
+          <p className="text-lg font-bold" style={{ color: "var(--color-primary)" }}>
+            {profile.firstName} {profile.lastName}
+          </p>
+        </div>
+
+        {fields.length > 0 && (
+          <div className="space-y-3 border-t pt-4" style={{ borderColor: "var(--color-border)" }}>
+            {fields.map((f) => {
+              const Icon = f.icon;
+              return (
+                <div key={f.label} className="flex items-center gap-3">
+                  <div
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
+                    style={{ backgroundColor: "rgba(0,183,179,0.1)" }}
+                  >
+                    <Icon size={16} style={{ color: "var(--color-accent)" }} />
+                  </div>
+                  <div>
+                    <p className="text-xs" style={{ color: "var(--color-muted-fg)" }}>{f.label}</p>
+                    <p className="text-sm font-medium" style={{ color: "var(--color-primary)" }}>{f.value}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
+      {hasBadges && (
+        <div className="rounded-2xl bg-white p-4 shadow-sm">
+          <div className="mb-3 flex items-center gap-2">
+            <Award size={16} style={{ color: "var(--color-accent)" }} />
+            <h2 className="font-semibold" style={{ color: "var(--color-primary)" }}>
+              Kwalificaties
+            </h2>
+          </div>
+          {profile.certificates.length > 0 && (
+            <div className="mb-3">
+              <p className="mb-1.5 text-xs font-medium uppercase" style={{ color: "var(--color-muted-fg)" }}>
+                Certificaten
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {profile.certificates.map((c) => (
+                  <span
+                    key={c}
+                    className="rounded-full px-2.5 py-1 text-xs font-semibold"
+                    style={{ backgroundColor: "rgba(0,183,179,0.1)", color: "var(--color-accent)" }}
+                  >
+                    {c}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {profile.diplomas.length > 0 && (
+            <div className="mb-3">
+              <p className="mb-1.5 text-xs font-medium uppercase" style={{ color: "var(--color-muted-fg)" }}>
+                Diploma's
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {profile.diplomas.map((d) => (
+                  <span
+                    key={d}
+                    className="rounded-full px-2.5 py-1 text-xs font-semibold"
+                    style={{ backgroundColor: "rgba(8,29,58,0.08)", color: "var(--color-primary)" }}
+                  >
+                    {d}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+          {profile.knowledge.length > 0 && (
+            <div>
+              <p className="mb-1.5 text-xs font-medium uppercase" style={{ color: "var(--color-muted-fg)" }}>
+                Kennis
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {profile.knowledge.map((k) => (
+                  <span
+                    key={k}
+                    className="rounded-full px-2.5 py-1 text-xs font-semibold"
+                    style={{ backgroundColor: "#F1F5F9", color: "var(--color-secondary)" }}
+                  >
+                    {k}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      <form action={signOut}>
+        <button
+          type="submit"
+          className="w-full rounded-2xl border py-4 text-base font-semibold"
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-destructive)",
+            backgroundColor: "white",
+          }}
+        >
+          Uitloggen
+        </button>
+      </form>
+    </div>
+  );
+}

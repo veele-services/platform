@@ -14,6 +14,9 @@ import { personnelTable } from "./personnel";
 export const LEAVE_TYPES = ["vakantie", "ziekte", "overig"] as const;
 export type LeaveType = typeof LEAVE_TYPES[number];
 
+export const LEAVE_STATUSES = ["pending", "approved", "rejected"] as const;
+export type LeaveStatus = typeof LEAVE_STATUSES[number];
+
 export type AvailabilityStatus =
   | "beschikbaar"
   | "op_verlof"
@@ -48,6 +51,8 @@ export const availabilityWindowsTable = pgTable(
 /**
  * A leave period (vakantie, ziekte, overig) for a personnel member.
  * start_date / end_date are stored as YYYY-MM-DD strings to avoid tz issues.
+ * status: 'pending' = awaiting management approval (PWA requests),
+ *         'approved' = accepted, 'rejected' = declined.
  */
 export const leavePeriodsTable = pgTable("leave_periods", {
   id:          uuid("id").primaryKey().defaultRandom(),
@@ -58,6 +63,7 @@ export const leavePeriodsTable = pgTable("leave_periods", {
   endDate:     varchar("end_date",   { length: 10 }),
   leaveType:   varchar("leave_type", { length: 20 }).notNull().$type<LeaveType>(),
   reason:      text("reason"),
+  status:      varchar("status", { length: 20 }).notNull().default("approved").$type<LeaveStatus>(),
   createdBy:   uuid("created_by"),
   createdAt:   timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
