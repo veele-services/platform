@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, ClipboardList, ClipboardCheck, Clock, Calendar, Plane, User } from "lucide-react";
+import { Home, ClipboardList, ClipboardCheck, Clock, Calendar, Plane, FolderOpen } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/",                icon: Home,           label: "Home" },
@@ -11,7 +11,7 @@ const NAV_ITEMS = [
   { href: "/uren",            icon: Clock,          label: "Uren" },
   { href: "/beschikbaarheid", icon: Calendar,       label: "Beschikbaar" },
   { href: "/verlof",          icon: Plane,          label: "Verlof" },
-  { href: "/profiel",         icon: User,           label: "Profiel" },
+  { href: "/documenten",      icon: FolderOpen,     label: "Documenten" },
 ];
 
 export function BottomNav() {
