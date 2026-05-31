@@ -17,6 +17,7 @@ import {
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { getInvoice, getInvoiceStatusHistory } from "@/app/actions/invoices";
+import { getPaymentHistory } from "@/app/actions/payments";
 import { InvoiceActions } from "@/components/invoices/InvoiceActions";
 
 interface Props {
@@ -85,7 +86,10 @@ export default async function InvoiceDetailPage({ params }: Props) {
 
   if (!invoice) notFound();
 
-  const statusHistory = await getInvoiceStatusHistory(id);
+  const [statusHistory, paymentHistory] = await Promise.all([
+    getInvoiceStatusHistory(id),
+    getPaymentHistory(id),
+  ]);
 
   const statusStyle = STATUS_STYLES[invoice.status] ?? STATUS_STYLES.draft;
   const isOverdue   = invoice.status === "sent" && new Date(invoice.dueDate) < new Date();
@@ -358,9 +362,13 @@ export default async function InvoiceDetailPage({ params }: Props) {
             </div>
           </div>
 
-          {/* Actions */}
+          {/* Actions (includes payment history) */}
           {canWrite && (
-            <InvoiceActions invoiceId={invoice.id} status={invoice.status} />
+            <InvoiceActions
+              invoiceId={invoice.id}
+              status={invoice.status}
+              paymentHistory={paymentHistory}
+            />
           )}
 
           {/* Status history */}
