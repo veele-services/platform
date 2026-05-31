@@ -38,8 +38,8 @@ export default async function UrenPage({ searchParams }: Props) {
   const totalAllTime = allMonths.reduce((sum, m) => sum + m.totalHours, 0);
 
   return (
-    <div className="space-y-4 p-4">
-      <h1 className="text-xl font-bold" style={{ color: "var(--color-primary)" }}>
+    <div className="space-y-4 p-4 md:p-0">
+      <h1 className="text-xl md:text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
         Mijn uren
       </h1>
 

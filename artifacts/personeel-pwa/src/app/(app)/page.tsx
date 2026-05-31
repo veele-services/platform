@@ -43,7 +43,7 @@ export default async function DashboardPage() {
   const firstName = profile?.firstName ?? "Medewerker";
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="space-y-4 p-4 md:p-0">
       {/* Header */}
       <div
         className="rounded-2xl p-5 text-white"

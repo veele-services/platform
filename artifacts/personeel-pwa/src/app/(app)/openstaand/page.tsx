@@ -29,9 +29,9 @@ export default async function OpenstaandePage() {
   const applied = assignments.filter((a) => a.isAlreadyApplied);
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="space-y-4 p-4 md:p-0">
       <div>
-        <h1 className="text-xl font-bold" style={{ color: "var(--color-primary)" }}>
+        <h1 className="text-xl md:text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
           Openstaande opdrachten
         </h1>
         <p className="mt-0.5 text-sm" style={{ color: "var(--color-secondary)" }}>
