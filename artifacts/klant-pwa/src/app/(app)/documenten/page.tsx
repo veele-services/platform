@@ -28,8 +28,8 @@ export default async function DocumentenPage() {
   const documents = await getMyDocuments();
 
   return (
-    <div className="space-y-4 p-4">
-      <h1 className="text-xl font-bold" style={{ color: "var(--color-primary)" }}>
+    <div className="space-y-4 p-4 md:p-0">
+      <h1 className="text-xl md:text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
         Documenten
       </h1>
 

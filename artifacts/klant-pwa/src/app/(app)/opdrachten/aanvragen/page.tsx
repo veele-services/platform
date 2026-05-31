@@ -12,9 +12,9 @@ export default async function AanvragenPage() {
   const objects = await getMyObjects();
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="space-y-4 p-4 md:p-0">
       <div>
-        <h1 className="text-xl font-bold" style={{ color: "var(--color-primary)" }}>
+        <h1 className="text-xl md:text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
           Opdracht aanvragen
         </h1>
         <p className="mt-1 text-sm" style={{ color: "var(--color-secondary)" }}>

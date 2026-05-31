@@ -37,8 +37,8 @@ export default async function FacturenPage({ searchParams }: Props) {
   const otherInvoices = invoices.filter((i) => i.status !== "sent" && i.status !== "paid");
 
   return (
-    <div className="space-y-4 p-4">
-      <h1 className="text-xl font-bold" style={{ color: "var(--color-primary)" }}>
+    <div className="space-y-4 p-4 md:p-0">
+      <h1 className="text-xl md:text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
         Facturen
       </h1>
 

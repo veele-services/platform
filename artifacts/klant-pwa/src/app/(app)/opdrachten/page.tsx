@@ -24,9 +24,9 @@ export default async function OpdrachtenPage() {
   );
 
   return (
-    <div className="space-y-4 p-4">
+    <div className="space-y-4 p-4 md:p-0">
       <div className="flex items-center justify-between">
-        <h1 className="text-xl font-bold" style={{ color: "var(--color-primary)" }}>
+        <h1 className="text-xl md:text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
           Mijn opdrachten
         </h1>
         <Link

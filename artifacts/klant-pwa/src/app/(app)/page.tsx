@@ -43,10 +43,10 @@ export default async function DashboardPage() {
   const recentAssignments = assignments.slice(0, 4);
 
   return (
-    <div className="space-y-4 p-4">
-      {/* Header */}
-      <div className="rounded-2xl px-4 pt-6 pb-4" style={{ backgroundColor: "var(--color-primary)" }}>
-        <div className="mb-1 flex items-center gap-2">
+    <div className="space-y-4 p-4 md:p-0">
+      {/* Header — mobile only (on desktop the sidebar has the brand) */}
+      <div className="rounded-2xl px-4 pt-6 pb-4 md:rounded-2xl" style={{ backgroundColor: "var(--color-primary)" }}>
+        <div className="mb-1 flex items-center gap-2 md:hidden">
           <div
             className="flex h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-white"
             style={{ backgroundColor: "var(--color-accent)" }}
@@ -57,7 +57,7 @@ export default async function DashboardPage() {
             Veele Klantportaal
           </span>
         </div>
-        <h1 className="mt-3 text-xl font-bold text-white">
+        <h1 className="mt-3 md:mt-0 text-xl md:text-2xl font-bold text-white">
           Welkom, {profile.contactName ?? profile.name}
         </h1>
         <p className="mt-0.5 text-sm" style={{ color: "#94A3B8" }}>
@@ -66,7 +66,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Stat tiles */}
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <div className="rounded-2xl bg-white p-4 shadow-sm">
           <p className="text-xs font-medium uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
             Actieve opdrachten
