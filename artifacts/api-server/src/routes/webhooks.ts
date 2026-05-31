@@ -68,6 +68,11 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
     }
 
     const paidAt = data.paidAt ? new Date(data.paidAt) : new Date();
+    const previousStatus = payment.status;
+
+    // audit_log.user_id is UUID NOT NULL; use dedicated system actor UUID
+    // for webhook/background events with no Supabase auth user.
+    const SYSTEM_ACTOR_UUID = "00000000-0000-0000-0000-000000000001";
 
     // Update local payment status
     await db
@@ -77,6 +82,20 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
         paidAt: mollieStatus === "paid" ? paidAt : undefined,
       })
       .where(eq(paymentsTable.molliePaymentId, molliePaymentId));
+
+    // Log every status transition (open, paid, canceled, expired, failed, …)
+    await db.insert(auditLogTable).values({
+      userId:     SYSTEM_ACTOR_UUID,
+      action:     "mollie_payment_status_changed",
+      resource:   "payments",
+      resourceId: payment.id,
+      metadata:   {
+        molliePaymentId,
+        invoiceId: payment.invoiceId,
+        previousStatus,
+        newStatus: mollieStatus,
+      },
+    });
 
     // If paid: advance invoice and assignment
     if (mollieStatus === "paid") {
@@ -105,10 +124,6 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
           .set({ status: "closed", updatedAt: new Date() })
           .where(eq(assignmentsTable.id, invoice.assignmentId));
 
-        // audit_log.user_id is UUID NOT NULL; use a dedicated system actor UUID
-        // for webhook/background events that have no real Supabase auth user.
-        // This UUID is a fixed nil-like value used exclusively for system events.
-        const SYSTEM_ACTOR_UUID = "00000000-0000-0000-0000-000000000001";
         await db.insert(auditLogTable).values({
           userId:     SYSTEM_ACTOR_UUID,
           action:     "mollie_payment_received",
