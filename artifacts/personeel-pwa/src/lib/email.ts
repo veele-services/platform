@@ -22,7 +22,7 @@ function siteUrl(): string {
 }
 
 // ── Core send helper ──────────────────────────────────────────────────────────
-// Fire-and-forget: awaited by callers but never throws — errors are logged only.
+// Fire-and-forget: never throws — errors are logged only.
 
 export async function sendEmail(opts: {
   to:      string | string[];
@@ -75,24 +75,25 @@ function ctaButton(href: string, label: string): string {
 
 // ── Templates ─────────────────────────────────────────────────────────────────
 
-// 1. Rapport ingediend → beheerder (org emailAfzender)
+// Rapport ingediend → beheerder (org emailAfzender)
 export function buildReportSubmittedEmail(opts: {
+  personnelName:   string;
   assignmentTitle: string;
   assignmentId:    string;
-  reportId:        string;
 }): { subject: string; html: string } {
-  const url     = `${siteUrl()}/reports/${opts.reportId}`;
+  const url     = `${siteUrl()}/reports`;
   const subject = `Nieuw rapport ingediend: ${opts.assignmentTitle}`;
   const html    = baseTemplate(subject, `
     <h2 style="margin-top:0;color:${BRAND_COLOR}">Rapport ingediend</h2>
-    <p>Er is een nieuw rapport ingediend voor opdracht <strong>${opts.assignmentTitle}</strong>.</p>
-    <p>Het rapport staat klaar voor beoordeling in de backoffice.</p>
-    ${ctaButton(url, "Rapport bekijken")}
+    <p><strong>${opts.personnelName}</strong> heeft een rapport ingediend voor
+       opdracht <strong>${opts.assignmentTitle}</strong>.</p>
+    <p>Het rapport staat klaar voor beoordeling.</p>
+    ${ctaButton(url, "Rapporten bekijken")}
   `);
   return { subject, html };
 }
 
-// 2. Verlofaanvraag ingediend → beheerder (org emailAfzender)
+// Verlofaanvraag ingediend → beheerder (org emailAfzender)
 export function buildLeaveRequestedEmail(opts: {
   personnelName: string;
   startDate:     string;
@@ -117,68 +118,6 @@ export function buildLeaveRequestedEmail(opts: {
           <td style="padding:8px 0">${opts.reason}</td></tr>` : ""}
     </table>
     ${ctaButton(url, "Verlofaanvragen bekijken")}
-  `);
-  return { subject, html };
-}
-
-// 3. Verlofaanvraag goedgekeurd of afgewezen → medewerker
-export function buildLeaveDecisionEmail(opts: {
-  firstName:  string;
-  decision:   "goedgekeurd" | "afgewezen";
-  startDate:  string;
-  endDate:    string | null;
-  leaveType:  string;
-}): { subject: string; html: string } {
-  const period  = opts.endDate && opts.endDate !== opts.startDate
-    ? `${opts.startDate} t/m ${opts.endDate}`
-    : opts.startDate;
-  const color   = opts.decision === "goedgekeurd" ? "#16a34a" : "#dc2626";
-  const url     = `${siteUrl()}/personeel/verlof`;
-  const subject = `Verlofaanvraag ${opts.decision}`;
-  const html    = baseTemplate(subject, `
-    <h2 style="margin-top:0;color:${BRAND_COLOR}">Verlofaanvraag ${opts.decision}</h2>
-    <p>Beste ${opts.firstName},</p>
-    <p>
-      Uw verlofaanvraag (<strong>${opts.leaveType}</strong>) voor de periode
-      <strong>${period}</strong> is
-      <span style="color:${color};font-weight:600">${opts.decision}</span>.
-    </p>
-    ${opts.decision === "afgewezen"
-      ? "<p>Neem contact op met uw leidinggevende voor meer informatie.</p>"
-      : "<p>Uw verlof is verwerkt in de planning.</p>"
-    }
-    ${ctaButton(url, "Mijn verlofaanvragen bekijken")}
-  `);
-  return { subject, html };
-}
-
-// 4. Offerte verstuurd → klant
-export function buildQuoteSentEmail(opts: {
-  customerName: string;
-  quoteNumber:  string;
-  amount:       string;
-  validityDate: string;
-  quoteId:      string;
-}): { subject: string; html: string } {
-  const url    = `${siteUrl()}/klant/offertes`;
-  const amount = parseFloat(opts.amount).toLocaleString("nl-NL", { style: "currency", currency: "EUR" });
-  const subject = `Uw offerte ${opts.quoteNumber} van Veele`;
-  const html    = baseTemplate(subject, `
-    <h2 style="margin-top:0;color:${BRAND_COLOR}">Offerte ${opts.quoteNumber}</h2>
-    <p>Beste ${opts.customerName},</p>
-    <p>Wij sturen u hierbij onze offerte toe.</p>
-    <table style="width:100%;border-collapse:collapse;margin:16px 0">
-      <tr><td style="padding:8px 0;border-bottom:1px solid #e2e8f0;color:#64748b">Offertenummer</td>
-          <td style="padding:8px 0;border-bottom:1px solid #e2e8f0;font-weight:600">${opts.quoteNumber}</td></tr>
-      <tr><td style="padding:8px 0;border-bottom:1px solid #e2e8f0;color:#64748b">Bedrag</td>
-          <td style="padding:8px 0;border-bottom:1px solid #e2e8f0;font-weight:600">${amount}</td></tr>
-      <tr><td style="padding:8px 0;color:#64748b">Geldig tot</td>
-          <td style="padding:8px 0;font-weight:600">${opts.validityDate}</td></tr>
-    </table>
-    ${ctaButton(url, "Offerte bekijken &amp; accorderen")}
-    <p style="font-size:13px;color:#64748b">
-      U kunt de offerte bekijken en direct accorderen via de bovenstaande knop.
-    </p>
   `);
   return { subject, html };
 }

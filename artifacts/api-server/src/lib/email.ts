@@ -45,7 +45,9 @@ export async function sendEmail(opts: {
   }
 }
 
-// ── Templates ─────────────────────────────────────────────────────────────────
+// ── Shared base template ───────────────────────────────────────────────────────
+
+const BRAND_COLOR = "#081D3A";
 
 function baseTemplate(title: string, bodyHtml: string): string {
   return `<!DOCTYPE html>
@@ -53,10 +55,10 @@ function baseTemplate(title: string, bodyHtml: string): string {
 <head><meta charset="utf-8"><title>${title}</title></head>
 <body style="font-family:sans-serif;color:#1a1a1a;background:#f5f5f5;margin:0;padding:24px">
   <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden">
-    <div style="background:#0f172a;padding:20px 24px">
-      <span style="color:#fff;font-size:18px;font-weight:600">Veele</span>
+    <div style="background:${BRAND_COLOR};padding:20px 24px">
+      <span style="color:#fff;font-size:20px;font-weight:700;letter-spacing:-0.5px">Veele</span>
     </div>
-    <div style="padding:24px">
+    <div style="padding:28px 24px">
       ${bodyHtml}
     </div>
     <div style="padding:16px 24px;background:#f8fafc;font-size:12px;color:#94a3b8">
@@ -67,6 +69,12 @@ function baseTemplate(title: string, bodyHtml: string): string {
 </html>`;
 }
 
+function ctaButton(href: string, label: string): string {
+  return `<p><a href="${href}" style="display:inline-block;padding:11px 22px;background:${BRAND_COLOR};color:#fff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">${label}</a></p>`;
+}
+
+// ── Templates ─────────────────────────────────────────────────────────────────
+
 export function buildPaymentReminderEmail(opts: {
   customerName:  string;
   invoiceNumber: string;
@@ -74,39 +82,28 @@ export function buildPaymentReminderEmail(opts: {
   dueDate:       string;
   invoiceId:     string;
 }): { subject: string; html: string } {
-  const url    = `${siteUrl()}/klant/facturen/${opts.invoiceId}`;
-  const amount = parseFloat(opts.totalAmount).toLocaleString("nl-NL", {
+  const url     = `${siteUrl()}/klant/facturen`;
+  const amount  = parseFloat(opts.totalAmount).toLocaleString("nl-NL", {
     style:    "currency",
     currency: "EUR",
   });
   const subject = `Betalingsherinnering factuur ${opts.invoiceNumber}`;
-  const html = baseTemplate(subject, `
-    <h2 style="margin-top:0">Betalingsherinnering</h2>
+  const html    = baseTemplate(subject, `
+    <h2 style="margin-top:0;color:${BRAND_COLOR}">Betalingsherinnering</h2>
     <p>Beste ${opts.customerName},</p>
     <p>
       Wij constateren dat onderstaande factuur nog niet is voldaan.
       Wij verzoeken u vriendelijk het openstaande bedrag zo spoedig mogelijk te betalen.
     </p>
     <table style="width:100%;border-collapse:collapse;margin:16px 0">
-      <tr>
-        <td style="padding:8px 0;border-bottom:1px solid #e2e8f0;color:#64748b">Factuurnummer</td>
-        <td style="padding:8px 0;border-bottom:1px solid #e2e8f0;font-weight:600">${opts.invoiceNumber}</td>
-      </tr>
-      <tr>
-        <td style="padding:8px 0;border-bottom:1px solid #e2e8f0;color:#64748b">Bedrag</td>
-        <td style="padding:8px 0;border-bottom:1px solid #e2e8f0;font-weight:600">${amount}</td>
-      </tr>
-      <tr>
-        <td style="padding:8px 0;color:#64748b">Vervaldatum</td>
-        <td style="padding:8px 0;font-weight:600;color:#dc2626">${opts.dueDate}</td>
-      </tr>
+      <tr><td style="padding:8px 0;border-bottom:1px solid #e2e8f0;color:#64748b">Factuurnummer</td>
+          <td style="padding:8px 0;border-bottom:1px solid #e2e8f0;font-weight:600">${opts.invoiceNumber}</td></tr>
+      <tr><td style="padding:8px 0;border-bottom:1px solid #e2e8f0;color:#64748b">Bedrag</td>
+          <td style="padding:8px 0;border-bottom:1px solid #e2e8f0;font-weight:600">${amount}</td></tr>
+      <tr><td style="padding:8px 0;color:#64748b">Vervaldatum</td>
+          <td style="padding:8px 0;font-weight:600;color:#dc2626">${opts.dueDate}</td></tr>
     </table>
-    <p>
-      <a href="${url}"
-         style="display:inline-block;padding:10px 20px;background:#0f172a;color:#fff;border-radius:6px;text-decoration:none;font-weight:600">
-        Factuur bekijken &amp; betalen
-      </a>
-    </p>
+    ${ctaButton(url, "Factuur bekijken &amp; betalen")}
     <p style="font-size:13px;color:#64748b">
       Heeft u al betaald? Dan kunt u dit bericht als niet verzonden beschouwen.
       Neem bij vragen contact op met ons.

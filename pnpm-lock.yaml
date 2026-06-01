@@ -631,6 +631,9 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 19.1.0(react@19.1.0)
+      resend:
+        specifier: ^6.12.4
+        version: 6.12.4
       tailwind-merge:
         specifier: 'catalog:'
         version: 3.5.0

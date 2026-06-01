@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { invoicesTable, customersTable, auditLogTable } from "@workspace/db";
-import { eq, and, lt } from "drizzle-orm";
+import { eq, and, lte } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { sendEmail, buildPaymentReminderEmail } from "../lib/email";
 
@@ -12,9 +12,9 @@ const SYSTEM_ACTOR_UUID = "00000000-0000-0000-0000-000000000001";
 /**
  * POST /api/admin/payment-reminders
  *
- * Sends payment reminder emails for all invoices with status='sent'
- * whose due date is in the past. Idempotent — re-running sends again,
- * so callers should rate-limit (e.g. once per day via cron / backoffice button).
+ * Sends payment reminder emails for all invoices with status='sent' that are
+ * at least 7 days old (based on invoice createdAt). Idempotent — re-running
+ * sends again, so callers should rate-limit (e.g. once per day).
  *
  * Security: protected by a pre-shared ADMIN_API_SECRET token in the
  * Authorization header: "Bearer <ADMIN_API_SECRET>".
@@ -36,9 +36,10 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
     return;
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  // Invoices eligible for reminder: status='sent' AND created >= 7 days ago
+  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
 
-  req.log.info({ today }, "payment-reminders: bezig met verwerken");
+  req.log.info({ sevenDaysAgo: sevenDaysAgo.toISOString() }, "payment-reminders: verwerken gestart");
 
   try {
     const overdueInvoices = await db
@@ -47,7 +48,6 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
         invoiceNumber: invoicesTable.invoiceNumber,
         totalAmount:   invoicesTable.totalAmount,
         dueDate:       invoicesTable.dueDate,
-        customerId:    invoicesTable.customerId,
         customerName:  customersTable.name,
         customerEmail: customersTable.contactEmail,
       })
@@ -56,7 +56,7 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
       .where(
         and(
           eq(invoicesTable.status, "sent"),
-          lt(invoicesTable.dueDate, today),
+          lte(invoicesTable.createdAt, sevenDaysAgo),
         ),
       );
 
@@ -97,7 +97,6 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
     }
 
     req.log.info({ sent, skipped }, "payment-reminders: klaar");
-
     res.json({ ok: true, sent, skipped });
   } catch (err) {
     req.log.error({ err }, "payment-reminders: onverwachte fout");

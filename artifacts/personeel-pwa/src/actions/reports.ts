@@ -6,10 +6,12 @@ import {
   assignmentsTable,
   assignmentPersonnelTable,
   personnelTable,
+  organizationSettingsTable,
 } from "@workspace/db";
 import { eq, and } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { sendEmail, buildReportSubmittedEmail } from "@/lib/email";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -199,6 +201,33 @@ export async function submitMyReport(
       .update(assignmentsTable)
       .set({ status: "report_submitted", updatedAt: new Date() })
       .where(eq(assignmentsTable.id, assignmentId));
+
+    // Notify org admin — fire-and-forget
+    const [person] = await db
+      .select({ firstName: personnelTable.firstName, lastName: personnelTable.lastName })
+      .from(personnelTable)
+      .where(eq(personnelTable.id, personnelId))
+      .limit(1);
+
+    void (async () => {
+      const [orgSettings] = await db
+        .select({ emailAfzender: organizationSettingsTable.emailAfzender })
+        .from(organizationSettingsTable)
+        .limit(1);
+      if (orgSettings?.emailAfzender) {
+        const [assignment] = await db
+          .select({ title: assignmentsTable.title })
+          .from(assignmentsTable)
+          .where(eq(assignmentsTable.id, assignmentId))
+          .limit(1);
+        const { subject, html } = buildReportSubmittedEmail({
+          personnelName:   `${person?.firstName ?? ""} ${person?.lastName ?? ""}`.trim(),
+          assignmentTitle: assignment?.title ?? assignmentId,
+          assignmentId,
+        });
+        await sendEmail({ to: orgSettings.emailAfzender, subject, html });
+      }
+    })();
 
     revalidatePath("/opdrachten");
     revalidatePath(`/opdrachten/${assignmentId}`);

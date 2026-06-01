@@ -1,7 +1,11 @@
 "use server";
 
+import { db } from "@workspace/db";
+import { organizationSettingsTable, personnelTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { sendEmail, buildLeaveRequestedEmail } from "@/lib/email";
 
 export type LeavePeriod = {
   id: string;
@@ -85,6 +89,29 @@ export async function requestLeave(
     });
 
   if (error) return { success: false, error: "Aanvraag mislukt" };
+
+  // Notify org admin — fire-and-forget
+  void (async () => {
+    const [orgSettings] = await db
+      .select({ emailAfzender: organizationSettingsTable.emailAfzender })
+      .from(organizationSettingsTable)
+      .limit(1);
+    if (orgSettings?.emailAfzender) {
+      const [person] = await db
+        .select({ firstName: personnelTable.firstName, lastName: personnelTable.lastName })
+        .from(personnelTable)
+        .where(eq(personnelTable.id, personnelId))
+        .limit(1);
+      const { subject, html } = buildLeaveRequestedEmail({
+        personnelName: `${person?.firstName ?? ""} ${person?.lastName ?? ""}`.trim(),
+        startDate,
+        endDate:       endDate ?? null,
+        leaveType,
+        reason:        reason ?? null,
+      });
+      await sendEmail({ to: orgSettings.emailAfzender, subject, html });
+    }
+  })();
 
   revalidatePath("/verlof");
   return { success: true };
