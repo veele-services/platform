@@ -9,6 +9,7 @@ import {
   objectsTable,
   personnelTable,
   auditLogTable,
+  organizationSettingsTable,
   ASSIGNMENT_STATUS_TRANSITIONS,
   type ReportStatus,
   type AssignmentStatus,
@@ -18,6 +19,7 @@ import { eq, ilike, or, and, desc, sql, exists } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
+import { sendEmail, buildReportSubmittedEmail } from "@/lib/email";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, ReportStatus };
@@ -395,6 +397,22 @@ export async function submitReport(
       resourceId: created!.id,
       metadata:   { assignmentId, assignmentTitle: assignment.title },
     });
+
+    // Notify admin (org sender address) — fire-and-forget, never blocks the action
+    void (async () => {
+      const [orgSettings] = await db
+        .select({ emailAfzender: organizationSettingsTable.emailAfzender })
+        .from(organizationSettingsTable)
+        .limit(1);
+      if (orgSettings?.emailAfzender) {
+        const { subject, html } = buildReportSubmittedEmail({
+          assignmentTitle: assignment.title,
+          assignmentId,
+          reportId:        created!.id,
+        });
+        await sendEmail({ to: orgSettings.emailAfzender, subject, html });
+      }
+    })();
 
     revalidatePath(`/assignments/${assignmentId}`);
     revalidatePath("/reports");

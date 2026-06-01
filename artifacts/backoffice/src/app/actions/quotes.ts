@@ -16,6 +16,7 @@ import { eq, ilike, or, and, asc, desc, sql, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
+import { sendEmail, buildQuoteSentEmail } from "@/lib/email";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, QuoteStatus };
@@ -473,6 +474,32 @@ export async function sendQuote(id: string): Promise<ActionResult> {
     resourceId: id,
     metadata:   { assignmentId: quote.assignmentId },
   });
+
+  // Notify customer — fire-and-forget
+  void (async () => {
+    const [full] = await db
+      .select({
+        quoteNumber:  quotesTable.quoteNumber,
+        amount:       quotesTable.amount,
+        validityDate: quotesTable.validityDate,
+        customerName: customersTable.name,
+        customerEmail: customersTable.contactEmail,
+      })
+      .from(quotesTable)
+      .leftJoin(customersTable, eq(quotesTable.customerId, customersTable.id))
+      .where(eq(quotesTable.id, id))
+      .limit(1);
+    if (full?.customerEmail) {
+      const { subject, html } = buildQuoteSentEmail({
+        customerName: full.customerName ?? "",
+        quoteNumber:  full.quoteNumber,
+        amount:       full.amount ?? "0",
+        validityDate: full.validityDate ?? "",
+        quoteId:      id,
+      });
+      await sendEmail({ to: full.customerEmail, subject, html });
+    }
+  })();
 
   revalidatePath("/quotes");
   revalidatePath(`/quotes/${id}`);
