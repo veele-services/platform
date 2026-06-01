@@ -278,6 +278,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.106.2
         version: 2.106.2
+      '@types/pdfkit':
+        specifier: ^0.17.6
+        version: 0.17.6
       '@workspace/db':
         specifier: workspace:*
         version: link:../../lib/db
@@ -305,6 +308,9 @@ importers:
       next-themes:
         specifier: ^0.4.6
         version: 0.4.6(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+      pdfkit:
+        specifier: ^0.18.0
+        version: 0.18.0
       react:
         specifier: 'catalog:'
         version: 19.1.0

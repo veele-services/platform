@@ -21,8 +21,8 @@ function siteUrl(): string {
   return process.env["NEXT_PUBLIC_SITE_URL"] ?? "https://veele.nl";
 }
 
-// ── Core send helper ──────────────────────────────────────────────────────────
-// Fire-and-forget: awaited by callers but never throws — errors are logged only.
+// ── Core send helpers ─────────────────────────────────────────────────────────
+// Fire-and-forget variant: awaited by callers but never throws.
 
 export async function sendEmail(opts: {
   to:      string | string[];
@@ -43,6 +43,41 @@ export async function sendEmail(opts: {
   if (error) {
     console.error("[email] Verzenden mislukt:", error);
   }
+}
+
+// Returning variant with attachment support — used by emailInvoice action.
+export async function sendEmailWithResult(opts: {
+  to:          string | string[];
+  subject:     string;
+  html:        string;
+  attachments?: Array<{ filename: string; content: Buffer }>;
+}): Promise<{ success: boolean; error?: string }> {
+  const resend = getClient();
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set — e-mail overgeslagen:", opts.subject);
+    return { success: false, error: "E-mailclient niet geconfigureerd (RESEND_API_KEY ontbreekt)." };
+  }
+  const { error } = await resend.emails.send({
+    from:        fromAddress(),
+    to:          opts.to,
+    subject:     opts.subject,
+    html:        opts.html,
+    attachments: opts.attachments,
+  });
+  if (error) {
+    const msg = String((error as { message?: string }).message ?? error);
+    console.error("[email] Verzenden mislukt:", msg);
+    return { success: false, error: msg };
+  }
+  return { success: true };
+}
+
+export function klantPortalUrl(): string {
+  const domains = process.env["REPLIT_DOMAINS"];
+  if (domains) return `https://${domains.split(",")[0]!.trim()}/klant`;
+  const siteUrl = process.env["NEXT_PUBLIC_SITE_URL"];
+  if (siteUrl) return `${siteUrl}/klant`;
+  return "https://veele.nl/klant";
 }
 
 // ── Shared base template ───────────────────────────────────────────────────────
@@ -148,6 +183,58 @@ export function buildLeaveDecisionEmail(opts: {
       : "<p>Uw verlof is verwerkt in de planning.</p>"
     }
     ${ctaButton(url, "Mijn verlofaanvragen bekijken")}
+  `);
+  return { subject, html };
+}
+
+// 5. Factuur per e-mail naar klant
+export function buildInvoiceEmail(opts: {
+  customerName:  string;
+  invoiceNumber: string;
+  totalAmount:   string;
+  dueDate:       string;
+  paymentUrl:    string | null;
+  portalUrl:     string;
+}): { subject: string; html: string } {
+  const TEAL = "#00B7B3";
+  const amount = parseFloat(opts.totalAmount).toLocaleString("nl-NL", {
+    style:    "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+  });
+  const subject = `Factuur ${opts.invoiceNumber}`;
+  const html = baseTemplate(subject, `
+    <h2 style="margin-top:0;color:${BRAND_COLOR}">Uw factuur</h2>
+    <p>Beste ${opts.customerName},</p>
+    <p>
+      Bijgaand ontvangt u factuur <strong>${opts.invoiceNumber}</strong>.
+      De factuur is als PDF bijgevoegd aan dit bericht.
+    </p>
+    <table style="width:100%;border-collapse:collapse;margin:16px 0">
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #e2e8f0;color:#64748b">Factuurnummer</td>
+        <td style="padding:8px 0;border-bottom:1px solid #e2e8f0;font-weight:600">${opts.invoiceNumber}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;border-bottom:1px solid #e2e8f0;color:#64748b">Totaalbedrag</td>
+        <td style="padding:8px 0;border-bottom:1px solid #e2e8f0;font-weight:600">${amount}</td>
+      </tr>
+      <tr>
+        <td style="padding:8px 0;color:#64748b">Vervaldatum</td>
+        <td style="padding:8px 0;font-weight:600">${opts.dueDate}</td>
+      </tr>
+    </table>
+    ${opts.paymentUrl
+      ? `<p><a href="${opts.paymentUrl}" style="display:inline-block;padding:11px 22px;background:${TEAL};color:#fff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">Factuur online betalen</a></p>`
+      : ""}
+    <p style="margin-top:12px">
+      <a href="${opts.portalUrl}/facturen" style="color:${BRAND_COLOR};font-size:13px;text-decoration:underline">
+        Factuur bekijken in uw klantportaal →
+      </a>
+    </p>
+    <p style="font-size:13px;color:#64748b;margin-top:16px">
+      Neem bij vragen contact op met ons.
+    </p>
   `);
   return { subject, html };
 }

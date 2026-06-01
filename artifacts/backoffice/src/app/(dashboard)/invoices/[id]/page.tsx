@@ -437,6 +437,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
               invoiceId={invoice.id}
               status={invoice.status}
               paymentHistory={paymentHistory}
+              customerEmail={invoice.customerEmail}
             />
           )}
 

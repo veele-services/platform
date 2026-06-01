@@ -2,10 +2,20 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Send, CheckCircle2, XCircle, Link as LinkIcon, Copy, Check } from "lucide-react";
-import { markInvoiceSent, markInvoicePaid, cancelInvoice } from "@/app/actions/invoices";
+import { Loader2, Send, CheckCircle2, XCircle, Link as LinkIcon, Copy, Check, Mail } from "lucide-react";
+import { markInvoiceSent, markInvoicePaid, cancelInvoice, emailInvoice } from "@/app/actions/invoices";
 import { createMolliePayment, type PaymentRecord } from "@/app/actions/payments";
 import type { InvoiceStatus } from "@/app/actions/invoices";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 function formatEur(cents: number): string {
   return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(cents / 100);
@@ -45,9 +55,10 @@ interface Props {
   invoiceId:      string;
   status:         InvoiceStatus;
   paymentHistory: PaymentRecord[];
+  customerEmail:  string | null;
 }
 
-export function InvoiceActions({ invoiceId, status, paymentHistory }: Props) {
+export function InvoiceActions({ invoiceId, status, paymentHistory, customerEmail }: Props) {
   const router     = useRouter();
   const [, startT] = useTransition();
 
@@ -55,6 +66,8 @@ export function InvoiceActions({ invoiceId, status, paymentHistory }: Props) {
   const [error, setError]             = useState<string | null>(null);
   const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [copied, setCopied]           = useState(false);
+  const [emailOpen, setEmailOpen]     = useState(false);
+  const [emailSent, setEmailSent]     = useState(false);
 
   async function handleAction(action: "sent" | "paid" | "cancel") {
     setError(null);
@@ -78,6 +91,17 @@ export function InvoiceActions({ invoiceId, status, paymentHistory }: Props) {
     if (!result.success) { setError(result.message); return; }
     const url = (result as { success: true; data: { checkoutUrl: string } }).data?.checkoutUrl;
     if (url) setCheckoutUrl(url);
+    startT(() => router.refresh());
+  }
+
+  async function handleEmailInvoice() {
+    setError(null);
+    setEmailOpen(false);
+    setLoading("email");
+    const result = await emailInvoice(invoiceId);
+    setLoading(null);
+    if (!result.success) { setError(result.message); return; }
+    setEmailSent(true);
     startT(() => router.refresh());
   }
 
@@ -112,6 +136,13 @@ export function InvoiceActions({ invoiceId, status, paymentHistory }: Props) {
         {error && (
           <p className="text-xs rounded-lg px-3 py-2" style={{ background: "#FEE2E2", color: "#991B1B" }}>
             {error}
+          </p>
+        )}
+
+        {emailSent && (
+          <p className="text-xs rounded-lg px-3 py-2 flex items-center gap-1.5" style={{ background: "#D1FAE5", color: "#065F46" }}>
+            <CheckCircle2 className="h-3.5 w-3.5 flex-shrink-0" />
+            E-mail verstuurd naar {customerEmail}
           </p>
         )}
 
@@ -189,6 +220,19 @@ export function InvoiceActions({ invoiceId, status, paymentHistory }: Props) {
           </>
         )}
 
+        {/* Verstuur per e-mail — only for sent invoices with a known customer email */}
+        {status === "sent" && customerEmail && (
+          <button
+            disabled={loading !== null}
+            onClick={() => setEmailOpen(true)}
+            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold border transition-colors disabled:opacity-60"
+            style={{ borderColor: "#CBD5E1", color: "#374151", backgroundColor: "transparent" }}
+          >
+            {loading === "email" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />}
+            Verstuur per e-mail
+          </button>
+        )}
+
         {(status === "draft" || status === "sent") && (
           <button
             disabled={loading !== null}
@@ -206,6 +250,38 @@ export function InvoiceActions({ invoiceId, status, paymentHistory }: Props) {
       {paymentHistory.length > 0 && (
         <PaymentHistoryCard paymentHistory={paymentHistory} />
       )}
+
+      {/* ── E-mail bevestigingsdialoog ── */}
+      <AlertDialog open={emailOpen} onOpenChange={setEmailOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Factuur per e-mail versturen</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="flex flex-col gap-3">
+                <p>De factuur wordt als PDF-bijlage verstuurd naar:</p>
+                <p
+                  className="font-mono text-sm rounded-lg px-3 py-2"
+                  style={{ background: "#F8FAFC", color: "#081D3A", border: "1px solid #E2E8F0" }}
+                >
+                  {customerEmail}
+                </p>
+                <p className="text-sm" style={{ color: "#64748B" }}>
+                  Als er een actieve betaallink bestaat, wordt deze meegestuurd in de e-mail.
+                </p>
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuleren</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleEmailInvoice}
+              style={{ backgroundColor: "#081D3A", color: "#fff" }}
+            >
+              Versturen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

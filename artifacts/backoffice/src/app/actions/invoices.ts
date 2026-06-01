@@ -8,6 +8,7 @@ import {
   customersTable,
   objectsTable,
   taskCodesTable,
+  paymentsTable,
   auditLogTable,
   ASSIGNMENT_STATUS_TRANSITIONS,
   type AssignmentStatus,
@@ -17,6 +18,8 @@ import { eq, ilike, or, and, asc, desc, sql, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
+import { sendEmailWithResult, buildInvoiceEmail, klantPortalUrl } from "@/lib/email";
+import { generateInvoicePdf } from "@/lib/invoice-pdf";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, InvoiceStatus };
@@ -380,6 +383,7 @@ export async function getInvoiceStatusHistory(invoiceId: string): Promise<Invoic
     mark_invoice_sent:    "Gemarkeerd als verzonden",
     mark_invoice_paid:    "Gemarkeerd als betaald",
     cancel_invoice:       "Factuur geannuleerd",
+    email_invoice:        "Factuur per e-mail verstuurd",
   };
 
   const rows = await db
@@ -620,6 +624,75 @@ export async function cancelInvoice(invoiceId: string): Promise<ActionResult> {
   revalidatePath("/invoices");
   revalidatePath(`/invoices/${invoiceId}`);
   revalidatePath(`/assignments/${invoice.assignmentId}`);
+  return { success: true };
+}
+
+export async function emailInvoice(invoiceId: string): Promise<ActionResult> {
+  await requirePermission("invoices", "write");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const invoice = await getInvoice(invoiceId);
+  if (!invoice) return { success: false, message: "Factuur niet gevonden." };
+
+  if (invoice.status !== "sent") {
+    return { success: false, message: "E-mail kan alleen voor verzonden facturen worden verstuurd." };
+  }
+  if (!invoice.customerEmail) {
+    return { success: false, message: "Klant heeft geen e-mailadres geregistreerd." };
+  }
+
+  const [openPayment] = await db
+    .select({ checkoutUrl: paymentsTable.checkoutUrl })
+    .from(paymentsTable)
+    .where(and(eq(paymentsTable.invoiceId, invoiceId), eq(paymentsTable.status, "open")))
+    .limit(1);
+
+  const paymentUrl = openPayment?.checkoutUrl ?? null;
+
+  let pdfBuffer: Buffer;
+  try {
+    pdfBuffer = await generateInvoicePdf(invoice);
+  } catch {
+    return { success: false, message: "PDF genereren mislukt." };
+  }
+
+  const portalUrl = klantPortalUrl();
+  const dueDateFormatted = new Date(invoice.dueDate + "T00:00:00").toLocaleDateString("nl-NL", {
+    day: "numeric", month: "long", year: "numeric",
+  });
+
+  const { subject, html } = buildInvoiceEmail({
+    customerName:  invoice.customerName,
+    invoiceNumber: invoice.invoiceNumber,
+    totalAmount:   invoice.totalAmount,
+    dueDate:       dueDateFormatted,
+    paymentUrl,
+    portalUrl,
+  });
+
+  const result = await sendEmailWithResult({
+    to:          invoice.customerEmail,
+    subject,
+    html,
+    attachments: [{ filename: `${invoice.invoiceNumber}.pdf`, content: pdfBuffer }],
+  });
+
+  if (!result.success) {
+    return { success: false, message: result.error ?? "E-mail verzenden mislukt." };
+  }
+
+  await db.insert(auditLogTable).values({
+    userId:     user.id,
+    action:     "email_invoice",
+    resource:   "invoices",
+    resourceId: invoiceId,
+    metadata:   { to: invoice.customerEmail, invoiceNumber: invoice.invoiceNumber },
+  });
+
+  revalidatePath(`/invoices/${invoiceId}`);
   return { success: true };
 }
 
