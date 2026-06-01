@@ -200,13 +200,22 @@ export async function listAssignments(params: {
   if (priority && ASSIGNMENT_PRIORITIES.includes(priority as AssignmentPriority)) {
     conditions.push(eq(assignmentsTable.priority, priority));
   }
+  // Report-eligible statuses — assignments that can have a report
+  const REPORT_ELIGIBLE_STATUSES: AssignmentStatus[] = [
+    "completed", "not_completed", "report_submitted", "report_approved",
+    "invoice_ready", "invoiced", "paid", "closed",
+  ];
   if (reportStatus === "none") {
+    // Only show report-eligible assignments that have no report yet
     conditions.push(
-      isNull(
-        sql<string>`(SELECT r.status FROM reports r WHERE r.assignment_id = ${assignmentsTable.id} ORDER BY r.submitted_at DESC LIMIT 1)`,
-      ),
+      and(
+        inArray(assignmentsTable.status, REPORT_ELIGIBLE_STATUSES),
+        isNull(
+          sql<string>`(SELECT r.status FROM reports r WHERE r.assignment_id = ${assignmentsTable.id} ORDER BY r.submitted_at DESC LIMIT 1)`,
+        ),
+      )!,
     );
-  } else if (["draft", "submitted", "approved", "rejected"].includes(reportStatus)) {
+  } else if (["submitted", "approved", "rejected"].includes(reportStatus)) {
     conditions.push(
       eq(
         sql<string>`(SELECT r.status FROM reports r WHERE r.assignment_id = ${assignmentsTable.id} ORDER BY r.submitted_at DESC LIMIT 1)`,

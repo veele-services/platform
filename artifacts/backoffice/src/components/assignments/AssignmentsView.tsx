@@ -75,34 +75,50 @@ const REPORT_ELIGIBLE: AssignmentStatus[] = [
   "invoice_ready", "invoiced", "paid", "closed",
 ];
 
-function ReportDot({ reportStatus, assignmentStatus }: { reportStatus: string | null; assignmentStatus: AssignmentStatus }) {
+function ReportStatusBadge({ reportStatus, assignmentStatus }: { reportStatus: string | null; assignmentStatus: AssignmentStatus }) {
   if (!REPORT_ELIGIBLE.includes(assignmentStatus)) return null;
 
   if (!reportStatus) {
     return (
-      <span title="Geen rapport ingediend">
-        <FileText className="h-3.5 w-3.5" style={{ color: "#CBD5E1" }} />
+      <span
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium"
+        style={{ background: "#F1F5F9", color: "#94A3B8" }}
+      >
+        <FileText className="h-3 w-3 flex-shrink-0" />
+        Geen rapport
       </span>
     );
   }
   if (reportStatus === "submitted") {
     return (
-      <span title="Rapport ingediend — wacht op beoordeling">
-        <Clock3 className="h-3.5 w-3.5" style={{ color: "#D97706" }} />
+      <span
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium"
+        style={{ background: "#FEF3C7", color: "#D97706" }}
+      >
+        <Clock3 className="h-3 w-3 flex-shrink-0" />
+        Ingediend
       </span>
     );
   }
   if (reportStatus === "approved") {
     return (
-      <span title="Rapport goedgekeurd">
-        <CheckCircle2 className="h-3.5 w-3.5" style={{ color: "#16A34A" }} />
+      <span
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium"
+        style={{ background: "#DCFCE7", color: "#16A34A" }}
+      >
+        <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
+        Goedgekeurd
       </span>
     );
   }
   if (reportStatus === "rejected") {
     return (
-      <span title="Rapport afgekeurd">
-        <XCircle className="h-3.5 w-3.5" style={{ color: "#DC2626" }} />
+      <span
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium"
+        style={{ background: "#FEE2E2", color: "#DC2626" }}
+      >
+        <XCircle className="h-3 w-3 flex-shrink-0" />
+        Afgekeurd
       </span>
     );
   }
@@ -424,9 +440,9 @@ export function AssignmentsView({
                       {row.objectName ?? "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex flex-col gap-1">
                         <AssignmentStatusBadge status={row.status} />
-                        <ReportDot reportStatus={row.reportStatus} assignmentStatus={row.status} />
+                        <ReportStatusBadge reportStatus={row.reportStatus} assignmentStatus={row.status} />
                       </div>
                     </td>
                     <td className="px-4 py-3">
