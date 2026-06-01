@@ -3,6 +3,7 @@ import { ClipboardList, PlusCircle, FileText } from "lucide-react";
 import { getMyAssignments } from "@/actions/assignments";
 import { STATUS_LABEL, STATUS_COLOR } from "@/types/assignments";
 import { OfferteActieButtons } from "@/components/OfferteActieButtons";
+import type { QuoteStatus } from "@workspace/db";
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "";
@@ -10,8 +11,20 @@ function formatDate(dateStr: string | null): string {
   return d.toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" });
 }
 
+function formatAmount(amount: string | null): string {
+  if (!amount) return "";
+  return parseFloat(amount).toLocaleString("nl-NL", { style: "currency", currency: "EUR" });
+}
+
 const ACTIVE_STATUSES = new Set(["scheduled", "seen", "in_progress", "plannable"]);
 const OPEN_STATUSES   = new Set(["requested", "review", "quote_preparation", "approved"]);
+
+const QUOTE_STATUS_BADGE: Partial<Record<QuoteStatus, { label: string; bg: string; color: string }>> = {
+  sent:     { label: "Offerte verstuurd",    bg: "#FEF9C3", color: "#A16207" },
+  approved: { label: "Offerte geaccepteerd", bg: "#DCFCE7", color: "#15803D" },
+  rejected: { label: "Offerte afgewezen",    bg: "#FEE2E2", color: "#DC2626" },
+  expired:  { label: "Offerte verlopen",     bg: "#F1F5F9", color: "#64748B" },
+};
 
 export default async function OpdrachtenPage() {
   const assignments = await getMyAssignments();
@@ -59,6 +72,7 @@ export default async function OpdrachtenPage() {
         </div>
       )}
 
+      {/* ── Offertes — actie vereist ─────────────────────────────────────────── */}
       {quotes.length > 0 && (
         <section>
           <div className="mb-2 flex items-center gap-1.5">
@@ -87,6 +101,14 @@ export default async function OpdrachtenPage() {
                         >
                           {a.code}
                         </span>
+                        {a.quoteNumber && (
+                          <span
+                            className="font-mono text-xs rounded px-1.5 py-0.5 shrink-0"
+                            style={{ backgroundColor: "#FEF9C3", color: "#92400E" }}
+                          >
+                            {a.quoteNumber}
+                          </span>
+                        )}
                       </div>
                       <p className="truncate font-semibold" style={{ color: "var(--color-primary)" }}>
                         {a.title}
@@ -95,6 +117,21 @@ export default async function OpdrachtenPage() {
                         <p className="mt-0.5 truncate text-xs" style={{ color: "var(--color-muted-fg)" }}>
                           {a.objectName}{a.objectCity ? ` · ${a.objectCity}` : ""}
                         </p>
+                      )}
+                      {/* Quote amount + validity for the action card */}
+                      {(a.quoteAmount || a.quoteValidityDate) && (
+                        <div className="mt-2 flex flex-wrap gap-3 items-baseline">
+                          {a.quoteAmount && (
+                            <span className="text-sm font-semibold" style={{ color: "var(--color-primary)" }}>
+                              {formatAmount(a.quoteAmount)}
+                            </span>
+                          )}
+                          {a.quoteValidityDate && (
+                            <span className="text-xs" style={{ color: "var(--color-secondary)" }}>
+                              Geldig t/m {formatDate(a.quoteValidityDate)}
+                            </span>
+                          )}
+                        </div>
                       )}
                     </div>
                     <span
@@ -140,6 +177,7 @@ function AssignmentGroup({
       <div className="space-y-2">
         {items.map((a) => {
           const s = STATUS_COLOR[a.status] ?? { bg: "#F1F5F9", color: "#64748B" };
+          const quoteBadge = a.quoteStatus ? QUOTE_STATUS_BADGE[a.quoteStatus] : null;
           return (
             <Link
               key={a.id}
@@ -169,6 +207,15 @@ function AssignmentGroup({
                       {formatDate(a.scheduledDate)}
                       {a.scheduledStart ? ` · ${a.scheduledStart}` : ""}
                     </p>
+                  )}
+                  {/* Quote status badge — only for non-draft statuses */}
+                  {quoteBadge && (
+                    <span
+                      className="mt-1.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium"
+                      style={{ backgroundColor: quoteBadge.bg, color: quoteBadge.color }}
+                    >
+                      {quoteBadge.label}
+                    </span>
                   )}
                 </div>
                 <span

@@ -1,18 +1,16 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, MapPin, Clock, Calendar, Building2, Hash, CheckSquare, ImageIcon } from "lucide-react";
+import {
+  ChevronLeft, MapPin, Clock, Calendar, Building2, Hash,
+  CheckSquare, ImageIcon, FileText, Receipt,
+} from "lucide-react";
 import { getMyAssignmentDetail } from "@/actions/assignments";
 import { getMyReports } from "@/actions/reports";
 import { STATUS_LABEL, STATUS_COLOR } from "@/types/assignments";
-import type { AssignmentStatus } from "@workspace/db";
+import type { AssignmentStatus, QuoteStatus, InvoiceStatus } from "@workspace/db";
 
 type Props = { params: Promise<{ id: string }> };
 
-/**
- * Statuses for which the task breakdown is shown to the customer.
- * Tasks are only revealed after management has approved the report —
- * prior to that they reflect internal planning details not relevant to the client.
- */
 const SHOW_TASKS_STATUSES = new Set<AssignmentStatus>([
   "report_approved",
   "invoice_ready",
@@ -20,6 +18,36 @@ const SHOW_TASKS_STATUSES = new Set<AssignmentStatus>([
   "paid",
   "closed",
 ]);
+
+const QUOTE_STATUS_LABEL: Record<QuoteStatus, string> = {
+  draft:    "Concept",
+  sent:     "Verstuurd",
+  approved: "Geaccepteerd",
+  rejected: "Afgewezen",
+  expired:  "Verlopen",
+};
+
+const QUOTE_STATUS_COLOR: Record<QuoteStatus, { bg: string; color: string }> = {
+  draft:    { bg: "#F1F5F9", color: "#64748B" },
+  sent:     { bg: "#FEF9C3", color: "#A16207" },
+  approved: { bg: "#DCFCE7", color: "#15803D" },
+  rejected: { bg: "#FEE2E2", color: "#DC2626" },
+  expired:  { bg: "#F1F5F9", color: "#64748B" },
+};
+
+const INVOICE_STATUS_LABEL: Record<InvoiceStatus, string> = {
+  draft:     "Concept",
+  sent:      "Openstaand",
+  paid:      "Betaald",
+  cancelled: "Geannuleerd",
+};
+
+const INVOICE_STATUS_COLOR: Record<InvoiceStatus, { bg: string; color: string }> = {
+  draft:     { bg: "#F1F5F9", color: "#64748B" },
+  sent:      { bg: "#EDE9FE", color: "#6D28D9" },
+  paid:      { bg: "#DCFCE7", color: "#15803D" },
+  cancelled: { bg: "#FEE2E2", color: "#DC2626" },
+};
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "";
@@ -30,6 +58,16 @@ function formatDate(dateStr: string | null): string {
     month:   "long",
     year:    "numeric",
   });
+}
+
+function formatDateShort(dateStr: string | null): string {
+  if (!dateStr) return "";
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });
+}
+
+function formatAmount(amount: string): string {
+  return parseFloat(amount).toLocaleString("nl-NL", { style: "currency", currency: "EUR" });
 }
 
 function StatusPil({ status }: { status: AssignmentStatus }) {
@@ -55,9 +93,7 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
 
   if (!assignment) notFound();
 
-  // Only show the approved report for this specific assignment
   const rapport = reports.find((r) => r.assignmentId === assignment.id);
-
   const showTasks = SHOW_TASKS_STATUSES.has(assignment.status) && assignment.tasks.length > 0;
 
   const addressLine = [
@@ -71,6 +107,8 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
   const timeSlot = [assignment.scheduledStart, assignment.scheduledEnd]
     .filter(Boolean)
     .join(" – ");
+
+  const { quote, invoice } = assignment;
 
   return (
     <div className="min-h-screen" style={{ backgroundColor: "var(--color-muted)" }}>
@@ -111,7 +149,6 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
           </div>
 
           <div className="space-y-2.5">
-            {/* Object naam */}
             {assignment.objectName && (
               <div className="flex items-center gap-2.5">
                 <Building2 size={15} style={{ color: "var(--color-secondary)" }} />
@@ -120,8 +157,6 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
                 </span>
               </div>
             )}
-
-            {/* Datum */}
             {assignment.scheduledDate && (
               <div className="flex items-center gap-2.5">
                 <Calendar size={15} style={{ color: "var(--color-secondary)" }} />
@@ -130,8 +165,6 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
                 </span>
               </div>
             )}
-
-            {/* Tijdvak */}
             {timeSlot && (
               <div className="flex items-center gap-2.5">
                 <Clock size={15} style={{ color: "var(--color-secondary)" }} />
@@ -140,15 +173,9 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
                 </span>
               </div>
             )}
-
-            {/* Adres */}
             {addressLine && (
               <div className="flex items-start gap-2.5">
-                <MapPin
-                  size={15}
-                  className="mt-0.5 shrink-0"
-                  style={{ color: "var(--color-secondary)" }}
-                />
+                <MapPin size={15} className="mt-0.5 shrink-0" style={{ color: "var(--color-secondary)" }} />
                 <span className="text-sm" style={{ color: "var(--color-primary)" }}>
                   {addressLine}
                 </span>
@@ -192,7 +219,114 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
           </div>
         )}
 
-        {/* Geplande werkzaamheden — only shown once assignment is scheduled/active/done */}
+        {/* ── Financieel — offerte + factuur ──────────────────────────────────── */}
+        {(quote || invoice) && (
+          <div className="rounded-2xl bg-white p-4 shadow-sm">
+            <h3
+              className="mb-3 text-xs font-semibold uppercase tracking-widest"
+              style={{ color: "var(--color-secondary)" }}
+            >
+              Financieel
+            </h3>
+
+            <div className="space-y-3">
+              {/* Offerte */}
+              {quote && (
+                <div
+                  className="rounded-xl p-3"
+                  style={{ backgroundColor: "var(--color-muted)" }}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <FileText size={14} style={{ color: "var(--color-accent)" }} />
+                      <span className="text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>
+                        Offerte
+                      </span>
+                      <span
+                        className="font-mono text-xs rounded px-1.5 py-0.5"
+                        style={{ backgroundColor: "var(--color-border)", color: "var(--color-secondary)" }}
+                      >
+                        {quote.quoteNumber}
+                      </span>
+                    </div>
+                    <span
+                      className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                      style={{
+                        backgroundColor: QUOTE_STATUS_COLOR[quote.status].bg,
+                        color:           QUOTE_STATUS_COLOR[quote.status].color,
+                      }}
+                    >
+                      {QUOTE_STATUS_LABEL[quote.status]}
+                    </span>
+                  </div>
+                  <div className="flex items-baseline justify-between gap-2">
+                    <span className="text-base font-bold" style={{ color: "var(--color-primary)" }}>
+                      {formatAmount(quote.amount)}
+                    </span>
+                    {quote.validityDate && (
+                      <span className="text-xs" style={{ color: "var(--color-muted-fg)" }}>
+                        Geldig t/m {formatDateShort(quote.validityDate)}
+                      </span>
+                    )}
+                  </div>
+                  <Link
+                    href="/offertes"
+                    className="mt-2 inline-flex items-center gap-1 text-xs font-medium"
+                    style={{ color: "var(--color-accent)" }}
+                  >
+                    Bekijk offerte →
+                  </Link>
+                </div>
+              )}
+
+              {/* Factuur */}
+              {invoice && (
+                <div
+                  className="rounded-xl p-3"
+                  style={{ backgroundColor: "var(--color-muted)" }}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-2">
+                    <div className="flex items-center gap-2">
+                      <Receipt size={14} style={{ color: "var(--color-accent)" }} />
+                      <span className="text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>
+                        Factuur
+                      </span>
+                      <span
+                        className="font-mono text-xs rounded px-1.5 py-0.5"
+                        style={{ backgroundColor: "var(--color-border)", color: "var(--color-secondary)" }}
+                      >
+                        {invoice.invoiceNumber}
+                      </span>
+                    </div>
+                    <span
+                      className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
+                      style={{
+                        backgroundColor: INVOICE_STATUS_COLOR[invoice.status].bg,
+                        color:           INVOICE_STATUS_COLOR[invoice.status].color,
+                      }}
+                    >
+                      {INVOICE_STATUS_LABEL[invoice.status]}
+                    </span>
+                  </div>
+                  <span className="text-base font-bold" style={{ color: "var(--color-primary)" }}>
+                    {formatAmount(invoice.totalAmount)}
+                  </span>
+                  <div className="mt-2">
+                    <Link
+                      href="/facturen"
+                      className="inline-flex items-center gap-1 text-xs font-medium"
+                      style={{ color: "var(--color-accent)" }}
+                    >
+                      Bekijk factuur →
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Geplande werkzaamheden */}
         {showTasks && (
           <div className="rounded-2xl bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
@@ -228,7 +362,7 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
           </div>
         )}
 
-        {/* Management-goedgekeurde foto's — only shown once photos are approved AND report is approved */}
+        {/* Goedgekeurde foto's */}
         {assignment.approvedPhotos.length > 0 &&
           ["report_approved", "invoice_ready", "invoiced", "paid", "closed"].includes(assignment.status) && (
             <div className="rounded-2xl bg-white p-4 shadow-sm">
@@ -265,7 +399,7 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
             </div>
           )}
 
-        {/* Goedgekeurd werkrapport — only show approved reports (getMyReports filters to status='approved') */}
+        {/* Goedgekeurd werkrapport */}
         {rapport && (
           <div className="rounded-2xl bg-white p-4 shadow-sm">
             <h3
@@ -307,7 +441,7 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
           </div>
         )}
 
-        {/* Rapport nog niet beschikbaar — shown for active/open statuses without an approved report */}
+        {/* Rapport nog niet beschikbaar */}
         {!rapport &&
           !["report_approved", "invoice_ready", "invoiced", "paid", "closed"].includes(
             assignment.status,

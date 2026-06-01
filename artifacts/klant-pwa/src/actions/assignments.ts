@@ -6,11 +6,14 @@ import {
   objectsTable,
   assignmentTasksTable,
   assignmentPhotosTable,
-  insertAssignmentSchema,
   quotesTable,
+  invoicesTable,
+  insertAssignmentSchema,
   customersTable,
   organizationSettingsTable,
   type AssignmentStatus,
+  type QuoteStatus,
+  type InvoiceStatus,
 } from "@workspace/db";
 import { eq, desc, and } from "drizzle-orm";
 import { sendEmail, buildQuoteDecisionEmail } from "@/lib/email";
@@ -21,17 +24,22 @@ import { getMyCustomerId } from "./customer";
 import { createClient } from "@/lib/supabase/server";
 
 export type CustomerAssignment = {
-  id:             string;
-  code:           string;
-  title:          string;
-  status:         AssignmentStatus;
-  scheduledDate:  string | null;
-  scheduledStart: string | null;
-  scheduledEnd:   string | null;
-  objectName:     string | null;
-  objectAddress:  string | null;
-  objectCity:     string | null;
-  createdAt:      string;
+  id:               string;
+  code:             string;
+  title:            string;
+  status:           AssignmentStatus;
+  scheduledDate:    string | null;
+  scheduledStart:   string | null;
+  scheduledEnd:     string | null;
+  objectName:       string | null;
+  objectAddress:    string | null;
+  objectCity:       string | null;
+  createdAt:        string;
+  /** Linked quote (if any). */
+  quoteNumber:      string | null;
+  quoteAmount:      string | null;
+  quoteStatus:      QuoteStatus | null;
+  quoteValidityDate: string | null;
 };
 
 export async function getMyAssignments(): Promise<CustomerAssignment[]> {
@@ -40,35 +48,44 @@ export async function getMyAssignments(): Promise<CustomerAssignment[]> {
 
   const rows = await db
     .select({
-      id:             assignmentsTable.id,
-      code:           assignmentsTable.code,
-      title:          assignmentsTable.title,
-      status:         assignmentsTable.status,
-      scheduledDate:  assignmentsTable.scheduledDate,
-      scheduledStart: assignmentsTable.scheduledStart,
-      scheduledEnd:   assignmentsTable.scheduledEnd,
-      createdAt:      assignmentsTable.createdAt,
-      objectName:     objectsTable.name,
-      objectAddress:  objectsTable.address,
-      objectCity:     objectsTable.city,
+      id:               assignmentsTable.id,
+      code:             assignmentsTable.code,
+      title:            assignmentsTable.title,
+      status:           assignmentsTable.status,
+      scheduledDate:    assignmentsTable.scheduledDate,
+      scheduledStart:   assignmentsTable.scheduledStart,
+      scheduledEnd:     assignmentsTable.scheduledEnd,
+      createdAt:        assignmentsTable.createdAt,
+      objectName:       objectsTable.name,
+      objectAddress:    objectsTable.address,
+      objectCity:       objectsTable.city,
+      quoteNumber:      quotesTable.quoteNumber,
+      quoteAmount:      quotesTable.amount,
+      quoteStatus:      quotesTable.status,
+      quoteValidityDate: quotesTable.validityDate,
     })
     .from(assignmentsTable)
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
+    .leftJoin(quotesTable, eq(quotesTable.assignmentId, assignmentsTable.id))
     .where(eq(assignmentsTable.customerId, customerId))
     .orderBy(desc(assignmentsTable.createdAt));
 
   return rows.map((r) => ({
-    id:             r.id,
-    code:           r.code,
-    title:          r.title,
-    status:         r.status as AssignmentStatus,
-    scheduledDate:  r.scheduledDate,
-    scheduledStart: r.scheduledStart,
-    scheduledEnd:   r.scheduledEnd,
-    objectName:     r.objectName ?? null,
-    objectAddress:  r.objectAddress ?? null,
-    objectCity:     r.objectCity ?? null,
-    createdAt:      r.createdAt.toISOString(),
+    id:               r.id,
+    code:             r.code,
+    title:            r.title,
+    status:           r.status as AssignmentStatus,
+    scheduledDate:    r.scheduledDate,
+    scheduledStart:   r.scheduledStart,
+    scheduledEnd:     r.scheduledEnd,
+    objectName:       r.objectName ?? null,
+    objectAddress:    r.objectAddress ?? null,
+    objectCity:       r.objectCity ?? null,
+    createdAt:        r.createdAt.toISOString(),
+    quoteNumber:      r.quoteNumber ?? null,
+    quoteAmount:      r.quoteAmount ?? null,
+    quoteStatus:      (r.quoteStatus ?? null) as QuoteStatus | null,
+    quoteValidityDate: r.quoteValidityDate ?? null,
   }));
 }
 
@@ -102,7 +119,6 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
   const { title, description, objectId, priority } = parsed.data;
 
   // Ownership check: verify the selected object belongs to this customer.
-  // This prevents IDOR — a customer submitting another customer's objectId.
   if (objectId) {
     const [owned] = await db
       .select({ id: objectsTable.id })
@@ -144,6 +160,21 @@ export type ApprovedPhoto = {
   signedUrl: string | null;
 };
 
+export type AssignmentQuote = {
+  id:           string;
+  quoteNumber:  string;
+  amount:       string;
+  status:       QuoteStatus;
+  validityDate: string;
+};
+
+export type AssignmentInvoice = {
+  id:            string;
+  invoiceNumber: string;
+  totalAmount:   string;
+  status:        InvoiceStatus;
+};
+
 export type CustomerAssignmentDetail = {
   id:             string;
   code:           string;
@@ -165,11 +196,15 @@ export type CustomerAssignmentDetail = {
   }[];
   /** Photos that management has explicitly approved for customer visibility. */
   approvedPhotos: ApprovedPhoto[];
+  /** Linked quote — null if no quote has been created for this assignment. */
+  quote:   AssignmentQuote | null;
+  /** Linked invoice — null if no invoice has been created for this assignment. */
+  invoice: AssignmentInvoice | null;
 };
 
 /**
  * Fetch full detail for a single assignment belonging to the logged-in customer.
- * Only the assignment's own customer may access this data.
+ * Includes linked quote and invoice via LEFT JOINs.
  */
 export async function getMyAssignmentDetail(
   assignmentId: string,
@@ -179,25 +214,36 @@ export async function getMyAssignmentDetail(
 
   const [row] = await db
     .select({
-      id:              assignmentsTable.id,
-      code:            assignmentsTable.code,
-      title:           assignmentsTable.title,
-      description:     assignmentsTable.description,
-      status:          assignmentsTable.status,
-      scheduledDate:   assignmentsTable.scheduledDate,
-      scheduledStart:  assignmentsTable.scheduledStart,
-      scheduledEnd:    assignmentsTable.scheduledEnd,
-      createdAt:       assignmentsTable.createdAt,
-      objectName:      objectsTable.name,
-      objectAddress:   objectsTable.address,
-      objectCity:      objectsTable.city,
-      objectPostalCode: objectsTable.postalCode,
+      id:                assignmentsTable.id,
+      code:              assignmentsTable.code,
+      title:             assignmentsTable.title,
+      description:       assignmentsTable.description,
+      status:            assignmentsTable.status,
+      scheduledDate:     assignmentsTable.scheduledDate,
+      scheduledStart:    assignmentsTable.scheduledStart,
+      scheduledEnd:      assignmentsTable.scheduledEnd,
+      createdAt:         assignmentsTable.createdAt,
+      objectName:        objectsTable.name,
+      objectAddress:     objectsTable.address,
+      objectCity:        objectsTable.city,
+      objectPostalCode:  objectsTable.postalCode,
+      quoteId:           quotesTable.id,
+      quoteNumber:       quotesTable.quoteNumber,
+      quoteAmount:       quotesTable.amount,
+      quoteStatus:       quotesTable.status,
+      quoteValidityDate: quotesTable.validityDate,
+      invoiceId:          invoicesTable.id,
+      invoiceNumber:      invoicesTable.invoiceNumber,
+      invoiceTotalAmount: invoicesTable.totalAmount,
+      invoiceStatus:      invoicesTable.status,
     })
     .from(assignmentsTable)
-    .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
+    .leftJoin(objectsTable,  eq(assignmentsTable.objectId,   objectsTable.id))
+    .leftJoin(quotesTable,   eq(quotesTable.assignmentId,    assignmentsTable.id))
+    .leftJoin(invoicesTable, eq(invoicesTable.assignmentId,  assignmentsTable.id))
     .where(
       and(
-        eq(assignmentsTable.id, assignmentId),
+        eq(assignmentsTable.id,         assignmentId),
         eq(assignmentsTable.customerId, customerId),
       ),
     )
@@ -215,20 +261,18 @@ export async function getMyAssignmentDetail(
       .from(assignmentTasksTable)
       .where(eq(assignmentTasksTable.assignmentId, assignmentId))
       .orderBy(assignmentTasksTable.sortOrder),
-    // Only fetch photos that management has explicitly approved for customer visibility
     db
       .select({ id: assignmentPhotosTable.id, storagePath: assignmentPhotosTable.storagePath })
       .from(assignmentPhotosTable)
       .where(
         and(
           eq(assignmentPhotosTable.assignmentId, assignmentId),
-          eq(assignmentPhotosTable.isApproved, true),
+          eq(assignmentPhotosTable.isApproved,   true),
         ),
       )
       .orderBy(assignmentPhotosTable.createdAt),
   ]);
 
-  // Generate signed URLs for approved photos (server-side via admin client, bypasses storage RLS)
   const admin = createAdminClient();
   const approvedPhotos: ApprovedPhoto[] = await Promise.all(
     photoRows.map(async (p) => {
@@ -243,35 +287,52 @@ export async function getMyAssignmentDetail(
     }),
   );
 
+  const quote: AssignmentQuote | null = row.quoteId
+    ? {
+        id:           row.quoteId,
+        quoteNumber:  row.quoteNumber ?? "",
+        amount:       row.quoteAmount ?? "0",
+        status:       (row.quoteStatus ?? "draft") as QuoteStatus,
+        validityDate: row.quoteValidityDate ?? "",
+      }
+    : null;
+
+  const invoice: AssignmentInvoice | null = row.invoiceId
+    ? {
+        id:            row.invoiceId,
+        invoiceNumber: row.invoiceNumber ?? "",
+        totalAmount:   row.invoiceTotalAmount ?? "0",
+        status:        (row.invoiceStatus ?? "draft") as InvoiceStatus,
+      }
+    : null;
+
   return {
-    id:              row.id,
-    code:            row.code,
-    title:           row.title,
-    description:     row.description ?? null,
-    status:          row.status as AssignmentStatus,
-    scheduledDate:   row.scheduledDate,
-    scheduledStart:  row.scheduledStart,
-    scheduledEnd:    row.scheduledEnd,
-    createdAt:       row.createdAt.toISOString(),
-    objectName:      row.objectName ?? null,
-    objectAddress:   row.objectAddress ?? null,
-    objectCity:      row.objectCity ?? null,
+    id:               row.id,
+    code:             row.code,
+    title:            row.title,
+    description:      row.description ?? null,
+    status:           row.status as AssignmentStatus,
+    scheduledDate:    row.scheduledDate,
+    scheduledStart:   row.scheduledStart,
+    scheduledEnd:     row.scheduledEnd,
+    createdAt:        row.createdAt.toISOString(),
+    objectName:       row.objectName       ?? null,
+    objectAddress:    row.objectAddress    ?? null,
+    objectCity:       row.objectCity       ?? null,
     objectPostalCode: row.objectPostalCode ?? null,
-    tasks:           tasks.map((t) => ({
+    tasks: tasks.map((t) => ({
       id:        t.id,
       sortOrder: t.sortOrder,
       notes:     t.notes ?? null,
     })),
     approvedPhotos,
+    quote,
+    invoice,
   };
 }
 
 // ─── Quote approval workflow ──────────────────────────────────────────────────
 
-/**
- * Customer approves a quote (assignment in `awaiting_approval` state).
- * Enforces customer ownership — only the assignment's own customer may approve.
- */
 export async function approveQuote(assignmentId: string): Promise<RequestResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -285,9 +346,9 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
     .from(assignmentsTable)
     .where(
       and(
-        eq(assignmentsTable.id, assignmentId),
+        eq(assignmentsTable.id,         assignmentId),
         eq(assignmentsTable.customerId, customerId),
-        eq(assignmentsTable.status, "awaiting_approval"),
+        eq(assignmentsTable.status,     "awaiting_approval"),
       ),
     )
     .limit(1);
@@ -301,7 +362,6 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
     .set({ status: "approved" })
     .where(eq(assignmentsTable.id, assignmentId));
 
-  // Notify management — fire-and-forget
   void (async () => {
     const [orgSettings] = await db
       .select({ emailAfzender: organizationSettingsTable.emailAfzender })
@@ -334,10 +394,6 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
   return { success: true, id: assignmentId };
 }
 
-/**
- * Customer rejects a quote (assignment in `awaiting_approval` state).
- * Enforces customer ownership — only the assignment's own customer may reject.
- */
 export async function rejectQuote(assignmentId: string): Promise<RequestResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -351,9 +407,9 @@ export async function rejectQuote(assignmentId: string): Promise<RequestResult> 
     .from(assignmentsTable)
     .where(
       and(
-        eq(assignmentsTable.id, assignmentId),
+        eq(assignmentsTable.id,         assignmentId),
         eq(assignmentsTable.customerId, customerId),
-        eq(assignmentsTable.status, "awaiting_approval"),
+        eq(assignmentsTable.status,     "awaiting_approval"),
       ),
     )
     .limit(1);
@@ -362,15 +418,11 @@ export async function rejectQuote(assignmentId: string): Promise<RequestResult> 
     return { success: false, message: "Offerte niet gevonden of al verwerkt." };
   }
 
-  // Move back to "review" — the valid lifecycle transition from awaiting_approval
-  // when the customer does not accept. "rejected" is not a canonical status.
-  // This returns the assignment to the backoffice for re-evaluation or cancellation.
   await db
     .update(assignmentsTable)
     .set({ status: "review" })
     .where(eq(assignmentsTable.id, assignmentId));
 
-  // Notify management — fire-and-forget
   void (async () => {
     const [orgSettings] = await db
       .select({ emailAfzender: organizationSettingsTable.emailAfzender })
