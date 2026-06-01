@@ -52,14 +52,13 @@ function getWeekNumber(d: Date): number {
 }
 
 interface PlanningViewProps {
-  weekStartStr:    string;
-  assignments:     WeekAssignment[];
-  canWrite:        boolean;
-  customers:       CustomerOption[];
-  currentMonthStr: string;
+  weekStartStr: string;
+  assignments:  WeekAssignment[];
+  canWrite:     boolean;
+  customers:    CustomerOption[];
 }
 
-export function PlanningView({ weekStartStr, assignments, canWrite, customers, currentMonthStr }: PlanningViewProps) {
+export function PlanningView({ weekStartStr, assignments, canWrite, customers }: PlanningViewProps) {
   const router   = useRouter();
   const pathname = usePathname();
 
@@ -268,7 +267,7 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers, c
             style={{ background: "#E2E8F0" }}
           />
 
-          {/* Week / Maand toggle */}
+          {/* Week / Maand toggle — navigate to the month of the displayed week */}
           <div
             className="flex rounded-md overflow-hidden"
             style={{ border: "1px solid #E2E8F0" }}
@@ -287,7 +286,10 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers, c
             </button>
             <button
               type="button"
-              onClick={() => router.replace(`${pathname}?month=${currentMonthStr}`)}
+              onClick={() => {
+                const ym = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, "0")}`;
+                router.replace(`${pathname}?month=${ym}`);
+              }}
               className="px-3 py-1.5 text-xs font-medium transition-colors"
               style={{
                 color:      "#64748B",

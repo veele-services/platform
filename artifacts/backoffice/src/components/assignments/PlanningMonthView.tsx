@@ -10,6 +10,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import { statusAccentColor } from "./AssignmentStatusBadge";
 import type { WeekAssignment } from "@/app/actions/assignments";
 
 // ── Constants ─────────────────────────────────────────────────────────────────
@@ -21,27 +22,6 @@ const NL_MONTHS_LONG = [
   "Juli", "Augustus", "September", "Oktober", "November", "December",
 ];
 
-// Status color dots (left-border accent on chips)
-const STATUS_COLOR: Record<string, string> = {
-  requested:         "#3B82F6",
-  review:            "#6366F1",
-  quote_preparation: "#8B5CF6",
-  awaiting_approval: "#B45309",
-  approved:          "#10B981",
-  plannable:         "#EA580C",
-  scheduled:         "#00B7B3",
-  seen:              "#0891B2",
-  in_progress:       "#7C3AED",
-  not_completed:     "#DC2626",
-  completed:         "#16A34A",
-  report_submitted:  "#0D9488",
-  report_approved:   "#15803D",
-  invoice_ready:     "#D97706",
-  invoiced:          "#64748B",
-  paid:              "#166534",
-  closed:            "#94A3B8",
-};
-
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function pad(n: number) {
@@ -52,23 +32,35 @@ function formatDateKey(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }
 
+/**
+ * Builds all Date cells for the calendar grid of a given month.
+ * Grid start = Monday of week containing the 1st.
+ * Grid end = Sunday of week containing the last day.
+ * Minimum 5 weeks (35 cells) — pads to 42 if a short month's grid is only 4 weeks.
+ */
 function buildCalendarDays(monthStr: string): Date[] {
   const [y, m] = monthStr.split("-").map(Number);
-  const year  = y!;
-  const month = m! - 1; // 0-indexed
+  const year   = y!;
+  const month  = m! - 1; // 0-indexed
 
-  const firstDay  = new Date(year, month, 1);
-  const lastDay   = new Date(year, month + 1, 0);
+  const firstDay = new Date(year, month, 1);
+  const lastDay  = new Date(year, month + 1, 0);
 
-  // Grid start: Monday of week containing firstDay
-  const gridStart  = new Date(firstDay);
-  const startDow   = firstDay.getDay();
+  // Grid start: Monday of the week containing firstDay
+  const gridStart = new Date(firstDay);
+  const startDow  = firstDay.getDay(); // 0=Sun…6=Sat
   gridStart.setDate(firstDay.getDate() - (startDow === 0 ? 6 : startDow - 1));
 
-  // Grid end: Sunday of week containing lastDay
-  const gridEnd  = new Date(lastDay);
-  const endDow   = lastDay.getDay();
+  // Grid end: Sunday of the week containing lastDay
+  const gridEnd = new Date(lastDay);
+  const endDow  = lastDay.getDay();
   gridEnd.setDate(lastDay.getDate() + (endDow === 0 ? 0 : 7 - endDow));
+
+  // Ensure at least 5 weeks (35 cells) — February starting on Monday can be only 4 weeks
+  const totalDays = Math.round((gridEnd.getTime() - gridStart.getTime()) / 86400000) + 1;
+  if (totalDays < 35) {
+    gridEnd.setDate(gridEnd.getDate() + 7);
+  }
 
   const days: Date[] = [];
   const cur = new Date(gridStart);
@@ -92,8 +84,20 @@ function todayMonthStr(): string {
 }
 
 function todayDateStr(): string {
-  const n = new Date();
-  return formatDateKey(n);
+  return formatDateKey(new Date());
+}
+
+/**
+ * Returns the YYYY-MM-DD string of the Monday of the week
+ * that contains the 1st of the given month. Used so the
+ * Month→Week toggle preserves the period being viewed.
+ */
+function firstWeekMondayOfMonth(monthStr: string): string {
+  const [y, m] = monthStr.split("-").map(Number);
+  const firstDay = new Date(y!, m! - 1, 1);
+  const dow = firstDay.getDay(); // 0=Sun…6=Sat
+  firstDay.setDate(firstDay.getDate() - (dow === 0 ? 6 : dow - 1));
+  return formatDateKey(firstDay);
 }
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -114,12 +118,13 @@ export function PlanningMonthView({ monthStr, assignments }: PlanningMonthViewPr
   const [year, mon] = monthStr.split("-").map(Number);
   const currentMonth = mon! - 1; // 0-indexed
 
-  const days      = buildCalendarDays(monthStr);
-  const todayStr  = todayDateStr();
+  const days     = buildCalendarDays(monthStr);
+  const todayStr = todayDateStr();
   const thisMonth = todayMonthStr();
 
-  const prevMonth = addMonths(monthStr, -1);
-  const nextMonth = addMonths(monthStr, +1);
+  const prevMonth      = addMonths(monthStr, -1);
+  const nextMonth      = addMonths(monthStr, +1);
+  const weekAnchorStr  = firstWeekMondayOfMonth(monthStr);
 
   // Build date → assignments map
   const byDate = new Map<string, WeekAssignment[]>();
@@ -135,14 +140,6 @@ export function PlanningMonthView({ monthStr, assignments }: PlanningMonthViewPr
   }).length;
 
   const monthLabel = `${NL_MONTHS_LONG[currentMonth]} ${year}`;
-
-  // Week of today → used for "Week" toggle destination
-  function todayWeekMonday(): string {
-    const d   = new Date();
-    const dow = d.getDay();
-    d.setDate(d.getDate() - (dow === 0 ? 6 : dow - 1));
-    return formatDateKey(d);
-  }
 
   return (
     <TooltipProvider>
@@ -192,14 +189,14 @@ export function PlanningMonthView({ monthStr, assignments }: PlanningMonthViewPr
               style={{ background: "#E2E8F0" }}
             />
 
-            {/* Week / Maand toggle */}
+            {/* Week / Maand toggle — Week navigates to first week of displayed month */}
             <div
               className="flex rounded-md overflow-hidden"
               style={{ border: "1px solid #E2E8F0" }}
             >
               <button
                 type="button"
-                onClick={() => router.replace(`${pathname}?week=${todayWeekMonday()}`)}
+                onClick={() => router.replace(`${pathname}?week=${weekAnchorStr}`)}
                 className="px-3 py-1.5 text-xs font-medium transition-colors"
                 style={{ color: "#64748B", background: "#fff" }}
               >
@@ -244,26 +241,25 @@ export function PlanningMonthView({ monthStr, assignments }: PlanningMonthViewPr
           style={{ border: "1px solid #E2E8F0", borderRadius: "8px", overflow: "hidden" }}
         >
           {days.map((day, idx) => {
-            const dateStr    = formatDateKey(day);
-            const isToday    = dateStr === todayStr;
-            const inMonth    = day.getMonth() === currentMonth;
-            const items      = byDate.get(dateStr) ?? [];
-            const overflow   = Math.max(0, items.length - MAX_CHIPS);
-            const visible    = items.slice(0, MAX_CHIPS);
+            const dateStr  = formatDateKey(day);
+            const isToday  = dateStr === todayStr;
+            const inMonth  = day.getMonth() === currentMonth;
+            const items    = byDate.get(dateStr) ?? [];
+            const overflow = Math.max(0, items.length - MAX_CHIPS);
+            const visible  = items.slice(0, MAX_CHIPS);
 
-            // Border logic: right border on all except last column; bottom on all except last row
-            const isLastCol  = (idx + 1) % 7 === 0;
-            const isLastRow  = idx >= days.length - 7;
+            const isLastCol = (idx + 1) % 7 === 0;
+            const isLastRow = idx >= days.length - 7;
 
             return (
               <div
                 key={dateStr}
                 className="relative flex flex-col"
                 style={{
-                  minHeight:   "100px",
-                  padding:     "6px",
-                  background:  inMonth ? "#fff" : "#FAFBFC",
-                  borderRight: isLastCol ? "none" : "1px solid #E2E8F0",
+                  minHeight:    "96px",
+                  padding:      "6px",
+                  background:   inMonth ? "#fff" : "#FAFBFC",
+                  borderRight:  isLastCol ? "none" : "1px solid #E2E8F0",
                   borderBottom: isLastRow ? "none" : "1px solid #E2E8F0",
                 }}
               >
@@ -274,7 +270,7 @@ export function PlanningMonthView({ monthStr, assignments }: PlanningMonthViewPr
                   tabIndex={0}
                 >
                   <span
-                    className="flex items-center justify-center rounded-full w-6 h-6 text-xs font-semibold transition-colors group-hover:ring-2 group-hover:ring-offset-1"
+                    className="flex items-center justify-center rounded-full w-6 h-6 text-xs font-semibold transition-colors group-hover:ring-2 group-hover:ring-offset-1 group-hover:ring-slate-300"
                     style={
                       isToday
                         ? { background: "#00B7B3", color: "#fff" }
@@ -287,26 +283,19 @@ export function PlanningMonthView({ monthStr, assignments }: PlanningMonthViewPr
                   </span>
                 </Link>
 
-                {/* Assignment chips */}
+                {/* Assignment chips — colored left-border using shared statusAccentColor */}
                 <div className="flex flex-col gap-0.5 min-w-0">
                   {visible.map((a) => {
-                    const dotColor = STATUS_COLOR[a.status] ?? "#94A3B8";
+                    const accentColor = statusAccentColor(a.status);
                     return (
                       <Tooltip key={a.id}>
                         <TooltipTrigger asChild>
                           <Link
                             href={`/assignments/${a.id}`}
-                            className="flex items-center gap-1 rounded px-1 py-0.5 min-w-0 group"
+                            className="flex items-center gap-1 rounded px-1 py-0.5 min-w-0 transition-colors hover:bg-slate-100"
                             style={{
                               background:  "#F8FAFC",
-                              borderLeft:  `3px solid ${dotColor}`,
-                              transition:  "background 0.1s",
-                            }}
-                            onMouseEnter={(e) => {
-                              (e.currentTarget as HTMLElement).style.background = "#F1F5F9";
-                            }}
-                            onMouseLeave={(e) => {
-                              (e.currentTarget as HTMLElement).style.background = "#F8FAFC";
+                              borderLeft:  `3px solid ${accentColor}`,
                             }}
                           >
                             <span
@@ -339,7 +328,7 @@ export function PlanningMonthView({ monthStr, assignments }: PlanningMonthViewPr
                     );
                   })}
 
-                  {/* "+N meer" overflow */}
+                  {/* "+N meer" overflow → day view */}
                   {overflow > 0 && (
                     <Link
                       href={`${pathname}?day=${dateStr}`}

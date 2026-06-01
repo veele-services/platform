@@ -43,11 +43,6 @@ function isValidMonth(str: string): boolean {
   return m! >= 1 && m! <= 12;
 }
 
-function currentMonthStr(): string {
-  const n = new Date();
-  return `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}`;
-}
-
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface Props {
@@ -140,7 +135,6 @@ export default async function PlanningPage({ searchParams }: Props) {
         assignments={assignments}
         canWrite={canWrite}
         customers={customers}
-        currentMonthStr={currentMonthStr()}
       />
     </div>
   );

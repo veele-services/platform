@@ -541,6 +541,12 @@ export async function getAssignmentsForMonth(monthStr: string): Promise<WeekAssi
   const endDow  = lastDay.getDay();
   gridEnd.setDate(lastDay.getDate() + (endDow === 0 ? 0 : 7 - endDow));
 
+  // Ensure at least 5 weeks (35 cells) — short Februaries starting on Monday are only 4 weeks
+  const totalDays = Math.round((gridEnd.getTime() - gridStart.getTime()) / 86400000) + 1;
+  if (totalDays < 35) {
+    gridEnd.setDate(gridEnd.getDate() + 7);
+  }
+
   const pad = (n: number) => String(n).padStart(2, "0");
   const fmt = (d: Date) =>
     `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
