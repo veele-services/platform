@@ -61,22 +61,23 @@ export function DesktopSidebar() {
             <Link
               key={href}
               href={href}
-              className="flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+              className="relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
               style={{
                 backgroundColor: isActive ? "var(--color-accent-muted)" : "transparent",
                 color:           isActive ? "var(--color-accent)" : "var(--color-secondary)",
               }}
             >
               {/* Left accent bar */}
-              <span
-                className="absolute left-3 rounded-full"
-                style={{
-                  width:           isActive ? "3px" : "0",
-                  height:          "18px",
-                  backgroundColor: "var(--color-accent)",
-                  transition:      "width 0.15s",
-                }}
-              />
+              {isActive && (
+                <span
+                  className="absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full"
+                  style={{
+                    width:           "3px",
+                    height:          "18px",
+                    backgroundColor: "var(--color-accent)",
+                  }}
+                />
+              )}
               <Icon size={18} strokeWidth={isActive ? 2.5 : 1.75} className="shrink-0" />
               {label}
             </Link>

@@ -56,27 +56,28 @@ export default async function DashboardPage() {
           color:      "#fff",
         }}
       >
-        <p className="text-sm" style={{ color: "rgba(255,255,255,0.7)" }}>Welkom terug,</p>
-        <h1 className="mt-0.5 text-2xl font-bold leading-tight">
+        {/* Alle tekst volledig wit — contrast ≥ 4.5:1 op beide gradient-stops */}
+        <p className="text-sm text-white">Welkom terug,</p>
+        <h1 className="mt-0.5 text-2xl font-bold leading-tight text-white">
           {profile.contactName ?? profile.name}
         </h1>
-        <p className="mt-0.5 text-sm font-medium" style={{ color: "rgba(255,255,255,0.65)" }}>
+        <p className="mt-0.5 text-sm font-medium text-white opacity-80">
           {profile.name}
         </p>
 
         {/* Compacte stats in de banner */}
         <div className="mt-4 flex gap-4">
           <div>
-            <p className="text-2xl font-bold">{activeCount}</p>
-            <p className="text-xs" style={{ color: "rgba(255,255,255,0.65)" }}>Actieve opdrachten</p>
+            <p className="text-2xl font-bold text-white">{activeCount}</p>
+            <p className="text-xs text-white opacity-80">Actieve opdrachten</p>
           </div>
           <div
             className="w-px self-stretch"
-            style={{ backgroundColor: "rgba(255,255,255,0.2)" }}
+            style={{ backgroundColor: "rgba(255,255,255,0.3)" }}
           />
           <div>
-            <p className="text-2xl font-bold">{pendingCount}</p>
-            <p className="text-xs" style={{ color: "rgba(255,255,255,0.65)" }}>In behandeling</p>
+            <p className="text-2xl font-bold text-white">{pendingCount}</p>
+            <p className="text-xs text-white opacity-80">In behandeling</p>
           </div>
         </div>
       </div>
