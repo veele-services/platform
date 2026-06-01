@@ -8,8 +8,9 @@ import {
   rolePermissionsTable,
   userRolesTable,
   auditLogTable,
+  personnelTable,
 } from "@workspace/db";
-import { eq, and, asc, desc, sql, inArray } from "drizzle-orm";
+import { eq, and, or, asc, desc, sql, inArray, ilike, gte, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -581,49 +582,108 @@ export async function updateUserRoles(
   return { success: true };
 }
 
+const AUDIT_PAGE_SIZE = 25;
+
 /**
- * Fetch the last 200 audit log entries for settings-relevant resources.
- * Enriches each entry with the actor's email/name from Supabase Auth.
+ * Paginated, filterable audit log query across all resources.
+ * Resolves actor names via LEFT JOIN on personnelTable (for field staff)
+ * and via the Supabase Admin API (for management users not in personnel).
  */
-export async function listAuditLog(): Promise<AuditLogEntry[]> {
+export async function listAuditLog(params: {
+  page?:     number;
+  search?:   string;
+  module?:   string;
+  dateFrom?: string;
+  dateTo?:   string;
+} = {}): Promise<{ entries: AuditLogEntry[]; total: number }> {
   await requirePermission("settings", "read");
 
-  const rows = await db
-    .select()
-    .from(auditLogTable)
-    .where(inArray(auditLogTable.resource, ["settings", "roles", "users"]))
-    .orderBy(desc(auditLogTable.createdAt))
-    .limit(200);
+  const {
+    page     = 1,
+    search   = "",
+    module   = "",
+    dateFrom = "",
+    dateTo   = "",
+  } = params;
 
-  if (rows.length === 0) return [];
+  const conditions = [];
 
-  const admin = createAdminClient();
-  const { data } = await admin.auth.admin.listUsers({ perPage: 1000 });
-  const userMap = new Map(
-    (data?.users ?? []).map((u) => {
+  if (search.trim()) {
+    conditions.push(
+      or(
+        ilike(auditLogTable.action,   `%${search.trim()}%`),
+        ilike(auditLogTable.resource, `%${search.trim()}%`),
+      ),
+    );
+  }
+  if (module) {
+    conditions.push(eq(auditLogTable.resource, module));
+  }
+  if (dateFrom) {
+    conditions.push(gte(auditLogTable.createdAt, new Date(dateFrom)));
+  }
+  if (dateTo) {
+    // Make dateTo inclusive: advance by 1 day so lte covers the full final day
+    const end = new Date(dateTo);
+    end.setDate(end.getDate() + 1);
+    conditions.push(lte(auditLogTable.createdAt, end));
+  }
+
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const [rows, [{ count }], adminData] = await Promise.all([
+    db
+      .select({
+        id:         auditLogTable.id,
+        userId:     auditLogTable.userId,
+        action:     auditLogTable.action,
+        resource:   auditLogTable.resource,
+        resourceId: auditLogTable.resourceId,
+        metadata:   auditLogTable.metadata,
+        createdAt:  auditLogTable.createdAt,
+        pFirstName: personnelTable.firstName,
+        pLastName:  personnelTable.lastName,
+        pEmail:     personnelTable.email,
+      })
+      .from(auditLogTable)
+      .leftJoin(personnelTable, eq(personnelTable.userId, auditLogTable.userId))
+      .where(where)
+      .orderBy(desc(auditLogTable.createdAt))
+      .limit(AUDIT_PAGE_SIZE)
+      .offset((page - 1) * AUDIT_PAGE_SIZE),
+
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(auditLogTable)
+      .where(where),
+
+    createAdminClient().auth.admin.listUsers({ perPage: 1000 }),
+  ]);
+
+  const authMap = new Map(
+    (adminData.data?.users ?? []).map((u) => {
       const meta = u.user_metadata as { full_name?: string; name?: string } | undefined;
-      return [
-        u.id,
-        {
-          email: u.email ?? u.id,
-          name:  (meta?.full_name ?? meta?.name) ?? null,
-        },
-      ] as const;
+      return [u.id, { email: u.email ?? u.id, name: (meta?.full_name ?? meta?.name) ?? null }] as const;
     }),
   );
 
-  return rows.map((r) => {
-    const info = userMap.get(r.userId);
-    return {
-      id:         r.id,
-      userId:     r.userId,
-      userEmail:  info?.email ?? r.userId,
-      userName:   info?.name ?? null,
-      action:     r.action,
-      resource:   r.resource,
-      resourceId: r.resourceId,
-      metadata:   r.metadata as Record<string, unknown> | null,
-      createdAt:  r.createdAt.toISOString(),
-    };
-  });
+  return {
+    entries: rows.map((r) => {
+      const personnelName = r.pFirstName && r.pLastName
+        ? `${r.pFirstName} ${r.pLastName}` : null;
+      const auth = authMap.get(r.userId);
+      return {
+        id:         r.id,
+        userId:     r.userId,
+        userEmail:  r.pEmail ?? auth?.email ?? r.userId,
+        userName:   personnelName ?? auth?.name ?? null,
+        action:     r.action,
+        resource:   r.resource,
+        resourceId: r.resourceId,
+        metadata:   r.metadata as Record<string, unknown> | null,
+        createdAt:  r.createdAt.toISOString(),
+      };
+    }),
+    total: count,
+  };
 }
