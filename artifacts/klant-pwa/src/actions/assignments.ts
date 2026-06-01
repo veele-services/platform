@@ -7,9 +7,13 @@ import {
   assignmentTasksTable,
   assignmentPhotosTable,
   insertAssignmentSchema,
+  quotesTable,
+  customersTable,
+  organizationSettingsTable,
   type AssignmentStatus,
 } from "@workspace/db";
 import { eq, desc, and } from "drizzle-orm";
+import { sendEmail, buildQuoteDecisionEmail } from "@/lib/email";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
@@ -297,6 +301,35 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
     .set({ status: "approved" })
     .where(eq(assignmentsTable.id, assignmentId));
 
+  // Notify management — fire-and-forget
+  void (async () => {
+    const [orgSettings] = await db
+      .select({ emailAfzender: organizationSettingsTable.emailAfzender })
+      .from(organizationSettingsTable)
+      .limit(1);
+    if (!orgSettings?.emailAfzender) return;
+
+    const [[customer], [quote]] = await Promise.all([
+      db.select({ name: customersTable.name })
+        .from(customersTable)
+        .where(eq(customersTable.id, customerId))
+        .limit(1),
+      db.select({ quoteNumber: quotesTable.quoteNumber })
+        .from(quotesTable)
+        .where(eq(quotesTable.assignmentId, assignmentId))
+        .limit(1),
+    ]);
+
+    if (!quote) return;
+    const { subject, html } = buildQuoteDecisionEmail({
+      customerName: customer?.name ?? "Onbekende klant",
+      quoteNumber:  quote.quoteNumber,
+      decision:     "geaccepteerd",
+      reason:       null,
+    });
+    await sendEmail({ to: orgSettings.emailAfzender, subject, html });
+  })();
+
   revalidatePath("/klant/opdrachten");
   return { success: true, id: assignmentId };
 }
@@ -336,6 +369,35 @@ export async function rejectQuote(assignmentId: string): Promise<RequestResult> 
     .update(assignmentsTable)
     .set({ status: "review" })
     .where(eq(assignmentsTable.id, assignmentId));
+
+  // Notify management — fire-and-forget
+  void (async () => {
+    const [orgSettings] = await db
+      .select({ emailAfzender: organizationSettingsTable.emailAfzender })
+      .from(organizationSettingsTable)
+      .limit(1);
+    if (!orgSettings?.emailAfzender) return;
+
+    const [[customer], [quote]] = await Promise.all([
+      db.select({ name: customersTable.name })
+        .from(customersTable)
+        .where(eq(customersTable.id, customerId))
+        .limit(1),
+      db.select({ quoteNumber: quotesTable.quoteNumber })
+        .from(quotesTable)
+        .where(eq(quotesTable.assignmentId, assignmentId))
+        .limit(1),
+    ]);
+
+    if (!quote) return;
+    const { subject, html } = buildQuoteDecisionEmail({
+      customerName: customer?.name ?? "Onbekende klant",
+      quoteNumber:  quote.quoteNumber,
+      decision:     "afgewezen",
+      reason:       null,
+    });
+    await sendEmail({ to: orgSettings.emailAfzender, subject, html });
+  })();
 
   revalidatePath("/klant/opdrachten");
   return { success: true, id: assignmentId };

@@ -277,6 +277,34 @@ export function buildPaymentReminderEmail(opts: {
 }
 
 // 4. Offerte verstuurd → klant
+export function buildQuoteDecisionEmail(opts: {
+  customerName: string;
+  quoteNumber:  string;
+  decision:     "geaccepteerd" | "afgewezen";
+  reason:       string | null;
+}): { subject: string; html: string } {
+  const color   = opts.decision === "geaccepteerd" ? "#16a34a" : "#dc2626";
+  const url     = `${siteUrl()}/quotes`;
+  const subject = `Offerte ${opts.quoteNumber} is ${opts.decision} door ${opts.customerName}`;
+  const html    = baseTemplate(subject, `
+    <h2 style="margin-top:0;color:${BRAND_COLOR}">Offerte ${opts.decision}</h2>
+    <p>
+      Klant <strong>${opts.customerName}</strong> heeft offerte
+      <strong>${opts.quoteNumber}</strong>
+      <span style="color:${color};font-weight:600">${opts.decision}</span>.
+    </p>
+    ${opts.reason ? `
+    <table style="width:100%;border-collapse:collapse;margin:16px 0">
+      <tr>
+        <td style="padding:8px 0;color:#64748b;vertical-align:top">Reden</td>
+        <td style="padding:8px 0">${opts.reason}</td>
+      </tr>
+    </table>` : ""}
+    ${ctaButton(url, "Offertes bekijken in backoffice")}
+  `);
+  return { subject, html };
+}
+
 export function buildQuoteSentEmail(opts: {
   customerName: string;
   quoteNumber:  string;
