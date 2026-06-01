@@ -52,13 +52,14 @@ function getWeekNumber(d: Date): number {
 }
 
 interface PlanningViewProps {
-  weekStartStr: string;
-  assignments:  WeekAssignment[];
-  canWrite:     boolean;
-  customers:    CustomerOption[];
+  weekStartStr:    string;
+  assignments:     WeekAssignment[];
+  canWrite:        boolean;
+  customers:       CustomerOption[];
+  currentMonthStr: string;
 }
 
-export function PlanningView({ weekStartStr, assignments, canWrite, customers }: PlanningViewProps) {
+export function PlanningView({ weekStartStr, assignments, canWrite, customers, currentMonthStr }: PlanningViewProps) {
   const router   = useRouter();
   const pathname = usePathname();
 
@@ -236,7 +237,7 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
               : `${totalForWeek} opdracht${totalForWeek > 1 ? "en" : ""} ingepland`}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <Button
             variant="outline"
             size="sm"
@@ -260,6 +261,43 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
             Volgende week
             <ChevronRight className="h-4 w-4" />
           </Button>
+
+          {/* Separator */}
+          <div
+            className="hidden sm:block w-px h-6 mx-1"
+            style={{ background: "#E2E8F0" }}
+          />
+
+          {/* Week / Maand toggle */}
+          <div
+            className="flex rounded-md overflow-hidden"
+            style={{ border: "1px solid #E2E8F0" }}
+          >
+            <button
+              type="button"
+              disabled
+              className="px-3 py-1.5 text-xs font-medium"
+              style={{
+                color:      "#00B7B3",
+                background: "#F0FDFC",
+                outline:    "none",
+              }}
+            >
+              Week
+            </button>
+            <button
+              type="button"
+              onClick={() => router.replace(`${pathname}?month=${currentMonthStr}`)}
+              className="px-3 py-1.5 text-xs font-medium transition-colors"
+              style={{
+                color:      "#64748B",
+                background: "#fff",
+                borderLeft: "1px solid #E2E8F0",
+              }}
+            >
+              Maand
+            </button>
+          </div>
         </div>
       </div>
 

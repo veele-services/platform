@@ -512,6 +512,44 @@ export async function getAssignmentsForWeek(
   }));
 }
 
+// ─── Month view ───────────────────────────────────────────────────────────────
+
+/**
+ * Returns all assignments for the calendar grid of a given month.
+ * The grid starts on Monday of the week containing the 1st, and ends on Sunday
+ * of the week containing the last day — so typically 28–42 days.
+ * Reuses WeekAssignment (including hasConflict) via getAssignmentsForWeek.
+ */
+export async function getAssignmentsForMonth(monthStr: string): Promise<WeekAssignment[]> {
+  const match = /^(\d{4})-(\d{2})$/.exec(monthStr);
+  if (!match) return [];
+
+  const year  = parseInt(match[1]!, 10);
+  const month = parseInt(match[2]!, 10) - 1; // 0-indexed
+
+  // First and last day of the calendar month
+  const firstDay = new Date(year, month, 1);
+  const lastDay  = new Date(year, month + 1, 0);
+
+  // Grid start: Monday of the week that contains firstDay
+  const gridStart = new Date(firstDay);
+  const startDow  = firstDay.getDay(); // 0=Sun … 6=Sat
+  gridStart.setDate(firstDay.getDate() - (startDow === 0 ? 6 : startDow - 1));
+
+  // Grid end: Sunday of the week that contains lastDay
+  const gridEnd = new Date(lastDay);
+  const endDow  = lastDay.getDay();
+  gridEnd.setDate(lastDay.getDate() + (endDow === 0 ? 0 : 7 - endDow));
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const fmt = (d: Date) =>
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+  return getAssignmentsForWeek(fmt(gridStart), fmt(gridEnd));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function getDashboardCounts(): Promise<{
   requested:  number;
   plannable:  number;
