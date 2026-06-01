@@ -31,30 +31,25 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
       "Set this env var in production to enable request verification.",
     );
   } else {
+    // Secret is configured — x-mollie-signature is required; no fallback
     const hmacSignature = req.headers["x-mollie-signature"] as string | undefined;
+    if (!hmacSignature) {
+      req.log.warn(
+        { ip: req.ip },
+        "Mollie webhook rejected — x-mollie-signature header missing",
+      );
+      res.status(400).send("Missing signature");
+      return;
+    }
 
-    if (hmacSignature) {
-      // Primary path: validate HMAC-SHA256 signature
-      const rawBody = req.rawBody ? req.rawBody.toString("utf8") : "";
-      if (!verifyMollieSignature(rawBody, hmacSignature, webhookSecret)) {
-        req.log.warn(
-          { ip: req.ip },
-          "Mollie webhook rejected — invalid x-mollie-signature",
-        );
-        res.status(400).send("Invalid signature");
-        return;
-      }
-    } else {
-      // Fallback path: check query-string secret (existing deployments)
-      const providedSecret = (req.query as Record<string, string | undefined>)["secret"];
-      if (providedSecret !== webhookSecret) {
-        req.log.warn(
-          { ip: req.ip, hasSecret: !!providedSecret },
-          "Mollie webhook rejected — invalid or missing secret token",
-        );
-        res.status(400).send("Unauthorized");
-        return;
-      }
+    const rawBody = req.rawBody ? req.rawBody.toString("utf8") : "";
+    if (!verifyMollieSignature(rawBody, hmacSignature, webhookSecret)) {
+      req.log.warn(
+        { ip: req.ip },
+        "Mollie webhook rejected — invalid x-mollie-signature",
+      );
+      res.status(400).send("Invalid signature");
+      return;
     }
   }
 
