@@ -184,6 +184,8 @@ export const assignmentPhotosTable = pgTable("assignment_photos", {
     .references(() => assignmentExtraWorkTable.id, { onDelete: "set null" }),
   storagePath:  text("storage_path").notNull(),
   uploadedBy:   uuid("uploaded_by").notNull(),
+  /** Set to true by management (backoffice) to make the photo visible to the customer. */
+  isApproved:   boolean("is_approved").notNull().default(false),
   createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 

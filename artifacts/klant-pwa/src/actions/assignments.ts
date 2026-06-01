@@ -5,10 +5,12 @@ import {
   assignmentsTable,
   objectsTable,
   assignmentTasksTable,
+  assignmentPhotosTable,
   insertAssignmentSchema,
   type AssignmentStatus,
 } from "@workspace/db";
 import { eq, desc, and } from "drizzle-orm";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
 import { getMyCustomerId } from "./customer";
@@ -133,6 +135,11 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
 
 // ─── Assignment detail ────────────────────────────────────────────────────────
 
+export type ApprovedPhoto = {
+  id:        string;
+  signedUrl: string | null;
+};
+
 export type CustomerAssignmentDetail = {
   id:             string;
   code:           string;
@@ -152,6 +159,8 @@ export type CustomerAssignmentDetail = {
     sortOrder: number;
     notes:     string | null;
   }[];
+  /** Photos that management has explicitly approved for customer visibility. */
+  approvedPhotos: ApprovedPhoto[];
 };
 
 /**
@@ -192,15 +201,43 @@ export async function getMyAssignmentDetail(
 
   if (!row) return null;
 
-  const tasks = await db
-    .select({
-      id:        assignmentTasksTable.id,
-      sortOrder: assignmentTasksTable.sortOrder,
-      notes:     assignmentTasksTable.notes,
-    })
-    .from(assignmentTasksTable)
-    .where(eq(assignmentTasksTable.assignmentId, assignmentId))
-    .orderBy(assignmentTasksTable.sortOrder);
+  const [tasks, photoRows] = await Promise.all([
+    db
+      .select({
+        id:        assignmentTasksTable.id,
+        sortOrder: assignmentTasksTable.sortOrder,
+        notes:     assignmentTasksTable.notes,
+      })
+      .from(assignmentTasksTable)
+      .where(eq(assignmentTasksTable.assignmentId, assignmentId))
+      .orderBy(assignmentTasksTable.sortOrder),
+    // Only fetch photos that management has explicitly approved for customer visibility
+    db
+      .select({ id: assignmentPhotosTable.id, storagePath: assignmentPhotosTable.storagePath })
+      .from(assignmentPhotosTable)
+      .where(
+        and(
+          eq(assignmentPhotosTable.assignmentId, assignmentId),
+          eq(assignmentPhotosTable.isApproved, true),
+        ),
+      )
+      .orderBy(assignmentPhotosTable.createdAt),
+  ]);
+
+  // Generate signed URLs for approved photos (server-side via admin client, bypasses storage RLS)
+  const admin = createAdminClient();
+  const approvedPhotos: ApprovedPhoto[] = await Promise.all(
+    photoRows.map(async (p) => {
+      try {
+        const { data } = await admin.storage
+          .from("assignment-photos")
+          .createSignedUrl(p.storagePath, 3600);
+        return { id: p.id, signedUrl: data?.signedUrl ?? null };
+      } catch {
+        return { id: p.id, signedUrl: null };
+      }
+    }),
+  );
 
   return {
     id:              row.id,
@@ -221,6 +258,7 @@ export async function getMyAssignmentDetail(
       sortOrder: t.sortOrder,
       notes:     t.notes ?? null,
     })),
+    approvedPhotos,
   };
 }
 

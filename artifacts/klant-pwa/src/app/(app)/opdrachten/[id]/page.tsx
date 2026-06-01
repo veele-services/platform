@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ChevronLeft, MapPin, Clock, Calendar, Building2, Hash, CheckSquare } from "lucide-react";
+import { ChevronLeft, MapPin, Clock, Calendar, Building2, Hash, CheckSquare, ImageIcon } from "lucide-react";
 import { getMyAssignmentDetail } from "@/actions/assignments";
 import { getMyReports } from "@/actions/reports";
 import { STATUS_LABEL, STATUS_COLOR } from "@/types/assignments";
@@ -10,11 +10,10 @@ type Props = { params: Promise<{ id: string }> };
 
 /**
  * Statuses for which the task breakdown is shown to the customer.
- * Tasks are only revealed after a report has been submitted/approved —
+ * Tasks are only revealed after management has approved the report —
  * prior to that they reflect internal planning details not relevant to the client.
  */
 const SHOW_TASKS_STATUSES = new Set<AssignmentStatus>([
-  "report_submitted",
   "report_approved",
   "invoice_ready",
   "invoiced",
@@ -228,6 +227,43 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
             </div>
           </div>
         )}
+
+        {/* Management-goedgekeurde foto's — only shown once photos are approved AND report is approved */}
+        {assignment.approvedPhotos.length > 0 &&
+          ["report_approved", "invoice_ready", "invoiced", "paid", "closed"].includes(assignment.status) && (
+            <div className="rounded-2xl bg-white p-4 shadow-sm">
+              <div className="mb-3 flex items-center gap-2">
+                <ImageIcon size={15} style={{ color: "var(--color-accent)" }} />
+                <h3
+                  className="text-xs font-semibold uppercase tracking-widest"
+                  style={{ color: "var(--color-secondary)" }}
+                >
+                  Foto&apos;s werkbon
+                </h3>
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {assignment.approvedPhotos.map((photo) =>
+                  photo.signedUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={photo.id}
+                      src={photo.signedUrl}
+                      alt="Werkbon foto"
+                      className="h-24 w-24 rounded-xl object-cover"
+                    />
+                  ) : (
+                    <div
+                      key={photo.id}
+                      className="flex h-24 w-24 items-center justify-center rounded-xl"
+                      style={{ backgroundColor: "var(--color-muted)" }}
+                    >
+                      <ImageIcon size={20} style={{ color: "var(--color-muted-fg)" }} />
+                    </div>
+                  ),
+                )}
+              </div>
+            </div>
+          )}
 
         {/* Goedgekeurd werkrapport — only show approved reports (getMyReports filters to status='approved') */}
         {rapport && (

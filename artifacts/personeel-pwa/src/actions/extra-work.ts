@@ -248,6 +248,10 @@ export async function updateExtraWork(
   // Verify the item belongs to the claimed assignmentId (IDOR protection)
   if (item.assignmentId !== assignmentId) return { success: false, error: "Niet gevonden" };
 
+  // Re-check current assignment linkage (personnel may have been unlinked after initial edit)
+  const linked = await isLinked(auth.personnelId, assignmentId);
+  if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
+
   const editable = await isAssignmentEditable(assignmentId);
   if (!editable) return { success: false, error: "De opdracht is afgesloten voor verdere wijzigingen" };
 
@@ -287,18 +291,26 @@ export async function deleteExtraWork(
   if (item.createdBy !== auth.userId) return { success: false, error: "Geen toegang" };
   if (item.assignmentId !== assignmentId) return { success: false, error: "Niet gevonden" };
 
+  // Re-check current assignment linkage (personnel may have been unlinked after initial edit)
+  const linked = await isLinked(auth.personnelId, assignmentId);
+  if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
+
   const editable = await isAssignmentEditable(assignmentId);
   if (!editable) return { success: false, error: "De opdracht is afgesloten voor verdere wijzigingen" };
 
-  // Delete photos from storage first (DB cascades on delete)
+  // Fetch photos linked to this extra-work item before deleting
   const photos = await db
     .select({ storagePath: assignmentPhotosTable.storagePath })
     .from(assignmentPhotosTable)
     .where(eq(assignmentPhotosTable.extraWorkId, id));
 
   if (photos.length > 0) {
+    // Remove from storage
     const admin = createAdminClient();
     await admin.storage.from("assignment-photos").remove(photos.map((p) => p.storagePath));
+    // Explicitly delete photo DB rows — FK is ON DELETE SET NULL, NOT CASCADE,
+    // so rows are NOT automatically removed when the extra-work item is deleted.
+    await db.delete(assignmentPhotosTable).where(eq(assignmentPhotosTable.extraWorkId, id));
   }
 
   await db.delete(assignmentExtraWorkTable).where(eq(assignmentExtraWorkTable.id, id));
@@ -384,6 +396,10 @@ export async function deletePhoto(
   if (photo.uploadedBy !== auth.userId) return { success: false, error: "Geen toegang" };
   // Verify the photo belongs to the claimed assignmentId (IDOR protection)
   if (photo.assignmentId !== assignmentId) return { success: false, error: "Foto niet gevonden" };
+
+  // Re-check current assignment linkage
+  const linked = await isLinked(auth.personnelId, assignmentId);
+  if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
 
   const editable = await isAssignmentEditable(assignmentId);
   if (!editable) return { success: false, error: "De opdracht is afgesloten voor verdere wijzigingen" };
