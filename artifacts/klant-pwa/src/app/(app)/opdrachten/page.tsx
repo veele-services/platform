@@ -141,7 +141,11 @@ function AssignmentGroup({
         {items.map((a) => {
           const s = STATUS_COLOR[a.status] ?? { bg: "#F1F5F9", color: "#64748B" };
           return (
-            <div key={a.id} className="rounded-2xl bg-white p-4 shadow-sm">
+            <Link
+              key={a.id}
+              href={`/opdrachten/${a.id}`}
+              className="block rounded-2xl bg-white p-4 shadow-sm transition-all active:scale-[0.99]"
+            >
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-2 mb-1">
@@ -174,7 +178,7 @@ function AssignmentGroup({
                   {STATUS_LABEL[a.status] ?? a.status}
                 </span>
               </div>
-            </div>
+            </Link>
           );
         })}
       </div>

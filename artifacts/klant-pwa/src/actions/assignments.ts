@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import {
   assignmentsTable,
   objectsTable,
+  assignmentTasksTable,
   insertAssignmentSchema,
   type AssignmentStatus,
 } from "@workspace/db";
@@ -128,6 +129,99 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
   if (!inserted) return { success: false, message: "Aanmaken mislukt." };
 
   return { success: true, id: inserted.id };
+}
+
+// ─── Assignment detail ────────────────────────────────────────────────────────
+
+export type CustomerAssignmentDetail = {
+  id:             string;
+  code:           string;
+  title:          string;
+  description:    string | null;
+  status:         AssignmentStatus;
+  scheduledDate:  string | null;
+  scheduledStart: string | null;
+  scheduledEnd:   string | null;
+  objectName:     string | null;
+  objectAddress:  string | null;
+  objectCity:     string | null;
+  objectPostalCode: string | null;
+  createdAt:      string;
+  tasks: {
+    id:        string;
+    sortOrder: number;
+    notes:     string | null;
+  }[];
+};
+
+/**
+ * Fetch full detail for a single assignment belonging to the logged-in customer.
+ * Only the assignment's own customer may access this data.
+ */
+export async function getMyAssignmentDetail(
+  assignmentId: string,
+): Promise<CustomerAssignmentDetail | null> {
+  const customerId = await getMyCustomerId();
+  if (!customerId) return null;
+
+  const [row] = await db
+    .select({
+      id:              assignmentsTable.id,
+      code:            assignmentsTable.code,
+      title:           assignmentsTable.title,
+      description:     assignmentsTable.description,
+      status:          assignmentsTable.status,
+      scheduledDate:   assignmentsTable.scheduledDate,
+      scheduledStart:  assignmentsTable.scheduledStart,
+      scheduledEnd:    assignmentsTable.scheduledEnd,
+      createdAt:       assignmentsTable.createdAt,
+      objectName:      objectsTable.name,
+      objectAddress:   objectsTable.address,
+      objectCity:      objectsTable.city,
+      objectPostalCode: objectsTable.postalCode,
+    })
+    .from(assignmentsTable)
+    .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
+    .where(
+      and(
+        eq(assignmentsTable.id, assignmentId),
+        eq(assignmentsTable.customerId, customerId),
+      ),
+    )
+    .limit(1);
+
+  if (!row) return null;
+
+  const tasks = await db
+    .select({
+      id:        assignmentTasksTable.id,
+      sortOrder: assignmentTasksTable.sortOrder,
+      notes:     assignmentTasksTable.notes,
+    })
+    .from(assignmentTasksTable)
+    .where(eq(assignmentTasksTable.assignmentId, assignmentId))
+    .orderBy(assignmentTasksTable.sortOrder);
+
+  return {
+    id:              row.id,
+    code:            row.code,
+    title:           row.title,
+    description:     row.description ?? null,
+    status:          row.status as AssignmentStatus,
+    scheduledDate:   row.scheduledDate,
+    scheduledStart:  row.scheduledStart,
+    scheduledEnd:    row.scheduledEnd,
+    createdAt:       row.createdAt.toISOString(),
+    objectName:      row.objectName ?? null,
+    objectAddress:   row.objectAddress ?? null,
+    objectCity:      row.objectCity ?? null,
+    objectPostalCode: row.objectPostalCode ?? null,
+    tasks:           tasks.map((t) => ({
+      id:        t.id,
+      sortOrder: t.sortOrder,
+      notes:     t.notes ?? null,
+    })),
+  };
 }
 
 // ─── Quote approval workflow ──────────────────────────────────────────────────

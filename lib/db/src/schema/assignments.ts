@@ -6,6 +6,7 @@ import {
   boolean,
   timestamp,
   integer,
+  numeric,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
@@ -155,6 +156,41 @@ export const assignmentTasksTable = pgTable("assignment_tasks", {
   notes:        text("notes"),
   sortOrder:    integer("sort_order").notNull().default(0),
 });
+
+/** Extra work added by personnel during or after assignment execution. */
+export const assignmentExtraWorkTable = pgTable("assignment_extra_work", {
+  id:           uuid("id").primaryKey().defaultRandom(),
+  assignmentId: uuid("assignment_id")
+    .notNull()
+    .references(() => assignmentsTable.id, { onDelete: "cascade" }),
+  taskCodeId:   uuid("task_code_id")
+    .references(() => taskCodesTable.id, { onDelete: "set null" }),
+  /** Snapshot of task code name at time of entry — preserved if code is later renamed. */
+  taskCodeName: varchar("task_code_name", { length: 200 }),
+  description:  text("description").notNull(),
+  hours:        numeric("hours", { precision: 5, scale: 2 }),
+  price:        numeric("price", { precision: 10, scale: 2 }),
+  createdBy:    uuid("created_by").notNull(),
+  createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Photos uploaded by personnel for an assignment (optionally linked to an extra work item). */
+export const assignmentPhotosTable = pgTable("assignment_photos", {
+  id:           uuid("id").primaryKey().defaultRandom(),
+  assignmentId: uuid("assignment_id")
+    .notNull()
+    .references(() => assignmentsTable.id, { onDelete: "cascade" }),
+  extraWorkId:  uuid("extra_work_id")
+    .references(() => assignmentExtraWorkTable.id, { onDelete: "set null" }),
+  storagePath:  text("storage_path").notNull(),
+  uploadedBy:   uuid("uploaded_by").notNull(),
+  createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+export type AssignmentExtraWork       = typeof assignmentExtraWorkTable.$inferSelect;
+export type InsertAssignmentExtraWork = typeof assignmentExtraWorkTable.$inferInsert;
+export type AssignmentPhoto           = typeof assignmentPhotosTable.$inferSelect;
+export type InsertAssignmentPhoto     = typeof assignmentPhotosTable.$inferInsert;
 
 // ─── Zod schemas ───────────────────────────────────────────────────────────────
 
