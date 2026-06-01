@@ -239,6 +239,43 @@ export function buildInvoiceEmail(opts: {
   return { subject, html };
 }
 
+// 6. Betalingsherinnering → klant
+export function buildPaymentReminderEmail(opts: {
+  customerName:  string;
+  invoiceNumber: string;
+  totalAmount:   string;
+  dueDate:       string;
+}): { subject: string; html: string } {
+  const portalUrl = klantPortalUrl();
+  const amount    = parseFloat(opts.totalAmount).toLocaleString("nl-NL", {
+    style:    "currency",
+    currency: "EUR",
+  });
+  const subject = `Betalingsherinnering factuur ${opts.invoiceNumber}`;
+  const html    = baseTemplate(subject, `
+    <h2 style="margin-top:0;color:${BRAND_COLOR}">Betalingsherinnering</h2>
+    <p>Beste ${opts.customerName},</p>
+    <p>
+      Wij constateren dat onderstaande factuur nog niet is voldaan.
+      Wij verzoeken u vriendelijk het openstaande bedrag zo spoedig mogelijk te betalen.
+    </p>
+    <table style="width:100%;border-collapse:collapse;margin:16px 0">
+      <tr><td style="padding:8px 0;border-bottom:1px solid #e2e8f0;color:#64748b">Factuurnummer</td>
+          <td style="padding:8px 0;border-bottom:1px solid #e2e8f0;font-weight:600">${opts.invoiceNumber}</td></tr>
+      <tr><td style="padding:8px 0;border-bottom:1px solid #e2e8f0;color:#64748b">Bedrag</td>
+          <td style="padding:8px 0;border-bottom:1px solid #e2e8f0;font-weight:600">${amount}</td></tr>
+      <tr><td style="padding:8px 0;color:#64748b">Vervaldatum</td>
+          <td style="padding:8px 0;font-weight:600;color:#dc2626">${opts.dueDate}</td></tr>
+    </table>
+    ${ctaButton(`${portalUrl}/facturen`, "Factuur bekijken &amp; betalen")}
+    <p style="font-size:13px;color:#64748b">
+      Heeft u al betaald? Dan kunt u dit bericht als niet verzonden beschouwen.
+      Neem bij vragen contact op met ons.
+    </p>
+  `);
+  return { subject, html };
+}
+
 // 4. Offerte verstuurd → klant
 export function buildQuoteSentEmail(opts: {
   customerName: string;

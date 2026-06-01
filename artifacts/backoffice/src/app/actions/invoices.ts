@@ -14,11 +14,11 @@ import {
   type AssignmentStatus,
   type InvoiceStatus,
 } from "@workspace/db";
-import { eq, ilike, or, and, asc, desc, sql, inArray } from "drizzle-orm";
+import { eq, ilike, or, and, asc, desc, sql, inArray, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
-import { sendEmailWithResult, buildInvoiceEmail, klantPortalUrl } from "@/lib/email";
+import { sendEmailWithResult, buildInvoiceEmail, buildPaymentReminderEmail, klantPortalUrl } from "@/lib/email";
 import { generateInvoicePdf } from "@/lib/invoice-pdf";
 import type { ActionResult } from "./customers";
 
@@ -340,6 +340,83 @@ export async function getOutstandingInvoicesCount(): Promise<number> {
     .where(inArray(invoicesTable.status, ["draft", "sent"]));
 
   return count ?? 0;
+}
+
+export async function getOverdueInvoicesCount(): Promise<number> {
+  const canRead = await hasPermission("invoices", "read");
+  if (!canRead) return 0;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(invoicesTable)
+    .where(and(eq(invoicesTable.status, "sent"), lt(invoicesTable.dueDate, today)));
+
+  return count ?? 0;
+}
+
+export type SendRemindersResult = { sent: number; skipped: number };
+
+export async function sendPaymentReminders(): Promise<ActionResult<SendRemindersResult>> {
+  await requirePermission("invoices", "write");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const overdueRows = await db
+    .select({
+      id:            invoicesTable.id,
+      invoiceNumber: invoicesTable.invoiceNumber,
+      totalAmount:   invoicesTable.totalAmount,
+      dueDate:       invoicesTable.dueDate,
+      customerEmail: customersTable.contactEmail,
+      customerName:  customersTable.name,
+    })
+    .from(invoicesTable)
+    .innerJoin(customersTable, eq(invoicesTable.customerId, customersTable.id))
+    .where(and(eq(invoicesTable.status, "sent"), lt(invoicesTable.dueDate, today)));
+
+  let sent    = 0;
+  let skipped = 0;
+
+  for (const row of overdueRows) {
+    if (!row.customerEmail) {
+      skipped++;
+      continue;
+    }
+
+    const dueDateFormatted = new Date(row.dueDate + "T00:00:00").toLocaleDateString("nl-NL", {
+      day: "numeric", month: "long", year: "numeric",
+    });
+
+    const { subject, html } = buildPaymentReminderEmail({
+      customerName:  row.customerName ?? "",
+      invoiceNumber: row.invoiceNumber,
+      totalAmount:   row.totalAmount ?? "0",
+      dueDate:       dueDateFormatted,
+    });
+
+    const result = await sendEmailWithResult({ to: row.customerEmail, subject, html });
+
+    if (result.success) {
+      await db.insert(auditLogTable).values({
+        userId:     user.id,
+        action:     "send_payment_reminder",
+        resource:   "invoices",
+        resourceId: row.id,
+        metadata:   { to: row.customerEmail, invoiceNumber: row.invoiceNumber },
+      });
+      sent++;
+    } else {
+      skipped++;
+    }
+  }
+
+  revalidatePath("/invoices");
+  return { success: true, data: { sent, skipped } };
 }
 
 export async function getInvoiceSummary(): Promise<InvoiceSummary> {
