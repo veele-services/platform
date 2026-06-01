@@ -254,7 +254,9 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
   async function handleDeletePhoto(itemId: string, photo: PhotoState) {
     setDeletingId(photo.id);
     try {
-      const result = await deletePhoto(photo.id, photo.storagePath, assignmentId);
+      // storagePath is intentionally NOT sent to the server — deletePhoto loads it
+      // from the DB by photoId to prevent arbitrary storage object deletion.
+      const result = await deletePhoto(photo.id, assignmentId);
       if (result.success) {
         setItems((prev) =>
           prev.map((item) =>

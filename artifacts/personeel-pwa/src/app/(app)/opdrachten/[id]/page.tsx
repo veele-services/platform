@@ -184,7 +184,16 @@ export default async function WerkbonDetailPage({ params }: Props) {
 
         {/* Rapport */}
         {canSubmitReport && (
-          <RapportForm assignmentId={assignment.id} assignmentStatus={assignment.status} />
+          <RapportForm
+            assignmentId={assignment.id}
+            assignmentStatus={assignment.status}
+            extraWorkItems={extraWork.map((i) => ({
+              id:          i.id,
+              description: i.description,
+              hours:       i.hours,
+              price:       i.price,
+            }))}
+          />
         )}
         {showReport && report && <RapportDetail report={report} />}
 

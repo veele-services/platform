@@ -362,31 +362,36 @@ export async function savePhotoPath(
 
 export async function deletePhoto(
   photoId:      string,
-  storagePath:  string,
   assignmentId: string,
 ): Promise<{ success: boolean; error?: string }> {
   const auth = await getAuthAndPersonnel();
   if (!auth) return { success: false, error: "Niet ingelogd" };
 
-  // Verify ownership and that the photo belongs to this assignment
+  // Load the canonical storagePath from DB — never trust a client-supplied path.
+  // This prevents an authenticated user from deleting arbitrary storage objects
+  // by passing a crafted storagePath while holding a valid photoId.
   const [photo] = await db
-    .select({ uploadedBy: assignmentPhotosTable.uploadedBy, assignmentId: assignmentPhotosTable.assignmentId })
+    .select({
+      uploadedBy:  assignmentPhotosTable.uploadedBy,
+      assignmentId: assignmentPhotosTable.assignmentId,
+      storagePath: assignmentPhotosTable.storagePath,
+    })
     .from(assignmentPhotosTable)
     .where(eq(assignmentPhotosTable.id, photoId))
     .limit(1);
 
   if (!photo) return { success: false, error: "Foto niet gevonden" };
   if (photo.uploadedBy !== auth.userId) return { success: false, error: "Geen toegang" };
+  // Verify the photo belongs to the claimed assignmentId (IDOR protection)
   if (photo.assignmentId !== assignmentId) return { success: false, error: "Foto niet gevonden" };
 
   const editable = await isAssignmentEditable(assignmentId);
   if (!editable) return { success: false, error: "De opdracht is afgesloten voor verdere wijzigingen" };
 
-  // Remove from storage
+  // Delete from storage using DB-backed storagePath only
   const admin = createAdminClient();
-  await admin.storage.from("assignment-photos").remove([storagePath]);
+  await admin.storage.from("assignment-photos").remove([photo.storagePath]);
 
-  // Remove from DB
   await db.delete(assignmentPhotosTable).where(eq(assignmentPhotosTable.id, photoId));
 
   revalidatePath(`/opdrachten/${assignmentId}`);

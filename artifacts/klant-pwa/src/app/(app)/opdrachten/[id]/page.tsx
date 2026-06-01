@@ -9,16 +9,11 @@ import type { AssignmentStatus } from "@workspace/db";
 type Props = { params: Promise<{ id: string }> };
 
 /**
- * Statuses for which the task breakdown is meaningful to show.
- * Before scheduling the customer only sees meta-information; the
- * task breakdown is only relevant once the assignment is in execution.
+ * Statuses for which the task breakdown is shown to the customer.
+ * Tasks are only revealed after a report has been submitted/approved —
+ * prior to that they reflect internal planning details not relevant to the client.
  */
 const SHOW_TASKS_STATUSES = new Set<AssignmentStatus>([
-  "scheduled",
-  "seen",
-  "in_progress",
-  "not_completed",
-  "completed",
   "report_submitted",
   "report_approved",
   "invoice_ready",
