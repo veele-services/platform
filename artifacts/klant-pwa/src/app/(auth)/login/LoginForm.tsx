@@ -98,6 +98,16 @@ export function LoginForm() {
       >
         {pending ? "Bezig met inloggen…" : "Inloggen"}
       </button>
+
+      <div className="text-center">
+        <a
+          href="/klant/wachtwoord-vergeten"
+          className="text-sm"
+          style={{ color: "#64748B" }}
+        >
+          Wachtwoord vergeten?
+        </a>
+      </div>
     </form>
   );
 }

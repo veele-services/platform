@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { signIn, type AuthFormState } from "@/app/actions/auth";
@@ -34,13 +35,33 @@ const INITIAL_STATE: AuthFormState = { error: null };
 
 interface LoginFormProps {
   supabaseConfigured: boolean;
+  successMessage?: string;
 }
 
-export function LoginForm({ supabaseConfigured }: LoginFormProps) {
+export function LoginForm({ supabaseConfigured, successMessage }: LoginFormProps) {
   const [state, formAction] = useActionState(signIn, INITIAL_STATE);
 
   return (
     <form action={formAction} className="space-y-5" noValidate>
+      {successMessage && (
+        <div
+          className="flex items-start gap-2.5 rounded-lg px-3.5 py-3"
+          style={{ backgroundColor: "#F0FDF4", border: "1px solid #BBF7D0" }}
+          role="status"
+        >
+          <p
+            style={{
+              fontFamily: "var(--font-inter), Inter, sans-serif",
+              fontSize: "13px",
+              color: "#15803D",
+              lineHeight: "1.4",
+            }}
+          >
+            {successMessage}
+          </p>
+        </div>
+      )}
+
       {state.error && (
         <div
           className="flex items-start gap-2.5 rounded-lg px-3.5 py-3"
@@ -114,6 +135,16 @@ export function LoginForm({ supabaseConfigured }: LoginFormProps) {
       </div>
 
       <SubmitButton disabled={!supabaseConfigured} />
+
+      <div className="text-center">
+        <Link
+          href="/wachtwoord-vergeten"
+          className="text-sm transition-colors hover:underline"
+          style={{ color: "#64748B" }}
+        >
+          Wachtwoord vergeten?
+        </Link>
+      </div>
     </form>
   );
 }

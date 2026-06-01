@@ -71,6 +71,16 @@ export function LoginForm() {
       >
         {isPending ? "Inloggen…" : "Inloggen"}
       </button>
+
+      <div className="text-center">
+        <a
+          href="/personeel/wachtwoord-vergeten"
+          className="text-sm"
+          style={{ color: "#64748B" }}
+        >
+          Wachtwoord vergeten?
+        </a>
+      </div>
     </form>
   );
 }

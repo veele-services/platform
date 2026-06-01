@@ -17,10 +17,14 @@ export async function middleware(request: NextRequest) {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   const { pathname } = request.nextUrl;
-  const isLoginPage = pathname === "/login";
+  const isLoginPage  = pathname === "/login";
+  const isPublicPage =
+    isLoginPage ||
+    pathname === "/wachtwoord-vergeten" ||
+    pathname.startsWith("/auth/confirm");
 
   if (!url || !key) {
-    if (isLoginPage) return NextResponse.next();
+    if (isPublicPage) return NextResponse.next();
     return NextResponse.redirect(proxyAwareUrl(`${BASE}/login`, request));
   }
 
@@ -51,7 +55,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(proxyAwareUrl(`${BASE}`, request));
   }
 
-  if (!user && !isLoginPage) {
+  if (!user && !isPublicPage) {
     return NextResponse.redirect(proxyAwareUrl(`${BASE}/login`, request));
   }
 

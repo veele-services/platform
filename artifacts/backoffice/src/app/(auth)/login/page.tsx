@@ -11,7 +11,13 @@ const supabaseConfigured = !!(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-export default function LoginPage() {
+type Props = {
+  searchParams: Promise<{ message?: string }>;
+};
+
+export default async function LoginPage({ searchParams }: Props) {
+  const { message } = await searchParams;
+
   return (
     <div
       className="w-full max-w-sm mx-4"
@@ -111,7 +117,7 @@ export default function LoginPage() {
         </div>
       )}
 
-      <LoginForm supabaseConfigured={supabaseConfigured} />
+      <LoginForm supabaseConfigured={supabaseConfigured} successMessage={message} />
     </div>
   );
 }
