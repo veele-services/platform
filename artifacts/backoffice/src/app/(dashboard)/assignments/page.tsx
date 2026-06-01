@@ -13,12 +13,13 @@ export const metadata: Metadata = {
 
 interface Props {
   searchParams: Promise<{
-    page?:     string;
-    search?:   string;
-    status?:   string;
-    priority?: string;
-    sort?:     string;
-    dir?:      string;
+    page?:         string;
+    search?:       string;
+    status?:       string;
+    priority?:     string;
+    reportStatus?: string;
+    sort?:         string;
+    dir?:          string;
   }>;
 }
 
@@ -28,15 +29,16 @@ export default async function AssignmentsPage({ searchParams }: Props) {
 
   const sp = await searchParams;
 
-  const page     = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
-  const search   = sp.search   ?? "";
-  const status   = sp.status   ?? "";
-  const priority = sp.priority ?? "";
-  const sort     = sp.sort     ?? "createdAt";
-  const dir      = sp.dir      ?? "desc";
+  const page         = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
+  const search       = sp.search       ?? "";
+  const status       = sp.status       ?? "";
+  const priority     = sp.priority     ?? "";
+  const reportStatus = sp.reportStatus ?? "";
+  const sort         = sp.sort         ?? "createdAt";
+  const dir          = sp.dir          ?? "desc";
 
   const [{ rows, total }, customers, canWrite] = await Promise.all([
-    listAssignments({ page, search, status, priority, sort, dir }),
+    listAssignments({ page, search, status, priority, reportStatus, sort, dir }),
     getCustomerOptions(),
     hasPermission("assignments", "write"),
   ]);
@@ -63,6 +65,7 @@ export default async function AssignmentsPage({ searchParams }: Props) {
         initialSearch={search}
         initialStatus={status}
         initialPriority={priority}
+        initialReportStatus={reportStatus}
         initialSort={sort}
         initialDir={dir}
       />

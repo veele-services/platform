@@ -157,23 +157,25 @@ export type TimelinePersonnelRow = {
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
 export async function listAssignments(params: {
-  page?:     number;
-  search?:   string;
-  status?:   string;
-  priority?: string;
-  sort?:     string;
-  dir?:      string;
+  page?:         number;
+  search?:       string;
+  status?:       string;
+  priority?:     string;
+  reportStatus?: string;
+  sort?:         string;
+  dir?:          string;
 }): Promise<{ rows: AssignmentRow[]; total: number }> {
   const canRead = await hasPermission("assignments", "read");
   if (!canRead) return { rows: [], total: 0 };
 
   const {
-    page     = 1,
-    search   = "",
-    status   = "",
-    priority = "",
-    sort     = "createdAt",
-    dir      = "desc",
+    page         = 1,
+    search       = "",
+    status       = "",
+    priority     = "",
+    reportStatus = "",
+    sort         = "createdAt",
+    dir          = "desc",
   } = params;
 
   const SORTABLE = ["title", "scheduledDate", "createdAt", "status", "priority"] as const;
@@ -197,6 +199,20 @@ export async function listAssignments(params: {
   }
   if (priority && ASSIGNMENT_PRIORITIES.includes(priority as AssignmentPriority)) {
     conditions.push(eq(assignmentsTable.priority, priority));
+  }
+  if (reportStatus === "none") {
+    conditions.push(
+      isNull(
+        sql<string>`(SELECT r.status FROM reports r WHERE r.assignment_id = ${assignmentsTable.id} ORDER BY r.submitted_at DESC LIMIT 1)`,
+      ),
+    );
+  } else if (["draft", "submitted", "approved", "rejected"].includes(reportStatus)) {
+    conditions.push(
+      eq(
+        sql<string>`(SELECT r.status FROM reports r WHERE r.assignment_id = ${assignmentsTable.id} ORDER BY r.submitted_at DESC LIMIT 1)`,
+        reportStatus,
+      ),
+    );
   }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;

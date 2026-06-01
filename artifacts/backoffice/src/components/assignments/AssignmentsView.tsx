@@ -137,16 +137,17 @@ const PRIORITY_LABELS: Record<AssignmentPriority, string> = {
 };
 
 interface AssignmentsViewProps {
-  rows:            AssignmentRow[];
-  total:           number;
-  customers:       CustomerOption[];
-  canWrite:        boolean;
-  page:            number;
-  initialSearch:   string;
-  initialStatus:   string;
-  initialPriority: string;
-  initialSort:     string;
-  initialDir:      string;
+  rows:                  AssignmentRow[];
+  total:                 number;
+  customers:             CustomerOption[];
+  canWrite:              boolean;
+  page:                  number;
+  initialSearch:         string;
+  initialStatus:         string;
+  initialPriority:       string;
+  initialReportStatus:   string;
+  initialSort:           string;
+  initialDir:            string;
 }
 
 function SortHeader({
@@ -195,6 +196,7 @@ export function AssignmentsView({
   initialSearch,
   initialStatus,
   initialPriority,
+  initialReportStatus,
   initialSort,
   initialDir,
 }: AssignmentsViewProps) {
@@ -212,12 +214,13 @@ export function AssignmentsView({
   function buildUrl(overrides: Record<string, string | undefined>): string {
     const params = new URLSearchParams();
     const merged: Record<string, string | undefined> = {
-      search:   initialSearch   || undefined,
-      status:   initialStatus   || undefined,
-      priority: initialPriority || undefined,
-      sort:     initialSort !== "createdAt" ? initialSort   : undefined,
-      dir:      initialDir  !== "desc"      ? initialDir    : undefined,
-      page:     page > 1 ? String(page) : undefined,
+      search:       initialSearch        || undefined,
+      status:       initialStatus        || undefined,
+      priority:     initialPriority      || undefined,
+      reportStatus: initialReportStatus  || undefined,
+      sort:         initialSort !== "createdAt" ? initialSort : undefined,
+      dir:          initialDir  !== "desc"      ? initialDir  : undefined,
+      page:         page > 1 ? String(page) : undefined,
       ...overrides,
     };
     Object.entries(merged).forEach(([k, v]) => { if (v) params.set(k, v); });
@@ -326,6 +329,22 @@ export function AssignmentsView({
             {ASSIGNMENT_PRIORITIES.map((p) => (
               <SelectItem key={p} value={p}>{PRIORITY_LABELS[p]}</SelectItem>
             ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={initialReportStatus || "all"}
+          onValueChange={(v) => applyFilter("reportStatus", v === "all" ? "" : v)}
+        >
+          <SelectTrigger className="w-[160px] h-9">
+            <SelectValue placeholder="Alle rapportstatus" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alle rapportstatus</SelectItem>
+            <SelectItem value="none">Geen rapport</SelectItem>
+            <SelectItem value="submitted">Ingediend</SelectItem>
+            <SelectItem value="approved">Goedgekeurd</SelectItem>
+            <SelectItem value="rejected">Afgekeurd</SelectItem>
           </SelectContent>
         </Select>
 
