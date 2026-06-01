@@ -90,6 +90,8 @@ export type PersonnelFormInput = {
   knowledge:    string[];
   isAvailable:  boolean;
   isActive:     boolean;
+  /** Create-mode only: send invite immediately after record is created. */
+  autoInvite?:  boolean;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -287,16 +289,42 @@ export async function createPersonnel(
       .values(parsed.data)
       .returning({ id: personnelTable.id });
 
+    const createdId = created!.id;
+
     await db.insert(auditLogTable).values({
       userId:     user.id,
       action:     "create",
       resource:   "personnel",
-      resourceId: created!.id,
+      resourceId: createdId,
       metadata:   { name: `${payload.firstName} ${payload.lastName}` },
     });
 
+    // Auto-invite: send the portal invite immediately after creating the record
+    if (data.autoInvite) {
+      const admin = createAdminClient();
+      const { data: inviteData, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
+        payload.email,
+      );
+      if (!inviteError && inviteData?.user) {
+        await db
+          .update(personnelTable)
+          .set({ inviteSentAt: new Date(), updatedAt: new Date() })
+          .where(eq(personnelTable.id, createdId));
+
+        await db.insert(auditLogTable).values({
+          userId:     user.id,
+          action:     "auto_invite_personnel",
+          resource:   "personnel",
+          resourceId: createdId,
+          metadata:   { name: `${payload.firstName} ${payload.lastName}`, email: payload.email },
+        });
+      }
+      // If the invite fails, the record is still created — failure is not surfaced
+      // so the caller can navigate to the detail page and invite manually.
+    }
+
     revalidatePath("/personnel");
-    return { success: true, data: { id: created!.id } };
+    return { success: true, data: { id: createdId } };
   } catch (err) {
     if (isUniqueViolation(err)) {
       return {
@@ -615,6 +643,58 @@ export async function updatePersonnelEmail(
     }
     return { success: false, message: "E-mailadres bijwerken mislukt." };
   }
+}
+
+/**
+ * Ban or unban a personnel member's Supabase Auth account.
+ * - ban:   sets ban_duration = '876600h' (~100 years — effectively permanent)
+ * - unban: sets ban_duration = 'none'
+ * Logs `ban_personnel_account` or `unban_personnel_account` in the audit log.
+ */
+export async function setPersonnelAuthBan(
+  id:     string,
+  banned: boolean,
+): Promise<ActionResult> {
+  await requirePermission("personnel", "write");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [person] = await db
+    .select({
+      userId:    personnelTable.userId,
+      firstName: personnelTable.firstName,
+      lastName:  personnelTable.lastName,
+    })
+    .from(personnelTable)
+    .where(eq(personnelTable.id, id))
+    .limit(1);
+
+  if (!person) return { success: false, message: "Medewerker niet gevonden." };
+  if (!person.userId) {
+    return { success: false, message: "Medewerker heeft geen portaalaccount. Stuur eerst een uitnodiging." };
+  }
+
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(person.userId, {
+    ban_duration: banned ? "876600h" : "none",
+  });
+
+  if (error) {
+    return { success: false, message: error.message ?? "Account blokkeren mislukt." };
+  }
+
+  await db.insert(auditLogTable).values({
+    userId:     user.id,
+    action:     banned ? "ban_personnel_account" : "unban_personnel_account",
+    resource:   "personnel",
+    resourceId: id,
+    metadata:   { name: `${person.firstName} ${person.lastName}` },
+  });
+
+  revalidatePath(`/personnel/${id}`);
+  return { success: true };
 }
 
 export async function deletePersonnel(id: string): Promise<ActionResult> {
