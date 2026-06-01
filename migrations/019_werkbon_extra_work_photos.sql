@@ -2,13 +2,37 @@
 -- Migration 019: Werkbon — extra werk & foto's
 -- Run manually via Supabase SQL Editor
 --
--- BEFORE running this migration:
--- 1. Create a Supabase Storage bucket named "assignment-photos"
---    (Storage → New bucket → Name: assignment-photos, Public: OFF)
--- 2. Add a Storage policy so authenticated users can upload:
---    INSERT policy: bucket_id = 'assignment-photos' AND auth.role() = 'authenticated'
---    SELECT policy: bucket_id = 'assignment-photos' AND auth.role() = 'authenticated'
---    DELETE policy: bucket_id = 'assignment-photos' AND auth.uid() = owner
+-- STORAGE SETUP (manual, via Supabase dashboard or SQL below):
+-- 1. Create bucket "assignment-photos" (Private, NOT public)
+--
+-- 2. Storage bucket RLS policies — least-privilege:
+--    a) INSERT: authenticated users may upload into their own sub-path.
+--       bucket_id = 'assignment-photos' AND auth.role() = 'authenticated'
+--       (server-side savePhotoPath action enforces ownership + assignment link)
+--
+--    b) SELECT: only the uploader may read directly via the browser client.
+--       bucket_id = 'assignment-photos' AND owner = auth.uid()
+--       NOTE: All other reads go via server-side signed URLs (admin client),
+--       so this policy is intentionally restrictive.
+--
+--    c) DELETE: only the owner via browser client (server actions use admin key).
+--       bucket_id = 'assignment-photos' AND owner = auth.uid()
+--
+-- As SQL (run in Supabase SQL editor under Storage → Policies):
+--   INSERT INTO storage.buckets (id, name, public) VALUES ('assignment-photos', 'assignment-photos', false)
+--     ON CONFLICT DO NOTHING;
+--
+--   CREATE POLICY "authenticated_upload" ON storage.objects
+--     FOR INSERT TO authenticated WITH CHECK (bucket_id = 'assignment-photos');
+--
+--   CREATE POLICY "owner_select" ON storage.objects
+--     FOR SELECT TO authenticated USING (bucket_id = 'assignment-photos' AND owner = auth.uid());
+--
+--   CREATE POLICY "owner_delete" ON storage.objects
+--     FOR DELETE TO authenticated USING (bucket_id = 'assignment-photos' AND owner = auth.uid());
+--
+-- Management (backoffice) reads photos via server-side admin client (service role key),
+-- which bypasses RLS — no additional policy needed for backoffice access.
 -- ============================================================
 
 -- Meerwerk-regels die personeel toevoegt tijdens of na uitvoering

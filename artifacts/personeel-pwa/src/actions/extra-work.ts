@@ -5,20 +5,38 @@ import {
   assignmentExtraWorkTable,
   assignmentPhotosTable,
   assignmentPersonnelTable,
+  assignmentsTable,
   personnelTable,
   taskCodesTable,
 } from "@workspace/db";
-import { eq, and, asc } from "drizzle-orm";
+import { eq, and, asc, count } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 
+// ─── Constants ─────────────────────────────────────────────────────────────────
+
+/**
+ * Statuses in which extra-work and photos are no longer mutable.
+ * Mutations attempted after these statuses are rejected server-side.
+ */
+const LOCKED_STATUSES = new Set([
+  "report_submitted",
+  "report_approved",
+  "invoice_ready",
+  "invoiced",
+  "paid",
+  "closed",
+]);
+
+const MAX_PHOTOS_PER_ITEM = 5;
+
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
 export type ExtraWorkPhoto = {
-  id:         string;
+  id:          string;
   storagePath: string;
-  signedUrl:  string | null;
+  signedUrl:   string | null;
 };
 
 export type ExtraWorkItem = {
@@ -37,6 +55,14 @@ export type TaskCodeOption = {
   code:  string;
   name:  string;
   price: string | null;
+};
+
+export type ExtraWorkInput = {
+  taskCodeId?:   string | null;
+  taskCodeName?: string | null;
+  description:   string;
+  hours?:        string | null;
+  price?:        string | null;
 };
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
@@ -71,12 +97,26 @@ async function isLinked(personnelId: string, assignmentId: string): Promise<bool
   return !!row;
 }
 
+/**
+ * Returns false when the assignment status prevents further edits.
+ * This is the server-side enforcement of the "locked after report submission" rule.
+ */
+async function isAssignmentEditable(assignmentId: string): Promise<boolean> {
+  const [row] = await db
+    .select({ status: assignmentsTable.status })
+    .from(assignmentsTable)
+    .where(eq(assignmentsTable.id, assignmentId))
+    .limit(1);
+  if (!row) return false;
+  return !LOCKED_STATUSES.has(row.status);
+}
+
 async function generateSignedUrl(storagePath: string): Promise<string | null> {
   try {
     const admin = createAdminClient();
     const { data } = await admin.storage
       .from("assignment-photos")
-      .createSignedUrl(storagePath, 3600); // 1 hour
+      .createSignedUrl(storagePath, 3600); // 1 hour validity
     return data?.signedUrl ?? null;
   } catch {
     return null;
@@ -126,13 +166,13 @@ export async function getExtraWorkForAssignment(assignmentId: string): Promise<E
     .where(eq(assignmentPhotosTable.assignmentId, assignmentId))
     .orderBy(asc(assignmentPhotosTable.createdAt));
 
-  // Generate signed URLs for each photo
+  // Generate signed URLs for each photo (parallel)
   const photosWithUrls = await Promise.all(
     allPhotos.map(async (p) => ({
-      id:         p.id,
+      id:          p.id,
       storagePath: p.storagePath,
       extraWorkId: p.extraWorkId,
-      signedUrl:  await generateSignedUrl(p.storagePath),
+      signedUrl:   await generateSignedUrl(p.storagePath),
     })),
   );
 
@@ -152,23 +192,18 @@ export async function getExtraWorkForAssignment(assignmentId: string): Promise<E
 
 // ─── Mutations ─────────────────────────────────────────────────────────────────
 
-export type AddExtraWorkInput = {
-  taskCodeId?:   string | null;
-  taskCodeName?: string | null;
-  description:   string;
-  hours?:        string | null;
-  price?:        string | null;
-};
-
 export async function addExtraWork(
   assignmentId: string,
-  input: AddExtraWorkInput,
+  input: ExtraWorkInput,
 ): Promise<{ success: boolean; id?: string; error?: string }> {
   const auth = await getAuthAndPersonnel();
   if (!auth) return { success: false, error: "Niet ingelogd" };
 
   const linked = await isLinked(auth.personnelId, assignmentId);
   if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
+
+  const editable = await isAssignmentEditable(assignmentId);
+  if (!editable) return { success: false, error: "De opdracht is afgesloten voor verdere wijzigingen" };
 
   const description = input.description.trim();
   if (!description) return { success: false, error: "Omschrijving is verplicht" };
@@ -192,16 +227,17 @@ export async function addExtraWork(
   return { success: true, id: row.id };
 }
 
-export async function deleteExtraWork(
+export async function updateExtraWork(
   id: string,
   assignmentId: string,
+  input: ExtraWorkInput,
 ): Promise<{ success: boolean; error?: string }> {
   const auth = await getAuthAndPersonnel();
   if (!auth) return { success: false, error: "Niet ingelogd" };
 
   // Verify ownership
   const [item] = await db
-    .select({ createdBy: assignmentExtraWorkTable.createdBy })
+    .select({ createdBy: assignmentExtraWorkTable.createdBy, assignmentId: assignmentExtraWorkTable.assignmentId })
     .from(assignmentExtraWorkTable)
     .where(eq(assignmentExtraWorkTable.id, id))
     .limit(1);
@@ -209,13 +245,57 @@ export async function deleteExtraWork(
   if (!item) return { success: false, error: "Niet gevonden" };
   if (item.createdBy !== auth.userId) return { success: false, error: "Geen toegang" };
 
-  // Get photos to delete from storage
+  // Verify the item belongs to the claimed assignmentId (IDOR protection)
+  if (item.assignmentId !== assignmentId) return { success: false, error: "Niet gevonden" };
+
+  const editable = await isAssignmentEditable(assignmentId);
+  if (!editable) return { success: false, error: "De opdracht is afgesloten voor verdere wijzigingen" };
+
+  const description = input.description.trim();
+  if (!description) return { success: false, error: "Omschrijving is verplicht" };
+
+  await db
+    .update(assignmentExtraWorkTable)
+    .set({
+      taskCodeId:   input.taskCodeId ?? null,
+      taskCodeName: input.taskCodeName ?? null,
+      description,
+      hours:        input.hours?.trim() || null,
+      price:        input.price?.trim() || null,
+    })
+    .where(eq(assignmentExtraWorkTable.id, id));
+
+  revalidatePath(`/opdrachten/${assignmentId}`);
+  return { success: true };
+}
+
+export async function deleteExtraWork(
+  id: string,
+  assignmentId: string,
+): Promise<{ success: boolean; error?: string }> {
+  const auth = await getAuthAndPersonnel();
+  if (!auth) return { success: false, error: "Niet ingelogd" };
+
+  // Verify ownership and assignment membership
+  const [item] = await db
+    .select({ createdBy: assignmentExtraWorkTable.createdBy, assignmentId: assignmentExtraWorkTable.assignmentId })
+    .from(assignmentExtraWorkTable)
+    .where(eq(assignmentExtraWorkTable.id, id))
+    .limit(1);
+
+  if (!item) return { success: false, error: "Niet gevonden" };
+  if (item.createdBy !== auth.userId) return { success: false, error: "Geen toegang" };
+  if (item.assignmentId !== assignmentId) return { success: false, error: "Niet gevonden" };
+
+  const editable = await isAssignmentEditable(assignmentId);
+  if (!editable) return { success: false, error: "De opdracht is afgesloten voor verdere wijzigingen" };
+
+  // Delete photos from storage first (DB cascades on delete)
   const photos = await db
     .select({ storagePath: assignmentPhotosTable.storagePath })
     .from(assignmentPhotosTable)
     .where(eq(assignmentPhotosTable.extraWorkId, id));
 
-  // Delete from storage (fire-and-forget — DB cascades on delete)
   if (photos.length > 0) {
     const admin = createAdminClient();
     await admin.storage.from("assignment-photos").remove(photos.map((p) => p.storagePath));
@@ -238,6 +318,32 @@ export async function savePhotoPath(
   const linked = await isLinked(auth.personnelId, assignmentId);
   if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
 
+  const editable = await isAssignmentEditable(assignmentId);
+  if (!editable) return { success: false, error: "De opdracht is afgesloten voor verdere wijzigingen" };
+
+  // Verify extraWorkId belongs to this assignmentId (IDOR / path traversal protection)
+  const [ew] = await db
+    .select({ id: assignmentExtraWorkTable.id })
+    .from(assignmentExtraWorkTable)
+    .where(
+      and(
+        eq(assignmentExtraWorkTable.id, extraWorkId),
+        eq(assignmentExtraWorkTable.assignmentId, assignmentId),
+      ),
+    )
+    .limit(1);
+  if (!ew) return { success: false, error: "Meerwerk-item niet gevonden" };
+
+  // Enforce max 5 photos per extra-work item (server-side)
+  const [photoCount] = await db
+    .select({ cnt: count() })
+    .from(assignmentPhotosTable)
+    .where(eq(assignmentPhotosTable.extraWorkId, extraWorkId));
+
+  if ((photoCount?.cnt ?? 0) >= MAX_PHOTOS_PER_ITEM) {
+    return { success: false, error: `Maximaal ${MAX_PHOTOS_PER_ITEM} foto's per meerwerk-item toegestaan` };
+  }
+
   const [row] = await db
     .insert(assignmentPhotosTable)
     .values({
@@ -255,28 +361,32 @@ export async function savePhotoPath(
 }
 
 export async function deletePhoto(
-  photoId:     string,
-  storagePath: string,
+  photoId:      string,
+  storagePath:  string,
   assignmentId: string,
 ): Promise<{ success: boolean; error?: string }> {
   const auth = await getAuthAndPersonnel();
   if (!auth) return { success: false, error: "Niet ingelogd" };
 
-  // Verify ownership
+  // Verify ownership and that the photo belongs to this assignment
   const [photo] = await db
-    .select({ uploadedBy: assignmentPhotosTable.uploadedBy })
+    .select({ uploadedBy: assignmentPhotosTable.uploadedBy, assignmentId: assignmentPhotosTable.assignmentId })
     .from(assignmentPhotosTable)
     .where(eq(assignmentPhotosTable.id, photoId))
     .limit(1);
 
   if (!photo) return { success: false, error: "Foto niet gevonden" };
   if (photo.uploadedBy !== auth.userId) return { success: false, error: "Geen toegang" };
+  if (photo.assignmentId !== assignmentId) return { success: false, error: "Foto niet gevonden" };
 
-  // Delete from storage
+  const editable = await isAssignmentEditable(assignmentId);
+  if (!editable) return { success: false, error: "De opdracht is afgesloten voor verdere wijzigingen" };
+
+  // Remove from storage
   const admin = createAdminClient();
   await admin.storage.from("assignment-photos").remove([storagePath]);
 
-  // Delete from DB
+  // Remove from DB
   await db.delete(assignmentPhotosTable).where(eq(assignmentPhotosTable.id, photoId));
 
   revalidatePath(`/opdrachten/${assignmentId}`);

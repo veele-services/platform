@@ -8,6 +8,25 @@ import type { AssignmentStatus } from "@workspace/db";
 
 type Props = { params: Promise<{ id: string }> };
 
+/**
+ * Statuses for which the task breakdown is meaningful to show.
+ * Before scheduling the customer only sees meta-information; the
+ * task breakdown is only relevant once the assignment is in execution.
+ */
+const SHOW_TASKS_STATUSES = new Set<AssignmentStatus>([
+  "scheduled",
+  "seen",
+  "in_progress",
+  "not_completed",
+  "completed",
+  "report_submitted",
+  "report_approved",
+  "invoice_ready",
+  "invoiced",
+  "paid",
+  "closed",
+]);
+
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "";
   const d = new Date(dateStr + "T00:00:00");
@@ -42,8 +61,10 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
 
   if (!assignment) notFound();
 
-  // Find approved report for this assignment (if any)
+  // Only show the approved report for this specific assignment
   const rapport = reports.find((r) => r.assignmentId === assignment.id);
+
+  const showTasks = SHOW_TASKS_STATUSES.has(assignment.status) && assignment.tasks.length > 0;
 
   const addressLine = [
     assignment.objectAddress,
@@ -177,8 +198,8 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
           </div>
         )}
 
-        {/* Geplande werkzaamheden */}
-        {assignment.tasks.length > 0 && (
+        {/* Geplande werkzaamheden — only shown once assignment is scheduled/active/done */}
+        {showTasks && (
           <div className="rounded-2xl bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center gap-2">
               <CheckSquare size={15} style={{ color: "var(--color-accent)" }} />
@@ -213,7 +234,7 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
           </div>
         )}
 
-        {/* Goedgekeurd rapport */}
+        {/* Goedgekeurd werkrapport — only show approved reports (getMyReports filters to status='approved') */}
         {rapport && (
           <div className="rounded-2xl bg-white p-4 shadow-sm">
             <h3
@@ -223,7 +244,10 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
               Werkrapport
             </h3>
 
-            <p className="mb-3 text-sm leading-relaxed whitespace-pre-wrap" style={{ color: "var(--color-primary)" }}>
+            <p
+              className="mb-3 text-sm leading-relaxed"
+              style={{ color: "var(--color-primary)", whiteSpace: "pre-wrap" }}
+            >
               {rapport.content}
             </p>
 
@@ -252,17 +276,20 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
           </div>
         )}
 
-        {/* Geen rapport beschikbaar */}
-        {!rapport && ["requested", "review", "quote_preparation", "awaiting_approval", "approved", "plannable", "scheduled", "seen", "in_progress"].includes(assignment.status) && (
-          <div
-            className="rounded-2xl p-4 text-center"
-            style={{ backgroundColor: "var(--color-muted)" }}
-          >
-            <p className="text-sm" style={{ color: "var(--color-muted-fg)" }}>
-              Het werkrapport is nog niet beschikbaar.
-            </p>
-          </div>
-        )}
+        {/* Rapport nog niet beschikbaar — shown for active/open statuses without an approved report */}
+        {!rapport &&
+          !["report_approved", "invoice_ready", "invoiced", "paid", "closed"].includes(
+            assignment.status,
+          ) && (
+            <div
+              className="rounded-2xl p-4 text-center"
+              style={{ backgroundColor: "var(--color-muted)" }}
+            >
+              <p className="text-sm" style={{ color: "var(--color-muted-fg)" }}>
+                Het werkrapport is nog niet beschikbaar.
+              </p>
+            </div>
+          )}
 
       </div>
     </div>
