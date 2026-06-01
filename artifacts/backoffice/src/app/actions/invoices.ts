@@ -355,7 +355,7 @@ export async function getOverdueInvoicesCount(): Promise<number> {
   return count ?? 0;
 }
 
-export type SendRemindersResult = { sent: number; skipped: number };
+export type SendRemindersResult = { sent: number; skippedNoEmail: number; failedSend: number };
 
 export async function sendPaymentReminders(): Promise<ActionResult<SendRemindersResult>> {
   await requirePermission("invoices", "write");
@@ -377,17 +377,27 @@ export async function sendPaymentReminders(): Promise<ActionResult<SendReminders
     })
     .from(invoicesTable)
     .innerJoin(customersTable, eq(invoicesTable.customerId, customersTable.id))
-    .where(and(eq(invoicesTable.status, "sent"), lt(invoicesTable.dueDate, today)));
+    .where(and(eq(invoicesTable.status, "sent"), lt(invoicesTable.dueDate, today)))
+    .orderBy(asc(invoicesTable.dueDate));
 
-  let sent    = 0;
-  let skipped = 0;
+  // Split: no email vs has email
+  const noEmailRows = overdueRows.filter((r) => !r.customerEmail);
 
+  // Deduplicate by customer email — pick the oldest overdue invoice per customer
+  // (rows already ordered by due_date asc, so first occurrence per email is the oldest)
+  const seenEmails = new Set<string>();
+  const deduped: typeof overdueRows = [];
   for (const row of overdueRows) {
-    if (!row.customerEmail) {
-      skipped++;
-      continue;
-    }
+    if (!row.customerEmail) continue;
+    if (seenEmails.has(row.customerEmail)) continue;
+    seenEmails.add(row.customerEmail);
+    deduped.push(row);
+  }
 
+  let sent       = 0;
+  let failedSend = 0;
+
+  for (const row of deduped) {
     const dueDateFormatted = new Date(row.dueDate + "T00:00:00").toLocaleDateString("nl-NL", {
       day: "numeric", month: "long", year: "numeric",
     });
@@ -399,7 +409,7 @@ export async function sendPaymentReminders(): Promise<ActionResult<SendReminders
       dueDate:       dueDateFormatted,
     });
 
-    const result = await sendEmailWithResult({ to: row.customerEmail, subject, html });
+    const result = await sendEmailWithResult({ to: row.customerEmail!, subject, html });
 
     if (result.success) {
       await db.insert(auditLogTable).values({
@@ -411,12 +421,12 @@ export async function sendPaymentReminders(): Promise<ActionResult<SendReminders
       });
       sent++;
     } else {
-      skipped++;
+      failedSend++;
     }
   }
 
   revalidatePath("/invoices");
-  return { success: true, data: { sent, skipped } };
+  return { success: true, data: { sent, skippedNoEmail: noEmailRows.length, failedSend } };
 }
 
 export async function getInvoiceSummary(): Promise<InvoiceSummary> {

@@ -77,11 +77,15 @@ export function InvoicesView({ rows, total, page, search, statusFilter, canWrite
     const result = await sendPaymentReminders();
     setReminderLoading(false);
     if (result.success && "data" in result && result.data) {
-      const { sent, skipped } = (result as { success: true; data: { sent: number; skipped: number } }).data;
-      const msg = skipped > 0
-        ? `${sent} herinnering${sent !== 1 ? "en" : ""} verstuurd, ${skipped} overgeslagen (geen e-mailadres)`
-        : `${sent} herinnering${sent !== 1 ? "en" : ""} verstuurd`;
-      toast.success(msg);
+      const { sent, skippedNoEmail, failedSend } = (result as { success: true; data: { sent: number; skippedNoEmail: number; failedSend: number } }).data;
+      const parts: string[] = [`${sent} herinnering${sent !== 1 ? "en" : ""} verstuurd`];
+      if (skippedNoEmail > 0) parts.push(`${skippedNoEmail} overgeslagen (geen e-mailadres)`);
+      if (failedSend > 0)     parts.push(`${failedSend} mislukt`);
+      if (failedSend > 0) {
+        toast.warning(parts.join(", "));
+      } else {
+        toast.success(parts.join(", "));
+      }
     } else {
       toast.error((result as { success: false; message?: string }).message ?? "Verzenden mislukt");
     }
