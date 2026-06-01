@@ -24,6 +24,15 @@ export type { AvailabilityStatus } from "./availability";
 export type RoleOption = { id: string; name: string };
 
 /**
+ * Auth-account status for a personnel member:
+ * - none     — no invite sent, no account
+ * - invited  — invite sent, account not yet activated
+ * - active   — account exists and is not banned
+ * - disabled — account exists but is banned in Supabase Auth
+ */
+export type PersonnelAuthStatus = "none" | "invited" | "active" | "disabled";
+
+/**
  * Personnel names are internal management data.
  * Customer-role users do NOT have personnel:read permission, so they can never
  * call these server actions or access personnel routes.
@@ -504,6 +513,108 @@ export async function invitePersonnel(id: string): Promise<ActionResult> {
 
   revalidatePath(`/personnel/${id}`);
   return { success: true };
+}
+
+// ─── Auth-status query ────────────────────────────────────────────────────────
+
+/**
+ * Derives the portal auth-status for a personnel member.
+ * Falls back to "active" if the Admin API call fails, so the UI never hides
+ * a functional account just because of a transient API error.
+ */
+export async function getPersonnelAuthStatus(id: string): Promise<PersonnelAuthStatus> {
+  await requirePermission("personnel", "read");
+
+  const [person] = await db
+    .select({ userId: personnelTable.userId, inviteSentAt: personnelTable.inviteSentAt })
+    .from(personnelTable)
+    .where(eq(personnelTable.id, id))
+    .limit(1);
+
+  if (!person) return "none";
+  if (!person.userId) return person.inviteSentAt ? "invited" : "none";
+
+  // userId is set — verify via Admin API whether the account is still active.
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin.auth.admin.getUserById(person.userId);
+    if (error || !data?.user) return "active";
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const u = data.user as any;
+    const bannedUntil: string | null | undefined = u.banned_until;
+    // Supabase sets banned_until to "none" when the ban is lifted; any future ISO date = banned.
+    if (bannedUntil && bannedUntil !== "none" && new Date(bannedUntil) > new Date()) {
+      return "disabled";
+    }
+    if (u.deleted_at) return "disabled";
+    return "active";
+  } catch {
+    return "active"; // safe fallback — never hide a potentially active account
+  }
+}
+
+// ─── Email-only update (pre-invite) ──────────────────────────────────────────
+
+/**
+ * Allows management to correct the invite e-mail before the first invite is sent.
+ * Blocked when a userId is already linked (account is active — use Supabase dashboard).
+ */
+export async function updatePersonnelEmail(
+  id:    string,
+  email: string,
+): Promise<ActionResult> {
+  await requirePermission("personnel", "write");
+
+  const trimmed = email.trim().toLowerCase();
+  if (!trimmed || !trimmed.includes("@")) {
+    return { success: false, message: "Ongeldig e-mailadres." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [person] = await db
+    .select({ userId: personnelTable.userId })
+    .from(personnelTable)
+    .where(eq(personnelTable.id, id))
+    .limit(1);
+
+  if (!person) return { success: false, message: "Medewerker niet gevonden." };
+  if (person.userId) {
+    return {
+      success: false,
+      message: "E-mailadres kan niet worden gewijzigd van een account dat al actief is. Gebruik het Supabase dashboard.",
+    };
+  }
+
+  try {
+    await db
+      .update(personnelTable)
+      .set({ email: trimmed, updatedAt: new Date() })
+      .where(eq(personnelTable.id, id));
+
+    await db.insert(auditLogTable).values({
+      userId:     user.id,
+      action:     "update_email",
+      resource:   "personnel",
+      resourceId: id,
+      metadata:   { email: trimmed },
+    });
+
+    revalidatePath(`/personnel/${id}`);
+    return { success: true };
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      return {
+        success: false,
+        message:     "Dit e-mailadres is al in gebruik bij een andere medewerker.",
+        fieldErrors: { email: "E-mailadres is al in gebruik" },
+      };
+    }
+    return { success: false, message: "E-mailadres bijwerken mislukt." };
+  }
 }
 
 export async function deletePersonnel(id: string): Promise<ActionResult> {

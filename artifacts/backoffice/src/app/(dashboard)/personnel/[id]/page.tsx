@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft, Mail, Phone, MapPin, Calendar,
-  CheckCircle2, XCircle, UserCheck, UserX, ClipboardList,
+  CheckCircle2, XCircle, ClipboardList,
 } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
@@ -12,9 +12,10 @@ import { PersonnelDetailActions } from "@/components/personnel/PersonnelDetailAc
 import { PersonnelCompetenciesEditButton } from "@/components/personnel/PersonnelCompetenciesEditButton";
 import { AssignmentHistoryTable } from "@/components/assignments/AssignmentHistoryTable";
 import { EntityDocumentsPanel } from "@/components/documents/EntityDocumentsPanel";
-import { getPersonnel, listRoles } from "@/app/actions/personnel";
+import { getPersonnel, listRoles, getPersonnelAuthStatus } from "@/app/actions/personnel";
 import { getAvailabilityWindows, listLeavePeriods } from "@/app/actions/availability";
 import { BeschikbaarheidView } from "@/components/personnel/BeschikbaarheidView";
+import { PersonnelPortalAccessCard } from "@/components/personnel/PersonnelPortalAccessCard";
 import { listAssignmentsForPersonnel } from "@/app/actions/assignments";
 import { listDocuments } from "@/app/actions/documents";
 
@@ -47,13 +48,14 @@ export default async function PersonnelDetailPage({ params }: Props) {
     hasPermission("documents", "write"),
   ]);
 
-  const [person, roles, windows, leavePeriods, assignmentHistory, documents] = await Promise.all([
+  const [person, roles, windows, leavePeriods, assignmentHistory, documents, authStatus] = await Promise.all([
     getPersonnel(id),
     listRoles(),
     getAvailabilityWindows(id),
     listLeavePeriods(id),
     listAssignmentsForPersonnel(id),
     listDocuments({ entityType: "personnel", entityId: id }),
+    getPersonnelAuthStatus(id),
   ]);
 
   if (!person) notFound();
@@ -203,32 +205,18 @@ export default async function PersonnelDetailPage({ params }: Props) {
                   </span>
                 }
               />
-              <InfoRow
-                icon={
-                  person.userId
-                    ? <UserCheck className="h-4 w-4" style={{ color: "#00B7B3" }} />
-                    : person.inviteSentAt
-                      ? <Mail className="h-4 w-4" style={{ color: "#F59E0B" }} />
-                      : <UserX className="h-4 w-4" style={{ color: "#94A3B8" }} />
-                }
-                label="Portaalaccount"
-                value={
-                  person.userId ? (
-                    <span style={{ color: "#00B7B3" }}>Portaal actief</span>
-                  ) : person.inviteSentAt ? (
-                    <span style={{ color: "#92400E" }}>
-                      Uitnodiging verstuurd op{" "}
-                      {new Date(person.inviteSentAt).toLocaleDateString("nl-NL", {
-                        day: "2-digit", month: "short", year: "numeric",
-                      })}
-                    </span>
-                  ) : (
-                    <span style={{ color: "#94A3B8" }}>Geen account</span>
-                  )
-                }
-              />
             </dl>
           </div>
+
+          {/* Portaal-toegang */}
+          {canWrite && (
+            <PersonnelPortalAccessCard
+              personnelId={person.id}
+              personnelEmail={person.email}
+              authStatus={authStatus}
+              inviteSentAt={person.inviteSentAt}
+            />
+          )}
         </div>
       </div>
 
