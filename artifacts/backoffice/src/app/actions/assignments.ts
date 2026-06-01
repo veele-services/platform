@@ -83,6 +83,7 @@ export type AssignmentDetail = {
   scheduledStart: string | null;
   scheduledEnd:   string | null;
   notes:          string | null;
+  requiredRegion: string | null;
   isActive:       boolean;
   customerId:     string;
   customerName:   string;
@@ -109,16 +110,17 @@ export type AssignmentDetail = {
 };
 
 export type AssignmentFormInput = {
-  title:          string;
-  description?:   string;
-  customerId:     string;
-  objectId?:      string;
-  status:         AssignmentStatus;
-  priority:       AssignmentPriority;
-  scheduledDate?: string;
+  title:           string;
+  description?:    string;
+  customerId:      string;
+  objectId?:       string;
+  status:          AssignmentStatus;
+  priority:        AssignmentPriority;
+  scheduledDate?:  string;
   scheduledStart?: string;
-  scheduledEnd?:  string;
-  notes?:         string;
+  scheduledEnd?:   string;
+  notes?:          string;
+  requiredRegion?: string;
 };
 
 export type WeekAssignment = {
@@ -287,6 +289,7 @@ export async function getAssignment(id: string): Promise<AssignmentDetail | null
       scheduledStart: assignmentsTable.scheduledStart,
       scheduledEnd:   assignmentsTable.scheduledEnd,
       notes:          assignmentsTable.notes,
+      requiredRegion: assignmentsTable.requiredRegion,
       isActive:       assignmentsTable.isActive,
       customerId:     assignmentsTable.customerId,
       customerName:   customersTable.name,
@@ -343,6 +346,7 @@ export async function getAssignment(id: string): Promise<AssignmentDetail | null
     scheduledDate:  row.scheduledDate  ?? null,
     scheduledStart: row.scheduledStart ?? null,
     scheduledEnd:   row.scheduledEnd   ?? null,
+    requiredRegion: row.requiredRegion ?? null,
     createdAt:    row.createdAt.toISOString(),
     updatedAt:    row.updatedAt.toISOString(),
     personnel: personnel.map((p) => ({
@@ -842,16 +846,15 @@ export async function getPersonnelEligibilityForAssignment(
   const canRead = await hasPermission("assignments", "read");
   if (!canRead) return [];
 
-  // ── 1. Fetch assignment meta (date + times + object city for region check) ──
+  // ── 1. Fetch assignment meta (date + times + required_region for eligibility) ──
   const [asgn] = await db
     .select({
       scheduledDate:  assignmentsTable.scheduledDate,
       scheduledStart: assignmentsTable.scheduledStart,
       scheduledEnd:   assignmentsTable.scheduledEnd,
-      objectCity:     objectsTable.city,
+      requiredRegion: assignmentsTable.requiredRegion,
     })
     .from(assignmentsTable)
-    .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
     .where(eq(assignmentsTable.id, assignmentId))
     .limit(1);
 
@@ -859,8 +862,8 @@ export async function getPersonnelEligibilityForAssignment(
   const asgnStart = asgn?.scheduledStart ?? null; // "HH:MM" or null
   const asgnEnd   = asgn?.scheduledEnd   ?? null; // "HH:MM" or null
   const asgnHasTimes = Boolean(asgnStart && asgnEnd);
-  // Object city for region eligibility check (lowercased, trimmed; null = skip check)
-  const objectCity = asgn?.objectCity?.trim().toLowerCase() || null;
+  // required_region for eligibility check (lowercased, trimmed; null = no restriction)
+  const requiredRegion = asgn?.requiredRegion?.trim().toLowerCase() || null;
 
   // Day-of-week for availability window lookup (0=Sun … 6=Sat)
   const dayOfWeek = dateStr
@@ -1016,13 +1019,11 @@ export async function getPersonnelEligibilityForAssignment(
     const meetsKnowledge    = requiredKnowledge.every((k) => personKnow.includes(k));
     const meetsRole         = requiredRoleIds.length === 0 ||
                               requiredRoleIds.every((r) => p.roleId === r);
-    // Region: compare personnel.region against the assignment object's city.
-    // The objects table has no dedicated region column; city is the canonical
-    // regional identifier in the current schema (matches the PWA implementation).
-    // Skip the check (pass) when either value is absent.
-    const meetsRegion = !objectCity || !p.region
+    // Region: compare personnel.region against assignment.required_region (case-insensitive, trimmed).
+    // Always passes when required_region is not set on the assignment, or when personnel has no region.
+    const meetsRegion = !requiredRegion || !p.region
       ? true
-      : p.region.trim().toLowerCase() === objectCity;
+      : p.region.trim().toLowerCase() === requiredRegion;
 
     const reasons: string[] = [];
     if (availStatus === "ziek")               reasons.push("Ziek gemeld");
@@ -1501,6 +1502,7 @@ export async function createAssignment(
     scheduledStart: data.scheduledStart         || null,
     scheduledEnd:   data.scheduledEnd           || null,
     notes:          data.notes?.trim()          || null,
+    requiredRegion: data.requiredRegion?.trim() || null,
     createdBy:      user.id,
   };
 
@@ -1559,6 +1561,7 @@ export async function updateAssignment(
     scheduledStart: data.scheduledStart         || null,
     scheduledEnd:   data.scheduledEnd           || null,
     notes:          data.notes?.trim()          || null,
+    requiredRegion: data.requiredRegion?.trim() || null,
   };
 
   const parsed = updateAssignmentSchema.safeParse(payload);

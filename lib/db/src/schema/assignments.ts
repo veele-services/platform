@@ -104,6 +104,13 @@ export const assignmentsTable = pgTable("assignments", {
   /** Management-only internal notes. */
   notes:          text("notes"),
 
+  /**
+   * Optional free-text region requirement.
+   * Must match personnel.region (case-insensitive, trimmed) when set.
+   * NULL = no regional restriction.
+   */
+  requiredRegion: varchar("required_region", { length: 100 }),
+
   isActive:       boolean("is_active").notNull().default(true),
   createdAt:      timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:      timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
