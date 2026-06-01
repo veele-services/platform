@@ -63,8 +63,8 @@ export function DesktopSidebar() {
               href={href}
               className="relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
               style={{
-                backgroundColor: isActive ? "var(--color-accent-muted)" : "transparent",
-                color:           isActive ? "var(--color-accent)" : "var(--color-secondary)",
+                backgroundColor: isActive ? "rgba(0,183,179,0.12)" : "transparent",
+                color:           isActive ? "var(--color-teal)" : "var(--color-secondary)",
               }}
             >
               {/* Left accent bar */}
@@ -74,7 +74,7 @@ export function DesktopSidebar() {
                   style={{
                     width:           "3px",
                     height:          "18px",
-                    backgroundColor: "var(--color-accent)",
+                    backgroundColor: "var(--color-teal)",
                   }}
                 />
               )}
