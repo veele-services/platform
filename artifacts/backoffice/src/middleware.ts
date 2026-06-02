@@ -50,13 +50,17 @@ export async function middleware(request: NextRequest) {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   const { pathname } = request.nextUrl;
-  const isLoginPage  = pathname === "/login";
+  const isLoginPage   = pathname === "/login";
+  const isPublicPage  =
+    isLoginPage ||
+    pathname === "/wachtwoord-vergeten" ||
+    pathname.startsWith("/auth/confirm");
 
   // ── Config guard ──────────────────────────────────────────────────────────
   // When Supabase is not configured, /login is accessible (shows setup notice);
   // all other routes redirect to /login.  Never silently allow access.
   if (!url || !key) {
-    if (isLoginPage) return NextResponse.next();
+    if (isPublicPage) return NextResponse.next();
     return NextResponse.redirect(proxyAwareUrl("/login", request));
   }
 
@@ -88,7 +92,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(proxyAwareUrl("/", request));
   }
 
-  if (!user && !isLoginPage) {
+  if (!user && !isPublicPage) {
     return NextResponse.redirect(proxyAwareUrl("/login", request));
   }
 

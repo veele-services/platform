@@ -83,6 +83,7 @@ export type AssignmentDetail = {
   scheduledStart: string | null;
   scheduledEnd:   string | null;
   notes:          string | null;
+  requiredRegion: string | null;
   isActive:       boolean;
   customerId:     string;
   customerName:   string;
@@ -109,16 +110,17 @@ export type AssignmentDetail = {
 };
 
 export type AssignmentFormInput = {
-  title:          string;
-  description?:   string;
-  customerId:     string;
-  objectId?:      string;
-  status:         AssignmentStatus;
-  priority:       AssignmentPriority;
-  scheduledDate?: string;
+  title:           string;
+  description?:    string;
+  customerId:      string;
+  objectId?:       string;
+  status:          AssignmentStatus;
+  priority:        AssignmentPriority;
+  scheduledDate?:  string;
   scheduledStart?: string;
-  scheduledEnd?:  string;
-  notes?:         string;
+  scheduledEnd?:   string;
+  notes?:          string;
+  requiredRegion?: string;
 };
 
 export type WeekAssignment = {
@@ -155,23 +157,25 @@ export type TimelinePersonnelRow = {
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
 export async function listAssignments(params: {
-  page?:     number;
-  search?:   string;
-  status?:   string;
-  priority?: string;
-  sort?:     string;
-  dir?:      string;
+  page?:         number;
+  search?:       string;
+  status?:       string;
+  priority?:     string;
+  reportStatus?: string;
+  sort?:         string;
+  dir?:          string;
 }): Promise<{ rows: AssignmentRow[]; total: number }> {
   const canRead = await hasPermission("assignments", "read");
   if (!canRead) return { rows: [], total: 0 };
 
   const {
-    page     = 1,
-    search   = "",
-    status   = "",
-    priority = "",
-    sort     = "createdAt",
-    dir      = "desc",
+    page         = 1,
+    search       = "",
+    status       = "",
+    priority     = "",
+    reportStatus = "",
+    sort         = "createdAt",
+    dir          = "desc",
   } = params;
 
   const SORTABLE = ["title", "scheduledDate", "createdAt", "status", "priority"] as const;
@@ -195,6 +199,29 @@ export async function listAssignments(params: {
   }
   if (priority && ASSIGNMENT_PRIORITIES.includes(priority as AssignmentPriority)) {
     conditions.push(eq(assignmentsTable.priority, priority));
+  }
+  // Report-eligible statuses — assignments that can have a report
+  const REPORT_ELIGIBLE_STATUSES: AssignmentStatus[] = [
+    "completed", "not_completed", "report_submitted", "report_approved",
+    "invoice_ready", "invoiced", "paid", "closed",
+  ];
+  if (reportStatus === "none") {
+    // Only show report-eligible assignments that have no report yet
+    conditions.push(
+      and(
+        inArray(assignmentsTable.status, REPORT_ELIGIBLE_STATUSES),
+        isNull(
+          sql<string>`(SELECT r.status FROM reports r WHERE r.assignment_id = ${assignmentsTable.id} ORDER BY r.submitted_at DESC LIMIT 1)`,
+        ),
+      )!,
+    );
+  } else if (["submitted", "approved", "rejected"].includes(reportStatus)) {
+    conditions.push(
+      eq(
+        sql<string>`(SELECT r.status FROM reports r WHERE r.assignment_id = ${assignmentsTable.id} ORDER BY r.submitted_at DESC LIMIT 1)`,
+        reportStatus,
+      ),
+    );
   }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
@@ -287,6 +314,7 @@ export async function getAssignment(id: string): Promise<AssignmentDetail | null
       scheduledStart: assignmentsTable.scheduledStart,
       scheduledEnd:   assignmentsTable.scheduledEnd,
       notes:          assignmentsTable.notes,
+      requiredRegion: assignmentsTable.requiredRegion,
       isActive:       assignmentsTable.isActive,
       customerId:     assignmentsTable.customerId,
       customerName:   customersTable.name,
@@ -343,6 +371,7 @@ export async function getAssignment(id: string): Promise<AssignmentDetail | null
     scheduledDate:  row.scheduledDate  ?? null,
     scheduledStart: row.scheduledStart ?? null,
     scheduledEnd:   row.scheduledEnd   ?? null,
+    requiredRegion: row.requiredRegion ?? null,
     createdAt:    row.createdAt.toISOString(),
     updatedAt:    row.updatedAt.toISOString(),
     personnel: personnel.map((p) => ({
@@ -512,23 +541,69 @@ export async function getAssignmentsForWeek(
   }));
 }
 
+// ─── Month view ───────────────────────────────────────────────────────────────
+
+/**
+ * Returns all assignments for the calendar grid of a given month.
+ * The grid starts on Monday of the week containing the 1st, and ends on Sunday
+ * of the week containing the last day — so typically 28–42 days.
+ * Reuses WeekAssignment (including hasConflict) via getAssignmentsForWeek.
+ */
+export async function getAssignmentsForMonth(monthStr: string): Promise<WeekAssignment[]> {
+  const match = /^(\d{4})-(\d{2})$/.exec(monthStr);
+  if (!match) return [];
+
+  const year  = parseInt(match[1]!, 10);
+  const month = parseInt(match[2]!, 10) - 1; // 0-indexed
+
+  // First and last day of the calendar month
+  const firstDay = new Date(year, month, 1);
+  const lastDay  = new Date(year, month + 1, 0);
+
+  // Grid start: Monday of the week that contains firstDay
+  const gridStart = new Date(firstDay);
+  const startDow  = firstDay.getDay(); // 0=Sun … 6=Sat
+  gridStart.setDate(firstDay.getDate() - (startDow === 0 ? 6 : startDow - 1));
+
+  // Grid end: Sunday of the week that contains lastDay
+  const gridEnd = new Date(lastDay);
+  const endDow  = lastDay.getDay();
+  gridEnd.setDate(lastDay.getDate() + (endDow === 0 ? 0 : 7 - endDow));
+
+  // Ensure at least 5 weeks (35 cells) — short Februaries starting on Monday are only 4 weeks
+  const totalDays = Math.round((gridEnd.getTime() - gridStart.getTime()) / 86400000) + 1;
+  if (totalDays < 35) {
+    gridEnd.setDate(gridEnd.getDate() + 7);
+  }
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const fmt = (d: Date) =>
+    `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+  return getAssignmentsForWeek(fmt(gridStart), fmt(gridEnd));
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 export async function getDashboardCounts(): Promise<{
-  requested:  number;
-  plannable:  number;
-  inProgress: number;
+  requested:      number;
+  plannable:      number;
+  inProgress:     number;
   completedToday: number;
+  open:           number;
 }> {
   const canRead = await hasPermission("assignments", "read");
-  if (!canRead) return { requested: 0, plannable: 0, inProgress: 0, completedToday: 0 };
+  if (!canRead) return { requested: 0, plannable: 0, inProgress: 0, completedToday: 0, open: 0 };
 
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
   const [counts] = await db
     .select({
-      requested: sql<number>`count(*) FILTER (WHERE status = 'requested')::int`,
-      plannable: sql<number>`count(*) FILTER (WHERE status = 'plannable')::int`,
-      inProgress: sql<number>`count(*) FILTER (WHERE status = 'in_progress')::int`,
+      requested:      sql<number>`count(*) FILTER (WHERE status = 'requested')::int`,
+      plannable:      sql<number>`count(*) FILTER (WHERE status = 'plannable')::int`,
+      inProgress:     sql<number>`count(*) FILTER (WHERE status = 'in_progress')::int`,
       completedToday: sql<number>`count(*) FILTER (WHERE status = 'completed' AND scheduled_date = ${today})::int`,
+      open:           sql<number>`count(*) FILTER (WHERE status NOT IN ('closed', 'paid', 'cancelled'))::int`,
     })
     .from(assignmentsTable);
 
@@ -537,6 +612,7 @@ export async function getDashboardCounts(): Promise<{
     plannable:      counts?.plannable      ?? 0,
     inProgress:     counts?.inProgress     ?? 0,
     completedToday: counts?.completedToday ?? 0,
+    open:           counts?.open           ?? 0,
   };
 }
 
@@ -798,16 +874,15 @@ export async function getPersonnelEligibilityForAssignment(
   const canRead = await hasPermission("assignments", "read");
   if (!canRead) return [];
 
-  // ── 1. Fetch assignment meta (date + times + object city for region check) ──
+  // ── 1. Fetch assignment meta (date + times + required_region for eligibility) ──
   const [asgn] = await db
     .select({
       scheduledDate:  assignmentsTable.scheduledDate,
       scheduledStart: assignmentsTable.scheduledStart,
       scheduledEnd:   assignmentsTable.scheduledEnd,
-      objectCity:     objectsTable.city,
+      requiredRegion: assignmentsTable.requiredRegion,
     })
     .from(assignmentsTable)
-    .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
     .where(eq(assignmentsTable.id, assignmentId))
     .limit(1);
 
@@ -815,8 +890,8 @@ export async function getPersonnelEligibilityForAssignment(
   const asgnStart = asgn?.scheduledStart ?? null; // "HH:MM" or null
   const asgnEnd   = asgn?.scheduledEnd   ?? null; // "HH:MM" or null
   const asgnHasTimes = Boolean(asgnStart && asgnEnd);
-  // Object city for region eligibility check (lowercased, trimmed; null = skip check)
-  const objectCity = asgn?.objectCity?.trim().toLowerCase() || null;
+  // required_region for eligibility check (lowercased, trimmed; null = no restriction)
+  const requiredRegion = asgn?.requiredRegion?.trim().toLowerCase() || null;
 
   // Day-of-week for availability window lookup (0=Sun … 6=Sat)
   const dayOfWeek = dateStr
@@ -972,13 +1047,11 @@ export async function getPersonnelEligibilityForAssignment(
     const meetsKnowledge    = requiredKnowledge.every((k) => personKnow.includes(k));
     const meetsRole         = requiredRoleIds.length === 0 ||
                               requiredRoleIds.every((r) => p.roleId === r);
-    // Region: compare personnel.region against the assignment object's city.
-    // The objects table has no dedicated region column; city is the canonical
-    // regional identifier in the current schema (matches the PWA implementation).
-    // Skip the check (pass) when either value is absent.
-    const meetsRegion = !objectCity || !p.region
+    // Region: compare personnel.region against assignment.required_region (case-insensitive, trimmed).
+    // Always passes when required_region is not set on the assignment, or when personnel has no region.
+    const meetsRegion = !requiredRegion || !p.region
       ? true
-      : p.region.trim().toLowerCase() === objectCity;
+      : p.region.trim().toLowerCase() === requiredRegion;
 
     const reasons: string[] = [];
     if (availStatus === "ziek")               reasons.push("Ziek gemeld");
@@ -1457,6 +1530,7 @@ export async function createAssignment(
     scheduledStart: data.scheduledStart         || null,
     scheduledEnd:   data.scheduledEnd           || null,
     notes:          data.notes?.trim()          || null,
+    requiredRegion: data.requiredRegion?.trim() || null,
     createdBy:      user.id,
   };
 
@@ -1515,6 +1589,7 @@ export async function updateAssignment(
     scheduledStart: data.scheduledStart         || null,
     scheduledEnd:   data.scheduledEnd           || null,
     notes:          data.notes?.trim()          || null,
+    requiredRegion: data.requiredRegion?.trim() || null,
   };
 
   const parsed = updateAssignmentSchema.safeParse(payload);
@@ -1630,6 +1705,52 @@ export async function assignPersonnel(
     });
 
     revalidatePath(`/assignments/${assignmentId}`);
+    revalidatePath("/planning");
+
+    // ── Auto-transition plannable → scheduled ─────────────────────────────
+    // Count required roles from task codes; transition when all slots are filled.
+    const [[{ requiredSlots }], [{ assignedCount }]] = await Promise.all([
+      db
+        .select({
+          requiredSlots: sql<number>`greatest(count(DISTINCT tc.required_role_id) FILTER (WHERE tc.required_role_id IS NOT NULL), 1)::int`,
+        })
+        .from(assignmentTasksTable)
+        .innerJoin(taskCodesTable, eq(assignmentTasksTable.taskCodeId, taskCodesTable.id))
+        .where(eq(assignmentTasksTable.assignmentId, assignmentId)),
+      db
+        .select({ assignedCount: sql<number>`count(*)::int` })
+        .from(assignmentPersonnelTable)
+        .where(
+          and(
+            eq(assignmentPersonnelTable.assignmentId, assignmentId),
+            eq(assignmentPersonnelTable.status, "assigned"),
+          ),
+        ),
+    ]);
+
+    const [assignmentRow] = await db
+      .select({ status: assignmentsTable.status })
+      .from(assignmentsTable)
+      .where(eq(assignmentsTable.id, assignmentId))
+      .limit(1);
+
+    if (
+      assignmentRow?.status === "plannable" &&
+      (assignedCount ?? 0) >= (requiredSlots ?? 1)
+    ) {
+      await db
+        .update(assignmentsTable)
+        .set({ status: "scheduled", updatedAt: new Date() })
+        .where(eq(assignmentsTable.id, assignmentId));
+
+      await db.insert(auditLogTable).values({
+        userId:     user.id,
+        action:     "status_change",
+        resource:   "assignments",
+        resourceId: assignmentId,
+        metadata:   { from: "plannable", to: "scheduled", trigger: "personnel_slots_filled" },
+      });
+    }
 
     // ── Availability warning (non-blocking) ───────────────────────────────
     let warning: string | undefined;

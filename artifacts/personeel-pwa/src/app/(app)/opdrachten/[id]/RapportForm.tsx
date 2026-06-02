@@ -3,16 +3,24 @@
 import { useActionState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { submitMyReport } from "@/actions/reports";
-import { FileText, AlertTriangle } from "lucide-react";
+import { FileText, AlertTriangle, ClipboardList } from "lucide-react";
 
 type State = { success?: boolean; error?: string } | undefined;
+
+type ExtraWorkSummaryItem = {
+  id:          string;
+  description: string;
+  hours:       string | null;
+  price:       string | null;
+};
 
 interface Props {
   assignmentId:     string;
   assignmentStatus: string;
+  extraWorkItems?:  ExtraWorkSummaryItem[];
 }
 
-export function RapportForm({ assignmentId, assignmentStatus }: Props) {
+export function RapportForm({ assignmentId, assignmentStatus, extraWorkItems = [] }: Props) {
   const router  = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const isNotCompleted = assignmentStatus === "not_completed";
@@ -76,6 +84,42 @@ export function RapportForm({ assignmentId, assignmentStatus }: Props) {
       <h3 className="mb-4 font-semibold" style={{ color: "var(--color-primary)" }}>
         {isNotCompleted ? "Rapport — niet afgerond" : "Rapport indienen"}
       </h3>
+
+      {/* Meerwerk overzicht — toon geregistreerde meerwerk-regels ter controle */}
+      {extraWorkItems.length > 0 && (
+        <div
+          className="mb-4 rounded-xl border p-3"
+          style={{ borderColor: "var(--color-border)" }}
+        >
+          <div className="mb-2 flex items-center gap-1.5">
+            <ClipboardList size={13} style={{ color: "var(--color-accent)" }} />
+            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
+              Geregistreerd meerwerk ({extraWorkItems.length})
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            {extraWorkItems.map((item) => (
+              <div
+                key={item.id}
+                className="flex items-start justify-between gap-3 rounded-lg px-2.5 py-2"
+                style={{ backgroundColor: "var(--color-muted)" }}
+              >
+                <p className="min-w-0 text-xs leading-snug" style={{ color: "var(--color-primary)" }}>
+                  {item.description}
+                </p>
+                <div className="shrink-0 text-right text-xs" style={{ color: "var(--color-secondary)" }}>
+                  {item.hours && <span>{item.hours} u</span>}
+                  {item.hours && item.price && <span> · </span>}
+                  {item.price && <span>€ {item.price}</span>}
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-xs" style={{ color: "var(--color-muted-fg)" }}>
+            Meerwerk-regels worden meegestuurd met uw rapport.
+          </p>
+        </div>
+      )}
 
       <form ref={formRef} action={formAction} className="space-y-4">
 
@@ -152,13 +196,13 @@ export function RapportForm({ assignmentId, assignmentStatus }: Props) {
               className="block text-sm font-medium mb-1.5"
               style={{ color: "var(--color-primary)" }}
             >
-              Aanvullende opmerkingen
+              Interne opmerkingen
             </label>
             <textarea
               id="rapport-notes"
               name="submitterNotes"
               rows={3}
-              placeholder="Bijzonderheden, veiligheidsincidenten, materiaal gebruikt…"
+              placeholder="Bijzonderheden, veiligheidsincidenten, materiaal gebruikt… (alleen zichtbaar voor management)"
               className="w-full resize-none rounded-xl border px-4 py-3.5 text-base outline-none"
               style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
             />

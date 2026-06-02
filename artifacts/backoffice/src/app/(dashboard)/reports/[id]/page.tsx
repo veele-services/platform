@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, FileText, Clock, CheckCircle2, XCircle, User, Calendar, MapPin } from "lucide-react";
+import { ArrowLeft, FileText, Clock, CheckCircle2, XCircle, User, Calendar, MapPin, Download } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { getReport } from "@/app/actions/reports";
@@ -266,6 +266,24 @@ export default async function ReportDetailPage({ params }: Props) {
               <p className="mt-3 text-xs" style={{ color: "#94A3B8" }}>
                 Dit rapport is al beoordeeld.
               </p>
+            </div>
+          )}
+
+          {report.status === "approved" && (
+            <div className="veele-card">
+              <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#94A3B8" }}>
+                Exporteren
+              </p>
+              <Link
+                href={`/api/reports/${report.id}/pdf`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 w-full justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
+                style={{ backgroundColor: "#081D3A", color: "#FFFFFF" }}
+              >
+                <Download className="h-4 w-4" />
+                Download PDF
+              </Link>
             </div>
           )}
 

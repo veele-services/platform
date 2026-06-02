@@ -9,6 +9,10 @@ import {
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { sectorsTable } from "./sectors";
+import { customerTypesTable } from "./customer-types";
+
+export const CUSTOMER_STATUSES = ["lead", "prospect", "active", "inactive", "blocked", "archived"] as const;
+export type CustomerStatus = (typeof CUSTOMER_STATUSES)[number];
 
 export const customersTable = pgTable("customers", {
   id:           uuid("id").primaryKey().defaultRandom(),
@@ -22,6 +26,7 @@ export const customersTable = pgTable("customers", {
   postalCode:   varchar("postal_code", { length: 20 }),
   country:      varchar("country", { length: 100 }).notNull().default("NL"),
 
+  // Legacy single-contact fields (kept for backward compat)
   contactName:  varchar("contact_name", { length: 200 }),
   /**
    * Customer portal identity key.
@@ -30,6 +35,18 @@ export const customersTable = pgTable("customers", {
    */
   contactEmail: varchar("contact_email", { length: 255 }).unique(),
   contactPhone: varchar("contact_phone", { length: 50 }),
+
+  // Extended CRM fields
+  legalEntity:              varchar("legal_entity", { length: 255 }),
+  vatNumber:                varchar("vat_number", { length: 50 }),
+  chamberOfCommerceNumber:  varchar("chamber_of_commerce_number", { length: 50 }),
+  website:                  varchar("website", { length: 255 }),
+  mobile:                   varchar("mobile", { length: 50 }),
+  customerTypeId:           uuid("customer_type_id").references(() => customerTypesTable.id, { onDelete: "set null" }),
+  /** CRM lifecycle status */
+  status:                   varchar("status", { length: 20 }).notNull().default("active"),
+  /** Supabase Auth user UUID of the account manager responsible for this customer. */
+  accountManagerId:         uuid("account_manager_id"),
 
   isActive:     boolean("is_active").notNull().default(true),
 

@@ -4,14 +4,18 @@ import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
 export type MyAssignment = {
-  id: string;
-  title: string;
-  scheduledDate: string | null;
-  scheduledStart: string | null;
-  scheduledEnd: string | null;
-  status: string;
-  objectAddress: string | null;
-  objectCity: string | null;
+  id:               string;
+  code:             string;
+  title:            string;
+  scheduledDate:    string | null;
+  scheduledStart:   string | null;
+  scheduledEnd:     string | null;
+  status:           string;
+  customerName:     string | null;
+  objectAddress:    string | null;
+  objectCity:       string | null;
+  objectPostalCode: string | null;
+  requiredRegion:   string | null;
 };
 
 export type MyAssignmentDetail = MyAssignment & {
@@ -19,16 +23,26 @@ export type MyAssignmentDetail = MyAssignment & {
   tasks: { id: string; sortOrder: number; notes: string | null }[];
 };
 
-async function getPersonnelId(
+type PersonnelBasic = { id: string; region: string | null };
+
+async function getPersonnelBasic(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
-): Promise<string | null> {
+): Promise<PersonnelBasic | null> {
   const { data } = await supabase
     .from("personnel")
-    .select("id")
+    .select("id, region")
     .eq("user_id", userId)
     .single();
-  return data?.id ?? null;
+  return data ? { id: data.id, region: data.region ?? null } : null;
+}
+
+/** Returns true if the assignment is region-compatible with the personnel member. */
+function meetsRegion(personnelRegion: string | null, requiredRegion: string | null): boolean {
+  if (!requiredRegion) return true;           // no requirement → open to all
+  if (!personnelRegion) return true;          // worker has no region set → don't restrict
+  return requiredRegion.toLowerCase().includes(personnelRegion.toLowerCase()) ||
+    personnelRegion.toLowerCase().includes(requiredRegion.toLowerCase());
 }
 
 export async function getMyAssignments(): Promise<MyAssignment[]> {
@@ -36,19 +50,20 @@ export async function getMyAssignments(): Promise<MyAssignment[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const personnelId = await getPersonnelId(supabase, user.id);
-  if (!personnelId) return [];
+  const personnel = await getPersonnelBasic(supabase, user.id);
+  if (!personnel) return [];
 
   const { data } = await supabase
     .from("assignment_personnel")
     .select(`
       assignments!inner(
-        id, title, scheduled_date, scheduled_start, scheduled_end, status,
-        objects(address, city)
+        id, code, title, scheduled_date, scheduled_start, scheduled_end, status,
+        required_region,
+        customers(name),
+        objects(address, city, postal_code)
       )
     `)
-    .eq("personnel_id", personnelId)
-    // Only confirmed assignments — 'suggested' rows are not yet accepted by planner
+    .eq("personnel_id", personnel.id)
     .eq("status", "assigned");
 
   if (!data) return [];
@@ -58,17 +73,32 @@ export async function getMyAssignments(): Promise<MyAssignment[]> {
     .map((row) => {
       const a = row.assignments;
       return {
-        id: a.id,
-        title: a.title,
-        scheduledDate: a.scheduled_date ?? null,
-        scheduledStart: a.scheduled_start ?? null,
-        scheduledEnd: a.scheduled_end ?? null,
-        status: a.status,
-        objectAddress: a.objects?.address ?? null,
-        objectCity: a.objects?.city ?? null,
+        id:               a.id,
+        code:             a.code ?? "",
+        title:            a.title,
+        scheduledDate:    a.scheduled_date ?? null,
+        scheduledStart:   a.scheduled_start ?? null,
+        scheduledEnd:     a.scheduled_end ?? null,
+        status:           a.status,
+        customerName:     a.customers?.name ?? null,
+        objectAddress:    a.objects?.address ?? null,
+        objectCity:       a.objects?.city ?? null,
+        objectPostalCode: a.objects?.postal_code ?? null,
+        requiredRegion:   a.required_region ?? null,
       } as MyAssignment;
     })
-    .sort((a, b) => (b.scheduledDate ?? "").localeCompare(a.scheduledDate ?? ""));
+    // Filter by region: hide assignments whose required_region doesn't match
+    .filter((a) => meetsRegion(personnel.region, a.requiredRegion))
+    .sort((a, b) => {
+      // Upcoming first, then descending
+      const today = new Date().toISOString().slice(0, 10);
+      const aFuture = (a.scheduledDate ?? "") >= today;
+      const bFuture = (b.scheduledDate ?? "") >= today;
+      if (aFuture && !bFuture) return -1;
+      if (!aFuture && bFuture) return 1;
+      if (aFuture && bFuture) return (a.scheduledDate ?? "").localeCompare(b.scheduledDate ?? "");
+      return (b.scheduledDate ?? "").localeCompare(a.scheduledDate ?? "");
+    });
 }
 
 export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | null> {
@@ -76,21 +106,22 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const personnelId = await getPersonnelId(supabase, user.id);
-  if (!personnelId) return null;
+  const personnel = await getPersonnelBasic(supabase, user.id);
+  if (!personnel) return null;
 
   const { data } = await supabase
     .from("assignment_personnel")
     .select(`
       assignments!inner(
-        id, title, description, scheduled_date, scheduled_start, scheduled_end, status,
-        objects(address, city),
+        id, code, title, description, scheduled_date, scheduled_start, scheduled_end, status,
+        required_region,
+        customers(name),
+        objects(address, city, postal_code),
         assignment_tasks(id, sort_order, notes)
       )
     `)
-    .eq("personnel_id", personnelId)
+    .eq("personnel_id", personnel.id)
     .eq("assignment_id", id)
-    // Only confirmed assignments — 'suggested' rows are not yet accepted by planner
     .eq("status", "assigned")
     .single();
 
@@ -101,20 +132,24 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
   if (!a) return null;
 
   return {
-    id: a.id,
-    title: a.title,
-    description: a.description ?? null,
-    scheduledDate: a.scheduled_date ?? null,
-    scheduledStart: a.scheduled_start ?? null,
-    scheduledEnd: a.scheduled_end ?? null,
-    status: a.status,
-    objectAddress: a.objects?.address ?? null,
-    objectCity: a.objects?.city ?? null,
+    id:               a.id,
+    code:             a.code ?? "",
+    title:            a.title,
+    description:      a.description ?? null,
+    scheduledDate:    a.scheduled_date ?? null,
+    scheduledStart:   a.scheduled_start ?? null,
+    scheduledEnd:     a.scheduled_end ?? null,
+    status:           a.status,
+    customerName:     a.customers?.name ?? null,
+    objectAddress:    a.objects?.address ?? null,
+    objectCity:       a.objects?.city ?? null,
+    objectPostalCode: a.objects?.postal_code ?? null,
+    requiredRegion:   a.required_region ?? null,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     tasks: (a.assignment_tasks ?? []).map((t: any) => ({
-      id: t.id,
+      id:        t.id,
       sortOrder: t.sort_order,
-      notes: t.notes ?? null,
+      notes:     t.notes ?? null,
     })),
   };
 }
@@ -134,14 +169,13 @@ export async function setAssignmentStatus(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Niet ingelogd" };
 
-  const personnelId = await getPersonnelId(supabase, user.id);
-  if (!personnelId) return { success: false, error: "Personeelsprofiel niet gevonden" };
+  const personnel = await getPersonnelBasic(supabase, user.id);
+  if (!personnel) return { success: false, error: "Personeelsprofiel niet gevonden" };
 
-  // Only allow status transitions for confirmed (assigned) links, not suggestions
   const { data: ap } = await supabase
     .from("assignment_personnel")
     .select("assignments!inner(id, status)")
-    .eq("personnel_id", personnelId)
+    .eq("personnel_id", personnel.id)
     .eq("assignment_id", assignmentId)
     .eq("status", "assigned")
     .single();
@@ -156,8 +190,6 @@ export async function setAssignmentStatus(
     return { success: false, error: "Status-overgang niet toegestaan" };
   }
 
-  // Use a SECURITY DEFINER RPC so only the `status` column is mutated —
-  // a direct UPDATE policy would expose all other columns to personnel.
   const { data: rpcResult, error } = await supabase.rpc(
     "pwa_set_assignment_status",
     { p_assignment_id: assignmentId, p_new_status: newStatus },

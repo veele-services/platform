@@ -7,6 +7,7 @@ import {
   numeric,
   timestamp,
 } from "drizzle-orm/pg-core";
+
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { customersTable } from "./customers";
@@ -60,6 +61,9 @@ export const invoicesTable = pgTable("invoices", {
   paidDate:       date("paid_date"),
 
   notes:          text("notes"),
+
+  /** Set to now() each time a payment reminder e-mail is sent. Used to prevent duplicate reminders. */
+  lastReminderSentAt: timestamp("last_reminder_sent_at", { withTimezone: true }),
 
   createdBy:      uuid("created_by"),
   createdAt:      timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

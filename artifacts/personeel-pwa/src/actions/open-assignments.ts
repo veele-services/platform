@@ -54,6 +54,7 @@ export type OpenAssignment = {
   priority:         string | null;
   objectAddress:    string | null;
   objectCity:       string | null;
+  requiredRegion:   string | null;
   taskCodes:        string[];
   isAlreadyApplied: boolean;
 };
@@ -136,12 +137,13 @@ export async function getOpenAssignments(): Promise<OpenAssignment[]> {
 
   const assignments = await db
     .select({
-      id:            assignmentsTable.id,
-      title:         assignmentsTable.title,
-      scheduledDate: assignmentsTable.scheduledDate,
-      priority:      assignmentsTable.priority,
-      objectAddress: objectsTable.address,
-      objectCity:    objectsTable.city,
+      id:             assignmentsTable.id,
+      title:          assignmentsTable.title,
+      scheduledDate:  assignmentsTable.scheduledDate,
+      priority:       assignmentsTable.priority,
+      requiredRegion: assignmentsTable.requiredRegion,
+      objectAddress:  objectsTable.address,
+      objectCity:     objectsTable.city,
     })
     .from(assignmentsTable)
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
@@ -208,6 +210,7 @@ export async function getOpenAssignments(): Promise<OpenAssignment[]> {
       title:            a.title,
       scheduledDate:    a.scheduledDate,
       priority:         a.priority ?? null,
+      requiredRegion:   a.requiredRegion ?? null,
       objectAddress:    a.objectAddress ?? null,
       objectCity:       a.objectCity ?? null,
       taskCodes:        namesByAssignment.get(a.id) ?? [],

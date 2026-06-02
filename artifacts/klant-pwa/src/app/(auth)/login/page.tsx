@@ -1,11 +1,11 @@
 import { LoginForm } from "./LoginForm";
 
 type Props = {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; message?: string }>;
 };
 
 export default async function LoginPage({ searchParams }: Props) {
-  const { error } = await searchParams;
+  const { error, message } = await searchParams;
 
   return (
     <div
@@ -26,6 +26,15 @@ export default async function LoginPage({ searchParams }: Props) {
               Log in met uw e-mailadres
             </p>
           </div>
+
+          {message && (
+            <div
+              className="mb-6 rounded-xl px-4 py-3 text-sm font-medium"
+              style={{ backgroundColor: "rgba(22,163,74,0.15)", color: "#86EFAC" }}
+            >
+              {decodeURIComponent(message)}
+            </div>
+          )}
 
           {error && (
             <div

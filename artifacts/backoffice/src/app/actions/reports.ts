@@ -9,6 +9,7 @@ import {
   objectsTable,
   personnelTable,
   auditLogTable,
+  organizationSettingsTable,
   ASSIGNMENT_STATUS_TRANSITIONS,
   type ReportStatus,
   type AssignmentStatus,
@@ -18,6 +19,12 @@ import { eq, ilike, or, and, desc, sql, exists } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
+import {
+  sendEmail,
+  buildReportSubmittedEmail,
+  buildReportApprovedEmail,
+  buildReportRejectedEmail,
+} from "@/lib/email";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, ReportStatus };
@@ -396,6 +403,22 @@ export async function submitReport(
       metadata:   { assignmentId, assignmentTitle: assignment.title },
     });
 
+    // Notify admin (org sender address) — fire-and-forget, never blocks the action
+    void (async () => {
+      const [orgSettings] = await db
+        .select({ emailAfzender: organizationSettingsTable.emailAfzender })
+        .from(organizationSettingsTable)
+        .limit(1);
+      if (orgSettings?.emailAfzender) {
+        const { subject, html } = buildReportSubmittedEmail({
+          assignmentTitle: assignment.title,
+          assignmentId,
+          reportId:        created!.id,
+        });
+        await sendEmail({ to: orgSettings.emailAfzender, subject, html });
+      }
+    })();
+
     revalidatePath(`/assignments/${assignmentId}`);
     revalidatePath("/reports");
     return { success: true, data: { id: created!.id } };
@@ -440,6 +463,33 @@ export async function approveReport(reportId: string): Promise<ActionResult> {
     resourceId: reportId,
     metadata:   { assignmentId: report.assignmentId },
   });
+
+  // Notify the submitter — fire-and-forget
+  void (async () => {
+    const [detail] = await db
+      .select({
+        submittedBy:     reportsTable.submittedBy,
+        assignmentTitle: assignmentsTable.title,
+        personnelEmail:  personnelTable.email,
+        personnelFirst:  personnelTable.firstName,
+        notifEnabled:    organizationSettingsTable.notifRapportGoedgekeurd,
+      })
+      .from(reportsTable)
+      .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
+      .leftJoin(personnelTable,    eq(personnelTable.userId, reportsTable.submittedBy))
+      .leftJoin(organizationSettingsTable, sql`true`)
+      .where(eq(reportsTable.id, reportId))
+      .limit(1);
+
+    if (detail?.notifEnabled && detail.personnelEmail) {
+      const { subject, html } = buildReportApprovedEmail({
+        firstName:       detail.personnelFirst ?? "medewerker",
+        assignmentTitle: detail.assignmentTitle,
+        reportId,
+      });
+      await sendEmail({ to: detail.personnelEmail, subject, html });
+    }
+  })();
 
   revalidatePath(`/reports/${reportId}`);
   revalidatePath("/reports");
@@ -494,6 +544,33 @@ export async function rejectReport(reportId: string, notes: string): Promise<Act
     resourceId: reportId,
     metadata:   { assignmentId: report.assignmentId, notes: trimmedNotes },
   });
+
+  // Notify the submitter — fire-and-forget
+  void (async () => {
+    const [detail] = await db
+      .select({
+        assignmentTitle: assignmentsTable.title,
+        personnelEmail:  personnelTable.email,
+        personnelFirst:  personnelTable.firstName,
+        notifEnabled:    organizationSettingsTable.notifRapportAfgekeurd,
+      })
+      .from(reportsTable)
+      .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
+      .leftJoin(personnelTable,    eq(personnelTable.userId, reportsTable.submittedBy))
+      .leftJoin(organizationSettingsTable, sql`true`)
+      .where(eq(reportsTable.id, reportId))
+      .limit(1);
+
+    if (detail?.notifEnabled && detail.personnelEmail) {
+      const { subject, html } = buildReportRejectedEmail({
+        firstName:       detail.personnelFirst ?? "medewerker",
+        assignmentTitle: detail.assignmentTitle,
+        reportId,
+        reason:          trimmedNotes,
+      });
+      await sendEmail({ to: detail.personnelEmail, subject, html });
+    }
+  })();
 
   revalidatePath(`/reports/${reportId}`);
   revalidatePath("/reports");

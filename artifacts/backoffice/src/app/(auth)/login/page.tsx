@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { AlertTriangle } from "lucide-react";
+import { AlertCircle, AlertTriangle } from "lucide-react";
 import { LoginForm } from "@/components/auth/LoginForm";
 
 export const metadata: Metadata = {
@@ -11,7 +11,13 @@ const supabaseConfigured = !!(
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
-export default function LoginPage() {
+type Props = {
+  searchParams: Promise<{ message?: string; error?: string }>;
+};
+
+export default async function LoginPage({ searchParams }: Props) {
+  const { message, error } = await searchParams;
+
   return (
     <div
       className="w-full max-w-sm mx-4"
@@ -71,6 +77,30 @@ export default function LoginPage() {
         </p>
       </div>
 
+      {/* ── URL error (e.g. expired reset link) ── */}
+      {error && (
+        <div
+          className="flex items-start gap-2.5 rounded-lg px-3.5 py-3 mb-5"
+          style={{ backgroundColor: "#FEF2F2", border: "1px solid #FECACA" }}
+          role="alert"
+        >
+          <AlertCircle
+            className="flex-shrink-0 mt-0.5"
+            style={{ width: "15px", height: "15px", color: "#EF4444" }}
+          />
+          <p
+            style={{
+              fontFamily: "var(--font-inter), Inter, sans-serif",
+              fontSize: "13px",
+              color: "#B91C1C",
+              lineHeight: "1.4",
+            }}
+          >
+            {decodeURIComponent(error)}
+          </p>
+        </div>
+      )}
+
       {/* ── Config warning (dev only) ── */}
       {!supabaseConfigured && (
         <div
@@ -111,7 +141,7 @@ export default function LoginPage() {
         </div>
       )}
 
-      <LoginForm supabaseConfigured={supabaseConfigured} />
+      <LoginForm supabaseConfigured={supabaseConfigured} successMessage={message} />
     </div>
   );
 }

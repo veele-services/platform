@@ -8,8 +8,9 @@ import {
   rolePermissionsTable,
   userRolesTable,
   auditLogTable,
+  personnelTable,
 } from "@workspace/db";
-import { eq, and, asc, desc, sql, inArray } from "drizzle-orm";
+import { eq, and, or, asc, desc, sql, inArray, ilike, gte, lte, exists } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -29,6 +30,12 @@ export type OrgSettings = {
   logoUrl:            string | null;
   betaaltermijnDagen: number;
   emailAfzender:      string | null;
+  notifRapportGoedgekeurd:  boolean;
+  notifRapportAfgekeurd:    boolean;
+  notifOfferteVerstuurd:    boolean;
+  notifOfferteVerlopen:     boolean;
+  notifBetalingHerinnering: boolean;
+  notifHerinneringDagen:    number;
 };
 
 export type PermissionItem = {
@@ -99,6 +106,12 @@ export async function getOrganizationSettings(): Promise<OrgSettings | null> {
     logoUrl:            r.logoUrl,
     betaaltermijnDagen: r.betaaltermijnDagen,
     emailAfzender:      r.emailAfzender,
+    notifRapportGoedgekeurd:  r.notifRapportGoedgekeurd,
+    notifRapportAfgekeurd:    r.notifRapportAfgekeurd,
+    notifOfferteVerstuurd:    r.notifOfferteVerstuurd,
+    notifOfferteVerlopen:     r.notifOfferteVerlopen,
+    notifBetalingHerinnering: r.notifBetalingHerinnering,
+    notifHerinneringDagen:    r.notifHerinneringDagen,
   };
 }
 
@@ -110,6 +123,12 @@ export async function updateOrganizationSettings(data: {
   logoUrl?:            string | null;
   betaaltermijnDagen?: number;
   emailAfzender?:      string | null;
+  notifRapportGoedgekeurd?:  boolean;
+  notifRapportAfgekeurd?:    boolean;
+  notifOfferteVerstuurd?:    boolean;
+  notifOfferteVerlopen?:     boolean;
+  notifBetalingHerinnering?: boolean;
+  notifHerinneringDagen?:    number;
 }): Promise<ActionResult> {
   await requirePermission("settings", "write");
 
@@ -536,9 +555,65 @@ export async function resendInvite(userId: string): Promise<ActionResult> {
 }
 
 /**
- * Batch-replace all roles for a user.
- * Deletes existing user_roles entries and re-inserts the provided set.
+ * Delete a custom (non-system) role.
+ * Blocked when the role is a system role or when any active users are assigned to it.
  */
+export async function deleteRole(roleId: string): Promise<ActionResult> {
+  await requirePermission("roles", "write");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [role] = await db
+    .select({ id: rolesTable.id, name: rolesTable.name, isSystem: rolesTable.isSystem })
+    .from(rolesTable)
+    .where(eq(rolesTable.id, roleId))
+    .limit(1);
+
+  if (!role) return { success: false, message: "Rol niet gevonden." };
+  if (role.isSystem) {
+    return { success: false, message: "Systeemrollen kunnen niet worden verwijderd." };
+  }
+
+  // Count only active users: personnel with is_active=true, or users not in
+  // the personnel table (management users — assumed active at DB level).
+  const [{ userCount }] = await db
+    .select({ userCount: sql<number>`count(*)::int` })
+    .from(userRolesTable)
+    .leftJoin(personnelTable, eq(personnelTable.userId, userRolesTable.userId))
+    .where(
+      and(
+        eq(userRolesTable.roleId, roleId),
+        or(
+          sql`${personnelTable.isActive} IS NULL`,
+          eq(personnelTable.isActive, true),
+        ),
+      ),
+    );
+
+  if (userCount > 0) {
+    return {
+      success: false,
+      message: `Rol heeft ${userCount} actieve gebruiker${userCount !== 1 ? "s" : ""}. Herken eerst de gebruikers.`,
+    };
+  }
+
+  await db.delete(rolePermissionsTable).where(eq(rolePermissionsTable.roleId, roleId));
+  await db.delete(rolesTable).where(eq(rolesTable.id, roleId));
+
+  await db.insert(auditLogTable).values({
+    userId:    user.id,
+    action:    "delete",
+    resource:  "roles",
+    resourceId: roleId,
+    metadata:  { name: role.name },
+  });
+
+  revalidatePath("/instellingen/rollen");
+  return { success: true };
+}
+
 export async function updateUserRoles(
   userId:  string,
   roleIds: string[],
@@ -581,49 +656,182 @@ export async function updateUserRoles(
   return { success: true };
 }
 
+const AUDIT_PAGE_SIZE = 25;
+
 /**
- * Fetch the last 200 audit log entries for settings-relevant resources.
- * Enriches each entry with the actor's email/name from Supabase Auth.
+ * Paginated, filterable audit log query across all resources.
+ * Resolves actor names via LEFT JOIN on personnelTable (for field staff)
+ * and via the Supabase Admin API (for management users not in personnel).
  */
-export async function listAuditLog(): Promise<AuditLogEntry[]> {
+export async function listAuditLog(params: {
+  page?:     number;
+  search?:   string;
+  module?:   string;
+  dateFrom?: string;
+  dateTo?:   string;
+  roleId?:   string;
+} = {}): Promise<{ entries: AuditLogEntry[]; total: number }> {
   await requirePermission("settings", "read");
 
-  const rows = await db
-    .select()
-    .from(auditLogTable)
-    .where(inArray(auditLogTable.resource, ["settings", "roles", "users"]))
-    .orderBy(desc(auditLogTable.createdAt))
-    .limit(200);
+  const {
+    page     = 1,
+    search   = "",
+    module   = "",
+    dateFrom = "",
+    dateTo   = "",
+    roleId   = "",
+  } = params;
 
-  if (rows.length === 0) return [];
+  const conditions = [];
 
-  const admin = createAdminClient();
-  const { data } = await admin.auth.admin.listUsers({ perPage: 1000 });
-  const userMap = new Map(
-    (data?.users ?? []).map((u) => {
+  if (search.trim()) {
+    const q = `%${search.trim()}%`;
+    conditions.push(
+      or(
+        ilike(auditLogTable.action,    q),
+        ilike(auditLogTable.resource,  q),
+        ilike(personnelTable.firstName, q),
+        ilike(personnelTable.lastName,  q),
+        ilike(personnelTable.email,     q),
+      ),
+    );
+  }
+  if (module) {
+    conditions.push(eq(auditLogTable.resource, module));
+  }
+  if (dateFrom) {
+    conditions.push(gte(auditLogTable.createdAt, new Date(dateFrom)));
+  }
+  if (dateTo) {
+    // Make dateTo inclusive: advance by 1 day so lte covers the full final day
+    const end = new Date(dateTo);
+    end.setDate(end.getDate() + 1);
+    conditions.push(lte(auditLogTable.createdAt, end));
+  }
+  if (roleId) {
+    // Filter by actor role: only show entries where the user has this role assigned
+    conditions.push(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(userRolesTable)
+          .where(
+            and(
+              eq(userRolesTable.userId, auditLogTable.userId),
+              eq(userRolesTable.roleId, roleId),
+            ),
+          ),
+      ),
+    );
+  }
+
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const [rows, [{ count }], adminData] = await Promise.all([
+    db
+      .select({
+        id:         auditLogTable.id,
+        userId:     auditLogTable.userId,
+        action:     auditLogTable.action,
+        resource:   auditLogTable.resource,
+        resourceId: auditLogTable.resourceId,
+        metadata:   auditLogTable.metadata,
+        createdAt:  auditLogTable.createdAt,
+        pFirstName: personnelTable.firstName,
+        pLastName:  personnelTable.lastName,
+        pEmail:     personnelTable.email,
+      })
+      .from(auditLogTable)
+      .leftJoin(personnelTable, eq(personnelTable.userId, auditLogTable.userId))
+      .where(where)
+      .orderBy(desc(auditLogTable.createdAt))
+      .limit(AUDIT_PAGE_SIZE)
+      .offset((page - 1) * AUDIT_PAGE_SIZE),
+
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(auditLogTable)
+      .leftJoin(personnelTable, eq(personnelTable.userId, auditLogTable.userId))
+      .where(where),
+
+    createAdminClient().auth.admin.listUsers({ perPage: 1000 }),
+  ]);
+
+  const authMap = new Map(
+    (adminData.data?.users ?? []).map((u) => {
       const meta = u.user_metadata as { full_name?: string; name?: string } | undefined;
-      return [
-        u.id,
-        {
-          email: u.email ?? u.id,
-          name:  (meta?.full_name ?? meta?.name) ?? null,
-        },
-      ] as const;
+      return [u.id, { email: u.email ?? u.id, name: (meta?.full_name ?? meta?.name) ?? null }] as const;
     }),
   );
 
-  return rows.map((r) => {
-    const info = userMap.get(r.userId);
-    return {
-      id:         r.id,
-      userId:     r.userId,
-      userEmail:  info?.email ?? r.userId,
-      userName:   info?.name ?? null,
-      action:     r.action,
-      resource:   r.resource,
-      resourceId: r.resourceId,
-      metadata:   r.metadata as Record<string, unknown> | null,
-      createdAt:  r.createdAt.toISOString(),
-    };
-  });
+  return {
+    entries: rows.map((r) => {
+      const personnelName = r.pFirstName && r.pLastName
+        ? `${r.pFirstName} ${r.pLastName}` : null;
+      const auth = authMap.get(r.userId);
+      return {
+        id:         r.id,
+        userId:     r.userId,
+        userEmail:  r.pEmail ?? auth?.email ?? r.userId,
+        userName:   personnelName ?? auth?.name ?? null,
+        action:     r.action,
+        resource:   r.resource,
+        resourceId: r.resourceId,
+        metadata:   r.metadata as Record<string, unknown> | null,
+        createdAt:  r.createdAt.toISOString(),
+      };
+    }),
+    total: count,
+  };
+}
+
+// ─── Test-notificatie ─────────────────────────────────────────────────────────
+
+/**
+ * Sends a test e-mail to the configured emailAfzender address.
+ * Used by the notification settings page to verify e-mail delivery.
+ */
+export async function sendTestNotification(
+  type: string,
+  label: string,
+): Promise<ActionResult> {
+  await requirePermission("settings", "write");
+
+  const [orgSettings] = await db
+    .select({ emailAfzender: organizationSettingsTable.emailAfzender })
+    .from(organizationSettingsTable)
+    .limit(1);
+
+  if (!orgSettings?.emailAfzender) {
+    return { success: false, message: "Geen afzenderadres ingesteld in organisatie-instellingen." };
+  }
+
+  const { sendEmailWithResult } = await import("@/lib/email");
+
+  const subject = `Test: ${label}`;
+  const html    = `<!DOCTYPE html>
+<html lang="nl">
+<head><meta charset="utf-8"><title>${subject}</title></head>
+<body style="font-family:sans-serif;color:#1a1a1a;background:#f5f5f5;margin:0;padding:24px">
+  <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden">
+    <div style="background:#081D3A;padding:20px 24px">
+      <span style="color:#fff;font-size:20px;font-weight:700;letter-spacing:-0.5px">Veele</span>
+    </div>
+    <div style="padding:28px 24px">
+      <h2 style="margin-top:0;color:#081D3A">Testmelding: ${label}</h2>
+      <p>Dit is een testmelding voor het notificatietype <strong>${label}</strong> (<code>${type}</code>).</p>
+      <p>Als u dit bericht ontvangt, werkt de e-mailconfiguratie correct.</p>
+    </div>
+    <div style="padding:16px 24px;background:#f8fafc;font-size:12px;color:#94a3b8">
+      Dit is een automatisch bericht van het Veele platform. Antwoorden op deze e-mail worden niet verwerkt.
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const result = await sendEmailWithResult({ to: orgSettings.emailAfzender, subject, html });
+  if (!result.success) {
+    return { success: false, message: result.error ?? "E-mail verzenden mislukt." };
+  }
+  return { success: true };
 }

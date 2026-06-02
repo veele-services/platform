@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getMyLeavePeriods } from "@/actions/leave";
 import { VerlofForm } from "./VerlofForm";
 

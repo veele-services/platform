@@ -38,10 +38,11 @@ const NAV_ITEMS = [
 ] as const;
 
 const SETTINGS_SUB_ITEMS = [
-  { href: "/instellingen/organisatie",  label: "Organisatie",      permission: "settings:write"  },
-  { href: "/instellingen/rollen",       label: "Rollen & rechten", permission: "roles:read"      },
-  { href: "/instellingen/gebruikers",   label: "Gebruikers",       permission: "users:read"      },
-  { href: "/settings/task-codes",       label: "Taakcodes",        permission: "task_codes:read" },
+  { href: "/instellingen/organisatie",    label: "Organisatie",      permission: "settings:write"  },
+  { href: "/instellingen/notificaties",   label: "Notificaties",     permission: "settings:write"  },
+  { href: "/instellingen/rollen",         label: "Rollen & rechten", permission: "roles:read"      },
+  { href: "/instellingen/gebruikers",     label: "Gebruikers",       permission: "users:read"      },
+  { href: "/settings/task-codes",         label: "Taakcodes",        permission: "task_codes:read" },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {

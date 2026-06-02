@@ -73,6 +73,7 @@ const formSchema = z.object({
   scheduledStart: z.string(),
   scheduledEnd:   z.string(),
   notes:          z.string(),
+  requiredRegion: z.string().max(100, "Maximaal 100 tekens"),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -88,6 +89,7 @@ const DEFAULTS: FormValues = {
   scheduledStart: "",
   scheduledEnd:   "",
   notes:          "",
+  requiredRegion: "",
 };
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -165,6 +167,7 @@ export function AssignmentForm({
         setValue("scheduledStart", a.scheduledStart ?? "");
         setValue("scheduledEnd",   a.scheduledEnd  ?? "");
         setValue("notes",          a.notes         ?? "");
+        setValue("requiredRegion", a.requiredRegion ?? "");
       }
       setLoading(false);
     });
@@ -192,6 +195,7 @@ export function AssignmentForm({
         scheduledStart: parsed.data.scheduledStart || undefined,
         scheduledEnd:   parsed.data.scheduledEnd   || undefined,
         notes:          parsed.data.notes          || undefined,
+        requiredRegion: parsed.data.requiredRegion || undefined,
       };
 
       const result =
@@ -370,6 +374,21 @@ export function AssignmentForm({
               {...register("scheduledEnd")}
               placeholder="17:00"
             />
+          </div>
+          <div className="col-span-3 space-y-1">
+            <Label htmlFor="requiredRegion">Regio</Label>
+            <Input
+              id="requiredRegion"
+              {...register("requiredRegion")}
+              placeholder="bijv. Amsterdam"
+              maxLength={100}
+            />
+            <p className="text-xs" style={{ color: "#94A3B8" }}>
+              Optioneel. Alleen medewerkers met deze regio worden als geschikt aangemerkt.
+            </p>
+            {errors.requiredRegion && (
+              <p className="text-xs text-destructive">{errors.requiredRegion.message}</p>
+            )}
           </div>
         </div>
       </section>

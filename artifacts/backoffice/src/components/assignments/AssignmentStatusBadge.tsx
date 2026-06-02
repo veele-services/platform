@@ -69,6 +69,10 @@ export function statusLabel(status: AssignmentStatus): string {
   return STATUS_CONFIG[status]?.label ?? status;
 }
 
+export function statusAccentColor(status: string): string {
+  return (STATUS_CONFIG[status as AssignmentStatus]?.text) ?? "#94A3B8";
+}
+
 export function priorityLabel(priority: AssignmentPriority): string {
   return PRIORITY_CONFIG[priority]?.label ?? priority;
 }

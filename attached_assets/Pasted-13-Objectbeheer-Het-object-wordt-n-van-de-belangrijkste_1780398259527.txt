@@ -1,0 +1,54 @@
+13. Objectbeheer
+Het object wordt één van de belangrijkste onderdelen van het platform.
+
+
+Een object is de locatie waar werkzaamheden plaatsvinden.
+Voorbeelden zijn:
+kantoorpand, winkel, horecazaak, VvE-complex, portiek, trappenhuis, evenementenlocatie, bouwplaats, magazijn, woning, school, bedrijfsterrein, parkeerterrein, receptieomgeving.
+Per object kunnen gegevens worden vastgelegd zoals klant, adres, contactpersoon, diensttype, vaste instructies, toegangsinformatie, sleutelinformatie, alarmgegevens, bijzonderheden, documenten, foto’s, takenlijsten, checklists, vaste planning, rapportages, incidenten, tickets, interne notities, gekoppelde medewerkers, vereiste functies, vereiste certificaten en historie.
+Het object zorgt ervoor dat alle informatie logisch bij elkaar staat.
+Geen losse foto’s.
+Geen losse instructies.
+Geen losse klantvragen.
+Geen losse rapportages.
+Alles hoort bij het juiste object.
+
+
+
+
+
+
+
+
+
+
+
+14. Personeelsbeheer
+Elke medewerker kan een volledig profiel krijgen.
+
+Daarin kunnen onder andere staan:
+naam;
+contactgegevens;
+personeelstype;
+functies;
+beschikbaarheid;
+spoedbeschikbaarheid;
+regio’s;
+certificaten;
+vaardigheden;
+documenten;
+contractinformatie;
+uren;
+diensten;
+verlof;
+vakantie;
+ziekmeldingen;
+openstaande acties;
+rapportages;
+interne notities;
+historie.
+Het systeem kan geschikt worden gemaakt voor vaste medewerkers, parttime medewerkers, flexmedewerkers, oproepkrachten, zzp’ers, tijdelijke medewerkers en medewerkers met meerdere functies.
+Belangrijk is dat personeelsfuncties dynamisch kunnen worden beheerd. Veele Services hoeft dan niet vast te zitten aan vooraf bedachte functienamen, maar kan zelf functies gebruiken die passen bij de praktijk.
+Denk aan:
+schoonmaakmedewerker, beveiliger, evenementenmedewerker, bardienstmedewerker, toiletservice medewerker, teamleider, planner, administratief medewerker, manager, etc.
+Een medewerker kan meerdere functies hebben. Iemand kan bijvoorbeeld schoonmaakmedewerker én facilitair medewerker zijn, of beveiliger én chauffeur, of planner én uitvoerend medewerker.

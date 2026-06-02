@@ -14,6 +14,7 @@ import { eq, and, lte, gte, inArray, isNull, or, asc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/permissions";
+import { sendEmail, buildLeaveDecisionEmail } from "@/lib/email";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, LeaveType, AvailabilityStatus };
@@ -330,6 +331,33 @@ export async function approveLeavePeriod(
     metadata:   { action: "approve_leave_period", leavePeriodId: id },
   });
 
+  // Notify personnel member — fire-and-forget
+  void (async () => {
+    const [person] = await db
+      .select({
+        firstName: personnelTable.firstName,
+        email:     personnelTable.email,
+      })
+      .from(personnelTable)
+      .where(eq(personnelTable.id, personnelId))
+      .limit(1);
+    const [leavePeriod] = await db
+      .select({ startDate: leavePeriodsTable.startDate, endDate: leavePeriodsTable.endDate, leaveType: leavePeriodsTable.leaveType })
+      .from(leavePeriodsTable)
+      .where(eq(leavePeriodsTable.id, id))
+      .limit(1);
+    if (person?.email && leavePeriod) {
+      const { subject, html } = buildLeaveDecisionEmail({
+        firstName:  person.firstName,
+        decision:   "goedgekeurd",
+        startDate:  leavePeriod.startDate,
+        endDate:    leavePeriod.endDate ?? null,
+        leaveType:  leavePeriod.leaveType,
+      });
+      await sendEmail({ to: person.email, subject, html });
+    }
+  })();
+
   revalidatePath(`/personnel/${personnelId}`);
   revalidatePath("/personnel");
   revalidatePath("/personnel/verlof");
@@ -375,6 +403,33 @@ export async function rejectLeavePeriod(
     resourceId: personnelId,
     metadata:   { action: "reject_leave_period", leavePeriodId: id },
   });
+
+  // Notify personnel member — fire-and-forget
+  void (async () => {
+    const [person] = await db
+      .select({
+        firstName: personnelTable.firstName,
+        email:     personnelTable.email,
+      })
+      .from(personnelTable)
+      .where(eq(personnelTable.id, personnelId))
+      .limit(1);
+    const [leavePeriod] = await db
+      .select({ startDate: leavePeriodsTable.startDate, endDate: leavePeriodsTable.endDate, leaveType: leavePeriodsTable.leaveType })
+      .from(leavePeriodsTable)
+      .where(eq(leavePeriodsTable.id, id))
+      .limit(1);
+    if (person?.email && leavePeriod) {
+      const { subject, html } = buildLeaveDecisionEmail({
+        firstName:  person.firstName,
+        decision:   "afgewezen",
+        startDate:  leavePeriod.startDate,
+        endDate:    leavePeriod.endDate ?? null,
+        leaveType:  leavePeriod.leaveType,
+      });
+      await sendEmail({ to: person.email, subject, html });
+    }
+  })();
 
   revalidatePath(`/personnel/${personnelId}`);
   revalidatePath("/personnel");

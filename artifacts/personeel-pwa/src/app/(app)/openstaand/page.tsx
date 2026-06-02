@@ -1,4 +1,6 @@
-import { ClipboardCheck, Calendar, MapPin, Tag, AlertCircle } from "lucide-react";
+export const dynamic = "force-dynamic";
+
+import { ClipboardCheck, Calendar, MapPin, Tag, AlertCircle, Globe } from "lucide-react";
 import { getOpenAssignments } from "@/actions/open-assignments";
 import { ApplyButton } from "./ApplyButton";
 
@@ -123,6 +125,14 @@ function AssignmentCard({
             <Calendar size={13} style={{ color: "var(--color-accent)" }} />
             <span className="text-xs" style={{ color: "var(--color-secondary)" }}>
               {formatDate(assignment.scheduledDate)}
+            </span>
+          </div>
+        )}
+        {assignment.requiredRegion && (
+          <div className="flex items-center gap-2">
+            <Globe size={13} style={{ color: "var(--color-accent)" }} />
+            <span className="text-xs font-medium" style={{ color: "var(--color-secondary)" }}>
+              {assignment.requiredRegion}
             </span>
           </div>
         )}

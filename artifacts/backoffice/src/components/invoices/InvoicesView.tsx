@@ -3,8 +3,21 @@
 import { useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
-import { Search, FileText, ChevronLeft, ChevronRight, TrendingUp, Clock, CheckCircle2, Link as LinkIcon, Copy, Check, Loader2 } from "lucide-react";
+import { Search, FileText, ChevronLeft, ChevronRight, TrendingUp, Clock, CheckCircle2, Link as LinkIcon, Check, Loader2, Mail } from "lucide-react";
+import { toast } from "sonner";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { createMolliePayment } from "@/app/actions/payments";
+import { sendPaymentReminders } from "@/app/actions/invoices";
 import type { InvoiceRow, InvoiceSummary } from "@/app/actions/invoices";
 
 const STATUS_LABELS: Record<string, string> = {
@@ -48,14 +61,35 @@ interface Props {
   statusFilter: string;
   canWrite:     boolean;
   summary:      InvoiceSummary;
+  overdueCount: number;
 }
 
-export function InvoicesView({ rows, total, page, search, statusFilter, canWrite, summary }: Props) {
+export function InvoicesView({ rows, total, page, search, statusFilter, canWrite, summary, overdueCount }: Props) {
   const router   = useRouter();
   const pathname = usePathname();
 
-  const [paymentLoading, setPaymentLoading] = useState<string | null>(null);
-  const [copiedId, setCopiedId]             = useState<string | null>(null);
+  const [paymentLoading,   setPaymentLoading]   = useState<string | null>(null);
+  const [copiedId,         setCopiedId]          = useState<string | null>(null);
+  const [reminderLoading,  setReminderLoading]   = useState(false);
+
+  async function handleSendReminders() {
+    setReminderLoading(true);
+    const result = await sendPaymentReminders();
+    setReminderLoading(false);
+    if (result.success && "data" in result && result.data) {
+      const { sent, skippedNoEmail, failedSend } = (result as { success: true; data: { sent: number; skippedNoEmail: number; failedSend: number } }).data;
+      const parts: string[] = [`${sent} herinnering${sent !== 1 ? "en" : ""} verstuurd`];
+      if (skippedNoEmail > 0) parts.push(`${skippedNoEmail} overgeslagen (geen e-mailadres)`);
+      if (failedSend > 0)     parts.push(`${failedSend} mislukt`);
+      if (failedSend > 0) {
+        toast.warning(parts.join(", "));
+      } else {
+        toast.success(parts.join(", "));
+      }
+    } else {
+      toast.error((result as { success: false; message?: string }).message ?? "Verzenden mislukt");
+    }
+  }
 
   async function handleCreatePaymentLink(e: React.MouseEvent, invoiceId: string) {
     e.stopPropagation();
@@ -92,13 +126,57 @@ export function InvoicesView({ rows, total, page, search, statusFilter, canWrite
     <div className="p-8 max-w-7xl">
 
       {/* ── Header ── */}
-      <div className="mb-8">
-        <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-          Facturen
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-          Beheer facturen en betalingsstatus
-        </p>
+      <div className="mb-8 flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
+            Facturen
+          </h1>
+          <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
+            Beheer facturen en betalingsstatus
+          </p>
+        </div>
+        {canWrite && overdueCount > 0 && (
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <button
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+                style={{ background: "#FEF3C7", color: "#92400E", border: "1px solid #FDE68A" }}
+              >
+                <Mail className="h-4 w-4" />
+                Stuur herinneringen
+                <span
+                  className="inline-flex items-center justify-center rounded-full text-xs font-bold px-1.5 py-0.5 min-w-[1.25rem]"
+                  style={{ background: "#F59E0B", color: "#fff" }}
+                >
+                  {overdueCount}
+                </span>
+              </button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Betalingsherinneringen versturen</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Er {overdueCount === 1 ? "is" : "zijn"} <strong>{overdueCount}</strong>{" "}
+                  achterstallige factuur{overdueCount !== 1 ? "en" : ""} (status{" "}
+                  <em>Verzonden</em>, vervaldatum verstreken). Klanten met een e-mailadres
+                  ontvangen een betalingsherinnering. Klanten zonder e-mailadres worden
+                  overgeslagen.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Annuleren</AlertDialogCancel>
+                <AlertDialogAction
+                  disabled={reminderLoading}
+                  onClick={handleSendReminders}
+                  className="inline-flex items-center gap-2"
+                >
+                  {reminderLoading && <Loader2 className="h-4 w-4 animate-spin" />}
+                  Verstuur herinneringen
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        )}
       </div>
 
       {/* ── Summary cards ── */}

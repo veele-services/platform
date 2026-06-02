@@ -1,0 +1,831 @@
+# REPLIT CANON
+# CUSTOMER MANAGEMENT MODULE
+# Veele Services Platform
+
+Version: 1.0
+
+---
+
+# PURPOSE
+
+The Customer Management module is one of the most important foundations of the Veele Services Platform.
+
+Customers are not simply records containing a name and phone number.
+
+A customer becomes a complete operational environment containing all commercial, operational, financial and historical information related to that customer.
+
+The goal is:
+
+One customer profile.
+
+One source of truth.
+
+Everything connected.
+
+No searching through WhatsApp.
+
+No searching through emails.
+
+No searching through Excel sheets.
+
+Everything accessible from a single location.
+
+---
+
+# CUSTOMER AS ROOT ENTITY
+
+A customer is the highest business entity within the platform.
+
+Everything is connected to a customer:
+
+Customer
+→ Sectors
+→ Objects
+→ Assignments
+→ Tasks
+→ Personnel
+→ Reports
+→ Invoices
+→ Payments
+→ Documents
+
+This allows Veele Services to immediately understand:
+
+Who the customer is.
+
+What services are provided.
+
+What locations belong to the customer.
+
+What work has been completed.
+
+What is still open.
+
+What has been invoiced.
+
+What special agreements exist.
+
+---
+
+# CUSTOMER TYPES
+
+The system must support unlimited customer types.
+
+Examples:
+
+- Business
+- Retail
+- Hospitality
+- Restaurant
+- Hotel
+- VvE
+- School
+- Municipality
+- Healthcare
+- Event Organizer
+- Property Management
+- Private Individual
+- Contractor
+- Construction Company
+
+Customer types are configurable.
+
+Management can create new types.
+
+---
+
+# CUSTOMER PROFILE
+
+Each customer contains:
+
+## General Information
+
+Customer Number
+
+Example:
+
+CUST-000148
+
+Fields:
+
+- company name
+- legal entity
+- VAT number
+- Chamber of Commerce number
+- website
+- email
+- phone
+- mobile
+- industry
+- customer type
+
+---
+
+## Status
+
+Customer status:
+
+- lead
+- prospect
+- active
+- inactive
+- blocked
+- archived
+
+---
+
+## Relationship Owner
+
+Internal responsible person:
+
+- account manager
+- planner
+- management contact
+
+---
+
+# CONTACT MANAGEMENT
+
+A customer may have multiple contacts.
+
+Examples:
+
+Operations Manager
+
+Facility Manager
+
+Owner
+
+Security Coordinator
+
+Reception
+
+Finance Department
+
+Emergency Contact
+
+---
+
+Each contact contains:
+
+- first name
+- last name
+- function
+- email
+- phone
+- mobile
+- preferred communication method
+- emergency contact yes/no
+
+---
+
+# CUSTOMER LOCATIONS
+
+Customers can have unlimited objects.
+
+Examples:
+
+Restaurant
+
+Office
+
+Store
+
+Portico
+
+Apartment Building
+
+Parking Garage
+
+Construction Site
+
+Warehouse
+
+Event Location
+
+---
+
+Examples:
+
+Customer:
+
+Restaurant Group A
+
+Objects:
+
+- Scheveningen
+- Delft
+- Rotterdam
+
+---
+
+Customer:
+
+VvE Residence
+
+Objects:
+
+- Building A
+- Building B
+- Parking Garage
+
+---
+
+All objects remain linked to the customer.
+
+---
+
+# SECTOR MANAGEMENT
+
+A customer may purchase services from multiple sectors.
+
+Examples:
+
+Cleaning
+
+Security
+
+Facility Services
+
+---
+
+Examples:
+
+Customer:
+
+Football Club
+
+Uses:
+
+- Event Security
+- Cleaning
+- Bar Personnel
+- Toilet Service
+
+---
+
+Customer:
+
+VvE
+
+Uses:
+
+- Stairwell Cleaning
+- Window Cleaning
+- Mobile Surveillance
+
+---
+
+# CUSTOMER DASHBOARD
+
+Opening a customer profile should feel like opening a mini CRM.
+
+The customer dashboard contains:
+
+Customer Summary
+
+Objects
+
+Assignments
+
+Reports
+
+Invoices
+
+Payments
+
+Tickets
+
+Documents
+
+Notes
+
+History
+
+Contacts
+
+---
+
+# CUSTOMER SUMMARY
+
+At the top:
+
+Customer Name
+
+Customer Number
+
+Status
+
+Service Types
+
+Primary Contact
+
+Monthly Revenue
+
+Open Assignments
+
+Open Invoices
+
+Outstanding Balance
+
+Last Activity
+
+---
+
+Statistics Cards
+
+Examples:
+
+12 Active Objects
+
+84 Assignments This Year
+
+€12,480 Revenue
+
+3 Open Tickets
+
+2 Open Invoices
+
+98% Completed Assignments
+
+---
+
+# OBJECT OVERVIEW
+
+Directly visible:
+
+All customer objects.
+
+Per object:
+
+Name
+
+Address
+
+Service Types
+
+Active Assignments
+
+Open Incidents
+
+Last Report
+
+Assigned Personnel
+
+---
+
+Management can drill down immediately.
+
+---
+
+# ASSIGNMENT OVERVIEW
+
+Every assignment linked to customer.
+
+Visible:
+
+Assignment Number
+
+Object
+
+Sector
+
+Status
+
+Date
+
+Assigned Personnel (internal only)
+
+Invoice Status
+
+---
+
+Quick filters:
+
+Open
+
+Planned
+
+Completed
+
+Not Completed
+
+Awaiting Approval
+
+Awaiting Invoice
+
+---
+
+# REPORTING CENTER
+
+All reports for the customer.
+
+Searchable.
+
+Filterable.
+
+Grouped by:
+
+Object
+
+Date
+
+Service Type
+
+Assignment
+
+---
+
+Customer sees:
+
+Approved Reports Only
+
+---
+
+Internal users see:
+
+Internal Notes
+
+Quality Checks
+
+Approval Status
+
+Personnel Information
+
+---
+
+# PHOTO CENTER
+
+Central photo archive.
+
+Contains:
+
+Before Photos
+
+After Photos
+
+Incident Photos
+
+Object Photos
+
+Assignment Photos
+
+Inspection Photos
+
+---
+
+Photos are grouped automatically.
+
+---
+
+# TICKET CENTER
+
+Customer-related tickets.
+
+Examples:
+
+Complaint
+
+Question
+
+Damage
+
+Extra Work Request
+
+Invoice Question
+
+Urgent Request
+
+Follow-Up
+
+---
+
+Status:
+
+New
+
+Open
+
+In Progress
+
+Waiting
+
+Resolved
+
+Closed
+
+---
+
+# REQUEST CENTER
+
+Customer requests.
+
+Examples:
+
+Extra Cleaning
+
+Additional Security
+
+Event Personnel
+
+Emergency Service
+
+Additional Toilet Service
+
+Bar Personnel
+
+Window Cleaning
+
+Ventilation Cleaning
+
+---
+
+Requests can convert into:
+
+Assignments
+
+Quotes
+
+Tickets
+
+Invoices
+
+---
+
+# CONTRACT MANAGEMENT
+
+Optional module.
+
+Store:
+
+Service Agreements
+
+Cleaning Agreements
+
+Security Agreements
+
+Facility Agreements
+
+Price Lists
+
+SLA Documents
+
+Terms & Conditions
+
+Insurance Documents
+
+---
+
+# INVOICE CENTER
+
+All invoices.
+
+Per invoice:
+
+Number
+
+Date
+
+Amount
+
+Status
+
+Due Date
+
+Payment Method
+
+Mollie Status
+
+PDF
+
+---
+
+Statuses:
+
+Draft
+
+Open
+
+Paid
+
+Overdue
+
+Cancelled
+
+Credit
+
+---
+
+# PAYMENT CENTER
+
+Customer payment history.
+
+Contains:
+
+Transactions
+
+Mollie Payments
+
+Collection Invoices
+
+Credits
+
+Refunds
+
+Outstanding Balance
+
+---
+
+# NOTES CENTER
+
+Two separate note systems.
+
+## Internal Notes
+
+Only visible to Veele Services.
+
+Examples:
+
+Customer difficult to reach.
+
+Always requests extra cleaning.
+
+Sensitive security information.
+
+---
+
+## Customer Notes
+
+Visible to relevant users.
+
+Examples:
+
+Customer prefers communication by email.
+
+Customer closes at 22:00.
+
+Alarm instructions.
+
+---
+
+# DOCUMENT CENTER
+
+Customer documents.
+
+Examples:
+
+Contracts
+
+Insurance Documents
+
+Photos
+
+Reports
+
+Certificates
+
+Security Agreements
+
+Access Procedures
+
+Invoices
+
+Price Agreements
+
+---
+
+# CUSTOMER HISTORY TIMELINE
+
+Enterprise-level timeline.
+
+Shows:
+
+Assignments Created
+
+Reports Submitted
+
+Invoices Sent
+
+Payments Received
+
+Tickets Opened
+
+Requests Submitted
+
+Documents Uploaded
+
+Incidents Reported
+
+Status Changes
+
+---
+
+Everything timestamped.
+
+Everything auditable.
+
+---
+
+# ALERTS & SIGNALS
+
+Customer profile can generate warnings.
+
+Examples:
+
+Invoice overdue.
+
+Multiple complaints this month.
+
+No activity for 90 days.
+
+Contract expiring.
+
+Repeated incidents.
+
+Open urgent ticket.
+
+Outstanding report approval.
+
+---
+
+# CUSTOMER PWA EXPERIENCE
+
+The customer application must feel like:
+
+"My Veele Services Environment"
+
+Not:
+
+"Simple customer portal"
+
+The customer sees:
+
+Dashboard
+
+Objects
+
+Assignments
+
+Reports
+
+Photos
+
+Invoices
+
+Payments
+
+Tickets
+
+Requests
+
+Documents
+
+Notifications
+
+---
+
+# DESIGN REQUIREMENTS
+
+Customer management must feel:
+
+Enterprise
+
+Premium
+
+Professional
+
+Structured
+
+Reliable
+
+Transparent
+
+Fast
+
+The customer profile should feel similar to:
+
+HubSpot Company View
+
+Salesforce Account View
+
+ServiceNow Customer View
+
+But simplified for operational service management.
+
+Opening a customer profile should immediately answer:
+
+Who is this customer?
+
+What do we do for them?
+
+What is happening right now?
+
+What still requires attention?
+
+What has been delivered?
+
+What has been paid?
+
+What needs follow-up?
+
+Without opening five different screens.

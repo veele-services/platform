@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
 import {
   Select,
@@ -79,6 +80,8 @@ export function PersonnelForm({
   const [knowledge,    setKnowledge]    = useState<string[]>([]);
   const [isAvailable,  setIsAvailable]  = useState(true);
   const [isActive,     setIsActive]     = useState(true);
+  // Create-mode only: send invite email immediately after creating the record
+  const [autoInvite,   setAutoInvite]   = useState(false);
 
   const form = useForm<TextFormValues>({ defaultValues: TEXT_DEFAULTS });
   const {
@@ -138,6 +141,7 @@ export function PersonnelForm({
         knowledge,
         isAvailable,
         isActive,
+        autoInvite:   mode === "create" ? autoInvite : undefined,
       };
 
       const result =
@@ -155,7 +159,12 @@ export function PersonnelForm({
         return;
       }
 
-      toast.success(mode === "create" ? "Personeelsrecord aangemaakt" : "Personeelsrecord bijgewerkt");
+      if (mode === "create" && autoInvite) {
+        toast.success("Personeelsrecord aangemaakt en uitnodiging verstuurd");
+      } else {
+        toast.success(mode === "create" ? "Personeelsrecord aangemaakt" : "Personeelsrecord bijgewerkt");
+      }
+
       const id =
         mode === "create" && result.data ? result.data.id : (personnelId ?? "");
       onSuccess(id);
@@ -344,6 +353,41 @@ export function PersonnelForm({
           </div>
         </div>
       </section>
+
+      {/* ── Auto-invite (create mode only) ───────────── */}
+      {mode === "create" && (
+        <>
+          <Separator />
+          <section>
+            <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+              Portaaltoegang
+            </p>
+            <div
+              className="flex items-start gap-3 rounded-lg border px-4 py-3"
+              style={{ borderColor: "#E2E8F0" }}
+            >
+              <Checkbox
+                id="autoInvite"
+                checked={autoInvite}
+                onCheckedChange={(val) => setAutoInvite(val === true)}
+                className="mt-0.5"
+              />
+              <div>
+                <label
+                  htmlFor="autoInvite"
+                  className="text-sm font-medium cursor-pointer"
+                  style={{ color: "#081D3A" }}
+                >
+                  Direct uitnodigen na aanmaken
+                </label>
+                <p className="text-xs mt-0.5" style={{ color: "#94A3B8" }}>
+                  Het personeelslid ontvangt direct een activatielink voor de Personeels-PWA.
+                </p>
+              </div>
+            </div>
+          </section>
+        </>
+      )}
 
       {/* ── Actions ────────────────────────────────────── */}
       <div className="flex justify-end gap-2 pt-2 border-t">

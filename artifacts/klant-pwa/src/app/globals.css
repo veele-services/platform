@@ -2,24 +2,36 @@
 @import "tw-animate-css";
 
 @theme {
+  /* ── Klant-PWA Brand Colors ───────────────────────────────────────── */
   --color-primary:        #081D3A;
   --color-primary-light:  #0F2E5C;
-  --color-accent:         #00B7B3;
-  --color-accent-dark:    #009E9A;
+
+  /* Medium blauw als primair accent — trustwaardig portaal-gevoel */
+  --color-accent:         #1D7BC4;
+  --color-accent-dark:    #1565A8;
+  --color-accent-muted:   rgba(29,123,196,0.10);
+
+  /* Teal als secundaire highlight (was primaire accent in backoffice) */
+  --color-teal:           #00B7B3;
+
   --color-secondary:      #64748B;
-  --color-muted:          #F1F5F9;
+  /* Lichtere achtergrond — schoner portaal-gevoel */
+  --color-muted:          #F4F9FF;
   --color-muted-fg:       #94A3B8;
-  --color-border:         #E2E8F0;
+  --color-border:         #DDE8F5;
   --color-destructive:    #EF4444;
   --color-warning:        #F59E0B;
   --color-success:        #10B981;
 
+  /* ── Typography ───────────────────────────────────────────────────── */
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 
-  --radius: 0.625rem;
+  /* ── Radius ───────────────────────────────────────────────────────── */
+  --radius:    0.625rem;
   --radius-sm: 0.375rem;
   --radius-lg: 0.875rem;
   --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
 }
 
 @layer base {
@@ -30,6 +42,7 @@
 
   html {
     font-family: var(--font-sans);
+    font-size: 16px;
     -webkit-text-size-adjust: 100%;
     overscroll-behavior: none;
   }
@@ -38,9 +51,13 @@
     background-color: var(--color-muted);
     color: var(--color-primary);
     overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   :root {
     --safe-bottom: env(safe-area-inset-bottom, 0px);
   }
+
+  a, button { -webkit-tap-highlight-color: transparent; }
 }

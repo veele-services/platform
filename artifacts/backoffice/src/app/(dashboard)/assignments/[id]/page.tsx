@@ -255,6 +255,14 @@ export default async function AssignmentDetailPage({ params }: Props) {
               />
             )}
 
+            {assignment.requiredRegion && (
+              <InfoRow
+                icon={MapPin}
+                label="Regio"
+                value={assignment.requiredRegion}
+              />
+            )}
+
             <InfoRow
               icon={Calendar}
               label="Geplande datum"

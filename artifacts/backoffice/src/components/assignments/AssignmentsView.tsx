@@ -75,34 +75,50 @@ const REPORT_ELIGIBLE: AssignmentStatus[] = [
   "invoice_ready", "invoiced", "paid", "closed",
 ];
 
-function ReportDot({ reportStatus, assignmentStatus }: { reportStatus: string | null; assignmentStatus: AssignmentStatus }) {
+function ReportStatusBadge({ reportStatus, assignmentStatus }: { reportStatus: string | null; assignmentStatus: AssignmentStatus }) {
   if (!REPORT_ELIGIBLE.includes(assignmentStatus)) return null;
 
   if (!reportStatus) {
     return (
-      <span title="Geen rapport ingediend">
-        <FileText className="h-3.5 w-3.5" style={{ color: "#CBD5E1" }} />
+      <span
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium"
+        style={{ background: "#F1F5F9", color: "#94A3B8" }}
+      >
+        <FileText className="h-3 w-3 flex-shrink-0" />
+        Geen rapport
       </span>
     );
   }
   if (reportStatus === "submitted") {
     return (
-      <span title="Rapport ingediend — wacht op beoordeling">
-        <Clock3 className="h-3.5 w-3.5" style={{ color: "#D97706" }} />
+      <span
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium"
+        style={{ background: "#FEF3C7", color: "#D97706" }}
+      >
+        <Clock3 className="h-3 w-3 flex-shrink-0" />
+        Ingediend
       </span>
     );
   }
   if (reportStatus === "approved") {
     return (
-      <span title="Rapport goedgekeurd">
-        <CheckCircle2 className="h-3.5 w-3.5" style={{ color: "#16A34A" }} />
+      <span
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium"
+        style={{ background: "#DCFCE7", color: "#16A34A" }}
+      >
+        <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
+        Goedgekeurd
       </span>
     );
   }
   if (reportStatus === "rejected") {
     return (
-      <span title="Rapport afgekeurd">
-        <XCircle className="h-3.5 w-3.5" style={{ color: "#DC2626" }} />
+      <span
+        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium"
+        style={{ background: "#FEE2E2", color: "#DC2626" }}
+      >
+        <XCircle className="h-3 w-3 flex-shrink-0" />
+        Afgekeurd
       </span>
     );
   }
@@ -137,16 +153,17 @@ const PRIORITY_LABELS: Record<AssignmentPriority, string> = {
 };
 
 interface AssignmentsViewProps {
-  rows:            AssignmentRow[];
-  total:           number;
-  customers:       CustomerOption[];
-  canWrite:        boolean;
-  page:            number;
-  initialSearch:   string;
-  initialStatus:   string;
-  initialPriority: string;
-  initialSort:     string;
-  initialDir:      string;
+  rows:                  AssignmentRow[];
+  total:                 number;
+  customers:             CustomerOption[];
+  canWrite:              boolean;
+  page:                  number;
+  initialSearch:         string;
+  initialStatus:         string;
+  initialPriority:       string;
+  initialReportStatus:   string;
+  initialSort:           string;
+  initialDir:            string;
 }
 
 function SortHeader({
@@ -195,6 +212,7 @@ export function AssignmentsView({
   initialSearch,
   initialStatus,
   initialPriority,
+  initialReportStatus,
   initialSort,
   initialDir,
 }: AssignmentsViewProps) {
@@ -212,12 +230,13 @@ export function AssignmentsView({
   function buildUrl(overrides: Record<string, string | undefined>): string {
     const params = new URLSearchParams();
     const merged: Record<string, string | undefined> = {
-      search:   initialSearch   || undefined,
-      status:   initialStatus   || undefined,
-      priority: initialPriority || undefined,
-      sort:     initialSort !== "createdAt" ? initialSort   : undefined,
-      dir:      initialDir  !== "desc"      ? initialDir    : undefined,
-      page:     page > 1 ? String(page) : undefined,
+      search:       initialSearch        || undefined,
+      status:       initialStatus        || undefined,
+      priority:     initialPriority      || undefined,
+      reportStatus: initialReportStatus  || undefined,
+      sort:         initialSort !== "createdAt" ? initialSort : undefined,
+      dir:          initialDir  !== "desc"      ? initialDir  : undefined,
+      page:         page > 1 ? String(page) : undefined,
       ...overrides,
     };
     Object.entries(merged).forEach(([k, v]) => { if (v) params.set(k, v); });
@@ -329,6 +348,22 @@ export function AssignmentsView({
           </SelectContent>
         </Select>
 
+        <Select
+          value={initialReportStatus || "all"}
+          onValueChange={(v) => applyFilter("reportStatus", v === "all" ? "" : v)}
+        >
+          <SelectTrigger className="w-[160px] h-9">
+            <SelectValue placeholder="Alle rapportstatus" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alle rapportstatus</SelectItem>
+            <SelectItem value="none">Geen rapport</SelectItem>
+            <SelectItem value="submitted">Ingediend</SelectItem>
+            <SelectItem value="approved">Goedgekeurd</SelectItem>
+            <SelectItem value="rejected">Afgekeurd</SelectItem>
+          </SelectContent>
+        </Select>
+
         <div className="ml-auto flex items-center gap-2">
           {canWrite && (
             <Button size="sm" onClick={openCreate}>
@@ -405,9 +440,9 @@ export function AssignmentsView({
                       {row.objectName ?? "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
+                      <div className="flex flex-col gap-1">
                         <AssignmentStatusBadge status={row.status} />
-                        <ReportDot reportStatus={row.reportStatus} assignmentStatus={row.status} />
+                        <ReportStatusBadge reportStatus={row.reportStatus} assignmentStatus={row.status} />
                       </div>
                     </td>
                     <td className="px-4 py-3">

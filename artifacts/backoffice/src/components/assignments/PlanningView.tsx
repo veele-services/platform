@@ -3,7 +3,7 @@
 import { useState, useTransition, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
-import { ChevronLeft, ChevronRight, Clock, Users, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, Users, Plus, Filter } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import { AssignmentStatusBadge } from "./AssignmentStatusBadge";
 import { AssignmentForm } from "./AssignmentForm";
+import { PlanningPersonnelDrawer } from "./PlanningPersonnelDrawer";
 import { rescheduleAssignment } from "@/app/actions/assignments";
 import type { WeekAssignment, CustomerOption } from "@/app/actions/assignments";
 import { AlertTriangle, X } from "lucide-react";
@@ -62,8 +63,9 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
   const router   = useRouter();
   const pathname = usePathname();
 
-  const [createSheetOpen, setCreateSheetOpen] = useState(false);
-  const [createDate,      setCreateDate]      = useState("");
+  const [createSheetOpen,      setCreateSheetOpen]      = useState(false);
+  const [createDate,           setCreateDate]           = useState("");
+  const [personnelDrawerId,    setPersonnelDrawerId]    = useState<string | null>(null);
 
   // Drag-and-drop state
   const [draggingId,      setDraggingId]      = useState<string | null>(null);
@@ -74,6 +76,8 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
   const dragRef = useRef<string | null>(null); // sync fallback for drag events
   // Conflict warning banner
   const [conflictWarning, setConflictWarning]  = useState<string | null>(null);
+  // Conflict filter toggle
+  const [showConflictsOnly, setShowConflictsOnly] = useState(false);
 
   const weekStart = new Date(weekStartStr + "T00:00:00");
   const weekEnd   = addDays(weekStart, 6);
@@ -103,8 +107,14 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
     scheduledDate: movedMap.get(a.id) ?? a.scheduledDate,
   }));
 
+  const conflictCount = effectiveAssignments.filter((a) => a.hasConflict).length;
+
+  const visibleAssignments = showConflictsOnly
+    ? effectiveAssignments.filter((a) => a.hasConflict)
+    : effectiveAssignments;
+
   const byDate = new Map<string, WeekAssignment[]>();
-  for (const a of effectiveAssignments) {
+  for (const a of visibleAssignments) {
     const list = byDate.get(a.scheduledDate) ?? [];
     list.push(a);
     byDate.set(a.scheduledDate, list);
@@ -236,7 +246,35 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
               : `${totalForWeek} opdracht${totalForWeek > 1 ? "en" : ""} ingepland`}
           </p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Conflict filter toggle */}
+          <button
+            type="button"
+            onClick={() => setShowConflictsOnly((v) => !v)}
+            className="flex items-center gap-1.5 rounded-md px-3 py-1.5 text-xs font-medium transition-colors"
+            style={
+              showConflictsOnly
+                ? { background: "#FEF3C7", border: "1px solid #F59E0B", color: "#92400E" }
+                : { background: "#fff", border: "1px solid #E2E8F0", color: "#64748B" }
+            }
+            aria-pressed={showConflictsOnly}
+          >
+            <Filter className="h-3.5 w-3.5" />
+            Toon conflicten
+            {conflictCount > 0 && (
+              <span
+                className="ml-0.5 inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-bold leading-none"
+                style={
+                  showConflictsOnly
+                    ? { background: "#F59E0B", color: "#fff" }
+                    : { background: "#FEF3C7", color: "#92400E" }
+                }
+              >
+                {conflictCount}
+              </span>
+            )}
+          </button>
+
           <Button
             variant="outline"
             size="sm"
@@ -260,6 +298,46 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
             Volgende week
             <ChevronRight className="h-4 w-4" />
           </Button>
+
+          {/* Separator */}
+          <div
+            className="hidden sm:block w-px h-6 mx-1"
+            style={{ background: "#E2E8F0" }}
+          />
+
+          {/* Week / Maand toggle — navigate to the month of the displayed week */}
+          <div
+            className="flex rounded-md overflow-hidden"
+            style={{ border: "1px solid #E2E8F0" }}
+          >
+            <button
+              type="button"
+              disabled
+              className="px-3 py-1.5 text-xs font-medium"
+              style={{
+                color:      "#00B7B3",
+                background: "#F0FDFC",
+                outline:    "none",
+              }}
+            >
+              Week
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                const ym = `${weekStart.getFullYear()}-${String(weekStart.getMonth() + 1).padStart(2, "0")}`;
+                router.replace(`${pathname}?month=${ym}`);
+              }}
+              className="px-3 py-1.5 text-xs font-medium transition-colors"
+              style={{
+                color:      "#64748B",
+                background: "#fff",
+                borderLeft: "1px solid #E2E8F0",
+              }}
+            >
+              Maand
+            </button>
+          </div>
         </div>
       </div>
 
@@ -310,6 +388,10 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
               >
                 {day.items.map((a) => {
                   const isBeingDragged = draggingId === a.id;
+                  const canAssignPersonnel =
+                    canWrite &&
+                    (a.status === "plannable" || a.status === "scheduled");
+
                   return canWrite ? (
                     <div
                       key={a.id}
@@ -326,6 +408,28 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
                       }}
                     >
                       <AssignmentCardContent a={a} />
+                      {canAssignPersonnel && (
+                        <button
+                          type="button"
+                          draggable={false}
+                          onDragStart={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPersonnelDrawerId(a.id);
+                          }}
+                          className="mt-2 w-full flex items-center justify-center gap-1 rounded py-1 text-xs transition-colors"
+                          style={{
+                            background: "#F0FDF4",
+                            color:      "#16A34A",
+                            border:     "1px solid #BBF7D0",
+                            cursor:     "pointer",
+                          }}
+                          aria-label="Personeel inplannen"
+                        >
+                          <Users className="h-3 w-3" />
+                          Personeel
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <Link
@@ -369,6 +473,13 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
           );
         })}
       </div>
+
+      {/* Personnel assignment drawer */}
+      <PlanningPersonnelDrawer
+        assignmentId={personnelDrawerId}
+        onClose={() => { setPersonnelDrawerId(null); router.refresh(); }}
+        canWrite={canWrite}
+      />
 
       {/* Create assignment sheet */}
       {canWrite && (

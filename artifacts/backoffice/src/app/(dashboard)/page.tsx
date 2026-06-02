@@ -79,8 +79,8 @@ export default async function DashboardPage() {
     weekCounts,
   ] = await Promise.all([
     canReadAssignments
-      ? getDashboardCounts().catch(() => ({ requested: 0, plannable: 0, inProgress: 0, completedToday: 0 }))
-      : Promise.resolve({ requested: 0, plannable: 0, inProgress: 0, completedToday: 0 }),
+      ? getDashboardCounts().catch(() => ({ requested: 0, plannable: 0, inProgress: 0, completedToday: 0, open: 0 }))
+      : Promise.resolve({ requested: 0, plannable: 0, inProgress: 0, completedToday: 0, open: 0 }),
 
     getDashboardFinancials().catch(() => null),
     getDashboardPayments().catch(() => null),
@@ -101,6 +101,7 @@ export default async function DashboardPage() {
     { label: "Inplanbaar",        value: canReadAssignments ? String(counts.plannable)      : "—", accent: "#F59E0B", href: "/assignments?status=plannable" },
     { label: "In uitvoering",     value: canReadAssignments ? String(counts.inProgress)     : "—", accent: "#8B5CF6", href: "/assignments?status=in_progress" },
     { label: "Vandaag afgerond",  value: canReadAssignments ? String(counts.completedToday) : "—", accent: "#22C55E", href: "/assignments?status=completed" },
+    { label: "Open opdrachten",   value: canReadAssignments ? String(counts.open)           : "—", accent: "#0EA5E9", href: "/assignments"                  },
   ];
 
   const totalStaff        = staffAvailability.length;
@@ -109,20 +110,21 @@ export default async function DashboardPage() {
 
   return (
     <div className="p-8 space-y-6">
-      <DashboardRefresher />
-
       {/* Header */}
-      <div>
-        <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-          Dashboard
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-          Operationeel overzicht — {today.toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
-        </p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
+            Dashboard
+          </h1>
+          <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
+            Operationeel overzicht — {today.toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          </p>
+        </div>
+        <DashboardRefresher />
       </div>
 
       {/* ── Row 1: Stat cards ── */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-5">
         {STAT_CARDS.map(({ label, value, accent, href }) => (
           <Link
             key={label}
@@ -186,7 +188,7 @@ export default async function DashboardPage() {
         </div>
       )}
 
-      {/* ── Row 2b: Betalingen-widget ── */}
+      {/* ── Row 2b: Betalingenoverzicht-widget ── */}
       {payments && (
         <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
           <Link
@@ -194,13 +196,13 @@ export default async function DashboardPage() {
             className="veele-card transition-shadow hover:shadow-md"
           >
             <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: "#64748B" }}>
-              Betaald deze maand
+              Ontvangen dit jaar
             </p>
             <p className="font-heading text-2xl font-bold" style={{ color: "#16A34A" }}>
-              {payments.paidThisMonthCount}
+              {formatEuro(payments.paidThisYearAmount)}
             </p>
             <p className="text-xs mt-1 font-medium" style={{ color: "#64748B" }}>
-              {formatEuro(payments.paidThisMonthAmount)}
+              {payments.paidThisMonthCount} factuur{payments.paidThisMonthCount !== 1 ? "en" : ""} deze maand
             </p>
           </Link>
 
@@ -209,7 +211,7 @@ export default async function DashboardPage() {
             className="veele-card transition-shadow hover:shadow-md"
           >
             <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: "#64748B" }}>
-              Openstaande facturen
+              Openstaand
             </p>
             <p className="font-heading text-2xl font-bold" style={{ color: financials ? (financials.outstandingAmount > 0 ? "#F59E0B" : "#081D3A") : "#081D3A" }}>
               {financials ? formatEuro(financials.outstandingAmount) : "—"}
@@ -221,24 +223,26 @@ export default async function DashboardPage() {
             )}
           </Link>
 
-          <div className="veele-card">
+          <Link
+            href="/invoices?status=sent"
+            className="veele-card transition-shadow hover:shadow-md"
+          >
             <p className="text-xs font-medium uppercase tracking-wider mb-2" style={{ color: "#64748B" }}>
-              Mollie in behandeling
+              Achterstallig
             </p>
-            <p className="font-heading text-2xl font-bold" style={{ color: payments.mollieOpenCount > 0 ? "#8B5CF6" : "#081D3A" }}>
-              {payments.mollieOpenCount}
+            <p className="font-heading text-2xl font-bold" style={{ color: payments.overdueCount > 0 ? "#DC2626" : "#081D3A" }}>
+              {formatEuro(payments.overdueAmount)}
             </p>
-            {payments.mollieOpenCount > 0 && (
-              <p className="text-xs mt-1 font-medium" style={{ color: "#64748B" }}>
-                {formatEuro(payments.mollieOpenAmountEur)} openstaand
+            {payments.overdueCount > 0 ? (
+              <p className="text-xs mt-1 font-medium" style={{ color: "#DC2626" }}>
+                {payments.overdueCount} factuur{payments.overdueCount !== 1 ? "en" : ""} vervallen
               </p>
-            )}
-            {payments.mollieOpenCount === 0 && (
+            ) : (
               <p className="text-xs mt-1" style={{ color: "#94A3B8" }}>
-                Geen openstaande betalingen
+                Geen achterstallige facturen
               </p>
             )}
-          </div>
+          </Link>
         </div>
       )}
 

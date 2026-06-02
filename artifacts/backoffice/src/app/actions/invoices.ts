@@ -8,15 +8,18 @@ import {
   customersTable,
   objectsTable,
   taskCodesTable,
+  paymentsTable,
   auditLogTable,
   ASSIGNMENT_STATUS_TRANSITIONS,
   type AssignmentStatus,
   type InvoiceStatus,
 } from "@workspace/db";
-import { eq, ilike, or, and, asc, desc, sql, inArray } from "drizzle-orm";
+import { eq, ilike, or, and, asc, desc, sql, inArray, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
+import { sendEmailWithResult, buildInvoiceEmail, buildPaymentReminderEmail, klantPortalUrl } from "@/lib/email";
+import { generateInvoicePdf } from "@/lib/invoice-pdf";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, InvoiceStatus };
@@ -339,6 +342,93 @@ export async function getOutstandingInvoicesCount(): Promise<number> {
   return count ?? 0;
 }
 
+export async function getOverdueInvoicesCount(): Promise<number> {
+  const canRead = await hasPermission("invoices", "read");
+  if (!canRead) return 0;
+
+  const today = new Date().toISOString().slice(0, 10);
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(invoicesTable)
+    .where(and(eq(invoicesTable.status, "sent"), lt(invoicesTable.dueDate, today)));
+
+  return count ?? 0;
+}
+
+export type SendRemindersResult = { sent: number; skippedNoEmail: number; failedSend: number };
+
+export async function sendPaymentReminders(): Promise<ActionResult<SendRemindersResult>> {
+  await requirePermission("invoices", "write");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const today = new Date().toISOString().slice(0, 10);
+
+  const overdueRows = await db
+    .select({
+      id:            invoicesTable.id,
+      invoiceNumber: invoicesTable.invoiceNumber,
+      totalAmount:   invoicesTable.totalAmount,
+      dueDate:       invoicesTable.dueDate,
+      customerEmail: customersTable.contactEmail,
+      customerName:  customersTable.name,
+    })
+    .from(invoicesTable)
+    .innerJoin(customersTable, eq(invoicesTable.customerId, customersTable.id))
+    .where(and(eq(invoicesTable.status, "sent"), lt(invoicesTable.dueDate, today)))
+    .orderBy(asc(invoicesTable.dueDate));
+
+  // Split: no email vs has email
+  const noEmailRows = overdueRows.filter((r) => !r.customerEmail);
+
+  // Deduplicate by customer email — pick the oldest overdue invoice per customer
+  // (rows already ordered by due_date asc, so first occurrence per email is the oldest)
+  const seenEmails = new Set<string>();
+  const deduped: typeof overdueRows = [];
+  for (const row of overdueRows) {
+    if (!row.customerEmail) continue;
+    if (seenEmails.has(row.customerEmail)) continue;
+    seenEmails.add(row.customerEmail);
+    deduped.push(row);
+  }
+
+  let sent       = 0;
+  let failedSend = 0;
+
+  for (const row of deduped) {
+    const dueDateFormatted = new Date(row.dueDate + "T00:00:00").toLocaleDateString("nl-NL", {
+      day: "numeric", month: "long", year: "numeric",
+    });
+
+    const { subject, html } = buildPaymentReminderEmail({
+      customerName:  row.customerName ?? "",
+      invoiceNumber: row.invoiceNumber,
+      totalAmount:   row.totalAmount ?? "0",
+      dueDate:       dueDateFormatted,
+    });
+
+    const result = await sendEmailWithResult({ to: row.customerEmail!, subject, html });
+
+    if (result.success) {
+      await db.insert(auditLogTable).values({
+        userId:     user.id,
+        action:     "send_payment_reminder",
+        resource:   "invoices",
+        resourceId: row.id,
+        metadata:   { to: row.customerEmail, invoiceNumber: row.invoiceNumber },
+      });
+      sent++;
+    } else {
+      failedSend++;
+    }
+  }
+
+  revalidatePath("/invoices");
+  return { success: true, data: { sent, skippedNoEmail: noEmailRows.length, failedSend } };
+}
+
 export async function getInvoiceSummary(): Promise<InvoiceSummary> {
   const canRead = await hasPermission("invoices", "read");
   if (!canRead) {
@@ -380,6 +470,7 @@ export async function getInvoiceStatusHistory(invoiceId: string): Promise<Invoic
     mark_invoice_sent:    "Gemarkeerd als verzonden",
     mark_invoice_paid:    "Gemarkeerd als betaald",
     cancel_invoice:       "Factuur geannuleerd",
+    email_invoice:        "Factuur per e-mail verstuurd",
   };
 
   const rows = await db
@@ -623,6 +714,75 @@ export async function cancelInvoice(invoiceId: string): Promise<ActionResult> {
   return { success: true };
 }
 
+export async function emailInvoice(invoiceId: string): Promise<ActionResult> {
+  await requirePermission("invoices", "write");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const invoice = await getInvoice(invoiceId);
+  if (!invoice) return { success: false, message: "Factuur niet gevonden." };
+
+  if (invoice.status !== "sent") {
+    return { success: false, message: "E-mail kan alleen voor verzonden facturen worden verstuurd." };
+  }
+  if (!invoice.customerEmail) {
+    return { success: false, message: "Klant heeft geen e-mailadres geregistreerd." };
+  }
+
+  const [openPayment] = await db
+    .select({ checkoutUrl: paymentsTable.checkoutUrl })
+    .from(paymentsTable)
+    .where(and(eq(paymentsTable.invoiceId, invoiceId), eq(paymentsTable.status, "open")))
+    .limit(1);
+
+  const paymentUrl = openPayment?.checkoutUrl ?? null;
+
+  let pdfBuffer: Buffer;
+  try {
+    pdfBuffer = await generateInvoicePdf(invoice);
+  } catch {
+    return { success: false, message: "PDF genereren mislukt." };
+  }
+
+  const portalUrl = klantPortalUrl();
+  const dueDateFormatted = new Date(invoice.dueDate + "T00:00:00").toLocaleDateString("nl-NL", {
+    day: "numeric", month: "long", year: "numeric",
+  });
+
+  const { subject, html } = buildInvoiceEmail({
+    customerName:  invoice.customerName,
+    invoiceNumber: invoice.invoiceNumber,
+    totalAmount:   invoice.totalAmount,
+    dueDate:       dueDateFormatted,
+    paymentUrl,
+    portalUrl,
+  });
+
+  const result = await sendEmailWithResult({
+    to:          invoice.customerEmail,
+    subject,
+    html,
+    attachments: [{ filename: `${invoice.invoiceNumber}.pdf`, content: pdfBuffer }],
+  });
+
+  if (!result.success) {
+    return { success: false, message: result.error ?? "E-mail verzenden mislukt." };
+  }
+
+  await db.insert(auditLogTable).values({
+    userId:     user.id,
+    action:     "email_invoice",
+    resource:   "invoices",
+    resourceId: invoiceId,
+    metadata:   { to: invoice.customerEmail, invoiceNumber: invoice.invoiceNumber },
+  });
+
+  revalidatePath(`/invoices/${invoiceId}`);
+  return { success: true };
+}
+
 export async function getInvoiceForAssignment(assignmentId: string): Promise<InvoiceRow | null> {
   const canRead = await hasPermission("invoices", "read");
   if (!canRead) return null;
@@ -669,4 +829,55 @@ export async function getInvoiceForAssignment(assignmentId: string): Promise<Inv
     paidDate:       row.paidDate ?? null,
     createdAt:      row.createdAt.toISOString(),
   };
+}
+
+// ─── Customer-scoped query ─────────────────────────────────────────────────────
+
+export async function listInvoicesForCustomer(
+  customerId: string,
+  limit = 25,
+): Promise<InvoiceRow[]> {
+  const canRead = await hasPermission("invoices", "read");
+  if (!canRead) return [];
+
+  const rows = await db
+    .select({
+      id:             invoicesTable.id,
+      invoiceNumber:  invoicesTable.invoiceNumber,
+      customerId:     invoicesTable.customerId,
+      customerName:   customersTable.name,
+      assignmentId:   invoicesTable.assignmentId,
+      assignmentCode: assignmentsTable.code,
+      amount:         invoicesTable.amount,
+      vatPercentage:  invoicesTable.vatPercentage,
+      vatAmount:      invoicesTable.vatAmount,
+      totalAmount:    invoicesTable.totalAmount,
+      status:         invoicesTable.status,
+      dueDate:        invoicesTable.dueDate,
+      paidDate:       invoicesTable.paidDate,
+      createdAt:      invoicesTable.createdAt,
+    })
+    .from(invoicesTable)
+    .innerJoin(customersTable,   eq(invoicesTable.customerId,   customersTable.id))
+    .innerJoin(assignmentsTable, eq(invoicesTable.assignmentId, assignmentsTable.id))
+    .where(eq(invoicesTable.customerId, customerId))
+    .orderBy(desc(invoicesTable.createdAt))
+    .limit(limit);
+
+  return rows.map((r) => ({
+    id:             r.id,
+    invoiceNumber:  r.invoiceNumber,
+    customerId:     r.customerId,
+    customerName:   r.customerName ?? "",
+    assignmentId:   r.assignmentId,
+    assignmentCode: r.assignmentCode,
+    amount:         r.amount         ?? "0",
+    vatPercentage:  r.vatPercentage  ?? "21",
+    vatAmount:      r.vatAmount      ?? "0",
+    totalAmount:    r.totalAmount    ?? "0",
+    status:         r.status as InvoiceStatus,
+    dueDate:        r.dueDate,
+    paidDate:       r.paidDate ?? null,
+    createdAt:      r.createdAt.toISOString(),
+  }));
 }

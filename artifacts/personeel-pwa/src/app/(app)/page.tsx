@@ -1,5 +1,7 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
-import { ClipboardList, ClipboardCheck, Clock, Calendar, Plane, ChevronRight } from "lucide-react";
+import { ClipboardList, ClipboardCheck, Clock, Calendar, Plane, ChevronRight, ArrowRight, User } from "lucide-react";
 import { getMyPersonnel } from "@/actions/personnel";
 import { getMyAssignments } from "@/actions/assignments";
 import { getOpenAssignments } from "@/actions/open-assignments";
@@ -12,6 +14,13 @@ function formatDate(dateStr: string | null): string {
   if (!dateStr) return "";
   const d = new Date(dateStr + "T00:00:00");
   return d.toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" });
+}
+
+function getDayGreeting(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Goedemorgen";
+  if (hour < 18) return "Goedemiddag";
+  return "Goedenavond";
 }
 
 export default async function DashboardPage() {
@@ -36,85 +45,160 @@ export default async function DashboardPage() {
     )
     .slice(0, 3);
 
-  const openCount          = openAssignments.filter((a) => !a.isAlreadyApplied).length;
-  const currentMonthKey    = today.slice(0, 7);
-  const currentMonthHours  = allHours.find((m) => m.month === currentMonthKey)?.totalHours ?? 0;
-
-  const firstName = profile?.firstName ?? "Medewerker";
+  const openCount         = openAssignments.filter((a) => !a.isAlreadyApplied).length;
+  const currentMonthKey   = today.slice(0, 7);
+  const currentMonthHours = allHours.find((m) => m.month === currentMonthKey)?.totalHours ?? 0;
+  const firstName         = profile?.firstName ?? "Medewerker";
 
   return (
     <div className="space-y-4 p-4 md:p-0">
-      {/* Header */}
+
+      {/* ── Sfeer-header ─────────────────────────────────────────── */}
       <div
-        className="rounded-2xl p-5 text-white"
-        style={{ backgroundColor: "var(--color-primary)" }}
+        className="relative overflow-hidden rounded-3xl px-5 py-6 text-white"
+        style={{
+          background: "linear-gradient(135deg, #081D3A 0%, #0F2E5C 55%, #143A73 100%)",
+        }}
       >
-        <p className="text-sm opacity-70">Goedendag,</p>
-        <h1 className="mt-0.5 text-2xl font-bold">{firstName}</h1>
-        <p className="mt-1 text-sm opacity-60">
+        {/* Decoratieve cirkels op achtergrond */}
+        <span
+          className="pointer-events-none absolute -right-6 -top-6 rounded-full opacity-10"
+          style={{ width: "120px", height: "120px", backgroundColor: "#00B7B3" }}
+        />
+        <span
+          className="pointer-events-none absolute -bottom-8 right-16 rounded-full opacity-10"
+          style={{ width: "80px", height: "80px", backgroundColor: "#F97316" }}
+        />
+
+        {/* Profiel-avatar — klik om naar profiel te gaan */}
+        <Link
+          href="/profiel"
+          className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full transition-opacity active:opacity-70"
+          style={{ backgroundColor: "rgba(255,255,255,0.15)" }}
+          title="Mijn profiel"
+        >
+          {profile?.firstName && profile?.lastName ? (
+            <span className="text-sm font-bold text-white">
+              {profile.firstName[0]}{profile.lastName[0]}
+            </span>
+          ) : (
+            <User size={18} className="text-white" />
+          )}
+        </Link>
+
+        <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.65)" }}>
+          {getDayGreeting()},
+        </p>
+        <Link href="/profiel" className="block">
+          <h1 className="mt-0.5 text-3xl font-bold tracking-tight">{firstName}</h1>
+        </Link>
+        <p className="mt-2 text-sm font-medium" style={{ color: "rgba(255,255,255,0.55)" }}>
           {new Date().toLocaleDateString("nl-NL", {
             weekday: "long",
             day:     "numeric",
             month:   "long",
           })}
         </p>
+
+        {/* Vandaag-samenvatting in de header */}
+        {todayAssignments.length > 0 && (
+          <div
+            className="mt-4 inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm font-semibold"
+            style={{ backgroundColor: "rgba(249,115,22,0.25)", color: "#FED7AA" }}
+          >
+            <span
+              className="h-2 w-2 rounded-full"
+              style={{ backgroundColor: "#F97316" }}
+            />
+            {todayAssignments.length === 1
+              ? "1 opdracht vandaag"
+              : `${todayAssignments.length} opdrachten vandaag`}
+          </div>
+        )}
       </div>
 
-      {/* Quick action tiles — 3 top, 2 bottom */}
+      {/* ── Quick-action tegels ───────────────────────────────────── */}
       <div className="grid grid-cols-3 gap-3">
-        {[
-          { href: "/opdrachten",  icon: ClipboardList,  label: "Opdrachten",  count: allAssignments.length,  accent: false },
-          { href: "/openstaand",  icon: ClipboardCheck, label: "Openstaand",  count: openCount,               accent: openCount > 0 },
-          { href: "/beschikbaarheid", icon: Calendar,   label: "Beschikbaar", count: null,                    accent: false },
-        ].map((item) => {
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className="flex flex-col items-center gap-2 rounded-2xl bg-white p-4 text-center shadow-sm"
-            >
-              <div
-                className="flex h-11 w-11 items-center justify-center rounded-xl"
-                style={{
-                  backgroundColor: item.accent
-                    ? "rgba(0,183,179,0.15)"
-                    : "rgba(0,183,179,0.1)",
-                }}
-              >
-                <Icon
-                  size={22}
-                  style={{ color: item.accent ? "var(--color-accent)" : "var(--color-accent)" }}
-                />
-              </div>
-              {item.count !== null && (
-                <span
-                  className="text-lg font-bold"
-                  style={{ color: item.accent ? "var(--color-accent)" : "var(--color-primary)" }}
-                >
-                  {item.count}
-                </span>
-              )}
-              <span className="text-xs font-medium" style={{ color: "var(--color-secondary)" }}>
-                {item.label}
-              </span>
-            </Link>
-          );
-        })}
+        <Link
+          href="/opdrachten"
+          className="flex flex-col items-center gap-2 rounded-2xl bg-white p-4 text-center shadow-sm active:scale-95 transition-transform"
+        >
+          <div
+            className="flex h-11 w-11 items-center justify-center rounded-xl"
+            style={{ backgroundColor: "rgba(0,183,179,0.12)" }}
+          >
+            <ClipboardList size={22} style={{ color: "var(--color-accent)" }} />
+          </div>
+          <span className="text-lg font-bold" style={{ color: "var(--color-primary)" }}>
+            {allAssignments.length}
+          </span>
+          <span className="text-xs font-medium" style={{ color: "var(--color-secondary)" }}>
+            Opdrachten
+          </span>
+        </Link>
+
+        {/* Openstaand — oranje-amber als er iets is */}
+        <Link
+          href="/openstaand"
+          className="flex flex-col items-center gap-2 rounded-2xl bg-white p-4 text-center shadow-sm active:scale-95 transition-transform"
+          style={
+            openCount > 0
+              ? { boxShadow: "0 0 0 2px rgba(249,115,22,0.3), 0 1px 3px rgba(0,0,0,0.07)" }
+              : undefined
+          }
+        >
+          <div
+            className="flex h-11 w-11 items-center justify-center rounded-xl"
+            style={{
+              backgroundColor: openCount > 0
+                ? "var(--color-action-muted)"
+                : "rgba(100,116,139,0.1)",
+            }}
+          >
+            <ClipboardCheck
+              size={22}
+              style={{ color: openCount > 0 ? "var(--color-action)" : "var(--color-secondary)" }}
+            />
+          </div>
+          <span
+            className="text-lg font-bold"
+            style={{ color: openCount > 0 ? "var(--color-action)" : "var(--color-primary)" }}
+          >
+            {openCount}
+          </span>
+          <span className="text-xs font-medium" style={{ color: "var(--color-secondary)" }}>
+            Openstaand
+          </span>
+        </Link>
+
+        <Link
+          href="/beschikbaarheid"
+          className="flex flex-col items-center gap-2 rounded-2xl bg-white p-4 text-center shadow-sm active:scale-95 transition-transform"
+        >
+          <div
+            className="flex h-11 w-11 items-center justify-center rounded-xl"
+            style={{ backgroundColor: "rgba(0,183,179,0.12)" }}
+          >
+            <Calendar size={22} style={{ color: "var(--color-accent)" }} />
+          </div>
+          <span className="text-xs font-medium mt-3" style={{ color: "var(--color-secondary)" }}>
+            Beschikbaar
+          </span>
+        </Link>
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <Link
           href="/uren"
-          className="flex flex-col items-center gap-2 rounded-2xl bg-white p-4 text-center shadow-sm"
+          className="flex flex-col items-center gap-2 rounded-2xl bg-white p-4 text-center shadow-sm active:scale-95 transition-transform"
         >
           <div
             className="flex h-11 w-11 items-center justify-center rounded-xl"
-            style={{ backgroundColor: "rgba(0,183,179,0.1)" }}
+            style={{ backgroundColor: "rgba(0,183,179,0.12)" }}
           >
             <Clock size={22} style={{ color: "var(--color-accent)" }} />
           </div>
-          <span className="text-lg font-bold" style={{ color: "var(--color-primary)" }}>
+          <span className="text-xl font-bold" style={{ color: "var(--color-primary)" }}>
             {currentMonthHours % 1 === 0
               ? currentMonthHours.toFixed(0)
               : currentMonthHours.toFixed(1)}u
@@ -126,53 +210,75 @@ export default async function DashboardPage() {
 
         <Link
           href="/verlof"
-          className="flex flex-col items-center gap-2 rounded-2xl bg-white p-4 text-center shadow-sm"
+          className="flex flex-col items-center gap-2 rounded-2xl bg-white p-4 text-center shadow-sm active:scale-95 transition-transform"
         >
           <div
             className="flex h-11 w-11 items-center justify-center rounded-xl"
-            style={{ backgroundColor: "rgba(0,183,179,0.1)" }}
+            style={{ backgroundColor: "rgba(0,183,179,0.12)" }}
           >
             <Plane size={22} style={{ color: "var(--color-accent)" }} />
           </div>
-          <span className="text-xs font-medium" style={{ color: "var(--color-secondary)" }}>
-            Verlof
+          <span className="text-xs font-medium mt-3" style={{ color: "var(--color-secondary)" }}>
+            Verlof aanvragen
           </span>
         </Link>
       </div>
 
-      {/* Today's assignments */}
-      <div className="rounded-2xl bg-white p-4 shadow-sm">
-        <div className="mb-3 flex items-center justify-between">
-          <h2 className="font-semibold" style={{ color: "var(--color-primary)" }}>
+      {/* ── Vandaag ───────────────────────────────────────────────── */}
+      <div className="rounded-3xl bg-white shadow-sm overflow-hidden">
+        <div
+          className="flex items-center justify-between px-4 py-3 border-b"
+          style={{ borderColor: "var(--color-border)" }}
+        >
+          <h2 className="font-bold text-base" style={{ color: "var(--color-primary)" }}>
             Vandaag
           </h2>
           <Link
             href="/opdrachten"
-            className="text-sm font-medium"
+            className="flex items-center gap-1 text-sm font-semibold"
             style={{ color: "var(--color-accent)" }}
           >
-            Alle opdrachten
+            Alles <ArrowRight size={14} />
           </Link>
         </div>
 
         {todayAssignments.length === 0 ? (
-          <p className="py-4 text-center text-sm" style={{ color: "var(--color-muted-fg)" }}>
-            Geen opdrachten voor vandaag
-          </p>
+          <div className="flex flex-col items-center gap-2 py-8 px-4 text-center">
+            <span
+              className="flex h-12 w-12 items-center justify-center rounded-2xl"
+              style={{ backgroundColor: "var(--color-muted)" }}
+            >
+              <ClipboardList size={22} style={{ color: "var(--color-muted-fg)" }} />
+            </span>
+            <p className="text-sm font-medium" style={{ color: "var(--color-secondary)" }}>
+              Geen opdrachten vandaag
+            </p>
+            <p className="text-xs" style={{ color: "var(--color-muted-fg)" }}>
+              Bekijk openstaande opdrachten om je beschikbaar te stellen.
+            </p>
+          </div>
         ) : (
-          <div className="space-y-2">
+          <div className="divide-y" style={{ borderColor: "var(--color-border)" }}>
             {todayAssignments.map((a) => (
               <Link
                 key={a.id}
                 href={`/opdrachten/${a.id}`}
-                className="flex items-center gap-3 rounded-xl p-3 transition-colors"
-                style={{ backgroundColor: "var(--color-muted)" }}
+                className="flex items-center gap-3 px-4 py-4 active:bg-slate-50 transition-colors"
               >
+                {/* Accent strip */}
+                <span
+                  className="shrink-0 rounded-full self-stretch"
+                  style={{
+                    width:           "4px",
+                    minHeight:       "40px",
+                    backgroundColor: "var(--color-action)",
+                  }}
+                />
                 <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-semibold" style={{ color: "var(--color-primary)" }}>
+                  <p className="truncate text-base font-semibold" style={{ color: "var(--color-primary)" }}>
                     {a.title}
                   </p>
-                  <p className="mt-0.5 truncate text-xs" style={{ color: "var(--color-secondary)" }}>
+                  <p className="mt-0.5 truncate text-sm" style={{ color: "var(--color-secondary)" }}>
                     {[a.scheduledStart, a.objectCity].filter(Boolean).join(" · ")}
                   </p>
                 </div>
@@ -184,20 +290,39 @@ export default async function DashboardPage() {
         )}
       </div>
 
-      {/* Upcoming */}
+      {/* ── Aankomend ─────────────────────────────────────────────── */}
       {upcomingAssignments.length > 0 && (
-        <div className="rounded-2xl bg-white p-4 shadow-sm">
-          <h2 className="mb-3 font-semibold" style={{ color: "var(--color-primary)" }}>
-            Aankomend
-          </h2>
-          <div className="space-y-2">
+        <div className="rounded-3xl bg-white shadow-sm overflow-hidden">
+          <div
+            className="flex items-center justify-between px-4 py-3 border-b"
+            style={{ borderColor: "var(--color-border)" }}
+          >
+            <h2 className="font-bold text-base" style={{ color: "var(--color-primary)" }}>
+              Aankomend
+            </h2>
+          </div>
+          <div className="divide-y" style={{ borderColor: "var(--color-border)" }}>
             {upcomingAssignments.map((a) => (
               <Link
                 key={a.id}
                 href={`/opdrachten/${a.id}`}
-                className="flex items-center gap-3 rounded-xl p-3"
-                style={{ backgroundColor: "var(--color-muted)" }}
+                className="flex items-center gap-3 px-4 py-3 active:bg-slate-50 transition-colors"
               >
+                <div
+                  className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-xl text-center"
+                  style={{ backgroundColor: "rgba(0,183,179,0.1)" }}
+                >
+                  <span className="text-xs font-bold leading-none" style={{ color: "var(--color-accent)" }}>
+                    {a.scheduledDate
+                      ? new Date(a.scheduledDate + "T00:00:00").toLocaleDateString("nl-NL", { day: "numeric" })
+                      : "—"}
+                  </span>
+                  <span className="text-[9px] font-medium uppercase" style={{ color: "var(--color-accent)" }}>
+                    {a.scheduledDate
+                      ? new Date(a.scheduledDate + "T00:00:00").toLocaleDateString("nl-NL", { month: "short" })
+                      : ""}
+                  </span>
+                </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-semibold" style={{ color: "var(--color-primary)" }}>
                     {a.title}

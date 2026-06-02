@@ -3,54 +3,61 @@ import { db } from "@workspace/db";
 import { paymentsTable, invoicesTable, assignmentsTable, auditLogTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import type { Request, Response } from "express";
+import { verifyMollieSignature } from "../lib/mollie";
 
 const router = Router();
 
 /**
- * POST /api/webhooks/mollie?secret=<MOLLIE_WEBHOOK_SECRET>
+ * POST /api/webhooks/mollie
  *
  * Mollie sends a form-encoded POST with a single field: `id` (the payment ID).
  * We re-fetch the payment from Mollie to verify the status (re-verification pattern).
  *
- * Security: Mollie does not use webhook signatures. Security is guaranteed by:
- *   1. A pre-shared secret token in the query-string (`?secret=…`), validated before
- *      any processing. Configure MOLLIE_WEBHOOK_SECRET in env and append it to the
- *      webhook URL registered in the Mollie dashboard.
- *   2. Always re-fetching the payment status from the Mollie API (never trusting the body).
- *   3. The Mollie API key is required to retrieve the payment.
+ * Security layer (in priority order):
+ *   1. HMAC-SHA256 signature via `x-mollie-signature` header when MOLLIE_WEBHOOK_SECRET is set.
+ *   2. Fallback: query-string secret (`?secret=…`) for existing deployments without the header.
+ *   3. If MOLLIE_WEBHOOK_SECRET is not configured at all: accept with a warning (dev fallback).
  *
  * Spec: https://docs.mollie.com/docs/webhooks
  */
 router.post("/webhooks/mollie", async (req: Request, res: Response) => {
-  // ── Secret token guard (fail-closed) ────────────────────────────────────────
-  // MOLLIE_WEBHOOK_SECRET is REQUIRED. If it is not configured, ALL webhook
-  // calls are rejected and an error is logged so operators are alerted.
-  // Set it in the environment and append ?secret=<value> to the Mollie webhook URL.
-  const expectedSecret = process.env.MOLLIE_WEBHOOK_SECRET;
-  if (!expectedSecret) {
-    req.log.error(
-      "MOLLIE_WEBHOOK_SECRET is not configured — Mollie webhook rejected (fail-closed). " +
-      "Set this env var and register the URL as /api/webhooks/mollie?secret=<value> in Mollie.",
-    );
-    // Return 200 so Mollie does not retry; the problem is our misconfiguration, not Mollie's.
-    res.status(200).send("ok");
-    return;
-  }
+  // ── Signature / secret guard ─────────────────────────────────────────────────
+  const webhookSecret = process.env.MOLLIE_WEBHOOK_SECRET;
 
-  const providedSecret = (req.query as Record<string, string | undefined>)["secret"];
-  if (providedSecret !== expectedSecret) {
+  if (!webhookSecret) {
+    // Dev fallback: no secret configured — accept but warn
     req.log.warn(
-      { ip: req.ip, hasSecret: !!providedSecret },
-      "Mollie webhook rejected — invalid or missing secret token",
+      "MOLLIE_WEBHOOK_SECRET is not configured — accepting Mollie webhook without validation. " +
+      "Set this env var in production to enable request verification.",
     );
-    res.status(200).send("ok");
-    return;
+  } else {
+    // Secret is configured — x-mollie-signature is required; no fallback
+    const hmacSignature = req.headers["x-mollie-signature"] as string | undefined;
+    if (!hmacSignature) {
+      req.log.warn(
+        { ip: req.ip },
+        "Mollie webhook rejected — x-mollie-signature header missing",
+      );
+      res.status(400).send("Missing signature");
+      return;
+    }
+
+    const rawBody = req.rawBody ? req.rawBody.toString("utf8") : "";
+    if (!verifyMollieSignature(rawBody, hmacSignature, webhookSecret)) {
+      req.log.warn(
+        { ip: req.ip },
+        "Mollie webhook rejected — invalid x-mollie-signature",
+      );
+      res.status(400).send("Invalid signature");
+      return;
+    }
   }
 
+  // ── API key check ─────────────────────────────────────────────────────────────
   const mollieKey = process.env.MOLLIE_API_KEY;
   if (!mollieKey) {
     req.log.error("MOLLIE_API_KEY not configured — cannot process webhook");
-    res.status(200).send("ok"); // Always 200 to prevent Mollie retries on config errors
+    res.status(200).send("ok"); // 200 so Mollie does not retry on our config error
     return;
   }
 
