@@ -1,6 +1,8 @@
 import { Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { getMyHours } from "@/actions/hours";
+import { getMyAssignmentsAwaitingReport } from "@/actions/reports";
+import { UrenRapportForm } from "./UrenRapportForm";
 
 type Props = {
   searchParams: Promise<{ month?: string }>;
@@ -26,7 +28,11 @@ function nextMonth(month: string): string {
 
 export default async function UrenPage({ searchParams }: Props) {
   const { month: monthParam } = await searchParams;
-  const allMonths = await getMyHours();
+
+  const [allMonths, pendingAssignments] = await Promise.all([
+    getMyHours(),
+    getMyAssignmentsAwaitingReport(),
+  ]);
 
   const currentMonthKey = new Date().toISOString().slice(0, 7);
   const selectedMonth = monthParam ?? allMonths[0]?.month ?? currentMonthKey;
@@ -43,7 +49,50 @@ export default async function UrenPage({ searchParams }: Props) {
         Mijn uren
       </h1>
 
-      {/* All-time summary */}
+      {/* ── Urenstaat: openstaande opdrachten indienen ─────────────── */}
+      {pendingAssignments.length > 0 && (
+        <div className="rounded-2xl bg-white shadow-sm overflow-hidden">
+          <div
+            className="px-4 py-3 border-b"
+            style={{ borderColor: "var(--color-border)", backgroundColor: "rgba(249,115,22,0.06)" }}
+          >
+            <p className="text-sm font-semibold" style={{ color: "var(--color-action)" }}>
+              Uren indienen ({pendingAssignments.length})
+            </p>
+            <p className="mt-0.5 text-xs" style={{ color: "var(--color-secondary)" }}>
+              Onderstaande opdrachten wachten op uw uren-registratie.
+            </p>
+          </div>
+          <div className="divide-y px-4 py-3 space-y-3" style={{ borderColor: "var(--color-border)" }}>
+            {pendingAssignments.map((a) => (
+              <div key={a.id}>
+                {a.scheduledDate && (
+                  <p
+                    className="mb-1.5 text-xs font-medium"
+                    style={{ color: "var(--color-muted-fg)" }}
+                  >
+                    {formatDate(a.scheduledDate)}
+                    {a.status === "not_completed" && (
+                      <span
+                        className="ml-2 rounded-full px-1.5 py-0.5 text-xs font-semibold"
+                        style={{ backgroundColor: "#FEE2E2", color: "#DC2626" }}
+                      >
+                        Niet afgerond
+                      </span>
+                    )}
+                  </p>
+                )}
+                <UrenRapportForm
+                  assignmentId={a.id}
+                  assignmentTitle={a.title}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── All-time summary ───────────────────────────────────────── */}
       <div className="rounded-2xl p-4 shadow-sm" style={{ backgroundColor: "var(--color-primary)" }}>
         <p className="text-xs font-medium uppercase tracking-wide opacity-60 text-white">
           Totaal gewerkte uren

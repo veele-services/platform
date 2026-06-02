@@ -1,7 +1,8 @@
 import { getMyPersonnel } from "@/actions/personnel";
 import { signOut } from "@/actions/auth";
-import { Mail, MapPin, Award, Shield } from "lucide-react";
+import { Mail, MapPin, Award, Shield, KeyRound } from "lucide-react";
 import { PhoneEditForm } from "./PhoneEditForm";
+import { PasswordChangeForm } from "./PasswordChangeForm";
 import type { LucideIcon } from "lucide-react";
 
 type ReadOnlyField = { Icon: LucideIcon; label: string; value: string };
@@ -159,6 +160,17 @@ export default async function ProfielPage() {
           )}
         </div>
       )}
+
+      {/* Wachtwoord wijzigen */}
+      <div className="rounded-2xl bg-white p-4 shadow-sm">
+        <div className="mb-3 flex items-center gap-2">
+          <KeyRound size={16} style={{ color: "var(--color-accent)" }} />
+          <h2 className="font-semibold" style={{ color: "var(--color-primary)" }}>
+            Wachtwoord wijzigen
+          </h2>
+        </div>
+        <PasswordChangeForm />
+      </div>
 
       <form action={signOut}>
         <button

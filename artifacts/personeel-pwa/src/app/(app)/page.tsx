@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ClipboardList, ClipboardCheck, Clock, Calendar, Plane, ChevronRight, ArrowRight } from "lucide-react";
+import { ClipboardList, ClipboardCheck, Clock, Calendar, Plane, ChevronRight, ArrowRight, User } from "lucide-react";
 import { getMyPersonnel } from "@/actions/personnel";
 import { getMyAssignments } from "@/actions/assignments";
 import { getOpenAssignments } from "@/actions/open-assignments";
@@ -68,10 +68,28 @@ export default async function DashboardPage() {
           style={{ width: "80px", height: "80px", backgroundColor: "#F97316" }}
         />
 
+        {/* Profiel-avatar — klik om naar profiel te gaan */}
+        <Link
+          href="/profiel"
+          className="absolute right-4 top-4 flex h-10 w-10 items-center justify-center rounded-full transition-opacity active:opacity-70"
+          style={{ backgroundColor: "rgba(255,255,255,0.15)" }}
+          title="Mijn profiel"
+        >
+          {profile?.firstName && profile?.lastName ? (
+            <span className="text-sm font-bold text-white">
+              {profile.firstName[0]}{profile.lastName[0]}
+            </span>
+          ) : (
+            <User size={18} className="text-white" />
+          )}
+        </Link>
+
         <p className="text-sm font-medium" style={{ color: "rgba(255,255,255,0.65)" }}>
           {getDayGreeting()},
         </p>
-        <h1 className="mt-0.5 text-3xl font-bold tracking-tight">{firstName}</h1>
+        <Link href="/profiel" className="block">
+          <h1 className="mt-0.5 text-3xl font-bold tracking-tight">{firstName}</h1>
+        </Link>
         <p className="mt-2 text-sm font-medium" style={{ color: "rgba(255,255,255,0.55)" }}>
           {new Date().toLocaleDateString("nl-NL", {
             weekday: "long",

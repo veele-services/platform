@@ -1,17 +1,13 @@
 import Link from "next/link";
-import { Building2, MapPin, Clock, ChevronRight, FileText } from "lucide-react";
+import { Building2, MapPin, Clock, ChevronRight, FileText, CheckCircle2, XCircle } from "lucide-react";
 import { getMyAssignments } from "@/actions/assignments";
+import { getMyReportStatusMap } from "@/actions/reports";
 import { StatusBadge } from "@/components/StatusBadge";
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "Geen datum";
   const d = new Date(dateStr + "T00:00:00");
   return d.toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" });
-}
-
-function formatTimeSlot(start: string | null, end: string | null): string {
-  if (!start && !end) return "";
-  return [start, end].filter(Boolean).join(" – ");
 }
 
 const ACTIVE_STATUSES = new Set([
@@ -22,6 +18,32 @@ const REPORT_STATUSES = new Set([
   "completed", "not_completed", "report_submitted", "report_approved",
   "invoice_ready", "invoiced", "paid", "closed",
 ]);
+
+// Derive a "rapport status" label from both assignment status and report table status
+function getRapportBadge(
+  assignmentStatus: string,
+  reportStatus: string | undefined,
+): { label: string; bg: string; color: string; Icon: React.ElementType } | null {
+  // Assignment already advanced past report_submitted → approved by definition
+  if (["report_approved", "invoice_ready", "invoiced", "paid", "closed"].includes(assignmentStatus)) {
+    return { label: "Goedgekeurd", bg: "#DCFCE7", color: "#166534", Icon: CheckCircle2 };
+  }
+  if (assignmentStatus === "report_submitted") {
+    return { label: "Ingediend", bg: "#FEF3C7", color: "#92400E", Icon: Clock };
+  }
+  // Assignment is completed/not_completed — check the report table
+  if (reportStatus === "approved") {
+    return { label: "Goedgekeurd", bg: "#DCFCE7", color: "#166534", Icon: CheckCircle2 };
+  }
+  if (reportStatus === "rejected") {
+    return { label: "Afgewezen", bg: "#FEE2E2", color: "#991B1B", Icon: XCircle };
+  }
+  if (reportStatus === "submitted") {
+    return { label: "Ingediend", bg: "#FEF3C7", color: "#92400E", Icon: Clock };
+  }
+  // No report yet
+  return { label: "Geen rapport", bg: "#F1F5F9", color: "#64748B", Icon: FileText };
+}
 
 export default async function OpdrachtenPage() {
   const assignments = await getMyAssignments();
@@ -34,6 +56,9 @@ export default async function OpdrachtenPage() {
     (a) => ACTIVE_STATUSES.has(a.status) && !(a.scheduledDate && a.scheduledDate >= today),
   );
   const reporting = assignments.filter((a) => REPORT_STATUSES.has(a.status));
+
+  // Batch-fetch report statuses for the reporting group
+  const reportStatusMap = await getMyReportStatusMap(reporting.map((a) => a.id));
 
   return (
     <div className="space-y-5 p-4 md:p-0">
@@ -58,6 +83,7 @@ export default async function OpdrachtenPage() {
           titel="Aankomend"
           items={upcoming}
           accentColor="var(--color-accent)"
+          reportStatusMap={{}}
         />
       )}
 
@@ -66,6 +92,7 @@ export default async function OpdrachtenPage() {
           titel="Actief"
           items={active}
           accentColor="var(--color-accent)"
+          reportStatusMap={{}}
         />
       )}
 
@@ -75,6 +102,8 @@ export default async function OpdrachtenPage() {
           items={reporting}
           accentColor="var(--color-secondary)"
           muted
+          reportStatusMap={reportStatusMap}
+          showRapportBadge
         />
       )}
     </div>
@@ -88,11 +117,15 @@ function WerkbonGroep({
   items,
   accentColor,
   muted = false,
+  reportStatusMap,
+  showRapportBadge = false,
 }: {
   titel: string;
   items: WerkbonItem[];
   accentColor: string;
   muted?: boolean;
+  reportStatusMap: Record<string, string>;
+  showRapportBadge?: boolean;
 }) {
   return (
     <section>
@@ -104,27 +137,29 @@ function WerkbonGroep({
       </h2>
       <div className="space-y-2">
         {items.map((a) => (
-          <WerkbonKaart key={a.id} item={a} accentColor={accentColor} muted={muted} />
+          <WerkbonKaart
+            key={a.id}
+            item={a}
+            accentColor={accentColor}
+            muted={muted}
+            rapportBadge={showRapportBadge ? getRapportBadge(a.status, reportStatusMap[a.id]) : null}
+          />
         ))}
       </div>
     </section>
   );
 }
 
-function formatDate2(dateStr: string | null): string {
-  if (!dateStr) return "Geen datum";
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" });
-}
-
 function WerkbonKaart({
   item,
   accentColor,
   muted,
+  rapportBadge,
 }: {
   item: WerkbonItem;
   accentColor: string;
   muted: boolean;
+  rapportBadge: ReturnType<typeof getRapportBadge>;
 }) {
   const timeSlot = [item.scheduledStart, item.scheduledEnd].filter(Boolean).join(" – ");
   const addressLine = [item.objectAddress, item.objectPostalCode, item.objectCity]
@@ -154,7 +189,7 @@ function WerkbonKaart({
         <div className="mb-2 flex items-center gap-1.5">
           <Clock size={13} style={{ color: "var(--color-secondary)" }} />
           <span className="text-xs font-medium" style={{ color: "var(--color-secondary)" }}>
-            {formatDate2(item.scheduledDate)}
+            {formatDate(item.scheduledDate)}
             {timeSlot ? ` · ${timeSlot}` : ""}
           </span>
         </div>
@@ -175,6 +210,19 @@ function WerkbonKaart({
             <MapPin size={13} className="mt-0.5 shrink-0" style={{ color: "var(--color-muted-fg)" }} />
             <span className="text-xs" style={{ color: "var(--color-secondary)" }}>
               {addressLine}
+            </span>
+          </div>
+        )}
+
+        {/* Rapport-status badge */}
+        {rapportBadge && (
+          <div className="mt-2.5 flex items-center gap-1.5">
+            <span
+              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
+              style={{ backgroundColor: rapportBadge.bg, color: rapportBadge.color }}
+            >
+              <rapportBadge.Icon size={11} />
+              Rapport: {rapportBadge.label}
             </span>
           </div>
         )}

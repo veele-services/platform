@@ -8,7 +8,7 @@ import {
   personnelTable,
   organizationSettingsTable,
 } from "@workspace/db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, inArray } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import { sendEmail, buildReportSubmittedEmail } from "@/lib/email";
@@ -119,6 +119,108 @@ export async function getMyReportForAssignment(
     submittedAt:    row.submittedAt.toISOString(),
     reviewedAt:     row.reviewedAt?.toISOString() ?? null,
   };
+}
+
+// ─── Report status map ─────────────────────────────────────────────────────────
+
+/**
+ * Batch-fetch report statuses for a list of assignment IDs, scoped to the
+ * logged-in user. Returns a map of assignmentId -> report status string.
+ * Used by the assignment overview to show "ingediend/goedgekeurd/afgewezen" badges.
+ */
+export async function getMyReportStatusMap(
+  assignmentIds: string[],
+): Promise<Record<string, string>> {
+  if (assignmentIds.length === 0) return {};
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return {};
+
+  const rows = await db
+    .select({
+      assignmentId: reportsTable.assignmentId,
+      status:       reportsTable.status,
+    })
+    .from(reportsTable)
+    .where(
+      and(
+        eq(reportsTable.submittedBy, user.id),
+        inArray(reportsTable.assignmentId, assignmentIds),
+      ),
+    );
+
+  return Object.fromEntries(rows.map((r) => [r.assignmentId, r.status]));
+}
+
+// ─── Pending assignments query ─────────────────────────────────────────────────
+
+export type AssignmentAwaitingReport = {
+  id:            string;
+  code:          string;
+  title:         string;
+  scheduledDate: string | null;
+  status:        "completed" | "not_completed";
+};
+
+/**
+ * Fetch assignments that are in 'completed' or 'not_completed' status
+ * and do not yet have a report submitted by the logged-in user.
+ * Used in the /uren page to prompt workers to log their hours.
+ */
+export async function getMyAssignmentsAwaitingReport(): Promise<AssignmentAwaitingReport[]> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const personnelId = await getPersonnelId();
+  if (!personnelId) return [];
+
+  // Fetch assignments linked to this worker that are awaiting a report
+  const { data: apRows } = await supabase
+    .from("assignment_personnel")
+    .select(`
+      assignments!inner(
+        id, code, title, scheduled_date, status
+      )
+    `)
+    .eq("personnel_id", personnelId)
+    .eq("status", "assigned")
+    .in("assignments.status", ["completed", "not_completed"]);
+
+  if (!apRows || apRows.length === 0) return [];
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const candidates = (apRows as any[]).map((row) => {
+    const a = row.assignments;
+    return {
+      id:            a.id as string,
+      code:          (a.code ?? "") as string,
+      title:         a.title as string,
+      scheduledDate: (a.scheduled_date ?? null) as string | null,
+      status:        a.status as "completed" | "not_completed",
+    };
+  });
+
+  if (candidates.length === 0) return [];
+
+  // Filter out assignments that already have a report from this user
+  const assignmentIds = candidates.map((c) => c.id);
+  const existingReports = await db
+    .select({ assignmentId: reportsTable.assignmentId })
+    .from(reportsTable)
+    .where(
+      and(
+        eq(reportsTable.submittedBy, user.id),
+        inArray(reportsTable.assignmentId, assignmentIds),
+      ),
+    );
+
+  const reportedIds = new Set(existingReports.map((r) => r.assignmentId));
+
+  return candidates
+    .filter((c) => !reportedIds.has(c.id))
+    .sort((a, b) => (b.scheduledDate ?? "").localeCompare(a.scheduledDate ?? ""));
 }
 
 // ─── Mutations ────────────────────────────────────────────────────────────────

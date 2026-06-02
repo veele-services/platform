@@ -15,6 +15,7 @@ export type MyAssignment = {
   objectAddress:    string | null;
   objectCity:       string | null;
   objectPostalCode: string | null;
+  requiredRegion:   string | null;
 };
 
 export type MyAssignmentDetail = MyAssignment & {
@@ -22,16 +23,26 @@ export type MyAssignmentDetail = MyAssignment & {
   tasks: { id: string; sortOrder: number; notes: string | null }[];
 };
 
-async function getPersonnelId(
+type PersonnelBasic = { id: string; region: string | null };
+
+async function getPersonnelBasic(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
-): Promise<string | null> {
+): Promise<PersonnelBasic | null> {
   const { data } = await supabase
     .from("personnel")
-    .select("id")
+    .select("id, region")
     .eq("user_id", userId)
     .single();
-  return data?.id ?? null;
+  return data ? { id: data.id, region: data.region ?? null } : null;
+}
+
+/** Returns true if the assignment is region-compatible with the personnel member. */
+function meetsRegion(personnelRegion: string | null, requiredRegion: string | null): boolean {
+  if (!requiredRegion) return true;           // no requirement → open to all
+  if (!personnelRegion) return true;          // worker has no region set → don't restrict
+  return requiredRegion.toLowerCase().includes(personnelRegion.toLowerCase()) ||
+    personnelRegion.toLowerCase().includes(requiredRegion.toLowerCase());
 }
 
 export async function getMyAssignments(): Promise<MyAssignment[]> {
@@ -39,19 +50,20 @@ export async function getMyAssignments(): Promise<MyAssignment[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const personnelId = await getPersonnelId(supabase, user.id);
-  if (!personnelId) return [];
+  const personnel = await getPersonnelBasic(supabase, user.id);
+  if (!personnel) return [];
 
   const { data } = await supabase
     .from("assignment_personnel")
     .select(`
       assignments!inner(
         id, code, title, scheduled_date, scheduled_start, scheduled_end, status,
+        required_region,
         customers(name),
         objects(address, city, postal_code)
       )
     `)
-    .eq("personnel_id", personnelId)
+    .eq("personnel_id", personnel.id)
     .eq("status", "assigned");
 
   if (!data) return [];
@@ -72,8 +84,11 @@ export async function getMyAssignments(): Promise<MyAssignment[]> {
         objectAddress:    a.objects?.address ?? null,
         objectCity:       a.objects?.city ?? null,
         objectPostalCode: a.objects?.postal_code ?? null,
+        requiredRegion:   a.required_region ?? null,
       } as MyAssignment;
     })
+    // Filter by region: hide assignments whose required_region doesn't match
+    .filter((a) => meetsRegion(personnel.region, a.requiredRegion))
     .sort((a, b) => {
       // Upcoming first, then descending
       const today = new Date().toISOString().slice(0, 10);
@@ -91,20 +106,21 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const personnelId = await getPersonnelId(supabase, user.id);
-  if (!personnelId) return null;
+  const personnel = await getPersonnelBasic(supabase, user.id);
+  if (!personnel) return null;
 
   const { data } = await supabase
     .from("assignment_personnel")
     .select(`
       assignments!inner(
         id, code, title, description, scheduled_date, scheduled_start, scheduled_end, status,
+        required_region,
         customers(name),
         objects(address, city, postal_code),
         assignment_tasks(id, sort_order, notes)
       )
     `)
-    .eq("personnel_id", personnelId)
+    .eq("personnel_id", personnel.id)
     .eq("assignment_id", id)
     .eq("status", "assigned")
     .single();
@@ -128,6 +144,7 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
     objectAddress:    a.objects?.address ?? null,
     objectCity:       a.objects?.city ?? null,
     objectPostalCode: a.objects?.postal_code ?? null,
+    requiredRegion:   a.required_region ?? null,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     tasks: (a.assignment_tasks ?? []).map((t: any) => ({
       id:        t.id,
@@ -152,13 +169,13 @@ export async function setAssignmentStatus(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Niet ingelogd" };
 
-  const personnelId = await getPersonnelId(supabase, user.id);
-  if (!personnelId) return { success: false, error: "Personeelsprofiel niet gevonden" };
+  const personnel = await getPersonnelBasic(supabase, user.id);
+  if (!personnel) return { success: false, error: "Personeelsprofiel niet gevonden" };
 
   const { data: ap } = await supabase
     .from("assignment_personnel")
     .select("assignments!inner(id, status)")
-    .eq("personnel_id", personnelId)
+    .eq("personnel_id", personnel.id)
     .eq("assignment_id", assignmentId)
     .eq("status", "assigned")
     .single();

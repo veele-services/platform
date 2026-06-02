@@ -8,8 +8,7 @@ import {
   ClipboardCheck,
   Clock,
   Calendar,
-  Plane,
-  FolderOpen,
+  User,
 } from "lucide-react";
 
 const NAV_ITEMS = [
@@ -18,8 +17,7 @@ const NAV_ITEMS = [
   { href: "/openstaand",      icon: ClipboardCheck, label: "Openstaand" },
   { href: "/uren",            icon: Clock,          label: "Uren"       },
   { href: "/beschikbaarheid", icon: Calendar,       label: "Beschikbaar"},
-  { href: "/verlof",          icon: Plane,          label: "Verlof"     },
-  { href: "/documenten",      icon: FolderOpen,     label: "Documenten" },
+  { href: "/profiel",         icon: User,           label: "Profiel"    },
 ];
 
 export function BottomNav() {

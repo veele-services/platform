@@ -6,6 +6,7 @@ import { getMyReportForAssignment } from "@/actions/reports";
 import { getExtraWorkForAssignment, getActiveTaskCodes } from "@/actions/extra-work";
 import { StatusBadge } from "@/components/StatusBadge";
 import { InProgressButton } from "./InProgressButton";
+import { CompletionButtons } from "./CompletionButtons";
 import { RapportForm } from "./RapportForm";
 import { RapportDetail } from "./RapportDetail";
 import { MeerwerkSection } from "@/components/MeerwerkSection";
@@ -35,9 +36,10 @@ export default async function WerkbonDetailPage({ params }: Props) {
 
   if (!assignment) notFound();
 
-  const canStartWork    = ["plannable", "scheduled", "seen"].includes(assignment.status);
-  const canSubmitReport = (assignment.status === "completed" || assignment.status === "not_completed") && !report;
-  const showReport      = !!report || assignment.status === "report_submitted" || assignment.status === "report_approved";
+  const canStartWork       = ["plannable", "scheduled", "seen"].includes(assignment.status);
+  const canCompleteWork    = assignment.status === "in_progress";
+  const canSubmitReport    = (assignment.status === "completed" || assignment.status === "not_completed") && !report;
+  const showReport         = !!report || assignment.status === "report_submitted" || assignment.status === "report_approved";
 
   // Meerwerk is editable until a report is submitted
   const canEditMeerwerk = !["report_submitted", "report_approved", "invoice_ready", "invoiced", "paid", "closed"].includes(assignment.status);
@@ -173,6 +175,9 @@ export default async function WerkbonDetailPage({ params }: Props) {
 
         {/* Start-opdracht knop */}
         {canStartWork && <InProgressButton assignmentId={assignment.id} />}
+
+        {/* Afronden knoppen: Afgerond + Niet afgerond */}
+        {canCompleteWork && <CompletionButtons assignmentId={assignment.id} />}
 
         {/* Meerwerk */}
         <MeerwerkSection

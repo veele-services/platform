@@ -10,6 +10,7 @@ import {
   Calendar,
   Plane,
   FolderOpen,
+  User,
   LogOut,
 } from "lucide-react";
 import { signOut } from "@/actions/auth";
@@ -22,6 +23,7 @@ const NAV_ITEMS = [
   { href: "/beschikbaarheid", label: "Beschikbaar", Icon: Calendar },
   { href: "/verlof",          label: "Verlof",      Icon: Plane },
   { href: "/documenten",      label: "Documenten",  Icon: FolderOpen },
+  { href: "/profiel",         label: "Mijn profiel", Icon: User },
 ];
 
 export function DesktopSidebar() {
