@@ -10,6 +10,7 @@ import {
   Smartphone,
   Calendar,
   User,
+  Briefcase,
 } from "lucide-react";
 import type { CustomerDetail } from "@/app/actions/customers";
 
@@ -39,6 +40,14 @@ interface Props {
 }
 
 export function CustomerOverviewTab({ customer, canWrite }: Props) {
+  const hasCrmData =
+    customer.customerTypeName ||
+    customer.legalEntity ||
+    customer.vatNumber ||
+    customer.chamberOfCommerceNumber ||
+    customer.accountManagerName ||
+    customer.website;
+
   return (
     <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
       {/* Contact */}
@@ -83,23 +92,6 @@ export function CustomerOverviewTab({ customer, canWrite }: Props) {
               }
             />
           )}
-          {customer.website && (
-            <InfoRow
-              icon={<Globe className="h-4 w-4" />}
-              label="Website"
-              value={
-                <a
-                  href={customer.website.startsWith("http") ? customer.website : `https://${customer.website}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="hover:underline"
-                  style={{ color: "#00B7B3" }}
-                >
-                  {customer.website}
-                </a>
-              }
-            />
-          )}
           {!customer.contactName && !customer.contactEmail && !customer.contactPhone && !customer.mobile && (
             <p className="text-sm" style={{ color: "#94A3B8" }}>Nog geen contactgegevens toegevoegd.</p>
           )}
@@ -127,25 +119,70 @@ export function CustomerOverviewTab({ customer, canWrite }: Props) {
         )}
       </div>
 
-      {/* Bedrijfsgegevens */}
-      {(customer.legalEntity || customer.vatNumber || customer.chamberOfCommerceNumber) && (
-        <div className="veele-card">
-          <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "#081D3A" }}>
-            Bedrijfsgegevens
-          </h2>
+      {/* Bedrijfsgegevens — all CRM fields */}
+      <div className="veele-card">
+        <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "#081D3A" }}>
+          Bedrijfsgegevens
+        </h2>
+        {hasCrmData ? (
           <dl className="space-y-3">
+            {customer.customerTypeName && (
+              <InfoRow
+                icon={<Briefcase className="h-4 w-4" />}
+                label="Klanttype"
+                value={customer.customerTypeName}
+              />
+            )}
             {customer.legalEntity && (
-              <InfoRow icon={<Building2 className="h-4 w-4" />} label="Rechtsvorm" value={customer.legalEntity} />
+              <InfoRow
+                icon={<Building2 className="h-4 w-4" />}
+                label="Rechtsvorm"
+                value={customer.legalEntity}
+              />
             )}
             {customer.vatNumber && (
-              <InfoRow icon={<FileText className="h-4 w-4" />} label="BTW-nummer" value={customer.vatNumber} />
+              <InfoRow
+                icon={<FileText className="h-4 w-4" />}
+                label="BTW-nummer"
+                value={customer.vatNumber}
+              />
             )}
             {customer.chamberOfCommerceNumber && (
-              <InfoRow icon={<Hash className="h-4 w-4" />} label="KVK-nummer" value={customer.chamberOfCommerceNumber} />
+              <InfoRow
+                icon={<Hash className="h-4 w-4" />}
+                label="KVK-nummer"
+                value={customer.chamberOfCommerceNumber}
+              />
+            )}
+            {customer.website && (
+              <InfoRow
+                icon={<Globe className="h-4 w-4" />}
+                label="Website"
+                value={
+                  <a
+                    href={customer.website.startsWith("http") ? customer.website : `https://${customer.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="hover:underline"
+                    style={{ color: "#00B7B3" }}
+                  >
+                    {customer.website}
+                  </a>
+                }
+              />
+            )}
+            {customer.accountManagerName && (
+              <InfoRow
+                icon={<User className="h-4 w-4" />}
+                label="Accountmanager"
+                value={customer.accountManagerName}
+              />
             )}
           </dl>
-        </div>
-      )}
+        ) : (
+          <p className="text-sm" style={{ color: "#94A3B8" }}>Nog geen bedrijfsgegevens toegevoegd.</p>
+        )}
+      </div>
 
       {/* Metadata */}
       <div className="veele-card">
@@ -155,12 +192,6 @@ export function CustomerOverviewTab({ customer, canWrite }: Props) {
         <dl className="space-y-3">
           <InfoRow icon={<Tag className="h-4 w-4" />} label="Code" value={customer.code ?? "—"} />
           <InfoRow icon={<Building2 className="h-4 w-4" />} label="Sector" value={customer.sectorName ?? "—"} />
-          {customer.customerTypeName && (
-            <InfoRow icon={<Tag className="h-4 w-4" />} label="Klanttype" value={customer.customerTypeName} />
-          )}
-          {customer.accountManagerName && (
-            <InfoRow icon={<User className="h-4 w-4" />} label="Accountmanager" value={customer.accountManagerName} />
-          )}
           <InfoRow
             icon={<Calendar className="h-4 w-4" />}
             label="Aangemaakt"
