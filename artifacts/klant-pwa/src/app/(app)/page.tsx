@@ -6,6 +6,7 @@ import { getMyAssignments } from "@/actions/assignments";
 import { getMyInvoiceSummary } from "@/actions/invoices";
 import { getMyPendingQuoteCount } from "@/actions/quotes";
 import { STATUS_LABEL, STATUS_COLOR } from "@/types/assignments";
+import { ContactInfoForm } from "@/components/ContactInfoForm";
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "";
@@ -236,6 +237,13 @@ export default async function DashboardPage() {
           </div>
         </div>
       )}
+
+      {/* ── Contactgegevens (bewerkbaar) ──────────────────────────── */}
+      <ContactInfoForm
+        contactName={profile.contactName}
+        contactPhone={profile.contactPhone}
+        mobile={profile.mobile}
+      />
 
       {/* ── Bedrijfsgegevens ──────────────────────────────────────── */}
       {(profile.customerTypeName || profile.legalEntity || profile.vatNumber || profile.chamberOfCommerceNumber || profile.website) && (
