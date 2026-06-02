@@ -154,7 +154,7 @@ export default async function QuoteDetailPage({ params }: Props) {
       )}
 
       {/* Rejection reason */}
-      {quote.status === "rejected" && quote.rejectionReason && (
+      {quote.rejectionReason && (
         <div
           className="flex items-start gap-3 rounded-lg px-4 py-3 mb-6"
           style={{ backgroundColor: "#FEF2F2", borderLeft: "4px solid #DC2626" }}
@@ -162,7 +162,7 @@ export default async function QuoteDetailPage({ params }: Props) {
           <XCircle className="h-5 w-5 flex-shrink-0 mt-0.5" style={{ color: "#DC2626" }} />
           <div>
             <p className="text-sm font-medium" style={{ color: "#991B1B" }}>
-              Reden voor afwijzing
+              Klantreactie
             </p>
             <p className="text-sm mt-0.5" style={{ color: "#374151" }}>
               {quote.rejectionReason}

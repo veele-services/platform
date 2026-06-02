@@ -423,6 +423,11 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
     .set({ status: "review" })
     .where(eq(assignmentsTable.id, assignmentId));
 
+  await db
+    .update(quotesTable)
+    .set({ rejectionReason: reason?.trim() || null })
+    .where(eq(quotesTable.assignmentId, assignmentId));
+
   void (async () => {
     const [orgSettings] = await db
       .select({ emailAfzender: organizationSettingsTable.emailAfzender })
