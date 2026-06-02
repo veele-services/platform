@@ -22,33 +22,36 @@ import {
   createCustomer,
   updateCustomer,
   type SectorOption,
+  type CustomerTypeOption,
+  type AccountManagerOption,
   type CustomerFormInput,
 } from "@/app/actions/customers";
+import { CUSTOMER_STATUSES, CUSTOMER_STATUS_LABELS } from "@/types/customer-status";
 
 // ─── Client-side Zod schema ───────────────────────────────────────────────────
 
 const customerFormSchema = z.object({
-  name: z
-    .string()
-    .min(1, "Naam is verplicht")
-    .max(255, "Naam mag maximaal 255 tekens bevatten"),
-  sectorId: z.string(),
-  contactName: z.string().max(200, "Contactnaam mag maximaal 200 tekens bevatten"),
-  contactEmail: z
-    .string()
-    .refine(
-      (v) => !v.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()),
-      "Ongeldig e-mailadres",
-    ),
-  contactPhone: z.string().max(50, "Telefoon mag maximaal 50 tekens bevatten"),
-  address: z.string(),
-  city: z.string().max(100, "Stad mag maximaal 100 tekens bevatten"),
-  postalCode: z.string().max(20, "Postcode mag maximaal 20 tekens bevatten"),
-  country: z
-    .string()
-    .min(1, "Land is verplicht")
-    .max(100, "Land mag maximaal 100 tekens bevatten"),
-  notes: z.string(),
+  name:                    z.string().min(1, "Naam is verplicht").max(255),
+  sectorId:                z.string(),
+  contactName:             z.string().max(200),
+  contactEmail:            z.string().refine(
+    (v) => !v.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim()),
+    "Ongeldig e-mailadres",
+  ),
+  contactPhone:            z.string().max(50),
+  address:                 z.string(),
+  city:                    z.string().max(100),
+  postalCode:              z.string().max(20),
+  country:                 z.string().min(1, "Land is verplicht").max(100),
+  legalEntity:             z.string().max(255),
+  vatNumber:               z.string().max(50),
+  chamberOfCommerceNumber: z.string().max(50),
+  website:                 z.string().max(255),
+  mobile:                  z.string().max(50),
+  customerTypeId:          z.string(),
+  status:                  z.string(),
+  accountManagerId:        z.string(),
+  notes:                   z.string(),
 });
 
 type FormValues = z.infer<typeof customerFormSchema>;
@@ -56,31 +59,43 @@ type FormValues = z.infer<typeof customerFormSchema>;
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface CustomerFormProps {
-  mode: "create" | "edit";
-  customerId?: string;
-  sectors: SectorOption[];
-  canWriteNotes: boolean;
-  onSuccess: (id: string) => void;
-  onCancel: () => void;
+  mode:            "create" | "edit";
+  customerId?:     string;
+  sectors:         SectorOption[];
+  customerTypes:   CustomerTypeOption[];
+  accountManagers: AccountManagerOption[];
+  canWriteNotes:   boolean;
+  onSuccess:       (id: string) => void;
+  onCancel:        () => void;
 }
 
 const DEFAULTS: FormValues = {
-  name:         "",
-  sectorId:     "",
-  contactName:  "",
-  contactEmail: "",
-  contactPhone: "",
-  address:      "",
-  city:         "",
-  postalCode:   "",
-  country:      "NL",
-  notes:        "",
+  name:                    "",
+  sectorId:                "",
+  contactName:             "",
+  contactEmail:            "",
+  contactPhone:            "",
+  address:                 "",
+  city:                    "",
+  postalCode:              "",
+  country:                 "NL",
+  legalEntity:             "",
+  vatNumber:               "",
+  chamberOfCommerceNumber: "",
+  website:                 "",
+  mobile:                  "",
+  customerTypeId:          "",
+  status:                  "active",
+  accountManagerId:        "",
+  notes:                   "",
 };
 
 export function CustomerForm({
   mode,
   customerId,
   sectors,
+  customerTypes,
+  accountManagers,
   canWriteNotes,
   onSuccess,
   onCancel,
@@ -99,32 +114,41 @@ export function CustomerForm({
     formState: { errors },
   } = form;
 
-  const sectorIdValue = watch("sectorId") || "NONE";
+  const sectorIdValue        = watch("sectorId")        || "NONE";
+  const customerTypeValue    = watch("customerTypeId")   || "NONE";
+  const statusValue          = watch("status")           || "active";
+  const accountManagerValue  = watch("accountManagerId") || "NONE";
 
-  // Load existing customer when editing
   useEffect(() => {
     if (mode !== "edit" || !customerId) return;
     setLoading(true);
     getCustomer(customerId).then((c) => {
       if (c) {
         setGeneratedCode(c.code ?? null);
-        setValue("name",         c.name         ?? "");
-        setValue("sectorId",     c.sectorId     ?? "");
-        setValue("contactName",  c.contactName  ?? "");
-        setValue("contactEmail", c.contactEmail ?? "");
-        setValue("contactPhone", c.contactPhone ?? "");
-        setValue("address",      c.address      ?? "");
-        setValue("city",         c.city         ?? "");
-        setValue("postalCode",   c.postalCode   ?? "");
-        setValue("country",      c.country      ?? "NL");
-        setValue("notes",        c.notes        ?? "");
+        setValue("name",                    c.name                    ?? "");
+        setValue("sectorId",                c.sectorId                ?? "");
+        setValue("contactName",             c.contactName             ?? "");
+        setValue("contactEmail",            c.contactEmail            ?? "");
+        setValue("contactPhone",            c.contactPhone            ?? "");
+        setValue("address",                 c.address                 ?? "");
+        setValue("city",                    c.city                    ?? "");
+        setValue("postalCode",              c.postalCode              ?? "");
+        setValue("country",                 c.country                 ?? "NL");
+        setValue("legalEntity",             c.legalEntity             ?? "");
+        setValue("vatNumber",               c.vatNumber               ?? "");
+        setValue("chamberOfCommerceNumber", c.chamberOfCommerceNumber ?? "");
+        setValue("website",                 c.website                 ?? "");
+        setValue("mobile",                  c.mobile                  ?? "");
+        setValue("customerTypeId",          c.customerTypeId          ?? "");
+        setValue("status",                  c.status                  ?? "active");
+        setValue("accountManagerId",        c.accountManagerId        ?? "");
+        setValue("notes",                   c.notes                   ?? "");
       }
       setLoading(false);
     });
   }, [mode, customerId, setValue]);
 
   const onSubmit = handleSubmit((data) => {
-    // ── Client-side Zod validation ───────────────────
     const parsed = customerFormSchema.safeParse(data);
     if (!parsed.success) {
       for (const issue of parsed.error.issues) {
@@ -137,7 +161,9 @@ export function CustomerForm({
     startTransition(async () => {
       const input: CustomerFormInput = {
         ...parsed.data,
-        sectorId: parsed.data.sectorId === "NONE" ? undefined : parsed.data.sectorId || undefined,
+        sectorId:        parsed.data.sectorId        === "NONE" ? undefined : parsed.data.sectorId        || undefined,
+        customerTypeId:  parsed.data.customerTypeId  === "NONE" ? undefined : parsed.data.customerTypeId  || undefined,
+        accountManagerId: parsed.data.accountManagerId === "NONE" ? undefined : parsed.data.accountManagerId || undefined,
       };
 
       const result =
@@ -156,8 +182,7 @@ export function CustomerForm({
       }
 
       toast.success(mode === "create" ? "Klant aangemaakt" : "Klant bijgewerkt");
-      const id =
-        mode === "create" && result.data ? result.data.id : (customerId ?? "");
+      const id = mode === "create" && result.data ? result.data.id : (customerId ?? "");
       onSuccess(id);
     });
   });
@@ -173,7 +198,7 @@ export function CustomerForm({
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-6 py-4">
 
-      {/* ── General Info ──────────────────────────────── */}
+      {/* ── Algemene info ──────────────────────────────── */}
       <section>
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
           Algemene info
@@ -189,9 +214,7 @@ export function CustomerForm({
               placeholder="Klantnaam"
               aria-invalid={!!errors.name}
             />
-            {errors.name && (
-              <p className="text-xs text-destructive">{errors.name.message}</p>
-            )}
+            {errors.name && <p className="text-xs text-destructive">{errors.name.message}</p>}
           </div>
 
           <div className="space-y-1">
@@ -209,21 +232,61 @@ export function CustomerForm({
 
           <div className="space-y-1">
             <Label htmlFor="sectorId">Sector</Label>
-            <Select
-              value={sectorIdValue}
-              onValueChange={(val) =>
-                setValue("sectorId", val === "NONE" ? "" : val)
-              }
-            >
+            <Select value={sectorIdValue} onValueChange={(val) => setValue("sectorId", val === "NONE" ? "" : val)}>
               <SelectTrigger id="sectorId">
                 <SelectValue placeholder="Selecteer sector..." />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="NONE">— Geen sector —</SelectItem>
                 {sectors.map((s) => (
-                  <SelectItem key={s.id} value={s.id}>
-                    {s.name}
-                  </SelectItem>
+                  <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="customerTypeId">Klanttype</Label>
+            <Select value={customerTypeValue} onValueChange={(val) => setValue("customerTypeId", val === "NONE" ? "" : val)}>
+              <SelectTrigger id="customerTypeId">
+                <SelectValue placeholder="Selecteer type..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NONE">— Geen type —</SelectItem>
+                {customerTypes.map((t) => (
+                  <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="status">Status</Label>
+            <Select value={statusValue} onValueChange={(val) => setValue("status", val)}>
+              <SelectTrigger id="status">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {CUSTOMER_STATUSES.map((s) => (
+                  <SelectItem key={s} value={s}>{CUSTOMER_STATUS_LABELS[s]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="accountManagerId">Accountmanager</Label>
+            <Select
+              value={accountManagerValue}
+              onValueChange={(val) => setValue("accountManagerId", val === "NONE" ? "" : val)}
+            >
+              <SelectTrigger id="accountManagerId">
+                <SelectValue placeholder="Selecteer accountmanager..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NONE">— Geen accountmanager —</SelectItem>
+                {accountManagers.map((m) => (
+                  <SelectItem key={m.id} value={m.id}>{m.fullName}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -233,55 +296,63 @@ export function CustomerForm({
 
       <Separator />
 
-      {/* ── Contact ───────────────────────────────────── */}
+      {/* ── Bedrijfsgegevens ───────────────────────────── */}
       <section>
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Contact
+          Bedrijfsgegevens
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2 space-y-1">
-            <Label htmlFor="contactName">Contactpersoon</Label>
-            <Input
-              id="contactName"
-              {...register("contactName")}
-              placeholder="Volledige naam"
-              aria-invalid={!!errors.contactName}
-            />
-            {errors.contactName && (
-              <p className="text-xs text-destructive">{errors.contactName.message}</p>
-            )}
+            <Label htmlFor="legalEntity">Rechtsvorm</Label>
+            <Input id="legalEntity" {...register("legalEntity")} placeholder="B.V., N.V., Eenmanszaak..." />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="contactEmail">E-mail</Label>
-            <Input
-              id="contactEmail"
-              type="email"
-              {...register("contactEmail")}
-              placeholder="email@voorbeeld.nl"
-              aria-invalid={!!errors.contactEmail}
-            />
-            {errors.contactEmail && (
-              <p className="text-xs text-destructive">{errors.contactEmail.message}</p>
-            )}
+            <Label htmlFor="vatNumber">BTW-nummer</Label>
+            <Input id="vatNumber" {...register("vatNumber")} placeholder="NL000000000B01" />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="contactPhone">Telefoon</Label>
-            <Input
-              id="contactPhone"
-              {...register("contactPhone")}
-              placeholder="+31 6 00 00 00 00"
-              aria-invalid={!!errors.contactPhone}
-            />
-            {errors.contactPhone && (
-              <p className="text-xs text-destructive">{errors.contactPhone.message}</p>
-            )}
+            <Label htmlFor="chamberOfCommerceNumber">KVK-nummer</Label>
+            <Input id="chamberOfCommerceNumber" {...register("chamberOfCommerceNumber")} placeholder="12345678" />
+          </div>
+          <div className="col-span-2 space-y-1">
+            <Label htmlFor="website">Website</Label>
+            <Input id="website" {...register("website")} placeholder="https://voorbeeld.nl" />
           </div>
         </div>
       </section>
 
       <Separator />
 
-      {/* ── Address ───────────────────────────────────── */}
+      {/* ── Contact ───────────────────────────────────── */}
+      <section>
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+          Primair contact
+        </p>
+        <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2 space-y-1">
+            <Label htmlFor="contactName">Contactpersoon</Label>
+            <Input id="contactName" {...register("contactName")} placeholder="Volledige naam" aria-invalid={!!errors.contactName} />
+            {errors.contactName && <p className="text-xs text-destructive">{errors.contactName.message}</p>}
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="contactEmail">E-mail</Label>
+            <Input id="contactEmail" type="email" {...register("contactEmail")} placeholder="email@voorbeeld.nl" aria-invalid={!!errors.contactEmail} />
+            {errors.contactEmail && <p className="text-xs text-destructive">{errors.contactEmail.message}</p>}
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="contactPhone">Telefoon</Label>
+            <Input id="contactPhone" {...register("contactPhone")} placeholder="+31 20 000 0000" />
+          </div>
+          <div className="col-span-2 space-y-1">
+            <Label htmlFor="mobile">Mobiel</Label>
+            <Input id="mobile" {...register("mobile")} placeholder="+31 6 00 00 00 00" />
+          </div>
+        </div>
+      </section>
+
+      <Separator />
+
+      {/* ── Adres ─────────────────────────────────────── */}
       <section>
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
           Adres
@@ -289,52 +360,26 @@ export function CustomerForm({
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2 space-y-1">
             <Label htmlFor="address">Straat &amp; Huisnummer</Label>
-            <Input
-              id="address"
-              {...register("address")}
-              placeholder="Hoofdstraat 1"
-            />
+            <Input id="address" {...register("address")} placeholder="Hoofdstraat 1" />
           </div>
           <div className="space-y-1">
             <Label htmlFor="city">Stad</Label>
-            <Input
-              id="city"
-              {...register("city")}
-              placeholder="Amsterdam"
-              aria-invalid={!!errors.city}
-            />
-            {errors.city && (
-              <p className="text-xs text-destructive">{errors.city.message}</p>
-            )}
+            <Input id="city" {...register("city")} placeholder="Amsterdam" aria-invalid={!!errors.city} />
+            {errors.city && <p className="text-xs text-destructive">{errors.city.message}</p>}
           </div>
           <div className="space-y-1">
             <Label htmlFor="postalCode">Postcode</Label>
-            <Input
-              id="postalCode"
-              {...register("postalCode")}
-              placeholder="1234 AB"
-              aria-invalid={!!errors.postalCode}
-            />
-            {errors.postalCode && (
-              <p className="text-xs text-destructive">{errors.postalCode.message}</p>
-            )}
+            <Input id="postalCode" {...register("postalCode")} placeholder="1234 AB" />
           </div>
           <div className="col-span-2 space-y-1">
             <Label htmlFor="country">Land</Label>
-            <Input
-              id="country"
-              {...register("country")}
-              placeholder="NL"
-              aria-invalid={!!errors.country}
-            />
-            {errors.country && (
-              <p className="text-xs text-destructive">{errors.country.message}</p>
-            )}
+            <Input id="country" {...register("country")} placeholder="NL" aria-invalid={!!errors.country} />
+            {errors.country && <p className="text-xs text-destructive">{errors.country.message}</p>}
           </div>
         </div>
       </section>
 
-      {/* ── Internal Notes (management only) ─────────── */}
+      {/* ── Interne notities ──────────────────────────── */}
       {canWriteNotes && (
         <>
           <Separator />
@@ -343,14 +388,9 @@ export function CustomerForm({
               Interne notities
             </p>
             <p className="text-xs mb-3" style={{ color: "#94A3B8" }}>
-              Alleen zichtbaar voor management — nooit getoond aan klantportal gebruikers.
+              Alleen zichtbaar voor management
             </p>
-            <Textarea
-              {...register("notes")}
-              placeholder="Interne notities over deze klant..."
-              rows={3}
-              className="resize-none"
-            />
+            <Textarea {...register("notes")} placeholder="Interne notities over deze klant..." rows={3} className="resize-none" />
           </section>
         </>
       )}

@@ -830,3 +830,54 @@ export async function getInvoiceForAssignment(assignmentId: string): Promise<Inv
     createdAt:      row.createdAt.toISOString(),
   };
 }
+
+// ─── Customer-scoped query ─────────────────────────────────────────────────────
+
+export async function listInvoicesForCustomer(
+  customerId: string,
+  limit = 25,
+): Promise<InvoiceRow[]> {
+  const canRead = await hasPermission("invoices", "read");
+  if (!canRead) return [];
+
+  const rows = await db
+    .select({
+      id:             invoicesTable.id,
+      invoiceNumber:  invoicesTable.invoiceNumber,
+      customerId:     invoicesTable.customerId,
+      customerName:   customersTable.name,
+      assignmentId:   invoicesTable.assignmentId,
+      assignmentCode: assignmentsTable.code,
+      amount:         invoicesTable.amount,
+      vatPercentage:  invoicesTable.vatPercentage,
+      vatAmount:      invoicesTable.vatAmount,
+      totalAmount:    invoicesTable.totalAmount,
+      status:         invoicesTable.status,
+      dueDate:        invoicesTable.dueDate,
+      paidDate:       invoicesTable.paidDate,
+      createdAt:      invoicesTable.createdAt,
+    })
+    .from(invoicesTable)
+    .innerJoin(customersTable,   eq(invoicesTable.customerId,   customersTable.id))
+    .innerJoin(assignmentsTable, eq(invoicesTable.assignmentId, assignmentsTable.id))
+    .where(eq(invoicesTable.customerId, customerId))
+    .orderBy(desc(invoicesTable.createdAt))
+    .limit(limit);
+
+  return rows.map((r) => ({
+    id:             r.id,
+    invoiceNumber:  r.invoiceNumber,
+    customerId:     r.customerId,
+    customerName:   r.customerName ?? "",
+    assignmentId:   r.assignmentId,
+    assignmentCode: r.assignmentCode,
+    amount:         r.amount         ?? "0",
+    vatPercentage:  r.vatPercentage  ?? "21",
+    vatAmount:      r.vatAmount      ?? "0",
+    totalAmount:    r.totalAmount    ?? "0",
+    status:         r.status as InvoiceStatus,
+    dueDate:        r.dueDate,
+    paidDate:       r.paidDate ?? null,
+    createdAt:      r.createdAt.toISOString(),
+  }));
+}

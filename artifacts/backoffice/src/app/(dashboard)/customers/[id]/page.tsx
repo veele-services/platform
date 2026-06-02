@@ -1,35 +1,45 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  ArrowLeft,
-  Building2,
-  Mail,
-  Phone,
-  MapPin,
-  Tag,
-  Calendar,
-  ClipboardList,
-} from "lucide-react";
+import { ArrowLeft, BarChart3, Clock, Ticket } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { CustomerDetailActions } from "@/components/customers/CustomerDetailActions";
-import { CustomerDetailObjectCreate } from "@/components/customers/CustomerDetailObjectCreate";
-import { CustomerNotesPanel } from "@/components/customers/CustomerNotesPanel";
-import { EntityDocumentsPanel } from "@/components/documents/EntityDocumentsPanel";
-import { AssignmentHistoryTable } from "@/components/assignments/AssignmentHistoryTable";
+import { CustomerProfileHeader } from "@/components/customers/CustomerProfileHeader";
+import { CustomerTabs, type TabKey } from "@/components/customers/CustomerTabs";
+import { CustomerOverviewTab } from "@/components/customers/tabs/CustomerOverviewTab";
+import { CustomerContactsTab } from "@/components/customers/tabs/CustomerContactsTab";
+import { CustomerObjectsTab } from "@/components/customers/tabs/CustomerObjectsTab";
+import { CustomerAssignmentsTab } from "@/components/customers/tabs/CustomerAssignmentsTab";
+import { CustomerInvoicesTab } from "@/components/customers/tabs/CustomerInvoicesTab";
+import { CustomerPaymentsTab } from "@/components/customers/tabs/CustomerPaymentsTab";
+import { CustomerNotesTabContent } from "@/components/customers/tabs/CustomerNotesTabContent";
+import { CustomerDocumentsTabContent } from "@/components/customers/tabs/CustomerDocumentsTabContent";
+import { PlaceholderTab } from "@/components/customers/tabs/PlaceholderTab";
 import {
   getCustomer,
   listSectors,
   listCustomerNotes,
+  listCustomerContacts,
+  listCustomerTypes,
+  listAccountManagers,
+  getCustomerKpis,
 } from "@/app/actions/customers";
 import { listObjectsForCustomer } from "@/app/actions/objects";
 import { listAssignmentsForCustomer } from "@/app/actions/assignments";
+import { listInvoicesForCustomer } from "@/app/actions/invoices";
+import { listPaymentsForCustomer } from "@/app/actions/payments";
 import { listDocuments } from "@/app/actions/documents";
 
+const VALID_TABS = [
+  "overzicht", "contacten", "objecten", "opdrachten", "tickets",
+  "facturen", "betalingen", "rapporten", "documenten",
+  "notities", "geschiedenis",
+] as const;
+
 interface Props {
-  params: Promise<{ id: string }>;
+  params:       Promise<{ id: string }>;
+  searchParams: Promise<{ tab?: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -38,332 +48,191 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     if (!canRead) return { title: "Access Denied" };
     const { id } = await params;
     const customer = await getCustomer(id);
-    return { title: customer?.name ?? "Customer" };
+    return { title: customer?.name ?? "Klant" };
   } catch {
-    return { title: "Customer" };
+    return { title: "Klant" };
   }
 }
 
-export default async function CustomerDetailPage({ params }: Props) {
+export default async function CustomerDetailPage({ params, searchParams }: Props) {
   const canRead = await hasPermission("customers", "read");
   if (!canRead) return <ForbiddenPage resource="customers" action="read" />;
 
   const { id } = await params;
+  const sp      = await searchParams;
+  const rawTab  = sp.tab ?? "overzicht";
+  const activeTab: TabKey = (VALID_TABS as readonly string[]).includes(rawTab)
+    ? (rawTab as TabKey)
+    : "overzicht";
 
-  const [canWrite, canReadAssignments, canReadDocuments, canWriteDocuments] = await Promise.all([
-    hasPermission("customers", "write"),
+  const [canWrite, canReadAssignments, canReadDocuments, canWriteDocuments, canReadInvoices] = await Promise.all([
+    hasPermission("customers",   "write"),
     hasPermission("assignments", "read"),
-    hasPermission("documents", "read"),
-    hasPermission("documents", "write"),
+    hasPermission("documents",   "read"),
+    hasPermission("documents",   "write"),
+    hasPermission("invoices",    "read"),
   ]);
 
-  const [customer, sectors, objects, customerNotes, assignmentHistory, documents] = await Promise.all([
+  // Load all data in parallel — gate expensive calls on permissions
+  const [
+    customer,
+    sectors,
+    customerTypes,
+    accountManagers,
+    kpis,
+    contacts,
+    objects,
+    customerNotes,
+    assignmentHistory,
+    invoices,
+    payments,
+    documents,
+  ] = await Promise.all([
     getCustomer(id),
     listSectors(),
+    listCustomerTypes(),
+    listAccountManagers(),
+    getCustomerKpis(id),
+    listCustomerContacts(id),
     listObjectsForCustomer(id),
-    listCustomerNotes(id),
-    listAssignmentsForCustomer(id),
-    listDocuments({ entityType: "customer", entityId: id }),
+    canWrite    ? listCustomerNotes(id)                         : Promise.resolve([]),
+    canReadAssignments ? listAssignmentsForCustomer(id, 25)     : Promise.resolve([]),
+    canReadInvoices    ? listInvoicesForCustomer(id, 25)        : Promise.resolve([]),
+    canReadInvoices    ? listPaymentsForCustomer(id, 25)        : Promise.resolve([]),
+    canReadDocuments   ? listDocuments({ entityType: "customer", entityId: id }) : Promise.resolve([]),
   ]);
 
   if (!customer) notFound();
 
   const safeCustomer = canWrite ? customer : { ...customer, notes: null };
 
-  return (
-    <div className="p-8 max-w-5xl">
-      {/* ── Header ──────────────────────────────────────── */}
-      <div className="flex items-start justify-between mb-8">
-        <div className="flex items-start gap-4">
-          <Link
-            href="/customers"
-            className="mt-1 flex items-center gap-1 text-sm transition-colors hover:underline"
-            style={{ color: "#64748B" }}
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Klanten
-          </Link>
-          <div>
-            <div className="flex items-center gap-3">
-              <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-                {customer.name}
-              </h1>
-              {customer.code && (
-                <span
-                  className="text-xs font-mono px-2 py-0.5 rounded"
-                  style={{ background: "#F1F5F9", color: "#64748B" }}
-                >
-                  {customer.code}
-                </span>
-              )}
-              <StatusBadge isActive={customer.isActive} />
-            </div>
-            {customer.sectorName && (
-              <p className="mt-0.5 text-sm" style={{ color: "#64748B" }}>
-                {customer.sectorName}
-              </p>
-            )}
-          </div>
-        </div>
+  // Tab counts for the tab bar
+  const counts = {
+    contacten:  contacts.length,
+    objecten:   objects.length,
+    opdrachten: assignmentHistory.length,
+    facturen:   invoices.length,
+    betalingen: payments.length,
+    notities:   customerNotes.length,
+    documenten: documents.length,
+  };
 
+  return (
+    <div className="p-8 max-w-7xl">
+      {/* Back link */}
+      <Link
+        href="/customers"
+        className="inline-flex items-center gap-1 text-sm mb-4 transition-colors hover:underline"
+        style={{ color: "#64748B" }}
+      >
+        <ArrowLeft className="h-4 w-4" />
+        Klanten
+      </Link>
+
+      {/* Hero header with KPIs */}
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex-1 min-w-0">
+          <CustomerProfileHeader customer={safeCustomer} kpis={kpis} />
+        </div>
         {canWrite && (
-          <CustomerDetailActions
-            customer={safeCustomer}
-            sectors={sectors}
-            canWriteNotes={canWrite}
-          />
+          <div className="flex-shrink-0 mt-1">
+            <CustomerDetailActions
+              customer={safeCustomer}
+              sectors={sectors}
+              customerTypes={customerTypes}
+              accountManagers={accountManagers}
+              canWriteNotes={canWrite}
+            />
+          </div>
         )}
       </div>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
-        {/* ── Left column ──────────────────────────────── */}
-        <div className="lg:col-span-2 flex flex-col gap-5">
+      {/* Tab navigation */}
+      <CustomerTabs activeTab={activeTab} counts={counts} />
 
-          {/* Contact */}
-          <div className="veele-card">
-            <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "#081D3A" }}>
-              Contact
-            </h2>
-            <dl className="space-y-3">
-              {customer.contactName && (
-                <InfoRow icon={<Tag className="h-4 w-4" />} label="Contactpersoon" value={customer.contactName} />
-              )}
-              {customer.contactEmail && (
-                <InfoRow
-                  icon={<Mail className="h-4 w-4" />}
-                  label="E-mail"
-                  value={
-                    <a href={`mailto:${customer.contactEmail}`} className="hover:underline" style={{ color: "#00B7B3" }}>
-                      {customer.contactEmail}
-                    </a>
-                  }
-                />
-              )}
-              {customer.contactPhone && (
-                <InfoRow
-                  icon={<Phone className="h-4 w-4" />}
-                  label="Telefoon"
-                  value={
-                    <a href={`tel:${customer.contactPhone}`} className="hover:underline" style={{ color: "#00B7B3" }}>
-                      {customer.contactPhone}
-                    </a>
-                  }
-                />
-              )}
-              {!customer.contactName && !customer.contactEmail && !customer.contactPhone && (
-                <p className="text-sm" style={{ color: "#94A3B8" }}>Nog geen contactgegevens toegevoegd.</p>
-              )}
-            </dl>
-          </div>
-
-          {/* Address */}
-          <div className="veele-card">
-            <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "#081D3A" }}>
-              Adres
-            </h2>
-            {customer.address || customer.city || customer.postalCode ? (
-              <div className="flex items-start gap-2">
-                <MapPin className="h-4 w-4 flex-shrink-0 mt-0.5" style={{ color: "#94A3B8" }} />
-                <div className="text-sm" style={{ color: "#64748B" }}>
-                  {customer.address && <p>{customer.address}</p>}
-                  {(customer.postalCode || customer.city) && (
-                    <p>{[customer.postalCode, customer.city].filter(Boolean).join("  ")}</p>
-                  )}
-                  <p>{customer.country}</p>
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm" style={{ color: "#94A3B8" }}>Nog geen adres toegevoegd.</p>
-            )}
-          </div>
-
-          {/* Internal Notes — management only (single text blob from customers.notes) */}
-          {canWrite && (
-            <div className="veele-card">
-              <h2 className="font-heading text-sm font-semibold mb-1" style={{ color: "#081D3A" }}>
-                Interne notities
-              </h2>
-              <p className="text-xs mb-3" style={{ color: "#94A3B8" }}>
-                Alleen zichtbaar voor management
-              </p>
-              {customer.notes ? (
-                <p className="text-sm whitespace-pre-wrap" style={{ color: "#475569" }}>
-                  {customer.notes}
-                </p>
-              ) : (
-                <p className="text-sm" style={{ color: "#94A3B8" }}>Geen interne notities.</p>
-              )}
-            </div>
-          )}
-
-          {/* Threaded Notes — management only */}
-          {canWrite && (
-            <CustomerNotesPanel
-              customerId={id}
-              initialNotes={customerNotes}
-            />
-          )}
-        </div>
-
-        {/* ── Right column (metadata) ──────────────────── */}
-        <div className="flex flex-col gap-5">
-          <div className="veele-card">
-            <h2 className="font-heading text-sm font-semibold mb-4" style={{ color: "#081D3A" }}>
-              Gegevens
-            </h2>
-            <dl className="space-y-3">
-              <InfoRow
-                icon={<Tag className="h-4 w-4" />}
-                label="Code"
-                value={customer.code ?? "—"}
-              />
-              <InfoRow
-                icon={<Building2 className="h-4 w-4" />}
-                label="Sector"
-                value={customer.sectorName ?? "—"}
-              />
-              <InfoRow
-                icon={<Calendar className="h-4 w-4" />}
-                label="Aangemaakt"
-                value={new Date(customer.createdAt).toLocaleDateString("nl-NL", {
-                  day: "2-digit", month: "short", year: "numeric",
-                })}
-              />
-            </dl>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Objects sub-table ────────────────────────── */}
-      <div className="mt-5">
-        <div className="veele-card overflow-hidden p-0">
-          <div className="flex items-center justify-between px-5 py-4">
-            <h2 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
-              Objecten
-              <span className="ml-2 text-xs font-normal" style={{ color: "#94A3B8" }}>
-                ({objects.length})
-              </span>
-            </h2>
-            <div className="flex items-center gap-3">
-              {canWrite && (
-                <CustomerDetailObjectCreate
-                  customerId={customer.id}
-                  customerName={customer.name}
-                  sectors={sectors}
-                />
-              )}
-              <Link
-                href={`/objects?customerId=${customer.id}`}
-                className="text-xs font-medium hover:underline"
-                style={{ color: "#00B7B3" }}
-              >
-                Alle bekijken →
-              </Link>
-            </div>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr style={{ borderTop: "1px solid #E2E8F0", borderBottom: "1px solid #E2E8F0" }}>
-                  <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Naam</th>
-                  <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Code</th>
-                  <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Sector</th>
-                  <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Stad</th>
-                  <th className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {objects.length === 0 ? (
-                  <tr>
-                    <td colSpan={5} className="px-5 py-8 text-center text-sm" style={{ color: "#94A3B8" }}>
-                      Nog geen objecten gekoppeld aan deze klant.
-                    </td>
-                  </tr>
-                ) : (
-                  objects.map((obj, i) => (
-                    <tr
-                      key={obj.id}
-                      className="transition-colors hover:bg-slate-50/60"
-                      style={{ borderBottom: i < objects.length - 1 ? "1px solid #F1F5F9" : undefined }}
-                    >
-                      <td className="px-5 py-3 text-sm font-medium" style={{ color: "#081D3A" }}>{obj.name}</td>
-                      <td className="px-5 py-3 text-sm" style={{ color: "#64748B" }}>{obj.code ?? "—"}</td>
-                      <td className="px-5 py-3 text-sm" style={{ color: "#64748B" }}>{obj.sectorName ?? "—"}</td>
-                      <td className="px-5 py-3 text-sm" style={{ color: "#64748B" }}>{obj.city ?? "—"}</td>
-                      <td className="px-5 py-3"><StatusBadge isActive={obj.isActive} /></td>
-                    </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </div>
-
-      {/* ── Assignment history ────────────────────────── */}
-      {canReadAssignments && (
-        <div className="mt-5">
-          <div className="veele-card overflow-hidden p-0">
-            <div className="flex items-center justify-between px-5 py-4">
-              <h2
-                className="font-heading text-sm font-semibold flex items-center gap-2"
-                style={{ color: "#081D3A" }}
-              >
-                <ClipboardList className="h-4 w-4" style={{ color: "#00B7B3" }} />
-                Opdrachten
-                <span className="text-xs font-normal" style={{ color: "#94A3B8" }}>
-                  (laatste 10)
-                </span>
-              </h2>
-              <Link
-                href={`/assignments?customerId=${customer.id}`}
-                className="text-xs font-medium hover:underline"
-                style={{ color: "#00B7B3" }}
-              >
-                Alle bekijken →
-              </Link>
-            </div>
-            <AssignmentHistoryTable
-              rows={assignmentHistory}
-              emptyMessage="Nog geen opdrachten voor deze klant."
-            />
-          </div>
-        </div>
+      {/* Tab content */}
+      {activeTab === "overzicht" && (
+        <CustomerOverviewTab customer={safeCustomer} canWrite={canWrite} />
       )}
 
-      {/* ── Documents ─────────────────────────────────── */}
-      {canReadDocuments && (
-        <div className="mt-5">
-          <EntityDocumentsPanel
-            entityType="customer"
-            entityId={id}
-            initialDocuments={documents}
-            canWrite={canWriteDocuments}
-          />
-        </div>
+      {activeTab === "contacten" && (
+        <CustomerContactsTab
+          customerId={id}
+          contacts={contacts}
+          canWrite={canWrite}
+        />
       )}
-    </div>
-  );
-}
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+      {activeTab === "objecten" && (
+        <CustomerObjectsTab
+          customerId={id}
+          customerName={customer.name}
+          objects={objects}
+          sectors={sectors}
+          canWrite={canWrite}
+        />
+      )}
 
-function InfoRow({
-  icon,
-  label,
-  value,
-}: {
-  icon:  React.ReactNode;
-  label: string;
-  value: React.ReactNode;
-}) {
-  return (
-    <div className="flex items-start gap-2">
-      <span className="mt-0.5 flex-shrink-0" style={{ color: "#94A3B8" }}>{icon}</span>
-      <div className="flex flex-col gap-0.5 min-w-0">
-        <span className="text-xs" style={{ color: "#94A3B8" }}>{label}</span>
-        <span className="text-sm" style={{ color: "#475569" }}>{value}</span>
-      </div>
+      {activeTab === "opdrachten" && canReadAssignments && (
+        <CustomerAssignmentsTab
+          customerId={id}
+          assignments={assignmentHistory}
+        />
+      )}
+
+      {activeTab === "tickets" && (
+        <PlaceholderTab
+          icon={Ticket}
+          title="Tickets"
+          description="De ticketmodule is beschikbaar in een toekomstige versie van het platform. Hier worden supporttickets en klantverzoeken beheerd die gekoppeld zijn aan deze klant."
+        />
+      )}
+
+      {activeTab === "facturen" && canReadInvoices && (
+        <CustomerInvoicesTab
+          customerId={id}
+          invoices={invoices}
+        />
+      )}
+
+      {activeTab === "betalingen" && canReadInvoices && (
+        <CustomerPaymentsTab
+          customerId={id}
+          payments={payments}
+        />
+      )}
+
+      {activeTab === "rapporten" && (
+        <PlaceholderTab
+          icon={BarChart3}
+          title="Rapporten"
+          description="Rapporten worden beschikbaar nadat de rapportagemodule volledig is gekoppeld aan dit klantprofiel."
+        />
+      )}
+
+      {activeTab === "documenten" && canReadDocuments && (
+        <CustomerDocumentsTabContent
+          entityId={id}
+          documents={documents}
+          canWrite={canWriteDocuments}
+        />
+      )}
+
+      {activeTab === "notities" && (
+        <CustomerNotesTabContent
+          customerId={id}
+          notes={customerNotes}
+          canWrite={canWrite}
+        />
+      )}
+
+      {activeTab === "geschiedenis" && (
+        <PlaceholderTab
+          icon={Clock}
+          title="Geschiedenis"
+          description="De volledige activiteitstijdlijn voor deze klant is beschikbaar in een toekomstige versie van het platform."
+        />
+      )}
     </div>
   );
 }

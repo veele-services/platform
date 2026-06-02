@@ -53,7 +53,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { StatusBadge } from "@/components/ui/status-badge";
+import { CustomerStatusBadge } from "@/components/customers/CustomerStatusBadge";
 import { CustomerForm } from "@/components/customers/CustomerForm";
 import {
   bulkSetCustomerStatus,
@@ -61,39 +61,35 @@ import {
   deleteCustomer,
   type CustomerRow,
   type SectorOption,
+  type CustomerTypeOption,
+  type AccountManagerOption,
 } from "@/app/actions/customers";
+import { CUSTOMER_STATUSES, CUSTOMER_STATUS_LABELS } from "@/types/customer-status";
 
 const PAGE_SIZE = 25;
-const SORTABLE = ["name", "code", "city", "createdAt"] as const;
+const SORTABLE  = ["name", "code", "city", "createdAt"] as const;
 
 interface CustomersViewProps {
-  rows:            CustomerRow[];
-  total:           number;
-  sectors:         SectorOption[];
-  canWrite:        boolean;
-  canWriteNotes:   boolean;
-  page:            number;
-  initialSearch:   string;
-  initialSectorId: string;
-  initialStatus:   string;
-  initialSort:     string;
-  initialDir:      string;
+  rows:                  CustomerRow[];
+  total:                 number;
+  sectors:               SectorOption[];
+  customerTypes:         CustomerTypeOption[];
+  accountManagers:       AccountManagerOption[];
+  canWrite:              boolean;
+  canWriteNotes:         boolean;
+  page:                  number;
+  initialSearch:         string;
+  initialSectorId:       string;
+  initialStatus:         string;
+  initialCustomerTypeId: string;
+  initialSort:           string;
+  initialDir:            string;
 }
 
-// ─── Sortable header cell ─────────────────────────────────────────────────────
-
 function SortHeader({
-  label,
-  columnKey,
-  currentSort,
-  currentDir,
-  onSort,
+  label, columnKey, currentSort, currentDir, onSort,
 }: {
-  label:       string;
-  columnKey:   string;
-  currentSort: string;
-  currentDir:  string;
-  onSort:      (key: string) => void;
+  label: string; columnKey: string; currentSort: string; currentDir: string; onSort: (k: string) => void;
 }) {
   const active = currentSort === columnKey;
   return (
@@ -106,11 +102,7 @@ function SortHeader({
       >
         {label}
         {active ? (
-          currentDir === "asc" ? (
-            <ChevronUp className="h-3 w-3" />
-          ) : (
-            <ChevronDown className="h-3 w-3" />
-          )
+          currentDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
         ) : (
           <ChevronsUpDown className="h-3 w-3 opacity-40" />
         )}
@@ -119,43 +111,44 @@ function SortHeader({
   );
 }
 
-// ─── Main component ───────────────────────────────────────────────────────────
-
 export function CustomersView({
   rows,
   total,
   sectors,
+  customerTypes,
+  accountManagers,
   canWrite,
   canWriteNotes,
   page,
   initialSearch,
   initialSectorId,
   initialStatus,
+  initialCustomerTypeId,
   initialSort,
   initialDir,
 }: CustomersViewProps) {
   const router   = useRouter();
   const pathname = usePathname();
 
-  const [sheetOpen,     setSheetOpen]     = useState(false);
-  const [editingId,     setEditingId]     = useState<string | null>(null);
-  const [selected,      setSelected]      = useState<Set<string>>(new Set());
-  const [searchInput,   setSearchInput]   = useState(initialSearch);
-  const [deleteTarget,  setDeleteTarget]  = useState<{ id: string; name: string } | null>(null);
-  const [bulkPending,   startBulkTransition] = useTransition();
+  const [sheetOpen,    setSheetOpen]    = useState(false);
+  const [editingId,    setEditingId]    = useState<string | null>(null);
+  const [selected,     setSelected]     = useState<Set<string>>(new Set());
+  const [searchInput,  setSearchInput]  = useState(initialSearch);
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
+  const [bulkPending,  startBulkTransition] = useTransition();
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
-  // ─── URL helpers ─────────────────────────────────────────────────────────────
   function buildUrl(overrides: Record<string, string | undefined>): string {
     const params = new URLSearchParams();
     const merged: Record<string, string | undefined> = {
-      search:   initialSearch  || undefined,
-      sectorId: initialSectorId || undefined,
-      status:   initialStatus !== "all" ? initialStatus : undefined,
-      sort:     initialSort   !== "name" ? initialSort : undefined,
-      dir:      initialDir    !== "asc"  ? initialDir  : undefined,
-      page:     page > 1 ? String(page) : undefined,
+      search:         initialSearch           || undefined,
+      sectorId:       initialSectorId         || undefined,
+      status:         initialStatus !== "all" ? initialStatus : undefined,
+      customerTypeId: initialCustomerTypeId   || undefined,
+      sort:           initialSort !== "name"  ? initialSort  : undefined,
+      dir:            initialDir  !== "asc"   ? initialDir   : undefined,
+      page:           page > 1 ? String(page) : undefined,
       ...overrides,
     };
     Object.entries(merged).forEach(([k, v]) => { if (v) params.set(k, v); });
@@ -174,28 +167,17 @@ export function CustomersView({
 
   function handleSort(column: string) {
     if (!SORTABLE.includes(column as typeof SORTABLE[number])) return;
-    const newDir =
-      initialSort === column && initialDir === "asc" ? "desc" : "asc";
+    const newDir = initialSort === column && initialDir === "asc" ? "desc" : "asc";
     router.replace(buildUrl({ sort: column, dir: newDir, page: undefined }));
   }
 
-  // ─── Selection ───────────────────────────────────────────────────────────────
-  const allSelected =
-    rows.length > 0 && rows.every((r) => selected.has(r.id));
+  const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
 
   function toggleAll() {
     if (allSelected) {
-      setSelected((prev) => {
-        const next = new Set(prev);
-        rows.forEach((r) => next.delete(r.id));
-        return next;
-      });
+      setSelected((prev) => { const next = new Set(prev); rows.forEach((r) => next.delete(r.id)); return next; });
     } else {
-      setSelected((prev) => {
-        const next = new Set(prev);
-        rows.forEach((r) => next.add(r.id));
-        return next;
-      });
+      setSelected((prev) => { const next = new Set(prev); rows.forEach((r) => next.add(r.id)); return next; });
     }
   }
 
@@ -207,12 +189,10 @@ export function CustomersView({
     });
   }
 
-  // ─── Sheet helpers ────────────────────────────────────────────────────────────
   function openCreate() { setEditingId(null); setSheetOpen(true); }
   function openEdit(id: string) { setEditingId(id); setSheetOpen(true); }
   function handleFormSuccess() { setSheetOpen(false); setEditingId(null); }
 
-  // ─── Mutations ────────────────────────────────────────────────────────────────
   function handleStatusToggle(id: string, isActive: boolean) {
     startBulkTransition(async () => {
       const result = await setCustomerStatus(id, !isActive);
@@ -226,9 +206,7 @@ export function CustomersView({
       const result = await bulkSetCustomerStatus(ids, isActive);
       if (result.success) {
         setSelected(new Set());
-        toast.success(
-          `${ids.length} klant${ids.length > 1 ? "en" : ""} ${isActive ? "geactiveerd" : "gedeactiveerd"}`,
-        );
+        toast.success(`${ids.length} klant${ids.length > 1 ? "en" : ""} ${isActive ? "geactiveerd" : "gedeactiveerd"}`);
       } else {
         toast.error(result.message);
       }
@@ -249,20 +227,15 @@ export function CustomersView({
     });
   }
 
-  // ─── Render ───────────────────────────────────────────────────────────────────
+  const colSpan = canWrite ? 8 : 7;
+
   return (
     <>
       {/* Toolbar */}
       <div className="flex items-center gap-3 mb-5 flex-wrap">
-        <form
-          onSubmit={handleSearchSubmit}
-          className="flex items-center gap-2 flex-1 min-w-[200px] max-w-xs"
-        >
+        <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1 min-w-[200px] max-w-xs">
           <div className="relative flex-1">
-            <Search
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none"
-              style={{ color: "#94A3B8" }}
-            />
+            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none" style={{ color: "#94A3B8" }} />
             <Input
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
@@ -270,37 +243,40 @@ export function CustomersView({
               className="pl-8 h-9"
             />
           </div>
-          <Button type="submit" variant="outline" size="sm" className="h-9">
-            Zoeken
-          </Button>
+          <Button type="submit" variant="outline" size="sm" className="h-9">Zoeken</Button>
         </form>
 
-        <Select
-          value={initialSectorId || "ALL"}
-          onValueChange={(v) => applyFilter("sectorId", v === "ALL" ? "" : v)}
-        >
-          <SelectTrigger className="w-[160px] h-9">
+        <Select value={initialSectorId || "ALL"} onValueChange={(v) => applyFilter("sectorId", v === "ALL" ? "" : v)}>
+          <SelectTrigger className="w-[150px] h-9">
             <SelectValue placeholder="Alle sectoren" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">Alle sectoren</SelectItem>
-            {sectors.map((s) => (
-              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-            ))}
+            {sectors.map((s) => <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>)}
           </SelectContent>
         </Select>
 
-        <Select
-          value={initialStatus || "all"}
-          onValueChange={(v) => applyFilter("status", v === "all" ? "" : v)}
-        >
-          <SelectTrigger className="w-[130px] h-9">
+        {customerTypes.length > 0 && (
+          <Select value={initialCustomerTypeId || "ALL"} onValueChange={(v) => applyFilter("customerTypeId", v === "ALL" ? "" : v)}>
+            <SelectTrigger className="w-[150px] h-9">
+              <SelectValue placeholder="Alle types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="ALL">Alle types</SelectItem>
+              {customerTypes.map((t) => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+            </SelectContent>
+          </Select>
+        )}
+
+        <Select value={initialStatus || "all"} onValueChange={(v) => applyFilter("status", v === "all" ? "" : v)}>
+          <SelectTrigger className="w-[140px] h-9">
             <SelectValue placeholder="Alle statussen" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Alle statussen</SelectItem>
-            <SelectItem value="active">Actief</SelectItem>
-            <SelectItem value="inactive">Inactief</SelectItem>
+            {CUSTOMER_STATUSES.map((s) => (
+              <SelectItem key={s} value={s}>{CUSTOMER_STATUS_LABELS[s]}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
 
@@ -322,31 +298,13 @@ export function CustomersView({
         >
           <span style={{ color: "#081D3A" }}>{selected.size} geselecteerd</span>
           <div className="flex gap-2 ml-auto">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleBulkStatus(true)}
-              disabled={bulkPending}
-            >
-              <ToggleRight className="mr-1.5 h-3.5 w-3.5" />
-              Activeren
+            <Button variant="outline" size="sm" onClick={() => handleBulkStatus(true)} disabled={bulkPending}>
+              <ToggleRight className="mr-1.5 h-3.5 w-3.5" /> Activeren
             </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleBulkStatus(false)}
-              disabled={bulkPending}
-            >
-              <ToggleLeft className="mr-1.5 h-3.5 w-3.5" />
-              Deactiveren
+            <Button variant="outline" size="sm" onClick={() => handleBulkStatus(false)} disabled={bulkPending}>
+              <ToggleLeft className="mr-1.5 h-3.5 w-3.5" /> Deactiveren
             </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setSelected(new Set())}
-            >
-              Wissen
-            </Button>
+            <Button variant="ghost" size="sm" onClick={() => setSelected(new Set())}>Wissen</Button>
           </div>
         </div>
       )}
@@ -359,57 +317,22 @@ export function CustomersView({
               <tr style={{ borderBottom: "1px solid #E2E8F0" }}>
                 {canWrite && (
                   <th className="w-10 pl-4 py-3">
-                    <Checkbox
-                      checked={allSelected}
-                      onCheckedChange={toggleAll}
-                      aria-label="Select all"
-                    />
+                    <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" />
                   </th>
                 )}
-                <SortHeader
-                  label="Code"
-                  columnKey="code"
-                  currentSort={initialSort}
-                  currentDir={initialDir}
-                  onSort={handleSort}
-                />
-                <SortHeader
-                  label="Naam"
-                  columnKey="name"
-                  currentSort={initialSort}
-                  currentDir={initialDir}
-                  onSort={handleSort}
-                />
-                <th
-                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
-                  style={{ color: "#64748B" }}
-                >
-                  Sector
-                </th>
-                <SortHeader
-                  label="Stad"
-                  columnKey="city"
-                  currentSort={initialSort}
-                  currentDir={initialDir}
-                  onSort={handleSort}
-                />
-                <th
-                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
-                  style={{ color: "#64748B" }}
-                >
-                  Status
-                </th>
+                <SortHeader label="Code"     columnKey="code"      currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
+                <SortHeader label="Naam"     columnKey="name"      currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Sector</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Type</th>
+                <SortHeader label="Stad"     columnKey="city"      currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Status</th>
                 <th className="w-12 px-4 py-3" />
               </tr>
             </thead>
             <tbody>
               {rows.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={canWrite ? 7 : 6}
-                    className="px-4 py-12 text-center text-sm"
-                    style={{ color: "#94A3B8" }}
-                  >
+                  <td colSpan={colSpan} className="px-4 py-12 text-center text-sm" style={{ color: "#94A3B8" }}>
                     Geen klanten gevonden
                   </td>
                 </tr>
@@ -418,18 +341,11 @@ export function CustomersView({
                   <tr
                     key={row.id}
                     className="transition-colors hover:bg-slate-50/60"
-                    style={{
-                      borderBottom:
-                        i < rows.length - 1 ? "1px solid #F1F5F9" : undefined,
-                    }}
+                    style={{ borderBottom: i < rows.length - 1 ? "1px solid #F1F5F9" : undefined }}
                   >
                     {canWrite && (
                       <td className="pl-4 py-3">
-                        <Checkbox
-                          checked={selected.has(row.id)}
-                          onCheckedChange={() => toggleOne(row.id)}
-                          aria-label={`Select ${row.name}`}
-                        />
+                        <Checkbox checked={selected.has(row.id)} onCheckedChange={() => toggleOne(row.id)} aria-label={`Select ${row.name}`} />
                       </td>
                     )}
                     <td className="px-4 py-3">
@@ -438,11 +354,7 @@ export function CustomersView({
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <Link
-                        href={`/customers/${row.id}`}
-                        className="font-medium text-sm hover:underline"
-                        style={{ color: "#081D3A" }}
-                      >
+                      <Link href={`/customers/${row.id}`} className="font-medium text-sm hover:underline" style={{ color: "#081D3A" }}>
                         {row.name}
                       </Link>
                     </td>
@@ -450,10 +362,22 @@ export function CustomersView({
                       {row.sectorName ?? "—"}
                     </td>
                     <td className="px-4 py-3 text-sm" style={{ color: "#64748B" }}>
+                      {row.customerTypeName ? (
+                        <span
+                          className="text-xs px-2 py-0.5 rounded-full font-medium"
+                          style={{ backgroundColor: "#EFF6FF", color: "#2563EB" }}
+                        >
+                          {row.customerTypeName}
+                        </span>
+                      ) : (
+                        "—"
+                      )}
+                    </td>
+                    <td className="px-4 py-3 text-sm" style={{ color: "#64748B" }}>
                       {row.city ?? "—"}
                     </td>
                     <td className="px-4 py-3">
-                      <StatusBadge isActive={row.isActive} />
+                      <CustomerStatusBadge status={row.status} />
                     </td>
                     <td className="pr-4 py-3 text-right">
                       <DropdownMenu>
@@ -466,43 +390,28 @@ export function CustomersView({
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem asChild>
                             <Link href={`/customers/${row.id}`}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              Bekijken
+                              <Eye className="mr-2 h-4 w-4" /> Bekijken
                             </Link>
                           </DropdownMenuItem>
                           {canWrite && (
                             <>
                               <DropdownMenuItem onSelect={() => openEdit(row.id)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Bewerken
+                                <Pencil className="mr-2 h-4 w-4" /> Bewerken
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onSelect={() =>
-                                  handleStatusToggle(row.id, row.isActive)
-                                }
-                              >
+                              <DropdownMenuItem onSelect={() => handleStatusToggle(row.id, row.isActive)}>
                                 {row.isActive ? (
-                                  <>
-                                    <ToggleLeft className="mr-2 h-4 w-4" />
-                                    Deactiveren
-                                  </>
+                                  <><ToggleLeft className="mr-2 h-4 w-4" /> Deactiveren</>
                                 ) : (
-                                  <>
-                                    <ToggleRight className="mr-2 h-4 w-4" />
-                                    Activeren
-                                  </>
+                                  <><ToggleRight className="mr-2 h-4 w-4" /> Activeren</>
                                 )}
                               </DropdownMenuItem>
                               <DropdownMenuSeparator />
                               <DropdownMenuItem
-                                onSelect={() =>
-                                  setDeleteTarget({ id: row.id, name: row.name })
-                                }
+                                onSelect={() => setDeleteTarget({ id: row.id, name: row.name })}
                                 className="text-destructive focus:text-destructive"
                               >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Verwijderen
+                                <Trash2 className="mr-2 h-4 w-4" /> Verwijderen
                               </DropdownMenuItem>
                             </>
                           )}
@@ -521,33 +430,16 @@ export function CustomersView({
       {totalPages > 1 && (
         <div className="flex items-center justify-between mt-4 text-sm">
           <span style={{ color: "#64748B" }}>
-            Resultaten {Math.min((page - 1) * PAGE_SIZE + 1, total)}–
-            {Math.min(page * PAGE_SIZE, total)} van {total}
+            Resultaten {Math.min((page - 1) * PAGE_SIZE + 1, total)}–{Math.min(page * PAGE_SIZE, total)} van {total}
           </span>
           <div className="flex items-center gap-1">
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 w-8 p-0"
-              disabled={page <= 1}
-              onClick={() =>
-                router.replace(buildUrl({ page: String(page - 1) }))
-              }
-            >
+            <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled={page <= 1}
+              onClick={() => router.replace(buildUrl({ page: String(page - 1) }))}>
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="px-3" style={{ color: "#081D3A" }}>
-              {page} / {totalPages}
-            </span>
-            <Button
-              variant="outline"
-              size="sm"
-              className="h-8 w-8 p-0"
-              disabled={page >= totalPages}
-              onClick={() =>
-                router.replace(buildUrl({ page: String(page + 1) }))
-              }
-            >
+            <span className="px-3" style={{ color: "#081D3A" }}>{page} / {totalPages}</span>
+            <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled={page >= totalPages}
+              onClick={() => router.replace(buildUrl({ page: String(page + 1) }))}>
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
@@ -556,24 +448,19 @@ export function CustomersView({
 
       {/* Create / Edit Sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent
-          side="right"
-          className="w-[520px] sm:max-w-[520px] overflow-y-auto"
-        >
+        <SheetContent side="right" className="w-[560px] sm:max-w-[560px] overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>
-              {editingId ? "Klant bewerken" : "Nieuwe klant"}
-            </SheetTitle>
+            <SheetTitle>{editingId ? "Klant bewerken" : "Nieuwe klant"}</SheetTitle>
             <SheetDescription>
-              {editingId
-                ? "Werk de klantgegevens bij."
-                : "Vul de gegevens in om een nieuwe klant aan te maken."}
+              {editingId ? "Werk de klantgegevens bij." : "Vul de gegevens in om een nieuwe klant aan te maken."}
             </SheetDescription>
           </SheetHeader>
           <CustomerForm
             mode={editingId ? "edit" : "create"}
             customerId={editingId ?? undefined}
             sectors={sectors}
+            customerTypes={customerTypes}
+            accountManagers={accountManagers}
             canWriteNotes={canWriteNotes}
             onSuccess={handleFormSuccess}
             onCancel={() => setSheetOpen(false)}
@@ -582,16 +469,13 @@ export function CustomersView({
       </Sheet>
 
       {/* Delete Confirmation */}
-      <AlertDialog
-        open={!!deleteTarget}
-        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
-      >
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Klant verwijderen?</AlertDialogTitle>
             <AlertDialogDescription>
-              Dit verwijdert permanent{" "}
-              <strong>{deleteTarget?.name}</strong>. Deze actie kan niet ongedaan worden gemaakt. Alle objecten gekoppeld aan deze klant moeten eerst worden verwijderd.
+              Dit verwijdert permanent <strong>{deleteTarget?.name}</strong>. Deze actie kan niet ongedaan worden gemaakt.
+              Alle objecten gekoppeld aan deze klant moeten eerst worden verwijderd.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

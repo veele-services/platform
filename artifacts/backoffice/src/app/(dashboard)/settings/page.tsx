@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Building2, Shield, Users, ClipboardList, ChevronRight, History } from "lucide-react";
+import { Building2, Shield, Users, ClipboardList, ChevronRight, History, Tag } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 
@@ -62,6 +62,14 @@ export default async function SettingsPage() {
         />
         {canReadSettings && (
           <SettingsCard
+            href="/instellingen/klanttypes"
+            icon={<Tag className="h-6 w-6" style={{ color: "#00B7B3" }} strokeWidth={1.5} />}
+            title="Klanttypes"
+            description="Beheer de klanttypes die beschikbaar zijn in klantprofielen (Zakelijk, Particulier, etc.)."
+          />
+        )}
+        {canReadSettings && (
+          <SettingsCard
             href="/instellingen/activiteitslog"
             icon={<History className="h-6 w-6" style={{ color: "#00B7B3" }} strokeWidth={1.5} />}
             title="Activiteitslog"
@@ -74,15 +82,9 @@ export default async function SettingsPage() {
 }
 
 function SettingsCard({
-  href,
-  icon,
-  title,
-  description,
+  href, icon, title, description,
 }: {
-  href:        string;
-  icon:        React.ReactNode;
-  title:       string;
-  description: string;
+  href: string; icon: React.ReactNode; title: string; description: string;
 }) {
   return (
     <Link
@@ -103,10 +105,7 @@ function SettingsCard({
           {description}
         </p>
       </div>
-      <ChevronRight
-        className="flex-shrink-0 h-4 w-4 mt-0.5 transition-transform group-hover:translate-x-0.5"
-        style={{ color: "#94A3B8" }}
-      />
+      <ChevronRight className="flex-shrink-0 h-4 w-4 mt-0.5 transition-transform group-hover:translate-x-0.5" style={{ color: "#94A3B8" }} />
     </Link>
   );
 }

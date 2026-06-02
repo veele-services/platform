@@ -264,3 +264,55 @@ export async function markInvoicePaidByMollie(
 
   return { success: true };
 }
+
+// ─── Customer-scoped query ─────────────────────────────────────────────────────
+
+export type CustomerPaymentRow = {
+  id:              string;
+  invoiceId:       string;
+  invoiceNumber:   string;
+  molliePaymentId: string;
+  amountCents:     number;
+  currency:        string;
+  status:          string;
+  paidAt:          string | null;
+  createdAt:       string;
+};
+
+export async function listPaymentsForCustomer(
+  customerId: string,
+  limit = 25,
+): Promise<CustomerPaymentRow[]> {
+  const canRead = await hasPermission("invoices", "read");
+  if (!canRead) return [];
+
+  const rows = await db
+    .select({
+      id:              paymentsTable.id,
+      invoiceId:       paymentsTable.invoiceId,
+      invoiceNumber:   invoicesTable.invoiceNumber,
+      molliePaymentId: paymentsTable.molliePaymentId,
+      amountCents:     paymentsTable.amountCents,
+      currency:        paymentsTable.currency,
+      status:          paymentsTable.status,
+      paidAt:          paymentsTable.paidAt,
+      createdAt:       paymentsTable.createdAt,
+    })
+    .from(paymentsTable)
+    .innerJoin(invoicesTable, eq(paymentsTable.invoiceId, invoicesTable.id))
+    .where(eq(invoicesTable.customerId, customerId))
+    .orderBy(desc(paymentsTable.createdAt))
+    .limit(limit);
+
+  return rows.map((r) => ({
+    id:              r.id,
+    invoiceId:       r.invoiceId,
+    invoiceNumber:   r.invoiceNumber,
+    molliePaymentId: r.molliePaymentId,
+    amountCents:     r.amountCents,
+    currency:        r.currency,
+    status:          r.status,
+    paidAt:          r.paidAt  ? r.paidAt.toISOString()  : null,
+    createdAt:       r.createdAt.toISOString(),
+  }));
+}
