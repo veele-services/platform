@@ -13,6 +13,7 @@ import {
   auditLogTable,
   insertCustomerSchema,
   updateCustomerSchema,
+  personnelTable,
 } from "@workspace/db";
 import { eq, ilike, or, and, asc, desc, inArray, sql, gte, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -63,6 +64,7 @@ export type CustomerDetail = {
   customerTypeName: string | null;
   status: string;
   accountManagerId: string | null;
+  accountManagerName: string | null;
   isActive: boolean;
   notes: string | null;
   createdAt: string;
@@ -283,24 +285,53 @@ export async function getCustomer(id: string): Promise<CustomerDetail | null> {
       customerTypeName:        customerTypesTable.name,
       status:                  customersTable.status,
       accountManagerId:        customersTable.accountManagerId,
+      accountManagerFirstName: personnelTable.firstName,
+      accountManagerLastName:  personnelTable.lastName,
       isActive:                customersTable.isActive,
       notes:                   customersTable.notes,
       createdAt:               customersTable.createdAt,
       updatedAt:               customersTable.updatedAt,
     })
     .from(customersTable)
-    .leftJoin(sectorsTable,      eq(customersTable.sectorId,       sectorsTable.id))
-    .leftJoin(customerTypesTable, eq(customersTable.customerTypeId, customerTypesTable.id))
+    .leftJoin(sectorsTable,      eq(customersTable.sectorId,           sectorsTable.id))
+    .leftJoin(customerTypesTable, eq(customersTable.customerTypeId,    customerTypesTable.id))
+    .leftJoin(personnelTable,     eq(customersTable.accountManagerId,  personnelTable.id))
     .where(eq(customersTable.id, id))
     .limit(1);
 
   if (!rows[0]) return null;
   const r = rows[0];
+  const accountManagerName =
+    r.accountManagerFirstName || r.accountManagerLastName
+      ? `${r.accountManagerFirstName ?? ""} ${r.accountManagerLastName ?? ""}`.trim()
+      : null;
   return {
-    ...r,
-    notes:     canSeeNotes ? r.notes : null,
-    createdAt: r.createdAt.toISOString(),
-    updatedAt: r.updatedAt.toISOString(),
+    id:                      r.id,
+    name:                    r.name,
+    code:                    r.code,
+    sectorId:                r.sectorId,
+    sectorName:              r.sectorName,
+    address:                 r.address,
+    city:                    r.city,
+    postalCode:              r.postalCode,
+    country:                 r.country,
+    contactName:             r.contactName,
+    contactEmail:            r.contactEmail,
+    contactPhone:            r.contactPhone,
+    legalEntity:             r.legalEntity,
+    vatNumber:               r.vatNumber,
+    chamberOfCommerceNumber: r.chamberOfCommerceNumber,
+    website:                 r.website,
+    mobile:                  r.mobile,
+    customerTypeId:          r.customerTypeId,
+    customerTypeName:        r.customerTypeName,
+    status:                  r.status,
+    accountManagerId:        r.accountManagerId,
+    accountManagerName,
+    isActive:                r.isActive,
+    notes:                   canSeeNotes ? r.notes : null,
+    createdAt:               r.createdAt.toISOString(),
+    updatedAt:               r.updatedAt.toISOString(),
   };
 }
 
@@ -1064,8 +1095,6 @@ export type AccountManagerOption = {
 export async function listAccountManagers(): Promise<AccountManagerOption[]> {
   const canRead = await hasPermission("customers", "read");
   if (!canRead) return [];
-
-  const { personnelTable } = await import("@workspace/db");
 
   const rows = await db
     .select({

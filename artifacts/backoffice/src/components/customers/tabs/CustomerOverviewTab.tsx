@@ -9,6 +9,7 @@ import {
   Hash,
   Smartphone,
   Calendar,
+  User,
 } from "lucide-react";
 import type { CustomerDetail } from "@/app/actions/customers";
 
@@ -156,6 +157,9 @@ export function CustomerOverviewTab({ customer, canWrite }: Props) {
           <InfoRow icon={<Building2 className="h-4 w-4" />} label="Sector" value={customer.sectorName ?? "—"} />
           {customer.customerTypeName && (
             <InfoRow icon={<Tag className="h-4 w-4" />} label="Klanttype" value={customer.customerTypeName} />
+          )}
+          {customer.accountManagerName && (
+            <InfoRow icon={<User className="h-4 w-4" />} label="Accountmanager" value={customer.accountManagerName} />
           )}
           <InfoRow
             icon={<Calendar className="h-4 w-4" />}
