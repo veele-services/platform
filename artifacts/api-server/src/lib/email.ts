@@ -75,6 +75,29 @@ function ctaButton(href: string, label: string): string {
 
 // ── Templates ─────────────────────────────────────────────────────────────────
 
+export function buildQuoteExpiredEmail(opts: {
+  customerName: string;
+  quoteNumber:  string;
+  amount:       string;
+}): { subject: string; html: string } {
+  const url     = `${siteUrl()}/klant/offertes`;
+  const amount  = parseFloat(opts.amount).toLocaleString("nl-NL", {
+    style:    "currency",
+    currency: "EUR",
+  });
+  const subject = `Uw offerte ${opts.quoteNumber} is verlopen`;
+  const html    = baseTemplate(subject, `
+    <h2 style="margin-top:0;color:${BRAND_COLOR}">Offerte verlopen</h2>
+    <p>Beste ${opts.customerName},</p>
+    <p>
+      Offerte <strong>${opts.quoteNumber}</strong> (bedrag: ${amount}) is verlopen.
+      Neem contact met ons op als u nog gebruik wilt maken van onze diensten.
+    </p>
+    ${ctaButton(url, "Offertes bekijken")}
+  `);
+  return { subject, html };
+}
+
 export function buildPaymentReminderEmail(opts: {
   customerName:  string;
   invoiceNumber: string;

@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { invoicesTable, customersTable, auditLogTable } from "@workspace/db";
+import { invoicesTable, customersTable, auditLogTable, organizationSettingsTable } from "@workspace/db";
 import { eq, and, lte } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { sendEmail, buildPaymentReminderEmail } from "../lib/email";
@@ -12,9 +12,14 @@ const SYSTEM_ACTOR_UUID = "00000000-0000-0000-0000-000000000001";
 /**
  * POST /api/admin/payment-reminders
  *
- * Sends payment reminder emails for all invoices with status='sent' that are
- * at least 7 days old (based on invoice createdAt). Idempotent — re-running
- * sends again, so callers should rate-limit (e.g. once per day).
+ * Sends payment reminder emails for all invoices with status='sent' whose
+ * dueDate is at least N days in the past, where N is configured via
+ * notif_herinnering_dagen in organization_settings (default: 7).
+ *
+ * The notification can be disabled globally by setting
+ * notif_betaling_herinnering = false in organization_settings.
+ *
+ * Idempotent — re-running sends again, so callers should rate-limit (e.g. once per day).
  *
  * Security: protected by a pre-shared ADMIN_API_SECRET token in the
  * Authorization header: "Bearer <ADMIN_API_SECRET>".
@@ -36,12 +41,35 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
     return;
   }
 
-  // Invoices eligible for reminder: status='sent' AND created >= 7 days ago
-  const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-
-  req.log.info({ sevenDaysAgo: sevenDaysAgo.toISOString() }, "payment-reminders: verwerken gestart");
-
   try {
+    // Load org settings for notification toggle and configurable days
+    const [orgSettings] = await db
+      .select({
+        notifEnabled:      organizationSettingsTable.notifBetalingHerinnering,
+        herinneringDagen:  organizationSettingsTable.notifHerinneringDagen,
+      })
+      .from(organizationSettingsTable)
+      .limit(1);
+
+    const notifEnabled     = orgSettings?.notifEnabled     ?? true;
+    const herinneringDagen = orgSettings?.herinneringDagen ?? 7;
+
+    if (!notifEnabled) {
+      req.log.info("payment-reminders: betalingsherinnering uitgeschakeld in instellingen — overgeslagen");
+      res.json({ ok: true, sent: 0, skipped: 0, disabled: true });
+      return;
+    }
+
+    // dueDate is a date string (YYYY-MM-DD); compare against today - N days
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - herinneringDagen);
+    const cutoffDateStr = cutoff.toISOString().slice(0, 10);
+
+    req.log.info(
+      { herinneringDagen, cutoffDate: cutoffDateStr },
+      "payment-reminders: verwerken gestart",
+    );
+
     const overdueInvoices = await db
       .select({
         id:            invoicesTable.id,
@@ -56,7 +84,7 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
       .where(
         and(
           eq(invoicesTable.status, "sent"),
-          lte(invoicesTable.createdAt, sevenDaysAgo),
+          lte(invoicesTable.dueDate, cutoffDateStr),
         ),
       );
 
@@ -87,9 +115,10 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
         resource:   "invoices",
         resourceId: invoice.id,
         metadata:   {
-          invoiceNumber: invoice.invoiceNumber,
-          customerEmail: invoice.customerEmail,
-          dueDate:       invoice.dueDate,
+          invoiceNumber:   invoice.invoiceNumber,
+          customerEmail:   invoice.customerEmail,
+          dueDate:         invoice.dueDate,
+          herinneringDagen,
         },
       });
 

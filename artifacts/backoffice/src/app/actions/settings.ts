@@ -30,6 +30,12 @@ export type OrgSettings = {
   logoUrl:            string | null;
   betaaltermijnDagen: number;
   emailAfzender:      string | null;
+  notifRapportGoedgekeurd:  boolean;
+  notifRapportAfgekeurd:    boolean;
+  notifOfferteVerstuurd:    boolean;
+  notifOfferteVerlopen:     boolean;
+  notifBetalingHerinnering: boolean;
+  notifHerinneringDagen:    number;
 };
 
 export type PermissionItem = {
@@ -100,6 +106,12 @@ export async function getOrganizationSettings(): Promise<OrgSettings | null> {
     logoUrl:            r.logoUrl,
     betaaltermijnDagen: r.betaaltermijnDagen,
     emailAfzender:      r.emailAfzender,
+    notifRapportGoedgekeurd:  r.notifRapportGoedgekeurd,
+    notifRapportAfgekeurd:    r.notifRapportAfgekeurd,
+    notifOfferteVerstuurd:    r.notifOfferteVerstuurd,
+    notifOfferteVerlopen:     r.notifOfferteVerlopen,
+    notifBetalingHerinnering: r.notifBetalingHerinnering,
+    notifHerinneringDagen:    r.notifHerinneringDagen,
   };
 }
 
@@ -111,6 +123,12 @@ export async function updateOrganizationSettings(data: {
   logoUrl?:            string | null;
   betaaltermijnDagen?: number;
   emailAfzender?:      string | null;
+  notifRapportGoedgekeurd?:  boolean;
+  notifRapportAfgekeurd?:    boolean;
+  notifOfferteVerstuurd?:    boolean;
+  notifOfferteVerlopen?:     boolean;
+  notifBetalingHerinnering?: boolean;
+  notifHerinneringDagen?:    number;
 }): Promise<ActionResult> {
   await requirePermission("settings", "write");
 

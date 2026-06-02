@@ -187,6 +187,79 @@ export function buildLeaveDecisionEmail(opts: {
   return { subject, html };
 }
 
+// 5a. Rapport goedgekeurd → medewerker (submitter)
+export function buildReportApprovedEmail(opts: {
+  firstName:       string;
+  assignmentTitle: string;
+  reportId:        string;
+}): { subject: string; html: string } {
+  const url     = `${siteUrl()}/personeel/rapporten`;
+  const subject = `Uw rapport voor "${opts.assignmentTitle}" is goedgekeurd`;
+  const html    = baseTemplate(subject, `
+    <h2 style="margin-top:0;color:${BRAND_COLOR}">Rapport goedgekeurd</h2>
+    <p>Beste ${opts.firstName},</p>
+    <p>
+      Goed nieuws! Uw ingediende rapport voor opdracht
+      <strong>${opts.assignmentTitle}</strong> is
+      <span style="color:#16a34a;font-weight:600">goedgekeurd</span>.
+    </p>
+    ${ctaButton(url, "Mijn rapporten bekijken")}
+  `);
+  return { subject, html };
+}
+
+// 5b. Rapport afgekeurd → medewerker (submitter)
+export function buildReportRejectedEmail(opts: {
+  firstName:       string;
+  assignmentTitle: string;
+  reportId:        string;
+  reason:          string;
+}): { subject: string; html: string } {
+  const url     = `${siteUrl()}/personeel/rapporten`;
+  const subject = `Uw rapport voor "${opts.assignmentTitle}" is afgekeurd`;
+  const html    = baseTemplate(subject, `
+    <h2 style="margin-top:0;color:${BRAND_COLOR}">Rapport afgekeurd</h2>
+    <p>Beste ${opts.firstName},</p>
+    <p>
+      Uw ingediende rapport voor opdracht
+      <strong>${opts.assignmentTitle}</strong> is helaas
+      <span style="color:#dc2626;font-weight:600">afgekeurd</span>.
+    </p>
+    <table style="width:100%;border-collapse:collapse;margin:16px 0">
+      <tr>
+        <td style="padding:8px 0;color:#64748b;vertical-align:top">Reden</td>
+        <td style="padding:8px 0">${opts.reason}</td>
+      </tr>
+    </table>
+    <p style="font-size:13px;color:#64748b">
+      Neem contact op met uw leidinggevende of dien een gecorrigeerd rapport in.
+    </p>
+    ${ctaButton(url, "Mijn rapporten bekijken")}
+  `);
+  return { subject, html };
+}
+
+// 5c. Offerte verlopen → klant
+export function buildQuoteExpiredEmail(opts: {
+  customerName: string;
+  quoteNumber:  string;
+  amount:       string;
+}): { subject: string; html: string } {
+  const portalUrl = klantPortalUrl();
+  const amount    = parseFloat(opts.amount).toLocaleString("nl-NL", { style: "currency", currency: "EUR" });
+  const subject   = `Uw offerte ${opts.quoteNumber} is verlopen`;
+  const html      = baseTemplate(subject, `
+    <h2 style="margin-top:0;color:${BRAND_COLOR}">Offerte verlopen</h2>
+    <p>Beste ${opts.customerName},</p>
+    <p>
+      Offerte <strong>${opts.quoteNumber}</strong> (bedrag: ${amount}) is verlopen.
+      Neem contact met ons op als u nog gebruik wilt maken van onze diensten.
+    </p>
+    ${ctaButton(`${portalUrl}/offertes`, "Offertes bekijken")}
+  `);
+  return { subject, html };
+}
+
 // 5. Factuur per e-mail naar klant
 export function buildInvoiceEmail(opts: {
   customerName:  string;

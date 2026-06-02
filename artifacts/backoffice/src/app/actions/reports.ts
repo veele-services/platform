@@ -19,7 +19,12 @@ import { eq, ilike, or, and, desc, sql, exists } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
-import { sendEmail, buildReportSubmittedEmail } from "@/lib/email";
+import {
+  sendEmail,
+  buildReportSubmittedEmail,
+  buildReportApprovedEmail,
+  buildReportRejectedEmail,
+} from "@/lib/email";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, ReportStatus };
@@ -459,6 +464,33 @@ export async function approveReport(reportId: string): Promise<ActionResult> {
     metadata:   { assignmentId: report.assignmentId },
   });
 
+  // Notify the submitter — fire-and-forget
+  void (async () => {
+    const [detail] = await db
+      .select({
+        submittedBy:     reportsTable.submittedBy,
+        assignmentTitle: assignmentsTable.title,
+        personnelEmail:  personnelTable.email,
+        personnelFirst:  personnelTable.firstName,
+        notifEnabled:    organizationSettingsTable.notifRapportGoedgekeurd,
+      })
+      .from(reportsTable)
+      .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
+      .leftJoin(personnelTable,    eq(personnelTable.userId, reportsTable.submittedBy))
+      .leftJoin(organizationSettingsTable, sql`true`)
+      .where(eq(reportsTable.id, reportId))
+      .limit(1);
+
+    if (detail?.notifEnabled && detail.personnelEmail) {
+      const { subject, html } = buildReportApprovedEmail({
+        firstName:       detail.personnelFirst ?? "medewerker",
+        assignmentTitle: detail.assignmentTitle,
+        reportId,
+      });
+      await sendEmail({ to: detail.personnelEmail, subject, html });
+    }
+  })();
+
   revalidatePath(`/reports/${reportId}`);
   revalidatePath("/reports");
   revalidatePath(`/assignments/${report.assignmentId}`);
@@ -512,6 +544,33 @@ export async function rejectReport(reportId: string, notes: string): Promise<Act
     resourceId: reportId,
     metadata:   { assignmentId: report.assignmentId, notes: trimmedNotes },
   });
+
+  // Notify the submitter — fire-and-forget
+  void (async () => {
+    const [detail] = await db
+      .select({
+        assignmentTitle: assignmentsTable.title,
+        personnelEmail:  personnelTable.email,
+        personnelFirst:  personnelTable.firstName,
+        notifEnabled:    organizationSettingsTable.notifRapportAfgekeurd,
+      })
+      .from(reportsTable)
+      .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
+      .leftJoin(personnelTable,    eq(personnelTable.userId, reportsTable.submittedBy))
+      .leftJoin(organizationSettingsTable, sql`true`)
+      .where(eq(reportsTable.id, reportId))
+      .limit(1);
+
+    if (detail?.notifEnabled && detail.personnelEmail) {
+      const { subject, html } = buildReportRejectedEmail({
+        firstName:       detail.personnelFirst ?? "medewerker",
+        assignmentTitle: detail.assignmentTitle,
+        reportId,
+        reason:          trimmedNotes,
+      });
+      await sendEmail({ to: detail.personnelEmail, subject, html });
+    }
+  })();
 
   revalidatePath(`/reports/${reportId}`);
   revalidatePath("/reports");
