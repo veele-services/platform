@@ -14,6 +14,7 @@ import { eq, and } from "drizzle-orm";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
+import { getBatchAvailabilityStatus, type AvailabilityStatus } from "./availability";
 import type { ActionResult } from "./customers";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -23,20 +24,25 @@ export type AssignmentRequirements = {
   requiredCertificates: string[];
   requiredKnowledge:    string[];
   requiredDiplomas:     string[];
+  /** Required region from assignments.required_region — null means no restriction */
+  assignmentRegion:     string | null;
+  /** The assignment's scheduled date (YYYY-MM-DD) — used for availability lookup */
+  scheduledDate:        string | null;
 };
 
 export type PersonnelEligibilityEntry = {
-  personnelId:  string;
-  linkId:       string | null;
-  firstName:    string;
-  lastName:     string;
-  roleId:       string | null;
-  roleName:     string | null;
-  region:       string | null;
-  certificates: string[];
-  diplomas:     string[];
-  knowledge:    string[];
-  isActive:     boolean;
+  personnelId:        string;
+  linkId:             string | null;
+  firstName:          string;
+  lastName:           string;
+  roleId:             string | null;
+  roleName:           string | null;
+  region:             string | null;
+  certificates:       string[];
+  diplomas:           string[];
+  knowledge:          string[];
+  isActive:           boolean;
+  availabilityStatus: AvailabilityStatus;
 };
 
 export type PersonnelForAssignmentResult = {
@@ -48,7 +54,9 @@ export type PersonnelForAssignmentResult = {
 
 /**
  * Returns the union of task-code requirements for the assignment,
- * all active personnel (with role), and which are already assigned.
+ * all active personnel (with role and availability), and which are already assigned.
+ * Also loads region + scheduled date so the drawer can show region-match badges
+ * and colour-coded availability indicators.
  */
 export async function getPersonnelForAssignment(
   assignmentId: string,
@@ -56,7 +64,7 @@ export async function getPersonnelForAssignment(
   const canRead = await hasPermission("planning", "read");
   if (!canRead) return null;
 
-  const [taskRows, personnelRows, assignedRows] = await Promise.all([
+  const [taskRows, personnelRows, assignedRows, [assignmentRow]] = await Promise.all([
     db
       .select({
         requiredRoleId:       taskCodesTable.requiredRoleId,
@@ -98,9 +106,29 @@ export async function getPersonnelForAssignment(
           eq(assignmentPersonnelTable.status, "assigned"),
         ),
       ),
+
+    db
+      .select({
+        scheduledDate:  assignmentsTable.scheduledDate,
+        requiredRegion: assignmentsTable.requiredRegion,
+      })
+      .from(assignmentsTable)
+      .where(eq(assignmentsTable.id, assignmentId))
+      .limit(1),
   ]);
 
-  const assignedMap = new Map(assignedRows.map((r) => [r.personnelId, r.linkId]));
+  const assignedMap    = new Map(assignedRows.map((r) => [r.personnelId, r.linkId]));
+  const scheduledDate  = assignmentRow?.scheduledDate  ?? null;
+  const assignmentRegion = assignmentRow?.requiredRegion ?? null;
+
+  // ── Batch availability status ──────────────────────────────────────────────
+  let availabilityMap: Record<string, AvailabilityStatus> = {};
+  if (scheduledDate && personnelRows.length > 0) {
+    availabilityMap = await getBatchAvailabilityStatus(
+      personnelRows.map((p) => p.id),
+      scheduledDate,
+    );
+  }
 
   const requiredRoleIds = [
     ...new Set(
@@ -124,19 +152,27 @@ export async function getPersonnelForAssignment(
   ];
 
   return {
-    requirements: { requiredRoleIds, requiredCertificates, requiredKnowledge, requiredDiplomas },
+    requirements: {
+      requiredRoleIds,
+      requiredCertificates,
+      requiredKnowledge,
+      requiredDiplomas,
+      assignmentRegion,
+      scheduledDate,
+    },
     personnel: personnelRows.map((r) => ({
-      personnelId:  r.id,
-      linkId:       assignedMap.get(r.id) ?? null,
-      firstName:    r.firstName,
-      lastName:     r.lastName,
-      roleId:       r.roleId  ?? null,
-      roleName:     r.roleName ?? null,
-      region:       r.region   ?? null,
-      certificates: (r.certificates as string[] | null) ?? [],
-      diplomas:     (r.diplomas    as string[] | null) ?? [],
-      knowledge:    (r.knowledge   as string[] | null) ?? [],
-      isActive:     r.isActive,
+      personnelId:        r.id,
+      linkId:             assignedMap.get(r.id) ?? null,
+      firstName:          r.firstName,
+      lastName:           r.lastName,
+      roleId:             r.roleId   ?? null,
+      roleName:           r.roleName ?? null,
+      region:             r.region   ?? null,
+      certificates:       (r.certificates as string[] | null) ?? [],
+      diplomas:           (r.diplomas    as string[] | null) ?? [],
+      knowledge:          (r.knowledge   as string[] | null) ?? [],
+      isActive:           r.isActive,
+      availabilityStatus: (availabilityMap[r.id] ?? "niet_ingesteld") as AvailabilityStatus,
     })),
   };
 }
