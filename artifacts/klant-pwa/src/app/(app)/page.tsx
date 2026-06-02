@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MapPin, ClipboardList, PlusCircle, CreditCard, ArrowRight, AlertCircle, Briefcase, Building2, FileText, Hash, Globe, FileCheck2, FolderOpen } from "lucide-react";

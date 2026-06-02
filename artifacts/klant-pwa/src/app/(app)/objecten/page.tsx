@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { MapPin } from "lucide-react";
 import { getMyObjects } from "@/actions/objects";
 

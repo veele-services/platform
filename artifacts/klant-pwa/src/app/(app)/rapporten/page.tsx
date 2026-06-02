@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { FileCheck2 } from "lucide-react";
 import { getMyReports } from "@/actions/reports";
 import { RapportCard } from "@/components/RapportCard";

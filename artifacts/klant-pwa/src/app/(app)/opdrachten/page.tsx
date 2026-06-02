@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { ClipboardList, PlusCircle, FileText } from "lucide-react";
 import { getMyAssignments } from "@/actions/assignments";

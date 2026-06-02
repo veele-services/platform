@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { FileText, CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-react";
 import { getMyQuotes } from "@/actions/quotes";
 import { OfferteActieButtons } from "@/components/OfferteActieButtons";

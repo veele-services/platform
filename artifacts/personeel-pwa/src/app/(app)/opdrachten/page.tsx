@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { Building2, MapPin, Clock, ChevronRight, FileText, CheckCircle2, XCircle } from "lucide-react";
 import { getMyAssignments } from "@/actions/assignments";

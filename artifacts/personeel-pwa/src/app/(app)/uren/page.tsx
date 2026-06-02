@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { getMyHours } from "@/actions/hours";

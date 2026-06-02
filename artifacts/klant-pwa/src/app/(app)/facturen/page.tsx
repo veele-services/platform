@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { Receipt, CheckCircle2, Clock, XCircle, Download, ChevronRight } from "lucide-react";
 import { getMyInvoices } from "@/actions/invoices";

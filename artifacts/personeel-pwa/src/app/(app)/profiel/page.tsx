@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { getMyPersonnel } from "@/actions/personnel";
 import { signOut } from "@/actions/auth";
 import { Mail, MapPin, Award, Shield, KeyRound } from "lucide-react";

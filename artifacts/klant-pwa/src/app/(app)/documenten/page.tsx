@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { FolderOpen, FileText } from "lucide-react";
 import { getMyDocuments } from "@/actions/documents";
 import { DocumentDownloadButton } from "@/components/DocumentDownloadButton";

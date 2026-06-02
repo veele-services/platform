@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { RequestAssignmentForm } from "./RequestAssignmentForm";
 import { getMyObjects } from "@/actions/objects";
 import { getMyCustomerId } from "@/actions/customer";

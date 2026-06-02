@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import { ClipboardCheck, Calendar, MapPin, Tag, AlertCircle, Globe } from "lucide-react";
 import { getOpenAssignments } from "@/actions/open-assignments";
 import { ApplyButton } from "./ApplyButton";

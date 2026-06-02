@@ -1,3 +1,5 @@
+export const dynamic = "force-dynamic";
+
 import Link from "next/link";
 import { ClipboardList, ClipboardCheck, Clock, Calendar, Plane, ChevronRight, ArrowRight, User } from "lucide-react";
 import { getMyPersonnel } from "@/actions/personnel";
