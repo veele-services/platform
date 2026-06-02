@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   ClipboardList,
+  FileText,
   FileCheck2,
   Receipt,
   FolderOpen,
@@ -15,6 +16,7 @@ import { signOut } from "@/actions/auth";
 const NAV_ITEMS = [
   { href: "/klant",            label: "Dashboard",  Icon: LayoutDashboard },
   { href: "/klant/opdrachten", label: "Opdrachten", Icon: ClipboardList },
+  { href: "/klant/offertes",   label: "Offertes",   Icon: FileText },
   { href: "/klant/rapporten",  label: "Rapporten",  Icon: FileCheck2 },
   { href: "/klant/facturen",   label: "Facturen",   Icon: Receipt },
   { href: "/klant/documenten", label: "Documenten", Icon: FolderOpen },

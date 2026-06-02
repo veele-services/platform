@@ -1,0 +1,170 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { ChevronLeft, Receipt, Download, CheckCircle2, Clock, XCircle } from "lucide-react";
+import { getMyInvoice } from "@/actions/invoices";
+
+type Props = { params: Promise<{ id: string }> };
+
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return "—";
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });
+}
+
+function formatAmount(amount: string | null): string {
+  if (!amount) return "€ 0,00";
+  return parseFloat(amount).toLocaleString("nl-NL", {
+    style:    "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+  });
+}
+
+const STATUS_CONFIG: Record<string, { label: string; bg: string; color: string; Icon: React.ElementType }> = {
+  draft:     { label: "Concept",      bg: "#F1F5F9", color: "#64748B", Icon: Clock },
+  sent:      { label: "Te betalen",   bg: "#FEF3C7", color: "#92400E", Icon: Clock },
+  paid:      { label: "Betaald",      bg: "#DCFCE7", color: "#166534", Icon: CheckCircle2 },
+  cancelled: { label: "Geannuleerd",  bg: "#FEE2E2", color: "#991B1B", Icon: XCircle },
+};
+
+export default async function FactuurDetailPage({ params }: Props) {
+  const { id } = await params;
+  const invoice = await getMyInvoice(id);
+
+  if (!invoice) notFound();
+
+  const cfg        = STATUS_CONFIG[invoice.status] ?? STATUS_CONFIG.draft;
+  const StatusIcon = cfg.Icon;
+
+  const rows: [string, string][] = [
+    ["Factuurnummer", invoice.invoiceNumber],
+    ["Factuurdatum",  formatDate(invoice.createdAt.slice(0, 10))],
+    ["Vervaldatum",   formatDate(invoice.dueDate)],
+    ...(invoice.paidDate ? [["Betaald op", formatDate(invoice.paidDate)] as [string, string]] : []),
+  ];
+
+  return (
+    <div className="min-h-screen" style={{ backgroundColor: "var(--color-muted)" }}>
+      {/* Sticky header */}
+      <div
+        className="sticky top-0 z-10 flex items-center gap-3 border-b px-4 py-3.5"
+        style={{ backgroundColor: "white", borderColor: "var(--color-border)" }}
+      >
+        <Link href="/facturen">
+          <ChevronLeft size={24} style={{ color: "var(--color-primary)" }} />
+        </Link>
+        <div className="min-w-0 flex-1">
+          <span className="font-mono text-xs font-bold" style={{ color: "var(--color-accent)" }}>
+            {invoice.invoiceNumber}
+          </span>
+          <h1
+            className="truncate text-sm font-semibold leading-tight"
+            style={{ color: "var(--color-primary)" }}
+          >
+            Factuurdetail
+          </h1>
+        </div>
+        <span
+          className="shrink-0 inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
+          style={{ backgroundColor: cfg.bg, color: cfg.color }}
+        >
+          <StatusIcon size={10} />
+          {cfg.label}
+        </span>
+      </div>
+
+      <div className="space-y-4 p-4">
+
+        {/* Bedragkaart */}
+        <div className="rounded-2xl bg-white p-5 shadow-sm text-center">
+          <p className="text-xs font-semibold uppercase tracking-widest mb-1" style={{ color: "var(--color-secondary)" }}>
+            Totaalbedrag
+          </p>
+          <p className="text-4xl font-bold" style={{ color: "var(--color-primary)" }}>
+            {formatAmount(invoice.totalAmount)}
+          </p>
+          <p className="mt-1 text-xs" style={{ color: "var(--color-muted-fg)" }}>
+            Excl. btw: {formatAmount(invoice.amount)} · Btw: {formatAmount(invoice.vatAmount)}
+          </p>
+        </div>
+
+        {/* Factuurgegevens */}
+        <div className="rounded-2xl bg-white p-4 shadow-sm">
+          <h3
+            className="mb-3 text-xs font-semibold uppercase tracking-widest"
+            style={{ color: "var(--color-secondary)" }}
+          >
+            Factuurgegevens
+          </h3>
+          <dl className="space-y-2.5">
+            {rows.map(([label, value]) => (
+              <div key={label} className="flex items-baseline justify-between gap-4">
+                <dt className="shrink-0 text-xs" style={{ color: "var(--color-secondary)" }}>
+                  {label}
+                </dt>
+                <dd
+                  className="text-right text-sm font-medium tabular-nums"
+                  style={{ color: "var(--color-primary)" }}
+                >
+                  {value}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+
+        {/* Acties */}
+        {invoice.status !== "draft" && (
+          <div className="space-y-2">
+            {invoice.status === "sent" && invoice.checkoutUrl && (
+              <Link
+                href={invoice.checkoutUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-semibold text-white shadow-sm"
+                style={{ backgroundColor: "var(--color-accent)" }}
+              >
+                Nu betalen
+              </Link>
+            )}
+            <Link
+              href={`/api/factuur/${invoice.id}/pdf`}
+              target="_blank"
+              rel="noopener noreferrer"
+              prefetch={false}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-medium shadow-sm"
+              style={{
+                backgroundColor: "white",
+                color:            "var(--color-secondary)",
+                border:           "1px solid var(--color-border)",
+              }}
+            >
+              <Download size={16} />
+              PDF downloaden
+            </Link>
+          </div>
+        )}
+
+        {/* Link naar bijbehorende opdracht */}
+        {invoice.assignmentId && (
+          <div className="rounded-2xl bg-white p-4 shadow-sm">
+            <h3
+              className="mb-2 text-xs font-semibold uppercase tracking-widest"
+              style={{ color: "var(--color-secondary)" }}
+            >
+              Gekoppelde opdracht
+            </h3>
+            <Link
+              href={`/opdrachten/${invoice.assignmentId}`}
+              className="text-sm font-medium"
+              style={{ color: "var(--color-accent)" }}
+            >
+              Bekijk opdracht →
+            </Link>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
