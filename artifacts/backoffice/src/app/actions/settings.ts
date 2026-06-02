@@ -784,3 +784,51 @@ export async function listAuditLog(params: {
     total: count,
   };
 }
+
+// ─── Test-notificatie ─────────────────────────────────────────────────────────
+
+/**
+ * Sends a test e-mail to the configured emailAfzender address.
+ * Used by the notification settings page to verify e-mail delivery.
+ */
+export async function sendTestNotification(
+  type: string,
+  label: string,
+): Promise<ActionResult> {
+  await requirePermission("settings", "write");
+
+  const [orgSettings] = await db
+    .select({ emailAfzender: organizationSettingsTable.emailAfzender })
+    .from(organizationSettingsTable)
+    .limit(1);
+
+  if (!orgSettings?.emailAfzender) {
+    return { success: false, message: "Geen afzenderadres ingesteld in organisatie-instellingen." };
+  }
+
+  const { sendEmail } = await import("@/lib/email");
+
+  const subject = `Test: ${label}`;
+  const html    = `<!DOCTYPE html>
+<html lang="nl">
+<head><meta charset="utf-8"><title>${subject}</title></head>
+<body style="font-family:sans-serif;color:#1a1a1a;background:#f5f5f5;margin:0;padding:24px">
+  <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden">
+    <div style="background:#081D3A;padding:20px 24px">
+      <span style="color:#fff;font-size:20px;font-weight:700;letter-spacing:-0.5px">Veele</span>
+    </div>
+    <div style="padding:28px 24px">
+      <h2 style="margin-top:0;color:#081D3A">Testmelding: ${label}</h2>
+      <p>Dit is een testmelding voor het notificatietype <strong>${label}</strong> (<code>${type}</code>).</p>
+      <p>Als u dit bericht ontvangt, werkt de e-mailconfiguratie correct.</p>
+    </div>
+    <div style="padding:16px 24px;background:#f8fafc;font-size:12px;color:#94a3b8">
+      Dit is een automatisch bericht van het Veele platform. Antwoorden op deze e-mail worden niet verwerkt.
+    </div>
+  </div>
+</body>
+</html>`;
+
+  await sendEmail({ to: orgSettings.emailAfzender, subject, html });
+  return { success: true };
+}

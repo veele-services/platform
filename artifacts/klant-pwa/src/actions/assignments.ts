@@ -394,7 +394,7 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
   return { success: true, id: assignmentId };
 }
 
-export async function rejectQuote(assignmentId: string): Promise<RequestResult> {
+export async function rejectQuote(assignmentId: string, reason?: string): Promise<RequestResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
@@ -446,7 +446,7 @@ export async function rejectQuote(assignmentId: string): Promise<RequestResult> 
       customerName: customer?.name ?? "Onbekende klant",
       quoteNumber:  quote.quoteNumber,
       decision:     "afgewezen",
-      reason:       null,
+      reason:       reason?.trim() || null,
     });
     await sendEmail({ to: orgSettings.emailAfzender, subject, html });
   })();

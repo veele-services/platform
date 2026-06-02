@@ -14,10 +14,11 @@ type Confirming = "approve" | "reject" | null;
 
 export function OfferteActieButtons({ assignmentId, title }: Props) {
   const router = useRouter();
-  const [error,      setError]      = useState<string | null>(null);
-  const [done,       setDone]       = useState<"approved" | "rejected" | null>(null);
-  const [confirming, setConfirming] = useState<Confirming>(null);
-  const [pending, startTransition]  = useTransition();
+  const [error,        setError]        = useState<string | null>(null);
+  const [done,         setDone]         = useState<"approved" | "rejected" | null>(null);
+  const [confirming,   setConfirming]   = useState<Confirming>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [pending, startTransition]      = useTransition();
 
   if (done === "approved") {
     return (
@@ -43,7 +44,7 @@ export function OfferteActieButtons({ assignmentId, title }: Props) {
       const result =
         confirming === "approve"
           ? await approveQuote(assignmentId)
-          : await rejectQuote(assignmentId);
+          : await rejectQuote(assignmentId, rejectReason.trim() || undefined);
 
       if (result.success) {
         setDone(confirming === "approve" ? "approved" : "rejected");
@@ -79,10 +80,37 @@ export function OfferteActieButtons({ assignmentId, title }: Props) {
                 : `Weet u zeker dat u de offerte voor "${title}" wilt afwijzen? We nemen contact met u op voor verdere afstemming.`}
             </p>
           </div>
+
+          {!isApprove && (
+            <div className="mb-3">
+              <label
+                htmlFor="rejectReason"
+                className="block text-xs font-medium mb-1"
+                style={{ color: "#991B1B" }}
+              >
+                Reden (optioneel)
+              </label>
+              <textarea
+                id="rejectReason"
+                rows={3}
+                value={rejectReason}
+                onChange={(e) => setRejectReason(e.target.value)}
+                placeholder="Licht toe waarom u de offerte afwijst…"
+                disabled={pending}
+                className="w-full rounded-lg px-3 py-2 text-xs resize-none focus:outline-none focus:ring-1 disabled:opacity-50"
+                style={{
+                  backgroundColor: "#FFF",
+                  border:          "1px solid #FECACA",
+                  color:           "#1E293B",
+                }}
+              />
+            </div>
+          )}
+
           <div className="flex gap-2">
             <button
               type="button"
-              onClick={() => setConfirming(null)}
+              onClick={() => { setConfirming(null); setRejectReason(""); }}
               disabled={pending}
               className="flex-1 inline-flex items-center justify-center rounded-xl px-3 py-2 text-xs font-semibold transition-opacity disabled:opacity-50"
               style={{

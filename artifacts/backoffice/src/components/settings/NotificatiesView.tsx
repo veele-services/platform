@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Bell, CheckCircle2, AlertCircle } from "lucide-react";
-import { updateOrganizationSettings } from "@/app/actions/settings";
+import { Bell, CheckCircle2, AlertCircle, Send } from "lucide-react";
+import { updateOrganizationSettings, sendTestNotification } from "@/app/actions/settings";
 import type { OrgSettings } from "@/app/actions/settings";
 
 interface Props {
@@ -42,6 +42,8 @@ const NOTIFICATION_ITEMS: {
   },
 ];
 
+type TestStatus = "idle" | "sending" | "ok" | "error";
+
 export function NotificatiesView({ settings, canWrite }: Props) {
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved]   = useState(false);
@@ -59,6 +61,8 @@ export function NotificatiesView({ settings, canWrite }: Props) {
   const [herinneringDagen, setHerinneringDagen] = useState(
     s?.notifHerinneringDagen ?? 7,
   );
+
+  const [testStatus, setTestStatus] = useState<Record<string, TestStatus>>({});
 
   function handleToggle(key: keyof typeof toggles) {
     if (!canWrite) return;
@@ -84,6 +88,15 @@ export function NotificatiesView({ settings, canWrite }: Props) {
     });
   }
 
+  function handleTest(key: string, label: string) {
+    setTestStatus((prev) => ({ ...prev, [key]: "sending" }));
+    void (async () => {
+      const result = await sendTestNotification(key, label);
+      setTestStatus((prev) => ({ ...prev, [key]: result.success ? "ok" : "error" }));
+      setTimeout(() => setTestStatus((prev) => ({ ...prev, [key]: "idle" })), 4000);
+    })();
+  }
+
   return (
     <form onSubmit={handleSave} className="space-y-6">
       {/* Toggle list */}
@@ -95,31 +108,62 @@ export function NotificatiesView({ settings, canWrite }: Props) {
         {NOTIFICATION_ITEMS.map(({ key, label, description }) => {
           const notifKey = key as keyof typeof toggles;
           const enabled  = toggles[notifKey];
+          const ts       = testStatus[key as string] ?? "idle";
 
           return (
-            <div key={key} className="flex items-start justify-between py-4 gap-4">
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium" style={{ color: "#1E293B" }}>{label}</p>
-                <p className="mt-0.5 text-xs" style={{ color: "#64748B" }}>{description}</p>
+            <div key={key} className="py-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium" style={{ color: "#1E293B" }}>{label}</p>
+                  <p className="mt-0.5 text-xs" style={{ color: "#64748B" }}>{description}</p>
+                </div>
+
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={enabled}
+                  disabled={!canWrite || isPending}
+                  onClick={() => handleToggle(notifKey)}
+                  className="relative inline-flex flex-shrink-0 h-5 w-9 rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed"
+                  style={{
+                    backgroundColor: enabled ? "#081D3A" : "#CBD5E1",
+                    cursor: canWrite ? "pointer" : "default",
+                  }}
+                >
+                  <span
+                    className="pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform ring-0 transition-transform duration-200"
+                    style={{ transform: enabled ? "translateX(16px)" : "translateX(0px)" }}
+                  />
+                </button>
               </div>
 
-              <button
-                type="button"
-                role="switch"
-                aria-checked={enabled}
-                disabled={!canWrite || isPending}
-                onClick={() => handleToggle(notifKey)}
-                className="relative inline-flex flex-shrink-0 h-5 w-9 rounded-full border-2 border-transparent transition-colors duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-1 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{
-                  backgroundColor: enabled ? "#081D3A" : "#CBD5E1",
-                  cursor: canWrite ? "pointer" : "default",
-                }}
-              >
-                <span
-                  className="pointer-events-none inline-block h-4 w-4 rounded-full bg-white shadow transform ring-0 transition-transform duration-200"
-                  style={{ transform: enabled ? "translateX(16px)" : "translateX(0px)" }}
-                />
-              </button>
+              {/* Test button row */}
+              {canWrite && (
+                <div className="mt-2 flex items-center gap-2">
+                  <button
+                    type="button"
+                    disabled={ts === "sending"}
+                    onClick={() => handleTest(key as string, label)}
+                    className="inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 text-xs font-medium transition-opacity disabled:opacity-50"
+                    style={{ backgroundColor: "#F1F5F9", color: "#475569" }}
+                  >
+                    <Send className="h-3 w-3" />
+                    {ts === "sending" ? "Versturen…" : "Stuur testmelding"}
+                  </button>
+                  {ts === "ok" && (
+                    <span className="inline-flex items-center gap-1 text-xs" style={{ color: "#059669" }}>
+                      <CheckCircle2 className="h-3 w-3" />
+                      Verstuurd
+                    </span>
+                  )}
+                  {ts === "error" && (
+                    <span className="inline-flex items-center gap-1 text-xs" style={{ color: "#DC2626" }}>
+                      <AlertCircle className="h-3 w-3" />
+                      Mislukt — controleer RESEND_API_KEY
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           );
         })}
@@ -132,6 +176,7 @@ export function NotificatiesView({ settings, canWrite }: Props) {
         </p>
         <p className="text-xs" style={{ color: "#64748B" }}>
           Aantal dagen na de vervaldatum van een factuur waarna een betalingsherinnering wordt verstuurd.
+          Per factuur wordt slechts één herinnering verstuurd binnen dit interval.
         </p>
 
         <div className="flex items-center gap-3">

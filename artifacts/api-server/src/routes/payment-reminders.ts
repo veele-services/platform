@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
 import { invoicesTable, customersTable, auditLogTable, organizationSettingsTable } from "@workspace/db";
-import { eq, and, lte } from "drizzle-orm";
+import { eq, and, lte, or, isNull, lt } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { sendEmail, buildPaymentReminderEmail } from "../lib/email";
 
@@ -16,10 +16,11 @@ const SYSTEM_ACTOR_UUID = "00000000-0000-0000-0000-000000000001";
  * dueDate is at least N days in the past, where N is configured via
  * notif_herinnering_dagen in organization_settings (default: 7).
  *
+ * Deduplication: invoices where last_reminder_sent_at is within the last
+ * herinneringDagen days are skipped — preventing duplicate reminders per cycle.
+ *
  * The notification can be disabled globally by setting
  * notif_betaling_herinnering = false in organization_settings.
- *
- * Idempotent — re-running sends again, so callers should rate-limit (e.g. once per day).
  *
  * Security: protected by a pre-shared ADMIN_API_SECRET token in the
  * Authorization header: "Bearer <ADMIN_API_SECRET>".
@@ -60,31 +61,42 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
       return;
     }
 
-    // dueDate is a date string (YYYY-MM-DD); compare against today - N days
-    const cutoff = new Date();
-    cutoff.setDate(cutoff.getDate() - herinneringDagen);
-    const cutoffDateStr = cutoff.toISOString().slice(0, 10);
+    // dueDate cutoff: invoices overdue by at least N days
+    const dueCutoff = new Date();
+    dueCutoff.setDate(dueCutoff.getDate() - herinneringDagen);
+    const dueCutoffDateStr = dueCutoff.toISOString().slice(0, 10);
+
+    // Reminder dedup cutoff: skip if a reminder was already sent within the last N days
+    const reminderCutoff = new Date();
+    reminderCutoff.setDate(reminderCutoff.getDate() - herinneringDagen);
 
     req.log.info(
-      { herinneringDagen, cutoffDate: cutoffDateStr },
+      { herinneringDagen, dueCutoff: dueCutoffDateStr, reminderCutoff: reminderCutoff.toISOString() },
       "payment-reminders: verwerken gestart",
     );
 
     const overdueInvoices = await db
       .select({
-        id:            invoicesTable.id,
-        invoiceNumber: invoicesTable.invoiceNumber,
-        totalAmount:   invoicesTable.totalAmount,
-        dueDate:       invoicesTable.dueDate,
-        customerName:  customersTable.name,
-        customerEmail: customersTable.contactEmail,
+        id:                  invoicesTable.id,
+        invoiceNumber:       invoicesTable.invoiceNumber,
+        totalAmount:         invoicesTable.totalAmount,
+        dueDate:             invoicesTable.dueDate,
+        lastReminderSentAt:  invoicesTable.lastReminderSentAt,
+        customerName:        customersTable.name,
+        customerEmail:       customersTable.contactEmail,
       })
       .from(invoicesTable)
       .leftJoin(customersTable, eq(invoicesTable.customerId, customersTable.id))
       .where(
         and(
           eq(invoicesTable.status, "sent"),
-          lte(invoicesTable.dueDate, cutoffDateStr),
+          lte(invoicesTable.dueDate, dueCutoffDateStr),
+          // Deduplication: only select invoices that have never had a reminder OR
+          // whose last reminder was sent more than herinneringDagen days ago.
+          or(
+            isNull(invoicesTable.lastReminderSentAt),
+            lt(invoicesTable.lastReminderSentAt, reminderCutoff),
+          ),
         ),
       );
 
@@ -108,6 +120,12 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
       });
 
       await sendEmail({ to: invoice.customerEmail, subject, html });
+
+      // Record the timestamp so subsequent cron runs skip this invoice
+      await db
+        .update(invoicesTable)
+        .set({ lastReminderSentAt: new Date() })
+        .where(eq(invoicesTable.id, invoice.id));
 
       await db.insert(auditLogTable).values({
         userId:     SYSTEM_ACTOR_UUID,
