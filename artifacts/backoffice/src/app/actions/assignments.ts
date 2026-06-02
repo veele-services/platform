@@ -586,22 +586,24 @@ export async function getAssignmentsForMonth(monthStr: string): Promise<WeekAssi
 // ─────────────────────────────────────────────────────────────────────────────
 
 export async function getDashboardCounts(): Promise<{
-  requested:  number;
-  plannable:  number;
-  inProgress: number;
+  requested:      number;
+  plannable:      number;
+  inProgress:     number;
   completedToday: number;
+  open:           number;
 }> {
   const canRead = await hasPermission("assignments", "read");
-  if (!canRead) return { requested: 0, plannable: 0, inProgress: 0, completedToday: 0 };
+  if (!canRead) return { requested: 0, plannable: 0, inProgress: 0, completedToday: 0, open: 0 };
 
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
   const [counts] = await db
     .select({
-      requested: sql<number>`count(*) FILTER (WHERE status = 'requested')::int`,
-      plannable: sql<number>`count(*) FILTER (WHERE status = 'plannable')::int`,
-      inProgress: sql<number>`count(*) FILTER (WHERE status = 'in_progress')::int`,
+      requested:      sql<number>`count(*) FILTER (WHERE status = 'requested')::int`,
+      plannable:      sql<number>`count(*) FILTER (WHERE status = 'plannable')::int`,
+      inProgress:     sql<number>`count(*) FILTER (WHERE status = 'in_progress')::int`,
       completedToday: sql<number>`count(*) FILTER (WHERE status = 'completed' AND scheduled_date = ${today})::int`,
+      open:           sql<number>`count(*) FILTER (WHERE status NOT IN ('closed', 'paid', 'cancelled'))::int`,
     })
     .from(assignmentsTable);
 
@@ -610,6 +612,7 @@ export async function getDashboardCounts(): Promise<{
     plannable:      counts?.plannable      ?? 0,
     inProgress:     counts?.inProgress     ?? 0,
     completedToday: counts?.completedToday ?? 0,
+    open:           counts?.open           ?? 0,
   };
 }
 
@@ -1702,6 +1705,52 @@ export async function assignPersonnel(
     });
 
     revalidatePath(`/assignments/${assignmentId}`);
+    revalidatePath("/planning");
+
+    // ── Auto-transition plannable → scheduled ─────────────────────────────
+    // Count required roles from task codes; transition when all slots are filled.
+    const [[{ requiredSlots }], [{ assignedCount }]] = await Promise.all([
+      db
+        .select({
+          requiredSlots: sql<number>`greatest(count(DISTINCT tc.required_role_id) FILTER (WHERE tc.required_role_id IS NOT NULL), 1)::int`,
+        })
+        .from(assignmentTasksTable)
+        .innerJoin(taskCodesTable, eq(assignmentTasksTable.taskCodeId, taskCodesTable.id))
+        .where(eq(assignmentTasksTable.assignmentId, assignmentId)),
+      db
+        .select({ assignedCount: sql<number>`count(*)::int` })
+        .from(assignmentPersonnelTable)
+        .where(
+          and(
+            eq(assignmentPersonnelTable.assignmentId, assignmentId),
+            eq(assignmentPersonnelTable.status, "assigned"),
+          ),
+        ),
+    ]);
+
+    const [assignmentRow] = await db
+      .select({ status: assignmentsTable.status })
+      .from(assignmentsTable)
+      .where(eq(assignmentsTable.id, assignmentId))
+      .limit(1);
+
+    if (
+      assignmentRow?.status === "plannable" &&
+      (assignedCount ?? 0) >= (requiredSlots ?? 1)
+    ) {
+      await db
+        .update(assignmentsTable)
+        .set({ status: "scheduled", updatedAt: new Date() })
+        .where(eq(assignmentsTable.id, assignmentId));
+
+      await db.insert(auditLogTable).values({
+        userId:     user.id,
+        action:     "status_change",
+        resource:   "assignments",
+        resourceId: assignmentId,
+        metadata:   { from: "plannable", to: "scheduled", trigger: "personnel_slots_filled" },
+      });
+    }
 
     // ── Availability warning (non-blocking) ───────────────────────────────
     let warning: string | undefined;

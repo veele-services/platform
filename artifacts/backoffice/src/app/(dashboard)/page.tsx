@@ -79,8 +79,8 @@ export default async function DashboardPage() {
     weekCounts,
   ] = await Promise.all([
     canReadAssignments
-      ? getDashboardCounts().catch(() => ({ requested: 0, plannable: 0, inProgress: 0, completedToday: 0 }))
-      : Promise.resolve({ requested: 0, plannable: 0, inProgress: 0, completedToday: 0 }),
+      ? getDashboardCounts().catch(() => ({ requested: 0, plannable: 0, inProgress: 0, completedToday: 0, open: 0 }))
+      : Promise.resolve({ requested: 0, plannable: 0, inProgress: 0, completedToday: 0, open: 0 }),
 
     getDashboardFinancials().catch(() => null),
     getDashboardPayments().catch(() => null),
@@ -101,6 +101,7 @@ export default async function DashboardPage() {
     { label: "Inplanbaar",        value: canReadAssignments ? String(counts.plannable)      : "—", accent: "#F59E0B", href: "/assignments?status=plannable" },
     { label: "In uitvoering",     value: canReadAssignments ? String(counts.inProgress)     : "—", accent: "#8B5CF6", href: "/assignments?status=in_progress" },
     { label: "Vandaag afgerond",  value: canReadAssignments ? String(counts.completedToday) : "—", accent: "#22C55E", href: "/assignments?status=completed" },
+    { label: "Open opdrachten",   value: canReadAssignments ? String(counts.open)           : "—", accent: "#0EA5E9", href: "/assignments"                  },
   ];
 
   const totalStaff        = staffAvailability.length;
@@ -123,7 +124,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── Row 1: Stat cards ── */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-5">
         {STAT_CARDS.map(({ label, value, accent, href }) => (
           <Link
             key={label}

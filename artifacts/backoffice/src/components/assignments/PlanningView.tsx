@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/sheet";
 import { AssignmentStatusBadge } from "./AssignmentStatusBadge";
 import { AssignmentForm } from "./AssignmentForm";
+import { PlanningPersonnelDrawer } from "./PlanningPersonnelDrawer";
 import { rescheduleAssignment } from "@/app/actions/assignments";
 import type { WeekAssignment, CustomerOption } from "@/app/actions/assignments";
 import { AlertTriangle, X } from "lucide-react";
@@ -62,8 +63,9 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
   const router   = useRouter();
   const pathname = usePathname();
 
-  const [createSheetOpen, setCreateSheetOpen] = useState(false);
-  const [createDate,      setCreateDate]      = useState("");
+  const [createSheetOpen,      setCreateSheetOpen]      = useState(false);
+  const [createDate,           setCreateDate]           = useState("");
+  const [personnelDrawerId,    setPersonnelDrawerId]    = useState<string | null>(null);
 
   // Drag-and-drop state
   const [draggingId,      setDraggingId]      = useState<string | null>(null);
@@ -386,6 +388,10 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
               >
                 {day.items.map((a) => {
                   const isBeingDragged = draggingId === a.id;
+                  const canAssignPersonnel =
+                    canWrite &&
+                    (a.status === "plannable" || a.status === "scheduled");
+
                   return canWrite ? (
                     <div
                       key={a.id}
@@ -402,6 +408,28 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
                       }}
                     >
                       <AssignmentCardContent a={a} />
+                      {canAssignPersonnel && (
+                        <button
+                          type="button"
+                          draggable={false}
+                          onDragStart={(e) => e.stopPropagation()}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setPersonnelDrawerId(a.id);
+                          }}
+                          className="mt-2 w-full flex items-center justify-center gap-1 rounded py-1 text-xs transition-colors"
+                          style={{
+                            background: "#F0FDF4",
+                            color:      "#16A34A",
+                            border:     "1px solid #BBF7D0",
+                            cursor:     "pointer",
+                          }}
+                          aria-label="Personeel inplannen"
+                        >
+                          <Users className="h-3 w-3" />
+                          Personeel
+                        </button>
+                      )}
                     </div>
                   ) : (
                     <Link
@@ -445,6 +473,13 @@ export function PlanningView({ weekStartStr, assignments, canWrite, customers }:
           );
         })}
       </div>
+
+      {/* Personnel assignment drawer */}
+      <PlanningPersonnelDrawer
+        assignmentId={personnelDrawerId}
+        onClose={() => { setPersonnelDrawerId(null); router.refresh(); }}
+        canWrite={canWrite}
+      />
 
       {/* Create assignment sheet */}
       {canWrite && (
