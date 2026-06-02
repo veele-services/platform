@@ -63,18 +63,12 @@ CREATE TABLE IF NOT EXISTS customer_contacts (
 ALTER TABLE customer_types    ENABLE ROW LEVEL SECURITY;
 ALTER TABLE customer_contacts ENABLE ROW LEVEL SECURITY;
 
--- customer_types: read-only for authenticated users; writes via service_role (admin client)
--- service_role always bypasses RLS, so no write policy is needed.
 DROP POLICY IF EXISTS "customer_types_select_authenticated" ON customer_types;
 CREATE POLICY "customer_types_select_authenticated"
   ON customer_types FOR SELECT
   TO authenticated
   USING (auth.uid() IS NOT NULL);
 
--- customer_contacts: full access restricted to authenticated backoffice sessions.
--- The backoffice uses the service_role (admin client) for mutations, so only a read
--- policy is required here. If the customer PWA ever reads contacts, extend to their
--- own customer_id via a separate policy.
 DROP POLICY IF EXISTS "customer_contacts_select_authenticated" ON customer_contacts;
 CREATE POLICY "customer_contacts_select_authenticated"
   ON customer_contacts FOR SELECT
