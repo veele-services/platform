@@ -15,11 +15,16 @@ import { revalidatePath } from "next/cache";
 
 // ─── Personnel profile helper ──────────────────────────────────────────────────
 
+type CertificateEntry = {
+  name:       string;
+  expires_at?: string;
+};
+
 type PersonnelProfile = {
   id:           string;
   roleId:       string | null;
   region:       string | null;
-  certificates: string[];
+  certificates: CertificateEntry[];
   diplomas:     string[];
   knowledge:    string[];
 };
@@ -78,7 +83,7 @@ function meetsTaskRequirements(
 ): boolean {
   if (task.requiredRoleId && personnel.roleId !== task.requiredRoleId) return false;
   if (task.requiredCertificates.length > 0) {
-    if (!task.requiredCertificates.every((c) => personnel.certificates.includes(c))) return false;
+    if (!task.requiredCertificates.every((c) => personnel.certificates.some((cert) => cert.name === c))) return false;
   }
   if (task.requiredDiploma) {
     if (!personnel.diplomas.includes(task.requiredDiploma)) return false;

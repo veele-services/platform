@@ -1,0 +1,44 @@
+deploy@vps:~$ bash /opt/veele/deploy-staging.sh
+=== VEELE STAGING DEPLOY START ===
+Tue Jun  2 04:31:18 PM UTC 2026
+[1/8] Fetch staging branch
+remote: Enumerating objects: 122, done.
+remote: Counting objects: 100% (122/122), done.
+remote: Compressing objects: 100% (31/31), done.
+remote: Total 83 (delta 49), reused 83 (delta 49), pack-reused 0 (from 0)
+Unpacking objects: 100% (83/83), 270.35 KiB | 1.51 MiB/s, done.
+From github.com:veele-services/platform
+ * branch            staging    -> FETCH_HEAD
+   4bcae11..28dfd17  staging    -> origin/staging
+HEAD is now at 28dfd17 Personnel module: fix all 4 code-review gaps (task #213 final)
+[1b/8] Remove local build output
+[1c/8] Load staging environment
+[2/8] Install dependencies
+Scope: all 11 workspace projects
+Already up to date
+Done in 279ms using pnpm v11.5.0
+[3/8] Typecheck
+$ pnpm run typecheck:libs && pnpm -r --filter "./artifacts/**" --filter "./scripts" --if-present run typecheck
+$ tsc --build
+Scope: 6 of 11 workspace projects
+artifacts/backoffice typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 15.6s
+artifacts/api-server typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 3.3s
+artifacts/klant-pwa typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 6.5s
+artifacts/mockup-sandbox typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 2.3s
+artifacts/personeel-pwa typecheck$ tsc -p tsconfig.json --noEmit
+│ src/actions/open-assignments.ts(45,3): error TS2322: Type '{ id: string; roleId: string | null; region: string | nu…
+│   Types of property 'certificates' are incompatible.
+│     Type '{ name: string; expires_at?: string | undefined; }[]' is not assignable to type 'string[]'.
+│       Type '{ name: string; expires_at?: string | undefined; }' is not assignable to type 'string'.
+└─ Failed in 5.2s at /var/www/veele-staging/artifacts/personeel-pwa
+scripts typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 1s
+/var/www/veele-staging/artifacts/personeel-pwa:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @workspace/personeel-pwa@0.0.0 typecheck: `tsc -p tsconfig.json --noEmit`
+Exit status 2
+[ELIFECYCLE] Command failed with exit code 2.
+deploy@vps:~$
