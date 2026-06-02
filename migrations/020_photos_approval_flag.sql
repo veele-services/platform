@@ -10,10 +10,11 @@
 ALTER TABLE assignment_photos
   ADD COLUMN IF NOT EXISTS is_approved BOOLEAN NOT NULL DEFAULT FALSE;
 
--- ─── RLS update: customers may read approved photos ────────
+-- ─── RLS update: customers may read approved photos ─────────
 
--- Allow customers to see only approved photos for their assignments
-CREATE POLICY IF NOT EXISTS "customer_read_approved_photos" ON assignment_photos
+DROP POLICY IF EXISTS "customer_read_approved_photos" ON assignment_photos;
+
+CREATE POLICY "customer_read_approved_photos" ON assignment_photos
   FOR SELECT TO authenticated
   USING (
     is_approved = TRUE
@@ -21,7 +22,7 @@ CREATE POLICY IF NOT EXISTS "customer_read_approved_photos" ON assignment_photos
       SELECT 1
         FROM assignments a
         JOIN customers c ON c.id = a.customer_id
-       WHERE a.id          = assignment_photos.assignment_id
-         AND c.contact_email = auth.email()
+       WHERE a.id             = assignment_photos.assignment_id
+         AND c.contact_email  = auth.email()
     )
   );
