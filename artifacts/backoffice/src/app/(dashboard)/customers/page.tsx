@@ -32,12 +32,17 @@ export default async function CustomersPage({ searchParams }: Props) {
   const sectorId       = str(sp.sectorId);
   const status         = str(sp.status, "all");
   const customerTypeId = str(sp.customerTypeId);
+  const city           = str(sp.city);
+  const country        = str(sp.country);
+  const accountManagerId = str(sp.accountManagerId);
+  const dateFrom       = str(sp.dateFrom);
+  const dateTo         = str(sp.dateTo);
   const page           = Math.max(1, parseInt(str(sp.page, "1")) || 1);
   const sort           = str(sp.sort, "name");
   const dir            = str(sp.dir, "asc");
 
   const [{ rows, total }, sectors, customerTypes, accountManagers] = await Promise.all([
-    listCustomers({ search, sectorId, status, customerTypeId, page, sort, dir }),
+    listCustomers({ search, sectorId, status, customerTypeId, city, country, accountManagerId, dateFrom, dateTo, page, sort, dir }),
     listSectors(),
     listCustomerTypes(),
     listAccountManagers(),
@@ -70,6 +75,11 @@ export default async function CustomersPage({ searchParams }: Props) {
         initialCustomerTypeId={customerTypeId}
         initialSort={sort}
         initialDir={dir}
+        initialCity={city}
+        initialCountry={country}
+        initialAccountManagerId={accountManagerId}
+        initialDateFrom={dateFrom}
+        initialDateTo={dateTo}
       />
     </div>
   );

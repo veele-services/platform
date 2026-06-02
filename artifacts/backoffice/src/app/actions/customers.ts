@@ -14,7 +14,7 @@ import {
   insertCustomerSchema,
   updateCustomerSchema,
 } from "@workspace/db";
-import { eq, ilike, or, and, asc, desc, inArray, sql, gte } from "drizzle-orm";
+import { eq, ilike, or, and, asc, desc, inArray, sql, gte, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -153,6 +153,11 @@ export async function listCustomers(params: {
   sectorId?: string;
   status?: string;
   customerTypeId?: string;
+  city?: string;
+  country?: string;
+  accountManagerId?: string;
+  dateFrom?: string;
+  dateTo?: string;
   page?: number;
   sort?: string;
   dir?: string;
@@ -164,6 +169,11 @@ export async function listCustomers(params: {
     sectorId,
     status = "all",
     customerTypeId,
+    city,
+    country,
+    accountManagerId,
+    dateFrom,
+    dateTo,
     page = 1,
     sort = "name",
     dir = "asc",
@@ -180,6 +190,15 @@ export async function listCustomers(params: {
   }
   if (sectorId) conditions.push(eq(customersTable.sectorId, sectorId) as ReturnType<typeof eq>);
   if (customerTypeId) conditions.push(eq(customersTable.customerTypeId, customerTypeId) as ReturnType<typeof eq>);
+  if (city?.trim()) conditions.push(ilike(customersTable.city, `%${city.trim()}%`) as ReturnType<typeof eq>);
+  if (country?.trim()) conditions.push(ilike(customersTable.country, `%${country.trim()}%`) as ReturnType<typeof eq>);
+  if (accountManagerId) conditions.push(eq(customersTable.accountManagerId, accountManagerId) as ReturnType<typeof eq>);
+  if (dateFrom) conditions.push(gte(customersTable.createdAt, new Date(dateFrom)) as ReturnType<typeof eq>);
+  if (dateTo) {
+    const end = new Date(dateTo);
+    end.setDate(end.getDate() + 1);
+    conditions.push(lt(customersTable.createdAt, end) as ReturnType<typeof eq>);
+  }
 
   // Status filter: backward compat ('active'/'inactive') + new statuses
   if (status === "active") {
@@ -1061,4 +1080,264 @@ export async function listAccountManagers(): Promise<AccountManagerOption[]> {
     id:       r.id,
     fullName: `${r.firstName} ${r.lastName}`.trim(),
   }));
+}
+
+// ─── Export ────────────────────────────────────────────────────────────────────
+
+export async function exportCustomers(params: {
+  search?: string;
+  sectorId?: string;
+  status?: string;
+  customerTypeId?: string;
+  city?: string;
+  country?: string;
+  accountManagerId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}): Promise<ActionResult<{ csv: string; filename: string }>> {
+  await requirePermission("customers", "read");
+
+  const {
+    search, sectorId, status = "all", customerTypeId,
+    city, country, accountManagerId, dateFrom, dateTo,
+  } = params;
+
+  const conditions: ReturnType<typeof eq>[] = [];
+  if (search?.trim()) {
+    const term = `%${search.trim()}%`;
+    const clause = or(ilike(customersTable.name, term), ilike(customersTable.code, term));
+    if (clause) conditions.push(clause as ReturnType<typeof eq>);
+  }
+  if (sectorId)        conditions.push(eq(customersTable.sectorId,       sectorId)       as ReturnType<typeof eq>);
+  if (customerTypeId)  conditions.push(eq(customersTable.customerTypeId, customerTypeId) as ReturnType<typeof eq>);
+  if (city?.trim())    conditions.push(ilike(customersTable.city,    `%${city.trim()}%`)    as ReturnType<typeof eq>);
+  if (country?.trim()) conditions.push(ilike(customersTable.country, `%${country.trim()}%`) as ReturnType<typeof eq>);
+  if (accountManagerId) conditions.push(eq(customersTable.accountManagerId, accountManagerId) as ReturnType<typeof eq>);
+  if (dateFrom) conditions.push(gte(customersTable.createdAt, new Date(dateFrom)) as ReturnType<typeof eq>);
+  if (dateTo) {
+    const end = new Date(dateTo);
+    end.setDate(end.getDate() + 1);
+    conditions.push(lt(customersTable.createdAt, end) as ReturnType<typeof eq>);
+  }
+  if (status === "active") {
+    conditions.push(eq(customersTable.status, "active") as ReturnType<typeof eq>);
+  } else if (status === "inactive") {
+    conditions.push(eq(customersTable.status, "inactive") as ReturnType<typeof eq>);
+  } else if (status && status !== "all") {
+    conditions.push(eq(customersTable.status, status) as ReturnType<typeof eq>);
+  }
+
+  const where = conditions.length ? and(...conditions) : undefined;
+
+  const rows = await db
+    .select({
+      code:             customersTable.code,
+      name:             customersTable.name,
+      sectorName:       sectorsTable.name,
+      customerTypeName: customerTypesTable.name,
+      city:             customersTable.city,
+      country:          customersTable.country,
+      contactEmail:     customersTable.contactEmail,
+      contactPhone:     customersTable.contactPhone,
+      status:           customersTable.status,
+      createdAt:        customersTable.createdAt,
+    })
+    .from(customersTable)
+    .leftJoin(sectorsTable,      eq(customersTable.sectorId,       sectorsTable.id))
+    .leftJoin(customerTypesTable, eq(customersTable.customerTypeId, customerTypesTable.id))
+    .where(where)
+    .orderBy(asc(customersTable.name));
+
+  function esc(v: string | null | undefined): string {
+    const s = v ?? "";
+    if (s.includes(",") || s.includes('"') || s.includes("\n") || s.includes("\r")) {
+      return `"${s.replace(/"/g, '""')}"`;
+    }
+    return s;
+  }
+
+  const headers = ["Code", "Naam", "Sector", "Type", "Stad", "Land", "E-mail", "Telefoon", "Status", "Aangemaakt op"];
+  const csvLines = [
+    headers.join(","),
+    ...rows.map((r) =>
+      [
+        esc(r.code),
+        esc(r.name),
+        esc(r.sectorName),
+        esc(r.customerTypeName),
+        esc(r.city),
+        esc(r.country),
+        esc(r.contactEmail),
+        esc(r.contactPhone),
+        esc(r.status),
+        esc(r.createdAt.toISOString().split("T")[0] ?? ""),
+      ].join(",")
+    ),
+  ];
+
+  const now   = new Date();
+  const stamp = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+
+  return {
+    success: true,
+    data: { csv: csvLines.join("\n"), filename: `klanten_${stamp}.csv` },
+  };
+}
+
+export async function exportCustomersPdf(params: {
+  search?: string;
+  sectorId?: string;
+  status?: string;
+  customerTypeId?: string;
+  city?: string;
+  country?: string;
+  accountManagerId?: string;
+  dateFrom?: string;
+  dateTo?: string;
+}): Promise<ActionResult<{ html: string; filename: string }>> {
+  await requirePermission("customers", "read");
+
+  const {
+    search, sectorId, status = "all", customerTypeId,
+    city, country, accountManagerId, dateFrom, dateTo,
+  } = params;
+
+  const conditions: ReturnType<typeof eq>[] = [];
+  if (search?.trim()) {
+    const term = `%${search.trim()}%`;
+    const clause = or(ilike(customersTable.name, term), ilike(customersTable.code, term));
+    if (clause) conditions.push(clause as ReturnType<typeof eq>);
+  }
+  if (sectorId)        conditions.push(eq(customersTable.sectorId,       sectorId)       as ReturnType<typeof eq>);
+  if (customerTypeId)  conditions.push(eq(customersTable.customerTypeId, customerTypeId) as ReturnType<typeof eq>);
+  if (city?.trim())    conditions.push(ilike(customersTable.city,    `%${city.trim()}%`)    as ReturnType<typeof eq>);
+  if (country?.trim()) conditions.push(ilike(customersTable.country, `%${country.trim()}%`) as ReturnType<typeof eq>);
+  if (accountManagerId) conditions.push(eq(customersTable.accountManagerId, accountManagerId) as ReturnType<typeof eq>);
+  if (dateFrom) conditions.push(gte(customersTable.createdAt, new Date(dateFrom)) as ReturnType<typeof eq>);
+  if (dateTo) {
+    const end = new Date(dateTo);
+    end.setDate(end.getDate() + 1);
+    conditions.push(lt(customersTable.createdAt, end) as ReturnType<typeof eq>);
+  }
+  if (status === "active") {
+    conditions.push(eq(customersTable.status, "active") as ReturnType<typeof eq>);
+  } else if (status === "inactive") {
+    conditions.push(eq(customersTable.status, "inactive") as ReturnType<typeof eq>);
+  } else if (status && status !== "all") {
+    conditions.push(eq(customersTable.status, status) as ReturnType<typeof eq>);
+  }
+
+  const where = conditions.length ? and(...conditions) : undefined;
+
+  const rows = await db
+    .select({
+      code:             customersTable.code,
+      name:             customersTable.name,
+      sectorName:       sectorsTable.name,
+      customerTypeName: customerTypesTable.name,
+      city:             customersTable.city,
+      country:          customersTable.country,
+      contactEmail:     customersTable.contactEmail,
+      contactPhone:     customersTable.contactPhone,
+      status:           customersTable.status,
+      createdAt:        customersTable.createdAt,
+    })
+    .from(customersTable)
+    .leftJoin(sectorsTable,      eq(customersTable.sectorId,       sectorsTable.id))
+    .leftJoin(customerTypesTable, eq(customersTable.customerTypeId, customerTypesTable.id))
+    .where(where)
+    .orderBy(asc(customersTable.name));
+
+  function escHtml(v: string | null | undefined): string {
+    return (v ?? "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  const now        = new Date();
+  const stamp      = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
+  const generated  = now.toISOString().replace("T", " ").slice(0, 16);
+
+  const activeFilters: string[] = [];
+  if (search)           activeFilters.push(`Zoekopdracht: ${search}`);
+  if (status && status !== "all") activeFilters.push(`Status: ${status}`);
+  if (city)             activeFilters.push(`Stad: ${city}`);
+  if (country)          activeFilters.push(`Land: ${country}`);
+  if (dateFrom)         activeFilters.push(`Vanaf: ${dateFrom}`);
+  if (dateTo)           activeFilters.push(`Tot: ${dateTo}`);
+
+  const filterLine = activeFilters.length
+    ? `<p style="margin:0 0 8px;font-size:11px;color:#64748B;">Filters: ${escHtml(activeFilters.join(" · "))}</p>`
+    : "";
+
+  const tbody = rows.map((r) => `
+    <tr>
+      <td>${escHtml(r.code)}</td>
+      <td>${escHtml(r.name)}</td>
+      <td>${escHtml(r.sectorName)}</td>
+      <td>${escHtml(r.customerTypeName)}</td>
+      <td>${escHtml(r.city)}</td>
+      <td>${escHtml(r.country)}</td>
+      <td>${escHtml(r.contactEmail)}</td>
+      <td>${escHtml(r.contactPhone)}</td>
+      <td>${escHtml(r.status)}</td>
+      <td>${escHtml(r.createdAt.toISOString().split("T")[0] ?? "")}</td>
+    </tr>`).join("");
+
+  const html = `<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <title>Klantenlijst — Veele</title>
+  <style>
+    @page { size: A4 landscape; margin: 15mm 12mm; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: Arial, Helvetica, sans-serif; font-size: 10px; color: #081D3A; }
+    header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+    .brand { font-size: 18px; font-weight: 700; letter-spacing: 2px; color: #081D3A; }
+    .brand span { color: #00B7B3; }
+    .meta { text-align: right; font-size: 10px; color: #64748B; }
+    h1 { font-size: 14px; font-weight: 700; margin-bottom: 6px; color: #081D3A; }
+    table { width: 100%; border-collapse: collapse; font-size: 9px; }
+    thead tr { background: #081D3A; color: #fff; }
+    thead th { padding: 6px 8px; text-align: left; font-weight: 600; letter-spacing: 0.5px; text-transform: uppercase; font-size: 8px; }
+    tbody tr:nth-child(even) { background: #F8FAFC; }
+    tbody tr { border-bottom: 1px solid #E2E8F0; }
+    tbody td { padding: 5px 8px; vertical-align: top; }
+    .count { font-size: 10px; color: #64748B; margin-bottom: 4px; }
+    @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div>
+      <div class="brand">VEELE<span>.</span></div>
+    </div>
+    <div class="meta">
+      <div>Gegenereerd op: ${generated}</div>
+    </div>
+  </header>
+  <h1>Klantenlijst</h1>
+  ${filterLine}
+  <p class="count">${rows.length} klant${rows.length !== 1 ? "en" : ""}</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Code</th><th>Naam</th><th>Sector</th><th>Type</th>
+        <th>Stad</th><th>Land</th><th>E-mail</th><th>Telefoon</th>
+        <th>Status</th><th>Aangemaakt op</th>
+      </tr>
+    </thead>
+    <tbody>${tbody}</tbody>
+  </table>
+  <script>window.addEventListener("load",()=>{ window.print(); });<\/script>
+</body>
+</html>`;
+
+  return {
+    success: true,
+    data: { html, filename: `klanten_${stamp}.pdf` },
+  };
 }
