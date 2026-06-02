@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { ObjectsView } from "@/components/objects/ObjectsView";
-import { listObjects, listCustomerOptions } from "@/app/actions/objects";
-import { listSectors } from "@/app/actions/customers";
+import { listObjects, listCustomerOptions, getObjectStats } from "@/app/actions/objects";
+import { Building2, CheckCircle2, ClipboardList, Bell, FileText } from "lucide-react";
 
-export const metadata: Metadata = { title: "Objects" };
+export const metadata: Metadata = { title: "Objecten" };
 
 interface Props {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -23,20 +23,57 @@ export default async function ObjectsPage({ searchParams }: Props) {
 
   if (!canRead) return <ForbiddenPage resource="objects" action="read" />;
 
-  const sp         = await searchParams;
-  const search     = str(sp.search);
-  const customerId = str(sp.customerId);
-  const sectorId   = str(sp.sectorId);
-  const status     = str(sp.status, "all");
-  const page       = Math.max(1, parseInt(str(sp.page, "1")) || 1);
-  const sort       = str(sp.sort, "name");
-  const dir        = str(sp.dir, "asc");
+  const sp          = await searchParams;
+  const search      = str(sp.search);
+  const customerId  = str(sp.customerId);
+  const serviceType = str(sp.serviceType);
+  const region      = str(sp.region);
+  const status      = str(sp.status, "all");
+  const page        = Math.max(1, parseInt(str(sp.page, "1")) || 1);
+  const sort        = str(sp.sort, "name");
+  const dir         = str(sp.dir, "asc");
 
-  const [{ rows, total }, sectors, customers] = await Promise.all([
-    listObjects({ search, customerId, sectorId, status, page, sort, dir }),
-    listSectors(),
+  const [{ rows, total }, customers, stats] = await Promise.all([
+    listObjects({ search, customerId, serviceType, region, status, page, sort, dir }),
     listCustomerOptions(),
+    getObjectStats(),
   ]);
+
+  const statCards = [
+    {
+      icon:  Building2,
+      label: "Totaal objecten",
+      value: stats.total,
+      color: "#081D3A",
+    },
+    {
+      icon:  CheckCircle2,
+      label: "Actieve diensten",
+      value: stats.activeAssignments,
+      color: "#00B7B3",
+    },
+    {
+      icon:  ClipboardList,
+      label: "Periodieke taken",
+      value: stats.periodicTasks,
+      color: "#7C3AED",
+      placeholder: true,
+    },
+    {
+      icon:  Bell,
+      label: "Open meldingen",
+      value: stats.openAlerts,
+      color: "#F59E0B",
+      placeholder: true,
+    },
+    {
+      icon:  FileText,
+      label: "Contracten",
+      value: stats.contracts,
+      color: "#10B981",
+      placeholder: true,
+    },
+  ];
 
   return (
     <div className="p-8">
@@ -50,16 +87,40 @@ export default async function ObjectsPage({ searchParams }: Props) {
         </p>
       </div>
 
+      {/* 5-metric stat bar */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
+        {statCards.map(({ icon: Icon, label, value, color, placeholder }) => (
+          <div
+            key={label}
+            className="veele-card flex items-center gap-3"
+            title={placeholder ? "Beschikbaar in een toekomstige versie" : undefined}
+          >
+            <div
+              className="flex-shrink-0 flex items-center justify-center rounded-lg h-9 w-9"
+              style={{ backgroundColor: `${color}18` }}
+            >
+              <Icon className="h-4 w-4" style={{ color }} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs truncate" style={{ color: "#94A3B8" }}>{label}</p>
+              <p className="text-lg font-bold leading-tight" style={{ color: placeholder ? "#CBD5E1" : "#081D3A" }}>
+                {placeholder ? "—" : value}
+              </p>
+            </div>
+          </div>
+        ))}
+      </div>
+
       <ObjectsView
         rows={rows}
         total={total}
-        sectors={sectors}
         customers={customers}
         canWrite={canWrite}
         page={page}
         initialSearch={search}
         initialCustomerId={customerId}
-        initialSectorId={sectorId}
+        initialServiceType={serviceType}
+        initialRegion={region}
         initialStatus={status}
         initialSort={sort}
         initialDir={dir}

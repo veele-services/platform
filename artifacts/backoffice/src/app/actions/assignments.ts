@@ -2025,6 +2025,38 @@ export async function listAssignmentsForCustomer(
   }));
 }
 
+export async function listAssignmentsForObject(
+  objectId: string,
+  limit = 50,
+): Promise<AssignmentHistoryRow[]> {
+  const canRead = await hasPermission("assignments", "read");
+  if (!canRead) return [];
+
+  const rows = await db
+    .select({
+      id:            assignmentsTable.id,
+      code:          assignmentsTable.code,
+      title:         assignmentsTable.title,
+      status:        assignmentsTable.status,
+      scheduledDate: assignmentsTable.scheduledDate,
+      objectName:    objectsTable.name,
+    })
+    .from(assignmentsTable)
+    .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
+    .where(eq(assignmentsTable.objectId, objectId))
+    .orderBy(desc(assignmentsTable.scheduledDate))
+    .limit(limit);
+
+  return rows.map((r) => ({
+    id:            r.id,
+    code:          r.code,
+    title:         r.title,
+    status:        r.status        as AssignmentStatus,
+    scheduledDate: r.scheduledDate ?? null,
+    objectName:    r.objectName    ?? null,
+  }));
+}
+
 export async function listAssignmentsForPersonnel(
   personnelId: string,
   limit = 10,
