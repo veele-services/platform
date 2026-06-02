@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { MapPin, ClipboardList, PlusCircle, CreditCard, ArrowRight, AlertCircle } from "lucide-react";
+import { MapPin, ClipboardList, PlusCircle, CreditCard, ArrowRight, AlertCircle, Briefcase, Building2, FileText, Hash, Globe } from "lucide-react";
 import { getMyCustomerProfile } from "@/actions/customer";
 import { getMyAssignments } from "@/actions/assignments";
 import { getMyInvoiceSummary } from "@/actions/invoices";
@@ -234,6 +234,75 @@ export default async function DashboardPage() {
               );
             })}
           </div>
+        </div>
+      )}
+
+      {/* ── Bedrijfsgegevens ──────────────────────────────────────── */}
+      {(profile.customerTypeName || profile.legalEntity || profile.vatNumber || profile.chamberOfCommerceNumber || profile.website) && (
+        <div className="rounded-3xl bg-white shadow-sm overflow-hidden">
+          <div
+            className="px-4 py-3 border-b"
+            style={{ borderColor: "var(--color-border)" }}
+          >
+            <h2 className="font-bold text-base" style={{ color: "var(--color-primary)" }}>
+              Bedrijfsgegevens
+            </h2>
+          </div>
+          <dl className="divide-y" style={{ borderColor: "var(--color-border)" }}>
+            {profile.customerTypeName && (
+              <div className="flex items-center gap-3 px-4 py-3">
+                <Briefcase size={16} style={{ color: "#94A3B8", flexShrink: 0 }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs" style={{ color: "#94A3B8" }}>Klanttype</p>
+                  <p className="text-sm font-medium" style={{ color: "#475569" }}>{profile.customerTypeName}</p>
+                </div>
+              </div>
+            )}
+            {profile.legalEntity && (
+              <div className="flex items-center gap-3 px-4 py-3">
+                <Building2 size={16} style={{ color: "#94A3B8", flexShrink: 0 }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs" style={{ color: "#94A3B8" }}>Rechtsvorm</p>
+                  <p className="text-sm font-medium" style={{ color: "#475569" }}>{profile.legalEntity}</p>
+                </div>
+              </div>
+            )}
+            {profile.vatNumber && (
+              <div className="flex items-center gap-3 px-4 py-3">
+                <FileText size={16} style={{ color: "#94A3B8", flexShrink: 0 }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs" style={{ color: "#94A3B8" }}>BTW-nummer</p>
+                  <p className="text-sm font-medium" style={{ color: "#475569" }}>{profile.vatNumber}</p>
+                </div>
+              </div>
+            )}
+            {profile.chamberOfCommerceNumber && (
+              <div className="flex items-center gap-3 px-4 py-3">
+                <Hash size={16} style={{ color: "#94A3B8", flexShrink: 0 }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs" style={{ color: "#94A3B8" }}>KVK-nummer</p>
+                  <p className="text-sm font-medium" style={{ color: "#475569" }}>{profile.chamberOfCommerceNumber}</p>
+                </div>
+              </div>
+            )}
+            {profile.website && (
+              <div className="flex items-center gap-3 px-4 py-3">
+                <Globe size={16} style={{ color: "#94A3B8", flexShrink: 0 }} />
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs" style={{ color: "#94A3B8" }}>Website</p>
+                  <a
+                    href={profile.website.startsWith("http") ? profile.website : `https://${profile.website}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-sm font-medium hover:underline"
+                    style={{ color: "var(--color-accent)" }}
+                  >
+                    {profile.website}
+                  </a>
+                </div>
+              </div>
+            )}
+          </dl>
         </div>
       )}
 

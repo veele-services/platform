@@ -2,18 +2,23 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@workspace/db";
-import { customersTable } from "@workspace/db";
+import { customersTable, customerTypesTable } from "@workspace/db";
 import { eq } from "drizzle-orm";
 
 export type CustomerProfile = {
-  id:           string;
-  name:         string;
-  code:         string;
-  address:      string | null;
-  city:         string | null;
-  contactName:  string | null;
-  contactEmail: string | null;
-  contactPhone: string | null;
+  id:                      string;
+  name:                    string;
+  code:                    string;
+  address:                 string | null;
+  city:                    string | null;
+  contactName:             string | null;
+  contactEmail:            string | null;
+  contactPhone:            string | null;
+  customerTypeName:        string | null;
+  legalEntity:             string | null;
+  vatNumber:               string | null;
+  chamberOfCommerceNumber: string | null;
+  website:                 string | null;
 };
 
 /**
@@ -27,22 +32,28 @@ export async function getMyCustomerProfile(): Promise<CustomerProfile | null> {
 
   const email = user.email.toLowerCase();
 
-  const [customer] = await db
+  const [row] = await db
     .select({
-      id:           customersTable.id,
-      name:         customersTable.name,
-      code:         customersTable.code,
-      address:      customersTable.address,
-      city:         customersTable.city,
-      contactName:  customersTable.contactName,
-      contactEmail: customersTable.contactEmail,
-      contactPhone: customersTable.contactPhone,
+      id:                      customersTable.id,
+      name:                    customersTable.name,
+      code:                    customersTable.code,
+      address:                 customersTable.address,
+      city:                    customersTable.city,
+      contactName:             customersTable.contactName,
+      contactEmail:            customersTable.contactEmail,
+      contactPhone:            customersTable.contactPhone,
+      customerTypeName:        customerTypesTable.name,
+      legalEntity:             customersTable.legalEntity,
+      vatNumber:               customersTable.vatNumber,
+      chamberOfCommerceNumber: customersTable.chamberOfCommerceNumber,
+      website:                 customersTable.website,
     })
     .from(customersTable)
+    .leftJoin(customerTypesTable, eq(customersTable.customerTypeId, customerTypesTable.id))
     .where(eq(customersTable.contactEmail, email))
     .limit(1);
 
-  return customer ?? null;
+  return row ?? null;
 }
 
 /**
