@@ -1,11 +1,15 @@
 ---
-name: Supabase TCP blocked in Replit
-description: Direct Postgres connections (port 5432/6543) are blocked in the Replit sandbox.
+name: Supabase TCP connectivity in Replit
+description: Whether direct Postgres connections work from the Replit sandbox.
 ---
 
 ## Rule
-Never attempt to run `pnpm --filter @workspace/db run push` or any drizzle-kit command that requires a direct DB connection inside the Replit environment — they will timeout/fail silently.
+Direct psql connections to Supabase via DATABASE_URL **do work** from the Replit bash environment. Drizzle-kit commands (`pnpm --filter @workspace/db run push`) may still fail for other reasons, but raw psql and SQL file execution via `psql "$DATABASE_URL" -f migrations/xxx.sql` succeeds.
 
-**Why:** Replit sandboxes block outbound TCP on standard Postgres ports. The DATABASE_URL connects via Supabase connection pooler but the sandbox firewall blocks it.
+**Why:** Earlier sessions observed TCP timeouts, but as of June 2026 the connection works fine. Likely a transient Replit sandbox networking issue in earlier sessions.
 
-**How to apply:** All schema migrations must be provided as raw SQL files and run manually by the user in the Supabase project dashboard → SQL Editor. Name files `migrations/00N_<sprint>.sql` and instruct the user to run them there.
+**How to apply:** Migrations can be applied directly from bash:
+```bash
+psql "$DATABASE_URL" -f migrations/00N_<name>.sql
+```
+Verify with a follow-up SELECT after applying. No need to route through Supabase SQL Editor unless psql fails.

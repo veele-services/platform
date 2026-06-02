@@ -22,7 +22,7 @@ INSERT INTO customer_types (name, slug) VALUES
   ('Particulier',    'particulier'),
   ('Overheid',       'overheid'),
   ('Non-profit',     'non-profit'),
-  ('Groothandel',    'groothandel')
+  ('Intern',         'intern')
 ON CONFLICT (tenant_id, slug) DO NOTHING;
 
 -- ─── customers — new columns ──────────────────────────────────────────────────
