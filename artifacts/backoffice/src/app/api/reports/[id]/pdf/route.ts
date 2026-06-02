@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { hasPermission } from "@/lib/auth/permissions";
 import { db } from "@workspace/db";
 import {
@@ -9,12 +10,15 @@ import {
   objectsTable,
   personnelTable,
   assignmentPersonnelTable,
+  assignmentPhotosTable,
 } from "@workspace/db";
 import { alias } from "drizzle-orm/pg-core";
-import { eq, and } from "drizzle-orm";
+import { eq, and, asc } from "drizzle-orm";
 import PDFDocument from "pdfkit";
 
 export const runtime = "nodejs";
+
+const PHOTO_BUCKET = "assignment-photos";
 
 const submitterPersonnel = alias(personnelTable, "submitter_personnel");
 const reviewerPersonnel  = alias(personnelTable, "reviewer_personnel");
@@ -32,6 +36,18 @@ function fmtDateTime(val: string | Date | null | undefined): string {
     day: "numeric", month: "long", year: "numeric",
     hour: "2-digit", minute: "2-digit",
   });
+}
+
+/** Fetch an image from a signed URL and return it as a Buffer. Returns null on any failure. */
+async function fetchImageBuffer(signedUrl: string): Promise<Buffer | null> {
+  try {
+    const res = await fetch(signedUrl, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return null;
+    const arrayBuf = await res.arrayBuffer();
+    return Buffer.from(arrayBuf);
+  } catch {
+    return null;
+  }
 }
 
 export async function GET(
@@ -61,7 +77,6 @@ export async function GET(
       content:         reportsTable.content,
       hoursWorked:     reportsTable.hoursWorked,
       submitterNotes:  reportsTable.submitterNotes,
-      notes:           reportsTable.notes,
       submittedBy:     reportsTable.submittedBy,
       submittedAt:     reportsTable.submittedAt,
       reviewedBy:      reportsTable.reviewedBy,
@@ -102,20 +117,53 @@ export async function GET(
     return new NextResponse("Rapport is nog niet goedgekeurd.", { status: 403 });
   }
 
-  // ── Fetch assigned personnel ─────────────────────────────────────────────────
-  const personnel = await db
-    .select({
-      firstName: personnelTable.firstName,
-      lastName:  personnelTable.lastName,
-    })
-    .from(assignmentPersonnelTable)
-    .innerJoin(personnelTable, eq(personnelTable.id, assignmentPersonnelTable.personnelId))
-    .where(
-      and(
-        eq(assignmentPersonnelTable.assignmentId, row.assignmentId),
-        eq(assignmentPersonnelTable.status, "assigned"),
+  // ── Fetch assigned personnel + approved photos in parallel ───────────────────
+  const admin = createAdminClient();
+
+  const [personnel, rawPhotos] = await Promise.all([
+    db
+      .select({ firstName: personnelTable.firstName, lastName: personnelTable.lastName })
+      .from(assignmentPersonnelTable)
+      .innerJoin(personnelTable, eq(personnelTable.id, assignmentPersonnelTable.personnelId))
+      .where(
+        and(
+          eq(assignmentPersonnelTable.assignmentId, row.assignmentId),
+          eq(assignmentPersonnelTable.status, "assigned"),
+        ),
       ),
+
+    db
+      .select({ id: assignmentPhotosTable.id, storagePath: assignmentPhotosTable.storagePath })
+      .from(assignmentPhotosTable)
+      .where(
+        and(
+          eq(assignmentPhotosTable.assignmentId, row.assignmentId),
+          eq(assignmentPhotosTable.isApproved, true),
+        ),
+      )
+      .orderBy(asc(assignmentPhotosTable.createdAt)),
+  ]);
+
+  // Generate signed URLs for approved photos
+  const photoBuffers: Buffer[] = [];
+  if (rawPhotos.length > 0) {
+    const signed = await Promise.all(
+      rawPhotos.map(async (p) => {
+        const { data } = await admin.storage
+          .from(PHOTO_BUCKET)
+          .createSignedUrl(p.storagePath, 300); // 5-min TTL (enough for PDF build)
+        return data?.signedUrl ?? null;
+      }),
     );
+
+    const buffers = await Promise.all(
+      signed.map((url) => (url ? fetchImageBuffer(url) : Promise.resolve(null))),
+    );
+
+    for (const buf of buffers) {
+      if (buf) photoBuffers.push(buf);
+    }
+  }
 
   // ── Build PDF ────────────────────────────────────────────────────────────────
   const doc = new PDFDocument({ size: "A4", margin: 55, bufferPages: true });
@@ -255,11 +303,63 @@ export async function GET(
 
       doc.fontSize(10).fillColor(PRIMARY).font("Helvetica")
          .text(row.submitterNotes, L, bodyY, { width: W, lineGap: 2 });
-      bodyY = doc.y + 16;
     }
 
-    // ── Footer ───────────────────────────────────────────────────────────────
-    const totalPages = (doc.bufferedPageRange().count) || 1;
+    // ── Photo appendix page ──────────────────────────────────────────────────
+    if (photoBuffers.length > 0) {
+      doc.addPage();
+
+      // Page header
+      doc
+        .fontSize(9)
+        .fillColor(SECONDARY)
+        .font("Helvetica-Bold")
+        .text("BIJLAGE — GOEDGEKEURDE FOTO'S", L, 55);
+
+      doc
+        .fontSize(8)
+        .fillColor(SECONDARY)
+        .font("Helvetica")
+        .text(`${row.assignmentCode} — ${row.assignmentTitle}`, L, 70);
+
+      doc.moveTo(L, 84).lineTo(R, 84).strokeColor(MUTED).lineWidth(0.5).stroke();
+
+      // Thumbnail grid: 2 columns
+      const THUMB_W     = 220;
+      const THUMB_H     = 165;
+      const COL_GAP     = 20;
+      const ROW_GAP     = 24;
+      const LABEL_H     = 14;
+      const startY      = 96;
+      const cols        = 2;
+      const colXs       = [L, L + THUMB_W + COL_GAP];
+
+      let imgY = startY;
+
+      for (let i = 0; i < photoBuffers.length; i++) {
+        const col = i % cols;
+        const row_ = Math.floor(i / cols);
+        const x    = colXs[col]!;
+        const y    = imgY + row_ * (THUMB_H + LABEL_H + ROW_GAP);
+
+        // Add new page if content overflows
+        if (y + THUMB_H + LABEL_H > 760) {
+          doc.addPage();
+          imgY = 55 - row_ * (THUMB_H + LABEL_H + ROW_GAP);
+          const newY = imgY + row_ * (THUMB_H + LABEL_H + ROW_GAP);
+          doc.image(photoBuffers[i]!, x, newY, { width: THUMB_W, height: THUMB_H, fit: [THUMB_W, THUMB_H] });
+          doc.fontSize(7).fillColor(SECONDARY).font("Helvetica")
+             .text(`Foto ${i + 1}`, x, newY + THUMB_H + 3, { width: THUMB_W });
+        } else {
+          doc.image(photoBuffers[i]!, x, y, { width: THUMB_W, height: THUMB_H, fit: [THUMB_W, THUMB_H] });
+          doc.fontSize(7).fillColor(SECONDARY).font("Helvetica")
+             .text(`Foto ${i + 1}`, x, y + THUMB_H + 3, { width: THUMB_W });
+        }
+      }
+    }
+
+    // ── Footer on every page ─────────────────────────────────────────────────
+    const totalPages = doc.bufferedPageRange().count;
     for (let i = 0; i < totalPages; i++) {
       doc.switchToPage(i);
       doc.fontSize(8).fillColor(SECONDARY).font("Helvetica")
