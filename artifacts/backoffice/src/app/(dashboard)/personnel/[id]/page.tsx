@@ -102,6 +102,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
             personnelId={person.id}
             personnelName={fullName}
             personnelEmail={person.email}
+            isActive={person.isActive}
             userId={person.userId}
             inviteSentAt={person.inviteSentAt}
             roles={roles}

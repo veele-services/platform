@@ -21,6 +21,9 @@ import type { AvailabilityStatus } from "./availability";
 export type DashboardPayments = {
   paidThisMonthCount:   number;
   paidThisMonthAmount:  number;
+  paidThisYearAmount:   number;
+  overdueCount:         number;
+  overdueAmount:        number;
   mollieOpenCount:      number;
   mollieOpenAmountEur:  number;
 };
@@ -130,17 +133,22 @@ export async function getDashboardPayments(): Promise<DashboardPayments | null> 
 
   const now = new Date();
   const startOfMonth = toDateString(new Date(now.getFullYear(), now.getMonth(), 1));
+  const startOfYear  = toDateString(new Date(now.getFullYear(), 0, 1));
+  const todayStr     = toDateString(now);
 
   const [invoiceRow] = await db
     .select({
       paidThisMonthCount:  sql<number>`count(*) FILTER (WHERE status = 'paid' AND paid_date >= ${startOfMonth})::int`,
       paidThisMonthAmount: sql<string>`coalesce(sum(total_amount) FILTER (WHERE status = 'paid' AND paid_date >= ${startOfMonth}), 0)::text`,
+      paidThisYearAmount:  sql<string>`coalesce(sum(total_amount) FILTER (WHERE status = 'paid' AND paid_date >= ${startOfYear}), 0)::text`,
+      overdueCount:        sql<number>`count(*) FILTER (WHERE status = 'sent' AND due_date < ${todayStr})::int`,
+      overdueAmount:       sql<string>`coalesce(sum(total_amount) FILTER (WHERE status = 'sent' AND due_date < ${todayStr}), 0)::text`,
     })
     .from(invoicesTable);
 
   const [paymentRow] = await db
     .select({
-      mollieOpenCount:      sql<number>`count(*)::int`,
+      mollieOpenCount:       sql<number>`count(*)::int`,
       mollieOpenAmountCents: sql<string>`coalesce(sum(amount_cents), 0)::text`,
     })
     .from(paymentsTable)
@@ -149,6 +157,9 @@ export async function getDashboardPayments(): Promise<DashboardPayments | null> 
   return {
     paidThisMonthCount:  invoiceRow?.paidThisMonthCount  ?? 0,
     paidThisMonthAmount: parseFloat(invoiceRow?.paidThisMonthAmount ?? "0"),
+    paidThisYearAmount:  parseFloat(invoiceRow?.paidThisYearAmount  ?? "0"),
+    overdueCount:        invoiceRow?.overdueCount   ?? 0,
+    overdueAmount:       parseFloat(invoiceRow?.overdueAmount ?? "0"),
     mollieOpenCount:     paymentRow?.mollieOpenCount     ?? 0,
     mollieOpenAmountEur: Math.round((parseInt(paymentRow?.mollieOpenAmountCents ?? "0", 10)) / 100),
   };

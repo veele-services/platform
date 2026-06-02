@@ -10,7 +10,7 @@ import {
   auditLogTable,
   personnelTable,
 } from "@workspace/db";
-import { eq, and, or, asc, desc, sql, inArray, ilike, gte, lte } from "drizzle-orm";
+import { eq, and, or, asc, desc, sql, inArray, ilike, gte, lte, exists } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -555,9 +555,65 @@ export async function resendInvite(userId: string): Promise<ActionResult> {
 }
 
 /**
- * Batch-replace all roles for a user.
- * Deletes existing user_roles entries and re-inserts the provided set.
+ * Delete a custom (non-system) role.
+ * Blocked when the role is a system role or when any active users are assigned to it.
  */
+export async function deleteRole(roleId: string): Promise<ActionResult> {
+  await requirePermission("roles", "write");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [role] = await db
+    .select({ id: rolesTable.id, name: rolesTable.name, isSystem: rolesTable.isSystem })
+    .from(rolesTable)
+    .where(eq(rolesTable.id, roleId))
+    .limit(1);
+
+  if (!role) return { success: false, message: "Rol niet gevonden." };
+  if (role.isSystem) {
+    return { success: false, message: "Systeemrollen kunnen niet worden verwijderd." };
+  }
+
+  // Count only active users: personnel with is_active=true, or users not in
+  // the personnel table (management users — assumed active at DB level).
+  const [{ userCount }] = await db
+    .select({ userCount: sql<number>`count(*)::int` })
+    .from(userRolesTable)
+    .leftJoin(personnelTable, eq(personnelTable.userId, userRolesTable.userId))
+    .where(
+      and(
+        eq(userRolesTable.roleId, roleId),
+        or(
+          sql`${personnelTable.isActive} IS NULL`,
+          eq(personnelTable.isActive, true),
+        ),
+      ),
+    );
+
+  if (userCount > 0) {
+    return {
+      success: false,
+      message: `Rol heeft ${userCount} actieve gebruiker${userCount !== 1 ? "s" : ""}. Herken eerst de gebruikers.`,
+    };
+  }
+
+  await db.delete(rolePermissionsTable).where(eq(rolePermissionsTable.roleId, roleId));
+  await db.delete(rolesTable).where(eq(rolesTable.id, roleId));
+
+  await db.insert(auditLogTable).values({
+    userId:    user.id,
+    action:    "delete",
+    resource:  "roles",
+    resourceId: roleId,
+    metadata:  { name: role.name },
+  });
+
+  revalidatePath("/instellingen/rollen");
+  return { success: true };
+}
+
 export async function updateUserRoles(
   userId:  string,
   roleIds: string[],
@@ -613,6 +669,7 @@ export async function listAuditLog(params: {
   module?:   string;
   dateFrom?: string;
   dateTo?:   string;
+  roleId?:   string;
 } = {}): Promise<{ entries: AuditLogEntry[]; total: number }> {
   await requirePermission("settings", "read");
 
@@ -622,15 +679,20 @@ export async function listAuditLog(params: {
     module   = "",
     dateFrom = "",
     dateTo   = "",
+    roleId   = "",
   } = params;
 
   const conditions = [];
 
   if (search.trim()) {
+    const q = `%${search.trim()}%`;
     conditions.push(
       or(
-        ilike(auditLogTable.action,   `%${search.trim()}%`),
-        ilike(auditLogTable.resource, `%${search.trim()}%`),
+        ilike(auditLogTable.action,    q),
+        ilike(auditLogTable.resource,  q),
+        ilike(personnelTable.firstName, q),
+        ilike(personnelTable.lastName,  q),
+        ilike(personnelTable.email,     q),
       ),
     );
   }
@@ -645,6 +707,22 @@ export async function listAuditLog(params: {
     const end = new Date(dateTo);
     end.setDate(end.getDate() + 1);
     conditions.push(lte(auditLogTable.createdAt, end));
+  }
+  if (roleId) {
+    // Filter by actor role: only show entries where the user has this role assigned
+    conditions.push(
+      exists(
+        db
+          .select({ one: sql`1` })
+          .from(userRolesTable)
+          .where(
+            and(
+              eq(userRolesTable.userId, auditLogTable.userId),
+              eq(userRolesTable.roleId, roleId),
+            ),
+          ),
+      ),
+    );
   }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
@@ -673,6 +751,7 @@ export async function listAuditLog(params: {
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(auditLogTable)
+      .leftJoin(personnelTable, eq(personnelTable.userId, auditLogTable.userId))
       .where(where),
 
     createAdminClient().auth.admin.listUsers({ perPage: 1000 }),

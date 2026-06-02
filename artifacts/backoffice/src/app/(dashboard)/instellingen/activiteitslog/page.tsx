@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { History } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
-import { listAuditLog } from "@/app/actions/settings";
+import { listAuditLog, listRoles } from "@/app/actions/settings";
 import { ActiviteitslogView } from "@/components/settings/ActiviteitslogView";
 
 export const metadata: Metadata = { title: "Activiteitslog" };
@@ -14,6 +14,7 @@ interface Props {
     module?:   string;
     dateFrom?: string;
     dateTo?:   string;
+    roleId?:   string;
   }>;
 }
 
@@ -28,8 +29,12 @@ export default async function ActiviteitslogPage({ searchParams }: Props) {
   const module   = sp.module   ?? "";
   const dateFrom = sp.dateFrom ?? "";
   const dateTo   = sp.dateTo   ?? "";
+  const roleId   = sp.roleId   ?? "";
 
-  const { entries, total } = await listAuditLog({ page, search, module, dateFrom, dateTo });
+  const [{ entries, total }, roles] = await Promise.all([
+    listAuditLog({ page, search, module, dateFrom, dateTo, roleId }),
+    listRoles().catch(() => []),
+  ]);
 
   return (
     <div className="p-8">
@@ -65,6 +70,8 @@ export default async function ActiviteitslogPage({ searchParams }: Props) {
         initialModule={module}
         initialDateFrom={dateFrom}
         initialDateTo={dateTo}
+        initialRoleId={roleId}
+        roles={roles.map((r) => ({ id: r.id, name: r.name }))}
       />
     </div>
   );

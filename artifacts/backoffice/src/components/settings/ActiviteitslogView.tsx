@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { Search, History, ChevronLeft, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -76,6 +76,11 @@ const ACTION_BADGE_STYLES: Record<string, { bg: string; color: string }> = {
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
+interface RoleOption {
+  id:   string;
+  name: string;
+}
+
 interface Props {
   entries:         AuditLogEntry[];
   total:           number;
@@ -84,6 +89,8 @@ interface Props {
   initialModule:   string;
   initialDateFrom: string;
   initialDateTo:   string;
+  initialRoleId:   string;
+  roles:           RoleOption[];
 }
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -96,14 +103,30 @@ export function ActiviteitslogView({
   initialModule,
   initialDateFrom,
   initialDateTo,
+  initialRoleId,
+  roles,
 }: Props) {
   const router   = useRouter();
   const pathname = usePathname();
   const [, startTransition] = useTransition();
 
   const [searchInput, setSearchInput] = useState(initialSearch);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
+
+  // Debounce search: fire 400 ms after the user stops typing
+  useEffect(() => {
+    if (searchInput === initialSearch) return;
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(() => {
+      applyFilter("search", searchInput);
+    }, 400);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+    // applyFilter is stable (closes over router / pathname / initial* which are
+    // stable per render); excluding it from deps is intentional.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchInput]);
 
   function buildUrl(overrides: Record<string, string | undefined>): string {
     const merged: Record<string, string | undefined> = {
@@ -111,6 +134,7 @@ export function ActiviteitslogView({
       module:   initialModule   || undefined,
       dateFrom: initialDateFrom || undefined,
       dateTo:   initialDateTo   || undefined,
+      roleId:   initialRoleId   || undefined,
       page:     page > 1 ? String(page) : undefined,
       ...overrides,
     };
@@ -126,11 +150,6 @@ export function ActiviteitslogView({
     });
   }
 
-  function handleSearchSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    applyFilter("search", searchInput);
-  }
-
   function goToPage(p: number) {
     startTransition(() => {
       router.replace(buildUrl({ page: p > 1 ? String(p) : undefined }));
@@ -141,24 +160,19 @@ export function ActiviteitslogView({
     <div className="space-y-4">
       {/* Filters */}
       <div className="flex flex-wrap gap-3 items-end">
-        {/* Free text search */}
-        <form onSubmit={handleSearchSubmit} className="flex items-center gap-2 flex-1 min-w-[200px] max-w-xs">
-          <div className="relative flex-1">
-            <Search
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none"
-              style={{ color: "#94A3B8" }}
-            />
-            <Input
-              value={searchInput}
-              onChange={(e) => setSearchInput(e.target.value)}
-              placeholder="Zoek op actie of module…"
-              className="pl-8 h-9"
-            />
-          </div>
-          <Button type="submit" variant="outline" size="sm" className="h-9">
-            Zoeken
-          </Button>
-        </form>
+        {/* Free text search — debounced 400 ms */}
+        <div className="relative flex-1 min-w-[200px] max-w-xs">
+          <Search
+            className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none"
+            style={{ color: "#94A3B8" }}
+          />
+          <Input
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            placeholder="Zoek op actie, gebruiker of module…"
+            className="pl-8 h-9"
+          />
+        </div>
 
         {/* Module filter */}
         <Select
@@ -177,6 +191,26 @@ export function ActiviteitslogView({
             ))}
           </SelectContent>
         </Select>
+
+        {/* Role filter */}
+        {roles.length > 0 && (
+          <Select
+            value={initialRoleId || "all"}
+            onValueChange={(v) => applyFilter("roleId", v === "all" ? "" : v)}
+          >
+            <SelectTrigger className="w-[160px] h-9">
+              <SelectValue placeholder="Alle rollen" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Alle rollen</SelectItem>
+              {roles.map((r) => (
+                <SelectItem key={r.id} value={r.id}>
+                  {r.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        )}
 
         {/* Date range */}
         <div className="flex items-center gap-2">

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Pencil, Mail, CheckCircle2, Loader2, KeyRound, RefreshCw } from "lucide-react";
+import { Pencil, Mail, CheckCircle2, Loader2, KeyRound, RefreshCw, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
 import { PersonnelForm } from "@/components/personnel/PersonnelForm";
-import { invitePersonnel } from "@/app/actions/personnel";
+import { invitePersonnel, setPersonnelStatus } from "@/app/actions/personnel";
 import { sendPasswordReset } from "@/app/actions/auth";
 import type { RoleOption } from "@/app/actions/personnel";
 
@@ -30,6 +30,7 @@ interface PersonnelDetailActionsProps {
   personnelId:    string;
   personnelName:  string;
   personnelEmail: string;
+  isActive:       boolean;
   userId:         string | null;
   inviteSentAt:   string | null;
   roles:          RoleOption[];
@@ -39,6 +40,7 @@ export function PersonnelDetailActions({
   personnelId,
   personnelName,
   personnelEmail,
+  isActive:    initialIsActive,
   userId,
   inviteSentAt,
   roles,
@@ -46,14 +48,17 @@ export function PersonnelDetailActions({
   const [editOpen,         setEditOpen]         = useState(false);
   const [inviteOpen,       setInviteOpen]        = useState(false);
   const [resetOpen,        setResetOpen]         = useState(false);
+  const [activateOpen,     setActivateOpen]      = useState(false);
   const [localInviteSent,  setLocalInviteSent]   = useState(false);
+  const [isActive,         setIsActive]          = useState(initialIsActive);
   const [errorMsg,         setErrorMsg]          = useState<string | null>(null);
+  const [activateError,    setActivateError]     = useState<string | null>(null);
   const [isPending,        startTransition]      = useTransition();
 
   // ── Derived invite state ────────────────────────────────────────────────────
-  const isActive   = Boolean(userId);
-  const isInvited  = Boolean(inviteSentAt) && !isActive;
-  const isNone     = !isActive && !isInvited && !localInviteSent;
+  const hasPortalAccount = Boolean(userId);
+  const isInvited        = Boolean(inviteSentAt) && !hasPortalAccount;
+  const isNone           = !hasPortalAccount && !isInvited && !localInviteSent;
 
   function handleInviteConfirm() {
     setErrorMsg(null);
@@ -82,12 +87,53 @@ export function PersonnelDetailActions({
     });
   }
 
+  function handleActivateConfirm() {
+    setActivateError(null);
+    startTransition(async () => {
+      const activateResult = await setPersonnelStatus(personnelId, true);
+      if (!activateResult.success) {
+        setActivateError(activateResult.message ?? "Activeren mislukt.");
+        return;
+      }
+      setIsActive(true);
+      setActivateOpen(false);
+      toast.success("Account geactiveerd");
+      // Resend invite whenever there is no active portal account yet
+      // (covers both "never invited" and "invite expired" states)
+      if (!hasPortalAccount) {
+        const inviteResult = await invitePersonnel(personnelId);
+        if (inviteResult.success) {
+          setLocalInviteSent(true);
+          toast.success("Uitnodiging verstuurd");
+        }
+      }
+    });
+  }
+
   return (
     <>
       <div className="flex items-center gap-2 flex-wrap">
 
+        {/* ── Inactive badge + activate button ────────────────────────── */}
+        {!isActive && (
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => { setActivateOpen(true); setActivateError(null); }}
+            disabled={isPending}
+            className="border-green-200 text-green-700 hover:bg-green-50 hover:text-green-800"
+          >
+            {isPending ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <UserCheck className="mr-1.5 h-4 w-4" />
+            )}
+            Activeer account
+          </Button>
+        )}
+
         {/* ── Invite / account section ────────────────────────────────── */}
-        {isActive ? (
+        {hasPortalAccount ? (
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 text-sm font-medium" style={{ color: "#00B7B3" }}>
               <CheckCircle2 className="h-4 w-4" />
@@ -152,6 +198,33 @@ export function PersonnelDetailActions({
           Bewerken
         </Button>
       </div>
+
+      {/* ── Activate confirmation dialog ────────────────────────────── */}
+      <AlertDialog open={activateOpen} onOpenChange={setActivateOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Account activeren?</AlertDialogTitle>
+            <AlertDialogDescription>
+              <strong>{personnelName}</strong> wordt opnieuw ingesteld als actief.
+              {!hasPortalAccount && (
+                <> Er wordt ook een nieuwe uitnodiging gestuurd naar <strong>{personnelEmail}</strong>.</>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {activateError && (
+            <p className="text-sm font-medium" style={{ color: "#E02D3C" }}>
+              {activateError}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setActivateError(null)}>Annuleren</AlertDialogCancel>
+            <AlertDialogAction onClick={handleActivateConfirm} disabled={isPending}>
+              {isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              Activeren
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ── Invite confirmation dialog ─────────────────────────────── */}
       <AlertDialog open={inviteOpen} onOpenChange={setInviteOpen}>
