@@ -39,6 +39,8 @@ export type CustomerRow = {
   status: string;
   customerTypeName: string | null;
   customerTypeId: string | null;
+  accountManagerId: string | null;
+  accountManagerName: string | null;
   createdAt: string;
 };
 
@@ -225,22 +227,26 @@ export async function listCustomers(params: {
   const [rows, countRows] = await Promise.all([
     db
       .select({
-        id:               customersTable.id,
-        name:             customersTable.name,
-        code:             customersTable.code,
-        sectorId:         customersTable.sectorId,
-        sectorName:       sectorsTable.name,
-        city:             customersTable.city,
-        contactEmail:     customersTable.contactEmail,
-        isActive:         customersTable.isActive,
-        status:           customersTable.status,
-        customerTypeId:   customersTable.customerTypeId,
-        customerTypeName: customerTypesTable.name,
-        createdAt:        customersTable.createdAt,
+        id:                      customersTable.id,
+        name:                    customersTable.name,
+        code:                    customersTable.code,
+        sectorId:                customersTable.sectorId,
+        sectorName:              sectorsTable.name,
+        city:                    customersTable.city,
+        contactEmail:            customersTable.contactEmail,
+        isActive:                customersTable.isActive,
+        status:                  customersTable.status,
+        customerTypeId:          customersTable.customerTypeId,
+        customerTypeName:        customerTypesTable.name,
+        accountManagerId:        customersTable.accountManagerId,
+        accountManagerFirstName: personnelTable.firstName,
+        accountManagerLastName:  personnelTable.lastName,
+        createdAt:               customersTable.createdAt,
       })
       .from(customersTable)
-      .leftJoin(sectorsTable,      eq(customersTable.sectorId,       sectorsTable.id))
-      .leftJoin(customerTypesTable, eq(customersTable.customerTypeId, customerTypesTable.id))
+      .leftJoin(sectorsTable,      eq(customersTable.sectorId,          sectorsTable.id))
+      .leftJoin(customerTypesTable, eq(customersTable.customerTypeId,   customerTypesTable.id))
+      .leftJoin(personnelTable,     eq(customersTable.accountManagerId, personnelTable.id))
       .where(where)
       .orderBy(orderBy)
       .limit(PAGE_SIZE)
@@ -253,7 +259,28 @@ export async function listCustomers(params: {
   ]);
 
   return {
-    rows: rows.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
+    rows: rows.map((r) => {
+      const accountManagerName =
+        r.accountManagerFirstName || r.accountManagerLastName
+          ? `${r.accountManagerFirstName ?? ""} ${r.accountManagerLastName ?? ""}`.trim()
+          : null;
+      return {
+        id:               r.id,
+        name:             r.name,
+        code:             r.code,
+        sectorId:         r.sectorId,
+        sectorName:       r.sectorName,
+        city:             r.city,
+        contactEmail:     r.contactEmail,
+        isActive:         r.isActive,
+        status:           r.status,
+        customerTypeId:   r.customerTypeId,
+        customerTypeName: r.customerTypeName,
+        accountManagerId: r.accountManagerId,
+        accountManagerName,
+        createdAt:        r.createdAt.toISOString(),
+      };
+    }),
     total: countRows[0]?.total ?? 0,
   };
 }

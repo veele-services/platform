@@ -355,7 +355,7 @@ export function CustomersView({
     });
   }
 
-  const colSpan = canWrite ? 8 : 7;
+  const colSpan = canWrite ? 9 : 8;
 
   return (
     <>
@@ -564,8 +564,9 @@ export function CustomersView({
                 <SortHeader label="Code"     columnKey="code"      currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
                 <SortHeader label="Naam"     columnKey="name"      currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Sector</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Type</th>
+                <th className="hidden lg:table-cell px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Type</th>
                 <SortHeader label="Stad"     columnKey="city"      currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
+                <th className="hidden xl:table-cell px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Accountmanager</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Status</th>
                 <th className="w-12 px-4 py-3" />
               </tr>
@@ -602,7 +603,7 @@ export function CustomersView({
                     <td className="px-4 py-3 text-sm" style={{ color: "#64748B" }}>
                       {row.sectorName ?? "—"}
                     </td>
-                    <td className="px-4 py-3 text-sm" style={{ color: "#64748B" }}>
+                    <td className="hidden lg:table-cell px-4 py-3 text-sm" style={{ color: "#64748B" }}>
                       {row.customerTypeName ? (
                         <span
                           className="text-xs px-2 py-0.5 rounded-full font-medium"
@@ -616,6 +617,9 @@ export function CustomersView({
                     </td>
                     <td className="px-4 py-3 text-sm" style={{ color: "#64748B" }}>
                       {row.city ?? "—"}
+                    </td>
+                    <td className="hidden xl:table-cell px-4 py-3 text-sm" style={{ color: "#64748B" }}>
+                      {row.accountManagerName ?? "—"}
                     </td>
                     <td className="px-4 py-3">
                       <CustomerStatusBadge status={row.status} />
