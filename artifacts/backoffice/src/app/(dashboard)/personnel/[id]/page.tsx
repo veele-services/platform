@@ -3,7 +3,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft, Mail, Phone, MapPin, Calendar,
-  CheckCircle2, XCircle, ClipboardList,
+  CheckCircle2, XCircle, ClipboardList, Building2,
+  Briefcase, AlertCircle, FileText,
 } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
@@ -12,12 +13,17 @@ import { PersonnelDetailActions } from "@/components/personnel/PersonnelDetailAc
 import { PersonnelCompetenciesEditButton } from "@/components/personnel/PersonnelCompetenciesEditButton";
 import { AssignmentHistoryTable } from "@/components/assignments/AssignmentHistoryTable";
 import { EntityDocumentsPanel } from "@/components/documents/EntityDocumentsPanel";
-import { getPersonnel, listRoles, getPersonnelAuthStatus } from "@/app/actions/personnel";
+import { getPersonnel, listRoles, getPersonnelAuthStatus, getLinkedObjects } from "@/app/actions/personnel";
 import { getAvailabilityWindows, listLeavePeriods } from "@/app/actions/availability";
 import { BeschikbaarheidView } from "@/components/personnel/BeschikbaarheidView";
 import { PersonnelPortalAccessCard } from "@/components/personnel/PersonnelPortalAccessCard";
 import { listAssignmentsForPersonnel } from "@/app/actions/assignments";
 import { listDocuments } from "@/app/actions/documents";
+import {
+  PERSONNEL_TYPE_LABELS,
+  PERSONNEL_TYPE_COLORS,
+  type PersonnelType,
+} from "@/types/personnel";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -48,7 +54,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
     hasPermission("documents", "write"),
   ]);
 
-  const [person, roles, windows, leavePeriods, assignmentHistory, documents, authStatus] = await Promise.all([
+  const [person, roles, windows, leavePeriods, assignmentHistory, documents, authStatus, linkedObjects] = await Promise.all([
     getPersonnel(id),
     listRoles(),
     getAvailabilityWindows(id),
@@ -56,11 +62,19 @@ export default async function PersonnelDetailPage({ params }: Props) {
     listAssignmentsForPersonnel(id),
     listDocuments({ entityType: "personnel", entityId: id }),
     getPersonnelAuthStatus(id),
+    getLinkedObjects(id),
   ]);
 
   if (!person) notFound();
 
   const fullName = `${person.firstName} ${person.lastName}`;
+
+  const typeLabel = person.personnelType
+    ? (PERSONNEL_TYPE_LABELS[person.personnelType as PersonnelType] ?? person.personnelType)
+    : null;
+  const typeColor = person.personnelType
+    ? PERSONNEL_TYPE_COLORS[person.personnelType as PersonnelType]
+    : null;
 
   return (
     <div className="p-8 max-w-5xl">
@@ -83,6 +97,14 @@ export default async function PersonnelDetailPage({ params }: Props) {
               <span className="font-mono text-xs rounded px-1.5 py-0.5 bg-slate-100" style={{ color: "#475569" }}>
                 {person.code}
               </span>
+              {typeLabel && typeColor && (
+                <span
+                  className="text-xs font-semibold px-2.5 py-0.5 rounded"
+                  style={{ backgroundColor: typeColor.bg, color: typeColor.color }}
+                >
+                  {typeLabel}
+                </span>
+              )}
               {person.roleName && (
                 <span
                   className="text-xs font-semibold px-2.5 py-0.5 rounded"
@@ -92,6 +114,15 @@ export default async function PersonnelDetailPage({ params }: Props) {
                 </span>
               )}
               <StatusBadge isActive={person.isActive} />
+              {person.emergencyAvailable && (
+                <span
+                  className="inline-flex items-center gap-1 text-xs font-semibold px-2.5 py-0.5 rounded"
+                  style={{ backgroundColor: "#FEE2E2", color: "#DC2626" }}
+                >
+                  <AlertCircle className="h-3 w-3" />
+                  Spoedsbeschikbaar
+                </span>
+              )}
             </div>
             <p className="mt-0.5 text-sm" style={{ color: "#64748B" }}>{person.email}</p>
           </div>
@@ -154,7 +185,26 @@ export default async function PersonnelDetailPage({ params }: Props) {
                 />
               )}
               {person.region && (
-                <InfoRow icon={<MapPin className="h-4 w-4" />} label="Regio" value={person.region} />
+                <InfoRow icon={<MapPin className="h-4 w-4" />} label="Primaire regio" value={person.region} />
+              )}
+              {person.preferredRegions.length > 0 && (
+                <InfoRow
+                  icon={<MapPin className="h-4 w-4" />}
+                  label="Voorkeurregio's"
+                  value={
+                    <div className="flex flex-wrap gap-1">
+                      {person.preferredRegions.map((r) => (
+                        <span
+                          key={r}
+                          className="inline-block rounded px-1.5 py-0.5 text-xs"
+                          style={{ backgroundColor: "#F1F5F9", color: "#64748B" }}
+                        >
+                          {r}
+                        </span>
+                      ))}
+                    </div>
+                  }
+                />
               )}
             </dl>
           </div>
@@ -174,11 +224,57 @@ export default async function PersonnelDetailPage({ params }: Props) {
               )}
             </div>
             <div className="space-y-4">
-              <QualSection label="Certificaten" tags={person.certificates} color="#0A7E7A" bg="#E0FAFB" />
+              <QualSection label="Certificaten" tags={person.certificates.map((c) => c.name)} color="#0A7E7A" bg="#E0FAFB" />
               <QualSection label="Diploma&apos;s"    tags={person.diplomas}     color="#5A3B9A" bg="#F0EBFF" />
               <QualSection label="Kennis"       tags={person.knowledge}    color="#7C5A00" bg="#FFF7E0" />
             </div>
           </div>
+
+          {/* Contract info */}
+          {person.contractInfo && (
+            <div className="veele-card">
+              <div className="flex items-center gap-2 mb-4">
+                <FileText className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                <h2 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
+                  Contractgegevens
+                </h2>
+              </div>
+              <dl className="space-y-3">
+                {person.contractInfo.contract_type && (
+                  <InfoRow
+                    icon={<Briefcase className="h-4 w-4" />}
+                    label="Contracttype"
+                    value={person.contractInfo.contract_type}
+                  />
+                )}
+                {person.contractInfo.start_date && (
+                  <InfoRow
+                    icon={<Calendar className="h-4 w-4" />}
+                    label="Startdatum"
+                    value={new Date(person.contractInfo.start_date).toLocaleDateString("nl-NL", {
+                      day: "2-digit", month: "long", year: "numeric",
+                    })}
+                  />
+                )}
+                {person.contractInfo.end_date && (
+                  <InfoRow
+                    icon={<Calendar className="h-4 w-4" />}
+                    label="Einddatum"
+                    value={new Date(person.contractInfo.end_date).toLocaleDateString("nl-NL", {
+                      day: "2-digit", month: "long", year: "numeric",
+                    })}
+                  />
+                )}
+                {person.contractInfo.hours_per_week != null && (
+                  <InfoRow
+                    icon={<ClipboardList className="h-4 w-4" />}
+                    label="Uren per week"
+                    value={`${person.contractInfo.hours_per_week} uur`}
+                  />
+                )}
+              </dl>
+            </div>
+          )}
         </div>
 
         {/* ── Right column ─────────────────────────────── */}
@@ -217,6 +313,38 @@ export default async function PersonnelDetailPage({ params }: Props) {
               authStatus={authStatus}
               inviteSentAt={person.inviteSentAt}
             />
+          )}
+
+          {/* Gekoppelde objecten */}
+          {linkedObjects.length > 0 && (
+            <div className="veele-card">
+              <div className="flex items-center gap-2 mb-4">
+                <Building2 className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                <h2 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
+                  Gekoppelde objecten
+                </h2>
+              </div>
+              <div className="flex flex-col gap-2">
+                {linkedObjects.map((obj) => (
+                  <Link
+                    key={obj.objectId}
+                    href={`/objects/${obj.objectId}`}
+                    className="flex items-start gap-2 rounded-lg p-2 transition-colors hover:bg-slate-50"
+                    style={{ border: "1px solid #F1F5F9" }}
+                  >
+                    <Building2 className="h-3.5 w-3.5 mt-0.5 flex-shrink-0" style={{ color: "#94A3B8" }} />
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate" style={{ color: "#081D3A" }}>
+                        {obj.objectName}
+                      </p>
+                      <p className="text-xs truncate" style={{ color: "#94A3B8" }}>
+                        {obj.customerName}{obj.city ? ` · ${obj.city}` : ""}
+                      </p>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </div>
           )}
         </div>
       </div>

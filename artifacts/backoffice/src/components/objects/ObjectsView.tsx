@@ -17,6 +17,7 @@ import {
   Trash2,
   ToggleLeft,
   ToggleRight,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -61,7 +62,6 @@ import {
   type ObjectRow,
   type CustomerOption,
 } from "@/app/actions/objects";
-import type { SectorOption } from "@/app/actions/customers";
 
 const PAGE_SIZE = 25;
 const SORTABLE = ["name", "code", "city", "createdAt"] as const;
@@ -108,30 +108,30 @@ function SortHeader({
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface ObjectsViewProps {
-  rows:              ObjectRow[];
-  total:             number;
-  sectors:           SectorOption[];
-  customers:         CustomerOption[];
-  canWrite:          boolean;
-  page:              number;
-  initialSearch:     string;
-  initialCustomerId: string;
-  initialSectorId:   string;
-  initialStatus:     string;
-  initialSort:       string;
-  initialDir:        string;
+  rows:                ObjectRow[];
+  total:               number;
+  customers:           CustomerOption[];
+  canWrite:            boolean;
+  page:                number;
+  initialSearch:       string;
+  initialCustomerId:   string;
+  initialServiceType:  string;
+  initialRegion:       string;
+  initialStatus:       string;
+  initialSort:         string;
+  initialDir:          string;
 }
 
 export function ObjectsView({
   rows,
   total,
-  sectors,
   customers,
   canWrite,
   page,
   initialSearch,
   initialCustomerId,
-  initialSectorId,
+  initialServiceType,
+  initialRegion,
   initialStatus,
   initialSort,
   initialDir,
@@ -151,13 +151,14 @@ export function ObjectsView({
   function buildUrl(overrides: Record<string, string | undefined>): string {
     const params = new URLSearchParams();
     const merged: Record<string, string | undefined> = {
-      search:     initialSearch     || undefined,
-      customerId: initialCustomerId || undefined,
-      sectorId:   initialSectorId   || undefined,
-      status:     initialStatus !== "all" ? initialStatus : undefined,
-      sort:       initialSort   !== "name" ? initialSort : undefined,
-      dir:        initialDir    !== "asc"  ? initialDir  : undefined,
-      page:       page > 1 ? String(page) : undefined,
+      search:      initialSearch      || undefined,
+      customerId:  initialCustomerId  || undefined,
+      serviceType: initialServiceType || undefined,
+      region:      initialRegion      || undefined,
+      status:      initialStatus !== "all" ? initialStatus : undefined,
+      sort:        initialSort   !== "name" ? initialSort : undefined,
+      dir:         initialDir    !== "asc"  ? initialDir  : undefined,
+      page:        page > 1 ? String(page) : undefined,
       ...overrides,
     };
     Object.entries(merged).forEach(([k, v]) => { if (v) params.set(k, v); });
@@ -242,6 +243,7 @@ export function ObjectsView({
     <>
       {/* Toolbar */}
       <div className="flex items-center gap-3 mb-5 flex-wrap">
+        {/* Search */}
         <form
           onSubmit={handleSearchSubmit}
           className="flex items-center gap-2 flex-1 min-w-[200px] max-w-xs"
@@ -263,42 +265,13 @@ export function ObjectsView({
           </Button>
         </form>
 
-        <Select
-          value={initialCustomerId || "ALL"}
-          onValueChange={(v) => applyFilter("customerId", v === "ALL" ? "" : v)}
-        >
-          <SelectTrigger className="w-[180px] h-9">
-            <SelectValue placeholder="Alle klanten" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">Alle klanten</SelectItem>
-            {customers.map((c) => (
-              <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
-        <Select
-          value={initialSectorId || "ALL"}
-          onValueChange={(v) => applyFilter("sectorId", v === "ALL" ? "" : v)}
-        >
-          <SelectTrigger className="w-[160px] h-9">
-            <SelectValue placeholder="Alle sectoren" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">Alle sectoren</SelectItem>
-            {sectors.map((s) => (
-              <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-
+        {/* Status filter */}
         <Select
           value={initialStatus || "all"}
           onValueChange={(v) => applyFilter("status", v === "all" ? "" : v)}
         >
           <SelectTrigger className="w-[130px] h-9">
-            <SelectValue placeholder="Alle statussen" />
+            <SelectValue placeholder="Status" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="all">Alle statussen</SelectItem>
@@ -306,6 +279,38 @@ export function ObjectsView({
             <SelectItem value="inactive">Inactief</SelectItem>
           </SelectContent>
         </Select>
+
+        {/* Service type filter */}
+        <div className="relative">
+          <Input
+            value={initialServiceType}
+            onChange={(e) => applyFilter("serviceType", e.target.value)}
+            placeholder="Diensttype..."
+            className="w-[150px] h-9"
+          />
+        </div>
+
+        {/* Region / city filter */}
+        <div className="relative">
+          <Input
+            value={initialRegion}
+            onChange={(e) => applyFilter("region", e.target.value)}
+            placeholder="Regio / stad..."
+            className="w-[140px] h-9"
+          />
+        </div>
+
+        {/* Customer filter — secondary, used when coming from customer pages */}
+        {initialCustomerId && (
+          <Button
+            variant="outline"
+            size="sm"
+            className="h-9"
+            onClick={() => applyFilter("customerId", "")}
+          >
+            Klantfilter ×
+          </Button>
+        )}
 
         <div className="ml-auto flex items-center gap-2">
           {canWrite && (
@@ -354,14 +359,7 @@ export function ObjectsView({
                   </th>
                 )}
                 <SortHeader
-                  label="Code"
-                  columnKey="code"
-                  currentSort={initialSort}
-                  currentDir={initialDir}
-                  onSort={handleSort}
-                />
-                <SortHeader
-                  label="Naam"
+                  label="Object"
                   columnKey="name"
                   currentSort={initialSort}
                   currentDir={initialDir}
@@ -371,21 +369,20 @@ export function ObjectsView({
                   className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
                   style={{ color: "#64748B" }}
                 >
-                  Klant
+                  Adres
                 </th>
                 <th
                   className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
                   style={{ color: "#64748B" }}
                 >
-                  Sector
+                  Diensttype
                 </th>
-                <SortHeader
-                  label="Stad"
-                  columnKey="city"
-                  currentSort={initialSort}
-                  currentDir={initialDir}
-                  onSort={handleSort}
-                />
+                <th
+                  className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
+                  style={{ color: "#64748B" }}
+                >
+                  Eerstvolgende dienst
+                </th>
                 <th
                   className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider"
                   style={{ color: "#64748B" }}
@@ -399,7 +396,7 @@ export function ObjectsView({
               {rows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={canWrite ? 8 : 7}
+                    colSpan={canWrite ? 7 : 6}
                     className="px-4 py-12 text-center text-sm"
                     style={{ color: "#94A3B8" }}
                   >
@@ -407,103 +404,143 @@ export function ObjectsView({
                   </td>
                 </tr>
               ) : (
-                rows.map((row, i) => (
-                  <tr
-                    key={row.id}
-                    className="transition-colors hover:bg-slate-50/60"
-                    style={{
-                      borderBottom:
-                        i < rows.length - 1 ? "1px solid #F1F5F9" : undefined,
-                    }}
-                  >
-                    {canWrite && (
-                      <td className="pl-4 py-3">
-                        <Checkbox
-                          checked={selected.has(row.id)}
-                          onCheckedChange={() => toggleOne(row.id)}
-                        />
-                      </td>
-                    )}
-                    <td className="px-4 py-3">
-                      <span className="inline-block font-mono text-xs rounded px-1.5 py-0.5 bg-slate-100" style={{ color: "#475569" }}>
-                        {row.code}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 font-medium text-sm" style={{ color: "#081D3A" }}>
-                      {row.name}
-                    </td>
-                    <td className="px-4 py-3 text-sm">
-                      {row.customerName ? (
-                        <Link
-                          href={`/customers/${row.customerId}`}
-                          className="hover:underline"
-                          style={{ color: "#00B7B3" }}
-                        >
-                          {row.customerName}
-                        </Link>
-                      ) : (
-                        "—"
+                rows.map((row, i) => {
+                  const fullAddress = [row.address, row.city]
+                    .filter(Boolean)
+                    .join(", ");
+
+                  return (
+                    <tr
+                      key={row.id}
+                      className="transition-colors hover:bg-slate-50/60"
+                      style={{
+                        borderBottom:
+                          i < rows.length - 1 ? "1px solid #F1F5F9" : undefined,
+                      }}
+                    >
+                      {canWrite && (
+                        <td className="pl-4 py-3">
+                          <Checkbox
+                            checked={selected.has(row.id)}
+                            onCheckedChange={() => toggleOne(row.id)}
+                          />
+                        </td>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-sm" style={{ color: "#64748B" }}>
-                      {row.sectorName ?? "—"}
-                    </td>
-                    <td className="px-4 py-3 text-sm" style={{ color: "#64748B" }}>
-                      {row.city ?? "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge isActive={row.isActive} />
-                    </td>
-                    <td className="pr-4 py-3 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Menu openen</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {canWrite && (
-                            <>
-                              <DropdownMenuItem onSelect={() => openEdit(row.id)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Bewerken
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onSelect={() =>
-                                  handleStatusToggle(row.id, row.isActive)
-                                }
-                              >
-                                {row.isActive ? (
-                                  <>
-                                    <ToggleLeft className="mr-2 h-4 w-4" />
-                                    Deactiveren
-                                  </>
-                                ) : (
-                                  <>
-                                    <ToggleRight className="mr-2 h-4 w-4" />
-                                    Activeren
-                                  </>
-                                )}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onSelect={() =>
-                                  setDeleteTarget({ id: row.id, name: row.name })
-                                }
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Verwijderen
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
-                  </tr>
-                ))
+
+                      {/* Object (name + type icon + code) */}
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <div
+                            className="flex-shrink-0 flex items-center justify-center rounded-lg h-8 w-8"
+                            style={{ backgroundColor: "#E0FAFB" }}
+                          >
+                            <Building2 className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                          </div>
+                          <div className="min-w-0">
+                            <Link
+                              href={`/objects/${row.id}`}
+                              className="text-sm font-medium hover:underline block truncate max-w-[180px]"
+                              style={{ color: "#081D3A" }}
+                            >
+                              {row.name}
+                            </Link>
+                            <span className="font-mono text-xs" style={{ color: "#94A3B8" }}>
+                              {row.code}
+                            </span>
+                          </div>
+                        </div>
+                      </td>
+
+                      {/* Address */}
+                      <td className="px-4 py-3 text-sm" style={{ color: "#64748B" }}>
+                        {fullAddress || "—"}
+                      </td>
+
+                      {/* Service type */}
+                      <td className="px-4 py-3 text-sm" style={{ color: "#64748B" }}>
+                        {row.serviceType ? (
+                          <span
+                            className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
+                            style={{ backgroundColor: "#EEF2FF", color: "#3730A3" }}
+                          >
+                            {row.serviceType}
+                          </span>
+                        ) : (
+                          "—"
+                        )}
+                      </td>
+
+                      {/* Next service */}
+                      <td className="px-4 py-3 text-sm" style={{ color: "#64748B" }}>
+                        {row.nextServiceDate
+                          ? new Date(row.nextServiceDate).toLocaleDateString("nl-NL", {
+                              day: "numeric",
+                              month: "short",
+                              year: "numeric",
+                            })
+                          : "—"}
+                      </td>
+
+                      {/* Status */}
+                      <td className="px-4 py-3">
+                        <StatusBadge isActive={row.isActive} />
+                      </td>
+
+                      {/* Actions */}
+                      <td className="pr-4 py-3 text-right">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                              <MoreHorizontal className="h-4 w-4" />
+                              <span className="sr-only">Menu openen</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/objects/${row.id}`}>
+                                Bekijken
+                              </Link>
+                            </DropdownMenuItem>
+                            {canWrite && (
+                              <>
+                                <DropdownMenuItem onSelect={() => openEdit(row.id)}>
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Bewerken
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onSelect={() => handleStatusToggle(row.id, row.isActive)}
+                                >
+                                  {row.isActive ? (
+                                    <>
+                                      <ToggleLeft className="mr-2 h-4 w-4" />
+                                      Deactiveren
+                                    </>
+                                  ) : (
+                                    <>
+                                      <ToggleRight className="mr-2 h-4 w-4" />
+                                      Activeren
+                                    </>
+                                  )}
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  onSelect={() =>
+                                    setDeleteTarget({ id: row.id, name: row.name })
+                                  }
+                                  className="text-destructive focus:text-destructive"
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />
+                                  Verwijderen
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
@@ -551,7 +588,7 @@ export function ObjectsView({
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent
           side="right"
-          className="w-[520px] sm:max-w-[520px] overflow-y-auto"
+          className="w-[560px] sm:max-w-[560px] overflow-y-auto"
         >
           <SheetHeader>
             <SheetTitle>{editingId ? "Object bewerken" : "Nieuw object"}</SheetTitle>
@@ -564,7 +601,7 @@ export function ObjectsView({
           <ObjectForm
             mode={editingId ? "edit" : "create"}
             objectId={editingId ?? undefined}
-            sectors={sectors}
+            sectors={[]}
             customers={customers}
             onSuccess={handleFormSuccess}
             onCancel={() => setSheetOpen(false)}

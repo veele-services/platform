@@ -1,0 +1,52 @@
+/home/deploy/.pm2/logs/veele-personeel-out.log last 15 lines:
+1095|veele |    ▲ Next.js 15.5.18
+1095|veele |    - Local:        http://localhost:3002
+1095|veele |    - Network:      http://0.0.0.0:3002
+1095|veele |
+1095|veele |  ✓ Starting...
+1095|veele |  ✓ Ready in 514ms
+1095|veele | /var/www/veele/artifacts/personeel-pwa:
+1095|veele | [ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @workspace/personeel-pwa@0.0.0 start: `next start -H 0.0.0.0 -p $PORT`
+1095|veele | Command failed with signal "SIGINT"
+1095|veele |    ▲ Next.js 15.5.18
+1095|veele |    - Local:        http://localhost:3002
+1095|veele |    - Network:      http://0.0.0.0:3002
+1095|veele |
+1095|veele |  ✓ Starting...
+1095|veele |  ✓ Ready in 1270ms
+
+1094|veele  |  ⨯ Error: Failed query: select "id", "naam", "adres", "kvk_nummer", "btw_nummer", "logo_url", "betaaltermijn_dagen", "email_afzender", "notif_rapport_goedgekeurd", "notif_rapport_afgekeurd", "notif_offerte_verstuurd", "notif_offerte_verlopen", "notif_betaling_herinnering", "notif_herinnering_dagen", "updated_at", "updated_by" from "organization_settings" limit $1
+1094|veele  | params: 1
+1094|veele  |     at ay.queryWithCache (.next/server/chunks/1173.js:33:36837)
+1094|veele  |     at async (.next/server/chunks/1173.js:33:39934)
+1094|veele  |     at async m (.next/server/chunks/6197.js:1:4055)
+1094|veele  |     at async j (.next/server/app/(dashboard)/instellingen/organisatie/page.js:2:15222) {
+1094|veele  |   query: 'select "id", "naam", "adres", "kvk_nummer", "btw_nummer", "logo_url", "betaaltermijn_dagen", "email_afzender", "notif_rapport_goedgekeurd", "notif_rapport_afgekeurd", "notif_offerte_verstuurd", "notif_offerte_verlopen", "notif_betaling_herinnering", "notif_herinnering_dagen", "updated_at", "updated_by" from "organization_settings" limit $1',
+1094|veele  |   params: [Array],
+1094|veele  |   digest: '2746553888',
+1094|veele  |   [cause]: error: column "notif_rapport_goedgekeurd" does not exist
+1094|veele  |       at <unknown> (.next/server/chunks/1173.js:177:50400)
+1094|veele  |       at async (.next/server/chunks/1173.js:33:40144)
+1094|veele  |       at async ay.queryWithCache (.next/server/chunks/1173.js:33:36812)
+1094|veele  |       at async (.next/server/chunks/1173.js:33:39934)
+1094|veele  |       at async m (.next/server/chunks/6197.js:1:4055)
+1094|veele  |       at async j (.next/server/app/(dashboard)/instellingen/organisatie/page.js:2:15222) {
+1094|veele  |     length: 126,
+1094|veele  |     severity: 'ERROR',
+1094|veele  |     code: '42703',
+1094|veele  |     detail: undefined,
+1094|veele  |     hint: undefined,
+1094|veele  |     position: '112',
+1094|veele  |     internalPosition: undefined,
+1094|veele  |     internalQuery: undefined,
+1094|veele  |     where: undefined,
+1094|veele  |     schema: undefined,
+1094|veele  |     table: undefined,
+1094|veele  |     column: undefined,
+1094|veele  |     dataType: undefined,
+1094|veele  |     constraint: undefined,
+1094|veele  |     file: 'parse_relation.c',
+1094|veele  |     line: '3716',
+1094|veele  |     routine: 'errorMissingColumn'
+1094|veele  |   }
+1094|veele  | }

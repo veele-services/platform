@@ -5,7 +5,9 @@ import {
   text,
   boolean,
   timestamp,
+  jsonb,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { customersTable } from "./customers";
@@ -30,6 +32,22 @@ export const objectsTable = pgTable("objects", {
 
   description: text("description"),
   isActive:    boolean("is_active").notNull().default(true),
+
+  // ── Primary contact (single, quick-access) ────────────────────────────────
+  contactName:     varchar("contact_name",     { length: 200 }),
+  contactFunction: varchar("contact_function", { length: 100 }),
+  contactPhone:    varchar("contact_phone",    { length: 50 }),
+  contactEmail:    varchar("contact_email",    { length: 255 }),
+
+  // ── Extended fields (migration 023) ────────────────────────────────────────
+  serviceType:           varchar("service_type", { length: 100 }),
+  accessInfo:            text("access_info"),
+  keyInfo:               text("key_info"),
+  alarmInfo:             text("alarm_info"),
+  fixedInstructions:     text("fixed_instructions"),
+  specialNotes:          text("special_notes"),
+  requiredRoles:         jsonb("required_roles").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  requiredCertificates:  jsonb("required_certificates").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
 
   createdAt:   timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:   timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

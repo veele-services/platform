@@ -1038,7 +1038,8 @@ export async function getPersonnelEligibilityForAssignment(
       return windowCoverageMap.get(p.id) ?? false;
     })();
 
-    const personCerts    = (p.certificates ?? []) as string[];
+    const personCerts    = ((p.certificates ?? []) as { name: string; expires_at?: string }[] | string[])
+      .map((c) => typeof c === "string" ? c : c.name);
     const personDiplomas = (p.diplomas     ?? []) as string[];
     const personKnow     = (p.knowledge    ?? []) as string[];
 
@@ -2012,6 +2013,38 @@ export async function listAssignmentsForCustomer(
     .from(assignmentsTable)
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
     .where(eq(assignmentsTable.customerId, customerId))
+    .orderBy(desc(assignmentsTable.scheduledDate))
+    .limit(limit);
+
+  return rows.map((r) => ({
+    id:            r.id,
+    code:          r.code,
+    title:         r.title,
+    status:        r.status        as AssignmentStatus,
+    scheduledDate: r.scheduledDate ?? null,
+    objectName:    r.objectName    ?? null,
+  }));
+}
+
+export async function listAssignmentsForObject(
+  objectId: string,
+  limit = 50,
+): Promise<AssignmentHistoryRow[]> {
+  const canRead = await hasPermission("assignments", "read");
+  if (!canRead) return [];
+
+  const rows = await db
+    .select({
+      id:            assignmentsTable.id,
+      code:          assignmentsTable.code,
+      title:         assignmentsTable.title,
+      status:        assignmentsTable.status,
+      scheduledDate: assignmentsTable.scheduledDate,
+      objectName:    objectsTable.name,
+    })
+    .from(assignmentsTable)
+    .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
+    .where(eq(assignmentsTable.objectId, objectId))
     .orderBy(desc(assignmentsTable.scheduledDate))
     .limit(limit);
 

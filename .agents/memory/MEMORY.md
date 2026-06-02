@@ -5,3 +5,4 @@
 - [Replit workflow port detection](replit-workflow-ports.md) — restart_workflow requires --turbopack for Next.js dev; bind to 0.0.0.0 and add a public /healthz route; set dev health check path in artifact.toml.
 - [klant-pwa customer portal pattern](klant-pwa-pattern.md) — new Next.js PWA at /klant/ (port 3003); customers identified by contact_email; verifyAndReplaceArtifactToml requires real file to exist first; STATUS_LABEL/STATUS_COLOR belong in src/types/ not "use server" actions.
 - [Werkbon-module](werkbon-module.md) — extra work + photo upload pattern; direct-to-storage browser upload, signed URLs via admin client, drizzle + isLinked() auth guard.
+- [drizzle-zod jsonb typed cast](drizzle-zod-jsonb-cast.md) — drizzle-zod generates `Json` for jsonb columns; typed jsonb fields (e.g. contractInfo) must be cast `as SpecificType | null` before insert/update to avoid TS2345/TS2769.

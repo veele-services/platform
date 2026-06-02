@@ -38,8 +38,12 @@ export const personnelTable = pgTable("personnel", {
   roleId:       uuid("role_id").references(() => rolesTable.id, { onDelete: "set null" }),
   region:       varchar("region", { length: 100 }),
 
-  /** Arrays of string identifiers, e.g. ["VCA", "BHV"] */
-  certificates: jsonb("certificates").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  /**
+   * Certificates with optional expiry date.
+   * Shape: [{ name: string; expires_at?: string (ISO date) }]
+   * Migration 025 converts the legacy string[] format.
+   */
+  certificates: jsonb("certificates").$type<{ name: string; expires_at?: string }[]>().notNull().default(sql`'[]'::jsonb`),
   diplomas:     jsonb("diplomas").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
   knowledge:    jsonb("knowledge").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
 
@@ -53,6 +57,21 @@ export const personnelTable = pgTable("personnel", {
    * user_id NOT NULL = account activated (linked on first PWA login).
    */
   inviteSentAt: timestamp("invite_sent_at", { withTimezone: true }),
+
+  // ── Extended fields (migration 024) ────────────────────────────────────────
+  /** Employment type: vast, parttime, flex, oproep, zzp, tijdelijk */
+  personnelType:       varchar("personnel_type", { length: 20 }),
+  /** Available for emergency/urgent assignments outside normal schedule */
+  emergencyAvailable:  boolean("emergency_available").notNull().default(false),
+  /** Additional preferred regions beyond the primary region field */
+  preferredRegions:    jsonb("preferred_regions").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+  /** Contract details: { start_date, end_date, contract_type, hours_per_week } */
+  contractInfo:        jsonb("contract_info").$type<{
+    start_date?:     string;
+    end_date?:       string;
+    contract_type?:  string;
+    hours_per_week?: number;
+  } | null>(),
 
   createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:    timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),

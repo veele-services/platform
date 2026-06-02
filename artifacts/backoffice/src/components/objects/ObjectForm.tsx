@@ -30,6 +30,7 @@ import {
   CommandList,
 } from "@/components/ui/command";
 import { Separator } from "@/components/ui/separator";
+import { TagInput } from "@/components/ui/tag-input";
 import { cn } from "@/lib/utils";
 import {
   getObject,
@@ -43,16 +44,25 @@ import type { SectorOption } from "@/app/actions/customers";
 // ─── Client-side Zod schema ───────────────────────────────────────────────────
 
 const objectFormSchema = z.object({
-  customerId: z.string().min(1, "Klant is verplicht"),
-  sectorId:   z.string(),
-  name: z
-    .string()
-    .min(1, "Naam is verplicht")
-    .max(255, "Naam mag maximaal 255 tekens bevatten"),
-  address:     z.string(),
-  city:        z.string().max(100, "Stad mag maximaal 100 tekens bevatten"),
-  postalCode:  z.string().max(20, "Postcode mag maximaal 20 tekens bevatten"),
-  description: z.string(),
+  customerId:           z.string().min(1, "Klant is verplicht"),
+  sectorId:             z.string(),
+  name:                 z.string().min(1, "Naam is verplicht").max(255, "Naam mag maximaal 255 tekens bevatten"),
+  address:              z.string(),
+  city:                 z.string().max(100, "Stad mag maximaal 100 tekens bevatten"),
+  postalCode:           z.string().max(20, "Postcode mag maximaal 20 tekens bevatten"),
+  description:          z.string(),
+  contactName:          z.string(),
+  contactFunction:      z.string(),
+  contactPhone:         z.string(),
+  contactEmail:         z.string(),
+  serviceType:          z.string(),
+  accessInfo:           z.string(),
+  keyInfo:              z.string(),
+  alarmInfo:            z.string(),
+  fixedInstructions:    z.string(),
+  specialNotes:         z.string(),
+  requiredRoles:        z.array(z.string()),
+  requiredCertificates: z.array(z.string()),
 });
 
 type FormValues = z.infer<typeof objectFormSchema>;
@@ -70,13 +80,25 @@ interface ObjectFormProps {
 }
 
 const DEFAULTS: FormValues = {
-  customerId:  "",
-  sectorId:    "",
-  name:        "",
-  address:     "",
-  city:        "",
-  postalCode:  "",
-  description: "",
+  customerId:           "",
+  sectorId:             "",
+  name:                 "",
+  address:              "",
+  city:                 "",
+  postalCode:           "",
+  description:          "",
+  contactName:          "",
+  contactFunction:      "",
+  contactPhone:         "",
+  contactEmail:         "",
+  serviceType:          "",
+  accessInfo:           "",
+  keyInfo:              "",
+  alarmInfo:            "",
+  fixedInstructions:    "",
+  specialNotes:         "",
+  requiredRoles:        [],
+  requiredCertificates: [],
 };
 
 export function ObjectForm({
@@ -108,8 +130,10 @@ export function ObjectForm({
     formState: { errors },
   } = form;
 
-  const customerIdValue = watch("customerId");
-  const sectorIdValue   = watch("sectorId") || "NONE";
+  const customerIdValue      = watch("customerId");
+  const sectorIdValue        = watch("sectorId") || "NONE";
+  const requiredRoles        = watch("requiredRoles");
+  const requiredCertificates = watch("requiredCertificates");
 
   const selectedCustomer = customers.find((c) => c.id === customerIdValue);
 
@@ -119,20 +143,31 @@ export function ObjectForm({
     getObject(objectId).then((o) => {
       if (o) {
         setGeneratedCode(o.code ?? null);
-        setValue("customerId",  o.customerId        ?? "");
-        setValue("sectorId",    o.sectorId          ?? "");
-        setValue("name",        o.name              ?? "");
-        setValue("address",     o.address           ?? "");
-        setValue("city",        o.city              ?? "");
-        setValue("postalCode",  o.postalCode        ?? "");
-        setValue("description", o.description       ?? "");
+        setValue("customerId",           o.customerId            ?? "");
+        setValue("sectorId",             o.sectorId              ?? "");
+        setValue("name",                 o.name                  ?? "");
+        setValue("address",              o.address               ?? "");
+        setValue("city",                 o.city                  ?? "");
+        setValue("postalCode",           o.postalCode            ?? "");
+        setValue("description",          o.description           ?? "");
+        setValue("contactName",          o.contactName           ?? "");
+        setValue("contactFunction",      o.contactFunction       ?? "");
+        setValue("contactPhone",         o.contactPhone          ?? "");
+        setValue("contactEmail",         o.contactEmail          ?? "");
+        setValue("serviceType",          o.serviceType           ?? "");
+        setValue("accessInfo",           o.accessInfo            ?? "");
+        setValue("keyInfo",              o.keyInfo               ?? "");
+        setValue("alarmInfo",            o.alarmInfo             ?? "");
+        setValue("fixedInstructions",    o.fixedInstructions     ?? "");
+        setValue("specialNotes",         o.specialNotes          ?? "");
+        setValue("requiredRoles",        o.requiredRoles         ?? []);
+        setValue("requiredCertificates", o.requiredCertificates  ?? []);
       }
       setLoading(false);
     });
   }, [mode, objectId, setValue]);
 
   const onSubmit = handleSubmit((data) => {
-    // ── Client-side Zod validation ───────────────────
     const parsed = objectFormSchema.safeParse(data);
     if (!parsed.success) {
       for (const issue of parsed.error.issues) {
@@ -145,7 +180,17 @@ export function ObjectForm({
     startTransition(async () => {
       const input: ObjectFormInput = {
         ...parsed.data,
-        sectorId: parsed.data.sectorId === "NONE" ? undefined : parsed.data.sectorId || undefined,
+        sectorId:             parsed.data.sectorId === "NONE" ? undefined : parsed.data.sectorId || undefined,
+        contactName:          parsed.data.contactName          || undefined,
+        contactFunction:      parsed.data.contactFunction      || undefined,
+        contactPhone:         parsed.data.contactPhone         || undefined,
+        contactEmail:         parsed.data.contactEmail         || undefined,
+        serviceType:          parsed.data.serviceType          || undefined,
+        accessInfo:           parsed.data.accessInfo           || undefined,
+        keyInfo:              parsed.data.keyInfo              || undefined,
+        alarmInfo:            parsed.data.alarmInfo            || undefined,
+        fixedInstructions:    parsed.data.fixedInstructions    || undefined,
+        specialNotes:         parsed.data.specialNotes         || undefined,
       };
 
       const result =
@@ -187,7 +232,7 @@ export function ObjectForm({
           Klant
         </p>
         <div className="space-y-1">
-          <Label htmlFor="customerId">
+          <Label>
             Klant <span className="text-destructive">*</span>
           </Label>
           <Popover open={customerOpen} onOpenChange={setCustomerOpen}>
@@ -258,11 +303,10 @@ export function ObjectForm({
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2 space-y-1">
-            <Label htmlFor="name">
+            <Label>
               Naam <span className="text-destructive">*</span>
             </Label>
             <Input
-              id="name"
               {...register("name")}
               placeholder="Objectnaam"
               aria-invalid={!!errors.name}
@@ -286,14 +330,14 @@ export function ObjectForm({
           </div>
 
           <div className="space-y-1">
-            <Label htmlFor="sectorId">Sector</Label>
+            <Label>Sector</Label>
             <Select
               value={sectorIdValue}
               onValueChange={(val) =>
                 setValue("sectorId", val === "NONE" ? "" : val)
               }
             >
-              <SelectTrigger id="sectorId">
+              <SelectTrigger>
                 <SelectValue placeholder="Selecteer sector..." />
               </SelectTrigger>
               <SelectContent>
@@ -305,6 +349,14 @@ export function ObjectForm({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+
+          <div className="col-span-2 space-y-1">
+            <Label>Diensttype</Label>
+            <Input
+              {...register("serviceType")}
+              placeholder="Bijv. Schoonmaak, Beveiliging, Onderhoud..."
+            />
           </div>
         </div>
       </section>
@@ -318,49 +370,120 @@ export function ObjectForm({
         </p>
         <div className="grid grid-cols-2 gap-3">
           <div className="col-span-2 space-y-1">
-            <Label htmlFor="address">Straat &amp; Huisnummer</Label>
-            <Input id="address" {...register("address")} placeholder="Hoofdstraat 1" />
+            <Label>Straat &amp; Huisnummer</Label>
+            <Input {...register("address")} placeholder="Hoofdstraat 1" />
           </div>
           <div className="space-y-1">
-            <Label htmlFor="city">Stad</Label>
-            <Input
-              id="city"
-              {...register("city")}
-              placeholder="Amsterdam"
-              aria-invalid={!!errors.city}
-            />
-            {errors.city && (
-              <p className="text-xs text-destructive">{errors.city.message}</p>
-            )}
+            <Label>Stad</Label>
+            <Input {...register("city")} placeholder="Amsterdam" aria-invalid={!!errors.city} />
+            {errors.city && <p className="text-xs text-destructive">{errors.city.message}</p>}
           </div>
           <div className="space-y-1">
-            <Label htmlFor="postalCode">Postcode</Label>
-            <Input
-              id="postalCode"
-              {...register("postalCode")}
-              placeholder="1234 AB"
-              aria-invalid={!!errors.postalCode}
-            />
-            {errors.postalCode && (
-              <p className="text-xs text-destructive">{errors.postalCode.message}</p>
-            )}
+            <Label>Postcode</Label>
+            <Input {...register("postalCode")} placeholder="1234 AB" aria-invalid={!!errors.postalCode} />
+            {errors.postalCode && <p className="text-xs text-destructive">{errors.postalCode.message}</p>}
           </div>
         </div>
       </section>
 
       <Separator />
 
-      {/* ── Description ───────────────────────────────── */}
+      {/* ── Primary contact ───────────────────────────── */}
       <section>
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Omschrijving
+          Primair contactpersoon
         </p>
-        <Textarea
-          {...register("description")}
-          placeholder="Optionele omschrijving van dit object..."
-          rows={3}
-          className="resize-none"
-        />
+        <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2 space-y-1">
+            <Label>Naam</Label>
+            <Input {...register("contactName")} placeholder="Jan Jansen" />
+          </div>
+          <div className="space-y-1">
+            <Label>Functie</Label>
+            <Input {...register("contactFunction")} placeholder="Facilitair manager" />
+          </div>
+          <div className="space-y-1">
+            <Label>Telefoon</Label>
+            <Input {...register("contactPhone")} placeholder="+31 6 00 00 00 00" />
+          </div>
+          <div className="col-span-2 space-y-1">
+            <Label>E-mail</Label>
+            <Input {...register("contactEmail")} type="email" placeholder="jan@bedrijf.nl" />
+          </div>
+        </div>
+      </section>
+
+      <Separator />
+
+      {/* ── Access & security ─────────────────────────── */}
+      <section>
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+          Toegang &amp; beveiliging
+        </p>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label>Toegangsinformatie</Label>
+            <Textarea {...register("accessInfo")} placeholder="Sleutelkast code, toegangspas, portiek..." rows={2} className="resize-none" />
+          </div>
+          <div className="space-y-1">
+            <Label>Sleutelinformatie</Label>
+            <Textarea {...register("keyInfo")} placeholder="Sleutelnummer, bewaarplaats, retourprocedure..." rows={2} className="resize-none" />
+          </div>
+          <div className="space-y-1">
+            <Label>Alarmgegevens</Label>
+            <Textarea {...register("alarmInfo")} placeholder="Alarmcode, contactpersoon bij alarm..." rows={2} className="resize-none" />
+          </div>
+        </div>
+      </section>
+
+      <Separator />
+
+      {/* ── Instructions ──────────────────────────────── */}
+      <section>
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+          Instructies &amp; bijzonderheden
+        </p>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label>Vaste instructies</Label>
+            <Textarea {...register("fixedInstructions")} placeholder="Vaste werkinstructies die altijd van toepassing zijn..." rows={3} className="resize-none" />
+          </div>
+          <div className="space-y-1">
+            <Label>Bijzonderheden</Label>
+            <Textarea {...register("specialNotes")} placeholder="Bijzondere omstandigheden, aandachtspunten, gevaren..." rows={2} className="resize-none" />
+          </div>
+          <div className="space-y-1">
+            <Label>Omschrijving</Label>
+            <Textarea {...register("description")} placeholder="Optionele omschrijving van dit object..." rows={2} className="resize-none" />
+          </div>
+        </div>
+      </section>
+
+      <Separator />
+
+      {/* ── Qualifications ────────────────────────────── */}
+      <section>
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+          Vereiste kwalificaties
+        </p>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label>Vereiste functies</Label>
+            <TagInput
+              value={requiredRoles}
+              onChange={(tags) => setValue("requiredRoles", tags)}
+              placeholder="Typ functie en druk Enter..."
+            />
+          </div>
+          <div className="space-y-1">
+            <Label>Vereiste certificaten</Label>
+            <TagInput
+              value={requiredCertificates}
+              onChange={(tags) => setValue("requiredCertificates", tags)}
+              placeholder="Bijv. VCA, BHV..."
+            />
+          </div>
+        </div>
       </section>
 
       {/* ── Actions ───────────────────────────────────── */}
