@@ -45,6 +45,35 @@ export async function sendEmail(opts: {
   }
 }
 
+/**
+ * Result-returning send helper — does NOT swallow failures.
+ * Use when the caller needs to know whether delivery succeeded.
+ */
+export async function sendEmailWithResult(opts: {
+  to:      string | string[];
+  subject: string;
+  html:    string;
+}): Promise<{ success: boolean; error?: string }> {
+  const resend = getClient();
+  if (!resend) {
+    const msg = "RESEND_API_KEY niet geconfigureerd";
+    logger.warn({ subject: opts.subject }, msg);
+    return { success: false, error: msg };
+  }
+  const { error } = await resend.emails.send({
+    from:    fromAddress(),
+    to:      opts.to,
+    subject: opts.subject,
+    html:    opts.html,
+  });
+  if (error) {
+    const msg = String((error as { message?: string }).message ?? error);
+    logger.error({ error }, "E-mail verzenden mislukt");
+    return { success: false, error: msg };
+  }
+  return { success: true };
+}
+
 // ── Shared base template ───────────────────────────────────────────────────────
 
 const BRAND_COLOR = "#081D3A";

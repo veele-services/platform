@@ -3,7 +3,7 @@ import { db } from "@workspace/db";
 import { invoicesTable, customersTable, auditLogTable, organizationSettingsTable } from "@workspace/db";
 import { eq, and, lte, or, isNull, lt } from "drizzle-orm";
 import type { Request, Response } from "express";
-import { sendEmail, buildPaymentReminderEmail } from "../lib/email";
+import { sendEmailWithResult, buildPaymentReminderEmail } from "../lib/email";
 
 const router = Router();
 
@@ -119,9 +119,19 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
         invoiceId:     invoice.id,
       });
 
-      await sendEmail({ to: invoice.customerEmail, subject, html });
+      const emailResult = await sendEmailWithResult({ to: invoice.customerEmail, subject, html });
 
-      // Record the timestamp so subsequent cron runs skip this invoice
+      if (!emailResult.success) {
+        req.log.warn(
+          { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber, error: emailResult.error },
+          "payment-reminders: e-mail verzenden mislukt — factuur overgeslagen",
+        );
+        skipped++;
+        continue;
+      }
+
+      // Only record timestamp + audit log when delivery actually succeeded,
+      // so failed invoices are retried in the next cron run.
       await db
         .update(invoicesTable)
         .set({ lastReminderSentAt: new Date() })

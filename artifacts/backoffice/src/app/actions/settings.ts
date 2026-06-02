@@ -806,7 +806,7 @@ export async function sendTestNotification(
     return { success: false, message: "Geen afzenderadres ingesteld in organisatie-instellingen." };
   }
 
-  const { sendEmail } = await import("@/lib/email");
+  const { sendEmailWithResult } = await import("@/lib/email");
 
   const subject = `Test: ${label}`;
   const html    = `<!DOCTYPE html>
@@ -829,6 +829,9 @@ export async function sendTestNotification(
 </body>
 </html>`;
 
-  await sendEmail({ to: orgSettings.emailAfzender, subject, html });
+  const result = await sendEmailWithResult({ to: orgSettings.emailAfzender, subject, html });
+  if (!result.success) {
+    return { success: false, message: result.error ?? "E-mail verzenden mislukt." };
+  }
   return { success: true };
 }
