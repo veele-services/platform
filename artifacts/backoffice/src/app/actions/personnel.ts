@@ -5,8 +5,13 @@ import {
   personnelTable,
   rolesTable,
   auditLogTable,
+  objectPersonnelTable,
+  objectsTable,
+  customersTable,
   insertPersonnelSchema,
   updatePersonnelSchema,
+  availabilityWindowsTable,
+  leavePeriodsTable,
 } from "@workspace/db";
 import { eq, ilike, or, and, asc, desc, inArray, sql } from "drizzle-orm";
 import { getBatchAvailabilityStatus } from "./availability";
@@ -15,6 +20,17 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/auth/permissions";
 import type { ActionResult } from "./customers";
+import type { ContractInfo, CertificateEntry } from "@/types/personnel";
+
+// Extract just the names from a CertificateEntry[] (handles legacy string[] too)
+function extractCertNames(raw: unknown): string[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((c) => {
+    if (typeof c === "string") return [c];
+    if (c && typeof c === "object" && "name" in c) return [String((c as CertificateEntry).name)];
+    return [];
+  });
+}
 
 export type { ActionResult };
 export type { AvailabilityStatus } from "./availability";
@@ -54,7 +70,10 @@ export type PersonnelRow = {
   availabilityStatus: import("./availability").AvailabilityStatus;
   userId:       string | null;
   inviteSentAt: string | null;
-  createdAt:          string;
+  createdAt:    string;
+  personnelType:     string | null;
+  emergencyAvailable: boolean;
+  preferredRegions:   string[];
 };
 
 export type PersonnelDetail = {
@@ -69,13 +88,18 @@ export type PersonnelDetail = {
   roleId:       string | null;
   roleName:     string | null;
   region:       string | null;
-  certificates: string[];
+  /** Full certificate entries — preserves expires_at for the edit form */
+  certificates: CertificateEntry[];
   diplomas:     string[];
   knowledge:    string[];
   isActive:     boolean;
   isAvailable:  boolean;
   createdAt:    string;
   updatedAt:    string;
+  personnelType:       string | null;
+  emergencyAvailable:  boolean;
+  preferredRegions:    string[];
+  contractInfo:        ContractInfo | null;
 };
 
 export type PersonnelFormInput = {
@@ -85,13 +109,56 @@ export type PersonnelFormInput = {
   phone?:       string;
   roleId?:      string;
   region?:      string;
-  certificates: string[];
+  /** Full certificate entries — preserves expires_at on round-trip edits */
+  certificates: CertificateEntry[];
   diplomas:     string[];
   knowledge:    string[];
   isAvailable:  boolean;
   isActive:     boolean;
   /** Create-mode only: send invite immediately after record is created. */
   autoInvite?:  boolean;
+  personnelType?:      string;
+  emergencyAvailable?: boolean;
+  preferredRegions?:   string[];
+  contractInfo?:       ContractInfo | null;
+};
+
+export type PersonnelStats = {
+  active:             number;
+  flexCount:          number;
+  availableToday:     number;
+  pendingLeave:       number;
+  totalCertificates:  number;
+  expiringSoon:       number;
+};
+
+export type FlexpoolRow = {
+  id:            string;
+  firstName:     string;
+  lastName:      string;
+  roleName:      string | null;
+  region:        string | null;
+  personnelType: string | null;
+  certificates:  string[];
+  certCount:     number;
+  matchPct:      number;
+};
+
+export type CapacityByRoleRow = {
+  roleId:         string;
+  roleName:       string;
+  total:          number;
+  availableToday: number;
+};
+
+export type LinkedObject = {
+  objectId:     string;
+  objectCode:   string;
+  objectName:   string;
+  customerId:   string;
+  customerName: string;
+  city:         string | null;
+  linkedAt:     string;
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -105,13 +172,14 @@ function isUniqueViolation(err: unknown): boolean {
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
 export async function listPersonnel(params: {
-  search?:   string;
-  roleId?:   string;
-  region?:   string;
-  status?:   string;
-  page?:     number;
-  sort?:     string;
-  dir?:      string;
+  search?:        string;
+  roleId?:        string;
+  region?:        string;
+  status?:        string;
+  personnelType?: string;
+  page?:          number;
+  sort?:          string;
+  dir?:           string;
 }): Promise<{ rows: PersonnelRow[]; total: number }> {
   await requirePermission("personnel", "read");
 
@@ -120,6 +188,7 @@ export async function listPersonnel(params: {
     roleId,
     region,
     status = "all",
+    personnelType,
     page = 1,
     sort = "lastName",
     dir = "asc",
@@ -140,6 +209,7 @@ export async function listPersonnel(params: {
   if (region?.trim()) conditions.push(ilike(personnelTable.region, `%${region.trim()}%`) as ReturnType<typeof eq>);
   if (status === "active")   conditions.push(eq(personnelTable.isActive, true)  as ReturnType<typeof eq>);
   if (status === "inactive") conditions.push(eq(personnelTable.isActive, false) as ReturnType<typeof eq>);
+  if (personnelType) conditions.push(eq(personnelTable.personnelType, personnelType) as ReturnType<typeof eq>);
 
   const where = conditions.length ? and(...conditions) : undefined;
 
@@ -157,21 +227,24 @@ export async function listPersonnel(params: {
   const [rows, countRows] = await Promise.all([
     db
       .select({
-        id:           personnelTable.id,
-        code:         personnelTable.code,
-        firstName:    personnelTable.firstName,
-        lastName:     personnelTable.lastName,
-        email:        personnelTable.email,
-        phone:        personnelTable.phone,
-        roleId:       personnelTable.roleId,
-        roleName:     rolesTable.name,
-        region:       personnelTable.region,
-        certificates: personnelTable.certificates,
-        isActive:     personnelTable.isActive,
-        isAvailable:  personnelTable.isAvailable,
-        userId:       personnelTable.userId,
-        inviteSentAt: personnelTable.inviteSentAt,
-        createdAt:    personnelTable.createdAt,
+        id:                 personnelTable.id,
+        code:               personnelTable.code,
+        firstName:          personnelTable.firstName,
+        lastName:           personnelTable.lastName,
+        email:              personnelTable.email,
+        phone:              personnelTable.phone,
+        roleId:             personnelTable.roleId,
+        roleName:           rolesTable.name,
+        region:             personnelTable.region,
+        certificates:       personnelTable.certificates,
+        isActive:           personnelTable.isActive,
+        isAvailable:        personnelTable.isAvailable,
+        userId:             personnelTable.userId,
+        inviteSentAt:       personnelTable.inviteSentAt,
+        createdAt:          personnelTable.createdAt,
+        personnelType:      personnelTable.personnelType,
+        emergencyAvailable: personnelTable.emergencyAvailable,
+        preferredRegions:   personnelTable.preferredRegions,
       })
       .from(personnelTable)
       .leftJoin(rolesTable, eq(personnelTable.roleId, rolesTable.id))
@@ -196,6 +269,8 @@ export async function listPersonnel(params: {
       createdAt:          r.createdAt.toISOString(),
       inviteSentAt:       r.inviteSentAt ? r.inviteSentAt.toISOString() : null,
       availabilityStatus: statusMap[r.id] ?? "niet_ingesteld",
+      certificates:       extractCertNames(r.certificates),
+      preferredRegions:   (r.preferredRegions as string[]) ?? [],
     })),
     total: countRows[0]?.total ?? 0,
   };
@@ -206,24 +281,28 @@ export async function getPersonnel(id: string): Promise<PersonnelDetail | null> 
 
   const rows = await db
     .select({
-      id:           personnelTable.id,
-      code:         personnelTable.code,
-      userId:       personnelTable.userId,
-      inviteSentAt: personnelTable.inviteSentAt,
-      firstName:    personnelTable.firstName,
-      lastName:     personnelTable.lastName,
-      email:        personnelTable.email,
-      phone:        personnelTable.phone,
-      roleId:       personnelTable.roleId,
-      roleName:     rolesTable.name,
-      region:       personnelTable.region,
-      certificates: personnelTable.certificates,
-      diplomas:     personnelTable.diplomas,
-      knowledge:    personnelTable.knowledge,
-      isActive:     personnelTable.isActive,
-      isAvailable:  personnelTable.isAvailable,
-      createdAt:    personnelTable.createdAt,
-      updatedAt:    personnelTable.updatedAt,
+      id:                 personnelTable.id,
+      code:               personnelTable.code,
+      userId:             personnelTable.userId,
+      inviteSentAt:       personnelTable.inviteSentAt,
+      firstName:          personnelTable.firstName,
+      lastName:           personnelTable.lastName,
+      email:              personnelTable.email,
+      phone:              personnelTable.phone,
+      roleId:             personnelTable.roleId,
+      roleName:           rolesTable.name,
+      region:             personnelTable.region,
+      certificates:       personnelTable.certificates,
+      diplomas:           personnelTable.diplomas,
+      knowledge:          personnelTable.knowledge,
+      isActive:           personnelTable.isActive,
+      isAvailable:        personnelTable.isAvailable,
+      createdAt:          personnelTable.createdAt,
+      updatedAt:          personnelTable.updatedAt,
+      personnelType:      personnelTable.personnelType,
+      emergencyAvailable: personnelTable.emergencyAvailable,
+      preferredRegions:   personnelTable.preferredRegions,
+      contractInfo:       personnelTable.contractInfo,
     })
     .from(personnelTable)
     .leftJoin(rolesTable, eq(personnelTable.roleId, rolesTable.id))
@@ -234,9 +313,15 @@ export async function getPersonnel(id: string): Promise<PersonnelDetail | null> 
   const r = rows[0];
   return {
     ...r,
-    inviteSentAt: r.inviteSentAt ? r.inviteSentAt.toISOString() : null,
-    createdAt: r.createdAt.toISOString(),
-    updatedAt: r.updatedAt.toISOString(),
+    inviteSentAt:     r.inviteSentAt ? r.inviteSentAt.toISOString() : null,
+    createdAt:        r.createdAt.toISOString(),
+    updatedAt:        r.updatedAt.toISOString(),
+    // Return full CertificateEntry[] so the edit form can preserve expires_at
+    certificates:     ((r.certificates ?? []) as CertificateEntry[]),
+    diplomas:         (r.diplomas  as string[]) ?? [],
+    knowledge:        (r.knowledge as string[]) ?? [],
+    preferredRegions: (r.preferredRegions as string[]) ?? [],
+    contractInfo:     (r.contractInfo as ContractInfo | null) ?? null,
   };
 }
 
@@ -246,6 +331,192 @@ export async function listRoles(): Promise<RoleOption[]> {
     .select({ id: rolesTable.id, name: rolesTable.name })
     .from(rolesTable)
     .orderBy(asc(rolesTable.name));
+}
+
+// ─── Stats & Widgets ──────────────────────────────────────────────────────────
+
+export async function getPersonnelStats(): Promise<PersonnelStats> {
+  await requirePermission("personnel", "read");
+
+  const today      = new Date().toISOString().slice(0, 10);
+  const dayOfWeek  = new Date(today + "T00:00:00").getDay();
+
+  const [counts] = await db.select({
+    active:    sql<number>`count(*) filter (where ${personnelTable.isActive} = true)::int`,
+    flexCount: sql<number>`count(*) filter (
+      where ${personnelTable.isActive} = true
+        and ${personnelTable.personnelType} in ('flex', 'oproep', 'zzp', 'tijdelijk')
+    )::int`,
+  }).from(personnelTable);
+
+  const [availRow] = await db.select({
+    count: sql<number>`count(*)::int`,
+  })
+  .from(personnelTable)
+  .where(
+    and(
+      eq(personnelTable.isActive, true),
+      eq(personnelTable.isAvailable, true),
+      sql`exists (
+        select 1 from availability_windows aw
+        where aw.personnel_id = ${personnelTable.id}
+          and aw.day_of_week = ${dayOfWeek}
+      )`,
+      sql`not exists (
+        select 1 from leave_periods lp
+        where lp.personnel_id = ${personnelTable.id}
+          and lp.status = 'approved'
+          and lp.start_date <= ${today}
+          and (lp.end_date >= ${today} or lp.end_date is null)
+      )`,
+    ),
+  );
+
+  const [leaveRow] = await db.select({
+    count: sql<number>`count(*)::int`,
+  })
+  .from(leavePeriodsTable)
+  .where(eq(leavePeriodsTable.status, "pending"));
+
+  // Total + expiring certificates (uses {name, expires_at} format from migration 025)
+  const [certRow] = await db.select({
+    total: sql<number>`coalesce(sum(jsonb_array_length(${personnelTable.certificates})), 0)::int`,
+  })
+  .from(personnelTable)
+  .where(eq(personnelTable.isActive, true));
+
+  const expirySoonResult = await db.execute<{ expiring_soon: string | number }>(sql`
+    select coalesce((
+      select count(*)::int
+      from personnel p2,
+           jsonb_array_elements(p2.certificates) as cert
+      where p2.is_active = true
+        and (cert->>'expires_at') is not null
+        and (cert->>'expires_at')::date between current_date and current_date + interval '30 days'
+    ), 0) as expiring_soon
+  `);
+  const expiringSoon = Number((expirySoonResult.rows[0] as { expiring_soon: string | number })?.expiring_soon ?? 0);
+
+  return {
+    active:            counts?.active      ?? 0,
+    flexCount:         counts?.flexCount   ?? 0,
+    availableToday:    availRow?.count     ?? 0,
+    pendingLeave:      leaveRow?.count     ?? 0,
+    totalCertificates: certRow?.total      ?? 0,
+    expiringSoon,
+  };
+}
+
+export async function getFlexpoolToday(): Promise<FlexpoolRow[]> {
+  await requirePermission("personnel", "read");
+
+  const today     = new Date().toISOString().slice(0, 10);
+  const dayOfWeek = new Date(today + "T00:00:00").getDay();
+
+  const allRows = await db.select({
+    id:            personnelTable.id,
+    firstName:     personnelTable.firstName,
+    lastName:      personnelTable.lastName,
+    roleName:      rolesTable.name,
+    region:        personnelTable.region,
+    personnelType: personnelTable.personnelType,
+    certificates:  personnelTable.certificates,
+    certCount:     sql<number>`jsonb_array_length(${personnelTable.certificates})::int`,
+  })
+  .from(personnelTable)
+  .leftJoin(rolesTable, eq(personnelTable.roleId, rolesTable.id))
+  .where(
+    and(
+      eq(personnelTable.isActive, true),
+      eq(personnelTable.isAvailable, true),
+      sql`${personnelTable.personnelType} in ('flex', 'oproep', 'zzp', 'tijdelijk')`,
+      sql`exists (
+        select 1 from availability_windows aw
+        where aw.personnel_id = ${personnelTable.id}
+          and aw.day_of_week = ${dayOfWeek}
+      )`,
+      sql`not exists (
+        select 1 from leave_periods lp
+        where lp.personnel_id = ${personnelTable.id}
+          and lp.status = 'approved'
+          and lp.start_date <= ${today}
+          and (lp.end_date >= ${today} or lp.end_date is null)
+      )`,
+    ),
+  );
+
+  // Sort by certCount desc, take top 3, compute matchPct relative to the highest in the pool
+  const maxCerts = allRows.reduce((m, r) => Math.max(m, r.certCount ?? 0), 0);
+  const top3 = allRows
+    .sort((a, b) => (b.certCount ?? 0) - (a.certCount ?? 0))
+    .slice(0, 3);
+
+  return top3.map((r) => ({
+    ...r,
+    certificates: extractCertNames(r.certificates),
+    certCount:    r.certCount ?? 0,
+    matchPct:     Math.round(((r.certCount ?? 0) / Math.max(maxCerts, 1)) * 100),
+  }));
+}
+
+export async function getCapacityByRole(): Promise<CapacityByRoleRow[]> {
+  await requirePermission("personnel", "read");
+
+  const today     = new Date().toISOString().slice(0, 10);
+  const dayOfWeek = new Date(today + "T00:00:00").getDay();
+
+  const rows = await db.select({
+    roleId:   rolesTable.id,
+    roleName: rolesTable.name,
+    total:    sql<number>`count(*)::int`,
+    availableToday: sql<number>`count(*) filter (
+      where ${personnelTable.isAvailable} = true
+      and exists (
+        select 1 from availability_windows aw
+        where aw.personnel_id = ${personnelTable.id}
+          and aw.day_of_week = ${dayOfWeek}
+      )
+      and not exists (
+        select 1 from leave_periods lp
+        where lp.personnel_id = ${personnelTable.id}
+          and lp.status = 'approved'
+          and lp.start_date <= ${today}
+          and (lp.end_date >= ${today} or lp.end_date is null)
+      )
+    )::int`,
+  })
+  .from(personnelTable)
+  .innerJoin(rolesTable, eq(personnelTable.roleId, rolesTable.id))
+  .where(eq(personnelTable.isActive, true))
+  .groupBy(rolesTable.id, rolesTable.name)
+  .orderBy(desc(sql`count(*)`))
+  .limit(8);
+
+  return rows;
+}
+
+export async function getLinkedObjects(personnelId: string): Promise<LinkedObject[]> {
+  await requirePermission("personnel", "read");
+
+  const rows = await db.select({
+    objectId:     objectsTable.id,
+    objectCode:   objectsTable.code,
+    objectName:   objectsTable.name,
+    customerId:   customersTable.id,
+    customerName: customersTable.name,
+    city:         objectsTable.city,
+    linkedAt:     objectPersonnelTable.linkedAt,
+  })
+  .from(objectPersonnelTable)
+  .innerJoin(objectsTable,    eq(objectPersonnelTable.objectId,    objectsTable.id))
+  .innerJoin(customersTable,  eq(objectsTable.customerId,          customersTable.id))
+  .where(eq(objectPersonnelTable.personnelId, personnelId))
+  .orderBy(asc(objectsTable.name));
+
+  return rows.map((r) => ({
+    ...r,
+    linkedAt: r.linkedAt.toISOString(),
+  }));
 }
 
 // ─── Mutations ────────────────────────────────────────────────────────────────
@@ -260,17 +531,21 @@ export async function createPersonnel(
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const payload = {
-    firstName:    data.firstName.trim(),
-    lastName:     data.lastName.trim(),
-    email:        data.email.trim().toLowerCase(),
-    phone:        data.phone?.trim()  || null,
-    roleId:       data.roleId         || null,
-    region:       data.region?.trim() || null,
-    certificates: data.certificates,
-    diplomas:     data.diplomas,
-    knowledge:    data.knowledge,
-    isAvailable:  data.isAvailable,
-    isActive:     data.isActive,
+    firstName:          data.firstName.trim(),
+    lastName:           data.lastName.trim(),
+    email:              data.email.trim().toLowerCase(),
+    phone:              data.phone?.trim()  || null,
+    roleId:             data.roleId         || null,
+    region:             data.region?.trim() || null,
+    certificates:       data.certificates,
+    diplomas:           data.diplomas,
+    knowledge:          data.knowledge,
+    isAvailable:        data.isAvailable,
+    isActive:           data.isActive,
+    personnelType:      data.personnelType  || null,
+    emergencyAvailable: data.emergencyAvailable ?? false,
+    preferredRegions:   data.preferredRegions ?? [],
+    contractInfo:       data.contractInfo   ?? null,
   };
 
   const parsed = insertPersonnelSchema.safeParse(payload);
@@ -284,9 +559,15 @@ export async function createPersonnel(
   }
 
   try {
+    const insertData = {
+      ...parsed.data,
+      // data.certificates is already CertificateEntry[] — preserve expires_at values
+      certificates: data.certificates as unknown as { name: string; expires_at?: string }[],
+      contractInfo: (parsed.data.contractInfo ?? null) as ContractInfo | null,
+    };
     const [created] = await db
       .insert(personnelTable)
-      .values(parsed.data)
+      .values(insertData)
       .returning({ id: personnelTable.id });
 
     const createdId = created!.id;
@@ -348,17 +629,21 @@ export async function updatePersonnel(
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const payload = {
-    firstName:    data.firstName.trim(),
-    lastName:     data.lastName.trim(),
-    email:        data.email.trim().toLowerCase(),
-    phone:        data.phone?.trim()  || null,
-    roleId:       data.roleId         || null,
-    region:       data.region?.trim() || null,
-    certificates: data.certificates,
-    diplomas:     data.diplomas,
-    knowledge:    data.knowledge,
-    isAvailable:  data.isAvailable,
-    isActive:     data.isActive,
+    firstName:          data.firstName.trim(),
+    lastName:           data.lastName.trim(),
+    email:              data.email.trim().toLowerCase(),
+    phone:              data.phone?.trim()  || null,
+    roleId:             data.roleId         || null,
+    region:             data.region?.trim() || null,
+    certificates:       data.certificates,
+    diplomas:           data.diplomas,
+    knowledge:          data.knowledge,
+    isAvailable:        data.isAvailable,
+    isActive:           data.isActive,
+    personnelType:      data.personnelType  || null,
+    emergencyAvailable: data.emergencyAvailable ?? false,
+    preferredRegions:   data.preferredRegions ?? [],
+    contractInfo:       data.contractInfo   ?? null,
   };
 
   const parsed = updatePersonnelSchema.safeParse(payload);
@@ -372,9 +657,16 @@ export async function updatePersonnel(
   }
 
   try {
+    const updateData = {
+      ...parsed.data,
+      // data.certificates is already CertificateEntry[] — preserve expires_at values
+      certificates: data.certificates as unknown as { name: string; expires_at?: string }[],
+      contractInfo: (parsed.data.contractInfo ?? null) as ContractInfo | null,
+      updatedAt: new Date(),
+    };
     await db
       .update(personnelTable)
-      .set({ ...parsed.data, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(personnelTable.id, id));
 
     await db.insert(auditLogTable).values({

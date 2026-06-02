@@ -2,9 +2,17 @@ import type { Metadata } from "next";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { PersonnelView } from "@/components/personnel/PersonnelView";
-import { listPersonnel, listRoles } from "@/app/actions/personnel";
+import { PersonnelStatBar } from "@/components/personnel/PersonnelStatBar";
+import { PersonnelWidgets } from "@/components/personnel/PersonnelWidgets";
+import {
+  listPersonnel,
+  listRoles,
+  getPersonnelStats,
+  getFlexpoolToday,
+  getCapacityByRole,
+} from "@/app/actions/personnel";
 
-export const metadata: Metadata = { title: "Personnel" };
+export const metadata: Metadata = { title: "Personeel" };
 
 interface Props {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
@@ -22,18 +30,22 @@ export default async function PersonnelPage({ searchParams }: Props) {
 
   if (!canRead) return <ForbiddenPage resource="personnel" action="read" />;
 
-  const sp     = await searchParams;
-  const search = str(sp.search);
-  const roleId = str(sp.roleId);
-  const region = str(sp.region);
-  const status = str(sp.status, "all");
-  const page   = Math.max(1, parseInt(str(sp.page, "1")) || 1);
-  const sort   = str(sp.sort, "lastName");
-  const dir    = str(sp.dir, "asc");
+  const sp            = await searchParams;
+  const search        = str(sp.search);
+  const roleId        = str(sp.roleId);
+  const region        = str(sp.region);
+  const status        = str(sp.status, "all");
+  const personnelType = str(sp.personnelType);
+  const page          = Math.max(1, parseInt(str(sp.page, "1")) || 1);
+  const sort          = str(sp.sort, "lastName");
+  const dir           = str(sp.dir, "asc");
 
-  const [{ rows, total }, roles] = await Promise.all([
-    listPersonnel({ search, roleId, region, status, page, sort, dir }),
+  const [{ rows, total }, roles, stats, flexpoolRows, capacityRows] = await Promise.all([
+    listPersonnel({ search, roleId, region, status, personnelType, page, sort, dir }),
     listRoles(),
+    getPersonnelStats(),
+    getFlexpoolToday(),
+    getCapacityByRole(),
   ]);
 
   return (
@@ -48,6 +60,10 @@ export default async function PersonnelPage({ searchParams }: Props) {
         </p>
       </div>
 
+      {/* Stat bar */}
+      <PersonnelStatBar stats={stats} />
+
+      {/* List */}
       <PersonnelView
         rows={rows}
         total={total}
@@ -60,6 +76,14 @@ export default async function PersonnelPage({ searchParams }: Props) {
         initialStatus={status}
         initialSort={sort}
         initialDir={dir}
+        initialPersonnelType={personnelType}
+      />
+
+      {/* Dashboard widgets */}
+      <PersonnelWidgets
+        flexpoolRows={flexpoolRows}
+        capacityRows={capacityRows}
+        stats={stats}
       />
     </div>
   );

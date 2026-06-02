@@ -168,7 +168,8 @@ export async function getPersonnelForAssignment(
       roleId:             r.roleId   ?? null,
       roleName:           r.roleName ?? null,
       region:             r.region   ?? null,
-      certificates:       (r.certificates as string[] | null) ?? [],
+      certificates:       ((r.certificates ?? []) as ({ name: string; expires_at?: string } | string)[])
+        .map((c) => typeof c === "string" ? c : c.name),
       diplomas:           (r.diplomas    as string[] | null) ?? [],
       knowledge:          (r.knowledge   as string[] | null) ?? [],
       isActive:           r.isActive,

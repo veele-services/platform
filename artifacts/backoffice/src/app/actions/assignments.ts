@@ -1038,7 +1038,8 @@ export async function getPersonnelEligibilityForAssignment(
       return windowCoverageMap.get(p.id) ?? false;
     })();
 
-    const personCerts    = (p.certificates ?? []) as string[];
+    const personCerts    = ((p.certificates ?? []) as { name: string; expires_at?: string }[] | string[])
+      .map((c) => typeof c === "string" ? c : c.name);
     const personDiplomas = (p.diplomas     ?? []) as string[];
     const personKnow     = (p.knowledge    ?? []) as string[];
 

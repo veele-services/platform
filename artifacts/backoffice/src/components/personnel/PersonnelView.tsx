@@ -18,6 +18,7 @@ import {
   Trash2,
   ToggleLeft,
   ToggleRight,
+  UserCircle2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -37,13 +38,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-} from "@/components/ui/sheet";
-import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -53,8 +47,16 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+  SheetDescription,
+} from "@/components/ui/sheet";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PersonnelForm } from "@/components/personnel/PersonnelForm";
+import { SlimProfielPanel } from "@/components/personnel/SlimProfielPanel";
 import {
   bulkSetPersonnelStatus,
   setPersonnelStatus,
@@ -63,6 +65,12 @@ import {
   type RoleOption,
 } from "@/app/actions/personnel";
 import type { AvailabilityStatus } from "@/app/actions/availability";
+import {
+  PERSONNEL_TYPES,
+  PERSONNEL_TYPE_LABELS,
+  PERSONNEL_TYPE_COLORS,
+  type PersonnelType,
+} from "@/types/personnel";
 
 // ─── Invite status badge ──────────────────────────────────────────────────────
 
@@ -88,10 +96,7 @@ function InviteBadge({ userId, inviteSentAt }: { userId: string | null; inviteSe
       className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
       style={{ backgroundColor: s.bg, color: s.color }}
     >
-      <span
-        className="flex-shrink-0 rounded-full"
-        style={{ width: "6px", height: "6px", backgroundColor: s.dot }}
-      />
+      <span className="flex-shrink-0 rounded-full" style={{ width: "6px", height: "6px", backgroundColor: s.dot }} />
       {s.label}
     </span>
   );
@@ -117,11 +122,24 @@ function AvailabilityBadge({ status }: { status: AvailabilityStatus }) {
       className="inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-xs font-medium"
       style={{ backgroundColor: s.bg, color: s.color }}
     >
-      <span
-        className="flex-shrink-0 rounded-full"
-        style={{ width: "6px", height: "6px", backgroundColor: s.dot }}
-      />
+      <span className="flex-shrink-0 rounded-full" style={{ width: "6px", height: "6px", backgroundColor: s.dot }} />
       {s.label}
+    </span>
+  );
+}
+
+// ─── Personnel type badge ─────────────────────────────────────────────────────
+
+function PersonnelTypeBadge({ type }: { type: string | null }) {
+  if (!type) return <span style={{ color: "#94A3B8" }}>—</span>;
+  const label = PERSONNEL_TYPE_LABELS[type as PersonnelType] ?? type;
+  const color = PERSONNEL_TYPE_COLORS[type as PersonnelType] ?? { bg: "#F1F5F9", color: "#64748B" };
+  return (
+    <span
+      className="inline-block rounded px-2 py-0.5 text-xs font-medium"
+      style={{ backgroundColor: color.bg, color: color.color }}
+    >
+      {label}
     </span>
   );
 }
@@ -152,11 +170,7 @@ function SortHeader({
       >
         {label}
         {active ? (
-          currentDir === "asc" ? (
-            <ChevronUp className="h-3 w-3" />
-          ) : (
-            <ChevronDown className="h-3 w-3" />
-          )
+          currentDir === "asc" ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />
         ) : (
           <ChevronsUpDown className="h-3 w-3 opacity-40" />
         )}
@@ -169,7 +183,7 @@ function SortHeader({
 
 function QualChips({ tags, max = 2 }: { tags: string[]; max?: number }) {
   if (!tags.length) return <span style={{ color: "#94A3B8" }}>—</span>;
-  const visible = tags.slice(0, max);
+  const visible  = tags.slice(0, max);
   const overflow = tags.length - max;
   return (
     <div className="flex flex-wrap gap-1">
@@ -194,17 +208,18 @@ function QualChips({ tags, max = 2 }: { tags: string[]; max?: number }) {
 // ─── Main component ───────────────────────────────────────────────────────────
 
 interface PersonnelViewProps {
-  rows:            PersonnelRow[];
-  total:           number;
-  roles:           RoleOption[];
-  canWrite:        boolean;
-  page:            number;
-  initialSearch:   string;
-  initialRoleId:   string;
-  initialRegion:   string;
-  initialStatus:   string;
-  initialSort:     string;
-  initialDir:      string;
+  rows:               PersonnelRow[];
+  total:              number;
+  roles:              RoleOption[];
+  canWrite:           boolean;
+  page:               number;
+  initialSearch:      string;
+  initialRoleId:      string;
+  initialRegion:      string;
+  initialStatus:      string;
+  initialSort:        string;
+  initialDir:         string;
+  initialPersonnelType: string;
 }
 
 export function PersonnelView({
@@ -219,17 +234,19 @@ export function PersonnelView({
   initialStatus,
   initialSort,
   initialDir,
+  initialPersonnelType,
 }: PersonnelViewProps) {
   const router   = useRouter();
   const pathname = usePathname();
 
-  const [sheetOpen,    setSheetOpen]    = useState(false);
-  const [editingId,    setEditingId]    = useState<string | null>(null);
-  const [selected,     setSelected]     = useState<Set<string>>(new Set());
-  const [searchInput,  setSearchInput]  = useState(initialSearch);
-  const [regionInput,  setRegionInput]  = useState(initialRegion);
-  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
-  const [bulkPending,  startBulkTransition] = useTransition();
+  const [sheetOpen,      setSheetOpen]      = useState(false);
+  const [editingId,      setEditingId]      = useState<string | null>(null);
+  const [selected,       setSelected]       = useState<Set<string>>(new Set());
+  const [searchInput,    setSearchInput]    = useState(initialSearch);
+  const [regionInput,    setRegionInput]    = useState(initialRegion);
+  const [deleteTarget,   setDeleteTarget]   = useState<{ id: string; name: string } | null>(null);
+  const [slimProfiel,    setSlimProfiel]    = useState<PersonnelRow | null>(null);
+  const [bulkPending,    startBulkTransition] = useTransition();
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
 
@@ -237,13 +254,14 @@ export function PersonnelView({
   function buildUrl(overrides: Record<string, string | undefined>): string {
     const params = new URLSearchParams();
     const merged: Record<string, string | undefined> = {
-      search:  initialSearch  || undefined,
-      roleId:  initialRoleId  || undefined,
-      region:  initialRegion  || undefined,
-      status:  initialStatus !== "all" ? initialStatus : undefined,
-      sort:    initialSort !== "lastName" ? initialSort : undefined,
-      dir:     initialDir  !== "asc"     ? initialDir  : undefined,
-      page:    page > 1 ? String(page) : undefined,
+      search:        initialSearch        || undefined,
+      roleId:        initialRoleId        || undefined,
+      region:        initialRegion        || undefined,
+      status:        initialStatus !== "all" ? initialStatus : undefined,
+      personnelType: initialPersonnelType || undefined,
+      sort:          initialSort !== "lastName" ? initialSort : undefined,
+      dir:           initialDir  !== "asc"     ? initialDir  : undefined,
+      page:          page > 1 ? String(page) : undefined,
       ...overrides,
     };
     Object.entries(merged).forEach(([k, v]) => { if (v) params.set(k, v); });
@@ -282,9 +300,9 @@ export function PersonnelView({
   }
 
   // ─── Sheet helpers ────────────────────────────────────────────────────────────
-  function openCreate() { setEditingId(null); setSheetOpen(true); }
-  function openEdit(id: string) { setEditingId(id); setSheetOpen(true); }
-  function handleFormSuccess() { setSheetOpen(false); setEditingId(null); }
+  function openCreate()               { setEditingId(null); setSheetOpen(true); }
+  function openEdit(id: string)       { setEditingId(id);   setSheetOpen(true); }
+  function handleFormSuccess()        { setSheetOpen(false); setEditingId(null); }
 
   // ─── Mutations ────────────────────────────────────────────────────────────────
   function handleStatusToggle(id: string, isActive: boolean) {
@@ -320,6 +338,8 @@ export function PersonnelView({
       setDeleteTarget(null);
     });
   }
+
+  const colCount = canWrite ? 12 : 11;
 
   // ─── Render ───────────────────────────────────────────────────────────────────
   return (
@@ -357,13 +377,28 @@ export function PersonnelView({
           value={initialRoleId || "ALL"}
           onValueChange={(v) => applyFilter("roleId", v === "ALL" ? "" : v)}
         >
-          <SelectTrigger className="w-[160px] h-9">
+          <SelectTrigger className="w-[150px] h-9">
             <SelectValue placeholder="Alle rollen" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">Alle rollen</SelectItem>
             {roles.map((r) => (
               <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={initialPersonnelType || "ALL"}
+          onValueChange={(v) => applyFilter("personnelType", v === "ALL" ? "" : v)}
+        >
+          <SelectTrigger className="w-[140px] h-9">
+            <SelectValue placeholder="Alle types" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Alle types</SelectItem>
+            {PERSONNEL_TYPES.map((t) => (
+              <SelectItem key={t} value={t}>{PERSONNEL_TYPE_LABELS[t]}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -411,26 +446,27 @@ export function PersonnelView({
         </div>
       )}
 
-      {/* Table */}
-      <div className="veele-card overflow-hidden p-0">
-        <div className="overflow-x-auto">
+      {/* Table + Slim profiel panel side-by-side */}
+      <div className="flex gap-0 overflow-hidden rounded-xl" style={{ border: "1px solid #E2E8F0" }}>
+        <div className="flex-1 overflow-x-auto min-w-0">
           <table className="w-full">
             <thead>
-              <tr style={{ borderBottom: "1px solid #E2E8F0" }}>
+              <tr style={{ borderBottom: "1px solid #E2E8F0", backgroundColor: "#FAFBFD" }}>
                 {canWrite && (
                   <th className="w-10 pl-4 py-3">
                     <Checkbox checked={allSelected} onCheckedChange={toggleAll} aria-label="Select all" />
                   </th>
                 )}
+                <th className="w-10 px-2 py-3" />
                 <SortHeader label="Code"      columnKey="code"      currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
                 <SortHeader label="Naam"      columnKey="lastName"  currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
-                <SortHeader label="E-mail"    columnKey="email"     currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Rol</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Type</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Functie(s)</th>
                 <SortHeader label="Regio"     columnKey="region"    currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Certificaten</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Beschikbaarheid</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Status</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Portaal</th>
-                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Beschikbaarheid</th>
                 <th className="w-12 px-4 py-3" />
               </tr>
             </thead>
@@ -438,7 +474,7 @@ export function PersonnelView({
               {rows.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={canWrite ? 11 : 10}
+                    colSpan={colCount}
                     className="px-4 py-12 text-center text-sm"
                     style={{ color: "#94A3B8" }}
                   >
@@ -446,144 +482,191 @@ export function PersonnelView({
                   </td>
                 </tr>
               ) : (
-                rows.map((row, i) => (
-                  <tr
-                    key={row.id}
-                    className="transition-colors hover:bg-slate-50/60"
-                    style={{ borderBottom: i < rows.length - 1 ? "1px solid #F1F5F9" : undefined }}
-                  >
-                    {canWrite && (
-                      <td className="pl-4 py-3">
-                        <Checkbox
-                          checked={selected.has(row.id)}
-                          onCheckedChange={() => toggleOne(row.id)}
-                          aria-label={`Select ${row.firstName} ${row.lastName}`}
-                        />
-                      </td>
-                    )}
-                    <td className="px-4 py-3">
-                      <span className="inline-block font-mono text-xs rounded px-1.5 py-0.5 bg-slate-100" style={{ color: "#475569" }}>
-                        {row.code}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/personnel/${row.id}`}
-                        className="font-medium text-sm hover:underline"
-                        style={{ color: "#081D3A" }}
-                      >
-                        {row.lastName}, {row.firstName}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-sm" style={{ color: "#64748B" }}>
-                      {row.email}
-                    </td>
-                    <td className="px-4 py-3">
-                      {row.roleName ? (
-                        <span
-                          className="inline-block rounded px-2 py-0.5 text-xs font-medium"
-                          style={{ backgroundColor: "#F0F4FF", color: "#3B5CE0" }}
-                        >
-                          {row.roleName}
-                        </span>
-                      ) : (
-                        <span style={{ color: "#94A3B8", fontSize: "14px" }}>—</span>
+                rows.map((row, i) => {
+                  const isSlim = slimProfiel?.id === row.id;
+                  return (
+                    <tr
+                      key={row.id}
+                      className="transition-colors"
+                      style={{
+                        borderBottom: i < rows.length - 1 ? "1px solid #F1F5F9" : undefined,
+                        backgroundColor: isSlim ? "#F0FAFA" : undefined,
+                        cursor: "pointer",
+                      }}
+                      onClick={() => setSlimProfiel(isSlim ? null : row)}
+                    >
+                      {canWrite && (
+                        <td className="pl-4 py-3" onClick={(e) => e.stopPropagation()}>
+                          <Checkbox
+                            checked={selected.has(row.id)}
+                            onCheckedChange={() => toggleOne(row.id)}
+                            aria-label={`Select ${row.firstName} ${row.lastName}`}
+                          />
+                        </td>
                       )}
-                    </td>
-                    <td className="px-4 py-3 text-sm" style={{ color: "#64748B" }}>
-                      {row.region ?? "—"}
-                    </td>
-                    <td className="px-4 py-3">
-                      <QualChips tags={row.certificates} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <StatusBadge isActive={row.isActive} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <InviteBadge userId={row.userId} inviteSentAt={row.inviteSentAt} />
-                    </td>
-                    <td className="px-4 py-3">
-                      <AvailabilityBadge status={row.availabilityStatus} />
-                    </td>
-                    <td className="pr-4 py-3 text-right">
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                            <MoreHorizontal className="h-4 w-4" />
-                            <span className="sr-only">Menu openen</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem asChild>
-                            <Link href={`/personnel/${row.id}`}>
-                              <Eye className="mr-2 h-4 w-4" />
-                              Bekijken
-                            </Link>
-                          </DropdownMenuItem>
-                          {canWrite && (
-                            <>
-                              <DropdownMenuItem onSelect={() => openEdit(row.id)}>
-                                <Pencil className="mr-2 h-4 w-4" />
-                                Bewerken
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem onSelect={() => handleStatusToggle(row.id, row.isActive)}>
-                                {row.isActive ? (
-                                  <><ToggleLeft className="mr-2 h-4 w-4" />Deactiveren</>
-                                ) : (
-                                  <><ToggleRight className="mr-2 h-4 w-4" />Activeren</>
-                                )}
-                              </DropdownMenuItem>
-                              <DropdownMenuSeparator />
-                              <DropdownMenuItem
-                                onSelect={() => setDeleteTarget({ id: row.id, name: `${row.firstName} ${row.lastName}` })}
-                                className="text-destructive focus:text-destructive"
-                              >
-                                <Trash2 className="mr-2 h-4 w-4" />
-                                Verwijderen
-                              </DropdownMenuItem>
-                            </>
-                          )}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </td>
-                  </tr>
-                ))
+                      <td className="pl-3 pr-1 py-3">
+                        <div
+                          className="rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
+                          style={{
+                            width:           "32px",
+                            height:          "32px",
+                            backgroundColor: "#E0FAFB",
+                            color:           "#0A7E7A",
+                          }}
+                        >
+                          {row.firstName[0]?.toUpperCase()}{row.lastName[0]?.toUpperCase()}
+                        </div>
+                      </td>
+                      <td className="px-3 py-3">
+                        <span className="inline-block font-mono text-xs rounded px-1.5 py-0.5 bg-slate-100" style={{ color: "#475569" }}>
+                          {row.code}
+                        </span>
+                      </td>
+                      <td className="px-4 py-3">
+                        <div className="font-medium text-sm" style={{ color: "#081D3A" }}>
+                          {row.lastName}, {row.firstName}
+                        </div>
+                        <div className="text-xs" style={{ color: "#94A3B8" }}>{row.email}</div>
+                      </td>
+                      <td className="px-4 py-3">
+                        <PersonnelTypeBadge type={row.personnelType} />
+                      </td>
+                      <td className="px-4 py-3">
+                        {row.roleName ? (
+                          <span
+                            className="inline-block rounded px-2 py-0.5 text-xs font-medium"
+                            style={{ backgroundColor: "#F0F4FF", color: "#3B5CE0" }}
+                          >
+                            {row.roleName}
+                          </span>
+                        ) : (
+                          <span style={{ color: "#94A3B8", fontSize: "14px" }}>—</span>
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-sm" style={{ color: "#64748B" }}>
+                        {row.region ?? "—"}
+                      </td>
+                      <td className="px-4 py-3">
+                        {row.certificates.length === 0 ? (
+                          <span style={{ color: "#94A3B8" }}>—</span>
+                        ) : (
+                          <div className="flex items-center gap-1.5">
+                            <span
+                              className="inline-flex items-center justify-center rounded-full text-xs font-bold"
+                              style={{
+                                width: "22px", height: "22px",
+                                backgroundColor: "#E0FAFB", color: "#0A7E7A",
+                              }}
+                            >
+                              {row.certificates.length}
+                            </span>
+                            <QualChips tags={row.certificates} max={1} />
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-3">
+                        <AvailabilityBadge status={row.availabilityStatus} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge isActive={row.isActive} />
+                      </td>
+                      <td className="px-4 py-3">
+                        <InviteBadge userId={row.userId} inviteSentAt={row.inviteSentAt} />
+                      </td>
+                      <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                              <MoreHorizontal className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem asChild>
+                              <Link href={`/personnel/${row.id}`}>
+                                <Eye className="mr-2 h-4 w-4" />Bekijken
+                              </Link>
+                            </DropdownMenuItem>
+                            {canWrite && (
+                              <>
+                                <DropdownMenuItem onClick={() => { setSlimProfiel(null); openEdit(row.id); }}>
+                                  <Pencil className="mr-2 h-4 w-4" />Bewerken
+                                </DropdownMenuItem>
+                                <DropdownMenuItem
+                                  onClick={() => handleStatusToggle(row.id, row.isActive)}
+                                  disabled={bulkPending}
+                                >
+                                  {row.isActive
+                                    ? <><ToggleLeft className="mr-2 h-4 w-4" />Deactiveren</>
+                                    : <><ToggleRight className="mr-2 h-4 w-4" />Activeren</>
+                                  }
+                                </DropdownMenuItem>
+                                <DropdownMenuSeparator />
+                                <DropdownMenuItem
+                                  className="text-red-600 focus:text-red-600"
+                                  onClick={() => setDeleteTarget({ id: row.id, name: `${row.firstName} ${row.lastName}` })}
+                                >
+                                  <Trash2 className="mr-2 h-4 w-4" />Verwijderen
+                                </DropdownMenuItem>
+                              </>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </td>
+                    </tr>
+                  );
+                })
               )}
             </tbody>
           </table>
         </div>
+
+        {/* Slim profiel panel */}
+        {slimProfiel && (
+          <SlimProfielPanel
+            person={slimProfiel}
+            onClose={() => setSlimProfiel(null)}
+          />
+        )}
       </div>
 
       {/* Pagination */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4 text-sm">
-          <span style={{ color: "#64748B" }}>
-            Resultaten {Math.min((page - 1) * PAGE_SIZE + 1, total)}–{Math.min(page * PAGE_SIZE, total)} van {total}
-          </span>
-          <div className="flex items-center gap-1">
-            <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled={page <= 1}
-              onClick={() => router.replace(buildUrl({ page: String(page - 1) }))}>
+        <div className="flex items-center justify-between mt-4">
+          <p className="text-sm" style={{ color: "#64748B" }}>
+            Pagina {page} van {totalPages} ({total} totaal)
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page <= 1}
+              onClick={() => router.replace(buildUrl({ page: String(page - 1) }))}
+            >
               <ChevronLeft className="h-4 w-4" />
             </Button>
-            <span className="px-3" style={{ color: "#081D3A" }}>{page} / {totalPages}</span>
-            <Button variant="outline" size="sm" className="h-8 w-8 p-0" disabled={page >= totalPages}
-              onClick={() => router.replace(buildUrl({ page: String(page + 1) }))}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={page >= totalPages}
+              onClick={() => router.replace(buildUrl({ page: String(page + 1) }))}
+            >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
         </div>
       )}
 
-      {/* Create / Edit Sheet */}
+      {/* Create/edit sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
-        <SheetContent side="right" className="w-[540px] sm:max-w-[540px] overflow-y-auto">
+        <SheetContent side="right" className="w-full sm:max-w-xl overflow-y-auto">
           <SheetHeader>
-            <SheetTitle>{editingId ? "Personeel bewerken" : "Nieuw personeelslid"}</SheetTitle>
+            <SheetTitle>
+              {editingId ? "Medewerker bewerken" : "Nieuw personeelslid"}
+            </SheetTitle>
             <SheetDescription>
               {editingId
-                ? "Werk de personeelsgegevens bij."
-                : "Vul de gegevens in om een nieuw personeelsrecord aan te maken."}
+                ? "Pas de gegevens van het personeelslid aan."
+                : "Vul de gegevens in voor het nieuwe personeelslid."}
             </SheetDescription>
           </SheetHeader>
           <PersonnelForm
@@ -596,24 +679,23 @@ export function PersonnelView({
         </SheetContent>
       </Sheet>
 
-      {/* Delete Confirmation */}
-      <AlertDialog
-        open={!!deleteTarget}
-        onOpenChange={(open) => { if (!open) setDeleteTarget(null); }}
-      >
+      {/* Delete confirmation */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Personeelsrecord verwijderen?</AlertDialogTitle>
+            <AlertDialogTitle>Medewerker verwijderen?</AlertDialogTitle>
             <AlertDialogDescription>
-              Dit verwijdert permanent de medewerker{" "}
-              <strong>{deleteTarget?.name}</strong>. Deze actie kan niet ongedaan worden gemaakt.
+              {deleteTarget
+                ? `Weet je zeker dat je "${deleteTarget.name}" wilt verwijderen? Dit kan niet ongedaan worden gemaakt.`
+                : ""}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuleren</AlertDialogCancel>
             <AlertDialogAction
+              className="bg-red-600 hover:bg-red-700"
               onClick={handleConfirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={bulkPending}
             >
               Verwijderen
             </AlertDialogAction>
