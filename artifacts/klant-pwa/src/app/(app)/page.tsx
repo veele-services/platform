@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { MapPin, ClipboardList, PlusCircle, CreditCard, ArrowRight, AlertCircle, Briefcase, Building2, FileText, Hash, Globe } from "lucide-react";
+import { MapPin, ClipboardList, PlusCircle, CreditCard, ArrowRight, AlertCircle, Briefcase, Building2, FileText, Hash, Globe, FileCheck2, FolderOpen } from "lucide-react";
 import { getMyCustomerProfile } from "@/actions/customer";
 import { getMyAssignments } from "@/actions/assignments";
 import { getMyInvoiceSummary } from "@/actions/invoices";
@@ -184,6 +184,36 @@ export default async function DashboardPage() {
           </div>
           <span className="text-xs font-semibold leading-snug" style={{ color: "var(--color-primary)" }}>
             Opdrachten
+          </span>
+        </Link>
+
+        <Link
+          href="/klant/rapporten"
+          className="flex flex-col items-center gap-2 rounded-2xl bg-white p-4 shadow-sm text-center active:scale-95 transition-transform"
+        >
+          <div
+            className="flex h-11 w-11 items-center justify-center rounded-xl"
+            style={{ backgroundColor: "rgba(8,29,58,0.06)" }}
+          >
+            <FileCheck2 size={22} style={{ color: "var(--color-primary)" }} />
+          </div>
+          <span className="text-xs font-semibold leading-snug" style={{ color: "var(--color-primary)" }}>
+            Rapporten
+          </span>
+        </Link>
+
+        <Link
+          href="/klant/documenten"
+          className="flex flex-col items-center gap-2 rounded-2xl bg-white p-4 shadow-sm text-center active:scale-95 transition-transform"
+        >
+          <div
+            className="flex h-11 w-11 items-center justify-center rounded-xl"
+            style={{ backgroundColor: "rgba(8,29,58,0.06)" }}
+          >
+            <FolderOpen size={22} style={{ color: "var(--color-primary)" }} />
+          </div>
+          <span className="text-xs font-semibold leading-snug" style={{ color: "var(--color-primary)" }}>
+            Documenten
           </span>
         </Link>
       </div>

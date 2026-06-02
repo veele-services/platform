@@ -10,6 +10,7 @@ import { CompletionButtons } from "./CompletionButtons";
 import { RapportForm } from "./RapportForm";
 import { RapportDetail } from "./RapportDetail";
 import { MeerwerkSection } from "@/components/MeerwerkSection";
+import { SeenMarker } from "@/components/SeenMarker";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -35,6 +36,8 @@ export default async function WerkbonDetailPage({ params }: Props) {
   ]);
 
   if (!assignment) notFound();
+
+  const isScheduled = assignment.status === "scheduled";
 
   const canStartWork       = ["plannable", "scheduled", "seen"].includes(assignment.status);
   const canCompleteWork    = assignment.status === "in_progress";
@@ -69,6 +72,11 @@ export default async function WerkbonDetailPage({ params }: Props) {
         </div>
         <StatusBadge status={assignment.status} />
       </div>
+
+      {/* Auto-markeer als 'gezien' zodra de pagina opent (lifecycle vereiste) */}
+      {isScheduled && (
+        <SeenMarker assignmentId={assignment.id} currentStatus={assignment.status} />
+      )}
 
       <div className="space-y-4 p-4">
 

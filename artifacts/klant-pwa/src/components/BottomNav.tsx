@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, ClipboardList, FileText, Receipt, FolderOpen } from "lucide-react";
+import { LayoutDashboard, ClipboardList, FileText, Receipt, FileCheck2 } from "lucide-react";
 
 const ITEMS = [
   { href: "/klant",            label: "Dashboard",  Icon: LayoutDashboard },
   { href: "/klant/opdrachten", label: "Opdrachten", Icon: ClipboardList },
   { href: "/klant/offertes",   label: "Offertes",   Icon: FileText },
   { href: "/klant/facturen",   label: "Facturen",   Icon: Receipt },
-  { href: "/klant/documenten", label: "Documenten", Icon: FolderOpen },
+  { href: "/klant/rapporten",  label: "Rapporten",  Icon: FileCheck2 },
 ];
 
 export function BottomNav() {
