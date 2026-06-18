@@ -1,0 +1,55 @@
+name: Database Inspect
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: GitHub environment to inspect
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    name: Inspect ${{ inputs.target }} database
+    runs-on: [self-hosted, linux, x64, veele]
+    environment:
+      name: ${{ inputs.target }}
+    env:
+      APP_ENV: ${{ inputs.target }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      REPORT_DIR: ${{ github.workspace }}/database-inspection/${{ inputs.target }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check runtime
+        run: |
+          set -euo pipefail
+          node -v
+          pnpm -v
+
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          pnpm install --frozen-lockfile --prod=false
+
+      - name: Inspect database metadata
+        run: |
+          set -euo pipefail
+          pnpm --filter @workspace/db run inspect
+
+      - name: Upload inspection report
+        uses: actions/upload-artifact@v4
+        with:
+          name: database-inspection-${{ inputs.target }}-${{ github.run_id }}
+          path: database-inspection/${{ inputs.target }}
+          if-no-files-found: error
+          retention-days: 14
