@@ -331,6 +331,22 @@ function slotLabel(filledSlots: number, requiredSlots: number): string {
   return `${filledSlots}/${requiredSlots}`;
 }
 
+function personnelSortName(person: PlanningBoardPersonnel): string {
+  return `${person.lastName} ${person.firstName}`.toLowerCase();
+}
+
+function selectedAssignmentRank(
+  assignment: PlanningBoardAssignment,
+  person: PlanningBoardPersonnel,
+  match: PlanningBoardMatch | undefined,
+): number {
+  if (assignment.assignedPersonnelIds.includes(person.id)) return 0;
+  if (match?.level === "match") return 1;
+  if (match?.level === "warning") return 2;
+  if (match?.level === "blocked") return 3;
+  return 4;
+}
+
 function FilterSelect({
   label,
   value,
@@ -386,6 +402,37 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
 
   const activeAssignmentId = dragging?.assignmentId ?? selectedAssignmentId;
   const activeAssignment = activeAssignmentId ? assignmentById.get(activeAssignmentId) : null;
+  const visiblePersonnel = useMemo(() => {
+    if (!activeAssignment) return data.personnel;
+
+    const matches = new Map(
+      (data.matchesByAssignmentId[activeAssignment.id] ?? []).map((match) => [
+        match.personnelId,
+        match,
+      ]),
+    );
+
+    return data.personnel
+      .map((person, index) => ({
+        person,
+        index,
+        match: matches.get(person.id),
+      }))
+      .sort((a, b) => {
+        const rankA = selectedAssignmentRank(activeAssignment, a.person, a.match);
+        const rankB = selectedAssignmentRank(activeAssignment, b.person, b.match);
+        if (rankA !== rankB) return rankA - rankB;
+
+        if (rankA === 1 || rankA === 2) {
+          const loadDelta = a.person.scheduledMinutes - b.person.scheduledMinutes;
+          if (loadDelta !== 0) return loadDelta;
+        }
+
+        if (rankA === 0) return a.index - b.index;
+        return personnelSortName(a.person).localeCompare(personnelSortName(b.person), "nl");
+      })
+      .map(({ person }) => person);
+  }, [activeAssignment, data.matchesByAssignmentId, data.personnel]);
   const conflictCount = data.scheduledAssignments.filter((assignment) => assignment.hasConflict).length;
   const openSlotCount = data.openAssignments.reduce(
     (total, assignment) => total + Math.max(0, assignment.requiredSlots - assignment.filledSlots),
@@ -962,7 +1009,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                       ))}
                     </div>
 
-                    {data.personnel.map((person, index) => {
+                    {visiblePersonnel.map((person, index) => {
                       const rowBg = index % 2 === 0 ? "#FFFFFF" : "#FCFDFF";
                       const availability = availabilityConfig(person.availabilityStatus);
                       const match = getMatch(activeAssignmentId, person.id);
