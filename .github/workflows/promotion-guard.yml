@@ -19,6 +19,11 @@ jobs:
     name: Enforce release flow
     runs-on: self-hosted
     steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
       - name: Validate source branch
         shell: bash
         run: |
@@ -49,3 +54,22 @@ jobs:
           echo "Received:"
           echo "  $head_branch -> $base_branch"
           exit 1
+
+      - name: Block staging-only seed assets from production
+        if: ${{ github.base_ref == 'production' }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          git fetch origin "${GITHUB_BASE_REF}" --depth=1
+          changed_files="$(git diff --name-only "origin/${GITHUB_BASE_REF}"...HEAD)"
+
+          blocked="$(
+            printf '%s\n' "$changed_files" | grep -E '^(\.github/workflows/seed-staging-demo\.yml|lib/db/src/seed/staging-demo\.ts|docs/development/staging-demo-seed\.md)$' || true
+          )"
+
+          if [[ -n "$blocked" ]]; then
+            echo "::error title=Staging-only seed assets in production PR::Remove these files before promoting staging to production."
+            printf '%s\n' "$blocked"
+            exit 1
+          fi
