@@ -73,11 +73,23 @@ export async function sendEmailWithResult(opts: {
 }
 
 export function klantPortalUrl(): string {
+  const explicit = process.env["KLANT_PORTAL_URL"] ?? process.env["NEXT_PUBLIC_KLANT_PORTAL_URL"];
+  if (explicit) return explicit.replace(/\/$/, "");
   const domains = process.env["REPLIT_DOMAINS"];
   if (domains) return `https://${domains.split(",")[0]!.trim()}/klant`;
   const siteUrl = process.env["NEXT_PUBLIC_SITE_URL"];
   if (siteUrl) return `${siteUrl}/klant`;
   return "https://veele.nl/klant";
+}
+
+export function personeelPortalUrl(): string {
+  const explicit = process.env["PERSONEEL_PORTAL_URL"] ?? process.env["NEXT_PUBLIC_PERSONEEL_PORTAL_URL"];
+  if (explicit) return explicit.replace(/\/$/, "");
+  const domains = process.env["REPLIT_DOMAINS"];
+  if (domains) return `https://${domains.split(",")[0]!.trim()}/personeel`;
+  const siteUrl = process.env["NEXT_PUBLIC_SITE_URL"];
+  if (siteUrl) return `${siteUrl}/personeel`;
+  return "https://veele.nl/personeel";
 }
 
 // ── Shared base template ───────────────────────────────────────────────────────
@@ -106,6 +118,30 @@ function baseTemplate(title: string, bodyHtml: string): string {
 
 function ctaButton(href: string, label: string): string {
   return `<p><a href="${href}" style="display:inline-block;padding:11px 22px;background:${BRAND_COLOR};color:#fff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">${label}</a></p>`;
+}
+
+export function buildTemporaryPasswordEmail(opts: {
+  recipientName:     string;
+  portalName:        string;
+  loginUrl:          string;
+  temporaryPassword: string;
+}): { subject: string; html: string } {
+  const subject = `Toegang tot ${opts.portalName}`;
+  const html = baseTemplate(subject, `
+    <h2 style="margin-top:0;color:${BRAND_COLOR}">Uw portaaltoegang</h2>
+    <p>Beste ${opts.recipientName},</p>
+    <p>Er is een account voor u aangemaakt in het Veele platform.</p>
+    <p>Log in met onderstaand tijdelijk wachtwoord. Na de eerste login moet u direct een eigen wachtwoord kiezen.</p>
+    <div style="margin:18px 0;padding:14px 16px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px">
+      <p style="margin:0 0 6px;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:.08em">Tijdelijk wachtwoord</p>
+      <code style="font-size:18px;font-weight:700;color:${BRAND_COLOR};letter-spacing:.04em">${opts.temporaryPassword}</code>
+    </div>
+    ${ctaButton(opts.loginUrl, `Inloggen op ${opts.portalName}`)}
+    <p style="font-size:13px;color:#64748b;margin-top:16px">
+      Bewaar dit tijdelijke wachtwoord niet. Het is alleen bedoeld voor de eerste login.
+    </p>
+  `);
+  return { subject, html };
 }
 
 // ── Templates ─────────────────────────────────────────────────────────────────

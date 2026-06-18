@@ -85,7 +85,7 @@ function getInviteStatus(userId: string | null, inviteSentAt: string | null): In
 
 const INVITE_BADGE: Record<InviteStatus, { label: string; bg: string; color: string; dot: string }> = {
   none:    { label: "Geen account",            bg: "#F1F5F9", color: "#94A3B8", dot: "#CBD5E1" },
-  invited: { label: "Uitnodiging verstuurd",   bg: "#FEF3C7", color: "#92400E", dot: "#F59E0B" },
+  invited: { label: "Wachtwoord verstuurd",    bg: "#FEF3C7", color: "#92400E", dot: "#F59E0B" },
   active:  { label: "Portaal actief",          bg: "#D1FAE5", color: "#065F46", dot: "#10B981" },
 };
 

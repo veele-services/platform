@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
-import { Pencil } from "lucide-react";
+import { useState, useTransition } from "react";
+import { Loader2, Mail, Pencil } from "lucide-react";
+import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -10,7 +11,18 @@ import {
   SheetTitle,
   SheetDescription,
 } from "@/components/ui/sheet";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { CustomerForm } from "@/components/customers/CustomerForm";
+import { inviteCustomerPortal } from "@/app/actions/customers";
 import type {
   CustomerDetail,
   SectorOption,
@@ -34,13 +46,73 @@ export function CustomerDetailActions({
   canWriteNotes,
 }: CustomerDetailActionsProps) {
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  const hasPortalEmail = Boolean(customer.contactEmail?.trim());
+
+  function handleInviteConfirm() {
+    setInviteError(null);
+    startTransition(async () => {
+      const result = await inviteCustomerPortal(customer.id);
+      if (result.success) {
+        setInviteOpen(false);
+        toast.success("Klantportaal-uitnodiging verstuurd");
+      } else {
+        setInviteError(result.message ?? "Uitnodiging versturen mislukt.");
+      }
+    });
+  }
 
   return (
     <>
-      <Button size="sm" onClick={() => setSheetOpen(true)}>
-        <Pencil className="mr-1.5 h-4 w-4" />
-        Bewerken
-      </Button>
+      <div className="flex flex-wrap items-center gap-2">
+        <Button
+          size="sm"
+          variant="outline"
+          onClick={() => setInviteOpen(true)}
+          disabled={isPending || !hasPortalEmail}
+          title={hasPortalEmail ? "Klantportaal-uitnodiging sturen" : "Contact-e-mailadres ontbreekt"}
+        >
+          {isPending ? (
+            <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+          ) : (
+            <Mail className="mr-1.5 h-4 w-4" />
+          )}
+          Portaal uitnodigen
+        </Button>
+
+        <Button size="sm" onClick={() => setSheetOpen(true)}>
+          <Pencil className="mr-1.5 h-4 w-4" />
+          Bewerken
+        </Button>
+      </div>
+
+      <AlertDialog open={inviteOpen} onOpenChange={setInviteOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Klantportaal-uitnodiging sturen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Er wordt een tijdelijk wachtwoord gestuurd naar{" "}
+              <strong>{customer.contactEmail}</strong>. De klant moet dit wachtwoord na
+              de eerste login direct wijzigen.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {inviteError && (
+            <p className="text-sm font-medium" style={{ color: "#E02D3C" }}>
+              {inviteError}
+            </p>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setInviteError(null)}>Annuleren</AlertDialogCancel>
+            <AlertDialogAction onClick={handleInviteConfirm} disabled={isPending}>
+              {isPending && <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />}
+              Sturen
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>
         <SheetContent
