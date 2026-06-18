@@ -1,0 +1,333 @@
+deploy@vps:/var/www/veele$ bash /opt/veele/deploy-production.sh
+=== VEELE PRODUCTION DEPLOY START ===
+Tue Jun  2 02:24:45 PM UTC 2026
+[1/8] Fetch production branch
+From github.com:veele-services/platform
+ * branch            production -> FETCH_HEAD
+HEAD is now at cc93948 Merge pull request #7 from veele-services/staging
+[1b/8] Remove local build output
+[1c/8] Load production environment
+[2/8] Install dependencies
+Scope: all 11 workspace projects
+Already up to date
+Done in 327ms using pnpm v11.5.0
+[3/8] Typecheck
+$ pnpm run typecheck:libs && pnpm -r --filter "./artifacts/**" --filter "./scripts" --if-present run typecheck
+$ tsc --build
+Scope: 6 of 11 workspace projects
+artifacts/api-server typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 3s
+artifacts/backoffice typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 6.5s
+artifacts/klant-pwa typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 5.1s
+artifacts/mockup-sandbox typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 5.7s
+artifacts/personeel-pwa typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 6.4s
+scripts typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 2.5s
+[4/8] Build
+$ next build
+   ▲ Next.js 15.5.18
+
+   Creating an optimized production build ...
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (101kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (231kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled successfully in 31.3s
+ ✓ Linting and checking validity of types
+ ✓ Collecting page data
+ ✓ Generating static pages (4/4)
+ ✓ Collecting build traces
+ ✓ Finalizing page optimization
+
+Route (app)                                 Size  First Load JS
+┌ ƒ /                                      409 B         106 kB
+├ ○ /_not-found                            996 B         103 kB
+├ ƒ /assignments                         4.84 kB         193 kB
+├ ƒ /assignments/[id]                    11.9 kB         192 kB
+├ ƒ /customers                           5.59 kB         193 kB
+├ ƒ /customers/[id]                      3.71 kB         195 kB
+├ ƒ /documents                           5.47 kB         111 kB
+├ ƒ /instellingen/activiteitslog         2.81 kB         109 kB
+├ ƒ /instellingen/gebruikers             4.58 kB         110 kB
+├ ƒ /instellingen/organisatie            3.22 kB         109 kB
+├ ƒ /instellingen/rollen                 3.08 kB         109 kB
+├ ƒ /instellingen/rollen/[id]            1.96 kB         108 kB
+├ ƒ /invoices                            4.29 kB         110 kB
+├ ƒ /invoices/[id]                       3.53 kB         109 kB
+├ ○ /login                               3.19 kB         115 kB
+├ ƒ /objects                              5.4 kB         201 kB
+├ ƒ /personnel                           6.71 kB         195 kB
+├ ƒ /personnel/[id]                      9.65 kB         192 kB
+├ ƒ /personnel/verlof                    3.87 kB         119 kB
+├ ƒ /planning                            9.61 kB         190 kB
+├ ƒ /quotes                              3.46 kB         109 kB
+├ ƒ /quotes/[id]                         2.53 kB         108 kB
+├ ƒ /reports                              3.2 kB         109 kB
+├ ƒ /reports/[id]                        2.24 kB         108 kB
+├ ƒ /settings                              164 B         106 kB
+└ ƒ /settings/task-codes                 7.75 kB         193 kB
++ First Load JS shared by all             102 kB
+  ├ chunks/1048-ff6d6c61e3e45397.js      46.2 kB
+  ├ chunks/b4161639-ae52471dd35dcd8b.js  54.2 kB
+  └ other shared chunks (total)          1.93 kB
+
+
+ƒ Middleware                               91 kB
+
+○  (Static)   prerendered as static content
+ƒ  (Dynamic)  server-rendered on demand
+
+[5/8] Restart PM2
+[PM2] Applying action deleteProcessId on app [veele](ids: [ 1065 ])
+[PM2] [veele](1065) ✓
+┌──────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id   │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├──────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1064 │ veele-klant        │ fork     │ 301  │ online    │ 90.9%    │ 97.5mb   │
+│ 1063 │ veele-personeel    │ fork     │ 300  │ online    │ 0%       │ 130.0mb  │
+│ 1066 │ veele-staging      │ fork     │ 0    │ online    │ 0%       │ 115.3mb  │
+└──────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+[PM2][WARN] Applications veele not running, starting...
+[PM2] App [veele] launched (1 instances)
+┌──────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id   │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├──────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1067 │ veele              │ fork     │ 0    │ online    │ 0%       │ 20.5mb   │
+│ 1064 │ veele-klant        │ fork     │ 301  │ online    │ 0%       │ 122.5mb  │
+│ 1063 │ veele-personeel    │ fork     │ 300  │ online    │ 0%       │ 130.0mb  │
+│ 1066 │ veele-staging      │ fork     │ 0    │ online    │ 0%       │ 115.3mb  │
+└──────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /home/deploy/.pm2/dump.pm2
+[6/8] Runtime healthcheck
+[7/8] Security quick check
+[8/8] Done
+=== VEELE PRODUCTION DEPLOY SUCCESS ===
+Tue Jun  2 02:26:08 PM UTC 2026
+deploy@vps:/var/www/veele$ pm2 status
+┌──────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id   │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├──────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1067 │ veele              │ fork     │ 0    │ online    │ 0%       │ 115.3mb  │
+│ 1064 │ veele-klant        │ fork     │ 380  │ online    │ 0%       │ 129.8mb  │
+│ 1063 │ veele-personeel    │ fork     │ 380  │ online    │ 0%       │ 129.6mb  │
+│ 1066 │ veele-staging      │ fork     │ 0    │ online    │ 0%       │ 115.5mb  │
+└──────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+deploy@vps:/var/www/veele$ pm2 logs
+[TAILING] Tailing last 15 lines for [all] processes (change the value with --lines option)
+/home/deploy/.pm2/pm2.log last 15 lines:
+PM2        | 2026-06-02T14:27:12: PM2 log: App [veele-klant:1064] exited with code [1] via signal [SIGINT]
+PM2        | 2026-06-02T14:27:12: PM2 log: App [veele-klant:1064] starting in -fork mode-
+PM2        | 2026-06-02T14:27:12: PM2 log: App [veele-klant:1064] online
+PM2        | 2026-06-02T14:27:12: PM2 log: App [veele-personeel:1063] exited with code [1] via signal [SIGINT]
+PM2        | 2026-06-02T14:27:12: PM2 log: App [veele-personeel:1063] starting in -fork mode-
+PM2        | 2026-06-02T14:27:12: PM2 log: App [veele-personeel:1063] online
+PM2        | 2026-06-02T14:27:13: PM2 log: App [veele-klant:1064] exited with code [1] via signal [SIGINT]
+PM2        | 2026-06-02T14:27:13: PM2 log: App [veele-klant:1064] starting in -fork mode-
+PM2        | 2026-06-02T14:27:13: PM2 log: App [veele-klant:1064] online
+PM2        | 2026-06-02T14:27:13: PM2 log: App [veele-personeel:1063] exited with code [1] via signal [SIGINT]
+PM2        | 2026-06-02T14:27:13: PM2 log: App [veele-personeel:1063] starting in -fork mode-
+PM2        | 2026-06-02T14:27:13: PM2 log: App [veele-personeel:1063] online
+PM2        | 2026-06-02T14:27:13: PM2 log: App [veele-klant:1064] exited with code [1] via signal [SIGINT]
+PM2        | 2026-06-02T14:27:13: PM2 log: App [veele-klant:1064] starting in -fork mode-
+PM2        | 2026-06-02T14:27:13: PM2 log: App [veele-klant:1064] online
+
+/home/deploy/.pm2/logs/veele-staging-error.log last 15 lines:
+1066|veele |   ^
+1066|veele |
+1066|veele | Error: Cannot find module '/var/www/veele-staging/.next/standalone/server.js'
+1066|veele |     at Function._resolveFilename (node:internal/modules/cjs/loader:1430:15)
+1066|veele |     at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)
+1066|veele |     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)
+1066|veele |     at Function._load (node:internal/modules/cjs/loader:1216:25)
+1066|veele |     at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+1066|veele |     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+1066|veele |     at node:internal/main/run_main_module:36:49 {
+1066|veele |   code: 'MODULE_NOT_FOUND',
+1066|veele |   requireStack: []
+1066|veele | }
+1066|veele |
+1066|veele | Node.js v22.22.3
+
+/home/deploy/.pm2/logs/veele-error.log last 15 lines:
+1067|veele | [auth] Failed to set permissions cookie after sign-in.
+1067|veele |  ⨯ Error: ENOENT: no such file or directory, open '/var/www/veele/artifacts/backoffice/.next/required-server-files.json'
+1067|veele |     at async M (.next/server/app/(dashboard)/page.js:1:3184) {
+1067|veele |   errno: -2,
+1067|veele |   code: 'ENOENT',
+1067|veele |   syscall: 'open',
+1067|veele |   path: '/var/www/veele/artifacts/backoffice/.next/required-server-files.json'
+1067|veele | }
+1067|veele |  ⨯ Error: ENOENT: no such file or directory, open '/var/www/veele/artifacts/backoffice/.next/required-server-files.json'
+1067|veele |     at async (.next/server/pages/_error.js:1:2693) {
+1067|veele |   errno: -2,
+1067|veele |   code: 'ENOENT',
+1067|veele |   syscall: 'open',
+1067|veele |   path: '/var/www/veele/artifacts/backoffice/.next/required-server-files.json'
+1067|veele | }
+
+/home/deploy/.pm2/logs/veele-staging-out.log last 15 lines:
+1066|veele |
+1066|veele |  ✓ Starting...
+1066|veele |  ✓ Ready in 367ms
+1066|veele |    ▲ Next.js 15.5.18
+1066|veele |    - Local:        http://127.0.0.1:3001
+1066|veele |    - Network:      http://127.0.0.1:3001
+1066|veele |
+1066|veele |  ✓ Starting...
+1066|veele |  ✓ Ready in 408ms
+1066|veele |    ▲ Next.js 15.5.18
+1066|veele |    - Local:        http://127.0.0.1:3001
+1066|veele |    - Network:      http://127.0.0.1:3001
+1066|veele |
+1066|veele |  ✓ Starting...
+1066|veele |  ✓ Ready in 725ms
+
+/home/deploy/.pm2/logs/veele-out.log last 15 lines:
+1067|veele |
+1067|veele |  ✓ Starting...
+1067|veele |  ✓ Ready in 480ms
+1067|veele |    ▲ Next.js 15.5.18
+1067|veele |    - Local:        http://127.0.0.1:3000
+1067|veele |    - Network:      http://127.0.0.1:3000
+1067|veele |
+1067|veele |  ✓ Starting...
+1067|veele |  ✓ Ready in 732ms
+1067|veele |    ▲ Next.js 15.5.18
+1067|veele |    - Local:        http://127.0.0.1:3000
+1067|veele |    - Network:      http://127.0.0.1:3000
+1067|veele |
+1067|veele |  ✓ Starting...
+1067|veele |  ✓ Ready in 802ms
+
+/home/deploy/.pm2/logs/veele-klant-error.log last 15 lines:
+1064|veele | $ next start -H 0.0.0.0 -p $PORT
+1064|veele | [Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id]
+1064|veele | $ next start -H 0.0.0.0 -p $PORT
+1064|veele | [Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id]
+1064|veele | $ next start -H 0.0.0.0 -p $PORT
+1064|veele | [Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id]
+1064|veele | $ next start -H 0.0.0.0 -p $PORT
+1064|veele | [Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id]
+1064|veele | $ next start -H 0.0.0.0 -p $PORT
+1064|veele | [Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id]
+1064|veele | $ next start -H 0.0.0.0 -p $PORT
+1064|veele | [Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id]
+1064|veele | $ next start -H 0.0.0.0 -p $PORT
+1064|veele | [Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id]
+1064|veele | $ next start -H 0.0.0.0 -p $PORT
+
+/home/deploy/.pm2/logs/veele-personeel-out.log last 15 lines:
+1063|veele | [ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @workspace/personeel-pwa@0.0.0 start: `next start -H 0.0.0.0 -p $PORT`
+1063|veele | Exit status 1
+1063|veele |    ▲ Next.js 15.5.18
+1063|veele |    - Local:        http://localhost:3002
+1063|veele |    - Network:      http://0.0.0.0:3002
+1063|veele |
+1063|veele |  ✓ Starting...
+1063|veele | /var/www/veele/artifacts/personeel-pwa:
+1063|veele | [ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @workspace/personeel-pwa@0.0.0 start: `next start -H 0.0.0.0 -p $PORT`
+1063|veele | Exit status 1
+1063|veele |    ▲ Next.js 15.5.18
+1063|veele |    - Local:        http://localhost:3002
+1063|veele |    - Network:      http://0.0.0.0:3002
+1063|veele |
+1063|veele |  ✓ Starting...
+
+/home/deploy/.pm2/logs/veele-klant-out.log last 15 lines:
+1064|veele | [ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @workspace/klant-pwa@0.0.0 start: `next start -H 0.0.0.0 -p $PORT`
+1064|veele | Exit status 1
+1064|veele |    ▲ Next.js 15.5.18
+1064|veele |    - Local:        http://localhost:3003
+1064|veele |    - Network:      http://0.0.0.0:3003
+1064|veele |
+1064|veele |  ✓ Starting...
+1064|veele | /var/www/veele/artifacts/klant-pwa:
+1064|veele | [ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @workspace/klant-pwa@0.0.0 start: `next start -H 0.0.0.0 -p $PORT`
+1064|veele | Exit status 1
+1064|veele |    ▲ Next.js 15.5.18
+1064|veele |    - Local:        http://localhost:3003
+1064|veele |    - Network:      http://0.0.0.0:3003
+1064|veele |
+1064|veele |  ✓ Starting...
+
+/home/deploy/.pm2/logs/veele-personeel-error.log last 15 lines:
+1063|veele | [Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id]
+1063|veele | $ next start -H 0.0.0.0 -p $PORT
+1063|veele | [Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id]
+1063|veele | $ next start -H 0.0.0.0 -p $PORT
+1063|veele | [Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id]
+1063|veele | $ next start -H 0.0.0.0 -p $PORT
+1063|veele | [Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id]
+1063|veele | $ next start -H 0.0.0.0 -p $PORT
+1063|veele | [Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id]
+1063|veele | $ next start -H 0.0.0.0 -p $PORT
+1063|veele | [Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id]
+1063|veele | $ next start -H 0.0.0.0 -p $PORT
+1063|veele | [Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id]
+1063|veele | $ next start -H 0.0.0.0 -p $PORT
+1063|veele | [Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id]
+
+1063|veele-personeel  | /var/www/veele/artifacts/personeel-pwa:
+1063|veele-personeel  | [ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @workspace/personeel-pwa@0.0.0 start: `next start -H 0.0.0.0 -p $PORT`
+1063|veele-personeel  | Exit status 1
+PM2                   | App [veele-personeel:1063] exited with code [1] via signal [SIGINT]
+PM2                   | App [veele-personeel:1063] starting in -fork mode-
+PM2                   | App [veele-personeel:1063] online
+1064|veele-klant      | [Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id]
+1064|veele-klant      | /var/www/veele/artifacts/klant-pwa:
+1064|veele-klant      | [ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @workspace/klant-pwa@0.0.0 start: `next start -H 0.0.0.0 -p $PORT`
+1064|veele-klant      | Exit status 1
+PM2                   | App [veele-klant:1064] exited with code [1] via signal [SIGINT]
+PM2                   | App [veele-klant:1064] starting in -fork mode-
+PM2                   | App [veele-klant:1064] online
+1063|veele-personeel  | $ next start -H 0.0.0.0 -p $PORT
+1063|veele-personeel  |    ▲ Next.js 15.5.18
+1063|veele-personeel  |    - Local:        http://localhost:3002
+1063|veele-personeel  |    - Network:      http://0.0.0.0:3002
+1063|veele-personeel  |  ✓ Starting...
+1064|veele-klant      | $ next start -H 0.0.0.0 -p $PORT
+1064|veele-klant      |    ▲ Next.js 15.5.18
+1064|veele-klant      |    - Local:        http://localhost:3003
+1064|veele-klant      |    - Network:      http://0.0.0.0:3003
+1064|veele-klant      |  ✓ Starting...
+1063|veele-personeel  | [Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id]
+1063|veele-personeel  | /var/www/veele/artifacts/personeel-pwa:
+1063|veele-personeel  | [ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @workspace/personeel-pwa@0.0.0 start: `next start -H 0.0.0.0 -p $PORT`
+1063|veele-personeel  | Exit status 1
+PM2                   | App [veele-personeel:1063] exited with code [1] via signal [SIGINT]
+PM2                   | App [veele-personeel:1063] starting in -fork mode-
+PM2                   | App [veele-personeel:1063] online
+1064|veele-klant      | [Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id]
+1064|veele-klant      | /var/www/veele/artifacts/klant-pwa:
+1064|veele-klant      | [ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @workspace/klant-pwa@0.0.0 start: `next start -H 0.0.0.0 -p $PORT`
+1064|veele-klant      | Exit status 1
+PM2                   | App [veele-klant:1064] exited with code [1] via signal [SIGINT]
+PM2                   | App [veele-klant:1064] starting in -fork mode-
+PM2                   | App [veele-klant:1064] online
+1063|veele-personeel  | $ next start -H 0.0.0.0 -p $PORT
+1063|veele-personeel  |    ▲ Next.js 15.5.18
+1063|veele-personeel  |    - Local:        http://localhost:3002
+1063|veele-personeel  |    - Network:      http://0.0.0.0:3002
+1063|veele-personeel  |  ✓ Starting...
+1064|veele-klant      | $ next start -H 0.0.0.0 -p $PORT
+1063|veele-personeel  | [Error: Could not find a production build in the '.next' directory. Try building your app with 'next build' before starting the production server. https://nextjs.org/docs/messages/production-start-no-build-id]
+1064|veele-klant      |    ▲ Next.js 15.5.18
+1064|veele-klant      |    - Local:        http://localhost:3003
+1064|veele-klant      |    - Network:      http://0.0.0.0:3003
+1064|veele-klant      |  ✓ Starting...
+1063|veele-personeel  | /var/www/veele/artifacts/personeel-pwa:
+1063|veele-personeel  | [ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @workspace/personeel-pwa@0.0.0 start: `next start -H 0.0.0.0 -p $PORT`
+1063|veele-personeel  | Exit status 1
+PM2                   | App [veele-personeel:1063] exited with code [1] via signal [SIGINT]
+PM2                   | App [veele-personeel:1063] starting in -fork mode-
+PM2                   | App [veele-personeel:1063] online
+^C
+deploy@vps:/var/www/veele$ rm /opt/veele/deploy-production.sh
+rm: remove write-protected regular file '/opt/veele/deploy-production.sh'? yes^C
+deploy@vps:/var/www/veele$ rm /opt/veele/deploy-production.sh
+rm: remove write-protected regular file '/opt/veele/deploy-production.sh'? yes
+rm: cannot remove '/opt/veele/deploy-production.sh': Permission denied
+deploy@vps:/var/www/veele$

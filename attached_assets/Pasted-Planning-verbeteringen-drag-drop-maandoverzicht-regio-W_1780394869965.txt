@@ -1,0 +1,25 @@
+Planning verbeteringen — drag-drop, maandoverzicht & regio
+What & Why
+De planning heeft een week-view, maar planners kunnen opdrachten nog niet verslepen naar een andere dag. Er is geen maandoverzicht voor langetermijnplanning. En regio-matching ontbreekt, waardoor de eligibility-controle onvolledig is — medewerkers buiten de regio worden ten onrechte als beschikbaar getoond.
+
+Done looks like
+Planners kunnen een ingeplande opdracht via drag-and-drop verslepen naar een andere dag in het weekoverzicht; de wijziging wordt direct opgeslagen
+Er is een maandoverzicht naast de weekview (toggle), dat alle opdrachten per dag als gestapelde chips toont
+Bij het toevoegen van een medewerker aan een opdracht toont het systeem een regio-badge en filtert automatisch op medewerkers wiens regio overeenkomt met de regio van het object van de opdracht
+Beschikbaarheidsstatus van medewerkers (beschikbaar / verlof / ziek / al ingepland) is zichtbaar als kleurcodering in het personeelsselectiepaneel
+Out of scope
+Automatische planning (AI-gebaseerd, fase 3)
+Capaciteitsplanning over meerdere weken
+Export van het planningsoverzicht naar PDF of Excel
+Steps
+Drag-and-drop verslepen — Integreer een lichtgewicht drag-and-drop bibliotheek (bijv. @dnd-kit/core) in de planning week-view. Elke opdrachtsblok is draggable; een dag-kolom is een droptarget. Bij drop wordt PATCH /assignments/:id aangeroepen met de nieuwe scheduled_date.
+Maandoverzicht — Voeg een toggle "Week / Maand" toe aan de planning header. De maandview toont een kalender-grid van 4-6 weken, met per dag maximaal 3 opdracht-chips en een "+N meer" overflow-link.
+Regio-matching in eligibility — Lees het regio-veld van het object gekoppeld aan de opdracht. Filter de lijst van beschikbare medewerkers server-side op personnel.region = object.region. Toon de regio als badge in het selectiepaneel.
+Beschikbaarheidsindicatoren — Toon bij elke medewerker in het selectiepaneel een kleurcodering: groen = beschikbaar, oranje = beperkt beschikbaar, rood = verlof/ziek/al ingepland. Data komt uit de bestaande availability/leave endpoints.
+Relevant files
+artifacts/backoffice/src/app/(dashboard)/planning/
+artifacts/backoffice/src/actions/
+lib/api-spec/openapi.yaml
+lib/db/src/schema/
+Dependencies
+Opdrachten — kern, levenscyclus & planning

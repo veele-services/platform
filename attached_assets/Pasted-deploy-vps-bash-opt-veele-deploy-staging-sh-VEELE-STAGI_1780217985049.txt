@@ -1,0 +1,59 @@
+deploy@vps:~$ bash /opt/veele/deploy-staging.sh
+=== VEELE STAGING DEPLOY START ===
+Sun May 31 08:57:59 AM UTC 2026
+[1/8] Fetch staging branch
+remote: Enumerating objects: 654, done.
+remote: Counting objects: 100% (654/654), done.
+remote: Compressing objects: 100% (209/209), done.
+remote: Total 577 (delta 338), reused 575 (delta 336), pack-reused 0 (from 0)
+Receiving objects: 100% (577/577), 226.45 KiB | 849.00 KiB/s, done.
+Resolving deltas: 100% (338/338), completed with 41 local objects.
+From github.com:veele-services/platform
+ * branch            staging    -> FETCH_HEAD
+   ffb38f4..566fba7  staging    -> origin/staging
+HEAD is now at 566fba7 Task #44: Documenten module — full implementation (incl. code review fixes)
+[1b/8] Remove local build output
+[1c/8] Load staging environment
+[2/8] Install dependencies
+Scope: all 9 workspace projects
+Already up to date
+Done in 293ms using pnpm v11.5.0
+[3/8] Typecheck
+$ pnpm run typecheck:libs && pnpm -r --filter "./artifacts/**" --filter "./scripts" --if-present run typecheck
+$ tsc --build
+Scope: 4 of 9 workspace projects
+artifacts/api-server typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 933ms
+artifacts/backoffice typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 8.1s
+artifacts/mockup-sandbox typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 2.4s
+scripts typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 951ms
+[4/8] Build
+$ next build
+   ▲ Next.js 15.5.18
+   Creating an optimized production build ...
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (101kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (231kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled successfully in 15.4s
+ ✓ Linting and checking validity of types
+   Collecting page data  ..[Error: Failed to collect configuration for /assignments/[id]] {
+  [cause]: Error: A "use server" file can only export async functions, found object.
+  Read more: https://nextjs.org/docs/messages/invalid-use-server-value
+      at c (.next/server/chunks/830.js:37:80927)
+      at 58915 (.next/server/chunks/672.js:1:5861)
+      at c (.next/server/webpack-runtime.js:1:127)
+      at 82672 (.next/server/chunks/672.js:1:6789)
+      at c (.next/server/webpack-runtime.js:1:127)
+      at 69263 (.next/server/app/(dashboard)/assignments/[id]/page.js:1:43664)
+      at Function.c (.next/server/webpack-runtime.js:1:127)
+}
+> Build error occurred
+[Error: Failed to collect page data for /assignments/[id]] {
+  type: 'Error'
+}
+/var/www/veele-staging/artifacts/backoffice:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @workspace/backoffice@0.0.0 build: `next build`
+Exit status 1
+deploy@vps:~$

@@ -1,0 +1,99 @@
+1046|veele  |  ✓ Ready in 382ms
+^C
+deploy@vps:~$ # 1. Kapotte processen verwijderen
+pm2 delete veele-personeel veele-klant
+
+# 2. Naar de juiste projectmap
+cd /var/www/veele
+
+# 3. Bouwen
+PORT=3002 BASE_PATH=/personeel/ pnpm --filter @workspace/personeel-pwa run build
+PORT=3003 BASE_PATH=/klant/ pnpm --filter @workspace/klant-pwa run build
+
+# 4. Starten met --cwd zodat PM2 weet waar het project staat
+pm2 start "PORT=3002 BASE_PATH=/personeel/ pnpm --filter @workspace/personeel-pwa run start" \
+  --name veele-personeel \
+  --cwd /var/www/veele
+
+pm2 start "PORT=3003 BASE_PATH=/klant/ pnpm --filter @workspace/klant-pwa run start" \
+  --name veele-klant \
+  --cwd /var/www/veele
+
+pm2 save
+[PM2] Applying action deleteProcessId on app [veele-personeel](ids: [ 1044 ])
+[PM2] [veele-personeel](1044) ✓
+[PM2] Applying action deleteProcessId on app [veele-klant](ids: [ 1045 ])
+[PM2] [veele-klant](1045) ✓
+┌──────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id   │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├──────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1046 │ veele              │ fork     │ 0    │ online    │ 0%       │ 113.5mb  │
+│ 1017 │ veele-staging      │ fork     │ 0    │ online    │ 0%       │ 120.3mb  │
+└──────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+$ next build
+   ▲ Next.js 15.5.18
+
+   Creating an optimized production build ...
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (101kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (231kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled successfully in 8.8s
+ ✓ Linting and checking validity of types
+   Collecting page data  ..[Error: Failed to collect configuration for /documenten] {
+  [cause]: Error: DATABASE_URL must be set. Did you forget to provision a database?
+      at <unknown> (.next/server/chunks/273.js:1:459)
+}
+
+> Build error occurred
+[Error: Failed to collect page data for /documenten] { type: 'Error' }
+/var/www/veele/artifacts/personeel-pwa:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @workspace/personeel-pwa@0.0.0 build: `next build`
+Exit status 1
+$ next build
+   ▲ Next.js 15.5.18
+
+   Creating an optimized production build ...
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (101kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (231kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+ ✓ Compiled successfully in 10.7s
+ ✓ Linting and checking validity of types
+   Collecting page data  ..Error: DATABASE_URL must be set. Did you forget to provision a database?
+    at <unknown> (.next/server/chunks/179.js:1:524)
+
+> Build error occurred
+[Error: Failed to collect page data for /api/factuur/[id]/pdf] {
+  type: 'Error'
+}
+/var/www/veele/artifacts/klant-pwa:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @workspace/klant-pwa@0.0.0 build: `next build`
+Exit status 1
+[PM2] Starting /usr/bin/bash in fork_mode (1 instance)
+[PM2] Done.
+┌──────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id   │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├──────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1046 │ veele              │ fork     │ 0    │ online    │ 0%       │ 114.3mb  │
+│ 1047 │ veele-personeel    │ fork     │ 0    │ online    │ 0%       │ 9.4mb    │
+│ 1017 │ veele-staging      │ fork     │ 0    │ online    │ 0%       │ 120.3mb  │
+└──────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+[PM2] Starting /usr/bin/bash in fork_mode (1 instance)
+[PM2] Done.
+┌──────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id   │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├──────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1046 │ veele              │ fork     │ 0    │ online    │ 0%       │ 114.3mb  │
+│ 1048 │ veele-klant        │ fork     │ 0    │ online    │ 0%       │ 0b       │
+│ 1047 │ veele-personeel    │ fork     │ 0    │ online    │ 0%       │ 97.3mb   │
+│ 1017 │ veele-staging      │ fork     │ 0    │ online    │ 0%       │ 120.3mb  │
+└──────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /home/deploy/.pm2/dump.pm2
+deploy@vps:/var/www/veele$ pm2 status
+┌──────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id   │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├──────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1051 │ veele              │ fork     │ 0    │ online    │ 0%       │ 115.1mb  │
+│ 1048 │ veele-klant        │ fork     │ 15   │ errored   │ 0%       │ 0b       │
+│ 1047 │ veele-personeel    │ fork     │ 15   │ errored   │ 0%       │ 0b       │
+│ 1017 │ veele-staging      │ fork     │ 0    │ online    │ 0%       │ 120.3mb  │
+└──────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+deploy@vps:/var/www/veele$

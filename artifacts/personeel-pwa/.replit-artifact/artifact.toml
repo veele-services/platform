@@ -1,0 +1,32 @@
+kind = "web"
+previewPath = "/personeel/"
+title = "Veele Personeels-PWA"
+version = "1.0.0"
+id = "artifacts/personeel-pwa"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/personeel/" ]
+localPort = 3002
+
+[services.development]
+run = "pnpm --filter @workspace/personeel-pwa run dev"
+
+[services.development.health.startup]
+path = "/personeel/healthz"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/personeel-pwa", "run", "build" ]
+run = "pnpm --filter @workspace/personeel-pwa run start"
+
+[services.production.health.startup]
+path = "/personeel/healthz"
+
+[services.env]
+PORT = "3002"
+BASE_PATH = "/personeel/"
