@@ -1,37 +1,21 @@
 import type { Metadata } from "next";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
-import { PlanningView } from "@/components/assignments/PlanningView";
+import { PlanningBoardView } from "@/components/assignments/PlanningBoardView";
 import { PlanningDayView } from "@/components/assignments/PlanningDayView";
 import { PlanningMonthView } from "@/components/assignments/PlanningMonthView";
 import {
-  getAssignmentsForWeek,
   getAssignmentsForMonth,
   getCustomerOptions,
   getDayTimelineData,
 } from "@/app/actions/assignments";
+import { getPlanningBoardData, type PlanningBoardFilters } from "@/app/actions/planning";
 
 export const metadata: Metadata = {
   title: "Planning",
 };
 
 // ── Date helpers ──────────────────────────────────────────────────────────────
-
-function getWeekMonday(dateStr?: string): Date {
-  const d = dateStr ? new Date(dateStr + "T00:00:00") : new Date();
-  const day = d.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  d.setDate(d.getDate() + diff);
-  d.setHours(0, 0, 0, 0);
-  return d;
-}
-
-function formatDateKey(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-}
 
 function isValidDate(str: string): boolean {
   return /^\d{4}-\d{2}-\d{2}$/.test(str) && !isNaN(new Date(str + "T00:00:00").getTime());
@@ -46,14 +30,36 @@ function isValidMonth(str: string): boolean {
 // ─────────────────────────────────────────────────────────────────────────────
 
 interface Props {
-  searchParams: Promise<{ week?: string; day?: string; month?: string }>;
+  searchParams: Promise<{
+    week?: string;
+    day?: string;
+    month?: string;
+    date?: string;
+    search?: string;
+    customerId?: string;
+    sectorId?: string;
+    region?: string;
+    priority?: string;
+    status?: string;
+  }>;
 }
 
 export default async function PlanningPage({ searchParams }: Props) {
   const canRead = await hasPermission("planning", "read");
   if (!canRead) return <ForbiddenPage resource="planning" action="read" />;
 
-  const { week, day, month } = await searchParams;
+  const {
+    week,
+    day,
+    month,
+    date,
+    search,
+    customerId,
+    sectorId,
+    region,
+    priority,
+    status,
+  } = await searchParams;
 
   const [canWrite, customers] = await Promise.all([
     hasPermission("planning", "write"),
@@ -109,15 +115,21 @@ export default async function PlanningPage({ searchParams }: Props) {
     );
   }
 
-  // ── Week view (default) ───────────────────────────────────────────────────
-  const weekStart    = getWeekMonday(week);
-  const weekEnd      = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 6);
-
-  const weekStartStr = formatDateKey(weekStart);
-  const weekEndStr   = formatDateKey(weekEnd);
-
-  const assignments = await getAssignmentsForWeek(weekStartStr, weekEndStr);
+  // ── Planning board (default) ──────────────────────────────────────────────
+  const boardDate = date && isValidDate(date)
+    ? date
+    : week && isValidDate(week)
+      ? week
+      : undefined;
+  const boardData = await getPlanningBoardData({
+    date: boardDate,
+    search,
+    customerId,
+    sectorId,
+    region,
+    priority: priority as PlanningBoardFilters["priority"],
+    statuses: status ? [status as NonNullable<PlanningBoardFilters["statuses"]>[number]] : undefined,
+  });
 
   return (
     <div className="p-8">
@@ -126,15 +138,13 @@ export default async function PlanningPage({ searchParams }: Props) {
           Planning
         </h1>
         <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-          Weekoverzicht van ingeplande opdrachten
+          Digitaal planbord voor werkbonnen en medewerkers
         </p>
       </div>
 
-      <PlanningView
-        weekStartStr={weekStartStr}
-        assignments={assignments}
+      <PlanningBoardView
+        data={boardData}
         canWrite={canWrite}
-        customers={customers}
       />
     </div>
   );
