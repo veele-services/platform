@@ -3,6 +3,7 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { ObjectsView } from "@/components/objects/ObjectsView";
 import { listObjects, listCustomerOptions, getObjectStats } from "@/app/actions/objects";
+import { listActiveSectors } from "@/app/actions/sectors";
 import { Building2, CheckCircle2, ClipboardList, FileText, PauseCircle } from "lucide-react";
 
 export const metadata: Metadata = { title: "Objecten" };
@@ -33,9 +34,10 @@ export default async function ObjectsPage({ searchParams }: Props) {
   const sort        = str(sp.sort, "name");
   const dir         = str(sp.dir, "asc");
 
-  const [{ rows, total }, customers, stats] = await Promise.all([
+  const [{ rows, total }, customers, sectors, stats] = await Promise.all([
     listObjects({ search, customerId, serviceType, region, status, page, sort, dir }),
     listCustomerOptions(),
+    listActiveSectors(),
     getObjectStats(),
   ]);
 
@@ -106,6 +108,7 @@ export default async function ObjectsPage({ searchParams }: Props) {
         rows={rows}
         total={total}
         customers={customers}
+        sectors={sectors}
         canWrite={canWrite}
         page={page}
         initialSearch={search}

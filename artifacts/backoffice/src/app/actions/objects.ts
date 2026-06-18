@@ -270,26 +270,38 @@ export async function listObjects(params: {
 export async function getObjectStats(): Promise<ObjectStats> {
   await requirePermission("objects", "read");
 
-  const [totalRow, activeRow, assignmentRow, serviceTypeRow, inactiveRow, documentRow] = await Promise.all([
-    db.select({ count: sql<number>`count(*)::int` }).from(objectsTable),
-    db.select({ count: sql<number>`count(*)::int` }).from(objectsTable).where(eq(objectsTable.isActive, true)),
-    db.select({ count: sql<number>`count(*)::int` }).from(assignmentsTable)
-      .where(sql`${assignmentsTable.objectId} IS NOT NULL AND ${assignmentsTable.status} IN ('scheduled', 'in_progress', 'seen', 'plannable', 'approved')`),
-    db.select({ count: sql<number>`count(DISTINCT ${objectsTable.serviceType})::int` }).from(objectsTable)
-      .where(sql`${objectsTable.serviceType} IS NOT NULL AND trim(${objectsTable.serviceType}) <> ''`),
-    db.select({ count: sql<number>`count(*)::int` }).from(objectsTable).where(eq(objectsTable.isActive, false)),
-    db.select({ count: sql<number>`count(*)::int` }).from(documentsTable)
-      .where(eq(documentsTable.entityType, "object")),
-  ]);
+  try {
+    const [totalRow, activeRow, assignmentRow, serviceTypeRow, inactiveRow, documentRow] = await Promise.all([
+      db.select({ count: sql<number>`count(*)::int` }).from(objectsTable),
+      db.select({ count: sql<number>`count(*)::int` }).from(objectsTable).where(eq(objectsTable.isActive, true)),
+      db.select({ count: sql<number>`count(*)::int` }).from(assignmentsTable)
+        .where(sql`${assignmentsTable.objectId} IS NOT NULL AND ${assignmentsTable.status} IN ('scheduled', 'in_progress', 'seen', 'plannable', 'approved')`),
+      db.select({ count: sql<number>`count(DISTINCT ${objectsTable.serviceType})::int` }).from(objectsTable)
+        .where(sql`${objectsTable.serviceType} IS NOT NULL AND trim(${objectsTable.serviceType}) <> ''`),
+      db.select({ count: sql<number>`count(*)::int` }).from(objectsTable).where(eq(objectsTable.isActive, false)),
+      db.select({ count: sql<number>`count(*)::int` }).from(documentsTable)
+        .where(eq(documentsTable.entityType, "object")),
+    ]);
 
-  return {
-    total:             totalRow[0]?.count        ?? 0,
-    active:            activeRow[0]?.count       ?? 0,
-    activeAssignments: assignmentRow[0]?.count   ?? 0,
-    periodicTasks:     serviceTypeRow[0]?.count  ?? 0,
-    openAlerts:        inactiveRow[0]?.count     ?? 0,
-    contracts:         documentRow[0]?.count     ?? 0,
-  };
+    return {
+      total:             totalRow[0]?.count        ?? 0,
+      active:            activeRow[0]?.count       ?? 0,
+      activeAssignments: assignmentRow[0]?.count   ?? 0,
+      periodicTasks:     serviceTypeRow[0]?.count  ?? 0,
+      openAlerts:        inactiveRow[0]?.count     ?? 0,
+      contracts:         documentRow[0]?.count     ?? 0,
+    };
+  } catch (err) {
+    console.error("Object statistics failed", err);
+    return {
+      total: 0,
+      active: 0,
+      activeAssignments: 0,
+      periodicTasks: 0,
+      openAlerts: 0,
+      contracts: 0,
+    };
+  }
 }
 
 export async function getObject(id: string): Promise<ObjectDetail | null> {
