@@ -44,17 +44,12 @@ export default async function AssignmentsPage({ searchParams }: Props) {
   ]);
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-          Opdrachten
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-          {total === 0
-            ? "Nog geen opdrachten aangemaakt."
-            : `${total} opdracht${total !== 1 ? "en" : ""} in totaal`}
-        </p>
-      </div>
+    <div className="mx-auto w-full max-w-[1600px] p-6">
+      <p className="mb-4 text-sm" style={{ color: "#64748B" }}>
+        {total === 0
+          ? "Nog geen opdrachten aangemaakt."
+          : `${total} opdracht${total !== 1 ? "en" : ""} in totaal`}
+      </p>
 
       <AssignmentsView
         rows={rows}

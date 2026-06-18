@@ -4,6 +4,7 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { getRole } from "@/app/actions/settings";
 import { RolDetailView } from "@/components/settings/RolDetailView";
+import { SettingsTabs } from "@/components/settings/SettingsTabs";
 
 export const metadata: Metadata = { title: "Rol bewerken" };
 
@@ -24,7 +25,8 @@ export default async function RolDetailPage({ params }: Props) {
   if (!role) notFound();
 
   return (
-    <div className="p-8">
+    <div className="mx-auto w-full max-w-[1600px] p-6">
+      <SettingsTabs />
       <div className="mb-6">
         <div className="flex items-center gap-2 text-sm mb-3" style={{ color: "#94A3B8" }}>
           <a href="/settings" className="hover:underline">Instellingen</a>

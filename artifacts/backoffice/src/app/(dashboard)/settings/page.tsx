@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Building2, Shield, Users, ClipboardList, ChevronRight, History, Tag } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
+import { SettingsTabs } from "@/components/settings/SettingsTabs";
 
 export const metadata: Metadata = { title: "Instellingen" };
 
@@ -19,15 +20,8 @@ export default async function SettingsPage() {
   ]);
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-          Instellingen
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-          Platformconfiguratie, rollen, rechten en gebruikersbeheer.
-        </p>
-      </div>
+    <div className="mx-auto w-full max-w-[1600px] p-6">
+      <SettingsTabs />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {canWriteSettings && (
