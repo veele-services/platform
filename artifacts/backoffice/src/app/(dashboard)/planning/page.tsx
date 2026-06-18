@@ -71,16 +71,7 @@ export default async function PlanningPage({ searchParams }: Props) {
     const { rows, unassigned } = await getDayTimelineData(day);
 
     return (
-      <div className="p-8">
-        <div className="mb-8">
-          <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-            Planning
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-            Dagoverzicht van ingeplande opdrachten
-          </p>
-        </div>
-
+      <div className="mx-auto w-full max-w-[1600px] p-6">
         <PlanningDayView
           dateStr={day}
           rows={rows}
@@ -97,16 +88,7 @@ export default async function PlanningPage({ searchParams }: Props) {
     const assignments = await getAssignmentsForMonth(month);
 
     return (
-      <div className="p-8">
-        <div className="mb-8">
-          <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-            Planning
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-            Maandoverzicht van ingeplande opdrachten
-          </p>
-        </div>
-
+      <div className="mx-auto w-full max-w-[1600px] p-6">
         <PlanningMonthView
           monthStr={month}
           assignments={assignments}
@@ -132,16 +114,7 @@ export default async function PlanningPage({ searchParams }: Props) {
   });
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-          Planning
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-          Digitaal planbord voor werkbonnen en medewerkers
-        </p>
-      </div>
-
+    <div className="mx-auto w-full max-w-[1800px] p-6">
       <PlanningBoardView
         data={boardData}
         canWrite={canWrite}

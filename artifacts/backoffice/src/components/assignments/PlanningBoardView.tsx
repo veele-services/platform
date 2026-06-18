@@ -10,17 +10,22 @@ import {
   ChevronLeft,
   ChevronRight,
   Clock,
-  Filter,
   GripVertical,
   Loader2,
   MapPin,
   Search,
+  SlidersHorizontal,
   Users,
   X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Tooltip,
   TooltipContent,
@@ -287,19 +292,21 @@ function FilterSelect({
   value,
   options,
   onChange,
+  className,
 }: {
   label: string;
   value: string;
   options: Array<{ value: string; label: string }>;
   onChange: (value: string) => void;
+  className?: string;
 }) {
   return (
-    <label className="grid gap-1 text-xs font-medium" style={{ color: "#64748B" }}>
+    <label className={`grid gap-1 text-xs font-medium ${className ?? ""}`} style={{ color: "#64748B" }}>
       {label}
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="veele-input h-9 min-w-[150px] py-1 text-sm"
+        className="veele-input h-9 w-full min-w-[150px] py-1 text-sm"
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
@@ -575,91 +582,104 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
             </div>
           </div>
 
-          <div className="grid gap-3 px-4 py-3 lg:grid-cols-[minmax(260px,1fr),auto]">
-            <form onSubmit={submitSearch} className="flex min-w-0 items-end gap-2">
-              <label className="grid min-w-[220px] flex-1 gap-1 text-xs font-medium" style={{ color: "#64748B" }}>
-                Zoeken
-                <div className="relative">
-                  <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "#94A3B8" }} />
-                  <Input
-                    type="search"
-                    value={searchValue}
-                    onChange={(e) => setSearchValue(e.target.value)}
-                    className="pl-9"
-                    placeholder="Werkbon, klant of object"
-                  />
-                </div>
+          <div className="flex flex-wrap items-center gap-2 px-4 py-3">
+            <form onSubmit={submitSearch} className="flex min-w-[260px] flex-1 items-center gap-2">
+              <label className="relative min-w-0 flex-1">
+                <span className="sr-only">Werkbonnen zoeken</span>
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "#94A3B8" }} />
+                <Input
+                  type="search"
+                  value={searchValue}
+                  onChange={(e) => setSearchValue(e.target.value)}
+                  className="pl-9"
+                  placeholder="Werkbon, klant of object"
+                />
               </label>
               <Button type="submit" size="sm" variant="outline" aria-label="Zoeken">
                 <Search className="h-4 w-4" />
               </Button>
             </form>
 
-            <div className="flex flex-wrap items-end gap-2">
-              <label className="grid gap-1 text-xs font-medium" style={{ color: "#64748B" }}>
-                Datum
-                <Input
-                  type="date"
-                  value={data.date}
-                  onChange={(e) => updateQuery({ date: e.target.value })}
-                  className="w-[150px]"
-                />
-              </label>
-              <FilterSelect
-                label="Klant"
-                value={selectedCustomer}
-                onChange={(value) => updateQuery({ customerId: value })}
-                options={[
-                  { value: "all", label: "Alle klanten" },
-                  ...data.filterOptions.customers.map((customer) => ({ value: customer.id, label: customer.name })),
-                ]}
-              />
-              <FilterSelect
-                label="Sector"
-                value={selectedSector}
-                onChange={(value) => updateQuery({ sectorId: value })}
-                options={[
-                  { value: "all", label: "Alle sectoren" },
-                  ...data.filterOptions.sectors.map((sector) => ({ value: sector.id, label: sector.name })),
-                ]}
-              />
-              <FilterSelect
-                label="Regio"
-                value={selectedRegion}
-                onChange={(value) => updateQuery({ region: value })}
-                options={[
-                  { value: "all", label: "Alle regio's" },
-                  ...data.filterOptions.regions.map((region) => ({ value: region, label: region })),
-                ]}
-              />
-              <FilterSelect
-                label="Prioriteit"
-                value={selectedPriority}
-                onChange={(value) => updateQuery({ priority: value })}
-                options={[
-                  { value: "all", label: "Alle prioriteiten" },
-                  ...data.filterOptions.priorities.map((priority) => ({ value: priority, label: priorityLabel(priority) })),
-                ]}
-              />
-              <FilterSelect
-                label="Status"
-                value={selectedStatus}
-                onChange={(value) => updateQuery({ status: value })}
-                options={[
-                  { value: "all", label: "Alle statussen" },
-                  ...data.filterOptions.statuses.map((status) => ({ value: status, label: statusLabel(status) })),
-                ]}
-              />
-              <Button variant="outline" size="sm" onClick={resetFilters}>
-                <X className="h-4 w-4" />
-                Wis
-              </Button>
-            </div>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button type="button" variant="outline" size="sm">
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Filters
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-[340px] p-3">
+                <div className="grid gap-3">
+                  <label className="grid gap-1 text-xs font-medium" style={{ color: "#64748B" }}>
+                    Datum
+                    <Input
+                      type="date"
+                      value={data.date}
+                      onChange={(e) => updateQuery({ date: e.target.value })}
+                      className="w-full"
+                    />
+                  </label>
+                  <FilterSelect
+                    className="w-full"
+                    label="Klant"
+                    value={selectedCustomer}
+                    onChange={(value) => updateQuery({ customerId: value })}
+                    options={[
+                      { value: "all", label: "Alle klanten" },
+                      ...data.filterOptions.customers.map((customer) => ({ value: customer.id, label: customer.name })),
+                    ]}
+                  />
+                  <FilterSelect
+                    className="w-full"
+                    label="Sector"
+                    value={selectedSector}
+                    onChange={(value) => updateQuery({ sectorId: value })}
+                    options={[
+                      { value: "all", label: "Alle sectoren" },
+                      ...data.filterOptions.sectors.map((sector) => ({ value: sector.id, label: sector.name })),
+                    ]}
+                  />
+                  <FilterSelect
+                    className="w-full"
+                    label="Regio"
+                    value={selectedRegion}
+                    onChange={(value) => updateQuery({ region: value })}
+                    options={[
+                      { value: "all", label: "Alle regio's" },
+                      ...data.filterOptions.regions.map((region) => ({ value: region, label: region })),
+                    ]}
+                  />
+                  <FilterSelect
+                    className="w-full"
+                    label="Prioriteit"
+                    value={selectedPriority}
+                    onChange={(value) => updateQuery({ priority: value })}
+                    options={[
+                      { value: "all", label: "Alle prioriteiten" },
+                      ...data.filterOptions.priorities.map((priority) => ({ value: priority, label: priorityLabel(priority) })),
+                    ]}
+                  />
+                  <FilterSelect
+                    className="w-full"
+                    label="Status"
+                    value={selectedStatus}
+                    onChange={(value) => updateQuery({ status: value })}
+                    options={[
+                      { value: "all", label: "Alle statussen" },
+                      ...data.filterOptions.statuses.map((status) => ({ value: status, label: statusLabel(status) })),
+                    ]}
+                  />
+                  <Button type="button" variant="outline" size="sm" onClick={resetFilters} className="justify-center">
+                    <X className="h-4 w-4" />
+                    Filters wissen
+                  </Button>
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
         </section>
 
-        <div className="grid gap-4 xl:grid-cols-[360px,minmax(760px,1fr)]">
-          <section className="rounded-lg border bg-white shadow-sm" style={{ borderColor: "#E2E8F0" }}>
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(260px,15%)]">
+          <section className="order-2 rounded-lg border bg-white shadow-sm xl:order-2" style={{ borderColor: "#E2E8F0" }}>
             <div className="flex items-center justify-between gap-3 border-b px-4 py-3" style={{ borderColor: "#E2E8F0" }}>
               <div>
                 <h3 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
@@ -669,18 +689,20 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                   {openSlotCount} plaats{openSlotCount === 1 ? "" : "en"} te plaatsen
                 </p>
               </div>
-              <Filter className="h-4 w-4" style={{ color: "#94A3B8" }} />
+              <span className="rounded-full px-2 py-1 text-xs font-semibold" style={{ background: "#F1F5F9", color: "#64748B" }}>
+                {data.openAssignments.length}
+              </span>
             </div>
 
             {data.openAssignments.length === 0 ? (
-              <div className="flex min-h-[300px] flex-col items-center justify-center px-6 text-center">
+              <div className="flex min-h-[420px] flex-col items-center justify-center px-6 text-center">
                 <CheckCircle2 className="mb-3 h-9 w-9" style={{ color: "#CBD5E1" }} />
                 <p className="text-sm font-medium" style={{ color: "#64748B" }}>
                   Geen open werkbonnen
                 </p>
               </div>
             ) : (
-              <div className="max-h-[calc(100vh-320px)] min-h-[420px] space-y-3 overflow-y-auto p-3">
+              <div className="max-h-[calc(100vh-260px)] min-h-[420px] space-y-3 overflow-y-auto p-3">
                 {data.openAssignments.map((assignment) => {
                   const selected = selectedAssignmentId === assignment.id;
                   const stats = matchStats(data.matchesByAssignmentId[assignment.id]);
@@ -779,15 +801,17 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
             )}
           </section>
 
-          <section className="rounded-lg border bg-white shadow-sm" style={{ borderColor: "#E2E8F0" }}>
+          <section className="order-1 rounded-lg border bg-white shadow-sm xl:order-1" style={{ borderColor: "#E2E8F0" }}>
             <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3" style={{ borderColor: "#E2E8F0" }}>
-              <div>
-                <h3 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
-                  Digitaal planbord
-                </h3>
-                <p className="mt-0.5 text-xs" style={{ color: "#64748B" }}>
-                  {activeAssignment ? activeAssignment.title : "Selecteer of sleep een werkbon"}
-                </p>
+              <div className="min-w-0 text-xs" style={{ color: "#64748B" }}>
+                {activeAssignment ? (
+                  <span className="inline-flex max-w-[520px] items-center gap-1 truncate rounded border px-2 py-1" style={{ borderColor: "#BFDBFE", background: "#EFF6FF", color: "#1D4ED8" }}>
+                    Geselecteerd:
+                    <span className="truncate font-medium">{activeAssignment.title}</span>
+                  </span>
+                ) : (
+                  <span>{data.personnel.length} medewerkers zichtbaar</span>
+                )}
               </div>
               <div className="flex flex-wrap items-center gap-2">
                 <label className="grid gap-1 text-xs font-medium" style={{ color: "#64748B" }}>

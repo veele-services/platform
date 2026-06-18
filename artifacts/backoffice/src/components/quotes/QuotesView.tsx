@@ -105,17 +105,7 @@ export function QuotesView({ initialRows, initialTotal, summary }: QuotesViewPro
   ];
 
   return (
-    <div className="p-8 max-w-6xl">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="font-heading text-2xl font-bold mb-1" style={{ color: "#081D3A" }}>
-          Offertes
-        </h1>
-        <p className="text-sm" style={{ color: "#64748B" }}>
-          Beheer offerteaanvragen en goedkeuringen
-        </p>
-      </div>
-
+    <div className="mx-auto w-full max-w-[1600px] p-6">
       {/* Summary cards */}
       <div className="grid grid-cols-2 gap-4 mb-6 sm:grid-cols-4">
         {summaryCards.map((c) => (

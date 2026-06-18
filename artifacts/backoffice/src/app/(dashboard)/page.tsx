@@ -109,13 +109,10 @@ export default async function DashboardPage() {
   const unavailableCount  = staffAvailability.filter((s) => s.status === "niet_beschikbaar" || s.status === "op_verlof" || s.status === "ziek").length;
 
   return (
-    <div className="p-8 space-y-6">
+    <div className="mx-auto w-full max-w-[1600px] space-y-6 p-6">
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex items-center justify-between gap-4">
         <div>
-          <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-            Dashboard
-          </h1>
           <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
             Operationeel overzicht — {today.toLocaleDateString("nl-NL", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
           </p>
