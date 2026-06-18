@@ -5,8 +5,8 @@ import { cookies } from "next/headers";
 import { eq } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getUserPermissions, requirePermission } from "@/lib/auth/permissions";
-import { signPermissions, COOKIE_NAME, COOKIE_MAX_AGE } from "@/lib/auth/session-permissions";
+import { requirePermission } from "@/lib/auth/permissions";
+import { COOKIE_NAME } from "@/lib/auth/session-permissions";
 import { db } from "@workspace/db";
 import { auditLogTable, personnelTable } from "@workspace/db";
 import type { ActionResult } from "./customers";
@@ -22,7 +22,7 @@ export type AuthFormState = {
  *   1. Authenticate with Supabase.
  *   2. Insert audit log entry — MANDATORY.  Sign-in is rolled back if the
  *      audit insert fails to ensure every login event is recorded.
- *   3. Encode and sign the user's permissions in a cookie for middleware RBAC.
+ *   3. Clear the legacy cached permissions cookie, if present.
  *   4. Redirect to dashboard.
  */
 export async function signIn(
@@ -70,23 +70,14 @@ export async function signIn(
     };
   }
 
-  // ── Permissions cookie for middleware RBAC ────────────────────────────────
-  // Non-fatal: if encoding fails the user still gets in; server components
-  // will enforce RBAC via hasPermission().
+  // ── Legacy permissions-cookie cleanup ─────────────────────────────────────
+  // Clear the legacy cached permissions cookie. Authorization is checked
+  // against live database permissions by Server Components and Server Actions.
   try {
-    const permissions = await getUserPermissions(data.user.id);
-    const signed      = await signPermissions([...permissions]);
     const cookieStore = await cookies();
-    cookieStore.set(COOKIE_NAME, signed, {
-      httpOnly: true,
-      secure:   process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path:     "/",
-      maxAge:   COOKIE_MAX_AGE,
-    });
+    cookieStore.delete(COOKIE_NAME);
   } catch {
-    // Log but do not block sign-in.
-    console.error("[auth] Failed to set permissions cookie after sign-in.");
+    // Best-effort cleanup; do not block sign-in.
   }
 
   redirect("/");
