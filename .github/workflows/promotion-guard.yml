@@ -1,0 +1,51 @@
+name: Promotion Guard
+
+on:
+  pull_request:
+    branches:
+      - staging
+      - production
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - edited
+
+permissions:
+  contents: read
+
+jobs:
+  enforce-release-flow:
+    name: Enforce release flow
+    runs-on: self-hosted
+    steps:
+      - name: Validate source branch
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          base_branch="${GITHUB_BASE_REF}"
+          head_branch="${GITHUB_HEAD_REF}"
+
+          case "$base_branch" in
+            staging)
+              if [[ "$head_branch" == "main" ]]; then
+                exit 0
+              fi
+              ;;
+            production)
+              if [[ "$head_branch" == "staging" || "$head_branch" == hotfix/* ]]; then
+                exit 0
+              fi
+              ;;
+          esac
+
+          echo "::error title=Invalid promotion path::Pull requests into '$base_branch' must follow the documented release flow."
+          echo "Allowed paths:"
+          echo "  main -> staging"
+          echo "  staging -> production"
+          echo "  hotfix/* -> production"
+          echo
+          echo "Received:"
+          echo "  $head_branch -> $base_branch"
+          exit 1

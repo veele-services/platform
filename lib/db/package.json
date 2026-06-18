@@ -11,7 +11,9 @@
     "push":         "drizzle-kit push --config ./drizzle.config.ts",
     "push-force":   "drizzle-kit push --force --config ./drizzle.config.ts",
     "generate":     "drizzle-kit generate --config ./drizzle.config.ts",
-    "db:migrate":   "tsx src/migrate.ts",
+    "db:migrate":   "tsx src/migrate.ts migrate",
+    "db:baseline":  "tsx src/migrate.ts baseline",
+    "inspect":      "node ./scripts/inspect-database.mjs",
     "seed:rbac":    "tsx src/seed/rbac.ts",
     "seed:sectors": "tsx src/seed/sectors.ts",
     "seed:all":     "tsx src/seed/rbac.ts && tsx src/seed/sectors.ts"

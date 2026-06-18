@@ -1,0 +1,12 @@
+{
+  "drizzle": [
+    "0000_friendly_scalphunter",
+    "0001_wandering_matthew_murdock"
+  ],
+  "sql": [
+    "001_rbac_rls.sql",
+    "002_sprint1_rls.sql",
+    "004_notification_settings.sql",
+    "023_invite_trigger.sql"
+  ]
+}

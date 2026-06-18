@@ -1,0 +1,56 @@
+name: Database Baseline
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: GitHub environment to baseline
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - production
+      confirm:
+        description: Type "baseline" to mark existing schema migrations as applied
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  baseline:
+    name: Baseline ${{ inputs.target }} database
+    runs-on: [self-hosted, linux, x64, veele]
+    environment:
+      name: ${{ inputs.target }}
+    env:
+      APP_ENV: ${{ inputs.target }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    steps:
+      - name: Confirm baseline
+        if: ${{ inputs.confirm != 'baseline' }}
+        run: |
+          echo 'Type "baseline" in the confirm input to run this workflow.'
+          exit 1
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check runtime
+        run: |
+          set -euo pipefail
+          node -v
+          pnpm -v
+
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          pnpm install --frozen-lockfile --prod=false
+
+      - name: Baseline migration history
+        run: |
+          set -euo pipefail
+          pnpm run db:baseline

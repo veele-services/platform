@@ -108,6 +108,12 @@ jobs:
           set -euo pipefail
           pnpm build
 
+      - name: Run database migrations
+        working-directory: ${{ env.RELEASE }}
+        run: |
+          set -euo pipefail
+          pnpm run db:migrate
+
       - name: Activate release
         run: |
           set -euo pipefail
