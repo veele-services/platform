@@ -281,6 +281,7 @@ async function createPersonnel(
     email: string;
     phone: string;
     roleId: string;
+    sectorId: string;
     region: string;
     certificates: Array<{ name: string; expires_at?: string }>;
     diplomas: string[];
@@ -294,11 +295,11 @@ async function createPersonnel(
   const row = await one<IdRow>(
     client,
     `insert into personnel (
-       first_name, last_name, email, phone, role_id, region,
+       first_name, last_name, email, phone, role_id, sector_id, region,
        certificates, diplomas, knowledge, is_active, is_available,
        personnel_type, emergency_available, preferred_regions, contract_info
      )
-     values ($1, $2, $3, $4, $5, $6, $7::jsonb, $8::jsonb, $9::jsonb, true, true, $10, $11, $12::jsonb, $13::jsonb)
+     values ($1, $2, $3, $4, $5, $6, $7, $8::jsonb, $9::jsonb, $10::jsonb, true, true, $11, $12, $13::jsonb, $14::jsonb)
      returning id`,
     [
       input.firstName,
@@ -306,6 +307,7 @@ async function createPersonnel(
       input.email,
       input.phone,
       input.roleId,
+      input.sectorId,
       input.region,
       JSON.stringify(input.certificates),
       JSON.stringify(input.diplomas),
@@ -701,12 +703,9 @@ async function seedDemoData(client: PoolClient) {
   };
 
   const sectorIds = {
-    zorg: await ensureSector(client, "Zorg & welzijn", "Zorglocaties, klinieken en welzijnsorganisaties"),
-    vastgoed: await ensureSector(client, "VvE & vastgoed", "Wooncomplexen, kantoren en beheerd vastgoed"),
-    horeca: await ensureSector(client, "Horeca & hospitality", "Hotels, restaurants en strandpaviljoens"),
-    onderwijs: await ensureSector(client, "Onderwijs", "Scholen, opvang en onderwijsinstellingen"),
-    logistiek: await ensureSector(client, "Logistiek", "Magazijnen, hubs en distributielocaties"),
-    retail: await ensureSector(client, "Retail", "Winkels en publieke verkooplocaties"),
+    facilitair: await ensureSector(client, "Facilitair", "Facilitaire dienstverlening, beheer en onderhoud"),
+    schoonmaak: await ensureSector(client, "Schoonmaak", "Reguliere, specialistische en calamiteitenschoonmaak"),
+    beveiliging: await ensureSector(client, "Beveiliging", "Beveiliging, toezicht, surveillance en alarmopvolging"),
   };
 
   const customerTypeIds = {
@@ -721,7 +720,7 @@ async function seedDemoData(client: PoolClient) {
     schoonmaak: await createTaskCode(client, {
       code: "DH-DEMO-SCH-001",
       name: "Dagelijkse schoonmaak en sanitairronde",
-      sectorId: sectorIds.vastgoed,
+      sectorId: sectorIds.schoonmaak,
       description: "Reguliere schoonmaakronde voor entree, algemene ruimtes en sanitair.",
       price: 145,
       durationMinutes: 90,
@@ -733,7 +732,7 @@ async function seedDemoData(client: PoolClient) {
     glas: await createTaskCode(client, {
       code: "DH-DEMO-GLAS-002",
       name: "Glasbewassing met hoogwerker",
-      sectorId: sectorIds.vastgoed,
+      sectorId: sectorIds.schoonmaak,
       description: "Buitenzijde glas, inclusief hoogwerker en afzetting.",
       price: 360,
       durationMinutes: 150,
@@ -747,7 +746,7 @@ async function seedDemoData(client: PoolClient) {
     calamiteit: await createTaskCode(client, {
       code: "DH-DEMO-CAL-003",
       name: "Calamiteitenreiniging na lekkage",
-      sectorId: sectorIds.zorg,
+      sectorId: sectorIds.schoonmaak,
       description: "Spoedreiniging, waterschadebeperking en rapportage.",
       price: 525,
       durationMinutes: 180,
@@ -759,7 +758,7 @@ async function seedDemoData(client: PoolClient) {
     beveiliging: await createTaskCode(client, {
       code: "DH-DEMO-BEV-004",
       name: "Avondsluiting en surveillance",
-      sectorId: sectorIds.retail,
+      sectorId: sectorIds.beveiliging,
       description: "Sluitronde, alarmcontrole en rapportage van bijzonderheden.",
       price: 195,
       durationMinutes: 120,
@@ -770,7 +769,7 @@ async function seedDemoData(client: PoolClient) {
     techniek: await createTaskCode(client, {
       code: "DH-DEMO-TEC-005",
       name: "Kleine facilitaire reparatie",
-      sectorId: sectorIds.onderwijs,
+      sectorId: sectorIds.facilitair,
       description: "Herstelmelding voor deurdrangers, verlichting en klein onderhoud.",
       price: 210,
       durationMinutes: 120,
@@ -781,7 +780,7 @@ async function seedDemoData(client: PoolClient) {
     inspectie: await createTaskCode(client, {
       code: "DH-DEMO-INS-006",
       name: "Objectinspectie en servicerapport",
-      sectorId: sectorIds.logistiek,
+      sectorId: sectorIds.facilitair,
       description: "Kwaliteitscontrole met digitale rapportage.",
       price: 175,
       durationMinutes: 75,
@@ -798,6 +797,7 @@ async function seedDemoData(client: PoolClient) {
       email: `farid.elamrani@${DEMO_EMAIL_DOMAIN}`,
       phone: "06 11 22 33 41",
       roleId: roleIds.teamlead,
+      sectorId: sectorIds.schoonmaak,
       region: "Den Haag Centrum",
       certificates: [{ name: "BHV" }, { name: "VCA" }, { name: "Hoogwerker", expires_at: "2027-04-30" }],
       diplomas: ["SVS Glasbewassing"],
@@ -813,6 +813,7 @@ async function seedDemoData(client: PoolClient) {
       email: `sanne.vandijk@${DEMO_EMAIL_DOMAIN}`,
       phone: "06 11 22 33 42",
       roleId: roleIds.employee,
+      sectorId: sectorIds.schoonmaak,
       region: "Scheveningen",
       certificates: [{ name: "VOG" }, { name: "BHV" }],
       diplomas: ["SVS Basis schoonmaak"],
@@ -827,6 +828,7 @@ async function seedDemoData(client: PoolClient) {
       email: `mitchell.rijsdijk@${DEMO_EMAIL_DOMAIN}`,
       phone: "06 11 22 33 43",
       roleId: roleIds.employee,
+      sectorId: sectorIds.beveiliging,
       region: "Binckhorst",
       certificates: [{ name: "VOG" }, { name: "VCA" }],
       diplomas: ["Beveiliging niveau 2"],
@@ -842,6 +844,7 @@ async function seedDemoData(client: PoolClient) {
       email: `lotte.jansen@${DEMO_EMAIL_DOMAIN}`,
       phone: "06 11 22 33 44",
       roleId: roleIds.employee,
+      sectorId: sectorIds.schoonmaak,
       region: "Den Haag Centrum",
       certificates: [{ name: "VOG" }],
       diplomas: ["SVS Basis schoonmaak"],
@@ -856,6 +859,7 @@ async function seedDemoData(client: PoolClient) {
       email: `nour.benali@${DEMO_EMAIL_DOMAIN}`,
       phone: "06 11 22 33 45",
       roleId: roleIds.employee,
+      sectorId: sectorIds.facilitair,
       region: "Escamp",
       certificates: [{ name: "VOG" }, { name: "VCA" }],
       diplomas: ["MBO Facilitair"],
@@ -870,6 +874,7 @@ async function seedDemoData(client: PoolClient) {
       email: `pieter.vandermeer@${DEMO_EMAIL_DOMAIN}`,
       phone: "06 11 22 33 46",
       roleId: roleIds.employee,
+      sectorId: sectorIds.schoonmaak,
       region: "Statenkwartier",
       certificates: [{ name: "VCA" }, { name: "Hoogwerker" }],
       diplomas: ["SVS Glasbewassing"],
@@ -884,6 +889,7 @@ async function seedDemoData(client: PoolClient) {
       email: `koen.bos@${DEMO_EMAIL_DOMAIN}`,
       phone: "06 11 22 33 47",
       roleId: roleIds.flex,
+      sectorId: sectorIds.schoonmaak,
       region: "Den Haag Centrum",
       certificates: [{ name: "VOG" }],
       diplomas: [],
@@ -929,7 +935,7 @@ async function seedDemoData(client: PoolClient) {
   const customers = {
     hofjes: await createCustomer(client, {
       name: "Haagse Hofjes Zorggroep",
-      sectorId: sectorIds.zorg,
+      sectorId: sectorIds.schoonmaak,
       customerTypeId: customerTypeIds.zorg,
       address: "Prinsegracht 42",
       postalCode: "2512 GA",
@@ -945,7 +951,7 @@ async function seedDemoData(client: PoolClient) {
     }),
     staten: await createCustomer(client, {
       name: "VvE Residence Statenkwartier",
-      sectorId: sectorIds.vastgoed,
+      sectorId: sectorIds.schoonmaak,
       customerTypeId: customerTypeIds.vve,
       address: "Frederik Hendriklaan 102",
       postalCode: "2582 BE",
@@ -961,7 +967,7 @@ async function seedDemoData(client: PoolClient) {
     }),
     zuiderstrand: await createCustomer(client, {
       name: "Strandpaviljoen Zuiderlicht",
-      sectorId: sectorIds.horeca,
+      sectorId: sectorIds.schoonmaak,
       customerTypeId: customerTypeIds.horeca,
       address: "Strandslag 12",
       postalCode: "2586 JK",
@@ -977,7 +983,7 @@ async function seedDemoData(client: PoolClient) {
     }),
     binck: await createCustomer(client, {
       name: "Logistiek Centrum Binckhorst",
-      sectorId: sectorIds.logistiek,
+      sectorId: sectorIds.facilitair,
       customerTypeId: customerTypeIds.business,
       address: "Binckhorstlaan 117",
       postalCode: "2516 BA",
@@ -993,7 +999,7 @@ async function seedDemoData(client: PoolClient) {
     }),
     hofvijver: await createCustomer(client, {
       name: "Basisschool De Hofvijver",
-      sectorId: sectorIds.onderwijs,
+      sectorId: sectorIds.facilitair,
       customerTypeId: customerTypeIds.onderwijs,
       address: "Turfmarkt 99",
       postalCode: "2511 DC",
@@ -1009,7 +1015,7 @@ async function seedDemoData(client: PoolClient) {
     }),
     noordeinde: await createCustomer(client, {
       name: "Boutique Hotel Noordeinde",
-      sectorId: sectorIds.horeca,
+      sectorId: sectorIds.beveiliging,
       customerTypeId: customerTypeIds.horeca,
       address: "Noordeinde 64",
       postalCode: "2514 GK",
@@ -1047,7 +1053,7 @@ async function seedDemoData(client: PoolClient) {
   const objects = {
     zorgAtrium: await createObject(client, {
       customerId: customers.hofjes,
-      sectorId: sectorIds.zorg,
+      sectorId: sectorIds.schoonmaak,
       name: "Zorglocatie Atrium Prinsegracht",
       address: "Prinsegracht 42",
       postalCode: "2512 GA",
@@ -1060,7 +1066,7 @@ async function seedDemoData(client: PoolClient) {
     }),
     statenGarage: await createObject(client, {
       customerId: customers.staten,
-      sectorId: sectorIds.vastgoed,
+      sectorId: sectorIds.schoonmaak,
       name: "Residence Statenkwartier - entree en parkeergarage",
       address: "Frederik Hendriklaan 102",
       postalCode: "2582 BE",
@@ -1073,7 +1079,7 @@ async function seedDemoData(client: PoolClient) {
     }),
     strand: await createObject(client, {
       customerId: customers.zuiderstrand,
-      sectorId: sectorIds.horeca,
+      sectorId: sectorIds.schoonmaak,
       name: "Paviljoen Zuiderlicht - terras en keukenroute",
       address: "Strandslag 12",
       postalCode: "2586 JK",
@@ -1086,7 +1092,7 @@ async function seedDemoData(client: PoolClient) {
     }),
     binckDock: await createObject(client, {
       customerId: customers.binck,
-      sectorId: sectorIds.logistiek,
+      sectorId: sectorIds.facilitair,
       name: "Binckhorst distributiehal A",
       address: "Binckhorstlaan 117",
       postalCode: "2516 BA",
@@ -1099,7 +1105,7 @@ async function seedDemoData(client: PoolClient) {
     }),
     school: await createObject(client, {
       customerId: customers.hofvijver,
-      sectorId: sectorIds.onderwijs,
+      sectorId: sectorIds.facilitair,
       name: "De Hofvijver hoofdgebouw",
       address: "Turfmarkt 99",
       postalCode: "2511 DC",
@@ -1112,7 +1118,7 @@ async function seedDemoData(client: PoolClient) {
     }),
     hotel: await createObject(client, {
       customerId: customers.noordeinde,
-      sectorId: sectorIds.horeca,
+      sectorId: sectorIds.beveiliging,
       name: "Hotel Noordeinde publieke ruimtes",
       address: "Noordeinde 64",
       postalCode: "2514 GK",

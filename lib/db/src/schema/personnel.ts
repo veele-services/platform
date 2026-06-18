@@ -10,6 +10,7 @@ import { sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { rolesTable } from "./roles";
+import { sectorsTable } from "./sectors";
 
 /**
  * Field worker / employee profile.
@@ -36,6 +37,8 @@ export const personnelTable = pgTable("personnel", {
 
   /** Primary role used for planning eligibility checks. */
   roleId:       uuid("role_id").references(() => rolesTable.id, { onDelete: "set null" }),
+  /** Primary operational sector used for planning eligibility checks. */
+  sectorId:     uuid("sector_id").references(() => sectorsTable.id, { onDelete: "set null" }),
   region:       varchar("region", { length: 100 }),
 
   /**

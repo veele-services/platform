@@ -50,7 +50,9 @@ import {
 const DAY_START_MIN = 7 * 60;
 const DAY_END_MIN = 20 * 60;
 const DAY_SPAN = DAY_END_MIN - DAY_START_MIN;
-const PERSONNEL_COL_WIDTH = 230;
+const PERSONNEL_COL_WIDTH = 210;
+const TIMELINE_WIDTH = 1180;
+const BOARD_WIDTH = PERSONNEL_COL_WIDTH + TIMELINE_WIDTH;
 
 const NL_MONTHS = [
   "januari",
@@ -254,6 +256,24 @@ function matchConfig(match: PlanningBoardMatch | undefined): {
     return { label: "Waarschuwing", bg: "#FFFBEB", text: "#B45309", border: "#FCD34D" };
   }
   return { label: "Blokkeert", bg: "#FEF2F2", text: "#B91C1C", border: "#FECACA" };
+}
+
+function sectorBadgeStyle(sectorName: string | null | undefined): {
+  background: string;
+  color: string;
+  borderColor: string;
+} {
+  const normalized = (sectorName ?? "").toLowerCase();
+  if (normalized.includes("schoonmaak")) {
+    return { background: "#E2FAF8", color: "#075E5D", borderColor: "#8CE7E2" };
+  }
+  if (normalized.includes("beveilig")) {
+    return { background: "#F2EEFF", color: "#4C1D95", borderColor: "#C4B5FD" };
+  }
+  if (normalized.includes("facilit")) {
+    return { background: "#E8F4FF", color: "#0F3A5F", borderColor: "#93C5FD" };
+  }
+  return { background: "#F8FAFC", color: "#475569", borderColor: "#E2E8F0" };
 }
 
 function availabilityConfig(status: string): {
@@ -715,7 +735,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                       onDragStart={(e) => handleDragStart(e, assignment)}
                       onDragEnd={handleDragEnd}
                       onClick={() => setSelectedAssignmentId(selected ? null : assignment.id)}
-                      className="group rounded-lg border bg-white p-3 shadow-sm transition"
+                      className="group rounded-lg border bg-white p-2.5 shadow-sm transition"
                       style={{
                         borderColor: selected ? "#00B7B3" : "#E2E8F0",
                         boxShadow: selected ? "0 0 0 3px rgba(0,183,179,0.12)" : undefined,
@@ -727,29 +747,37 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                           <GripVertical className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "#CBD5E1" }} />
                         )}
                         <div className="min-w-0 flex-1">
-                          <div className="mb-2 flex flex-wrap items-center gap-2">
-                            <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[11px]" style={{ color: "#475569" }}>
+                          <div className="mb-2 flex flex-wrap items-center gap-1.5">
+                            <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px]" style={{ color: "#475569" }}>
                               {assignment.code}
                             </span>
+                            {assignment.sectorName && (
+                              <span
+                                className="rounded border px-1.5 py-0.5 text-[10px] font-medium"
+                                style={sectorBadgeStyle(assignment.sectorName)}
+                              >
+                                {assignment.sectorName}
+                              </span>
+                            )}
                             <AssignmentPriorityBadge priority={assignment.priority} />
                             <AssignmentStatusBadge status={assignment.status} />
                           </div>
                           <Link
                             href={`/assignments/${assignment.id}`}
-                            className="block truncate text-sm font-semibold hover:underline"
+                            className="block truncate text-[13px] font-semibold hover:underline"
                             style={{ color: "#081D3A" }}
                             onClick={(e) => e.stopPropagation()}
                           >
                             {assignment.title}
                           </Link>
-                          <p className="mt-1 truncate text-xs" style={{ color: "#64748B" }}>
+                          <p className="mt-1 truncate text-[11px]" style={{ color: "#64748B" }}>
                             {assignment.customerName}
                             {assignment.objectName ? ` - ${assignment.objectName}` : ""}
                           </p>
                         </div>
                       </div>
 
-                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
                         <span className="inline-flex items-center gap-1" style={{ color: "#64748B" }}>
                           <Clock className="h-3.5 w-3.5" />
                           {duration} min
@@ -769,7 +797,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                       {assignment.requirements.requiredRoleNames.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1">
                           {assignment.requirements.requiredRoleNames.slice(0, 3).map((role) => (
-                            <span key={role} className="rounded border px-1.5 py-0.5 text-[11px]" style={{ borderColor: "#E2E8F0", color: "#64748B" }}>
+                            <span key={role} className="rounded border px-1.5 py-0.5 text-[10px]" style={{ borderColor: "#E2E8F0", color: "#64748B" }}>
                               {role}
                             </span>
                           ))}
@@ -777,20 +805,20 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                       )}
 
                       {assignment.requiredSlots > 1 && (
-                        <div className="mt-2 inline-flex items-center gap-1 rounded border px-2 py-1 text-[11px] font-medium" style={{ borderColor: "#BFDBFE", background: "#EFF6FF", color: "#1D4ED8" }}>
+                        <div className="mt-2 inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium" style={{ borderColor: "#BFDBFE", background: "#EFF6FF", color: "#1D4ED8" }}>
                           <Users className="h-3 w-3" />
                           Team {slotLabel(assignment.filledSlots, assignment.requiredSlots)}
                         </div>
                       )}
 
-                      <div className="mt-3 flex flex-wrap gap-1.5 text-[11px]">
-                        <span className="rounded px-2 py-0.5" style={{ background: "#ECFDF5", color: "#047857" }}>
+                      <div className="mt-3 flex flex-wrap gap-1.5 text-[10px]">
+                        <span className="rounded px-1.5 py-0.5" style={{ background: "#ECFDF5", color: "#047857" }}>
                           {stats.match} match
                         </span>
-                        <span className="rounded px-2 py-0.5" style={{ background: "#FFFBEB", color: "#B45309" }}>
+                        <span className="rounded px-1.5 py-0.5" style={{ background: "#FFFBEB", color: "#B45309" }}>
                           {stats.warning} waarschuwing
                         </span>
-                        <span className="rounded px-2 py-0.5" style={{ background: "#FEF2F2", color: "#B91C1C" }}>
+                        <span className="rounded px-1.5 py-0.5" style={{ background: "#FEF2F2", color: "#B91C1C" }}>
                           {stats.blocked} blok
                         </span>
                       </div>
@@ -808,6 +836,11 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                   <span className="inline-flex max-w-[520px] items-center gap-1 truncate rounded border px-2 py-1" style={{ borderColor: "#BFDBFE", background: "#EFF6FF", color: "#1D4ED8" }}>
                     Geselecteerd:
                     <span className="truncate font-medium">{activeAssignment.title}</span>
+                    {activeAssignment.sectorName && (
+                      <span className="ml-1 rounded border px-1.5 py-0.5 text-[10px]" style={sectorBadgeStyle(activeAssignment.sectorName)}>
+                        {activeAssignment.sectorName}
+                      </span>
+                    )}
                   </span>
                 ) : (
                   <span>{data.personnel.length} medewerkers zichtbaar</span>
@@ -846,19 +879,19 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
               </div>
             ) : (
               <div className="overflow-x-auto" style={{ opacity: isPending ? 0.82 : 1 }}>
-                <div className="min-w-[980px]">
+                <div style={{ width: BOARD_WIDTH, minWidth: BOARD_WIDTH }}>
                   <div className="relative h-10 border-b" style={{ borderColor: "#E2E8F0" }}>
                     <div
-                      className="absolute left-0 top-0 flex h-full items-center px-4 text-xs font-semibold uppercase tracking-wide"
-                      style={{ width: PERSONNEL_COL_WIDTH, color: "#64748B" }}
+                      className="sticky left-0 top-0 z-30 flex h-full items-center border-r bg-white px-3 text-[11px] font-semibold uppercase tracking-wide"
+                      style={{ width: PERSONNEL_COL_WIDTH, borderColor: "#E2E8F0", color: "#64748B" }}
                     >
                       Medewerker
                     </div>
-                    <div className="absolute bottom-0 top-0" style={{ left: PERSONNEL_COL_WIDTH, right: 0 }}>
+                    <div className="absolute bottom-0 top-0" style={{ left: PERSONNEL_COL_WIDTH, width: TIMELINE_WIDTH }}>
                       {HOUR_LABELS.map((hour) => (
                         <div
                           key={hour.label}
-                          className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 text-xs"
+                          className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 text-[11px]"
                           style={{ left: `${hour.pct}%`, color: "#94A3B8" }}
                         >
                           {hour.label}
@@ -868,7 +901,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                   </div>
 
                   <div className="relative">
-                    <div className="absolute inset-y-0" style={{ left: PERSONNEL_COL_WIDTH, right: 0 }}>
+                    <div className="pointer-events-none absolute inset-y-0" style={{ left: PERSONNEL_COL_WIDTH, width: TIMELINE_WIDTH }}>
                       {HOUR_LABELS.map((hour) => (
                         <div
                           key={hour.label}
@@ -879,6 +912,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                     </div>
 
                     {data.personnel.map((person, index) => {
+                      const rowBg = index % 2 === 0 ? "#FFFFFF" : "#FCFDFF";
                       const availability = availabilityConfig(person.availabilityStatus);
                       const match = getMatch(activeAssignmentId, person.id);
                       const matchStyles = matchConfig(match);
@@ -894,25 +928,33 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                           key={person.id}
                           className="relative grid min-h-[78px] border-b"
                           style={{
-                            gridTemplateColumns: `${PERSONNEL_COL_WIDTH}px minmax(740px,1fr)`,
+                            gridTemplateColumns: `${PERSONNEL_COL_WIDTH}px ${TIMELINE_WIDTH}px`,
                             borderColor: "#F1F5F9",
-                            background: index % 2 === 0 ? "#FFFFFF" : "#FCFDFF",
+                            background: rowBg,
                           }}
                         >
-                          <div className="relative z-10 flex min-w-0 items-center justify-between gap-3 px-4 py-3">
+                          <div
+                            className="sticky left-0 z-20 flex min-w-0 items-center justify-between gap-2 border-r px-3 py-2.5"
+                            style={{ background: rowBg, borderColor: "#E2E8F0" }}
+                          >
                             <div className="min-w-0">
-                              <div className="truncate text-sm font-semibold" style={{ color: "#081D3A" }}>
+                              <div className="truncate text-[13px] font-semibold leading-tight" style={{ color: "#081D3A" }}>
                                 {person.lastName}, {person.firstName}
                               </div>
                               <div className="mt-1 flex flex-wrap gap-1.5">
-                                <span className="rounded border px-1.5 py-0.5 text-[11px]" style={{ borderColor: "#E2E8F0", color: "#64748B" }}>
+                                <span className="rounded border px-1.5 py-0.5 text-[10px]" style={{ borderColor: "#E2E8F0", color: "#64748B" }}>
                                   {person.roleName ?? "Geen rol"}
                                 </span>
-                                <span className="rounded border px-1.5 py-0.5 text-[11px]" style={{ borderColor: availability.border, background: availability.bg, color: availability.text }}>
+                                {person.sectorName && (
+                                  <span className="rounded border px-1.5 py-0.5 text-[10px]" style={sectorBadgeStyle(person.sectorName)}>
+                                    {person.sectorName}
+                                  </span>
+                                )}
+                                <span className="rounded border px-1.5 py-0.5 text-[10px]" style={{ borderColor: availability.border, background: availability.bg, color: availability.text }}>
                                   {availability.label}
                                 </span>
                               </div>
-                              <div className="mt-1 flex items-center gap-2 text-[11px]" style={{ color: "#94A3B8" }}>
+                              <div className="mt-1 flex items-center gap-2 text-[10px]" style={{ color: "#94A3B8" }}>
                                 {person.region && (
                                   <span className="inline-flex min-w-0 items-center gap-1 truncate">
                                     <MapPin className="h-3 w-3" />
@@ -928,7 +970,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                 <Tooltip>
                                   <TooltipTrigger asChild>
                                     <span
-                                      className="rounded border px-2 py-0.5 text-[11px] font-medium"
+                                      className="rounded border px-1.5 py-0.5 text-[10px] font-medium"
                                       style={{ borderColor: matchStyles.border, background: matchStyles.bg, color: matchStyles.text }}
                                     >
                                       {matchStyles.label}
@@ -953,7 +995,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                   </Button>
                                 )}
                                 {activeAssignment && alreadyAssigned && (
-                                  <span className="rounded border px-2 py-0.5 text-[11px] font-medium" style={{ borderColor: "#BFDBFE", background: "#EFF6FF", color: "#1D4ED8" }}>
+                                  <span className="rounded border px-1.5 py-0.5 text-[10px] font-medium" style={{ borderColor: "#BFDBFE", background: "#EFF6FF", color: "#1D4ED8" }}>
                                     Gekoppeld
                                   </span>
                                 )}
@@ -1022,7 +1064,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                     draggable={isMovable}
                                     onDragStart={isMovable ? (e) => handleScheduledDragStart(e, assignment, person.id) : undefined}
                                     onDragEnd={isMovable ? handleDragEnd : undefined}
-                                    className="relative z-10 mr-1 inline-flex max-w-[220px] items-center gap-1 truncate rounded border px-2 py-1 text-xs font-medium"
+                                    className="relative z-10 mr-1 inline-flex max-w-[220px] items-center gap-1 truncate rounded border px-1.5 py-1 text-[11px] font-medium"
                                     style={{
                                       borderColor: pastel.border,
                                       background: pastel.bg,
@@ -1031,7 +1073,10 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                     }}
                                   >
                                     <Clock className="h-3 w-3 flex-shrink-0" />
-                                    <span className="truncate">{assignment.title}</span>
+                                    <span className="truncate">
+                                      {assignment.title}
+                                      {assignment.sectorName ? ` - ${assignment.sectorName}` : ""}
+                                    </span>
                                   </Link>
                                 );
                               }
@@ -1044,7 +1089,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                       draggable={isMovable}
                                       onDragStart={isMovable ? (e) => handleScheduledDragStart(e, assignment, person.id) : undefined}
                                       onDragEnd={isMovable ? handleDragEnd : undefined}
-                                      className="absolute top-3 bottom-3 z-10 flex min-w-[74px] items-center overflow-hidden rounded-md border text-xs font-medium shadow-sm transition hover:brightness-[0.98]"
+                                      className="absolute top-3 bottom-3 z-10 flex min-w-[68px] items-center overflow-hidden rounded-md border text-[11px] font-medium shadow-sm transition hover:brightness-[0.98]"
                                       style={{
                                         left: `${block.left}%`,
                                         width: `${block.width}%`,
@@ -1055,10 +1100,11 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                       }}
                                     >
                                       <span className="h-full w-1.5 flex-shrink-0" style={{ background: assignment.hasConflict ? "#F59E0B" : pastel.rail }} />
-                                      <span className="min-w-0 flex-1 px-2">
+                                      <span className="min-w-0 flex-1 px-1.5">
                                         <span className="block truncate font-semibold">{assignment.title}</span>
-                                        <span className="block truncate text-[11px] opacity-75">
+                                        <span className="block truncate text-[10px] opacity-75">
                                           {compactTimeRange(assignment.scheduledStart, assignment.scheduledEnd)}
+                                          {assignment.sectorName ? ` - ${assignment.sectorName}` : ""}
                                         </span>
                                       </span>
                                       {assignment.requiredSlots > 1 && (
@@ -1077,6 +1123,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                       <p className="font-medium">{assignment.title}</p>
                                       <p>{assignment.customerName}</p>
                                       {assignment.objectName && <p>{assignment.objectName}</p>}
+                                      {assignment.sectorName && <p>Sector: {assignment.sectorName}</p>}
                                       <p>{compactTimeRange(assignment.scheduledStart, assignment.scheduledEnd)}</p>
                                       {assignment.requiredSlots > 1 && (
                                         <p>Team {slotLabel(assignment.filledSlots, assignment.requiredSlots)}</p>

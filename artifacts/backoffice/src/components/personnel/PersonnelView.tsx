@@ -63,6 +63,7 @@ import {
   deletePersonnel,
   type PersonnelRow,
   type RoleOption,
+  type SectorOption,
 } from "@/app/actions/personnel";
 import type { AvailabilityStatus } from "@/app/actions/availability";
 import {
@@ -211,10 +212,12 @@ interface PersonnelViewProps {
   rows:               PersonnelRow[];
   total:              number;
   roles:              RoleOption[];
+  sectors:            SectorOption[];
   canWrite:           boolean;
   page:               number;
   initialSearch:      string;
   initialRoleId:      string;
+  initialSectorId:    string;
   initialRegion:      string;
   initialStatus:      string;
   initialSort:        string;
@@ -226,10 +229,12 @@ export function PersonnelView({
   rows,
   total,
   roles,
+  sectors,
   canWrite,
   page,
   initialSearch,
   initialRoleId,
+  initialSectorId,
   initialRegion,
   initialStatus,
   initialSort,
@@ -256,6 +261,7 @@ export function PersonnelView({
     const merged: Record<string, string | undefined> = {
       search:        initialSearch        || undefined,
       roleId:        initialRoleId        || undefined,
+      sectorId:      initialSectorId      || undefined,
       region:        initialRegion        || undefined,
       status:        initialStatus !== "all" ? initialStatus : undefined,
       personnelType: initialPersonnelType || undefined,
@@ -339,7 +345,7 @@ export function PersonnelView({
     });
   }
 
-  const colCount = canWrite ? 12 : 11;
+  const colCount = canWrite ? 13 : 12;
 
   // ─── Render ───────────────────────────────────────────────────────────────────
   return (
@@ -384,6 +390,21 @@ export function PersonnelView({
             <SelectItem value="ALL">Alle rollen</SelectItem>
             {roles.map((r) => (
               <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={initialSectorId || "ALL"}
+          onValueChange={(v) => applyFilter("sectorId", v === "ALL" ? "" : v)}
+        >
+          <SelectTrigger className="w-[145px] h-9">
+            <SelectValue placeholder="Alle sectoren" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">Alle sectoren</SelectItem>
+            {sectors.map((sector) => (
+              <SelectItem key={sector.id} value={sector.id}>{sector.name}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -461,6 +482,7 @@ export function PersonnelView({
                 <SortHeader label="Code"      columnKey="code"      currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
                 <SortHeader label="Naam"      columnKey="lastName"  currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Type</th>
+                <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Sector</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Functie(s)</th>
                 <SortHeader label="Regio"     columnKey="region"    currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Certificaten</th>
@@ -530,6 +552,18 @@ export function PersonnelView({
                       </td>
                       <td className="px-4 py-3">
                         <PersonnelTypeBadge type={row.personnelType} />
+                      </td>
+                      <td className="px-4 py-3">
+                        {row.sectorName ? (
+                          <span
+                            className="inline-block rounded px-2 py-0.5 text-xs font-medium"
+                            style={{ backgroundColor: "#ECFDF5", color: "#047857" }}
+                          >
+                            {row.sectorName}
+                          </span>
+                        ) : (
+                          <span style={{ color: "#94A3B8", fontSize: "14px" }}>—</span>
+                        )}
                       </td>
                       <td className="px-4 py-3">
                         {row.roleName ? (
@@ -673,6 +707,7 @@ export function PersonnelView({
             mode={editingId ? "edit" : "create"}
             personnelId={editingId ?? undefined}
             roles={roles}
+            sectors={sectors}
             onSuccess={handleFormSuccess}
             onCancel={() => setSheetOpen(false)}
           />

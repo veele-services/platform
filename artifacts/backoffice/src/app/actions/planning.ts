@@ -45,6 +45,8 @@ export type PersonnelEligibilityEntry = {
   lastName:           string;
   roleId:             string | null;
   roleName:           string | null;
+  sectorId:           string | null;
+  sectorName:         string | null;
   region:             string | null;
   certificates:       string[];
   diplomas:           string[];
@@ -73,6 +75,7 @@ export type PlanningBoardMatchReasonCode =
   | "certificate_missing"
   | "diploma_missing"
   | "knowledge_missing"
+  | "sector_mismatch"
   | "region_mismatch"
   | "not_available_for_planning";
 
@@ -127,6 +130,7 @@ export type PlanningBoardPersonnelAssignment = {
   priority:       AssignmentPriority;
   customerName:   string;
   objectName:     string | null;
+  sectorName:     string | null;
   scheduledStart: string | null;
   scheduledEnd:   string | null;
   estimatedDurationMinutes: number;
@@ -141,6 +145,8 @@ export type PlanningBoardPersonnel = {
   lastName:           string;
   roleId:             string | null;
   roleName:           string | null;
+  sectorId:           string | null;
+  sectorName:         string | null;
   region:             string | null;
   preferredRegions:   string[];
   personnelType:      string | null;
@@ -289,6 +295,7 @@ function buildReason(
 type PlanningPersonnelCandidate = {
   id: string;
   roleId: string | null;
+  sectorId: string | null;
   region: string | null;
   preferredRegions: string[];
   certificates: string[];
@@ -378,6 +385,10 @@ function buildPlanningMatch(params: {
     !req.requiredRoleIds.includes(personnel.roleId ?? "")
   ) {
     reasons.push(buildReason("role_mismatch", "Benodigde rol ontbreekt", "block"));
+  }
+
+  if (assignment.sectorId && assignment.sectorId !== personnel.sectorId) {
+    reasons.push(buildReason("sector_mismatch", "Sector komt niet overeen", "block"));
   }
 
   const missingCertificates = req.requiredCertificates.filter((cert) =>
@@ -489,12 +500,28 @@ export async function getPlanningBoardData(
     const sectorCondition = or(
       eq(objectsTable.sectorId, filters.sectorId),
       eq(customersTable.sectorId, filters.sectorId),
+      sql<boolean>`exists (
+        select 1
+        from ${assignmentTasksTable}
+        inner join ${taskCodesTable}
+          on ${taskCodesTable.id} = ${assignmentTasksTable.taskCodeId}
+        where ${assignmentTasksTable.assignmentId} = ${assignmentsTable.id}
+          and ${taskCodesTable.sectorId} = ${filters.sectorId}
+      )`,
     );
     if (sectorCondition) conditions.push(sectorCondition);
   }
 
   if (filters.region) {
     conditions.push(ilike(assignmentsTable.requiredRegion, filters.region));
+  }
+
+  const personnelConditions = [
+    eq(personnelTable.isActive, true),
+    eq(personnelTable.isAvailable, true),
+  ];
+  if (filters.sectorId) {
+    personnelConditions.push(eq(personnelTable.sectorId, filters.sectorId));
   }
 
   const [assignmentRows, personnelRows, sectorRows, customerRows] = await Promise.all([
@@ -533,6 +560,8 @@ export async function getPlanningBoardData(
         lastName:           personnelTable.lastName,
         roleId:             personnelTable.roleId,
         roleName:           rolesTable.name,
+        sectorId:           personnelTable.sectorId,
+        sectorName:         sectorsTable.name,
         region:             personnelTable.region,
         preferredRegions:   personnelTable.preferredRegions,
         certificates:       personnelTable.certificates,
@@ -544,7 +573,8 @@ export async function getPlanningBoardData(
       })
       .from(personnelTable)
       .leftJoin(rolesTable, eq(personnelTable.roleId, rolesTable.id))
-      .where(and(eq(personnelTable.isActive, true), eq(personnelTable.isAvailable, true)))
+      .leftJoin(sectorsTable, eq(personnelTable.sectorId, sectorsTable.id))
+      .where(and(...personnelConditions))
       .orderBy(asc(personnelTable.lastName), asc(personnelTable.firstName)),
 
     db
@@ -755,6 +785,7 @@ export async function getPlanningBoardData(
       priority: assignment.priority,
       customerName: assignment.customerName,
       objectName: assignment.objectName,
+      sectorName: assignment.sectorName,
       scheduledStart: assignment.scheduledStart,
       scheduledEnd: assignment.scheduledEnd,
       estimatedDurationMinutes: assignment.requirements.estimatedDurationMinutes,
@@ -781,6 +812,8 @@ export async function getPlanningBoardData(
       lastName: row.lastName,
       roleId: row.roleId ?? null,
       roleName: row.roleName ?? null,
+      sectorId: row.sectorId ?? null,
+      sectorName: row.sectorName ?? null,
       region: row.region ?? null,
       preferredRegions: stringArray(row.preferredRegions),
       personnelType: row.personnelType ?? null,
@@ -805,6 +838,7 @@ export async function getPlanningBoardData(
       {
         id: row.id,
         roleId: row.roleId ?? null,
+        sectorId: row.sectorId ?? null,
         region: row.region ?? null,
         preferredRegions: stringArray(row.preferredRegions),
         certificates: certNames(row.certificates),
@@ -897,6 +931,8 @@ export async function getPersonnelForAssignment(
         lastName:     personnelTable.lastName,
         roleId:       personnelTable.roleId,
         roleName:     rolesTable.name,
+        sectorId:     personnelTable.sectorId,
+        sectorName:   sectorsTable.name,
         region:       personnelTable.region,
         certificates: personnelTable.certificates,
         diplomas:     personnelTable.diplomas,
@@ -905,6 +941,7 @@ export async function getPersonnelForAssignment(
       })
       .from(personnelTable)
       .leftJoin(rolesTable, eq(personnelTable.roleId, rolesTable.id))
+      .leftJoin(sectorsTable, eq(personnelTable.sectorId, sectorsTable.id))
       .where(eq(personnelTable.isActive, true))
       .orderBy(personnelTable.lastName),
 
@@ -981,6 +1018,8 @@ export async function getPersonnelForAssignment(
       lastName:           r.lastName,
       roleId:             r.roleId   ?? null,
       roleName:           r.roleName ?? null,
+      sectorId:           r.sectorId ?? null,
+      sectorName:         r.sectorName ?? null,
       region:             r.region   ?? null,
       certificates:       ((r.certificates ?? []) as ({ name: string; expires_at?: string } | string)[])
         .map((c) => typeof c === "string" ? c : c.name),
@@ -1085,8 +1124,10 @@ export async function scheduleAssignmentOnBoard(
         priority:       assignmentsTable.priority,
         customerId:     assignmentsTable.customerId,
         customerName:   customersTable.name,
+        customerSectorId: customersTable.sectorId,
         objectId:       assignmentsTable.objectId,
         objectName:     objectsTable.name,
+        objectSectorId: objectsTable.sectorId,
         requiredRegion: assignmentsTable.requiredRegion,
       })
       .from(assignmentsTable)
@@ -1101,6 +1142,7 @@ export async function scheduleAssignmentOnBoard(
         firstName:        personnelTable.firstName,
         lastName:         personnelTable.lastName,
         roleId:           personnelTable.roleId,
+        sectorId:         personnelTable.sectorId,
         region:           personnelTable.region,
         preferredRegions: personnelTable.preferredRegions,
         certificates:     personnelTable.certificates,
@@ -1239,6 +1281,7 @@ export async function scheduleAssignmentOnBoard(
       ),
   ]);
 
+  const sectorId = assignment.objectSectorId ?? assignment.customerSectorId ?? taskSectorIds[0] ?? null;
   const syntheticAssignment: PlanningBoardAssignment = {
     id: assignment.id,
     code: assignment.code,
@@ -1252,7 +1295,7 @@ export async function scheduleAssignmentOnBoard(
     customerName: assignment.customerName ?? "",
     objectId: assignment.objectId ?? null,
     objectName: assignment.objectName ?? null,
-    sectorId: taskSectorIds[0] ?? null,
+    sectorId,
     sectorName: null,
     requiredRegion: assignment.requiredRegion ?? null,
     assignedPersonnelIds: assignedRows.map((row) => row.personnelId),
@@ -1278,6 +1321,7 @@ export async function scheduleAssignmentOnBoard(
     personnel: {
       id: personnel.id,
       roleId: personnel.roleId ?? null,
+      sectorId: personnel.sectorId ?? null,
       region: personnel.region ?? null,
       preferredRegions: stringArray(personnel.preferredRegions),
       certificates: certNames(personnel.certificates),
@@ -1295,6 +1339,7 @@ export async function scheduleAssignmentOnBoard(
       priority: row.priority as AssignmentPriority,
       customerName: row.customerName ?? "",
       objectName: row.objectName ?? null,
+      sectorName: null,
       scheduledStart: row.scheduledStart ?? null,
       scheduledEnd: row.scheduledEnd ?? null,
       estimatedDurationMinutes: durationMinutes(row.scheduledStart ?? null, row.scheduledEnd ?? null, 60),

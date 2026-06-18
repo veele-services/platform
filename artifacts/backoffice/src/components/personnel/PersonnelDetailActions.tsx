@@ -24,7 +24,7 @@ import { toast } from "sonner";
 import { PersonnelForm } from "@/components/personnel/PersonnelForm";
 import { invitePersonnel, setPersonnelStatus } from "@/app/actions/personnel";
 import { sendPasswordReset } from "@/app/actions/auth";
-import type { RoleOption } from "@/app/actions/personnel";
+import type { RoleOption, SectorOption } from "@/app/actions/personnel";
 
 interface PersonnelDetailActionsProps {
   personnelId:    string;
@@ -34,6 +34,7 @@ interface PersonnelDetailActionsProps {
   userId:         string | null;
   inviteSentAt:   string | null;
   roles:          RoleOption[];
+  sectors:        SectorOption[];
 }
 
 export function PersonnelDetailActions({
@@ -44,6 +45,7 @@ export function PersonnelDetailActions({
   userId,
   inviteSentAt,
   roles,
+  sectors,
 }: PersonnelDetailActionsProps) {
   const [editOpen,         setEditOpen]         = useState(false);
   const [inviteOpen,       setInviteOpen]        = useState(false);
@@ -297,6 +299,7 @@ export function PersonnelDetailActions({
             mode="edit"
             personnelId={personnelId}
             roles={roles}
+            sectors={sectors}
             onSuccess={() => setEditOpen(false)}
             onCancel={() => setEditOpen(false)}
           />
