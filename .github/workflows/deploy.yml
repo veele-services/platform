@@ -29,6 +29,19 @@ jobs:
       APP_URL: ${{ vars.APP_URL }}
       NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL }}
       BASE_PATH: ${{ vars.BASE_PATH }}
+      SITE_URL: ${{ vars.SITE_URL || vars.APP_URL }}
+      NEXT_PUBLIC_SITE_URL: ${{ vars.NEXT_PUBLIC_SITE_URL || vars.NEXT_PUBLIC_APP_URL || vars.APP_URL }}
+      LOG_LEVEL: ${{ vars.LOG_LEVEL || 'info' }}
+
+      BACKOFFICE_SERVICE_NAME: ${{ vars.BACKOFFICE_SERVICE_NAME }}
+      PERSONEEL_SERVICE_NAME: ${{ vars.PERSONEEL_SERVICE_NAME }}
+      KLANT_SERVICE_NAME: ${{ vars.KLANT_SERVICE_NAME }}
+      API_SERVICE_NAME: ${{ vars.API_SERVICE_NAME }}
+
+      BACKOFFICE_PORT: ${{ vars.BACKOFFICE_PORT || vars.PORT }}
+      PERSONEEL_PORT: ${{ vars.PERSONEEL_PORT }}
+      KLANT_PORT: ${{ vars.KLANT_PORT }}
+      API_PORT: ${{ vars.API_PORT }}
 
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
@@ -36,6 +49,14 @@ jobs:
       NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
       NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
       SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+      SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+      SUPABASE_JWT_SECRET: ${{ secrets.SUPABASE_JWT_SECRET }}
+      MOLLIE_API_KEY: ${{ secrets.MOLLIE_API_KEY }}
+      MOLLIE_WEBHOOK_SECRET: ${{ secrets.MOLLIE_WEBHOOK_SECRET }}
+      MOLLIE_WEBHOOK_URL: ${{ vars.MOLLIE_WEBHOOK_URL }}
+      ADMIN_API_SECRET: ${{ secrets.ADMIN_API_SECRET }}
+      RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
+      RESEND_FROM_EMAIL: ${{ vars.RESEND_FROM_EMAIL }}
 
     steps:
       - name: Checkout
@@ -50,6 +71,10 @@ jobs:
           echo "App URL: $APP_URL"
           echo "Port: $PORT"
           echo "Base path: $BASE_PATH"
+          echo "Backoffice service: ${BACKOFFICE_SERVICE_NAME:-$SERVICE_NAME}"
+          echo "Personeel service: ${PERSONEEL_SERVICE_NAME:-<not configured>}"
+          echo "Klant service: ${KLANT_SERVICE_NAME:-<not configured>}"
+          echo "API service: ${API_SERVICE_NAME:-<not configured>}"
 
       - name: Prepare release directory
         run: |
@@ -81,13 +106,28 @@ jobs:
             printf 'PORT=%s\n' "$PORT"
             printf 'APP_URL=%s\n' "$APP_URL"
             printf 'NEXT_PUBLIC_APP_URL=%s\n' "$NEXT_PUBLIC_APP_URL"
+            printf 'SITE_URL=%s\n' "$SITE_URL"
+            printf 'NEXT_PUBLIC_SITE_URL=%s\n' "$NEXT_PUBLIC_SITE_URL"
             printf 'BASE_PATH=%s\n' "$BASE_PATH"
+            printf 'LOG_LEVEL=%s\n' "$LOG_LEVEL"
+            printf 'BACKOFFICE_PORT=%s\n' "$BACKOFFICE_PORT"
+            printf 'PERSONEEL_PORT=%s\n' "$PERSONEEL_PORT"
+            printf 'KLANT_PORT=%s\n' "$KLANT_PORT"
+            printf 'API_PORT=%s\n' "$API_PORT"
             printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
             printf 'SESSION_SECRET=%s\n' "$SESSION_SECRET"
             printf 'JWT_SECRET=%s\n' "$JWT_SECRET"
             printf 'NEXT_PUBLIC_SUPABASE_URL=%s\n' "$NEXT_PUBLIC_SUPABASE_URL"
             printf 'NEXT_PUBLIC_SUPABASE_ANON_KEY=%s\n' "$NEXT_PUBLIC_SUPABASE_ANON_KEY"
             printf 'SUPABASE_SERVICE_ROLE_KEY=%s\n' "$SUPABASE_SERVICE_ROLE_KEY"
+            printf 'SUPABASE_URL=%s\n' "$SUPABASE_URL"
+            printf 'SUPABASE_JWT_SECRET=%s\n' "$SUPABASE_JWT_SECRET"
+            printf 'MOLLIE_API_KEY=%s\n' "$MOLLIE_API_KEY"
+            printf 'MOLLIE_WEBHOOK_SECRET=%s\n' "$MOLLIE_WEBHOOK_SECRET"
+            printf 'MOLLIE_WEBHOOK_URL=%s\n' "$MOLLIE_WEBHOOK_URL"
+            printf 'ADMIN_API_SECRET=%s\n' "$ADMIN_API_SECRET"
+            printf 'RESEND_API_KEY=%s\n' "$RESEND_API_KEY"
+            printf 'RESEND_FROM_EMAIL=%s\n' "$RESEND_FROM_EMAIL"
           } > "$BASE_DIR/shared/.env"
 
           chmod 640 "$BASE_DIR/shared/.env"
@@ -124,7 +164,24 @@ jobs:
           ln -sfn "$RELEASE" "$BASE_DIR/current.new"
           mv -Tf "$BASE_DIR/current.new" "$BASE_DIR/current"
 
-          sudo systemctl restart "$SERVICE_NAME"
+          services=("${BACKOFFICE_SERVICE_NAME:-$SERVICE_NAME}")
+
+          if [ -n "${PERSONEEL_SERVICE_NAME:-}" ]; then
+            services+=("$PERSONEEL_SERVICE_NAME")
+          fi
+
+          if [ -n "${KLANT_SERVICE_NAME:-}" ]; then
+            services+=("$KLANT_SERVICE_NAME")
+          fi
+
+          if [ -n "${API_SERVICE_NAME:-}" ]; then
+            services+=("$API_SERVICE_NAME")
+          fi
+
+          for service in "${services[@]}"; do
+            sudo systemctl restart "$service"
+          done
+
           sudo systemctl reload caddy
 
       - name: Cleanup old releases
