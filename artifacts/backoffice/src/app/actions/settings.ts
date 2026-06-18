@@ -942,7 +942,10 @@ export async function sendTestNotification(
   return { success: true };
 }
 
-export async function sendTestMailSettings(recipientEmail: string): Promise<ActionResult> {
+export async function sendTestMailSettings(
+  recipientEmail: string,
+  template: "basic" | "temporary_password" = "basic",
+): Promise<ActionResult> {
   await requirePermission("settings", "write");
 
   const to = recipientEmail.trim().toLowerCase();
@@ -950,12 +953,24 @@ export async function sendTestMailSettings(recipientEmail: string): Promise<Acti
     return { success: false, message: "Vul een geldig test e-mailadres in." };
   }
 
-  const { sendEmailWithResult } = await import("@/lib/email");
+  const {
+    buildTemporaryPasswordEmail,
+    personeelPortalUrl,
+    sendEmailWithResult,
+  } = await import("@/lib/email");
 
-  const subject = "Test SMTP-instellingen Veele";
-  const html = `<!DOCTYPE html>
+  const message = template === "temporary_password"
+    ? buildTemporaryPasswordEmail({
+        recipientName:     "Testgebruiker",
+        portalName:        "Personeelsportaal",
+        loginUrl:          personeelPortalUrl(),
+        temporaryPassword: "Veele-Test-2026!",
+      })
+    : {
+        subject: "Test SMTP-instellingen Veele",
+        html: `<!DOCTYPE html>
 <html lang="nl">
-<head><meta charset="utf-8"><title>${subject}</title></head>
+<head><meta charset="utf-8"><title>Test SMTP-instellingen Veele</title></head>
 <body style="font-family:sans-serif;color:#1a1a1a;background:#f5f5f5;margin:0;padding:24px">
   <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden">
     <div style="background:#081D3A;padding:20px 24px">
@@ -971,9 +986,14 @@ export async function sendTestMailSettings(recipientEmail: string): Promise<Acti
     </div>
   </div>
 </body>
-</html>`;
+</html>`,
+      };
 
-  const result = await sendEmailWithResult({ to, subject, html });
+  const result = await sendEmailWithResult({
+    to,
+    subject: message.subject,
+    html: message.html,
+  });
   if (!result.success) {
     return { success: false, message: result.error ?? "Testmail verzenden mislukt." };
   }

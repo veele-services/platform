@@ -19,6 +19,7 @@ export type SmtpMailOptions = {
   to:          string | string[];
   subject:     string;
   html:        string;
+  text?:       string;
   attachments?: Array<{ filename: string; content: Buffer }>;
 };
 
@@ -172,10 +173,33 @@ function encodeHeader(value: string): string {
     : `=?UTF-8?B?${Buffer.from(value, "utf8").toString("base64")}?=`;
 }
 
+function messageIdDomain(fromEmail: string): string {
+  const domain = fromEmail.split("@")[1]?.trim().toLowerCase();
+  if (!domain || !/^[a-z0-9.-]+\.[a-z]{2,}$/u.test(domain)) return "veeleservices.nl";
+  return domain;
+}
+
 function formatAddress(email: string, name?: string | null): string {
   if (!name) return `<${email}>`;
   const escapedName = encodeHeader(name.replace(/"/gu, ""));
   return `"${escapedName}" <${email}>`;
+}
+
+function htmlToText(html: string): string {
+  return html
+    .replace(/<style[\s\S]*?<\/style>/giu, "")
+    .replace(/<script[\s\S]*?<\/script>/giu, "")
+    .replace(/<\/(p|div|h[1-6]|li|tr)>/giu, "\n")
+    .replace(/<br\s*\/?>/giu, "\n")
+    .replace(/<[^>]+>/gu, "")
+    .replace(/&nbsp;/gu, " ")
+    .replace(/&amp;/gu, "&")
+    .replace(/&lt;/gu, "<")
+    .replace(/&gt;/gu, ">")
+    .replace(/&quot;/gu, "\"")
+    .replace(/&#39;/gu, "'")
+    .replace(/\n{3,}/gu, "\n\n")
+    .trim();
 }
 
 function foldBase64(buffer: Buffer): string {
@@ -194,38 +218,54 @@ function dotStuff(message: string): string {
 }
 
 function buildMessage(config: SmtpMailConfig, options: SmtpMailOptions, recipients: string[]): string {
-  const boundary = `veele-${randomUUID()}`;
+  const mixedBoundary = `veele-mixed-${randomUUID()}`;
+  const alternativeBoundary = `veele-alt-${randomUUID()}`;
+  const text = options.text?.trim() || htmlToText(options.html);
   const headers = [
     `From: ${formatAddress(config.fromEmail, config.fromName)}`,
     `To: ${recipients.map((recipient) => `<${recipient}>`).join(", ")}`,
     config.replyTo ? `Reply-To: <${config.replyTo}>` : null,
     `Subject: ${encodeHeader(options.subject)}`,
     `Date: ${new Date().toUTCString()}`,
-    `Message-ID: <${randomUUID()}@veele.local>`,
+    `Message-ID: <${randomUUID()}@${messageIdDomain(config.fromEmail)}>`,
+    "Auto-Submitted: auto-generated",
+    "X-Auto-Response-Suppress: All",
     "MIME-Version: 1.0",
   ].filter(Boolean);
 
-  if (!options.attachments?.length) {
-    return [
-      ...headers,
-      'Content-Type: text/html; charset="UTF-8"',
-      "Content-Transfer-Encoding: 8bit",
-      "",
-      options.html,
-    ].join("\r\n");
-  }
-
-  const parts = [
-    `--${boundary}`,
+  const alternativeParts = [
+    `--${alternativeBoundary}`,
+    'Content-Type: text/plain; charset="UTF-8"',
+    "Content-Transfer-Encoding: 8bit",
+    "",
+    text,
+    `--${alternativeBoundary}`,
     'Content-Type: text/html; charset="UTF-8"',
     "Content-Transfer-Encoding: 8bit",
     "",
     options.html,
+    `--${alternativeBoundary}--`,
+  ];
+
+  if (!options.attachments?.length) {
+    return [
+      ...headers,
+      `Content-Type: multipart/alternative; boundary="${alternativeBoundary}"`,
+      "",
+      ...alternativeParts,
+    ].join("\r\n");
+  }
+
+  const parts = [
+    `--${mixedBoundary}`,
+    `Content-Type: multipart/alternative; boundary="${alternativeBoundary}"`,
+    "",
+    ...alternativeParts,
   ];
 
   for (const attachment of options.attachments) {
     parts.push(
-      `--${boundary}`,
+      `--${mixedBoundary}`,
       "Content-Type: application/octet-stream",
       `Content-Disposition: attachment; filename="${attachment.filename.replace(/"/gu, "")}"`,
       "Content-Transfer-Encoding: base64",
@@ -234,11 +274,11 @@ function buildMessage(config: SmtpMailConfig, options: SmtpMailOptions, recipien
     );
   }
 
-  parts.push(`--${boundary}--`);
+  parts.push(`--${mixedBoundary}--`);
 
   return [
     ...headers,
-    `Content-Type: multipart/mixed; boundary="${boundary}"`,
+    `Content-Type: multipart/mixed; boundary="${mixedBoundary}"`,
     "",
     ...parts,
   ].join("\r\n");
