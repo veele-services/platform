@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Bell,
   Building2,
   ClipboardList,
   History,
@@ -17,7 +18,8 @@ import { usePermissions } from "@/providers/permissions-provider";
 
 const SETTINGS_TABS = [
   { href: "/instellingen/organisatie", label: "Organisatie", icon: Building2, permission: "settings:write" },
-  { href: "/instellingen/notificaties", label: "Notificaties", icon: Mail, permission: "settings:write" },
+  { href: "/instellingen/notificaties", label: "Notificaties", icon: Bell, permission: "settings:write" },
+  { href: "/instellingen/mail", label: "Mail", icon: Mail, permission: "settings:write" },
   { href: "/instellingen/rollen", label: "Rollen & rechten", icon: Shield, permission: "roles:read" },
   { href: "/instellingen/gebruikers", label: "Gebruikers", icon: Users, permission: "users:read" },
   { href: "/settings/task-codes", label: "Taakcodes", icon: ClipboardList, permission: "task_codes:read" },

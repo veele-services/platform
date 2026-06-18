@@ -159,7 +159,7 @@ export function NotificatiesView({ settings, canWrite }: Props) {
                   {ts === "error" && (
                     <span className="inline-flex items-center gap-1 text-xs" style={{ color: "#DC2626" }}>
                       <AlertCircle className="h-3 w-3" />
-                      Mislukt — controleer RESEND_API_KEY
+                      Mislukt - controleer mailinstellingen
                     </span>
                   )}
                 </div>
@@ -202,16 +202,19 @@ export function NotificatiesView({ settings, canWrite }: Props) {
         <div className="flex items-start gap-3">
           <Bell className="h-4 w-4 mt-0.5 flex-shrink-0" style={{ color: "#64748B" }} strokeWidth={1.75} />
           <div>
-            <p className="text-sm font-medium" style={{ color: "#1E293B" }}>E-mailafzender</p>
+            <p className="text-sm font-medium" style={{ color: "#1E293B" }}>Mailconfiguratie</p>
             <p className="mt-0.5 text-xs" style={{ color: "#64748B" }}>
-              E-mails worden verstuurd via{" "}
-              <span className="font-mono" style={{ color: "#334155" }}>
-                {process.env["RESEND_FROM_EMAIL"] ?? "noreply@veele.nl"}
+              E-mailtransport wordt beheerd via{" "}
+              <a href="/instellingen/mail" className="font-medium underline" style={{ color: "#075E5D" }}>
+                Mail-instellingen
+              </a>
+              . Huidige status:{" "}
+              <span className="font-medium" style={{ color: "#334155" }}>
+                {settings?.smtpEnabled && settings.smtpHost
+                  ? `SMTP via ${settings.smtpHost}`
+                  : "Resend fallback via omgevingsvariabelen"}
               </span>
-              . Configureer de afzender en API-sleutel (
-              <code className="text-xs" style={{ color: "#334155" }}>RESEND_API_KEY</code>,{" "}
-              <code className="text-xs" style={{ color: "#334155" }}>RESEND_FROM_EMAIL</code>
-              ) in de omgevingsvariabelen.
+              .
             </p>
           </div>
         </div>

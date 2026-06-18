@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Building2, Shield, Users, ClipboardList, ChevronRight, History, Tag, Layers3 } from "lucide-react";
+import { Building2, Shield, Users, ClipboardList, ChevronRight, History, Tag, Layers3, Mail } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { SettingsTabs } from "@/components/settings/SettingsTabs";
@@ -30,6 +30,14 @@ export default async function SettingsPage() {
             icon={<Building2 className="h-6 w-6" style={{ color: "#00B7B3" }} strokeWidth={1.5} />}
             title="Organisatie"
             description="Naam, adres, KVK- en BTW-nummer, logo, standaard betalingstermijn en e-mailafzender."
+          />
+        )}
+        {canWriteSettings && (
+          <SettingsCard
+            href="/instellingen/mail"
+            icon={<Mail className="h-6 w-6" style={{ color: "#00B7B3" }} strokeWidth={1.5} />}
+            title="Mail"
+            description="SMTP-host, poort, beveiliging, afzender, reply-to en testmail voor platform e-mail."
           />
         )}
         {canReadRoles && (
