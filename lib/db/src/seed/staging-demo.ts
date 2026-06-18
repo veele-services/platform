@@ -21,6 +21,8 @@ const CONFIRM_VALUE = "seed-den-haag";
 const DEMO_EMAIL_DOMAIN = "staging.veele.test";
 const DEMO_ACTOR_ID = "00000000-0000-4000-8000-000000000001";
 
+let seedAuthActorId: string | null = null;
+
 type Row = Record<string, unknown>;
 type IdRow = { id: string };
 
@@ -75,6 +77,42 @@ async function one<T extends Row>(client: PoolClient, sql: string, params: unkno
 async function maybeOne<T extends Row>(client: PoolClient, sql: string, params: unknown[] = []): Promise<T | null> {
   const result = await client.query(sql, params);
   return (result.rows[0] as T | undefined) ?? null;
+}
+
+function authActorId(): string | null {
+  return seedAuthActorId;
+}
+
+function actorId(): string {
+  return seedAuthActorId ?? DEMO_ACTOR_ID;
+}
+
+async function resolveSeedActor(client: PoolClient) {
+  try {
+    const actor = await maybeOne<{ id: string; email: string | null }>(
+      client,
+      `select id, email
+         from auth.users
+        order by case when email is null then 1 else 0 end, created_at asc
+        limit 1`,
+    );
+
+    seedAuthActorId = actor?.id ?? null;
+
+    if (actor) {
+      console.log(`Using auth.users actor for staging seed: ${actor.email ?? actor.id}`);
+    } else {
+      console.log("No auth.users actor found; nullable auth FK fields will be NULL.");
+    }
+  } catch (error) {
+    const code = typeof error === "object" && error && "code" in error ? String(error.code) : "";
+    if (code === "42P01" || code === "42501") {
+      seedAuthActorId = null;
+      console.log("Could not read auth.users; nullable auth FK fields will be NULL.");
+      return;
+    }
+    throw error;
+  }
 }
 
 async function cleanupDemoData(client: PoolClient) {
@@ -341,7 +379,7 @@ async function createCustomer(
       input.website,
       input.status,
       `${SEED_MARKER}: ${input.notes}`,
-      DEMO_ACTOR_ID,
+      authActorId(),
     ],
   );
   return row.id;
@@ -420,7 +458,7 @@ async function createObject(
       `${SEED_MARKER}: Let op scenario-specifieke testdata.`,
       JSON.stringify(input.requiredRoles),
       JSON.stringify(input.requiredCertificates),
-      DEMO_ACTOR_ID,
+      authActorId(),
     ],
   );
   return row.id;
@@ -483,7 +521,7 @@ async function createAssignment(
       input.end ?? null,
       input.requiredRegion ?? "Den Haag",
       `${SEED_MARKER}: ${input.description}`,
-      DEMO_ACTOR_ID,
+      actorId(),
     ],
   );
 
@@ -500,7 +538,7 @@ async function createAssignment(
       `insert into assignment_personnel (assignment_id, personnel_id, status, assigned_by)
        values ($1, $2, 'assigned', $3)
        on conflict do nothing`,
-      [row.id, personnelId, DEMO_ACTOR_ID],
+      [row.id, personnelId, actorId()],
     );
   }
 
@@ -522,13 +560,13 @@ async function createReport(
      values ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
     [
       assignmentId,
-      DEMO_ACTOR_ID,
+      actorId(),
       status,
       `${SEED_MARKER}: ${content}`,
       euro(hours),
       "Foto's en checklist zijn gecontroleerd in de demo.",
       status === "approved" ? "Akkoord voor facturatie." : null,
-      status === "approved" ? DEMO_ACTOR_ID : null,
+      status === "approved" ? actorId() : null,
       status === "approved" ? new Date() : null,
     ],
   );
@@ -555,9 +593,9 @@ async function createQuote(
       dateKey(validityOffsetDays),
       status,
       `${SEED_MARKER}: Offerte voor Den Haag demo-scenario.`,
-      status === "approved" ? DEMO_ACTOR_ID : null,
+      status === "approved" ? actorId() : null,
       status === "approved" ? new Date() : null,
-      DEMO_ACTOR_ID,
+      actorId(),
     ],
   );
 }
@@ -591,7 +629,7 @@ async function createInvoice(
       dateKey(dueOffsetDays),
       status === "paid" && paidOffsetDays !== undefined ? dateKey(paidOffsetDays) : null,
       `${SEED_MARKER}: Demo factuur voor ketentest.`,
-      DEMO_ACTOR_ID,
+      actorId(),
     ],
   );
   return row.id;
@@ -634,7 +672,7 @@ async function createDocument(
       sizeBytes,
       entityType,
       entityId,
-      DEMO_ACTOR_ID,
+      actorId(),
     ],
   );
 }
@@ -644,7 +682,7 @@ async function createAudit(client: PoolClient, action: string, resource: string,
     `insert into audit_log (user_id, action, resource, resource_id, metadata)
      values ($1, $2, $3, $4, $5::jsonb)`,
     [
-      DEMO_ACTOR_ID,
+      actorId(),
       action,
       resource,
       resourceId,
@@ -878,7 +916,7 @@ async function seedDemoData(client: PoolClient) {
       personnelIds.sanne,
       dateKey(0),
       `${SEED_MARKER}: Vrije dag voor planningsconflict-test.`,
-      DEMO_ACTOR_ID,
+      actorId(),
       personnelIds.koen,
       dateKey(5),
       dateKey(7),
@@ -1002,7 +1040,7 @@ async function seedDemoData(client: PoolClient) {
   ] as const) {
     await client.query(
       "insert into customer_notes (customer_id, notes, updated_by) values ($1, $2, $3)",
-      [customerId, `${SEED_MARKER}: ${note}`, DEMO_ACTOR_ID],
+      [customerId, `${SEED_MARKER}: ${note}`, authActorId()],
     );
   }
 
@@ -1275,7 +1313,7 @@ async function seedDemoData(client: PoolClient) {
       assignments.paid,
       taskIds.calamiteit,
       `${SEED_MARKER}: Meerwerk voor logistieke hal na lekkage.`,
-      DEMO_ACTOR_ID,
+      actorId(),
     ],
   );
   await client.query(
@@ -1284,7 +1322,7 @@ async function seedDemoData(client: PoolClient) {
     [
       assignments.paid,
       "staging-demo/photos/binckhorst-lekkage-voor.jpg",
-      DEMO_ACTOR_ID,
+      actorId(),
       "staging-demo/photos/binckhorst-lekkage-na.jpg",
     ],
   );
@@ -1324,6 +1362,7 @@ async function main() {
 
   try {
     await client.query("begin");
+    await resolveSeedActor(client);
     await cleanupDemoData(client);
     const summary = await seedDemoData(client);
 
