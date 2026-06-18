@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, BarChart3, Clock, Ticket } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { CustomerDetailActions } from "@/components/customers/CustomerDetailActions";
@@ -13,13 +13,15 @@ import { CustomerObjectsTab } from "@/components/customers/tabs/CustomerObjectsT
 import { CustomerAssignmentsTab } from "@/components/customers/tabs/CustomerAssignmentsTab";
 import { CustomerInvoicesTab } from "@/components/customers/tabs/CustomerInvoicesTab";
 import { CustomerPaymentsTab } from "@/components/customers/tabs/CustomerPaymentsTab";
+import { CustomerReportsTab } from "@/components/customers/tabs/CustomerReportsTab";
+import { CustomerHistoryTab } from "@/components/customers/tabs/CustomerHistoryTab";
 import { CustomerNotesTabContent } from "@/components/customers/tabs/CustomerNotesTabContent";
 import { CustomerDocumentsTabContent } from "@/components/customers/tabs/CustomerDocumentsTabContent";
-import { PlaceholderTab } from "@/components/customers/tabs/PlaceholderTab";
 import {
   getCustomer,
   listSectors,
   listCustomerNotes,
+  listCustomerHistory,
   listCustomerContacts,
   listCustomerTypes,
   listAccountManagers,
@@ -30,9 +32,10 @@ import { listAssignmentsForCustomer } from "@/app/actions/assignments";
 import { listInvoicesForCustomer } from "@/app/actions/invoices";
 import { listPaymentsForCustomer } from "@/app/actions/payments";
 import { listDocuments } from "@/app/actions/documents";
+import { listReportsForCustomer } from "@/app/actions/reports";
 
 const VALID_TABS = [
-  "overzicht", "contacten", "objecten", "opdrachten", "tickets",
+  "overzicht", "contacten", "objecten", "opdrachten",
   "facturen", "betalingen", "rapporten", "documenten",
   "notities", "geschiedenis",
 ] as const;
@@ -65,12 +68,13 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
     ? (rawTab as TabKey)
     : "overzicht";
 
-  const [canWrite, canReadAssignments, canReadDocuments, canWriteDocuments, canReadInvoices] = await Promise.all([
+  const [canWrite, canReadAssignments, canReadDocuments, canWriteDocuments, canReadInvoices, canReadReports] = await Promise.all([
     hasPermission("customers",   "write"),
     hasPermission("assignments", "read"),
     hasPermission("documents",   "read"),
     hasPermission("documents",   "write"),
     hasPermission("invoices",    "read"),
+    hasPermission("reports",     "read"),
   ]);
 
   // Load all data in parallel — gate expensive calls on permissions
@@ -86,7 +90,9 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
     assignmentHistory,
     invoices,
     payments,
+    reports,
     documents,
+    history,
   ] = await Promise.all([
     getCustomer(id),
     listSectors(),
@@ -99,7 +105,9 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
     canReadAssignments ? listAssignmentsForCustomer(id, 25)     : Promise.resolve([]),
     canReadInvoices    ? listInvoicesForCustomer(id, 25)        : Promise.resolve([]),
     canReadInvoices    ? listPaymentsForCustomer(id, 25)        : Promise.resolve([]),
+    canReadReports     ? listReportsForCustomer(id, 25)         : Promise.resolve([]),
     canReadDocuments   ? listDocuments({ entityType: "customer", entityId: id }) : Promise.resolve([]),
+    canWrite           ? listCustomerHistory(id, 25)            : Promise.resolve([]),
   ]);
 
   if (!customer) notFound();
@@ -113,8 +121,10 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
     opdrachten: assignmentHistory.length,
     facturen:   invoices.length,
     betalingen: payments.length,
+    rapporten:  reports.length,
     notities:   customerNotes.length,
     documenten: documents.length,
+    geschiedenis: history.length,
   };
 
   return (
@@ -180,14 +190,6 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
         />
       )}
 
-      {activeTab === "tickets" && (
-        <PlaceholderTab
-          icon={Ticket}
-          title="Tickets"
-          description="De ticketmodule is beschikbaar in een toekomstige versie van het platform. Hier worden supporttickets en klantverzoeken beheerd die gekoppeld zijn aan deze klant."
-        />
-      )}
-
       {activeTab === "facturen" && canReadInvoices && (
         <CustomerInvoicesTab
           customerId={id}
@@ -202,11 +204,10 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
         />
       )}
 
-      {activeTab === "rapporten" && (
-        <PlaceholderTab
-          icon={BarChart3}
-          title="Rapporten"
-          description="Rapporten worden beschikbaar nadat de rapportagemodule volledig is gekoppeld aan dit klantprofiel."
+      {activeTab === "rapporten" && canReadReports && (
+        <CustomerReportsTab
+          customerId={id}
+          reports={reports}
         />
       )}
 
@@ -226,11 +227,9 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
         />
       )}
 
-      {activeTab === "geschiedenis" && (
-        <PlaceholderTab
-          icon={Clock}
-          title="Geschiedenis"
-          description="De volledige activiteitstijdlijn voor deze klant is beschikbaar in een toekomstige versie van het platform."
+      {activeTab === "geschiedenis" && canWrite && (
+        <CustomerHistoryTab
+          history={history}
         />
       )}
     </div>

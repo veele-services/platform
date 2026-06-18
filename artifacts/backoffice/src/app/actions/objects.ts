@@ -14,6 +14,7 @@ import {
   personnelTable,
   rolesTable,
   assignmentsTable,
+  documentsTable,
 } from "@workspace/db";
 import { eq, ilike, or, and, asc, desc, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -269,20 +270,25 @@ export async function listObjects(params: {
 export async function getObjectStats(): Promise<ObjectStats> {
   await requirePermission("objects", "read");
 
-  const [totalRow, activeRow, assignmentRow] = await Promise.all([
+  const [totalRow, activeRow, assignmentRow, serviceTypeRow, inactiveRow, documentRow] = await Promise.all([
     db.select({ count: sql<number>`count(*)::int` }).from(objectsTable),
     db.select({ count: sql<number>`count(*)::int` }).from(objectsTable).where(eq(objectsTable.isActive, true)),
     db.select({ count: sql<number>`count(*)::int` }).from(assignmentsTable)
-      .where(sql`status IN ('scheduled', 'in_progress', 'seen', 'plannable', 'approved')`),
+      .where(sql`${assignmentsTable.objectId} IS NOT NULL AND ${assignmentsTable.status} IN ('scheduled', 'in_progress', 'seen', 'plannable', 'approved')`),
+    db.select({ count: sql<number>`count(DISTINCT ${objectsTable.serviceType})::int` }).from(objectsTable)
+      .where(sql`${objectsTable.serviceType} IS NOT NULL AND trim(${objectsTable.serviceType}) <> ''`),
+    db.select({ count: sql<number>`count(*)::int` }).from(objectsTable).where(eq(objectsTable.isActive, false)),
+    db.select({ count: sql<number>`count(*)::int` }).from(documentsTable)
+      .where(eq(documentsTable.entityType, "object")),
   ]);
 
   return {
-    total:             totalRow[0]?.count      ?? 0,
-    active:            activeRow[0]?.count     ?? 0,
-    activeAssignments: assignmentRow[0]?.count ?? 0,
-    periodicTasks:     0,
-    openAlerts:        0,
-    contracts:         0,
+    total:             totalRow[0]?.count        ?? 0,
+    active:            activeRow[0]?.count       ?? 0,
+    activeAssignments: assignmentRow[0]?.count   ?? 0,
+    periodicTasks:     serviceTypeRow[0]?.count  ?? 0,
+    openAlerts:        inactiveRow[0]?.count     ?? 0,
+    contracts:         documentRow[0]?.count     ?? 0,
   };
 }
 
