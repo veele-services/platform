@@ -1,0 +1,167 @@
+deploy@vps:~$ # Personeel-PWA bouwen en starten
+PORT=3002 BASE_PATH=/personeel/ pnpm --filter @workspace/personeel-pwa run build
+pm2 start "PORT=3002 BASE_PATH=/personeel/ pnpm --filter @workspace/personeel-pwa run start" \
+  --name veele-personeel
+
+# Klant-PWA bouwen en starten
+PORT=3003 BASE_PATH=/klant/ pnpm --filter @workspace/klant-pwa run build
+pm2 start "PORT=3003 BASE_PATH=/klant/ pnpm --filter @workspace/klant-pwa run start" \
+  --name veele-klant
+
+# Opslaan zodat ze na reboot herstarten
+pm2 save
+No projects found in "/home/deploy"
+[PM2] Starting /usr/bin/bash in fork_mode (1 instance)
+[PM2] Done.
+┌──────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id   │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├──────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1043 │ veele              │ fork     │ 0    │ online    │ 0%       │ 115.1mb  │
+│ 1044 │ veele-personeel    │ fork     │ 0    │ online    │ 0%       │ 384.0kb  │
+│ 1017 │ veele-staging      │ fork     │ 0    │ online    │ 0%       │ 120.1mb  │
+└──────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+No projects found in "/home/deploy"
+[PM2] Starting /usr/bin/bash in fork_mode (1 instance)
+[PM2] Done.
+┌──────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id   │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├──────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1043 │ veele              │ fork     │ 0    │ online    │ 0%       │ 115.1mb  │
+│ 1045 │ veele-klant        │ fork     │ 0    │ online    │ 0%       │ 1.8mb    │
+│ 1044 │ veele-personeel    │ fork     │ 1    │ online    │ 100%     │ 89.5mb   │
+│ 1017 │ veele-staging      │ fork     │ 0    │ online    │ 0%       │ 120.1mb  │
+└──────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+[PM2] Saving current process list...
+[PM2] Successfully saved in /home/deploy/.pm2/dump.pm2
+deploy@vps:~$ pm2 status
+┌──────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────────┐
+│ id   │ name               │ mode     │ ↺    │ status    │ cpu      │ memory   │
+├──────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────────┤
+│ 1043 │ veele              │ fork     │ 0    │ online    │ 0%       │ 115.1mb  │
+│ 1045 │ veele-klant        │ fork     │ 15   │ errored   │ 0%       │ 0b       │
+│ 1044 │ veele-personeel    │ fork     │ 15   │ errored   │ 0%       │ 0b       │
+│ 1017 │ veele-staging      │ fork     │ 0    │ online    │ 0%       │ 120.1mb  │
+└──────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────────┘
+deploy@vps:~$ pm2 logs
+[TAILING] Tailing last 15 lines for [all] processes (change the value with --lines option)
+/home/deploy/.pm2/pm2.log last 15 lines:
+PM2        | 2026-06-02T13:08:14: PM2 log: App [veele-klant:1045] starting in -fork mode-
+PM2        | 2026-06-02T13:08:14: PM2 log: App [veele-klant:1045] online
+PM2        | 2026-06-02T13:08:14: PM2 log: App [veele-personeel:1044] exited with code [0] via signal [SIGINT]
+PM2        | 2026-06-02T13:08:14: PM2 log: App [veele-personeel:1044] starting in -fork mode-
+PM2        | 2026-06-02T13:08:14: PM2 log: App [veele-personeel:1044] online
+PM2        | 2026-06-02T13:08:14: PM2 log: App [veele-klant:1045] exited with code [0] via signal [SIGINT]
+PM2        | 2026-06-02T13:08:14: PM2 log: App [veele-klant:1045] starting in -fork mode-
+PM2        | 2026-06-02T13:08:14: PM2 log: App [veele-klant:1045] online
+PM2        | 2026-06-02T13:08:14: PM2 log: App [veele-personeel:1044] exited with code [0] via signal [SIGINT]
+PM2        | 2026-06-02T13:08:14: PM2 log: Script /usr/bin/bash had too many unstable restarts (16). Stopped. "errored"
+PM2        | 2026-06-02T13:08:14: PM2 log: App [veele-klant:1045] exited with code [0] via signal [SIGINT]
+PM2        | 2026-06-02T13:08:14: PM2 log: App [veele-klant:1045] starting in -fork mode-
+PM2        | 2026-06-02T13:08:14: PM2 log: App [veele-klant:1045] online
+PM2        | 2026-06-02T13:08:14: PM2 log: App [veele-klant:1045] exited with code [0] via signal [SIGINT]
+PM2        | 2026-06-02T13:08:14: PM2 log: Script /usr/bin/bash had too many unstable restarts (16). Stopped. "errored"
+
+/home/deploy/.pm2/logs/veele-staging-error.log last 15 lines:
+1017|veele |   ^
+1017|veele |
+1017|veele | Error: Cannot find module '/var/www/veele-staging/.next/standalone/server.js'
+1017|veele |     at Function._resolveFilename (node:internal/modules/cjs/loader:1430:15)
+1017|veele |     at defaultResolveImpl (node:internal/modules/cjs/loader:1040:19)
+1017|veele |     at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1045:22)
+1017|veele |     at Function._load (node:internal/modules/cjs/loader:1216:25)
+1017|veele |     at wrapModuleLoad (node:internal/modules/cjs/loader:254:19)
+1017|veele |     at Function.executeUserEntryPoint [as runMain] (node:internal/modules/run_main:171:5)
+1017|veele |     at node:internal/main/run_main_module:36:49 {
+1017|veele |   code: 'MODULE_NOT_FOUND',
+1017|veele |   requireStack: []
+1017|veele | }
+1017|veele |
+1017|veele | Node.js v22.22.3
+
+/home/deploy/.pm2/logs/veele-staging-out.log last 15 lines:
+1017|veele |
+1017|veele |  ✓ Starting...
+1017|veele |  ✓ Ready in 362ms
+1017|veele |    ▲ Next.js 15.5.18
+1017|veele |    - Local:        http://127.0.0.1:3001
+1017|veele |    - Network:      http://127.0.0.1:3001
+1017|veele |
+1017|veele |  ✓ Starting...
+1017|veele |  ✓ Ready in 461ms
+1017|veele |    ▲ Next.js 15.5.18
+1017|veele |    - Local:        http://127.0.0.1:3001
+1017|veele |    - Network:      http://127.0.0.1:3001
+1017|veele |
+1017|veele |  ✓ Starting...
+1017|veele |  ✓ Ready in 367ms
+
+/home/deploy/.pm2/logs/veele-error.log last 15 lines:
+1043|veele |  ⨯ Error: ENOENT: no such file or directory, open '/var/www/veele/artifacts/backoffice/.next/required-server-files.json'
+1043|veele |     at async (.next/server/pages/_error.js:1:2693) {
+1043|veele |   errno: -2,
+1043|veele |   code: 'ENOENT',
+1043|veele |   syscall: 'open',
+1043|veele |   path: '/var/www/veele/artifacts/backoffice/.next/required-server-files.json'
+1043|veele | }
+1043|veele |  ⨯ Error: ENOENT: no such file or directory, open '/var/www/veele/artifacts/backoffice/.next/required-server-files.json'
+1043|veele |     at async M (.next/server/app/_not-found/page.js:1:2387) {
+1043|veele |   errno: -2,
+1043|veele |   code: 'ENOENT',
+1043|veele |   syscall: 'open',
+1043|veele |   path: '/var/www/veele/artifacts/backoffice/.next/required-server-files.json'
+1043|veele | }
+1043|veele | [auth] Failed to set permissions cookie after sign-in.
+
+/home/deploy/.pm2/logs/veele-out.log last 15 lines:
+1043|veele |
+1043|veele |  ✓ Starting...
+1043|veele |  ✓ Ready in 385ms
+1043|veele |    ▲ Next.js 15.5.18
+1043|veele |    - Local:        http://127.0.0.1:3000
+1043|veele |    - Network:      http://127.0.0.1:3000
+1043|veele |
+1043|veele |  ✓ Starting...
+1043|veele |  ✓ Ready in 363ms
+1043|veele |    ▲ Next.js 15.5.18
+1043|veele |    - Local:        http://127.0.0.1:3000
+1043|veele |    - Network:      http://127.0.0.1:3000
+1043|veele |
+1043|veele |  ✓ Starting...
+1043|veele |  ✓ Ready in 383ms
+
+/home/deploy/.pm2/logs/veele-personeel-error.log last 15 lines:
+/home/deploy/.pm2/logs/veele-klant-error.log last 15 lines:
+/home/deploy/.pm2/logs/veele-personeel-out.log last 15 lines:
+1044|veele | No projects found in "/home/deploy"
+1044|veele | No projects found in "/home/deploy"
+1044|veele | No projects found in "/home/deploy"
+1044|veele | No projects found in "/home/deploy"
+1044|veele | No projects found in "/home/deploy"
+1044|veele | No projects found in "/home/deploy"
+1044|veele | No projects found in "/home/deploy"
+1044|veele | No projects found in "/home/deploy"
+1044|veele | No projects found in "/home/deploy"
+1044|veele | No projects found in "/home/deploy"
+1044|veele | No projects found in "/home/deploy"
+1044|veele | No projects found in "/home/deploy"
+1044|veele | No projects found in "/home/deploy"
+1044|veele | No projects found in "/home/deploy"
+1044|veele | No projects found in "/home/deploy"
+
+/home/deploy/.pm2/logs/veele-klant-out.log last 15 lines:
+1045|veele | No projects found in "/home/deploy"
+1045|veele | No projects found in "/home/deploy"
+1045|veele | No projects found in "/home/deploy"
+1045|veele | No projects found in "/home/deploy"
+1045|veele | No projects found in "/home/deploy"
+1045|veele | No projects found in "/home/deploy"
+1045|veele | No projects found in "/home/deploy"
+1045|veele | No projects found in "/home/deploy"
+1045|veele | No projects found in "/home/deploy"
+1045|veele | No projects found in "/home/deploy"
+1045|veele | No projects found in "/home/deploy"
+1045|veele | No projects found in "/home/deploy"
+1045|veele | No projects found in "/home/deploy"
+1045|veele | No projects found in "/home/deploy"
+1045|veele | No projects found in "/home/deploy"
+

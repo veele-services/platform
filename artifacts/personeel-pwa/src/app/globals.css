@@ -1,0 +1,73 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@theme {
+  /* ── Personeel-PWA Brand Colors ───────────────────────────────────── */
+  --color-primary:        #081D3A;
+  --color-primary-light:  #0F2E5C;
+
+  /* Teal accent — navigatie, badges, links */
+  --color-accent:         #00B7B3;
+  --color-accent-dark:    #009E9A;
+
+  /* Oranje-amber — call-to-action knoppen, urgente acties */
+  --color-action:         #F97316;
+  --color-action-dark:    #EA6C0A;
+  --color-action-muted:   rgba(249,115,22,0.12);
+
+  --color-secondary:      #64748B;
+  --color-muted:          #F8FAFC;
+  --color-muted-fg:       #94A3B8;
+  --color-border:         #E2E8F0;
+  --color-destructive:    #EF4444;
+  --color-warning:        #F59E0B;
+  --color-success:        #10B981;
+
+  /* ── Assignment Status Colors ─────────────────────────────────────── */
+  --color-status-aangevraagd:   #94A3B8;
+  --color-status-gepland:       #3B82F6;
+  --color-status-bezig:         #F59E0B;
+  --color-status-afgerond:      #10B981;
+  --color-status-gefactureerd:  #8B5CF6;
+
+  /* ── Typography ───────────────────────────────────────────────────── */
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+
+  /* ── Radius — rounder for field-worker mobile feel ───────────────── */
+  --radius:    0.625rem;
+  --radius-sm: 0.375rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+}
+
+@layer base {
+  * {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  html {
+    font-family: var(--font-sans);
+    font-size: 16px;
+    -webkit-text-size-adjust: 100%;
+    overscroll-behavior: none;
+  }
+
+  body {
+    background-color: var(--color-muted);
+    color: var(--color-primary);
+    overscroll-behavior: none;
+    /* Slightly warmer than backoffice muted */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Safe area for PWA bottom nav */
+  :root {
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  /* Better press feedback for touch targets */
+  a, button { -webkit-tap-highlight-color: transparent; }
+}

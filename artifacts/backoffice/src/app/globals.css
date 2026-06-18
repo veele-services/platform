@@ -2,7 +2,55 @@
 @import "tw-animate-css";
 
 @theme {
-  /* ── Veele Color System ── */
+  /* ══════════════════════════════════════════════════
+     shadcn/ui Semantic Token Layer → Veele Palette
+     These map the shadcn class names (bg-primary, ring-ring, etc.)
+     to Veele brand colors so all Radix/shadcn components
+     render on-brand from day one.
+     ══════════════════════════════════════════════════ */
+
+  /* Page background / default text */
+  --color-background:            #F8FAFC;
+  --color-foreground:            #081D3A;
+
+  /* Card / popover surfaces */
+  --color-card:                  #FFFFFF;
+  --color-card-foreground:       #081D3A;
+  --color-popover:               #FFFFFF;
+  --color-popover-foreground:    #081D3A;
+
+  /* Primary action → Teal */
+  --color-primary:               #00B7B3;
+  --color-primary-foreground:    #FFFFFF;
+  --color-primary-border:        #009D99;
+
+  /* Secondary action → Navy secondary */
+  --color-secondary:             #133D6B;
+  --color-secondary-foreground:  #FFFFFF;
+  --color-secondary-border:      #0F2E52;
+
+  /* Muted / subdued surfaces */
+  --color-muted:                 #F1F5F9;
+  --color-muted-foreground:      #64748B;
+
+  /* Accent tint */
+  --color-accent:                #E0FAFB;
+  --color-accent-foreground:     #081D3A;
+
+  /* Destructive / danger */
+  --color-destructive:           #EF4444;
+  --color-destructive-foreground: #FFFFFF;
+  --color-destructive-border:    #DC2626;
+
+  /* Borders, inputs, focus ring */
+  --color-border:                #E2E8F0;
+  --color-input:                 #E2E8F0;
+  --color-ring:                  #00B7B3;
+
+  /* Outline button border variable */
+  --button-outline:              #E2E8F0;
+
+  /* ── Veele Brand Colors (direct tokens) ── */
   --color-navy:            #081D3A;
   --color-navy-secondary:  #133D6B;
   --color-teal:            #00B7B3;
@@ -65,11 +113,48 @@
 }
 
 @layer utilities {
+  /* ── shadcn button elevation helpers ── */
+  .hover-elevate {
+    transition: box-shadow 0.15s ease, transform 0.15s ease;
+  }
+  .hover-elevate:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+    transform: translateY(-1px);
+  }
+  .active-elevate-2:active {
+    box-shadow: none;
+    transform: translateY(0);
+  }
+
   .font-heading {
     font-family: var(--font-poppins), 'Poppins', system-ui, sans-serif;
   }
   .font-sans {
     font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
+  }
+
+  /* Input utility — matches shadcn/ui Input appearance */
+  .veele-input {
+    display: block;
+    width: 100%;
+    border-radius: 6px;
+    border: 1px solid #E2E8F0;
+    background-color: #FFFFFF;
+    padding: 6px 10px;
+    font-size: 14px;
+    line-height: 1.5;
+    color: #0F172A;
+    outline: none;
+    transition: border-color 0.15s, box-shadow 0.15s;
+  }
+  .veele-input:focus {
+    border-color: #00B7B3;
+    box-shadow: 0 0 0 3px rgba(0,183,179,0.12);
+  }
+  .veele-input:disabled {
+    background-color: #F8FAFC;
+    color: #94A3B8;
+    cursor: not-allowed;
   }
 
   /* Card utility */

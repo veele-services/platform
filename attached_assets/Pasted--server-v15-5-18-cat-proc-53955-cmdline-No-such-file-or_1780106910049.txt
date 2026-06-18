@@ -1,0 +1,217 @@
+-server (v15.5.18)
+cat: /proc/53955/cmdline: No such file or directory
+danny@vps:~$ # PM2 status via de deploy user (met NVM in PATH)
+sudo -u deploy bash -c 'source ~/.nvm/nvm.sh && pm2 status'
+sudo -u deploy bash -c 'source ~/.nvm/nvm.sh && pm2 logs --lines 30 --nost
+ream'
+# Waar staat de app code?
+sudo find /var/www /opt /srv /home -maxdepth 4 -name "next.config.*" 2>/de
+v/null | grep -v node_modules
+┌────┬────────────────────┬──────────┬──────┬───────────┬──────────┬──────
+────┐
+│ id │ name               │ mode     │ ↺    │ status    │ cpu      │ memor
+y   │
+├────┼────────────────────┼──────────┼──────┼───────────┼──────────┼──────
+────┤
+│ 51 │ veele              │ fork     │ 0    │ online    │ 0%       │ 114.2
+mb  │
+│ 44 │ veele-staging      │ fork     │ 0    │ online    │ 0%       │ 117.6
+mb  │
+└────┴────────────────────┴──────────┴──────┴───────────┴──────────┴──────
+────┘
+[TAILING] Tailing last 30 lines for [all] processes (change the value with
+ --lines option)
+/home/deploy/.pm2/pm2.log last 30 lines:
+PM2        | 2026-05-30T01:41:11: PM2 log: Stopping app:veele id:45
+PM2        | 2026-05-30T01:41:11: PM2 log: App [veele:45] exited with code
+ [0] via signal [SIGINT]
+PM2        | 2026-05-30T01:41:12: PM2 log: pid=50372 msg=process tree kill
+ed (2 pids)
+PM2        | 2026-05-30T01:41:12: PM2 log: App [veele:46] starting in -for
+k mode-
+PM2        | 2026-05-30T01:41:12: PM2 log: App [veele:46] online
+PM2        | 2026-05-30T01:45:14: PM2 log: Stopping app:veele id:46
+PM2        | 2026-05-30T01:45:14: PM2 log: App [veele:46] exited with code
+ [0] via signal [SIGINT]
+PM2        | 2026-05-30T01:45:14: PM2 log: pid=51248 msg=process tree kill
+ed (2 pids)
+PM2        | 2026-05-30T01:45:14: PM2 log: App [veele:47] starting in -for
+k mode-
+PM2        | 2026-05-30T01:45:14: PM2 log: App [veele:47] online
+PM2        | 2026-05-30T01:50:33: PM2 log: Stopping app:veele id:47
+PM2        | 2026-05-30T01:50:33: PM2 log: App [veele:47] exited with code
+ [0] via signal [SIGINT]
+PM2        | 2026-05-30T01:50:34: PM2 log: pid=52372 msg=process tree kill
+ed (2 pids)
+PM2        | 2026-05-30T01:50:34: PM2 log: App [veele:48] starting in -for
+k mode-
+PM2        | 2026-05-30T01:50:34: PM2 log: App [veele:48] online
+PM2        | 2026-05-30T01:55:34: PM2 log: Stopping app:veele id:48
+PM2        | 2026-05-30T01:55:34: PM2 log: App [veele:48] exited with code
+ [0] via signal [SIGINT]
+PM2        | 2026-05-30T01:55:34: PM2 log: pid=53141 msg=process tree kill
+ed (2 pids)
+PM2        | 2026-05-30T01:55:34: PM2 log: App [veele:49] starting in -for
+k mode-
+PM2        | 2026-05-30T01:55:34: PM2 log: App [veele:49] online
+PM2        | 2026-05-30T02:00:35: PM2 log: Stopping app:veele id:49
+PM2        | 2026-05-30T02:00:35: PM2 log: App [veele:49] exited with code
+ [0] via signal [SIGINT]
+PM2        | 2026-05-30T02:00:35: PM2 log: pid=53934 msg=process tree kill
+ed (2 pids)
+PM2        | 2026-05-30T02:00:35: PM2 log: App [veele:50] starting in -for
+k mode-
+PM2        | 2026-05-30T02:00:35: PM2 log: App [veele:50] online
+PM2        | 2026-05-30T02:05:35: PM2 log: Stopping app:veele id:50
+PM2        | 2026-05-30T02:05:35: PM2 log: App [veele:50] exited with code
+ [0] via signal [SIGINT]
+PM2        | 2026-05-30T02:05:35: PM2 log: pid=54792 msg=process tree kill
+ed (2 pids)
+PM2        | 2026-05-30T02:05:35: PM2 log: App [veele:51] starting in -for
+k mode-
+PM2        | 2026-05-30T02:05:35: PM2 log: App [veele:51] online
+/home/deploy/.pm2/logs/veele-staging-error.log last 30 lines:
+44|veele-s | Error: Cannot find module '/var/www/veele-staging/.next/stand
+alone/server.js'
+44|veele-s |     at Function._resolveFilename (node:internal/modules/cjs/l
+oader:1430:15)
+44|veele-s |     at defaultResolveImpl (node:internal/modules/cjs/loader:1
+040:19)
+44|veele-s |     at resolveForCJSWithHooks (node:internal/modules/cjs/load
+er:1045:22)
+44|veele-s |     at Function._load (node:internal/modules/cjs/loader:1216:
+25)
+44|veele-s |     at wrapModuleLoad (node:internal/modules/cjs/loader:254:1
+9)
+44|veele-s |     at Function.executeUserEntryPoint [as runMain] (node:inte
+rnal/modules/run_main:171:5)
+44|veele-s |     at node:internal/main/run_main_module:36:49 {
+44|veele-s |   code: 'MODULE_NOT_FOUND',
+44|veele-s |   requireStack: []
+44|veele-s | }
+44|veele-s |
+44|veele-s | Node.js v22.22.3
+44|veele-s | node:internal/modules/cjs/loader:1433
+44|veele-s |   throw err;
+44|veele-s |   ^
+44|veele-s |
+44|veele-s | Error: Cannot find module '/var/www/veele-staging/.next/stand
+alone/server.js'
+44|veele-s |     at Function._resolveFilename (node:internal/modules/cjs/l
+oader:1430:15)
+44|veele-s |     at defaultResolveImpl (node:internal/modules/cjs/loader:1
+040:19)
+44|veele-s |     at resolveForCJSWithHooks (node:internal/modules/cjs/load
+er:1045:22)
+44|veele-s |     at Function._load (node:internal/modules/cjs/loader:1216:
+25)
+44|veele-s |     at wrapModuleLoad (node:internal/modules/cjs/loader:254:1
+9)
+44|veele-s |     at Function.executeUserEntryPoint [as runMain] (node:inte
+rnal/modules/run_main:171:5)
+44|veele-s |     at node:internal/main/run_main_module:36:49 {
+44|veele-s |   code: 'MODULE_NOT_FOUND',
+44|veele-s |   requireStack: []
+44|veele-s | }
+44|veele-s |
+44|veele-s | Node.js v22.22.3
+/home/deploy/.pm2/logs/veele-error.log last 30 lines:
+51|veele   | Error: Cannot find module '/var/www/veele/.next/standalone/se
+rver.js'
+51|veele   |     at Function._resolveFilename (node:internal/modules/cjs/l
+oader:1430:15)
+51|veele   |     at defaultResolveImpl (node:internal/modules/cjs/loader:1
+040:19)
+51|veele   |     at resolveForCJSWithHooks (node:internal/modules/cjs/load
+er:1045:22)
+51|veele   |     at Function._load (node:internal/modules/cjs/loader:1216:
+25)
+51|veele   |     at wrapModuleLoad (node:internal/modules/cjs/loader:254:1
+9)
+51|veele   |     at Function.executeUserEntryPoint [as runMain] (node:inte
+rnal/modules/run_main:171:5)
+51|veele   |     at node:internal/main/run_main_module:36:49 {
+51|veele   |   code: 'MODULE_NOT_FOUND',
+51|veele   |   requireStack: []
+51|veele   | }
+51|veele   |
+51|veele   | Node.js v22.22.3
+51|veele   | node:internal/modules/cjs/loader:1433
+51|veele   |   throw err;
+51|veele   |   ^
+51|veele   |
+51|veele   | Error: Cannot find module '/var/www/veele/.next/standalone/se
+rver.js'
+51|veele   |     at Function._resolveFilename (node:internal/modules/cjs/l
+oader:1430:15)
+51|veele   |     at defaultResolveImpl (node:internal/modules/cjs/loader:1
+040:19)
+51|veele   |     at resolveForCJSWithHooks (node:internal/modules/cjs/load
+er:1045:22)
+51|veele   |     at Function._load (node:internal/modules/cjs/loader:1216:
+25)
+51|veele   |     at wrapModuleLoad (node:internal/modules/cjs/loader:254:1
+9)
+51|veele   |     at Function.executeUserEntryPoint [as runMain] (node:inte
+rnal/modules/run_main:171:5)
+51|veele   |     at node:internal/main/run_main_module:36:49 {
+51|veele   |   code: 'MODULE_NOT_FOUND',
+51|veele   |   requireStack: []
+51|veele   | }
+51|veele   |
+51|veele   | Node.js v22.22.3
+/home/deploy/.pm2/logs/veele-staging-out.log last 30 lines:
+44|veele-s |    ▲ Next.js 15.5.18
+44|veele-s |    - Local:        http://127.0.0.1:3001
+44|veele-s |    - Network:      http://127.0.0.1:3001
+44|veele-s |
+44|veele-s |  ✓ Starting...
+44|veele-s |  ✓ Ready in 365ms
+44|veele-s |    ▲ Next.js 15.5.18
+44|veele-s |    - Local:        http://127.0.0.1:3001
+44|veele-s |    - Network:      http://127.0.0.1:3001
+44|veele-s |
+44|veele-s |  ✓ Starting...
+44|veele-s |  ✓ Ready in 393ms
+44|veele-s |    ▲ Next.js 15.5.18
+44|veele-s |    - Local:        http://127.0.0.1:3001
+44|veele-s |    - Network:      http://127.0.0.1:3001
+44|veele-s |
+44|veele-s |  ✓ Starting...
+44|veele-s |  ✓ Ready in 344ms
+/home/deploy/.pm2/logs/veele-out.log last 30 lines:
+51|veele   |    ▲ Next.js 15.5.18
+51|veele   |    - Local:        http://127.0.0.1:3000
+51|veele   |    - Network:      http://127.0.0.1:3000
+51|veele   |
+51|veele   |  ✓ Starting...
+51|veele   |  ✓ Ready in 366ms
+51|veele   |    ▲ Next.js 15.5.18
+51|veele   |    - Local:        http://127.0.0.1:3000
+51|veele   |    - Network:      http://127.0.0.1:3000
+51|veele   |
+51|veele   |  ✓ Starting...
+51|veele   |  ✓ Ready in 333ms
+51|veele   |    ▲ Next.js 15.5.18
+51|veele   |    - Local:        http://127.0.0.1:3000
+51|veele   |    - Network:      http://127.0.0.1:3000
+51|veele   |
+51|veele   |  ✓ Starting...
+51|veele   |  ✓ Ready in 375ms
+51|veele   |    ▲ Next.js 15.5.18
+51|veele   |    - Local:        http://127.0.0.1:3000
+51|veele   |    - Network:      http://127.0.0.1:3000
+51|veele   |
+51|veele   |  ✓ Starting...
+51|veele   |  ✓ Ready in 375ms
+51|veele   |    ▲ Next.js 15.5.18
+51|veele   |    - Local:        http://127.0.0.1:3000
+51|veele   |    - Network:      http://127.0.0.1:3000
+51|veele   |
+51|veele   |  ✓ Starting...
+51|veele   |  ✓ Ready in 339ms
+/var/www/veele-staging/artifacts/backoffice/next.config.ts
+/var/www/veele/artifacts/backoffice/next.config.ts
+danny@vps:~$ curl -sv http://62.129.138.103/ 2>&1 | grep location
+< location: http://localhost:3000/login
+danny@v

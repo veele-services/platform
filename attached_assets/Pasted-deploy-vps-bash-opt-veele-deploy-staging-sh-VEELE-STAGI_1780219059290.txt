@@ -1,0 +1,93 @@
+deploy@vps:~$ bash /opt/veele/deploy-staging.sh
+=== VEELE STAGING DEPLOY START ===
+Sun May 31 09:15:59 AM UTC 2026
+[1/8] Fetch staging branch
+remote: Enumerating objects: 26, done.
+remote: Counting objects: 100% (26/26), done.
+remote: Compressing objects: 100% (5/5), done.
+remote: Total 15 (delta 9), reused 15 (delta 9), pack-reused 0 (from 0)
+Unpacking objects: 100% (15/15), 2.95 KiB | 1.47 MiB/s, done.
+From github.com:veele-services/platform
+ * branch            staging    -> FETCH_HEAD
+   566fba7..5c7c231  staging    -> origin/staging
+HEAD is now at 5c7c231 Separate constants from server actions files
+[1b/8] Remove local build output
+[1c/8] Load staging environment
+[2/8] Install dependencies
+Scope: all 9 workspace projects
+Already up to date
+Done in 280ms using pnpm v11.5.0
+[3/8] Typecheck
+$ pnpm run typecheck:libs && pnpm -r --filter "./artifacts/**" --filter "./scripts" --if-present run typecheck
+$ tsc --build
+Scope: 4 of 9 workspace projects
+artifacts/api-server typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 1s
+artifacts/backoffice typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 5.4s
+artifacts/mockup-sandbox typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 2.6s
+scripts typecheck$ tsc -p tsconfig.json --noEmit
+└─ Done in 1s
+[4/8] Build
+$ next build
+   ▲ Next.js 15.5.18
+   Creating an optimized production build ...
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (101kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+<w> [webpack.cache.PackFileCacheStrategy] Serializing big strings (231kiB) impacts deserialization performance (consider using Buffer instead and decode when needed)
+Failed to compile.
+../../node_modules/.pnpm/pg-connection-string@2.12.0/node_modules/pg-connection-string/index.js
+Module not found: Can't resolve 'fs'
+https://nextjs.org/docs/messages/module-not-found
+Import trace for requested module:
+../../node_modules/.pnpm/pg@8.20.0/node_modules/pg/lib/connection-parameters.js
+../../node_modules/.pnpm/pg@8.20.0/node_modules/pg/lib/client.js
+../../node_modules/.pnpm/pg@8.20.0/node_modules/pg/lib/index.js
+../../node_modules/.pnpm/pg@8.20.0/node_modules/pg/esm/index.mjs
+../../lib/db/src/index.ts
+./src/types/documents.ts
+./src/components/documents/DocumentsView.tsx
+../../node_modules/.pnpm/pg@8.20.0/node_modules/pg/lib/connection-parameters.js
+Module not found: Can't resolve 'dns'
+https://nextjs.org/docs/messages/module-not-found
+Import trace for requested module:
+../../node_modules/.pnpm/pg@8.20.0/node_modules/pg/lib/client.js
+../../node_modules/.pnpm/pg@8.20.0/node_modules/pg/lib/index.js
+../../node_modules/.pnpm/pg@8.20.0/node_modules/pg/esm/index.mjs
+../../lib/db/src/index.ts
+./src/types/documents.ts
+./src/components/documents/DocumentsView.tsx
+../../node_modules/.pnpm/pg@8.20.0/node_modules/pg/lib/connection.js
+Module not found: Can't resolve 'net'
+https://nextjs.org/docs/messages/module-not-found
+Import trace for requested module:
+../../node_modules/.pnpm/pg@8.20.0/node_modules/pg/lib/index.js
+../../node_modules/.pnpm/pg@8.20.0/node_modules/pg/esm/index.mjs
+../../lib/db/src/index.ts
+./src/types/documents.ts
+./src/components/documents/DocumentsView.tsx
+../../node_modules/.pnpm/pg@8.20.0/node_modules/pg/lib/stream.js
+Module not found: Can't resolve 'net'
+https://nextjs.org/docs/messages/module-not-found
+Import trace for requested module:
+../../node_modules/.pnpm/pg@8.20.0/node_modules/pg/lib/connection.js
+../../node_modules/.pnpm/pg@8.20.0/node_modules/pg/lib/index.js
+../../node_modules/.pnpm/pg@8.20.0/node_modules/pg/esm/index.mjs
+../../lib/db/src/index.ts
+./src/types/documents.ts
+./src/components/documents/DocumentsView.tsx
+../../node_modules/.pnpm/pg@8.20.0/node_modules/pg/lib/stream.js
+Module not found: Can't resolve 'tls'
+https://nextjs.org/docs/messages/module-not-found
+Import trace for requested module:
+../../node_modules/.pnpm/pg@8.20.0/node_modules/pg/lib/connection.js
+../../node_modules/.pnpm/pg@8.20.0/node_modules/pg/lib/index.js
+../../node_modules/.pnpm/pg@8.20.0/node_modules/pg/esm/index.mjs
+../../lib/db/src/index.ts
+./src/types/documents.ts
+./src/components/documents/DocumentsView.tsx
+> Build failed because of webpack errors
+/var/www/veele-staging/artifacts/backoffice:
+[ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL] @workspace/backoffice@0.0.0 build: `next build`
+Exit status 1
+deploy@vps:~$

@@ -10,6 +10,12 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: customers
+    description: Customer management
+  - name: customer-types
+    description: Customer type lookup
+  - name: customer-contacts
+    description: Customer contact management
 paths:
   /healthz:
     get:
@@ -24,6 +30,215 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /customers/{id}:
+    get:
+      operationId: getCustomer
+      tags: [customers]
+      summary: Get customer detail
+      description: Returns full customer detail including all CRM fields.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Customer detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerDetailResponse"
+        "404":
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    patch:
+      operationId: updateCustomer
+      tags: [customers]
+      summary: Update a customer
+      description: >
+        Updates a customer record. Accepts all CRM fields including legal entity,
+        VAT/KvK numbers, website, mobile, status, customer type, and account manager.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerUpdate"
+      responses:
+        "200":
+          description: Updated customer
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerDetailResponse"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /customer-types:
+    get:
+      operationId: listCustomerTypes
+      tags: [customer-types]
+      summary: List active customer types
+      description: Returns all active customer types for use in dropdowns.
+      responses:
+        "200":
+          description: List of customer types
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CustomerType"
+
+  /customers/{customerId}/contacts:
+    get:
+      operationId: listCustomerContacts
+      tags: [customer-contacts]
+      summary: List contacts for a customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: List of contacts
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CustomerContact"
+        "404":
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createCustomerContact
+      tags: [customer-contacts]
+      summary: Add a contact to a customer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerContactInput"
+      responses:
+        "201":
+          description: Contact created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerContact"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Customer not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /customers/{customerId}/contacts/{id}:
+    patch:
+      operationId: updateCustomerContact
+      tags: [customer-contacts]
+      summary: Update a customer contact
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CustomerContactUpdate"
+      responses:
+        "200":
+          description: Contact updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerContact"
+        "400":
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Contact not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    delete:
+      operationId: deleteCustomerContact
+      tags: [customer-contacts]
+      summary: Remove a customer contact
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Contact deleted
+        "404":
+          description: Contact not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +249,213 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+
+    CustomerDetailResponse:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        code:
+          type: string
+        sectorId:
+          type: ["string", "null"]
+        sectorName:
+          type: ["string", "null"]
+        address:
+          type: ["string", "null"]
+        city:
+          type: ["string", "null"]
+        postalCode:
+          type: ["string", "null"]
+        country:
+          type: string
+        contactName:
+          type: ["string", "null"]
+        contactEmail:
+          type: ["string", "null"]
+        contactPhone:
+          type: ["string", "null"]
+        legalEntity:
+          type: ["string", "null"]
+        vatNumber:
+          type: ["string", "null"]
+        chamberOfCommerceNumber:
+          type: ["string", "null"]
+        website:
+          type: ["string", "null"]
+        mobile:
+          type: ["string", "null"]
+        customerTypeId:
+          type: ["string", "null"]
+        customerTypeName:
+          type: ["string", "null"]
+        status:
+          type: string
+        accountManagerId:
+          type: ["string", "null"]
+        accountManagerName:
+          type: ["string", "null"]
+        isActive:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+      required:
+        - id
+        - name
+        - code
+        - country
+        - status
+        - isActive
+        - createdAt
+        - updatedAt
+
+    CustomerUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+        sectorId:
+          type: string
+        contactName:
+          type: string
+        contactEmail:
+          type: string
+        contactPhone:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        postalCode:
+          type: string
+        country:
+          type: string
+        legalEntity:
+          type: string
+        vatNumber:
+          type: string
+        chamberOfCommerceNumber:
+          type: string
+        website:
+          type: string
+        mobile:
+          type: string
+        customerTypeId:
+          type: string
+        status:
+          type: string
+        accountManagerId:
+          type: string
+
+    CustomerType:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        slug:
+          type: string
+        isActive:
+          type: boolean
+      required:
+        - id
+        - name
+        - slug
+        - isActive
+
+    CustomerContact:
+      type: object
+      properties:
+        id:
+          type: string
+        customerId:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+        function:
+          type: ["string", "null"]
+        email:
+          type: ["string", "null"]
+        phone:
+          type: ["string", "null"]
+        mobile:
+          type: ["string", "null"]
+        preferredComm:
+          type: ["string", "null"]
+        isEmergencyContact:
+          type: boolean
+        isPrimary:
+          type: boolean
+      required:
+        - id
+        - customerId
+        - firstName
+        - lastName
+        - isEmergencyContact
+        - isPrimary
+
+    CustomerContactInput:
+      type: object
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+        lastName:
+          type: string
+          minLength: 1
+        function:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        mobile:
+          type: string
+        preferredComm:
+          type: string
+        isEmergencyContact:
+          type: boolean
+        isPrimary:
+          type: boolean
+      required:
+        - firstName
+        - lastName
+
+    CustomerContactUpdate:
+      type: object
+      properties:
+        firstName:
+          type: string
+          minLength: 1
+        lastName:
+          type: string
+          minLength: 1
+        function:
+          type: string
+        email:
+          type: string
+        phone:
+          type: string
+        mobile:
+          type: string
+        preferredComm:
+          type: string
+        isEmergencyContact:
+          type: boolean
+        isPrimary:
+          type: boolean
