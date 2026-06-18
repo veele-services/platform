@@ -28,6 +28,7 @@ jobs:
       PORT: ${{ vars.PORT }}
       APP_URL: ${{ vars.APP_URL }}
       NEXT_PUBLIC_APP_URL: ${{ vars.NEXT_PUBLIC_APP_URL }}
+      BASE_PATH: ${{ vars.BASE_PATH }}
 
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
@@ -48,6 +49,7 @@ jobs:
           echo "Deploy target: $TARGET"
           echo "App URL: $APP_URL"
           echo "Port: $PORT"
+          echo "Base path: $BASE_PATH"
 
       - name: Prepare release directory
         run: |
@@ -79,6 +81,7 @@ jobs:
             printf 'PORT=%s\n' "$PORT"
             printf 'APP_URL=%s\n' "$APP_URL"
             printf 'NEXT_PUBLIC_APP_URL=%s\n' "$NEXT_PUBLIC_APP_URL"
+            printf 'BASE_PATH=%s\n' "$BASE_PATH"
             printf 'DATABASE_URL=%s\n' "$DATABASE_URL"
             printf 'SESSION_SECRET=%s\n' "$SESSION_SECRET"
             printf 'JWT_SECRET=%s\n' "$JWT_SECRET"
