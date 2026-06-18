@@ -151,6 +151,17 @@ function formatBoardDate(dateStr: string): string {
   return `${NL_WEEKDAYS[d.getDay()]} ${d.getDate()} ${NL_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
+function formatShortDate(dateStr: string | null): string {
+  if (!dateStr) return "Geen datum";
+
+  const d = new Date(`${dateStr}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return dateStr;
+
+  const day = d.getDate();
+  const month = NL_MONTHS[d.getMonth()]?.slice(0, 3) ?? "";
+  return `${day} ${month}`;
+}
+
 function parseTimeMin(value: string | null): number | null {
   if (!value) return null;
   const [h, m] = value.split(":").map(Number);
@@ -301,6 +312,19 @@ function compactTimeRange(start: string | null, end: string | null): string {
   if (!start && !end) return "Geen tijd";
   if (start && end) return `${start}-${end}`;
   return start ?? end ?? "";
+}
+
+function workOrderTimeLabel(assignment: PlanningBoardAssignment): string {
+  if (assignment.scheduledStart && assignment.scheduledEnd) {
+    return `${assignment.scheduledStart}-${assignment.scheduledEnd}`;
+  }
+  if (assignment.scheduledStart) return `Vanaf ${assignment.scheduledStart}`;
+  if (assignment.scheduledEnd) return `Tot ${assignment.scheduledEnd}`;
+  return "Tijd kiezen";
+}
+
+function displayWorkOrderTitle(title: string): string {
+  return title.replace(/^(open werkbon|ingepland team|conflict-test):\s*/i, "");
 }
 
 function slotLabel(filledSlots: number, requiredSlots: number): string {
@@ -727,6 +751,10 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                   const selected = selectedAssignmentId === assignment.id;
                   const stats = matchStats(data.matchesByAssignmentId[assignment.id]);
                   const duration = durationForAssignment(assignment);
+                  const scheduleDate = assignment.scheduledDate ?? data.date;
+                  const scheduleLabel = formatShortDate(scheduleDate);
+                  const timeLabel = workOrderTimeLabel(assignment);
+                  const title = displayWorkOrderTitle(assignment.title);
 
                   return (
                     <article
@@ -735,90 +763,113 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                       onDragStart={(e) => handleDragStart(e, assignment)}
                       onDragEnd={handleDragEnd}
                       onClick={() => setSelectedAssignmentId(selected ? null : assignment.id)}
-                      className="group rounded-lg border bg-white p-2.5 shadow-sm transition"
+                      className="group rounded-lg border bg-white p-2 shadow-sm transition"
                       style={{
                         borderColor: selected ? "#00B7B3" : "#E2E8F0",
                         boxShadow: selected ? "0 0 0 3px rgba(0,183,179,0.12)" : undefined,
                         cursor: canWrite ? "grab" : "default",
                       }}
                     >
-                      <div className="flex items-start gap-2">
+                      <div className="flex items-start gap-1.5">
                         {canWrite && (
-                          <GripVertical className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "#CBD5E1" }} />
+                          <GripVertical className="mt-1 h-3.5 w-3.5 flex-shrink-0" style={{ color: "#CBD5E1" }} />
                         )}
                         <div className="min-w-0 flex-1">
-                          <div className="mb-2 flex flex-wrap items-center gap-1.5">
-                            <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px]" style={{ color: "#475569" }}>
+                          <div className="flex items-start justify-between gap-1.5">
+                            <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] leading-none" style={{ color: "#475569" }}>
                               {assignment.code}
                             </span>
-                            {assignment.sectorName && (
-                              <span
-                                className="rounded border px-1.5 py-0.5 text-[10px] font-medium"
-                                style={sectorBadgeStyle(assignment.sectorName)}
-                              >
-                                {assignment.sectorName}
-                              </span>
-                            )}
-                            <AssignmentPriorityBadge priority={assignment.priority} />
-                            <AssignmentStatusBadge status={assignment.status} />
+                            <div className="flex flex-wrap justify-end gap-1 [&>span]:px-1.5 [&>span]:text-[10px] [&>span]:leading-none">
+                              <AssignmentPriorityBadge priority={assignment.priority} />
+                              <AssignmentStatusBadge status={assignment.status} />
+                            </div>
                           </div>
                           <Link
                             href={`/assignments/${assignment.id}`}
-                            className="block truncate text-[13px] font-semibold hover:underline"
+                            className="mt-1.5 block text-[12px] font-semibold leading-snug hover:underline"
                             style={{ color: "#081D3A" }}
                             onClick={(e) => e.stopPropagation()}
                           >
-                            {assignment.title}
+                            <span
+                              style={{
+                                display: "-webkit-box",
+                                WebkitLineClamp: 2,
+                                WebkitBoxOrient: "vertical",
+                                overflow: "hidden",
+                              }}
+                            >
+                              {title}
+                            </span>
                           </Link>
-                          <p className="mt-1 truncate text-[11px]" style={{ color: "#64748B" }}>
-                            {assignment.customerName}
-                            {assignment.objectName ? ` - ${assignment.objectName}` : ""}
-                          </p>
                         </div>
                       </div>
 
-                      <div className="mt-3 grid grid-cols-2 gap-2 text-[11px]">
-                        <span className="inline-flex items-center gap-1" style={{ color: "#64748B" }}>
-                          <Clock className="h-3.5 w-3.5" />
-                          {duration} min
-                        </span>
-                        <span className="inline-flex items-center gap-1" style={{ color: "#64748B" }}>
-                          <Users className="h-3.5 w-3.5" />
-                          {slotLabel(assignment.filledSlots, assignment.requiredSlots)}
-                        </span>
-                        {assignment.requiredRegion && (
-                          <span className="col-span-2 inline-flex items-center gap-1 truncate" style={{ color: "#64748B" }}>
-                            <MapPin className="h-3.5 w-3.5" />
-                            {assignment.requiredRegion}
+                      <div className="mt-2 rounded-md border px-2 py-1.5" style={{ borderColor: "#E2E8F0", background: "#F8FAFC" }}>
+                        <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2 text-[11px] font-medium" style={{ color: "#334155" }}>
+                          <span className="inline-flex min-w-0 items-center gap-1 truncate">
+                            <CalendarDays className="h-3 w-3 flex-shrink-0" style={{ color: "#64748B" }} />
+                            <span className="truncate">{scheduleLabel}</span>
+                          </span>
+                          <span className="inline-flex min-w-0 items-center gap-1 truncate">
+                            <Clock className="h-3 w-3 flex-shrink-0" style={{ color: "#64748B" }} />
+                            <span className="truncate">{timeLabel}</span>
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="mt-2 space-y-1 text-[11px]" style={{ color: "#64748B" }}>
+                        <p className="truncate">
+                          {assignment.customerName}
+                          {assignment.objectName ? ` - ${assignment.objectName}` : ""}
+                        </p>
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                          {assignment.sectorName && (
+                            <span
+                              className="inline-flex items-center rounded border px-1.5 py-0.5 text-[10px] font-medium"
+                              style={sectorBadgeStyle(assignment.sectorName)}
+                            >
+                              {assignment.sectorName}
+                            </span>
+                          )}
+                          <span className="inline-flex items-center gap-1">
+                            <Clock className="h-3 w-3" />
+                            {duration} min
+                          </span>
+                          <span className="inline-flex items-center gap-1">
+                            <Users className="h-3 w-3" />
+                            {slotLabel(assignment.filledSlots, assignment.requiredSlots)}
+                          </span>
+                          {assignment.requiredRegion && (
+                            <span className="inline-flex min-w-0 items-center gap-1 truncate">
+                              <MapPin className="h-3 w-3 flex-shrink-0" />
+                              <span className="truncate">{assignment.requiredRegion}</span>
+                            </span>
+                          )}
+                        </div>
+                      </div>
+
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {assignment.requirements.requiredRoleNames.slice(0, 2).map((role) => (
+                          <span key={role} className="rounded border px-1.5 py-0.5 text-[10px]" style={{ borderColor: "#E2E8F0", color: "#64748B" }}>
+                            {role}
+                          </span>
+                        ))}
+                        {assignment.requiredSlots > 1 && (
+                          <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium" style={{ borderColor: "#BFDBFE", background: "#EFF6FF", color: "#1D4ED8" }}>
+                            <Users className="h-3 w-3" />
+                            Team {slotLabel(assignment.filledSlots, assignment.requiredSlots)}
                           </span>
                         )}
                       </div>
 
-                      {assignment.requirements.requiredRoleNames.length > 0 && (
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {assignment.requirements.requiredRoleNames.slice(0, 3).map((role) => (
-                            <span key={role} className="rounded border px-1.5 py-0.5 text-[10px]" style={{ borderColor: "#E2E8F0", color: "#64748B" }}>
-                              {role}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-
-                      {assignment.requiredSlots > 1 && (
-                        <div className="mt-2 inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium" style={{ borderColor: "#BFDBFE", background: "#EFF6FF", color: "#1D4ED8" }}>
-                          <Users className="h-3 w-3" />
-                          Team {slotLabel(assignment.filledSlots, assignment.requiredSlots)}
-                        </div>
-                      )}
-
-                      <div className="mt-3 flex flex-wrap gap-1.5 text-[10px]">
-                        <span className="rounded px-1.5 py-0.5" style={{ background: "#ECFDF5", color: "#047857" }}>
+                      <div className="mt-2 flex flex-wrap gap-1 text-[10px]">
+                        <span className="rounded px-1.5 py-0.5 leading-none" style={{ background: "#ECFDF5", color: "#047857" }}>
                           {stats.match} match
                         </span>
-                        <span className="rounded px-1.5 py-0.5" style={{ background: "#FFFBEB", color: "#B45309" }}>
+                        <span className="rounded px-1.5 py-0.5 leading-none" style={{ background: "#FFFBEB", color: "#B45309" }}>
                           {stats.warning} waarschuwing
                         </span>
-                        <span className="rounded px-1.5 py-0.5" style={{ background: "#FEF2F2", color: "#B91C1C" }}>
+                        <span className="rounded px-1.5 py-0.5 leading-none" style={{ background: "#FEF2F2", color: "#B91C1C" }}>
                           {stats.blocked} blok
                         </span>
                       </div>
