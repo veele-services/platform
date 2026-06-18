@@ -76,6 +76,43 @@ jobs:
           echo "Klant service: ${KLANT_SERVICE_NAME:-<not configured>}"
           echo "API service: ${API_SERVICE_NAME:-<not configured>}"
 
+      - name: Validate service configuration
+        run: |
+          set -euo pipefail
+
+          require_pair() {
+            local service_name="$1"
+            local service_value="$2"
+            local port_name="$3"
+            local port_value="$4"
+
+            if [ -n "$service_value" ] && [ -z "$port_value" ]; then
+              echo "::error::${service_name} is configured, but ${port_name} is empty."
+              exit 1
+            fi
+
+            if [ -z "$service_value" ] && [ -n "$port_value" ]; then
+              echo "::error::${port_name} is configured, but ${service_name} is empty."
+              exit 1
+            fi
+          }
+
+          require_pair "PERSONEEL_SERVICE_NAME" "${PERSONEEL_SERVICE_NAME:-}" "PERSONEEL_PORT" "${PERSONEEL_PORT:-}"
+          require_pair "KLANT_SERVICE_NAME" "${KLANT_SERVICE_NAME:-}" "KLANT_PORT" "${KLANT_PORT:-}"
+          require_pair "API_SERVICE_NAME" "${API_SERVICE_NAME:-}" "API_PORT" "${API_PORT:-}"
+
+          if [ -z "${BACKOFFICE_PORT:-}" ]; then
+            echo "::error::PORT or BACKOFFICE_PORT must be configured for the backoffice service."
+            exit 1
+          fi
+
+          for value in "${BACKOFFICE_PORT:-}" "${PERSONEEL_PORT:-}" "${KLANT_PORT:-}" "${API_PORT:-}"; do
+            if [ -n "$value" ] && ! [[ "$value" =~ ^[0-9]+$ ]]; then
+              echo "::error::Configured ports must be numeric. Invalid value: $value"
+              exit 1
+            fi
+          done
+
       - name: Prepare release directory
         run: |
           set -euo pipefail
