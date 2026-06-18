@@ -1,48 +1,31 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useActionState, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
+import { completePasswordReset } from "@/actions/auth";
+import { evaluatePasswordStrength } from "@/lib/password-strength";
+
+function strengthColor(score: number): string {
+  if (score >= 4) return "#16A34A";
+  if (score >= 3) return "#0E7490";
+  if (score >= 2) return "#F59E0B";
+  return "#DC2626";
+}
 
 export default function ResetWachtwoordPage() {
   const router = useRouter();
-  const [password,        setPassword]        = useState("");
+  const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [error,           setError]           = useState<string | null>(null);
-  const [pending, startTransition] = useTransition();
+  const [state, formAction, pending] = useActionState(completePasswordReset, undefined);
 
-  function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setError(null);
+  const strength = evaluatePasswordStrength(password);
+  const passwordsMatch = !confirmPassword || password === confirmPassword;
 
-    if (password.length < 8) {
-      setError("Wachtwoord moet minimaal 8 tekens bevatten.");
-      return;
-    }
-
-    if (password !== confirmPassword) {
-      setError("Wachtwoorden komen niet overeen.");
-      return;
-    }
-
-    startTransition(async () => {
-      const supabase = createClient();
-      const { error: sbError } = await supabase.auth.updateUser({ password });
-
-      if (sbError) {
-        setError(
-          sbError.message.includes("same password")
-            ? "Het nieuwe wachtwoord mag niet gelijk zijn aan het huidige wachtwoord."
-            : "Wachtwoord opslaan mislukt. De resetlink is mogelijk verlopen — vraag een nieuwe aan.",
-        );
-        return;
-      }
-
-      await supabase.auth.signOut();
+  useEffect(() => {
+    if (state?.success) {
       router.push("/login?message=Wachtwoord+succesvol+gewijzigd");
-    });
-  }
+    }
+  }, [router, state?.success]);
 
   return (
     <div
@@ -58,20 +41,20 @@ export default function ResetWachtwoordPage() {
             >
               <span className="text-2xl font-bold text-white">V</span>
             </div>
-            <h1 className="text-2xl font-bold text-white">Nieuw wachtwoord</h1>
+            <h1 className="text-2xl font-bold text-white">Wachtwoord wijzigen</h1>
             <p className="mt-1 text-sm" style={{ color: "#94A3B8" }}>
-              Kies een nieuw wachtwoord voor je account
+              Kies een medium of sterker wachtwoord voor je account
             </p>
           </div>
 
           <div className="rounded-2xl bg-white p-6 shadow-lg">
-            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
-              {error && (
+            <form action={formAction} className="space-y-4" noValidate>
+              {state?.error && (
                 <div
                   className="rounded-xl px-4 py-3 text-sm font-medium"
                   style={{ backgroundColor: "rgba(239,68,68,0.10)", color: "#B91C1C" }}
                 >
-                  {error}
+                  {state.error}
                 </div>
               )}
 
@@ -85,15 +68,16 @@ export default function ResetWachtwoordPage() {
                 </label>
                 <input
                   id="password"
+                  name="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
                   autoComplete="new-password"
                   autoFocus
-                  minLength={8}
+                  minLength={10}
                   disabled={pending}
-                  placeholder="Minimaal 8 tekens"
+                  placeholder="Minimaal medium sterk"
                   className="w-full rounded-xl border px-4 py-3.5 text-base outline-none transition-colors disabled:opacity-60"
                   style={{
                     borderColor: "var(--color-border)",
@@ -101,6 +85,23 @@ export default function ResetWachtwoordPage() {
                     color: "var(--color-primary)",
                   }}
                 />
+                <div className="mt-2">
+                  <div className="flex gap-1">
+                    {Array.from({ length: 5 }).map((_, index) => (
+                      <span
+                        key={index}
+                        className="h-1.5 flex-1 rounded-full"
+                        style={{
+                          backgroundColor:
+                            index < strength.score ? strengthColor(strength.score) : "#E2E8F0",
+                        }}
+                      />
+                    ))}
+                  </div>
+                  <p className="mt-1 text-xs" style={{ color: strengthColor(strength.score) }}>
+                    Sterkte: {strength.label}
+                  </p>
+                </div>
               </div>
 
               <div>
@@ -113,38 +114,43 @@ export default function ResetWachtwoordPage() {
                 </label>
                 <input
                   id="confirm-password"
+                  name="passwordTwo"
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
                   autoComplete="new-password"
                   disabled={pending}
-                  placeholder="••••••••"
+                  placeholder="Herhaal nieuw wachtwoord"
                   className="w-full rounded-xl border px-4 py-3.5 text-base outline-none transition-colors disabled:opacity-60"
                   style={{
-                    borderColor: "var(--color-border)",
+                    borderColor: passwordsMatch ? "var(--color-border)" : "#DC2626",
                     backgroundColor: "#fff",
                     color: "var(--color-primary)",
                   }}
                 />
+                {!passwordsMatch && (
+                  <p className="mt-1 text-xs font-medium" style={{ color: "#DC2626" }}>
+                    Wachtwoorden komen niet overeen.
+                  </p>
+                )}
               </div>
 
               <button
                 type="submit"
-                disabled={pending || !password || !confirmPassword}
+                disabled={
+                  pending ||
+                  !password ||
+                  !confirmPassword ||
+                  !strength.isMedium ||
+                  password !== confirmPassword
+                }
                 className="w-full rounded-xl px-4 py-4 text-base font-semibold text-white transition-opacity active:opacity-80 disabled:opacity-60 mt-2"
                 style={{ backgroundColor: "var(--color-accent)" }}
               >
-                {pending ? "Opslaan…" : "Wachtwoord opslaan"}
+                {pending ? "Opslaan..." : "Wachtwoord opslaan"}
               </button>
 
-              <Link
-                href="/login"
-                className="block text-center text-sm mt-1"
-                style={{ color: "#64748B" }}
-              >
-                Annuleren — terug naar inloggen
-              </Link>
             </form>
           </div>
         </div>

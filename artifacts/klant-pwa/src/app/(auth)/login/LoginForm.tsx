@@ -29,13 +29,19 @@ export function LoginForm() {
 
     startTransition(async () => {
       const supabase = createClient();
-      const { error: authError } = await supabase.auth.signInWithPassword({
+      const { data, error: authError } = await supabase.auth.signInWithPassword({
         email:    email.trim().toLowerCase(),
         password,
       });
 
       if (authError) {
         setError("Onjuist e-mailadres of wachtwoord.");
+        return;
+      }
+
+      if (data.user?.app_metadata?.force_password_change === true) {
+        router.push("/klant/reset-wachtwoord?force=1");
+        router.refresh();
         return;
       }
 

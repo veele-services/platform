@@ -20,6 +20,12 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/auth/permissions";
+import { provisionPortalUserWithTemporaryPassword } from "@/lib/auth/portal-invites";
+import {
+  buildTemporaryPasswordEmail,
+  personeelPortalUrl,
+  sendEmailWithResult,
+} from "@/lib/email";
 import type { ActionResult } from "./customers";
 import type { ContractInfo, CertificateEntry } from "@/types/personnel";
 
@@ -44,7 +50,7 @@ export type SectorOption = { id: string; name: string };
 /**
  * Auth-account status for a personnel member:
  * - none     — no invite sent, no account
- * - invited  — invite sent, account not yet activated
+ * - invited  — temporary password sent, password change still required
  * - active   — account exists and is not banned
  * - disabled — account exists but is banned in Supabase Auth
  */
@@ -174,6 +180,38 @@ const PAGE_SIZE = 25;
 
 function isUniqueViolation(err: unknown): boolean {
   return (err as { code?: string })?.code === "23505";
+}
+
+async function sendPersonnelTemporaryPasswordInvite(person: {
+  firstName: string;
+  lastName:  string;
+  email:     string;
+}): Promise<{ userId: string; created: boolean }> {
+  const fullName = `${person.firstName} ${person.lastName}`.trim();
+  const invite = await provisionPortalUserWithTemporaryPassword({
+    email: person.email,
+    fullName,
+    portal: "personnel",
+  });
+
+  const { subject, html } = buildTemporaryPasswordEmail({
+    recipientName:     person.firstName || fullName,
+    portalName:        "Personeelsportaal",
+    loginUrl:          personeelPortalUrl(),
+    temporaryPassword: invite.temporaryPassword,
+  });
+
+  const sent = await sendEmailWithResult({
+    to: person.email,
+    subject,
+    html,
+  });
+
+  if (!sent.success) {
+    throw new Error(sent.error ?? "Uitnodigingsmail versturen mislukt.");
+  }
+
+  return { userId: invite.user.id, created: invite.created };
 }
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
@@ -608,14 +646,15 @@ export async function createPersonnel(
 
     // Auto-invite: send the portal invite immediately after creating the record
     if (data.autoInvite) {
-      const admin = createAdminClient();
-      const { data: inviteData, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
-        payload.email,
-      );
-      if (!inviteError && inviteData?.user) {
+      try {
+        const invite = await sendPersonnelTemporaryPasswordInvite({
+          firstName: payload.firstName,
+          lastName:  payload.lastName,
+          email:     payload.email,
+        });
         await db
           .update(personnelTable)
-          .set({ inviteSentAt: new Date(), updatedAt: new Date() })
+          .set({ userId: invite.userId, inviteSentAt: new Date(), updatedAt: new Date() })
           .where(eq(personnelTable.id, createdId));
 
         await db.insert(auditLogTable).values({
@@ -623,8 +662,15 @@ export async function createPersonnel(
           action:     "auto_invite_personnel",
           resource:   "personnel",
           resourceId: createdId,
-          metadata:   { name: `${payload.firstName} ${payload.lastName}`, email: payload.email },
+          metadata:   {
+            name: `${payload.firstName} ${payload.lastName}`,
+            email: payload.email,
+            temporaryPassword: true,
+            authUserCreated: invite.created,
+          },
         });
+      } catch (inviteError) {
+        console.error("[personnel] Auto-invite failed:", inviteError);
       }
       // If the invite fails, the record is still created — failure is not surfaced
       // so the caller can navigate to the detail page and invite manually.
@@ -796,58 +842,25 @@ export async function invitePersonnel(id: string): Promise<ActionResult> {
 
   if (!person) return { success: false, message: "Medewerker niet gevonden." };
   if (person.userId) {
-    return { success: false, message: "Medewerker heeft al een actief portaalaccount." };
+    const authStatus = await getPersonnelAuthStatus(id);
+    if (authStatus === "active") {
+      return { success: false, message: "Medewerker heeft al een actief portaalaccount." };
+    }
   }
 
-  const admin = createAdminClient();
-  const { data: inviteData, error: inviteError } = await admin.auth.admin.inviteUserByEmail(
-    person.email,
-  );
-
-  if (inviteError) {
-    // User already confirmed their Supabase account (clicked a previous invite link).
-    // Look up their ID via generateLink and link the personnel record.
-    const isAlreadyRegistered =
-      inviteError.message?.toLowerCase().includes("already registered") ||
-      inviteError.code === "email_exists";
-
-    if (isAlreadyRegistered) {
-      const { data: linkData } = await admin.auth.admin.generateLink({
-        type:  "recovery",
-        email: person.email,
-      });
-      if (linkData?.user?.id) {
-        await db
-          .update(personnelTable)
-          .set({ userId: linkData.user.id, inviteSentAt: new Date(), updatedAt: new Date() })
-          .where(eq(personnelTable.id, id));
-        await db.insert(auditLogTable).values({
-          userId:     actor.id,
-          action:     "invite_linked",
-          resource:   "personnel",
-          resourceId: id,
-          metadata:   { name: `${person.firstName} ${person.lastName}`, email: person.email },
-        });
-        revalidatePath(`/personnel/${id}`);
-        return { success: true };
-      }
-    }
-
+  let temporaryInvite: { userId: string; created: boolean };
+  try {
+    temporaryInvite = await sendPersonnelTemporaryPasswordInvite(person);
+  } catch (error) {
     return {
       success: false,
-      message: inviteError.message ?? "Uitnodiging versturen mislukt.",
+      message: error instanceof Error ? error.message : "Uitnodiging versturen mislukt.",
     };
   }
 
-  if (!inviteData?.user) {
-    return { success: false, message: "Uitnodiging versturen mislukt." };
-  }
-
-  // Invite sent — record timestamp. Do NOT set userId yet; that happens when the
-  // employee logs into the Personeel-PWA for the first time (account-linking).
   await db
     .update(personnelTable)
-    .set({ inviteSentAt: new Date(), updatedAt: new Date() })
+    .set({ userId: temporaryInvite.userId, inviteSentAt: new Date(), updatedAt: new Date() })
     .where(eq(personnelTable.id, id));
 
   await db.insert(auditLogTable).values({
@@ -855,7 +868,12 @@ export async function invitePersonnel(id: string): Promise<ActionResult> {
     action:     "invite",
     resource:   "personnel",
     resourceId: id,
-    metadata:   { name: `${person.firstName} ${person.lastName}`, email: person.email },
+    metadata:   {
+      name: `${person.firstName} ${person.lastName}`,
+      email: person.email,
+      temporaryPassword: true,
+      authUserCreated: temporaryInvite.created,
+    },
   });
 
   revalidatePath(`/personnel/${id}`);
@@ -895,6 +913,7 @@ export async function getPersonnelAuthStatus(id: string): Promise<PersonnelAuthS
       return "disabled";
     }
     if (u.deleted_at) return "disabled";
+    if (data.user.app_metadata?.force_password_change === true) return "invited";
     return "active";
   } catch {
     return "active"; // safe fallback — never hide a potentially active account

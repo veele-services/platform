@@ -145,6 +145,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
             isActive={person.isActive}
             userId={person.userId}
             inviteSentAt={person.inviteSentAt}
+            authStatus={authStatus}
             roles={roles}
             sectors={sectors}
           />
