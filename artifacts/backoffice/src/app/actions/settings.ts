@@ -30,6 +30,15 @@ export type OrgSettings = {
   logoUrl:            string | null;
   betaaltermijnDagen: number;
   emailAfzender:      string | null;
+  smtpEnabled:        boolean;
+  smtpHost:           string | null;
+  smtpPort:           number | null;
+  smtpEncryption:     "none" | "starttls" | "tls";
+  smtpUsername:       string | null;
+  smtpPasswordConfigured: boolean;
+  smtpFromName:       string | null;
+  smtpFromEmail:      string | null;
+  smtpReplyTo:        string | null;
   notifRapportGoedgekeurd:  boolean;
   notifRapportAfgekeurd:    boolean;
   notifOfferteVerstuurd:    boolean;
@@ -106,6 +115,15 @@ export async function getOrganizationSettings(): Promise<OrgSettings | null> {
     logoUrl:            r.logoUrl,
     betaaltermijnDagen: r.betaaltermijnDagen,
     emailAfzender:      r.emailAfzender,
+    smtpEnabled:        r.smtpEnabled,
+    smtpHost:           r.smtpHost,
+    smtpPort:           r.smtpPort,
+    smtpEncryption:     (r.smtpEncryption as "none" | "starttls" | "tls") ?? "starttls",
+    smtpUsername:       r.smtpUsername,
+    smtpPasswordConfigured: Boolean(r.smtpPassword),
+    smtpFromName:       r.smtpFromName,
+    smtpFromEmail:      r.smtpFromEmail,
+    smtpReplyTo:        r.smtpReplyTo,
     notifRapportGoedgekeurd:  r.notifRapportGoedgekeurd,
     notifRapportAfgekeurd:    r.notifRapportAfgekeurd,
     notifOfferteVerstuurd:    r.notifOfferteVerstuurd,
@@ -149,6 +167,94 @@ export async function updateOrganizationSettings(data: {
   });
 
   revalidatePath("/instellingen/organisatie");
+  return { success: true };
+}
+
+type MailSettingsInput = {
+  smtpEnabled:    boolean;
+  smtpHost:       string | null;
+  smtpPort:       number | null;
+  smtpEncryption: "none" | "starttls" | "tls";
+  smtpUsername:   string | null;
+  smtpPassword?:  string | null;
+  clearPassword?: boolean;
+  smtpFromName:   string | null;
+  smtpFromEmail:  string | null;
+  smtpReplyTo:    string | null;
+};
+
+function isEmailLike(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(value);
+}
+
+export async function updateMailSettings(data: MailSettingsInput): Promise<ActionResult> {
+  await requirePermission("settings", "write");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const payload = {
+    smtpEnabled:    data.smtpEnabled,
+    smtpHost:       data.smtpHost?.trim() || null,
+    smtpPort:       data.smtpPort,
+    smtpEncryption: data.smtpEncryption,
+    smtpUsername:   data.smtpUsername?.trim() || null,
+    smtpFromName:   data.smtpFromName?.trim() || null,
+    smtpFromEmail:  data.smtpFromEmail?.trim() || null,
+    smtpReplyTo:    data.smtpReplyTo?.trim() || null,
+  };
+
+  if (!["none", "starttls", "tls"].includes(payload.smtpEncryption)) {
+    return { success: false, message: "Ongeldige SMTP-beveiliging." };
+  }
+  if (payload.smtpPort != null && (payload.smtpPort < 1 || payload.smtpPort > 65535)) {
+    return { success: false, message: "SMTP-poort moet tussen 1 en 65535 liggen." };
+  }
+  if (payload.smtpEnabled) {
+    if (!payload.smtpHost) return { success: false, message: "SMTP-host is verplicht wanneer SMTP actief is." };
+    if (!payload.smtpPort) return { success: false, message: "SMTP-poort is verplicht wanneer SMTP actief is." };
+    if (!payload.smtpFromEmail || !isEmailLike(payload.smtpFromEmail)) {
+      return { success: false, message: "Een geldig afzenderadres is verplicht wanneer SMTP actief is." };
+    }
+  }
+  if (payload.smtpFromEmail && !isEmailLike(payload.smtpFromEmail)) {
+    return { success: false, message: "Afzender e-mailadres is ongeldig." };
+  }
+  if (payload.smtpReplyTo && !isEmailLike(payload.smtpReplyTo)) {
+    return { success: false, message: "Reply-to e-mailadres is ongeldig." };
+  }
+
+  const updateData: Partial<typeof organizationSettingsTable.$inferInsert> = {
+    ...payload,
+    updatedAt: new Date(),
+    updatedBy: user.id,
+  };
+
+  if (data.clearPassword) {
+    updateData.smtpPassword = null;
+  } else if (data.smtpPassword?.trim()) {
+    updateData.smtpPassword = data.smtpPassword.trim();
+  }
+
+  await db.update(organizationSettingsTable).set(updateData);
+
+  await db.insert(auditLogTable).values({
+    userId:    user.id,
+    action:    "update_mail_settings",
+    resource:  "settings",
+    resourceId: "mail",
+    metadata:  {
+      smtpEnabled: payload.smtpEnabled,
+      smtpHost: payload.smtpHost,
+      smtpPort: payload.smtpPort,
+      smtpEncryption: payload.smtpEncryption,
+      passwordChanged: Boolean(data.smtpPassword?.trim()) || Boolean(data.clearPassword),
+    },
+  });
+
+  revalidatePath("/instellingen/mail");
+  revalidatePath("/instellingen/notificaties");
   return { success: true };
 }
 
@@ -833,5 +939,44 @@ export async function sendTestNotification(
   if (!result.success) {
     return { success: false, message: result.error ?? "E-mail verzenden mislukt." };
   }
+  return { success: true };
+}
+
+export async function sendTestMailSettings(recipientEmail: string): Promise<ActionResult> {
+  await requirePermission("settings", "write");
+
+  const to = recipientEmail.trim().toLowerCase();
+  if (!isEmailLike(to)) {
+    return { success: false, message: "Vul een geldig test e-mailadres in." };
+  }
+
+  const { sendEmailWithResult } = await import("@/lib/email");
+
+  const subject = "Test SMTP-instellingen Veele";
+  const html = `<!DOCTYPE html>
+<html lang="nl">
+<head><meta charset="utf-8"><title>${subject}</title></head>
+<body style="font-family:sans-serif;color:#1a1a1a;background:#f5f5f5;margin:0;padding:24px">
+  <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden">
+    <div style="background:#081D3A;padding:20px 24px">
+      <span style="color:#fff;font-size:20px;font-weight:700;letter-spacing:-0.5px">Veele</span>
+    </div>
+    <div style="padding:28px 24px">
+      <h2 style="margin-top:0;color:#081D3A">SMTP-test geslaagd</h2>
+      <p>Deze e-mail is verzonden vanuit de mailinstellingen van het Veele platform.</p>
+      <p>Als u dit bericht ontvangt, kan het platform e-mail afleveren met de huidige configuratie.</p>
+    </div>
+    <div style="padding:16px 24px;background:#f8fafc;font-size:12px;color:#94a3b8">
+      Dit is een automatisch testbericht van het Veele platform.
+    </div>
+  </div>
+</body>
+</html>`;
+
+  const result = await sendEmailWithResult({ to, subject, html });
+  if (!result.success) {
+    return { success: false, message: result.error ?? "Testmail verzenden mislukt." };
+  }
+
   return { success: true };
 }
