@@ -32,6 +32,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
   const [smtpFromEmail, setSmtpFromEmail] = useState(settings?.smtpFromEmail ?? "");
   const [smtpReplyTo, setSmtpReplyTo] = useState(settings?.smtpReplyTo ?? "");
   const [testEmail, setTestEmail] = useState(settings?.emailAfzender ?? settings?.smtpFromEmail ?? "");
+  const [testTemplate, setTestTemplate] = useState<"basic" | "temporary_password">("temporary_password");
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [testStatus, setTestStatus] = useState<"idle" | "sending" | "ok" | "error">("idle");
@@ -81,7 +82,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
     setTestMessage(null);
 
     void (async () => {
-      const result = await sendTestMailSettings(testEmail);
+      const result = await sendTestMailSettings(testEmail, testTemplate);
       if (result.success) {
         setTestStatus("ok");
         setTestMessage("Testmail verzonden.");
@@ -290,7 +291,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
 
       <div className="veele-card space-y-4">
         <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>Testmail</p>
-        <div className="flex flex-col gap-3 sm:flex-row">
+        <div className="grid gap-3 sm:grid-cols-[1fr_220px_auto]">
           <input
             type="email"
             value={testEmail}
@@ -299,6 +300,15 @@ export function MailSettingsView({ settings, canWrite }: Props) {
             className="veele-input flex-1"
             placeholder="test@veeleservices.nl"
           />
+          <select
+            value={testTemplate}
+            onChange={(e) => setTestTemplate(e.target.value as "basic" | "temporary_password")}
+            disabled={!canWrite || testStatus === "sending"}
+            className="veele-input"
+          >
+            <option value="temporary_password">Tijdelijk wachtwoord</option>
+            <option value="basic">Basis SMTP-test</option>
+          </select>
           <button
             type="button"
             onClick={handleTest}

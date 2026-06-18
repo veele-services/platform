@@ -69,6 +69,7 @@ export async function sendEmail(opts: {
   to:      string | string[];
   subject: string;
   html:    string;
+  text?:   string;
 }): Promise<void> {
   const result = await sendEmailWithResult(opts);
   if (!result.success) console.error("[email] Verzenden mislukt:", result.error);
@@ -79,6 +80,7 @@ export async function sendEmailWithResult(opts: {
   to:          string | string[];
   subject:     string;
   html:        string;
+  text?:       string;
   attachments?: Array<{ filename: string; content: Buffer }>;
 }): Promise<{ success: boolean; error?: string }> {
   try {
@@ -104,6 +106,7 @@ export async function sendEmailWithResult(opts: {
       to:          opts.to,
       subject:     opts.subject,
       html:        opts.html,
+      text:        opts.text,
       attachments: opts.attachments,
     });
     if (error) {
