@@ -24,6 +24,7 @@ import {
   createPersonnel,
   updatePersonnel,
   type RoleOption,
+  type SectorOption,
   type PersonnelFormInput,
 } from "@/app/actions/personnel";
 import {
@@ -46,6 +47,7 @@ const personnelFormSchema = z.object({
     ),
   phone:              z.string().max(50, "Max 50 tekens"),
   roleId:             z.string(),
+  sectorId:           z.string(),
   region:             z.string().max(100, "Max 100 tekens"),
   contractStartDate:  z.string(),
   contractEndDate:    z.string(),
@@ -61,6 +63,7 @@ interface PersonnelFormProps {
   mode:         "create" | "edit";
   personnelId?: string;
   roles:        RoleOption[];
+  sectors:      SectorOption[];
   onSuccess:    (id: string) => void;
   onCancel:     () => void;
 }
@@ -71,6 +74,7 @@ const TEXT_DEFAULTS: TextFormValues = {
   email:             "",
   phone:             "",
   roleId:            "",
+  sectorId:          "",
   region:            "",
   contractStartDate: "",
   contractEndDate:   "",
@@ -82,6 +86,7 @@ export function PersonnelForm({
   mode,
   personnelId,
   roles,
+  sectors,
   onSuccess,
   onCancel,
 }: PersonnelFormProps) {
@@ -112,6 +117,7 @@ export function PersonnelForm({
   } = form;
 
   const roleIdValue = watch("roleId") || "NONE";
+  const sectorIdValue = watch("sectorId") || "NONE";
 
   // Load existing record when editing
   useEffect(() => {
@@ -124,6 +130,7 @@ export function PersonnelForm({
         setValue("email",             p.email     ?? "");
         setValue("phone",             p.phone     ?? "");
         setValue("roleId",            p.roleId    ?? "");
+        setValue("sectorId",          p.sectorId  ?? "");
         setValue("region",            p.region    ?? "");
         setValue("contractStartDate", p.contractInfo?.start_date    ?? "");
         setValue("contractEndDate",   p.contractInfo?.end_date      ?? "");
@@ -172,6 +179,7 @@ export function PersonnelForm({
         email:              parsed.data.email,
         phone:              parsed.data.phone     || undefined,
         roleId:             parsed.data.roleId === "NONE" ? undefined : parsed.data.roleId || undefined,
+        sectorId:           parsed.data.sectorId === "NONE" ? undefined : parsed.data.sectorId || undefined,
         region:             parsed.data.region   || undefined,
         certificates: certEntries,
         diplomas,
@@ -311,6 +319,24 @@ export function PersonnelForm({
                 <SelectItem value="NONE">— Geen rol —</SelectItem>
                 {roles.map((r) => (
                   <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-1">
+            <Label htmlFor="sectorId">Sector</Label>
+            <Select
+              value={sectorIdValue}
+              onValueChange={(val) => setValue("sectorId", val === "NONE" ? "" : val)}
+            >
+              <SelectTrigger id="sectorId">
+                <SelectValue placeholder="Selecteer sector…" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NONE">— Geen sector —</SelectItem>
+                {sectors.map((sector) => (
+                  <SelectItem key={sector.id} value={sector.id}>{sector.name}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

@@ -4,6 +4,7 @@ import { db } from "@workspace/db";
 import {
   personnelTable,
   rolesTable,
+  sectorsTable,
   auditLogTable,
   objectPersonnelTable,
   objectsTable,
@@ -38,6 +39,7 @@ export type { AvailabilityStatus } from "./availability";
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type RoleOption = { id: string; name: string };
+export type SectorOption = { id: string; name: string };
 
 /**
  * Auth-account status for a personnel member:
@@ -63,6 +65,8 @@ export type PersonnelRow = {
   phone:        string | null;
   roleId:       string | null;
   roleName:     string | null;
+  sectorId:     string | null;
+  sectorName:   string | null;
   region:       string | null;
   certificates: string[];
   isActive:           boolean;
@@ -87,6 +91,8 @@ export type PersonnelDetail = {
   phone:        string | null;
   roleId:       string | null;
   roleName:     string | null;
+  sectorId:     string | null;
+  sectorName:   string | null;
   region:       string | null;
   /** Full certificate entries — preserves expires_at for the edit form */
   certificates: CertificateEntry[];
@@ -108,6 +114,7 @@ export type PersonnelFormInput = {
   email:        string;
   phone?:       string;
   roleId?:      string;
+  sectorId?:    string;
   region?:      string;
   /** Full certificate entries — preserves expires_at on round-trip edits */
   certificates: CertificateEntry[];
@@ -177,6 +184,7 @@ export async function listPersonnel(params: {
   region?:        string;
   status?:        string;
   personnelType?: string;
+  sectorId?:      string;
   page?:          number;
   sort?:          string;
   dir?:           string;
@@ -189,6 +197,7 @@ export async function listPersonnel(params: {
     region,
     status = "all",
     personnelType,
+    sectorId,
     page = 1,
     sort = "lastName",
     dir = "asc",
@@ -206,6 +215,7 @@ export async function listPersonnel(params: {
     if (clause) conditions.push(clause as ReturnType<typeof eq>);
   }
   if (roleId) conditions.push(eq(personnelTable.roleId, roleId) as ReturnType<typeof eq>);
+  if (sectorId) conditions.push(eq(personnelTable.sectorId, sectorId) as ReturnType<typeof eq>);
   if (region?.trim()) conditions.push(ilike(personnelTable.region, `%${region.trim()}%`) as ReturnType<typeof eq>);
   if (status === "active")   conditions.push(eq(personnelTable.isActive, true)  as ReturnType<typeof eq>);
   if (status === "inactive") conditions.push(eq(personnelTable.isActive, false) as ReturnType<typeof eq>);
@@ -235,6 +245,8 @@ export async function listPersonnel(params: {
         phone:              personnelTable.phone,
         roleId:             personnelTable.roleId,
         roleName:           rolesTable.name,
+        sectorId:           personnelTable.sectorId,
+        sectorName:         sectorsTable.name,
         region:             personnelTable.region,
         certificates:       personnelTable.certificates,
         isActive:           personnelTable.isActive,
@@ -248,6 +260,7 @@ export async function listPersonnel(params: {
       })
       .from(personnelTable)
       .leftJoin(rolesTable, eq(personnelTable.roleId, rolesTable.id))
+      .leftJoin(sectorsTable, eq(personnelTable.sectorId, sectorsTable.id))
       .where(where)
       .orderBy(orderBy)
       .limit(PAGE_SIZE)
@@ -291,6 +304,8 @@ export async function getPersonnel(id: string): Promise<PersonnelDetail | null> 
       phone:              personnelTable.phone,
       roleId:             personnelTable.roleId,
       roleName:           rolesTable.name,
+      sectorId:           personnelTable.sectorId,
+      sectorName:         sectorsTable.name,
       region:             personnelTable.region,
       certificates:       personnelTable.certificates,
       diplomas:           personnelTable.diplomas,
@@ -306,6 +321,7 @@ export async function getPersonnel(id: string): Promise<PersonnelDetail | null> 
     })
     .from(personnelTable)
     .leftJoin(rolesTable, eq(personnelTable.roleId, rolesTable.id))
+    .leftJoin(sectorsTable, eq(personnelTable.sectorId, sectorsTable.id))
     .where(eq(personnelTable.id, id))
     .limit(1);
 
@@ -331,6 +347,15 @@ export async function listRoles(): Promise<RoleOption[]> {
     .select({ id: rolesTable.id, name: rolesTable.name })
     .from(rolesTable)
     .orderBy(asc(rolesTable.name));
+}
+
+export async function listSectors(): Promise<SectorOption[]> {
+  await requirePermission("personnel", "read");
+  return db
+    .select({ id: sectorsTable.id, name: sectorsTable.name })
+    .from(sectorsTable)
+    .where(eq(sectorsTable.isActive, true))
+    .orderBy(asc(sectorsTable.name));
 }
 
 // ─── Stats & Widgets ──────────────────────────────────────────────────────────
@@ -536,6 +561,7 @@ export async function createPersonnel(
     email:              data.email.trim().toLowerCase(),
     phone:              data.phone?.trim()  || null,
     roleId:             data.roleId         || null,
+    sectorId:           data.sectorId       || null,
     region:             data.region?.trim() || null,
     certificates:       data.certificates,
     diplomas:           data.diplomas,
@@ -634,6 +660,7 @@ export async function updatePersonnel(
     email:              data.email.trim().toLowerCase(),
     phone:              data.phone?.trim()  || null,
     roleId:             data.roleId         || null,
+    sectorId:           data.sectorId       || null,
     region:             data.region?.trim() || null,
     certificates:       data.certificates,
     diplomas:           data.diplomas,

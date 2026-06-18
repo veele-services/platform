@@ -3,24 +3,16 @@ import { sectorsTable } from "../schema/sectors";
 
 const SECTORS = [
   {
-    name:        "Cleaning",
-    description: "Commercial and residential cleaning services",
+    name:        "Facilitair",
+    description: "Facilitaire dienstverlening, beheer en onderhoud.",
   },
   {
-    name:        "Security",
-    description: "Security guard and surveillance services",
+    name:        "Schoonmaak",
+    description: "Reguliere, specialistische en calamiteitenschoonmaak.",
   },
   {
-    name:        "Facility Management",
-    description: "Building and facility maintenance services",
-  },
-  {
-    name:        "Catering",
-    description: "Food service and catering support",
-  },
-  {
-    name:        "Grounds Maintenance",
-    description: "Landscaping and outdoor grounds maintenance",
+    name:        "Beveiliging",
+    description: "Beveiliging, toezicht, surveillance en alarmopvolging.",
   },
 ];
 

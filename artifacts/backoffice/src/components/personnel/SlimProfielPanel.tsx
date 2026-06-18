@@ -125,6 +125,14 @@ export function SlimProfielPanel({ person, onClose }: SlimProfielPanelProps) {
                   {person.roleName}
                 </span>
               )}
+              {person.sectorName && (
+                <span
+                  className="inline-block rounded px-2 py-0.5 text-xs font-medium"
+                  style={{ backgroundColor: "#ECFDF5", color: "#047857" }}
+                >
+                  {person.sectorName}
+                </span>
+              )}
               {!person.isActive && (
                 <span
                   className="inline-block rounded px-2 py-0.5 text-xs font-medium"

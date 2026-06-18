@@ -183,6 +183,27 @@ function RegionBadge({
 
 // ─── Personnel row ────────────────────────────────────────────────────────────
 
+function SectorBadge({ sectorName }: { sectorName: string | null }) {
+  if (!sectorName) return null;
+  const normalized = sectorName.toLowerCase();
+  const style = normalized.includes("schoonmaak")
+    ? { background: "#E2FAF8", color: "#075E5D", borderColor: "#8CE7E2" }
+    : normalized.includes("beveilig")
+      ? { background: "#F2EEFF", color: "#4C1D95", borderColor: "#C4B5FD" }
+      : normalized.includes("facilit")
+        ? { background: "#E8F4FF", color: "#0F3A5F", borderColor: "#93C5FD" }
+        : { background: "#F8FAFC", color: "#475569", borderColor: "#E2E8F0" };
+
+  return (
+    <span
+      className="inline-flex items-center rounded border px-1.5 py-0.5 text-xs flex-shrink-0"
+      style={style}
+    >
+      {sectorName}
+    </span>
+  );
+}
+
 interface PersonnelRowProps {
   person:       PersonnelEligibilityEntry;
   missing:      string[];
@@ -336,6 +357,7 @@ function PersonnelRow({
       {/* Bottom row: badges */}
       <div className="flex items-center gap-1.5 flex-wrap ml-6">
         <AvailabilityBadge status={availStatus} />
+        <SectorBadge sectorName={person.sectorName} />
         <RegionBadge region={person.region} mismatch={hasRegionMismatch} />
         {hasRegionMismatch && (
           <span className="text-xs" style={{ color: "#92400E" }}>
