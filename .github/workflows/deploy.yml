@@ -1,0 +1,110 @@
+name: Deploy VEELE
+
+on:
+  push:
+    branches:
+      - production
+      - staging
+  workflow_dispatch:
+
+concurrency:
+  group: veele-${{ github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.ref_name == 'production' || github.ref_name == 'staging'
+    runs-on: [self-hosted, linux, x64, veele]
+
+    environment: ${{ github.ref_name == 'production' && 'production' || 'staging' }}
+
+    env:
+      TARGET: ${{ github.ref_name == 'production' && 'production' || 'staging' }}
+      SERVICE_NAME: ${{ github.ref_name == 'production' && 'veele-production' || 'veele-staging' }}
+      BASE_DIR: /var/www/veele/${{ github.ref_name == 'production' && 'production' || 'staging' }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check runtime
+        run: |
+          set -euo pipefail
+          node -v
+          pnpm -v
+
+      - name: Prepare release directory
+        run: |
+          set -euo pipefail
+
+          RELEASE="$BASE_DIR/releases/$(date -u +%Y%m%d%H%M%S)-${GITHUB_SHA::7}"
+
+          mkdir -p "$RELEASE"
+          mkdir -p "$BASE_DIR/shared"
+
+          rsync -a --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='node_modules' \
+            --exclude='.next' \
+            --exclude='dist' \
+            --exclude='.env' \
+            ./ "$RELEASE/"
+
+          echo "RELEASE=$RELEASE" >> "$GITHUB_ENV"
+
+      - name: Write environment file
+        run: |
+          set -euo pipefail
+
+          cat > "$BASE_DIR/shared/.env" <<EOF
+          APP_ENV=${{ vars.APP_ENV }}
+          NODE_ENV=${{ vars.NODE_ENV }}
+          PORT=${{ vars.PORT }}
+          APP_URL=${{ vars.APP_URL }}
+          NEXT_PUBLIC_APP_URL=${{ vars.NEXT_PUBLIC_APP_URL }}
+          DATABASE_URL=${{ secrets.DATABASE_URL }}
+          SESSION_SECRET=${{ secrets.SESSION_SECRET }}
+          JWT_SECRET=${{ secrets.JWT_SECRET }}
+          NEXT_PUBLIC_SUPABASE_URL=${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY=${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          EOF
+
+          sed -i 's/^[[:space:]]*//' "$BASE_DIR/shared/.env"
+
+          chmod 640 "$BASE_DIR/shared/.env"
+          chgrp veele-deploy "$BASE_DIR/shared/.env"
+
+          ln -sfn "$BASE_DIR/shared/.env" "$RELEASE/.env"
+          ln -sfn "$BASE_DIR/shared/.env" "$RELEASE/.env.production"
+
+      - name: Install dependencies
+        working-directory: ${{ env.RELEASE }}
+        run: |
+          set -euo pipefail
+          pnpm install --frozen-lockfile
+
+      - name: Build
+        working-directory: ${{ env.RELEASE }}
+        run: |
+          set -euo pipefail
+          pnpm build
+
+      - name: Activate release
+        run: |
+          set -euo pipefail
+
+          chown -R github-runner:veele-deploy "$RELEASE"
+          chmod -R u+rwX,g+rX,o-rwx "$RELEASE"
+
+          ln -sfn "$RELEASE" "$BASE_DIR/current.new"
+          mv -Tf "$BASE_DIR/current.new" "$BASE_DIR/current"
+
+          sudo systemctl restart "$SERVICE_NAME"
+          sudo systemctl reload caddy
+
+      - name: Cleanup old releases
+        run: |
+          set -euo pipefail
+          ls -1dt "$BASE_DIR/releases"/* 2>/dev/null | tail -n +6 | xargs -r rm -rf
