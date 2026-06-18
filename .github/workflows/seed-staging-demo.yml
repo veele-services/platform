@@ -1,0 +1,62 @@
+name: Seed Staging Demo Data
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: Type "seed-den-haag" to rebuild the staging demo dataset
+        required: true
+        type: string
+      dry_run:
+        description: Roll back after validating the seed script
+        required: true
+        default: false
+        type: boolean
+
+permissions:
+  contents: read
+
+jobs:
+  seed:
+    name: Seed staging demo dataset
+    runs-on: [self-hosted, linux, x64, veele]
+    if: ${{ github.ref_name == 'staging' }}
+    environment:
+      name: staging
+    env:
+      APP_ENV: staging
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      STAGING_SEED_CONFIRM: ${{ inputs.confirm }}
+
+    steps:
+      - name: Confirm staging seed
+        if: ${{ inputs.confirm != 'seed-den-haag' }}
+        run: |
+          echo 'Type "seed-den-haag" in the confirm input to run this workflow.'
+          exit 1
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check runtime
+        run: |
+          set -euo pipefail
+          node -v
+          pnpm -v
+
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          pnpm install --frozen-lockfile --prod=false
+
+      - name: Validate seed script without committing
+        if: ${{ inputs.dry_run == true }}
+        run: |
+          set -euo pipefail
+          pnpm --filter @workspace/db run seed:staging-demo:dry-run
+
+      - name: Rebuild staging demo dataset
+        if: ${{ inputs.dry_run == false }}
+        run: |
+          set -euo pipefail
+          pnpm --filter @workspace/db run seed:staging-demo

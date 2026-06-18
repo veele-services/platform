@@ -16,6 +16,8 @@
     "inspect":      "node ./scripts/inspect-database.mjs",
     "seed:rbac":    "tsx src/seed/rbac.ts",
     "seed:sectors": "tsx src/seed/sectors.ts",
+    "seed:staging-demo": "tsx src/seed/staging-demo.ts",
+    "seed:staging-demo:dry-run": "tsx src/seed/staging-demo.ts --dry-run",
     "seed:all":     "tsx src/seed/rbac.ts && tsx src/seed/sectors.ts"
   },
   "dependencies": {
