@@ -4,15 +4,12 @@ An operational SaaS platform that replaces WhatsApp, Excel, manual planning, man
 
 ---
 
-## BEFORE STARTING ANY TASK — READ THE SKILLSET FIRST
+## Before Starting Any Task
 
-Before implementing anything, always read and apply the following skills in order:
-
-1. `.local/skills/veele-dev/SKILL.md` — coding principles, stack, sprint plan, security rules
-2. `.local/skills/veele-design/SKILL.md` — color system, typography, layout, component rules
-3. `.local/skills/veele-deployment/SKILL.md` — deployment model, branch rules, definition of done
-
-Every task must comply with all three skills. No exceptions.
+Use this file as the current source of truth for product canon, architecture,
+security rules, UI direction, and deployment expectations. Older local skill
+files under `.local/skills/` are not part of the repository at the moment; if
+they are restored later, they should extend this document rather than replace it.
 
 ---
 
@@ -175,13 +172,10 @@ Three-surface platform:
 - RLS-first security — never bypass unless explicitly required
 - All sensitive actions must be logged
 
-## Development Skill
+## Development Rules
 
-See `.local/skills/veele-dev/SKILL.md` for full coding rules, security rules, UI style, and sprint plan.
-
-## Design Skill
-
-See `.local/skills/veele-design/SKILL.md` for the full design system (colors, typography, layout, components, PWA rules).
+Development rules, security rules, UI direction, and sprint priorities are kept
+in this document until optional local skill files are restored.
 
 ## Gotchas
 
@@ -192,6 +186,6 @@ See `.local/skills/veele-design/SKILL.md` for the full design system (colors, ty
 
 ## Pointers
 
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
 - Canon is defined above — all product decisions must align with it
-- Development rules in `.local/skills/veele-dev/SKILL.md`
+- Workspace structure, TypeScript setup, and package details are defined by
+  `pnpm-workspace.yaml`, root `package.json`, and the package-level configs.

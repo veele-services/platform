@@ -40,7 +40,7 @@ The workflow runs on `[self-hosted, linux, x64, veele]` and performs this sequen
 6. Build the workspace with `pnpm build`.
 7. Run database migrations against the environment `DATABASE_URL`.
 8. Activate the release by updating `/var/www/veele/<environment>/current`.
-9. Restart the matching systemd service and reload Caddy.
+9. Restart the matching systemd service(s) and reload Caddy.
 10. Clean up old releases.
 
 The workflow no longer SSHes into the VPS. Deployment happens on the self-hosted runner that already has local filesystem and service-manager access.
@@ -69,6 +69,17 @@ Each environment must define these secrets:
 - `SESSION_SECRET`: session signing secret.
 - `SUPABASE_SERVICE_ROLE_KEY`: Supabase service role key. Server-side only; never expose this in client code.
 
+Required when payments, webhooks, e-mail, or scheduled admin routes are enabled:
+
+- `MOLLIE_API_KEY`: Mollie API key for payment creation and webhook reconciliation.
+- `MOLLIE_WEBHOOK_SECRET`: HMAC secret expected in `x-mollie-signature`.
+- `ADMIN_API_SECRET`: bearer token used by `/api/admin/payment-reminders` and `/api/admin/expired-quotes`.
+- `RESEND_API_KEY`: Resend API key for transactional e-mail.
+
+Optional secret:
+
+- `SUPABASE_JWT_SECRET`: fallback JWT secret for the API server if JWKS via `SUPABASE_URL` is not used.
+
 Each environment must define these variables:
 
 - `APP_ENV`: `staging` or `production`.
@@ -81,6 +92,27 @@ Each environment must define these variables:
 Optional variable:
 
 - `NEXT_PUBLIC_APP_NAME`: browser-safe app display name.
+- `SITE_URL`: canonical URL used by API-server e-mail links. Defaults to `APP_URL`.
+- `NEXT_PUBLIC_SITE_URL`: canonical browser URL for PWA e-mail links. Defaults to `NEXT_PUBLIC_APP_URL` or `APP_URL`.
+- `LOG_LEVEL`: API-server log level. Defaults to `info`.
+- `MOLLIE_WEBHOOK_URL`: explicit Mollie callback URL if auto-derived URLs are not correct.
+- `RESEND_FROM_EMAIL`: sender identity, for example `Veele <noreply@example.nl>`.
+
+Optional multi-service deploy variables:
+
+- `BACKOFFICE_SERVICE_NAME`: systemd service for the backoffice. Defaults to `SERVICE_NAME` (`veele-staging` or `veele-production`).
+- `PERSONEEL_SERVICE_NAME`: systemd service for `@workspace/personeel-pwa`; if omitted, not restarted by deploy.
+- `KLANT_SERVICE_NAME`: systemd service for `@workspace/klant-pwa`; if omitted, not restarted by deploy.
+- `API_SERVICE_NAME`: systemd service for `@workspace/api-server`; if omitted, not restarted by deploy.
+- `BACKOFFICE_PORT`: runtime port for backoffice. Defaults to `PORT`.
+- `PERSONEEL_PORT`: runtime port for personnel PWA.
+- `KLANT_PORT`: runtime port for customer PWA.
+- `API_PORT`: runtime port for API server.
+
+The deploy job writes all configured secrets and variables into the shared
+environment file at `/var/www/veele/<environment>/shared/.env`. For multi-service
+deploys, each systemd unit should set its own `PORT` from the matching
+`*_PORT` value, while all services can share the rest of the environment file.
 
 The deploy wrapper receives GitHub metadata as arguments:
 
@@ -149,3 +181,9 @@ Recommended repository rules:
 - require the `Promotion Guard` check to pass
 - require environment approval for `production`
 - require the deploy workflows to pass before merge completion where applicable
+
+## Scheduled jobs
+
+Use [systemd-timers.md](./systemd-timers.md) to enable the API-server jobs for
+expired quotes and payment reminders after `API_SERVICE_NAME`, `API_PORT`, and
+`ADMIN_API_SECRET` are configured.

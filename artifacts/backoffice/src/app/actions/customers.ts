@@ -142,6 +142,17 @@ export type CustomerKpis = {
   lastActivityDate: string | null;
 };
 
+export type CustomerHistoryEntry = {
+  id: string;
+  action: string;
+  resource: string;
+  resourceId: string | null;
+  metadata: unknown;
+  actorName: string;
+  actorEmail: string | null;
+  createdAt: string;
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 25;
@@ -966,6 +977,48 @@ export async function bulkSetCustomerStatus(
 }
 
 // ─── Customer Notes ────────────────────────────────────────────────────────────
+
+export async function listCustomerHistory(customerId: string, limit = 25): Promise<CustomerHistoryEntry[]> {
+  const canReadHistory = await hasPermission("customers", "write");
+  if (!canReadHistory) return [];
+
+  const rows = await db
+    .select({
+      id: auditLogTable.id,
+      action: auditLogTable.action,
+      resource: auditLogTable.resource,
+      resourceId: auditLogTable.resourceId,
+      metadata: auditLogTable.metadata,
+      createdAt: auditLogTable.createdAt,
+      userId: auditLogTable.userId,
+      actorFirst: personnelTable.firstName,
+      actorLast: personnelTable.lastName,
+      actorEmail: personnelTable.email,
+    })
+    .from(auditLogTable)
+    .leftJoin(personnelTable, eq(personnelTable.userId, auditLogTable.userId))
+    .where(
+      and(
+        eq(auditLogTable.resource, "customers"),
+        eq(auditLogTable.resourceId, customerId),
+      ),
+    )
+    .orderBy(desc(auditLogTable.createdAt))
+    .limit(limit);
+
+  return rows.map((r) => ({
+    id: r.id,
+    action: r.action,
+    resource: r.resource,
+    resourceId: r.resourceId ?? null,
+    metadata: r.metadata,
+    actorName: r.actorFirst && r.actorLast
+      ? `${r.actorFirst} ${r.actorLast}`.trim()
+      : r.userId.slice(0, 8) + "...",
+    actorEmail: r.actorEmail ?? null,
+    createdAt: r.createdAt.toISOString(),
+  }));
+}
 
 export async function listCustomerNotes(customerId: string): Promise<CustomerNoteRow[]> {
   const canRead = await hasPermission("customers", "write");

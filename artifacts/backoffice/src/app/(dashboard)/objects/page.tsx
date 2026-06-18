@@ -3,7 +3,7 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { ObjectsView } from "@/components/objects/ObjectsView";
 import { listObjects, listCustomerOptions, getObjectStats } from "@/app/actions/objects";
-import { Building2, CheckCircle2, ClipboardList, Bell, FileText } from "lucide-react";
+import { Building2, CheckCircle2, ClipboardList, FileText, PauseCircle } from "lucide-react";
 
 export const metadata: Metadata = { title: "Objecten" };
 
@@ -48,30 +48,27 @@ export default async function ObjectsPage({ searchParams }: Props) {
     },
     {
       icon:  CheckCircle2,
-      label: "Actieve diensten",
+      label: "Actieve opdrachten",
       value: stats.activeAssignments,
       color: "#00B7B3",
     },
     {
       icon:  ClipboardList,
-      label: "Periodieke taken",
+      label: "Servicetypes",
       value: stats.periodicTasks,
       color: "#7C3AED",
-      placeholder: true,
     },
     {
-      icon:  Bell,
-      label: "Open meldingen",
+      icon:  PauseCircle,
+      label: "Inactief",
       value: stats.openAlerts,
       color: "#F59E0B",
-      placeholder: true,
     },
     {
       icon:  FileText,
-      label: "Contracten",
+      label: "Documenten",
       value: stats.contracts,
       color: "#10B981",
-      placeholder: true,
     },
   ];
 
@@ -89,11 +86,10 @@ export default async function ObjectsPage({ searchParams }: Props) {
 
       {/* 5-metric stat bar */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
-        {statCards.map(({ icon: Icon, label, value, color, placeholder }) => (
+        {statCards.map(({ icon: Icon, label, value, color }) => (
           <div
             key={label}
             className="veele-card flex items-center gap-3"
-            title={placeholder ? "Beschikbaar in een toekomstige versie" : undefined}
           >
             <div
               className="flex-shrink-0 flex items-center justify-center rounded-lg h-9 w-9"
@@ -103,8 +99,8 @@ export default async function ObjectsPage({ searchParams }: Props) {
             </div>
             <div className="min-w-0">
               <p className="text-xs truncate" style={{ color: "#94A3B8" }}>{label}</p>
-              <p className="text-lg font-bold leading-tight" style={{ color: placeholder ? "#CBD5E1" : "#081D3A" }}>
-                {placeholder ? "—" : value}
+              <p className="text-lg font-bold leading-tight" style={{ color: "#081D3A" }}>
+                {value}
               </p>
             </div>
           </div>

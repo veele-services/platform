@@ -13,6 +13,7 @@ interface Props {
     page?:   string;
     search?: string;
     status?: string;
+    customerId?: string;
   }>;
 }
 
@@ -24,9 +25,10 @@ export default async function ReportsPage({ searchParams }: Props) {
   const page   = Math.max(1, parseInt(sp.page ?? "1", 10) || 1);
   const search = sp.search ?? "";
   const status = sp.status ?? "";
+  const customerId = sp.customerId ?? "";
 
   const [{ rows, total }, canWrite] = await Promise.all([
-    listReports({ page, search, status }),
+    listReports({ page, search, status, customerId }),
     hasPermission("reports", "write"),
   ]);
 

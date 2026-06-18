@@ -87,6 +87,7 @@ export async function listReports(params: {
   page?:   number;
   search?: string;
   status?: string;
+  customerId?: string;
 }): Promise<{ rows: ReportRow[]; total: number }> {
   const canRead = await hasPermission("reports", "read");
   if (!canRead) return { rows: [], total: 0 };
@@ -97,7 +98,7 @@ export async function listReports(params: {
 
   const seeAll = await canSeeAllReports();
 
-  const { page = 1, search = "", status = "" } = params;
+  const { page = 1, search = "", status = "", customerId = "" } = params;
 
   const conditions = [];
 
@@ -117,6 +118,9 @@ export async function listReports(params: {
   }
   if (status && (["draft", "submitted", "approved", "rejected"] as string[]).includes(status)) {
     conditions.push(eq(reportsTable.status, status));
+  }
+  if (customerId) {
+    conditions.push(eq(assignmentsTable.customerId, customerId));
   }
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
@@ -169,6 +173,58 @@ export async function listReports(params: {
     })),
     total: count,
   };
+}
+
+export async function listReportsForCustomer(customerId: string, limit = 25): Promise<ReportRow[]> {
+  const canRead = await hasPermission("reports", "read");
+  if (!canRead) return [];
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  const seeAll = await canSeeAllReports();
+  const conditions = [eq(assignmentsTable.customerId, customerId)];
+
+  if (!seeAll) {
+    conditions.push(eq(reportsTable.submittedBy, user.id));
+  }
+
+  const rows = await db
+    .select({
+      id:              reportsTable.id,
+      assignmentId:    reportsTable.assignmentId,
+      assignmentCode:  assignmentsTable.code,
+      assignmentTitle: assignmentsTable.title,
+      customerName:    customersTable.name,
+      status:          reportsTable.status,
+      submittedAt:     reportsTable.submittedAt,
+      submittedBy:     reportsTable.submittedBy,
+      submitterFirst:  submitterPersonnel.firstName,
+      submitterLast:   submitterPersonnel.lastName,
+      hoursWorked:     reportsTable.hoursWorked,
+    })
+    .from(reportsTable)
+    .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
+    .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
+    .leftJoin(submitterPersonnel, eq(submitterPersonnel.userId, reportsTable.submittedBy))
+    .where(and(...conditions))
+    .orderBy(desc(reportsTable.submittedAt))
+    .limit(limit);
+
+  return rows.map((r) => ({
+    id:              r.id,
+    assignmentId:    r.assignmentId,
+    assignmentCode:  r.assignmentCode,
+    assignmentTitle: r.assignmentTitle,
+    customerName:    r.customerName ?? "",
+    status:          r.status as ReportStatus,
+    submittedAt:     r.submittedAt.toISOString(),
+    submittedByName: r.submitterFirst && r.submitterLast
+      ? `${r.submitterFirst} ${r.submitterLast}`.trim()
+      : r.submittedBy.slice(0, 8) + "...",
+    hoursWorked:     r.hoursWorked ?? null,
+  }));
 }
 
 function mapReportDetail(row: {
