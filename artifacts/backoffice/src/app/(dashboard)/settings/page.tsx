@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Building2, Shield, Users, ClipboardList, ChevronRight, History, Tag } from "lucide-react";
+import { Building2, Shield, Users, ClipboardList, ChevronRight, History, Tag, Layers3 } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { SettingsTabs } from "@/components/settings/SettingsTabs";
@@ -54,6 +54,14 @@ export default async function SettingsPage() {
           title="Taakcodes"
           description="Centraal beheerde catalogus van taaktypes voor opdrachten, planning en facturering."
         />
+        {canReadSettings && (
+          <SettingsCard
+            href="/instellingen/sectoren"
+            icon={<Layers3 className="h-6 w-6" style={{ color: "#00B7B3" }} strokeWidth={1.5} />}
+            title="Sectoren"
+            description="Beheer Facilitair, Schoonmaak, Beveiliging en andere operationele sectoren."
+          />
+        )}
         {canReadSettings && (
           <SettingsCard
             href="/instellingen/klanttypes"

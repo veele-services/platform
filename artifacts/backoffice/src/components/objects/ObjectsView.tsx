@@ -62,6 +62,7 @@ import {
   type ObjectRow,
   type CustomerOption,
 } from "@/app/actions/objects";
+import type { SectorOption } from "@/app/actions/sectors";
 
 const PAGE_SIZE = 25;
 const SORTABLE = ["name", "code", "city", "createdAt"] as const;
@@ -111,6 +112,7 @@ interface ObjectsViewProps {
   rows:                ObjectRow[];
   total:               number;
   customers:           CustomerOption[];
+  sectors:             SectorOption[];
   canWrite:            boolean;
   page:                number;
   initialSearch:       string;
@@ -126,6 +128,7 @@ export function ObjectsView({
   rows,
   total,
   customers,
+  sectors,
   canWrite,
   page,
   initialSearch,
@@ -601,7 +604,7 @@ export function ObjectsView({
           <ObjectForm
             mode={editingId ? "edit" : "create"}
             objectId={editingId ?? undefined}
-            sectors={[]}
+            sectors={sectors}
             customers={customers}
             onSuccess={handleFormSuccess}
             onCancel={() => setSheetOpen(false)}
