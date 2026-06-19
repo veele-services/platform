@@ -69,6 +69,8 @@ const STATUS_STYLES: Record<PlanningStatus, { background: string; color: string 
 };
 
 const DAY_LABELS = ["Zo", "Ma", "Di", "Wo", "Do", "Vr", "Za"];
+const DAYS_BEFORE_TODAY = 14;
+const TOTAL_PLANNING_DAYS = 35;
 
 function todayKey(): string {
   return new Intl.DateTimeFormat("en-CA", {
@@ -91,16 +93,15 @@ function formatDateKey(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function getCurrentWeekDays(): PlanningWeekDay[] {
+function getPlanningDays(): PlanningWeekDay[] {
   const today = todayKey();
   const todayDate = parseDateKey(today);
-  const dayOfWeek = todayDate.getUTCDay() === 0 ? 7 : todayDate.getUTCDay();
-  const monday = new Date(todayDate);
-  monday.setUTCDate(todayDate.getUTCDate() - dayOfWeek + 1);
+  const firstDate = new Date(todayDate);
+  firstDate.setUTCDate(todayDate.getUTCDate() - DAYS_BEFORE_TODAY);
 
-  return Array.from({ length: 7 }, (_, index) => {
-    const date = new Date(monday);
-    date.setUTCDate(monday.getUTCDate() + index);
+  return Array.from({ length: TOTAL_PLANNING_DAYS }, (_, index) => {
+    const date = new Date(firstDate);
+    date.setUTCDate(firstDate.getUTCDate() + index);
 
     return {
       key:      formatDateKey(date),
@@ -113,10 +114,12 @@ function getCurrentWeekDays(): PlanningWeekDay[] {
 
 function RealtimeIndicator() {
   return (
-    <div className="inline-flex shrink-0 items-center gap-1.5 text-[11px] font-bold sm:text-xs" style={{ color: "#9DE7E5" }}>
-      <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ backgroundColor: "#4ED9D5" }} />
-      Realtime gekoppeld
-    </div>
+    <span
+      className="h-2.5 w-2.5 shrink-0 rounded-full"
+      style={{ backgroundColor: "#4ED9D5", boxShadow: "0 0 0 4px rgba(78,217,213,0.15)" }}
+      aria-label="Realtime gekoppeld"
+      title="Realtime gekoppeld"
+    />
   );
 }
 
@@ -188,7 +191,7 @@ function PlanningCard({ item }: { item: MockPlanningItem }) {
 }
 
 export default function OpdrachtenPage() {
-  const weekDays = getCurrentWeekDays();
+  const planningDays = getPlanningDays();
 
   return (
     <div className="min-h-screen bg-[#F6F8FB] md:rounded-[32px] md:bg-white">
@@ -201,7 +204,7 @@ export default function OpdrachtenPage() {
           <RealtimeIndicator />
         </div>
 
-        <PlanningWeekStrip days={weekDays} />
+        <PlanningWeekStrip days={planningDays} />
       </section>
 
       <section className="space-y-3 px-3.5 pb-8 pt-3">
