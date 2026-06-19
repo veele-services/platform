@@ -2,69 +2,61 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, ClipboardList, FileText, Receipt, FileCheck2 } from "lucide-react";
+import {
+  Bell,
+  Building2,
+  Home,
+  Menu,
+  Send,
+} from "lucide-react";
 
-const ITEMS = [
-  { href: "/klant",            label: "Dashboard",  Icon: LayoutDashboard },
-  { href: "/klant/opdrachten", label: "Opdrachten", Icon: ClipboardList },
-  { href: "/klant/offertes",   label: "Offertes",   Icon: FileText },
-  { href: "/klant/facturen",   label: "Facturen",   Icon: Receipt },
-  { href: "/klant/rapporten",  label: "Rapporten",  Icon: FileCheck2 },
+const NAV_ITEMS = [
+  { href: "/",                    icon: Home,      label: "Home",      match: ["/"] },
+  { href: "/objecten",            icon: Building2, label: "Objecten",  match: ["/objecten"] },
+  { href: "/opdrachten/aanvragen", icon: Send,      label: "Aanvragen", match: ["/opdrachten/aanvragen"] },
+  { href: "/meldingen",           icon: Bell,      label: "Meldingen", match: ["/meldingen"] },
+  { href: "/meer",                icon: Menu,      label: "Meer",      match: ["/meer", "/profiel", "/beveiliging", "/instellingen", "/facturen", "/rapporten", "/documenten", "/betalingen", "/offertes"] },
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 border-t bg-white"
-      style={{
-        borderColor:   "var(--color-border)",
-        paddingBottom: "var(--safe-bottom)",
-        height:        "calc(4rem + var(--safe-bottom))",
-        boxShadow:     "0 -1px 8px rgba(8,29,58,0.06)",
-        zIndex:        50,
-      }}
-    >
-      <div className="flex h-16 items-stretch">
-        {ITEMS.map(({ href, label, Icon }) => {
-          const isActive =
-            href === "/klant"
-              ? pathname === "/klant" || pathname === "/klant/"
-              : pathname.startsWith(href);
+    <nav className="fixed inset-x-0 bottom-0 z-50 md:hidden">
+      <div
+        className="mx-2.5 mb-[calc(0.45rem+var(--safe-bottom))] flex items-stretch rounded-[20px] px-1.5 py-1 shadow-2xl"
+        style={{ backgroundColor: "#061F44", boxShadow: "0 18px 44px rgba(6,31,68,0.28)" }}
+      >
+        {NAV_ITEMS.map((item) => {
+          const isActive = item.match.some((path) =>
+            path === "/" ? pathname === "/" : pathname.startsWith(path),
+          );
+          const Icon = item.icon;
 
           return (
             <Link
-              key={href}
-              href={href}
-              className="relative flex flex-1 flex-col items-center justify-center gap-1 pt-2 text-xs font-medium transition-colors"
-              style={{ color: isActive ? "var(--color-accent)" : "var(--color-secondary)" }}
+              key={item.href}
+              href={item.href}
+              className="relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1.5 transition-colors"
+              style={{ color: isActive ? "#FFFFFF" : "rgba(255,255,255,0.62)" }}
             >
-              {/* Active top indicator */}
-              {isActive && (
-                <span
-                  className="absolute top-0 left-1/2 -translate-x-1/2 rounded-b-full"
-                  style={{
-                    width:           "28px",
-                    height:          "3px",
-                    backgroundColor: "var(--color-accent)",
-                  }}
-                />
-              )}
-
-              {/* Icon with subtle active bg */}
               <span
-                className="flex items-center justify-center rounded-xl transition-all"
+                className="relative flex items-center justify-center rounded-2xl transition-all"
                 style={{
-                  width:           "36px",
-                  height:          "28px",
-                  backgroundColor: isActive ? "var(--color-accent-muted)" : "transparent",
+                  width:           "38px",
+                  height:          "25px",
+                  backgroundColor: isActive ? "rgba(255,255,255,0.12)" : "transparent",
                 }}
               >
-                <Icon size={20} strokeWidth={isActive ? 2.5 : 1.75} />
+                <Icon size={18} strokeWidth={isActive ? 2.5 : 1.75} />
               </span>
 
-              <span style={{ fontSize: "10px" }}>{label}</span>
+              <span
+                className="font-semibold leading-none"
+                style={{ fontSize: "9.5px", color: isActive ? "var(--color-accent)" : "rgba(255,255,255,0.72)" }}
+              >
+                {item.label}
+              </span>
             </Link>
           );
         })}

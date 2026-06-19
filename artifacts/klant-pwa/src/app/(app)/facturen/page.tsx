@@ -4,6 +4,9 @@ import Link from "next/link";
 import { Receipt, CheckCircle2, Clock, XCircle, Download, ChevronRight } from "lucide-react";
 import { getMyInvoices } from "@/actions/invoices";
 import { PaidBanner } from "@/components/PaidBanner";
+import { InvoiceBatchPaymentPanel } from "@/components/InvoiceBatchPaymentPanel";
+import { PageShell } from "@/components/PageShell";
+import { PaymentActionButton } from "@/components/PaymentActionButton";
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "";
@@ -39,11 +42,7 @@ export default async function FacturenPage({ searchParams }: Props) {
   const otherInvoices = invoices.filter((i) => i.status !== "sent" && i.status !== "paid");
 
   return (
-    <div className="space-y-4 p-4 md:p-0">
-      <h1 className="text-xl md:text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
-        Facturen
-      </h1>
-
+    <PageShell title="Facturen" subtitle="Openstaande, betaalde en geannuleerde facturen.">
       {paid === "1" && <PaidBanner />}
 
       {invoices.length === 0 ? (
@@ -58,6 +57,7 @@ export default async function FacturenPage({ searchParams }: Props) {
         </div>
       ) : (
         <>
+          <InvoiceBatchPaymentPanel invoices={openInvoices} />
           {openInvoices.length > 0 && (
             <InvoiceGroup title="Te betalen" invoices={openInvoices} />
           )}
@@ -69,7 +69,7 @@ export default async function FacturenPage({ searchParams }: Props) {
           )}
         </>
       )}
-    </div>
+    </PageShell>
   );
 }
 
@@ -129,16 +129,8 @@ function InvoiceGroup({
 
               <div className="mt-3 border-t pt-3" style={{ borderColor: "var(--color-border)" }}>
                 <div className="flex flex-col gap-2">
-                  {inv.status === "sent" && inv.checkoutUrl && (
-                    <Link
-                      href={inv.checkoutUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white"
-                      style={{ backgroundColor: "var(--color-accent)" }}
-                    >
-                      Nu betalen
-                    </Link>
+                  {inv.status === "sent" && (
+                    <PaymentActionButton invoiceId={inv.id} label="Nu betalen" />
                   )}
                   {inv.status !== "draft" && (
                     <Link

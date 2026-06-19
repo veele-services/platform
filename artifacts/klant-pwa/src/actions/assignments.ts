@@ -390,7 +390,7 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
     await sendEmail({ to: orgSettings.emailAfzender, subject, html });
   })();
 
-  revalidatePath("/klant/opdrachten");
+  revalidatePath("/opdrachten");
   return { success: true, id: assignmentId };
 }
 
@@ -456,6 +456,6 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
     await sendEmail({ to: orgSettings.emailAfzender, subject, html });
   })();
 
-  revalidatePath("/klant/opdrachten");
+  revalidatePath("/opdrachten");
   return { success: true, id: assignmentId };
 }

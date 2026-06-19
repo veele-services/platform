@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { FolderOpen, FileText } from "lucide-react";
 import { getMyDocuments } from "@/actions/documents";
 import { DocumentDownloadButton } from "@/components/DocumentDownloadButton";
+import { PageShell } from "@/components/PageShell";
 
 function formatDate(isoStr: string): string {
   return new Date(isoStr).toLocaleDateString("nl-NL", {
@@ -30,11 +31,7 @@ export default async function DocumentenPage() {
   const documents = await getMyDocuments();
 
   return (
-    <div className="space-y-4 p-4 md:p-0">
-      <h1 className="text-xl md:text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
-        Documenten
-      </h1>
-
+    <PageShell title="Documenten" subtitle="Bestanden die door Veele Services met u gedeeld zijn.">
       {documents.length === 0 ? (
         <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
           <FolderOpen size={32} className="mx-auto mb-3" style={{ color: "var(--color-muted-fg)" }} />
@@ -46,7 +43,7 @@ export default async function DocumentenPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid gap-3 lg:grid-cols-2">
           {documents.map((doc) => (
             <div key={doc.id} className="rounded-2xl bg-white p-4 shadow-sm">
               <div className="flex items-start gap-3">
@@ -72,6 +69,6 @@ export default async function DocumentenPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

@@ -10,7 +10,7 @@ export default function NotFound() {
         Pagina niet gevonden
       </p>
       <Link
-        href="/klant"
+        href="/"
         className="mt-6 rounded-xl px-5 py-2.5 text-sm font-medium text-white"
         style={{ backgroundColor: "var(--color-accent)" }}
       >

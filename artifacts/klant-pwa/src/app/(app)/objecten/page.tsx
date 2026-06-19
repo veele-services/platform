@@ -2,16 +2,13 @@ export const dynamic = "force-dynamic";
 
 import { MapPin } from "lucide-react";
 import { getMyObjects } from "@/actions/objects";
+import { PageShell } from "@/components/PageShell";
 
 export default async function ObjectenPage() {
   const objects = await getMyObjects();
 
   return (
-    <div className="space-y-4 p-4 md:p-0">
-      <h1 className="text-xl md:text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
-        Mijn objecten
-      </h1>
-
+    <PageShell title="Mijn objecten" subtitle="Uw locaties en objectinformatie in beheer.">
       {objects.length === 0 ? (
         <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
           <MapPin size={32} className="mx-auto mb-3" style={{ color: "var(--color-muted-fg)" }} />
@@ -23,7 +20,7 @@ export default async function ObjectenPage() {
           </p>
         </div>
       ) : (
-        <div className="space-y-3">
+        <div className="grid gap-3 lg:grid-cols-2">
           {objects.map((obj) => (
             <div key={obj.id} className="rounded-2xl bg-white p-4 shadow-sm">
               <div className="flex items-start gap-3">
@@ -53,6 +50,6 @@ export default async function ObjectenPage() {
           ))}
         </div>
       )}
-    </div>
+    </PageShell>
   );
 }

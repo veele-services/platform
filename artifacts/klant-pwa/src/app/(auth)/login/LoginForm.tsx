@@ -40,12 +40,12 @@ export function LoginForm() {
       }
 
       if (data.user?.app_metadata?.force_password_change === true) {
-        router.push("/klant/reset-wachtwoord?force=1");
+        router.push("/reset-wachtwoord?force=1");
         router.refresh();
         return;
       }
 
-      router.push("/klant");
+      router.push("/");
       router.refresh();
     });
   }
@@ -128,7 +128,7 @@ export function LoginForm() {
 
       <div className="text-center">
         <a
-          href="/klant/wachtwoord-vergeten"
+          href="/wachtwoord-vergeten"
           className="text-sm"
           style={{ color: "#64748B" }}
         >

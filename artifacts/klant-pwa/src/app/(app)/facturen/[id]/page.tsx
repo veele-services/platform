@@ -4,6 +4,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, Receipt, Download, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { getMyInvoice } from "@/actions/invoices";
+import { PaymentActionButton } from "@/components/PaymentActionButton";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -118,16 +119,8 @@ export default async function FactuurDetailPage({ params }: Props) {
         {/* Acties */}
         {invoice.status !== "draft" && (
           <div className="space-y-2">
-            {invoice.status === "sent" && invoice.checkoutUrl && (
-              <Link
-                href={invoice.checkoutUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl px-4 py-3.5 text-sm font-semibold text-white shadow-sm"
-                style={{ backgroundColor: "var(--color-accent)" }}
-              >
-                Nu betalen
-              </Link>
+            {invoice.status === "sent" && (
+              <PaymentActionButton invoiceId={invoice.id} label="Nu betalen" />
             )}
             <Link
               href={`/api/factuur/${invoice.id}/pdf`}

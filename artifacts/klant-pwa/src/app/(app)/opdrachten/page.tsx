@@ -5,6 +5,7 @@ import { ClipboardList, PlusCircle, FileText } from "lucide-react";
 import { getMyAssignments } from "@/actions/assignments";
 import { STATUS_LABEL, STATUS_COLOR } from "@/types/assignments";
 import { OfferteActieButtons } from "@/components/OfferteActieButtons";
+import { PageShell } from "@/components/PageShell";
 import type { QuoteStatus } from "@workspace/db";
 
 function formatDate(dateStr: string | null): string {
@@ -39,20 +40,20 @@ export default async function OpdrachtenPage() {
   );
 
   return (
-    <div className="space-y-4 p-4 md:p-0">
-      <div className="flex items-center justify-between">
-        <h1 className="text-xl md:text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
-          Mijn opdrachten
-        </h1>
+    <PageShell
+      title="Mijn opdrachten"
+      subtitle="Aanvragen, afspraken en afgeronde werkbonnen."
+      actions={(
         <Link
-          href="/klant/opdrachten/aanvragen"
+          href="/opdrachten/aanvragen"
           className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium text-white"
           style={{ backgroundColor: "var(--color-accent)" }}
         >
           <PlusCircle size={14} />
           Aanvragen
         </Link>
-      </div>
+      )}
+    >
 
       {assignments.length === 0 && (
         <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
@@ -64,7 +65,7 @@ export default async function OpdrachtenPage() {
             Dien een nieuwe aanvraag in om te beginnen.
           </p>
           <Link
-            href="/klant/opdrachten/aanvragen"
+            href="/opdrachten/aanvragen"
             className="mt-4 inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium text-white"
             style={{ backgroundColor: "var(--color-accent)" }}
           >
@@ -160,7 +161,7 @@ export default async function OpdrachtenPage() {
       {history.length > 0 && (
         <AssignmentGroup title="Afgerond" items={history} />
       )}
-    </div>
+    </PageShell>
   );
 }
 

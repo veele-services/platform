@@ -1,6 +1,13 @@
 import { Router } from "express";
 import { db } from "@workspace/db";
-import { paymentsTable, invoicesTable, assignmentsTable, auditLogTable } from "@workspace/db";
+import {
+  paymentsTable,
+  invoicesTable,
+  assignmentsTable,
+  auditLogTable,
+  customerPaymentBatchesTable,
+  customerPaymentBatchItemsTable,
+} from "@workspace/db";
 import { eq } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { verifyMollieSignature } from "../lib/mollie";
@@ -89,25 +96,106 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
 
     req.log.info({ molliePaymentId, mollieStatus }, "Fetched payment status from Mollie");
 
-    // Find local payment record
+    // Find local single-invoice payment record first.
     const [payment] = await db
       .select({ id: paymentsTable.id, invoiceId: paymentsTable.invoiceId, status: paymentsTable.status })
       .from(paymentsTable)
       .where(eq(paymentsTable.molliePaymentId, molliePaymentId))
       .limit(1);
 
-    if (!payment) {
-      req.log.warn({ molliePaymentId }, "No local payment record found for Mollie payment ID");
-      res.status(200).send("ok");
-      return;
-    }
-
     const paidAt = data.paidAt ? new Date(data.paidAt) : new Date();
-    const previousStatus = payment.status;
 
     // audit_log.user_id is UUID NOT NULL; use dedicated system actor UUID
     // for webhook/background events with no Supabase auth user.
     const SYSTEM_ACTOR_UUID = "00000000-0000-0000-0000-000000000001";
+
+    if (!payment) {
+      const [batch] = await db
+        .select({
+          id:         customerPaymentBatchesTable.id,
+          customerId: customerPaymentBatchesTable.customerId,
+          status:     customerPaymentBatchesTable.status,
+        })
+        .from(customerPaymentBatchesTable)
+        .where(eq(customerPaymentBatchesTable.molliePaymentId, molliePaymentId))
+        .limit(1);
+
+      if (!batch) {
+        req.log.warn({ molliePaymentId }, "No local payment or payment batch found for Mollie payment ID");
+        res.status(200).send("ok");
+        return;
+      }
+
+      const previousStatus = batch.status;
+
+      await db
+        .update(customerPaymentBatchesTable)
+        .set({
+          status: mollieStatus,
+          paidAt: mollieStatus === "paid" ? paidAt : undefined,
+        })
+        .where(eq(customerPaymentBatchesTable.molliePaymentId, molliePaymentId));
+
+      await db.insert(auditLogTable).values({
+        userId:     SYSTEM_ACTOR_UUID,
+        action:     "mollie_payment_batch_status_changed",
+        resource:   "customer_payment_batches",
+        resourceId: batch.id,
+        metadata:   {
+          molliePaymentId,
+          customerId: batch.customerId,
+          previousStatus,
+          newStatus: mollieStatus,
+        },
+      });
+
+      if (mollieStatus === "paid") {
+        const items = await db
+          .select({ invoiceId: customerPaymentBatchItemsTable.invoiceId })
+          .from(customerPaymentBatchItemsTable)
+          .where(eq(customerPaymentBatchItemsTable.batchId, batch.id));
+
+        const paidDateStr = paidAt.toISOString().slice(0, 10);
+
+        for (const item of items) {
+          const [invoice] = await db
+            .select({ id: invoicesTable.id, status: invoicesTable.status, assignmentId: invoicesTable.assignmentId })
+            .from(invoicesTable)
+            .where(eq(invoicesTable.id, item.invoiceId))
+            .limit(1);
+
+          if (!invoice || invoice.status !== "sent") continue;
+
+          await db
+            .update(invoicesTable)
+            .set({ status: "paid", paidDate: paidDateStr, updatedAt: new Date() })
+            .where(eq(invoicesTable.id, invoice.id));
+
+          await db
+            .update(assignmentsTable)
+            .set({ status: "paid", updatedAt: new Date() })
+            .where(eq(assignmentsTable.id, invoice.assignmentId));
+
+          await db
+            .update(assignmentsTable)
+            .set({ status: "closed", updatedAt: new Date() })
+            .where(eq(assignmentsTable.id, invoice.assignmentId));
+        }
+
+        await db.insert(auditLogTable).values({
+          userId:     SYSTEM_ACTOR_UUID,
+          action:     "mollie_payment_batch_received",
+          resource:   "customer_payment_batches",
+          resourceId: batch.id,
+          metadata:   { molliePaymentId, paidAt: paidAt.toISOString(), invoiceCount: items.length },
+        });
+      }
+
+      res.status(200).send("ok");
+      return;
+    }
+
+    const previousStatus = payment.status;
 
     // Update local payment status
     await db

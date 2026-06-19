@@ -4,6 +4,7 @@ import { FileText, CheckCircle2, XCircle, Clock, AlertTriangle } from "lucide-re
 import { getMyQuotes } from "@/actions/quotes";
 import { OfferteActieButtons } from "@/components/OfferteActieButtons";
 import { OfferteRegelitems } from "@/components/OfferteRegelitems";
+import { PageShell } from "@/components/PageShell";
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "";
@@ -34,11 +35,7 @@ export default async function OffertesPage() {
   const rest    = quotes.filter((q) => q.assignmentStatus !== "awaiting_approval");
 
   return (
-    <div className="space-y-4 p-4 md:p-0">
-      <h1 className="text-xl md:text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
-        Offertes
-      </h1>
-
+    <PageShell title="Offertes" subtitle="Controleer en keur offertes digitaal goed of af.">
       {quotes.length === 0 ? (
         <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
           <FileText size={32} className="mx-auto mb-3" style={{ color: "var(--color-muted-fg)" }} />
@@ -59,7 +56,7 @@ export default async function OffertesPage() {
           )}
         </>
       )}
-    </div>
+    </PageShell>
   );
 }
 

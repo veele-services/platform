@@ -1,0 +1,19 @@
+{
+  "name": "Veele Klantportaal",
+  "short_name": "Veele",
+  "description": "Klantportaal voor Veele Services",
+  "start_url": "/klant/",
+  "scope": "/klant/",
+  "display": "standalone",
+  "background_color": "#F4F7FB",
+  "theme_color": "#081D3A",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/klant/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
