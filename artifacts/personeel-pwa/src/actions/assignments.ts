@@ -1,5 +1,7 @@
 "use server";
 
+import { db, assignmentsTable, assignmentPersonnelTable } from "@workspace/db";
+import { and, eq } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -10,6 +12,13 @@ export type MyAssignment = {
   scheduledDate:    string | null;
   scheduledStart:   string | null;
   scheduledEnd:     string | null;
+  seenAt:           string | null;
+  actualStartedAt:  string | null;
+  actualCompletedAt: string | null;
+  completionReason: string | null;
+  completionNotes:  string | null;
+  customerSignatureRequired: boolean;
+  customerSignatureDataUrl: string | null;
   status:           string;
   customerName:     string | null;
   objectName:       string | null;
@@ -25,6 +34,28 @@ export type MyAssignmentDetail = MyAssignment & {
 };
 
 type PersonnelBasic = { id: string; region: string | null };
+
+type LinkedAssignment = {
+  status:                    string;
+  seenAt:                    Date | null;
+  actualStartedAt:           Date | null;
+  actualCompletedAt:         Date | null;
+  customerSignatureRequired: boolean;
+};
+
+const NOT_COMPLETED_REASONS = new Set([
+  "Klant niet aanwezig",
+  "Geen toegang tot object",
+  "Sleutel / toegangscode werkt niet",
+  "Klant niet akkoord op locatie",
+  "Tijd tekort",
+  "Meerwerk nodig",
+  "Materiaal / middelen ontbreken",
+  "Onveilige situatie",
+  "Opdrachtinformatie onduidelijk of onvolledig",
+  "Klant / locatie annuleert op locatie",
+  "Overig",
+]);
 
 async function getPersonnelBasic(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -58,7 +89,11 @@ export async function getMyAssignments(): Promise<MyAssignment[]> {
     .from("assignment_personnel")
     .select(`
       assignments!inner(
-        id, code, title, scheduled_date, scheduled_start, scheduled_end, status,
+        id, code, title, scheduled_date, scheduled_start, scheduled_end,
+        seen_at, actual_started_at, actual_completed_at,
+        completion_reason, completion_notes,
+        customer_signature_required, customer_signature_data_url,
+        status,
         required_region,
         customers(name),
         objects(name, address, city, postal_code)
@@ -80,6 +115,13 @@ export async function getMyAssignments(): Promise<MyAssignment[]> {
         scheduledDate:    a.scheduled_date ?? null,
         scheduledStart:   a.scheduled_start ?? null,
         scheduledEnd:     a.scheduled_end ?? null,
+        seenAt:           a.seen_at ?? null,
+        actualStartedAt:  a.actual_started_at ?? null,
+        actualCompletedAt: a.actual_completed_at ?? null,
+        completionReason: a.completion_reason ?? null,
+        completionNotes:  a.completion_notes ?? null,
+        customerSignatureRequired: Boolean(a.customer_signature_required),
+        customerSignatureDataUrl: a.customer_signature_data_url ?? null,
         status:           a.status,
         customerName:     a.customers?.name ?? null,
         objectName:       a.objects?.name ?? null,
@@ -115,7 +157,11 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
     .from("assignment_personnel")
     .select(`
       assignments!inner(
-        id, code, title, description, scheduled_date, scheduled_start, scheduled_end, status,
+        id, code, title, description, scheduled_date, scheduled_start, scheduled_end,
+        seen_at, actual_started_at, actual_completed_at,
+        completion_reason, completion_notes,
+        customer_signature_required, customer_signature_data_url,
+        status,
         required_region,
         customers(name),
         objects(name, address, city, postal_code),
@@ -141,6 +187,13 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
     scheduledDate:    a.scheduled_date ?? null,
     scheduledStart:   a.scheduled_start ?? null,
     scheduledEnd:     a.scheduled_end ?? null,
+    seenAt:           a.seen_at ?? null,
+    actualStartedAt:  a.actual_started_at ?? null,
+    actualCompletedAt: a.actual_completed_at ?? null,
+    completionReason: a.completion_reason ?? null,
+    completionNotes:  a.completion_notes ?? null,
+    customerSignatureRequired: Boolean(a.customer_signature_required),
+    customerSignatureDataUrl: a.customer_signature_data_url ?? null,
     status:           a.status,
     customerName:     a.customers?.name ?? null,
     objectName:       a.objects?.name ?? null,
@@ -164,6 +217,44 @@ const STATUS_TRANSITIONS: Record<string, string[]> = {
   in_progress: ["completed", "not_completed"],
 };
 
+async function getLinkedAssignment(
+  personnelId: string,
+  assignmentId: string,
+): Promise<LinkedAssignment | null> {
+  const [row] = await db
+    .select({
+      status:                    assignmentsTable.status,
+      seenAt:                    assignmentsTable.seenAt,
+      actualStartedAt:           assignmentsTable.actualStartedAt,
+      actualCompletedAt:         assignmentsTable.actualCompletedAt,
+      customerSignatureRequired: assignmentsTable.customerSignatureRequired,
+    })
+    .from(assignmentPersonnelTable)
+    .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
+    .where(
+      and(
+        eq(assignmentPersonnelTable.personnelId, personnelId),
+        eq(assignmentPersonnelTable.assignmentId, assignmentId),
+        eq(assignmentPersonnelTable.status, "assigned"),
+      ),
+    )
+    .limit(1);
+
+  return row ?? null;
+}
+
+function isSignatureDataUrl(value: string | null | undefined): boolean {
+  if (!value) return false;
+  return /^data:image\/(png|jpeg|webp);base64,/.test(value);
+}
+
+function revalidateAssignmentPaths(assignmentId: string) {
+  revalidatePath("/");
+  revalidatePath("/opdrachten");
+  revalidatePath(`/opdrachten/${assignmentId}`);
+  revalidatePath(`/opdrachten/${assignmentId}/afronden`);
+}
+
 export async function setAssignmentStatus(
   assignmentId: string,
   newStatus: string,
@@ -175,38 +266,142 @@ export async function setAssignmentStatus(
   const personnel = await getPersonnelBasic(supabase, user.id);
   if (!personnel) return { success: false, error: "Personeelsprofiel niet gevonden" };
 
-  const { data: ap } = await supabase
-    .from("assignment_personnel")
-    .select("assignments!inner(id, status)")
-    .eq("personnel_id", personnel.id)
-    .eq("assignment_id", assignmentId)
-    .eq("status", "assigned")
-    .single();
+  const current = await getLinkedAssignment(personnel.id, assignmentId);
+  if (!current) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
 
-  if (!ap) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const currentStatus: string = (ap as any).assignments?.status ?? "";
+  const currentStatus = current.status;
   const allowed = STATUS_TRANSITIONS[currentStatus] ?? [];
 
   if (!allowed.includes(newStatus)) {
     return { success: false, error: "Status-overgang niet toegestaan" };
   }
 
-  const { data: rpcResult, error } = await supabase.rpc(
-    "pwa_set_assignment_status",
-    { p_assignment_id: assignmentId, p_new_status: newStatus },
-  );
+  const now = new Date();
+  const updateValues: Partial<typeof assignmentsTable.$inferInsert> = {
+    status:    newStatus,
+    updatedAt: now,
+  };
 
-  if (error) return { success: false, error: "Bijwerken mislukt" };
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const result = rpcResult as any;
-  if (!result?.success) {
-    return { success: false, error: result?.error ?? "Bijwerken mislukt" };
+  if (newStatus === "seen") {
+    updateValues.seenAt = current.seenAt ?? now;
+  }
+  if (newStatus === "in_progress") {
+    updateValues.seenAt = current.seenAt ?? now;
+    updateValues.actualStartedAt = current.actualStartedAt ?? now;
+  }
+  if (newStatus === "completed" || newStatus === "not_completed") {
+    updateValues.actualCompletedAt = current.actualCompletedAt ?? now;
   }
 
-  revalidatePath("/opdrachten");
-  revalidatePath(`/opdrachten/${assignmentId}`);
+  try {
+    await db
+      .update(assignmentsTable)
+      .set(updateValues)
+      .where(eq(assignmentsTable.id, assignmentId));
+  } catch {
+    return { success: false, error: "Bijwerken mislukt" };
+  }
+
+  revalidateAssignmentPaths(assignmentId);
+  return { success: true };
+}
+
+export async function startAssignment(
+  assignmentId: string,
+): Promise<{ success: boolean; error?: string }> {
+  return setAssignmentStatus(assignmentId, "in_progress");
+}
+
+export async function completeAssignment(
+  assignmentId: string,
+  input: { customerSignatureDataUrl?: string | null; notes?: string | null } = {},
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Niet ingelogd" };
+
+  const personnel = await getPersonnelBasic(supabase, user.id);
+  if (!personnel) return { success: false, error: "Personeelsprofiel niet gevonden" };
+
+  const current = await getLinkedAssignment(personnel.id, assignmentId);
+  if (!current) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
+  if (current.status !== "in_progress") {
+    return { success: false, error: "Start de werkbon voordat je deze afrondt" };
+  }
+
+  const signature = input.customerSignatureDataUrl ?? null;
+  if (current.customerSignatureRequired && !isSignatureDataUrl(signature)) {
+    return { success: false, error: "Handtekening klant is verplicht" };
+  }
+
+  const now = new Date();
+
+  try {
+    await db
+      .update(assignmentsTable)
+      .set({
+        status:                   "completed",
+        actualCompletedAt:        now,
+        completionReason:         null,
+        completionNotes:          input.notes?.trim() || null,
+        customerSignatureDataUrl: isSignatureDataUrl(signature) ? signature : null,
+        customerSignedAt:         isSignatureDataUrl(signature) ? now : null,
+        updatedAt:                now,
+      })
+      .where(eq(assignmentsTable.id, assignmentId));
+  } catch {
+    return { success: false, error: "Afronden mislukt" };
+  }
+
+  revalidateAssignmentPaths(assignmentId);
+  return { success: true };
+}
+
+export async function notCompleteAssignment(
+  assignmentId: string,
+  input: { reason: string; notes?: string | null },
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Niet ingelogd" };
+
+  const personnel = await getPersonnelBasic(supabase, user.id);
+  if (!personnel) return { success: false, error: "Personeelsprofiel niet gevonden" };
+
+  const current = await getLinkedAssignment(personnel.id, assignmentId);
+  if (!current) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
+  if (current.status !== "in_progress") {
+    return { success: false, error: "Start de werkbon voordat je deze afmeldt" };
+  }
+
+  const reason = input.reason.trim();
+  const notes = input.notes?.trim() ?? "";
+  if (!NOT_COMPLETED_REASONS.has(reason)) {
+    return { success: false, error: "Kies een geldige reden" };
+  }
+  if (reason === "Overig" && !notes) {
+    return { success: false, error: "Vul een toelichting in bij Overig" };
+  }
+
+  const now = new Date();
+
+  try {
+    await db
+      .update(assignmentsTable)
+      .set({
+        status:                   "not_completed",
+        actualCompletedAt:        now,
+        completionReason:         reason,
+        completionNotes:          notes || null,
+        customerSignatureDataUrl: null,
+        customerSignedAt:         null,
+        updatedAt:                now,
+      })
+      .where(eq(assignmentsTable.id, assignmentId));
+  } catch {
+    return { success: false, error: "Afmelden mislukt" };
+  }
+
+  revalidateAssignmentPaths(assignmentId);
   return { success: true };
 }

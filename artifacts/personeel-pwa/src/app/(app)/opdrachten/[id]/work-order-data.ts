@@ -13,6 +13,13 @@ export type AssignmentView = Pick<
   | "scheduledDate"
   | "scheduledStart"
   | "scheduledEnd"
+  | "seenAt"
+  | "actualStartedAt"
+  | "actualCompletedAt"
+  | "completionReason"
+  | "completionNotes"
+  | "customerSignatureRequired"
+  | "customerSignatureDataUrl"
   | "status"
   | "customerName"
   | "objectName"
@@ -43,6 +50,13 @@ export const MOCK_ASSIGNMENTS: Record<string, AssignmentView> = {
     scheduledDate:    "2026-06-19",
     scheduledStart:   "08:02",
     scheduledEnd:     "10:00",
+    seenAt:           "2026-06-19T08:00:00.000+02:00",
+    actualStartedAt:  "2026-06-19T08:02:00.000+02:00",
+    actualCompletedAt: null,
+    completionReason: null,
+    completionNotes:  null,
+    customerSignatureRequired: true,
+    customerSignatureDataUrl: null,
     status:           "in_progress",
     customerName:     "Chantal Veele",
     contactName:      "Chantal Veele",
@@ -67,6 +81,13 @@ export const MOCK_ASSIGNMENTS: Record<string, AssignmentView> = {
     scheduledDate:    "2026-06-19",
     scheduledStart:   "14:00",
     scheduledEnd:     "22:00",
+    seenAt:           "2026-06-19T10:15:00.000+02:00",
+    actualStartedAt:  null,
+    actualCompletedAt: null,
+    completionReason: null,
+    completionNotes:  null,
+    customerSignatureRequired: false,
+    customerSignatureDataUrl: null,
     status:           "seen",
     customerName:     "Michael Veele",
     contactName:      "Michael Veele",
@@ -90,6 +111,13 @@ export const MOCK_ASSIGNMENTS: Record<string, AssignmentView> = {
     scheduledDate:    "2026-06-19",
     scheduledStart:   "18:00",
     scheduledEnd:     "23:30",
+    seenAt:           "2026-06-19T12:20:00.000+02:00",
+    actualStartedAt:  "2026-06-19T18:05:00.000+02:00",
+    actualCompletedAt: null,
+    completionReason: null,
+    completionNotes:  null,
+    customerSignatureRequired: true,
+    customerSignatureDataUrl: null,
     status:           "in_progress",
     customerName:     "Danny de Groot",
     contactName:      "Danny de Groot",
@@ -113,6 +141,13 @@ export const MOCK_ASSIGNMENTS: Record<string, AssignmentView> = {
     scheduledDate:    "2026-06-19",
     scheduledStart:   "07:30",
     scheduledEnd:     "09:00",
+    seenAt:           "2026-06-19T07:12:00.000+02:00",
+    actualStartedAt:  "2026-06-19T07:31:00.000+02:00",
+    actualCompletedAt: "2026-06-19T08:58:00.000+02:00",
+    completionReason: null,
+    completionNotes:  null,
+    customerSignatureRequired: false,
+    customerSignatureDataUrl: null,
     status:           "completed",
     customerName:     "Jeroen Smit",
     contactName:      "Jeroen Smit",
@@ -254,6 +289,20 @@ export const FAILED_FINAL_STATUSES = new Set(["not_completed", "cancelled", "can
 
 export const STEP_LABELS = ["Gezien", "Gestart", "Afgerond"];
 
+export const NOT_COMPLETED_REASONS = [
+  "Klant niet aanwezig",
+  "Geen toegang tot object",
+  "Sleutel / toegangscode werkt niet",
+  "Klant niet akkoord op locatie",
+  "Tijd tekort",
+  "Meerwerk nodig",
+  "Materiaal / middelen ontbreken",
+  "Onveilige situatie",
+  "Opdrachtinformatie onduidelijk of onvolledig",
+  "Klant / locatie annuleert op locatie",
+  "Overig",
+] as const;
+
 export function getMockAssignment(id: string): AssignmentView | null {
   return MOCK_ASSIGNMENTS[id] ?? null;
 }
@@ -262,6 +311,23 @@ export function formatTimeSlot(start: string | null, end: string | null): string
   if (start && end) return `${start.slice(0, 5)} - ${end.slice(0, 5)}`;
   if (start) return `Vanaf ${start.slice(0, 5)}`;
   return "Tijd nog niet bekend";
+}
+
+export function formatDateTimeTime(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat("nl-NL", {
+    timeZone: "Europe/Amsterdam",
+    hour:     "2-digit",
+    minute:   "2-digit",
+  }).format(date);
+}
+
+export function getDisplayedTimeSlot(assignment: Pick<AssignmentView, "scheduledStart" | "scheduledEnd" | "actualStartedAt" | "actualCompletedAt">): string {
+  const start = formatDateTimeTime(assignment.actualStartedAt) ?? assignment.scheduledStart;
+  const end = formatDateTimeTime(assignment.actualCompletedAt) ?? assignment.scheduledEnd;
+  return formatTimeSlot(start ?? null, end ?? null);
 }
 
 export function getHeaderStatus(status: string): { label: string; background: string; color: string } {

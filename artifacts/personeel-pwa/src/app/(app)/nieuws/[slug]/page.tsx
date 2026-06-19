@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { getMockNewsPost } from "@/lib/mock-news";
+import { getPersonnelNewsPost } from "@/actions/news";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,7 @@ type Props = {
 
 export default async function NieuwsDetailPage({ params }: Props) {
   const { slug } = await params;
-  const post = getMockNewsPost(slug);
+  const post = (await getPersonnelNewsPost(slug)) ?? getMockNewsPost(slug);
 
   if (!post) notFound();
 
@@ -58,11 +59,19 @@ export default async function NieuwsDetailPage({ params }: Props) {
         </div>
 
         <div className="mt-4 space-y-4 rounded-[24px] border bg-white p-4 shadow-sm" style={{ borderColor: "var(--color-border)" }}>
-          {post.body.map((paragraph) => (
-            <p key={paragraph} className="text-[15px] leading-7" style={{ color: "var(--color-primary)" }}>
-              {paragraph}
-            </p>
-          ))}
+          {"contentHtml" in post && post.contentHtml ? (
+            <div
+              className="space-y-4 text-[15px] leading-7"
+              style={{ color: "var(--color-primary)" }}
+              dangerouslySetInnerHTML={{ __html: post.contentHtml }}
+            />
+          ) : (
+            post.body.map((paragraph) => (
+              <p key={paragraph} className="text-[15px] leading-7" style={{ color: "var(--color-primary)" }}>
+                {paragraph}
+              </p>
+            ))
+          )}
         </div>
       </div>
     </article>

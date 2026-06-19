@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { MOCK_NEWS_POSTS, type MockNewsPost } from "@/lib/mock-news";
+import { listPersonnelNewsPosts, type PersonnelNewsPost } from "@/actions/news";
 
 export const dynamic = "force-dynamic";
 
@@ -11,7 +12,9 @@ const clampTwoLines = {
   overflow:          "hidden",
 } as const;
 
-function HeroNewsCard({ post }: { post: MockNewsPost }) {
+type NewsPost = MockNewsPost | PersonnelNewsPost;
+
+function HeroNewsCard({ post }: { post: NewsPost }) {
   return (
     <Link
       href={`/nieuws/${post.slug}`}
@@ -59,7 +62,7 @@ function HeroNewsCard({ post }: { post: MockNewsPost }) {
   );
 }
 
-function NewsListItem({ post }: { post: MockNewsPost }) {
+function NewsListItem({ post }: { post: NewsPost }) {
   return (
     <Link
       href={`/nieuws/${post.slug}`}
@@ -94,9 +97,11 @@ function NewsListItem({ post }: { post: MockNewsPost }) {
   );
 }
 
-export default function NieuwsPage() {
-  const heroPosts = MOCK_NEWS_POSTS.slice(0, 3);
-  const latestPosts = MOCK_NEWS_POSTS.slice(0, 10);
+export default async function NieuwsPage() {
+  const realPosts = await listPersonnelNewsPosts();
+  const posts = realPosts.length > 0 ? realPosts : MOCK_NEWS_POSTS;
+  const heroPosts = posts.slice(0, 3);
+  const latestPosts = posts.slice(0, 10);
 
   return (
     <div className="min-h-screen bg-[#F6F8FB] px-3.5 pb-8 pt-4">
@@ -131,7 +136,7 @@ export default function NieuwsPage() {
             Laatste berichten
           </h2>
           <span className="text-xs font-bold" style={{ color: "var(--color-secondary)" }}>
-            10 van {MOCK_NEWS_POSTS.length}
+            {latestPosts.length} van {posts.length}
           </span>
         </div>
 

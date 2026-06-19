@@ -103,6 +103,23 @@ export const assignmentsTable = pgTable("assignments", {
   /** HH:MM */
   scheduledEnd:   varchar("scheduled_end", { length: 5 }),
 
+  /** When the assigned personnel member first opened the work order. */
+  seenAt:          timestamp("seen_at", { withTimezone: true }),
+  /** Actual start timestamp captured from the personnel PWA. */
+  actualStartedAt: timestamp("actual_started_at", { withTimezone: true }),
+  /** Actual completion or not-completed timestamp captured from the personnel PWA. */
+  actualCompletedAt: timestamp("actual_completed_at", { withTimezone: true }),
+  /** Reason selected by personnel when the work order cannot be completed. */
+  completionReason: varchar("completion_reason", { length: 160 }),
+  /** Optional personnel notes for completed/not-completed closeout. */
+  completionNotes: text("completion_notes"),
+  /** Whether customer signature is required before the personnel PWA can complete the work order. */
+  customerSignatureRequired: boolean("customer_signature_required").notNull().default(false),
+  /** Data URL for the captured customer signature. */
+  customerSignatureDataUrl: text("customer_signature_data_url"),
+  /** Timestamp for the customer signature capture. */
+  customerSignedAt: timestamp("customer_signed_at", { withTimezone: true }),
+
   /** Management-only internal notes. */
   notes:          text("notes"),
 

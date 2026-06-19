@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -74,6 +75,7 @@ const formSchema = z.object({
   scheduledEnd:   z.string(),
   notes:          z.string(),
   requiredRegion: z.string().max(100, "Maximaal 100 tekens"),
+  customerSignatureRequired: z.boolean(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -90,6 +92,7 @@ const DEFAULTS: FormValues = {
   scheduledEnd:   "",
   notes:          "",
   requiredRegion: "",
+  customerSignatureRequired: false,
 };
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -136,6 +139,7 @@ export function AssignmentForm({
   const objectIdVal   = watch("objectId") || "NONE";
   const statusVal     = watch("status")   || "requested";
   const priorityVal   = watch("priority") || "normal";
+  const signatureRequiredVal = watch("customerSignatureRequired") || false;
 
   // Load objects when customer changes
   useEffect(() => {
@@ -168,6 +172,7 @@ export function AssignmentForm({
         setValue("scheduledEnd",   a.scheduledEnd  ?? "");
         setValue("notes",          a.notes         ?? "");
         setValue("requiredRegion", a.requiredRegion ?? "");
+        setValue("customerSignatureRequired", Boolean(a.customerSignatureRequired));
       }
       setLoading(false);
     });
@@ -196,6 +201,7 @@ export function AssignmentForm({
         scheduledEnd:   parsed.data.scheduledEnd   || undefined,
         notes:          parsed.data.notes          || undefined,
         requiredRegion: parsed.data.requiredRegion || undefined,
+        customerSignatureRequired: parsed.data.customerSignatureRequired,
       };
 
       const result =
@@ -427,6 +433,27 @@ export function AssignmentForm({
       </section>
 
       {/* ── Actions ───────────────────────────────────── */}
+      <Separator />
+
+      <section>
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+          Afronding
+        </p>
+        <div className="flex items-center justify-between gap-4 rounded-xl border p-4" style={{ borderColor: "#E2E8F0", backgroundColor: "#F8FAFC" }}>
+          <div className="min-w-0">
+            <Label htmlFor="customerSignatureRequired">Klant-handtekening verplicht</Label>
+            <p className="mt-1 text-xs leading-5" style={{ color: "#64748B" }}>
+              Indien actief moet de medewerker bij gereedmelden een akkoord-handtekening van de klant vastleggen.
+            </p>
+          </div>
+          <Switch
+            id="customerSignatureRequired"
+            checked={signatureRequiredVal}
+            onCheckedChange={(checked) => setValue("customerSignatureRequired", checked, { shouldDirty: true })}
+          />
+        </div>
+      </section>
+
       <div className="flex justify-end gap-2 pt-2 border-t">
         <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>
           Annuleren

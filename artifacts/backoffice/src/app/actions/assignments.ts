@@ -84,6 +84,7 @@ export type AssignmentDetail = {
   scheduledEnd:   string | null;
   notes:          string | null;
   requiredRegion: string | null;
+  customerSignatureRequired: boolean;
   isActive:       boolean;
   customerId:     string;
   customerName:   string;
@@ -121,6 +122,7 @@ export type AssignmentFormInput = {
   scheduledEnd?:   string;
   notes?:          string;
   requiredRegion?: string;
+  customerSignatureRequired?: boolean;
 };
 
 export type WeekAssignment = {
@@ -315,6 +317,7 @@ export async function getAssignment(id: string): Promise<AssignmentDetail | null
       scheduledEnd:   assignmentsTable.scheduledEnd,
       notes:          assignmentsTable.notes,
       requiredRegion: assignmentsTable.requiredRegion,
+      customerSignatureRequired: assignmentsTable.customerSignatureRequired,
       isActive:       assignmentsTable.isActive,
       customerId:     assignmentsTable.customerId,
       customerName:   customersTable.name,
@@ -372,6 +375,7 @@ export async function getAssignment(id: string): Promise<AssignmentDetail | null
     scheduledStart: row.scheduledStart ?? null,
     scheduledEnd:   row.scheduledEnd   ?? null,
     requiredRegion: row.requiredRegion ?? null,
+    customerSignatureRequired: row.customerSignatureRequired,
     createdAt:    row.createdAt.toISOString(),
     updatedAt:    row.updatedAt.toISOString(),
     personnel: personnel.map((p) => ({
@@ -1532,6 +1536,7 @@ export async function createAssignment(
     scheduledEnd:   data.scheduledEnd           || null,
     notes:          data.notes?.trim()          || null,
     requiredRegion: data.requiredRegion?.trim() || null,
+    customerSignatureRequired: Boolean(data.customerSignatureRequired),
     createdBy:      user.id,
   };
 
@@ -1591,6 +1596,7 @@ export async function updateAssignment(
     scheduledEnd:   data.scheduledEnd           || null,
     notes:          data.notes?.trim()          || null,
     requiredRegion: data.requiredRegion?.trim() || null,
+    customerSignatureRequired: Boolean(data.customerSignatureRequired),
   };
 
   const parsed = updateAssignmentSchema.safeParse(payload);

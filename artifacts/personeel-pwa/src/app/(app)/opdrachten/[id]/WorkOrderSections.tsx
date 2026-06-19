@@ -1,109 +1,20 @@
 import Link from "next/link";
-import { Check, ChevronRight, Play, X } from "lucide-react";
+import { Check, ChevronRight } from "lucide-react";
 import type { ExtraWorkItem } from "@/actions/extra-work";
+import { InteractiveStatusProgress } from "./WorkOrderStatusProgress";
 import {
-  FAILED_FINAL_STATUSES,
-  STEP_LABELS,
   calculateExtraWorkLineTotal,
   calculateMaterialLineTotal,
   formatMoney,
   formatQuantity,
-  formatTimeSlot,
-  getActiveStep,
   getTaskCompletionCount,
   parseNumber,
   type AssignmentView,
   type MaterialUsageItem,
 } from "./work-order-data";
 
-function StepCircle({
-  index,
-  activeStep,
-  failedFinal,
-}: {
-  index: number;
-  activeStep: number;
-  failedFinal: boolean;
-}) {
-  const isDone = index < activeStep;
-  const isActive = index === activeStep;
-  const isFailedFinal = failedFinal && index === 2;
-
-  if (isFailedFinal) {
-    return (
-      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FEE2E2] text-[#DC2626] ring-4 ring-[#FFF1F1]">
-        <X size={19} strokeWidth={2.7} />
-      </span>
-    );
-  }
-
-  if (isActive) {
-    return (
-      <span
-        className="flex h-10 w-10 items-center justify-center rounded-full text-white ring-4 ring-[#B9F0EE]"
-        style={{ backgroundColor: "var(--color-accent)" }}
-      >
-        {index === 1 ? <Play size={18} fill="currentColor" strokeWidth={2.4} /> : <Check size={20} strokeWidth={2.7} />}
-      </span>
-    );
-  }
-
-  if (isDone) {
-    return (
-      <span className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#18BDB8] bg-white text-[#18BDB8]">
-        <Check size={20} strokeWidth={2.7} />
-      </span>
-    );
-  }
-
-  return (
-    <span className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#D7DDE8] bg-[#E7EBF2] ring-4 ring-[#F1F3F7]" />
-  );
-}
-
 export function StatusProgress({ assignment }: { assignment: AssignmentView }) {
-  const activeStep = getActiveStep(assignment.status);
-  const failedFinal = FAILED_FINAL_STATUSES.has(assignment.status);
-
-  return (
-    <section className="rounded-[18px] bg-white px-5 py-4 shadow-sm" style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}>
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-[15px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
-          Status werkbon
-        </h2>
-        <span className="text-[15px] font-black" style={{ color: "var(--color-primary)" }}>
-          {formatTimeSlot(assignment.scheduledStart, assignment.scheduledEnd)}
-        </span>
-      </div>
-
-      <div className="mt-6 flex items-start">
-        {STEP_LABELS.map((label, index) => {
-          const lineIsDone = index < activeStep;
-          const lineIsFailed = failedFinal && index === 1;
-
-          return (
-            <div key={label} className="contents">
-              <div className="flex w-16 shrink-0 flex-col items-center">
-                <StepCircle index={index} activeStep={activeStep} failedFinal={failedFinal} />
-                <span
-                  className="mt-2 text-[12px] font-bold"
-                  style={{ color: index === activeStep && !failedFinal ? "var(--color-accent)" : "var(--color-secondary)" }}
-                >
-                  {label}
-                </span>
-              </div>
-              {index < STEP_LABELS.length - 1 ? (
-                <div
-                  className="mt-5 h-0.5 flex-1"
-                  style={{ backgroundColor: lineIsFailed ? "#FCA5A5" : lineIsDone ? "var(--color-accent)" : "#D7DDE8" }}
-                />
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
+  return <InteractiveStatusProgress assignment={assignment} />;
 }
 
 export function InfoRow({ label, value }: { label: string; value: string }) {

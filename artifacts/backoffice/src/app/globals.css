@@ -207,4 +207,49 @@
   .sidebar-link.active svg {
     color: #FFFFFF;
   }
+
+  .news-editor .ProseMirror {
+    min-height: 360px;
+    padding: 18px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #0F172A;
+    outline: none;
+  }
+  .news-editor .ProseMirror p {
+    margin: 0 0 0.9em;
+  }
+  .news-editor .ProseMirror h2,
+  .news-editor .ProseMirror h3 {
+    margin: 1.2em 0 0.45em;
+    font-family: var(--font-poppins), 'Poppins', system-ui, sans-serif;
+    color: #081D3A;
+  }
+  .news-editor .ProseMirror h2 {
+    font-size: 20px;
+  }
+  .news-editor .ProseMirror h3 {
+    font-size: 16px;
+  }
+  .news-editor .ProseMirror ul,
+  .news-editor .ProseMirror ol {
+    margin: 0.7em 0 1em 1.3em;
+  }
+  .news-editor .ProseMirror blockquote {
+    margin: 1em 0;
+    border-left: 3px solid #00B7B3;
+    padding-left: 12px;
+    color: #334155;
+  }
+  .news-editor .ProseMirror a {
+    color: #007E7A;
+    text-decoration: underline;
+  }
+  .news-editor .ProseMirror p.is-editor-empty:first-child::before {
+    content: attr(data-placeholder);
+    float: left;
+    height: 0;
+    color: #94A3B8;
+    pointer-events: none;
+  }
 }
