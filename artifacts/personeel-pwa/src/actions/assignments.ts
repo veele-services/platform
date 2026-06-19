@@ -12,6 +12,7 @@ export type MyAssignment = {
   scheduledEnd:     string | null;
   status:           string;
   customerName:     string | null;
+  objectName:       string | null;
   objectAddress:    string | null;
   objectCity:       string | null;
   objectPostalCode: string | null;
@@ -60,7 +61,7 @@ export async function getMyAssignments(): Promise<MyAssignment[]> {
         id, code, title, scheduled_date, scheduled_start, scheduled_end, status,
         required_region,
         customers(name),
-        objects(address, city, postal_code)
+        objects(name, address, city, postal_code)
       )
     `)
     .eq("personnel_id", personnel.id)
@@ -81,6 +82,7 @@ export async function getMyAssignments(): Promise<MyAssignment[]> {
         scheduledEnd:     a.scheduled_end ?? null,
         status:           a.status,
         customerName:     a.customers?.name ?? null,
+        objectName:       a.objects?.name ?? null,
         objectAddress:    a.objects?.address ?? null,
         objectCity:       a.objects?.city ?? null,
         objectPostalCode: a.objects?.postal_code ?? null,
@@ -116,7 +118,7 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
         id, code, title, description, scheduled_date, scheduled_start, scheduled_end, status,
         required_region,
         customers(name),
-        objects(address, city, postal_code),
+        objects(name, address, city, postal_code),
         assignment_tasks(id, sort_order, notes)
       )
     `)
@@ -141,6 +143,7 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
     scheduledEnd:     a.scheduled_end ?? null,
     status:           a.status,
     customerName:     a.customers?.name ?? null,
+    objectName:       a.objects?.name ?? null,
     objectAddress:    a.objects?.address ?? null,
     objectCity:       a.objects?.city ?? null,
     objectPostalCode: a.objects?.postal_code ?? null,

@@ -4,78 +4,59 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home,
-  ClipboardList,
-  ClipboardCheck,
+  Newspaper,
+  CalendarDays,
   Clock,
-  Calendar,
-  User,
+  Menu,
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/",                icon: Home,           label: "Home"       },
-  { href: "/opdrachten",      icon: ClipboardList,  label: "Opdrachten" },
-  { href: "/openstaand",      icon: ClipboardCheck, label: "Openstaand" },
-  { href: "/uren",            icon: Clock,          label: "Uren"       },
-  { href: "/beschikbaarheid", icon: Calendar,       label: "Beschikbaar"},
-  { href: "/profiel",         icon: User,           label: "Profiel"    },
+  { href: "/",           icon: Home,         label: "Home",     match: ["/"] },
+  { href: "/nieuws",     icon: Newspaper,    label: "Nieuws",   match: ["/nieuws"] },
+  { href: "/opdrachten", icon: CalendarDays, label: "Planning", match: ["/opdrachten", "/openstaand"] },
+  { href: "/uren",       icon: Clock,        label: "Uren",     match: ["/uren"] },
+  { href: "/meer",       icon: Menu,         label: "Meer",     match: ["/meer", "/profiel", "/documenten", "/verlof", "/beschikbaarheid"] },
 ];
 
 export function BottomNav() {
   const pathname = usePathname();
 
   return (
-    <nav
-      className="fixed bottom-0 left-0 right-0 border-t bg-white"
-      style={{
-        borderColor:   "var(--color-border)",
-        paddingBottom: "var(--safe-bottom)",
-        boxShadow:     "0 -1px 8px rgba(8,29,58,0.06)",
-        zIndex:        50,
-      }}
-    >
-      <div className="flex items-stretch">
+    <nav className="fixed inset-x-0 bottom-0 z-50 md:hidden">
+      <div
+        className="mx-3 mb-[calc(0.75rem+var(--safe-bottom))] flex items-stretch rounded-[24px] px-2 py-2 shadow-2xl"
+        style={{ backgroundColor: "#061F44", boxShadow: "0 18px 44px rgba(6,31,68,0.28)" }}
+      >
         {NAV_ITEMS.map((item) => {
-          const isActive =
-            item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+          const isActive = item.match.some((path) =>
+            path === "/" ? pathname === "/" : pathname.startsWith(path),
+          );
           const Icon = item.icon;
 
           return (
             <Link
               key={item.href}
               href={item.href}
-              className="relative flex flex-1 flex-col items-center justify-center gap-1 py-2.5 transition-colors"
-              style={{ color: isActive ? "var(--color-accent)" : "var(--color-secondary)" }}
+              className="relative flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 transition-colors"
+              style={{ color: isActive ? "#FFFFFF" : "rgba(255,255,255,0.62)" }}
             >
-              {/* Active indicator line at top */}
-              {isActive && (
-                <span
-                  className="absolute top-0 left-1/2 -translate-x-1/2 rounded-b-full"
-                  style={{
-                    width:           "28px",
-                    height:          "3px",
-                    backgroundColor: "var(--color-accent)",
-                  }}
-                />
-              )}
-
-              {/* Icon with filled-look background when active */}
               <span
-                className="flex items-center justify-center rounded-xl transition-all"
+                className="relative flex items-center justify-center rounded-2xl transition-all"
                 style={{
-                  width:           "36px",
-                  height:          "28px",
-                  backgroundColor: isActive ? "rgba(0,183,179,0.12)" : "transparent",
+                  width:           "38px",
+                  height:          "30px",
+                  backgroundColor: isActive ? "rgba(255,255,255,0.12)" : "transparent",
                 }}
               >
                 <Icon
-                  size={20}
+                  size={21}
                   strokeWidth={isActive ? 2.5 : 1.75}
                 />
               </span>
 
               <span
-                className="font-medium leading-none"
-                style={{ fontSize: "10px" }}
+                className="font-semibold leading-none"
+                style={{ fontSize: "11px", color: isActive ? "var(--color-accent)" : "rgba(255,255,255,0.72)" }}
               >
                 {item.label}
               </span>
