@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Play, X } from "lucide-react";
 import { startAssignment } from "@/actions/assignments";
@@ -112,19 +112,11 @@ function FinishChoiceDialog({
 
 export function InteractiveStatusProgress({ assignment }: Props) {
   const router = useRouter();
-  const [localStatus, setLocalStatus] = useState<string | null>(null);
-  const [localStartedAt, setLocalStartedAt] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [finishDialogOpen, setFinishDialogOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const effectiveAssignment = useMemo<AssignmentView>(() => ({
-    ...assignment,
-    status:          localStatus ?? assignment.status,
-    actualStartedAt: localStartedAt ?? assignment.actualStartedAt,
-  }), [assignment, localStartedAt, localStatus]);
-
-  const status = effectiveAssignment.status;
+  const status = assignment.status;
   const activeStep = getActiveStep(status);
   const failedFinal = FAILED_FINAL_STATUSES.has(status);
   const finished = FINISHED_STATUSES.has(status);
@@ -136,12 +128,6 @@ export function InteractiveStatusProgress({ assignment }: Props) {
     if (!canStart || isPending) return;
     const confirmed = window.confirm("Weet je zeker dat je aan de werkzaamheden gaat beginnen?");
     if (!confirmed) return;
-
-    if (assignment.isMock) {
-      setLocalStatus("in_progress");
-      setLocalStartedAt(new Date().toISOString());
-      return;
-    }
 
     startTransition(async () => {
       const result = await startAssignment(assignment.id);
@@ -197,7 +183,7 @@ export function InteractiveStatusProgress({ assignment }: Props) {
           Status werkbon
         </h2>
         <span className="text-[15px] font-black" style={{ color: "var(--color-primary)" }}>
-          {getDisplayedTimeSlot(effectiveAssignment)}
+          {getDisplayedTimeSlot(assignment)}
         </span>
       </div>
 

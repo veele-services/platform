@@ -21,6 +21,8 @@ export type MyAssignment = {
   customerSignatureDataUrl: string | null;
   status:           string;
   customerName:     string | null;
+  contactName:      string | null;
+  phone:            string | null;
   objectName:       string | null;
   objectAddress:    string | null;
   objectCity:       string | null;
@@ -96,7 +98,7 @@ export async function getMyAssignments(): Promise<MyAssignment[]> {
         status,
         required_region,
         customers(name),
-        objects(name, address, city, postal_code)
+        objects(name, address, city, postal_code, contact_name, contact_phone)
       )
     `)
     .eq("personnel_id", personnel.id)
@@ -124,6 +126,8 @@ export async function getMyAssignments(): Promise<MyAssignment[]> {
         customerSignatureDataUrl: a.customer_signature_data_url ?? null,
         status:           a.status,
         customerName:     a.customers?.name ?? null,
+        contactName:      a.objects?.contact_name ?? null,
+        phone:            a.objects?.contact_phone ?? null,
         objectName:       a.objects?.name ?? null,
         objectAddress:    a.objects?.address ?? null,
         objectCity:       a.objects?.city ?? null,
@@ -164,7 +168,7 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
         status,
         required_region,
         customers(name),
-        objects(name, address, city, postal_code),
+        objects(name, address, city, postal_code, contact_name, contact_phone),
         assignment_tasks(id, sort_order, notes)
       )
     `)
@@ -196,6 +200,8 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
     customerSignatureDataUrl: a.customer_signature_data_url ?? null,
     status:           a.status,
     customerName:     a.customers?.name ?? null,
+    contactName:      a.objects?.contact_name ?? null,
+    phone:            a.objects?.contact_phone ?? null,
     objectName:       a.objects?.name ?? null,
     objectAddress:    a.objects?.address ?? null,
     objectCity:       a.objects?.city ?? null,

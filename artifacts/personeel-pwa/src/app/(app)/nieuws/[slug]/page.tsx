@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
-import { getMockNewsPost } from "@/lib/mock-news";
 import { getPersonnelNewsPost } from "@/actions/news";
 
 export const dynamic = "force-dynamic";
@@ -12,7 +11,7 @@ type Props = {
 
 export default async function NieuwsDetailPage({ params }: Props) {
   const { slug } = await params;
-  const post = (await getPersonnelNewsPost(slug)) ?? getMockNewsPost(slug);
+  const post = await getPersonnelNewsPost(slug);
 
   if (!post) notFound();
 

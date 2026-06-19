@@ -1,77 +1,29 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { CalendarDays, ChevronRight } from "lucide-react";
+import { getMyAssignments, type MyAssignment } from "@/actions/assignments";
 import { PlanningWeekStrip, type PlanningWeekDay } from "@/components/PlanningWeekStrip";
+import { FAILED_FINAL_STATUSES, FINISHED_STATUSES } from "./[id]/work-order-data";
 
-type PlanningStatus = "NIEUW" | "GEZIEN" | "GESTART" | "AFGEROND";
+type PlanningStatus = "NIEUW" | "GEZIEN" | "GESTART" | "AFGEROND" | "NIET AFGEROND";
 
-type MockPlanningItem = {
-  code: string;
-  time: string;
-  isNow?: boolean;
-  objectName: string;
-  contactName: string;
-  address: string;
-  postalCity: string;
-  phone: string;
-  status: PlanningStatus;
+type Props = {
+  searchParams: Promise<{ date?: string }>;
 };
 
-const MOCK_ITEMS: MockPlanningItem[] = [
-  {
-    code:        "SCH-2026-0600001",
-    time:        "08:00 - 10:00",
-    isNow:       true,
-    objectName:  "VvE Residentie Zeezicht",
-    contactName: "Chantal Veele",
-    address:     "Strandweg 14",
-    postalCity:  "2586 JK Den Haag",
-    phone:       "06-34108400",
-    status:      "NIEUW",
-  },
-  {
-    code:        "BEV-2026-0600002",
-    time:        "14:00 - 22:00",
-    objectName:  "Horeca De Haven",
-    contactName: "Michael Veele",
-    address:     "Westplein 8",
-    postalCity:  "3016 BM Rotterdam",
-    phone:       "06-24291576",
-    status:      "GEZIEN",
-  },
-  {
-    code:        "FAC-2026-0600003",
-    time:        "18:00 - 23:30",
-    objectName:  "Eventlocatie Houtrust",
-    contactName: "Danny de Groot",
-    address:     "Laan van Poot 353",
-    postalCity:  "2566 DA Den Haag",
-    phone:       "070-1234567",
-    status:      "GESTART",
-  },
-  {
-    code:        "SCH-2026-0600004",
-    time:        "07:30 - 09:00",
-    objectName:  "Kantoor Weststaete",
-    contactName: "Jeroen Smit",
-    address:     "Delftseplein 27",
-    postalCity:  "3013 AA Rotterdam",
-    phone:       "010-5551234",
-    status:      "AFGEROND",
-  },
-];
-
 const STATUS_STYLES: Record<PlanningStatus, { background: string; color: string }> = {
-  NIEUW:     { background: "#EAF5FF", color: "#2563A9" },
-  GEZIEN:    { background: "#E9FBF5", color: "#139873" },
-  GESTART:   { background: "#FFF4D8", color: "#C68212" },
-  AFGEROND:  { background: "#E6F8ED", color: "#249357" },
+  NIEUW:          { background: "#EAF5FF", color: "#2563A9" },
+  GEZIEN:         { background: "#E9FBF5", color: "#139873" },
+  GESTART:        { background: "#FFF4D8", color: "#C68212" },
+  AFGEROND:       { background: "#E6F8ED", color: "#249357" },
+  "NIET AFGEROND": { background: "#FEE2E2", color: "#DC2626" },
 };
 
 const DAY_LABELS = ["Zo", "Ma", "Di", "Wo", "Do", "Vr", "Za"];
-const DAYS_BEFORE_TODAY = 14;
+const DAYS_BEFORE_SELECTED = 14;
 const TOTAL_PLANNING_DAYS = 35;
+const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 function todayKey(): string {
   return new Intl.DateTimeFormat("en-CA", {
@@ -87,6 +39,11 @@ function parseDateKey(dateKey: string): Date {
   return new Date(Date.UTC(year, month - 1, day));
 }
 
+function isValidDateKey(value: string | null | undefined): value is string {
+  if (!value || !DATE_KEY_PATTERN.test(value)) return false;
+  return !Number.isNaN(parseDateKey(value).getTime());
+}
+
 function formatDateKey(date: Date): string {
   const year = date.getUTCFullYear();
   const month = String(date.getUTCMonth() + 1).padStart(2, "0");
@@ -94,23 +51,66 @@ function formatDateKey(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
-function getPlanningDays(): PlanningWeekDay[] {
-  const today = todayKey();
-  const todayDate = parseDateKey(today);
-  const firstDate = new Date(todayDate);
-  firstDate.setUTCDate(todayDate.getUTCDate() - DAYS_BEFORE_TODAY);
+function getPlanningDays(selectedDateKey: string): PlanningWeekDay[] {
+  const selectedDate = parseDateKey(selectedDateKey);
+  const firstDate = new Date(selectedDate);
+  firstDate.setUTCDate(selectedDate.getUTCDate() - DAYS_BEFORE_SELECTED);
 
   return Array.from({ length: TOTAL_PLANNING_DAYS }, (_, index) => {
     const date = new Date(firstDate);
     date.setUTCDate(firstDate.getUTCDate() + index);
+    const key = formatDateKey(date);
 
     return {
-      key:      formatDateKey(date),
+      key,
       label:    DAY_LABELS[date.getUTCDay()],
       day:      date.getUTCDate(),
-      isActive: formatDateKey(date) === today,
+      isActive: key === selectedDateKey,
+      href:     `/opdrachten?date=${key}`,
     };
   });
+}
+
+function formatSelectedDate(dateKey: string): string {
+  return new Date(`${dateKey}T00:00:00`).toLocaleDateString("nl-NL", {
+    weekday: "long",
+    day:     "numeric",
+    month:   "long",
+    year:    "numeric",
+  });
+}
+
+function formatTime(start: string | null, end: string | null): string {
+  if (start && end) return `${start.slice(0, 5)} - ${end.slice(0, 5)}`;
+  if (start) return `Vanaf ${start.slice(0, 5)}`;
+  if (end) return `Tot ${end.slice(0, 5)}`;
+  return "Tijd nog niet bekend";
+}
+
+function timeValue(value: string | null): string {
+  return value?.slice(0, 5) ?? "99:99";
+}
+
+function getPlanningStatus(assignment: MyAssignment): PlanningStatus {
+  if (FAILED_FINAL_STATUSES.has(assignment.status)) return "NIET AFGEROND";
+  if (FINISHED_STATUSES.has(assignment.status)) return "AFGEROND";
+  if (assignment.status === "in_progress") return "GESTART";
+  if (assignment.status === "seen" || assignment.seenAt) return "GEZIEN";
+  return "NIEUW";
+}
+
+function isAssignmentNow(assignment: MyAssignment, selectedDateKey: string): boolean {
+  if (selectedDateKey !== todayKey()) return false;
+  if (!assignment.scheduledStart || !assignment.scheduledEnd) return false;
+
+  const now = new Intl.DateTimeFormat("nl-NL", {
+    timeZone: "Europe/Amsterdam",
+    hour:     "2-digit",
+    minute:   "2-digit",
+    hour12:   false,
+  }).format(new Date());
+
+  return assignment.scheduledStart <= now && now <= assignment.scheduledEnd;
 }
 
 function RealtimeIndicator() {
@@ -137,24 +137,37 @@ function StatusPill({ status }: { status: PlanningStatus }) {
   );
 }
 
-function PlanningCard({ item }: { item: MockPlanningItem }) {
+function PlanningCard({
+  assignment,
+  selectedDateKey,
+}: {
+  assignment: MyAssignment;
+  selectedDateKey: string;
+}) {
+  const status = getPlanningStatus(assignment);
+  const objectName = assignment.objectName || assignment.title || "Object nog niet bekend";
+  const contactName = assignment.contactName || assignment.customerName || "Contactpersoon niet bekend";
+  const postalCity = [assignment.objectPostalCode, assignment.objectCity].filter(Boolean).join(" ");
+  const address = assignment.objectAddress || "Adres niet bekend";
+  const phone = assignment.phone || "Telefoonnummer niet bekend";
+
   return (
     <Link
-      href={`/opdrachten/${item.code}`}
+      href={`/opdrachten/${assignment.id}`}
       className="relative block rounded-[18px] bg-white px-4 py-3.5 shadow-sm active:scale-[0.99]"
-      aria-label={`Bekijk werkbon ${item.code}`}
+      aria-label={`Bekijk werkbon ${assignment.code || assignment.title}`}
       style={{ boxShadow: "0 10px 24px rgba(8,29,58,0.06)" }}
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="font-mono text-[12px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
-            {item.code}
+            {assignment.code || "Werkbon"}
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <p className="text-[21px] font-black leading-none tracking-tight" style={{ color: "var(--color-primary)" }}>
-              {item.time}
+              {formatTime(assignment.scheduledStart, assignment.scheduledEnd)}
             </p>
-            {item.isNow ? (
+            {isAssignmentNow(assignment, selectedDateKey) ? (
               <span className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase" style={{ color: "var(--color-accent)" }}>
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "var(--color-accent)" }} />
                 Nu
@@ -162,24 +175,26 @@ function PlanningCard({ item }: { item: MockPlanningItem }) {
             ) : null}
           </div>
         </div>
-        <StatusPill status={item.status} />
+        <StatusPill status={status} />
       </div>
 
       <div className="mt-2 pr-8">
         <h2 className="text-[16px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
-          {item.objectName}
+          {objectName}
         </h2>
         <p className="mt-1 text-[14px] font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
-          {item.contactName}
+          {contactName}
         </p>
         <p className="mt-0.5 text-[13px] font-medium leading-tight" style={{ color: "var(--color-primary)" }}>
-          {item.address}
+          {address}
         </p>
+        {postalCity ? (
+          <p className="mt-0.5 text-[13px] font-medium leading-tight" style={{ color: "var(--color-primary)" }}>
+            {postalCity}
+          </p>
+        ) : null}
         <p className="mt-0.5 text-[13px] font-medium leading-tight" style={{ color: "var(--color-primary)" }}>
-          {item.postalCity}
-        </p>
-        <p className="mt-0.5 text-[13px] font-medium leading-tight" style={{ color: "var(--color-primary)" }}>
-          {item.phone}
+          {phone}
         </p>
       </div>
 
@@ -193,8 +208,14 @@ function PlanningCard({ item }: { item: MockPlanningItem }) {
   );
 }
 
-export default function OpdrachtenPage() {
-  const planningDays = getPlanningDays();
+export default async function OpdrachtenPage({ searchParams }: Props) {
+  const { date } = await searchParams;
+  const selectedDateKey = isValidDateKey(date) ? date : todayKey();
+  const planningDays = getPlanningDays(selectedDateKey);
+  const assignments = await getMyAssignments();
+  const selectedAssignments = assignments
+    .filter((assignment) => assignment.scheduledDate === selectedDateKey)
+    .sort((a, b) => timeValue(a.scheduledStart).localeCompare(timeValue(b.scheduledStart)));
 
   return (
     <div className="min-h-screen bg-[#F6F8FB] md:rounded-[32px] md:bg-white">
@@ -203,17 +224,36 @@ export default function OpdrachtenPage() {
         style={{ background: "linear-gradient(180deg, #06224A 0%, #061F44 100%)" }}
       >
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <h1 className="text-[27px] font-black leading-none tracking-tight">Mijn planning</h1>
+          <div>
+            <h1 className="text-[27px] font-black leading-none tracking-tight">Mijn planning</h1>
+            <p className="mt-2 text-[13px] font-semibold capitalize text-white/65">
+              {formatSelectedDate(selectedDateKey)}
+            </p>
+          </div>
           <RealtimeIndicator />
         </div>
 
         <PlanningWeekStrip days={planningDays} />
       </section>
 
-      <section className="space-y-3 px-3.5 pb-8 pt-3">
-        {MOCK_ITEMS.map((item) => (
-          <PlanningCard key={item.code} item={item} />
-        ))}
+      <section className="space-y-3 px-3.5 pb-28 pt-3">
+        {selectedAssignments.length > 0 ? selectedAssignments.map((assignment) => (
+          <PlanningCard
+            key={assignment.id}
+            assignment={assignment}
+            selectedDateKey={selectedDateKey}
+          />
+        )) : (
+          <div className="rounded-[18px] bg-white px-5 py-8 text-center shadow-sm">
+            <CalendarDays size={30} className="mx-auto mb-3" style={{ color: "var(--color-muted-fg)" }} />
+            <p className="text-[15px] font-black" style={{ color: "var(--color-primary)" }}>
+              Geen werkbonnen op deze dag
+            </p>
+            <p className="mx-auto mt-1 max-w-[280px] text-[13px] leading-5" style={{ color: "var(--color-secondary)" }}>
+              Zodra planning je op een werkbon inplant, verschijnt deze hier op de juiste datum.
+            </p>
+          </div>
+        )}
       </section>
     </div>
   );

@@ -1,9 +1,7 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { Boxes, Lock } from "lucide-react";
 import {
-  MATERIAL_CATALOG,
   calculateMaterialLineTotal,
   formatMoney,
   formatQuantity,
@@ -14,78 +12,8 @@ type Props = {
   initialItems: MaterialUsageItem[];
 };
 
-type FormState = {
-  materialId: string;
-  name:       string;
-  quantity:   string;
-  unitPrice:  string;
-};
-
-const EMPTY_FORM: FormState = {
-  materialId: "",
-  name:       "",
-  quantity:   "1",
-  unitPrice:  "",
-};
-
-function parseNumber(value: string): number {
-  const parsed = Number.parseFloat(value.replace(",", "."));
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
 export function MaterialEditor({ initialItems }: Props) {
-  const [items, setItems] = useState<MaterialUsageItem[]>(initialItems);
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
-  const [error, setError] = useState<string | null>(null);
-
-  const lineTotal = useMemo(
-    () => parseNumber(form.quantity) * parseNumber(form.unitPrice),
-    [form.quantity, form.unitPrice],
-  );
-  const total = useMemo(
-    () => items.reduce((sum, item) => sum + calculateMaterialLineTotal(item), 0),
-    [items],
-  );
-
-  function handleMaterialChange(materialId: string) {
-    const material = MATERIAL_CATALOG.find((item) => item.id === materialId);
-    setForm((current) => ({
-      ...current,
-      materialId,
-      name:      material?.name ?? "",
-      quantity:  material ? String(material.quantity) : current.quantity,
-      unitPrice: material ? String(material.unitPrice) : "",
-    }));
-  }
-
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-
-    const name = form.name.trim();
-    const quantity = parseNumber(form.quantity);
-    const unitPrice = parseNumber(form.unitPrice);
-
-    if (!name) {
-      setError("Materiaal is verplicht");
-      return;
-    }
-    if (quantity <= 0) {
-      setError("Aantal moet groter zijn dan 0");
-      return;
-    }
-
-    setItems((current) => [
-      ...current,
-      {
-        id:        `local-material-${Date.now()}`,
-        name,
-        quantity,
-        unitPrice,
-      },
-    ]);
-    setForm(EMPTY_FORM);
-  }
+  const total = initialItems.reduce((sum, item) => sum + calculateMaterialLineTotal(item), 0);
 
   return (
     <section className="space-y-4 px-4 pb-28 pt-5">
@@ -100,8 +28,8 @@ export function MaterialEditor({ initialItems }: Props) {
         </div>
 
         <div className="mt-4 space-y-3">
-          {items.length > 0 ? items.map((item) => (
-            <div key={item.id} className="grid grid-cols-[1fr_auto_auto] items-center gap-3">
+          {initialItems.length > 0 ? initialItems.map((item) => (
+            <div key={item.id} className="grid grid-cols-[1fr_auto] items-center gap-3">
               <div className="min-w-0">
                 <p className="truncate text-[14px] font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
                   {item.name}
@@ -113,109 +41,39 @@ export function MaterialEditor({ initialItems }: Props) {
               <span className="text-[14px] font-black" style={{ color: "var(--color-primary)" }}>
                 {formatMoney(calculateMaterialLineTotal(item))}
               </span>
-              <button
-                type="button"
-                className="flex h-8 w-8 items-center justify-center rounded-full border"
-                style={{ borderColor: "#FECACA", color: "#DC2626" }}
-                onClick={() => setItems((current) => current.filter((currentItem) => currentItem.id !== item.id))}
-                aria-label="Materiaal verwijderen"
-              >
-                <Trash2 size={15} />
-              </button>
             </div>
           )) : (
-            <p className="py-2 text-[14px]" style={{ color: "var(--color-secondary)" }}>
-              Geen materiaal geregistreerd.
-            </p>
+            <div className="rounded-[18px] border border-dashed px-4 py-5 text-center" style={{ borderColor: "var(--color-border)" }}>
+              <Boxes size={28} className="mx-auto mb-2" style={{ color: "var(--color-muted-fg)" }} />
+              <p className="text-[14px] font-black" style={{ color: "var(--color-primary)" }}>
+                Geen materiaal geregistreerd
+              </p>
+              <p className="mx-auto mt-1 max-w-[280px] text-[13px] leading-5" style={{ color: "var(--color-secondary)" }}>
+                Materiaalregistratie wordt getoond zodra er een echte tenant-catalogus en opslag voor materialen is gekoppeld.
+              </p>
+            </div>
           )}
         </div>
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="rounded-[18px] bg-white px-5 py-4 shadow-sm"
-        style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}
-      >
-        <h3 className="text-[17px] font-black" style={{ color: "var(--color-primary)" }}>
-          Materiaal toevoegen
-        </h3>
-
-        <div className="mt-4 space-y-3">
-          <label className="block">
-            <span className="mb-1.5 block text-[12px] font-bold" style={{ color: "var(--color-secondary)" }}>
-              Materiaal
-            </span>
-            <select
-              value={form.materialId}
-              onChange={(event) => handleMaterialChange(event.target.value)}
-              className="w-full rounded-2xl border bg-white px-3 py-3 text-[14px] font-semibold outline-none"
-              style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
-            >
-              <option value="">Selecteer materiaal</option>
-              {MATERIAL_CATALOG.map((material) => (
-                <option key={material.id} value={material.id}>
-                  {material.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="mb-1.5 block text-[12px] font-bold" style={{ color: "var(--color-secondary)" }}>
-                Aantal
-              </span>
-              <input
-                type="number"
-                min="0"
-                step="0.25"
-                value={form.quantity}
-                onChange={(event) => setForm((current) => ({ ...current, quantity: event.target.value }))}
-                className="w-full rounded-2xl border px-3 py-3 text-[14px] font-semibold outline-none"
-                style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1.5 block text-[12px] font-bold" style={{ color: "var(--color-secondary)" }}>
-                Stukprijs
-              </span>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.unitPrice}
-                onChange={(event) => setForm((current) => ({ ...current, unitPrice: event.target.value }))}
-                className="w-full rounded-2xl border px-3 py-3 text-[14px] font-semibold outline-none"
-                style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
-              />
-            </label>
-          </div>
-
-          <div className="flex items-center justify-between rounded-2xl px-4 py-3" style={{ backgroundColor: "#F6F8FB" }}>
-            <span className="text-[13px] font-bold" style={{ color: "var(--color-secondary)" }}>
-              Regel totaal
-            </span>
-            <span className="text-[17px] font-black" style={{ color: "var(--color-primary)" }}>
-              {formatMoney(lineTotal)}
-            </span>
-          </div>
-
-          {error ? (
-            <p className="rounded-2xl px-3 py-2 text-[13px] font-bold" style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
-              {error}
-            </p>
-          ) : null}
-
-          <button
-            type="submit"
-            className="flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-[15px] font-black text-white"
-            style={{ backgroundColor: "var(--color-accent)" }}
+      <div className="rounded-[18px] border bg-white px-5 py-4 shadow-sm" style={{ borderColor: "var(--color-border)" }}>
+        <div className="flex items-start gap-3">
+          <span
+            className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
+            style={{ backgroundColor: "rgba(8,29,58,0.06)", color: "var(--color-primary)" }}
           >
-            <Plus size={17} />
-            Toevoegen
-          </button>
+            <Lock size={18} strokeWidth={2.4} />
+          </span>
+          <div>
+            <h3 className="text-[15px] font-black" style={{ color: "var(--color-primary)" }}>
+              Materiaal toevoegen nog niet actief
+            </h3>
+            <p className="mt-1 text-[13px] leading-5" style={{ color: "var(--color-secondary)" }}>
+              Deze pagina toont geen lokale voorbeelditems meer. Zodra materialen als echte workflowdata beschikbaar zijn, kan dit formulier daarop worden aangesloten.
+            </p>
+          </div>
         </div>
-      </form>
+      </div>
     </section>
   );
 }

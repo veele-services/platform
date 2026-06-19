@@ -6,13 +6,7 @@ import { getExtraWorkForAssignment } from "@/actions/extra-work";
 import { getMyReportForAssignment, getReportNotesForAssignment, type MyReport, type ReportNote } from "@/actions/reports";
 import { CompletionSummary } from "../CompletionSummary";
 import { WorkOrderHeader } from "../WorkOrderHeader";
-import {
-  MOCK_EXTRA_WORK,
-  MOCK_MATERIAL_ITEMS,
-  MOCK_REPORT_NOTES,
-  getMockAssignment,
-  type AssignmentView,
-} from "../work-order-data";
+import { type AssignmentView, type MaterialUsageItem } from "../work-order-data";
 
 type Props = {
   params:       Promise<{ id: string }>;
@@ -39,20 +33,17 @@ export default async function WorkOrderCompletionPage({ params, searchParams }: 
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const mode = getMode(query.result);
 
-  const databaseAssignment = await getMyAssignment(id);
-  const assignment = (databaseAssignment ?? getMockAssignment(id)) as AssignmentView | null;
+  const assignment = await getMyAssignment(id) as AssignmentView | null;
 
   if (!assignment) notFound();
 
-  const [report, extraWork, reportNotes] = databaseAssignment
-    ? await Promise.all([
-        getMyReportForAssignment(id),
-        getExtraWorkForAssignment(id),
-        getReportNotesForAssignment(id),
-      ])
-    : [null, MOCK_EXTRA_WORK, MOCK_REPORT_NOTES];
+  const [report, extraWork, reportNotes] = await Promise.all([
+    getMyReportForAssignment(id),
+    getExtraWorkForAssignment(id),
+    getReportNotesForAssignment(id),
+  ]);
 
-  const materialItems = assignment.isMock ? MOCK_MATERIAL_ITEMS : [];
+  const materialItems: MaterialUsageItem[] = [];
   const timelineNotes = reportNotes.length > 0 ? reportNotes : reportAsNote(report);
 
   return (

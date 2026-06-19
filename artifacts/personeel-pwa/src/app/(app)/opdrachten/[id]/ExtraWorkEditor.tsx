@@ -136,7 +136,7 @@ export function ExtraWorkEditor({ assignmentId, initialItems, taskCodes, canEdit
     setDeletingId(item.id);
     startTransition(async () => {
       try {
-        if (canPersist && !item.id.startsWith("local-") && !item.id.startsWith("mock-")) {
+        if (canPersist && !item.id.startsWith("local-")) {
           const result = await deleteExtraWork(item.id, assignmentId);
           if (!result.success) {
             setError(result.error ?? "Verwijderen mislukt");

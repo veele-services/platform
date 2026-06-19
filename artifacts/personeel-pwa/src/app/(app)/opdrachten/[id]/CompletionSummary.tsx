@@ -447,11 +447,6 @@ export function CompletionSummary({ assignment, mode, extraWork, materials, repo
       return;
     }
 
-    if (assignment.isMock) {
-      router.push(`/opdrachten/${assignment.id}`);
-      return;
-    }
-
     startTransition(async () => {
       const result = mode === "completed"
         ? await completeAssignment(assignment.id, { customerSignatureDataUrl: signatureDataUrl })

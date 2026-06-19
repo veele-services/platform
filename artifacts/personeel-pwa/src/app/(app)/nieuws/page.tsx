@@ -1,6 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
-import { MOCK_NEWS_POSTS, type MockNewsPost } from "@/lib/mock-news";
+import { ArrowRight, ChevronLeft, ChevronRight, Newspaper } from "lucide-react";
 import { listPersonnelNewsPosts, type PersonnelNewsPost } from "@/actions/news";
 import { MobilePageShell } from "@/components/MobilePageShell";
 
@@ -13,9 +12,7 @@ const clampTwoLines = {
   overflow:          "hidden",
 } as const;
 
-type NewsPost = MockNewsPost | PersonnelNewsPost;
-
-function HeroNewsCard({ post }: { post: NewsPost }) {
+function HeroNewsCard({ post }: { post: PersonnelNewsPost }) {
   return (
     <Link
       href={`/nieuws/${post.slug}`}
@@ -63,7 +60,7 @@ function HeroNewsCard({ post }: { post: NewsPost }) {
   );
 }
 
-function NewsListItem({ post }: { post: NewsPost }) {
+function NewsListItem({ post }: { post: PersonnelNewsPost }) {
   return (
     <Link
       href={`/nieuws/${post.slug}`}
@@ -99,10 +96,10 @@ function NewsListItem({ post }: { post: NewsPost }) {
 }
 
 export default async function NieuwsPage() {
-  const realPosts = await listPersonnelNewsPosts();
-  const posts = realPosts.length > 0 ? realPosts : MOCK_NEWS_POSTS;
+  const posts = await listPersonnelNewsPosts();
   const heroPosts = posts.slice(0, 3);
   const latestPosts = posts.slice(0, 10);
+  const hasMore = posts.length > 10;
 
   return (
     <MobilePageShell
@@ -110,14 +107,27 @@ export default async function NieuwsPage() {
       subtitle="Updates en berichten voor medewerkers."
     >
 
-      <section className="-mx-3.5 overflow-x-auto px-3.5 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-        <div className="flex snap-x snap-mandatory gap-3">
-          {heroPosts.map((post) => (
-            <HeroNewsCard key={post.slug} post={post} />
-          ))}
+      {posts.length === 0 ? (
+        <div className="rounded-[22px] bg-white px-5 py-8 text-center shadow-sm">
+          <Newspaper size={34} className="mx-auto mb-3" style={{ color: "var(--color-muted-fg)" }} />
+          <h2 className="text-[17px] font-black" style={{ color: "var(--color-primary)" }}>
+            Nog geen nieuwsberichten
+          </h2>
+          <p className="mx-auto mt-1 max-w-[300px] text-[13px] leading-5" style={{ color: "var(--color-secondary)" }}>
+            Gepubliceerde berichten uit de backoffice verschijnen hier zodra ze aan jou, je sector of alle medewerkers gericht zijn.
+          </p>
         </div>
-      </section>
+      ) : (
+        <section className="-mx-3.5 overflow-x-auto px-3.5 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <div className="flex snap-x snap-mandatory gap-3">
+            {heroPosts.map((post) => (
+              <HeroNewsCard key={post.slug} post={post} />
+            ))}
+          </div>
+        </section>
+      )}
 
+      {posts.length > 0 ? (
       <section className="mt-3">
         <div className="mb-3 flex items-center justify-between">
           <h2 className="text-lg font-black" style={{ color: "var(--color-primary)" }}>
@@ -153,21 +163,24 @@ export default async function NieuwsPage() {
           </button>
           <button
             type="button"
-            className="h-10 min-w-10 rounded-2xl border bg-white px-3 text-sm font-black"
+            className="h-10 min-w-10 rounded-2xl border bg-white px-3 text-sm font-black opacity-50"
             style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+            disabled
           >
             2
           </button>
           <button
             type="button"
-            className="flex h-10 w-10 items-center justify-center rounded-2xl border bg-white"
+            className={`flex h-10 w-10 items-center justify-center rounded-2xl border bg-white ${hasMore ? "" : "opacity-50"}`}
             style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
             aria-label="Volgende pagina"
+            disabled={!hasMore}
           >
             <ChevronRight size={18} strokeWidth={2.4} />
           </button>
         </div>
       </section>
+      ) : null}
     </MobilePageShell>
   );
 }
