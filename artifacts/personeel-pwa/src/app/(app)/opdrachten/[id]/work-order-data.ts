@@ -1,5 +1,6 @@
 import type { MyAssignmentDetail } from "@/actions/assignments";
 import type { ExtraWorkItem, TaskCodeOption } from "@/actions/extra-work";
+import type { ReportNote } from "@/actions/reports";
 
 export type WorkOrderTab = "home" | "werkzaamheden" | "rapportage";
 
@@ -188,6 +189,47 @@ export const MOCK_MATERIAL_ITEMS: MaterialUsageItem[] = [
     name:      "Reinigingsdoek industrieel",
     quantity:  2,
     unitPrice: 4.75,
+  },
+];
+
+export const MOCK_REPORT_NOTES: ReportNote[] = [
+  {
+    id:          "mock-report-note-1",
+    body:        "Regulier onderhoud uitgevoerd.\nInstallatie werkt naar behoren.\nNoodverlichting vervangen als meerwerk.",
+    authorName:  "Veele Services",
+    createdAt:   "2026-06-19T14:58:00.000+02:00",
+    attachments: [],
+  },
+  {
+    id:          "mock-report-note-2",
+    body:        "Controle uitgevoerd op bewegende delen.\nAdvies: volgende onderhoudsbeurt volgens schema.",
+    authorName:  "Veele Services",
+    createdAt:   "2026-06-19T14:28:00.000+02:00",
+    attachments: [],
+  },
+  {
+    id:          "mock-report-note-3",
+    body:        "Noodverlichting unit 3 vervangen.\nTest uitgevoerd, werking OK.\nFoto bijgevoegd.",
+    authorName:  "Veele Services",
+    createdAt:   "2026-06-19T12:05:00.000+02:00",
+    attachments: [
+      {
+        id:          "mock-report-attachment-1",
+        storagePath: "mock/noodverlichting-unit3.jpg",
+        signedUrl:   null,
+        fileName:    "noodverlichting_unit3.jpg",
+        mimeType:    "image/jpeg",
+        fileSize:    1200000,
+        createdAt:   "2026-06-19T12:05:00.000+02:00",
+      },
+    ],
+  },
+  {
+    id:          "mock-report-note-4",
+    body:        "Start werkzaamheden.\nInstallatie visueel geinspecteerd.\nGeen bijzonderheden.",
+    authorName:  "Veele Services",
+    createdAt:   "2026-06-19T10:11:00.000+02:00",
+    attachments: [],
   },
 ];
 
