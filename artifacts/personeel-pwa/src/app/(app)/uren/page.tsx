@@ -4,6 +4,7 @@ import { Clock, ChevronLeft, ChevronRight } from "lucide-react";
 import Link from "next/link";
 import { getMyHours } from "@/actions/hours";
 import { getMyAssignmentsAwaitingReport } from "@/actions/reports";
+import { MobilePageShell } from "@/components/MobilePageShell";
 import { UrenRapportForm } from "./UrenRapportForm";
 
 type Props = {
@@ -46,10 +47,10 @@ export default async function UrenPage({ searchParams }: Props) {
   const totalAllTime = allMonths.reduce((sum, m) => sum + m.totalHours, 0);
 
   return (
-    <div className="space-y-4 p-4 md:p-0">
-      <h1 className="text-xl md:text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
-        Mijn uren
-      </h1>
+    <MobilePageShell
+      title="Uren"
+      subtitle="Registreer openstaande uren en bekijk je urenoverzicht."
+    >
 
       {/* ── Urenstaat: openstaande opdrachten indienen ─────────────── */}
       {pendingAssignments.length > 0 && (
@@ -247,6 +248,6 @@ export default async function UrenPage({ searchParams }: Props) {
           )}
         </>
       )}
-    </div>
+    </MobilePageShell>
   );
 }

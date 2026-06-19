@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { FolderOpen, FileText } from "lucide-react";
 import { getMyDocuments } from "@/actions/documents";
 import { DocumentDownloadButton } from "@/components/DocumentDownloadButton";
+import { MobilePageShell } from "@/components/MobilePageShell";
 
 function formatDate(isoStr: string): string {
   return new Date(isoStr).toLocaleDateString("nl-NL", {
@@ -30,11 +31,10 @@ export default async function DocumentenPage() {
   const documents = await getMyDocuments();
 
   return (
-    <div className="space-y-4 p-4 md:p-0">
-      <h1 className="text-xl md:text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
-        Mijn documenten
-      </h1>
-
+    <MobilePageShell
+      title="Documenten"
+      subtitle="Bestanden en formulieren die met jou gedeeld zijn."
+    >
       {documents.length === 0 ? (
         <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
           <FolderOpen size={32} className="mx-auto mb-3" style={{ color: "#94A3B8" }} />
@@ -72,6 +72,6 @@ export default async function DocumentenPage() {
           ))}
         </div>
       )}
-    </div>
+    </MobilePageShell>
   );
 }

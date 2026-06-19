@@ -1,6 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import { getMyLeavePeriods } from "@/actions/leave";
+import { MobilePageShell } from "@/components/MobilePageShell";
 import { VerlofForm } from "./VerlofForm";
 
 const LEAVE_TYPE_LABELS: Record<string, string> = {
@@ -30,11 +31,10 @@ export default async function VerlofPage() {
   const periods = await getMyLeavePeriods();
 
   return (
-    <div className="space-y-4 p-4 md:p-0">
-      <h1 className="text-xl md:text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
-        Verlof aanvragen
-      </h1>
-
+    <MobilePageShell
+      title="Verlof"
+      subtitle="Vraag verlof aan en bekijk je verlofhistorie."
+    >
       <div className="rounded-2xl bg-white p-4 shadow-sm">
         <h2 className="mb-4 font-semibold" style={{ color: "var(--color-primary)" }}>
           Nieuwe aanvraag
@@ -81,6 +81,6 @@ export default async function VerlofPage() {
           </div>
         </div>
       )}
-    </div>
+    </MobilePageShell>
   );
 }

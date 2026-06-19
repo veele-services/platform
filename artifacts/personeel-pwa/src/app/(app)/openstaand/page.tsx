@@ -2,6 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { ClipboardCheck, Calendar, MapPin, Tag, AlertCircle, Globe } from "lucide-react";
 import { getOpenAssignments } from "@/actions/open-assignments";
+import { MobilePageShell } from "@/components/MobilePageShell";
 import { ApplyButton } from "./ApplyButton";
 
 const PRIORITY_LABELS: Record<string, string> = {
@@ -31,8 +32,11 @@ export default async function OpenstaandePage() {
   const applied = assignments.filter((a) => a.isAlreadyApplied);
 
   return (
-    <div className="space-y-4 p-4 md:p-0">
-      <div>
+    <MobilePageShell
+      title="Open diensten"
+      subtitle="Meld je aan als kandidaat; planning bevestigt de inzet."
+    >
+      <div className="hidden">
         <h1 className="text-xl md:text-2xl font-bold" style={{ color: "var(--color-primary)" }}>
           Openstaande opdrachten
         </h1>
@@ -84,7 +88,7 @@ export default async function OpenstaandePage() {
           </div>
         </section>
       )}
-    </div>
+    </MobilePageShell>
   );
 }
 

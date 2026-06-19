@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { MobileHeaderActions, VeeleLogo } from "@/components/MobileHeader";
+import { getMyTicketSummary } from "@/actions/messages";
+import { getMyNotificationSummary } from "@/actions/notifications";
 import { getHeaderStatus, type AssignmentView, type WorkOrderTab } from "./work-order-data";
 
 type Props = {
@@ -19,8 +21,12 @@ function tabHref(id: string, tab: WorkOrderTab): string {
   return `/opdrachten/${id}?tab=${tab}`;
 }
 
-export function WorkOrderHeader({ assignment, activeTab }: Props) {
+export async function WorkOrderHeader({ assignment, activeTab }: Props) {
   const statusBadge = getHeaderStatus(assignment.status);
+  const [notificationSummary, ticketSummary] = await Promise.all([
+    getMyNotificationSummary(),
+    getMyTicketSummary(),
+  ]);
 
   return (
     <section
@@ -39,7 +45,10 @@ export function WorkOrderHeader({ assignment, activeTab }: Props) {
           <VeeleLogo />
         </div>
 
-        <MobileHeaderActions />
+        <MobileHeaderActions
+          notificationSummary={notificationSummary}
+          ticketSummary={ticketSummary}
+        />
       </div>
 
       <div className="flex items-end justify-between gap-3 px-5 pb-7 pt-4">

@@ -13,6 +13,7 @@ import {
 import { getMyPersonnel } from "@/actions/personnel";
 import { getMyAssignments, type MyAssignment } from "@/actions/assignments";
 import { getOpenAssignments } from "@/actions/open-assignments";
+import { getMyNotificationSummary } from "@/actions/notifications";
 
 const ACTIVE_ASSIGNMENT_STATUSES = ["scheduled", "seen", "in_progress"];
 
@@ -123,10 +124,11 @@ function QuickLink({ href, label, Icon, badge }: QuickLinkProps) {
 export default async function DashboardPage() {
   const today = todayKey();
 
-  const [profile, allAssignments, openAssignments] = await Promise.all([
+  const [profile, allAssignments, openAssignments, notificationSummary] = await Promise.all([
     getMyPersonnel(),
     getMyAssignments(),
     getOpenAssignments(),
+    getMyNotificationSummary(),
   ]);
 
   const firstName = profile?.firstName ?? "Medewerker";
@@ -245,7 +247,12 @@ export default async function DashboardPage() {
             <QuickLink href="/opdrachten" label="Mijn planning" Icon={CalendarDays} />
             <QuickLink href="/openstaand" label="Open diensten" Icon={ClipboardCheck} badge={openCount || undefined} />
             <QuickLink href="/uren" label="Uren registreren" Icon={Clock} />
-            <QuickLink href="/nieuws" label="Nieuws" Icon={Bell} />
+            <QuickLink
+              href="/meldingen"
+              label="Meldingen"
+              Icon={Bell}
+              badge={notificationSummary.unreadCount || undefined}
+            />
           </div>
         </div>
 

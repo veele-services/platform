@@ -22,3 +22,5 @@ export * from "./availability";
 export * from "./documents";
 export * from "./payments";
 export * from "./news";
+export * from "./personnel-notifications";
+export * from "./personnel-tickets";

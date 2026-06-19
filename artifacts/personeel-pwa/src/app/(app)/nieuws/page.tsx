@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ArrowRight, ChevronLeft, ChevronRight } from "lucide-react";
 import { MOCK_NEWS_POSTS, type MockNewsPost } from "@/lib/mock-news";
 import { listPersonnelNewsPosts, type PersonnelNewsPost } from "@/actions/news";
+import { MobilePageShell } from "@/components/MobilePageShell";
 
 export const dynamic = "force-dynamic";
 
@@ -104,23 +105,10 @@ export default async function NieuwsPage() {
   const latestPosts = posts.slice(0, 10);
 
   return (
-    <div className="min-h-screen bg-[#F6F8FB] px-3.5 pb-8 pt-4">
-      <div className="mb-4 flex items-end justify-between gap-3">
-        <div>
-          <h1 className="text-[27px] font-black leading-tight tracking-tight" style={{ color: "var(--color-primary)" }}>
-            Nieuws
-          </h1>
-          <p className="mt-1 text-sm" style={{ color: "var(--color-secondary)" }}>
-            Updates en berichten voor medewerkers.
-          </p>
-        </div>
-        <span
-          className="rounded-full px-2.5 py-1 text-[11px] font-black"
-          style={{ backgroundColor: "rgba(8,29,58,0.08)", color: "var(--color-primary)" }}
-        >
-          Prototype
-        </span>
-      </div>
+    <MobilePageShell
+      title="Nieuws"
+      subtitle="Updates en berichten voor medewerkers."
+    >
 
       <section className="-mx-3.5 overflow-x-auto px-3.5 pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <div className="flex snap-x snap-mandatory gap-3">
@@ -180,6 +168,6 @@ export default async function NieuwsPage() {
           </button>
         </div>
       </section>
-    </div>
+    </MobilePageShell>
   );
 }
