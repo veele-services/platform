@@ -10,7 +10,19 @@ import {
   auditLogTable,
   personnelTable,
 } from "@workspace/db";
-import { eq, and, or, asc, desc, sql, inArray, ilike, gte, lte, exists } from "drizzle-orm";
+import {
+  eq,
+  and,
+  or,
+  asc,
+  desc,
+  sql,
+  inArray,
+  ilike,
+  gte,
+  lte,
+  exists,
+} from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -22,76 +34,77 @@ export type { ActionResult };
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type OrgSettings = {
-  id:                 string;
-  naam:               string;
-  adres:              string | null;
-  kvkNummer:          string | null;
-  btwNummer:          string | null;
-  logoUrl:            string | null;
+  id: string;
+  naam: string;
+  adres: string | null;
+  kvkNummer: string | null;
+  btwNummer: string | null;
+  logoUrl: string | null;
   betaaltermijnDagen: number;
-  emailAfzender:      string | null;
-  smtpEnabled:        boolean;
-  smtpHost:           string | null;
-  smtpPort:           number | null;
-  smtpEncryption:     "none" | "starttls" | "tls";
-  smtpUsername:       string | null;
+  availabilityAdvanceDays: number;
+  emailAfzender: string | null;
+  smtpEnabled: boolean;
+  smtpHost: string | null;
+  smtpPort: number | null;
+  smtpEncryption: "none" | "starttls" | "tls";
+  smtpUsername: string | null;
   smtpPasswordConfigured: boolean;
-  smtpFromName:       string | null;
-  smtpFromEmail:      string | null;
-  smtpReplyTo:        string | null;
-  notifRapportGoedgekeurd:  boolean;
-  notifRapportAfgekeurd:    boolean;
-  notifOfferteVerstuurd:    boolean;
-  notifOfferteVerlopen:     boolean;
+  smtpFromName: string | null;
+  smtpFromEmail: string | null;
+  smtpReplyTo: string | null;
+  notifRapportGoedgekeurd: boolean;
+  notifRapportAfgekeurd: boolean;
+  notifOfferteVerstuurd: boolean;
+  notifOfferteVerlopen: boolean;
   notifBetalingHerinnering: boolean;
-  notifHerinneringDagen:    number;
+  notifHerinneringDagen: number;
 };
 
 export type PermissionItem = {
-  id:          string;
-  resource:    string;
-  action:      string;
+  id: string;
+  resource: string;
+  action: string;
   description: string | null;
 };
 
 export type RoleRow = {
-  id:          string;
-  name:        string;
+  id: string;
+  name: string;
   description: string | null;
-  isSystem:    boolean;
-  userCount:   number;
-  permCount:   number;
+  isSystem: boolean;
+  userCount: number;
+  permCount: number;
 };
 
 export type RoleDetail = {
-  id:             string;
-  name:           string;
-  description:    string | null;
-  isSystem:       boolean;
-  permissions:    PermissionItem[];
+  id: string;
+  name: string;
+  description: string | null;
+  isSystem: boolean;
+  permissions: PermissionItem[];
   allPermissions: PermissionItem[];
 };
 
 export type UserRow = {
-  userId:    string;
-  name:      string | null;
-  email:     string;
-  roles:     string[];
-  roleIds:   string[];
-  status:    "actief" | "uitgenodigd" | "inactief";
+  userId: string;
+  name: string | null;
+  email: string;
+  roles: string[];
+  roleIds: string[];
+  status: "actief" | "uitgenodigd" | "inactief";
   createdAt: string;
 };
 
 export type AuditLogEntry = {
-  id:         string;
-  userId:     string;
-  userEmail:  string;
-  userName:   string | null;
-  action:     string;
-  resource:   string;
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string | null;
+  action: string;
+  resource: string;
   resourceId: string | null;
-  metadata:   Record<string, unknown> | null;
-  createdAt:  string;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
 };
 
 // ─── Organisation settings ────────────────────────────────────────────────────
@@ -99,71 +112,84 @@ export type AuditLogEntry = {
 export async function getOrganizationSettings(): Promise<OrgSettings | null> {
   await requirePermission("settings", "read");
 
-  const rows = await db
-    .select()
-    .from(organizationSettingsTable)
-    .limit(1);
+  const rows = await db.select().from(organizationSettingsTable).limit(1);
 
   if (rows.length === 0) return null;
   const r = rows[0];
   return {
-    id:                 r.id,
-    naam:               r.naam,
-    adres:              r.adres,
-    kvkNummer:          r.kvkNummer,
-    btwNummer:          r.btwNummer,
-    logoUrl:            r.logoUrl,
+    id: r.id,
+    naam: r.naam,
+    adres: r.adres,
+    kvkNummer: r.kvkNummer,
+    btwNummer: r.btwNummer,
+    logoUrl: r.logoUrl,
     betaaltermijnDagen: r.betaaltermijnDagen,
-    emailAfzender:      r.emailAfzender,
-    smtpEnabled:        r.smtpEnabled,
-    smtpHost:           r.smtpHost,
-    smtpPort:           r.smtpPort,
-    smtpEncryption:     (r.smtpEncryption as "none" | "starttls" | "tls") ?? "starttls",
-    smtpUsername:       r.smtpUsername,
+    availabilityAdvanceDays: r.availabilityAdvanceDays,
+    emailAfzender: r.emailAfzender,
+    smtpEnabled: r.smtpEnabled,
+    smtpHost: r.smtpHost,
+    smtpPort: r.smtpPort,
+    smtpEncryption:
+      (r.smtpEncryption as "none" | "starttls" | "tls") ?? "starttls",
+    smtpUsername: r.smtpUsername,
     smtpPasswordConfigured: Boolean(r.smtpPassword),
-    smtpFromName:       r.smtpFromName,
-    smtpFromEmail:      r.smtpFromEmail,
-    smtpReplyTo:        r.smtpReplyTo,
-    notifRapportGoedgekeurd:  r.notifRapportGoedgekeurd,
-    notifRapportAfgekeurd:    r.notifRapportAfgekeurd,
-    notifOfferteVerstuurd:    r.notifOfferteVerstuurd,
-    notifOfferteVerlopen:     r.notifOfferteVerlopen,
+    smtpFromName: r.smtpFromName,
+    smtpFromEmail: r.smtpFromEmail,
+    smtpReplyTo: r.smtpReplyTo,
+    notifRapportGoedgekeurd: r.notifRapportGoedgekeurd,
+    notifRapportAfgekeurd: r.notifRapportAfgekeurd,
+    notifOfferteVerstuurd: r.notifOfferteVerstuurd,
+    notifOfferteVerlopen: r.notifOfferteVerlopen,
     notifBetalingHerinnering: r.notifBetalingHerinnering,
-    notifHerinneringDagen:    r.notifHerinneringDagen,
+    notifHerinneringDagen: r.notifHerinneringDagen,
   };
 }
 
 export async function updateOrganizationSettings(data: {
-  naam?:               string;
-  adres?:              string | null;
-  kvkNummer?:          string | null;
-  btwNummer?:          string | null;
-  logoUrl?:            string | null;
+  naam?: string;
+  adres?: string | null;
+  kvkNummer?: string | null;
+  btwNummer?: string | null;
+  logoUrl?: string | null;
   betaaltermijnDagen?: number;
-  emailAfzender?:      string | null;
-  notifRapportGoedgekeurd?:  boolean;
-  notifRapportAfgekeurd?:    boolean;
-  notifOfferteVerstuurd?:    boolean;
-  notifOfferteVerlopen?:     boolean;
+  availabilityAdvanceDays?: number;
+  emailAfzender?: string | null;
+  notifRapportGoedgekeurd?: boolean;
+  notifRapportAfgekeurd?: boolean;
+  notifOfferteVerstuurd?: boolean;
+  notifOfferteVerlopen?: boolean;
   notifBetalingHerinnering?: boolean;
-  notifHerinneringDagen?:    number;
+  notifHerinneringDagen?: number;
 }): Promise<ActionResult> {
   await requirePermission("settings", "write");
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  if (
+    data.availabilityAdvanceDays !== undefined &&
+    (data.availabilityAdvanceDays < 7 || data.availabilityAdvanceDays > 365)
+  ) {
+    return {
+      success: false,
+      message:
+        "Beschikbaarheid vooruit invullen moet tussen 7 en 365 dagen liggen.",
+    };
+  }
 
   await db
     .update(organizationSettingsTable)
     .set({ ...data, updatedAt: new Date(), updatedBy: user.id });
 
   await db.insert(auditLogTable).values({
-    userId:    user.id,
-    action:    "update",
-    resource:  "settings",
+    userId: user.id,
+    action: "update",
+    resource: "settings",
     resourceId: "organization",
-    metadata:  { fields: Object.keys(data) },
+    metadata: { fields: Object.keys(data) },
   });
 
   revalidatePath("/instellingen/organisatie");
@@ -171,51 +197,73 @@ export async function updateOrganizationSettings(data: {
 }
 
 type MailSettingsInput = {
-  smtpEnabled:    boolean;
-  smtpHost:       string | null;
-  smtpPort:       number | null;
+  smtpEnabled: boolean;
+  smtpHost: string | null;
+  smtpPort: number | null;
   smtpEncryption: "none" | "starttls" | "tls";
-  smtpUsername:   string | null;
-  smtpPassword?:  string | null;
+  smtpUsername: string | null;
+  smtpPassword?: string | null;
   clearPassword?: boolean;
-  smtpFromName:   string | null;
-  smtpFromEmail:  string | null;
-  smtpReplyTo:    string | null;
+  smtpFromName: string | null;
+  smtpFromEmail: string | null;
+  smtpReplyTo: string | null;
 };
 
 function isEmailLike(value: string): boolean {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(value);
 }
 
-export async function updateMailSettings(data: MailSettingsInput): Promise<ActionResult> {
+export async function updateMailSettings(
+  data: MailSettingsInput,
+): Promise<ActionResult> {
   await requirePermission("settings", "write");
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const payload = {
-    smtpEnabled:    data.smtpEnabled,
-    smtpHost:       data.smtpHost?.trim() || null,
-    smtpPort:       data.smtpPort,
+    smtpEnabled: data.smtpEnabled,
+    smtpHost: data.smtpHost?.trim() || null,
+    smtpPort: data.smtpPort,
     smtpEncryption: data.smtpEncryption,
-    smtpUsername:   data.smtpUsername?.trim() || null,
-    smtpFromName:   data.smtpFromName?.trim() || null,
-    smtpFromEmail:  data.smtpFromEmail?.trim() || null,
-    smtpReplyTo:    data.smtpReplyTo?.trim() || null,
+    smtpUsername: data.smtpUsername?.trim() || null,
+    smtpFromName: data.smtpFromName?.trim() || null,
+    smtpFromEmail: data.smtpFromEmail?.trim() || null,
+    smtpReplyTo: data.smtpReplyTo?.trim() || null,
   };
 
   if (!["none", "starttls", "tls"].includes(payload.smtpEncryption)) {
     return { success: false, message: "Ongeldige SMTP-beveiliging." };
   }
-  if (payload.smtpPort != null && (payload.smtpPort < 1 || payload.smtpPort > 65535)) {
-    return { success: false, message: "SMTP-poort moet tussen 1 en 65535 liggen." };
+  if (
+    payload.smtpPort != null &&
+    (payload.smtpPort < 1 || payload.smtpPort > 65535)
+  ) {
+    return {
+      success: false,
+      message: "SMTP-poort moet tussen 1 en 65535 liggen.",
+    };
   }
   if (payload.smtpEnabled) {
-    if (!payload.smtpHost) return { success: false, message: "SMTP-host is verplicht wanneer SMTP actief is." };
-    if (!payload.smtpPort) return { success: false, message: "SMTP-poort is verplicht wanneer SMTP actief is." };
+    if (!payload.smtpHost)
+      return {
+        success: false,
+        message: "SMTP-host is verplicht wanneer SMTP actief is.",
+      };
+    if (!payload.smtpPort)
+      return {
+        success: false,
+        message: "SMTP-poort is verplicht wanneer SMTP actief is.",
+      };
     if (!payload.smtpFromEmail || !isEmailLike(payload.smtpFromEmail)) {
-      return { success: false, message: "Een geldig afzenderadres is verplicht wanneer SMTP actief is." };
+      return {
+        success: false,
+        message:
+          "Een geldig afzenderadres is verplicht wanneer SMTP actief is.",
+      };
     }
   }
   if (payload.smtpFromEmail && !isEmailLike(payload.smtpFromEmail)) {
@@ -240,16 +288,17 @@ export async function updateMailSettings(data: MailSettingsInput): Promise<Actio
   await db.update(organizationSettingsTable).set(updateData);
 
   await db.insert(auditLogTable).values({
-    userId:    user.id,
-    action:    "update_mail_settings",
-    resource:  "settings",
+    userId: user.id,
+    action: "update_mail_settings",
+    resource: "settings",
     resourceId: "mail",
-    metadata:  {
+    metadata: {
       smtpEnabled: payload.smtpEnabled,
       smtpHost: payload.smtpHost,
       smtpPort: payload.smtpPort,
       smtpEncryption: payload.smtpEncryption,
-      passwordChanged: Boolean(data.smtpPassword?.trim()) || Boolean(data.clearPassword),
+      passwordChanged:
+        Boolean(data.smtpPassword?.trim()) || Boolean(data.clearPassword),
     },
   });
 
@@ -258,11 +307,15 @@ export async function updateMailSettings(data: MailSettingsInput): Promise<Actio
   return { success: true };
 }
 
-export async function uploadOrgLogo(formData: FormData): Promise<ActionResult<{ url: string }>> {
+export async function uploadOrgLogo(
+  formData: FormData,
+): Promise<ActionResult<{ url: string }>> {
   await requirePermission("settings", "write");
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const file = formData.get("logo") as File | null;
@@ -274,35 +327,35 @@ export async function uploadOrgLogo(formData: FormData): Promise<ActionResult<{ 
     return { success: false, message: "Logo mag maximaal 2 MB zijn." };
   }
 
-  const ext   = file.name.split(".").pop() ?? "png";
-  const path  = `logo.${ext}`;
+  const ext = file.name.split(".").pop() ?? "png";
+  const path = `logo.${ext}`;
   const bytes = await file.arrayBuffer();
 
   const { error } = await supabase.storage
     .from("org-assets")
     .upload(path, bytes, {
       contentType: file.type,
-      upsert:      true,
+      upsert: true,
     });
 
   if (error) {
     return { success: false, message: `Upload mislukt: ${error.message}` };
   }
 
-  const { data: { publicUrl } } = supabase.storage
-    .from("org-assets")
-    .getPublicUrl(path);
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("org-assets").getPublicUrl(path);
 
   await db
     .update(organizationSettingsTable)
     .set({ logoUrl: publicUrl, updatedAt: new Date(), updatedBy: user.id });
 
   await db.insert(auditLogTable).values({
-    userId:    user.id,
-    action:    "update",
-    resource:  "settings",
+    userId: user.id,
+    action: "update",
+    resource: "settings",
     resourceId: "organization",
-    metadata:  { field: "logo_url" },
+    metadata: { field: "logo_url" },
   });
 
   revalidatePath("/instellingen/organisatie");
@@ -316,23 +369,23 @@ export async function listRoles(): Promise<RoleRow[]> {
 
   const rows = await db
     .select({
-      id:          rolesTable.id,
-      name:        rolesTable.name,
+      id: rolesTable.id,
+      name: rolesTable.name,
       description: rolesTable.description,
-      isSystem:    rolesTable.isSystem,
-      userCount:   sql<number>`(SELECT COUNT(*) FROM user_roles WHERE role_id = ${rolesTable.id})::int`,
-      permCount:   sql<number>`(SELECT COUNT(*) FROM role_permissions WHERE role_id = ${rolesTable.id})::int`,
+      isSystem: rolesTable.isSystem,
+      userCount: sql<number>`(SELECT COUNT(*) FROM user_roles WHERE role_id = ${rolesTable.id})::int`,
+      permCount: sql<number>`(SELECT COUNT(*) FROM role_permissions WHERE role_id = ${rolesTable.id})::int`,
     })
     .from(rolesTable)
     .orderBy(asc(rolesTable.name));
 
   return rows.map((r) => ({
-    id:          r.id,
-    name:        r.name,
+    id: r.id,
+    name: r.name,
     description: r.description,
-    isSystem:    r.isSystem,
-    userCount:   r.userCount,
-    permCount:   r.permCount,
+    isSystem: r.isSystem,
+    userCount: r.userCount,
+    permCount: r.permCount,
   }));
 }
 
@@ -348,7 +401,10 @@ export async function getRole(id: string): Promise<RoleDetail | null> {
   if (!role) return null;
 
   const [allPerms, rolePermRows] = await Promise.all([
-    db.select().from(permissionsTable).orderBy(asc(permissionsTable.resource), asc(permissionsTable.action)),
+    db
+      .select()
+      .from(permissionsTable)
+      .orderBy(asc(permissionsTable.resource), asc(permissionsTable.action)),
     db
       .select({ permissionId: rolePermissionsTable.permissionId })
       .from(rolePermissionsTable)
@@ -358,35 +414,37 @@ export async function getRole(id: string): Promise<RoleDetail | null> {
   const enabledIds = new Set(rolePermRows.map((r) => r.permissionId));
 
   return {
-    id:          role.id,
-    name:        role.name,
+    id: role.id,
+    name: role.name,
     description: role.description,
-    isSystem:    role.isSystem,
+    isSystem: role.isSystem,
     allPermissions: allPerms.map((p) => ({
-      id:          p.id,
-      resource:    p.resource,
-      action:      p.action,
+      id: p.id,
+      resource: p.resource,
+      action: p.action,
       description: p.description,
     })),
     permissions: allPerms
       .filter((p) => enabledIds.has(p.id))
       .map((p) => ({
-        id:          p.id,
-        resource:    p.resource,
-        action:      p.action,
+        id: p.id,
+        resource: p.resource,
+        action: p.action,
         description: p.description,
       })),
   };
 }
 
 export async function createRole(data: {
-  name:        string;
+  name: string;
   description: string | null;
 }): Promise<ActionResult<{ id: string }>> {
   await requirePermission("roles", "write");
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const name = data.name.trim();
@@ -407,11 +465,11 @@ export async function createRole(data: {
     .returning({ id: rolesTable.id });
 
   await db.insert(auditLogTable).values({
-    userId:    user.id,
-    action:    "create",
-    resource:  "roles",
+    userId: user.id,
+    action: "create",
+    resource: "roles",
     resourceId: inserted.id,
-    metadata:  { name },
+    metadata: { name },
   });
 
   revalidatePath("/instellingen/rollen");
@@ -423,14 +481,16 @@ export async function createRole(data: {
  * Used by the permission matrix checkboxes for optimistic per-toggle saves.
  */
 export async function toggleRolePermission(
-  roleId:       string,
+  roleId: string,
   permissionId: string,
-  enabled:      boolean,
+  enabled: boolean,
 ): Promise<ActionResult> {
   await requirePermission("roles", "write");
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   if (enabled) {
@@ -450,11 +510,11 @@ export async function toggleRolePermission(
   }
 
   await db.insert(auditLogTable).values({
-    userId:    user.id,
-    action:    enabled ? "grant_permission" : "revoke_permission",
-    resource:  "roles",
+    userId: user.id,
+    action: enabled ? "grant_permission" : "revoke_permission",
+    resource: "roles",
     resourceId: roleId,
-    metadata:  { permissionId, enabled },
+    metadata: { permissionId, enabled },
   });
 
   revalidatePath(`/instellingen/rollen/${roleId}`);
@@ -466,13 +526,15 @@ export async function toggleRolePermission(
  * Deletes all existing role-permissions and re-inserts the provided set.
  */
 export async function updateRolePermissions(
-  roleId:        string,
+  roleId: string,
   permissionIds: string[],
 ): Promise<ActionResult> {
   await requirePermission("roles", "write");
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   // Delete all existing and re-insert in a single transaction-like sequence
@@ -488,11 +550,11 @@ export async function updateRolePermissions(
   }
 
   await db.insert(auditLogTable).values({
-    userId:    user.id,
-    action:    "update_permissions",
-    resource:  "roles",
+    userId: user.id,
+    action: "update_permissions",
+    resource: "roles",
     resourceId: roleId,
-    metadata:  { permissionCount: permissionIds.length },
+    metadata: { permissionCount: permissionIds.length },
   });
 
   revalidatePath(`/instellingen/rollen/${roleId}`);
@@ -509,13 +571,13 @@ export async function listUsersWithRoles(): Promise<UserRow[]> {
   if (error) throw new Error(`Kan gebruikers niet ophalen: ${error.message}`);
 
   const authUsers = data.users;
-  const userIds   = authUsers.map((u) => u.id);
+  const userIds = authUsers.map((u) => u.id);
   if (userIds.length === 0) return [];
 
   const roleRows = await db
     .select({
-      userId:   userRolesTable.userId,
-      roleId:   rolesTable.id,
+      userId: userRolesTable.userId,
+      roleId: rolesTable.id,
       roleName: rolesTable.name,
     })
     .from(userRolesTable)
@@ -533,18 +595,19 @@ export async function listUsersWithRoles(): Promise<UserRow[]> {
   return authUsers.map((u) => {
     let status: UserRow["status"] = "actief";
     if (!u.confirmed_at) status = "uitgenodigd";
-    else if (u.banned_until && new Date(u.banned_until) > new Date()) status = "inactief";
+    else if (u.banned_until && new Date(u.banned_until) > new Date())
+      status = "inactief";
 
     // Extract name from auth metadata (set by invite/profile update)
     const meta = u.user_metadata as Record<string, unknown> | undefined;
     const name = (meta?.full_name ?? meta?.name ?? null) as string | null;
 
     return {
-      userId:    u.id,
+      userId: u.id,
       name,
-      email:     u.email ?? "",
-      roles:     rolesByUser.get(u.id)?.names ?? [],
-      roleIds:   rolesByUser.get(u.id)?.ids ?? [],
+      email: u.email ?? "",
+      roles: rolesByUser.get(u.id)?.names ?? [],
+      roleIds: rolesByUser.get(u.id)?.ids ?? [],
       status,
       createdAt: u.created_at,
     };
@@ -552,20 +615,23 @@ export async function listUsersWithRoles(): Promise<UserRow[]> {
 }
 
 export async function inviteUser(data: {
-  email:  string;
+  email: string;
   roleId: string;
 }): Promise<ActionResult> {
   await requirePermission("users", "write");
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const email = data.email.trim().toLowerCase();
   if (!email) return { success: false, message: "E-mailadres is verplicht." };
 
   const admin = createAdminClient();
-  const { data: inviteData, error } = await admin.auth.admin.inviteUserByEmail(email);
+  const { data: inviteData, error } =
+    await admin.auth.admin.inviteUserByEmail(email);
   if (error) {
     return { success: false, message: `Uitnodiging mislukt: ${error.message}` };
   }
@@ -584,11 +650,11 @@ export async function inviteUser(data: {
     .limit(1);
 
   await db.insert(auditLogTable).values({
-    userId:    user.id,
-    action:    "invite",
-    resource:  "users",
+    userId: user.id,
+    action: "invite",
+    resource: "users",
     resourceId: invitedUserId,
-    metadata:  { email, role: role?.name ?? data.roleId },
+    metadata: { email, role: role?.name ?? data.roleId },
   });
 
   revalidatePath("/instellingen/gebruikers");
@@ -599,11 +665,16 @@ export async function deactivateUser(userId: string): Promise<ActionResult> {
   await requirePermission("users", "write");
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   if (userId === user.id) {
-    return { success: false, message: "U kunt uw eigen account niet deactiveren." };
+    return {
+      success: false,
+      message: "U kunt uw eigen account niet deactiveren.",
+    };
   }
 
   const admin = createAdminClient();
@@ -615,11 +686,11 @@ export async function deactivateUser(userId: string): Promise<ActionResult> {
   }
 
   await db.insert(auditLogTable).values({
-    userId:    user.id,
-    action:    "deactivate",
-    resource:  "users",
+    userId: user.id,
+    action: "deactivate",
+    resource: "users",
     resourceId: userId,
-    metadata:  {},
+    metadata: {},
   });
 
   revalidatePath("/instellingen/gebruikers");
@@ -634,26 +705,37 @@ export async function resendInvite(userId: string): Promise<ActionResult> {
   await requirePermission("users", "write");
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const admin = createAdminClient();
-  const { data: targetUser, error: fetchError } = await admin.auth.admin.getUserById(userId);
+  const { data: targetUser, error: fetchError } =
+    await admin.auth.admin.getUserById(userId);
   if (fetchError || !targetUser.user.email) {
-    return { success: false, message: "Gebruiker niet gevonden of heeft geen e-mailadres." };
+    return {
+      success: false,
+      message: "Gebruiker niet gevonden of heeft geen e-mailadres.",
+    };
   }
 
-  const { error } = await admin.auth.admin.inviteUserByEmail(targetUser.user.email);
+  const { error } = await admin.auth.admin.inviteUserByEmail(
+    targetUser.user.email,
+  );
   if (error) {
-    return { success: false, message: `Opnieuw versturen mislukt: ${error.message}` };
+    return {
+      success: false,
+      message: `Opnieuw versturen mislukt: ${error.message}`,
+    };
   }
 
   await db.insert(auditLogTable).values({
-    userId:    user.id,
-    action:    "resend_invite",
-    resource:  "users",
+    userId: user.id,
+    action: "resend_invite",
+    resource: "users",
     resourceId: userId,
-    metadata:  { email: targetUser.user.email },
+    metadata: { email: targetUser.user.email },
   });
 
   revalidatePath("/instellingen/gebruikers");
@@ -668,18 +750,27 @@ export async function deleteRole(roleId: string): Promise<ActionResult> {
   await requirePermission("roles", "write");
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const [role] = await db
-    .select({ id: rolesTable.id, name: rolesTable.name, isSystem: rolesTable.isSystem })
+    .select({
+      id: rolesTable.id,
+      name: rolesTable.name,
+      isSystem: rolesTable.isSystem,
+    })
     .from(rolesTable)
     .where(eq(rolesTable.id, roleId))
     .limit(1);
 
   if (!role) return { success: false, message: "Rol niet gevonden." };
   if (role.isSystem) {
-    return { success: false, message: "Systeemrollen kunnen niet worden verwijderd." };
+    return {
+      success: false,
+      message: "Systeemrollen kunnen niet worden verwijderd.",
+    };
   }
 
   // Count only active users: personnel with is_active=true, or users not in
@@ -705,15 +796,17 @@ export async function deleteRole(roleId: string): Promise<ActionResult> {
     };
   }
 
-  await db.delete(rolePermissionsTable).where(eq(rolePermissionsTable.roleId, roleId));
+  await db
+    .delete(rolePermissionsTable)
+    .where(eq(rolePermissionsTable.roleId, roleId));
   await db.delete(rolesTable).where(eq(rolesTable.id, roleId));
 
   await db.insert(auditLogTable).values({
-    userId:    user.id,
-    action:    "delete",
-    resource:  "roles",
+    userId: user.id,
+    action: "delete",
+    resource: "roles",
     resourceId: roleId,
-    metadata:  { name: role.name },
+    metadata: { name: role.name },
   });
 
   revalidatePath("/instellingen/rollen");
@@ -721,17 +814,22 @@ export async function deleteRole(roleId: string): Promise<ActionResult> {
 }
 
 export async function updateUserRoles(
-  userId:  string,
+  userId: string,
   roleIds: string[],
 ): Promise<ActionResult> {
   await requirePermission("users", "write");
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   if (userId === user.id && roleIds.length === 0) {
-    return { success: false, message: "U kunt uw eigen rollen niet volledig verwijderen." };
+    return {
+      success: false,
+      message: "U kunt uw eigen rollen niet volledig verwijderen.",
+    };
   }
 
   await db.delete(userRolesTable).where(eq(userRolesTable.userId, userId));
@@ -743,19 +841,20 @@ export async function updateUserRoles(
       .onConflictDoNothing();
   }
 
-  const assignedRoles = roleIds.length > 0
-    ? await db
-        .select({ name: rolesTable.name })
-        .from(rolesTable)
-        .where(inArray(rolesTable.id, roleIds))
-    : [];
+  const assignedRoles =
+    roleIds.length > 0
+      ? await db
+          .select({ name: rolesTable.name })
+          .from(rolesTable)
+          .where(inArray(rolesTable.id, roleIds))
+      : [];
 
   await db.insert(auditLogTable).values({
-    userId:     user.id,
-    action:     "update_roles",
-    resource:   "users",
+    userId: user.id,
+    action: "update_roles",
+    resource: "users",
     resourceId: userId,
-    metadata:   { roleIds, roleNames: assignedRoles.map((r) => r.name) },
+    metadata: { roleIds, roleNames: assignedRoles.map((r) => r.name) },
   });
 
   revalidatePath("/instellingen/gebruikers");
@@ -769,23 +868,25 @@ const AUDIT_PAGE_SIZE = 25;
  * Resolves actor names via LEFT JOIN on personnelTable (for field staff)
  * and via the Supabase Admin API (for management users not in personnel).
  */
-export async function listAuditLog(params: {
-  page?:     number;
-  search?:   string;
-  module?:   string;
-  dateFrom?: string;
-  dateTo?:   string;
-  roleId?:   string;
-} = {}): Promise<{ entries: AuditLogEntry[]; total: number }> {
+export async function listAuditLog(
+  params: {
+    page?: number;
+    search?: string;
+    module?: string;
+    dateFrom?: string;
+    dateTo?: string;
+    roleId?: string;
+  } = {},
+): Promise<{ entries: AuditLogEntry[]; total: number }> {
   await requirePermission("settings", "read");
 
   const {
-    page     = 1,
-    search   = "",
-    module   = "",
+    page = 1,
+    search = "",
+    module = "",
     dateFrom = "",
-    dateTo   = "",
-    roleId   = "",
+    dateTo = "",
+    roleId = "",
   } = params;
 
   const conditions = [];
@@ -794,11 +895,11 @@ export async function listAuditLog(params: {
     const q = `%${search.trim()}%`;
     conditions.push(
       or(
-        ilike(auditLogTable.action,    q),
-        ilike(auditLogTable.resource,  q),
+        ilike(auditLogTable.action, q),
+        ilike(auditLogTable.resource, q),
         ilike(personnelTable.firstName, q),
-        ilike(personnelTable.lastName,  q),
-        ilike(personnelTable.email,     q),
+        ilike(personnelTable.lastName, q),
+        ilike(personnelTable.email, q),
       ),
     );
   }
@@ -836,16 +937,16 @@ export async function listAuditLog(params: {
   const [rows, [{ count }], adminData] = await Promise.all([
     db
       .select({
-        id:         auditLogTable.id,
-        userId:     auditLogTable.userId,
-        action:     auditLogTable.action,
-        resource:   auditLogTable.resource,
+        id: auditLogTable.id,
+        userId: auditLogTable.userId,
+        action: auditLogTable.action,
+        resource: auditLogTable.resource,
         resourceId: auditLogTable.resourceId,
-        metadata:   auditLogTable.metadata,
-        createdAt:  auditLogTable.createdAt,
+        metadata: auditLogTable.metadata,
+        createdAt: auditLogTable.createdAt,
         pFirstName: personnelTable.firstName,
-        pLastName:  personnelTable.lastName,
-        pEmail:     personnelTable.email,
+        pLastName: personnelTable.lastName,
+        pEmail: personnelTable.email,
       })
       .from(auditLogTable)
       .leftJoin(personnelTable, eq(personnelTable.userId, auditLogTable.userId))
@@ -865,26 +966,31 @@ export async function listAuditLog(params: {
 
   const authMap = new Map(
     (adminData.data?.users ?? []).map((u) => {
-      const meta = u.user_metadata as { full_name?: string; name?: string } | undefined;
-      return [u.id, { email: u.email ?? u.id, name: (meta?.full_name ?? meta?.name) ?? null }] as const;
+      const meta = u.user_metadata as
+        | { full_name?: string; name?: string }
+        | undefined;
+      return [
+        u.id,
+        { email: u.email ?? u.id, name: meta?.full_name ?? meta?.name ?? null },
+      ] as const;
     }),
   );
 
   return {
     entries: rows.map((r) => {
-      const personnelName = r.pFirstName && r.pLastName
-        ? `${r.pFirstName} ${r.pLastName}` : null;
+      const personnelName =
+        r.pFirstName && r.pLastName ? `${r.pFirstName} ${r.pLastName}` : null;
       const auth = authMap.get(r.userId);
       return {
-        id:         r.id,
-        userId:     r.userId,
-        userEmail:  r.pEmail ?? auth?.email ?? r.userId,
-        userName:   personnelName ?? auth?.name ?? null,
-        action:     r.action,
-        resource:   r.resource,
+        id: r.id,
+        userId: r.userId,
+        userEmail: r.pEmail ?? auth?.email ?? r.userId,
+        userName: personnelName ?? auth?.name ?? null,
+        action: r.action,
+        resource: r.resource,
         resourceId: r.resourceId,
-        metadata:   r.metadata as Record<string, unknown> | null,
-        createdAt:  r.createdAt.toISOString(),
+        metadata: r.metadata as Record<string, unknown> | null,
+        createdAt: r.createdAt.toISOString(),
       };
     }),
     total: count,
@@ -909,13 +1015,16 @@ export async function sendTestNotification(
     .limit(1);
 
   if (!orgSettings?.emailAfzender) {
-    return { success: false, message: "Geen afzenderadres ingesteld in organisatie-instellingen." };
+    return {
+      success: false,
+      message: "Geen afzenderadres ingesteld in organisatie-instellingen.",
+    };
   }
 
   const { sendEmailWithResult } = await import("@/lib/email");
 
   const subject = `Test: ${label}`;
-  const html    = `<!DOCTYPE html>
+  const html = `<!DOCTYPE html>
 <html lang="nl">
 <head><meta charset="utf-8"><title>${subject}</title></head>
 <body style="font-family:sans-serif;color:#1a1a1a;background:#f5f5f5;margin:0;padding:24px">
@@ -935,9 +1044,16 @@ export async function sendTestNotification(
 </body>
 </html>`;
 
-  const result = await sendEmailWithResult({ to: orgSettings.emailAfzender, subject, html });
+  const result = await sendEmailWithResult({
+    to: orgSettings.emailAfzender,
+    subject,
+    html,
+  });
   if (!result.success) {
-    return { success: false, message: result.error ?? "E-mail verzenden mislukt." };
+    return {
+      success: false,
+      message: result.error ?? "E-mail verzenden mislukt.",
+    };
   }
   return { success: true };
 }
@@ -959,16 +1075,17 @@ export async function sendTestMailSettings(
     sendEmailWithResult,
   } = await import("@/lib/email");
 
-  const message = template === "temporary_password"
-    ? buildTemporaryPasswordEmail({
-        recipientName:     "Testgebruiker",
-        portalName:        "Personeelsportaal",
-        loginUrl:          personeelPortalUrl(),
-        temporaryPassword: "Veele-Test-2026!",
-      })
-    : {
-        subject: "Test SMTP-instellingen Veele",
-        html: `<!DOCTYPE html>
+  const message =
+    template === "temporary_password"
+      ? buildTemporaryPasswordEmail({
+          recipientName: "Testgebruiker",
+          portalName: "Personeelsportaal",
+          loginUrl: personeelPortalUrl(),
+          temporaryPassword: "Veele-Test-2026!",
+        })
+      : {
+          subject: "Test SMTP-instellingen Veele",
+          html: `<!DOCTYPE html>
 <html lang="nl">
 <head><meta charset="utf-8"><title>Test SMTP-instellingen Veele</title></head>
 <body style="font-family:sans-serif;color:#1a1a1a;background:#f5f5f5;margin:0;padding:24px">
@@ -987,7 +1104,7 @@ export async function sendTestMailSettings(
   </div>
 </body>
 </html>`,
-      };
+        };
 
   const result = await sendEmailWithResult({
     to,
@@ -995,7 +1112,10 @@ export async function sendTestMailSettings(
     html: message.html,
   });
   if (!result.success) {
-    return { success: false, message: result.error ?? "Testmail verzenden mislukt." };
+    return {
+      success: false,
+      message: result.error ?? "Testmail verzenden mislukt.",
+    };
   }
 
   return { success: true };
