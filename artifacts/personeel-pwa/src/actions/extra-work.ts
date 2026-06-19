@@ -51,10 +51,11 @@ export type ExtraWorkItem = {
 };
 
 export type TaskCodeOption = {
-  id:    string;
-  code:  string;
-  name:  string;
-  price: string | null;
+  id:              string;
+  code:            string;
+  name:            string;
+  price:           string | null;
+  durationMinutes: number | null;
 };
 
 export type ExtraWorkInput = {
@@ -128,20 +129,22 @@ async function generateSignedUrl(storagePath: string): Promise<string | null> {
 export async function getActiveTaskCodes(): Promise<TaskCodeOption[]> {
   const rows = await db
     .select({
-      id:    taskCodesTable.id,
-      code:  taskCodesTable.code,
-      name:  taskCodesTable.name,
-      price: taskCodesTable.price,
+      id:              taskCodesTable.id,
+      code:            taskCodesTable.code,
+      name:            taskCodesTable.name,
+      price:           taskCodesTable.price,
+      durationMinutes: taskCodesTable.durationMinutes,
     })
     .from(taskCodesTable)
     .where(eq(taskCodesTable.isActive, true))
     .orderBy(asc(taskCodesTable.code));
 
   return rows.map((r) => ({
-    id:    r.id,
-    code:  r.code,
-    name:  r.name,
-    price: r.price ?? null,
+    id:              r.id,
+    code:            r.code,
+    name:            r.name,
+    price:           r.price ?? null,
+    durationMinutes: r.durationMinutes ?? null,
   }));
 }
 
@@ -224,6 +227,7 @@ export async function addExtraWork(
   if (!row) return { success: false, error: "Toevoegen mislukt" };
 
   revalidatePath(`/opdrachten/${assignmentId}`);
+  revalidatePath(`/opdrachten/${assignmentId}/meerwerk`);
   return { success: true, id: row.id };
 }
 
@@ -270,6 +274,7 @@ export async function updateExtraWork(
     .where(eq(assignmentExtraWorkTable.id, id));
 
   revalidatePath(`/opdrachten/${assignmentId}`);
+  revalidatePath(`/opdrachten/${assignmentId}/meerwerk`);
   return { success: true };
 }
 
@@ -316,6 +321,7 @@ export async function deleteExtraWork(
   await db.delete(assignmentExtraWorkTable).where(eq(assignmentExtraWorkTable.id, id));
 
   revalidatePath(`/opdrachten/${assignmentId}`);
+  revalidatePath(`/opdrachten/${assignmentId}/meerwerk`);
   return { success: true };
 }
 
