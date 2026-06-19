@@ -7,6 +7,7 @@ import {
   timestamp,
   integer,
   numeric,
+  bigint,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
@@ -189,12 +190,43 @@ export const assignmentPhotosTable = pgTable("assignment_photos", {
   createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
+/** Timeline notes written by personnel during assignment execution. */
+export const assignmentReportNotesTable = pgTable("assignment_report_notes", {
+  id:           uuid("id").primaryKey().defaultRandom(),
+  assignmentId: uuid("assignment_id")
+    .notNull()
+    .references(() => assignmentsTable.id, { onDelete: "cascade" }),
+  body:         text("body").notNull(),
+  createdBy:    uuid("created_by").notNull(),
+  createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:    timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+});
+
+/** Media attachments linked to a report timeline note. */
+export const assignmentReportNoteAttachmentsTable = pgTable("assignment_report_note_attachments", {
+  id:           uuid("id").primaryKey().defaultRandom(),
+  noteId:       uuid("note_id")
+    .notNull()
+    .references(() => assignmentReportNotesTable.id, { onDelete: "cascade" }),
+  assignmentId: uuid("assignment_id")
+    .notNull()
+    .references(() => assignmentsTable.id, { onDelete: "cascade" }),
+  storagePath:  text("storage_path").notNull(),
+  fileName:     text("file_name").notNull(),
+  mimeType:     varchar("mime_type", { length: 120 }),
+  fileSize:     bigint("file_size", { mode: "number" }),
+  uploadedBy:   uuid("uploaded_by").notNull(),
+  createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
 export type AssignmentExtraWork       = typeof assignmentExtraWorkTable.$inferSelect;
 export type InsertAssignmentExtraWork = typeof assignmentExtraWorkTable.$inferInsert;
 export type AssignmentPhoto           = typeof assignmentPhotosTable.$inferSelect;
 export type InsertAssignmentPhoto     = typeof assignmentPhotosTable.$inferInsert;
+export type AssignmentReportNote      = typeof assignmentReportNotesTable.$inferSelect;
+export type AssignmentReportNoteAttachment = typeof assignmentReportNoteAttachmentsTable.$inferSelect;
 
-// ─── Zod schemas ───────────────────────────────────────────────────────────────
+// ─── Zod schemas ──────────────────────────────────────────────────────────────
 
 export const insertAssignmentSchema = createInsertSchema(assignmentsTable).omit({
   id: true,

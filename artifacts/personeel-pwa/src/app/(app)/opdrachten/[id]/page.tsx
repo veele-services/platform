@@ -2,13 +2,10 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import { getMyAssignment } from "@/actions/assignments";
-import { getMyReportForAssignment } from "@/actions/reports";
+import { getMyReportForAssignment, getReportNotesForAssignment, type MyReport, type ReportNote } from "@/actions/reports";
 import { getExtraWorkForAssignment } from "@/actions/extra-work";
-import { InProgressButton } from "./InProgressButton";
-import { CompletionButtons } from "./CompletionButtons";
-import { RapportForm } from "./RapportForm";
-import { RapportDetail } from "./RapportDetail";
 import { SeenMarker } from "@/components/SeenMarker";
+import { RapportageTimeline } from "./RapportageTimeline";
 import { WorkOrderHeader } from "./WorkOrderHeader";
 import {
   CustomerInfoCard,
@@ -21,6 +18,7 @@ import {
 import {
   MOCK_EXTRA_WORK,
   MOCK_MATERIAL_ITEMS,
+  MOCK_REPORT_NOTES,
   getMockAssignment,
   type AssignmentView,
   type WorkOrderTab,
@@ -36,6 +34,18 @@ function getActiveTab(value: string | undefined): WorkOrderTab {
   return "home";
 }
 
+function reportAsNote(report: MyReport | null): ReportNote[] {
+  if (!report) return [];
+
+  return [{
+    id:          report.id,
+    body:        report.content,
+    authorName:  "Veele Services",
+    createdAt:   report.submittedAt,
+    attachments: [],
+  }];
+}
+
 export default async function WerkbonDetailPage({ params, searchParams }: Props) {
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const activeTab = getActiveTab(query.tab);
@@ -45,19 +55,18 @@ export default async function WerkbonDetailPage({ params, searchParams }: Props)
 
   if (!assignment) notFound();
 
-  const [report, extraWork] = databaseAssignment
+  const [report, extraWork, reportNotes] = databaseAssignment
     ? await Promise.all([
         getMyReportForAssignment(id),
         getExtraWorkForAssignment(id),
+        getReportNotesForAssignment(id),
       ])
-    : [null, MOCK_EXTRA_WORK];
+    : [null, MOCK_EXTRA_WORK, MOCK_REPORT_NOTES];
 
   const isScheduled = assignment.status === "scheduled";
-  const canStartWork = !assignment.isMock && ["plannable", "scheduled", "seen"].includes(assignment.status);
-  const canCompleteWork = !assignment.isMock && assignment.status === "in_progress";
-  const canSubmitReport = !assignment.isMock && (assignment.status === "completed" || assignment.status === "not_completed") && !report;
-  const showReport = !!report || assignment.status === "report_submitted" || assignment.status === "report_approved";
   const materialItems = assignment.isMock ? MOCK_MATERIAL_ITEMS : [];
+  const timelineNotes = reportNotes.length > 0 ? reportNotes : reportAsNote(report);
+  const canAddReportNote = !["invoice_ready", "invoiced", "paid", "closed"].includes(assignment.status);
 
   return (
     <div className="min-h-screen bg-[#F4F6FA] md:rounded-[32px] md:bg-white">
@@ -85,31 +94,12 @@ export default async function WerkbonDetailPage({ params, searchParams }: Props)
 
       {activeTab === "rapportage" ? (
         <section id="rapportage" className="space-y-4 px-4 pb-28 pt-5">
-          {canStartWork ? <InProgressButton assignmentId={assignment.id} /> : null}
-          {canCompleteWork ? <CompletionButtons assignmentId={assignment.id} /> : null}
-          {canSubmitReport ? (
-            <RapportForm
-              assignmentId={assignment.id}
-              assignmentStatus={assignment.status}
-              extraWorkItems={extraWork.map((i) => ({
-                id:          i.id,
-                description: i.description,
-                hours:       i.hours,
-                price:       i.price,
-              }))}
-            />
-          ) : null}
-          {showReport && report ? <RapportDetail report={report} /> : null}
-          {!canStartWork && !canCompleteWork && !canSubmitReport && !showReport ? (
-            <section className="rounded-[18px] bg-white px-5 py-5 shadow-sm" style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}>
-              <h2 className="text-[17px] font-black" style={{ color: "var(--color-primary)" }}>
-                Rapportage
-              </h2>
-              <p className="mt-2 text-[14px] leading-6" style={{ color: "var(--color-secondary)" }}>
-                Rapportage is beschikbaar zodra de werkbon is afgerond.
-              </p>
-            </section>
-          ) : null}
+          <RapportageTimeline
+            assignmentId={assignment.id}
+            initialNotes={timelineNotes}
+            canAdd={canAddReportNote}
+            canPersist={!assignment.isMock}
+          />
         </section>
       ) : null}
     </div>
