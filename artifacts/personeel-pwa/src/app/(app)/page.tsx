@@ -97,16 +97,16 @@ function QuickLink({ href, label, Icon, badge }: QuickLinkProps) {
   return (
     <Link
       href={href}
-      className="group relative flex min-h-[74px] items-center gap-3 rounded-2xl border bg-white px-3.5 py-3 shadow-sm transition active:scale-[0.98] sm:min-h-20 sm:px-4 sm:py-4"
+      className="group relative flex min-h-[62px] items-center gap-2.5 rounded-2xl border bg-white px-3 py-2.5 shadow-sm transition active:scale-[0.98] sm:min-h-20 sm:gap-3 sm:px-4 sm:py-4"
       style={{ borderColor: "rgba(226,232,240,0.9)", boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}
     >
       <span
-        className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition sm:h-11 sm:w-11"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition sm:h-11 sm:w-11 sm:rounded-2xl"
         style={{ backgroundColor: "rgba(0,183,179,0.09)", color: "var(--color-primary)" }}
       >
-        <Icon size={20} strokeWidth={2.2} />
+        <Icon size={17} strokeWidth={2.2} />
       </span>
-      <span className="min-w-0 flex-1 text-[13px] font-bold leading-tight sm:text-sm" style={{ color: "var(--color-primary)" }}>
+      <span className="min-w-0 flex-1 text-xs font-bold leading-tight sm:text-sm" style={{ color: "var(--color-primary)" }}>
         {label}
       </span>
       {badge ? (
@@ -139,21 +139,21 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#F6F8FB] md:rounded-[32px] md:bg-white">
       <section
-        className="relative overflow-hidden px-5 pb-[104px] pt-7 text-white md:rounded-[32px] md:px-6 md:pb-28 md:pt-9"
+        className="relative z-0 overflow-hidden px-5 pb-[76px] pt-5 text-white md:rounded-[32px] md:px-6 md:pb-28 md:pt-9"
         style={{ background: "linear-gradient(180deg, #06224A 0%, #061F44 100%)" }}
       >
         <div className="flex items-center justify-between">
           <Link href="/" className="flex items-center gap-2.5 md:gap-3" aria-label="Veele Services home">
-            <span className="relative flex h-10 w-10 items-center justify-center md:h-12 md:w-12">
+            <span className="relative flex h-8 w-8 items-center justify-center md:h-12 md:w-12">
               <span
-                className="absolute h-9 w-2.5 -rotate-[24deg] rounded-full md:h-11 md:w-3"
+                className="absolute h-8 w-2 -rotate-[24deg] rounded-full md:h-11 md:w-3"
                 style={{ backgroundColor: "#00B7B3" }}
               />
-              <span className="absolute h-9 w-2.5 rotate-[24deg] rounded-full bg-white md:h-11 md:w-3" />
+              <span className="absolute h-8 w-2 rotate-[24deg] rounded-full bg-white md:h-11 md:w-3" />
             </span>
             <span className="leading-none">
-              <span className="block text-[19px] font-black tracking-[0.22em] md:text-[22px]">VEELE</span>
-              <span className="mt-1 block text-[8px] font-bold tracking-[0.42em] md:text-[10px]" style={{ color: "#BFECEA" }}>
+              <span className="block text-[16px] font-black tracking-[0.22em] md:text-[22px]">VEELE</span>
+              <span className="mt-1 block text-[7px] font-bold tracking-[0.42em] md:text-[10px]" style={{ color: "#BFECEA" }}>
                 SERVICES
               </span>
             </span>
@@ -161,31 +161,31 @@ export default async function DashboardPage() {
 
           <Link
             href="/profiel"
-            className="flex h-10 w-10 items-center justify-center rounded-full bg-white text-[#061F44] shadow-lg active:scale-95 md:h-11 md:w-11"
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#061F44] shadow-lg active:scale-95 md:h-11 md:w-11"
             aria-label="Profiel"
           >
-            <UserCircle size={28} strokeWidth={2.5} />
+            <UserCircle size={25} strokeWidth={2.5} />
           </Link>
         </div>
 
-        <div className="mt-11 md:mt-12">
-          <h1 className="text-[30px] font-black leading-tight tracking-tight md:text-[34px]">
+        <div className="mt-9 md:mt-12">
+          <h1 className="text-[25px] font-black leading-tight tracking-tight md:text-[34px]">
             {getDayGreeting()}, {firstName}
           </h1>
-          <p className="mt-2.5 text-[19px] font-medium leading-none md:mt-3 md:text-[22px]" style={{ color: "rgba(255,255,255,0.72)" }}>
+          <p className="mt-2 text-[16px] font-medium leading-none md:mt-3 md:text-[22px]" style={{ color: "rgba(255,255,255,0.72)" }}>
             Welkom terug
           </p>
         </div>
       </section>
 
-      <section className="-mt-[92px] space-y-7 px-4 pb-7 md:-mt-20 md:space-y-8 md:px-5 md:pb-8">
-        <div className="rounded-[24px] bg-white p-3.5 shadow-xl sm:p-4" style={{ boxShadow: "0 22px 55px rgba(8,29,58,0.14)" }}>
-          <h2 className="px-1 pb-3 text-lg font-black sm:pb-4 sm:text-xl" style={{ color: "var(--color-primary)" }}>
+      <section className="relative z-10 -mt-[64px] space-y-6 px-3.5 pb-6 md:-mt-20 md:space-y-8 md:px-5 md:pb-8">
+        <div className="rounded-[22px] bg-white p-3 shadow-xl sm:p-4" style={{ boxShadow: "0 18px 42px rgba(8,29,58,0.16)" }}>
+          <h2 className="px-1 pb-2.5 text-base font-black sm:pb-4 sm:text-xl" style={{ color: "var(--color-primary)" }}>
             Eerstvolgende dienst
           </h2>
 
           {nextAssignment ? (
-            <div className="rounded-[18px] border bg-white p-3.5 shadow-sm sm:p-4" style={{ borderColor: "var(--color-border)" }}>
+            <div className="rounded-[18px] border bg-white p-3 shadow-sm sm:p-4" style={{ borderColor: "var(--color-border)" }}>
               <Link href={`/opdrachten/${nextAssignment.id}`} className="flex gap-3 sm:gap-4">
                 <span
                   className="mt-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-2xl sm:h-10 sm:w-10"
@@ -233,29 +233,29 @@ export default async function DashboardPage() {
 
               <Link
                 href={`/opdrachten/${nextAssignment.id}`}
-                className="mt-4 flex h-12 items-center justify-center rounded-2xl text-sm font-black text-white shadow-md active:scale-[0.99] sm:mt-5 sm:h-14 sm:text-base"
+                className="mt-3.5 flex h-11 items-center justify-center rounded-2xl text-sm font-black text-white shadow-md active:scale-[0.99] sm:mt-5 sm:h-14 sm:text-base"
                 style={{ background: "linear-gradient(135deg, #0FBDB8 0%, #089DA6 100%)" }}
               >
                 Bekijk details
               </Link>
             </div>
           ) : (
-            <div className="rounded-[18px] border bg-white p-4 text-center shadow-sm sm:p-5" style={{ borderColor: "var(--color-border)" }}>
+            <div className="rounded-[18px] border bg-white p-3.5 text-center shadow-sm sm:p-5" style={{ borderColor: "var(--color-border)" }}>
               <div
-                className="mx-auto flex h-11 w-11 items-center justify-center rounded-2xl sm:h-12 sm:w-12"
+                className="mx-auto flex h-9 w-9 items-center justify-center rounded-xl sm:h-12 sm:w-12 sm:rounded-2xl"
                 style={{ backgroundColor: "rgba(0,183,179,0.09)", color: "var(--color-accent)" }}
               >
-                <CalendarDays size={22} strokeWidth={2.4} />
+                <CalendarDays size={18} strokeWidth={2.4} />
               </div>
-              <p className="mt-3 text-[15px] font-black sm:text-base" style={{ color: "var(--color-primary)" }}>
+              <p className="mt-2.5 text-sm font-black sm:mt-3 sm:text-base" style={{ color: "var(--color-primary)" }}>
                 Geen dienst gepland
               </p>
-              <p className="mt-1 text-[13px] leading-relaxed sm:text-sm" style={{ color: "var(--color-secondary)" }}>
+              <p className="mt-1 text-xs leading-relaxed sm:text-sm" style={{ color: "var(--color-secondary)" }}>
                 Bekijk open diensten om je beschikbaar te stellen.
               </p>
               <Link
                 href="/openstaand"
-                className="mt-4 flex h-12 items-center justify-center rounded-2xl text-sm font-black text-white sm:mt-5 sm:h-14 sm:text-base"
+                className="mt-3.5 flex h-11 items-center justify-center rounded-2xl text-sm font-black text-white sm:mt-5 sm:h-14 sm:text-base"
                 style={{ background: "linear-gradient(135deg, #0FBDB8 0%, #089DA6 100%)" }}
               >
                 Open diensten bekijken
@@ -265,10 +265,10 @@ export default async function DashboardPage() {
         </div>
 
         <div>
-          <h2 className="mb-3 text-[19px] font-black sm:mb-4 sm:text-xl" style={{ color: "var(--color-primary)" }}>
+          <h2 className="mb-2.5 text-[17px] font-black sm:mb-4 sm:text-xl" style={{ color: "var(--color-primary)" }}>
             Snelle acties
           </h2>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-2.5 sm:gap-3">
             <QuickLink href="/opdrachten" label="Mijn planning" Icon={CalendarDays} />
             <QuickLink href="/openstaand" label="Open diensten" Icon={ClipboardCheck} badge={openCount || undefined} />
             <QuickLink href="/uren" label="Uren registreren" Icon={Clock} />
@@ -278,11 +278,11 @@ export default async function DashboardPage() {
 
         <Link
           href="/nieuws"
-          className="flex items-center gap-3 rounded-2xl border bg-white px-3.5 py-3 shadow-sm sm:px-4 sm:py-4"
+          className="flex items-center gap-2.5 rounded-2xl border bg-white px-3 py-2.5 shadow-sm sm:gap-3 sm:px-4 sm:py-4"
           style={{ borderColor: "rgba(226,232,240,0.9)", boxShadow: "0 14px 30px rgba(8,29,58,0.05)" }}
         >
-          <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-[#EEF6FF] text-[#2563EB] sm:h-11 sm:w-11">
-            <Newspaper size={20} strokeWidth={2.3} />
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#EEF6FF] text-[#2563EB] sm:h-11 sm:w-11 sm:rounded-2xl">
+            <Newspaper size={17} strokeWidth={2.3} />
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-black" style={{ color: "var(--color-primary)" }}>
