@@ -24,7 +24,7 @@ export function BottomNav() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 md:hidden">
       <div
-        className="mx-3 mb-[calc(0.75rem+var(--safe-bottom))] flex items-stretch rounded-[24px] px-2 py-2 shadow-2xl"
+        className="mx-3 mb-[calc(0.55rem+var(--safe-bottom))] flex items-stretch rounded-[22px] px-1.5 py-1.5 shadow-2xl"
         style={{ backgroundColor: "#061F44", boxShadow: "0 18px 44px rgba(6,31,68,0.28)" }}
       >
         {NAV_ITEMS.map((item) => {
@@ -44,19 +44,19 @@ export function BottomNav() {
                 className="relative flex items-center justify-center rounded-2xl transition-all"
                 style={{
                   width:           "38px",
-                  height:          "30px",
+                  height:          "27px",
                   backgroundColor: isActive ? "rgba(255,255,255,0.12)" : "transparent",
                 }}
               >
                 <Icon
-                  size={21}
+                  size={19}
                   strokeWidth={isActive ? 2.5 : 1.75}
                 />
               </span>
 
               <span
                 className="font-semibold leading-none"
-                style={{ fontSize: "11px", color: isActive ? "var(--color-accent)" : "rgba(255,255,255,0.72)" }}
+                style={{ fontSize: "10px", color: isActive ? "var(--color-accent)" : "rgba(255,255,255,0.72)" }}
               >
                 {item.label}
               </span>

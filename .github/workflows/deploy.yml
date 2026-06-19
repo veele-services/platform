@@ -19,6 +19,10 @@ jobs:
     environment: ${{ github.ref_name == 'production' && 'production' || 'staging' }}
 
     env:
+    CI: true
+      NEXT_TELEMETRY_DISABLED: 1
+      NODE_OPTIONS: --max-old-space-size=1536
+      
       TARGET: ${{ github.ref_name == 'production' && 'production' || 'staging' }}
       SERVICE_NAME: ${{ github.ref_name == 'production' && 'veele-production' || 'veele-staging' }}
       BASE_DIR: /var/www/veele/${{ github.ref_name == 'production' && 'production' || 'staging' }}
