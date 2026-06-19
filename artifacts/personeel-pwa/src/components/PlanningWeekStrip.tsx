@@ -21,7 +21,7 @@ export function PlanningWeekStrip({ days }: { days: PlanningWeekDay[] }) {
   }, []);
 
   return (
-    <div className="-mx-4 mt-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+    <div className="-mx-4 mt-4 overflow-x-auto px-4 [scrollbar-width:none] [scroll-padding-inline:calc(50vw-25px)] [&::-webkit-scrollbar]:hidden">
       <div className="flex min-w-max gap-2 pb-1">
         {days.map((day) => (
           <button
