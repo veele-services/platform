@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import Link from "next/link";
 import { ChevronRight } from "lucide-react";
 import { PlanningWeekStrip, type PlanningWeekDay } from "@/components/PlanningWeekStrip";
 
@@ -138,8 +139,10 @@ function StatusPill({ status }: { status: PlanningStatus }) {
 
 function PlanningCard({ item }: { item: MockPlanningItem }) {
   return (
-    <article
-      className="relative rounded-[18px] bg-white px-4 py-3.5 shadow-sm"
+    <Link
+      href={`/opdrachten/${item.code}`}
+      className="relative block rounded-[18px] bg-white px-4 py-3.5 shadow-sm active:scale-[0.99]"
+      aria-label={`Bekijk werkbon ${item.code}`}
       style={{ boxShadow: "0 10px 24px rgba(8,29,58,0.06)" }}
     >
       <div className="flex items-start justify-between gap-3">
@@ -186,7 +189,7 @@ function PlanningCard({ item }: { item: MockPlanningItem }) {
         strokeWidth={2.2}
         style={{ color: "#96A3B6" }}
       />
-    </article>
+    </Link>
   );
 }
 
