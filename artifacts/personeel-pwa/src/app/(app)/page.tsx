@@ -9,7 +9,6 @@ import {
   Clock,
   ClipboardCheck,
   Newspaper,
-  UserCircle,
 } from "lucide-react";
 import { getMyPersonnel } from "@/actions/personnel";
 import { getMyAssignments, type MyAssignment } from "@/actions/assignments";
@@ -139,36 +138,10 @@ export default async function DashboardPage() {
   return (
     <div className="min-h-screen bg-[#F6F8FB] md:rounded-[32px] md:bg-white">
       <section
-        className="relative z-0 overflow-hidden px-5 pb-[76px] pt-5 text-white md:rounded-[32px] md:px-6 md:pb-28 md:pt-9"
+        className="relative z-0 overflow-hidden px-5 pb-[72px] pt-4 text-white md:rounded-[32px] md:px-6 md:pb-28 md:pt-9"
         style={{ background: "linear-gradient(180deg, #06224A 0%, #061F44 100%)" }}
       >
-        <div className="flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-2.5 md:gap-3" aria-label="Veele Services home">
-            <span className="relative flex h-8 w-8 items-center justify-center md:h-12 md:w-12">
-              <span
-                className="absolute h-8 w-2 -rotate-[24deg] rounded-full md:h-11 md:w-3"
-                style={{ backgroundColor: "#00B7B3" }}
-              />
-              <span className="absolute h-8 w-2 rotate-[24deg] rounded-full bg-white md:h-11 md:w-3" />
-            </span>
-            <span className="leading-none">
-              <span className="block text-[16px] font-black tracking-[0.22em] md:text-[22px]">VEELE</span>
-              <span className="mt-1 block text-[7px] font-bold tracking-[0.42em] md:text-[10px]" style={{ color: "#BFECEA" }}>
-                SERVICES
-              </span>
-            </span>
-          </Link>
-
-          <Link
-            href="/profiel"
-            className="flex h-9 w-9 items-center justify-center rounded-full bg-white text-[#061F44] shadow-lg active:scale-95 md:h-11 md:w-11"
-            aria-label="Profiel"
-          >
-            <UserCircle size={25} strokeWidth={2.5} />
-          </Link>
-        </div>
-
-        <div className="mt-9 md:mt-12">
+        <div className="md:mt-4">
           <h1 className="text-[25px] font-black leading-tight tracking-tight md:text-[34px]">
             {getDayGreeting()}, {firstName}
           </h1>

@@ -21,14 +21,14 @@ export function PlanningWeekStrip({ days }: { days: PlanningWeekDay[] }) {
   }, []);
 
   return (
-    <div className="-mx-6 mt-7 overflow-x-auto px-6 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-      <div className="flex min-w-max gap-2.5 pb-1">
+    <div className="-mx-4 mt-4 overflow-x-auto px-4 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+      <div className="flex min-w-max gap-2 pb-1">
         {days.map((day) => (
           <button
             key={day.key}
             ref={day.isActive ? activeRef : undefined}
             type="button"
-            className="flex h-[74px] w-[62px] shrink-0 flex-col items-center justify-center rounded-[13px] border transition"
+            className="flex h-[58px] w-[50px] shrink-0 flex-col items-center justify-center rounded-[13px] border transition"
             style={{
               background: day.isActive
                 ? "linear-gradient(180deg, #19C1BF 0%, #12A9B0 100%)"
@@ -39,10 +39,10 @@ export function PlanningWeekStrip({ days }: { days: PlanningWeekDay[] }) {
             }}
             aria-pressed={day.isActive}
           >
-            <span className="text-[15px] font-semibold leading-tight" style={{ color: "rgba(255,255,255,0.78)" }}>
+            <span className="text-[12px] font-semibold leading-tight" style={{ color: "rgba(255,255,255,0.78)" }}>
               {day.label}
             </span>
-            <span className="text-[27px] font-black leading-tight">{day.day}</span>
+            <span className="text-[22px] font-black leading-tight">{day.day}</span>
           </button>
         ))}
       </div>
