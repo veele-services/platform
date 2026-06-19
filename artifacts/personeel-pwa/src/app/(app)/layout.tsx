@@ -12,7 +12,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main content column */}
       <div className="flex flex-1 flex-col min-w-0">
-        <main className="flex-1 pb-[calc(6.5rem+var(--safe-bottom))] md:pb-0">
+        <main className="flex-1 pb-[calc(5.6rem+var(--safe-bottom))] md:pb-0">
           <div className="mx-auto w-full max-w-4xl px-0 md:px-6 md:py-6">
             {children}
           </div>
