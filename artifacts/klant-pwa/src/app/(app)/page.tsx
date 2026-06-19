@@ -191,7 +191,7 @@ export default async function DashboardPage() {
           </div>
           <div className="space-y-3">
             {recentObjects.length > 0 ? recentObjects.map((object, index) => (
-              <Link key={object.id} href="/objecten" className="flex items-center gap-3 rounded-2xl border p-2.5" style={{ borderColor: "var(--color-border)" }}>
+              <Link key={object.id} href={`/objecten/${object.id}`} className="flex items-center gap-3 rounded-2xl border p-2.5" style={{ borderColor: "var(--color-border)" }}>
                 <span className="flex h-14 w-16 shrink-0 items-center justify-center rounded-xl text-sm font-black text-white" style={{ background: ["#0E7490", "#155E75", "#0369A1"][index % 3] }}>
                   {object.name.slice(0, 2).toUpperCase()}
                 </span>
