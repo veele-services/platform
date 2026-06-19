@@ -1,8 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Building2, Shield, Users, ClipboardList, ChevronRight, History, Tag } from "lucide-react";
+import { Building2, Shield, Users, ClipboardList, ChevronRight, History, Tag, Layers3, Mail } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
+import { SettingsTabs } from "@/components/settings/SettingsTabs";
 
 export const metadata: Metadata = { title: "Instellingen" };
 
@@ -19,15 +20,8 @@ export default async function SettingsPage() {
   ]);
 
   return (
-    <div className="p-8">
-      <div className="mb-8">
-        <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-          Instellingen
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-          Platformconfiguratie, rollen, rechten en gebruikersbeheer.
-        </p>
-      </div>
+    <div className="mx-auto w-full max-w-[1600px] p-6">
+      <SettingsTabs />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {canWriteSettings && (
@@ -36,6 +30,14 @@ export default async function SettingsPage() {
             icon={<Building2 className="h-6 w-6" style={{ color: "#00B7B3" }} strokeWidth={1.5} />}
             title="Organisatie"
             description="Naam, adres, KVK- en BTW-nummer, logo, standaard betalingstermijn en e-mailafzender."
+          />
+        )}
+        {canWriteSettings && (
+          <SettingsCard
+            href="/instellingen/mail"
+            icon={<Mail className="h-6 w-6" style={{ color: "#00B7B3" }} strokeWidth={1.5} />}
+            title="Mail"
+            description="SMTP-host, poort, beveiliging, afzender, reply-to en testmail voor platform e-mail."
           />
         )}
         {canReadRoles && (
@@ -60,6 +62,14 @@ export default async function SettingsPage() {
           title="Taakcodes"
           description="Centraal beheerde catalogus van taaktypes voor opdrachten, planning en facturering."
         />
+        {canReadSettings && (
+          <SettingsCard
+            href="/instellingen/sectoren"
+            icon={<Layers3 className="h-6 w-6" style={{ color: "#00B7B3" }} strokeWidth={1.5} />}
+            title="Sectoren"
+            description="Beheer Facilitair, Schoonmaak, Beveiliging en andere operationele sectoren."
+          />
+        )}
         {canReadSettings && (
           <SettingsCard
             href="/instellingen/klanttypes"

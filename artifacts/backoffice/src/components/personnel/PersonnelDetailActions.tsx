@@ -24,7 +24,7 @@ import { toast } from "sonner";
 import { PersonnelForm } from "@/components/personnel/PersonnelForm";
 import { invitePersonnel, setPersonnelStatus } from "@/app/actions/personnel";
 import { sendPasswordReset } from "@/app/actions/auth";
-import type { RoleOption } from "@/app/actions/personnel";
+import type { PersonnelAuthStatus, RoleOption, SectorOption } from "@/app/actions/personnel";
 
 interface PersonnelDetailActionsProps {
   personnelId:    string;
@@ -33,7 +33,9 @@ interface PersonnelDetailActionsProps {
   isActive:       boolean;
   userId:         string | null;
   inviteSentAt:   string | null;
+  authStatus:     PersonnelAuthStatus;
   roles:          RoleOption[];
+  sectors:        SectorOption[];
 }
 
 export function PersonnelDetailActions({
@@ -43,7 +45,9 @@ export function PersonnelDetailActions({
   isActive:    initialIsActive,
   userId,
   inviteSentAt,
+  authStatus,
   roles,
+  sectors,
 }: PersonnelDetailActionsProps) {
   const [editOpen,         setEditOpen]         = useState(false);
   const [inviteOpen,       setInviteOpen]        = useState(false);
@@ -56,8 +60,8 @@ export function PersonnelDetailActions({
   const [isPending,        startTransition]      = useTransition();
 
   // ── Derived invite state ────────────────────────────────────────────────────
-  const hasPortalAccount = Boolean(userId);
-  const isInvited        = Boolean(inviteSentAt) && !hasPortalAccount;
+  const hasPortalAccount = Boolean(userId) && authStatus === "active";
+  const isInvited        = authStatus === "invited" || (Boolean(inviteSentAt) && !hasPortalAccount);
   const isNone           = !hasPortalAccount && !isInvited && !localInviteSent;
 
   function handleInviteConfirm() {
@@ -67,7 +71,7 @@ export function PersonnelDetailActions({
       if (result.success) {
         setLocalInviteSent(true);
         setInviteOpen(false);
-        toast.success("Uitnodiging verstuurd");
+        toast.success("Tijdelijk wachtwoord verstuurd");
       } else {
         setErrorMsg(result.message ?? "Uitnodiging mislukt.");
       }
@@ -104,7 +108,7 @@ export function PersonnelDetailActions({
         const inviteResult = await invitePersonnel(personnelId);
         if (inviteResult.success) {
           setLocalInviteSent(true);
-          toast.success("Uitnodiging verstuurd");
+          toast.success("Tijdelijk wachtwoord verstuurd");
         }
       }
     });
@@ -154,7 +158,7 @@ export function PersonnelDetailActions({
             <div className="flex items-center gap-1.5 text-sm" style={{ color: "#92400E" }}>
               <Mail className="h-4 w-4" />
               <span>
-                Uitnodiging verstuurd
+                Tijdelijk wachtwoord verstuurd
                 {inviteSentAt && !localInviteSent && (
                   <span className="ml-1 text-xs" style={{ color: "#94A3B8" }}>
                     ({new Date(inviteSentAt).toLocaleDateString("nl-NL", { day: "2-digit", month: "short" })})
@@ -207,7 +211,7 @@ export function PersonnelDetailActions({
             <AlertDialogDescription>
               <strong>{personnelName}</strong> wordt opnieuw ingesteld als actief.
               {!hasPortalAccount && (
-                <> Er wordt ook een nieuwe uitnodiging gestuurd naar <strong>{personnelEmail}</strong>.</>
+                <> Er wordt ook een tijdelijk wachtwoord gestuurd naar <strong>{personnelEmail}</strong>.</>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -236,14 +240,14 @@ export function PersonnelDetailActions({
             <AlertDialogDescription>
               {isNone
                 ? <>
-                    Er wordt een activatielink gestuurd naar{" "}
-                    <strong>{personnelEmail}</strong>. De medewerker kan daarna inloggen op het
-                    personeelsportaal.
+                    Er wordt een tijdelijk wachtwoord gestuurd naar{" "}
+                    <strong>{personnelEmail}</strong>. De medewerker moet dit wachtwoord
+                    na de eerste login direct wijzigen.
                   </>
                 : <>
-                    Er wordt een nieuwe activatielink gestuurd naar{" "}
-                    <strong>{personnelEmail}</strong>.
-                    De vorige uitnodiging vervalt.
+                    Er wordt een nieuw tijdelijk wachtwoord gestuurd naar{" "}
+                    <strong>{personnelEmail}</strong>. Het vorige tijdelijke wachtwoord
+                    vervalt.
                   </>
               }
             </AlertDialogDescription>
@@ -297,6 +301,7 @@ export function PersonnelDetailActions({
             mode="edit"
             personnelId={personnelId}
             roles={roles}
+            sectors={sectors}
             onSuccess={() => setEditOpen(false)}
             onCancel={() => setEditOpen(false)}
           />

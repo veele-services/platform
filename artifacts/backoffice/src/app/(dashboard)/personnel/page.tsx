@@ -7,6 +7,7 @@ import { PersonnelWidgets } from "@/components/personnel/PersonnelWidgets";
 import {
   listPersonnel,
   listRoles,
+  listSectors,
   getPersonnelStats,
   getFlexpoolToday,
   getCapacityByRole,
@@ -33,6 +34,7 @@ export default async function PersonnelPage({ searchParams }: Props) {
   const sp            = await searchParams;
   const search        = str(sp.search);
   const roleId        = str(sp.roleId);
+  const sectorId      = str(sp.sectorId);
   const region        = str(sp.region);
   const status        = str(sp.status, "all");
   const personnelType = str(sp.personnelType);
@@ -40,25 +42,21 @@ export default async function PersonnelPage({ searchParams }: Props) {
   const sort          = str(sp.sort, "lastName");
   const dir           = str(sp.dir, "asc");
 
-  const [{ rows, total }, roles, stats, flexpoolRows, capacityRows] = await Promise.all([
-    listPersonnel({ search, roleId, region, status, personnelType, page, sort, dir }),
+  const [{ rows, total }, roles, sectors, stats, flexpoolRows, capacityRows] = await Promise.all([
+    listPersonnel({ search, roleId, sectorId, region, status, personnelType, page, sort, dir }),
     listRoles(),
+    listSectors(),
     getPersonnelStats(),
     getFlexpoolToday(),
     getCapacityByRole(),
   ]);
 
   return (
-    <div className="p-8">
-      <div className="mb-6">
-        <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-          Personeel
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-          {total} medewerker{total !== 1 ? "s" : ""}
-          {search ? ` die overeenkomen met "${search}"` : ""}
-        </p>
-      </div>
+    <div className="mx-auto w-full max-w-[1600px] p-6">
+      <p className="mb-4 text-sm" style={{ color: "#64748B" }}>
+        {total} medewerker{total !== 1 ? "s" : ""}
+        {search ? ` die overeenkomen met "${search}"` : ""}
+      </p>
 
       {/* Stat bar */}
       <PersonnelStatBar stats={stats} />
@@ -68,10 +66,12 @@ export default async function PersonnelPage({ searchParams }: Props) {
         rows={rows}
         total={total}
         roles={roles}
+        sectors={sectors}
         canWrite={canWrite}
         page={page}
         initialSearch={search}
         initialRoleId={roleId}
+        initialSectorId={sectorId}
         initialRegion={region}
         initialStatus={status}
         initialSort={sort}

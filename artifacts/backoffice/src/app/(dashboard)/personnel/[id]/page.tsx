@@ -13,7 +13,7 @@ import { PersonnelDetailActions } from "@/components/personnel/PersonnelDetailAc
 import { PersonnelCompetenciesEditButton } from "@/components/personnel/PersonnelCompetenciesEditButton";
 import { AssignmentHistoryTable } from "@/components/assignments/AssignmentHistoryTable";
 import { EntityDocumentsPanel } from "@/components/documents/EntityDocumentsPanel";
-import { getPersonnel, listRoles, getPersonnelAuthStatus, getLinkedObjects } from "@/app/actions/personnel";
+import { getPersonnel, listRoles, listSectors, getPersonnelAuthStatus, getLinkedObjects } from "@/app/actions/personnel";
 import { getAvailabilityWindows, listLeavePeriods } from "@/app/actions/availability";
 import { BeschikbaarheidView } from "@/components/personnel/BeschikbaarheidView";
 import { PersonnelPortalAccessCard } from "@/components/personnel/PersonnelPortalAccessCard";
@@ -54,9 +54,10 @@ export default async function PersonnelDetailPage({ params }: Props) {
     hasPermission("documents", "write"),
   ]);
 
-  const [person, roles, windows, leavePeriods, assignmentHistory, documents, authStatus, linkedObjects] = await Promise.all([
+  const [person, roles, sectors, windows, leavePeriods, assignmentHistory, documents, authStatus, linkedObjects] = await Promise.all([
     getPersonnel(id),
     listRoles(),
+    listSectors(),
     getAvailabilityWindows(id),
     listLeavePeriods(id),
     listAssignmentsForPersonnel(id),
@@ -113,6 +114,14 @@ export default async function PersonnelDetailPage({ params }: Props) {
                   {person.roleName}
                 </span>
               )}
+              {person.sectorName && (
+                <span
+                  className="text-xs font-semibold px-2.5 py-0.5 rounded"
+                  style={{ backgroundColor: "#ECFDF5", color: "#047857" }}
+                >
+                  {person.sectorName}
+                </span>
+              )}
               <StatusBadge isActive={person.isActive} />
               {person.emergencyAvailable && (
                 <span
@@ -136,7 +145,9 @@ export default async function PersonnelDetailPage({ params }: Props) {
             isActive={person.isActive}
             userId={person.userId}
             inviteSentAt={person.inviteSentAt}
+            authStatus={authStatus}
             roles={roles}
+            sectors={sectors}
           />
         )}
       </div>
@@ -187,6 +198,9 @@ export default async function PersonnelDetailPage({ params }: Props) {
               {person.region && (
                 <InfoRow icon={<MapPin className="h-4 w-4" />} label="Primaire regio" value={person.region} />
               )}
+              {person.sectorName && (
+                <InfoRow icon={<Briefcase className="h-4 w-4" />} label="Sector" value={person.sectorName} />
+              )}
               {person.preferredRegions.length > 0 && (
                 <InfoRow
                   icon={<MapPin className="h-4 w-4" />}
@@ -220,6 +234,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
                   personnelId={person.id}
                   personnelName={fullName}
                   roles={roles}
+                  sectors={sectors}
                 />
               )}
             </div>

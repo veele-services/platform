@@ -20,6 +20,12 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
+import { provisionPortalUserWithTemporaryPassword } from "@/lib/auth/portal-invites";
+import {
+  buildTemporaryPasswordEmail,
+  klantPortalUrl,
+  sendEmailWithResult,
+} from "@/lib/email";
 
 // ─── Shared Types ─────────────────────────────────────────────────────────────
 
@@ -416,6 +422,83 @@ export async function deleteCustomer(id: string): Promise<ActionResult> {
   });
 
   revalidatePath("/customers");
+  return { success: true };
+}
+
+export async function inviteCustomerPortal(id: string): Promise<ActionResult> {
+  await requirePermission("customers", "write");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [customer] = await db
+    .select({
+      name:         customersTable.name,
+      contactName:  customersTable.contactName,
+      contactEmail: customersTable.contactEmail,
+    })
+    .from(customersTable)
+    .where(eq(customersTable.id, id))
+    .limit(1);
+
+  if (!customer) return { success: false, message: "Klant niet gevonden." };
+
+  const email = customer.contactEmail?.trim().toLowerCase();
+  if (!email) {
+    return { success: false, message: "Deze klant heeft geen contact-e-mailadres." };
+  }
+
+  let invite: { userId: string; created: boolean };
+  try {
+    const provisioned = await provisionPortalUserWithTemporaryPassword({
+      email,
+      fullName: customer.contactName || customer.name,
+      portal: "customer",
+    });
+
+    const { subject, html } = buildTemporaryPasswordEmail({
+      recipientName:     customer.contactName || customer.name,
+      portalName:        "Klantportaal",
+      loginUrl:          klantPortalUrl(),
+      temporaryPassword: provisioned.temporaryPassword,
+    });
+
+    const sent = await sendEmailWithResult({
+      to: email,
+      subject,
+      html,
+    });
+
+    if (!sent.success) {
+      throw new Error(sent.error ?? "Uitnodigingsmail versturen mislukt.");
+    }
+
+    invite = { userId: provisioned.user.id, created: provisioned.created };
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Klantuitnodiging versturen mislukt.",
+    };
+  }
+
+  await db.insert(auditLogTable).values({
+    userId:     user.id,
+    action:     "invite_customer_portal",
+    resource:   "customers",
+    resourceId: id,
+    metadata:   {
+      customerName: customer.name,
+      email,
+      authUserId: invite.userId,
+      temporaryPassword: true,
+      authUserCreated: invite.created,
+    },
+  });
+
+  revalidatePath(`/customers/${id}`);
   return { success: true };
 }
 

@@ -38,9 +38,9 @@ export function PasswordChangeForm() {
           name="password"
           type="password"
           autoComplete="new-password"
-          minLength={8}
+          minLength={10}
           required
-          placeholder="Minimaal 8 tekens"
+          placeholder="Minimaal medium sterk"
           className="w-full rounded-xl border px-4 py-3 text-base outline-none"
           style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
         />
@@ -59,7 +59,7 @@ export function PasswordChangeForm() {
           name="passwordTwo"
           type="password"
           autoComplete="new-password"
-          minLength={8}
+          minLength={10}
           required
           placeholder="Herhaal nieuw wachtwoord"
           className="w-full rounded-xl border px-4 py-3 text-base outline-none"

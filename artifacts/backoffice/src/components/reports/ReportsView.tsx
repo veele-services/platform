@@ -98,18 +98,7 @@ export function ReportsView({ rows, total, page, search, statusFilter }: Props) 
   }
 
   return (
-    <div className="p-8 max-w-6xl">
-      {/* ── Header ─────────────────────────────────────── */}
-      <div className="mb-8">
-        <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-          Rapporten
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-          Ingediende veldrapportages van voltooide opdrachten
-        </p>
-      </div>
-
-      {/* ── Filters ─────────────────────────────────────── */}
+    <div className="mx-auto w-full max-w-[1600px] p-6">
       <div className="flex flex-wrap items-center gap-3 mb-6">
         <div className="relative flex-1 min-w-[200px] max-w-xs">
           <Search

@@ -10,15 +10,16 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { PersonnelForm } from "@/components/personnel/PersonnelForm";
-import type { RoleOption } from "@/app/actions/personnel";
+import type { RoleOption, SectorOption } from "@/app/actions/personnel";
 
 interface Props {
   personnelId:   string;
   personnelName: string;
   roles:         RoleOption[];
+  sectors:       SectorOption[];
 }
 
-export function PersonnelCompetenciesEditButton({ personnelId, personnelName, roles }: Props) {
+export function PersonnelCompetenciesEditButton({ personnelId, personnelName, roles, sectors }: Props) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -45,6 +46,7 @@ export function PersonnelCompetenciesEditButton({ personnelId, personnelName, ro
             mode="edit"
             personnelId={personnelId}
             roles={roles}
+            sectors={sectors}
             onSuccess={() => setOpen(false)}
             onCancel={() => setOpen(false)}
           />

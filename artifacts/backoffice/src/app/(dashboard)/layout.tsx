@@ -6,7 +6,7 @@ import { getCurrentUserPermissions, getUserRoles } from "@/lib/auth/permissions"
 import { PermissionsProvider } from "@/providers/permissions-provider";
 import { SidebarProvider } from "@/providers/sidebar-provider";
 import { Sidebar } from "@/components/layout/Sidebar";
-import { MobileHeader } from "@/components/layout/MobileHeader";
+import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { SidebarOverlay } from "@/components/layout/SidebarOverlay";
 import { getPendingReportsCount } from "@/app/actions/reports";
 import { getOutstandingInvoicesCount } from "@/app/actions/invoices";
@@ -55,24 +55,21 @@ export default async function DashboardLayout({
           className="flex h-screen overflow-hidden"
           style={{ backgroundColor: "#F8FAFC" }}
         >
-          {/* Sidebar — responsive: drawer on mobile, compact on tablet, full on desktop */}
           <Sidebar
-            userEmail={userEmail}
-            userInitial={userInitial}
-            userRole={userRole}
             pendingReportsCount={pendingReportsCount}
             outstandingInvoicesCount={outstandingInvoicesCount}
             pendingQuotesCount={pendingQuotesCount}
             pendingLeaveCount={pendingLeaveCount}
           />
 
-          {/* Backdrop overlay — closes drawer on tap outside (mobile only) */}
           <SidebarOverlay />
 
-          {/* Main content column */}
           <div className="flex flex-col flex-1 overflow-hidden min-w-0">
-            {/* Sticky mobile header with hamburger — hidden on desktop */}
-            <MobileHeader />
+            <DashboardHeader
+              userEmail={userEmail}
+              userInitial={userInitial}
+              userRole={userRole}
+            />
             <main className="flex-1 overflow-y-auto">{children}</main>
           </div>
         </div>

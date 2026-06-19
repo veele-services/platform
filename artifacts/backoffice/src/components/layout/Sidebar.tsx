@@ -3,101 +3,76 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
+  BarChart3,
+  Building2,
   Calendar,
   CalendarClock,
   ClipboardList,
-  Users,
-  Building2,
-  UserCog,
-  BarChart3,
-  FileText,
   FileCheck2,
+  FileText,
   FolderOpen,
+  LayoutDashboard,
   Settings,
-  LogOut,
+  UserCog,
+  Users,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { usePermissions } from "@/providers/permissions-provider";
 import { useSidebar } from "@/providers/sidebar-provider";
-import { signOut } from "@/app/actions/auth";
 
 const NAV_ITEMS = [
-  { href: "/",            icon: LayoutDashboard, label: "Dashboard",   permission: "dashboard:read"   },
-  { href: "/planning",    icon: Calendar,        label: "Planning",    permission: "planning:read"    },
-  { href: "/assignments", icon: ClipboardList,   label: "Opdrachten",  permission: "assignments:read" },
-  { href: "/quotes",      icon: FileCheck2,      label: "Offertes",    permission: "quotes:read"      },
-  { href: "/customers",   icon: Users,           label: "Klanten",     permission: "customers:read"   },
-  { href: "/objects",     icon: Building2,       label: "Objecten",    permission: "objects:read"     },
-  { href: "/personnel",         icon: UserCog,       label: "Personeel",    permission: "personnel:read"   },
-  { href: "/personnel/verlof", icon: CalendarClock, label: "Verlof-inbox", permission: "personnel:read"   },
-  { href: "/reports",          icon: BarChart3,     label: "Rapporten",    permission: "reports:read"     },
-  { href: "/invoices",    icon: FileText,        label: "Facturen",    permission: "invoices:read"    },
-  { href: "/documents",   icon: FolderOpen,      label: "Documenten",  permission: "documents:read"   },
-] as const;
-
-const SETTINGS_SUB_ITEMS = [
-  { href: "/instellingen/organisatie",    label: "Organisatie",      permission: "settings:write"  },
-  { href: "/instellingen/notificaties",   label: "Notificaties",     permission: "settings:write"  },
-  { href: "/instellingen/rollen",         label: "Rollen & rechten", permission: "roles:read"      },
-  { href: "/instellingen/gebruikers",     label: "Gebruikers",       permission: "users:read"      },
-  { href: "/settings/task-codes",         label: "Taakcodes",        permission: "task_codes:read" },
+  { href: "/", icon: LayoutDashboard, label: "Dashboard", permission: "dashboard:read" },
+  { href: "/planning", icon: Calendar, label: "Planning", permission: "planning:read" },
+  { href: "/assignments", icon: ClipboardList, label: "Opdrachten", permission: "assignments:read" },
+  { href: "/quotes", icon: FileCheck2, label: "Offertes", permission: "quotes:read" },
+  { href: "/customers", icon: Users, label: "Klanten", permission: "customers:read" },
+  { href: "/objects", icon: Building2, label: "Objecten", permission: "objects:read" },
+  { href: "/personnel", icon: UserCog, label: "Personeel", permission: "personnel:read" },
+  { href: "/personnel/verlof", icon: CalendarClock, label: "Verlof-inbox", permission: "personnel:read" },
+  { href: "/reports", icon: BarChart3, label: "Rapporten", permission: "reports:read" },
+  { href: "/invoices", icon: FileText, label: "Facturen", permission: "invoices:read" },
+  { href: "/documents", icon: FolderOpen, label: "Documenten", permission: "documents:read" },
+  { href: "/settings", icon: Settings, label: "Instellingen", permission: "settings:read" },
 ] as const;
 
 function isActive(pathname: string, href: string): boolean {
   if (href === "/") return pathname === "/";
-  return pathname === href || pathname.startsWith(href + "/");
+  if (href === "/settings") {
+    return pathname.startsWith("/settings") || pathname.startsWith("/instellingen");
+  }
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 interface SidebarProps {
-  userEmail:                string;
-  userInitial:              string;
-  userRole:                 string;
-  pendingReportsCount?:     number;
+  pendingReportsCount?: number;
   outstandingInvoicesCount?: number;
-  pendingQuotesCount?:      number;
-  pendingLeaveCount?:       number;
+  pendingQuotesCount?: number;
+  pendingLeaveCount?: number;
 }
 
 export function Sidebar({
-  userEmail,
-  userInitial,
-  userRole,
   pendingReportsCount = 0,
   outstandingInvoicesCount = 0,
   pendingQuotesCount = 0,
   pendingLeaveCount = 0,
 }: SidebarProps) {
-  const pathname    = usePathname();
+  const pathname = usePathname();
   const permissions = usePermissions();
   const { open, close } = useSidebar();
-
-  const visibleItems    = NAV_ITEMS.filter((item) => permissions.has(item.permission));
-  const canReadSettings = permissions.has("settings:read");
-  const visibleSubItems = SETTINGS_SUB_ITEMS.filter((item) => permissions.has(item.permission));
-  const inSettings      = pathname.startsWith("/settings") || pathname.startsWith("/instellingen");
+  const visibleItems = NAV_ITEMS.filter((item) => permissions.has(item.permission));
 
   return (
     <aside
       className={cn(
-        "flex flex-col select-none",
-        // Mobile (<md): fixed overlay drawer, slides in/out
-        "fixed inset-y-0 left-0 z-50 w-[240px]",
-        // Slide animation for mobile drawer
-        "transition-transform duration-300 ease-in-out",
-        // Tablet (md–lg): static compact icon-only column
+        "fixed inset-y-0 left-0 z-50 flex w-[240px] select-none flex-col transition-transform duration-300 ease-in-out",
         "md:static md:h-full md:w-[60px] md:flex-shrink-0 md:translate-x-0 md:transition-none",
-        // Desktop (lg+): static full-width column
         "lg:w-[240px]",
-        // Mobile: translate based on open state
         open ? "translate-x-0" : "-translate-x-full",
       )}
       style={{ backgroundColor: "#081D3A" }}
     >
-      {/* ── Brand header ── */}
-      <div className="flex h-16 flex-shrink-0 items-center border-b border-white/10 px-5 md:justify-center md:px-0 lg:gap-3 lg:justify-start lg:px-6">
-        {/* X close button — mobile only */}
+      <div className="flex h-16 flex-shrink-0 items-center border-b border-white/10 px-5 md:justify-center md:px-0 lg:justify-start lg:px-6">
         <button
           type="button"
           onClick={close}
@@ -107,7 +82,6 @@ export function Sidebar({
           <X size={18} strokeWidth={1.75} />
         </button>
 
-        {/* Full brand — mobile & desktop */}
         <div className="flex flex-col leading-none md:hidden lg:flex">
           <span
             className="font-bold tracking-widest text-white"
@@ -117,10 +91,10 @@ export function Sidebar({
           </span>
           <span
             style={{
-              fontFamily:    "var(--font-inter), Inter, sans-serif",
-              fontSize:      "9px",
-              color:         "#44D6D1",
-              marginTop:     "2px",
+              fontFamily: "var(--font-inter), Inter, sans-serif",
+              fontSize: "9px",
+              color: "#44D6D1",
+              marginTop: "2px",
               letterSpacing: "0.22em",
               textTransform: "uppercase",
             }}
@@ -129,24 +103,22 @@ export function Sidebar({
           </span>
         </div>
 
-        {/* Compact V-badge — tablet only */}
         <div
-          className="hidden md:flex lg:hidden h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-white"
+          className="hidden h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-white md:flex lg:hidden"
           style={{ backgroundColor: "#00B7B3" }}
         >
           V
         </div>
       </div>
 
-      {/* ── Navigation ── */}
-      <nav className="flex-1 overflow-y-auto px-3 py-3 space-y-0.5">
-        {visibleItems.length === 0 && !canReadSettings ? (
+      <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-3">
+        {visibleItems.length === 0 ? (
           <p
             className="px-3 py-4 text-center md:hidden lg:block"
             style={{
               fontFamily: "var(--font-inter), Inter, sans-serif",
-              fontSize:   "12px",
-              color:      "rgba(255,255,255,0.35)",
+              fontSize: "12px",
+              color: "rgba(255,255,255,0.35)",
               lineHeight: "1.5",
             }}
           >
@@ -156,17 +128,22 @@ export function Sidebar({
           </p>
         ) : (
           visibleItems.map(({ href, icon: Icon, label }) => {
-            const active  = isActive(pathname, href);
+            const active = isActive(pathname, href);
             const hasBadge =
-              (href === "/reports"           && pendingReportsCount > 0) ||
-              (href === "/invoices"          && outstandingInvoicesCount > 0) ||
-              (href === "/quotes"            && pendingQuotesCount > 0) ||
-              (href === "/personnel/verlof"  && pendingLeaveCount > 0);
+              (href === "/reports" && pendingReportsCount > 0) ||
+              (href === "/invoices" && outstandingInvoicesCount > 0) ||
+              (href === "/quotes" && pendingQuotesCount > 0) ||
+              (href === "/personnel/verlof" && pendingLeaveCount > 0);
             const badgeCount =
-              href === "/reports"          ? pendingReportsCount :
-              href === "/invoices"         ? outstandingInvoicesCount :
-              href === "/quotes"           ? pendingQuotesCount :
-              href === "/personnel/verlof" ? pendingLeaveCount : 0;
+              href === "/reports"
+                ? pendingReportsCount
+                : href === "/invoices"
+                  ? outstandingInvoicesCount
+                  : href === "/quotes"
+                    ? pendingQuotesCount
+                    : href === "/personnel/verlof"
+                      ? pendingLeaveCount
+                      : 0;
 
             return (
               <Link
@@ -184,25 +161,20 @@ export function Sidebar({
                     style={{ width: "15px", height: "15px" }}
                     strokeWidth={active ? 2.5 : 1.75}
                   />
-                  {/* Badge dot — tablet only (when label is hidden) */}
                   {hasBadge && (
-                    <span
-                      className="absolute -top-1 -right-1 hidden md:block lg:hidden h-2 w-2 rounded-full bg-[#00B7B3]"
-                    />
+                    <span className="absolute -right-1 -top-1 hidden h-2 w-2 rounded-full bg-[#00B7B3] md:block lg:hidden" />
                   )}
                 </div>
-                {/* Label — visible on mobile & desktop, hidden on tablet */}
                 <span className="flex-1 md:hidden lg:inline">{label}</span>
-                {/* Badge count — visible on mobile & desktop, hidden on tablet */}
                 {hasBadge && (
                   <span
-                    className="md:hidden lg:flex flex-shrink-0 rounded-full items-center justify-center text-white font-semibold"
+                    className="flex-shrink-0 items-center justify-center rounded-full font-semibold text-white md:hidden lg:flex"
                     style={{
                       backgroundColor: "#00B7B3",
-                      fontSize:        "10px",
-                      minWidth:        "18px",
-                      height:          "18px",
-                      padding:         "0 4px",
+                      fontSize: "10px",
+                      minWidth: "18px",
+                      height: "18px",
+                      padding: "0 4px",
                     }}
                   >
                     {badgeCount > 99 ? "99+" : badgeCount}
@@ -214,117 +186,7 @@ export function Sidebar({
         )}
       </nav>
 
-      {/* ── Instellingen section ── */}
-      {canReadSettings && visibleSubItems.length > 0 && (
-        <div className="px-3 pb-2 flex-shrink-0 border-t border-white/10">
-          {/* Settings header link */}
-          <Link
-            href="/settings"
-            onClick={close}
-            className="flex items-center gap-2 px-3 py-2.5 mt-2 rounded-lg transition-colors hover:bg-white/5 md:justify-center md:px-0 lg:justify-start lg:px-3"
-            title="Instellingen"
-            style={{
-              fontFamily:    "var(--font-inter), Inter, sans-serif",
-              fontSize:      "11px",
-              fontWeight:    600,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-              color:         inSettings ? "#44D6D1" : "rgba(255,255,255,0.45)",
-            }}
-          >
-            <Settings
-              style={{ width: "13px", height: "13px", flexShrink: 0 }}
-              strokeWidth={inSettings ? 2.5 : 1.75}
-            />
-            <span className="flex-1 md:hidden lg:inline">Instellingen</span>
-          </Link>
-
-          {/* Sub-items — always visible; compact dot-links on tablet, full text on mobile & desktop */}
-          <div className="space-y-0.5 md:flex md:flex-col md:items-center lg:ml-3 lg:items-stretch">
-            {visibleSubItems.map(({ href, label }) => {
-              const active = isActive(pathname, href);
-              return (
-                <Link
-                  key={href}
-                  href={href}
-                  onClick={close}
-                  title={label}
-                  className="flex items-center gap-2 rounded-md transition-colors px-3 py-1.5 md:w-full md:justify-center md:px-0 md:py-1.5 lg:px-3 lg:justify-start"
-                  style={{
-                    fontFamily:      "var(--font-inter), Inter, sans-serif",
-                    fontSize:        "12px",
-                    fontWeight:      active ? 600 : 400,
-                    color:           active ? "#FFFFFF" : "rgba(255,255,255,0.55)",
-                    backgroundColor: active ? "rgba(255,255,255,0.08)" : "transparent",
-                  }}
-                >
-                  <span
-                    className="flex-shrink-0 rounded-full"
-                    style={{
-                      width:           active ? "6px" : "4px",
-                      height:          active ? "6px" : "4px",
-                      backgroundColor: active ? "#00B7B3" : "rgba(255,255,255,0.3)",
-                    }}
-                  />
-                  {/* Label text — visible on mobile & desktop, hidden on tablet */}
-                  <span className="md:hidden lg:inline">{label}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </div>
-      )}
-
-      {/* ── User footer ── */}
-      <div className="px-4 py-3 border-t border-white/10 flex-shrink-0">
-        <div className="flex items-center gap-3 md:flex-col md:gap-2 md:px-0 lg:flex-row lg:gap-3">
-          <div
-            className="flex flex-shrink-0 items-center justify-center rounded-full"
-            style={{ width: "32px", height: "32px", backgroundColor: "#133D6B" }}
-          >
-            <span
-              className="font-semibold text-white"
-              style={{ fontFamily: "var(--font-inter), Inter, sans-serif", fontSize: "11px" }}
-            >
-              {userInitial}
-            </span>
-          </div>
-
-          {/* Email + role — visible on mobile & desktop, hidden on tablet */}
-          <div className="min-w-0 flex-1 flex-col overflow-hidden flex md:hidden lg:flex">
-            <span
-              className="truncate font-medium text-white"
-              style={{ fontFamily: "var(--font-inter), Inter, sans-serif", fontSize: "12px" }}
-            >
-              {userEmail}
-            </span>
-            <span
-              className="truncate"
-              style={{
-                fontFamily: "var(--font-inter), Inter, sans-serif",
-                fontSize:   "10px",
-                color:      "rgba(255,255,255,0.45)",
-              }}
-            >
-              {userRole}
-            </span>
-          </div>
-
-          {/* Logout button — always accessible */}
-          <form action={signOut}>
-            <button
-              type="submit"
-              title="Uitloggen"
-              className="flex-shrink-0 rounded p-1 transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-white/40"
-            >
-              <LogOut
-                style={{ width: "14px", height: "14px", color: "rgba(255,255,255,0.45)" }}
-                strokeWidth={1.75}
-              />
-            </button>
-          </form>
-        </div>
-      </div>
+      <div className="h-3 flex-shrink-0 border-t border-white/10" />
     </aside>
   );
 }

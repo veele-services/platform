@@ -114,6 +114,153 @@ environment file at `/var/www/veele/<environment>/shared/.env`. For multi-servic
 deploys, each systemd unit should set its own `PORT` from the matching
 `*_PORT` value, while all services can share the rest of the environment file.
 
+The deploy workflow validates the multi-service variables as pairs. If
+`PERSONEEL_SERVICE_NAME` is configured, `PERSONEEL_PORT` must also be configured,
+and the same rule applies to `KLANT_*` and `API_*`. This prevents a green deploy
+where a PWA is built but never restarted or exposed.
+
+## Multi-service staging routing
+
+The backoffice, personnel PWA, customer PWA, and API server are separate runtime
+processes. A successful workspace build does not automatically expose
+`/personeel` or `/klant`; the matching systemd services and Caddy routes must
+exist on the self-hosted runner host.
+
+Recommended staging variables:
+
+```text
+PORT=3301
+BACKOFFICE_SERVICE_NAME=veele-staging
+BACKOFFICE_PORT=3301
+PERSONEEL_SERVICE_NAME=veele-staging-personeel
+PERSONEEL_PORT=3302
+KLANT_SERVICE_NAME=veele-staging-klant
+KLANT_PORT=3303
+API_SERVICE_NAME=veele-staging-api
+API_PORT=3304
+```
+
+Example personnel systemd unit:
+
+```ini
+# /etc/systemd/system/veele-staging-personeel.service
+[Unit]
+Description=Veele staging personnel PWA
+After=network.target
+
+[Service]
+Type=simple
+User=github-runner
+Group=veele-deploy
+WorkingDirectory=/var/www/veele/staging/current
+EnvironmentFile=/var/www/veele/staging/shared/.env
+Environment=PORT=3302
+ExecStart=/usr/bin/env pnpm --filter @workspace/personeel-pwa run start
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Example customer PWA unit:
+
+```ini
+# /etc/systemd/system/veele-staging-klant.service
+[Unit]
+Description=Veele staging customer PWA
+After=network.target
+
+[Service]
+Type=simple
+User=github-runner
+Group=veele-deploy
+WorkingDirectory=/var/www/veele/staging/current
+EnvironmentFile=/var/www/veele/staging/shared/.env
+Environment=PORT=3303
+ExecStart=/usr/bin/env pnpm --filter @workspace/klant-pwa run start
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Example API-server unit:
+
+```ini
+# /etc/systemd/system/veele-staging-api.service
+[Unit]
+Description=Veele staging API server
+After=network.target
+
+[Service]
+Type=simple
+User=github-runner
+Group=veele-deploy
+WorkingDirectory=/var/www/veele/staging/current
+EnvironmentFile=/var/www/veele/staging/shared/.env
+Environment=PORT=3304
+ExecStart=/usr/bin/env pnpm --filter @workspace/api-server run start
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Enable or refresh the services after adding the units:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now veele-staging-personeel veele-staging-klant veele-staging-api
+sudo systemctl restart veele-staging veele-staging-personeel veele-staging-klant veele-staging-api
+```
+
+Example Caddy routing:
+
+```caddyfile
+staging.veele.dgwebservices.nl {
+  encode zstd gzip
+
+  handle /personeel* {
+    reverse_proxy 127.0.0.1:3302
+  }
+
+  handle /klant* {
+    reverse_proxy 127.0.0.1:3303
+  }
+
+  handle /api/* {
+    reverse_proxy 127.0.0.1:3304
+  }
+
+  handle {
+    reverse_proxy 127.0.0.1:3301
+  }
+}
+```
+
+Use `handle`, not `handle_path`, for the PWAs. Both Next apps are built with a
+`basePath` (`/personeel` and `/klant`), so the upstream app must receive the
+full prefixed path.
+
+After changing Caddy:
+
+```bash
+sudo caddy validate --config /etc/caddy/Caddyfile
+sudo systemctl reload caddy
+```
+
+Smoke checks:
+
+```bash
+curl -I http://127.0.0.1:3302/personeel
+curl -I http://127.0.0.1:3303/klant
+curl -I https://staging.veele.dgwebservices.nl/personeel
+curl -I https://staging.veele.dgwebservices.nl/klant
+```
+
 The deploy wrapper receives GitHub metadata as arguments:
 
 ```text

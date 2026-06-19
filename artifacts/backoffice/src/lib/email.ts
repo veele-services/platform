@@ -1,4 +1,6 @@
 import { Resend } from "resend";
+import { db, organizationSettingsTable } from "@workspace/db";
+import { sendSmtpMail, type SmtpMailConfig, type SmtpEncryption } from "@/lib/smtp-mailer";
 
 // ── Singleton ─────────────────────────────────────────────────────────────────
 
@@ -15,6 +17,45 @@ function fromAddress(): string {
   return process.env["RESEND_FROM_EMAIL"] ?? "Veele <noreply@veele.nl>";
 }
 
+function normalizeEncryption(value: string | null): SmtpEncryption {
+  if (value === "none" || value === "tls" || value === "starttls") return value;
+  return "starttls";
+}
+
+async function getSmtpConfig(): Promise<SmtpMailConfig | null> {
+  const [settings] = await db
+    .select({
+      smtpEnabled:    organizationSettingsTable.smtpEnabled,
+      smtpHost:       organizationSettingsTable.smtpHost,
+      smtpPort:       organizationSettingsTable.smtpPort,
+      smtpEncryption: organizationSettingsTable.smtpEncryption,
+      smtpUsername:   organizationSettingsTable.smtpUsername,
+      smtpPassword:   organizationSettingsTable.smtpPassword,
+      smtpFromName:   organizationSettingsTable.smtpFromName,
+      smtpFromEmail:  organizationSettingsTable.smtpFromEmail,
+      smtpReplyTo:    organizationSettingsTable.smtpReplyTo,
+    })
+    .from(organizationSettingsTable)
+    .limit(1);
+
+  if (!settings?.smtpEnabled) return null;
+
+  if (!settings.smtpHost || !settings.smtpPort || !settings.smtpFromEmail) {
+    throw new Error("SMTP is actief, maar host, poort of afzender ontbreekt.");
+  }
+
+  return {
+    host:       settings.smtpHost,
+    port:       settings.smtpPort,
+    encryption: normalizeEncryption(settings.smtpEncryption),
+    username:   settings.smtpUsername,
+    password:   settings.smtpPassword,
+    fromEmail:  settings.smtpFromEmail,
+    fromName:   settings.smtpFromName,
+    replyTo:    settings.smtpReplyTo,
+  };
+}
+
 function siteUrl(): string {
   const domains = process.env["REPLIT_DOMAINS"];
   if (domains) return `https://${domains.split(",")[0]!.trim()}`;
@@ -28,21 +69,10 @@ export async function sendEmail(opts: {
   to:      string | string[];
   subject: string;
   html:    string;
+  text?:   string;
 }): Promise<void> {
-  const resend = getClient();
-  if (!resend) {
-    console.warn("[email] RESEND_API_KEY not set — e-mail overgeslagen:", opts.subject);
-    return;
-  }
-  const { error } = await resend.emails.send({
-    from:    fromAddress(),
-    to:      opts.to,
-    subject: opts.subject,
-    html:    opts.html,
-  });
-  if (error) {
-    console.error("[email] Verzenden mislukt:", error);
-  }
+  const result = await sendEmailWithResult(opts);
+  if (!result.success) console.error("[email] Verzenden mislukt:", result.error);
 }
 
 // Returning variant with attachment support — used by emailInvoice action.
@@ -50,34 +80,67 @@ export async function sendEmailWithResult(opts: {
   to:          string | string[];
   subject:     string;
   html:        string;
+  text?:       string;
   attachments?: Array<{ filename: string; content: Buffer }>;
 }): Promise<{ success: boolean; error?: string }> {
+  try {
+    const smtpConfig = await getSmtpConfig();
+    if (smtpConfig) {
+      await sendSmtpMail(smtpConfig, opts);
+      return { success: true };
+    }
+  } catch (error) {
+    const msg = String((error as { message?: string }).message ?? error);
+    console.error("[email] SMTP verzenden mislukt:", msg);
+    return { success: false, error: msg };
+  }
+
   const resend = getClient();
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set — e-mail overgeslagen:", opts.subject);
-    return { success: false, error: "E-mailclient niet geconfigureerd (RESEND_API_KEY ontbreekt)." };
+    return { success: false, error: "E-mailclient niet geconfigureerd. Vul SMTP-instellingen in of configureer RESEND_API_KEY." };
   }
-  const { error } = await resend.emails.send({
-    from:        fromAddress(),
-    to:          opts.to,
-    subject:     opts.subject,
-    html:        opts.html,
-    attachments: opts.attachments,
-  });
-  if (error) {
+  try {
+    const { error } = await resend.emails.send({
+      from:        fromAddress(),
+      to:          opts.to,
+      subject:     opts.subject,
+      html:        opts.html,
+      text:        opts.text,
+      attachments: opts.attachments,
+    });
+    if (error) {
+      const msg = String((error as { message?: string }).message ?? error);
+      console.error("[email] Verzenden mislukt:", msg);
+      return { success: false, error: msg };
+    }
+  } catch (error) {
     const msg = String((error as { message?: string }).message ?? error);
     console.error("[email] Verzenden mislukt:", msg);
     return { success: false, error: msg };
   }
+
   return { success: true };
 }
 
 export function klantPortalUrl(): string {
+  const explicit = process.env["KLANT_PORTAL_URL"] ?? process.env["NEXT_PUBLIC_KLANT_PORTAL_URL"];
+  if (explicit) return explicit.replace(/\/$/, "");
   const domains = process.env["REPLIT_DOMAINS"];
   if (domains) return `https://${domains.split(",")[0]!.trim()}/klant`;
   const siteUrl = process.env["NEXT_PUBLIC_SITE_URL"];
   if (siteUrl) return `${siteUrl}/klant`;
   return "https://veele.nl/klant";
+}
+
+export function personeelPortalUrl(): string {
+  const explicit = process.env["PERSONEEL_PORTAL_URL"] ?? process.env["NEXT_PUBLIC_PERSONEEL_PORTAL_URL"];
+  if (explicit) return explicit.replace(/\/$/, "");
+  const domains = process.env["REPLIT_DOMAINS"];
+  if (domains) return `https://${domains.split(",")[0]!.trim()}/personeel`;
+  const siteUrl = process.env["NEXT_PUBLIC_SITE_URL"];
+  if (siteUrl) return `${siteUrl}/personeel`;
+  return "https://veele.nl/personeel";
 }
 
 // ── Shared base template ───────────────────────────────────────────────────────
@@ -106,6 +169,30 @@ function baseTemplate(title: string, bodyHtml: string): string {
 
 function ctaButton(href: string, label: string): string {
   return `<p><a href="${href}" style="display:inline-block;padding:11px 22px;background:${BRAND_COLOR};color:#fff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">${label}</a></p>`;
+}
+
+export function buildTemporaryPasswordEmail(opts: {
+  recipientName:     string;
+  portalName:        string;
+  loginUrl:          string;
+  temporaryPassword: string;
+}): { subject: string; html: string } {
+  const subject = `Toegang tot ${opts.portalName}`;
+  const html = baseTemplate(subject, `
+    <h2 style="margin-top:0;color:${BRAND_COLOR}">Uw portaaltoegang</h2>
+    <p>Beste ${opts.recipientName},</p>
+    <p>Er is een account voor u aangemaakt in het Veele platform.</p>
+    <p>Log in met onderstaand tijdelijk wachtwoord. Na de eerste login moet u direct een eigen wachtwoord kiezen.</p>
+    <div style="margin:18px 0;padding:14px 16px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px">
+      <p style="margin:0 0 6px;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:.08em">Tijdelijk wachtwoord</p>
+      <code style="font-size:18px;font-weight:700;color:${BRAND_COLOR};letter-spacing:.04em">${opts.temporaryPassword}</code>
+    </div>
+    ${ctaButton(opts.loginUrl, `Inloggen op ${opts.portalName}`)}
+    <p style="font-size:13px;color:#64748b;margin-top:16px">
+      Bewaar dit tijdelijke wachtwoord niet. Het is alleen bedoeld voor de eerste login.
+    </p>
+  `);
+  return { subject, html };
 }
 
 // ── Templates ─────────────────────────────────────────────────────────────────
