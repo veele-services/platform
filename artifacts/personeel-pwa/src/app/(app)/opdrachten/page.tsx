@@ -1,245 +1,245 @@
 export const dynamic = "force-dynamic";
 
-import Link from "next/link";
-import { Building2, MapPin, Clock, ChevronRight, FileText, CheckCircle2, XCircle } from "lucide-react";
-import { getMyAssignments } from "@/actions/assignments";
-import { getMyReportStatusMap } from "@/actions/reports";
-import { StatusBadge } from "@/components/StatusBadge";
+import { ChevronRight, UserCircle } from "lucide-react";
+import { PlanningWeekStrip, type PlanningWeekDay } from "@/components/PlanningWeekStrip";
 
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "Geen datum";
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" });
+type PlanningStatus = "NIEUW" | "GEZIEN" | "GESTART" | "AFGEROND";
+
+type MockPlanningItem = {
+  code: string;
+  time: string;
+  isNow?: boolean;
+  objectName: string;
+  contactName: string;
+  address: string;
+  postalCity: string;
+  phone: string;
+  status: PlanningStatus;
+};
+
+const MOCK_ITEMS: MockPlanningItem[] = [
+  {
+    code:        "SCH-2026-0600001",
+    time:        "08:00 - 10:00",
+    isNow:       true,
+    objectName:  "VvE Residentie Zeezicht",
+    contactName: "Chantal Veele",
+    address:     "Strandweg 14",
+    postalCity:  "2586 JK Den Haag",
+    phone:       "06-34108400",
+    status:      "NIEUW",
+  },
+  {
+    code:        "BEV-2026-0600002",
+    time:        "14:00 - 22:00",
+    objectName:  "Horeca De Haven",
+    contactName: "Michael Veele",
+    address:     "Westplein 8",
+    postalCity:  "3016 BM Rotterdam",
+    phone:       "06-24291576",
+    status:      "GEZIEN",
+  },
+  {
+    code:        "FAC-2026-0600003",
+    time:        "18:00 - 23:30",
+    objectName:  "Eventlocatie Houtrust",
+    contactName: "Danny de Groot",
+    address:     "Laan van Poot 353",
+    postalCity:  "2566 DA Den Haag",
+    phone:       "070-1234567",
+    status:      "GESTART",
+  },
+  {
+    code:        "SCH-2026-0600004",
+    time:        "07:30 - 09:00",
+    objectName:  "Kantoor Weststaete",
+    contactName: "Jeroen Smit",
+    address:     "Delftseplein 27",
+    postalCity:  "3013 AA Rotterdam",
+    phone:       "010-5551234",
+    status:      "AFGEROND",
+  },
+];
+
+const STATUS_STYLES: Record<PlanningStatus, { background: string; color: string }> = {
+  NIEUW:     { background: "#EAF5FF", color: "#2563A9" },
+  GEZIEN:    { background: "#E9FBF5", color: "#139873" },
+  GESTART:   { background: "#FFF4D8", color: "#C68212" },
+  AFGEROND:  { background: "#E6F8ED", color: "#249357" },
+};
+
+const DAY_LABELS = ["Zo", "Ma", "Di", "Wo", "Do", "Vr", "Za"];
+
+function todayKey(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Amsterdam",
+    year:     "numeric",
+    month:    "2-digit",
+    day:      "2-digit",
+  }).format(new Date());
 }
 
-const ACTIVE_STATUSES = new Set([
-  "scheduled", "seen", "in_progress", "plannable",
-]);
-
-const REPORT_STATUSES = new Set([
-  "completed", "not_completed", "report_submitted", "report_approved",
-  "invoice_ready", "invoiced", "paid", "closed",
-]);
-
-// Derive a "rapport status" label from both assignment status and report table status
-function getRapportBadge(
-  assignmentStatus: string,
-  reportStatus: string | undefined,
-): { label: string; bg: string; color: string; Icon: React.ElementType } | null {
-  // Assignment already advanced past report_submitted → approved by definition
-  if (["report_approved", "invoice_ready", "invoiced", "paid", "closed"].includes(assignmentStatus)) {
-    return { label: "Goedgekeurd", bg: "#DCFCE7", color: "#166534", Icon: CheckCircle2 };
-  }
-  if (assignmentStatus === "report_submitted") {
-    return { label: "Ingediend", bg: "#FEF3C7", color: "#92400E", Icon: Clock };
-  }
-  // Assignment is completed/not_completed — check the report table
-  if (reportStatus === "approved") {
-    return { label: "Goedgekeurd", bg: "#DCFCE7", color: "#166534", Icon: CheckCircle2 };
-  }
-  if (reportStatus === "rejected") {
-    return { label: "Afgewezen", bg: "#FEE2E2", color: "#991B1B", Icon: XCircle };
-  }
-  if (reportStatus === "submitted") {
-    return { label: "Ingediend", bg: "#FEF3C7", color: "#92400E", Icon: Clock };
-  }
-  // No report yet
-  return { label: "Geen rapport", bg: "#F1F5F9", color: "#64748B", Icon: FileText };
+function parseDateKey(dateKey: string): Date {
+  const [year, month, day] = dateKey.split("-").map(Number);
+  return new Date(Date.UTC(year, month - 1, day));
 }
 
-export default async function OpdrachtenPage() {
-  const assignments = await getMyAssignments();
-  const today       = new Date().toISOString().slice(0, 10);
+function formatDateKey(date: Date): string {
+  const year = date.getUTCFullYear();
+  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
+  const day = String(date.getUTCDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
-  const upcoming = assignments.filter(
-    (a) => a.scheduledDate && a.scheduledDate >= today && ACTIVE_STATUSES.has(a.status),
-  );
-  const active = assignments.filter(
-    (a) => ACTIVE_STATUSES.has(a.status) && !(a.scheduledDate && a.scheduledDate >= today),
-  );
-  const reporting = assignments.filter((a) => REPORT_STATUSES.has(a.status));
+function getCurrentWeekDays(): PlanningWeekDay[] {
+  const today = todayKey();
+  const todayDate = parseDateKey(today);
+  const dayOfWeek = todayDate.getUTCDay() === 0 ? 7 : todayDate.getUTCDay();
+  const monday = new Date(todayDate);
+  monday.setUTCDate(todayDate.getUTCDate() - dayOfWeek + 1);
 
-  // Batch-fetch report statuses for the reporting group
-  const reportStatusMap = await getMyReportStatusMap(reporting.map((a) => a.id));
+  return Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(monday);
+    date.setUTCDate(monday.getUTCDate() + index);
 
+    return {
+      key:      formatDateKey(date),
+      label:    DAY_LABELS[date.getUTCDay()],
+      day:      date.getUTCDate(),
+      isActive: formatDateKey(date) === today,
+    };
+  });
+}
+
+function VeeleLogo() {
   return (
-    <div className="space-y-5 p-4 md:p-0">
-      <h1 className="text-xl font-bold md:text-2xl" style={{ color: "var(--color-primary)" }}>
-        Werkbonnen
-      </h1>
-
-      {assignments.length === 0 && (
-        <div className="rounded-2xl bg-white p-10 text-center shadow-sm">
-          <FileText size={36} className="mx-auto mb-3" style={{ color: "var(--color-muted-fg)" }} />
-          <p className="font-medium" style={{ color: "var(--color-primary)" }}>
-            Geen werkbonnen gevonden
-          </p>
-          <p className="mt-1 text-sm" style={{ color: "var(--color-secondary)" }}>
-            U heeft nog geen bevestigde opdrachten.
-          </p>
-        </div>
-      )}
-
-      {upcoming.length > 0 && (
-        <WerkbonGroep
-          titel="Aankomend"
-          items={upcoming}
-          accentColor="var(--color-accent)"
-          reportStatusMap={{}}
+    <div className="flex items-center gap-2.5">
+      <span className="relative flex h-10 w-10 items-center justify-center">
+        <span
+          className="absolute h-9 w-2.5 -rotate-[24deg] rounded-full"
+          style={{ backgroundColor: "#00B7B3" }}
         />
-      )}
-
-      {active.length > 0 && (
-        <WerkbonGroep
-          titel="Actief"
-          items={active}
-          accentColor="var(--color-accent)"
-          reportStatusMap={{}}
-        />
-      )}
-
-      {reporting.length > 0 && (
-        <WerkbonGroep
-          titel="Afgerond & rapportage"
-          items={reporting}
-          accentColor="var(--color-secondary)"
-          muted
-          reportStatusMap={reportStatusMap}
-          showRapportBadge
-        />
-      )}
+        <span className="absolute h-9 w-2.5 rotate-[24deg] rounded-full bg-white" />
+      </span>
+      <span className="leading-none">
+        <span className="block text-[18px] font-black tracking-[0.24em] text-white">VEELE</span>
+        <span className="mt-1 block text-[8px] font-bold tracking-[0.43em]" style={{ color: "#BFECEA" }}>
+          SERVICES
+        </span>
+      </span>
     </div>
   );
 }
 
-type WerkbonItem = Awaited<ReturnType<typeof getMyAssignments>>[number];
-
-function WerkbonGroep({
-  titel,
-  items,
-  accentColor,
-  muted = false,
-  reportStatusMap,
-  showRapportBadge = false,
-}: {
-  titel: string;
-  items: WerkbonItem[];
-  accentColor: string;
-  muted?: boolean;
-  reportStatusMap: Record<string, string>;
-  showRapportBadge?: boolean;
-}) {
+function RealtimeIndicator() {
   return (
-    <section>
-      <h2
-        className="mb-2.5 text-xs font-semibold uppercase tracking-widest"
-        style={{ color: "var(--color-secondary)" }}
-      >
-        {titel}
-      </h2>
-      <div className="space-y-2">
-        {items.map((a) => (
-          <WerkbonKaart
-            key={a.id}
-            item={a}
-            accentColor={accentColor}
-            muted={muted}
-            rapportBadge={showRapportBadge ? getRapportBadge(a.status, reportStatusMap[a.id]) : null}
-          />
-        ))}
-      </div>
-    </section>
+    <div className="inline-flex shrink-0 items-center gap-2 text-xs font-semibold sm:text-sm" style={{ color: "#9DE7E5" }}>
+      <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: "#4ED9D5" }} />
+      Realtime gekoppeld
+    </div>
   );
 }
 
-function WerkbonKaart({
-  item,
-  accentColor,
-  muted,
-  rapportBadge,
-}: {
-  item: WerkbonItem;
-  accentColor: string;
-  muted: boolean;
-  rapportBadge: ReturnType<typeof getRapportBadge>;
-}) {
-  const timeSlot = [item.scheduledStart, item.scheduledEnd].filter(Boolean).join(" – ");
-  const addressLine = [item.objectAddress, item.objectPostalCode, item.objectCity]
-    .filter(Boolean)
-    .join(", ");
+function StatusPill({ status }: { status: PlanningStatus }) {
+  const style = STATUS_STYLES[status];
 
   return (
-    <Link
-      href={`/opdrachten/${item.id}`}
-      className="block rounded-2xl bg-white shadow-sm transition-all active:scale-[0.99]"
-      style={{ opacity: muted ? 0.85 : 1 }}
+    <span
+      className="rounded-lg px-3 py-1 text-xs font-black tracking-wide"
+      style={{ backgroundColor: style.background, color: style.color }}
     >
-      {/* Werkbonnummer header strip */}
-      <div
-        className="flex items-center justify-between rounded-t-2xl px-4 py-2.5"
-        style={{ backgroundColor: muted ? "var(--color-muted)" : "rgba(0,183,179,0.08)" }}
-      >
-        <span className="font-mono text-xs font-bold" style={{ color: accentColor }}>
-          {item.code || "—"}
-        </span>
-        <StatusBadge status={item.status} />
+      {status}
+    </span>
+  );
+}
+
+function PlanningCard({ item }: { item: MockPlanningItem }) {
+  return (
+    <article
+      className="relative rounded-[18px] bg-white px-5 py-4 shadow-sm"
+      style={{ boxShadow: "0 10px 28px rgba(8,29,58,0.07)" }}
+    >
+      <div className="flex items-start justify-between gap-4">
+        <div className="min-w-0">
+          <p className="font-mono text-[15px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
+            {item.code}
+          </p>
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <p className="text-[24px] font-black leading-none tracking-tight" style={{ color: "var(--color-primary)" }}>
+              {item.time}
+            </p>
+            {item.isNow ? (
+              <span className="inline-flex items-center gap-1.5 text-xs font-black uppercase" style={{ color: "var(--color-accent)" }}>
+                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "var(--color-accent)" }} />
+                Nu
+              </span>
+            ) : null}
+          </div>
+        </div>
+        <StatusPill status={item.status} />
       </div>
 
-      {/* Body */}
-      <div className="px-4 py-3">
-        {/* Datum + tijdvak */}
-        <div className="mb-2 flex items-center gap-1.5">
-          <Clock size={13} style={{ color: "var(--color-secondary)" }} />
-          <span className="text-xs font-medium" style={{ color: "var(--color-secondary)" }}>
-            {formatDate(item.scheduledDate)}
-            {timeSlot ? ` · ${timeSlot}` : ""}
-          </span>
+      <div className="mt-2 pr-8">
+        <h2 className="text-[18px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
+          {item.objectName}
+        </h2>
+        <p className="mt-1 text-[16px] font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
+          {item.contactName}
+        </p>
+        <p className="mt-1 text-[15px] font-medium leading-tight" style={{ color: "var(--color-primary)" }}>
+          {item.address}
+        </p>
+        <p className="mt-1 text-[15px] font-medium leading-tight" style={{ color: "var(--color-primary)" }}>
+          {item.postalCity}
+        </p>
+        <p className="mt-1 text-[15px] font-medium leading-tight" style={{ color: "var(--color-primary)" }}>
+          {item.phone}
+        </p>
+      </div>
+
+      <ChevronRight
+        className="absolute right-5 top-1/2 -translate-y-1/2"
+        size={28}
+        strokeWidth={2.2}
+        style={{ color: "#96A3B6" }}
+      />
+    </article>
+  );
+}
+
+export default function OpdrachtenPage() {
+  const weekDays = getCurrentWeekDays();
+
+  return (
+    <div className="min-h-screen bg-[#F6F8FB] md:rounded-[32px] md:bg-white">
+      <section
+        className="relative overflow-hidden px-6 pb-4 pt-8 text-white md:rounded-t-[32px]"
+        style={{ background: "linear-gradient(180deg, #06224A 0%, #061F44 100%)" }}
+      >
+        <div className="flex items-center justify-between">
+          <VeeleLogo />
+          <button
+            type="button"
+            className="flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#061F44] shadow-lg active:scale-95"
+            aria-label="Profiel"
+          >
+            <UserCircle size={30} strokeWidth={2.5} />
+          </button>
         </div>
 
-        {/* Klantnaam */}
-        {item.customerName && (
-          <div className="mb-1 flex items-center gap-1.5">
-            <Building2 size={13} style={{ color: "var(--color-secondary)" }} />
-            <span className="text-sm font-semibold" style={{ color: "var(--color-primary)" }}>
-              {item.customerName}
-            </span>
-          </div>
-        )}
+        <div className="mt-8 flex flex-wrap items-end justify-between gap-3">
+          <h1 className="text-[34px] font-black leading-none tracking-tight">Mijn planning</h1>
+          <RealtimeIndicator />
+        </div>
 
-        {/* Adres */}
-        {addressLine && (
-          <div className="flex items-start gap-1.5">
-            <MapPin size={13} className="mt-0.5 shrink-0" style={{ color: "var(--color-muted-fg)" }} />
-            <span className="text-xs" style={{ color: "var(--color-secondary)" }}>
-              {addressLine}
-            </span>
-          </div>
-        )}
+        <PlanningWeekStrip days={weekDays} />
+      </section>
 
-        {/* Rapport-status badge */}
-        {rapportBadge && (
-          <div className="mt-2.5 flex items-center gap-1.5">
-            <span
-              className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold"
-              style={{ backgroundColor: rapportBadge.bg, color: rapportBadge.color }}
-            >
-              <rapportBadge.Icon size={11} />
-              Rapport: {rapportBadge.label}
-            </span>
-          </div>
-        )}
-      </div>
-
-      {/* Footer */}
-      <div
-        className="flex items-center justify-end rounded-b-2xl border-t px-4 py-2"
-        style={{ borderColor: "var(--color-border)" }}
-      >
-        <span className="text-xs" style={{ color: "var(--color-accent)" }}>
-          Werkbon openen
-        </span>
-        <ChevronRight size={14} style={{ color: "var(--color-accent)" }} />
-      </div>
-    </Link>
+      <section className="space-y-3 px-4 pb-8 pt-3">
+        {MOCK_ITEMS.map((item) => (
+          <PlanningCard key={item.code} item={item} />
+        ))}
+      </section>
+    </div>
   );
 }
