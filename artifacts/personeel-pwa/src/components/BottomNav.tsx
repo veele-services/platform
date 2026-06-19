@@ -24,7 +24,7 @@ export function BottomNav() {
   return (
     <nav className="fixed inset-x-0 bottom-0 z-50 md:hidden">
       <div
-        className="mx-3 mb-[calc(0.55rem+var(--safe-bottom))] flex items-stretch rounded-[22px] px-1.5 py-1.5 shadow-2xl"
+        className="mx-2.5 mb-[calc(0.45rem+var(--safe-bottom))] flex items-stretch rounded-[20px] px-1.5 py-1 shadow-2xl"
         style={{ backgroundColor: "#061F44", boxShadow: "0 18px 44px rgba(6,31,68,0.28)" }}
       >
         {NAV_ITEMS.map((item) => {
@@ -37,26 +37,26 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className="relative flex flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-2 transition-colors"
+              className="relative flex flex-1 flex-col items-center justify-center gap-0.5 rounded-2xl px-1 py-1.5 transition-colors"
               style={{ color: isActive ? "#FFFFFF" : "rgba(255,255,255,0.62)" }}
             >
               <span
                 className="relative flex items-center justify-center rounded-2xl transition-all"
                 style={{
                   width:           "38px",
-                  height:          "27px",
+                  height:          "25px",
                   backgroundColor: isActive ? "rgba(255,255,255,0.12)" : "transparent",
                 }}
               >
                 <Icon
-                  size={19}
+                  size={18}
                   strokeWidth={isActive ? 2.5 : 1.75}
                 />
               </span>
 
               <span
                 className="font-semibold leading-none"
-                style={{ fontSize: "10px", color: isActive ? "var(--color-accent)" : "rgba(255,255,255,0.72)" }}
+                style={{ fontSize: "9.5px", color: isActive ? "var(--color-accent)" : "rgba(255,255,255,0.72)" }}
               >
                 {item.label}
               </span>
