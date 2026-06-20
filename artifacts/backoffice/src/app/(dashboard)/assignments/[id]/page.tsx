@@ -25,6 +25,7 @@ import {
 import { AssignmentDetailActions } from "@/components/assignments/AssignmentDetailActions";
 import {
   getAssignment,
+  getAssignmentPlanningReadiness,
   getCustomerOptions,
   getPersonnelEligibilityForAssignment,
   getTaskCodeOptions,
@@ -39,6 +40,7 @@ import { DirectApprovalButton } from "@/components/quotes/DirectApprovalButton";
 import type { QuoteStatus } from "@/app/actions/quotes";
 import { listDocuments } from "@/app/actions/documents";
 import { AssignmentDocumentsPanel } from "@/components/documents/AssignmentDocumentsPanel";
+import { InterestPollButton } from "@/components/assignments/InterestPollButton";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -156,6 +158,10 @@ export default async function AssignmentDetailPage({ params }: Props) {
         getTaskCodeOptions(),
       ])
     : [[], [], []];
+
+  const planningReadiness = canWrite
+    ? await getAssignmentPlanningReadiness(id)
+    : null;
 
   // ── Formatted dates ────────────────────────────────────────────────────────
   const createdAt = new Date(assignment.createdAt).toLocaleDateString("nl-NL", {
@@ -504,6 +510,83 @@ export default async function AssignmentDetailPage({ params }: Props) {
 
         {/* Right: interactive actions panel (or read-only for viewers) */}
         <div className="flex flex-col gap-4">
+          {planningReadiness && (
+            <div className="veele-card">
+              <h3
+                className="font-heading text-sm font-semibold mb-3 flex items-center gap-2"
+                style={{ color: "#081D3A" }}
+              >
+                <Users className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                Planningcheck
+              </h3>
+
+              <div className="grid grid-cols-2 gap-2 text-xs">
+                <div className="rounded-xl bg-emerald-50 p-3">
+                  <p className="font-semibold text-emerald-700">{planningReadiness.fullyAvailableCount}</p>
+                  <p className="text-emerald-700/75">Volledig beschikbaar</p>
+                </div>
+                <div className="rounded-xl bg-sky-50 p-3">
+                  <p className="font-semibold text-sky-700">{planningReadiness.eligibleCount}</p>
+                  <p className="text-sky-700/75">Passend profiel</p>
+                </div>
+                <div className="rounded-xl bg-amber-50 p-3">
+                  <p className="font-semibold text-amber-700">{planningReadiness.warningCount}</p>
+                  <p className="text-amber-700/75">Aandacht nodig</p>
+                </div>
+                <div className="rounded-xl bg-red-50 p-3">
+                  <p className="font-semibold text-red-700">{planningReadiness.blockedCount}</p>
+                  <p className="text-red-700/75">Geblokkeerd</p>
+                </div>
+              </div>
+
+              <div className="mt-3 rounded-xl border p-3 text-xs" style={{ borderColor: "#E2E8F0" }}>
+                <div className="flex items-center justify-between gap-3">
+                  <span style={{ color: "#64748B" }}>Gekoppeld</span>
+                  <span className="font-semibold" style={{ color: "#081D3A" }}>
+                    {planningReadiness.assignedCount}
+                  </span>
+                </div>
+                <div className="mt-1 flex items-center justify-between gap-3">
+                  <span style={{ color: "#64748B" }}>Interesse/suggesties</span>
+                  <span className="font-semibold" style={{ color: "#081D3A" }}>
+                    {planningReadiness.suggestedCount}
+                  </span>
+                </div>
+              </div>
+
+              {planningReadiness.topMatches.length > 0 && (
+                <div className="mt-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
+                    Beste matches
+                  </p>
+                  <ul className="space-y-1.5">
+                    {planningReadiness.topMatches.map((person) => (
+                      <li
+                        key={person.id}
+                        className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs"
+                      >
+                        <span className="font-medium" style={{ color: "#081D3A" }}>{person.name}</span>
+                        <span style={{ color: "#64748B" }}>{person.sectorName ?? "Geen sector"}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {!planningReadiness.hasMoment && (
+                <p className="mt-3 text-xs" style={{ color: "#92400E" }}>
+                  Vul eerst datum en tijdvak in om beschikbaarheid betrouwbaar te bepalen.
+                </p>
+              )}
+
+              <div className="mt-4">
+                <InterestPollButton
+                  assignmentId={assignment.id}
+                  disabled={!planningReadiness.canPoll}
+                />
+              </div>
+            </div>
+          )}
 
           {/* Direct approval button — only when status is review and user can write quotes */}
           {assignment.status === "review" && canWrite && canReadQuotes && (

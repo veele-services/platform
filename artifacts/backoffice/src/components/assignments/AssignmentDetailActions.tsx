@@ -77,6 +77,7 @@ interface Personnel {
   personnelId: string;
   firstName: string;
   lastName: string;
+  linkStatus?: string;
 }
 
 interface Task {
@@ -263,6 +264,14 @@ export function AssignmentDetailActions({
               <li key={p.id} className="flex items-center justify-between py-2">
                 <span className="text-sm" style={{ color: "#081D3A" }}>
                   {p.firstName} {p.lastName}
+                  {p.linkStatus === "suggested" && (
+                    <span
+                      className="ml-2 rounded-full px-2 py-0.5 text-[10px] font-semibold uppercase"
+                      style={{ background: "#EFF6FF", color: "#1D4ED8" }}
+                    >
+                      Interesse
+                    </span>
+                  )}
                 </span>
                 {canWrite && (
                   <Button

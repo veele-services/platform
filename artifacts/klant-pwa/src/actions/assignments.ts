@@ -10,6 +10,8 @@ import {
   invoicesTable,
   insertAssignmentSchema,
   customersTable,
+  sectorsTable,
+  auditLogTable,
   organizationSettingsTable,
   type AssignmentStatus,
   type QuoteStatus,
@@ -94,10 +96,17 @@ export type RequestResult =
   | { success: false; message: string };
 
 const requestSchema = z.object({
-  title:       z.string().min(2, "Titel is verplicht").max(255),
-  description: z.string().min(5, "Omschrijving is verplicht").max(5000),
-  objectId:    z.string().uuid().optional(),
-  priority:    z.enum(["low", "normal", "high", "urgent"]),
+  title:          z.string().min(2, "Titel is verplicht").max(255),
+  description:    z.string().min(5, "Omschrijving is verplicht").max(5000),
+  objectId:       z.string().uuid("Selecteer een object."),
+  sectorId:       z.string().uuid("Selecteer een sector."),
+  scheduledDate:  z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Kies een gewenste uitvoerdatum."),
+  scheduledStart: z.string().regex(/^\d{2}:\d{2}$/, "Kies een starttijd."),
+  scheduledEnd:   z.string().regex(/^\d{2}:\d{2}$/, "Kies een eindtijd."),
+  priority:       z.enum(["low", "normal", "high", "urgent"]),
+}).refine((data) => data.scheduledEnd > data.scheduledStart, {
+  message: "Eindtijd moet na de starttijd liggen.",
+  path:    ["scheduledEnd"],
 });
 
 export type RequestAssignmentInput = z.infer<typeof requestSchema>;
@@ -116,12 +125,24 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
     return { success: false, message: first?.message ?? "Ongeldig verzoek." };
   }
 
-  const { title, description, objectId, priority } = parsed.data;
+  const {
+    title,
+    description,
+    objectId,
+    sectorId,
+    scheduledDate,
+    scheduledStart,
+    scheduledEnd,
+    priority,
+  } = parsed.data;
 
-  // Ownership check: verify the selected object belongs to this customer.
-  if (objectId) {
-    const [owned] = await db
-      .select({ id: objectsTable.id })
+  const [[object], [sector]] = await Promise.all([
+    db
+      .select({
+        id:       objectsTable.id,
+        sectorId: objectsTable.sectorId,
+        name:     objectsTable.name,
+      })
       .from(objectsTable)
       .where(
         and(
@@ -129,17 +150,39 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
           eq(objectsTable.customerId, customerId),
         ),
       )
-      .limit(1);
-    if (!owned) return { success: false, message: "Object niet gevonden of niet toegankelijk." };
+      .limit(1),
+    db
+      .select({ id: sectorsTable.id, name: sectorsTable.name })
+      .from(sectorsTable)
+      .where(and(eq(sectorsTable.id, sectorId), eq(sectorsTable.isActive, true)))
+      .limit(1),
+  ]);
+
+  if (!object) return { success: false, message: "Object niet gevonden of niet toegankelijk." };
+  if (!sector) return { success: false, message: "Sector niet gevonden of niet actief." };
+  if (!object.sectorId) {
+    return {
+      success: false,
+      message: "Dit object heeft nog geen sector. Werk eerst het object bij.",
+    };
+  }
+  if (object.sectorId !== sectorId) {
+    return {
+      success: false,
+      message: "De gekozen sector hoort niet bij het geselecteerde object.",
+    };
   }
 
   const validatedData = insertAssignmentSchema.parse({
     title,
     description,
     customerId,
-    objectId:   objectId ?? null,
+    objectId,
     status:     "requested",
     priority,
+    scheduledDate,
+    scheduledStart,
+    scheduledEnd,
     createdBy:  user.id,
   });
 
@@ -149,6 +192,28 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
     .returning({ id: assignmentsTable.id });
 
   if (!inserted) return { success: false, message: "Aanmaken mislukt." };
+
+  await db.insert(auditLogTable).values({
+    userId:     user.id,
+    action:     "customer_request_assignment",
+    resource:   "assignments",
+    resourceId: inserted.id,
+    metadata:   {
+      customerId,
+      objectId,
+      objectName: object.name,
+      sectorId,
+      sectorName: sector.name,
+      scheduledDate,
+      scheduledStart,
+      scheduledEnd,
+      priority,
+    },
+  });
+
+  revalidatePath("/");
+  revalidatePath("/opdrachten");
+  revalidatePath("/meldingen");
 
   return { success: true, id: inserted.id };
 }
@@ -342,13 +407,19 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
   if (!customerId) return { success: false, message: "Geen klantprofiel gevonden." };
 
   const [assignment] = await db
-    .select({ id: assignmentsTable.id })
+    .select({
+      id:      assignmentsTable.id,
+      title:   assignmentsTable.title,
+      quoteId: quotesTable.id,
+    })
     .from(assignmentsTable)
+    .innerJoin(quotesTable, eq(quotesTable.assignmentId, assignmentsTable.id))
     .where(
       and(
         eq(assignmentsTable.id,         assignmentId),
         eq(assignmentsTable.customerId, customerId),
         eq(assignmentsTable.status,     "awaiting_approval"),
+        eq(quotesTable.status,          "sent"),
       ),
     )
     .limit(1);
@@ -357,10 +428,33 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
     return { success: false, message: "Offerte niet gevonden of al verwerkt." };
   }
 
-  await db
-    .update(assignmentsTable)
-    .set({ status: "approved" })
-    .where(eq(assignmentsTable.id, assignmentId));
+  await db.transaction(async (tx) => {
+    await tx
+      .update(quotesTable)
+      .set({
+        status:     "approved",
+        approvedBy: user.id,
+        approvedAt: new Date(),
+      })
+      .where(eq(quotesTable.id, assignment.quoteId));
+
+    await tx
+      .update(assignmentsTable)
+      .set({ status: "plannable" })
+      .where(eq(assignmentsTable.id, assignmentId));
+
+    await tx.insert(auditLogTable).values({
+      userId:     user.id,
+      action:     "customer_approve_quote",
+      resource:   "quotes",
+      resourceId: assignment.quoteId,
+      metadata:   {
+        assignmentId,
+        customerId,
+        nextAssignmentStatus: "plannable",
+      },
+    });
+  });
 
   void (async () => {
     const [orgSettings] = await db
@@ -391,6 +485,10 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
   })();
 
   revalidatePath("/opdrachten");
+  revalidatePath(`/opdrachten/${assignmentId}`);
+  revalidatePath("/offertes");
+  revalidatePath("/meldingen");
+  revalidatePath("/");
   return { success: true, id: assignmentId };
 }
 
@@ -403,13 +501,18 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
   if (!customerId) return { success: false, message: "Geen klantprofiel gevonden." };
 
   const [assignment] = await db
-    .select({ id: assignmentsTable.id })
+    .select({
+      id:      assignmentsTable.id,
+      quoteId: quotesTable.id,
+    })
     .from(assignmentsTable)
+    .innerJoin(quotesTable, eq(quotesTable.assignmentId, assignmentsTable.id))
     .where(
       and(
         eq(assignmentsTable.id,         assignmentId),
         eq(assignmentsTable.customerId, customerId),
         eq(assignmentsTable.status,     "awaiting_approval"),
+        eq(quotesTable.status,          "sent"),
       ),
     )
     .limit(1);
@@ -418,15 +521,33 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
     return { success: false, message: "Offerte niet gevonden of al verwerkt." };
   }
 
-  await db
-    .update(assignmentsTable)
-    .set({ status: "review" })
-    .where(eq(assignmentsTable.id, assignmentId));
+  await db.transaction(async (tx) => {
+    await tx
+      .update(quotesTable)
+      .set({
+        status:          "rejected",
+        rejectionReason: reason?.trim() || null,
+      })
+      .where(eq(quotesTable.id, assignment.quoteId));
 
-  await db
-    .update(quotesTable)
-    .set({ rejectionReason: reason?.trim() || null })
-    .where(eq(quotesTable.assignmentId, assignmentId));
+    await tx
+      .update(assignmentsTable)
+      .set({ status: "review" })
+      .where(eq(assignmentsTable.id, assignmentId));
+
+    await tx.insert(auditLogTable).values({
+      userId:     user.id,
+      action:     "customer_reject_quote",
+      resource:   "quotes",
+      resourceId: assignment.quoteId,
+      metadata:   {
+        assignmentId,
+        customerId,
+        reason: reason?.trim() || null,
+        nextAssignmentStatus: "review",
+      },
+    });
+  });
 
   void (async () => {
     const [orgSettings] = await db
@@ -457,5 +578,9 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
   })();
 
   revalidatePath("/opdrachten");
+  revalidatePath(`/opdrachten/${assignmentId}`);
+  revalidatePath("/offertes");
+  revalidatePath("/meldingen");
+  revalidatePath("/");
   return { success: true, id: assignmentId };
 }

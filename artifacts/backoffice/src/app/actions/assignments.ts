@@ -8,6 +8,8 @@ import {
   customersTable,
   objectsTable,
   personnelTable,
+  personnelNotificationsTable,
+  sectorsTable,
   taskCodesTable,
   auditLogTable,
   leavePeriodsTable,
@@ -942,6 +944,9 @@ export type PersonnelEligibilityResult = {
   meetsCertificates: boolean;
   meetsDiploma: boolean;
   meetsKnowledge: boolean;
+  sectorId: string | null;
+  sectorName: string | null;
+  meetsSector: boolean;
   /**
    * true when personnel region matches assignment region.
    * Always true when no required_region is set on the assignment
@@ -988,8 +993,12 @@ export async function getPersonnelEligibilityForAssignment(
       scheduledStart: assignmentsTable.scheduledStart,
       scheduledEnd: assignmentsTable.scheduledEnd,
       requiredRegion: assignmentsTable.requiredRegion,
+      objectSectorId: objectsTable.sectorId,
+      customerSectorId: customersTable.sectorId,
     })
     .from(assignmentsTable)
+    .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
+    .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
     .where(eq(assignmentsTable.id, assignmentId))
     .limit(1);
 
@@ -999,6 +1008,7 @@ export async function getPersonnelEligibilityForAssignment(
   const asgnHasTimes = Boolean(asgnStart && asgnEnd);
   // required_region for eligibility check (lowercased, trimmed; null = no restriction)
   const requiredRegion = asgn?.requiredRegion?.trim().toLowerCase() || null;
+  const requiredSectorId = asgn?.objectSectorId ?? asgn?.customerSectorId ?? null;
 
   // Day-of-week for availability window lookup (0=Sun … 6=Sat)
   const dayOfWeek = dateStr ? new Date(dateStr + "T00:00:00").getDay() : null;
@@ -1051,8 +1061,11 @@ export async function getPersonnelEligibilityForAssignment(
       diplomas: personnelTable.diplomas,
       knowledge: personnelTable.knowledge,
       region: personnelTable.region,
+      sectorId: personnelTable.sectorId,
+      sectorName: sectorsTable.name,
     })
     .from(personnelTable)
+    .leftJoin(sectorsTable, eq(personnelTable.sectorId, sectorsTable.id))
     .where(
       and(
         eq(personnelTable.isActive, true),
@@ -1213,6 +1226,7 @@ export async function getPersonnelEligibilityForAssignment(
     const meetsRole =
       requiredRoleIds.length === 0 ||
       requiredRoleIds.every((r) => p.roleId === r);
+    const meetsSector = !requiredSectorId || p.sectorId === requiredSectorId;
     // Region: compare personnel.region against assignment.required_region (case-insensitive, trimmed).
     // Always passes when required_region is not set on the assignment, or when personnel has no region.
     const meetsRegion =
@@ -1232,6 +1246,7 @@ export async function getPersonnelEligibilityForAssignment(
     if (!meetsCertificates) reasons.push("Benodigde certificaten ontbreken");
     if (!meetsDiploma) reasons.push("Benodigd diploma ontbreekt");
     if (!meetsKnowledge) reasons.push("Benodigde kennis ontbreekt");
+    if (!meetsSector) reasons.push("Sector komt niet overeen");
     if (!meetsRegion) reasons.push("Regio komt niet overeen");
 
     const eligible =
@@ -1242,6 +1257,7 @@ export async function getPersonnelEligibilityForAssignment(
       meetsCertificates &&
       meetsDiploma &&
       meetsKnowledge &&
+      meetsSector &&
       meetsRegion;
 
     return {
@@ -1254,12 +1270,259 @@ export async function getPersonnelEligibilityForAssignment(
       meetsCertificates,
       meetsDiploma,
       meetsKnowledge,
+      sectorId: p.sectorId ?? null,
+      sectorName: p.sectorName ?? null,
+      meetsSector,
       meetsRegion,
       meetsAvailabilityWindow,
       eligible,
       eligibilityReasons: reasons,
     };
   });
+}
+
+export type AssignmentPlanningReadiness = {
+  hasMoment: boolean;
+  eligibleCount: number;
+  fullyAvailableCount: number;
+  warningCount: number;
+  blockedCount: number;
+  assignedCount: number;
+  suggestedCount: number;
+  canPoll: boolean;
+  topMatches: Array<{
+    id: string;
+    name: string;
+    sectorName: string | null;
+    availabilityStatus: AvailabilityStatus;
+    reasons: string[];
+  }>;
+};
+
+function formatAssignmentMoment(input: {
+  scheduledDate: string | null;
+  scheduledStart: string | null;
+  scheduledEnd: string | null;
+}) {
+  const date = input.scheduledDate
+    ? new Date(`${input.scheduledDate}T00:00:00`).toLocaleDateString("nl-NL", {
+        weekday: "long",
+        day: "numeric",
+        month: "long",
+      })
+    : "datum onbekend";
+  const time =
+    input.scheduledStart && input.scheduledEnd
+      ? `${input.scheduledStart} - ${input.scheduledEnd}`
+      : "tijd onbekend";
+  return `${date}, ${time}`;
+}
+
+export async function getAssignmentPlanningReadiness(
+  assignmentId: string,
+): Promise<AssignmentPlanningReadiness> {
+  const canRead = await hasPermission("assignments", "read");
+  if (!canRead) {
+    return {
+      hasMoment: false,
+      eligibleCount: 0,
+      fullyAvailableCount: 0,
+      warningCount: 0,
+      blockedCount: 0,
+      assignedCount: 0,
+      suggestedCount: 0,
+      canPoll: false,
+      topMatches: [],
+    };
+  }
+
+  const [[assignment], eligibility, links] = await Promise.all([
+    db
+      .select({
+        status: assignmentsTable.status,
+        scheduledDate: assignmentsTable.scheduledDate,
+        scheduledStart: assignmentsTable.scheduledStart,
+        scheduledEnd: assignmentsTable.scheduledEnd,
+      })
+      .from(assignmentsTable)
+      .where(eq(assignmentsTable.id, assignmentId))
+      .limit(1),
+    getPersonnelEligibilityForAssignment(assignmentId),
+    db
+      .select({ status: assignmentPersonnelTable.status })
+      .from(assignmentPersonnelTable)
+      .where(eq(assignmentPersonnelTable.assignmentId, assignmentId)),
+  ]);
+
+  const hasMoment = Boolean(
+    assignment?.scheduledDate &&
+    assignment.scheduledStart &&
+    assignment.scheduledEnd,
+  );
+  const eligible = eligibility.filter((person) => person.eligible);
+  const fullyAvailable = eligible.filter(
+    (person) => person.availabilityStatus === "beschikbaar",
+  );
+  const warningCount = eligibility.filter(
+    (person) =>
+      !person.eligible &&
+      person.availabilityStatus !== "ziek" &&
+      person.availabilityStatus !== "op_verlof" &&
+      !person.hasConflict,
+  ).length;
+  const blockedCount = eligibility.length - eligible.length - warningCount;
+  const assignedCount = links.filter((link) => link.status === "assigned").length;
+  const suggestedCount = links.filter((link) => link.status === "suggested").length;
+  const pollableStatuses: AssignmentStatus[] = [
+    "requested",
+    "review",
+    "approved",
+    "plannable",
+  ];
+
+  return {
+    hasMoment,
+    eligibleCount: eligible.length,
+    fullyAvailableCount: fullyAvailable.length,
+    warningCount,
+    blockedCount,
+    assignedCount,
+    suggestedCount,
+    canPoll:
+      hasMoment &&
+      fullyAvailable.length > 0 &&
+      Boolean(assignment?.status && pollableStatuses.includes(assignment.status as AssignmentStatus)),
+    topMatches: fullyAvailable.slice(0, 5).map((person) => ({
+      id: person.id,
+      name: `${person.firstName} ${person.lastName}`.trim(),
+      sectorName: person.sectorName,
+      availabilityStatus: person.availabilityStatus,
+      reasons: person.eligibilityReasons,
+    })),
+  };
+}
+
+export async function sendAssignmentInterestPoll(
+  assignmentId: string,
+): Promise<ActionResult<{ notified: number }>> {
+  await requirePermission("planning", "write");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [assignment] = await db
+    .select({
+      id: assignmentsTable.id,
+      code: assignmentsTable.code,
+      title: assignmentsTable.title,
+      priority: assignmentsTable.priority,
+      scheduledDate: assignmentsTable.scheduledDate,
+      scheduledStart: assignmentsTable.scheduledStart,
+      scheduledEnd: assignmentsTable.scheduledEnd,
+      status: assignmentsTable.status,
+    })
+    .from(assignmentsTable)
+    .where(eq(assignmentsTable.id, assignmentId))
+    .limit(1);
+
+  if (!assignment) return { success: false, message: "Opdracht niet gevonden." };
+  if (!assignment.scheduledDate || !assignment.scheduledStart || !assignment.scheduledEnd) {
+    return {
+      success: false,
+      message: "Vul eerst een datum en tijdvak in voordat je een interessepeiling verstuurt.",
+    };
+  }
+
+  const eligibility = await getPersonnelEligibilityForAssignment(assignmentId);
+  const candidates = eligibility.filter(
+    (person) => person.eligible && person.availabilityStatus === "beschikbaar",
+  );
+  if (candidates.length === 0) {
+    return {
+      success: false,
+      message: "Geen volledig passende en beschikbare medewerkers gevonden.",
+    };
+  }
+
+  const candidateIds = candidates.map((person) => person.id);
+  const title = `Interessepeiling ${assignment.code}`;
+  const href = "/openstaand";
+
+  const [existingLinks, existingNotifications] = await Promise.all([
+    db
+      .select({ personnelId: assignmentPersonnelTable.personnelId })
+      .from(assignmentPersonnelTable)
+      .where(
+        and(
+          eq(assignmentPersonnelTable.assignmentId, assignmentId),
+          inArray(assignmentPersonnelTable.personnelId, candidateIds),
+        ),
+      ),
+    db
+      .select({ personnelId: personnelNotificationsTable.personnelId })
+      .from(personnelNotificationsTable)
+      .where(
+        and(
+          inArray(personnelNotificationsTable.personnelId, candidateIds),
+          eq(personnelNotificationsTable.title, title),
+          isNull(personnelNotificationsTable.deletedAt),
+        ),
+      ),
+  ]);
+
+  const linkedIds = new Set(existingLinks.map((link) => link.personnelId));
+  const alreadyNotifiedIds = new Set(
+    existingNotifications.map((notification) => notification.personnelId),
+  );
+  const recipients = candidates.filter(
+    (person) => !linkedIds.has(person.id) && !alreadyNotifiedIds.has(person.id),
+  );
+
+  if (recipients.length === 0) {
+    return {
+      success: false,
+      message: "Alle passende medewerkers zijn al gekoppeld of eerder genotificeerd.",
+    };
+  }
+
+  const momentLabel = formatAssignmentMoment(assignment);
+  const notificationPriority: "high" | "normal" =
+    assignment.priority === "urgent" || assignment.priority === "high"
+      ? "high"
+      : "normal";
+  await db.transaction(async (tx) => {
+    await tx.insert(personnelNotificationsTable).values(
+      recipients.map((person) => ({
+        personnelId: person.id,
+        title,
+        body: `Open opdracht: ${assignment.title}. Moment: ${momentLabel}. Reageer via open opdrachten als je deze bon kunt oppakken.`,
+        category: "planning" as const,
+        priority: notificationPriority,
+        sourceLabel: "Planning",
+        href,
+      })),
+    );
+
+    await tx.insert(auditLogTable).values({
+      userId: user.id,
+      action: "assignment_interest_poll",
+      resource: "assignments",
+      resourceId: assignmentId,
+      metadata: {
+        notified: recipients.length,
+        candidateCount: candidates.length,
+        scheduledDate: assignment.scheduledDate,
+        scheduledStart: assignment.scheduledStart,
+        scheduledEnd: assignment.scheduledEnd,
+      },
+    });
+  });
+
+  revalidatePath(`/assignments/${assignmentId}`);
+  return { success: true, data: { notified: recipients.length } };
 }
 
 /**
