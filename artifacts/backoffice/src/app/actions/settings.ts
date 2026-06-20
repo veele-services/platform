@@ -8,7 +8,15 @@ import {
   rolePermissionsTable,
   userRolesTable,
   auditLogTable,
+  customerNotificationsTable,
+  customersTable,
+  customerPortalPreferencesTable,
+  notificationDeliveryQueueTable,
+  notificationDispatchesTable,
+  notificationEventSettingsTable,
   personnelTable,
+  personnelNotificationsTable,
+  sectorsTable,
 } from "@workspace/db";
 import {
   eq,
@@ -52,6 +60,10 @@ export type OrgSettings = {
   smtpFromName: string | null;
   smtpFromEmail: string | null;
   smtpReplyTo: string | null;
+  emailTemplateBrandColor: string;
+  emailTemplateAccentColor: string;
+  emailTemplateFooterText: string;
+  emailTemplateSignature: string;
   notifRapportGoedgekeurd: boolean;
   notifRapportAfgekeurd: boolean;
   notifOfferteVerstuurd: boolean;
@@ -136,6 +148,10 @@ export async function getOrganizationSettings(): Promise<OrgSettings | null> {
     smtpFromName: r.smtpFromName,
     smtpFromEmail: r.smtpFromEmail,
     smtpReplyTo: r.smtpReplyTo,
+    emailTemplateBrandColor: r.emailTemplateBrandColor,
+    emailTemplateAccentColor: r.emailTemplateAccentColor,
+    emailTemplateFooterText: r.emailTemplateFooterText,
+    emailTemplateSignature: r.emailTemplateSignature,
     notifRapportGoedgekeurd: r.notifRapportGoedgekeurd,
     notifRapportAfgekeurd: r.notifRapportAfgekeurd,
     notifOfferteVerstuurd: r.notifOfferteVerstuurd,
@@ -305,6 +321,621 @@ export async function updateMailSettings(
   revalidatePath("/instellingen/mail");
   revalidatePath("/instellingen/notificaties");
   return { success: true };
+}
+
+export type NotificationEventSettingRow = {
+  eventKey: string;
+  eventGroup: string;
+  audience: "customer" | "personnel" | "management" | "mixed";
+  title: string;
+  description: string;
+  emailEnabled: boolean;
+  pushEnabled: boolean;
+  inAppEnabled: boolean;
+  emailSubject: string;
+  emailPreheader: string | null;
+  emailBody: string;
+  pushTitle: string;
+  pushBody: string;
+  shortcodes: string[];
+  updatedAt: string;
+};
+
+export type NotificationAudienceOptions = {
+  sectors: Array<{ id: string; name: string }>;
+  personnel: Array<{
+    id: string;
+    name: string;
+    email: string;
+    sectorId: string | null;
+    sectorName: string | null;
+  }>;
+  customers: Array<{
+    id: string;
+    name: string;
+    email: string | null;
+    sectorId: string | null;
+    sectorName: string | null;
+  }>;
+};
+
+type NotificationEventUpdateInput = {
+  emailEnabled: boolean;
+  pushEnabled: boolean;
+  inAppEnabled: boolean;
+  emailSubject: string;
+  emailPreheader: string | null;
+  emailBody: string;
+  pushTitle: string;
+  pushBody: string;
+};
+
+type ManualNotificationInput = {
+  audience: "personnel" | "customer" | "both";
+  targetMode: "all" | "sector" | "individual";
+  sectorIds: string[];
+  personnelIds: string[];
+  customerIds: string[];
+  channels: Array<"email" | "push" | "in_app">;
+  priority: "low" | "normal" | "high";
+  title: string;
+  body: string;
+  href?: string | null;
+};
+
+function safeTrim(value: string | null | undefined, max: number): string {
+  return (value ?? "").trim().slice(0, max);
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function normalizeShortcodeText(
+  value: string,
+  replacements: Record<string, string | null | undefined>,
+): string {
+  return Object.entries(replacements).reduce(
+    (current, [key, replacement]) =>
+      current.replaceAll(`{{${key}}}`, replacement ?? ""),
+    value,
+  );
+}
+
+function bodyTextToHtml(body: string): string {
+  return body
+    .split(/\n{2,}/u)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean)
+    .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, "<br>")}</p>`)
+    .join("");
+}
+
+export async function listNotificationEventSettings(): Promise<
+  NotificationEventSettingRow[]
+> {
+  await requirePermission("settings", "read");
+
+  const rows = await db
+    .select()
+    .from(notificationEventSettingsTable)
+    .orderBy(
+      asc(notificationEventSettingsTable.eventGroup),
+      asc(notificationEventSettingsTable.title),
+    );
+
+  return rows.map((row) => ({
+    eventKey: row.eventKey,
+    eventGroup: row.eventGroup,
+    audience: row.audience,
+    title: row.title,
+    description: row.description,
+    emailEnabled: row.emailEnabled,
+    pushEnabled: row.pushEnabled,
+    inAppEnabled: row.inAppEnabled,
+    emailSubject: row.emailSubject,
+    emailPreheader: row.emailPreheader,
+    emailBody: row.emailBody,
+    pushTitle: row.pushTitle,
+    pushBody: row.pushBody,
+    shortcodes: row.shortcodes,
+    updatedAt: row.updatedAt.toISOString(),
+  }));
+}
+
+export async function updateNotificationEventSetting(
+  eventKey: string,
+  data: NotificationEventUpdateInput,
+): Promise<ActionResult> {
+  await requirePermission("settings", "write");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const payload = {
+    emailEnabled: Boolean(data.emailEnabled),
+    pushEnabled: Boolean(data.pushEnabled),
+    inAppEnabled: Boolean(data.inAppEnabled),
+    emailSubject: safeTrim(data.emailSubject, 240),
+    emailPreheader: safeTrim(data.emailPreheader, 240) || null,
+    emailBody: safeTrim(data.emailBody, 8000),
+    pushTitle: safeTrim(data.pushTitle, 120),
+    pushBody: safeTrim(data.pushBody, 500),
+    updatedAt: new Date(),
+    updatedBy: user.id,
+  };
+
+  if (!payload.emailSubject) {
+    return { success: false, message: "E-mailonderwerp is verplicht." };
+  }
+  if (!payload.emailBody) {
+    return { success: false, message: "E-mailtekst is verplicht." };
+  }
+  if (!payload.pushTitle || !payload.pushBody) {
+    return { success: false, message: "Push titel en tekst zijn verplicht." };
+  }
+
+  const [updated] = await db
+    .update(notificationEventSettingsTable)
+    .set(payload)
+    .where(eq(notificationEventSettingsTable.eventKey, eventKey))
+    .returning({ eventKey: notificationEventSettingsTable.eventKey });
+
+  if (!updated) return { success: false, message: "Notificatie-event niet gevonden." };
+
+  await db.insert(auditLogTable).values({
+    userId: user.id,
+    action: "update_notification_template",
+    resource: "settings",
+    resourceId: eventKey,
+    metadata: {
+      emailEnabled: payload.emailEnabled,
+      pushEnabled: payload.pushEnabled,
+      inAppEnabled: payload.inAppEnabled,
+    },
+  });
+
+  revalidatePath("/instellingen/notificaties");
+  return { success: true };
+}
+
+export async function updateEmailTemplateStyle(data: {
+  brandColor: string;
+  accentColor: string;
+  footerText: string;
+  signature: string;
+}): Promise<ActionResult> {
+  await requirePermission("settings", "write");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const colorRegex = /^#[0-9a-fA-F]{6}$/u;
+  const brandColor = safeTrim(data.brandColor, 20);
+  const accentColor = safeTrim(data.accentColor, 20);
+  if (!colorRegex.test(brandColor) || !colorRegex.test(accentColor)) {
+    return { success: false, message: "Gebruik geldige hex-kleuren, bijvoorbeeld #081D3A." };
+  }
+
+  await db.update(organizationSettingsTable).set({
+    emailTemplateBrandColor: brandColor,
+    emailTemplateAccentColor: accentColor,
+    emailTemplateFooterText: safeTrim(data.footerText, 2000),
+    emailTemplateSignature: safeTrim(data.signature, 2000),
+    updatedAt: new Date(),
+    updatedBy: user.id,
+  });
+
+  await db.insert(auditLogTable).values({
+    userId: user.id,
+    action: "update_email_template_style",
+    resource: "settings",
+    resourceId: "notifications",
+    metadata: { brandColor, accentColor },
+  });
+
+  revalidatePath("/instellingen/notificaties");
+  return { success: true };
+}
+
+export async function getNotificationAudienceOptions(): Promise<
+  NotificationAudienceOptions
+> {
+  await requirePermission("settings", "read");
+
+  const [sectorRows, personnelRows, customerRows] = await Promise.all([
+    db
+      .select({ id: sectorsTable.id, name: sectorsTable.name })
+      .from(sectorsTable)
+      .where(eq(sectorsTable.isActive, true))
+      .orderBy(asc(sectorsTable.name)),
+    db
+      .select({
+        id: personnelTable.id,
+        firstName: personnelTable.firstName,
+        lastName: personnelTable.lastName,
+        email: personnelTable.email,
+        sectorId: personnelTable.sectorId,
+        sectorName: sectorsTable.name,
+      })
+      .from(personnelTable)
+      .leftJoin(sectorsTable, eq(personnelTable.sectorId, sectorsTable.id))
+      .where(eq(personnelTable.isActive, true))
+      .orderBy(asc(personnelTable.lastName), asc(personnelTable.firstName)),
+    db
+      .select({
+        id: customersTable.id,
+        name: customersTable.name,
+        email: customersTable.contactEmail,
+        sectorId: customersTable.sectorId,
+        sectorName: sectorsTable.name,
+      })
+      .from(customersTable)
+      .leftJoin(sectorsTable, eq(customersTable.sectorId, sectorsTable.id))
+      .where(eq(customersTable.isActive, true))
+      .orderBy(asc(customersTable.name)),
+  ]);
+
+  return {
+    sectors: sectorRows,
+    personnel: personnelRows.map((person) => ({
+      id: person.id,
+      name: `${person.firstName} ${person.lastName}`.trim(),
+      email: person.email,
+      sectorId: person.sectorId,
+      sectorName: person.sectorName,
+    })),
+    customers: customerRows.map((customer) => ({
+      id: customer.id,
+      name: customer.name,
+      email: customer.email,
+      sectorId: customer.sectorId,
+      sectorName: customer.sectorName,
+    })),
+  };
+}
+
+export async function sendManualNotification(
+  input: ManualNotificationInput,
+): Promise<ActionResult<{
+  personnelCount: number;
+  customerCount: number;
+  emailSuccessCount: number;
+  emailFailedCount: number;
+}>> {
+  await requirePermission("settings", "write");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const title = safeTrim(input.title, 180);
+  const body = safeTrim(input.body, 4000);
+  const href = safeTrim(input.href, 1000) || null;
+  const priority = ["low", "normal", "high"].includes(input.priority)
+    ? input.priority
+    : "normal";
+  const channels = [...new Set(input.channels)].filter((channel) =>
+    ["email", "push", "in_app"].includes(channel),
+  ) as Array<"email" | "push" | "in_app">;
+
+  if (!title) return { success: false, message: "Titel is verplicht." };
+  if (!body) return { success: false, message: "Berichttekst is verplicht." };
+  if (channels.length === 0) {
+    return { success: false, message: "Kies minimaal een kanaal." };
+  }
+
+  const sectorIds = input.sectorIds.filter(Boolean);
+  const personnelIds = input.personnelIds.filter(Boolean);
+  const customerIds = input.customerIds.filter(Boolean);
+
+  const wantsPersonnel = input.audience === "personnel" || input.audience === "both";
+  const wantsCustomers = input.audience === "customer" || input.audience === "both";
+
+  const personnelConditions = [eq(personnelTable.isActive, true)];
+  if (input.targetMode === "sector" && sectorIds.length > 0) {
+    personnelConditions.push(inArray(personnelTable.sectorId, sectorIds));
+  }
+  if (input.targetMode === "individual" && personnelIds.length > 0) {
+    personnelConditions.push(inArray(personnelTable.id, personnelIds));
+  }
+
+  const customerConditions = [eq(customersTable.isActive, true)];
+  if (input.targetMode === "sector" && sectorIds.length > 0) {
+    customerConditions.push(inArray(customersTable.sectorId, sectorIds));
+  }
+  if (input.targetMode === "individual" && customerIds.length > 0) {
+    customerConditions.push(inArray(customersTable.id, customerIds));
+  }
+
+  const [personnelRecipients, customerRecipients] = await Promise.all([
+    wantsPersonnel
+      ? db
+          .select({
+            id: personnelTable.id,
+            firstName: personnelTable.firstName,
+            lastName: personnelTable.lastName,
+            email: personnelTable.email,
+            emailEnabled: personnelTable.notificationEmailEnabled,
+            pushEnabled: personnelTable.notificationPushEnabled,
+          })
+          .from(personnelTable)
+          .where(and(...personnelConditions))
+      : Promise.resolve([]),
+    wantsCustomers
+      ? db
+          .select({
+            id: customersTable.id,
+            name: customersTable.name,
+            email: customersTable.contactEmail,
+            emailEnabled: customerPortalPreferencesTable.emailNotifications,
+            pushEnabled: customerPortalPreferencesTable.pushNotifications,
+          })
+          .from(customersTable)
+          .leftJoin(
+            customerPortalPreferencesTable,
+            eq(customerPortalPreferencesTable.customerId, customersTable.id),
+          )
+          .where(and(...customerConditions))
+      : Promise.resolve([]),
+  ]);
+
+  if (personnelRecipients.length + customerRecipients.length === 0) {
+    return { success: false, message: "Geen ontvangers gevonden voor deze selectie." };
+  }
+
+  const [dispatch] = await db
+    .insert(notificationDispatchesTable)
+    .values({
+      title,
+      body,
+      audience: input.audience,
+      channels,
+      targetCriteria: {
+        targetMode: input.targetMode,
+        sectorIds,
+        personnelIds,
+        customerIds,
+      },
+      sentPersonnelCount: personnelRecipients.length,
+      sentCustomerCount: customerRecipients.length,
+      createdBy: user.id,
+    })
+    .returning({ id: notificationDispatchesTable.id });
+
+  if (!dispatch) {
+    return { success: false, message: "Notificatie kon niet worden aangemaakt." };
+  }
+
+  const createdAt = new Date();
+  const inAppEnabled = channels.includes("in_app") || channels.includes("push");
+  const pushEnabled = channels.includes("push");
+  const emailEnabled = channels.includes("email");
+
+  await db.transaction(async (tx) => {
+    if (inAppEnabled && personnelRecipients.length > 0) {
+      await tx.insert(personnelNotificationsTable).values(
+        personnelRecipients.map((person) => {
+          const recipientName = `${person.firstName} ${person.lastName}`.trim();
+          return {
+            personnelId: person.id,
+            title: normalizeShortcodeText(title, {
+              "recipient.name": recipientName,
+              "personnel.first_name": person.firstName,
+              "personnel.name": recipientName,
+            }),
+            body: normalizeShortcodeText(body, {
+              "recipient.name": recipientName,
+              "personnel.first_name": person.firstName,
+              "personnel.name": recipientName,
+            }),
+            category: "system" as const,
+            priority,
+            sourceLabel: "Veele Services",
+            href,
+            createdAt,
+          };
+        }),
+      );
+    }
+
+    if (inAppEnabled && customerRecipients.length > 0) {
+      await tx.insert(customerNotificationsTable).values(
+        customerRecipients.map((customer) => ({
+          customerId: customer.id,
+          title: normalizeShortcodeText(title, {
+            "recipient.name": customer.name,
+            "customer.name": customer.name,
+          }),
+          body: normalizeShortcodeText(body, {
+            "recipient.name": customer.name,
+            "customer.name": customer.name,
+          }),
+          category: "message",
+          priority,
+          sourceLabel: "Veele Services",
+          href,
+          createdAt,
+        })),
+      );
+    }
+
+    if (pushEnabled) {
+      const queueRows = [
+        ...personnelRecipients
+          .filter((person) => person.pushEnabled)
+          .map((person) => {
+            const recipientName = `${person.firstName} ${person.lastName}`.trim();
+            return {
+              dispatchId: dispatch.id,
+              channel: "push" as const,
+              recipientType: "personnel",
+              personnelId: person.id,
+              title: normalizeShortcodeText(title, {
+                "recipient.name": recipientName,
+                "personnel.first_name": person.firstName,
+                "personnel.name": recipientName,
+              }),
+              body: normalizeShortcodeText(body, {
+                "recipient.name": recipientName,
+                "personnel.first_name": person.firstName,
+                "personnel.name": recipientName,
+              }),
+              payload: { href, priority },
+            };
+          }),
+        ...customerRecipients
+          .filter((customer) => customer.pushEnabled ?? false)
+          .map((customer) => ({
+            dispatchId: dispatch.id,
+            channel: "push" as const,
+            recipientType: "customer",
+            customerId: customer.id,
+            title: normalizeShortcodeText(title, {
+              "recipient.name": customer.name,
+              "customer.name": customer.name,
+            }),
+            body: normalizeShortcodeText(body, {
+              "recipient.name": customer.name,
+              "customer.name": customer.name,
+            }),
+            payload: { href, priority },
+          })),
+      ];
+
+      if (queueRows.length > 0) {
+        await tx.insert(notificationDeliveryQueueTable).values(queueRows);
+      }
+    }
+  });
+
+  let emailSuccessCount = 0;
+  let emailFailedCount = 0;
+
+  if (emailEnabled) {
+    const { buildStyledNotificationEmail, sendEmailWithResult } = await import("@/lib/email");
+    const emailRows: Array<typeof notificationDeliveryQueueTable.$inferInsert> = [];
+
+    const emailRecipients = [
+      ...personnelRecipients
+        .filter((person) => person.emailEnabled)
+        .map((person) => {
+          const recipientName = `${person.firstName} ${person.lastName}`.trim();
+          return {
+            type: "personnel" as const,
+            id: person.id,
+            email: person.email,
+            name: recipientName,
+            firstName: person.firstName,
+          };
+        }),
+      ...customerRecipients
+        .filter((customer) => customer.email && (customer.emailEnabled ?? true))
+        .map((customer) => ({
+          type: "customer" as const,
+          id: customer.id,
+          email: customer.email!,
+          name: customer.name,
+          firstName: customer.name,
+        })),
+    ];
+
+    for (const recipient of emailRecipients) {
+      const renderedTitle = normalizeShortcodeText(title, {
+        "recipient.name": recipient.name,
+        "personnel.first_name": recipient.firstName,
+        "personnel.name": recipient.name,
+        "customer.name": recipient.name,
+      });
+      const renderedBody = normalizeShortcodeText(body, {
+        "recipient.name": recipient.name,
+        "personnel.first_name": recipient.firstName,
+        "personnel.name": recipient.name,
+        "customer.name": recipient.name,
+      });
+      const message = await buildStyledNotificationEmail({
+        subject: renderedTitle,
+        preheader: renderedBody.slice(0, 180),
+        bodyHtml: bodyTextToHtml(renderedBody),
+        bodyText: renderedBody,
+        ctaHref: href,
+        ctaLabel: href ? "Open portaal" : null,
+      });
+      const result = await sendEmailWithResult({
+        to: recipient.email,
+        subject: message.subject,
+        html: message.html,
+        text: message.text,
+      });
+      if (result.success) emailSuccessCount += 1;
+      else emailFailedCount += 1;
+
+      emailRows.push({
+        dispatchId: dispatch.id,
+        channel: "email",
+        recipientType: recipient.type,
+        personnelId: recipient.type === "personnel" ? recipient.id : null,
+        customerId: recipient.type === "customer" ? recipient.id : null,
+        recipientEmail: recipient.email,
+        subject: message.subject,
+        title: renderedTitle,
+        body: renderedBody,
+        html: message.html,
+        status: result.success ? "sent" : "failed",
+        attempts: 1,
+        lastError: result.success ? null : result.error ?? "E-mail verzenden mislukt.",
+        sentAt: result.success ? new Date() : null,
+      });
+    }
+
+    if (emailRows.length > 0) {
+      await db.insert(notificationDeliveryQueueTable).values(emailRows);
+    }
+  }
+
+  await db
+    .update(notificationDispatchesTable)
+    .set({ emailSuccessCount, emailFailedCount })
+    .where(eq(notificationDispatchesTable.id, dispatch.id));
+
+  await db.insert(auditLogTable).values({
+    userId: user.id,
+    action: "send_manual_notification",
+    resource: "notifications",
+    resourceId: dispatch.id,
+    metadata: {
+      audience: input.audience,
+      targetMode: input.targetMode,
+      channels,
+      personnelCount: personnelRecipients.length,
+      customerCount: customerRecipients.length,
+      emailSuccessCount,
+      emailFailedCount,
+    },
+  });
+
+  revalidatePath("/instellingen/notificaties");
+  return {
+    success: true,
+    data: {
+      personnelCount: personnelRecipients.length,
+      customerCount: customerRecipients.length,
+      emailSuccessCount,
+      emailFailedCount,
+    },
+  };
 }
 
 export async function uploadOrgLogo(

@@ -1,7 +1,17 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { AlertTriangle, Bell, CheckCircle2, FileCheck2, FileText, Receipt } from "lucide-react";
+import {
+  AlertTriangle,
+  Bell,
+  CalendarClock,
+  CheckCircle2,
+  FileCheck2,
+  FileText,
+  MessageSquareText,
+  Newspaper,
+  Receipt,
+} from "lucide-react";
 import { getMyCustomerNotifications } from "@/actions/notifications";
 import { PageShell } from "@/components/PageShell";
 
@@ -10,6 +20,9 @@ const CATEGORY_ICON = {
   quote:   FileText,
   report:  FileCheck2,
   request: Bell,
+  planning: CalendarClock,
+  news: Newspaper,
+  message: MessageSquareText,
   system:  CheckCircle2,
 };
 

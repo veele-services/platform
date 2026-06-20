@@ -1,12 +1,15 @@
 "use client";
 
-import { useActionState } from "react";
-import { Save } from "lucide-react";
+import { useActionState, useState, useTransition } from "react";
+import { Loader2, Save, Smartphone } from "lucide-react";
 import {
   updateMyPortalPreferences,
   type CustomerPortalPreferenceState,
   type PreferenceResult,
 } from "@/actions/preferences";
+import { saveMyCustomerPushSubscription } from "@/actions/push";
+
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
 const OPTIONS = [
   { name: "emailNotifications",  label: "E-mailmeldingen ontvangen", description: "Hoofdschakelaar voor operationele e-mails." },
@@ -18,11 +21,73 @@ const OPTIONS = [
   { name: "pushNotifications",   label: "Pushmeldingen", description: "Voorbereid voor PWA pushnotificaties." },
 ] as const;
 
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+}
+
 export function PortalPreferencesForm({ preferences }: { preferences: CustomerPortalPreferenceState }) {
   const [state, formAction, pending] = useActionState<PreferenceResult, FormData>(
     updateMyPortalPreferences,
     { success: false, error: "" },
   );
+  const [pushStatus, setPushStatus] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [isRegisteringPush, startPushRegistration] = useTransition();
+
+  function registerPush() {
+    setPushStatus(null);
+    startPushRegistration(async () => {
+      if (!VAPID_PUBLIC_KEY) {
+        setPushStatus({
+          type: "error",
+          text: "Push is technisch voorbereid. Stel eerst NEXT_PUBLIC_VAPID_PUBLIC_KEY en de server-side VAPID keys in.",
+        });
+        return;
+      }
+
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        setPushStatus({
+          type: "error",
+          text: "Deze browser ondersteunt web push niet.",
+        });
+        return;
+      }
+
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setPushStatus({ type: "error", text: "Push toestemming is niet gegeven." });
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      const existing = await registration.pushManager.getSubscription();
+      const subscription =
+        existing ??
+        (await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        }));
+      const serialized = subscription.toJSON();
+      const result = await saveMyCustomerPushSubscription({
+        endpoint: serialized.endpoint ?? "",
+        keys: {
+          p256dh: serialized.keys?.p256dh,
+          auth: serialized.keys?.auth,
+        },
+        userAgent: navigator.userAgent,
+      });
+
+      setPushStatus(
+        result.success
+          ? { type: "success", text: "Browser is geregistreerd voor pushmeldingen." }
+          : { type: "error", text: result.error },
+      );
+    });
+  }
 
   return (
     <form action={formAction} className="rounded-[22px] bg-white p-5 shadow-sm">
@@ -82,6 +147,33 @@ export function PortalPreferencesForm({ preferences }: { preferences: CustomerPo
         <Save size={16} />
         {pending ? "Opslaan..." : "Instellingen opslaan"}
       </button>
+
+      <button
+        type="button"
+        disabled={isRegisteringPush}
+        onClick={registerPush}
+        className="ml-0 mt-3 inline-flex items-center justify-center gap-2 rounded-2xl border bg-white px-5 py-3 text-sm font-black disabled:opacity-60 md:ml-3"
+        style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+      >
+        {isRegisteringPush ? (
+          <Loader2 size={16} className="animate-spin" />
+        ) : (
+          <Smartphone size={16} />
+        )}
+        Browser push activeren
+      </button>
+
+      {pushStatus ? (
+        <p
+          className={`mt-4 rounded-2xl px-4 py-3 text-sm font-bold ${
+            pushStatus.type === "success"
+              ? "bg-emerald-50 text-emerald-700"
+              : "bg-amber-50 text-amber-800"
+          }`}
+        >
+          {pushStatus.text}
+        </p>
+      ) : null}
     </form>
   );
 }

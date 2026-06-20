@@ -33,6 +33,18 @@ export const organizationSettingsTable = pgTable("organization_settings", {
   smtpFromName: varchar("smtp_from_name", { length: 200 }),
   smtpFromEmail: varchar("smtp_from_email", { length: 255 }),
   smtpReplyTo: varchar("smtp_reply_to", { length: 255 }),
+  emailTemplateBrandColor: varchar("email_template_brand_color", { length: 20 })
+    .notNull()
+    .default("#081D3A"),
+  emailTemplateAccentColor: varchar("email_template_accent_color", { length: 20 })
+    .notNull()
+    .default("#00B7B3"),
+  emailTemplateFooterText: text("email_template_footer_text")
+    .notNull()
+    .default("Dit is een automatisch bericht van Veele Services. U ontvangt dit bericht omdat u betrokken bent bij een aanvraag, opdracht, rapportage, factuur of portaalmelding."),
+  emailTemplateSignature: text("email_template_signature")
+    .notNull()
+    .default("Met vriendelijke groet,\nVeele Services"),
 
   // ── Notification toggles (all default to true) ──────────────────────────────
   notifRapportGoedgekeurd: boolean("notif_rapport_goedgekeurd")
@@ -89,6 +101,10 @@ export const updateOrganizationSettingsSchema = createInsertSchema(
     smtpFromName: z.string().max(200).nullable().optional(),
     smtpFromEmail: z.string().max(255).nullable().optional(),
     smtpReplyTo: z.string().max(255).nullable().optional(),
+    emailTemplateBrandColor: z.string().max(20).optional(),
+    emailTemplateAccentColor: z.string().max(20).optional(),
+    emailTemplateFooterText: z.string().max(2000).optional(),
+    emailTemplateSignature: z.string().max(2000).optional(),
     notifRapportGoedgekeurd: z.boolean().optional(),
     notifRapportAfgekeurd: z.boolean().optional(),
     notifOfferteVerstuurd: z.boolean().optional(),

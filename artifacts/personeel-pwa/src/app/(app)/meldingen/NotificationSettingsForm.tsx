@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useActionState, useState, useTransition } from "react";
 import {
   BellRing,
   CalendarClock,
@@ -15,6 +15,9 @@ import {
   updateMyNotificationSettings,
   type PersonnelProfile,
 } from "@/actions/personnel";
+import { saveMyPushSubscription } from "@/actions/push";
+
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
 const OPTIONS = [
   {
@@ -56,6 +59,15 @@ const OPTIONS = [
 
 type OptionName = (typeof OPTIONS)[number]["name"];
 
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+}
+
 export function NotificationSettingsForm({
   profile,
 }: {
@@ -65,6 +77,11 @@ export function NotificationSettingsForm({
     updateMyNotificationSettings,
     undefined,
   );
+  const [pushStatus, setPushStatus] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
+  const [isRegisteringPush, startPushRegistration] = useTransition();
   const [enabled, setEnabled] = useState<Record<OptionName, boolean>>(() => ({
     email: profile.notificationEmailEnabled,
     push: profile.notificationPushEnabled,
@@ -72,6 +89,60 @@ export function NotificationSettingsForm({
     news: profile.notificationNewsEnabled,
     hours: profile.notificationHoursEnabled,
   }));
+
+  function registerPush() {
+    setPushStatus(null);
+    startPushRegistration(async () => {
+      if (!VAPID_PUBLIC_KEY) {
+        setPushStatus({
+          type: "error",
+          text: "Push is technisch voorbereid. Stel eerst NEXT_PUBLIC_VAPID_PUBLIC_KEY en de server-side VAPID keys in.",
+        });
+        return;
+      }
+
+      if (!("serviceWorker" in navigator) || !("PushManager" in window)) {
+        setPushStatus({
+          type: "error",
+          text: "Deze browser ondersteunt web push niet.",
+        });
+        return;
+      }
+
+      const permission = await Notification.requestPermission();
+      if (permission !== "granted") {
+        setPushStatus({
+          type: "error",
+          text: "Push toestemming is niet gegeven.",
+        });
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      const existing = await registration.pushManager.getSubscription();
+      const subscription =
+        existing ??
+        (await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        }));
+      const serialized = subscription.toJSON();
+      const result = await saveMyPushSubscription({
+        endpoint: serialized.endpoint ?? "",
+        keys: {
+          p256dh: serialized.keys?.p256dh,
+          auth: serialized.keys?.auth,
+        },
+        userAgent: navigator.userAgent,
+      });
+
+      setPushStatus(
+        result.success
+          ? { type: "success", text: "Browser is geregistreerd voor pushmeldingen." }
+          : { type: "error", text: result.error },
+      );
+    });
+  }
 
   return (
     <form action={formAction} className="space-y-3">
@@ -153,6 +224,33 @@ export function NotificationSettingsForm({
         )}
         Meldingen opslaan
       </button>
+
+      <button
+        type="button"
+        disabled={isRegisteringPush}
+        onClick={registerPush}
+        className="flex w-full items-center justify-center gap-2 rounded-2xl border bg-white px-4 py-3.5 text-sm font-black text-[#081D3A] shadow-sm disabled:opacity-60"
+        style={{ borderColor: "#BDEDEA" }}
+      >
+        {isRegisteringPush ? (
+          <Loader2 size={18} className="animate-spin" />
+        ) : (
+          <Smartphone size={18} strokeWidth={2.4} />
+        )}
+        Browser push activeren
+      </button>
+
+      {pushStatus ? (
+        <p
+          className={`rounded-2xl px-3 py-2.5 text-sm font-bold ${
+            pushStatus.type === "success"
+              ? "bg-emerald-50 text-emerald-700"
+              : "bg-amber-50 text-amber-800"
+          }`}
+        >
+          {pushStatus.text}
+        </p>
+      ) : null}
     </form>
   );
 }
