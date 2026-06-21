@@ -14,7 +14,7 @@ import { and, asc, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getMyCustomerIdentity } from "./customer";
 
-export const CUSTOMER_TICKET_DEPARTMENT_OPTIONS: Array<{
+const CUSTOMER_TICKET_DEPARTMENT_OPTIONS: Array<{
   value: CustomerTicketDepartment;
   label: string;
 }> = [
@@ -26,7 +26,7 @@ export const CUSTOMER_TICKET_DEPARTMENT_OPTIONS: Array<{
   { value: "support", label: "App support" },
 ];
 
-export const CUSTOMER_TICKET_PRIORITY_OPTIONS: Array<{
+const CUSTOMER_TICKET_PRIORITY_OPTIONS: Array<{
   value: CustomerTicketPriority;
   label: string;
 }> = [
