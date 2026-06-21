@@ -40,6 +40,7 @@ const ROUTE_TITLES: Array<{ prefix: string; title: string }> = [
   { prefix: "/reports", title: "Rapporten" },
   { prefix: "/invoices", title: "Facturen" },
   { prefix: "/documents", title: "Documenten" },
+  { prefix: "/tickets", title: "Tickets" },
   { prefix: "/settings", title: "Instellingen" },
   { prefix: "/instellingen", title: "Instellingen" },
   { prefix: "/profile", title: "Profiel" },
@@ -58,6 +59,7 @@ function searchTargetForPath(pathname: string): string {
   if (pathname.startsWith("/reports")) return "/reports";
   if (pathname.startsWith("/invoices")) return "/invoices";
   if (pathname.startsWith("/documents")) return "/documents";
+  if (pathname.startsWith("/tickets")) return "/tickets";
   return "/assignments";
 }
 

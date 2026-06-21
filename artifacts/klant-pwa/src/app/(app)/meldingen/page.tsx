@@ -13,6 +13,7 @@ import {
   Receipt,
 } from "lucide-react";
 import { getMyCustomerNotifications } from "@/actions/notifications";
+import { getMyCustomerTicketSummary } from "@/actions/tickets";
 import { PageShell } from "@/components/PageShell";
 
 const CATEGORY_ICON = {
@@ -37,7 +38,10 @@ function formatDate(iso: string): string {
 }
 
 export default async function MeldingenPage() {
-  const notifications = await getMyCustomerNotifications();
+  const [notifications, ticketSummary] = await Promise.all([
+    getMyCustomerNotifications(),
+    getMyCustomerTicketSummary(),
+  ]);
   const actionable = notifications.filter((item) => item.category !== "system");
 
   return (
@@ -91,7 +95,56 @@ export default async function MeldingenPage() {
           })}
         </div>
 
-        <aside className="rounded-[22px] bg-white p-5 shadow-sm">
+        <aside className="space-y-4">
+          <Link
+            href="/meldingen/tickets"
+            className="block rounded-[22px] bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+          >
+            <div className="flex items-start gap-3">
+              <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#E8FBFA] text-[#087C79]">
+                <MessageSquareText size={21} />
+              </span>
+              <div className="min-w-0 flex-1">
+                <h2 className="text-lg font-black" style={{ color: "var(--color-primary)" }}>
+                  Contact & tickets
+                </h2>
+                <p className="mt-1 text-sm font-semibold" style={{ color: "var(--color-secondary)" }}>
+                  {ticketSummary.openCount === 0
+                    ? "Geen open tickets."
+                    : `${ticketSummary.openCount} open ticket${ticketSummary.openCount === 1 ? "" : "s"}.`}
+                </p>
+              </div>
+              {ticketSummary.unreadCount > 0 ? (
+                <span className="flex h-7 min-w-7 items-center justify-center rounded-full bg-red-500 px-2 text-xs font-black text-white">
+                  {ticketSummary.unreadCount}
+                </span>
+              ) : null}
+            </div>
+
+            {ticketSummary.recent.length > 0 ? (
+              <div className="mt-4 space-y-2">
+                {ticketSummary.recent.map((ticket) => (
+                  <div
+                    key={ticket.id}
+                    className="rounded-2xl bg-slate-50 px-3 py-2.5"
+                  >
+                    <p className="line-clamp-1 text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                      {ticket.subject}
+                    </p>
+                    <p className="mt-1 line-clamp-1 text-xs font-semibold" style={{ color: "var(--color-muted-fg)" }}>
+                      {ticket.lastMessagePreview ?? "Nog geen berichtinhoud"}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="mt-5 rounded-2xl bg-slate-50 px-4 py-3 text-sm font-semibold leading-6" style={{ color: "var(--color-secondary)" }}>
+                Start een ticket voor vragen over facturen, objecten, opdrachten of ondersteuning.
+              </p>
+            )}
+          </Link>
+
+          <div className="rounded-[22px] bg-white p-5 shadow-sm">
           <div className="flex items-start gap-3">
             <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#E8FBFA] text-[#087C79]">
               <AlertTriangle size={21} />
@@ -111,6 +164,7 @@ export default async function MeldingenPage() {
             Deze lijst is gekoppeld aan uw actuele workflowdata. Zodra facturen betaald zijn,
             offertes beoordeeld zijn of aanvragen doorlopen, verdwijnt de actie automatisch.
           </p>
+          </div>
         </aside>
       </section>
     </PageShell>

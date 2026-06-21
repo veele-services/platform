@@ -12,6 +12,7 @@ import {
   FileText,
   FolderOpen,
   LayoutDashboard,
+  MessageSquare,
   Newspaper,
   Settings,
   UserCog,
@@ -34,6 +35,7 @@ const NAV_ITEMS = [
   { href: "/reports", icon: BarChart3, label: "Rapporten", permission: "reports:read" },
   { href: "/invoices", icon: FileText, label: "Facturen", permission: "invoices:read" },
   { href: "/documents", icon: FolderOpen, label: "Documenten", permission: "documents:read" },
+  { href: "/tickets", icon: MessageSquare, label: "Tickets", permission: "tickets:read" },
   { href: "/news", icon: Newspaper, label: "Nieuws", permission: "news:read" },
   { href: "/settings", icon: Settings, label: "Instellingen", permission: "settings:read" },
 ] as const;

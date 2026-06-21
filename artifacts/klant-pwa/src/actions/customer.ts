@@ -25,11 +25,17 @@ export type CustomerProfile = {
 
 export type UpdateContactResult = { success: true } | { success: false; error: string };
 
-async function resolveCustomerIdentity(): Promise<{
+export type CustomerIdentity = {
   customerId: string;
+  customerUserId: string;
+  tenantId: string;
+  customerName: string;
+  contactName: string | null;
   email: string;
   userId: string;
-} | null> {
+};
+
+export async function getMyCustomerIdentity(): Promise<CustomerIdentity | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) return null;
@@ -41,8 +47,14 @@ async function resolveCustomerIdentity(): Promise<{
       id: customerUsersTable.id,
       customerId: customerUsersTable.customerId,
       userId: customerUsersTable.userId,
+      tenantId: customerUsersTable.tenantId,
+      firstName: customerUsersTable.firstName,
+      lastName: customerUsersTable.lastName,
+      customerName: customersTable.name,
+      contactName: customersTable.contactName,
     })
     .from(customerUsersTable)
+    .innerJoin(customersTable, eq(customersTable.id, customerUsersTable.customerId))
     .where(
       and(
         eq(customerUsersTable.status, "active"),
@@ -67,13 +79,23 @@ async function resolveCustomerIdentity(): Promise<{
         .where(eq(customerUsersTable.id, linked.id));
     }
 
-    return { customerId: linked.customerId, email, userId: user.id };
+    const linkedName = [linked.firstName, linked.lastName].filter(Boolean).join(" ").trim();
+    return {
+      customerId: linked.customerId,
+      customerUserId: linked.id,
+      tenantId: linked.tenantId,
+      customerName: linked.customerName,
+      contactName: linkedName || linked.contactName,
+      email,
+      userId: user.id,
+    };
   }
 
   const [legacyCustomer] = await db
     .select({
       id: customersTable.id,
       tenantId: customersTable.tenantId,
+      name: customersTable.name,
       contactName: customersTable.contactName,
     })
     .from(customersTable)
@@ -82,7 +104,7 @@ async function resolveCustomerIdentity(): Promise<{
 
   if (!legacyCustomer) return null;
 
-  await db
+  const [createdLink] = await db
     .insert(customerUsersTable)
     .values({
       tenantId: legacyCustomer.tenantId,
@@ -94,9 +116,33 @@ async function resolveCustomerIdentity(): Promise<{
       status: "active",
       lastLoginAt: new Date(),
     })
-    .onConflictDoNothing();
+    .onConflictDoNothing()
+    .returning({ id: customerUsersTable.id });
 
-  return { customerId: legacyCustomer.id, email, userId: user.id };
+  const customerUserId = createdLink?.id ?? (
+    await db
+      .select({ id: customerUsersTable.id })
+      .from(customerUsersTable)
+      .where(
+        and(
+          eq(customerUsersTable.customerId, legacyCustomer.id),
+          eq(customerUsersTable.email, email),
+        ),
+      )
+      .limit(1)
+  )[0]?.id;
+
+  if (!customerUserId) return null;
+
+  return {
+    customerId: legacyCustomer.id,
+    customerUserId,
+    tenantId: legacyCustomer.tenantId,
+    customerName: legacyCustomer.name,
+    contactName: legacyCustomer.contactName,
+    email,
+    userId: user.id,
+  };
 }
 
 /**
@@ -104,7 +150,7 @@ async function resolveCustomerIdentity(): Promise<{
  * Prefers customer_users, with a legacy contact_email fallback for existing accounts.
  */
 export async function getMyCustomerProfile(): Promise<CustomerProfile | null> {
-  const identity = await resolveCustomerIdentity();
+  const identity = await getMyCustomerIdentity();
   if (!identity) return null;
 
   const [row] = await db
@@ -136,7 +182,7 @@ export async function getMyCustomerProfile(): Promise<CustomerProfile | null> {
  * Get the customer ID for the logged-in user. Returns null if not found.
  */
 export async function getMyCustomerId(): Promise<string | null> {
-  const identity = await resolveCustomerIdentity();
+  const identity = await getMyCustomerIdentity();
   return identity?.customerId ?? null;
 }
 
@@ -158,7 +204,7 @@ export async function updateMyContactInfo(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) return { success: false, error: "Niet ingelogd." };
 
-  const identity = await resolveCustomerIdentity();
+  const identity = await getMyCustomerIdentity();
   if (!identity) return { success: false, error: "Klantprofiel niet gevonden." };
 
   const parsed = updateContactSchema.safeParse({

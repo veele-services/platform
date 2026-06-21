@@ -8,6 +8,7 @@ export * from "./sectors";
 export * from "./customer-types";
 export * from "./customers";
 export * from "./customer-users";
+export * from "./customer-tickets";
 export * from "./customer-contacts";
 export * from "./customer-notes";
 export * from "./objects";
