@@ -41,6 +41,7 @@ import {
   getBatchAvailabilityStatus,
   type AvailabilityStatus,
 } from "./availability";
+import { emitAssignmentWorkflowEvent } from "@workspace/db/workflow-events";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
@@ -60,6 +61,18 @@ function isUniqueViolation(err: unknown): boolean {
 }
 
 const PAGE_SIZE = 25;
+
+async function notifyAssignmentWorkflow(input: Parameters<typeof emitAssignmentWorkflowEvent>[0]) {
+  try {
+    await emitAssignmentWorkflowEvent(input);
+  } catch (error) {
+    console.error("assignment workflow notification failed", {
+      eventKey: input.eventKey,
+      assignmentId: input.assignmentId,
+      error,
+    });
+  }
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1775,6 +1788,16 @@ export async function rescheduleAssignment(
     },
   });
 
+  if (assignedLinks.length > 0) {
+    await notifyAssignmentWorkflow({
+      eventKey: "assignment_rescheduled",
+      assignmentId: id,
+      actorUserId: user.id,
+      audience: "personnel",
+      recipients: { personnelIds: assignedLinks.map((link) => link.personnelId) },
+    });
+  }
+
   revalidatePath("/planning");
 
   return warningParts.length > 0
@@ -2026,6 +2049,16 @@ export async function reshiftAssignment(
     },
   });
 
+  if (assignedLinks.length > 0) {
+    await notifyAssignmentWorkflow({
+      eventKey: "assignment_rescheduled",
+      assignmentId: id,
+      actorUserId: user.id,
+      audience: "personnel",
+      recipients: { personnelIds: assignedLinks.map((link) => link.personnelId) },
+    });
+  }
+
   revalidatePath("/planning");
 
   return warningParts.length > 0
@@ -2257,6 +2290,14 @@ export async function assignPersonnel(
       resource: "assignments",
       resourceId: assignmentId,
       metadata: { personnelId },
+    });
+
+    await notifyAssignmentWorkflow({
+      eventKey: "assignment_assigned",
+      assignmentId,
+      actorUserId: user.id,
+      audience: "personnel",
+      recipients: { personnelIds: [personnelId] },
     });
 
     revalidatePath(`/assignments/${assignmentId}`);

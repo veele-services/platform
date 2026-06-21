@@ -1,6 +1,7 @@
 "use server";
 
 import { db, assignmentsTable, assignmentPersonnelTable } from "@workspace/db";
+import { emitAssignmentWorkflowEvent } from "@workspace/db/workflow-events";
 import { and, eq } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
@@ -261,6 +262,24 @@ function revalidateAssignmentPaths(assignmentId: string) {
   revalidatePath(`/opdrachten/${assignmentId}/afronden`);
 }
 
+async function notifyAssignmentWorkflow(input: {
+  eventKey: string;
+  assignmentId: string;
+  actorUserId: string;
+  audience?: "customer" | "personnel" | "management" | "mixed";
+  recipients?: { customerIds?: string[]; personnelIds?: string[] };
+}) {
+  try {
+    await emitAssignmentWorkflowEvent(input);
+  } catch (error) {
+    console.error("assignment workflow notification failed", {
+      eventKey: input.eventKey,
+      assignmentId: input.assignmentId,
+      error,
+    });
+  }
+}
+
 export async function setAssignmentStatus(
   assignmentId: string,
   newStatus: string,
@@ -306,6 +325,23 @@ export async function setAssignmentStatus(
       .where(eq(assignmentsTable.id, assignmentId));
   } catch {
     return { success: false, error: "Bijwerken mislukt" };
+  }
+
+  if (newStatus === "seen") {
+    await notifyAssignmentWorkflow({
+      eventKey: "assignment_seen",
+      assignmentId,
+      actorUserId: user.id,
+      audience: "management",
+    });
+  }
+  if (newStatus === "in_progress") {
+    await notifyAssignmentWorkflow({
+      eventKey: "assignment_started",
+      assignmentId,
+      actorUserId: user.id,
+      audience: "management",
+    });
   }
 
   revalidateAssignmentPaths(assignmentId);
@@ -359,6 +395,13 @@ export async function completeAssignment(
     return { success: false, error: "Afronden mislukt" };
   }
 
+  await notifyAssignmentWorkflow({
+    eventKey: "assignment_completed",
+    assignmentId,
+    actorUserId: user.id,
+    audience: "mixed",
+  });
+
   revalidateAssignmentPaths(assignmentId);
   return { success: true };
 }
@@ -407,6 +450,13 @@ export async function notCompleteAssignment(
   } catch {
     return { success: false, error: "Afmelden mislukt" };
   }
+
+  await notifyAssignmentWorkflow({
+    eventKey: "assignment_not_completed",
+    assignmentId,
+    actorUserId: user.id,
+    audience: "management",
+  });
 
   revalidateAssignmentPaths(assignmentId);
   return { success: true };

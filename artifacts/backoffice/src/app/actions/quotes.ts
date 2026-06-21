@@ -100,6 +100,13 @@ function isExpired(status: string, validityDate: string): boolean {
   return status === "sent" && validityDate < todayString();
 }
 
+function formatEuro(value: string | null | undefined): string {
+  const number = Number.parseFloat(value ?? "0");
+  return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(
+    Number.isFinite(number) ? number : 0,
+  );
+}
+
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
 export async function getPendingQuotesCount(): Promise<number> {
@@ -452,12 +459,17 @@ export async function sendQuote(id: string): Promise<ActionResult> {
       id: quotesTable.id,
       status: quotesTable.status,
       assignmentId: quotesTable.assignmentId,
+      assignmentCode: assignmentsTable.code,
+      assignmentTitle: assignmentsTable.title,
       customerId: quotesTable.customerId,
+      customerName: customersTable.name,
       quoteNumber: quotesTable.quoteNumber,
       amount: quotesTable.amount,
       validityDate: quotesTable.validityDate,
     })
     .from(quotesTable)
+    .innerJoin(assignmentsTable, eq(quotesTable.assignmentId, assignmentsTable.id))
+    .innerJoin(customersTable, eq(quotesTable.customerId, customersTable.id))
     .where(eq(quotesTable.id, id))
     .limit(1);
 
@@ -497,6 +509,24 @@ export async function sendQuote(id: string): Promise<ActionResult> {
       assignmentId: quote.assignmentId,
       amount: quote.amount ?? "0",
       validityDate: quote.validityDate ?? "",
+      quote: {
+        id,
+        number: quote.quoteNumber,
+        amount: formatEuro(quote.amount),
+        valid_until: quote.validityDate ?? "",
+      },
+      assignment: {
+        id: quote.assignmentId,
+        code: quote.assignmentCode,
+        title: quote.assignmentTitle,
+      },
+      customer: {
+        id: quote.customerId,
+        name: quote.customerName ?? "klant",
+      },
+      recipient: {
+        name: quote.customerName ?? "klant",
+      },
       href: "/offertes",
     },
     fallback: {

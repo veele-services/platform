@@ -16,6 +16,7 @@ import {
 } from "@workspace/db";
 import { alias } from "drizzle-orm/pg-core";
 import { eq, ilike, or, and, desc, sql, exists } from "drizzle-orm";
+import { emitReportWorkflowEvent } from "@workspace/db/workflow-events";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
@@ -35,6 +36,18 @@ const PAGE_SIZE = 25;
 
 const submitterPersonnel = alias(personnelTable, "submitter_personnel");
 const reviewerPersonnel  = alias(personnelTable, "reviewer_personnel");
+
+async function notifyReportWorkflow(input: Parameters<typeof emitReportWorkflowEvent>[0]) {
+  try {
+    await emitReportWorkflowEvent(input);
+  } catch (error) {
+    console.error("report workflow notification failed", {
+      eventKey: input.eventKey,
+      reportId: input.reportId,
+      error,
+    });
+  }
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -459,6 +472,12 @@ export async function submitReport(
       metadata:   { assignmentId, assignmentTitle: assignment.title },
     });
 
+    await notifyReportWorkflow({
+      eventKey: "report_submitted",
+      reportId: created!.id,
+      actorUserId: user.id,
+    });
+
     // Notify admin (org sender address) — fire-and-forget, never blocks the action
     void (async () => {
       const [orgSettings] = await db
@@ -518,6 +537,17 @@ export async function approveReport(reportId: string): Promise<ActionResult> {
     resource:   "reports",
     resourceId: reportId,
     metadata:   { assignmentId: report.assignmentId },
+  });
+
+  await notifyReportWorkflow({
+    eventKey: "report_approved",
+    reportId,
+    actorUserId: user.id,
+  });
+  await notifyReportWorkflow({
+    eventKey: "report_available_to_customer",
+    reportId,
+    actorUserId: user.id,
   });
 
   // Notify the submitter — fire-and-forget
@@ -599,6 +629,13 @@ export async function rejectReport(reportId: string, notes: string): Promise<Act
     resource:   "reports",
     resourceId: reportId,
     metadata:   { assignmentId: report.assignmentId, notes: trimmedNotes },
+  });
+
+  await notifyReportWorkflow({
+    eventKey: "report_rejected",
+    reportId,
+    actorUserId: user.id,
+    rejectionReason: trimmedNotes,
   });
 
   // Notify the submitter — fire-and-forget

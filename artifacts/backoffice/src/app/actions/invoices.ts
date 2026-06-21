@@ -15,6 +15,7 @@ import {
   type InvoiceStatus,
 } from "@workspace/db";
 import { eq, ilike, or, and, asc, desc, sql, inArray, lt } from "drizzle-orm";
+import { emitInvoiceWorkflowEvent } from "@workspace/db/workflow-events";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
@@ -25,6 +26,18 @@ import type { ActionResult } from "./customers";
 export type { ActionResult, InvoiceStatus };
 
 const PAGE_SIZE = 25;
+
+async function notifyInvoiceWorkflow(input: Parameters<typeof emitInvoiceWorkflowEvent>[0]) {
+  try {
+    await emitInvoiceWorkflowEvent(input);
+  } catch (error) {
+    console.error("invoice workflow notification failed", {
+      eventKey: input.eventKey,
+      invoiceId: input.invoiceId,
+      error,
+    });
+  }
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -615,6 +628,12 @@ export async function markInvoiceSent(invoiceId: string): Promise<ActionResult> 
     metadata:   { assignmentId: invoice.assignmentId },
   });
 
+  await notifyInvoiceWorkflow({
+    eventKey: "invoice_sent",
+    invoiceId,
+    actorUserId: user.id,
+  });
+
   revalidatePath("/invoices");
   revalidatePath(`/invoices/${invoiceId}`);
   revalidatePath(`/assignments/${invoice.assignmentId}`);
@@ -663,6 +682,12 @@ export async function markInvoicePaid(invoiceId: string): Promise<ActionResult> 
     resource:   "invoices",
     resourceId: invoiceId,
     metadata:   { assignmentId: invoice.assignmentId, paidDate: today },
+  });
+
+  await notifyInvoiceWorkflow({
+    eventKey: "invoice_paid",
+    invoiceId,
+    actorUserId: user.id,
   });
 
   revalidatePath("/invoices");

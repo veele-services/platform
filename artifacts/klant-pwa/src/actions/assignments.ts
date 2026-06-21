@@ -110,6 +110,13 @@ const requestSchema = z.object({
   path:    ["scheduledEnd"],
 });
 
+function formatEuro(value: string | null | undefined): string {
+  const number = Number.parseFloat(value ?? "0");
+  return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(
+    Number.isFinite(number) ? number : 0,
+  );
+}
+
 export type RequestAssignmentInput = z.infer<typeof requestSchema>;
 
 export async function requestAssignment(input: RequestAssignmentInput): Promise<RequestResult> {
@@ -137,7 +144,7 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
     priority,
   } = parsed.data;
 
-  const [[object], [sector]] = await Promise.all([
+  const [[object], [sector], [customer]] = await Promise.all([
     db
       .select({
         id:       objectsTable.id,
@@ -156,6 +163,11 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
       .select({ id: sectorsTable.id, name: sectorsTable.name })
       .from(sectorsTable)
       .where(and(eq(sectorsTable.id, sectorId), eq(sectorsTable.isActive, true)))
+      .limit(1),
+    db
+      .select({ id: customersTable.id, name: customersTable.name })
+      .from(customersTable)
+      .where(eq(customersTable.id, customerId))
       .limit(1),
   ]);
 
@@ -229,6 +241,26 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
       scheduledEnd,
       priority,
       title,
+      assignment: {
+        id: inserted.id,
+        code: "",
+        title,
+        date: scheduledDate,
+        start: scheduledStart,
+        end: scheduledEnd,
+      },
+      customer: {
+        id: customerId,
+        name: customer?.name ?? "klant",
+      },
+      object: {
+        id: objectId,
+        name: object.name,
+      },
+      sector: {
+        id: sectorId,
+        name: sector.name,
+      },
     },
     fallback: {
       title: "Nieuwe klantaanvraag",
@@ -438,12 +470,18 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
 
   const [assignment] = await db
     .select({
-      id:      assignmentsTable.id,
-      title:   assignmentsTable.title,
-      quoteId: quotesTable.id,
+      id:            assignmentsTable.id,
+      code:          assignmentsTable.code,
+      title:         assignmentsTable.title,
+      quoteId:       quotesTable.id,
+      quoteNumber:   quotesTable.quoteNumber,
+      quoteAmount:   quotesTable.amount,
+      validityDate:  quotesTable.validityDate,
+      customerName:  customersTable.name,
     })
     .from(assignmentsTable)
     .innerJoin(quotesTable, eq(quotesTable.assignmentId, assignmentsTable.id))
+    .innerJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
     .where(
       and(
         eq(assignmentsTable.id,         assignmentId),
@@ -496,6 +534,21 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
       customerId,
       quoteId: assignment.quoteId,
       nextAssignmentStatus: "plannable",
+      assignment: {
+        id: assignmentId,
+        code: assignment.code,
+        title: assignment.title,
+      },
+      customer: {
+        id: customerId,
+        name: assignment.customerName ?? "klant",
+      },
+      quote: {
+        id: assignment.quoteId,
+        number: assignment.quoteNumber,
+        amount: formatEuro(assignment.quoteAmount),
+        valid_until: assignment.validityDate ?? "",
+      },
     },
     fallback: {
       title: "Offerte geaccepteerd",
@@ -553,11 +606,16 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
 
   const [assignment] = await db
     .select({
-      id:      assignmentsTable.id,
-      quoteId: quotesTable.id,
+      id:           assignmentsTable.id,
+      code:         assignmentsTable.code,
+      title:        assignmentsTable.title,
+      quoteId:      quotesTable.id,
+      quoteNumber:  quotesTable.quoteNumber,
+      customerName: customersTable.name,
     })
     .from(assignmentsTable)
     .innerJoin(quotesTable, eq(quotesTable.assignmentId, assignmentsTable.id))
+    .innerJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
     .where(
       and(
         eq(assignmentsTable.id,         assignmentId),
@@ -611,6 +669,20 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
       quoteId: assignment.quoteId,
       reason: reason?.trim() || null,
       nextAssignmentStatus: "review",
+      assignment: {
+        id: assignmentId,
+        code: assignment.code,
+        title: assignment.title,
+      },
+      customer: {
+        id: customerId,
+        name: assignment.customerName ?? "klant",
+      },
+      quote: {
+        id: assignment.quoteId,
+        number: assignment.quoteNumber,
+        rejection_reason: reason?.trim() || "",
+      },
     },
     fallback: {
       title: "Offerte afgewezen",
