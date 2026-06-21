@@ -5,7 +5,7 @@ import {
   personnelTable,
   pushSubscriptionsTable,
 } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 
 export type BrowserPushSubscriptionPayload = {
@@ -19,6 +19,10 @@ export type BrowserPushSubscriptionPayload = {
 
 export type PushSubscriptionResult =
   | { success: true }
+  | { success: false; error: string };
+
+export type PushSubscriptionStatusResult =
+  | { success: true; active: boolean }
   | { success: false; error: string };
 
 async function getCurrentPersonnelId(): Promise<string | null> {
@@ -76,6 +80,55 @@ export async function saveMyPushSubscription(
         updatedAt: new Date(),
       },
     });
+
+  return { success: true };
+}
+
+export async function getMyPushSubscriptionStatus(
+  endpoint: string,
+): Promise<PushSubscriptionStatusResult> {
+  const personnelId = await getCurrentPersonnelId();
+  if (!personnelId) return { success: false, error: "Niet ingelogd." };
+
+  const normalizedEndpoint = endpoint.trim();
+  if (!normalizedEndpoint) {
+    return { success: false, error: "Push-abonnement is ongeldig." };
+  }
+
+  const [subscription] = await db
+    .select({ isActive: pushSubscriptionsTable.isActive })
+    .from(pushSubscriptionsTable)
+    .where(
+      and(
+        eq(pushSubscriptionsTable.endpoint, normalizedEndpoint),
+        eq(pushSubscriptionsTable.personnelId, personnelId),
+      ),
+    )
+    .limit(1);
+
+  return { success: true, active: subscription?.isActive ?? false };
+}
+
+export async function deactivateMyPushSubscription(
+  endpoint: string,
+): Promise<PushSubscriptionResult> {
+  const personnelId = await getCurrentPersonnelId();
+  if (!personnelId) return { success: false, error: "Niet ingelogd." };
+
+  const normalizedEndpoint = endpoint.trim();
+  if (!normalizedEndpoint) {
+    return { success: false, error: "Push-abonnement is ongeldig." };
+  }
+
+  await db
+    .update(pushSubscriptionsTable)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(
+      and(
+        eq(pushSubscriptionsTable.endpoint, normalizedEndpoint),
+        eq(pushSubscriptionsTable.personnelId, personnelId),
+      ),
+    );
 
   return { success: true };
 }

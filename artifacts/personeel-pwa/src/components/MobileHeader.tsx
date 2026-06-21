@@ -27,17 +27,10 @@ import {
 } from "@/actions/notifications";
 import { saveMyPushSubscription } from "@/actions/push";
 import type { TicketSummary } from "@/actions/messages";
-
-const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
-
-function urlBase64ToUint8Array(base64String: string) {
-  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
-  const base64 = (base64String + padding)
-    .replace(/-/g, "+")
-    .replace(/_/g, "/");
-  const rawData = window.atob(base64);
-  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
-}
+import {
+  ensureBrowserPushSubscription,
+  getLocalPushState,
+} from "@/lib/browser-push";
 
 export function VeeleLogo() {
   return (
@@ -99,13 +92,13 @@ export function MobileHeaderActions({
 
   useEffect(() => {
     if (openMenu !== "notifications") return;
-    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
 
     let cancelled = false;
-    navigator.serviceWorker.ready
-      .then((registration) => registration.pushManager.getSubscription())
-      .then((subscription) => {
-        if (!cancelled) setHasPushSubscription(Boolean(subscription));
+    getLocalPushState()
+      .then((state) => {
+        if (!cancelled) {
+          setHasPushSubscription(state.supported && Boolean(state.subscription));
+        }
       })
       .catch(() => {
         if (!cancelled) setHasPushSubscription(false);
@@ -126,70 +119,37 @@ export function MobileHeaderActions({
   function registerPush() {
     setPushStatus(null);
     startPushRegistration(async () => {
-      if (!VAPID_PUBLIC_KEY) {
-        setPushStatus({
-          type: "error",
-          text: "Push sleutel ontbreekt in deze build.",
+      try {
+        const subscription = await ensureBrowserPushSubscription();
+        const serialized = subscription.toJSON();
+        const result = await saveMyPushSubscription({
+          endpoint: serialized.endpoint ?? "",
+          keys: {
+            p256dh: serialized.keys?.p256dh,
+            auth: serialized.keys?.auth,
+          },
+          userAgent: navigator.userAgent,
         });
-        return;
-      }
 
-      if (
-        !("serviceWorker" in navigator) ||
-        !("PushManager" in window) ||
-        typeof Notification === "undefined"
-      ) {
-        setPushStatus({
-          type: "error",
-          text: "Deze browser ondersteunt web push niet.",
-        });
-        return;
-      }
+        if (result.success) {
+          setHasPushSubscription(true);
+          setPushStatus({
+            type: "success",
+            text: "Push is geactiveerd voor deze browser.",
+          });
+          return;
+        }
 
-      const permission =
-        Notification.permission === "default"
-          ? await Notification.requestPermission()
-          : Notification.permission;
-
-      if (permission !== "granted") {
+        setPushStatus({ type: "error", text: result.error });
+      } catch (error) {
         setPushStatus({
           type: "error",
           text:
-            permission === "denied"
-              ? "Push is geblokkeerd in de browserinstellingen."
-              : "Push toestemming is niet gegeven.",
+            error instanceof Error
+              ? error.message
+              : "Push kon niet worden geactiveerd.",
         });
-        return;
       }
-
-      const registration = await navigator.serviceWorker.ready;
-      const existing = await registration.pushManager.getSubscription();
-      const subscription =
-        existing ??
-        (await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
-        }));
-      const serialized = subscription.toJSON();
-      const result = await saveMyPushSubscription({
-        endpoint: serialized.endpoint ?? "",
-        keys: {
-          p256dh: serialized.keys?.p256dh,
-          auth: serialized.keys?.auth,
-        },
-        userAgent: navigator.userAgent,
-      });
-
-      if (result.success) {
-        setHasPushSubscription(true);
-        setPushStatus({
-          type: "success",
-          text: "Push is geactiveerd voor deze browser.",
-        });
-        return;
-      }
-
-      setPushStatus({ type: "error", text: result.error });
     });
   }
 
