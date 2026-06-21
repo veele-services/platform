@@ -415,6 +415,88 @@ function bodyTextToHtml(body: string): string {
     .join("");
 }
 
+type PushDeliveryTriggerResult = {
+  attempted: boolean;
+  ok: boolean;
+  processed: number;
+  sent: number;
+  skipped: number;
+  failed: number;
+  error?: string;
+};
+
+async function triggerQueuedPushDelivery(limit: number): Promise<PushDeliveryTriggerResult> {
+  const adminSecret = process.env["ADMIN_API_SECRET"];
+  const apiBaseUrl =
+    process.env["API_INTERNAL_URL"] ??
+    (process.env["API_PORT"] ? `http://127.0.0.1:${process.env["API_PORT"]}` : null);
+
+  if (!adminSecret || !apiBaseUrl) {
+    return {
+      attempted: false,
+      ok: false,
+      processed: 0,
+      sent: 0,
+      skipped: 0,
+      failed: 0,
+      error: "ADMIN_API_SECRET of API_PORT/API_INTERNAL_URL ontbreekt.",
+    };
+  }
+
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
+  try {
+    const response = await fetch(
+      `${apiBaseUrl}/api/admin/push-notifications?limit=${Math.min(Math.max(limit, 100), 250)}`,
+      {
+        method: "POST",
+        headers: { Authorization: `Bearer ${adminSecret}` },
+        cache: "no-store",
+        signal: controller.signal,
+      },
+    );
+
+    if (!response.ok) {
+      const text = await response.text().catch(() => "");
+      return {
+        attempted: true,
+        ok: false,
+        processed: 0,
+        sent: 0,
+        skipped: 0,
+        failed: 0,
+        error: text || `Push API gaf HTTP ${response.status}.`,
+      };
+    }
+
+    const data = (await response.json().catch(() => ({}))) as Record<string, unknown>;
+    return {
+      attempted: true,
+      ok: true,
+      processed: Number(data["processed"] ?? 0),
+      sent: Number(data["sent"] ?? 0),
+      skipped: Number(data["skipped"] ?? 0),
+      failed: Number(data["failed"] ?? 0),
+    };
+  } catch (error) {
+    return {
+      attempted: true,
+      ok: false,
+      processed: 0,
+      sent: 0,
+      skipped: 0,
+      failed: 0,
+      error:
+        error instanceof Error
+          ? error.message
+          : "Push delivery kon niet direct worden gestart.",
+    };
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
 export async function listNotificationEventSettings(): Promise<
   NotificationEventSettingRow[]
 > {
@@ -612,6 +694,8 @@ export async function sendManualNotification(
   customerCount: number;
   emailSuccessCount: number;
   emailFailedCount: number;
+  pushQueuedCount: number;
+  pushDelivery: PushDeliveryTriggerResult | null;
 }>> {
   await requirePermission("settings", "write");
 
@@ -723,6 +807,7 @@ export async function sendManualNotification(
   const inAppEnabled = channels.includes("in_app") || channels.includes("push");
   const pushEnabled = channels.includes("push");
   const emailEnabled = channels.includes("email");
+  let pushQueuedCount = 0;
 
   await db.transaction(async (tx) => {
     if (inAppEnabled && personnelRecipients.length > 0) {
@@ -817,9 +902,15 @@ export async function sendManualNotification(
 
       if (queueRows.length > 0) {
         await tx.insert(notificationDeliveryQueueTable).values(queueRows);
+        pushQueuedCount = queueRows.length;
       }
     }
   });
+
+  const pushDelivery =
+    pushEnabled && pushQueuedCount > 0
+      ? await triggerQueuedPushDelivery(pushQueuedCount)
+      : null;
 
   let emailSuccessCount = 0;
   let emailFailedCount = 0;
@@ -934,6 +1025,8 @@ export async function sendManualNotification(
       customerCount: customerRecipients.length,
       emailSuccessCount,
       emailFailedCount,
+      pushQueuedCount,
+      pushDelivery,
     },
   };
 }

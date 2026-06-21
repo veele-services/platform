@@ -354,9 +354,16 @@ function ManualNotificationPanel({
         href: href || null,
       });
       if (result.success) {
+        const pushDelivery = result.data?.pushDelivery;
+        const pushText =
+          result.data?.pushQueuedCount && pushDelivery
+            ? ` Push: ${result.data.pushQueuedCount} aangeboden, ${pushDelivery.sent} verzonden, ${pushDelivery.skipped} overgeslagen, ${pushDelivery.failed} mislukt${pushDelivery.ok ? "." : ` (${pushDelivery.error ?? "delivery niet gestart"}).`}`
+            : result.data?.pushQueuedCount
+              ? ` Push: ${result.data.pushQueuedCount} aangeboden.`
+              : "";
         setNotice({
           type: "success",
-          text: `Verstuurd naar ${result.data?.personnelCount ?? 0} medewerker(s) en ${result.data?.customerCount ?? 0} klant(en). E-mail: ${result.data?.emailSuccessCount ?? 0} succesvol, ${result.data?.emailFailedCount ?? 0} mislukt.`,
+          text: `Verstuurd naar ${result.data?.personnelCount ?? 0} medewerker(s) en ${result.data?.customerCount ?? 0} klant(en). E-mail: ${result.data?.emailSuccessCount ?? 0} succesvol, ${result.data?.emailFailedCount ?? 0} mislukt.${pushText}`,
         });
       } else {
         setNotice({ type: "error", text: result.message });
