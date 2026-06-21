@@ -5,9 +5,11 @@ import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, Loader2, Send } from "lucide-react";
 import {
-  createMyTicket,
   TICKET_DEPARTMENT_OPTIONS,
   TICKET_PRIORITY_OPTIONS,
+} from "@/lib/ticket-options";
+import {
+  createMyTicket,
 } from "@/actions/messages";
 
 export function NewTicketForm() {
