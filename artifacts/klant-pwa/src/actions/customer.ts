@@ -2,8 +2,8 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@workspace/db";
-import { customersTable, customerTypesTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
+import { customerUsersTable, customersTable, customerTypesTable } from "@workspace/db";
+import { and, eq, isNull, or } from "drizzle-orm";
 import { z } from "zod/v4";
 
 export type CustomerProfile = {
@@ -25,16 +25,87 @@ export type CustomerProfile = {
 
 export type UpdateContactResult = { success: true } | { success: false; error: string };
 
-/**
- * Look up the customer record for the currently logged-in user.
- * Matches on contact_email = auth user email.
- */
-export async function getMyCustomerProfile(): Promise<CustomerProfile | null> {
+async function resolveCustomerIdentity(): Promise<{
+  customerId: string;
+  email: string;
+  userId: string;
+} | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) return null;
 
   const email = user.email.toLowerCase();
+
+  const [linked] = await db
+    .select({
+      id: customerUsersTable.id,
+      customerId: customerUsersTable.customerId,
+      userId: customerUsersTable.userId,
+    })
+    .from(customerUsersTable)
+    .where(
+      and(
+        eq(customerUsersTable.status, "active"),
+        or(
+          eq(customerUsersTable.userId, user.id),
+          eq(customerUsersTable.email, email),
+        ),
+      ),
+    )
+    .limit(1);
+
+  if (linked) {
+    if (!linked.userId) {
+      await db
+        .update(customerUsersTable)
+        .set({ userId: user.id, lastLoginAt: new Date() })
+        .where(and(eq(customerUsersTable.id, linked.id), isNull(customerUsersTable.userId)));
+    } else {
+      await db
+        .update(customerUsersTable)
+        .set({ lastLoginAt: new Date() })
+        .where(eq(customerUsersTable.id, linked.id));
+    }
+
+    return { customerId: linked.customerId, email, userId: user.id };
+  }
+
+  const [legacyCustomer] = await db
+    .select({
+      id: customersTable.id,
+      tenantId: customersTable.tenantId,
+      contactName: customersTable.contactName,
+    })
+    .from(customersTable)
+    .where(eq(customersTable.contactEmail, email))
+    .limit(1);
+
+  if (!legacyCustomer) return null;
+
+  await db
+    .insert(customerUsersTable)
+    .values({
+      tenantId: legacyCustomer.tenantId,
+      customerId: legacyCustomer.id,
+      userId: user.id,
+      email,
+      firstName: legacyCustomer.contactName ?? null,
+      role: "primary",
+      status: "active",
+      lastLoginAt: new Date(),
+    })
+    .onConflictDoNothing();
+
+  return { customerId: legacyCustomer.id, email, userId: user.id };
+}
+
+/**
+ * Look up the customer record for the currently logged-in user.
+ * Prefers customer_users, with a legacy contact_email fallback for existing accounts.
+ */
+export async function getMyCustomerProfile(): Promise<CustomerProfile | null> {
+  const identity = await resolveCustomerIdentity();
+  if (!identity) return null;
 
   const [row] = await db
     .select({
@@ -55,7 +126,7 @@ export async function getMyCustomerProfile(): Promise<CustomerProfile | null> {
     })
     .from(customersTable)
     .leftJoin(customerTypesTable, eq(customersTable.customerTypeId, customerTypesTable.id))
-    .where(eq(customersTable.contactEmail, email))
+    .where(eq(customersTable.id, identity.customerId))
     .limit(1);
 
   return row ?? null;
@@ -65,8 +136,8 @@ export async function getMyCustomerProfile(): Promise<CustomerProfile | null> {
  * Get the customer ID for the logged-in user. Returns null if not found.
  */
 export async function getMyCustomerId(): Promise<string | null> {
-  const profile = await getMyCustomerProfile();
-  return profile?.id ?? null;
+  const identity = await resolveCustomerIdentity();
+  return identity?.customerId ?? null;
 }
 
 const updateContactSchema = z.object({
@@ -87,7 +158,8 @@ export async function updateMyContactInfo(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) return { success: false, error: "Niet ingelogd." };
 
-  const email = user.email.toLowerCase();
+  const identity = await resolveCustomerIdentity();
+  if (!identity) return { success: false, error: "Klantprofiel niet gevonden." };
 
   const parsed = updateContactSchema.safeParse({
     contactName:  formData.get("contactName"),
@@ -107,7 +179,7 @@ export async function updateMyContactInfo(
       contactPhone: parsed.data.contactPhone ?? null,
       mobile:       parsed.data.mobile ?? null,
     })
-    .where(eq(customersTable.contactEmail, email))
+    .where(eq(customersTable.id, identity.customerId))
     .returning({ id: customersTable.id });
 
   if (updated.length === 0) {

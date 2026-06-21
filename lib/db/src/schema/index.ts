@@ -1,3 +1,4 @@
+export * from "./tenants";
 export * from "./roles";
 export * from "./permissions";
 export * from "./role-permissions";
@@ -6,6 +7,7 @@ export * from "./audit-log";
 export * from "./sectors";
 export * from "./customer-types";
 export * from "./customers";
+export * from "./customer-users";
 export * from "./customer-contacts";
 export * from "./customer-notes";
 export * from "./objects";
@@ -27,3 +29,4 @@ export * from "./personnel-tickets";
 export * from "./customer-portal-preferences";
 export * from "./customer-payment-batches";
 export * from "./notifications";
+export * from "./domain-events";

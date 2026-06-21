@@ -7,11 +7,17 @@ import {
   boolean,
   timestamp,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { DEFAULT_TENANT_ID, tenantsTable } from "./tenants";
 
 export const organizationSettingsTable = pgTable("organization_settings", {
   id: uuid("id").primaryKey().defaultRandom(),
+  tenantId: uuid("tenant_id")
+    .notNull()
+    .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
+    .references(() => tenantsTable.id, { onDelete: "cascade" }),
   naam: varchar("naam", { length: 200 }).notNull().default(""),
   adres: text("adres"),
   kvkNummer: varchar("kvk_nummer", { length: 20 }),
@@ -76,7 +82,7 @@ export const organizationSettingsTable = pgTable("organization_settings", {
 export const updateOrganizationSettingsSchema = createInsertSchema(
   organizationSettingsTable,
 )
-  .omit({ id: true, updatedAt: true, updatedBy: true })
+  .omit({ id: true, tenantId: true, updatedAt: true, updatedBy: true })
   .extend({
     naam: z.string().max(200).optional().default(""),
     kvkNummer: z.string().max(20).nullable().optional(),

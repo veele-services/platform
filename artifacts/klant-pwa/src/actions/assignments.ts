@@ -19,6 +19,7 @@ import {
 } from "@workspace/db";
 import { eq, desc, and } from "drizzle-orm";
 import { sendEmail, buildQuoteDecisionEmail } from "@/lib/email";
+import { emitDomainEvent } from "@workspace/db/events";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
@@ -209,6 +210,35 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
       scheduledEnd,
       priority,
     },
+  });
+
+  await emitDomainEvent({
+    eventKey: "customer_assignment_requested",
+    actorUserId: user.id,
+    audience: "management",
+    aggregate: { type: "assignment", id: inserted.id },
+    payload: {
+      customerId,
+      assignmentId: inserted.id,
+      objectId,
+      objectName: object.name,
+      sectorId,
+      sectorName: sector.name,
+      scheduledDate,
+      scheduledStart,
+      scheduledEnd,
+      priority,
+      title,
+    },
+    fallback: {
+      title: "Nieuwe klantaanvraag",
+      body: `${title} is aangevraagd voor ${object.name}.`,
+      category: "planning",
+      priority: priority === "urgent" ? "high" : "normal",
+      href: `/assignments/${inserted.id}`,
+      sourceLabel: "Klantportaal",
+    },
+    audit: false,
   });
 
   revalidatePath("/");
@@ -456,6 +486,27 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
     });
   });
 
+  await emitDomainEvent({
+    eventKey: "quote_approved_by_customer",
+    actorUserId: user.id,
+    audience: "management",
+    aggregate: { type: "quote", id: assignment.quoteId },
+    payload: {
+      assignmentId,
+      customerId,
+      quoteId: assignment.quoteId,
+      nextAssignmentStatus: "plannable",
+    },
+    fallback: {
+      title: "Offerte geaccepteerd",
+      body: "Een klant heeft een offerte geaccepteerd. De opdracht is nu planbaar.",
+      category: "quotes",
+      href: `/assignments/${assignmentId}`,
+      sourceLabel: "Klantportaal",
+    },
+    audit: false,
+  });
+
   void (async () => {
     const [orgSettings] = await db
       .select({ emailAfzender: organizationSettingsTable.emailAfzender })
@@ -547,6 +598,31 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
         nextAssignmentStatus: "review",
       },
     });
+  });
+
+  await emitDomainEvent({
+    eventKey: "quote_rejected_by_customer",
+    actorUserId: user.id,
+    audience: "management",
+    aggregate: { type: "quote", id: assignment.quoteId },
+    payload: {
+      assignmentId,
+      customerId,
+      quoteId: assignment.quoteId,
+      reason: reason?.trim() || null,
+      nextAssignmentStatus: "review",
+    },
+    fallback: {
+      title: "Offerte afgewezen",
+      body: reason?.trim()
+        ? `Een klant heeft een offerte afgewezen: ${reason.trim()}`
+        : "Een klant heeft een offerte afgewezen.",
+      category: "quotes",
+      priority: "high",
+      href: `/assignments/${assignmentId}`,
+      sourceLabel: "Klantportaal",
+    },
+    audit: false,
   });
 
   void (async () => {

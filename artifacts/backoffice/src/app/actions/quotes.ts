@@ -17,7 +17,8 @@ import { eq, ilike, or, and, asc, desc, sql, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
-import { sendEmail, buildQuoteSentEmail, buildQuoteExpiredEmail } from "@/lib/email";
+import { sendEmail, buildQuoteExpiredEmail } from "@/lib/email";
+import { emitDomainEvent } from "@workspace/db/events";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, QuoteStatus };
@@ -447,7 +448,15 @@ export async function sendQuote(id: string): Promise<ActionResult> {
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const [quote] = await db
-    .select({ id: quotesTable.id, status: quotesTable.status, assignmentId: quotesTable.assignmentId })
+    .select({
+      id: quotesTable.id,
+      status: quotesTable.status,
+      assignmentId: quotesTable.assignmentId,
+      customerId: quotesTable.customerId,
+      quoteNumber: quotesTable.quoteNumber,
+      amount: quotesTable.amount,
+      validityDate: quotesTable.validityDate,
+    })
     .from(quotesTable)
     .where(eq(quotesTable.id, id))
     .limit(1);
@@ -476,33 +485,37 @@ export async function sendQuote(id: string): Promise<ActionResult> {
     metadata:   { assignmentId: quote.assignmentId },
   });
 
-  // Notify customer — fire-and-forget (only when notifOfferteVerstuurd is enabled)
-  void (async () => {
-    const [full] = await db
-      .select({
-        quoteNumber:   quotesTable.quoteNumber,
-        amount:        quotesTable.amount,
-        validityDate:  quotesTable.validityDate,
-        customerName:  customersTable.name,
-        customerEmail: customersTable.contactEmail,
-        notifEnabled:  organizationSettingsTable.notifOfferteVerstuurd,
-      })
-      .from(quotesTable)
-      .leftJoin(customersTable, eq(quotesTable.customerId, customersTable.id))
-      .leftJoin(organizationSettingsTable, sql`true`)
-      .where(eq(quotesTable.id, id))
-      .limit(1);
-    if (full?.notifEnabled && full.customerEmail) {
-      const { subject, html } = buildQuoteSentEmail({
-        customerName: full.customerName ?? "",
-        quoteNumber:  full.quoteNumber,
-        amount:       full.amount ?? "0",
-        validityDate: full.validityDate ?? "",
-        quoteId:      id,
-      });
-      await sendEmail({ to: full.customerEmail, subject, html });
-    }
-  })();
+  await emitDomainEvent({
+    eventKey: "quote_sent_to_customer",
+    actorUserId: user.id,
+    audience: "customer",
+    aggregate: { type: "quote", id },
+    recipients: { customerIds: [quote.customerId] },
+    payload: {
+      quoteId: id,
+      quoteNumber: quote.quoteNumber,
+      assignmentId: quote.assignmentId,
+      amount: quote.amount ?? "0",
+      validityDate: quote.validityDate ?? "",
+      href: "/offertes",
+    },
+    fallback: {
+      title: `Offerte ${quote.quoteNumber} staat klaar`,
+      body: "Er staat een nieuwe offerte klaar in het klantportaal.",
+      category: "quotes",
+      href: "/offertes",
+      sourceLabel: "Veele Services",
+      emailSubject: `Offerte ${quote.quoteNumber} staat klaar`,
+      emailHtml: `
+        <h2>Uw offerte staat klaar</h2>
+        <p>Er staat een nieuwe offerte klaar in het klantportaal.</p>
+        <p><strong>Offertenummer:</strong> ${quote.quoteNumber}</p>
+        <p><strong>Bedrag:</strong> ${quote.amount ?? "0"}</p>
+        <p><strong>Geldig tot:</strong> ${quote.validityDate ?? "-"}</p>
+      `,
+    },
+    audit: false,
+  });
 
   revalidatePath("/quotes");
   revalidatePath(`/quotes/${id}`);
