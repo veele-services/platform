@@ -73,8 +73,9 @@ Required when payments, webhooks, e-mail, or scheduled admin routes are enabled:
 
 - `MOLLIE_API_KEY`: Mollie API key for payment creation and webhook reconciliation.
 - `MOLLIE_WEBHOOK_SECRET`: HMAC secret expected in `x-mollie-signature`.
-- `ADMIN_API_SECRET`: bearer token used by `/api/admin/payment-reminders` and `/api/admin/expired-quotes`.
+- `ADMIN_API_SECRET`: bearer token used by `/api/admin/payment-reminders`, `/api/admin/expired-quotes`, and `/api/admin/push-notifications`.
 - `RESEND_API_KEY`: Resend API key for transactional e-mail.
+- `VAPID_PRIVATE_KEY`: private Web Push VAPID key used only by the API-server push delivery route.
 
 Optional secret:
 
@@ -97,6 +98,8 @@ Optional variable:
 - `LOG_LEVEL`: API-server log level. Defaults to `info`.
 - `MOLLIE_WEBHOOK_URL`: explicit Mollie callback URL if auto-derived URLs are not correct.
 - `RESEND_FROM_EMAIL`: sender identity, for example `Veele <noreply@example.nl>`.
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY`: public Web Push VAPID key used by browser/PWA clients.
+- `VAPID_SUBJECT`: Web Push contact subject, for example `mailto:info@example.nl` or the public site URL.
 
 Optional multi-service deploy variables:
 
@@ -333,4 +336,5 @@ Recommended repository rules:
 
 Use [systemd-timers.md](./systemd-timers.md) to enable the API-server jobs for
 expired quotes and payment reminders after `API_SERVICE_NAME`, `API_PORT`, and
-`ADMIN_API_SECRET` are configured.
+`ADMIN_API_SECRET` are configured. Web Push delivery additionally requires
+`NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT`.

@@ -11,7 +11,7 @@ function parsePushPayload(event) {
     return {
       title: "Veele Services",
       body: "Er staat een nieuwe melding voor u klaar.",
-      href: "/meldingen",
+      href: "/klant/meldingen",
     };
   }
 
@@ -20,7 +20,7 @@ function parsePushPayload(event) {
     return {
       title: payload.title || "Veele Services",
       body: payload.body || "Er staat een nieuwe melding voor u klaar.",
-      href: payload.href || payload.url || "/meldingen",
+      href: payload.href || payload.url || "/klant/meldingen",
       tag: payload.tag,
       data: payload,
     };
@@ -28,9 +28,17 @@ function parsePushPayload(event) {
     return {
       title: "Veele Services",
       body: event.data.text(),
-      href: "/meldingen",
+      href: "/klant/meldingen",
     };
   }
+}
+
+function normalizeAppHref(href) {
+  if (!href || typeof href !== "string") return "/klant/meldingen";
+  if (/^https?:\/\//i.test(href)) return href;
+  const path = href.startsWith("/") ? href : `/${href}`;
+  if (path === "/klant" || path.startsWith("/klant/")) return path;
+  return `/klant${path}`;
 }
 
 self.addEventListener("push", (event) => {
@@ -49,8 +57,8 @@ self.addEventListener("push", (event) => {
 
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
-  const fallback = "/meldingen";
-  const href = event.notification.data?.href || fallback;
+  const fallback = "/klant/meldingen";
+  const href = normalizeAppHref(event.notification.data?.href || fallback);
   const targetUrl = new URL(href, self.location.origin).href;
 
   event.waitUntil(

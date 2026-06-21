@@ -72,6 +72,14 @@ function parsePushPayload(event) {
   }
 }
 
+function normalizeAppHref(href) {
+  if (!href || typeof href !== "string") return "/personeel/meldingen";
+  if (/^https?:\/\//i.test(href)) return href;
+  const path = href.startsWith("/") ? href : `/${href}`;
+  if (path === "/personeel" || path.startsWith("/personeel/")) return path;
+  return `/personeel${path}`;
+}
+
 self.addEventListener("push", (event) => {
   const payload = parsePushPayload(event);
   event.waitUntil(
@@ -91,7 +99,7 @@ self.addEventListener("push", (event) => {
 self.addEventListener("notificationclick", (event) => {
   event.notification.close();
   const fallback = "/personeel/meldingen";
-  const href = event.notification.data?.href || fallback;
+  const href = normalizeAppHref(event.notification.data?.href || fallback);
   const targetUrl = new URL(href, self.location.origin).href;
 
   event.waitUntil(

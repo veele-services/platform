@@ -21,6 +21,17 @@ if (!process.env["RESEND_API_KEY"]) {
   );
 }
 
+if (
+  !(process.env["VAPID_PUBLIC_KEY"] ?? process.env["NEXT_PUBLIC_VAPID_PUBLIC_KEY"]) ||
+  !process.env["VAPID_PRIVATE_KEY"] ||
+  !process.env["VAPID_SUBJECT"]
+) {
+  logger.warn(
+    "VAPID keys are not fully configured - Web Push delivery is disabled until " +
+      "NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and VAPID_SUBJECT are set.",
+  );
+}
+
 const rawPort = process.env["PORT"];
 
 if (!rawPort) {

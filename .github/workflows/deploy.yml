@@ -57,6 +57,10 @@ jobs:
       ADMIN_API_SECRET: ${{ secrets.ADMIN_API_SECRET }}
       RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
       RESEND_FROM_EMAIL: ${{ vars.RESEND_FROM_EMAIL }}
+      NEXT_PUBLIC_VAPID_PUBLIC_KEY: ${{ vars.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
+      VAPID_PUBLIC_KEY: ${{ vars.NEXT_PUBLIC_VAPID_PUBLIC_KEY }}
+      VAPID_PRIVATE_KEY: ${{ secrets.VAPID_PRIVATE_KEY }}
+      VAPID_SUBJECT: ${{ vars.VAPID_SUBJECT }}
 
     steps:
       - name: Checkout
@@ -165,6 +169,10 @@ jobs:
             printf 'ADMIN_API_SECRET=%s\n' "$ADMIN_API_SECRET"
             printf 'RESEND_API_KEY=%s\n' "$RESEND_API_KEY"
             printf 'RESEND_FROM_EMAIL=%s\n' "$RESEND_FROM_EMAIL"
+            printf 'NEXT_PUBLIC_VAPID_PUBLIC_KEY=%s\n' "$NEXT_PUBLIC_VAPID_PUBLIC_KEY"
+            printf 'VAPID_PUBLIC_KEY=%s\n' "$VAPID_PUBLIC_KEY"
+            printf 'VAPID_PRIVATE_KEY=%s\n' "$VAPID_PRIVATE_KEY"
+            printf 'VAPID_SUBJECT=%s\n' "$VAPID_SUBJECT"
           } > "$BASE_DIR/shared/.env"
 
           chmod 640 "$BASE_DIR/shared/.env"
