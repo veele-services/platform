@@ -1,11 +1,12 @@
-// Minimal service worker for PWA installability.
-// Caches the app shell on install and serves from cache when offline.
-
-const CACHE = "veele-personeel-v1";
+const CACHE = "veele-personeel-v2";
+const APP_PREFIX = "/personeel";
+const SYNC_TAG = "veele-personeel-work-order-sync";
 
 const PRECACHE = [
-  "/personeel",
-  "/personeel/manifest.json",
+  APP_PREFIX,
+  `${APP_PREFIX}/manifest.json`,
+  `${APP_PREFIX}/icons/icon-192.png`,
+  `${APP_PREFIX}/icons/icon-512.png`,
 ];
 
 self.addEventListener("install", (event) => {
@@ -20,29 +21,76 @@ self.addEventListener("activate", (event) => {
     caches
       .keys()
       .then((keys) =>
-        Promise.all(keys.filter((k) => k !== CACHE).map((k) => caches.delete(k))),
+        Promise.all(
+          keys
+            .filter((key) => key.startsWith("veele-personeel-") && key !== CACHE)
+            .map((key) => caches.delete(key)),
+        ),
       ),
   );
   self.clients.claim();
 });
 
+function shouldCacheResponse(response) {
+  return response && response.ok && response.type !== "opaque";
+}
+
+async function putInCache(request, response) {
+  if (!shouldCacheResponse(response)) return;
+  const cache = await caches.open(CACHE);
+  await cache.put(request, response.clone());
+}
+
+async function networkFirst(request, fallbackPath) {
+  try {
+    const response = await fetch(request);
+    await putInCache(request, response);
+    return response;
+  } catch {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+    if (fallbackPath) {
+      const fallback = await caches.match(fallbackPath);
+      if (fallback) return fallback;
+    }
+    throw new Error("No offline cache available");
+  }
+}
+
+async function cacheFirst(request) {
+  const cached = await caches.match(request);
+  if (cached) return cached;
+
+  const response = await fetch(request);
+  await putInCache(request, response);
+  return response;
+}
+
 self.addEventListener("fetch", (event) => {
   if (event.request.method !== "GET") return;
-  const url = new URL(event.request.url);
-  // Only cache same-origin requests under /personeel
-  if (url.origin !== location.origin) return;
 
-  event.respondWith(
-    fetch(event.request)
-      .then((response) => {
-        if (response.ok) {
-          const clone = response.clone();
-          caches.open(CACHE).then((cache) => cache.put(event.request, clone));
-        }
-        return response;
-      })
-      .catch(() => caches.match(event.request)),
-  );
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+
+  const isAppPath = url.pathname === APP_PREFIX || url.pathname.startsWith(`${APP_PREFIX}/`);
+  if (!isAppPath) return;
+
+  const isStaticAsset =
+    url.pathname.startsWith(`${APP_PREFIX}/_next/static/`) ||
+    url.pathname.startsWith(`${APP_PREFIX}/icons/`) ||
+    url.pathname === `${APP_PREFIX}/manifest.json`;
+
+  if (event.request.mode === "navigate") {
+    event.respondWith(networkFirst(event.request, APP_PREFIX));
+    return;
+  }
+
+  if (isStaticAsset) {
+    event.respondWith(cacheFirst(event.request));
+    return;
+  }
+
+  event.respondWith(networkFirst(event.request));
 });
 
 function parsePushPayload(event) {
@@ -79,6 +127,30 @@ function normalizeAppHref(href) {
   if (path === "/personeel" || path.startsWith("/personeel/")) return path;
   return `/personeel${path}`;
 }
+
+async function notifyClients(message) {
+  const clientList = await self.clients.matchAll({
+    type: "window",
+    includeUncontrolled: true,
+  });
+  clientList.forEach((client) => client.postMessage(message));
+}
+
+self.addEventListener("sync", (event) => {
+  if (event.tag !== SYNC_TAG) return;
+  event.waitUntil(notifyClients({ type: "VEELE_PROCESS_OFFLINE_QUEUE" }));
+});
+
+self.addEventListener("message", (event) => {
+  if (event.data?.type === "VEELE_SKIP_WAITING") {
+    self.skipWaiting();
+    return;
+  }
+
+  if (event.data?.type === "VEELE_REQUEST_OFFLINE_SYNC") {
+    event.waitUntil(notifyClients({ type: "VEELE_PROCESS_OFFLINE_QUEUE" }));
+  }
+});
 
 self.addEventListener("push", (event) => {
   const payload = parsePushPayload(event);

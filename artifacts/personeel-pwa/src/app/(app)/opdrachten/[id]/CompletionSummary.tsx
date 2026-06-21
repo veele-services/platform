@@ -16,6 +16,10 @@ import { completeAssignment, notCompleteAssignment } from "@/actions/assignments
 import type { ExtraWorkItem } from "@/actions/extra-work";
 import type { ReportNote } from "@/actions/reports";
 import {
+  enqueueOfflineWorkOrderAction,
+  isOfflineNow,
+} from "@/lib/offline/work-order-queue";
+import {
   NOT_COMPLETED_REASONS,
   calculateExtraWorkLineTotal,
   calculateMaterialLineTotal,
@@ -423,6 +427,7 @@ export function CompletionSummary({ assignment, mode, extraWork, materials, repo
   const [reason, setReason] = useState("");
   const [notes, setNotes] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const taskCount = assignment.tasks.length;
@@ -433,6 +438,7 @@ export function CompletionSummary({ assignment, mode, extraWork, materials, repo
 
   function handleSubmit() {
     setError(null);
+    setNotice(null);
 
     if (!canSubmit) {
       setError("Deze werkbon moet eerst gestart zijn voordat je hem kunt afronden of afmelden.");
@@ -444,6 +450,33 @@ export function CompletionSummary({ assignment, mode, extraWork, materials, repo
     }
     if (mode === "not_completed" && !reason) {
       setError("Kies een reden voor het afmelden van de bon.");
+      return;
+    }
+
+    if (isOfflineNow()) {
+      if (mode === "completed") {
+        enqueueOfflineWorkOrderAction({
+          type: "complete-assignment",
+          assignmentId: assignment.id,
+          payload: {
+            customerSignatureDataUrl: signatureDataUrl,
+          },
+        });
+      } else {
+        enqueueOfflineWorkOrderAction({
+          type: "not-complete-assignment",
+          assignmentId: assignment.id,
+          payload: {
+            reason,
+            notes,
+          },
+        });
+      }
+
+      setNotice("Bevestiging is offline opgeslagen en wordt automatisch gesynchroniseerd.");
+      window.setTimeout(() => {
+        router.push(`/opdrachten/${assignment.id}`);
+      }, 850);
       return;
     }
 
@@ -528,6 +561,11 @@ export function CompletionSummary({ assignment, mode, extraWork, materials, repo
       {error ? (
         <p className="rounded-2xl px-4 py-3 text-[13px] font-bold" style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
           {error}
+        </p>
+      ) : null}
+      {notice ? (
+        <p className="rounded-2xl px-4 py-3 text-[13px] font-bold" style={{ backgroundColor: "#E9FBF8", color: "#0A837F" }}>
+          {notice}
         </p>
       ) : null}
 

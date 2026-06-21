@@ -4,6 +4,7 @@ import Link from "next/link";
 import { CalendarDays, ChevronRight } from "lucide-react";
 import { getMyAssignments, type MyAssignment } from "@/actions/assignments";
 import { PlanningWeekStrip, type PlanningWeekDay } from "@/components/PlanningWeekStrip";
+import { RealtimeStatusDot } from "@/components/RealtimeStatusDot";
 import { FAILED_FINAL_STATUSES, FINISHED_STATUSES } from "./[id]/work-order-data";
 
 type PlanningStatus = "NIEUW" | "GEZIEN" | "GESTART" | "AFGEROND" | "NIET AFGEROND";
@@ -113,17 +114,6 @@ function isAssignmentNow(assignment: MyAssignment, selectedDateKey: string): boo
   return assignment.scheduledStart <= now && now <= assignment.scheduledEnd;
 }
 
-function RealtimeIndicator() {
-  return (
-    <span
-      className="h-2.5 w-2.5 shrink-0 rounded-full"
-      style={{ backgroundColor: "#4ED9D5", boxShadow: "0 0 0 4px rgba(78,217,213,0.15)" }}
-      aria-label="Realtime gekoppeld"
-      title="Realtime gekoppeld"
-    />
-  );
-}
-
 function StatusPill({ status }: { status: PlanningStatus }) {
   const style = STATUS_STYLES[status];
 
@@ -230,7 +220,7 @@ export default async function OpdrachtenPage({ searchParams }: Props) {
               {formatSelectedDate(selectedDateKey)}
             </p>
           </div>
-          <RealtimeIndicator />
+          <RealtimeStatusDot />
         </div>
 
         <PlanningWeekStrip days={planningDays} />

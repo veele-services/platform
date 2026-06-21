@@ -5,6 +5,10 @@ import { useRouter } from "next/navigation";
 import { Check, Play, X } from "lucide-react";
 import { startAssignment } from "@/actions/assignments";
 import {
+  enqueueOfflineWorkOrderAction,
+  isOfflineNow,
+} from "@/lib/offline/work-order-queue";
+import {
   FAILED_FINAL_STATUSES,
   FINISHED_STATUSES,
   getActiveStep,
@@ -113,6 +117,7 @@ function FinishChoiceDialog({
 export function InteractiveStatusProgress({ assignment }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [finishDialogOpen, setFinishDialogOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -125,9 +130,19 @@ export function InteractiveStatusProgress({ assignment }: Props) {
 
   async function handleStart() {
     setError(null);
+    setNotice(null);
     if (!canStart || isPending) return;
     const confirmed = window.confirm("Weet je zeker dat je aan de werkzaamheden gaat beginnen?");
     if (!confirmed) return;
+
+    if (isOfflineNow()) {
+      enqueueOfflineWorkOrderAction({
+        type: "start-assignment",
+        assignmentId: assignment.id,
+      });
+      setNotice("Starten is offline opgeslagen en wordt automatisch gesynchroniseerd.");
+      return;
+    }
 
     startTransition(async () => {
       const result = await startAssignment(assignment.id);
@@ -141,6 +156,7 @@ export function InteractiveStatusProgress({ assignment }: Props) {
 
   function handleFinish() {
     setError(null);
+    setNotice(null);
     if (!canFinish) {
       setError("Start de werkbon voordat je deze afrondt of afmeldt.");
       return;
@@ -190,6 +206,11 @@ export function InteractiveStatusProgress({ assignment }: Props) {
       {error ? (
         <p className="mt-3 rounded-2xl px-3 py-2 text-[13px] font-bold" style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
           {error}
+        </p>
+      ) : null}
+      {notice ? (
+        <p className="mt-3 rounded-2xl px-3 py-2 text-[13px] font-bold" style={{ backgroundColor: "#E9FBF8", color: "#0A837F" }}>
+          {notice}
         </p>
       ) : null}
 
