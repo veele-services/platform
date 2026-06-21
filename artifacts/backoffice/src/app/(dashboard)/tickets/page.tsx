@@ -1,9 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { ChevronRight, Inbox, MessageSquare, Search } from "lucide-react";
-import { listTickets, TICKET_KIND_OPTIONS, TICKET_STATUS_OPTIONS } from "@/app/actions/tickets";
+import { listTickets } from "@/app/actions/tickets";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { hasPermission } from "@/lib/auth/permissions";
+import {
+  TICKET_KIND_OPTIONS,
+  TICKET_STATUS_OPTIONS,
+} from "@/lib/ticket-options";
 import {
   departmentLabel,
   PriorityBadge,
