@@ -30,7 +30,7 @@ const OPTIONS = [
   {
     name: "push",
     label: "Pushmeldingen",
-    description: "Voorbereid voor PWA-push zodra dit gekoppeld wordt.",
+    description: "Ontvang urgente updates ook buiten de app op dit apparaat.",
     Icon: Smartphone,
     field: "notificationPushEnabled",
   },

@@ -7,10 +7,12 @@ import {
   Bell,
   CheckCheck,
   ChevronDown,
+  Loader2,
   LogOut,
   MailOpen,
   MessageSquare,
   Settings,
+  Smartphone,
   Trash2,
   UserCircle,
 } from "lucide-react";
@@ -23,7 +25,19 @@ import {
   markNotificationRead,
   type NotificationSummary,
 } from "@/actions/notifications";
+import { saveMyPushSubscription } from "@/actions/push";
 import type { TicketSummary } from "@/actions/messages";
+
+const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
+
+function urlBase64ToUint8Array(base64String: string) {
+  const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+  const base64 = (base64String + padding)
+    .replace(/-/g, "+")
+    .replace(/_/g, "/");
+  const rawData = window.atob(base64);
+  return Uint8Array.from([...rawData].map((char) => char.charCodeAt(0)));
+}
 
 export function VeeleLogo() {
   return (
@@ -72,15 +86,110 @@ export function MobileHeaderActions({
     null,
   );
   const [isPending, startTransition] = useTransition();
+  const [isRegisteringPush, startPushRegistration] = useTransition();
+  const [hasPushSubscription, setHasPushSubscription] = useState(false);
+  const [pushStatus, setPushStatus] = useState<{
+    type: "success" | "error";
+    text: string;
+  } | null>(null);
 
   useEffect(() => {
     setOpenMenu(null);
   }, [pathname]);
 
+  useEffect(() => {
+    if (openMenu !== "notifications") return;
+    if (!("serviceWorker" in navigator) || !("PushManager" in window)) return;
+
+    let cancelled = false;
+    navigator.serviceWorker.ready
+      .then((registration) => registration.pushManager.getSubscription())
+      .then((subscription) => {
+        if (!cancelled) setHasPushSubscription(Boolean(subscription));
+      })
+      .catch(() => {
+        if (!cancelled) setHasPushSubscription(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [openMenu]);
+
   function runNotificationAction(action: () => Promise<unknown>) {
     startTransition(async () => {
       await action();
       router.refresh();
+    });
+  }
+
+  function registerPush() {
+    setPushStatus(null);
+    startPushRegistration(async () => {
+      if (!VAPID_PUBLIC_KEY) {
+        setPushStatus({
+          type: "error",
+          text: "Push sleutel ontbreekt in deze build.",
+        });
+        return;
+      }
+
+      if (
+        !("serviceWorker" in navigator) ||
+        !("PushManager" in window) ||
+        typeof Notification === "undefined"
+      ) {
+        setPushStatus({
+          type: "error",
+          text: "Deze browser ondersteunt web push niet.",
+        });
+        return;
+      }
+
+      const permission =
+        Notification.permission === "default"
+          ? await Notification.requestPermission()
+          : Notification.permission;
+
+      if (permission !== "granted") {
+        setPushStatus({
+          type: "error",
+          text:
+            permission === "denied"
+              ? "Push is geblokkeerd in de browserinstellingen."
+              : "Push toestemming is niet gegeven.",
+        });
+        return;
+      }
+
+      const registration = await navigator.serviceWorker.ready;
+      const existing = await registration.pushManager.getSubscription();
+      const subscription =
+        existing ??
+        (await registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
+        }));
+      const serialized = subscription.toJSON();
+      const result = await saveMyPushSubscription({
+        endpoint: serialized.endpoint ?? "",
+        keys: {
+          p256dh: serialized.keys?.p256dh,
+          auth: serialized.keys?.auth,
+        },
+        userAgent: navigator.userAgent,
+      });
+
+      if (result.success) {
+        setHasPushSubscription(true);
+        setPushStatus({
+          type: "success",
+          text: "Push is geactiveerd voor deze browser.",
+        });
+        return;
+      }
+
+      setPushStatus({ type: "error", text: result.error });
     });
   }
 
@@ -106,7 +215,7 @@ export function MobileHeaderActions({
 
         {openMenu === "notifications" ? (
           <div
-            className="absolute right-0 top-11 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-2xl border bg-white text-sm shadow-2xl"
+            className="fixed left-3 right-3 top-[calc(4.25rem+var(--safe-top))] z-50 max-h-[calc(100vh-5.25rem)] overflow-hidden rounded-2xl border bg-white text-sm shadow-2xl sm:left-auto sm:right-3 sm:w-[22rem]"
             role="menu"
             style={{
               borderColor: "var(--color-border)",
@@ -129,6 +238,44 @@ export function MobileHeaderActions({
                 </Link>
               </div>
             </div>
+
+            {!hasPushSubscription || pushStatus ? (
+              <div
+                className="border-b px-3.5 py-2.5"
+                style={{ borderColor: "var(--color-border)" }}
+              >
+                {!hasPushSubscription ? (
+                  <button
+                    type="button"
+                    disabled={isRegisteringPush}
+                    onClick={registerPush}
+                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#00B7B3] px-3 py-2.5 text-xs font-black text-white shadow-sm disabled:opacity-60"
+                  >
+                    {isRegisteringPush ? (
+                      <Loader2 size={15} className="animate-spin" />
+                    ) : (
+                      <Smartphone size={15} strokeWidth={2.4} />
+                    )}
+                    Push activeren
+                  </button>
+                ) : null}
+                {pushStatus ? (
+                  <p
+                    className={`mt-2 rounded-xl px-3 py-2 text-xs font-bold ${
+                      pushStatus.type === "success"
+                        ? "bg-emerald-50 text-emerald-700"
+                        : "bg-amber-50 text-amber-800"
+                    }`}
+                  >
+                    {pushStatus.text}
+                  </p>
+                ) : (
+                  <p className="mt-2 text-center text-[11px] font-semibold text-slate-500">
+                    Activeer deze browser om meldingen buiten de app te ontvangen.
+                  </p>
+                )}
+              </div>
+            ) : null}
 
             <div className="max-h-72 overflow-y-auto py-1">
               {notificationSummary.recentUnread.length > 0 ? (
