@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, FileText, Clock, CheckCircle2, XCircle, User, Calendar, MapPin, Download } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
-import { getReport } from "@/app/actions/reports";
+import { getReport, getReportTimelineNotes, type ReportTimelineNote } from "@/app/actions/reports";
 import { ReportActions } from "@/components/reports/ReportActions";
 
 interface Props {
@@ -54,13 +54,112 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+function formatFileSize(bytes: number | null): string {
+  if (!bytes || bytes <= 0) return "";
+  if (bytes < 1024 * 1024) return `${Math.ceil(bytes / 1024)} KB`;
+  return `${(bytes / 1024 / 1024).toLocaleString("nl-NL", {
+    maximumFractionDigits: 1,
+  })} MB`;
+}
+
+function ReportTimeline({ notes }: { notes: ReportTimelineNote[] }) {
+  if (notes.length === 0) {
+    return (
+      <div className="veele-card">
+        <h2
+          className="font-heading text-base font-semibold mb-2 flex items-center gap-2"
+          style={{ color: "#081D3A" }}
+        >
+          <FileText className="h-4 w-4" style={{ color: "#00B7B3" }} />
+          Rapportagenotities
+        </h2>
+        <p className="text-sm" style={{ color: "#64748B" }}>
+          Er zijn nog geen losse rapportagenotities toegevoegd.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="veele-card">
+      <h2
+        className="font-heading text-base font-semibold mb-4 flex items-center gap-2"
+        style={{ color: "#081D3A" }}
+      >
+        <FileText className="h-4 w-4" style={{ color: "#00B7B3" }} />
+        Rapportagenotities
+      </h2>
+
+      <div className="space-y-3">
+        {notes.map((note) => (
+          <article
+            key={note.id}
+            className="rounded-xl border bg-white p-4"
+            style={{ borderColor: "#E2E8F0" }}
+          >
+            <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: "#64748B" }}>
+              <span>
+                {new Date(note.createdAt).toLocaleString("nl-NL", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+              <span aria-hidden="true">-</span>
+              <span className="font-semibold" style={{ color: "#081D3A" }}>
+                {note.authorName}
+              </span>
+              {note.authorEmail ? <span>({note.authorEmail})</span> : null}
+            </div>
+
+            <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed" style={{ color: "#374151" }}>
+              {note.body}
+            </p>
+
+            {note.attachments.length > 0 ? (
+              <div className="mt-3 space-y-2">
+                {note.attachments.map((attachment) => {
+                  const meta = [attachment.mimeType, formatFileSize(attachment.fileSize)]
+                    .filter(Boolean)
+                    .join(" - ");
+
+                  return (
+                    <a
+                      key={attachment.id}
+                      href={attachment.signedUrl ?? undefined}
+                      target={attachment.signedUrl ? "_blank" : undefined}
+                      rel="noreferrer"
+                      className="block rounded-lg border px-3 py-2 text-sm"
+                      style={{ borderColor: "#E2E8F0", background: "#F8FAFC", color: "#081D3A" }}
+                    >
+                      <span className="font-medium">{attachment.fileName}</span>
+                      {meta ? (
+                        <span className="ml-2 text-xs" style={{ color: "#64748B" }}>
+                          {meta}
+                        </span>
+                      ) : null}
+                    </a>
+                  );
+                })}
+              </div>
+            ) : null}
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default async function ReportDetailPage({ params }: Props) {
   const canRead = await hasPermission("reports", "read");
   if (!canRead) return <ForbiddenPage resource="reports" action="read" />;
 
   const { id } = await params;
-  const [report, canWrite] = await Promise.all([
+  const [report, reportNotes, canWrite] = await Promise.all([
     getReport(id),
+    getReportTimelineNotes(id),
     hasPermission("reports", "write"),
   ]);
 
@@ -227,6 +326,8 @@ export default async function ReportDetailPage({ params }: Props) {
               </div>
             )}
           </div>
+
+          <ReportTimeline notes={reportNotes} />
 
           {/* Management feedback (rejection notes) */}
           {report.notes && (

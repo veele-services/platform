@@ -4,6 +4,8 @@ import { db } from "@workspace/db";
 import {
   reportsTable,
   assignmentsTable,
+  assignmentReportNoteAttachmentsTable,
+  assignmentReportNotesTable,
   assignmentPersonnelTable,
   customersTable,
   objectsTable,
@@ -15,10 +17,11 @@ import {
   type AssignmentStatus,
 } from "@workspace/db";
 import { alias } from "drizzle-orm/pg-core";
-import { eq, ilike, or, and, desc, sql, exists } from "drizzle-orm";
+import { eq, ilike, or, and, desc, asc, sql, exists, inArray } from "drizzle-orm";
 import { emitReportWorkflowEvent } from "@workspace/db/workflow-events";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
 import {
   sendEmail,
@@ -83,6 +86,26 @@ export type ReportDetail = {
   reviewedByName:   string | null;
   reviewedAt:       string | null;
   createdAt:        string;
+};
+
+export type ReportTimelineAttachment = {
+  id:          string;
+  storagePath: string;
+  signedUrl:   string | null;
+  fileName:    string;
+  mimeType:    string | null;
+  fileSize:    number | null;
+  createdAt:   string;
+};
+
+export type ReportTimelineNote = {
+  id:           string;
+  body:         string;
+  createdBy:    string;
+  authorName:   string;
+  authorEmail:  string | null;
+  createdAt:    string;
+  attachments:  ReportTimelineAttachment[];
 };
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
@@ -314,6 +337,33 @@ const REPORT_DETAIL_SELECT = {
   createdAt:       reportsTable.createdAt,
 } as const;
 
+async function createSignedReportAttachmentUrl(storagePath: string): Promise<string | null> {
+  try {
+    const admin = createAdminClient();
+    const { data } = await admin.storage
+      .from("assignment-photos")
+      .createSignedUrl(storagePath, 3600);
+
+    return data?.signedUrl ?? null;
+  } catch {
+    return null;
+  }
+}
+
+function formatReportNoteAuthor(row: {
+  createdBy: string;
+  firstName: string | null;
+  lastName: string | null;
+  email: string | null;
+}): { authorName: string; authorEmail: string | null } {
+  const fullName = [row.firstName, row.lastName].filter(Boolean).join(" ").trim();
+
+  return {
+    authorName: fullName || row.email || `${row.createdBy.slice(0, 8)}...`,
+    authorEmail: row.email ?? null,
+  };
+}
+
 function detailBaseQuery() {
   return db
     .select(REPORT_DETAIL_SELECT)
@@ -346,6 +396,72 @@ export async function getReport(id: string): Promise<ReportDetail | null> {
     .limit(1);
 
   return row ? mapReportDetail(row) : null;
+}
+
+export async function getReportTimelineNotes(id: string): Promise<ReportTimelineNote[]> {
+  const report = await getReport(id);
+  if (!report) return [];
+
+  const notes = await db
+    .select({
+      id:        assignmentReportNotesTable.id,
+      body:      assignmentReportNotesTable.body,
+      createdBy: assignmentReportNotesTable.createdBy,
+      createdAt: assignmentReportNotesTable.createdAt,
+      firstName: personnelTable.firstName,
+      lastName:  personnelTable.lastName,
+      email:     personnelTable.email,
+    })
+    .from(assignmentReportNotesTable)
+    .leftJoin(personnelTable, eq(personnelTable.userId, assignmentReportNotesTable.createdBy))
+    .where(eq(assignmentReportNotesTable.assignmentId, report.assignmentId))
+    .orderBy(desc(assignmentReportNotesTable.createdAt));
+
+  if (notes.length === 0) return [];
+
+  const noteIds = notes.map((note) => note.id);
+  const attachmentRows = await db
+    .select({
+      id:          assignmentReportNoteAttachmentsTable.id,
+      noteId:      assignmentReportNoteAttachmentsTable.noteId,
+      storagePath: assignmentReportNoteAttachmentsTable.storagePath,
+      fileName:    assignmentReportNoteAttachmentsTable.fileName,
+      mimeType:    assignmentReportNoteAttachmentsTable.mimeType,
+      fileSize:    assignmentReportNoteAttachmentsTable.fileSize,
+      createdAt:   assignmentReportNoteAttachmentsTable.createdAt,
+    })
+    .from(assignmentReportNoteAttachmentsTable)
+    .where(inArray(assignmentReportNoteAttachmentsTable.noteId, noteIds))
+    .orderBy(asc(assignmentReportNoteAttachmentsTable.createdAt));
+
+  const attachments = await Promise.all(
+    attachmentRows.map(async (attachment) => ({
+      id:          attachment.id,
+      noteId:      attachment.noteId,
+      storagePath: attachment.storagePath,
+      signedUrl:   await createSignedReportAttachmentUrl(attachment.storagePath),
+      fileName:    attachment.fileName,
+      mimeType:    attachment.mimeType ?? null,
+      fileSize:    attachment.fileSize ?? null,
+      createdAt:   attachment.createdAt.toISOString(),
+    })),
+  );
+
+  return notes.map((note) => {
+    const author = formatReportNoteAuthor(note);
+
+    return {
+      id:          note.id,
+      body:        note.body,
+      createdBy:   note.createdBy,
+      authorName:  author.authorName,
+      authorEmail: author.authorEmail,
+      createdAt:   note.createdAt.toISOString(),
+      attachments: attachments
+        .filter((attachment) => attachment.noteId === note.id)
+        .map(({ noteId: _noteId, ...attachment }) => attachment),
+    };
+  });
 }
 
 /**

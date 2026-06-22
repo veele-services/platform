@@ -9,6 +9,7 @@ import {
   assignmentReportNotesTable,
   personnelTable,
   organizationSettingsTable,
+  tenantsTable,
 } from "@workspace/db";
 import { eq, and, inArray, desc, asc } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
@@ -52,6 +53,8 @@ const LOCKED_REPORT_NOTE_STATUSES = new Set([
   "paid",
   "closed",
 ]);
+
+const DEFAULT_PUBLIC_REPORT_AUTHOR = "Veele Services";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -132,6 +135,17 @@ async function createSignedAttachmentUrl(storagePath: string): Promise<string | 
   } catch {
     return null;
   }
+}
+
+async function getAssignmentTenantName(assignmentId: string): Promise<string> {
+  const [row] = await db
+    .select({ tenantName: tenantsTable.name })
+    .from(assignmentsTable)
+    .innerJoin(tenantsTable, eq(assignmentsTable.tenantId, tenantsTable.id))
+    .where(eq(assignmentsTable.id, assignmentId))
+    .limit(1);
+
+  return row?.tenantName ?? DEFAULT_PUBLIC_REPORT_AUTHOR;
 }
 
 function normalizeAttachmentInput(
@@ -224,15 +238,18 @@ export async function getReportNotesForAssignment(
   const linked = await isLinkedToAssignment(auth.personnelId, assignmentId);
   if (!linked) return [];
 
-  const notes = await db
-    .select({
-      id:        assignmentReportNotesTable.id,
-      body:      assignmentReportNotesTable.body,
-      createdAt: assignmentReportNotesTable.createdAt,
-    })
-    .from(assignmentReportNotesTable)
-    .where(eq(assignmentReportNotesTable.assignmentId, assignmentId))
-    .orderBy(desc(assignmentReportNotesTable.createdAt));
+  const [publicAuthorName, notes] = await Promise.all([
+    getAssignmentTenantName(assignmentId),
+    db
+      .select({
+        id:        assignmentReportNotesTable.id,
+        body:      assignmentReportNotesTable.body,
+        createdAt: assignmentReportNotesTable.createdAt,
+      })
+      .from(assignmentReportNotesTable)
+      .where(eq(assignmentReportNotesTable.assignmentId, assignmentId))
+      .orderBy(desc(assignmentReportNotesTable.createdAt)),
+  ]);
 
   if (notes.length === 0) return [];
 
@@ -267,7 +284,7 @@ export async function getReportNotesForAssignment(
   return notes.map((note) => ({
     id:          note.id,
     body:        note.body,
-    authorName:  "Veele Services",
+    authorName:  publicAuthorName,
     createdAt:   note.createdAt.toISOString(),
     attachments: attachments
       .filter((attachment) => attachment.noteId === note.id)
@@ -470,6 +487,7 @@ export async function addReportNote(
         createdAt:   attachment.createdAt.toISOString(),
       })),
     );
+    const publicAuthorName = await getAssignmentTenantName(assignmentId);
 
     revalidatePath(`/opdrachten/${assignmentId}`);
     return {
@@ -477,7 +495,7 @@ export async function addReportNote(
       note:    {
         id:          note.id,
         body:        note.body,
-        authorName:  "Veele Services",
+        authorName:  publicAuthorName,
         createdAt:   note.createdAt.toISOString(),
         attachments: signedAttachments,
       },
