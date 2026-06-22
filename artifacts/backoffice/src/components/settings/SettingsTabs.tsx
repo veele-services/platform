@@ -6,6 +6,7 @@ import {
   Bell,
   Building2,
   ClipboardList,
+  GraduationCap,
   History,
   Layers3,
   Mail,
@@ -24,6 +25,7 @@ const SETTINGS_TABS = [
   { href: "/instellingen/gebruikers", label: "Gebruikers", icon: Users, permission: "users:read" },
   { href: "/settings/task-codes", label: "Taakcodes", icon: ClipboardList, permission: "task_codes:read" },
   { href: "/instellingen/sectoren", label: "Sectoren", icon: Layers3, permission: "settings:read" },
+  { href: "/instellingen/kwalificaties", label: "Kwalificaties", icon: GraduationCap, permission: "settings:read" },
   { href: "/instellingen/klanttypes", label: "Klanttypes", icon: Tag, permission: "settings:read" },
   { href: "/instellingen/activiteitslog", label: "Activiteitslog", icon: History, permission: "settings:read" },
 ] as const;

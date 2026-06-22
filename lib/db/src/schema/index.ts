@@ -15,6 +15,7 @@ export * from "./objects";
 export * from "./object-contacts";
 export * from "./object-personnel";
 export * from "./personnel";
+export * from "./qualifications";
 export * from "./task-codes";
 export * from "./assignments";
 export * from "./reports";

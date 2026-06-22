@@ -9,6 +9,8 @@ import {
   taskCodesTable,
   personnelTable,
   objectsTable,
+  qualificationItemsTable,
+  roleQualificationsTable,
 } from "@workspace/db";
 import { desc, eq, and, inArray, or } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
@@ -80,6 +82,21 @@ type TaskRequirements = {
   requiredKnowledge:    string[];
 };
 
+function isExpiredDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return new Date(`${value}T00:00:00`) < today;
+}
+
+function hasValidCertificate(personnel: PersonnelProfile, name: string): boolean {
+  return personnel.certificates.some(
+    (certificate) =>
+      certificate.name === name &&
+      (!certificate.expires_at || !isExpiredDate(certificate.expires_at)),
+  );
+}
+
 /**
  * Check whether a personnel member meets ALL requirements of a task code.
  * Mirrors the backoffice planning eligibility rules.
@@ -90,7 +107,7 @@ function meetsTaskRequirements(
 ): boolean {
   if (task.requiredRoleId && personnel.roleId !== task.requiredRoleId) return false;
   if (task.requiredCertificates.length > 0) {
-    if (!task.requiredCertificates.every((c) => personnel.certificates.some((cert) => cert.name === c))) return false;
+    if (!task.requiredCertificates.every((c) => hasValidCertificate(personnel, c))) return false;
   }
   if (task.requiredDiploma) {
     if (!personnel.diplomas.includes(task.requiredDiploma)) return false;
@@ -236,6 +253,34 @@ export async function getOpenAssignments(): Promise<OpenAssignment[]> {
   ]);
 
   const myIds = new Set(myLinks.map((l) => l.assignmentId));
+  const requiredRoleIds = [
+    ...new Set(
+      taskRows
+        .map((task) => task.requiredRoleId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const roleQualificationRows =
+    requiredRoleIds.length > 0
+      ? await db
+          .select({
+            roleId: roleQualificationsTable.roleId,
+            type: qualificationItemsTable.type,
+            name: qualificationItemsTable.name,
+          })
+          .from(roleQualificationsTable)
+          .innerJoin(
+            qualificationItemsTable,
+            eq(roleQualificationsTable.qualificationId, qualificationItemsTable.id),
+          )
+          .where(
+            and(
+              inArray(roleQualificationsTable.roleId, requiredRoleIds),
+              eq(roleQualificationsTable.required, true),
+              eq(qualificationItemsTable.isActive, true),
+            ),
+          )
+      : [];
 
   // Group tasks by assignment — separate requirements from display names
   const reqsByAssignment  = new Map<string, TaskRequirements[]>();
@@ -246,11 +291,27 @@ export async function getOpenAssignments(): Promise<OpenAssignment[]> {
       reqsByAssignment.set(t.assignmentId, []);
       namesByAssignment.set(t.assignmentId, []);
     }
+    const roleRequirements = roleQualificationRows.filter(
+      (row) => row.roleId === t.requiredRoleId,
+    );
     reqsByAssignment.get(t.assignmentId)!.push({
       requiredRoleId:       t.requiredRoleId ?? null,
-      requiredCertificates: (t.requiredCertificates as string[]) ?? [],
-      requiredDiploma:      t.requiredDiploma ?? null,
-      requiredKnowledge:    (t.requiredKnowledge as string[]) ?? [],
+      requiredCertificates: [
+        ...((t.requiredCertificates as string[]) ?? []),
+        ...roleRequirements
+          .filter((row) => row.type === "certificate")
+          .map((row) => row.name),
+      ],
+      requiredDiploma:
+        t.requiredDiploma ??
+        roleRequirements.find((row) => row.type === "diploma")?.name ??
+        null,
+      requiredKnowledge: [
+        ...((t.requiredKnowledge as string[]) ?? []),
+        ...roleRequirements
+          .filter((row) => row.type === "knowledge")
+          .map((row) => row.name),
+      ],
     });
     if (t.taskCodeName) {
       namesByAssignment.get(t.assignmentId)!.push(t.taskCodeName);
@@ -355,12 +416,59 @@ export async function applyForAssignment(
     .leftJoin(taskCodesTable, eq(assignmentTasksTable.taskCodeId, taskCodesTable.id))
     .where(eq(assignmentTasksTable.assignmentId, assignmentId));
 
-  const requirements: TaskRequirements[] = taskRows.map((t) => ({
-    requiredRoleId:       t.requiredRoleId ?? null,
-    requiredCertificates: (t.requiredCertificates as string[]) ?? [],
-    requiredDiploma:      t.requiredDiploma ?? null,
-    requiredKnowledge:    (t.requiredKnowledge as string[]) ?? [],
-  }));
+  const applyRoleIds = [
+    ...new Set(
+      taskRows
+        .map((task) => task.requiredRoleId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const applyRoleQualificationRows =
+    applyRoleIds.length > 0
+      ? await db
+          .select({
+            roleId: roleQualificationsTable.roleId,
+            type: qualificationItemsTable.type,
+            name: qualificationItemsTable.name,
+          })
+          .from(roleQualificationsTable)
+          .innerJoin(
+            qualificationItemsTable,
+            eq(roleQualificationsTable.qualificationId, qualificationItemsTable.id),
+          )
+          .where(
+            and(
+              inArray(roleQualificationsTable.roleId, applyRoleIds),
+              eq(roleQualificationsTable.required, true),
+              eq(qualificationItemsTable.isActive, true),
+            ),
+          )
+      : [];
+
+  const requirements: TaskRequirements[] = taskRows.map((t) => {
+    const roleRequirements = applyRoleQualificationRows.filter(
+      (row) => row.roleId === t.requiredRoleId,
+    );
+    return {
+      requiredRoleId:       t.requiredRoleId ?? null,
+      requiredCertificates: [
+        ...((t.requiredCertificates as string[]) ?? []),
+        ...roleRequirements
+          .filter((row) => row.type === "certificate")
+          .map((row) => row.name),
+      ],
+      requiredDiploma:
+        t.requiredDiploma ??
+        roleRequirements.find((row) => row.type === "diploma")?.name ??
+        null,
+      requiredKnowledge: [
+        ...((t.requiredKnowledge as string[]) ?? []),
+        ...roleRequirements
+          .filter((row) => row.type === "knowledge")
+          .map((row) => row.name),
+      ],
+    };
+  });
 
   // Server-side eligibility re-check (prevents direct action calls bypassing UI filters)
   if (!isEligibleForAssignment(personnel, requirements, assignment.objectCity ?? null)) {

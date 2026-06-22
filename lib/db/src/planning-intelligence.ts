@@ -27,6 +27,8 @@ import {
   objectsTable,
   personnelTable,
   planningSectorRulesTable,
+  qualificationItemsTable,
+  roleQualificationsTable,
   rolesTable,
   sectorsTable,
   taskCodesTable,
@@ -94,11 +96,21 @@ function certNames(value: unknown): string[] {
     .map((item) => {
       if (typeof item === "string") return item;
       if (item && typeof item === "object" && "name" in item) {
-        return String((item as { name?: unknown }).name ?? "");
+        const certificate = item as { name?: unknown; expires_at?: unknown; expiresAt?: unknown };
+        const expiresAt = certificate.expires_at ?? certificate.expiresAt;
+        if (typeof expiresAt === "string" && isExpiredDate(expiresAt)) return "";
+        return String(certificate.name ?? "");
       }
       return "";
     })
     .filter(Boolean);
+}
+
+function isExpiredDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return new Date(`${value}T00:00:00`) < today;
 }
 
 function stringArray(value: unknown): string[] {
@@ -244,12 +256,48 @@ export async function calculateAssignmentCapacity(
 
   const requiredRoleIds = uniqueStrings(taskRows.map((row) => row.requiredRoleId));
   const requiredRoleNames = uniqueStrings(taskRows.map((row) => row.requiredRoleName));
+  const roleQualificationRows =
+    requiredRoleIds.length > 0
+      ? await db
+          .select({
+            roleId: roleQualificationsTable.roleId,
+            type: qualificationItemsTable.type,
+            name: qualificationItemsTable.name,
+          })
+          .from(roleQualificationsTable)
+          .innerJoin(
+            qualificationItemsTable,
+            eq(roleQualificationsTable.qualificationId, qualificationItemsTable.id),
+          )
+          .where(
+            and(
+              inArray(roleQualificationsTable.roleId, requiredRoleIds),
+              eq(roleQualificationsTable.required, true),
+              eq(qualificationItemsTable.isActive, true),
+            ),
+          )
+      : [];
   const requiredCertificates = uniqueStrings(
-    taskRows.flatMap((row) => (row.requiredCertificates ?? []) as string[]),
+    [
+      ...taskRows.flatMap((row) => (row.requiredCertificates ?? []) as string[]),
+      ...roleQualificationRows
+        .filter((row) => row.type === "certificate")
+        .map((row) => row.name),
+    ],
   );
-  const requiredDiplomas = uniqueStrings(taskRows.map((row) => row.requiredDiploma));
+  const requiredDiplomas = uniqueStrings([
+    ...taskRows.map((row) => row.requiredDiploma),
+    ...roleQualificationRows
+      .filter((row) => row.type === "diploma")
+      .map((row) => row.name),
+  ]);
   const requiredKnowledge = uniqueStrings(
-    taskRows.flatMap((row) => (row.requiredKnowledge ?? []) as string[]),
+    [
+      ...taskRows.flatMap((row) => (row.requiredKnowledge ?? []) as string[]),
+      ...roleQualificationRows
+        .filter((row) => row.type === "knowledge")
+        .map((row) => row.name),
+    ],
   );
   const taskSectorIds = uniqueStrings(taskRows.map((row) => row.sectorId));
   const sectorId =
