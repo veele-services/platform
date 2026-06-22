@@ -4,6 +4,9 @@ import { db } from "@workspace/db";
 import {
   customersTable,
   customerNotesTable,
+  customerUsersTable,
+  customerMessageEntriesTable,
+  customerMessageThreadsTable,
   customerTypesTable,
   customerContactsTable,
   objectsTable,
@@ -15,7 +18,7 @@ import {
   updateCustomerSchema,
   personnelTable,
 } from "@workspace/db";
-import { eq, ilike, or, and, asc, desc, inArray, sql, gte, lt } from "drizzle-orm";
+import { eq, ilike, or, and, asc, desc, inArray, sql, gte, lt, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -156,6 +159,29 @@ export type CustomerHistoryEntry = {
   metadata: unknown;
   actorName: string;
   actorEmail: string | null;
+  createdAt: string;
+};
+
+export type CustomerPortalUserRow = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  status: string;
+  inviteSentAt: string | null;
+  lastLoginAt: string | null;
+  createdAt: string;
+};
+
+export type CustomerTicketSummaryRow = {
+  id: string;
+  subject: string;
+  department: string;
+  status: string;
+  priority: string;
+  lastMessagePreview: string | null;
+  lastMessageAt: string;
+  unreadCount: number;
   createdAt: string;
 };
 
@@ -588,6 +614,119 @@ export async function updateCustomerType(
 }
 
 // ─── Customer Contacts ────────────────────────────────────────────────────────
+
+export async function listCustomerPortalUsers(customerId: string): Promise<CustomerPortalUserRow[]> {
+  const canRead = await hasPermission("customers", "read");
+  if (!canRead) return [];
+
+  const [customer] = await db
+    .select({ tenantId: customersTable.tenantId })
+    .from(customersTable)
+    .where(eq(customersTable.id, customerId))
+    .limit(1);
+  if (!customer) return [];
+
+  const rows = await db
+    .select({
+      id:           customerUsersTable.id,
+      email:        customerUsersTable.email,
+      firstName:    customerUsersTable.firstName,
+      lastName:     customerUsersTable.lastName,
+      role:         customerUsersTable.role,
+      status:       customerUsersTable.status,
+      inviteSentAt: customerUsersTable.inviteSentAt,
+      lastLoginAt:  customerUsersTable.lastLoginAt,
+      createdAt:    customerUsersTable.createdAt,
+    })
+    .from(customerUsersTable)
+    .where(
+      and(
+        eq(customerUsersTable.customerId, customerId),
+        eq(customerUsersTable.tenantId, customer.tenantId),
+      ),
+    )
+    .orderBy(asc(customerUsersTable.status), asc(customerUsersTable.email));
+
+  return rows.map((r) => {
+    const name = `${r.firstName ?? ""} ${r.lastName ?? ""}`.trim() || r.email;
+    return {
+      id:           r.id,
+      email:        r.email,
+      name,
+      role:         r.role,
+      status:       r.status,
+      inviteSentAt: r.inviteSentAt ? r.inviteSentAt.toISOString() : null,
+      lastLoginAt:  r.lastLoginAt ? r.lastLoginAt.toISOString() : null,
+      createdAt:    r.createdAt.toISOString(),
+    };
+  });
+}
+
+export async function listCustomerTicketsForCustomer(
+  customerId: string,
+  limit = 10,
+): Promise<CustomerTicketSummaryRow[]> {
+  const canRead = await hasPermission("tickets", "read");
+  if (!canRead) return [];
+
+  const [customer] = await db
+    .select({ tenantId: customersTable.tenantId })
+    .from(customersTable)
+    .where(eq(customersTable.id, customerId))
+    .limit(1);
+  if (!customer) return [];
+
+  const rows = await db
+    .select({
+      id:                 customerMessageThreadsTable.id,
+      subject:            customerMessageThreadsTable.subject,
+      department:         customerMessageThreadsTable.department,
+      status:             customerMessageThreadsTable.status,
+      priority:           customerMessageThreadsTable.priority,
+      lastMessagePreview: customerMessageThreadsTable.lastMessagePreview,
+      lastMessageAt:      customerMessageThreadsTable.lastMessageAt,
+      createdAt:          customerMessageThreadsTable.createdAt,
+    })
+    .from(customerMessageThreadsTable)
+    .where(
+      and(
+        eq(customerMessageThreadsTable.customerId, customerId),
+        eq(customerMessageThreadsTable.tenantId, customer.tenantId),
+      ),
+    )
+    .orderBy(desc(customerMessageThreadsTable.lastMessageAt))
+    .limit(limit);
+
+  if (rows.length === 0) return [];
+
+  const unreadRows = await db
+    .select({ threadId: customerMessageEntriesTable.threadId })
+    .from(customerMessageEntriesTable)
+    .where(
+      and(
+        inArray(customerMessageEntriesTable.threadId, rows.map((r) => r.id)),
+        eq(customerMessageEntriesTable.authorType, "customer"),
+        isNull(customerMessageEntriesTable.readByBackofficeAt),
+      ),
+    );
+
+  const unreadCounts = new Map<string, number>();
+  for (const row of unreadRows) {
+    unreadCounts.set(row.threadId, (unreadCounts.get(row.threadId) ?? 0) + 1);
+  }
+
+  return rows.map((r) => ({
+    id:                 r.id,
+    subject:            r.subject,
+    department:         r.department,
+    status:             r.status,
+    priority:           r.priority,
+    lastMessagePreview: r.lastMessagePreview ?? null,
+    lastMessageAt:      r.lastMessageAt.toISOString(),
+    unreadCount:        unreadCounts.get(r.id) ?? 0,
+    createdAt:          r.createdAt.toISOString(),
+  }));
+}
 
 export async function listCustomerContacts(customerId: string): Promise<CustomerContactRow[]> {
   await requirePermission("customers", "read");
