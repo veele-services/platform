@@ -1,5 +1,6 @@
 import {
   integer,
+  date,
   pgTable,
   timestamp,
   unique,
@@ -9,6 +10,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { customersTable } from "./customers";
 import { invoicesTable } from "./invoices";
+import { objectsTable } from "./objects";
 
 export const CUSTOMER_PAYMENT_BATCH_STATUSES = ["open", "paid", "canceled", "expired", "failed"] as const;
 export type CustomerPaymentBatchStatus = (typeof CUSTOMER_PAYMENT_BATCH_STATUSES)[number];
@@ -24,6 +26,14 @@ export const customerPaymentBatchesTable = pgTable("customer_payment_batches", {
   status:          varchar("status", { length: 20 }).notNull().default("open"),
   checkoutUrl:     text("checkout_url"),
   paidAt:          timestamp("paid_at", { withTimezone: true }),
+  periodStart:     date("period_start"),
+  periodEnd:       date("period_end"),
+  objectId:        uuid("object_id").references(() => objectsTable.id, { onDelete: "set null" }),
+  subtotalCents:   integer("subtotal_cents").notNull().default(0),
+  vatCents:        integer("vat_cents").notNull().default(0),
+  discountCents:   integer("discount_cents").notNull().default(0),
+  surchargeCents:  integer("surcharge_cents").notNull().default(0),
+  notes:           text("notes"),
   createdBy:       uuid("created_by"),
   createdAt:       timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });

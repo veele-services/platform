@@ -18,9 +18,10 @@ import {
 } from "@/components/ui/alert-dialog";
 import { createMolliePayment } from "@/app/actions/payments";
 import { sendPaymentReminders } from "@/app/actions/invoices";
-import type { InvoiceRow, InvoiceSummary } from "@/app/actions/invoices";
+import type { CollectiveInvoiceBatchRow, CollectiveInvoiceCandidate, InvoiceRow, InvoiceSummary } from "@/app/actions/invoices";
 import { ProcessStatusBadge } from "@/components/workflows/ProcessStatus";
 import { processStatusLabel } from "@/lib/process-status";
+import { CollectiveInvoicePanel } from "./CollectiveInvoicePanel";
 
 const STATUS_OPTIONS = [
   { value: "",          label: "Alle statussen" },
@@ -50,9 +51,22 @@ interface Props {
   canWrite:     boolean;
   summary:      InvoiceSummary;
   overdueCount: number;
+  collectiveCandidates: CollectiveInvoiceCandidate[];
+  collectiveBatches: CollectiveInvoiceBatchRow[];
 }
 
-export function InvoicesView({ rows, total, page, search, statusFilter, canWrite, summary, overdueCount }: Props) {
+export function InvoicesView({
+  rows,
+  total,
+  page,
+  search,
+  statusFilter,
+  canWrite,
+  summary,
+  overdueCount,
+  collectiveCandidates,
+  collectiveBatches,
+}: Props) {
   const router   = useRouter();
   const pathname = usePathname();
 
@@ -158,6 +172,14 @@ export function InvoicesView({ rows, total, page, search, statusFilter, canWrite
       </div>
 
       {/* ── Summary cards ── */}
+      {canWrite && (
+        <CollectiveInvoicePanel
+          candidates={collectiveCandidates}
+          batches={collectiveBatches}
+          canWrite={canWrite}
+        />
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <SummaryCard
           icon={<FileText className="h-5 w-5" />}
