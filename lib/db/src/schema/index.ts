@@ -31,3 +31,4 @@ export * from "./customer-portal-preferences";
 export * from "./customer-payment-batches";
 export * from "./notifications";
 export * from "./domain-events";
+export * from "./planning-intelligence";

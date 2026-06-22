@@ -135,6 +135,8 @@ export const assignmentsTable = pgTable("assignments", {
    * NULL = no regional restriction.
    */
   requiredRegion: varchar("required_region", { length: 100 }),
+  /** Explicit team size for smart planning. Defaults to one person. */
+  requiredPersonnelCount: integer("required_personnel_count").notNull().default(1),
 
   isActive:       boolean("is_active").notNull().default(true),
   createdAt:      timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),

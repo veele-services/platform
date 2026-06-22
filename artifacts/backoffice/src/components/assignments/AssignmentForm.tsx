@@ -75,6 +75,11 @@ const formSchema = z.object({
   scheduledEnd:   z.string(),
   notes:          z.string(),
   requiredRegion: z.string().max(100, "Maximaal 100 tekens"),
+  requiredPersonnelCount: z.coerce
+    .number()
+    .int("Gebruik een heel getal")
+    .min(1, "Minimaal 1 medewerker")
+    .max(50, "Maximaal 50 medewerkers"),
   customerSignatureRequired: z.boolean(),
 });
 
@@ -92,6 +97,7 @@ const DEFAULTS: FormValues = {
   scheduledEnd:   "",
   notes:          "",
   requiredRegion: "",
+  requiredPersonnelCount: 1,
   customerSignatureRequired: false,
 };
 
@@ -172,6 +178,7 @@ export function AssignmentForm({
         setValue("scheduledEnd",   a.scheduledEnd  ?? "");
         setValue("notes",          a.notes         ?? "");
         setValue("requiredRegion", a.requiredRegion ?? "");
+        setValue("requiredPersonnelCount", a.requiredPersonnelCount ?? 1);
         setValue("customerSignatureRequired", Boolean(a.customerSignatureRequired));
       }
       setLoading(false);
@@ -201,6 +208,7 @@ export function AssignmentForm({
         scheduledEnd:   parsed.data.scheduledEnd   || undefined,
         notes:          parsed.data.notes          || undefined,
         requiredRegion: parsed.data.requiredRegion || undefined,
+        requiredPersonnelCount: parsed.data.requiredPersonnelCount,
         customerSignatureRequired: parsed.data.customerSignatureRequired,
       };
 
@@ -380,6 +388,19 @@ export function AssignmentForm({
               {...register("scheduledEnd")}
               placeholder="17:00"
             />
+          </div>
+          <div className="space-y-1">
+            <Label htmlFor="requiredPersonnelCount">Benodigd</Label>
+            <Input
+              id="requiredPersonnelCount"
+              type="number"
+              min={1}
+              max={50}
+              {...register("requiredPersonnelCount", { valueAsNumber: true })}
+            />
+            {errors.requiredPersonnelCount && (
+              <p className="text-xs text-destructive">{errors.requiredPersonnelCount.message}</p>
+            )}
           </div>
           <div className="col-span-3 space-y-1">
             <Label htmlFor="requiredRegion">Regio</Label>

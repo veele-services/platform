@@ -4,12 +4,13 @@ import { db } from "@workspace/db";
 import {
   assignmentsTable,
   assignmentPersonnelTable,
+  assignmentInterestResponsesTable,
   assignmentTasksTable,
   taskCodesTable,
   personnelTable,
   objectsTable,
 } from "@workspace/db";
-import { eq, and, inArray } from "drizzle-orm";
+import { desc, eq, and, inArray, or } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -54,14 +55,20 @@ async function getPersonnelProfile(): Promise<PersonnelProfile | null> {
 
 export type OpenAssignment = {
   id:               string;
+  code:             string;
   title:            string;
   scheduledDate:    string | null;
+  scheduledStart:   string | null;
+  scheduledEnd:     string | null;
+  workflowStatus:   string;
   priority:         string | null;
   objectAddress:    string | null;
   objectCity:       string | null;
   requiredRegion:   string | null;
   taskCodes:        string[];
   isAlreadyApplied: boolean;
+  interestStatus:   string | null;
+  isInterestInvite: boolean;
 };
 
 // ─── Eligibility helpers ──────────────────────────────────────────────────────
@@ -140,11 +147,56 @@ export async function getOpenAssignments(): Promise<OpenAssignment[]> {
   const personnel = await getPersonnelProfile();
   if (!personnel) return [];
 
+  const activeInterestStatuses = [
+    "invited",
+    "viewed",
+    "interested",
+    "unavailable",
+    "question",
+    "selected",
+    "reserve",
+    "confirmed",
+  ] as const;
+
+  const interestRows = await db
+    .select({
+      assignmentId: assignmentInterestResponsesTable.assignmentId,
+      status: assignmentInterestResponsesTable.status,
+      createdAt: assignmentInterestResponsesTable.createdAt,
+    })
+    .from(assignmentInterestResponsesTable)
+    .where(
+      and(
+        eq(assignmentInterestResponsesTable.personnelId, personnel.id),
+        inArray(assignmentInterestResponsesTable.status, [...activeInterestStatuses]),
+      ),
+    )
+    .orderBy(desc(assignmentInterestResponsesTable.createdAt));
+
+  const interestByAssignment = new Map<string, string>();
+  for (const row of interestRows) {
+    if (!interestByAssignment.has(row.assignmentId)) {
+      interestByAssignment.set(row.assignmentId, row.status);
+    }
+  }
+  const invitedAssignmentIds = [...interestByAssignment.keys()];
+  const statusScope =
+    invitedAssignmentIds.length > 0
+      ? or(
+          eq(assignmentsTable.status, "plannable"),
+          inArray(assignmentsTable.id, invitedAssignmentIds),
+        )
+      : eq(assignmentsTable.status, "plannable");
+
   const assignments = await db
     .select({
       id:             assignmentsTable.id,
+      code:           assignmentsTable.code,
       title:          assignmentsTable.title,
       scheduledDate:  assignmentsTable.scheduledDate,
+      scheduledStart: assignmentsTable.scheduledStart,
+      scheduledEnd:   assignmentsTable.scheduledEnd,
+      status:         assignmentsTable.status,
       priority:       assignmentsTable.priority,
       requiredRegion: assignmentsTable.requiredRegion,
       objectAddress:  objectsTable.address,
@@ -154,7 +206,7 @@ export async function getOpenAssignments(): Promise<OpenAssignment[]> {
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
     .where(
       and(
-        eq(assignmentsTable.status, "plannable"),
+        statusScope,
         eq(assignmentsTable.isActive, true),
       ),
     )
@@ -212,14 +264,24 @@ export async function getOpenAssignments(): Promise<OpenAssignment[]> {
     })
     .map((a) => ({
       id:               a.id,
+      code:             a.code,
       title:            a.title,
       scheduledDate:    a.scheduledDate,
+      scheduledStart:   a.scheduledStart,
+      scheduledEnd:     a.scheduledEnd,
+      workflowStatus:   a.status,
       priority:         a.priority ?? null,
       requiredRegion:   a.requiredRegion ?? null,
       objectAddress:    a.objectAddress ?? null,
       objectCity:       a.objectCity ?? null,
       taskCodes:        namesByAssignment.get(a.id) ?? [],
-      isAlreadyApplied: myIds.has(a.id),
+      isAlreadyApplied:
+        myIds.has(a.id) ||
+        ["interested", "selected", "reserve", "confirmed"].includes(
+          interestByAssignment.get(a.id) ?? "",
+        ),
+      interestStatus:   interestByAssignment.get(a.id) ?? null,
+      isInterestInvite: interestByAssignment.has(a.id),
     }));
 }
 
@@ -238,26 +300,47 @@ export async function applyForAssignment(
     return { success: false, error: "Niet ingelogd of personeelsprofiel niet gevonden" };
   }
 
-  // Verify assignment is still plannable + fetch object for region check
+  const [interestResponse] = await db
+    .select({
+      id: assignmentInterestResponsesTable.id,
+      status: assignmentInterestResponsesTable.status,
+    })
+    .from(assignmentInterestResponsesTable)
+    .where(
+      and(
+        eq(assignmentInterestResponsesTable.assignmentId, assignmentId),
+        eq(assignmentInterestResponsesTable.personnelId, personnel.id),
+      ),
+    )
+    .orderBy(desc(assignmentInterestResponsesTable.createdAt))
+    .limit(1);
+
   const [assignment] = await db
     .select({
       id:          assignmentsTable.id,
       objectId:    assignmentsTable.objectId,
       objectCity:  objectsTable.city,
+      status:      assignmentsTable.status,
     })
     .from(assignmentsTable)
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
     .where(
       and(
         eq(assignmentsTable.id, assignmentId),
-        eq(assignmentsTable.status, "plannable"),
         eq(assignmentsTable.isActive, true),
       ),
     )
     .limit(1);
 
-  if (!assignment) {
+  if (!assignment || (!interestResponse && assignment.status !== "plannable")) {
     return { success: false, error: "Opdracht is niet meer beschikbaar" };
+  }
+
+  if (
+    interestResponse &&
+    ["interested", "selected", "reserve", "confirmed"].includes(interestResponse.status)
+  ) {
+    return { success: false, error: "U heeft al gereageerd op deze opdracht" };
   }
 
   // Fetch task requirements for this assignment
@@ -284,6 +367,21 @@ export async function applyForAssignment(
     return { success: false, error: "U komt niet in aanmerking voor deze opdracht" };
   }
 
+  if (interestResponse) {
+    await db
+      .update(assignmentInterestResponsesTable)
+      .set({
+        status: "interested",
+        respondedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(assignmentInterestResponsesTable.id, interestResponse.id));
+
+    revalidatePath("/openstaand");
+    revalidatePath("/opdrachten");
+    return { success: true };
+  }
+
   // Check for duplicate application
   const [existing] = await db
     .select({ id: assignmentPersonnelTable.id })
@@ -308,5 +406,52 @@ export async function applyForAssignment(
 
   revalidatePath("/openstaand");
   revalidatePath("/opdrachten");
+  return { success: true };
+}
+
+export async function declineAssignmentInterest(
+  assignmentId: string,
+): Promise<{ success: boolean; error?: string }> {
+  const personnel = await getPersonnelProfile();
+  if (!personnel) {
+    return { success: false, error: "Niet ingelogd of personeelsprofiel niet gevonden" };
+  }
+
+  const [response] = await db
+    .select({
+      id: assignmentInterestResponsesTable.id,
+      status: assignmentInterestResponsesTable.status,
+    })
+    .from(assignmentInterestResponsesTable)
+    .where(
+      and(
+        eq(assignmentInterestResponsesTable.assignmentId, assignmentId),
+        eq(assignmentInterestResponsesTable.personnelId, personnel.id),
+      ),
+    )
+    .orderBy(desc(assignmentInterestResponsesTable.createdAt))
+    .limit(1);
+
+  if (!response) {
+    return { success: false, error: "Geen uitnodiging gevonden voor deze opdracht" };
+  }
+
+  if (["selected", "reserve", "confirmed"].includes(response.status)) {
+    return {
+      success: false,
+      error: "Deze uitnodiging is al door planning verwerkt.",
+    };
+  }
+
+  await db
+    .update(assignmentInterestResponsesTable)
+    .set({
+      status: "unavailable",
+      respondedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(assignmentInterestResponsesTable.id, response.id));
+
+  revalidatePath("/openstaand");
   return { success: true };
 }

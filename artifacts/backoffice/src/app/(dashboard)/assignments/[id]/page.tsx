@@ -15,6 +15,7 @@ import {
   Receipt,
   FileCheck2,
   AlertTriangle,
+  TrendingUp,
 } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
@@ -41,6 +42,7 @@ import type { QuoteStatus } from "@/app/actions/quotes";
 import { listDocuments } from "@/app/actions/documents";
 import { AssignmentDocumentsPanel } from "@/components/documents/AssignmentDocumentsPanel";
 import { InterestPollButton } from "@/components/assignments/InterestPollButton";
+import { SmartCandidateActions } from "@/components/assignments/SmartCandidateActions";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -83,6 +85,31 @@ function InfoRow({
       </div>
     </div>
   );
+}
+
+function capacityStyle(status: "green" | "orange" | "red") {
+  if (status === "green") {
+    return {
+      label: "Groen",
+      bg: "#ECFDF5",
+      text: "#047857",
+      border: "#A7F3D0",
+    };
+  }
+  if (status === "orange") {
+    return {
+      label: "Oranje",
+      bg: "#FFFBEB",
+      text: "#B45309",
+      border: "#FCD34D",
+    };
+  }
+  return {
+    label: "Rood",
+    bg: "#FEF2F2",
+    text: "#B91C1C",
+    border: "#FECACA",
+  };
 }
 
 export default async function AssignmentDetailPage({ params }: Props) {
@@ -512,42 +539,83 @@ export default async function AssignmentDetailPage({ params }: Props) {
         <div className="flex flex-col gap-4">
           {planningReadiness && (
             <div className="veele-card">
+              {(() => {
+                const style = capacityStyle(planningReadiness.capacityStatus);
+                return (
+                  <>
               <h3
-                className="font-heading text-sm font-semibold mb-3 flex items-center gap-2"
+                className="font-heading text-sm font-semibold mb-3 flex items-center justify-between gap-2"
                 style={{ color: "#081D3A" }}
               >
-                <Users className="h-4 w-4" style={{ color: "#00B7B3" }} />
-                Planningcheck
+                <span className="inline-flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                  Capaciteit & matching
+                </span>
+                <span
+                  className="rounded-full border px-2 py-0.5 text-xs font-semibold"
+                  style={{
+                    backgroundColor: style.bg,
+                    borderColor: style.border,
+                    color: style.text,
+                  }}
+                >
+                  {style.label}
+                </span>
               </h3>
 
+              <div
+                className="mb-3 rounded-xl border p-3 text-xs leading-5"
+                style={{
+                  borderColor: style.border,
+                  backgroundColor: style.bg,
+                  color: style.text,
+                }}
+              >
+                {planningReadiness.advice}
+              </div>
+
               <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="rounded-xl bg-emerald-50 p-3">
-                  <p className="font-semibold text-emerald-700">{planningReadiness.fullyAvailableCount}</p>
-                  <p className="text-emerald-700/75">Volledig beschikbaar</p>
+                <div className="rounded-xl bg-slate-50 p-3">
+                  <p className="font-semibold" style={{ color: "#081D3A" }}>{planningReadiness.requiredSlots}</p>
+                  <p style={{ color: "#64748B" }}>Benodigd</p>
                 </div>
                 <div className="rounded-xl bg-sky-50 p-3">
-                  <p className="font-semibold text-sky-700">{planningReadiness.eligibleCount}</p>
-                  <p className="text-sky-700/75">Passend profiel</p>
+                  <p className="font-semibold text-sky-700">{planningReadiness.suitableCount}</p>
+                  <p className="text-sky-700/75">Geschikt totaal</p>
+                </div>
+                <div className="rounded-xl bg-emerald-50 p-3">
+                  <p className="font-semibold text-emerald-700">{planningReadiness.fullyAvailableCount}</p>
+                  <p className="text-emerald-700/75">Beschikbaar</p>
+                </div>
+                <div className="rounded-xl bg-violet-50 p-3">
+                  <p className="font-semibold text-violet-700">{planningReadiness.topMatchCount}</p>
+                  <p className="text-violet-700/75">Topmatches</p>
                 </div>
                 <div className="rounded-xl bg-amber-50 p-3">
-                  <p className="font-semibold text-amber-700">{planningReadiness.warningCount}</p>
-                  <p className="text-amber-700/75">Aandacht nodig</p>
+                  <p className="font-semibold text-amber-700">{planningReadiness.interestedCount}</p>
+                  <p className="text-amber-700/75">Interesse</p>
                 </div>
                 <div className="rounded-xl bg-red-50 p-3">
                   <p className="font-semibold text-red-700">{planningReadiness.blockedCount}</p>
-                  <p className="text-red-700/75">Geblokkeerd</p>
+                  <p className="text-red-700/75">Blokkades</p>
                 </div>
               </div>
 
               <div className="mt-3 rounded-xl border p-3 text-xs" style={{ borderColor: "#E2E8F0" }}>
                 <div className="flex items-center justify-between gap-3">
-                  <span style={{ color: "#64748B" }}>Gekoppeld</span>
+                  <span style={{ color: "#64748B" }}>Hoogste match</span>
+                  <span className="font-semibold" style={{ color: "#081D3A" }}>
+                    {planningReadiness.highestMatchScore}%
+                  </span>
+                </div>
+                <div className="mt-1 flex items-center justify-between gap-3">
+                  <span style={{ color: "#64748B" }}>Definitief gekoppeld</span>
                   <span className="font-semibold" style={{ color: "#081D3A" }}>
                     {planningReadiness.assignedCount}
                   </span>
                 </div>
                 <div className="mt-1 flex items-center justify-between gap-3">
-                  <span style={{ color: "#64748B" }}>Interesse/suggesties</span>
+                  <span style={{ color: "#64748B" }}>Suggesties</span>
                   <span className="font-semibold" style={{ color: "#081D3A" }}>
                     {planningReadiness.suggestedCount}
                   </span>
@@ -563,13 +631,98 @@ export default async function AssignmentDetailPage({ params }: Props) {
                     {planningReadiness.topMatches.map((person) => (
                       <li
                         key={person.id}
-                        className="flex items-center justify-between gap-2 rounded-xl bg-slate-50 px-3 py-2 text-xs"
+                        className="rounded-xl bg-slate-50 px-3 py-2 text-xs"
                       >
-                        <span className="font-medium" style={{ color: "#081D3A" }}>{person.name}</span>
-                        <span style={{ color: "#64748B" }}>{person.sectorName ?? "Geen sector"}</span>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate font-medium" style={{ color: "#081D3A" }}>{person.name}</p>
+                            <p className="mt-0.5 truncate" style={{ color: "#64748B" }}>
+                              {person.sectorName ?? "Geen sector"}
+                            </p>
+                          </div>
+                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-700">
+                            {person.matchScore}%
+                          </span>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {person.positives.slice(0, 3).map((reason) => (
+                            <span key={reason} className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-700">
+                              + {reason}
+                            </span>
+                          ))}
+                          {person.negatives.slice(0, 2).map((reason) => (
+                            <span key={reason} className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-700">
+                              - {reason}
+                            </span>
+                          ))}
+                        </div>
                       </li>
                     ))}
                   </ul>
+                </div>
+              )}
+
+              {planningReadiness.candidates.length > 0 && (
+                <div className="mt-3">
+                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
+                    Kandidaten
+                  </p>
+                  <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
+                    {planningReadiness.candidates.slice(0, 8).map((candidate) => (
+                      <div
+                        key={candidate.id}
+                        className="rounded-xl border p-3 text-xs"
+                        style={{
+                          borderColor:
+                            candidate.hardStatus === "eligible"
+                              ? "#A7F3D0"
+                              : candidate.hardStatus === "warning"
+                                ? "#FCD34D"
+                                : "#FECACA",
+                          backgroundColor:
+                            candidate.hardStatus === "eligible"
+                              ? "#F8FFFC"
+                              : candidate.hardStatus === "warning"
+                                ? "#FFFCF3"
+                                : "#FFF7F7",
+                        }}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0">
+                            <p className="truncate font-semibold" style={{ color: "#081D3A" }}>
+                              {candidate.name}
+                            </p>
+                            <p className="mt-0.5 truncate" style={{ color: "#64748B" }}>
+                              {candidate.sectorName ?? "Geen sector"}
+                            </p>
+                          </div>
+                          <span className="rounded-full bg-white px-2 py-0.5 font-semibold" style={{ color: "#081D3A" }}>
+                            {candidate.matchScore}%
+                          </span>
+                        </div>
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {candidate.positives.slice(0, 3).map((reason) => (
+                            <span key={reason} className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-700">
+                              + {reason}
+                            </span>
+                          ))}
+                          {candidate.negatives.slice(0, 3).map((reason) => (
+                            <span key={reason} className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] text-red-700">
+                              - {reason}
+                            </span>
+                          ))}
+                        </div>
+                        {candidate.hardStatus !== "blocked" && (
+                          <div className="mt-2">
+                            <SmartCandidateActions
+                              assignmentId={assignment.id}
+                              personnelId={candidate.id}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -585,6 +738,9 @@ export default async function AssignmentDetailPage({ params }: Props) {
                   disabled={!planningReadiness.canPoll}
                 />
               </div>
+                  </>
+                );
+              })()}
             </div>
           )}
 

@@ -1,6 +1,6 @@
 export const dynamic = "force-dynamic";
 
-import { ClipboardCheck, Calendar, MapPin, Tag, AlertCircle, Globe } from "lucide-react";
+import { ClipboardCheck, Calendar, Clock, MapPin, Tag, AlertCircle, Globe } from "lucide-react";
 import { getOpenAssignments } from "@/actions/open-assignments";
 import { MobilePageShell } from "@/components/MobilePageShell";
 import { ApplyButton } from "./ApplyButton";
@@ -23,6 +23,13 @@ function formatDate(dateStr: string | null): string {
   if (!dateStr) return "";
   const d = new Date(dateStr + "T00:00:00");
   return d.toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" });
+}
+
+function timeRange(start: string | null, end: string | null): string | null {
+  if (start && end) return `${start} - ${end}`;
+  if (start) return `Vanaf ${start}`;
+  if (end) return `Tot ${end}`;
+  return null;
 }
 
 export default async function OpenstaandePage() {
@@ -107,20 +114,32 @@ function AssignmentCard({
   return (
     <div className="rounded-2xl bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-2">
-        <p className="font-semibold" style={{ color: "var(--color-primary)" }}>
-          {assignment.title}
-        </p>
-        {priorityLabel && priorityStyle && (
-          <span
-            className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
-            style={{ backgroundColor: priorityStyle.bg, color: priorityStyle.fg }}
-          >
-            {priorityLabel === "Urgent" && (
-              <AlertCircle size={10} className="mr-0.5 inline-block" />
-            )}
-            {priorityLabel}
-          </span>
-        )}
+        <div className="min-w-0">
+          <p className="font-mono text-[11px] font-semibold" style={{ color: "var(--color-secondary)" }}>
+            {assignment.code}
+          </p>
+          <p className="mt-0.5 font-semibold" style={{ color: "var(--color-primary)" }}>
+            {assignment.title}
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-col items-end gap-1">
+          {assignment.isInterestInvite && (
+            <span className="rounded-full px-2 py-0.5 text-[11px] font-semibold" style={{ backgroundColor: "#ecfeff", color: "#0f766e" }}>
+              Onder voorbehoud
+            </span>
+          )}
+          {priorityLabel && priorityStyle && (
+            <span
+              className="rounded-full px-2 py-0.5 text-xs font-medium"
+              style={{ backgroundColor: priorityStyle.bg, color: priorityStyle.fg }}
+            >
+              {priorityLabel === "Urgent" && (
+                <AlertCircle size={10} className="mr-0.5 inline-block" />
+              )}
+              {priorityLabel}
+            </span>
+          )}
+        </div>
       </div>
 
       <div className="mt-2 space-y-1.5">
@@ -129,6 +148,14 @@ function AssignmentCard({
             <Calendar size={13} style={{ color: "var(--color-accent)" }} />
             <span className="text-xs" style={{ color: "var(--color-secondary)" }}>
               {formatDate(assignment.scheduledDate)}
+            </span>
+          </div>
+        )}
+        {timeRange(assignment.scheduledStart, assignment.scheduledEnd) && (
+          <div className="flex items-center gap-2">
+            <Clock size={13} style={{ color: "var(--color-accent)" }} />
+            <span className="text-xs" style={{ color: "var(--color-secondary)" }}>
+              {timeRange(assignment.scheduledStart, assignment.scheduledEnd)}
             </span>
           </div>
         )}
@@ -171,6 +198,8 @@ function AssignmentCard({
           assignmentId={assignment.id}
           title={assignment.title}
           isAlreadyApplied={assignment.isAlreadyApplied}
+          interestStatus={assignment.interestStatus}
+          canDecline={assignment.isInterestInvite}
         />
       </div>
     </div>

@@ -12,6 +12,7 @@ import {
   assignmentPersonnelTable,
   assignmentsTable,
   auditLogTable,
+  assignmentCandidatesTable,
   availabilityDayEntriesTable,
   availabilityWindowsTable,
   ASSIGNMENT_PRIORITIES,
@@ -104,6 +105,7 @@ export type PlanningBoardMatch = {
   personnelId: string;
   level: "match" | "warning" | "blocked";
   eligible: boolean;
+  matchScore: number | null;
   reasons: PlanningBoardMatchReason[];
 };
 
@@ -130,6 +132,7 @@ export type PlanningBoardAssignment = {
   sectorId: string | null;
   sectorName: string | null;
   requiredRegion: string | null;
+  requiredPersonnelCount: number;
   assignedPersonnelIds: string[];
   requiredSlots: number;
   filledSlots: number;
@@ -504,6 +507,7 @@ function buildPlanningMatch(params: {
     personnelId: personnel.id,
     level: hasBlock ? "blocked" : hasWarning ? "warning" : "match",
     eligible: !hasBlock,
+    matchScore: null,
     reasons,
   };
 }
@@ -604,6 +608,7 @@ export async function getPlanningBoardData(
           scheduledStart: assignmentsTable.scheduledStart,
           scheduledEnd: assignmentsTable.scheduledEnd,
           requiredRegion: assignmentsTable.requiredRegion,
+          requiredPersonnelCount: assignmentsTable.requiredPersonnelCount,
           customerId: assignmentsTable.customerId,
           customerName: customersTable.name,
           customerSectorId: customersTable.sectorId,
@@ -664,7 +669,7 @@ export async function getPlanningBoardData(
   const assignmentIds = assignmentRows.map((row) => row.id);
   const personnelIds = personnelRows.map((row) => row.id);
 
-  const [taskRows, linkRows, dayEntryRows, windowRows, availabilityMap] =
+  const [taskRows, linkRows, dayEntryRows, windowRows, candidateRows, availabilityMap] =
     await Promise.all([
       assignmentIds.length > 0
         ? db
@@ -740,6 +745,25 @@ export async function getPlanningBoardData(
               ),
             )
         : Promise.resolve([]),
+
+      assignmentIds.length > 0
+        ? db
+            .select({
+              assignmentId: assignmentCandidatesTable.assignmentId,
+              personnelId: assignmentCandidatesTable.personnelId,
+              hardStatus: assignmentCandidatesTable.hardStatus,
+              matchScore: assignmentCandidatesTable.matchScore,
+            })
+            .from(assignmentCandidatesTable)
+            .where(inArray(assignmentCandidatesTable.assignmentId, assignmentIds))
+        : Promise.resolve(
+            [] as Array<{
+              assignmentId: string;
+              personnelId: string;
+              hardStatus: string;
+              matchScore: number;
+            }>,
+          ),
 
       personnelIds.length > 0
         ? getBatchAvailabilityStatus(personnelIds, date)
@@ -857,7 +881,7 @@ export async function getPlanningBoardData(
             60,
           );
       const assignedPersonnelIds = personnelIdsByAssignment.get(row.id) ?? [];
-      const requiredSlots = Math.max(requiredRoleIds.length, 1);
+      const requiredSlots = Math.max(row.requiredPersonnelCount ?? 1, requiredRoleIds.length, 1);
 
       return {
         id: row.id,
@@ -875,6 +899,7 @@ export async function getPlanningBoardData(
         sectorId,
         sectorName: sectorId ? (sectorNameById.get(sectorId) ?? null) : null,
         requiredRegion: row.requiredRegion ?? null,
+        requiredPersonnelCount: row.requiredPersonnelCount ?? 1,
         assignedPersonnelIds,
         requiredSlots,
         filledSlots: assignedPersonnelIds.length,
@@ -996,6 +1021,16 @@ export async function getPlanningBoardData(
     ]),
   );
 
+  const smartCandidateByKey = new Map(
+    candidateRows.map((row) => [
+      `${row.assignmentId}:${row.personnelId}`,
+      {
+        hardStatus: row.hardStatus,
+        matchScore: row.matchScore ?? 0,
+      },
+    ]),
+  );
+
   const openAssignments = boardAssignments.filter((assignment) => {
     if (assignment.filledSlots >= assignment.requiredSlots) return false;
     return (
@@ -1013,7 +1048,7 @@ export async function getPlanningBoardData(
     matchesByAssignmentId[assignment.id] = personnel
       .map((person) => {
         const candidate = personnelCandidates.get(person.id)!;
-        return buildPlanningMatch({
+        const match = buildPlanningMatch({
           assignment: {
             ...assignment,
             scheduledDate: assignment.scheduledDate ?? date,
@@ -1023,10 +1058,17 @@ export async function getPlanningBoardData(
           availabilityWindow: person.availabilityWindow,
           personnelAssignments: person.scheduledAssignments,
         });
+        const smart = smartCandidateByKey.get(`${assignment.id}:${person.id}`);
+        return {
+          ...match,
+          matchScore: smart?.matchScore ?? match.matchScore,
+        };
       })
       .sort((a, b) => {
         const order = { match: 0, warning: 1, blocked: 2 };
-        return order[a.level] - order[b.level];
+        const levelDelta = order[a.level] - order[b.level];
+        if (levelDelta !== 0) return levelDelta;
+        return (b.matchScore ?? -1) - (a.matchScore ?? -1);
       });
   }
 
@@ -1547,6 +1589,7 @@ export async function scheduleAssignmentOnBoard(
     sectorId,
     sectorName: null,
     requiredRegion: assignment.requiredRegion ?? null,
+    requiredPersonnelCount: requiredSlots,
     assignedPersonnelIds: assignedRows.map((row) => row.personnelId),
     requiredSlots,
     filledSlots: assignedRows.length,

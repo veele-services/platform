@@ -260,11 +260,12 @@ function matchConfig(match: PlanningBoardMatch | undefined): {
   if (!match) {
     return { label: "Geen matchdata", bg: "#F8FAFC", text: "#64748B", border: "#E2E8F0" };
   }
+  const score = typeof match.matchScore === "number" ? ` ${match.matchScore}%` : "";
   if (match.level === "match") {
-    return { label: "Match", bg: "#ECFDF5", text: "#047857", border: "#A7F3D0" };
+    return { label: `Match${score}`, bg: "#ECFDF5", text: "#047857", border: "#A7F3D0" };
   }
   if (match.level === "warning") {
-    return { label: "Waarschuwing", bg: "#FFFBEB", text: "#B45309", border: "#FCD34D" };
+    return { label: `Waarschuwing${score}`, bg: "#FFFBEB", text: "#B45309", border: "#FCD34D" };
   }
   return { label: "Blokkeert", bg: "#FEF2F2", text: "#B91C1C", border: "#FECACA" };
 }
@@ -424,6 +425,9 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
         if (rankA !== rankB) return rankA - rankB;
 
         if (rankA === 1 || rankA === 2) {
+          const scoreDelta = (b.match?.matchScore ?? -1) - (a.match?.matchScore ?? -1);
+          if (scoreDelta !== 0) return scoreDelta;
+
           const loadDelta = a.person.scheduledMinutes - b.person.scheduledMinutes;
           if (loadDelta !== 0) return loadDelta;
         }

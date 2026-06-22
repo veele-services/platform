@@ -8,7 +8,8 @@ import {
   customersTable,
   objectsTable,
   personnelTable,
-  personnelNotificationsTable,
+  assignmentInterestResponsesTable,
+  assignmentInterestRoundsTable,
   sectorsTable,
   taskCodesTable,
   auditLogTable,
@@ -23,6 +24,10 @@ import {
   type AssignmentStatus,
   type AssignmentPriority,
 } from "@workspace/db";
+import {
+  calculateAssignmentCapacity,
+  getSmartPlanningRoundDefaults,
+} from "@workspace/db/planning-intelligence";
 import {
   eq,
   ilike,
@@ -41,6 +46,7 @@ import {
   getBatchAvailabilityStatus,
   type AvailabilityStatus,
 } from "./availability";
+import { emitDomainEvent } from "@workspace/db/events";
 import { emitAssignmentWorkflowEvent } from "@workspace/db/workflow-events";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -116,6 +122,7 @@ export type AssignmentDetail = {
   scheduledEnd: string | null;
   notes: string | null;
   requiredRegion: string | null;
+  requiredPersonnelCount: number;
   customerSignatureRequired: boolean;
   isActive: boolean;
   customerId: string;
@@ -154,6 +161,7 @@ export type AssignmentFormInput = {
   scheduledEnd?: string;
   notes?: string;
   requiredRegion?: string;
+  requiredPersonnelCount?: number;
   customerSignatureRequired?: boolean;
 };
 
@@ -372,6 +380,7 @@ export async function getAssignment(
       scheduledEnd: assignmentsTable.scheduledEnd,
       notes: assignmentsTable.notes,
       requiredRegion: assignmentsTable.requiredRegion,
+      requiredPersonnelCount: assignmentsTable.requiredPersonnelCount,
       customerSignatureRequired: assignmentsTable.customerSignatureRequired,
       isActive: assignmentsTable.isActive,
       customerId: assignmentsTable.customerId,
@@ -439,6 +448,7 @@ export async function getAssignment(
     scheduledStart: row.scheduledStart ?? null,
     scheduledEnd: row.scheduledEnd ?? null,
     requiredRegion: row.requiredRegion ?? null,
+    requiredPersonnelCount: row.requiredPersonnelCount ?? 1,
     customerSignatureRequired: row.customerSignatureRequired,
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
@@ -1296,12 +1306,20 @@ export async function getPersonnelEligibilityForAssignment(
 
 export type AssignmentPlanningReadiness = {
   hasMoment: boolean;
+  requiredSlots: number;
   eligibleCount: number;
   fullyAvailableCount: number;
+  suitableCount: number;
+  topMatchCount: number;
   warningCount: number;
   blockedCount: number;
   assignedCount: number;
   suggestedCount: number;
+  interestedCount: number;
+  highestMatchScore: number;
+  capacityStatus: "green" | "orange" | "red";
+  advice: string;
+  generatedAt: string | null;
   canPoll: boolean;
   topMatches: Array<{
     id: string;
@@ -1309,6 +1327,19 @@ export type AssignmentPlanningReadiness = {
     sectorName: string | null;
     availabilityStatus: AvailabilityStatus;
     reasons: string[];
+    matchScore: number;
+    positives: string[];
+    negatives: string[];
+  }>;
+  candidates: Array<{
+    id: string;
+    name: string;
+    sectorName: string | null;
+    hardStatus: "eligible" | "warning" | "blocked";
+    matchScore: number;
+    reasons: string[];
+    positives: string[];
+    negatives: string[];
   }>;
 };
 
@@ -1338,18 +1369,27 @@ export async function getAssignmentPlanningReadiness(
   if (!canRead) {
     return {
       hasMoment: false,
+      requiredSlots: 1,
       eligibleCount: 0,
       fullyAvailableCount: 0,
+      suitableCount: 0,
+      topMatchCount: 0,
       warningCount: 0,
       blockedCount: 0,
       assignedCount: 0,
       suggestedCount: 0,
+      interestedCount: 0,
+      highestMatchScore: 0,
+      capacityStatus: "red",
+      advice: "Geen toegang tot planninggegevens.",
+      generatedAt: null,
       canPoll: false,
       topMatches: [],
+      candidates: [],
     };
   }
 
-  const [[assignment], eligibility, links] = await Promise.all([
+  const [[assignment], capacity, links] = await Promise.all([
     db
       .select({
         status: assignmentsTable.status,
@@ -1360,30 +1400,49 @@ export async function getAssignmentPlanningReadiness(
       .from(assignmentsTable)
       .where(eq(assignmentsTable.id, assignmentId))
       .limit(1),
-    getPersonnelEligibilityForAssignment(assignmentId),
+    calculateAssignmentCapacity(assignmentId, { persist: true }),
     db
       .select({ status: assignmentPersonnelTable.status })
       .from(assignmentPersonnelTable)
       .where(eq(assignmentPersonnelTable.assignmentId, assignmentId)),
   ]);
 
+  if (!capacity) {
+    return {
+      hasMoment: false,
+      requiredSlots: 1,
+      eligibleCount: 0,
+      fullyAvailableCount: 0,
+      suitableCount: 0,
+      topMatchCount: 0,
+      warningCount: 0,
+      blockedCount: 0,
+      assignedCount: 0,
+      suggestedCount: 0,
+      interestedCount: 0,
+      highestMatchScore: 0,
+      capacityStatus: "red",
+      advice: "Opdracht niet gevonden.",
+      generatedAt: null,
+      canPoll: false,
+      topMatches: [],
+      candidates: [],
+    };
+  }
+
   const hasMoment = Boolean(
     assignment?.scheduledDate &&
     assignment.scheduledStart &&
     assignment.scheduledEnd,
   );
-  const eligible = eligibility.filter((person) => person.eligible);
-  const fullyAvailable = eligible.filter(
-    (person) => person.availabilityStatus === "beschikbaar",
-  );
-  const warningCount = eligibility.filter(
-    (person) =>
-      !person.eligible &&
-      person.availabilityStatus !== "ziek" &&
-      person.availabilityStatus !== "op_verlof" &&
-      !person.hasConflict,
+  const eligible = capacity.candidates.filter((person) => person.eligible);
+  const fullyAvailable = capacity.candidates.filter((person) => person.available);
+  const warningCount = capacity.candidates.filter(
+    (person) => person.hardStatus === "warning",
   ).length;
-  const blockedCount = eligibility.length - eligible.length - warningCount;
+  const blockedCount = capacity.candidates.filter(
+    (person) => person.hardStatus === "blocked",
+  ).length;
   const assignedCount = links.filter((link) => link.status === "assigned").length;
   const suggestedCount = links.filter((link) => link.status === "suggested").length;
   const pollableStatuses: AssignmentStatus[] = [
@@ -1395,29 +1454,95 @@ export async function getAssignmentPlanningReadiness(
 
   return {
     hasMoment,
+    requiredSlots: capacity.requiredSlots,
     eligibleCount: eligible.length,
     fullyAvailableCount: fullyAvailable.length,
+    suitableCount: capacity.suitableTotal,
+    topMatchCount: capacity.topMatchTotal,
     warningCount,
     blockedCount,
     assignedCount,
     suggestedCount,
+    interestedCount: capacity.interestedTotal,
+    highestMatchScore: capacity.highestMatchScore,
+    capacityStatus: capacity.capacityStatus,
+    advice: capacity.advice,
+    generatedAt: capacity.generatedAt.toISOString(),
     canPoll:
       hasMoment &&
       fullyAvailable.length > 0 &&
       Boolean(assignment?.status && pollableStatuses.includes(assignment.status as AssignmentStatus)),
     topMatches: fullyAvailable.slice(0, 5).map((person) => ({
-      id: person.id,
+      id: person.personnelId,
       name: `${person.firstName} ${person.lastName}`.trim(),
       sectorName: person.sectorName,
-      availabilityStatus: person.availabilityStatus,
-      reasons: person.eligibilityReasons,
+      availabilityStatus: "beschikbaar" as AvailabilityStatus,
+      reasons: person.reasons.map((reason) => reason.label),
+      matchScore: person.matchScore,
+      positives: person.positives,
+      negatives: person.negatives,
     })),
+    candidates: capacity.candidates.slice(0, 20).map((person) => ({
+      id: person.personnelId,
+      name: `${person.firstName} ${person.lastName}`.trim(),
+      sectorName: person.sectorName,
+      hardStatus: person.hardStatus,
+      matchScore: person.matchScore,
+      reasons: person.reasons.map((reason) => reason.label),
+      positives: person.positives,
+      negatives: person.negatives,
+    })),
+  };
+}
+
+export async function recalculateAssignmentCapacity(
+  assignmentId: string,
+): Promise<ActionResult<{ status: "green" | "orange" | "red"; available: number }>> {
+  await requirePermission("planning", "write");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const result = await calculateAssignmentCapacity(assignmentId, {
+    persist: true,
+    actorUserId: user.id,
+  });
+
+  if (!result) {
+    return { success: false, message: "Opdracht niet gevonden." };
+  }
+
+  await db.insert(auditLogTable).values({
+    userId: user.id,
+    action: "assignment_capacity_recalculate",
+    resource: "assignments",
+    resourceId: assignmentId,
+    metadata: {
+      capacityStatus: result.capacityStatus,
+      availableTotal: result.availableTotal,
+      topMatchTotal: result.topMatchTotal,
+      requiredSlots: result.requiredSlots,
+    },
+  });
+
+  revalidatePath(`/assignments/${assignmentId}`);
+  revalidatePath("/planning");
+  return {
+    success: true,
+    data: { status: result.capacityStatus, available: result.availableTotal },
   };
 }
 
 export async function sendAssignmentInterestPoll(
   assignmentId: string,
-): Promise<ActionResult<{ notified: number }>> {
+  input?: {
+    audienceType?: "top_matches" | "next_matches" | "flexpool" | "spoedpool" | "manual";
+    limit?: number;
+  },
+): Promise<ActionResult<{ notified: number; roundNumber: number }>> {
   await requirePermission("planning", "write");
 
   const supabase = await createClient();
@@ -1449,9 +1574,17 @@ export async function sendAssignmentInterestPoll(
     };
   }
 
-  const eligibility = await getPersonnelEligibilityForAssignment(assignmentId);
-  const candidates = eligibility.filter(
-    (person) => person.eligible && person.availabilityStatus === "beschikbaar",
+  const capacity = await calculateAssignmentCapacity(assignmentId, {
+    persist: true,
+    actorUserId: user.id,
+  });
+  if (!capacity) return { success: false, message: "Opdracht niet gevonden." };
+
+  const defaults = await getSmartPlanningRoundDefaults(assignmentId);
+  const audienceType = input?.audienceType ?? "top_matches";
+  const limit = Math.max(1, Math.min(input?.limit ?? defaults.roundSize, 50));
+  const candidates = capacity.candidates.filter(
+    (person) => person.available && person.hardStatus === "eligible",
   );
   if (candidates.length === 0) {
     return {
@@ -1460,11 +1593,13 @@ export async function sendAssignmentInterestPoll(
     };
   }
 
-  const candidateIds = candidates.map((person) => person.id);
+  const candidateIds = candidates.map((person) => person.personnelId);
   const title = `Interessepeiling ${assignment.code}`;
   const href = "/openstaand";
 
-  const [existingLinks, existingNotifications] = await Promise.all([
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const [existingLinks, existingResponses, dailyInviteRows, latestRoundRows] = await Promise.all([
     db
       .select({ personnelId: assignmentPersonnelTable.personnelId })
       .from(assignmentPersonnelTable)
@@ -1475,24 +1610,51 @@ export async function sendAssignmentInterestPoll(
         ),
       ),
     db
-      .select({ personnelId: personnelNotificationsTable.personnelId })
-      .from(personnelNotificationsTable)
+      .select({ personnelId: assignmentInterestResponsesTable.personnelId })
+      .from(assignmentInterestResponsesTable)
       .where(
         and(
-          inArray(personnelNotificationsTable.personnelId, candidateIds),
-          eq(personnelNotificationsTable.title, title),
-          isNull(personnelNotificationsTable.deletedAt),
+          eq(assignmentInterestResponsesTable.assignmentId, assignmentId),
+          inArray(assignmentInterestResponsesTable.personnelId, candidateIds),
         ),
       ),
+    db
+      .select({
+        personnelId: assignmentInterestResponsesTable.personnelId,
+        count: sql<number>`count(*)::int`,
+      })
+      .from(assignmentInterestResponsesTable)
+      .where(
+        and(
+          inArray(assignmentInterestResponsesTable.personnelId, candidateIds),
+          gte(assignmentInterestResponsesTable.createdAt, today),
+        ),
+      )
+      .groupBy(assignmentInterestResponsesTable.personnelId),
+    db
+      .select({ roundNumber: assignmentInterestRoundsTable.roundNumber })
+      .from(assignmentInterestRoundsTable)
+      .where(eq(assignmentInterestRoundsTable.assignmentId, assignmentId))
+      .orderBy(desc(assignmentInterestRoundsTable.roundNumber))
+      .limit(1),
   ]);
 
   const linkedIds = new Set(existingLinks.map((link) => link.personnelId));
-  const alreadyNotifiedIds = new Set(
-    existingNotifications.map((notification) => notification.personnelId),
+  const alreadyInvitedIds = new Set(
+    existingResponses.map((response) => response.personnelId),
   );
-  const recipients = candidates.filter(
-    (person) => !linkedIds.has(person.id) && !alreadyNotifiedIds.has(person.id),
+  const dailyInviteCounts = new Map(
+    dailyInviteRows.map((row) => [row.personnelId, row.count ?? 0]),
   );
+  const isSpoed = audienceType === "spoedpool" || assignment.priority === "urgent";
+  const recipients = candidates
+    .filter((person) => !linkedIds.has(person.personnelId))
+    .filter((person) => !alreadyInvitedIds.has(person.personnelId))
+    .filter((person) => {
+      if (isSpoed) return true;
+      return (dailyInviteCounts.get(person.personnelId) ?? 0) < defaults.maxDailyInvites;
+    })
+    .slice(0, limit);
 
   if (recipients.length === 0) {
     return {
@@ -1503,19 +1665,35 @@ export async function sendAssignmentInterestPoll(
 
   const momentLabel = formatAssignmentMoment(assignment);
   const notificationPriority: "high" | "normal" =
-    assignment.priority === "urgent" || assignment.priority === "high"
+    assignment.priority === "urgent" || assignment.priority === "high" || isSpoed
       ? "high"
       : "normal";
+  const nextRoundNumber = (latestRoundRows[0]?.roundNumber ?? 0) + 1;
+  let roundId = "";
+
   await db.transaction(async (tx) => {
-    await tx.insert(personnelNotificationsTable).values(
+    const [round] = await tx
+      .insert(assignmentInterestRoundsTable)
+      .values({
+        assignmentId,
+        roundNumber: nextRoundNumber,
+        audienceType,
+        candidateLimit: limit,
+        status: "sent",
+        sentAt: new Date(),
+        expiresAt: defaults.expiresAt,
+        createdBy: user.id,
+      })
+      .returning({ id: assignmentInterestRoundsTable.id });
+    roundId = round!.id;
+
+    await tx.insert(assignmentInterestResponsesTable).values(
       recipients.map((person) => ({
-        personnelId: person.id,
-        title,
-        body: `Open opdracht: ${assignment.title}. Moment: ${momentLabel}. Reageer via open opdrachten als je deze bon kunt oppakken.`,
-        category: "planning" as const,
-        priority: notificationPriority,
-        sourceLabel: "Planning",
-        href,
+        assignmentId,
+        roundId,
+        personnelId: person.personnelId,
+        status: "invited" as const,
+        expiresAt: defaults.expiresAt,
       })),
     );
 
@@ -1525,6 +1703,9 @@ export async function sendAssignmentInterestPoll(
       resource: "assignments",
       resourceId: assignmentId,
       metadata: {
+        roundId,
+        roundNumber: nextRoundNumber,
+        audienceType,
         notified: recipients.length,
         candidateCount: candidates.length,
         scheduledDate: assignment.scheduledDate,
@@ -1534,8 +1715,179 @@ export async function sendAssignmentInterestPoll(
     });
   });
 
+  await Promise.all(
+    recipients.map((person) =>
+      emitDomainEvent({
+        eventKey: "assignment_interest_invited",
+        tenantId: undefined,
+        actorUserId: user.id,
+        audience: "personnel",
+        aggregate: { type: "assignment", id: assignmentId },
+        recipients: { personnelIds: [person.personnelId] },
+        payload: {
+          assignment: {
+            id: assignment.id,
+            code: assignment.code,
+            title: assignment.title,
+            date: assignment.scheduledDate,
+            time_range: `${assignment.scheduledStart} - ${assignment.scheduledEnd}`,
+          },
+          object: {
+            name: capacity.inputSnapshot.object && typeof capacity.inputSnapshot.object === "object"
+              ? (capacity.inputSnapshot.object as { name?: string | null }).name ?? ""
+              : "",
+            city: capacity.inputSnapshot.object && typeof capacity.inputSnapshot.object === "object"
+              ? (capacity.inputSnapshot.object as { city?: string | null }).city ?? ""
+              : "",
+          },
+          recipient: {
+            name: `${person.firstName} ${person.lastName}`.trim(),
+          },
+          href,
+          priority: notificationPriority,
+          round: {
+            id: roundId,
+            number: nextRoundNumber,
+          },
+        },
+        fallback: {
+          title,
+          body: `Open opdracht: ${assignment.title}. Moment: ${momentLabel}. Reageer via open opdrachten als je deze bon kunt oppakken.`,
+          category: "planning",
+          priority: notificationPriority,
+          href,
+          sourceLabel: "Planning",
+        },
+        audit: false,
+      }),
+    ),
+  );
+
   revalidatePath(`/assignments/${assignmentId}`);
-  return { success: true, data: { notified: recipients.length } };
+  revalidatePath("/planning");
+  return {
+    success: true,
+    data: { notified: recipients.length, roundNumber: nextRoundNumber },
+  };
+}
+
+export async function markInterestCandidate(
+  assignmentId: string,
+  personnelId: string,
+  status: "selected" | "reserve" | "cancelled",
+): Promise<ActionResult> {
+  await requirePermission("planning", "write");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [response] = await db
+    .select({
+      id: assignmentInterestResponsesTable.id,
+      personnelId: assignmentInterestResponsesTable.personnelId,
+    })
+    .from(assignmentInterestResponsesTable)
+    .where(
+      and(
+        eq(assignmentInterestResponsesTable.assignmentId, assignmentId),
+        eq(assignmentInterestResponsesTable.personnelId, personnelId),
+      ),
+    )
+    .orderBy(desc(assignmentInterestResponsesTable.createdAt))
+    .limit(1);
+
+  if (!response) {
+    return {
+      success: false,
+      message: "Deze medewerker heeft nog geen interesse-uitnodiging voor deze opdracht.",
+    };
+  }
+
+  const [[assignment], [personnel]] = await Promise.all([
+    db
+      .select({
+        code: assignmentsTable.code,
+        title: assignmentsTable.title,
+      })
+      .from(assignmentsTable)
+      .where(eq(assignmentsTable.id, assignmentId))
+      .limit(1),
+    db
+      .select({
+        firstName: personnelTable.firstName,
+        lastName: personnelTable.lastName,
+      })
+      .from(personnelTable)
+      .where(eq(personnelTable.id, personnelId))
+      .limit(1),
+  ]);
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(assignmentInterestResponsesTable)
+      .set({
+        status,
+        selectedAt: status === "selected" || status === "reserve" ? new Date() : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(assignmentInterestResponsesTable.id, response.id));
+
+    await tx.insert(auditLogTable).values({
+      userId: user.id,
+      action: `assignment_interest_${status}`,
+      resource: "assignments",
+      resourceId: assignmentId,
+      metadata: {
+        personnelId,
+        responseId: response.id,
+      },
+    });
+  });
+
+  if (status !== "cancelled" && assignment && personnel) {
+    await emitDomainEvent({
+      eventKey:
+        status === "reserve"
+          ? "assignment_interest_reserve"
+          : "assignment_interest_selected",
+      actorUserId: user.id,
+      audience: "personnel",
+      aggregate: { type: "assignment", id: assignmentId },
+      recipients: { personnelIds: [personnelId] },
+      payload: {
+        assignment: {
+          id: assignmentId,
+          code: assignment.code,
+          title: assignment.title,
+        },
+        recipient: {
+          name: `${personnel.firstName} ${personnel.lastName}`.trim(),
+        },
+        href: "/openstaand",
+      },
+      fallback: {
+        title:
+          status === "reserve"
+            ? `Reserve voor ${assignment.code}`
+            : `Geselecteerd voor ${assignment.code}`,
+        body:
+          status === "reserve"
+            ? "Je staat als reserve voor deze opdracht."
+            : "Planning heeft je geselecteerd voor deze opdracht.",
+        category: "planning",
+        priority: "normal",
+        href: "/openstaand",
+      },
+      audit: false,
+    });
+  }
+
+  revalidatePath(`/assignments/${assignmentId}`);
+  revalidatePath("/planning");
+  return { success: true };
 }
 
 /**
@@ -2104,6 +2456,7 @@ export async function createAssignment(
     scheduledEnd: data.scheduledEnd || null,
     notes: data.notes?.trim() || null,
     requiredRegion: data.requiredRegion?.trim() || null,
+    requiredPersonnelCount: Math.max(1, Math.min(Number(data.requiredPersonnelCount ?? 1), 50)),
     customerSignatureRequired: Boolean(data.customerSignatureRequired),
     createdBy: user.id,
   };
@@ -2130,6 +2483,11 @@ export async function createAssignment(
       resource: "assignments",
       resourceId: created!.id,
       metadata: { title: payload.title, status: payload.status },
+    });
+
+    await calculateAssignmentCapacity(created!.id, {
+      persist: true,
+      actorUserId: user.id,
     });
 
     revalidatePath("/assignments");
@@ -2169,6 +2527,7 @@ export async function updateAssignment(
     scheduledEnd: data.scheduledEnd || null,
     notes: data.notes?.trim() || null,
     requiredRegion: data.requiredRegion?.trim() || null,
+    requiredPersonnelCount: Math.max(1, Math.min(Number(data.requiredPersonnelCount ?? 1), 50)),
     customerSignatureRequired: Boolean(data.customerSignatureRequired),
   };
 
@@ -2194,6 +2553,11 @@ export async function updateAssignment(
       resource: "assignments",
       resourceId: id,
       metadata: { title: payload.title },
+    });
+
+    await calculateAssignmentCapacity(id, {
+      persist: true,
+      actorUserId: user.id,
     });
 
     revalidatePath("/assignments");
@@ -2486,6 +2850,11 @@ export async function addAssignmentTask(
     metadata: { taskCodeId, taskId: created!.id },
   });
 
+  await calculateAssignmentCapacity(assignmentId, {
+    persist: true,
+    actorUserId: user.id,
+  });
+
   revalidatePath(`/assignments/${assignmentId}`);
   return { success: true };
 }
@@ -2517,6 +2886,11 @@ export async function removeAssignmentTask(
     resource: "assignments",
     resourceId: assignmentId,
     metadata: { taskId },
+  });
+
+  await calculateAssignmentCapacity(assignmentId, {
+    persist: true,
+    actorUserId: user.id,
   });
 
   revalidatePath(`/assignments/${assignmentId}`);
