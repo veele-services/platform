@@ -1,20 +1,5 @@
 import Link from "next/link";
-
-const STATUS_LABELS: Record<string, string> = {
-  open:      "Open",
-  paid:      "Betaald",
-  canceled:  "Geannuleerd",
-  expired:   "Verlopen",
-  failed:    "Mislukt",
-};
-
-const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  open:     { bg: "#EFF6FF", text: "#2563EB" },
-  paid:     { bg: "#ECFDF5", text: "#059669" },
-  canceled: { bg: "#F8FAFC", text: "#64748B" },
-  expired:  { bg: "#FFF7ED", text: "#C2410C" },
-  failed:   { bg: "#FEF2F2", text: "#DC2626" },
-};
+import { ProcessStatusBadge } from "@/components/workflows/ProcessStatus";
 
 export type CustomerPaymentRow = {
   id:              string;
@@ -70,7 +55,6 @@ export function CustomerPaymentsTab({ customerId, payments }: Props) {
                 </tr>
               ) : (
                 payments.map((p, i) => {
-                  const colors = STATUS_COLORS[p.status] ?? STATUS_COLORS["open"];
                   const amount = new Intl.NumberFormat("nl-NL", { style: "currency", currency: p.currency }).format(p.amountCents / 100);
                   return (
                     <tr
@@ -81,12 +65,7 @@ export function CustomerPaymentsTab({ customerId, payments }: Props) {
                       <td className="px-5 py-3 text-xs font-mono" style={{ color: "#64748B" }}>{p.molliePaymentId}</td>
                       <td className="px-5 py-3 text-sm font-medium" style={{ color: "#081D3A" }}>{amount}</td>
                       <td className="px-5 py-3">
-                        <span
-                          className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                          style={{ backgroundColor: colors.bg, color: colors.text }}
-                        >
-                          {STATUS_LABELS[p.status] ?? p.status}
-                        </span>
+                        <ProcessStatusBadge kind="payment" status={p.status} />
                       </td>
                       <td className="px-5 py-3 text-sm font-mono" style={{ color: "#64748B" }}>
                         <Link href={`/invoices/${p.invoiceId}`} className="hover:underline" style={{ color: "#00B7B3" }}>

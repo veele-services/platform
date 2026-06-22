@@ -1,19 +1,6 @@
 import Link from "next/link";
 import type { ReportRow } from "@/app/actions/reports";
-
-const STATUS_LABELS: Record<string, string> = {
-  draft: "Concept",
-  submitted: "Ingediend",
-  approved: "Goedgekeurd",
-  rejected: "Afgewezen",
-};
-
-const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  draft: { bg: "#F8FAFC", text: "#64748B" },
-  submitted: { bg: "#EFF6FF", text: "#2563EB" },
-  approved: { bg: "#ECFDF5", text: "#059669" },
-  rejected: { bg: "#FEF2F2", text: "#DC2626" },
-};
+import { ProcessStatusBadge } from "@/components/workflows/ProcessStatus";
 
 interface Props {
   customerId: string;
@@ -57,9 +44,7 @@ export function CustomerReportsTab({ customerId, reports }: Props) {
                   </td>
                 </tr>
               ) : (
-                reports.map((report, i) => {
-                  const colors = STATUS_COLORS[report.status] ?? STATUS_COLORS.draft;
-                  return (
+                reports.map((report, i) => (
                     <tr
                       key={report.id}
                       className="transition-colors hover:bg-slate-50/60"
@@ -72,12 +57,7 @@ export function CustomerReportsTab({ customerId, reports }: Props) {
                       </td>
                       <td className="px-5 py-3 text-sm" style={{ color: "#081D3A" }}>{report.assignmentTitle}</td>
                       <td className="px-5 py-3">
-                        <span
-                          className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                          style={{ backgroundColor: colors.bg, color: colors.text }}
-                        >
-                          {STATUS_LABELS[report.status] ?? report.status}
-                        </span>
+                        <ProcessStatusBadge kind="report" status={report.status} />
                       </td>
                       <td className="px-5 py-3 text-sm" style={{ color: "#64748B" }}>{report.submittedByName}</td>
                       <td className="px-5 py-3 text-sm" style={{ color: "#64748B" }}>
@@ -85,8 +65,7 @@ export function CustomerReportsTab({ customerId, reports }: Props) {
                       </td>
                       <td className="px-5 py-3 text-sm" style={{ color: "#64748B" }}>{report.hoursWorked ?? "-"}</td>
                     </tr>
-                  );
-                })
+                ))
               )}
             </tbody>
           </table>

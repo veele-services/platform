@@ -31,35 +31,9 @@ import {
   type ActionResult,
 } from "@/app/actions/assignments";
 import { ASSIGNMENT_STATUSES, ASSIGNMENT_PRIORITIES } from "@/types/assignments";
+import { priorityLabel, statusLabel } from "./AssignmentStatusBadge";
 
 // ─── Dutch labels ─────────────────────────────────────────────────────────────
-
-const STATUS_LABELS: Record<AssignmentStatus, string> = {
-  requested:         "Aangevraagd",
-  review:            "In beoordeling",
-  quote_preparation: "Offerte in voorbereiding",
-  awaiting_approval: "Wacht op goedkeuring",
-  approved:          "Goedgekeurd",
-  plannable:         "Inplanbaar",
-  scheduled:         "Ingepland",
-  seen:              "Gezien",
-  in_progress:       "In uitvoering",
-  not_completed:     "Niet afgerond",
-  completed:         "Afgerond",
-  report_submitted:  "Rapport ingediend",
-  report_approved:   "Rapport goedgekeurd",
-  invoice_ready:     "Klaar voor facturatie",
-  invoiced:          "Gefactureerd",
-  paid:              "Betaald",
-  closed:            "Gesloten",
-};
-
-const PRIORITY_LABELS: Record<AssignmentPriority, string> = {
-  low:    "Laag",
-  normal: "Normaal",
-  high:   "Hoog",
-  urgent: "Urgent",
-};
 
 // ─── Form schema ──────────────────────────────────────────────────────────────
 
@@ -281,7 +255,7 @@ export function AssignmentForm({
                 <SelectContent>
                   {ASSIGNMENT_STATUSES.map((s) => (
                     <SelectItem key={s} value={s}>
-                      {STATUS_LABELS[s]}
+                      {statusLabel(s)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -300,7 +274,7 @@ export function AssignmentForm({
                 <SelectContent>
                   {ASSIGNMENT_PRIORITIES.map((p) => (
                     <SelectItem key={p} value={p}>
-                      {PRIORITY_LABELS[p]}
+                      {priorityLabel(p)}
                     </SelectItem>
                   ))}
                 </SelectContent>

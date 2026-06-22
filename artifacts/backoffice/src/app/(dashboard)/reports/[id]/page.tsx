@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, FileText, Clock, CheckCircle2, XCircle, User, Calendar, MapPin, Download } from "lucide-react";
+import { ArrowLeft, FileText, XCircle, User, Calendar, MapPin, Download } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { getReport, getReportTimelineNotes, type ReportTimelineNote } from "@/app/actions/reports";
 import { ReportActions } from "@/components/reports/ReportActions";
+import { ProcessStatusBadge, ProcessStepper } from "@/components/workflows/ProcessStatus";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -21,25 +22,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  draft:     "Concept",
-  submitted: "Te beoordelen",
-  approved:  "Goedgekeurd",
-  rejected:  "Afgewezen",
-};
-
 function formatScheduledDate(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");
   return d.toLocaleDateString("nl-NL", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
 }
-
-const STATUS_STYLES: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
-  submitted: { bg: "#FEF3C7", text: "#92400E", icon: <Clock className="h-4 w-4" /> },
-  approved:  { bg: "#D1FAE5", text: "#065F46", icon: <CheckCircle2 className="h-4 w-4" /> },
-  rejected:  { bg: "#FEE2E2", text: "#991B1B", icon: <XCircle className="h-4 w-4" /> },
-};
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -165,8 +153,6 @@ export default async function ReportDetailPage({ params }: Props) {
 
   if (!report) notFound();
 
-  const statusStyle = STATUS_STYLES[report.status];
-
   function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString("nl-NL", {
       day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit",
@@ -194,13 +180,7 @@ export default async function ReportDetailPage({ params }: Props) {
               </h1>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
-                style={{ backgroundColor: statusStyle.bg, color: statusStyle.text }}
-              >
-                {statusStyle.icon}
-                {STATUS_LABELS[report.status]}
-              </span>
+              <ProcessStatusBadge kind="report" status={report.status} />
               <span
                 className="font-mono text-xs rounded px-1.5 py-0.5"
                 style={{ backgroundColor: "#F1F5F9", color: "#64748B" }}
@@ -211,6 +191,7 @@ export default async function ReportDetailPage({ params }: Props) {
             <p className="mt-2 text-xs" style={{ color: "#94A3B8" }}>
               Ingediend {formatDate(report.submittedAt)}
             </p>
+            <ProcessStepper kind="report" status={report.status} className="mt-4" />
           </div>
         </div>
       </div>
@@ -357,13 +338,7 @@ export default async function ReportDetailPage({ params }: Props) {
 
           {report.status !== "submitted" && (
             <div className="veele-card text-center py-6">
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium"
-                style={{ backgroundColor: statusStyle.bg, color: statusStyle.text }}
-              >
-                {statusStyle.icon}
-                {STATUS_LABELS[report.status]}
-              </span>
+              <ProcessStatusBadge kind="report" status={report.status} size="md" />
               <p className="mt-3 text-xs" style={{ color: "#94A3B8" }}>
                 Dit rapport is al beoordeeld.
               </p>

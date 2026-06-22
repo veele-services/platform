@@ -40,6 +40,7 @@ import type { InvoiceRow } from "@/app/actions/invoices";
 import type { ObjectRow } from "@/app/actions/objects";
 import type { CustomerPaymentRow } from "@/app/actions/payments";
 import type { ReportRow } from "@/app/actions/reports";
+import { ProcessStatusBadge } from "@/components/workflows/ProcessStatus";
 
 const OPEN_ASSIGNMENT_STATUSES = new Set([
   "approved",
@@ -229,27 +230,6 @@ function GenericBadge({
       {value}
     </span>
   );
-}
-
-function ticketTone(status: string) {
-  if (status === "closed") return "green" as const;
-  if (status === "waiting_backoffice") return "amber" as const;
-  if (status === "open") return "blue" as const;
-  return "neutral" as const;
-}
-
-function invoiceTone(status: string) {
-  if (status === "paid") return "green" as const;
-  if (status === "sent") return "amber" as const;
-  if (status === "cancelled") return "red" as const;
-  return "neutral" as const;
-}
-
-function reportTone(status: string) {
-  if (status === "approved") return "green" as const;
-  if (status === "submitted") return "amber" as const;
-  if (status === "rejected") return "red" as const;
-  return "neutral" as const;
 }
 
 function TimelineItem({
@@ -572,7 +552,7 @@ export function CustomerOverviewTab({
                         <p className="truncate text-sm font-semibold text-slate-900">{report.assignmentCode} - {report.assignmentTitle}</p>
                         <p className="text-xs text-slate-500">Ingediend {formatDateTime(report.submittedAt)}</p>
                       </div>
-                      <GenericBadge value={titleCase(report.status)} tone={reportTone(report.status)} />
+                      <ProcessStatusBadge kind="report" status={report.status} />
                     </div>
                   </Link>
                 ))}
@@ -596,7 +576,7 @@ export function CustomerOverviewTab({
                         </p>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <GenericBadge value={titleCase(ticket.status)} tone={ticketTone(ticket.status)} />
+                      <ProcessStatusBadge kind="ticket" status={ticket.status} />
                         {ticket.unreadCount > 0 && <span className="text-xs font-semibold text-red-600">{ticket.unreadCount} ongelezen</span>}
                       </div>
                     </div>
@@ -628,7 +608,7 @@ export function CustomerOverviewTab({
                         </div>
                         <div className="text-right">
                           <p className="text-sm font-semibold text-slate-950">{formatMoney(invoice.totalAmount)}</p>
-                          <GenericBadge value={titleCase(invoice.status)} tone={invoiceTone(invoice.status)} />
+                          <ProcessStatusBadge kind="invoice" status={invoice.status} />
                         </div>
                       </div>
                     </Link>

@@ -3,54 +3,15 @@
 import { useRouter, useSearchParams, usePathname } from "next/navigation";
 import { useCallback, useTransition } from "react";
 import Link from "next/link";
-import { FileText, Search, CheckCircle2, XCircle, Clock, PenLine } from "lucide-react";
+import { FileText, Search } from "lucide-react";
 import type { ReportRow, ReportStatus } from "@/app/actions/reports";
+import { ProcessStatusBadge } from "@/components/workflows/ProcessStatus";
+import { processStatusLabel } from "@/lib/process-status";
 
 const PAGE_SIZE = 25;
 
-const STATUS_LABELS: Record<ReportStatus, string> = {
-  draft:     "Concept",
-  submitted: "Ingediend",
-  approved:  "Goedgekeurd",
-  rejected:  "Afgewezen",
-};
-
-type StatusStyle = { bg: string; text: string; icon: React.ReactNode };
-
-const STATUS_COLORS: Record<ReportStatus, StatusStyle> = {
-  draft: {
-    bg:   "#F1F5F9",
-    text: "#475569",
-    icon: <PenLine className="h-3 w-3" />,
-  },
-  submitted: {
-    bg:   "#FEF3C7",
-    text: "#92400E",
-    icon: <Clock className="h-3 w-3" />,
-  },
-  approved: {
-    bg:   "#D1FAE5",
-    text: "#065F46",
-    icon: <CheckCircle2 className="h-3 w-3" />,
-  },
-  rejected: {
-    bg:   "#FEE2E2",
-    text: "#991B1B",
-    icon: <XCircle className="h-3 w-3" />,
-  },
-};
-
 function ReportStatusBadge({ status }: { status: ReportStatus }) {
-  const s = STATUS_COLORS[status];
-  return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-      style={{ backgroundColor: s.bg, color: s.text }}
-    >
-      {s.icon}
-      {STATUS_LABELS[status]}
-    </span>
-  );
+  return <ProcessStatusBadge kind="report" status={status} />;
 }
 
 interface Props {
@@ -64,10 +25,10 @@ interface Props {
 
 const STATUS_OPTIONS = [
   { value: "",          label: "Alle statussen" },
-  { value: "submitted", label: "Te beoordelen" },
-  { value: "approved",  label: "Goedgekeurd" },
-  { value: "rejected",  label: "Afgewezen" },
-  { value: "draft",     label: "Concept" },
+  { value: "submitted", label: processStatusLabel("report", "submitted") },
+  { value: "approved",  label: processStatusLabel("report", "approved") },
+  { value: "rejected",  label: processStatusLabel("report", "rejected") },
+  { value: "draft",     label: processStatusLabel("report", "draft") },
 ];
 
 export function ReportsView({ rows, total, page, search, statusFilter }: Props) {

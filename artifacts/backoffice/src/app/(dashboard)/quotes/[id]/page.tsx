@@ -9,14 +9,12 @@ import {
   AlertTriangle,
   CheckCircle2,
   XCircle,
-  Clock,
-  Send,
 } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { getQuote } from "@/app/actions/quotes";
 import { QuoteActions } from "@/components/quotes/QuoteActions";
-import type { QuoteStatus } from "@/app/actions/quotes";
+import { ProcessStatusBadge, ProcessStepper } from "@/components/workflows/ProcessStatus";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -44,37 +42,6 @@ function fmtDate(d: string | null) {
   });
 }
 
-function StatusBadge({ status, isExpired }: { status: QuoteStatus; isExpired: boolean }) {
-  if (isExpired) {
-    return (
-      <span
-        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium"
-        style={{ backgroundColor: "#FEF3C7", color: "#92400E" }}
-      >
-        <AlertTriangle className="h-4 w-4" />
-        Verlopen
-      </span>
-    );
-  }
-  const map: Record<QuoteStatus, { icon: React.ReactNode; bg: string; color: string; label: string }> = {
-    draft:    { icon: <Clock className="h-4 w-4" />,         bg: "#F1F5F9", color: "#475569", label: "Concept" },
-    sent:     { icon: <Send className="h-4 w-4" />,          bg: "#EFF6FF", color: "#1D4ED8", label: "Ter goedkeuring" },
-    approved: { icon: <CheckCircle2 className="h-4 w-4" />,  bg: "#D1FAE5", color: "#065F46", label: "Goedgekeurd" },
-    rejected: { icon: <XCircle className="h-4 w-4" />,       bg: "#FEE2E2", color: "#991B1B", label: "Afgewezen" },
-    expired:  { icon: <AlertTriangle className="h-4 w-4" />, bg: "#FEF3C7", color: "#92400E", label: "Verlopen" },
-  };
-  const s = map[status];
-  return (
-    <span
-      className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium"
-      style={{ backgroundColor: s.bg, color: s.color }}
-    >
-      {s.icon}
-      {s.label}
-    </span>
-  );
-}
-
 export default async function QuoteDetailPage({ params }: Props) {
   const canRead = await hasPermission("quotes", "read");
   if (!canRead) return <ForbiddenPage resource="quotes" action="read" />;
@@ -89,6 +56,7 @@ export default async function QuoteDetailPage({ params }: Props) {
 
   if (!quote) notFound();
 
+  const displayStatus = quote.isExpired ? "expired" : quote.status;
   const today = new Date().toISOString().slice(0, 10);
   const daysUntilExpiry = quote.status === "sent" && quote.validityDate
     ? Math.ceil((new Date(quote.validityDate).getTime() - new Date(today).getTime()) / (1000 * 60 * 60 * 24))
@@ -113,11 +81,12 @@ export default async function QuoteDetailPage({ params }: Props) {
               <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
                 {quote.quoteNumber}
               </h1>
-              <StatusBadge status={quote.status} isExpired={quote.isExpired} />
+              <ProcessStatusBadge kind="quote" status={displayStatus} size="md" />
             </div>
             <p className="text-sm" style={{ color: "#64748B" }}>
               Aangemaakt op {fmtDate(quote.createdAt)}
             </p>
+            <ProcessStepper kind="quote" status={displayStatus} className="mt-4" />
           </div>
         </div>
       </div>

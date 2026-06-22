@@ -43,6 +43,7 @@ import { listDocuments } from "@/app/actions/documents";
 import { AssignmentDocumentsPanel } from "@/components/documents/AssignmentDocumentsPanel";
 import { InterestPollButton } from "@/components/assignments/InterestPollButton";
 import { SmartCandidateActions } from "@/components/assignments/SmartCandidateActions";
+import { ProcessStatusBadge, ProcessStepper } from "@/components/workflows/ProcessStatus";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -247,6 +248,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
             <p className="mt-2 text-xs" style={{ color: "#94A3B8" }}>
               Aangemaakt {createdAt} · Bijgewerkt {updatedAt}
             </p>
+            <ProcessStepper kind="assignment" status={assignment.status} className="mt-4" />
           </div>
         </div>
       </div>
@@ -360,44 +362,11 @@ export default async function AssignmentDetailPage({ params }: Props) {
               >
                 <FileCheck2 className="h-4 w-4" style={{ color: "#00B7B3" }} />
                 Offerte
-                {existingQuote.isExpired ? (
-                  <span
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ml-1"
-                    style={{ backgroundColor: "#FEF3C7", color: "#92400E" }}
-                  >
-                    <AlertTriangle className="h-3 w-3" />
-                    Verlopen
-                  </span>
-                ) : existingQuote.status === "sent" ? (
-                  <span
-                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ml-1"
-                    style={{ backgroundColor: "#EFF6FF", color: "#1D4ED8" }}
-                  >
-                    Ter goedkeuring
-                  </span>
-                ) : existingQuote.status === "approved" ? (
-                  <span
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ml-1"
-                    style={{ backgroundColor: "#D1FAE5", color: "#065F46" }}
-                  >
-                    <CheckCircle2 className="h-3 w-3" />
-                    Goedgekeurd
-                  </span>
-                ) : existingQuote.status === "rejected" ? (
-                  <span
-                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ml-1"
-                    style={{ backgroundColor: "#FEE2E2", color: "#991B1B" }}
-                  >
-                    Afgewezen
-                  </span>
-                ) : (
-                  <span
-                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ml-1"
-                    style={{ backgroundColor: "#F1F5F9", color: "#475569" }}
-                  >
-                    Concept
-                  </span>
-                )}
+                <ProcessStatusBadge
+                  kind="quote"
+                  status={existingQuote.isExpired ? "expired" : existingQuote.status}
+                  size="xs"
+                />
               </h2>
               <div className="flex items-center justify-between text-sm mb-2">
                 <span className="font-mono text-xs rounded px-1.5 py-0.5" style={{ background: "#F1F5F9", color: "#475569" }}>
@@ -443,24 +412,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
               >
                 <FileText className="h-4 w-4" style={{ color: "#00B7B3" }} />
                 Rapport
-                {existingReport.status === "submitted" && (
-                  <span
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ml-1"
-                    style={{ backgroundColor: "#FEF3C7", color: "#92400E" }}
-                  >
-                    <Clock3 className="h-3 w-3" />
-                    Ingediend
-                  </span>
-                )}
-                {existingReport.status === "approved" && (
-                  <span
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ml-1"
-                    style={{ backgroundColor: "#D1FAE5", color: "#065F46" }}
-                  >
-                    <CheckCircle2 className="h-3 w-3" />
-                    Goedgekeurd
-                  </span>
-                )}
+                <ProcessStatusBadge kind="report" status={existingReport.status} size="xs" />
               </h2>
               <p className="text-sm whitespace-pre-wrap line-clamp-4 mb-3" style={{ color: "#374151" }}>
                 {existingReport.content}
@@ -488,31 +440,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
               >
                 <Receipt className="h-4 w-4" style={{ color: "#00B7B3" }} />
                 Factuur
-                {existingInvoice.status === "draft" && (
-                  <span
-                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ml-1"
-                    style={{ backgroundColor: "#F1F5F9", color: "#475569" }}
-                  >
-                    Concept
-                  </span>
-                )}
-                {existingInvoice.status === "sent" && (
-                  <span
-                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ml-1"
-                    style={{ backgroundColor: "#FEF3C7", color: "#92400E" }}
-                  >
-                    Verzonden
-                  </span>
-                )}
-                {existingInvoice.status === "paid" && (
-                  <span
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ml-1"
-                    style={{ backgroundColor: "#D1FAE5", color: "#065F46" }}
-                  >
-                    <CheckCircle2 className="h-3 w-3" />
-                    Betaald
-                  </span>
-                )}
+                <ProcessStatusBadge kind="invoice" status={existingInvoice.status} size="xs" />
               </h2>
               <div className="flex items-center justify-between text-sm mb-3">
                 <span className="font-mono text-xs rounded px-1.5 py-0.5" style={{ background: "#F1F5F9", color: "#475569" }}>

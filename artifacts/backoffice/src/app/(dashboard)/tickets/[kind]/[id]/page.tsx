@@ -13,6 +13,7 @@ import {
 } from "../../TicketBadges";
 import { ReplyForm } from "./ReplyForm";
 import { StatusActions } from "./StatusActions";
+import { ProcessStepper } from "@/components/workflows/ProcessStatus";
 
 export const metadata: Metadata = { title: "Ticket" };
 
@@ -84,6 +85,7 @@ export default async function TicketDetailPage({
                 <PriorityBadge priority={ticket.priority} />
               </div>
             </div>
+            <ProcessStepper kind="ticket" status={ticket.status} className="mt-4" />
           </section>
 
           <section className="rounded-lg border bg-white p-5 shadow-sm" style={{ borderColor: "#E2E8F0" }}>

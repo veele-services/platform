@@ -1,19 +1,6 @@
 import Link from "next/link";
 import type { InvoiceRow } from "@/app/actions/invoices";
-
-const STATUS_LABELS: Record<string, string> = {
-  draft:     "Concept",
-  sent:      "Verzonden",
-  paid:      "Betaald",
-  cancelled: "Geannuleerd",
-};
-
-const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  draft:     { bg: "#F8FAFC", text: "#64748B" },
-  sent:      { bg: "#EFF6FF", text: "#2563EB" },
-  paid:      { bg: "#ECFDF5", text: "#059669" },
-  cancelled: { bg: "#FEF2F2", text: "#DC2626" },
-};
+import { ProcessStatusBadge } from "@/components/workflows/ProcessStatus";
 
 function fmt(val: string | null | undefined): string {
   if (!val) return "—";
@@ -63,9 +50,7 @@ export function CustomerInvoicesTab({ customerId, invoices }: Props) {
                   </td>
                 </tr>
               ) : (
-                invoices.map((inv, i) => {
-                  const colors = STATUS_COLORS[inv.status] ?? STATUS_COLORS["draft"];
-                  return (
+                invoices.map((inv, i) => (
                     <tr
                       key={inv.id}
                       className="transition-colors hover:bg-slate-50/60"
@@ -81,12 +66,7 @@ export function CustomerInvoicesTab({ customerId, invoices }: Props) {
                         {new Date(inv.dueDate).toLocaleDateString("nl-NL", { day: "2-digit", month: "short", year: "numeric" })}
                       </td>
                       <td className="px-5 py-3">
-                        <span
-                          className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                          style={{ backgroundColor: colors.bg, color: colors.text }}
-                        >
-                          {STATUS_LABELS[inv.status] ?? inv.status}
-                        </span>
+                        <ProcessStatusBadge kind="invoice" status={inv.status} />
                       </td>
                       <td className="px-5 py-3 text-sm" style={{ color: "#64748B" }}>
                         <Link href={`/assignments/${inv.assignmentId}`} className="hover:underline font-mono" style={{ color: "#64748B" }}>
@@ -94,8 +74,7 @@ export function CustomerInvoicesTab({ customerId, invoices }: Props) {
                         </Link>
                       </td>
                     </tr>
-                  );
-                })
+                ))
               )}
             </tbody>
           </table>

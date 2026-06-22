@@ -49,7 +49,7 @@ export default async function TicketsPage({ searchParams }: Props) {
     <div className="mx-auto w-full max-w-[1600px] p-6">
       <div className="mb-5 grid gap-3 md:grid-cols-3">
         <KpiCard label="Open tickets" value={result.openCount} />
-        <KpiCard label="Bij Veele" value={result.waitingBackofficeCount} accent="#B45309" />
+        <KpiCard label="Actie Veele" value={result.waitingBackofficeCount} accent="#B45309" />
         <KpiCard label="Ongelezen" value={result.unreadCount} accent="#DC2626" />
       </div>
 

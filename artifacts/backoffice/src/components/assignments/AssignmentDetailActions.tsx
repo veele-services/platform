@@ -35,7 +35,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AssignmentStatusBadge } from "./AssignmentStatusBadge";
+import { AssignmentStatusBadge, statusLabel } from "./AssignmentStatusBadge";
 import { AssignmentForm } from "./AssignmentForm";
 import {
   setAssignmentStatus,
@@ -51,26 +51,6 @@ import {
 } from "@/app/actions/assignments";
 import { ASSIGNMENT_STATUS_TRANSITIONS } from "@/types/assignments";
 import type { AvailabilityStatus } from "@/app/actions/availability";
-
-const STATUS_LABELS: Record<AssignmentStatus, string> = {
-  requested:         "Aangevraagd",
-  review:            "In beoordeling",
-  quote_preparation: "Offerte in voorbereiding",
-  awaiting_approval: "Wacht op goedkeuring",
-  approved:          "Goedgekeurd",
-  plannable:         "Inplanbaar",
-  scheduled:         "Ingepland",
-  seen:              "Gezien",
-  in_progress:       "In uitvoering",
-  not_completed:     "Niet afgerond",
-  completed:         "Afgerond",
-  report_submitted:  "Rapport ingediend",
-  report_approved:   "Rapport goedgekeurd",
-  invoice_ready:     "Klaar voor facturatie",
-  invoiced:          "Gefactureerd",
-  paid:              "Betaald",
-  closed:            "Gesloten",
-};
 
 interface Personnel {
   id: string;
@@ -130,7 +110,7 @@ export function AssignmentDetailActions({
     startTransition(async () => {
       const result = await setAssignmentStatus(assignmentId, selectedStatus);
       if (result.success) {
-        toast.success(`Status gewijzigd naar "${STATUS_LABELS[selectedStatus]}"`);
+        toast.success(`Status gewijzigd naar "${statusLabel(selectedStatus)}"`);
       } else {
         toast.error(result.message);
         setSelectedStatus(status);
@@ -226,7 +206,7 @@ export function AssignmentDetailActions({
               <SelectContent>
                 {nextStatuses.map((s) => (
                   <SelectItem key={s} value={s}>
-                    {STATUS_LABELS[s]}
+                    {statusLabel(s)}
                   </SelectItem>
                 ))}
               </SelectContent>

@@ -7,16 +7,17 @@ import {
   type BackofficeTicketStatus,
   type TicketKind,
 } from "@/app/actions/tickets";
+import { processStatusLabel } from "@/lib/process-status";
 
 const STATUS_OPTIONS: Array<{
   value: BackofficeTicketStatus;
   label: string;
 }> = [
-  { value: "open", label: "Open" },
-  { value: "waiting_backoffice", label: "Bij Veele" },
-  { value: "waiting_customer", label: "Wacht op klant" },
-  { value: "waiting_personnel", label: "Wacht op medewerker" },
-  { value: "closed", label: "Gesloten" },
+  { value: "open", label: processStatusLabel("ticket", "open") },
+  { value: "waiting_backoffice", label: processStatusLabel("ticket", "waiting_backoffice") },
+  { value: "waiting_customer", label: processStatusLabel("ticket", "waiting_customer") },
+  { value: "waiting_personnel", label: processStatusLabel("ticket", "waiting_personnel") },
+  { value: "closed", label: processStatusLabel("ticket", "closed") },
 ];
 
 export function StatusActions({

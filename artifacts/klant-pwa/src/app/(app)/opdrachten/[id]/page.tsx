@@ -23,8 +23,8 @@ const SHOW_TASKS_STATUSES = new Set<AssignmentStatus>([
 
 const QUOTE_STATUS_LABEL: Record<QuoteStatus, string> = {
   draft:    "Concept",
-  sent:     "Verstuurd",
-  approved: "Geaccepteerd",
+  sent:     "Ter goedkeuring",
+  approved: "Akkoord",
   rejected: "Afgewezen",
   expired:  "Verlopen",
 };
@@ -39,7 +39,7 @@ const QUOTE_STATUS_COLOR: Record<QuoteStatus, { bg: string; color: string }> = {
 
 const INVOICE_STATUS_LABEL: Record<InvoiceStatus, string> = {
   draft:     "Concept",
-  sent:      "Openstaand",
+  sent:      "Verzonden",
   paid:      "Betaald",
   cancelled: "Geannuleerd",
 };

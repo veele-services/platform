@@ -1,9 +1,5 @@
 import {
-  AlertTriangle,
-  CheckCircle2,
   Clock3,
-  Hourglass,
-  Inbox,
   UserRound,
   UsersRound,
 } from "lucide-react";
@@ -12,16 +8,11 @@ import type {
   BackofficeTicketStatus,
   TicketKind,
 } from "@/app/actions/tickets";
+import { ProcessStatusBadge } from "@/components/workflows/ProcessStatus";
+import { processStatusLabel } from "@/lib/process-status";
 
 export function statusLabel(status: BackofficeTicketStatus) {
-  const labels: Record<BackofficeTicketStatus, string> = {
-    open: "Open",
-    waiting_backoffice: "Bij Veele",
-    waiting_customer: "Wacht op klant",
-    waiting_personnel: "Wacht op medewerker",
-    closed: "Gesloten",
-  };
-  return labels[status];
+  return processStatusLabel("ticket", status);
 }
 
 export function priorityLabel(priority: BackofficeTicketPriority) {
@@ -67,26 +58,7 @@ export function TicketStatusBadge({
 }: {
   status: BackofficeTicketStatus;
 }) {
-  const config: Record<
-    BackofficeTicketStatus,
-    { color: string; bg: string; Icon: typeof Inbox }
-  > = {
-    open: { color: "#2563EB", bg: "#EFF6FF", Icon: Inbox },
-    waiting_backoffice: { color: "#B45309", bg: "#FFFBEB", Icon: Hourglass },
-    waiting_customer: { color: "#DC2626", bg: "#FEF2F2", Icon: AlertTriangle },
-    waiting_personnel: { color: "#DC2626", bg: "#FEF2F2", Icon: AlertTriangle },
-    closed: { color: "#047857", bg: "#ECFDF5", Icon: CheckCircle2 },
-  };
-  const { color, bg, Icon } = config[status];
-  return (
-    <span
-      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black"
-      style={{ color, backgroundColor: bg }}
-    >
-      <Icon size={13} strokeWidth={2.4} />
-      {statusLabel(status)}
-    </span>
-  );
+  return <ProcessStatusBadge kind="ticket" status={status} size="xs" />;
 }
 
 export function PriorityBadge({

@@ -49,19 +49,19 @@ export function TicketStatusBadge({
       Icon: Inbox,
     },
     waiting_backoffice: {
-      label: "Bij afdeling",
+      label: "Actie Veele",
       color: "#B45309",
       bg: "#FFFBEB",
       Icon: Hourglass,
     },
     waiting_personnel: {
-      label: "Reactie nodig",
+      label: "Wacht op medewerker",
       color: "#DC2626",
       bg: "#FEF2F2",
       Icon: AlertTriangle,
     },
     closed: {
-      label: "Gesloten",
+      label: "Afgesloten",
       color: "#047857",
       bg: "#ECFDF5",
       Icon: CheckCircle2,

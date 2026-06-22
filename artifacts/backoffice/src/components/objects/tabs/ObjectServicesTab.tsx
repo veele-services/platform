@@ -1,53 +1,11 @@
 import Link from "next/link";
 import { ClipboardList } from "lucide-react";
 import type { AssignmentHistoryRow } from "@/app/actions/assignments";
+import { AssignmentStatusBadge } from "@/components/assignments/AssignmentStatusBadge";
 
 interface Props {
   objectId:    string;
   assignments: AssignmentHistoryRow[];
-}
-
-const STATUS_LABEL: Record<string, string> = {
-  requested:         "Aangevraagd",
-  review:            "Beoordeling",
-  quote_preparation: "Offerte",
-  awaiting_approval: "Wacht op goedkeuring",
-  approved:          "Goedgekeurd",
-  plannable:         "Planbaar",
-  scheduled:         "Ingepland",
-  seen:              "Gezien",
-  in_progress:       "Bezig",
-  not_completed:     "Niet voltooid",
-  completed:         "Voltooid",
-  report_submitted:  "Rapport ingediend",
-  report_approved:   "Rapport goedgekeurd",
-  invoice_ready:     "Factuur gereed",
-  invoiced:          "Gefactureerd",
-  paid:              "Betaald",
-  closed:            "Afgesloten",
-};
-
-const STATUS_STYLE: Record<string, { bg: string; color: string }> = {
-  requested:     { bg: "#F1F5F9", color: "#64748B" },
-  review:        { bg: "#FEF9C3", color: "#A16207" },
-  completed:     { bg: "#DCFCE7", color: "#166534" },
-  in_progress:   { bg: "#E0FAFB", color: "#0A7E7A" },
-  scheduled:     { bg: "#EDE9FE", color: "#5B21B6" },
-  closed:        { bg: "#F1F5F9", color: "#64748B" },
-  paid:          { bg: "#DCFCE7", color: "#166534" },
-  invoiced:      { bg: "#DBEAFE", color: "#1D4ED8" },
-};
-
-function StatusPill({ status }: { status: string }) {
-  const style = STATUS_STYLE[status] ?? { bg: "#F1F5F9", color: "#64748B" };
-  return (
-    <span
-      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-      style={{ backgroundColor: style.bg, color: style.color }}
-    >
-      {STATUS_LABEL[status] ?? status}
-    </span>
-  );
 }
 
 export function ObjectServicesTab({ objectId, assignments }: Props) {
@@ -120,7 +78,7 @@ export function ObjectServicesTab({ objectId, assignments }: Props) {
                   {a.title ?? "—"}
                 </td>
                 <td className="px-5 py-3">
-                  <StatusPill status={a.status} />
+                  <AssignmentStatusBadge status={a.status} />
                 </td>
                 <td className="px-5 py-3 text-sm" style={{ color: "#64748B" }}>
                   {a.scheduledDate
