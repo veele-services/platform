@@ -53,6 +53,7 @@ import { emitAssignmentWorkflowEvent } from "@workspace/db/workflow-events";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, AssignmentStatus, AssignmentPriority };
@@ -211,6 +212,7 @@ export async function listAssignments(params: {
 }): Promise<{ rows: AssignmentRow[]; total: number }> {
   const canRead = await hasPermission("assignments", "read");
   if (!canRead) return { rows: [], total: 0 };
+  const tenantId = await requireCurrentTenantId();
 
   const {
     page = 1,
@@ -234,15 +236,14 @@ export async function listAssignments(params: {
     : "createdAt";
 
   // Build where conditions
-  const conditions = [];
+  const conditions = [eq(assignmentsTable.tenantId, tenantId)];
   if (search.trim()) {
-    conditions.push(
-      or(
-        ilike(assignmentsTable.title, `%${search.trim()}%`),
-        ilike(assignmentsTable.code, `%${search.trim()}%`),
-        ilike(customersTable.name, `%${search.trim()}%`),
-      ),
+    const searchClause = or(
+      ilike(assignmentsTable.title, `%${search.trim()}%`),
+      ilike(assignmentsTable.code, `%${search.trim()}%`),
+      ilike(customersTable.name, `%${search.trim()}%`),
     );
+    if (searchClause) conditions.push(searchClause);
   }
   if (status && ASSIGNMENT_STATUSES.includes(status as AssignmentStatus)) {
     conditions.push(eq(assignmentsTable.status, status));
@@ -368,6 +369,7 @@ export async function getAssignment(
 ): Promise<AssignmentDetail | null> {
   const canRead = await hasPermission("assignments", "read");
   if (!canRead) return null;
+  const tenantId = await requireCurrentTenantId();
 
   const [row] = await db
     .select({
@@ -398,7 +400,7 @@ export async function getAssignment(
       eq(assignmentsTable.customerId, customersTable.id),
     )
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
-    .where(eq(assignmentsTable.id, id))
+    .where(and(eq(assignmentsTable.id, id), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
 
   if (!row) return null;
@@ -2820,12 +2822,20 @@ export async function createAssignment(
   data: AssignmentFormInput,
 ): Promise<ActionResult<{ id: string }>> {
   await requirePermission("assignments", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [customer] = await db
+    .select({ id: customersTable.id })
+    .from(customersTable)
+    .where(and(eq(customersTable.id, data.customerId), eq(customersTable.tenantId, tenantId)))
+    .limit(1);
+  if (!customer) return { success: false, message: "Klant niet gevonden binnen deze tenant." };
 
   const payload = {
     title: data.title.trim(),
@@ -2857,7 +2867,7 @@ export async function createAssignment(
   try {
     const [created] = await db
       .insert(assignmentsTable)
-      .values(parsed.data)
+      .values({ ...parsed.data, tenantId })
       .returning({ id: assignmentsTable.id });
 
     await db.insert(auditLogTable).values({
@@ -2891,6 +2901,7 @@ export async function updateAssignment(
   data: AssignmentFormInput,
 ): Promise<ActionResult> {
   await requirePermission("assignments", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -2928,7 +2939,7 @@ export async function updateAssignment(
     await db
       .update(assignmentsTable)
       .set({ ...parsed.data, updatedAt: new Date() })
-      .where(eq(assignmentsTable.id, id));
+      .where(and(eq(assignmentsTable.id, id), eq(assignmentsTable.tenantId, tenantId)));
 
     await db.insert(auditLogTable).values({
       userId: user.id,
@@ -2962,6 +2973,7 @@ export async function setAssignmentStatus(
   newStatus: AssignmentStatus,
 ): Promise<ActionResult> {
   await requirePermission("assignments", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -2973,7 +2985,7 @@ export async function setAssignmentStatus(
   const [current] = await db
     .select({ status: assignmentsTable.status, title: assignmentsTable.title })
     .from(assignmentsTable)
-    .where(eq(assignmentsTable.id, id))
+    .where(and(eq(assignmentsTable.id, id), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
 
   if (!current) return { success: false, message: "Opdracht niet gevonden." };
@@ -2990,7 +3002,7 @@ export async function setAssignmentStatus(
   await db
     .update(assignmentsTable)
     .set({ status: newStatus, updatedAt: new Date() })
-    .where(eq(assignmentsTable.id, id));
+    .where(and(eq(assignmentsTable.id, id), eq(assignmentsTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
     userId: user.id,
@@ -3010,6 +3022,7 @@ export async function assignPersonnel(
   personnelId: string,
 ): Promise<ActionResult & { warning?: string }> {
   await requirePermission("assignments", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -3021,8 +3034,18 @@ export async function assignPersonnel(
   const [assignment] = await db
     .select({ scheduledDate: assignmentsTable.scheduledDate })
     .from(assignmentsTable)
-    .where(eq(assignmentsTable.id, assignmentId))
+    .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
+
+  const [personnel] = await db
+    .select({ id: personnelTable.id })
+    .from(personnelTable)
+    .where(and(eq(personnelTable.id, personnelId), eq(personnelTable.tenantId, tenantId)))
+    .limit(1);
+
+  if (!assignment || !personnel) {
+    return { success: false, message: "Opdracht of medewerker niet gevonden binnen deze tenant." };
+  }
 
   try {
     await db.insert(assignmentPersonnelTable).values({

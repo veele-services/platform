@@ -25,6 +25,7 @@ import { eq, ilike, or, and, asc, desc, inArray, ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult };
@@ -246,6 +247,7 @@ export async function listObjects(params: {
   dir?: string;
 }): Promise<{ rows: ObjectRow[]; total: number }> {
   await requirePermission("objects", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const {
     search,
@@ -258,7 +260,9 @@ export async function listObjects(params: {
     dir = "asc",
   } = params;
 
-  const conditions: ReturnType<typeof eq>[] = [];
+  const conditions: ReturnType<typeof eq>[] = [
+    eq(objectsTable.tenantId, tenantId) as ReturnType<typeof eq>,
+  ];
   if (search?.trim()) {
     const term = `%${search.trim()}%`;
     const clause = or(
@@ -336,16 +340,17 @@ export async function listObjects(params: {
 
 export async function getObjectStats(): Promise<ObjectStats> {
   await requirePermission("objects", "read");
+  const tenantId = await requireCurrentTenantId();
 
   try {
     const [totalRow, activeRow, assignmentRow, serviceTypeRow, inactiveRow, documentRow] = await Promise.all([
-      db.select({ count: sql<number>`count(*)::int` }).from(objectsTable),
-      db.select({ count: sql<number>`count(*)::int` }).from(objectsTable).where(eq(objectsTable.isActive, true)),
+      db.select({ count: sql<number>`count(*)::int` }).from(objectsTable).where(eq(objectsTable.tenantId, tenantId)),
+      db.select({ count: sql<number>`count(*)::int` }).from(objectsTable).where(and(eq(objectsTable.tenantId, tenantId), eq(objectsTable.isActive, true))),
       db.select({ count: sql<number>`count(*)::int` }).from(assignmentsTable)
-        .where(sql`${assignmentsTable.objectId} IS NOT NULL AND ${assignmentsTable.status} IN ('scheduled', 'in_progress', 'seen', 'plannable', 'approved')`),
+        .where(and(eq(assignmentsTable.tenantId, tenantId), sql`${assignmentsTable.objectId} IS NOT NULL AND ${assignmentsTable.status} IN ('scheduled', 'in_progress', 'seen', 'plannable', 'approved')`)),
       db.select({ count: sql<number>`count(DISTINCT ${objectsTable.serviceType})::int` }).from(objectsTable)
-        .where(sql`${objectsTable.serviceType} IS NOT NULL AND trim(${objectsTable.serviceType}) <> ''`),
-      db.select({ count: sql<number>`count(*)::int` }).from(objectsTable).where(eq(objectsTable.isActive, false)),
+        .where(and(eq(objectsTable.tenantId, tenantId), sql`${objectsTable.serviceType} IS NOT NULL AND trim(${objectsTable.serviceType}) <> ''`)),
+      db.select({ count: sql<number>`count(*)::int` }).from(objectsTable).where(and(eq(objectsTable.tenantId, tenantId), eq(objectsTable.isActive, false))),
       db.select({ count: sql<number>`count(*)::int` }).from(documentsTable)
         .where(eq(documentsTable.entityType, "object")),
     ]);
@@ -373,6 +378,7 @@ export async function getObjectStats(): Promise<ObjectStats> {
 
 export async function getObject(id: string): Promise<ObjectDetail | null> {
   await requirePermission("objects", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const rows = await db
     .select({
@@ -407,7 +413,7 @@ export async function getObject(id: string): Promise<ObjectDetail | null> {
     .from(objectsTable)
     .leftJoin(customersTable, eq(objectsTable.customerId, customersTable.id))
     .leftJoin(sectorsTable,   eq(objectsTable.sectorId,   sectorsTable.id))
-    .where(eq(objectsTable.id, id))
+    .where(and(eq(objectsTable.id, id), eq(objectsTable.tenantId, tenantId)))
     .limit(1);
 
   if (!rows[0]) return null;
@@ -423,9 +429,10 @@ export async function getObject(id: string): Promise<ObjectDetail | null> {
 
 export async function getObjectPerformance(objectId: string): Promise<ObjectPerformance> {
   await requirePermission("objects", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const scope = await getObjectScope(objectId);
-  if (!scope) {
+  if (!scope || scope.tenantId !== tenantId) {
     return {
       totalAssignments: 0,
       activeAssignments: 0,
@@ -555,9 +562,10 @@ export async function listObjectHistory(
   limit = 40,
 ): Promise<ObjectHistoryEntry[]> {
   await requirePermission("objects", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const scope = await getObjectScope(objectId);
-  if (!scope) return [];
+  if (!scope || scope.tenantId !== tenantId) return [];
 
   const [assignments, reports, photos, noteAttachments, documents, tickets] = await Promise.all([
     db
@@ -799,6 +807,7 @@ export async function addObjectContact(
   data: ObjectContactInput,
 ): Promise<ActionResult<{ id: string }>> {
   await requirePermission("objects", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -1002,7 +1011,7 @@ export async function unlinkObjectPersonnel(
 
 // ─── Mutations ────────────────────────────────────────────────────────────────
 
-function buildObjectPayload(data: ObjectFormInput, extra?: { createdBy?: string }) {
+function buildObjectPayload(data: ObjectFormInput, extra?: { createdBy?: string; tenantId?: string }) {
   return {
     customerId:           data.customerId,
     sectorId:             data.sectorId || null,
@@ -1031,6 +1040,7 @@ export async function createObject(
   data: ObjectFormInput,
 ): Promise<ActionResult<{ id: string }>> {
   await requirePermission("objects", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -1038,7 +1048,14 @@ export async function createObject(
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  const payload = buildObjectPayload(data, { createdBy: user.id });
+  const [customer] = await db
+    .select({ id: customersTable.id })
+    .from(customersTable)
+    .where(and(eq(customersTable.id, data.customerId), eq(customersTable.tenantId, tenantId)))
+    .limit(1);
+  if (!customer) return { success: false, message: "Klant niet gevonden binnen deze tenant." };
+
+  const payload = buildObjectPayload(data, { createdBy: user.id, tenantId });
 
   const parsed = insertObjectSchema.safeParse(payload);
   if (!parsed.success) {
@@ -1053,7 +1070,7 @@ export async function createObject(
   try {
     const [created] = await db
       .insert(objectsTable)
-      .values(parsed.data)
+      .values({ ...parsed.data, tenantId })
       .returning({ id: objectsTable.id });
 
     await db.insert(auditLogTable).values({
@@ -1080,6 +1097,7 @@ export async function updateObject(
   data: ObjectFormInput,
 ): Promise<ActionResult> {
   await requirePermission("objects", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -1103,7 +1121,7 @@ export async function updateObject(
     await db
       .update(objectsTable)
       .set({ ...parsed.data, updatedAt: new Date() })
-      .where(eq(objectsTable.id, id));
+      .where(and(eq(objectsTable.id, id), eq(objectsTable.tenantId, tenantId)));
 
     await db.insert(auditLogTable).values({
       userId:     user.id,
@@ -1130,6 +1148,7 @@ export async function setObjectStatus(
   isActive: boolean,
 ): Promise<ActionResult> {
   await requirePermission("objects", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -1140,13 +1159,13 @@ export async function setObjectStatus(
   const [row] = await db
     .select({ customerId: objectsTable.customerId })
     .from(objectsTable)
-    .where(eq(objectsTable.id, id))
+    .where(and(eq(objectsTable.id, id), eq(objectsTable.tenantId, tenantId)))
     .limit(1);
 
   await db
     .update(objectsTable)
     .set({ isActive, updatedAt: new Date() })
-    .where(eq(objectsTable.id, id));
+    .where(and(eq(objectsTable.id, id), eq(objectsTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
     userId:     user.id,
@@ -1164,6 +1183,7 @@ export async function setObjectStatus(
 
 export async function deleteObject(id: string): Promise<ActionResult> {
   await requirePermission("objects", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -1174,12 +1194,12 @@ export async function deleteObject(id: string): Promise<ActionResult> {
   const [obj] = await db
     .select({ name: objectsTable.name, customerId: objectsTable.customerId })
     .from(objectsTable)
-    .where(eq(objectsTable.id, id))
+    .where(and(eq(objectsTable.id, id), eq(objectsTable.tenantId, tenantId)))
     .limit(1);
 
   if (!obj) return { success: false, message: "Object niet gevonden." };
 
-  await db.delete(objectsTable).where(eq(objectsTable.id, id));
+  await db.delete(objectsTable).where(and(eq(objectsTable.id, id), eq(objectsTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
     userId:     user.id,
@@ -1200,6 +1220,7 @@ export async function bulkSetObjectStatus(
 ): Promise<ActionResult> {
   if (!ids.length) return { success: true };
   await requirePermission("objects", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -1210,7 +1231,7 @@ export async function bulkSetObjectStatus(
   await db
     .update(objectsTable)
     .set({ isActive, updatedAt: new Date() })
-    .where(inArray(objectsTable.id, ids));
+    .where(and(inArray(objectsTable.id, ids), eq(objectsTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
     userId:     user.id,
