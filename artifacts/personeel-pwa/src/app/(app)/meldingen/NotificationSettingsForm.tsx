@@ -16,8 +16,11 @@ import {
   type PersonnelProfile,
 } from "@/actions/personnel";
 import {
+  deactivateMyNativePushToken,
   deactivateMyPushSubscription,
+  getMyNativePushTokenStatus,
   getMyPushSubscriptionStatus,
+  saveMyNativePushToken,
   saveMyPushSubscription,
 } from "@/actions/push";
 import {
@@ -26,6 +29,12 @@ import {
   unsubscribeBrowserPush,
 } from "@/lib/browser-push";
 import { isNativeCapacitorRuntime } from "@/lib/capacitor";
+import {
+  ensureNativePushRegistration,
+  getLocalNativePushState,
+  unregisterNativePush,
+  type NativePushRegistration,
+} from "@/lib/native-push";
 
 const OPTIONS = [
   {
@@ -101,8 +110,9 @@ export function NotificationSettingsForm({
   }));
 
   useEffect(() => {
-    setIsNativeApp(isNativeCapacitorRuntime());
-    refreshPushStatus();
+    const native = isNativeCapacitorRuntime();
+    setIsNativeApp(native);
+    refreshPushStatus(native);
   }, []);
 
   async function saveBrowserSubscription(subscription: PushSubscription) {
@@ -117,9 +127,83 @@ export function NotificationSettingsForm({
     });
   }
 
-  function refreshPushStatus() {
+  async function saveNativeRegistration(registration: NativePushRegistration) {
+    return saveMyNativePushToken({
+      token: registration.token,
+      platform: registration.platform,
+      appId: "nl.veeleservices.personeel",
+      userAgent: navigator.userAgent,
+    });
+  }
+
+  function refreshPushStatus(nativeMode = isNativeApp) {
     setPushStatus(null);
     startPushTransition(async () => {
+      if (nativeMode) {
+        const localState = await getLocalNativePushState();
+
+        if (!localState.supported) {
+          setPushDevice({
+            status: "unsupported",
+            text: localState.reason,
+            endpoint: null,
+          });
+          return;
+        }
+
+        if (localState.permission === "denied") {
+          setPushDevice({
+            status: "denied",
+            text: "App push is geblokkeerd in de apparaatinstellingen.",
+            endpoint: null,
+          });
+          return;
+        }
+
+        if (!localState.token) {
+          setPushDevice({
+            status: "inactive",
+            text:
+              localState.permission === "granted"
+                ? "App toestemming staat aan, maar dit apparaat heeft nog geen gekoppelde FCM-token."
+                : "App push is nog niet geactiveerd op dit apparaat.",
+            endpoint: null,
+          });
+          return;
+        }
+
+        const serverStatus = await getMyNativePushTokenStatus(localState.token);
+        if (serverStatus.success && serverStatus.active) {
+          setPushDevice({
+            status: "active",
+            text: "App push is actief op dit apparaat.",
+            endpoint: localState.token,
+          });
+          return;
+        }
+
+        const result = await saveNativeRegistration({
+          token: localState.token,
+          platform: localState.platform,
+        });
+        if (result.success) {
+          setEnabled((current) => ({ ...current, push: true }));
+          setPushDevice({
+            status: "active",
+            text: "Bestaande FCM-token is opnieuw gekoppeld aan je account.",
+            endpoint: localState.token,
+          });
+          return;
+        }
+
+        setPushDevice({
+          status: "error",
+          text: result.error,
+          endpoint: localState.token,
+        });
+        return;
+      }
+
       const localState = await getLocalPushState();
 
       if (!localState.supported) {
@@ -185,6 +269,43 @@ export function NotificationSettingsForm({
     setPushStatus(null);
     startPushTransition(async () => {
       try {
+        if (isNativeApp) {
+          const previousState = await getLocalNativePushState();
+          const previousToken = previousState.supported ? previousState.token : null;
+          const registration = await ensureNativePushRegistration();
+
+          if (previousToken && previousToken !== registration.token) {
+            await deactivateMyNativePushToken(previousToken);
+          }
+
+          const result = await saveNativeRegistration(registration);
+
+          if (result.success) {
+            setEnabled((current) => ({ ...current, push: true }));
+            setPushDevice({
+              status: "active",
+              text: "App push is geregistreerd voor dit apparaat.",
+              endpoint: registration.token,
+            });
+            setPushStatus({
+              type: "success",
+              text: "App push is actief op dit apparaat.",
+            });
+            return;
+          }
+
+          setPushStatus({
+            type: "error",
+            text: result.error,
+          });
+          setPushDevice({
+            status: "error",
+            text: result.error,
+            endpoint: registration.token,
+          });
+          return;
+        }
+
         const subscription = await ensureBrowserPushSubscription();
         const result = await saveBrowserSubscription(subscription);
 
@@ -228,6 +349,28 @@ export function NotificationSettingsForm({
   function disablePush() {
     setPushStatus(null);
     startPushTransition(async () => {
+      if (isNativeApp) {
+        const token = await unregisterNativePush();
+        if (token) {
+          const result = await deactivateMyNativePushToken(token);
+          if (!result.success) {
+            setPushStatus({ type: "error", text: result.error });
+            return;
+          }
+        }
+
+        setPushDevice({
+          status: "inactive",
+          text: "App push is uitgezet op dit apparaat.",
+          endpoint: null,
+        });
+        setPushStatus({
+          type: "success",
+          text: "App push is uitgezet op dit apparaat.",
+        });
+        return;
+      }
+
       const endpoint = await unsubscribeBrowserPush();
       if (endpoint) {
         const result = await deactivateMyPushSubscription(endpoint);
@@ -383,7 +526,7 @@ export function NotificationSettingsForm({
             type="button"
             disabled={isPushBusy || pushDevice.status === "unsupported"}
             onClick={
-              pushDevice.status === "active" ? refreshPushStatus : registerPush
+              pushDevice.status === "active" ? () => refreshPushStatus() : registerPush
             }
             className="flex w-full items-center justify-center gap-2 rounded-2xl border bg-white px-4 py-3 text-sm font-black text-[#081D3A] shadow-sm disabled:opacity-60"
             style={{ borderColor: "#BDEDEA" }}
@@ -397,7 +540,9 @@ export function NotificationSettingsForm({
               ? "Status opnieuw controleren"
               : pushDevice.status === "unsupported"
                 ? "Niet beschikbaar op dit apparaat"
-              : "Browser push activeren"}
+                : isNativeApp
+                  ? "App push activeren"
+                  : "Browser push activeren"}
           </button>
 
           {pushDevice.status === "active" ? (

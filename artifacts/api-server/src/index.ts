@@ -1,5 +1,6 @@
 import app from "./app";
 import { logger } from "./lib/logger";
+import { isFcmConfigured } from "./lib/native-push";
 
 // ── Startup env validation ────────────────────────────────────────────────────
 // MOLLIE_API_KEY is required for payment creation and webhook processing.
@@ -29,6 +30,14 @@ if (
   logger.warn(
     "VAPID keys are not fully configured - Web Push delivery is disabled until " +
       "NEXT_PUBLIC_VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY and VAPID_SUBJECT are set.",
+  );
+}
+
+if (process.env["FCM_ENABLED"] === "true" && !isFcmConfigured()) {
+  logger.warn(
+    "FCM_ENABLED=true maar FCM service-account configuratie ontbreekt. " +
+      "Native Capacitor push delivery blijft uitgeschakeld totdat FCM_SERVICE_ACCOUNT_JSON_BASE64 " +
+      "of FCM_PROJECT_ID/FCM_CLIENT_EMAIL/FCM_PRIVATE_KEY is gezet.",
   );
 }
 

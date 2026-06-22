@@ -43,6 +43,7 @@ router.post("/admin/push-notifications", async (req: Request, res: Response) => 
       failed: result.failed,
       retried: result.retried,
       deactivatedSubscriptions: result.deactivatedSubscriptions,
+      deactivatedNativeTokens: result.deactivatedNativeTokens,
       rateLimited: result.rateLimited,
     });
   } catch (err) {

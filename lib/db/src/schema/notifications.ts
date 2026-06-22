@@ -113,6 +113,51 @@ export const pushSubscriptionsTable = pgTable(
   ],
 );
 
+export const nativePushDeviceTokensTable = pgTable(
+  "native_push_device_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
+      .references(() => tenantsTable.id, { onDelete: "cascade" }),
+    ownerType: varchar("owner_type", { length: 20 }).notNull(),
+    personnelId: uuid("personnel_id").references(() => personnelTable.id, {
+      onDelete: "cascade",
+    }),
+    customerId: uuid("customer_id").references(() => customersTable.id, {
+      onDelete: "cascade",
+    }),
+    userId: uuid("user_id"),
+    provider: varchar("provider", { length: 30 }).notNull().default("fcm"),
+    platform: varchar("platform", { length: 30 }).notNull().default("android"),
+    token: text("token").notNull(),
+    appId: varchar("app_id", { length: 160 }),
+    appVersion: varchar("app_version", { length: 80 }),
+    deviceId: varchar("device_id", { length: 160 }),
+    deviceModel: varchar("device_model", { length: 160 }),
+    userAgent: text("user_agent"),
+    isActive: boolean("is_active").notNull().default(true),
+    lastSeenAt: timestamp("last_seen_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    uniqueIndex("native_push_device_tokens_token_unique").on(table.token),
+    index("native_push_device_tokens_personnel_idx").on(table.personnelId, table.isActive),
+    index("native_push_device_tokens_customer_idx").on(table.customerId, table.isActive),
+    index("native_push_device_tokens_user_idx").on(table.userId, table.isActive),
+    index("native_push_device_tokens_tenant_provider_idx").on(
+      table.tenantId,
+      table.provider,
+      table.isActive,
+    ),
+  ],
+);
+
 export const notificationDispatchesTable = pgTable("notification_dispatches", {
   id: uuid("id").primaryKey().defaultRandom(),
   tenantId: uuid("tenant_id")
@@ -216,6 +261,8 @@ export type NotificationEventSetting =
 export type CustomerNotification =
   typeof customerNotificationsTable.$inferSelect;
 export type PushSubscription = typeof pushSubscriptionsTable.$inferSelect;
+export type NativePushDeviceToken =
+  typeof nativePushDeviceTokensTable.$inferSelect;
 export type NotificationDispatch =
   typeof notificationDispatchesTable.$inferSelect;
 export type NotificationDeliveryQueueItem =

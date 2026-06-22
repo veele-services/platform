@@ -76,6 +76,11 @@ Required when payments, webhooks, e-mail, or scheduled admin routes are enabled:
 - `ADMIN_API_SECRET`: bearer token used by `/api/admin/payment-reminders`, `/api/admin/expired-quotes`, `/api/admin/notification-worker`, and the legacy notification endpoints.
 - `RESEND_API_KEY`: Resend API key for transactional e-mail.
 - `VAPID_PRIVATE_KEY`: private Web Push VAPID key used only by the API-server push delivery route.
+- `FCM_SERVICE_ACCOUNT_JSON_BASE64`: optional Firebase service-account JSON,
+  base64 encoded, for native Capacitor/FCM push.
+- `FCM_CLIENT_EMAIL`: optional alternative to `FCM_SERVICE_ACCOUNT_JSON_BASE64`.
+- `FCM_PRIVATE_KEY`: optional alternative to `FCM_SERVICE_ACCOUNT_JSON_BASE64`;
+  use escaped `\n` line breaks.
 
 Optional secret:
 
@@ -108,6 +113,11 @@ Optional variable:
 - `NOTIFICATION_WORKER_BASE_RETRY_SECONDS`: first retry delay. Defaults to `60`.
 - `NOTIFICATION_WORKER_MAX_RETRY_SECONDS`: maximum retry delay. Defaults to `3600`.
 - `NOTIFICATION_WORKER_SEND_DELAY_MS`: optional delay between sends. Defaults to `0`.
+- `FCM_ENABLED`: optional, defaults to `false`; set to `true` when native
+  push must be considered active and incomplete config should be logged.
+- `FCM_PROJECT_ID`: Firebase project id when not using full service-account JSON.
+- `FCM_ANDROID_CHANNEL_ID`: Android notification channel id. Defaults to
+  `veele_operations`.
 
 Optional multi-service deploy variables:
 

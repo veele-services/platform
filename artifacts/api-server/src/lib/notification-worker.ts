@@ -1,7 +1,13 @@
 import { and, eq } from "drizzle-orm";
-import { db, pool, pushSubscriptionsTable } from "@workspace/db";
+import {
+  db,
+  nativePushDeviceTokensTable,
+  pool,
+  pushSubscriptionsTable,
+} from "@workspace/db";
 import { sendEmailWithResult } from "./email";
 import { logger as defaultLogger } from "./logger";
+import { sendFcmPush } from "./native-push";
 import {
   sendWebPush,
   type WebPushPayload,
@@ -30,6 +36,7 @@ type QueueRow = {
 };
 
 type PushSubscription = typeof pushSubscriptionsTable.$inferSelect;
+type NativePushDeviceToken = typeof nativePushDeviceTokensTable.$inferSelect;
 
 type WorkerLogger = {
   info: (obj: Record<string, unknown>, msg?: string) => void;
@@ -56,6 +63,7 @@ type QueueOutcome = {
   retryAt: Date | null;
   response: Record<string, unknown>;
   deactivatedSubscriptions: number;
+  deactivatedNativeTokens: number;
 };
 
 export type NotificationWorkerResult = {
@@ -68,6 +76,7 @@ export type NotificationWorkerResult = {
   retried: number;
   rateLimited: boolean;
   deactivatedSubscriptions: number;
+  deactivatedNativeTokens: number;
   byChannel: Record<NotificationWorkerChannel, {
     claimed: number;
     sent: number;
@@ -191,6 +200,7 @@ function failureOutcome(
     retryAt,
     response,
     deactivatedSubscriptions: 0,
+    deactivatedNativeTokens: 0,
   };
 }
 
@@ -433,6 +443,36 @@ async function getActiveSubscriptions(item: QueueRow): Promise<PushSubscription[
   return [];
 }
 
+async function getActiveNativeTokens(item: QueueRow): Promise<NativePushDeviceToken[]> {
+  if (item.recipient_type === "personnel" && item.personnel_id) {
+    return db
+      .select()
+      .from(nativePushDeviceTokensTable)
+      .where(
+        and(
+          eq(nativePushDeviceTokensTable.isActive, true),
+          eq(nativePushDeviceTokensTable.provider, "fcm"),
+          eq(nativePushDeviceTokensTable.personnelId, item.personnel_id),
+        ),
+      );
+  }
+
+  if (item.recipient_type === "customer" && item.customer_id) {
+    return db
+      .select()
+      .from(nativePushDeviceTokensTable)
+      .where(
+        and(
+          eq(nativePushDeviceTokensTable.isActive, true),
+          eq(nativePushDeviceTokensTable.provider, "fcm"),
+          eq(nativePushDeviceTokensTable.customerId, item.customer_id),
+        ),
+      );
+  }
+
+  return [];
+}
+
 async function deliverEmailItem(
   item: QueueRow,
   config: WorkerConfig,
@@ -468,6 +508,7 @@ async function deliverEmailItem(
       retryAt: null,
       response: { provider: "resend" },
       deactivatedSubscriptions: 0,
+      deactivatedNativeTokens: 0,
     };
   }
 
@@ -484,14 +525,17 @@ async function deliverPushItem(
   item: QueueRow,
   config: WorkerConfig,
 ): Promise<QueueOutcome> {
-  const subscriptions = await getActiveSubscriptions(item);
+  const [subscriptions, nativeTokens] = await Promise.all([
+    getActiveSubscriptions(item),
+    getActiveNativeTokens(item),
+  ]);
 
-  if (subscriptions.length === 0) {
+  if (subscriptions.length === 0 && nativeTokens.length === 0) {
     return failureOutcome(
       item,
       config,
       false,
-      "Geen actieve push subscriptions gevonden.",
+      "Geen actieve push subscriptions of native device tokens gevonden.",
     );
   }
 
@@ -499,8 +543,11 @@ async function deliverPushItem(
   let successCount = 0;
   let transientErrors = 0;
   let permanentErrors = 0;
+  let configurationErrors = 0;
   let deactivatedSubscriptions = 0;
+  let deactivatedNativeTokens = 0;
   const errors: string[] = [];
+  const urgency = normalizeUrgency(payload.urgency ?? payload.priority);
 
   for (const subscription of subscriptions) {
     const result = await sendWebPush(
@@ -511,7 +558,7 @@ async function deliverPushItem(
       },
       payload,
       3600,
-      normalizeUrgency(payload.urgency ?? payload.priority),
+      urgency,
     );
 
     if (result.success) {
@@ -532,12 +579,42 @@ async function deliverPushItem(
     }
   }
 
+  for (const device of nativeTokens) {
+    const result = await sendFcmPush(device.token, payload, urgency);
+
+    if (result.success) {
+      successCount += 1;
+      continue;
+    }
+
+    errors.push(`native token ${device.id}: ${result.error}`);
+
+    if (result.configurationMissing) {
+      configurationErrors += 1;
+      continue;
+    }
+
+    if (result.permanent) {
+      permanentErrors += 1;
+      deactivatedNativeTokens += 1;
+      await db
+        .update(nativePushDeviceTokensTable)
+        .set({ isActive: false, updatedAt: new Date() })
+        .where(eq(nativePushDeviceTokensTable.id, device.id));
+    } else {
+      transientErrors += 1;
+    }
+  }
+
   const response = {
-    subscriptionCount: subscriptions.length,
+    webSubscriptionCount: subscriptions.length,
+    nativeTokenCount: nativeTokens.length,
     successCount,
     transientErrors,
     permanentErrors,
+    configurationErrors,
     deactivatedSubscriptions,
+    deactivatedNativeTokens,
   };
 
   if (successCount > 0) {
@@ -547,6 +624,7 @@ async function deliverPushItem(
       retryAt: null,
       response,
       deactivatedSubscriptions,
+      deactivatedNativeTokens,
     };
   }
 
@@ -559,6 +637,7 @@ async function deliverPushItem(
       response,
     ),
     deactivatedSubscriptions,
+    deactivatedNativeTokens,
   };
 }
 
@@ -601,6 +680,7 @@ export async function processNotificationQueue(
     retried: 0,
     rateLimited: false,
     deactivatedSubscriptions: 0,
+    deactivatedNativeTokens: 0,
     byChannel: {
       email: { claimed: 0, sent: 0, failed: 0, retried: 0, rateLimited: false },
       push: { claimed: 0, sent: 0, failed: 0, retried: 0, rateLimited: false },
@@ -650,6 +730,7 @@ export async function processNotificationQueue(
 
       result.processed += 1;
       result.deactivatedSubscriptions += outcome.deactivatedSubscriptions;
+      result.deactivatedNativeTokens += outcome.deactivatedNativeTokens;
 
       if (outcome.status === "sent") {
         result.sent += 1;

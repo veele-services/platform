@@ -19,6 +19,17 @@ Web Push delivery also requires these environment values in the same `.env`:
 - `VAPID_PRIVATE_KEY`
 - `VAPID_SUBJECT`
 
+Native Capacitor push is optional and uses Firebase Cloud Messaging. Leave these
+empty until the native personeelsapp is distributed:
+
+- `FCM_ENABLED`: optional; set to `true` to warn when FCM config is incomplete.
+- `FCM_SERVICE_ACCOUNT_JSON_BASE64`: preferred full Firebase service-account
+  JSON encoded as base64.
+- `FCM_PROJECT_ID`, `FCM_CLIENT_EMAIL`, `FCM_PRIVATE_KEY`: alternative to the
+  base64 JSON route.
+- `FCM_ANDROID_CHANNEL_ID`: Android notification channel id, defaults to
+  `veele_operations`.
+
 The notification worker reads these optional GitHub Environment variables. The
 deploy workflow writes defaults when they are not set.
 

@@ -2,6 +2,7 @@
 
 import {
   db,
+  nativePushDeviceTokensTable,
   personnelTable,
   pushSubscriptionsTable,
 } from "@workspace/db";
@@ -17,6 +18,16 @@ export type BrowserPushSubscriptionPayload = {
   userAgent?: string | null;
 };
 
+export type NativePushTokenPayload = {
+  token: string;
+  platform: "android" | "ios";
+  appId?: string | null;
+  appVersion?: string | null;
+  deviceId?: string | null;
+  deviceModel?: string | null;
+  userAgent?: string | null;
+};
+
 export type PushSubscriptionResult =
   | { success: true }
   | { success: false; error: string };
@@ -25,7 +36,13 @@ export type PushSubscriptionStatusResult =
   | { success: true; active: boolean }
   | { success: false; error: string };
 
-async function getCurrentPersonnelId(): Promise<string | null> {
+type CurrentPersonnelIdentity = {
+  userId: string;
+  personnelId: string;
+  tenantId: string;
+};
+
+async function getCurrentPersonnelIdentity(): Promise<CurrentPersonnelIdentity | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -33,12 +50,25 @@ async function getCurrentPersonnelId(): Promise<string | null> {
   if (!user) return null;
 
   const [row] = await db
-    .select({ id: personnelTable.id })
+    .select({
+      id:       personnelTable.id,
+      tenantId: personnelTable.tenantId,
+    })
     .from(personnelTable)
     .where(eq(personnelTable.userId, user.id))
     .limit(1);
 
-  return row?.id ?? null;
+  if (!row) return null;
+
+  return {
+    userId: user.id,
+    personnelId: row.id,
+    tenantId: row.tenantId,
+  };
+}
+
+async function getCurrentPersonnelId(): Promise<string | null> {
+  return (await getCurrentPersonnelIdentity())?.personnelId ?? null;
 }
 
 export async function saveMyPushSubscription(
@@ -127,6 +157,108 @@ export async function deactivateMyPushSubscription(
       and(
         eq(pushSubscriptionsTable.endpoint, normalizedEndpoint),
         eq(pushSubscriptionsTable.personnelId, personnelId),
+      ),
+    );
+
+  return { success: true };
+}
+
+export async function saveMyNativePushToken(
+  payload: NativePushTokenPayload,
+): Promise<PushSubscriptionResult> {
+  const identity = await getCurrentPersonnelIdentity();
+  if (!identity) return { success: false, error: "Niet ingelogd." };
+
+  const token = payload.token?.trim();
+  if (!token || token.length < 32) {
+    return { success: false, error: "Native push-token is ongeldig." };
+  }
+
+  await db
+    .insert(nativePushDeviceTokensTable)
+    .values({
+      tenantId: identity.tenantId,
+      ownerType: "personnel",
+      personnelId: identity.personnelId,
+      customerId: null,
+      userId: identity.userId,
+      provider: "fcm",
+      platform: payload.platform,
+      token,
+      appId: payload.appId?.slice(0, 160) ?? null,
+      appVersion: payload.appVersion?.slice(0, 80) ?? null,
+      deviceId: payload.deviceId?.slice(0, 160) ?? null,
+      deviceModel: payload.deviceModel?.slice(0, 160) ?? null,
+      userAgent: payload.userAgent?.slice(0, 1000) ?? null,
+      isActive: true,
+      lastSeenAt: new Date(),
+    })
+    .onConflictDoUpdate({
+      target: nativePushDeviceTokensTable.token,
+      set: {
+        tenantId: identity.tenantId,
+        ownerType: "personnel",
+        personnelId: identity.personnelId,
+        customerId: null,
+        userId: identity.userId,
+        platform: payload.platform,
+        appId: payload.appId?.slice(0, 160) ?? null,
+        appVersion: payload.appVersion?.slice(0, 80) ?? null,
+        deviceId: payload.deviceId?.slice(0, 160) ?? null,
+        deviceModel: payload.deviceModel?.slice(0, 160) ?? null,
+        userAgent: payload.userAgent?.slice(0, 1000) ?? null,
+        isActive: true,
+        lastSeenAt: new Date(),
+        updatedAt: new Date(),
+      },
+    });
+
+  return { success: true };
+}
+
+export async function getMyNativePushTokenStatus(
+  token: string,
+): Promise<PushSubscriptionStatusResult> {
+  const identity = await getCurrentPersonnelIdentity();
+  if (!identity) return { success: false, error: "Niet ingelogd." };
+
+  const normalizedToken = token.trim();
+  if (!normalizedToken) {
+    return { success: false, error: "Native push-token is ongeldig." };
+  }
+
+  const [row] = await db
+    .select({ isActive: nativePushDeviceTokensTable.isActive })
+    .from(nativePushDeviceTokensTable)
+    .where(
+      and(
+        eq(nativePushDeviceTokensTable.token, normalizedToken),
+        eq(nativePushDeviceTokensTable.personnelId, identity.personnelId),
+      ),
+    )
+    .limit(1);
+
+  return { success: true, active: row?.isActive ?? false };
+}
+
+export async function deactivateMyNativePushToken(
+  token: string,
+): Promise<PushSubscriptionResult> {
+  const identity = await getCurrentPersonnelIdentity();
+  if (!identity) return { success: false, error: "Niet ingelogd." };
+
+  const normalizedToken = token.trim();
+  if (!normalizedToken) {
+    return { success: false, error: "Native push-token is ongeldig." };
+  }
+
+  await db
+    .update(nativePushDeviceTokensTable)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(
+      and(
+        eq(nativePushDeviceTokensTable.token, normalizedToken),
+        eq(nativePushDeviceTokensTable.personnelId, identity.personnelId),
       ),
     );
 
