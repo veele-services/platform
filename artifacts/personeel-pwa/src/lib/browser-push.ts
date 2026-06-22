@@ -1,3 +1,5 @@
+import { isNativeCapacitorRuntime } from "@/lib/capacitor";
+
 export const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
 export type BrowserPushState =
@@ -44,6 +46,14 @@ async function getReadyServiceWorker() {
 }
 
 export async function getLocalPushState(): Promise<BrowserPushState> {
+  if (isNativeCapacitorRuntime()) {
+    return {
+      supported: false,
+      reason:
+        "Deze native app gebruikt straks native push via Capacitor/FCM. Browser push is hier niet van toepassing.",
+    };
+  }
+
   if (
     typeof window === "undefined" ||
     typeof Notification === "undefined" ||
@@ -86,6 +96,12 @@ export async function getLocalPushState(): Promise<BrowserPushState> {
 }
 
 export async function ensureBrowserPushSubscription(): Promise<PushSubscription> {
+  if (isNativeCapacitorRuntime()) {
+    throw new Error(
+      "Deze native app gebruikt straks native push via Capacitor/FCM. Browser push is hier niet van toepassing.",
+    );
+  }
+
   if (!VAPID_PUBLIC_KEY) {
     throw new Error("Push sleutel ontbreekt in deze build.");
   }

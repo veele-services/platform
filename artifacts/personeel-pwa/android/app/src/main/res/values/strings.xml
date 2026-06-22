@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Veele Personeel</string>
+    <string name="title_activity_main">Veele Personeel</string>
+    <string name="package_name">nl.veeleservices.personeel</string>
+    <string name="custom_url_scheme">nl.veeleservices.personeel</string>
+</resources>

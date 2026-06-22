@@ -25,6 +25,7 @@ import {
   getLocalPushState,
   unsubscribeBrowserPush,
 } from "@/lib/browser-push";
+import { isNativeCapacitorRuntime } from "@/lib/capacitor";
 
 const OPTIONS = [
   {
@@ -85,6 +86,7 @@ export function NotificationSettingsForm({
     text: string;
   } | null>(null);
   const [isPushBusy, startPushTransition] = useTransition();
+  const [isNativeApp, setIsNativeApp] = useState(false);
   const [pushDevice, setPushDevice] = useState<PushDeviceState>({
     status: "checking",
     text: "Pushstatus van dit apparaat controleren...",
@@ -99,6 +101,7 @@ export function NotificationSettingsForm({
   }));
 
   useEffect(() => {
+    setIsNativeApp(isNativeCapacitorRuntime());
     refreshPushStatus();
   }, []);
 
@@ -361,7 +364,7 @@ export function NotificationSettingsForm({
             </span>
             <div>
               <h3 className="text-sm font-black text-[#081D3A]">
-                Browser push
+                {isNativeApp ? "App push" : "Browser push"}
               </h3>
               <p className="mt-1 text-xs font-semibold text-slate-500">
                 {pushDevice.text}
@@ -378,7 +381,7 @@ export function NotificationSettingsForm({
         <div className="mt-3 grid gap-2">
           <button
             type="button"
-            disabled={isPushBusy}
+            disabled={isPushBusy || pushDevice.status === "unsupported"}
             onClick={
               pushDevice.status === "active" ? refreshPushStatus : registerPush
             }
@@ -392,6 +395,8 @@ export function NotificationSettingsForm({
             )}
             {pushDevice.status === "active"
               ? "Status opnieuw controleren"
+              : pushDevice.status === "unsupported"
+                ? "Niet beschikbaar op dit apparaat"
               : "Browser push activeren"}
           </button>
 
