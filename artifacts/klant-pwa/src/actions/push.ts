@@ -4,7 +4,7 @@ import {
   db,
   pushSubscriptionsTable,
 } from "@workspace/db";
-import { getMyCustomerId } from "./customer";
+import { getMyCustomerIdentity } from "./customer";
 
 export type BrowserPushSubscriptionPayload = {
   endpoint: string;
@@ -22,8 +22,8 @@ export type PushSubscriptionResult =
 export async function saveMyCustomerPushSubscription(
   payload: BrowserPushSubscriptionPayload,
 ): Promise<PushSubscriptionResult> {
-  const customerId = await getMyCustomerId();
-  if (!customerId) return { success: false, error: "Niet ingelogd." };
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return { success: false, error: "Niet ingelogd." };
 
   const endpoint = payload.endpoint?.trim();
   const p256dh = payload.keys.p256dh?.trim();
@@ -36,9 +36,10 @@ export async function saveMyCustomerPushSubscription(
   await db
     .insert(pushSubscriptionsTable)
     .values({
+      tenantId: identity.tenantId,
       ownerType: "customer",
       personnelId: null,
-      customerId,
+      customerId: identity.customerId,
       endpoint,
       p256dh,
       auth,
@@ -49,8 +50,9 @@ export async function saveMyCustomerPushSubscription(
       target: pushSubscriptionsTable.endpoint,
       set: {
         ownerType: "customer",
+        tenantId: identity.tenantId,
         personnelId: null,
-        customerId,
+        customerId: identity.customerId,
         p256dh,
         auth,
         userAgent: payload.userAgent?.slice(0, 1000) ?? null,

@@ -7,7 +7,7 @@ import {
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getMyAssignments } from "./assignments";
-import { getMyCustomerId } from "./customer";
+import { getMyCustomerIdentity } from "./customer";
 import { getMyInvoices } from "./invoices";
 import { getMyQuotes } from "./quotes";
 import { getMyReports } from "./reports";
@@ -98,8 +98,8 @@ function revalidateNotificationSurfaces() {
 }
 
 export async function getMyCustomerNotifications(): Promise<CustomerNotification[]> {
-  const [customerId, assignments, invoices, quotes, reports] = await Promise.all([
-    getMyCustomerId(),
+  const [identity, assignments, invoices, quotes, reports] = await Promise.all([
+    getMyCustomerIdentity(),
     getMyAssignments(),
     getMyInvoices(),
     getMyQuotes(),
@@ -108,13 +108,14 @@ export async function getMyCustomerNotifications(): Promise<CustomerNotification
 
   const notifications: CustomerNotification[] = [];
 
-  if (customerId) {
+  if (identity) {
     const persistedRows = await db
       .select()
       .from(customerNotificationsTable)
       .where(
         and(
-          eq(customerNotificationsTable.customerId, customerId),
+          eq(customerNotificationsTable.customerId, identity.customerId),
+          eq(customerNotificationsTable.tenantId, identity.tenantId),
           isNull(customerNotificationsTable.deletedAt),
         ),
       )
@@ -207,8 +208,8 @@ export async function getMyCustomerNotificationSummary(): Promise<CustomerNotifi
 }
 
 export async function markCustomerNotificationRead(id: string): Promise<ActionResult> {
-  const customerId = await getMyCustomerId();
-  if (!customerId) return { success: false, error: "Niet ingelogd" };
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return { success: false, error: "Niet ingelogd" };
 
   await db
     .update(customerNotificationsTable)
@@ -216,7 +217,8 @@ export async function markCustomerNotificationRead(id: string): Promise<ActionRe
     .where(
       and(
         eq(customerNotificationsTable.id, id),
-        eq(customerNotificationsTable.customerId, customerId),
+        eq(customerNotificationsTable.customerId, identity.customerId),
+        eq(customerNotificationsTable.tenantId, identity.tenantId),
         isNull(customerNotificationsTable.deletedAt),
       ),
     );
@@ -226,8 +228,8 @@ export async function markCustomerNotificationRead(id: string): Promise<ActionRe
 }
 
 export async function markCustomerNotificationUnread(id: string): Promise<ActionResult> {
-  const customerId = await getMyCustomerId();
-  if (!customerId) return { success: false, error: "Niet ingelogd" };
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return { success: false, error: "Niet ingelogd" };
 
   await db
     .update(customerNotificationsTable)
@@ -235,7 +237,8 @@ export async function markCustomerNotificationUnread(id: string): Promise<Action
     .where(
       and(
         eq(customerNotificationsTable.id, id),
-        eq(customerNotificationsTable.customerId, customerId),
+        eq(customerNotificationsTable.customerId, identity.customerId),
+        eq(customerNotificationsTable.tenantId, identity.tenantId),
         isNull(customerNotificationsTable.deletedAt),
       ),
     );
@@ -245,15 +248,16 @@ export async function markCustomerNotificationUnread(id: string): Promise<Action
 }
 
 export async function markAllCustomerNotificationsRead(): Promise<ActionResult> {
-  const customerId = await getMyCustomerId();
-  if (!customerId) return { success: false, error: "Niet ingelogd" };
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return { success: false, error: "Niet ingelogd" };
 
   await db
     .update(customerNotificationsTable)
     .set({ readAt: new Date() })
     .where(
       and(
-        eq(customerNotificationsTable.customerId, customerId),
+        eq(customerNotificationsTable.customerId, identity.customerId),
+        eq(customerNotificationsTable.tenantId, identity.tenantId),
         isNull(customerNotificationsTable.deletedAt),
       ),
     );
@@ -263,15 +267,16 @@ export async function markAllCustomerNotificationsRead(): Promise<ActionResult> 
 }
 
 export async function markAllCustomerNotificationsUnread(): Promise<ActionResult> {
-  const customerId = await getMyCustomerId();
-  if (!customerId) return { success: false, error: "Niet ingelogd" };
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return { success: false, error: "Niet ingelogd" };
 
   await db
     .update(customerNotificationsTable)
     .set({ readAt: null })
     .where(
       and(
-        eq(customerNotificationsTable.customerId, customerId),
+        eq(customerNotificationsTable.customerId, identity.customerId),
+        eq(customerNotificationsTable.tenantId, identity.tenantId),
         isNull(customerNotificationsTable.deletedAt),
       ),
     );
@@ -285,8 +290,8 @@ export async function deleteCustomerNotification(id: string): Promise<ActionResu
 }
 
 export async function deleteCustomerNotifications(ids: string[]): Promise<ActionResult> {
-  const customerId = await getMyCustomerId();
-  if (!customerId) return { success: false, error: "Niet ingelogd" };
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return { success: false, error: "Niet ingelogd" };
   const cleanIds = ids.filter(Boolean);
   if (cleanIds.length === 0) return { success: true };
 
@@ -295,7 +300,8 @@ export async function deleteCustomerNotifications(ids: string[]): Promise<Action
     .set({ deletedAt: new Date() })
     .where(
       and(
-        eq(customerNotificationsTable.customerId, customerId),
+        eq(customerNotificationsTable.customerId, identity.customerId),
+        eq(customerNotificationsTable.tenantId, identity.tenantId),
         inArray(customerNotificationsTable.id, cleanIds),
         isNull(customerNotificationsTable.deletedAt),
       ),
@@ -306,15 +312,16 @@ export async function deleteCustomerNotifications(ids: string[]): Promise<Action
 }
 
 export async function clearAllCustomerNotifications(): Promise<ActionResult> {
-  const customerId = await getMyCustomerId();
-  if (!customerId) return { success: false, error: "Niet ingelogd" };
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return { success: false, error: "Niet ingelogd" };
 
   await db
     .update(customerNotificationsTable)
     .set({ deletedAt: new Date() })
     .where(
       and(
-        eq(customerNotificationsTable.customerId, customerId),
+        eq(customerNotificationsTable.customerId, identity.customerId),
+        eq(customerNotificationsTable.tenantId, identity.tenantId),
         isNull(customerNotificationsTable.deletedAt),
       ),
     );

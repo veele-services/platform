@@ -3,7 +3,7 @@
 import { db } from "@workspace/db";
 import { reportsTable, assignmentsTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
-import { getMyCustomerId } from "./customer";
+import { getMyCustomerIdentity } from "./customer";
 
 export type CustomerReport = {
   id:              string;
@@ -21,8 +21,8 @@ export type CustomerReport = {
  * Draft / submitted / rejected reports are never returned.
  */
 export async function getMyReports(): Promise<CustomerReport[]> {
-  const customerId = await getMyCustomerId();
-  if (!customerId) return [];
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return [];
 
   const rows = await db
     .select({
@@ -38,7 +38,8 @@ export async function getMyReports(): Promise<CustomerReport[]> {
     .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
     .where(
       and(
-        eq(assignmentsTable.customerId, customerId),
+        eq(assignmentsTable.customerId, identity.customerId),
+        eq(assignmentsTable.tenantId, identity.tenantId),
         eq(reportsTable.status, "approved"),
       ),
     )

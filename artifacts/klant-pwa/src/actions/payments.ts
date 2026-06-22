@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@workspace/db";
 import {
   auditLogTable,
+  customersTable,
   customerPaymentBatchItemsTable,
   customerPaymentBatchesTable,
   invoicesTable,
@@ -13,7 +14,7 @@ import {
 } from "@workspace/db";
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
-import { getMyCustomerId } from "./customer";
+import { getMyCustomerIdentity } from "./customer";
 
 type ActionResult<T> = { success: true; data: T } | { success: false; message: string };
 
@@ -70,9 +71,9 @@ async function getAuthenticatedCustomer() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
-  const customerId = await getMyCustomerId();
-  if (!customerId) return null;
-  return { userId: user.id, customerId };
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return null;
+  return { userId: user.id, customerId: identity.customerId, tenantId: identity.tenantId };
 }
 
 async function createMolliePaymentRequest(input: {
@@ -141,10 +142,12 @@ export async function createCustomerInvoicePayment(invoiceId: string): Promise<A
       status:        invoicesTable.status,
     })
     .from(invoicesTable)
+    .innerJoin(customersTable, eq(customersTable.id, invoicesTable.customerId))
     .where(
       and(
         eq(invoicesTable.id, invoiceId),
         eq(invoicesTable.customerId, auth.customerId),
+        eq(customersTable.tenantId, auth.tenantId),
       ),
     )
     .limit(1);
@@ -177,6 +180,7 @@ export async function createCustomerInvoicePayment(invoiceId: string): Promise<A
       invoiceId:     invoice.id,
       invoiceNumber: invoice.invoiceNumber,
       customerId:    auth.customerId,
+      tenantId:      auth.tenantId,
     },
   });
 
@@ -226,10 +230,12 @@ export async function createCustomerBatchPayment(invoiceIds: string[]): Promise<
       status:        invoicesTable.status,
     })
     .from(invoicesTable)
+    .innerJoin(customersTable, eq(customersTable.id, invoicesTable.customerId))
     .where(
       and(
         inArray(invoicesTable.id, uniqueInvoiceIds),
         eq(invoicesTable.customerId, auth.customerId),
+        eq(customersTable.tenantId, auth.tenantId),
       ),
     );
 
@@ -251,6 +257,7 @@ export async function createCustomerBatchPayment(invoiceIds: string[]): Promise<
     metadata: {
       type:          "customer_payment_batch",
       customerId:    auth.customerId,
+      tenantId:      auth.tenantId,
       invoiceIds:    invoices.map((invoice) => invoice.id),
       invoiceNumbers,
     },
@@ -296,8 +303,8 @@ export async function createCustomerBatchPayment(invoiceIds: string[]): Promise<
 }
 
 export async function getMyPayments(): Promise<CustomerPaymentRecord[]> {
-  const customerId = await getMyCustomerId();
-  if (!customerId) return [];
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return [];
 
   const rows = await db
     .select({
@@ -314,7 +321,13 @@ export async function getMyPayments(): Promise<CustomerPaymentRecord[]> {
     })
     .from(paymentsTable)
     .innerJoin(invoicesTable, eq(paymentsTable.invoiceId, invoicesTable.id))
-    .where(eq(invoicesTable.customerId, customerId))
+    .innerJoin(customersTable, eq(customersTable.id, invoicesTable.customerId))
+    .where(
+      and(
+        eq(invoicesTable.customerId, identity.customerId),
+        eq(customersTable.tenantId, identity.tenantId),
+      ),
+    )
     .orderBy(desc(paymentsTable.createdAt));
 
   return rows.map((row) => ({
@@ -332,13 +345,28 @@ export async function getMyPayments(): Promise<CustomerPaymentRecord[]> {
 }
 
 export async function getMyPaymentBatches(): Promise<CustomerPaymentBatchRecord[]> {
-  const customerId = await getMyCustomerId();
-  if (!customerId) return [];
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return [];
 
   const batches = await db
-    .select()
+    .select({
+      id:              customerPaymentBatchesTable.id,
+      molliePaymentId: customerPaymentBatchesTable.molliePaymentId,
+      amountCents:     customerPaymentBatchesTable.amountCents,
+      currency:        customerPaymentBatchesTable.currency,
+      status:          customerPaymentBatchesTable.status,
+      checkoutUrl:     customerPaymentBatchesTable.checkoutUrl,
+      paidAt:          customerPaymentBatchesTable.paidAt,
+      createdAt:       customerPaymentBatchesTable.createdAt,
+    })
     .from(customerPaymentBatchesTable)
-    .where(eq(customerPaymentBatchesTable.customerId, customerId))
+    .innerJoin(customersTable, eq(customersTable.id, customerPaymentBatchesTable.customerId))
+    .where(
+      and(
+        eq(customerPaymentBatchesTable.customerId, identity.customerId),
+        eq(customersTable.tenantId, identity.tenantId),
+      ),
+    )
     .orderBy(desc(customerPaymentBatchesTable.createdAt));
 
   if (batches.length === 0) return [];
@@ -353,7 +381,14 @@ export async function getMyPaymentBatches(): Promise<CustomerPaymentBatchRecord[
     })
     .from(customerPaymentBatchItemsTable)
     .innerJoin(invoicesTable, eq(customerPaymentBatchItemsTable.invoiceId, invoicesTable.id))
-    .where(inArray(customerPaymentBatchItemsTable.batchId, batchIds));
+    .innerJoin(customersTable, eq(customersTable.id, invoicesTable.customerId))
+    .where(
+      and(
+        inArray(customerPaymentBatchItemsTable.batchId, batchIds),
+        eq(invoicesTable.customerId, identity.customerId),
+        eq(customersTable.tenantId, identity.tenantId),
+      ),
+    );
 
   const itemsByBatch = new Map<string, CustomerPaymentBatchRecord["invoices"]>();
   for (const item of items) {

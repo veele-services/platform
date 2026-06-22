@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { db, customerPortalPreferencesTable } from "@workspace/db";
-import { eq } from "drizzle-orm";
-import { getMyCustomerId } from "./customer";
+import { db, customerPortalPreferencesTable, customersTable } from "@workspace/db";
+import { and, eq } from "drizzle-orm";
+import { getMyCustomerIdentity } from "./customer";
 
 export type CustomerPortalPreferenceState = {
   emailNotifications:  boolean;
@@ -28,25 +28,32 @@ const DEFAULT_PREFERENCES: CustomerPortalPreferenceState = {
 };
 
 export async function getMyPortalPreferences(): Promise<CustomerPortalPreferenceState> {
-  const customerId = await getMyCustomerId();
-  if (!customerId) return DEFAULT_PREFERENCES;
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return DEFAULT_PREFERENCES;
 
   const [row] = await db
     .select()
     .from(customerPortalPreferencesTable)
-    .where(eq(customerPortalPreferencesTable.customerId, customerId))
+    .innerJoin(customersTable, eq(customersTable.id, customerPortalPreferencesTable.customerId))
+    .where(
+      and(
+        eq(customerPortalPreferencesTable.customerId, identity.customerId),
+        eq(customersTable.tenantId, identity.tenantId),
+      ),
+    )
     .limit(1);
 
-  if (!row) return DEFAULT_PREFERENCES;
+  if (!row?.customer_portal_preferences) return DEFAULT_PREFERENCES;
+  const preferences = row.customer_portal_preferences;
 
   return {
-    emailNotifications:  row.emailNotifications,
-    invoiceEmails:       row.invoiceEmails,
-    quoteEmails:         row.quoteEmails,
-    reportEmails:        row.reportEmails,
-    serviceUpdateEmails: row.serviceUpdateEmails,
-    marketingEmails:     row.marketingEmails,
-    pushNotifications:   row.pushNotifications,
+    emailNotifications:  preferences.emailNotifications,
+    invoiceEmails:       preferences.invoiceEmails,
+    quoteEmails:         preferences.quoteEmails,
+    reportEmails:        preferences.reportEmails,
+    serviceUpdateEmails: preferences.serviceUpdateEmails,
+    marketingEmails:     preferences.marketingEmails,
+    pushNotifications:   preferences.pushNotifications,
   };
 }
 
@@ -58,8 +65,8 @@ export async function updateMyPortalPreferences(
   _prev: PreferenceResult,
   formData: FormData,
 ): Promise<PreferenceResult> {
-  const customerId = await getMyCustomerId();
-  if (!customerId) return { success: false, error: "Geen klantprofiel gevonden." };
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return { success: false, error: "Geen klantprofiel gevonden." };
 
   const values: CustomerPortalPreferenceState = {
     emailNotifications:  checked(formData, "emailNotifications"),
@@ -73,7 +80,7 @@ export async function updateMyPortalPreferences(
 
   await db
     .insert(customerPortalPreferencesTable)
-    .values({ customerId, ...values })
+    .values({ customerId: identity.customerId, ...values })
     .onConflictDoUpdate({
       target: customerPortalPreferencesTable.customerId,
       set:    { ...values, updatedAt: new Date() },

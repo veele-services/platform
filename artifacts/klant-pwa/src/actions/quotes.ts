@@ -7,8 +7,8 @@ import {
   assignmentTasksTable,
   taskCodesTable,
 } from "@workspace/db";
-import { eq, desc, inArray, asc } from "drizzle-orm";
-import { getMyCustomerId } from "./customer";
+import { and, eq, desc, inArray, asc } from "drizzle-orm";
+import { getMyCustomerIdentity } from "./customer";
 import type { QuoteStatus } from "@workspace/db";
 
 export type QuoteLineItem = {
@@ -33,8 +33,8 @@ export type CustomerQuote = {
 };
 
 export async function getMyQuotes(): Promise<CustomerQuote[]> {
-  const customerId = await getMyCustomerId();
-  if (!customerId) return [];
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return [];
 
   const today = new Date().toISOString().slice(0, 10);
 
@@ -52,7 +52,13 @@ export async function getMyQuotes(): Promise<CustomerQuote[]> {
     })
     .from(quotesTable)
     .innerJoin(assignmentsTable, eq(quotesTable.assignmentId, assignmentsTable.id))
-    .where(eq(quotesTable.customerId, customerId))
+    .where(
+      and(
+        eq(quotesTable.customerId, identity.customerId),
+        eq(assignmentsTable.customerId, identity.customerId),
+        eq(assignmentsTable.tenantId, identity.tenantId),
+      ),
+    )
     .orderBy(desc(quotesTable.createdAt));
 
   if (rows.length === 0) return [];

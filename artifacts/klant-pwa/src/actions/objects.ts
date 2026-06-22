@@ -11,7 +11,7 @@ import {
 import { and, asc, desc, eq } from "drizzle-orm";
 import { z } from "zod/v4";
 import { createClient } from "@/lib/supabase/server";
-import { getMyCustomerId } from "./customer";
+import { getMyCustomerIdentity } from "./customer";
 
 export type CustomerObjectContact = {
   id:        string;
@@ -151,17 +151,18 @@ function splitContactName(name: string): { firstName: string; lastName: string }
 async function getAuthenticatedContext() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  const customerId = await getMyCustomerId();
+  const identity = await getMyCustomerIdentity();
 
-  if (!user?.id || !customerId) {
+  if (!user?.id || !identity) {
     return null;
   }
 
-  return { userId: user.id, customerId };
+  return { userId: user.id, customerId: identity.customerId, tenantId: identity.tenantId };
 }
 
-function buildObjectPayload(data: ObjectFormValues, customerId: string, userId?: string) {
+function buildObjectPayload(data: ObjectFormValues, customerId: string, tenantId: string, userId?: string) {
   return {
+    tenantId,
     customerId,
     sectorId:          data.sectorId,
     name:              data.name,
@@ -215,8 +216,8 @@ async function upsertPrimaryContact(objectId: string, data: ObjectFormValues) {
 }
 
 export async function getMyObjects(): Promise<CustomerObject[]> {
-  const customerId = await getMyCustomerId();
-  if (!customerId) return [];
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return [];
 
   return db
     .select({
@@ -244,13 +245,18 @@ export async function getMyObjects(): Promise<CustomerObject[]> {
     })
     .from(objectsTable)
     .leftJoin(sectorsTable, eq(objectsTable.sectorId, sectorsTable.id))
-    .where(eq(objectsTable.customerId, customerId))
+    .where(
+      and(
+        eq(objectsTable.customerId, identity.customerId),
+        eq(objectsTable.tenantId, identity.tenantId),
+      ),
+    )
     .orderBy(desc(objectsTable.isActive), asc(objectsTable.name));
 }
 
 export async function getMyObject(objectId: string): Promise<CustomerObjectDetail | null> {
-  const customerId = await getMyCustomerId();
-  if (!customerId) return null;
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return null;
 
   const [object] = await db
     .select({
@@ -278,7 +284,13 @@ export async function getMyObject(objectId: string): Promise<CustomerObjectDetai
     })
     .from(objectsTable)
     .leftJoin(sectorsTable, eq(objectsTable.sectorId, sectorsTable.id))
-    .where(and(eq(objectsTable.id, objectId), eq(objectsTable.customerId, customerId)))
+    .where(
+      and(
+        eq(objectsTable.id, objectId),
+        eq(objectsTable.customerId, identity.customerId),
+        eq(objectsTable.tenantId, identity.tenantId),
+      ),
+    )
     .limit(1);
 
   if (!object) return null;
@@ -332,7 +344,7 @@ export async function createCustomerObject(
   try {
     const [created] = await db
       .insert(objectsTable)
-      .values(buildObjectPayload(parsed.data, context.customerId, context.userId))
+      .values(buildObjectPayload(parsed.data, context.customerId, context.tenantId, context.userId))
       .returning({ id: objectsTable.id });
 
     if (!created) {
@@ -382,7 +394,13 @@ export async function updateCustomerObject(
   const [existing] = await db
     .select({ id: objectsTable.id })
     .from(objectsTable)
-    .where(and(eq(objectsTable.id, objectId), eq(objectsTable.customerId, context.customerId)))
+    .where(
+      and(
+        eq(objectsTable.id, objectId),
+        eq(objectsTable.customerId, context.customerId),
+        eq(objectsTable.tenantId, context.tenantId),
+      ),
+    )
     .limit(1);
 
   if (!existing) {
@@ -392,8 +410,14 @@ export async function updateCustomerObject(
   try {
     const [updated] = await db
       .update(objectsTable)
-      .set(buildObjectPayload(parsed.data, context.customerId))
-      .where(and(eq(objectsTable.id, objectId), eq(objectsTable.customerId, context.customerId)))
+      .set(buildObjectPayload(parsed.data, context.customerId, context.tenantId))
+      .where(
+        and(
+          eq(objectsTable.id, objectId),
+          eq(objectsTable.customerId, context.customerId),
+          eq(objectsTable.tenantId, context.tenantId),
+        ),
+      )
       .returning({ id: objectsTable.id });
 
     if (!updated) {

@@ -1,9 +1,9 @@
 "use server";
 
 import { db } from "@workspace/db";
-import { invoicesTable, paymentsTable } from "@workspace/db";
+import { customersTable, invoicesTable, paymentsTable } from "@workspace/db";
 import { eq, and, desc, inArray } from "drizzle-orm";
-import { getMyCustomerId } from "./customer";
+import { getMyCustomerIdentity } from "./customer";
 import type { InvoiceStatus } from "@workspace/db";
 
 export type CustomerInvoice = {
@@ -21,8 +21,8 @@ export type CustomerInvoice = {
 };
 
 export async function getMyInvoices(): Promise<CustomerInvoice[]> {
-  const customerId = await getMyCustomerId();
-  if (!customerId) return [];
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return [];
 
   const rows = await db
     .select({
@@ -46,9 +46,11 @@ export async function getMyInvoices(): Promise<CustomerInvoice[]> {
         eq(paymentsTable.status, "open"),
       ),
     )
+    .innerJoin(customersTable, eq(customersTable.id, invoicesTable.customerId))
     .where(
       and(
-        eq(invoicesTable.customerId, customerId),
+        eq(invoicesTable.customerId, identity.customerId),
+        eq(customersTable.tenantId, identity.tenantId),
         inArray(invoicesTable.status, ["sent", "paid", "cancelled"]),
       ),
     )
@@ -70,8 +72,8 @@ export async function getMyInvoices(): Promise<CustomerInvoice[]> {
 }
 
 export async function getMyInvoice(invoiceId: string): Promise<CustomerInvoice | null> {
-  const customerId = await getMyCustomerId();
-  if (!customerId) return null;
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return null;
 
   const rows = await db
     .select({
@@ -95,10 +97,12 @@ export async function getMyInvoice(invoiceId: string): Promise<CustomerInvoice |
         eq(paymentsTable.status, "open"),
       ),
     )
+    .innerJoin(customersTable, eq(customersTable.id, invoicesTable.customerId))
     .where(
       and(
         eq(invoicesTable.id, invoiceId),
-        eq(invoicesTable.customerId, customerId),
+        eq(invoicesTable.customerId, identity.customerId),
+        eq(customersTable.tenantId, identity.tenantId),
         inArray(invoicesTable.status, ["sent", "paid", "cancelled"]),
       ),
     )

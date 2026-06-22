@@ -23,7 +23,7 @@ import { emitDomainEvent } from "@workspace/db/events";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
-import { getMyCustomerId } from "./customer";
+import { getMyCustomerIdentity } from "./customer";
 import { createClient } from "@/lib/supabase/server";
 
 export type CustomerAssignment = {
@@ -46,8 +46,8 @@ export type CustomerAssignment = {
 };
 
 export async function getMyAssignments(): Promise<CustomerAssignment[]> {
-  const customerId = await getMyCustomerId();
-  if (!customerId) return [];
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return [];
 
   const rows = await db
     .select({
@@ -70,7 +70,12 @@ export async function getMyAssignments(): Promise<CustomerAssignment[]> {
     .from(assignmentsTable)
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
     .leftJoin(quotesTable, eq(quotesTable.assignmentId, assignmentsTable.id))
-    .where(eq(assignmentsTable.customerId, customerId))
+    .where(
+      and(
+        eq(assignmentsTable.customerId, identity.customerId),
+        eq(assignmentsTable.tenantId, identity.tenantId),
+      ),
+    )
     .orderBy(desc(assignmentsTable.createdAt));
 
   return rows.map((r) => ({
@@ -124,8 +129,8 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  const customerId = await getMyCustomerId();
-  if (!customerId) return { success: false, message: "Geen klantprofiel gevonden voor dit account." };
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return { success: false, message: "Geen klantprofiel gevonden voor dit account." };
 
   const parsed = requestSchema.safeParse(input);
   if (!parsed.success) {
@@ -155,19 +160,25 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
       .where(
         and(
           eq(objectsTable.id, objectId),
-          eq(objectsTable.customerId, customerId),
+          eq(objectsTable.customerId, identity.customerId),
+          eq(objectsTable.tenantId, identity.tenantId),
         ),
       )
       .limit(1),
     db
       .select({ id: sectorsTable.id, name: sectorsTable.name })
       .from(sectorsTable)
-      .where(and(eq(sectorsTable.id, sectorId), eq(sectorsTable.isActive, true)))
+      .where(
+        and(
+          eq(sectorsTable.id, sectorId),
+          eq(sectorsTable.isActive, true),
+        ),
+      )
       .limit(1),
     db
       .select({ id: customersTable.id, name: customersTable.name })
       .from(customersTable)
-      .where(eq(customersTable.id, customerId))
+      .where(and(eq(customersTable.id, identity.customerId), eq(customersTable.tenantId, identity.tenantId)))
       .limit(1),
   ]);
 
@@ -189,7 +200,7 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
   const validatedData = insertAssignmentSchema.parse({
     title,
     description,
-    customerId,
+    customerId: identity.customerId,
     objectId,
     status:     "requested",
     priority,
@@ -201,7 +212,7 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
 
   const [inserted] = await db
     .insert(assignmentsTable)
-    .values(validatedData)
+    .values({ ...validatedData, tenantId: identity.tenantId })
     .returning({ id: assignmentsTable.id });
 
   if (!inserted) return { success: false, message: "Aanmaken mislukt." };
@@ -212,7 +223,8 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
     resource:   "assignments",
     resourceId: inserted.id,
     metadata:   {
-      customerId,
+      customerId: identity.customerId,
+      tenantId: identity.tenantId,
       objectId,
       objectName: object.name,
       sectorId,
@@ -226,11 +238,12 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
 
   await emitDomainEvent({
     eventKey: "customer_assignment_requested",
+    tenantId: identity.tenantId,
     actorUserId: user.id,
     audience: "management",
     aggregate: { type: "assignment", id: inserted.id },
     payload: {
-      customerId,
+      customerId: identity.customerId,
       assignmentId: inserted.id,
       objectId,
       objectName: object.name,
@@ -250,7 +263,7 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
         end: scheduledEnd,
       },
       customer: {
-        id: customerId,
+        id: identity.customerId,
         name: customer?.name ?? "klant",
       },
       object: {
@@ -336,8 +349,8 @@ export type CustomerAssignmentDetail = {
 export async function getMyAssignmentDetail(
   assignmentId: string,
 ): Promise<CustomerAssignmentDetail | null> {
-  const customerId = await getMyCustomerId();
-  if (!customerId) return null;
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return null;
 
   const [row] = await db
     .select({
@@ -371,7 +384,8 @@ export async function getMyAssignmentDetail(
     .where(
       and(
         eq(assignmentsTable.id,         assignmentId),
-        eq(assignmentsTable.customerId, customerId),
+        eq(assignmentsTable.customerId, identity.customerId),
+        eq(assignmentsTable.tenantId,   identity.tenantId),
       ),
     )
     .limit(1);
@@ -465,8 +479,8 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  const customerId = await getMyCustomerId();
-  if (!customerId) return { success: false, message: "Geen klantprofiel gevonden." };
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return { success: false, message: "Geen klantprofiel gevonden." };
 
   const [assignment] = await db
     .select({
@@ -485,7 +499,8 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
     .where(
       and(
         eq(assignmentsTable.id,         assignmentId),
-        eq(assignmentsTable.customerId, customerId),
+        eq(assignmentsTable.customerId, identity.customerId),
+        eq(assignmentsTable.tenantId,   identity.tenantId),
         eq(assignmentsTable.status,     "awaiting_approval"),
         eq(quotesTable.status,          "sent"),
       ),
@@ -509,7 +524,7 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
     await tx
       .update(assignmentsTable)
       .set({ status: "plannable" })
-      .where(eq(assignmentsTable.id, assignmentId));
+      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, identity.tenantId)));
 
     await tx.insert(auditLogTable).values({
       userId:     user.id,
@@ -518,7 +533,8 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
       resourceId: assignment.quoteId,
       metadata:   {
         assignmentId,
-        customerId,
+        customerId: identity.customerId,
+        tenantId: identity.tenantId,
         nextAssignmentStatus: "plannable",
       },
     });
@@ -526,12 +542,13 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
 
   await emitDomainEvent({
     eventKey: "quote_approved_by_customer",
+    tenantId: identity.tenantId,
     actorUserId: user.id,
     audience: "management",
     aggregate: { type: "quote", id: assignment.quoteId },
     payload: {
       assignmentId,
-      customerId,
+      customerId: identity.customerId,
       quoteId: assignment.quoteId,
       nextAssignmentStatus: "plannable",
       assignment: {
@@ -540,7 +557,7 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
         title: assignment.title,
       },
       customer: {
-        id: customerId,
+        id: identity.customerId,
         name: assignment.customerName ?? "klant",
       },
       quote: {
@@ -570,11 +587,12 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
     const [[customer], [quote]] = await Promise.all([
       db.select({ name: customersTable.name })
         .from(customersTable)
-        .where(eq(customersTable.id, customerId))
+        .where(and(eq(customersTable.id, identity.customerId), eq(customersTable.tenantId, identity.tenantId)))
         .limit(1),
       db.select({ quoteNumber: quotesTable.quoteNumber })
         .from(quotesTable)
-        .where(eq(quotesTable.assignmentId, assignmentId))
+        .innerJoin(assignmentsTable, eq(assignmentsTable.id, quotesTable.assignmentId))
+        .where(and(eq(quotesTable.assignmentId, assignmentId), eq(assignmentsTable.tenantId, identity.tenantId)))
         .limit(1),
     ]);
 
@@ -601,8 +619,8 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  const customerId = await getMyCustomerId();
-  if (!customerId) return { success: false, message: "Geen klantprofiel gevonden." };
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return { success: false, message: "Geen klantprofiel gevonden." };
 
   const [assignment] = await db
     .select({
@@ -619,7 +637,8 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
     .where(
       and(
         eq(assignmentsTable.id,         assignmentId),
-        eq(assignmentsTable.customerId, customerId),
+        eq(assignmentsTable.customerId, identity.customerId),
+        eq(assignmentsTable.tenantId,   identity.tenantId),
         eq(assignmentsTable.status,     "awaiting_approval"),
         eq(quotesTable.status,          "sent"),
       ),
@@ -642,7 +661,7 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
     await tx
       .update(assignmentsTable)
       .set({ status: "review" })
-      .where(eq(assignmentsTable.id, assignmentId));
+      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, identity.tenantId)));
 
     await tx.insert(auditLogTable).values({
       userId:     user.id,
@@ -651,7 +670,8 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
       resourceId: assignment.quoteId,
       metadata:   {
         assignmentId,
-        customerId,
+        customerId: identity.customerId,
+        tenantId: identity.tenantId,
         reason: reason?.trim() || null,
         nextAssignmentStatus: "review",
       },
@@ -660,12 +680,13 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
 
   await emitDomainEvent({
     eventKey: "quote_rejected_by_customer",
+    tenantId: identity.tenantId,
     actorUserId: user.id,
     audience: "management",
     aggregate: { type: "quote", id: assignment.quoteId },
     payload: {
       assignmentId,
-      customerId,
+      customerId: identity.customerId,
       quoteId: assignment.quoteId,
       reason: reason?.trim() || null,
       nextAssignmentStatus: "review",
@@ -675,7 +696,7 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
         title: assignment.title,
       },
       customer: {
-        id: customerId,
+        id: identity.customerId,
         name: assignment.customerName ?? "klant",
       },
       quote: {
@@ -707,11 +728,12 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
     const [[customer], [quote]] = await Promise.all([
       db.select({ name: customersTable.name })
         .from(customersTable)
-        .where(eq(customersTable.id, customerId))
+        .where(and(eq(customersTable.id, identity.customerId), eq(customersTable.tenantId, identity.tenantId)))
         .limit(1),
       db.select({ quoteNumber: quotesTable.quoteNumber })
         .from(quotesTable)
-        .where(eq(quotesTable.assignmentId, assignmentId))
+        .innerJoin(assignmentsTable, eq(assignmentsTable.id, quotesTable.assignmentId))
+        .where(and(eq(quotesTable.assignmentId, assignmentId), eq(assignmentsTable.tenantId, identity.tenantId)))
         .limit(1),
     ]);
 

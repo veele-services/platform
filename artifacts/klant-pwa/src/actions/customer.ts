@@ -35,6 +35,8 @@ export type CustomerIdentity = {
   userId: string;
 };
 
+export type CustomerScope = CustomerIdentity;
+
 export async function getMyCustomerIdentity(): Promise<CustomerIdentity | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -58,9 +60,13 @@ export async function getMyCustomerIdentity(): Promise<CustomerIdentity | null> 
     .where(
       and(
         eq(customerUsersTable.status, "active"),
+        eq(customersTable.tenantId, customerUsersTable.tenantId),
         or(
           eq(customerUsersTable.userId, user.id),
-          eq(customerUsersTable.email, email),
+          and(
+            isNull(customerUsersTable.userId),
+            eq(customerUsersTable.email, email),
+          ),
         ),
       ),
     )
@@ -91,63 +97,12 @@ export async function getMyCustomerIdentity(): Promise<CustomerIdentity | null> 
     };
   }
 
-  const [legacyCustomer] = await db
-    .select({
-      id: customersTable.id,
-      tenantId: customersTable.tenantId,
-      name: customersTable.name,
-      contactName: customersTable.contactName,
-    })
-    .from(customersTable)
-    .where(eq(customersTable.contactEmail, email))
-    .limit(1);
-
-  if (!legacyCustomer) return null;
-
-  const [createdLink] = await db
-    .insert(customerUsersTable)
-    .values({
-      tenantId: legacyCustomer.tenantId,
-      customerId: legacyCustomer.id,
-      userId: user.id,
-      email,
-      firstName: legacyCustomer.contactName ?? null,
-      role: "primary",
-      status: "active",
-      lastLoginAt: new Date(),
-    })
-    .onConflictDoNothing()
-    .returning({ id: customerUsersTable.id });
-
-  const customerUserId = createdLink?.id ?? (
-    await db
-      .select({ id: customerUsersTable.id })
-      .from(customerUsersTable)
-      .where(
-        and(
-          eq(customerUsersTable.customerId, legacyCustomer.id),
-          eq(customerUsersTable.email, email),
-        ),
-      )
-      .limit(1)
-  )[0]?.id;
-
-  if (!customerUserId) return null;
-
-  return {
-    customerId: legacyCustomer.id,
-    customerUserId,
-    tenantId: legacyCustomer.tenantId,
-    customerName: legacyCustomer.name,
-    contactName: legacyCustomer.contactName,
-    email,
-    userId: user.id,
-  };
+  return null;
 }
 
 /**
  * Look up the customer record for the currently logged-in user.
- * Prefers customer_users, with a legacy contact_email fallback for existing accounts.
+ * Authorization always starts from customer_users and is scoped to tenant_id + customer_id.
  */
 export async function getMyCustomerProfile(): Promise<CustomerProfile | null> {
   const identity = await getMyCustomerIdentity();
@@ -172,7 +127,12 @@ export async function getMyCustomerProfile(): Promise<CustomerProfile | null> {
     })
     .from(customersTable)
     .leftJoin(customerTypesTable, eq(customersTable.customerTypeId, customerTypesTable.id))
-    .where(eq(customersTable.id, identity.customerId))
+    .where(
+      and(
+        eq(customersTable.id, identity.customerId),
+        eq(customersTable.tenantId, identity.tenantId),
+      ),
+    )
     .limit(1);
 
   return row ?? null;
@@ -225,7 +185,12 @@ export async function updateMyContactInfo(
       contactPhone: parsed.data.contactPhone ?? null,
       mobile:       parsed.data.mobile ?? null,
     })
-    .where(eq(customersTable.id, identity.customerId))
+    .where(
+      and(
+        eq(customersTable.id, identity.customerId),
+        eq(customersTable.tenantId, identity.tenantId),
+      ),
+    )
     .returning({ id: customersTable.id });
 
   if (updated.length === 0) {

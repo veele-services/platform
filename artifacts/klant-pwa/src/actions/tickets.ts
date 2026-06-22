@@ -149,7 +149,12 @@ export async function getMyCustomerTicketSummary(): Promise<CustomerTicketSummar
   const threads = await db
     .select()
     .from(customerMessageThreadsTable)
-    .where(eq(customerMessageThreadsTable.customerId, identity.customerId))
+    .where(
+      and(
+        eq(customerMessageThreadsTable.customerId, identity.customerId),
+        eq(customerMessageThreadsTable.tenantId, identity.tenantId),
+      ),
+    )
     .orderBy(desc(customerMessageThreadsTable.lastMessageAt))
     .limit(30);
 
@@ -172,7 +177,12 @@ export async function getMyCustomerTickets(): Promise<CustomerTicketListItem[]> 
   const threads = await db
     .select()
     .from(customerMessageThreadsTable)
-    .where(eq(customerMessageThreadsTable.customerId, identity.customerId))
+    .where(
+      and(
+        eq(customerMessageThreadsTable.customerId, identity.customerId),
+        eq(customerMessageThreadsTable.tenantId, identity.tenantId),
+      ),
+    )
     .orderBy(desc(customerMessageThreadsTable.lastMessageAt));
 
   const unreadCounts = await getUnreadCounts(threads.map((thread) => thread.id));
@@ -194,6 +204,7 @@ export async function getMyCustomerTicket(
       and(
         eq(customerMessageThreadsTable.id, ticketId),
         eq(customerMessageThreadsTable.customerId, identity.customerId),
+        eq(customerMessageThreadsTable.tenantId, identity.tenantId),
       ),
     )
     .limit(1);
@@ -316,6 +327,7 @@ export async function replyToMyCustomerTicket(
       and(
         eq(customerMessageThreadsTable.id, ticketId),
         eq(customerMessageThreadsTable.customerId, identity.customerId),
+        eq(customerMessageThreadsTable.tenantId, identity.tenantId),
       ),
     )
     .limit(1);
@@ -398,6 +410,7 @@ async function updateMyCustomerTicketStatus(
       and(
         eq(customerMessageThreadsTable.id, ticketId),
         eq(customerMessageThreadsTable.customerId, identity.customerId),
+        eq(customerMessageThreadsTable.tenantId, identity.tenantId),
       ),
     )
     .returning({ id: customerMessageThreadsTable.id });
