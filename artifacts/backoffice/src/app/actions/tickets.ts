@@ -1,6 +1,7 @@
 "use server";
 
 import {
+  assignmentsTable,
   customerMessageEntriesTable,
   customerMessageThreadsTable,
   customersTable,
@@ -64,6 +65,16 @@ export type BackofficeTicketMessage = {
 export type BackofficeTicketDetail = BackofficeTicketListItem & {
   tenantId: string | null;
   requesterId: string;
+  assignment: {
+    id: string;
+    code: string;
+    title: string;
+    status: string;
+    scheduledDate: string | null;
+    scheduledStart: string | null;
+    scheduledEnd: string | null;
+  } | null;
+  interestResponseId: string | null;
   messages: BackofficeTicketMessage[];
 };
 
@@ -331,6 +342,8 @@ export async function getTicket(
       lastMessageAt: thread.lastMessageAt.toISOString(),
       unreadCount: 0,
       createdAt: thread.createdAt.toISOString(),
+      assignment: null,
+      interestResponseId: null,
       messages: messages.map((message) => ({
         id: message.id,
         authorType: message.authorType,
@@ -346,7 +359,8 @@ export async function getTicket(
     .select({
       id: personnelMessageThreadsTable.id,
       personnelId: personnelMessageThreadsTable.personnelId,
-      tenantId: personnelTable.tenantId,
+      tenantId: personnelMessageThreadsTable.tenantId,
+      interestResponseId: personnelMessageThreadsTable.interestResponseId,
       subject: personnelMessageThreadsTable.subject,
       department: personnelMessageThreadsTable.department,
       status: personnelMessageThreadsTable.status,
@@ -357,9 +371,17 @@ export async function getTicket(
       personnelFirstName: personnelTable.firstName,
       personnelLastName: personnelTable.lastName,
       personnelEmail: personnelTable.email,
+      assignmentId: assignmentsTable.id,
+      assignmentCode: assignmentsTable.code,
+      assignmentTitle: assignmentsTable.title,
+      assignmentStatus: assignmentsTable.status,
+      assignmentScheduledDate: assignmentsTable.scheduledDate,
+      assignmentScheduledStart: assignmentsTable.scheduledStart,
+      assignmentScheduledEnd: assignmentsTable.scheduledEnd,
     })
     .from(personnelMessageThreadsTable)
     .innerJoin(personnelTable, eq(personnelMessageThreadsTable.personnelId, personnelTable.id))
+    .leftJoin(assignmentsTable, eq(personnelMessageThreadsTable.assignmentId, assignmentsTable.id))
     .where(eq(personnelMessageThreadsTable.id, id))
     .limit(1);
 
@@ -386,6 +408,16 @@ export async function getTicket(
     lastMessageAt: thread.lastMessageAt.toISOString(),
     unreadCount: thread.status === "waiting_backoffice" ? 1 : 0,
     createdAt: thread.createdAt.toISOString(),
+    assignment: thread.assignmentId ? {
+      id: thread.assignmentId,
+      code: thread.assignmentCode ?? "Werkbon",
+      title: thread.assignmentTitle ?? "Gekoppelde opdracht",
+      status: thread.assignmentStatus ?? "unknown",
+      scheduledDate: thread.assignmentScheduledDate,
+      scheduledStart: thread.assignmentScheduledStart,
+      scheduledEnd: thread.assignmentScheduledEnd,
+    } : null,
+    interestResponseId: thread.interestResponseId,
     messages: messages.map((message) => ({
       id: message.id,
       authorType: message.authorType,

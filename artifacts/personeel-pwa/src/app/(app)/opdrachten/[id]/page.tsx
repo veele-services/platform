@@ -11,6 +11,7 @@ import { WorkOrderHeader } from "./WorkOrderHeader";
 import {
   CustomerInfoCard,
   CustomerNotes,
+  AssignmentQuestionCard,
   ExtraWorkSummaryCard,
   MaterialSummaryCard,
   StatusProgress,
@@ -75,6 +76,7 @@ export default async function WerkbonDetailPage({ params, searchParams }: Props)
           <StatusProgress assignment={assignment} />
           <CustomerInfoCard assignment={assignment} />
           <CustomerNotes description={assignment.description} />
+          <AssignmentQuestionCard assignment={assignment} />
         </section>
       ) : null}
 

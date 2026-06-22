@@ -2,9 +2,10 @@
 
 import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { Check, ChevronRight } from "lucide-react";
+import { Check, ChevronRight, Loader2, MessageSquare, Send } from "lucide-react";
 import { setAssignmentTaskCompletion } from "@/actions/assignments";
 import type { ExtraWorkItem } from "@/actions/extra-work";
+import { askQuestionAboutAssignment } from "@/actions/messages";
 import {
   enqueueOfflineWorkOrderAction,
   isOfflineNow,
@@ -58,6 +59,115 @@ export function CustomerNotes({ description }: { description: string | null }) {
           </p>
         )}
       </div>
+    </section>
+  );
+}
+
+export function AssignmentQuestionCard({ assignment }: { assignment: AssignmentView }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [question, setQuestion] = useState("");
+  const [ticketId, setTicketId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function submitQuestion() {
+    if (question.trim().length < 10) {
+      setError("Vul een vraag van minimaal 10 tekens in.");
+      return;
+    }
+
+    setError(null);
+    startTransition(async () => {
+      const result = await askQuestionAboutAssignment(
+        assignment.id,
+        question,
+        "assigned_work_order",
+      );
+
+      if (result.success) {
+        setTicketId(result.ticketId ?? null);
+        setQuestion("");
+        setIsOpen(false);
+      } else {
+        setError(result.error ?? "Vraag versturen mislukt");
+      }
+    });
+  }
+
+  return (
+    <section className="rounded-[18px] bg-white px-5 py-4 shadow-sm" style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" style={{ backgroundColor: "#E8FBFA", color: "var(--color-accent)" }}>
+            <MessageSquare size={19} strokeWidth={2.5} />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-[15px] font-black" style={{ color: "var(--color-primary)" }}>
+              Vraag aan planning
+            </h2>
+            <p className="mt-1 text-[13px] font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
+              Stel een vraag over deze werkbon. Planning reageert via Berichten.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsOpen((value) => !value)}
+          className="rounded-2xl px-3 py-2 text-[12px] font-black text-white"
+          style={{ backgroundColor: "var(--color-accent)" }}
+        >
+          Vraag
+        </button>
+      </div>
+
+      {ticketId ? (
+        <Link
+          href={`/berichten/${ticketId}`}
+          className="mt-3 inline-flex items-center gap-1.5 rounded-2xl px-3 py-2 text-[13px] font-black"
+          style={{ backgroundColor: "#E8F2FF", color: "#1D4ED8" }}
+        >
+          <MessageSquare size={14} />
+          Ticket bekijken
+        </Link>
+      ) : null}
+
+      {isOpen ? (
+        <div className="mt-4 rounded-2xl border p-3" style={{ borderColor: "var(--color-border)" }}>
+          <textarea
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            rows={4}
+            className="w-full resize-none rounded-2xl border px-4 py-3 text-[14px] font-semibold outline-none focus:border-[#00B7B3]"
+            placeholder={`Vraag over ${assignment.code}...`}
+          />
+          {error ? (
+            <p className="mt-2 text-[12px] font-bold" style={{ color: "var(--color-destructive)" }}>
+              {error}
+            </p>
+          ) : null}
+          <div className="mt-3 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="rounded-2xl px-4 py-2 text-[13px] font-black"
+              style={{ color: "var(--color-secondary)" }}
+              disabled={isPending}
+            >
+              Annuleren
+            </button>
+            <button
+              type="button"
+              onClick={submitQuestion}
+              disabled={isPending}
+              className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-[13px] font-black text-white disabled:opacity-60"
+              style={{ backgroundColor: "var(--color-accent)" }}
+            >
+              {isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+              Versturen
+            </button>
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }

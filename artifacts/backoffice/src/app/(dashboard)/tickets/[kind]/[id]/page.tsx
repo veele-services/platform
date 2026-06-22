@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, MessageSquare } from "lucide-react";
+import { ArrowLeft, CalendarDays, ExternalLink, MessageSquare } from "lucide-react";
 import { getTicket, type TicketKind } from "@/app/actions/tickets";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { hasPermission } from "@/lib/auth/permissions";
@@ -25,6 +25,22 @@ function formatDateTime(value: string) {
     hour: "2-digit",
     minute: "2-digit",
   }).format(new Date(value));
+}
+
+function formatAssignmentSlot(assignment: {
+  scheduledDate: string | null;
+  scheduledStart: string | null;
+  scheduledEnd: string | null;
+}) {
+  const date = assignment.scheduledDate
+    ? new Intl.DateTimeFormat("nl-NL", {
+        day: "2-digit",
+        month: "long",
+        year: "numeric",
+      }).format(new Date(`${assignment.scheduledDate}T00:00:00`))
+    : "Nog niet gepland";
+  const time = [assignment.scheduledStart, assignment.scheduledEnd].filter(Boolean).join(" - ");
+  return time ? `${date}, ${time}` : date;
 }
 
 function isTicketKind(value: string): value is TicketKind {
@@ -169,6 +185,38 @@ export default async function TicketDetailPage({
               <Meta label="Laatst bericht" value={formatDateTime(ticket.lastMessageAt)} />
             </dl>
           </section>
+
+          {ticket.assignment ? (
+            <section className="rounded-lg border bg-white p-4 shadow-sm" style={{ borderColor: "#BDEDEA" }}>
+              <div className="flex items-start gap-3">
+                <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#E8FBFA] text-[#087C79]">
+                  <CalendarDays size={20} strokeWidth={2.4} />
+                </span>
+                <div className="min-w-0">
+                  <p className="text-xs font-bold uppercase tracking-[0.12em] text-slate-400">
+                    Gekoppelde werkbon
+                  </p>
+                  <h2 className="mt-1 text-sm font-black" style={{ color: "#081D3A" }}>
+                    {ticket.assignment.code}
+                  </h2>
+                  <p className="mt-1 text-sm font-semibold text-slate-600">
+                    {ticket.assignment.title}
+                  </p>
+                  <p className="mt-2 text-xs font-bold text-slate-400">
+                    {formatAssignmentSlot(ticket.assignment)}
+                  </p>
+                  <Link
+                    href={`/assignments/${ticket.assignment.id}`}
+                    className="mt-3 inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-black text-white"
+                    style={{ backgroundColor: "#087C79" }}
+                  >
+                    Open werkbon
+                    <ExternalLink size={13} strokeWidth={2.4} />
+                  </Link>
+                </div>
+              </div>
+            </section>
+          ) : null}
 
           {canWrite ? (
             <StatusActions

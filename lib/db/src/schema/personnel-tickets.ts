@@ -5,10 +5,15 @@ import {
   text,
   timestamp,
   index,
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { assignmentsTable } from "./assignments";
 import { personnelTable } from "./personnel";
+import { assignmentInterestResponsesTable } from "./planning-intelligence";
+import { DEFAULT_TENANT_ID, tenantsTable } from "./tenants";
 
 export const PERSONNEL_TICKET_DEPARTMENTS = [
   "planning",
@@ -50,9 +55,20 @@ export const personnelMessageThreadsTable = pgTable(
   "personnel_message_threads",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
+      .references(() => tenantsTable.id, { onDelete: "cascade" }),
     personnelId: uuid("personnel_id")
       .notNull()
       .references(() => personnelTable.id, { onDelete: "cascade" }),
+    assignmentId: uuid("assignment_id").references(() => assignmentsTable.id, {
+      onDelete: "set null",
+    }),
+    interestResponseId: uuid("interest_response_id").references(
+      () => assignmentInterestResponsesTable.id,
+      { onDelete: "set null" },
+    ),
     subject: varchar("subject", { length: 180 }).notNull(),
     department: varchar("department", { length: 40 })
       .notNull()
@@ -84,6 +100,17 @@ export const personnelMessageThreadsTable = pgTable(
       table.personnelId,
       table.status,
     ),
+    index("personnel_msg_threads_tenant_status_idx").on(
+      table.tenantId,
+      table.status,
+    ),
+    index("personnel_msg_threads_assignment_idx").on(table.assignmentId),
+    index("personnel_msg_threads_interest_response_idx").on(
+      table.interestResponseId,
+    ),
+    uniqueIndex("personnel_msg_threads_open_assignment_question_idx")
+      .on(table.personnelId, table.assignmentId)
+      .where(sql`${table.assignmentId} IS NOT NULL AND ${table.status} <> 'closed'`),
     index("personnel_msg_threads_last_msg_idx").on(table.lastMessageAt),
   ],
 );

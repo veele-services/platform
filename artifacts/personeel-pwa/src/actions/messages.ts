@@ -1,6 +1,9 @@
 "use server";
 
 import {
+  assignmentInterestResponsesTable,
+  assignmentPersonnelTable,
+  assignmentsTable,
   db,
   personnelMessageEntriesTable,
   personnelMessageThreadsTable,
@@ -9,6 +12,7 @@ import {
   type PersonnelTicketPriority,
   type PersonnelTicketStatus,
 } from "@workspace/db";
+import { emitDomainEvent } from "@workspace/db/events";
 import { createClient } from "@/lib/supabase/server";
 import {
   TICKET_DEPARTMENT_OPTIONS,
@@ -49,10 +53,12 @@ export type TicketSummary = {
 };
 
 type ActionResult = { success: boolean; error?: string };
+type AssignmentQuestionResult = ActionResult & { ticketId?: string };
 
 async function getCurrentPersonnel(): Promise<{
   id: string;
   userId: string;
+  tenantId: string;
   name: string;
 } | null> {
   const supabase = await createClient();
@@ -64,6 +70,7 @@ async function getCurrentPersonnel(): Promise<{
   const [row] = await db
     .select({
       id: personnelTable.id,
+      tenantId: personnelTable.tenantId,
       userId: personnelTable.userId,
       firstName: personnelTable.firstName,
       lastName: personnelTable.lastName,
@@ -72,11 +79,12 @@ async function getCurrentPersonnel(): Promise<{
     .where(eq(personnelTable.userId, user.id))
     .limit(1);
 
-  if (!row.userId) return null;
+  if (!row?.userId) return null;
 
   return {
     id: row.id,
     userId: row.userId,
+    tenantId: row.tenantId,
     name: `${row.firstName} ${row.lastName}`.trim(),
   };
 }
@@ -92,6 +100,17 @@ function isDepartment(value: string): value is PersonnelTicketDepartment {
 
 function isPriority(value: string): value is PersonnelTicketPriority {
   return TICKET_PRIORITY_OPTIONS.some((option) => option.value === value);
+}
+
+function mapAssignmentPriority(value: string | null): PersonnelTicketPriority {
+  if (value === "urgent" || value === "high" || value === "low") return value;
+  return "normal";
+}
+
+function eventPriority(value: PersonnelTicketPriority): "low" | "normal" | "high" {
+  if (value === "urgent" || value === "high") return "high";
+  if (value === "low") return "low";
+  return "normal";
 }
 
 function mapThread(
@@ -256,6 +275,7 @@ export async function createMyTicket(
     const [thread] = await tx
       .insert(personnelMessageThreadsTable)
       .values({
+        tenantId: personnel.tenantId,
         personnelId: personnel.id,
         subject,
         department,
@@ -279,6 +299,223 @@ export async function createMyTicket(
 
   revalidatePath("/berichten");
   return { success: true };
+}
+
+export async function askQuestionAboutAssignment(
+  assignmentId: string,
+  body: string,
+  source: "open_assignment" | "assigned_work_order" = "open_assignment",
+): Promise<AssignmentQuestionResult> {
+  const personnel = await getCurrentPersonnel();
+  if (!personnel) return { success: false, error: "Niet ingelogd" };
+
+  const question = String(body ?? "").trim().slice(0, 4000);
+  if (question.length < 10) {
+    return { success: false, error: "Vul een vraag van minimaal 10 tekens in." };
+  }
+
+  const [assignment] = await db
+    .select({
+      id: assignmentsTable.id,
+      tenantId: assignmentsTable.tenantId,
+      code: assignmentsTable.code,
+      title: assignmentsTable.title,
+      status: assignmentsTable.status,
+      priority: assignmentsTable.priority,
+      scheduledDate: assignmentsTable.scheduledDate,
+      scheduledStart: assignmentsTable.scheduledStart,
+      scheduledEnd: assignmentsTable.scheduledEnd,
+      isActive: assignmentsTable.isActive,
+    })
+    .from(assignmentsTable)
+    .where(
+      and(
+        eq(assignmentsTable.id, assignmentId),
+        eq(assignmentsTable.tenantId, personnel.tenantId),
+        eq(assignmentsTable.isActive, true),
+      ),
+    )
+    .limit(1);
+
+  if (!assignment) {
+    return { success: false, error: "Opdracht niet gevonden of niet beschikbaar." };
+  }
+
+  const [assignedLink] = await db
+    .select({ id: assignmentPersonnelTable.id })
+    .from(assignmentPersonnelTable)
+    .where(
+      and(
+        eq(assignmentPersonnelTable.assignmentId, assignment.id),
+        eq(assignmentPersonnelTable.personnelId, personnel.id),
+        inArray(assignmentPersonnelTable.status, ["assigned", "suggested"]),
+      ),
+    )
+    .limit(1);
+
+  const [interestResponse] = await db
+    .select({
+      id: assignmentInterestResponsesTable.id,
+      status: assignmentInterestResponsesTable.status,
+      expiresAt: assignmentInterestResponsesTable.expiresAt,
+    })
+    .from(assignmentInterestResponsesTable)
+    .where(
+      and(
+        eq(assignmentInterestResponsesTable.assignmentId, assignment.id),
+        eq(assignmentInterestResponsesTable.personnelId, personnel.id),
+        eq(assignmentInterestResponsesTable.tenantId, personnel.tenantId),
+      ),
+    )
+    .orderBy(desc(assignmentInterestResponsesTable.createdAt))
+    .limit(1);
+
+  const hasUsableInterestResponse = Boolean(
+    interestResponse &&
+    !["cancelled", "expired", "unavailable"].includes(interestResponse.status) &&
+    (!interestResponse.expiresAt || interestResponse.expiresAt >= new Date()),
+  );
+  const usableInterestResponse =
+    hasUsableInterestResponse && interestResponse ? interestResponse : null;
+
+  if (!assignedLink && !hasUsableInterestResponse) {
+    return {
+      success: false,
+      error: "U kunt alleen vragen stellen over uitnodigingen of eigen werkbonnen.",
+    };
+  }
+
+  const priority = mapAssignmentPriority(assignment.priority);
+  const subject = `Vraag over ${assignment.code || assignment.title}`;
+  const preview = question.slice(0, 220);
+
+  const ticketId = await db.transaction(async (tx) => {
+    const [existingThread] = await tx
+      .select({
+        id: personnelMessageThreadsTable.id,
+        department: personnelMessageThreadsTable.department,
+      })
+      .from(personnelMessageThreadsTable)
+      .where(
+        and(
+          eq(personnelMessageThreadsTable.personnelId, personnel.id),
+          eq(personnelMessageThreadsTable.assignmentId, assignment.id),
+          ne(personnelMessageThreadsTable.status, "closed"),
+        ),
+      )
+      .orderBy(desc(personnelMessageThreadsTable.lastMessageAt))
+      .limit(1);
+
+    const now = new Date();
+    const threadId = existingThread?.id ?? (await tx
+      .insert(personnelMessageThreadsTable)
+      .values({
+        tenantId: personnel.tenantId,
+        personnelId: personnel.id,
+        assignmentId: assignment.id,
+        interestResponseId: usableInterestResponse?.id ?? null,
+        subject,
+        department: "planning",
+        priority,
+        status: "waiting_backoffice",
+        lastMessagePreview: preview,
+        lastMessageAt: now,
+      })
+      .returning({ id: personnelMessageThreadsTable.id }))[0]?.id;
+
+    if (!threadId) {
+      throw new Error("Ticket kon niet worden aangemaakt.");
+    }
+
+    await tx.insert(personnelMessageEntriesTable).values({
+      threadId,
+      authorType: "personnel",
+      authorUserId: personnel.userId,
+      authorName: personnel.name,
+      department: existingThread?.department ?? "planning",
+      body: question,
+      readByPersonnelAt: now,
+    });
+
+    await tx
+      .update(personnelMessageThreadsTable)
+      .set({
+        tenantId: personnel.tenantId,
+        assignmentId: assignment.id,
+        interestResponseId: usableInterestResponse?.id ?? null,
+        status: "waiting_backoffice",
+        closedAt: null,
+        lastMessagePreview: preview,
+        lastMessageAt: now,
+        updatedAt: now,
+      })
+      .where(eq(personnelMessageThreadsTable.id, threadId));
+
+    if (
+      usableInterestResponse &&
+      ["invited", "viewed", "interested", "question"].includes(usableInterestResponse.status)
+    ) {
+      await tx
+        .update(assignmentInterestResponsesTable)
+        .set({
+          status: "question",
+          responseNote: question,
+          respondedAt: now,
+          updatedAt: now,
+        })
+        .where(eq(assignmentInterestResponsesTable.id, usableInterestResponse.id));
+    }
+
+    return threadId;
+  });
+
+  await emitDomainEvent({
+    eventKey: "personnel_assignment_question_created",
+    tenantId: personnel.tenantId,
+    actorUserId: personnel.userId,
+    audience: "management",
+    aggregate: { type: "personnel_message_thread", id: ticketId },
+    payload: {
+      personnel: { id: personnel.id, name: personnel.name },
+      assignment: {
+        id: assignment.id,
+        code: assignment.code,
+        title: assignment.title,
+        status: assignment.status,
+        scheduledDate: assignment.scheduledDate,
+        scheduledStart: assignment.scheduledStart,
+        scheduledEnd: assignment.scheduledEnd,
+      },
+      ticket: { id: ticketId, subject },
+      href: `/tickets/personnel/${ticketId}`,
+    },
+    fallback: {
+      title: `Vraag over ${assignment.code || "werkbon"}`,
+      body: `${personnel.name} heeft een vraag gesteld over ${assignment.code || assignment.title}.`,
+      category: "message",
+      priority: eventPriority(priority),
+      href: `/tickets/personnel/${ticketId}`,
+      sourceLabel: "Personeelsapp",
+    },
+    audit: {
+      action: "create_assignment_question_ticket",
+      resource: "personnel_message_threads",
+      resourceId: ticketId,
+      metadata: {
+        assignmentId: assignment.id,
+        personnelId: personnel.id,
+        interestResponseId: usableInterestResponse?.id ?? null,
+        source,
+      },
+    },
+  });
+
+  revalidatePath("/berichten");
+  revalidatePath(`/berichten/${ticketId}`);
+  revalidatePath("/openstaand");
+  revalidatePath(`/opdrachten/${assignment.id}`);
+
+  return { success: true, ticketId };
 }
 
 export async function replyToMyTicket(
