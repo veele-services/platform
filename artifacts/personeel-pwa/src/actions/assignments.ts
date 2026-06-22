@@ -43,9 +43,10 @@ export type MyAssignmentDetail = MyAssignment & {
   }[];
 };
 
-type PersonnelBasic = { id: string; region: string | null };
+type PersonnelBasic = { id: string; tenantId: string; region: string | null };
 
 type LinkedAssignment = {
+  tenantId:                   string;
   status:                    string;
   seenAt:                    Date | null;
   actualStartedAt:           Date | null;
@@ -73,10 +74,11 @@ async function getPersonnelBasic(
 ): Promise<PersonnelBasic | null> {
   const { data } = await supabase
     .from("personnel")
-    .select("id, region")
+    .select("id, tenant_id, region, is_active")
     .eq("user_id", userId)
+    .eq("is_active", true)
     .single();
-  return data ? { id: data.id, region: data.region ?? null } : null;
+  return data ? { id: data.id, tenantId: data.tenant_id, region: data.region ?? null } : null;
 }
 
 /** Returns true if the assignment is region-compatible with the personnel member. */
@@ -100,6 +102,7 @@ export async function getMyAssignments(): Promise<MyAssignment[]> {
     .select(`
       assignments!inner(
         id, code, title, scheduled_date, scheduled_start, scheduled_end,
+        tenant_id,
         seen_at, actual_started_at, actual_completed_at,
         completion_reason, completion_notes,
         customer_signature_required, customer_signature_data_url,
@@ -110,7 +113,8 @@ export async function getMyAssignments(): Promise<MyAssignment[]> {
       )
     `)
     .eq("personnel_id", personnel.id)
-    .eq("status", "assigned");
+    .eq("status", "assigned")
+    .eq("assignments.tenant_id", personnel.tenantId);
 
   if (!data) return [];
 
@@ -170,6 +174,7 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
     .select(`
       assignments!inner(
         id, code, title, description, scheduled_date, scheduled_start, scheduled_end,
+        tenant_id,
         seen_at, actual_started_at, actual_completed_at,
         completion_reason, completion_notes,
         customer_signature_required, customer_signature_data_url,
@@ -183,6 +188,7 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
     .eq("personnel_id", personnel.id)
     .eq("assignment_id", id)
     .eq("status", "assigned")
+    .eq("assignments.tenant_id", personnel.tenantId)
     .single();
 
   if (!data) return null;
@@ -235,10 +241,12 @@ const STATUS_TRANSITIONS: Record<string, string[]> = {
 
 async function getLinkedAssignment(
   personnelId: string,
+  tenantId: string,
   assignmentId: string,
 ): Promise<LinkedAssignment | null> {
   const [row] = await db
     .select({
+      tenantId:                   assignmentsTable.tenantId,
       status:                    assignmentsTable.status,
       seenAt:                    assignmentsTable.seenAt,
       actualStartedAt:           assignmentsTable.actualStartedAt,
@@ -252,6 +260,7 @@ async function getLinkedAssignment(
         eq(assignmentPersonnelTable.personnelId, personnelId),
         eq(assignmentPersonnelTable.assignmentId, assignmentId),
         eq(assignmentPersonnelTable.status, "assigned"),
+        eq(assignmentsTable.tenantId, tenantId),
       ),
     )
     .limit(1);
@@ -300,7 +309,7 @@ export async function setAssignmentStatus(
   const personnel = await getPersonnelBasic(supabase, user.id);
   if (!personnel) return { success: false, error: "Personeelsprofiel niet gevonden" };
 
-  const current = await getLinkedAssignment(personnel.id, assignmentId);
+  const current = await getLinkedAssignment(personnel.id, personnel.tenantId, assignmentId);
   if (!current) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
 
   const currentStatus = current.status;
@@ -331,7 +340,7 @@ export async function setAssignmentStatus(
     await db
       .update(assignmentsTable)
       .set(updateValues)
-      .where(eq(assignmentsTable.id, assignmentId));
+      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)));
   } catch {
     return { success: false, error: "Bijwerken mislukt" };
   }
@@ -375,7 +384,7 @@ export async function setAssignmentTaskCompletion(
   const personnel = await getPersonnelBasic(supabase, user.id);
   if (!personnel) return { success: false, error: "Personeelsprofiel niet gevonden" };
 
-  const current = await getLinkedAssignment(personnel.id, assignmentId);
+  const current = await getLinkedAssignment(personnel.id, personnel.tenantId, assignmentId);
   if (!current) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
   if (["report_submitted", "report_approved", "invoice_ready", "invoiced", "paid", "closed"].includes(current.status)) {
     return { success: false, error: "Deze werkbon is afgesloten voor wijzigingen" };
@@ -401,7 +410,12 @@ export async function setAssignmentTaskCompletion(
         completedAt: completed ? new Date() : null,
         completedBy: completed ? user.id : null,
       })
-      .where(eq(assignmentTasksTable.id, taskId));
+      .where(
+        and(
+          eq(assignmentTasksTable.id, taskId),
+          eq(assignmentTasksTable.assignmentId, assignmentId),
+        ),
+      );
   } catch {
     return { success: false, error: "Taak bijwerken mislukt" };
   }
@@ -421,7 +435,7 @@ export async function completeAssignment(
   const personnel = await getPersonnelBasic(supabase, user.id);
   if (!personnel) return { success: false, error: "Personeelsprofiel niet gevonden" };
 
-  const current = await getLinkedAssignment(personnel.id, assignmentId);
+  const current = await getLinkedAssignment(personnel.id, personnel.tenantId, assignmentId);
   if (!current) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
   if (current.status !== "in_progress") {
     return { success: false, error: "Start de werkbon voordat je deze afrondt" };
@@ -446,7 +460,7 @@ export async function completeAssignment(
         customerSignedAt:         isSignatureDataUrl(signature) ? now : null,
         updatedAt:                now,
       })
-      .where(eq(assignmentsTable.id, assignmentId));
+      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)));
   } catch {
     return { success: false, error: "Afronden mislukt" };
   }
@@ -473,7 +487,7 @@ export async function notCompleteAssignment(
   const personnel = await getPersonnelBasic(supabase, user.id);
   if (!personnel) return { success: false, error: "Personeelsprofiel niet gevonden" };
 
-  const current = await getLinkedAssignment(personnel.id, assignmentId);
+  const current = await getLinkedAssignment(personnel.id, personnel.tenantId, assignmentId);
   if (!current) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
   if (current.status !== "in_progress") {
     return { success: false, error: "Start de werkbon voordat je deze afmeldt" };
@@ -502,7 +516,7 @@ export async function notCompleteAssignment(
         customerSignedAt:         null,
         updatedAt:                now,
       })
-      .where(eq(assignmentsTable.id, assignmentId));
+      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)));
   } catch {
     return { success: false, error: "Afmelden mislukt" };
   }

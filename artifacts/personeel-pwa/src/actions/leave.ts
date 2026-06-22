@@ -25,6 +25,7 @@ async function getPersonnelId(
     .from("personnel")
     .select("id")
     .eq("user_id", userId)
+    .eq("is_active", true)
     .single();
   return data?.id ?? null;
 }

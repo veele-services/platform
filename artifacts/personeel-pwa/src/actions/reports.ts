@@ -96,33 +96,26 @@ export type MyReport = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-async function getPersonnelId(): Promise<string | null> {
+async function getPersonnelIdentity(): Promise<{ userId: string; personnelId: string; tenantId: string } | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
   const [row] = await db
-    .select({ id: personnelTable.id })
+    .select({ id: personnelTable.id, tenantId: personnelTable.tenantId })
     .from(personnelTable)
-    .where(eq(personnelTable.userId, user.id))
+    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
     .limit(1);
 
-  return row?.id ?? null;
+  return row ? { userId: user.id, personnelId: row.id, tenantId: row.tenantId } : null;
 }
 
-async function getAuthAndPersonnel(): Promise<{ userId: string; personnelId: string } | null> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+async function getPersonnelId(): Promise<string | null> {
+  return (await getPersonnelIdentity())?.personnelId ?? null;
+}
 
-  const [row] = await db
-    .select({ id: personnelTable.id })
-    .from(personnelTable)
-    .where(eq(personnelTable.userId, user.id))
-    .limit(1);
-
-  if (!row) return null;
-  return { userId: user.id, personnelId: row.id };
+async function getAuthAndPersonnel(): Promise<{ userId: string; personnelId: string; tenantId: string } | null> {
+  return getPersonnelIdentity();
 }
 
 /**
@@ -131,16 +124,19 @@ async function getAuthAndPersonnel(): Promise<{ userId: string; personnelId: str
  */
 async function isLinkedToAssignment(
   personnelId: string,
+  tenantId: string,
   assignmentId: string,
 ): Promise<boolean> {
   const [row] = await db
     .select({ id: assignmentPersonnelTable.id })
     .from(assignmentPersonnelTable)
+    .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
     .where(
       and(
         eq(assignmentPersonnelTable.personnelId, personnelId),
         eq(assignmentPersonnelTable.assignmentId, assignmentId),
         eq(assignmentPersonnelTable.status, "assigned"),
+        eq(assignmentsTable.tenantId, tenantId),
       ),
     )
     .limit(1);
@@ -208,7 +204,7 @@ export async function prepareReportNoteAttachmentUploads(
   const auth = await getAuthAndPersonnel();
   if (!auth) return { success: false, error: "Niet ingelogd" };
 
-  const linked = await isLinkedToAssignment(auth.personnelId, assignmentId);
+  const linked = await isLinkedToAssignment(auth.personnelId, auth.tenantId, assignmentId);
   if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
 
   if (files.length === 0) return { success: true, uploads: [] };
@@ -217,9 +213,9 @@ export async function prepareReportNoteAttachmentUploads(
   }
 
   const [assignment] = await db
-    .select({ status: assignmentsTable.status })
+    .select({ status: assignmentsTable.status, tenantId: assignmentsTable.tenantId })
     .from(assignmentsTable)
-    .where(eq(assignmentsTable.id, assignmentId))
+    .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, auth.tenantId)))
     .limit(1);
 
   if (!assignment) return { success: false, error: "Opdracht niet gevonden" };
@@ -278,10 +274,10 @@ export async function prepareReportNoteAttachmentUploads(
 export async function getMyReportForAssignment(
   assignmentId: string,
 ): Promise<MyReport | null> {
-  const personnelId = await getPersonnelId();
-  if (!personnelId) return null;
+  const identity = await getPersonnelIdentity();
+  if (!identity) return null;
 
-  const linked = await isLinkedToAssignment(personnelId, assignmentId);
+  const linked = await isLinkedToAssignment(identity.personnelId, identity.tenantId, assignmentId);
   if (!linked) return null;
 
   const supabase = await createClient();
@@ -337,7 +333,7 @@ export async function getReportNotesForAssignment(
   const auth = await getAuthAndPersonnel();
   if (!auth) return [];
 
-  const linked = await isLinkedToAssignment(auth.personnelId, assignmentId);
+  const linked = await isLinkedToAssignment(auth.personnelId, auth.tenantId, assignmentId);
   if (!linked) return [];
 
   const [publicAuthorName, notes] = await Promise.all([
@@ -399,9 +395,8 @@ export async function getMyReportStatusMap(
 ): Promise<Record<string, string>> {
   if (assignmentIds.length === 0) return {};
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return {};
+  const identity = await getPersonnelIdentity();
+  if (!identity) return {};
 
   const rows = await db
     .select({
@@ -409,9 +404,19 @@ export async function getMyReportStatusMap(
       status:       reportsTable.status,
     })
     .from(reportsTable)
+    .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
+    .innerJoin(
+      assignmentPersonnelTable,
+      and(
+        eq(assignmentPersonnelTable.assignmentId, reportsTable.assignmentId),
+        eq(assignmentPersonnelTable.personnelId, identity.personnelId),
+        eq(assignmentPersonnelTable.status, "assigned"),
+      ),
+    )
     .where(
       and(
-        eq(reportsTable.submittedBy, user.id),
+        eq(reportsTable.submittedBy, identity.userId),
+        eq(assignmentsTable.tenantId, identity.tenantId),
         inArray(reportsTable.assignmentId, assignmentIds),
       ),
     );
@@ -439,19 +444,20 @@ export async function getMyAssignmentsAwaitingReport(): Promise<AssignmentAwaiti
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const personnelId = await getPersonnelId();
-  if (!personnelId) return [];
+  const identity = await getPersonnelIdentity();
+  if (!identity) return [];
 
   // Fetch assignments linked to this worker that are awaiting a report
   const { data: apRows } = await supabase
     .from("assignment_personnel")
     .select(`
       assignments!inner(
-        id, code, title, scheduled_date, status
+        id, code, title, scheduled_date, status, tenant_id
       )
     `)
-    .eq("personnel_id", personnelId)
+    .eq("personnel_id", identity.personnelId)
     .eq("status", "assigned")
+    .eq("assignments.tenant_id", identity.tenantId)
     .in("assignments.status", ["completed", "not_completed"]);
 
   if (!apRows || apRows.length === 0) return [];
@@ -514,7 +520,7 @@ export async function addReportNote(
   const auth = await getAuthAndPersonnel();
   if (!auth) return { success: false, error: "Niet ingelogd" };
 
-  const linked = await isLinkedToAssignment(auth.personnelId, assignmentId);
+  const linked = await isLinkedToAssignment(auth.personnelId, auth.tenantId, assignmentId);
   if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
 
   const body = input.body.trim();
@@ -620,10 +626,10 @@ export async function submitMyReport(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Niet ingelogd" };
 
-  const personnelId = await getPersonnelId();
-  if (!personnelId) return { success: false, error: "Personeelsprofiel niet gevonden" };
+  const identity = await getPersonnelIdentity();
+  if (!identity) return { success: false, error: "Personeelsprofiel niet gevonden" };
 
-  const linked = await isLinkedToAssignment(personnelId, assignmentId);
+  const linked = await isLinkedToAssignment(identity.personnelId, identity.tenantId, assignmentId);
   if (!linked) return { success: false, error: "U bent niet gekoppeld aan deze opdracht" };
 
   // Validate content
@@ -673,13 +679,13 @@ export async function submitMyReport(
     await db
       .update(assignmentsTable)
       .set({ status: "report_submitted", updatedAt: new Date() })
-      .where(eq(assignmentsTable.id, assignmentId));
+      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, identity.tenantId)));
 
     // Notify org admin — fire-and-forget
     const [person] = await db
       .select({ firstName: personnelTable.firstName, lastName: personnelTable.lastName })
       .from(personnelTable)
-      .where(eq(personnelTable.id, personnelId))
+      .where(and(eq(personnelTable.id, identity.personnelId), eq(personnelTable.tenantId, identity.tenantId)))
       .limit(1);
 
     void (async () => {

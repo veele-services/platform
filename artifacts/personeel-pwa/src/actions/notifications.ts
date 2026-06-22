@@ -28,7 +28,7 @@ export type NotificationSummary = {
 
 type ActionResult = { success: boolean; error?: string };
 
-async function getCurrentPersonnelId(): Promise<string | null> {
+async function getCurrentPersonnelIdentity(): Promise<{ personnelId: string; tenantId: string } | null> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -36,12 +36,12 @@ async function getCurrentPersonnelId(): Promise<string | null> {
   if (!user) return null;
 
   const [row] = await db
-    .select({ id: personnelTable.id })
+    .select({ id: personnelTable.id, tenantId: personnelTable.tenantId })
     .from(personnelTable)
-    .where(eq(personnelTable.userId, user.id))
+    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
     .limit(1);
 
-  return row?.id ?? null;
+  return row ? { personnelId: row.id, tenantId: row.tenantId } : null;
 }
 
 function mapNotification(
@@ -67,15 +67,16 @@ function revalidateNotificationSurfaces() {
 }
 
 export async function getMyNotifications(): Promise<PersonnelNotificationItem[]> {
-  const personnelId = await getCurrentPersonnelId();
-  if (!personnelId) return [];
+  const identity = await getCurrentPersonnelIdentity();
+  if (!identity) return [];
 
   const rows = await db
     .select()
     .from(personnelNotificationsTable)
     .where(
       and(
-        eq(personnelNotificationsTable.personnelId, personnelId),
+        eq(personnelNotificationsTable.personnelId, identity.personnelId),
+        eq(personnelNotificationsTable.tenantId, identity.tenantId),
         isNull(personnelNotificationsTable.deletedAt),
       ),
     )
@@ -86,15 +87,16 @@ export async function getMyNotifications(): Promise<PersonnelNotificationItem[]>
 }
 
 export async function getMyNotificationSummary(): Promise<NotificationSummary> {
-  const personnelId = await getCurrentPersonnelId();
-  if (!personnelId) return { unreadCount: 0, recentUnread: [] };
+  const identity = await getCurrentPersonnelIdentity();
+  if (!identity) return { unreadCount: 0, recentUnread: [] };
 
   const unreadRows = await db
     .select()
     .from(personnelNotificationsTable)
     .where(
       and(
-        eq(personnelNotificationsTable.personnelId, personnelId),
+        eq(personnelNotificationsTable.personnelId, identity.personnelId),
+        eq(personnelNotificationsTable.tenantId, identity.tenantId),
         isNull(personnelNotificationsTable.deletedAt),
         isNull(personnelNotificationsTable.readAt),
       ),
@@ -109,8 +111,8 @@ export async function getMyNotificationSummary(): Promise<NotificationSummary> {
 }
 
 export async function markNotificationRead(id: string): Promise<ActionResult> {
-  const personnelId = await getCurrentPersonnelId();
-  if (!personnelId) return { success: false, error: "Niet ingelogd" };
+  const identity = await getCurrentPersonnelIdentity();
+  if (!identity) return { success: false, error: "Niet ingelogd" };
 
   await db
     .update(personnelNotificationsTable)
@@ -118,7 +120,8 @@ export async function markNotificationRead(id: string): Promise<ActionResult> {
     .where(
       and(
         eq(personnelNotificationsTable.id, id),
-        eq(personnelNotificationsTable.personnelId, personnelId),
+        eq(personnelNotificationsTable.personnelId, identity.personnelId),
+        eq(personnelNotificationsTable.tenantId, identity.tenantId),
         isNull(personnelNotificationsTable.deletedAt),
       ),
     );
@@ -128,8 +131,8 @@ export async function markNotificationRead(id: string): Promise<ActionResult> {
 }
 
 export async function markNotificationUnread(id: string): Promise<ActionResult> {
-  const personnelId = await getCurrentPersonnelId();
-  if (!personnelId) return { success: false, error: "Niet ingelogd" };
+  const identity = await getCurrentPersonnelIdentity();
+  if (!identity) return { success: false, error: "Niet ingelogd" };
 
   await db
     .update(personnelNotificationsTable)
@@ -137,7 +140,8 @@ export async function markNotificationUnread(id: string): Promise<ActionResult> 
     .where(
       and(
         eq(personnelNotificationsTable.id, id),
-        eq(personnelNotificationsTable.personnelId, personnelId),
+        eq(personnelNotificationsTable.personnelId, identity.personnelId),
+        eq(personnelNotificationsTable.tenantId, identity.tenantId),
         isNull(personnelNotificationsTable.deletedAt),
       ),
     );
@@ -147,15 +151,16 @@ export async function markNotificationUnread(id: string): Promise<ActionResult> 
 }
 
 export async function markAllNotificationsRead(): Promise<ActionResult> {
-  const personnelId = await getCurrentPersonnelId();
-  if (!personnelId) return { success: false, error: "Niet ingelogd" };
+  const identity = await getCurrentPersonnelIdentity();
+  if (!identity) return { success: false, error: "Niet ingelogd" };
 
   await db
     .update(personnelNotificationsTable)
     .set({ readAt: new Date() })
     .where(
       and(
-        eq(personnelNotificationsTable.personnelId, personnelId),
+        eq(personnelNotificationsTable.personnelId, identity.personnelId),
+        eq(personnelNotificationsTable.tenantId, identity.tenantId),
         isNull(personnelNotificationsTable.deletedAt),
       ),
     );
@@ -165,15 +170,16 @@ export async function markAllNotificationsRead(): Promise<ActionResult> {
 }
 
 export async function markAllNotificationsUnread(): Promise<ActionResult> {
-  const personnelId = await getCurrentPersonnelId();
-  if (!personnelId) return { success: false, error: "Niet ingelogd" };
+  const identity = await getCurrentPersonnelIdentity();
+  if (!identity) return { success: false, error: "Niet ingelogd" };
 
   await db
     .update(personnelNotificationsTable)
     .set({ readAt: null })
     .where(
       and(
-        eq(personnelNotificationsTable.personnelId, personnelId),
+        eq(personnelNotificationsTable.personnelId, identity.personnelId),
+        eq(personnelNotificationsTable.tenantId, identity.tenantId),
         isNull(personnelNotificationsTable.deletedAt),
       ),
     );
@@ -187,8 +193,8 @@ export async function deleteNotification(id: string): Promise<ActionResult> {
 }
 
 export async function deleteNotifications(ids: string[]): Promise<ActionResult> {
-  const personnelId = await getCurrentPersonnelId();
-  if (!personnelId) return { success: false, error: "Niet ingelogd" };
+  const identity = await getCurrentPersonnelIdentity();
+  if (!identity) return { success: false, error: "Niet ingelogd" };
   const cleanIds = ids.filter(Boolean);
   if (cleanIds.length === 0) return { success: true };
 
@@ -197,7 +203,8 @@ export async function deleteNotifications(ids: string[]): Promise<ActionResult> 
     .set({ deletedAt: new Date() })
     .where(
       and(
-        eq(personnelNotificationsTable.personnelId, personnelId),
+        eq(personnelNotificationsTable.personnelId, identity.personnelId),
+        eq(personnelNotificationsTable.tenantId, identity.tenantId),
         inArray(personnelNotificationsTable.id, cleanIds),
         isNull(personnelNotificationsTable.deletedAt),
       ),
@@ -208,15 +215,16 @@ export async function deleteNotifications(ids: string[]): Promise<ActionResult> 
 }
 
 export async function clearAllNotifications(): Promise<ActionResult> {
-  const personnelId = await getCurrentPersonnelId();
-  if (!personnelId) return { success: false, error: "Niet ingelogd" };
+  const identity = await getCurrentPersonnelIdentity();
+  if (!identity) return { success: false, error: "Niet ingelogd" };
 
   await db
     .update(personnelNotificationsTable)
     .set({ deletedAt: new Date() })
     .where(
       and(
-        eq(personnelNotificationsTable.personnelId, personnelId),
+        eq(personnelNotificationsTable.personnelId, identity.personnelId),
+        eq(personnelNotificationsTable.tenantId, identity.tenantId),
         isNull(personnelNotificationsTable.deletedAt),
       ),
     );

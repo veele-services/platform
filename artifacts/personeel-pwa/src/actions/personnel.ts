@@ -4,7 +4,7 @@ import { db, personnelTable } from "@workspace/db";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 
 export type PersonnelProfile = {
   id: string;
@@ -129,6 +129,7 @@ export async function getMyPersonnel(): Promise<PersonnelProfile | null> {
     .from("personnel")
     .select(PERSONNEL_SELECT)
     .eq("user_id", user.id)
+    .eq("is_active", true)
     .single();
 
   if (byId) return mapProfile(byId);
@@ -143,6 +144,7 @@ export async function getMyPersonnel(): Promise<PersonnelProfile | null> {
     .from("personnel")
     .select("id, user_id, invite_sent_at")
     .eq("email", user.email!)
+    .eq("is_active", true)
     .is("user_id", null)
     .not("invite_sent_at", "is", null)
     .single();
@@ -162,6 +164,7 @@ export async function getMyPersonnel(): Promise<PersonnelProfile | null> {
     .from("personnel")
     .select(PERSONNEL_SELECT)
     .eq("user_id", user.id)
+    .eq("is_active", true)
     .single();
 
   return linked ? mapProfile(linked) : null;
@@ -186,7 +189,7 @@ export async function updateMyPhone(
       profileUpdatedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(personnelTable.userId, user.id))
+    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
     .returning({ id: personnelTable.id });
 
   if (!updated) {
@@ -234,7 +237,7 @@ export async function updateMyProfile(
       profileUpdatedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(personnelTable.userId, user.id))
+    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
     .returning({ id: personnelTable.id });
 
   if (!updated) {
@@ -277,7 +280,7 @@ export async function uploadMyAvatar(
       avatarPath: personnelTable.avatarPath,
     })
     .from(personnelTable)
-    .where(eq(personnelTable.userId, user.id))
+    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
     .limit(1);
 
   if (!personnel) {
@@ -307,7 +310,7 @@ export async function uploadMyAvatar(
       profileUpdatedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(personnelTable.id, personnel.id));
+    .where(and(eq(personnelTable.id, personnel.id), eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)));
 
   if (personnel.avatarPath && personnel.avatarPath !== path) {
     await admin.storage.from("personnel-avatars").remove([personnel.avatarPath]);
@@ -336,7 +339,7 @@ export async function updateMyNotificationSettings(
       profileUpdatedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(eq(personnelTable.userId, user.id))
+    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
     .returning({ id: personnelTable.id });
 
   if (!updated) {

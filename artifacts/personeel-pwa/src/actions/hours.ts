@@ -1,9 +1,29 @@
 "use server";
 
 import { db } from "@workspace/db";
-import { reportsTable, assignmentsTable, objectsTable } from "@workspace/db";
+import {
+  reportsTable,
+  assignmentsTable,
+  assignmentPersonnelTable,
+  objectsTable,
+  personnelTable,
+} from "@workspace/db";
 import { eq, and, asc, desc } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
+
+async function getPersonnelIdentity(): Promise<{ userId: string; personnelId: string; tenantId: string } | null> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+
+  const [row] = await db
+    .select({ id: personnelTable.id, tenantId: personnelTable.tenantId })
+    .from(personnelTable)
+    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
+    .limit(1);
+
+  return row ? { userId: user.id, personnelId: row.id, tenantId: row.tenantId } : null;
+}
 
 export type HoursEntry = {
   reportId:        string;
@@ -112,8 +132,7 @@ function resolveWorkDate(scheduledDate: string | null, submittedAt: Date): strin
  * scheduled date.
  */
 export async function getMyWeeklyHours(weekStart?: string | null): Promise<WeeklyHoursSummary> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const identity = await getPersonnelIdentity();
 
   const normalizedWeekStart = normalizeWeekStart(weekStart);
   const normalizedWeekEnd = addDays(normalizedWeekStart, 6);
@@ -133,7 +152,7 @@ export async function getMyWeeklyHours(weekStart?: string | null): Promise<Weekl
     days,
   };
 
-  if (!user) return emptySummary;
+  if (!identity) return emptySummary;
 
   const rows = await db
     .select({
@@ -151,10 +170,19 @@ export async function getMyWeeklyHours(weekStart?: string | null): Promise<Weekl
     })
     .from(reportsTable)
     .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
+    .innerJoin(
+      assignmentPersonnelTable,
+      and(
+        eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id),
+        eq(assignmentPersonnelTable.personnelId, identity.personnelId),
+        eq(assignmentPersonnelTable.status, "assigned"),
+      ),
+    )
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
     .where(
       and(
-        eq(reportsTable.submittedBy, user.id),
+        eq(reportsTable.submittedBy, identity.userId),
+        eq(assignmentsTable.tenantId, identity.tenantId),
         eq(reportsTable.status, "approved"),
       ),
     )
@@ -211,9 +239,8 @@ export async function getMyWeeklyHours(weekStart?: string | null): Promise<Weekl
  * Uses Drizzle (service-role connection) to bypass RLS on reports.
  */
 export async function getMyHours(): Promise<MonthSummary[]> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  const identity = await getPersonnelIdentity();
+  if (!identity) return [];
 
   const rows = await db
     .select({
@@ -226,9 +253,18 @@ export async function getMyHours(): Promise<MonthSummary[]> {
     })
     .from(reportsTable)
     .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
+    .innerJoin(
+      assignmentPersonnelTable,
+      and(
+        eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id),
+        eq(assignmentPersonnelTable.personnelId, identity.personnelId),
+        eq(assignmentPersonnelTable.status, "assigned"),
+      ),
+    )
     .where(
       and(
-        eq(reportsTable.submittedBy, user.id),
+        eq(reportsTable.submittedBy, identity.userId),
+        eq(assignmentsTable.tenantId, identity.tenantId),
         eq(reportsTable.status, "approved"),
       ),
     )

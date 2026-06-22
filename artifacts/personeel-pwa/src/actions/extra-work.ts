@@ -90,30 +90,32 @@ export type PreparedExtraWorkPhotoUpload = {
 
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
-async function getAuthAndPersonnel(): Promise<{ userId: string; personnelId: string } | null> {
+async function getAuthAndPersonnel(): Promise<{ userId: string; personnelId: string; tenantId: string } | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
   const [row] = await db
-    .select({ id: personnelTable.id })
+    .select({ id: personnelTable.id, tenantId: personnelTable.tenantId })
     .from(personnelTable)
-    .where(eq(personnelTable.userId, user.id))
+    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
     .limit(1);
 
   if (!row) return null;
-  return { userId: user.id, personnelId: row.id };
+  return { userId: user.id, personnelId: row.id, tenantId: row.tenantId };
 }
 
-async function isLinked(personnelId: string, assignmentId: string): Promise<boolean> {
+async function isLinked(personnelId: string, tenantId: string, assignmentId: string): Promise<boolean> {
   const [row] = await db
     .select({ id: assignmentPersonnelTable.id })
     .from(assignmentPersonnelTable)
+    .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
     .where(
       and(
         eq(assignmentPersonnelTable.personnelId, personnelId),
         eq(assignmentPersonnelTable.assignmentId, assignmentId),
         eq(assignmentPersonnelTable.status, "assigned"),
+        eq(assignmentsTable.tenantId, tenantId),
       ),
     )
     .limit(1);
@@ -174,7 +176,7 @@ export async function getExtraWorkForAssignment(assignmentId: string): Promise<E
   const auth = await getAuthAndPersonnel();
   if (!auth) return [];
 
-  const linked = await isLinked(auth.personnelId, assignmentId);
+  const linked = await isLinked(auth.personnelId, auth.tenantId, assignmentId);
   if (!linked) return [];
 
   const items = await db
@@ -224,7 +226,7 @@ export async function addExtraWork(
   const auth = await getAuthAndPersonnel();
   if (!auth) return { success: false, error: "Niet ingelogd" };
 
-  const linked = await isLinked(auth.personnelId, assignmentId);
+  const linked = await isLinked(auth.personnelId, auth.tenantId, assignmentId);
   if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
 
   const editable = await isAssignmentEditable(assignmentId);
@@ -275,7 +277,7 @@ export async function updateExtraWork(
   if (item.assignmentId !== assignmentId) return { success: false, error: "Niet gevonden" };
 
   // Re-check current assignment linkage (personnel may have been unlinked after initial edit)
-  const linked = await isLinked(auth.personnelId, assignmentId);
+  const linked = await isLinked(auth.personnelId, auth.tenantId, assignmentId);
   if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
 
   const editable = await isAssignmentEditable(assignmentId);
@@ -319,7 +321,7 @@ export async function deleteExtraWork(
   if (item.assignmentId !== assignmentId) return { success: false, error: "Niet gevonden" };
 
   // Re-check current assignment linkage (personnel may have been unlinked after initial edit)
-  const linked = await isLinked(auth.personnelId, assignmentId);
+  const linked = await isLinked(auth.personnelId, auth.tenantId, assignmentId);
   if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
 
   const editable = await isAssignmentEditable(assignmentId);
@@ -359,7 +361,7 @@ export async function prepareExtraWorkPhotoUpload(
   const auth = await getAuthAndPersonnel();
   if (!auth) return { success: false, error: "Niet ingelogd" };
 
-  const linked = await isLinked(auth.personnelId, assignmentId);
+  const linked = await isLinked(auth.personnelId, auth.tenantId, assignmentId);
   if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
 
   const editable = await isAssignmentEditable(assignmentId);
@@ -425,7 +427,7 @@ export async function savePhotoPath(
   const auth = await getAuthAndPersonnel();
   if (!auth) return { success: false, error: "Niet ingelogd" };
 
-  const linked = await isLinked(auth.personnelId, assignmentId);
+  const linked = await isLinked(auth.personnelId, auth.tenantId, assignmentId);
   if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
 
   const editable = await isAssignmentEditable(assignmentId);
@@ -500,7 +502,7 @@ export async function deletePhoto(
   if (photo.assignmentId !== assignmentId) return { success: false, error: "Foto niet gevonden" };
 
   // Re-check current assignment linkage
-  const linked = await isLinked(auth.personnelId, assignmentId);
+  const linked = await isLinked(auth.personnelId, auth.tenantId, assignmentId);
   if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
 
   const editable = await isAssignmentEditable(assignmentId);

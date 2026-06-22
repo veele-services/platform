@@ -25,7 +25,9 @@ type CertificateEntry = {
 
 type PersonnelProfile = {
   id:           string;
+  tenantId:     string;
   roleId:       string | null;
+  sectorId:     string | null;
   region:       string | null;
   certificates: CertificateEntry[];
   diplomas:     string[];
@@ -40,14 +42,16 @@ async function getPersonnelProfile(): Promise<PersonnelProfile | null> {
   const [row] = await db
     .select({
       id:           personnelTable.id,
+      tenantId:     personnelTable.tenantId,
       roleId:       personnelTable.roleId,
+      sectorId:     personnelTable.sectorId,
       region:       personnelTable.region,
       certificates: personnelTable.certificates,
       diplomas:     personnelTable.diplomas,
       knowledge:    personnelTable.knowledge,
     })
     .from(personnelTable)
-    .where(eq(personnelTable.userId, user.id))
+    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
     .limit(1);
 
   return row ?? null;
@@ -187,6 +191,7 @@ export async function getOpenAssignments(): Promise<OpenAssignment[]> {
     .where(
       and(
         eq(assignmentInterestResponsesTable.personnelId, personnel.id),
+        eq(assignmentInterestResponsesTable.tenantId, personnel.tenantId),
         inArray(assignmentInterestResponsesTable.status, [...activeInterestStatuses]),
         or(
           isNull(assignmentInterestResponsesTable.expiresAt),
@@ -240,6 +245,7 @@ export async function getOpenAssignments(): Promise<OpenAssignment[]> {
     .where(
       and(
         statusScope,
+        eq(assignmentsTable.tenantId, personnel.tenantId),
         eq(assignmentsTable.isActive, true),
       ),
     )
@@ -387,6 +393,7 @@ export async function applyForAssignment(
       and(
         eq(assignmentInterestResponsesTable.assignmentId, assignmentId),
         eq(assignmentInterestResponsesTable.personnelId, personnel.id),
+        eq(assignmentInterestResponsesTable.tenantId, personnel.tenantId),
       ),
     )
     .orderBy(desc(assignmentInterestResponsesTable.createdAt))
@@ -398,12 +405,14 @@ export async function applyForAssignment(
       objectId:    assignmentsTable.objectId,
       objectCity:  objectsTable.city,
       status:      assignmentsTable.status,
+      tenantId:    assignmentsTable.tenantId,
     })
     .from(assignmentsTable)
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
     .where(
       and(
         eq(assignmentsTable.id, assignmentId),
+        eq(assignmentsTable.tenantId, personnel.tenantId),
         eq(assignmentsTable.isActive, true),
       ),
     )
@@ -551,6 +560,7 @@ export async function declineAssignmentInterest(
       and(
         eq(assignmentInterestResponsesTable.assignmentId, assignmentId),
         eq(assignmentInterestResponsesTable.personnelId, personnel.id),
+        eq(assignmentInterestResponsesTable.tenantId, personnel.tenantId),
       ),
     )
     .orderBy(desc(assignmentInterestResponsesTable.createdAt))

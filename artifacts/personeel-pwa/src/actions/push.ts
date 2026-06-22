@@ -55,7 +55,7 @@ async function getCurrentPersonnelIdentity(): Promise<CurrentPersonnelIdentity |
       tenantId: personnelTable.tenantId,
     })
     .from(personnelTable)
-    .where(eq(personnelTable.userId, user.id))
+    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
     .limit(1);
 
   if (!row) return null;
@@ -67,15 +67,11 @@ async function getCurrentPersonnelIdentity(): Promise<CurrentPersonnelIdentity |
   };
 }
 
-async function getCurrentPersonnelId(): Promise<string | null> {
-  return (await getCurrentPersonnelIdentity())?.personnelId ?? null;
-}
-
 export async function saveMyPushSubscription(
   payload: BrowserPushSubscriptionPayload,
 ): Promise<PushSubscriptionResult> {
-  const personnelId = await getCurrentPersonnelId();
-  if (!personnelId) return { success: false, error: "Niet ingelogd." };
+  const identity = await getCurrentPersonnelIdentity();
+  if (!identity) return { success: false, error: "Niet ingelogd." };
 
   const endpoint = payload.endpoint?.trim();
   const p256dh = payload.keys.p256dh?.trim();
@@ -89,7 +85,8 @@ export async function saveMyPushSubscription(
     .insert(pushSubscriptionsTable)
     .values({
       ownerType: "personnel",
-      personnelId,
+      tenantId: identity.tenantId,
+      personnelId: identity.personnelId,
       customerId: null,
       endpoint,
       p256dh,
@@ -101,7 +98,8 @@ export async function saveMyPushSubscription(
       target: pushSubscriptionsTable.endpoint,
       set: {
         ownerType: "personnel",
-        personnelId,
+        tenantId: identity.tenantId,
+        personnelId: identity.personnelId,
         customerId: null,
         p256dh,
         auth,
@@ -117,8 +115,8 @@ export async function saveMyPushSubscription(
 export async function getMyPushSubscriptionStatus(
   endpoint: string,
 ): Promise<PushSubscriptionStatusResult> {
-  const personnelId = await getCurrentPersonnelId();
-  if (!personnelId) return { success: false, error: "Niet ingelogd." };
+  const identity = await getCurrentPersonnelIdentity();
+  if (!identity) return { success: false, error: "Niet ingelogd." };
 
   const normalizedEndpoint = endpoint.trim();
   if (!normalizedEndpoint) {
@@ -131,7 +129,8 @@ export async function getMyPushSubscriptionStatus(
     .where(
       and(
         eq(pushSubscriptionsTable.endpoint, normalizedEndpoint),
-        eq(pushSubscriptionsTable.personnelId, personnelId),
+        eq(pushSubscriptionsTable.personnelId, identity.personnelId),
+        eq(pushSubscriptionsTable.tenantId, identity.tenantId),
       ),
     )
     .limit(1);
@@ -142,8 +141,8 @@ export async function getMyPushSubscriptionStatus(
 export async function deactivateMyPushSubscription(
   endpoint: string,
 ): Promise<PushSubscriptionResult> {
-  const personnelId = await getCurrentPersonnelId();
-  if (!personnelId) return { success: false, error: "Niet ingelogd." };
+  const identity = await getCurrentPersonnelIdentity();
+  if (!identity) return { success: false, error: "Niet ingelogd." };
 
   const normalizedEndpoint = endpoint.trim();
   if (!normalizedEndpoint) {
@@ -156,7 +155,8 @@ export async function deactivateMyPushSubscription(
     .where(
       and(
         eq(pushSubscriptionsTable.endpoint, normalizedEndpoint),
-        eq(pushSubscriptionsTable.personnelId, personnelId),
+        eq(pushSubscriptionsTable.personnelId, identity.personnelId),
+        eq(pushSubscriptionsTable.tenantId, identity.tenantId),
       ),
     );
 
@@ -234,6 +234,7 @@ export async function getMyNativePushTokenStatus(
       and(
         eq(nativePushDeviceTokensTable.token, normalizedToken),
         eq(nativePushDeviceTokensTable.personnelId, identity.personnelId),
+        eq(nativePushDeviceTokensTable.tenantId, identity.tenantId),
       ),
     )
     .limit(1);
@@ -259,6 +260,7 @@ export async function deactivateMyNativePushToken(
       and(
         eq(nativePushDeviceTokensTable.token, normalizedToken),
         eq(nativePushDeviceTokensTable.personnelId, identity.personnelId),
+        eq(nativePushDeviceTokensTable.tenantId, identity.tenantId),
       ),
     );
 

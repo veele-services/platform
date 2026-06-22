@@ -38,23 +38,24 @@ const LOCKED_STATUSES = new Set([
   "closed",
 ]);
 
-async function getAuthAndPersonnel(): Promise<{ userId: string; personnelId: string } | null> {
+async function getAuthAndPersonnel(): Promise<{ userId: string; personnelId: string; tenantId: string } | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
   const [row] = await db
-    .select({ id: personnelTable.id })
+    .select({ id: personnelTable.id, tenantId: personnelTable.tenantId })
     .from(personnelTable)
-    .where(eq(personnelTable.userId, user.id))
+    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
     .limit(1);
 
   if (!row) return null;
-  return { userId: user.id, personnelId: row.id };
+  return { userId: user.id, personnelId: row.id, tenantId: row.tenantId };
 }
 
 async function assertLinkedAndEditable(
   personnelId: string,
+  tenantId: string,
   assignmentId: string,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   const [row] = await db
@@ -66,6 +67,7 @@ async function assertLinkedAndEditable(
         eq(assignmentPersonnelTable.personnelId, personnelId),
         eq(assignmentPersonnelTable.assignmentId, assignmentId),
         eq(assignmentPersonnelTable.status, "assigned"),
+        eq(assignmentsTable.tenantId, tenantId),
       ),
     )
     .limit(1);
@@ -98,7 +100,7 @@ export async function getMaterialUsageForAssignment(
   const auth = await getAuthAndPersonnel();
   if (!auth) return [];
 
-  const access = await assertLinkedAndEditable(auth.personnelId, assignmentId);
+  const access = await assertLinkedAndEditable(auth.personnelId, auth.tenantId, assignmentId);
   if (!access.ok && access.error === "Niet gekoppeld aan deze opdracht") return [];
 
   const rows = await db
@@ -133,7 +135,7 @@ export async function addMaterialUsage(
   const auth = await getAuthAndPersonnel();
   if (!auth) return { success: false, error: "Niet ingelogd" };
 
-  const access = await assertLinkedAndEditable(auth.personnelId, assignmentId);
+  const access = await assertLinkedAndEditable(auth.personnelId, auth.tenantId, assignmentId);
   if (!access.ok) return { success: false, error: access.error };
 
   const name = input.name.trim();
@@ -171,7 +173,7 @@ export async function deleteMaterialUsage(
   const auth = await getAuthAndPersonnel();
   if (!auth) return { success: false, error: "Niet ingelogd" };
 
-  const access = await assertLinkedAndEditable(auth.personnelId, assignmentId);
+  const access = await assertLinkedAndEditable(auth.personnelId, auth.tenantId, assignmentId);
   if (!access.ok) return { success: false, error: access.error };
 
   const [item] = await db
