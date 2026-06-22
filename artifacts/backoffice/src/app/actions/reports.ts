@@ -23,6 +23,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
+import { createInvoiceProposalForAssignment } from "@/lib/invoice-proposals";
 import {
   sendEmail,
   buildReportSubmittedEmail,
@@ -641,18 +642,35 @@ export async function approveReport(reportId: string): Promise<ActionResult> {
     .set({ status: "approved", reviewedBy: user.id, reviewedAt: new Date(), updatedAt: new Date() })
     .where(eq(reportsTable.id, reportId));
 
-  // Advance assignment status to report_approved
+  // Advance assignment status to report_approved first; the invoice proposal helper
+  // moves it to invoice_ready after creating the draft proposal for administration.
   await db
     .update(assignmentsTable)
     .set({ status: "report_approved", updatedAt: new Date() })
     .where(eq(assignmentsTable.id, report.assignmentId));
+
+  let invoiceProposalId: string | null = null;
+  try {
+    const proposal = await createInvoiceProposalForAssignment({
+      assignmentId: report.assignmentId,
+      actorUserId:  user.id,
+      source:       "report_approval",
+    });
+    invoiceProposalId = proposal.id;
+  } catch (error) {
+    console.error("invoice proposal creation after report approval failed", {
+      reportId,
+      assignmentId: report.assignmentId,
+      error,
+    });
+  }
 
   await db.insert(auditLogTable).values({
     userId:     user.id,
     action:     "approve_report",
     resource:   "reports",
     resourceId: reportId,
-    metadata:   { assignmentId: report.assignmentId },
+    metadata:   { assignmentId: report.assignmentId, invoiceProposalId },
   });
 
   await notifyReportWorkflow({
@@ -695,6 +713,7 @@ export async function approveReport(reportId: string): Promise<ActionResult> {
 
   revalidatePath(`/reports/${reportId}`);
   revalidatePath("/reports");
+  revalidatePath("/invoices");
   revalidatePath(`/assignments/${report.assignmentId}`);
   return { success: true };
 }

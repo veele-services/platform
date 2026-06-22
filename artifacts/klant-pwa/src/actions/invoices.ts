@@ -2,7 +2,7 @@
 
 import { db } from "@workspace/db";
 import { invoicesTable, paymentsTable } from "@workspace/db";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and, desc, inArray } from "drizzle-orm";
 import { getMyCustomerId } from "./customer";
 import type { InvoiceStatus } from "@workspace/db";
 
@@ -46,7 +46,12 @@ export async function getMyInvoices(): Promise<CustomerInvoice[]> {
         eq(paymentsTable.status, "open"),
       ),
     )
-    .where(eq(invoicesTable.customerId, customerId))
+    .where(
+      and(
+        eq(invoicesTable.customerId, customerId),
+        inArray(invoicesTable.status, ["sent", "paid", "cancelled"]),
+      ),
+    )
     .orderBy(desc(invoicesTable.createdAt));
 
   return rows.map((r) => ({
@@ -94,6 +99,7 @@ export async function getMyInvoice(invoiceId: string): Promise<CustomerInvoice |
       and(
         eq(invoicesTable.id, invoiceId),
         eq(invoicesTable.customerId, customerId),
+        inArray(invoicesTable.status, ["sent", "paid", "cancelled"]),
       ),
     )
     .limit(1);

@@ -79,7 +79,7 @@ export function CreateInvoiceForm({ assignmentId, prefill }: Props) {
       {prefill.lineItems.length > 0 && (
         <div className="mb-4 rounded-lg p-3" style={{ background: "#F8FAFC", border: "1px solid #F1F5F9" }}>
           <p className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: "#94A3B8" }}>
-            Taakcodes opdracht
+            Voorstelregels opdracht
           </p>
           <ul className="divide-y" style={{ borderColor: "#F1F5F9" }}>
             {prefill.lineItems.map((item, i) => (

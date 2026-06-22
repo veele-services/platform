@@ -131,7 +131,7 @@ export function InvoiceActions({ invoiceId, status, paymentHistory, customerEmai
             style={{ backgroundColor: "#00B7B3", color: "#FFFFFF" }}
           >
             {loading === "sent" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Markeer als verzonden
+            Voorstel controleren en verzenden
           </button>
         )}
 

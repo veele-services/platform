@@ -161,9 +161,9 @@ export function InvoicesView({ rows, total, page, search, statusFilter, canWrite
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <SummaryCard
           icon={<FileText className="h-5 w-5" />}
-          label="Concept"
+          label="Factuurvoorstellen"
           value={formatEur(summary.draftAmount)}
-          sub={`${summary.draftCount} factuur${summary.draftCount !== 1 ? "en" : ""}`}
+          sub={`${summary.draftCount} voorstel${summary.draftCount !== 1 ? "len" : ""} ter controle`}
           color="#64748B"
         />
         <SummaryCard

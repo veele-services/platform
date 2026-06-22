@@ -4,10 +4,8 @@ import { db } from "@workspace/db";
 import {
   invoicesTable,
   assignmentsTable,
-  assignmentTasksTable,
   customersTable,
   objectsTable,
-  taskCodesTable,
   paymentsTable,
   auditLogTable,
   ASSIGNMENT_STATUS_TRANSITIONS,
@@ -21,6 +19,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
 import { sendEmailWithResult, buildInvoiceEmail, buildPaymentReminderEmail, klantPortalUrl } from "@/lib/email";
 import { generateInvoicePdf } from "@/lib/invoice-pdf";
+import { calculateInvoiceProposalForAssignment, type InvoiceProposalLineItem } from "@/lib/invoice-proposals";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, InvoiceStatus };
@@ -82,12 +81,7 @@ export type InvoiceDetail = {
   notes:               string | null;
   createdAt:           string;
   updatedAt:           string;
-  lineItems: Array<{
-    taskCodeCode: string | null;
-    taskCodeName: string | null;
-    price:        string | null;
-    invoiceable:  boolean;
-  }>;
+  lineItems: InvoiceProposalLineItem[];
 };
 
 export type InvoiceSummary = {
@@ -112,12 +106,7 @@ export type AssignmentInvoiceData = {
   assignmentTitle: string;
   assignmentCode:  string;
   suggestedAmount: string;
-  lineItems: Array<{
-    taskCodeCode: string | null;
-    taskCodeName: string | null;
-    price:        string | null;
-    invoiceable:  boolean;
-  }>;
+  lineItems: InvoiceProposalLineItem[];
 };
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
@@ -242,17 +231,7 @@ export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
 
   if (!row) return null;
 
-  const taskRows = await db
-    .select({
-      taskCodeCode: taskCodesTable.code,
-      taskCodeName: taskCodesTable.name,
-      price:        taskCodesTable.price,
-      invoiceable:  taskCodesTable.invoiceable,
-    })
-    .from(assignmentTasksTable)
-    .leftJoin(taskCodesTable, eq(assignmentTasksTable.taskCodeId, taskCodesTable.id))
-    .where(eq(assignmentTasksTable.assignmentId, row.assignmentId))
-    .orderBy(asc(assignmentTasksTable.sortOrder));
+  const proposal = await calculateInvoiceProposalForAssignment(row.assignmentId, parseFloat(row.vatPercentage ?? "21"));
 
   return {
     id:                 row.id,
@@ -278,12 +257,7 @@ export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
     notes:              row.notes ?? null,
     createdAt:          row.createdAt.toISOString(),
     updatedAt:          row.updatedAt.toISOString(),
-    lineItems: taskRows.map((t) => ({
-      taskCodeCode: t.taskCodeCode ?? null,
-      taskCodeName: t.taskCodeName ?? null,
-      price:        t.price ?? null,
-      invoiceable:  t.invoiceable ?? false,
-    })),
+    lineItems: proposal.lineItems,
   };
 }
 
@@ -311,35 +285,15 @@ export async function getAssignmentInvoiceData(
 
   if (!row) return null;
 
-  const taskRows = await db
-    .select({
-      taskCodeCode: taskCodesTable.code,
-      taskCodeName: taskCodesTable.name,
-      price:        taskCodesTable.price,
-      invoiceable:  taskCodesTable.invoiceable,
-    })
-    .from(assignmentTasksTable)
-    .leftJoin(taskCodesTable, eq(assignmentTasksTable.taskCodeId, taskCodesTable.id))
-    .where(eq(assignmentTasksTable.assignmentId, assignmentId))
-    .orderBy(asc(assignmentTasksTable.sortOrder));
-
-  const suggestedAmount = taskRows
-    .filter((t) => t.invoiceable && t.price !== null)
-    .reduce((sum, t) => sum + parseFloat(t.price ?? "0"), 0)
-    .toFixed(2);
+  const proposal = await calculateInvoiceProposalForAssignment(assignmentId);
 
   return {
     customerId:      row.customerId,
     customerName:    row.customerName ?? "",
     assignmentTitle: row.assignmentTitle,
     assignmentCode:  row.assignmentCode,
-    suggestedAmount,
-    lineItems: taskRows.map((t) => ({
-      taskCodeCode: t.taskCodeCode ?? null,
-      taskCodeName: t.taskCodeName ?? null,
-      price:        t.price ?? null,
-      invoiceable:  t.invoiceable ?? false,
-    })),
+    suggestedAmount: proposal.amount,
+    lineItems: proposal.lineItems,
   };
 }
 
@@ -480,6 +434,7 @@ export async function getInvoiceStatusHistory(invoiceId: string): Promise<Invoic
 
   const ACTION_LABELS: Record<string, string> = {
     create_invoice:       "Factuur aangemaakt",
+    create_invoice_proposal: "Factuurvoorstel aangemaakt",
     mark_invoice_sent:    "Gemarkeerd als verzonden",
     mark_invoice_paid:    "Gemarkeerd als betaald",
     cancel_invoice:       "Factuur geannuleerd",
@@ -545,6 +500,26 @@ export async function createInvoice(
     .limit(1);
 
   if (!assignment) return { success: false, message: "Opdracht niet gevonden." };
+
+  const [existingInvoice] = await db
+    .select({ id: invoicesTable.id, status: invoicesTable.status })
+    .from(invoicesTable)
+    .where(
+      and(
+        eq(invoicesTable.assignmentId, assignmentId),
+        inArray(invoicesTable.status, ["draft", "sent", "paid"]),
+      ),
+    )
+    .limit(1);
+
+  if (existingInvoice) {
+    return {
+      success: false,
+      message: existingInvoice.status === "draft"
+        ? "Er bestaat al een factuurvoorstel voor deze opdracht."
+        : "Deze opdracht is al gefactureerd.",
+    };
+  }
 
   const currentStatus = assignment.status as AssignmentStatus;
   const allowedNext = ASSIGNMENT_STATUS_TRANSITIONS[currentStatus];

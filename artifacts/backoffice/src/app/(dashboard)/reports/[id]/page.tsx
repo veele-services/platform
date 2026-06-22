@@ -5,6 +5,7 @@ import { ArrowLeft, FileText, XCircle, User, Calendar, MapPin, Download } from "
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { getReport, getReportTimelineNotes, type ReportTimelineNote } from "@/app/actions/reports";
+import { getInvoiceForAssignment } from "@/app/actions/invoices";
 import { ReportActions } from "@/components/reports/ReportActions";
 import { ProcessStatusBadge, ProcessStepper } from "@/components/workflows/ProcessStatus";
 
@@ -152,6 +153,10 @@ export default async function ReportDetailPage({ params }: Props) {
   ]);
 
   if (!report) notFound();
+
+  const invoiceProposal = report.status === "approved"
+    ? await getInvoiceForAssignment(report.assignmentId)
+    : null;
 
   function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString("nl-NL", {
@@ -348,8 +353,21 @@ export default async function ReportDetailPage({ params }: Props) {
           {report.status === "approved" && (
             <div className="veele-card">
               <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#94A3B8" }}>
-                Exporteren
+                Facturatie
               </p>
+              {invoiceProposal ? (
+                <Link
+                  href={`/invoices/${invoiceProposal.id}`}
+                  className="mb-3 inline-flex items-center gap-2 w-full justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
+                  style={{ backgroundColor: "#00B7B3", color: "#FFFFFF" }}
+                >
+                  Factuurvoorstel openen
+                </Link>
+              ) : (
+                <p className="mb-3 rounded-lg px-3 py-2 text-xs" style={{ background: "#FFFBEB", color: "#92400E" }}>
+                  Geen factuurvoorstel gevonden. Maak dit handmatig aan vanuit de opdracht.
+                </p>
+              )}
               <Link
                 href={`/api/reports/${report.id}/pdf`}
                 target="_blank"
