@@ -39,12 +39,79 @@ export default async function CustomerTicketsPage() {
                 Mijn tickets
               </h2>
               <p className="mt-1 text-sm font-medium text-slate-500">
-                {tickets.length} ticket{tickets.length === 1 ? "" : "s"} in uw klantportaal
+                {tickets.length} ticket{tickets.length === 1 ? "" : "s"} in uw
+                klantportaal
               </p>
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div
+            className="hidden overflow-x-auto rounded-[18px] border md:block"
+            style={{ borderColor: "var(--color-border)" }}
+          >
+            <div
+              className="grid grid-cols-[minmax(16rem,1fr)_8rem_8rem_8rem_4rem] gap-3 border-b bg-slate-50 px-4 py-3 text-xs font-black uppercase tracking-[0.08em] text-slate-500"
+              style={{ borderColor: "var(--color-border)" }}
+            >
+              <span>Onderwerp</span>
+              <span>Afdeling</span>
+              <span>Prioriteit</span>
+              <span>Status</span>
+              <span className="text-right">Nieuw</span>
+            </div>
+            {tickets.length > 0 ? (
+              <div
+                className="divide-y"
+                style={{ borderColor: "var(--color-border)" }}
+              >
+                {tickets.map((ticket) => (
+                  <Link
+                    key={ticket.id}
+                    href={`/meldingen/tickets/${ticket.id}`}
+                    className="grid grid-cols-[minmax(16rem,1fr)_8rem_8rem_8rem_4rem] items-center gap-3 px-4 py-3 transition hover:bg-slate-50"
+                  >
+                    <span className="min-w-0">
+                      <span className="block truncate text-sm font-black text-[#081D3A]">
+                        {ticket.subject}
+                      </span>
+                      <span className="mt-0.5 block line-clamp-1 text-xs font-semibold text-slate-500">
+                        {ticket.lastMessagePreview ?? "Nog geen berichtinhoud"}{" "}
+                        - {formatDate(ticket.lastMessageAt)}
+                      </span>
+                    </span>
+                    <span className="truncate text-xs font-black text-slate-600">
+                      {departmentLabel(ticket.department)}
+                    </span>
+                    <PriorityBadge priority={ticket.priority} />
+                    <TicketStatusBadge status={ticket.status} />
+                    <span className="text-right">
+                      {ticket.unreadCount > 0 ? (
+                        <span className="inline-flex h-6 min-w-6 items-center justify-center rounded-full bg-red-500 px-1.5 text-xs font-black text-white">
+                          {ticket.unreadCount}
+                        </span>
+                      ) : (
+                        <span className="text-xs font-semibold text-slate-400">
+                          -
+                        </span>
+                      )}
+                    </span>
+                  </Link>
+                ))}
+              </div>
+            ) : (
+              <div className="px-4 py-10 text-center">
+                <Inbox className="mx-auto text-slate-400" size={30} />
+                <p className="mt-3 text-sm font-black text-[#081D3A]">
+                  Geen tickets
+                </p>
+                <p className="mt-1 text-sm font-medium text-slate-500">
+                  Start rechts een nieuw contactverzoek.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2 md:hidden">
             {tickets.length > 0 ? (
               tickets.map((ticket) => (
                 <Link
@@ -64,8 +131,7 @@ export default async function CustomerTicketsPage() {
                       style={{
                         backgroundColor:
                           ticket.unreadCount > 0 ? "#E8FBFA" : "#F1F5F9",
-                        color:
-                          ticket.unreadCount > 0 ? "#009E9A" : "#64748B",
+                        color: ticket.unreadCount > 0 ? "#009E9A" : "#64748B",
                       }}
                     >
                       <MessageSquare size={18} strokeWidth={2.4} />
@@ -77,7 +143,8 @@ export default async function CustomerTicketsPage() {
                             {ticket.subject}
                           </span>
                           <span className="mt-1 block line-clamp-2 text-xs font-semibold text-slate-500">
-                            {ticket.lastMessagePreview ?? "Nog geen berichtinhoud"}
+                            {ticket.lastMessagePreview ??
+                              "Nog geen berichtinhoud"}
                           </span>
                         </span>
                         {ticket.unreadCount > 0 ? (

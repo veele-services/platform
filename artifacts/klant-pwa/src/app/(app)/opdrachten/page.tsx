@@ -11,39 +11,61 @@ import type { QuoteStatus } from "@workspace/db";
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "";
   const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("nl-NL", { weekday: "short", day: "numeric", month: "short" });
+  return d.toLocaleDateString("nl-NL", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
 }
 
 function formatAmount(amount: string | null): string {
   if (!amount) return "";
-  return parseFloat(amount).toLocaleString("nl-NL", { style: "currency", currency: "EUR" });
+  return parseFloat(amount).toLocaleString("nl-NL", {
+    style: "currency",
+    currency: "EUR",
+  });
 }
 
-const ACTIVE_STATUSES = new Set(["scheduled", "seen", "in_progress", "plannable"]);
-const OPEN_STATUSES   = new Set(["requested", "review", "quote_preparation", "approved"]);
+const ACTIVE_STATUSES = new Set([
+  "scheduled",
+  "seen",
+  "in_progress",
+  "plannable",
+]);
+const OPEN_STATUSES = new Set([
+  "requested",
+  "review",
+  "quote_preparation",
+  "approved",
+]);
 
-const QUOTE_STATUS_BADGE: Partial<Record<QuoteStatus, { label: string; bg: string; color: string }>> = {
-  sent:     { label: "Offerte verstuurd",    bg: "#FEF9C3", color: "#A16207" },
+const QUOTE_STATUS_BADGE: Partial<
+  Record<QuoteStatus, { label: string; bg: string; color: string }>
+> = {
+  sent: { label: "Offerte verstuurd", bg: "#FEF9C3", color: "#A16207" },
   approved: { label: "Offerte geaccepteerd", bg: "#DCFCE7", color: "#15803D" },
-  rejected: { label: "Offerte afgewezen",    bg: "#FEE2E2", color: "#DC2626" },
-  expired:  { label: "Offerte verlopen",     bg: "#F1F5F9", color: "#64748B" },
+  rejected: { label: "Offerte afgewezen", bg: "#FEE2E2", color: "#DC2626" },
+  expired: { label: "Offerte verlopen", bg: "#F1F5F9", color: "#64748B" },
 };
 
 export default async function OpdrachtenPage() {
   const assignments = await getMyAssignments();
 
-  const quotes  = assignments.filter((a) => a.status === "awaiting_approval");
-  const active  = assignments.filter((a) => ACTIVE_STATUSES.has(a.status));
-  const open    = assignments.filter((a) => OPEN_STATUSES.has(a.status));
+  const quotes = assignments.filter((a) => a.status === "awaiting_approval");
+  const active = assignments.filter((a) => ACTIVE_STATUSES.has(a.status));
+  const open = assignments.filter((a) => OPEN_STATUSES.has(a.status));
   const history = assignments.filter(
-    (a) => a.status !== "awaiting_approval" && !ACTIVE_STATUSES.has(a.status) && !OPEN_STATUSES.has(a.status),
+    (a) =>
+      a.status !== "awaiting_approval" &&
+      !ACTIVE_STATUSES.has(a.status) &&
+      !OPEN_STATUSES.has(a.status),
   );
 
   return (
     <PageShell
       title="Mijn opdrachten"
       subtitle="Aanvragen, afspraken en afgeronde werkbonnen."
-      actions={(
+      actions={
         <Link
           href="/opdrachten/aanvragen"
           className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium text-white"
@@ -52,16 +74,25 @@ export default async function OpdrachtenPage() {
           <PlusCircle size={14} />
           Aanvragen
         </Link>
-      )}
+      }
     >
-
       {assignments.length === 0 && (
         <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
-          <ClipboardList size={32} className="mx-auto mb-3" style={{ color: "var(--color-muted-fg)" }} />
-          <p className="text-sm font-medium" style={{ color: "var(--color-primary)" }}>
+          <ClipboardList
+            size={32}
+            className="mx-auto mb-3"
+            style={{ color: "var(--color-muted-fg)" }}
+          />
+          <p
+            className="text-sm font-medium"
+            style={{ color: "var(--color-primary)" }}
+          >
             Nog geen opdrachten
           </p>
-          <p className="mt-1 text-xs" style={{ color: "var(--color-secondary)" }}>
+          <p
+            className="mt-1 text-xs"
+            style={{ color: "var(--color-secondary)" }}
+          >
             Dien een nieuwe aanvraag in om te beginnen.
           </p>
           <Link
@@ -92,7 +123,10 @@ export default async function OpdrachtenPage() {
             style={{ backgroundColor: "#FEF9C3" }}
           >
             {quotes.map((a) => {
-              const s = STATUS_COLOR[a.status] ?? { bg: "#F1F5F9", color: "#64748B" };
+              const s = STATUS_COLOR[a.status] ?? {
+                bg: "#F1F5F9",
+                color: "#64748B",
+              };
               return (
                 <div key={a.id} className="rounded-xl bg-white p-4 shadow-sm">
                   <div className="flex items-start justify-between gap-3">
@@ -100,37 +134,56 @@ export default async function OpdrachtenPage() {
                       <div className="flex items-center gap-2 mb-1">
                         <span
                           className="font-mono text-xs rounded px-1.5 py-0.5 shrink-0"
-                          style={{ backgroundColor: "var(--color-muted)", color: "var(--color-secondary)" }}
+                          style={{
+                            backgroundColor: "var(--color-muted)",
+                            color: "var(--color-secondary)",
+                          }}
                         >
                           {a.code}
                         </span>
                         {a.quoteNumber && (
                           <span
                             className="font-mono text-xs rounded px-1.5 py-0.5 shrink-0"
-                            style={{ backgroundColor: "#FEF9C3", color: "#92400E" }}
+                            style={{
+                              backgroundColor: "#FEF9C3",
+                              color: "#92400E",
+                            }}
                           >
                             {a.quoteNumber}
                           </span>
                         )}
                       </div>
-                      <p className="truncate font-semibold" style={{ color: "var(--color-primary)" }}>
+                      <p
+                        className="truncate font-semibold"
+                        style={{ color: "var(--color-primary)" }}
+                      >
                         {a.title}
                       </p>
                       {a.objectName && (
-                        <p className="mt-0.5 truncate text-xs" style={{ color: "var(--color-muted-fg)" }}>
-                          {a.objectName}{a.objectCity ? ` · ${a.objectCity}` : ""}
+                        <p
+                          className="mt-0.5 truncate text-xs"
+                          style={{ color: "var(--color-muted-fg)" }}
+                        >
+                          {a.objectName}
+                          {a.objectCity ? ` · ${a.objectCity}` : ""}
                         </p>
                       )}
                       {/* Quote amount + validity for the action card */}
                       {(a.quoteAmount || a.quoteValidityDate) && (
                         <div className="mt-2 flex flex-wrap gap-3 items-baseline">
                           {a.quoteAmount && (
-                            <span className="text-sm font-semibold" style={{ color: "var(--color-primary)" }}>
+                            <span
+                              className="text-sm font-semibold"
+                              style={{ color: "var(--color-primary)" }}
+                            >
                               {formatAmount(a.quoteAmount)}
                             </span>
                           )}
                           {a.quoteValidityDate && (
-                            <span className="text-xs" style={{ color: "var(--color-secondary)" }}>
+                            <span
+                              className="text-xs"
+                              style={{ color: "var(--color-secondary)" }}
+                            >
                               Geldig t/m {formatDate(a.quoteValidityDate)}
                             </span>
                           )}
@@ -170,17 +223,136 @@ function AssignmentGroup({
   items,
 }: {
   title: string;
-  items: ReturnType<typeof getMyAssignments> extends Promise<infer T> ? T : never;
+  items: ReturnType<typeof getMyAssignments> extends Promise<infer T>
+    ? T
+    : never;
 }) {
   return (
     <section>
-      <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
+      <h2
+        className="mb-2 text-sm font-semibold uppercase tracking-wide"
+        style={{ color: "var(--color-secondary)" }}
+      >
         {title}
       </h2>
-      <div className="space-y-2">
+      <div
+        className="hidden overflow-x-auto rounded-[22px] border bg-white shadow-sm md:block"
+        style={{ borderColor: "var(--color-border)" }}
+      >
+        <div
+          className="grid grid-cols-[10rem_minmax(18rem,1.5fr)_12rem_10rem_8rem] gap-4 border-b px-5 py-3 text-xs font-black uppercase tracking-[0.08em]"
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-secondary)",
+          }}
+        >
+          <span>Werkbon</span>
+          <span>Opdracht</span>
+          <span>Planning</span>
+          <span>Offerte</span>
+          <span className="text-right">Status</span>
+        </div>
+        <div
+          className="divide-y"
+          style={{ borderColor: "var(--color-border)" }}
+        >
+          {items.map((a) => {
+            const s = STATUS_COLOR[a.status] ?? {
+              bg: "#F1F5F9",
+              color: "#64748B",
+            };
+            const quoteBadge = a.quoteStatus
+              ? QUOTE_STATUS_BADGE[a.quoteStatus]
+              : null;
+            return (
+              <Link
+                key={a.id}
+                href={`/opdrachten/${a.id}`}
+                className="grid grid-cols-[10rem_minmax(18rem,1.5fr)_12rem_10rem_8rem] items-center gap-4 px-5 py-4 transition hover:bg-slate-50"
+              >
+                <span
+                  className="font-mono text-xs font-black"
+                  style={{ color: "var(--color-primary)" }}
+                >
+                  {a.code}
+                </span>
+                <span className="min-w-0">
+                  <span
+                    className="block truncate text-sm font-black"
+                    style={{ color: "var(--color-primary)" }}
+                  >
+                    {a.title}
+                  </span>
+                  <span
+                    className="mt-0.5 block truncate text-xs font-semibold"
+                    style={{ color: "var(--color-secondary)" }}
+                  >
+                    {a.objectName ?? "Geen object"}
+                    {a.objectCity ? ` - ${a.objectCity}` : ""}
+                  </span>
+                </span>
+                <span
+                  className="text-sm font-semibold"
+                  style={{
+                    color: a.scheduledDate
+                      ? "var(--color-primary)"
+                      : "var(--color-muted-fg)",
+                  }}
+                >
+                  {a.scheduledDate
+                    ? `${formatDate(a.scheduledDate)}${a.scheduledStart ? ` - ${a.scheduledStart}` : ""}`
+                    : "Nog niet gepland"}
+                </span>
+                <span>
+                  {quoteBadge ? (
+                    <span
+                      className="rounded-full px-2.5 py-1 text-[11px] font-black"
+                      style={{
+                        backgroundColor: quoteBadge.bg,
+                        color: quoteBadge.color,
+                      }}
+                    >
+                      {quoteBadge.label}
+                    </span>
+                  ) : a.quoteAmount ? (
+                    <span
+                      className="text-sm font-bold"
+                      style={{ color: "var(--color-primary)" }}
+                    >
+                      {formatAmount(a.quoteAmount)}
+                    </span>
+                  ) : (
+                    <span
+                      className="text-sm font-semibold"
+                      style={{ color: "var(--color-muted-fg)" }}
+                    >
+                      -
+                    </span>
+                  )}
+                </span>
+                <span className="text-right">
+                  <span
+                    className="rounded-full px-2.5 py-1 text-[11px] font-black"
+                    style={{ backgroundColor: s.bg, color: s.color }}
+                  >
+                    {STATUS_LABEL[a.status] ?? a.status}
+                  </span>
+                </span>
+              </Link>
+            );
+          })}
+        </div>
+      </div>
+
+      <div className="space-y-2 md:hidden">
         {items.map((a) => {
-          const s = STATUS_COLOR[a.status] ?? { bg: "#F1F5F9", color: "#64748B" };
-          const quoteBadge = a.quoteStatus ? QUOTE_STATUS_BADGE[a.quoteStatus] : null;
+          const s = STATUS_COLOR[a.status] ?? {
+            bg: "#F1F5F9",
+            color: "#64748B",
+          };
+          const quoteBadge = a.quoteStatus
+            ? QUOTE_STATUS_BADGE[a.quoteStatus]
+            : null;
           return (
             <Link
               key={a.id}
@@ -192,21 +364,34 @@ function AssignmentGroup({
                   <div className="flex items-center gap-2 mb-1">
                     <span
                       className="font-mono text-xs rounded px-1.5 py-0.5 shrink-0"
-                      style={{ backgroundColor: "var(--color-muted)", color: "var(--color-secondary)" }}
+                      style={{
+                        backgroundColor: "var(--color-muted)",
+                        color: "var(--color-secondary)",
+                      }}
                     >
                       {a.code}
                     </span>
                   </div>
-                  <p className="truncate font-semibold" style={{ color: "var(--color-primary)" }}>
+                  <p
+                    className="truncate font-semibold"
+                    style={{ color: "var(--color-primary)" }}
+                  >
                     {a.title}
                   </p>
                   {a.objectName && (
-                    <p className="mt-0.5 truncate text-xs" style={{ color: "var(--color-muted-fg)" }}>
-                      {a.objectName}{a.objectCity ? ` · ${a.objectCity}` : ""}
+                    <p
+                      className="mt-0.5 truncate text-xs"
+                      style={{ color: "var(--color-muted-fg)" }}
+                    >
+                      {a.objectName}
+                      {a.objectCity ? ` · ${a.objectCity}` : ""}
                     </p>
                   )}
                   {a.scheduledDate && (
-                    <p className="mt-0.5 text-xs" style={{ color: "var(--color-secondary)" }}>
+                    <p
+                      className="mt-0.5 text-xs"
+                      style={{ color: "var(--color-secondary)" }}
+                    >
                       {formatDate(a.scheduledDate)}
                       {a.scheduledStart ? ` · ${a.scheduledStart}` : ""}
                     </p>
@@ -215,7 +400,10 @@ function AssignmentGroup({
                   {quoteBadge && (
                     <span
                       className="mt-1.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium"
-                      style={{ backgroundColor: quoteBadge.bg, color: quoteBadge.color }}
+                      style={{
+                        backgroundColor: quoteBadge.bg,
+                        color: quoteBadge.color,
+                      }}
                     >
                       {quoteBadge.label}
                     </span>
