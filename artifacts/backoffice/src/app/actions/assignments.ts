@@ -8,6 +8,7 @@ import {
   customersTable,
   objectsTable,
   personnelTable,
+  assignmentCandidatesTable,
   assignmentInterestResponsesTable,
   assignmentInterestRoundsTable,
   sectorsTable,
@@ -23,6 +24,7 @@ import {
   ASSIGNMENT_STATUS_TRANSITIONS,
   type AssignmentStatus,
   type AssignmentPriority,
+  type SmartPlanningInterestResponseStatus,
 } from "@workspace/db";
 import {
   calculateAssignmentCapacity,
@@ -1362,6 +1364,45 @@ function formatAssignmentMoment(input: {
   return `${date}, ${time}`;
 }
 
+const ACTIVE_INTEREST_RESPONSE_STATUSES = [
+  "invited",
+  "viewed",
+  "interested",
+  "question",
+  "selected",
+  "reserve",
+  "confirmed",
+] as const satisfies readonly SmartPlanningInterestResponseStatus[];
+
+export type AssignmentInterestRoundHistory = {
+  id: string;
+  roundNumber: number;
+  audienceType: string;
+  candidateLimit: number;
+  status: string;
+  sentAt: string | null;
+  expiresAt: string | null;
+  reminderAfterMinutes: number;
+  reminderDueAt: string | null;
+  reminderSentAt: string | null;
+  skippedCount: number;
+  blockedCount: number;
+  invitePolicy: Record<string, unknown>;
+  counts: Record<SmartPlanningInterestResponseStatus, number>;
+  responses: Array<{
+    id: string;
+    personnelId: string;
+    personnelName: string;
+    status: SmartPlanningInterestResponseStatus;
+    responseNote: string | null;
+    viewedAt: string | null;
+    respondedAt: string | null;
+    selectedAt: string | null;
+    expiresAt: string | null;
+    matchScore: number | null;
+  }>;
+};
+
 export async function getAssignmentPlanningReadiness(
   assignmentId: string,
 ): Promise<AssignmentPlanningReadiness> {
@@ -1542,7 +1583,7 @@ export async function sendAssignmentInterestPoll(
     audienceType?: "top_matches" | "next_matches" | "flexpool" | "spoedpool" | "manual";
     limit?: number;
   },
-): Promise<ActionResult<{ notified: number; roundNumber: number }>> {
+): Promise<ActionResult<{ notified: number; roundNumber: number; skipped: number; blocked: number }>> {
   await requirePermission("planning", "write");
 
   const supabase = await createClient();
@@ -1554,6 +1595,7 @@ export async function sendAssignmentInterestPoll(
   const [assignment] = await db
     .select({
       id: assignmentsTable.id,
+      tenantId: assignmentsTable.tenantId,
       code: assignmentsTable.code,
       title: assignmentsTable.title,
       priority: assignmentsTable.priority,
@@ -1583,9 +1625,9 @@ export async function sendAssignmentInterestPoll(
   const defaults = await getSmartPlanningRoundDefaults(assignmentId);
   const audienceType = input?.audienceType ?? "top_matches";
   const limit = Math.max(1, Math.min(input?.limit ?? defaults.roundSize, 50));
-  const candidates = capacity.candidates.filter(
-    (person) => person.available && person.hardStatus === "eligible",
-  );
+  const candidates = capacity.candidates
+    .filter((person) => person.available && person.hardStatus === "eligible")
+    .sort((a, b) => b.matchScore - a.matchScore);
   if (candidates.length === 0) {
     return {
       success: false,
@@ -1596,10 +1638,30 @@ export async function sendAssignmentInterestPoll(
   const candidateIds = candidates.map((person) => person.personnelId);
   const title = `Interessepeiling ${assignment.code}`;
   const href = "/openstaand";
+  const now = new Date();
+  const isSpoed = audienceType === "spoedpool" || assignment.priority === "urgent";
+  const mayOverrideAntiSpam = isSpoed && defaults.allowEmergencyOverride;
+  const skipCounts: Record<string, number> = {
+    alreadyPlanned: 0,
+    alreadyInvited: 0,
+    dailyLimit: 0,
+    cooldown: 0,
+    overlappingInvite: 0,
+  };
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const [existingLinks, existingResponses, dailyInviteRows, latestRoundRows] = await Promise.all([
+  const cooldownSince = new Date(
+    Date.now() - Math.max(0, defaults.inviteCooldownMinutes) * 60_000,
+  );
+  const [
+    existingLinks,
+    existingResponses,
+    dailyInviteRows,
+    cooldownRows,
+    overlappingInviteRows,
+    latestRoundRows,
+  ] = await Promise.all([
     db
       .select({ personnelId: assignmentPersonnelTable.personnelId })
       .from(assignmentPersonnelTable)
@@ -1632,6 +1694,35 @@ export async function sendAssignmentInterestPoll(
       )
       .groupBy(assignmentInterestResponsesTable.personnelId),
     db
+      .select({ personnelId: assignmentInterestResponsesTable.personnelId })
+      .from(assignmentInterestResponsesTable)
+      .where(
+        and(
+          inArray(assignmentInterestResponsesTable.personnelId, candidateIds),
+          gte(assignmentInterestResponsesTable.createdAt, cooldownSince),
+        ),
+      ),
+    db
+      .select({ personnelId: assignmentInterestResponsesTable.personnelId })
+      .from(assignmentInterestResponsesTable)
+      .innerJoin(
+        assignmentsTable,
+        eq(assignmentInterestResponsesTable.assignmentId, assignmentsTable.id),
+      )
+      .where(
+        and(
+          inArray(assignmentInterestResponsesTable.personnelId, candidateIds),
+          ne(assignmentInterestResponsesTable.assignmentId, assignmentId),
+          inArray(assignmentInterestResponsesTable.status, [...ACTIVE_INTEREST_RESPONSE_STATUSES]),
+          eq(assignmentsTable.scheduledDate, assignment.scheduledDate),
+          or(
+            isNull(assignmentInterestResponsesTable.expiresAt),
+            gte(assignmentInterestResponsesTable.expiresAt, now),
+          ),
+          sql<boolean>`${assignmentsTable.scheduledStart} < ${assignment.scheduledEnd} AND ${assignmentsTable.scheduledEnd} > ${assignment.scheduledStart}`,
+        ),
+      ),
+    db
       .select({ roundNumber: assignmentInterestRoundsTable.roundNumber })
       .from(assignmentInterestRoundsTable)
       .where(eq(assignmentInterestRoundsTable.assignmentId, assignmentId))
@@ -1646,20 +1737,53 @@ export async function sendAssignmentInterestPoll(
   const dailyInviteCounts = new Map(
     dailyInviteRows.map((row) => [row.personnelId, row.count ?? 0]),
   );
-  const isSpoed = audienceType === "spoedpool" || assignment.priority === "urgent";
-  const recipients = candidates
-    .filter((person) => !linkedIds.has(person.personnelId))
-    .filter((person) => !alreadyInvitedIds.has(person.personnelId))
-    .filter((person) => {
-      if (isSpoed) return true;
-      return (dailyInviteCounts.get(person.personnelId) ?? 0) < defaults.maxDailyInvites;
-    })
-    .slice(0, limit);
+  const cooldownIds = new Set(cooldownRows.map((row) => row.personnelId));
+  const overlappingInviteIds = new Set(
+    overlappingInviteRows.map((row) => row.personnelId),
+  );
+  const recipients: typeof candidates = [];
+
+  for (const person of candidates) {
+    if (linkedIds.has(person.personnelId)) {
+      skipCounts.alreadyPlanned += 1;
+      continue;
+    }
+    if (alreadyInvitedIds.has(person.personnelId)) {
+      skipCounts.alreadyInvited += 1;
+      continue;
+    }
+    if (overlappingInviteIds.has(person.personnelId)) {
+      skipCounts.overlappingInvite += 1;
+      continue;
+    }
+    if (!mayOverrideAntiSpam) {
+      if ((dailyInviteCounts.get(person.personnelId) ?? 0) >= defaults.maxDailyInvites) {
+        skipCounts.dailyLimit += 1;
+        continue;
+      }
+      if (defaults.inviteCooldownMinutes > 0 && cooldownIds.has(person.personnelId)) {
+        skipCounts.cooldown += 1;
+        continue;
+      }
+    }
+    recipients.push(person);
+    if (recipients.length >= limit) break;
+  }
 
   if (recipients.length === 0) {
+    const readableReasons = [
+      skipCounts.alreadyPlanned ? `${skipCounts.alreadyPlanned} al gepland` : "",
+      skipCounts.alreadyInvited ? `${skipCounts.alreadyInvited} al eerder uitgenodigd` : "",
+      skipCounts.overlappingInvite ? `${skipCounts.overlappingInvite} overlappende uitnodiging` : "",
+      skipCounts.dailyLimit ? `${skipCounts.dailyLimit} daglimiet bereikt` : "",
+      skipCounts.cooldown ? `${skipCounts.cooldown} binnen cooldown` : "",
+    ].filter(Boolean);
     return {
       success: false,
-      message: "Alle passende medewerkers zijn al gekoppeld of eerder genotificeerd.",
+      message:
+        readableReasons.length > 0
+          ? `Geen medewerkers uitgenodigd door anti-spamregels: ${readableReasons.join(", ")}.`
+          : "Alle passende medewerkers zijn al gekoppeld of eerder genotificeerd.",
     };
   }
 
@@ -1669,19 +1793,34 @@ export async function sendAssignmentInterestPoll(
       ? "high"
       : "normal";
   const nextRoundNumber = (latestRoundRows[0]?.roundNumber ?? 0) + 1;
+  const skipped = candidates.length - recipients.length;
+  const blocked = skipCounts.dailyLimit + skipCounts.cooldown + skipCounts.overlappingInvite;
+  const invitePolicy = {
+    maxDailyInvites: defaults.maxDailyInvites,
+    inviteCooldownMinutes: defaults.inviteCooldownMinutes,
+    allowEmergencyOverride: defaults.allowEmergencyOverride,
+    emergencyOverrideApplied: mayOverrideAntiSpam,
+    skipCounts,
+  };
   let roundId = "";
 
   await db.transaction(async (tx) => {
     const [round] = await tx
       .insert(assignmentInterestRoundsTable)
       .values({
+        tenantId: assignment.tenantId,
         assignmentId,
         roundNumber: nextRoundNumber,
         audienceType,
         candidateLimit: limit,
         status: "sent",
-        sentAt: new Date(),
+        sentAt: now,
         expiresAt: defaults.expiresAt,
+        reminderAfterMinutes: defaults.reminderAfterMinutes,
+        reminderDueAt: defaults.reminderDueAt,
+        invitePolicy,
+        skippedCount: skipped,
+        blockedCount: blocked,
         createdBy: user.id,
       })
       .returning({ id: assignmentInterestRoundsTable.id });
@@ -1689,6 +1828,7 @@ export async function sendAssignmentInterestPoll(
 
     await tx.insert(assignmentInterestResponsesTable).values(
       recipients.map((person) => ({
+        tenantId: assignment.tenantId,
         assignmentId,
         roundId,
         personnelId: person.personnelId,
@@ -1708,6 +1848,9 @@ export async function sendAssignmentInterestPoll(
         audienceType,
         notified: recipients.length,
         candidateCount: candidates.length,
+        skipped,
+        blocked,
+        invitePolicy,
         scheduledDate: assignment.scheduledDate,
         scheduledStart: assignment.scheduledStart,
         scheduledEnd: assignment.scheduledEnd,
@@ -1719,7 +1862,7 @@ export async function sendAssignmentInterestPoll(
     recipients.map((person) =>
       emitDomainEvent({
         eventKey: "assignment_interest_invited",
-        tenantId: undefined,
+        tenantId: assignment.tenantId,
         actorUserId: user.id,
         audience: "personnel",
         aggregate: { type: "assignment", id: assignmentId },
@@ -1767,8 +1910,248 @@ export async function sendAssignmentInterestPoll(
   revalidatePath("/planning");
   return {
     success: true,
-    data: { notified: recipients.length, roundNumber: nextRoundNumber },
+    data: { notified: recipients.length, roundNumber: nextRoundNumber, skipped, blocked },
   };
+}
+
+export async function listAssignmentInterestRounds(
+  assignmentId: string,
+): Promise<AssignmentInterestRoundHistory[]> {
+  await requirePermission("assignments", "read");
+
+  const [rounds, responses] = await Promise.all([
+    db
+      .select()
+      .from(assignmentInterestRoundsTable)
+      .where(eq(assignmentInterestRoundsTable.assignmentId, assignmentId))
+      .orderBy(desc(assignmentInterestRoundsTable.roundNumber)),
+    db
+      .select({
+        id: assignmentInterestResponsesTable.id,
+        roundId: assignmentInterestResponsesTable.roundId,
+        personnelId: assignmentInterestResponsesTable.personnelId,
+        status: assignmentInterestResponsesTable.status,
+        responseNote: assignmentInterestResponsesTable.responseNote,
+        viewedAt: assignmentInterestResponsesTable.viewedAt,
+        respondedAt: assignmentInterestResponsesTable.respondedAt,
+        selectedAt: assignmentInterestResponsesTable.selectedAt,
+        expiresAt: assignmentInterestResponsesTable.expiresAt,
+        firstName: personnelTable.firstName,
+        lastName: personnelTable.lastName,
+        matchScore: assignmentCandidatesTable.matchScore,
+      })
+      .from(assignmentInterestResponsesTable)
+      .innerJoin(personnelTable, eq(assignmentInterestResponsesTable.personnelId, personnelTable.id))
+      .leftJoin(
+        assignmentCandidatesTable,
+        and(
+          eq(assignmentCandidatesTable.assignmentId, assignmentInterestResponsesTable.assignmentId),
+          eq(assignmentCandidatesTable.personnelId, assignmentInterestResponsesTable.personnelId),
+        ),
+      )
+      .where(eq(assignmentInterestResponsesTable.assignmentId, assignmentId))
+      .orderBy(
+        desc(assignmentInterestResponsesTable.createdAt),
+        asc(personnelTable.lastName),
+      ),
+  ]);
+
+  const responsesByRoundId = new Map<string, typeof responses>();
+  for (const response of responses) {
+    const current = responsesByRoundId.get(response.roundId) ?? [];
+    current.push(response);
+    responsesByRoundId.set(response.roundId, current);
+  }
+
+  const emptyCounts = (): Record<SmartPlanningInterestResponseStatus, number> => ({
+    invited: 0,
+    viewed: 0,
+    interested: 0,
+    unavailable: 0,
+    question: 0,
+    selected: 0,
+    reserve: 0,
+    confirmed: 0,
+    cancelled: 0,
+    expired: 0,
+  });
+
+  return rounds.map((round) => {
+    const roundResponses = responsesByRoundId.get(round.id) ?? [];
+    const counts = emptyCounts();
+    for (const response of roundResponses) counts[response.status] += 1;
+
+    return {
+      id: round.id,
+      roundNumber: round.roundNumber,
+      audienceType: round.audienceType,
+      candidateLimit: round.candidateLimit,
+      status: round.status,
+      sentAt: round.sentAt?.toISOString() ?? null,
+      expiresAt: round.expiresAt?.toISOString() ?? null,
+      reminderAfterMinutes: round.reminderAfterMinutes,
+      reminderDueAt: round.reminderDueAt?.toISOString() ?? null,
+      reminderSentAt: round.reminderSentAt?.toISOString() ?? null,
+      skippedCount: round.skippedCount,
+      blockedCount: round.blockedCount,
+      invitePolicy:
+        round.invitePolicy && typeof round.invitePolicy === "object"
+          ? round.invitePolicy
+          : {},
+      counts,
+      responses: roundResponses.map((response) => ({
+        id: response.id,
+        personnelId: response.personnelId,
+        personnelName: `${response.firstName} ${response.lastName}`.trim(),
+        status: response.status,
+        responseNote: response.responseNote,
+        viewedAt: response.viewedAt?.toISOString() ?? null,
+        respondedAt: response.respondedAt?.toISOString() ?? null,
+        selectedAt: response.selectedAt?.toISOString() ?? null,
+        expiresAt: response.expiresAt?.toISOString() ?? null,
+        matchScore: response.matchScore ?? null,
+      })),
+    };
+  });
+}
+
+export async function sendAssignmentInterestReminder(
+  assignmentId: string,
+  roundId: string,
+): Promise<ActionResult<{ reminded: number }>> {
+  await requirePermission("planning", "write");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [round] = await db
+    .select()
+    .from(assignmentInterestRoundsTable)
+    .where(
+      and(
+        eq(assignmentInterestRoundsTable.id, roundId),
+        eq(assignmentInterestRoundsTable.assignmentId, assignmentId),
+      ),
+    )
+    .limit(1);
+
+  if (!round) return { success: false, message: "Ronde niet gevonden." };
+  if (round.status !== "sent") {
+    return { success: false, message: "Alleen verzonden rondes kunnen een reminder krijgen." };
+  }
+  if (round.reminderSentAt) {
+    return { success: false, message: "Voor deze ronde is al een reminder verstuurd." };
+  }
+
+  const [[assignment], responses] = await Promise.all([
+    db
+      .select({
+        id: assignmentsTable.id,
+        tenantId: assignmentsTable.tenantId,
+        code: assignmentsTable.code,
+        title: assignmentsTable.title,
+        scheduledDate: assignmentsTable.scheduledDate,
+        scheduledStart: assignmentsTable.scheduledStart,
+        scheduledEnd: assignmentsTable.scheduledEnd,
+        objectName: objectsTable.name,
+        objectCity: objectsTable.city,
+      })
+      .from(assignmentsTable)
+      .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
+      .where(eq(assignmentsTable.id, assignmentId))
+      .limit(1),
+    db
+      .select({
+        personnelId: assignmentInterestResponsesTable.personnelId,
+        firstName: personnelTable.firstName,
+        lastName: personnelTable.lastName,
+      })
+      .from(assignmentInterestResponsesTable)
+      .innerJoin(personnelTable, eq(assignmentInterestResponsesTable.personnelId, personnelTable.id))
+      .where(
+        and(
+          eq(assignmentInterestResponsesTable.roundId, roundId),
+          inArray(assignmentInterestResponsesTable.status, ["invited", "viewed"]),
+          or(
+            isNull(assignmentInterestResponsesTable.expiresAt),
+            gte(assignmentInterestResponsesTable.expiresAt, new Date()),
+          ),
+        ),
+      ),
+  ]);
+
+  if (!assignment) return { success: false, message: "Opdracht niet gevonden." };
+  if (responses.length === 0) {
+    return { success: false, message: "Geen openstaande reacties om te herinneren." };
+  }
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(assignmentInterestRoundsTable)
+      .set({ reminderSentAt: new Date() })
+      .where(eq(assignmentInterestRoundsTable.id, roundId));
+
+    await tx.insert(auditLogTable).values({
+      userId: user.id,
+      action: "assignment_interest_reminder",
+      resource: "assignments",
+      resourceId: assignmentId,
+      metadata: {
+        roundId,
+        roundNumber: round.roundNumber,
+        reminded: responses.length,
+      },
+    });
+  });
+
+  await Promise.all(
+    responses.map((person) =>
+      emitDomainEvent({
+        eventKey: "assignment_interest_reminder",
+        tenantId: assignment.tenantId,
+        actorUserId: user.id,
+        audience: "personnel",
+        aggregate: { type: "assignment", id: assignmentId },
+        recipients: { personnelIds: [person.personnelId] },
+        payload: {
+          assignment: {
+            id: assignment.id,
+            code: assignment.code,
+            title: assignment.title,
+            date: assignment.scheduledDate,
+            time_range: `${assignment.scheduledStart} - ${assignment.scheduledEnd}`,
+          },
+          object: {
+            name: assignment.objectName ?? "",
+            city: assignment.objectCity ?? "",
+          },
+          recipient: {
+            name: `${person.firstName} ${person.lastName}`.trim(),
+          },
+          href: "/openstaand",
+          round: {
+            id: roundId,
+            number: round.roundNumber,
+          },
+        },
+        fallback: {
+          title: `Herinnering ${assignment.code}`,
+          body: `Je hebt nog niet gereageerd op ${assignment.title}.`,
+          category: "planning",
+          priority: "normal",
+          href: "/openstaand",
+          sourceLabel: "Planning",
+        },
+        audit: false,
+      }),
+    ),
+  );
+
+  revalidatePath(`/assignments/${assignmentId}`);
+  return { success: true, data: { reminded: responses.length } };
 }
 
 export async function markInterestCandidate(

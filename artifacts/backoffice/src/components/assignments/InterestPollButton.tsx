@@ -39,7 +39,7 @@ export function InterestPollButton({ assignmentId, disabled }: InterestPollButto
       const result = await sendAssignmentInterestPoll(assignmentId, { audienceType });
       if (result.success) {
         toast.success(
-          `Ronde ${result.data?.roundNumber ?? "-"} verstuurd naar ${result.data?.notified ?? 0} medewerker(s).`,
+          `Ronde ${result.data?.roundNumber ?? "-"} verstuurd naar ${result.data?.notified ?? 0} medewerker(s). ${result.data?.blocked ? `${result.data.blocked} geblokkeerd door anti-spam.` : ""}`,
         );
       } else {
         toast.error(result.message);

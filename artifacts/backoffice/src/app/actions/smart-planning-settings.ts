@@ -28,6 +28,9 @@ export type SmartPlanningSectorRuleRow = {
   defaultRoundSize: number;
   roundIntervalMinutes: number;
   maxDailyInvites: number;
+  reminderAfterMinutes: number;
+  inviteCooldownMinutes: number;
+  allowEmergencyOverride: boolean;
   totalWeight: number;
   updatedAt: string | null;
 };
@@ -88,6 +91,9 @@ const ruleInputSchema = z
     defaultRoundSize: z.coerce.number().int().min(1).max(50),
     roundIntervalMinutes: z.coerce.number().int().min(1).max(1440),
     maxDailyInvites: z.coerce.number().int().min(1).max(100),
+    reminderAfterMinutes: z.coerce.number().int().min(1).max(1440),
+    inviteCooldownMinutes: z.coerce.number().int().min(0).max(10080),
+    allowEmergencyOverride: z.boolean(),
     isActive: z.boolean(),
   })
   .refine(
@@ -193,6 +199,9 @@ export async function listSmartPlanningSectorRules(): Promise<SmartPlanningSecto
       defaultRoundSize: rule?.defaultRoundSize ?? 5,
       roundIntervalMinutes: rule?.roundIntervalMinutes ?? 30,
       maxDailyInvites: rule?.maxDailyInvites ?? 6,
+      reminderAfterMinutes: rule?.reminderAfterMinutes ?? 15,
+      inviteCooldownMinutes: rule?.inviteCooldownMinutes ?? 120,
+      allowEmergencyOverride: rule?.allowEmergencyOverride ?? true,
       totalWeight: totalWeight(weights),
       updatedAt: rule?.updatedAt ? rule.updatedAt.toISOString() : null,
     };
@@ -232,6 +241,9 @@ export async function updateSmartPlanningSectorRule(
       defaultRoundSize: parsed.data.defaultRoundSize,
       roundIntervalMinutes: parsed.data.roundIntervalMinutes,
       maxDailyInvites: parsed.data.maxDailyInvites,
+      reminderAfterMinutes: parsed.data.reminderAfterMinutes,
+      inviteCooldownMinutes: parsed.data.inviteCooldownMinutes,
+      allowEmergencyOverride: parsed.data.allowEmergencyOverride,
       isActive: parsed.data.isActive,
     })
     .onConflictDoUpdate({
@@ -242,6 +254,9 @@ export async function updateSmartPlanningSectorRule(
         defaultRoundSize: parsed.data.defaultRoundSize,
         roundIntervalMinutes: parsed.data.roundIntervalMinutes,
         maxDailyInvites: parsed.data.maxDailyInvites,
+        reminderAfterMinutes: parsed.data.reminderAfterMinutes,
+        inviteCooldownMinutes: parsed.data.inviteCooldownMinutes,
+        allowEmergencyOverride: parsed.data.allowEmergencyOverride,
         isActive: parsed.data.isActive,
         updatedAt: new Date(),
       },
@@ -256,6 +271,9 @@ export async function updateSmartPlanningSectorRule(
     defaultRoundSize: parsed.data.defaultRoundSize,
     roundIntervalMinutes: parsed.data.roundIntervalMinutes,
     maxDailyInvites: parsed.data.maxDailyInvites,
+    reminderAfterMinutes: parsed.data.reminderAfterMinutes,
+    inviteCooldownMinutes: parsed.data.inviteCooldownMinutes,
+    allowEmergencyOverride: parsed.data.allowEmergencyOverride,
     isActive: parsed.data.isActive,
   });
   revalidateSmartPlanning();
@@ -289,6 +307,9 @@ export async function resetSmartPlanningSectorRule(
       defaultRoundSize: 5,
       roundIntervalMinutes: 30,
       maxDailyInvites: 6,
+      reminderAfterMinutes: 15,
+      inviteCooldownMinutes: 120,
+      allowEmergencyOverride: true,
       isActive: true,
     })
     .onConflictDoUpdate({
@@ -299,6 +320,9 @@ export async function resetSmartPlanningSectorRule(
         defaultRoundSize: 5,
         roundIntervalMinutes: 30,
         maxDailyInvites: 6,
+        reminderAfterMinutes: 15,
+        inviteCooldownMinutes: 120,
+        allowEmergencyOverride: true,
         isActive: true,
         updatedAt: new Date(),
       },

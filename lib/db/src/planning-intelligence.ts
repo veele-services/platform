@@ -1032,7 +1032,15 @@ export async function getLatestAssignmentCapacity(
 
 export async function getSmartPlanningRoundDefaults(
   assignmentId: string,
-): Promise<{ roundSize: number; expiresAt: Date; maxDailyInvites: number }> {
+): Promise<{
+  roundSize: number;
+  expiresAt: Date;
+  maxDailyInvites: number;
+  reminderAfterMinutes: number;
+  reminderDueAt: Date;
+  inviteCooldownMinutes: number;
+  allowEmergencyOverride: boolean;
+}> {
   const [assignment] = await db
     .select({
       objectSectorId: objectsTable.sectorId,
@@ -1058,10 +1066,17 @@ export async function getSmartPlanningRoundDefaults(
     )
     .limit(1);
 
-  const expiresAt = new Date(Date.now() + (rule?.roundIntervalMinutes ?? 30) * 60_000);
+  const roundIntervalMinutes = rule?.roundIntervalMinutes ?? 30;
+  const reminderAfterMinutes = rule?.reminderAfterMinutes ?? 15;
+  const now = Date.now();
+  const expiresAt = new Date(now + roundIntervalMinutes * 60_000);
   return {
     roundSize: rule?.defaultRoundSize ?? 5,
     expiresAt,
     maxDailyInvites: rule?.maxDailyInvites ?? 6,
+    reminderAfterMinutes,
+    reminderDueAt: new Date(now + reminderAfterMinutes * 60_000),
+    inviteCooldownMinutes: rule?.inviteCooldownMinutes ?? 120,
+    allowEmergencyOverride: rule?.allowEmergencyOverride ?? true,
   };
 }

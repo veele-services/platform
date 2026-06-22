@@ -30,6 +30,7 @@ import {
   getCustomerOptions,
   getPersonnelEligibilityForAssignment,
   getTaskCodeOptions,
+  listAssignmentInterestRounds,
 } from "@/app/actions/assignments";
 import { getReportForAssignment } from "@/app/actions/reports";
 import { SubmitReportForm } from "@/components/reports/SubmitReportForm";
@@ -42,6 +43,7 @@ import type { QuoteStatus } from "@/app/actions/quotes";
 import { listDocuments } from "@/app/actions/documents";
 import { AssignmentDocumentsPanel } from "@/components/documents/AssignmentDocumentsPanel";
 import { InterestPollButton } from "@/components/assignments/InterestPollButton";
+import { InterestRoundHistory } from "@/components/assignments/InterestRoundHistory";
 import { SmartCandidateActions } from "@/components/assignments/SmartCandidateActions";
 import { ProcessStatusBadge, ProcessStepper } from "@/components/workflows/ProcessStatus";
 
@@ -190,6 +192,9 @@ export default async function AssignmentDetailPage({ params }: Props) {
   const planningReadiness = canWrite
     ? await getAssignmentPlanningReadiness(id)
     : null;
+  const interestRounds = canWrite
+    ? await listAssignmentInterestRounds(id)
+    : [];
 
   // ── Formatted dates ────────────────────────────────────────────────────────
   const createdAt = new Date(assignment.createdAt).toLocaleDateString("nl-NL", {
@@ -665,6 +670,13 @@ export default async function AssignmentDetailPage({ params }: Props) {
                   assignmentId={assignment.id}
                   disabled={!planningReadiness.canPoll}
                 />
+              </div>
+
+              <div className="mt-4">
+                <p className="mb-2 text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
+                  Rondegeschiedenis
+                </p>
+                <InterestRoundHistory assignmentId={assignment.id} rounds={interestRounds} />
               </div>
                   </>
                 );

@@ -12,7 +12,7 @@ import {
   qualificationItemsTable,
   roleQualificationsTable,
 } from "@workspace/db";
-import { desc, eq, and, inArray, or } from "drizzle-orm";
+import { desc, eq, and, inArray, or, gte, isNull } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -174,9 +174,11 @@ export async function getOpenAssignments(): Promise<OpenAssignment[]> {
     "reserve",
     "confirmed",
   ] as const;
+  const now = new Date();
 
   const interestRows = await db
     .select({
+      id: assignmentInterestResponsesTable.id,
       assignmentId: assignmentInterestResponsesTable.assignmentId,
       status: assignmentInterestResponsesTable.status,
       createdAt: assignmentInterestResponsesTable.createdAt,
@@ -186,14 +188,28 @@ export async function getOpenAssignments(): Promise<OpenAssignment[]> {
       and(
         eq(assignmentInterestResponsesTable.personnelId, personnel.id),
         inArray(assignmentInterestResponsesTable.status, [...activeInterestStatuses]),
+        or(
+          isNull(assignmentInterestResponsesTable.expiresAt),
+          gte(assignmentInterestResponsesTable.expiresAt, now),
+        ),
       ),
     )
     .orderBy(desc(assignmentInterestResponsesTable.createdAt));
 
+  const newlyViewedIds = interestRows
+    .filter((row) => row.status === "invited")
+    .map((row) => row.id);
+  if (newlyViewedIds.length > 0) {
+    await db
+      .update(assignmentInterestResponsesTable)
+      .set({ status: "viewed", viewedAt: now, updatedAt: now })
+      .where(inArray(assignmentInterestResponsesTable.id, newlyViewedIds));
+  }
+
   const interestByAssignment = new Map<string, string>();
   for (const row of interestRows) {
     if (!interestByAssignment.has(row.assignmentId)) {
-      interestByAssignment.set(row.assignmentId, row.status);
+      interestByAssignment.set(row.assignmentId, row.status === "invited" ? "viewed" : row.status);
     }
   }
   const invitedAssignmentIds = [...interestByAssignment.keys()];

@@ -212,6 +212,15 @@ export const assignmentInterestRoundsTable = pgTable(
       .$type<SmartPlanningInterestRoundStatus>(),
     sentAt: timestamp("sent_at", { withTimezone: true }),
     expiresAt: timestamp("expires_at", { withTimezone: true }),
+    reminderAfterMinutes: integer("reminder_after_minutes").notNull().default(15),
+    reminderDueAt: timestamp("reminder_due_at", { withTimezone: true }),
+    reminderSentAt: timestamp("reminder_sent_at", { withTimezone: true }),
+    invitePolicy: jsonb("invite_policy")
+      .$type<Record<string, unknown>>()
+      .notNull()
+      .default(sql`'{}'::jsonb`),
+    skippedCount: integer("skipped_count").notNull().default(0),
+    blockedCount: integer("blocked_count").notNull().default(0),
     createdBy: uuid("created_by"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -226,6 +235,10 @@ export const assignmentInterestRoundsTable = pgTable(
       table.assignmentId,
       table.status,
     ),
+    index("assignment_interest_rounds_reminder_due_idx").on(
+      table.status,
+      table.reminderDueAt,
+    ).where(sql`${table.reminderDueAt} IS NOT NULL AND ${table.reminderSentAt} IS NULL`),
   ],
 );
 
@@ -302,6 +315,9 @@ export const planningSectorRulesTable = pgTable(
     defaultRoundSize: integer("default_round_size").notNull().default(5),
     roundIntervalMinutes: integer("round_interval_minutes").notNull().default(30),
     maxDailyInvites: integer("max_daily_invites").notNull().default(6),
+    reminderAfterMinutes: integer("reminder_after_minutes").notNull().default(15),
+    inviteCooldownMinutes: integer("invite_cooldown_minutes").notNull().default(120),
+    allowEmergencyOverride: boolean("allow_emergency_override").notNull().default(true),
     isActive: boolean("is_active").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()

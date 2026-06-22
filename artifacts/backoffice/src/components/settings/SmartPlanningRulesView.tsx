@@ -143,6 +143,9 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
         defaultRoundSize: rule.defaultRoundSize,
         roundIntervalMinutes: rule.roundIntervalMinutes,
         maxDailyInvites: rule.maxDailyInvites,
+        reminderAfterMinutes: rule.reminderAfterMinutes,
+        inviteCooldownMinutes: rule.inviteCooldownMinutes,
+        allowEmergencyOverride: rule.allowEmergencyOverride,
         isActive: rule.isActive,
       });
       setPendingSectorId(null);
@@ -383,6 +386,59 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
                           }))
                         }
                       />
+                      <NumberField
+                        label="Reminder na"
+                        suffix="min. geen reactie"
+                        min={1}
+                        max={1440}
+                        value={rule.reminderAfterMinutes}
+                        disabled={!canWrite || pending}
+                        onChange={(value) =>
+                          updateRule(rule.sectorId, (current) => ({
+                            ...current,
+                            reminderAfterMinutes: value,
+                          }))
+                        }
+                      />
+                      <NumberField
+                        label="Invite-cooldown"
+                        suffix="min. tussen rondes"
+                        min={0}
+                        max={10080}
+                        value={rule.inviteCooldownMinutes}
+                        disabled={!canWrite || pending}
+                        onChange={(value) =>
+                          updateRule(rule.sectorId, (current) => ({
+                            ...current,
+                            inviteCooldownMinutes: value,
+                          }))
+                        }
+                      />
+                      <label
+                        className="flex items-start gap-3 rounded-lg border bg-white p-3 text-sm"
+                        style={{ color: "#475569" }}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={rule.allowEmergencyOverride}
+                          disabled={!canWrite || pending}
+                          onChange={(event) =>
+                            updateRule(rule.sectorId, (current) => ({
+                              ...current,
+                              allowEmergencyOverride: event.target.checked,
+                            }))
+                          }
+                          className="mt-0.5 h-4 w-4 rounded border-slate-300"
+                        />
+                        <span>
+                          <span className="block font-semibold" style={{ color: "#081D3A" }}>
+                            Spoed mag anti-spam overschrijven
+                          </span>
+                          <span className="mt-0.5 block text-xs leading-relaxed" style={{ color: "#64748B" }}>
+                            Bij spoedrondes mag planning daglimiet en cooldown overslaan. Overlap met bestaande planning blijft altijd geblokkeerd.
+                          </span>
+                        </span>
+                      </label>
                     </div>
                   </div>
 
