@@ -16,6 +16,13 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { sendEmail, buildReportSubmittedEmail } from "@/lib/email";
+import {
+  ASSIGNMENT_MEDIA_BUCKET,
+  MAX_REPORT_NOTE_ATTACHMENTS,
+  buildReportNoteAttachmentPath,
+  isReportNoteAttachmentPath,
+  validateAssignmentMediaDescriptor,
+} from "@/lib/uploads/assignment-media";
 
 export type ReportNoteAttachment = {
   id:          string;
@@ -40,6 +47,23 @@ export type ReportNoteAttachmentInput = {
   fileName:    string;
   mimeType?:   string | null;
   fileSize?:   number | null;
+};
+
+export type PrepareReportNoteUploadInput = {
+  clientId: string;
+  fileName: string;
+  mimeType: string | null;
+  fileSize: number;
+};
+
+export type PreparedReportNoteUpload = {
+  clientId:    string;
+  storagePath: string;
+  signedUrl:   string;
+  token:       string;
+  fileName:    string;
+  mimeType:    string;
+  fileSize:    number;
 };
 
 export type ReportNoteInput = {
@@ -128,7 +152,7 @@ async function createSignedAttachmentUrl(storagePath: string): Promise<string | 
   try {
     const admin = createAdminClient();
     const { data } = await admin.storage
-      .from("assignment-photos")
+      .from(ASSIGNMENT_MEDIA_BUCKET)
       .createSignedUrl(storagePath, 3600);
 
     return data?.signedUrl ?? null;
@@ -154,17 +178,95 @@ function normalizeAttachmentInput(
 ): ReportNoteAttachmentInput | null {
   const storagePath = input.storagePath.trim();
   const fileName = input.fileName.trim();
-  const prefix = `${assignmentId}/report-notes/`;
 
-  if (!storagePath || !storagePath.startsWith(prefix)) return null;
+  if (!storagePath || !isReportNoteAttachmentPath(assignmentId, storagePath)) return null;
   if (!fileName) return null;
+
+  const validation = validateAssignmentMediaDescriptor({
+    fileName,
+    mimeType: input.mimeType ?? null,
+    fileSize: input.fileSize ?? null,
+  });
+  if (!validation.valid) return null;
 
   return {
     storagePath,
-    fileName,
-    mimeType: input.mimeType?.trim() || null,
-    fileSize: Number.isFinite(input.fileSize ?? NaN) ? Math.max(0, Math.round(input.fileSize!)) : null,
+    fileName: validation.fileName,
+    mimeType: validation.mimeType,
+    fileSize: validation.fileSize,
   };
+}
+
+function uniqueUploadId(): string {
+  return globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
+}
+
+export async function prepareReportNoteAttachmentUploads(
+  assignmentId: string,
+  files: PrepareReportNoteUploadInput[],
+): Promise<{ success: boolean; uploads?: PreparedReportNoteUpload[]; error?: string }> {
+  const auth = await getAuthAndPersonnel();
+  if (!auth) return { success: false, error: "Niet ingelogd" };
+
+  const linked = await isLinkedToAssignment(auth.personnelId, assignmentId);
+  if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
+
+  if (files.length === 0) return { success: true, uploads: [] };
+  if (files.length > MAX_REPORT_NOTE_ATTACHMENTS) {
+    return { success: false, error: `Maximaal ${MAX_REPORT_NOTE_ATTACHMENTS} bijlagen per notitie toegestaan` };
+  }
+
+  const [assignment] = await db
+    .select({ status: assignmentsTable.status })
+    .from(assignmentsTable)
+    .where(eq(assignmentsTable.id, assignmentId))
+    .limit(1);
+
+  if (!assignment) return { success: false, error: "Opdracht niet gevonden" };
+  if (LOCKED_REPORT_NOTE_STATUSES.has(assignment.status)) {
+    return { success: false, error: "Deze werkbon is afgesloten voor rapportage" };
+  }
+
+  const admin = createAdminClient();
+  const uploads: PreparedReportNoteUpload[] = [];
+
+  for (const file of files) {
+    const validation = validateAssignmentMediaDescriptor({
+      fileName: file.fileName,
+      mimeType: file.mimeType,
+      fileSize: file.fileSize,
+    });
+
+    if (!validation.valid) {
+      return { success: false, error: validation.error };
+    }
+
+    const storagePath = buildReportNoteAttachmentPath(
+      assignmentId,
+      validation.fileName,
+      uniqueUploadId(),
+    );
+
+    const { data, error } = await admin.storage
+      .from(ASSIGNMENT_MEDIA_BUCKET)
+      .createSignedUploadUrl(storagePath);
+
+    if (error || !data) {
+      return { success: false, error: "Upload voorbereiden mislukt" };
+    }
+
+    uploads.push({
+      clientId:    file.clientId,
+      storagePath,
+      signedUrl:   data.signedUrl,
+      token:       data.token,
+      fileName:    validation.fileName,
+      mimeType:    validation.mimeType,
+      fileSize:    validation.fileSize,
+    });
+  }
+
+  return { success: true, uploads };
 }
 
 // ─── Queries ─────────────────────────────────────────────────────────────────
@@ -429,7 +531,12 @@ export async function addReportNote(
     return { success: false, error: "Deze werkbon is afgesloten voor rapportage" };
   }
 
-  const normalizedAttachments = (input.attachments ?? []).map((attachment) =>
+  const attachmentInput = input.attachments ?? [];
+  if (attachmentInput.length > MAX_REPORT_NOTE_ATTACHMENTS) {
+    return { success: false, error: `Maximaal ${MAX_REPORT_NOTE_ATTACHMENTS} bijlagen per notitie toegestaan` };
+  }
+
+  const normalizedAttachments = attachmentInput.map((attachment) =>
     normalizeAttachmentInput(assignmentId, attachment),
   );
   if (normalizedAttachments.some((attachment) => attachment === null)) {

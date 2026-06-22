@@ -6,6 +6,7 @@ import {
   addExtraWork,
   updateExtraWork,
   deleteExtraWork,
+  prepareExtraWorkPhotoUpload,
   savePhotoPath,
   deletePhoto,
   type ExtraWorkItem,
@@ -13,6 +14,11 @@ import {
   type ExtraWorkInput,
 } from "@/actions/extra-work";
 import { createClient } from "@/lib/supabase/client";
+import { ASSIGNMENT_MEDIA_BUCKET } from "@/lib/uploads/assignment-media";
+import {
+  compressImageIfUseful,
+  validateAssignmentMediaFile,
+} from "@/lib/uploads/client-assignment-media";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -66,6 +72,7 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
   const [isSavingEdit, startSaveEdit]   = useTransition();
 
   const [uploadingFor, setUploadingFor] = useState<string | null>(null);
+  const [uploadErrors, setUploadErrors] = useState<Record<string, string>>({});
   const [deletingId, setDeletingId]     = useState<string | null>(null);
 
   const fileRefs = useRef<Record<string, HTMLInputElement | null>>({});
@@ -212,24 +219,43 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
     const file = files[0]!;
 
     setUploadingFor(itemId);
+    setUploadErrors((current) => ({ ...current, [itemId]: "" }));
     try {
+      const initialValidation = validateAssignmentMediaFile(file, { allowVideos: false });
+      if (!initialValidation.valid) throw new Error(initialValidation.error);
+
+      const uploadFile = await compressImageIfUseful(file);
+      const validation = validateAssignmentMediaFile(uploadFile, { allowVideos: false });
+      if (!validation.valid) throw new Error(validation.error);
+
+      const prepared = await prepareExtraWorkPhotoUpload(assignmentId, itemId, {
+        fileName: uploadFile.name,
+        mimeType: uploadFile.type || null,
+        fileSize: uploadFile.size,
+      });
+
+      if (!prepared.success || !prepared.upload) {
+        throw new Error(prepared.error ?? "Upload voorbereiden mislukt");
+      }
+
       const supabase = createClient();
-      const ext      = file.name.split(".").pop() ?? "jpg";
-      const path     = `${assignmentId}/${itemId}/${Date.now()}.${ext}`;
+      const path     = prepared.upload.storagePath;
 
       const { error: uploadError } = await supabase.storage
-        .from("assignment-photos")
-        .upload(path, file);
+        .from(ASSIGNMENT_MEDIA_BUCKET)
+        .uploadToSignedUrl(path, prepared.upload.token, uploadFile, {
+          contentType: prepared.upload.mimeType,
+        });
       if (uploadError) throw uploadError;
 
       const result = await savePhotoPath(assignmentId, itemId, path);
       if (!result.success || !result.photoId) {
         // Remove the orphaned file from storage if DB save failed
-        await supabase.storage.from("assignment-photos").remove([path]);
+        await supabase.storage.from(ASSIGNMENT_MEDIA_BUCKET).remove([path]);
         throw new Error(result.error ?? "Opslaan mislukt");
       }
 
-      const localUrl = URL.createObjectURL(file);
+      const localUrl = URL.createObjectURL(uploadFile);
       setItems((prev) =>
         prev.map((item) =>
           item.id === itemId
@@ -243,8 +269,11 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
             : item,
         ),
       );
-    } catch {
-      // silently ignore upload errors — user sees no change in UI and can retry
+    } catch (caught) {
+      setUploadErrors((current) => ({
+        ...current,
+        [itemId]: caught instanceof Error ? caught.message : "Upload mislukt",
+      }));
     } finally {
       setUploadingFor(null);
       if (fileRefs.current[itemId]) fileRefs.current[itemId]!.value = "";
@@ -345,6 +374,7 @@ export function MeerwerkSection({ assignmentId, initialItems, taskCodes, canEdit
                 item={item}
                 canEdit={canEdit}
                 uploadingFor={uploadingFor}
+                uploadError={uploadErrors[item.id] ?? ""}
                 deletingId={deletingId}
                 fileRefs={fileRefs}
                 onEdit={() => startEditing(item)}
@@ -509,6 +539,7 @@ function MeerwerkItemKaart({
   item,
   canEdit,
   uploadingFor,
+  uploadError,
   deletingId,
   fileRefs,
   onEdit,
@@ -519,6 +550,7 @@ function MeerwerkItemKaart({
   item:         ItemState;
   canEdit:      boolean;
   uploadingFor: string | null;
+  uploadError:  string;
   deletingId:   string | null;
   fileRefs:     React.MutableRefObject<Record<string, HTMLInputElement | null>>;
   onEdit:       () => void;
@@ -650,6 +682,11 @@ function MeerwerkItemKaart({
                   : <Camera size={13} />}
                 {isUploading ? "Uploaden…" : "Foto toevoegen"}
               </button>
+              {uploadError ? (
+                <p className="mt-2 rounded-xl px-3 py-2 text-xs font-medium" style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
+                  {uploadError}
+                </p>
+              ) : null}
             </>
           )}
 
