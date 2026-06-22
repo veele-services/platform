@@ -64,12 +64,13 @@ export type SmartPlanningInterestResponseStatus =
 
 export type SmartPlanningScoreWeights = {
   availability: number;
+  role: number;
   qualifications: number;
   region: number;
   objectExperience: number;
   workload: number;
   emergency: number;
-  reliability: number;
+  fixedTeams: number;
   preferences: number;
 };
 
@@ -295,7 +296,7 @@ export const planningSectorRulesTable = pgTable(
       .$type<SmartPlanningScoreWeights>()
       .notNull()
       .default(
-        sql`'{"availability":25,"qualifications":25,"region":15,"objectExperience":10,"workload":10,"emergency":5,"reliability":5,"preferences":5}'::jsonb`,
+        sql`'{"availability":25,"role":12,"qualifications":20,"region":15,"objectExperience":10,"workload":8,"emergency":4,"fixedTeams":3,"preferences":3}'::jsonb`,
       ),
     topMatchThreshold: integer("top_match_threshold").notNull().default(85),
     defaultRoundSize: integer("default_round_size").notNull().default(5),

@@ -77,13 +77,14 @@ export type SmartPlanningCapacityResult = {
 
 const DEFAULT_WEIGHTS: SmartPlanningScoreWeights = {
   availability: 25,
-  qualifications: 25,
+  role: 12,
+  qualifications: 20,
   region: 15,
   objectExperience: 10,
-  workload: 10,
-  emergency: 5,
-  reliability: 5,
-  preferences: 5,
+  workload: 8,
+  emergency: 4,
+  fixedTeams: 3,
+  preferences: 3,
 };
 
 function uniqueStrings(values: Array<string | null | undefined>): string[] {
@@ -369,7 +370,6 @@ export async function calculateAssignmentCapacity(
     experienceRows,
     fixedTeamRows,
     workloadRows,
-    responseHistoryRows,
     activeInterestRows,
   ] = await Promise.all([
     scheduledDate && personnelIds.length > 0
@@ -523,19 +523,6 @@ export async function calculateAssignmentCapacity(
           )
           .groupBy(assignmentPersonnelTable.personnelId)
       : Promise.resolve([] as Array<{ personnelId: string; minutes: number }>),
-    personnelIds.length > 0
-      ? db
-          .select({
-            personnelId: assignmentInterestResponsesTable.personnelId,
-            total: sql<number>`count(*)::int`,
-            positive: sql<number>`count(*) filter (where ${assignmentInterestResponsesTable.status} in ('interested','selected','reserve','confirmed'))::int`,
-          })
-          .from(assignmentInterestResponsesTable)
-          .where(inArray(assignmentInterestResponsesTable.personnelId, personnelIds))
-          .groupBy(assignmentInterestResponsesTable.personnelId)
-      : Promise.resolve(
-          [] as Array<{ personnelId: string; total: number; positive: number }>,
-        ),
     db
       .select({
         personnelId: assignmentInterestResponsesTable.personnelId,
@@ -568,13 +555,6 @@ export async function calculateAssignmentCapacity(
   const workloadMap = new Map(
     workloadRows.map((row) => [row.personnelId, row.minutes ?? 0]),
   );
-  const responseMap = new Map(
-    responseHistoryRows.map((row) => [
-      row.personnelId,
-      { total: row.total ?? 0, positive: row.positive ?? 0 },
-    ]),
-  );
-
   const candidates: SmartPlanningCandidateResult[] = personnelRows.map((person) => {
     const reasons: SmartPlanningReason[] = [];
     const positives: string[] = [];
@@ -735,12 +715,6 @@ export async function calculateAssignmentCapacity(
     const experienceCount = experienceMap.get(person.id) ?? 0;
     const isFixedTeamMember = fixedTeamSet.has(person.id);
     const workloadMinutes = workloadMap.get(person.id) ?? 0;
-    const responseHistory = responseMap.get(person.id);
-    const responseRatio =
-      responseHistory && responseHistory.total > 0
-        ? responseHistory.positive / responseHistory.total
-        : 0.5;
-
     if (isFixedTeamMember) {
       addReason(reasons, "fixed_object_team", "Vast of voorkeurslid voor dit object", "ok");
       positives.push("Vast team voor dit object");
@@ -752,9 +726,9 @@ export async function calculateAssignmentCapacity(
       positives.push("Spoedbeschikbaar");
     }
 
+    const rolePass =
+      requiredRoleIds.length === 0 || requiredRoleIds.includes(person.roleId ?? "");
     const qualificationsPass =
-      (requiredRoleIds.length === 0 || requiredRoleIds.includes(person.roleId ?? "")) &&
-      (!sectorId || person.sectorId === sectorId) &&
       missingCertificates.length === 0 &&
       missingDiplomas.length === 0 &&
       missingKnowledge.length === 0;
@@ -765,10 +739,24 @@ export async function calculateAssignmentCapacity(
         awarded: availabilityPass ? weights.availability : 0,
         label: availabilityPass ? "Beschikbaar" : "Niet volledig beschikbaar",
       },
+      role: {
+        weight: weights.role,
+        awarded: rolePass ? weights.role : 0,
+        label: requiredRoleIds.length === 0
+          ? "Geen specifieke functie vereist"
+          : rolePass
+            ? "Juiste functie"
+            : "Functie/rol ontbreekt",
+      },
       qualifications: {
         weight: weights.qualifications,
         awarded: qualificationsPass ? weights.qualifications : 0,
-        label: qualificationsPass ? "Vereisten matchen" : "Vereisten blokkeren",
+        label:
+          requiredCertificates.length + requiredDiplomas.length + requiredKnowledge.length === 0
+            ? "Geen extra kwalificaties vereist"
+            : qualificationsPass
+              ? "Certificaten/diploma's/kennis matchen"
+              : "Vereiste kwalificaties ontbreken",
       },
       region: {
         weight: weights.region,
@@ -777,12 +765,10 @@ export async function calculateAssignmentCapacity(
       },
       objectExperience: {
         weight: weights.objectExperience,
-        awarded: isFixedTeamMember || experienceCount > 0
+        awarded: experienceCount > 0
           ? weights.objectExperience
           : Math.round(weights.objectExperience * 0.35),
-        label: isFixedTeamMember
-          ? "Vast team voor object"
-          : experienceCount > 0
+        label: experienceCount > 0
             ? "Bekend met klant/object"
             : "Geen eerdere objectervaring",
       },
@@ -796,21 +782,21 @@ export async function calculateAssignmentCapacity(
         awarded: dayEntry?.isEmergencyAvailable || person.emergencyAvailable ? weights.emergency : 0,
         label: dayEntry?.isEmergencyAvailable || person.emergencyAvailable ? "Spoedbeschikbaar" : "Geen spoedstatus",
       },
-      reliability: {
-        weight: weights.reliability,
-        awarded: Math.round(weights.reliability * responseRatio),
-        label: responseHistory
-          ? `${Math.round(responseRatio * 100)}% positieve respons`
-          : "Nog weinig responshistorie",
+      fixedTeams: {
+        weight: weights.fixedTeams,
+        awarded: isFixedTeamMember ? weights.fixedTeams : 0,
+        label: isFixedTeamMember ? "Vast team voor object" : "Geen vast team",
       },
       preferences: {
         weight: weights.preferences,
         awarded:
-          isFixedTeamMember ||
-          (requiredRegion && preferredRegions.map((r) => r.toLowerCase()).includes(requiredRegion))
+          requiredRegion && preferredRegions.map((r) => r.toLowerCase()).includes(requiredRegion)
             ? weights.preferences
             : Math.round(weights.preferences * 0.5),
-        label: isFixedTeamMember ? "Vaste objectvoorkeur" : "Voorkeuren deels passend",
+        label:
+          requiredRegion && preferredRegions.map((r) => r.toLowerCase()).includes(requiredRegion)
+            ? "Voorkeursregio match"
+            : "Voorkeuren deels passend",
       },
     };
 
