@@ -8,10 +8,13 @@ import { SidebarProvider } from "@/providers/sidebar-provider";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { DashboardHeader } from "@/components/layout/DashboardHeader";
 import { SidebarOverlay } from "@/components/layout/SidebarOverlay";
+import { BackofficeRealtimeProvider } from "@/components/realtime/BackofficeRealtimeProvider";
 import { getPendingReportsCount } from "@/app/actions/reports";
 import { getOutstandingInvoicesCount } from "@/app/actions/invoices";
 import { getPendingQuotesCount } from "@/app/actions/quotes";
 import { getPendingLeaveCount } from "@/app/actions/availability";
+
+const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000010";
 
 export default async function DashboardLayout({
   children,
@@ -27,9 +30,16 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const [permissions, roles] = await Promise.all([
+  const [permissions, roles, tenantUserResult] = await Promise.all([
     getCurrentUserPermissions(),
     getUserRoles(user.id),
+    supabase
+      .from("tenant_users")
+      .select("tenant_id")
+      .eq("user_id", user.id)
+      .eq("status", "active")
+      .limit(1)
+      .maybeSingle(),
   ]);
 
   const canReadReports   = permissions.has("reports:read");
@@ -47,33 +57,39 @@ export default async function DashboardLayout({
   const userEmail   = user.email ?? "";
   const userInitial = (userEmail[0] ?? "U").toUpperCase();
   const userRole    = roles[0] ?? "User";
+  const tenantId =
+    typeof tenantUserResult.data?.tenant_id === "string"
+      ? tenantUserResult.data.tenant_id
+      : DEFAULT_TENANT_ID;
 
   return (
     <PermissionsProvider permissions={[...permissions]}>
-      <SidebarProvider>
-        <div
-          className="flex h-screen overflow-hidden"
-          style={{ backgroundColor: "#F8FAFC" }}
-        >
-          <Sidebar
-            pendingReportsCount={pendingReportsCount}
-            outstandingInvoicesCount={outstandingInvoicesCount}
-            pendingQuotesCount={pendingQuotesCount}
-            pendingLeaveCount={pendingLeaveCount}
-          />
-
-          <SidebarOverlay />
-
-          <div className="flex flex-col flex-1 overflow-hidden min-w-0">
-            <DashboardHeader
-              userEmail={userEmail}
-              userInitial={userInitial}
-              userRole={userRole}
+      <BackofficeRealtimeProvider realtimeKey={`management_${tenantId}`}>
+        <SidebarProvider>
+          <div
+            className="flex h-screen overflow-hidden"
+            style={{ backgroundColor: "#F8FAFC" }}
+          >
+            <Sidebar
+              pendingReportsCount={pendingReportsCount}
+              outstandingInvoicesCount={outstandingInvoicesCount}
+              pendingQuotesCount={pendingQuotesCount}
+              pendingLeaveCount={pendingLeaveCount}
             />
-            <main className="flex-1 overflow-y-auto">{children}</main>
+
+            <SidebarOverlay />
+
+            <div className="flex flex-col flex-1 overflow-hidden min-w-0">
+              <DashboardHeader
+                userEmail={userEmail}
+                userInitial={userInitial}
+                userRole={userRole}
+              />
+              <main className="flex-1 overflow-y-auto">{children}</main>
+            </div>
           </div>
-        </div>
-      </SidebarProvider>
+        </SidebarProvider>
+      </BackofficeRealtimeProvider>
     </PermissionsProvider>
   );
 }

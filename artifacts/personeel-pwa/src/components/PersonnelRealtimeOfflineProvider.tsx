@@ -85,7 +85,7 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
     refreshTimerRef.current = setTimeout(() => {
       router.refresh();
       refreshTimerRef.current = null;
-    }, 650);
+    }, 180);
   }, [router]);
 
   const updateQueueCount = useCallback(() => {
@@ -208,36 +208,17 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
     setRealtimeState("connecting");
 
     try {
+      const realtimeKey = `personnel_${personnelId}`;
       const supabase = createClient();
       const channel = supabase
-        .channel(`personnel-live:${personnelId}`)
+        .channel(`portal-live:${realtimeKey}`)
         .on(
           "postgres_changes",
           {
-            event: "*",
+            event: "INSERT",
             schema: "public",
-            table: "assignment_personnel",
-            filter: `personnel_id=eq.${personnelId}`,
-          },
-          scheduleRefresh,
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "personnel_notifications",
-            filter: `personnel_id=eq.${personnelId}`,
-          },
-          scheduleRefresh,
-        )
-        .on(
-          "postgres_changes",
-          {
-            event: "*",
-            schema: "public",
-            table: "personnel_message_threads",
-            filter: `personnel_id=eq.${personnelId}`,
+            table: "portal_realtime_events",
+            filter: `realtime_key=eq.${realtimeKey}`,
           },
           scheduleRefresh,
         )
