@@ -3,10 +3,11 @@ export const dynamic = "force-dynamic";
 import { notFound } from "next/navigation";
 import { getMyAssignment } from "@/actions/assignments";
 import { getExtraWorkForAssignment } from "@/actions/extra-work";
+import { getMaterialUsageForAssignment } from "@/actions/materials";
 import { getMyReportForAssignment, getReportNotesForAssignment, type MyReport, type ReportNote } from "@/actions/reports";
 import { CompletionSummary } from "../CompletionSummary";
 import { WorkOrderHeader } from "../WorkOrderHeader";
-import { type AssignmentView, type MaterialUsageItem } from "../work-order-data";
+import { type AssignmentView } from "../work-order-data";
 
 type Props = {
   params:       Promise<{ id: string }>;
@@ -37,13 +38,13 @@ export default async function WorkOrderCompletionPage({ params, searchParams }: 
 
   if (!assignment) notFound();
 
-  const [report, extraWork, reportNotes] = await Promise.all([
+  const [report, extraWork, reportNotes, materialItems] = await Promise.all([
     getMyReportForAssignment(id),
     getExtraWorkForAssignment(id),
     getReportNotesForAssignment(id),
+    getMaterialUsageForAssignment(id),
   ]);
 
-  const materialItems: MaterialUsageItem[] = [];
   const timelineNotes = reportNotes.length > 0 ? reportNotes : reportAsNote(report);
 
   return (

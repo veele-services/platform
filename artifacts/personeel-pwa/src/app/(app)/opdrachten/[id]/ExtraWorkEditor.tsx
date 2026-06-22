@@ -9,6 +9,10 @@ import {
   type TaskCodeOption,
 } from "@/actions/extra-work";
 import {
+  enqueueOfflineWorkOrderAction,
+  isOfflineNow,
+} from "@/lib/offline/work-order-queue";
+import {
   calculateExtraWorkLineTotal,
   formatMoney,
   formatQuantity,
@@ -99,7 +103,14 @@ export function ExtraWorkEditor({ assignmentId, initialItems, taskCodes, canEdit
     };
 
     startTransition(async () => {
-      if (!canPersist) {
+      if (!canPersist || isOfflineNow()) {
+        if (isOfflineNow()) {
+          enqueueOfflineWorkOrderAction({
+            type: "add-extra-work",
+            assignmentId,
+            payload: input,
+          });
+        }
         setItems((current) => [
           ...current,
           {

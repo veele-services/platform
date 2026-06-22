@@ -181,6 +181,8 @@ export const assignmentTasksTable = pgTable("assignment_tasks", {
     .references(() => taskCodesTable.id, { onDelete: "set null" }),
   notes:        text("notes"),
   sortOrder:    integer("sort_order").notNull().default(0),
+  completedAt:  timestamp("completed_at", { withTimezone: true }),
+  completedBy:  uuid("completed_by"),
 });
 
 /** Extra work added by personnel during or after assignment execution. */
@@ -213,6 +215,22 @@ export const assignmentPhotosTable = pgTable("assignment_photos", {
   /** Set to true by management (backoffice) to make the photo visible to the customer. */
   isApproved:   boolean("is_approved").notNull().default(false),
   createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+});
+
+/** Material and consumables registered by personnel during execution. */
+export const assignmentMaterialUsageTable = pgTable("assignment_material_usage", {
+  id:           uuid("id").primaryKey().defaultRandom(),
+  assignmentId: uuid("assignment_id")
+    .notNull()
+    .references(() => assignmentsTable.id, { onDelete: "cascade" }),
+  name:         text("name").notNull(),
+  quantity:     numeric("quantity", { precision: 10, scale: 2 }).notNull().default("1"),
+  unitPrice:    numeric("unit_price", { precision: 10, scale: 2 }).notNull().default("0"),
+  unitLabel:    varchar("unit_label", { length: 40 }),
+  notes:        text("notes"),
+  createdBy:    uuid("created_by").notNull(),
+  createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  updatedAt:    timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
 
 /** Timeline notes written by personnel during assignment execution. */
@@ -248,6 +266,7 @@ export type AssignmentExtraWork       = typeof assignmentExtraWorkTable.$inferSe
 export type InsertAssignmentExtraWork = typeof assignmentExtraWorkTable.$inferInsert;
 export type AssignmentPhoto           = typeof assignmentPhotosTable.$inferSelect;
 export type InsertAssignmentPhoto     = typeof assignmentPhotosTable.$inferInsert;
+export type AssignmentMaterialUsage   = typeof assignmentMaterialUsageTable.$inferSelect;
 export type AssignmentReportNote      = typeof assignmentReportNotesTable.$inferSelect;
 export type AssignmentReportNoteAttachment = typeof assignmentReportNoteAttachmentsTable.$inferSelect;
 

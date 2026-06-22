@@ -113,6 +113,8 @@ export function getActiveStep(status: string): number {
 
 export function getTaskCompletionCount(assignment: AssignmentView): number {
   if (assignment.tasks.length === 0) return 0;
+  const explicitCompleted = assignment.tasks.filter((task) => Boolean(task.completedAt)).length;
+  if (explicitCompleted > 0) return explicitCompleted;
   if (FINISHED_STATUSES.has(assignment.status)) return assignment.tasks.length;
   if (assignment.status === "in_progress") return Math.max(assignment.tasks.length - 1, 0);
   return 0;

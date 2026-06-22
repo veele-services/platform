@@ -3,6 +3,10 @@
 import { useMemo, useState, useTransition, type FormEvent } from "react";
 import { ChevronRight, FileText, ImageIcon, Loader2, Paperclip, Plus, Send, Trash2, Video, X } from "lucide-react";
 import { addReportNote, type ReportNote, type ReportNoteAttachment } from "@/actions/reports";
+import {
+  enqueueOfflineWorkOrderAction,
+  isOfflineNow,
+} from "@/lib/offline/work-order-queue";
 import { createClient } from "@/lib/supabase/client";
 
 type Props = {
@@ -275,7 +279,12 @@ export function RapportageTimeline({ assignmentId, initialNotes, canAdd, canPers
     }
 
     startTransition(async () => {
-      if (!canPersist) {
+      if (!canPersist || isOfflineNow()) {
+        if (files.length > 0 && isOfflineNow()) {
+          setError("Bijlagen kunnen pas online worden geupload. Sla de notitie zonder bijlage op of probeer opnieuw zodra je online bent.");
+          return;
+        }
+
         const now = new Date().toISOString();
         setNotes((current) => [
           {
@@ -295,6 +304,13 @@ export function RapportageTimeline({ assignmentId, initialNotes, canAdd, canPers
           },
           ...current,
         ]);
+        if (isOfflineNow()) {
+          enqueueOfflineWorkOrderAction({
+            type: "add-report-note",
+            assignmentId,
+            payload: { body: trimmedBody },
+          });
+        }
         resetForm();
         return;
       }

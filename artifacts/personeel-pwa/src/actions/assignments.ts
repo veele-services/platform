@@ -1,6 +1,7 @@
 "use server";
 
 import { db, assignmentsTable, assignmentPersonnelTable } from "@workspace/db";
+import { assignmentTasksTable } from "@workspace/db";
 import { emitAssignmentWorkflowEvent } from "@workspace/db/workflow-events";
 import { and, eq } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
@@ -33,7 +34,13 @@ export type MyAssignment = {
 
 export type MyAssignmentDetail = MyAssignment & {
   description: string | null;
-  tasks: { id: string; sortOrder: number; notes: string | null }[];
+  tasks: {
+    id: string;
+    sortOrder: number;
+    notes: string | null;
+    completedAt: string | null;
+    completedBy: string | null;
+  }[];
 };
 
 type PersonnelBasic = { id: string; region: string | null };
@@ -170,7 +177,7 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
         required_region,
         customers(name),
         objects(name, address, city, postal_code, contact_name, contact_phone),
-        assignment_tasks(id, sort_order, notes)
+        assignment_tasks(id, sort_order, notes, completed_at, completed_by)
       )
     `)
     .eq("personnel_id", personnel.id)
@@ -210,9 +217,11 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
     requiredRegion:   a.required_region ?? null,
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     tasks: (a.assignment_tasks ?? []).map((t: any) => ({
-      id:        t.id,
-      sortOrder: t.sort_order,
-      notes:     t.notes ?? null,
+      id:          t.id,
+      sortOrder:   t.sort_order,
+      notes:       t.notes ?? null,
+      completedAt: t.completed_at ?? null,
+      completedBy: t.completed_by ?? null,
     })),
   };
 }
@@ -352,6 +361,53 @@ export async function startAssignment(
   assignmentId: string,
 ): Promise<{ success: boolean; error?: string }> {
   return setAssignmentStatus(assignmentId, "in_progress");
+}
+
+export async function setAssignmentTaskCompletion(
+  assignmentId: string,
+  taskId: string,
+  completed: boolean,
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Niet ingelogd" };
+
+  const personnel = await getPersonnelBasic(supabase, user.id);
+  if (!personnel) return { success: false, error: "Personeelsprofiel niet gevonden" };
+
+  const current = await getLinkedAssignment(personnel.id, assignmentId);
+  if (!current) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
+  if (["report_submitted", "report_approved", "invoice_ready", "invoiced", "paid", "closed"].includes(current.status)) {
+    return { success: false, error: "Deze werkbon is afgesloten voor wijzigingen" };
+  }
+
+  const [task] = await db
+    .select({ id: assignmentTasksTable.id })
+    .from(assignmentTasksTable)
+    .where(
+      and(
+        eq(assignmentTasksTable.id, taskId),
+        eq(assignmentTasksTable.assignmentId, assignmentId),
+      ),
+    )
+    .limit(1);
+
+  if (!task) return { success: false, error: "Taak niet gevonden" };
+
+  try {
+    await db
+      .update(assignmentTasksTable)
+      .set({
+        completedAt: completed ? new Date() : null,
+        completedBy: completed ? user.id : null,
+      })
+      .where(eq(assignmentTasksTable.id, taskId));
+  } catch {
+    return { success: false, error: "Taak bijwerken mislukt" };
+  }
+
+  revalidateAssignmentPaths(assignmentId);
+  return { success: true };
 }
 
 export async function completeAssignment(

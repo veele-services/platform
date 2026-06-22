@@ -3,13 +3,19 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, CloudOff, RefreshCcw, Wifi, X } from "lucide-react";
-import { completeAssignment, notCompleteAssignment, startAssignment } from "@/actions/assignments";
+import { completeAssignment, notCompleteAssignment, setAssignmentTaskCompletion, startAssignment } from "@/actions/assignments";
+import { addExtraWork } from "@/actions/extra-work";
+import { addMaterialUsage } from "@/actions/materials";
+import { addReportNote } from "@/actions/reports";
 import {
+  getOfflineWorkOrderFailureCount,
   getOfflineWorkOrderQueueCount,
   readOfflineWorkOrderQueue,
   removeOfflineWorkOrderAction,
   requestOfflineWorkOrderSync,
+  retryOfflineWorkOrderFailures,
   subscribeOfflineWorkOrderQueue,
+  updateOfflineWorkOrderAction,
   type OfflineWorkOrderAction,
 } from "@/lib/offline/work-order-queue";
 import { createClient } from "@/lib/supabase/client";
@@ -37,7 +43,23 @@ async function runQueuedAction(action: OfflineWorkOrderAction) {
     return completeAssignment(action.assignmentId, action.payload);
   }
 
-  return notCompleteAssignment(action.assignmentId, action.payload);
+  if (action.type === "not-complete-assignment") {
+    return notCompleteAssignment(action.assignmentId, action.payload);
+  }
+
+  if (action.type === "set-task-completion") {
+    return setAssignmentTaskCompletion(action.assignmentId, action.taskId, action.payload.completed);
+  }
+
+  if (action.type === "add-report-note") {
+    return addReportNote(action.assignmentId, { body: action.payload.body });
+  }
+
+  if (action.type === "add-extra-work") {
+    return addExtraWork(action.assignmentId, action.payload);
+  }
+
+  return addMaterialUsage(action.assignmentId, action.payload);
 }
 
 function normalizeClientHref(href: unknown): string | null {
@@ -70,6 +92,7 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
   const router = useRouter();
   const [online, setOnline] = useState(true);
   const [pendingCount, setPendingCount] = useState(0);
+  const [failedCount, setFailedCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
   const [realtimeState, setRealtimeState] = useState<RealtimeState>("idle");
@@ -90,6 +113,7 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
 
   const updateQueueCount = useCallback(() => {
     setPendingCount(getOfflineWorkOrderQueueCount());
+    setFailedCount(getOfflineWorkOrderFailureCount());
   }, []);
 
   const processQueue = useCallback(async () => {
@@ -109,9 +133,19 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
 
     try {
       for (const action of queue) {
+        updateOfflineWorkOrderAction(action.id, {
+          status: "syncing",
+          attempts: action.attempts + 1,
+          lastError: null,
+        });
         const result = await runQueuedAction(action);
         if (!result.success) {
-          setSyncError(result.error ?? "Synchronisatie mislukt");
+          const error = result.error ?? "Synchronisatie mislukt";
+          updateOfflineWorkOrderAction(action.id, {
+            status: "failed",
+            lastError: error,
+          });
+          setSyncError(error);
           break;
         }
         removeOfflineWorkOrderAction(action.id);
@@ -120,9 +154,17 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
       syncingRef.current = false;
       setSyncing(false);
       setPendingCount(getOfflineWorkOrderQueueCount());
+      setFailedCount(getOfflineWorkOrderFailureCount());
       scheduleRefresh();
     }
   }, [scheduleRefresh]);
+
+  const retryFailedQueue = useCallback(() => {
+    retryOfflineWorkOrderFailures();
+    setSyncError(null);
+    updateQueueCount();
+    void processQueue();
+  }, [processQueue, updateQueueCount]);
 
   useEffect(() => {
     setOnline(typeof navigator === "undefined" ? true : navigator.onLine);
@@ -337,7 +379,14 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
             ) : syncError ? (
               <>
                 <CloudOff size={15} strokeWidth={2.4} className="text-[#DC2626]" />
-                Synchronisatie vraagt aandacht
+                <span>{failedCount > 0 ? `${failedCount} actie${failedCount === 1 ? "" : "s"} mislukt` : "Synchronisatie vraagt aandacht"}</span>
+                <button
+                  type="button"
+                  className="pointer-events-auto rounded-full bg-[#FEE2E2] px-2 py-1 text-[11px] font-black text-[#DC2626]"
+                  onClick={retryFailedQueue}
+                >
+                  Opnieuw
+                </button>
               </>
             ) : realtimeState === "error" ? (
               <>

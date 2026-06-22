@@ -1,13 +1,20 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
 import { Check, ChevronRight } from "lucide-react";
+import { setAssignmentTaskCompletion } from "@/actions/assignments";
 import type { ExtraWorkItem } from "@/actions/extra-work";
+import {
+  enqueueOfflineWorkOrderAction,
+  isOfflineNow,
+} from "@/lib/offline/work-order-queue";
 import { InteractiveStatusProgress } from "./WorkOrderStatusProgress";
 import {
   calculateExtraWorkLineTotal,
   calculateMaterialLineTotal,
   formatMoney,
   formatQuantity,
-  getTaskCompletionCount,
   parseNumber,
   type AssignmentView,
   type MaterialUsageItem,
@@ -76,8 +83,53 @@ export function CustomerInfoCard({ assignment }: { assignment: AssignmentView })
 }
 
 export function TaskChecklistCard({ assignment }: { assignment: AssignmentView }) {
-  const tasks = [...assignment.tasks].sort((a, b) => a.sortOrder - b.sortOrder);
-  const completedCount = getTaskCompletionCount(assignment);
+  const [tasks, setTasks] = useState(() => [...assignment.tasks].sort((a, b) => a.sortOrder - b.sortOrder));
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const completedCount = useMemo(
+    () => tasks.filter((task) => Boolean(task.completedAt)).length,
+    [tasks],
+  );
+
+  function setLocalTask(taskId: string, completed: boolean) {
+    setTasks((current) => current.map((task) => (
+      task.id === taskId
+        ? {
+            ...task,
+            completedAt: completed ? new Date().toISOString() : null,
+          }
+        : task
+    )));
+  }
+
+  function toggleTask(taskId: string, completed: boolean) {
+    setError(null);
+    setNotice(null);
+    setLocalTask(taskId, completed);
+
+    if (isOfflineNow()) {
+      enqueueOfflineWorkOrderAction({
+        type: "set-task-completion",
+        assignmentId: assignment.id,
+        taskId,
+        payload: { completed },
+      });
+      setNotice("Taakwijziging is offline opgeslagen.");
+      return;
+    }
+
+    setPendingTaskId(taskId);
+    startTransition(async () => {
+      const result = await setAssignmentTaskCompletion(assignment.id, taskId, completed);
+      setPendingTaskId(null);
+      if (!result.success) {
+        setLocalTask(taskId, !completed);
+        setError(result.error ?? "Taak bijwerken mislukt");
+      }
+    });
+  }
 
   return (
     <section className="rounded-[18px] bg-white px-5 py-4 shadow-sm" style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}>
@@ -89,13 +141,30 @@ export function TaskChecklistCard({ assignment }: { assignment: AssignmentView }
           {completedCount} van {tasks.length} afgerond
         </span>
       </div>
+      {notice ? (
+        <p className="mt-3 rounded-2xl px-3 py-2 text-[13px] font-bold" style={{ backgroundColor: "#E9FBF8", color: "#0A837F" }}>
+          {notice}
+        </p>
+      ) : null}
+      {error ? (
+        <p className="mt-3 rounded-2xl px-3 py-2 text-[13px] font-bold" style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
+          {error}
+        </p>
+      ) : null}
 
       <div className="mt-5 space-y-4">
-        {tasks.length > 0 ? tasks.map((task, index) => {
-          const isDone = index < completedCount;
+        {tasks.length > 0 ? tasks.map((task) => {
+          const isDone = Boolean(task.completedAt);
+          const disabled = isPending && pendingTaskId === task.id;
 
           return (
-            <div key={task.id} className="flex items-center gap-4">
+            <button
+              key={task.id}
+              type="button"
+              className="flex w-full items-center gap-4 text-left active:scale-[0.995] disabled:opacity-70"
+              disabled={disabled}
+              onClick={() => toggleTask(task.id, !isDone)}
+            >
               <span
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border"
                 style={{
@@ -109,7 +178,7 @@ export function TaskChecklistCard({ assignment }: { assignment: AssignmentView }
               <span className="text-[14px] font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
                 {task.notes ?? "Taak"}
               </span>
-            </div>
+            </button>
           );
         }) : (
           <p className="py-2 text-[14px]" style={{ color: "var(--color-secondary)" }}>

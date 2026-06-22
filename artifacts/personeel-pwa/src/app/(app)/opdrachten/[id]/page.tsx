@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { getMyAssignment } from "@/actions/assignments";
 import { getMyReportForAssignment, getReportNotesForAssignment, type MyReport, type ReportNote } from "@/actions/reports";
 import { getExtraWorkForAssignment } from "@/actions/extra-work";
+import { getMaterialUsageForAssignment } from "@/actions/materials";
 import { SeenMarker } from "@/components/SeenMarker";
 import { RapportageTimeline } from "./RapportageTimeline";
 import { WorkOrderHeader } from "./WorkOrderHeader";
@@ -17,7 +18,6 @@ import {
 } from "./WorkOrderSections";
 import {
   type AssignmentView,
-  type MaterialUsageItem,
   type WorkOrderTab,
 } from "./work-order-data";
 
@@ -51,14 +51,14 @@ export default async function WerkbonDetailPage({ params, searchParams }: Props)
 
   if (!assignment) notFound();
 
-  const [report, extraWork, reportNotes] = await Promise.all([
+  const [report, extraWork, reportNotes, materialItems] = await Promise.all([
     getMyReportForAssignment(id),
     getExtraWorkForAssignment(id),
     getReportNotesForAssignment(id),
+    getMaterialUsageForAssignment(id),
   ]);
 
   const isScheduled = assignment.status === "scheduled";
-  const materialItems: MaterialUsageItem[] = [];
   const timelineNotes = reportNotes.length > 0 ? reportNotes : reportAsNote(report);
   const canAddReportNote = !["invoice_ready", "invoiced", "paid", "closed"].includes(assignment.status);
 
