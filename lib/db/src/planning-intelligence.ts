@@ -23,6 +23,7 @@ import {
   customersTable,
   db,
   leavePeriodsTable,
+  objectPersonnelTable,
   objectsTable,
   personnelTable,
   planningSectorRulesTable,
@@ -318,6 +319,7 @@ export async function calculateAssignmentCapacity(
     weeklyWindowRows,
     conflictRows,
     experienceRows,
+    fixedTeamRows,
     workloadRows,
     responseHistoryRows,
     activeInterestRows,
@@ -424,6 +426,17 @@ export async function calculateAssignmentCapacity(
           )
           .groupBy(assignmentPersonnelTable.personnelId)
       : Promise.resolve([] as Array<{ personnelId: string; count: number }>),
+    assignment.objectId && personnelIds.length > 0
+      ? db
+          .select({ personnelId: objectPersonnelTable.personnelId })
+          .from(objectPersonnelTable)
+          .where(
+            and(
+              eq(objectPersonnelTable.objectId, assignment.objectId),
+              inArray(objectPersonnelTable.personnelId, personnelIds),
+            ),
+          )
+      : Promise.resolve([] as Array<{ personnelId: string }>),
     week && personnelIds.length > 0
       ? db
           .select({
@@ -503,6 +516,7 @@ export async function calculateAssignmentCapacity(
   const experienceMap = new Map(
     experienceRows.map((row) => [row.personnelId, row.count ?? 0]),
   );
+  const fixedTeamSet = new Set(fixedTeamRows.map((row) => row.personnelId));
   const workloadMap = new Map(
     workloadRows.map((row) => [row.personnelId, row.minutes ?? 0]),
   );
@@ -671,6 +685,7 @@ export async function calculateAssignmentCapacity(
       : "blocked";
 
     const experienceCount = experienceMap.get(person.id) ?? 0;
+    const isFixedTeamMember = fixedTeamSet.has(person.id);
     const workloadMinutes = workloadMap.get(person.id) ?? 0;
     const responseHistory = responseMap.get(person.id);
     const responseRatio =
@@ -678,7 +693,12 @@ export async function calculateAssignmentCapacity(
         ? responseHistory.positive / responseHistory.total
         : 0.5;
 
-    if (experienceCount > 0) positives.push("Eerder op deze klant/object gewerkt");
+    if (isFixedTeamMember) {
+      addReason(reasons, "fixed_object_team", "Vast of voorkeurslid voor dit object", "ok");
+      positives.push("Vast team voor dit object");
+    } else if (experienceCount > 0) {
+      positives.push("Eerder op deze klant/object gewerkt");
+    }
     if (workloadMinutes > 36 * 60) negatives.push("Heeft deze week al veel uren");
     if (dayEntry?.isEmergencyAvailable || person.emergencyAvailable) {
       positives.push("Spoedbeschikbaar");
@@ -709,8 +729,14 @@ export async function calculateAssignmentCapacity(
       },
       objectExperience: {
         weight: weights.objectExperience,
-        awarded: experienceCount > 0 ? weights.objectExperience : Math.round(weights.objectExperience * 0.35),
-        label: experienceCount > 0 ? "Bekend met klant/object" : "Geen eerdere objectervaring",
+        awarded: isFixedTeamMember || experienceCount > 0
+          ? weights.objectExperience
+          : Math.round(weights.objectExperience * 0.35),
+        label: isFixedTeamMember
+          ? "Vast team voor object"
+          : experienceCount > 0
+            ? "Bekend met klant/object"
+            : "Geen eerdere objectervaring",
       },
       workload: {
         weight: weights.workload,
@@ -732,10 +758,11 @@ export async function calculateAssignmentCapacity(
       preferences: {
         weight: weights.preferences,
         awarded:
-          requiredRegion && preferredRegions.map((r) => r.toLowerCase()).includes(requiredRegion)
+          isFixedTeamMember ||
+          (requiredRegion && preferredRegions.map((r) => r.toLowerCase()).includes(requiredRegion))
             ? weights.preferences
             : Math.round(weights.preferences * 0.5),
-        label: "Voorkeuren deels passend",
+        label: isFixedTeamMember ? "Vaste objectvoorkeur" : "Voorkeuren deels passend",
       },
     };
 

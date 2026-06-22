@@ -14,6 +14,8 @@ import { ObjectServicesTab } from "@/components/objects/tabs/ObjectServicesTab";
 import { StatusBadge } from "@/components/ui/status-badge";
 import {
   getObject,
+  getObjectPerformance,
+  listObjectHistory,
   listObjectContacts,
   listObjectPersonnel,
   listPersonnelOptions,
@@ -59,7 +61,7 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
     hasPermission("assignments", "read"),
   ]);
 
-  const [obj, contacts, personnel, personnelOptions, assignments, sectors, customers] = await Promise.all([
+  const [obj, contacts, personnel, personnelOptions, assignments, sectors, customers, performance, history] = await Promise.all([
     getObject(id),
     listObjectContacts(id),
     listObjectPersonnel(id),
@@ -67,6 +69,8 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
     canReadAssignments ? listAssignmentsForObject(id, 50) : Promise.resolve([]),
     canWrite ? listSectors()            : Promise.resolve([]),
     canWrite ? listCustomerOptions()    : Promise.resolve([]),
+    getObjectPerformance(id),
+    listObjectHistory(id),
   ]);
 
   if (!obj) notFound();
@@ -127,7 +131,7 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
       {/* Tab content */}
       {activeTab === "overzicht" && (
         <>
-          <ObjectOverviewTab object={obj} />
+          <ObjectOverviewTab object={obj} performance={performance} history={history} />
           {(personnel.length > 0 || canWrite) && (
             <div className="mt-6">
               <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>

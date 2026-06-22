@@ -19,16 +19,16 @@ import {
 } from "@/app/actions/objects";
 
 interface Props {
-  objectId:   string;
-  personnel:  ObjectPersonnelRow[];
-  options:    PersonnelOption[];
-  canWrite:   boolean;
+  objectId: string;
+  personnel: ObjectPersonnelRow[];
+  options: PersonnelOption[];
+  canWrite: boolean;
 }
 
 export function ObjectPersonnelTab({ objectId, personnel: initialPersonnel, options, canWrite }: Props) {
-  const [personnel,   setPersonnel]   = useState(initialPersonnel);
-  const [comboOpen,   setComboOpen]   = useState(false);
-  const [isPending,   startTransition] = useTransition();
+  const [personnel, setPersonnel] = useState(initialPersonnel);
+  const [comboOpen, setComboOpen] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   const linkedIds = new Set(personnel.map((p) => p.personnelId));
   const available = options.filter((o) => !linkedIds.has(o.id));
@@ -43,11 +43,14 @@ export function ObjectPersonnelTab({ objectId, personnel: initialPersonnel, opti
           ...prev,
           {
             personnelId: option.id,
-            firstName:   option.firstName,
-            lastName:    option.lastName,
-            code:        option.code,
-            roleName:    option.roleName,
-            linkedAt:    new Date().toISOString(),
+            firstName: option.firstName,
+            lastName: option.lastName,
+            code: option.code,
+            roleName: option.roleName,
+            linkedAt: new Date().toISOString(),
+            assignmentCount: 0,
+            completedCount: 0,
+            lastWorkedAt: null,
           },
         ]);
       } else {
@@ -70,10 +73,15 @@ export function ObjectPersonnelTab({ objectId, personnel: initialPersonnel, opti
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-4">
-        <p className="text-sm" style={{ color: "#64748B" }}>
-          {personnel.length} medewerker{personnel.length !== 1 ? "s" : ""} gekoppeld
-        </p>
+      <div className="flex items-center justify-between gap-4 mb-4">
+        <div>
+          <p className="text-sm font-medium" style={{ color: "#081D3A" }}>
+            Vaste teams &amp; voorkeursmedewerkers
+          </p>
+          <p className="text-xs mt-0.5" style={{ color: "#64748B" }}>
+            {personnel.length} medewerker{personnel.length !== 1 ? "s" : ""} gekoppeld. Deze voorkeur wordt meegenomen in slim plannen.
+          </p>
+        </div>
         {canWrite && (
           <Popover open={comboOpen} onOpenChange={setComboOpen}>
             <PopoverTrigger asChild>
@@ -98,7 +106,7 @@ export function ObjectPersonnelTab({ objectId, personnel: initialPersonnel, opti
                         <div className="flex flex-col min-w-0">
                           <span className="text-sm truncate">{o.firstName} {o.lastName}</span>
                           <span className="text-xs" style={{ color: "#94A3B8" }}>
-                            {o.code}{o.roleName ? ` · ${o.roleName}` : ""}
+                            {o.code}{o.roleName ? ` - ${o.roleName}` : ""}
                           </span>
                         </div>
                       </CommandItem>
@@ -114,10 +122,10 @@ export function ObjectPersonnelTab({ objectId, personnel: initialPersonnel, opti
       {personnel.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 text-center">
           <Users className="h-10 w-10 mb-3" style={{ color: "#CBD5E1" }} />
-          <p className="text-sm font-medium" style={{ color: "#64748B" }}>Geen personeel gekoppeld</p>
+          <p className="text-sm font-medium" style={{ color: "#64748B" }}>Geen vast team gekoppeld</p>
           <p className="text-xs mt-1" style={{ color: "#94A3B8" }}>
             {canWrite
-              ? "Koppel medewerkers die vast aan dit object werken."
+              ? "Koppel medewerkers die vast of bij voorkeur op dit object werken."
               : "Geen medewerkers gekoppeld aan dit object."}
           </p>
         </div>
@@ -126,9 +134,9 @@ export function ObjectPersonnelTab({ objectId, personnel: initialPersonnel, opti
           <table className="w-full">
             <thead>
               <tr style={{ borderBottom: "1px solid #E2E8F0" }}>
-                {(["Medewerker", "Code", "Functie", "Gekoppeld op"] as const).map((h) => (
-                  <th key={h} className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>
-                    {h}
+                {(["Medewerker", "Code", "Functie", "Ervaring", "Laatste inzet", "Gekoppeld op"] as const).map((header) => (
+                  <th key={header} className="px-5 py-2.5 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>
+                    {header}
                   </th>
                 ))}
                 {canWrite && <th className="w-12 px-4 py-2.5" />}
@@ -150,7 +158,19 @@ export function ObjectPersonnelTab({ objectId, personnel: initialPersonnel, opti
                     </span>
                   </td>
                   <td className="px-5 py-3 text-sm" style={{ color: "#64748B" }}>
-                    {p.roleName ?? "—"}
+                    {p.roleName ?? "-"}
+                  </td>
+                  <td className="px-5 py-3 text-sm" style={{ color: "#64748B" }}>
+                    <span className="font-medium" style={{ color: "#081D3A" }}>{p.assignmentCount}</span>
+                    <span className="text-xs"> inzet{p.assignmentCount !== 1 ? "ten" : ""}</span>
+                    {p.completedCount > 0 && (
+                      <span className="block text-xs" style={{ color: "#0A7E7A" }}>
+                        {p.completedCount} afgerond
+                      </span>
+                    )}
+                  </td>
+                  <td className="px-5 py-3 text-sm" style={{ color: "#64748B" }}>
+                    {p.lastWorkedAt ? new Date(p.lastWorkedAt).toLocaleDateString("nl-NL") : "Nog niet ingezet"}
                   </td>
                   <td className="px-5 py-3 text-sm" style={{ color: "#64748B" }}>
                     {new Date(p.linkedAt).toLocaleDateString("nl-NL")}
