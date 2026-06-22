@@ -158,15 +158,56 @@ export const notificationDeliveryQueueTable = pgTable(
     body: text(),
     html: text(),
     payload: jsonb("payload").$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
-    status: varchar("status", { length: 20 }).notNull().default("queued"),
+    status: varchar("status", { length: 20 }).notNull().default("pending"),
     attempts: integer("attempts").notNull().default(0),
+    maxAttempts: integer("max_attempts").notNull().default(5),
+    nextAttemptAt: timestamp("next_attempt_at", { withTimezone: true }).notNull().defaultNow(),
+    processingStartedAt: timestamp("processing_started_at", { withTimezone: true }),
+    lockedAt: timestamp("locked_at", { withTimezone: true }),
+    lockedBy: varchar("locked_by", { length: 120 }),
+    lastAttemptAt: timestamp("last_attempt_at", { withTimezone: true }),
     lastError: text("last_error"),
+    errorDetails: jsonb("error_details").$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+    response: jsonb("response").$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+    idempotencyKey: text("idempotency_key"),
+    rateLimitKey: varchar("rate_limit_key", { length: 160 }),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     sentAt: timestamp("sent_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
   },
   (table) => [
     index("notification_delivery_queue_status_idx").on(table.status, table.createdAt),
+    index("notification_delivery_queue_ready_idx").on(table.channel, table.status, table.nextAttemptAt, table.createdAt),
+    index("notification_delivery_queue_processing_idx").on(table.status, table.lockedAt),
+    index("notification_delivery_queue_tenant_channel_idx").on(table.tenantId, table.channel, table.status, table.createdAt),
+    uniqueIndex("notification_delivery_queue_idempotency_idx").on(table.idempotencyKey),
     index("notification_delivery_queue_dispatch_idx").on(table.dispatchId),
+  ],
+);
+
+export const notificationDeliveryAttemptsTable = pgTable(
+  "notification_delivery_attempts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    queueId: uuid("queue_id")
+      .notNull()
+      .references(() => notificationDeliveryQueueTable.id, { onDelete: "cascade" }),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
+      .references(() => tenantsTable.id, { onDelete: "cascade" }),
+    channel: varchar("channel", { length: 20 }).notNull(),
+    attemptNo: integer("attempt_no").notNull(),
+    workerId: varchar("worker_id", { length: 120 }).notNull(),
+    status: varchar("status", { length: 20 }).notNull(),
+    error: text("error"),
+    response: jsonb("response").$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
+    startedAt: timestamp("started_at", { withTimezone: true }).notNull().defaultNow(),
+    finishedAt: timestamp("finished_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("notification_delivery_attempts_queue_idx").on(table.queueId, table.attemptNo),
+    index("notification_delivery_attempts_tenant_status_idx").on(table.tenantId, table.status, table.finishedAt),
   ],
 );
 
@@ -179,3 +220,5 @@ export type NotificationDispatch =
   typeof notificationDispatchesTable.$inferSelect;
 export type NotificationDeliveryQueueItem =
   typeof notificationDeliveryQueueTable.$inferSelect;
+export type NotificationDeliveryAttempt =
+  typeof notificationDeliveryAttemptsTable.$inferSelect;

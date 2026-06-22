@@ -11,7 +11,7 @@ Scope: tenant/customer-user model, RLS, storage policies en centrale event-dispa
 - `tenant_id` gebackfilled op kernrecords: organisatie-instellingen, klanten, personeel, objecten, opdrachten en notificatie/dispatch-tabellen.
 - Klantportaal lookup aangepast: eerst `customer_users.user_id`/e-mail, daarna legacy fallback via `customers.contact_email`.
 - Centrale event-service toegevoegd voor domain events, in-app notificaties en e-mail/push queue entries.
-- API-route toegevoegd voor queued e-mail delivery: `POST /api/admin/email-notifications`.
+- API-route toegevoegd voor queued delivery van e-mail en push: `POST /api/admin/notification-worker`.
 - Storage buckets expliciet gehard:
   - `documents`: private, management-only.
   - `org-assets`: public read, management write.
@@ -25,7 +25,7 @@ Scope: tenant/customer-user model, RLS, storage policies en centrale event-dispa
 - Klantaccounts kunnen bestaande legacy accounts automatisch claimen wanneer het auth e-mailadres overeenkomt.
 - Kritieke workflow-events rond aanvragen/offertes worden centraal geregistreerd in `domain_events`.
 - Offerte-verzending naar klanten loopt via centrale event-service naar `notification_delivery_queue`.
-- Push en e-mail kunnen nu beide via API-server workers verwerkt worden.
+- Push en e-mail kunnen nu beide via de centrale API-server worker verwerkt worden met locks, retries en attempt logging.
 
 ## RLS aandachtspunten
 
@@ -76,11 +76,11 @@ Scope: tenant/customer-user model, RLS, storage policies en centrale event-dispa
 4. Test offerte verzenden:
    - `customer_notifications` krijgt een rij,
    - `notification_delivery_queue` krijgt e-mail/push waar geconfigureerd,
-   - `POST /api/admin/email-notifications` verwerkt queued e-mails.
+   - `POST /api/admin/notification-worker` verwerkt queued e-mails en pushmeldingen.
 
 ## Bekende restpunten
 
 - Niet iedere bestaande query is al tenant-filtered. De databasebasis is klaar, maar applicatiebrede query-hardening moet per module gebeuren.
 - Management recipients voor centrale events verdienen een eigen model of koppeling met `tenant_users`.
-- E-mail queue-worker moet nog als systemd timer in staging/production worden toegevoegd.
+- De centrale notificatie-worker moet nog als systemd timer in staging/production worden toegevoegd.
 - Supabase Data API exposure moet in de Supabase dashboard/API-instellingen expliciet worden nagekeken voor nieuwe tabellen, omdat nieuwe tabellen niet automatisch publiek/API-exposed mogen worden verondersteld.
