@@ -23,6 +23,7 @@ export type WebPushSendResult =
       error: string;
       permanent: boolean;
     };
+export type WebPushUrgency = "very-low" | "low" | "normal" | "high";
 
 const MAX_PAYLOAD_BYTES = 3072;
 
@@ -176,6 +177,7 @@ export async function sendWebPush(
   subscription: BrowserPushSubscription,
   payload: WebPushPayload,
   ttlSeconds = 3600,
+  urgency: WebPushUrgency = "normal",
 ): Promise<WebPushSendResult> {
   try {
     const body = encryptPayload(subscription, payload);
@@ -187,7 +189,7 @@ export async function sendWebPush(
         "Content-Encoding": "aes128gcm",
         "Content-Type": "application/octet-stream",
         TTL: String(ttlSeconds),
-        Urgency: "normal",
+        Urgency: urgency,
       },
       body,
     });

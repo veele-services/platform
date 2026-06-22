@@ -6,7 +6,11 @@ import {
   pushSubscriptionsTable,
 } from "@workspace/db";
 import { and, asc, eq, lt } from "drizzle-orm";
-import { sendWebPush, type WebPushPayload } from "../lib/web-push";
+import {
+  sendWebPush,
+  type WebPushPayload,
+  type WebPushUrgency,
+} from "../lib/web-push";
 
 const router = Router();
 
@@ -69,18 +73,30 @@ function normalizePortalHref(recipientType: string, href: unknown): string {
   return `${basePath}${path}`;
 }
 
+function normalizeUrgency(value: unknown): WebPushUrgency {
+  if (value === "high") return "high";
+  if (value === "low") return "low";
+  if (value === "very-low") return "very-low";
+  return "normal";
+}
+
 function buildPayload(item: QueueItem): WebPushPayload {
   const payload =
     item.payload && typeof item.payload === "object" && !Array.isArray(item.payload)
       ? item.payload
       : {};
   const href = normalizePortalHref(item.recipientType, payload["href"]);
+  const priority =
+    typeof payload["priority"] === "string" ? payload["priority"] : "normal";
+  const urgency = normalizeUrgency(payload["urgency"] ?? priority);
 
   return {
     ...payload,
     title: item.title,
     body: item.body ?? "",
     href,
+    priority,
+    urgency,
     tag: item.dispatchId ?? item.id,
     queueId: item.id,
   };
@@ -189,7 +205,7 @@ router.post("/admin/push-notifications", async (req: Request, res: Response) => 
           endpoint: subscription.endpoint,
           p256dh: subscription.p256dh,
           auth: subscription.auth,
-        }, payload);
+        }, payload, 3600, normalizeUrgency(payload.urgency ?? payload.priority));
 
         if (result.success) {
           successCount += 1;

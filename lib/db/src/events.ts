@@ -240,7 +240,7 @@ export async function emitDomainEvent(input: EmitDomainEventInput): Promise<Emit
           personnelId: person.id,
           title: pushTitle,
           body: pushBody,
-          payload: { ...payload, href },
+          payload: { ...payload, href, priority },
         });
       }
       return result;
@@ -304,7 +304,7 @@ export async function emitDomainEvent(input: EmitDomainEventInput): Promise<Emit
           customerId: customer.id,
           title: pushTitle,
           body: pushBody,
-          payload: { ...payload, href },
+          payload: { ...payload, href, priority },
         });
       }
       return result;

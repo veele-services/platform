@@ -72,3 +72,20 @@
   /* Better press feedback for touch targets */
   a, button { -webkit-tap-highlight-color: transparent; }
 }
+
+@layer utilities {
+  @keyframes veele-notification-slide-in {
+    0% {
+      opacity: 0;
+      transform: translateY(calc(-100% - 1rem)) scale(0.98);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .animate-veele-notification-slide-in {
+    animation: veele-notification-slide-in 260ms ease-out both;
+  }
+}

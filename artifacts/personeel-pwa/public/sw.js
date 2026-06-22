@@ -1,12 +1,16 @@
-const CACHE = "veele-personeel-v2";
+const CACHE = "veele-personeel-v3";
 const APP_PREFIX = "/personeel";
 const SYNC_TAG = "veele-personeel-work-order-sync";
+const NOTIFICATION_ICON = `${APP_PREFIX}/icons/notification-icon.png`;
+const NOTIFICATION_BADGE = `${APP_PREFIX}/icons/notification-badge.png`;
 
 const PRECACHE = [
   APP_PREFIX,
   `${APP_PREFIX}/manifest.json`,
   `${APP_PREFIX}/icons/icon-192.png`,
   `${APP_PREFIX}/icons/icon-512.png`,
+  NOTIFICATION_ICON,
+  NOTIFICATION_BADGE,
 ];
 
 self.addEventListener("install", (event) => {
@@ -99,16 +103,21 @@ function parsePushPayload(event) {
       title: "Veele Services",
       body: "Er staat een nieuwe melding voor je klaar.",
       href: "/personeel/meldingen",
+      priority: "normal",
+      urgency: "normal",
     };
   }
 
   try {
     const payload = event.data.json();
+    const priority = payload.priority || payload.urgency || "normal";
     return {
       title: payload.title || "Veele Services",
       body: payload.body || "Er staat een nieuwe melding voor je klaar.",
       href: payload.href || payload.url || "/personeel/meldingen",
       tag: payload.tag,
+      priority,
+      urgency: payload.urgency || priority,
       data: payload,
     };
   } catch {
@@ -116,6 +125,8 @@ function parsePushPayload(event) {
       title: "Veele Services",
       body: event.data.text(),
       href: "/personeel/meldingen",
+      priority: "normal",
+      urgency: "normal",
     };
   }
 }
@@ -154,17 +165,42 @@ self.addEventListener("message", (event) => {
 
 self.addEventListener("push", (event) => {
   const payload = parsePushPayload(event);
+  const isHighPriority = payload.priority === "high" || payload.urgency === "high";
+  const tag = payload.tag || `veele-${Date.now()}`;
+
   event.waitUntil(
-    self.registration.showNotification(payload.title, {
-      body: payload.body,
-      badge: "/personeel/icons/icon-192.png",
-      icon: "/personeel/icons/icon-192.png",
-      tag: payload.tag,
-      data: {
-        href: payload.href,
-        ...(payload.data || {}),
-      },
-    }),
+    Promise.all([
+      notifyClients({
+        type: "VEELE_PUSH_NOTIFICATION",
+        payload: {
+          title: payload.title,
+          body: payload.body,
+          href: payload.href,
+          tag,
+          priority: payload.priority,
+          urgency: payload.urgency,
+          receivedAt: Date.now(),
+          ...(payload.data || {}),
+        },
+      }),
+      self.registration.showNotification(payload.title, {
+        body: payload.body,
+        badge: NOTIFICATION_BADGE,
+        icon: NOTIFICATION_ICON,
+        tag,
+        renotify: isHighPriority,
+        requireInteraction: isHighPriority,
+        silent: false,
+        timestamp: Date.now(),
+        vibrate: isHighPriority ? [180, 80, 180, 80, 240] : [120, 60, 120],
+        data: {
+          href: payload.href,
+          priority: payload.priority,
+          urgency: payload.urgency,
+          ...(payload.data || {}),
+        },
+      }),
+    ]),
   );
 });
 
