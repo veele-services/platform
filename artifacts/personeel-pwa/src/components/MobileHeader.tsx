@@ -25,12 +25,20 @@ import {
   markNotificationRead,
   type NotificationSummary,
 } from "@/actions/notifications";
-import { saveMyPushSubscription } from "@/actions/push";
+import {
+  saveMyNativePushToken,
+  saveMyPushSubscription,
+} from "@/actions/push";
 import type { TicketSummary } from "@/actions/messages";
 import {
   ensureBrowserPushSubscription,
   getLocalPushState,
 } from "@/lib/browser-push";
+import { isNativeCapacitorRuntime } from "@/lib/capacitor";
+import {
+  ensureNativePushRegistration,
+  getLocalNativePushState,
+} from "@/lib/native-push";
 
 export function VeeleLogo() {
   return (
@@ -94,15 +102,42 @@ export function MobileHeaderActions({
     if (openMenu !== "notifications") return;
 
     let cancelled = false;
-    getLocalPushState()
-      .then((state) => {
-        if (!cancelled) {
-          setHasPushSubscription(state.supported && Boolean(state.subscription));
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setHasPushSubscription(false);
-      });
+    const nativeMode = isNativeCapacitorRuntime();
+
+    if (nativeMode) {
+      getLocalNativePushState()
+        .then(async (state) => {
+          if (cancelled) return;
+
+          if (!state.supported || !state.token) {
+            setHasPushSubscription(false);
+            return;
+          }
+
+          const result = await saveMyNativePushToken({
+            token: state.token,
+            platform: state.platform,
+            appId: "nl.veeleservices.personeel",
+            userAgent: navigator.userAgent,
+          });
+          if (!cancelled) {
+            setHasPushSubscription(result.success);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setHasPushSubscription(false);
+        });
+    } else {
+      getLocalPushState()
+        .then((state) => {
+          if (!cancelled) {
+            setHasPushSubscription(state.supported && Boolean(state.subscription));
+          }
+        })
+        .catch(() => {
+          if (!cancelled) setHasPushSubscription(false);
+        });
+    }
 
     return () => {
       cancelled = true;
@@ -120,6 +155,28 @@ export function MobileHeaderActions({
     setPushStatus(null);
     startPushRegistration(async () => {
       try {
+        if (isNativeCapacitorRuntime()) {
+          const registration = await ensureNativePushRegistration();
+          const result = await saveMyNativePushToken({
+            token: registration.token,
+            platform: registration.platform,
+            appId: "nl.veeleservices.personeel",
+            userAgent: navigator.userAgent,
+          });
+
+          if (result.success) {
+            setHasPushSubscription(true);
+            setPushStatus({
+              type: "success",
+              text: "App push is geactiveerd voor dit apparaat.",
+            });
+            return;
+          }
+
+          setPushStatus({ type: "error", text: result.error });
+          return;
+        }
+
         const subscription = await ensureBrowserPushSubscription();
         const serialized = subscription.toJSON();
         const result = await saveMyPushSubscription({
@@ -231,7 +288,7 @@ export function MobileHeaderActions({
                   </p>
                 ) : (
                   <p className="mt-2 text-center text-[11px] font-semibold text-slate-500">
-                    Activeer deze browser om meldingen buiten de app te ontvangen.
+                    Activeer dit apparaat om meldingen buiten de app te ontvangen.
                   </p>
                 )}
               </div>
