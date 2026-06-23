@@ -4,6 +4,7 @@ import { getMyPersonnel } from "@/actions/personnel";
 import { BottomNav } from "@/components/BottomNav";
 import { DesktopSidebar } from "@/components/DesktopSidebar";
 import { MobileHeader } from "@/components/MobileHeader";
+import { NativePushTokenSync } from "@/components/NativePushTokenSync";
 import { PersonnelRealtimeOfflineProvider } from "@/components/PersonnelRealtimeOfflineProvider";
 
 export default async function AppLayout({
@@ -30,6 +31,7 @@ export default async function AppLayout({
             notificationSummary={notificationSummary}
             ticketSummary={ticketSummary}
           />
+          <NativePushTokenSync />
 
           <main className="flex-1 pb-[calc(5.2rem+var(--safe-bottom))] md:pb-0">
             <div className="mx-auto w-full max-w-4xl px-0 md:px-6 md:py-6">
