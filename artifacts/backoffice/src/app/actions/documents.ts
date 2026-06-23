@@ -58,7 +58,6 @@ const ALLOWED_MIME_TYPES = new Set([
   "image/png",
   "image/gif",
   "image/webp",
-  "image/svg+xml",
 ]);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -69,11 +68,24 @@ function buildStoragePath(
   docId: string,
   filename: string,
 ): string {
-  const ext = filename.includes(".") ? filename.split(".").pop()! : "bin";
+  const ext = filename.includes(".")
+    ? filename.split(".").pop()!.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12)
+    : "bin";
+  const safeExt = ext || "bin";
   if (entityType !== "general" && entityId) {
-    return `${entityType}/${entityId}/${docId}.${ext}`;
+    return `${entityType}/${entityId}/${docId}.${safeExt}`;
   }
-  return `general/${docId}.${ext}`;
+  return `general/${docId}.${safeExt}`;
+}
+
+function hasUnsafeStoragePath(path: string): boolean {
+  return (
+    path.includes("..") ||
+    path.includes("\\") ||
+    path.startsWith("/") ||
+    path.endsWith("/") ||
+    path.split("/").some((part) => part.trim() === "")
+  );
 }
 
 async function isDocumentEntityInTenant(input: {
@@ -347,7 +359,8 @@ export async function uploadDocument(
 
     // Upload to Supabase Storage
     const bytes = await file.arrayBuffer();
-    const { error: uploadError } = await supabase.storage
+    const admin = createAdminClient();
+    const { error: uploadError } = await admin.storage
       .from(BUCKET)
       .upload(storagePath, bytes, {
         contentType: file.type,
@@ -439,7 +452,11 @@ export async function deleteDocument(id: string): Promise<ActionResult> {
     if (!allowed) return { success: false, message: "Document niet gevonden." };
 
     // Delete from Supabase Storage (best-effort; do not block DB delete)
-    await supabase.storage.from(BUCKET).remove([doc.storagePath]);
+    if (hasUnsafeStoragePath(doc.storagePath)) {
+      return { success: false, message: "Ongeldig opslagpad." };
+    }
+
+    await createAdminClient().storage.from(BUCKET).remove([doc.storagePath]);
 
     // Delete from DB
     await db.delete(documentsTable).where(eq(documentsTable.id, id));
@@ -501,8 +518,11 @@ export async function getDocumentDownloadUrl(
     });
     if (!allowed) return { success: false, message: "Document niet gevonden." };
 
-    const supabase = await createClient();
-    const { data, error } = await supabase.storage
+    if (hasUnsafeStoragePath(doc.storagePath)) {
+      return { success: false, message: "Ongeldig opslagpad." };
+    }
+
+    const { data, error } = await createAdminClient().storage
       .from(BUCKET)
       .createSignedUrl(doc.storagePath, 3600); // 1-hour TTL
 

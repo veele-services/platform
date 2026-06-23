@@ -353,6 +353,20 @@ function uniqueUploadId(): string {
   return globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
 }
 
+async function uploadedObjectExists(storagePath: string): Promise<boolean> {
+  const parts = storagePath.split("/");
+  const fileName = parts.pop();
+  const prefix = parts.join("/");
+  if (!fileName || !prefix) return false;
+
+  const { data, error } = await createAdminClient()
+    .storage
+    .from(ASSIGNMENT_MEDIA_BUCKET)
+    .list(prefix, { limit: 20, search: fileName });
+
+  return !error && Boolean(data?.some((item) => item.name === fileName));
+}
+
 export async function prepareExtraWorkPhotoUpload(
   assignmentId: string,
   extraWorkId: string,
@@ -448,6 +462,10 @@ export async function savePhotoPath(
 
   if (!isExtraWorkPhotoPath(assignmentId, extraWorkId, storagePath.trim())) {
     return { success: false, error: "Bijlagepad hoort niet bij dit meerwerk-item" };
+  }
+
+  if (!(await uploadedObjectExists(storagePath.trim()))) {
+    return { success: false, error: "Foto is nog niet correct geupload. Probeer opnieuw." };
   }
 
   // Enforce max 5 photos per extra-work item (server-side)

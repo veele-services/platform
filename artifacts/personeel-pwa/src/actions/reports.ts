@@ -197,6 +197,40 @@ function uniqueUploadId(): string {
   return globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
 }
 
+async function verifyUploadedAssignmentMedia(input: {
+  storagePath: string;
+  mimeType: string;
+  fileSize: number;
+}): Promise<boolean> {
+  const parts = input.storagePath.split("/");
+  const fileName = parts.pop();
+  const prefix = parts.join("/");
+  if (!fileName || !prefix) return false;
+
+  const { data, error } = await createAdminClient()
+    .storage
+    .from(ASSIGNMENT_MEDIA_BUCKET)
+    .list(prefix, { limit: 20, search: fileName });
+
+  if (error || !data) return false;
+  const object = data.find((item) => item.name === fileName);
+  if (!object) return false;
+
+  const metadata = object.metadata as
+    | { mimetype?: unknown; mimeType?: unknown; size?: unknown; contentLength?: unknown }
+    | null
+    | undefined;
+  const storedMimeType = String(metadata?.mimetype ?? metadata?.mimeType ?? "").toLowerCase();
+  const storedSize = Number(metadata?.size ?? metadata?.contentLength);
+
+  if (storedMimeType && storedMimeType !== input.mimeType.toLowerCase()) return false;
+  if (Number.isFinite(storedSize) && storedSize > 0 && Math.abs(storedSize - input.fileSize) > 1024) {
+    return false;
+  }
+
+  return true;
+}
+
 export async function prepareReportNoteAttachmentUploads(
   assignmentId: string,
   files: PrepareReportNoteUploadInput[],
@@ -547,6 +581,18 @@ export async function addReportNote(
   );
   if (normalizedAttachments.some((attachment) => attachment === null)) {
     return { success: false, error: "Bijlage kon niet worden gekoppeld" };
+  }
+
+  for (const attachment of normalizedAttachments) {
+    if (!attachment) continue;
+    const exists = await verifyUploadedAssignmentMedia({
+      storagePath: attachment.storagePath,
+      mimeType: attachment.mimeType ?? "",
+      fileSize: attachment.fileSize ?? 0,
+    });
+    if (!exists) {
+      return { success: false, error: "Bijlage is nog niet correct geupload. Probeer opnieuw." };
+    }
   }
 
   try {
