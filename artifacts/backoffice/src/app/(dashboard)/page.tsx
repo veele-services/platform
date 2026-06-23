@@ -180,9 +180,9 @@ export default async function DashboardPage() {
   ).length;
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] space-y-6 p-6">
+    <div className="mx-auto w-full max-w-[1600px] space-y-4 px-3 py-4 sm:space-y-6 sm:p-6 lg:p-8">
       {/* Header */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center sm:gap-4">
         <div>
           <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
             Operationeel overzicht —{" "}
@@ -198,21 +198,21 @@ export default async function DashboardPage() {
       </div>
 
       {/* ── Row 1: Stat cards ── */}
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-2 sm:gap-5 md:grid-cols-3 xl:grid-cols-5">
         {STAT_CARDS.map(({ label, value, accent, href }) => (
           <Link
             key={label}
             href={canReadAssignments ? href : "#"}
-            className="veele-card flex flex-col gap-1 transition-shadow hover:shadow-md"
+            className="veele-card flex min-h-[112px] flex-col justify-between gap-2 p-4 transition-shadow hover:shadow-md sm:min-h-0 sm:p-6"
           >
             <span
-              className="text-xs font-medium uppercase tracking-wider"
+              className="text-[11px] font-medium uppercase tracking-wider sm:text-xs"
               style={{ color: "#64748B" }}
             >
               {label}
             </span>
             <span
-              className="font-heading text-3xl font-bold mt-1"
+              className="font-heading mt-1 text-2xl font-bold sm:text-3xl"
               style={{ color: accent }}
             >
               {value}
@@ -223,8 +223,8 @@ export default async function DashboardPage() {
 
       {/* ── Row 2: Financieel widget (gated: invoices:read) ── */}
       {financials && (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-          <div className="veele-card">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-5">
+          <div className="veele-card p-4 sm:p-6">
             <p
               className="text-xs font-medium uppercase tracking-wider mb-2"
               style={{ color: "#64748B" }}
@@ -232,7 +232,7 @@ export default async function DashboardPage() {
               Omzet deze maand
             </p>
             <p
-              className="font-heading text-2xl font-bold"
+              className="font-heading text-xl font-bold sm:text-2xl"
               style={{ color: "#081D3A" }}
             >
               {formatEuro(financials.revenueThisMonth)}
@@ -256,7 +256,7 @@ export default async function DashboardPage() {
               )}
           </div>
 
-          <div className="veele-card">
+          <div className="veele-card p-4 sm:p-6">
             <p
               className="text-xs font-medium uppercase tracking-wider mb-2"
               style={{ color: "#64748B" }}
@@ -264,14 +264,14 @@ export default async function DashboardPage() {
               Vorige maand
             </p>
             <p
-              className="font-heading text-2xl font-bold"
+              className="font-heading text-xl font-bold sm:text-2xl"
               style={{ color: "#64748B" }}
             >
               {formatEuro(financials.revenueLastMonth)}
             </p>
           </div>
 
-          <div className="veele-card">
+          <div className="veele-card p-4 sm:p-6">
             <p
               className="text-xs font-medium uppercase tracking-wider mb-2"
               style={{ color: "#64748B" }}
@@ -279,7 +279,7 @@ export default async function DashboardPage() {
               Openstaand
             </p>
             <p
-              className="font-heading text-2xl font-bold"
+              className="font-heading text-xl font-bold sm:text-2xl"
               style={{
                 color: financials.outstandingAmount > 0 ? "#F59E0B" : "#081D3A",
               }}
@@ -302,10 +302,10 @@ export default async function DashboardPage() {
 
       {/* ── Row 2b: Betalingenoverzicht-widget ── */}
       {payments && (
-        <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-5">
           <Link
             href="/invoices?status=paid"
-            className="veele-card transition-shadow hover:shadow-md"
+            className="veele-card p-4 transition-shadow hover:shadow-md sm:p-6"
           >
             <p
               className="text-xs font-medium uppercase tracking-wider mb-2"
@@ -314,7 +314,7 @@ export default async function DashboardPage() {
               Ontvangen dit jaar
             </p>
             <p
-              className="font-heading text-2xl font-bold"
+              className="font-heading text-xl font-bold sm:text-2xl"
               style={{ color: "#16A34A" }}
             >
               {formatEuro(payments.paidThisYearAmount)}
@@ -330,7 +330,7 @@ export default async function DashboardPage() {
 
           <Link
             href="/invoices?status=sent"
-            className="veele-card transition-shadow hover:shadow-md"
+            className="veele-card p-4 transition-shadow hover:shadow-md sm:p-6"
           >
             <p
               className="text-xs font-medium uppercase tracking-wider mb-2"
@@ -339,7 +339,7 @@ export default async function DashboardPage() {
               Openstaand
             </p>
             <p
-              className="font-heading text-2xl font-bold"
+              className="font-heading text-xl font-bold sm:text-2xl"
               style={{
                 color: financials
                   ? financials.outstandingAmount > 0
@@ -363,7 +363,7 @@ export default async function DashboardPage() {
 
           <Link
             href="/invoices?status=sent"
-            className="veele-card transition-shadow hover:shadow-md"
+            className="veele-card p-4 transition-shadow hover:shadow-md sm:p-6"
           >
             <p
               className="text-xs font-medium uppercase tracking-wider mb-2"
@@ -372,7 +372,7 @@ export default async function DashboardPage() {
               Achterstallig
             </p>
             <p
-              className="font-heading text-2xl font-bold"
+              className="font-heading text-xl font-bold sm:text-2xl"
               style={{
                 color: payments.overdueCount > 0 ? "#DC2626" : "#081D3A",
               }}
@@ -397,7 +397,7 @@ export default async function DashboardPage() {
       )}
 
       {(managementMetrics || planningMetrics || administrationMetrics) && (
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:gap-5 xl:grid-cols-3">
           {managementMetrics && (
             <ManagementSignalPanel metrics={managementMetrics} />
           )}
@@ -410,8 +410,8 @@ export default async function DashboardPage() {
 
       {/* ── Row 3: Weekoverzicht ── */}
       {weekCounts.length > 0 && (
-        <div className="veele-card">
-          <div className="flex items-center justify-between mb-4">
+        <div className="veele-card p-4 sm:p-6">
+          <div className="mb-4 flex items-center justify-between gap-3">
             <h2
               className="font-heading text-base font-semibold"
               style={{ color: "#081D3A" }}
@@ -426,48 +426,50 @@ export default async function DashboardPage() {
               Planning →
             </Link>
           </div>
-          <div className="grid grid-cols-7 gap-2">
-            {weekCounts.map((day) => (
-              <Link
-                key={day.date}
-                href={`/planning?day=${day.date}`}
-                className="flex flex-col items-center rounded-lg px-2 py-3 text-center transition-colors hover:bg-slate-50"
-                style={{
-                  backgroundColor: day.isToday ? "#EFF6FF" : undefined,
-                  border: day.isToday
-                    ? "1px solid #BFDBFE"
-                    : "1px solid transparent",
-                }}
-              >
-                <span
-                  className="text-xs font-medium mb-1"
-                  style={{ color: day.isToday ? "#2563EB" : "#64748B" }}
+          <div className="-mx-1 overflow-x-auto px-1 pb-1">
+            <div className="grid min-w-[620px] grid-cols-7 gap-2">
+              {weekCounts.map((day) => (
+                <Link
+                  key={day.date}
+                  href={`/planning?day=${day.date}`}
+                  className="flex flex-col items-center rounded-lg px-2 py-3 text-center transition-colors hover:bg-slate-50"
+                  style={{
+                    backgroundColor: day.isToday ? "#EFF6FF" : undefined,
+                    border: day.isToday
+                      ? "1px solid #BFDBFE"
+                      : "1px solid transparent",
+                  }}
                 >
-                  {day.dayLabel}
-                </span>
-                <span
-                  className="font-heading text-xl font-bold"
-                  style={{ color: day.count > 0 ? "#081D3A" : "#CBD5E1" }}
-                >
-                  {day.count}
-                </span>
-                <span className="text-xs mt-0.5" style={{ color: "#94A3B8" }}>
-                  {new Date(day.date + "T00:00:00").toLocaleDateString(
-                    "nl-NL",
-                    { day: "numeric", month: "numeric" },
-                  )}
-                </span>
-              </Link>
-            ))}
+                  <span
+                    className="text-xs font-medium mb-1"
+                    style={{ color: day.isToday ? "#2563EB" : "#64748B" }}
+                  >
+                    {day.dayLabel}
+                  </span>
+                  <span
+                    className="font-heading text-xl font-bold"
+                    style={{ color: day.count > 0 ? "#081D3A" : "#CBD5E1" }}
+                  >
+                    {day.count}
+                  </span>
+                  <span className="text-xs mt-0.5" style={{ color: "#94A3B8" }}>
+                    {new Date(day.date + "T00:00:00").toLocaleDateString(
+                      "nl-NL",
+                      { day: "numeric", month: "numeric" },
+                    )}
+                  </span>
+                </Link>
+              ))}
+            </div>
           </div>
         </div>
       )}
 
       {/* ── Row 4: Recente opdrachten + Actiepunten ── */}
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-3">
         {/* Recente opdrachten */}
-        <div className="veele-card lg:col-span-2">
-          <div className="flex items-center justify-between mb-4">
+        <div className="veele-card p-4 sm:p-6 lg:col-span-2">
+          <div className="mb-4 flex items-center justify-between gap-3">
             <h2
               className="font-heading text-base font-semibold"
               style={{ color: "#081D3A" }}
@@ -499,11 +501,11 @@ export default async function DashboardPage() {
 
       {/* ── Row 5: Personeelsbeschikbaarheid + Activiteitenfeed ── */}
       {(totalStaff > 0 || recentActivity.length > 0) && (
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-4 sm:gap-5 lg:grid-cols-3">
           {/* Personeelsbeschikbaarheid */}
           {totalStaff > 0 && (
-            <div className="veele-card lg:col-span-2">
-              <div className="flex items-center justify-between mb-4">
+            <div className="veele-card p-4 sm:p-6 lg:col-span-2">
+              <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                   <h2
                     className="font-heading text-base font-semibold"
@@ -556,8 +558,8 @@ export default async function DashboardPage() {
 
           {/* Activiteitenfeed */}
           {recentActivity.length > 0 && (
-            <div className="veele-card">
-              <div className="flex items-center justify-between mb-4">
+            <div className="veele-card p-4 sm:p-6">
+              <div className="mb-4 flex items-center justify-between gap-3">
                 <h2
                   className="font-heading text-base font-semibold"
                   style={{ color: "#081D3A" }}
@@ -736,7 +738,7 @@ function PlanningSignalPanel({
   });
 
   return (
-    <div className="veele-card">
+    <div className="veele-card p-4 sm:p-6">
       <PanelHeader
         title="Planning"
         subtitle="Capaciteit, diensten en interessepeilingen."
@@ -879,7 +881,7 @@ function SignalPanel({
   href?: string;
 }) {
   return (
-    <div className="veele-card">
+    <div className="veele-card p-4 sm:p-6">
       <PanelHeader title={title} subtitle={subtitle} href={href} />
       <SignalList items={items} />
     </div>
@@ -896,7 +898,7 @@ function PanelHeader({
   href?: string;
 }) {
   return (
-    <div className="mb-4 flex items-start justify-between gap-3">
+    <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-3">
       <div>
         <h2
           className="font-heading text-base font-semibold"
@@ -945,7 +947,7 @@ function SignalList({ items }: { items: SignalItem[] }) {
               {item.label}
             </span>
             <span
-              className="mt-1 block font-heading text-2xl font-bold"
+              className="mt-1 block font-heading text-xl font-bold sm:text-2xl"
               style={{ color: item.accent }}
             >
               {item.value}
@@ -1024,7 +1026,7 @@ function ActionItemsPanel({ items }: { items: DashboardActionItems }) {
   }>;
 
   return (
-    <div className="veele-card">
+    <div className="veele-card p-4 sm:p-6">
       <h2
         className="font-heading text-base font-semibold mb-4"
         style={{ color: "#081D3A" }}
@@ -1122,7 +1124,7 @@ async function RecentAssignments() {
         {recent.map((a) => (
           <li
             key={a.id}
-            className="flex items-center justify-between py-2.5 gap-3"
+            className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-2.5"
           >
             <div className="min-w-0 flex-1">
               <Link
@@ -1141,7 +1143,9 @@ async function RecentAssignments() {
                   ` · ${new Date(a.scheduledDate + "T00:00:00").toLocaleDateString("nl-NL", { day: "numeric", month: "short" })}`}
               </p>
             </div>
-            <AssignmentStatusBadge status={a.status} />
+            <div className="sm:shrink-0">
+              <AssignmentStatusBadge status={a.status} />
+            </div>
           </li>
         ))}
       </ul>
