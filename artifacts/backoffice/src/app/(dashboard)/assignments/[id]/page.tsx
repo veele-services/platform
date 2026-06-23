@@ -115,6 +115,286 @@ function capacityStyle(status: "green" | "orange" | "red") {
   };
 }
 
+type PlanningReadiness = NonNullable<Awaited<ReturnType<typeof getAssignmentPlanningReadiness>>>;
+type InterestRounds = Awaited<ReturnType<typeof listAssignmentInterestRounds>>;
+
+function CapacityMatchingSection({
+  assignmentId,
+  planningReadiness,
+  interestRounds,
+}: {
+  assignmentId: string;
+  planningReadiness: PlanningReadiness;
+  interestRounds: InterestRounds;
+}) {
+  const style = capacityStyle(planningReadiness.capacityStatus);
+
+  const metrics = [
+    {
+      label: "Benodigd",
+      value: planningReadiness.requiredSlots,
+      className: "bg-slate-50",
+      valueClassName: "",
+      labelClassName: "",
+    },
+    {
+      label: "Geschikt totaal",
+      value: planningReadiness.suitableCount,
+      className: "bg-sky-50",
+      valueClassName: "text-sky-700",
+      labelClassName: "text-sky-700/75",
+    },
+    {
+      label: "Beschikbaar",
+      value: planningReadiness.fullyAvailableCount,
+      className: "bg-emerald-50",
+      valueClassName: "text-emerald-700",
+      labelClassName: "text-emerald-700/75",
+    },
+    {
+      label: "Topmatches",
+      value: planningReadiness.topMatchCount,
+      className: "bg-violet-50",
+      valueClassName: "text-violet-700",
+      labelClassName: "text-violet-700/75",
+    },
+    {
+      label: "Interesse",
+      value: planningReadiness.interestedCount,
+      className: "bg-amber-50",
+      valueClassName: "text-amber-700",
+      labelClassName: "text-amber-700/75",
+    },
+    {
+      label: "Blokkades",
+      value: planningReadiness.blockedCount,
+      className: "bg-red-50",
+      valueClassName: "text-red-700",
+      labelClassName: "text-red-700/75",
+    },
+  ];
+
+  return (
+    <section className="veele-card">
+      <div className="flex flex-col gap-3 border-b pb-4 md:flex-row md:items-start md:justify-between" style={{ borderColor: "#E2E8F0" }}>
+        <div>
+          <h2
+            className="font-heading text-lg font-semibold flex items-center gap-2"
+            style={{ color: "#081D3A" }}
+          >
+            <TrendingUp className="h-5 w-5" style={{ color: "#00B7B3" }} />
+            Capaciteit & matching
+          </h2>
+          <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
+            Controleer direct of deze opdracht uitvoerbaar is en welke medewerkers logisch passen.
+          </p>
+        </div>
+        <span
+          className="w-fit rounded-full border px-3 py-1 text-xs font-semibold"
+          style={{
+            backgroundColor: style.bg,
+            borderColor: style.border,
+            color: style.text,
+          }}
+        >
+          {style.label}
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
+        <div
+          className="rounded-2xl border p-4 text-sm leading-6"
+          style={{
+            borderColor: style.border,
+            backgroundColor: style.bg,
+            color: style.text,
+          }}
+        >
+          <p className="text-xs font-semibold uppercase tracking-wide opacity-80">
+            Planningsadvies
+          </p>
+          <p className="mt-1">{planningReadiness.advice}</p>
+        </div>
+
+        <div className="rounded-2xl border p-4 text-sm" style={{ borderColor: "#E2E8F0" }}>
+          <div className="flex items-center justify-between gap-3">
+            <span style={{ color: "#64748B" }}>Hoogste match</span>
+            <span className="font-semibold" style={{ color: "#081D3A" }}>
+              {planningReadiness.highestMatchScore}%
+            </span>
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <span style={{ color: "#64748B" }}>Definitief gekoppeld</span>
+            <span className="font-semibold" style={{ color: "#081D3A" }}>
+              {planningReadiness.assignedCount}
+            </span>
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <span style={{ color: "#64748B" }}>Suggesties</span>
+            <span className="font-semibold" style={{ color: "#081D3A" }}>
+              {planningReadiness.suggestedCount}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        {metrics.map((metric) => (
+          <div key={metric.label} className={`rounded-2xl p-4 ${metric.className}`}>
+            <p className={`text-xl font-semibold ${metric.valueClassName}`} style={metric.valueClassName ? undefined : { color: "#081D3A" }}>
+              {metric.value}
+            </p>
+            <p className={`mt-1 text-xs ${metric.labelClassName}`} style={metric.labelClassName ? undefined : { color: "#64748B" }}>
+              {metric.label}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {planningReadiness.topMatches.length > 0 && (
+        <div className="mt-5">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
+            Beste matches
+          </p>
+          <div className="grid gap-3 lg:grid-cols-3">
+            {planningReadiness.topMatches.map((person) => (
+              <div
+                key={person.id}
+                className="rounded-2xl bg-slate-50 px-4 py-3 text-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold" style={{ color: "#081D3A" }}>{person.name}</p>
+                    <p className="mt-0.5 truncate text-xs" style={{ color: "#64748B" }}>
+                      {person.sectorName ?? "Geen sector"}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                    {person.matchScore}%
+                  </span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {person.positives.slice(0, 3).map((reason) => (
+                    <span key={reason} className="rounded bg-emerald-50 px-2 py-1 text-[11px] text-emerald-700">
+                      + {reason}
+                    </span>
+                  ))}
+                  {person.negatives.slice(0, 2).map((reason) => (
+                    <span key={reason} className="rounded bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
+                      - {reason}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
+              Kandidaten
+            </p>
+            <span className="text-xs" style={{ color: "#94A3B8" }}>
+              {planningReadiness.candidates.length} beoordeeld
+            </span>
+          </div>
+
+          {planningReadiness.candidates.length > 0 ? (
+            <div className="grid max-h-[560px] gap-3 overflow-y-auto pr-1 2xl:grid-cols-2">
+              {planningReadiness.candidates.slice(0, 12).map((candidate) => (
+                <div
+                  key={candidate.id}
+                  className="rounded-2xl border p-4 text-sm"
+                  style={{
+                    borderColor:
+                      candidate.hardStatus === "eligible"
+                        ? "#A7F3D0"
+                        : candidate.hardStatus === "warning"
+                          ? "#FCD34D"
+                          : "#FECACA",
+                    backgroundColor:
+                      candidate.hardStatus === "eligible"
+                        ? "#F8FFFC"
+                        : candidate.hardStatus === "warning"
+                          ? "#FFFCF3"
+                          : "#FFF7F7",
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold" style={{ color: "#081D3A" }}>
+                        {candidate.name}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs" style={{ color: "#64748B" }}>
+                        {candidate.sectorName ?? "Geen sector"}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold" style={{ color: "#081D3A" }}>
+                      {candidate.matchScore}%
+                    </span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {candidate.positives.slice(0, 3).map((reason) => (
+                      <span key={reason} className="rounded bg-emerald-50 px-2 py-1 text-[11px] text-emerald-700">
+                        + {reason}
+                      </span>
+                    ))}
+                    {candidate.negatives.slice(0, 3).map((reason) => (
+                      <span key={reason} className="rounded bg-red-50 px-2 py-1 text-[11px] text-red-700">
+                        - {reason}
+                      </span>
+                    ))}
+                  </div>
+                  {candidate.hardStatus !== "blocked" && (
+                    <div className="mt-3">
+                      <SmartCandidateActions
+                        assignmentId={assignmentId}
+                        personnelId={candidate.id}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed p-6 text-sm" style={{ borderColor: "#CBD5E1", color: "#64748B" }}>
+              Nog geen kandidaten berekend.
+            </div>
+          )}
+        </div>
+
+        <aside className="flex flex-col gap-4">
+          {!planningReadiness.hasMoment && (
+            <div className="rounded-2xl border p-4 text-sm" style={{ borderColor: "#FCD34D", background: "#FFFBEB", color: "#92400E" }}>
+              Vul eerst datum en tijdvak in om beschikbaarheid betrouwbaar te bepalen.
+            </div>
+          )}
+
+          <div className="rounded-2xl border p-4" style={{ borderColor: "#E2E8F0" }}>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
+              Interessepeiling
+            </p>
+            <InterestPollButton
+              assignmentId={assignmentId}
+              disabled={!planningReadiness.canPoll}
+            />
+          </div>
+
+          <div className="rounded-2xl border p-4" style={{ borderColor: "#E2E8F0" }}>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
+              Rondegeschiedenis
+            </p>
+            <InterestRoundHistory assignmentId={assignmentId} rounds={interestRounds} />
+          </div>
+        </aside>
+      </div>
+    </section>
+  );
+}
+
 async function safeOptional<T>(
   label: string,
   assignmentId: string,
@@ -310,10 +590,20 @@ export default async function AssignmentDetailPage({ params }: Props) {
       </div>
 
       {/* ── Two-column layout ─────────────────────────── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      {planningReadiness && (
+        <div className="mb-6">
+          <CapacityMatchingSection
+            assignmentId={assignment.id}
+            planningReadiness={planningReadiness}
+            interestRounds={interestRounds}
+          />
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
 
         {/* Left: static details */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
+        <div className="flex flex-col gap-6">
 
           {/* General info */}
           <div className="veele-card">
@@ -520,221 +810,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
         </div>
 
         {/* Right: interactive actions panel (or read-only for viewers) */}
-        <div className="flex flex-col gap-4">
-          {planningReadiness && (
-            <div className="veele-card">
-              {(() => {
-                const style = capacityStyle(planningReadiness.capacityStatus);
-                return (
-                  <>
-              <h3
-                className="font-heading text-sm font-semibold mb-3 flex items-center justify-between gap-2"
-                style={{ color: "#081D3A" }}
-              >
-                <span className="inline-flex items-center gap-2">
-                  <TrendingUp className="h-4 w-4" style={{ color: "#00B7B3" }} />
-                  Capaciteit & matching
-                </span>
-                <span
-                  className="rounded-full border px-2 py-0.5 text-xs font-semibold"
-                  style={{
-                    backgroundColor: style.bg,
-                    borderColor: style.border,
-                    color: style.text,
-                  }}
-                >
-                  {style.label}
-                </span>
-              </h3>
-
-              <div
-                className="mb-3 rounded-xl border p-3 text-xs leading-5"
-                style={{
-                  borderColor: style.border,
-                  backgroundColor: style.bg,
-                  color: style.text,
-                }}
-              >
-                {planningReadiness.advice}
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div className="rounded-xl bg-slate-50 p-3">
-                  <p className="font-semibold" style={{ color: "#081D3A" }}>{planningReadiness.requiredSlots}</p>
-                  <p style={{ color: "#64748B" }}>Benodigd</p>
-                </div>
-                <div className="rounded-xl bg-sky-50 p-3">
-                  <p className="font-semibold text-sky-700">{planningReadiness.suitableCount}</p>
-                  <p className="text-sky-700/75">Geschikt totaal</p>
-                </div>
-                <div className="rounded-xl bg-emerald-50 p-3">
-                  <p className="font-semibold text-emerald-700">{planningReadiness.fullyAvailableCount}</p>
-                  <p className="text-emerald-700/75">Beschikbaar</p>
-                </div>
-                <div className="rounded-xl bg-violet-50 p-3">
-                  <p className="font-semibold text-violet-700">{planningReadiness.topMatchCount}</p>
-                  <p className="text-violet-700/75">Topmatches</p>
-                </div>
-                <div className="rounded-xl bg-amber-50 p-3">
-                  <p className="font-semibold text-amber-700">{planningReadiness.interestedCount}</p>
-                  <p className="text-amber-700/75">Interesse</p>
-                </div>
-                <div className="rounded-xl bg-red-50 p-3">
-                  <p className="font-semibold text-red-700">{planningReadiness.blockedCount}</p>
-                  <p className="text-red-700/75">Blokkades</p>
-                </div>
-              </div>
-
-              <div className="mt-3 rounded-xl border p-3 text-xs" style={{ borderColor: "#E2E8F0" }}>
-                <div className="flex items-center justify-between gap-3">
-                  <span style={{ color: "#64748B" }}>Hoogste match</span>
-                  <span className="font-semibold" style={{ color: "#081D3A" }}>
-                    {planningReadiness.highestMatchScore}%
-                  </span>
-                </div>
-                <div className="mt-1 flex items-center justify-between gap-3">
-                  <span style={{ color: "#64748B" }}>Definitief gekoppeld</span>
-                  <span className="font-semibold" style={{ color: "#081D3A" }}>
-                    {planningReadiness.assignedCount}
-                  </span>
-                </div>
-                <div className="mt-1 flex items-center justify-between gap-3">
-                  <span style={{ color: "#64748B" }}>Suggesties</span>
-                  <span className="font-semibold" style={{ color: "#081D3A" }}>
-                    {planningReadiness.suggestedCount}
-                  </span>
-                </div>
-              </div>
-
-              {planningReadiness.topMatches.length > 0 && (
-                <div className="mt-3">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
-                    Beste matches
-                  </p>
-                  <ul className="space-y-1.5">
-                    {planningReadiness.topMatches.map((person) => (
-                      <li
-                        key={person.id}
-                        className="rounded-xl bg-slate-50 px-3 py-2 text-xs"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="truncate font-medium" style={{ color: "#081D3A" }}>{person.name}</p>
-                            <p className="mt-0.5 truncate" style={{ color: "#64748B" }}>
-                              {person.sectorName ?? "Geen sector"}
-                            </p>
-                          </div>
-                          <span className="rounded-full bg-emerald-100 px-2 py-0.5 font-semibold text-emerald-700">
-                            {person.matchScore}%
-                          </span>
-                        </div>
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {person.positives.slice(0, 3).map((reason) => (
-                            <span key={reason} className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-700">
-                              + {reason}
-                            </span>
-                          ))}
-                          {person.negatives.slice(0, 2).map((reason) => (
-                            <span key={reason} className="rounded bg-amber-50 px-1.5 py-0.5 text-[10px] text-amber-700">
-                              - {reason}
-                            </span>
-                          ))}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-
-              {planningReadiness.candidates.length > 0 && (
-                <div className="mt-3">
-                  <p className="mb-2 text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
-                    Kandidaten
-                  </p>
-                  <div className="max-h-[420px] space-y-2 overflow-y-auto pr-1">
-                    {planningReadiness.candidates.slice(0, 8).map((candidate) => (
-                      <div
-                        key={candidate.id}
-                        className="rounded-xl border p-3 text-xs"
-                        style={{
-                          borderColor:
-                            candidate.hardStatus === "eligible"
-                              ? "#A7F3D0"
-                              : candidate.hardStatus === "warning"
-                                ? "#FCD34D"
-                                : "#FECACA",
-                          backgroundColor:
-                            candidate.hardStatus === "eligible"
-                              ? "#F8FFFC"
-                              : candidate.hardStatus === "warning"
-                                ? "#FFFCF3"
-                                : "#FFF7F7",
-                        }}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0">
-                            <p className="truncate font-semibold" style={{ color: "#081D3A" }}>
-                              {candidate.name}
-                            </p>
-                            <p className="mt-0.5 truncate" style={{ color: "#64748B" }}>
-                              {candidate.sectorName ?? "Geen sector"}
-                            </p>
-                          </div>
-                          <span className="rounded-full bg-white px-2 py-0.5 font-semibold" style={{ color: "#081D3A" }}>
-                            {candidate.matchScore}%
-                          </span>
-                        </div>
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {candidate.positives.slice(0, 3).map((reason) => (
-                            <span key={reason} className="rounded bg-emerald-50 px-1.5 py-0.5 text-[10px] text-emerald-700">
-                              + {reason}
-                            </span>
-                          ))}
-                          {candidate.negatives.slice(0, 3).map((reason) => (
-                            <span key={reason} className="rounded bg-red-50 px-1.5 py-0.5 text-[10px] text-red-700">
-                              - {reason}
-                            </span>
-                          ))}
-                        </div>
-                        {candidate.hardStatus !== "blocked" && (
-                          <div className="mt-2">
-                            <SmartCandidateActions
-                              assignmentId={assignment.id}
-                              personnelId={candidate.id}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {!planningReadiness.hasMoment && (
-                <p className="mt-3 text-xs" style={{ color: "#92400E" }}>
-                  Vul eerst datum en tijdvak in om beschikbaarheid betrouwbaar te bepalen.
-                </p>
-              )}
-
-              <div className="mt-4">
-                <InterestPollButton
-                  assignmentId={assignment.id}
-                  disabled={!planningReadiness.canPoll}
-                />
-              </div>
-
-              <div className="mt-4">
-                <p className="mb-2 text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
-                  Rondegeschiedenis
-                </p>
-                <InterestRoundHistory assignmentId={assignment.id} rounds={interestRounds} />
-              </div>
-                  </>
-                );
-              })()}
-            </div>
-          )}
-
+        <div className="flex flex-col gap-4 xl:sticky xl:top-24 xl:self-start">
           {/* Direct approval button — only when status is review and user can write quotes */}
           {assignment.status === "review" && canWrite && canReadQuotes && (
             <DirectApprovalButton assignmentId={assignment.id} />
