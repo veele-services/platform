@@ -17,7 +17,7 @@ export default async function BeschikbaarheidPage() {
         </p>
       </section>
 
-      <section className="rounded-t-[28px] bg-[#F4F7FB] px-3.5 pb-6 pt-4 md:rounded-3xl md:px-0 md:pt-0">
+      <section className="min-h-[calc(100vh-14rem)] rounded-t-[28px] bg-[#F4F7FB] px-3.5 pb-6 pt-4 md:min-h-0 md:rounded-3xl md:px-0 md:pt-0">
         <BeschikbaarheidForm data={data} />
       </section>
     </div>

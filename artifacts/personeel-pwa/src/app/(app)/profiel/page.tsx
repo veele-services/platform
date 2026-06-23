@@ -47,7 +47,7 @@ export default async function ProfielPage() {
         </p>
       </section>
 
-      <section className="rounded-t-[28px] bg-[#F4F7FB] px-3.5 pb-[calc(6.4rem+var(--safe-bottom))] pt-4 md:rounded-3xl md:px-0 md:pb-0 md:pt-0">
+      <section className="min-h-[calc(100vh-14rem)] rounded-t-[28px] bg-[#F4F7FB] px-3.5 pb-[calc(6.4rem+var(--safe-bottom))] pt-4 md:min-h-0 md:rounded-3xl md:px-0 md:pb-0 md:pt-0">
         <div className="mx-auto max-w-xl space-y-4 md:max-w-3xl">
           <section className="rounded-[22px] bg-white p-4 shadow-[0_14px_34px_rgba(8,29,58,0.11)] md:p-5">
             <AvatarUploadForm
