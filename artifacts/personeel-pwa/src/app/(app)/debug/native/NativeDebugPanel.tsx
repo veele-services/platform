@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, Smartphone } from "lucide-react";
+import { saveMyNativePushToken } from "@/actions/push";
 import { getCapacitorPlatform, isNativeCapacitorRuntime } from "@/lib/capacitor";
 import {
   ensureNativePushRegistration,
@@ -152,6 +153,17 @@ export function NativeDebugPanel() {
         PUSH_REGISTRATION_TIMEOUT_MS,
         "Native push registratie duurde te lang.",
       );
+      const saveResult = await saveMyNativePushToken({
+        token: result.token,
+        platform: result.platform,
+        appId: "nl.veeleservices.personeel",
+        userAgent: navigator.userAgent,
+      });
+
+      if (!saveResult.success) {
+        setError(saveResult.error);
+      }
+
       setRegistration(result);
       await refresh();
     } catch (caught) {
