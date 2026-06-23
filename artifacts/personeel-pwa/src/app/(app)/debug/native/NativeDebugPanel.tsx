@@ -53,24 +53,22 @@ export function NativeDebugPanel() {
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
-  const rows = useMemo(
-    () =>
-      snapshot
-        ? [
-            ["Capacitor bridge aanwezig", snapshot.hasWindowCapacitor],
-            ["Platform", snapshot.platform],
-            ["Native platform volgens Capacitor", snapshot.isNativePlatform],
-            ["Native runtime volgens app", snapshot.nativeRuntimeDetected],
-            ["Push plugin op window", snapshot.hasPushPluginOnWindow],
-            ["Plugin keys", snapshot.pluginKeys.join(", ") || "-"],
-            ["Native push status", snapshot.nativePushState],
-            ["Lokale token", snapshot.localTokenPreview],
-            ["User agent", snapshot.userAgent],
-            ["Laatste check", snapshot.timestamp],
-          ] satisfies Array<[string, CheckValue]>,
-        : [],
-    [snapshot],
-  );
+  const rows = useMemo<Array<[string, CheckValue]>>(() => {
+    if (!snapshot) return [];
+
+    return [
+      ["Capacitor bridge aanwezig", snapshot.hasWindowCapacitor],
+      ["Platform", snapshot.platform],
+      ["Native platform volgens Capacitor", snapshot.isNativePlatform],
+      ["Native runtime volgens app", snapshot.nativeRuntimeDetected],
+      ["Push plugin op window", snapshot.hasPushPluginOnWindow],
+      ["Plugin keys", snapshot.pluginKeys.join(", ") || "-"],
+      ["Native push status", snapshot.nativePushState],
+      ["Lokale token", snapshot.localTokenPreview],
+      ["User agent", snapshot.userAgent],
+      ["Laatste check", snapshot.timestamp],
+    ];
+  }, [snapshot]);
 
   function refresh() {
     setError(null);
