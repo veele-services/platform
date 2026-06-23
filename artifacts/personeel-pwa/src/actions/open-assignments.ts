@@ -9,6 +9,8 @@ import {
   taskCodesTable,
   personnelTable,
   objectsTable,
+  customersTable,
+  sectorsTable,
   qualificationItemsTable,
   roleQualificationsTable,
 } from "@workspace/db";
@@ -68,6 +70,9 @@ export type OpenAssignment = {
   scheduledEnd:     string | null;
   workflowStatus:   string;
   priority:         string | null;
+  customerName:     string | null;
+  objectName:       string | null;
+  sectorName:       string | null;
   objectAddress:    string | null;
   objectCity:       string | null;
   requiredRegion:   string | null;
@@ -237,11 +242,16 @@ export async function getOpenAssignments(): Promise<OpenAssignment[]> {
       status:         assignmentsTable.status,
       priority:       assignmentsTable.priority,
       requiredRegion: assignmentsTable.requiredRegion,
+      customerName:    customersTable.name,
+      objectName:      objectsTable.name,
+      sectorName:      sectorsTable.name,
       objectAddress:  objectsTable.address,
       objectCity:     objectsTable.city,
     })
     .from(assignmentsTable)
+    .innerJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
+    .leftJoin(sectorsTable, eq(objectsTable.sectorId, sectorsTable.id))
     .where(
       and(
         statusScope,
@@ -354,6 +364,9 @@ export async function getOpenAssignments(): Promise<OpenAssignment[]> {
       scheduledEnd:     a.scheduledEnd,
       workflowStatus:   a.status,
       priority:         a.priority ?? null,
+      customerName:     a.customerName ?? null,
+      objectName:       a.objectName ?? null,
+      sectorName:       a.sectorName ?? null,
       requiredRegion:   a.requiredRegion ?? null,
       objectAddress:    a.objectAddress ?? null,
       objectCity:       a.objectCity ?? null,

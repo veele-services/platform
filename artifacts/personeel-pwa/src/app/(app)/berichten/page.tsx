@@ -23,8 +23,8 @@ export default async function BerichtenPage() {
   const tickets = await getMyTickets();
 
   return (
-    <div className="min-h-[calc(100vh-4.2rem)] bg-[#061F44] md:bg-transparent">
-      <section className="px-4 pb-6 pt-4 md:rounded-3xl md:px-6">
+    <div className="min-h-[calc(100vh-4.2rem)] bg-[#F4F7FB] md:bg-transparent">
+      <section className="bg-[#061F44] px-4 pb-10 pt-4 md:rounded-3xl md:bg-transparent md:px-6 md:pb-6">
         <h1 className="text-[29px] font-black leading-tight text-white md:text-3xl">
           Berichten
         </h1>
@@ -33,7 +33,7 @@ export default async function BerichtenPage() {
         </p>
       </section>
 
-      <section className="min-h-[calc(100vh-14rem)] rounded-t-[28px] bg-[#F4F7FB] px-3.5 pb-[calc(6.4rem+var(--safe-bottom))] pt-4 md:min-h-0 md:rounded-3xl md:px-0 md:pb-0 md:pt-0">
+      <section className="-mt-7 min-h-[calc(100vh-14rem)] rounded-t-[28px] bg-[#F4F7FB] px-3.5 pb-[calc(6.4rem+var(--safe-bottom))] pt-4 md:mt-0 md:min-h-0 md:rounded-3xl md:px-0 md:pb-0 md:pt-0">
         <div className="mx-auto max-w-xl space-y-4 md:max-w-3xl">
           <section className="rounded-[22px] bg-white p-4 shadow-[0_14px_34px_rgba(8,29,58,0.11)] md:p-5">
             <div className="mb-4 flex items-start gap-3">

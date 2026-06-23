@@ -1876,6 +1876,7 @@ export async function sendAssignmentInterestPoll(
             code: assignment.code,
             title: assignment.title,
             date: assignment.scheduledDate,
+            date_label: momentLabel.split(" · ")[0] ?? assignment.scheduledDate,
             time_range: `${assignment.scheduledStart} - ${assignment.scheduledEnd}`,
           },
           object: {
@@ -1897,8 +1898,10 @@ export async function sendAssignmentInterestPoll(
           },
         },
         fallback: {
-          title,
-          body: `Open opdracht: ${assignment.title}. Moment: ${momentLabel}. Reageer via open opdrachten als je deze bon kunt oppakken.`,
+          title: "Je bent uitgenodigd",
+          body: `Je bent uitgenodigd voor ${assignment.code}: ${assignment.title}. Moment: ${momentLabel}. Reageer via Open diensten.`,
+          pushTitle: "Je bent uitgenodigd",
+          pushBody: `${assignment.code} · ${assignment.title} · ${momentLabel}`,
           category: "planning",
           priority: notificationPriority,
           href,
@@ -1908,6 +1911,7 @@ export async function sendAssignmentInterestPoll(
       }),
     ),
   );
+  await triggerNotificationWorker({ channels: ["push"], limit: Math.max(25, recipients.length) });
 
   revalidatePath(`/assignments/${assignmentId}`);
   revalidatePath("/planning");
