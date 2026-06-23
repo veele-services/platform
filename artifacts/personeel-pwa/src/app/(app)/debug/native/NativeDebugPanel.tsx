@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { AlertTriangle, CheckCircle2, Loader2, RefreshCw, Smartphone } from "lucide-react";
 import { getCapacitorPlatform, isNativeCapacitorRuntime } from "@/lib/capacitor";
 import {
@@ -23,6 +23,9 @@ type RuntimeSnapshot = {
   nativePushState: string;
   localTokenPreview: string | null;
 };
+
+const PUSH_STATUS_TIMEOUT_MS = 5000;
+const PUSH_REGISTRATION_TIMEOUT_MS = 15000;
 
 function readWindowCapacitor() {
   if (typeof window === "undefined") return null;
@@ -47,11 +50,29 @@ function valueLabel(value: CheckValue) {
   return String(value);
 }
 
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  message: string,
+): Promise<T> {
+  let timeoutId: number | null = null;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId !== null) window.clearTimeout(timeoutId);
+  }
+}
+
 export function NativeDebugPanel() {
   const [snapshot, setSnapshot] = useState<RuntimeSnapshot | null>(null);
   const [registration, setRegistration] = useState<NativePushRegistration | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isPending, startTransition] = useTransition();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [isRegistering, setIsRegistering] = useState(false);
 
   const rows = useMemo<Array<[string, CheckValue]>>(() => {
     if (!snapshot) return [];
@@ -70,49 +91,78 @@ export function NativeDebugPanel() {
     ];
   }, [snapshot]);
 
-  function refresh() {
+  async function refresh() {
     setError(null);
-    startTransition(async () => {
-      const bridge = readWindowCapacitor();
-      const pluginKeys = Object.keys(bridge?.Plugins ?? {}).sort();
-      const localState = await getLocalNativePushState().catch((caught: unknown) => ({
-        supported: false as const,
-        reason: caught instanceof Error ? caught.message : "Native push status kon niet worden gelezen.",
-      }));
+    setIsRefreshing(true);
+
+    const bridge = readWindowCapacitor();
+    const pluginKeys = Object.keys(bridge?.Plugins ?? {}).sort();
+    const baseSnapshot: RuntimeSnapshot = {
+      timestamp: new Date().toLocaleString("nl-NL"),
+      userAgent: navigator.userAgent,
+      hasWindowCapacitor: Boolean(bridge),
+      platform: bridge?.getPlatform?.() ?? getCapacitorPlatform(),
+      isNativePlatform: bridge?.isNativePlatform?.() ?? false,
+      nativeRuntimeDetected: isNativeCapacitorRuntime(),
+      pluginKeys,
+      hasPushPluginOnWindow: Boolean(bridge?.Plugins?.PushNotifications),
+      nativePushState: "Pushstatus wordt gecontroleerd...",
+      localTokenPreview: null,
+    };
+
+    setSnapshot(baseSnapshot);
+
+    try {
+      const localState = await withTimeout(
+        getLocalNativePushState(),
+        PUSH_STATUS_TIMEOUT_MS,
+        "Native push status controle duurde te lang.",
+      );
 
       setSnapshot({
+        ...baseSnapshot,
         timestamp: new Date().toLocaleString("nl-NL"),
-        userAgent: navigator.userAgent,
-        hasWindowCapacitor: Boolean(bridge),
-        platform: bridge?.getPlatform?.() ?? getCapacitorPlatform(),
-        isNativePlatform: bridge?.isNativePlatform?.() ?? false,
-        nativeRuntimeDetected: isNativeCapacitorRuntime(),
-        pluginKeys,
-        hasPushPluginOnWindow: Boolean(bridge?.Plugins?.PushNotifications),
         nativePushState: localState.supported
           ? `${localState.permission} (${localState.platform})`
           : localState.reason,
         localTokenPreview: localState.supported ? previewToken(localState.token) : null,
       });
-    });
+    } catch (caught) {
+      setSnapshot({
+        ...baseSnapshot,
+        timestamp: new Date().toLocaleString("nl-NL"),
+        nativePushState:
+          caught instanceof Error
+            ? caught.message
+            : "Native push status kon niet worden gelezen.",
+      });
+    } finally {
+      setIsRefreshing(false);
+    }
   }
 
-  function testRegistration() {
+  async function testRegistration() {
     setError(null);
     setRegistration(null);
-    startTransition(async () => {
-      try {
-        const result = await ensureNativePushRegistration();
-        setRegistration(result);
-        refresh();
-      } catch (caught) {
-        setError(caught instanceof Error ? caught.message : "Native push registratie mislukt.");
-      }
-    });
+    setIsRegistering(true);
+
+    try {
+      const result = await withTimeout(
+        ensureNativePushRegistration(),
+        PUSH_REGISTRATION_TIMEOUT_MS,
+        "Native push registratie duurde te lang.",
+      );
+      setRegistration(result);
+      await refresh();
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "Native push registratie mislukt.");
+    } finally {
+      setIsRegistering(false);
+    }
   }
 
   useEffect(() => {
-    refresh();
+    void refresh();
   }, []);
 
   return (
@@ -150,19 +200,19 @@ export function NativeDebugPanel() {
           <button
             type="button"
             onClick={refresh}
-            disabled={isPending}
+            disabled={isRefreshing}
             className="flex items-center justify-center gap-2 rounded-2xl border border-[#BDEDEA] bg-white px-4 py-3 text-sm font-black text-[#081D3A] shadow-sm disabled:opacity-60"
           >
-            {isPending ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
+            {isRefreshing ? <Loader2 size={18} className="animate-spin" /> : <RefreshCw size={18} />}
             Opnieuw controleren
           </button>
           <button
             type="button"
             onClick={testRegistration}
-            disabled={isPending}
+            disabled={isRegistering}
             className="flex items-center justify-center gap-2 rounded-2xl bg-[#00B7B3] px-4 py-3 text-sm font-black text-white shadow-sm disabled:opacity-60"
           >
-            {isPending ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
+            {isRegistering ? <Loader2 size={18} className="animate-spin" /> : <CheckCircle2 size={18} />}
             Pushregistratie testen
           </button>
         </div>
