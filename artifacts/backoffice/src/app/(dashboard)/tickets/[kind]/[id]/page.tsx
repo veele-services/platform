@@ -68,8 +68,8 @@ export default async function TicketDetailPage({
   const isClosed = ticket.status === "closed";
 
   return (
-    <div className="mx-auto w-full max-w-[1300px] p-6">
-      <div className="mb-5">
+    <div className="mx-auto w-full max-w-[1600px] p-8">
+      <div className="mb-8">
         <Link
           href="/tickets"
           className="inline-flex items-center gap-2 text-sm font-bold text-slate-500 transition hover:text-[#081D3A]"
@@ -79,9 +79,9 @@ export default async function TicketDetailPage({
         </Link>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_22rem]">
-        <main className="space-y-5">
-          <section className="rounded-lg border bg-white p-5 shadow-sm" style={{ borderColor: "#E2E8F0" }}>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
+        <main className="flex flex-col gap-6">
+          <section className="veele-card">
             <div className="flex flex-wrap items-start justify-between gap-4">
               <div className="min-w-0">
                 <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-500">
@@ -104,7 +104,7 @@ export default async function TicketDetailPage({
             <ProcessStepper kind="ticket" status={ticket.status} className="mt-4" />
           </section>
 
-          <section className="rounded-lg border bg-white p-5 shadow-sm" style={{ borderColor: "#E2E8F0" }}>
+          <section className="veele-card">
             <div className="mb-4 flex items-start gap-3">
               <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#E8FBFA] text-[#087C79]">
                 <MessageSquare size={20} strokeWidth={2.4} />
@@ -159,7 +159,7 @@ export default async function TicketDetailPage({
             </div>
           </section>
 
-          <section className="rounded-lg border bg-white p-5 shadow-sm" style={{ borderColor: "#E2E8F0" }}>
+          <section className="veele-card">
             <h2 className="mb-3 text-lg font-black" style={{ color: "#081D3A" }}>
               Reageren
             </h2>
@@ -173,8 +173,8 @@ export default async function TicketDetailPage({
           </section>
         </main>
 
-        <aside className="space-y-4">
-          <section className="rounded-lg border bg-white p-4 shadow-sm" style={{ borderColor: "#E2E8F0" }}>
+        <aside className="flex flex-col gap-4 xl:sticky xl:top-24 xl:self-start">
+          <section className="veele-card">
             <h2 className="text-sm font-black" style={{ color: "#081D3A" }}>
               Details
             </h2>
@@ -187,7 +187,7 @@ export default async function TicketDetailPage({
           </section>
 
           {ticket.assignment ? (
-            <section className="rounded-lg border bg-white p-4 shadow-sm" style={{ borderColor: "#BDEDEA" }}>
+            <section className="veele-card" style={{ borderColor: "#BDEDEA" }}>
               <div className="flex items-start gap-3">
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#E8FBFA] text-[#087C79]">
                   <CalendarDays size={20} strokeWidth={2.4} />

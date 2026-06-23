@@ -114,7 +114,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
   const isOverdue   = invoice.status === "sent" && new Date(invoice.dueDate) < new Date();
 
   return (
-    <div className="p-8 max-w-6xl">
+    <div className="mx-auto w-full max-w-[1600px] p-8">
 
       {/* ── Header ── */}
       <div className="mb-8">
@@ -158,10 +158,10 @@ export default async function InvoiceDetailPage({ params }: Props) {
       </div>
 
       {/* ── Two-column layout ── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
 
         {/* Left: invoice details */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
+        <div className="flex flex-col gap-6">
 
           {/* Customer info */}
           <div className="veele-card">
@@ -348,7 +348,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
         </div>
 
         {/* Right: actions + status info + history */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 xl:sticky xl:top-24 xl:self-start">
 
           {/* Due date card */}
           <div className="veele-card">

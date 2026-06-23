@@ -135,7 +135,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
   };
 
   return (
-    <div className="p-8 max-w-[1600px]">
+    <div className="mx-auto w-full max-w-[1600px] p-8">
       {/* Back link */}
       <Link
         href="/customers"
@@ -147,7 +147,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
       </Link>
 
       {/* Hero header with KPIs */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="mb-6 flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <CustomerProfileHeader customer={safeCustomer} kpis={kpis} />
         </div>

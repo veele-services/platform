@@ -124,7 +124,7 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
   };
 
   return (
-    <div className="p-8 max-w-7xl">
+    <div className="mx-auto w-full max-w-[1600px] p-8">
       {/* Back link */}
       <Link
         href="/objects"
@@ -136,7 +136,7 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
       </Link>
 
       {/* Header */}
-      <div className="flex items-start justify-between gap-4 mb-6">
+      <div className="veele-card mb-6 flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3 flex-wrap">
             <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>

@@ -551,7 +551,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
   }
 
   return (
-    <div className="p-8 max-w-6xl">
+    <div className="mx-auto w-full max-w-[1600px] p-8">
 
       {/* ── Header ─────────────────────────────────────── */}
       <div className="mb-8">
