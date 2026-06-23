@@ -123,7 +123,7 @@ export function NativeDebugPanel() {
         ...baseSnapshot,
         timestamp: new Date().toLocaleString("nl-NL"),
         nativePushState: localState.supported
-          ? `${localState.permission} (${localState.platform})`
+          ? `${localState.permission} (${localState.platform})${localState.warning ? ` - ${localState.warning}` : ""}`
           : localState.reason,
         localTokenPreview: localState.supported ? previewToken(localState.token) : null,
       });
