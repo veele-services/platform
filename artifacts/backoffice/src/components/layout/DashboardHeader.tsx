@@ -7,6 +7,8 @@ import {
   ChevronDown,
   LogOut,
   Menu,
+  PanelLeftClose,
+  PanelLeftOpen,
   Search,
   Settings,
   User,
@@ -70,7 +72,7 @@ export function DashboardHeader({
 }: DashboardHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { toggle } = useSidebar();
+  const { toggle, collapsed, toggleCollapsed } = useSidebar();
   const [query, setQuery] = useState("");
 
   const title = useMemo(() => titleForPath(pathname), [pathname]);
@@ -97,6 +99,18 @@ export function DashboardHeader({
         aria-label="Navigatie openen"
       >
         <Menu className="h-5 w-5" />
+      </Button>
+
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        onClick={toggleCollapsed}
+        className="hidden md:inline-flex"
+        aria-label={collapsed ? "Sidebar uitklappen" : "Sidebar inklappen"}
+        title={collapsed ? "Sidebar uitklappen" : "Sidebar inklappen"}
+      >
+        {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
       </Button>
 
       <div className="min-w-[150px] shrink-0">

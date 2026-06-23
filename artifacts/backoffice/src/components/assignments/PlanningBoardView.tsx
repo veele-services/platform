@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
@@ -50,11 +50,12 @@ import {
   type PlanningBoardPersonnelAssignment,
 } from "@/app/actions/planning";
 
-const DAY_START_MIN = 7 * 60;
-const DAY_END_MIN = 20 * 60;
+const DAY_START_MIN = 0;
+const DAY_END_MIN = 24 * 60;
 const DAY_SPAN = DAY_END_MIN - DAY_START_MIN;
-const PERSONNEL_COL_WIDTH = 238;
-const TIMELINE_WIDTH = 1240;
+const PERSONNEL_COL_WIDTH = 244;
+const HOUR_WIDTH = 120;
+const TIMELINE_WIDTH = 24 * HOUR_WIDTH;
 const BOARD_WIDTH = PERSONNEL_COL_WIDTH + TIMELINE_WIDTH;
 
 const NL_MONTHS = [
@@ -82,15 +83,14 @@ const NL_WEEKDAYS = [
   "zaterdag",
 ];
 
-const HOUR_LABELS = Array.from({ length: 14 }, (_, i) => {
-  const hour = 7 + i;
+const HOUR_LABELS = Array.from({ length: 25 }, (_, hour) => {
   return {
-    label: `${hour}:00`,
+    label: `${String(hour).padStart(2, "0")}:00`,
     pct: ((hour * 60 - DAY_START_MIN) / DAY_SPAN) * 100,
   };
 });
 
-const START_OPTIONS = Array.from({ length: 25 }, (_, i) => {
+const START_OPTIONS = Array.from({ length: 48 }, (_, i) => {
   const minutes = DAY_START_MIN + i * 30;
   return minutesToTime(minutes);
 });
@@ -231,11 +231,30 @@ function hashString(value: string): number {
   return hash;
 }
 
-function pastelForAppointment(assignment: Pick<PlanningBoardPersonnelAssignment, "id" | "priority">): Pastel {
+function pastelForAppointment(assignment: Pick<PlanningBoardPersonnelAssignment, "id" | "priority" | "status">): Pastel {
+  const status = String(assignment.status);
+  if (status === "scheduled") return { bg: "#E2FAF8", border: "#8CE7E2", text: "#075E5D", rail: "#00B7B3" };
+  if (status === "seen") return { bg: "#F2EEFF", border: "#C4B5FD", text: "#3F2D75", rail: "#8B5CF6" };
+  if (status === "in_progress") return { bg: "#FFF7D6", border: "#FCD34D", text: "#6B4E00", rail: "#EAB308" };
+  if (status === "completed" || status === "reported" || status === "approved") {
+    return { bg: "#EAF8F1", border: "#86D9AE", text: "#14523C", rail: "#22C55E" };
+  }
+  if (status === "cancelled" || status === "failed" || status === "rejected") {
+    return { bg: "#FFEAF0", border: "#FDA4AF", text: "#7F1D1D", rail: "#F43F5E" };
+  }
   if (assignment.priority === "urgent") return APPOINTMENT_PASTELS[4]!;
   if (assignment.priority === "high") return APPOINTMENT_PASTELS[2]!;
   if (assignment.priority === "low") return APPOINTMENT_PASTELS[7]!;
   return APPOINTMENT_PASTELS[hashString(assignment.id) % APPOINTMENT_PASTELS.length]!;
+}
+
+function currentMinuteOfDay(): number {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+}
+
+function minuteToTimelinePct(minutes: number): number {
+  return ((Math.max(DAY_START_MIN, Math.min(DAY_END_MIN, minutes)) - DAY_START_MIN) / DAY_SPAN) * 100;
 }
 
 function isPlanboardMovableStatus(status: string): boolean {
@@ -410,10 +429,12 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const dragRef = useRef<DragState | null>(null);
+  const boardScrollRef = useRef<HTMLDivElement | null>(null);
 
   const [searchValue, setSearchValue] = useState(searchParams.get("search") ?? "");
   const [manualStart, setManualStart] = useState("08:00");
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const [openQueueOpen, setOpenQueueOpen] = useState(false);
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [ghostInfo, setGhostInfo] = useState<GhostInfo | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -470,6 +491,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
   );
   const today = todayDateKey();
   const isToday = data.date === today;
+  const currentTimePct = isToday ? minuteToTimelinePct(currentMinuteOfDay()) : null;
   const availablePersonnelCount = data.personnel.filter(
     (person) => person.availabilityStatus === "beschikbaar",
   ).length;
@@ -512,6 +534,20 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
       tone: conflictCount > 0 ? "#F97316" : "#64748B",
     },
   ];
+
+  useEffect(() => {
+    const scrollEl = boardScrollRef.current;
+    if (!scrollEl) return;
+
+    const centerMinute = isToday ? currentMinuteOfDay() : 8 * 60;
+    const timelineX = PERSONNEL_COL_WIDTH + (centerMinute / DAY_SPAN) * TIMELINE_WIDTH;
+    const nextLeft = Math.max(0, timelineX - scrollEl.clientWidth / 2);
+    const frame = window.requestAnimationFrame(() => {
+      scrollEl.scrollTo({ left: nextLeft, behavior: "smooth" });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [data.date, isToday]);
 
   function updateQuery(updates: Record<string, string | null>) {
     const params = new URLSearchParams(searchParams.toString());
@@ -875,8 +911,8 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
           </div>
         </section>
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,15%)]">
-          <section className="order-2 overflow-hidden rounded-xl border bg-white shadow-sm xl:order-2" style={{ borderColor: "#DDE7F0" }}>
+        <div className="grid gap-4">
+          <section className="hidden" style={{ borderColor: "#DDE7F0" }}>
             <div className="flex items-center justify-between gap-3 border-b px-4 py-3" style={{ borderColor: "#E2E8F0", background: "#FBFDFF" }}>
               <div>
                 <h3 className="flex items-center gap-2 font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
@@ -1045,7 +1081,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
             )}
           </section>
 
-          <section className="order-1 overflow-hidden rounded-xl border bg-white shadow-sm xl:order-1" style={{ borderColor: "#DDE7F0" }}>
+          <section className="overflow-visible rounded-xl border bg-white shadow-sm" style={{ borderColor: "#DDE7F0" }}>
             <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3" style={{ borderColor: "#E2E8F0", background: "#FBFDFF" }}>
               <div className="min-w-0 text-xs" style={{ color: "#64748B" }}>
                 {activeAssignment ? (
@@ -1067,6 +1103,95 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-2">
+                <div className="relative">
+                  <Button
+                    type="button"
+                    variant={openQueueOpen ? "default" : "outline"}
+                    size="sm"
+                    className="h-8"
+                    onClick={() => setOpenQueueOpen((value) => !value)}
+                  >
+                    <Layers3 className="h-3.5 w-3.5" />
+                    Openstaand ({data.openAssignments.length})
+                  </Button>
+                  {openQueueOpen && (
+                    <div
+                      className="absolute right-0 top-10 z-40 w-[390px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border bg-white shadow-2xl"
+                      style={{ borderColor: "#DDE7F0" }}
+                    >
+                      <div className="flex items-center justify-between border-b px-3 py-2.5" style={{ borderColor: "#E2E8F0", background: "#FBFDFF" }}>
+                        <div>
+                          <p className="text-xs font-semibold" style={{ color: "#081D3A" }}>Werkvoorraad</p>
+                          <p className="text-[11px]" style={{ color: "#64748B" }}>{openSlotCount} open plaatsen te plannen</p>
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOpenQueueOpen(false)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {data.openAssignments.length === 0 ? (
+                        <div className="flex min-h-[160px] items-center justify-center px-6 text-center text-sm" style={{ color: "#64748B" }}>
+                          Geen open werkbonnen.
+                        </div>
+                      ) : (
+                        <div className="max-h-[520px] space-y-2 overflow-y-auto p-3">
+                          {data.openAssignments.map((assignment) => {
+                            const selected = selectedAssignmentId === assignment.id;
+                            const stats = matchStats(data.matchesByAssignmentId[assignment.id]);
+                            const sectorStyle = sectorBadgeStyle(assignment.sectorName);
+                            const title = displayWorkOrderTitle(assignment.title);
+
+                            return (
+                              <article
+                                key={assignment.id}
+                                draggable={canWrite}
+                                onDragStart={(e) => handleDragStart(e, assignment)}
+                                onDragEnd={handleDragEnd}
+                                onClick={() => {
+                                  setSelectedAssignmentId(selected ? null : assignment.id);
+                                  setOpenQueueOpen(false);
+                                }}
+                                className="relative overflow-hidden rounded-lg border bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                                style={{
+                                  borderColor: selected ? "#00B7B3" : "#E2E8F0",
+                                  boxShadow: selected ? "0 0 0 3px rgba(0,183,179,0.12)" : undefined,
+                                  cursor: canWrite ? "grab" : "pointer",
+                                }}
+                              >
+                                <div className="absolute bottom-0 left-0 top-0 w-1" style={{ background: sectorStyle.borderColor }} />
+                                <div className="flex items-start justify-between gap-3 pl-1">
+                                  <div className="min-w-0">
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                      <span className="rounded-md border px-1.5 py-0.5 font-mono text-[10px] font-semibold leading-none" style={{ background: sectorStyle.background, borderColor: sectorStyle.borderColor, color: sectorStyle.color }}>
+                                        {sectorShortLabel(assignment.sectorName)}
+                                      </span>
+                                      <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] leading-none" style={{ color: "#475569" }}>
+                                        {assignment.code}
+                                      </span>
+                                      <AssignmentStatusBadge status={assignment.status} />
+                                    </div>
+                                    <p className="mt-2 truncate text-sm font-semibold" style={{ color: "#081D3A" }}>{title}</p>
+                                    <p className="mt-1 truncate text-xs" style={{ color: "#64748B" }}>
+                                      {assignment.customerName}{assignment.objectName ? ` - ${assignment.objectName}` : ""}
+                                    </p>
+                                  </div>
+                                  <div className="flex flex-shrink-0 flex-col items-end gap-1 text-[10px]">
+                                    <span className="rounded px-1.5 py-0.5" style={{ background: "#ECFDF5", color: "#047857" }}>{stats.match} match</span>
+                                    <span className="rounded px-1.5 py-0.5" style={{ background: "#FEF2F2", color: "#B91C1C" }}>{stats.blocked} blok</span>
+                                  </div>
+                                </div>
+                                <div className="mt-2 grid grid-cols-3 gap-1.5 pl-1 text-[11px]" style={{ color: "#64748B" }}>
+                                  <span className="inline-flex items-center gap-1 truncate"><CalendarDays className="h-3 w-3" />{formatShortDate(assignment.scheduledDate ?? data.date)}</span>
+                                  <span className="inline-flex items-center gap-1 truncate"><Clock className="h-3 w-3" />{workOrderTimeLabel(assignment)}</span>
+                                  <span className="inline-flex items-center gap-1 truncate"><Users className="h-3 w-3" />{slotLabel(assignment.filledSlots, assignment.requiredSlots)}</span>
+                                </div>
+                              </article>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
                 <label className="grid gap-1 text-xs font-medium" style={{ color: "#64748B" }}>
                   Start
                   <select
@@ -1098,7 +1223,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto" style={{ opacity: isPending ? 0.82 : 1 }}>
+              <div ref={boardScrollRef} className="overflow-x-auto" style={{ opacity: isPending ? 0.82 : 1 }}>
                 <div style={{ width: BOARD_WIDTH, minWidth: BOARD_WIDTH }}>
                   <div className="relative h-10 border-b" style={{ borderColor: "#E2E8F0" }}>
                     <div
@@ -1117,6 +1242,14 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                           {hour.label}
                         </div>
                       ))}
+                      {currentTimePct !== null && (
+                        <div
+                          className="absolute bottom-0 top-0 z-10 -translate-x-1/2"
+                          style={{ left: `${currentTimePct}%` }}
+                        >
+                          <span className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full shadow" style={{ background: "#00B7B3" }} />
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1129,6 +1262,16 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                           style={{ left: `${hour.pct}%`, borderLeft: "1px solid #F1F5F9" }}
                         />
                       ))}
+                      {currentTimePct !== null && (
+                        <div
+                          className="absolute inset-y-0 z-10"
+                          style={{
+                            left: `${currentTimePct}%`,
+                            borderLeft: "2px solid #00B7B3",
+                            boxShadow: "0 0 0 1px rgba(0,183,179,0.08)",
+                          }}
+                        />
+                      )}
                     </div>
 
                     {visiblePersonnel.map((person, index) => {
@@ -1309,7 +1452,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                       draggable={isMovable}
                                       onDragStart={isMovable ? (e) => handleScheduledDragStart(e, assignment, person.id) : undefined}
                                       onDragEnd={isMovable ? handleDragEnd : undefined}
-                                      className="absolute top-3 bottom-3 z-10 flex min-w-[68px] items-center overflow-hidden rounded-md border text-[11px] font-medium shadow-sm transition hover:brightness-[0.98]"
+                                      className="absolute top-3 bottom-3 z-10 flex min-w-[96px] items-center overflow-hidden rounded-lg border text-[11px] font-medium shadow-sm transition hover:brightness-[0.98]"
                                       style={{
                                         left: `${block.left}%`,
                                         width: `${block.width}%`,
@@ -1320,9 +1463,15 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                       }}
                                     >
                                       <span className="h-full w-1.5 flex-shrink-0" style={{ background: assignment.hasConflict ? "#F59E0B" : pastel.rail }} />
-                                      <span className="min-w-0 flex-1 px-1.5">
-                                        <span className="block truncate font-semibold">{assignment.title}</span>
-                                        <span className="block truncate text-[10px] opacity-75">
+                                      <span className="min-w-0 flex-1 px-2">
+                                        <span className="flex min-w-0 items-center gap-1">
+                                          <span className="truncate font-mono text-[10px] opacity-80">{assignment.code}</span>
+                                          <span className="rounded bg-white/60 px-1 py-0.5 text-[9px] leading-none">
+                                            {statusLabel(assignment.status)}
+                                          </span>
+                                        </span>
+                                        <span className="mt-0.5 block truncate font-semibold">{displayWorkOrderTitle(assignment.title)}</span>
+                                        <span className="mt-0.5 block truncate text-[10px] opacity-75">
                                           {compactTimeRange(assignment.scheduledStart, assignment.scheduledEnd)}
                                           {assignment.sectorName ? ` - ${assignment.sectorName}` : ""}
                                         </span>
