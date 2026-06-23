@@ -3,6 +3,8 @@
 import { getCapacitorPlatform, isNativeCapacitorRuntime } from "@/lib/capacitor";
 
 const STORAGE_KEY = "veele-native-fcm-token";
+const PERMISSION_TIMEOUT_MS = 5000;
+const REGISTRATION_TIMEOUT_MS = 12000;
 
 type PermissionState = "prompt" | "prompt-with-rationale" | "granted" | "denied";
 
@@ -33,6 +35,7 @@ export type NativePushState =
       permission: PermissionState;
       token: string | null;
       platform: "android" | "ios";
+      warning?: string;
     };
 
 export type NativePushRegistration = {
@@ -58,8 +61,41 @@ function normalizePlatform(value: string): "android" | "ios" {
   return value === "ios" ? "ios" : "android";
 }
 
+function getWindowPushBridge(): PushNotificationsBridge | null {
+  if (typeof window === "undefined") return null;
+  const maybeWindow = window as typeof window & {
+    Capacitor?: {
+      Plugins?: {
+        PushNotifications?: PushNotificationsBridge;
+      };
+    };
+  };
+
+  return maybeWindow.Capacitor?.Plugins?.PushNotifications ?? null;
+}
+
+async function withTimeout<T>(
+  promise: Promise<T>,
+  timeoutMs: number,
+  message: string,
+): Promise<T> {
+  let timeoutId: number | null = null;
+  const timeoutPromise = new Promise<never>((_, reject) => {
+    timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeoutPromise]);
+  } finally {
+    if (timeoutId !== null) window.clearTimeout(timeoutId);
+  }
+}
+
 async function getBridge(): Promise<PushNotificationsBridge | null> {
   if (!isNativeCapacitorRuntime()) return null;
+
+  const windowBridge = getWindowPushBridge();
+  if (windowBridge) return windowBridge;
 
   const module = await import("@capacitor/push-notifications");
   return module.PushNotifications as PushNotificationsBridge;
@@ -74,13 +110,28 @@ export async function getLocalNativePushState(): Promise<NativePushState> {
     };
   }
 
-  const permission = await bridge.checkPermissions();
+  let permission: { receive: PermissionState };
+  let warning: string | undefined;
+  try {
+    permission = await withTimeout(
+      bridge.checkPermissions(),
+      PERMISSION_TIMEOUT_MS,
+      "Native push permissiestatus duurde te lang.",
+    );
+  } catch (error) {
+    warning =
+      error instanceof Error
+        ? error.message
+        : "Native push permissiestatus kon niet worden gelezen.";
+    permission = { receive: "prompt" };
+  }
 
   return {
     supported: true,
     permission: permission.receive,
     token: getStoredToken(),
     platform: normalizePlatform(getCapacitorPlatform()),
+    warning,
   };
 }
 
@@ -90,11 +141,25 @@ export async function ensureNativePushRegistration(): Promise<NativePushRegistra
     throw new Error("Native push is alleen beschikbaar in de Capacitor app.");
   }
 
-  const currentPermission = await bridge.checkPermissions();
+  let currentPermission: { receive: PermissionState };
+  try {
+    currentPermission = await withTimeout(
+      bridge.checkPermissions(),
+      PERMISSION_TIMEOUT_MS,
+      "Native push permissiestatus duurde te lang.",
+    );
+  } catch {
+    currentPermission = { receive: "prompt" };
+  }
+
   const permission =
     currentPermission.receive === "prompt" ||
     currentPermission.receive === "prompt-with-rationale"
-      ? await bridge.requestPermissions()
+      ? await withTimeout(
+          bridge.requestPermissions(),
+          PERMISSION_TIMEOUT_MS,
+          "Native push toestemming aanvragen duurde te lang.",
+        )
       : currentPermission;
 
   if (permission.receive !== "granted") {
@@ -123,7 +188,7 @@ export async function ensureNativePushRegistration(): Promise<NativePushRegistra
     const timeout = window.setTimeout(() => {
       cleanup();
       reject(new Error("Native push registratie duurde te lang."));
-    }, 12000);
+    }, REGISTRATION_TIMEOUT_MS);
 
     async function cleanup() {
       window.clearTimeout(timeout);
