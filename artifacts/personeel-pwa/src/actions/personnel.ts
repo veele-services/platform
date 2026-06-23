@@ -347,6 +347,7 @@ export async function updateMyNotificationSettings(
   }
 
   revalidatePath("/meldingen");
+  revalidatePath("/instellingen/meldingen");
   revalidatePath("/profiel");
   return { success: true };
 }

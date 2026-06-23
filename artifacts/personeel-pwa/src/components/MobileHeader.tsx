@@ -7,12 +7,9 @@ import {
   Bell,
   CheckCheck,
   ChevronDown,
-  Loader2,
   LogOut,
-  MailOpen,
   MessageSquare,
   Settings,
-  Smartphone,
   Trash2,
   UserCircle,
 } from "lucide-react";
@@ -25,20 +22,7 @@ import {
   markNotificationRead,
   type NotificationSummary,
 } from "@/actions/notifications";
-import {
-  saveMyNativePushToken,
-  saveMyPushSubscription,
-} from "@/actions/push";
 import type { TicketSummary } from "@/actions/messages";
-import {
-  ensureBrowserPushSubscription,
-  getLocalPushState,
-} from "@/lib/browser-push";
-import { isNativeCapacitorRuntime } from "@/lib/capacitor";
-import {
-  ensureNativePushRegistration,
-  getLocalNativePushState,
-} from "@/lib/native-push";
 
 export function VeeleLogo() {
   return (
@@ -87,126 +71,15 @@ export function MobileHeaderActions({
     null,
   );
   const [isPending, startTransition] = useTransition();
-  const [isRegisteringPush, startPushRegistration] = useTransition();
-  const [hasPushSubscription, setHasPushSubscription] = useState(false);
-  const [pushStatus, setPushStatus] = useState<{
-    type: "success" | "error";
-    text: string;
-  } | null>(null);
 
   useEffect(() => {
     setOpenMenu(null);
   }, [pathname]);
 
-  useEffect(() => {
-    if (openMenu !== "notifications") return;
-
-    let cancelled = false;
-    const nativeMode = isNativeCapacitorRuntime();
-
-    if (nativeMode) {
-      getLocalNativePushState()
-        .then(async (state) => {
-          if (cancelled) return;
-
-          if (!state.supported || !state.token) {
-            setHasPushSubscription(false);
-            return;
-          }
-
-          const result = await saveMyNativePushToken({
-            token: state.token,
-            platform: state.platform,
-            appId: "nl.veeleservices.personeel",
-            userAgent: navigator.userAgent,
-          });
-          if (!cancelled) {
-            setHasPushSubscription(result.success);
-          }
-        })
-        .catch(() => {
-          if (!cancelled) setHasPushSubscription(false);
-        });
-    } else {
-      getLocalPushState()
-        .then((state) => {
-          if (!cancelled) {
-            setHasPushSubscription(state.supported && Boolean(state.subscription));
-          }
-        })
-        .catch(() => {
-          if (!cancelled) setHasPushSubscription(false);
-        });
-    }
-
-    return () => {
-      cancelled = true;
-    };
-  }, [openMenu]);
-
   function runNotificationAction(action: () => Promise<unknown>) {
     startTransition(async () => {
       await action();
       router.refresh();
-    });
-  }
-
-  function registerPush() {
-    setPushStatus(null);
-    startPushRegistration(async () => {
-      try {
-        if (isNativeCapacitorRuntime()) {
-          const registration = await ensureNativePushRegistration();
-          const result = await saveMyNativePushToken({
-            token: registration.token,
-            platform: registration.platform,
-            appId: "nl.veeleservices.personeel",
-            userAgent: navigator.userAgent,
-          });
-
-          if (result.success) {
-            setHasPushSubscription(true);
-            setPushStatus({
-              type: "success",
-              text: "App push is geactiveerd voor dit apparaat.",
-            });
-            return;
-          }
-
-          setPushStatus({ type: "error", text: result.error });
-          return;
-        }
-
-        const subscription = await ensureBrowserPushSubscription();
-        const serialized = subscription.toJSON();
-        const result = await saveMyPushSubscription({
-          endpoint: serialized.endpoint ?? "",
-          keys: {
-            p256dh: serialized.keys?.p256dh,
-            auth: serialized.keys?.auth,
-          },
-          userAgent: navigator.userAgent,
-        });
-
-        if (result.success) {
-          setHasPushSubscription(true);
-          setPushStatus({
-            type: "success",
-            text: "Push is geactiveerd voor deze browser.",
-          });
-          return;
-        }
-
-        setPushStatus({ type: "error", text: result.error });
-      } catch (error) {
-        setPushStatus({
-          type: "error",
-          text:
-            error instanceof Error
-              ? error.message
-              : "Push kon niet worden geactiveerd.",
-        });
-      }
     });
   }
 
@@ -255,44 +128,6 @@ export function MobileHeaderActions({
                 </Link>
               </div>
             </div>
-
-            {!hasPushSubscription || pushStatus ? (
-              <div
-                className="border-b px-3.5 py-2.5"
-                style={{ borderColor: "var(--color-border)" }}
-              >
-                {!hasPushSubscription ? (
-                  <button
-                    type="button"
-                    disabled={isRegisteringPush}
-                    onClick={registerPush}
-                    className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#00B7B3] px-3 py-2.5 text-xs font-black text-white shadow-sm disabled:opacity-60"
-                  >
-                    {isRegisteringPush ? (
-                      <Loader2 size={15} className="animate-spin" />
-                    ) : (
-                      <Smartphone size={15} strokeWidth={2.4} />
-                    )}
-                    Push activeren
-                  </button>
-                ) : null}
-                {pushStatus ? (
-                  <p
-                    className={`mt-2 rounded-xl px-3 py-2 text-xs font-bold ${
-                      pushStatus.type === "success"
-                        ? "bg-emerald-50 text-emerald-700"
-                        : "bg-amber-50 text-amber-800"
-                    }`}
-                  >
-                    {pushStatus.text}
-                  </p>
-                ) : (
-                  <p className="mt-2 text-center text-[11px] font-semibold text-slate-500">
-                    Activeer dit apparaat om meldingen buiten de app te ontvangen.
-                  </p>
-                )}
-              </div>
-            ) : null}
 
             <div className="max-h-72 overflow-y-auto py-1">
               {notificationSummary.recentUnread.length > 0 ? (
@@ -427,22 +262,13 @@ export function MobileHeaderActions({
               Profiel
             </Link>
             <Link
-              href="/beveiliging"
+              href="/instellingen"
               className="flex items-center gap-2.5 px-3.5 py-2.5 font-bold"
               role="menuitem"
               style={{ color: "var(--color-primary)" }}
             >
               <Settings size={17} strokeWidth={2.3} />
-              Beveiliging
-            </Link>
-            <Link
-              href="/meldingen"
-              className="flex items-center gap-2.5 px-3.5 py-2.5 font-bold"
-              role="menuitem"
-              style={{ color: "var(--color-primary)" }}
-            >
-              <MailOpen size={17} strokeWidth={2.3} />
-              Meldingen
+              Instellingen
             </Link>
             <div className="my-1 border-t" style={{ borderColor: "var(--color-border)" }} />
             <form action={signOut}>

@@ -364,6 +364,7 @@ export function NotificationSettingsForm({
           text: "App push is uitgezet op dit apparaat.",
           endpoint: null,
         });
+        setEnabled((current) => ({ ...current, push: false }));
         setPushStatus({
           type: "success",
           text: "App push is uitgezet op dit apparaat.",
@@ -385,6 +386,7 @@ export function NotificationSettingsForm({
         text: "Push is uitgezet op dit apparaat.",
         endpoint: null,
       });
+      setEnabled((current) => ({ ...current, push: false }));
       setPushStatus({
         type: "success",
         text: "Push is uitgezet op dit apparaat.",
@@ -392,33 +394,21 @@ export function NotificationSettingsForm({
     });
   }
 
-  function renderPushDeviceBadge() {
+  function renderPushStatusClass() {
     if (pushDevice.status === "active") {
-      return "Actief";
-    }
-    if (pushDevice.status === "checking") {
-      return "Controleren";
-    }
-    if (pushDevice.status === "denied") {
-      return "Geblokkeerd";
-    }
-    return "Niet actief";
-  }
-
-  function renderPushDeviceBadgeClass() {
-    if (pushDevice.status === "active") {
-      return "bg-emerald-50 text-emerald-700";
+      return "text-emerald-700";
     }
     if (pushDevice.status === "denied" || pushDevice.status === "error") {
-      return "bg-red-50 text-red-600";
+      return "text-red-600";
     }
-    return "bg-slate-100 text-slate-600";
+    return "text-slate-500";
   }
 
   return (
     <form action={formAction} className="space-y-3">
       {OPTIONS.map(({ name, label, description, Icon }) => {
         const active = enabled[name];
+        const isPushOption = name === "push";
         return (
           <label
             key={name}
@@ -429,12 +419,20 @@ export function NotificationSettingsForm({
               type="checkbox"
               name={name}
               checked={active}
-              onChange={(event) =>
+              disabled={isPushOption && isPushBusy}
+              onChange={(event) => {
+                const checked = event.target.checked;
+                if (isPushOption) {
+                  if (checked) registerPush();
+                  else disablePush();
+                  return;
+                }
+
                 setEnabled((current) => ({
                   ...current,
-                  [name]: event.target.checked,
-                }))
-              }
+                  [name]: checked,
+                }));
+              }}
               className="sr-only"
             />
             <span
@@ -453,6 +451,14 @@ export function NotificationSettingsForm({
               <span className="block text-xs font-semibold text-slate-500">
                 {description}
               </span>
+              {isPushOption ? (
+                <span
+                  className={`mt-1 block text-[11px] font-black ${renderPushStatusClass()}`}
+                >
+                  {isNativeApp ? "App push / FCM" : "Browser push"} -{" "}
+                  {pushDevice.text}
+                </span>
+              ) : null}
             </span>
             <span
               className="relative h-8 w-14 shrink-0 rounded-full transition-colors"
@@ -460,6 +466,11 @@ export function NotificationSettingsForm({
                 backgroundColor: active ? "#00B7B3" : "#CBD5E1",
               }}
             >
+              {isPushOption && isPushBusy ? (
+                <span className="absolute inset-0 flex items-center justify-center">
+                  <Loader2 size={16} className="animate-spin text-white" />
+                </span>
+              ) : null}
               <span
                 className="absolute top-1 h-6 w-6 rounded-full bg-white shadow transition-transform"
                 style={{
@@ -495,68 +506,6 @@ export function NotificationSettingsForm({
         )}
         Meldingen opslaan
       </button>
-
-      <section
-        className="rounded-[24px] border bg-white p-4 shadow-sm"
-        style={{ borderColor: "#D8E8F3" }}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#E8FBFA] text-[#009E9A]">
-              <Smartphone size={20} strokeWidth={2.4} />
-            </span>
-            <div>
-              <h3 className="text-sm font-black text-[#081D3A]">
-                {isNativeApp ? "App push" : "Browser push"}
-              </h3>
-              <p className="mt-1 text-xs font-semibold text-slate-500">
-                {pushDevice.text}
-              </p>
-            </div>
-          </div>
-          <span
-            className={`shrink-0 rounded-full px-3 py-1 text-[11px] font-black ${renderPushDeviceBadgeClass()}`}
-          >
-            {renderPushDeviceBadge()}
-          </span>
-        </div>
-
-        <div className="mt-3 grid gap-2">
-          <button
-            type="button"
-            disabled={isPushBusy || pushDevice.status === "unsupported"}
-            onClick={
-              pushDevice.status === "active" ? () => refreshPushStatus() : registerPush
-            }
-            className="flex w-full items-center justify-center gap-2 rounded-2xl border bg-white px-4 py-3 text-sm font-black text-[#081D3A] shadow-sm disabled:opacity-60"
-            style={{ borderColor: "#BDEDEA" }}
-          >
-            {isPushBusy ? (
-              <Loader2 size={18} className="animate-spin" />
-            ) : (
-              <Smartphone size={18} strokeWidth={2.4} />
-            )}
-            {pushDevice.status === "active"
-              ? "Status opnieuw controleren"
-              : pushDevice.status === "unsupported"
-                ? "Niet beschikbaar op dit apparaat"
-                : isNativeApp
-                  ? "App push activeren"
-                  : "Browser push activeren"}
-          </button>
-
-          {pushDevice.status === "active" ? (
-            <button
-              type="button"
-              disabled={isPushBusy}
-              onClick={disablePush}
-              className="flex w-full items-center justify-center gap-2 rounded-2xl border border-red-100 bg-red-50 px-4 py-3 text-sm font-black text-red-600 shadow-sm disabled:opacity-60"
-            >
-              Push op dit apparaat uitzetten
-            </button>
-          ) : null}
-        </div>
-      </section>
 
       {pushStatus ? (
         <p

@@ -1,31 +1,25 @@
 import Link from "next/link";
 import {
-  BellRing,
   CalendarCheck,
   ChevronRight,
-  Bug,
   FileText,
   FolderOpen,
-  KeyRound,
   LogOut,
   MessageSquare,
   Plane,
-  UserCircle,
+  Settings,
 } from "lucide-react";
 import { signOut } from "@/actions/auth";
 
 export const dynamic = "force-dynamic";
 
 const MORE_LINKS = [
-  { href: "/profiel", label: "Profiel", description: "Persoonsgegevens en profielfoto", Icon: UserCircle },
-  { href: "/beveiliging", label: "Beveiliging", description: "Wachtwoord en 2FA", Icon: KeyRound },
-  { href: "/meldingen", label: "Meldingen", description: "E-mail en pushvoorkeuren", Icon: BellRing },
+  { href: "/instellingen", label: "Instellingen", description: "Profiel, beveiliging en meldingen", Icon: Settings },
   { href: "/berichten", label: "Berichten", description: "Tickets met afdelingen", Icon: MessageSquare },
   { href: "/beschikbaarheid", label: "Beschikbaarheid", description: "Beschikbare dagen beheren", Icon: CalendarCheck },
   { href: "/verlof", label: "Verlof", description: "Verlofaanvragen bekijken en indienen", Icon: Plane },
   { href: "/documenten", label: "Documenten", description: "Bestanden en formulieren", Icon: FolderOpen },
   { href: "/openstaand", label: "Open diensten", description: "Beschikbare werkbonnen", Icon: FileText },
-  { href: "/debug/native", label: "Native diagnose", description: "Capacitor en pushstatus controleren", Icon: Bug },
 ];
 
 export default function MeerPage() {

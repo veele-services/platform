@@ -225,10 +225,11 @@ async function getObjectScope(objectId: string): Promise<{
 // ─── Subquery: next scheduled service date for an object ──────────────────────
 
 const nextServiceSql = sql<string | null>`(
-  SELECT TO_CHAR(a.scheduled_date, 'YYYY-MM-DD')
+  SELECT a.scheduled_date
   FROM assignments a
   WHERE a.object_id = ${objectsTable.id}
-    AND a.scheduled_date >= CURRENT_DATE
+    AND a.tenant_id = ${objectsTable.tenantId}
+    AND a.scheduled_date >= TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD')
     AND a.status IN ('scheduled', 'plannable', 'approved', 'seen')
   ORDER BY a.scheduled_date ASC
   LIMIT 1
@@ -767,6 +768,7 @@ export async function listObjectsForCustomer(customerId: string): Promise<Object
 
 export async function listCustomerOptions(): Promise<CustomerOption[]> {
   await requirePermission("objects", "read");
+  const tenantId = await requireCurrentTenantId();
 
   return db
     .select({
@@ -775,7 +777,7 @@ export async function listCustomerOptions(): Promise<CustomerOption[]> {
       code: customersTable.code,
     })
     .from(customersTable)
-    .where(eq(customersTable.isActive, true))
+    .where(and(eq(customersTable.tenantId, tenantId), eq(customersTable.isActive, true)))
     .orderBy(asc(customersTable.name));
 }
 
