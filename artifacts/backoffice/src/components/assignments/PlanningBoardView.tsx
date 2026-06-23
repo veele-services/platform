@@ -4,6 +4,7 @@ import { useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
+  Activity,
   AlertTriangle,
   CalendarDays,
   CheckCircle2,
@@ -11,10 +12,12 @@ import {
   ChevronRight,
   Clock,
   GripVertical,
+  Layers3,
   Loader2,
   MapPin,
   Search,
   SlidersHorizontal,
+  Sparkles,
   Users,
   X,
 } from "lucide-react";
@@ -50,8 +53,8 @@ import {
 const DAY_START_MIN = 7 * 60;
 const DAY_END_MIN = 20 * 60;
 const DAY_SPAN = DAY_END_MIN - DAY_START_MIN;
-const PERSONNEL_COL_WIDTH = 210;
-const TIMELINE_WIDTH = 1180;
+const PERSONNEL_COL_WIDTH = 238;
+const TIMELINE_WIDTH = 1240;
 const BOARD_WIDTH = PERSONNEL_COL_WIDTH + TIMELINE_WIDTH;
 
 const NL_MONTHS = [
@@ -288,6 +291,14 @@ function sectorBadgeStyle(sectorName: string | null | undefined): {
   return { background: "#F8FAFC", color: "#475569", borderColor: "#E2E8F0" };
 }
 
+function sectorShortLabel(sectorName: string | null | undefined): string {
+  const normalized = (sectorName ?? "").toLowerCase();
+  if (normalized.includes("schoonmaak")) return "SCH";
+  if (normalized.includes("beveilig")) return "BEV";
+  if (normalized.includes("facilit")) return "FAC";
+  return "ALG";
+}
+
 function availabilityConfig(status: string): {
   label: string;
   bg: string;
@@ -346,6 +357,21 @@ function selectedAssignmentRank(
   if (match?.level === "warning") return 2;
   if (match?.level === "blocked") return 3;
   return 4;
+}
+
+function capacityTone(stats: { match: number; warning: number; blocked: number }): {
+  label: string;
+  bg: string;
+  text: string;
+  border: string;
+} {
+  if (stats.match > 0) {
+    return { label: "Ruim planbaar", bg: "#ECFDF5", text: "#047857", border: "#A7F3D0" };
+  }
+  if (stats.warning > 0) {
+    return { label: "Controle nodig", bg: "#FFFBEB", text: "#B45309", border: "#FCD34D" };
+  }
+  return { label: "Geen match", bg: "#FEF2F2", text: "#B91C1C", border: "#FECACA" };
 }
 
 function FilterSelect({
@@ -444,6 +470,48 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
   );
   const today = todayDateKey();
   const isToday = data.date === today;
+  const availablePersonnelCount = data.personnel.filter(
+    (person) => person.availabilityStatus === "beschikbaar",
+  ).length;
+  const allMatches = Object.values(data.matchesByAssignmentId).flat();
+  const dailyMatchStats = matchStats(allMatches);
+  const activeMatchStats = activeAssignment
+    ? matchStats(data.matchesByAssignmentId[activeAssignment.id])
+    : null;
+  const activeCapacityTone = activeMatchStats ? capacityTone(activeMatchStats) : null;
+  const activeTopMatches = activeAssignment
+    ? [...(data.matchesByAssignmentId[activeAssignment.id] ?? [])]
+        .filter((match) => match.level === "match")
+        .sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0))
+        .slice(0, 3)
+    : [];
+  const topMatchScore = activeTopMatches[0]?.matchScore ?? null;
+  const planningPulseCards = [
+    {
+      label: "Open plaatsen",
+      value: openSlotCount,
+      hint: `${data.openAssignments.length} werkbon${data.openAssignments.length === 1 ? "" : "nen"}`,
+      tone: "#0EA5E9",
+    },
+    {
+      label: "Ingepland",
+      value: data.scheduledAssignments.length,
+      hint: `${availablePersonnelCount}/${data.personnel.length} medewerkers beschikbaar`,
+      tone: "#00B7B3",
+    },
+    {
+      label: "Topmatches",
+      value: activeAssignment ? activeMatchStats?.match ?? 0 : dailyMatchStats.match,
+      hint: activeAssignment ? "voor geselecteerde werkbon" : "over open werkbonnen",
+      tone: "#22C55E",
+    },
+    {
+      label: "Conflicten",
+      value: conflictCount,
+      hint: conflictCount > 0 ? "actie nodig" : "geen blokkades",
+      tone: conflictCount > 0 ? "#F97316" : "#64748B",
+    },
+  ];
 
   function updateQuery(updates: Record<string, string | null>) {
     const params = new URLSearchParams(searchParams.toString());
@@ -629,56 +697,80 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
   return (
     <TooltipProvider delayDuration={180}>
       <div className="space-y-4">
-        <section className="rounded-lg border bg-white shadow-sm" style={{ borderColor: "#E2E8F0" }}>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3" style={{ borderColor: "#E2E8F0" }}>
-            <div className="flex min-w-0 items-center gap-3">
-              <div
-                className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg"
-                style={isToday ? { background: "#00B7B3", color: "#fff" } : { background: "#F1F5F9", color: "#081D3A" }}
-              >
-                <CalendarDays className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <h2 className="font-heading text-lg font-semibold capitalize" style={{ color: "#081D3A" }}>
-                  {formatBoardDate(data.date)}
-                </h2>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs" style={{ color: "#64748B" }}>
-                  <span>{openSlotCount} open plaats{openSlotCount === 1 ? "" : "en"}</span>
-                  <span>{data.scheduledAssignments.length} ingepland</span>
-                  <span>{data.personnel.length} medewerkers</span>
-                  {conflictCount > 0 && (
-                    <span className="inline-flex items-center gap-1" style={{ color: "#B45309" }}>
-                      <AlertTriangle className="h-3.5 w-3.5" />
-                      {conflictCount} conflict{conflictCount > 1 ? "en" : ""}
-                    </span>
-                  )}
+        <section className="overflow-hidden rounded-xl border bg-white shadow-sm" style={{ borderColor: "#DDE7F0" }}>
+          <div className="relative border-b px-4 py-4" style={{ borderColor: "#E2E8F0", background: "linear-gradient(135deg, #F8FBFF 0%, #FFFFFF 58%, #EFFFFD 100%)" }}>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="flex min-w-0 items-start gap-3">
+                <div
+                  className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl shadow-sm"
+                  style={isToday ? { background: "#00B7B3", color: "#fff" } : { background: "#081D3A", color: "#fff" }}
+                >
+                  <CalendarDays className="h-5 w-5" />
                 </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="font-heading text-xl font-semibold capitalize tracking-tight" style={{ color: "#081D3A" }}>
+                      {formatBoardDate(data.date)}
+                    </h2>
+                    {activeCapacityTone && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold"
+                        style={{ background: activeCapacityTone.bg, borderColor: activeCapacityTone.border, color: activeCapacityTone.text }}
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        {activeCapacityTone.label}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 max-w-2xl text-sm" style={{ color: "#64748B" }}>
+                    Sleep werkbonnen naar medewerkers, gebruik matchscores als voorstel en behoud zelf de planningcontrole.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => updateQuery({ date: addDaysLocal(data.date, -1) })}>
+                  <ChevronLeft className="h-4 w-4" />
+                  Vorige
+                </Button>
+                <Button variant={isToday ? "default" : "outline"} size="sm" onClick={() => updateQuery({ date: today })}>
+                  Vandaag
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => updateQuery({ date: addDaysLocal(data.date, 1) })}>
+                  Volgende
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/planning?day=${data.date}`}>Dag</Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/planning?month=${data.date.slice(0, 7)}`}>Maand</Link>
+                </Button>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => updateQuery({ date: addDaysLocal(data.date, -1) })}>
-                <ChevronLeft className="h-4 w-4" />
-                Vorige
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => updateQuery({ date: today })}>
-                Vandaag
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => updateQuery({ date: addDaysLocal(data.date, 1) })}>
-                Volgende
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/planning?day=${data.date}`}>Dag</Link>
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/planning?month=${data.date.slice(0, 7)}`}>Maand</Link>
-              </Button>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              {planningPulseCards.map((card) => (
+                <div key={card.label} className="rounded-lg border bg-white/85 px-3 py-2.5 shadow-sm" style={{ borderColor: "#E2E8F0" }}>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#64748B" }}>
+                      {card.label}
+                    </p>
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: card.tone }} />
+                  </div>
+                  <p className="mt-1 text-2xl font-semibold leading-none" style={{ color: "#081D3A" }}>
+                    {card.value}
+                  </p>
+                  <p className="mt-1 truncate text-xs" style={{ color: "#64748B" }}>
+                    {card.hint}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 px-4 py-3">
-            <form onSubmit={submitSearch} className="flex min-w-[260px] flex-1 items-center gap-2">
+            <form onSubmit={submitSearch} className="flex min-w-[280px] flex-1 items-center gap-2">
               <label className="relative min-w-0 flex-1">
                 <span className="sr-only">Werkbonnen zoeken</span>
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "#94A3B8" }} />
@@ -686,18 +778,28 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                   type="search"
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
-                  className="pl-9"
-                  placeholder="Werkbon, klant of object"
+                  className="h-10 rounded-lg pl-9"
+                  placeholder="Zoek werkbon, klant, object of regio"
                 />
               </label>
-              <Button type="submit" size="sm" variant="outline" aria-label="Zoeken">
+              <Button type="submit" size="sm" variant="outline" aria-label="Zoeken" className="h-10">
                 <Search className="h-4 w-4" />
               </Button>
             </form>
 
+            {activeAssignment && (
+              <div className="hidden min-w-0 flex-1 items-center gap-2 rounded-lg border px-3 py-2 text-xs xl:flex" style={{ borderColor: "#BFDBFE", background: "#EFF6FF", color: "#1D4ED8" }}>
+                <Sparkles className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">
+                  Beste kandidaten staan bovenaan voor <strong>{activeAssignment.code}</strong>
+                  {topMatchScore !== null ? ` - hoogste match ${topMatchScore}%` : ""}
+                </span>
+              </div>
+            )}
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button type="button" variant="outline" size="sm">
+                <Button type="button" variant="outline" size="sm" className="h-10">
                   <SlidersHorizontal className="h-4 w-4" />
                   Filters
                 </Button>
@@ -773,19 +875,20 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
           </div>
         </section>
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(260px,15%)]">
-          <section className="order-2 rounded-lg border bg-white shadow-sm xl:order-2" style={{ borderColor: "#E2E8F0" }}>
-            <div className="flex items-center justify-between gap-3 border-b px-4 py-3" style={{ borderColor: "#E2E8F0" }}>
+        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(280px,15%)]">
+          <section className="order-2 overflow-hidden rounded-xl border bg-white shadow-sm xl:order-2" style={{ borderColor: "#DDE7F0" }}>
+            <div className="flex items-center justify-between gap-3 border-b px-4 py-3" style={{ borderColor: "#E2E8F0", background: "#FBFDFF" }}>
               <div>
-                <h3 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
-                  Open werkbonnen
+                <h3 className="flex items-center gap-2 font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
+                  <Layers3 className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                  Werkbon-wachtrij
                 </h3>
                 <p className="mt-0.5 text-xs" style={{ color: "#64748B" }}>
-                  {openSlotCount} plaats{openSlotCount === 1 ? "" : "en"} te plaatsen
+                  Selecteer of sleep naar een medewerker
                 </p>
               </div>
-              <span className="rounded-full px-2 py-1 text-xs font-semibold" style={{ background: "#F1F5F9", color: "#64748B" }}>
-                {data.openAssignments.length}
+              <span className="rounded-full px-2.5 py-1 text-xs font-semibold" style={{ background: "#ECFDF5", color: "#047857" }}>
+                {openSlotCount} open
               </span>
             </div>
 
@@ -797,7 +900,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                 </p>
               </div>
             ) : (
-              <div className="max-h-[calc(100vh-260px)] min-h-[420px] space-y-3 overflow-y-auto p-3">
+              <div className="max-h-[calc(100vh-300px)] min-h-[520px] space-y-3 overflow-y-auto p-3">
                 {data.openAssignments.map((assignment) => {
                   const selected = selectedAssignmentId === assignment.id;
                   const stats = matchStats(data.matchesByAssignmentId[assignment.id]);
@@ -806,6 +909,8 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                   const scheduleLabel = formatShortDate(scheduleDate);
                   const timeLabel = workOrderTimeLabel(assignment);
                   const title = displayWorkOrderTitle(assignment.title);
+                  const sectorStyle = sectorBadgeStyle(assignment.sectorName);
+                  const sectorShort = sectorShortLabel(assignment.sectorName);
 
                   return (
                     <article
@@ -814,22 +919,31 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                       onDragStart={(e) => handleDragStart(e, assignment)}
                       onDragEnd={handleDragEnd}
                       onClick={() => setSelectedAssignmentId(selected ? null : assignment.id)}
-                      className="group rounded-lg border bg-white p-2 shadow-sm transition"
+                      className="group relative overflow-hidden rounded-xl border bg-white p-2.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                       style={{
                         borderColor: selected ? "#00B7B3" : "#E2E8F0",
                         boxShadow: selected ? "0 0 0 3px rgba(0,183,179,0.12)" : undefined,
                         cursor: canWrite ? "grab" : "default",
                       }}
                     >
-                      <div className="flex items-start gap-1.5">
+                      <div
+                        className="absolute bottom-0 left-0 top-0 w-1"
+                        style={{ background: sectorStyle.borderColor }}
+                      />
+                      <div className="flex items-start gap-2 pl-1">
                         {canWrite && (
                           <GripVertical className="mt-1 h-3.5 w-3.5 flex-shrink-0" style={{ color: "#CBD5E1" }} />
                         )}
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-1.5">
-                            <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] leading-none" style={{ color: "#475569" }}>
-                              {assignment.code}
-                            </span>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                              <span className="rounded-md border px-1.5 py-0.5 font-mono text-[10px] font-semibold leading-none" style={{ background: sectorStyle.background, borderColor: sectorStyle.borderColor, color: sectorStyle.color }}>
+                                {sectorShort}
+                              </span>
+                              <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] leading-none" style={{ color: "#475569" }}>
+                                {assignment.code}
+                              </span>
+                            </div>
                             <div className="flex flex-wrap justify-end gap-1 [&>span]:px-1.5 [&>span]:text-[10px] [&>span]:leading-none">
                               <AssignmentPriorityBadge priority={assignment.priority} />
                               <AssignmentStatusBadge status={assignment.status} />
@@ -837,7 +951,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                           </div>
                           <Link
                             href={`/assignments/${assignment.id}`}
-                            className="mt-1.5 block text-[12px] font-semibold leading-snug hover:underline"
+                            className="mt-2 block text-[13px] font-semibold leading-snug hover:underline"
                             style={{ color: "#081D3A" }}
                             onClick={(e) => e.stopPropagation()}
                           >
@@ -855,7 +969,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                         </div>
                       </div>
 
-                      <div className="mt-2 rounded-md border px-2 py-1.5" style={{ borderColor: "#E2E8F0", background: "#F8FAFC" }}>
+                      <div className="mt-2 rounded-lg border px-2 py-1.5" style={{ borderColor: "#E2E8F0", background: "#F8FAFC" }}>
                         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2 text-[11px] font-medium" style={{ color: "#334155" }}>
                           <span className="inline-flex min-w-0 items-center gap-1 truncate">
                             <CalendarDays className="h-3 w-3 flex-shrink-0" style={{ color: "#64748B" }} />
@@ -931,21 +1045,25 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
             )}
           </section>
 
-          <section className="order-1 rounded-lg border bg-white shadow-sm xl:order-1" style={{ borderColor: "#E2E8F0" }}>
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3" style={{ borderColor: "#E2E8F0" }}>
+          <section className="order-1 overflow-hidden rounded-xl border bg-white shadow-sm xl:order-1" style={{ borderColor: "#DDE7F0" }}>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3" style={{ borderColor: "#E2E8F0", background: "#FBFDFF" }}>
               <div className="min-w-0 text-xs" style={{ color: "#64748B" }}>
                 {activeAssignment ? (
-                  <span className="inline-flex max-w-[520px] items-center gap-1 truncate rounded border px-2 py-1" style={{ borderColor: "#BFDBFE", background: "#EFF6FF", color: "#1D4ED8" }}>
-                    Geselecteerd:
-                    <span className="truncate font-medium">{activeAssignment.title}</span>
+                  <span className="inline-flex max-w-[620px] items-center gap-2 truncate rounded-lg border px-2.5 py-1.5" style={{ borderColor: "#BFDBFE", background: "#EFF6FF", color: "#1D4ED8" }}>
+                    <Sparkles className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span className="font-semibold">{activeAssignment.code}</span>
+                    <span className="truncate">{displayWorkOrderTitle(activeAssignment.title)}</span>
                     {activeAssignment.sectorName && (
                       <span className="ml-1 rounded border px-1.5 py-0.5 text-[10px]" style={sectorBadgeStyle(activeAssignment.sectorName)}>
-                        {activeAssignment.sectorName}
+                        {sectorShortLabel(activeAssignment.sectorName)}
                       </span>
                     )}
                   </span>
                 ) : (
-                  <span>{data.personnel.length} medewerkers zichtbaar</span>
+                  <span className="inline-flex items-center gap-2 font-medium" style={{ color: "#081D3A" }}>
+                    <Activity className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                    Planbord met {data.personnel.length} medewerkers zichtbaar
+                  </span>
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-2">
