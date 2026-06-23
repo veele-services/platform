@@ -1,8 +1,13 @@
+import { redirect } from "next/navigation";
 import { NativeDebugPanel } from "./NativeDebugPanel";
 
 export const dynamic = "force-dynamic";
 
 export default function NativeDebugPage() {
+  if (process.env.NEXT_PUBLIC_ENABLE_NATIVE_DEBUG !== "true") {
+    redirect("/instellingen/meldingen");
+  }
+
   return (
     <div className="min-h-[calc(100vh-4.2rem)] bg-[#061F44] md:bg-transparent">
       <section className="px-4 pb-6 pt-4 md:rounded-3xl md:px-6">

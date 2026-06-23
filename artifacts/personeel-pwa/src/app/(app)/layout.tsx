@@ -31,7 +31,7 @@ export default async function AppLayout({
             notificationSummary={notificationSummary}
             ticketSummary={ticketSummary}
           />
-          <NativePushTokenSync />
+          <NativePushTokenSync enabled={personnel?.notificationPushEnabled ?? false} />
 
           <main className="flex-1 pb-[calc(5.2rem+var(--safe-bottom))] md:pb-0">
             <div className="mx-auto w-full max-w-4xl px-0 md:px-6 md:py-6">

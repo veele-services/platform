@@ -58,6 +58,13 @@ const PERSONNEL_SELECT =
   ].join(", ");
 
 type ActionResult = { success: boolean; error?: string };
+export type NotificationSettingsValues = {
+  email: boolean;
+  push: boolean;
+  planning: boolean;
+  news: boolean;
+  hours: boolean;
+};
 
 function normalizeText(value: FormDataEntryValue | null, maxLength: number) {
   const text = String(value ?? "").trim();
@@ -320,26 +327,22 @@ export async function uploadMyAvatar(
   return { success: true };
 }
 
-export async function updateMyNotificationSettings(
-  _prev: ActionResult | undefined,
-  formData: FormData,
+async function persistMyNotificationSettings(
+  userId: string,
+  values: NotificationSettingsValues,
 ): Promise<ActionResult> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Niet ingelogd" };
-
   const [updated] = await db
     .update(personnelTable)
     .set({
-      notificationEmailEnabled: formData.has("email"),
-      notificationPushEnabled: formData.has("push"),
-      notificationPlanningEnabled: formData.has("planning"),
-      notificationNewsEnabled: formData.has("news"),
-      notificationHoursEnabled: formData.has("hours"),
+      notificationEmailEnabled: values.email,
+      notificationPushEnabled: values.push,
+      notificationPlanningEnabled: values.planning,
+      notificationNewsEnabled: values.news,
+      notificationHoursEnabled: values.hours,
       profileUpdatedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
+    .where(and(eq(personnelTable.userId, userId), eq(personnelTable.isActive, true)))
     .returning({ id: personnelTable.id });
 
   if (!updated) {
@@ -350,4 +353,31 @@ export async function updateMyNotificationSettings(
   revalidatePath("/instellingen/meldingen");
   revalidatePath("/profiel");
   return { success: true };
+}
+
+export async function updateMyNotificationSettingsDirect(
+  values: NotificationSettingsValues,
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Niet ingelogd" };
+
+  return persistMyNotificationSettings(user.id, values);
+}
+
+export async function updateMyNotificationSettings(
+  _prev: ActionResult | undefined,
+  formData: FormData,
+): Promise<ActionResult> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, error: "Niet ingelogd" };
+
+  return persistMyNotificationSettings(user.id, {
+    email: formData.has("email"),
+    push: formData.has("push"),
+    planning: formData.has("planning"),
+    news: formData.has("news"),
+    hours: formData.has("hours"),
+  });
 }

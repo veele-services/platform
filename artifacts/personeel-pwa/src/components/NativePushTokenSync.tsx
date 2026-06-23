@@ -5,9 +5,9 @@ import { saveMyNativePushToken } from "@/actions/push";
 import { isNativeCapacitorRuntime } from "@/lib/capacitor";
 import { getLocalNativePushState } from "@/lib/native-push";
 
-export function NativePushTokenSync() {
+export function NativePushTokenSync({ enabled }: { enabled: boolean }) {
   useEffect(() => {
-    if (!isNativeCapacitorRuntime()) return;
+    if (!enabled || !isNativeCapacitorRuntime()) return;
 
     let cancelled = false;
 
@@ -27,7 +27,7 @@ export function NativePushTokenSync() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [enabled]);
 
   return null;
 }

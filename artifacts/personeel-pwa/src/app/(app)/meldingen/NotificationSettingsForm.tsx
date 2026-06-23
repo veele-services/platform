@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import {
   updateMyNotificationSettings,
+  updateMyNotificationSettingsDirect,
   type PersonnelProfile,
 } from "@/actions/personnel";
 import {
@@ -109,6 +110,16 @@ export function NotificationSettingsForm({
     hours: profile.notificationHoursEnabled,
   }));
 
+  async function persistPreferences(next: Record<OptionName, boolean>) {
+    return updateMyNotificationSettingsDirect({
+      email: next.email,
+      push: next.push,
+      planning: next.planning,
+      news: next.news,
+      hours: next.hours,
+    });
+  }
+
   useEffect(() => {
     const native = isNativeCapacitorRuntime();
     setIsNativeApp(native);
@@ -168,6 +179,15 @@ export function NotificationSettingsForm({
                 ? "App toestemming staat aan, maar dit apparaat heeft nog geen gekoppelde FCM-token."
                 : "App push is nog niet geactiveerd op dit apparaat.",
             endpoint: null,
+          });
+          return;
+        }
+
+        if (!enabled.push) {
+          setPushDevice({
+            status: "inactive",
+            text: "App push staat uit in je voorkeuren.",
+            endpoint: localState.token,
           });
           return;
         }
@@ -236,6 +256,15 @@ export function NotificationSettingsForm({
         return;
       }
 
+      if (!enabled.push) {
+        setPushDevice({
+          status: "inactive",
+          text: "Browser push staat uit in je voorkeuren.",
+          endpoint: localState.endpoint,
+        });
+        return;
+      }
+
       const serverStatus = await getMyPushSubscriptionStatus(localState.endpoint);
       if (serverStatus.success && serverStatus.active) {
         setPushDevice({
@@ -281,15 +310,19 @@ export function NotificationSettingsForm({
           const result = await saveNativeRegistration(registration);
 
           if (result.success) {
-            setEnabled((current) => ({ ...current, push: true }));
+            const next = { ...enabled, push: true };
+            setEnabled(next);
+            const preferencesResult = await persistPreferences(next);
             setPushDevice({
               status: "active",
               text: "App push is geregistreerd voor dit apparaat.",
               endpoint: registration.token,
             });
             setPushStatus({
-              type: "success",
-              text: "App push is actief op dit apparaat.",
+              type: preferencesResult.success ? "success" : "error",
+              text: preferencesResult.success
+                ? "App push is actief op dit apparaat."
+                : `App push is geregistreerd, maar de voorkeur kon niet worden opgeslagen: ${preferencesResult.error}`,
             });
             return;
           }
@@ -310,15 +343,19 @@ export function NotificationSettingsForm({
         const result = await saveBrowserSubscription(subscription);
 
         if (result.success) {
-          setEnabled((current) => ({ ...current, push: true }));
+          const next = { ...enabled, push: true };
+          setEnabled(next);
+          const preferencesResult = await persistPreferences(next);
           setPushDevice({
             status: "active",
             text: "Browser is geregistreerd voor pushmeldingen.",
             endpoint: subscription.endpoint,
           });
           setPushStatus({
-            type: "success",
-            text: "Push is actief op dit apparaat.",
+            type: preferencesResult.success ? "success" : "error",
+            text: preferencesResult.success
+              ? "Push is actief op dit apparaat."
+              : `Push is geregistreerd, maar de voorkeur kon niet worden opgeslagen: ${preferencesResult.error}`,
           });
           return;
         }
@@ -364,10 +401,14 @@ export function NotificationSettingsForm({
           text: "App push is uitgezet op dit apparaat.",
           endpoint: null,
         });
-        setEnabled((current) => ({ ...current, push: false }));
+        const next = { ...enabled, push: false };
+        setEnabled(next);
+        const preferencesResult = await persistPreferences(next);
         setPushStatus({
-          type: "success",
-          text: "App push is uitgezet op dit apparaat.",
+          type: preferencesResult.success ? "success" : "error",
+          text: preferencesResult.success
+            ? "App push is uitgezet op dit apparaat."
+            : `App push is uitgezet, maar de voorkeur kon niet worden opgeslagen: ${preferencesResult.error}`,
         });
         return;
       }
@@ -386,10 +427,14 @@ export function NotificationSettingsForm({
         text: "Push is uitgezet op dit apparaat.",
         endpoint: null,
       });
-      setEnabled((current) => ({ ...current, push: false }));
+      const next = { ...enabled, push: false };
+      setEnabled(next);
+      const preferencesResult = await persistPreferences(next);
       setPushStatus({
-        type: "success",
-        text: "Push is uitgezet op dit apparaat.",
+        type: preferencesResult.success ? "success" : "error",
+        text: preferencesResult.success
+          ? "Push is uitgezet op dit apparaat."
+          : `Push is uitgezet, maar de voorkeur kon niet worden opgeslagen: ${preferencesResult.error}`,
       });
     });
   }
@@ -455,7 +500,7 @@ export function NotificationSettingsForm({
                 <span
                   className={`mt-1 block text-[11px] font-black ${renderPushStatusClass()}`}
                 >
-                  {isNativeApp ? "App push / FCM" : "Browser push"} -{" "}
+                  {isNativeApp ? "App push" : "Browser push"} -{" "}
                   {pushDevice.text}
                 </span>
               ) : null}
