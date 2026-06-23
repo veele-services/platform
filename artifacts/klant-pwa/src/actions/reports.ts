@@ -11,8 +11,8 @@ export type CustomerReport = {
   assignmentTitle: string;
   submittedAt:     string;
   hoursWorked:     string | null;
-  content:         string;
-  notes:           string | null;
+  /** Customer-visible report body. Internal review notes are never exposed here. */
+  customerVisibleSummary: string;
 };
 
 /**
@@ -31,8 +31,7 @@ export async function getMyReports(): Promise<CustomerReport[]> {
       assignmentTitle: assignmentsTable.title,
       submittedAt:     reportsTable.submittedAt,
       hoursWorked:     reportsTable.hoursWorked,
-      content:         reportsTable.content,
-      notes:           reportsTable.notes,
+      customerVisibleSummary: reportsTable.content,
     })
     .from(reportsTable)
     .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
@@ -51,7 +50,6 @@ export async function getMyReports(): Promise<CustomerReport[]> {
     assignmentTitle: r.assignmentTitle,
     submittedAt:     r.submittedAt.toISOString(),
     hoursWorked:     r.hoursWorked ?? null,
-    content:         r.content,
-    notes:           r.notes ?? null,
+    customerVisibleSummary: r.customerVisibleSummary,
   }));
 }

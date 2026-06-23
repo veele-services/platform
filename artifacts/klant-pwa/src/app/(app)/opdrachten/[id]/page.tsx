@@ -486,7 +486,7 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
                       className="text-sm"
                       style={{ color: "var(--color-primary)" }}
                     >
-                      {task.notes ?? "Werkzaamheid"}
+                      {task.customerDescription}
                     </p>
                   </div>
                 ))}
@@ -554,7 +554,7 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
               className="mb-3 text-sm leading-relaxed"
               style={{ color: "var(--color-primary)", whiteSpace: "pre-wrap" }}
             >
-              {rapport.content}
+              {rapport.customerVisibleSummary}
             </p>
 
             {rapport.hoursWorked && (

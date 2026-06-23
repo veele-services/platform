@@ -101,7 +101,7 @@ export default async function RapportenPage() {
                     className="line-clamp-2 text-sm font-semibold leading-5"
                     style={{ color: "var(--color-secondary)" }}
                   >
-                    {report.content}
+                    {report.customerVisibleSummary}
                   </span>
                 </div>
               ))}

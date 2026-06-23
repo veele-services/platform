@@ -6,6 +6,7 @@ import {
   objectsTable,
   assignmentTasksTable,
   assignmentPhotosTable,
+  taskCodesTable,
   quotesTable,
   invoicesTable,
   insertAssignmentSchema,
@@ -332,7 +333,7 @@ export type CustomerAssignmentDetail = {
   tasks: {
     id:        string;
     sortOrder: number;
-    notes:     string | null;
+    customerDescription: string;
   }[];
   /** Photos that management has explicitly approved for customer visibility. */
   approvedPhotos: ApprovedPhoto[];
@@ -395,11 +396,13 @@ export async function getMyAssignmentDetail(
   const [tasks, photoRows] = await Promise.all([
     db
       .select({
-        id:        assignmentTasksTable.id,
-        sortOrder: assignmentTasksTable.sortOrder,
-        notes:     assignmentTasksTable.notes,
+        id:                  assignmentTasksTable.id,
+        sortOrder:           assignmentTasksTable.sortOrder,
+        taskCode:            taskCodesTable.code,
+        customerDescription: taskCodesTable.name,
       })
       .from(assignmentTasksTable)
+      .leftJoin(taskCodesTable, eq(taskCodesTable.id, assignmentTasksTable.taskCodeId))
       .where(eq(assignmentTasksTable.assignmentId, assignmentId))
       .orderBy(assignmentTasksTable.sortOrder),
     db
@@ -462,9 +465,9 @@ export async function getMyAssignmentDetail(
     objectCity:       row.objectCity       ?? null,
     objectPostalCode: row.objectPostalCode ?? null,
     tasks: tasks.map((t) => ({
-      id:        t.id,
-      sortOrder: t.sortOrder,
-      notes:     t.notes ?? null,
+      id:                  t.id,
+      sortOrder:           t.sortOrder,
+      customerDescription: [t.taskCode, t.customerDescription].filter(Boolean).join(" - ") || "Werkzaamheid",
     })),
     approvedPhotos,
     quote,

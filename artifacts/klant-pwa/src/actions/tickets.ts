@@ -36,6 +36,8 @@ const CUSTOMER_TICKET_PRIORITY_OPTIONS: Array<{
   { value: "urgent", label: "Urgent" },
 ];
 
+const CUSTOMER_VISIBLE_TENANT_AUTHOR = "Veele Services";
+
 export type CustomerTicketListItem = {
   id: string;
   subject: string;
@@ -103,10 +105,11 @@ function mapThread(
 function mapMessage(
   row: typeof customerMessageEntriesTable.$inferSelect,
 ): CustomerTicketMessage {
+  const isCustomerAuthored = row.authorType === "customer";
   return {
     id: row.id,
     authorType: row.authorType,
-    authorName: row.authorName,
+    authorName: isCustomerAuthored ? row.authorName : CUSTOMER_VISIBLE_TENANT_AUTHOR,
     department: row.department,
     body: row.body,
     readByCustomerAt: row.readByCustomerAt?.toISOString() ?? null,
