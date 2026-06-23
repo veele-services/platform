@@ -3,6 +3,7 @@ import {
   BellRing,
   CalendarCheck,
   ChevronRight,
+  Bug,
   FileText,
   FolderOpen,
   KeyRound,
@@ -24,6 +25,7 @@ const MORE_LINKS = [
   { href: "/verlof", label: "Verlof", description: "Verlofaanvragen bekijken en indienen", Icon: Plane },
   { href: "/documenten", label: "Documenten", description: "Bestanden en formulieren", Icon: FolderOpen },
   { href: "/openstaand", label: "Open diensten", description: "Beschikbare werkbonnen", Icon: FileText },
+  { href: "/debug/native", label: "Native diagnose", description: "Capacitor en pushstatus controleren", Icon: Bug },
 ];
 
 export default function MeerPage() {
