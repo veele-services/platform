@@ -24,6 +24,41 @@ import {
 import { listSectors } from "@/app/actions/customers";
 import { listAssignmentsForObject } from "@/app/actions/assignments";
 
+async function safeOptional<T>(
+  label: string,
+  objectId: string,
+  loader: () => Promise<T>,
+  fallback: T,
+): Promise<T> {
+  try {
+    return await loader();
+  } catch (error) {
+    console.error("object detail optional data failed", {
+      label,
+      objectId,
+      error,
+    });
+    return fallback;
+  }
+}
+
+const emptyPerformance: Awaited<ReturnType<typeof getObjectPerformance>> = {
+  totalAssignments: 0,
+  activeAssignments: 0,
+  completedAssignments: 0,
+  notCompletedAssignments: 0,
+  reportsSubmitted: 0,
+  reportsApproved: 0,
+  openTickets: 0,
+  mediaItems: 0,
+  documents: 0,
+  fixedPersonnel: 0,
+  openActions: 0,
+  completionRate: 0,
+  lastServiceDate: null,
+  nextServiceDate: null,
+};
+
 export async function generateMetadata({
   params,
 }: {
@@ -61,19 +96,27 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
     hasPermission("assignments", "read"),
   ]);
 
-  const [obj, contacts, personnel, personnelOptions, assignments, sectors, customers, performance, history] = await Promise.all([
-    getObject(id),
-    listObjectContacts(id),
-    listObjectPersonnel(id),
-    canWrite ? listPersonnelOptions()  : Promise.resolve([]),
-    canReadAssignments ? listAssignmentsForObject(id, 50) : Promise.resolve([]),
-    canWrite ? listSectors()            : Promise.resolve([]),
-    canWrite ? listCustomerOptions()    : Promise.resolve([]),
-    getObjectPerformance(id),
-    listObjectHistory(id),
-  ]);
-
+  const obj = await getObject(id);
   if (!obj) notFound();
+
+  const [contacts, personnel, personnelOptions, assignments, sectors, customers, performance, history] = await Promise.all([
+    safeOptional("contacts", id, () => listObjectContacts(id), []),
+    safeOptional("personnel", id, () => listObjectPersonnel(id), []),
+    canWrite
+      ? safeOptional("personnel-options", id, () => listPersonnelOptions(), [])
+      : Promise.resolve([]),
+    canReadAssignments
+      ? safeOptional("assignments", id, () => listAssignmentsForObject(id, 50), [])
+      : Promise.resolve([]),
+    canWrite
+      ? safeOptional("sectors", id, () => listSectors(), [])
+      : Promise.resolve([]),
+    canWrite
+      ? safeOptional("customers", id, () => listCustomerOptions(), [])
+      : Promise.resolve([]),
+    safeOptional("performance", id, () => getObjectPerformance(id), emptyPerformance),
+    safeOptional("history", id, () => listObjectHistory(id), []),
+  ]);
 
   const counts = {
     contacten: contacts.length,
