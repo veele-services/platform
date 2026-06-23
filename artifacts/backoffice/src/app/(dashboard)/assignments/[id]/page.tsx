@@ -115,6 +115,24 @@ function capacityStyle(status: "green" | "orange" | "red") {
   };
 }
 
+async function safeOptional<T>(
+  label: string,
+  assignmentId: string,
+  loader: () => Promise<T>,
+  fallback: T,
+): Promise<T> {
+  try {
+    return await loader();
+  } catch (error) {
+    console.error("assignment detail optional data failed", {
+      label,
+      assignmentId,
+      error,
+    });
+    return fallback;
+  }
+}
+
 export default async function AssignmentDetailPage({ params }: Props) {
   const canRead = await hasPermission("assignments", "read");
   if (!canRead) return <ForbiddenPage resource="assignments" action="read" />;
@@ -148,7 +166,12 @@ export default async function AssignmentDetailPage({ params }: Props) {
   if (!assignment) notFound();
 
   const assignmentDocuments = canReadDocuments
-    ? await listDocuments({ entityType: "assignment", entityId: id })
+    ? await safeOptional(
+        "documents",
+        id,
+        () => listDocuments({ entityType: "assignment", entityId: id }),
+        [],
+      )
     : [];
 
   const REPORT_STATUSES  = ["completed", "not_completed", "report_submitted", "report_approved", "invoice_ready", "invoiced", "paid", "closed"];
@@ -156,44 +179,72 @@ export default async function AssignmentDetailPage({ params }: Props) {
   const QUOTE_STATUSES_SHOW = ["quote_preparation", "awaiting_approval", "approved", "plannable", "scheduled", "seen", "in_progress", "not_completed", "completed", "report_submitted", "report_approved", "invoice_ready", "invoiced", "paid", "closed"];
 
   const existingReport = canReadReports && REPORT_STATUSES.includes(assignment.status)
-    ? await getReportForAssignment(id)
+    ? await safeOptional("report", id, () => getReportForAssignment(id), null)
     : null;
 
   const [existingInvoice, invoicePrefill] = canReadInvoices
-    ? await Promise.all([
-        INVOICE_STATUSES.includes(assignment.status)
-          ? getInvoiceForAssignment(id)
-          : Promise.resolve(null),
-        assignment.status === "report_approved" && canWriteInvoices
-          ? getAssignmentInvoiceData(id)
-          : Promise.resolve(null),
-      ])
+    ? await safeOptional(
+        "invoice",
+        id,
+        () =>
+          Promise.all([
+            INVOICE_STATUSES.includes(assignment.status)
+              ? getInvoiceForAssignment(id)
+              : Promise.resolve(null),
+            assignment.status === "report_approved" && canWriteInvoices
+              ? getAssignmentInvoiceData(id)
+              : Promise.resolve(null),
+          ]),
+        [null, null] as const,
+      )
     : [null, null];
 
   const [existingQuote, quotePrefill] = canReadQuotes
-    ? await Promise.all([
-        QUOTE_STATUSES_SHOW.includes(assignment.status)
-          ? getQuoteForAssignment(id)
-          : Promise.resolve(null),
-        assignment.status === "review" && canWriteQuotes
-          ? getAssignmentQuoteData(id)
-          : Promise.resolve(null),
-      ])
+    ? await safeOptional(
+        "quote",
+        id,
+        () =>
+          Promise.all([
+            QUOTE_STATUSES_SHOW.includes(assignment.status)
+              ? getQuoteForAssignment(id)
+              : Promise.resolve(null),
+            assignment.status === "review" && canWriteQuotes
+              ? getAssignmentQuoteData(id)
+              : Promise.resolve(null),
+          ]),
+        [null, null] as const,
+      )
     : [null, null];
 
   const [customers, personnelList, taskCodes] = canWrite
-    ? await Promise.all([
-        getCustomerOptions(),
-        getPersonnelEligibilityForAssignment(id),
-        getTaskCodeOptions(),
-      ])
+    ? await safeOptional(
+        "edit-options",
+        id,
+        () =>
+          Promise.all([
+            getCustomerOptions(),
+            getPersonnelEligibilityForAssignment(id),
+            getTaskCodeOptions(),
+          ]),
+        [[], [], []] as const,
+      )
     : [[], [], []];
 
   const planningReadiness = canWrite
-    ? await getAssignmentPlanningReadiness(id)
+    ? await safeOptional(
+        "planning-readiness",
+        id,
+        () => getAssignmentPlanningReadiness(id),
+        null,
+      )
     : null;
   const interestRounds = canWrite
-    ? await listAssignmentInterestRounds(id)
+    ? await safeOptional(
+        "interest-rounds",
+        id,
+        () => listAssignmentInterestRounds(id),
+        [],
+      )
     : [];
 
   // ── Formatted dates ────────────────────────────────────────────────────────
