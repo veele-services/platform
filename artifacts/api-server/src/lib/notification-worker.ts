@@ -289,7 +289,7 @@ async function completeQueueItem(
   const result = await pool.query(
     `
       UPDATE notification_delivery_queue
-      SET status = $3,
+      SET status = $3::varchar,
           locked_at = NULL,
           locked_by = NULL,
           processing_started_at = NULL,
@@ -297,7 +297,7 @@ async function completeQueueItem(
           error_details = $5::jsonb,
           response = $6::jsonb,
           next_attempt_at = COALESCE($7::timestamptz, next_attempt_at),
-          sent_at = CASE WHEN $3 = 'sent' THEN now() ELSE sent_at END,
+          sent_at = CASE WHEN $3::text = 'sent' THEN now() ELSE sent_at END,
           updated_at = now()
       WHERE id = $1
         AND locked_by = $2
@@ -423,6 +423,7 @@ async function getActiveSubscriptions(item: QueueRow): Promise<PushSubscription[
       .where(
         and(
           eq(pushSubscriptionsTable.isActive, true),
+          eq(pushSubscriptionsTable.tenantId, item.tenant_id),
           eq(pushSubscriptionsTable.personnelId, item.personnel_id),
         ),
       );
@@ -435,6 +436,7 @@ async function getActiveSubscriptions(item: QueueRow): Promise<PushSubscription[
       .where(
         and(
           eq(pushSubscriptionsTable.isActive, true),
+          eq(pushSubscriptionsTable.tenantId, item.tenant_id),
           eq(pushSubscriptionsTable.customerId, item.customer_id),
         ),
       );
@@ -451,6 +453,7 @@ async function getActiveNativeTokens(item: QueueRow): Promise<NativePushDeviceTo
       .where(
         and(
           eq(nativePushDeviceTokensTable.isActive, true),
+          eq(nativePushDeviceTokensTable.tenantId, item.tenant_id),
           eq(nativePushDeviceTokensTable.provider, "fcm"),
           eq(nativePushDeviceTokensTable.personnelId, item.personnel_id),
         ),
@@ -464,6 +467,7 @@ async function getActiveNativeTokens(item: QueueRow): Promise<NativePushDeviceTo
       .where(
         and(
           eq(nativePushDeviceTokensTable.isActive, true),
+          eq(nativePushDeviceTokensTable.tenantId, item.tenant_id),
           eq(nativePushDeviceTokensTable.provider, "fcm"),
           eq(nativePushDeviceTokensTable.customerId, item.customer_id),
         ),
