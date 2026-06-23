@@ -78,7 +78,7 @@ function getFcmConfig(): FcmConfig | null {
     projectId,
     clientEmail,
     privateKey: normalizePrivateKey(privateKey),
-    androidChannelId: process.env["FCM_ANDROID_CHANNEL_ID"] || null,
+    androidChannelId: process.env["FCM_ANDROID_CHANNEL_ID"] || "veele_operations",
   };
 }
 
