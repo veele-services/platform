@@ -19,18 +19,6 @@ ALTER TABLE notification_delivery_queue
   ADD COLUMN IF NOT EXISTS rate_limit_key varchar(160),
   ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone DEFAULT now() NOT NULL;
 
-UPDATE notification_delivery_queue
-SET status = 'pending',
-    next_attempt_at = COALESCE(next_attempt_at, created_at, now()),
-    updated_at = now()
-WHERE status = 'queued';
-
-UPDATE notification_delivery_queue
-SET status = 'failed',
-    last_error = COALESCE(last_error, 'Oude skipped status geconverteerd naar failed.'),
-    updated_at = now()
-WHERE status = 'skipped';
-
 DO $$
 BEGIN
   IF EXISTS (
@@ -53,8 +41,30 @@ BEGIN
   ) THEN
     ALTER TABLE notification_delivery_queue
       ADD CONSTRAINT notification_delivery_queue_status_check
-      CHECK (status IN ('pending', 'processing', 'sent', 'failed', 'retry'));
+      CHECK (status IN ('queued', 'pending', 'processing', 'sent', 'failed', 'retry', 'skipped'));
   END IF;
+END $$;
+
+UPDATE notification_delivery_queue
+SET status = 'pending',
+    next_attempt_at = COALESCE(next_attempt_at, created_at, now()),
+    updated_at = now()
+WHERE status = 'queued';
+
+UPDATE notification_delivery_queue
+SET status = 'failed',
+    last_error = COALESCE(last_error, 'Oude skipped status geconverteerd naar failed.'),
+    updated_at = now()
+WHERE status = 'skipped';
+
+DO $$
+BEGIN
+  ALTER TABLE notification_delivery_queue
+    DROP CONSTRAINT IF EXISTS notification_delivery_queue_status_check;
+
+  ALTER TABLE notification_delivery_queue
+    ADD CONSTRAINT notification_delivery_queue_status_check
+    CHECK (status IN ('pending', 'processing', 'sent', 'failed', 'retry'));
 
   IF NOT EXISTS (
     SELECT 1
@@ -136,4 +146,3 @@ BEGIN
 END $$;
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON notification_delivery_attempts TO authenticated;
-
