@@ -54,6 +54,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
+import { triggerNotificationWorker } from "@/lib/notification-worker";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, AssignmentStatus, AssignmentPriority };
@@ -3030,9 +3031,15 @@ export async function assignPersonnel(
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  // Fetch the scheduled date to evaluate availability
+  // Fetch the scheduling context to decide whether this is a planned shift or only a personnel link.
   const [assignment] = await db
-    .select({ scheduledDate: assignmentsTable.scheduledDate })
+    .select({
+      code: assignmentsTable.code,
+      status: assignmentsTable.status,
+      scheduledDate: assignmentsTable.scheduledDate,
+      scheduledStart: assignmentsTable.scheduledStart,
+      scheduledEnd: assignmentsTable.scheduledEnd,
+    })
     .from(assignmentsTable)
     .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
@@ -3061,17 +3068,6 @@ export async function assignPersonnel(
       resourceId: assignmentId,
       metadata: { personnelId },
     });
-
-    await notifyAssignmentWorkflow({
-      eventKey: "assignment_assigned",
-      assignmentId,
-      actorUserId: user.id,
-      audience: "personnel",
-      recipients: { personnelIds: [personnelId] },
-    });
-
-    revalidatePath(`/assignments/${assignmentId}`);
-    revalidatePath("/planning");
 
     // ── Auto-transition plannable → scheduled ─────────────────────────────
     // Count required roles from task codes; transition when all slots are filled.
@@ -3105,6 +3101,7 @@ export async function assignPersonnel(
 
     if (
       assignmentRow?.status === "plannable" &&
+      assignment.scheduledDate &&
       (assignedCount ?? 0) >= (requiredSlots ?? 1)
     ) {
       await db
@@ -3126,6 +3123,36 @@ export async function assignPersonnel(
     }
 
     // ── Availability warning (non-blocking) ───────────────────────────────
+    const isScheduled = Boolean(assignment.scheduledDate);
+
+    await notifyAssignmentWorkflow({
+      eventKey: isScheduled ? "assignment_assigned" : "assignment_personnel_linked",
+      assignmentId,
+      actorUserId: user.id,
+      audience: "personnel",
+      recipients: { personnelIds: [personnelId] },
+      fallback: isScheduled
+        ? {
+            title: `Werkbon ${assignment.code} ingepland`,
+            body: `Je bent ingepland op ${assignment.scheduledDate} van ${assignment.scheduledStart ?? "tijd onbekend"} tot ${assignment.scheduledEnd ?? "tijd onbekend"}.`,
+            pushTitle: `Werkbon ${assignment.code} ingepland`,
+            pushBody: `${assignment.scheduledDate} ${assignment.scheduledStart ?? ""}-${assignment.scheduledEnd ?? ""}. Bekijk je planning.`,
+            priority: assignment.scheduledDate === new Date().toISOString().slice(0, 10) ? "high" : "normal",
+          }
+        : {
+            title: `Werkbon ${assignment.code} gekoppeld`,
+            body: "Je bent gekoppeld aan deze werkbon. Zodra planning datum en tijd vastzet, verschijnt hij in Mijn planning.",
+            pushTitle: `Werkbon ${assignment.code} gekoppeld`,
+            pushBody: "Planning heeft je gekoppeld aan een werkbon. Datum en tijd volgen nog.",
+            priority: "normal",
+          },
+    });
+
+    await triggerNotificationWorker({ channels: ["push"], limit: 25 });
+
+    revalidatePath(`/assignments/${assignmentId}`);
+    revalidatePath("/planning");
+
     let warning: string | undefined;
     const dateStr = assignment?.scheduledDate;
 
@@ -3173,6 +3200,12 @@ export async function assignPersonnel(
             "Let op: medewerker is normaal gesproken niet beschikbaar op deze dag.";
         }
       }
+    }
+
+    if (!dateStr) {
+      warning =
+        warning ??
+        "Medewerker gekoppeld, maar deze werkbon heeft nog geen plandatum. Plan de werkbon via het planbord voordat hij op een dag in de personeelsapp verschijnt.";
     }
 
     return { success: true, warning };

@@ -206,6 +206,9 @@ export default async function OpdrachtenPage({ searchParams }: Props) {
   const selectedAssignments = assignments
     .filter((assignment) => assignment.scheduledDate === selectedDateKey)
     .sort((a, b) => timeValue(a.scheduledStart).localeCompare(timeValue(b.scheduledStart)));
+  const unscheduledAssignments = assignments
+    .filter((assignment) => !assignment.scheduledDate)
+    .sort((a, b) => a.code.localeCompare(b.code));
 
   return (
     <div className="min-h-screen bg-[#F6F8FB] md:rounded-[32px] md:bg-white">
@@ -244,6 +247,26 @@ export default async function OpdrachtenPage({ searchParams }: Props) {
             </p>
           </div>
         )}
+
+        {unscheduledAssignments.length > 0 ? (
+          <div className="space-y-3 pt-1">
+            <div className="px-1">
+              <p className="text-[13px] font-black" style={{ color: "var(--color-primary)" }}>
+                Gekoppeld, nog niet ingepland
+              </p>
+              <p className="mt-0.5 text-[12px] leading-4" style={{ color: "var(--color-secondary)" }}>
+                Deze werkbonnen zijn aan jou gekoppeld, maar hebben nog geen definitieve datum of tijd.
+              </p>
+            </div>
+            {unscheduledAssignments.map((assignment) => (
+              <PlanningCard
+                key={assignment.id}
+                assignment={assignment}
+                selectedDateKey={selectedDateKey}
+              />
+            ))}
+          </div>
+        ) : null}
       </section>
     </div>
   );

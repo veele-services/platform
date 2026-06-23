@@ -42,6 +42,8 @@ import {
   type AvailabilityStatus,
 } from "./availability";
 import type { ActionResult } from "./customers";
+import { emitAssignmentWorkflowEvent } from "@workspace/db/workflow-events";
+import { triggerNotificationWorker } from "@/lib/notification-worker";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1867,6 +1869,34 @@ export async function scheduleAssignmentOnBoard(
 
   revalidatePath("/planning");
   revalidatePath(`/assignments/${assignmentId}`);
+
+  try {
+    await emitAssignmentWorkflowEvent({
+      eventKey: sourcePersonnelId ? "assignment_rescheduled" : "assignment_assigned",
+      assignmentId,
+      actorUserId: user.id,
+      audience: "personnel",
+      recipients: { personnelIds: [personnelId] },
+      fallback: {
+        title: sourcePersonnelId
+          ? `Werkbon ${assignment.code} verplaatst`
+          : `Werkbon ${assignment.code} ingepland`,
+        body: `Je planning is bijgewerkt: ${date} van ${start} tot ${end}.`,
+        pushTitle: sourcePersonnelId
+          ? `Werkbon ${assignment.code} verplaatst`
+          : `Werkbon ${assignment.code} ingepland`,
+        pushBody: `${date} ${start}-${end}. Bekijk je planning.`,
+        priority: date === new Date().toISOString().slice(0, 10) ? "high" : "normal",
+      },
+    });
+    await triggerNotificationWorker({ channels: ["push"], limit: 25 });
+  } catch (error) {
+    console.error("planning assignment notification failed", {
+      assignmentId,
+      personnelId,
+      error,
+    });
+  }
 
   return { success: true, data: { warnings } };
 }

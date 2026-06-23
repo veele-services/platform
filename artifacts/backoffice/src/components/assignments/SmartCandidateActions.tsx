@@ -2,7 +2,7 @@
 
 import { useTransition } from "react";
 import { toast } from "sonner";
-import { CalendarPlus, Loader2, Star, UserCheck } from "lucide-react";
+import { Link2, Loader2, Star, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   assignPersonnel,
@@ -42,7 +42,7 @@ export function SmartCandidateActions({
             ? "Medewerker als reserve gemarkeerd."
             : action === "selected"
               ? "Medewerker geselecteerd."
-              : "Medewerker definitief ingepland.",
+              : "Medewerker gekoppeld.",
         );
       }
     });
@@ -79,8 +79,8 @@ export function SmartCandidateActions({
         disabled={disabled || pending}
         className="h-7 px-2 text-[11px]"
       >
-        <CalendarPlus className="h-3 w-3" />
-        Plan
+        <Link2 className="h-3 w-3" />
+        Koppel
       </Button>
     </div>
   );

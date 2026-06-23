@@ -144,7 +144,18 @@ function assignmentFallback(eventKey: string, code: string): DomainEventFallback
     case "assignment_assigned":
       return {
         title: `Werkbon ${code} ingepland`,
-        body: "Er is een werkbon aan je toegewezen. Bekijk de details in het personeelsportaal.",
+        body: "Je bent ingepland voor deze werkbon. Bekijk de details in Mijn planning.",
+        pushTitle: `Werkbon ${code} ingepland`,
+        pushBody: "Je planning is bijgewerkt. Bekijk de werkbon in de personeelsapp.",
+        category: "planning",
+        href: `/opdrachten`,
+      };
+    case "assignment_personnel_linked":
+      return {
+        title: `Werkbon ${code} gekoppeld`,
+        body: "Je bent gekoppeld aan deze werkbon. Zodra planning datum en tijd vastzet, verschijnt hij in Mijn planning.",
+        pushTitle: `Werkbon ${code} gekoppeld`,
+        pushBody: "Planning heeft je gekoppeld aan een werkbon. Datum en tijd volgen nog.",
         category: "planning",
         href: `/opdrachten`,
       };
