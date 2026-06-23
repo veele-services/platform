@@ -9,6 +9,7 @@ import {
   Euro,
   Clock,
   Receipt,
+  Download,
 } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
@@ -154,6 +155,15 @@ export default async function InvoiceDetailPage({ params }: Props) {
             </p>
             <ProcessStepper kind="invoice" status={invoice.status} className="mt-4" />
           </div>
+          <Link
+            href={`/api/invoices/${invoice.id}/pdf`}
+            target="_blank"
+            className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
+            style={{ borderColor: "#CBD5E1", color: "#081D3A", background: "#FFFFFF" }}
+          >
+            <Download className="h-4 w-4" />
+            Download PDF
+          </Link>
         </div>
       </div>
 

@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Layers3, Loader2, ExternalLink } from "lucide-react";
+import { Layers3, Loader2, ExternalLink, Download } from "lucide-react";
 import { toast } from "sonner";
 import { createCollectiveInvoicePayment } from "@/app/actions/invoices";
 import type { CollectiveInvoiceBatchRow, CollectiveInvoiceCandidate } from "@/app/actions/invoices";
@@ -198,11 +198,16 @@ export function CollectiveInvoicePanel({ candidates, batches, canWrite }: Props)
                   {batch.invoiceCount} facturen · {formatEurCents(batch.amountCents)}
                   {batch.objectName ? ` · ${batch.objectName}` : ""}
                 </p>
-                {batch.checkoutUrl && batch.status === "open" && (
-                  <a href={batch.checkoutUrl} target="_blank" rel="noreferrer" className="mt-2 inline-flex items-center gap-1 text-xs font-semibold" style={{ color: "#00B7B3" }}>
-                    Betaallink openen <ExternalLink className="h-3 w-3" />
+                <div className="mt-2 flex flex-wrap gap-3">
+                  <a href={`/api/invoices/batches/${batch.id}/pdf`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: "#081D3A" }}>
+                    PDF controleren <Download className="h-3 w-3" />
                   </a>
-                )}
+                  {batch.checkoutUrl && batch.status === "open" && (
+                    <a href={batch.checkoutUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: "#00B7B3" }}>
+                      Betaallink openen <ExternalLink className="h-3 w-3" />
+                    </a>
+                  )}
+                </div>
               </div>
             ))}
           </div>

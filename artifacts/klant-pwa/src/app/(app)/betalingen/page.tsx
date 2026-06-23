@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { CheckCircle2, Clock, CreditCard, Receipt, WalletCards, XCircle } from "lucide-react";
+import { CheckCircle2, Clock, CreditCard, Download, Receipt, WalletCards, XCircle } from "lucide-react";
 import { getMyPaymentBatches, getMyPayments } from "@/actions/payments";
 import { PageShell } from "@/components/PageShell";
 import { PaymentActionButton } from "@/components/PaymentActionButton";
@@ -134,13 +134,17 @@ export default async function BetalingenPage() {
                       </Link>
                     ))}
                   </div>
-                  {batch.status === "open" && batch.checkoutUrl ? (
-                    <div className="mt-3">
+                  <div className="mt-3 grid gap-2">
+                    <Link href={`/api/verzamelfactuur/${batch.id}/pdf`} target="_blank" className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-100 px-4 py-3 text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                      <Download size={15} />
+                      Verzamelfactuur downloaden
+                    </Link>
+                    {batch.status === "open" && batch.checkoutUrl ? (
                       <Link href={batch.checkoutUrl} target="_blank" rel="noopener noreferrer" className="inline-flex w-full items-center justify-center rounded-2xl bg-[#E8FBFA] px-4 py-3 text-sm font-black text-[#087C79]">
                         Mollie checkout openen
                       </Link>
-                    </div>
-                  ) : null}
+                    ) : null}
+                  </div>
                 </div>
               );
             }) : (

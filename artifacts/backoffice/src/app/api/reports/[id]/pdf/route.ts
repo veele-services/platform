@@ -1,52 +1,86 @@
 import { NextRequest, NextResponse } from "next/server";
-import { createClient } from "@/lib/supabase/server";
+import PDFDocument from "pdfkit";
+import { and, asc, eq } from "drizzle-orm";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { hasPermission } from "@/lib/auth/permissions";
 import { db } from "@workspace/db";
 import {
-  reportsTable,
+  assignmentPhotosTable,
   assignmentsTable,
   customersTable,
   objectsTable,
-  personnelTable,
-  assignmentPersonnelTable,
-  assignmentPhotosTable,
+  reportsTable,
 } from "@workspace/db";
-import { alias } from "drizzle-orm/pg-core";
-import { eq, and, asc } from "drizzle-orm";
-import PDFDocument from "pdfkit";
 
 export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
 
 const PHOTO_BUCKET = "assignment-photos";
-
-const submitterPersonnel = alias(personnelTable, "submitter_personnel");
-const reviewerPersonnel  = alias(personnelTable, "reviewer_personnel");
+const BRAND = {
+  navy:   "#081D3A",
+  teal:   "#00B7B3",
+  slate:  "#64748B",
+  border: "#E2E8F0",
+  soft:   "#F8FAFC",
+  ink:    "#111827",
+  green:  "#065F46",
+};
 
 function fmtDate(val: string | Date | null | undefined): string {
-  if (!val) return "—";
+  if (!val) return "-";
   const d = typeof val === "string" ? new Date(val) : val;
   return d.toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });
 }
 
 function fmtDateTime(val: string | Date | null | undefined): string {
-  if (!val) return "—";
+  if (!val) return "-";
   const d = typeof val === "string" ? new Date(val) : val;
   return d.toLocaleDateString("nl-NL", {
-    day: "numeric", month: "long", year: "numeric",
-    hour: "2-digit", minute: "2-digit",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
   });
 }
 
-/** Fetch an image from a signed URL and return it as a Buffer. Returns null on any failure. */
 async function fetchImageBuffer(signedUrl: string): Promise<Buffer | null> {
   try {
     const res = await fetch(signedUrl, { signal: AbortSignal.timeout(8000) });
     if (!res.ok) return null;
-    const arrayBuf = await res.arrayBuffer();
-    return Buffer.from(arrayBuf);
+    return Buffer.from(await res.arrayBuffer());
   } catch {
     return null;
+  }
+}
+
+function drawHeader(doc: PDFKit.PDFDocument, title: string, reference: string) {
+  doc.rect(0, 0, 595.28, 122).fill(BRAND.navy);
+  doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(22).text("VEELE", 55, 38);
+  doc.fillColor("#7DF3EF").font("Helvetica").fontSize(8).text("SERVICES", 57, 64, { characterSpacing: 2 });
+  doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(19).text(title, 330, 38, { width: 210, align: "right" });
+  doc.fillColor("#C7D2FE").font("Helvetica").fontSize(9).text(reference, 330, 66, { width: 210, align: "right" });
+}
+
+function ensurePage(doc: PDFKit.PDFDocument, y: number, needed = 80): number {
+  if (y + needed <= 770) return y;
+  doc.addPage();
+  return 55;
+}
+
+function drawFooter(doc: PDFKit.PDFDocument, assignmentCode: string) {
+  const range = doc.bufferedPageRange();
+  for (let i = 0; i < range.count; i++) {
+    doc.switchToPage(i);
+    doc
+      .font("Helvetica")
+      .fontSize(8)
+      .fillColor(BRAND.slate)
+      .text(`Veele Services - Rapport ${assignmentCode} - Gegenereerd ${fmtDateTime(new Date())}`, 55, 800, {
+        width: 485,
+        align: "center",
+      });
   }
 }
 
@@ -56,20 +90,13 @@ export async function GET(
 ) {
   const { id } = await params;
 
-  // ── Auth + permission ────────────────────────────────────────────────────────
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-
-  if (!user) {
-    return new NextResponse("Unauthorized", { status: 401 });
-  }
+  if (!user) return new NextResponse("Unauthorized", { status: 401 });
 
   const canRead = await hasPermission("reports", "read");
-  if (!canRead) {
-    return new NextResponse("Forbidden", { status: 403 });
-  }
+  if (!canRead) return new NextResponse("Forbidden", { status: 403 });
 
-  // ── Fetch report data ────────────────────────────────────────────────────────
   const [row] = await db
     .select({
       id:              reportsTable.id,
@@ -79,7 +106,6 @@ export async function GET(
       submitterNotes:  reportsTable.submitterNotes,
       submittedBy:     reportsTable.submittedBy,
       submittedAt:     reportsTable.submittedAt,
-      reviewedBy:      reportsTable.reviewedBy,
       reviewedAt:      reportsTable.reviewedAt,
       assignmentId:    assignmentsTable.id,
       assignmentCode:  assignmentsTable.code,
@@ -88,294 +114,124 @@ export async function GET(
       customerName:    customersTable.name,
       objectName:      objectsTable.name,
       objectAddress:   objectsTable.address,
-      submitterFirst:  submitterPersonnel.firstName,
-      submitterLast:   submitterPersonnel.lastName,
-      reviewerFirst:   reviewerPersonnel.firstName,
-      reviewerLast:    reviewerPersonnel.lastName,
     })
     .from(reportsTable)
     .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
-    .leftJoin(customersTable,  eq(assignmentsTable.customerId, customersTable.id))
-    .leftJoin(objectsTable,    eq(assignmentsTable.objectId,   objectsTable.id))
-    .leftJoin(submitterPersonnel, eq(submitterPersonnel.userId, reportsTable.submittedBy))
-    .leftJoin(reviewerPersonnel,  eq(reviewerPersonnel.userId,  reportsTable.reviewedBy!))
+    .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
+    .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
     .where(eq(reportsTable.id, id))
     .limit(1);
 
-  if (!row) {
-    return new NextResponse("Not found", { status: 404 });
-  }
+  if (!row) return new NextResponse("Not found", { status: 404 });
 
-  // Non-management users may only download their own reports
   const canWrite = await hasPermission("reports", "write");
-  if (!canWrite && row.submittedBy !== user.id) {
-    return new NextResponse("Forbidden", { status: 403 });
-  }
+  if (!canWrite && row.submittedBy !== user.id) return new NextResponse("Forbidden", { status: 403 });
+  if (row.status !== "approved") return new NextResponse("Rapport is nog niet goedgekeurd.", { status: 403 });
 
-  // Only approved reports can be downloaded
-  if (row.status !== "approved") {
-    return new NextResponse("Rapport is nog niet goedgekeurd.", { status: 403 });
-  }
+  const rawPhotos = await db
+    .select({ id: assignmentPhotosTable.id, storagePath: assignmentPhotosTable.storagePath })
+    .from(assignmentPhotosTable)
+    .where(and(eq(assignmentPhotosTable.assignmentId, row.assignmentId), eq(assignmentPhotosTable.isApproved, true)))
+    .orderBy(asc(assignmentPhotosTable.createdAt));
 
-  // ── Fetch assigned personnel + approved photos in parallel ───────────────────
   const admin = createAdminClient();
+  const signed = await Promise.all(
+    rawPhotos.map(async (photo) => {
+      const { data } = await admin.storage.from(PHOTO_BUCKET).createSignedUrl(photo.storagePath, 300);
+      return data?.signedUrl ?? null;
+    }),
+  );
+  const photoBuffers = (await Promise.all(signed.map((url) => (url ? fetchImageBuffer(url) : null))))
+    .filter((buffer): buffer is Buffer => Boolean(buffer));
 
-  const [personnel, rawPhotos] = await Promise.all([
-    db
-      .select({ firstName: personnelTable.firstName, lastName: personnelTable.lastName })
-      .from(assignmentPersonnelTable)
-      .innerJoin(personnelTable, eq(personnelTable.id, assignmentPersonnelTable.personnelId))
-      .where(
-        and(
-          eq(assignmentPersonnelTable.assignmentId, row.assignmentId),
-          eq(assignmentPersonnelTable.status, "assigned"),
-        ),
-      ),
-
-    db
-      .select({ id: assignmentPhotosTable.id, storagePath: assignmentPhotosTable.storagePath })
-      .from(assignmentPhotosTable)
-      .where(
-        and(
-          eq(assignmentPhotosTable.assignmentId, row.assignmentId),
-          eq(assignmentPhotosTable.isApproved, true),
-        ),
-      )
-      .orderBy(asc(assignmentPhotosTable.createdAt)),
-  ]);
-
-  // Generate signed URLs for approved photos
-  const photoBuffers: Buffer[] = [];
-  if (rawPhotos.length > 0) {
-    const signed = await Promise.all(
-      rawPhotos.map(async (p) => {
-        const { data } = await admin.storage
-          .from(PHOTO_BUCKET)
-          .createSignedUrl(p.storagePath, 300); // 5-min TTL (enough for PDF build)
-        return data?.signedUrl ?? null;
-      }),
-    );
-
-    const buffers = await Promise.all(
-      signed.map((url) => (url ? fetchImageBuffer(url) : Promise.resolve(null))),
-    );
-
-    for (const buf of buffers) {
-      if (buf) photoBuffers.push(buf);
-    }
-  }
-
-  // ── Build PDF ────────────────────────────────────────────────────────────────
   const doc = new PDFDocument({ size: "A4", margin: 55, bufferPages: true });
   const chunks: Buffer[] = [];
-
   doc.on("data", (chunk: Buffer) => chunks.push(chunk));
 
   await new Promise<void>((resolve) => {
     doc.on("end", resolve);
 
-    const PRIMARY   = "#081D3A";
-    const SECONDARY = "#64748B";
-    const MUTED     = "#CBD5E1";
-    const ACCENT    = "#00B7B3";
-    const SUCCESS   = "#065F46";
+    drawHeader(doc, "RAPPORTAGE", row.assignmentCode);
 
-    const L = 55;   // left margin
-    const R = 540;  // right edge
+    const L = 55;
+    const R = 540;
     const W = R - L;
+    let y = 148;
 
-    // ── Logo / company name ──────────────────────────────────────────────────
-    doc
-      .fontSize(22)
-      .fillColor(ACCENT)
-      .font("Helvetica-Bold")
-      .text("Veele", L, 55);
+    doc.roundedRect(L, y, W, 132, 12).fill(BRAND.soft).strokeColor(BRAND.border).stroke();
+    doc.fillColor(BRAND.slate).font("Helvetica-Bold").fontSize(8).text("OPDRACHT", L + 18, y + 16);
+    doc.fillColor(BRAND.navy).font("Helvetica-Bold").fontSize(13).text(row.assignmentTitle, L + 18, y + 34, { width: 245 });
+    doc.fillColor(BRAND.ink).font("Helvetica").fontSize(9).text(`Klant: ${row.customerName ?? "-"}`, L + 18, y + 58, { width: 245 });
+    const objectLine = row.objectAddress ? `${row.objectName ?? "-"} - ${row.objectAddress}` : (row.objectName ?? "-");
+    doc.text(`Object: ${objectLine}`, L + 18, y + 74, { width: 245 });
 
-    doc
-      .fontSize(9)
-      .fillColor(SECONDARY)
-      .font("Helvetica")
-      .text("Serviceplatform", L, 82);
-
-    // ── "RAPPORT" heading (right side) ───────────────────────────────────────
-    doc
-      .fontSize(20)
-      .fillColor(PRIMARY)
-      .font("Helvetica-Bold")
-      .text("RAPPORT", 350, 55, { width: 190, align: "right" });
-
-    // ── Status badge ─────────────────────────────────────────────────────────
-    doc
-      .fontSize(10)
-      .fillColor(SUCCESS)
-      .font("Helvetica-Bold")
-      .text("✓ Goedgekeurd", 350, 84, { width: 190, align: "right" });
-
-    // ── Divider ──────────────────────────────────────────────────────────────
-    const dividerY = 108;
-    doc.moveTo(L, dividerY).lineTo(R, dividerY).strokeColor(MUTED).lineWidth(1).stroke();
-
-    // ── Assignment block (left) ──────────────────────────────────────────────
-    let leftY = dividerY + 14;
-
-    doc.fontSize(8).fillColor(SECONDARY).font("Helvetica").text("OPDRACHT", L, leftY);
-    leftY += 12;
-
-    doc.fontSize(11).fillColor(PRIMARY).font("Helvetica-Bold")
-       .text(row.assignmentTitle, L, leftY, { width: 260 });
-    leftY += 16;
-
-    doc.fontSize(9).fillColor(SECONDARY).font("Helvetica")
-       .text(`Code: ${row.assignmentCode}`, L, leftY);
-    leftY += 13;
-
-    if (row.customerName) {
-      doc.text(`Klant: ${row.customerName}`, L, leftY);
-      leftY += 13;
-    }
-    if (row.objectName) {
-      const loc = row.objectAddress
-        ? `${row.objectName} — ${row.objectAddress}`
-        : row.objectName;
-      doc.text(`Object: ${loc}`, L, leftY, { width: 260 });
-      leftY += 13;
-    }
-
-    // ── Meta block (right) ───────────────────────────────────────────────────
-    const metaX     = 330;
-    const metaValX  = 430;
-    let   metaY     = dividerY + 14;
-
-    const submitterName = (row.submitterFirst && row.submitterLast)
-      ? `${row.submitterFirst} ${row.submitterLast}`.trim()
-      : "—";
-
-    const reviewerName = (row.reviewerFirst && row.reviewerLast)
-      ? `${row.reviewerFirst} ${row.reviewerLast}`.trim()
-      : "—";
-
+    const metaX = 340;
     const metaRows: [string, string][] = [
-      ["Datum uitvoering", row.scheduledDate ? fmtDate(row.scheduledDate) : "—"],
-      ["Ingediend door",   submitterName],
-      ["Ingediend op",     fmtDateTime(row.submittedAt)],
-      ["Goedgekeurd op",   fmtDateTime(row.reviewedAt)],
-      ["Goedgekeurd door", reviewerName],
+      ["Datum uitvoering", fmtDate(row.scheduledDate)],
+      ["Gewerkte uren", row.hoursWorked ? `${row.hoursWorked} uur` : "-"],
+      ["Ingediend door", "Veele Services"],
+      ["Ingediend op", fmtDateTime(row.submittedAt)],
+      ["Goedgekeurd door", "Veele Services"],
+      ["Goedgekeurd op", fmtDateTime(row.reviewedAt)],
     ];
-
-    if (row.hoursWorked) {
-      metaRows.splice(1, 0, ["Gewerkte uren", `${row.hoursWorked} uur`]);
-    }
-
+    let metaY = y + 18;
     for (const [label, value] of metaRows) {
-      doc.fontSize(8).fillColor(SECONDARY).font("Helvetica").text(label, metaX, metaY, { width: 95 });
-      doc.fontSize(8).fillColor(PRIMARY).font("Helvetica").text(value, metaValX, metaY, { width: 110 });
-      metaY += 14;
+      doc.fillColor(BRAND.slate).font("Helvetica").fontSize(8).text(label, metaX, metaY, { width: 92 });
+      doc.fillColor(BRAND.navy).font("Helvetica-Bold").fontSize(8).text(value, metaX + 98, metaY, { width: 92 });
+      metaY += 16;
     }
 
-    // ── Personnel list ───────────────────────────────────────────────────────
-    if (personnel.length > 0) {
-      const names = personnel.map(p => `${p.firstName} ${p.lastName}`.trim()).join(", ");
-      doc.fontSize(8).fillColor(SECONDARY).font("Helvetica").text("Uitvoerende medewerker(s)", metaX, metaY, { width: 95 });
-      doc.fontSize(8).fillColor(PRIMARY).text(names, metaValX, metaY, { width: 110 });
-      metaY += 14;
-    }
+    y += 162;
+    doc.fillColor(BRAND.navy).font("Helvetica-Bold").fontSize(13).text("Rapportage", L, y);
+    y += 22;
+    doc.roundedRect(L, y, W, Math.max(72, doc.heightOfString(row.content, { width: W - 28 }) + 28), 12)
+      .fill("#FFFFFF")
+      .strokeColor(BRAND.border)
+      .stroke();
+    doc.fillColor(BRAND.ink).font("Helvetica").fontSize(10).text(row.content, L + 14, y + 14, { width: W - 28, lineGap: 2 });
+    y = doc.y + 28;
 
-    // ── Divider before body ──────────────────────────────────────────────────
-    const bodyDivY = Math.max(leftY, metaY) + 14;
-    doc.moveTo(L, bodyDivY).lineTo(R, bodyDivY).strokeColor(MUTED).lineWidth(0.5).stroke();
-
-    // ── Rapportinhoud ────────────────────────────────────────────────────────
-    let bodyY = bodyDivY + 16;
-
-    doc.fontSize(9).fillColor(SECONDARY).font("Helvetica-Bold")
-       .text("RAPPORTINHOUD", L, bodyY);
-    bodyY += 14;
-
-    doc.fontSize(10).fillColor(PRIMARY).font("Helvetica")
-       .text(row.content, L, bodyY, { width: W, lineGap: 2 });
-    bodyY = doc.y + 16;
-
-    // ── Opmerkingen medewerker ───────────────────────────────────────────────
     if (row.submitterNotes) {
-      doc.fontSize(9).fillColor(SECONDARY).font("Helvetica-Bold")
-         .text("OPMERKINGEN MEDEWERKER", L, bodyY);
-      bodyY += 14;
-
-      doc.fontSize(10).fillColor(PRIMARY).font("Helvetica")
-         .text(row.submitterNotes, L, bodyY, { width: W, lineGap: 2 });
+      y = ensurePage(doc, y, 82);
+      doc.fillColor(BRAND.navy).font("Helvetica-Bold").fontSize(12).text("Aanvullende notitie", L, y);
+      y += 20;
+      doc.roundedRect(L, y, W, Math.max(58, doc.heightOfString(row.submitterNotes, { width: W - 28 }) + 26), 12)
+        .fill("#FFFFFF")
+        .strokeColor(BRAND.border)
+        .stroke();
+      doc.fillColor(BRAND.ink).font("Helvetica").fontSize(9).text(row.submitterNotes, L + 14, y + 13, { width: W - 28, lineGap: 2 });
+      y = doc.y + 28;
     }
 
-    // ── Photo appendix page ──────────────────────────────────────────────────
     if (photoBuffers.length > 0) {
       doc.addPage();
+      drawHeader(doc, "BIJLAGEN", row.assignmentCode);
+      y = 148;
+      doc.fillColor(BRAND.navy).font("Helvetica-Bold").fontSize(13).text("Goedgekeurde foto's", L, y);
+      y += 26;
 
-      // Page header
-      doc
-        .fontSize(9)
-        .fillColor(SECONDARY)
-        .font("Helvetica-Bold")
-        .text("BIJLAGE — GOEDGEKEURDE FOTO'S", L, 55);
-
-      doc
-        .fontSize(8)
-        .fillColor(SECONDARY)
-        .font("Helvetica")
-        .text(`${row.assignmentCode} — ${row.assignmentTitle}`, L, 70);
-
-      doc.moveTo(L, 84).lineTo(R, 84).strokeColor(MUTED).lineWidth(0.5).stroke();
-
-      // Thumbnail grid: 2 columns
-      const THUMB_W     = 220;
-      const THUMB_H     = 165;
-      const COL_GAP     = 20;
-      const ROW_GAP     = 24;
-      const LABEL_H     = 14;
-      const startY      = 96;
-      const cols        = 2;
-      const colXs       = [L, L + THUMB_W + COL_GAP];
-
-      let imgY = startY;
-
+      const thumbW = 220;
+      const thumbH = 156;
+      const gap = 22;
       for (let i = 0; i < photoBuffers.length; i++) {
-        const col = i % cols;
-        const row_ = Math.floor(i / cols);
-        const x    = colXs[col]!;
-        const y    = imgY + row_ * (THUMB_H + LABEL_H + ROW_GAP);
-
-        // Add new page if content overflows
-        if (y + THUMB_H + LABEL_H > 760) {
-          doc.addPage();
-          imgY = 55 - row_ * (THUMB_H + LABEL_H + ROW_GAP);
-          const newY = imgY + row_ * (THUMB_H + LABEL_H + ROW_GAP);
-          doc.image(photoBuffers[i]!, x, newY, { width: THUMB_W, height: THUMB_H, fit: [THUMB_W, THUMB_H] });
-          doc.fontSize(7).fillColor(SECONDARY).font("Helvetica")
-             .text(`Foto ${i + 1}`, x, newY + THUMB_H + 3, { width: THUMB_W });
-        } else {
-          doc.image(photoBuffers[i]!, x, y, { width: THUMB_W, height: THUMB_H, fit: [THUMB_W, THUMB_H] });
-          doc.fontSize(7).fillColor(SECONDARY).font("Helvetica")
-             .text(`Foto ${i + 1}`, x, y + THUMB_H + 3, { width: THUMB_W });
-        }
+        const col = i % 2;
+        if (col === 0) y = ensurePage(doc, y, thumbH + 34);
+        const x = col === 0 ? L : L + thumbW + gap;
+        doc.roundedRect(x, y, thumbW, thumbH + 22, 10).fill("#FFFFFF").strokeColor(BRAND.border).stroke();
+        doc.image(photoBuffers[i]!, x + 8, y + 8, { fit: [thumbW - 16, thumbH - 16], align: "center", valign: "center" });
+        doc.fillColor(BRAND.slate).font("Helvetica").fontSize(8).text(`Foto ${i + 1}`, x + 8, y + thumbH + 4, { width: thumbW - 16 });
+        if (col === 1) y += thumbH + 34;
       }
     }
 
-    // ── Footer on every page ─────────────────────────────────────────────────
-    const totalPages = doc.bufferedPageRange().count;
-    for (let i = 0; i < totalPages; i++) {
-      doc.switchToPage(i);
-      doc.fontSize(8).fillColor(SECONDARY).font("Helvetica")
-         .text(
-           `Veele Serviceplatform  ·  Rapport ${row.assignmentCode}  ·  Gegenereerd ${fmtDateTime(new Date())}`,
-           L, 760, { width: W, align: "center" },
-         );
-    }
-
+    drawFooter(doc, row.assignmentCode);
     doc.end();
   });
 
   const pdfBuffer = Buffer.concat(chunks);
-  const filename  = `rapport-${row.assignmentCode.replace(/[^a-zA-Z0-9-_]/g, "-")}.pdf`;
+  const filename = `rapport-${row.assignmentCode.replace(/[^a-zA-Z0-9-_]/g, "-")}.pdf`;
 
-  return new NextResponse(pdfBuffer, {
+  return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {
       "Content-Type":        "application/pdf",
       "Content-Disposition": `inline; filename="${filename}"`,
