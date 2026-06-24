@@ -54,7 +54,7 @@ const DAY_START_MIN = 0;
 const DAY_END_MIN = 24 * 60;
 const DAY_SPAN = DAY_END_MIN - DAY_START_MIN;
 const PERSONNEL_COL_WIDTH = 216;
-const HOUR_WIDTH = 72;
+const HOUR_WIDTH = 80;
 const TIMELINE_WIDTH = 24 * HOUR_WIDTH;
 const BOARD_WIDTH = PERSONNEL_COL_WIDTH + TIMELINE_WIDTH;
 
@@ -88,11 +88,6 @@ const HOUR_LABELS = Array.from({ length: 25 }, (_, hour) => {
     label: `${String(hour).padStart(2, "0")}:00`,
     pct: ((hour * 60 - DAY_START_MIN) / DAY_SPAN) * 100,
   };
-});
-
-const START_OPTIONS = Array.from({ length: 48 }, (_, i) => {
-  const minutes = DAY_START_MIN + i * 30;
-  return minutesToTime(minutes);
 });
 
 type Pastel = {
@@ -173,8 +168,9 @@ function parseTimeMin(value: string | null): number | null {
 }
 
 function minutesToTime(value: number): string {
-  const h = Math.floor(value / 60);
-  const m = value % 60;
+  const clamped = Math.max(DAY_START_MIN, Math.min(DAY_END_MIN - 1, value));
+  const h = Math.floor(clamped / 60);
+  const m = clamped % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
@@ -223,6 +219,10 @@ function durationForAssignment(assignment: PlanningBoardAssignment): number {
   return Math.max(30, assignment.requirements.estimatedDurationMinutes || 60);
 }
 
+function snapUpToQuarter(value: number): number {
+  return Math.ceil(value / 15) * 15;
+}
+
 function hashString(value: string): number {
   let hash = 0;
   for (let i = 0; i < value.length; i++) {
@@ -233,13 +233,19 @@ function hashString(value: string): number {
 
 function pastelForAppointment(assignment: Pick<PlanningBoardPersonnelAssignment, "id" | "priority" | "status">): Pastel {
   const status = String(assignment.status);
-  if (status === "scheduled") return { bg: "#E2FAF8", border: "#8CE7E2", text: "#075E5D", rail: "#00B7B3" };
-  if (status === "seen") return { bg: "#F2EEFF", border: "#C4B5FD", text: "#3F2D75", rail: "#8B5CF6" };
-  if (status === "in_progress") return { bg: "#FFF7D6", border: "#FCD34D", text: "#6B4E00", rail: "#EAB308" };
-  if (status === "completed" || status === "reported" || status === "approved") {
+  if (status === "requested" || status === "review" || status === "quote_preparation" || status === "awaiting_approval") {
+    return { bg: "#FFF7ED", border: "#FDBA74", text: "#7C2D12", rail: "#F97316" };
+  }
+  if (status === "approved" || status === "plannable") {
+    return { bg: "#ECFDF5", border: "#86D9AE", text: "#14523C", rail: "#22C55E" };
+  }
+  if (status === "scheduled") return { bg: "#E8F4FF", border: "#93C5FD", text: "#0F3A5F", rail: "#3B82F6" };
+  if (status === "seen") return { bg: "#E2FAF8", border: "#8CE7E2", text: "#075E5D", rail: "#00B7B3" };
+  if (status === "in_progress") return { bg: "#F2EEFF", border: "#C4B5FD", text: "#3F2D75", rail: "#8B5CF6" };
+  if (status === "completed" || status === "report_submitted" || status === "report_approved" || status === "invoice_ready" || status === "invoiced" || status === "paid" || status === "closed") {
     return { bg: "#EAF8F1", border: "#86D9AE", text: "#14523C", rail: "#22C55E" };
   }
-  if (status === "cancelled" || status === "failed" || status === "rejected") {
+  if (status === "not_completed" || status === "cancelled" || status === "failed" || status === "rejected") {
     return { bg: "#FFEAF0", border: "#FDA4AF", text: "#7F1D1D", rail: "#F43F5E" };
   }
   if (assignment.priority === "urgent") return APPOINTMENT_PASTELS[4]!;
@@ -255,6 +261,18 @@ function currentMinuteOfDay(): number {
 
 function minuteToTimelinePct(minutes: number): number {
   return ((Math.max(DAY_START_MIN, Math.min(DAY_END_MIN, minutes)) - DAY_START_MIN) / DAY_SPAN) * 100;
+}
+
+function suggestedStartForAssignment(assignment: PlanningBoardAssignment, boardDate: string): string {
+  const scheduled = parseTimeMin(assignment.scheduledStart);
+  if (scheduled !== null) {
+    return minutesToTime(Math.max(DAY_START_MIN, Math.min(DAY_END_MIN - durationForAssignment(assignment), scheduled)));
+  }
+
+  const duration = durationForAssignment(assignment);
+  const fallback = boardDate === todayDateKey() ? snapUpToQuarter(currentMinuteOfDay()) : 8 * 60;
+  const start = Math.max(DAY_START_MIN, Math.min(DAY_END_MIN - duration, fallback));
+  return minutesToTime(start);
 }
 
 function isPlanboardMovableStatus(status: string): boolean {
@@ -432,7 +450,6 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
   const boardScrollRef = useRef<HTMLDivElement | null>(null);
 
   const [searchValue, setSearchValue] = useState(searchParams.get("search") ?? "");
-  const [manualStart, setManualStart] = useState("08:00");
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
   const [openQueueOpen, setOpenQueueOpen] = useState(false);
   const [dragging, setDragging] = useState<DragState | null>(null);
@@ -541,8 +558,9 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
 
     const centerMinute = isToday ? currentMinuteOfDay() : 8 * 60;
     const timelineX = PERSONNEL_COL_WIDTH + (centerMinute / DAY_SPAN) * TIMELINE_WIDTH;
-    const nextLeft = Math.max(0, timelineX - scrollEl.clientWidth / 2);
     const frame = window.requestAnimationFrame(() => {
+      const maxLeft = Math.max(0, scrollEl.scrollWidth - scrollEl.clientWidth);
+      const nextLeft = Math.min(maxLeft, Math.max(0, timelineX - scrollEl.clientWidth / 2));
       scrollEl.scrollTo({ left: nextLeft, behavior: "smooth" });
     });
 
@@ -680,9 +698,10 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
       toast.error(`Niet inplanbaar: ${match.reasons.filter((reason) => reason.severity === "block").map((reason) => reason.label).join("; ")}`);
       return;
     }
-    const startMin = parseTimeMin(manualStart) ?? 8 * 60;
+    const start = suggestedStartForAssignment(activeAssignment, data.date);
+    const startMin = parseTimeMin(start) ?? 8 * 60;
     const end = minutesToTime(Math.min(DAY_END_MIN, startMin + durationForAssignment(activeAssignment)));
-    scheduleOnBoard(activeAssignment.id, person.id, manualStart, end);
+    scheduleOnBoard(activeAssignment.id, person.id, start, end);
   }
 
   function scheduleOnBoard(
@@ -1138,6 +1157,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                             const selected = selectedAssignmentId === assignment.id;
                             const stats = matchStats(data.matchesByAssignmentId[assignment.id]);
                             const sectorStyle = sectorBadgeStyle(assignment.sectorName);
+                            const statusStyle = pastelForAppointment(assignment);
                             const title = displayWorkOrderTitle(assignment.title);
 
                             return (
@@ -1150,14 +1170,14 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                   setSelectedAssignmentId(selected ? null : assignment.id);
                                   setOpenQueueOpen(false);
                                 }}
-                                className="relative overflow-hidden rounded-lg border bg-white p-3 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                                className="relative overflow-hidden rounded-lg border bg-white p-2.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                                 style={{
-                                  borderColor: selected ? "#00B7B3" : "#E2E8F0",
+                                  borderColor: selected ? "#00B7B3" : statusStyle.border,
                                   boxShadow: selected ? "0 0 0 3px rgba(0,183,179,0.12)" : undefined,
                                   cursor: canWrite ? "grab" : "pointer",
                                 }}
                               >
-                                <div className="absolute bottom-0 left-0 top-0 w-1" style={{ background: sectorStyle.borderColor }} />
+                                <div className="absolute bottom-0 left-0 top-0 w-1" style={{ background: statusStyle.rail }} />
                                 <div className="flex items-start justify-between gap-3 pl-1">
                                   <div className="min-w-0">
                                     <div className="flex flex-wrap items-center gap-1.5">
@@ -1168,9 +1188,10 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                         {assignment.code}
                                       </span>
                                       <AssignmentStatusBadge status={assignment.status} />
+                                      {assignment.priority !== "normal" && <AssignmentPriorityBadge priority={assignment.priority} />}
                                     </div>
-                                    <p className="mt-2 truncate text-sm font-semibold" style={{ color: "#081D3A" }}>{title}</p>
-                                    <p className="mt-1 truncate text-xs" style={{ color: "#64748B" }}>
+                                    <p className="mt-1.5 truncate text-[13px] font-semibold" style={{ color: "#081D3A" }}>{title}</p>
+                                    <p className="mt-0.5 truncate text-[11px]" style={{ color: "#64748B" }}>
                                       {assignment.customerName}{assignment.objectName ? ` - ${assignment.objectName}` : ""}
                                     </p>
                                   </div>
@@ -1179,7 +1200,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                     <span className="rounded px-1.5 py-0.5" style={{ background: "#FEF2F2", color: "#B91C1C" }}>{stats.blocked} blok</span>
                                   </div>
                                 </div>
-                                <div className="mt-2 grid grid-cols-3 gap-1.5 pl-1 text-[11px]" style={{ color: "#64748B" }}>
+                                <div className="mt-2 grid grid-cols-3 gap-1.5 rounded-md border px-2 py-1.5 text-[11px]" style={{ borderColor: "#E2E8F0", background: "#F8FAFC", color: "#64748B" }}>
                                   <span className="inline-flex items-center gap-1 truncate"><CalendarDays className="h-3 w-3" />{formatShortDate(assignment.scheduledDate ?? data.date)}</span>
                                   <span className="inline-flex items-center gap-1 truncate"><Clock className="h-3 w-3" />{workOrderTimeLabel(assignment)}</span>
                                   <span className="inline-flex items-center gap-1 truncate"><Users className="h-3 w-3" />{slotLabel(assignment.filledSlots, assignment.requiredSlots)}</span>
@@ -1192,20 +1213,9 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                     </div>
                   )}
                 </div>
-                <label className="grid gap-1 text-xs font-medium" style={{ color: "#64748B" }}>
-                  Start
-                  <select
-                    value={manualStart}
-                    onChange={(e) => setManualStart(e.target.value)}
-                    className="veele-input h-8 w-[112px] py-1 text-sm"
-                  >
-                    {START_OPTIONS.map((time) => (
-                      <option key={time} value={time}>
-                        {time}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                <span className="hidden rounded-full border px-2.5 py-1 text-xs font-medium sm:inline-flex" style={{ borderColor: "#DDE7F0", color: "#64748B" }}>
+                  24-uurs bord - actuele tijd gecentreerd
+                </span>
                 {isPending && (
                   <span className="inline-flex items-center gap-1 text-xs" style={{ color: "#64748B" }}>
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
