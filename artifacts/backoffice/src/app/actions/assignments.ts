@@ -1876,7 +1876,7 @@ export async function sendAssignmentInterestPoll(
             code: assignment.code,
             title: assignment.title,
             date: assignment.scheduledDate,
-            date_label: momentLabel.split(" · ")[0] ?? assignment.scheduledDate,
+            date_label: momentLabel.split(", ")[0] ?? assignment.scheduledDate,
             time_range: `${assignment.scheduledStart} - ${assignment.scheduledEnd}`,
           },
           object: {
@@ -1901,7 +1901,7 @@ export async function sendAssignmentInterestPoll(
           title: "Je bent uitgenodigd",
           body: `Je bent uitgenodigd voor ${assignment.code}: ${assignment.title}. Moment: ${momentLabel}. Reageer via Open diensten.`,
           pushTitle: "Je bent uitgenodigd",
-          pushBody: `${assignment.code} · ${assignment.title} · ${momentLabel}`,
+          pushBody: `${assignment.code} - ${assignment.title} - ${momentLabel}`,
           category: "planning",
           priority: notificationPriority,
           href,
@@ -2156,6 +2156,7 @@ export async function sendAssignmentInterestReminder(
       }),
     ),
   );
+  await triggerNotificationWorker({ channels: ["push"], limit: Math.max(25, responses.length) });
 
   revalidatePath(`/assignments/${assignmentId}`);
   return { success: true, data: { reminded: responses.length } };
@@ -2273,6 +2274,7 @@ export async function markInterestCandidate(
       },
       audit: false,
     });
+    await triggerNotificationWorker({ channels: ["push"], limit: 25 });
   }
 
   revalidatePath(`/assignments/${assignmentId}`);

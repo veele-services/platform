@@ -96,7 +96,7 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
     hasPermission("assignments", "read"),
   ]);
 
-  const obj = await getObject(id);
+  const obj = await safeOptional("object", id, () => getObject(id), null);
   if (!obj) notFound();
 
   const [contacts, personnel, personnelOptions, assignments, sectors, customers, performance, history] = await Promise.all([

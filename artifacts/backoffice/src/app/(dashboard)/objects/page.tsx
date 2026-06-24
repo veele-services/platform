@@ -16,6 +16,28 @@ function str(v: string | string[] | undefined, fallback = ""): string {
   return typeof v === "string" ? v : fallback;
 }
 
+const emptyStats: Awaited<ReturnType<typeof getObjectStats>> = {
+  total: 0,
+  active: 0,
+  activeAssignments: 0,
+  periodicTasks: 0,
+  openAlerts: 0,
+  contracts: 0,
+};
+
+async function safePageData<T>(
+  label: string,
+  loader: () => Promise<T>,
+  fallback: T,
+): Promise<T> {
+  try {
+    return await loader();
+  } catch (error) {
+    console.error("objects page data failed", { label, error });
+    return fallback;
+  }
+}
+
 export default async function ObjectsPage({ searchParams }: Props) {
   const [canRead, canWrite] = await Promise.all([
     hasPermission("objects", "read"),
@@ -35,10 +57,14 @@ export default async function ObjectsPage({ searchParams }: Props) {
   const dir         = str(sp.dir, "asc");
 
   const [{ rows, total }, customers, sectors, stats] = await Promise.all([
-    listObjects({ search, customerId, serviceType, region, status, page, sort, dir }),
-    listCustomerOptions(),
-    listActiveSectors(),
-    getObjectStats(),
+    safePageData(
+      "objects",
+      () => listObjects({ search, customerId, serviceType, region, status, page, sort, dir }),
+      { rows: [], total: 0 },
+    ),
+    safePageData("customers", () => listCustomerOptions(), []),
+    safePageData("sectors", () => listActiveSectors(), []),
+    safePageData("stats", () => getObjectStats(), emptyStats),
   ]);
 
   const statCards = [

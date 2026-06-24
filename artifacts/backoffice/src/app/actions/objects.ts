@@ -212,11 +212,11 @@ async function getObjectScope(objectId: string): Promise<{
     .select({
       objectId:   objectsTable.id,
       customerId: objectsTable.customerId,
-      tenantId:   customersTable.tenantId,
+      tenantId:   objectsTable.tenantId,
     })
     .from(objectsTable)
     .innerJoin(customersTable, eq(objectsTable.customerId, customersTable.id))
-    .where(eq(objectsTable.id, objectId))
+    .where(and(eq(objectsTable.id, objectId), eq(customersTable.tenantId, objectsTable.tenantId)))
     .limit(1);
 
   return row ?? null;
@@ -740,6 +740,7 @@ export async function listObjectHistory(
 
 export async function listObjectsForCustomer(customerId: string): Promise<ObjectRow[]> {
   await requirePermission("objects", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const rows = await db
     .select({
@@ -760,7 +761,7 @@ export async function listObjectsForCustomer(customerId: string): Promise<Object
     .from(objectsTable)
     .leftJoin(customersTable, eq(objectsTable.customerId, customersTable.id))
     .leftJoin(sectorsTable,   eq(objectsTable.sectorId,   sectorsTable.id))
-    .where(eq(objectsTable.customerId, customerId))
+    .where(and(eq(objectsTable.customerId, customerId), eq(objectsTable.tenantId, tenantId)))
     .orderBy(asc(objectsTable.name));
 
   return rows.map((r) => ({ ...r, nextServiceDate: r.nextServiceDate ?? null, createdAt: r.createdAt.toISOString() }));
@@ -785,6 +786,10 @@ export async function listCustomerOptions(): Promise<CustomerOption[]> {
 
 export async function listObjectContacts(objectId: string): Promise<ObjectContactRow[]> {
   await requirePermission("objects", "read");
+  const tenantId = await requireCurrentTenantId();
+
+  const scope = await getObjectScope(objectId);
+  if (!scope || scope.tenantId !== tenantId) return [];
 
   const rows = await db
     .select()
@@ -814,6 +819,11 @@ export async function addObjectContact(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const scope = await getObjectScope(objectId);
+  if (!scope || scope.tenantId !== tenantId) {
+    return { success: false, message: "Object niet gevonden binnen deze tenant." };
+  }
 
   const payload = {
     objectId,
@@ -850,6 +860,12 @@ export async function updateObjectContact(
   data: ObjectContactInput,
 ): Promise<ActionResult> {
   await requirePermission("objects", "write");
+  const tenantId = await requireCurrentTenantId();
+
+  const scope = await getObjectScope(objectId);
+  if (!scope || scope.tenantId !== tenantId) {
+    return { success: false, message: "Object niet gevonden binnen deze tenant." };
+  }
 
   const payload = {
     firstName: data.firstName.trim(),
@@ -870,7 +886,7 @@ export async function updateObjectContact(
   await db
     .update(objectContactsTable)
     .set({ ...payload, updatedAt: new Date() })
-    .where(eq(objectContactsTable.id, contactId));
+    .where(and(eq(objectContactsTable.id, contactId), eq(objectContactsTable.objectId, objectId)));
 
   revalidatePath(`/objects/${objectId}`);
   return { success: true };
@@ -881,8 +897,16 @@ export async function deleteObjectContact(
   objectId: string,
 ): Promise<ActionResult> {
   await requirePermission("objects", "write");
+  const tenantId = await requireCurrentTenantId();
 
-  await db.delete(objectContactsTable).where(eq(objectContactsTable.id, contactId));
+  const scope = await getObjectScope(objectId);
+  if (!scope || scope.tenantId !== tenantId) {
+    return { success: false, message: "Object niet gevonden binnen deze tenant." };
+  }
+
+  await db
+    .delete(objectContactsTable)
+    .where(and(eq(objectContactsTable.id, contactId), eq(objectContactsTable.objectId, objectId)));
 
   revalidatePath(`/objects/${objectId}`);
   return { success: true };
@@ -892,9 +916,10 @@ export async function deleteObjectContact(
 
 export async function listObjectPersonnel(objectId: string): Promise<ObjectPersonnelRow[]> {
   await requirePermission("objects", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const scope = await getObjectScope(objectId);
-  if (!scope) return [];
+  if (!scope || scope.tenantId !== tenantId) return [];
 
   const rows = await db
     .select({
@@ -936,7 +961,7 @@ export async function listObjectPersonnel(objectId: string): Promise<ObjectPerso
     .from(objectPersonnelTable)
     .innerJoin(personnelTable, eq(objectPersonnelTable.personnelId, personnelTable.id))
     .leftJoin(rolesTable,      eq(personnelTable.roleId, rolesTable.id))
-    .where(eq(objectPersonnelTable.objectId, objectId))
+    .where(and(eq(objectPersonnelTable.objectId, objectId), eq(personnelTable.tenantId, tenantId)))
     .orderBy(asc(personnelTable.lastName));
 
   return rows.map((r) => ({
@@ -954,6 +979,7 @@ export async function listObjectPersonnel(objectId: string): Promise<ObjectPerso
 
 export async function listPersonnelOptions(): Promise<PersonnelOption[]> {
   await requirePermission("objects", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const rows = await db
     .select({
@@ -965,7 +991,7 @@ export async function listPersonnelOptions(): Promise<PersonnelOption[]> {
     })
     .from(personnelTable)
     .leftJoin(rolesTable, eq(personnelTable.roleId, rolesTable.id))
-    .where(eq(personnelTable.isActive, true))
+    .where(and(eq(personnelTable.tenantId, tenantId), eq(personnelTable.isActive, true)))
     .orderBy(asc(personnelTable.lastName), asc(personnelTable.firstName));
 
   return rows.map((r) => ({
@@ -982,6 +1008,19 @@ export async function linkObjectPersonnel(
   personnelId: string,
 ): Promise<ActionResult> {
   await requirePermission("objects", "write");
+  const tenantId = await requireCurrentTenantId();
+
+  const [scope, personnel] = await Promise.all([
+    getObjectScope(objectId),
+    db
+      .select({ id: personnelTable.id })
+      .from(personnelTable)
+      .where(and(eq(personnelTable.id, personnelId), eq(personnelTable.tenantId, tenantId)))
+      .limit(1),
+  ]);
+  if (!scope || scope.tenantId !== tenantId || !personnel[0]) {
+    return { success: false, message: "Object of medewerker niet gevonden binnen deze tenant." };
+  }
 
   await db
     .insert(objectPersonnelTable)
@@ -997,6 +1036,12 @@ export async function unlinkObjectPersonnel(
   personnelId: string,
 ): Promise<ActionResult> {
   await requirePermission("objects", "write");
+  const tenantId = await requireCurrentTenantId();
+
+  const scope = await getObjectScope(objectId);
+  if (!scope || scope.tenantId !== tenantId) {
+    return { success: false, message: "Object niet gevonden binnen deze tenant." };
+  }
 
   await db
     .delete(objectPersonnelTable)

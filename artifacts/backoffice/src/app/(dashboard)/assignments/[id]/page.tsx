@@ -431,7 +431,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
     canReadDocuments,
     canWriteDocuments,
   ] = await Promise.all([
-    getAssignment(id),
+    safeOptional("assignment", id, () => getAssignment(id), null),
     hasPermission("assignments", "write"),
     hasPermission("reports", "read"),
     hasPermission("reports", "submit"),
