@@ -4,6 +4,7 @@ import { DEFAULT_TENANT_ID } from "@workspace/db";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserPermissions, getUserRoles } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { PermissionsProvider } from "@/providers/permissions-provider";
 import { SidebarProvider } from "@/providers/sidebar-provider";
 import { Sidebar } from "@/components/layout/Sidebar";

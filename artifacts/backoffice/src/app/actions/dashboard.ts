@@ -14,7 +14,6 @@ import {
   customerMessageThreadsTable,
   customerPaymentBatchesTable,
   customersTable,
-  DEFAULT_TENANT_ID,
   invoicesTable,
   leavePeriodsTable,
   paymentsTable,
@@ -41,7 +40,7 @@ import {
   isNotNull,
 } from "drizzle-orm";
 import { hasPermission } from "@/lib/auth/permissions";
-import { createClient } from "@/lib/supabase/server";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { getBatchAvailabilityStatus } from "./availability";
 import type { AvailabilityStatus } from "./availability";
 
@@ -168,25 +167,8 @@ function getMondayOfWeek(ref: Date): Date {
   return d;
 }
 
-async function getCurrentTenantId(): Promise<string> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) return DEFAULT_TENANT_ID;
-
-  const [tenantUser] = await db
-    .select({ tenantId: tenantUsersTable.tenantId })
-    .from(tenantUsersTable)
-    .where(
-      and(
-        eq(tenantUsersTable.userId, user.id),
-        eq(tenantUsersTable.status, "active"),
-      ),
-    )
-    .limit(1);
-
-  return tenantUser?.tenantId ?? DEFAULT_TENANT_ID;
+async function getDashboardTenantId(): Promise<string> {
+  return requireCurrentTenantId();
 }
 
 function toNumber(value: unknown): number {
@@ -241,7 +223,7 @@ export async function getDashboardPayments(): Promise<DashboardPayments | null> 
   const canRead = await hasPermission("invoices", "read");
   if (!canRead) return null;
 
-  const tenantId = await getCurrentTenantId();
+  const tenantId = await getDashboardTenantId();
   const now = new Date();
   const startOfMonth = toDateString(
     new Date(now.getFullYear(), now.getMonth(), 1),
@@ -296,7 +278,7 @@ export async function getDashboardPayments(): Promise<DashboardPayments | null> 
 }
 
 export async function getManagementDashboardMetrics(): Promise<ManagementDashboardMetrics> {
-  const tenantId = await getCurrentTenantId();
+  const tenantId = await getDashboardTenantId();
   const todayStr = toDateString(new Date());
   const startOfMonth = toDateString(
     new Date(new Date().getFullYear(), new Date().getMonth(), 1),
@@ -531,7 +513,7 @@ export async function getManagementDashboardMetrics(): Promise<ManagementDashboa
 }
 
 export async function getPlanningDashboardMetrics(): Promise<PlanningDashboardMetrics> {
-  const tenantId = await getCurrentTenantId();
+  const tenantId = await getDashboardTenantId();
   const todayStr = toDateString(new Date());
   const [canReadPlanning, canReadPersonnel] = await Promise.all([
     hasPermission("planning", "read"),
@@ -677,7 +659,7 @@ export async function getPlanningDashboardMetrics(): Promise<PlanningDashboardMe
 }
 
 export async function getAdministrationDashboardMetrics(): Promise<AdministrationDashboardMetrics> {
-  const tenantId = await getCurrentTenantId();
+  const tenantId = await getDashboardTenantId();
   const canReadInvoices = await hasPermission("invoices", "read");
 
   if (!canReadInvoices) {
@@ -827,7 +809,7 @@ export async function getDashboardFinancials(): Promise<DashboardFinancials | nu
   const canRead = await hasPermission("invoices", "read");
   if (!canRead) return null;
 
-  const tenantId = await getCurrentTenantId();
+  const tenantId = await getDashboardTenantId();
   const now = new Date();
 
   const thisMonthStart = toDateString(
@@ -882,7 +864,7 @@ export async function getDashboardFinancials(): Promise<DashboardFinancials | nu
 // ─── Actiepunten ──────────────────────────────────────────────────────────────
 
 export async function getDashboardActionItems(): Promise<DashboardActionItems> {
-  const tenantId = await getCurrentTenantId();
+  const tenantId = await getDashboardTenantId();
   const [canReadReports, canReadInvoices, canReadQuotes, canReadAssignments] =
     await Promise.all([
       hasPermission("reports", "read"),
@@ -996,7 +978,7 @@ export async function getDashboardStaffAvailability(
   const canRead = await hasPermission("personnel", "read");
   if (!canRead) return [];
 
-  const tenantId = await getCurrentTenantId();
+  const tenantId = await getDashboardTenantId();
   const rows = await db
     .select({
       id: personnelTable.id,
@@ -1031,7 +1013,7 @@ export async function getDashboardRecentActivity(
   const canRead = await hasPermission("settings", "read");
   if (!canRead) return [];
 
-  const tenantId = await getCurrentTenantId();
+  const tenantId = await getDashboardTenantId();
   const tenantActors = await db
     .select({ userId: tenantUsersTable.userId })
     .from(tenantUsersTable)
@@ -1115,7 +1097,7 @@ export async function getDashboardWeekCounts(): Promise<WeekDayCount[]> {
   const canRead = await hasPermission("assignments", "read");
   if (!canRead) return [];
 
-  const tenantId = await getCurrentTenantId();
+  const tenantId = await getDashboardTenantId();
   const today = new Date();
   today.setHours(0, 0, 0, 0);
   const monday = getMondayOfWeek(today);
