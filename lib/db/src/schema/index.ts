@@ -36,3 +36,4 @@ export * from "./customer-payment-batches";
 export * from "./notifications";
 export * from "./domain-events";
 export * from "./planning-intelligence";
+export * from "./tenant-rbac";
