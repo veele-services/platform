@@ -1,21 +1,27 @@
 import { db } from "@workspace/db";
 import {
-  userRolesTable,
-  rolePermissionsTable,
+  tenantUserRolesTable,
+  tenantRolePermissionsTable,
   permissionsTable,
   rolesTable,
   auditLogTable,
   type InsertAuditLog,
 } from "@workspace/db";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentTenantId } from "@/lib/auth/tenant";
 
-/** Fetch all permission keys for a given Supabase Auth user UUID. */
-export async function getUserPermissions(userId: string): Promise<Set<string>> {
+/** Fetch all permission keys for a given Supabase Auth user UUID within one tenant. */
+export async function getUserPermissions(userId: string, tenantId: string): Promise<Set<string>> {
   const userRoles = await db
-    .select({ roleId: userRolesTable.roleId })
-    .from(userRolesTable)
-    .where(eq(userRolesTable.userId, userId));
+    .select({ roleId: tenantUserRolesTable.roleId })
+    .from(tenantUserRolesTable)
+    .where(
+      and(
+        eq(tenantUserRolesTable.userId, userId),
+        eq(tenantUserRolesTable.tenantId, tenantId),
+      ),
+    );
 
   if (userRoles.length === 0) return new Set();
 
@@ -26,33 +32,47 @@ export async function getUserPermissions(userId: string): Promise<Set<string>> {
       resource: permissionsTable.resource,
       action:   permissionsTable.action,
     })
-    .from(rolePermissionsTable)
-    .innerJoin(permissionsTable, eq(rolePermissionsTable.permissionId, permissionsTable.id))
-    .where(inArray(rolePermissionsTable.roleId, roleIds));
+    .from(tenantRolePermissionsTable)
+    .innerJoin(permissionsTable, eq(tenantRolePermissionsTable.permissionId, permissionsTable.id))
+    .where(
+      and(
+        eq(tenantRolePermissionsTable.tenantId, tenantId),
+        inArray(tenantRolePermissionsTable.roleId, roleIds),
+      ),
+    );
 
   return new Set(perms.map((p) => `${p.resource}:${p.action}`));
 }
 
-/** Fetch all role names for a given Supabase Auth user UUID. */
-export async function getUserRoles(userId: string): Promise<string[]> {
+/** Fetch all role names for a given Supabase Auth user UUID within one tenant. */
+export async function getUserRoles(userId: string, tenantId: string): Promise<string[]> {
   const rows = await db
     .select({ name: rolesTable.name })
-    .from(userRolesTable)
-    .innerJoin(rolesTable, eq(userRolesTable.roleId, rolesTable.id))
-    .where(eq(userRolesTable.userId, userId));
+    .from(tenantUserRolesTable)
+    .innerJoin(rolesTable, eq(tenantUserRolesTable.roleId, rolesTable.id))
+    .where(
+      and(
+        eq(tenantUserRolesTable.userId, userId),
+        eq(tenantUserRolesTable.tenantId, tenantId),
+      ),
+    );
 
   return rows.map((r) => r.name);
 }
 
 /**
  * Get permissions for the currently authenticated user (server-side).
- * Returns an empty set if there is no session — never falls back to guest access.
+ * Returns an empty set if there is no session or tenant — never falls back to guest access.
  */
 export async function getCurrentUserPermissions(): Promise<Set<string>> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return new Set();
-  return getUserPermissions(user.id);
+
+  const tenantId = await getCurrentTenantId();
+  if (!tenantId) return new Set();
+
+  return getUserPermissions(user.id, tenantId);
 }
 
 /**

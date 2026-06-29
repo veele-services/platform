@@ -2,34 +2,53 @@
 
 import React, { createContext, useContext } from "react";
 
-const PermissionsContext = createContext<Set<string>>(new Set());
+type PermissionsContextValue = {
+  permissions: Set<string>;
+  tenantId: string | null;
+};
+
+const PermissionsContext = createContext<PermissionsContextValue>({
+  permissions: new Set(),
+  tenantId: null,
+});
 
 /**
- * Client-side provider for the current user's permission set.
+ * Client-side provider for the current user's tenant-scoped permission set.
  *
  * Usage: wrap the dashboard layout (Server Component) with this provider,
- * passing a serialised permissions array fetched server-side.
+ * passing a serialised permissions array fetched server-side for tenantId.
  *
- * <PermissionsProvider permissions={[...permissionsSet]}>
+ * <PermissionsProvider permissions={[...permissionsSet]} tenantId={tenantId}>
  *   {children}
  * </PermissionsProvider>
  */
 export function PermissionsProvider({
   permissions,
+  tenantId,
   children,
 }: {
   permissions: string[];
+  tenantId: string;
   children: React.ReactNode;
 }) {
-  const set = React.useMemo(() => new Set(permissions), [permissions]);
+  const value = React.useMemo<PermissionsContextValue>(
+    () => ({ permissions: new Set(permissions), tenantId }),
+    [permissions, tenantId],
+  );
+
   return (
-    <PermissionsContext.Provider value={set}>
+    <PermissionsContext.Provider value={value}>
       {children}
     </PermissionsContext.Provider>
   );
 }
 
-/** Read the full permissions Set for the current user. */
+/** Read the full permissions Set for the current tenant-scoped user. */
 export function usePermissions(): Set<string> {
-  return useContext(PermissionsContext);
+  return useContext(PermissionsContext).permissions;
+}
+
+/** Read the tenant ID that the current permissions were resolved for. */
+export function usePermissionsTenantId(): string | null {
+  return useContext(PermissionsContext).tenantId;
 }
