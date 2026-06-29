@@ -3,6 +3,8 @@ export * from "./roles";
 export * from "./permissions";
 export * from "./role-permissions";
 export * from "./user-roles";
+export * from "./tenant-user-roles";
+export * from "./tenant-role-permissions";
 export * from "./audit-log";
 export * from "./sectors";
 export * from "./customer-types";

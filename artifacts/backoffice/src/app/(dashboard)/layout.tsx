@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentUserPermissions, getUserRoles } from "@/lib/auth/permissions";
+import { getUserPermissions, getUserRoles } from "@/lib/auth/permissions";
 import { PermissionsProvider } from "@/providers/permissions-provider";
 import { SidebarProvider } from "@/providers/sidebar-provider";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -30,16 +30,22 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const [permissions, roles, tenantUserResult] = await Promise.all([
-    getCurrentUserPermissions(),
-    getUserRoles(user.id),
-    supabase
-      .from("tenant_users")
-      .select("tenant_id")
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .limit(1)
-      .maybeSingle(),
+  const tenantUserResult = await supabase
+    .from("tenant_users")
+    .select("tenant_id")
+    .eq("user_id", user.id)
+    .eq("status", "active")
+    .limit(1)
+    .maybeSingle();
+
+  const tenantId =
+    typeof tenantUserResult.data?.tenant_id === "string"
+      ? tenantUserResult.data.tenant_id
+      : DEFAULT_TENANT_ID;
+
+  const [permissions, roles] = await Promise.all([
+    getUserPermissions(user.id, tenantId),
+    getUserRoles(user.id, tenantId),
   ]);
 
   const canReadReports   = permissions.has("reports:read");
@@ -57,13 +63,9 @@ export default async function DashboardLayout({
   const userEmail   = user.email ?? "";
   const userInitial = (userEmail[0] ?? "U").toUpperCase();
   const userRole    = roles[0] ?? "User";
-  const tenantId =
-    typeof tenantUserResult.data?.tenant_id === "string"
-      ? tenantUserResult.data.tenant_id
-      : DEFAULT_TENANT_ID;
 
   return (
-    <PermissionsProvider permissions={[...permissions]}>
+    <PermissionsProvider permissions={[...permissions]} tenantId={tenantId}>
       <BackofficeRealtimeProvider realtimeKey={`management_${tenantId}`}>
         <SidebarProvider>
           <div
