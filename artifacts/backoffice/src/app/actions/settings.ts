@@ -34,7 +34,8 @@ import {
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { requirePermission } from "@/lib/auth/permissions";
+import { hasPermission, requirePermission } from "@/lib/auth/permissions";
+import { getTenantPlanCapabilities } from "@/lib/tenant-plan";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult };
@@ -88,6 +89,12 @@ export type RoleRow = {
   permCount: number;
 };
 
+export type RolePlanCapabilities = {
+  plan: string;
+  customRoles: boolean;
+  canResetSystemRoles: boolean;
+};
+
 export type RoleDetail = {
   id: string;
   name: string;
@@ -95,6 +102,71 @@ export type RoleDetail = {
   isSystem: boolean;
   permissions: PermissionItem[];
   allPermissions: PermissionItem[];
+};
+
+const DEFAULT_SYSTEM_ROLE_PERMISSIONS: Record<string, string[]> = {
+  Management: ["*"],
+  Administration: [
+    "dashboard:read",
+    "customers:read", "customers:write", "customers:delete",
+    "objects:read", "objects:write", "objects:delete",
+    "assignments:read", "assignments:write", "assignments:approve",
+    "planning:read", "planning:write",
+    "personnel:read", "personnel:write",
+    "task_codes:read", "task_codes:write",
+    "reports:read", "reports:submit", "reports:write", "reports:export",
+    "invoices:read", "invoices:write", "invoices:send",
+    "documents:read", "documents:write", "documents:delete",
+    "news:read", "news:write", "news:send",
+    "settings:read",
+    "users:read", "users:write",
+  ],
+  Planning: [
+    "dashboard:read",
+    "customers:read",
+    "objects:read",
+    "assignments:read", "assignments:write",
+    "planning:read", "planning:write",
+    "personnel:read",
+    "task_codes:read",
+    "news:read", "news:write", "news:send",
+    "reports:read", "reports:submit",
+  ],
+  Teamlead: [
+    "dashboard:read",
+    "assignments:read", "assignments:write",
+    "planning:read",
+    "personnel:read",
+    "reports:read", "reports:submit",
+    "documents:read",
+  ],
+  Employee: [
+    "dashboard:read",
+    "assignments:read",
+    "reports:read", "reports:submit",
+    "documents:read",
+  ],
+  "Flex Employee": [
+    "assignments:read",
+    "reports:read", "reports:submit",
+    "documents:read",
+  ],
+  Customer: [
+    "assignments:read",
+    "objects:read",
+    "invoices:read",
+    "documents:read",
+  ],
+  Support: [
+    "dashboard:read",
+    "customers:read",
+    "objects:read",
+    "assignments:read",
+    "personnel:read",
+    "reports:read",
+    "documents:read",
+    "news:read",
+  ],
 };
 
 export type UserRow = {
@@ -1088,6 +1160,27 @@ export async function uploadOrgLogo(
 
 // ─── Roles ────────────────────────────────────────────────────────────────────
 
+export async function getRolePlanCapabilities(): Promise<RolePlanCapabilities> {
+  await requirePermission("roles", "read");
+  const [{ customRoles, plan }, canResetSystemRoles] = await Promise.all([
+    getTenantPlanCapabilities(),
+    hasPermission("roles", "delete"),
+  ]);
+
+  return { plan, customRoles, canResetSystemRoles };
+}
+
+async function requireCustomRolesEnabled(): Promise<ActionResult | null> {
+  const capabilities = await getTenantPlanCapabilities();
+  if (!capabilities.customRoles) {
+    return {
+      success: false,
+      message: `Custom rollen zijn niet beschikbaar in het huidige tenantplan (${capabilities.plan}).`,
+    };
+  }
+  return null;
+}
+
 export async function listRoles(): Promise<RoleRow[]> {
   await requirePermission("roles", "read");
 
@@ -1171,6 +1264,9 @@ export async function createRole(data: {
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
+  const planBlock = await requireCustomRolesEnabled();
+  if (planBlock) return planBlock;
+
   const name = data.name.trim();
   if (!name) return { success: false, message: "Naam is verplicht." };
 
@@ -1200,6 +1296,63 @@ export async function createRole(data: {
   return { success: true, data: { id: inserted.id } };
 }
 
+
+export async function updateRole(data: {
+  id: string;
+  name: string;
+  description: string | null;
+}): Promise<ActionResult> {
+  await requirePermission("roles", "write");
+
+  const planBlock = await requireCustomRolesEnabled();
+  if (planBlock) return planBlock;
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const name = data.name.trim();
+  if (!name) return { success: false, message: "Naam is verplicht." };
+
+  const [role] = await db
+    .select({ id: rolesTable.id, isSystem: rolesTable.isSystem })
+    .from(rolesTable)
+    .where(eq(rolesTable.id, data.id))
+    .limit(1);
+  if (!role) return { success: false, message: "Rol niet gevonden." };
+  if (role.isSystem) {
+    return { success: false, message: "Systeemrollen kunnen niet als custom rol worden gewijzigd." };
+  }
+
+  const duplicate = await db
+    .select({ id: rolesTable.id })
+    .from(rolesTable)
+    .where(and(eq(rolesTable.name, name), sql`${rolesTable.id} <> ${data.id}`))
+    .limit(1);
+  if (duplicate.length > 0) {
+    return { success: false, message: "Er bestaat al een rol met deze naam." };
+  }
+
+  await db
+    .update(rolesTable)
+    .set({ name, description: data.description?.trim() || null, updatedAt: new Date() })
+    .where(eq(rolesTable.id, data.id));
+
+  await db.insert(auditLogTable).values({
+    userId: user.id,
+    action: "update",
+    resource: "roles",
+    resourceId: data.id,
+    metadata: { name },
+  });
+
+  revalidatePath("/instellingen/rollen");
+  revalidatePath(`/instellingen/rollen/${data.id}`);
+  return { success: true };
+}
+
 /**
  * Toggle a single permission on/off for a role.
  * Used by the permission matrix checkboxes for optimistic per-toggle saves.
@@ -1210,6 +1363,13 @@ export async function toggleRolePermission(
   enabled: boolean,
 ): Promise<ActionResult> {
   await requirePermission("roles", "write");
+
+  const [role] = await db.select({ isSystem: rolesTable.isSystem }).from(rolesTable).where(eq(rolesTable.id, roleId)).limit(1);
+  if (!role) return { success: false, message: "Rol niet gevonden." };
+  if (!role.isSystem) {
+    const planBlock = await requireCustomRolesEnabled();
+    if (planBlock) return planBlock;
+  }
 
   const supabase = await createClient();
   const {
@@ -1254,6 +1414,13 @@ export async function updateRolePermissions(
   permissionIds: string[],
 ): Promise<ActionResult> {
   await requirePermission("roles", "write");
+
+  const [role] = await db.select({ isSystem: rolesTable.isSystem }).from(rolesTable).where(eq(rolesTable.id, roleId)).limit(1);
+  if (!role) return { success: false, message: "Rol niet gevonden." };
+  if (!role.isSystem) {
+    const planBlock = await requireCustomRolesEnabled();
+    if (planBlock) return planBlock;
+  }
 
   const supabase = await createClient();
   const {
@@ -1497,6 +1664,9 @@ export async function deleteRole(roleId: string): Promise<ActionResult> {
     };
   }
 
+  const planBlock = await requireCustomRolesEnabled();
+  if (planBlock) return planBlock;
+
   // Count only active users: personnel with is_active=true, or users not in
   // the personnel table (management users — assumed active at DB level).
   const [{ userCount }] = await db
@@ -1531,6 +1701,52 @@ export async function deleteRole(roleId: string): Promise<ActionResult> {
     resource: "roles",
     resourceId: roleId,
     metadata: { name: role.name },
+  });
+
+  revalidatePath("/instellingen/rollen");
+  return { success: true };
+}
+
+
+export async function resetSystemRolesToDefault(): Promise<ActionResult> {
+  await requirePermission("roles", "delete");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [roles, permissions] = await Promise.all([
+    db.select({ id: rolesTable.id, name: rolesTable.name, isSystem: rolesTable.isSystem }).from(rolesTable),
+    db.select({ id: permissionsTable.id, resource: permissionsTable.resource, action: permissionsTable.action }).from(permissionsTable),
+  ]);
+
+  const permissionByKey = new Map(permissions.map((p) => [`${p.resource}:${p.action}`, p.id]));
+  const allPermissionIds = permissions.map((p) => p.id);
+  const systemRoles = roles.filter((role) => role.isSystem && DEFAULT_SYSTEM_ROLE_PERMISSIONS[role.name]);
+
+  for (const role of systemRoles) {
+    const defaults = DEFAULT_SYSTEM_ROLE_PERMISSIONS[role.name] ?? [];
+    const permissionIds = defaults.includes("*")
+      ? allPermissionIds
+      : defaults.map((key) => permissionByKey.get(key)).filter((id): id is string => Boolean(id));
+
+    await db.delete(rolePermissionsTable).where(eq(rolePermissionsTable.roleId, role.id));
+    if (permissionIds.length > 0) {
+      await db
+        .insert(rolePermissionsTable)
+        .values(permissionIds.map((permissionId) => ({ roleId: role.id, permissionId })))
+        .onConflictDoNothing();
+    }
+  }
+
+  await db.insert(auditLogTable).values({
+    userId: user.id,
+    action: "reset_defaults",
+    resource: "roles",
+    resourceId: null,
+    metadata: { roles: systemRoles.map((role) => role.name) },
   });
 
   revalidatePath("/instellingen/rollen");

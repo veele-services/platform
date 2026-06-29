@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, useTransition, useCallback } from "react";
-import { CheckCircle2, AlertCircle } from "lucide-react";
-import { toggleRolePermission } from "@/app/actions/settings";
-import type { RoleDetail, PermissionItem } from "@/app/actions/settings";
+import { useRouter } from "next/navigation";
+import { AlertCircle, Save } from "lucide-react";
+import { toggleRolePermission, updateRole } from "@/app/actions/settings";
+import type { RoleDetail, PermissionItem, RolePlanCapabilities } from "@/app/actions/settings";
 
 interface Props {
   role:     RoleDetail;
   canWrite: boolean;
+  capabilities: RolePlanCapabilities;
 }
 
 const RESOURCE_LABELS: Record<string, string> = {
@@ -46,7 +48,8 @@ function resourceLabel(resource: string): string {
   return RESOURCE_LABELS[resource] ?? resource;
 }
 
-export function RolDetailView({ role, canWrite }: Props) {
+export function RolDetailView({ role, canWrite, capabilities }: Props) {
+  const canEditCustomRole = canWrite && capabilities.customRoles && !role.isSystem;
   const enabledIds = new Set(role.permissions.map((p) => p.id));
 
   const byResource = new Map<string, PermissionItem[]>();
@@ -62,6 +65,10 @@ export function RolDetailView({ role, canWrite }: Props) {
 
   return (
     <div className="space-y-2">
+      {!role.isSystem && (
+        <RoleMetadataForm role={role} canEdit={canEditCustomRole} capabilities={capabilities} />
+      )}
+
       <div className="veele-card p-0 overflow-hidden">
         <div className="px-4 py-3 border-b" style={{ borderColor: "#F1F5F9" }}>
           <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
@@ -70,6 +77,11 @@ export function RolDetailView({ role, canWrite }: Props) {
           {!canWrite && (
             <p className="text-xs mt-0.5" style={{ color: "#94A3B8" }}>
               U heeft geen schrijfrechten voor rollen.
+            </p>
+          )}
+          {!role.isSystem && !capabilities.customRoles && (
+            <p className="text-xs mt-0.5" style={{ color: "#DC2626" }}>
+              Custom permissies wijzigen is niet beschikbaar in tenantplan {capabilities.plan}.
             </p>
           )}
         </div>
@@ -82,16 +94,103 @@ export function RolDetailView({ role, canWrite }: Props) {
               permissions={byResource.get(resource)!}
               enabledIds={enabledIds}
               roleId={role.id}
-              canWrite={canWrite}
+              canWrite={role.isSystem ? canWrite : canEditCustomRole}
             />
           ))}
         </div>
       </div>
 
       <p className="text-xs text-right" style={{ color: "#94A3B8" }}>
-        Wijzigingen worden direct opgeslagen.
+        Wijzigingen in de permissie-matrix worden direct opgeslagen.
       </p>
     </div>
+  );
+}
+
+
+function RoleMetadataForm({
+  role,
+  canEdit,
+  capabilities,
+}: {
+  role: RoleDetail;
+  canEdit: boolean;
+  capabilities: RolePlanCapabilities;
+}) {
+  const router = useRouter();
+  const [name, setName] = useState(role.name);
+  const [description, setDescription] = useState(role.description ?? "");
+  const [message, setMessage] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setMessage(null);
+    startTransition(async () => {
+      const result = await updateRole({
+        id: role.id,
+        name: name.trim(),
+        description: description.trim() || null,
+      });
+
+      if (result.success) {
+        setMessage("Rol opgeslagen.");
+        router.refresh();
+      } else {
+        setMessage((result as { message?: string }).message ?? "Opslaan mislukt.");
+      }
+    });
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="veele-card space-y-3">
+      <div>
+        <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
+          Custom rol
+        </p>
+        {!capabilities.customRoles && (
+          <p className="text-xs mt-0.5" style={{ color: "#DC2626" }}>
+            Wijzigen is geblokkeerd door tenantplan {capabilities.plan}.
+          </p>
+        )}
+      </div>
+      <div className="grid gap-3 md:grid-cols-2">
+        <label className="block text-xs font-medium" style={{ color: "#374151" }}>
+          Naam
+          <input
+            type="text"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            disabled={!canEdit || isPending}
+            className="veele-input mt-1 w-full"
+          />
+        </label>
+        <label className="block text-xs font-medium" style={{ color: "#374151" }}>
+          Beschrijving
+          <input
+            type="text"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            disabled={!canEdit || isPending}
+            className="veele-input mt-1 w-full"
+          />
+        </label>
+      </div>
+      <div className="flex items-center justify-between gap-3">
+        {message ? <p className="text-sm" style={{ color: message.includes("mislukt") || message.includes("niet") || message.includes("geblokkeerd") ? "#DC2626" : "#059669" }}>{message}</p> : <span />}
+        {canEdit && (
+          <button
+            type="submit"
+            disabled={isPending || !name.trim()}
+            className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
+            style={{ backgroundColor: "#081D3A" }}
+          >
+            <Save className="h-4 w-4" />
+            {isPending ? "Opslaan…" : "Opslaan"}
+          </button>
+        )}
+      </div>
+    </form>
   );
 }
 
