@@ -20,6 +20,10 @@ import { PersonnelPortalAccessCard } from "@/components/personnel/PersonnelPorta
 import { listAssignmentsForPersonnel } from "@/app/actions/assignments";
 import { listDocuments } from "@/app/actions/documents";
 import {
+  listPersonnelQualifications,
+  type QualificationLinkRow,
+} from "@/app/actions/qualifications";
+import {
   PERSONNEL_TYPE_LABELS,
   PERSONNEL_TYPE_COLORS,
   type PersonnelType,
@@ -54,7 +58,18 @@ export default async function PersonnelDetailPage({ params }: Props) {
     hasPermission("documents", "write"),
   ]);
 
-  const [person, roles, sectors, windows, leavePeriods, assignmentHistory, documents, authStatus, linkedObjects] = await Promise.all([
+  const [
+    person,
+    roles,
+    sectors,
+    windows,
+    leavePeriods,
+    assignmentHistory,
+    documents,
+    authStatus,
+    linkedObjects,
+    qualificationLinks,
+  ] = await Promise.all([
     getPersonnel(id),
     listRoles(),
     listSectors(),
@@ -64,6 +79,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
     listDocuments({ entityType: "personnel", entityId: id }),
     getPersonnelAuthStatus(id),
     getLinkedObjects(id),
+    listPersonnelQualifications(id),
   ]);
 
   if (!person) notFound();
@@ -239,9 +255,34 @@ export default async function PersonnelDetailPage({ params }: Props) {
               )}
             </div>
             <div className="space-y-4">
-              <QualSection label="Certificaten" tags={person.certificates.map((c) => c.name)} color="#0A7E7A" bg="#E0FAFB" />
-              <QualSection label="Diploma&apos;s"    tags={person.diplomas}     color="#5A3B9A" bg="#F0EBFF" />
-              <QualSection label="Kennis"       tags={person.knowledge}    color="#7C5A00" bg="#FFF7E0" />
+              {qualificationLinks.length > 0 ? (
+                <>
+                  <QualificationLinkSection
+                    label="Certificaten"
+                    links={qualificationLinks.filter((link) => link.qualificationType === "certificate")}
+                    color="#0A7E7A"
+                    bg="#E0FAFB"
+                  />
+                  <QualificationLinkSection
+                    label="Diploma's"
+                    links={qualificationLinks.filter((link) => link.qualificationType === "diploma")}
+                    color="#5A3B9A"
+                    bg="#F0EBFF"
+                  />
+                  <QualificationLinkSection
+                    label="Kennis"
+                    links={qualificationLinks.filter((link) => link.qualificationType === "knowledge")}
+                    color="#7C5A00"
+                    bg="#FFF7E0"
+                  />
+                </>
+              ) : (
+                <>
+                  <QualSection label="Certificaten" tags={person.certificates.map((c) => c.name)} color="#0A7E7A" bg="#E0FAFB" />
+                  <QualSection label="Diploma's"    tags={person.diplomas}     color="#5A3B9A" bg="#F0EBFF" />
+                  <QualSection label="Kennis"       tags={person.knowledge}    color="#7C5A00" bg="#FFF7E0" />
+                </>
+              )}
             </div>
           </div>
 
@@ -459,6 +500,65 @@ function QualSection({
               {t}
             </span>
           ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function QualificationLinkSection({
+  label,
+  links,
+  color,
+  bg,
+}: {
+  label: string;
+  links: QualificationLinkRow[];
+  color: string;
+  bg: string;
+}) {
+  return (
+    <div>
+      <p className="text-xs font-medium mb-1.5" style={{ color: "#94A3B8" }}>{label}</p>
+      {links.length === 0 ? (
+        <p className="text-sm" style={{ color: "#94A3B8" }}>Geen</p>
+      ) : (
+        <div className="flex flex-col gap-2">
+          {links.map((link) => {
+            const status =
+              link.expiryStatus === "expired"
+                ? { label: "Verlopen", bg: "#FEF2F2", color: "#DC2626" }
+                : link.expiryStatus === "expiring"
+                  ? { label: "Verloopt binnenkort", bg: "#FFFBEB", color: "#B45309" }
+                  : link.expiryStatus === "valid"
+                    ? { label: "Geldig", bg: "#ECFDF5", color: "#059669" }
+                    : null;
+            return (
+              <div key={link.id} className="rounded-lg border p-2.5">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span
+                    className="inline-block rounded px-2.5 py-0.5 text-xs font-medium"
+                    style={{ backgroundColor: bg, color }}
+                  >
+                    {link.qualificationName}
+                  </span>
+                  {status && (
+                    <span
+                      className="inline-block rounded px-2 py-0.5 text-xs font-medium"
+                      style={{ backgroundColor: status.bg, color: status.color }}
+                    >
+                      {status.label}
+                    </span>
+                  )}
+                </div>
+                <p className="mt-1 text-xs" style={{ color: "#64748B" }}>
+                  {link.qualificationCode}
+                  {link.issuedAt ? ` - afgegeven ${new Date(`${link.issuedAt}T00:00:00`).toLocaleDateString("nl-NL")}` : ""}
+                  {link.expiresAt ? ` - verloopt ${new Date(`${link.expiresAt}T00:00:00`).toLocaleDateString("nl-NL")}` : ""}
+                </p>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

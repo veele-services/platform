@@ -19,9 +19,6 @@ import {
   Users,
   Calendar,
   FileText,
-  Clock3,
-  CheckCircle2,
-  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -56,8 +53,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { AssignmentStatusBadge, AssignmentPriorityBadge } from "./AssignmentStatusBadge";
+import {
+  AssignmentStatusBadge,
+  AssignmentPriorityBadge,
+  priorityLabel,
+  statusLabel,
+} from "./AssignmentStatusBadge";
 import { AssignmentForm } from "./AssignmentForm";
+import { ProcessStatusBadge } from "@/components/workflows/ProcessStatus";
 import {
   deleteAssignment,
   type AssignmentRow,
@@ -89,68 +92,8 @@ function ReportStatusBadge({ reportStatus, assignmentStatus }: { reportStatus: s
       </span>
     );
   }
-  if (reportStatus === "submitted") {
-    return (
-      <span
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium"
-        style={{ background: "#FEF3C7", color: "#D97706" }}
-      >
-        <Clock3 className="h-3 w-3 flex-shrink-0" />
-        Ingediend
-      </span>
-    );
-  }
-  if (reportStatus === "approved") {
-    return (
-      <span
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium"
-        style={{ background: "#DCFCE7", color: "#16A34A" }}
-      >
-        <CheckCircle2 className="h-3 w-3 flex-shrink-0" />
-        Goedgekeurd
-      </span>
-    );
-  }
-  if (reportStatus === "rejected") {
-    return (
-      <span
-        className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-medium"
-        style={{ background: "#FEE2E2", color: "#DC2626" }}
-      >
-        <XCircle className="h-3 w-3 flex-shrink-0" />
-        Afgekeurd
-      </span>
-    );
-  }
-  return null;
+  return <ProcessStatusBadge kind="report" status={reportStatus} size="xs" />;
 }
-
-const STATUS_LABELS: Record<AssignmentStatus, string> = {
-  requested:         "Aangevraagd",
-  review:            "In beoordeling",
-  quote_preparation: "Offerte in voorbereiding",
-  awaiting_approval: "Wacht op goedkeuring",
-  approved:          "Goedgekeurd",
-  plannable:         "Inplanbaar",
-  scheduled:         "Ingepland",
-  seen:              "Gezien",
-  in_progress:       "In uitvoering",
-  not_completed:     "Niet afgerond",
-  completed:         "Afgerond",
-  report_submitted:  "Rapport ingediend",
-  report_approved:   "Rapport goedgekeurd",
-  invoice_ready:     "Klaar voor facturatie",
-  invoiced:          "Gefactureerd",
-  paid:              "Betaald",
-  closed:            "Gesloten",
-};
-
-const PRIORITY_LABELS: Record<AssignmentPriority, string> = {
-  low:    "Laag",
-  normal: "Normaal",
-  high:   "Hoog",
-  urgent: "Urgent",
-};
 
 interface AssignmentsViewProps {
   rows:                  AssignmentRow[];
@@ -328,7 +271,7 @@ export function AssignmentsView({
           <SelectContent>
             <SelectItem value="all">Alle statussen</SelectItem>
             {ASSIGNMENT_STATUSES.map((s) => (
-              <SelectItem key={s} value={s}>{STATUS_LABELS[s]}</SelectItem>
+              <SelectItem key={s} value={s}>{statusLabel(s)}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -343,7 +286,7 @@ export function AssignmentsView({
           <SelectContent>
             <SelectItem value="all">Alle prioriteiten</SelectItem>
             {ASSIGNMENT_PRIORITIES.map((p) => (
-              <SelectItem key={p} value={p}>{PRIORITY_LABELS[p]}</SelectItem>
+              <SelectItem key={p} value={p}>{priorityLabel(p)}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -358,7 +301,7 @@ export function AssignmentsView({
           <SelectContent>
             <SelectItem value="all">Alle rapportstatus</SelectItem>
             <SelectItem value="none">Geen rapport</SelectItem>
-            <SelectItem value="submitted">Ingediend</SelectItem>
+            <SelectItem value="submitted">Ter controle</SelectItem>
             <SelectItem value="approved">Goedgekeurd</SelectItem>
             <SelectItem value="rejected">Afgekeurd</SelectItem>
           </SelectContent>

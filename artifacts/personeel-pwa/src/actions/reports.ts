@@ -9,12 +9,20 @@ import {
   assignmentReportNotesTable,
   personnelTable,
   organizationSettingsTable,
+  tenantsTable,
 } from "@workspace/db";
 import { eq, and, inArray, desc, asc } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
 import { sendEmail, buildReportSubmittedEmail } from "@/lib/email";
+import {
+  ASSIGNMENT_MEDIA_BUCKET,
+  MAX_REPORT_NOTE_ATTACHMENTS,
+  buildReportNoteAttachmentPath,
+  isReportNoteAttachmentPath,
+  validateAssignmentMediaDescriptor,
+} from "@/lib/uploads/assignment-media";
 
 export type ReportNoteAttachment = {
   id:          string;
@@ -41,6 +49,23 @@ export type ReportNoteAttachmentInput = {
   fileSize?:   number | null;
 };
 
+export type PrepareReportNoteUploadInput = {
+  clientId: string;
+  fileName: string;
+  mimeType: string | null;
+  fileSize: number;
+};
+
+export type PreparedReportNoteUpload = {
+  clientId:    string;
+  storagePath: string;
+  signedUrl:   string;
+  token:       string;
+  fileName:    string;
+  mimeType:    string;
+  fileSize:    number;
+};
+
 export type ReportNoteInput = {
   body:         string;
   attachments?: ReportNoteAttachmentInput[];
@@ -52,6 +77,8 @@ const LOCKED_REPORT_NOTE_STATUSES = new Set([
   "paid",
   "closed",
 ]);
+
+const DEFAULT_PUBLIC_REPORT_AUTHOR = "Veele Services";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -69,33 +96,26 @@ export type MyReport = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-async function getPersonnelId(): Promise<string | null> {
+async function getPersonnelIdentity(): Promise<{ userId: string; personnelId: string; tenantId: string } | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
   const [row] = await db
-    .select({ id: personnelTable.id })
+    .select({ id: personnelTable.id, tenantId: personnelTable.tenantId })
     .from(personnelTable)
-    .where(eq(personnelTable.userId, user.id))
+    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
     .limit(1);
 
-  return row?.id ?? null;
+  return row ? { userId: user.id, personnelId: row.id, tenantId: row.tenantId } : null;
 }
 
-async function getAuthAndPersonnel(): Promise<{ userId: string; personnelId: string } | null> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+async function getPersonnelId(): Promise<string | null> {
+  return (await getPersonnelIdentity())?.personnelId ?? null;
+}
 
-  const [row] = await db
-    .select({ id: personnelTable.id })
-    .from(personnelTable)
-    .where(eq(personnelTable.userId, user.id))
-    .limit(1);
-
-  if (!row) return null;
-  return { userId: user.id, personnelId: row.id };
+async function getAuthAndPersonnel(): Promise<{ userId: string; personnelId: string; tenantId: string } | null> {
+  return getPersonnelIdentity();
 }
 
 /**
@@ -104,16 +124,19 @@ async function getAuthAndPersonnel(): Promise<{ userId: string; personnelId: str
  */
 async function isLinkedToAssignment(
   personnelId: string,
+  tenantId: string,
   assignmentId: string,
 ): Promise<boolean> {
   const [row] = await db
     .select({ id: assignmentPersonnelTable.id })
     .from(assignmentPersonnelTable)
+    .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
     .where(
       and(
         eq(assignmentPersonnelTable.personnelId, personnelId),
         eq(assignmentPersonnelTable.assignmentId, assignmentId),
         eq(assignmentPersonnelTable.status, "assigned"),
+        eq(assignmentsTable.tenantId, tenantId),
       ),
     )
     .limit(1);
@@ -125,7 +148,7 @@ async function createSignedAttachmentUrl(storagePath: string): Promise<string | 
   try {
     const admin = createAdminClient();
     const { data } = await admin.storage
-      .from("assignment-photos")
+      .from(ASSIGNMENT_MEDIA_BUCKET)
       .createSignedUrl(storagePath, 3600);
 
     return data?.signedUrl ?? null;
@@ -134,23 +157,146 @@ async function createSignedAttachmentUrl(storagePath: string): Promise<string | 
   }
 }
 
+async function getAssignmentTenantName(assignmentId: string): Promise<string> {
+  const [row] = await db
+    .select({ tenantName: tenantsTable.name })
+    .from(assignmentsTable)
+    .innerJoin(tenantsTable, eq(assignmentsTable.tenantId, tenantsTable.id))
+    .where(eq(assignmentsTable.id, assignmentId))
+    .limit(1);
+
+  return row?.tenantName ?? DEFAULT_PUBLIC_REPORT_AUTHOR;
+}
+
 function normalizeAttachmentInput(
   assignmentId: string,
   input: ReportNoteAttachmentInput,
 ): ReportNoteAttachmentInput | null {
   const storagePath = input.storagePath.trim();
   const fileName = input.fileName.trim();
-  const prefix = `${assignmentId}/report-notes/`;
 
-  if (!storagePath || !storagePath.startsWith(prefix)) return null;
+  if (!storagePath || !isReportNoteAttachmentPath(assignmentId, storagePath)) return null;
   if (!fileName) return null;
+
+  const validation = validateAssignmentMediaDescriptor({
+    fileName,
+    mimeType: input.mimeType ?? null,
+    fileSize: input.fileSize ?? null,
+  });
+  if (!validation.valid) return null;
 
   return {
     storagePath,
-    fileName,
-    mimeType: input.mimeType?.trim() || null,
-    fileSize: Number.isFinite(input.fileSize ?? NaN) ? Math.max(0, Math.round(input.fileSize!)) : null,
+    fileName: validation.fileName,
+    mimeType: validation.mimeType,
+    fileSize: validation.fileSize,
   };
+}
+
+function uniqueUploadId(): string {
+  return globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
+}
+
+async function verifyUploadedAssignmentMedia(input: {
+  storagePath: string;
+  mimeType: string;
+  fileSize: number;
+}): Promise<boolean> {
+  const parts = input.storagePath.split("/");
+  const fileName = parts.pop();
+  const prefix = parts.join("/");
+  if (!fileName || !prefix) return false;
+
+  const { data, error } = await createAdminClient()
+    .storage
+    .from(ASSIGNMENT_MEDIA_BUCKET)
+    .list(prefix, { limit: 20, search: fileName });
+
+  if (error || !data) return false;
+  const object = data.find((item) => item.name === fileName);
+  if (!object) return false;
+
+  const metadata = object.metadata as
+    | { mimetype?: unknown; mimeType?: unknown; size?: unknown; contentLength?: unknown }
+    | null
+    | undefined;
+  const storedMimeType = String(metadata?.mimetype ?? metadata?.mimeType ?? "").toLowerCase();
+  const storedSize = Number(metadata?.size ?? metadata?.contentLength);
+
+  if (storedMimeType && storedMimeType !== input.mimeType.toLowerCase()) return false;
+  if (Number.isFinite(storedSize) && storedSize > 0 && Math.abs(storedSize - input.fileSize) > 1024) {
+    return false;
+  }
+
+  return true;
+}
+
+export async function prepareReportNoteAttachmentUploads(
+  assignmentId: string,
+  files: PrepareReportNoteUploadInput[],
+): Promise<{ success: boolean; uploads?: PreparedReportNoteUpload[]; error?: string }> {
+  const auth = await getAuthAndPersonnel();
+  if (!auth) return { success: false, error: "Niet ingelogd" };
+
+  const linked = await isLinkedToAssignment(auth.personnelId, auth.tenantId, assignmentId);
+  if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
+
+  if (files.length === 0) return { success: true, uploads: [] };
+  if (files.length > MAX_REPORT_NOTE_ATTACHMENTS) {
+    return { success: false, error: `Maximaal ${MAX_REPORT_NOTE_ATTACHMENTS} bijlagen per notitie toegestaan` };
+  }
+
+  const [assignment] = await db
+    .select({ status: assignmentsTable.status, tenantId: assignmentsTable.tenantId })
+    .from(assignmentsTable)
+    .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, auth.tenantId)))
+    .limit(1);
+
+  if (!assignment) return { success: false, error: "Opdracht niet gevonden" };
+  if (LOCKED_REPORT_NOTE_STATUSES.has(assignment.status)) {
+    return { success: false, error: "Deze werkbon is afgesloten voor rapportage" };
+  }
+
+  const admin = createAdminClient();
+  const uploads: PreparedReportNoteUpload[] = [];
+
+  for (const file of files) {
+    const validation = validateAssignmentMediaDescriptor({
+      fileName: file.fileName,
+      mimeType: file.mimeType,
+      fileSize: file.fileSize,
+    });
+
+    if (!validation.valid) {
+      return { success: false, error: validation.error };
+    }
+
+    const storagePath = buildReportNoteAttachmentPath(
+      assignmentId,
+      validation.fileName,
+      uniqueUploadId(),
+    );
+
+    const { data, error } = await admin.storage
+      .from(ASSIGNMENT_MEDIA_BUCKET)
+      .createSignedUploadUrl(storagePath);
+
+    if (error || !data) {
+      return { success: false, error: "Upload voorbereiden mislukt" };
+    }
+
+    uploads.push({
+      clientId:    file.clientId,
+      storagePath,
+      signedUrl:   data.signedUrl,
+      token:       data.token,
+      fileName:    validation.fileName,
+      mimeType:    validation.mimeType,
+      fileSize:    validation.fileSize,
+    });
+  }
+
+  return { success: true, uploads };
 }
 
 // ─── Queries ─────────────────────────────────────────────────────────────────
@@ -162,10 +308,10 @@ function normalizeAttachmentInput(
 export async function getMyReportForAssignment(
   assignmentId: string,
 ): Promise<MyReport | null> {
-  const personnelId = await getPersonnelId();
-  if (!personnelId) return null;
+  const identity = await getPersonnelIdentity();
+  if (!identity) return null;
 
-  const linked = await isLinkedToAssignment(personnelId, assignmentId);
+  const linked = await isLinkedToAssignment(identity.personnelId, identity.tenantId, assignmentId);
   if (!linked) return null;
 
   const supabase = await createClient();
@@ -221,18 +367,21 @@ export async function getReportNotesForAssignment(
   const auth = await getAuthAndPersonnel();
   if (!auth) return [];
 
-  const linked = await isLinkedToAssignment(auth.personnelId, assignmentId);
+  const linked = await isLinkedToAssignment(auth.personnelId, auth.tenantId, assignmentId);
   if (!linked) return [];
 
-  const notes = await db
-    .select({
-      id:        assignmentReportNotesTable.id,
-      body:      assignmentReportNotesTable.body,
-      createdAt: assignmentReportNotesTable.createdAt,
-    })
-    .from(assignmentReportNotesTable)
-    .where(eq(assignmentReportNotesTable.assignmentId, assignmentId))
-    .orderBy(desc(assignmentReportNotesTable.createdAt));
+  const [publicAuthorName, notes] = await Promise.all([
+    getAssignmentTenantName(assignmentId),
+    db
+      .select({
+        id:        assignmentReportNotesTable.id,
+        body:      assignmentReportNotesTable.body,
+        createdAt: assignmentReportNotesTable.createdAt,
+      })
+      .from(assignmentReportNotesTable)
+      .where(eq(assignmentReportNotesTable.assignmentId, assignmentId))
+      .orderBy(desc(assignmentReportNotesTable.createdAt)),
+  ]);
 
   if (notes.length === 0) return [];
 
@@ -267,7 +416,7 @@ export async function getReportNotesForAssignment(
   return notes.map((note) => ({
     id:          note.id,
     body:        note.body,
-    authorName:  "Veele Services",
+    authorName:  publicAuthorName,
     createdAt:   note.createdAt.toISOString(),
     attachments: attachments
       .filter((attachment) => attachment.noteId === note.id)
@@ -280,9 +429,8 @@ export async function getMyReportStatusMap(
 ): Promise<Record<string, string>> {
   if (assignmentIds.length === 0) return {};
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return {};
+  const identity = await getPersonnelIdentity();
+  if (!identity) return {};
 
   const rows = await db
     .select({
@@ -290,9 +438,19 @@ export async function getMyReportStatusMap(
       status:       reportsTable.status,
     })
     .from(reportsTable)
+    .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
+    .innerJoin(
+      assignmentPersonnelTable,
+      and(
+        eq(assignmentPersonnelTable.assignmentId, reportsTable.assignmentId),
+        eq(assignmentPersonnelTable.personnelId, identity.personnelId),
+        eq(assignmentPersonnelTable.status, "assigned"),
+      ),
+    )
     .where(
       and(
-        eq(reportsTable.submittedBy, user.id),
+        eq(reportsTable.submittedBy, identity.userId),
+        eq(assignmentsTable.tenantId, identity.tenantId),
         inArray(reportsTable.assignmentId, assignmentIds),
       ),
     );
@@ -320,19 +478,20 @@ export async function getMyAssignmentsAwaitingReport(): Promise<AssignmentAwaiti
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const personnelId = await getPersonnelId();
-  if (!personnelId) return [];
+  const identity = await getPersonnelIdentity();
+  if (!identity) return [];
 
   // Fetch assignments linked to this worker that are awaiting a report
   const { data: apRows } = await supabase
     .from("assignment_personnel")
     .select(`
       assignments!inner(
-        id, code, title, scheduled_date, status
+        id, code, title, scheduled_date, status, tenant_id
       )
     `)
-    .eq("personnel_id", personnelId)
+    .eq("personnel_id", identity.personnelId)
     .eq("status", "assigned")
+    .eq("assignments.tenant_id", identity.tenantId)
     .in("assignments.status", ["completed", "not_completed"]);
 
   if (!apRows || apRows.length === 0) return [];
@@ -395,7 +554,7 @@ export async function addReportNote(
   const auth = await getAuthAndPersonnel();
   if (!auth) return { success: false, error: "Niet ingelogd" };
 
-  const linked = await isLinkedToAssignment(auth.personnelId, assignmentId);
+  const linked = await isLinkedToAssignment(auth.personnelId, auth.tenantId, assignmentId);
   if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
 
   const body = input.body.trim();
@@ -412,11 +571,28 @@ export async function addReportNote(
     return { success: false, error: "Deze werkbon is afgesloten voor rapportage" };
   }
 
-  const normalizedAttachments = (input.attachments ?? []).map((attachment) =>
+  const attachmentInput = input.attachments ?? [];
+  if (attachmentInput.length > MAX_REPORT_NOTE_ATTACHMENTS) {
+    return { success: false, error: `Maximaal ${MAX_REPORT_NOTE_ATTACHMENTS} bijlagen per notitie toegestaan` };
+  }
+
+  const normalizedAttachments = attachmentInput.map((attachment) =>
     normalizeAttachmentInput(assignmentId, attachment),
   );
   if (normalizedAttachments.some((attachment) => attachment === null)) {
     return { success: false, error: "Bijlage kon niet worden gekoppeld" };
+  }
+
+  for (const attachment of normalizedAttachments) {
+    if (!attachment) continue;
+    const exists = await verifyUploadedAssignmentMedia({
+      storagePath: attachment.storagePath,
+      mimeType: attachment.mimeType ?? "",
+      fileSize: attachment.fileSize ?? 0,
+    });
+    if (!exists) {
+      return { success: false, error: "Bijlage is nog niet correct geupload. Probeer opnieuw." };
+    }
   }
 
   try {
@@ -470,6 +646,7 @@ export async function addReportNote(
         createdAt:   attachment.createdAt.toISOString(),
       })),
     );
+    const publicAuthorName = await getAssignmentTenantName(assignmentId);
 
     revalidatePath(`/opdrachten/${assignmentId}`);
     return {
@@ -477,7 +654,7 @@ export async function addReportNote(
       note:    {
         id:          note.id,
         body:        note.body,
-        authorName:  "Veele Services",
+        authorName:  publicAuthorName,
         createdAt:   note.createdAt.toISOString(),
         attachments: signedAttachments,
       },
@@ -495,10 +672,10 @@ export async function submitMyReport(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Niet ingelogd" };
 
-  const personnelId = await getPersonnelId();
-  if (!personnelId) return { success: false, error: "Personeelsprofiel niet gevonden" };
+  const identity = await getPersonnelIdentity();
+  if (!identity) return { success: false, error: "Personeelsprofiel niet gevonden" };
 
-  const linked = await isLinkedToAssignment(personnelId, assignmentId);
+  const linked = await isLinkedToAssignment(identity.personnelId, identity.tenantId, assignmentId);
   if (!linked) return { success: false, error: "U bent niet gekoppeld aan deze opdracht" };
 
   // Validate content
@@ -548,13 +725,13 @@ export async function submitMyReport(
     await db
       .update(assignmentsTable)
       .set({ status: "report_submitted", updatedAt: new Date() })
-      .where(eq(assignmentsTable.id, assignmentId));
+      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, identity.tenantId)));
 
     // Notify org admin — fire-and-forget
     const [person] = await db
       .select({ firstName: personnelTable.firstName, lastName: personnelTable.lastName })
       .from(personnelTable)
-      .where(eq(personnelTable.id, personnelId))
+      .where(and(eq(personnelTable.id, identity.personnelId), eq(personnelTable.tenantId, identity.tenantId)))
       .limit(1);
 
     void (async () => {

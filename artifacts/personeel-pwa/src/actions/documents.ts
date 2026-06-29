@@ -27,7 +27,7 @@ async function getPersonnelId(): Promise<string | null> {
   const [row] = await db
     .select({ id: personnelTable.id })
     .from(personnelTable)
-    .where(eq(personnelTable.userId, user.id))
+    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
     .limit(1);
 
   return row?.id ?? null;

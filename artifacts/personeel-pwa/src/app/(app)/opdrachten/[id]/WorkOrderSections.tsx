@@ -1,109 +1,28 @@
+"use client";
+
+import { useMemo, useState, useTransition } from "react";
 import Link from "next/link";
-import { Check, ChevronRight, Play, X } from "lucide-react";
+import { Check, ChevronRight, Loader2, MessageSquare, Send } from "lucide-react";
+import { setAssignmentTaskCompletion } from "@/actions/assignments";
 import type { ExtraWorkItem } from "@/actions/extra-work";
+import { askQuestionAboutAssignment } from "@/actions/messages";
 import {
-  FAILED_FINAL_STATUSES,
-  STEP_LABELS,
+  enqueueOfflineWorkOrderAction,
+  isOfflineNow,
+} from "@/lib/offline/work-order-queue";
+import { InteractiveStatusProgress } from "./WorkOrderStatusProgress";
+import {
   calculateExtraWorkLineTotal,
   calculateMaterialLineTotal,
   formatMoney,
   formatQuantity,
-  formatTimeSlot,
-  getActiveStep,
-  getTaskCompletionCount,
   parseNumber,
   type AssignmentView,
   type MaterialUsageItem,
 } from "./work-order-data";
 
-function StepCircle({
-  index,
-  activeStep,
-  failedFinal,
-}: {
-  index: number;
-  activeStep: number;
-  failedFinal: boolean;
-}) {
-  const isDone = index < activeStep;
-  const isActive = index === activeStep;
-  const isFailedFinal = failedFinal && index === 2;
-
-  if (isFailedFinal) {
-    return (
-      <span className="flex h-10 w-10 items-center justify-center rounded-full bg-[#FEE2E2] text-[#DC2626] ring-4 ring-[#FFF1F1]">
-        <X size={19} strokeWidth={2.7} />
-      </span>
-    );
-  }
-
-  if (isActive) {
-    return (
-      <span
-        className="flex h-10 w-10 items-center justify-center rounded-full text-white ring-4 ring-[#B9F0EE]"
-        style={{ backgroundColor: "var(--color-accent)" }}
-      >
-        {index === 1 ? <Play size={18} fill="currentColor" strokeWidth={2.4} /> : <Check size={20} strokeWidth={2.7} />}
-      </span>
-    );
-  }
-
-  if (isDone) {
-    return (
-      <span className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#18BDB8] bg-white text-[#18BDB8]">
-        <Check size={20} strokeWidth={2.7} />
-      </span>
-    );
-  }
-
-  return (
-    <span className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#D7DDE8] bg-[#E7EBF2] ring-4 ring-[#F1F3F7]" />
-  );
-}
-
 export function StatusProgress({ assignment }: { assignment: AssignmentView }) {
-  const activeStep = getActiveStep(assignment.status);
-  const failedFinal = FAILED_FINAL_STATUSES.has(assignment.status);
-
-  return (
-    <section className="rounded-[18px] bg-white px-5 py-4 shadow-sm" style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}>
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-[15px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
-          Status werkbon
-        </h2>
-        <span className="text-[15px] font-black" style={{ color: "var(--color-primary)" }}>
-          {formatTimeSlot(assignment.scheduledStart, assignment.scheduledEnd)}
-        </span>
-      </div>
-
-      <div className="mt-6 flex items-start">
-        {STEP_LABELS.map((label, index) => {
-          const lineIsDone = index < activeStep;
-          const lineIsFailed = failedFinal && index === 1;
-
-          return (
-            <div key={label} className="contents">
-              <div className="flex w-16 shrink-0 flex-col items-center">
-                <StepCircle index={index} activeStep={activeStep} failedFinal={failedFinal} />
-                <span
-                  className="mt-2 text-[12px] font-bold"
-                  style={{ color: index === activeStep && !failedFinal ? "var(--color-accent)" : "var(--color-secondary)" }}
-                >
-                  {label}
-                </span>
-              </div>
-              {index < STEP_LABELS.length - 1 ? (
-                <div
-                  className="mt-5 h-0.5 flex-1"
-                  style={{ backgroundColor: lineIsFailed ? "#FCA5A5" : lineIsDone ? "var(--color-accent)" : "#D7DDE8" }}
-                />
-              ) : null}
-            </div>
-          );
-        })}
-      </div>
-    </section>
-  );
+  return <InteractiveStatusProgress assignment={assignment} />;
 }
 
 export function InfoRow({ label, value }: { label: string; value: string }) {
@@ -144,6 +63,115 @@ export function CustomerNotes({ description }: { description: string | null }) {
   );
 }
 
+export function AssignmentQuestionCard({ assignment }: { assignment: AssignmentView }) {
+  const [isOpen, setIsOpen] = useState(false);
+  const [question, setQuestion] = useState("");
+  const [ticketId, setTicketId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+
+  function submitQuestion() {
+    if (question.trim().length < 10) {
+      setError("Vul een vraag van minimaal 10 tekens in.");
+      return;
+    }
+
+    setError(null);
+    startTransition(async () => {
+      const result = await askQuestionAboutAssignment(
+        assignment.id,
+        question,
+        "assigned_work_order",
+      );
+
+      if (result.success) {
+        setTicketId(result.ticketId ?? null);
+        setQuestion("");
+        setIsOpen(false);
+      } else {
+        setError(result.error ?? "Vraag versturen mislukt");
+      }
+    });
+  }
+
+  return (
+    <section className="rounded-[18px] bg-white px-5 py-4 shadow-sm" style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex min-w-0 gap-3">
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl" style={{ backgroundColor: "#E8FBFA", color: "var(--color-accent)" }}>
+            <MessageSquare size={19} strokeWidth={2.5} />
+          </span>
+          <div className="min-w-0">
+            <h2 className="text-[15px] font-black" style={{ color: "var(--color-primary)" }}>
+              Vraag aan planning
+            </h2>
+            <p className="mt-1 text-[13px] font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
+              Stel een vraag over deze werkbon. Planning reageert via Berichten.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={() => setIsOpen((value) => !value)}
+          className="rounded-2xl px-3 py-2 text-[12px] font-black text-white"
+          style={{ backgroundColor: "var(--color-accent)" }}
+        >
+          Vraag
+        </button>
+      </div>
+
+      {ticketId ? (
+        <Link
+          href={`/berichten/${ticketId}`}
+          className="mt-3 inline-flex items-center gap-1.5 rounded-2xl px-3 py-2 text-[13px] font-black"
+          style={{ backgroundColor: "#E8F2FF", color: "#1D4ED8" }}
+        >
+          <MessageSquare size={14} />
+          Ticket bekijken
+        </Link>
+      ) : null}
+
+      {isOpen ? (
+        <div className="mt-4 rounded-2xl border p-3" style={{ borderColor: "var(--color-border)" }}>
+          <textarea
+            value={question}
+            onChange={(event) => setQuestion(event.target.value)}
+            rows={4}
+            className="w-full resize-none rounded-2xl border px-4 py-3 text-[14px] font-semibold outline-none focus:border-[#00B7B3]"
+            placeholder={`Vraag over ${assignment.code}...`}
+          />
+          {error ? (
+            <p className="mt-2 text-[12px] font-bold" style={{ color: "var(--color-destructive)" }}>
+              {error}
+            </p>
+          ) : null}
+          <div className="mt-3 flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setIsOpen(false)}
+              className="rounded-2xl px-4 py-2 text-[13px] font-black"
+              style={{ color: "var(--color-secondary)" }}
+              disabled={isPending}
+            >
+              Annuleren
+            </button>
+            <button
+              type="button"
+              onClick={submitQuestion}
+              disabled={isPending}
+              className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 text-[13px] font-black text-white disabled:opacity-60"
+              style={{ backgroundColor: "var(--color-accent)" }}
+            >
+              {isPending ? <Loader2 size={14} className="animate-spin" /> : <Send size={14} />}
+              Versturen
+            </button>
+          </div>
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
 export function CustomerInfoCard({ assignment }: { assignment: AssignmentView }) {
   const companyName = assignment.objectName || assignment.customerName || assignment.title || "Niet bekend";
   const contactName = assignment.contactName || assignment.customerName || "Niet bekend";
@@ -165,8 +193,53 @@ export function CustomerInfoCard({ assignment }: { assignment: AssignmentView })
 }
 
 export function TaskChecklistCard({ assignment }: { assignment: AssignmentView }) {
-  const tasks = [...assignment.tasks].sort((a, b) => a.sortOrder - b.sortOrder);
-  const completedCount = getTaskCompletionCount(assignment);
+  const [tasks, setTasks] = useState(() => [...assignment.tasks].sort((a, b) => a.sortOrder - b.sortOrder));
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [pendingTaskId, setPendingTaskId] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const completedCount = useMemo(
+    () => tasks.filter((task) => Boolean(task.completedAt)).length,
+    [tasks],
+  );
+
+  function setLocalTask(taskId: string, completed: boolean) {
+    setTasks((current) => current.map((task) => (
+      task.id === taskId
+        ? {
+            ...task,
+            completedAt: completed ? new Date().toISOString() : null,
+          }
+        : task
+    )));
+  }
+
+  function toggleTask(taskId: string, completed: boolean) {
+    setError(null);
+    setNotice(null);
+    setLocalTask(taskId, completed);
+
+    if (isOfflineNow()) {
+      enqueueOfflineWorkOrderAction({
+        type: "set-task-completion",
+        assignmentId: assignment.id,
+        taskId,
+        payload: { completed },
+      });
+      setNotice("Taakwijziging is offline opgeslagen.");
+      return;
+    }
+
+    setPendingTaskId(taskId);
+    startTransition(async () => {
+      const result = await setAssignmentTaskCompletion(assignment.id, taskId, completed);
+      setPendingTaskId(null);
+      if (!result.success) {
+        setLocalTask(taskId, !completed);
+        setError(result.error ?? "Taak bijwerken mislukt");
+      }
+    });
+  }
 
   return (
     <section className="rounded-[18px] bg-white px-5 py-4 shadow-sm" style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}>
@@ -178,13 +251,30 @@ export function TaskChecklistCard({ assignment }: { assignment: AssignmentView }
           {completedCount} van {tasks.length} afgerond
         </span>
       </div>
+      {notice ? (
+        <p className="mt-3 rounded-2xl px-3 py-2 text-[13px] font-bold" style={{ backgroundColor: "#E9FBF8", color: "#0A837F" }}>
+          {notice}
+        </p>
+      ) : null}
+      {error ? (
+        <p className="mt-3 rounded-2xl px-3 py-2 text-[13px] font-bold" style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
+          {error}
+        </p>
+      ) : null}
 
       <div className="mt-5 space-y-4">
-        {tasks.length > 0 ? tasks.map((task, index) => {
-          const isDone = index < completedCount;
+        {tasks.length > 0 ? tasks.map((task) => {
+          const isDone = Boolean(task.completedAt);
+          const disabled = isPending && pendingTaskId === task.id;
 
           return (
-            <div key={task.id} className="flex items-center gap-4">
+            <button
+              key={task.id}
+              type="button"
+              className="flex w-full items-center gap-4 text-left active:scale-[0.995] disabled:opacity-70"
+              disabled={disabled}
+              onClick={() => toggleTask(task.id, !isDone)}
+            >
               <span
                 className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border"
                 style={{
@@ -198,7 +288,7 @@ export function TaskChecklistCard({ assignment }: { assignment: AssignmentView }
               <span className="text-[14px] font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
                 {task.notes ?? "Taak"}
               </span>
-            </div>
+            </button>
           );
         }) : (
           <p className="py-2 text-[14px]" style={{ color: "var(--color-secondary)" }}>

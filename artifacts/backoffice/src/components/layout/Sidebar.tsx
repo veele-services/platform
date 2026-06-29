@@ -12,6 +12,8 @@ import {
   FileText,
   FolderOpen,
   LayoutDashboard,
+  MessageSquare,
+  Newspaper,
   Settings,
   UserCog,
   Users,
@@ -33,6 +35,8 @@ const NAV_ITEMS = [
   { href: "/reports", icon: BarChart3, label: "Rapporten", permission: "reports:read" },
   { href: "/invoices", icon: FileText, label: "Facturen", permission: "invoices:read" },
   { href: "/documents", icon: FolderOpen, label: "Documenten", permission: "documents:read" },
+  { href: "/tickets", icon: MessageSquare, label: "Tickets", permission: "tickets:read" },
+  { href: "/news", icon: Newspaper, label: "Nieuws", permission: "news:read" },
   { href: "/settings", icon: Settings, label: "Instellingen", permission: "settings:read" },
 ] as const;
 
@@ -59,20 +63,25 @@ export function Sidebar({
 }: SidebarProps) {
   const pathname = usePathname();
   const permissions = usePermissions();
-  const { open, close } = useSidebar();
+  const { open, close, collapsed } = useSidebar();
   const visibleItems = NAV_ITEMS.filter((item) => permissions.has(item.permission));
 
   return (
     <aside
       className={cn(
-        "fixed inset-y-0 left-0 z-50 flex w-[240px] select-none flex-col transition-transform duration-300 ease-in-out",
-        "md:static md:h-full md:w-[60px] md:flex-shrink-0 md:translate-x-0 md:transition-none",
-        "lg:w-[240px]",
+        "fixed inset-y-0 left-0 z-50 flex w-[240px] select-none flex-col transition-all duration-300 ease-in-out",
+        "md:static md:h-full md:flex-shrink-0 md:translate-x-0",
+        collapsed ? "md:w-[72px]" : "md:w-[240px]",
         open ? "translate-x-0" : "-translate-x-full",
       )}
       style={{ backgroundColor: "#081D3A" }}
     >
-      <div className="flex h-16 flex-shrink-0 items-center border-b border-white/10 px-5 md:justify-center md:px-0 lg:justify-start lg:px-6">
+      <div
+        className={cn(
+          "flex h-16 flex-shrink-0 items-center border-b border-white/10 px-5",
+          collapsed ? "md:justify-center md:px-0" : "md:justify-start md:px-6",
+        )}
+      >
         <button
           type="button"
           onClick={close}
@@ -82,7 +91,7 @@ export function Sidebar({
           <X size={18} strokeWidth={1.75} />
         </button>
 
-        <div className="flex flex-col leading-none md:hidden lg:flex">
+        <div className={cn("flex flex-col leading-none", collapsed && "md:hidden")}>
           <span
             className="font-bold tracking-widest text-white"
             style={{ fontFamily: "var(--font-poppins), Poppins, sans-serif", fontSize: "15px" }}
@@ -104,7 +113,10 @@ export function Sidebar({
         </div>
 
         <div
-          className="hidden h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-white md:flex lg:hidden"
+          className={cn(
+            "hidden h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-white",
+            collapsed && "md:flex",
+          )}
           style={{ backgroundColor: "#00B7B3" }}
         >
           V
@@ -151,7 +163,8 @@ export function Sidebar({
                 href={href}
                 onClick={close}
                 className={cn(
-                  "sidebar-link md:justify-center md:px-0 lg:justify-start lg:px-3",
+                  "sidebar-link",
+                  collapsed ? "md:justify-center md:px-0" : "md:justify-start md:px-3",
                   active && "active",
                 )}
                 title={label}
@@ -165,10 +178,13 @@ export function Sidebar({
                     <span className="absolute -right-1 -top-1 hidden h-2 w-2 rounded-full bg-[#00B7B3] md:block lg:hidden" />
                   )}
                 </div>
-                <span className="flex-1 md:hidden lg:inline">{label}</span>
+                <span className={cn("flex-1", collapsed && "md:hidden")}>{label}</span>
                 {hasBadge && (
                   <span
-                    className="flex-shrink-0 items-center justify-center rounded-full font-semibold text-white md:hidden lg:flex"
+                    className={cn(
+                      "flex-shrink-0 items-center justify-center rounded-full font-semibold text-white",
+                      collapsed ? "md:hidden" : "md:flex",
+                    )}
                     style={{
                       backgroundColor: "#00B7B3",
                       fontSize: "10px",

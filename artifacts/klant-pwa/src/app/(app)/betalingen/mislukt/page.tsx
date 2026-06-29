@@ -53,7 +53,7 @@ export default async function BetaalingMisluktPage({ searchParams }: Props) {
           ) : null}
 
           <Link
-            href="/klant/facturen"
+            href="/facturen"
             className="inline-flex w-full items-center justify-center gap-2 rounded-xl border px-4 py-3 text-sm font-semibold"
             style={{
               borderColor:     "var(--color-border)",

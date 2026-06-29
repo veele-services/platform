@@ -5,7 +5,10 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./schema": "./src/schema/index.ts"
+    "./schema": "./src/schema/index.ts",
+    "./events": "./src/events.ts",
+    "./workflow-events": "./src/workflow-events.ts",
+    "./planning-intelligence": "./src/planning-intelligence.ts"
   },
   "scripts": {
     "push":         "drizzle-kit push --config ./drizzle.config.ts",

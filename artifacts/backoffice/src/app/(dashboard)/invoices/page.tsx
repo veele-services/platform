@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
-import { listInvoices, getInvoiceSummary, getOverdueInvoicesCount } from "@/app/actions/invoices";
+import { listCollectiveInvoiceCandidates, listInvoices, getInvoiceSummary, getOverdueInvoicesCount } from "@/app/actions/invoices";
 import { InvoicesView } from "@/components/invoices/InvoicesView";
 
 export const metadata: Metadata = { title: "Facturen" };
@@ -17,10 +17,11 @@ export default async function InvoicesPage({ searchParams }: Props) {
   const { page = "1", search = "", status = "" } = await searchParams;
   const canWrite = await hasPermission("invoices", "write");
 
-  const [{ rows, total }, summary, overdueCount] = await Promise.all([
+  const [{ rows, total }, summary, overdueCount, collectiveData] = await Promise.all([
     listInvoices({ page: parseInt(page, 10) || 1, search, status }),
     getInvoiceSummary(),
     getOverdueInvoicesCount(),
+    canWrite ? listCollectiveInvoiceCandidates() : Promise.resolve({ candidates: [], batches: [] }),
   ]);
 
   return (
@@ -33,6 +34,8 @@ export default async function InvoicesPage({ searchParams }: Props) {
       canWrite={canWrite}
       summary={summary}
       overdueCount={overdueCount}
+      collectiveCandidates={collectiveData.candidates}
+      collectiveBatches={collectiveData.batches}
     />
   );
 }

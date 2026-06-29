@@ -1,5 +1,5 @@
 import { Router, type IRouter } from "express";
-import { eq, asc, desc, and } from "drizzle-orm";
+import { eq, asc, desc, and, sql } from "drizzle-orm";
 import {
   db,
   customerTypesTable,
@@ -19,12 +19,13 @@ import {
   UpdateCustomerContactBody,
   UpdateCustomerContactResponse,
 } from "@workspace/api-zod";
-import { requireAuth, requirePermission } from "../middleware/auth";
+import { requireAuth, requirePermission, requireTenantScope } from "../middleware/auth";
 
 const router: IRouter = Router();
 
 // Every route in this router requires a valid Supabase JWT
 router.use(requireAuth);
+router.use(requireTenantScope);
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 function isUuid(v: string): boolean {
@@ -40,6 +41,7 @@ router.get("/customers/:id", requirePermission("customers", "read"), async (req,
     res.status(400).json({ error: "id must be a valid UUID" });
     return;
   }
+  const tenantId = req.tenantId!;
 
   const rows = await db
     .select({
@@ -74,7 +76,7 @@ router.get("/customers/:id", requirePermission("customers", "read"), async (req,
     .leftJoin(sectorsTable,       eq(customersTable.sectorId,          sectorsTable.id))
     .leftJoin(customerTypesTable, eq(customersTable.customerTypeId,    customerTypesTable.id))
     .leftJoin(personnelTable,     eq(customersTable.accountManagerId,  personnelTable.id))
-    .where(eq(customersTable.id, id))
+    .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)))
     .limit(1);
 
   if (!rows[0]) {
@@ -126,11 +128,12 @@ router.patch("/customers/:id", requirePermission("customers", "write"), async (r
     res.status(400).json({ error: "id must be a valid UUID" });
     return;
   }
+  const tenantId = req.tenantId!;
 
   const [existing] = await db
     .select({ id: customersTable.id })
     .from(customersTable)
-    .where(eq(customersTable.id, id))
+    .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)))
     .limit(1);
 
   if (!existing) {
@@ -168,7 +171,10 @@ router.patch("/customers/:id", requirePermission("customers", "write"), async (r
     patch.isActive = data.status === "active" || data.status === "lead" || data.status === "prospect";
   }
 
-  await db.update(customersTable).set(patch).where(eq(customersTable.id, id));
+  await db
+    .update(customersTable)
+    .set(patch)
+    .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)));
 
   const rows = await db
     .select({
@@ -203,7 +209,7 @@ router.patch("/customers/:id", requirePermission("customers", "write"), async (r
     .leftJoin(sectorsTable,       eq(customersTable.sectorId,          sectorsTable.id))
     .leftJoin(customerTypesTable, eq(customersTable.customerTypeId,    customerTypesTable.id))
     .leftJoin(personnelTable,     eq(customersTable.accountManagerId,  personnelTable.id))
-    .where(eq(customersTable.id, id))
+    .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)))
     .limit(1);
 
   const r = rows[0]!;
@@ -271,11 +277,12 @@ router.get("/customers/:customerId/contacts", requirePermission("customers", "re
     res.status(400).json({ error: "customerId must be a valid UUID" });
     return;
   }
+  const tenantId = req.tenantId!;
 
   const [customer] = await db
     .select({ id: customersTable.id })
     .from(customersTable)
-    .where(eq(customersTable.id, customerId))
+    .where(and(eq(customersTable.id, customerId), eq(customersTable.tenantId, tenantId)))
     .limit(1);
 
   if (!customer) {
@@ -313,11 +320,12 @@ router.post("/customers/:customerId/contacts", requirePermission("customers", "w
     res.status(400).json({ error: "customerId must be a valid UUID" });
     return;
   }
+  const tenantId = req.tenantId!;
 
   const [customer] = await db
     .select({ id: customersTable.id })
     .from(customersTable)
-    .where(eq(customersTable.id, customerId))
+    .where(and(eq(customersTable.id, customerId), eq(customersTable.tenantId, tenantId)))
     .limit(1);
 
   if (!customer) {
@@ -386,14 +394,17 @@ router.patch("/customers/:customerId/contacts/:id", requirePermission("customers
     res.status(400).json({ error: "customerId and id must be valid UUIDs" });
     return;
   }
+  const tenantId = req.tenantId!;
 
   const [existing] = await db
     .select({ id: customerContactsTable.id })
     .from(customerContactsTable)
+    .innerJoin(customersTable, eq(customerContactsTable.customerId, customersTable.id))
     .where(
       and(
         eq(customerContactsTable.id, id),
         eq(customerContactsTable.customerId, customerId),
+        eq(customersTable.tenantId, tenantId),
       ),
     )
     .limit(1);
@@ -465,6 +476,7 @@ router.delete("/customers/:customerId/contacts/:id", requirePermission("customer
     res.status(400).json({ error: "customerId and id must be valid UUIDs" });
     return;
   }
+  const tenantId = req.tenantId!;
 
   const [deleted] = await db
     .delete(customerContactsTable)
@@ -472,6 +484,11 @@ router.delete("/customers/:customerId/contacts/:id", requirePermission("customer
       and(
         eq(customerContactsTable.id, id),
         eq(customerContactsTable.customerId, customerId),
+        sql`exists (
+          select 1 from customers c
+          where c.id = ${customerContactsTable.customerId}
+            and c.tenant_id = ${tenantId}::uuid
+        )`,
       ),
     )
     .returning({ id: customerContactsTable.id });

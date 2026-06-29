@@ -12,52 +12,72 @@ import {
   assignmentPersonnelTable,
   assignmentsTable,
   auditLogTable,
+  assignmentCandidatesTable,
+  availabilityDayEntriesTable,
   availabilityWindowsTable,
+  qualificationItemsTable,
+  roleQualificationsTable,
   ASSIGNMENT_PRIORITIES,
   ASSIGNMENT_STATUSES,
   type AssignmentPriority,
   type AssignmentStatus,
 } from "@workspace/db";
-import { asc, desc, eq, and, ilike, inArray, isNull, ne, or, sql } from "drizzle-orm";
+import {
+  asc,
+  desc,
+  eq,
+  and,
+  ilike,
+  inArray,
+  isNull,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { getBatchAvailabilityStatus, type AvailabilityStatus } from "./availability";
+import {
+  getBatchAvailabilityStatus,
+  type AvailabilityStatus,
+} from "./availability";
 import type { ActionResult } from "./customers";
+import { emitAssignmentWorkflowEvent } from "@workspace/db/workflow-events";
+import { triggerNotificationWorker } from "@/lib/notification-worker";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type AssignmentRequirements = {
-  requiredRoleIds:      string[];
+  requiredRoleIds: string[];
   requiredCertificates: string[];
-  requiredKnowledge:    string[];
-  requiredDiplomas:     string[];
+  requiredKnowledge: string[];
+  requiredDiplomas: string[];
   /** Required region from assignments.required_region — null means no restriction */
-  assignmentRegion:     string | null;
+  assignmentRegion: string | null;
   /** The assignment's scheduled date (YYYY-MM-DD) — used for availability lookup */
-  scheduledDate:        string | null;
+  scheduledDate: string | null;
 };
 
 export type PersonnelEligibilityEntry = {
-  personnelId:        string;
-  linkId:             string | null;
-  firstName:          string;
-  lastName:           string;
-  roleId:             string | null;
-  roleName:           string | null;
-  sectorId:           string | null;
-  sectorName:         string | null;
-  region:             string | null;
-  certificates:       string[];
-  diplomas:           string[];
-  knowledge:          string[];
-  isActive:           boolean;
+  personnelId: string;
+  linkId: string | null;
+  firstName: string;
+  lastName: string;
+  roleId: string | null;
+  roleName: string | null;
+  sectorId: string | null;
+  sectorName: string | null;
+  region: string | null;
+  certificates: string[];
+  diplomas: string[];
+  knowledge: string[];
+  isActive: boolean;
   availabilityStatus: AvailabilityStatus;
 };
 
 export type PersonnelForAssignmentResult = {
   requirements: AssignmentRequirements;
-  personnel:    PersonnelEligibilityEntry[];
+  personnel: PersonnelEligibilityEntry[];
 };
 
 export type PlanningBoardMatchSeverity = "ok" | "warning" | "block";
@@ -80,99 +100,101 @@ export type PlanningBoardMatchReasonCode =
   | "not_available_for_planning";
 
 export type PlanningBoardMatchReason = {
-  code:     PlanningBoardMatchReasonCode;
-  label:    string;
+  code: PlanningBoardMatchReasonCode;
+  label: string;
   severity: PlanningBoardMatchSeverity;
 };
 
 export type PlanningBoardMatch = {
   personnelId: string;
-  level:       "match" | "warning" | "blocked";
-  eligible:    boolean;
-  reasons:     PlanningBoardMatchReason[];
+  level: "match" | "warning" | "blocked";
+  eligible: boolean;
+  matchScore: number | null;
+  reasons: PlanningBoardMatchReason[];
 };
 
 export type PlanningBoardAssignmentRequirements = AssignmentRequirements & {
   requiredRoleNames: string[];
-  taskCount:         number;
+  taskCount: number;
   estimatedDurationMinutes: number;
-  taskSectorIds:     string[];
+  taskSectorIds: string[];
 };
 
 export type PlanningBoardAssignment = {
-  id:             string;
-  code:           string;
-  title:          string;
-  status:         AssignmentStatus;
-  priority:       AssignmentPriority;
-  scheduledDate:  string | null;
+  id: string;
+  code: string;
+  title: string;
+  status: AssignmentStatus;
+  priority: AssignmentPriority;
+  scheduledDate: string | null;
   scheduledStart: string | null;
-  scheduledEnd:   string | null;
-  customerId:     string;
-  customerName:   string;
-  objectId:       string | null;
-  objectName:     string | null;
-  sectorId:       string | null;
-  sectorName:     string | null;
+  scheduledEnd: string | null;
+  customerId: string;
+  customerName: string;
+  objectId: string | null;
+  objectName: string | null;
+  sectorId: string | null;
+  sectorName: string | null;
   requiredRegion: string | null;
+  requiredPersonnelCount: number;
   assignedPersonnelIds: string[];
-  requiredSlots:  number;
-  filledSlots:    number;
-  hasConflict:    boolean;
-  requirements:   PlanningBoardAssignmentRequirements;
+  requiredSlots: number;
+  filledSlots: number;
+  hasConflict: boolean;
+  requirements: PlanningBoardAssignmentRequirements;
 };
 
 export type PlanningBoardPersonnelAssignment = {
-  id:             string;
-  code:           string;
-  title:          string;
-  status:         AssignmentStatus;
-  priority:       AssignmentPriority;
-  customerName:   string;
-  objectName:     string | null;
-  sectorName:     string | null;
+  id: string;
+  code: string;
+  title: string;
+  status: AssignmentStatus;
+  priority: AssignmentPriority;
+  customerName: string;
+  objectName: string | null;
+  sectorName: string | null;
   scheduledStart: string | null;
-  scheduledEnd:   string | null;
+  scheduledEnd: string | null;
   estimatedDurationMinutes: number;
-  requiredSlots:  number;
-  filledSlots:    number;
-  hasConflict:    boolean;
+  requiredSlots: number;
+  filledSlots: number;
+  hasConflict: boolean;
 };
 
 export type PlanningBoardPersonnel = {
-  id:                 string;
-  firstName:          string;
-  lastName:           string;
-  roleId:             string | null;
-  roleName:           string | null;
-  sectorId:           string | null;
-  sectorName:         string | null;
-  region:             string | null;
-  preferredRegions:   string[];
-  personnelType:      string | null;
+  id: string;
+  firstName: string;
+  lastName: string;
+  roleId: string | null;
+  roleName: string | null;
+  sectorId: string | null;
+  sectorName: string | null;
+  region: string | null;
+  preferredRegions: string[];
+  personnelType: string | null;
   emergencyAvailable: boolean;
   availabilityStatus: AvailabilityStatus;
   availabilityWindow: { startTime: string; endTime: string } | null;
   scheduledAssignments: PlanningBoardPersonnelAssignment[];
-  scheduledMinutes:  number;
+  scheduledMinutes: number;
 };
 
 export type PlanningBoardFilters = {
-  date?:       string;
-  search?:     string;
+  date?: string;
+  search?: string;
   customerId?: string;
-  sectorId?:   string;
-  region?:     string;
-  priority?:   AssignmentPriority | "";
-  statuses?:   AssignmentStatus[];
+  sectorId?: string;
+  region?: string;
+  priority?: AssignmentPriority | "";
+  statuses?: AssignmentStatus[];
 };
 
 export type PlanningBoardFilterOptions = {
   customers: Array<{ id: string; name: string }>;
-  sectors:   Array<{ id: string; name: string }>;
-  regions:   string[];
+  sectors: Array<{ id: string; name: string }>;
+  regions: string[];
   priorities: AssignmentPriority[];
-  statuses:   AssignmentStatus[];
+  statuses: AssignmentStatus[];
 };
 
 export type PlanningBoardData = {
@@ -186,11 +208,11 @@ export type PlanningBoardData = {
 
 export type PlanningBoardScheduleInput = {
   assignmentId: string;
-  personnelId:  string;
+  personnelId: string;
   sourcePersonnelId?: string | null;
-  date:         string;
-  start:        string;
-  end?:         string | null;
+  date: string;
+  start: string;
+  end?: string | null;
 };
 
 export type PlanningBoardScheduleResult = ActionResult<{
@@ -209,7 +231,10 @@ function todayDateKey(): string {
 }
 
 function isDateKey(value: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) && !Number.isNaN(new Date(`${value}T00:00:00`).getTime());
+  return (
+    /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    !Number.isNaN(new Date(`${value}T00:00:00`).getTime())
+  );
 }
 
 function isTimeKey(value: string): boolean {
@@ -232,7 +257,11 @@ function addMinutes(value: string, minutes: number): string {
   return minutesToTime(timeToMinutes(value) + minutes);
 }
 
-function durationMinutes(start: string | null, end: string | null, fallback = 60): number {
+function durationMinutes(
+  start: string | null,
+  end: string | null,
+  fallback = 60,
+): number {
   if (!start || !end) return fallback;
   return Math.max(15, timeToMinutes(end) - timeToMinutes(start));
 }
@@ -248,7 +277,9 @@ function overlaps(
 }
 
 function uniqueStrings(values: Array<string | null | undefined>): string[] {
-  return [...new Set(values.filter((value): value is string => Boolean(value)))];
+  return [
+    ...new Set(values.filter((value): value is string => Boolean(value))),
+  ];
 }
 
 function certNames(value: unknown): string[] {
@@ -257,15 +288,27 @@ function certNames(value: unknown): string[] {
     .map((item) => {
       if (typeof item === "string") return item;
       if (item && typeof item === "object" && "name" in item) {
-        return String((item as { name?: unknown }).name ?? "");
+        const certificate = item as { name?: unknown; expires_at?: unknown; expiresAt?: unknown };
+        const expiresAt = certificate.expires_at ?? certificate.expiresAt;
+        if (typeof expiresAt === "string" && isExpiredDate(expiresAt)) return "";
+        return String(certificate.name ?? "");
       }
       return "";
     })
     .filter(Boolean);
 }
 
+function isExpiredDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return new Date(`${value}T00:00:00`) < today;
+}
+
 function stringArray(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+  return Array.isArray(value)
+    ? value.filter((item): item is string => typeof item === "string")
+    : [];
 }
 
 function isUniqueViolation(err: unknown): boolean {
@@ -324,23 +367,39 @@ function buildPlanningMatch(params: {
   const isAssigned = assignment.assignedPersonnelIds.includes(personnel.id);
 
   if (isAssigned) {
-    reasons.push(buildReason("assigned", "Al gekoppeld aan deze werkbon", "ok"));
+    reasons.push(
+      buildReason("assigned", "Al gekoppeld aan deze werkbon", "ok"),
+    );
   }
 
   if (!personnel.isAvailable) {
-    reasons.push(buildReason("not_available_for_planning", "Niet beschikbaar voor planning", "block"));
+    reasons.push(
+      buildReason(
+        "not_available_for_planning",
+        "Niet beschikbaar voor planning",
+        "block",
+      ),
+    );
   }
 
   if (availabilityStatus === "beschikbaar") {
     reasons.push(buildReason("available", "Beschikbaar op deze datum", "ok"));
   } else if (availabilityStatus === "niet_ingesteld") {
-    reasons.push(buildReason("unknown_availability", "Beschikbaarheid niet ingesteld", "warning"));
+    reasons.push(
+      buildReason(
+        "unknown_availability",
+        "Beschikbaarheid niet ingesteld",
+        "warning",
+      ),
+    );
   } else if (availabilityStatus === "ziek") {
     reasons.push(buildReason("sick", "Ziek gemeld op deze datum", "block"));
   } else if (availabilityStatus === "op_verlof") {
     reasons.push(buildReason("on_leave", "Op verlof op deze datum", "block"));
   } else {
-    reasons.push(buildReason("unavailable", "Niet beschikbaar op deze datum", "block"));
+    reasons.push(
+      buildReason("unavailable", "Niet beschikbaar op deze datum", "block"),
+    );
   }
 
   if (
@@ -349,20 +408,26 @@ function buildPlanningMatch(params: {
     availabilityStatus === "beschikbaar"
   ) {
     if (!availabilityWindow) {
-      reasons.push(buildReason(
-        "outside_availability_window",
-        "Geen beschikbaarheidsvenster voor dit tijdslot",
-        "block",
-      ));
+      reasons.push(
+        buildReason(
+          "outside_availability_window",
+          "Geen beschikbaarheidsvenster voor dit tijdslot",
+          "block",
+        ),
+      );
     } else if (
-      timeToMinutes(availabilityWindow.startTime) > timeToMinutes(assignment.scheduledStart) ||
-      timeToMinutes(availabilityWindow.endTime) < timeToMinutes(assignment.scheduledEnd)
+      timeToMinutes(availabilityWindow.startTime) >
+        timeToMinutes(assignment.scheduledStart) ||
+      timeToMinutes(availabilityWindow.endTime) <
+        timeToMinutes(assignment.scheduledEnd)
     ) {
-      reasons.push(buildReason(
-        "outside_availability_window",
-        "Beschikbaarheidsvenster dekt dit tijdslot niet",
-        "block",
-      ));
+      reasons.push(
+        buildReason(
+          "outside_availability_window",
+          "Beschikbaarheidsvenster dekt dit tijdslot niet",
+          "block",
+        ),
+      );
     }
   }
 
@@ -377,59 +442,75 @@ function buildPlanningMatch(params: {
     );
   });
   if (hasOverlappingAssignment) {
-    reasons.push(buildReason("already_booked", "Al ingepland op dit tijdstip", "block"));
+    reasons.push(
+      buildReason("already_booked", "Al ingepland op dit tijdstip", "block"),
+    );
   }
 
   if (
     req.requiredRoleIds.length > 0 &&
     !req.requiredRoleIds.includes(personnel.roleId ?? "")
   ) {
-    reasons.push(buildReason("role_mismatch", "Benodigde rol ontbreekt", "block"));
+    reasons.push(
+      buildReason("role_mismatch", "Benodigde rol ontbreekt", "block"),
+    );
   }
 
   if (assignment.sectorId && assignment.sectorId !== personnel.sectorId) {
-    reasons.push(buildReason("sector_mismatch", "Sector komt niet overeen", "block"));
+    reasons.push(
+      buildReason("sector_mismatch", "Sector komt niet overeen", "block"),
+    );
   }
 
-  const missingCertificates = req.requiredCertificates.filter((cert) =>
-    !personnel.certificates.includes(cert),
+  const missingCertificates = req.requiredCertificates.filter(
+    (cert) => !personnel.certificates.includes(cert),
   );
   if (missingCertificates.length > 0) {
-    reasons.push(buildReason(
-      "certificate_missing",
-      `Certificaat ontbreekt: ${missingCertificates.join(", ")}`,
-      "block",
-    ));
+    reasons.push(
+      buildReason(
+        "certificate_missing",
+        `Certificaat ontbreekt: ${missingCertificates.join(", ")}`,
+        "block",
+      ),
+    );
   }
 
-  const missingDiplomas = req.requiredDiplomas.filter((diploma) =>
-    !personnel.diplomas.includes(diploma),
+  const missingDiplomas = req.requiredDiplomas.filter(
+    (diploma) => !personnel.diplomas.includes(diploma),
   );
   if (missingDiplomas.length > 0) {
-    reasons.push(buildReason(
-      "diploma_missing",
-      `Diploma ontbreekt: ${missingDiplomas.join(", ")}`,
-      "block",
-    ));
+    reasons.push(
+      buildReason(
+        "diploma_missing",
+        `Diploma ontbreekt: ${missingDiplomas.join(", ")}`,
+        "block",
+      ),
+    );
   }
 
-  const missingKnowledge = req.requiredKnowledge.filter((knowledge) =>
-    !personnel.knowledge.includes(knowledge),
+  const missingKnowledge = req.requiredKnowledge.filter(
+    (knowledge) => !personnel.knowledge.includes(knowledge),
   );
   if (missingKnowledge.length > 0) {
-    reasons.push(buildReason(
-      "knowledge_missing",
-      `Kennis ontbreekt: ${missingKnowledge.join(", ")}`,
-      "block",
-    ));
+    reasons.push(
+      buildReason(
+        "knowledge_missing",
+        `Kennis ontbreekt: ${missingKnowledge.join(", ")}`,
+        "block",
+      ),
+    );
   }
 
   if (assignment.requiredRegion) {
     const required = assignment.requiredRegion.trim().toLowerCase();
-    const regions = uniqueStrings([personnel.region, ...personnel.preferredRegions])
-      .map((region) => region.trim().toLowerCase());
+    const regions = uniqueStrings([
+      personnel.region,
+      ...personnel.preferredRegions,
+    ]).map((region) => region.trim().toLowerCase());
     if (!regions.includes(required)) {
-      reasons.push(buildReason("region_mismatch", "Regio komt niet overeen", "block"));
+      reasons.push(
+        buildReason("region_mismatch", "Regio komt niet overeen", "block"),
+      );
     }
   }
 
@@ -440,6 +521,7 @@ function buildPlanningMatch(params: {
     personnelId: personnel.id,
     level: hasBlock ? "blocked" : hasWarning ? "warning" : "match",
     eligible: !hasBlock,
+    matchScore: null,
     reasons,
   };
 }
@@ -451,7 +533,8 @@ export async function getPlanningBoardData(
 ): Promise<PlanningBoardData> {
   const canRead = await hasPermission("planning", "read");
   const empty: PlanningBoardData = {
-    date: filters.date && isDateKey(filters.date) ? filters.date : todayDateKey(),
+    date:
+      filters.date && isDateKey(filters.date) ? filters.date : todayDateKey(),
     openAssignments: [],
     scheduledAssignments: [],
     personnel: [],
@@ -466,7 +549,8 @@ export async function getPlanningBoardData(
   };
   if (!canRead) return empty;
 
-  const date = filters.date && isDateKey(filters.date) ? filters.date : todayDateKey();
+  const date =
+    filters.date && isDateKey(filters.date) ? filters.date : todayDateKey();
   const statuses = normalizeStatuses(filters.statuses);
 
   const conditions = [eq(assignmentsTable.isActive, true)];
@@ -475,7 +559,8 @@ export async function getPlanningBoardData(
     inArray(assignmentsTable.status, OPEN_ASSIGNMENT_STATUSES),
   );
   if (boardScope) conditions.push(boardScope);
-  if (statuses.length > 0) conditions.push(inArray(assignmentsTable.status, statuses));
+  if (statuses.length > 0)
+    conditions.push(inArray(assignmentsTable.status, statuses));
 
   const term = filters.search?.trim();
   if (term) {
@@ -524,142 +609,197 @@ export async function getPlanningBoardData(
     personnelConditions.push(eq(personnelTable.sectorId, filters.sectorId));
   }
 
-  const [assignmentRows, personnelRows, sectorRows, customerRows] = await Promise.all([
-    db
-      .select({
-        id:             assignmentsTable.id,
-        code:           assignmentsTable.code,
-        title:          assignmentsTable.title,
-        status:         assignmentsTable.status,
-        priority:       assignmentsTable.priority,
-        scheduledDate:  assignmentsTable.scheduledDate,
-        scheduledStart: assignmentsTable.scheduledStart,
-        scheduledEnd:   assignmentsTable.scheduledEnd,
-        requiredRegion: assignmentsTable.requiredRegion,
-        customerId:     assignmentsTable.customerId,
-        customerName:   customersTable.name,
-        customerSectorId: customersTable.sectorId,
-        objectId:       assignmentsTable.objectId,
-        objectName:     objectsTable.name,
-        objectSectorId: objectsTable.sectorId,
-      })
-      .from(assignmentsTable)
-      .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
-      .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
-      .where(and(...conditions))
-      .orderBy(
-        asc(assignmentsTable.scheduledDate),
-        asc(assignmentsTable.scheduledStart),
-        desc(assignmentsTable.createdAt),
-      ),
+  const [assignmentRows, personnelRows, sectorRows, customerRows] =
+    await Promise.all([
+      db
+        .select({
+          id: assignmentsTable.id,
+          code: assignmentsTable.code,
+          title: assignmentsTable.title,
+          status: assignmentsTable.status,
+          priority: assignmentsTable.priority,
+          scheduledDate: assignmentsTable.scheduledDate,
+          scheduledStart: assignmentsTable.scheduledStart,
+          scheduledEnd: assignmentsTable.scheduledEnd,
+          requiredRegion: assignmentsTable.requiredRegion,
+          requiredPersonnelCount: assignmentsTable.requiredPersonnelCount,
+          customerId: assignmentsTable.customerId,
+          customerName: customersTable.name,
+          customerSectorId: customersTable.sectorId,
+          objectId: assignmentsTable.objectId,
+          objectName: objectsTable.name,
+          objectSectorId: objectsTable.sectorId,
+        })
+        .from(assignmentsTable)
+        .leftJoin(
+          customersTable,
+          eq(assignmentsTable.customerId, customersTable.id),
+        )
+        .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
+        .where(and(...conditions))
+        .orderBy(
+          asc(assignmentsTable.scheduledDate),
+          asc(assignmentsTable.scheduledStart),
+          desc(assignmentsTable.createdAt),
+        ),
 
-    db
-      .select({
-        id:                 personnelTable.id,
-        firstName:          personnelTable.firstName,
-        lastName:           personnelTable.lastName,
-        roleId:             personnelTable.roleId,
-        roleName:           rolesTable.name,
-        sectorId:           personnelTable.sectorId,
-        sectorName:         sectorsTable.name,
-        region:             personnelTable.region,
-        preferredRegions:   personnelTable.preferredRegions,
-        certificates:       personnelTable.certificates,
-        diplomas:           personnelTable.diplomas,
-        knowledge:          personnelTable.knowledge,
-        personnelType:      personnelTable.personnelType,
-        emergencyAvailable: personnelTable.emergencyAvailable,
-        isAvailable:        personnelTable.isAvailable,
-      })
-      .from(personnelTable)
-      .leftJoin(rolesTable, eq(personnelTable.roleId, rolesTable.id))
-      .leftJoin(sectorsTable, eq(personnelTable.sectorId, sectorsTable.id))
-      .where(and(...personnelConditions))
-      .orderBy(asc(personnelTable.lastName), asc(personnelTable.firstName)),
+      db
+        .select({
+          id: personnelTable.id,
+          firstName: personnelTable.firstName,
+          lastName: personnelTable.lastName,
+          roleId: personnelTable.roleId,
+          roleName: rolesTable.name,
+          sectorId: personnelTable.sectorId,
+          sectorName: sectorsTable.name,
+          region: personnelTable.region,
+          preferredRegions: personnelTable.preferredRegions,
+          certificates: personnelTable.certificates,
+          diplomas: personnelTable.diplomas,
+          knowledge: personnelTable.knowledge,
+          personnelType: personnelTable.personnelType,
+          emergencyAvailable: personnelTable.emergencyAvailable,
+          isAvailable: personnelTable.isAvailable,
+        })
+        .from(personnelTable)
+        .leftJoin(rolesTable, eq(personnelTable.roleId, rolesTable.id))
+        .leftJoin(sectorsTable, eq(personnelTable.sectorId, sectorsTable.id))
+        .where(and(...personnelConditions))
+        .orderBy(asc(personnelTable.lastName), asc(personnelTable.firstName)),
 
-    db
-      .select({ id: sectorsTable.id, name: sectorsTable.name })
-      .from(sectorsTable)
-      .where(eq(sectorsTable.isActive, true))
-      .orderBy(asc(sectorsTable.name)),
+      db
+        .select({ id: sectorsTable.id, name: sectorsTable.name })
+        .from(sectorsTable)
+        .where(eq(sectorsTable.isActive, true))
+        .orderBy(asc(sectorsTable.name)),
 
-    db
-      .select({ id: customersTable.id, name: customersTable.name })
-      .from(customersTable)
-      .where(eq(customersTable.isActive, true))
-      .orderBy(asc(customersTable.name)),
-  ]);
+      db
+        .select({ id: customersTable.id, name: customersTable.name })
+        .from(customersTable)
+        .where(eq(customersTable.isActive, true))
+        .orderBy(asc(customersTable.name)),
+    ]);
 
   const assignmentIds = assignmentRows.map((row) => row.id);
   const personnelIds = personnelRows.map((row) => row.id);
 
-  const [taskRows, linkRows, windowRows, availabilityMap] = await Promise.all([
-    assignmentIds.length > 0
-      ? db
-          .select({
-            assignmentId: assignmentTasksTable.assignmentId,
-            taskCodeId: assignmentTasksTable.taskCodeId,
-            requiredRoleId: taskCodesTable.requiredRoleId,
-            requiredRoleName: rolesTable.name,
-            requiredCertificates: taskCodesTable.requiredCertificates,
-            requiredDiploma: taskCodesTable.requiredDiploma,
-            requiredKnowledge: taskCodesTable.requiredKnowledge,
-            durationMinutes: taskCodesTable.durationMinutes,
-            sectorId: taskCodesTable.sectorId,
-          })
-          .from(assignmentTasksTable)
-          .leftJoin(taskCodesTable, eq(assignmentTasksTable.taskCodeId, taskCodesTable.id))
-          .leftJoin(rolesTable, eq(taskCodesTable.requiredRoleId, rolesTable.id))
-          .where(inArray(assignmentTasksTable.assignmentId, assignmentIds))
-      : Promise.resolve([]),
+  const [taskRows, linkRows, dayEntryRows, windowRows, candidateRows, availabilityMap] =
+    await Promise.all([
+      assignmentIds.length > 0
+        ? db
+            .select({
+              assignmentId: assignmentTasksTable.assignmentId,
+              taskCodeId: assignmentTasksTable.taskCodeId,
+              requiredRoleId: taskCodesTable.requiredRoleId,
+              requiredRoleName: rolesTable.name,
+              requiredCertificates: taskCodesTable.requiredCertificates,
+              requiredDiploma: taskCodesTable.requiredDiploma,
+              requiredKnowledge: taskCodesTable.requiredKnowledge,
+              durationMinutes: taskCodesTable.durationMinutes,
+              sectorId: taskCodesTable.sectorId,
+            })
+            .from(assignmentTasksTable)
+            .leftJoin(
+              taskCodesTable,
+              eq(assignmentTasksTable.taskCodeId, taskCodesTable.id),
+            )
+            .leftJoin(
+              rolesTable,
+              eq(taskCodesTable.requiredRoleId, rolesTable.id),
+            )
+            .where(inArray(assignmentTasksTable.assignmentId, assignmentIds))
+        : Promise.resolve([]),
 
-    assignmentIds.length > 0
-      ? db
-          .select({
-            assignmentId: assignmentPersonnelTable.assignmentId,
-            personnelId: assignmentPersonnelTable.personnelId,
-          })
-          .from(assignmentPersonnelTable)
-          .where(
-            and(
-              inArray(assignmentPersonnelTable.assignmentId, assignmentIds),
-              eq(assignmentPersonnelTable.status, "assigned"),
-            ),
-          )
-      : Promise.resolve([]),
+      assignmentIds.length > 0
+        ? db
+            .select({
+              assignmentId: assignmentPersonnelTable.assignmentId,
+              personnelId: assignmentPersonnelTable.personnelId,
+            })
+            .from(assignmentPersonnelTable)
+            .where(
+              and(
+                inArray(assignmentPersonnelTable.assignmentId, assignmentIds),
+                eq(assignmentPersonnelTable.status, "assigned"),
+              ),
+            )
+        : Promise.resolve([]),
 
-    personnelIds.length > 0
-      ? db
-          .select({
-            personnelId: availabilityWindowsTable.personnelId,
-            startTime: availabilityWindowsTable.startTime,
-            endTime: availabilityWindowsTable.endTime,
-          })
-          .from(availabilityWindowsTable)
-          .where(
-            and(
-              inArray(availabilityWindowsTable.personnelId, personnelIds),
-              eq(availabilityWindowsTable.dayOfWeek, new Date(`${date}T00:00:00`).getDay()),
-            ),
-          )
-      : Promise.resolve([]),
+      personnelIds.length > 0
+        ? db
+            .select({
+              personnelId: availabilityDayEntriesTable.personnelId,
+              startTime: availabilityDayEntriesTable.startTime,
+              endTime: availabilityDayEntriesTable.endTime,
+            })
+            .from(availabilityDayEntriesTable)
+            .where(
+              and(
+                inArray(availabilityDayEntriesTable.personnelId, personnelIds),
+                eq(availabilityDayEntriesTable.date, date),
+              ),
+            )
+        : Promise.resolve([]),
 
-    personnelIds.length > 0
-      ? getBatchAvailabilityStatus(personnelIds, date)
-      : Promise.resolve({} as Record<string, AvailabilityStatus>),
-  ]);
+      personnelIds.length > 0
+        ? db
+            .select({
+              personnelId: availabilityWindowsTable.personnelId,
+              startTime: availabilityWindowsTable.startTime,
+              endTime: availabilityWindowsTable.endTime,
+            })
+            .from(availabilityWindowsTable)
+            .where(
+              and(
+                inArray(availabilityWindowsTable.personnelId, personnelIds),
+                eq(
+                  availabilityWindowsTable.dayOfWeek,
+                  new Date(`${date}T00:00:00`).getDay(),
+                ),
+              ),
+            )
+        : Promise.resolve([]),
 
-  const sectorNameById = new Map(sectorRows.map((sector) => [sector.id, sector.name]));
-  const requirementMap = new Map<string, {
-    requiredRoleIds: Set<string>;
-    requiredRoleNames: Set<string>;
-    requiredCertificates: Set<string>;
-    requiredKnowledge: Set<string>;
-    requiredDiplomas: Set<string>;
-    taskSectorIds: Set<string>;
-    taskCount: number;
-    estimatedDurationMinutes: number;
-  }>();
+      assignmentIds.length > 0
+        ? db
+            .select({
+              assignmentId: assignmentCandidatesTable.assignmentId,
+              personnelId: assignmentCandidatesTable.personnelId,
+              hardStatus: assignmentCandidatesTable.hardStatus,
+              matchScore: assignmentCandidatesTable.matchScore,
+            })
+            .from(assignmentCandidatesTable)
+            .where(inArray(assignmentCandidatesTable.assignmentId, assignmentIds))
+        : Promise.resolve(
+            [] as Array<{
+              assignmentId: string;
+              personnelId: string;
+              hardStatus: string;
+              matchScore: number;
+            }>,
+          ),
+
+      personnelIds.length > 0
+        ? getBatchAvailabilityStatus(personnelIds, date)
+        : Promise.resolve({} as Record<string, AvailabilityStatus>),
+    ]);
+
+  const sectorNameById = new Map(
+    sectorRows.map((sector) => [sector.id, sector.name]),
+  );
+  const requirementMap = new Map<
+    string,
+    {
+      requiredRoleIds: Set<string>;
+      requiredRoleNames: Set<string>;
+      requiredCertificates: Set<string>;
+      requiredKnowledge: Set<string>;
+      requiredDiplomas: Set<string>;
+      taskSectorIds: Set<string>;
+      taskCount: number;
+      estimatedDurationMinutes: number;
+    }
+  >();
 
   for (const row of taskRows) {
     const current = requirementMap.get(row.assignmentId) ?? {
@@ -674,13 +814,56 @@ export async function getPlanningBoardData(
     };
     current.taskCount += 1;
     if (row.requiredRoleId) current.requiredRoleIds.add(row.requiredRoleId);
-    if (row.requiredRoleName) current.requiredRoleNames.add(row.requiredRoleName);
-    for (const cert of (row.requiredCertificates ?? []) as string[]) current.requiredCertificates.add(cert);
-    for (const knowledge of (row.requiredKnowledge ?? []) as string[]) current.requiredKnowledge.add(knowledge);
+    if (row.requiredRoleName)
+      current.requiredRoleNames.add(row.requiredRoleName);
+    for (const cert of (row.requiredCertificates ?? []) as string[])
+      current.requiredCertificates.add(cert);
+    for (const knowledge of (row.requiredKnowledge ?? []) as string[])
+      current.requiredKnowledge.add(knowledge);
     if (row.requiredDiploma) current.requiredDiplomas.add(row.requiredDiploma);
     if (row.sectorId) current.taskSectorIds.add(row.sectorId);
     current.estimatedDurationMinutes += row.durationMinutes ?? 0;
     requirementMap.set(row.assignmentId, current);
+  }
+
+  const boardRequiredRoleIds = uniqueStrings(
+    [...requirementMap.values()].flatMap((requirements) => [
+      ...requirements.requiredRoleIds,
+    ]),
+  );
+  const roleQualificationRows =
+    boardRequiredRoleIds.length > 0
+      ? await db
+          .select({
+            roleId: roleQualificationsTable.roleId,
+            type: qualificationItemsTable.type,
+            name: qualificationItemsTable.name,
+          })
+          .from(roleQualificationsTable)
+          .innerJoin(
+            qualificationItemsTable,
+            eq(roleQualificationsTable.qualificationId, qualificationItemsTable.id),
+          )
+          .where(
+            and(
+              inArray(roleQualificationsTable.roleId, boardRequiredRoleIds),
+              eq(roleQualificationsTable.required, true),
+              eq(qualificationItemsTable.isActive, true),
+            ),
+          )
+      : [];
+
+  for (const requirements of requirementMap.values()) {
+    for (const qualification of roleQualificationRows) {
+      if (!requirements.requiredRoleIds.has(qualification.roleId)) continue;
+      if (qualification.type === "certificate") {
+        requirements.requiredCertificates.add(qualification.name);
+      } else if (qualification.type === "diploma") {
+        requirements.requiredDiplomas.add(qualification.name);
+      } else if (qualification.type === "knowledge") {
+        requirements.requiredKnowledge.add(qualification.name);
+      }
+    }
   }
 
   const personnelIdsByAssignment = new Map<string, string[]>();
@@ -690,14 +873,20 @@ export async function getPlanningBoardData(
     personnelIdsByAssignment.set(link.assignmentId, ids);
   }
 
-  const baseAssignmentsById = new Map(assignmentRows.map((row) => [row.id, row]));
+  const baseAssignmentsById = new Map(
+    assignmentRows.map((row) => [row.id, row]),
+  );
   const conflictAssignmentIds = new Set<string>();
 
   for (const link of linkRows) {
     const assignment = baseAssignmentsById.get(link.assignmentId);
     if (!assignment || assignment.scheduledDate !== date) continue;
     const status = availabilityMap[link.personnelId];
-    if (status === "ziek" || status === "op_verlof" || status === "niet_beschikbaar") {
+    if (
+      status === "ziek" ||
+      status === "op_verlof" ||
+      status === "niet_beschikbaar"
+    ) {
       conflictAssignmentIds.add(link.assignmentId);
     }
   }
@@ -716,7 +905,14 @@ export async function getPlanningBoardData(
       for (let j = i + 1; j < list.length; j++) {
         const a = list[i]!;
         const b = list[j]!;
-        if (overlaps(a.scheduledStart, a.scheduledEnd, b.scheduledStart, b.scheduledEnd)) {
+        if (
+          overlaps(
+            a.scheduledStart,
+            a.scheduledEnd,
+            b.scheduledStart,
+            b.scheduledEnd,
+          )
+        ) {
           conflictAssignmentIds.add(a.id);
           conflictAssignmentIds.add(b.id);
         }
@@ -724,54 +920,67 @@ export async function getPlanningBoardData(
     }
   }
 
-  const boardAssignments: PlanningBoardAssignment[] = assignmentRows.map((row) => {
-    const req = requirementMap.get(row.id);
-    const taskSectorIds = req ? [...req.taskSectorIds] : [];
-    const sectorId = row.objectSectorId ?? row.customerSectorId ?? taskSectorIds[0] ?? null;
-    const requiredRoleIds = req ? [...req.requiredRoleIds] : [];
-    const estimatedDurationMinutes = req?.estimatedDurationMinutes
-      ? req.estimatedDurationMinutes
-      : durationMinutes(row.scheduledStart ?? null, row.scheduledEnd ?? null, 60);
-    const assignedPersonnelIds = personnelIdsByAssignment.get(row.id) ?? [];
-    const requiredSlots = Math.max(requiredRoleIds.length, 1);
+  const boardAssignments: PlanningBoardAssignment[] = assignmentRows.map(
+    (row) => {
+      const req = requirementMap.get(row.id);
+      const taskSectorIds = req ? [...req.taskSectorIds] : [];
+      const sectorId =
+        row.objectSectorId ?? row.customerSectorId ?? taskSectorIds[0] ?? null;
+      const requiredRoleIds = req ? [...req.requiredRoleIds] : [];
+      const estimatedDurationMinutes = req?.estimatedDurationMinutes
+        ? req.estimatedDurationMinutes
+        : durationMinutes(
+            row.scheduledStart ?? null,
+            row.scheduledEnd ?? null,
+            60,
+          );
+      const assignedPersonnelIds = personnelIdsByAssignment.get(row.id) ?? [];
+      const requiredSlots = Math.max(row.requiredPersonnelCount ?? 1, requiredRoleIds.length, 1);
 
-    return {
-      id: row.id,
-      code: row.code,
-      title: row.title,
-      status: row.status as AssignmentStatus,
-      priority: row.priority as AssignmentPriority,
-      scheduledDate: row.scheduledDate ?? null,
-      scheduledStart: row.scheduledStart ?? null,
-      scheduledEnd: row.scheduledEnd ?? null,
-      customerId: row.customerId,
-      customerName: row.customerName ?? "",
-      objectId: row.objectId ?? null,
-      objectName: row.objectName ?? null,
-      sectorId,
-      sectorName: sectorId ? sectorNameById.get(sectorId) ?? null : null,
-      requiredRegion: row.requiredRegion ?? null,
-      assignedPersonnelIds,
-      requiredSlots,
-      filledSlots: assignedPersonnelIds.length,
-      hasConflict: conflictAssignmentIds.has(row.id),
-      requirements: {
-        requiredRoleIds,
-        requiredRoleNames: req ? [...req.requiredRoleNames] : [],
-        requiredCertificates: req ? [...req.requiredCertificates] : [],
-        requiredKnowledge: req ? [...req.requiredKnowledge] : [],
-        requiredDiplomas: req ? [...req.requiredDiplomas] : [],
-        assignmentRegion: row.requiredRegion ?? null,
+      return {
+        id: row.id,
+        code: row.code,
+        title: row.title,
+        status: row.status as AssignmentStatus,
+        priority: row.priority as AssignmentPriority,
         scheduledDate: row.scheduledDate ?? null,
-        taskCount: req?.taskCount ?? 0,
-        estimatedDurationMinutes,
-        taskSectorIds,
-      },
-    };
-  });
+        scheduledStart: row.scheduledStart ?? null,
+        scheduledEnd: row.scheduledEnd ?? null,
+        customerId: row.customerId,
+        customerName: row.customerName ?? "",
+        objectId: row.objectId ?? null,
+        objectName: row.objectName ?? null,
+        sectorId,
+        sectorName: sectorId ? (sectorNameById.get(sectorId) ?? null) : null,
+        requiredRegion: row.requiredRegion ?? null,
+        requiredPersonnelCount: row.requiredPersonnelCount ?? 1,
+        assignedPersonnelIds,
+        requiredSlots,
+        filledSlots: assignedPersonnelIds.length,
+        hasConflict: conflictAssignmentIds.has(row.id),
+        requirements: {
+          requiredRoleIds,
+          requiredRoleNames: req ? [...req.requiredRoleNames] : [],
+          requiredCertificates: req ? [...req.requiredCertificates] : [],
+          requiredKnowledge: req ? [...req.requiredKnowledge] : [],
+          requiredDiplomas: req ? [...req.requiredDiplomas] : [],
+          assignmentRegion: row.requiredRegion ?? null,
+          scheduledDate: row.scheduledDate ?? null,
+          taskCount: req?.taskCount ?? 0,
+          estimatedDurationMinutes,
+          taskSectorIds,
+        },
+      };
+    },
+  );
 
-  const assignmentById = new Map(boardAssignments.map((assignment) => [assignment.id, assignment]));
-  const scheduledBlocksByPersonnel = new Map<string, PlanningBoardPersonnelAssignment[]>();
+  const assignmentById = new Map(
+    boardAssignments.map((assignment) => [assignment.id, assignment]),
+  );
+  const scheduledBlocksByPersonnel = new Map<
+    string,
+    PlanningBoardPersonnelAssignment[]
+  >();
 
   for (const link of linkRows) {
     const assignment = assignmentById.get(link.assignmentId);
@@ -788,7 +997,8 @@ export async function getPlanningBoardData(
       sectorName: assignment.sectorName,
       scheduledStart: assignment.scheduledStart,
       scheduledEnd: assignment.scheduledEnd,
-      estimatedDurationMinutes: assignment.requirements.estimatedDurationMinutes,
+      estimatedDurationMinutes:
+        assignment.requirements.estimatedDurationMinutes,
       requiredSlots: assignment.requiredSlots,
       filledSlots: assignment.filledSlots,
       hasConflict: assignment.hasConflict,
@@ -796,16 +1006,29 @@ export async function getPlanningBoardData(
     scheduledBlocksByPersonnel.set(link.personnelId, list);
   }
 
-  const windowByPersonnelId = new Map(
-    windowRows.map((window) => [
-      window.personnelId,
-      { startTime: window.startTime, endTime: window.endTime },
-    ]),
-  );
+  const windowByPersonnelId = new Map<
+    string,
+    { startTime: string; endTime: string }
+  >();
+  for (const window of windowRows) {
+    windowByPersonnelId.set(window.personnelId, {
+      startTime: window.startTime,
+      endTime: window.endTime,
+    });
+  }
+  for (const entry of dayEntryRows) {
+    windowByPersonnelId.set(entry.personnelId, {
+      startTime: entry.startTime,
+      endTime: entry.endTime,
+    });
+  }
 
   const personnel: PlanningBoardPersonnel[] = personnelRows.map((row) => {
-    const scheduledAssignments = (scheduledBlocksByPersonnel.get(row.id) ?? [])
-      .sort((a, b) => (a.scheduledStart ?? "").localeCompare(b.scheduledStart ?? ""));
+    const scheduledAssignments = (
+      scheduledBlocksByPersonnel.get(row.id) ?? []
+    ).sort((a, b) =>
+      (a.scheduledStart ?? "").localeCompare(b.scheduledStart ?? ""),
+    );
     return {
       id: row.id,
       firstName: row.firstName,
@@ -818,15 +1041,18 @@ export async function getPlanningBoardData(
       preferredRegions: stringArray(row.preferredRegions),
       personnelType: row.personnelType ?? null,
       emergencyAvailable: row.emergencyAvailable,
-      availabilityStatus: (availabilityMap[row.id] ?? "niet_ingesteld") as AvailabilityStatus,
+      availabilityStatus: (availabilityMap[row.id] ??
+        "niet_ingesteld") as AvailabilityStatus,
       availabilityWindow: windowByPersonnelId.get(row.id) ?? null,
       scheduledAssignments,
       scheduledMinutes: scheduledAssignments.reduce(
-        (total, assignment) => total + durationMinutes(
-          assignment.scheduledStart,
-          assignment.scheduledEnd,
-          assignment.estimatedDurationMinutes,
-        ),
+        (total, assignment) =>
+          total +
+          durationMinutes(
+            assignment.scheduledStart,
+            assignment.scheduledEnd,
+            assignment.estimatedDurationMinutes,
+          ),
         0,
       ),
     };
@@ -849,33 +1075,55 @@ export async function getPlanningBoardData(
     ]),
   );
 
+  const smartCandidateByKey = new Map(
+    candidateRows.map((row) => [
+      `${row.assignmentId}:${row.personnelId}`,
+      {
+        hardStatus: row.hardStatus,
+        matchScore: row.matchScore ?? 0,
+      },
+    ]),
+  );
+
   const openAssignments = boardAssignments.filter((assignment) => {
     if (assignment.filledSlots >= assignment.requiredSlots) return false;
-    return OPEN_ASSIGNMENT_STATUSES.includes(assignment.status) || assignment.status === "scheduled";
+    return (
+      OPEN_ASSIGNMENT_STATUSES.includes(assignment.status) ||
+      assignment.status === "scheduled"
+    );
   });
 
-  const scheduledAssignments = boardAssignments.filter((assignment) =>
-    assignment.scheduledDate === date,
+  const scheduledAssignments = boardAssignments.filter(
+    (assignment) => assignment.scheduledDate === date,
   );
 
   const matchesByAssignmentId: Record<string, PlanningBoardMatch[]> = {};
   for (const assignment of boardAssignments) {
-    matchesByAssignmentId[assignment.id] = personnel.map((person) => {
-      const candidate = personnelCandidates.get(person.id)!;
-      return buildPlanningMatch({
-        assignment: {
-          ...assignment,
-          scheduledDate: assignment.scheduledDate ?? date,
-        },
-        personnel: candidate,
-        availabilityStatus: person.availabilityStatus,
-        availabilityWindow: person.availabilityWindow,
-        personnelAssignments: person.scheduledAssignments,
+    matchesByAssignmentId[assignment.id] = personnel
+      .map((person) => {
+        const candidate = personnelCandidates.get(person.id)!;
+        const match = buildPlanningMatch({
+          assignment: {
+            ...assignment,
+            scheduledDate: assignment.scheduledDate ?? date,
+          },
+          personnel: candidate,
+          availabilityStatus: person.availabilityStatus,
+          availabilityWindow: person.availabilityWindow,
+          personnelAssignments: person.scheduledAssignments,
+        });
+        const smart = smartCandidateByKey.get(`${assignment.id}:${person.id}`);
+        return {
+          ...match,
+          matchScore: smart?.matchScore ?? match.matchScore,
+        };
+      })
+      .sort((a, b) => {
+        const order = { match: 0, warning: 1, blocked: 2 };
+        const levelDelta = order[a.level] - order[b.level];
+        if (levelDelta !== 0) return levelDelta;
+        return (b.matchScore ?? -1) - (a.matchScore ?? -1);
       });
-    }).sort((a, b) => {
-      const order = { match: 0, warning: 1, blocked: 2 };
-      return order[a.level] - order[b.level];
-    });
   }
 
   const regions = uniqueStrings([
@@ -912,64 +1160,70 @@ export async function getPersonnelForAssignment(
   const canRead = await hasPermission("planning", "read");
   if (!canRead) return null;
 
-  const [taskRows, personnelRows, assignedRows, [assignmentRow]] = await Promise.all([
-    db
-      .select({
-        requiredRoleId:       taskCodesTable.requiredRoleId,
-        requiredCertificates: taskCodesTable.requiredCertificates,
-        requiredKnowledge:    taskCodesTable.requiredKnowledge,
-        requiredDiploma:      taskCodesTable.requiredDiploma,
-      })
-      .from(assignmentTasksTable)
-      .innerJoin(taskCodesTable, eq(assignmentTasksTable.taskCodeId, taskCodesTable.id))
-      .where(eq(assignmentTasksTable.assignmentId, assignmentId)),
+  const [taskRows, personnelRows, assignedRows, [assignmentRow]] =
+    await Promise.all([
+      db
+        .select({
+          requiredRoleId: taskCodesTable.requiredRoleId,
+          requiredCertificates: taskCodesTable.requiredCertificates,
+          requiredKnowledge: taskCodesTable.requiredKnowledge,
+          requiredDiploma: taskCodesTable.requiredDiploma,
+        })
+        .from(assignmentTasksTable)
+        .innerJoin(
+          taskCodesTable,
+          eq(assignmentTasksTable.taskCodeId, taskCodesTable.id),
+        )
+        .where(eq(assignmentTasksTable.assignmentId, assignmentId)),
 
-    db
-      .select({
-        id:           personnelTable.id,
-        firstName:    personnelTable.firstName,
-        lastName:     personnelTable.lastName,
-        roleId:       personnelTable.roleId,
-        roleName:     rolesTable.name,
-        sectorId:     personnelTable.sectorId,
-        sectorName:   sectorsTable.name,
-        region:       personnelTable.region,
-        certificates: personnelTable.certificates,
-        diplomas:     personnelTable.diplomas,
-        knowledge:    personnelTable.knowledge,
-        isActive:     personnelTable.isActive,
-      })
-      .from(personnelTable)
-      .leftJoin(rolesTable, eq(personnelTable.roleId, rolesTable.id))
-      .leftJoin(sectorsTable, eq(personnelTable.sectorId, sectorsTable.id))
-      .where(eq(personnelTable.isActive, true))
-      .orderBy(personnelTable.lastName),
+      db
+        .select({
+          id: personnelTable.id,
+          firstName: personnelTable.firstName,
+          lastName: personnelTable.lastName,
+          roleId: personnelTable.roleId,
+          roleName: rolesTable.name,
+          sectorId: personnelTable.sectorId,
+          sectorName: sectorsTable.name,
+          region: personnelTable.region,
+          certificates: personnelTable.certificates,
+          diplomas: personnelTable.diplomas,
+          knowledge: personnelTable.knowledge,
+          isActive: personnelTable.isActive,
+        })
+        .from(personnelTable)
+        .leftJoin(rolesTable, eq(personnelTable.roleId, rolesTable.id))
+        .leftJoin(sectorsTable, eq(personnelTable.sectorId, sectorsTable.id))
+        .where(eq(personnelTable.isActive, true))
+        .orderBy(personnelTable.lastName),
 
-    db
-      .select({
-        linkId:      assignmentPersonnelTable.id,
-        personnelId: assignmentPersonnelTable.personnelId,
-      })
-      .from(assignmentPersonnelTable)
-      .where(
-        and(
-          eq(assignmentPersonnelTable.assignmentId, assignmentId),
-          eq(assignmentPersonnelTable.status, "assigned"),
+      db
+        .select({
+          linkId: assignmentPersonnelTable.id,
+          personnelId: assignmentPersonnelTable.personnelId,
+        })
+        .from(assignmentPersonnelTable)
+        .where(
+          and(
+            eq(assignmentPersonnelTable.assignmentId, assignmentId),
+            eq(assignmentPersonnelTable.status, "assigned"),
+          ),
         ),
-      ),
 
-    db
-      .select({
-        scheduledDate:  assignmentsTable.scheduledDate,
-        requiredRegion: assignmentsTable.requiredRegion,
-      })
-      .from(assignmentsTable)
-      .where(eq(assignmentsTable.id, assignmentId))
-      .limit(1),
-  ]);
+      db
+        .select({
+          scheduledDate: assignmentsTable.scheduledDate,
+          requiredRegion: assignmentsTable.requiredRegion,
+        })
+        .from(assignmentsTable)
+        .where(eq(assignmentsTable.id, assignmentId))
+        .limit(1),
+    ]);
 
-  const assignedMap    = new Map(assignedRows.map((r) => [r.personnelId, r.linkId]));
-  const scheduledDate  = assignmentRow?.scheduledDate  ?? null;
+  const assignedMap = new Map(
+    assignedRows.map((r) => [r.personnelId, r.linkId]),
+  );
+  const scheduledDate = assignmentRow?.scheduledDate ?? null;
   const assignmentRegion = assignmentRow?.requiredRegion ?? null;
 
   // ── Batch availability status ──────────────────────────────────────────────
@@ -988,19 +1242,40 @@ export async function getPersonnelForAssignment(
         .filter((id): id is string => id !== null && id !== undefined),
     ),
   ];
-  const requiredCertificates = [
-    ...new Set(taskRows.flatMap((r) => (r.requiredCertificates as string[] | null) ?? [])),
-  ];
-  const requiredKnowledge = [
-    ...new Set(taskRows.flatMap((r) => (r.requiredKnowledge as string[] | null) ?? [])),
-  ];
-  const requiredDiplomas = [
-    ...new Set(
-      taskRows
-        .map((r) => r.requiredDiploma)
-        .filter((d): d is string => d !== null && d !== undefined),
-    ),
-  ];
+  const roleQualificationRows =
+    requiredRoleIds.length > 0
+      ? await db
+          .select({
+            type: qualificationItemsTable.type,
+            name: qualificationItemsTable.name,
+          })
+          .from(roleQualificationsTable)
+          .innerJoin(
+            qualificationItemsTable,
+            eq(roleQualificationsTable.qualificationId, qualificationItemsTable.id),
+          )
+          .where(
+            and(
+              inArray(roleQualificationsTable.roleId, requiredRoleIds),
+              eq(roleQualificationsTable.required, true),
+              eq(qualificationItemsTable.isActive, true),
+            ),
+          )
+      : [];
+  const requiredCertificates = uniqueStrings([
+    ...taskRows.flatMap((r) => (r.requiredCertificates as string[] | null) ?? []),
+    ...roleQualificationRows.filter((row) => row.type === "certificate").map((row) => row.name),
+  ]);
+  const requiredKnowledge = uniqueStrings([
+    ...taskRows.flatMap((r) => (r.requiredKnowledge as string[] | null) ?? []),
+    ...roleQualificationRows.filter((row) => row.type === "knowledge").map((row) => row.name),
+  ]);
+  const requiredDiplomas = uniqueStrings([
+    ...taskRows
+      .map((r) => r.requiredDiploma)
+      .filter((d): d is string => d !== null && d !== undefined),
+    ...roleQualificationRows.filter((row) => row.type === "diploma").map((row) => row.name),
+  ]);
 
   return {
     requirements: {
@@ -1012,21 +1287,21 @@ export async function getPersonnelForAssignment(
       scheduledDate,
     },
     personnel: personnelRows.map((r) => ({
-      personnelId:        r.id,
-      linkId:             assignedMap.get(r.id) ?? null,
-      firstName:          r.firstName,
-      lastName:           r.lastName,
-      roleId:             r.roleId   ?? null,
-      roleName:           r.roleName ?? null,
-      sectorId:           r.sectorId ?? null,
-      sectorName:         r.sectorName ?? null,
-      region:             r.region   ?? null,
-      certificates:       ((r.certificates ?? []) as ({ name: string; expires_at?: string } | string)[])
-        .map((c) => typeof c === "string" ? c : c.name),
-      diplomas:           (r.diplomas    as string[] | null) ?? [],
-      knowledge:          (r.knowledge   as string[] | null) ?? [],
-      isActive:           r.isActive,
-      availabilityStatus: (availabilityMap[r.id] ?? "niet_ingesteld") as AvailabilityStatus,
+      personnelId: r.id,
+      linkId: assignedMap.get(r.id) ?? null,
+      firstName: r.firstName,
+      lastName: r.lastName,
+      roleId: r.roleId ?? null,
+      roleName: r.roleName ?? null,
+      sectorId: r.sectorId ?? null,
+      sectorName: r.sectorName ?? null,
+      region: r.region ?? null,
+      certificates: certNames(r.certificates),
+      diplomas: (r.diplomas as string[] | null) ?? [],
+      knowledge: (r.knowledge as string[] | null) ?? [],
+      isActive: r.isActive,
+      availabilityStatus: (availabilityMap[r.id] ??
+        "niet_ingesteld") as AvailabilityStatus,
     })),
   };
 }
@@ -1042,7 +1317,9 @@ export async function unassignPersonnel(
   await requirePermission("assignments", "write");
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const [[link], [current]] = await Promise.all([
@@ -1052,7 +1329,7 @@ export async function unassignPersonnel(
       .where(
         and(
           eq(assignmentPersonnelTable.assignmentId, assignmentId),
-          eq(assignmentPersonnelTable.personnelId,  personnelId),
+          eq(assignmentPersonnelTable.personnelId, personnelId),
         ),
       )
       .limit(1),
@@ -1077,11 +1354,11 @@ export async function unassignPersonnel(
   }
 
   await db.insert(auditLogTable).values({
-    userId:     user.id,
-    action:     "unassign_personnel",
-    resource:   "assignments",
+    userId: user.id,
+    action: "unassign_personnel",
+    resource: "assignments",
     resourceId: assignmentId,
-    metadata:   { personnelId },
+    metadata: { personnelId },
   });
 
   revalidatePath("/planning");
@@ -1101,91 +1378,114 @@ export async function scheduleAssignmentOnBoard(
   const start = input.start.trim();
 
   if (!assignmentId || !personnelId) {
-    return { success: false, message: "Opdracht en medewerker zijn verplicht." };
+    return {
+      success: false,
+      message: "Opdracht en medewerker zijn verplicht.",
+    };
   }
   if (!isDateKey(date)) {
-    return { success: false, message: "Ongeldige plandatum.", fieldErrors: { date: "Gebruik YYYY-MM-DD." } };
+    return {
+      success: false,
+      message: "Ongeldige plandatum.",
+      fieldErrors: { date: "Gebruik YYYY-MM-DD." },
+    };
   }
   if (!isTimeKey(start)) {
-    return { success: false, message: "Ongeldige starttijd.", fieldErrors: { start: "Gebruik HH:MM." } };
+    return {
+      success: false,
+      message: "Ongeldige starttijd.",
+      fieldErrors: { start: "Gebruik HH:MM." },
+    };
   }
 
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  const [[assignment], [personnel], taskRows, assignedRows] = await Promise.all([
-    db
-      .select({
-        id:             assignmentsTable.id,
-        code:           assignmentsTable.code,
-        title:          assignmentsTable.title,
-        status:         assignmentsTable.status,
-        priority:       assignmentsTable.priority,
-        customerId:     assignmentsTable.customerId,
-        customerName:   customersTable.name,
-        customerSectorId: customersTable.sectorId,
-        objectId:       assignmentsTable.objectId,
-        objectName:     objectsTable.name,
-        objectSectorId: objectsTable.sectorId,
-        requiredRegion: assignmentsTable.requiredRegion,
-      })
-      .from(assignmentsTable)
-      .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
-      .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
-      .where(eq(assignmentsTable.id, assignmentId))
-      .limit(1),
+  const [[assignment], [personnel], taskRows, assignedRows] = await Promise.all(
+    [
+      db
+        .select({
+          id: assignmentsTable.id,
+          code: assignmentsTable.code,
+          title: assignmentsTable.title,
+          status: assignmentsTable.status,
+          priority: assignmentsTable.priority,
+          customerId: assignmentsTable.customerId,
+          customerName: customersTable.name,
+          customerSectorId: customersTable.sectorId,
+          objectId: assignmentsTable.objectId,
+          objectName: objectsTable.name,
+          objectSectorId: objectsTable.sectorId,
+          requiredRegion: assignmentsTable.requiredRegion,
+        })
+        .from(assignmentsTable)
+        .leftJoin(
+          customersTable,
+          eq(assignmentsTable.customerId, customersTable.id),
+        )
+        .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
+        .where(eq(assignmentsTable.id, assignmentId))
+        .limit(1),
 
-    db
-      .select({
-        id:               personnelTable.id,
-        firstName:        personnelTable.firstName,
-        lastName:         personnelTable.lastName,
-        roleId:           personnelTable.roleId,
-        sectorId:         personnelTable.sectorId,
-        region:           personnelTable.region,
-        preferredRegions: personnelTable.preferredRegions,
-        certificates:     personnelTable.certificates,
-        diplomas:         personnelTable.diplomas,
-        knowledge:        personnelTable.knowledge,
-        isActive:         personnelTable.isActive,
-        isAvailable:      personnelTable.isAvailable,
-      })
-      .from(personnelTable)
-      .where(eq(personnelTable.id, personnelId))
-      .limit(1),
+      db
+        .select({
+          id: personnelTable.id,
+          firstName: personnelTable.firstName,
+          lastName: personnelTable.lastName,
+          roleId: personnelTable.roleId,
+          sectorId: personnelTable.sectorId,
+          region: personnelTable.region,
+          preferredRegions: personnelTable.preferredRegions,
+          certificates: personnelTable.certificates,
+          diplomas: personnelTable.diplomas,
+          knowledge: personnelTable.knowledge,
+          isActive: personnelTable.isActive,
+          isAvailable: personnelTable.isAvailable,
+        })
+        .from(personnelTable)
+        .where(eq(personnelTable.id, personnelId))
+        .limit(1),
 
-    db
-      .select({
-        requiredRoleId: taskCodesTable.requiredRoleId,
-        requiredRoleName: rolesTable.name,
-        requiredCertificates: taskCodesTable.requiredCertificates,
-        requiredDiploma: taskCodesTable.requiredDiploma,
-        requiredKnowledge: taskCodesTable.requiredKnowledge,
-        durationMinutes: taskCodesTable.durationMinutes,
-        sectorId: taskCodesTable.sectorId,
-      })
-      .from(assignmentTasksTable)
-      .leftJoin(taskCodesTable, eq(assignmentTasksTable.taskCodeId, taskCodesTable.id))
-      .leftJoin(rolesTable, eq(taskCodesTable.requiredRoleId, rolesTable.id))
-      .where(eq(assignmentTasksTable.assignmentId, assignmentId)),
+      db
+        .select({
+          requiredRoleId: taskCodesTable.requiredRoleId,
+          requiredRoleName: rolesTable.name,
+          requiredCertificates: taskCodesTable.requiredCertificates,
+          requiredDiploma: taskCodesTable.requiredDiploma,
+          requiredKnowledge: taskCodesTable.requiredKnowledge,
+          durationMinutes: taskCodesTable.durationMinutes,
+          sectorId: taskCodesTable.sectorId,
+        })
+        .from(assignmentTasksTable)
+        .leftJoin(
+          taskCodesTable,
+          eq(assignmentTasksTable.taskCodeId, taskCodesTable.id),
+        )
+        .leftJoin(rolesTable, eq(taskCodesTable.requiredRoleId, rolesTable.id))
+        .where(eq(assignmentTasksTable.assignmentId, assignmentId)),
 
-    db
-      .select({
-        id: assignmentPersonnelTable.id,
-        personnelId: assignmentPersonnelTable.personnelId,
-      })
-      .from(assignmentPersonnelTable)
-      .where(
-        and(
-          eq(assignmentPersonnelTable.assignmentId, assignmentId),
-          eq(assignmentPersonnelTable.status, "assigned"),
+      db
+        .select({
+          id: assignmentPersonnelTable.id,
+          personnelId: assignmentPersonnelTable.personnelId,
+        })
+        .from(assignmentPersonnelTable)
+        .where(
+          and(
+            eq(assignmentPersonnelTable.assignmentId, assignmentId),
+            eq(assignmentPersonnelTable.status, "assigned"),
+          ),
         ),
-      ),
-  ]);
+    ],
+  );
 
-  if (!assignment) return { success: false, message: "Opdracht niet gevonden." };
-  if (!personnel || !personnel.isActive) return { success: false, message: "Medewerker niet gevonden of inactief." };
+  if (!assignment)
+    return { success: false, message: "Opdracht niet gevonden." };
+  if (!personnel || !personnel.isActive)
+    return { success: false, message: "Medewerker niet gevonden of inactief." };
 
   const allowedStatuses: AssignmentStatus[] = ["plannable", "scheduled"];
   if (!allowedStatuses.includes(assignment.status as AssignmentStatus)) {
@@ -1195,76 +1495,150 @@ export async function scheduleAssignmentOnBoard(
     };
   }
 
-  const requiredRoleIds = uniqueStrings(taskRows.map((row) => row.requiredRoleId));
-  const requiredRoleNames = uniqueStrings(taskRows.map((row) => row.requiredRoleName));
-  const requiredCertificates = uniqueStrings(
-    taskRows.flatMap((row) => (row.requiredCertificates ?? []) as string[]),
+  const requiredRoleIds = uniqueStrings(
+    taskRows.map((row) => row.requiredRoleId),
   );
-  const requiredKnowledge = uniqueStrings(
-    taskRows.flatMap((row) => (row.requiredKnowledge ?? []) as string[]),
+  const requiredRoleNames = uniqueStrings(
+    taskRows.map((row) => row.requiredRoleName),
   );
-  const requiredDiplomas = uniqueStrings(taskRows.map((row) => row.requiredDiploma));
+  const roleQualificationRows =
+    requiredRoleIds.length > 0
+      ? await db
+          .select({
+            type: qualificationItemsTable.type,
+            name: qualificationItemsTable.name,
+          })
+          .from(roleQualificationsTable)
+          .innerJoin(
+            qualificationItemsTable,
+            eq(roleQualificationsTable.qualificationId, qualificationItemsTable.id),
+          )
+          .where(
+            and(
+              inArray(roleQualificationsTable.roleId, requiredRoleIds),
+              eq(roleQualificationsTable.required, true),
+              eq(qualificationItemsTable.isActive, true),
+            ),
+          )
+      : [];
+  const requiredCertificates = uniqueStrings([
+    ...taskRows.flatMap((row) => (row.requiredCertificates ?? []) as string[]),
+    ...roleQualificationRows.filter((row) => row.type === "certificate").map((row) => row.name),
+  ]);
+  const requiredKnowledge = uniqueStrings([
+    ...taskRows.flatMap((row) => (row.requiredKnowledge ?? []) as string[]),
+    ...roleQualificationRows.filter((row) => row.type === "knowledge").map((row) => row.name),
+  ]);
+  const requiredDiplomas = uniqueStrings([
+    ...taskRows.map((row) => row.requiredDiploma),
+    ...roleQualificationRows.filter((row) => row.type === "diploma").map((row) => row.name),
+  ]);
   const taskSectorIds = uniqueStrings(taskRows.map((row) => row.sectorId));
-  const estimatedDurationMinutes = taskRows.reduce(
-    (total, row) => total + (row.durationMinutes ?? 0),
-    0,
-  ) || 60;
+  const estimatedDurationMinutes =
+    taskRows.reduce((total, row) => total + (row.durationMinutes ?? 0), 0) ||
+    60;
   const requiredSlots = Math.max(requiredRoleIds.length, 1);
-  const targetLinkBeforeMove = assignedRows.find((row) => row.personnelId === personnelId);
+  const targetLinkBeforeMove = assignedRows.find(
+    (row) => row.personnelId === personnelId,
+  );
   const sourceLinkBeforeMove = sourcePersonnelId
     ? assignedRows.find((row) => row.personnelId === sourcePersonnelId)
     : null;
 
   if (sourcePersonnelId && !sourceLinkBeforeMove) {
-    return { success: false, message: "Bronmedewerker is niet gekoppeld aan deze werkbon." };
-  }
-  if (!sourcePersonnelId && !targetLinkBeforeMove && assignedRows.length >= requiredSlots) {
     return {
       success: false,
-      message: "Deze werkbon is al volledig bezet. Sleep een bestaande afspraak om de medewerker te vervangen.",
+      message: "Bronmedewerker is niet gekoppeld aan deze werkbon.",
+    };
+  }
+  if (
+    !sourcePersonnelId &&
+    !targetLinkBeforeMove &&
+    assignedRows.length >= requiredSlots
+  ) {
+    return {
+      success: false,
+      message:
+        "Deze werkbon is al volledig bezet. Sleep een bestaande afspraak om de medewerker te vervangen.",
     };
   }
 
   const end = input.end?.trim() || addMinutes(start, estimatedDurationMinutes);
   if (!isTimeKey(end)) {
-    return { success: false, message: "Ongeldige eindtijd.", fieldErrors: { end: "Gebruik HH:MM." } };
+    return {
+      success: false,
+      message: "Ongeldige eindtijd.",
+      fieldErrors: { end: "Gebruik HH:MM." },
+    };
   }
   if (timeToMinutes(end) <= timeToMinutes(start)) {
-    return { success: false, message: "Eindtijd moet na starttijd liggen.", fieldErrors: { end: "Kies een latere eindtijd." } };
+    return {
+      success: false,
+      message: "Eindtijd moet na starttijd liggen.",
+      fieldErrors: { end: "Kies een latere eindtijd." },
+    };
   }
 
-  const [availabilityMap, [availabilityWindow], existingRows] = await Promise.all([
+  const [
+    availabilityMap,
+    [availabilityDayEntry],
+    [availabilityWindow],
+    existingRows,
+  ] = await Promise.all([
     getBatchAvailabilityStatus([personnelId], date),
 
     db
       .select({
-        startTime: availabilityWindowsTable.startTime,
-        endTime:   availabilityWindowsTable.endTime,
+        startTime: availabilityDayEntriesTable.startTime,
+        endTime: availabilityDayEntriesTable.endTime,
       })
-      .from(availabilityWindowsTable)
+      .from(availabilityDayEntriesTable)
       .where(
         and(
-          eq(availabilityWindowsTable.personnelId, personnelId),
-          eq(availabilityWindowsTable.dayOfWeek, new Date(`${date}T00:00:00`).getDay()),
+          eq(availabilityDayEntriesTable.personnelId, personnelId),
+          eq(availabilityDayEntriesTable.date, date),
         ),
       )
       .limit(1),
 
     db
       .select({
-        id:             assignmentsTable.id,
-        code:           assignmentsTable.code,
-        title:          assignmentsTable.title,
-        status:         assignmentsTable.status,
-        priority:       assignmentsTable.priority,
-        customerName:   customersTable.name,
-        objectName:     objectsTable.name,
+        startTime: availabilityWindowsTable.startTime,
+        endTime: availabilityWindowsTable.endTime,
+      })
+      .from(availabilityWindowsTable)
+      .where(
+        and(
+          eq(availabilityWindowsTable.personnelId, personnelId),
+          eq(
+            availabilityWindowsTable.dayOfWeek,
+            new Date(`${date}T00:00:00`).getDay(),
+          ),
+        ),
+      )
+      .limit(1),
+
+    db
+      .select({
+        id: assignmentsTable.id,
+        code: assignmentsTable.code,
+        title: assignmentsTable.title,
+        status: assignmentsTable.status,
+        priority: assignmentsTable.priority,
+        customerName: customersTable.name,
+        objectName: objectsTable.name,
         scheduledStart: assignmentsTable.scheduledStart,
-        scheduledEnd:   assignmentsTable.scheduledEnd,
+        scheduledEnd: assignmentsTable.scheduledEnd,
       })
       .from(assignmentPersonnelTable)
-      .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
-      .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
+      .innerJoin(
+        assignmentsTable,
+        eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id),
+      )
+      .leftJoin(
+        customersTable,
+        eq(assignmentsTable.customerId, customersTable.id),
+      )
       .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
       .where(
         and(
@@ -1281,7 +1655,11 @@ export async function scheduleAssignmentOnBoard(
       ),
   ]);
 
-  const sectorId = assignment.objectSectorId ?? assignment.customerSectorId ?? taskSectorIds[0] ?? null;
+  const sectorId =
+    assignment.objectSectorId ??
+    assignment.customerSectorId ??
+    taskSectorIds[0] ??
+    null;
   const syntheticAssignment: PlanningBoardAssignment = {
     id: assignment.id,
     code: assignment.code,
@@ -1298,6 +1676,7 @@ export async function scheduleAssignmentOnBoard(
     sectorId,
     sectorName: null,
     requiredRegion: assignment.requiredRegion ?? null,
+    requiredPersonnelCount: requiredSlots,
     assignedPersonnelIds: assignedRows.map((row) => row.personnelId),
     requiredSlots,
     filledSlots: assignedRows.length,
@@ -1329,8 +1708,9 @@ export async function scheduleAssignmentOnBoard(
       knowledge: stringArray(personnel.knowledge),
       isAvailable: personnel.isAvailable,
     },
-    availabilityStatus: (availabilityMap[personnelId] ?? "niet_ingesteld") as AvailabilityStatus,
-    availabilityWindow: availabilityWindow ?? null,
+    availabilityStatus: (availabilityMap[personnelId] ??
+      "niet_ingesteld") as AvailabilityStatus,
+    availabilityWindow: availabilityDayEntry ?? availabilityWindow ?? null,
     personnelAssignments: existingRows.map((row) => ({
       id: row.id,
       code: row.code,
@@ -1342,14 +1722,20 @@ export async function scheduleAssignmentOnBoard(
       sectorName: null,
       scheduledStart: row.scheduledStart ?? null,
       scheduledEnd: row.scheduledEnd ?? null,
-      estimatedDurationMinutes: durationMinutes(row.scheduledStart ?? null, row.scheduledEnd ?? null, 60),
+      estimatedDurationMinutes: durationMinutes(
+        row.scheduledStart ?? null,
+        row.scheduledEnd ?? null,
+        60,
+      ),
       requiredSlots: syntheticAssignment.requiredSlots,
       filledSlots: syntheticAssignment.filledSlots,
       hasConflict: true,
     })),
   });
 
-  const blockers = match.reasons.filter((reason) => reason.severity === "block");
+  const blockers = match.reasons.filter(
+    (reason) => reason.severity === "block",
+  );
   if (blockers.length > 0) {
     return {
       success: false,
@@ -1357,24 +1743,30 @@ export async function scheduleAssignmentOnBoard(
     };
   }
 
-  const warnings = match.reasons.filter((reason) => reason.severity === "warning");
-  const nextStatus = assignment.status === "plannable" ? "scheduled" : assignment.status;
+  const warnings = match.reasons.filter(
+    (reason) => reason.severity === "warning",
+  );
+  const nextStatus =
+    assignment.status === "plannable" ? "scheduled" : assignment.status;
 
   try {
     await db.transaction(async (tx) => {
       await tx
         .update(assignmentsTable)
         .set({
-          scheduledDate:  date,
+          scheduledDate: date,
           scheduledStart: start,
-          scheduledEnd:   end,
-          status:         nextStatus,
-          updatedAt:      new Date(),
+          scheduledEnd: end,
+          status: nextStatus,
+          updatedAt: new Date(),
         })
         .where(eq(assignmentsTable.id, assignmentId));
 
       const [existingLink] = await tx
-        .select({ id: assignmentPersonnelTable.id, status: assignmentPersonnelTable.status })
+        .select({
+          id: assignmentPersonnelTable.id,
+          status: assignmentPersonnelTable.status,
+        })
         .from(assignmentPersonnelTable)
         .where(
           and(
@@ -1384,7 +1776,11 @@ export async function scheduleAssignmentOnBoard(
         )
         .limit(1);
 
-      if (sourcePersonnelId && sourcePersonnelId !== personnelId && sourceLinkBeforeMove) {
+      if (
+        sourcePersonnelId &&
+        sourcePersonnelId !== personnelId &&
+        sourceLinkBeforeMove
+      ) {
         if (existingLink) {
           await tx
             .update(assignmentPersonnelTable)
@@ -1427,11 +1823,11 @@ export async function scheduleAssignmentOnBoard(
       }
 
       await tx.insert(auditLogTable).values({
-        userId:     user.id,
-        action:     "planning_schedule_assignment",
-        resource:   "assignments",
+        userId: user.id,
+        action: "planning_schedule_assignment",
+        resource: "assignments",
         resourceId: assignmentId,
-        metadata:   {
+        metadata: {
           personnelId,
           sourcePersonnelId,
           date,
@@ -1446,23 +1842,61 @@ export async function scheduleAssignmentOnBoard(
 
       if (assignment.status !== nextStatus) {
         await tx.insert(auditLogTable).values({
-          userId:     user.id,
-          action:     "status_change",
-          resource:   "assignments",
+          userId: user.id,
+          action: "status_change",
+          resource: "assignments",
           resourceId: assignmentId,
-          metadata:   { from: assignment.status, to: nextStatus, trigger: "planning_board" },
+          metadata: {
+            from: assignment.status,
+            to: nextStatus,
+            trigger: "planning_board",
+          },
         });
       }
     });
   } catch (err) {
     if (isUniqueViolation(err)) {
-      return { success: false, message: "Deze medewerker is al gekoppeld aan deze werkbon." };
+      return {
+        success: false,
+        message: "Deze medewerker is al gekoppeld aan deze werkbon.",
+      };
     }
-    return { success: false, message: "Inplannen via het planbord is mislukt." };
+    return {
+      success: false,
+      message: "Inplannen via het planbord is mislukt.",
+    };
   }
 
   revalidatePath("/planning");
   revalidatePath(`/assignments/${assignmentId}`);
+
+  try {
+    await emitAssignmentWorkflowEvent({
+      eventKey: sourcePersonnelId ? "assignment_rescheduled" : "assignment_assigned",
+      assignmentId,
+      actorUserId: user.id,
+      audience: "personnel",
+      recipients: { personnelIds: [personnelId] },
+      fallback: {
+        title: sourcePersonnelId
+          ? `Werkbon ${assignment.code} verplaatst`
+          : `Werkbon ${assignment.code} ingepland`,
+        body: `Je planning is bijgewerkt: ${date} van ${start} tot ${end}.`,
+        pushTitle: sourcePersonnelId
+          ? `Werkbon ${assignment.code} verplaatst`
+          : `Werkbon ${assignment.code} ingepland`,
+        pushBody: `${date} ${start}-${end}. Bekijk je planning.`,
+        priority: date === new Date().toISOString().slice(0, 10) ? "high" : "normal",
+      },
+    });
+    await triggerNotificationWorker({ channels: ["push"], limit: 25 });
+  } catch (error) {
+    console.error("planning assignment notification failed", {
+      assignmentId,
+      personnelId,
+      error,
+    });
+  }
 
   return { success: true, data: { warnings } };
 }

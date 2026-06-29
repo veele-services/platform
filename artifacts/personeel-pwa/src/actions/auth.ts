@@ -52,7 +52,7 @@ export async function changeMyPassword(
     return { error: "Wachtwoord wijzigen mislukt. Probeer opnieuw in te loggen en het nogmaals te proberen." };
   }
 
-  revalidatePath("/profiel");
+  revalidatePath("/beveiliging");
   return { success: true };
 }
 

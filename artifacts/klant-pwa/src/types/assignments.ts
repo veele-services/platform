@@ -3,21 +3,21 @@ import type { AssignmentStatus } from "@workspace/db";
 export const STATUS_LABEL: Record<AssignmentStatus, string> = {
   requested:         "Aangevraagd",
   review:            "In beoordeling",
-  quote_preparation: "Offerte voorbereiding",
-  awaiting_approval: "Wacht op goedkeuring",
+  quote_preparation: "Offerte opstellen",
+  awaiting_approval: "Wacht op klantakkoord",
   approved:          "Goedgekeurd",
-  plannable:         "Wordt ingepland",
+  plannable:         "Planbaar",
   scheduled:         "Ingepland",
-  seen:              "Gezien",
+  seen:              "Gezien door medewerker",
   in_progress:       "In uitvoering",
-  not_completed:     "Niet afgerond",
+  not_completed:     "Afgemeld / niet afgerond",
   completed:         "Afgerond",
-  report_submitted:  "Rapport ingediend",
+  report_submitted:  "Rapport ter controle",
   report_approved:   "Rapport goedgekeurd",
-  invoice_ready:     "Factuur klaar",
+  invoice_ready:     "Factureerbaar",
   invoiced:          "Gefactureerd",
   paid:              "Betaald",
-  closed:            "Gesloten",
+  closed:            "Afgehandeld",
 };
 
 export const STATUS_COLOR: Record<AssignmentStatus, { bg: string; color: string }> = {
@@ -37,5 +37,5 @@ export const STATUS_COLOR: Record<AssignmentStatus, { bg: string; color: string 
   invoice_ready:     { bg: "#EDE9FE", color: "#6D28D9" },
   invoiced:          { bg: "#EDE9FE", color: "#6D28D9" },
   paid:              { bg: "#DCFCE7", color: "#15803D" },
-  closed:            { bg: "#F1F5F9", color: "#64748B" },
+  closed:            { bg: "#F1F5F9", color: "#334155" },
 };

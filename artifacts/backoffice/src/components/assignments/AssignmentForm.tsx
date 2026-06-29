@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Separator } from "@/components/ui/separator";
+import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -30,35 +31,9 @@ import {
   type ActionResult,
 } from "@/app/actions/assignments";
 import { ASSIGNMENT_STATUSES, ASSIGNMENT_PRIORITIES } from "@/types/assignments";
+import { priorityLabel, statusLabel } from "./AssignmentStatusBadge";
 
 // ─── Dutch labels ─────────────────────────────────────────────────────────────
-
-const STATUS_LABELS: Record<AssignmentStatus, string> = {
-  requested:         "Aangevraagd",
-  review:            "In beoordeling",
-  quote_preparation: "Offerte in voorbereiding",
-  awaiting_approval: "Wacht op goedkeuring",
-  approved:          "Goedgekeurd",
-  plannable:         "Inplanbaar",
-  scheduled:         "Ingepland",
-  seen:              "Gezien",
-  in_progress:       "In uitvoering",
-  not_completed:     "Niet afgerond",
-  completed:         "Afgerond",
-  report_submitted:  "Rapport ingediend",
-  report_approved:   "Rapport goedgekeurd",
-  invoice_ready:     "Klaar voor facturatie",
-  invoiced:          "Gefactureerd",
-  paid:              "Betaald",
-  closed:            "Gesloten",
-};
-
-const PRIORITY_LABELS: Record<AssignmentPriority, string> = {
-  low:    "Laag",
-  normal: "Normaal",
-  high:   "Hoog",
-  urgent: "Urgent",
-};
 
 // ─── Form schema ──────────────────────────────────────────────────────────────
 
@@ -74,6 +49,12 @@ const formSchema = z.object({
   scheduledEnd:   z.string(),
   notes:          z.string(),
   requiredRegion: z.string().max(100, "Maximaal 100 tekens"),
+  requiredPersonnelCount: z.coerce
+    .number()
+    .int("Gebruik een heel getal")
+    .min(1, "Minimaal 1 medewerker")
+    .max(50, "Maximaal 50 medewerkers"),
+  customerSignatureRequired: z.boolean(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -90,6 +71,8 @@ const DEFAULTS: FormValues = {
   scheduledEnd:   "",
   notes:          "",
   requiredRegion: "",
+  requiredPersonnelCount: 1,
+  customerSignatureRequired: false,
 };
 
 // ─── Props ────────────────────────────────────────────────────────────────────
@@ -136,6 +119,7 @@ export function AssignmentForm({
   const objectIdVal   = watch("objectId") || "NONE";
   const statusVal     = watch("status")   || "requested";
   const priorityVal   = watch("priority") || "normal";
+  const signatureRequiredVal = watch("customerSignatureRequired") || false;
 
   // Load objects when customer changes
   useEffect(() => {
@@ -168,6 +152,8 @@ export function AssignmentForm({
         setValue("scheduledEnd",   a.scheduledEnd  ?? "");
         setValue("notes",          a.notes         ?? "");
         setValue("requiredRegion", a.requiredRegion ?? "");
+        setValue("requiredPersonnelCount", a.requiredPersonnelCount ?? 1);
+        setValue("customerSignatureRequired", Boolean(a.customerSignatureRequired));
       }
       setLoading(false);
     });
@@ -196,6 +182,8 @@ export function AssignmentForm({
         scheduledEnd:   parsed.data.scheduledEnd   || undefined,
         notes:          parsed.data.notes          || undefined,
         requiredRegion: parsed.data.requiredRegion || undefined,
+        requiredPersonnelCount: parsed.data.requiredPersonnelCount,
+        customerSignatureRequired: parsed.data.customerSignatureRequired,
       };
 
       const result =
@@ -267,7 +255,7 @@ export function AssignmentForm({
                 <SelectContent>
                   {ASSIGNMENT_STATUSES.map((s) => (
                     <SelectItem key={s} value={s}>
-                      {STATUS_LABELS[s]}
+                      {statusLabel(s)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -286,7 +274,7 @@ export function AssignmentForm({
                 <SelectContent>
                   {ASSIGNMENT_PRIORITIES.map((p) => (
                     <SelectItem key={p} value={p}>
-                      {PRIORITY_LABELS[p]}
+                      {priorityLabel(p)}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -375,6 +363,19 @@ export function AssignmentForm({
               placeholder="17:00"
             />
           </div>
+          <div className="space-y-1">
+            <Label htmlFor="requiredPersonnelCount">Benodigd</Label>
+            <Input
+              id="requiredPersonnelCount"
+              type="number"
+              min={1}
+              max={50}
+              {...register("requiredPersonnelCount", { valueAsNumber: true })}
+            />
+            {errors.requiredPersonnelCount && (
+              <p className="text-xs text-destructive">{errors.requiredPersonnelCount.message}</p>
+            )}
+          </div>
           <div className="col-span-3 space-y-1">
             <Label htmlFor="requiredRegion">Regio</Label>
             <Input
@@ -427,6 +428,27 @@ export function AssignmentForm({
       </section>
 
       {/* ── Actions ───────────────────────────────────── */}
+      <Separator />
+
+      <section>
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+          Afronding
+        </p>
+        <div className="flex items-center justify-between gap-4 rounded-xl border p-4" style={{ borderColor: "#E2E8F0", backgroundColor: "#F8FAFC" }}>
+          <div className="min-w-0">
+            <Label htmlFor="customerSignatureRequired">Klant-handtekening verplicht</Label>
+            <p className="mt-1 text-xs leading-5" style={{ color: "#64748B" }}>
+              Indien actief moet de medewerker bij gereedmelden een akkoord-handtekening van de klant vastleggen.
+            </p>
+          </div>
+          <Switch
+            id="customerSignatureRequired"
+            checked={signatureRequiredVal}
+            onCheckedChange={(checked) => setValue("customerSignatureRequired", checked, { shouldDirty: true })}
+          />
+        </div>
+      </section>
+
       <div className="flex justify-end gap-2 pt-2 border-t">
         <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>
           Annuleren

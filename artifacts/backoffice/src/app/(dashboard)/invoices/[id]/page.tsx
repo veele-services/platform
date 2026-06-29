@@ -3,48 +3,22 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
   ArrowLeft,
-  FileText,
   Building2,
   MapPin,
   Calendar,
   Euro,
-  Send,
-  CheckCircle2,
-  XCircle,
   Clock,
   Receipt,
+  Download,
 } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { getInvoice, getInvoiceStatusHistory } from "@/app/actions/invoices";
 import { getPaymentHistory, type PaymentRecord } from "@/app/actions/payments";
 import { InvoiceActions } from "@/components/invoices/InvoiceActions";
+import { ProcessStatusBadge, ProcessStepper } from "@/components/workflows/ProcessStatus";
 
 // ── Read-only payment history (for users without write permission) ─────────────
-
-const PAYMENT_STATUS_LABELS: Record<string, string> = {
-  open:     "In afwachting",
-  paid:     "Betaald",
-  canceled: "Geannuleerd",
-  expired:  "Verlopen",
-  failed:   "Mislukt",
-};
-
-const PAYMENT_STATUS_BG: Record<string, string> = {
-  open:     "#FEF3C7",
-  paid:     "#D1FAE5",
-  canceled: "#FEE2E2",
-  expired:  "#F1F5F9",
-  failed:   "#FEE2E2",
-};
-
-const PAYMENT_STATUS_TEXT: Record<string, string> = {
-  open:     "#92400E",
-  paid:     "#065F46",
-  canceled: "#991B1B",
-  expired:  "#475569",
-  failed:   "#991B1B",
-};
 
 function PaymentHistoryReadOnly({ paymentHistory }: { paymentHistory: PaymentRecord[] }) {
   return (
@@ -67,15 +41,7 @@ function PaymentHistoryReadOnly({ paymentHistory }: { paymentHistory: PaymentRec
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="text-xs font-semibold" style={{ color: "#081D3A" }}>{amountStr}</span>
-                <span
-                  className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                  style={{
-                    backgroundColor: PAYMENT_STATUS_BG[p.status]  ?? "#F1F5F9",
-                    color:           PAYMENT_STATUS_TEXT[p.status] ?? "#475569",
-                  }}
-                >
-                  {PAYMENT_STATUS_LABELS[p.status] ?? p.status}
-                </span>
+                <ProcessStatusBadge kind="payment" status={p.status} size="xs" />
               </div>
               <p className="text-xs font-mono" style={{ color: "#94A3B8" }}>{p.molliePaymentId}</p>
               <p className="text-xs" style={{ color: "#94A3B8" }}>
@@ -102,20 +68,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     return { title: "Factuur" };
   }
 }
-
-const STATUS_LABELS: Record<string, string> = {
-  draft:     "Concept",
-  sent:      "Verzonden",
-  paid:      "Betaald",
-  cancelled: "Geannuleerd",
-};
-
-const STATUS_STYLES: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
-  draft:     { bg: "#F1F5F9", text: "#475569", icon: <FileText className="h-4 w-4" /> },
-  sent:      { bg: "#FEF3C7", text: "#92400E", icon: <Send className="h-4 w-4" /> },
-  paid:      { bg: "#D1FAE5", text: "#065F46", icon: <CheckCircle2 className="h-4 w-4" /> },
-  cancelled: { bg: "#FEE2E2", text: "#991B1B", icon: <XCircle className="h-4 w-4" /> },
-};
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -160,11 +112,10 @@ export default async function InvoiceDetailPage({ params }: Props) {
     getPaymentHistory(id),
   ]);
 
-  const statusStyle = STATUS_STYLES[invoice.status] ?? STATUS_STYLES.draft;
   const isOverdue   = invoice.status === "sent" && new Date(invoice.dueDate) < new Date();
 
   return (
-    <div className="p-8 max-w-6xl">
+    <div className="mx-auto w-full max-w-[1600px] p-8">
 
       {/* ── Header ── */}
       <div className="mb-8">
@@ -186,13 +137,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
               >
                 {invoice.invoiceNumber}
               </h1>
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-sm font-medium"
-                style={{ backgroundColor: statusStyle.bg, color: statusStyle.text }}
-              >
-                {statusStyle.icon}
-                {STATUS_LABELS[invoice.status]}
-              </span>
+              <ProcessStatusBadge kind="invoice" status={invoice.status} size="md" />
               {isOverdue && (
                 <span
                   className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-semibold"
@@ -208,15 +153,25 @@ export default async function InvoiceDetailPage({ params }: Props) {
                 day: "numeric", month: "long", year: "numeric",
               })}
             </p>
+            <ProcessStepper kind="invoice" status={invoice.status} className="mt-4" />
           </div>
+          <Link
+            href={`/api/invoices/${invoice.id}/pdf`}
+            target="_blank"
+            className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
+            style={{ borderColor: "#CBD5E1", color: "#081D3A", background: "#FFFFFF" }}
+          >
+            <Download className="h-4 w-4" />
+            Download PDF
+          </Link>
         </div>
       </div>
 
       {/* ── Two-column layout ── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
 
         {/* Left: invoice details */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
+        <div className="flex flex-col gap-6">
 
           {/* Customer info */}
           <div className="veele-card">
@@ -403,7 +358,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
         </div>
 
         {/* Right: actions + status info + history */}
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-4 xl:sticky xl:top-24 xl:self-start">
 
           {/* Due date card */}
           <div className="veele-card">

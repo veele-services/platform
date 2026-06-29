@@ -14,12 +14,18 @@ import {
   personnelTable,
   rolesTable,
   assignmentsTable,
+  assignmentPersonnelTable,
+  assignmentPhotosTable,
+  assignmentReportNoteAttachmentsTable,
+  customerMessageThreadsTable,
   documentsTable,
+  reportsTable,
 } from "@workspace/db";
-import { eq, ilike, or, and, asc, desc, inArray, sql } from "drizzle-orm";
+import { eq, ilike, or, and, asc, desc, inArray, ne, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult };
@@ -127,6 +133,9 @@ export type ObjectPersonnelRow = {
   code: string;
   roleName: string | null;
   linkedAt: string;
+  assignmentCount: number;
+  completedCount: number;
+  lastWorkedAt: string | null;
 };
 
 export type PersonnelOption = {
@@ -146,6 +155,34 @@ export type ObjectStats = {
   contracts: number;
 };
 
+export type ObjectPerformance = {
+  totalAssignments: number;
+  activeAssignments: number;
+  completedAssignments: number;
+  notCompletedAssignments: number;
+  reportsSubmitted: number;
+  reportsApproved: number;
+  openTickets: number;
+  mediaItems: number;
+  documents: number;
+  fixedPersonnel: number;
+  openActions: number;
+  completionRate: number;
+  lastServiceDate: string | null;
+  nextServiceDate: string | null;
+};
+
+export type ObjectHistoryEntry = {
+  id: string;
+  type: "assignment" | "report" | "ticket" | "media" | "document";
+  title: string;
+  description: string | null;
+  status: string | null;
+  occurredAt: string;
+  href: string | null;
+  badge: string;
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 25;
@@ -154,13 +191,45 @@ function isUniqueViolation(err: unknown): boolean {
   return (err as { code?: string })?.code === "23505";
 }
 
+function toIso(value: Date | string | null | undefined): string {
+  if (!value) return new Date(0).toISOString();
+  if (value instanceof Date) return value.toISOString();
+  const normalized = /^\d{4}-\d{2}-\d{2}$/.test(value) ? `${value}T00:00:00` : value;
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? new Date(0).toISOString() : date.toISOString();
+}
+
+function toNullableDate(value: string | null | undefined): string | null {
+  return value || null;
+}
+
+async function getObjectScope(objectId: string): Promise<{
+  objectId: string;
+  customerId: string;
+  tenantId: string;
+} | null> {
+  const [row] = await db
+    .select({
+      objectId:   objectsTable.id,
+      customerId: objectsTable.customerId,
+      tenantId:   objectsTable.tenantId,
+    })
+    .from(objectsTable)
+    .innerJoin(customersTable, eq(objectsTable.customerId, customersTable.id))
+    .where(and(eq(objectsTable.id, objectId), eq(customersTable.tenantId, objectsTable.tenantId)))
+    .limit(1);
+
+  return row ?? null;
+}
+
 // ─── Subquery: next scheduled service date for an object ──────────────────────
 
 const nextServiceSql = sql<string | null>`(
-  SELECT TO_CHAR(a.scheduled_date, 'YYYY-MM-DD')
+  SELECT a.scheduled_date
   FROM assignments a
   WHERE a.object_id = ${objectsTable.id}
-    AND a.scheduled_date >= CURRENT_DATE
+    AND a.tenant_id = ${objectsTable.tenantId}
+    AND a.scheduled_date >= TO_CHAR(CURRENT_DATE, 'YYYY-MM-DD')
     AND a.status IN ('scheduled', 'plannable', 'approved', 'seen')
   ORDER BY a.scheduled_date ASC
   LIMIT 1
@@ -179,6 +248,7 @@ export async function listObjects(params: {
   dir?: string;
 }): Promise<{ rows: ObjectRow[]; total: number }> {
   await requirePermission("objects", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const {
     search,
@@ -191,7 +261,9 @@ export async function listObjects(params: {
     dir = "asc",
   } = params;
 
-  const conditions: ReturnType<typeof eq>[] = [];
+  const conditions: ReturnType<typeof eq>[] = [
+    eq(objectsTable.tenantId, tenantId) as ReturnType<typeof eq>,
+  ];
   if (search?.trim()) {
     const term = `%${search.trim()}%`;
     const clause = or(
@@ -269,16 +341,17 @@ export async function listObjects(params: {
 
 export async function getObjectStats(): Promise<ObjectStats> {
   await requirePermission("objects", "read");
+  const tenantId = await requireCurrentTenantId();
 
   try {
     const [totalRow, activeRow, assignmentRow, serviceTypeRow, inactiveRow, documentRow] = await Promise.all([
-      db.select({ count: sql<number>`count(*)::int` }).from(objectsTable),
-      db.select({ count: sql<number>`count(*)::int` }).from(objectsTable).where(eq(objectsTable.isActive, true)),
+      db.select({ count: sql<number>`count(*)::int` }).from(objectsTable).where(eq(objectsTable.tenantId, tenantId)),
+      db.select({ count: sql<number>`count(*)::int` }).from(objectsTable).where(and(eq(objectsTable.tenantId, tenantId), eq(objectsTable.isActive, true))),
       db.select({ count: sql<number>`count(*)::int` }).from(assignmentsTable)
-        .where(sql`${assignmentsTable.objectId} IS NOT NULL AND ${assignmentsTable.status} IN ('scheduled', 'in_progress', 'seen', 'plannable', 'approved')`),
+        .where(and(eq(assignmentsTable.tenantId, tenantId), sql`${assignmentsTable.objectId} IS NOT NULL AND ${assignmentsTable.status} IN ('scheduled', 'in_progress', 'seen', 'plannable', 'approved')`)),
       db.select({ count: sql<number>`count(DISTINCT ${objectsTable.serviceType})::int` }).from(objectsTable)
-        .where(sql`${objectsTable.serviceType} IS NOT NULL AND trim(${objectsTable.serviceType}) <> ''`),
-      db.select({ count: sql<number>`count(*)::int` }).from(objectsTable).where(eq(objectsTable.isActive, false)),
+        .where(and(eq(objectsTable.tenantId, tenantId), sql`${objectsTable.serviceType} IS NOT NULL AND trim(${objectsTable.serviceType}) <> ''`)),
+      db.select({ count: sql<number>`count(*)::int` }).from(objectsTable).where(and(eq(objectsTable.tenantId, tenantId), eq(objectsTable.isActive, false))),
       db.select({ count: sql<number>`count(*)::int` }).from(documentsTable)
         .where(eq(documentsTable.entityType, "object")),
     ]);
@@ -306,6 +379,7 @@ export async function getObjectStats(): Promise<ObjectStats> {
 
 export async function getObject(id: string): Promise<ObjectDetail | null> {
   await requirePermission("objects", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const rows = await db
     .select({
@@ -340,7 +414,7 @@ export async function getObject(id: string): Promise<ObjectDetail | null> {
     .from(objectsTable)
     .leftJoin(customersTable, eq(objectsTable.customerId, customersTable.id))
     .leftJoin(sectorsTable,   eq(objectsTable.sectorId,   sectorsTable.id))
-    .where(eq(objectsTable.id, id))
+    .where(and(eq(objectsTable.id, id), eq(objectsTable.tenantId, tenantId)))
     .limit(1);
 
   if (!rows[0]) return null;
@@ -354,8 +428,319 @@ export async function getObject(id: string): Promise<ObjectDetail | null> {
   };
 }
 
+export async function getObjectPerformance(objectId: string): Promise<ObjectPerformance> {
+  await requirePermission("objects", "read");
+  const tenantId = await requireCurrentTenantId();
+
+  const scope = await getObjectScope(objectId);
+  if (!scope || scope.tenantId !== tenantId) {
+    return {
+      totalAssignments: 0,
+      activeAssignments: 0,
+      completedAssignments: 0,
+      notCompletedAssignments: 0,
+      reportsSubmitted: 0,
+      reportsApproved: 0,
+      openTickets: 0,
+      mediaItems: 0,
+      documents: 0,
+      fixedPersonnel: 0,
+      openActions: 0,
+      completionRate: 0,
+      lastServiceDate: null,
+      nextServiceDate: null,
+    };
+  }
+
+  const [
+    assignmentStats,
+    reportStats,
+    photoStats,
+    noteAttachmentStats,
+    documentStats,
+    ticketStats,
+    fixedPersonnelStats,
+  ] = await Promise.all([
+    db
+      .select({
+        total: sql<number>`count(*)::int`,
+        active: sql<number>`count(*) filter (where ${assignmentsTable.status} in ('requested','review','quote_preparation','awaiting_approval','approved','plannable','scheduled','seen','in_progress','report_submitted','report_approved','invoice_ready'))::int`,
+        completed: sql<number>`count(*) filter (where ${assignmentsTable.status} in ('completed','report_submitted','report_approved','invoice_ready','invoiced','paid','closed'))::int`,
+        notCompleted: sql<number>`count(*) filter (where ${assignmentsTable.status} = 'not_completed')::int`,
+        openActions: sql<number>`count(*) filter (where ${assignmentsTable.status} in ('requested','review','awaiting_approval','not_completed','report_submitted'))::int`,
+        lastServiceDate: sql<string | null>`max(${assignmentsTable.scheduledDate}) filter (where ${assignmentsTable.scheduledDate} <= to_char(current_date, 'YYYY-MM-DD'))`,
+        nextServiceDate: sql<string | null>`min(${assignmentsTable.scheduledDate}) filter (where ${assignmentsTable.scheduledDate} >= to_char(current_date, 'YYYY-MM-DD') and ${assignmentsTable.status} in ('approved','plannable','scheduled','seen','in_progress'))`,
+      })
+      .from(assignmentsTable)
+      .where(
+        and(
+          eq(assignmentsTable.objectId, objectId),
+          eq(assignmentsTable.tenantId, scope.tenantId),
+        ),
+      ),
+    db
+      .select({
+        submitted: sql<number>`count(*) filter (where ${reportsTable.status} = 'submitted')::int`,
+        approved: sql<number>`count(*) filter (where ${reportsTable.status} = 'approved')::int`,
+      })
+      .from(reportsTable)
+      .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
+      .where(
+        and(
+          eq(assignmentsTable.objectId, objectId),
+          eq(assignmentsTable.tenantId, scope.tenantId),
+        ),
+      ),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(assignmentPhotosTable)
+      .innerJoin(assignmentsTable, eq(assignmentPhotosTable.assignmentId, assignmentsTable.id))
+      .where(
+        and(
+          eq(assignmentsTable.objectId, objectId),
+          eq(assignmentsTable.tenantId, scope.tenantId),
+        ),
+      ),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(assignmentReportNoteAttachmentsTable)
+      .innerJoin(assignmentsTable, eq(assignmentReportNoteAttachmentsTable.assignmentId, assignmentsTable.id))
+      .where(
+        and(
+          eq(assignmentsTable.objectId, objectId),
+          eq(assignmentsTable.tenantId, scope.tenantId),
+        ),
+      ),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(documentsTable)
+      .where(and(eq(documentsTable.entityType, "object"), eq(documentsTable.entityId, objectId))),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(customerMessageThreadsTable)
+      .where(
+        and(
+          eq(customerMessageThreadsTable.customerId, scope.customerId),
+          eq(customerMessageThreadsTable.tenantId, scope.tenantId),
+          ne(customerMessageThreadsTable.status, "closed"),
+        ),
+      ),
+    db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(objectPersonnelTable)
+      .where(eq(objectPersonnelTable.objectId, objectId)),
+  ]);
+
+  const assignments = assignmentStats[0];
+  const reports = reportStats[0];
+  const completed = assignments?.completed ?? 0;
+  const notCompleted = assignments?.notCompleted ?? 0;
+  const completionBase = completed + notCompleted;
+
+  return {
+    totalAssignments: assignments?.total ?? 0,
+    activeAssignments: assignments?.active ?? 0,
+    completedAssignments: completed,
+    notCompletedAssignments: notCompleted,
+    reportsSubmitted: reports?.submitted ?? 0,
+    reportsApproved: reports?.approved ?? 0,
+    openTickets: ticketStats[0]?.count ?? 0,
+    mediaItems: (photoStats[0]?.count ?? 0) + (noteAttachmentStats[0]?.count ?? 0),
+    documents: documentStats[0]?.count ?? 0,
+    fixedPersonnel: fixedPersonnelStats[0]?.count ?? 0,
+    openActions:
+      (assignments?.openActions ?? 0) +
+      (reports?.submitted ?? 0) +
+      (ticketStats[0]?.count ?? 0),
+    completionRate: completionBase > 0 ? Math.round((completed / completionBase) * 100) : 0,
+    lastServiceDate: toNullableDate(assignments?.lastServiceDate),
+    nextServiceDate: toNullableDate(assignments?.nextServiceDate),
+  };
+}
+
+export async function listObjectHistory(
+  objectId: string,
+  limit = 40,
+): Promise<ObjectHistoryEntry[]> {
+  await requirePermission("objects", "read");
+  const tenantId = await requireCurrentTenantId();
+
+  const scope = await getObjectScope(objectId);
+  if (!scope || scope.tenantId !== tenantId) return [];
+
+  const [assignments, reports, photos, noteAttachments, documents, tickets] = await Promise.all([
+    db
+      .select({
+        id: assignmentsTable.id,
+        code: assignmentsTable.code,
+        title: assignmentsTable.title,
+        status: assignmentsTable.status,
+        scheduledDate: assignmentsTable.scheduledDate,
+        createdAt: assignmentsTable.createdAt,
+      })
+      .from(assignmentsTable)
+      .where(
+        and(
+          eq(assignmentsTable.objectId, objectId),
+          eq(assignmentsTable.tenantId, scope.tenantId),
+        ),
+      )
+      .orderBy(desc(assignmentsTable.createdAt))
+      .limit(limit),
+    db
+      .select({
+        id: reportsTable.id,
+        status: reportsTable.status,
+        submittedAt: reportsTable.submittedAt,
+        assignmentId: assignmentsTable.id,
+        assignmentCode: assignmentsTable.code,
+        assignmentTitle: assignmentsTable.title,
+      })
+      .from(reportsTable)
+      .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
+      .where(
+        and(
+          eq(assignmentsTable.objectId, objectId),
+          eq(assignmentsTable.tenantId, scope.tenantId),
+        ),
+      )
+      .orderBy(desc(reportsTable.submittedAt))
+      .limit(limit),
+    db
+      .select({
+        id: assignmentPhotosTable.id,
+        createdAt: assignmentPhotosTable.createdAt,
+        assignmentId: assignmentsTable.id,
+        assignmentCode: assignmentsTable.code,
+      })
+      .from(assignmentPhotosTable)
+      .innerJoin(assignmentsTable, eq(assignmentPhotosTable.assignmentId, assignmentsTable.id))
+      .where(
+        and(
+          eq(assignmentsTable.objectId, objectId),
+          eq(assignmentsTable.tenantId, scope.tenantId),
+        ),
+      )
+      .orderBy(desc(assignmentPhotosTable.createdAt))
+      .limit(limit),
+    db
+      .select({
+        id: assignmentReportNoteAttachmentsTable.id,
+        fileName: assignmentReportNoteAttachmentsTable.fileName,
+        createdAt: assignmentReportNoteAttachmentsTable.createdAt,
+        assignmentId: assignmentsTable.id,
+        assignmentCode: assignmentsTable.code,
+      })
+      .from(assignmentReportNoteAttachmentsTable)
+      .innerJoin(assignmentsTable, eq(assignmentReportNoteAttachmentsTable.assignmentId, assignmentsTable.id))
+      .where(
+        and(
+          eq(assignmentsTable.objectId, objectId),
+          eq(assignmentsTable.tenantId, scope.tenantId),
+        ),
+      )
+      .orderBy(desc(assignmentReportNoteAttachmentsTable.createdAt))
+      .limit(limit),
+    db
+      .select({
+        id: documentsTable.id,
+        name: documentsTable.name,
+        createdAt: documentsTable.createdAt,
+      })
+      .from(documentsTable)
+      .where(and(eq(documentsTable.entityType, "object"), eq(documentsTable.entityId, objectId)))
+      .orderBy(desc(documentsTable.createdAt))
+      .limit(limit),
+    db
+      .select({
+        id: customerMessageThreadsTable.id,
+        subject: customerMessageThreadsTable.subject,
+        status: customerMessageThreadsTable.status,
+        priority: customerMessageThreadsTable.priority,
+        lastMessageAt: customerMessageThreadsTable.lastMessageAt,
+      })
+      .from(customerMessageThreadsTable)
+      .where(
+        and(
+          eq(customerMessageThreadsTable.customerId, scope.customerId),
+          eq(customerMessageThreadsTable.tenantId, scope.tenantId),
+        ),
+      )
+      .orderBy(desc(customerMessageThreadsTable.lastMessageAt))
+      .limit(10),
+  ]);
+
+  const entries: ObjectHistoryEntry[] = [
+    ...assignments.map((row) => ({
+      id: `assignment-${row.id}`,
+      type: "assignment" as const,
+      title: `${row.code} - ${row.title}`,
+      description: row.scheduledDate ? `Gepland op ${row.scheduledDate}` : "Opdracht aangemaakt",
+      status: row.status,
+      occurredAt: toIso(row.scheduledDate ?? row.createdAt),
+      href: `/assignments/${row.id}`,
+      badge: "Opdracht",
+    })),
+    ...reports.map((row) => ({
+      id: `report-${row.id}`,
+      type: "report" as const,
+      title: `Rapportage ${row.assignmentCode}`,
+      description: row.assignmentTitle,
+      status: row.status,
+      occurredAt: toIso(row.submittedAt),
+      href: `/reports/${row.id}`,
+      badge: "Rapportage",
+    })),
+    ...photos.map((row) => ({
+      id: `photo-${row.id}`,
+      type: "media" as const,
+      title: `Foto toegevoegd bij ${row.assignmentCode}`,
+      description: "Werkbonmedia",
+      status: null,
+      occurredAt: toIso(row.createdAt),
+      href: `/assignments/${row.assignmentId}`,
+      badge: "Foto",
+    })),
+    ...noteAttachments.map((row) => ({
+      id: `attachment-${row.id}`,
+      type: "media" as const,
+      title: row.fileName,
+      description: `Bijlage bij ${row.assignmentCode}`,
+      status: null,
+      occurredAt: toIso(row.createdAt),
+      href: `/assignments/${row.assignmentId}`,
+      badge: "Bijlage",
+    })),
+    ...documents.map((row) => ({
+      id: `document-${row.id}`,
+      type: "document" as const,
+      title: row.name,
+      description: "Objectdocument",
+      status: null,
+      occurredAt: toIso(row.createdAt),
+      href: "/documents",
+      badge: "Document",
+    })),
+    ...tickets.map((row) => ({
+      id: `ticket-${row.id}`,
+      type: "ticket" as const,
+      title: row.subject,
+      description: "Klantbreed ticket bij dezelfde klant",
+      status: row.status,
+      occurredAt: toIso(row.lastMessageAt),
+      href: `/tickets/customer/${row.id}`,
+      badge: row.priority === "urgent" ? "Incident" : "Ticket",
+    })),
+  ];
+
+  return entries
+    .sort((a, b) => new Date(b.occurredAt).getTime() - new Date(a.occurredAt).getTime())
+    .slice(0, limit);
+}
+
 export async function listObjectsForCustomer(customerId: string): Promise<ObjectRow[]> {
   await requirePermission("objects", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const rows = await db
     .select({
@@ -376,7 +761,7 @@ export async function listObjectsForCustomer(customerId: string): Promise<Object
     .from(objectsTable)
     .leftJoin(customersTable, eq(objectsTable.customerId, customersTable.id))
     .leftJoin(sectorsTable,   eq(objectsTable.sectorId,   sectorsTable.id))
-    .where(eq(objectsTable.customerId, customerId))
+    .where(and(eq(objectsTable.customerId, customerId), eq(objectsTable.tenantId, tenantId)))
     .orderBy(asc(objectsTable.name));
 
   return rows.map((r) => ({ ...r, nextServiceDate: r.nextServiceDate ?? null, createdAt: r.createdAt.toISOString() }));
@@ -384,6 +769,7 @@ export async function listObjectsForCustomer(customerId: string): Promise<Object
 
 export async function listCustomerOptions(): Promise<CustomerOption[]> {
   await requirePermission("objects", "read");
+  const tenantId = await requireCurrentTenantId();
 
   return db
     .select({
@@ -392,7 +778,7 @@ export async function listCustomerOptions(): Promise<CustomerOption[]> {
       code: customersTable.code,
     })
     .from(customersTable)
-    .where(eq(customersTable.isActive, true))
+    .where(and(eq(customersTable.tenantId, tenantId), eq(customersTable.isActive, true)))
     .orderBy(asc(customersTable.name));
 }
 
@@ -400,6 +786,10 @@ export async function listCustomerOptions(): Promise<CustomerOption[]> {
 
 export async function listObjectContacts(objectId: string): Promise<ObjectContactRow[]> {
   await requirePermission("objects", "read");
+  const tenantId = await requireCurrentTenantId();
+
+  const scope = await getObjectScope(objectId);
+  if (!scope || scope.tenantId !== tenantId) return [];
 
   const rows = await db
     .select()
@@ -424,10 +814,16 @@ export async function addObjectContact(
   data: ObjectContactInput,
 ): Promise<ActionResult<{ id: string }>> {
   await requirePermission("objects", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const scope = await getObjectScope(objectId);
+  if (!scope || scope.tenantId !== tenantId) {
+    return { success: false, message: "Object niet gevonden binnen deze tenant." };
+  }
 
   const payload = {
     objectId,
@@ -464,6 +860,12 @@ export async function updateObjectContact(
   data: ObjectContactInput,
 ): Promise<ActionResult> {
   await requirePermission("objects", "write");
+  const tenantId = await requireCurrentTenantId();
+
+  const scope = await getObjectScope(objectId);
+  if (!scope || scope.tenantId !== tenantId) {
+    return { success: false, message: "Object niet gevonden binnen deze tenant." };
+  }
 
   const payload = {
     firstName: data.firstName.trim(),
@@ -484,7 +886,7 @@ export async function updateObjectContact(
   await db
     .update(objectContactsTable)
     .set({ ...payload, updatedAt: new Date() })
-    .where(eq(objectContactsTable.id, contactId));
+    .where(and(eq(objectContactsTable.id, contactId), eq(objectContactsTable.objectId, objectId)));
 
   revalidatePath(`/objects/${objectId}`);
   return { success: true };
@@ -495,8 +897,16 @@ export async function deleteObjectContact(
   objectId: string,
 ): Promise<ActionResult> {
   await requirePermission("objects", "write");
+  const tenantId = await requireCurrentTenantId();
 
-  await db.delete(objectContactsTable).where(eq(objectContactsTable.id, contactId));
+  const scope = await getObjectScope(objectId);
+  if (!scope || scope.tenantId !== tenantId) {
+    return { success: false, message: "Object niet gevonden binnen deze tenant." };
+  }
+
+  await db
+    .delete(objectContactsTable)
+    .where(and(eq(objectContactsTable.id, contactId), eq(objectContactsTable.objectId, objectId)));
 
   revalidatePath(`/objects/${objectId}`);
   return { success: true };
@@ -506,6 +916,10 @@ export async function deleteObjectContact(
 
 export async function listObjectPersonnel(objectId: string): Promise<ObjectPersonnelRow[]> {
   await requirePermission("objects", "read");
+  const tenantId = await requireCurrentTenantId();
+
+  const scope = await getObjectScope(objectId);
+  if (!scope || scope.tenantId !== tenantId) return [];
 
   const rows = await db
     .select({
@@ -515,11 +929,39 @@ export async function listObjectPersonnel(objectId: string): Promise<ObjectPerso
       code:        personnelTable.code,
       roleName:    rolesTable.name,
       linkedAt:    objectPersonnelTable.linkedAt,
+      assignmentCount: sql<number>`(
+        select count(*)::int
+        from assignment_personnel ap
+        inner join assignments a on a.id = ap.assignment_id
+        where ap.personnel_id = ${objectPersonnelTable.personnelId}
+          and ap.status = 'assigned'
+          and a.object_id = ${objectId}
+          and a.tenant_id = ${scope.tenantId}
+      )`,
+      completedCount: sql<number>`(
+        select count(*)::int
+        from assignment_personnel ap
+        inner join assignments a on a.id = ap.assignment_id
+        where ap.personnel_id = ${objectPersonnelTable.personnelId}
+          and ap.status = 'assigned'
+          and a.object_id = ${objectId}
+          and a.tenant_id = ${scope.tenantId}
+          and a.status in ('completed','report_submitted','report_approved','invoice_ready','invoiced','paid','closed')
+      )`,
+      lastWorkedAt: sql<string | null>`(
+        select max(a.scheduled_date)
+        from assignment_personnel ap
+        inner join assignments a on a.id = ap.assignment_id
+        where ap.personnel_id = ${objectPersonnelTable.personnelId}
+          and ap.status = 'assigned'
+          and a.object_id = ${objectId}
+          and a.tenant_id = ${scope.tenantId}
+      )`,
     })
     .from(objectPersonnelTable)
     .innerJoin(personnelTable, eq(objectPersonnelTable.personnelId, personnelTable.id))
     .leftJoin(rolesTable,      eq(personnelTable.roleId, rolesTable.id))
-    .where(eq(objectPersonnelTable.objectId, objectId))
+    .where(and(eq(objectPersonnelTable.objectId, objectId), eq(personnelTable.tenantId, tenantId)))
     .orderBy(asc(personnelTable.lastName));
 
   return rows.map((r) => ({
@@ -529,11 +971,15 @@ export async function listObjectPersonnel(objectId: string): Promise<ObjectPerso
     code:        r.code,
     roleName:    r.roleName ?? null,
     linkedAt:    r.linkedAt.toISOString(),
+    assignmentCount: r.assignmentCount ?? 0,
+    completedCount: r.completedCount ?? 0,
+    lastWorkedAt: r.lastWorkedAt ?? null,
   }));
 }
 
 export async function listPersonnelOptions(): Promise<PersonnelOption[]> {
   await requirePermission("objects", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const rows = await db
     .select({
@@ -545,7 +991,7 @@ export async function listPersonnelOptions(): Promise<PersonnelOption[]> {
     })
     .from(personnelTable)
     .leftJoin(rolesTable, eq(personnelTable.roleId, rolesTable.id))
-    .where(eq(personnelTable.isActive, true))
+    .where(and(eq(personnelTable.tenantId, tenantId), eq(personnelTable.isActive, true)))
     .orderBy(asc(personnelTable.lastName), asc(personnelTable.firstName));
 
   return rows.map((r) => ({
@@ -562,6 +1008,19 @@ export async function linkObjectPersonnel(
   personnelId: string,
 ): Promise<ActionResult> {
   await requirePermission("objects", "write");
+  const tenantId = await requireCurrentTenantId();
+
+  const [scope, personnel] = await Promise.all([
+    getObjectScope(objectId),
+    db
+      .select({ id: personnelTable.id })
+      .from(personnelTable)
+      .where(and(eq(personnelTable.id, personnelId), eq(personnelTable.tenantId, tenantId)))
+      .limit(1),
+  ]);
+  if (!scope || scope.tenantId !== tenantId || !personnel[0]) {
+    return { success: false, message: "Object of medewerker niet gevonden binnen deze tenant." };
+  }
 
   await db
     .insert(objectPersonnelTable)
@@ -577,6 +1036,12 @@ export async function unlinkObjectPersonnel(
   personnelId: string,
 ): Promise<ActionResult> {
   await requirePermission("objects", "write");
+  const tenantId = await requireCurrentTenantId();
+
+  const scope = await getObjectScope(objectId);
+  if (!scope || scope.tenantId !== tenantId) {
+    return { success: false, message: "Object niet gevonden binnen deze tenant." };
+  }
 
   await db
     .delete(objectPersonnelTable)
@@ -593,7 +1058,7 @@ export async function unlinkObjectPersonnel(
 
 // ─── Mutations ────────────────────────────────────────────────────────────────
 
-function buildObjectPayload(data: ObjectFormInput, extra?: { createdBy?: string }) {
+function buildObjectPayload(data: ObjectFormInput, extra?: { createdBy?: string; tenantId?: string }) {
   return {
     customerId:           data.customerId,
     sectorId:             data.sectorId || null,
@@ -622,6 +1087,7 @@ export async function createObject(
   data: ObjectFormInput,
 ): Promise<ActionResult<{ id: string }>> {
   await requirePermission("objects", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -629,7 +1095,14 @@ export async function createObject(
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  const payload = buildObjectPayload(data, { createdBy: user.id });
+  const [customer] = await db
+    .select({ id: customersTable.id })
+    .from(customersTable)
+    .where(and(eq(customersTable.id, data.customerId), eq(customersTable.tenantId, tenantId)))
+    .limit(1);
+  if (!customer) return { success: false, message: "Klant niet gevonden binnen deze tenant." };
+
+  const payload = buildObjectPayload(data, { createdBy: user.id, tenantId });
 
   const parsed = insertObjectSchema.safeParse(payload);
   if (!parsed.success) {
@@ -644,7 +1117,7 @@ export async function createObject(
   try {
     const [created] = await db
       .insert(objectsTable)
-      .values(parsed.data)
+      .values({ ...parsed.data, tenantId })
       .returning({ id: objectsTable.id });
 
     await db.insert(auditLogTable).values({
@@ -671,6 +1144,7 @@ export async function updateObject(
   data: ObjectFormInput,
 ): Promise<ActionResult> {
   await requirePermission("objects", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -694,7 +1168,7 @@ export async function updateObject(
     await db
       .update(objectsTable)
       .set({ ...parsed.data, updatedAt: new Date() })
-      .where(eq(objectsTable.id, id));
+      .where(and(eq(objectsTable.id, id), eq(objectsTable.tenantId, tenantId)));
 
     await db.insert(auditLogTable).values({
       userId:     user.id,
@@ -721,6 +1195,7 @@ export async function setObjectStatus(
   isActive: boolean,
 ): Promise<ActionResult> {
   await requirePermission("objects", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -731,13 +1206,13 @@ export async function setObjectStatus(
   const [row] = await db
     .select({ customerId: objectsTable.customerId })
     .from(objectsTable)
-    .where(eq(objectsTable.id, id))
+    .where(and(eq(objectsTable.id, id), eq(objectsTable.tenantId, tenantId)))
     .limit(1);
 
   await db
     .update(objectsTable)
     .set({ isActive, updatedAt: new Date() })
-    .where(eq(objectsTable.id, id));
+    .where(and(eq(objectsTable.id, id), eq(objectsTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
     userId:     user.id,
@@ -755,6 +1230,7 @@ export async function setObjectStatus(
 
 export async function deleteObject(id: string): Promise<ActionResult> {
   await requirePermission("objects", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -765,12 +1241,12 @@ export async function deleteObject(id: string): Promise<ActionResult> {
   const [obj] = await db
     .select({ name: objectsTable.name, customerId: objectsTable.customerId })
     .from(objectsTable)
-    .where(eq(objectsTable.id, id))
+    .where(and(eq(objectsTable.id, id), eq(objectsTable.tenantId, tenantId)))
     .limit(1);
 
   if (!obj) return { success: false, message: "Object niet gevonden." };
 
-  await db.delete(objectsTable).where(eq(objectsTable.id, id));
+  await db.delete(objectsTable).where(and(eq(objectsTable.id, id), eq(objectsTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
     userId:     user.id,
@@ -791,6 +1267,7 @@ export async function bulkSetObjectStatus(
 ): Promise<ActionResult> {
   if (!ids.length) return { success: true };
   await requirePermission("objects", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -801,7 +1278,7 @@ export async function bulkSetObjectStatus(
   await db
     .update(objectsTable)
     .set({ isActive, updatedAt: new Date() })
-    .where(inArray(objectsTable.id, ids));
+    .where(and(inArray(objectsTable.id, ids), eq(objectsTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
     userId:     user.id,

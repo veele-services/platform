@@ -5,12 +5,14 @@ import {
   boolean,
   timestamp,
   jsonb,
+  text,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { rolesTable } from "./roles";
 import { sectorsTable } from "./sectors";
+import { DEFAULT_TENANT_ID, tenantsTable } from "./tenants";
 
 /**
  * Field worker / employee profile.
@@ -24,6 +26,10 @@ import { sectorsTable } from "./sectors";
  */
 export const personnelTable = pgTable("personnel", {
   id:           uuid("id").primaryKey().defaultRandom(),
+  tenantId:     uuid("tenant_id")
+    .notNull()
+    .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
+    .references(() => tenantsTable.id, { onDelete: "cascade" }),
   /** Supabase Auth UUID — nullable until the employee activates their account. */
   userId:       uuid("user_id").unique(),
 
@@ -34,6 +40,12 @@ export const personnelTable = pgTable("personnel", {
   lastName:     varchar("last_name", { length: 100 }).notNull(),
   email:        varchar("email", { length: 255 }).notNull().unique(),
   phone:        varchar("phone", { length: 50 }),
+  addressStreet:     varchar("address_street", { length: 200 }),
+  addressPostalCode: varchar("address_postal_code", { length: 20 }),
+  addressCity:       varchar("address_city", { length: 120 }),
+  addressCountry:    varchar("address_country", { length: 80 }).notNull().default("Nederland"),
+  avatarUrl:         text("avatar_url"),
+  avatarPath:        text("avatar_path"),
 
   /** Primary role used for planning eligibility checks. */
   roleId:       uuid("role_id").references(() => rolesTable.id, { onDelete: "set null" }),
@@ -76,12 +88,20 @@ export const personnelTable = pgTable("personnel", {
     hours_per_week?: number;
   } | null>(),
 
+  notificationEmailEnabled:    boolean("notification_email_enabled").notNull().default(true),
+  notificationPushEnabled:     boolean("notification_push_enabled").notNull().default(true),
+  notificationPlanningEnabled: boolean("notification_planning_enabled").notNull().default(true),
+  notificationNewsEnabled:     boolean("notification_news_enabled").notNull().default(true),
+  notificationHoursEnabled:    boolean("notification_hours_enabled").notNull().default(true),
+  profileUpdatedAt:            timestamp("profile_updated_at", { withTimezone: true }),
+
   createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:    timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });
 
 export const insertPersonnelSchema = createInsertSchema(personnelTable).omit({
   id: true,
+  tenantId: true,
   code: true,
   inviteSentAt: true,
   createdAt: true,

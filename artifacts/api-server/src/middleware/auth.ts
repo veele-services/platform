@@ -1,7 +1,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { jwtVerify, createRemoteJWKSet } from "jose";
-import { db, userRolesTable, rolePermissionsTable, permissionsTable } from "@workspace/db";
-import { eq, inArray } from "drizzle-orm";
+import { db, userRolesTable, rolePermissionsTable, permissionsTable, tenantUsersTable } from "@workspace/db";
+import { and, eq, inArray } from "drizzle-orm";
 
 const SUPABASE_URL         = process.env["SUPABASE_URL"]         ?? "";
 const SUPABASE_JWT_SECRET  = process.env["SUPABASE_JWT_SECRET"]  ?? "";
@@ -24,6 +24,7 @@ declare global {
   namespace Express {
     interface Request {
       userId?: string;
+      tenantId?: string;
     }
   }
 }
@@ -126,4 +127,36 @@ export function requirePermission(resource: string, action: string) {
 
     next();
   };
+}
+
+export async function requireTenantScope(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): Promise<void> {
+  const userId = req.userId;
+  if (!userId) {
+    res.status(401).json({ error: "Authenticatie vereist" });
+    return;
+  }
+
+  const [tenantUser] = await db
+    .select({ tenantId: tenantUsersTable.tenantId })
+    .from(tenantUsersTable)
+    .where(
+      and(
+        eq(tenantUsersTable.userId, userId),
+        eq(tenantUsersTable.status, "active"),
+      ),
+    )
+    .limit(1);
+
+  if (!tenantUser) {
+    req.log.warn({ userId }, "Geen actieve tenant-koppeling voor API-verzoek");
+    res.status(403).json({ error: "Geen actieve tenant-koppeling" });
+    return;
+  }
+
+  req.tenantId = tenantUser.tenantId;
+  next();
 }

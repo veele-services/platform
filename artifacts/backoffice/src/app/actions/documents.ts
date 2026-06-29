@@ -9,6 +9,7 @@ import {
   customersTable,
   personnelTable,
   objectsTable,
+  tenantUsersTable,
   DOCUMENT_ENTITY_TYPES,
   type DocumentEntityType,
 } from "@workspace/db";
@@ -17,6 +18,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, DocumentEntityType };
@@ -56,7 +58,6 @@ const ALLOWED_MIME_TYPES = new Set([
   "image/png",
   "image/gif",
   "image/webp",
-  "image/svg+xml",
 ]);
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -67,11 +68,89 @@ function buildStoragePath(
   docId: string,
   filename: string,
 ): string {
-  const ext = filename.includes(".") ? filename.split(".").pop()! : "bin";
+  const ext = filename.includes(".")
+    ? filename.split(".").pop()!.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12)
+    : "bin";
+  const safeExt = ext || "bin";
   if (entityType !== "general" && entityId) {
-    return `${entityType}/${entityId}/${docId}.${ext}`;
+    return `${entityType}/${entityId}/${docId}.${safeExt}`;
   }
-  return `general/${docId}.${ext}`;
+  return `general/${docId}.${safeExt}`;
+}
+
+function hasUnsafeStoragePath(path: string): boolean {
+  return (
+    path.includes("..") ||
+    path.includes("\\") ||
+    path.startsWith("/") ||
+    path.endsWith("/") ||
+    path.split("/").some((part) => part.trim() === "")
+  );
+}
+
+async function isDocumentEntityInTenant(input: {
+  entityType: DocumentEntityType;
+  entityId: string | null;
+  uploadedBy?: string;
+  tenantId: string;
+}): Promise<boolean> {
+  const { entityType, entityId, uploadedBy, tenantId } = input;
+
+  if (entityType === "general") {
+    if (!uploadedBy) return false;
+    const [row] = await db
+      .select({ id: tenantUsersTable.id })
+      .from(tenantUsersTable)
+      .where(
+        and(
+          eq(tenantUsersTable.tenantId, tenantId),
+          eq(tenantUsersTable.userId, uploadedBy),
+          eq(tenantUsersTable.status, "active"),
+        ),
+      )
+      .limit(1);
+    return Boolean(row);
+  }
+
+  if (!entityId) return false;
+
+  if (entityType === "assignment") {
+    const [row] = await db
+      .select({ id: assignmentsTable.id })
+      .from(assignmentsTable)
+      .where(and(eq(assignmentsTable.id, entityId), eq(assignmentsTable.tenantId, tenantId)))
+      .limit(1);
+    return Boolean(row);
+  }
+
+  if (entityType === "customer") {
+    const [row] = await db
+      .select({ id: customersTable.id })
+      .from(customersTable)
+      .where(and(eq(customersTable.id, entityId), eq(customersTable.tenantId, tenantId)))
+      .limit(1);
+    return Boolean(row);
+  }
+
+  if (entityType === "personnel") {
+    const [row] = await db
+      .select({ id: personnelTable.id })
+      .from(personnelTable)
+      .where(and(eq(personnelTable.id, entityId), eq(personnelTable.tenantId, tenantId)))
+      .limit(1);
+    return Boolean(row);
+  }
+
+  if (entityType === "object") {
+    const [row] = await db
+      .select({ id: objectsTable.id })
+      .from(objectsTable)
+      .where(and(eq(objectsTable.id, entityId), eq(objectsTable.tenantId, tenantId)))
+      .limit(1);
+    return Boolean(row);
+  }
+
+  return false;
 }
 
 // ─── Entity name enrichment ───────────────────────────────────────────────────
@@ -144,6 +223,7 @@ export async function listDocuments(filter?: {
 }): Promise<DocumentRow[]> {
   const canRead = await hasPermission("documents", "read");
   if (!canRead) return [];
+  const tenantId = await requireCurrentTenantId();
 
   const conditions = [];
   if (filter?.entityType) {
@@ -169,11 +249,27 @@ export async function listDocuments(filter?: {
     .where(conditions.length > 0 ? and(...conditions) : undefined)
     .orderBy(desc(documentsTable.createdAt));
 
-  if (rows.length === 0) return [];
+  const scopedRows = (
+    await Promise.all(
+      rows.map(async (row) => ({
+        row,
+        allowed: await isDocumentEntityInTenant({
+          entityType: row.entityType as DocumentEntityType,
+          entityId: row.entityId ?? null,
+          uploadedBy: row.uploadedBy,
+          tenantId,
+        }),
+      })),
+    )
+  )
+    .filter((item) => item.allowed)
+    .map((item) => item.row);
+
+  if (scopedRows.length === 0) return [];
 
   // Parallel enrichment: entity names + uploader names
   const [entityNameMap, userMap] = await Promise.all([
-    enrichEntityNames(rows),
+    enrichEntityNames(scopedRows),
     (async () => {
       const admin = createAdminClient();
       const { data } = await admin.auth.admin.listUsers({ perPage: 1000 });
@@ -189,7 +285,7 @@ export async function listDocuments(filter?: {
     })(),
   ]);
 
-  return rows.map((r) => {
+  return scopedRows.map((r) => {
     const uploader = userMap.get(r.uploadedBy);
     return {
       id:            r.id,
@@ -247,12 +343,24 @@ export async function uploadDocument(
         ? (entityType as DocumentEntityType)
         : "general";
 
+    const tenantId = await requireCurrentTenantId();
+    const entityAllowed = await isDocumentEntityInTenant({
+      entityType: safeEntityType,
+      entityId,
+      uploadedBy: user.id,
+      tenantId,
+    });
+    if (!entityAllowed) {
+      return { success: false, message: "Geen toegang tot deze documentcontext." };
+    }
+
     const docId       = randomUUID();
     const storagePath = buildStoragePath(safeEntityType, entityId, docId, file.name);
 
     // Upload to Supabase Storage
     const bytes = await file.arrayBuffer();
-    const { error: uploadError } = await supabase.storage
+    const admin = createAdminClient();
+    const { error: uploadError } = await admin.storage
       .from(BUCKET)
       .upload(storagePath, bytes, {
         contentType: file.type,
@@ -327,15 +435,28 @@ export async function deleteDocument(id: string): Promise<ActionResult> {
         entityType:  documentsTable.entityType,
         entityId:    documentsTable.entityId,
         name:        documentsTable.name,
+        uploadedBy:  documentsTable.uploadedBy,
       })
       .from(documentsTable)
       .where(eq(documentsTable.id, id))
       .limit(1);
 
     if (!doc) return { success: false, message: "Document niet gevonden." };
+    const tenantId = await requireCurrentTenantId();
+    const allowed = await isDocumentEntityInTenant({
+      entityType: doc.entityType as DocumentEntityType,
+      entityId: doc.entityId ?? null,
+      uploadedBy: doc.uploadedBy,
+      tenantId,
+    });
+    if (!allowed) return { success: false, message: "Document niet gevonden." };
 
     // Delete from Supabase Storage (best-effort; do not block DB delete)
-    await supabase.storage.from(BUCKET).remove([doc.storagePath]);
+    if (hasUnsafeStoragePath(doc.storagePath)) {
+      return { success: false, message: "Ongeldig opslagpad." };
+    }
+
+    await createAdminClient().storage.from(BUCKET).remove([doc.storagePath]);
 
     // Delete from DB
     await db.delete(documentsTable).where(eq(documentsTable.id, id));
@@ -379,15 +500,29 @@ export async function getDocumentDownloadUrl(
       .select({
         storagePath: documentsTable.storagePath,
         filename:    documentsTable.filename,
+        entityType:  documentsTable.entityType,
+        entityId:    documentsTable.entityId,
+        uploadedBy:  documentsTable.uploadedBy,
       })
       .from(documentsTable)
       .where(eq(documentsTable.id, id))
       .limit(1);
 
     if (!doc) return { success: false, message: "Document niet gevonden." };
+    const tenantId = await requireCurrentTenantId();
+    const allowed = await isDocumentEntityInTenant({
+      entityType: doc.entityType as DocumentEntityType,
+      entityId: doc.entityId ?? null,
+      uploadedBy: doc.uploadedBy,
+      tenantId,
+    });
+    if (!allowed) return { success: false, message: "Document niet gevonden." };
 
-    const supabase = await createClient();
-    const { data, error } = await supabase.storage
+    if (hasUnsafeStoragePath(doc.storagePath)) {
+      return { success: false, message: "Ongeldig opslagpad." };
+    }
+
+    const { data, error } = await createAdminClient().storage
       .from(BUCKET)
       .createSignedUrl(doc.storagePath, 3600); // 1-hour TTL
 

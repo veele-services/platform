@@ -20,6 +20,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { provisionPortalUserWithTemporaryPassword } from "@/lib/auth/portal-invites";
 import {
   buildTemporaryPasswordEmail,
@@ -228,6 +229,7 @@ export async function listPersonnel(params: {
   dir?:           string;
 }): Promise<{ rows: PersonnelRow[]; total: number }> {
   await requirePermission("personnel", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const {
     search,
@@ -241,7 +243,9 @@ export async function listPersonnel(params: {
     dir = "asc",
   } = params;
 
-  const conditions: ReturnType<typeof eq>[] = [];
+  const conditions: ReturnType<typeof eq>[] = [
+    eq(personnelTable.tenantId, tenantId) as ReturnType<typeof eq>,
+  ];
   if (search?.trim()) {
     const term = `%${search.trim()}%`;
     const clause = or(
@@ -329,6 +333,7 @@ export async function listPersonnel(params: {
 
 export async function getPersonnel(id: string): Promise<PersonnelDetail | null> {
   await requirePermission("personnel", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const rows = await db
     .select({
@@ -360,7 +365,7 @@ export async function getPersonnel(id: string): Promise<PersonnelDetail | null> 
     .from(personnelTable)
     .leftJoin(rolesTable, eq(personnelTable.roleId, rolesTable.id))
     .leftJoin(sectorsTable, eq(personnelTable.sectorId, sectorsTable.id))
-    .where(eq(personnelTable.id, id))
+    .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)))
     .limit(1);
 
   if (!rows[0]) return null;
@@ -400,6 +405,7 @@ export async function listSectors(): Promise<SectorOption[]> {
 
 export async function getPersonnelStats(): Promise<PersonnelStats> {
   await requirePermission("personnel", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const today      = new Date().toISOString().slice(0, 10);
   const dayOfWeek  = new Date(today + "T00:00:00").getDay();
@@ -410,7 +416,7 @@ export async function getPersonnelStats(): Promise<PersonnelStats> {
       where ${personnelTable.isActive} = true
         and ${personnelTable.personnelType} in ('flex', 'oproep', 'zzp', 'tijdelijk')
     )::int`,
-  }).from(personnelTable);
+  }).from(personnelTable).where(eq(personnelTable.tenantId, tenantId));
 
   const [availRow] = await db.select({
     count: sql<number>`count(*)::int`,
@@ -419,6 +425,7 @@ export async function getPersonnelStats(): Promise<PersonnelStats> {
   .where(
     and(
       eq(personnelTable.isActive, true),
+      eq(personnelTable.tenantId, tenantId),
       eq(personnelTable.isAvailable, true),
       sql`exists (
         select 1 from availability_windows aw
@@ -439,21 +446,23 @@ export async function getPersonnelStats(): Promise<PersonnelStats> {
     count: sql<number>`count(*)::int`,
   })
   .from(leavePeriodsTable)
-  .where(eq(leavePeriodsTable.status, "pending"));
+  .innerJoin(personnelTable, eq(leavePeriodsTable.personnelId, personnelTable.id))
+  .where(and(eq(leavePeriodsTable.status, "pending"), eq(personnelTable.tenantId, tenantId)));
 
   // Total + expiring certificates (uses {name, expires_at} format from migration 025)
   const [certRow] = await db.select({
     total: sql<number>`coalesce(sum(jsonb_array_length(${personnelTable.certificates})), 0)::int`,
   })
   .from(personnelTable)
-  .where(eq(personnelTable.isActive, true));
+  .where(and(eq(personnelTable.tenantId, tenantId), eq(personnelTable.isActive, true)));
 
   const expirySoonResult = await db.execute<{ expiring_soon: string | number }>(sql`
     select coalesce((
       select count(*)::int
       from personnel p2,
            jsonb_array_elements(p2.certificates) as cert
-      where p2.is_active = true
+      where p2.tenant_id = ${tenantId}::uuid
+        and p2.is_active = true
         and (cert->>'expires_at') is not null
         and (cert->>'expires_at')::date between current_date and current_date + interval '30 days'
     ), 0) as expiring_soon
@@ -472,6 +481,7 @@ export async function getPersonnelStats(): Promise<PersonnelStats> {
 
 export async function getFlexpoolToday(): Promise<FlexpoolRow[]> {
   await requirePermission("personnel", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const today     = new Date().toISOString().slice(0, 10);
   const dayOfWeek = new Date(today + "T00:00:00").getDay();
@@ -491,6 +501,7 @@ export async function getFlexpoolToday(): Promise<FlexpoolRow[]> {
   .where(
     and(
       eq(personnelTable.isActive, true),
+      eq(personnelTable.tenantId, tenantId),
       eq(personnelTable.isAvailable, true),
       sql`${personnelTable.personnelType} in ('flex', 'oproep', 'zzp', 'tijdelijk')`,
       sql`exists (
@@ -524,6 +535,7 @@ export async function getFlexpoolToday(): Promise<FlexpoolRow[]> {
 
 export async function getCapacityByRole(): Promise<CapacityByRoleRow[]> {
   await requirePermission("personnel", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const today     = new Date().toISOString().slice(0, 10);
   const dayOfWeek = new Date(today + "T00:00:00").getDay();
@@ -550,7 +562,7 @@ export async function getCapacityByRole(): Promise<CapacityByRoleRow[]> {
   })
   .from(personnelTable)
   .innerJoin(rolesTable, eq(personnelTable.roleId, rolesTable.id))
-  .where(eq(personnelTable.isActive, true))
+  .where(and(eq(personnelTable.tenantId, tenantId), eq(personnelTable.isActive, true)))
   .groupBy(rolesTable.id, rolesTable.name)
   .orderBy(desc(sql`count(*)`))
   .limit(8);
@@ -560,6 +572,7 @@ export async function getCapacityByRole(): Promise<CapacityByRoleRow[]> {
 
 export async function getLinkedObjects(personnelId: string): Promise<LinkedObject[]> {
   await requirePermission("personnel", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const rows = await db.select({
     objectId:     objectsTable.id,
@@ -573,7 +586,7 @@ export async function getLinkedObjects(personnelId: string): Promise<LinkedObjec
   .from(objectPersonnelTable)
   .innerJoin(objectsTable,    eq(objectPersonnelTable.objectId,    objectsTable.id))
   .innerJoin(customersTable,  eq(objectsTable.customerId,          customersTable.id))
-  .where(eq(objectPersonnelTable.personnelId, personnelId))
+  .where(and(eq(objectPersonnelTable.personnelId, personnelId), eq(customersTable.tenantId, tenantId)))
   .orderBy(asc(objectsTable.name));
 
   return rows.map((r) => ({
@@ -588,6 +601,7 @@ export async function createPersonnel(
   data: PersonnelFormInput,
 ): Promise<ActionResult<{ id: string }>> {
   await requirePermission("personnel", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -631,7 +645,7 @@ export async function createPersonnel(
     };
     const [created] = await db
       .insert(personnelTable)
-      .values(insertData)
+      .values({ ...insertData, tenantId })
       .returning({ id: personnelTable.id });
 
     const createdId = created!.id;
@@ -695,6 +709,7 @@ export async function updatePersonnel(
   data: PersonnelFormInput,
 ): Promise<ActionResult> {
   await requirePermission("personnel", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -740,7 +755,7 @@ export async function updatePersonnel(
     await db
       .update(personnelTable)
       .set(updateData)
-      .where(eq(personnelTable.id, id));
+      .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)));
 
     await db.insert(auditLogTable).values({
       userId:     user.id,
@@ -770,6 +785,7 @@ export async function setPersonnelStatus(
   isActive: boolean,
 ): Promise<ActionResult> {
   await requirePermission("personnel", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -778,7 +794,7 @@ export async function setPersonnelStatus(
   await db
     .update(personnelTable)
     .set({ isActive, updatedAt: new Date() })
-    .where(eq(personnelTable.id, id));
+    .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
     userId:     user.id,
@@ -799,6 +815,7 @@ export async function bulkSetPersonnelStatus(
 ): Promise<ActionResult> {
   if (!ids.length) return { success: true };
   await requirePermission("personnel", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -807,7 +824,7 @@ export async function bulkSetPersonnelStatus(
   await db
     .update(personnelTable)
     .set({ isActive, updatedAt: new Date() })
-    .where(inArray(personnelTable.id, ids));
+    .where(and(inArray(personnelTable.id, ids), eq(personnelTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
     userId:     user.id,
@@ -823,6 +840,7 @@ export async function bulkSetPersonnelStatus(
 
 export async function invitePersonnel(id: string): Promise<ActionResult> {
   await requirePermission("personnel", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const { data: { user: actor } } = await supabase.auth.getUser();
@@ -837,7 +855,7 @@ export async function invitePersonnel(id: string): Promise<ActionResult> {
       inviteSentAt: personnelTable.inviteSentAt,
     })
     .from(personnelTable)
-    .where(eq(personnelTable.id, id))
+    .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)))
     .limit(1);
 
   if (!person) return { success: false, message: "Medewerker niet gevonden." };
@@ -861,7 +879,7 @@ export async function invitePersonnel(id: string): Promise<ActionResult> {
   await db
     .update(personnelTable)
     .set({ userId: temporaryInvite.userId, inviteSentAt: new Date(), updatedAt: new Date() })
-    .where(eq(personnelTable.id, id));
+    .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
     userId:     actor.id,
@@ -889,11 +907,12 @@ export async function invitePersonnel(id: string): Promise<ActionResult> {
  */
 export async function getPersonnelAuthStatus(id: string): Promise<PersonnelAuthStatus> {
   await requirePermission("personnel", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const [person] = await db
     .select({ userId: personnelTable.userId, inviteSentAt: personnelTable.inviteSentAt })
     .from(personnelTable)
-    .where(eq(personnelTable.id, id))
+    .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)))
     .limit(1);
 
   if (!person) return "none";
@@ -931,6 +950,7 @@ export async function updatePersonnelEmail(
   email: string,
 ): Promise<ActionResult> {
   await requirePermission("personnel", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const trimmed = email.trim().toLowerCase();
   if (!trimmed || !trimmed.includes("@")) {
@@ -944,7 +964,7 @@ export async function updatePersonnelEmail(
   const [person] = await db
     .select({ userId: personnelTable.userId })
     .from(personnelTable)
-    .where(eq(personnelTable.id, id))
+    .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)))
     .limit(1);
 
   if (!person) return { success: false, message: "Medewerker niet gevonden." };
@@ -959,7 +979,7 @@ export async function updatePersonnelEmail(
     await db
       .update(personnelTable)
       .set({ email: trimmed, updatedAt: new Date() })
-      .where(eq(personnelTable.id, id));
+      .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)));
 
     await db.insert(auditLogTable).values({
       userId:     user.id,
@@ -994,6 +1014,7 @@ export async function setPersonnelAuthBan(
   banned: boolean,
 ): Promise<ActionResult> {
   await requirePermission("personnel", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -1006,7 +1027,7 @@ export async function setPersonnelAuthBan(
       lastName:  personnelTable.lastName,
     })
     .from(personnelTable)
-    .where(eq(personnelTable.id, id))
+    .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)))
     .limit(1);
 
   if (!person) return { success: false, message: "Medewerker niet gevonden." };
@@ -1037,6 +1058,7 @@ export async function setPersonnelAuthBan(
 
 export async function deletePersonnel(id: string): Promise<ActionResult> {
   await requirePermission("personnel", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -1045,12 +1067,12 @@ export async function deletePersonnel(id: string): Promise<ActionResult> {
   const [person] = await db
     .select({ firstName: personnelTable.firstName, lastName: personnelTable.lastName })
     .from(personnelTable)
-    .where(eq(personnelTable.id, id))
+    .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)))
     .limit(1);
 
   if (!person) return { success: false, message: "Medewerker niet gevonden." };
 
-  await db.delete(personnelTable).where(eq(personnelTable.id, id));
+  await db.delete(personnelTable).where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
     userId:     user.id,

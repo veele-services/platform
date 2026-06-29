@@ -26,6 +26,8 @@ import {
   listCustomerTypes,
   listAccountManagers,
   getCustomerKpis,
+  listCustomerPortalUsers,
+  listCustomerTicketsForCustomer,
 } from "@/app/actions/customers";
 import { listObjectsForCustomer } from "@/app/actions/objects";
 import { listAssignmentsForCustomer } from "@/app/actions/assignments";
@@ -68,13 +70,14 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
     ? (rawTab as TabKey)
     : "overzicht";
 
-  const [canWrite, canReadAssignments, canReadDocuments, canWriteDocuments, canReadInvoices, canReadReports] = await Promise.all([
+  const [canWrite, canReadAssignments, canReadDocuments, canWriteDocuments, canReadInvoices, canReadReports, canReadTickets] = await Promise.all([
     hasPermission("customers",   "write"),
     hasPermission("assignments", "read"),
     hasPermission("documents",   "read"),
     hasPermission("documents",   "write"),
     hasPermission("invoices",    "read"),
     hasPermission("reports",     "read"),
+    hasPermission("tickets",     "read"),
   ]);
 
   // Load all data in parallel — gate expensive calls on permissions
@@ -93,6 +96,8 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
     reports,
     documents,
     history,
+    portalUsers,
+    tickets,
   ] = await Promise.all([
     getCustomer(id),
     listSectors(),
@@ -108,6 +113,8 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
     canReadReports     ? listReportsForCustomer(id, 25)         : Promise.resolve([]),
     canReadDocuments   ? listDocuments({ entityType: "customer", entityId: id }) : Promise.resolve([]),
     canWrite           ? listCustomerHistory(id, 25)            : Promise.resolve([]),
+    listCustomerPortalUsers(id),
+    canReadTickets     ? listCustomerTicketsForCustomer(id, 10) : Promise.resolve([]),
   ]);
 
   if (!customer) notFound();
@@ -128,7 +135,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
   };
 
   return (
-    <div className="p-8 max-w-7xl">
+    <div className="mx-auto w-full max-w-[1600px] p-8">
       {/* Back link */}
       <Link
         href="/customers"
@@ -140,7 +147,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
       </Link>
 
       {/* Hero header with KPIs */}
-      <div className="flex items-start justify-between gap-4">
+      <div className="mb-6 flex items-start justify-between gap-4">
         <div className="flex-1 min-w-0">
           <CustomerProfileHeader customer={safeCustomer} kpis={kpis} />
         </div>
@@ -162,7 +169,22 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
 
       {/* Tab content */}
       {activeTab === "overzicht" && (
-        <CustomerOverviewTab customer={safeCustomer} canWrite={canWrite} />
+        <CustomerOverviewTab
+          customer={safeCustomer}
+          canWrite={canWrite}
+          kpis={kpis}
+          contacts={contacts}
+          portalUsers={portalUsers}
+          objects={objects}
+          assignments={canReadAssignments ? assignmentHistory : []}
+          invoices={canReadInvoices ? invoices : []}
+          payments={canReadInvoices ? payments : []}
+          reports={canReadReports ? reports : []}
+          documents={canReadDocuments ? documents : []}
+          tickets={canReadTickets ? tickets : []}
+          notes={canWrite ? customerNotes : []}
+          history={canWrite ? history : []}
+        />
       )}
 
       {activeTab === "contacten" && (

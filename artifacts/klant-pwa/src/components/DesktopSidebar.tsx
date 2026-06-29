@@ -3,23 +3,32 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  LayoutDashboard,
-  ClipboardList,
-  FileText,
+  Bell,
+  Building2,
+  CalendarDays,
   FileCheck2,
-  Receipt,
-  FolderOpen,
+  FileText,
+  Headphones,
+  Home,
   LogOut,
+  Receipt,
+  Send,
+  Settings,
+  WalletCards,
 } from "lucide-react";
 import { signOut } from "@/actions/auth";
+import { VeeleLogo } from "./MobileHeader";
 
 const NAV_ITEMS = [
-  { href: "/klant",            label: "Dashboard",  Icon: LayoutDashboard },
-  { href: "/klant/opdrachten", label: "Opdrachten", Icon: ClipboardList },
-  { href: "/klant/offertes",   label: "Offertes",   Icon: FileText },
-  { href: "/klant/rapporten",  label: "Rapporten",  Icon: FileCheck2 },
-  { href: "/klant/facturen",   label: "Facturen",   Icon: Receipt },
-  { href: "/klant/documenten", label: "Documenten", Icon: FolderOpen },
+  { href: "/",                    label: "Dashboard",    Icon: Home },
+  { href: "/objecten",            label: "Mijn objecten", Icon: Building2 },
+  { href: "/opdrachten/aanvragen", label: "Aanvragen",    Icon: Send },
+  { href: "/rapporten",           label: "Rapportages",  Icon: FileCheck2 },
+  { href: "/facturen",            label: "Facturen",     Icon: Receipt },
+  { href: "/betalingen",          label: "Betalingen",   Icon: WalletCards },
+  { href: "/opdrachten",          label: "Afspraken",    Icon: CalendarDays },
+  { href: "/meldingen",           label: "Meldingen",    Icon: Bell },
+  { href: "/documenten",          label: "Documenten",   Icon: FileText },
 ];
 
 export function DesktopSidebar() {
@@ -27,78 +36,61 @@ export function DesktopSidebar() {
 
   return (
     <aside
-      className="hidden md:flex w-60 shrink-0 flex-col h-screen sticky top-0 bg-white"
-      style={{ borderRight: "1px solid var(--color-border)", zIndex: 40 }}
+      className="hidden h-screen w-[260px] shrink-0 flex-col md:flex"
+      style={{
+        background: "linear-gradient(180deg, #06224A 0%, #061F44 100%)",
+        color:      "white",
+      }}
     >
-      {/* Logo / branding */}
-      <div
-        className="flex items-center gap-3 px-5 py-5 border-b"
-        style={{ borderColor: "var(--color-border)" }}
-      >
-        <div
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-sm font-bold text-white"
-          style={{ backgroundColor: "var(--color-accent)" }}
-        >
-          V
-        </div>
-        <div>
-          <p className="text-sm font-bold leading-tight" style={{ color: "var(--color-primary)" }}>
-            Veele
-          </p>
-          <p className="text-xs leading-tight" style={{ color: "var(--color-secondary)" }}>
-            Klantportaal
-          </p>
-        </div>
+      <div className="px-6 pb-5 pt-7">
+        <VeeleLogo />
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-2">
         {NAV_ITEMS.map(({ href, label, Icon }) => {
           const isActive =
-            href === "/klant"
-              ? pathname === "/klant" || pathname === "/klant/"
+            href === "/"
+              ? pathname === "/"
               : pathname.startsWith(href);
 
           return (
             <Link
               key={href}
               href={href}
-              className="relative flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors"
+              className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition"
               style={{
-                backgroundColor: isActive ? "rgba(0,183,179,0.12)" : "transparent",
-                color:           isActive ? "var(--color-teal)" : "var(--color-secondary)",
+                backgroundColor: isActive ? "rgba(0,183,179,0.18)" : "transparent",
+                color:           isActive ? "#FFFFFF" : "rgba(255,255,255,0.72)",
               }}
             >
-              {/* Left accent bar */}
-              {isActive && (
-                <span
-                  className="absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full"
-                  style={{
-                    width:           "3px",
-                    height:          "18px",
-                    backgroundColor: "var(--color-teal)",
-                  }}
-                />
-              )}
-              <Icon size={18} strokeWidth={isActive ? 2.5 : 1.75} className="shrink-0" />
-              {label}
+              <Icon size={18} strokeWidth={isActive ? 2.5 : 1.85} />
+              <span className="min-w-0 flex-1 truncate">{label}</span>
             </Link>
           );
         })}
       </nav>
 
-      {/* Footer / logout */}
-      <div
-        className="px-3 py-4 border-t"
-        style={{ borderColor: "var(--color-border)" }}
-      >
+      <div className="space-y-1 border-t border-white/10 px-4 py-5">
+        <Link
+          href="/meer"
+          className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-white/70"
+        >
+          <Headphones size={18} />
+          Hulp & contact
+        </Link>
+        <Link
+          href="/instellingen"
+          className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-white/70"
+        >
+          <Settings size={18} />
+          Instellingen
+        </Link>
         <form action={signOut}>
           <button
             type="submit"
-            className="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-slate-50"
-            style={{ color: "var(--color-secondary)" }}
+            className="flex w-full items-center gap-3 rounded-xl px-4 py-3 text-left text-sm font-bold text-white/70"
           >
-            <LogOut size={18} strokeWidth={1.75} />
+            <LogOut size={18} />
             Uitloggen
           </button>
         </form>

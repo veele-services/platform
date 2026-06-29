@@ -1,9 +1,9 @@
 "use server";
 
 import { db } from "@workspace/db";
-import { documentsTable } from "@workspace/db";
+import { customersTable, documentsTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
-import { getMyCustomerId } from "./customer";
+import { getMyCustomerIdentity } from "./customer";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type CustomerDocument = {
@@ -16,8 +16,8 @@ export type CustomerDocument = {
 };
 
 export async function getMyDocuments(): Promise<CustomerDocument[]> {
-  const customerId = await getMyCustomerId();
-  if (!customerId) return [];
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return [];
 
   const rows = await db
     .select({
@@ -29,10 +29,12 @@ export async function getMyDocuments(): Promise<CustomerDocument[]> {
       createdAt: documentsTable.createdAt,
     })
     .from(documentsTable)
+    .innerJoin(customersTable, eq(customersTable.id, documentsTable.entityId))
     .where(
       and(
         eq(documentsTable.entityType, "customer"),
-        eq(documentsTable.entityId, customerId),
+        eq(documentsTable.entityId, identity.customerId),
+        eq(customersTable.tenantId, identity.tenantId),
       ),
     )
     .orderBy(desc(documentsTable.createdAt));
@@ -50,17 +52,19 @@ export async function getMyDocuments(): Promise<CustomerDocument[]> {
 export async function getDocumentDownloadUrl(
   documentId: string,
 ): Promise<{ success: true; url: string } | { success: false; message: string }> {
-  const customerId = await getMyCustomerId();
-  if (!customerId) return { success: false, message: "Niet geauthenticeerd." };
+  const identity = await getMyCustomerIdentity();
+  if (!identity) return { success: false, message: "Niet geauthenticeerd." };
 
   const [doc] = await db
     .select({ storagePath: documentsTable.storagePath })
     .from(documentsTable)
+    .innerJoin(customersTable, eq(customersTable.id, documentsTable.entityId))
     .where(
       and(
         eq(documentsTable.id, documentId),
         eq(documentsTable.entityType, "customer"),
-        eq(documentsTable.entityId, customerId),
+        eq(documentsTable.entityId, identity.customerId),
+        eq(customersTable.tenantId, identity.tenantId),
       ),
     )
     .limit(1);

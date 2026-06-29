@@ -1,9 +1,13 @@
 "use client";
 
-import { useMemo, useState, type FormEvent } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { useState, useTransition, type FormEvent } from "react";
+import { Boxes, Loader2, Plus, Trash2 } from "lucide-react";
+import { addMaterialUsage, deleteMaterialUsage } from "@/actions/materials";
 import {
-  MATERIAL_CATALOG,
+  enqueueOfflineWorkOrderAction,
+  isOfflineNow,
+} from "@/lib/offline/work-order-queue";
+import {
   calculateMaterialLineTotal,
   formatMoney,
   formatQuantity,
@@ -11,80 +15,113 @@ import {
 } from "./work-order-data";
 
 type Props = {
+  assignmentId: string;
   initialItems: MaterialUsageItem[];
+  canEdit: boolean;
 };
 
-type FormState = {
-  materialId: string;
-  name:       string;
-  quantity:   string;
-  unitPrice:  string;
+const EMPTY_FORM = {
+  name: "",
+  quantity: "1",
+  unitPrice: "",
+  unitLabel: "stuk",
+  notes: "",
 };
 
-const EMPTY_FORM: FormState = {
-  materialId: "",
-  name:       "",
-  quantity:   "1",
-  unitPrice:  "",
-};
-
-function parseNumber(value: string): number {
-  const parsed = Number.parseFloat(value.replace(",", "."));
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-export function MaterialEditor({ initialItems }: Props) {
+export function MaterialEditor({ assignmentId, initialItems, canEdit }: Props) {
   const [items, setItems] = useState<MaterialUsageItem[]>(initialItems);
-  const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [form, setForm] = useState(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const total = items.reduce((sum, item) => sum + calculateMaterialLineTotal(item), 0);
 
-  const lineTotal = useMemo(
-    () => parseNumber(form.quantity) * parseNumber(form.unitPrice),
-    [form.quantity, form.unitPrice],
-  );
-  const total = useMemo(
-    () => items.reduce((sum, item) => sum + calculateMaterialLineTotal(item), 0),
-    [items],
-  );
-
-  function handleMaterialChange(materialId: string) {
-    const material = MATERIAL_CATALOG.find((item) => item.id === materialId);
-    setForm((current) => ({
-      ...current,
-      materialId,
-      name:      material?.name ?? "",
-      quantity:  material ? String(material.quantity) : current.quantity,
-      unitPrice: material ? String(material.unitPrice) : "",
-    }));
+  function parseFormNumber(value: string, fallback: number): number {
+    const parsed = Number.parseFloat(value.replace(",", "."));
+    return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setNotice(null);
 
     const name = form.name.trim();
-    const quantity = parseNumber(form.quantity);
-    const unitPrice = parseNumber(form.unitPrice);
-
     if (!name) {
-      setError("Materiaal is verplicht");
-      return;
-    }
-    if (quantity <= 0) {
-      setError("Aantal moet groter zijn dan 0");
+      setError("Materiaalnaam is verplicht");
       return;
     }
 
-    setItems((current) => [
-      ...current,
-      {
-        id:        `local-material-${Date.now()}`,
-        name,
-        quantity,
-        unitPrice,
-      },
-    ]);
-    setForm(EMPTY_FORM);
+    const input = {
+      name,
+      quantity: form.quantity || "1",
+      unitPrice: form.unitPrice || "0",
+      unitLabel: form.unitLabel || null,
+      notes: form.notes || null,
+    };
+
+    startTransition(async () => {
+      if (isOfflineNow()) {
+        enqueueOfflineWorkOrderAction({
+          type: "add-material-usage",
+          assignmentId,
+          payload: input,
+        });
+        setItems((current) => [
+          ...current,
+          {
+            id:        `local-material-${Date.now()}`,
+            name,
+            quantity:  parseFormNumber(form.quantity, 1),
+            unitPrice: parseFormNumber(form.unitPrice, 0),
+            unitLabel: form.unitLabel || undefined,
+          },
+        ]);
+        setForm(EMPTY_FORM);
+        setNotice("Materiaal is offline opgeslagen en wordt automatisch gesynchroniseerd.");
+        return;
+      }
+
+      const result = await addMaterialUsage(assignmentId, input);
+      if (!result.success || !result.id) {
+        setError(result.error ?? "Materiaal opslaan mislukt");
+        return;
+      }
+
+      setItems((current) => [
+        ...current,
+        {
+          id:        result.id!,
+          name,
+          quantity:  parseFormNumber(form.quantity, 1),
+          unitPrice: parseFormNumber(form.unitPrice, 0),
+          unitLabel: form.unitLabel || undefined,
+        },
+      ]);
+      setForm(EMPTY_FORM);
+    });
+  }
+
+  function handleDelete(item: MaterialUsageItem) {
+    if (item.id.startsWith("local-material-")) {
+      setItems((current) => current.filter((currentItem) => currentItem.id !== item.id));
+      return;
+    }
+
+    setDeletingId(item.id);
+    startTransition(async () => {
+      try {
+        const result = await deleteMaterialUsage(assignmentId, item.id);
+        if (!result.success) {
+          setError(result.error ?? "Verwijderen mislukt");
+          return;
+        }
+        setItems((current) => current.filter((currentItem) => currentItem.id !== item.id));
+      } finally {
+        setDeletingId(null);
+      }
+    });
   }
 
   return (
@@ -113,109 +150,135 @@ export function MaterialEditor({ initialItems }: Props) {
               <span className="text-[14px] font-black" style={{ color: "var(--color-primary)" }}>
                 {formatMoney(calculateMaterialLineTotal(item))}
               </span>
-              <button
-                type="button"
-                className="flex h-8 w-8 items-center justify-center rounded-full border"
-                style={{ borderColor: "#FECACA", color: "#DC2626" }}
-                onClick={() => setItems((current) => current.filter((currentItem) => currentItem.id !== item.id))}
-                aria-label="Materiaal verwijderen"
-              >
-                <Trash2 size={15} />
-              </button>
+              {canEdit ? (
+                <button
+                  type="button"
+                  className="flex h-8 w-8 items-center justify-center rounded-full border"
+                  style={{ borderColor: "#FECACA", color: "#DC2626" }}
+                  onClick={() => handleDelete(item)}
+                  disabled={deletingId === item.id}
+                  aria-label="Materiaal verwijderen"
+                >
+                  {deletingId === item.id ? <Loader2 size={15} className="animate-spin" /> : <Trash2 size={15} />}
+                </button>
+              ) : null}
             </div>
           )) : (
-            <p className="py-2 text-[14px]" style={{ color: "var(--color-secondary)" }}>
-              Geen materiaal geregistreerd.
-            </p>
+            <div className="rounded-[18px] border border-dashed px-4 py-5 text-center" style={{ borderColor: "var(--color-border)" }}>
+              <Boxes size={28} className="mx-auto mb-2" style={{ color: "var(--color-muted-fg)" }} />
+              <p className="text-[14px] font-black" style={{ color: "var(--color-primary)" }}>
+                Geen materiaal geregistreerd
+              </p>
+              <p className="mx-auto mt-1 max-w-[280px] text-[13px] leading-5" style={{ color: "var(--color-secondary)" }}>
+                Voeg gebruikte materialen toe, ook wanneer je tijdelijk offline bent.
+              </p>
+            </div>
           )}
         </div>
       </div>
 
-      <form
-        onSubmit={handleSubmit}
-        className="rounded-[18px] bg-white px-5 py-4 shadow-sm"
-        style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}
-      >
-        <h3 className="text-[17px] font-black" style={{ color: "var(--color-primary)" }}>
-          Materiaal toevoegen
-        </h3>
+      {canEdit ? (
+        <form
+          onSubmit={handleSubmit}
+          className="rounded-[18px] bg-white px-5 py-4 shadow-sm"
+          style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}
+        >
+          <h3 className="text-[17px] font-black" style={{ color: "var(--color-primary)" }}>
+            Materiaal toevoegen
+          </h3>
 
-        <div className="mt-4 space-y-3">
-          <label className="block">
-            <span className="mb-1.5 block text-[12px] font-bold" style={{ color: "var(--color-secondary)" }}>
-              Materiaal
-            </span>
-            <select
-              value={form.materialId}
-              onChange={(event) => handleMaterialChange(event.target.value)}
-              className="w-full rounded-2xl border bg-white px-3 py-3 text-[14px] font-semibold outline-none"
-              style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          <div className="mt-4 space-y-3">
+            <label className="block">
+              <span className="mb-1.5 block text-[12px] font-bold" style={{ color: "var(--color-secondary)" }}>
+                Materiaal
+              </span>
+              <input
+                value={form.name}
+                onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+                className="w-full rounded-2xl border px-3 py-3 text-[14px] font-semibold outline-none"
+                style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+                placeholder="Bijv. reinigingsdoek industrieel"
+              />
+            </label>
+
+            <div className="grid grid-cols-3 gap-3">
+              <label className="block">
+                <span className="mb-1.5 block text-[12px] font-bold" style={{ color: "var(--color-secondary)" }}>
+                  Aantal
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.quantity}
+                  onChange={(event) => setForm((current) => ({ ...current, quantity: event.target.value }))}
+                  className="w-full rounded-2xl border px-3 py-3 text-[14px] font-semibold outline-none"
+                  style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-[12px] font-bold" style={{ color: "var(--color-secondary)" }}>
+                  Prijs
+                </span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.unitPrice}
+                  onChange={(event) => setForm((current) => ({ ...current, unitPrice: event.target.value }))}
+                  className="w-full rounded-2xl border px-3 py-3 text-[14px] font-semibold outline-none"
+                  style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+                />
+              </label>
+              <label className="block">
+                <span className="mb-1.5 block text-[12px] font-bold" style={{ color: "var(--color-secondary)" }}>
+                  Eenheid
+                </span>
+                <input
+                  value={form.unitLabel}
+                  onChange={(event) => setForm((current) => ({ ...current, unitLabel: event.target.value }))}
+                  className="w-full rounded-2xl border px-3 py-3 text-[14px] font-semibold outline-none"
+                  style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+                />
+              </label>
+            </div>
+
+            <label className="block">
+              <span className="mb-1.5 block text-[12px] font-bold" style={{ color: "var(--color-secondary)" }}>
+                Opmerking
+              </span>
+              <textarea
+                value={form.notes}
+                onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
+                rows={2}
+                className="w-full resize-none rounded-2xl border px-3 py-3 text-[14px] font-semibold outline-none"
+                style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+              />
+            </label>
+
+            {notice ? (
+              <p className="rounded-2xl px-3 py-2 text-[13px] font-bold" style={{ backgroundColor: "#E9FBF8", color: "#0A837F" }}>
+                {notice}
+              </p>
+            ) : null}
+            {error ? (
+              <p className="rounded-2xl px-3 py-2 text-[13px] font-bold" style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
+                {error}
+              </p>
+            ) : null}
+
+            <button
+              type="submit"
+              disabled={isPending}
+              className="flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-[15px] font-black text-white disabled:opacity-60"
+              style={{ backgroundColor: "var(--color-accent)" }}
             >
-              <option value="">Selecteer materiaal</option>
-              {MATERIAL_CATALOG.map((material) => (
-                <option key={material.id} value={material.id}>
-                  {material.name}
-                </option>
-              ))}
-            </select>
-          </label>
-
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block">
-              <span className="mb-1.5 block text-[12px] font-bold" style={{ color: "var(--color-secondary)" }}>
-                Aantal
-              </span>
-              <input
-                type="number"
-                min="0"
-                step="0.25"
-                value={form.quantity}
-                onChange={(event) => setForm((current) => ({ ...current, quantity: event.target.value }))}
-                className="w-full rounded-2xl border px-3 py-3 text-[14px] font-semibold outline-none"
-                style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
-              />
-            </label>
-            <label className="block">
-              <span className="mb-1.5 block text-[12px] font-bold" style={{ color: "var(--color-secondary)" }}>
-                Stukprijs
-              </span>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={form.unitPrice}
-                onChange={(event) => setForm((current) => ({ ...current, unitPrice: event.target.value }))}
-                className="w-full rounded-2xl border px-3 py-3 text-[14px] font-semibold outline-none"
-                style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
-              />
-            </label>
+              {isPending ? <Loader2 size={17} className="animate-spin" /> : <Plus size={17} />}
+              Toevoegen
+            </button>
           </div>
-
-          <div className="flex items-center justify-between rounded-2xl px-4 py-3" style={{ backgroundColor: "#F6F8FB" }}>
-            <span className="text-[13px] font-bold" style={{ color: "var(--color-secondary)" }}>
-              Regel totaal
-            </span>
-            <span className="text-[17px] font-black" style={{ color: "var(--color-primary)" }}>
-              {formatMoney(lineTotal)}
-            </span>
-          </div>
-
-          {error ? (
-            <p className="rounded-2xl px-3 py-2 text-[13px] font-bold" style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
-              {error}
-            </p>
-          ) : null}
-
-          <button
-            type="submit"
-            className="flex w-full items-center justify-center gap-2 rounded-2xl py-3 text-[15px] font-black text-white"
-            style={{ backgroundColor: "var(--color-accent)" }}
-          >
-            <Plus size={17} />
-            Toevoegen
-          </button>
-        </div>
-      </form>
+        </form>
+      ) : null}
     </section>
   );
 }

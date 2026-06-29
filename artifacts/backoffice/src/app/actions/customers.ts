@@ -4,6 +4,9 @@ import { db } from "@workspace/db";
 import {
   customersTable,
   customerNotesTable,
+  customerUsersTable,
+  customerMessageEntriesTable,
+  customerMessageThreadsTable,
   customerTypesTable,
   customerContactsTable,
   objectsTable,
@@ -15,11 +18,12 @@ import {
   updateCustomerSchema,
   personnelTable,
 } from "@workspace/db";
-import { eq, ilike, or, and, asc, desc, inArray, sql, gte, lt } from "drizzle-orm";
+import { eq, ilike, or, and, asc, desc, inArray, sql, gte, lt, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { provisionPortalUserWithTemporaryPassword } from "@/lib/auth/portal-invites";
 import {
   buildTemporaryPasswordEmail,
@@ -159,6 +163,29 @@ export type CustomerHistoryEntry = {
   createdAt: string;
 };
 
+export type CustomerPortalUserRow = {
+  id: string;
+  email: string;
+  name: string;
+  role: string;
+  status: string;
+  inviteSentAt: string | null;
+  lastLoginAt: string | null;
+  createdAt: string;
+};
+
+export type CustomerTicketSummaryRow = {
+  id: string;
+  subject: string;
+  department: string;
+  status: string;
+  priority: string;
+  lastMessagePreview: string | null;
+  lastMessageAt: string;
+  unreadCount: number;
+  createdAt: string;
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const PAGE_SIZE = 25;
@@ -184,6 +211,7 @@ export async function listCustomers(params: {
   dir?: string;
 }): Promise<{ rows: CustomerRow[]; total: number }> {
   await requirePermission("customers", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const {
     search,
@@ -200,7 +228,9 @@ export async function listCustomers(params: {
     dir = "asc",
   } = params;
 
-  const conditions: ReturnType<typeof eq>[] = [];
+  const conditions: ReturnType<typeof eq>[] = [
+    eq(customersTable.tenantId, tenantId) as ReturnType<typeof eq>,
+  ];
   if (search?.trim()) {
     const term = `%${search.trim()}%`;
     const clause = or(
@@ -304,6 +334,7 @@ export async function listCustomers(params: {
 
 export async function getCustomer(id: string): Promise<CustomerDetail | null> {
   await requirePermission("customers", "read");
+  const tenantId = await requireCurrentTenantId();
   const canSeeNotes = await hasPermission("customers", "write");
 
   const rows = await db
@@ -381,6 +412,7 @@ export async function getCustomer(id: string): Promise<CustomerDetail | null> {
 
 export async function deleteCustomer(id: string): Promise<ActionResult> {
   await requirePermission("customers", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -391,7 +423,7 @@ export async function deleteCustomer(id: string): Promise<ActionResult> {
   const [countRow] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(objectsTable)
-    .where(eq(objectsTable.customerId, id));
+    .where(and(eq(objectsTable.customerId, id), eq(objectsTable.tenantId, tenantId)));
 
   const linkedObjects = countRow?.count ?? 0;
   if (linkedObjects > 0) {
@@ -404,14 +436,16 @@ export async function deleteCustomer(id: string): Promise<ActionResult> {
   const [customer] = await db
     .select({ name: customersTable.name })
     .from(customersTable)
-    .where(eq(customersTable.id, id))
+    .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)))
     .limit(1);
 
   if (!customer) return { success: false, message: "Klant niet gevonden." };
 
   await db.delete(customerContactsTable).where(eq(customerContactsTable.customerId, id));
   await db.delete(customerNotesTable).where(eq(customerNotesTable.customerId, id));
-  await db.delete(customersTable).where(eq(customersTable.id, id));
+  await db
+    .delete(customersTable)
+    .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
     userId:     user.id,
@@ -427,6 +461,7 @@ export async function deleteCustomer(id: string): Promise<ActionResult> {
 
 export async function inviteCustomerPortal(id: string): Promise<ActionResult> {
   await requirePermission("customers", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -441,7 +476,7 @@ export async function inviteCustomerPortal(id: string): Promise<ActionResult> {
       contactEmail: customersTable.contactEmail,
     })
     .from(customersTable)
-    .where(eq(customersTable.id, id))
+    .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)))
     .limit(1);
 
   if (!customer) return { success: false, message: "Klant niet gevonden." };
@@ -588,6 +623,119 @@ export async function updateCustomerType(
 }
 
 // ─── Customer Contacts ────────────────────────────────────────────────────────
+
+export async function listCustomerPortalUsers(customerId: string): Promise<CustomerPortalUserRow[]> {
+  const canRead = await hasPermission("customers", "read");
+  if (!canRead) return [];
+
+  const [customer] = await db
+    .select({ tenantId: customersTable.tenantId })
+    .from(customersTable)
+    .where(eq(customersTable.id, customerId))
+    .limit(1);
+  if (!customer) return [];
+
+  const rows = await db
+    .select({
+      id:           customerUsersTable.id,
+      email:        customerUsersTable.email,
+      firstName:    customerUsersTable.firstName,
+      lastName:     customerUsersTable.lastName,
+      role:         customerUsersTable.role,
+      status:       customerUsersTable.status,
+      inviteSentAt: customerUsersTable.inviteSentAt,
+      lastLoginAt:  customerUsersTable.lastLoginAt,
+      createdAt:    customerUsersTable.createdAt,
+    })
+    .from(customerUsersTable)
+    .where(
+      and(
+        eq(customerUsersTable.customerId, customerId),
+        eq(customerUsersTable.tenantId, customer.tenantId),
+      ),
+    )
+    .orderBy(asc(customerUsersTable.status), asc(customerUsersTable.email));
+
+  return rows.map((r) => {
+    const name = `${r.firstName ?? ""} ${r.lastName ?? ""}`.trim() || r.email;
+    return {
+      id:           r.id,
+      email:        r.email,
+      name,
+      role:         r.role,
+      status:       r.status,
+      inviteSentAt: r.inviteSentAt ? r.inviteSentAt.toISOString() : null,
+      lastLoginAt:  r.lastLoginAt ? r.lastLoginAt.toISOString() : null,
+      createdAt:    r.createdAt.toISOString(),
+    };
+  });
+}
+
+export async function listCustomerTicketsForCustomer(
+  customerId: string,
+  limit = 10,
+): Promise<CustomerTicketSummaryRow[]> {
+  const canRead = await hasPermission("tickets", "read");
+  if (!canRead) return [];
+
+  const [customer] = await db
+    .select({ tenantId: customersTable.tenantId })
+    .from(customersTable)
+    .where(eq(customersTable.id, customerId))
+    .limit(1);
+  if (!customer) return [];
+
+  const rows = await db
+    .select({
+      id:                 customerMessageThreadsTable.id,
+      subject:            customerMessageThreadsTable.subject,
+      department:         customerMessageThreadsTable.department,
+      status:             customerMessageThreadsTable.status,
+      priority:           customerMessageThreadsTable.priority,
+      lastMessagePreview: customerMessageThreadsTable.lastMessagePreview,
+      lastMessageAt:      customerMessageThreadsTable.lastMessageAt,
+      createdAt:          customerMessageThreadsTable.createdAt,
+    })
+    .from(customerMessageThreadsTable)
+    .where(
+      and(
+        eq(customerMessageThreadsTable.customerId, customerId),
+        eq(customerMessageThreadsTable.tenantId, customer.tenantId),
+      ),
+    )
+    .orderBy(desc(customerMessageThreadsTable.lastMessageAt))
+    .limit(limit);
+
+  if (rows.length === 0) return [];
+
+  const unreadRows = await db
+    .select({ threadId: customerMessageEntriesTable.threadId })
+    .from(customerMessageEntriesTable)
+    .where(
+      and(
+        inArray(customerMessageEntriesTable.threadId, rows.map((r) => r.id)),
+        eq(customerMessageEntriesTable.authorType, "customer"),
+        isNull(customerMessageEntriesTable.readByBackofficeAt),
+      ),
+    );
+
+  const unreadCounts = new Map<string, number>();
+  for (const row of unreadRows) {
+    unreadCounts.set(row.threadId, (unreadCounts.get(row.threadId) ?? 0) + 1);
+  }
+
+  return rows.map((r) => ({
+    id:                 r.id,
+    subject:            r.subject,
+    department:         r.department,
+    status:             r.status,
+    priority:           r.priority,
+    lastMessagePreview: r.lastMessagePreview ?? null,
+    lastMessageAt:      r.lastMessageAt.toISOString(),
+    unreadCount:        unreadCounts.get(r.id) ?? 0,
+    createdAt:          r.createdAt.toISOString(),
+  }));
+}
 
 export async function listCustomerContacts(customerId: string): Promise<CustomerContactRow[]> {
   await requirePermission("customers", "read");
@@ -823,6 +971,7 @@ export async function createCustomer(
   data: CustomerFormInput,
 ): Promise<ActionResult<{ id: string }>> {
   await requirePermission("customers", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -849,6 +998,7 @@ export async function createCustomer(
     status:                  data.status                              || "active",
     accountManagerId:        data.accountManagerId                    || null,
     notes:                   data.notes?.trim()                       || null,
+    tenantId,
     createdBy:               user.id,
   };
 
@@ -865,14 +1015,14 @@ export async function createCustomer(
   try {
     const [created] = await db
       .insert(customersTable)
-      .values(parsed.data)
+      .values({ ...parsed.data, tenantId })
       .returning({ id: customersTable.id });
 
     // Sync isActive with status
     await db
       .update(customersTable)
       .set({ isActive: payload.status === "active" || payload.status === "lead" || payload.status === "prospect" })
-      .where(eq(customersTable.id, created!.id));
+      .where(and(eq(customersTable.id, created!.id), eq(customersTable.tenantId, tenantId)));
 
     await db.insert(auditLogTable).values({
       userId:     user.id,
@@ -901,6 +1051,7 @@ export async function updateCustomer(
   data: CustomerFormInput,
 ): Promise<ActionResult> {
   await requirePermission("customers", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -944,7 +1095,7 @@ export async function updateCustomer(
     await db
       .update(customersTable)
       .set({ ...parsed.data, updatedAt: new Date() })
-      .where(eq(customersTable.id, id));
+      .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)));
 
     await db.insert(auditLogTable).values({
       userId:     user.id,
@@ -974,6 +1125,7 @@ export async function setCustomerStatus(
   isActive: boolean,
 ): Promise<ActionResult> {
   await requirePermission("customers", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -984,7 +1136,7 @@ export async function setCustomerStatus(
   await db
     .update(customersTable)
     .set({ isActive, status: isActive ? "active" : "inactive", updatedAt: new Date() })
-    .where(eq(customersTable.id, id));
+    .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
     userId:     user.id,
@@ -1004,6 +1156,7 @@ export async function setCustomerLifecycleStatus(
   status: string,
 ): Promise<ActionResult> {
   await requirePermission("customers", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -1014,7 +1167,7 @@ export async function setCustomerLifecycleStatus(
   await db
     .update(customersTable)
     .set({ status, isActive, updatedAt: new Date() })
-    .where(eq(customersTable.id, id));
+    .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
     userId:     user.id,

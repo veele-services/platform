@@ -15,6 +15,7 @@ import {
   Receipt,
   FileCheck2,
   AlertTriangle,
+  TrendingUp,
 } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
@@ -25,9 +26,11 @@ import {
 import { AssignmentDetailActions } from "@/components/assignments/AssignmentDetailActions";
 import {
   getAssignment,
+  getAssignmentPlanningReadiness,
   getCustomerOptions,
   getPersonnelEligibilityForAssignment,
   getTaskCodeOptions,
+  listAssignmentInterestRounds,
 } from "@/app/actions/assignments";
 import { getReportForAssignment } from "@/app/actions/reports";
 import { SubmitReportForm } from "@/components/reports/SubmitReportForm";
@@ -39,6 +42,10 @@ import { DirectApprovalButton } from "@/components/quotes/DirectApprovalButton";
 import type { QuoteStatus } from "@/app/actions/quotes";
 import { listDocuments } from "@/app/actions/documents";
 import { AssignmentDocumentsPanel } from "@/components/documents/AssignmentDocumentsPanel";
+import { InterestPollButton } from "@/components/assignments/InterestPollButton";
+import { InterestRoundHistory } from "@/components/assignments/InterestRoundHistory";
+import { SmartCandidateActions } from "@/components/assignments/SmartCandidateActions";
+import { ProcessStatusBadge, ProcessStepper } from "@/components/workflows/ProcessStatus";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -83,6 +90,329 @@ function InfoRow({
   );
 }
 
+function capacityStyle(status: "green" | "orange" | "red") {
+  if (status === "green") {
+    return {
+      label: "Groen",
+      bg: "#ECFDF5",
+      text: "#047857",
+      border: "#A7F3D0",
+    };
+  }
+  if (status === "orange") {
+    return {
+      label: "Oranje",
+      bg: "#FFFBEB",
+      text: "#B45309",
+      border: "#FCD34D",
+    };
+  }
+  return {
+    label: "Rood",
+    bg: "#FEF2F2",
+    text: "#B91C1C",
+    border: "#FECACA",
+  };
+}
+
+type PlanningReadiness = NonNullable<Awaited<ReturnType<typeof getAssignmentPlanningReadiness>>>;
+type InterestRounds = Awaited<ReturnType<typeof listAssignmentInterestRounds>>;
+
+function CapacityMatchingSection({
+  assignmentId,
+  planningReadiness,
+  interestRounds,
+}: {
+  assignmentId: string;
+  planningReadiness: PlanningReadiness;
+  interestRounds: InterestRounds;
+}) {
+  const style = capacityStyle(planningReadiness.capacityStatus);
+
+  const metrics = [
+    {
+      label: "Benodigd",
+      value: planningReadiness.requiredSlots,
+      className: "bg-slate-50",
+      valueClassName: "",
+      labelClassName: "",
+    },
+    {
+      label: "Geschikt totaal",
+      value: planningReadiness.suitableCount,
+      className: "bg-sky-50",
+      valueClassName: "text-sky-700",
+      labelClassName: "text-sky-700/75",
+    },
+    {
+      label: "Beschikbaar",
+      value: planningReadiness.fullyAvailableCount,
+      className: "bg-emerald-50",
+      valueClassName: "text-emerald-700",
+      labelClassName: "text-emerald-700/75",
+    },
+    {
+      label: "Topmatches",
+      value: planningReadiness.topMatchCount,
+      className: "bg-violet-50",
+      valueClassName: "text-violet-700",
+      labelClassName: "text-violet-700/75",
+    },
+    {
+      label: "Interesse",
+      value: planningReadiness.interestedCount,
+      className: "bg-amber-50",
+      valueClassName: "text-amber-700",
+      labelClassName: "text-amber-700/75",
+    },
+    {
+      label: "Blokkades",
+      value: planningReadiness.blockedCount,
+      className: "bg-red-50",
+      valueClassName: "text-red-700",
+      labelClassName: "text-red-700/75",
+    },
+  ];
+
+  return (
+    <section className="veele-card">
+      <div className="flex flex-col gap-3 border-b pb-4 md:flex-row md:items-start md:justify-between" style={{ borderColor: "#E2E8F0" }}>
+        <div>
+          <h2
+            className="font-heading text-lg font-semibold flex items-center gap-2"
+            style={{ color: "#081D3A" }}
+          >
+            <TrendingUp className="h-5 w-5" style={{ color: "#00B7B3" }} />
+            Capaciteit & matching
+          </h2>
+          <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
+            Controleer direct of deze opdracht uitvoerbaar is en welke medewerkers logisch passen.
+          </p>
+        </div>
+        <span
+          className="w-fit rounded-full border px-3 py-1 text-xs font-semibold"
+          style={{
+            backgroundColor: style.bg,
+            borderColor: style.border,
+            color: style.text,
+          }}
+        >
+          {style.label}
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_280px]">
+        <div
+          className="rounded-2xl border p-4 text-sm leading-6"
+          style={{
+            borderColor: style.border,
+            backgroundColor: style.bg,
+            color: style.text,
+          }}
+        >
+          <p className="text-xs font-semibold uppercase tracking-wide opacity-80">
+            Planningsadvies
+          </p>
+          <p className="mt-1">{planningReadiness.advice}</p>
+        </div>
+
+        <div className="rounded-2xl border p-4 text-sm" style={{ borderColor: "#E2E8F0" }}>
+          <div className="flex items-center justify-between gap-3">
+            <span style={{ color: "#64748B" }}>Hoogste match</span>
+            <span className="font-semibold" style={{ color: "#081D3A" }}>
+              {planningReadiness.highestMatchScore}%
+            </span>
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <span style={{ color: "#64748B" }}>Definitief gekoppeld</span>
+            <span className="font-semibold" style={{ color: "#081D3A" }}>
+              {planningReadiness.assignedCount}
+            </span>
+          </div>
+          <div className="mt-2 flex items-center justify-between gap-3">
+            <span style={{ color: "#64748B" }}>Suggesties</span>
+            <span className="font-semibold" style={{ color: "#081D3A" }}>
+              {planningReadiness.suggestedCount}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+        {metrics.map((metric) => (
+          <div key={metric.label} className={`rounded-2xl p-4 ${metric.className}`}>
+            <p className={`text-xl font-semibold ${metric.valueClassName}`} style={metric.valueClassName ? undefined : { color: "#081D3A" }}>
+              {metric.value}
+            </p>
+            <p className={`mt-1 text-xs ${metric.labelClassName}`} style={metric.labelClassName ? undefined : { color: "#64748B" }}>
+              {metric.label}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {planningReadiness.topMatches.length > 0 && (
+        <div className="mt-5">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
+            Beste matches
+          </p>
+          <div className="grid gap-3 lg:grid-cols-3">
+            {planningReadiness.topMatches.map((person) => (
+              <div
+                key={person.id}
+                className="rounded-2xl bg-slate-50 px-4 py-3 text-sm"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="truncate font-semibold" style={{ color: "#081D3A" }}>{person.name}</p>
+                    <p className="mt-0.5 truncate text-xs" style={{ color: "#64748B" }}>
+                      {person.sectorName ?? "Geen sector"}
+                    </p>
+                  </div>
+                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                    {person.matchScore}%
+                  </span>
+                </div>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {person.positives.slice(0, 3).map((reason) => (
+                    <span key={reason} className="rounded bg-emerald-50 px-2 py-1 text-[11px] text-emerald-700">
+                      + {reason}
+                    </span>
+                  ))}
+                  {person.negatives.slice(0, 2).map((reason) => (
+                    <span key={reason} className="rounded bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
+                      - {reason}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1fr)_340px]">
+        <div>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
+              Kandidaten
+            </p>
+            <span className="text-xs" style={{ color: "#94A3B8" }}>
+              {planningReadiness.candidates.length} beoordeeld
+            </span>
+          </div>
+
+          {planningReadiness.candidates.length > 0 ? (
+            <div className="grid max-h-[560px] gap-3 overflow-y-auto pr-1 2xl:grid-cols-2">
+              {planningReadiness.candidates.slice(0, 12).map((candidate) => (
+                <div
+                  key={candidate.id}
+                  className="rounded-2xl border p-4 text-sm"
+                  style={{
+                    borderColor:
+                      candidate.hardStatus === "eligible"
+                        ? "#A7F3D0"
+                        : candidate.hardStatus === "warning"
+                          ? "#FCD34D"
+                          : "#FECACA",
+                    backgroundColor:
+                      candidate.hardStatus === "eligible"
+                        ? "#F8FFFC"
+                        : candidate.hardStatus === "warning"
+                          ? "#FFFCF3"
+                          : "#FFF7F7",
+                  }}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold" style={{ color: "#081D3A" }}>
+                        {candidate.name}
+                      </p>
+                      <p className="mt-0.5 truncate text-xs" style={{ color: "#64748B" }}>
+                        {candidate.sectorName ?? "Geen sector"}
+                      </p>
+                    </div>
+                    <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold" style={{ color: "#081D3A" }}>
+                      {candidate.matchScore}%
+                    </span>
+                  </div>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {candidate.positives.slice(0, 3).map((reason) => (
+                      <span key={reason} className="rounded bg-emerald-50 px-2 py-1 text-[11px] text-emerald-700">
+                        + {reason}
+                      </span>
+                    ))}
+                    {candidate.negatives.slice(0, 3).map((reason) => (
+                      <span key={reason} className="rounded bg-red-50 px-2 py-1 text-[11px] text-red-700">
+                        - {reason}
+                      </span>
+                    ))}
+                  </div>
+                  {candidate.hardStatus !== "blocked" && (
+                    <div className="mt-3">
+                      <SmartCandidateActions
+                        assignmentId={assignmentId}
+                        personnelId={candidate.id}
+                      />
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="rounded-2xl border border-dashed p-6 text-sm" style={{ borderColor: "#CBD5E1", color: "#64748B" }}>
+              Nog geen kandidaten berekend.
+            </div>
+          )}
+        </div>
+
+        <aside className="flex flex-col gap-4">
+          {!planningReadiness.hasMoment && (
+            <div className="rounded-2xl border p-4 text-sm" style={{ borderColor: "#FCD34D", background: "#FFFBEB", color: "#92400E" }}>
+              Vul eerst datum en tijdvak in om beschikbaarheid betrouwbaar te bepalen.
+            </div>
+          )}
+
+          <div className="rounded-2xl border p-4" style={{ borderColor: "#E2E8F0" }}>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
+              Interessepeiling
+            </p>
+            <InterestPollButton
+              assignmentId={assignmentId}
+              disabled={!planningReadiness.canPoll}
+            />
+          </div>
+
+          <div className="rounded-2xl border p-4" style={{ borderColor: "#E2E8F0" }}>
+            <p className="mb-3 text-xs font-semibold uppercase tracking-wide" style={{ color: "#94A3B8" }}>
+              Rondegeschiedenis
+            </p>
+            <InterestRoundHistory assignmentId={assignmentId} rounds={interestRounds} />
+          </div>
+        </aside>
+      </div>
+    </section>
+  );
+}
+
+async function safeOptional<T>(
+  label: string,
+  assignmentId: string,
+  loader: () => Promise<T>,
+  fallback: T,
+): Promise<T> {
+  try {
+    return await loader();
+  } catch (error) {
+    console.error("assignment detail optional data failed", {
+      label,
+      assignmentId,
+      error,
+    });
+    return fallback;
+  }
+}
+
 export default async function AssignmentDetailPage({ params }: Props) {
   const canRead = await hasPermission("assignments", "read");
   if (!canRead) return <ForbiddenPage resource="assignments" action="read" />;
@@ -101,7 +431,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
     canReadDocuments,
     canWriteDocuments,
   ] = await Promise.all([
-    getAssignment(id),
+    safeOptional("assignment", id, () => getAssignment(id), null),
     hasPermission("assignments", "write"),
     hasPermission("reports", "read"),
     hasPermission("reports", "submit"),
@@ -116,7 +446,12 @@ export default async function AssignmentDetailPage({ params }: Props) {
   if (!assignment) notFound();
 
   const assignmentDocuments = canReadDocuments
-    ? await listDocuments({ entityType: "assignment", entityId: id })
+    ? await safeOptional(
+        "documents",
+        id,
+        () => listDocuments({ entityType: "assignment", entityId: id }),
+        [],
+      )
     : [];
 
   const REPORT_STATUSES  = ["completed", "not_completed", "report_submitted", "report_approved", "invoice_ready", "invoiced", "paid", "closed"];
@@ -124,38 +459,73 @@ export default async function AssignmentDetailPage({ params }: Props) {
   const QUOTE_STATUSES_SHOW = ["quote_preparation", "awaiting_approval", "approved", "plannable", "scheduled", "seen", "in_progress", "not_completed", "completed", "report_submitted", "report_approved", "invoice_ready", "invoiced", "paid", "closed"];
 
   const existingReport = canReadReports && REPORT_STATUSES.includes(assignment.status)
-    ? await getReportForAssignment(id)
+    ? await safeOptional("report", id, () => getReportForAssignment(id), null)
     : null;
 
   const [existingInvoice, invoicePrefill] = canReadInvoices
-    ? await Promise.all([
-        INVOICE_STATUSES.includes(assignment.status)
-          ? getInvoiceForAssignment(id)
-          : Promise.resolve(null),
-        assignment.status === "report_approved" && canWriteInvoices
-          ? getAssignmentInvoiceData(id)
-          : Promise.resolve(null),
-      ])
+    ? await safeOptional(
+        "invoice",
+        id,
+        () =>
+          Promise.all([
+            INVOICE_STATUSES.includes(assignment.status)
+              ? getInvoiceForAssignment(id)
+              : Promise.resolve(null),
+            assignment.status === "report_approved" && canWriteInvoices
+              ? getAssignmentInvoiceData(id)
+              : Promise.resolve(null),
+          ]),
+        [null, null] as const,
+      )
     : [null, null];
 
   const [existingQuote, quotePrefill] = canReadQuotes
-    ? await Promise.all([
-        QUOTE_STATUSES_SHOW.includes(assignment.status)
-          ? getQuoteForAssignment(id)
-          : Promise.resolve(null),
-        assignment.status === "review" && canWriteQuotes
-          ? getAssignmentQuoteData(id)
-          : Promise.resolve(null),
-      ])
+    ? await safeOptional(
+        "quote",
+        id,
+        () =>
+          Promise.all([
+            QUOTE_STATUSES_SHOW.includes(assignment.status)
+              ? getQuoteForAssignment(id)
+              : Promise.resolve(null),
+            assignment.status === "review" && canWriteQuotes
+              ? getAssignmentQuoteData(id)
+              : Promise.resolve(null),
+          ]),
+        [null, null] as const,
+      )
     : [null, null];
 
   const [customers, personnelList, taskCodes] = canWrite
-    ? await Promise.all([
-        getCustomerOptions(),
-        getPersonnelEligibilityForAssignment(id),
-        getTaskCodeOptions(),
-      ])
+    ? await safeOptional(
+        "edit-options",
+        id,
+        () =>
+          Promise.all([
+            getCustomerOptions(),
+            getPersonnelEligibilityForAssignment(id),
+            getTaskCodeOptions(),
+          ]),
+        [[], [], []] as const,
+      )
     : [[], [], []];
+
+  const planningReadiness = canWrite
+    ? await safeOptional(
+        "planning-readiness",
+        id,
+        () => getAssignmentPlanningReadiness(id),
+        null,
+      )
+    : null;
+  const interestRounds = canWrite
+    ? await safeOptional(
+        "interest-rounds",
+        id,
+        () => listAssignmentInterestRounds(id),
+        [],
+      )
+    : [];
 
   // ── Formatted dates ────────────────────────────────────────────────────────
   const createdAt = new Date(assignment.createdAt).toLocaleDateString("nl-NL", {
@@ -181,7 +551,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
   }
 
   return (
-    <div className="p-8 max-w-6xl">
+    <div className="mx-auto w-full max-w-[1600px] p-8">
 
       {/* ── Header ─────────────────────────────────────── */}
       <div className="mb-8">
@@ -214,15 +584,26 @@ export default async function AssignmentDetailPage({ params }: Props) {
             <p className="mt-2 text-xs" style={{ color: "#94A3B8" }}>
               Aangemaakt {createdAt} · Bijgewerkt {updatedAt}
             </p>
+            <ProcessStepper kind="assignment" status={assignment.status} className="mt-4" />
           </div>
         </div>
       </div>
 
       {/* ── Two-column layout ─────────────────────────── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      {planningReadiness && (
+        <div className="mb-6">
+          <CapacityMatchingSection
+            assignmentId={assignment.id}
+            planningReadiness={planningReadiness}
+            interestRounds={interestRounds}
+          />
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
 
         {/* Left: static details */}
-        <div className="lg:col-span-2 flex flex-col gap-6">
+        <div className="flex flex-col gap-6">
 
           {/* General info */}
           <div className="veele-card">
@@ -327,44 +708,11 @@ export default async function AssignmentDetailPage({ params }: Props) {
               >
                 <FileCheck2 className="h-4 w-4" style={{ color: "#00B7B3" }} />
                 Offerte
-                {existingQuote.isExpired ? (
-                  <span
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ml-1"
-                    style={{ backgroundColor: "#FEF3C7", color: "#92400E" }}
-                  >
-                    <AlertTriangle className="h-3 w-3" />
-                    Verlopen
-                  </span>
-                ) : existingQuote.status === "sent" ? (
-                  <span
-                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ml-1"
-                    style={{ backgroundColor: "#EFF6FF", color: "#1D4ED8" }}
-                  >
-                    Ter goedkeuring
-                  </span>
-                ) : existingQuote.status === "approved" ? (
-                  <span
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ml-1"
-                    style={{ backgroundColor: "#D1FAE5", color: "#065F46" }}
-                  >
-                    <CheckCircle2 className="h-3 w-3" />
-                    Goedgekeurd
-                  </span>
-                ) : existingQuote.status === "rejected" ? (
-                  <span
-                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ml-1"
-                    style={{ backgroundColor: "#FEE2E2", color: "#991B1B" }}
-                  >
-                    Afgewezen
-                  </span>
-                ) : (
-                  <span
-                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ml-1"
-                    style={{ backgroundColor: "#F1F5F9", color: "#475569" }}
-                  >
-                    Concept
-                  </span>
-                )}
+                <ProcessStatusBadge
+                  kind="quote"
+                  status={existingQuote.isExpired ? "expired" : existingQuote.status}
+                  size="xs"
+                />
               </h2>
               <div className="flex items-center justify-between text-sm mb-2">
                 <span className="font-mono text-xs rounded px-1.5 py-0.5" style={{ background: "#F1F5F9", color: "#475569" }}>
@@ -410,24 +758,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
               >
                 <FileText className="h-4 w-4" style={{ color: "#00B7B3" }} />
                 Rapport
-                {existingReport.status === "submitted" && (
-                  <span
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ml-1"
-                    style={{ backgroundColor: "#FEF3C7", color: "#92400E" }}
-                  >
-                    <Clock3 className="h-3 w-3" />
-                    Ingediend
-                  </span>
-                )}
-                {existingReport.status === "approved" && (
-                  <span
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ml-1"
-                    style={{ backgroundColor: "#D1FAE5", color: "#065F46" }}
-                  >
-                    <CheckCircle2 className="h-3 w-3" />
-                    Goedgekeurd
-                  </span>
-                )}
+                <ProcessStatusBadge kind="report" status={existingReport.status} size="xs" />
               </h2>
               <p className="text-sm whitespace-pre-wrap line-clamp-4 mb-3" style={{ color: "#374151" }}>
                 {existingReport.content}
@@ -455,31 +786,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
               >
                 <Receipt className="h-4 w-4" style={{ color: "#00B7B3" }} />
                 Factuur
-                {existingInvoice.status === "draft" && (
-                  <span
-                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ml-1"
-                    style={{ backgroundColor: "#F1F5F9", color: "#475569" }}
-                  >
-                    Concept
-                  </span>
-                )}
-                {existingInvoice.status === "sent" && (
-                  <span
-                    className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium ml-1"
-                    style={{ backgroundColor: "#FEF3C7", color: "#92400E" }}
-                  >
-                    Verzonden
-                  </span>
-                )}
-                {existingInvoice.status === "paid" && (
-                  <span
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium ml-1"
-                    style={{ backgroundColor: "#D1FAE5", color: "#065F46" }}
-                  >
-                    <CheckCircle2 className="h-3 w-3" />
-                    Betaald
-                  </span>
-                )}
+                <ProcessStatusBadge kind="invoice" status={existingInvoice.status} size="xs" />
               </h2>
               <div className="flex items-center justify-between text-sm mb-3">
                 <span className="font-mono text-xs rounded px-1.5 py-0.5" style={{ background: "#F1F5F9", color: "#475569" }}>
@@ -503,8 +810,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
         </div>
 
         {/* Right: interactive actions panel (or read-only for viewers) */}
-        <div className="flex flex-col gap-4">
-
+        <div className="flex flex-col gap-4 xl:sticky xl:top-24 xl:self-start">
           {/* Direct approval button — only when status is review and user can write quotes */}
           {assignment.status === "review" && canWrite && canReadQuotes && (
             <DirectApprovalButton assignmentId={assignment.id} />

@@ -16,6 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { ProcessStatusBadge } from "@/components/workflows/ProcessStatus";
 
 function formatEur(cents: number): string {
   return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(cents / 100);
@@ -26,30 +27,6 @@ function formatDate(iso: string): string {
     day: "numeric", month: "short", year: "numeric",
   });
 }
-
-const PAYMENT_STATUS_LABELS: Record<string, string> = {
-  open:     "In afwachting",
-  paid:     "Betaald",
-  canceled: "Geannuleerd",
-  expired:  "Verlopen",
-  failed:   "Mislukt",
-};
-
-const PAYMENT_STATUS_BG: Record<string, string> = {
-  open:     "#FEF3C7",
-  paid:     "#D1FAE5",
-  canceled: "#FEE2E2",
-  expired:  "#F1F5F9",
-  failed:   "#FEE2E2",
-};
-
-const PAYMENT_STATUS_TEXT: Record<string, string> = {
-  open:     "#92400E",
-  paid:     "#065F46",
-  canceled: "#991B1B",
-  expired:  "#475569",
-  failed:   "#991B1B",
-};
 
 interface Props {
   invoiceId:      string;
@@ -154,7 +131,7 @@ export function InvoiceActions({ invoiceId, status, paymentHistory, customerEmai
             style={{ backgroundColor: "#00B7B3", color: "#FFFFFF" }}
           >
             {loading === "sent" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Markeer als verzonden
+            Voorstel controleren en verzenden
           </button>
         )}
 
@@ -306,15 +283,7 @@ function PaymentHistoryCard({ paymentHistory }: { paymentHistory: PaymentRecord[
               >
                 {formatEur(p.amountCents)}
               </span>
-              <span
-                className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                style={{
-                  backgroundColor: PAYMENT_STATUS_BG[p.status]  ?? "#F1F5F9",
-                  color:           PAYMENT_STATUS_TEXT[p.status] ?? "#475569",
-                }}
-              >
-                {PAYMENT_STATUS_LABELS[p.status] ?? p.status}
-              </span>
+              <ProcessStatusBadge kind="payment" status={p.status} size="xs" />
             </div>
             <p className="text-xs font-mono" style={{ color: "#94A3B8" }}>{p.molliePaymentId}</p>
             <p className="text-xs" style={{ color: "#94A3B8" }}>

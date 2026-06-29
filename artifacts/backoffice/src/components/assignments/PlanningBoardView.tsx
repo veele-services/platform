@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
+  Activity,
   AlertTriangle,
   CalendarDays,
   CheckCircle2,
@@ -11,10 +12,12 @@ import {
   ChevronRight,
   Clock,
   GripVertical,
+  Layers3,
   Loader2,
   MapPin,
   Search,
   SlidersHorizontal,
+  Sparkles,
   Users,
   X,
 } from "lucide-react";
@@ -47,11 +50,12 @@ import {
   type PlanningBoardPersonnelAssignment,
 } from "@/app/actions/planning";
 
-const DAY_START_MIN = 7 * 60;
-const DAY_END_MIN = 20 * 60;
+const DAY_START_MIN = 0;
+const DAY_END_MIN = 24 * 60;
 const DAY_SPAN = DAY_END_MIN - DAY_START_MIN;
-const PERSONNEL_COL_WIDTH = 210;
-const TIMELINE_WIDTH = 1180;
+const PERSONNEL_COL_WIDTH = 216;
+const HOUR_WIDTH = 80;
+const TIMELINE_WIDTH = 24 * HOUR_WIDTH;
 const BOARD_WIDTH = PERSONNEL_COL_WIDTH + TIMELINE_WIDTH;
 
 const NL_MONTHS = [
@@ -79,17 +83,11 @@ const NL_WEEKDAYS = [
   "zaterdag",
 ];
 
-const HOUR_LABELS = Array.from({ length: 14 }, (_, i) => {
-  const hour = 7 + i;
+const HOUR_LABELS = Array.from({ length: 25 }, (_, hour) => {
   return {
-    label: `${hour}:00`,
+    label: `${String(hour).padStart(2, "0")}:00`,
     pct: ((hour * 60 - DAY_START_MIN) / DAY_SPAN) * 100,
   };
-});
-
-const START_OPTIONS = Array.from({ length: 25 }, (_, i) => {
-  const minutes = DAY_START_MIN + i * 30;
-  return minutesToTime(minutes);
 });
 
 type Pastel = {
@@ -170,8 +168,9 @@ function parseTimeMin(value: string | null): number | null {
 }
 
 function minutesToTime(value: number): string {
-  const h = Math.floor(value / 60);
-  const m = value % 60;
+  const clamped = Math.max(DAY_START_MIN, Math.min(DAY_END_MIN - 1, value));
+  const h = Math.floor(clamped / 60);
+  const m = clamped % 60;
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
@@ -220,6 +219,10 @@ function durationForAssignment(assignment: PlanningBoardAssignment): number {
   return Math.max(30, assignment.requirements.estimatedDurationMinutes || 60);
 }
 
+function snapUpToQuarter(value: number): number {
+  return Math.ceil(value / 15) * 15;
+}
+
 function hashString(value: string): number {
   let hash = 0;
   for (let i = 0; i < value.length; i++) {
@@ -228,11 +231,48 @@ function hashString(value: string): number {
   return hash;
 }
 
-function pastelForAppointment(assignment: Pick<PlanningBoardPersonnelAssignment, "id" | "priority">): Pastel {
+function pastelForAppointment(assignment: Pick<PlanningBoardPersonnelAssignment, "id" | "priority" | "status">): Pastel {
+  const status = String(assignment.status);
+  if (status === "requested" || status === "review" || status === "quote_preparation" || status === "awaiting_approval") {
+    return { bg: "#FFF7ED", border: "#FDBA74", text: "#7C2D12", rail: "#F97316" };
+  }
+  if (status === "approved" || status === "plannable") {
+    return { bg: "#ECFDF5", border: "#86D9AE", text: "#14523C", rail: "#22C55E" };
+  }
+  if (status === "scheduled") return { bg: "#E8F4FF", border: "#93C5FD", text: "#0F3A5F", rail: "#3B82F6" };
+  if (status === "seen") return { bg: "#E2FAF8", border: "#8CE7E2", text: "#075E5D", rail: "#00B7B3" };
+  if (status === "in_progress") return { bg: "#F2EEFF", border: "#C4B5FD", text: "#3F2D75", rail: "#8B5CF6" };
+  if (status === "completed" || status === "report_submitted" || status === "report_approved" || status === "invoice_ready" || status === "invoiced" || status === "paid" || status === "closed") {
+    return { bg: "#EAF8F1", border: "#86D9AE", text: "#14523C", rail: "#22C55E" };
+  }
+  if (status === "not_completed" || status === "cancelled" || status === "failed" || status === "rejected") {
+    return { bg: "#FFEAF0", border: "#FDA4AF", text: "#7F1D1D", rail: "#F43F5E" };
+  }
   if (assignment.priority === "urgent") return APPOINTMENT_PASTELS[4]!;
   if (assignment.priority === "high") return APPOINTMENT_PASTELS[2]!;
   if (assignment.priority === "low") return APPOINTMENT_PASTELS[7]!;
   return APPOINTMENT_PASTELS[hashString(assignment.id) % APPOINTMENT_PASTELS.length]!;
+}
+
+function currentMinuteOfDay(): number {
+  const now = new Date();
+  return now.getHours() * 60 + now.getMinutes();
+}
+
+function minuteToTimelinePct(minutes: number): number {
+  return ((Math.max(DAY_START_MIN, Math.min(DAY_END_MIN, minutes)) - DAY_START_MIN) / DAY_SPAN) * 100;
+}
+
+function suggestedStartForAssignment(assignment: PlanningBoardAssignment, boardDate: string): string {
+  const scheduled = parseTimeMin(assignment.scheduledStart);
+  if (scheduled !== null) {
+    return minutesToTime(Math.max(DAY_START_MIN, Math.min(DAY_END_MIN - durationForAssignment(assignment), scheduled)));
+  }
+
+  const duration = durationForAssignment(assignment);
+  const fallback = boardDate === todayDateKey() ? snapUpToQuarter(currentMinuteOfDay()) : 8 * 60;
+  const start = Math.max(DAY_START_MIN, Math.min(DAY_END_MIN - duration, fallback));
+  return minutesToTime(start);
 }
 
 function isPlanboardMovableStatus(status: string): boolean {
@@ -260,11 +300,12 @@ function matchConfig(match: PlanningBoardMatch | undefined): {
   if (!match) {
     return { label: "Geen matchdata", bg: "#F8FAFC", text: "#64748B", border: "#E2E8F0" };
   }
+  const score = typeof match.matchScore === "number" ? ` ${match.matchScore}%` : "";
   if (match.level === "match") {
-    return { label: "Match", bg: "#ECFDF5", text: "#047857", border: "#A7F3D0" };
+    return { label: `Match${score}`, bg: "#ECFDF5", text: "#047857", border: "#A7F3D0" };
   }
   if (match.level === "warning") {
-    return { label: "Waarschuwing", bg: "#FFFBEB", text: "#B45309", border: "#FCD34D" };
+    return { label: `Waarschuwing${score}`, bg: "#FFFBEB", text: "#B45309", border: "#FCD34D" };
   }
   return { label: "Blokkeert", bg: "#FEF2F2", text: "#B91C1C", border: "#FECACA" };
 }
@@ -285,6 +326,14 @@ function sectorBadgeStyle(sectorName: string | null | undefined): {
     return { background: "#E8F4FF", color: "#0F3A5F", borderColor: "#93C5FD" };
   }
   return { background: "#F8FAFC", color: "#475569", borderColor: "#E2E8F0" };
+}
+
+function sectorShortLabel(sectorName: string | null | undefined): string {
+  const normalized = (sectorName ?? "").toLowerCase();
+  if (normalized.includes("schoonmaak")) return "SCH";
+  if (normalized.includes("beveilig")) return "BEV";
+  if (normalized.includes("facilit")) return "FAC";
+  return "ALG";
 }
 
 function availabilityConfig(status: string): {
@@ -347,6 +396,21 @@ function selectedAssignmentRank(
   return 4;
 }
 
+function capacityTone(stats: { match: number; warning: number; blocked: number }): {
+  label: string;
+  bg: string;
+  text: string;
+  border: string;
+} {
+  if (stats.match > 0) {
+    return { label: "Ruim planbaar", bg: "#ECFDF5", text: "#047857", border: "#A7F3D0" };
+  }
+  if (stats.warning > 0) {
+    return { label: "Controle nodig", bg: "#FFFBEB", text: "#B45309", border: "#FCD34D" };
+  }
+  return { label: "Geen match", bg: "#FEF2F2", text: "#B91C1C", border: "#FECACA" };
+}
+
 function FilterSelect({
   label,
   value,
@@ -383,10 +447,11 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const dragRef = useRef<DragState | null>(null);
+  const boardScrollRef = useRef<HTMLDivElement | null>(null);
 
   const [searchValue, setSearchValue] = useState(searchParams.get("search") ?? "");
-  const [manualStart, setManualStart] = useState("08:00");
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const [openQueueOpen, setOpenQueueOpen] = useState(false);
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [ghostInfo, setGhostInfo] = useState<GhostInfo | null>(null);
   const [isPending, startTransition] = useTransition();
@@ -424,6 +489,9 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
         if (rankA !== rankB) return rankA - rankB;
 
         if (rankA === 1 || rankA === 2) {
+          const scoreDelta = (b.match?.matchScore ?? -1) - (a.match?.matchScore ?? -1);
+          if (scoreDelta !== 0) return scoreDelta;
+
           const loadDelta = a.person.scheduledMinutes - b.person.scheduledMinutes;
           if (loadDelta !== 0) return loadDelta;
         }
@@ -440,6 +508,64 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
   );
   const today = todayDateKey();
   const isToday = data.date === today;
+  const currentTimePct = isToday ? minuteToTimelinePct(currentMinuteOfDay()) : null;
+  const availablePersonnelCount = data.personnel.filter(
+    (person) => person.availabilityStatus === "beschikbaar",
+  ).length;
+  const allMatches = Object.values(data.matchesByAssignmentId).flat();
+  const dailyMatchStats = matchStats(allMatches);
+  const activeMatchStats = activeAssignment
+    ? matchStats(data.matchesByAssignmentId[activeAssignment.id])
+    : null;
+  const activeCapacityTone = activeMatchStats ? capacityTone(activeMatchStats) : null;
+  const activeTopMatches = activeAssignment
+    ? [...(data.matchesByAssignmentId[activeAssignment.id] ?? [])]
+        .filter((match) => match.level === "match")
+        .sort((a, b) => (b.matchScore ?? 0) - (a.matchScore ?? 0))
+        .slice(0, 3)
+    : [];
+  const topMatchScore = activeTopMatches[0]?.matchScore ?? null;
+  const planningPulseCards = [
+    {
+      label: "Open plaatsen",
+      value: openSlotCount,
+      hint: `${data.openAssignments.length} werkbon${data.openAssignments.length === 1 ? "" : "nen"}`,
+      tone: "#0EA5E9",
+    },
+    {
+      label: "Ingepland",
+      value: data.scheduledAssignments.length,
+      hint: `${availablePersonnelCount}/${data.personnel.length} medewerkers beschikbaar`,
+      tone: "#00B7B3",
+    },
+    {
+      label: "Topmatches",
+      value: activeAssignment ? activeMatchStats?.match ?? 0 : dailyMatchStats.match,
+      hint: activeAssignment ? "voor geselecteerde werkbon" : "over open werkbonnen",
+      tone: "#22C55E",
+    },
+    {
+      label: "Conflicten",
+      value: conflictCount,
+      hint: conflictCount > 0 ? "actie nodig" : "geen blokkades",
+      tone: conflictCount > 0 ? "#F97316" : "#64748B",
+    },
+  ];
+
+  useEffect(() => {
+    const scrollEl = boardScrollRef.current;
+    if (!scrollEl) return;
+
+    const centerMinute = isToday ? currentMinuteOfDay() : 8 * 60;
+    const timelineX = PERSONNEL_COL_WIDTH + (centerMinute / DAY_SPAN) * TIMELINE_WIDTH;
+    const frame = window.requestAnimationFrame(() => {
+      const maxLeft = Math.max(0, scrollEl.scrollWidth - scrollEl.clientWidth);
+      const nextLeft = Math.min(maxLeft, Math.max(0, timelineX - scrollEl.clientWidth / 2));
+      scrollEl.scrollTo({ left: nextLeft, behavior: "smooth" });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [data.date, isToday]);
 
   function updateQuery(updates: Record<string, string | null>) {
     const params = new URLSearchParams(searchParams.toString());
@@ -572,9 +698,10 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
       toast.error(`Niet inplanbaar: ${match.reasons.filter((reason) => reason.severity === "block").map((reason) => reason.label).join("; ")}`);
       return;
     }
-    const startMin = parseTimeMin(manualStart) ?? 8 * 60;
+    const start = suggestedStartForAssignment(activeAssignment, data.date);
+    const startMin = parseTimeMin(start) ?? 8 * 60;
     const end = minutesToTime(Math.min(DAY_END_MIN, startMin + durationForAssignment(activeAssignment)));
-    scheduleOnBoard(activeAssignment.id, person.id, manualStart, end);
+    scheduleOnBoard(activeAssignment.id, person.id, start, end);
   }
 
   function scheduleOnBoard(
@@ -625,56 +752,80 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
   return (
     <TooltipProvider delayDuration={180}>
       <div className="space-y-4">
-        <section className="rounded-lg border bg-white shadow-sm" style={{ borderColor: "#E2E8F0" }}>
-          <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3" style={{ borderColor: "#E2E8F0" }}>
-            <div className="flex min-w-0 items-center gap-3">
-              <div
-                className="flex h-11 w-11 flex-shrink-0 items-center justify-center rounded-lg"
-                style={isToday ? { background: "#00B7B3", color: "#fff" } : { background: "#F1F5F9", color: "#081D3A" }}
-              >
-                <CalendarDays className="h-5 w-5" />
-              </div>
-              <div className="min-w-0">
-                <h2 className="font-heading text-lg font-semibold capitalize" style={{ color: "#081D3A" }}>
-                  {formatBoardDate(data.date)}
-                </h2>
-                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs" style={{ color: "#64748B" }}>
-                  <span>{openSlotCount} open plaats{openSlotCount === 1 ? "" : "en"}</span>
-                  <span>{data.scheduledAssignments.length} ingepland</span>
-                  <span>{data.personnel.length} medewerkers</span>
-                  {conflictCount > 0 && (
-                    <span className="inline-flex items-center gap-1" style={{ color: "#B45309" }}>
-                      <AlertTriangle className="h-3.5 w-3.5" />
-                      {conflictCount} conflict{conflictCount > 1 ? "en" : ""}
-                    </span>
-                  )}
+        <section className="overflow-hidden rounded-xl border bg-white shadow-sm" style={{ borderColor: "#DDE7F0" }}>
+          <div className="relative border-b px-4 py-4" style={{ borderColor: "#E2E8F0", background: "linear-gradient(135deg, #F8FBFF 0%, #FFFFFF 58%, #EFFFFD 100%)" }}>
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="flex min-w-0 items-start gap-3">
+                <div
+                  className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-xl shadow-sm"
+                  style={isToday ? { background: "#00B7B3", color: "#fff" } : { background: "#081D3A", color: "#fff" }}
+                >
+                  <CalendarDays className="h-5 w-5" />
                 </div>
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <h2 className="font-heading text-xl font-semibold capitalize tracking-tight" style={{ color: "#081D3A" }}>
+                      {formatBoardDate(data.date)}
+                    </h2>
+                    {activeCapacityTone && (
+                      <span
+                        className="inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-semibold"
+                        style={{ background: activeCapacityTone.bg, borderColor: activeCapacityTone.border, color: activeCapacityTone.text }}
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        {activeCapacityTone.label}
+                      </span>
+                    )}
+                  </div>
+                  <p className="mt-1 max-w-2xl text-sm" style={{ color: "#64748B" }}>
+                    Sleep werkbonnen naar medewerkers, gebruik matchscores als voorstel en behoud zelf de planningcontrole.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant="outline" size="sm" onClick={() => updateQuery({ date: addDaysLocal(data.date, -1) })}>
+                  <ChevronLeft className="h-4 w-4" />
+                  Vorige
+                </Button>
+                <Button variant={isToday ? "default" : "outline"} size="sm" onClick={() => updateQuery({ date: today })}>
+                  Vandaag
+                </Button>
+                <Button variant="outline" size="sm" onClick={() => updateQuery({ date: addDaysLocal(data.date, 1) })}>
+                  Volgende
+                  <ChevronRight className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/planning?day=${data.date}`}>Dag</Link>
+                </Button>
+                <Button variant="outline" size="sm" asChild>
+                  <Link href={`/planning?month=${data.date.slice(0, 7)}`}>Maand</Link>
+                </Button>
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => updateQuery({ date: addDaysLocal(data.date, -1) })}>
-                <ChevronLeft className="h-4 w-4" />
-                Vorige
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => updateQuery({ date: today })}>
-                Vandaag
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => updateQuery({ date: addDaysLocal(data.date, 1) })}>
-                Volgende
-                <ChevronRight className="h-4 w-4" />
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/planning?day=${data.date}`}>Dag</Link>
-              </Button>
-              <Button variant="outline" size="sm" asChild>
-                <Link href={`/planning?month=${data.date.slice(0, 7)}`}>Maand</Link>
-              </Button>
+            <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+              {planningPulseCards.map((card) => (
+                <div key={card.label} className="rounded-lg border bg-white/85 px-3 py-2.5 shadow-sm" style={{ borderColor: "#E2E8F0" }}>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: "#64748B" }}>
+                      {card.label}
+                    </p>
+                    <span className="h-2.5 w-2.5 rounded-full" style={{ background: card.tone }} />
+                  </div>
+                  <p className="mt-1 text-2xl font-semibold leading-none" style={{ color: "#081D3A" }}>
+                    {card.value}
+                  </p>
+                  <p className="mt-1 truncate text-xs" style={{ color: "#64748B" }}>
+                    {card.hint}
+                  </p>
+                </div>
+              ))}
             </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 px-4 py-3">
-            <form onSubmit={submitSearch} className="flex min-w-[260px] flex-1 items-center gap-2">
+            <form onSubmit={submitSearch} className="flex min-w-[280px] flex-1 items-center gap-2">
               <label className="relative min-w-0 flex-1">
                 <span className="sr-only">Werkbonnen zoeken</span>
                 <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" style={{ color: "#94A3B8" }} />
@@ -682,18 +833,28 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                   type="search"
                   value={searchValue}
                   onChange={(e) => setSearchValue(e.target.value)}
-                  className="pl-9"
-                  placeholder="Werkbon, klant of object"
+                  className="h-10 rounded-lg pl-9"
+                  placeholder="Zoek werkbon, klant, object of regio"
                 />
               </label>
-              <Button type="submit" size="sm" variant="outline" aria-label="Zoeken">
+              <Button type="submit" size="sm" variant="outline" aria-label="Zoeken" className="h-10">
                 <Search className="h-4 w-4" />
               </Button>
             </form>
 
+            {activeAssignment && (
+              <div className="hidden min-w-0 flex-1 items-center gap-2 rounded-lg border px-3 py-2 text-xs xl:flex" style={{ borderColor: "#BFDBFE", background: "#EFF6FF", color: "#1D4ED8" }}>
+                <Sparkles className="h-4 w-4 flex-shrink-0" />
+                <span className="truncate">
+                  Beste kandidaten staan bovenaan voor <strong>{activeAssignment.code}</strong>
+                  {topMatchScore !== null ? ` - hoogste match ${topMatchScore}%` : ""}
+                </span>
+              </div>
+            )}
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button type="button" variant="outline" size="sm">
+                <Button type="button" variant="outline" size="sm" className="h-10">
                   <SlidersHorizontal className="h-4 w-4" />
                   Filters
                 </Button>
@@ -769,19 +930,20 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
           </div>
         </section>
 
-        <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_minmax(260px,15%)]">
-          <section className="order-2 rounded-lg border bg-white shadow-sm xl:order-2" style={{ borderColor: "#E2E8F0" }}>
-            <div className="flex items-center justify-between gap-3 border-b px-4 py-3" style={{ borderColor: "#E2E8F0" }}>
+        <div className="grid min-w-0 gap-4">
+          <section className="hidden" style={{ borderColor: "#DDE7F0" }}>
+            <div className="flex items-center justify-between gap-3 border-b px-4 py-3" style={{ borderColor: "#E2E8F0", background: "#FBFDFF" }}>
               <div>
-                <h3 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
-                  Open werkbonnen
+                <h3 className="flex items-center gap-2 font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
+                  <Layers3 className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                  Werkbon-wachtrij
                 </h3>
                 <p className="mt-0.5 text-xs" style={{ color: "#64748B" }}>
-                  {openSlotCount} plaats{openSlotCount === 1 ? "" : "en"} te plaatsen
+                  Selecteer of sleep naar een medewerker
                 </p>
               </div>
-              <span className="rounded-full px-2 py-1 text-xs font-semibold" style={{ background: "#F1F5F9", color: "#64748B" }}>
-                {data.openAssignments.length}
+              <span className="rounded-full px-2.5 py-1 text-xs font-semibold" style={{ background: "#ECFDF5", color: "#047857" }}>
+                {openSlotCount} open
               </span>
             </div>
 
@@ -793,7 +955,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                 </p>
               </div>
             ) : (
-              <div className="max-h-[calc(100vh-260px)] min-h-[420px] space-y-3 overflow-y-auto p-3">
+              <div className="max-h-[calc(100vh-300px)] min-h-[520px] space-y-3 overflow-y-auto p-3">
                 {data.openAssignments.map((assignment) => {
                   const selected = selectedAssignmentId === assignment.id;
                   const stats = matchStats(data.matchesByAssignmentId[assignment.id]);
@@ -802,6 +964,8 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                   const scheduleLabel = formatShortDate(scheduleDate);
                   const timeLabel = workOrderTimeLabel(assignment);
                   const title = displayWorkOrderTitle(assignment.title);
+                  const sectorStyle = sectorBadgeStyle(assignment.sectorName);
+                  const sectorShort = sectorShortLabel(assignment.sectorName);
 
                   return (
                     <article
@@ -810,22 +974,31 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                       onDragStart={(e) => handleDragStart(e, assignment)}
                       onDragEnd={handleDragEnd}
                       onClick={() => setSelectedAssignmentId(selected ? null : assignment.id)}
-                      className="group rounded-lg border bg-white p-2 shadow-sm transition"
+                      className="group relative overflow-hidden rounded-xl border bg-white p-2.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                       style={{
                         borderColor: selected ? "#00B7B3" : "#E2E8F0",
                         boxShadow: selected ? "0 0 0 3px rgba(0,183,179,0.12)" : undefined,
                         cursor: canWrite ? "grab" : "default",
                       }}
                     >
-                      <div className="flex items-start gap-1.5">
+                      <div
+                        className="absolute bottom-0 left-0 top-0 w-1"
+                        style={{ background: sectorStyle.borderColor }}
+                      />
+                      <div className="flex items-start gap-2 pl-1">
                         {canWrite && (
                           <GripVertical className="mt-1 h-3.5 w-3.5 flex-shrink-0" style={{ color: "#CBD5E1" }} />
                         )}
                         <div className="min-w-0 flex-1">
-                          <div className="flex items-start justify-between gap-1.5">
-                            <span className="rounded bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] leading-none" style={{ color: "#475569" }}>
-                              {assignment.code}
-                            </span>
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                              <span className="rounded-md border px-1.5 py-0.5 font-mono text-[10px] font-semibold leading-none" style={{ background: sectorStyle.background, borderColor: sectorStyle.borderColor, color: sectorStyle.color }}>
+                                {sectorShort}
+                              </span>
+                              <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] leading-none" style={{ color: "#475569" }}>
+                                {assignment.code}
+                              </span>
+                            </div>
                             <div className="flex flex-wrap justify-end gap-1 [&>span]:px-1.5 [&>span]:text-[10px] [&>span]:leading-none">
                               <AssignmentPriorityBadge priority={assignment.priority} />
                               <AssignmentStatusBadge status={assignment.status} />
@@ -833,7 +1006,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                           </div>
                           <Link
                             href={`/assignments/${assignment.id}`}
-                            className="mt-1.5 block text-[12px] font-semibold leading-snug hover:underline"
+                            className="mt-2 block text-[13px] font-semibold leading-snug hover:underline"
                             style={{ color: "#081D3A" }}
                             onClick={(e) => e.stopPropagation()}
                           >
@@ -851,7 +1024,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                         </div>
                       </div>
 
-                      <div className="mt-2 rounded-md border px-2 py-1.5" style={{ borderColor: "#E2E8F0", background: "#F8FAFC" }}>
+                      <div className="mt-2 rounded-lg border px-2 py-1.5" style={{ borderColor: "#E2E8F0", background: "#F8FAFC" }}>
                         <div className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)] gap-2 text-[11px] font-medium" style={{ color: "#334155" }}>
                           <span className="inline-flex min-w-0 items-center gap-1 truncate">
                             <CalendarDays className="h-3 w-3 flex-shrink-0" style={{ color: "#64748B" }} />
@@ -927,38 +1100,122 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
             )}
           </section>
 
-          <section className="order-1 rounded-lg border bg-white shadow-sm xl:order-1" style={{ borderColor: "#E2E8F0" }}>
-            <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3" style={{ borderColor: "#E2E8F0" }}>
+          <section className="min-w-0 overflow-visible rounded-xl border bg-white shadow-sm" style={{ borderColor: "#DDE7F0" }}>
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3" style={{ borderColor: "#E2E8F0", background: "#FBFDFF" }}>
               <div className="min-w-0 text-xs" style={{ color: "#64748B" }}>
                 {activeAssignment ? (
-                  <span className="inline-flex max-w-[520px] items-center gap-1 truncate rounded border px-2 py-1" style={{ borderColor: "#BFDBFE", background: "#EFF6FF", color: "#1D4ED8" }}>
-                    Geselecteerd:
-                    <span className="truncate font-medium">{activeAssignment.title}</span>
+                  <span className="inline-flex max-w-[620px] items-center gap-2 truncate rounded-lg border px-2.5 py-1.5" style={{ borderColor: "#BFDBFE", background: "#EFF6FF", color: "#1D4ED8" }}>
+                    <Sparkles className="h-3.5 w-3.5 flex-shrink-0" />
+                    <span className="font-semibold">{activeAssignment.code}</span>
+                    <span className="truncate">{displayWorkOrderTitle(activeAssignment.title)}</span>
                     {activeAssignment.sectorName && (
                       <span className="ml-1 rounded border px-1.5 py-0.5 text-[10px]" style={sectorBadgeStyle(activeAssignment.sectorName)}>
-                        {activeAssignment.sectorName}
+                        {sectorShortLabel(activeAssignment.sectorName)}
                       </span>
                     )}
                   </span>
                 ) : (
-                  <span>{data.personnel.length} medewerkers zichtbaar</span>
+                  <span className="inline-flex items-center gap-2 font-medium" style={{ color: "#081D3A" }}>
+                    <Activity className="h-4 w-4" style={{ color: "#00B7B3" }} />
+                    Planbord met {data.personnel.length} medewerkers zichtbaar
+                  </span>
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <label className="grid gap-1 text-xs font-medium" style={{ color: "#64748B" }}>
-                  Start
-                  <select
-                    value={manualStart}
-                    onChange={(e) => setManualStart(e.target.value)}
-                    className="veele-input h-8 w-[112px] py-1 text-sm"
+                <div className="relative">
+                  <Button
+                    type="button"
+                    variant={openQueueOpen ? "default" : "outline"}
+                    size="sm"
+                    className="h-8"
+                    onClick={() => setOpenQueueOpen((value) => !value)}
                   >
-                    {START_OPTIONS.map((time) => (
-                      <option key={time} value={time}>
-                        {time}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+                    <Layers3 className="h-3.5 w-3.5" />
+                    Openstaand ({data.openAssignments.length})
+                  </Button>
+                  {openQueueOpen && (
+                    <div
+                      className="absolute right-0 top-10 z-40 w-[390px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border bg-white shadow-2xl"
+                      style={{ borderColor: "#DDE7F0" }}
+                    >
+                      <div className="flex items-center justify-between border-b px-3 py-2.5" style={{ borderColor: "#E2E8F0", background: "#FBFDFF" }}>
+                        <div>
+                          <p className="text-xs font-semibold" style={{ color: "#081D3A" }}>Werkvoorraad</p>
+                          <p className="text-[11px]" style={{ color: "#64748B" }}>{openSlotCount} open plaatsen te plannen</p>
+                        </div>
+                        <Button type="button" variant="ghost" size="icon" className="h-8 w-8" onClick={() => setOpenQueueOpen(false)}>
+                          <X className="h-4 w-4" />
+                        </Button>
+                      </div>
+                      {data.openAssignments.length === 0 ? (
+                        <div className="flex min-h-[160px] items-center justify-center px-6 text-center text-sm" style={{ color: "#64748B" }}>
+                          Geen open werkbonnen.
+                        </div>
+                      ) : (
+                        <div className="max-h-[520px] space-y-2 overflow-y-auto p-3">
+                          {data.openAssignments.map((assignment) => {
+                            const selected = selectedAssignmentId === assignment.id;
+                            const stats = matchStats(data.matchesByAssignmentId[assignment.id]);
+                            const sectorStyle = sectorBadgeStyle(assignment.sectorName);
+                            const statusStyle = pastelForAppointment(assignment);
+                            const title = displayWorkOrderTitle(assignment.title);
+
+                            return (
+                              <article
+                                key={assignment.id}
+                                draggable={canWrite}
+                                onDragStart={(e) => handleDragStart(e, assignment)}
+                                onDragEnd={handleDragEnd}
+                                onClick={() => {
+                                  setSelectedAssignmentId(selected ? null : assignment.id);
+                                  setOpenQueueOpen(false);
+                                }}
+                                className="relative overflow-hidden rounded-lg border bg-white p-2.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                                style={{
+                                  borderColor: selected ? "#00B7B3" : statusStyle.border,
+                                  boxShadow: selected ? "0 0 0 3px rgba(0,183,179,0.12)" : undefined,
+                                  cursor: canWrite ? "grab" : "pointer",
+                                }}
+                              >
+                                <div className="absolute bottom-0 left-0 top-0 w-1" style={{ background: statusStyle.rail }} />
+                                <div className="flex items-start justify-between gap-3 pl-1">
+                                  <div className="min-w-0">
+                                    <div className="flex flex-wrap items-center gap-1.5">
+                                      <span className="rounded-md border px-1.5 py-0.5 font-mono text-[10px] font-semibold leading-none" style={{ background: sectorStyle.background, borderColor: sectorStyle.borderColor, color: sectorStyle.color }}>
+                                        {sectorShortLabel(assignment.sectorName)}
+                                      </span>
+                                      <span className="rounded-md bg-slate-100 px-1.5 py-0.5 font-mono text-[10px] leading-none" style={{ color: "#475569" }}>
+                                        {assignment.code}
+                                      </span>
+                                      <AssignmentStatusBadge status={assignment.status} />
+                                      {assignment.priority !== "normal" && <AssignmentPriorityBadge priority={assignment.priority} />}
+                                    </div>
+                                    <p className="mt-1.5 truncate text-[13px] font-semibold" style={{ color: "#081D3A" }}>{title}</p>
+                                    <p className="mt-0.5 truncate text-[11px]" style={{ color: "#64748B" }}>
+                                      {assignment.customerName}{assignment.objectName ? ` - ${assignment.objectName}` : ""}
+                                    </p>
+                                  </div>
+                                  <div className="flex flex-shrink-0 flex-col items-end gap-1 text-[10px]">
+                                    <span className="rounded px-1.5 py-0.5" style={{ background: "#ECFDF5", color: "#047857" }}>{stats.match} match</span>
+                                    <span className="rounded px-1.5 py-0.5" style={{ background: "#FEF2F2", color: "#B91C1C" }}>{stats.blocked} blok</span>
+                                  </div>
+                                </div>
+                                <div className="mt-2 grid grid-cols-3 gap-1.5 rounded-md border px-2 py-1.5 text-[11px]" style={{ borderColor: "#E2E8F0", background: "#F8FAFC", color: "#64748B" }}>
+                                  <span className="inline-flex items-center gap-1 truncate"><CalendarDays className="h-3 w-3" />{formatShortDate(assignment.scheduledDate ?? data.date)}</span>
+                                  <span className="inline-flex items-center gap-1 truncate"><Clock className="h-3 w-3" />{workOrderTimeLabel(assignment)}</span>
+                                  <span className="inline-flex items-center gap-1 truncate"><Users className="h-3 w-3" />{slotLabel(assignment.filledSlots, assignment.requiredSlots)}</span>
+                                </div>
+                              </article>
+                            );
+                          })}
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+                <span className="hidden rounded-full border px-2.5 py-1 text-xs font-medium sm:inline-flex" style={{ borderColor: "#DDE7F0", color: "#64748B" }}>
+                  24-uurs bord - actuele tijd gecentreerd
+                </span>
                 {isPending && (
                   <span className="inline-flex items-center gap-1 text-xs" style={{ color: "#64748B" }}>
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -976,8 +1233,12 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                 </p>
               </div>
             ) : (
-              <div className="overflow-x-auto" style={{ opacity: isPending ? 0.82 : 1 }}>
-                <div style={{ width: BOARD_WIDTH, minWidth: BOARD_WIDTH }}>
+              <div
+                ref={boardScrollRef}
+                className="max-w-full overflow-x-auto overscroll-x-contain"
+                style={{ opacity: isPending ? 0.82 : 1 }}
+              >
+                <div style={{ width: BOARD_WIDTH, minWidth: "100%" }}>
                   <div className="relative h-10 border-b" style={{ borderColor: "#E2E8F0" }}>
                     <div
                       className="sticky left-0 top-0 z-30 flex h-full items-center border-r bg-white px-3 text-[11px] font-semibold uppercase tracking-wide"
@@ -995,6 +1256,14 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                           {hour.label}
                         </div>
                       ))}
+                      {currentTimePct !== null && (
+                        <div
+                          className="absolute bottom-0 top-0 z-10 -translate-x-1/2"
+                          style={{ left: `${currentTimePct}%` }}
+                        >
+                          <span className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full shadow" style={{ background: "#00B7B3" }} />
+                        </div>
+                      )}
                     </div>
                   </div>
 
@@ -1007,6 +1276,16 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                           style={{ left: `${hour.pct}%`, borderLeft: "1px solid #F1F5F9" }}
                         />
                       ))}
+                      {currentTimePct !== null && (
+                        <div
+                          className="absolute inset-y-0 z-10"
+                          style={{
+                            left: `${currentTimePct}%`,
+                            borderLeft: "2px solid #00B7B3",
+                            boxShadow: "0 0 0 1px rgba(0,183,179,0.08)",
+                          }}
+                        />
+                      )}
                     </div>
 
                     {visiblePersonnel.map((person, index) => {
@@ -1187,7 +1466,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                       draggable={isMovable}
                                       onDragStart={isMovable ? (e) => handleScheduledDragStart(e, assignment, person.id) : undefined}
                                       onDragEnd={isMovable ? handleDragEnd : undefined}
-                                      className="absolute top-3 bottom-3 z-10 flex min-w-[68px] items-center overflow-hidden rounded-md border text-[11px] font-medium shadow-sm transition hover:brightness-[0.98]"
+                                      className="absolute top-3 bottom-3 z-10 flex min-w-[96px] items-center overflow-hidden rounded-lg border text-[11px] font-medium shadow-sm transition hover:brightness-[0.98]"
                                       style={{
                                         left: `${block.left}%`,
                                         width: `${block.width}%`,
@@ -1198,9 +1477,15 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                       }}
                                     >
                                       <span className="h-full w-1.5 flex-shrink-0" style={{ background: assignment.hasConflict ? "#F59E0B" : pastel.rail }} />
-                                      <span className="min-w-0 flex-1 px-1.5">
-                                        <span className="block truncate font-semibold">{assignment.title}</span>
-                                        <span className="block truncate text-[10px] opacity-75">
+                                      <span className="min-w-0 flex-1 px-2">
+                                        <span className="flex min-w-0 items-center gap-1">
+                                          <span className="truncate font-mono text-[10px] opacity-80">{assignment.code}</span>
+                                          <span className="rounded bg-white/60 px-1 py-0.5 text-[9px] leading-none">
+                                            {statusLabel(assignment.status)}
+                                          </span>
+                                        </span>
+                                        <span className="mt-0.5 block truncate font-semibold">{displayWorkOrderTitle(assignment.title)}</span>
+                                        <span className="mt-0.5 block truncate text-[10px] opacity-75">
                                           {compactTimeRange(assignment.scheduledStart, assignment.scheduledEnd)}
                                           {assignment.sectorName ? ` - ${assignment.sectorName}` : ""}
                                         </span>

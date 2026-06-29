@@ -2,8 +2,28 @@
 
 import { useMemo, useState, useTransition, type FormEvent } from "react";
 import { ChevronRight, FileText, ImageIcon, Loader2, Paperclip, Plus, Send, Trash2, Video, X } from "lucide-react";
-import { addReportNote, type ReportNote, type ReportNoteAttachment } from "@/actions/reports";
+import {
+  addReportNote,
+  prepareReportNoteAttachmentUploads,
+  type ReportNote,
+  type ReportNoteAttachment,
+} from "@/actions/reports";
+import {
+  enqueueOfflineWorkOrderAction,
+  isOfflineNow,
+} from "@/lib/offline/work-order-queue";
 import { createClient } from "@/lib/supabase/client";
+import {
+  ASSIGNMENT_MEDIA_BUCKET,
+  MAX_ASSIGNMENT_IMAGE_BYTES,
+  MAX_ASSIGNMENT_VIDEO_BYTES,
+  MAX_REPORT_NOTE_ATTACHMENTS,
+  formatUploadLimit,
+} from "@/lib/uploads/assignment-media";
+import {
+  compressImageIfUseful,
+  validateAssignmentMediaFile,
+} from "@/lib/uploads/client-assignment-media";
 
 type Props = {
   assignmentId: string;
@@ -16,9 +36,16 @@ type LocalFile = {
   id:         string;
   file:       File;
   previewUrl: string | null;
+  status:     "ready" | "compressing" | "preparing" | "uploading" | "uploaded" | "failed";
+  progress:   number;
+  error:      string | null;
+  uploaded:   {
+    storagePath: string;
+    fileName:    string;
+    mimeType:    string | null;
+    fileSize:    number;
+  } | null;
 };
-
-const MAX_ATTACHMENTS = 5;
 
 function formatNoteDate(iso: string): { date: string; time: string } {
   const date = new Date(iso);
@@ -56,18 +83,6 @@ function extensionLabel(fileName: string, mimeType: string | null): string {
   if (mimeType?.startsWith("image/")) return "AFB";
   if (mimeType?.startsWith("video/")) return "VIDEO";
   return "BESTAND";
-}
-
-function safeStorageName(fileName: string): string {
-  const fallback = "bijlage";
-  const cleaned = fileName
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-zA-Z0-9._-]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 90);
-
-  return cleaned || fallback;
 }
 
 function AttachmentPreview({ attachment }: { attachment: ReportNoteAttachment }) {
@@ -111,15 +126,27 @@ function AttachmentPreview({ attachment }: { attachment: ReportNoteAttachment })
 function LocalFileRow({
   item,
   onRemove,
+  onRetry,
 }: {
   item:     LocalFile;
   onRemove: (id: string) => void;
+  onRetry:  (id: string) => void;
 }) {
   const kind = fileKind(item.file.type || null);
   const meta = [extensionLabel(item.file.name, item.file.type || null), formatFileSize(item.file.size)].filter(Boolean).join(" - ");
+  const isBusy = item.status === "compressing" || item.status === "preparing" || item.status === "uploading";
+  const statusLabel = {
+    ready:       "Klaar voor upload",
+    compressing: "Comprimeren",
+    preparing:  "Upload voorbereiden",
+    uploading:  "Uploaden",
+    uploaded:   "Geupload",
+    failed:     "Mislukt",
+  }[item.status];
 
   return (
-    <div className="grid grid-cols-[56px_1fr_auto] items-center gap-3 rounded-2xl border bg-[#FAFBFD] p-2" style={{ borderColor: "var(--color-border)" }}>
+    <div className="rounded-2xl border bg-[#FAFBFD] p-2" style={{ borderColor: item.status === "failed" ? "#FECACA" : "var(--color-border)" }}>
+      <div className="grid grid-cols-[56px_1fr_auto] items-center gap-3">
       <span className="flex h-12 w-14 overflow-hidden rounded-xl bg-[#EAF8F7]">
         {kind === "image" && item.previewUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -137,16 +164,52 @@ function LocalFileRow({
         <span className="block text-[12px] font-semibold" style={{ color: "var(--color-secondary)" }}>
           {meta}
         </span>
+        <span
+          className="mt-1 block text-[11px] font-black"
+          style={{ color: item.status === "failed" ? "#DC2626" : item.status === "uploaded" ? "#059669" : "var(--color-secondary)" }}
+        >
+          {statusLabel}
+        </span>
       </span>
-      <button
-        type="button"
-        onClick={() => onRemove(item.id)}
-        className="flex h-8 w-8 items-center justify-center rounded-full border"
-        style={{ borderColor: "#FECACA", color: "#DC2626" }}
-        aria-label="Bijlage verwijderen"
-      >
-        <Trash2 size={15} />
-      </button>
+      <div className="flex items-center gap-1.5">
+        {item.status === "failed" ? (
+          <button
+            type="button"
+            onClick={() => onRetry(item.id)}
+            className="rounded-full border px-3 py-1.5 text-[11px] font-black"
+            style={{ borderColor: "var(--color-accent)", color: "var(--color-accent)" }}
+          >
+            Opnieuw
+          </button>
+        ) : null}
+        <button
+          type="button"
+          onClick={() => onRemove(item.id)}
+          disabled={isBusy}
+          className="flex h-8 w-8 items-center justify-center rounded-full border disabled:opacity-40"
+          style={{ borderColor: "#FECACA", color: "#DC2626" }}
+          aria-label="Bijlage verwijderen"
+        >
+          <Trash2 size={15} />
+        </button>
+      </div>
+      </div>
+      {item.status !== "ready" ? (
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
+          <div
+            className="h-full rounded-full transition-all"
+            style={{
+              width: `${item.progress}%`,
+              backgroundColor: item.status === "failed" ? "#DC2626" : "var(--color-accent)",
+            }}
+          />
+        </div>
+      ) : null}
+      {item.error ? (
+        <p className="mt-2 rounded-xl px-2 py-1 text-[11px] font-bold" style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
+          {item.error}
+        </p>
+      ) : null}
     </div>
   );
 }
@@ -195,23 +258,67 @@ export function RapportageTimeline({ assignmentId, initialNotes, canAdd, canPers
   function addFiles(fileList: FileList | null) {
     if (!fileList) return;
 
-    const nextFiles = Array.from(fileList)
-      .slice(0, Math.max(0, MAX_ATTACHMENTS - files.length))
-      .map((file) => ({
+    const slotsLeft = Math.max(0, MAX_REPORT_NOTE_ATTACHMENTS - files.length);
+    if (slotsLeft <= 0) {
+      setError(`Maximaal ${MAX_REPORT_NOTE_ATTACHMENTS} bijlagen per notitie toegestaan`);
+      return;
+    }
+
+    const accepted: LocalFile[] = [];
+    const rejected: string[] = [];
+
+    for (const file of Array.from(fileList)) {
+      if (accepted.length >= slotsLeft) {
+        rejected.push(`Maximaal ${MAX_REPORT_NOTE_ATTACHMENTS} bijlagen per notitie toegestaan`);
+        break;
+      }
+
+      const validation = validateAssignmentMediaFile(file);
+      if (!validation.valid) {
+        rejected.push(`${file.name}: ${validation.error}`);
+        continue;
+      }
+
+      accepted.push({
         id:         `${file.name}-${file.lastModified}-${crypto.randomUUID?.() ?? Date.now()}`,
         file,
         previewUrl: file.type.startsWith("image/") ? URL.createObjectURL(file) : null,
-      }));
+        status:     "ready",
+        progress:   0,
+        error:      null,
+        uploaded:   null,
+      });
+    }
 
-    setFiles((current) => [...current, ...nextFiles].slice(0, MAX_ATTACHMENTS));
+    if (accepted.length > 0) {
+      setFiles((current) => [...current, ...accepted].slice(0, MAX_REPORT_NOTE_ATTACHMENTS));
+    }
+    setError(rejected[0] ?? null);
   }
 
   function removeFile(id: string) {
     setFiles((current) => {
       const file = current.find((item) => item.id === id);
       if (file?.previewUrl) URL.revokeObjectURL(file.previewUrl);
+      if (file?.uploaded?.storagePath) {
+        void createClient().storage.from(ASSIGNMENT_MEDIA_BUCKET).remove([file.uploaded.storagePath]);
+      }
       return current.filter((item) => item.id !== id);
     });
+  }
+
+  function retryFile(id: string) {
+    setFiles((current) =>
+      current.map((item) =>
+        item.id === id
+          ? { ...item, status: "ready", progress: 0, error: null, uploaded: null }
+          : item,
+      ),
+    );
+  }
+
+  function updateLocalFile(id: string, patch: Partial<LocalFile>) {
+    setFiles((current) => current.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   }
 
   function resetForm() {
@@ -231,37 +338,92 @@ export function RapportageTimeline({ assignmentId, initialNotes, canAdd, canPers
     fileSize: number;
   }[]> {
     const supabase = createClient();
+    const alreadyUploaded = files
+      .map((item) => item.uploaded)
+      .filter((item): item is NonNullable<LocalFile["uploaded"]> => !!item);
+
+    const pendingFiles = files.filter((item) => !item.uploaded);
+    if (pendingFiles.length === 0) return alreadyUploaded;
+
+    const preparedFiles: { item: LocalFile; file: File }[] = [];
+
+    for (const item of pendingFiles) {
+      updateLocalFile(item.id, { status: "compressing", progress: 12, error: null });
+      const uploadFile = await compressImageIfUseful(item.file);
+      const validation = validateAssignmentMediaFile(uploadFile);
+      if (!validation.valid) {
+        updateLocalFile(item.id, { status: "failed", progress: 100, error: validation.error });
+        throw new Error(validation.error);
+      }
+      preparedFiles.push({ item, file: uploadFile });
+      updateLocalFile(item.id, { status: "preparing", progress: 26 });
+    }
+
+    const prepared = await prepareReportNoteAttachmentUploads(
+      assignmentId,
+      preparedFiles.map(({ item, file }) => ({
+        clientId: item.id,
+        fileName: file.name,
+        mimeType: file.type || null,
+        fileSize: file.size,
+      })),
+    );
+
+    if (!prepared.success || !prepared.uploads) {
+      pendingFiles.forEach((item) => {
+        updateLocalFile(item.id, {
+          status: "failed",
+          progress: 100,
+          error: prepared.error ?? "Upload voorbereiden mislukt",
+        });
+      });
+      throw new Error(prepared.error ?? "Upload voorbereiden mislukt");
+    }
+
+    const preparedById = new Map(prepared.uploads.map((upload) => [upload.clientId, upload]));
     const uploaded: {
       storagePath: string;
       fileName: string;
       mimeType: string | null;
       fileSize: number;
-    }[] = [];
+    }[] = [...alreadyUploaded];
+    let failed = false;
 
-    try {
-      for (const item of files) {
-        const path = `${assignmentId}/report-notes/${Date.now()}-${crypto.randomUUID?.() ?? Math.random().toString(36).slice(2)}-${safeStorageName(item.file.name)}`;
-        const { error: uploadError } = await supabase.storage
-          .from("assignment-photos")
-          .upload(path, item.file);
+    for (const { item, file } of preparedFiles) {
+      const upload = preparedById.get(item.id);
+      if (!upload) {
+        updateLocalFile(item.id, { status: "failed", progress: 100, error: "Uploadvoorbereiding ontbreekt" });
+        failed = true;
+        continue;
+      }
 
-        if (uploadError) throw uploadError;
-
-        uploaded.push({
-          storagePath: path,
-          fileName:    item.file.name,
-          mimeType:    item.file.type || null,
-          fileSize:    item.file.size,
+      updateLocalFile(item.id, { status: "uploading", progress: 48, error: null });
+      const { error: uploadError } = await supabase.storage
+        .from(ASSIGNMENT_MEDIA_BUCKET)
+        .uploadToSignedUrl(upload.storagePath, upload.token, file, {
+          contentType: upload.mimeType,
         });
+
+      if (uploadError) {
+        updateLocalFile(item.id, { status: "failed", progress: 100, error: uploadError.message || "Upload mislukt" });
+        failed = true;
+        continue;
       }
 
-      return uploaded;
-    } catch (uploadError) {
-      if (uploaded.length > 0) {
-        await supabase.storage.from("assignment-photos").remove(uploaded.map((item) => item.storagePath));
-      }
-      throw uploadError;
+      const record = {
+        storagePath: upload.storagePath,
+        fileName:    upload.fileName,
+        mimeType:    upload.mimeType,
+        fileSize:    upload.fileSize,
+      };
+
+      uploaded.push(record);
+      updateLocalFile(item.id, { status: "uploaded", progress: 100, error: null, uploaded: record });
     }
+
+    if (failed) throw new Error("Niet alle bijlagen zijn geupload. Probeer mislukte bijlagen opnieuw.");
+
+    return uploaded;
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -275,7 +437,12 @@ export function RapportageTimeline({ assignmentId, initialNotes, canAdd, canPers
     }
 
     startTransition(async () => {
-      if (!canPersist) {
+      if (!canPersist || isOfflineNow()) {
+        if (files.length > 0 && isOfflineNow()) {
+          setError("Bijlagen kunnen pas online worden geupload. Sla de notitie zonder bijlage op of probeer opnieuw zodra je online bent.");
+          return;
+        }
+
         const now = new Date().toISOString();
         setNotes((current) => [
           {
@@ -295,6 +462,13 @@ export function RapportageTimeline({ assignmentId, initialNotes, canAdd, canPers
           },
           ...current,
         ]);
+        if (isOfflineNow()) {
+          enqueueOfflineWorkOrderAction({
+            type: "add-report-note",
+            assignmentId,
+            payload: { body: trimmedBody },
+          });
+        }
         resetForm();
         return;
       }
@@ -309,7 +483,7 @@ export function RapportageTimeline({ assignmentId, initialNotes, canAdd, canPers
 
         if (!result.success || !result.note) {
           if (uploaded.length > 0) {
-            await createClient().storage.from("assignment-photos").remove(uploaded.map((item) => item.storagePath));
+            await createClient().storage.from(ASSIGNMENT_MEDIA_BUCKET).remove(uploaded.map((item) => item.storagePath));
           }
           setError(result.error ?? "Notitie opslaan mislukt");
           return;
@@ -317,8 +491,8 @@ export function RapportageTimeline({ assignmentId, initialNotes, canAdd, canPers
 
         setNotes((current) => [result.note!, ...current]);
         resetForm();
-      } catch {
-        setError("Bijlage uploaden of notitie opslaan mislukt");
+      } catch (caught) {
+        setError(caught instanceof Error ? caught.message : "Bijlage uploaden of notitie opslaan mislukt");
       }
     });
   }
@@ -357,10 +531,14 @@ export function RapportageTimeline({ assignmentId, initialNotes, canAdd, canPers
           {files.length > 0 ? (
             <div className="space-y-2">
               {files.map((item) => (
-                <LocalFileRow key={item.id} item={item} onRemove={removeFile} />
+                <LocalFileRow key={item.id} item={item} onRemove={removeFile} onRetry={retryFile} />
               ))}
             </div>
           ) : null}
+
+          <p className="text-[12px] font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
+            Maximaal {MAX_REPORT_NOTE_ATTACHMENTS} bijlagen. Foto's tot {formatUploadLimit(MAX_ASSIGNMENT_IMAGE_BYTES)}, video's tot {formatUploadLimit(MAX_ASSIGNMENT_VIDEO_BYTES)}.
+          </p>
 
           <div className="flex gap-2">
             <label className="flex flex-1 cursor-pointer items-center justify-center gap-2 rounded-2xl border px-3 py-3 text-[14px] font-black" style={{ borderColor: "var(--color-accent)", color: "var(--color-accent)" }}>

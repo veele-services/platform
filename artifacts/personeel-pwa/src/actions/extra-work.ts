@@ -13,6 +13,13 @@ import { eq, and, asc, count } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
+import {
+  ASSIGNMENT_MEDIA_BUCKET,
+  MAX_EXTRA_WORK_PHOTOS,
+  buildExtraWorkPhotoPath,
+  isExtraWorkPhotoPath,
+  validateAssignmentMediaDescriptor,
+} from "@/lib/uploads/assignment-media";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -29,7 +36,7 @@ const LOCKED_STATUSES = new Set([
   "closed",
 ]);
 
-const MAX_PHOTOS_PER_ITEM = 5;
+const MAX_PHOTOS_PER_ITEM = MAX_EXTRA_WORK_PHOTOS;
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -66,32 +73,49 @@ export type ExtraWorkInput = {
   price?:        string | null;
 };
 
+export type PrepareExtraWorkPhotoUploadInput = {
+  fileName: string;
+  mimeType: string | null;
+  fileSize: number;
+};
+
+export type PreparedExtraWorkPhotoUpload = {
+  storagePath: string;
+  signedUrl:   string;
+  token:       string;
+  fileName:    string;
+  mimeType:    string;
+  fileSize:    number;
+};
+
 // ─── Helpers ───────────────────────────────────────────────────────────────────
 
-async function getAuthAndPersonnel(): Promise<{ userId: string; personnelId: string } | null> {
+async function getAuthAndPersonnel(): Promise<{ userId: string; personnelId: string; tenantId: string } | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
   const [row] = await db
-    .select({ id: personnelTable.id })
+    .select({ id: personnelTable.id, tenantId: personnelTable.tenantId })
     .from(personnelTable)
-    .where(eq(personnelTable.userId, user.id))
+    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
     .limit(1);
 
   if (!row) return null;
-  return { userId: user.id, personnelId: row.id };
+  return { userId: user.id, personnelId: row.id, tenantId: row.tenantId };
 }
 
-async function isLinked(personnelId: string, assignmentId: string): Promise<boolean> {
+async function isLinked(personnelId: string, tenantId: string, assignmentId: string): Promise<boolean> {
   const [row] = await db
     .select({ id: assignmentPersonnelTable.id })
     .from(assignmentPersonnelTable)
+    .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
     .where(
       and(
         eq(assignmentPersonnelTable.personnelId, personnelId),
         eq(assignmentPersonnelTable.assignmentId, assignmentId),
         eq(assignmentPersonnelTable.status, "assigned"),
+        eq(assignmentsTable.tenantId, tenantId),
       ),
     )
     .limit(1);
@@ -116,7 +140,7 @@ async function generateSignedUrl(storagePath: string): Promise<string | null> {
   try {
     const admin = createAdminClient();
     const { data } = await admin.storage
-      .from("assignment-photos")
+      .from(ASSIGNMENT_MEDIA_BUCKET)
       .createSignedUrl(storagePath, 3600); // 1 hour validity
     return data?.signedUrl ?? null;
   } catch {
@@ -152,7 +176,7 @@ export async function getExtraWorkForAssignment(assignmentId: string): Promise<E
   const auth = await getAuthAndPersonnel();
   if (!auth) return [];
 
-  const linked = await isLinked(auth.personnelId, assignmentId);
+  const linked = await isLinked(auth.personnelId, auth.tenantId, assignmentId);
   if (!linked) return [];
 
   const items = await db
@@ -202,7 +226,7 @@ export async function addExtraWork(
   const auth = await getAuthAndPersonnel();
   if (!auth) return { success: false, error: "Niet ingelogd" };
 
-  const linked = await isLinked(auth.personnelId, assignmentId);
+  const linked = await isLinked(auth.personnelId, auth.tenantId, assignmentId);
   if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
 
   const editable = await isAssignmentEditable(assignmentId);
@@ -253,7 +277,7 @@ export async function updateExtraWork(
   if (item.assignmentId !== assignmentId) return { success: false, error: "Niet gevonden" };
 
   // Re-check current assignment linkage (personnel may have been unlinked after initial edit)
-  const linked = await isLinked(auth.personnelId, assignmentId);
+  const linked = await isLinked(auth.personnelId, auth.tenantId, assignmentId);
   if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
 
   const editable = await isAssignmentEditable(assignmentId);
@@ -297,7 +321,7 @@ export async function deleteExtraWork(
   if (item.assignmentId !== assignmentId) return { success: false, error: "Niet gevonden" };
 
   // Re-check current assignment linkage (personnel may have been unlinked after initial edit)
-  const linked = await isLinked(auth.personnelId, assignmentId);
+  const linked = await isLinked(auth.personnelId, auth.tenantId, assignmentId);
   if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
 
   const editable = await isAssignmentEditable(assignmentId);
@@ -312,7 +336,7 @@ export async function deleteExtraWork(
   if (photos.length > 0) {
     // Remove from storage
     const admin = createAdminClient();
-    await admin.storage.from("assignment-photos").remove(photos.map((p) => p.storagePath));
+    await admin.storage.from(ASSIGNMENT_MEDIA_BUCKET).remove(photos.map((p) => p.storagePath));
     // Explicitly delete photo DB rows — FK is ON DELETE SET NULL, NOT CASCADE,
     // so rows are NOT automatically removed when the extra-work item is deleted.
     await db.delete(assignmentPhotosTable).where(eq(assignmentPhotosTable.extraWorkId, id));
@@ -325,6 +349,90 @@ export async function deleteExtraWork(
   return { success: true };
 }
 
+function uniqueUploadId(): string {
+  return globalThis.crypto?.randomUUID?.() ?? Math.random().toString(36).slice(2);
+}
+
+async function uploadedObjectExists(storagePath: string): Promise<boolean> {
+  const parts = storagePath.split("/");
+  const fileName = parts.pop();
+  const prefix = parts.join("/");
+  if (!fileName || !prefix) return false;
+
+  const { data, error } = await createAdminClient()
+    .storage
+    .from(ASSIGNMENT_MEDIA_BUCKET)
+    .list(prefix, { limit: 20, search: fileName });
+
+  return !error && Boolean(data?.some((item) => item.name === fileName));
+}
+
+export async function prepareExtraWorkPhotoUpload(
+  assignmentId: string,
+  extraWorkId: string,
+  file: PrepareExtraWorkPhotoUploadInput,
+): Promise<{ success: boolean; upload?: PreparedExtraWorkPhotoUpload; error?: string }> {
+  const auth = await getAuthAndPersonnel();
+  if (!auth) return { success: false, error: "Niet ingelogd" };
+
+  const linked = await isLinked(auth.personnelId, auth.tenantId, assignmentId);
+  if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
+
+  const editable = await isAssignmentEditable(assignmentId);
+  if (!editable) return { success: false, error: "De opdracht is afgesloten voor verdere wijzigingen" };
+
+  const [ew] = await db
+    .select({ id: assignmentExtraWorkTable.id })
+    .from(assignmentExtraWorkTable)
+    .where(
+      and(
+        eq(assignmentExtraWorkTable.id, extraWorkId),
+        eq(assignmentExtraWorkTable.assignmentId, assignmentId),
+      ),
+    )
+    .limit(1);
+
+  if (!ew) return { success: false, error: "Meerwerk-item niet gevonden" };
+
+  const [photoCount] = await db
+    .select({ cnt: count() })
+    .from(assignmentPhotosTable)
+    .where(eq(assignmentPhotosTable.extraWorkId, extraWorkId));
+
+  if ((photoCount?.cnt ?? 0) >= MAX_PHOTOS_PER_ITEM) {
+    return { success: false, error: `Maximaal ${MAX_PHOTOS_PER_ITEM} foto's per meerwerk-item toegestaan` };
+  }
+
+  const validation = validateAssignmentMediaDescriptor(file, { allowVideos: false });
+  if (!validation.valid) return { success: false, error: validation.error };
+
+  const storagePath = buildExtraWorkPhotoPath(
+    assignmentId,
+    extraWorkId,
+    validation.fileName,
+    uniqueUploadId(),
+  );
+
+  const { data, error } = await createAdminClient()
+    .storage
+    .from(ASSIGNMENT_MEDIA_BUCKET)
+    .createSignedUploadUrl(storagePath);
+
+  if (error || !data) return { success: false, error: "Upload voorbereiden mislukt" };
+
+  return {
+    success: true,
+    upload: {
+      storagePath,
+      signedUrl: data.signedUrl,
+      token: data.token,
+      fileName: validation.fileName,
+      mimeType: validation.mimeType,
+      fileSize: validation.fileSize,
+    },
+  };
+}
+
 export async function savePhotoPath(
   assignmentId: string,
   extraWorkId:  string,
@@ -333,7 +441,7 @@ export async function savePhotoPath(
   const auth = await getAuthAndPersonnel();
   if (!auth) return { success: false, error: "Niet ingelogd" };
 
-  const linked = await isLinked(auth.personnelId, assignmentId);
+  const linked = await isLinked(auth.personnelId, auth.tenantId, assignmentId);
   if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
 
   const editable = await isAssignmentEditable(assignmentId);
@@ -352,6 +460,14 @@ export async function savePhotoPath(
     .limit(1);
   if (!ew) return { success: false, error: "Meerwerk-item niet gevonden" };
 
+  if (!isExtraWorkPhotoPath(assignmentId, extraWorkId, storagePath.trim())) {
+    return { success: false, error: "Bijlagepad hoort niet bij dit meerwerk-item" };
+  }
+
+  if (!(await uploadedObjectExists(storagePath.trim()))) {
+    return { success: false, error: "Foto is nog niet correct geupload. Probeer opnieuw." };
+  }
+
   // Enforce max 5 photos per extra-work item (server-side)
   const [photoCount] = await db
     .select({ cnt: count() })
@@ -367,7 +483,7 @@ export async function savePhotoPath(
     .values({
       assignmentId,
       extraWorkId,
-      storagePath,
+      storagePath: storagePath.trim(),
       uploadedBy: auth.userId,
     })
     .returning({ id: assignmentPhotosTable.id });
@@ -404,7 +520,7 @@ export async function deletePhoto(
   if (photo.assignmentId !== assignmentId) return { success: false, error: "Foto niet gevonden" };
 
   // Re-check current assignment linkage
-  const linked = await isLinked(auth.personnelId, assignmentId);
+  const linked = await isLinked(auth.personnelId, auth.tenantId, assignmentId);
   if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
 
   const editable = await isAssignmentEditable(assignmentId);
@@ -412,7 +528,7 @@ export async function deletePhoto(
 
   // Delete from storage using DB-backed storagePath only
   const admin = createAdminClient();
-  await admin.storage.from("assignment-photos").remove([photo.storagePath]);
+  await admin.storage.from(ASSIGNMENT_MEDIA_BUCKET).remove([photo.storagePath]);
 
   await db.delete(assignmentPhotosTable).where(eq(assignmentPhotosTable.id, photoId));
 

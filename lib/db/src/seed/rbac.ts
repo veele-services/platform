@@ -61,6 +61,11 @@ const ALL_PERMISSIONS: { resource: string; action: string; description: string }
   { resource: "documents",   action: "write",   description: "Upload and edit documents" },
   { resource: "documents",   action: "delete",  description: "Delete documents" },
 
+  { resource: "news",        action: "read",    description: "View news posts" },
+  { resource: "news",        action: "write",   description: "Create and edit news posts" },
+  { resource: "news",        action: "send",    description: "Publish news posts to target audiences" },
+  { resource: "news",        action: "delete",  description: "Archive or delete news posts" },
+
   { resource: "task_codes",  action: "read",    description: "View task codes" },
   { resource: "task_codes",  action: "write",   description: "Create and edit task codes" },
 
@@ -90,6 +95,7 @@ const ROLE_PERMISSION_MAP: Record<string, string[]> = {
     "reports:read", "reports:submit", "reports:write", "reports:export",
     "invoices:read", "invoices:write", "invoices:send",
     "documents:read", "documents:write", "documents:delete",
+    "news:read", "news:write", "news:send",
     "settings:read",
     "users:read", "users:write",
   ],
@@ -102,6 +108,7 @@ const ROLE_PERMISSION_MAP: Record<string, string[]> = {
     "planning:read", "planning:write",
     "personnel:read",
     "task_codes:read",
+    "news:read", "news:write", "news:send",
     "reports:read", "reports:submit",
   ],
 
@@ -142,6 +149,7 @@ const ROLE_PERMISSION_MAP: Record<string, string[]> = {
     "personnel:read",
     "reports:read",
     "documents:read",
+    "news:read",
   ],
 };
 

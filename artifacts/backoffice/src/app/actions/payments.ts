@@ -9,12 +9,25 @@ import {
   type PaymentStatus,
 } from "@workspace/db";
 import { eq, desc } from "drizzle-orm";
+import { emitInvoiceWorkflowEvent } from "@workspace/db/workflow-events";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, PaymentStatus };
+
+async function notifyInvoiceWorkflow(input: Parameters<typeof emitInvoiceWorkflowEvent>[0]) {
+  try {
+    await emitInvoiceWorkflowEvent(input);
+  } catch (error) {
+    console.error("invoice payment notification failed", {
+      eventKey: input.eventKey,
+      invoiceId: input.invoiceId,
+      error,
+    });
+  }
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -256,6 +269,12 @@ export async function markInvoicePaidByMollie(
       resource:   "invoices",
       resourceId: invoice.id,
       metadata:   { molliePaymentId, paidAt: paidAt.toISOString() },
+    });
+
+    await notifyInvoiceWorkflow({
+      eventKey: "invoice_paid",
+      invoiceId: invoice.id,
+      actorUserId: SYSTEM_ACTOR_UUID,
     });
 
     revalidatePath(`/invoices/${invoice.id}`);

@@ -18,28 +18,17 @@ import {
 } from "@/components/ui/alert-dialog";
 import { createMolliePayment } from "@/app/actions/payments";
 import { sendPaymentReminders } from "@/app/actions/invoices";
-import type { InvoiceRow, InvoiceSummary } from "@/app/actions/invoices";
-
-const STATUS_LABELS: Record<string, string> = {
-  draft:     "Concept",
-  sent:      "Verzonden",
-  paid:      "Betaald",
-  cancelled: "Geannuleerd",
-};
-
-const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
-  draft:     { bg: "#F1F5F9", text: "#475569" },
-  sent:      { bg: "#FEF3C7", text: "#92400E" },
-  paid:      { bg: "#D1FAE5", text: "#065F46" },
-  cancelled: { bg: "#FEE2E2", text: "#991B1B" },
-};
+import type { CollectiveInvoiceBatchRow, CollectiveInvoiceCandidate, InvoiceRow, InvoiceSummary } from "@/app/actions/invoices";
+import { ProcessStatusBadge } from "@/components/workflows/ProcessStatus";
+import { processStatusLabel } from "@/lib/process-status";
+import { CollectiveInvoicePanel } from "./CollectiveInvoicePanel";
 
 const STATUS_OPTIONS = [
   { value: "",          label: "Alle statussen" },
-  { value: "draft",     label: "Concept" },
-  { value: "sent",      label: "Verzonden" },
-  { value: "paid",      label: "Betaald" },
-  { value: "cancelled", label: "Geannuleerd" },
+  { value: "draft",     label: processStatusLabel("invoice", "draft") },
+  { value: "sent",      label: processStatusLabel("invoice", "sent") },
+  { value: "paid",      label: processStatusLabel("invoice", "paid") },
+  { value: "cancelled", label: processStatusLabel("invoice", "cancelled") },
 ];
 
 const PAGE_SIZE = 25;
@@ -62,9 +51,22 @@ interface Props {
   canWrite:     boolean;
   summary:      InvoiceSummary;
   overdueCount: number;
+  collectiveCandidates: CollectiveInvoiceCandidate[];
+  collectiveBatches: CollectiveInvoiceBatchRow[];
 }
 
-export function InvoicesView({ rows, total, page, search, statusFilter, canWrite, summary, overdueCount }: Props) {
+export function InvoicesView({
+  rows,
+  total,
+  page,
+  search,
+  statusFilter,
+  canWrite,
+  summary,
+  overdueCount,
+  collectiveCandidates,
+  collectiveBatches,
+}: Props) {
   const router   = useRouter();
   const pathname = usePathname();
 
@@ -170,12 +172,20 @@ export function InvoicesView({ rows, total, page, search, statusFilter, canWrite
       </div>
 
       {/* ── Summary cards ── */}
+      {canWrite && (
+        <CollectiveInvoicePanel
+          candidates={collectiveCandidates}
+          batches={collectiveBatches}
+          canWrite={canWrite}
+        />
+      )}
+
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         <SummaryCard
           icon={<FileText className="h-5 w-5" />}
-          label="Concept"
+          label="Factuurvoorstellen"
           value={formatEur(summary.draftAmount)}
-          sub={`${summary.draftCount} factuur${summary.draftCount !== 1 ? "en" : ""}`}
+          sub={`${summary.draftCount} voorstel${summary.draftCount !== 1 ? "len" : ""} ter controle`}
           color="#64748B"
         />
         <SummaryCard
@@ -257,7 +267,6 @@ export function InvoicesView({ rows, total, page, search, statusFilter, canWrite
               </thead>
               <tbody>
                 {rows.map((row) => {
-                  const style     = STATUS_STYLES[row.status] ?? STATUS_STYLES.draft;
                   const isOverdue = row.status === "sent" && new Date(row.dueDate) < new Date();
                   const isLoading = paymentLoading === row.id;
                   const isCopied  = copiedId === row.id;
@@ -294,12 +303,7 @@ export function InvoicesView({ rows, total, page, search, statusFilter, canWrite
                         {formatEur(row.totalAmount)}
                       </td>
                       <td className="px-4 py-3">
-                        <span
-                          className="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium"
-                          style={{ backgroundColor: style.bg, color: style.text }}
-                        >
-                          {STATUS_LABELS[row.status] ?? row.status}
-                        </span>
+                        <ProcessStatusBadge kind="invoice" status={row.status} />
                       </td>
                       <td className="px-4 py-3" style={{ color: isOverdue ? "#DC2626" : "#374151" }}>
                         <span className={isOverdue ? "font-semibold" : ""}>

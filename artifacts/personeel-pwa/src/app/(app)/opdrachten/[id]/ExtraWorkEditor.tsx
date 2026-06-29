@@ -9,6 +9,10 @@ import {
   type TaskCodeOption,
 } from "@/actions/extra-work";
 import {
+  enqueueOfflineWorkOrderAction,
+  isOfflineNow,
+} from "@/lib/offline/work-order-queue";
+import {
   calculateExtraWorkLineTotal,
   formatMoney,
   formatQuantity,
@@ -99,7 +103,14 @@ export function ExtraWorkEditor({ assignmentId, initialItems, taskCodes, canEdit
     };
 
     startTransition(async () => {
-      if (!canPersist) {
+      if (!canPersist || isOfflineNow()) {
+        if (isOfflineNow()) {
+          enqueueOfflineWorkOrderAction({
+            type: "add-extra-work",
+            assignmentId,
+            payload: input,
+          });
+        }
         setItems((current) => [
           ...current,
           {
@@ -136,7 +147,7 @@ export function ExtraWorkEditor({ assignmentId, initialItems, taskCodes, canEdit
     setDeletingId(item.id);
     startTransition(async () => {
       try {
-        if (canPersist && !item.id.startsWith("local-") && !item.id.startsWith("mock-")) {
+        if (canPersist && !item.id.startsWith("local-")) {
           const result = await deleteExtraWork(item.id, assignmentId);
           if (!result.success) {
             setError(result.error ?? "Verwijderen mislukt");

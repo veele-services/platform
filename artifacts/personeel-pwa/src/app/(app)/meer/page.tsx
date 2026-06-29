@@ -5,15 +5,17 @@ import {
   FileText,
   FolderOpen,
   LogOut,
+  MessageSquare,
   Plane,
-  UserCircle,
+  Settings,
 } from "lucide-react";
 import { signOut } from "@/actions/auth";
 
 export const dynamic = "force-dynamic";
 
 const MORE_LINKS = [
-  { href: "/profiel", label: "Profiel", description: "Persoonsgegevens en wachtwoord", Icon: UserCircle },
+  { href: "/instellingen", label: "Instellingen", description: "Profiel, beveiliging en meldingen", Icon: Settings },
+  { href: "/berichten", label: "Berichten", description: "Tickets met afdelingen", Icon: MessageSquare },
   { href: "/beschikbaarheid", label: "Beschikbaarheid", description: "Beschikbare dagen beheren", Icon: CalendarCheck },
   { href: "/verlof", label: "Verlof", description: "Verlofaanvragen bekijken en indienen", Icon: Plane },
   { href: "/documenten", label: "Documenten", description: "Bestanden en formulieren", Icon: FolderOpen },

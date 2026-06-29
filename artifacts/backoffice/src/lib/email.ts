@@ -146,6 +146,19 @@ export function personeelPortalUrl(): string {
 // ── Shared base template ───────────────────────────────────────────────────────
 
 const BRAND_COLOR = "#081D3A";
+const ACCENT_COLOR = "#00B7B3";
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function nl2br(value: string): string {
+  return escapeHtml(value).replace(/\n/g, "<br>");
+}
 
 function baseTemplate(title: string, bodyHtml: string): string {
   return `<!DOCTYPE html>
@@ -169,6 +182,93 @@ function baseTemplate(title: string, bodyHtml: string): string {
 
 function ctaButton(href: string, label: string): string {
   return `<p><a href="${href}" style="display:inline-block;padding:11px 22px;background:${BRAND_COLOR};color:#fff;border-radius:6px;text-decoration:none;font-weight:600;font-size:14px">${label}</a></p>`;
+}
+
+export type StyledNotificationEmailInput = {
+  subject: string;
+  preheader?: string | null;
+  bodyHtml?: string | null;
+  bodyText?: string | null;
+  ctaHref?: string | null;
+  ctaLabel?: string | null;
+};
+
+export async function buildStyledNotificationEmail(
+  opts: StyledNotificationEmailInput,
+): Promise<{ subject: string; html: string; text: string }> {
+  const [settings] = await db
+    .select({
+      naam: organizationSettingsTable.naam,
+      logoUrl: organizationSettingsTable.logoUrl,
+      brandColor: organizationSettingsTable.emailTemplateBrandColor,
+      accentColor: organizationSettingsTable.emailTemplateAccentColor,
+      footerText: organizationSettingsTable.emailTemplateFooterText,
+      signature: organizationSettingsTable.emailTemplateSignature,
+    })
+    .from(organizationSettingsTable)
+    .limit(1);
+
+  const brandColor = settings?.brandColor || BRAND_COLOR;
+  const accentColor = settings?.accentColor || ACCENT_COLOR;
+  const companyName = settings?.naam?.trim() || "Veele Services";
+  const preheader = opts.preheader?.trim() || opts.subject;
+  const body = opts.bodyHtml?.trim()
+    ? opts.bodyHtml
+    : `<p>${nl2br(opts.bodyText ?? "")}</p>`;
+  const signature = nl2br(settings?.signature || "Met vriendelijke groet,\nVeele Services");
+  const footer = nl2br(settings?.footerText || "Dit is een automatisch bericht van het Veele platform.");
+  const cta = opts.ctaHref && opts.ctaLabel
+    ? `<p style="margin:26px 0 4px"><a href="${escapeHtml(opts.ctaHref)}" style="display:inline-block;padding:13px 24px;background:${accentColor};color:#fff;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px">${escapeHtml(opts.ctaLabel)}</a></p>`
+    : "";
+
+  const html = `<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${escapeHtml(opts.subject)}</title>
+</head>
+<body style="margin:0;padding:0;background:#EEF3F8;font-family:Arial,Helvetica,sans-serif;color:#0F172A">
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:transparent">${escapeHtml(preheader)}</div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#EEF3F8;padding:28px 12px">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:680px;background:#ffffff;border-radius:22px;overflow:hidden;border:1px solid #DDE7F0;box-shadow:0 18px 45px rgba(8,29,58,.10)">
+          <tr>
+            <td style="background:${brandColor};padding:30px 34px">
+              ${settings?.logoUrl
+                ? `<img src="${escapeHtml(settings.logoUrl)}" alt="${escapeHtml(companyName)}" style="display:block;max-height:54px;max-width:220px">`
+                : `<div style="color:#fff;font-size:22px;font-weight:800;letter-spacing:.16em;text-transform:uppercase">${escapeHtml(companyName)}</div>`}
+              <div style="margin-top:18px;height:3px;width:72px;background:${accentColor};border-radius:99px"></div>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:34px">
+              <h1 style="margin:0 0 18px;color:${brandColor};font-size:24px;line-height:1.25;font-weight:800">${escapeHtml(opts.subject)}</h1>
+              <div style="font-size:15px;line-height:1.75;color:#334155">
+                ${body}
+                ${cta}
+                <div style="margin-top:28px;padding-top:18px;border-top:1px solid #E2E8F0;color:#475569;font-size:14px;line-height:1.7">${signature}</div>
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <td style="background:#F8FAFC;padding:18px 34px;color:#64748B;font-size:12px;line-height:1.6">
+              ${footer}
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>`;
+
+  return {
+    subject: opts.subject,
+    html,
+    text: `${preheader}\n\n${opts.bodyText ?? opts.bodyHtml?.replace(/<[^>]+>/g, " ") ?? ""}`,
+  };
 }
 
 export function buildTemporaryPasswordEmail(opts: {

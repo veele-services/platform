@@ -73,8 +73,14 @@ Required when payments, webhooks, e-mail, or scheduled admin routes are enabled:
 
 - `MOLLIE_API_KEY`: Mollie API key for payment creation and webhook reconciliation.
 - `MOLLIE_WEBHOOK_SECRET`: HMAC secret expected in `x-mollie-signature`.
-- `ADMIN_API_SECRET`: bearer token used by `/api/admin/payment-reminders` and `/api/admin/expired-quotes`.
+- `ADMIN_API_SECRET`: bearer token used by `/api/admin/payment-reminders`, `/api/admin/expired-quotes`, `/api/admin/notification-worker`, and the legacy notification endpoints.
 - `RESEND_API_KEY`: Resend API key for transactional e-mail.
+- `VAPID_PRIVATE_KEY`: private Web Push VAPID key used only by the API-server push delivery route.
+- `FCM_SERVICE_ACCOUNT_JSON_BASE64`: optional Firebase service-account JSON,
+  base64 encoded, for native Capacitor/FCM push.
+- `FCM_CLIENT_EMAIL`: optional alternative to `FCM_SERVICE_ACCOUNT_JSON_BASE64`.
+- `FCM_PRIVATE_KEY`: optional alternative to `FCM_SERVICE_ACCOUNT_JSON_BASE64`;
+  use escaped `\n` line breaks.
 
 Optional secret:
 
@@ -97,6 +103,21 @@ Optional variable:
 - `LOG_LEVEL`: API-server log level. Defaults to `info`.
 - `MOLLIE_WEBHOOK_URL`: explicit Mollie callback URL if auto-derived URLs are not correct.
 - `RESEND_FROM_EMAIL`: sender identity, for example `Veele <noreply@example.nl>`.
+- `NEXT_PUBLIC_VAPID_PUBLIC_KEY`: public Web Push VAPID key used by browser/PWA clients.
+- `VAPID_SUBJECT`: Web Push contact subject, for example `mailto:info@example.nl` or the public site URL.
+- `NOTIFICATION_WORKER_LIMIT`: maximum queue items per worker run. Defaults to `100`.
+- `NOTIFICATION_WORKER_EMAIL_RATE_PER_RUN`: maximum e-mails per worker run. Defaults to `50`.
+- `NOTIFICATION_WORKER_PUSH_RATE_PER_RUN`: maximum push messages per worker run. Defaults to `100`.
+- `NOTIFICATION_WORKER_MAX_ATTEMPTS`: default delivery attempts per queue item. Defaults to `5`.
+- `NOTIFICATION_WORKER_LOCK_SECONDS`: stale processing lock timeout. Defaults to `300`.
+- `NOTIFICATION_WORKER_BASE_RETRY_SECONDS`: first retry delay. Defaults to `60`.
+- `NOTIFICATION_WORKER_MAX_RETRY_SECONDS`: maximum retry delay. Defaults to `3600`.
+- `NOTIFICATION_WORKER_SEND_DELAY_MS`: optional delay between sends. Defaults to `0`.
+- `FCM_ENABLED`: optional, defaults to `false`; set to `true` when native
+  push must be considered active and incomplete config should be logged.
+- `FCM_PROJECT_ID`: Firebase project id when not using full service-account JSON.
+- `FCM_ANDROID_CHANNEL_ID`: Android notification channel id. Defaults to
+  `veele_operations`.
 
 Optional multi-service deploy variables:
 
@@ -332,5 +353,7 @@ Recommended repository rules:
 ## Scheduled jobs
 
 Use [systemd-timers.md](./systemd-timers.md) to enable the API-server jobs for
-expired quotes and payment reminders after `API_SERVICE_NAME`, `API_PORT`, and
-`ADMIN_API_SECRET` are configured.
+expired quotes, payment reminders, and the combined notification worker after
+`API_SERVICE_NAME`, `API_PORT`, and `ADMIN_API_SECRET` are configured. Web Push
+delivery additionally requires `NEXT_PUBLIC_VAPID_PUBLIC_KEY`,
+`VAPID_PRIVATE_KEY`, and `VAPID_SUBJECT`.

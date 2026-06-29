@@ -44,7 +44,7 @@ export function RapportCard({ report }: Props) {
             )}
           </div>
           <p className="mt-1.5 text-xs line-clamp-2" style={{ color: "var(--color-secondary)" }}>
-            {report.content}
+            {report.customerVisibleSummary}
           </p>
         </div>
 
@@ -63,23 +63,9 @@ export function RapportCard({ report }: Props) {
               Rapportinhoud
             </p>
             <p className="text-sm whitespace-pre-wrap" style={{ color: "var(--color-primary)" }}>
-              {report.content}
+              {report.customerVisibleSummary}
             </p>
           </div>
-
-          {report.notes && (
-            <div
-              className="rounded-xl p-3"
-              style={{ backgroundColor: "rgba(0,183,179,0.07)" }}
-            >
-              <p className="text-xs font-semibold uppercase tracking-wider mb-1" style={{ color: "var(--color-accent)" }}>
-                Opmerking beheerder
-              </p>
-              <p className="text-sm whitespace-pre-wrap" style={{ color: "var(--color-primary)" }}>
-                {report.notes}
-              </p>
-            </div>
-          )}
         </div>
       )}
     </div>

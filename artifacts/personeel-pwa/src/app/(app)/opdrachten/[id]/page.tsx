@@ -4,22 +4,20 @@ import { notFound } from "next/navigation";
 import { getMyAssignment } from "@/actions/assignments";
 import { getMyReportForAssignment, getReportNotesForAssignment, type MyReport, type ReportNote } from "@/actions/reports";
 import { getExtraWorkForAssignment } from "@/actions/extra-work";
+import { getMaterialUsageForAssignment } from "@/actions/materials";
 import { SeenMarker } from "@/components/SeenMarker";
 import { RapportageTimeline } from "./RapportageTimeline";
 import { WorkOrderHeader } from "./WorkOrderHeader";
 import {
   CustomerInfoCard,
   CustomerNotes,
+  AssignmentQuestionCard,
   ExtraWorkSummaryCard,
   MaterialSummaryCard,
   StatusProgress,
   TaskChecklistCard,
 } from "./WorkOrderSections";
 import {
-  MOCK_EXTRA_WORK,
-  MOCK_MATERIAL_ITEMS,
-  MOCK_REPORT_NOTES,
-  getMockAssignment,
   type AssignmentView,
   type WorkOrderTab,
 } from "./work-order-data";
@@ -50,21 +48,18 @@ export default async function WerkbonDetailPage({ params, searchParams }: Props)
   const [{ id }, query] = await Promise.all([params, searchParams]);
   const activeTab = getActiveTab(query.tab);
 
-  const databaseAssignment = await getMyAssignment(id);
-  const assignment = (databaseAssignment ?? getMockAssignment(id)) as AssignmentView | null;
+  const assignment = await getMyAssignment(id) as AssignmentView | null;
 
   if (!assignment) notFound();
 
-  const [report, extraWork, reportNotes] = databaseAssignment
-    ? await Promise.all([
-        getMyReportForAssignment(id),
-        getExtraWorkForAssignment(id),
-        getReportNotesForAssignment(id),
-      ])
-    : [null, MOCK_EXTRA_WORK, MOCK_REPORT_NOTES];
+  const [report, extraWork, reportNotes, materialItems] = await Promise.all([
+    getMyReportForAssignment(id),
+    getExtraWorkForAssignment(id),
+    getReportNotesForAssignment(id),
+    getMaterialUsageForAssignment(id),
+  ]);
 
   const isScheduled = assignment.status === "scheduled";
-  const materialItems = assignment.isMock ? MOCK_MATERIAL_ITEMS : [];
   const timelineNotes = reportNotes.length > 0 ? reportNotes : reportAsNote(report);
   const canAddReportNote = !["invoice_ready", "invoiced", "paid", "closed"].includes(assignment.status);
 
@@ -72,7 +67,7 @@ export default async function WerkbonDetailPage({ params, searchParams }: Props)
     <div className="min-h-screen bg-[#F4F6FA] md:rounded-[32px] md:bg-white">
       <WorkOrderHeader assignment={assignment} activeTab={activeTab} />
 
-      {isScheduled && !assignment.isMock ? (
+      {isScheduled ? (
         <SeenMarker assignmentId={assignment.id} currentStatus={assignment.status} />
       ) : null}
 
@@ -81,6 +76,7 @@ export default async function WerkbonDetailPage({ params, searchParams }: Props)
           <StatusProgress assignment={assignment} />
           <CustomerInfoCard assignment={assignment} />
           <CustomerNotes description={assignment.description} />
+          <AssignmentQuestionCard assignment={assignment} />
         </section>
       ) : null}
 
@@ -98,7 +94,7 @@ export default async function WerkbonDetailPage({ params, searchParams }: Props)
             assignmentId={assignment.id}
             initialNotes={timelineNotes}
             canAdd={canAddReportNote}
-            canPersist={!assignment.isMock}
+            canPersist={canAddReportNote}
           />
         </section>
       ) : null}

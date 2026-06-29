@@ -4,12 +4,17 @@ import { db } from "@workspace/db";
 import {
   assignmentsTable,
   assignmentPersonnelTable,
+  assignmentInterestResponsesTable,
   assignmentTasksTable,
   taskCodesTable,
   personnelTable,
   objectsTable,
+  customersTable,
+  sectorsTable,
+  qualificationItemsTable,
+  roleQualificationsTable,
 } from "@workspace/db";
-import { eq, and, inArray } from "drizzle-orm";
+import { desc, eq, and, inArray, or, gte, isNull } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 
@@ -22,7 +27,9 @@ type CertificateEntry = {
 
 type PersonnelProfile = {
   id:           string;
+  tenantId:     string;
   roleId:       string | null;
+  sectorId:     string | null;
   region:       string | null;
   certificates: CertificateEntry[];
   diplomas:     string[];
@@ -37,14 +44,16 @@ async function getPersonnelProfile(): Promise<PersonnelProfile | null> {
   const [row] = await db
     .select({
       id:           personnelTable.id,
+      tenantId:     personnelTable.tenantId,
       roleId:       personnelTable.roleId,
+      sectorId:     personnelTable.sectorId,
       region:       personnelTable.region,
       certificates: personnelTable.certificates,
       diplomas:     personnelTable.diplomas,
       knowledge:    personnelTable.knowledge,
     })
     .from(personnelTable)
-    .where(eq(personnelTable.userId, user.id))
+    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
     .limit(1);
 
   return row ?? null;
@@ -54,14 +63,23 @@ async function getPersonnelProfile(): Promise<PersonnelProfile | null> {
 
 export type OpenAssignment = {
   id:               string;
+  code:             string;
   title:            string;
   scheduledDate:    string | null;
+  scheduledStart:   string | null;
+  scheduledEnd:     string | null;
+  workflowStatus:   string;
   priority:         string | null;
+  customerName:     string | null;
+  objectName:       string | null;
+  sectorName:       string | null;
   objectAddress:    string | null;
   objectCity:       string | null;
   requiredRegion:   string | null;
   taskCodes:        string[];
   isAlreadyApplied: boolean;
+  interestStatus:   string | null;
+  isInterestInvite: boolean;
 };
 
 // ─── Eligibility helpers ──────────────────────────────────────────────────────
@@ -73,6 +91,21 @@ type TaskRequirements = {
   requiredKnowledge:    string[];
 };
 
+function isExpiredDate(value: string): boolean {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return new Date(`${value}T00:00:00`) < today;
+}
+
+function hasValidCertificate(personnel: PersonnelProfile, name: string): boolean {
+  return personnel.certificates.some(
+    (certificate) =>
+      certificate.name === name &&
+      (!certificate.expires_at || !isExpiredDate(certificate.expires_at)),
+  );
+}
+
 /**
  * Check whether a personnel member meets ALL requirements of a task code.
  * Mirrors the backoffice planning eligibility rules.
@@ -83,7 +116,7 @@ function meetsTaskRequirements(
 ): boolean {
   if (task.requiredRoleId && personnel.roleId !== task.requiredRoleId) return false;
   if (task.requiredCertificates.length > 0) {
-    if (!task.requiredCertificates.every((c) => personnel.certificates.some((cert) => cert.name === c))) return false;
+    if (!task.requiredCertificates.every((c) => hasValidCertificate(personnel, c))) return false;
   }
   if (task.requiredDiploma) {
     if (!personnel.diplomas.includes(task.requiredDiploma)) return false;
@@ -140,21 +173,89 @@ export async function getOpenAssignments(): Promise<OpenAssignment[]> {
   const personnel = await getPersonnelProfile();
   if (!personnel) return [];
 
+  const activeInterestStatuses = [
+    "invited",
+    "viewed",
+    "interested",
+    "unavailable",
+    "question",
+    "selected",
+    "reserve",
+    "confirmed",
+  ] as const;
+  const now = new Date();
+
+  const interestRows = await db
+    .select({
+      id: assignmentInterestResponsesTable.id,
+      assignmentId: assignmentInterestResponsesTable.assignmentId,
+      status: assignmentInterestResponsesTable.status,
+      createdAt: assignmentInterestResponsesTable.createdAt,
+    })
+    .from(assignmentInterestResponsesTable)
+    .where(
+      and(
+        eq(assignmentInterestResponsesTable.personnelId, personnel.id),
+        eq(assignmentInterestResponsesTable.tenantId, personnel.tenantId),
+        inArray(assignmentInterestResponsesTable.status, [...activeInterestStatuses]),
+        or(
+          isNull(assignmentInterestResponsesTable.expiresAt),
+          gte(assignmentInterestResponsesTable.expiresAt, now),
+        ),
+      ),
+    )
+    .orderBy(desc(assignmentInterestResponsesTable.createdAt));
+
+  const newlyViewedIds = interestRows
+    .filter((row) => row.status === "invited")
+    .map((row) => row.id);
+  if (newlyViewedIds.length > 0) {
+    await db
+      .update(assignmentInterestResponsesTable)
+      .set({ status: "viewed", viewedAt: now, updatedAt: now })
+      .where(inArray(assignmentInterestResponsesTable.id, newlyViewedIds));
+  }
+
+  const interestByAssignment = new Map<string, string>();
+  for (const row of interestRows) {
+    if (!interestByAssignment.has(row.assignmentId)) {
+      interestByAssignment.set(row.assignmentId, row.status === "invited" ? "viewed" : row.status);
+    }
+  }
+  const invitedAssignmentIds = [...interestByAssignment.keys()];
+  const statusScope =
+    invitedAssignmentIds.length > 0
+      ? or(
+          eq(assignmentsTable.status, "plannable"),
+          inArray(assignmentsTable.id, invitedAssignmentIds),
+        )
+      : eq(assignmentsTable.status, "plannable");
+
   const assignments = await db
     .select({
       id:             assignmentsTable.id,
+      code:           assignmentsTable.code,
       title:          assignmentsTable.title,
       scheduledDate:  assignmentsTable.scheduledDate,
+      scheduledStart: assignmentsTable.scheduledStart,
+      scheduledEnd:   assignmentsTable.scheduledEnd,
+      status:         assignmentsTable.status,
       priority:       assignmentsTable.priority,
       requiredRegion: assignmentsTable.requiredRegion,
+      customerName:    customersTable.name,
+      objectName:      objectsTable.name,
+      sectorName:      sectorsTable.name,
       objectAddress:  objectsTable.address,
       objectCity:     objectsTable.city,
     })
     .from(assignmentsTable)
+    .innerJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
+    .leftJoin(sectorsTable, eq(objectsTable.sectorId, sectorsTable.id))
     .where(
       and(
-        eq(assignmentsTable.status, "plannable"),
+        statusScope,
+        eq(assignmentsTable.tenantId, personnel.tenantId),
         eq(assignmentsTable.isActive, true),
       ),
     )
@@ -184,6 +285,34 @@ export async function getOpenAssignments(): Promise<OpenAssignment[]> {
   ]);
 
   const myIds = new Set(myLinks.map((l) => l.assignmentId));
+  const requiredRoleIds = [
+    ...new Set(
+      taskRows
+        .map((task) => task.requiredRoleId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const roleQualificationRows =
+    requiredRoleIds.length > 0
+      ? await db
+          .select({
+            roleId: roleQualificationsTable.roleId,
+            type: qualificationItemsTable.type,
+            name: qualificationItemsTable.name,
+          })
+          .from(roleQualificationsTable)
+          .innerJoin(
+            qualificationItemsTable,
+            eq(roleQualificationsTable.qualificationId, qualificationItemsTable.id),
+          )
+          .where(
+            and(
+              inArray(roleQualificationsTable.roleId, requiredRoleIds),
+              eq(roleQualificationsTable.required, true),
+              eq(qualificationItemsTable.isActive, true),
+            ),
+          )
+      : [];
 
   // Group tasks by assignment — separate requirements from display names
   const reqsByAssignment  = new Map<string, TaskRequirements[]>();
@@ -194,11 +323,27 @@ export async function getOpenAssignments(): Promise<OpenAssignment[]> {
       reqsByAssignment.set(t.assignmentId, []);
       namesByAssignment.set(t.assignmentId, []);
     }
+    const roleRequirements = roleQualificationRows.filter(
+      (row) => row.roleId === t.requiredRoleId,
+    );
     reqsByAssignment.get(t.assignmentId)!.push({
       requiredRoleId:       t.requiredRoleId ?? null,
-      requiredCertificates: (t.requiredCertificates as string[]) ?? [],
-      requiredDiploma:      t.requiredDiploma ?? null,
-      requiredKnowledge:    (t.requiredKnowledge as string[]) ?? [],
+      requiredCertificates: [
+        ...((t.requiredCertificates as string[]) ?? []),
+        ...roleRequirements
+          .filter((row) => row.type === "certificate")
+          .map((row) => row.name),
+      ],
+      requiredDiploma:
+        t.requiredDiploma ??
+        roleRequirements.find((row) => row.type === "diploma")?.name ??
+        null,
+      requiredKnowledge: [
+        ...((t.requiredKnowledge as string[]) ?? []),
+        ...roleRequirements
+          .filter((row) => row.type === "knowledge")
+          .map((row) => row.name),
+      ],
     });
     if (t.taskCodeName) {
       namesByAssignment.get(t.assignmentId)!.push(t.taskCodeName);
@@ -212,14 +357,27 @@ export async function getOpenAssignments(): Promise<OpenAssignment[]> {
     })
     .map((a) => ({
       id:               a.id,
+      code:             a.code,
       title:            a.title,
       scheduledDate:    a.scheduledDate,
+      scheduledStart:   a.scheduledStart,
+      scheduledEnd:     a.scheduledEnd,
+      workflowStatus:   a.status,
       priority:         a.priority ?? null,
+      customerName:     a.customerName ?? null,
+      objectName:       a.objectName ?? null,
+      sectorName:       a.sectorName ?? null,
       requiredRegion:   a.requiredRegion ?? null,
       objectAddress:    a.objectAddress ?? null,
       objectCity:       a.objectCity ?? null,
       taskCodes:        namesByAssignment.get(a.id) ?? [],
-      isAlreadyApplied: myIds.has(a.id),
+      isAlreadyApplied:
+        myIds.has(a.id) ||
+        ["interested", "selected", "reserve", "confirmed"].includes(
+          interestByAssignment.get(a.id) ?? "",
+        ),
+      interestStatus:   interestByAssignment.get(a.id) ?? null,
+      isInterestInvite: interestByAssignment.has(a.id),
     }));
 }
 
@@ -238,26 +396,50 @@ export async function applyForAssignment(
     return { success: false, error: "Niet ingelogd of personeelsprofiel niet gevonden" };
   }
 
-  // Verify assignment is still plannable + fetch object for region check
+  const [interestResponse] = await db
+    .select({
+      id: assignmentInterestResponsesTable.id,
+      status: assignmentInterestResponsesTable.status,
+    })
+    .from(assignmentInterestResponsesTable)
+    .where(
+      and(
+        eq(assignmentInterestResponsesTable.assignmentId, assignmentId),
+        eq(assignmentInterestResponsesTable.personnelId, personnel.id),
+        eq(assignmentInterestResponsesTable.tenantId, personnel.tenantId),
+      ),
+    )
+    .orderBy(desc(assignmentInterestResponsesTable.createdAt))
+    .limit(1);
+
   const [assignment] = await db
     .select({
       id:          assignmentsTable.id,
       objectId:    assignmentsTable.objectId,
       objectCity:  objectsTable.city,
+      status:      assignmentsTable.status,
+      tenantId:    assignmentsTable.tenantId,
     })
     .from(assignmentsTable)
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
     .where(
       and(
         eq(assignmentsTable.id, assignmentId),
-        eq(assignmentsTable.status, "plannable"),
+        eq(assignmentsTable.tenantId, personnel.tenantId),
         eq(assignmentsTable.isActive, true),
       ),
     )
     .limit(1);
 
-  if (!assignment) {
+  if (!assignment || (!interestResponse && assignment.status !== "plannable")) {
     return { success: false, error: "Opdracht is niet meer beschikbaar" };
+  }
+
+  if (
+    interestResponse &&
+    ["interested", "selected", "reserve", "confirmed"].includes(interestResponse.status)
+  ) {
+    return { success: false, error: "U heeft al gereageerd op deze opdracht" };
   }
 
   // Fetch task requirements for this assignment
@@ -272,16 +454,78 @@ export async function applyForAssignment(
     .leftJoin(taskCodesTable, eq(assignmentTasksTable.taskCodeId, taskCodesTable.id))
     .where(eq(assignmentTasksTable.assignmentId, assignmentId));
 
-  const requirements: TaskRequirements[] = taskRows.map((t) => ({
-    requiredRoleId:       t.requiredRoleId ?? null,
-    requiredCertificates: (t.requiredCertificates as string[]) ?? [],
-    requiredDiploma:      t.requiredDiploma ?? null,
-    requiredKnowledge:    (t.requiredKnowledge as string[]) ?? [],
-  }));
+  const applyRoleIds = [
+    ...new Set(
+      taskRows
+        .map((task) => task.requiredRoleId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const applyRoleQualificationRows =
+    applyRoleIds.length > 0
+      ? await db
+          .select({
+            roleId: roleQualificationsTable.roleId,
+            type: qualificationItemsTable.type,
+            name: qualificationItemsTable.name,
+          })
+          .from(roleQualificationsTable)
+          .innerJoin(
+            qualificationItemsTable,
+            eq(roleQualificationsTable.qualificationId, qualificationItemsTable.id),
+          )
+          .where(
+            and(
+              inArray(roleQualificationsTable.roleId, applyRoleIds),
+              eq(roleQualificationsTable.required, true),
+              eq(qualificationItemsTable.isActive, true),
+            ),
+          )
+      : [];
+
+  const requirements: TaskRequirements[] = taskRows.map((t) => {
+    const roleRequirements = applyRoleQualificationRows.filter(
+      (row) => row.roleId === t.requiredRoleId,
+    );
+    return {
+      requiredRoleId:       t.requiredRoleId ?? null,
+      requiredCertificates: [
+        ...((t.requiredCertificates as string[]) ?? []),
+        ...roleRequirements
+          .filter((row) => row.type === "certificate")
+          .map((row) => row.name),
+      ],
+      requiredDiploma:
+        t.requiredDiploma ??
+        roleRequirements.find((row) => row.type === "diploma")?.name ??
+        null,
+      requiredKnowledge: [
+        ...((t.requiredKnowledge as string[]) ?? []),
+        ...roleRequirements
+          .filter((row) => row.type === "knowledge")
+          .map((row) => row.name),
+      ],
+    };
+  });
 
   // Server-side eligibility re-check (prevents direct action calls bypassing UI filters)
   if (!isEligibleForAssignment(personnel, requirements, assignment.objectCity ?? null)) {
     return { success: false, error: "U komt niet in aanmerking voor deze opdracht" };
+  }
+
+  if (interestResponse) {
+    await db
+      .update(assignmentInterestResponsesTable)
+      .set({
+        status: "interested",
+        respondedAt: new Date(),
+        updatedAt: new Date(),
+      })
+      .where(eq(assignmentInterestResponsesTable.id, interestResponse.id));
+
+    revalidatePath("/openstaand");
+    revalidatePath("/opdrachten");
+    return { success: true };
   }
 
   // Check for duplicate application
@@ -308,5 +552,53 @@ export async function applyForAssignment(
 
   revalidatePath("/openstaand");
   revalidatePath("/opdrachten");
+  return { success: true };
+}
+
+export async function declineAssignmentInterest(
+  assignmentId: string,
+): Promise<{ success: boolean; error?: string }> {
+  const personnel = await getPersonnelProfile();
+  if (!personnel) {
+    return { success: false, error: "Niet ingelogd of personeelsprofiel niet gevonden" };
+  }
+
+  const [response] = await db
+    .select({
+      id: assignmentInterestResponsesTable.id,
+      status: assignmentInterestResponsesTable.status,
+    })
+    .from(assignmentInterestResponsesTable)
+    .where(
+      and(
+        eq(assignmentInterestResponsesTable.assignmentId, assignmentId),
+        eq(assignmentInterestResponsesTable.personnelId, personnel.id),
+        eq(assignmentInterestResponsesTable.tenantId, personnel.tenantId),
+      ),
+    )
+    .orderBy(desc(assignmentInterestResponsesTable.createdAt))
+    .limit(1);
+
+  if (!response) {
+    return { success: false, error: "Geen uitnodiging gevonden voor deze opdracht" };
+  }
+
+  if (["selected", "reserve", "confirmed"].includes(response.status)) {
+    return {
+      success: false,
+      error: "Deze uitnodiging is al door planning verwerkt.",
+    };
+  }
+
+  await db
+    .update(assignmentInterestResponsesTable)
+    .set({
+      status: "unavailable",
+      respondedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(assignmentInterestResponsesTable.id, response.id));
+
+  revalidatePath("/openstaand");
   return { success: true };
 }

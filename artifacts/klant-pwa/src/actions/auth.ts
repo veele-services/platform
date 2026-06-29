@@ -59,3 +59,33 @@ export async function completePasswordReset(
   await supabase.auth.signOut();
   return { success: true };
 }
+
+export async function changeMyPassword(
+  _prev: { success?: boolean; error?: string } | undefined,
+  formData: FormData,
+): Promise<{ success?: boolean; error?: string }> {
+  const password    = String(formData.get("password") ?? "");
+  const passwordTwo = String(formData.get("passwordTwo") ?? "");
+
+  if (!password || !evaluatePasswordStrength(password).isMedium) {
+    return { error: mediumPasswordMessage() };
+  }
+  if (password !== passwordTwo) {
+    return { error: "Wachtwoorden komen niet overeen" };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { error: "Niet ingelogd." };
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    return {
+      error: error.message.includes("same password")
+        ? "Het nieuwe wachtwoord mag niet gelijk zijn aan het huidige wachtwoord."
+        : "Wachtwoord opslaan mislukt.",
+    };
+  }
+
+  return { success: true };
+}

@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from "next";
+import { CapacitorRuntimeBridge } from "@/components/CapacitorRuntimeBridge";
 import { DevNav } from "@/components/DevNav";
 import "./globals.css";
 
@@ -34,7 +35,16 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{
             __html: `
-              if ('serviceWorker' in navigator) {
+              var capacitorBridge = window.Capacitor;
+              var isNativeCapacitor = false;
+              if (capacitorBridge) {
+                if (typeof capacitorBridge.isNativePlatform === 'function') {
+                  isNativeCapacitor = capacitorBridge.isNativePlatform();
+                } else if (typeof capacitorBridge.getPlatform === 'function') {
+                  isNativeCapacitor = capacitorBridge.getPlatform() !== 'web';
+                }
+              }
+              if (!isNativeCapacitor && 'serviceWorker' in navigator) {
                 window.addEventListener('load', function() {
                   navigator.serviceWorker.register('/personeel/sw.js');
                 });
@@ -44,6 +54,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <CapacitorRuntimeBridge />
         <DevNav current="personeel" />
         {children}
       </body>

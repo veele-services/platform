@@ -5,10 +5,21 @@
   "scripts": {
     "dev": "next dev --turbopack -H 0.0.0.0 -p $PORT",
     "build": "next build",
+    "cap:add:android": "cap add android",
+    "cap:copy": "cap copy",
+    "cap:sync": "cap sync",
+    "cap:open:android": "cap open android",
+    "cap:run:android": "cap run android",
     "start": "next start -H 0.0.0.0 -p $PORT",
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/haptics": "^8.0.2",
+    "@capacitor/push-notifications": "^8.1.1",
+    "@capacitor/splash-screen": "^8.0.1",
+    "@capacitor/status-bar": "^8.0.2",
     "@supabase/ssr": "^0.10.3",
     "@supabase/supabase-js": "^2.106.2",
     "@workspace/db": "workspace:*",
@@ -24,6 +35,8 @@
     "zod": "catalog:"
   },
   "devDependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/cli": "^8.4.1",
     "@tailwindcss/postcss": "^4.1.14",
     "@types/node": "catalog:",
     "@types/react": "catalog:",

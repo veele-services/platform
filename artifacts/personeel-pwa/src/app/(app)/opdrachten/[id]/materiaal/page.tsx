@@ -2,13 +2,10 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import { getMyAssignment } from "@/actions/assignments";
+import { getMaterialUsageForAssignment } from "@/actions/materials";
 import { WorkOrderHeader } from "../WorkOrderHeader";
 import { MaterialEditor } from "../MaterialEditor";
-import {
-  MOCK_MATERIAL_ITEMS,
-  getMockAssignment,
-  type AssignmentView,
-} from "../work-order-data";
+import { type AssignmentView } from "../work-order-data";
 
 type Props = {
   params: Promise<{ id: string }>;
@@ -17,15 +14,24 @@ type Props = {
 export default async function MateriaalPage({ params }: Props) {
   const { id } = await params;
 
-  const databaseAssignment = await getMyAssignment(id);
-  const assignment = (databaseAssignment ?? getMockAssignment(id)) as AssignmentView | null;
+  const assignment = await getMyAssignment(id) as AssignmentView | null;
 
   if (!assignment) notFound();
+
+  const items = await getMaterialUsageForAssignment(id);
+  const canEdit = ![
+    "report_submitted",
+    "report_approved",
+    "invoice_ready",
+    "invoiced",
+    "paid",
+    "closed",
+  ].includes(assignment.status);
 
   return (
     <div className="min-h-screen bg-[#F4F6FA] md:rounded-[32px] md:bg-white">
       <WorkOrderHeader assignment={assignment} activeTab="werkzaamheden" />
-      <MaterialEditor initialItems={assignment.isMock ? MOCK_MATERIAL_ITEMS : []} />
+      <MaterialEditor assignmentId={assignment.id} initialItems={items} canEdit={canEdit} />
     </div>
   );
 }

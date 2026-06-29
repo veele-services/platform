@@ -4,7 +4,9 @@ import {
   integer,
   varchar,
   text,
+  boolean,
   timestamp,
+  index,
   uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { personnelTable } from "./personnel";
@@ -12,10 +14,10 @@ import { personnelTable } from "./personnel";
 // ─── Enums ────────────────────────────────────────────────────────────────────
 
 export const LEAVE_TYPES = ["vakantie", "ziekte", "overig"] as const;
-export type LeaveType = typeof LEAVE_TYPES[number];
+export type LeaveType = (typeof LEAVE_TYPES)[number];
 
 export const LEAVE_STATUSES = ["pending", "approved", "rejected"] as const;
-export type LeaveStatus = typeof LEAVE_STATUSES[number];
+export type LeaveStatus = (typeof LEAVE_STATUSES)[number];
 
 export type AvailabilityStatus =
   | "beschikbaar"
@@ -34,17 +36,61 @@ export type AvailabilityStatus =
 export const availabilityWindowsTable = pgTable(
   "availability_windows",
   {
-    id:          uuid("id").primaryKey().defaultRandom(),
+    id: uuid("id").primaryKey().defaultRandom(),
     personnelId: uuid("personnel_id")
       .notNull()
       .references(() => personnelTable.id, { onDelete: "cascade" }),
-    dayOfWeek:   integer("day_of_week").notNull(),
-    startTime:   varchar("start_time", { length: 5 }).notNull().default("08:00"),
-    endTime:     varchar("end_time",   { length: 5 }).notNull().default("17:00"),
-    createdAt:   timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    dayOfWeek: integer("day_of_week").notNull(),
+    startTime: varchar("start_time", { length: 5 }).notNull().default("08:00"),
+    endTime: varchar("end_time", { length: 5 }).notNull().default("17:00"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [
-    uniqueIndex("avail_windows_personnel_dow_idx").on(t.personnelId, t.dayOfWeek),
+    uniqueIndex("avail_windows_personnel_dow_idx").on(
+      t.personnelId,
+      t.dayOfWeek,
+    ),
+  ],
+);
+
+/**
+ * Date-specific availability entered by personnel from the mobile PWA.
+ * Dates are stored as YYYY-MM-DD strings to avoid timezone drift between
+ * browser, server actions and Postgres.
+ */
+export const availabilityDayEntriesTable = pgTable(
+  "availability_day_entries",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    personnelId: uuid("personnel_id")
+      .notNull()
+      .references(() => personnelTable.id, { onDelete: "cascade" }),
+    date: varchar("date", { length: 10 }).notNull(),
+    startTime: varchar("start_time", { length: 5 }).notNull().default("09:00"),
+    endTime: varchar("end_time", { length: 5 }).notNull().default("17:00"),
+    isEmergencyAvailable: boolean("is_emergency_available")
+      .notNull()
+      .default(false),
+    repeatType: varchar("repeat_type", { length: 20 })
+      .notNull()
+      .default("none"),
+    repeatGroupId: uuid("repeat_group_id"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("avail_day_entries_personnel_date_idx").on(
+      t.personnelId,
+      t.date,
+    ),
+    index("avail_day_entries_date_idx").on(t.date),
+    index("avail_day_entries_repeat_group_idx").on(t.repeatGroupId),
   ],
 );
 
@@ -55,15 +101,20 @@ export const availabilityWindowsTable = pgTable(
  *         'approved' = accepted, 'rejected' = declined.
  */
 export const leavePeriodsTable = pgTable("leave_periods", {
-  id:          uuid("id").primaryKey().defaultRandom(),
+  id: uuid("id").primaryKey().defaultRandom(),
   personnelId: uuid("personnel_id")
     .notNull()
     .references(() => personnelTable.id, { onDelete: "cascade" }),
-  startDate:   varchar("start_date", { length: 10 }).notNull(),
-  endDate:     varchar("end_date",   { length: 10 }),
-  leaveType:   varchar("leave_type", { length: 20 }).notNull().$type<LeaveType>(),
-  reason:      text("reason"),
-  status:      varchar("status", { length: 20 }).notNull().default("approved").$type<LeaveStatus>(),
-  createdBy:   uuid("created_by"),
-  createdAt:   timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  startDate: varchar("start_date", { length: 10 }).notNull(),
+  endDate: varchar("end_date", { length: 10 }),
+  leaveType: varchar("leave_type", { length: 20 }).notNull().$type<LeaveType>(),
+  reason: text("reason"),
+  status: varchar("status", { length: 20 })
+    .notNull()
+    .default("approved")
+    .$type<LeaveStatus>(),
+  createdBy: uuid("created_by"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
 });

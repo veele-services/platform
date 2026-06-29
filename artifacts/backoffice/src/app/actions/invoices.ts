@@ -4,10 +4,10 @@ import { db } from "@workspace/db";
 import {
   invoicesTable,
   assignmentsTable,
-  assignmentTasksTable,
   customersTable,
+  customerPaymentBatchItemsTable,
+  customerPaymentBatchesTable,
   objectsTable,
-  taskCodesTable,
   paymentsTable,
   auditLogTable,
   ASSIGNMENT_STATUS_TRANSITIONS,
@@ -15,16 +15,50 @@ import {
   type InvoiceStatus,
 } from "@workspace/db";
 import { eq, ilike, or, and, asc, desc, sql, inArray, lt } from "drizzle-orm";
+import { emitInvoiceWorkflowEvent } from "@workspace/db/workflow-events";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
 import { sendEmailWithResult, buildInvoiceEmail, buildPaymentReminderEmail, klantPortalUrl } from "@/lib/email";
 import { generateInvoicePdf } from "@/lib/invoice-pdf";
+import { calculateInvoiceProposalForAssignment, type InvoiceProposalLineItem } from "@/lib/invoice-proposals";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, InvoiceStatus };
 
 const PAGE_SIZE = 25;
+
+function parseAmountCents(value: string | null | undefined): number {
+  const parsed = Number.parseFloat(value ?? "0");
+  return Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
+}
+
+function centsToMollieValue(cents: number): string {
+  return (cents / 100).toFixed(2);
+}
+
+function getBaseUrl(): string {
+  const domains = process.env.REPLIT_DOMAINS;
+  if (domains) {
+    const first = domains.split(",")[0]?.trim();
+    if (first) return `https://${first}`;
+  }
+  const dev = process.env.REPLIT_DEV_DOMAIN;
+  if (dev) return `https://${dev}`;
+  return process.env.NEXT_PUBLIC_APP_URL ?? "https://localhost";
+}
+
+async function notifyInvoiceWorkflow(input: Parameters<typeof emitInvoiceWorkflowEvent>[0]) {
+  try {
+    await emitInvoiceWorkflowEvent(input);
+  } catch (error) {
+    console.error("invoice workflow notification failed", {
+      eventKey: input.eventKey,
+      invoiceId: input.invoiceId,
+      error,
+    });
+  }
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -69,12 +103,7 @@ export type InvoiceDetail = {
   notes:               string | null;
   createdAt:           string;
   updatedAt:           string;
-  lineItems: Array<{
-    taskCodeCode: string | null;
-    taskCodeName: string | null;
-    price:        string | null;
-    invoiceable:  boolean;
-  }>;
+  lineItems: InvoiceProposalLineItem[];
 };
 
 export type InvoiceSummary = {
@@ -99,12 +128,41 @@ export type AssignmentInvoiceData = {
   assignmentTitle: string;
   assignmentCode:  string;
   suggestedAmount: string;
-  lineItems: Array<{
-    taskCodeCode: string | null;
-    taskCodeName: string | null;
-    price:        string | null;
-    invoiceable:  boolean;
-  }>;
+  lineItems: InvoiceProposalLineItem[];
+};
+
+export type CollectiveInvoiceCandidate = {
+  id: string;
+  invoiceNumber: string;
+  assignmentId: string;
+  assignmentCode: string;
+  customerId: string;
+  customerName: string;
+  objectId: string | null;
+  objectName: string | null;
+  scheduledDate: string | null;
+  amount: string;
+  vatAmount: string;
+  totalAmount: string;
+  dueDate: string;
+};
+
+export type CollectiveInvoiceBatchRow = {
+  id: string;
+  customerId: string;
+  customerName: string;
+  status: string;
+  amountCents: number;
+  subtotalCents: number;
+  vatCents: number;
+  discountCents: number;
+  surchargeCents: number;
+  checkoutUrl: string | null;
+  periodStart: string | null;
+  periodEnd: string | null;
+  objectName: string | null;
+  createdAt: string;
+  invoiceCount: number;
 };
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
@@ -229,17 +287,7 @@ export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
 
   if (!row) return null;
 
-  const taskRows = await db
-    .select({
-      taskCodeCode: taskCodesTable.code,
-      taskCodeName: taskCodesTable.name,
-      price:        taskCodesTable.price,
-      invoiceable:  taskCodesTable.invoiceable,
-    })
-    .from(assignmentTasksTable)
-    .leftJoin(taskCodesTable, eq(assignmentTasksTable.taskCodeId, taskCodesTable.id))
-    .where(eq(assignmentTasksTable.assignmentId, row.assignmentId))
-    .orderBy(asc(assignmentTasksTable.sortOrder));
+  const proposal = await calculateInvoiceProposalForAssignment(row.assignmentId, parseFloat(row.vatPercentage ?? "21"));
 
   return {
     id:                 row.id,
@@ -265,12 +313,7 @@ export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
     notes:              row.notes ?? null,
     createdAt:          row.createdAt.toISOString(),
     updatedAt:          row.updatedAt.toISOString(),
-    lineItems: taskRows.map((t) => ({
-      taskCodeCode: t.taskCodeCode ?? null,
-      taskCodeName: t.taskCodeName ?? null,
-      price:        t.price ?? null,
-      invoiceable:  t.invoiceable ?? false,
-    })),
+    lineItems: proposal.lineItems,
   };
 }
 
@@ -298,35 +341,15 @@ export async function getAssignmentInvoiceData(
 
   if (!row) return null;
 
-  const taskRows = await db
-    .select({
-      taskCodeCode: taskCodesTable.code,
-      taskCodeName: taskCodesTable.name,
-      price:        taskCodesTable.price,
-      invoiceable:  taskCodesTable.invoiceable,
-    })
-    .from(assignmentTasksTable)
-    .leftJoin(taskCodesTable, eq(assignmentTasksTable.taskCodeId, taskCodesTable.id))
-    .where(eq(assignmentTasksTable.assignmentId, assignmentId))
-    .orderBy(asc(assignmentTasksTable.sortOrder));
-
-  const suggestedAmount = taskRows
-    .filter((t) => t.invoiceable && t.price !== null)
-    .reduce((sum, t) => sum + parseFloat(t.price ?? "0"), 0)
-    .toFixed(2);
+  const proposal = await calculateInvoiceProposalForAssignment(assignmentId);
 
   return {
     customerId:      row.customerId,
     customerName:    row.customerName ?? "",
     assignmentTitle: row.assignmentTitle,
     assignmentCode:  row.assignmentCode,
-    suggestedAmount,
-    lineItems: taskRows.map((t) => ({
-      taskCodeCode: t.taskCodeCode ?? null,
-      taskCodeName: t.taskCodeName ?? null,
-      price:        t.price ?? null,
-      invoiceable:  t.invoiceable ?? false,
-    })),
+    suggestedAmount: proposal.amount,
+    lineItems: proposal.lineItems,
   };
 }
 
@@ -461,12 +484,121 @@ export async function getInvoiceSummary(): Promise<InvoiceSummary> {
   };
 }
 
+export async function listCollectiveInvoiceCandidates(): Promise<{
+  candidates: CollectiveInvoiceCandidate[];
+  batches: CollectiveInvoiceBatchRow[];
+}> {
+  const canRead = await hasPermission("invoices", "read");
+  if (!canRead) return { candidates: [], batches: [] };
+
+  const [invoiceRows, activeItems, batchRows] = await Promise.all([
+    db
+      .select({
+        id:             invoicesTable.id,
+        invoiceNumber:  invoicesTable.invoiceNumber,
+        assignmentId:   invoicesTable.assignmentId,
+        assignmentCode: assignmentsTable.code,
+        customerId:     invoicesTable.customerId,
+        customerName:   customersTable.name,
+        objectId:       assignmentsTable.objectId,
+        objectName:     objectsTable.name,
+        scheduledDate:  assignmentsTable.scheduledDate,
+        amount:         invoicesTable.amount,
+        vatAmount:      invoicesTable.vatAmount,
+        totalAmount:    invoicesTable.totalAmount,
+        dueDate:        invoicesTable.dueDate,
+      })
+      .from(invoicesTable)
+      .innerJoin(assignmentsTable, eq(invoicesTable.assignmentId, assignmentsTable.id))
+      .innerJoin(customersTable, eq(invoicesTable.customerId, customersTable.id))
+      .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
+      .where(eq(invoicesTable.status, "sent"))
+      .orderBy(asc(customersTable.name), asc(assignmentsTable.scheduledDate), asc(invoicesTable.invoiceNumber)),
+
+    db
+      .select({ invoiceId: customerPaymentBatchItemsTable.invoiceId })
+      .from(customerPaymentBatchItemsTable)
+      .innerJoin(customerPaymentBatchesTable, eq(customerPaymentBatchItemsTable.batchId, customerPaymentBatchesTable.id))
+      .where(inArray(customerPaymentBatchesTable.status, ["open", "paid"])),
+
+    db
+      .select({
+        id:             customerPaymentBatchesTable.id,
+        customerId:     customerPaymentBatchesTable.customerId,
+        customerName:   customersTable.name,
+        status:         customerPaymentBatchesTable.status,
+        amountCents:    customerPaymentBatchesTable.amountCents,
+        subtotalCents:  customerPaymentBatchesTable.subtotalCents,
+        vatCents:       customerPaymentBatchesTable.vatCents,
+        discountCents:  customerPaymentBatchesTable.discountCents,
+        surchargeCents: customerPaymentBatchesTable.surchargeCents,
+        checkoutUrl:    customerPaymentBatchesTable.checkoutUrl,
+        periodStart:    customerPaymentBatchesTable.periodStart,
+        periodEnd:      customerPaymentBatchesTable.periodEnd,
+        objectName:     objectsTable.name,
+        createdAt:      customerPaymentBatchesTable.createdAt,
+        invoiceCount:   sql<number>`count(${customerPaymentBatchItemsTable.id})::int`,
+      })
+      .from(customerPaymentBatchesTable)
+      .innerJoin(customersTable, eq(customerPaymentBatchesTable.customerId, customersTable.id))
+      .leftJoin(objectsTable, eq(customerPaymentBatchesTable.objectId, objectsTable.id))
+      .leftJoin(customerPaymentBatchItemsTable, eq(customerPaymentBatchItemsTable.batchId, customerPaymentBatchesTable.id))
+      .groupBy(
+        customerPaymentBatchesTable.id,
+        customersTable.name,
+        objectsTable.name,
+      )
+      .orderBy(desc(customerPaymentBatchesTable.createdAt))
+      .limit(20),
+  ]);
+
+  const lockedInvoiceIds = new Set(activeItems.map((item) => item.invoiceId));
+
+  return {
+    candidates: invoiceRows
+      .filter((row) => !lockedInvoiceIds.has(row.id))
+      .map((row) => ({
+        id:             row.id,
+        invoiceNumber:  row.invoiceNumber,
+        assignmentId:   row.assignmentId,
+        assignmentCode: row.assignmentCode,
+        customerId:     row.customerId,
+        customerName:   row.customerName ?? "",
+        objectId:       row.objectId ?? null,
+        objectName:     row.objectName ?? null,
+        scheduledDate:  row.scheduledDate ?? null,
+        amount:         row.amount ?? "0",
+        vatAmount:      row.vatAmount ?? "0",
+        totalAmount:    row.totalAmount ?? "0",
+        dueDate:        row.dueDate,
+      })),
+    batches: batchRows.map((row) => ({
+      id:             row.id,
+      customerId:     row.customerId,
+      customerName:   row.customerName ?? "",
+      status:         row.status,
+      amountCents:    row.amountCents,
+      subtotalCents:  row.subtotalCents ?? 0,
+      vatCents:       row.vatCents ?? 0,
+      discountCents:  row.discountCents ?? 0,
+      surchargeCents: row.surchargeCents ?? 0,
+      checkoutUrl:    row.checkoutUrl ?? null,
+      periodStart:    row.periodStart ?? null,
+      periodEnd:      row.periodEnd ?? null,
+      objectName:     row.objectName ?? null,
+      createdAt:      row.createdAt.toISOString(),
+      invoiceCount:   row.invoiceCount ?? 0,
+    })),
+  };
+}
+
 export async function getInvoiceStatusHistory(invoiceId: string): Promise<InvoiceStatusEvent[]> {
   const canRead = await hasPermission("invoices", "read");
   if (!canRead) return [];
 
   const ACTION_LABELS: Record<string, string> = {
     create_invoice:       "Factuur aangemaakt",
+    create_invoice_proposal: "Factuurvoorstel aangemaakt",
     mark_invoice_sent:    "Gemarkeerd als verzonden",
     mark_invoice_paid:    "Gemarkeerd als betaald",
     cancel_invoice:       "Factuur geannuleerd",
@@ -533,6 +665,26 @@ export async function createInvoice(
 
   if (!assignment) return { success: false, message: "Opdracht niet gevonden." };
 
+  const [existingInvoice] = await db
+    .select({ id: invoicesTable.id, status: invoicesTable.status })
+    .from(invoicesTable)
+    .where(
+      and(
+        eq(invoicesTable.assignmentId, assignmentId),
+        inArray(invoicesTable.status, ["draft", "sent", "paid"]),
+      ),
+    )
+    .limit(1);
+
+  if (existingInvoice) {
+    return {
+      success: false,
+      message: existingInvoice.status === "draft"
+        ? "Er bestaat al een factuurvoorstel voor deze opdracht."
+        : "Deze opdracht is al gefactureerd.",
+    };
+  }
+
   const currentStatus = assignment.status as AssignmentStatus;
   const allowedNext = ASSIGNMENT_STATUS_TRANSITIONS[currentStatus];
   if (!allowedNext.includes("invoice_ready")) {
@@ -578,6 +730,209 @@ export async function createInvoice(
   }
 }
 
+export async function createCollectiveInvoicePayment(input: {
+  invoiceIds: string[];
+  periodStart?: string;
+  periodEnd?: string;
+  objectId?: string;
+  discountCents?: number;
+  surchargeCents?: number;
+  notes?: string;
+}): Promise<ActionResult<{ id: string; checkoutUrl: string }>> {
+  await requirePermission("invoices", "write");
+
+  const mollieKey = process.env.MOLLIE_API_KEY;
+  if (!mollieKey) {
+    return { success: false, message: "Mollie API-sleutel niet geconfigureerd. Stel MOLLIE_API_KEY in." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const invoiceIds = [...new Set(input.invoiceIds)].filter(Boolean);
+  if (invoiceIds.length < 2) {
+    return { success: false, message: "Selecteer minimaal twee facturen voor een verzamelfactuur." };
+  }
+
+  const invoices = await db
+    .select({
+      id:            invoicesTable.id,
+      invoiceNumber: invoicesTable.invoiceNumber,
+      customerId:    invoicesTable.customerId,
+      customerName:  customersTable.name,
+      assignmentId:  invoicesTable.assignmentId,
+      objectId:      assignmentsTable.objectId,
+      scheduledDate: assignmentsTable.scheduledDate,
+      amount:        invoicesTable.amount,
+      vatAmount:     invoicesTable.vatAmount,
+      totalAmount:   invoicesTable.totalAmount,
+      status:        invoicesTable.status,
+    })
+    .from(invoicesTable)
+    .innerJoin(assignmentsTable, eq(invoicesTable.assignmentId, assignmentsTable.id))
+    .innerJoin(customersTable, eq(invoicesTable.customerId, customersTable.id))
+    .where(inArray(invoicesTable.id, invoiceIds));
+
+  if (invoices.length !== invoiceIds.length) {
+    return { success: false, message: "Een of meer geselecteerde facturen zijn niet gevonden." };
+  }
+
+  const customerId = invoices[0]?.customerId;
+  if (!customerId || invoices.some((invoice) => invoice.customerId !== customerId)) {
+    return { success: false, message: "Een verzamelfactuur kan alleen facturen van dezelfde klant bevatten." };
+  }
+  if (invoices.some((invoice) => invoice.status !== "sent")) {
+    return { success: false, message: "Alleen verzonden/openstaande facturen kunnen worden gebundeld." };
+  }
+
+  if (input.objectId && invoices.some((invoice) => invoice.objectId !== input.objectId)) {
+    return { success: false, message: "Objectbundeling bevat facturen van een ander object." };
+  }
+  if (input.periodStart && input.periodEnd && input.periodStart > input.periodEnd) {
+    return { success: false, message: "Periode is ongeldig: startdatum ligt na einddatum." };
+  }
+  if (input.periodStart || input.periodEnd) {
+    const outOfPeriod = invoices.some((invoice) => {
+      if (!invoice.scheduledDate) return false;
+      if (input.periodStart && invoice.scheduledDate < input.periodStart) return true;
+      if (input.periodEnd && invoice.scheduledDate > input.periodEnd) return true;
+      return false;
+    });
+    if (outOfPeriod) {
+      return { success: false, message: "Een of meer facturen vallen buiten de gekozen periode." };
+    }
+  }
+
+  const activeBatchItems = await db
+    .select({ invoiceId: customerPaymentBatchItemsTable.invoiceId })
+    .from(customerPaymentBatchItemsTable)
+    .innerJoin(customerPaymentBatchesTable, eq(customerPaymentBatchItemsTable.batchId, customerPaymentBatchesTable.id))
+    .where(
+      and(
+        inArray(customerPaymentBatchItemsTable.invoiceId, invoiceIds),
+        inArray(customerPaymentBatchesTable.status, ["open", "paid"]),
+      ),
+    );
+
+  if (activeBatchItems.length > 0) {
+    return { success: false, message: "Een of meer facturen zitten al in een open of betaalde verzamelbetaling." };
+  }
+
+  const subtotalCents = invoices.reduce((sum, invoice) => sum + parseAmountCents(invoice.amount), 0);
+  const vatCents = invoices.reduce((sum, invoice) => sum + parseAmountCents(invoice.vatAmount), 0);
+  const invoiceTotalCents = invoices.reduce((sum, invoice) => sum + parseAmountCents(invoice.totalAmount), 0);
+  const discountCents = Math.max(0, Math.round(input.discountCents ?? 0));
+  const surchargeCents = Math.max(0, Math.round(input.surchargeCents ?? 0));
+  const amountCents = invoiceTotalCents - discountCents + surchargeCents;
+
+  if (amountCents <= 0) {
+    return { success: false, message: "Totaalbedrag moet positief blijven na korting/toeslag." };
+  }
+
+  const baseUrl = getBaseUrl();
+  const webhookUrl = process.env.MOLLIE_WEBHOOK_URL ?? `${baseUrl}/api/webhooks/mollie`;
+  const invoiceNumbers = invoices.map((invoice) => invoice.invoiceNumber).join(", ");
+
+  let mollieResp: Response;
+  try {
+    mollieResp = await fetch("https://api.mollie.com/v2/payments", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${mollieKey}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        amount: {
+          currency: "EUR",
+          value: centsToMollieValue(amountCents),
+        },
+        description: `Verzamelfactuur Veele Services (${invoices.length} facturen)`,
+        redirectUrl: `${baseUrl}/klant/betalingen/succes`,
+        webhookUrl,
+        metadata: {
+          type: "customer_payment_batch",
+          source: "backoffice",
+          customerId,
+          invoiceIds,
+          invoiceNumbers,
+          discountCents,
+          surchargeCents,
+        },
+      }),
+    });
+  } catch {
+    return { success: false, message: "Verbinding met Mollie mislukt." };
+  }
+
+  if (!mollieResp.ok) {
+    const body = await mollieResp.json().catch(() => ({}));
+    const detail = (body as { detail?: string }).detail ?? mollieResp.statusText;
+    return { success: false, message: `Mollie fout: ${detail}` };
+  }
+
+  const molliePayment = await mollieResp.json() as {
+    id: string;
+    _links?: { checkout?: { href?: string } };
+  };
+  const checkoutUrl = molliePayment._links?.checkout?.href ?? "";
+
+  const [batch] = await db
+    .insert(customerPaymentBatchesTable)
+    .values({
+      customerId,
+      molliePaymentId: molliePayment.id,
+      amountCents,
+      currency: "EUR",
+      status: "open",
+      checkoutUrl,
+      periodStart: input.periodStart || null,
+      periodEnd: input.periodEnd || null,
+      objectId: input.objectId || null,
+      subtotalCents,
+      vatCents,
+      discountCents,
+      surchargeCents,
+      notes: input.notes?.trim() || null,
+      createdBy: user.id,
+    })
+    .returning({ id: customerPaymentBatchesTable.id });
+
+  if (!batch) return { success: false, message: "Verzamelfactuur opslaan mislukt." };
+
+  await db.insert(customerPaymentBatchItemsTable).values(
+    invoices.map((invoice) => ({
+      batchId: batch.id,
+      invoiceId: invoice.id,
+      amountCents: parseAmountCents(invoice.totalAmount),
+    })),
+  );
+
+  await db.insert(auditLogTable).values({
+    userId:     user.id,
+    action:     "create_collective_invoice_payment",
+    resource:   "customer_payment_batches",
+    resourceId: batch.id,
+    metadata: {
+      customerId,
+      customerName: invoices[0]?.customerName,
+      invoiceIds,
+      invoiceNumbers,
+      subtotalCents,
+      vatCents,
+      discountCents,
+      surchargeCents,
+      amountCents,
+      periodStart: input.periodStart ?? null,
+      periodEnd: input.periodEnd ?? null,
+      objectId: input.objectId ?? null,
+    },
+  });
+
+  revalidatePath("/invoices");
+  return { success: true, data: { id: batch.id, checkoutUrl } };
+}
+
 export async function markInvoiceSent(invoiceId: string): Promise<ActionResult> {
   await requirePermission("invoices", "write");
 
@@ -613,6 +968,12 @@ export async function markInvoiceSent(invoiceId: string): Promise<ActionResult> 
     resource:   "invoices",
     resourceId: invoiceId,
     metadata:   { assignmentId: invoice.assignmentId },
+  });
+
+  await notifyInvoiceWorkflow({
+    eventKey: "invoice_sent",
+    invoiceId,
+    actorUserId: user.id,
   });
 
   revalidatePath("/invoices");
@@ -663,6 +1024,12 @@ export async function markInvoicePaid(invoiceId: string): Promise<ActionResult> 
     resource:   "invoices",
     resourceId: invoiceId,
     metadata:   { assignmentId: invoice.assignmentId, paidDate: today },
+  });
+
+  await notifyInvoiceWorkflow({
+    eventKey: "invoice_paid",
+    invoiceId,
+    actorUserId: user.id,
   });
 
   revalidatePath("/invoices");

@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef } from "react";
 
 export type PlanningWeekDay = {
@@ -7,10 +8,11 @@ export type PlanningWeekDay = {
   label: string;
   day: number;
   isActive: boolean;
+  href?: string;
 };
 
 export function PlanningWeekStrip({ days }: { days: PlanningWeekDay[] }) {
-  const activeRef = useRef<HTMLButtonElement | null>(null);
+  const activeRef = useRef<HTMLAnchorElement | null>(null);
 
   useEffect(() => {
     activeRef.current?.scrollIntoView({
@@ -24,10 +26,10 @@ export function PlanningWeekStrip({ days }: { days: PlanningWeekDay[] }) {
     <div className="-mx-4 mt-4 overflow-x-auto px-4 [scrollbar-width:none] [scroll-padding-inline:calc(50vw-25px)] [&::-webkit-scrollbar]:hidden">
       <div className="flex min-w-max gap-2 pb-1">
         {days.map((day) => (
-          <button
+          <Link
             key={day.key}
+            href={day.href ?? "#"}
             ref={day.isActive ? activeRef : undefined}
-            type="button"
             className="flex h-[58px] w-[50px] shrink-0 flex-col items-center justify-center rounded-[13px] border transition"
             style={{
               background: day.isActive
@@ -43,7 +45,7 @@ export function PlanningWeekStrip({ days }: { days: PlanningWeekDay[] }) {
               {day.label}
             </span>
             <span className="text-[22px] font-black leading-tight">{day.day}</span>
-          </button>
+          </Link>
         ))}
       </div>
     </div>

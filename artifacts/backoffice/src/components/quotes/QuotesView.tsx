@@ -4,7 +4,9 @@ import { useState, useTransition, useCallback } from "react";
 import Link from "next/link";
 import { Search, FileCheck2, AlertTriangle } from "lucide-react";
 import { listQuotes } from "@/app/actions/quotes";
-import type { QuoteRow, QuoteSummary, QuoteStatus } from "@/app/actions/quotes";
+import type { QuoteRow, QuoteSummary } from "@/app/actions/quotes";
+import { ProcessStatusBadge } from "@/components/workflows/ProcessStatus";
+import { processStatusLabel } from "@/lib/process-status";
 
 const fmt = (v: string | number | null) =>
   new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(
@@ -18,36 +20,6 @@ function fmtDate(d: string) {
   });
 }
 
-function StatusBadge({ status, isExpired }: { status: QuoteStatus; isExpired: boolean }) {
-  if (isExpired) {
-    return (
-      <span
-        className="inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-medium"
-        style={{ backgroundColor: "#FEF3C7", color: "#92400E" }}
-      >
-        <AlertTriangle className="h-3 w-3" />
-        Verlopen
-      </span>
-    );
-  }
-  const map: Record<QuoteStatus, { bg: string; color: string; label: string }> = {
-    draft:    { bg: "#F1F5F9", color: "#475569", label: "Concept" },
-    sent:     { bg: "#EFF6FF", color: "#1D4ED8", label: "Ter goedkeuring" },
-    approved: { bg: "#D1FAE5", color: "#065F46", label: "Goedgekeurd" },
-    rejected: { bg: "#FEE2E2", color: "#991B1B", label: "Afgewezen" },
-    expired:  { bg: "#FEF3C7", color: "#92400E", label: "Verlopen" },
-  };
-  const s = map[status];
-  return (
-    <span
-      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-      style={{ backgroundColor: s.bg, color: s.color }}
-    >
-      {s.label}
-    </span>
-  );
-}
-
 interface QuotesViewProps {
   initialRows:    QuoteRow[];
   initialTotal:   number;
@@ -58,11 +30,11 @@ const PAGE_SIZE = 25;
 
 const STATUS_OPTIONS = [
   { value: "",         label: "Alle statussen" },
-  { value: "draft",    label: "Concept" },
-  { value: "sent",     label: "Ter goedkeuring" },
-  { value: "approved", label: "Goedgekeurd" },
-  { value: "rejected", label: "Afgewezen" },
-  { value: "expired",  label: "Verlopen" },
+  { value: "draft",    label: processStatusLabel("quote", "draft") },
+  { value: "sent",     label: processStatusLabel("quote", "sent") },
+  { value: "approved", label: processStatusLabel("quote", "approved") },
+  { value: "rejected", label: processStatusLabel("quote", "rejected") },
+  { value: "expired",  label: processStatusLabel("quote", "expired") },
 ];
 
 export function QuotesView({ initialRows, initialTotal, summary }: QuotesViewProps) {
@@ -208,7 +180,7 @@ export function QuotesView({ initialRows, initialTotal, summary }: QuotesViewPro
                     {fmt(r.amount)}
                   </td>
                   <td className="px-4 py-3">
-                    <StatusBadge status={r.status} isExpired={r.isExpired} />
+                    <ProcessStatusBadge kind="quote" status={r.isExpired ? "expired" : r.status} />
                   </td>
                   <td className="px-4 py-3" style={{ color: r.isExpired ? "#DC2626" : "#374151" }}>
                     {r.isExpired && <AlertTriangle className="inline h-3.5 w-3.5 mr-1 mb-0.5" />}

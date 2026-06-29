@@ -1,11 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, FileText, Clock, CheckCircle2, XCircle, User, Calendar, MapPin, Download } from "lucide-react";
+import { ArrowLeft, FileText, XCircle, User, Calendar, MapPin, Download } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
-import { getReport } from "@/app/actions/reports";
+import { getReport, getReportTimelineNotes, type ReportTimelineNote } from "@/app/actions/reports";
+import { getInvoiceForAssignment } from "@/app/actions/invoices";
 import { ReportActions } from "@/components/reports/ReportActions";
+import { ProcessStatusBadge, ProcessStepper } from "@/components/workflows/ProcessStatus";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -21,25 +23,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 }
 
-const STATUS_LABELS: Record<string, string> = {
-  draft:     "Concept",
-  submitted: "Te beoordelen",
-  approved:  "Goedgekeurd",
-  rejected:  "Afgewezen",
-};
-
 function formatScheduledDate(dateStr: string): string {
   const d = new Date(dateStr + "T00:00:00");
   return d.toLocaleDateString("nl-NL", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });
 }
-
-const STATUS_STYLES: Record<string, { bg: string; text: string; icon: React.ReactNode }> = {
-  submitted: { bg: "#FEF3C7", text: "#92400E", icon: <Clock className="h-4 w-4" /> },
-  approved:  { bg: "#D1FAE5", text: "#065F46", icon: <CheckCircle2 className="h-4 w-4" /> },
-  rejected:  { bg: "#FEE2E2", text: "#991B1B", icon: <XCircle className="h-4 w-4" /> },
-};
 
 function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -54,19 +43,120 @@ function InfoRow({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+function formatFileSize(bytes: number | null): string {
+  if (!bytes || bytes <= 0) return "";
+  if (bytes < 1024 * 1024) return `${Math.ceil(bytes / 1024)} KB`;
+  return `${(bytes / 1024 / 1024).toLocaleString("nl-NL", {
+    maximumFractionDigits: 1,
+  })} MB`;
+}
+
+function ReportTimeline({ notes }: { notes: ReportTimelineNote[] }) {
+  if (notes.length === 0) {
+    return (
+      <div className="veele-card">
+        <h2
+          className="font-heading text-base font-semibold mb-2 flex items-center gap-2"
+          style={{ color: "#081D3A" }}
+        >
+          <FileText className="h-4 w-4" style={{ color: "#00B7B3" }} />
+          Rapportagenotities
+        </h2>
+        <p className="text-sm" style={{ color: "#64748B" }}>
+          Er zijn nog geen losse rapportagenotities toegevoegd.
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="veele-card">
+      <h2
+        className="font-heading text-base font-semibold mb-4 flex items-center gap-2"
+        style={{ color: "#081D3A" }}
+      >
+        <FileText className="h-4 w-4" style={{ color: "#00B7B3" }} />
+        Rapportagenotities
+      </h2>
+
+      <div className="space-y-3">
+        {notes.map((note) => (
+          <article
+            key={note.id}
+            className="rounded-xl border bg-white p-4"
+            style={{ borderColor: "#E2E8F0" }}
+          >
+            <div className="flex flex-wrap items-center gap-2 text-xs" style={{ color: "#64748B" }}>
+              <span>
+                {new Date(note.createdAt).toLocaleString("nl-NL", {
+                  day: "2-digit",
+                  month: "2-digit",
+                  year: "numeric",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </span>
+              <span aria-hidden="true">-</span>
+              <span className="font-semibold" style={{ color: "#081D3A" }}>
+                {note.authorName}
+              </span>
+              {note.authorEmail ? <span>({note.authorEmail})</span> : null}
+            </div>
+
+            <p className="mt-3 whitespace-pre-wrap text-sm leading-relaxed" style={{ color: "#374151" }}>
+              {note.body}
+            </p>
+
+            {note.attachments.length > 0 ? (
+              <div className="mt-3 space-y-2">
+                {note.attachments.map((attachment) => {
+                  const meta = [attachment.mimeType, formatFileSize(attachment.fileSize)]
+                    .filter(Boolean)
+                    .join(" - ");
+
+                  return (
+                    <a
+                      key={attachment.id}
+                      href={attachment.signedUrl ?? undefined}
+                      target={attachment.signedUrl ? "_blank" : undefined}
+                      rel="noreferrer"
+                      className="block rounded-lg border px-3 py-2 text-sm"
+                      style={{ borderColor: "#E2E8F0", background: "#F8FAFC", color: "#081D3A" }}
+                    >
+                      <span className="font-medium">{attachment.fileName}</span>
+                      {meta ? (
+                        <span className="ml-2 text-xs" style={{ color: "#64748B" }}>
+                          {meta}
+                        </span>
+                      ) : null}
+                    </a>
+                  );
+                })}
+              </div>
+            ) : null}
+          </article>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default async function ReportDetailPage({ params }: Props) {
   const canRead = await hasPermission("reports", "read");
   if (!canRead) return <ForbiddenPage resource="reports" action="read" />;
 
   const { id } = await params;
-  const [report, canWrite] = await Promise.all([
+  const [report, reportNotes, canWrite] = await Promise.all([
     getReport(id),
+    getReportTimelineNotes(id),
     hasPermission("reports", "write"),
   ]);
 
   if (!report) notFound();
 
-  const statusStyle = STATUS_STYLES[report.status];
+  const invoiceProposal = report.status === "approved"
+    ? await getInvoiceForAssignment(report.assignmentId)
+    : null;
 
   function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString("nl-NL", {
@@ -95,13 +185,7 @@ export default async function ReportDetailPage({ params }: Props) {
               </h1>
             </div>
             <div className="flex items-center gap-2 flex-wrap">
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
-                style={{ backgroundColor: statusStyle.bg, color: statusStyle.text }}
-              >
-                {statusStyle.icon}
-                {STATUS_LABELS[report.status]}
-              </span>
+              <ProcessStatusBadge kind="report" status={report.status} />
               <span
                 className="font-mono text-xs rounded px-1.5 py-0.5"
                 style={{ backgroundColor: "#F1F5F9", color: "#64748B" }}
@@ -112,6 +196,7 @@ export default async function ReportDetailPage({ params }: Props) {
             <p className="mt-2 text-xs" style={{ color: "#94A3B8" }}>
               Ingediend {formatDate(report.submittedAt)}
             </p>
+            <ProcessStepper kind="report" status={report.status} className="mt-4" />
           </div>
         </div>
       </div>
@@ -228,6 +313,8 @@ export default async function ReportDetailPage({ params }: Props) {
             )}
           </div>
 
+          <ReportTimeline notes={reportNotes} />
+
           {/* Management feedback (rejection notes) */}
           {report.notes && (
             <div
@@ -256,13 +343,7 @@ export default async function ReportDetailPage({ params }: Props) {
 
           {report.status !== "submitted" && (
             <div className="veele-card text-center py-6">
-              <span
-                className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium"
-                style={{ backgroundColor: statusStyle.bg, color: statusStyle.text }}
-              >
-                {statusStyle.icon}
-                {STATUS_LABELS[report.status]}
-              </span>
+              <ProcessStatusBadge kind="report" status={report.status} size="md" />
               <p className="mt-3 text-xs" style={{ color: "#94A3B8" }}>
                 Dit rapport is al beoordeeld.
               </p>
@@ -272,8 +353,21 @@ export default async function ReportDetailPage({ params }: Props) {
           {report.status === "approved" && (
             <div className="veele-card">
               <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#94A3B8" }}>
-                Exporteren
+                Facturatie
               </p>
+              {invoiceProposal ? (
+                <Link
+                  href={`/invoices/${invoiceProposal.id}`}
+                  className="mb-3 inline-flex items-center gap-2 w-full justify-center rounded-lg px-4 py-2.5 text-sm font-medium transition-colors"
+                  style={{ backgroundColor: "#00B7B3", color: "#FFFFFF" }}
+                >
+                  Factuurvoorstel openen
+                </Link>
+              ) : (
+                <p className="mb-3 rounded-lg px-3 py-2 text-xs" style={{ background: "#FFFBEB", color: "#92400E" }}>
+                  Geen factuurvoorstel gevonden. Maak dit handmatig aan vanuit de opdracht.
+                </p>
+              )}
               <Link
                 href={`/api/reports/${report.id}/pdf`}
                 target="_blank"
