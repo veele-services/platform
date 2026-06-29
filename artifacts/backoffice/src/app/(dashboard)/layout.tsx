@@ -1,5 +1,6 @@
 export const dynamic = "force-dynamic";
 
+import { DEFAULT_TENANT_ID } from "@workspace/db";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserPermissions, getUserRoles } from "@/lib/auth/permissions";
@@ -13,8 +14,7 @@ import { getPendingReportsCount } from "@/app/actions/reports";
 import { getOutstandingInvoicesCount } from "@/app/actions/invoices";
 import { getPendingQuotesCount } from "@/app/actions/quotes";
 import { getPendingLeaveCount } from "@/app/actions/availability";
-
-const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000010";
+import { getActiveBackofficeTenantsForUser, getCurrentTenantId } from "@/lib/auth/tenant";
 
 export default async function DashboardLayout({
   children,
@@ -30,16 +30,11 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const [permissions, roles, tenantUserResult] = await Promise.all([
+  const [permissions, roles, tenantOptions, currentTenantId] = await Promise.all([
     getCurrentUserPermissions(),
     getUserRoles(user.id),
-    supabase
-      .from("tenant_users")
-      .select("tenant_id")
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .limit(1)
-      .maybeSingle(),
+    getActiveBackofficeTenantsForUser(user.id),
+    getCurrentTenantId(),
   ]);
 
   const canReadReports   = permissions.has("reports:read");
@@ -57,10 +52,7 @@ export default async function DashboardLayout({
   const userEmail   = user.email ?? "";
   const userInitial = (userEmail[0] ?? "U").toUpperCase();
   const userRole    = roles[0] ?? "User";
-  const tenantId =
-    typeof tenantUserResult.data?.tenant_id === "string"
-      ? tenantUserResult.data.tenant_id
-      : DEFAULT_TENANT_ID;
+  const tenantId = currentTenantId ?? tenantOptions[0]?.id ?? DEFAULT_TENANT_ID;
 
   return (
     <PermissionsProvider permissions={[...permissions]}>
@@ -84,6 +76,8 @@ export default async function DashboardLayout({
                 userEmail={userEmail}
                 userInitial={userInitial}
                 userRole={userRole}
+                currentTenantId={tenantId}
+                tenantOptions={tenantOptions}
               />
               <main className="flex-1 overflow-y-auto">{children}</main>
             </div>
