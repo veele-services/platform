@@ -3,7 +3,6 @@
 import { db } from "@workspace/db";
 import {
   auditLogTable,
-  DEFAULT_TENANT_ID,
   planningSectorRulesTable,
   sectorsTable,
   type SmartPlanningScoreWeights,
@@ -13,6 +12,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod/v4";
 import { createClient } from "@/lib/supabase/server";
 import { hasPermission } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 
 export type ActionResult<T = void> =
   | { success: true; data?: T }
@@ -168,6 +168,7 @@ function revalidateSmartPlanning() {
 
 export async function listSmartPlanningSectorRules(): Promise<SmartPlanningSectorRuleRow[]> {
   await requireSmartPlanningRead();
+  const tenantId = await requireCurrentTenantId();
 
   const [sectors, rules] = await Promise.all([
     db
@@ -181,7 +182,7 @@ export async function listSmartPlanningSectorRules(): Promise<SmartPlanningSecto
     db
       .select()
       .from(planningSectorRulesTable)
-      .where(eq(planningSectorRulesTable.tenantId, DEFAULT_TENANT_ID)),
+      .where(eq(planningSectorRulesTable.tenantId, tenantId)),
   ]);
 
   const rulesBySectorId = new Map(rules.map((rule) => [rule.sectorId, rule]));
@@ -212,6 +213,7 @@ export async function updateSmartPlanningSectorRule(
   data: unknown,
 ): Promise<ActionResult<{ id: string }>> {
   await requireSmartPlanningWrite();
+  const tenantId = await requireCurrentTenantId();
 
   const parsed = ruleInputSchema.safeParse(data);
   if (!parsed.success) {
@@ -234,7 +236,7 @@ export async function updateSmartPlanningSectorRule(
   const [saved] = await db
     .insert(planningSectorRulesTable)
     .values({
-      tenantId: DEFAULT_TENANT_ID,
+      tenantId,
       sectorId: parsed.data.sectorId,
       weights: parsed.data.weights,
       topMatchThreshold: parsed.data.topMatchThreshold,
@@ -285,6 +287,7 @@ export async function resetSmartPlanningSectorRule(
   sectorId: string,
 ): Promise<ActionResult<{ id: string }>> {
   await requireSmartPlanningWrite();
+  const tenantId = await requireCurrentTenantId();
 
   const [sector] = await db
     .select({ id: sectorsTable.id, name: sectorsTable.name })
@@ -300,7 +303,7 @@ export async function resetSmartPlanningSectorRule(
   const [saved] = await db
     .insert(planningSectorRulesTable)
     .values({
-      tenantId: DEFAULT_TENANT_ID,
+      tenantId,
       sectorId,
       weights,
       topMatchThreshold: 85,

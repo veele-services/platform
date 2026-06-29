@@ -24,11 +24,15 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { signOut } from "@/app/actions/auth";
 import { useSidebar } from "@/providers/sidebar-provider";
+import { TenantSwitcher } from "@/components/layout/TenantSwitcher";
+import type { BackofficeTenantOption } from "@/lib/auth/tenant";
 
 type DashboardHeaderProps = {
   userEmail: string;
   userInitial: string;
   userRole: string;
+  currentTenantId: string;
+  tenantOptions: BackofficeTenantOption[];
 };
 
 const ROUTE_TITLES: Array<{ prefix: string; title: string }> = [
@@ -69,6 +73,8 @@ export function DashboardHeader({
   userEmail,
   userInitial,
   userRole,
+  currentTenantId,
+  tenantOptions,
 }: DashboardHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
@@ -133,6 +139,8 @@ export function DashboardHeader({
           />
         </label>
       </form>
+
+      <TenantSwitcher currentTenantId={currentTenantId} tenants={tenantOptions} />
 
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
