@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
-import { listRoles } from "@/app/actions/settings";
+import { getRolePlanCapabilities, listRoles } from "@/app/actions/settings";
 import { RollenView } from "@/components/settings/RollenView";
 import { SettingsTabs } from "@/components/settings/SettingsTabs";
 
@@ -15,7 +15,7 @@ export default async function RollenPage() {
 
   if (!canRead) return <ForbiddenPage resource="rollen" action="read" />;
 
-  const roles = await listRoles();
+  const [roles, capabilities] = await Promise.all([listRoles(), getRolePlanCapabilities()]);
 
   return (
     <div className="mx-auto w-full max-w-[1600px] p-6">
@@ -31,7 +31,7 @@ export default async function RollenPage() {
         </p>
       </div>
 
-      <RollenView roles={roles} canWrite={canWrite} />
+      <RollenView roles={roles} canWrite={canWrite} capabilities={capabilities} />
     </div>
   );
 }
