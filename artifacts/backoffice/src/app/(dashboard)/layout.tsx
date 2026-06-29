@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentUserPermissions, getUserRoles } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { PermissionsProvider } from "@/providers/permissions-provider";
 import { SidebarProvider } from "@/providers/sidebar-provider";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -13,8 +14,6 @@ import { getPendingReportsCount } from "@/app/actions/reports";
 import { getOutstandingInvoicesCount } from "@/app/actions/invoices";
 import { getPendingQuotesCount } from "@/app/actions/quotes";
 import { getPendingLeaveCount } from "@/app/actions/availability";
-
-const DEFAULT_TENANT_ID = "00000000-0000-0000-0000-000000000010";
 
 export default async function DashboardLayout({
   children,
@@ -30,16 +29,10 @@ export default async function DashboardLayout({
     redirect("/login");
   }
 
-  const [permissions, roles, tenantUserResult] = await Promise.all([
+  const [permissions, roles, tenantId] = await Promise.all([
     getCurrentUserPermissions(),
     getUserRoles(user.id),
-    supabase
-      .from("tenant_users")
-      .select("tenant_id")
-      .eq("user_id", user.id)
-      .eq("status", "active")
-      .limit(1)
-      .maybeSingle(),
+    requireCurrentTenantId(),
   ]);
 
   const canReadReports   = permissions.has("reports:read");
@@ -57,10 +50,6 @@ export default async function DashboardLayout({
   const userEmail   = user.email ?? "";
   const userInitial = (userEmail[0] ?? "U").toUpperCase();
   const userRole    = roles[0] ?? "User";
-  const tenantId =
-    typeof tenantUserResult.data?.tenant_id === "string"
-      ? tenantUserResult.data.tenant_id
-      : DEFAULT_TENANT_ID;
 
   return (
     <PermissionsProvider permissions={[...permissions]}>
