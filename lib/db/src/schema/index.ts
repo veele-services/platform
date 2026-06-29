@@ -1,4 +1,5 @@
 export * from "./tenants";
+export * from "./platform-users";
 export * from "./roles";
 export * from "./permissions";
 export * from "./role-permissions";
