@@ -1,6 +1,12 @@
 import type { Request, Response, NextFunction } from "express";
 import { jwtVerify, createRemoteJWKSet } from "jose";
-import { db, userRolesTable, rolePermissionsTable, permissionsTable, tenantUsersTable } from "@workspace/db";
+import {
+  db,
+  tenantUserRolesTable,
+  tenantRolePermissionsTable,
+  permissionsTable,
+  tenantUsersTable,
+} from "@workspace/db";
 import { and, eq, inArray } from "drizzle-orm";
 
 const SUPABASE_URL         = process.env["SUPABASE_URL"]         ?? "";
@@ -81,12 +87,17 @@ export async function requireAuth(
 
 // ─── RBAC permission lookup ───────────────────────────────────────────────────
 
-/** Fetch the full permission set for a user from the RBAC tables. */
-export async function getUserPermissions(userId: string): Promise<Set<string>> {
+/** Fetch the full permission set for a user from the tenant-scoped RBAC tables. */
+export async function getUserPermissions(userId: string, tenantId: string): Promise<Set<string>> {
   const userRoles = await db
-    .select({ roleId: userRolesTable.roleId })
-    .from(userRolesTable)
-    .where(eq(userRolesTable.userId, userId));
+    .select({ roleId: tenantUserRolesTable.roleId })
+    .from(tenantUserRolesTable)
+    .where(
+      and(
+        eq(tenantUserRolesTable.userId, userId),
+        eq(tenantUserRolesTable.tenantId, tenantId),
+      ),
+    );
 
   if (userRoles.length === 0) return new Set();
 
@@ -97,9 +108,14 @@ export async function getUserPermissions(userId: string): Promise<Set<string>> {
       resource: permissionsTable.resource,
       action:   permissionsTable.action,
     })
-    .from(rolePermissionsTable)
-    .innerJoin(permissionsTable, eq(rolePermissionsTable.permissionId, permissionsTable.id))
-    .where(inArray(rolePermissionsTable.roleId, roleIds));
+    .from(tenantRolePermissionsTable)
+    .innerJoin(permissionsTable, eq(tenantRolePermissionsTable.permissionId, permissionsTable.id))
+    .where(
+      and(
+        eq(tenantRolePermissionsTable.tenantId, tenantId),
+        inArray(tenantRolePermissionsTable.roleId, roleIds),
+      ),
+    );
 
   return new Set(perms.map((p) => `${p.resource}:${p.action}`));
 }
@@ -113,14 +129,19 @@ export async function getUserPermissions(userId: string): Promise<Set<string>> {
 export function requirePermission(resource: string, action: string) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     const userId = req.userId;
+    const tenantId = req.tenantId;
     if (!userId) {
       res.status(401).json({ error: "Authenticatie vereist" });
       return;
     }
+    if (!tenantId) {
+      res.status(403).json({ error: "Geen actieve tenant-koppeling" });
+      return;
+    }
 
-    const permissions = await getUserPermissions(userId);
+    const permissions = await getUserPermissions(userId, tenantId);
     if (!permissions.has(`${resource}:${action}`)) {
-      req.log.warn({ userId, resource, action }, "Toegang geweigerd");
+      req.log.warn({ userId, tenantId, resource, action }, "Toegang geweigerd");
       res.status(403).json({ error: "Onvoldoende rechten" });
       return;
     }

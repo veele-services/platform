@@ -3,16 +3,17 @@
 import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Shield, ChevronRight, Plus, Users, Lock, AlertCircle, Trash2 } from "lucide-react";
-import { createRole, deleteRole } from "@/app/actions/settings";
-import type { RoleRow } from "@/app/actions/settings";
+import { Shield, ChevronRight, Plus, Users, Lock, AlertCircle, Trash2, RotateCcw } from "lucide-react";
+import { createRole, deleteRole, resetSystemRolesToDefault } from "@/app/actions/settings";
+import type { RolePlanCapabilities, RoleRow } from "@/app/actions/settings";
 
 interface Props {
   roles:    RoleRow[];
   canWrite: boolean;
+  capabilities: RolePlanCapabilities;
 }
 
-export function RollenView({ roles: initialRoles, canWrite }: Props) {
+export function RollenView({ roles: initialRoles, canWrite, capabilities }: Props) {
   const router = useRouter();
   const [roles,      setRoles]      = useState(initialRoles);
   const [showCreate, setShowCreate] = useState(false);
@@ -20,6 +21,8 @@ export function RollenView({ roles: initialRoles, canWrite }: Props) {
   const [desc, setDesc]   = useState("");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [resetError, setResetError] = useState<string | null>(null);
+  const [isResetting, startResetTransition] = useTransition();
 
   const [deleteTargetId,    setDeleteTargetId]    = useState<string | null>(null);
   const [deleteError,       setDeleteError]       = useState<string | null>(null);
@@ -40,6 +43,18 @@ export function RollenView({ roles: initialRoles, canWrite }: Props) {
     });
   }
 
+  function handleResetDefaults() {
+    setResetError(null);
+    startResetTransition(async () => {
+      const result = await resetSystemRolesToDefault();
+      if (result.success) {
+        router.refresh();
+      } else {
+        setResetError((result as { message?: string }).message ?? "Resetten mislukt.");
+      }
+    });
+  }
+
   function handleDeleteConfirm() {
     if (!deleteTargetId) return;
     setDeleteError(null);
@@ -56,11 +71,34 @@ export function RollenView({ roles: initialRoles, canWrite }: Props) {
 
   return (
     <div className="space-y-4">
+      {(!capabilities.customRoles || resetError) && (
+        <div className="veele-card border-l-4" style={{ borderLeftColor: capabilities.customRoles ? "#F59E0B" : "#CBD5E1" }}>
+          <p className="text-sm font-medium" style={{ color: "#081D3A" }}>
+            Custom rollen: {capabilities.customRoles ? "beschikbaar" : "niet beschikbaar"}
+          </p>
+          <p className="text-sm mt-1" style={{ color: resetError ? "#DC2626" : "#64748B" }}>
+            {resetError ?? `Het huidige tenantplan (${capabilities.plan}) staat geen custom rollen toe. Systeemrollen en permissies blijven wel inzichtelijk.`}
+          </p>
+        </div>
+      )}
+
       {canWrite && (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
+          {capabilities.canResetSystemRoles && (
+            <button
+              onClick={handleResetDefaults}
+              disabled={isResetting}
+              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium border disabled:opacity-50"
+              style={{ borderColor: "#E2E8F0", color: "#475569" }}
+            >
+              <RotateCcw className="h-4 w-4" />
+              {isResetting ? "Resetten…" : "Systeemrollen resetten"}
+            </button>
+          )}
           <button
             onClick={() => setShowCreate((v) => !v)}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white"
+            disabled={!capabilities.customRoles}
+            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
             style={{ backgroundColor: "#081D3A" }}
           >
             <Plus className="h-4 w-4" />
@@ -69,7 +107,7 @@ export function RollenView({ roles: initialRoles, canWrite }: Props) {
         </div>
       )}
 
-      {showCreate && (
+      {showCreate && capabilities.customRoles && (
         <form onSubmit={handleCreate} className="veele-card space-y-3">
           <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>Nieuwe rol aanmaken</p>
           <div>
@@ -177,7 +215,7 @@ export function RollenView({ roles: initialRoles, canWrite }: Props) {
                 </td>
                 <td className="px-4 py-3 text-right">
                   <div className="inline-flex items-center gap-1">
-                    {canWrite && !role.isSystem && (
+                    {canWrite && capabilities.customRoles && !role.isSystem && (
                       <button
                         onClick={() => { setDeleteTargetId(role.id); setDeleteError(null); }}
                         className="inline-flex items-center justify-center h-7 w-7 rounded transition-colors hover:bg-red-50"
