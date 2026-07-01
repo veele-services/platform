@@ -1,0 +1,1270 @@
+Ik ben nu bij Fase 3, echter merk ik dat bij een hoop taken er conflicten zijn tijdens het mergen naar staging. Enig idee hoe dat kan? Is het omdat ik tijdelijk de branch op 'main' heb gezet, terwijl jij alles al geanalyseerd had? Ik heb hem nu weer terug gezet op staging.
+
+Gaan de andere fases ook conflicten opleveren? Hoe kan dit? Hoe kunnen we dit voorkomen? Moeten we opnieuw analyseren vanaf Fase 3 opnieuw taken aanmaken?
+Copy
+Kort antwoord
+Ja, dit kan heel goed komen doordat taken tijdelijk op main zijn gebaseerd terwijl de doelbranch staging is. Dat is waarschijnlijk niet de enige oorzaak, maar wel een belangrijke. In de huidige lokale repo zie ik namelijk dat de actieve branch niet staging maar work is, en dat de historie meerdere merges bevat waarin featurebranches met main zijn bijgewerkt of zelfs een PR uit main is gemerged. Ik zie bijvoorbeeld commits zoals Merge branch 'main' into feature/... en Merge pull request #60 from veele-services/main in de recente historie via git log.
+
+Daarnaast raakt Fase 3 precies de meest conflictgevoelige onderdelen van de codebase:
+
+package/config bestanden
+
+database migrations
+
+schema exports
+
+module seeds
+
+RBAC/auth helpers
+
+route guards
+
+testbestanden
+
+gedeelde constants/types
+
+Dus: ja, andere fases gaan waarschijnlijk óók conflicten opleveren als we op dezelfde manier doorgaan.
+
+Mijn advies:
+
+Niet helemaal opnieuw beginnen vanaf nul, maar wel Fase 3 opnieuw baselinen op de actuele staging-stand en de taken opnieuw opdelen met strakke file ownership en integratievolgorde.
+
+Wat ik lokaal zie
+Ik heb een paar git-commando’s uitgevoerd om de toestand te controleren.
+
+Belangrijkste observatie:
+
+## work
+work
+De huidige lokale branch is dus work, niet staging.
+
+Verder toont de git-historie veel mergecommits rond Fase 1–2 en Fase 2–3. In de recente historie zie je onder andere:
+
+Merge branch 'main' into feature/...
+Merge pull request #60 from veele-services/main
+Merge branch 'staging' into feature/...
+Dat wijst op een gemengde branchbasis: sommige taken lijken met main gesynchroniseerd, andere met staging.
+
+Dat is precies het soort situatie dat mergeconflicten veroorzaakt.
+
+Waarom dit gebeurt
+1. main en staging zijn waarschijnlijk uit elkaar gaan lopen
+Als een featurebranch wordt aangemaakt vanaf main, maar later naar staging gemerged moet worden, krijg je kans op conflicten zodra:
+
+staging al andere commits heeft die main niet heeft;
+
+main commits heeft die staging nog niet heeft;
+
+dezelfde bestanden in beide branches zijn aangepast;
+
+eerdere agents hun featurebranch tussendoor met main hebben gemerged;
+
+andere agents hun featurebranch met staging hebben gemerged.
+
+Dan krijg je dit patroon:
+
+main
+  ├── feature A
+  ├── feature B
+staging
+  ├── feature C
+  ├── hotfix D
+Als feature A op main gebaseerd is en feature C op staging, maar allebei dezelfde files aanpassen, dan wordt mergen naar staging rommelig.
+
+2. De fases raken dezelfde centrale bestanden
+Fase 3 gaat over modules en pakketten. Die taken raken bijna automatisch gedeelde bestanden zoals:
+
+package.json
+lib/db/src/schema/index.ts
+lib/db/src/schema/*
+lib/db/migrations/*
+lib/db/src/seed/*
+artifacts/backoffice/src/lib/auth/*
+artifacts/backoffice/src/app/(dashboard)/*
+artifacts/api-server/src/middleware/*
+tests/*
+Zeker deze bestanden zijn conflictgevoelig:
+
+lib/db/src/schema/index.ts
+lib/db/src/schema/permissions.ts
+lib/db/src/seed/rbac.ts
+lib/db/migrations/baseline.json
+lib/db/migrations/generated/meta/_journal.json
+package.json
+pnpm-lock.yaml
+Als meerdere agents tegelijk:
+
+migraties toevoegen,
+
+exports toevoegen,
+
+package scripts wijzigen,
+
+testdependencies toevoegen,
+
+RBAC seeds wijzigen,
+
+guards toevoegen,
+
+dan botsen ze snel.
+
+3. Migraties zijn extra conflictgevoelig
+Bij parallel werk zijn database migrations vaak de eerste bron van ellende.
+
+Problemen ontstaan door:
+
+meerdere migrations met dezelfde volgorde/nummering;
+
+meerdere agents die generated migration metadata aanpassen;
+
+meerdere agents die dezelfde schema export aanpassen;
+
+migrations die inhoudelijk afhankelijk zijn maar parallel gemaakt zijn;
+
+één branch gebaseerd op main en een andere op staging.
+
+Bij Fase 3 krijg je precies dit:
+
+modules
+
+module_dependencies
+
+tenant_modules
+
+plans
+
+plan_modules
+
+plan_limits
+
+tenant_subscriptions
+
+module seeds
+
+dependency seeds
+
+Dat hoort architectonisch samen, maar als vijf agents dit tegelijk in overlappende files doen, krijg je conflicten.
+
+4. Agents hebben waarschijnlijk overlappende write scopes gekregen
+Eerder hebben we taken in tracks opgedeeld, maar Fase 3 bevat taken die ondanks trackverdeling nog steeds dezelfde files raken.
+
+Voorbeeld:
+
+Track	Taak	Waarschijnlijk conflictbestand
+3A	modules + dependencies	schema index, migrations, seed
+3B	tenant_modules	schema index, migrations
+3C	module guard	auth/layout/actions
+3D	plans + limits	schema index, migrations, seed
+3E	dependencies integratie	modules seed, guards, tests
+Dit is paralleliseerbaar op inhoud, maar niet zonder file ownership en integratievolgorde.
+
+Is het doordat de branch tijdelijk op main stond?
+Waarschijnlijk: ja, gedeeltelijk
+Als de featuretasks zijn gestart terwijl de base branch op main stond, en je merge-doel eigenlijk staging is, dan ontstaan conflicts doordat de agents code hebben gegenereerd tegen een andere werkelijkheid.
+
+Vooral als:
+
+main achterloopt op staging;
+
+staging al Fase 1/2 taken bevat;
+
+main andere hotfixes bevat;
+
+featurebranches tussendoor main in zich gemerged hebben;
+
+daarna naar staging wordt gemerged.
+
+De command output wijst inderdaad op gemengde merges met main en staging.
+
+Gaan de andere fases ook conflicten opleveren?
+Ja, als we zo doorgaan
+Vooral deze fases zijn conflictgevoelig:
+
+Fase 3 — Modules en pakketten
+Hoog risico.
+
+Waarom:
+
+gedeelde schemas
+
+gedeelde migrations
+
+seeds
+
+guards
+
+route layouts
+
+tests
+
+Fase 4 — Sectoren en task codes
+Hoog risico.
+
+Waarom:
+
+customers/actions
+
+objects/actions
+
+personnel/actions
+
+assignments/actions
+
+planning intelligence
+
+task codes
+
+forms
+
+filters
+
+schema exports
+
+migrations
+
+Fase 5 — Tenant-id normalisatie
+Zeer hoog risico.
+
+Waarom:
+
+veel schema’s
+
+veel migrations
+
+veel queries
+
+RLS
+
+storage
+
+PDFs
+
+PWA
+
+backoffice
+
+API
+
+Fase 6 — Platform-admin
+Middel tot hoog risico.
+
+Waarom:
+
+nieuwe routegroepen
+
+auth guards
+
+shared platform helpers
+
+tenant management
+
+module/sector/plan UI
+
+Fase 7 — Provisioning
+Middel risico.
+
+Waarom:
+
+raakt tenant, modules, plans, sectors, roles, invites
+
+veel integratiepunten
+
+Fase 8 — Portalen en branding
+Hoog risico.
+
+Waarom:
+
+backoffice
+
+klant-PWA
+
+personeel-PWA
+
+e-mail
+
+PDF
+
+organization settings
+
+tenant branding
+
+Fase 9–10
+Minder codeconflicten, maar meer deployment/config conflicten.
+
+Hoe voorkomen we dit?
+1. Eén harde base branch kiezen: staging
+Vanaf nu moet alles voor dit project gebaseerd zijn op:
+
+staging
+Niet op main.
+
+Werkregel:
+
+feature branch altijd vanaf actuele staging
+feature branch regelmatig updaten met staging
+PR altijd naar staging
+main alleen voor productie/promotie
+Dus:
+
+git checkout staging
+git pull
+git checkout -b feature/fieldgrid-modules-catalog
+Niet:
+
+git checkout main
+git checkout -b feature/...
+2. Maak een tijdelijke integratiebranch voor Fieldgrid
+Omdat dit een grote verbouwing is, zou ik niet direct alles los naar staging laten gaan.
+
+Maak bijvoorbeeld:
+
+fieldgrid/staging
+of:
+
+integration/fieldgrid-saas
+Flow:
+
+staging
+  └── integration/fieldgrid-saas
+        ├── feature/phase3-modules-schema
+        ├── feature/phase3-tenant-modules
+        ├── feature/phase3-plans
+        ├── feature/phase3-module-guards
+        └── feature/phase3-tests
+Dan merge je featurebranches eerst naar de integratiebranch. Pas als Fase 3 groen is, merge je één keer naar staging.
+
+Dat voorkomt dat half geïntegreerde Fase 3 PR’s staging vervuilen.
+
+Suggested task
+Maak Fieldgrid integratiebranch vanaf actuele staging
+
+Start task
+3. Per taak expliciete file ownership
+Elke agent moet vooraf exact weten welke files hij mag wijzigen.
+
+Bijvoorbeeld voor Fase 3:
+
+Taak	Eigenaar	Mag wijzigen
+3A modulecatalogus	Agent A	alleen modules schema, migration, seed
+3B tenant modules	Agent B	alleen tenant_modules schema, migration
+3C guards	Agent C	alleen module helper + guard callsites
+3D plans	Agent D	alleen plans schema, migration, seed
+3E tests	Agent E	alleen tests + test fixtures
+Maar in praktijk moeten sommige files gedeeld worden, zoals:
+
+lib/db/src/schema/index.ts
+lib/db/migrations/generated/meta/_journal.json
+package.json
+pnpm-lock.yaml
+Daarvoor moet je een integrator gebruiken.
+
+Werkregel:
+
+Agents maken nieuwe files.
+Integrator werkt gedeelde exports, package.json, lockfiles en migration journal bij.
+Suggested task
+Definieer file ownership-regels voor Fase 3+ agents
+
+Start task
+4. Serialiseer migraties
+Laat niet vijf agents tegelijk migrations genereren.
+
+Beter:
+
+Agent A maakt schema-ontwerp.
+
+Agent B maakt tweede schema-ontwerp.
+
+Integrator maakt één gecombineerde migration.
+
+Daarna pas query/helpers/UI.
+
+Voor Fase 3 betekent dat:
+
+Migration 1:
+- modules
+- module_dependencies
+- tenant_modules
+- plans
+- plan_modules
+- plan_limits
+- tenant_subscriptions
+Dus niet vijf losse migrations die allemaal metadata raken.
+
+Suggested task
+Maak één gecombineerde Fase 3 database migration
+
+Start task
+5. Eén integrator per fase
+Bij parallel agents heb je één persoon/agent nodig die alleen integreert.
+
+De integrator doet:
+
+branch updaten vanaf integration branch;
+
+PR’s samenvoegen;
+
+conflicts oplossen;
+
+lockfiles bijwerken;
+
+migrations ordenen;
+
+typecheck/test draaien;
+
+finale cleanup.
+
+Agents doen geen willekeurige merge van main.
+
+Suggested task
+Wijs per fase één integrator aan
+
+Start task
+6. Kleine PR’s, maar niet té onafhankelijk bij schemawerk
+Voor UI/components zijn kleine PR’s goed.
+
+Voor database/schema is het vaak beter om één coherent PR te maken.
+
+Fase 3 moet daarom niet zijn:
+
+PR 1 modules
+PR 2 module_dependencies
+PR 3 tenant_modules
+PR 4 plans
+PR 5 subscriptions
+Maar eerder:
+
+PR 1 fase 3 schema foundation
+PR 2 module guard helpers
+PR 3 plan/module seed + config
+PR 4 platform-admin UI later
+PR 5 tests
+Moeten we opnieuw analyseren vanaf Fase 3?
+Ja, maar niet vanaf nul
+Ik zou dit doen:
+
+Fase 0–2: niet opnieuw inhoudelijk ontwerpen, alleen rebaselinen/controleren.
+Fase 3: opnieuw opdelen en branch-technisch schoon opzetten.
+Fase 4+: taken aanpassen met betere file ownership.
+Dus:
+
+Actuele staging als waarheid nemen.
+
+Diff bekijken: wat uit Fase 1–2 zit al in staging?
+
+Fase 3 taken opnieuw maken op basis van actuele staging.
+
+Gedeelde schema/migration taken samenvoegen.
+
+UI/guards/tests pas daarna paralleliseren.
+
+Fase 4+ taaksets herzien vóór start.
+
+Suggested task
+Herbaseline Fase 3 vanaf actuele staging
+
+Start task
+Nieuwe Fase 3 taakindeling om conflicten te beperken
+Ik zou Fase 3 opnieuw indelen in deze volgorde.
+
+Fase 3.0 — Rebaseline
+Suggested task
+Fase 3.0 — Rebaseline en conflictanalyse
+
+Start task
+Fase 3.1 — Eén schema foundation PR
+Suggested task
+Fase 3.1 — Implementeer module en plan schema foundation
+
+Start task
+Fase 3.2 — Module seed en pakket seed
+Suggested task
+Fase 3.2 — Voeg module-, dependency- en planseeds toe
+
+Start task
+Fase 3.3 — Module guard helpers
+Suggested task
+Fase 3.3 — Bouw module guard helpers zonder brede integratie
+
+Start task
+Fase 3.4 — Guard integratie per modulegroep
+Niet alles tegelijk.
+
+Maak aparte PR’s per modulegroep.
+
+Suggested task
+Fase 3.4A — Integreer module guards voor customers en objects
+
+Start task
+Suggested task
+Fase 3.4B — Integreer module guards voor assignments en planning
+
+Start task
+Suggested task
+Fase 3.4C — Integreer module guards voor invoices, quotes en reports
+
+Start task
+Suggested task
+Fase 3.4D — Integreer module guards voor documents, tickets en news
+
+Start task
+Fase 3.5 — Platform-admin module/plan basis
+Suggested task
+Fase 3.5 — Bouw minimale platform-admin UI voor modules en plannen
+
+Start task
+Fase 3.6 — Fase 3 acceptance tests
+Suggested task
+Fase 3.6 — Voeg module en plan acceptance tests toe
+
+Start task
+Aanbevolen branch- en mergeflow vanaf nu
+Dagelijkse flow voor agents
+git checkout integration/fieldgrid-saas
+git pull
+git checkout -b feature/fieldgrid-phase3-module-guards
+# werk doen
+git commit
+git push
+# PR naar integration/fieldgrid-saas
+Niet naar main.
+
+Niet direct naar staging, behalve finale fase-integratie.
+
+Integrator flow
+git checkout integration/fieldgrid-saas
+git pull
+# merge PR's in volgorde
+pnpm install
+pnpm run typecheck
+pnpm test of specifieke tests
+# pas na groen:
+PR integration/fieldgrid-saas → staging
+Concrete aanbeveling voor jouw huidige situatie
+Ik zou nu dit doen:
+
+Stop tijdelijk met nieuwe Fase 3 merges naar staging.
+
+Maak een exacte inventaris van open Fase 3 branches/PR’s.
+
+Bepaal welke daarvan op main gebaseerd zijn.
+
+Maak integration/fieldgrid-saas vanaf actuele staging.
+
+Cherry-pick of rebase alleen schone Fase 3 commits.
+
+Maak één gecombineerde Fase 3 schema/migration PR.
+
+Daarna pas guards/UI/tests in kleinere PR’s.
+
+Niet alles weggooien. Maar wel Fase 3 opnieuw structureren.
+
+Antwoord op je vragen
+Is het omdat de branch tijdelijk op main stond?
+Waarschijnlijk ja, voor een belangrijk deel.
+Zeker als featurebranches vanaf main zijn gemaakt terwijl de uiteindelijke merge naar staging moest. De historie laat gemengde merges met main en staging zien.
+
+Gaan andere fases ook conflicten opleveren?
+Ja, waarschijnlijk wel, vooral Fase 4, 5 en 8, tenzij we nu branchstrategie, file ownership en migratievolgorde strak trekken.
+
+Hoe kan dit?
+Door een combinatie van:
+
+verkeerde of wisselende base branch;
+
+parallelle agents die dezelfde centrale files aanpassen;
+
+migrations die parallel ontstaan;
+
+schema exports en seeds die door meerdere taken tegelijk worden aangepast;
+
+lockfiles/package files die door meerdere taken tegelijk wijzigen;
+
+PR’s die niet via één integratiebranch lopen.
+
+Hoe voorkomen we dit?
+Met:
+
+één base branch: staging;
+
+één Fieldgrid integratiebranch;
+
+één integrator per fase;
+
+file ownership per agent;
+
+migrations serialiseren;
+
+schema foundation eerst;
+
+daarna pas guards/UI/tests parallel;
+
+kleine PR’s met duidelijke grenzen;
+
+dagelijks rebasen/mergen vanaf integratiebranch;
+
+geen main gebruiken voor Fieldgrid featurebranches.
+
+Moeten we opnieuw analyseren vanaf Fase 3?
+Ja, maar gericht.
+
+Niet het hele plan opnieuw. Wel:
+
+Fase 3 herbaselinen op actuele staging;
+
+taken opnieuw opdelen;
+
+migraties samenvoegen;
+
+file ownership vastleggen;
+
+open PR’s beoordelen op behoud/cherry-pick/rework.
+
+Gebruikte checks
+✅ git status --short --branch && git branch --show-current && git log --oneline --decorate --graph --all -n 30
+
+✅ git diff --stat staging...HEAD 2>/dev/null || true; git diff --stat main...HEAD 2>/dev/null || true; git merge-base --all staging HEAD 2>/dev/null || true; git merge-base --all main HEAD 2>/dev/null || true
+
+✅ git branch -vv --all | sed -n '1,120p'; git rev-parse --verify staging 2>/dev/null; git rev-parse --verify main 2>/dev/null; git rev-parse HEAD; git status --porcelain=v1
+
+✅ git remote -v; git show-ref --heads --tags | sed -n '1,80p'; git show --stat --oneline --decorate -n 1 HEAD
+
+Ik heb een idee, analyseer de huidige branches main/staging of ze gelijk zijn, bekijk diffs, analyseer oude commits en kom dan met een plan, om het te herstellen en tevens verder te gaan waarmee we bezig waren, in fases met losse taken, per fase mergen we dan, is dat een goed idee?
+
+Doe eerst de grondige analyse wat er gebeuren moet allemaal.
+Copy
+Analyse: ja, jouw idee is goed — maar eerst moeten we de Git-basis herstellen
+Je idee is goed:
+
+Eerst main/staging vergelijken, diffs en oude commits analyseren, daarna een herstelplan maken en vanaf een schone fase-indeling verdergaan.
+
+Alleen: in deze lokale workspace kan ik main en staging niet direct als branches vergelijken, omdat deze clone momenteel alleen een lokale branch work heeft. Er zijn hier lokaal géén refs voor main, staging of remotes zichtbaar. De actieve branch is work, en git remote -v geeft geen remote terug.
+
+Dat betekent:
+
+Ik kan de huidige lokale staat analyseren.
+
+Ik kan de commitgeschiedenis analyseren die in work zit.
+
+Ik kan zien dat er merges uit main en staging in de historie zitten.
+
+Maar ik kan niet betrouwbaar zeggen of remote main en remote staging op dit moment gelijk zijn, tenzij we de echte remote refs beschikbaar maken of op jouw machine/GitHub vergelijken.
+
+Toch is er genoeg zichtbaar om te concluderen dat de mergeconflicten logisch zijn ontstaan.
+
+1. Belangrijkste bevindingen
+1.1 Lokale repo heeft alleen branch work
+De huidige workspace staat op:
+
+## work
+work
+En lokaal is alleen deze ref aanwezig:
+
+refs/heads/work
+Er zijn in deze workspace dus geen lokale branches:
+
+main
+staging
+origin/main
+origin/staging
+Daardoor kan ik lokaal geen echte diff doen zoals:
+
+git diff main..staging
+git log main..staging
+git log staging..main
+Die refs bestaan hier niet.
+
+Conclusie: voordat we een definitieve main/staging-herstelanalyse doen, moeten we eerst de echte remote refs ophalen of op de machine werken waar main en staging wel bestaan.
+
+Suggested task
+Herstel lokale Git refs voor main en staging analyse
+View task
+1.2 De historie toont een gemengde main/staging workflow
+In de lokale commitgraph zie ik meerdere mergecommits zoals:
+
+Merge branch 'main' into feature/...
+Merge pull request #60 from veele-services/main
+Merge branch 'staging' into feature/...
+Merge pull request #48 from veele-services/staging
+Dat wijst erop dat featurebranches niet consistent vanaf één basisbranch kwamen.
+
+Een gezonde flow zou zijn:
+
+feature branch ← staging
+feature branch → staging
+staging → main bij release
+Maar wat zichtbaar is, lijkt meer op:
+
+feature branch ← main
+feature branch ← staging
+main → staging
+staging → feature
+feature → work/staging
+Dat is een recept voor conflicten, vooral als meerdere agents parallel centrale files aanpassen.
+
+1.3 Er zijn concrete sporen van parallelle conflictschade
+1.3.1 Dubbele test script entry in package.json
+In package.json staat het test script twee keer:
+
+"test": "node --test tests/*.test.mjs"
+Eerst op regel 13 en later opnieuw op regel 19. 
+
+Dat is een klassiek teken van parallelle merges of conflictresolutie waarbij beide wijzigingen zijn behouden.
+
+Dit is niet altijd direct fataal voor JSON-parsing, omdat de laatste duplicate key meestal wint, maar het is wel fout en moet opgeschoond worden.
+
+Suggested task
+Ruim dubbele package.json scripts op
+
+Start task
+1.3.2 Meerdere migrations met hetzelfde nummer 055
+Er bestaan meerdere migrations met prefix 055:
+
+055_tenant_domains.sql
+055_tenant_rbac_backfill.sql
+055_tenant_roles.sql
+055_tenant_scoped_rbac.sql
+Dat is een groot risico.
+
+Bij parallelle agenttaken is dit heel logisch: meerdere agents hebben onafhankelijk “de volgende migration” aangemaakt en allemaal nummer 055 gebruikt.
+
+Dit kan problemen veroorzaken bij:
+
+migratievolgorde;
+
+deployment;
+
+rollback;
+
+baseline-generatie;
+
+database inspectie;
+
+herhaald draaien op staging/productie;
+
+mergeconflicten.
+
+Suggested task
+Normaliseer dubbele 055 migrations naar eenduidige volgorde
+
+Start task
+1.3.3 schema/index.ts is een conflict-hotspot
+lib/db/src/schema/index.ts bevat centrale exports voor tenantdomains, tenantroles, tenant user roles, tenant role permissions en tenant RBAC. 
+
+Dit bestand wordt bij bijna elke database/schema-taak aangepast. Daardoor veroorzaakt het snel conflicten als meerdere agents parallel schema’s toevoegen.
+
+Suggested task
+Maak schema export ownership-regel voor lib/db/src/schema/index.ts
+
+Start task
+1.4 Fase 1 en Fase 2 zijn deels al in de historie aanwezig
+Uit de commitgeschiedenis en gewijzigde bestanden blijkt dat er al werk is gedaan voor:
+
+Fase 0-documentatie
+docs/fieldgrid-saas-masterplan.md
+
+docs/fieldgrid-branding-inventory.md
+
+docs/fieldgrid-data-classification.md
+
+docs/fieldgrid-cross-tenant-testmatrix.md
+
+docs/deployment/fieldgrid-vps-domain-plan.md
+
+Fase 1 tenant foundation
+lib/db/src/schema/tenant-domains.ts
+
+lib/db/migrations/055_tenant_domains.sql
+
+artifacts/backoffice/src/lib/auth/tenant-resolver.ts
+
+wijzigingen in tenant helper/layout/tenant switcher
+
+Fase 2 tenant-scoped RBAC
+lib/db/src/schema/tenant-roles.ts
+
+lib/db/src/schema/tenant-user-roles.ts
+
+lib/db/src/schema/tenant-role-permissions.ts
+
+lib/db/src/schema/tenant-rbac.ts
+
+lib/db/migrations/055_tenant_roles.sql
+
+lib/db/migrations/055_tenant_scoped_rbac.sql
+
+lib/db/migrations/055_tenant_rbac_backfill.sql
+
+artifacts/backoffice/src/lib/auth/permissions.ts
+
+artifacts/api-server/src/middleware/auth.ts
+
+role settings UI
+
+tests
+
+Dat betekent: we hoeven inhoudelijk niet terug naar nul, maar we moeten wel verifiëren welke delen correct op staging staan en welke door branchverwarring dubbel of inconsistent zijn geworden.
+
+2. Kunnen main en staging gelijk zijn?
+Op basis van deze lokale workspace kan ik dat niet definitief vaststellen, omdat er geen lokale refs voor main of staging bestaan.
+
+Maar de commitgraph laat wel zien dat:
+
+er meerdere PR’s uit main zijn gemerged;
+
+er meerdere PR’s uit staging zijn gemerged;
+
+featurebranches soms met main zijn bijgewerkt;
+
+featurebranches soms met staging zijn bijgewerkt;
+
+de huidige branch work vermoedelijk een samenvoeging van meerdere PR’s bevat.
+
+Dus zelfs als main en staging inmiddels weer gelijk zouden zijn, kan de schade al zitten in:
+
+duplicated scripts;
+
+duplicated migration numbering;
+
+conflicterende schemawijzigingen;
+
+featurebranches die op een oude base zijn ontstaan;
+
+PR’s die tegen verschillende bases zijn gemerged.
+
+3. Waarom Fase 3 nu extra riskant is
+Fase 3 gaat over:
+
+modules
+
+module dependencies
+
+tenant modules
+
+plans
+
+plan modules
+
+plan limits
+
+tenant subscriptions
+
+guards
+
+route-integratie
+
+tests
+
+Die raakt waarschijnlijk dezelfde hotspots als Fase 1/2:
+
+package.json
+pnpm-lock.yaml
+lib/db/src/schema/index.ts
+lib/db/migrations/*
+lib/db/src/schema/*
+lib/db/src/seed/*
+artifacts/backoffice/src/lib/auth/*
+artifacts/backoffice/src/app/(dashboard)/layout.tsx
+artifacts/backoffice/src/providers/*
+artifacts/api-server/src/middleware/*
+tests/*
+Daarom moeten we Fase 3 niet simpelweg verder laten lopen met parallelle losse branches.
+
+4. Mijn conclusie over je voorstel
+Is het een goed idee?
+Ja.
+
+Ik zou het zelfs noodzakelijk noemen.
+
+Maar ik zou het iets strakker formuleren:
+
+Maak eerst een herstel- en rebaselinefase. Vergelijk remote main en staging, bepaal welke Fieldgrid-commits waar zitten, herstel duplicaten/migrations/schema-inconsistenties, en ga daarna pas verder met Fase 3 via een integratiebranch.
+
+5. Herstelstrategie
+Stap 1 — Remote refs herstellen en main/staging vergelijken
+We moeten eerst zeker weten:
+
+Wat is actuele main?
+
+Wat is actuele staging?
+
+Zijn ze gelijk?
+
+Zo niet, welke commits zitten alleen in main?
+
+Welke commits zitten alleen in staging?
+
+Welke Fieldgrid commits zitten waar?
+
+Welke mergecommits hebben branchvervuiling veroorzaakt?
+
+Suggested task
+Analyseer remote main en staging verschillen
+
+Start task
+Stap 2 — Bepaal de waarheidbranch
+Voor dit project moet de waarheidbranch waarschijnlijk zijn:
+
+staging
+Want jij gaf aan dat je terug bent naar staging en dat staging de omgeving is waarheen gemerged moet worden.
+
+De aanbevolen flow wordt dan:
+
+feature/* → integration/fieldgrid-saas → staging → main
+Niet:
+
+feature/* → main → staging
+Suggested task
+Leg staging vast als Fieldgrid bronbranch
+
+Start task
+Stap 3 — Maak een integratiebranch
+Maak vanaf actuele staging:
+
+integration/fieldgrid-saas
+Daarop herstellen we Fase 0–2 en bouwen we Fase 3 verder.
+
+Suggested task
+Maak integration/fieldgrid-saas vanaf actuele staging
+
+Start task
+Stap 4 — Reconcile Fase 0–2
+We moeten bepalen welke Fase 0–2 commits al goed zijn, welke dubbel zijn, en welke gerepareerd moeten worden.
+
+Fase 0–2 verdachte punten:
+
+dubbele test script entry;
+
+meerdere 055 migrations;
+
+revert van platform-users;
+
+tenant-domains mogelijk in meerdere commits geraakt;
+
+tenant RBAC mogelijk verspreid over meerdere migrations;
+
+package/testwijzigingen mogelijk dubbel.
+
+Suggested task
+Reconcile Fase 0–2 Fieldgrid foundation
+
+Start task
+Stap 5 — Migration repair
+Dit is waarschijnlijk de belangrijkste technische reparatie.
+
+De vier 055_* migrations moeten beoordeeld worden.
+
+Er zijn twee scenario’s.
+
+Scenario A — nog niet toegepast op echte staging database
+Dan kun je hernummeren en samenvoegen.
+
+Aanbevolen:
+
+055_tenant_domains.sql
+056_tenant_roles.sql
+057_tenant_scoped_rbac.sql
+058_tenant_rbac_backfill.sql
+Of nog beter:
+
+055_fieldgrid_tenant_foundation.sql
+056_fieldgrid_tenant_rbac.sql
+Scenario B — al toegepast op staging database
+Dan mag je niet zomaar hernummeren, want de database migration history kan ze al kennen.
+
+Dan moet je:
+
+huidige files laten staan;
+
+een repair migration maken;
+
+documenteren dat numbering historisch rommelig is;
+
+zorgen dat nieuwe migrations vanaf 059 of hoger doorgaan.
+
+Suggested task
+Voer migration repair uit voor dubbele 055 Fieldgrid migrations
+
+Start task
+Stap 6 — Fase 3 opnieuw starten vanaf gerepareerde integratiebranch
+Pas als Fase 0–2 schoon zijn, start Fase 3.
+
+Niet verder met oude losse Fase 3 branches tenzij ze opnieuw gerebased/cherry-picked zijn.
+
+Suggested task
+Herstart Fase 3 vanaf gerepareerde integratiebranch
+
+Start task
+6. Verdergaan in fases met losse taken
+Ja, maar met een andere structuur dan eerder.
+
+Niet meer:
+
+5 agents werken allemaal tegelijk in migrations/schema/index/package
+Wel:
+
+Fase heeft integrator.
+Schema/migrations eerst.
+Daarna helpers.
+Daarna integratie per modulegroep.
+Daarna UI.
+Daarna tests.
+Dan één fase-merge naar staging.
+7. Nieuwe fase-indeling vanaf herstelpunt
+Herstelfase H — Git en foundation repair
+Doel: branches en Fase 0–2 betrouwbaar maken.
+
+Taken:
+
+Remote main/staging diffanalyse.
+
+Branchstrategie documenteren.
+
+Integratiebranch maken.
+
+Package.json cleanup.
+
+Migration repair.
+
+Fase 0–2 reconcile.
+
+Typecheck/test baseline.
+
+Suggested task
+Herstelfase H uitvoeren
+
+Start task
+Fase 3 — Modules en pakketten
+Fase 3.1 — Schema foundation
+Bevat:
+
+modules
+
+module_dependencies
+
+tenant_modules
+
+plans
+
+plan_modules
+
+plan_limits
+
+tenant_subscriptions
+
+optioneel tenant_limit_overrides
+
+Suggested task
+Fase 3.1 — Bouw module en plan schema foundation
+
+Start task
+Fase 3.2 — Seeds en defaults
+Suggested task
+Fase 3.2 — Seed modules, dependencies en plannen
+
+Start task
+Fase 3.3 — Module guards
+Suggested task
+Fase 3.3 — Bouw module guard helpers
+
+Start task
+Fase 3.4 — Integratie per modulegroep
+Suggested task
+Fase 3.4 — Integreer module guards per modulegroep
+
+Start task
+Fase 3.5 — Minimale platform-admin voor modules/plannen
+Suggested task
+Fase 3.5 — Bouw minimale platform-admin voor modules en plannen
+
+Start task
+Fase 3.6 — Fase acceptance
+Suggested task
+Fase 3.6 — Module en plan acceptance tests
+
+Start task
+Fase 4 — Sectoren en task codes
+Pas starten na Fase 3 merge naar staging.
+
+Structuur:
+
+tenant sectors schema
+
+sector guards
+
+integratie customers/objects/personnel
+
+integratie assignments/planning
+
+tenant task codes/prijzen
+
+UI single-sector
+
+tests
+
+fase-merge naar staging
+
+Suggested task
+Fase 4 voorbereiden met file ownership
+
+Start task
+Fase 5 — Tenant-id normalisatie en storage
+Pas starten na Fase 4 merge naar staging.
+
+Structuur:
+
+documents tenant_id
+
+invoices/quotes tenant_id
+
+reports/media tenant_id
+
+storage paths
+
+RLS repair
+
+audit logging
+
+tests
+
+fase-merge naar staging
+
+Suggested task
+Fase 5 voorbereiden met database-first aanpak
+
+Start task
+Fase 6 — Platform-admin
+Pas starten nadat modules, plans en sectoren stabiel zijn.
+
+Suggested task
+Fase 6 platform-admin opdelen in routegroepen
+
+Start task
+Fase 7 — Provisioning en onboarding
+Suggested task
+Fase 7 provisioning bouwen na stabilisatie platform-admin
+
+Start task
+Fase 8 — Portalen en branding
+Suggested task
+Fase 8 portalen en branding tenant-aware maken
+
+Start task
+8. Immediate risico’s die eerst opgelost moeten worden
+Risico 1 — Geen echte main/staging refs in deze workspace
+Zonder remote refs kun je niet betrouwbaar analyseren of main/staging gelijk zijn.
+
+Actie: remote fetch of analyse uitvoeren op omgeving met origin refs.
+
+Risico 2 — Duplicate test script
+package.json bevat test tweemaal. 
+
+Actie: opschonen.
+
+Risico 3 — Meerdere migrations met nummer 055
+Actie: bepalen of toegepast, daarna hernummeren of repair migration maken.
+
+Risico 4 — Node-versie in omgeving is te oud
+package.json vereist Node >=24.0.0 <25. 
+
+De huidige omgeving gebruikt Node v20.20.2, waardoor pnpm faalt op ontbrekende node:sqlite.
+
+Actie: analyse/build/test omgeving naar Node 24 brengen.
+
+Suggested task
+Zet CI/agent omgeving op Node 24 volgens package engines
+
+Start task
+9. Advies: niet direct verder bouwen
+Mijn advies is:
+
+Eerst Herstelfase H.
+Daarna Fase 3 opnieuw vanaf integration/fieldgrid-saas.
+Daarna per fase mergen naar staging.
+Niet doorgaan met bestaande Fase 3 branches tenzij ze opnieuw gecontroleerd en eventueel gecherry-pickt zijn.
+
+10. Concrete volgorde vanaf nu
+Stap 1 — Repository refs herstellen
+git remote -v
+git fetch origin --prune
+git branch -a -vv
+Stap 2 — main/staging vergelijken
+git log --oneline --left-right --cherry-pick origin/main...origin/staging
+git diff --stat origin/main...origin/staging
+git diff --name-status origin/main...origin/staging
+Stap 3 — Hersteldocument maken
+docs/fieldgrid-main-staging-diff-analysis.md
+docs/fieldgrid-phase0-2-reconcile.md
+docs/fieldgrid-migration-repair.md
+docs/fieldgrid-branching-strategy.md
+Stap 4 — Integratiebranch maken
+integration/fieldgrid-saas
+Stap 5 — Fase 0–2 repareren
+package cleanup
+
+migrations repair
+
+schema exports check
+
+tests/typecheck baseline
+
+Stap 6 — Fase 3 opnieuw opdelen
+schema foundation
+
+seeds
+
+guards
+
+integratie per modulegroep
+
+platform-admin minimaal
+
+tests
+
+Stap 7 — Fase 3 als geheel naar staging
+Pas daarna Fase 4.
+
+11. Antwoord op je vraag
+“Is dat een goed idee?”
+Ja. Het is precies wat nodig is.
+
+Maar het moet in deze volgorde:
+
+Eerst echte main/staging refs ophalen.
+
+Diffanalyse maken.
+
+Fase 0–2 reconcile doen.
+
+Migration/package/schema schade herstellen.
+
+Integratiebranch maken vanaf staging.
+
+Fase 3 opnieuw opknippen.
+
+Per fase mergen naar staging.
+
+Checks uitgevoerd
+✅ pwd; git status --short --branch; git branch --show-current; git remote -v; git branch -a -vv
+
+✅ git show-ref --heads --tags | sed -n '1,200p'; echo '--- refs all ---'; git for-each-ref --format='%(refname:short) %(objectname:short) %(committerdate:iso8601) %(subject)' refs/heads refs/remotes | sed -n '1,200p'
+
+✅ git log --oneline --decorate --graph --all -n 120
+
+✅ git log --merges --oneline --decorate --all -n 80; echo '--- non-merge recent ---'; git log --no-merges --oneline --decorate --all -n 80
+
+✅ git reflog --date=iso | sed -n '1,120p'
+
+✅ rg --files docs lib/db/src/schema lib/db/migrations artifacts/backoffice/src/lib artifacts/backoffice/src/app tests | rg 'fieldgrid|module|plan|tenant|role|permission|platform|domain' | sed -n '1,240p'
+
+✅ git show --name-status --oneline --no-renames f94e4c8 58b8953 61ebc83 70cc2f7 a4640fd 5a87872 bfe9850 c4ffac9 4e98dd6 106be2b 644c4a5 2987529 08ab4fa 3d1cc1b | sed -n '1,260p'
+
+✅ sed -n '1,220p' lib/db/src/schema/index.ts; printf '\n--- package ---\n'; sed -n '1,180p' package.json
+
+✅ nl -ba package.json | sed -n '1,60p'; printf '\n--- schema index ---\n'; nl -ba lib/db/src/schema/index.ts | sed -n '1,80p'; printf '\n--- migrations ---\n'; find lib/db/migrations -maxdepth 1 -type f -name '055*' -printf '%f\n' | sort
+
+⚠️ pnpm test — waarschuwing: faalt door omgeving, Node is v20.20.2 terwijl het project Node >=24.0.0 <25 vereist; pnpm crasht op ontbrekende built-in node:sqlite.
+
+⚠️ pnpm run typecheck — waarschuwing: zelfde Node-versieprobleem; pnpm kan niet starten door ontbrekende node:sqlite.
+
+Er zijn geen codewijzigingen gemaakt, dus er is geen commit of pull request aangemaakt.

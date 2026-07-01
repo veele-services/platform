@@ -1,0 +1,2456 @@
+Masterplan — Veele Services naar Fieldgrid multi-tenant SaaS-platform
+Op basis van je antwoorden is het doel nu duidelijk:
+
+Het bestaande Veele Services-platform wordt doorontwikkeld naar een extern multi-tenant SaaS-platform met de naam Fieldgrid, draaiend op dezelfde VPS, bereikbaar via fieldgrid.nl, met tenant-isolatie, module-toggles, sectorbeperkingen, pakketten, platform-admin, tenant-branding, klantportaal, personeelsapp en supportmogelijkheden voor jouw platformmedewerkers.
+
+Belangrijk uitgangspunt: Veele zelf wordt óók een tenant binnen Fieldgrid. Het overkoepelende platform is dus niet “Veele”, maar Fieldgrid. Veele Services is één van de bedrijven/tenants die Fieldgrid gebruikt.
+
+1. Vastgelegde productbesluiten
+1.1 SaaS-model
+Besluit:
+
+Het wordt een extern SaaS-platform.
+
+Meerdere bedrijven krijgen hun eigen omgeving.
+
+Veele Services wordt behandeld als gewone tenant.
+
+Platformbeheer/support gebeurt via aparte Fieldgrid-platformfunctionaliteit.
+
+Gevolg:
+
+De code, branding, URLs, e-mails en documentatie moeten geleidelijk van “Veele Services platform” naar “Fieldgrid platform” worden omgezet.
+
+Tenant-specifieke branding bepaalt daarna of een eindgebruiker “Veele Services”, “Bedrijf A” of een andere naam ziet.
+
+1.2 Domeinen en tenanttoegang
+Besluit:
+
+Hoofddomein: fieldgrid.nl.
+
+Platform draait op dezelfde VPS.
+
+Tenants krijgen eigen subdomain of domein.
+
+Tenant switcher is toegestaan.
+
+Klanten krijgen géén tenantkeuze.
+
+Klantlogin is altijd uniek binnen de tenant/context waarin klant inlogt.
+
+Aanbevolen domeinstructuur:
+
+fieldgrid.nl                  → marketing / landing / login-router
+app.fieldgrid.nl              → centrale backoffice login
+platform.fieldgrid.nl         → platform-admin
+veele.fieldgrid.nl            → Veele tenant backoffice/portalen
+tenant-a.fieldgrid.nl         → tenant A
+tenant-b.fieldgrid.nl         → tenant B
+klant.tenant-a.fieldgrid.nl   → optioneel later
+personeel.tenant-a.fieldgrid.nl → optioneel later
+Voor custom domains:
+
+portal.bedrijf.nl             → custom domain voor Enterprise
+1.3 Tenant-isolatie
+Besluit:
+
+Eén database, sterke tenant-isolatie.
+
+Applicatiechecks + RLS + storage policies + cross-tenant test suite.
+
+Overal expliciet tenant_id op gevoelige tabellen.
+
+Bestaande data wordt gemigreerd naar de Veele/default tenant.
+
+Dit sluit aan op de bestaande basis: er is al een tenants-tabel en tenant_users-koppeling aanwezig. 
+
+De huidige audits bevestigen dat kernentiteiten al grotendeels tenant-aware zijn, maar ook dat er restpunten zijn zoals documents, customer_types, RLS/storage-validatie en portal-isolatie. 
+
+1.4 Rollen en rechten
+Besluit:
+
+Eén gebruiker kan bij meerdere tenants horen.
+
+Rollen/rechten moeten per tenant kunnen verschillen.
+
+Tenant-admins mogen custom rollen beheren in hogere pakketten.
+
+Startset rollen:
+
+Eigenaar
+Management
+Administratie
+Planning
+Teamlead
+Medewerker
+Alleen-lezen
+Klantgebruiker
+Personeelsgebruiker
+Huidige RBAC-resources bestaan al voor modules zoals klanten, objecten, opdrachten, planning, personeel, rapportages, facturen, documenten, nieuws, taakcodes, instellingen, rollen en gebruikers. 
+
+Maar de huidige permission lookup is nog user-based en moet tenant-aware worden. 
+
+1.5 Modules
+Besluit:
+
+Alles wordt optioneel behalve:
+
+tenant core
+
+authenticatie
+
+instellingen
+
+gebruikersbeheer
+
+Module uit/aan is per tenant configureerbaar.
+
+Modulegedrag:
+
+Per module instelbaar of oude data verborgen wordt of read-only zichtbaar blijft.
+
+Module-afhankelijkheden worden hard afgedwongen.
+
+Module-toggles moeten server-side worden afgedwongen, niet alleen in navigatie.
+
+De bestaande route-permissies geven al een bruikbare eerste modulelijst: planning, opdrachten, klanten, objecten, personeel, rapportages, facturen, offertes, documenten, tickets en instellingen. 
+
+1.6 Sectoren
+Besluit:
+
+Sectoren blijven een globale platformcatalogus.
+
+Tenants krijgen één of meerdere sectoren toegewezen.
+
+Aantal sectoren is afhankelijk van pakket.
+
+Tenants kunnen tot exact één sector worden beperkt.
+
+Bij één sector wordt het sectorveld in de UI verborgen en automatisch ingevuld.
+
+Task codes zijn globale templates met tenant-overrides.
+
+Platform-admin kan op verzoek eenvoudig task codes toevoegen.
+
+Prijzen kunnen per tenant én sector verschillen.
+
+De huidige sectors-tabel is globaal en bevat nog geen tenant_id. 
+
+Task codes zijn nu centraal beheerd en sectorgekoppeld, maar nog niet tenant-configureerbaar. 
+
+1.7 Portalen en branding
+Besluit:
+
+Klantportaal per tenant aan/uit.
+
+Personeelsapp/PWA per tenant aan/uit.
+
+Tenant-branding:
+
+Starter: logo + bedrijfsnaam.
+
+Hogere pakketten: volledige branding.
+
+Custom domains voor Enterprise.
+
+Klantgebruiker kan bij meerdere klanten binnen één tenant horen.
+
+Klantgebruiker krijgt geen tenantkeuze.
+
+1.8 Pakketten, limieten en billing
+Besluit:
+
+Plannen en modulebundels worden meteen gemodelleerd.
+
+Automatische betaling komt nog niet; facturatie voorlopig handmatig.
+
+Limieten zijn configureerbaar in platform-admin.
+
+Startlimieten:
+
+backoffice gebruikers
+
+personeelsleden
+
+klanten
+
+opslagruimte
+
+sectoren
+
+modules
+
+1.9 Provisioning en onboarding
+Besluit:
+
+Eerst platform-super-admin provisioning.
+
+Later self-service signup.
+
+Onboarding wizard meteen bouwen.
+
+Tenant-aanmaak maakt default data aan afhankelijk van gekozen sectoren/modules.
+
+1.10 Support en audit
+Besluit:
+
+Fieldgrid-platformmedewerkers mogen supporttoegang krijgen volgens support-grant model.
+
+Veele is zelf een tenant en krijgt geen speciale platformrechten.
+
+Audit logs:
+
+Platform-admin ziet alles.
+
+Tenant-admin ziet beperkte eigen audit logs.
+
+Leesacties worden gelogd voor gevoelige downloads, niet voor alles.
+
+2. Doelarchitectuur Fieldgrid
+2.1 Platformlaag
+Fieldgrid Platform
+├── platform_users
+├── platform_support_grants
+├── tenants
+├── tenant_domains
+├── plans
+├── modules
+├── sectors
+├── task_code_templates
+├── billing/manual invoices metadata
+├── platform_audit_log
+└── provisioning jobs
+2.2 Tenantlaag
+Tenant
+├── tenant_users
+├── tenant_user_roles
+├── tenant_modules
+├── tenant_sectors
+├── tenant_task_codes
+├── tenant_task_code_prices
+├── tenant_subscription
+├── tenant_settings
+├── organization_settings
+├── customers
+├── objects
+├── personnel
+├── assignments
+├── reports
+├── quotes
+├── invoices
+├── documents
+├── notifications
+├── portal settings
+└── tenant_audit_log
+2.3 Request-flow
+Iedere request moet uiteindelijk dit pad volgen:
+
+1. Authenticate user
+2. Resolve host/domain/subdomain
+3. Resolve tenant
+4. Verify tenant active
+5. Verify tenant membership
+6. Verify module enabled
+7. Verify RBAC permission
+8. Verify sector entitlement
+9. Verify entity scope
+10. Execute action
+11. Audit if needed
+3. Belangrijk architectuurbesluit: Fieldgrid als platform, Veele als tenant
+Dit is een cruciale correctie op het bestaande model.
+
+Nu zitten er nog veel Veele-specifieke defaults in het platform, bijvoorbeeld in organisatie-instellingen en e-mailteksten. De huidige organization_settings bevat standaardwaarden en e-mailtemplatevelden die nu nog duidelijk vanuit Veele zijn ingestoken. 
+
+Voor Fieldgrid moet dit worden:
+
+Platform default branding: Fieldgrid
+Tenant branding: Veele Services, of ander bedrijf
+Concreet:
+
+Fieldgrid is de SaaS-laag.
+
+Veele is tenant veele.
+
+Tenant veele krijgt eigen organisatie-instellingen.
+
+Nieuwe tenants krijgen eigen organisatie-instellingen.
+
+E-mails mogen nooit hardcoded “Veele Services” tonen tenzij tenantbranding dat bepaalt.
+
+4. Masterplan in fase-tracks
+Je gaf aan dat er met meerdere agents tegelijk gewerkt mag worden, met 4 à 5 parallelle taken tegelijk. Daarom splits ik het masterplan op in tracks.
+
+Elke fase bevat:
+
+paralleliseerbare tracks
+
+volgorde
+
+afhankelijkheden
+
+acceptatiecriteria
+
+Fase 0 — Voorbereiding en veiligheidsbaseline
+Doel: zorgen dat we gecontroleerd kunnen refactoren zonder tenantlekken of onduidelijkheden.
+
+Track 0A — Fieldgrid naamgeving en platformbesluit vastleggen
+Taken
+Maak een technisch beslisdocument docs/fieldgrid-saas-masterplan.md.
+
+Leg vast:
+
+Fieldgrid is platform.
+
+Veele Services is tenant.
+
+Hoofddomein wordt fieldgrid.nl.
+
+Externe SaaS is doel.
+
+Inventariseer alle hardcoded “Veele Services”-teksten.
+
+Classificeer per tekst:
+
+platformnaam
+
+tenantnaam
+
+historische content
+
+documentatie
+
+e-mailtemplate
+
+Maak migratieplan voor branding.
+
+Acceptatiecriteria
+Er is één canoniek document voor Fieldgrid-besluiten.
+
+Alle Veele-hardcodings zijn geïnventariseerd.
+
+Er is onderscheid tussen platformbranding en tenantbranding.
+
+Track 0B — Database dataclassificatie
+Taken
+Maak tabelinventaris:
+
+tenantdata
+
+globale platformdata
+
+tenant-afgeleide data
+
+platform-only data
+
+Markeer tabellen zonder expliciet tenant_id.
+
+Markeer privacygevoelige tabellen.
+
+Markeer financiële tabellen.
+
+Markeer storage/media-tabellen.
+
+Maak migratievolgorde voor tenant_id.
+
+Belangrijk op basis van huidige audits
+De audit noemt al expliciet dat documents geen eigen tenant_id heeft en dat customer_types historisch deels globaal/niet-tenantgebonden is. 
+
+Acceptatiecriteria
+Elke tabel heeft classificatie.
+
+Elke gevoelige tabel heeft besluit: expliciet tenant-id of bewust globaal.
+
+Er ligt een migratievolgorde.
+
+Track 0C — Testbaseline
+Taken
+Maak testdata voor minimaal:
+
+Tenant Veele
+
+Tenant Demo A
+
+Tenant Demo B
+
+Maak cross-tenant testcases.
+
+Maak module-off testcases.
+
+Maak sector-restrictie testcases.
+
+Maak baseline CI-checks.
+
+Acceptatiecriteria
+Testset kan aantonen dat tenant A tenant B niet ziet.
+
+Testset kan aantonen dat module uit ook server-side blokkeert.
+
+Testset kan aantonen dat sector buiten entitlement faalt.
+
+Track 0D — VPS/deployment inventarisatie
+Taken
+Inventariseer huidige services op VPS.
+
+Bepaal poorten/processen voor:
+
+backoffice
+
+API-server
+
+klant-PWA
+
+personeel-PWA
+
+platform-admin
+
+Ontwerp domeinrouting voor fieldgrid.nl.
+
+Ontwerp staging/production hostnames.
+
+Bepaal rollbackstrategie.
+
+Acceptatiecriteria
+Er is een VPS deploymentplan.
+
+Fieldgrid hostnames zijn ontworpen.
+
+Geen conflict met bestaande Veele deployment.
+
+Fase 1 — Tenant-resolutie en platform-identiteit
+Doel: Fieldgrid kan tenants betrouwbaar herkennen via host/subdomain en tenant switcher.
+
+Track 1A — Tenant domains
+Nieuwe tabellen
+tenant_domains (
+  id uuid primary key,
+  tenant_id uuid not null references tenants(id),
+  domain text not null unique,
+  type text not null check (type in ('fieldgrid_subdomain', 'custom_domain')),
+  is_primary boolean not null default false,
+  verification_status text not null default 'pending',
+  verified_at timestamptz,
+  created_at timestamptz not null default now()
+)
+Taken
+Migratie toevoegen.
+
+Seed domein voor Veele:
+
+veele.fieldgrid.nl
+Seed platformdomain:
+
+platform.fieldgrid.nl
+Helper maken:
+
+resolveTenantByHost(host)
+
+requireTenantByHost(host)
+
+Tenant inactive/suspended checks toevoegen.
+
+Acceptatiecriteria
+Request op veele.fieldgrid.nl resolve’t naar Veele tenant.
+
+Request op onbekend subdomain faalt veilig.
+
+Custom domain kan later toegevoegd worden.
+
+Track 1B — Verwijderen/beperken default tenant fallback
+Huidige situatie
+Backoffice valt terug op DEFAULT_TENANT_ID als geen tenant-user gevonden wordt. 
+
+Taken
+Introduceer omgevingflag:
+
+ALLOW_DEFAULT_TENANT_FALLBACK=false
+In productie:
+
+geen tenant-user = geen toegang.
+
+In dev/staging:
+
+fallback alleen expliciet toegestaan.
+
+Logging toevoegen wanneer fallback gebruikt wordt.
+
+Tests toevoegen.
+
+Acceptatiecriteria
+Productie valt nooit stilzwijgend terug op default tenant.
+
+User zonder tenant krijgt 403 of tenantkeuzescherm.
+
+Bestaande development-flow kan desnoods tijdelijk blijven werken.
+
+Track 1C — Tenant switcher
+Taken
+Bouw tenant switcher voor gebruikers met meerdere tenants.
+
+Toon alleen actieve tenant memberships.
+
+Tenant switcher niet tonen voor klantportaalgebruikers.
+
+Tenantcontext opslaan in session/cookie.
+
+Host/subdomain blijft leidend als tenant expliciet uit host komt.
+
+Acceptatiecriteria
+Platformmedewerker kan tussen tenants wisselen.
+
+Tenantgebruiker met één tenant ziet geen switcher.
+
+Klantgebruiker krijgt nooit tenantkeuze.
+
+Track 1D — Platform-admin identity
+Taken
+Maak platform_users.
+
+Rollen:
+
+super_admin
+
+support
+
+billing_admin
+
+Maak requirePlatformRole.
+
+Blokkeer platformroutes voor tenant-only users.
+
+Veele tenant users krijgen géén platformrechten tenzij expliciet als Fieldgrid platform user toegevoegd.
+
+Acceptatiecriteria
+Platform-admin is gescheiden van tenant-admin.
+
+Veele is tenant, geen impliciete super-admin.
+
+Alleen platform_users kunnen platform-admin bereiken.
+
+Fase 2 — Tenant-scoped RBAC
+Doel: dezelfde user kan per tenant verschillende rollen en permissies hebben.
+
+Track 2A — Datamodel tenantrollen
+Nieuwe tabellen
+tenant_roles (
+  id uuid primary key,
+  tenant_id uuid references tenants(id),
+  name text not null,
+  description text,
+  is_system boolean not null default false,
+  is_custom boolean not null default false,
+  created_at timestamptz not null default now(),
+  unique (tenant_id, name)
+)
+
+tenant_role_permissions (
+  tenant_role_id uuid not null,
+  permission_id uuid not null,
+  primary key (tenant_role_id, permission_id)
+)
+
+tenant_user_roles (
+  tenant_id uuid not null,
+  user_id uuid not null,
+  tenant_role_id uuid not null,
+  primary key (tenant_id, user_id, tenant_role_id)
+)
+Taken
+Migraties maken.
+
+Bestaande rollen per tenant initialiseren.
+
+Veele bestaande users migreren.
+
+Globale rolstructuur als template behouden.
+
+Tenant custom rollen alleen toestaan bij pakketten die dat mogen.
+
+Acceptatiecriteria
+User kan in tenant A andere rol hebben dan tenant B.
+
+Bestaande Veele rollen blijven werken.
+
+Permission seeds blijven als templates bruikbaar.
+
+Track 2B — Permission helpers tenant-aware maken
+Huidige situatie
+API-permissies worden opgehaald per userId. 
+
+Taken
+Wijzig naar:
+
+getUserPermissions(userId, tenantId)
+Backoffice permission helper aanpassen.
+
+API middleware aanpassen.
+
+Client permissions provider aanpassen.
+
+Alle callsites updaten.
+
+Acceptatiecriteria
+Rechten zijn tenant-afhankelijk.
+
+User met Management in tenant A heeft niet automatisch Management in tenant B.
+
+Tests bewijzen dit.
+
+Track 2C — Startset rollen
+Startrollen
+Eigenaar
+Management
+Administratie
+Planning
+Teamlead
+Medewerker
+Alleen-lezen
+Klantgebruiker
+Personeelsgebruiker
+Taken
+Definieer permissiematrix.
+
+Seed per nieuwe tenant.
+
+Maak rolbeheer UI.
+
+Custom rollen alleen voor hogere pakketten.
+
+Platform-admin kan altijd tenantrollen herstellen/resetten.
+
+Acceptatiecriteria
+Nieuwe tenant krijgt correcte standaardrollen.
+
+Tenant-admin kan rollen beheren als pakket het toestaat.
+
+Starter kan geen custom rollen beheren als dat beperkt is.
+
+Fase 3 — Modules en pakketten
+Doel: modules per tenant aan/uit zetten, afhankelijk van pakket.
+
+Track 3A — Modulecatalogus
+Nieuwe tabellen
+modules (
+  key text primary key,
+  name text not null,
+  description text,
+  category text,
+  is_core boolean not null default false,
+  is_active boolean not null default true
+)
+
+module_dependencies (
+  module_key text not null references modules(key),
+  depends_on_module_key text not null references modules(key),
+  primary key (module_key, depends_on_module_key)
+)
+Startmodules
+dashboard
+customers
+objects
+assignments
+planning
+personnel
+reports
+quotes
+invoices
+documents
+tickets
+news
+task_codes
+customer_portal
+personnel_pwa
+notifications
+email_notifications
+push_notifications
+payment_reminders
+smart_planning
+availability
+hours
+qualifications
+Core modules:
+
+tenant_core
+auth
+settings
+users
+Acceptatiecriteria
+Modules zijn centraal gedefinieerd.
+
+Dependencies zijn hard vastgelegd.
+
+Core modules kunnen niet worden uitgezet.
+
+Track 3B — Tenant modules
+Nieuwe tabel
+tenant_modules (
+  id uuid primary key,
+  tenant_id uuid not null references tenants(id),
+  module_key text not null references modules(key),
+  is_enabled boolean not null default true,
+  visibility_when_disabled text not null default 'hidden',
+  config jsonb not null default '{}',
+  enabled_at timestamptz,
+  disabled_at timestamptz,
+  unique (tenant_id, module_key)
+)
+visibility_when_disabled:
+
+hidden
+read_only_history
+blocked
+Taken
+Migratie maken.
+
+Seed Veele met huidige modules aan.
+
+Module resolver maken.
+
+Module guard maken:
+
+requireTenantModule(tenantId, moduleKey)
+Dependency validator maken.
+
+Acceptatiecriteria
+Module uit blokkeert server-side.
+
+Module uit kan per module data verbergen of read-only maken.
+
+Afhankelijkheden voorkomen kapotte configuratie.
+
+Track 3C — Pakketten
+Plannen
+Gebruik startvoorstel:
+
+Starter
+Voor kleine bedrijven met één sector.
+
+1 sector
+
+basis klanten
+
+objecten optioneel
+
+opdrachten/werkbonnen
+
+documenten basis
+
+klantportaal optioneel
+
+logo + bedrijfsnaam branding
+
+beperkte gebruikers
+
+beperkte opslag
+
+geen custom rollen
+
+geen custom domain
+
+Professional
+Voor operationele dienstverleners.
+
+meerdere sectoren
+
+planning
+
+personeel
+
+personeelsapp
+
+rapportages
+
+offertes
+
+facturatie
+
+e-mailnotificaties
+
+volledige branding
+
+custom rollen optioneel
+
+meer opslag
+
+Enterprise
+Voor grotere organisaties.
+
+alle modules
+
+custom domain
+
+advanced branding
+
+support grants
+
+audit logs uitgebreid
+
+custom limieten
+
+slimme planning
+
+API/custom integrations later
+
+platform-admin configurable overrides
+
+Nieuwe tabellen
+plans (
+  key text primary key,
+  name text not null,
+  description text,
+  is_active boolean not null default true
+)
+
+plan_modules (
+  plan_key text not null references plans(key),
+  module_key text not null references modules(key),
+  default_enabled boolean not null default true,
+  primary key (plan_key, module_key)
+)
+
+plan_limits (
+  plan_key text not null references plans(key),
+  limit_key text not null,
+  default_value integer,
+  is_configurable boolean not null default true,
+  primary key (plan_key, limit_key)
+)
+
+tenant_subscriptions (
+  id uuid primary key,
+  tenant_id uuid not null references tenants(id),
+  plan_key text not null references plans(key),
+  status text not null,
+  starts_at timestamptz not null default now(),
+  ends_at timestamptz
+)
+Acceptatiecriteria
+Nieuwe tenant krijgt modules op basis van plan.
+
+Limieten zijn platform-admin configureerbaar.
+
+Handmatige facturatie wordt ondersteund zonder betaalprovider.
+
+Track 3D — Module guards integreren
+Integratiepunten
+Backoffice pages.
+
+Server actions.
+
+API routes.
+
+Klantportaal actions.
+
+Personeelsapp actions.
+
+Background jobs.
+
+PDF-routes.
+
+Navigatie.
+
+Acceptatiecriteria
+Route verborgen én server-side geblokkeerd.
+
+Directe URL naar uitgeschakelde module werkt niet.
+
+API-call naar uitgeschakelde module werkt niet.
+
+Background jobs verwerken module niet als module uit staat.
+
+Fase 4 — Sector-entitlements en task code overrides
+Doel: tenants beperken tot één of meerdere sectoren en task codes/prijzen tenant-specifiek maken.
+
+Track 4A — Tenant sectors
+Nieuwe tabel
+tenant_sectors (
+  id uuid primary key,
+  tenant_id uuid not null references tenants(id),
+  sector_id uuid not null references sectors(id),
+  is_enabled boolean not null default true,
+  is_primary boolean not null default false,
+  created_at timestamptz not null default now(),
+  unique (tenant_id, sector_id)
+)
+Nieuwe policy/config
+tenant_sector_settings (
+  tenant_id uuid primary key references tenants(id),
+  mode text not null check (mode in ('single', 'multiple')),
+  max_sectors integer,
+  default_sector_id uuid,
+  enforce_sector_scope boolean not null default true
+)
+Acceptatiecriteria
+Starter kan max 1 sector hebben.
+
+Professional/Enterprise kunnen meerdere sectoren hebben.
+
+Eén-sector tenant ziet geen sector dropdown.
+
+Track 4B — Sector guards
+Helpers
+getAllowedSectors(tenantId)
+requireAllowedSector(tenantId, sectorId)
+getDefaultSectorForTenant(tenantId)
+Integratiepunten
+Customer create/update.
+
+Object create/update.
+
+Personnel create/update.
+
+Assignment create/update.
+
+Task code activation.
+
+Planning intelligence.
+
+Filters/lijsten.
+
+Imports/seeds.
+
+Acceptatiecriteria
+Tenant kan geen data met niet-toegestane sector aanmaken.
+
+Sectorwijziging buiten entitlement faalt.
+
+Single-sector tenant krijgt automatisch sector.
+
+Track 4C — Tenant task codes
+Huidige situatie
+Task codes zijn centraal en sectorgekoppeld. 
+
+Nieuwe tabellen
+tenant_task_codes (
+  id uuid primary key,
+  tenant_id uuid not null references tenants(id),
+  task_code_id uuid not null references task_codes(id),
+  sector_id uuid not null references sectors(id),
+  is_enabled boolean not null default true,
+  name_override text,
+  description_override text,
+  duration_minutes_override integer,
+  photo_required_override boolean,
+  report_required_override boolean,
+  invoiceable_override boolean,
+  created_at timestamptz not null default now(),
+  unique (tenant_id, task_code_id)
+)
+
+tenant_task_code_prices (
+  id uuid primary key,
+  tenant_task_code_id uuid not null references tenant_task_codes(id),
+  sector_id uuid references sectors(id),
+  price numeric(10,2),
+  valid_from date,
+  valid_until date
+)
+Platform-admin taken
+Globale task code templates beheren.
+
+Task code toevoegen op verzoek.
+
+Task code activeren voor tenant.
+
+Tenant prijs/sector overrides beheren.
+
+Acceptatiecriteria
+Platform-admin kan task code toevoegen.
+
+Tenant krijgt alleen task codes binnen toegestane sectoren.
+
+Prijs kan per tenant én sector verschillen.
+
+Historische facturen behouden oude prijs.
+
+Fase 5 — Tenant-id normalisatie en storage hardening
+Doel: gevoelige data direct tenant-scoped maken.
+
+Track 5A — Documents tenant-id
+De audit noemt documents expliciet als structureel restpunt. 
+
+Taken
+Voeg tenant_id toe aan documents.
+
+Backfill via gekoppelde entiteit.
+
+Maak tenant_id not null waar mogelijk.
+
+Update documentqueries.
+
+Update RLS.
+
+Update storage paths.
+
+Acceptatiecriteria
+Elk document heeft tenant.
+
+Cross-tenant document-ID toegang faalt.
+
+Storage path bevat tenant-id.
+
+Track 5B — Financiële en workflowtabellen tenant-id
+De security-audit noemt invoices, quotes, reports en taak/mediaregels als tabellen die niet overal eigen tenant_id hebben maar via relaties worden gescoped. 
+
+Taken
+Voeg tenant_id toe aan:
+
+invoices
+
+quotes
+
+reports
+
+payment batches/items
+
+report attachments
+
+assignment photos
+
+assignment notes
+
+Backfill via customer/assignment.
+
+Indexen toevoegen.
+
+Queries aanpassen.
+
+RLS aanpassen.
+
+Acceptatiecriteria
+Financiële data is direct tenant-scoped.
+
+Rapportages zijn direct tenant-scoped.
+
+Attachments/media zijn tenant-scoped.
+
+Geen query vertrouwt alleen op technische ID.
+
+Track 5C — Storage policies
+Taken
+Tenant-prefix afdwingen:
+
+tenant/{tenant_id}/...
+Upload helpers aanpassen.
+
+Signed URL helpers tenant-aware maken.
+
+Storage policies controleren.
+
+Cross-tenant storage tests toevoegen.
+
+Acceptatiecriteria
+Tenant A kan geen tenant B storage object lezen.
+
+Direct object path raden werkt niet.
+
+Signed URLs worden alleen na tenant/entity-check uitgegeven.
+
+Track 5D — Audit logs
+Taken
+Voeg tenant_id toe aan audit logs waar relevant.
+
+Splits platform audit en tenant audit.
+
+Log gevoelige downloads.
+
+Log support access.
+
+Log module/sector/plan wijzigingen.
+
+Acceptatiecriteria
+Platform-admin ziet platformbrede logs.
+
+Tenant-admin ziet beperkte tenantlogs.
+
+Gevoelige downloads worden gelogd.
+
+Fase 6 — Platform-admin
+Doel: Fieldgrid kunnen beheren als SaaS.
+
+Track 6A — Platform-admin shell
+Routes:
+
+/platform
+/platform/tenants
+/platform/tenants/:id
+/platform/modules
+/platform/sectors
+/platform/task-codes
+/platform/plans
+/platform/support
+/platform/audit
+Taken
+Platform layout.
+
+Platform auth guard.
+
+Navigatie.
+
+Tenant overzicht.
+
+Tenant detail.
+
+Acceptatiecriteria
+Alleen platform users kunnen platform-admin bereiken.
+
+Tenant-users krijgen geen toegang.
+
+Veele is zichtbaar als tenant.
+
+Track 6B — Tenantbeheer
+Functionaliteit
+Tenant aanmaken.
+
+Tenant activeren/deactiveren.
+
+Tenant suspenden.
+
+Tenant archiveren.
+
+Domeinen beheren.
+
+Plan wijzigen.
+
+Limieten wijzigen.
+
+Modules beheren.
+
+Sectoren beheren.
+
+Branding bekijken/wijzigen.
+
+Acceptatiecriteria
+Platform-admin kan tenant volledig configureren.
+
+Wijzigingen worden geaudit.
+
+Module/sector dependencies worden afgedwongen.
+
+Track 6C — Support grants
+Functionaliteit
+Support toegang aanvragen/verlenen.
+
+Support toegang beperken in tijd.
+
+Support sessie starten.
+
+Support sessie loggen.
+
+Support toegang intrekken.
+
+Acceptatiecriteria
+Support kan alleen met geldige grant tenant bekijken.
+
+Alle supportacties worden geaudit.
+
+Tenant-admin kan support access status zien.
+
+Track 6D — Plan/limietbeheer
+Functionaliteit
+Plannen beheren.
+
+Plan-modules beheren.
+
+Plan-limieten beheren.
+
+Tenant overrides beheren.
+
+Usage bekijken.
+
+Acceptatiecriteria
+Alles configureerbaar in platform-admin.
+
+Handmatige facturatie wordt ondersteund.
+
+Geen automatische betaalprovider nodig.
+
+Fase 7 — Tenant onboarding wizard
+Doel: nieuwe tenant snel en consistent inrichten.
+
+Wizardstappen
+1. Bedrijfsgegevens
+2. Domein/subdomain
+3. Pakket kiezen
+4. Sector(en) kiezen
+5. Modules bevestigen
+6. Branding instellen
+7. Eigenaar/admin uitnodigen
+8. Task code templates activeren
+9. Eerste klant/object optioneel
+10. Controle en activeren
+Track 7A — Provisioning service
+Taken
+Transactionele tenant creation service.
+
+Rollback bij fouten.
+
+Default organization settings.
+
+Default tenant settings.
+
+Default modules uit plan.
+
+Default sector settings.
+
+Default roles.
+
+Owner invite.
+
+Audit event.
+
+Acceptatiecriteria
+Nieuwe tenant is na wizard direct bruikbaar.
+
+Geen half aangemaakte tenant bij fout.
+
+Provisioning log is zichtbaar.
+
+Track 7B — Onboarding UI
+Taken
+Wizard UI.
+
+Validatie per stap.
+
+Preview configuratie.
+
+Final create.
+
+Success page.
+
+Uitnodiging eigenaar.
+
+Acceptatiecriteria
+Platform-admin kan tenant zonder SQL aanmaken.
+
+Sector/module/plan keuzes werken.
+
+Tenant owner krijgt invite.
+
+Track 7C — Tenant first-run wizard
+Voor tenant-owner na eerste login:
+
+Bedrijfsgegevens controleren.
+
+Logo uploaden.
+
+Gebruikers uitnodigen.
+
+Eerste klant aanmaken.
+
+Eerste opdracht aanmaken.
+
+Acceptatiecriteria
+Tenant-owner krijgt duidelijke onboarding.
+
+Wizard respecteert modules en sectoren.
+
+Starter ziet alleen starter-opties.
+
+Fase 8 — Portalen en branding
+Doel: klantportaal en personeelsapp volledig tenant-aware en brandbaar maken.
+
+Track 8A — Branding model
+Uitbreiding
+Starter:
+
+logo
+
+bedrijfsnaam
+
+Professional/Enterprise:
+
+primaire kleur
+
+accentkleur
+
+e-mailtemplate
+
+portal theme
+
+favicon
+
+login background
+
+custom domain
+
+Taken
+Branding config structureren.
+
+Branding resolver per tenant.
+
+CSS/theme variables.
+
+E-mail templates tenant-aware.
+
+PDF branding tenant-aware.
+
+Acceptatiecriteria
+Tenant ziet eigen logo/naam.
+
+Starter is beperkt.
+
+Pro/Enterprise volledige branding.
+
+Track 8B — Klantportaal tenant-aware
+Taken
+Tenant resolve via host.
+
+Klantlogin binnen tenant.
+
+Geen tenantkeuze.
+
+Customer user kan meerdere klanten binnen tenant zien.
+
+Module guards voor klantportaalmodules.
+
+Branding toepassen.
+
+Acceptatiecriteria
+Klant van tenant A kan nooit tenant B zien.
+
+Klant krijgt geen tenant switcher.
+
+Uitgeschakelde klantportaalmodule is onbereikbaar.
+
+Track 8C — Personeelsapp tenant-aware
+Taken
+Tenant resolve via host.
+
+Personnel user binnen tenant.
+
+Module guards.
+
+Sector restrictions.
+
+Branding.
+
+Push/email tenant-aware.
+
+Acceptatiecriteria
+Personeel ziet alleen eigen tenant.
+
+Personeelsapp kan per tenant uit.
+
+Notificaties volgen tenant instellingen.
+
+Fase 9 — Deployment naar Fieldgrid VPS-setup
+Doel: Fieldgrid draait op dezelfde VPS met correcte domeinen.
+
+Track 9A — Domein en reverse proxy
+Taken
+DNS voor fieldgrid.nl.
+
+DNS wildcard *.fieldgrid.nl.
+
+Reverse proxy config.
+
+TLS certificaten.
+
+Platform-admin host.
+
+App host.
+
+Tenant wildcard host.
+
+Acceptatiecriteria
+fieldgrid.nl werkt.
+
+platform.fieldgrid.nl werkt.
+
+veele.fieldgrid.nl werkt.
+
+Wildcard subdomains resolve’n correct.
+
+Track 9B — Environment variables
+Taken
+Platform URL’s.
+
+Tenant URL base.
+
+Supabase redirect URLs.
+
+Mail domain config.
+
+App names naar Fieldgrid.
+
+Feature flags.
+
+Acceptatiecriteria
+Login redirects werken per host.
+
+E-mails linken naar juiste tenantdomain.
+
+Geen oude Veele platformlinks in Fieldgrid-context.
+
+Track 9C — Staging en rollback
+Taken
+staging.fieldgrid.nl.
+
+platform-staging.fieldgrid.nl.
+
+Staging tenant.
+
+Smoke tests.
+
+Rollback script.
+
+Database backup flow.
+
+Acceptatiecriteria
+Iedere fase kan op staging getest worden.
+
+Productie rollback is beschreven.
+
+Database backup vóór migraties.
+
+Fase 10 — Acceptatie, security audit en go-live
+Track 10A — Cross-tenant security suite
+Testmatrix
+Tenant A user vs Tenant B data
+Tenant A customer vs Tenant B customer portal
+Tenant A personnel vs Tenant B assignments
+Tenant A document direct ID access
+Tenant A storage object path guessing
+Tenant A invoice PDF route with Tenant B ID
+Tenant A disabled module direct URL
+Tenant A disabled sector create/update
+Acceptatiecriteria
+Alle cross-tenant tests slagen.
+
+Geen direct-ID datalek.
+
+Geen storage datalek.
+
+Track 10B — Module/sector acceptance
+Tests
+Starter met één sector.
+
+Professional met meerdere sectoren.
+
+Enterprise met custom domain.
+
+Module facturatie uit.
+
+Module planning uit.
+
+Klantportaal uit.
+
+Personeelsapp uit.
+
+Historische data read-only module.
+
+Acceptatiecriteria
+Modulegedrag klopt per configuratie.
+
+Sectorveld verborgen bij single-sector.
+
+Platform-admin kan configuratie wijzigen.
+
+Track 10C — Operational readiness
+Checklist
+Backups.
+
+Monitoring.
+
+Error logging.
+
+Audit logging.
+
+Support access.
+
+Tenant provisioning.
+
+Incident rollback.
+
+DNS/TLS.
+
+Mail deliverability.
+
+Documentation.
+
+Acceptatiecriteria
+Fieldgrid kan eerste externe tenant onboarden.
+
+Supportproces is duidelijk.
+
+Platform-admin kan zonder developer nieuwe tenant aanmaken.
+
+5. Parallelle uitvoeringsplanning met 4–5 taken tegelijk
+Hieronder staat een praktische volgorde waarin meerdere agents parallel kunnen werken.
+
+Sprint 1 — Foundation & audit
+Parallel:
+
+Agent A: Dataclassificatie en tenant-id migratieplan.
+
+Agent B: Tenant domain/resolver ontwerp.
+
+Agent C: Fieldgrid branding inventarisatie.
+
+Agent D: Testbaseline cross-tenant.
+
+Agent E: VPS/domein deploymentplan.
+
+Output:
+
+Definitief technisch Fieldgrid foundation document.
+
+Tabellenlijst met risico’s.
+
+Eerste testmatrix.
+
+Domein/deploymentplan.
+
+Sprint 2 — Tenant resolver & platform users
+Parallel:
+
+Agent A: tenant_domains migratie + resolver.
+
+Agent B: default tenant fallback beperken.
+
+Agent C: platform_users + platform auth guard.
+
+Agent D: tenant switcher.
+
+Agent E: tests voor tenant resolution.
+
+Output:
+
+Host-based tenant resolution.
+
+Platform-admin basisguard.
+
+Geen stille default fallback in productie.
+
+Sprint 3 — Tenant-scoped RBAC
+Parallel:
+
+Agent A: tenant role datamodel.
+
+Agent B: migratie bestaande rollen/users.
+
+Agent C: backoffice permission helpers tenant-aware.
+
+Agent D: API permission middleware tenant-aware.
+
+Agent E: permission tests.
+
+Output:
+
+Rollen per tenant.
+
+User kan verschillende rollen per tenant hebben.
+
+RBAC lekt niet cross-tenant.
+
+Sprint 4 — Modules & plans
+Parallel:
+
+Agent A: modulecatalogus + dependencies.
+
+Agent B: tenant_modules + guards.
+
+Agent C: plans/plan_modules/plan_limits.
+
+Agent D: platform-admin module UI.
+
+Agent E: module-off route/action/API tests.
+
+Output:
+
+Modules per tenant aan/uit.
+
+Starter/Professional/Enterprise basis.
+
+Module guards server-side.
+
+Sprint 5 — Sectoren & task codes
+Parallel:
+
+Agent A: tenant_sectors + sector settings.
+
+Agent B: sector guards in customers/objects/personnel.
+
+Agent C: sector guards in assignments/planning.
+
+Agent D: tenant_task_codes + price overrides.
+
+Agent E: single-sector UI aanpassingen.
+
+Output:
+
+Single-sector tenants werken.
+
+Multi-sector tenants werken.
+
+Task codes/prijzen per tenant/sector.
+
+Sprint 6 — Tenant-id normalisatie
+Parallel:
+
+Agent A: documents tenant-id + storage paths.
+
+Agent B: invoices/quotes tenant-id.
+
+Agent C: reports/media tenant-id.
+
+Agent D: audit/notifications tenant-id.
+
+Agent E: RLS/storage policies + tests.
+
+Output:
+
+Gevoelige data expliciet tenant-scoped.
+
+Storage tenant-safe.
+
+Cross-tenant tests slagen.
+
+Sprint 7 — Platform-admin
+Parallel:
+
+Agent A: platform-admin shell/routes.
+
+Agent B: tenantbeheer UI.
+
+Agent C: module/sector beheer UI.
+
+Agent D: plan/limiet beheer UI.
+
+Agent E: support grants/audit UI.
+
+Output:
+
+Fieldgrid platform-admin bruikbaar.
+
+Nieuwe tenants configureerbaar.
+
+Support toegang geaudit.
+
+Sprint 8 — Provisioning & onboarding
+Parallel:
+
+Agent A: provisioning service.
+
+Agent B: onboarding wizard platform-admin.
+
+Agent C: tenant first-run wizard.
+
+Agent D: invite owner flow.
+
+Agent E: provisioning tests/rollback.
+
+Output:
+
+Nieuwe tenant zonder SQL aanmaken.
+
+Tenant krijgt modules, sectoren, rollen, owner.
+
+Wizard werkt.
+
+Sprint 9 — Portalen & branding
+Parallel:
+
+Agent A: tenant branding resolver.
+
+Agent B: klantportaal tenant-aware + branding.
+
+Agent C: personeelsapp tenant-aware + branding.
+
+Agent D: e-mails/PDF’s tenant-branded.
+
+Agent E: custom domain voorbereiding.
+
+Output:
+
+Klantportaal multi-tenant.
+
+Personeelsapp multi-tenant.
+
+Branding per pakket.
+
+Sprint 10 — Fieldgrid deployment & go-live
+Parallel:
+
+Agent A: reverse proxy/DNS/TLS.
+
+Agent B: Supabase redirect URLs/auth config.
+
+Agent C: staging smoke tests.
+
+Agent D: production migration checklist.
+
+Agent E: security acceptance suite.
+
+Output:
+
+Fieldgrid draait op VPS.
+
+fieldgrid.nl en subdomains werken.
+
+Veele draait als tenant.
+
+Eerste externe tenant kan live.
+
+6. Concrete eerste technische taken
+Als we nu echt starten, zou ik beginnen met deze vijf taken.
+
+Taak 1 — Maak Fieldgrid SaaS beslisdocument
+Bestand:
+
+docs/fieldgrid-saas-masterplan.md
+Inhoud:
+
+alle besluiten uit jouw antwoorden
+
+domeinmodel
+
+tenantmodel
+
+modules
+
+sectoren
+
+pakketten
+
+fasering
+
+Taak 2 — Maak dataclassificatie per tabel
+Bestand:
+
+docs/fieldgrid-data-classification.md
+Kolommen:
+
+table
+domain
+tenant_id currently present
+target tenant strategy
+contains PII
+contains financial data
+contains files/storage
+module dependency
+migration priority
+Taak 3 — Ontwerp en implementeer tenant_domains
+Eerste echte migratie:
+
+tenant_domains
+Met seeds:
+
+veele.fieldgrid.nl
+platform.fieldgrid.nl
+Taak 4 — Beperk default tenant fallback
+Aanpassen van backoffice tenant helper zodat productie nooit stilzwijgend naar default tenant valt.
+
+Huidige helper valt terug op DEFAULT_TENANT_ID. 
+
+Taak 5 — Maak cross-tenant testbasis
+Minimaal:
+
+Tenant Veele
+Tenant Demo A
+Tenant Demo B
+User A only tenant A
+User B only tenant B
+Support user
+Multi-tenant user
+Customer user tenant A
+Personnel user tenant A
+7. Belangrijke ontwerpregels voor alle agents
+Deze regels moeten in elke taak gelden.
+
+7.1 Nooit alleen op technische ID vertrouwen
+Fout:
+
+where(eq(customers.id, customerId))
+Goed:
+
+where(and(
+  eq(customers.id, customerId),
+  eq(customers.tenantId, tenantId)
+))
+Dit sluit aan op het doel uit de bestaande tenant-audit: bedrijfsdata mag nooit alleen op technische id worden gelezen of gewijzigd. 
+
+7.2 Altijd tenant → module → permission → sector → entity
+Elke server action/API route moet dezelfde volgorde gebruiken:
+
+requireAuth()
+requireTenant()
+requireActiveTenant()
+requireTenantModule()
+requirePermission()
+requireAllowedSector()
+requireEntityInTenant()
+7.3 Module uit is server-side uit
+Navigatie verbergen is niet genoeg.
+
+Elke module moet geblokkeerd worden in:
+
+routes
+
+server actions
+
+API endpoints
+
+background jobs
+
+PDF routes
+
+PWA actions
+
+7.4 Sectorbeperking is harde businessregel
+Als tenant één sector heeft:
+
+UI verbergt sectorveld.
+
+Backend vult default sector.
+
+Backend blokkeert andere sectoren.
+
+Import/API kan dit niet omzeilen.
+
+7.5 Veele is tenant, Fieldgrid is platform
+Nooit meer aannemen:
+
+platform = Veele
+Altijd:
+
+platform = Fieldgrid
+tenant = Veele Services of ander bedrijf
+8. Acceptatiecriteria voor MVP Fieldgrid SaaS
+De MVP is klaar als dit werkt:
+
+Tenant
+Platform-admin kan tenant aanmaken.
+
+Tenant heeft domein/subdomain.
+
+Tenant heeft plan.
+
+Tenant heeft modules.
+
+Tenant heeft sectoren.
+
+Tenant heeft owner.
+
+Tenant kan suspended/gearchiveerd worden.
+
+Security
+User van tenant A kan tenant B niet zien.
+
+Klant van tenant A kan tenant B niet zien.
+
+Personeel van tenant A kan tenant B niet zien.
+
+Storage is tenant-safe.
+
+Direct ID guessing faalt.
+
+RLS/storage checks zijn getest.
+
+Modules
+Modules kunnen per tenant aan/uit.
+
+Uitgeschakelde modules zijn server-side geblokkeerd.
+
+Historische zichtbaarheid is per module instelbaar.
+
+Sectoren
+Starter kan één sector.
+
+UI verbergt sectorveld bij één sector.
+
+Backend blokkeert andere sectoren.
+
+Task codes volgen tenant-sectoren.
+
+Pakketten
+Starter, Professional en Enterprise bestaan.
+
+Limieten zijn configureerbaar.
+
+Handmatige facturatie is mogelijk.
+
+Platform-admin
+Platform-admin kan tenants beheren.
+
+Platform-admin kan modules/sectoren/plannen beheren.
+
+Support grants worden geaudit.
+
+Branding
+Starter heeft logo + naam.
+
+Professional/Enterprise volledige branding.
+
+E-mails/PDF’s gebruiken tenantbranding.
+
+Deployment
+fieldgrid.nl werkt.
+
+platform.fieldgrid.nl werkt.
+
+veele.fieldgrid.nl werkt.
+
+Same VPS deployment is stabiel.
+
+9. Samenvattende roadmap
+Fase 0: Beslisdocument, dataclassificatie, testbaseline, VPS-plan
+Fase 1: Tenant domains, tenant resolver, platform users, tenant switcher
+Fase 2: Tenant-scoped RBAC
+Fase 3: Modules, dependencies, plans, limits
+Fase 4: Tenant sectors, single-sector mode, task code/pricing overrides
+Fase 5: Tenant-id normalisatie, storage/RLS hardening
+Fase 6: Platform-admin
+Fase 7: Provisioning + onboarding wizard
+Fase 8: Klantportaal, personeelsapp, branding
+Fase 9: Fieldgrid deployment op VPS
+Fase 10: Security audit, acceptatie, go-live
+10. Mijn advies voor de eerstvolgende stap
+Ik zou nu niet direct in code beginnen met modules of sectoren. De juiste eerste stap is:
+
+Fieldgrid SaaS masterplan-document aanmaken.
+
+Dataclassificatie maken.
+
+Tenant domain/resolver ontwerpen en bouwen.
+
+Default tenant fallback in productie verwijderen.
+
+Cross-tenant testbasis bouwen.
+
+Daarmee voorkom je dat er later features bovenop een onveilige of onduidelijke tenantbasis worden gebouwd.
+
+Geen codewijzigingen
+Ik heb in deze stap geen repositorywijzigingen gemaakt, dus er is geen commit en geen pull request aangemaakt.
+
+Gebruikte onderbouwing uit bestaande codebase
+Het huidige tenantmodel bestaat uit tenants en tenant_users. 
+
+De backoffice tenant helper gebruikt momenteel nog een fallback naar DEFAULT_TENANT_ID, wat voor SaaS-productie moet worden beperkt of verwijderd. 
+
+De API heeft al een strenger tenant-scope patroon via requireTenantScope. 
+
+De bestaande RBAC-seed bevat al moduleachtige resources en acties. 
+
+De bestaande route-permissies geven een eerste module-indeling voor de backoffice. 
+
+Sectoren zijn nu globaal en niet tenant-specifiek. 
+
+Task codes zijn nu centraal beheerd en sectorgekoppeld, maar nog niet tenant-configureerbaar. 
+
+De bestaande tenant-audit benoemt dat tenant-aware query’s nodig zijn en noemt restpunten zoals documents, customer_types, RLS/storage-validatie en portal-isolatie. 
+
+Zet bovenstaande om in een plan, maak taken aan volgens jouw trackvolgorde. Laten we dit in een keer goed opzetten.
+Copy
+Fieldgrid SaaS Masterplan — taken volgens trackvolgorde
+Hieronder staat het uitvoerbare masterplan als taakbacklog. Ik heb de taken gegroepeerd per fase en track, met telkens 4–5 parallel uitvoerbare taken. Dit is bedoeld als werkvoorraad voor meerdere agents/ontwikkelaars.
+
+Belangrijk uitgangspunt:
+
+Fieldgrid wordt het overkoepelende SaaS-platform op fieldgrid.nl.
+Veele Services wordt één tenant binnen Fieldgrid.
+Het platform krijgt sterke tenant-isolatie, module-toggles, sectorbeperkingen, pakketten, platform-admin en tenant-branding.
+
+Fase 0 — Foundation, besluitvorming en auditbasis
+Track 0A — Leg het Fieldgrid SaaS-besluit canoniek vast
+Maak één centraal document waarin alle product- en architectuurbesluiten staan: Fieldgrid als platform, Veele als tenant, fieldgrid.nl als hoofddomein, externe SaaS als doel, sterke tenant-isolatie, module-toggles, sector-entitlements, pakketten en platform-admin.
+
+Suggested task
+Maak canoniek Fieldgrid SaaS-masterplandocument
+
+Start task
+Track 0B — Inventariseer hardcoded Veele-branding
+Zoek alle plekken waar “Veele”, “Veele Services”, oude domeinen, e-mailteksten, PDF-teksten of platformbranding hardcoded staan. Classificeer of ze platformbranding, tenantbranding, historische data of documentatie zijn.
+
+Suggested task
+Inventariseer hardcoded Veele-branding en domeinverwijzingen
+
+Start task
+Track 0C — Maak volledige dataclassificatie per tabel
+Breng alle databasetabellen in kaart en bepaal of ze globaal, tenant-scoped, platform-only of tenant-afgeleid zijn. Markeer privacygevoelige en financiële tabellen.
+
+Suggested task
+Maak dataclassificatie voor alle database-tabellen
+
+Start task
+Track 0D — Maak cross-tenant testmatrix
+Ontwerp een testmatrix met minimaal drie tenants: Veele, Demo A en Demo B. Definieer testgebruikers voor tenant-admins, support, klanten en personeel.
+
+Suggested task
+Ontwerp cross-tenant security testmatrix
+
+Start task
+Track 0E — Ontwerp VPS- en domeinrouting voor Fieldgrid
+Maak een deploymentplan voor fieldgrid.nl, wildcard subdomains, platform-admin, app, klantportaal en personeelsapp op dezelfde VPS.
+
+Suggested task
+Ontwerp Fieldgrid VPS-, DNS- en reverse-proxyplan
+
+Start task
+Fase 1 — Tenant-resolutie en platformidentiteit
+Track 1A — Voeg tenant domains toe
+Introduceer tenant_domains, zodat tenants via subdomain of custom domain opgelost kunnen worden.
+
+Suggested task
+Voeg tenant_domains tabel en schema toe
+
+Start task
+Track 1B — Bouw tenant resolver op basis van host
+Maak een centrale resolver die op basis van host/subdomain de tenant bepaalt.
+
+Suggested task
+Implementeer centrale tenant resolver op basis van hostname
+
+Start task
+Track 1C — Beperk default tenant fallback
+De huidige backoffice helper valt terug op DEFAULT_TENANT_ID. Dat moet in productie verdwijnen of expliciet achter een development flag komen.
+
+Suggested task
+Verwijder stille DEFAULT_TENANT_ID fallback in productie
+
+Start task
+Track 1D — Maak tenant switcher
+Gebruikers met meerdere tenants moeten kunnen wisselen. Klantgebruikers mogen nooit tenantkeuze krijgen.
+
+Suggested task
+Bouw tenant switcher voor multi-tenant backofficegebruikers
+
+Start task
+Track 1E — Introduceer platform users
+Platform-admins zijn apart van tenant-users. Veele is een tenant en krijgt niet automatisch platformrechten.
+
+Suggested task
+Introduceer platform_users en platform auth guard
+
+Start task
+Fase 2 — Tenant-scoped RBAC
+Track 2A — Maak tenantrollen datamodel
+Rollen moeten per tenant verschillen. Een gebruiker kan in tenant A Management zijn en in tenant B Alleen-lezen.
+
+Suggested task
+Voeg tenant-scoped rollen en role-permissions toe
+
+Start task
+Track 2B — Migreer bestaande rollen naar tenantrollen
+De bestaande globale rollen en permissions moeten als templates dienen voor tenantrollen.
+
+Suggested task
+Migreer bestaande RBAC-rollen naar tenant-scoped rollen
+
+Start task
+Track 2C — Maak permission helpers tenant-aware
+De huidige permission helpers halen permissies op per user. Dit moet per user én tenant.
+
+Suggested task
+Maak backoffice en API permission helpers tenant-aware
+
+Start task
+Track 2D — Bouw tenant role management UI
+Tenant-admins moeten rollen kunnen beheren als hun pakket dat toestaat.
+
+Suggested task
+Bouw tenant role management UI met pakketbeperking
+
+Start task
+Track 2E — Test tenant-scoped RBAC
+Bewijs dat rollen niet meer globaal lekken.
+
+Suggested task
+Voeg tests toe voor tenant-scoped RBAC
+
+Start task
+Fase 3 — Modules, module-afhankelijkheden en pakketten
+Track 3A — Maak modulecatalogus
+Modules moeten eerste-klas platformobjecten worden.
+
+Suggested task
+Voeg modules en module_dependencies toe
+
+Start task
+Track 3B — Maak tenant_modules
+Per tenant moeten modules aan/uit kunnen, inclusief gedrag voor historische data.
+
+Suggested task
+Voeg tenant_modules met moduleconfiguratie toe
+
+Start task
+Track 3C — Bouw module guard
+Elke route, action, API en worker moet server-side moduletoegang afdwingen.
+
+Suggested task
+Implementeer requireTenantModule en module guard helpers
+
+Start task
+Track 3D — Maak pakketten en limieten
+Starter, Professional en Enterprise worden de eerste pakketten. Alles moet later configureerbaar zijn in platform-admin.
+
+Suggested task
+Voeg plans, plan_modules, plan_limits en tenant_subscriptions toe
+
+Start task
+Track 3E — Integreer module-afhankelijkheden
+Planning mag bijvoorbeeld niet aan zonder opdrachten en personeel. Facturatie vereist klanten/opdrachten. Klantportaal vereist klanten.
+
+Suggested task
+Implementeer harde module-afhankelijkheden
+
+Start task
+Fase 4 — Sector-entitlements en task code overrides
+Track 4A — Voeg tenant_sectors toe
+Sectoren blijven globaal, maar tenants krijgen toegewezen sectoren.
+
+Suggested task
+Voeg tenant_sectors en tenant_sector_settings toe
+
+Start task
+Track 4B — Bouw sector guard helpers
+Elke create/update met sector moet valideren dat de sector voor tenant toegestaan is.
+
+Suggested task
+Implementeer tenant sector guard helpers
+
+Start task
+Track 4C — Integreer sectorbeperking in kernmodules
+Customers, objects, personnel en assignments moeten sectorregels afdwingen.
+
+Suggested task
+Integreer sectorbeperking in customers, objects, personnel en assignments
+
+Start task
+Track 4D — Bouw single-sector UI gedrag
+Bij tenants met één sector moet het sectorveld verborgen worden en automatisch ingevuld.
+
+Suggested task
+Pas UI aan voor single-sector tenants
+
+Start task
+Track 4E — Maak tenant task code overrides en prijzen
+Task codes blijven globale templates, maar tenants kunnen activeren/deactiveren en prijzen/config overschrijven.
+
+Suggested task
+Voeg tenant_task_codes en tenant_task_code_prices toe
+
+Start task
+Fase 5 — Tenant-id normalisatie en storage hardening
+Track 5A — Voeg tenant_id toe aan documents
+Documenten zijn een bekend restpunt. Ze moeten expliciet tenant-scoped worden.
+
+Suggested task
+Voeg tenant_id toe aan documents en migreer bestaande documentdata
+
+Start task
+Track 5B — Voeg tenant_id toe aan financiële tabellen
+Facturen en offertes moeten direct tenant-scoped worden.
+
+Suggested task
+Voeg tenant_id toe aan invoices, quotes en payment-tabellen
+
+Start task
+Track 5C — Voeg tenant_id toe aan rapportage en media
+Rapporten, foto’s, notities en bijlagen moeten direct tenant-scoped zijn.
+
+Suggested task
+Voeg tenant_id toe aan reports, assignment media en attachments
+
+Start task
+Track 5D — Maak storage tenant-prefixed
+Alle tenantbestanden moeten onder tenant-prefix opgeslagen worden.
+
+Suggested task
+Maak storage paths tenant-prefixed en update uploadhelpers
+
+Start task
+Track 5E — Verhard RLS en audit
+RLS blijft defense-in-depth, maar moet tenant-, customer- en personnel-scope blijven afdwingen. Gevoelige downloads moeten gelogd worden.
+
+Suggested task
+Verhard RLS en audit logging voor tenantdata
+
+Start task
+Fase 6 — Platform-admin
+Track 6A — Bouw platform-admin shell
+Maak een aparte platform-admin omgeving voor Fieldgrid.
+
+Suggested task
+Bouw platform-admin shell en routing
+
+Start task
+Track 6B — Bouw tenantbeheer in platform-admin
+Platform-admin moet tenants volledig kunnen beheren.
+
+Suggested task
+Bouw platform-admin tenantbeheer
+
+Start task
+Track 6C — Bouw module- en sectorbeheer
+Platform-admin moet modules en sectoren per tenant kunnen beheren.
+
+Suggested task
+Bouw platform-admin module- en sectorbeheer
+
+Start task
+Track 6D — Bouw plan- en limietbeheer
+Limieten zijn configureerbaar in platform-admin.
+
+Suggested task
+Bouw platform-admin plan- en limietbeheer
+
+Start task
+Track 6E — Bouw support grants
+Fieldgrid-platformsupport mag meekijken met tenanttoegang op basis van grants en audit.
+
+Suggested task
+Bouw support grants en support audit
+
+Start task
+Fase 7 — Provisioning en onboarding wizard
+Track 7A — Bouw provisioning service
+Nieuwe tenants moeten zonder SQL aangemaakt kunnen worden.
+
+Suggested task
+Bouw transactionele tenant provisioning service
+
+Start task
+Track 7B — Bouw platform-admin onboarding wizard
+Platform-admin moet nieuwe tenants via wizard kunnen aanmaken.
+
+Suggested task
+Bouw platform-admin tenant onboarding wizard
+
+Start task
+Track 7C — Bouw tenant first-run wizard
+Na eerste login moet tenant-owner basisinrichting kunnen afronden.
+
+Suggested task
+Bouw tenant first-run wizard voor tenant-owner
+
+Start task
+Track 7D — Bouw invite owner flow
+Nieuwe tenant-owner moet veilig uitgenodigd worden.
+
+Suggested task
+Bouw tenant owner invite flow
+
+Start task
+Track 7E — Test provisioning end-to-end
+Provisioning moet betrouwbaar zijn.
+
+Suggested task
+Voeg end-to-end tests toe voor tenant provisioning
+
+Start task
+Fase 8 — Portalen, branding en custom domains
+Track 8A — Bouw tenant branding resolver
+Branding moet per tenant bepaald worden.
+
+Suggested task
+Bouw tenant branding resolver en brandingconfiguratie
+
+Start task
+Track 8B — Maak klantportaal volledig tenant-aware
+Klantlogin is uniek per tenant en krijgt geen tenantkeuze.
+
+Suggested task
+Maak klantportaal tenant-aware en module-aware
+
+Start task
+Track 8C — Maak personeelsapp volledig tenant-aware
+Personeelsapp moet per tenant aan/uit kunnen en tenantbranding tonen.
+
+Suggested task
+Maak personeelsapp tenant-aware en module-aware
+
+Start task
+Track 8D — Maak e-mails en PDF’s tenant-branded
+E-mails en PDF’s mogen geen hardcoded Veele-platformbranding gebruiken.
+
+Suggested task
+Maak e-mails en PDF’s tenant-branded
+
+Start task
+Track 8E — Bereid custom domains voor Enterprise voor
+Enterprise tenants moeten eigen domeinen kunnen gebruiken.
+
+Suggested task
+Voeg custom domain beheer en verificatiestatus toe
+
+Start task
+Fase 9 — Fieldgrid deployment op dezelfde VPS
+Track 9A — Configureer DNS en reverse proxy
+Fieldgrid moet op dezelfde VPS draaien met correcte domeinrouting.
+
+Suggested task
+Configureer DNS en reverse proxy voor fieldgrid.nl
+
+Start task
+Track 9B — Update environment variables
+Alle URL’s, redirect URLs en app-namen moeten Fieldgrid-aware worden.
+
+Suggested task
+Update environment variables voor Fieldgrid domeinen
+
+Start task
+Track 9C — Maak stagingomgeving voor Fieldgrid
+Voor productie moet staging op Fieldgrid-domeinen werken.
+
+Suggested task
+Maak Fieldgrid staging deployment en smoke tests
+
+Start task
+Track 9D — Maak productie migratiechecklist
+Go-live mag niet zonder checklist.
+
+Suggested task
+Maak productie migratie- en rollbackchecklist
+
+Start task
+Track 9E — Monitor en logging gereedmaken
+Voor SaaS moet je foutmeldingen en audit kunnen volgen.
+
+Suggested task
+Maak Fieldgrid monitoring en operationele logging gereed
+
+Start task
+Fase 10 — Acceptatie, security en go-live
+Track 10A — Cross-tenant security acceptance
+Voer de volledige cross-tenant suite uit.
+
+Suggested task
+Voer cross-tenant security acceptance suite uit
+
+Start task
+Track 10B — Module acceptance
+Controleer dat module toggles overal werken.
+
+Suggested task
+Voer module toggle acceptance tests uit
+
+Start task
+Track 10C — Sector acceptance
+Controleer single-sector en multi-sector tenants.
+
+Suggested task
+Voer sector entitlement acceptance tests uit
+
+Start task
+Track 10D — Platform-admin acceptance
+Controleer dat platform-admin Fieldgrid echt kan beheren.
+
+Suggested task
+Voer platform-admin acceptance tests uit
+
+Start task
+Track 10E — Go-live readiness
+Maak de definitieve go-live beslissing.
+
+Suggested task
+Maak Fieldgrid go-live readiness review
+
+Start task
+Aanbevolen eerste batch voor 4–5 parallelle agents
+Start niet meteen met codewijzigingen in modules en sectoren. Begin met de basis, anders bouw je op onstabiele tenantfundering.
+
+Batch 1 — direct starten
+Fieldgrid SaaS-masterplandocument maken.
+
+Brandinginventarisatie doen.
+
+Dataclassificatie maken.
+
+Cross-tenant testmatrix ontwerpen.
+
+VPS/domeinroutingplan maken.
+
+Deze vijf kunnen volledig parallel lopen.
+
+Batch 2 — daarna
+tenant_domains toevoegen.
+
+Tenant resolver bouwen.
+
+Default tenant fallback beperken.
+
+Platform users introduceren.
+
+Tenant switcher bouwen.
+
+Batch 3 — daarna
+Tenant-scoped rollen datamodel.
+
+RBAC-migratie.
+
+Permission helpers tenant-aware maken.
+
+Role management UI.
+
+Tenant RBAC tests.
+
+Batch 4 — daarna
+Modulecatalogus.
+
+Tenant modules.
+
+Module guards.
+
+Plans en limits.
+
+Module dependencies.
+
+Batch 5 — daarna
+Tenant sectors.
+
+Sector guards.
+
+Sectorintegratie in kernmodules.
+
+Single-sector UI.
+
+Tenant task codes en prijzen.
+
+Belangrijkste volgorde-afhankelijkheden
+tenant_domains
+  → tenant resolver
+  → default fallback verwijderen
+  → tenant-scoped RBAC
+  → modules
+  → sectoren
+  → tenant_id normalisatie
+  → platform-admin
+  → provisioning
+  → portalen/branding
+  → deployment
+  → go-live
+Je kunt veel parallel doen, maar deze keten moet inhoudelijk gerespecteerd worden.
+
+Definitie van “in één keer goed opgezet”
+Het platform is goed opgezet als deze principes overal gelden:
+
+Fieldgrid is platform, Veele is tenant.
+
+Geen productie-fallback naar default tenant.
+
+Elke request heeft expliciete tenantcontext.
+
+Rollen zijn tenant-scoped.
+
+Modules worden server-side afgedwongen.
+
+Sectoren worden server-side afgedwongen.
+
+Gevoelige tabellen hebben expliciet tenant_id.
+
+Storage is tenant-prefixed.
+
+Platform-admin is gescheiden van tenant-admin.
+
+Supporttoegang is tijdelijk en geaudit.
+
+Provisioning is transactioneel en herhaalbaar.
+
+Cross-tenant tests zijn verplicht voor go-live.
+
+Checks
+Geen repositorycommando’s uitgevoerd in deze stap; dit was een plannings- en taakuitwerking zonder codewijzigingen.
+
+Notes
+Ik heb geen bestanden aangepast, geen commit gemaakt en geen pull request aangemaakt.
