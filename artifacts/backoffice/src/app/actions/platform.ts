@@ -107,7 +107,7 @@ export async function upsertPlatformUser(input: {
 }
 
 export async function listSupportAccessGrants(): Promise<SupportAccessGrantRow[]> {
-  await requirePlatformSupportUser();
+  await requirePlatformAdmin();
 
   const rows = await db
     .select({
