@@ -38,6 +38,20 @@ Stagingbeleid: staging-data behouden; geen rebuild, drop of reset.
 - Platform/support-toegang moet expliciet, tenant-scoped en auditbaar zijn.
 - Tenant switcher mag een host-resolved tenant nooit overschrijven.
 
+## Platform-admin bootstrap
+
+Platform-admins worden niet automatisch door migraties aangemaakt. Na migreren moet minimaal een bestaande Supabase Auth user expliciet als platform owner worden gebootstrapt:
+
+```bash
+PLATFORM_OWNER_USER_IDS=<supabase-user-uuid> pnpm --filter @workspace/db run seed:platform-users
+```
+
+Optioneel kunnen extra admins/supportgebruikers worden gezet met:
+
+```bash
+PLATFORM_ADMIN_USER_IDS=<uuid-1>,<uuid-2> PLATFORM_SUPPORT_USER_IDS=<uuid-3> pnpm --filter @workspace/db run seed:platform-users
+```
+
 ## Minimale validatie voor staging
 
 - Install met de repo-versies van Node en pnpm.
