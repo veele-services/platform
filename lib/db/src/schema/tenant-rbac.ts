@@ -8,6 +8,8 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
+import { createInsertSchema } from "drizzle-zod";
+import { z } from "zod/v4";
 import { permissionsTable } from "./permissions";
 import { rolesTable } from "./roles";
 import { DEFAULT_TENANT_ID, tenantsTable } from "./tenants";
@@ -24,6 +26,7 @@ export const tenantRolesTable = pgTable(
     name: varchar("name", { length: 100 }).notNull(),
     description: text("description"),
     isSystem: boolean("is_system").notNull().default(false),
+    isCustom: boolean("is_custom").notNull().default(false),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
@@ -77,6 +80,13 @@ export const tenantUserRolesTable = pgTable(
   ],
 );
 
+export const insertTenantRoleSchema = createInsertSchema(tenantRolesTable).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export type InsertTenantRole = z.infer<typeof insertTenantRoleSchema>;
 export type TenantRole = typeof tenantRolesTable.$inferSelect;
 export type TenantRolePermission = typeof tenantRolePermissionsTable.$inferSelect;
 export type TenantUserRole = typeof tenantUserRolesTable.$inferSelect;
