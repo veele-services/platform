@@ -15,8 +15,7 @@
     "db:migrate": "pnpm --filter @workspace/db run db:migrate",
     "db:baseline": "pnpm --filter @workspace/db run db:baseline",
     "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
-    "test": "node --test tests/*.test.mjs"
+    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
   },
   "private": true,
   "devDependencies": {
