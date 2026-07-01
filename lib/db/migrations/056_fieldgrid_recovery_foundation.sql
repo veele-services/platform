@@ -143,6 +143,23 @@ BEGIN
   IF EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_name = 'tenant_role_permissions' AND column_name = 'role_id'
+  ) THEN
+    ALTER TABLE tenant_role_permissions ALTER COLUMN role_id DROP NOT NULL;
+  END IF;
+
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'tenant_role_permissions' AND column_name = 'tenant_id'
+  ) THEN
+    ALTER TABLE tenant_role_permissions ALTER COLUMN tenant_id DROP NOT NULL;
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'tenant_role_permissions' AND column_name = 'role_id'
   ) AND EXISTS (
     SELECT 1 FROM information_schema.columns
     WHERE table_name = 'tenant_role_permissions' AND column_name = 'tenant_id'
@@ -192,6 +209,16 @@ ALTER TABLE tenant_user_roles ADD COLUMN IF NOT EXISTS tenant_role_id uuid REFER
 ALTER TABLE tenant_user_roles ADD COLUMN IF NOT EXISTS source_user_role_id uuid;
 ALTER TABLE tenant_user_roles ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT now() NOT NULL;
 ALTER TABLE tenant_user_roles ALTER COLUMN tenant_id SET DEFAULT '00000000-0000-0000-0000-000000000010';
+
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_name = 'tenant_user_roles' AND column_name = 'role_id'
+  ) THEN
+    ALTER TABLE tenant_user_roles ALTER COLUMN role_id DROP NOT NULL;
+  END IF;
+END $$;
 
 DO $$
 BEGIN
