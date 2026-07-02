@@ -3,7 +3,7 @@ export const dynamic = "force-dynamic";
 import { DEFAULT_TENANT_ID } from "@workspace/db";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getUserPermissions, getUserRoles } from "@/lib/auth/permissions";
+import { getEffectiveUserPermissions, getUserRoles } from "@/lib/auth/permissions";
 import { PermissionsProvider } from "@/providers/permissions-provider";
 import { SidebarProvider } from "@/providers/sidebar-provider";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -41,7 +41,7 @@ export default async function DashboardLayout({
   const tenantId = currentTenantId ?? tenantOptions[0]?.id ?? DEFAULT_TENANT_ID;
 
   const [permissions, roles] = await Promise.all([
-    getUserPermissions(user.id, tenantId),
+    getEffectiveUserPermissions(user.id, tenantId),
     getUserRoles(user.id, tenantId),
   ]);
 
