@@ -1,5 +1,6 @@
 "use server";
 
+import { getCurrentPortalTenantId } from "@/lib/auth/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@workspace/db";
 import { customerUsersTable, customersTable, customerTypesTable } from "@workspace/db";
@@ -42,6 +43,9 @@ export async function getMyCustomerIdentity(): Promise<CustomerIdentity | null> 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) return null;
 
+  const tenantId = await getCurrentPortalTenantId();
+  if (!tenantId) return null;
+
   const email = user.email.toLowerCase();
 
   const [linked] = await db
@@ -59,7 +63,9 @@ export async function getMyCustomerIdentity(): Promise<CustomerIdentity | null> 
     .innerJoin(customersTable, eq(customersTable.id, customerUsersTable.customerId))
     .where(
       and(
+        eq(customerUsersTable.tenantId, tenantId),
         eq(customerUsersTable.status, "active"),
+        eq(customersTable.tenantId, tenantId),
         eq(customersTable.tenantId, customerUsersTable.tenantId),
         or(
           eq(customerUsersTable.userId, user.id),
@@ -77,12 +83,18 @@ export async function getMyCustomerIdentity(): Promise<CustomerIdentity | null> 
       await db
         .update(customerUsersTable)
         .set({ userId: user.id, lastLoginAt: new Date() })
-        .where(and(eq(customerUsersTable.id, linked.id), isNull(customerUsersTable.userId)));
+        .where(
+          and(
+            eq(customerUsersTable.id, linked.id),
+            eq(customerUsersTable.tenantId, tenantId),
+            isNull(customerUsersTable.userId),
+          ),
+        );
     } else {
       await db
         .update(customerUsersTable)
         .set({ lastLoginAt: new Date() })
-        .where(eq(customerUsersTable.id, linked.id));
+        .where(and(eq(customerUsersTable.id, linked.id), eq(customerUsersTable.tenantId, tenantId)));
     }
 
     const linkedName = [linked.firstName, linked.lastName].filter(Boolean).join(" ").trim();
