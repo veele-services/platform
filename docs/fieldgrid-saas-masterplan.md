@@ -41,6 +41,8 @@ Tenant resolver en tenant switcher:
 - `tenant_domains` bestaat in schema en migraties.
 - Backoffice heeft host-first resolver in `artifacts/backoffice/src/lib/auth/tenant-resolver.ts`.
 - Backoffice helper `getCurrentTenantId()` gebruikt hostcontext eerst, daarna tenant switcher cookie.
+- API `requireTenantScope` gebruikt host-first tenantcontext voordat tenantheaders of membershipfallback worden gebruikt.
+- Klantportaal en personeelsapp hebben host-bound tenantresolvers voor portal identity.
 - Default tenant fallback is beperkt tot non-production met `ALLOW_DEFAULT_TENANT_FALLBACK=true`.
 - Tenant switcher bestaat via `switchBackofficeTenant()` en checkt actieve membership.
 
@@ -82,13 +84,20 @@ Platform-admin:
 
 - Er is een technische shell en guard.
 - Nog geen echte CRUD voor tenants, domeinen, modules, plannen, limieten, sectorbeleid, task-code overrides of onboarding.
-- Tenant lifecycle is nog `is_active`; er is nog geen statusmodel zoals provisioning/trial/active/suspended/archived.
+- Tenant lifecycle heeft een statusmodel, maar nog geen volledige platform-admin create/suspend/archive workflow.
 
 Support access:
 
 - Grants en audit bestaan.
 - Support access is nog geen volledige runtime-prioriteit in alle permission checks: platform-admin -> active support grant -> tenantrol moet nog consequent worden geintegreerd in workflows.
 - Tenant-admin zicht op support access status moet nog worden gebouwd.
+
+Modules en entitlements:
+
+- `modules`, `tenant_modules` en `module_dependencies` bestaan als eerste foundation.
+- De globale modulecatalogus heeft seedbare keys voor kernmodules, portalen, documenten, finance, notificaties en smart planning.
+- Runtime-integratie ontbreekt nog: `requireTenantModule()` en server-side module-off guards moeten per route/action/API worden aangesloten.
+- Plan-koppeling, limieten en platform-admin modulebeheer ontbreken nog.
 
 Tenant sectors:
 
@@ -106,9 +115,8 @@ RBAC:
 
 Tenant domains:
 
-- Backoffice hostresolver bestaat.
-- API-server gebruikt nog geen host-first tenant resolver; `requireTenantScope` kiest de eerste actieve tenantmembership.
-- Klantportaal en personeelsapp hebben nog geen uniforme host-first tenant resolver.
+- Backoffice, API, klantportaal en personeelsapp zijn host-first tenant-aware.
+- Tenant switcher override en custom-domain gedrag moeten nog met echte integration/Playwright-tests bewezen worden.
 
 Branding:
 
@@ -118,13 +126,12 @@ Branding:
 
 ### 2.3 Nog niet gebouwd
 
-Modules en entitlements:
+Module runtime enforcement:
 
-- Er is geen `modules` tabel.
-- Er is geen `tenant_modules` tabel.
-- Er is geen `module_dependencies` model.
-- Er is geen `requireTenantModule()` guard.
+- Er is nog geen `requireTenantModule()` guard.
 - Routes, server actions, API routes, background jobs en portalen hebben nog geen module-off server-side afdwinging.
+- UI-navigatie wordt nog niet gefilterd op tenantmodules.
+- Dependencies worden wel gemodelleerd, maar nog niet in platform-admin configuratie afgedwongen.
 
 Plannen, subscriptions en limieten:
 
@@ -165,9 +172,8 @@ Storage hardening:
 
 Portalen:
 
-- Klantportaal is tenant-aware via `customer_users`, maar niet host-first tenant-bound. Een user met dezelfde login over meerdere tenants kan zonder hostbinding ambigu worden.
-- Personeelsapp gebruikt vooral `personnel.user_id`; tenant-hostcontext en module/sector guards moeten nog worden toegevoegd.
-- Portalen hebben nog geen tenant module guards en branding resolver.
+- Klantportaal en personeelsapp zijn host-first tenant-bound voor identity/profiel.
+- Portalen hebben nog geen tenant module guards, sector guards voor alle flows of branding resolver.
 
 ## 3. Nieuwe canonieke runtime-volgorde
 
@@ -202,9 +208,9 @@ Supporttoegang is geen gewone tenantrol. De prioriteit wordt:
 
 | Domein | Voorbeelden | Huidige status | Doelstrategie | Prioriteit |
 | --- | --- | --- | --- | --- |
-| Tenant core | tenants, tenant_users, tenant_domains | bestaat, lifecycle beperkt | status/plan/provisioning toevoegen | P0 |
+| Tenant core | tenants, tenant_users, tenant_domains | lifecycle foundation bestaat | provisioning/platform-admin lifecycle afronden | P0 |
 | RBAC | tenant_roles, tenant_user_roles | runtime tenant-scoped | permissiematrix/tests afronden | P0 |
-| Modules | modules, tenant_modules | ontbreekt | eerste-klas entitlements | P0 |
+| Modules | modules, tenant_modules, module_dependencies | foundation bestaat | guards, plan-koppeling en platformbeheer afronden | P0 |
 | Sectoren | sectors, tenant_sectors | foundation bestaat | policy/default/single-sector/guards | P0 |
 | Klanten/objecten/personeel/opdrachten | customers, objects, personnel, assignments | tenant_id aanwezig | module/sector guards afronden | P0 |
 | Documenten | documents, storage paths | geen tenant_id | directe tenant_id + tenant storage prefix | P1 |
@@ -212,7 +218,7 @@ Supporttoegang is geen gewone tenantrol. De prioriteit wordt:
 | Rapportages/media | reports, assignment photos, report attachments | deels indirect | directe tenant_id waar gevoelig | P1 |
 | Audit | audit_log, support_access_audit_log | support audit tenant-aware, audit_log niet | platform/tenant audit splitsen | P1 |
 | Branding | organization_settings | tenant-aware, Veele defaults | Fieldgrid/tenant split + plan gating | P2 |
-| Portalen | klant-pwa, personeel-pwa | deels tenant-aware | host resolver + module/branding/sector guards | P2 |
+| Portalen | klant-pwa, personeel-pwa | host-first identity/profiel klaar | module/branding/sector guards | P2 |
 | Billing | plans/subscriptions/limits | ontbreekt | handmatige SaaS-billing model | P2 |
 
 ## 5. Uitvoerbare roadmap vanaf nu
@@ -281,8 +287,8 @@ Doel: SaaS-entitlements worden eerste-klas domeinobjecten.
 
 Parallelle tracks:
 
-- Track 3A: Voeg `modules` en `module_dependencies` toe met seed voor tenant_core, auth, settings, users, customers, objects, assignments, planning, personnel, reports, quotes, invoices, documents, tickets, news, task_codes, customer_portal, personnel_pwa, notifications, email_notifications, push_notifications, payment_reminders, smart_planning, availability, hours en qualifications.
-- Track 3B: Voeg `tenant_modules` toe met `is_enabled`, `visibility_when_disabled`, `config`, `enabled_at`, `disabled_at`.
+- Track 3A: `modules` en `module_dependencies` foundation bestaat; breid de modulecatalogus later uit waar productmodules ontbreken.
+- Track 3B: `tenant_modules` foundation bestaat; voeg later `visibility_when_disabled`, `config` en platformbeheer toe.
 - Track 3C: Voeg `plans`, `plan_modules`, `plan_limits`, `tenant_subscriptions` en tenant overrides toe.
 - Track 3D: Bouw `requireTenantModule(tenantId, moduleKey)` en integreer eerst in backoffice pages/actions voor facturen, planning, rapporten, offertes, documenten, tickets en nieuws.
 - Track 3E: Bouw platform-admin UI voor tenant modules, module dependencies, plan modules en limieten.
@@ -381,8 +387,8 @@ Doel: klantportaal en personeelsapp zijn volledig tenant-aware en brandbaar.
 Parallelle tracks:
 
 - Track 8A: Bouw branding resolver per tenant met package-gating: Starter logo/naam; Pro/Enterprise kleuren, e-mailtemplate, favicon, login background en custom domain.
-- Track 8B: Maak klantportaal host-first tenant-aware; klant krijgt geen tenantkeuze; customer_users blijft binnen tenant leidend.
-- Track 8C: Maak personeelsapp host-first tenant-aware; personeel krijgt alleen eigen tenantcontext.
+- Track 8B: Klantportaal host-first tenant identity is gelegd; voeg module guards en branding toe.
+- Track 8C: Personeelsapp host-first tenant identity is gelegd; voeg module guards, assignment guards en branding toe.
 - Track 8D: Pas e-mails en PDF's aan op tenantbranding; verwijder Veele-defaults uit platform defaults.
 - Track 8E: Voeg module guards toe aan klantportaal en personeelsapp.
 
@@ -445,43 +451,48 @@ Acceptatiecriteria:
    - Shared host resolver voor backoffice, API en portalen.
    - API `requireTenantScope` host-first maken.
 
-3. Modules/plannen foundation
-   - `modules`, `tenant_modules`, `plans`, `plan_modules`, `plan_limits`, `tenant_subscriptions`.
+3. Modules foundation
+   - `modules`, `tenant_modules`, `module_dependencies`.
+   - Seed globale modulecatalogus.
+   - Bewaak staging-safe migratie en schema exports.
+
+4. Plans en module guard foundation
+   - `plans`, `plan_modules`, `plan_limits`, `tenant_subscriptions`.
    - `requireTenantModule`.
    - Seed Starter/Professional/Enterprise.
 
-4. Module guard eerste integratie
+5. Module guard eerste integratie
    - Backoffice routes/actions voor planning, facturen, offertes, rapporten, documenten, tickets, nieuws.
    - Navigatie filteren op moduleconfig.
    - Tests voor direct URL/action/API.
 
-5. Sector policy en single-sector UX
+6. Sector policy en single-sector UX
    - `tenant_sector_settings`.
    - Default sector resolver.
    - Single-sector form behavior.
    - Sector tests voor customer/object/personnel/task code/assignment flows.
 
-6. Sensitive tenant_id wave 1
+7. Sensitive tenant_id wave 1
    - `documents`, storage paths en signed URL guards.
    - `invoices`, `quotes`, `reports`.
    - Cross-tenant direct-ID tests.
 
-7. Platform-admin productization
+8. Platform-admin productization
    - Tenant detail.
    - Module/sector/plan management.
    - Support access status and audit.
 
-8. Provisioning wizard
+9. Provisioning wizard
    - Tenant creation service.
    - Owner invite.
    - Default modules/sectors/roles/settings.
 
-9. Portals and branding
-   - Host-first portal tenant resolution.
-   - Tenant branding resolver.
-   - Module guards for portal/PWA.
+10. Portals and branding
+    - Host-first portal tenant resolution.
+    - Tenant branding resolver.
+    - Module guards for portal/PWA.
 
-10. Fieldgrid deployment hardening
+11. Fieldgrid deployment hardening
     - DNS/reverse proxy/TLS.
     - Supabase redirect URLs.
     - Smoke tests and rollback playbook.
