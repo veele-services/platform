@@ -246,6 +246,26 @@ export async function createCustomerBatchPayment(invoiceIds: string[]): Promise<
     return { success: false, message: "Een verzamelbetaling kan alleen openstaande facturen bevatten." };
   }
 
+  const activeBatchItems = await db
+    .select({ invoiceId: customerPaymentBatchItemsTable.invoiceId })
+    .from(customerPaymentBatchItemsTable)
+    .innerJoin(customerPaymentBatchesTable, eq(customerPaymentBatchItemsTable.batchId, customerPaymentBatchesTable.id))
+    .innerJoin(invoicesTable, eq(customerPaymentBatchItemsTable.invoiceId, invoicesTable.id))
+    .innerJoin(customersTable, eq(customersTable.id, invoicesTable.customerId))
+    .where(
+      and(
+        inArray(customerPaymentBatchItemsTable.invoiceId, uniqueInvoiceIds),
+        eq(customerPaymentBatchesTable.customerId, auth.customerId),
+        eq(invoicesTable.customerId, auth.customerId),
+        eq(customersTable.tenantId, auth.tenantId),
+        inArray(customerPaymentBatchesTable.status, ["open", "paid"]),
+      ),
+    );
+
+  if (activeBatchItems.length > 0) {
+    return { success: false, message: "Een of meer facturen zitten al in een open of betaalde verzamelbetaling." };
+  }
+
   const amountCents = invoices.reduce((sum, invoice) => sum + parseAmountCents(invoice.totalAmount), 0);
   if (amountCents <= 0) return { success: false, message: "Ongeldig totaalbedrag." };
 
