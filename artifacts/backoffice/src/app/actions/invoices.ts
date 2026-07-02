@@ -75,6 +75,26 @@ async function getInvoiceAssignmentForCurrentTenant(
   return invoice ? { assignmentId: invoice.assignmentId, status: invoice.status as InvoiceStatus } : null;
 }
 
+async function getOpenPaymentCheckoutUrlForCurrentTenant(invoiceId: string): Promise<string | null> {
+  const tenantId = await requireCurrentTenantId();
+  const [payment] = await db
+    .select({ checkoutUrl: paymentsTable.checkoutUrl })
+    .from(paymentsTable)
+    .innerJoin(invoicesTable, eq(paymentsTable.invoiceId, invoicesTable.id))
+    .innerJoin(assignmentsTable, eq(invoicesTable.assignmentId, assignmentsTable.id))
+    .where(
+      and(
+        eq(paymentsTable.invoiceId, invoiceId),
+        eq(paymentsTable.status, "open"),
+        eq(assignmentsTable.tenantId, tenantId),
+      ),
+    )
+    .orderBy(desc(paymentsTable.createdAt))
+    .limit(1);
+
+  return payment?.checkoutUrl ?? null;
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type InvoiceRow = {
@@ -1124,13 +1144,7 @@ export async function emailInvoice(invoiceId: string): Promise<ActionResult> {
     return { success: false, message: "Klant heeft geen e-mailadres geregistreerd." };
   }
 
-  const [openPayment] = await db
-    .select({ checkoutUrl: paymentsTable.checkoutUrl })
-    .from(paymentsTable)
-    .where(and(eq(paymentsTable.invoiceId, invoiceId), eq(paymentsTable.status, "open")))
-    .limit(1);
-
-  const paymentUrl = openPayment?.checkoutUrl ?? null;
+  const paymentUrl = await getOpenPaymentCheckoutUrlForCurrentTenant(invoiceId);
 
   let pdfBuffer: Buffer;
   try {
