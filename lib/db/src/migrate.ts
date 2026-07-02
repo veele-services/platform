@@ -231,6 +231,49 @@ async function existingPublicTables(client: pg.Client, tableNames: string[]): Pr
   return new Set(result.rows.map((row) => row.table_name));
 }
 
+async function columnExists(
+  client: pg.Client,
+  tableName: string,
+  columnName: string,
+): Promise<boolean> {
+  const result = await client.query<{ exists: boolean }>(
+    `
+      select exists(
+        select 1
+        from information_schema.columns
+        where table_schema = 'public'
+          and table_name = $1
+          and column_name = $2
+      ) as exists
+    `,
+    [tableName, columnName],
+  );
+
+  return result.rows[0]?.exists ?? false;
+}
+
+async function compatibilitySkipReason(
+  client: pg.Client,
+  migration: SqlMigration,
+): Promise<string | null> {
+  if (migration.name !== "055_tenant_scoped_rbac.sql") {
+    return null;
+  }
+
+  const hasCanonicalUserRoles = await columnExists(client, "tenant_user_roles", "tenant_role_id");
+  const hasCanonicalRolePermissions = await columnExists(
+    client,
+    "tenant_role_permissions",
+    "tenant_role_id",
+  );
+
+  if (hasCanonicalUserRoles && hasCanonicalRolePermissions) {
+    return "canonical tenant_role_id RBAC tables already exist";
+  }
+
+  return null;
+}
+
 async function assertCanBaseline(client: pg.Client, expectedTables: string[]): Promise<void> {
   const existingTables = await existingPublicTables(client, expectedTables);
   const missingTables = expectedTables.filter((table) => !existingTables.has(table));
@@ -376,6 +419,13 @@ async function runSqlMigrations(client: pg.Client, migrations: SqlMigration[]): 
       }
 
       console.log(`[db:migrate] SQL skipped: ${migration.name}`);
+      continue;
+    }
+
+    const skipReason = await compatibilitySkipReason(client, migration);
+    if (skipReason) {
+      await recordSqlMigration(client, migration, true);
+      console.log(`[db:migrate] SQL compatibility skipped: ${migration.name} (${skipReason})`);
       continue;
     }
 

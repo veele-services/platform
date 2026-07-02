@@ -23,31 +23,7 @@ export const tenantsTable = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date()),
   },
-  (table) => [
-    uniqueIndex("tenants_slug_idx").on(table.slug),
-  ],
-);
-
-export const tenantDomainsTable = pgTable(
-  "tenant_domains",
-  {
-    id: uuid("id").primaryKey().defaultRandom(),
-    tenantId: uuid("tenant_id")
-      .notNull()
-      .references(() => tenantsTable.id, { onDelete: "cascade" }),
-    domain: varchar("domain", { length: 255 }).notNull(),
-    isPrimary: boolean("is_primary").notNull().default(false),
-    isActive: boolean("is_active").notNull().default(true),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true })
-      .notNull()
-      .defaultNow()
-      .$onUpdate(() => new Date()),
-  },
-  (table) => [
-    uniqueIndex("tenant_domains_domain_idx").on(table.domain),
-    index("tenant_domains_tenant_idx").on(table.tenantId),
-  ],
+  (table) => [uniqueIndex("tenants_slug_idx").on(table.slug)],
 );
 
 export const tenantUsersTable = pgTable(
@@ -73,5 +49,4 @@ export const tenantUsersTable = pgTable(
 );
 
 export type Tenant = typeof tenantsTable.$inferSelect;
-export type TenantDomain = typeof tenantDomainsTable.$inferSelect;
 export type TenantUser = typeof tenantUsersTable.$inferSelect;

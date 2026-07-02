@@ -1,9 +1,18 @@
 import { db, tenantDomainsTable, tenantsTable, type Tenant } from "@workspace/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 
-const PLATFORM_HOST = "platform.fieldgrid.nl";
 const FIELDGRID_ROOT_DOMAIN = "fieldgrid.nl";
 const FIELDGRID_DOMAIN_SUFFIX = `.${FIELDGRID_ROOT_DOMAIN}`;
+const DEFAULT_PLATFORM_HOSTS = ["platform.fieldgrid.nl", "staging.fieldgrid.nl"];
+
+function platformHosts(): Set<string> {
+  const configuredHosts = (process.env.PLATFORM_HOSTS ?? "")
+    .split(",")
+    .map((host) => normalizeHost(host))
+    .filter(Boolean);
+
+  return new Set(configuredHosts.length > 0 ? configuredHosts : DEFAULT_PLATFORM_HOSTS);
+}
 
 export type ResolvedTenant = Pick<Tenant, "id" | "slug" | "name" | "isActive">;
 
@@ -22,7 +31,7 @@ export function normalizeHost(host: string): string {
 }
 
 export function isPlatformHost(host: string): boolean {
-  return normalizeHost(host) === PLATFORM_HOST;
+  return platformHosts().has(normalizeHost(host));
 }
 
 export function isFieldgridSubdomain(host: string): boolean {
@@ -30,7 +39,7 @@ export function isFieldgridSubdomain(host: string): boolean {
   return (
     normalizedHost.endsWith(FIELDGRID_DOMAIN_SUFFIX) &&
     normalizedHost !== FIELDGRID_ROOT_DOMAIN &&
-    normalizedHost !== PLATFORM_HOST
+    !isPlatformHost(normalizedHost)
   );
 }
 
@@ -50,7 +59,8 @@ export async function resolveTenantByHost(host: string): Promise<ResolvedTenant 
     .where(
       and(
         eq(tenantDomainsTable.domain, normalizedHost),
-        eq(tenantDomainsTable.isActive, true),
+        eq(tenantDomainsTable.verificationStatus, "verified"),
+        ne(tenantDomainsTable.type, "platform_reserved"),
         eq(tenantsTable.isActive, true),
       ),
     )
