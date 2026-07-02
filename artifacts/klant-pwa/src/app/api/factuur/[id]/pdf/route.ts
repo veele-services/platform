@@ -7,6 +7,7 @@ import {
   assignmentMaterialUsageTable,
   assignmentTasksTable,
   assignmentsTable,
+  auditLogTable,
   customersTable,
   invoicesTable,
   objectsTable,
@@ -160,6 +161,19 @@ export async function GET(
     dueDate: invoice.dueDate,
     createdAt: invoice.createdAt.toISOString(),
     lineItems,
+  });
+
+  await db.insert(auditLogTable).values({
+    userId:     identity.userId,
+    action:     "customer_download_invoice_pdf",
+    resource:   "invoices",
+    resourceId: invoice.id,
+    metadata: {
+      invoiceNumber: invoice.invoiceNumber,
+      assignmentId:  invoice.assignmentId,
+      customerId:    identity.customerId,
+      tenantId:      identity.tenantId,
+    },
   });
 
   return new NextResponse(new Uint8Array(pdfBuffer), {
