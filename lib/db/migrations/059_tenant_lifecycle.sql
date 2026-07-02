@@ -20,11 +20,15 @@ SET status = CASE
   WHEN is_active = true THEN 'active'
   ELSE 'suspended'
 END
-WHERE status IS NULL;
+WHERE status IS NULL
+   OR btrim(status) = ''
+   OR status NOT IN ('provisioning', 'trial', 'active', 'suspended', 'archived');
 
 UPDATE tenants
 SET plan_key = 'starter'
-WHERE plan_key IS NULL OR btrim(plan_key) = '';
+WHERE plan_key IS NULL
+   OR btrim(plan_key) = ''
+   OR plan_key NOT IN ('starter', 'professional', 'enterprise');
 
 ALTER TABLE tenants
   ALTER COLUMN status SET DEFAULT 'active',
