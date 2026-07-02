@@ -98,6 +98,14 @@ CREATE TABLE IF NOT EXISTS tenant_roles (
   updated_at timestamp with time zone DEFAULT now() NOT NULL
 );
 
+-- Existing staging databases may already have a tenant_roles table from an older
+-- tenant-RBAC attempt. Normalize the technical id before any new FK references it.
+ALTER TABLE tenant_roles ADD COLUMN IF NOT EXISTS id uuid DEFAULT gen_random_uuid();
+UPDATE tenant_roles SET id = gen_random_uuid() WHERE id IS NULL;
+ALTER TABLE tenant_roles ALTER COLUMN id SET DEFAULT gen_random_uuid();
+ALTER TABLE tenant_roles ALTER COLUMN id SET NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS tenant_roles_id_unique_idx ON tenant_roles(id);
+
 ALTER TABLE tenant_roles ADD COLUMN IF NOT EXISTS template_role_id uuid REFERENCES roles(id) ON DELETE SET NULL;
 ALTER TABLE tenant_roles ADD COLUMN IF NOT EXISTS is_custom boolean DEFAULT false NOT NULL;
 ALTER TABLE tenant_roles ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT now() NOT NULL;
@@ -289,6 +297,12 @@ CREATE TABLE IF NOT EXISTS platform_users (
   last_seen_at timestamp with time zone
 );
 
+ALTER TABLE platform_users ADD COLUMN IF NOT EXISTS id uuid DEFAULT gen_random_uuid();
+UPDATE platform_users SET id = gen_random_uuid() WHERE id IS NULL;
+ALTER TABLE platform_users ALTER COLUMN id SET DEFAULT gen_random_uuid();
+ALTER TABLE platform_users ALTER COLUMN id SET NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS platform_users_id_unique_idx ON platform_users(id);
+
 CREATE UNIQUE INDEX IF NOT EXISTS platform_users_user_idx ON platform_users(user_id);
 CREATE INDEX IF NOT EXISTS platform_users_status_idx ON platform_users(status);
 CREATE INDEX IF NOT EXISTS platform_users_role_idx ON platform_users(role);
@@ -317,6 +331,12 @@ CREATE TABLE IF NOT EXISTS support_access_grants (
   created_by uuid NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL
 );
+
+ALTER TABLE support_access_grants ADD COLUMN IF NOT EXISTS id uuid DEFAULT gen_random_uuid();
+UPDATE support_access_grants SET id = gen_random_uuid() WHERE id IS NULL;
+ALTER TABLE support_access_grants ALTER COLUMN id SET DEFAULT gen_random_uuid();
+ALTER TABLE support_access_grants ALTER COLUMN id SET NOT NULL;
+CREATE UNIQUE INDEX IF NOT EXISTS support_access_grants_id_unique_idx ON support_access_grants(id);
 
 CREATE INDEX IF NOT EXISTS support_access_grants_tenant_idx ON support_access_grants(tenant_id);
 CREATE INDEX IF NOT EXISTS support_access_grants_platform_user_idx ON support_access_grants(platform_user_id);
