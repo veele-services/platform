@@ -11,6 +11,8 @@ import { and, eq, desc, inArray, asc } from "drizzle-orm";
 import { getMyCustomerIdentity } from "./customer";
 import type { QuoteStatus } from "@workspace/db";
 
+const CUSTOMER_VISIBLE_QUOTE_STATUSES: QuoteStatus[] = ["sent", "approved", "rejected", "expired"];
+
 export type QuoteLineItem = {
   code:        string | null;
   name:        string | null;
@@ -57,6 +59,7 @@ export async function getMyQuotes(): Promise<CustomerQuote[]> {
         eq(quotesTable.customerId, identity.customerId),
         eq(assignmentsTable.customerId, identity.customerId),
         eq(assignmentsTable.tenantId, identity.tenantId),
+        inArray(quotesTable.status, CUSTOMER_VISIBLE_QUOTE_STATUSES),
       ),
     )
     .orderBy(desc(quotesTable.createdAt));
