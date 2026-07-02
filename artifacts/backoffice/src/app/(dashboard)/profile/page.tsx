@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Mail, Shield, Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getUserRoles } from "@/lib/auth/permissions";
+import { getCurrentTenantId } from "@/lib/auth/tenant";
 
 export const metadata: Metadata = { title: "Profiel" };
 
@@ -13,7 +14,8 @@ export default async function ProfilePage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const roles = user ? await getUserRoles(user.id) : [];
+  const tenantId = await getCurrentTenantId();
+  const roles = user && tenantId ? await getUserRoles(user.id, tenantId) : [];
   const email = user?.email ?? "";
   const initial = (email[0] ?? "U").toUpperCase();
 

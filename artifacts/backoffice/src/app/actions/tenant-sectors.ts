@@ -86,9 +86,5 @@ export async function assertTenantSectorCanBeDisabled(sectorId: string): Promise
 
   if (!row) return { success: true };
 
-  return {
-    success: true,
-    message:
-      "Controleer eerst bestaande klanten, objecten, personeel en taakcodes voordat u deze sector uitschakelt.",
-  };
+  return { success: true };
 }
