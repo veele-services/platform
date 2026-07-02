@@ -129,6 +129,24 @@ test("masterplan captures the current SaaS backlog", () => {
   );
 });
 
+test("masterplan captures the phase sprint execution plan", () => {
+  const masterplan = read("docs/fieldgrid-saas-masterplan.md");
+
+  assertContains(
+    masterplan,
+    [
+      "Fasesprints vanaf nu",
+      "Sprint 0 - Canon lock",
+      "Sprint 1 - Tenantcontext",
+      "Sprint 6 - Documenten en storage wave 1",
+      "Sprint 12 - Operatie, release en eerste externe tenant",
+      "Sprint 0: merge PR #126",
+      "Sprint 12 PR B",
+    ],
+    "masterplan",
+  );
+});
+
 test("masterplan and recovery docs point to the canon sources", () => {
   const masterplan = read("docs/fieldgrid-saas-masterplan.md");
   const recoveryPlan = read("docs/fieldgrid-recovery-execution-plan.md");
