@@ -62,6 +62,30 @@ test("collective payment creation rejects cross-tenant invoice ids before Mollie
   assert.match(body, /customerPaymentBatchItemsTable\.invoiceId/u);
 });
 
+test("customer single invoice payment rejects invoices locked in a batch before creating a payment", () => {
+  const body = functionBlock(customerPayments, "createCustomerInvoicePayment");
+
+  assert.match(body, /getAuthenticatedCustomer\(\)/u);
+  assert.match(body, /eq\(invoicesTable\.id, invoiceId\)/u);
+  assert.match(body, /eq\(invoicesTable\.customerId, auth\.customerId\)/u);
+  assert.match(body, /eq\(customersTable\.tenantId, auth\.tenantId\)/u);
+  assert.match(body, /const \[activeBatchItem\] = await db/u);
+  assert.match(body, /innerJoin\(customerPaymentBatchesTable, eq\(customerPaymentBatchItemsTable\.batchId, customerPaymentBatchesTable\.id\)\)/u);
+  assert.match(body, /eq\(customerPaymentBatchItemsTable\.invoiceId, invoice\.id\)/u);
+  assert.match(body, /eq\(customerPaymentBatchesTable\.customerId, auth\.customerId\)/u);
+  assert.match(body, /inArray\(customerPaymentBatchesTable\.status, \["open", "paid"\]\)/u);
+  assert.match(body, /if \(activeBatchItem\)/u);
+
+  assert.ok(
+    body.indexOf("const [activeBatchItem] = await db") < body.indexOf("const [existing] = await db"),
+    "single invoice payment should respect active batch locks before reusing or creating individual payments",
+  );
+  assert.ok(
+    body.indexOf("const [activeBatchItem] = await db") < body.indexOf("createMolliePaymentRequest({"),
+    "single invoice payment should respect active batch locks before creating a Mollie payment",
+  );
+});
+
 test("customer batch payment creation rejects already locked invoices before Mollie payment creation", () => {
   const body = functionBlock(customerPayments, "createCustomerBatchPayment");
 

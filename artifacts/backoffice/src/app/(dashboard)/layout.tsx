@@ -1,6 +1,5 @@
 export const dynamic = "force-dynamic";
 
-import { DEFAULT_TENANT_ID } from "@workspace/db";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getEffectiveUserPermissions, getUserRoles } from "@/lib/auth/permissions";
@@ -18,6 +17,22 @@ import {
   getActiveBackofficeTenantsForUser,
   getCurrentTenantId,
 } from "@/lib/auth/tenant";
+
+function NoActiveTenantAccess() {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6">
+      <section className="max-w-lg rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
+        <h1 className="font-heading text-2xl font-semibold" style={{ color: "#081D3A" }}>
+          Geen actieve tenanttoegang
+        </h1>
+        <p className="mt-3 text-sm leading-6" style={{ color: "#64748B" }}>
+          Deze gebruiker heeft geen actieve tenantkoppeling voor deze host. Controleer de tenantstatus,
+          domeinkoppeling of gebruikerskoppeling in platform-admin.
+        </p>
+      </section>
+    </main>
+  );
+}
 
 export default async function DashboardLayout({
   children,
@@ -38,7 +53,10 @@ export default async function DashboardLayout({
     getCurrentTenantId(),
   ]);
 
-  const tenantId = currentTenantId ?? tenantOptions[0]?.id ?? DEFAULT_TENANT_ID;
+  const tenantId = currentTenantId;
+  if (!tenantId) {
+    return <NoActiveTenantAccess />;
+  }
 
   const [permissions, roles] = await Promise.all([
     getEffectiveUserPermissions(user.id, tenantId),

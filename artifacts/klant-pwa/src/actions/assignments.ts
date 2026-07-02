@@ -18,7 +18,7 @@ import {
   type QuoteStatus,
   type InvoiceStatus,
 } from "@workspace/db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
 import { sendEmail, buildQuoteDecisionEmail } from "@/lib/email";
 import { emitDomainEvent } from "@workspace/db/events";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -26,6 +26,8 @@ import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
 import { getMyCustomerIdentity } from "./customer";
 import { createClient } from "@/lib/supabase/server";
+
+const CUSTOMER_VISIBLE_QUOTE_STATUSES: QuoteStatus[] = ["sent", "approved", "rejected", "expired"];
 
 export type CustomerAssignment = {
   id:               string;
@@ -70,7 +72,13 @@ export async function getMyAssignments(): Promise<CustomerAssignment[]> {
     })
     .from(assignmentsTable)
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
-    .leftJoin(quotesTable, eq(quotesTable.assignmentId, assignmentsTable.id))
+    .leftJoin(
+      quotesTable,
+      and(
+        eq(quotesTable.assignmentId, assignmentsTable.id),
+        inArray(quotesTable.status, CUSTOMER_VISIBLE_QUOTE_STATUSES),
+      ),
+    )
     .where(
       and(
         eq(assignmentsTable.customerId, identity.customerId),
@@ -121,6 +129,27 @@ function formatEuro(value: string | null | undefined): string {
   return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(
     Number.isFinite(number) ? number : 0,
   );
+}
+
+function getSafeCustomerAssignmentPhotoStoragePath(
+  storagePath: string,
+  tenantId: string,
+  assignmentId: string,
+): string | null {
+  const normalized = storagePath.trim().replace(/^\/+/, "");
+  if (!normalized) return null;
+  if (/^[a-z][a-z\d+.-]*:\/\//i.test(normalized)) return null;
+  if (normalized.includes("\\")) return null;
+  if (normalized.split("/").some((segment) => !segment || segment === "..")) return null;
+
+  const allowedPrefixes = [
+    `tenants/${tenantId}/assignments/${assignmentId}/`,
+    `${tenantId}/assignments/${assignmentId}/`,
+    `assignments/${assignmentId}/`,
+    `${assignmentId}/`,
+  ];
+
+  return allowedPrefixes.some((prefix) => normalized.startsWith(prefix)) ? normalized : null;
 }
 
 export type RequestAssignmentInput = z.infer<typeof requestSchema>;
@@ -380,7 +409,13 @@ export async function getMyAssignmentDetail(
     })
     .from(assignmentsTable)
     .leftJoin(objectsTable,  eq(assignmentsTable.objectId,   objectsTable.id))
-    .leftJoin(quotesTable,   eq(quotesTable.assignmentId,    assignmentsTable.id))
+    .leftJoin(
+      quotesTable,
+      and(
+        eq(quotesTable.assignmentId, assignmentsTable.id),
+        inArray(quotesTable.status, CUSTOMER_VISIBLE_QUOTE_STATUSES),
+      ),
+    )
     .leftJoin(invoicesTable, eq(invoicesTable.assignmentId,  assignmentsTable.id))
     .where(
       and(
@@ -420,10 +455,17 @@ export async function getMyAssignmentDetail(
   const admin = createAdminClient();
   const approvedPhotos: ApprovedPhoto[] = await Promise.all(
     photoRows.map(async (p) => {
+      const storagePath = getSafeCustomerAssignmentPhotoStoragePath(
+        p.storagePath,
+        identity.tenantId,
+        assignmentId,
+      );
+      if (!storagePath) return { id: p.id, signedUrl: null };
+
       try {
         const { data } = await admin.storage
           .from("assignment-photos")
-          .createSignedUrl(p.storagePath, 3600);
+          .createSignedUrl(storagePath, 3600);
         return { id: p.id, signedUrl: data?.signedUrl ?? null };
       } catch {
         return { id: p.id, signedUrl: null };

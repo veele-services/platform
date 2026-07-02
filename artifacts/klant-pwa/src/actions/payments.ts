@@ -157,6 +157,27 @@ export async function createCustomerInvoicePayment(invoiceId: string): Promise<A
     return { success: false, message: "Alleen openstaande facturen kunnen betaald worden." };
   }
 
+  const [activeBatchItem] = await db
+    .select({ invoiceId: customerPaymentBatchItemsTable.invoiceId })
+    .from(customerPaymentBatchItemsTable)
+    .innerJoin(customerPaymentBatchesTable, eq(customerPaymentBatchItemsTable.batchId, customerPaymentBatchesTable.id))
+    .innerJoin(invoicesTable, eq(customerPaymentBatchItemsTable.invoiceId, invoicesTable.id))
+    .innerJoin(customersTable, eq(customersTable.id, invoicesTable.customerId))
+    .where(
+      and(
+        eq(customerPaymentBatchItemsTable.invoiceId, invoice.id),
+        eq(customerPaymentBatchesTable.customerId, auth.customerId),
+        eq(invoicesTable.customerId, auth.customerId),
+        eq(customersTable.tenantId, auth.tenantId),
+        inArray(customerPaymentBatchesTable.status, ["open", "paid"]),
+      ),
+    )
+    .limit(1);
+
+  if (activeBatchItem) {
+    return { success: false, message: "Deze factuur zit al in een open of betaalde verzamelbetaling." };
+  }
+
   const [existing] = await db
     .select({ checkoutUrl: paymentsTable.checkoutUrl })
     .from(paymentsTable)

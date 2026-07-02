@@ -79,14 +79,14 @@ function buildStoragePath(
   return `${tenantId}/general/${docId}.${safeExt}`;
 }
 
-function hasUnsafeStoragePath(path: string): boolean {
-  return (
-    path.includes("..") ||
-    path.includes("\\") ||
-    path.startsWith("/") ||
-    path.endsWith("/") ||
-    path.split("/").some((part) => part.trim() === "")
-  );
+function getSafeDocumentStoragePath(path: string, tenantId: string): string | null {
+  const normalized = path.trim().replace(/^\/+/, "");
+  if (!normalized) return null;
+  if (/^[a-z][a-z\d+.-]*:\/\//i.test(normalized)) return null;
+  if (normalized.includes("\\")) return null;
+  if (normalized.split("/").some((part) => part.trim() === "" || part === "..")) return null;
+  if (!normalized.startsWith(`${tenantId}/`)) return null;
+  return normalized;
 }
 
 async function isDocumentEntityInTenant(input: {
@@ -399,6 +399,7 @@ export async function uploadDocument(
       resource:   "documents",
       resourceId: inserted.id,
       metadata: {
+        tenantId,
         name,
         filename:   file.name,
         entityType: safeEntityType,
@@ -454,12 +455,12 @@ export async function deleteDocument(id: string): Promise<ActionResult> {
     });
     if (!allowed) return { success: false, message: "Document niet gevonden." };
 
-    // Delete from Supabase Storage (best-effort; do not block DB delete)
-    if (hasUnsafeStoragePath(doc.storagePath)) {
+    const storagePath = getSafeDocumentStoragePath(doc.storagePath, tenantId);
+    if (!storagePath) {
       return { success: false, message: "Ongeldig opslagpad." };
     }
 
-    await createAdminClient().storage.from(BUCKET).remove([doc.storagePath]);
+    await createAdminClient().storage.from(BUCKET).remove([storagePath]);
 
     // Delete from DB
     await db.delete(documentsTable).where(eq(documentsTable.id, id));
@@ -471,6 +472,7 @@ export async function deleteDocument(id: string): Promise<ActionResult> {
       resource:   "documents",
       resourceId: id,
       metadata: {
+        tenantId,
         name:       doc.name,
         entityType: doc.entityType,
         entityId:   doc.entityId ?? null,
@@ -527,13 +529,14 @@ export async function getDocumentDownloadUrl(
     });
     if (!allowed) return { success: false, message: "Document niet gevonden." };
 
-    if (hasUnsafeStoragePath(doc.storagePath)) {
+    const storagePath = getSafeDocumentStoragePath(doc.storagePath, tenantId);
+    if (!storagePath) {
       return { success: false, message: "Ongeldig opslagpad." };
     }
 
     const { data, error } = await createAdminClient().storage
       .from(BUCKET)
-      .createSignedUrl(doc.storagePath, 3600); // 1-hour TTL
+      .createSignedUrl(storagePath, 3600); // 1-hour TTL
 
     if (error || !data) {
       return { success: false, message: "Kan download-URL niet genereren." };
@@ -545,6 +548,7 @@ export async function getDocumentDownloadUrl(
       resource:   "documents",
       resourceId: id,
       metadata: {
+        tenantId,
         name:       doc.name,
         filename:   doc.filename,
         entityType: doc.entityType,
