@@ -487,13 +487,13 @@ export async function getInvoiceSummary(): Promise<InvoiceSummary> {
 
   const [summary] = await db
     .select({
-      draftCount:    sql<number>`count(*) FILTER (WHERE status = 'draft')::int`,
-      draftAmount:   sql<string>`coalesce(sum(total_amount) FILTER (WHERE status = 'draft'), 0)::text`,
-      sentCount:     sql<number>`count(*) FILTER (WHERE status = 'sent')::int`,
-      sentAmount:    sql<string>`coalesce(sum(total_amount) FILTER (WHERE status = 'sent'), 0)::text`,
-      paidTotal:     sql<string>`coalesce(sum(total_amount) FILTER (WHERE status = 'paid'), 0)::text`,
-      paidThisMonth: sql<string>`coalesce(sum(total_amount) FILTER (WHERE status = 'paid' AND paid_date >= ${startOfMonth}), 0)::text`,
-      totalCount:    sql<number>`count(*)::int`,
+      draftCount:    sql<number>`count(*) FILTER (WHERE ${invoicesTable.status} = 'draft')::int`,
+      draftAmount:   sql<string>`coalesce(sum(${invoicesTable.totalAmount}) FILTER (WHERE ${invoicesTable.status} = 'draft'), 0)::text`,
+      sentCount:     sql<number>`count(*) FILTER (WHERE ${invoicesTable.status} = 'sent')::int`,
+      sentAmount:    sql<string>`coalesce(sum(${invoicesTable.totalAmount}) FILTER (WHERE ${invoicesTable.status} = 'sent'), 0)::text`,
+      paidTotal:     sql<string>`coalesce(sum(${invoicesTable.totalAmount}) FILTER (WHERE ${invoicesTable.status} = 'paid'), 0)::text`,
+      paidThisMonth: sql<string>`coalesce(sum(${invoicesTable.totalAmount}) FILTER (WHERE ${invoicesTable.status} = 'paid' AND ${invoicesTable.paidDate} >= ${startOfMonth}), 0)::text`,
+      totalCount:    sql<number>`count(${invoicesTable.id})::int`,
     })
     .from(invoicesTable)
     .innerJoin(assignmentsTable, eq(invoicesTable.assignmentId, assignmentsTable.id))
