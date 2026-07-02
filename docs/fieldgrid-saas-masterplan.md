@@ -224,8 +224,8 @@ Doel: de recovery afsluiten en de SaaS-route bestuurbaar maken.
 Parallelle tracks:
 
 - Track 0A: Werk dit masterplan bij als canon en verwijs vanuit recovery-docs hiernaar.
-- Track 0B: Maak `docs/fieldgrid-data-classification.md` met alle tabellen en tenantstrategie.
-- Track 0C: Maak een cross-tenant testmatrix met Tenant Veele, Tenant Demo A en Tenant Demo B.
+- Track 0B: Beheer `docs/fieldgrid-data-classification.md` als verplichte tenantstrategie en dataclassificatie voor vervolg-PR's.
+- Track 0C: Beheer `docs/fieldgrid-cross-tenant-testmatrix.md` als verplichte test-id bron met Tenant Veele, Tenant Demo A en Tenant Demo B.
 - Track 0D: Maak een VPS/domein/deployplan voor `fieldgrid.nl`, `platform.fieldgrid.nl`, `staging.fieldgrid.nl` en tenant-subdomains.
 - Track 0E: Inventariseer hardcoded Veele-teksten en classificeer ze als platform, tenant, historische content of seed/default.
 
@@ -234,6 +234,7 @@ Acceptatiecriteria:
 - Er is een canoniek masterplan.
 - Elke tabel heeft een doelstrategie.
 - Er is een testmatrix voor tenant-, module-, sector- en storage-isolatie.
+- `tests/fieldgrid-canon.test.mjs` bewaakt dat de canon-docs blijven bestaan en naar elkaar verwijzen.
 - De domein- en rollbackroute is beschreven.
 
 ### Fase 1 - Tenant lifecycle en resolver uniform maken
@@ -435,8 +436,9 @@ Acceptatiecriteria:
 
 1. Docs canon en dataclassificatie
    - Update dit document.
-   - Voeg `docs/fieldgrid-data-classification.md` toe.
-   - Voeg testmatrixdocument toe.
+   - Voeg of beheer `docs/fieldgrid-data-classification.md`.
+   - Voeg of beheer `docs/fieldgrid-cross-tenant-testmatrix.md`.
+   - Bewaak de docs met `tests/fieldgrid-canon.test.mjs`.
 
 2. Tenant lifecycle en shared resolver
    - `tenants.status` en lifecycle helpers.
@@ -514,3 +516,13 @@ Fieldgrid SaaS MVP is klaar wanneer:
 - Starter/Professional/Enterprise bestaan in database en platform-admin.
 - Fieldgrid draait op de beoogde VPS-domeinen met backup/rollbackproces.
 - Cross-tenant security suite is groen.
+
+## 9. Verplichte uitvoeringsbronnen
+
+Vanaf de volgende technische PR zijn deze bronnen verplicht:
+
+- `docs/fieldgrid-data-classification.md`: bepaalt tenantstrategie, prioriteit, migratienoodzaak en gevoelige restpunten.
+- `docs/fieldgrid-cross-tenant-testmatrix.md`: bepaalt de test-id's die in PR-bodies, acceptatiecriteria en staging-promotie moeten worden genoemd.
+- `docs/fieldgrid-recovery-execution-plan.md`: bewaart de recovery-guardrails die blijven gelden, vooral staging-data behoud en migratieveiligheid.
+
+Elke vervolg-PR met tenant lifecycle, modules, sectoren, storage, finance, documenten, audit of portalen moet expliciet noemen welke classificatieregels en test-id's worden geraakt.
