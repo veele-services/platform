@@ -7,7 +7,7 @@
 -- ============================================================================
 
 INSERT INTO tenants (id, slug, name)
-VALUES ('00000000-0000-0000-0000-000000000010', 'veele-services', 'Veele Services')
+VALUES ('00000000-0000-0000-0000-000000000010'::uuid, 'veele-services', 'Veele Services')
 ON CONFLICT (id) DO UPDATE
   SET slug = excluded.slug,
       name = excluded.name,
@@ -76,8 +76,8 @@ CREATE UNIQUE INDEX IF NOT EXISTS tenant_domains_tenant_primary_idx
 
 INSERT INTO tenant_domains (tenant_id, domain, type, is_primary, verification_status, verified_at)
 VALUES
-  ('00000000-0000-0000-0000-000000000010', 'platform.fieldgrid.nl', 'platform_reserved', false, 'verified', now()),
-  ('00000000-0000-0000-0000-000000000010', 'staging.fieldgrid.nl', 'platform_reserved', false, 'verified', now())
+  ('00000000-0000-0000-0000-000000000010'::uuid, 'platform.fieldgrid.nl', 'platform_reserved', false, 'verified', now()),
+  ('00000000-0000-0000-0000-000000000010'::uuid, 'staging.fieldgrid.nl', 'platform_reserved', false, 'verified', now())
 ON CONFLICT (domain) DO UPDATE
   SET type = excluded.type,
       is_primary = excluded.is_primary,
@@ -88,7 +88,7 @@ ON CONFLICT (domain) DO UPDATE
 -- Canonical tenant RBAC: global roles are templates, tenant_roles are runtime.
 CREATE TABLE IF NOT EXISTS tenant_roles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-  tenant_id uuid DEFAULT '00000000-0000-0000-0000-000000000010' NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id uuid DEFAULT '00000000-0000-0000-0000-000000000010'::uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   template_role_id uuid REFERENCES roles(id) ON DELETE SET NULL,
   name varchar(100) NOT NULL,
   description text,
@@ -102,7 +102,7 @@ ALTER TABLE tenant_roles ADD COLUMN IF NOT EXISTS template_role_id uuid REFERENC
 ALTER TABLE tenant_roles ADD COLUMN IF NOT EXISTS is_custom boolean DEFAULT false NOT NULL;
 ALTER TABLE tenant_roles ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT now() NOT NULL;
 ALTER TABLE tenant_roles ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone DEFAULT now() NOT NULL;
-ALTER TABLE tenant_roles ALTER COLUMN tenant_id SET DEFAULT '00000000-0000-0000-0000-000000000010';
+ALTER TABLE tenant_roles ALTER COLUMN tenant_id SET DEFAULT '00000000-0000-0000-0000-000000000010'::uuid;
 
 CREATE UNIQUE INDEX IF NOT EXISTS tenant_roles_tenant_name_idx ON tenant_roles(tenant_id, name);
 CREATE INDEX IF NOT EXISTS tenant_roles_tenant_idx ON tenant_roles(tenant_id);
@@ -197,7 +197,7 @@ CREATE INDEX IF NOT EXISTS tenant_role_permissions_tenant_role_idx ON tenant_rol
 
 CREATE TABLE IF NOT EXISTS tenant_user_roles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-  tenant_id uuid DEFAULT '00000000-0000-0000-0000-000000000010' NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id uuid DEFAULT '00000000-0000-0000-0000-000000000010'::uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   user_id uuid NOT NULL,
   tenant_role_id uuid REFERENCES tenant_roles(id) ON DELETE CASCADE,
   source_user_role_id uuid,
@@ -208,7 +208,7 @@ ALTER TABLE tenant_user_roles ADD COLUMN IF NOT EXISTS id uuid DEFAULT gen_rando
 ALTER TABLE tenant_user_roles ADD COLUMN IF NOT EXISTS tenant_role_id uuid REFERENCES tenant_roles(id) ON DELETE CASCADE;
 ALTER TABLE tenant_user_roles ADD COLUMN IF NOT EXISTS source_user_role_id uuid;
 ALTER TABLE tenant_user_roles ADD COLUMN IF NOT EXISTS created_at timestamp with time zone DEFAULT now() NOT NULL;
-ALTER TABLE tenant_user_roles ALTER COLUMN tenant_id SET DEFAULT '00000000-0000-0000-0000-000000000010';
+ALTER TABLE tenant_user_roles ALTER COLUMN tenant_id SET DEFAULT '00000000-0000-0000-0000-000000000010'::uuid;
 
 DO $$
 BEGIN
@@ -239,8 +239,8 @@ END $$;
 
 INSERT INTO tenant_users (tenant_id, user_id, role, status, created_at, updated_at)
 SELECT DISTINCT
-  '00000000-0000-0000-0000-000000000010',
-  ur.user_id,
+  '00000000-0000-0000-0000-000000000010'::uuid,
+  ur.user_id::uuid,
   CASE WHEN r.name = 'Management' THEN 'admin' ELSE 'member' END,
   'active',
   now(),
@@ -251,14 +251,14 @@ ON CONFLICT (tenant_id, user_id) DO NOTHING;
 
 INSERT INTO tenant_user_roles (tenant_id, user_id, tenant_role_id, source_user_role_id, created_at)
 SELECT
-  '00000000-0000-0000-0000-000000000010',
-  ur.user_id,
+  '00000000-0000-0000-0000-000000000010'::uuid,
+  ur.user_id::uuid,
   tr.id,
-  ur.id,
+  ur.id::uuid,
   COALESCE(ur.created_at, now())
 FROM user_roles ur
 JOIN tenant_roles tr
-  ON tr.tenant_id = '00000000-0000-0000-0000-000000000010'
+  ON tr.tenant_id = '00000000-0000-0000-0000-000000000010'::uuid
  AND tr.template_role_id = ur.role_id
 ON CONFLICT DO NOTHING;
 
