@@ -1,14 +1,28 @@
 # Fieldgrid cross-tenant testmatrix
 
-Datum: 2026-07-02  
-Status: verplichte acceptatiebasis voor SaaS-hardening  
-Gerelateerd: `docs/fieldgrid-saas-masterplan.md`, `docs/fieldgrid-data-classification.md`
+Datum: 2026-07-03  
+Status: verplichte acceptatiebasis voor SaaS-hardening na recovery, module/plan foundation en storage-hardening t/m PR #125.  
+Gerelateerd: `docs/fieldgrid-saas-masterplan.md`, `docs/fieldgrid-data-classification.md`, `docs/fieldgrid-recovery-execution-plan.md`
 
 ## Doel
 
-Deze matrix beschrijft de vaste testactoren, tenants en scenario's waarmee we bewijzen dat Fieldgrid veilig multi-tenant werkt.
+Deze matrix beschrijft de vaste actoren, tenants, hosts en scenario's waarmee we bewijzen dat Fieldgrid veilig multi-tenant werkt.
 
-Elke toekomstige PR voor tenant lifecycle, RBAC, support access, modules, sectoren, portalen, storage, finance, documenten of audit moet in de PR-body verwijzen naar de relevante test-id's uit dit document.
+Elke toekomstige PR voor tenant lifecycle, RBAC, support access, modules, sectoren, portalen, storage, finance, documenten, audit of provisioning moet in de PR-body verwijzen naar relevante test-id's uit dit document.
+
+## Automatiseringsstatus per 2026-07-03
+
+De huidige codebase heeft vooral statische canon- en guardrail-tests. Dat is nuttig, maar niet genoeg voor SaaS-acceptatie.
+
+Volgende automatiseringslaag:
+
+- Tenant A/B/Veele integration fixtures voor membership, RBAC, modules, sectoren, direct-ID en support access.
+- Playwright-tests voor host-first routing, tenant switcher override, klantportaal en personeelsapp.
+- DB/RLS-tests voor tenantdata, support audit, platform-only tabellen en migrated sensitive tables.
+- Storage-tests voor signed URLs, tenant-prefix paths en path guessing.
+- Migratie-smoke op lege database en staging-copy.
+
+Statische tests mogen alleen bewijzen dat canon of codepatronen bestaan. Runtime-isolatie moet met integration, Playwright, DB/RLS en storage tests worden bewezen.
 
 ## Vaste tenants
 
@@ -17,6 +31,8 @@ Elke toekomstige PR voor tenant lifecycle, RBAC, support access, modules, sector
 | Tenant Veele | `veele` | Gewone tenant. Geen platform-uitzondering. |
 | Tenant A | `demo-a` | Primaire positieve testtenant. |
 | Tenant B | `demo-b` | Cross-tenant denial tenant met vergelijkbare records. |
+
+Deze set heet in vervolgwerk: Tenant A/B/Veele.
 
 ## Vaste hosts
 
@@ -54,7 +70,7 @@ Elke toekomstige PR voor tenant lifecycle, RBAC, support access, modules, sector
 
 ## Vaste testdata
 
-Maak per tenant vergelijkbare records en noteer technische ids, slugs, document ids, invoice ids en storage paths.
+Maak per tenant vergelijkbare records en noteer ids, slugs, document ids, invoice ids en storage paths.
 
 | Tenant | Customer | Object | Assignment | Document | Report | Quote | Invoice | Storage path |
 | --- | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -68,81 +84,115 @@ Maak per tenant vergelijkbare records en noteer technische ids, slugs, document 
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `FG-HOST-001` | host-first tenant resolution | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | platform | Open platform dashboard. | Platformroute opent; geen tenant switcher nodig. | Playwright, integration |
 | `FG-HOST-002` | host-first tenant resolution | `A-ADMIN` | `demo-a.fieldgrid.nl` | `demo-a` | Open backoffice dashboard. | Tenant A wordt uit host bepaald. | Playwright, unit |
-| `FG-HOST-003` | host-first tenant resolution | `A-ADMIN` | `unknown.fieldgrid.nl` | none | Open backoffice route. | Veilige fout; geen fallback naar default tenant. | Playwright, unit |
-| `FG-HOST-004` | tenant switcher override | `MULTI-A-B` | `demo-a.fieldgrid.nl` | cookie probeert `demo-b` | Zet tenant switcher/cookie op Tenant B en open Tenant A host. | Host wint; Tenant B data blijft onzichtbaar. | Playwright, integration |
-| `FG-HOST-005` | productie fallback | `A-ADMIN` | `demo-a.fieldgrid.nl` | missing/invalid session tenant | Forceer ontbrekende tenantcookie. | Geen productie-fallback naar `DEFAULT_TENANT_ID`. | static, unit |
+| `FG-HOST-003` | unknown host denial | `A-ADMIN` | `unknown.fieldgrid.nl` | none | Open backoffice route. | Veilige fout; geen fallback naar default tenant. | Playwright, unit |
+| `FG-HOST-004` | tenant switcher override | `MULTI-A-B` | `demo-a.fieldgrid.nl` | cookie probeert `demo-b` | Zet switcher/cookie op Tenant B en open Tenant A host. | Host wint; Tenant B data blijft onzichtbaar. | Playwright, integration |
+| `FG-HOST-005` | default fallback denial | `A-ADMIN` | `demo-a.fieldgrid.nl` | missing/invalid session tenant | Forceer ontbrekende tenantcookie. | Geen productie-fallback naar `DEFAULT_TENANT_ID`. | static, unit |
+| `FG-HOST-006` | custom domain | `A-ADMIN` | custom Tenant A domain | `demo-a` | Open dashboard via custom domain. | Tenant A wordt uit `tenant_domains` bepaald. | Playwright, integration |
+| `FG-LIFE-001` | active tenant | `A-ADMIN` | `demo-a.fieldgrid.nl` | active `demo-a` | Open en wijzig Tenant A customer. | Toegestaan. | integration |
+| `FG-LIFE-002` | suspended tenant | `A-ADMIN` | `demo-a.fieldgrid.nl` | suspended `demo-a` | Probeer mutatie. | Geweigerd volgens suspended policy. | integration, DB/RLS |
+| `FG-LIFE-003` | archived tenant | `A-ADMIN` | `demo-a.fieldgrid.nl` | archived `demo-a` | Probeer login/dashboard. | Geweigerd of read-only volgens policy; geen mutatie. | integration |
+| `FG-LIFE-004` | Veele gewone tenant | `A-ADMIN` | `veele.fieldgrid.nl` | `veele` | Open tenant dashboard. | Veele gedraagt zich als gewone tenant, niet als platform-exceptie. | Playwright, integration |
 | `FG-RBAC-001` | tenant RBAC happy path | `A-ADMIN` | `demo-a.fieldgrid.nl` | `demo-a` | Lees en wijzig Tenant A customer. | Toegestaan op basis van tenantrol. | integration |
 | `FG-RBAC-002` | tenant RBAC denial | `MULTI-A-B` | `demo-b.fieldgrid.nl` | `demo-b` | Voer actie uit die alleen Tenant A rol toestaat. | Geweigerd in Tenant B. | integration |
 | `FG-RBAC-003` | globale roles geen runtime | `A-EMPLOYEE` | `demo-a.fieldgrid.nl` | `demo-a` | Verwijder tenantrol, laat alleen globale role staan, probeer protected action. | Geweigerd; globale role geeft geen runtime-recht. | static, integration |
 | `FG-RBAC-004` | custom roles plan gate | `A-OWNER` | `demo-a.fieldgrid.nl` | Starter tenant | Maak custom role. | Geweigerd voor Starter; toegestaan voor Professional+. | integration |
+| `FG-RBAC-005` | tenantrol assignment | `A-OWNER` | `demo-a.fieldgrid.nl` | `demo-a` | Wijs gebruiker een tenantrol toe. | Alleen Tenant A rol wordt aangepast; Tenant B blijft gelijk. | integration |
 | `FG-SUPPORT-001` | support grant absent | `SUPPORT-NO-GRANT` | `platform.fieldgrid.nl` | `demo-a` support entry | Open Tenant A support entrypoint. | Geweigerd; geen impliciete tenanttoegang. | integration, Playwright |
 | `FG-SUPPORT-002` | support grant active | `SUPPORT-A-GRANT` | `platform.fieldgrid.nl` | `demo-a` support entry | Open Tenant A support entrypoint binnen grantvenster. | Toegestaan en auditregel geschreven. | integration, DB/RLS |
 | `FG-SUPPORT-003` | support grant expired | `SUPPORT-EXPIRED` | `platform.fieldgrid.nl` | `demo-a` support entry | Open Tenant A support entrypoint. | Geweigerd; verlopen grant telt niet. | integration |
-| `FG-SUPPORT-004` | support wrong tenant | `SUPPORT-A-GRANT` | `platform.fieldgrid.nl` | `demo-b` support entry | Open Tenant B support entrypoint. | Geweigerd; grant is tenant-scoped. | integration |
-| `FG-SUPPORT-005` | support audit | `SUPPORT-A-GRANT` | `platform.fieldgrid.nl` | `demo-a` | Lees gevoelige tenantdata via supportflow. | `support_access_audit_log` bevat grant, tenant, actor, action en resource. | DB/RLS, integration |
-| `FG-PLATFORM-001` | platform-admin guard | `PLAT-ADMIN-INACTIVE` | `platform.fieldgrid.nl` | platform | Open platform-admin route. | Geweigerd door status. | Playwright, integration |
-| `FG-PLATFORM-002` | tenant user geen platform | `A-OWNER` | `platform.fieldgrid.nl` | platform | Open platform-admin route. | Geweigerd; tenantrol is geen platformrol. | Playwright, integration |
-| `FG-MODULE-001` | module happy path | `A-ADMIN` | `demo-a.fieldgrid.nl` | module enabled | Open module en voer normale leesactie uit. | Toegestaan met juiste tenantrol. | Playwright, integration |
-| `FG-MODULE-002` | module off UI | `A-ADMIN` | `demo-a.fieldgrid.nl` | module disabled | Open navigatie. | Module is verborgen of disabled volgens modulebeleid. | Playwright |
-| `FG-MODULE-003` | module off direct URL | `A-ADMIN` | `demo-a.fieldgrid.nl` | module disabled | Open directe module-URL. | Server blokkeert; geen data of metadata. | Playwright, integration |
-| `FG-MODULE-004` | module off action/API | `A-ADMIN` | `demo-a.fieldgrid.nl` | module disabled | Roep server action/API direct aan. | Geweigerd met consistente autorisatiefout. | integration |
-| `FG-SECTOR-001` | sector happy path | `A-PLANNER` | `demo-a.fieldgrid.nl` | toegestane sector | Maak customer/object/personnel/task code met toegestane sector. | Toegestaan. | integration, DB/RLS |
-| `FG-SECTOR-002` | sector buiten tenant | `A-PLANNER` | `demo-a.fieldgrid.nl` | sector alleen in `demo-b` | Manipuleer create/update payload naar Tenant B sector. | Geweigerd; record blijft ongewijzigd. | integration, DB/RLS |
-| `FG-SECTOR-003` | disabled sector | `A-ADMIN` | `demo-a.fieldgrid.nl` | disabled tenant sector | Maak of wijzig record naar disabled sector. | Geweigerd. | integration, DB/RLS |
-| `FG-SECTOR-004` | single-sector UX | `A-ADMIN` | `demo-a.fieldgrid.nl` | single-sector tenant | Open forms waar sector relevant is. | UI toont geen overbodige sectorselectie; server vult default sector. | Playwright, integration |
-| `FG-ID-001` | direct ID customer | `A-ADMIN` | `demo-a.fieldgrid.nl` | `demo-a` | Open of mutate `B-Customer-01` via technische id. | Geen Tenant B data, geen side effects. | integration |
-| `FG-ID-002` | direct ID object | `A-ADMIN` | `demo-a.fieldgrid.nl` | `demo-a` | Open of mutate `B-Object-01` via technische id. | Geen Tenant B data, geen side effects. | integration |
-| `FG-ID-003` | direct ID assignment | `A-PLANNER` | `demo-a.fieldgrid.nl` | `demo-a` | Open of mutate `B-Assignment-01` via technische id. | Geen Tenant B data, geen subresource metadata. | integration |
-| `FG-ID-004` | direct ID document | `A-ADMIN` | `demo-a.fieldgrid.nl` | `demo-a` | Open/download `B-Document-01` via document id. | Geen metadata, filename, path, preview of signed URL. | integration, storage |
-| `FG-ID-005` | direct ID invoice/PDF | `A-ADMIN` | `demo-a.fieldgrid.nl` | `demo-a` | Open/download `B-Invoice-01` of PDF-route. | Geen PDF, paymentstatus of finance metadata. | integration |
-| `FG-ID-006` | direct ID report/PDF | `A-ADMIN` | `demo-a.fieldgrid.nl` | `demo-a` | Open/download `B-Report-01`. | Geen rapportcontent, media of PDF. | integration, storage |
-| `FG-PORTAL-C-001` | klantportaal host-bound | `A-CUSTOMER` | `demo-a.fieldgrid.nl` | `demo-a` | Open eigen portal dashboard. | Alleen eigen customerdata Tenant A zichtbaar. | Playwright, integration |
-| `FG-PORTAL-C-002` | klantportaal cross-tenant | `A-CUSTOMER` | `demo-a.fieldgrid.nl` | payload/id uit `demo-b` | Roep B customer/object/assignment/invoice routes aan. | Geweigerd of leeg; geen Tenant B metadata. | integration |
-| `FG-PORTAL-C-003` | klantportaal geen tenantkeuze | `A-CUSTOMER` | `demo-a.fieldgrid.nl` | probeert switch naar `demo-b` | Manipuleer tenant parameter/cookie. | Host en `customer_users` winnen; geen Tenant B toegang. | Playwright, integration |
-| `FG-PORTAL-P-001` | personeelsapp host-bound | `A-PERSONNEL` | `demo-a.fieldgrid.nl` | `demo-a` | Open eigen planning. | Alleen eigen/toegewezen Tenant A data zichtbaar. | Playwright, integration |
-| `FG-PORTAL-P-002` | personeelsapp cross-tenant | `A-PERSONNEL` | `demo-a.fieldgrid.nl` | payload/id uit `demo-b` | Roep B assignment/open-service/media routes aan. | Geweigerd of leeg; geen Tenant B metadata. | integration, storage |
-| `FG-STORAGE-001` | signed URL tenant check | `A-ADMIN` | `demo-a.fieldgrid.nl` | `demo-a` | Vraag signed URL voor Tenant B document/photo/report attachment. | Geen URL; autorisatie faalt voor signing. | storage, integration |
-| `FG-STORAGE-002` | storage path guessing | `A-CUSTOMER` | `demo-a.fieldgrid.nl` | `demo-a` | Vervang `tenant/{demo-a-id}` door `tenant/{demo-b-id}` in path. | Geen read/write/delete; fout lekt geen structuur. | storage, DB/RLS |
-| `FG-STORAGE-003` | public asset boundary | `A-CUSTOMER` | `demo-a.fieldgrid.nl` | public bucket | Open news/organization asset. | Alleen bewust publieke assets zijn leesbaar; private docs blijven private. | storage |
-| `FG-AUDIT-001` | download audit | `A-ADMIN` | `demo-a.fieldgrid.nl` | `demo-a` | Download gevoelig document/PDF. | Tenant-audit bevat actor, tenant, resource, action. | integration, DB/RLS |
-| `FG-AUDIT-002` | support audit priority | `SUPPORT-A-GRANT` | `platform.fieldgrid.nl` | `demo-a` support | Lees/download via support. | Support audit bevat grant id en tenant; geen gewone tenantrol nodig. | integration, DB/RLS |
-| `FG-LIFECYCLE-001` | suspended tenant | `A-ADMIN` | `demo-a.fieldgrid.nl` | suspended tenant | Probeer mutatie. | Mutatie geweigerd; read-beleid volgens lifecycle spec. | integration |
-| `FG-LIFECYCLE-002` | archived tenant | `A-ADMIN` | `demo-a.fieldgrid.nl` | archived tenant | Probeer login/mutatie. | Veilig geblokkeerd volgens archive-beleid. | integration, Playwright |
-| `FG-MIGRATE-001` | lege database smoke | CI/system | n.v.t. | empty DB | Draai migraties vanaf nul. | Migraties slagen zonder handmatige fix. | DB/RLS |
-| `FG-MIGRATE-002` | staging-copy smoke | CI/system | n.v.t. | kopie staging DB | Draai migraties op staging-copy. | Geen destructieve reset; bestaande data blijft bruikbaar. | DB/RLS |
+| `FG-SUPPORT-004` | wrong tenant grant | `SUPPORT-A-GRANT` | `platform.fieldgrid.nl` | `demo-b` support entry | Open Tenant B support entrypoint met Tenant A grant. | Geweigerd en niet als tenantrol behandeld. | integration |
+| `FG-SUPPORT-005` | support audit | `SUPPORT-A-GRANT` | `platform.fieldgrid.nl` | `demo-a` | Lees/download tenantdata via supportmodus. | Audit bevat support user, tenant, reden, grant en actie. | DB/RLS, integration |
+| `FG-SUPPORT-006` | support priority | `SUPPORT-A-GRANT` | `platform.fieldgrid.nl` | `demo-a` | Voer toegestane supportactie uit zonder tenantrol. | Actieve grant werkt onafhankelijk van gewone tenantrol, maar alleen via supportpad. | integration |
+| `FG-MODULE-001` | module enabled happy path | `A-ADMIN` | `demo-a.fieldgrid.nl` | documents enabled | Open documentmodule. | Toegestaan. | integration, Playwright |
+| `FG-MODULE-002` | module disabled UI | `A-ADMIN` | `demo-a.fieldgrid.nl` | documents disabled | Bekijk navigatie/dashboard. | Module niet zichtbaar of disabled volgens productkeuze. | Playwright |
+| `FG-MODULE-003` | module disabled direct URL | `A-ADMIN` | `demo-a.fieldgrid.nl` | documents disabled | Open directe documentroute. | Geweigerd server-side. | Playwright, integration |
+| `FG-MODULE-004` | module disabled server action | `A-ADMIN` | `demo-a.fieldgrid.nl` | documents disabled | Roep document server action aan. | Geweigerd door `requireTenantModule`. | integration |
+| `FG-MODULE-005` | module disabled API | `A-ADMIN` | API host | module disabled | Roep API endpoint voor module aan. | Geweigerd, ook als RBAC permissie bestaat. | integration |
+| `FG-MODULE-006` | module dependency | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | Tenant A config | Schakel module uit waarvan andere module afhankelijk is. | Geweigerd of dependency wordt consequent opgelost. | unit, integration |
+| `FG-MODULE-007` | background job | worker | n/a | module disabled | Verwerk tenant job voor uitgeschakelde module. | Job wordt niet uitgevoerd of veilig overgeslagen. | integration |
+| `FG-MODULE-008` | plan module seed | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | Starter/Professional/Enterprise | Seed/check plan modules. | Modules volgen plan + tenant overrides. | DB/RLS, integration |
+| `FG-SECTOR-001` | sector happy path | `A-ADMIN` | `demo-a.fieldgrid.nl` | allowed sector | Maak customer/object/personnel/task code met toegestane sector. | Toegestaan. | integration, DB/RLS |
+| `FG-SECTOR-002` | sector outside tenant | `A-ADMIN` | `demo-a.fieldgrid.nl` | Tenant B sector id | Maak record met sector buiten tenantconfiguratie. | Geweigerd server-side en DB-side waar trigger bestaat. | integration, DB/RLS |
+| `FG-SECTOR-003` | disabled sector | `A-ADMIN` | `demo-a.fieldgrid.nl` | disabled sector | Maak/wijzig record met disabled sector. | Geweigerd. | integration, DB/RLS |
+| `FG-SECTOR-004` | disable sector with existing data | `A-OWNER` | `demo-a.fieldgrid.nl` | sector in gebruik | Disable sector die bestaande records raakt. | Geweigerd totdat data gemigreerd/geschoond is. | integration, DB/RLS |
+| `FG-SECTOR-005` | single-sector default | `A-ADMIN` | `demo-a.fieldgrid.nl` | single-sector tenant | Maak record zonder expliciete sector. | Default sector wordt server-side gezet of mutatie faalt volgens policy. | unit, integration |
+| `FG-SECTOR-006` | assignment sector consistency | `A-PLANNER` | `demo-a.fieldgrid.nl` | mixed customer/object/task sectors | Maak assignment met inconsistente sectorcontext. | Geweigerd of expliciet volgens ontworpen sectorpolicy. | integration |
+| `FG-DATA-001` | customer direct ID | `B-ADMIN` | `demo-b.fieldgrid.nl` | `demo-b` | Open Tenant A customer id. | 404/403; geen data leakage. | integration |
+| `FG-DATA-002` | object direct ID | `B-ADMIN` | `demo-b.fieldgrid.nl` | `demo-b` | Open Tenant A object id. | 404/403. | integration |
+| `FG-DATA-003` | assignment direct ID | `B-PLANNER` | `demo-b.fieldgrid.nl` | `demo-b` | Open Tenant A assignment id. | 404/403. | integration |
+| `FG-DATA-004` | document direct ID | `B-ADMIN` | `demo-b.fieldgrid.nl` | `demo-b` | Download/open Tenant A document id. | 404/403 en geen signed URL. | integration, storage |
+| `FG-DATA-005` | report direct ID | `B-ADMIN` | `demo-b.fieldgrid.nl` | `demo-b` | Open Tenant A report/PDF. | 404/403 en audit indien relevant. | integration |
+| `FG-DATA-006` | quote direct ID | `B-ADMIN` | `demo-b.fieldgrid.nl` | `demo-b` | Open Tenant A quote/PDF. | 404/403. | integration |
+| `FG-DATA-007` | invoice direct ID | `B-ADMIN` | `demo-b.fieldgrid.nl` | `demo-b` | Open Tenant A invoice/PDF. | 404/403 en geen payment data. | integration |
+| `FG-DATA-008` | payment direct ID | `B-ADMIN` | `demo-b.fieldgrid.nl` | `demo-b` | Open/update Tenant A payment. | 404/403; webhook guards tenant. | integration, DB/RLS |
+| `FG-DATA-009` | audit visibility | `A-ADMIN` | `demo-a.fieldgrid.nl` | `demo-a` | Bekijk auditlog. | Alleen Tenant A audit; geen platform/support-only data. | DB/RLS, integration |
+| `FG-DATA-010` | news scope | `A-CUSTOMER` | `demo-a.fieldgrid.nl` | `demo-a` | Open news feed. | Alleen tenant-scoped of expliciet platform-news volgens gekozen model. | integration |
+| `FG-STORAGE-001` | tenant-prefix happy path | `A-ADMIN` | `demo-a.fieldgrid.nl` | `demo-a` | Download Tenant A document via tenant-prefixed path. | Signed URL alleen na tenant/entity check. | storage, integration |
+| `FG-STORAGE-002` | path guessing | `B-ADMIN` | `demo-b.fieldgrid.nl` | `demo-b` | Gebruik Tenant A storage path. | Geen signed URL; geen delete/update. | storage |
+| `FG-STORAGE-003` | assignment photo URL | `B-CUSTOMER` | `demo-b.fieldgrid.nl` | `demo-b` | Vraag signed URL voor Tenant A assignment photo. | Geweigerd. | storage, integration |
+| `FG-STORAGE-004` | report attachment URL | `B-ADMIN` | `demo-b.fieldgrid.nl` | `demo-b` | Vraag signed URL voor Tenant A report attachment. | Geweigerd; unsafe path geblokkeerd. | storage, integration |
+| `FG-STORAGE-005` | avatar/org assets | `B-ADMIN` | `demo-b.fieldgrid.nl` | `demo-b` | Raad Tenant A logo/avatar path. | Alleen publieke assets volgens policy, geen private leakage. | storage |
+| `FG-STORAGE-006` | delete guard | `B-ADMIN` | `demo-b.fieldgrid.nl` | `demo-b` | Probeer Tenant A document te verwijderen via path/id. | Geweigerd. | storage, integration |
+| `FG-STORAGE-007` | storage migration smoke | migration runner | staging-copy | all tenants | Backfill bestaande storage paths naar tenant-prefix. | Idempotent, geen data kwijt, oude links gecontroleerd. | migration, storage |
+| `FG-PORTAL-C-001` | klantportaal host-bound | `A-CUSTOMER` | `demo-a.fieldgrid.nl` | `demo-a` | Open klantportaal. | Alleen Tenant A customercontext. | Playwright, integration |
+| `FG-PORTAL-C-002` | klantportaal wrong host | `A-CUSTOMER` | `demo-b.fieldgrid.nl` | `demo-b` | Open Tenant B host met Tenant A customer. | Geweigerd. | Playwright, integration |
+| `FG-PORTAL-C-003` | klantportaal module off | `A-CUSTOMER` | `demo-a.fieldgrid.nl` | customer portal module off | Open portal feature. | Geweigerd server-side. | Playwright, integration |
+| `FG-PORTAL-C-004` | klantportaal invoice/PDF audit | `A-CUSTOMER` | `demo-a.fieldgrid.nl` | `demo-a` | Download invoice PDF. | Alleen eigen tenant/customer en auditregel geschreven. | integration, DB/RLS |
+| `FG-PORTAL-P-001` | personeelsapp host-bound | `A-PERSONNEL` | `demo-a.fieldgrid.nl` | `demo-a` | Open personeelsapp. | Alleen Tenant A personnelcontext. | Playwright, integration |
+| `FG-PORTAL-P-002` | personeelsapp wrong host | `A-PERSONNEL` | `demo-b.fieldgrid.nl` | `demo-b` | Open Tenant B host met Tenant A personnel. | Geweigerd. | Playwright, integration |
+| `FG-PORTAL-P-003` | personeelsapp assignment media | `A-PERSONNEL` | `demo-a.fieldgrid.nl` | `demo-a` | Upload/download assignment media. | Alleen toegestane opdracht en tenant. | storage, integration |
+| `FG-PORTAL-P-004` | personeelsapp module off | `A-PERSONNEL` | `demo-a.fieldgrid.nl` | personnel app module off | Open modulefeature. | Geweigerd server-side. | Playwright, integration |
+| `FG-AUDIT-001` | download audit | `A-ADMIN` | `demo-a.fieldgrid.nl` | `demo-a` | Download document/invoice/report. | Audit bevat tenant, actor, entity, actie, timestamp. | DB/RLS, integration |
+| `FG-AUDIT-002` | support audit | `SUPPORT-A-GRANT` | `platform.fieldgrid.nl` | `demo-a` | Lees/download tenantdata. | Audit bevat support grant, reden en tenant. | DB/RLS, integration |
+| `FG-AUDIT-003` | platform audit | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | platform | Wijzig tenant plan/module/status. | Platform audit is platform-only en niet tenant-visible. | DB/RLS, integration |
+| `FG-AUDIT-004` | tenant audit isolation | `B-ADMIN` | `demo-b.fieldgrid.nl` | `demo-b` | Zoek Tenant A auditregels. | Niet zichtbaar. | DB/RLS, integration |
+| `FG-AUDIT-005` | audit migration smoke | migration runner | staging-copy | all tenants | Voeg tenant_id/split toe aan audit. | Backfill compleet; platform-only events correct geclassificeerd. | migration, DB/RLS |
+| `FG-PLATFORM-001` | active platform admin | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | platform | Open tenant list. | Toegestaan. | Playwright, integration |
+| `FG-PLATFORM-002` | inactive platform admin | `PLAT-ADMIN-INACTIVE` | `platform.fieldgrid.nl` | platform | Open platform route. | Geweigerd. | Playwright, integration |
+| `FG-PLATFORM-003` | tenant user platform denial | `A-ADMIN` | `platform.fieldgrid.nl` | platform | Open platform route. | Geweigerd. | Playwright, integration |
+| `FG-PLATFORM-004` | lifecycle action | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | Tenant A | Suspend/reactivate tenant. | Statuswijziging transactioneel en geaudit. | integration |
+| `FG-PLATFORM-005` | plan/module beheer | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | Tenant A | Wijzig plan/modules. | Entitlements veranderen en worden runtime afgedwongen. | integration |
+| `FG-PLATFORM-006` | support grant beheer | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | Tenant A | Maak/revoke support grant. | Grant status klopt en auditregel bestaat. | integration, DB/RLS |
+| `FG-MIG-001` | lege database smoke | migration runner | local/CI | empty DB | Draai alle migraties. | Migrations slagen idempotent. | migration |
+| `FG-MIG-002` | staging-copy smoke | migration runner | staging-copy | bestaande data | Draai migraties op kopie van staging. | Geen destructieve reset; backfills slagen. | migration |
+| `FG-MIG-003` | compatibility skip | migration runner | staging-copy | legacy migrations | Draai migratierunner met reeds toegepaste legacy SQL. | Correct skipped/toegepast zonder duplicate failure. | migration |
 
 ## Minimum green before staging
 
-Voordat `main` naar `staging` gaat na een risicofase, moeten minimaal groen zijn:
+Een PR mag pas naar staging-promotie als de relevante minimum set groen is.
 
+Altijd:
+
+- `FG-MIG-001`
+- `FG-MIG-002` voor elke migratie-PR
 - `FG-HOST-001` t/m `FG-HOST-005`
-- `FG-RBAC-001` t/m `FG-RBAC-004`
-- `FG-SUPPORT-001` t/m `FG-SUPPORT-005`
-- `FG-MODULE-002` t/m `FG-MODULE-004` zodra modules gebouwd zijn
-- `FG-SECTOR-001` t/m `FG-SECTOR-003`
-- `FG-ID-001` t/m `FG-ID-006`
-- `FG-PORTAL-C-001` t/m `FG-PORTAL-C-003` zodra klantportaal host-bound wordt
-- `FG-PORTAL-P-001` en `FG-PORTAL-P-002` zodra personeelsapp host-bound wordt
-- `FG-STORAGE-001` en `FG-STORAGE-002` bij elke storage- of documentenwijziging
-- `FG-MIGRATE-001` en `FG-MIGRATE-002` bij elke migratie-PR
+- `FG-LIFE-001` en denial voor suspended/archived als lifecycle geraakt wordt
+- `FG-RBAC-001` t/m `FG-RBAC-004` als auth/RBAC geraakt wordt
 
-## Verwachte denial-vorm
+Voor modulewerk:
 
-Per route of action mag de concrete denial-vorm verschillen, maar moet vooraf in de test worden vastgelegd:
+- `FG-MODULE-001` t/m `FG-MODULE-005`
+- `FG-MODULE-007` als jobs/workers geraakt worden
 
-- `403 Forbidden` voor expliciete autorisatiefout;
-- `404 Not Found` wanneer bestaan niet bevestigd mag worden;
-- lege dataset voor lijstqueries;
-- applicatiespecifieke server-action fout zonder cross-tenant metadata.
+Voor sectorwerk:
 
-Een denial mag nooit bestandsnamen, aantallen, storage paths, signed URLs, tenantnamen, klantnamen of andere metadata van een andere tenant lekken.
+- `FG-SECTOR-001` t/m `FG-SECTOR-006`
 
-## Gebruik in vervolg-PR's
+Voor support/platformwerk:
 
-Elke vervolg-PR moet in de PR-body opnemen:
+- `FG-SUPPORT-001` t/m `FG-SUPPORT-006`
+- `FG-PLATFORM-001` t/m `FG-PLATFORM-006` waar geraakt
+- `FG-AUDIT-002` en `FG-AUDIT-003`
 
-- welke test-id's relevant zijn;
-- welke test-id's al geautomatiseerd zijn;
-- welke test-id's nog handmatig of toekomstig blijven;
-- of de wijziging staging-copy migratietests vereist;
-- of storage/RLS inspect nodig is na deploy.
+Voor gevoelige data, storage, finance en downloads:
+
+- `FG-DATA-001` t/m `FG-DATA-009` voor geraakte domeinen
+- `FG-STORAGE-001` t/m `FG-STORAGE-007` voor storage/downloads
+- `FG-AUDIT-001`, `FG-AUDIT-004` en waar nodig `FG-AUDIT-005`
+
+Voor portalen:
+
+- `FG-PORTAL-C-001` t/m `FG-PORTAL-C-004` voor klantportaal
+- `FG-PORTAL-P-001` t/m `FG-PORTAL-P-004` voor personeelsapp
+
+Statische tests alleen tellen nooit als minimum green voor een runtime securitygrens; er moet minimaal een unit/integration/Playwright/DB/RLS/storage test bij waar de grens runtime raakt.
