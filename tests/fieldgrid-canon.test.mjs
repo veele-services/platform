@@ -6,6 +6,16 @@ function read(path) {
   return readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 }
 
+function escapeRegExp(value) {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function assertContains(content, phrases, label) {
+  for (const phrase of phrases) {
+    assert.match(content, new RegExp(escapeRegExp(phrase), "iu"), `${label} should mention ${phrase}`);
+  }
+}
+
 const canonicalDocs = [
   "docs/fieldgrid-saas-masterplan.md",
   "docs/fieldgrid-data-classification.md",
@@ -22,58 +32,119 @@ test("Fieldgrid canon docs exist", () => {
 test("data classification contains canonical tenant strategies and priorities", () => {
   const classification = read("docs/fieldgrid-data-classification.md");
 
-  for (const strategy of [
-    "direct_tenant_id",
-    "parent_scoped",
-    "global_template",
-    "platform_only",
-    "tenant_config",
-    "needs_migration",
-  ]) {
-    assert.match(classification, new RegExp(`\\b${strategy}\\b`, "u"));
-  }
+  assertContains(
+    classification,
+    [
+      "direct_tenant_id",
+      "parent_scoped",
+      "global_template",
+      "platform_only",
+      "tenant_config",
+      "needs_migration",
+    ],
+    "data classification",
+  );
 
-  for (const priority of ["P0", "P1", "P2"]) {
-    assert.match(classification, new RegExp(`\\b${priority}\\b`, "u"));
-  }
+  assertContains(classification, ["P0", "P1", "P2"], "data classification");
 });
 
 test("data classification keeps known sensitive SaaS rest points explicit", () => {
   const classification = read("docs/fieldgrid-data-classification.md");
 
-  for (const restPoint of [
-    "documents",
-    "invoices",
-    "quotes",
-    "reports",
-    "payments",
-    "customer_payment_batches",
-    "assignment_photos",
-    "assignment_report_note_attachments",
-    "audit_log",
-  ]) {
-    assert.match(classification, new RegExp(restPoint, "u"));
-  }
+  assertContains(
+    classification,
+    [
+      "documents",
+      "invoices",
+      "quotes",
+      "reports",
+      "payments",
+      "customer_payment_batches",
+      "assignment_photos",
+      "assignment_report_note_attachments",
+      "audit_log",
+    ],
+    "data classification",
+  );
+});
+
+test("data classification captures refreshed current backlog", () => {
+  const classification = read("docs/fieldgrid-data-classification.md");
+
+  assertContains(
+    classification,
+    ["Actuele stand", "module-aware", "tenant-prefix", "integration", "Tenant A/B/Veele"],
+    "data classification",
+  );
 });
 
 test("cross-tenant matrix covers required security boundaries", () => {
   const matrix = read("docs/fieldgrid-cross-tenant-testmatrix.md");
 
-  for (const phrase of [
-    "host-first",
-    "RBAC",
-    "support",
-    "module",
-    "sector",
-    "storage",
-    "direct ID",
-    "demo-a",
-    "demo-b",
-    "veele",
-    "minimum green before staging",
-  ]) {
-    assert.match(matrix, new RegExp(phrase, "iu"));
-  }
+  assertContains(
+    matrix,
+    [
+      "host-first",
+      "RBAC",
+      "support",
+      "module",
+      "sector",
+      "storage",
+      "direct ID",
+      "demo-a",
+      "demo-b",
+      "veele",
+      "minimum green before staging",
+    ],
+    "cross-tenant matrix",
+  );
+});
+
+test("cross-tenant matrix tracks required automation layers", () => {
+  const matrix = read("docs/fieldgrid-cross-tenant-testmatrix.md");
+
+  assertContains(
+    matrix,
+    ["Automatiseringsstatus", "Tenant A/B/Veele", "static", "Playwright", "DB/RLS", "storage"],
+    "cross-tenant matrix",
+  );
+});
+
+test("masterplan captures the current SaaS backlog", () => {
+  const masterplan = read("docs/fieldgrid-saas-masterplan.md");
+
+  assertContains(
+    masterplan,
+    [
+      "API module guards",
+      "Portal module guards",
+      "DEFAULT_TENANT_ID",
+      "tenant_sector_settings",
+      "tenant_id",
+      "Echte verbeteringen",
+      "Nice-to-have",
+      "Tenant A/B/Veele",
+    ],
+    "masterplan",
+  );
+});
+
+test("masterplan captures the phase sprint execution plan", () => {
+  const masterplan = read("docs/fieldgrid-saas-masterplan.md");
+
+  assertContains(
+    masterplan,
+    [
+      "Fasesprints vanaf nu",
+      "Sprint 0 - Canon lock",
+      "Sprint 1 - Tenantcontext",
+      "Sprint 6 - Documenten en storage wave 1",
+      "Sprint 12 - Operatie, release en eerste externe tenant",
+      "Sprint 0: merge PR #126",
+      "Sprint 12 PR B",
+    ],
+    "masterplan",
+  );
 });
 
 test("masterplan and recovery docs point to the canon sources", () => {
@@ -81,11 +152,13 @@ test("masterplan and recovery docs point to the canon sources", () => {
   const recoveryPlan = read("docs/fieldgrid-recovery-execution-plan.md");
   const combined = `${masterplan}\n${recoveryPlan}`;
 
-  for (const path of [
-    "docs/fieldgrid-saas-masterplan.md",
-    "docs/fieldgrid-data-classification.md",
-    "docs/fieldgrid-cross-tenant-testmatrix.md",
-  ]) {
-    assert.match(combined, new RegExp(path.replaceAll("/", "\\/"), "u"));
-  }
+  assertContains(
+    combined,
+    [
+      "docs/fieldgrid-saas-masterplan.md",
+      "docs/fieldgrid-data-classification.md",
+      "docs/fieldgrid-cross-tenant-testmatrix.md",
+    ],
+    "masterplan/recovery docs",
+  );
 });
