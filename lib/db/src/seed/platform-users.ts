@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import { db, pool } from "../index";
 import { platformUsersTable } from "../schema/platform-users";
 
@@ -44,7 +45,11 @@ async function seedPlatformUsers() {
     )
     .onConflictDoUpdate({
       target: platformUsersTable.userId,
-      set: { status: "active", updatedAt: new Date() },
+      set: {
+        role: sql`excluded.role`,
+        status: "active",
+        updatedAt: new Date(),
+      },
     })
     .returning({ id: platformUsersTable.id, userId: platformUsersTable.userId, role: platformUsersTable.role });
 
