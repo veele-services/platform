@@ -18,7 +18,7 @@ import {
   type QuoteStatus,
   type InvoiceStatus,
 } from "@workspace/db";
-import { eq, desc, and } from "drizzle-orm";
+import { eq, desc, and, inArray } from "drizzle-orm";
 import { sendEmail, buildQuoteDecisionEmail } from "@/lib/email";
 import { emitDomainEvent } from "@workspace/db/events";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -26,6 +26,8 @@ import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
 import { getMyCustomerIdentity } from "./customer";
 import { createClient } from "@/lib/supabase/server";
+
+const CUSTOMER_VISIBLE_QUOTE_STATUSES: QuoteStatus[] = ["sent", "approved", "rejected", "expired"];
 
 export type CustomerAssignment = {
   id:               string;
@@ -70,7 +72,13 @@ export async function getMyAssignments(): Promise<CustomerAssignment[]> {
     })
     .from(assignmentsTable)
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
-    .leftJoin(quotesTable, eq(quotesTable.assignmentId, assignmentsTable.id))
+    .leftJoin(
+      quotesTable,
+      and(
+        eq(quotesTable.assignmentId, assignmentsTable.id),
+        inArray(quotesTable.status, CUSTOMER_VISIBLE_QUOTE_STATUSES),
+      ),
+    )
     .where(
       and(
         eq(assignmentsTable.customerId, identity.customerId),
@@ -380,7 +388,13 @@ export async function getMyAssignmentDetail(
     })
     .from(assignmentsTable)
     .leftJoin(objectsTable,  eq(assignmentsTable.objectId,   objectsTable.id))
-    .leftJoin(quotesTable,   eq(quotesTable.assignmentId,    assignmentsTable.id))
+    .leftJoin(
+      quotesTable,
+      and(
+        eq(quotesTable.assignmentId, assignmentsTable.id),
+        inArray(quotesTable.status, CUSTOMER_VISIBLE_QUOTE_STATUSES),
+      ),
+    )
     .leftJoin(invoicesTable, eq(invoicesTable.assignmentId,  assignmentsTable.id))
     .where(
       and(
