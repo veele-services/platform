@@ -343,7 +343,23 @@ const REPORT_DETAIL_SELECT = {
   createdAt:       reportsTable.createdAt,
 } as const;
 
+function hasUnsafeReportAttachmentStoragePath(path: string): boolean {
+  const segments = path.split("/");
+
+  return (
+    path.startsWith("/") ||
+    path.endsWith("/") ||
+    path.includes("..") ||
+    path.includes("\\") ||
+    segments.some((segment) => segment.trim() === "")
+  );
+}
+
 async function createSignedReportAttachmentUrl(storagePath: string): Promise<string | null> {
+  if (hasUnsafeReportAttachmentStoragePath(storagePath)) {
+    return null;
+  }
+
   try {
     const admin = createAdminClient();
     const { data } = await admin.storage
@@ -441,7 +457,12 @@ export async function getReportTimelineNotes(id: string): Promise<ReportTimeline
       createdAt:   assignmentReportNoteAttachmentsTable.createdAt,
     })
     .from(assignmentReportNoteAttachmentsTable)
-    .where(inArray(assignmentReportNoteAttachmentsTable.noteId, noteIds))
+    .where(
+      and(
+        inArray(assignmentReportNoteAttachmentsTable.noteId, noteIds),
+        eq(assignmentReportNoteAttachmentsTable.assignmentId, report.assignmentId),
+      ),
+    )
     .orderBy(asc(assignmentReportNoteAttachmentsTable.createdAt));
 
   const attachments = await Promise.all(
