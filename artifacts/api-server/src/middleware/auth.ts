@@ -9,8 +9,8 @@ import {
 } from "@workspace/db";
 import { and, eq, inArray } from "drizzle-orm";
 
-const SUPABASE_URL         = process.env["SUPABASE_URL"]         ?? "";
-const SUPABASE_JWT_SECRET  = process.env["SUPABASE_JWT_SECRET"]  ?? "";
+const SUPABASE_URL = process.env["SUPABASE_URL"] ?? "";
+const SUPABASE_JWT_SECRET = process.env["SUPABASE_JWT_SECRET"] ?? "";
 
 // ─── JWKS / HMAC key setup ─────────────────────────────────────────────────────
 
@@ -66,7 +66,7 @@ export async function requireAuth(
       const result = await jwtVerify(token, secret);
       payload = result.payload as Record<string, unknown>;
     } else {
-      req.log.error("SUPABASE_URL and SUPABASE_JWT_SECRET are both unset — auth disabled");
+      req.log.error("SUPABASE_URL and SUPABASE_JWT_SECRET are both unset - auth disabled");
       res.status(503).json({ error: "Authenticatie niet geconfigureerd" });
       return;
     }
@@ -90,7 +90,7 @@ export async function requireAuth(
 /** Fetch the full permission set for a user from the tenant-scoped RBAC tables. */
 export async function getUserPermissions(userId: string, tenantId: string): Promise<Set<string>> {
   const userRoles = await db
-    .select({ roleId: tenantUserRolesTable.roleId })
+    .select({ tenantRoleId: tenantUserRolesTable.tenantRoleId })
     .from(tenantUserRolesTable)
     .where(
       and(
@@ -101,21 +101,16 @@ export async function getUserPermissions(userId: string, tenantId: string): Prom
 
   if (userRoles.length === 0) return new Set();
 
-  const roleIds = userRoles.map((r) => r.roleId);
+  const tenantRoleIds = userRoles.map((r) => r.tenantRoleId);
 
   const perms = await db
     .select({
       resource: permissionsTable.resource,
-      action:   permissionsTable.action,
+      action: permissionsTable.action,
     })
     .from(tenantRolePermissionsTable)
     .innerJoin(permissionsTable, eq(tenantRolePermissionsTable.permissionId, permissionsTable.id))
-    .where(
-      and(
-        eq(tenantRolePermissionsTable.tenantId, tenantId),
-        inArray(tenantRolePermissionsTable.roleId, roleIds),
-      ),
-    );
+    .where(inArray(tenantRolePermissionsTable.tenantRoleId, tenantRoleIds));
 
   return new Set(perms.map((p) => `${p.resource}:${p.action}`));
 }

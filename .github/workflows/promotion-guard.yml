@@ -14,6 +14,11 @@ on:
 permissions:
   contents: read
 
+env:
+  # Temporary recovery freeze: while true, every PR into staging is blocked.
+  # Recovery PRs must target main; staging is updated later from main after reconciliation.
+  STAGING_RECOVERY_FREEZE: "true"
+
 jobs:
   enforce-release-flow:
     name: Enforce release flow
@@ -31,6 +36,18 @@ jobs:
 
           base_branch="${GITHUB_BASE_REF}"
           head_branch="${GITHUB_HEAD_REF}"
+
+          if [[ "$base_branch" == "staging" && "${STAGING_RECOVERY_FREEZE}" == "true" ]]; then
+            echo "::error title=Staging temporarily frozen::main is the recovery source; staging will be updated from main later. Do not merge feature or recovery branches directly into staging."
+            echo
+            echo "Required recovery flow during freeze:"
+            echo "  recovery/* or feature/* -> main"
+            echo "  staging remains paused until main has a reproducible migration and test state"
+            echo
+            echo "Received:"
+            echo "  $head_branch -> $base_branch"
+            exit 1
+          fi
 
           case "$base_branch" in
             staging)

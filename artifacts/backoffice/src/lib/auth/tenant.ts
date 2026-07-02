@@ -2,6 +2,12 @@ import { db, DEFAULT_TENANT_ID, tenantUsersTable, tenantsTable } from "@workspac
 import { and, eq } from "drizzle-orm";
 import { cookies, headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import {
+  isFieldgridSubdomain,
+  isPlatformHost,
+  normalizeHost,
+  resolveTenantByHost,
+} from "@/lib/auth/tenant-resolver";
 
 export const BACKOFFICE_TENANT_COOKIE = "backoffice_tenant_id";
 
@@ -11,6 +17,12 @@ export type BackofficeTenantOption = {
   slug: string;
 };
 
+type HostTenantResolution =
+  | { kind: "tenant"; tenantId: string }
+  | { kind: "platform" }
+  | { kind: "blocked" }
+  | { kind: "none" };
+
 export async function getCurrentBackofficeUser() {
   const supabase = await createClient();
   const {
@@ -18,30 +30,6 @@ export async function getCurrentBackofficeUser() {
   } = await supabase.auth.getUser();
 
   return user;
-}
-
-function normalizeHost(host: string | null): string | null {
-  if (!host) return null;
-  return host.split(":")[0]?.trim().toLowerCase() || null;
-}
-
-function tenantSlugFromHost(host: string | null): string | null {
-  const normalized = normalizeHost(host);
-  if (!normalized) return null;
-
-  const explicitHosts = (process.env.BACKOFFICE_TENANT_HOSTS ?? "")
-    .split(",")
-    .map((entry) => entry.trim().toLowerCase())
-    .filter(Boolean);
-
-  if (explicitHosts.includes(normalized)) return normalized.split(".")[0] ?? null;
-
-  const parts = normalized.split(".").filter(Boolean);
-  if (parts.length < 3) return null;
-
-  const [subdomain] = parts;
-  if (!subdomain || ["www", "app", "admin", "backoffice"].includes(subdomain)) return null;
-  return subdomain;
 }
 
 function isDefaultTenantFallbackAllowed(): boolean {
@@ -59,19 +47,18 @@ function logDefaultTenantFallback(reason: string, userId: string | null): void {
   });
 }
 
-async function getHostTenantId(): Promise<string | null> {
+async function getHostTenantResolution(): Promise<HostTenantResolution> {
   const requestHeaders = await headers();
-  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
-  const slug = tenantSlugFromHost(host);
-  if (!slug) return null;
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "";
+  const normalizedHost = normalizeHost(host);
+  if (!normalizedHost) return { kind: "none" };
+  if (isPlatformHost(normalizedHost)) return { kind: "platform" };
 
-  const [tenant] = await db
-    .select({ id: tenantsTable.id })
-    .from(tenantsTable)
-    .where(and(eq(tenantsTable.slug, slug), eq(tenantsTable.isActive, true)))
-    .limit(1);
+  const tenant = await resolveTenantByHost(normalizedHost);
+  if (tenant) return { kind: "tenant", tenantId: tenant.id };
 
-  return tenant?.id ?? null;
+  if (isFieldgridSubdomain(normalizedHost)) return { kind: "blocked" };
+  return { kind: "none" };
 }
 
 export async function getActiveBackofficeTenantsForUser(userId: string): Promise<BackofficeTenantOption[]> {
@@ -122,12 +109,16 @@ export async function getCurrentTenantId(): Promise<string | null> {
     return null;
   }
 
-  const hostTenantId = await getHostTenantId();
-  if (hostTenantId) {
-    if (await userHasActiveTenant(user.id, hostTenantId)) {
-      return hostTenantId;
+  const hostResolution = await getHostTenantResolution();
+  if (hostResolution.kind === "tenant") {
+    if (await userHasActiveTenant(user.id, hostResolution.tenantId)) {
+      return hostResolution.tenantId;
     }
 
+    return null;
+  }
+
+  if (hostResolution.kind === "blocked") {
     return null;
   }
 

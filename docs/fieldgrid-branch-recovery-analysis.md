@@ -133,7 +133,26 @@ De veiligste inhoudelijke richting is een consolidatie-aanpak:
 - **Maak het datamodel expliciet leidend in docs én code.** Eén schemafile, één migratieset, één authpad.
 - **Gebruik main als schone herstelbranch.** Staging wordt pas bijgewerkt nadat main een reproduceerbare migratie- en teststatus heeft.
 
-## 8. Open punten voor het latere plan
+## 8. Tijdelijke staging-freeze voor herstel
+
+Status per 1 juli 2026: `staging` is tijdelijk bevroren voor directe merges zolang de branch-recovery loopt.
+
+Afspraken tijdens deze freeze:
+
+1. Alle directe merges naar `staging` zijn gepauzeerd, ook promoties die normaal gesproken vanuit `main` naar `staging` zouden lopen.
+2. Nieuwe herstel-PR's en vervolgfixes gaan uitsluitend naar `main`.
+3. `main` is recovery source; `staging` wordt later vanuit `main` bijgewerkt.
+4. Open featurebranches mogen niet zelfstandig naar `staging` mergen en moeten eerst via review in `main` landen.
+5. Open PR's met base `staging` moeten handmatig in GitHub worden gecontroleerd en gepauzeerd tot de freeze is opgeheven.
+
+Operationele GitHub/projectmanagement-acties:
+
+- Markeer in het projectoverzicht of de issue-tracker dat `staging` tijdelijk bevroren is.
+- Communiceer aan reviewers dat niemand direct naar `staging` mag mergen.
+- Gebruik branch protection of repository rules om directe pushes/merges naar `staging` te blokkeren; de CI-guard in `.github/workflows/promotion-guard.yml` blokkeert aanvullend PR's naar `staging` zolang `STAGING_RECOVERY_FREEZE` op `true` staat.
+- Hef de freeze pas op nadat `main` een reproduceerbare migratie- en teststatus heeft en er expliciet besloten is dat `staging` opnieuw vanuit `main` mag worden bijgewerkt.
+
+## 9. Open punten voor het latere plan
 
 Voor het daadwerkelijke plan moeten nog expliciet beantwoord worden:
 
@@ -144,6 +163,6 @@ Voor het daadwerkelijke plan moeten nog expliciet beantwoord worden:
 5. Moet de rollen-instellingenpagina bestaande globale rollen blijven tonen als templates, of alleen tenantrollen beheren?
 6. Welke smoke tests zijn verplicht voordat main naar staging gaat?
 
-## 9. Conclusie
+## 10. Conclusie
 
 Er is niet één simpele bug ontstaan, maar een sequencing-probleem: afhankelijke Fieldgrid-taken zijn parallel ontwikkeld en daarna in een gemengde volgorde gemerged. Het zichtbare symptoom is vooral het concurrerende tenant-RBAC datamodel met dubbele migratienummers en meerdere schemafiles voor dezelfde tabellen. De eerstvolgende stap moet daarom geen nieuwe feature-implementatie zijn, maar consolidatie: één canoniek tenantmodel, één RBAC-schema, unieke migraties, en daarna pas helpers, UI en tests daarop rechttrekken.
