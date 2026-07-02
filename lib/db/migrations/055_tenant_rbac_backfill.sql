@@ -8,7 +8,7 @@
 -- ============================================================================
 
 INSERT INTO tenants (id, slug, name)
-VALUES ('00000000-0000-0000-0000-000000000010', 'veele-services', 'Veele Services')
+VALUES ('00000000-0000-0000-0000-000000000010'::uuid, 'veele-services', 'Veele Services')
 ON CONFLICT (id) DO UPDATE
   SET slug = excluded.slug,
       name = excluded.name,
@@ -17,7 +17,7 @@ ON CONFLICT (id) DO UPDATE
 
 CREATE TABLE IF NOT EXISTS tenant_roles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-  tenant_id uuid DEFAULT '00000000-0000-0000-0000-000000000010' NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id uuid DEFAULT '00000000-0000-0000-0000-000000000010'::uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   template_role_id uuid REFERENCES roles(id) ON DELETE SET NULL,
   name varchar(100) NOT NULL,
   description text,
@@ -43,7 +43,7 @@ CREATE INDEX IF NOT EXISTS tenant_role_permissions_permission_idx ON tenant_role
 
 CREATE TABLE IF NOT EXISTS tenant_user_roles (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-  tenant_id uuid DEFAULT '00000000-0000-0000-0000-000000000010' NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id uuid DEFAULT '00000000-0000-0000-0000-000000000010'::uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   user_id uuid NOT NULL,
   tenant_role_id uuid NOT NULL REFERENCES tenant_roles(id) ON DELETE CASCADE,
   source_user_role_id uuid,
@@ -59,7 +59,7 @@ CREATE INDEX IF NOT EXISTS tenant_user_roles_role_idx ON tenant_user_roles(tenan
 -- for the existing/default Veele tenant.
 INSERT INTO tenant_roles (tenant_id, template_role_id, name, description, is_system, created_at, updated_at)
 SELECT
-  '00000000-0000-0000-0000-000000000010',
+  '00000000-0000-0000-0000-000000000010'::uuid,
   r.id,
   r.name,
   r.description,
@@ -98,7 +98,7 @@ WITH starter_roles(name, description, template_name, is_system) AS (
 )
 INSERT INTO tenant_roles (tenant_id, template_role_id, name, description, is_system, created_at, updated_at)
 SELECT
-  '00000000-0000-0000-0000-000000000010',
+  '00000000-0000-0000-0000-000000000010'::uuid,
   template_role_id,
   name,
   description,
@@ -117,14 +117,14 @@ INSERT INTO tenant_role_permissions (tenant_role_id, permission_id, created_at)
 SELECT tr.id, rp.permission_id, now()
 FROM tenant_roles tr
 JOIN role_permissions rp ON rp.role_id = tr.template_role_id
-WHERE tr.tenant_id = '00000000-0000-0000-0000-000000000010'
+WHERE tr.tenant_id = '00000000-0000-0000-0000-000000000010'::uuid
 ON CONFLICT (tenant_role_id, permission_id) DO NOTHING;
 
 -- Ensure every user with a legacy global role is a member of the default tenant.
 INSERT INTO tenant_users (tenant_id, user_id, role, status, created_at, updated_at)
 SELECT DISTINCT
-  '00000000-0000-0000-0000-000000000010',
-  ur.user_id,
+  '00000000-0000-0000-0000-000000000010'::uuid,
+  ur.user_id::uuid,
   CASE WHEN r.name = 'Management' THEN 'admin' ELSE 'member' END,
   'active',
   now(),
@@ -137,14 +137,14 @@ ON CONFLICT (tenant_id, user_id) DO NOTHING;
 -- tenant role that was created from the same global role template.
 INSERT INTO tenant_user_roles (tenant_id, user_id, tenant_role_id, source_user_role_id, created_at)
 SELECT
-  '00000000-0000-0000-0000-000000000010',
-  ur.user_id,
+  '00000000-0000-0000-0000-000000000010'::uuid,
+  ur.user_id::uuid,
   tr.id,
-  ur.id,
+  ur.id::uuid,
   COALESCE(ur.created_at, now())
 FROM user_roles ur
 JOIN tenant_roles tr
-  ON tr.tenant_id = '00000000-0000-0000-0000-000000000010'
+  ON tr.tenant_id = '00000000-0000-0000-0000-000000000010'::uuid
  AND tr.template_role_id = ur.role_id
 JOIN roles r
   ON r.id = ur.role_id
