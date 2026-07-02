@@ -21,6 +21,7 @@ function functionBlock(source, functionName) {
 }
 
 const invoices = read("artifacts/backoffice/src/app/actions/invoices.ts");
+const customerPayments = read("artifacts/klant-pwa/src/actions/payments.ts");
 
 test("open payment checkout lookup is tenant-scoped through invoice assignment", () => {
   const helper = functionBlock(invoices, "getOpenPaymentCheckoutUrlForCurrentTenant");
@@ -59,4 +60,24 @@ test("collective payment creation rejects cross-tenant invoice ids before Mollie
   assert.match(body, /where\(and\(inArray\(invoicesTable\.id, invoiceIds\), eq\(assignmentsTable\.tenantId, tenantId\)\)\)/u);
   assert.match(body, /if \(invoices\.length !== invoiceIds\.length\)/u);
   assert.match(body, /customerPaymentBatchItemsTable\.invoiceId/u);
+});
+
+test("customer batch payment creation rejects already locked invoices before Mollie payment creation", () => {
+  const body = functionBlock(customerPayments, "createCustomerBatchPayment");
+
+  assert.match(body, /getAuthenticatedCustomer\(\)/u);
+  assert.match(body, /inArray\(invoicesTable\.id, uniqueInvoiceIds\)/u);
+  assert.match(body, /eq\(invoicesTable\.customerId, auth\.customerId\)/u);
+  assert.match(body, /eq\(customersTable\.tenantId, auth\.tenantId\)/u);
+  assert.match(body, /const activeBatchItems = await db/u);
+  assert.match(body, /innerJoin\(customerPaymentBatchesTable, eq\(customerPaymentBatchItemsTable\.batchId, customerPaymentBatchesTable\.id\)\)/u);
+  assert.match(body, /inArray\(customerPaymentBatchItemsTable\.invoiceId, uniqueInvoiceIds\)/u);
+  assert.match(body, /eq\(customerPaymentBatchesTable\.customerId, auth\.customerId\)/u);
+  assert.match(body, /inArray\(customerPaymentBatchesTable\.status, \["open", "paid"\]\)/u);
+  assert.match(body, /if \(activeBatchItems\.length > 0\)/u);
+
+  assert.ok(
+    body.indexOf("const activeBatchItems = await db") < body.indexOf("createMolliePaymentRequest({"),
+    "customer batch payment locks should be checked before creating a Mollie payment",
+  );
 });
