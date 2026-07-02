@@ -27,6 +27,34 @@ function moduleForPermissionResource(resource: string): FieldgridModuleKey | nul
   return PERMISSION_MODULES[resource] ?? null;
 }
 
+function resourceFromPermission(permission: string): string {
+  const separatorIndex = permission.indexOf(":");
+  return separatorIndex === -1 ? permission : permission.slice(0, separatorIndex);
+}
+
+async function enabledModulesForPermissions(
+  permissions: Set<string>,
+  tenantId: string,
+): Promise<Set<FieldgridModuleKey>> {
+  const moduleKeys = new Set<FieldgridModuleKey>();
+  for (const permission of permissions) {
+    const moduleKey = moduleForPermissionResource(resourceFromPermission(permission));
+    if (moduleKey) moduleKeys.add(moduleKey);
+  }
+
+  if (moduleKeys.size === 0) return new Set();
+
+  const enabledEntries = await Promise.all(
+    [...moduleKeys].map(async (moduleKey) => [moduleKey, await isTenantModuleEnabled(tenantId, moduleKey)] as const),
+  );
+
+  return new Set(
+    enabledEntries
+      .filter(([, enabled]) => enabled)
+      .map(([moduleKey]) => moduleKey),
+  );
+}
+
 async function hasEnabledPermissionModule(resource: string): Promise<boolean> {
   const moduleKey = moduleForPermissionResource(resource);
   if (!moduleKey) return true;
@@ -75,6 +103,20 @@ export async function getUserPermissions(userId: string, tenantId: string): Prom
     .where(inArray(tenantRolePermissionsTable.tenantRoleId, tenantRoleIds));
 
   return new Set(perms.map((p) => `${p.resource}:${p.action}`));
+}
+
+/** Fetch runtime permissions after tenant module entitlements are applied. */
+export async function getEffectiveUserPermissions(userId: string, tenantId: string): Promise<Set<string>> {
+  const permissions = await getUserPermissions(userId, tenantId);
+  if (permissions.size === 0) return permissions;
+
+  const enabledModules = await enabledModulesForPermissions(permissions, tenantId);
+  return new Set(
+    [...permissions].filter((permission) => {
+      const moduleKey = moduleForPermissionResource(resourceFromPermission(permission));
+      return !moduleKey || enabledModules.has(moduleKey);
+    }),
+  );
 }
 
 /** Fetch all role names for a given Supabase Auth user UUID within one tenant. */
