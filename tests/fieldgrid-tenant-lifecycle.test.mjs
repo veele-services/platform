@@ -9,17 +9,13 @@ function read(path) {
 test("tenant schema exposes lifecycle and plan fields", () => {
   const tenantsSchema = read("lib/db/src/schema/tenants.ts");
 
-  for (const token of [
-    "TENANT_STATUSES",
-    "TENANT_RUNTIME_ACTIVE_STATUSES",
-    "status: varchar(\"status\"",
-    "planKey: varchar(\"plan_key\"",
-    "createdBy: uuid(\"created_by\")",
-    "suspendedAt: timestamp(\"suspended_at\"",
-    "archivedAt: timestamp(\"archived_at\"",
-  ]) {
-    assert.match(tenantsSchema, new RegExp(token.replace(/[()]/gu, "\\$&"), "u"));
-  }
+  assert.match(tenantsSchema, /TENANT_STATUSES/u);
+  assert.match(tenantsSchema, /TENANT_RUNTIME_ACTIVE_STATUSES/u);
+  assert.match(tenantsSchema, /status: varchar\("status"/u);
+  assert.match(tenantsSchema, /planKey: varchar\("plan_key"/u);
+  assert.match(tenantsSchema, /createdBy: uuid\("created_by"\)/u);
+  assert.match(tenantsSchema, /suspendedAt: timestamp\("suspended_at"/u);
+  assert.match(tenantsSchema, /archivedAt: timestamp\("archived_at"/u);
 });
 
 test("tenant lifecycle migration is staging safe", () => {
