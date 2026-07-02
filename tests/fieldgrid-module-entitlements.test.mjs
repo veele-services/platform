@@ -58,11 +58,14 @@ test("module entitlement migration is staging safe", () => {
     "ALTER TABLE modules ENABLE ROW LEVEL SECURITY",
     "INSERT INTO modules",
     "ON CONFLICT (key) DO UPDATE",
+    "WITH module_dependency_seed(module_key, depends_on_key) AS",
+    "FROM module_dependency_seed dependency",
   ]) {
     assert.match(migration, new RegExp(phrase.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "u"));
   }
 
   assert.doesNotMatch(migration, /DROP TABLE|TRUNCATE|DELETE FROM/iu);
+  assert.doesNotMatch(migration, /JOIN modules parent ON parent\.key = dependency\.depends_on_key\s+JOIN \(VALUES/iu);
 });
 
 test("module entitlement docs are kept in the SaaS canon", () => {
