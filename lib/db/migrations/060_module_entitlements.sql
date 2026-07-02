@@ -118,25 +118,27 @@ SET name = EXCLUDED.name,
     is_enabled_by_default = EXCLUDED.is_enabled_by_default,
     updated_at = now();
 
+WITH module_dependency_seed(module_key, depends_on_key) AS (
+  VALUES
+    ('objects', 'customers'),
+    ('assignments', 'customers'),
+    ('assignments', 'objects'),
+    ('assignments', 'personnel'),
+    ('planning', 'assignments'),
+    ('reporting', 'assignments'),
+    ('documents', 'customers'),
+    ('documents', 'assignments'),
+    ('finance', 'customers'),
+    ('finance', 'assignments'),
+    ('customer_portal', 'customers'),
+    ('personnel_portal', 'personnel'),
+    ('notifications', 'customers'),
+    ('notifications', 'personnel'),
+    ('smart_planning', 'planning')
+)
 INSERT INTO module_dependencies (module_id, depends_on_module_id)
 SELECT child.id, parent.id
-FROM modules child
+FROM module_dependency_seed dependency
+JOIN modules child ON child.key = dependency.module_key
 JOIN modules parent ON parent.key = dependency.depends_on_key
-JOIN (VALUES
-  ('objects', 'customers'),
-  ('assignments', 'customers'),
-  ('assignments', 'objects'),
-  ('assignments', 'personnel'),
-  ('planning', 'assignments'),
-  ('reporting', 'assignments'),
-  ('documents', 'customers'),
-  ('documents', 'assignments'),
-  ('finance', 'customers'),
-  ('finance', 'assignments'),
-  ('customer_portal', 'customers'),
-  ('personnel_portal', 'personnel'),
-  ('notifications', 'customers'),
-  ('notifications', 'personnel'),
-  ('smart_planning', 'planning')
-) AS dependency(module_key, depends_on_key) ON child.key = dependency.module_key
 ON CONFLICT DO NOTHING;
