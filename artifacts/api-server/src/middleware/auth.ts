@@ -2,12 +2,18 @@ import type { Request, Response, NextFunction } from "express";
 import { jwtVerify, createRemoteJWKSet } from "jose";
 import {
   db,
-  tenantUserRolesTable,
-  tenantRolePermissionsTable,
+  isFieldgridSubdomain,
+  isPlatformHost,
+  normalizeHost,
   permissionsTable,
+  TENANT_RUNTIME_ACTIVE_STATUSES,
+  tenantDomainsTable,
+  tenantRolePermissionsTable,
+  tenantUserRolesTable,
   tenantUsersTable,
+  tenantsTable,
 } from "@workspace/db";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 
 const SUPABASE_URL = process.env["SUPABASE_URL"] ?? "";
 const SUPABASE_JWT_SECRET = process.env["SUPABASE_JWT_SECRET"] ?? "";
@@ -145,6 +151,93 @@ export function requirePermission(resource: string, action: string) {
   };
 }
 
+type ApiHostTenantResolution =
+  | { kind: "tenant"; tenantId: string }
+  | { kind: "platform" }
+  | { kind: "blocked" }
+  | { kind: "none" };
+
+function headerValue(value: string | string[] | undefined): string {
+  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+}
+
+function firstForwardedValue(value: string): string {
+  return value.split(",")[0]?.trim() ?? "";
+}
+
+function requestHost(req: Request): string {
+  return firstForwardedValue(headerValue(req.headers["x-forwarded-host"])) || headerValue(req.headers.host);
+}
+
+function requestedTenantId(req: Request): string {
+  return (
+    headerValue(req.headers["x-fieldgrid-tenant-id"]) ||
+    headerValue(req.headers["x-tenant-id"])
+  ).trim();
+}
+
+async function resolveTenantByHost(host: string): Promise<ApiHostTenantResolution> {
+  const normalizedHost = normalizeHost(host);
+  if (!normalizedHost) return { kind: "none" };
+  if (isPlatformHost(normalizedHost)) return { kind: "platform" };
+
+  const [tenant] = await db
+    .select({ tenantId: tenantsTable.id })
+    .from(tenantDomainsTable)
+    .innerJoin(tenantsTable, eq(tenantDomainsTable.tenantId, tenantsTable.id))
+    .where(
+      and(
+        eq(tenantDomainsTable.domain, normalizedHost),
+        eq(tenantDomainsTable.verificationStatus, "verified"),
+        ne(tenantDomainsTable.type, "platform_reserved"),
+        eq(tenantsTable.isActive, true),
+        inArray(tenantsTable.status, [...TENANT_RUNTIME_ACTIVE_STATUSES]),
+      ),
+    )
+    .limit(1);
+
+  if (tenant) return { kind: "tenant", tenantId: tenant.tenantId };
+  if (isFieldgridSubdomain(normalizedHost)) return { kind: "blocked" };
+  return { kind: "none" };
+}
+
+async function userHasActiveTenant(userId: string, tenantId: string): Promise<boolean> {
+  const [tenantUser] = await db
+    .select({ tenantId: tenantUsersTable.tenantId })
+    .from(tenantUsersTable)
+    .innerJoin(tenantsTable, eq(tenantUsersTable.tenantId, tenantsTable.id))
+    .where(
+      and(
+        eq(tenantUsersTable.userId, userId),
+        eq(tenantUsersTable.tenantId, tenantId),
+        eq(tenantUsersTable.status, "active"),
+        eq(tenantsTable.isActive, true),
+        inArray(tenantsTable.status, [...TENANT_RUNTIME_ACTIVE_STATUSES]),
+      ),
+    )
+    .limit(1);
+
+  return Boolean(tenantUser);
+}
+
+async function firstActiveTenantForUser(userId: string): Promise<string | null> {
+  const [tenantUser] = await db
+    .select({ tenantId: tenantUsersTable.tenantId })
+    .from(tenantUsersTable)
+    .innerJoin(tenantsTable, eq(tenantUsersTable.tenantId, tenantsTable.id))
+    .where(
+      and(
+        eq(tenantUsersTable.userId, userId),
+        eq(tenantUsersTable.status, "active"),
+        eq(tenantsTable.isActive, true),
+        inArray(tenantsTable.status, [...TENANT_RUNTIME_ACTIVE_STATUSES]),
+      ),
+    )
+    .limit(1);
+
+  return tenantUser?.tenantId ?? null;
+}
+
 export async function requireTenantScope(
   req: Request,
   res: Response,
@@ -156,23 +249,45 @@ export async function requireTenantScope(
     return;
   }
 
-  const [tenantUser] = await db
-    .select({ tenantId: tenantUsersTable.tenantId })
-    .from(tenantUsersTable)
-    .where(
-      and(
-        eq(tenantUsersTable.userId, userId),
-        eq(tenantUsersTable.status, "active"),
-      ),
-    )
-    .limit(1);
+  const hostResolution = await resolveTenantByHost(requestHost(req));
+  if (hostResolution.kind === "tenant") {
+    if (await userHasActiveTenant(userId, hostResolution.tenantId)) {
+      req.tenantId = hostResolution.tenantId;
+      next();
+      return;
+    }
 
-  if (!tenantUser) {
+    req.log.warn({ userId, tenantId: hostResolution.tenantId }, "Geen actieve tenant-koppeling voor API-host");
+    res.status(403).json({ error: "Geen actieve tenant-koppeling voor deze host" });
+    return;
+  }
+
+  if (hostResolution.kind === "blocked") {
+    req.log.warn({ userId, host: requestHost(req) }, "Onbekende of inactieve Fieldgrid tenant-host");
+    res.status(404).json({ error: "Tenant niet gevonden" });
+    return;
+  }
+
+  const explicitTenantId = requestedTenantId(req);
+  if (explicitTenantId) {
+    if (await userHasActiveTenant(userId, explicitTenantId)) {
+      req.tenantId = explicitTenantId;
+      next();
+      return;
+    }
+
+    req.log.warn({ userId, tenantId: explicitTenantId }, "Ongeldige expliciete tenantcontext voor API-verzoek");
+    res.status(403).json({ error: "Geen actieve tenant-koppeling" });
+    return;
+  }
+
+  const tenantId = await firstActiveTenantForUser(userId);
+  if (!tenantId) {
     req.log.warn({ userId }, "Geen actieve tenant-koppeling voor API-verzoek");
     res.status(403).json({ error: "Geen actieve tenant-koppeling" });
     return;
   }
 
-  req.tenantId = tenantUser.tenantId;
+  req.tenantId = tenantId;
   next();
 }
