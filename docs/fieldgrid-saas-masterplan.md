@@ -451,23 +451,324 @@ Volgende taken:
 - Platform-admin acceptance: tenant lifecycle, modules, sectors, plans, support grants, audit.
 - Operational readiness: backups, monitoring, incident rollback, mail deliverability, docs.
 
-## 8. Eerstvolgende concrete PR-volgorde
+## 8. Fasesprints vanaf nu
 
-1. API module guards.
-2. Portal module guards.
-3. Dashboard/layout default-tenant fallback verwijderen.
-4. Sector policy foundation: `tenant_sector_settings` en default sector resolver.
-5. Sector disable-check blokkeren op bestaande data.
-6. Tenant A/B/Veele integration fixture basis.
-7. Sensitive tenant_id wave 1: `documents`.
-8. Sensitive tenant_id wave 2: `invoices`, `quotes`, `reports`.
-9. Sensitive tenant_id wave 3: `payments`, `customer_payment_batches`, batch items.
-10. Audit tenant/platform split.
-11. Platform-admin tenant detail en lifecycle acties.
-12. Platform-admin module/plan/sector beheer.
-13. Provisioning service en onboarding wizard.
+Deze sprintindeling vertaalt de roadmap naar uitvoerbare PR-groepen. Een sprint is pas klaar als de gekoppelde tests uit `docs/fieldgrid-cross-tenant-testmatrix.md` groen zijn en de data-classificatie bijgewerkt blijft.
 
-## 9. Hard rules voor alle vervolgtaken
+### Sprint 0 - Canon lock en PR-hygiëne
+
+Doel: de route vastklikken voordat runtimewerk verdergaat.
+
+Scope:
+
+- PR #126 mergen.
+- Canon, data-classificatie en cross-tenant testmatrix als verplichte bron gebruiken.
+- PR-template of PR-body discipline hanteren: elke PR noemt classificatie-items en test-id's.
+
+Acceptatie:
+
+- `pnpm test` en `pnpm run typecheck` groen.
+- Geen runtime-, schema- of migratiewijzigingen in deze sprint.
+- Volgende sprint start pas vanaf actuele `main`.
+
+### Sprint 1 - Tenantcontext en testbasis hard maken
+
+Doel: eerst bewijzen dat host-first routing en tenantgrenzen echt gedragen worden door tests.
+
+Scope:
+
+- Tenant A/B/Veele integration fixtures.
+- Dashboard/layout fallback naar `DEFAULT_TENANT_ID` fail-safe maken of verwijderen.
+- Host-first tests voor platformhost, tenanthost, onbekende host, custom domain en switcher override.
+- Suspended/archived tenant mutatiebeleid expliciet maken.
+
+Acceptatie:
+
+- `FG-HOST-001` t/m `FG-HOST-006` groen.
+- `FG-LIFE-001` t/m `FG-LIFE-004` groen of bewust als nog-handmatig gemarkeerd met opvolg-issue.
+- Veele gedraagt zich aantoonbaar als gewone tenant.
+
+Niet in scope:
+
+- Nieuwe platform-admin productflows.
+- Gevoelige data-migraties.
+
+### Sprint 2 - Module enforcement runtimebreed
+
+Doel: module uit betekent server-side uit, niet alleen verborgen UI.
+
+Scope:
+
+- API module guards toevoegen aan permission/route wrappers.
+- Portal module guards toevoegen aan klantportaal en personeelsapp.
+- Backoffice directe routes/actions nalopen en module-aware maken.
+- Background jobs/workers module-aware maken waar modules data verwerken.
+- Module dependency gedrag vastleggen.
+
+Acceptatie:
+
+- `FG-MODULE-001` t/m `FG-MODULE-008` groen voor geraakte modules.
+- Module-off faalt via UI, directe URL, server action en API.
+- RBAC-permissie alleen is nooit genoeg als module uit staat.
+
+Niet in scope:
+
+- Platform-admin modulebeheer UI; dat komt in Sprint 5.
+
+### Sprint 3 - Sectorbeleid productklaar maken
+
+Doel: sectoren van losse toewijzing naar harde tenantpolicy brengen.
+
+Scope:
+
+- `tenant_sector_settings` toevoegen met mode, max_sectors, default_sector_id en enforce_sector_scope.
+- Default sector resolver bouwen.
+- Single-sector gedrag server-side en UI-side bouwen.
+- `assertTenantSectorCanBeDisabled()` laten blokkeren op bestaande data.
+- Sector guards afronden voor klanten, objecten, personeel, opdrachten, imports, planning intelligence en task codes.
+
+Acceptatie:
+
+- `FG-SECTOR-001` t/m `FG-SECTOR-006` groen.
+- Disable van sector in gebruik wordt geblokkeerd.
+- Single-sector tenant krijgt voorspelbaar defaultgedrag.
+
+Niet in scope:
+
+- Tenant task-code prijzen; dat komt in Sprint 9.
+
+### Sprint 4 - RBAC en support runtime-prioriteit
+
+Doel: tenantrollen, support grants en platformrollen als één helder autorisatiemodel bewijzen.
+
+Scope:
+
+- Definitieve RBAC permissiematrix vastleggen.
+- Tenant A/B roltests bouwen voor dezelfde gebruiker met verschillende tenantrollen.
+- Legacy global-role runtimepaden opruimen waar tests bewijzen dat ze overbodig zijn.
+- Support runtime-prioriteit integreren: platform-admin -> actieve support grant -> tenantrol.
+- Supportmodus zichtbaar maken met banner, TTL, reden en auditcontext.
+
+Acceptatie:
+
+- `FG-RBAC-001` t/m `FG-RBAC-005` groen.
+- `FG-SUPPORT-001` t/m `FG-SUPPORT-006` groen.
+- Globale rollen geven geen runtime-rechten.
+
+Niet in scope:
+
+- Volledige platform-admin support UI; dat komt in Sprint 5.
+
+### Sprint 5 - Platform-admin MVP beheer
+
+Doel: de eerste echte platform-admin beheerlaag bouwen waarmee tenants zonder SQL beheerd kunnen worden.
+
+Scope:
+
+- Platform-admin tenantlijst en tenant detail.
+- Tenant lifecycle acties: create, suspend, reactivate, archive.
+- Domeinbeheer per tenant.
+- Module/plan/sector beheer per tenant met dependency-validatie.
+- Support grants UI met create, revoke, actieve grants en audit.
+- Basis plan/limietbeheer en usage-overzicht.
+
+Acceptatie:
+
+- `FG-PLATFORM-001` t/m `FG-PLATFORM-006` groen.
+- Tenant user kan platformroutes nooit gebruiken.
+- Acties zijn transactioneel en geaudit.
+
+Niet in scope:
+
+- Volledige onboarding wizard; dat komt in Sprint 11.
+
+### Sprint 6 - Documenten en storage wave 1
+
+Doel: de eerste gevoelige data-normalisatie uitvoeren met documenten en storage als basispatroon.
+
+Scope:
+
+- `documents.tenant_id` toevoegen met staging-safe backfill.
+- Shared storage path validator bouwen.
+- Canoniek storagepad `tenant/{tenant_id}/...` voor documenten afdwingen.
+- Upload, download en delete tenant-bound maken.
+- Storage backfillplan voor bestaande staging paths uitwerken.
+
+Acceptatie:
+
+- `FG-DATA-004` groen.
+- `FG-STORAGE-001`, `FG-STORAGE-002`, `FG-STORAGE-006` en `FG-STORAGE-007` groen.
+- Migraties slagen op lege database en staging-copy: `FG-MIG-001`, `FG-MIG-002`.
+
+Niet in scope:
+
+- Finance/reporting tenant_id migraties; die komen in Sprint 7.
+
+### Sprint 7 - Finance en reports wave 2
+
+Doel: alle downloadbare en financieel gevoelige kernrecords direct tenant-aware maken.
+
+Scope:
+
+- `invoices.tenant_id`, `quotes.tenant_id` en `reports.tenant_id` toevoegen met backfills.
+- PDF/download routes tenant-bound maken.
+- Uniforme download audit voor facturen, offertes en rapporten.
+- Direct-ID tests voor invoice, quote en report.
+
+Acceptatie:
+
+- `FG-DATA-005`, `FG-DATA-006` en `FG-DATA-007` groen.
+- `FG-AUDIT-001` groen voor geraakte downloads.
+- `FG-MIG-001` en `FG-MIG-002` groen.
+
+Niet in scope:
+
+- Payments en batches; die komen in Sprint 8.
+
+### Sprint 8 - Payments, batches en audit wave 3/4
+
+Doel: paymentflows en audit als SaaS-grens hard maken.
+
+Scope:
+
+- `payments.tenant_id` toevoegen.
+- `customer_payment_batches` en batch items tenant-aware maken.
+- Payment webhook/status flows tenantguard geven.
+- `audit_log` tenant-aware maken of splitsen in tenant audit en platform audit.
+- Tenant-admin auditzicht en platform/support auditzicht scheiden.
+
+Acceptatie:
+
+- `FG-DATA-008` en `FG-DATA-009` groen.
+- `FG-AUDIT-002` t/m `FG-AUDIT-005` groen.
+- `FG-MIG-001` en `FG-MIG-002` groen.
+
+Niet in scope:
+
+- Automatische payment-provider; handmatige SaaS-billing blijft eerst leidend.
+
+### Sprint 9 - Tenant task codes, prijzen en sector-economie
+
+Doel: taakcodes en prijzen SaaS-productklaar maken voor meerdere tenants en sectoren.
+
+Scope:
+
+- `tenant_task_codes` ontwerpen en migreren.
+- `tenant_task_code_prices` of equivalent prijshistorie ontwerpen.
+- Code uniqueness per tenant bepalen.
+- Prijs snapshotten voor offertes/facturen.
+- Sector guards voor task codes en planning intelligence afronden.
+
+Acceptatie:
+
+- Task code sector buiten tenant faalt.
+- Historische factuur/offerte behoudt oude prijs.
+- Cross-tenant code/prijsgedrag is getest met Tenant A/B/Veele.
+
+Niet in scope:
+
+- Uitgebreide prijswizard of commerciële prijsoptimalisatie.
+
+### Sprint 10 - Portalen, branding en tenantervaring
+
+Doel: klantportaal en personeelsapp voelen als tenantproduct en volgen modules, sectoren en branding.
+
+Scope:
+
+- Branding resolver per tenant.
+- Veele-default teksten scheiden van Fieldgrid platform defaults.
+- Package-gated branding uitwerken.
+- Klantportaal module guards, branding en download audit afronden.
+- Personeelsapp module guards, branding en media/storage acceptance afronden.
+- E-mails en PDF's tenantbranding geven.
+
+Acceptatie:
+
+- `FG-PORTAL-C-001` t/m `FG-PORTAL-C-004` groen.
+- `FG-PORTAL-P-001` t/m `FG-PORTAL-P-004` groen.
+- Tenantbranding lekt niet tussen tenants.
+
+Niet in scope:
+
+- Nice-to-have branding preview; mag pas na harde resolver en guards.
+
+### Sprint 11 - Provisioning en onboarding
+
+Doel: een nieuwe tenant betrouwbaar kunnen aanmaken, configureren en overdragen.
+
+Scope:
+
+- Transactionele provisioning service.
+- Owner invite flow met rollback.
+- Platform onboarding wizard.
+- Tenant first-run wizard.
+- Provisioning logs/status/audit.
+- Duplicate slug/domain checks.
+
+Acceptatie:
+
+- Provisioning succes, rollback en duplicate slug/domain zijn getest.
+- Nieuwe tenant krijgt owner, domein, plan, modules, sectoren en basisrollen.
+- Staging-copy blijft intact bij migraties.
+
+Niet in scope:
+
+- Volledig self-service verkoopkanaal.
+
+### Sprint 12 - Operatie, release en eerste externe tenant
+
+Doel: Fieldgrid operationeel klaarzetten voor eerste externe SaaS-acceptatie.
+
+Scope:
+
+- DNS, reverse proxy en TLS voor `fieldgrid.nl`, `platform.fieldgrid.nl`, `staging.fieldgrid.nl`, wildcard subdomains en custom domains.
+- Supabase redirect URLs, mail domains, app names en environment variables naar Fieldgrid-context.
+- Backup/restore en rollback playbooks.
+- Monitoring, incidentlog en support review dashboard.
+- Security acceptance suite: backoffice, API, klantportaal, personeelsapp, PDF routes en storage.
+- Eerste externe tenant checklist.
+
+Acceptatie:
+
+- Cross-tenant security suite groen.
+- Staging smoke dashboard of equivalent checklist groen.
+- Backups, rollback, monitoring en mail deliverability zijn getest.
+- Eerste externe tenant kan zonder SQL worden ingericht.
+
+Niet in scope:
+
+- Automatische billing-provider, marketplace, publieke signup en geavanceerde usage analytics.
+
+## 9. Eerstvolgende concrete PR-volgorde
+
+1. Sprint 0: merge PR #126 met canon en fasesprints.
+2. Sprint 1 PR A: Tenant A/B/Veele integration fixture basis.
+3. Sprint 1 PR B: dashboard/layout default-tenant fallback verwijderen en host-first denial tests.
+4. Sprint 2 PR A: API module guards.
+5. Sprint 2 PR B: portal module guards.
+6. Sprint 2 PR C: background job module guards en module-off testmatrix.
+7. Sprint 3 PR A: sector policy foundation met `tenant_sector_settings` en default sector resolver.
+8. Sprint 3 PR B: sector disable-check blokkeren op bestaande data en assignment/import/planning sector guards.
+9. Sprint 4 PR A: RBAC permissiematrix en Tenant A/B roltests.
+10. Sprint 4 PR B: support runtime-prioriteit, supportmodus en auditcontext.
+11. Sprint 5 PR A: platform-admin tenant detail en lifecycle acties.
+12. Sprint 5 PR B: platform-admin module/plan/sector/support beheer.
+13. Sprint 6 PR A: sensitive tenant_id wave 1: `documents`.
+14. Sprint 6 PR B: shared storage path validator en storage backfillplan.
+15. Sprint 7 PR A: sensitive tenant_id wave 2: `invoices`, `quotes`, `reports`.
+16. Sprint 7 PR B: PDF/download audit uniformeren.
+17. Sprint 8 PR A: sensitive tenant_id wave 3: `payments`, `customer_payment_batches`, batch items.
+18. Sprint 8 PR B: audit tenant/platform split.
+19. Sprint 9 PR A: tenant task-code template/override model.
+20. Sprint 9 PR B: tenant/sector-prijshistorie en snapshots.
+21. Sprint 10 PR A: branding resolver en Fieldgrid/Veele defaultscheiding.
+22. Sprint 10 PR B: klantportaal en personeelsapp module/branding/storage acceptance.
+23. Sprint 11 PR A: provisioning service en owner invite rollback.
+24. Sprint 11 PR B: platform onboarding en tenant first-run wizard.
+25. Sprint 12 PR A: Fieldgrid DNS/VPS/Supabase environment playbook.
+26. Sprint 12 PR B: final SaaS acceptance suite en eerste externe tenant checklist.
+
+## 10. Hard rules voor alle vervolgtaken
 
 - Nooit tenantdata lezen of schrijven op alleen technische id.
 - Host/subdomain-context wint van tenant switcher.
@@ -481,7 +782,7 @@ Volgende taken:
 - Elke risicofase krijgt cross-tenant tests voordat staging wordt gepromoveerd.
 - Statische tests zijn guardrails, geen vervanging voor integration/DB/RLS/storage-tests.
 
-## 10. MVP definitie
+## 11. MVP definitie
 
 Fieldgrid SaaS MVP is klaar wanneer:
 
@@ -499,7 +800,7 @@ Fieldgrid SaaS MVP is klaar wanneer:
 - Fieldgrid draait op de beoogde VPS-domeinen met backup/rollbackproces.
 - Cross-tenant security suite is groen.
 
-## 11. Verplichte uitvoeringsbronnen
+## 12. Verplichte uitvoeringsbronnen
 
 Vanaf elke technische PR zijn deze bronnen verplicht:
 
