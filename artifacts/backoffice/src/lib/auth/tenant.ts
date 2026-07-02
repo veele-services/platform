@@ -1,5 +1,11 @@
-import { db, DEFAULT_TENANT_ID, tenantUsersTable, tenantsTable } from "@workspace/db";
-import { and, eq } from "drizzle-orm";
+import {
+  db,
+  DEFAULT_TENANT_ID,
+  TENANT_RUNTIME_ACTIVE_STATUSES,
+  tenantUsersTable,
+  tenantsTable,
+} from "@workspace/db";
+import { and, eq, inArray } from "drizzle-orm";
 import { cookies, headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -75,6 +81,7 @@ export async function getActiveBackofficeTenantsForUser(userId: string): Promise
         eq(tenantUsersTable.userId, userId),
         eq(tenantUsersTable.status, "active"),
         eq(tenantsTable.isActive, true),
+        inArray(tenantsTable.status, [...TENANT_RUNTIME_ACTIVE_STATUSES]),
       ),
     )
     .orderBy(tenantsTable.name);
@@ -91,6 +98,7 @@ export async function userHasActiveTenant(userId: string, tenantId: string): Pro
         eq(tenantUsersTable.tenantId, tenantId),
         eq(tenantUsersTable.status, "active"),
         eq(tenantsTable.isActive, true),
+        inArray(tenantsTable.status, [...TENANT_RUNTIME_ACTIVE_STATUSES]),
       ),
     )
     .limit(1);
