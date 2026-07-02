@@ -82,7 +82,8 @@ test("report timeline attachments are gated by the tenant-scoped report", () => 
   assert.match(body, /where\(eq\(assignmentReportNotesTable\.assignmentId, report\.assignmentId\)\)/u);
   assert.match(body, /const noteIds = notes\.map\(\(note\) => note\.id\);/u);
   assert.match(body, /\.from\(assignmentReportNoteAttachmentsTable\)/u);
-  assert.match(body, /where\(inArray\(assignmentReportNoteAttachmentsTable\.noteId, noteIds\)\)/u);
+  assert.match(body, /inArray\(assignmentReportNoteAttachmentsTable\.noteId, noteIds\)/u);
+  assert.match(body, /eq\(assignmentReportNoteAttachmentsTable\.assignmentId, report\.assignmentId\)/u);
   assert.match(body, /createSignedReportAttachmentUrl\(attachment\.storagePath\)/u);
 
   assert.ok(
@@ -102,4 +103,22 @@ test("report attachment signed URLs use the assignment media bucket with a short
   assert.match(helper, /createAdminClient\(\)/u);
   assert.match(helper, /\.from\("assignment-photos"\)/u);
   assert.match(helper, /createSignedUrl\(storagePath, 3600\)/u);
+});
+
+test("report attachment signed URLs reject unsafe storage paths before signing", () => {
+  const reports = read("artifacts/backoffice/src/app/actions/reports.ts");
+  const unsafe = block(reports, "hasUnsafeReportAttachmentStoragePath");
+  const helper = block(reports, "createSignedReportAttachmentUrl");
+
+  assert.ok(unsafe.includes('path.startsWith("/")'));
+  assert.ok(unsafe.includes('path.endsWith("/")'));
+  assert.ok(unsafe.includes('path.includes("..")'));
+  assert.ok(unsafe.includes('path.includes("\\\\")'));
+  assert.match(unsafe, /segments\.some\(\(segment\) => segment\.trim\(\) === ""\)/u);
+  assert.match(helper, /hasUnsafeReportAttachmentStoragePath\(storagePath\)/u);
+
+  assert.ok(
+    helper.indexOf("hasUnsafeReportAttachmentStoragePath(storagePath)") < helper.indexOf("createSignedUrl(storagePath, 3600)"),
+    "unsafe report attachment paths must be rejected before Supabase creates a signed URL",
+  );
 });
