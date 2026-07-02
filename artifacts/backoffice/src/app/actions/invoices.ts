@@ -19,6 +19,7 @@ import { emitInvoiceWorkflowEvent } from "@workspace/db/workflow-events";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { sendEmailWithResult, buildInvoiceEmail, buildPaymentReminderEmail, klantPortalUrl } from "@/lib/email";
 import { generateInvoicePdf } from "@/lib/invoice-pdf";
 import { calculateInvoiceProposalForAssignment, type InvoiceProposalLineItem } from "@/lib/invoice-proposals";
@@ -58,6 +59,20 @@ async function notifyInvoiceWorkflow(input: Parameters<typeof emitInvoiceWorkflo
       error,
     });
   }
+}
+
+async function getInvoiceAssignmentForCurrentTenant(
+  invoiceId: string,
+): Promise<{ assignmentId: string; status: InvoiceStatus } | null> {
+  const tenantId = await requireCurrentTenantId();
+  const [invoice] = await db
+    .select({ assignmentId: invoicesTable.assignmentId, status: invoicesTable.status })
+    .from(invoicesTable)
+    .innerJoin(assignmentsTable, eq(invoicesTable.assignmentId, assignmentsTable.id))
+    .where(and(eq(invoicesTable.id, invoiceId), eq(assignmentsTable.tenantId, tenantId)))
+    .limit(1);
+
+  return invoice ? { assignmentId: invoice.assignmentId, status: invoice.status as InvoiceStatus } : null;
 }
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -175,23 +190,23 @@ export async function listInvoices(params: {
   const canRead = await hasPermission("invoices", "read");
   if (!canRead) return { rows: [], total: 0 };
 
+  const tenantId = await requireCurrentTenantId();
   const { page = 1, search = "", status = "" } = params;
 
-  const conditions = [];
+  const conditions = [eq(assignmentsTable.tenantId, tenantId)];
   if (search.trim()) {
-    conditions.push(
-      or(
-        ilike(invoicesTable.invoiceNumber, `%${search.trim()}%`),
-        ilike(customersTable.name,         `%${search.trim()}%`),
-        ilike(assignmentsTable.code,       `%${search.trim()}%`),
-      ),
+    const searchCondition = or(
+      ilike(invoicesTable.invoiceNumber, `%${search.trim()}%`),
+      ilike(customersTable.name,         `%${search.trim()}%`),
+      ilike(assignmentsTable.code,       `%${search.trim()}%`),
     );
+    if (searchCondition) conditions.push(searchCondition);
   }
   if (status && (["draft", "sent", "paid", "cancelled"] as string[]).includes(status)) {
     conditions.push(eq(invoicesTable.status, status));
   }
 
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  const where = and(...conditions);
 
   const [rows, [{ count }]] = await Promise.all([
     db
@@ -252,6 +267,7 @@ export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
   const canRead = await hasPermission("invoices", "read");
   if (!canRead) return null;
 
+  const tenantId = await requireCurrentTenantId();
   const [row] = await db
     .select({
       id:                 invoicesTable.id,
@@ -282,7 +298,7 @@ export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
     .innerJoin(customersTable,   eq(invoicesTable.customerId,   customersTable.id))
     .innerJoin(assignmentsTable, eq(invoicesTable.assignmentId, assignmentsTable.id))
     .leftJoin(objectsTable,      eq(assignmentsTable.objectId,  objectsTable.id))
-    .where(eq(invoicesTable.id, id))
+    .where(and(eq(invoicesTable.id, id), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
 
   if (!row) return null;
@@ -327,6 +343,7 @@ export async function getAssignmentInvoiceData(
   const canRead = await hasPermission("invoices", "read");
   if (!canRead) return null;
 
+  const tenantId = await requireCurrentTenantId();
   const [row] = await db
     .select({
       customerId:      assignmentsTable.customerId,
@@ -336,7 +353,7 @@ export async function getAssignmentInvoiceData(
     })
     .from(assignmentsTable)
     .innerJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
-    .where(eq(assignmentsTable.id, assignmentId))
+    .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
 
   if (!row) return null;
@@ -357,10 +374,12 @@ export async function getOutstandingInvoicesCount(): Promise<number> {
   const canRead = await hasPermission("invoices", "read");
   if (!canRead) return 0;
 
+  const tenantId = await requireCurrentTenantId();
   const [{ count }] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(invoicesTable)
-    .where(inArray(invoicesTable.status, ["draft", "sent"]));
+    .innerJoin(assignmentsTable, eq(invoicesTable.assignmentId, assignmentsTable.id))
+    .where(and(eq(assignmentsTable.tenantId, tenantId), inArray(invoicesTable.status, ["draft", "sent"])));
 
   return count ?? 0;
 }
@@ -369,11 +388,13 @@ export async function getOverdueInvoicesCount(): Promise<number> {
   const canRead = await hasPermission("invoices", "read");
   if (!canRead) return 0;
 
+  const tenantId = await requireCurrentTenantId();
   const today = new Date().toISOString().slice(0, 10);
   const [{ count }] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(invoicesTable)
-    .where(and(eq(invoicesTable.status, "sent"), lt(invoicesTable.dueDate, today)));
+    .innerJoin(assignmentsTable, eq(invoicesTable.assignmentId, assignmentsTable.id))
+    .where(and(eq(assignmentsTable.tenantId, tenantId), eq(invoicesTable.status, "sent"), lt(invoicesTable.dueDate, today)));
 
   return count ?? 0;
 }
@@ -387,6 +408,7 @@ export async function sendPaymentReminders(): Promise<ActionResult<SendReminders
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
+  const tenantId = await requireCurrentTenantId();
   const today = new Date().toISOString().slice(0, 10);
 
   const overdueRows = await db
@@ -399,8 +421,9 @@ export async function sendPaymentReminders(): Promise<ActionResult<SendReminders
       customerName:  customersTable.name,
     })
     .from(invoicesTable)
+    .innerJoin(assignmentsTable, eq(invoicesTable.assignmentId, assignmentsTable.id))
     .innerJoin(customersTable, eq(invoicesTable.customerId, customersTable.id))
-    .where(and(eq(invoicesTable.status, "sent"), lt(invoicesTable.dueDate, today)))
+    .where(and(eq(assignmentsTable.tenantId, tenantId), eq(invoicesTable.status, "sent"), lt(invoicesTable.dueDate, today)))
     .orderBy(asc(invoicesTable.dueDate));
 
   // Split: no email vs has email
@@ -458,6 +481,7 @@ export async function getInvoiceSummary(): Promise<InvoiceSummary> {
     return { draftCount: 0, draftAmount: "0.00", sentCount: 0, sentAmount: "0.00", paidTotal: "0.00", paidThisMonth: "0.00", totalCount: 0 };
   }
 
+  const tenantId = await requireCurrentTenantId();
   const now = new Date();
   const startOfMonth = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
 
@@ -471,7 +495,9 @@ export async function getInvoiceSummary(): Promise<InvoiceSummary> {
       paidThisMonth: sql<string>`coalesce(sum(total_amount) FILTER (WHERE status = 'paid' AND paid_date >= ${startOfMonth}), 0)::text`,
       totalCount:    sql<number>`count(*)::int`,
     })
-    .from(invoicesTable);
+    .from(invoicesTable)
+    .innerJoin(assignmentsTable, eq(invoicesTable.assignmentId, assignmentsTable.id))
+    .where(eq(assignmentsTable.tenantId, tenantId));
 
   return {
     draftCount:    summary?.draftCount    ?? 0,
@@ -491,6 +517,7 @@ export async function listCollectiveInvoiceCandidates(): Promise<{
   const canRead = await hasPermission("invoices", "read");
   if (!canRead) return { candidates: [], batches: [] };
 
+  const tenantId = await requireCurrentTenantId();
   const [invoiceRows, activeItems, batchRows] = await Promise.all([
     db
       .select({
@@ -512,14 +539,16 @@ export async function listCollectiveInvoiceCandidates(): Promise<{
       .innerJoin(assignmentsTable, eq(invoicesTable.assignmentId, assignmentsTable.id))
       .innerJoin(customersTable, eq(invoicesTable.customerId, customersTable.id))
       .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
-      .where(eq(invoicesTable.status, "sent"))
+      .where(and(eq(assignmentsTable.tenantId, tenantId), eq(invoicesTable.status, "sent")))
       .orderBy(asc(customersTable.name), asc(assignmentsTable.scheduledDate), asc(invoicesTable.invoiceNumber)),
 
     db
       .select({ invoiceId: customerPaymentBatchItemsTable.invoiceId })
       .from(customerPaymentBatchItemsTable)
       .innerJoin(customerPaymentBatchesTable, eq(customerPaymentBatchItemsTable.batchId, customerPaymentBatchesTable.id))
-      .where(inArray(customerPaymentBatchesTable.status, ["open", "paid"])),
+      .innerJoin(invoicesTable, eq(customerPaymentBatchItemsTable.invoiceId, invoicesTable.id))
+      .innerJoin(assignmentsTable, eq(invoicesTable.assignmentId, assignmentsTable.id))
+      .where(and(eq(assignmentsTable.tenantId, tenantId), inArray(customerPaymentBatchesTable.status, ["open", "paid"]))),
 
     db
       .select({
@@ -543,6 +572,7 @@ export async function listCollectiveInvoiceCandidates(): Promise<{
       .innerJoin(customersTable, eq(customerPaymentBatchesTable.customerId, customersTable.id))
       .leftJoin(objectsTable, eq(customerPaymentBatchesTable.objectId, objectsTable.id))
       .leftJoin(customerPaymentBatchItemsTable, eq(customerPaymentBatchItemsTable.batchId, customerPaymentBatchesTable.id))
+      .where(eq(customersTable.tenantId, tenantId))
       .groupBy(
         customerPaymentBatchesTable.id,
         customersTable.name,
@@ -596,6 +626,9 @@ export async function getInvoiceStatusHistory(invoiceId: string): Promise<Invoic
   const canRead = await hasPermission("invoices", "read");
   if (!canRead) return [];
 
+  const invoice = await getInvoiceAssignmentForCurrentTenant(invoiceId);
+  if (!invoice) return [];
+
   const ACTION_LABELS: Record<string, string> = {
     create_invoice:       "Factuur aangemaakt",
     create_invoice_proposal: "Factuurvoorstel aangemaakt",
@@ -640,6 +673,7 @@ export async function createInvoice(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
+  const tenantId = await requireCurrentTenantId();
   const amount        = parseFloat(data.amount ?? "0");
   const vatPercentage = parseFloat(data.vatPercentage ?? "21");
 
@@ -656,11 +690,11 @@ export async function createInvoice(
   const vatAmount   = (amount * vatPercentage / 100);
   const totalAmount = amount + vatAmount;
 
-  // Verify assignment is in report_approved status
+  // Verify assignment is in report_approved status and belongs to the current tenant.
   const [assignment] = await db
     .select({ status: assignmentsTable.status, customerId: assignmentsTable.customerId })
     .from(assignmentsTable)
-    .where(eq(assignmentsTable.id, assignmentId))
+    .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
 
   if (!assignment) return { success: false, message: "Opdracht niet gevonden." };
@@ -750,6 +784,7 @@ export async function createCollectiveInvoicePayment(input: {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
+  const tenantId = await requireCurrentTenantId();
   const invoiceIds = [...new Set(input.invoiceIds)].filter(Boolean);
   if (invoiceIds.length < 2) {
     return { success: false, message: "Selecteer minimaal twee facturen voor een verzamelfactuur." };
@@ -772,7 +807,7 @@ export async function createCollectiveInvoicePayment(input: {
     .from(invoicesTable)
     .innerJoin(assignmentsTable, eq(invoicesTable.assignmentId, assignmentsTable.id))
     .innerJoin(customersTable, eq(invoicesTable.customerId, customersTable.id))
-    .where(inArray(invoicesTable.id, invoiceIds));
+    .where(and(inArray(invoicesTable.id, invoiceIds), eq(assignmentsTable.tenantId, tenantId)));
 
   if (invoices.length !== invoiceIds.length) {
     return { success: false, message: "Een of meer geselecteerde facturen zijn niet gevonden." };
@@ -808,8 +843,11 @@ export async function createCollectiveInvoicePayment(input: {
     .select({ invoiceId: customerPaymentBatchItemsTable.invoiceId })
     .from(customerPaymentBatchItemsTable)
     .innerJoin(customerPaymentBatchesTable, eq(customerPaymentBatchItemsTable.batchId, customerPaymentBatchesTable.id))
+    .innerJoin(invoicesTable, eq(customerPaymentBatchItemsTable.invoiceId, invoicesTable.id))
+    .innerJoin(assignmentsTable, eq(invoicesTable.assignmentId, assignmentsTable.id))
     .where(
       and(
+        eq(assignmentsTable.tenantId, tenantId),
         inArray(customerPaymentBatchItemsTable.invoiceId, invoiceIds),
         inArray(customerPaymentBatchesTable.status, ["open", "paid"]),
       ),
@@ -940,11 +978,7 @@ export async function markInvoiceSent(invoiceId: string): Promise<ActionResult> 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  const [invoice] = await db
-    .select({ assignmentId: invoicesTable.assignmentId, status: invoicesTable.status })
-    .from(invoicesTable)
-    .where(eq(invoicesTable.id, invoiceId))
-    .limit(1);
+  const invoice = await getInvoiceAssignmentForCurrentTenant(invoiceId);
 
   if (!invoice) return { success: false, message: "Factuur niet gevonden." };
   if (invoice.status !== "draft") {
@@ -989,11 +1023,7 @@ export async function markInvoicePaid(invoiceId: string): Promise<ActionResult> 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  const [invoice] = await db
-    .select({ assignmentId: invoicesTable.assignmentId, status: invoicesTable.status })
-    .from(invoicesTable)
-    .where(eq(invoicesTable.id, invoiceId))
-    .limit(1);
+  const invoice = await getInvoiceAssignmentForCurrentTenant(invoiceId);
 
   if (!invoice) return { success: false, message: "Factuur niet gevonden." };
   if (invoice.status !== "sent") {
@@ -1045,11 +1075,7 @@ export async function cancelInvoice(invoiceId: string): Promise<ActionResult> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  const [invoice] = await db
-    .select({ assignmentId: invoicesTable.assignmentId, status: invoicesTable.status })
-    .from(invoicesTable)
-    .where(eq(invoicesTable.id, invoiceId))
-    .limit(1);
+  const invoice = await getInvoiceAssignmentForCurrentTenant(invoiceId);
 
   if (!invoice) return { success: false, message: "Factuur niet gevonden." };
   if (!["draft", "sent"].includes(invoice.status)) {
@@ -1154,6 +1180,7 @@ export async function getInvoiceForAssignment(assignmentId: string): Promise<Inv
   const canRead = await hasPermission("invoices", "read");
   if (!canRead) return null;
 
+  const tenantId = await requireCurrentTenantId();
   const [row] = await db
     .select({
       id:             invoicesTable.id,
@@ -1174,7 +1201,7 @@ export async function getInvoiceForAssignment(assignmentId: string): Promise<Inv
     .from(invoicesTable)
     .innerJoin(customersTable,   eq(invoicesTable.customerId,   customersTable.id))
     .innerJoin(assignmentsTable, eq(invoicesTable.assignmentId, assignmentsTable.id))
-    .where(eq(invoicesTable.assignmentId, assignmentId))
+    .where(and(eq(invoicesTable.assignmentId, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
     .orderBy(desc(invoicesTable.createdAt))
     .limit(1);
 
@@ -1207,6 +1234,7 @@ export async function listInvoicesForCustomer(
   const canRead = await hasPermission("invoices", "read");
   if (!canRead) return [];
 
+  const tenantId = await requireCurrentTenantId();
   const rows = await db
     .select({
       id:             invoicesTable.id,
@@ -1227,7 +1255,7 @@ export async function listInvoicesForCustomer(
     .from(invoicesTable)
     .innerJoin(customersTable,   eq(invoicesTable.customerId,   customersTable.id))
     .innerJoin(assignmentsTable, eq(invoicesTable.assignmentId, assignmentsTable.id))
-    .where(eq(invoicesTable.customerId, customerId))
+    .where(and(eq(invoicesTable.customerId, customerId), eq(assignmentsTable.tenantId, tenantId)))
     .orderBy(desc(invoicesTable.createdAt))
     .limit(limit);
 
