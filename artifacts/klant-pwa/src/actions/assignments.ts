@@ -131,6 +131,27 @@ function formatEuro(value: string | null | undefined): string {
   );
 }
 
+function getSafeCustomerAssignmentPhotoStoragePath(
+  storagePath: string,
+  tenantId: string,
+  assignmentId: string,
+): string | null {
+  const normalized = storagePath.trim().replace(/^\/+/, "");
+  if (!normalized) return null;
+  if (/^[a-z][a-z\d+.-]*:\/\//i.test(normalized)) return null;
+  if (normalized.includes("\\")) return null;
+  if (normalized.split("/").some((segment) => !segment || segment === "..")) return null;
+
+  const allowedPrefixes = [
+    `tenants/${tenantId}/assignments/${assignmentId}/`,
+    `${tenantId}/assignments/${assignmentId}/`,
+    `assignments/${assignmentId}/`,
+    `${assignmentId}/`,
+  ];
+
+  return allowedPrefixes.some((prefix) => normalized.startsWith(prefix)) ? normalized : null;
+}
+
 export type RequestAssignmentInput = z.infer<typeof requestSchema>;
 
 export async function requestAssignment(input: RequestAssignmentInput): Promise<RequestResult> {
@@ -434,10 +455,17 @@ export async function getMyAssignmentDetail(
   const admin = createAdminClient();
   const approvedPhotos: ApprovedPhoto[] = await Promise.all(
     photoRows.map(async (p) => {
+      const storagePath = getSafeCustomerAssignmentPhotoStoragePath(
+        p.storagePath,
+        identity.tenantId,
+        assignmentId,
+      );
+      if (!storagePath) return { id: p.id, signedUrl: null };
+
       try {
         const { data } = await admin.storage
           .from("assignment-photos")
-          .createSignedUrl(p.storagePath, 3600);
+          .createSignedUrl(storagePath, 3600);
         return { id: p.id, signedUrl: data?.signedUrl ?? null };
       } catch {
         return { id: p.id, signedUrl: null };
