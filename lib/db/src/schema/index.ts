@@ -6,6 +6,7 @@ export * from "./permissions";
 export * from "./role-permissions";
 export * from "./user-roles";
 export * from "./tenant-rbac";
+export * from "./modules";
 export * from "./audit-log";
 export * from "./sectors";
 export * from "./tenant-sectors";
