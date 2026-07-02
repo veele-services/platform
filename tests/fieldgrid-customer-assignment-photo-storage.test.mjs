@@ -19,14 +19,14 @@ const customerAssignments = read("artifacts/klant-pwa/src/actions/assignments.ts
 test("customer assignment photo signed URLs require scoped storage paths", () => {
   const body = functionBlock(customerAssignments, "getMyAssignmentDetail");
 
-  assert.match(customerAssignments, /function getSafeCustomerAssignmentPhotoStoragePath/u);
-  assert.match(customerAssignments, /tenants\/\$\{tenantId\}\/assignments\/\$\{assignmentId\}\//u);
-  assert.match(customerAssignments, /\$\{tenantId\}\/assignments\/\$\{assignmentId\}\//u);
-  assert.match(customerAssignments, /assignments\/\$\{assignmentId\}\//u);
-  assert.match(customerAssignments, /\$\{assignmentId\}\//u);
-  assert.match(customerAssignments, /normalized\.split\("\/"\)\.some\(\(segment\) => !segment \|\| segment === "\.\."\)/u);
-  assert.match(customerAssignments, /normalized\.includes\("\\\\"\)/u);
-  assert.match(customerAssignments, /:\\/\\//u);
+  assert.ok(customerAssignments.includes("function getSafeCustomerAssignmentPhotoStoragePath"));
+  assert.ok(customerAssignments.includes("`tenants/${tenantId}/assignments/${assignmentId}/`"));
+  assert.ok(customerAssignments.includes("`${tenantId}/assignments/${assignmentId}/`"));
+  assert.ok(customerAssignments.includes("`assignments/${assignmentId}/`"));
+  assert.ok(customerAssignments.includes("`${assignmentId}/`"));
+  assert.ok(customerAssignments.includes('if (/^[a-z][a-z\\d+.-]*:\\/\\//i.test(normalized)) return null;'));
+  assert.ok(customerAssignments.includes('if (normalized.includes("\\\\")) return null;'));
+  assert.ok(customerAssignments.includes('normalized.split("/").some((segment) => !segment || segment === "..")'));
 
   assert.match(body, /eq\(assignmentsTable\.customerId, identity\.customerId\)/u);
   assert.match(body, /eq\(assignmentsTable\.tenantId,\s+identity\.tenantId\)/u);
