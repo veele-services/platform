@@ -1,196 +1,148 @@
 # Fieldgrid cross-tenant testmatrix
 
-Deze matrix documenteert de testdata en verwachte autorisatie-uitkomsten voor de cross-tenant permissietests.
-
-## Testidentiteiten
-
-| Sleutel | Omschrijving |
-| --- | --- |
-| `user-x` | Backoffice/API-gebruiker die aan twee tenants gekoppeld is. |
-| `tenant-a` | Tenant waarin `user-x` managementrechten heeft. |
-| `tenant-b` | Tenant waarin `user-x` alleen-lezen rechten heeft. |
-
-## Tenantrollen
-
-| User | Tenant | Rol | Status | Verwachte permissies |
-| --- | --- | --- | --- | --- |
-| `user-x` | `tenant-a` | Management | active | Lezen, schrijven, verwijderen en beheeracties op de geteste backoffice resources. |
-| `user-x` | `tenant-b` | Alleen-lezen | active | Alleen `read` op de geteste backoffice resources; geen `write`, `delete` of beheeracties. |
-
-## Scenario's
-
-| # | Scenario | Resource/action | Tenant | Verwachting |
-| --- | --- | --- | --- | --- |
-| 1 | User X heeft Management in tenant A | `customers:write` | `tenant-a` | Toegestaan. |
-| 2 | User X heeft Alleen-lezen in tenant B | `customers:read` | `tenant-b` | Toegestaan. |
-| 3 | In tenant A mag user X schrijven | `customers:write` | `tenant-a` | Toegestaan. |
-| 4 | In tenant B mag user X niet schrijven | `customers:write` | `tenant-b` | Geweigerd. |
-| 5 | API-permissies respecteren tenant | `customers:write` | `tenant-a` / `tenant-b` | `tenant-a` geeft HTTP 200, `tenant-b` geeft HTTP 403. |
-| 6 | Backoffice server actions respecteren tenant | `customers:write` | `tenant-a` / `tenant-b` | `tenant-a` slaagt, `tenant-b` gooit `Forbidden`. |
-| 7 | Tenant switcher verandert permissions correct | `customers:write`, `customers:read` | switch van `tenant-a` naar `tenant-b` | Schrijfrecht verdwijnt na switch naar `tenant-b`; leesrecht blijft aanwezig. |
-
-## Belangrijke invariant
-
-Permissies worden altijd bepaald uit de combinatie van `userId` én actieve `tenantId`. Een rol of permission uit een andere tenant mag nooit doorsijpelen naar de actieve tenantcontext.
-Datum: 29 juni 2026  
-Scope: cross-tenant isolatie, directe objecttoegang en entitlement-controles voor Fieldgrid-modules.
+Datum: 2026-07-02  
+Status: verplichte acceptatiebasis voor SaaS-hardening  
+Gerelateerd: `docs/fieldgrid-saas-masterplan.md`, `docs/fieldgrid-data-classification.md`
 
 ## Doel
 
-Deze testmatrix beschrijft minimale testdata en acceptatietests om te bewijzen dat tenants, portalen, storage-objecten, modules en sector-entitlements strikt van elkaar geïsoleerd zijn. De matrix is bedoeld voor handmatige QA, geautomatiseerde end-to-end tests en regressietests na wijzigingen in autorisatie, RLS, storage policies of server actions/API-routes.
+Deze matrix beschrijft de vaste testactoren, tenants en scenario's waarmee we bewijzen dat Fieldgrid veilig multi-tenant werkt.
 
-## Testdata
+Elke toekomstige PR voor tenant lifecycle, RBAC, support access, modules, sectoren, portalen, storage, finance, documenten of audit moet in de PR-body verwijzen naar de relevante test-id's uit dit document.
 
-Gebruik voorspelbare namen en bewaar alle technische id's, slugs en storage paths in het testrapport. Waar `tenant A` staat, gebruik tenant `demo-a`; waar `tenant B` staat, gebruik tenant `demo-b`.
+## Vaste tenants
 
-| Ref | Testdata | Minimale inrichting |
+| Tenant | Slug | Doel |
 | --- | --- | --- |
-| T0 | Tenant `veele` | Platform-/managementtenant met support- en backofficefuncties. Geen klant- of planningsdata van `demo-a` of `demo-b` als tenant-eigen data aanmaken. |
-| T1 | Tenant `demo-a` | Actieve tenant met customer, assignment, planning, documenten, facturen/PDF's en storage-objecten. Modules en sectoren expliciet vastleggen. |
-| T2 | Tenant `demo-b` | Actieve tenant met eigen customer, assignment, planning, documenten, facturen/PDF's en storage-objecten. Gebruik vergelijkbare namen als `demo-a` om path- en id-verwarring te testen. |
-| U1 | User alleen in tenant A | Backofficegebruiker met uitsluitend lidmaatschap in `demo-a`; geen record of rol in `demo-b`. |
-| U2 | User alleen in tenant B | Backofficegebruiker met uitsluitend lidmaatschap in `demo-b`; geen record of rol in `demo-a`. |
-| U3 | Multi-tenant backoffice user | Backofficegebruiker met lidmaatschap in `demo-a` en `demo-b`; moet alleen data zien van de actief geselecteerde tenant. |
-| U4 | Platform support user | Supportgebruiker gekoppeld aan tenant `veele` met platform-supportrechten; toegang moet expliciet geaudit en alleen via supportflows toegestaan zijn. |
-| U5 | Klantgebruiker tenant A | Klantportaalgebruiker gekoppeld aan een customer in `demo-a`; geen `customer_users`-koppeling naar `demo-b`. |
-| U6 | Personeelsgebruiker tenant A | Personeelsappgebruiker gekoppeld aan een personnel-record in `demo-a`; geen personnel-record of planningstoegang in `demo-b`. |
+| Tenant Veele | `veele` | Gewone tenant. Geen platform-uitzondering. |
+| Tenant A | `demo-a` | Primaire positieve testtenant. |
+| Tenant B | `demo-b` | Cross-tenant denial tenant met vergelijkbare records. |
 
-### Entiteiten per tenant
+## Vaste hosts
 
-Maak minimaal de volgende records aan en noteer de technische id's:
+| Host | Verwachte context |
+| --- | --- |
+| `platform.fieldgrid.nl` | Platform-admin productiehost. |
+| `staging.fieldgrid.nl` | Staging platformhost. |
+| `demo-a.fieldgrid.nl` | Tenant A host. |
+| `demo-b.fieldgrid.nl` | Tenant B host. |
+| `veele.fieldgrid.nl` | Veele tenant host. |
+| `unknown.fieldgrid.nl` | Moet veilig falen. |
 
-| Tenant | Customer | Assignment | Planning | Document | Factuur/PDF | Storage object |
-| --- | --- | --- | --- | --- | --- | --- |
-| `demo-a` | `A-Customer-01` | `A-Assignment-01` | `A-Planning-01` | `A-Document-01` | `A-Invoice-01.pdf` | `demo-a/.../A-Document-01` |
-| `demo-b` | `B-Customer-01` | `B-Assignment-01` | `B-Planning-01` | `B-Document-01` | `B-Invoice-01.pdf` | `demo-b/.../B-Document-01` |
+## Vaste actoren
 
-## Verwachte standaarduitkomsten
+| Actor-id | Actor | Minimale inrichting |
+| --- | --- | --- |
+| `PLAT-OWNER-ACTIVE` | Platform Owner actief | Actieve `platform_users` owner/admin. |
+| `PLAT-ADMIN-INACTIVE` | Platform Admin gedeactiveerd | `platform_users.status != active`. |
+| `SUPPORT-NO-GRANT` | Support User zonder grant | Actieve platform support user zonder tenantgrant. |
+| `SUPPORT-A-GRANT` | Support User met actieve grant voor Tenant A | Actieve grant voor `demo-a`, binnen tijdvenster. |
+| `SUPPORT-EXPIRED` | Support User met verlopen grant | Grant voor `demo-a`, maar `expires_at` in verleden of revoked. |
+| `A-OWNER` | Tenant A owner | Active tenant user met owner/eigenaar tenantrol in `demo-a`. |
+| `A-ADMIN` | Tenant A admin | Active tenant user met beheerrol in `demo-a`. |
+| `A-PLANNER` | Tenant A planner | Active tenant user met planningrechten in `demo-a`. |
+| `A-EMPLOYEE` | Tenant A employee | Active tenant user met beperkte operationele rol in `demo-a`. |
+| `A-CUSTOMER` | Tenant A customer | `customer_users` record in `demo-a`. |
+| `A-PERSONNEL` | Tenant A personnel | `personnel.user_id` record in `demo-a`. |
+| `B-OWNER` | Tenant B owner | Active tenant user met owner/eigenaar tenantrol in `demo-b`. |
+| `B-ADMIN` | Tenant B admin | Active tenant user met beheerrol in `demo-b`. |
+| `B-PLANNER` | Tenant B planner | Active tenant user met planningrechten in `demo-b`. |
+| `B-EMPLOYEE` | Tenant B employee | Active tenant user met beperkte operationele rol in `demo-b`. |
+| `B-CUSTOMER` | Tenant B customer | `customer_users` record in `demo-b`. |
+| `B-PERSONNEL` | Tenant B personnel | `personnel.user_id` record in `demo-b`. |
+| `MULTI-A-B` | Multi-tenant backoffice user | Active tenant user in `demo-a` en `demo-b`, met verschillende tenantrollen. |
 
-- Cross-tenant lees- of schrijfpogingen door reguliere gebruikers leveren `403 Forbidden`, `404 Not Found`, een lege dataset of een applicatiespecifieke autorisatiefout op. Kies per endpoint één consistente verwachte status en leg die vast in de geautomatiseerde test.
-- De response mag geen velden, bestandsnamen, signed URLs, metadata, aantallen of foutmeldingen bevatten waarmee het bestaan van data in een andere tenant bevestigd kan worden.
-- Mutaties buiten tenantcontext mogen geen records, auditregels, notificaties, storage-objecten of side effects aanmaken.
-- Een multi-tenant backoffice user mag tenant B-data alleen zien nadat de actieve tenantcontext aantoonbaar naar `demo-b` is gezet.
-- Platform support access moet expliciet herkenbaar zijn in logging/auditing en mag reguliere tenantisolatie niet impliciet omzeilen.
+## Vaste testdata
 
-## Testcases
+Maak per tenant vergelijkbare records en noteer technische ids, slugs, document ids, invoice ids en storage paths.
 
-### FG-XTEN-001 — Tenant A user probeert tenant B customer te lezen
+| Tenant | Customer | Object | Assignment | Document | Report | Quote | Invoice | Storage path |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| `demo-a` | `A-Customer-01` | `A-Object-01` | `A-Assignment-01` | `A-Document-01` | `A-Report-01` | `A-Quote-01` | `A-Invoice-01` | `tenant/{demo-a-id}/...` |
+| `demo-b` | `B-Customer-01` | `B-Object-01` | `B-Assignment-01` | `B-Document-01` | `B-Report-01` | `B-Quote-01` | `B-Invoice-01` | `tenant/{demo-b-id}/...` |
+| `veele` | `V-Customer-01` | `V-Object-01` | `V-Assignment-01` | `V-Document-01` | `V-Report-01` | `V-Quote-01` | `V-Invoice-01` | `tenant/{veele-id}/...` |
 
-**Actor:** U1, user alleen in tenant A.  
-**Doel:** Valideren dat customer-detailroutes en customer-API's niet op alleen `customer.id` vertrouwen.
+## Testmatrix
 
-1. Log in als U1 en selecteer tenant `demo-a`.
-2. Open een legitieme customer uit `demo-a` en bevestig dat deze zichtbaar is.
-3. Vervang in de URL, server action payload of API-call de customer-id door de id van `B-Customer-01`.
-4. Herhaal voor lijstfilters, zoekparameters en eventuele contactpersoon-subresources.
+| Test-id | Securitygrens | Actor | Host | Tenantcontext | Actie | Verwacht resultaat | Future testtype |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| `FG-HOST-001` | host-first tenant resolution | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | platform | Open platform dashboard. | Platformroute opent; geen tenant switcher nodig. | Playwright, integration |
+| `FG-HOST-002` | host-first tenant resolution | `A-ADMIN` | `demo-a.fieldgrid.nl` | `demo-a` | Open backoffice dashboard. | Tenant A wordt uit host bepaald. | Playwright, unit |
+| `FG-HOST-003` | host-first tenant resolution | `A-ADMIN` | `unknown.fieldgrid.nl` | none | Open backoffice route. | Veilige fout; geen fallback naar default tenant. | Playwright, unit |
+| `FG-HOST-004` | tenant switcher override | `MULTI-A-B` | `demo-a.fieldgrid.nl` | cookie probeert `demo-b` | Zet tenant switcher/cookie op Tenant B en open Tenant A host. | Host wint; Tenant B data blijft onzichtbaar. | Playwright, integration |
+| `FG-HOST-005` | productie fallback | `A-ADMIN` | `demo-a.fieldgrid.nl` | missing/invalid session tenant | Forceer ontbrekende tenantcookie. | Geen productie-fallback naar `DEFAULT_TENANT_ID`. | static, unit |
+| `FG-RBAC-001` | tenant RBAC happy path | `A-ADMIN` | `demo-a.fieldgrid.nl` | `demo-a` | Lees en wijzig Tenant A customer. | Toegestaan op basis van tenantrol. | integration |
+| `FG-RBAC-002` | tenant RBAC denial | `MULTI-A-B` | `demo-b.fieldgrid.nl` | `demo-b` | Voer actie uit die alleen Tenant A rol toestaat. | Geweigerd in Tenant B. | integration |
+| `FG-RBAC-003` | globale roles geen runtime | `A-EMPLOYEE` | `demo-a.fieldgrid.nl` | `demo-a` | Verwijder tenantrol, laat alleen globale role staan, probeer protected action. | Geweigerd; globale role geeft geen runtime-recht. | static, integration |
+| `FG-RBAC-004` | custom roles plan gate | `A-OWNER` | `demo-a.fieldgrid.nl` | Starter tenant | Maak custom role. | Geweigerd voor Starter; toegestaan voor Professional+. | integration |
+| `FG-SUPPORT-001` | support grant absent | `SUPPORT-NO-GRANT` | `platform.fieldgrid.nl` | `demo-a` support entry | Open Tenant A support entrypoint. | Geweigerd; geen impliciete tenanttoegang. | integration, Playwright |
+| `FG-SUPPORT-002` | support grant active | `SUPPORT-A-GRANT` | `platform.fieldgrid.nl` | `demo-a` support entry | Open Tenant A support entrypoint binnen grantvenster. | Toegestaan en auditregel geschreven. | integration, DB/RLS |
+| `FG-SUPPORT-003` | support grant expired | `SUPPORT-EXPIRED` | `platform.fieldgrid.nl` | `demo-a` support entry | Open Tenant A support entrypoint. | Geweigerd; verlopen grant telt niet. | integration |
+| `FG-SUPPORT-004` | support wrong tenant | `SUPPORT-A-GRANT` | `platform.fieldgrid.nl` | `demo-b` support entry | Open Tenant B support entrypoint. | Geweigerd; grant is tenant-scoped. | integration |
+| `FG-SUPPORT-005` | support audit | `SUPPORT-A-GRANT` | `platform.fieldgrid.nl` | `demo-a` | Lees gevoelige tenantdata via supportflow. | `support_access_audit_log` bevat grant, tenant, actor, action en resource. | DB/RLS, integration |
+| `FG-PLATFORM-001` | platform-admin guard | `PLAT-ADMIN-INACTIVE` | `platform.fieldgrid.nl` | platform | Open platform-admin route. | Geweigerd door status. | Playwright, integration |
+| `FG-PLATFORM-002` | tenant user geen platform | `A-OWNER` | `platform.fieldgrid.nl` | platform | Open platform-admin route. | Geweigerd; tenantrol is geen platformrol. | Playwright, integration |
+| `FG-MODULE-001` | module happy path | `A-ADMIN` | `demo-a.fieldgrid.nl` | module enabled | Open module en voer normale leesactie uit. | Toegestaan met juiste tenantrol. | Playwright, integration |
+| `FG-MODULE-002` | module off UI | `A-ADMIN` | `demo-a.fieldgrid.nl` | module disabled | Open navigatie. | Module is verborgen of disabled volgens modulebeleid. | Playwright |
+| `FG-MODULE-003` | module off direct URL | `A-ADMIN` | `demo-a.fieldgrid.nl` | module disabled | Open directe module-URL. | Server blokkeert; geen data of metadata. | Playwright, integration |
+| `FG-MODULE-004` | module off action/API | `A-ADMIN` | `demo-a.fieldgrid.nl` | module disabled | Roep server action/API direct aan. | Geweigerd met consistente autorisatiefout. | integration |
+| `FG-SECTOR-001` | sector happy path | `A-PLANNER` | `demo-a.fieldgrid.nl` | toegestane sector | Maak customer/object/personnel/task code met toegestane sector. | Toegestaan. | integration, DB/RLS |
+| `FG-SECTOR-002` | sector buiten tenant | `A-PLANNER` | `demo-a.fieldgrid.nl` | sector alleen in `demo-b` | Manipuleer create/update payload naar Tenant B sector. | Geweigerd; record blijft ongewijzigd. | integration, DB/RLS |
+| `FG-SECTOR-003` | disabled sector | `A-ADMIN` | `demo-a.fieldgrid.nl` | disabled tenant sector | Maak of wijzig record naar disabled sector. | Geweigerd. | integration, DB/RLS |
+| `FG-SECTOR-004` | single-sector UX | `A-ADMIN` | `demo-a.fieldgrid.nl` | single-sector tenant | Open forms waar sector relevant is. | UI toont geen overbodige sectorselectie; server vult default sector. | Playwright, integration |
+| `FG-ID-001` | direct ID customer | `A-ADMIN` | `demo-a.fieldgrid.nl` | `demo-a` | Open of mutate `B-Customer-01` via technische id. | Geen Tenant B data, geen side effects. | integration |
+| `FG-ID-002` | direct ID object | `A-ADMIN` | `demo-a.fieldgrid.nl` | `demo-a` | Open of mutate `B-Object-01` via technische id. | Geen Tenant B data, geen side effects. | integration |
+| `FG-ID-003` | direct ID assignment | `A-PLANNER` | `demo-a.fieldgrid.nl` | `demo-a` | Open of mutate `B-Assignment-01` via technische id. | Geen Tenant B data, geen subresource metadata. | integration |
+| `FG-ID-004` | direct ID document | `A-ADMIN` | `demo-a.fieldgrid.nl` | `demo-a` | Open/download `B-Document-01` via document id. | Geen metadata, filename, path, preview of signed URL. | integration, storage |
+| `FG-ID-005` | direct ID invoice/PDF | `A-ADMIN` | `demo-a.fieldgrid.nl` | `demo-a` | Open/download `B-Invoice-01` of PDF-route. | Geen PDF, paymentstatus of finance metadata. | integration |
+| `FG-ID-006` | direct ID report/PDF | `A-ADMIN` | `demo-a.fieldgrid.nl` | `demo-a` | Open/download `B-Report-01`. | Geen rapportcontent, media of PDF. | integration, storage |
+| `FG-PORTAL-C-001` | klantportaal host-bound | `A-CUSTOMER` | `demo-a.fieldgrid.nl` | `demo-a` | Open eigen portal dashboard. | Alleen eigen customerdata Tenant A zichtbaar. | Playwright, integration |
+| `FG-PORTAL-C-002` | klantportaal cross-tenant | `A-CUSTOMER` | `demo-a.fieldgrid.nl` | payload/id uit `demo-b` | Roep B customer/object/assignment/invoice routes aan. | Geweigerd of leeg; geen Tenant B metadata. | integration |
+| `FG-PORTAL-C-003` | klantportaal geen tenantkeuze | `A-CUSTOMER` | `demo-a.fieldgrid.nl` | probeert switch naar `demo-b` | Manipuleer tenant parameter/cookie. | Host en `customer_users` winnen; geen Tenant B toegang. | Playwright, integration |
+| `FG-PORTAL-P-001` | personeelsapp host-bound | `A-PERSONNEL` | `demo-a.fieldgrid.nl` | `demo-a` | Open eigen planning. | Alleen eigen/toegewezen Tenant A data zichtbaar. | Playwright, integration |
+| `FG-PORTAL-P-002` | personeelsapp cross-tenant | `A-PERSONNEL` | `demo-a.fieldgrid.nl` | payload/id uit `demo-b` | Roep B assignment/open-service/media routes aan. | Geweigerd of leeg; geen Tenant B metadata. | integration, storage |
+| `FG-STORAGE-001` | signed URL tenant check | `A-ADMIN` | `demo-a.fieldgrid.nl` | `demo-a` | Vraag signed URL voor Tenant B document/photo/report attachment. | Geen URL; autorisatie faalt voor signing. | storage, integration |
+| `FG-STORAGE-002` | storage path guessing | `A-CUSTOMER` | `demo-a.fieldgrid.nl` | `demo-a` | Vervang `tenant/{demo-a-id}` door `tenant/{demo-b-id}` in path. | Geen read/write/delete; fout lekt geen structuur. | storage, DB/RLS |
+| `FG-STORAGE-003` | public asset boundary | `A-CUSTOMER` | `demo-a.fieldgrid.nl` | public bucket | Open news/organization asset. | Alleen bewust publieke assets zijn leesbaar; private docs blijven private. | storage |
+| `FG-AUDIT-001` | download audit | `A-ADMIN` | `demo-a.fieldgrid.nl` | `demo-a` | Download gevoelig document/PDF. | Tenant-audit bevat actor, tenant, resource, action. | integration, DB/RLS |
+| `FG-AUDIT-002` | support audit priority | `SUPPORT-A-GRANT` | `platform.fieldgrid.nl` | `demo-a` support | Lees/download via support. | Support audit bevat grant id en tenant; geen gewone tenantrol nodig. | integration, DB/RLS |
+| `FG-LIFECYCLE-001` | suspended tenant | `A-ADMIN` | `demo-a.fieldgrid.nl` | suspended tenant | Probeer mutatie. | Mutatie geweigerd; read-beleid volgens lifecycle spec. | integration |
+| `FG-LIFECYCLE-002` | archived tenant | `A-ADMIN` | `demo-a.fieldgrid.nl` | archived tenant | Probeer login/mutatie. | Veilig geblokkeerd volgens archive-beleid. | integration, Playwright |
+| `FG-MIGRATE-001` | lege database smoke | CI/system | n.v.t. | empty DB | Draai migraties vanaf nul. | Migraties slagen zonder handmatige fix. | DB/RLS |
+| `FG-MIGRATE-002` | staging-copy smoke | CI/system | n.v.t. | kopie staging DB | Draai migraties op staging-copy. | Geen destructieve reset; bestaande data blijft bruikbaar. | DB/RLS |
 
-**Verwacht:** U1 krijgt geen inhoud van `B-Customer-01`; er worden geen B-contactpersonen, objecten, documenten, aantallen of metadata gelekt.
+## Minimum green before staging
 
-### FG-XTEN-002 — Tenant A user probeert tenant B assignment te lezen
+Voordat `main` naar `staging` gaat na een risicofase, moeten minimaal groen zijn:
 
-**Actor:** U1, user alleen in tenant A.  
-**Doel:** Valideren dat assignment-detail, werkbonnen, gekoppelde objecten en statusinformatie tenant-scoped zijn.
+- `FG-HOST-001` t/m `FG-HOST-005`
+- `FG-RBAC-001` t/m `FG-RBAC-004`
+- `FG-SUPPORT-001` t/m `FG-SUPPORT-005`
+- `FG-MODULE-002` t/m `FG-MODULE-004` zodra modules gebouwd zijn
+- `FG-SECTOR-001` t/m `FG-SECTOR-003`
+- `FG-ID-001` t/m `FG-ID-006`
+- `FG-PORTAL-C-001` t/m `FG-PORTAL-C-003` zodra klantportaal host-bound wordt
+- `FG-PORTAL-P-001` en `FG-PORTAL-P-002` zodra personeelsapp host-bound wordt
+- `FG-STORAGE-001` en `FG-STORAGE-002` bij elke storage- of documentenwijziging
+- `FG-MIGRATE-001` en `FG-MIGRATE-002` bij elke migratie-PR
 
-1. Log in als U1 binnen `demo-a`.
-2. Open `A-Assignment-01` en bevestig normale toegang.
-3. Roep de detailroute/API aan met de id van `B-Assignment-01`.
-4. Test ook gekoppelde endpoints zoals planningregels, toegewezen personeel, documenten, urenregels en statusgeschiedenis.
+## Verwachte denial-vorm
 
-**Verwacht:** U1 ziet geen assignmentdata van `demo-b`; gekoppelde subresources geven eveneens geen data of bestaanserkenning terug.
+Per route of action mag de concrete denial-vorm verschillen, maar moet vooraf in de test worden vastgelegd:
 
-### FG-XTEN-003 — Tenant A klant probeert tenant B klantportaaldata te lezen
+- `403 Forbidden` voor expliciete autorisatiefout;
+- `404 Not Found` wanneer bestaan niet bevestigd mag worden;
+- lege dataset voor lijstqueries;
+- applicatiespecifieke server-action fout zonder cross-tenant metadata.
 
-**Actor:** U5, klantgebruiker tenant A.  
-**Doel:** Valideren dat het klantportaal zowel op tenant als op customer-koppeling is afgeschermd.
+Een denial mag nooit bestandsnamen, aantallen, storage paths, signed URLs, tenantnamen, klantnamen of andere metadata van een andere tenant lekken.
 
-1. Log in als U5 in het klantportaal.
-2. Bevestig toegang tot eigen klantdata, objecten, tickets, offertes, rapportages, documenten en facturen van `demo-a`.
-3. Vervang routeparameters, queryparameters of request bodies door ids van tenant B, waaronder `B-Customer-01`, `B-Assignment-01`, `B-Document-01` en `B-Invoice-01.pdf`.
-4. Herhaal voor download- en previewroutes die signed URLs of PDF-streams teruggeven.
+## Gebruik in vervolg-PR's
 
-**Verwacht:** U5 krijgt geen tenant B-klantportaaldata, geen signed URL en geen PDF-stream van `demo-b`.
+Elke vervolg-PR moet in de PR-body opnemen:
 
-### FG-XTEN-004 — Tenant A personeel probeert tenant B planning te lezen
-
-**Actor:** U6, personeelsgebruiker tenant A.  
-**Doel:** Valideren dat planning, open diensten en assignmentdetails in de personeelsapp niet buiten de eigen tenant of personnel-koppeling uitleesbaar zijn.
-
-1. Log in als U6 in de personeelsapp.
-2. Bevestig toegang tot eigen planning of open diensten binnen `demo-a`.
-3. Roep planning-, assignment- en dienstdetailroutes aan met ids uit `demo-b`, waaronder `B-Planning-01` en `B-Assignment-01`.
-4. Test ook media, rapportages, urenregistratie en notificaties die via planning of assignment bereikbaar zijn.
-
-**Verwacht:** U6 krijgt geen planning of assignmentcontext van `demo-b`; directe ids leveren geen details of afgeleide metadata op.
-
-### FG-XTEN-005 — Direct-ID access op documenten
-
-**Actoren:** U1, U3 met actieve tenant `demo-a`, U5 en U6.  
-**Doel:** Valideren dat documentrecords en documentdownloads niet via document-id of gekoppelde entity-id buiten scope toegankelijk zijn.
-
-1. Noteer de document-id van `B-Document-01`.
-2. Probeer als elke actor het documentdetail, metadata-endpoint en downloadendpoint rechtstreeks aan te roepen.
-3. Probeer dezelfde document-id te combineren met een toegestane tenant A customer-, assignment-, object- of personnel-id.
-4. Probeer lijstendpoints te manipuleren met filters zoals `document_id`, `entity_id`, `assignment_id`, `customer_id` of `tenant_id=demo-b`.
-
-**Verwacht:** Geen actor met actieve tenant A-context krijgt documentmetadata, bestandsnaam, mimetype, storage path, preview of downloadlink van `demo-b`.
-
-### FG-XTEN-006 — Direct-ID access op facturen/PDF's
-
-**Actoren:** U1, U3 met actieve tenant `demo-a` en U5.  
-**Doel:** Valideren dat factuurdetails, PDF-rendering en PDF-downloads tenant- en customer-scoped zijn.
-
-1. Noteer de invoice-id en PDF-route van `B-Invoice-01.pdf`.
-2. Roep factuurdetailroutes direct aan met de tenant B invoice-id.
-3. Roep PDF-preview, PDF-download, payment en statusroutes direct aan met tenant B ids.
-4. Controleer of redirects, cache headers, bestandsnamen en foutmeldingen geen tenant B-informatie lekken.
-
-**Verwacht:** Er wordt geen PDF, signed URL, paymentstatus of factuurmetadata van `demo-b` teruggegeven.
-
-### FG-XTEN-007 — Storage object path guessing
-
-**Actoren:** U1, U5 en U6.  
-**Doel:** Valideren dat storage policies niet alleen vertrouwen op voorspelbare paden of client-side checks.
-
-1. Verzamel geldige storage paths voor tenant A en tenant B.
-2. Probeer tenant B-paden te raden door in tenant A-paden `demo-a` te vervangen door `demo-b`.
-3. Probeer varianten met URL-encoding, hoofd-/kleine letters, dubbele slashes, relatieve segmenten en bekende bucketnamen.
-4. Probeer direct objectdownload, preview, upload overwrite en delete als de UI/API die acties ondersteunt.
-
-**Verwacht:** Tenant B-objecten zijn niet leesbaar, overschrijfbaar of verwijderbaar. Foutmeldingen onthullen geen bucketstructuur buiten wat publiek gedocumenteerd is.
-
-### FG-XTEN-008 — Module uit maar URL/API direct aanroepen
-
-**Actoren:** U1, U3 en U5, afhankelijk van de module.  
-**Doel:** Valideren dat module-entitlements server-side worden afgedwongen en niet alleen menu-items verbergen.
-
-1. Zet een module uit voor `demo-a`, bijvoorbeeld planning, facturen, documenten of klantportaalfunctionaliteit.
-2. Log in als actor die normaal toegang zou hebben als de module aan stond.
-3. Navigeer direct naar de module-URL en roep onderliggende API-routes/server actions direct aan.
-4. Test lezen, aanmaken, wijzigen, downloaden en exporteren binnen de uitgeschakelde module.
-5. Herhaal met `demo-b` waar de module wel aan staat om te bevestigen dat de testdata functioneel is.
-
-**Verwacht:** Voor `demo-a` blokkeert de server alle moduleacties ondanks directe URL/API-aanroep; voor `demo-b` blijft toegang alleen mogelijk voor correct geautoriseerde gebruikers binnen die tenant.
-
-### FG-XTEN-009 — Sector buiten entitlement aanmaken of wijzigen
-
-**Actoren:** U1 en U3 met actieve tenant `demo-a`.  
-**Doel:** Valideren dat sector-entitlements niet alleen in formulieren worden gefilterd, maar ook bij server-side mutaties worden gecontroleerd.
-
-1. Leg vast welke sectoren voor `demo-a` toegestaan zijn en welke sector alleen voor `demo-b` of helemaal niet toegestaan is.
-2. Maak via de normale UI een record aan met een toegestane sector om de happy flow te bevestigen.
-3. Manipuleer daarna de create-payload naar een sector buiten de entitlement.
-4. Manipuleer een update-payload van een bestaand record naar een sector buiten de entitlement.
-5. Herhaal voor relevante domeinen zoals customer, object, assignment, template, product/dienst of rapportageconfiguratie als die sector-afhankelijk zijn.
-
-**Verwacht:** Create en update worden server-side geweigerd; bestaande records blijven ongewijzigd en er ontstaan geen afgeleide records met de verboden sector.
-
-## Regressiecriteria
-
-Een release slaagt alleen voor deze matrix als:
-
-1. Alle cross-tenant directe-id tests aantoonbaar geblokkeerd zijn.
-2. Portaalgebruikers nooit data buiten hun eigen customer/personnel-koppeling kunnen lezen.
-3. Storage paths niet bruikbaar zijn als alternatieve autorisatieroute.
-4. Uitgeschakelde modules server-side ontoegankelijk zijn.
-5. Sectoren buiten entitlement niet via gemanipuleerde requests kunnen worden aangemaakt of gewijzigd.
-6. Support- en multi-tenant toegang expliciet tenantcontext, logging en auditbaarheid behouden.
+- welke test-id's relevant zijn;
+- welke test-id's al geautomatiseerd zijn;
+- welke test-id's nog handmatig of toekomstig blijven;
+- of de wijziging staging-copy migratietests vereist;
+- of storage/RLS inspect nodig is na deploy.

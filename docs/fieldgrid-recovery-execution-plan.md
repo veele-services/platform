@@ -3,6 +3,17 @@
 Datum: 2026-07-02
 Doelbranch: `main`
 Stagingbeleid: staging-data behouden; geen rebuild, drop of reset.
+Status: recoveryfase afgesloten na groene staging-builds; vervolgwerk loopt via de SaaS-canon.
+
+## Nieuwe canon vanaf nu
+
+De recovery-PR's hebben `main` opnieuw als bron van waarheid gestabiliseerd. Vanaf nu zijn deze documenten leidend voor vervolgwerk:
+
+- `docs/fieldgrid-saas-masterplan.md`: product- en technische roadmap voor Fieldgrid SaaS.
+- `docs/fieldgrid-data-classification.md`: tenantstrategie, prioriteit en migratierichting per databron.
+- `docs/fieldgrid-cross-tenant-testmatrix.md`: verplichte test-id's voor tenant-, RBAC-, support-, module-, sector-, storage- en direct-ID grenzen.
+
+Geen technische PR voor tenant lifecycle, modules, sectoren, storage, finance, documenten, audit of portalen mag naar staging zonder verwijzing naar de relevante data-classificatie en testmatrix-items.
 
 ## Vastgelegde besluiten
 
@@ -20,7 +31,7 @@ Stagingbeleid: staging-data behouden; geen rebuild, drop of reset.
 - Tenantsectoren worden hard afgedwongen in de MVP.
 - Alleen de eigenaar merged de finale `main` -> `staging` PR.
 
-## PR-volgorde
+## Afgeronde recovery-PR-volgorde
 
 1. Recovery-plan en freeze-documentatie.
 2. Migratie- en schema-repair.
@@ -29,7 +40,7 @@ Stagingbeleid: staging-data behouden; geen rebuild, drop of reset.
 5. Tenantsector enforcement.
 6. Finale `main` -> `staging` PR na groene checks.
 
-## Guardrails
+## Guardrails die blijven gelden
 
 - Herschrijf geen reeds toegepaste `055_*` migraties.
 - Voeg herstel toe via opvolgmigraties.
@@ -37,6 +48,8 @@ Stagingbeleid: staging-data behouden; geen rebuild, drop of reset.
 - Oude RBAC-kolommen mogen tijdelijk blijven voor backfill, maar runtimecode mag ze niet meer gebruiken.
 - Platform/support-toegang moet expliciet, tenant-scoped en auditbaar zijn.
 - Tenant switcher mag een host-resolved tenant nooit overschrijven.
+- Nieuwe risicomigraties moeten verwijzen naar `docs/fieldgrid-data-classification.md`.
+- Nieuwe security- of isolatiewijzigingen moeten verwijzen naar `docs/fieldgrid-cross-tenant-testmatrix.md`.
 
 ## Platform-admin bootstrap
 
