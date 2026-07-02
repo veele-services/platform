@@ -23,6 +23,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { createInvoiceProposalForAssignment } from "@/lib/invoice-proposals";
 import {
   sendEmail,
@@ -133,11 +134,12 @@ export async function listReports(params: {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { rows: [], total: 0 };
 
+  const tenantId = await requireCurrentTenantId();
   const seeAll = await canSeeAllReports();
 
   const { page = 1, search = "", status = "", customerId = "" } = params;
 
-  const conditions = [];
+  const conditions = [eq(assignmentsTable.tenantId, tenantId)];
 
   // Non-management users only see their own submitted reports
   if (!seeAll) {
@@ -145,13 +147,12 @@ export async function listReports(params: {
   }
 
   if (search.trim()) {
-    conditions.push(
-      or(
-        ilike(assignmentsTable.title, `%${search.trim()}%`),
-        ilike(assignmentsTable.code,  `%${search.trim()}%`),
-        ilike(customersTable.name,    `%${search.trim()}%`),
-      ),
+    const searchCondition = or(
+      ilike(assignmentsTable.title, `%${search.trim()}%`),
+      ilike(assignmentsTable.code,  `%${search.trim()}%`),
+      ilike(customersTable.name,    `%${search.trim()}%`),
     );
+    if (searchCondition) conditions.push(searchCondition);
   }
   if (status && (["draft", "submitted", "approved", "rejected"] as string[]).includes(status)) {
     conditions.push(eq(reportsTable.status, status));
@@ -160,7 +161,7 @@ export async function listReports(params: {
     conditions.push(eq(assignmentsTable.customerId, customerId));
   }
 
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  const where = and(...conditions);
 
   const [rows, [{ count }]] = await Promise.all([
     db
@@ -220,8 +221,12 @@ export async function listReportsForCustomer(customerId: string, limit = 25): Pr
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
+  const tenantId = await requireCurrentTenantId();
   const seeAll = await canSeeAllReports();
-  const conditions = [eq(assignmentsTable.customerId, customerId)];
+  const conditions = [
+    eq(assignmentsTable.customerId, customerId),
+    eq(assignmentsTable.tenantId, tenantId),
+  ];
 
   if (!seeAll) {
     conditions.push(eq(reportsTable.submittedBy, user.id));
@@ -384,9 +389,13 @@ export async function getReport(id: string): Promise<ReportDetail | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
+  const tenantId = await requireCurrentTenantId();
   const seeAll = await canSeeAllReports();
 
-  const conditions = [eq(reportsTable.id, id)];
+  const conditions = [
+    eq(reportsTable.id, id),
+    eq(assignmentsTable.tenantId, tenantId),
+  ];
   if (!seeAll) {
     // Non-management users may only read their own reports
     conditions.push(eq(reportsTable.submittedBy, user.id));
@@ -478,9 +487,13 @@ export async function getReportForAssignment(assignmentId: string): Promise<Repo
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
+  const tenantId = await requireCurrentTenantId();
   const seeAll = await canSeeAllReports();
 
-  const conditions = [eq(reportsTable.assignmentId, assignmentId)];
+  const conditions = [
+    eq(reportsTable.assignmentId, assignmentId),
+    eq(assignmentsTable.tenantId, tenantId),
+  ];
   if (!seeAll) {
     conditions.push(eq(reportsTable.submittedBy, user.id));
   }
@@ -497,10 +510,13 @@ export async function getPendingReportsCount(): Promise<number> {
   const canRead = await hasPermission("reports", "read");
   if (!canRead) return 0;
 
+  const tenantId = await requireCurrentTenantId();
+
   const [{ count }] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(reportsTable)
-    .where(eq(reportsTable.status, "submitted"));
+    .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
+    .where(and(eq(reportsTable.status, "submitted"), eq(assignmentsTable.tenantId, tenantId)));
 
   return count ?? 0;
 }
@@ -519,16 +535,17 @@ export async function submitReport(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
+  const tenantId = await requireCurrentTenantId();
   const trimmedContent = content.trim();
   if (!trimmedContent) {
     return { success: false, message: "Rapportinhoud is verplicht.", fieldErrors: { content: "Verplicht veld." } };
   }
 
-  // Verify assignment is in 'completed' status
+  // Verify assignment is in 'completed' status and belongs to the current tenant.
   const [assignment] = await db
     .select({ status: assignmentsTable.status, title: assignmentsTable.title })
     .from(assignmentsTable)
-    .where(eq(assignmentsTable.id, assignmentId))
+    .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
 
   if (!assignment) return { success: false, message: "Opdracht niet gevonden." };
@@ -626,10 +643,13 @@ export async function approveReport(reportId: string): Promise<ActionResult> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
+  const tenantId = await requireCurrentTenantId();
+
   const [report] = await db
     .select({ assignmentId: reportsTable.assignmentId, status: reportsTable.status })
     .from(reportsTable)
-    .where(eq(reportsTable.id, reportId))
+    .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
+    .where(and(eq(reportsTable.id, reportId), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
 
   if (!report) return { success: false, message: "Rapport niet gevonden." };
@@ -725,6 +745,7 @@ export async function rejectReport(reportId: string, notes: string): Promise<Act
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
+  const tenantId = await requireCurrentTenantId();
   const trimmedNotes = notes.trim();
   if (!trimmedNotes) {
     return { success: false, message: "Geef een reden op voor de afwijzing." };
@@ -733,7 +754,8 @@ export async function rejectReport(reportId: string, notes: string): Promise<Act
   const [report] = await db
     .select({ assignmentId: reportsTable.assignmentId, status: reportsTable.status })
     .from(reportsTable)
-    .where(eq(reportsTable.id, reportId))
+    .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
+    .where(and(eq(reportsTable.id, reportId), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
 
   if (!report) return { success: false, message: "Rapport niet gevonden." };
