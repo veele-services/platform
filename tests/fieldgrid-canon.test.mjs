@@ -23,8 +23,16 @@ const canonicalDocs = [
   "docs/fieldgrid-recovery-execution-plan.md",
 ];
 
+const governanceDocs = [".github/pull_request_template.md"];
+
 test("Fieldgrid canon docs exist", () => {
   for (const path of canonicalDocs) {
+    assert.ok(read(path).trim().length > 0, `${path} should not be empty`);
+  }
+});
+
+test("Fieldgrid governance docs exist", () => {
+  for (const path of governanceDocs) {
     assert.ok(read(path).trim().length > 0, `${path} should not be empty`);
   }
 });
@@ -144,6 +152,24 @@ test("masterplan captures the phase sprint execution plan", () => {
       "Sprint 12 PR B",
     ],
     "masterplan",
+  );
+});
+
+test("pull request template enforces Fieldgrid canon discipline", () => {
+  const template = read(".github/pull_request_template.md");
+
+  assertContains(
+    template,
+    [
+      "Fieldgrid canon-impact",
+      "docs/fieldgrid-data-classification.md",
+      "docs/fieldgrid-cross-tenant-testmatrix.md",
+      "docs/fieldgrid-saas-masterplan.md",
+      "Geraakte test-id's",
+      "Staging-data blijft behouden",
+      "Minimum green before staging",
+    ],
+    "pull request template",
   );
 });
 
