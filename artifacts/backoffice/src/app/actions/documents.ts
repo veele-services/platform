@@ -63,6 +63,7 @@ const ALLOWED_MIME_TYPES = new Set([
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function buildStoragePath(
+  tenantId: string,
   entityType: DocumentEntityType,
   entityId: string | null,
   docId: string,
@@ -73,9 +74,9 @@ function buildStoragePath(
     : "bin";
   const safeExt = ext || "bin";
   if (entityType !== "general" && entityId) {
-    return `${entityType}/${entityId}/${docId}.${safeExt}`;
+    return `${tenantId}/${entityType}/${entityId}/${docId}.${safeExt}`;
   }
-  return `general/${docId}.${safeExt}`;
+  return `${tenantId}/general/${docId}.${safeExt}`;
 }
 
 function hasUnsafeStoragePath(path: string): boolean {
@@ -356,7 +357,7 @@ export async function uploadDocument(
     }
 
     const docId       = randomUUID();
-    const storagePath = buildStoragePath(safeEntityType, entityId, docId, file.name);
+    const storagePath = buildStoragePath(tenantId, safeEntityType, entityId, docId, file.name);
 
     // Upload to Supabase Storage
     const bytes = await file.arrayBuffer();
