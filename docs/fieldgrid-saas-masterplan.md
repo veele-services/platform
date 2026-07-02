@@ -1,8 +1,8 @@
 # Fieldgrid SaaS masterplan canon
 
-Datum: 2026-07-02
-Status: canon voor vervolgwerk vanaf de recovery-builds
-Bronnen: oorspronkelijke Fieldgrid/Veele SaaS-masterplanbijlage, huidige `main` codebase en recovery-werk t/m groene staging-builds.
+Datum: 2026-07-03  
+Status: actuele canon na recovery, module/plan foundation en storage-hardening t/m PR #125.  
+Bronnen: oorspronkelijke Fieldgrid/Veele SaaS-masterplanbijlage, huidige `main` codebase, recovery-werk, data-classificatie en cross-tenant testmatrix.
 
 ## 1. Doel en vaste besluiten
 
@@ -24,99 +24,122 @@ Vaste besluiten:
 - Starter, Professional en Enterprise zijn de eerste pakketten.
 - Geen harde aantallimieten in de recovery-MVP, behalve: custom role management is Professional+.
 - Facturatie van Fieldgrid-abonnementen is eerst handmatig; automatische payment-provider komt later.
+- Staging-data blijft behouden; risicomigraties moeten staging-copy smoke getest worden.
 
-## 2. Huidige codebase-status
+## 2. Actuele codebase-status
 
 ### 2.1 Klaar of grotendeels klaar
 
 Recovery foundation:
 
-- `docs/fieldgrid-recovery-execution-plan.md` bestaat en legt recovery-guardrails vast.
+- `main` is opnieuw bron van waarheid.
+- `docs/fieldgrid-recovery-execution-plan.md` legt de blijvende recovery-guardrails vast.
 - Migratierunner ondersteunt compatibility skips voor legacy RBAC-migraties.
-- Staging-data is behouden; de migraties zijn meerdere keren staging-safe gemaakt.
-- `tests/fieldgrid-recovery.test.mjs` bewaakt een deel van de recovery-invarianten.
+- Staging-data is behouden.
+- Canon-docs worden bewaakt met `tests/fieldgrid-canon.test.mjs`.
 
 Tenant resolver en tenant switcher:
 
-- `tenant_domains` bestaat in schema en migraties.
-- Backoffice heeft host-first resolver in `artifacts/backoffice/src/lib/auth/tenant-resolver.ts`.
+- `tenant_domains` bestaat.
+- Backoffice, API, klantportaal en personeelsapp zijn host-first tenant-aware.
 - Backoffice helper `getCurrentTenantId()` gebruikt hostcontext eerst, daarna tenant switcher cookie.
 - API `requireTenantScope` gebruikt host-first tenantcontext voordat tenantheaders of membershipfallback worden gebruikt.
-- Klantportaal en personeelsapp hebben host-bound tenantresolvers voor portal identity.
+- Klantportaal identity gebruikt host-resolved tenant + `customer_users`.
 - Default tenant fallback is beperkt tot non-production met `ALLOW_DEFAULT_TENANT_FALLBACK=true`.
-- Tenant switcher bestaat via `switchBackofficeTenant()` en checkt actieve membership.
+- Onbekende Fieldgrid-subdomains falen veilig.
+
+Tenant lifecycle:
+
+- `tenants` bevat `status`, `plan_key`, `created_by`, `suspended_at`, `archived_at` en runtime active status constants.
+- Membershipchecks sluiten inactieve, suspended en archived tenants uit.
+- Platform-admin lifecycle UI en transactionele lifecycle-acties ontbreken nog.
 
 Tenant-scoped RBAC:
 
 - Canonieke runtime-tabellen bestaan: `tenant_roles`, `tenant_role_permissions`, `tenant_user_roles`.
 - `roles` en `role_permissions` blijven globale templates.
-- Backoffice permission helper gebruikt `getUserPermissions(userId, tenantId)`.
-- API permission middleware gebruikt tenant role ids in plaats van globale role ids.
+- Backoffice en API permission lookup gebruiken tenant role ids.
 - Rollenbeheer-actions bestaan voor tenantrollen, permissies, gebruikersrollen en uitnodigingen.
-- Custom rollen worden centraal geblokkeerd voor niet-Pro/Enterprise, maar de planbron is nog een env-placeholder.
+- Custom roles zijn database-backed Professional/Enterprise gated via plan capabilities.
+
+Modules, plans en entitlements:
+
+- `modules`, `tenant_modules` en `module_dependencies` bestaan.
+- `plans`, `plan_modules`, `plan_limits` en `tenant_subscriptions` bestaan.
+- Starter, Professional en Enterprise zijn seedbaar/gemodelleerd.
+- `isTenantModuleEnabled()` en `requireTenantModule()` bestaan in de db package.
+- Backoffice permission filtering houdt rekening met module-entitlements voor documents, finance en reporting.
+- Documents-action gebruikt `requireCurrentTenantModule("documents")`.
 
 Platform-admin en support foundation:
 
 - `platform_users`, `support_access_grants` en `support_access_audit_log` bestaan.
-- `requirePlatformAdmin()` en `requirePlatformSupportUser()` bestaan.
+- `requirePlatformAdmin()`, `requirePlatformSupportUser()` en `requireSupportAccess()` bestaan.
 - Platform layout blokkeert gewone tenant-users via platform guard.
-- `/platform` toont minimale tenant-, platform-user- en supporttoegangsoverzichten.
 - Support grants hebben tenant scope, tijdvenster, reden, revoke en auditlog.
 
 Tenantsector foundation:
 
 - `tenant_sectors` bestaat.
-- `task_codes` heeft nu `tenant_id`.
+- `task_codes` heeft `tenant_id`.
 - Er zijn DB constraints/triggers voor tenant-sector membership/enabled checks op klanten, objecten, personeel en taakcodes.
-- Backoffice heeft helpers `assertTenantSectorAllowed()` en `assertTenantSectorsAllowed()`.
-- Sectoren zijn nog globale catalogus, zoals gewenst.
+- Backoffice heeft helpers voor tenant-sector validatie.
 
 Tenant-aware kernentiteiten:
 
-- `customers`, `objects`, `personnel`, `assignments`, `customer_users`, notificaties en domain events hebben expliciete `tenant_id`.
+- `customers`, `objects`, `personnel`, `assignments`, `customer_users`, notificaties, planning intelligence en domain events hebben expliciete `tenant_id`.
 - Klantportaal gebruikt `customer_users` met `tenant_id + customer_id` als autorisatiebasis.
-- Backoffice tenant audit is aanwezig in `docs/tenant-query-audit-v1.md`.
-- Security/privacy audit is aanwezig in `docs/security-final-audit-v1.md`.
+- Factuur-, offerte-, rapport- en payment-reads zijn op veel plekken parent-scoped via assignment/customer tenantchecks.
+
+Storage en downloads:
+
+- Klantportaal opdrachtfoto signed URLs worden eerst op tenant/opdracht-prefix gevalideerd.
+- Backoffice document downloads en deletes gebruiken tenant-prefix guard voordat Supabase signed URLs of deletes worden uitgevoerd.
+- Customer invoice PDF route is customer/tenant scoped en audit downloads.
+- Report attachment signed URLs zijn parent-scoped en hebben unsafe-path guards, maar nog geen canonieke tenant-prefix storage-migratie.
 
 ### 2.2 Gedeeltelijk klaar
 
 Platform-admin:
 
 - Er is een technische shell en guard.
-- Nog geen echte CRUD voor tenants, domeinen, modules, plannen, limieten, sectorbeleid, task-code overrides of onboarding.
-- Tenant lifecycle heeft een statusmodel, maar nog geen volledige platform-admin create/suspend/archive workflow.
+- Nog geen echte platform-admin CRUD voor tenants, domeinen, modules, plannen, limieten, sectorbeleid, task-code overrides, lifecycle of onboarding.
+- Geen usage-overzicht of billingbeheer.
 
 Support access:
 
 - Grants en audit bestaan.
-- Support access is nog geen volledige runtime-prioriteit in alle permission checks: platform-admin -> active support grant -> tenantrol moet nog consequent worden geintegreerd in workflows.
-- Tenant-admin zicht op support access status moet nog worden gebouwd.
+- Support access is nog niet consequent als runtime-prioriteit geintegreerd in normale tenantflows.
+- Gewenste prioriteit blijft: platform-admin -> actieve support grant -> tenantrol.
+- Tenant-admin zicht op support access status ontbreekt nog.
 
 Modules en entitlements:
 
-- `modules`, `tenant_modules` en `module_dependencies` bestaan als eerste foundation.
-- De globale modulecatalogus heeft seedbare keys voor kernmodules, portalen, documenten, finance, notificaties en smart planning.
-- Runtime-integratie ontbreekt nog: `requireTenantModule()` en server-side module-off guards moeten per route/action/API worden aangesloten.
-- Plan-koppeling, limieten en platform-admin modulebeheer ontbreken nog.
+- Foundation en gedeeltelijke backoffice runtime bestaan.
+- API `requirePermission()` is nog niet module-aware.
+- Portalen missen nog module-off guards.
+- Background jobs/workers moeten nog module-aware worden.
+- Platform-admin beheer voor modules, dependencies, plans en limits ontbreekt nog.
+- UI-navigatie is deels permission/effective-permission aware, maar directe route/action dekking moet systematisch worden bewezen.
 
 Tenant sectors:
 
 - Membership/enabled foundation bestaat.
 - Er is nog geen `tenant_sector_settings` of policy voor single/multiple/max/default sector.
 - Single-sector UI is nog niet gebouwd.
-- `assertTenantSectorCanBeDisabled()` blokkeert nog niet op bestaande data; het is op dit moment permissief.
+- `assertTenantSectorCanBeDisabled()` blokkeert nog niet op bestaande data.
 - Assignments hebben geen eigen sectorkolom; sectorcontrole loopt indirect via customer/object/task context en moet expliciet worden ontworpen.
 
-RBAC:
+RBAC bewijsvoering:
 
 - Runtime-RBAC is tenant-scoped.
-- Standaardrollen zijn er via backfill/seeds, maar de uiteindelijke permissiematrix per rol moet als productmatrix worden vastgelegd en getest.
-- Plan-gating voor custom roles is nog env-based via `TENANT_PLAN`, niet database-backed.
+- De definitieve permissiematrix per productrol moet nog als productmatrix worden vastgelegd en getest.
+- Integratietests voor dezelfde user met verschillende rollen in Tenant A/B ontbreken nog.
 
 Tenant domains:
 
-- Backoffice, API, klantportaal en personeelsapp zijn host-first tenant-aware.
-- Tenant switcher override en custom-domain gedrag moeten nog met echte integration/Playwright-tests bewezen worden.
+- Host-first routing bestaat.
+- Tenant switcher override, custom-domain gedrag en onbekende-host behavior moeten nog met echte integration/Playwright-tests bewezen worden.
 
 Branding:
 
@@ -124,20 +147,28 @@ Branding:
 - Defaults bevatten nog Veele Services tekst. Dat moet worden gescheiden in Fieldgrid platform defaults en tenantbranding.
 - Package-gated branding bestaat nog niet.
 
-### 2.3 Nog niet gebouwd
+Testdekking:
+
+- Er is veel statische guardrail-dekking.
+- Echte Tenant A/B/Veele integration-, Playwright-, DB/RLS- en storage-tests ontbreken nog grotendeels.
+- Statische tests zijn nuttig om regressies in codepatronen te vangen, maar ze bewijzen geen runtime-isolatie.
+
+### 2.3 Nog niet gebouwd of nog niet genoeg bewezen
 
 Module runtime enforcement:
 
-- Er is nog geen `requireTenantModule()` guard.
-- Routes, server actions, API routes, background jobs en portalen hebben nog geen module-off server-side afdwinging.
-- UI-navigatie wordt nog niet gefilterd op tenantmodules.
-- Dependencies worden wel gemodelleerd, maar nog niet in platform-admin configuratie afgedwongen.
+- API module gates.
+- Portal module gates.
+- Background job module gates.
+- Platform-admin module/dependency/plan beheer.
+- Direct URL/action/API denial tests voor elke module.
 
 Plannen, subscriptions en limieten:
 
-- Er zijn geen `plans`, `plan_modules`, `plan_limits`, `tenant_subscriptions` of tenant overrides.
-- Limieten zijn niet configureerbaar in platform-admin.
-- Handmatige Fieldgrid-facturatie is nog niet gemodelleerd.
+- Schema foundation bestaat.
+- Platform-admin beheer ontbreekt.
+- Handmatige Fieldgrid-billing en subscription operations ontbreken.
+- Usage en harde limieten ontbreken.
 
 Tenant lifecycle en provisioning:
 
@@ -149,12 +180,12 @@ Tenant lifecycle en provisioning:
 
 Tenant task codes en prijzen:
 
-- `task_codes` is nu tenant-aware, maar nog niet gemodelleerd als globale template + tenant override.
+- `task_codes` is tenant-aware, maar nog niet gemodelleerd als globale template + tenant override.
 - Geen `tenant_task_codes`.
 - Geen `tenant_task_code_prices`.
 - `task_codes.code` is nog globaal unique, wat voor SaaS mogelijk te strak is.
 
-Data-normalisatie op gevoelige child-tabellen:
+Data-normalisatie op gevoelige tabellen:
 
 - `documents` heeft nog geen `tenant_id`.
 - `invoices` heeft nog geen `tenant_id`.
@@ -162,22 +193,23 @@ Data-normalisatie op gevoelige child-tabellen:
 - `reports` heeft nog geen `tenant_id`.
 - `payments` en `customer_payment_batches/items` hebben nog geen directe `tenant_id`.
 - `audit_log` heeft nog geen `tenant_id` en is nog niet gesplitst in platform/tenant audit.
-- Assignment child/media tabellen moeten nog systematisch worden geclassificeerd.
+- `assignment_photos` en `assignment_report_note_attachments` hebben nog geen directe `tenant_id`.
 
 Storage hardening:
 
-- Storage policies zijn eerder aangescherpt, maar tenant-prefixed paths zoals `tenant/{tenant_id}/...` zijn nog niet canoniek afgedwongen.
-- Signed URL helpers moeten tenant-aware worden gehard.
-- Cross-tenant storage tests ontbreken nog als structurele suite.
+- Er zijn runtime guards voor meerdere signed URL paden.
+- Canoniek storagepad `tenant/{tenant_id}/...` is nog niet platformbreed afgedwongen.
+- Storage policies en RLS moeten met echte storage tests worden bewezen.
+- Backfill/migratie voor bestaande staging storage paths ontbreekt nog.
 
 Portalen:
 
 - Klantportaal en personeelsapp zijn host-first tenant-bound voor identity/profiel.
-- Portalen hebben nog geen tenant module guards, sector guards voor alle flows of branding resolver.
+- Portalen hebben nog geen module guards, tenantbranding, volledige sector guards of complete media/storage acceptance tests.
 
-## 3. Nieuwe canonieke runtime-volgorde
+## 3. Canonieke runtime-volgorde
 
-Elke server-side entrypoint moet uiteindelijk deze volgorde volgen:
+Elke server-side tenant-entrypoint moet uiteindelijk deze volgorde volgen:
 
 1. `requireAuth()`
 2. `resolveTenantFromHostOrSession()`
@@ -198,310 +230,248 @@ Voor platformroutes geldt:
 4. platformactie uitvoeren
 5. platform audit schrijven
 
-Supporttoegang is geen gewone tenantrol. De prioriteit wordt:
+Supporttoegang is geen gewone tenantrol. De prioriteit blijft:
 
 1. platform-admin voor platformroutes
 2. actieve support grant voor support entrypoints
 3. tenantrol voor normale tenantwerking
 
-## 4. Dataclassificatie - huidige prioriteiten
+## 4. P0/P1/P2 backlog vanaf nu
 
-| Domein | Voorbeelden | Huidige status | Doelstrategie | Prioriteit |
-| --- | --- | --- | --- | --- |
-| Tenant core | tenants, tenant_users, tenant_domains | lifecycle foundation bestaat | provisioning/platform-admin lifecycle afronden | P0 |
-| RBAC | tenant_roles, tenant_user_roles | runtime tenant-scoped | permissiematrix/tests afronden | P0 |
-| Modules | modules, tenant_modules, module_dependencies | foundation bestaat | guards, plan-koppeling en platformbeheer afronden | P0 |
-| Sectoren | sectors, tenant_sectors | foundation bestaat | policy/default/single-sector/guards | P0 |
-| Klanten/objecten/personeel/opdrachten | customers, objects, personnel, assignments | tenant_id aanwezig | module/sector guards afronden | P0 |
-| Documenten | documents, storage paths | geen tenant_id | directe tenant_id + tenant storage prefix | P1 |
-| Financieel | invoices, quotes, payments, payment batches | indirect tenant-scoped | directe tenant_id + RLS/indexen | P1 |
-| Rapportages/media | reports, assignment photos, report attachments | deels indirect | directe tenant_id waar gevoelig | P1 |
-| Audit | audit_log, support_access_audit_log | support audit tenant-aware, audit_log niet | platform/tenant audit splitsen | P1 |
-| Branding | organization_settings | tenant-aware, Veele defaults | Fieldgrid/tenant split + plan gating | P2 |
-| Portalen | klant-pwa, personeel-pwa | host-first identity/profiel klaar | module/branding/sector guards | P2 |
-| Billing | plans/subscriptions/limits | ontbreekt | handmatige SaaS-billing model | P2 |
+### P0 - Eerstvolgende harde SaaS-grenzen
 
-## 5. Uitvoerbare roadmap vanaf nu
+- Canon up-to-date houden na iedere technische golf.
+- API module guards toevoegen aan `requirePermission()` of API route wrappers.
+- Portal module guards toevoegen aan klantportaal en personeelsapp.
+- Module-off denial tests maken voor UI, directe URL, server action en API.
+- `tenant_sector_settings` toevoegen met mode, max_sectors, default_sector_id en enforce_sector_scope.
+- Single-sector gedrag server-side en UI-side bouwen.
+- `assertTenantSectorCanBeDisabled()` laten blokkeren op bestaande data.
+- Definitieve RBAC permissiematrix vastleggen en Tenant A/B roltests toevoegen.
+- Support runtime-prioriteit expliciet integreren: platform-admin -> support grant -> tenantrol.
+- Dashboard/layout fallback naar `DEFAULT_TENANT_ID` vervangen door fail-safe gedrag.
+- Platform-admin tenant detail en lifecycle acties bouwen.
+- Cross-tenant integration fixtures voor `veele`, `demo-a` en `demo-b` opzetten.
+
+### P1 - Voor externe SaaS-acceptatie
+
+- `tenant_id` toevoegen aan `documents` met staging-safe backfill.
+- `tenant_id` toevoegen aan `invoices`, `quotes`, `reports`, `payments`, `customer_payment_batches` en batch items.
+- `tenant_id` toevoegen aan assignment media waar direct downloadbaar/exporteerbaar.
+- `audit_log` migreren naar tenant-aware audit of splitsen in tenant/platform audit.
+- Storagepad canoniek maken: `tenant/{tenant_id}/...` of expliciet vastgelegde opvolger.
+- Storage backfillplan maken voor bestaande staging paths.
+- Report attachment signed URLs ook tenant-prefix aware maken.
+- Direct-ID tests automatiseren voor customers, objects, assignments, documents, invoices en reports.
+- PDF/download audit logging uniform maken voor documenten, facturen, rapporten, offertes en support access.
+- Tenant news beslissen: tenant-scoped of platform-only/global news.
+- Task-code template/override model ontwerpen en migreren.
+- Tenant/sector-prijshistorie voor task codes ontwerpen.
+
+### P2 - Productisering en operatie
+
+- Platform-admin module/plan/limit beheer.
+- Platform-admin sector/task-code beheer.
+- Transactionele provisioning service.
+- Platform onboarding wizard.
+- Tenant first-run wizard.
+- Usage dashboard per tenant.
+- Handmatige SaaS-billing en subscription operations.
+- Branding resolver en package-gated branding.
+- Veele-default teksten scheiden van Fieldgrid platform defaults.
+- DNS/reverse-proxy/TLS/rollback playbooks voor Fieldgrid hosts.
+- Monitoring, incidentlog en support review dashboard.
+
+## 5. Echte verbeteringen die prioriteit verdienen
+
+Deze lijst is niet alleen achterstallig canonwerk; dit zijn concrete verbeteringen die risico, onderhoudslast of productkwaliteit zichtbaar verlagen.
+
+1. Maak API-permissies module-aware, zodat module-off niet alleen backoffice UI/action gedrag is.
+2. Verwijder runtime fallback naar `DEFAULT_TENANT_ID` uit dashboard/layout paden; fail liever expliciet.
+3. Voeg directe `tenant_id` toe aan audit en finance voordat externe tenants live gaan.
+4. Maak storagepadvalidatie centraal herbruikbaar in plaats van per action eigen helpers.
+5. Bouw echte Tenant A/B/Veele integration fixtures; statische tests zijn onvoldoende als eindbewijs.
+6. Maak support access zichtbaar als aparte supportmodus met banner, TTL en auditcontext.
+7. Maak suspended tenant gedrag expliciet: read-only of volledig geblokkeerd per routegroep.
+8. Leg de RBAC permissiematrix productmatig vast voordat platform-admin rollenbeheer verder groeit.
+9. Maak task-code prijzen historisch snapshotbaar voor facturen/offertes.
+10. Bouw platform-admin tenant detail vroeg, omdat bijna alle latere configuratie daarvan afhankelijk is.
+
+## 6. Nice-to-have ideeen
+
+Deze ideeen zijn nuttig, maar horen niet voor de harde SaaS-security en eerste externe tenant te blokkeren.
+
+- Platform-admin onboarding wizard met checklist en voortgang.
+- Tenant first-run wizard voor eigenaar: logo, gebruikers, eerste klant/object/opdracht.
+- Usage dashboard: users, documenten, opdrachten, storage, actieve modules.
+- Branding preview per tenant.
+- Support break-glass flow met verplichte reden en zeer korte TTL.
+- Security dashboard met laatste downloads, support access en cross-tenant denial events.
+- Module dependency visualisatie.
+- Demo-data generator voor `demo-a`, `demo-b` en `veele`.
+- Staging smoke dashboard: host, login, modules, sectoren, storage, PDF en migraties.
+- Product release notes per tenant.
+- Tenant health score voor configuratie, modules, sectoren en billing.
+
+## 7. Uitvoerbare roadmap vanaf nu
 
 ### Fase 0 - Canon, audit en testbasis
 
 Doel: de recovery afsluiten en de SaaS-route bestuurbaar maken.
 
-Parallelle tracks:
+Status: foundation klaar; deze canon moet actueel blijven.
 
-- Track 0A: Werk dit masterplan bij als canon en verwijs vanuit recovery-docs hiernaar.
-- Track 0B: Beheer `docs/fieldgrid-data-classification.md` als verplichte tenantstrategie en dataclassificatie voor vervolg-PR's.
-- Track 0C: Beheer `docs/fieldgrid-cross-tenant-testmatrix.md` als verplichte test-id bron met Tenant Veele, Tenant Demo A en Tenant Demo B.
-- Track 0D: Maak een VPS/domein/deployplan voor `fieldgrid.nl`, `platform.fieldgrid.nl`, `staging.fieldgrid.nl` en tenant-subdomains.
-- Track 0E: Inventariseer hardcoded Veele-teksten en classificeer ze als platform, tenant, historische content of seed/default.
+Volgende taken:
 
-Acceptatiecriteria:
-
-- Er is een canoniek masterplan.
-- Elke tabel heeft een doelstrategie.
-- Er is een testmatrix voor tenant-, module-, sector- en storage-isolatie.
-- `tests/fieldgrid-canon.test.mjs` bewaakt dat de canon-docs blijven bestaan en naar elkaar verwijzen.
-- De domein- en rollbackroute is beschreven.
+- Canon bijwerken na elke module/sector/storage/finance/audit golf.
+- `docs/fieldgrid-data-classification.md` gebruiken als verplichte tenantstrategie voor vervolg-PR's.
+- `docs/fieldgrid-cross-tenant-testmatrix.md` gebruiken als verplichte test-id bron.
+- VPS/domein/deployplan maken voor `fieldgrid.nl`, `platform.fieldgrid.nl`, `staging.fieldgrid.nl` en tenant-subdomains.
+- Hardcoded Veele-teksten inventariseren en classificeren als platform, tenant, historische content of seed/default.
 
 ### Fase 1 - Tenant lifecycle en resolver uniform maken
 
-Doel: alle entrypoints gebruiken dezelfde tenantcontext.
+Status: schema en host-first foundation klaar; platform-admin lifecycle en echte tests ontbreken.
 
-Parallelle tracks:
+Volgende taken:
 
-- Track 1A: Breid `tenants` uit met `status`, `plan_key`, `created_by`, `suspended_at`, `archived_at` en lifecycle checks.
-- Track 1B: Maak een gedeelde tenant resolver package/helper die backoffice, API, klantportaal en personeelsapp kunnen gebruiken.
-- Track 1C: Pas API `requireTenantScope` aan: host/subdomain eerst, geen eerste-actieve-tenant fallback als host tenant bepaalt.
-- Track 1D: Maak tenant switcher UI af voor backoffice users met meerdere tenants; host blijft leidend.
-- Track 1E: Voeg tests toe voor platformhost, tenanthost, onbekend Fieldgrid-subdomain, custom domain en tenant switcher override-pogingen.
-
-Acceptatiecriteria:
-
-- Productie valt nooit stilzwijgend terug op default tenant.
-- API, backoffice en portalen gebruiken hetzelfde tenantmodel.
-- Onbekende tenant-host faalt veilig.
-- Suspended/archived tenants kunnen niet muteren.
+- Platform-admin create/suspend/archive/reactivate bouwen.
+- Suspended/archived tenant mutatiebeleid expliciet maken.
+- Dashboard/layout fallback naar `DEFAULT_TENANT_ID` verwijderen.
+- Tests toevoegen voor platformhost, tenanthost, onbekend Fieldgrid-subdomain, custom domain en tenant switcher override-pogingen.
 
 ### Fase 2 - RBAC afronden en bewijzen
 
-Doel: tenantrollen zijn aantoonbaar de enige runtime-bron.
+Status: tenant runtime-RBAC en DB-backed custom role gating bestaan; integratiebewijs en productmatrix ontbreken.
 
-Parallelle tracks:
+Volgende taken:
 
-- Track 2A: Leg de definitieve permissiematrix vast voor Eigenaar, Management, Administratie, Planning, Teamlead, Medewerker, Alleen-lezen, Klantgebruiker en Personeelsgebruiker.
-- Track 2B: Maak database-backed plan capabilities zodat custom roles niet meer op `TENANT_PLAN` env leunen.
-- Track 2C: Voeg permission tests toe: dezelfde user heeft andere rollen in tenant A en tenant B.
-- Track 2D: Maak platform-admin herstelactie voor tenantrollen: reseed/reset vanuit templates.
-- Track 2E: Ruim legacy global-role runtimepaden op zodra tests bewijzen dat ze niet meer gebruikt worden.
-
-Acceptatiecriteria:
-
-- Globale rollen geven geen runtime-rechten.
-- Tenantrol-permissies bepalen toegang.
-- Custom roles werken alleen Professional+.
-- Tenant A rollen werken niet in tenant B.
+- Definitieve permissiematrix vastleggen.
+- Tenant A/B roltests bouwen.
+- Platform-admin herstelactie voor tenantrollen bouwen.
+- Legacy global-role runtimepaden opruimen zodra tests bewijzen dat ze niet meer gebruikt worden.
 
 ### Fase 3 - Modules, plannen en limieten
 
-Doel: SaaS-entitlements worden eerste-klas domeinobjecten.
+Status: schema en entitlement helpers bestaan; runtime-dekking en platformbeheer zijn incompleet.
 
-Parallelle tracks:
+Volgende taken:
 
-- Track 3A: `modules` en `module_dependencies` foundation bestaat; breid de modulecatalogus later uit waar productmodules ontbreken.
-- Track 3B: `tenant_modules` foundation bestaat; voeg later `visibility_when_disabled`, `config` en platformbeheer toe.
-- Track 3C: Voeg `plans`, `plan_modules`, `plan_limits`, `tenant_subscriptions` en tenant overrides toe.
-- Track 3D: Bouw `requireTenantModule(tenantId, moduleKey)` en integreer eerst in backoffice pages/actions voor facturen, planning, rapporten, offertes, documenten, tickets en nieuws.
-- Track 3E: Bouw platform-admin UI voor tenant modules, module dependencies, plan modules en limieten.
-
-Acceptatiecriteria:
-
-- Module uit is server-side uit.
-- Directe URL/API/action naar uitgeschakelde module faalt.
-- Dependencies voorkomen kapotte configuratie.
-- Starter/Professional/Enterprise bestaan in database.
-- Limieten zijn configureerbaar maar hoeven nog niet allemaal hard afgedwongen te worden.
+- API module guards bouwen.
+- Portal module guards bouwen.
+- Backoffice route/action dekking systematisch afronden.
+- Background jobs module-aware maken.
+- Platform-admin UI bouwen voor modules, dependencies, plan modules en limieten.
+- Module-off tests automatiseren voor UI, directe URL, server action en API.
 
 ### Fase 4 - Sectorbeleid en tenant task codes
 
-Doel: single-sector en multi-sector tenants werken end-to-end.
+Status: tenant-sector membership bestaat; beleid/default/single-sector ontbreken.
 
-Parallelle tracks:
+Volgende taken:
 
-- Track 4A: Voeg `tenant_sector_settings` toe met mode, max_sectors, default_sector_id en enforce_sector_scope.
-- Track 4B: Maak single-sector UI: sectorveld verborgen en automatisch ingevuld.
-- Track 4C: Integreer sector guards in customers, objects, personnel, assignments, task codes, imports en planning intelligence.
-- Track 4D: Ontwerp `tenant_task_codes` als template/override laag boven globale task code templates.
-- Track 4E: Voeg `tenant_task_code_prices` toe met prijs per tenant en optioneel sector, inclusief valid_from/valid_until.
-
-Acceptatiecriteria:
-
-- Starter kan exact een sector gebruiken als plan dat bepaalt.
-- Sector buiten tenantconfiguratie faalt server-side en database-side waar mogelijk.
-- Task codes volgen tenant-sectoren.
-- Prijzen kunnen per tenant en sector verschillen.
-- Historische facturen behouden hun prijscontext.
+- `tenant_sector_settings` toevoegen.
+- Default sector resolver bouwen.
+- Single-sector UI bouwen.
+- Disable-check laten blokkeren op bestaande data.
+- Sector guards in imports, planning intelligence, assignments en task codes afronden.
+- `tenant_task_codes` en `tenant_task_code_prices` ontwerpen.
 
 ### Fase 5 - Data-normalisatie en storage hardening
 
-Doel: gevoelige data direct tenant-scoped maken.
+Status: veel parent-scoped runtime guards bestaan; directe tenant_id migratiegolf ontbreekt.
 
-Parallelle tracks:
+Volgende taken:
 
-- Track 5A: Voeg `tenant_id` toe aan `documents`; backfill via gekoppelde entity; pas documentqueries en signed URL helpers aan.
-- Track 5B: Voeg `tenant_id` toe aan `invoices`, `quotes`, `payments`, `customer_payment_batches` en batch items; backfill via customer/assignment/invoice.
-- Track 5C: Voeg `tenant_id` toe aan `reports`, assignment media, report attachments en assignment notes waar nodig.
-- Track 5D: Splits audit in platform audit en tenant audit; voeg tenant_id toe aan tenantacties en gevoelige downloads.
-- Track 5E: Maak storage paths canoniek: `tenant/{tenant_id}/...`; voeg storage/RLS tests toe.
-
-Acceptatiecriteria:
-
-- Geen gevoelige tabel vertrouwt alleen op indirecte joins.
-- Direct-ID toegang cross-tenant faalt.
-- Storage path guessing werkt niet.
-- Signed URLs worden alleen na tenant/entity-check uitgegeven.
-- Tenant-admin ziet alleen tenant-audit; platform-admin ziet platformbreed.
+- `documents.tenant_id` toevoegen en backfillen.
+- `invoices`, `quotes`, `reports`, `payments`, `customer_payment_batches` en batch items tenant-aware maken.
+- Assignment media tenant-aware maken waar downloadbaar/exporteerbaar.
+- Audit tenant-aware maken of splitsen in tenant/platform audit.
+- Storage paths canoniek tenant-prefixed maken.
+- Storage/RLS/integration tests bouwen.
 
 ### Fase 6 - Platform-admin productiseren
 
-Doel: Fieldgrid kan zonder SQL tenants beheren.
+Status: guard/shell bestaat; productbeheer ontbreekt.
 
-Parallelle tracks:
+Volgende taken:
 
-- Track 6A: Bouw platform-admin navigatie en routes: tenants, tenant detail, modules, sectors, task codes, plans, support, audit.
-- Track 6B: Bouw tenantbeheer: aanmaken, activeren, suspenden, archiveren, domeinen beheren, plan wijzigen.
-- Track 6C: Bouw module/sector beheer per tenant met dependency validatie.
-- Track 6D: Bouw support grants UI inclusief actieve grants per tenant en revoke/audit.
-- Track 6E: Bouw plan/limietbeheer en usage-overzicht.
-
-Acceptatiecriteria:
-
-- Alleen platform_users kunnen platform-admin bereiken.
-- Tenant-users krijgen nooit platformroutes.
-- Veele is zichtbaar als tenant.
-- Platform-admin kan tenant volledig configureren.
-- Wijzigingen worden geaudit.
+- Platform-admin navigatie uitbreiden: tenants, tenant detail, modules, sectors, task codes, plans, support, audit.
+- Tenantbeheer: aanmaken, activeren, suspenden, archiveren, domeinen beheren, plan wijzigen.
+- Module/sector beheer per tenant met dependency validatie.
+- Support grants UI inclusief actieve grants per tenant en revoke/audit.
+- Plan/limietbeheer en usage-overzicht.
 
 ### Fase 7 - Provisioning en onboarding
 
-Doel: nieuwe tenants reproduceerbaar aanmaken.
+Status: ontbreekt.
 
-Parallelle tracks:
+Volgende taken:
 
-- Track 7A: Bouw transactionele provisioning service voor tenant, domein, owner, standaardrollen, settings, modules, sectoren en task codes.
-- Track 7B: Bouw onboarding wizard in platform-admin: bedrijfsgegevens, domein, pakket, sectoren, modules, branding, owner invite, task-code templates, controle.
-- Track 7C: Bouw tenant first-run wizard voor eigenaar: bedrijfsgegevens, logo, gebruikers, eerste klant/object/opdracht.
-- Track 7D: Bouw invite owner flow met correcte tenantcontext en rollback bij fouten.
-- Track 7E: Voeg provisioning tests toe voor succes, rollback, duplicate slug/domain en plan/module/sector combinaties.
-
-Acceptatiecriteria:
-
-- Platform-admin kan tenant zonder SQL aanmaken.
-- Geen half aangemaakte tenant bij fout.
-- Nieuwe tenant is na wizard bruikbaar.
-- Provisioning log is zichtbaar.
+- Transactionele provisioning service bouwen.
+- Onboarding wizard in platform-admin bouwen.
+- Tenant first-run wizard bouwen.
+- Owner invite flow met rollback bouwen.
+- Provisioning tests voor succes, rollback, duplicate slug/domain en plan/module/sector combinaties.
 
 ### Fase 8 - Portalen en branding
 
-Doel: klantportaal en personeelsapp zijn volledig tenant-aware en brandbaar.
+Status: host-first identity bestaat; module/branding/sector polish ontbreekt.
 
-Parallelle tracks:
+Volgende taken:
 
-- Track 8A: Bouw branding resolver per tenant met package-gating: Starter logo/naam; Pro/Enterprise kleuren, e-mailtemplate, favicon, login background en custom domain.
-- Track 8B: Klantportaal host-first tenant identity is gelegd; voeg module guards en branding toe.
-- Track 8C: Personeelsapp host-first tenant identity is gelegd; voeg module guards, assignment guards en branding toe.
-- Track 8D: Pas e-mails en PDF's aan op tenantbranding; verwijder Veele-defaults uit platform defaults.
-- Track 8E: Voeg module guards toe aan klantportaal en personeelsapp.
-
-Acceptatiecriteria:
-
-- Klant van tenant A kan tenant B nooit zien.
-- Personeel ziet alleen eigen tenant/opdrachten.
-- Portaalmodule uit is onbereikbaar.
-- Branding volgt tenant en pakket.
+- Branding resolver per tenant bouwen.
+- Package-gated branding uitwerken.
+- Klantportaal module guards en branding toevoegen.
+- Personeelsapp module guards en branding toevoegen.
+- E-mails en PDF's tenantbranding geven.
+- Veele-defaults uit platform defaults halen.
 
 ### Fase 9 - Fieldgrid deployment en operatie
 
-Doel: same-VPS Fieldgrid deployment is herhaalbaar en terugrolbaar.
+Status: domeinbesluiten zijn vastgelegd; operationeel playbook moet nog productieklaar.
 
-Parallelle tracks:
+Volgende taken:
 
-- Track 9A: DNS en reverse proxy voor `fieldgrid.nl`, `platform.fieldgrid.nl`, `staging.fieldgrid.nl`, wildcard `*.fieldgrid.nl` en custom domain voorbereiding.
-- Track 9B: Supabase redirect URLs, mail domains, app names en environment variables naar Fieldgrid-context.
-- Track 9C: Backup/restore flow voor staging en productie voor iedere migratiefase.
-- Track 9D: Smoke tests voor platformhost, tenanthost, login, migraties, module-off, sector-off en storage.
-- Track 9E: Monitoring/error logging/audit review voor supportproces.
-
-Acceptatiecriteria:
-
-- Fieldgrid-hosts werken op dezelfde VPS.
-- Login redirects werken per host.
-- Rollback is beschreven en getest.
-- Database backup is verplicht voor risicomigraties.
+- DNS en reverse proxy voor `fieldgrid.nl`, `platform.fieldgrid.nl`, `staging.fieldgrid.nl`, wildcard `*.fieldgrid.nl` en custom domains.
+- Supabase redirect URLs, mail domains, app names en environment variables naar Fieldgrid-context.
+- Backup/restore flow voor staging en productie per migratiefase.
+- Smoke tests voor platformhost, tenanthost, login, migraties, module-off, sector-off en storage.
+- Monitoring/error logging/audit review voor supportproces.
 
 ### Fase 10 - Security acceptance en eerste externe tenant
 
-Doel: Fieldgrid kan veilig extern worden gebruikt.
+Status: doel; nog niet bereikt.
 
-Parallelle tracks:
+Volgende taken:
 
-- Track 10A: Cross-tenant test suite: backoffice, klantportaal, personeelsapp, API, PDF routes, storage.
-- Track 10B: Module acceptance: module uit, read-only history, dependency blocks, background jobs.
-- Track 10C: Sector acceptance: single-sector Starter, multi-sector Professional, sector mismatch create/update.
-- Track 10D: Platform-admin acceptance: tenant lifecycle, modules, sectors, plans, support grants, audit.
-- Track 10E: Operational readiness: backups, monitoring, incident rollback, mail deliverability, docs.
+- Cross-tenant test suite: backoffice, klantportaal, personeelsapp, API, PDF routes, storage.
+- Module acceptance: module uit, read-only history, dependency blocks, background jobs.
+- Sector acceptance: single-sector Starter, multi-sector Professional, sector mismatch create/update.
+- Platform-admin acceptance: tenant lifecycle, modules, sectors, plans, support grants, audit.
+- Operational readiness: backups, monitoring, incident rollback, mail deliverability, docs.
 
-Acceptatiecriteria:
+## 8. Eerstvolgende concrete PR-volgorde
 
-- Tenant A kan tenant B niet lezen of muteren.
-- Direct ID guessing faalt.
-- Storage leak tests slagen.
-- Platform-admin kan zonder developer nieuwe tenant onboarden.
-- Eerste externe tenant kan live.
+1. API module guards.
+2. Portal module guards.
+3. Dashboard/layout default-tenant fallback verwijderen.
+4. Sector policy foundation: `tenant_sector_settings` en default sector resolver.
+5. Sector disable-check blokkeren op bestaande data.
+6. Tenant A/B/Veele integration fixture basis.
+7. Sensitive tenant_id wave 1: `documents`.
+8. Sensitive tenant_id wave 2: `invoices`, `quotes`, `reports`.
+9. Sensitive tenant_id wave 3: `payments`, `customer_payment_batches`, batch items.
+10. Audit tenant/platform split.
+11. Platform-admin tenant detail en lifecycle acties.
+12. Platform-admin module/plan/sector beheer.
+13. Provisioning service en onboarding wizard.
 
-## 6. Eerstvolgende concrete PR-volgorde
-
-1. Docs canon en dataclassificatie
-   - Update dit document.
-   - Voeg of beheer `docs/fieldgrid-data-classification.md`.
-   - Voeg of beheer `docs/fieldgrid-cross-tenant-testmatrix.md`.
-   - Bewaak de docs met `tests/fieldgrid-canon.test.mjs`.
-
-2. Tenant lifecycle en shared resolver
-   - `tenants.status` en lifecycle helpers.
-   - Shared host resolver voor backoffice, API en portalen.
-   - API `requireTenantScope` host-first maken.
-
-3. Modules foundation
-   - `modules`, `tenant_modules`, `module_dependencies`.
-   - Seed globale modulecatalogus.
-   - Bewaak staging-safe migratie en schema exports.
-
-4. Plans en module guard foundation
-   - `plans`, `plan_modules`, `plan_limits`, `tenant_subscriptions`.
-   - `requireTenantModule`.
-   - Seed Starter/Professional/Enterprise.
-
-5. Module guard eerste integratie
-   - Backoffice routes/actions voor planning, facturen, offertes, rapporten, documenten, tickets, nieuws.
-   - Navigatie filteren op moduleconfig.
-   - Tests voor direct URL/action/API.
-
-6. Sector policy en single-sector UX
-   - `tenant_sector_settings`.
-   - Default sector resolver.
-   - Single-sector form behavior.
-   - Sector tests voor customer/object/personnel/task code/assignment flows.
-
-7. Sensitive tenant_id wave 1
-   - `documents`, storage paths en signed URL guards.
-   - `invoices`, `quotes`, `reports`.
-   - Cross-tenant direct-ID tests.
-
-8. Platform-admin productization
-   - Tenant detail.
-   - Module/sector/plan management.
-   - Support access status and audit.
-
-9. Provisioning wizard
-   - Tenant creation service.
-   - Owner invite.
-   - Default modules/sectors/roles/settings.
-
-10. Portals and branding
-    - Host-first portal tenant resolution.
-    - Tenant branding resolver.
-    - Module guards for portal/PWA.
-
-11. Fieldgrid deployment hardening
-    - DNS/reverse proxy/TLS.
-    - Supabase redirect URLs.
-    - Smoke tests and rollback playbook.
-
-## 7. Hard rules voor alle vervolgtaken
+## 9. Hard rules voor alle vervolgtaken
 
 - Nooit tenantdata lezen of schrijven op alleen technische id.
 - Host/subdomain-context wint van tenant switcher.
-- Geen runtime fallback naar DEFAULT_TENANT_ID in productie.
+- Geen runtime fallback naar `DEFAULT_TENANT_ID` in productie.
 - Module uit betekent server-side uit.
 - Sectorbeperking is een harde businessregel, geen UI-filter.
 - Veele is tenant; Fieldgrid is platform.
@@ -509,8 +479,9 @@ Acceptatiecriteria:
 - Nieuwe migraties moeten staging-data behouden en rollbackbaar zijn.
 - Oude globale RBAC-tabellen mogen alleen templates/backfill zijn, niet runtime-autorisatie.
 - Elke risicofase krijgt cross-tenant tests voordat staging wordt gepromoveerd.
+- Statische tests zijn guardrails, geen vervanging voor integration/DB/RLS/storage-tests.
 
-## 8. MVP definitie
+## 10. MVP definitie
 
 Fieldgrid SaaS MVP is klaar wanneer:
 
@@ -520,7 +491,7 @@ Fieldgrid SaaS MVP is klaar wanneer:
 - Modules zijn per tenant server-side afgedwongen.
 - Sectoren zijn per tenant server-side en database-side afgedwongen waar mogelijk.
 - Runtime RBAC gebruikt alleen tenantrollen.
-- Klantportaal en personeelsapp zijn host-first tenant-aware.
+- Klantportaal en personeelsapp zijn host-first tenant-aware en module-aware.
 - Gevoelige data heeft expliciete tenant_id of een bewust gedocumenteerde uitzondering.
 - Storage is tenant-prefixed en getest.
 - Support grants werken en worden geaudit.
@@ -528,9 +499,9 @@ Fieldgrid SaaS MVP is klaar wanneer:
 - Fieldgrid draait op de beoogde VPS-domeinen met backup/rollbackproces.
 - Cross-tenant security suite is groen.
 
-## 9. Verplichte uitvoeringsbronnen
+## 11. Verplichte uitvoeringsbronnen
 
-Vanaf de volgende technische PR zijn deze bronnen verplicht:
+Vanaf elke technische PR zijn deze bronnen verplicht:
 
 - `docs/fieldgrid-data-classification.md`: bepaalt tenantstrategie, prioriteit, migratienoodzaak en gevoelige restpunten.
 - `docs/fieldgrid-cross-tenant-testmatrix.md`: bepaalt de test-id's die in PR-bodies, acceptatiecriteria en staging-promotie moeten worden genoemd.
