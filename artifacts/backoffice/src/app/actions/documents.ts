@@ -18,7 +18,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
-import { requireCurrentTenantId } from "@/lib/auth/tenant";
+import { requireCurrentTenantModule } from "@/lib/auth/modules";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, DocumentEntityType };
@@ -223,7 +223,7 @@ export async function listDocuments(filter?: {
 }): Promise<DocumentRow[]> {
   const canRead = await hasPermission("documents", "read");
   if (!canRead) return [];
-  const tenantId = await requireCurrentTenantId();
+  const tenantId = await requireCurrentTenantModule("documents");
 
   const conditions = [];
   if (filter?.entityType) {
@@ -316,6 +316,8 @@ export async function uploadDocument(
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
+    const tenantId = await requireCurrentTenantModule("documents");
+
     const file       = formData.get("file") as File | null;
     const name       = (formData.get("name") as string | null)?.trim();
     const entityType = (formData.get("entityType") as string | null) ?? "general";
@@ -343,7 +345,6 @@ export async function uploadDocument(
         ? (entityType as DocumentEntityType)
         : "general";
 
-    const tenantId = await requireCurrentTenantId();
     const entityAllowed = await isDocumentEntityInTenant({
       entityType: safeEntityType,
       entityId,
@@ -429,6 +430,8 @@ export async function deleteDocument(id: string): Promise<ActionResult> {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
+    const tenantId = await requireCurrentTenantModule("documents");
+
     const [doc] = await db
       .select({
         storagePath: documentsTable.storagePath,
@@ -442,7 +445,6 @@ export async function deleteDocument(id: string): Promise<ActionResult> {
       .limit(1);
 
     if (!doc) return { success: false, message: "Document niet gevonden." };
-    const tenantId = await requireCurrentTenantId();
     const allowed = await isDocumentEntityInTenant({
       entityType: doc.entityType as DocumentEntityType,
       entityId: doc.entityId ?? null,
@@ -495,6 +497,7 @@ export async function getDocumentDownloadUrl(
 ): Promise<ActionResult<{ url: string; filename: string }>> {
   try {
     await requirePermission("documents", "read");
+    const tenantId = await requireCurrentTenantModule("documents");
 
     const [doc] = await db
       .select({
@@ -509,7 +512,6 @@ export async function getDocumentDownloadUrl(
       .limit(1);
 
     if (!doc) return { success: false, message: "Document niet gevonden." };
-    const tenantId = await requireCurrentTenantId();
     const allowed = await isDocumentEntityInTenant({
       entityType: doc.entityType as DocumentEntityType,
       entityId: doc.entityId ?? null,
