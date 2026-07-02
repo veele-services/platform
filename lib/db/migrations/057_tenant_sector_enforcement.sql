@@ -10,10 +10,10 @@
 ALTER TABLE task_codes ADD COLUMN IF NOT EXISTS tenant_id uuid;
 
 UPDATE task_codes
-SET tenant_id = '00000000-0000-0000-0000-000000000010'
+SET tenant_id = '00000000-0000-0000-0000-000000000010'::uuid
 WHERE tenant_id IS NULL;
 
-ALTER TABLE task_codes ALTER COLUMN tenant_id SET DEFAULT '00000000-0000-0000-0000-000000000010';
+ALTER TABLE task_codes ALTER COLUMN tenant_id SET DEFAULT '00000000-0000-0000-0000-000000000010'::uuid;
 ALTER TABLE task_codes ALTER COLUMN tenant_id SET NOT NULL;
 
 DO $$
@@ -29,7 +29,7 @@ END $$;
 
 CREATE TABLE IF NOT EXISTS tenant_sectors (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
-  tenant_id uuid DEFAULT '00000000-0000-0000-0000-000000000010' NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
+  tenant_id uuid DEFAULT '00000000-0000-0000-0000-000000000010'::uuid NOT NULL REFERENCES tenants(id) ON DELETE CASCADE,
   sector_id uuid NOT NULL REFERENCES sectors(id) ON DELETE CASCADE,
   is_enabled boolean DEFAULT true NOT NULL,
   created_at timestamp with time zone DEFAULT now() NOT NULL,
@@ -43,7 +43,7 @@ CREATE INDEX IF NOT EXISTS tenant_sectors_sector_idx ON tenant_sectors(sector_id
 -- Preserve current default-tenant behavior: all active sectors remain available
 -- for the existing/default tenant until the tenant explicitly narrows the set.
 INSERT INTO tenant_sectors (tenant_id, sector_id, is_enabled, created_at, updated_at)
-SELECT '00000000-0000-0000-0000-000000000010', s.id, true, now(), now()
+SELECT '00000000-0000-0000-0000-000000000010'::uuid, s.id, true, now(), now()
 FROM sectors s
 WHERE s.is_active = true
 ON CONFLICT (tenant_id, sector_id) DO UPDATE
@@ -52,7 +52,7 @@ ON CONFLICT (tenant_id, sector_id) DO UPDATE
 
 -- Backfill every sector that is already used by tenant-owned data.
 INSERT INTO tenant_sectors (tenant_id, sector_id, is_enabled, created_at, updated_at)
-SELECT DISTINCT tenant_id, sector_id, true, now(), now()
+SELECT DISTINCT tenant_id::uuid, sector_id, true, now(), now()
 FROM customers
 WHERE sector_id IS NOT NULL
 ON CONFLICT (tenant_id, sector_id) DO UPDATE
@@ -60,7 +60,7 @@ ON CONFLICT (tenant_id, sector_id) DO UPDATE
       updated_at = now();
 
 INSERT INTO tenant_sectors (tenant_id, sector_id, is_enabled, created_at, updated_at)
-SELECT DISTINCT tenant_id, sector_id, true, now(), now()
+SELECT DISTINCT tenant_id::uuid, sector_id, true, now(), now()
 FROM objects
 WHERE sector_id IS NOT NULL
 ON CONFLICT (tenant_id, sector_id) DO UPDATE
@@ -68,7 +68,7 @@ ON CONFLICT (tenant_id, sector_id) DO UPDATE
       updated_at = now();
 
 INSERT INTO tenant_sectors (tenant_id, sector_id, is_enabled, created_at, updated_at)
-SELECT DISTINCT tenant_id, sector_id, true, now(), now()
+SELECT DISTINCT tenant_id::uuid, sector_id, true, now(), now()
 FROM personnel
 WHERE sector_id IS NOT NULL
 ON CONFLICT (tenant_id, sector_id) DO UPDATE
@@ -76,7 +76,7 @@ ON CONFLICT (tenant_id, sector_id) DO UPDATE
       updated_at = now();
 
 INSERT INTO tenant_sectors (tenant_id, sector_id, is_enabled, created_at, updated_at)
-SELECT DISTINCT tenant_id, sector_id, true, now(), now()
+SELECT DISTINCT tenant_id::uuid, sector_id, true, now(), now()
 FROM task_codes
 WHERE sector_id IS NOT NULL
 ON CONFLICT (tenant_id, sector_id) DO UPDATE
