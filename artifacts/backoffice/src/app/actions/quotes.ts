@@ -17,6 +17,7 @@ import { eq, ilike, or, and, asc, desc, sql, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { sendEmail, buildQuoteExpiredEmail } from "@/lib/email";
 import { emitDomainEvent } from "@workspace/db/events";
 import type { ActionResult } from "./customers";
@@ -107,16 +108,33 @@ function formatEuro(value: string | null | undefined): string {
   );
 }
 
+async function getQuoteAssignmentForCurrentTenant(
+  quoteId: string,
+): Promise<{ assignmentId: string; status: QuoteStatus } | null> {
+  const tenantId = await requireCurrentTenantId();
+  const [quote] = await db
+    .select({ assignmentId: quotesTable.assignmentId, status: quotesTable.status })
+    .from(quotesTable)
+    .innerJoin(assignmentsTable, eq(quotesTable.assignmentId, assignmentsTable.id))
+    .where(and(eq(quotesTable.id, quoteId), eq(assignmentsTable.tenantId, tenantId)))
+    .limit(1);
+
+  return quote ? { assignmentId: quote.assignmentId, status: quote.status as QuoteStatus } : null;
+}
+
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
 export async function getPendingQuotesCount(): Promise<number> {
   const canRead = await hasPermission("quotes", "read");
   if (!canRead) return 0;
 
+  const tenantId = await requireCurrentTenantId();
+
   const [result] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(quotesTable)
-    .where(eq(quotesTable.status, "sent"));
+    .innerJoin(assignmentsTable, eq(quotesTable.assignmentId, assignmentsTable.id))
+    .where(and(eq(quotesTable.status, "sent"), eq(assignmentsTable.tenantId, tenantId)));
 
   return result?.count ?? 0;
 }
@@ -127,18 +145,21 @@ export async function getQuoteSummary(): Promise<QuoteSummary> {
     return { draftCount: 0, sentCount: 0, approvedCount: 0, rejectedCount: 0, expiredCount: 0, totalCount: 0 };
   }
 
+  const tenantId = await requireCurrentTenantId();
   const today = todayString();
 
   const [counts] = await db
     .select({
-      draftCount:    sql<number>`count(*) FILTER (WHERE status = 'draft')::int`,
-      sentCount:     sql<number>`count(*) FILTER (WHERE status = 'sent' AND validity_date >= ${today})::int`,
-      approvedCount: sql<number>`count(*) FILTER (WHERE status = 'approved')::int`,
-      rejectedCount: sql<number>`count(*) FILTER (WHERE status = 'rejected')::int`,
-      expiredCount:  sql<number>`count(*) FILTER (WHERE status IN ('expired') OR (status = 'sent' AND validity_date < ${today}))::int`,
+      draftCount:    sql<number>`count(*) FILTER (WHERE ${quotesTable.status} = 'draft')::int`,
+      sentCount:     sql<number>`count(*) FILTER (WHERE ${quotesTable.status} = 'sent' AND ${quotesTable.validityDate} >= ${today})::int`,
+      approvedCount: sql<number>`count(*) FILTER (WHERE ${quotesTable.status} = 'approved')::int`,
+      rejectedCount: sql<number>`count(*) FILTER (WHERE ${quotesTable.status} = 'rejected')::int`,
+      expiredCount:  sql<number>`count(*) FILTER (WHERE ${quotesTable.status} IN ('expired') OR (${quotesTable.status} = 'sent' AND ${quotesTable.validityDate} < ${today}))::int`,
       totalCount:    sql<number>`count(*)::int`,
     })
-    .from(quotesTable);
+    .from(quotesTable)
+    .innerJoin(assignmentsTable, eq(quotesTable.assignmentId, assignmentsTable.id))
+    .where(eq(assignmentsTable.tenantId, tenantId));
 
   return {
     draftCount:    counts?.draftCount    ?? 0,
@@ -158,35 +179,34 @@ export async function listQuotes(params: {
   const canRead = await hasPermission("quotes", "read");
   if (!canRead) return { rows: [], total: 0 };
 
+  const tenantId = await requireCurrentTenantId();
   const { page = 1, search = "", status = "" } = params;
 
-  const conditions = [];
+  const conditions = [eq(assignmentsTable.tenantId, tenantId)];
   if (search.trim()) {
-    conditions.push(
-      or(
-        ilike(quotesTable.quoteNumber,   `%${search.trim()}%`),
-        ilike(customersTable.name,       `%${search.trim()}%`),
-        ilike(assignmentsTable.code,     `%${search.trim()}%`),
-      ),
+    const searchCondition = or(
+      ilike(quotesTable.quoteNumber, `%${search.trim()}%`),
+      ilike(customersTable.name,     `%${search.trim()}%`),
+      ilike(assignmentsTable.code,   `%${search.trim()}%`),
     );
+    if (searchCondition) conditions.push(searchCondition);
   }
   if (status && ["draft", "sent", "approved", "rejected", "expired"].includes(status)) {
     if (status === "expired") {
-      conditions.push(
-        or(
-          eq(quotesTable.status, "expired"),
-          and(
-            eq(quotesTable.status, "sent"),
-            lt(quotesTable.validityDate, todayString()),
-          ),
+      const expiredCondition = or(
+        eq(quotesTable.status, "expired"),
+        and(
+          eq(quotesTable.status, "sent"),
+          lt(quotesTable.validityDate, todayString()),
         ),
       );
+      if (expiredCondition) conditions.push(expiredCondition);
     } else {
       conditions.push(eq(quotesTable.status, status));
     }
   }
 
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  const where = and(...conditions);
 
   const [rows, [{ count }]] = await Promise.all([
     db
@@ -204,7 +224,7 @@ export async function listQuotes(params: {
       })
       .from(quotesTable)
       .leftJoin(customersTable,   eq(quotesTable.customerId,   customersTable.id))
-      .leftJoin(assignmentsTable, eq(quotesTable.assignmentId, assignmentsTable.id))
+      .innerJoin(assignmentsTable, eq(quotesTable.assignmentId, assignmentsTable.id))
       .where(where)
       .orderBy(desc(quotesTable.createdAt))
       .limit(PAGE_SIZE)
@@ -214,7 +234,7 @@ export async function listQuotes(params: {
       .select({ count: sql<number>`count(*)::int` })
       .from(quotesTable)
       .leftJoin(customersTable,   eq(quotesTable.customerId,   customersTable.id))
-      .leftJoin(assignmentsTable, eq(quotesTable.assignmentId, assignmentsTable.id))
+      .innerJoin(assignmentsTable, eq(quotesTable.assignmentId, assignmentsTable.id))
       .where(where),
   ]);
 
@@ -242,6 +262,8 @@ export async function getQuote(id: string): Promise<QuoteDetail | null> {
   const canRead = await hasPermission("quotes", "read");
   if (!canRead) return null;
 
+  const tenantId = await requireCurrentTenantId();
+
   const [row] = await db
     .select({
       id:              quotesTable.id,
@@ -266,8 +288,8 @@ export async function getQuote(id: string): Promise<QuoteDetail | null> {
     })
     .from(quotesTable)
     .leftJoin(customersTable,   eq(quotesTable.customerId,   customersTable.id))
-    .leftJoin(assignmentsTable, eq(quotesTable.assignmentId, assignmentsTable.id))
-    .where(eq(quotesTable.id, id))
+    .innerJoin(assignmentsTable, eq(quotesTable.assignmentId, assignmentsTable.id))
+    .where(and(eq(quotesTable.id, id), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
 
   if (!row) return null;
@@ -327,6 +349,8 @@ export async function getQuoteForAssignment(assignmentId: string): Promise<{
   const canRead = await hasPermission("quotes", "read");
   if (!canRead) return null;
 
+  const tenantId = await requireCurrentTenantId();
+
   const [row] = await db
     .select({
       id:           quotesTable.id,
@@ -336,7 +360,8 @@ export async function getQuoteForAssignment(assignmentId: string): Promise<{
       validityDate: quotesTable.validityDate,
     })
     .from(quotesTable)
-    .where(eq(quotesTable.assignmentId, assignmentId))
+    .innerJoin(assignmentsTable, eq(quotesTable.assignmentId, assignmentsTable.id))
+    .where(and(eq(quotesTable.assignmentId, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
     .orderBy(desc(quotesTable.createdAt))
     .limit(1);
 
@@ -355,6 +380,16 @@ export async function getQuoteForAssignment(assignmentId: string): Promise<{
 export async function getAssignmentQuoteData(assignmentId: string): Promise<AssignmentQuoteData | null> {
   const canRead = await hasPermission("quotes", "read");
   if (!canRead) return null;
+
+  const tenantId = await requireCurrentTenantId();
+
+  const [assignment] = await db
+    .select({ id: assignmentsTable.id })
+    .from(assignmentsTable)
+    .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
+    .limit(1);
+
+  if (!assignment) return null;
 
   const tasks = await db
     .select({
@@ -401,11 +436,13 @@ export async function createQuote(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  // Validate assignment is in review status
+  const tenantId = await requireCurrentTenantId();
+
+  // Validate assignment is in review status and belongs to the current tenant.
   const [assignment] = await db
     .select({ id: assignmentsTable.id, status: assignmentsTable.status, customerId: assignmentsTable.customerId })
     .from(assignmentsTable)
-    .where(eq(assignmentsTable.id, assignmentId))
+    .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
 
   if (!assignment) return { success: false, message: "Opdracht niet gevonden." };
@@ -454,6 +491,8 @@ export async function sendQuote(id: string): Promise<ActionResult> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
+  const tenantId = await requireCurrentTenantId();
+
   const [quote] = await db
     .select({
       id: quotesTable.id,
@@ -470,7 +509,7 @@ export async function sendQuote(id: string): Promise<ActionResult> {
     .from(quotesTable)
     .innerJoin(assignmentsTable, eq(quotesTable.assignmentId, assignmentsTable.id))
     .innerJoin(customersTable, eq(quotesTable.customerId, customersTable.id))
-    .where(eq(quotesTable.id, id))
+    .where(and(eq(quotesTable.id, id), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
 
   if (!quote) return { success: false, message: "Offerte niet gevonden." };
@@ -561,11 +600,7 @@ export async function approveQuote(id: string): Promise<ActionResult> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  const [quote] = await db
-    .select({ id: quotesTable.id, status: quotesTable.status, assignmentId: quotesTable.assignmentId })
-    .from(quotesTable)
-    .where(eq(quotesTable.id, id))
-    .limit(1);
+  const quote = await getQuoteAssignmentForCurrentTenant(id);
 
   if (!quote) return { success: false, message: "Offerte niet gevonden." };
   if (quote.status !== "sent") {
@@ -610,11 +645,7 @@ export async function rejectQuote(id: string, reason: string): Promise<ActionRes
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  const [quote] = await db
-    .select({ id: quotesTable.id, status: quotesTable.status, assignmentId: quotesTable.assignmentId })
-    .from(quotesTable)
-    .where(eq(quotesTable.id, id))
-    .limit(1);
+  const quote = await getQuoteAssignmentForCurrentTenant(id);
 
   if (!quote) return { success: false, message: "Offerte niet gevonden." };
   if (!["draft", "sent"].includes(quote.status)) {
@@ -657,6 +688,7 @@ export async function rejectQuote(id: string, reason: string): Promise<ActionRes
 export async function processExpiredQuotes(): Promise<ActionResult<{ expired: number; notified: number }>> {
   await requirePermission("quotes", "write");
 
+  const tenantId = await requireCurrentTenantId();
   const today = todayString();
 
   const expirableQuotes = await db
@@ -669,9 +701,11 @@ export async function processExpiredQuotes(): Promise<ActionResult<{ expired: nu
       customerEmail: customersTable.contactEmail,
     })
     .from(quotesTable)
+    .innerJoin(assignmentsTable, eq(quotesTable.assignmentId, assignmentsTable.id))
     .leftJoin(customersTable, eq(quotesTable.customerId, customersTable.id))
     .where(
       and(
+        eq(assignmentsTable.tenantId, tenantId),
         eq(quotesTable.status, "sent"),
         lt(quotesTable.validityDate, today),
       ),
