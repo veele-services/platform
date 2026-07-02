@@ -147,13 +147,12 @@ export async function listReports(params: {
   }
 
   if (search.trim()) {
-    conditions.push(
-      or(
-        ilike(assignmentsTable.title, `%${search.trim()}%`),
-        ilike(assignmentsTable.code,  `%${search.trim()}%`),
-        ilike(customersTable.name,    `%${search.trim()}%`),
-      ),
+    const searchCondition = or(
+      ilike(assignmentsTable.title, `%${search.trim()}%`),
+      ilike(assignmentsTable.code,  `%${search.trim()}%`),
+      ilike(customersTable.name,    `%${search.trim()}%`),
     );
+    if (searchCondition) conditions.push(searchCondition);
   }
   if (status && (["draft", "submitted", "approved", "rejected"] as string[]).includes(status)) {
     conditions.push(eq(reportsTable.status, status));
