@@ -80,3 +80,24 @@ test("document download checks tenant membership before creating signed URL", ()
     "tenant denial should happen before signed URL creation",
   );
 });
+
+test("document download writes an audit log after signed URL creation", () => {
+  const body = block(documents, "getDocumentDownloadUrl");
+
+  assert.match(body, /const supabase = await createClient\(\)/u);
+  assert.match(body, /supabase\.auth\.getUser\(\)/u);
+  assert.match(body, /db\.insert\(auditLogTable\)\.values\(/u);
+  assert.match(body, /action:\s+"download"/u);
+  assert.match(body, /resource:\s+"documents"/u);
+  assert.match(body, /resourceId:\s+id/u);
+  assert.match(body, /filename:\s+doc\.filename/u);
+
+  assert.ok(
+    body.indexOf("if (!allowed) return") < body.indexOf("db.insert(auditLogTable).values"),
+    "tenant denial should happen before download audit logging",
+  );
+  assert.ok(
+    body.indexOf("createSignedUrl(doc.storagePath, 3600)") < body.indexOf("db.insert(auditLogTable).values"),
+    "successful signed URL creation should happen before audit logging",
+  );
+});

@@ -498,12 +498,18 @@ export async function getDocumentDownloadUrl(
 ): Promise<ActionResult<{ url: string; filename: string }>> {
   try {
     await requirePermission("documents", "read");
+
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
     const tenantId = await requireCurrentTenantModule("documents");
 
     const [doc] = await db
       .select({
         storagePath: documentsTable.storagePath,
         filename:    documentsTable.filename,
+        name:        documentsTable.name,
         entityType:  documentsTable.entityType,
         entityId:    documentsTable.entityId,
         uploadedBy:  documentsTable.uploadedBy,
@@ -532,6 +538,19 @@ export async function getDocumentDownloadUrl(
     if (error || !data) {
       return { success: false, message: "Kan download-URL niet genereren." };
     }
+
+    await db.insert(auditLogTable).values({
+      userId:     user.id,
+      action:     "download",
+      resource:   "documents",
+      resourceId: id,
+      metadata: {
+        name:       doc.name,
+        filename:   doc.filename,
+        entityType: doc.entityType,
+        entityId:   doc.entityId ?? null,
+      } as Record<string, unknown>,
+    });
 
     return { success: true, data: { url: data.signedUrl, filename: doc.filename } };
   } catch (err) {
