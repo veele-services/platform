@@ -193,15 +193,14 @@ export async function listQuotes(params: {
   }
   if (status && ["draft", "sent", "approved", "rejected", "expired"].includes(status)) {
     if (status === "expired") {
-      conditions.push(
-        or(
-          eq(quotesTable.status, "expired"),
-          and(
-            eq(quotesTable.status, "sent"),
-            lt(quotesTable.validityDate, todayString()),
-          ),
+      const expiredCondition = or(
+        eq(quotesTable.status, "expired"),
+        and(
+          eq(quotesTable.status, "sent"),
+          lt(quotesTable.validityDate, todayString()),
         ),
       );
+      if (expiredCondition) conditions.push(expiredCondition);
     } else {
       conditions.push(eq(quotesTable.status, status));
     }
@@ -224,7 +223,7 @@ export async function listQuotes(params: {
         createdAt:      quotesTable.createdAt,
       })
       .from(quotesTable)
-      .innerJoin(customersTable,   eq(quotesTable.customerId,   customersTable.id))
+      .leftJoin(customersTable,   eq(quotesTable.customerId,   customersTable.id))
       .innerJoin(assignmentsTable, eq(quotesTable.assignmentId, assignmentsTable.id))
       .where(where)
       .orderBy(desc(quotesTable.createdAt))
@@ -234,7 +233,7 @@ export async function listQuotes(params: {
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(quotesTable)
-      .innerJoin(customersTable,   eq(quotesTable.customerId,   customersTable.id))
+      .leftJoin(customersTable,   eq(quotesTable.customerId,   customersTable.id))
       .innerJoin(assignmentsTable, eq(quotesTable.assignmentId, assignmentsTable.id))
       .where(where),
   ]);
@@ -288,7 +287,7 @@ export async function getQuote(id: string): Promise<QuoteDetail | null> {
       updatedAt:       quotesTable.updatedAt,
     })
     .from(quotesTable)
-    .innerJoin(customersTable,   eq(quotesTable.customerId,   customersTable.id))
+    .leftJoin(customersTable,   eq(quotesTable.customerId,   customersTable.id))
     .innerJoin(assignmentsTable, eq(quotesTable.assignmentId, assignmentsTable.id))
     .where(and(eq(quotesTable.id, id), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
