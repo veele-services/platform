@@ -455,7 +455,6 @@ export async function deleteDocument(id: string): Promise<ActionResult> {
     });
     if (!allowed) return { success: false, message: "Document niet gevonden." };
 
-    // Delete from Supabase Storage (best-effort; do not block DB delete)
     const storagePath = getSafeDocumentStoragePath(doc.storagePath, tenantId);
     if (!storagePath) {
       return { success: false, message: "Ongeldig opslagpad." };
