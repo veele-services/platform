@@ -1,5 +1,6 @@
 "use server";
 
+import { getCurrentPortalTenantId } from "@/lib/auth/tenant";
 import { db, personnelTable } from "@workspace/db";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -131,10 +132,14 @@ export async function getMyPersonnel(): Promise<PersonnelProfile | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
+  const tenantId = await getCurrentPortalTenantId();
+  if (!tenantId) return null;
+
   // ── Primary lookup: by user_id (RLS-filtered) ─────────────────────────────
   const { data: byId } = await supabase
     .from("personnel")
     .select(PERSONNEL_SELECT)
+    .eq("tenant_id", tenantId)
     .eq("user_id", user.id)
     .eq("is_active", true)
     .single();
@@ -150,6 +155,7 @@ export async function getMyPersonnel(): Promise<PersonnelProfile | null> {
   const { data: byEmail } = await admin
     .from("personnel")
     .select("id, user_id, invite_sent_at")
+    .eq("tenant_id", tenantId)
     .eq("email", user.email!)
     .eq("is_active", true)
     .is("user_id", null)
@@ -162,7 +168,8 @@ export async function getMyPersonnel(): Promise<PersonnelProfile | null> {
   const { error: linkError } = await admin
     .from("personnel")
     .update({ user_id: user.id })
-    .eq("id", byEmail.id);
+    .eq("id", byEmail.id)
+    .eq("tenant_id", tenantId);
 
   if (linkError) return null;
 
@@ -170,6 +177,7 @@ export async function getMyPersonnel(): Promise<PersonnelProfile | null> {
   const { data: linked } = await supabase
     .from("personnel")
     .select(PERSONNEL_SELECT)
+    .eq("tenant_id", tenantId)
     .eq("user_id", user.id)
     .eq("is_active", true)
     .single();
@@ -184,6 +192,9 @@ export async function updateMyPhone(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Niet ingelogd" };
 
+  const tenantId = await getCurrentPortalTenantId();
+  if (!tenantId) return { success: false, error: "Personeelsprofiel niet gevonden" };
+
   const cleaned = phone.trim();
   if (cleaned.length > 0 && !/^\+?[\d\s\-().]{7,20}$/.test(cleaned)) {
     return { success: false, error: "Ongeldig telefoonnummer" };
@@ -196,7 +207,13 @@ export async function updateMyPhone(
       profileUpdatedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
+    .where(
+      and(
+        eq(personnelTable.userId, user.id),
+        eq(personnelTable.tenantId, tenantId),
+        eq(personnelTable.isActive, true),
+      ),
+    )
     .returning({ id: personnelTable.id });
 
   if (!updated) {
@@ -214,6 +231,9 @@ export async function updateMyProfile(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Niet ingelogd" };
+
+  const tenantId = await getCurrentPortalTenantId();
+  if (!tenantId) return { success: false, error: "Personeelsprofiel niet gevonden" };
 
   const firstName = normalizeText(formData.get("firstName"), 100);
   const lastName = normalizeText(formData.get("lastName"), 100);
@@ -244,7 +264,13 @@ export async function updateMyProfile(
       profileUpdatedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
+    .where(
+      and(
+        eq(personnelTable.userId, user.id),
+        eq(personnelTable.tenantId, tenantId),
+        eq(personnelTable.isActive, true),
+      ),
+    )
     .returning({ id: personnelTable.id });
 
   if (!updated) {
@@ -262,6 +288,9 @@ export async function uploadMyAvatar(
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Niet ingelogd" };
+
+  const tenantId = await getCurrentPortalTenantId();
+  if (!tenantId) return { success: false, error: "Personeelsprofiel niet gevonden" };
 
   const file = formData.get("avatar");
   if (!(file instanceof File) || file.size === 0) {
@@ -287,7 +316,13 @@ export async function uploadMyAvatar(
       avatarPath: personnelTable.avatarPath,
     })
     .from(personnelTable)
-    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
+    .where(
+      and(
+        eq(personnelTable.userId, user.id),
+        eq(personnelTable.tenantId, tenantId),
+        eq(personnelTable.isActive, true),
+      ),
+    )
     .limit(1);
 
   if (!personnel) {
@@ -317,7 +352,14 @@ export async function uploadMyAvatar(
       profileUpdatedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(and(eq(personnelTable.id, personnel.id), eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)));
+    .where(
+      and(
+        eq(personnelTable.id, personnel.id),
+        eq(personnelTable.userId, user.id),
+        eq(personnelTable.tenantId, tenantId),
+        eq(personnelTable.isActive, true),
+      ),
+    );
 
   if (personnel.avatarPath && personnel.avatarPath !== path) {
     await admin.storage.from("personnel-avatars").remove([personnel.avatarPath]);
@@ -329,6 +371,7 @@ export async function uploadMyAvatar(
 
 async function persistMyNotificationSettings(
   userId: string,
+  tenantId: string,
   values: NotificationSettingsValues,
 ): Promise<ActionResult> {
   const [updated] = await db
@@ -342,7 +385,13 @@ async function persistMyNotificationSettings(
       profileUpdatedAt: new Date(),
       updatedAt: new Date(),
     })
-    .where(and(eq(personnelTable.userId, userId), eq(personnelTable.isActive, true)))
+    .where(
+      and(
+        eq(personnelTable.userId, userId),
+        eq(personnelTable.tenantId, tenantId),
+        eq(personnelTable.isActive, true),
+      ),
+    )
     .returning({ id: personnelTable.id });
 
   if (!updated) {
@@ -362,7 +411,10 @@ export async function updateMyNotificationSettingsDirect(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Niet ingelogd" };
 
-  return persistMyNotificationSettings(user.id, values);
+  const tenantId = await getCurrentPortalTenantId();
+  if (!tenantId) return { success: false, error: "Personeelsprofiel niet gevonden" };
+
+  return persistMyNotificationSettings(user.id, tenantId, values);
 }
 
 export async function updateMyNotificationSettings(
@@ -373,7 +425,10 @@ export async function updateMyNotificationSettings(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, error: "Niet ingelogd" };
 
-  return persistMyNotificationSettings(user.id, {
+  const tenantId = await getCurrentPortalTenantId();
+  if (!tenantId) return { success: false, error: "Personeelsprofiel niet gevonden" };
+
+  return persistMyNotificationSettings(user.id, tenantId, {
     email: formData.has("email"),
     push: formData.has("push"),
     planning: formData.has("planning"),
