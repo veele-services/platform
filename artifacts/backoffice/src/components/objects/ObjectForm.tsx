@@ -31,6 +31,7 @@ import {
 } from "@/components/ui/command";
 import { Separator } from "@/components/ui/separator";
 import { TagInput } from "@/components/ui/tag-input";
+import { RegionMultiSelect } from "@/components/regions/RegionMultiSelect";
 import { cn } from "@/lib/utils";
 import {
   getObject,
@@ -39,6 +40,11 @@ import {
   type CustomerOption,
   type ObjectFormInput,
 } from "@/app/actions/objects";
+import {
+  getObjectRegionNames,
+  syncObjectRegions,
+  type RegionOption,
+} from "@/app/actions/regions";
 import type { SectorOption } from "@/app/actions/customers";
 
 // ─── Client-side Zod schema ───────────────────────────────────────────────────
@@ -75,6 +81,7 @@ interface ObjectFormProps {
   preselectedCustomerId?: string;
   sectors: SectorOption[];
   customers: CustomerOption[];
+  regionOptions: RegionOption[];
   onSuccess: (id: string) => void;
   onCancel: () => void;
 }
@@ -107,6 +114,7 @@ export function ObjectForm({
   preselectedCustomerId,
   sectors,
   customers,
+  regionOptions,
   onSuccess,
   onCancel,
 }: ObjectFormProps) {
@@ -114,6 +122,7 @@ export function ObjectForm({
   const [pending, startTransition]        = useTransition();
   const [customerOpen, setCustomerOpen]   = useState(false);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
+  const [regionNames, setRegionNames]     = useState<string[]>([]);
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -140,31 +149,33 @@ export function ObjectForm({
   useEffect(() => {
     if (mode !== "edit" || !objectId) return;
     setLoading(true);
-    getObject(objectId).then((o) => {
-      if (o) {
-        setGeneratedCode(o.code ?? null);
-        setValue("customerId",           o.customerId            ?? "");
-        setValue("sectorId",             o.sectorId              ?? "");
-        setValue("name",                 o.name                  ?? "");
-        setValue("address",              o.address               ?? "");
-        setValue("city",                 o.city                  ?? "");
-        setValue("postalCode",           o.postalCode            ?? "");
-        setValue("description",          o.description           ?? "");
-        setValue("contactName",          o.contactName           ?? "");
-        setValue("contactFunction",      o.contactFunction       ?? "");
-        setValue("contactPhone",         o.contactPhone          ?? "");
-        setValue("contactEmail",         o.contactEmail          ?? "");
-        setValue("serviceType",          o.serviceType           ?? "");
-        setValue("accessInfo",           o.accessInfo            ?? "");
-        setValue("keyInfo",              o.keyInfo               ?? "");
-        setValue("alarmInfo",            o.alarmInfo             ?? "");
-        setValue("fixedInstructions",    o.fixedInstructions     ?? "");
-        setValue("specialNotes",         o.specialNotes          ?? "");
-        setValue("requiredRoles",        o.requiredRoles         ?? []);
-        setValue("requiredCertificates", o.requiredCertificates  ?? []);
-      }
-      setLoading(false);
-    });
+    Promise.all([getObject(objectId), getObjectRegionNames(objectId)])
+      .then(([o, linkedRegions]) => {
+        if (o) {
+          setGeneratedCode(o.code ?? null);
+          setValue("customerId",           o.customerId            ?? "");
+          setValue("sectorId",             o.sectorId              ?? "");
+          setValue("name",                 o.name                  ?? "");
+          setValue("address",              o.address               ?? "");
+          setValue("city",                 o.city                  ?? "");
+          setValue("postalCode",           o.postalCode            ?? "");
+          setValue("description",          o.description           ?? "");
+          setValue("contactName",          o.contactName           ?? "");
+          setValue("contactFunction",      o.contactFunction       ?? "");
+          setValue("contactPhone",         o.contactPhone          ?? "");
+          setValue("contactEmail",         o.contactEmail          ?? "");
+          setValue("serviceType",          o.serviceType           ?? "");
+          setValue("accessInfo",           o.accessInfo            ?? "");
+          setValue("keyInfo",              o.keyInfo               ?? "");
+          setValue("alarmInfo",            o.alarmInfo             ?? "");
+          setValue("fixedInstructions",    o.fixedInstructions     ?? "");
+          setValue("specialNotes",         o.specialNotes          ?? "");
+          setValue("requiredRoles",        o.requiredRoles         ?? []);
+          setValue("requiredCertificates", o.requiredCertificates  ?? []);
+          setRegionNames(linkedRegions);
+        }
+      })
+      .finally(() => setLoading(false));
   }, [mode, objectId, setValue]);
 
   const onSubmit = handleSubmit((data) => {
@@ -208,9 +219,18 @@ export function ObjectForm({
         return;
       }
 
-      toast.success(mode === "create" ? "Object aangemaakt" : "Object bijgewerkt");
       const id =
         mode === "create" && result.data ? result.data.id : (objectId ?? "");
+
+      if (id) {
+        const regionResult = await syncObjectRegions(id, regionNames);
+        if (!regionResult.success) {
+          toast.error(regionResult.message);
+          return;
+        }
+      }
+
+      toast.success(mode === "create" ? "Object aangemaakt" : "Object bijgewerkt");
       onSuccess(id);
     });
   });
@@ -359,6 +379,24 @@ export function ObjectForm({
             />
           </div>
         </div>
+      </section>
+
+      <Separator />
+
+      {/* ── Regions ───────────────────────────────────── */}
+      <section>
+        <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
+          Regio&apos;s
+        </p>
+        <RegionMultiSelect
+          value={regionNames}
+          onChange={setRegionNames}
+          options={regionOptions}
+          placeholder="Selecteer of maak regio's..."
+        />
+        <p className="mt-2 text-xs" style={{ color: "#94A3B8" }}>
+          Objectregio&apos;s kunnen later als standaard dienen bij nieuwe opdrachten en planningfilters.
+        </p>
       </section>
 
       <Separator />

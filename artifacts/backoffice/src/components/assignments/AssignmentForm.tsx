@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { RegionMultiSelect } from "@/components/regions/RegionMultiSelect";
 import {
   getAssignment,
   createAssignment,
@@ -28,8 +29,12 @@ import {
   type AssignmentFormInput,
   type AssignmentStatus,
   type AssignmentPriority,
-  type ActionResult,
 } from "@/app/actions/assignments";
+import {
+  getAssignmentRegionNames,
+  syncAssignmentRequiredRegions,
+  type RegionOption,
+} from "@/app/actions/regions";
 import { ASSIGNMENT_STATUSES, ASSIGNMENT_PRIORITIES } from "@/types/assignments";
 import { priorityLabel, statusLabel } from "./AssignmentStatusBadge";
 
@@ -81,6 +86,7 @@ interface AssignmentFormProps {
   mode:           "create" | "edit";
   assignmentId?:  string;
   customers:      CustomerOption[];
+  regionOptions:  RegionOption[];
   defaultDate?:   string;
   onSuccess:      (id: string) => void;
   onCancel:       () => void;
@@ -92,6 +98,7 @@ export function AssignmentForm({
   mode,
   assignmentId,
   customers,
+  regionOptions,
   defaultDate,
   onSuccess,
   onCancel,
@@ -100,6 +107,7 @@ export function AssignmentForm({
   const [pending,  startTransition]  = useTransition();
   const [objects,  setObjects]       = useState<ObjectOption[]>([]);
   const [loadingObjects, setLoadingObjects] = useState(false);
+  const [regionNames, setRegionNames] = useState<string[]>([]);
 
   const form = useForm<FormValues>({
     defaultValues: defaultDate && mode === "create"
@@ -121,6 +129,11 @@ export function AssignmentForm({
   const priorityVal   = watch("priority") || "normal";
   const signatureRequiredVal = watch("customerSignatureRequired") || false;
 
+  const updateRegionNames = (next: string[]) => {
+    setRegionNames(next);
+    setValue("requiredRegion", next[0] ?? "", { shouldDirty: true });
+  };
+
   // Load objects when customer changes
   useEffect(() => {
     if (!customerIdVal || customerIdVal === "NONE") {
@@ -139,7 +152,7 @@ export function AssignmentForm({
   useEffect(() => {
     if (mode !== "edit" || !assignmentId) return;
     setLoading(true);
-    getAssignment(assignmentId).then((a) => {
+    Promise.all([getAssignment(assignmentId), getAssignmentRegionNames(assignmentId)]).then(([a, linkedRegions]) => {
       if (a) {
         setValue("title",          a.title         ?? "");
         setValue("description",    a.description   ?? "");
@@ -154,6 +167,7 @@ export function AssignmentForm({
         setValue("requiredRegion", a.requiredRegion ?? "");
         setValue("requiredPersonnelCount", a.requiredPersonnelCount ?? 1);
         setValue("customerSignatureRequired", Boolean(a.customerSignatureRequired));
+        setRegionNames(linkedRegions.length > 0 ? linkedRegions : a.requiredRegion ? [a.requiredRegion] : []);
       }
       setLoading(false);
     });
@@ -181,7 +195,7 @@ export function AssignmentForm({
         scheduledStart: parsed.data.scheduledStart || undefined,
         scheduledEnd:   parsed.data.scheduledEnd   || undefined,
         notes:          parsed.data.notes          || undefined,
-        requiredRegion: parsed.data.requiredRegion || undefined,
+        requiredRegion: regionNames[0] || undefined,
         requiredPersonnelCount: parsed.data.requiredPersonnelCount,
         customerSignatureRequired: parsed.data.customerSignatureRequired,
       };
@@ -201,11 +215,20 @@ export function AssignmentForm({
         return;
       }
 
-      toast.success(mode === "create" ? "Opdracht aangemaakt" : "Opdracht bijgewerkt");
       const savedId =
         mode === "create"
           ? ((result as { success: true; data?: { id: string } }).data?.id ?? "")
           : (assignmentId ?? "");
+
+      if (savedId) {
+        const regionResult = await syncAssignmentRequiredRegions(savedId, regionNames);
+        if (!regionResult.success) {
+          toast.error(regionResult.message);
+          return;
+        }
+      }
+
+      toast.success(mode === "create" ? "Opdracht aangemaakt" : "Opdracht bijgewerkt");
       onSuccess(savedId);
     });
   });
@@ -377,15 +400,15 @@ export function AssignmentForm({
             )}
           </div>
           <div className="col-span-3 space-y-1">
-            <Label htmlFor="requiredRegion">Regio</Label>
-            <Input
-              id="requiredRegion"
-              {...register("requiredRegion")}
-              placeholder="bijv. Amsterdam"
-              maxLength={100}
+            <RegionMultiSelect
+              value={regionNames}
+              onChange={updateRegionNames}
+              options={regionOptions}
+              label="Regio's"
+              placeholder="Selecteer of maak regio's..."
             />
             <p className="text-xs" style={{ color: "#94A3B8" }}>
-              Optioneel. Alleen medewerkers met deze regio worden als geschikt aangemerkt.
+              Optioneel. De eerste regio blijft leidend voor bestaande planningfilters; extra regio&apos;s worden als aanvullende eisen opgeslagen.
             </p>
             {errors.requiredRegion && (
               <p className="text-xs text-destructive">{errors.requiredRegion.message}</p>
