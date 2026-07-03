@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { createPlatformTenant } from "@/app/actions/platform-provisioning";
+import {
+  createPlatformTenant,
+  listTenantProvisioningRuns,
+} from "@/app/actions/platform-provisioning";
 import { listPlatformTenants } from "@/app/actions/platform-tenants";
 import {
   enterSupportMode,
@@ -34,10 +37,11 @@ export default async function PlatformAdminPage() {
   const platformUser = await getCurrentPlatformUser();
   const isPlatformAdmin = platformUser?.role === "owner" || platformUser?.role === "admin";
 
-  const [tenants, platformUsers, supportGrants] = await Promise.all([
+  const [tenants, platformUsers, supportGrants, provisioningRuns] = await Promise.all([
     isPlatformAdmin ? listPlatformTenants() : Promise.resolve([]),
     isPlatformAdmin ? listPlatformUsers() : Promise.resolve([]),
     isPlatformAdmin ? listSupportAccessGrants() : listCurrentSupportAccessGrants(),
+    isPlatformAdmin ? listTenantProvisioningRuns() : Promise.resolve([]),
   ]);
 
   return (
@@ -92,6 +96,49 @@ export default async function PlatformAdminPage() {
                 Provisionen
               </button>
             </form>
+          </section>
+        )}
+
+        {isPlatformAdmin && provisioningRuns.length > 0 && (
+          <section className="flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-4">
+              <h2 className="text-xl font-semibold tracking-normal">Provisioning runs</h2>
+              <span className="text-sm text-slate-500">{provisioningRuns.length}</span>
+            </div>
+            <div className="overflow-x-auto rounded border border-slate-200 bg-white">
+              <table className="w-full border-collapse text-left text-sm">
+                <thead className="bg-slate-100 text-xs uppercase text-slate-500">
+                  <tr>
+                    <th className="px-4 py-3 font-semibold">Tenant</th>
+                    <th className="px-4 py-3 font-semibold">Slug</th>
+                    <th className="px-4 py-3 font-semibold">Status</th>
+                    <th className="px-4 py-3 font-semibold">Owner</th>
+                    <th className="px-4 py-3 font-semibold">Gestart</th>
+                    <th className="px-4 py-3 font-semibold">Fout</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {provisioningRuns.map((run) => (
+                    <tr key={run.id} className="border-t border-slate-100">
+                      <td className="px-4 py-3 font-medium">
+                        {run.tenantId ? (
+                          <Link href={`/platform/tenants/${run.tenantId}`} className="underline-offset-2 hover:underline">
+                            {run.tenantName ?? run.name}
+                          </Link>
+                        ) : (
+                          run.name
+                        )}
+                      </td>
+                      <td className="px-4 py-3 text-slate-600">{run.slug}</td>
+                      <td className="px-4 py-3 text-slate-600">{run.status} · {run.currentStep}</td>
+                      <td className="px-4 py-3 text-slate-600">{run.ownerEmail ?? "-"} · {run.ownerInviteStatus}</td>
+                      <td className="px-4 py-3 text-slate-600">{formatDate(run.startedAt)}</td>
+                      <td className="max-w-72 truncate px-4 py-3 text-slate-600">{run.errorMessage ?? "-"}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </section>
         )}
 
