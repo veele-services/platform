@@ -45,7 +45,7 @@ test("Sprint 5 platform tenant actions cover lifecycle, domains, plans, modules 
       "updatePlatformTenantSectorPolicy",
       "getPlatformTenantUsage",
       "tenant_created",
-      "tenant_suspend",
+      "tenant_${lifecycleAction}",
       "tenant_domain_added",
       "tenant_plan_updated",
       "tenant_module_enabled",
@@ -57,6 +57,9 @@ test("Sprint 5 platform tenant actions cover lifecycle, domains, plans, modules 
   assertContains(
     actions,
     [
+      "lifecycleAction === \"suspend\"",
+      "lifecycleAction === \"reactivate\"",
+      "lifecycleAction === \"archive\"",
       "Module ${module.key} vereist eerst module",
       "kan niet uit zolang",
       "Sector is nog in gebruik",
