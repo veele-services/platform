@@ -6,17 +6,39 @@ import {
   isPlatformHost,
   normalizeHost,
   permissionsTable,
+  requireTenantModule,
   TENANT_RUNTIME_ACTIVE_STATUSES,
   tenantDomainsTable,
   tenantRolePermissionsTable,
   tenantUserRolesTable,
   tenantUsersTable,
   tenantsTable,
+  type FieldgridModuleKey,
 } from "@workspace/db";
 import { and, eq, inArray, ne } from "drizzle-orm";
 
 const SUPABASE_URL = process.env["SUPABASE_URL"] ?? "";
 const SUPABASE_JWT_SECRET = process.env["SUPABASE_JWT_SECRET"] ?? "";
+
+const PERMISSION_MODULES: Partial<Record<string, FieldgridModuleKey>> = {
+  customers: "customers",
+  objects: "objects",
+  personnel: "personnel",
+  assignments: "assignments",
+  planning: "planning",
+  reports: "reporting",
+  documents: "documents",
+  invoices: "finance",
+  quotes: "finance",
+  payments: "finance",
+  customer_payment_batches: "finance",
+  notifications: "notifications",
+  smart_planning: "smart_planning",
+};
+
+function moduleForPermissionResource(resource: string): FieldgridModuleKey | null {
+  return PERMISSION_MODULES[resource] ?? null;
+}
 
 // ─── JWKS / HMAC key setup ─────────────────────────────────────────────────────
 
@@ -121,6 +143,25 @@ export async function getUserPermissions(userId: string, tenantId: string): Prom
   return new Set(perms.map((p) => `${p.resource}:${p.action}`));
 }
 
+async function requireEnabledPermissionModule(
+  req: Request,
+  res: Response,
+  resource: string,
+  tenantId: string,
+): Promise<boolean> {
+  const moduleKey = moduleForPermissionResource(resource);
+  if (!moduleKey) return true;
+
+  try {
+    await requireTenantModule(tenantId, moduleKey);
+    return true;
+  } catch (err) {
+    req.log.warn({ err, tenantId, resource, moduleKey }, "Module toegang geweigerd");
+    res.status(403).json({ error: "Module niet beschikbaar voor deze tenant" });
+    return false;
+  }
+}
+
 /**
  * Returns Express middleware that enforces a `resource:action` permission.
  * Must be used after `requireAuth` so `req.userId` is set.
@@ -146,6 +187,8 @@ export function requirePermission(resource: string, action: string) {
       res.status(403).json({ error: "Onvoldoende rechten" });
       return;
     }
+
+    if (!(await requireEnabledPermissionModule(req, res, resource, tenantId))) return;
 
     next();
   };
