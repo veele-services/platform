@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Zap } from "lucide-react";
+import { Eye, EyeOff, Zap } from "lucide-react";
 
 // ─── Dev accounts (only rendered in development) ──────────────────────────────
 
@@ -18,10 +18,12 @@ export function LoginForm() {
   const router = useRouter();
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [error,    setError]    = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const formRef = useRef<HTMLFormElement>(null);
+  const PasswordIcon = showPassword ? EyeOff : Eye;
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -53,7 +55,6 @@ export function LoginForm() {
   function fillAndSubmit(devEmail: string, devPassword: string) {
     setEmail(devEmail);
     setPassword(devPassword);
-    // Submit after state update — use a microtask so React flushes state first
     setTimeout(() => formRef.current?.requestSubmit(), 0);
   }
 
@@ -94,21 +95,32 @@ export function LoginForm() {
         >
           Wachtwoord
         </label>
-        <input
-          id="password"
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-          autoComplete="current-password"
-          disabled={pending}
-          className="w-full rounded-xl border px-4 py-3 text-sm outline-none transition-colors focus:ring-2 disabled:opacity-60"
-          style={{
-            borderColor: "var(--color-border)",
-            color:       "var(--color-primary)",
-          }}
-          placeholder="••••••••"
-        />
+        <div className="relative">
+          <input
+            id="password"
+            type={showPassword ? "text" : "password"}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+            disabled={pending}
+            className="w-full rounded-xl border px-4 py-3 pr-12 text-sm outline-none transition-colors focus:ring-2 disabled:opacity-60"
+            style={{
+              borderColor: "var(--color-border)",
+              color:       "var(--color-primary)",
+            }}
+            placeholder="••••••••"
+          />
+          <button
+            type="button"
+            aria-label={showPassword ? "Wachtwoord verbergen" : "Wachtwoord tonen"}
+            onClick={() => setShowPassword((value) => !value)}
+            disabled={pending}
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 transition-colors hover:text-slate-800 disabled:opacity-50"
+          >
+            <PasswordIcon className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
       {error && (
@@ -123,7 +135,7 @@ export function LoginForm() {
         className="w-full rounded-xl py-3 text-sm font-semibold text-white transition-opacity disabled:opacity-50"
         style={{ backgroundColor: "var(--color-accent)" }}
       >
-        {pending ? "Bezig met inloggen…" : "Inloggen"}
+        {pending ? "Bezig met inloggen..." : "Inloggen"}
       </button>
 
       <div className="text-center">
@@ -144,7 +156,7 @@ export function LoginForm() {
         >
           <p className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: "#92400E" }}>
             <Zap className="h-3 w-3" />
-            DEV — Snel inloggen
+            DEV - Snel inloggen
           </p>
           <div className="flex flex-col gap-1.5">
             {DEV_ACCOUNTS.map((a) => (
