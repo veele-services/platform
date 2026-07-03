@@ -145,7 +145,7 @@ test("Sprint 3 contract maps to canonical sector test IDs", () => {
       "sectorbeleid productklaar maken",
       "tenant_sector_settings",
       "single-sector defaultgedrag",
-      "Disable van sector in gebruik",
+      "sector uitschakelen blokkeren",
       "Geen assignment sectorkolom",
     ],
     sprintContract,
