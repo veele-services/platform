@@ -301,7 +301,7 @@ export async function getInventoryFollowupSummary(itemId: string): Promise<Inven
   `));
 
   const [maintenanceStats] = rowsFrom<{ nextMaintenanceDueDate: string | null; overdueMaintenanceCount: number }>(await db.execute(sql`
-    SELECT min(due_date)::text FILTER (WHERE status IN ('scheduled', 'due') AND due_date IS NOT NULL) AS "nextMaintenanceDueDate",
+    SELECT (min(due_date) FILTER (WHERE status IN ('scheduled', 'due') AND due_date IS NOT NULL))::text AS "nextMaintenanceDueDate",
            count(*) FILTER (WHERE status IN ('scheduled', 'due') AND due_date < current_date)::int AS "overdueMaintenanceCount"
     FROM inventory_maintenance_events
     WHERE tenant_id = ${tenantId}::uuid
