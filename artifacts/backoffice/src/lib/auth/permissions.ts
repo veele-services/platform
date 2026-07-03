@@ -7,7 +7,9 @@ import {
   auditLogTable,
   getSupportRuntimePermissions,
   isTenantModuleEnabled,
+  moduleForPermissionResource,
   requireTenantModule,
+  resourceFromPermissionKey,
   type FieldgridModuleKey,
   type InsertAuditLog,
 } from "@workspace/db";
@@ -16,31 +18,13 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentTenantId } from "@/lib/auth/tenant";
 import { getCurrentSupportMode, writeSupportAccessAuditLog } from "@/lib/auth/platform";
 
-const PERMISSION_MODULES: Partial<Record<string, FieldgridModuleKey>> = {
-  documents: "documents",
-  invoices: "finance",
-  quotes: "finance",
-  payments: "finance",
-  customer_payment_batches: "finance",
-  reports: "reporting",
-};
-
-function moduleForPermissionResource(resource: string): FieldgridModuleKey | null {
-  return PERMISSION_MODULES[resource] ?? null;
-}
-
-function resourceFromPermission(permission: string): string {
-  const separatorIndex = permission.indexOf(":");
-  return separatorIndex === -1 ? permission : permission.slice(0, separatorIndex);
-}
-
 async function enabledModulesForPermissions(
   permissions: Set<string>,
   tenantId: string,
 ): Promise<Set<FieldgridModuleKey>> {
   const moduleKeys = new Set<FieldgridModuleKey>();
   for (const permission of permissions) {
-    const moduleKey = moduleForPermissionResource(resourceFromPermission(permission));
+    const moduleKey = moduleForPermissionResource(resourceFromPermissionKey(permission));
     if (moduleKey) moduleKeys.add(moduleKey);
   }
 
@@ -137,7 +121,7 @@ export async function getEffectiveUserPermissions(userId: string, tenantId: stri
   const enabledModules = await enabledModulesForPermissions(permissions, tenantId);
   return new Set(
     [...permissions].filter((permission) => {
-      const moduleKey = moduleForPermissionResource(resourceFromPermission(permission));
+      const moduleKey = moduleForPermissionResource(resourceFromPermissionKey(permission));
       return !moduleKey || enabledModules.has(moduleKey);
     }),
   );
@@ -189,7 +173,7 @@ export async function getCurrentEffectiveUserPermissions(): Promise<Set<string>>
   const enabledModules = await enabledModulesForPermissions(permissions, tenantId);
   return new Set(
     [...permissions].filter((permission) => {
-      const moduleKey = moduleForPermissionResource(resourceFromPermission(permission));
+      const moduleKey = moduleForPermissionResource(resourceFromPermissionKey(permission));
       return !moduleKey || enabledModules.has(moduleKey);
     }),
   );
