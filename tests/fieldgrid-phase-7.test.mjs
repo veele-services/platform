@@ -96,8 +96,8 @@ test("phase 7 operation docs capture smoke, rollback and first tenant readiness"
       "Smoke API",
       "FG-SMOKE-HOST",
       "FG-SMOKE-MIGRATIONS",
-      "geen migraties",
-      "geen bestaande tenantdata gewijzigd",
+      "Geen migraties",
+      "Geen bestaande tenantdata gewijzigd",
     ],
     "phase 7 docs",
   );
