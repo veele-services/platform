@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -8,10 +9,16 @@ import { AlertCircle, CheckCircle2, Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 
 export default function WachtwoordVergetenPage() {
+  const router = useRouter();
   const [email,   setEmail]   = useState("");
+  const [code,    setCode]    = useState("");
   const [sent,    setSent]    = useState(false);
   const [error,   setError]   = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  function normalizedEmail(): string {
+    return email.trim().toLowerCase();
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -22,7 +29,7 @@ export default function WachtwoordVergetenPage() {
       const redirectTo  = `${window.location.origin}/auth/confirm?type=recovery`;
 
       const { error: sbError } = await supabase.auth.resetPasswordForEmail(
-        email.trim().toLowerCase(),
+        normalizedEmail(),
         { redirectTo },
       );
 
@@ -32,6 +39,28 @@ export default function WachtwoordVergetenPage() {
       }
 
       setSent(true);
+    });
+  }
+
+  function handleVerifyCode(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    startTransition(async () => {
+      const supabase = createClient();
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: normalizedEmail(),
+        token: code.trim(),
+        type: "recovery",
+      });
+
+      if (verifyError) {
+        setError("De herstelcode is ongeldig of verlopen. Vraag eventueel een nieuwe code aan.");
+        return;
+      }
+
+      router.push("/reset-wachtwoord");
+      router.refresh();
     });
   }
 
@@ -90,12 +119,12 @@ export default function WachtwoordVergetenPage() {
             lineHeight: "1.5",
           }}
         >
-          Vul uw e-mailadres in — u ontvangt een resetlink.
+          Vul uw e-mailadres in. Als het bekend is, ontvangt u een herstelcode of resetlink.
         </p>
       </div>
 
       {sent ? (
-        <div className="space-y-5">
+        <form onSubmit={handleVerifyCode} className="space-y-5" noValidate>
           <div
             className="flex items-start gap-2.5 rounded-lg px-3.5 py-3"
             style={{ backgroundColor: "#F0FDF4", border: "1px solid #BBF7D0" }}
@@ -112,17 +141,89 @@ export default function WachtwoordVergetenPage() {
                 lineHeight: "1.4",
               }}
             >
-              Controleer uw inbox. Als dit e-mailadres bekend is, ontvangt u binnen enkele minuten een resetlink.
+              Controleer uw inbox. Vul de herstelcode hieronder in, of gebruik de resetlink in de e-mail.
             </p>
           </div>
-          <Link
-            href="/login"
-            className="block text-center text-sm font-medium"
-            style={{ color: "#00B7B3" }}
+
+          {error && (
+            <div
+              className="flex items-start gap-2.5 rounded-lg px-3.5 py-3"
+              style={{ backgroundColor: "#FEF2F2", border: "1px solid #FECACA" }}
+              role="alert"
+            >
+              <AlertCircle
+                className="flex-shrink-0 mt-0.5"
+                style={{ width: "15px", height: "15px", color: "#EF4444" }}
+              />
+              <p
+                style={{
+                  fontFamily: "var(--font-inter), Inter, sans-serif",
+                  fontSize: "13px",
+                  color: "#B91C1C",
+                  lineHeight: "1.4",
+                }}
+              >
+                {error}
+              </p>
+            </div>
+          )}
+
+          <div className="space-y-1.5">
+            <Label
+              htmlFor="code"
+              style={{
+                fontFamily: "var(--font-inter), Inter, sans-serif",
+                fontSize: "13px",
+                fontWeight: 500,
+                color: "#081D3A",
+              }}
+            >
+              Herstelcode
+            </Label>
+            <Input
+              id="code"
+              name="code"
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              autoFocus
+              required
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              disabled={pending}
+              placeholder="Code uit e-mail"
+              style={{ fontSize: "14px" }}
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={pending || !code.trim()}
+            className="w-full flex items-center justify-center gap-2 h-10 rounded-lg font-semibold text-white transition-all"
+            style={{
+              fontFamily: "var(--font-inter), Inter, sans-serif",
+              fontSize: "14px",
+              backgroundColor: pending || !code.trim() ? "#94A3B8" : "#00B7B3",
+              cursor: pending || !code.trim() ? "not-allowed" : "pointer",
+              letterSpacing: "0.01em",
+            }}
           >
-            Terug naar inloggen
-          </Link>
-        </div>
+            {pending && <Loader2 className="w-4 h-4 animate-spin" />}
+            {pending ? "Controleren..." : "Code controleren"}
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              setSent(false);
+              setCode("");
+              setError(null);
+            }}
+            className="block w-full text-center text-sm"
+            style={{ color: "#64748B" }}
+          >
+            Andere e-mail gebruiken
+          </button>
+        </form>
       ) : (
         <form onSubmit={handleSubmit} className="space-y-5" noValidate>
           {error && (
@@ -188,7 +289,7 @@ export default function WachtwoordVergetenPage() {
             }}
           >
             {pending && <Loader2 className="w-4 h-4 animate-spin" />}
-            {pending ? "Bezig…" : "Resetlink versturen"}
+            {pending ? "Bezig..." : "Herstelcode versturen"}
           </button>
 
           <Link
