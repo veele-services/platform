@@ -12,7 +12,7 @@
 -- validation wave after unresolved legacy rows are reported and resolved.
 -- ============================================================================
 
-CREATE OR REPLACE FUNCTION pg_temp.fieldgrid_has_tenant_fk(table_name text)
+CREATE OR REPLACE FUNCTION pg_temp.fieldgrid_has_tenant_fk(p_table_name text)
 RETURNS boolean AS $$
 DECLARE
   result boolean;
@@ -23,7 +23,7 @@ BEGIN
     JOIN pg_attribute attribute_row
       ON attribute_row.attrelid = constraint_row.conrelid
      AND attribute_row.attnum = ANY(constraint_row.conkey)
-    WHERE constraint_row.conrelid = to_regclass('public.' || table_name)
+    WHERE constraint_row.conrelid = to_regclass(format('%I.%I', 'public', p_table_name))
       AND constraint_row.contype = 'f'
       AND constraint_row.confrelid = 'public.tenants'::regclass
       AND attribute_row.attname = 'tenant_id'
@@ -33,65 +33,65 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION pg_temp.fieldgrid_add_tenant_fk(table_name text, constraint_name text)
+CREATE OR REPLACE FUNCTION pg_temp.fieldgrid_add_tenant_fk(p_table_name text, p_constraint_name text)
 RETURNS void AS $$
 BEGIN
-  IF to_regclass('public.' || table_name) IS NULL THEN
+  IF to_regclass(format('%I.%I', 'public', p_table_name)) IS NULL THEN
     RETURN;
   END IF;
 
   IF NOT EXISTS (
     SELECT 1
-    FROM information_schema.columns
-    WHERE table_schema = 'public'
-      AND table_name = fieldgrid_add_tenant_fk.table_name
-      AND column_name = 'tenant_id'
+    FROM information_schema.columns columns_row
+    WHERE columns_row.table_schema = 'public'
+      AND columns_row.table_name = p_table_name
+      AND columns_row.column_name = 'tenant_id'
   ) THEN
     RETURN;
   END IF;
 
-  IF pg_temp.fieldgrid_has_tenant_fk(table_name) THEN
+  IF pg_temp.fieldgrid_has_tenant_fk(p_table_name) THEN
     RETURN;
   END IF;
 
   EXECUTE format(
-    'ALTER TABLE %I ADD CONSTRAINT %I FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE NOT VALID',
-    table_name,
-    constraint_name
+    'ALTER TABLE public.%I ADD CONSTRAINT %I FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON DELETE CASCADE NOT VALID',
+    p_table_name,
+    p_constraint_name
   );
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION pg_temp.fieldgrid_add_tenant_required_check(table_name text, constraint_name text)
+CREATE OR REPLACE FUNCTION pg_temp.fieldgrid_add_tenant_required_check(p_table_name text, p_constraint_name text)
 RETURNS void AS $$
 BEGIN
-  IF to_regclass('public.' || table_name) IS NULL THEN
+  IF to_regclass(format('%I.%I', 'public', p_table_name)) IS NULL THEN
     RETURN;
   END IF;
 
   IF NOT EXISTS (
     SELECT 1
-    FROM information_schema.columns
-    WHERE table_schema = 'public'
-      AND table_name = fieldgrid_add_tenant_required_check.table_name
-      AND column_name = 'tenant_id'
+    FROM information_schema.columns columns_row
+    WHERE columns_row.table_schema = 'public'
+      AND columns_row.table_name = p_table_name
+      AND columns_row.column_name = 'tenant_id'
   ) THEN
     RETURN;
   END IF;
 
   IF EXISTS (
     SELECT 1
-    FROM pg_constraint
-    WHERE conrelid = to_regclass('public.' || table_name)
-      AND conname = constraint_name
+    FROM pg_constraint constraint_row
+    WHERE constraint_row.conrelid = to_regclass(format('%I.%I', 'public', p_table_name))
+      AND constraint_row.conname = p_constraint_name
   ) THEN
     RETURN;
   END IF;
 
   EXECUTE format(
-    'ALTER TABLE %I ADD CONSTRAINT %I CHECK (tenant_id IS NOT NULL) NOT VALID',
-    table_name,
-    constraint_name
+    'ALTER TABLE public.%I ADD CONSTRAINT %I CHECK (tenant_id IS NOT NULL) NOT VALID',
+    p_table_name,
+    p_constraint_name
   );
 END;
 $$ LANGUAGE plpgsql;

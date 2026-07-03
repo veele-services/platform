@@ -34,6 +34,26 @@ test("phase 2 migration is staging-safe and additive-first", () => {
   assert.ok(!/TRUNCATE\s+/iu.test(migration), "phase 2 must not truncate data");
 });
 
+test("phase 2 migration helper parameters avoid PL/pgSQL table_name ambiguity", () => {
+  const migration = read("lib/db/migrations/062_post_migration_tenant_hardening.sql");
+
+  assertContains(
+    migration,
+    [
+      "fieldgrid_has_tenant_fk(p_table_name text)",
+      "fieldgrid_add_tenant_fk(p_table_name text, p_constraint_name text)",
+      "fieldgrid_add_tenant_required_check(p_table_name text, p_constraint_name text)",
+      "FROM information_schema.columns columns_row",
+      "columns_row.table_name = p_table_name",
+      "columns_row.column_name = 'tenant_id'",
+    ],
+    "phase 2 migration helpers",
+  );
+
+  assert.ok(!migration.includes("fieldgrid_add_tenant_fk.table_name"), "tenant FK helper must not qualify ambiguous table_name parameter");
+  assert.ok(!migration.includes("fieldgrid_add_tenant_required_check.table_name"), "tenant required-check helper must not qualify ambiguous table_name parameter");
+});
+
 test("phase 2 migration covers sensitive tenant tables", () => {
   const migration = read("lib/db/migrations/062_post_migration_tenant_hardening.sql");
 
