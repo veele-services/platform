@@ -163,7 +163,7 @@ export function MaterialDetailView({
                         </p>
                       </div>
                       <p className="mt-1 text-xs" style={{ color: "#64748B" }}>
-                        {movement.fromLocationName ?? "-"} -> {movement.toLocationName ?? "-"}
+                        {movement.fromLocationName ?? "-"}{" -> "}{movement.toLocationName ?? "-"}
                         {movement.reason ? ` - ${movement.reason}` : ""}
                       </p>
                     </div>
