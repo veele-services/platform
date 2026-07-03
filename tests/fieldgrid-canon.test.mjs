@@ -21,6 +21,7 @@ const canonicalDocs = [
   "docs/fieldgrid-data-classification.md",
   "docs/fieldgrid-cross-tenant-testmatrix.md",
   "docs/fieldgrid-recovery-execution-plan.md",
+  "docs/fieldgrid-next-major-update-plan.md",
 ];
 
 const governanceDocs = [".github/pull_request_template.md"];
@@ -152,6 +153,53 @@ test("masterplan captures the phase sprint execution plan", () => {
       "Sprint 12 PR B",
     ],
     "masterplan",
+  );
+});
+
+test("next major update plan captures remaining hardening and staging safety", () => {
+  const plan = read("docs/fieldgrid-next-major-update-plan.md");
+
+  assertContains(
+    plan,
+    [
+      "volgende grote update",
+      "staging zoveel mogelijk bereikbaar",
+      "Canon refresh",
+      "Tests zijn nog te statisch",
+      "Directe tenant_id is vaak nog nullable",
+      "Assignment media blijft P1",
+      "News scope is nog open",
+      "Backoffice module mapping is smaller dan API",
+      "DEFAULT_TENANT_ID",
+      "Support break-glass TTL",
+      "Usage dashboard is incompleet",
+      "Storage is applicatie-hard",
+      "Platform-admin onboarding wizard",
+      "Tenant first-run wizard",
+      "Staging smoke dashboard",
+    ],
+    "next major update plan",
+  );
+});
+
+test("next major update plan defines phased execution", () => {
+  const plan = read("docs/fieldgrid-next-major-update-plan.md");
+
+  assertContains(
+    plan,
+    [
+      "Fase 0 - Canon en updatecontract vastzetten",
+      "Fase 1 - Echte testbasis en demo-data",
+      "Fase 2 - Post-migration hardening en tenant_id afdwingen",
+      "Fase 3 - Assignment media, news en storage bewijs",
+      "Fase 4 - Module enforcement harmoniseren",
+      "Fase 5 - Support break-glass en security dashboard",
+      "Fase 6 - Productisering: onboarding, first-run, usage en branding",
+      "Fase 7 - Staging smoke dashboard en operationele acceptatie",
+      "Aanbevolen PR-volgorde",
+      "Definitie van klaar",
+    ],
+    "next major update plan",
   );
 });
 
