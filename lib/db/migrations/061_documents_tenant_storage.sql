@@ -91,9 +91,9 @@ WITH path_tenant AS (
   SELECT
     document.id,
     CASE
-      WHEN document.storage_path ~* '^tenant/[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/'
+      WHEN document.storage_path ~* '^tenant/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/'
         THEN substring(document.storage_path FROM '^tenant/([0-9a-fA-F-]{36})/')::uuid
-      WHEN document.storage_path ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}/'
+      WHEN document.storage_path ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/'
         THEN substring(document.storage_path FROM '^([0-9a-fA-F-]{36})/')::uuid
       ELSE NULL
     END AS tenant_id
