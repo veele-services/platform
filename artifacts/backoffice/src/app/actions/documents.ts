@@ -10,6 +10,10 @@ import {
   documentsTable,
   DOCUMENT_ENTITY_TYPES,
   getTenantBoundStoragePath,
+  inventoryIssuesTable,
+  inventoryItemsTable,
+  inventoryMaintenanceEventsTable,
+  materialsTable,
   objectsTable,
   personnelTable,
   tenantUsersTable,
@@ -145,7 +149,54 @@ async function isDocumentEntityInTenant(input: {
     return Boolean(row);
   }
 
+  if (entityType === "material") {
+    const [row] = await db
+      .select({ id: materialsTable.id })
+      .from(materialsTable)
+      .where(and(eq(materialsTable.id, entityId), eq(materialsTable.tenantId, tenantId)))
+      .limit(1);
+    return Boolean(row);
+  }
+
+  if (entityType === "inventory_item") {
+    const [row] = await db
+      .select({ id: inventoryItemsTable.id })
+      .from(inventoryItemsTable)
+      .where(and(eq(inventoryItemsTable.id, entityId), eq(inventoryItemsTable.tenantId, tenantId)))
+      .limit(1);
+    return Boolean(row);
+  }
+
+  if (entityType === "inventory_issue") {
+    const [row] = await db
+      .select({ id: inventoryIssuesTable.id })
+      .from(inventoryIssuesTable)
+      .where(and(eq(inventoryIssuesTable.id, entityId), eq(inventoryIssuesTable.tenantId, tenantId)))
+      .limit(1);
+    return Boolean(row);
+  }
+
+  if (entityType === "inventory_maintenance") {
+    const [row] = await db
+      .select({ id: inventoryMaintenanceEventsTable.id })
+      .from(inventoryMaintenanceEventsTable)
+      .where(and(eq(inventoryMaintenanceEventsTable.id, entityId), eq(inventoryMaintenanceEventsTable.tenantId, tenantId)))
+      .limit(1);
+    return Boolean(row);
+  }
+
   return false;
+}
+
+function revalidateDocumentContext(entityType: DocumentEntityType, entityId: string | null) {
+  revalidatePath("/documents");
+  if (entityType === "assignment" && entityId) revalidatePath(`/assignments/${entityId}`);
+  if (entityType === "customer" && entityId) revalidatePath(`/customers/${entityId}`);
+  if (entityType === "personnel" && entityId) revalidatePath(`/personnel/${entityId}`);
+  if (entityType === "object" && entityId) revalidatePath(`/objects/${entityId}`);
+  if (entityType === "material" && entityId) revalidatePath(`/materials/${entityId}`);
+  if (entityType === "inventory_item" && entityId) revalidatePath(`/inventory/${entityId}`);
+  if (entityType === "inventory_issue" && entityId) revalidatePath(`/inventory/issues/${entityId}`);
 }
 
 // ─── Entity name enrichment ───────────────────────────────────────────────────
@@ -204,6 +255,38 @@ async function enrichEntityNames(
           .from(objectsTable)
           .where(inArray(objectsTable.id, byType["object"]))
           .then((rows) => rows.forEach((r) => nameMap.set(r.id, r.name)))
+      : Promise.resolve(),
+
+    byType["material"]?.length
+      ? db
+          .select({ id: materialsTable.id, code: materialsTable.code, name: materialsTable.name })
+          .from(materialsTable)
+          .where(inArray(materialsTable.id, byType["material"]))
+          .then((rows) => rows.forEach((r) => nameMap.set(r.id, `${r.code} - ${r.name}`)))
+      : Promise.resolve(),
+
+    byType["inventory_item"]?.length
+      ? db
+          .select({ id: inventoryItemsTable.id, code: inventoryItemsTable.code, name: inventoryItemsTable.name })
+          .from(inventoryItemsTable)
+          .where(inArray(inventoryItemsTable.id, byType["inventory_item"]))
+          .then((rows) => rows.forEach((r) => nameMap.set(r.id, `${r.code} - ${r.name}`)))
+      : Promise.resolve(),
+
+    byType["inventory_issue"]?.length
+      ? db
+          .select({ id: inventoryIssuesTable.id, severity: inventoryIssuesTable.severity, status: inventoryIssuesTable.status })
+          .from(inventoryIssuesTable)
+          .where(inArray(inventoryIssuesTable.id, byType["inventory_issue"]))
+          .then((rows) => rows.forEach((r) => nameMap.set(r.id, `Storing ${r.severity} (${r.status})`)))
+      : Promise.resolve(),
+
+    byType["inventory_maintenance"]?.length
+      ? db
+          .select({ id: inventoryMaintenanceEventsTable.id, eventType: inventoryMaintenanceEventsTable.eventType, status: inventoryMaintenanceEventsTable.status })
+          .from(inventoryMaintenanceEventsTable)
+          .where(inArray(inventoryMaintenanceEventsTable.id, byType["inventory_maintenance"]))
+          .then((rows) => rows.forEach((r) => nameMap.set(r.id, `${r.eventType} (${r.status})`)))
       : Promise.resolve(),
   ]);
 
@@ -389,12 +472,12 @@ export async function uploadDocument(
 
     // Audit log
     await db.insert(auditLogTable).values({
+      tenantId,
       userId:     user.id,
-      action:     "create",
+      action:     "document_uploaded",
       resource:   "documents",
       resourceId: inserted.id,
       metadata: {
-        tenantId,
         name,
         filename:   file.name,
         storagePath,
@@ -404,10 +487,7 @@ export async function uploadDocument(
       } as Record<string, unknown>,
     });
 
-    revalidatePath("/documents");
-    if (safeEntityType === "assignment" && entityId) revalidatePath(`/assignments/${entityId}`);
-    if (safeEntityType === "customer"   && entityId) revalidatePath(`/customers/${entityId}`);
-    if (safeEntityType === "personnel"  && entityId) revalidatePath(`/personnel/${entityId}`);
+    revalidateDocumentContext(safeEntityType, entityId);
 
     return { success: true, data: { id: inserted.id } };
   } catch (err) {
@@ -463,12 +543,12 @@ export async function deleteDocument(id: string): Promise<ActionResult> {
 
     // Audit log
     await db.insert(auditLogTable).values({
+      tenantId,
       userId:     user.id,
-      action:     "delete",
+      action:     "document_deleted",
       resource:   "documents",
       resourceId: id,
       metadata: {
-        tenantId,
         storagePath,
         name:       doc.name,
         entityType: doc.entityType,
@@ -476,10 +556,7 @@ export async function deleteDocument(id: string): Promise<ActionResult> {
       } as Record<string, unknown>,
     });
 
-    revalidatePath("/documents");
-    if (doc.entityType === "assignment" && doc.entityId) revalidatePath(`/assignments/${doc.entityId}`);
-    if (doc.entityType === "customer"   && doc.entityId) revalidatePath(`/customers/${doc.entityId}`);
-    if (doc.entityType === "personnel"  && doc.entityId) revalidatePath(`/personnel/${doc.entityId}`);
+    revalidateDocumentContext(doc.entityType as DocumentEntityType, doc.entityId ?? null);
 
     return { success: true };
   } catch (err) {
@@ -540,17 +617,18 @@ export async function getDocumentDownloadUrl(
     }
 
     await db.insert(auditLogTable).values({
+      tenantId,
       userId:     user.id,
-      action:     "download",
+      action:     "document_signed_url_issued",
       resource:   "documents",
       resourceId: id,
       metadata: {
-        tenantId,
         name:       doc.name,
         filename:   doc.filename,
         storagePath,
         entityType: doc.entityType,
         entityId:   doc.entityId ?? null,
+        ttlSeconds: 3600,
       } as Record<string, unknown>,
     });
 
