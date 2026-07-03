@@ -1,13 +1,13 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import Link from "next/link";
 import { useActionState } from "react";
 import { useFormStatus } from "react-dom";
 import { signIn, type AuthFormState } from "@/app/actions/auth";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { AlertCircle, Loader2, Zap } from "lucide-react";
+import { AlertCircle, Eye, EyeOff, Loader2, Zap } from "lucide-react";
 
 // ─── Dev accounts (only rendered in development) ──────────────────────────────
 
@@ -37,7 +37,7 @@ function SubmitButton({ disabled }: { disabled?: boolean }) {
       }}
     >
       {pending && <Loader2 className="w-4 h-4 animate-spin" />}
-      {pending ? "Bezig met inloggen…" : "Inloggen"}
+      {pending ? "Bezig met inloggen..." : "Inloggen"}
     </button>
   );
 }
@@ -51,6 +51,7 @@ interface LoginFormProps {
 
 export function LoginForm({ supabaseConfigured, successMessage }: LoginFormProps) {
   const [state, formAction] = useActionState(signIn, INITIAL_STATE);
+  const [showPassword, setShowPassword] = useState(false);
 
   const formRef    = useRef<HTMLFormElement>(null);
   const emailRef   = useRef<HTMLInputElement>(null);
@@ -63,6 +64,7 @@ export function LoginForm({ supabaseConfigured, successMessage }: LoginFormProps
   }
 
   const isDev = process.env.NODE_ENV === "development";
+  const PasswordIcon = showPassword ? EyeOff : Eye;
 
   return (
     <form ref={formRef} action={formAction} className="space-y-5" noValidate>
@@ -146,17 +148,28 @@ export function LoginForm({ supabaseConfigured, successMessage }: LoginFormProps
         >
           Wachtwoord
         </Label>
-        <Input
-          ref={passwordRef}
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          disabled={!supabaseConfigured}
-          placeholder="••••••••"
-          style={{ fontSize: "14px" }}
-        />
+        <div className="relative">
+          <Input
+            ref={passwordRef}
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            required
+            disabled={!supabaseConfigured}
+            placeholder="••••••••"
+            style={{ fontSize: "14px", paddingRight: "42px" }}
+          />
+          <button
+            type="button"
+            aria-label={showPassword ? "Wachtwoord verbergen" : "Wachtwoord tonen"}
+            onClick={() => setShowPassword((value) => !value)}
+            disabled={!supabaseConfigured}
+            className="absolute inset-y-0 right-0 flex w-10 items-center justify-center text-slate-500 transition-colors hover:text-slate-800 disabled:opacity-50"
+          >
+            <PasswordIcon className="h-4 w-4" />
+          </button>
+        </div>
       </div>
 
       <SubmitButton disabled={!supabaseConfigured} />
@@ -179,7 +192,7 @@ export function LoginForm({ supabaseConfigured, successMessage }: LoginFormProps
         >
           <p className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: "#92400E" }}>
             <Zap className="h-3 w-3" />
-            DEV — Snel inloggen
+            DEV - Snel inloggen
           </p>
           <div className="flex flex-col gap-1.5">
             {DEV_ACCOUNTS.map((a) => (
