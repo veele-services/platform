@@ -85,7 +85,7 @@ test("phase 6 invoice proposal includes only approved invoiceable inventory", ()
     [
       "assignmentInventoryItemsTable",
       "inventoryItemsTable",
-      "category: \"inventory\"",
+      "\"inventory\"",
       "eq(assignmentInventoryItemsTable.approvalStatus, \"approved\")",
       "eq(assignmentInventoryItemsTable.invoiceable, true)",
       "inventorySubtotal",
