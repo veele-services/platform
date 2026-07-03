@@ -7,6 +7,7 @@ export const OBJECT_TAB_KEYS = [
   "overzicht",
   "diensten",
   "materiaal",
+  "inventaris",
   "details",
   "contacten",
 ] as const;
@@ -14,11 +15,12 @@ export const OBJECT_TAB_KEYS = [
 export type ObjectTabKey = (typeof OBJECT_TAB_KEYS)[number];
 
 const TAB_LABELS: Record<ObjectTabKey, string> = {
-  overzicht: "Overzicht",
-  diensten:  "Diensten",
-  materiaal: "Materiaal",
-  details:   "Details",
-  contacten: "Contacten",
+  overzicht:  "Overzicht",
+  diensten:   "Diensten",
+  materiaal:  "Materiaal",
+  inventaris: "Inventaris",
+  details:    "Details",
+  contacten:  "Contacten",
 };
 
 interface Props {
