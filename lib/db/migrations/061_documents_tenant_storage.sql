@@ -59,7 +59,7 @@ WHERE document.tenant_id IS NULL
 WITH unambiguous_active_uploader AS (
   SELECT
     user_id,
-    min(tenant_id) AS tenant_id,
+    min(tenant_id::text)::uuid AS tenant_id,
     count(DISTINCT tenant_id) AS tenant_count
   FROM tenant_users
   WHERE status = 'active'
@@ -76,7 +76,7 @@ WHERE document.tenant_id IS NULL
 WITH unambiguous_uploader AS (
   SELECT
     user_id,
-    min(tenant_id) AS tenant_id,
+    min(tenant_id::text)::uuid AS tenant_id,
     count(DISTINCT tenant_id) AS tenant_count
   FROM tenant_users
   GROUP BY user_id
