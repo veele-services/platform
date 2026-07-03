@@ -11,7 +11,7 @@ export type ActionResult<T = undefined> =
   | { success: true; data?: T }
   | { success: false; message: string; fieldErrors?: Record<string, string> };
 
-export const INVENTORY_STATUS_OPTIONS = [
+const INVENTORY_STATUS_OPTIONS = [
   "available",
   "in_use",
   "assigned_to_object",
