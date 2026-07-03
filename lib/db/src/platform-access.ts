@@ -18,6 +18,10 @@ export const FIELDGRID_SUPPORT_TENANT_COOKIE = "fieldgrid_support_tenant_id";
 export const FIELDGRID_PLATFORM_ADMIN_ROLES = ["owner", "admin"] as const;
 export const FIELDGRID_PLATFORM_SUPPORT_ROLES = ["owner", "admin", "support"] as const;
 
+export const FIELDGRID_SUPPORT_BREAK_GLASS_GRANT_TYPE = "break_glass" as const;
+export const FIELDGRID_SUPPORT_BREAK_GLASS_MAX_TTL_MINUTES = 240;
+export const FIELDGRID_SUPPORT_BREAK_GLASS_MIN_REASON_LENGTH = 12;
+
 export const FIELDGRID_SUPPORT_RUNTIME_PERMISSION_KEYS = [
   "dashboard:read",
   "customers:read",
@@ -45,6 +49,7 @@ const FIELDGRID_SUPPORT_RUNTIME_PERMISSION_SET = new Set<string>(
 export type FieldgridRuntimeAccessPriority = typeof FIELDGRID_RUNTIME_ACCESS_PRIORITY[number];
 export type PlatformAdminRole = typeof FIELDGRID_PLATFORM_ADMIN_ROLES[number];
 export type PlatformSupportRole = typeof FIELDGRID_PLATFORM_SUPPORT_ROLES[number];
+export type SupportBreakGlassGrantType = typeof FIELDGRID_SUPPORT_BREAK_GLASS_GRANT_TYPE;
 
 export type ActivePlatformUser = {
   id: string;
@@ -57,6 +62,49 @@ export type ActiveSupportAccess = {
   platformUser: ActivePlatformUser;
   grant: SupportAccessGrant;
 };
+
+export type SupportBreakGlassValidationResult =
+  | { success: true; ttlMinutes: number }
+  | { success: false; message: string };
+
+export function validateSupportBreakGlassGrant(input: {
+  reason: string;
+  startsAt: Date;
+  expiresAt: Date;
+  now?: Date;
+}): SupportBreakGlassValidationResult {
+  const reason = input.reason.trim();
+  const now = input.now ?? new Date();
+
+  if (reason.length < FIELDGRID_SUPPORT_BREAK_GLASS_MIN_REASON_LENGTH) {
+    return {
+      success: false,
+      message: `Reden is verplicht en moet minimaal ${FIELDGRID_SUPPORT_BREAK_GLASS_MIN_REASON_LENGTH} tekens bevatten.`,
+    };
+  }
+
+  if (Number.isNaN(input.startsAt.getTime()) || Number.isNaN(input.expiresAt.getTime())) {
+    return { success: false, message: "Start- en einddatum moeten geldig zijn." };
+  }
+
+  if (input.expiresAt <= now) {
+    return { success: false, message: "Einddatum moet in de toekomst liggen." };
+  }
+
+  if (input.startsAt >= input.expiresAt) {
+    return { success: false, message: "Startdatum moet voor de einddatum liggen." };
+  }
+
+  const ttlMinutes = Math.ceil((input.expiresAt.getTime() - input.startsAt.getTime()) / 60000);
+  if (ttlMinutes > FIELDGRID_SUPPORT_BREAK_GLASS_MAX_TTL_MINUTES) {
+    return {
+      success: false,
+      message: `Break-glass supporttoegang mag maximaal ${FIELDGRID_SUPPORT_BREAK_GLASS_MAX_TTL_MINUTES} minuten actief zijn.`,
+    };
+  }
+
+  return { success: true, ttlMinutes };
+}
 
 export function isPlatformAdminRole(role: string): role is PlatformAdminRole {
   return FIELDGRID_PLATFORM_ADMIN_ROLES.includes(role as PlatformAdminRole);
