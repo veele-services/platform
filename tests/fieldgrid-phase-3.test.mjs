@@ -34,6 +34,25 @@ test("phase 3 migrations are staging-safe and additive-first", () => {
   assert.ok(!/TRUNCATE\s+/iu.test(migration), "phase 3 must not truncate data");
 });
 
+test("phase 3 temporary helpers avoid cross-migration pg_temp collisions", () => {
+  const migration = read("lib/db/migrations/063_assignment_media_news_storage.sql");
+
+  assertContains(
+    migration,
+    [
+      "DROP FUNCTION IF EXISTS pg_temp.fieldgrid_add_tenant_fk(text, text)",
+      "DROP FUNCTION IF EXISTS pg_temp.fieldgrid_add_required_check(text, text)",
+      "fieldgrid_add_tenant_fk(p_table_name text, p_constraint_name text)",
+      "fieldgrid_add_required_check(p_table_name text, p_constraint_name text)",
+      "FROM information_schema.columns columns_row",
+      "columns_row.table_name = p_table_name",
+    ],
+    "phase 3 temporary helpers",
+  );
+
+  assert.ok(!migration.includes("fieldgrid_add_tenant_fk.table_name"), "phase 3 tenant FK helper must not qualify an ambiguous table_name parameter");
+});
+
 test("phase 3 media migration derives tenant context from assignments", () => {
   const migration = read("lib/db/migrations/063_assignment_media_news_storage.sql");
 
