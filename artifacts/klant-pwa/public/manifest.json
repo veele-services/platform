@@ -1,7 +1,7 @@
 {
-  "name": "Veele Klantportaal",
-  "short_name": "Veele",
-  "description": "Klantportaal voor Veele Services",
+  "name": "Fieldgrid Klantportaal",
+  "short_name": "Fieldgrid",
+  "description": "Klantportaal voor Fieldgrid tenants",
   "start_url": "/klant/",
   "scope": "/klant/",
   "display": "standalone",
