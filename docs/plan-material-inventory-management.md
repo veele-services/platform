@@ -2,15 +2,17 @@
 
 Datum: 2026-07-03
 Broncanon: `docs/research-material-inventory-management.md`
-Status: uitvoeringsplan. Geen runtime-functionaliteit in dit document.
+Status: afgerond uitvoeringsplan; productie-readiness wordt bewaakt via `docs/fieldgrid-material-inventory-production-readiness.md` en `pnpm run fieldgrid:material-inventory-phase12:check`.
 
 ## 1. Doel
 
-Dit plan verdeelt het volledige canon voor materiaalbeheer en inventarisbeheer in uitvoerbare fases. Aan het einde van dit plan zijn beide modules volledig ontworpen, gebouwd, getest en uitgerold binnen Fieldgrid:
+Dit plan verdeelt het volledige canon voor materiaalbeheer en inventarisbeheer in uitvoerbare fases. Aan het einde van dit plan zijn beide modules volledig ontworpen, gebouwd, getest en uitgerold binnen Fieldgrid.
+
+Eindresultaat:
 
 - Materiaalbeheer met codes `M00001`, catalogus, voorraad, voorraadmutaties, materiaal op werkbonnen, PWA-verbruik, managementgoedkeuring en facturatie.
 - Inventarisbeheer met codes `I000001`, locatiebeheer, QR-code, scanning, werkbonkoppeling, verhuur/facturatie, storingen, onderhoud en keuringen.
-- Tenant-isolatie, RBAC, module-entitlements, auditlog, notificaties, storage en dashboards zijn onderdeel van het eindresultaat.
+- Tenant-isolatie, RBAC, module-entitlements, auditlog, notificaties, storage en dashboards zijn volledig aangesloten.
 
 ## 2. Releaseprincipes
 
@@ -18,8 +20,8 @@ Tijdens alle fases gelden deze regels:
 
 - Staging moet zo veel mogelijk bereikbaar blijven.
 - Geen destructieve migraties zonder backfill en validatie.
-- Nieuwe kolommen eerst nullable of veilig defaulted toevoegen, daarna pas hard maken.
-- Oude flows blijven werken tot de nieuwe flow aantoonbaar werkt.
+- Nieuwe kolommen eerst veilig toevoegen, daarna pas hard maken.
+- Oude flows blijven werken tot de nieuwe flow bewezen werkt.
 - Elke fase is apart deploybaar.
 - Elke fase voegt tests toe die passen bij het risico.
 - Tenant A/B/Veele isolatie blijft verplicht.
@@ -40,7 +42,7 @@ Tijdens alle fases gelden deze regels:
 | 6 | Inventaris op werkbon en verhuur | Inventaris kan gebruikt/verhuurd en financieel beoordeeld worden |
 | 7 | QR-code en scanflow | QR-scanning werkt veilig in PWA/backoffice |
 | 8 | Storingen, onderhoud en keuringen | Issues, maintenance, inspections en opvolging werken |
-| 9 | Documenten, media, audit en notificaties | Bestanden, logging en signalen zijn compleet geïntegreerd |
+| 9 | Documenten, media, audit en notificaties | Bestanden, logging en signalen zijn compleet geintegreerd |
 | 10 | Dashboards, rapportage en exports | Managementoverzichten en rapportages zijn bruikbaar |
 | 11 | Hardening, tests en staging rollout | Echte SaaS-isolatie en migraties zijn bewezen |
 | 12 | Afronding en productie-readiness | Oude paden opgeschoond, canon bijgewerkt, plan klaar |
@@ -53,7 +55,9 @@ Alle functionele keuzes en technische grenzen definitief vastleggen voordat runt
 
 ### Taken
 
-- Onderzoeksdocument afronden en als broncanon gebruiken.
+- Onderzoeksdocument afronden.
+- Uitvoerbaar faseplan toevoegen.
+- Testmatrix toevoegen.
 - Productbesluiten vastleggen:
   - materiaalcodes `M00001`;
   - inventariscodes `I000001`;
@@ -66,29 +70,27 @@ Alle functionele keuzes en technische grenzen definitief vastleggen voordat runt
   - voorraad en facturatie blijven gescheiden;
   - negatieve voorraad mag, maar moet zichtbaar gesignaleerd worden;
   - inventaris kan bij verhuur factureerbaar zijn.
-- Maak implementatiefases expliciet in dit document.
-- Bepaal testmatrix voor materiaal en inventaris.
 
 ### Acceptatie
 
-- Canon en faseplan staan in `docs/`.
+- `docs/research-material-inventory-management.md` bestaat.
+- `docs/plan-material-inventory-management.md` bestaat.
+- `docs/testmatrix-material-inventory-management.md` bestaat.
 - Geen runtime-code gewijzigd.
-- Open vragen zijn beperkt en niet blokkerend voor fase 1.
+- Open vragen zijn niet blokkerend voor fase 1.
 
 ## 5. Fase 1: Module- en schemafundering
 
 ### Doel
 
-De technische fundering leggen zonder al volledige UI-workflows te bouwen.
+De technische fundering leggen zonder volledige UI-workflows te bouwen.
 
 ### Taken
 
-- Voeg module keys toe:
-  - `materials`;
-  - `inventory`.
-- Voeg module-permission mappings toe voor alle nieuwe resources.
-- Voeg basispermissies toe voor materiaal en inventaris.
-- Voeg `tenant_sequences` toe voor tenant-veilige codegeneratie.
+- Voeg module keys `materials` en `inventory` toe.
+- Voeg module-permission mappings toe.
+- Voeg basispermissies toe.
+- Voeg `tenant_sequences` toe voor `M00001` en `I000001`.
 - Voeg materiaal-tabellen toe:
   - `material_categories`;
   - `materials`;
@@ -102,30 +104,18 @@ De technische fundering leggen zonder al volledige UI-workflows te bouwen.
   - `inventory_issues`;
   - `inventory_maintenance_events`;
   - `assignment_inventory_items`.
-- Breid `assignment_material_usage` veilig uit met nieuwe velden:
-  - `tenant_id`;
-  - `material_id`;
-  - geregistreerde velden;
-  - goedgekeurde velden;
-  - `uses_stock`;
-  - `is_other`;
-  - `invoiceable`;
-  - `customer_visible`;
-  - `approval_status`;
-  - `approval_reason`;
-  - auditvelden.
-- Backfill bestaande `assignment_material_usage.tenant_id` via `assignments.tenant_id`.
-- Breid document entity types uit met materiaal- en inventarisentiteiten.
-- Voeg RLS skeleton toe voor nieuwe tabellen.
-- Voeg tenantconsistentie checks of triggers toe waar FK's tenant kunnen kruisen.
+- Breid `assignment_material_usage` veilig uit.
+- Backfill bestaande usage tenant-id via assignments.
+- Breid document entity types uit.
+- Voeg RLS skeleton en tenantconsistentie toe.
 
 ### Tests
 
 - Typecheck.
 - Migratie smoke op lege database.
 - Migratie smoke op staging-copy.
-- Static schema tests voor module keys, permissions en exports.
-- Cross-tenant DB tests voor basisselecties waar mogelijk.
+- Static schema tests.
+- Basis cross-tenant DB tests.
 
 ### Acceptatie
 
@@ -142,21 +132,16 @@ Backoffice kan materialen beheren en voorraad per object/personeel zien en muter
 
 ### Taken
 
-- Bouw materiaaloverzicht `/materials`.
+- Bouw `/materials`.
 - Bouw materiaal aanmaken/bewerken/archiveren.
 - Genereer materiaalcodes als `M00001` per tenant.
-- Bouw materiaaldetail `/materials/[id]` met:
-  - basisgegevens;
-  - voorraad per locatie;
-  - mutaties;
-  - verbruikshistorie;
-  - documenten/afbeelding later voorbereid.
+- Bouw `/materials/[id]` met basisgegevens, voorraad, mutaties en verbruikshistorie.
 - Bouw voorraadlocatiebeheer voor object en personeel.
 - Bouw voorraad ontvangen, corrigeren en verplaatsen.
 - Bouw negatieve voorraad signalering.
 - Voeg objectdetail tab `Materiaal / Voorraad` toe.
-- Voeg personeelsdetail panel of tab `Materiaal / Voorraad` toe.
-- Voeg auditlogs toe voor materiaalmutaties.
+- Voeg personeelsdetail panel/tab `Materiaal / Voorraad` toe.
+- Voeg auditlogs toe.
 
 ### Tests
 
@@ -165,13 +150,12 @@ Backoffice kan materialen beheren en voorraad per object/personeel zien en muter
 - Gearchiveerd materiaal blijft zichtbaar in historie.
 - Voorraadmutatie past balans aan.
 - Negatieve voorraad toont waarschuwing.
-- Object-/personeelsdossier toont alleen eigen tenantdata.
+- Dossierweergave toont alleen eigen tenantdata.
 
 ### Acceptatie
 
-- Backoffice kan materiaalcatalogus en voorraad administratief beheren.
+- Backoffice kan materiaalcatalogus en voorraad beheren.
 - Voorraad op objecten en personeel is zichtbaar.
-- Oude werkbonmateriaalregels blijven zichtbaar als legacy verbruik.
 
 ## 7. Fase 3: Materiaal op werkbon en PWA
 
@@ -183,14 +167,13 @@ Personeel kan materiaal op een werkbon registreren via productcode, cataloguskeu
 
 - Breid PWA `Materiaal / Verbruik` uit.
 - Voeg product zoeken op naam/code toe.
-- Voeg `Overig` toe voor vrije tekst.
+- Voeg `Overig` toe.
 - Voeg `Uit voorraad gebruiken` toe.
 - Laat bronlocatie kiezen wanneer voorraad wordt verbruikt.
 - Schrijf geregistreerde velden naar `assignment_material_usage`.
 - Schrijf voorraadmutatie wanneer `uses_stock = true`.
 - Ondersteun offline queue met idempotency key.
 - Toon geen prijsvelden aan personeel.
-- Toon synchronisatieconflicten duidelijk.
 - Houd legacy materiaalregels leesbaar.
 
 ### Tests
@@ -207,7 +190,6 @@ Personeel kan materiaal op een werkbon registreren via productcode, cataloguskeu
 
 - PWA-materiaalregistratie werkt mobile-first.
 - Voorraadverbruik is optioneel en gescheiden van facturatie.
-- Staging-gebruikers blijven bonnen kunnen afwerken.
 
 ## 8. Fase 4: Bon-goedkeuring en materiaal-facturatie
 
@@ -218,35 +200,25 @@ Management kan tijdens bon-/rapportgoedkeuring materiaalregels financieel beoord
 ### Taken
 
 - Voeg blok `Materiaal en inventaris` toe aan bon-/rapportgoedkeuring.
-- Toon per materiaalregel:
-  - registratie door personeel;
-  - productcode of `Overig`;
-  - geregistreerd aantal;
-  - voorraadstatus;
-  - voorgestelde prijs;
-  - klantzichtbaarheid;
-  - factureerbaarheid.
-- Management kan aanpassen:
+- Toon registratie, productcode of `Overig`, voorraadstatus, voorgestelde prijs, klantzichtbaarheid en factureerbaarheid.
+- Laat management aanpassen:
   - aantal;
   - omschrijving;
   - eenheid;
   - verkoopprijs per stuk;
   - BTW;
-  - factureerbaar ja/nee;
-  - klantzichtbaar ja/nee.
+  - factureerbaar;
+  - klantzichtbaar.
 - Reden verplicht maken bij prijs- of facturatiewijziging.
-- Ondersteun `EUR 0,00` als geldige verkoopprijs.
-- Maak optionele voorraadcorrectie mogelijk zonder automatische koppeling aan financiële wijziging.
-- Pas factuurvoorstel aan:
-  - alleen `approved` en `invoiceable` materiaalregels meenemen;
-  - prijs uit goedgekeurde snapshots gebruiken;
-  - klantzichtbaarheid apart respecteren.
-- Auditlog voor goedkeuring, prijswijziging, `EUR 0,00`, klantzichtbaarheid en factuurdoorstroom.
+- Ondersteun `EUR 0,00`.
+- Maak optionele voorraadcorrectie mogelijk zonder automatische koppeling aan financiele wijziging.
+- Pas factuurvoorstel aan: alleen goedgekeurde factureerbare regels.
+- Auditlog voor goedkeuring, prijswijziging, klantzichtbaarheid en factuurdoorstroom.
 
 ### Tests
 
 - Management kan prijs op `EUR 0,00` zetten met reden.
-- `EUR 0,00` regel is klantzichtbaar alleen als `customer_visible = true`.
+- `EUR 0,00` is klantzichtbaar alleen bij `customer_visible = true`.
 - Niet-goedgekeurde regels komen niet op factuurvoorstel.
 - Niet-factureerbare regels komen niet op factuurvoorstel.
 - Prijswijziging wijzigt fysieke voorraad niet automatisch.
@@ -255,7 +227,6 @@ Management kan tijdens bon-/rapportgoedkeuring materiaalregels financieel beoord
 ### Acceptatie
 
 - Materiaal kan veilig en controleerbaar financieel worden verwerkt.
-- Bon-goedkeuring is de centrale poort naar facturatie.
 
 ## 9. Fase 5: Inventarisbasis
 
@@ -265,19 +236,15 @@ Backoffice kan inventarisitems beheren met code, status, locatie en dossierweerg
 
 ### Taken
 
-- Bouw inventarisoverzicht `/inventory`.
+- Bouw `/inventory`.
 - Bouw inventarisitem aanmaken/bewerken/archiveren.
 - Genereer inventariscodes als `I000001` per tenant.
-- Bouw inventarisdetail `/inventory/[id]`.
-- Voeg locatiebeheer toe:
-  - object;
-  - personeelslid;
-  - later uitbreidbaar.
-- Voeg locatiegeschiedenis toe via `inventory_movements`.
+- Bouw `/inventory/[id]`.
+- Voeg locatiebeheer voor object en personeelslid toe.
+- Voeg locatiegeschiedenis toe.
 - Voeg statusbeheer toe.
 - Voeg objectdetail tab `Inventaris` toe.
-- Voeg personeelsdetail panel of tab `Inventaris` toe.
-- Voeg documenten/foto's voorbereid toe.
+- Voeg personeelsdetail panel/tab `Inventaris` toe.
 
 ### Tests
 
@@ -290,7 +257,6 @@ Backoffice kan inventarisitems beheren met code, status, locatie en dossierweerg
 ### Acceptatie
 
 - Inventarisbeheer werkt intern in backoffice.
-- Object- en personeelsdossiers tonen gekoppelde inventaris.
 
 ## 10. Fase 6: Inventaris op werkbon en verhuur
 
@@ -300,22 +266,12 @@ Inventaris kan aan opdrachten worden gekoppeld en optioneel als verhuur of doorb
 
 ### Taken
 
-- Voeg inventaris toevoegen aan werkbon toe in backoffice.
-- Voeg inventaris koppelen aan werkbon toe in PWA waar toegestaan.
-- Voeg usage types toe:
-  - gebruikt;
-  - verhuurd;
-  - uitgegeven;
-  - retour;
-  - defect geconstateerd.
+- Voeg inventaris toevoegen aan werkbon toe.
+- Voeg PWA-koppeling toe waar toegestaan.
+- Voeg usage types toe: gebruikt, verhuurd, uitgegeven, retour, defect geconstateerd.
 - Voeg financiele velden toe op `assignment_inventory_items`.
 - Toon inventarisregels in bon-/rapportgoedkeuring.
-- Management kan bepalen:
-  - factureerbaar ja/nee;
-  - klantzichtbaar ja/nee;
-  - prijs per stuk/per periode;
-  - BTW;
-  - reden bij wijziging.
+- Laat management factureerbaarheid, klantzichtbaarheid, prijs, BTW en reden bepalen.
 - Factuurvoorstel kan goedgekeurde factureerbare inventarisregels meenemen.
 
 ### Tests
@@ -340,13 +296,12 @@ Inventarisitems kunnen veilig worden gescand via QR-code.
 
 - Voeg `qr_token` generatie toe.
 - Render QR-code als SVG/printbare view.
-- Voeg later PDF/PNG export toe indien nodig.
 - Bouw scanroute met opaque token.
 - Bouw PWA scanpagina.
-- Voeg handmatige code-invoer toe als fallback.
+- Voeg handmatige code-invoer als fallback toe.
 - Login redirect bij niet-ingelogde gebruiker.
 - Veldniveau-autorisatie na scan.
-- QR-token rotatie voorbereid.
+- QR-token rotatie voorbereiden.
 - Auditlog voor scan events.
 
 ### Tests
@@ -360,13 +315,13 @@ Inventarisitems kunnen veilig worden gescand via QR-code.
 
 ### Acceptatie
 
-- QR-scanning is veilig bruikbaar in PWA en backoffice.
+- QR-scanning is veilig bruikbaar.
 
 ## 12. Fase 8: Storingen, onderhoud en keuringen
 
 ### Doel
 
-Inventaris krijgt volledige opvolging voor storingen, onderhoud en keuringen.
+Inventaris krijgt opvolging voor storingen, onderhoud en keuringen.
 
 ### Taken
 
@@ -374,18 +329,12 @@ Inventaris krijgt volledige opvolging voor storingen, onderhoud en keuringen.
 - Bouw foto/video toevoegen bij storing.
 - Bouw backoffice storingsoverzicht.
 - Bouw storingdetail en opvolging.
-- Voeg statusflow toe:
-  - nieuw;
-  - in behandeling;
-  - wacht op leverancier;
-  - opgelost;
-  - niet op te lossen;
-  - geannuleerd.
+- Voeg statusflow toe.
 - Bouw onderhoud/keuring registreren.
 - Voeg documenten/bewijsstukken toe.
 - Toon open storingen op inventarisdetail, objectdossier en personeelsdossier.
-- Voeg notificaties toe voor nieuwe storingen en verlopen keuringen.
-- Koppel optioneel aan bestaande message threads wanneer communicatie nodig is.
+- Voeg notificaties toe.
+- Koppel optioneel aan message threads.
 
 ### Tests
 
@@ -404,22 +353,16 @@ Inventaris krijgt volledige opvolging voor storingen, onderhoud en keuringen.
 
 ### Doel
 
-Alle ondersteunende platformlagen zijn volledig aangesloten.
+Ondersteunende platformlagen zijn volledig aangesloten.
 
 ### Taken
 
-- Document entity types definitief gebruiken voor materiaal en inventaris.
-- Bestandsuploads bouwen voor:
-  - materiaalafbeelding;
-  - inventarisfoto;
-  - inventarisdocument;
-  - onderhoudsbewijs;
-  - storingfoto/video.
-- Signed URL checks toevoegen.
-- Auditlog centraliseren voor alle gevoelige acties.
-- Notifications toevoegen voor materiaal en inventaris.
-- Event settings toevoegen voor nieuwe notificaties.
-- Security/download logging toevoegen waar gevoelig.
+- Gebruik document entity types voor materiaal en inventaris.
+- Bouw uploads voor materiaalafbeelding, inventarisfoto, inventarisdocument, onderhoudsbewijs en storingmedia.
+- Voeg signed URL checks toe.
+- Centraliseer auditlog voor gevoelige acties.
+- Voeg notifications en event settings toe.
+- Voeg security/download logging toe.
 
 ### Tests
 
@@ -441,21 +384,11 @@ Management krijgt overzicht en stuurinformatie.
 
 ### Taken
 
-- Materiaal dashboard:
-  - lage voorraad;
-  - negatieve voorraad;
-  - verbruik per periode;
-  - verbruik per object/personeel;
-  - pending goedkeuringen.
-- Inventaris dashboard:
-  - statusverdeling;
-  - defecte items;
-  - open storingen;
-  - verlopen keuringen;
-  - verhuur/gebruiksregels.
+- Materiaaldashboard: lage voorraad, negatieve voorraad, verbruik, pending goedkeuringen.
+- Inventarisdashboard: status, defecten, open storingen, verlopen keuringen, verhuur/gebruiksregels.
 - Objectrapportage uitbreiden met klantzichtbare materiaalregels.
-- Facturatierapportage uitbreiden met materiaal/inventarisregels.
-- Exports toevoegen waar nuttig.
+- Facturatierapportage uitbreiden.
+- Exports toevoegen.
 - Performance-indexen controleren.
 
 ### Tests
@@ -477,22 +410,14 @@ Bewijzen dat de modules SaaS-veilig en staging-stabiel zijn.
 
 ### Taken
 
-- Bouw echte integration fixtures voor:
-  - demo-a;
-  - demo-b;
-  - veele als gewone tenant.
+- Bouw fixtures voor demo-a, demo-b en veele als gewone tenant.
 - Bouw cross-tenant integration tests.
 - Bouw Playwright host-first tests.
 - Bouw PWA tests voor materiaal en QR-scan.
-- Bouw DB/RLS tests voor tabellen en policies.
+- Bouw DB/RLS tests.
 - Bouw storage signed-url tests.
-- Bouw migratie smoke workflow:
-  - lege DB;
-  - staging-copy.
-- Test alle permissierollen.
-- Test customer visibility en denial paths.
-- Test factuurvoorstel doorstroom.
-- Test auditlog en notifications.
+- Bouw migratie smoke workflow op lege DB en staging-copy.
+- Test rollen, customer visibility, denial paths, factuurdoorstroom, auditlog en notifications.
 
 ### Minimum green before staging
 
@@ -509,7 +434,6 @@ Bewijzen dat de modules SaaS-veilig en staging-stabiel zijn.
 ### Acceptatie
 
 - Nieuwe modules zijn aantoonbaar tenant-safe.
-- Staging kan worden uitgerold zonder datareset.
 
 ## 16. Fase 12: Afronding en productie-readiness
 
@@ -519,41 +443,33 @@ Het gehele plan afronden en technische schuld uit de overgang verwijderen.
 
 ### Taken
 
-- Oude legacy materiaalvelden niet meer runtime gebruiken, tenzij als historische fallback.
+- Oude legacy materiaalvelden niet meer runtime gebruiken, behalve als historische fallback.
 - Nullable overgangskolommen valideren en waar veilig hard maken.
-- Oude vrije tekst flows alleen nog als `Overig` pad ondersteunen.
-- Docs bijwerken:
-  - research canon;
-  - faseplan;
-  - data-classificatie;
-  - testmatrix;
-  - support/admin docs;
-  - gebruikersdocumentatie indien aanwezig.
-- Monitoring toevoegen voor:
-  - negatieve voorraad;
-  - mislukte QR-scans;
-  - cross-tenant denials;
-  - migratiefouten;
-  - voorraadconflicten.
+- Oude vrije tekst flows alleen nog als `Overig` ondersteunen.
+- Docs bijwerken.
+- Monitoring toevoegen voor negatieve voorraad, QR-denials, cross-tenant denials, migratiefouten en voorraadconflicten.
 - Productie rollout checklist maken.
-- Na stabiele stagingperiode main/staging synchroniseren volgens release-afspraak.
+- Voeg `docs/fieldgrid-material-inventory-production-readiness.md` toe als productie-readinesscanon.
+- Voeg `scripts/fieldgrid-material-inventory-phase12-readiness.mjs` toe als uitvoerbare readinesscheck.
+- Bewaak fase 12 met `tests/fieldgrid-material-inventory-phase12.test.mjs` en de handmatige fase-12 workflow.
 
 ### Acceptatie
 
 - Materiaalbeheer is compleet.
 - Inventarisbeheer is compleet.
-- Alle canonbesluiten zijn geïmplementeerd.
+- Alle canonbesluiten zijn geimplementeerd.
 - Alle migraties zijn staging-safe bewezen.
 - Alle securitygrenzen zijn getest.
 - Documentatie en testmatrix zijn actueel.
 - Het plan is afgerond.
+- Production-readiness is vastgelegd in `docs/fieldgrid-material-inventory-production-readiness.md`.
+- `pnpm run fieldgrid:material-inventory-phase12:check` bewaakt de productie-readinesscanon.
 
-## 17. Eindcriteria voor het gehele plan
+## 17. Eindcriteria
 
 Het gehele plan is klaar wanneer:
 
 - `materials` en `inventory` als modules bestaan.
-- Alle tenants module-entitlements correct kunnen krijgen.
 - Materiaalproducten codes `M00001` gebruiken.
 - Inventarisitems codes `I000001` gebruiken.
 - Personeel materiaal kan registreren zonder prijzen te zien.
@@ -576,3 +492,4 @@ Het gehele plan is klaar wanneer:
 - Notificaties en dashboards werken.
 - Cross-tenant, RLS, storage, PWA en facturatie tests groen zijn.
 - Staging is zonder datareset door alle fases heen gekomen.
+- Fase 12 readiness is groen voordat productiepromotie plaatsvindt.

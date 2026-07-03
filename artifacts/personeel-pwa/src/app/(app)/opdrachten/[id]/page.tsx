@@ -5,9 +5,11 @@ import { getMyAssignment } from "@/actions/assignments";
 import { getMyReportForAssignment, getReportNotesForAssignment, type MyReport, type ReportNote } from "@/actions/reports";
 import { getExtraWorkForAssignment } from "@/actions/extra-work";
 import { getMaterialUsageForAssignment } from "@/actions/materials";
+import { getInventoryUsageForAssignment } from "@/actions/inventory";
 import { SeenMarker } from "@/components/SeenMarker";
 import { RapportageTimeline } from "./RapportageTimeline";
 import { WorkOrderHeader } from "./WorkOrderHeader";
+import { InventorySummaryCard } from "./InventorySummaryCard";
 import {
   CustomerInfoCard,
   CustomerNotes,
@@ -52,11 +54,12 @@ export default async function WerkbonDetailPage({ params, searchParams }: Props)
 
   if (!assignment) notFound();
 
-  const [report, extraWork, reportNotes, materialItems] = await Promise.all([
+  const [report, extraWork, reportNotes, materialItems, inventoryItems] = await Promise.all([
     getMyReportForAssignment(id),
     getExtraWorkForAssignment(id),
     getReportNotesForAssignment(id),
     getMaterialUsageForAssignment(id),
+    getInventoryUsageForAssignment(id),
   ]);
 
   const isScheduled = assignment.status === "scheduled";
@@ -85,6 +88,7 @@ export default async function WerkbonDetailPage({ params, searchParams }: Props)
           <TaskChecklistCard assignment={assignment} />
           <ExtraWorkSummaryCard assignmentId={assignment.id} items={extraWork} />
           <MaterialSummaryCard assignmentId={assignment.id} items={materialItems} />
+          <InventorySummaryCard assignmentId={assignment.id} items={inventoryItems} />
         </section>
       ) : null}
 

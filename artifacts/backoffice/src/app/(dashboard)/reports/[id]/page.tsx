@@ -6,7 +6,12 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { getReport, getReportTimelineNotes, type ReportTimelineNote } from "@/app/actions/reports";
 import { getInvoiceForAssignment } from "@/app/actions/invoices";
+import {
+  canApproveAssignmentMaterials,
+  listAssignmentMaterialApprovals,
+} from "@/app/actions/assignment-material-approvals";
 import { ReportActions } from "@/components/reports/ReportActions";
+import { AssignmentMaterialsApprovalPanel } from "@/components/materials/AssignmentMaterialsApprovalPanel";
 import { ProcessStatusBadge, ProcessStepper } from "@/components/workflows/ProcessStatus";
 
 interface Props {
@@ -146,13 +151,22 @@ export default async function ReportDetailPage({ params }: Props) {
   if (!canRead) return <ForbiddenPage resource="reports" action="read" />;
 
   const { id } = await params;
-  const [report, reportNotes, canWrite] = await Promise.all([
+  const [report, reportNotes, canWrite, canApproveMaterials] = await Promise.all([
     getReport(id),
     getReportTimelineNotes(id),
     hasPermission("reports", "write"),
+    canApproveAssignmentMaterials().catch(() => false),
   ]);
 
   if (!report) notFound();
+
+  const materialApprovalRows = canApproveMaterials
+    ? await listAssignmentMaterialApprovals(report.assignmentId)
+    : [];
+  const pendingMaterialCount = materialApprovalRows.filter((row) => row.approvalStatus === "pending").length;
+  const approveDisabledReason = pendingMaterialCount > 0
+    ? `Beoordeel eerst ${pendingMaterialCount} materiaalregel${pendingMaterialCount === 1 ? "" : "s"} voordat je dit rapport goedkeurt.`
+    : null;
 
   const invoiceProposal = report.status === "approved"
     ? await getInvoiceForAssignment(report.assignmentId)
@@ -315,6 +329,14 @@ export default async function ReportDetailPage({ params }: Props) {
 
           <ReportTimeline notes={reportNotes} />
 
+          {canApproveMaterials && (report.status === "submitted" || materialApprovalRows.length > 0) ? (
+            <AssignmentMaterialsApprovalPanel
+              assignmentId={report.assignmentId}
+              rows={materialApprovalRows}
+              readOnly={report.status !== "submitted"}
+            />
+          ) : null}
+
           {/* Management feedback (rejection notes) */}
           {report.notes && (
             <div
@@ -338,7 +360,7 @@ export default async function ReportDetailPage({ params }: Props) {
         {/* Right: actions */}
         <div className="flex flex-col gap-4">
           {canWrite && report.status === "submitted" && (
-            <ReportActions reportId={report.id} />
+            <ReportActions reportId={report.id} approveDisabledReason={approveDisabledReason} />
           )}
 
           {report.status !== "submitted" && (

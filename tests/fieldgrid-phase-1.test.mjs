@@ -3,29 +3,84 @@ import { test } from "node:test";
 
 import {
   buildPhase1DemoDataPlan,
+  buildPhase1RuntimeFixtureManifest,
   canEnterTenant,
   canReadRecord,
   canSignStoragePath,
   canUseModule,
   canUseSector,
+  phase1CleanupBatches,
   phase1Hosts,
   phase1MigrationSmokes,
   phase1Records,
+  phase1RuntimeAssertions,
   phase1SecurityCases,
+  phase1SeedBatches,
+  phase1TenantDomains,
   phase1Tenants,
   requiredRecordTypes,
   resolveHostContext,
   validatePhase1Fixtures,
 } from "./fixtures/fieldgrid-phase-1-fixtures.mjs";
 
-test("phase 1 fixtures are complete and staging safe", () => {
+test("sprint 1 runtime fixture manifest is complete and staging safe", () => {
   assert.deepEqual(validatePhase1Fixtures(), []);
 
+  const manifest = buildPhase1RuntimeFixtureManifest();
+  assert.equal(manifest.version, "sprint-1-runtime-fixtures-v1");
+  assert.equal(manifest.scope, "fieldgrid-sprint-1-runtime-fixtures");
+  assert.equal(manifest.destructive, false);
+  assert.equal(manifest.mutatesExistingTenants, false);
+  assert.equal(manifest.directDatabaseWrites, false);
+  assert.deepEqual(manifest.allowedTenantSlugs, ["demo-a", "demo-b", "veele"]);
+  assert.ok(manifest.seedBatches.length >= 6);
+  assert.ok(manifest.cleanupBatches.length >= 4);
+  assert.ok(manifest.runtimeAssertions.length >= 8);
+});
+
+test("sprint 1 demo-data plan remains plan-only and cleanup scoped", () => {
   const plan = buildPhase1DemoDataPlan();
   assert.equal(plan.destructive, false);
   assert.equal(plan.mutatesExistingTenants, false);
+  assert.equal(plan.directDatabaseWrites, false);
   assert.deepEqual(plan.allowedTenantSlugs, ["demo-a", "demo-b", "veele"]);
-  assert.ok(plan.cleanupSelectors.length >= 3);
+  assert.ok(plan.cleanupSelectors.length >= 4);
+  assert.ok(plan.cleanupSelectors.every((selector) => selector.includes("FIELDGRID_PHASE1_DEMO") || selector.includes("sprint-1")));
+});
+
+test("sprint 1 seed batches are idempotent and ordered", () => {
+  const orders = phase1SeedBatches.map((batch) => batch.order);
+  assert.deepEqual([...orders].sort((a, b) => a - b), orders);
+
+  for (const batch of phase1SeedBatches) {
+    assert.equal(batch.mode, "upsert", `${batch.id} should be idempotent`);
+    assert.ok(batch.uniqueBy.length > 0, `${batch.id} should define uniqueBy`);
+    assert.ok(batch.rows.length > 0, `${batch.id} should have rows`);
+  }
+
+  const batchIds = new Set(phase1SeedBatches.map((batch) => batch.id));
+  for (const requiredBatch of [
+    "seed-tenants",
+    "seed-tenant-domains",
+    "seed-platform-actors",
+    "seed-tenant-memberships",
+    "seed-tenant-records",
+    "seed-storage-manifest",
+    "seed-support-grants",
+  ]) {
+    assert.ok(batchIds.has(requiredBatch), `missing ${requiredBatch}`);
+  }
+});
+
+test("sprint 1 cleanup batches are marker scoped and non destructive", () => {
+  const orders = phase1CleanupBatches.map((batch) => batch.order);
+  assert.deepEqual([...orders].sort((a, b) => a - b), orders);
+
+  for (const batch of phase1CleanupBatches) {
+    assert.equal(batch.destructive, false, `${batch.id} should be non destructive`);
+    assert.equal(batch.requiresMarker, true, `${batch.id} should require marker-scoped cleanup`);
+    assert.ok(batch.tables.length > 0, `${batch.id} should name tables`);
+  }
 });
 
 test("phase 1 fixtures treat Veele as a normal tenant", () => {
@@ -39,6 +94,15 @@ test("phase 1 fixtures treat Veele as a normal tenant", () => {
       phase1Records.some((record) => record.tenantSlug === "veele" && record.type === type),
       `veele should include ${type}`,
     );
+  }
+});
+
+test("tenant domains are explicit and tenant-owned", () => {
+  assert.ok(phase1TenantDomains.length >= 4);
+  for (const domain of phase1TenantDomains) {
+    assert.ok(domain.tenantId, `${domain.host} should have tenantId`);
+    assert.ok(domain.tenantSlug, `${domain.host} should have tenantSlug`);
+    assert.ok(domain.fixtureKey.startsWith(`${domain.tenantSlug}:domain:`));
   }
 });
 
@@ -91,6 +155,16 @@ test("direct id, module, sector and storage denial contracts are executable", ()
     ),
     false,
   );
+});
+
+test("runtime assertions cover the sprint 1 required proof boundaries", () => {
+  const assertionTypes = new Set(phase1RuntimeAssertions.map((assertion) => assertion.type));
+  for (const type of ["host", "tenant", "rbac", "support", "module", "sector", "direct-id", "storage"]) {
+    assert.ok(assertionTypes.has(type), `missing ${type} assertion`);
+  }
+
+  assert.ok(phase1RuntimeAssertions.some((assertion) => assertion.happy), "should include happy paths");
+  assert.ok(phase1RuntimeAssertions.some((assertion) => !assertion.happy), "should include denial paths");
 });
 
 test("security cases cover the phase 1 required boundaries", () => {

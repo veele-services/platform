@@ -1,0 +1,56 @@
+name: Fieldgrid Material Inventory Phase 12
+
+on:
+  workflow_dispatch:
+    inputs:
+      production_gate:
+        description: "Readiness gate to document for this manual run"
+        required: true
+        default: "readiness-only"
+        type: choice
+        options:
+          - readiness-only
+          - pre-production
+          - post-staging-copy
+
+jobs:
+  phase12-production-readiness:
+    name: Phase 12 production readiness
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Setup pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.5.2 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate phase 11 hardening contract
+        run: pnpm run fieldgrid:material-inventory-phase11:check
+
+      - name: Validate phase 12 production-readiness contract
+        run: pnpm run fieldgrid:material-inventory-phase12:check
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Run typecheck
+        run: pnpm run typecheck
+
+      - name: Run build
+        run: pnpm run build
+
+      - name: Summarize selected gate
+        run: |
+          echo "Selected production gate: ${{ inputs.production_gate }}"
+          echo "Production promotion still requires external empty-db and staging-copy migration smoke evidence."

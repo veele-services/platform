@@ -13,12 +13,14 @@ import { PersonnelDetailActions } from "@/components/personnel/PersonnelDetailAc
 import { PersonnelCompetenciesEditButton } from "@/components/personnel/PersonnelCompetenciesEditButton";
 import { AssignmentHistoryTable } from "@/components/assignments/AssignmentHistoryTable";
 import { EntityDocumentsPanel } from "@/components/documents/EntityDocumentsPanel";
+import { InventoryItemsPanel } from "@/components/inventory/InventoryItemsPanel";
 import { getPersonnel, listRoles, listSectors, getPersonnelAuthStatus, getLinkedObjects } from "@/app/actions/personnel";
 import { getAvailabilityWindows, listLeavePeriods } from "@/app/actions/availability";
 import { BeschikbaarheidView } from "@/components/personnel/BeschikbaarheidView";
 import { PersonnelPortalAccessCard } from "@/components/personnel/PersonnelPortalAccessCard";
 import { listAssignmentsForPersonnel } from "@/app/actions/assignments";
 import { listDocuments } from "@/app/actions/documents";
+import { listInventoryForPersonnel } from "@/app/actions/inventory";
 import {
   listPersonnelQualifications,
   type QualificationLinkRow,
@@ -51,11 +53,12 @@ export default async function PersonnelDetailPage({ params }: Props) {
 
   const { id } = await params;
 
-  const [canWrite, canReadAssignments, canReadDocuments, canWriteDocuments] = await Promise.all([
+  const [canWrite, canReadAssignments, canReadDocuments, canWriteDocuments, canReadInventory] = await Promise.all([
     hasPermission("personnel", "write"),
     hasPermission("assignments", "read"),
     hasPermission("documents", "read"),
     hasPermission("documents", "write"),
+    hasPermission("inventory", "view"),
   ]);
 
   const [
@@ -69,6 +72,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
     authStatus,
     linkedObjects,
     qualificationLinks,
+    inventoryItems,
   ] = await Promise.all([
     getPersonnel(id),
     listRoles(),
@@ -80,6 +84,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
     getPersonnelAuthStatus(id),
     getLinkedObjects(id),
     listPersonnelQualifications(id),
+    canReadInventory ? listInventoryForPersonnel(id) : Promise.resolve([]),
   ]);
 
   if (!person) notFound();
@@ -433,6 +438,17 @@ export default async function PersonnelDetailPage({ params }: Props) {
               emptyMessage="Nog geen opdrachten voor dit personeelslid."
             />
           </div>
+        </div>
+      )}
+
+      {/* ── Inventory ─────────────────────────────────── */}
+      {canReadInventory && (
+        <div className="mt-5">
+          <InventoryItemsPanel
+            rows={inventoryItems}
+            title="Inventaris"
+            emptyMessage="Er is nog geen inventaris aan dit personeelslid gekoppeld."
+          />
         </div>
       )}
 

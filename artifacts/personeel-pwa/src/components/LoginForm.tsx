@@ -17,7 +17,7 @@ const DEV_ACCOUNTS = [
 
 const initialState = undefined;
 
-export function LoginForm() {
+export function LoginForm({ next }: { next?: string | null }) {
   const [, formAction, isPending] = useActionState(
     async (_: unknown, formData: FormData) => {
       await signIn(formData);
@@ -41,6 +41,7 @@ export function LoginForm() {
 
   return (
     <form ref={formRef} action={formAction} className="space-y-4">
+      {next ? <input type="hidden" name="next" value={next} /> : null}
       <div>
         <label
           htmlFor="email"

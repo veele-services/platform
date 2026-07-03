@@ -46,6 +46,21 @@ export const FIELDGRID_PERMISSION_MODULES = {
   news: "notifications",
 
   task_codes: "assignments",
+
+  materials: "materials",
+  material_categories: "materials",
+  stock_locations: "materials",
+  material_stock_balances: "materials",
+  material_stock_movements: "materials",
+  assignment_material_usage: "materials",
+
+  inventory: "inventory",
+  inventory_categories: "inventory",
+  inventory_items: "inventory",
+  inventory_movements: "inventory",
+  inventory_issues: "inventory",
+  inventory_maintenance_events: "inventory",
+  assignment_inventory_items: "inventory",
 } as const satisfies Partial<Record<string, FieldgridModuleKey>>;
 
 export type FieldgridPermissionResource = keyof typeof FIELDGRID_PERMISSION_MODULES;

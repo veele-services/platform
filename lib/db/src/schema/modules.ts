@@ -23,6 +23,8 @@ export const FIELDGRID_MODULE_KEYS = [
   "personnel_portal",
   "notifications",
   "smart_planning",
+  "materials",
+  "inventory",
 ] as const;
 
 export const TENANT_MODULE_SOURCES = ["system", "plan", "manual", "trial", "support"] as const;
