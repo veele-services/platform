@@ -1,0 +1,54 @@
+name: Fieldgrid Migration Smoke
+
+on:
+  workflow_dispatch:
+    inputs:
+      target:
+        description: "Migration smoke target"
+        required: true
+        default: "all"
+        type: choice
+        options:
+          - all
+          - empty-database
+          - staging-copy
+
+jobs:
+  migration-smoke:
+    name: Migration smoke
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      FIELDGRID_MIGRATION_SMOKE_EMPTY_DATABASE_URL: ${{ secrets.FIELDGRID_MIGRATION_SMOKE_EMPTY_DATABASE_URL }}
+      FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_DATABASE_URL: ${{ secrets.FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_DATABASE_URL }}
+      FIELDGRID_MIGRATION_SMOKE_EMPTY_CONFIRM: empty-database
+      FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_CONFIRM: staging-copy
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate smoke contract
+        run: pnpm fieldgrid:sprint7-migration-smoke:check
+
+      - name: Run migration smoke
+        run: pnpm fieldgrid:sprint7-migration-smoke --run --target "${{ inputs.target }}"
+
+      - name: Upload migration smoke report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fieldgrid-migration-smoke-${{ inputs.target }}
+          path: artifacts/migration-smoke/*.json
+          if-no-files-found: warn
