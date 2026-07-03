@@ -11,7 +11,6 @@ import {
   Search,
 } from "lucide-react";
 import {
-  INVENTORY_STATUS_OPTIONS,
   archiveInventoryItem,
   createInventoryItem,
   type ActionResult,
@@ -21,6 +20,18 @@ import {
 } from "@/app/actions/inventory";
 
 const PAGE_SIZE = 25;
+const INVENTORY_STATUS_OPTIONS = [
+  "available",
+  "in_use",
+  "assigned_to_object",
+  "assigned_to_personnel",
+  "maintenance",
+  "defect",
+  "out_of_service",
+  "lost",
+  "disposed",
+  "archived",
+] as const;
 
 const STATUS_LABELS: Record<string, string> = {
   active: "Actief",
