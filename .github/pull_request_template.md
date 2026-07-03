@@ -8,6 +8,8 @@ Vul dit altijd in voor PR's die tenant lifecycle, modules, sectoren, RBAC, suppo
 
 - Geraakte updatefase uit `docs/fieldgrid-next-major-update-plan.md`:
   -
+- Geraakte sprint uit `docs/fieldgrid-saas-proof-sprint-plan.md`:
+  -
 - Geraakte data-classificatie-items uit `docs/fieldgrid-data-classification.md`:
   -
 - Geraakte test-id's uit `docs/fieldgrid-cross-tenant-testmatrix.md`:
@@ -27,6 +29,11 @@ Vul dit altijd in voor PR's die tenant lifecycle, modules, sectoren, RBAC, suppo
 - [ ] Niet van toepassing.
 - [ ] Lege database smoke vereist.
 - [ ] Staging-copy smoke vereist.
+- [ ] `pnpm fieldgrid:sprint7-migration-smoke:check` groen.
+- [ ] Lege database smoke uitgevoerd met `pnpm fieldgrid:sprint7-migration-smoke --run --target empty-database`.
+- [ ] Staging-copy smoke uitgevoerd met `pnpm fieldgrid:sprint7-migration-smoke --run --target staging-copy`.
+- [ ] Smoke artifact of JSON-rapport toegevoegd aan PR/Actions-run.
+- [ ] Unresolved rows zijn nul of hieronder expliciet verklaard.
 - [ ] Staging-data blijft behouden; geen drop/reset/rebuild.
 - [ ] Migratie is additive-first of het rollbackpad is expliciet beschreven.
 
