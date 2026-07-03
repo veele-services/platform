@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 type Props = {
-  searchParams: Promise<{ status?: string }>;
+  searchParams: Promise<{ status?: string; itemId?: string }>;
 };
 
 const STATUS_LABELS: Record<string, string> = {
@@ -42,8 +42,9 @@ export default async function InventoryIssuesPage({ searchParams }: Props) {
   const canRead = await hasPermission("inventory", "view");
   if (!canRead) return <ForbiddenPage resource="inventory" action="view" />;
 
-  const { status = "open" } = await searchParams;
-  const issues = await listInventoryIssues({ status });
+  const { status = "open", itemId } = await searchParams;
+  const itemQuery = itemId ? `&itemId=${encodeURIComponent(itemId)}` : "";
+  const issues = await listInventoryIssues({ status, itemId });
 
   return (
     <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-6 p-8">
@@ -64,7 +65,7 @@ export default async function InventoryIssuesPage({ searchParams }: Props) {
         </div>
         <div className="flex flex-wrap gap-2 text-sm">
           {[["open", "Open"], ["all", "Alles"], ["resolved", "Opgelost"]].map(([value, label]) => (
-            <Link key={value} href={`/inventory/issues?status=${value}`} className="rounded-md border px-3 py-2 font-medium" style={{ borderColor: status === value ? "#0F766E" : "#CBD5E1", color: status === value ? "#0F766E" : "#334155" }}>
+            <Link key={value} href={`/inventory/issues?status=${value}${itemQuery}`} className="rounded-md border px-3 py-2 font-medium" style={{ borderColor: status === value ? "#0F766E" : "#CBD5E1", color: status === value ? "#0F766E" : "#334155" }}>
               {label}
             </Link>
           ))}
