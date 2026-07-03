@@ -55,7 +55,7 @@ Productbesluit fase 3:
 
 ### Rapportage
 
-Script:
+Script: `lib/db/scripts/storage-tenancy-report.mjs`
 
 ```bash
 pnpm fieldgrid:phase3-storage-report
