@@ -46,6 +46,14 @@ test("shared tenant context helpers are exported from db package", () => {
   }
 });
 
+test("legacy and canonical staging hosts are platform hosts", () => {
+  const tenantContext = read("lib/db/src/tenant-context.ts");
+
+  assert.match(tenantContext, /platform\.fieldgrid\.nl/u);
+  assert.match(tenantContext, /staging\.fieldgrid\.nl/u);
+  assert.match(tenantContext, /staging\.veele\.dgwebservices\.nl/u);
+});
+
 test("backoffice and API use host-first lifecycle-aware tenant context", () => {
   const backofficeResolver = read("artifacts/backoffice/src/lib/auth/tenant-resolver.ts");
   const backofficeTenant = read("artifacts/backoffice/src/lib/auth/tenant.ts");
