@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { Boxes } from "lucide-react";
+import Link from "next/link";
+import { BarChart3, Boxes } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { MaterialsView } from "@/components/materials/MaterialsView";
@@ -50,6 +51,14 @@ export default async function MaterialsPage({ searchParams }: Props) {
             Catalogus, voorraad per object/personeel en voorraadmutaties.
           </p>
         </div>
+        <Link
+          href="/materials/dashboard"
+          className="inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm font-medium"
+          style={{ borderColor: "#CBD5E1", color: "#334155" }}
+        >
+          <BarChart3 className="h-4 w-4" />
+          Dashboard
+        </Link>
       </div>
 
       <MaterialsView
