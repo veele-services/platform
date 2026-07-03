@@ -12,7 +12,6 @@ import {
   getFlexpoolToday,
   getCapacityByRole,
 } from "@/app/actions/personnel";
-import { listRegionOptions } from "@/app/actions/regions";
 
 export const metadata: Metadata = { title: "Personeel" };
 
@@ -43,11 +42,10 @@ export default async function PersonnelPage({ searchParams }: Props) {
   const sort          = str(sp.sort, "lastName");
   const dir           = str(sp.dir, "asc");
 
-  const [{ rows, total }, roles, sectors, regionOptions, stats, flexpoolRows, capacityRows] = await Promise.all([
+  const [{ rows, total }, roles, sectors, stats, flexpoolRows, capacityRows] = await Promise.all([
     listPersonnel({ search, roleId, sectorId, region, status, personnelType, page, sort, dir }),
     listRoles(),
     listSectors(),
-    listRegionOptions(),
     getPersonnelStats(),
     getFlexpoolToday(),
     getCapacityByRole(),
@@ -69,7 +67,6 @@ export default async function PersonnelPage({ searchParams }: Props) {
         total={total}
         roles={roles}
         sectors={sectors}
-        regionOptions={regionOptions}
         canWrite={canWrite}
         page={page}
         initialSearch={search}
