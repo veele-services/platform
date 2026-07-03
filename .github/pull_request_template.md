@@ -4,13 +4,15 @@
 
 ## Fieldgrid canon-impact
 
-Vul dit altijd in voor PR's die tenant lifecycle, modules, sectoren, RBAC, support access, platform-admin, portalen, storage, finance, documenten, audit, provisioning of deployment raken.
+Vul dit altijd in voor PR's die tenant lifecycle, modules, sectoren, RBAC, support access, platform-admin, portalen, storage, finance, documenten, audit, provisioning, deployment of staging-promotie raken.
 
+- Geraakte updatefase uit `docs/fieldgrid-next-major-update-plan.md`:
+  -
 - Geraakte data-classificatie-items uit `docs/fieldgrid-data-classification.md`:
   -
 - Geraakte test-id's uit `docs/fieldgrid-cross-tenant-testmatrix.md`:
   -
-- Geraakte fasesprint uit `docs/fieldgrid-saas-masterplan.md`:
+- Geraakte staging-promotiechecklist uit `docs/fieldgrid-staging-promotion-checklist.md`:
   -
 
 ## Scope
@@ -18,7 +20,7 @@ Vul dit altijd in voor PR's die tenant lifecycle, modules, sectoren, RBAC, suppo
 - [ ] Geen runtime-code aangepast.
 - [ ] Geen schema of migraties aangepast.
 - [ ] Geen databasegedrag gewijzigd.
-- [ ] Runtime/schema/database gewijzigd; classificatie en test-id's hierboven zijn bijgewerkt.
+- [ ] Runtime/schema/database gewijzigd; classificatie, test-id's en stagingchecklist hierboven zijn bijgewerkt.
 
 ## Migraties en data
 
@@ -26,6 +28,7 @@ Vul dit altijd in voor PR's die tenant lifecycle, modules, sectoren, RBAC, suppo
 - [ ] Lege database smoke vereist.
 - [ ] Staging-copy smoke vereist.
 - [ ] Staging-data blijft behouden; geen drop/reset/rebuild.
+- [ ] Migratie is additive-first of het rollbackpad is expliciet beschreven.
 
 ## Testplan
 
@@ -37,5 +40,7 @@ Vul dit altijd in voor PR's die tenant lifecycle, modules, sectoren, RBAC, suppo
 
 ## Staging-promotie
 
-- [ ] Minimum green before staging uit `docs/fieldgrid-cross-tenant-testmatrix.md` is gecontroleerd.
 - [ ] PR raakt geen staging-promotie.
+- [ ] Minimum green before staging uit `docs/fieldgrid-cross-tenant-testmatrix.md` is gecontroleerd.
+- [ ] Fasechecklist uit `docs/fieldgrid-staging-promotion-checklist.md` is gecontroleerd.
+- [ ] Staging blijft zoveel mogelijk bereikbaar; geen geplande downtime zonder expliciete reden.
