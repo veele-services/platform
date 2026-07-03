@@ -6,23 +6,33 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { evaluatePasswordStrength, mediumPasswordMessage } from "@/lib/password-strength";
 
+function sanitizeRedirectPath(value: FormDataEntryValue | null): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("/") || trimmed.startsWith("//")) return null;
+  if (trimmed.startsWith("/login")) return null;
+  return trimmed;
+}
+
 export async function signIn(formData: FormData) {
   const supabase = await createClient();
 
   const email = formData.get("email") as string;
   const password = formData.get("password") as string;
+  const next = sanitizeRedirectPath(formData.get("next"));
 
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
-    redirect("/login?error=Ongeldige+inloggegevens");
+    const nextQuery = next ? `&next=${encodeURIComponent(next)}` : "";
+    redirect(`/login?error=Ongeldige+inloggegevens${nextQuery}`);
   }
 
   if (data.user?.app_metadata?.force_password_change === true) {
     redirect("/reset-wachtwoord?force=1");
   }
 
-  redirect("/");
+  redirect(next ?? "/");
 }
 
 export async function signOut() {
