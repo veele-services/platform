@@ -8,6 +8,7 @@ import {
   isPlatformHost,
   isSupportRuntimePermission,
   normalizeHost,
+  moduleForPermissionResource,
   permissionsTable,
   requireTenantModule,
   TENANT_RUNTIME_ACTIVE_STATUSES,
@@ -16,33 +17,12 @@ import {
   tenantUserRolesTable,
   tenantUsersTable,
   tenantsTable,
-  type FieldgridModuleKey,
   writeSupportAccessAuditLogForUser,
 } from "@workspace/db";
 import { and, eq, inArray, ne } from "drizzle-orm";
 
 const SUPABASE_URL = process.env["SUPABASE_URL"] ?? "";
 const SUPABASE_JWT_SECRET = process.env["SUPABASE_JWT_SECRET"] ?? "";
-
-const PERMISSION_MODULES: Partial<Record<string, FieldgridModuleKey>> = {
-  customers: "customers",
-  objects: "objects",
-  personnel: "personnel",
-  assignments: "assignments",
-  planning: "planning",
-  reports: "reporting",
-  documents: "documents",
-  invoices: "finance",
-  quotes: "finance",
-  payments: "finance",
-  customer_payment_batches: "finance",
-  notifications: "notifications",
-  smart_planning: "smart_planning",
-};
-
-function moduleForPermissionResource(resource: string): FieldgridModuleKey | null {
-  return PERMISSION_MODULES[resource] ?? null;
-}
 
 // ─── JWKS / HMAC key setup ─────────────────────────────────────────────────────
 
