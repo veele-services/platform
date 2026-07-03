@@ -39,7 +39,7 @@ export const modulesTable = pgTable(
     description: text("description"),
     category: varchar("category", { length: 60 }).notNull().default("core"),
     isSystem: boolean("is_system").notNull().default(true),
-    isEnabledByDefault: boolean("is_enabled_by_default").notNull().default(false),
+    isEnabledByDefault: boolean("is_enabled_by_default").notNull().default(true),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
