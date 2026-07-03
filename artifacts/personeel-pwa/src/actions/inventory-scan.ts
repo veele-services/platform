@@ -1,8 +1,8 @@
 "use server";
 
 import { db, isTenantModuleEnabled } from "@workspace/db";
-import { assignmentPersonnelTable, assignmentsTable, personnelTable } from "@workspace/db";
-import { and, eq, sql } from "drizzle-orm";
+import { personnelTable } from "@workspace/db";
+import { and, eq, sql, type SQL } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 
 export type InventoryScanStatus = "allowed" | "login_required" | "not_found" | "denied";
@@ -144,7 +144,7 @@ async function isScanAllowedForPersonnel(input: {
 
 async function getInventoryByWhere(
   tenantId: string,
-  whereClause: ReturnType<typeof sql>,
+  whereClause: SQL,
 ): Promise<(InventoryScanItem & { qrToken: string; currentPersonnelId: string | null; currentObjectId: string | null }) | null> {
   const [item] = rowsFrom<InventoryScanItem & { qrToken: string; currentPersonnelId: string | null; currentObjectId: string | null }>(await db.execute(sql`
     SELECT item.id,
