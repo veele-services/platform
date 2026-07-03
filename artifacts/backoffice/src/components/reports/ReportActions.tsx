@@ -3,7 +3,8 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { CheckCircle2, XCircle, Loader2, AlertTriangle } from "lucide-react";
-import { approveReport, rejectReport } from "@/app/actions/reports";
+import { rejectReport } from "@/app/actions/reports";
+import { approveReportAfterMaterialReview } from "@/app/actions/report-material-approval";
 
 interface Props {
   reportId: string;
@@ -26,7 +27,7 @@ export function ReportActions({ reportId, approveDisabledReason = null }: Props)
 
     setError(null);
     setLoading("approve");
-    const result = await approveReport(reportId);
+    const result = await approveReportAfterMaterialReview(reportId);
     setLoading(null);
     if (!result.success) {
       setError(result.message);
