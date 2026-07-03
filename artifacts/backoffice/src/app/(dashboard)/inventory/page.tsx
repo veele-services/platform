@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
-import { PackageSearch } from "lucide-react";
+import Link from "next/link";
+import { BarChart3, PackageSearch } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { InventoryView } from "@/components/inventory/InventoryView";
@@ -50,6 +51,14 @@ export default async function InventoryPage({ searchParams }: Props) {
             Register, status, locatie en dossierkoppelingen voor inventarisitems.
           </p>
         </div>
+        <Link
+          href="/inventory/dashboard"
+          className="inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm font-medium"
+          style={{ borderColor: "#CBD5E1", color: "#334155" }}
+        >
+          <BarChart3 className="h-4 w-4" />
+          Dashboard
+        </Link>
       </div>
 
       <InventoryView
