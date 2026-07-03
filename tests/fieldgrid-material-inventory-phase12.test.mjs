@@ -72,6 +72,17 @@ test("phase 12 documentation covers legacy, nullable columns, monitoring and rol
   }
 });
 
+test("phase 12 workflow runs readiness, tests, typecheck and build", () => {
+  const workflow = read(".github/workflows/fieldgrid-material-inventory-phase12.yml");
+
+  assert.ok(workflow.includes("workflow_dispatch"));
+  assert.ok(workflow.includes("fieldgrid:material-inventory-phase11:check"));
+  assert.ok(workflow.includes("fieldgrid:material-inventory-phase12:check"));
+  assert.ok(workflow.includes("pnpm test"));
+  assert.ok(workflow.includes("pnpm run typecheck"));
+  assert.ok(workflow.includes("pnpm run build"));
+});
+
 test("package scripts expose the phase 12 readiness check", () => {
   const packageJson = JSON.parse(read("package.json"));
 
