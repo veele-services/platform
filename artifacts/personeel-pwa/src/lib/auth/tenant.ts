@@ -4,9 +4,11 @@ import {
   isFieldgridSubdomain,
   isPlatformHost,
   normalizeHost,
+  requireTenantModule,
   TENANT_RUNTIME_ACTIVE_STATUSES,
   tenantDomainsTable,
   tenantsTable,
+  type FieldgridModuleKey,
 } from "@workspace/db";
 import { and, eq, inArray, ne } from "drizzle-orm";
 
@@ -53,4 +55,20 @@ export async function resolvePortalTenantFromHost(): Promise<PortalHostTenantRes
 export async function getCurrentPortalTenantId(): Promise<string | null> {
   const resolution = await resolvePortalTenantFromHost();
   return resolution.kind === "tenant" ? resolution.tenantId : null;
+}
+
+export async function requireCurrentPortalModule(moduleKey: FieldgridModuleKey): Promise<string | null> {
+  const tenantId = await getCurrentPortalTenantId();
+  if (!tenantId) return null;
+
+  try {
+    await requireTenantModule(tenantId, moduleKey);
+    return tenantId;
+  } catch {
+    return null;
+  }
+}
+
+export async function requireCurrentPersonnelPortalTenantId(): Promise<string | null> {
+  return requireCurrentPortalModule("personnel_portal");
 }
