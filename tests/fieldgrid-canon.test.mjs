@@ -22,6 +22,7 @@ const canonicalDocs = [
   "docs/fieldgrid-next-major-update-plan.md",
   "docs/fieldgrid-staging-promotion-checklist.md",
   "docs/fieldgrid-saas-proof-sprint-plan.md",
+  "docs/fieldgrid-sprint-7-migration-smoke.md",
   "docs/fieldgrid-phase-1-testbasis.md",
   "docs/fieldgrid-phase-2-tenant-hardening.md",
   "docs/fieldgrid-phase-3-storage-media-news.md",
@@ -247,6 +248,27 @@ test("sprint plan defines complete execution through final gate", () => {
   );
 });
 
+test("sprint 7 migration smoke canon is executable and staging-safe", () => {
+  const sprint7 = read("docs/fieldgrid-sprint-7-migration-smoke.md");
+  const packageJson = read("package.json");
+  const workflow = read(".github/workflows/fieldgrid-migration-smoke.yml");
+
+  assertContains(
+    `${sprint7}\n${packageJson}\n${workflow}`,
+    [
+      "fieldgrid:sprint7-migration-smoke:check",
+      "fieldgrid:sprint7-migration-smoke --run --target empty-database",
+      "fieldgrid:sprint7-migration-smoke --run --target staging-copy",
+      "FG-MIG-001",
+      "FG-MIG-002",
+      "FG-MIG-003",
+      "staging-copy",
+      "geen database gemigreerd",
+    ],
+    "sprint 7 migration smoke canon",
+  );
+});
+
 test("next major update plan points to the sprint canon", () => {
   const plan = read("docs/fieldgrid-next-major-update-plan.md");
 
@@ -299,10 +321,12 @@ test("pull request template enforces Fieldgrid canon discipline", () => {
     [
       "Fieldgrid canon-impact",
       "docs/fieldgrid-next-major-update-plan.md",
+      "docs/fieldgrid-saas-proof-sprint-plan.md",
       "docs/fieldgrid-data-classification.md",
       "docs/fieldgrid-cross-tenant-testmatrix.md",
       "docs/fieldgrid-staging-promotion-checklist.md",
       "Geraakte test-id's",
+      "fieldgrid:sprint7-migration-smoke:check",
       "Staging-data blijft behouden",
       "Minimum green before staging",
       "staging blijft zoveel mogelijk bereikbaar",
