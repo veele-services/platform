@@ -64,7 +64,7 @@ WITH enabled_counts AS (
   SELECT
     tenant_id,
     count(*) FILTER (WHERE is_enabled = true)::int AS enabled_count,
-    min(sector_id) FILTER (WHERE is_enabled = true) AS only_enabled_sector_id
+    min(sector_id::text)::uuid FILTER (WHERE is_enabled = true) AS only_enabled_sector_id
   FROM tenant_sectors
   GROUP BY tenant_id
 )
@@ -190,7 +190,7 @@ BEGIN
     IF policy_default_sector_id IS NOT NULL THEN
       NEW.sector_id := policy_default_sector_id;
     ELSE
-      SELECT count(*)::int, min(sector_id)
+      SELECT count(*)::int, min(sector_id::text)::uuid
       INTO single_enabled_count, single_enabled_sector_id
       FROM tenant_sectors
       WHERE tenant_id = NEW.tenant_id
