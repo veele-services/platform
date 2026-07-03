@@ -2,11 +2,14 @@
 
 import { db } from "@workspace/db";
 import {
+  FIELDGRID_SUPPORT_BREAK_GLASS_GRANT_TYPE,
+  FIELDGRID_SUPPORT_BREAK_GLASS_MAX_TTL_MINUTES,
   FIELDGRID_SUPPORT_TENANT_COOKIE,
   platformUsersTable,
   supportAccessAuditLogTable,
   supportAccessGrantsTable,
   tenantsTable,
+  validateSupportBreakGlassGrant,
 } from "@workspace/db";
 import { and, desc, eq, gt, isNull, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -54,6 +57,18 @@ export type SupportAccessAuditLogRow = {
   createdAt: string;
 };
 
+export type PlatformSecurityEventRow = SupportAccessAuditLogRow & {
+  tenantName: string;
+};
+
+export type PlatformSecurityDashboard = {
+  generatedAt: string;
+  supportEvents: PlatformSecurityEventRow[];
+  downloadEvents: PlatformSecurityEventRow[];
+  denialEvents: PlatformSecurityEventRow[];
+  platformEvents: PlatformSecurityEventRow[];
+};
+
 function normalizePlatformRole(role: string): "owner" | "admin" | "support" {
   return ["owner", "admin", "support"].includes(role)
     ? (role as "owner" | "admin" | "support")
@@ -73,6 +88,45 @@ function formValue(formData: FormData, name: string): string {
 function revalidatePlatformTenant(tenantId: string): void {
   revalidatePath("/platform");
   revalidatePath(`/platform/tenants/${tenantId}`);
+  revalidatePath("/platform/security");
+}
+
+function securityEventText(event: PlatformSecurityEventRow): string {
+  return `${event.action} ${event.resource ?? ""} ${event.resourceId ?? ""} ${JSON.stringify(event.metadata ?? {})}`.toLowerCase();
+}
+
+function isDownloadSecurityEvent(event: PlatformSecurityEventRow): boolean {
+  const text = securityEventText(event);
+  return ["download", "signed_url", "signed-url", "pdf"].some((marker) => text.includes(marker));
+}
+
+function isDenialSecurityEvent(event: PlatformSecurityEventRow): boolean {
+  const text = securityEventText(event);
+  return [
+    "denied",
+    "denial",
+    "geweigerd",
+    "forbidden",
+    "expired",
+    "wrong_tenant",
+    "cross-tenant",
+    "direct-id",
+    "path_guess",
+    "path-guess",
+  ].some((marker) => text.includes(marker));
+}
+
+function isPlatformSecurityEvent(event: PlatformSecurityEventRow): boolean {
+  const text = securityEventText(event);
+  return (
+    event.action.startsWith("grant_") ||
+    ["platform", "tenant", "module", "sector", "support_access_grants"].some((marker) => text.includes(marker))
+  );
+}
+
+function isSupportSecurityEvent(event: PlatformSecurityEventRow): boolean {
+  const text = securityEventText(event);
+  return ["support", "grant_", "support_access_grants"].some((marker) => text.includes(marker));
 }
 
 export async function listPlatformUsers(): Promise<PlatformUserRow[]> {
@@ -167,13 +221,9 @@ export async function createSupportAccessGrant(input: {
   if (!tenantId || !platformUserId) {
     return { success: false, message: "Tenant en platformgebruiker zijn verplicht." };
   }
-  if (!reason) return { success: false, message: "Reden is verplicht." };
-  if (Number.isNaN(expiresAt.getTime()) || expiresAt <= new Date()) {
-    return { success: false, message: "Einddatum moet in de toekomst liggen." };
-  }
-  if (Number.isNaN(startsAt.getTime()) || startsAt >= expiresAt) {
-    return { success: false, message: "Startdatum moet voor de einddatum liggen." };
-  }
+
+  const breakGlassValidation = validateSupportBreakGlassGrant({ reason, startsAt, expiresAt });
+  if (!breakGlassValidation.success) return breakGlassValidation;
 
   const [row] = await db
     .insert(supportAccessGrantsTable)
@@ -192,10 +242,19 @@ export async function createSupportAccessGrant(input: {
     action: "grant_created",
     resource: "support_access_grants",
     resourceId: row.id,
-    metadata: { platformUserId, reason, expiresAt: expiresAt.toISOString() },
+    metadata: {
+      platformUserId,
+      reason,
+      startsAt: startsAt.toISOString(),
+      expiresAt: expiresAt.toISOString(),
+      grantType: FIELDGRID_SUPPORT_BREAK_GLASS_GRANT_TYPE,
+      ttlMinutes: breakGlassValidation.ttlMinutes,
+      maxTtlMinutes: FIELDGRID_SUPPORT_BREAK_GLASS_MAX_TTL_MINUTES,
+    },
   });
 
   revalidatePath("/platform");
+  revalidatePath("/platform/security");
   revalidatePlatformTenant(tenantId);
   return { success: true, data: { id: row.id } };
 }
@@ -234,9 +293,11 @@ export async function revokeSupportAccessGrant(grantId: string): Promise<ActionR
     action: "grant_revoked",
     resource: "support_access_grants",
     resourceId: grant.id,
+    metadata: { grantType: FIELDGRID_SUPPORT_BREAK_GLASS_GRANT_TYPE },
   });
 
   revalidatePath("/platform");
+  revalidatePath("/platform/security");
   revalidatePlatformTenant(grant.tenantId);
   return { success: true };
 }
@@ -279,6 +340,8 @@ export async function enterSupportMode(formData: FormData): Promise<void> {
     metadata: {
       reason: grant.reason,
       expiresAt: grant.expiresAt.toISOString(),
+      grantType: FIELDGRID_SUPPORT_BREAK_GLASS_GRANT_TYPE,
+      ttlSeconds: Math.max(0, Math.floor((grant.expiresAt.getTime() - Date.now()) / 1000)),
     },
   });
 
@@ -324,6 +387,53 @@ export async function listSupportAccessAuditLog(tenantId?: string): Promise<Supp
     metadata: row.metadata as Record<string, unknown> | null,
     createdAt: row.createdAt.toISOString(),
   }));
+}
+
+export async function listPlatformSecurityDashboard(
+  tenantId?: string,
+): Promise<PlatformSecurityDashboard> {
+  await requirePlatformAdmin();
+
+  const where = tenantId ? eq(supportAccessAuditLogTable.tenantId, tenantId) : undefined;
+  const rows = await db
+    .select({
+      id: supportAccessAuditLogTable.id,
+      grantId: supportAccessAuditLogTable.grantId,
+      tenantId: supportAccessAuditLogTable.tenantId,
+      tenantName: tenantsTable.name,
+      platformUserId: supportAccessAuditLogTable.platformUserId,
+      action: supportAccessAuditLogTable.action,
+      resource: supportAccessAuditLogTable.resource,
+      resourceId: supportAccessAuditLogTable.resourceId,
+      metadata: supportAccessAuditLogTable.metadata,
+      createdAt: supportAccessAuditLogTable.createdAt,
+    })
+    .from(supportAccessAuditLogTable)
+    .innerJoin(tenantsTable, eq(supportAccessAuditLogTable.tenantId, tenantsTable.id))
+    .where(where)
+    .orderBy(desc(supportAccessAuditLogTable.createdAt))
+    .limit(300);
+
+  const events = rows.map((row) => ({
+    id: row.id,
+    grantId: row.grantId,
+    tenantId: row.tenantId,
+    tenantName: row.tenantName,
+    platformUserId: row.platformUserId,
+    action: row.action,
+    resource: row.resource,
+    resourceId: row.resourceId,
+    metadata: row.metadata as Record<string, unknown> | null,
+    createdAt: row.createdAt.toISOString(),
+  }));
+
+  return {
+    generatedAt: new Date().toISOString(),
+    supportEvents: events.filter(isSupportSecurityEvent).slice(0, 40),
+    downloadEvents: events.filter(isDownloadSecurityEvent).slice(0, 40),
+    denialEvents: events.filter(isDenialSecurityEvent).slice(0, 40),
+    platformEvents: events.filter(isPlatformSecurityEvent).slice(0, 40),
+  };
 }
 
 export async function markCurrentPlatformUserSeen(): Promise<void> {

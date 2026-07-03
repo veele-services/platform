@@ -47,13 +47,23 @@ export default async function PlatformAdminPage() {
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-8 text-slate-950">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
-        <header className="flex flex-col gap-2 border-b border-slate-200 pb-5">
-          <p className="text-sm font-medium text-slate-500">Fieldgrid</p>
-          <h1 className="text-3xl font-semibold tracking-normal">Platformbeheer</h1>
-          {!isPlatformAdmin && (
-            <p className="text-sm text-slate-500">
-              Je ziet alleen supportgrants die expliciet aan jouw platformgebruiker zijn toegekend.
-            </p>
+        <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-2">
+            <p className="text-sm font-medium text-slate-500">Fieldgrid</p>
+            <h1 className="text-3xl font-semibold tracking-normal">Platformbeheer</h1>
+            {!isPlatformAdmin && (
+              <p className="text-sm text-slate-500">
+                Je ziet alleen supportgrants die expliciet aan jouw platformgebruiker zijn toegekend.
+              </p>
+            )}
+          </div>
+          {isPlatformAdmin && (
+            <Link
+              href="/platform/security"
+              className="w-fit rounded border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+            >
+              Securitydashboard
+            </Link>
           )}
         </header>
 
