@@ -1,10 +1,17 @@
 "use server";
 
-import { db, assignmentsTable, assignmentPersonnelTable, isTenantModuleEnabled } from "@workspace/db";
-import { assignmentTasksTable } from "@workspace/db";
+import {
+  assignmentPersonnelTable,
+  assignmentsTable,
+  assignmentTasksTable,
+  customersTable,
+  db,
+  objectsTable,
+} from "@workspace/db";
 import { emitAssignmentWorkflowEvent } from "@workspace/db/workflow-events";
 import { and, eq } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
+import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
 import { revalidatePath } from "next/cache";
 
 export type MyAssignment = {
@@ -54,6 +61,43 @@ type LinkedAssignment = {
   customerSignatureRequired: boolean;
 };
 
+type AssignmentRow = {
+  id: string;
+  code: string | null;
+  title: string;
+  scheduledDate: string | null;
+  scheduledStart: string | null;
+  scheduledEnd: string | null;
+  seenAt: Date | string | null;
+  actualStartedAt: Date | string | null;
+  actualCompletedAt: Date | string | null;
+  completionReason: string | null;
+  completionNotes: string | null;
+  customerSignatureRequired: boolean;
+  customerSignatureDataUrl: string | null;
+  status: string;
+  customerName: string | null;
+  contactName: string | null;
+  phone: string | null;
+  objectName: string | null;
+  objectAddress: string | null;
+  objectCity: string | null;
+  objectPostalCode: string | null;
+  requiredRegion: string | null;
+};
+
+type AssignmentDetailRow = AssignmentRow & {
+  description: string | null;
+};
+
+type AssignmentTaskRow = {
+  id: string;
+  sortOrder: number;
+  notes: string | null;
+  completedAt: Date | string | null;
+  completedBy: string | null;
+};
+
 const NOT_COMPLETED_REASONS = new Set([
   "Klant niet aanwezig",
   "Geen toegang tot object",
@@ -72,25 +116,74 @@ async function getPersonnelBasic(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
 ): Promise<PersonnelBasic | null> {
+  const tenantId = await requireCurrentPersonnelPortalTenantId();
+  if (!tenantId) return null;
+
   const { data } = await supabase
     .from("personnel")
     .select("id, tenant_id, region, is_active")
+    .eq("tenant_id", tenantId)
     .eq("user_id", userId)
     .eq("is_active", true)
-    .single();
+    .maybeSingle();
 
-  if (!data?.tenant_id) return null;
-  if (!(await isTenantModuleEnabled(data.tenant_id, "personnel_portal"))) return null;
-
-  return { id: data.id, tenantId: data.tenant_id, region: data.region ?? null };
+  if (!data?.id) return null;
+  return { id: data.id, tenantId, region: data.region ?? null };
 }
 
-/** Returns true if the assignment is region-compatible with the personnel member. */
-function meetsRegion(personnelRegion: string | null, requiredRegion: string | null): boolean {
-  if (!requiredRegion) return true;           // no requirement → open to all
-  if (!personnelRegion) return true;          // worker has no region set → don't restrict
-  return requiredRegion.toLowerCase().includes(personnelRegion.toLowerCase()) ||
-    personnelRegion.toLowerCase().includes(requiredRegion.toLowerCase());
+function toIsoString(value: Date | string | null): string | null {
+  if (!value) return null;
+  return value instanceof Date ? value.toISOString() : value;
+}
+
+function todayKey(): string {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Amsterdam",
+    year:     "numeric",
+    month:    "2-digit",
+    day:      "2-digit",
+  }).format(new Date());
+}
+
+function mapAssignmentRow(row: AssignmentRow): MyAssignment {
+  return {
+    id:               row.id,
+    code:             row.code ?? "",
+    title:            row.title,
+    scheduledDate:    row.scheduledDate ?? null,
+    scheduledStart:   row.scheduledStart ?? null,
+    scheduledEnd:     row.scheduledEnd ?? null,
+    seenAt:           toIsoString(row.seenAt),
+    actualStartedAt:  toIsoString(row.actualStartedAt),
+    actualCompletedAt: toIsoString(row.actualCompletedAt),
+    completionReason: row.completionReason ?? null,
+    completionNotes:  row.completionNotes ?? null,
+    customerSignatureRequired: Boolean(row.customerSignatureRequired),
+    customerSignatureDataUrl: row.customerSignatureDataUrl ?? null,
+    status:           row.status,
+    customerName:     row.customerName ?? null,
+    contactName:      row.contactName ?? null,
+    phone:            row.phone ?? null,
+    objectName:       row.objectName ?? null,
+    objectAddress:    row.objectAddress ?? null,
+    objectCity:       row.objectCity ?? null,
+    objectPostalCode: row.objectPostalCode ?? null,
+    requiredRegion:   row.requiredRegion ?? null,
+  };
+}
+
+function sortAssignments(a: MyAssignment, b: MyAssignment): number {
+  const today = todayKey();
+  const aFuture = (a.scheduledDate ?? "") >= today;
+  const bFuture = (b.scheduledDate ?? "") >= today;
+  if (aFuture && !bFuture) return -1;
+  if (!aFuture && bFuture) return 1;
+  if (aFuture && bFuture) {
+    const byDate = (a.scheduledDate ?? "").localeCompare(b.scheduledDate ?? "");
+    if (byDate !== 0) return byDate;
+    return (a.scheduledStart ?? "99:99").localeCompare(b.scheduledStart ?? "99:99");
+  }
+  return (b.scheduledDate ?? "").localeCompare(a.scheduledDate ?? "");
 }
 
 export async function getMyAssignments(): Promise<MyAssignment[]> {
@@ -101,68 +194,45 @@ export async function getMyAssignments(): Promise<MyAssignment[]> {
   const personnel = await getPersonnelBasic(supabase, user.id);
   if (!personnel) return [];
 
-  const { data } = await supabase
-    .from("assignment_personnel")
-    .select(`
-      assignments!inner(
-        id, code, title, scheduled_date, scheduled_start, scheduled_end,
-        tenant_id,
-        seen_at, actual_started_at, actual_completed_at,
-        completion_reason, completion_notes,
-        customer_signature_required, customer_signature_data_url,
-        status,
-        required_region,
-        customers(name),
-        objects(name, address, city, postal_code, contact_name, contact_phone)
-      )
-    `)
-    .eq("personnel_id", personnel.id)
-    .eq("status", "assigned")
-    .eq("assignments.tenant_id", personnel.tenantId);
-
-  if (!data) return [];
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (data as any[])
-    .map((row) => {
-      const a = row.assignments;
-      return {
-        id:               a.id,
-        code:             a.code ?? "",
-        title:            a.title,
-        scheduledDate:    a.scheduled_date ?? null,
-        scheduledStart:   a.scheduled_start ?? null,
-        scheduledEnd:     a.scheduled_end ?? null,
-        seenAt:           a.seen_at ?? null,
-        actualStartedAt:  a.actual_started_at ?? null,
-        actualCompletedAt: a.actual_completed_at ?? null,
-        completionReason: a.completion_reason ?? null,
-        completionNotes:  a.completion_notes ?? null,
-        customerSignatureRequired: Boolean(a.customer_signature_required),
-        customerSignatureDataUrl: a.customer_signature_data_url ?? null,
-        status:           a.status,
-        customerName:     a.customers?.name ?? null,
-        contactName:      a.objects?.contact_name ?? null,
-        phone:            a.objects?.contact_phone ?? null,
-        objectName:       a.objects?.name ?? null,
-        objectAddress:    a.objects?.address ?? null,
-        objectCity:       a.objects?.city ?? null,
-        objectPostalCode: a.objects?.postal_code ?? null,
-        requiredRegion:   a.required_region ?? null,
-      } as MyAssignment;
+  const rows: AssignmentRow[] = await db
+    .select({
+      id: assignmentsTable.id,
+      code: assignmentsTable.code,
+      title: assignmentsTable.title,
+      scheduledDate: assignmentsTable.scheduledDate,
+      scheduledStart: assignmentsTable.scheduledStart,
+      scheduledEnd: assignmentsTable.scheduledEnd,
+      seenAt: assignmentsTable.seenAt,
+      actualStartedAt: assignmentsTable.actualStartedAt,
+      actualCompletedAt: assignmentsTable.actualCompletedAt,
+      completionReason: assignmentsTable.completionReason,
+      completionNotes: assignmentsTable.completionNotes,
+      customerSignatureRequired: assignmentsTable.customerSignatureRequired,
+      customerSignatureDataUrl: assignmentsTable.customerSignatureDataUrl,
+      status: assignmentsTable.status,
+      requiredRegion: assignmentsTable.requiredRegion,
+      customerName: customersTable.name,
+      contactName: objectsTable.contactName,
+      phone: objectsTable.contactPhone,
+      objectName: objectsTable.name,
+      objectAddress: objectsTable.address,
+      objectCity: objectsTable.city,
+      objectPostalCode: objectsTable.postalCode,
     })
-    // Filter by region: hide assignments whose required_region doesn't match
-    .filter((a) => meetsRegion(personnel.region, a.requiredRegion))
-    .sort((a, b) => {
-      // Upcoming first, then descending
-      const today = new Date().toISOString().slice(0, 10);
-      const aFuture = (a.scheduledDate ?? "") >= today;
-      const bFuture = (b.scheduledDate ?? "") >= today;
-      if (aFuture && !bFuture) return -1;
-      if (!aFuture && bFuture) return 1;
-      if (aFuture && bFuture) return (a.scheduledDate ?? "").localeCompare(b.scheduledDate ?? "");
-      return (b.scheduledDate ?? "").localeCompare(a.scheduledDate ?? "");
-    });
+    .from(assignmentPersonnelTable)
+    .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
+    .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
+    .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
+    .where(
+      and(
+        eq(assignmentPersonnelTable.personnelId, personnel.id),
+        eq(assignmentPersonnelTable.status, "assigned"),
+        eq(assignmentsTable.tenantId, personnel.tenantId),
+        eq(assignmentsTable.isActive, true),
+      ),
+    );
+
+  return rows.map(mapAssignmentRow).sort(sortAssignments);
 }
 
 export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | null> {
@@ -173,65 +243,70 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
   const personnel = await getPersonnelBasic(supabase, user.id);
   if (!personnel) return null;
 
-  const { data } = await supabase
-    .from("assignment_personnel")
-    .select(`
-      assignments!inner(
-        id, code, title, description, scheduled_date, scheduled_start, scheduled_end,
-        tenant_id,
-        seen_at, actual_started_at, actual_completed_at,
-        completion_reason, completion_notes,
-        customer_signature_required, customer_signature_data_url,
-        status,
-        required_region,
-        customers(name),
-        objects(name, address, city, postal_code, contact_name, contact_phone),
-        assignment_tasks(id, sort_order, notes, completed_at, completed_by)
-      )
-    `)
-    .eq("personnel_id", personnel.id)
-    .eq("assignment_id", id)
-    .eq("status", "assigned")
-    .eq("assignments.tenant_id", personnel.tenantId)
-    .single();
+  const [row] = await db
+    .select({
+      id: assignmentsTable.id,
+      code: assignmentsTable.code,
+      title: assignmentsTable.title,
+      description: assignmentsTable.description,
+      scheduledDate: assignmentsTable.scheduledDate,
+      scheduledStart: assignmentsTable.scheduledStart,
+      scheduledEnd: assignmentsTable.scheduledEnd,
+      seenAt: assignmentsTable.seenAt,
+      actualStartedAt: assignmentsTable.actualStartedAt,
+      actualCompletedAt: assignmentsTable.actualCompletedAt,
+      completionReason: assignmentsTable.completionReason,
+      completionNotes: assignmentsTable.completionNotes,
+      customerSignatureRequired: assignmentsTable.customerSignatureRequired,
+      customerSignatureDataUrl: assignmentsTable.customerSignatureDataUrl,
+      status: assignmentsTable.status,
+      requiredRegion: assignmentsTable.requiredRegion,
+      customerName: customersTable.name,
+      contactName: objectsTable.contactName,
+      phone: objectsTable.contactPhone,
+      objectName: objectsTable.name,
+      objectAddress: objectsTable.address,
+      objectCity: objectsTable.city,
+      objectPostalCode: objectsTable.postalCode,
+    })
+    .from(assignmentPersonnelTable)
+    .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
+    .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
+    .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
+    .where(
+      and(
+        eq(assignmentPersonnelTable.personnelId, personnel.id),
+        eq(assignmentPersonnelTable.assignmentId, id),
+        eq(assignmentPersonnelTable.status, "assigned"),
+        eq(assignmentsTable.tenantId, personnel.tenantId),
+        eq(assignmentsTable.isActive, true),
+      ),
+    )
+    .limit(1);
 
-  if (!data) return null;
+  if (!row) return null;
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const a = (data as any).assignments;
-  if (!a) return null;
+  const tasks: AssignmentTaskRow[] = await db
+    .select({
+      id: assignmentTasksTable.id,
+      sortOrder: assignmentTasksTable.sortOrder,
+      notes: assignmentTasksTable.notes,
+      completedAt: assignmentTasksTable.completedAt,
+      completedBy: assignmentTasksTable.completedBy,
+    })
+    .from(assignmentTasksTable)
+    .where(eq(assignmentTasksTable.assignmentId, id))
+    .orderBy(assignmentTasksTable.sortOrder);
 
   return {
-    id:               a.id,
-    code:             a.code ?? "",
-    title:            a.title,
-    description:      a.description ?? null,
-    scheduledDate:    a.scheduled_date ?? null,
-    scheduledStart:   a.scheduled_start ?? null,
-    scheduledEnd:     a.scheduled_end ?? null,
-    seenAt:           a.seen_at ?? null,
-    actualStartedAt:  a.actual_started_at ?? null,
-    actualCompletedAt: a.actual_completed_at ?? null,
-    completionReason: a.completion_reason ?? null,
-    completionNotes:  a.completion_notes ?? null,
-    customerSignatureRequired: Boolean(a.customer_signature_required),
-    customerSignatureDataUrl: a.customer_signature_data_url ?? null,
-    status:           a.status,
-    customerName:     a.customers?.name ?? null,
-    contactName:      a.objects?.contact_name ?? null,
-    phone:            a.objects?.contact_phone ?? null,
-    objectName:       a.objects?.name ?? null,
-    objectAddress:    a.objects?.address ?? null,
-    objectCity:       a.objects?.city ?? null,
-    objectPostalCode: a.objects?.postal_code ?? null,
-    requiredRegion:   a.required_region ?? null,
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    tasks: (a.assignment_tasks ?? []).map((t: any) => ({
-      id:          t.id,
-      sortOrder:   t.sort_order,
-      notes:       t.notes ?? null,
-      completedAt: t.completed_at ?? null,
-      completedBy: t.completed_by ?? null,
+    ...mapAssignmentRow(row as AssignmentDetailRow),
+    description: row.description ?? null,
+    tasks: tasks.map((task) => ({
+      id:          task.id,
+      sortOrder:   task.sortOrder,
+      notes:       task.notes ?? null,
+      completedAt: toIsoString(task.completedAt),
+      completedBy: task.completedBy ?? null,
     })),
   };
 }
