@@ -49,7 +49,7 @@ function stockStatus(row: MaterialRow) {
   return { label: "Voldoende", bg: "#ECFDF5", color: "#047857", icon: false };
 }
 
-function resultMessage(result: ActionResult, successMessage: string): string {
+function resultMessage(result: ActionResult<unknown>, successMessage: string): string {
   return result.success ? successMessage : result.message;
 }
 
@@ -105,7 +105,7 @@ export function MaterialsView({
     router.replace(buildUrl({ ...overrides, page: undefined }));
   }
 
-  function run(action: () => Promise<ActionResult>, successMessage: string) {
+  function run(action: () => Promise<ActionResult<unknown>>, successMessage: string) {
     setMessage(null);
     startTransition(async () => {
       const result = await action();

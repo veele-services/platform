@@ -81,7 +81,7 @@ interface ObjectFormProps {
   preselectedCustomerId?: string;
   sectors: SectorOption[];
   customers: CustomerOption[];
-  regionOptions: RegionOption[];
+  regionOptions?: RegionOption[];
   onSuccess: (id: string) => void;
   onCancel: () => void;
 }
@@ -114,7 +114,7 @@ export function ObjectForm({
   preselectedCustomerId,
   sectors,
   customers,
-  regionOptions,
+  regionOptions = [],
   onSuccess,
   onCancel,
 }: ObjectFormProps) {
