@@ -1,5 +1,6 @@
 "use client";
 
+import type { ComponentType } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
@@ -25,20 +26,26 @@ type CustomerPortalFeatureFlags = {
   reporting: boolean;
 };
 
+type NavIcon = ComponentType<{
+  className?: string;
+  size?: number;
+  strokeWidth?: number;
+}>;
+
 const NAV_ITEMS = [
-  { href: "/",                    label: "Dashboard",    Icon: Home },
-  { href: "/objecten",            label: "Mijn objecten", Icon: Building2 },
-  { href: "/opdrachten/aanvragen", label: "Aanvragen",    Icon: Send },
-  { href: "/rapporten",           label: "Rapportages",  Icon: FileCheck2, moduleKey: "reporting" },
-  { href: "/facturen",            label: "Facturen",     Icon: Receipt, moduleKey: "finance" },
-  { href: "/betalingen",          label: "Betalingen",   Icon: WalletCards, moduleKey: "finance" },
-  { href: "/opdrachten",          label: "Afspraken",    Icon: CalendarDays },
-  { href: "/meldingen",           label: "Meldingen",    Icon: Bell },
-  { href: "/documenten",          label: "Documenten",   Icon: FileText, moduleKey: "documents" },
+  { href: "/", label: "Dashboard", Icon: Home },
+  { href: "/objecten", label: "Mijn objecten", Icon: Building2 },
+  { href: "/opdrachten/aanvragen", label: "Aanvragen", Icon: Send },
+  { href: "/rapporten", label: "Rapportages", Icon: FileCheck2, moduleKey: "reporting" },
+  { href: "/facturen", label: "Facturen", Icon: Receipt, moduleKey: "finance" },
+  { href: "/betalingen", label: "Betalingen", Icon: WalletCards, moduleKey: "finance" },
+  { href: "/opdrachten", label: "Afspraken", Icon: CalendarDays },
+  { href: "/meldingen", label: "Meldingen", Icon: Bell },
+  { href: "/documenten", label: "Documenten", Icon: FileText, moduleKey: "documents" },
 ] satisfies Array<{
   href: string;
   label: string;
-  Icon: typeof Home;
+  Icon: NavIcon;
   moduleKey?: keyof CustomerPortalFeatureFlags;
 }>;
 
@@ -64,7 +71,7 @@ export function DesktopSidebar({
       className="hidden h-screen w-[260px] shrink-0 flex-col md:flex"
       style={{
         background: "linear-gradient(180deg, var(--color-primary) 0%, #061F44 100%)",
-        color:      "white",
+        color: "white",
       }}
     >
       <div className="px-6 pb-5 pt-7">
@@ -85,7 +92,7 @@ export function DesktopSidebar({
               className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition"
               style={{
                 backgroundColor: isActive ? "rgba(0,183,179,0.18)" : "transparent",
-                color:           isActive ? "#FFFFFF" : "rgba(255,255,255,0.72)",
+                color: isActive ? "#FFFFFF" : "rgba(255,255,255,0.72)",
               }}
             >
               <Icon size={18} strokeWidth={isActive ? 2.5 : 1.85} />
