@@ -43,7 +43,11 @@ export default async function PlatformLayout({
     return <NoPlatformAccess />;
   }
 
-  await markCurrentPlatformUserSeen();
+  try {
+    await markCurrentPlatformUserSeen();
+  } catch (error) {
+    console.warn("[platform] last-seen update skipped", error);
+  }
 
   return children;
 }
