@@ -16,10 +16,12 @@ CREATE TABLE IF NOT EXISTS tenant_regions (
   normalized_name varchar(120) NOT NULL,
   is_active boolean NOT NULL DEFAULT true,
   sort_order integer NOT NULL DEFAULT 0,
+  source varchar(40) NOT NULL DEFAULT 'manual',
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT tenant_regions_name_not_blank CHECK (btrim(name) <> ''),
-  CONSTRAINT tenant_regions_normalized_name_not_blank CHECK (btrim(normalized_name) <> '')
+  CONSTRAINT tenant_regions_normalized_name_not_blank CHECK (btrim(normalized_name) <> ''),
+  CONSTRAINT tenant_regions_source_check CHECK (source IN ('legacy_backfill', 'manual', 'object_default', 'planning'))
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS tenant_regions_tenant_normalized_name_idx
