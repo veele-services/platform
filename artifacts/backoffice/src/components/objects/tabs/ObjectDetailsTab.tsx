@@ -42,9 +42,16 @@ function EmptyField({ value, placeholder }: { value: string | null; placeholder:
   return <p className="text-sm italic" style={{ color: "#CBD5E1" }}>{placeholder}</p>;
 }
 
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+}
+
 export function ObjectDetailsTab({ object: obj, canWrite }: Props) {
   const [editing, setEditing] = useState(false);
   const [isPending, startTransition] = useTransition();
+  const requiredRoles = asStringArray(obj.requiredRoles);
+  const requiredCertificates = asStringArray(obj.requiredCertificates);
 
   const [form, setForm] = useState({
     serviceType:         obj.serviceType         ?? "",
@@ -53,8 +60,8 @@ export function ObjectDetailsTab({ object: obj, canWrite }: Props) {
     alarmInfo:           obj.alarmInfo           ?? "",
     fixedInstructions:   obj.fixedInstructions   ?? "",
     specialNotes:        obj.specialNotes        ?? "",
-    requiredRoles:       obj.requiredRoles        ?? [],
-    requiredCertificates: obj.requiredCertificates ?? [],
+    requiredRoles,
+    requiredCertificates,
   });
 
   function handleCancel() {
@@ -65,8 +72,8 @@ export function ObjectDetailsTab({ object: obj, canWrite }: Props) {
       alarmInfo:           obj.alarmInfo           ?? "",
       fixedInstructions:   obj.fixedInstructions   ?? "",
       specialNotes:        obj.specialNotes        ?? "",
-      requiredRoles:       obj.requiredRoles        ?? [],
-      requiredCertificates: obj.requiredCertificates ?? [],
+      requiredRoles,
+      requiredCertificates,
     });
     setEditing(false);
   }
