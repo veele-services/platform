@@ -55,7 +55,7 @@ function formString(formData: FormData, key: string): string | null {
   return trimmed.length > 0 ? trimmed : null;
 }
 
-function resultMessage(result: ActionResult, successMessage: string): string {
+function resultMessage(result: ActionResult<unknown>, successMessage: string): string {
   return result.success ? successMessage : result.message;
 }
 
@@ -122,7 +122,7 @@ export function InventoryView({
     router.replace(buildUrl({ ...overrides, page: undefined }));
   }
 
-  function run(action: () => Promise<ActionResult>, successMessage: string) {
+  function run(action: () => Promise<ActionResult<unknown>>, successMessage: string) {
     setMessage(null);
     startTransition(async () => {
       const result = await action();
