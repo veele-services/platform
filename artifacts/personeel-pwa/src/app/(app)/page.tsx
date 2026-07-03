@@ -15,7 +15,7 @@ import { getMyAssignments, type MyAssignment } from "@/actions/assignments";
 import { getOpenAssignments } from "@/actions/open-assignments";
 import { getMyNotificationSummary } from "@/actions/notifications";
 
-const ACTIVE_ASSIGNMENT_STATUSES = ["scheduled", "seen", "in_progress"];
+const ACTIVE_ASSIGNMENT_STATUSES = ["plannable", "scheduled", "seen", "in_progress"];
 
 function todayKey(): string {
   return new Intl.DateTimeFormat("en-CA", {
