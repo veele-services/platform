@@ -13,7 +13,6 @@ import {
 import { InteractiveStatusProgress } from "./WorkOrderStatusProgress";
 import {
   calculateExtraWorkLineTotal,
-  calculateMaterialLineTotal,
   formatMoney,
   formatQuantity,
   parseNumber,
@@ -365,6 +364,36 @@ export function ExtraWorkSummaryCard({
   );
 }
 
+function MaterialSubline({ item }: { item: MaterialUsageItem }) {
+  const unit = item.unitLabel?.trim() || "stuk";
+  const source = item.usesStock && item.stockLocationName ? ` uit ${item.stockLocationName}` : "";
+  return <>{formatQuantity(item.quantity)} {unit}{source}</>;
+}
+
+function MaterialBadges({ item }: { item: MaterialUsageItem }) {
+  const badges = [
+    item.materialCode,
+    item.usesStock ? "Uit voorraad" : null,
+    item.isOther ? "Overig" : null,
+  ].filter((badge): badge is string => Boolean(badge));
+
+  if (badges.length === 0) return null;
+
+  return (
+    <div className="mt-1 flex flex-wrap gap-1.5">
+      {badges.map((badge) => (
+        <span
+          key={badge}
+          className="rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide"
+          style={{ backgroundColor: "#E8F2FF", color: "#2563A9" }}
+        >
+          {badge}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export function MaterialSummaryCard({
   assignmentId,
   items,
@@ -372,8 +401,6 @@ export function MaterialSummaryCard({
   assignmentId: string;
   items:        MaterialUsageItem[];
 }) {
-  const total = items.reduce((sum, item) => sum + calculateMaterialLineTotal(item), 0);
-
   return (
     <section className="rounded-[18px] bg-white px-5 py-4 shadow-sm" style={{ boxShadow: "0 14px 30px rgba(8,29,58,0.06)" }}>
       <Link href={`/opdrachten/${assignmentId}/materiaal`} className="mb-3 flex items-center justify-between gap-3">
@@ -385,18 +412,14 @@ export function MaterialSummaryCard({
 
       <div className="space-y-3">
         {items.length > 0 ? items.map((item) => (
-          <div key={item.id} className="grid grid-cols-[1fr_auto] gap-3">
-            <div className="min-w-0">
-              <p className="truncate text-[14px] font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
-                {item.name}
-              </p>
-              <p className="mt-0.5 text-[13px] font-medium leading-tight" style={{ color: "var(--color-secondary)" }}>
-                {formatQuantity(item.quantity)} x {formatMoney(item.unitPrice)}
-              </p>
-            </div>
-            <span className="text-[14px] font-black" style={{ color: "var(--color-primary)" }}>
-              {formatMoney(calculateMaterialLineTotal(item))}
-            </span>
+          <div key={item.id} className="min-w-0">
+            <p className="truncate text-[14px] font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
+              {item.name}
+            </p>
+            <p className="mt-0.5 text-[13px] font-medium leading-tight" style={{ color: "var(--color-secondary)" }}>
+              <MaterialSubline item={item} />
+            </p>
+            <MaterialBadges item={item} />
           </div>
         )) : (
           <p className="py-1 text-[14px]" style={{ color: "var(--color-secondary)" }}>
@@ -406,11 +429,11 @@ export function MaterialSummaryCard({
       </div>
 
       <div className="mt-4 flex items-center justify-between border-t pt-3" style={{ borderColor: "var(--color-border)" }}>
-        <span className="text-[17px] font-black" style={{ color: "var(--color-primary)" }}>
-          Totaal materiaal
+        <span className="text-[15px] font-black" style={{ color: "var(--color-primary)" }}>
+          Registraties
         </span>
-        <span className="text-[17px] font-black" style={{ color: "var(--color-primary)" }}>
-          {formatMoney(total)}
+        <span className="text-[15px] font-black" style={{ color: "var(--color-primary)" }}>
+          {items.length}
         </span>
       </div>
     </section>
