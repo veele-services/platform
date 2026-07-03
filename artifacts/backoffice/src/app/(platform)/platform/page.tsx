@@ -1,4 +1,8 @@
-import { listPlatformTenants } from "@/app/actions/platform-tenants";
+import Link from "next/link";
+import {
+  createPlatformTenant,
+  listPlatformTenants,
+} from "@/app/actions/platform-tenants";
 import {
   enterSupportMode,
   listPlatformUsers,
@@ -52,6 +56,42 @@ export default async function PlatformAdminPage() {
         </header>
 
         {isPlatformAdmin && (
+          <section className="rounded border border-slate-200 bg-white p-5">
+            <div className="mb-4 flex items-center justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-semibold tracking-normal">Nieuwe tenant</h2>
+                <p className="mt-1 text-sm text-slate-500">Maak een tenant-shell met plan en optioneel eerste domein.</p>
+              </div>
+            </div>
+            <form action={createPlatformTenant} className="grid gap-3 md:grid-cols-[1.2fr_0.8fr_0.7fr_1fr_auto] md:items-end">
+              <label className="grid gap-1 text-sm font-medium text-slate-700">
+                Naam
+                <input name="name" required className="rounded border border-slate-300 px-3 py-2 text-sm" placeholder="Demo A" />
+              </label>
+              <label className="grid gap-1 text-sm font-medium text-slate-700">
+                Slug
+                <input name="slug" className="rounded border border-slate-300 px-3 py-2 text-sm" placeholder="demo-a" />
+              </label>
+              <label className="grid gap-1 text-sm font-medium text-slate-700">
+                Plan
+                <select name="planKey" defaultValue="starter" className="rounded border border-slate-300 px-3 py-2 text-sm">
+                  <option value="starter">Starter</option>
+                  <option value="professional">Professional</option>
+                  <option value="enterprise">Enterprise</option>
+                </select>
+              </label>
+              <label className="grid gap-1 text-sm font-medium text-slate-700">
+                Domein
+                <input name="domain" className="rounded border border-slate-300 px-3 py-2 text-sm" placeholder="demo-a.fieldgrid.nl" />
+              </label>
+              <button type="submit" className="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
+                Aanmaken
+              </button>
+            </form>
+          </section>
+        )}
+
+        {isPlatformAdmin && (
           <section className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-4">
               <h2 className="text-xl font-semibold tracking-normal">Tenants</h2>
@@ -63,6 +103,7 @@ export default async function PlatformAdminPage() {
                   <tr>
                     <th className="px-4 py-3 font-semibold">Naam</th>
                     <th className="px-4 py-3 font-semibold">Slug</th>
+                    <th className="px-4 py-3 font-semibold">Plan</th>
                     <th className="px-4 py-3 font-semibold">Domein</th>
                     <th className="px-4 py-3 font-semibold">Gebruikers</th>
                     <th className="px-4 py-3 font-semibold">Status</th>
@@ -71,11 +112,16 @@ export default async function PlatformAdminPage() {
                 <tbody>
                   {tenants.map((tenant) => (
                     <tr key={tenant.id} className="border-t border-slate-100">
-                      <td className="px-4 py-3 font-medium">{tenant.name}</td>
+                      <td className="px-4 py-3 font-medium">
+                        <Link href={`/platform/tenants/${tenant.id}`} className="text-slate-950 underline-offset-2 hover:underline">
+                          {tenant.name}
+                        </Link>
+                      </td>
                       <td className="px-4 py-3 text-slate-600">{tenant.slug}</td>
+                      <td className="px-4 py-3 text-slate-600">{tenant.planKey}</td>
                       <td className="px-4 py-3 text-slate-600">{tenant.primaryDomain ?? "-"}</td>
                       <td className="px-4 py-3 text-slate-600">{tenant.userCount}</td>
-                      <td className="px-4 py-3 text-slate-600">{tenant.isActive ? "Actief" : "Inactief"}</td>
+                      <td className="px-4 py-3 text-slate-600">{tenant.status}</td>
                     </tr>
                   ))}
                 </tbody>
