@@ -24,6 +24,7 @@ const canonicalDocs = [
   "docs/fieldgrid-phase-1-testbasis.md",
   "docs/fieldgrid-phase-2-tenant-hardening.md",
   "docs/fieldgrid-phase-3-storage-media-news.md",
+  "docs/fieldgrid-phase-4-module-enforcement.md",
 ];
 
 const governanceDocs = [".github/pull_request_template.md"];
@@ -265,10 +266,12 @@ test("phase docs capture executable follow-up contracts", () => {
   const phase1 = read("docs/fieldgrid-phase-1-testbasis.md");
   const phase2 = read("docs/fieldgrid-phase-2-tenant-hardening.md");
   const phase3 = read("docs/fieldgrid-phase-3-storage-media-news.md");
+  const phase4 = read("docs/fieldgrid-phase-4-module-enforcement.md");
 
   assertContains(phase1, ["Tenant A/B/Veele", "demo-data", "FG-MIG-001"], "phase 1 docs");
   assertContains(phase2, ["fase 2 post-migration hardening", "staging-copy", "tenant-hardening-report", "audit_log"], "phase 2 docs");
   assertContains(phase3, ["fase 3 assignment media", "platform_only", "storage-tenancy-report", "FG-STORAGE-007"], "phase 3 docs");
+  assertContains(phase4, ["fase 4 module enforcement", "FIELDGRID_PERMISSION_MODULES", "moduleForPermissionResource", "FG-MODULE-005"], "phase 4 docs");
 });
 
 test("pull request template enforces Fieldgrid canon discipline", () => {
