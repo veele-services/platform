@@ -8,6 +8,10 @@ export type DocumentEntityType =
   | "customer"
   | "personnel"
   | "object"
+  | "material"
+  | "inventory_item"
+  | "inventory_issue"
+  | "inventory_maintenance"
   | "general";
 
 export const DOCUMENT_ENTITY_TYPES: DocumentEntityType[] = [
@@ -15,6 +19,10 @@ export const DOCUMENT_ENTITY_TYPES: DocumentEntityType[] = [
   "customer",
   "personnel",
   "object",
+  "material",
+  "inventory_item",
+  "inventory_issue",
+  "inventory_maintenance",
   "general",
 ];
 
@@ -28,7 +36,7 @@ export const documentsTable = pgTable(
     mimeType:    varchar("mime_type", { length: 200 }).notNull(),
     storagePath: text("storage_path").notNull(),
     sizeBytes:   integer("size_bytes").notNull(),
-    entityType:  varchar("entity_type", { length: 20 })
+    entityType:  varchar("entity_type", { length: 40 })
       .notNull()
       .default("general")
       .$type<DocumentEntityType>(),

@@ -45,6 +45,14 @@ export type AssignmentStatus = (typeof ASSIGNMENT_STATUSES)[number];
 export const ASSIGNMENT_PRIORITIES = ["low", "normal", "high", "urgent"] as const;
 export type AssignmentPriority = (typeof ASSIGNMENT_PRIORITIES)[number];
 
+export const ASSIGNMENT_MATERIAL_APPROVAL_STATUSES = [
+  "pending",
+  "approved",
+  "rejected",
+] as const;
+export type AssignmentMaterialApprovalStatus =
+  (typeof ASSIGNMENT_MATERIAL_APPROVAL_STATUSES)[number];
+
 // ─── Allowed status transitions ────────────────────────────────────────────────
 
 export const ASSIGNMENT_STATUS_TRANSITIONS: Record<AssignmentStatus, AssignmentStatus[]> = {
@@ -229,9 +237,35 @@ export const assignmentPhotosTable = pgTable("assignment_photos", {
 /** Material and consumables registered by personnel during execution. */
 export const assignmentMaterialUsageTable = pgTable("assignment_material_usage", {
   id:           uuid("id").primaryKey().defaultRandom(),
+  tenantId:     uuid("tenant_id").references(() => tenantsTable.id, { onDelete: "cascade" }),
   assignmentId: uuid("assignment_id")
     .notNull()
     .references(() => assignmentsTable.id, { onDelete: "cascade" }),
+  materialId: uuid("material_id"),
+  materialCodeSnapshot: varchar("material_code_snapshot", { length: 40 }),
+  registeredName: text("registered_name"),
+  registeredQuantity: numeric("registered_quantity", { precision: 12, scale: 3 }),
+  registeredUnitLabel: varchar("registered_unit_label", { length: 40 }),
+  stockLocationId: uuid("stock_location_id"),
+  stockMovementId: uuid("stock_movement_id"),
+  usesStock: boolean("uses_stock").notNull().default(false),
+  isOther: boolean("is_other").notNull().default(false),
+  approvedName: text("approved_name"),
+  approvedQuantity: numeric("approved_quantity", { precision: 12, scale: 3 }),
+  approvedUnitLabel: varchar("approved_unit_label", { length: 40 }),
+  approvedUnitPrice: numeric("approved_unit_price", { precision: 12, scale: 2 }),
+  approvedVatRate: numeric("approved_vat_rate", { precision: 5, scale: 2 }),
+  invoiceable: boolean("invoiceable").notNull().default(false),
+  customerVisible: boolean("customer_visible").notNull().default(false),
+  approvalStatus: varchar("approval_status", { length: 30 })
+    .notNull()
+    .default("pending")
+    .$type<AssignmentMaterialApprovalStatus>(),
+  approvedBy: uuid("approved_by"),
+  approvedAt: timestamp("approved_at", { withTimezone: true }),
+  approvalReason: text("approval_reason"),
+  invoiceId: uuid("invoice_id"),
+  photoDocumentId: uuid("photo_document_id"),
   name:         text("name").notNull(),
   quantity:     numeric("quantity", { precision: 10, scale: 2 }).notNull().default("1"),
   unitPrice:    numeric("unit_price", { precision: 10, scale: 2 }).notNull().default("0"),
