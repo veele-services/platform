@@ -13,19 +13,22 @@
 -- copy-first, verify-second, switch-third, cleanup-last.
 -- ============================================================================
 
-CREATE OR REPLACE FUNCTION pg_temp.fieldgrid_add_tenant_fk(table_name text, constraint_name text)
+DROP FUNCTION IF EXISTS pg_temp.fieldgrid_add_tenant_fk(text, text);
+DROP FUNCTION IF EXISTS pg_temp.fieldgrid_add_required_check(text, text);
+
+CREATE OR REPLACE FUNCTION pg_temp.fieldgrid_add_tenant_fk(p_table_name text, p_constraint_name text)
 RETURNS void AS $$
 BEGIN
-  IF to_regclass('public.' || table_name) IS NULL THEN
+  IF to_regclass(format('%I.%I', 'public', p_table_name)) IS NULL THEN
     RETURN;
   END IF;
 
   IF NOT EXISTS (
     SELECT 1
-    FROM information_schema.columns
-    WHERE table_schema = 'public'
-      AND table_name = fieldgrid_add_tenant_fk.table_name
-      AND column_name = 'tenant_id'
+    FROM information_schema.columns columns_row
+    WHERE columns_row.table_schema = 'public'
+      AND columns_row.table_name = p_table_name
+      AND columns_row.column_name = 'tenant_id'
   ) THEN
     RETURN;
   END IF;
@@ -36,7 +39,7 @@ BEGIN
     JOIN pg_attribute attribute_row
       ON attribute_row.attrelid = constraint_row.conrelid
      AND attribute_row.attnum = ANY(constraint_row.conkey)
-    WHERE constraint_row.conrelid = to_regclass('public.' || table_name)
+    WHERE constraint_row.conrelid = to_regclass(format('%I.%I', 'public', p_table_name))
       AND constraint_row.contype = 'f'
       AND constraint_row.confrelid = 'public.tenants'::regclass
       AND attribute_row.attname = 'tenant_id'
@@ -45,33 +48,33 @@ BEGIN
   END IF;
 
   EXECUTE format(
-    'ALTER TABLE %I ADD CONSTRAINT %I FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE NOT VALID',
-    table_name,
-    constraint_name
+    'ALTER TABLE public.%I ADD CONSTRAINT %I FOREIGN KEY (tenant_id) REFERENCES public.tenants(id) ON DELETE CASCADE NOT VALID',
+    p_table_name,
+    p_constraint_name
   );
 END;
 $$ LANGUAGE plpgsql;
 
-CREATE OR REPLACE FUNCTION pg_temp.fieldgrid_add_required_check(table_name text, constraint_name text)
+CREATE OR REPLACE FUNCTION pg_temp.fieldgrid_add_required_check(p_table_name text, p_constraint_name text)
 RETURNS void AS $$
 BEGIN
-  IF to_regclass('public.' || table_name) IS NULL THEN
+  IF to_regclass(format('%I.%I', 'public', p_table_name)) IS NULL THEN
     RETURN;
   END IF;
 
   IF EXISTS (
     SELECT 1
-    FROM pg_constraint
-    WHERE conrelid = to_regclass('public.' || table_name)
-      AND conname = constraint_name
+    FROM pg_constraint constraint_row
+    WHERE constraint_row.conrelid = to_regclass(format('%I.%I', 'public', p_table_name))
+      AND constraint_row.conname = p_constraint_name
   ) THEN
     RETURN;
   END IF;
 
   EXECUTE format(
-    'ALTER TABLE %I ADD CONSTRAINT %I CHECK (tenant_id IS NOT NULL) NOT VALID',
-    table_name,
-    constraint_name
+    'ALTER TABLE public.%I ADD CONSTRAINT %I CHECK (tenant_id IS NOT NULL) NOT VALID',
+    p_table_name,
+    p_constraint_name
   );
 END;
 $$ LANGUAGE plpgsql;
@@ -291,11 +294,11 @@ BEGIN
           JOIN personnel p ON p.id = ap.personnel_id
           WHERE ap.assignment_id = CASE
               WHEN (storage.foldername(name))[1] = ''tenant''
-                AND (storage.foldername(name))[2] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
+                AND (storage.foldername(name))[2] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
                 AND (storage.foldername(name))[3] = ''assignments''
-                AND (storage.foldername(name))[4] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
+                AND (storage.foldername(name))[4] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
                 THEN (storage.foldername(name))[4]::uuid
-              WHEN (storage.foldername(name))[1] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
+              WHEN (storage.foldername(name))[1] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
                 THEN (storage.foldername(name))[1]::uuid
               ELSE NULL
             END
@@ -324,11 +327,11 @@ BEGIN
           JOIN personnel p ON p.id = ap.personnel_id
           WHERE ap.assignment_id = CASE
               WHEN (storage.foldername(name))[1] = ''tenant''
-                AND (storage.foldername(name))[2] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
+                AND (storage.foldername(name))[2] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
                 AND (storage.foldername(name))[3] = ''assignments''
-                AND (storage.foldername(name))[4] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
+                AND (storage.foldername(name))[4] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
                 THEN (storage.foldername(name))[4]::uuid
-              WHEN (storage.foldername(name))[1] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
+              WHEN (storage.foldername(name))[1] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
                 THEN (storage.foldername(name))[1]::uuid
               ELSE NULL
             END
@@ -357,11 +360,11 @@ BEGIN
           JOIN personnel p ON p.id = ap.personnel_id
           WHERE ap.assignment_id = CASE
               WHEN (storage.foldername(name))[1] = ''tenant''
-                AND (storage.foldername(name))[2] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
+                AND (storage.foldername(name))[2] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
                 AND (storage.foldername(name))[3] = ''assignments''
                 AND (storage.foldername(name))[4] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
                 THEN (storage.foldername(name))[4]::uuid
-              WHEN (storage.foldername(name))[1] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
+              WHEN (storage.foldername(name))[1] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
                 THEN (storage.foldername(name))[1]::uuid
               ELSE NULL
             END
@@ -388,7 +391,7 @@ BEGIN
                 AND (storage.foldername(name))[3] = ''assignments''
                 AND (storage.foldername(name))[4] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
                 THEN (storage.foldername(name))[4]::uuid
-              WHEN (storage.foldername(name))[1] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
+              WHEN (storage.foldername(name))[1] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
                 THEN (storage.foldername(name))[1]::uuid
               ELSE NULL
             END
@@ -417,11 +420,11 @@ BEGIN
           JOIN personnel p ON p.id = ap.personnel_id
           WHERE ap.assignment_id = CASE
               WHEN (storage.foldername(name))[1] = ''tenant''
-                AND (storage.foldername(name))[2] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
+                AND (storage.foldername(name))[2] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
                 AND (storage.foldername(name))[3] = ''assignments''
                 AND (storage.foldername(name))[4] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
                 THEN (storage.foldername(name))[4]::uuid
-              WHEN (storage.foldername(name))[1] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
+              WHEN (storage.foldername(name))[1] ~* ''^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$''
                 THEN (storage.foldername(name))[1]::uuid
               ELSE NULL
             END
