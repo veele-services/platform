@@ -4,6 +4,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { AlertTriangle, ArrowLeft, ClipboardList, MapPin, QrCode } from "lucide-react";
 import { getInventoryScanResult, type InventoryScanItem } from "@/actions/inventory-scan";
+import { InventoryIssueReportForm } from "./InventoryIssueReportForm";
 
 type Props = {
   params: Promise<{ token: string }>;
@@ -98,6 +99,8 @@ function AllowedCard({ item }: { item: InventoryScanItem }) {
             <Info label="Werkboncontext" value={item.relatedAssignmentCode ? `Werkbon ${item.relatedAssignmentCode}` : "Eigen inventariscontext"} />
           </dl>
         </section>
+
+        <InventoryIssueReportForm inventoryItemId={item.id} assignmentId={item.relatedAssignmentId} />
 
         {item.relatedAssignmentId ? (
           <Link href={`/opdrachten/${item.relatedAssignmentId}/inventaris`} className="block rounded-xl px-4 py-4 text-center text-sm font-black text-white" style={{ backgroundColor: "var(--color-accent)" }}>
