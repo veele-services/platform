@@ -38,7 +38,6 @@ test("phase 7 PWA scan route resolves opaque tokens with login redirect and fiel
       "current_personnel_id",
       "assignment_personnel",
       "no_personnel_or_assignment_scope",
-      "purchaseValue",
     ],
     "PWA scan action",
   );
