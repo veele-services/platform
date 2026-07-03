@@ -64,11 +64,18 @@ export type OfflineWorkOrderAction =
   | (OfflineActionBase & {
       type: "add-material-usage";
       payload: {
+        materialId?: string | null;
+        materialCode?: string | null;
         name: string;
         quantity?: string | number | null;
         unitPrice?: string | number | null;
         unitLabel?: string | null;
         notes?: string | null;
+        usesStock?: boolean;
+        stockLocationId?: string | null;
+        stockLocationName?: string | null;
+        isOther?: boolean;
+        clientMutationId?: string | null;
       };
     });
 
