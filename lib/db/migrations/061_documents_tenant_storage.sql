@@ -22,7 +22,8 @@ BEGIN
   ) THEN
     ALTER TABLE documents
       ADD CONSTRAINT documents_tenant_id_fkey
-      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE;
+      FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE
+      NOT VALID;
   END IF;
 END;
 $$;
