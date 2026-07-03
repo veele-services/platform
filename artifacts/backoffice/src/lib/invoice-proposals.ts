@@ -93,13 +93,21 @@ export async function calculateInvoiceProposalForAssignment(
 
     db
       .select({
-        name:      assignmentMaterialUsageTable.name,
-        quantity:  assignmentMaterialUsageTable.quantity,
-        unitPrice: assignmentMaterialUsageTable.unitPrice,
-        unitLabel: assignmentMaterialUsageTable.unitLabel,
+        materialCode: assignmentMaterialUsageTable.materialCodeSnapshot,
+        name:         assignmentMaterialUsageTable.approvedName,
+        quantity:     assignmentMaterialUsageTable.approvedQuantity,
+        unitPrice:    assignmentMaterialUsageTable.approvedUnitPrice,
+        unitLabel:    assignmentMaterialUsageTable.approvedUnitLabel,
+        invoiceable:  assignmentMaterialUsageTable.invoiceable,
       })
       .from(assignmentMaterialUsageTable)
-      .where(eq(assignmentMaterialUsageTable.assignmentId, assignmentId))
+      .where(
+        and(
+          eq(assignmentMaterialUsageTable.assignmentId, assignmentId),
+          eq(assignmentMaterialUsageTable.approvalStatus, "approved"),
+          eq(assignmentMaterialUsageTable.invoiceable, true),
+        ),
+      )
       .orderBy(asc(assignmentMaterialUsageTable.createdAt)),
   ]);
 
@@ -140,16 +148,17 @@ export async function calculateInvoiceProposalForAssignment(
     const quantity = parseMoney(row.quantity);
     const unitPrice = parseMoney(row.unitPrice);
     const price = money(quantity * unitPrice);
+    const unitLabel = row.unitLabel ? ` (${row.unitLabel})` : "";
 
     return {
       category:     "material",
-      taskCodeCode: null,
-      taskCodeName: row.name,
-      description:  row.unitLabel ? `${row.name} (${row.unitLabel})` : row.name,
+      taskCodeCode: row.materialCode ?? null,
+      taskCodeName: row.name ?? "Materiaal",
+      description:  `${row.name ?? "Materiaal"}${unitLabel}`,
       quantity:     row.quantity ?? "1",
       unitPrice:    money(unitPrice),
       price,
-      invoiceable:  quantity > 0 && unitPrice > 0,
+      invoiceable:  row.invoiceable,
     };
   });
 
@@ -281,6 +290,7 @@ export async function createInvoiceProposalForAssignment(input: {
       extraWorkSubtotal:  proposal.extraWorkSubtotal,
       materialSubtotal:   proposal.materialSubtotal,
       administrativeGate: "draft_requires_review",
+      materialGate:       "approved_invoiceable_only",
     },
   });
 
