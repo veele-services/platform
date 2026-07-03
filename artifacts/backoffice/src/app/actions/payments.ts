@@ -8,11 +8,12 @@ import {
   auditLogTable,
   type PaymentStatus,
 } from "@workspace/db";
-import { eq, desc } from "drizzle-orm";
+import { and, eq, desc } from "drizzle-orm";
 import { emitInvoiceWorkflowEvent } from "@workspace/db/workflow-events";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, PaymentStatus };
@@ -73,10 +74,27 @@ export async function getPaymentHistory(invoiceId: string): Promise<PaymentRecor
   const canRead = await hasPermission("invoices", "read");
   if (!canRead) return [];
 
+  const tenantId = await requireCurrentTenantId();
   const rows = await db
-    .select()
+    .select({
+      id:              paymentsTable.id,
+      molliePaymentId: paymentsTable.molliePaymentId,
+      amountCents:     paymentsTable.amountCents,
+      currency:        paymentsTable.currency,
+      status:          paymentsTable.status,
+      checkoutUrl:     paymentsTable.checkoutUrl,
+      paidAt:          paymentsTable.paidAt,
+      createdAt:       paymentsTable.createdAt,
+    })
     .from(paymentsTable)
-    .where(eq(paymentsTable.invoiceId, invoiceId))
+    .innerJoin(invoicesTable, eq(paymentsTable.invoiceId, invoicesTable.id))
+    .where(
+      and(
+        eq(paymentsTable.invoiceId, invoiceId),
+        eq(paymentsTable.tenantId, tenantId),
+        eq(invoicesTable.tenantId, tenantId),
+      ),
+    )
     .orderBy(desc(paymentsTable.createdAt));
 
   return rows.map((r) => ({
@@ -116,17 +134,20 @@ export async function createMolliePayment(
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
+  const tenantId = await requireCurrentTenantId();
+
   // Fetch invoice
   const [invoice] = await db
     .select({
       id:            invoicesTable.id,
+      tenantId:      invoicesTable.tenantId,
       invoiceNumber: invoicesTable.invoiceNumber,
       totalAmount:   invoicesTable.totalAmount,
       status:        invoicesTable.status,
       assignmentId:  invoicesTable.assignmentId,
     })
     .from(invoicesTable)
-    .where(eq(invoicesTable.id, invoiceId))
+    .where(and(eq(invoicesTable.id, invoiceId), eq(invoicesTable.tenantId, tenantId)))
     .limit(1);
 
   if (!invoice) return { success: false, message: "Factuur niet gevonden." };
@@ -162,6 +183,7 @@ export async function createMolliePayment(
         redirectUrl,
         webhookUrl,
         metadata: {
+          tenantId,
           invoiceId,
           invoiceNumber: invoice.invoiceNumber,
         },
@@ -189,6 +211,7 @@ export async function createMolliePayment(
   // Store in DB
   try {
     await db.insert(paymentsTable).values({
+      tenantId,
       invoiceId,
       molliePaymentId,
       amountCents,
@@ -201,11 +224,12 @@ export async function createMolliePayment(
   }
 
   await db.insert(auditLogTable).values({
+    tenantId,
     userId:     user.id,
     action:     "create_mollie_payment",
     resource:   "invoices",
     resourceId: invoiceId,
-    metadata:   { molliePaymentId, amountCents, checkoutUrl },
+    metadata:   { tenantId, molliePaymentId, amountCents, checkoutUrl },
   });
 
   revalidatePath(`/invoices/${invoiceId}`);
@@ -224,23 +248,34 @@ export async function markInvoicePaidByMollie(
 ): Promise<{ success: boolean; message?: string }> {
   // Find payment record
   const [payment] = await db
-    .select({ id: paymentsTable.id, invoiceId: paymentsTable.invoiceId })
+    .select({ id: paymentsTable.id, invoiceId: paymentsTable.invoiceId, tenantId: paymentsTable.tenantId })
     .from(paymentsTable)
     .where(eq(paymentsTable.molliePaymentId, molliePaymentId))
     .limit(1);
 
   if (!payment) return { success: false, message: "Betaling niet gevonden." };
+  if (!payment.tenantId) return { success: false, message: "Betaling heeft geen tenantcontext." };
 
   // Update payment status
   await db
     .update(paymentsTable)
     .set({ status: "paid", paidAt })
-    .where(eq(paymentsTable.molliePaymentId, molliePaymentId));
+    .where(
+      and(
+        eq(paymentsTable.molliePaymentId, molliePaymentId),
+        eq(paymentsTable.tenantId, payment.tenantId),
+      ),
+    );
 
   const [invoice] = await db
-    .select({ id: invoicesTable.id, status: invoicesTable.status, assignmentId: invoicesTable.assignmentId })
+    .select({
+      id: invoicesTable.id,
+      tenantId: invoicesTable.tenantId,
+      status: invoicesTable.status,
+      assignmentId: invoicesTable.assignmentId,
+    })
     .from(invoicesTable)
-    .where(eq(invoicesTable.id, payment.invoiceId))
+    .where(and(eq(invoicesTable.id, payment.invoiceId), eq(invoicesTable.tenantId, payment.tenantId)))
     .limit(1);
 
   if (invoice && invoice.status === "sent") {
@@ -248,27 +283,28 @@ export async function markInvoicePaidByMollie(
     await db
       .update(invoicesTable)
       .set({ status: "paid", paidDate: paidDateStr, updatedAt: new Date() })
-      .where(eq(invoicesTable.id, invoice.id));
+      .where(and(eq(invoicesTable.id, invoice.id), eq(invoicesTable.tenantId, payment.tenantId)));
 
     // Advance assignment: invoiced → paid → closed
     await db
       .update(assignmentsTable)
       .set({ status: "paid", updatedAt: new Date() })
-      .where(eq(assignmentsTable.id, invoice.assignmentId));
+      .where(and(eq(assignmentsTable.id, invoice.assignmentId), eq(assignmentsTable.tenantId, payment.tenantId)));
     await db
       .update(assignmentsTable)
       .set({ status: "closed", updatedAt: new Date() })
-      .where(eq(assignmentsTable.id, invoice.assignmentId));
+      .where(and(eq(assignmentsTable.id, invoice.assignmentId), eq(assignmentsTable.tenantId, payment.tenantId)));
 
     // audit_log.user_id is UUID NOT NULL; use dedicated system actor UUID
     // for webhook/background events that have no real Supabase auth user.
     const SYSTEM_ACTOR_UUID = "00000000-0000-0000-0000-000000000001";
     await db.insert(auditLogTable).values({
-      userId:     SYSTEM_ACTOR_UUID,
-      action:     "mollie_payment_received",
-      resource:   "invoices",
-      resourceId: invoice.id,
-      metadata:   { molliePaymentId, paidAt: paidAt.toISOString() },
+      tenantId:    payment.tenantId,
+      userId:      SYSTEM_ACTOR_UUID,
+      action:      "mollie_payment_received",
+      resource:    "invoices",
+      resourceId:  invoice.id,
+      metadata:    { tenantId: payment.tenantId, molliePaymentId, paidAt: paidAt.toISOString() },
     });
 
     await notifyInvoiceWorkflow({
@@ -305,6 +341,7 @@ export async function listPaymentsForCustomer(
   const canRead = await hasPermission("invoices", "read");
   if (!canRead) return [];
 
+  const tenantId = await requireCurrentTenantId();
   const rows = await db
     .select({
       id:              paymentsTable.id,
@@ -319,7 +356,13 @@ export async function listPaymentsForCustomer(
     })
     .from(paymentsTable)
     .innerJoin(invoicesTable, eq(paymentsTable.invoiceId, invoicesTable.id))
-    .where(eq(invoicesTable.customerId, customerId))
+    .where(
+      and(
+        eq(invoicesTable.customerId, customerId),
+        eq(invoicesTable.tenantId, tenantId),
+        eq(paymentsTable.tenantId, tenantId),
+      ),
+    )
     .orderBy(desc(paymentsTable.createdAt))
     .limit(limit);
 
