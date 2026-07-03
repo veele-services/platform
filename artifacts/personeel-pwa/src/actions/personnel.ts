@@ -1,6 +1,6 @@
 "use server";
 
-import { getCurrentPortalTenantId } from "@/lib/auth/tenant";
+import { requireCurrentPersonnelPortalTenantId as getCurrentPortalTenantId } from "@/lib/auth/tenant";
 import { db, personnelTable } from "@workspace/db";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
