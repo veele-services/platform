@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/auth/permissions";
 import { COOKIE_NAME } from "@/lib/auth/session-permissions";
+import { evaluatePasswordStrength, mediumPasswordMessage } from "@/lib/password-strength";
 import { db } from "@workspace/db";
 import { auditLogTable, personnelTable } from "@workspace/db";
 import type { ActionResult } from "./customers";
@@ -15,15 +16,20 @@ export type AuthFormState = {
   error: string | null;
 };
 
+export type PasswordActionState = {
+  success?: boolean;
+  error?: string;
+};
+
 /**
- * Server Action — sign in with email + password.
+ * Server Action - sign in with email + password.
  *
  * Contract:
  *   1. Authenticate with Supabase.
- *   2. Insert audit log entry — MANDATORY.  Sign-in is rolled back if the
+ *   2. Insert audit log entry - MANDATORY. Sign-in is rolled back if the
  *      audit insert fails to ensure every login event is recorded.
  *   3. Clear the legacy cached permissions cookie, if present.
- *   4. Redirect to dashboard.
+ *   4. Redirect temporary-password users to password reset before dashboard.
  */
 export async function signIn(
   _prevState: AuthFormState,
@@ -51,8 +57,7 @@ export async function signIn(
     return { error: message };
   }
 
-  // ── Mandatory audit log ───────────────────────────────────────────────────
-  // If this fails the sign-in is rolled back so every login is recorded.
+  // Mandatory audit log. If this fails the sign-in is rolled back so every login is recorded.
   try {
     await db.insert(auditLogTable).values({
       userId:     data.user.id,
@@ -70,9 +75,6 @@ export async function signIn(
     };
   }
 
-  // ── Legacy permissions-cookie cleanup ─────────────────────────────────────
-  // Clear the legacy cached permissions cookie. Authorization is checked
-  // against live database permissions by Server Components and Server Actions.
   try {
     const cookieStore = await cookies();
     cookieStore.delete(COOKIE_NAME);
@@ -80,15 +82,19 @@ export async function signIn(
     // Best-effort cleanup; do not block sign-in.
   }
 
+  if (data.user.app_metadata?.force_password_change === true) {
+    redirect("/reset-wachtwoord?force=1");
+  }
+
   redirect("/");
 }
 
 /**
- * Server Action — sign out the current user.
+ * Server Action - sign out the current user.
  *
  * Audit logging is best-effort here: blocking a sign-out on a log failure
  * would leave users unable to log out, which is a worse outcome than a
- * missing audit entry.  Failures are surfaced in server logs.
+ * missing audit entry. Failures are surfaced in server logs.
  */
 export async function signOut(): Promise<void> {
   const supabase = await createClient();
@@ -108,7 +114,6 @@ export async function signOut(): Promise<void> {
     }
   }
 
-  // Clear permissions cookie.
   try {
     const cookieStore = await cookies();
     cookieStore.delete(COOKIE_NAME);
@@ -120,8 +125,69 @@ export async function signOut(): Promise<void> {
   redirect("/login");
 }
 
+export async function completePasswordReset(
+  _prev: PasswordActionState | undefined,
+  formData: FormData,
+): Promise<PasswordActionState> {
+  const password    = String(formData.get("password") ?? "");
+  const passwordTwo = String(formData.get("passwordTwo") ?? "");
+
+  if (!password || !evaluatePasswordStrength(password).isMedium) {
+    return { error: mediumPasswordMessage() };
+  }
+  if (password !== passwordTwo) {
+    return { error: "Wachtwoorden komen niet overeen." };
+  }
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return { error: "Sessie verlopen. Log opnieuw in met het tijdelijke wachtwoord of vraag een nieuwe reset aan." };
+  }
+
+  const { error } = await supabase.auth.updateUser({ password });
+  if (error) {
+    return {
+      error: error.message.includes("same password")
+        ? "Het nieuwe wachtwoord mag niet gelijk zijn aan het huidige wachtwoord."
+        : "Wachtwoord opslaan mislukt. Vraag zo nodig een nieuwe reset aan.",
+    };
+  }
+
+  if (user.app_metadata?.force_password_change === true) {
+    try {
+      const admin = createAdminClient();
+      const { error: metadataError } = await admin.auth.admin.updateUserById(user.id, {
+        app_metadata: {
+          ...(user.app_metadata ?? {}),
+          force_password_change: false,
+          password_changed_at: new Date().toISOString(),
+        },
+      });
+      if (metadataError) throw metadataError;
+    } catch {
+      return { error: "Wachtwoord opgeslagen, maar de eerste-login status kon niet worden afgerond. Neem contact op met de beheerder." };
+    }
+  }
+
+  try {
+    await db.insert(auditLogTable).values({
+      userId:     user.id,
+      action:     "password_changed",
+      resource:   "auth",
+      resourceId: user.id,
+      metadata:   { email: user.email, forced: user.app_metadata?.force_password_change === true },
+    });
+  } catch (auditError) {
+    console.error("[audit_log] Failed to record password change for user:", user.id, auditError);
+  }
+
+  await supabase.auth.signOut();
+  return { success: true };
+}
+
 /**
- * Server Action — send a password-reset e-mail to a personnel member.
+ * Server Action - send a password-reset e-mail to a personnel member.
  *
  * Only callable by users with personnel:write permission.
  * The employee must have an active portal account (user_id set).
@@ -145,10 +211,6 @@ export async function sendPasswordReset(personnelId: string): Promise<ActionResu
     return { success: false, message: "Medewerker heeft nog geen actief portaalaccount." };
   }
 
-  // Use the admin API to generate and send the recovery link.
-  // generateLink({ type: 'recovery' }) sends the email via Supabase's configured
-  // SMTP transport AND returns the link — preferred over resetPasswordForEmail
-  // because it bypasses per-user rate limits and ensures the user exists first.
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.generateLink({
     type:  "recovery",
