@@ -68,6 +68,7 @@ import {
   type AssignmentStatus,
   type AssignmentPriority,
 } from "@/app/actions/assignments";
+import type { RegionOption } from "@/app/actions/regions";
 import { ASSIGNMENT_STATUSES, ASSIGNMENT_PRIORITIES } from "@/types/assignments";
 
 const PAGE_SIZE = 25;
@@ -99,6 +100,7 @@ interface AssignmentsViewProps {
   rows:                  AssignmentRow[];
   total:                 number;
   customers:             CustomerOption[];
+  regionOptions:         RegionOption[];
   canWrite:              boolean;
   page:                  number;
   initialSearch:         string;
@@ -150,6 +152,7 @@ export function AssignmentsView({
   rows,
   total,
   customers,
+  regionOptions,
   canWrite,
   page,
   initialSearch,
@@ -506,6 +509,7 @@ export function AssignmentsView({
             mode={editingId ? "edit" : "create"}
             assignmentId={editingId ?? undefined}
             customers={customers}
+            regionOptions={regionOptions}
             onSuccess={handleFormSuccess}
             onCancel={() => setSheetOpen(false)}
           />

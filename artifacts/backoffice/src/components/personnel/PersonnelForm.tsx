@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TagInput } from "@/components/ui/tag-input";
+import { RegionMultiSelect } from "@/components/regions/RegionMultiSelect";
 import {
   getPersonnel,
   createPersonnel,
@@ -27,6 +28,12 @@ import {
   type SectorOption,
   type PersonnelFormInput,
 } from "@/app/actions/personnel";
+import {
+  getPersonnelRegionNames,
+  listRegionOptions,
+  syncPersonnelRegions,
+  type RegionOption,
+} from "@/app/actions/regions";
 import {
   PERSONNEL_TYPES,
   PERSONNEL_TYPE_LABELS,
@@ -98,7 +105,8 @@ export function PersonnelForm({
   const [certEntries,       setCertEntries]       = useState<CertificateEntry[]>([]);
   const [diplomas,          setDiplomas]          = useState<string[]>([]);
   const [knowledge,         setKnowledge]         = useState<string[]>([]);
-  const [preferredRegions,  setPreferredRegions]  = useState<string[]>([]);
+  const [regionNames,       setRegionNames]       = useState<string[]>([]);
+  const [regionOptions,     setRegionOptions]     = useState<RegionOption[]>([]);
   const [isAvailable,       setIsAvailable]       = useState(true);
   const [isActive,          setIsActive]          = useState(true);
   const [emergencyAvailable, setEmergencyAvailable] = useState(false);
@@ -119,35 +127,40 @@ export function PersonnelForm({
   const roleIdValue = watch("roleId") || "NONE";
   const sectorIdValue = watch("sectorId") || "NONE";
 
+  useEffect(() => {
+    listRegionOptions().then(setRegionOptions).catch(() => setRegionOptions([]));
+  }, []);
+
   // Load existing record when editing
   useEffect(() => {
     if (mode !== "edit" || !personnelId) return;
     setLoading(true);
-    getPersonnel(personnelId).then((p) => {
-      if (p) {
-        setValue("firstName",         p.firstName ?? "");
-        setValue("lastName",          p.lastName  ?? "");
-        setValue("email",             p.email     ?? "");
-        setValue("phone",             p.phone     ?? "");
-        setValue("roleId",            p.roleId    ?? "");
-        setValue("sectorId",          p.sectorId  ?? "");
-        setValue("region",            p.region    ?? "");
-        setValue("contractStartDate", p.contractInfo?.start_date    ?? "");
-        setValue("contractEndDate",   p.contractInfo?.end_date      ?? "");
-        setValue("contractType",      p.contractInfo?.contract_type ?? "");
-        setValue("contractHours",     p.contractInfo?.hours_per_week != null
-          ? String(p.contractInfo.hours_per_week) : "");
-        setCertEntries(p.certificates          ?? []);
-        setDiplomas(p.diplomas                ?? []);
-        setKnowledge(p.knowledge              ?? []);
-        setPreferredRegions(p.preferredRegions ?? []);
-        setIsAvailable(p.isAvailable);
-        setIsActive(p.isActive);
-        setEmergencyAvailable(p.emergencyAvailable ?? false);
-        setPersonnelType(p.personnelType ?? "");
-      }
-      setLoading(false);
-    });
+    Promise.all([getPersonnel(personnelId), getPersonnelRegionNames(personnelId)])
+      .then(([p, linkedRegions]) => {
+        if (p) {
+          setValue("firstName",         p.firstName ?? "");
+          setValue("lastName",          p.lastName  ?? "");
+          setValue("email",             p.email     ?? "");
+          setValue("phone",             p.phone     ?? "");
+          setValue("roleId",            p.roleId    ?? "");
+          setValue("sectorId",          p.sectorId  ?? "");
+          setValue("region",            p.region    ?? "");
+          setValue("contractStartDate", p.contractInfo?.start_date    ?? "");
+          setValue("contractEndDate",   p.contractInfo?.end_date      ?? "");
+          setValue("contractType",      p.contractInfo?.contract_type ?? "");
+          setValue("contractHours",     p.contractInfo?.hours_per_week != null
+            ? String(p.contractInfo.hours_per_week) : "");
+          setCertEntries(p.certificates          ?? []);
+          setDiplomas(p.diplomas                ?? []);
+          setKnowledge(p.knowledge              ?? []);
+          setRegionNames(linkedRegions.length ? linkedRegions : [p.region ?? "", ...((p.preferredRegions ?? []) as string[])].filter(Boolean));
+          setIsAvailable(p.isAvailable);
+          setIsActive(p.isActive);
+          setEmergencyAvailable(p.emergencyAvailable ?? false);
+          setPersonnelType(p.personnelType ?? "");
+        }
+      })
+      .finally(() => setLoading(false));
   }, [mode, personnelId, setValue]);
 
   const onSubmit = handleSubmit((data) => {
@@ -180,7 +193,7 @@ export function PersonnelForm({
         phone:              parsed.data.phone     || undefined,
         roleId:             parsed.data.roleId === "NONE" ? undefined : parsed.data.roleId || undefined,
         sectorId:           parsed.data.sectorId === "NONE" ? undefined : parsed.data.sectorId || undefined,
-        region:             parsed.data.region   || undefined,
+        region:             regionNames[0] || parsed.data.region || undefined,
         certificates: certEntries,
         diplomas,
         knowledge,
@@ -189,7 +202,7 @@ export function PersonnelForm({
         autoInvite:         mode === "create" ? autoInvite : undefined,
         personnelType:      personnelType || undefined,
         emergencyAvailable,
-        preferredRegions,
+        preferredRegions:   regionNames.slice(1),
         contractInfo,
       };
 
@@ -208,14 +221,23 @@ export function PersonnelForm({
         return;
       }
 
+      const id =
+        mode === "create" && result.data ? result.data.id : (personnelId ?? "");
+
+      if (id) {
+        const regionResult = await syncPersonnelRegions(id, regionNames);
+        if (!regionResult.success) {
+          toast.error(regionResult.message);
+          return;
+        }
+      }
+
       if (mode === "create" && autoInvite) {
         toast.success("Personeelsrecord aangemaakt en tijdelijk wachtwoord verstuurd");
       } else {
         toast.success(mode === "create" ? "Personeelsrecord aangemaakt" : "Personeelsrecord bijgewerkt");
       }
 
-      const id =
-        mode === "create" && result.data ? result.data.id : (personnelId ?? "");
       onSuccess(id);
     });
   });
@@ -386,25 +408,15 @@ export function PersonnelForm({
         </p>
         <div className="flex flex-col gap-4">
           <div className="space-y-1">
-            <Label htmlFor="region">Primaire regio</Label>
-            <Input
-              id="region"
-              {...register("region")}
-              placeholder="bijv. Noord-Holland"
-              aria-invalid={!!errors.region}
-            />
-            {errors.region && <p className="text-xs text-destructive">{errors.region.message}</p>}
-          </div>
-
-          <div className="space-y-1">
-            <Label>Voorkeurregio&apos;s (extra)</Label>
-            <TagInput
-              value={preferredRegions}
-              onChange={setPreferredRegions}
-              placeholder="bijv. Zuid-Holland — typ en druk op Enter"
+            <Label>Regio&apos;s</Label>
+            <RegionMultiSelect
+              value={regionNames}
+              onChange={setRegionNames}
+              options={regionOptions}
+              placeholder="Selecteer of maak regio's..."
             />
             <p className="text-xs" style={{ color: "#94A3B8" }}>
-              Extra regio&apos;s buiten de primaire regio waar de medewerker beschikbaar is.
+              De eerste geselecteerde regio wordt de primaire regio; extra regio&apos;s blijven beschikbaar voor planning.
             </p>
           </div>
 

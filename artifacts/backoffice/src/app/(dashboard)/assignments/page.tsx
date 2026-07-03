@@ -6,6 +6,7 @@ import {
   listAssignments,
   getCustomerOptions,
 } from "@/app/actions/assignments";
+import { listRegionOptions } from "@/app/actions/regions";
 
 export const metadata: Metadata = {
   title: "Assignments",
@@ -37,9 +38,10 @@ export default async function AssignmentsPage({ searchParams }: Props) {
   const sort         = sp.sort         ?? "createdAt";
   const dir          = sp.dir          ?? "desc";
 
-  const [{ rows, total }, customers, canWrite] = await Promise.all([
+  const [{ rows, total }, customers, regionOptions, canWrite] = await Promise.all([
     listAssignments({ page, search, status, priority, reportStatus, sort, dir }),
     getCustomerOptions(),
+    listRegionOptions(),
     hasPermission("assignments", "write"),
   ]);
 
@@ -55,6 +57,7 @@ export default async function AssignmentsPage({ searchParams }: Props) {
         rows={rows}
         total={total}
         customers={customers}
+        regionOptions={regionOptions}
         canWrite={canWrite}
         page={page}
         initialSearch={search}
