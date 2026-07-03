@@ -1,0 +1,62 @@
+name: Fieldgrid Material Inventory Phase 11
+
+on:
+  workflow_dispatch:
+    inputs:
+      migration_target:
+        description: "Optional migration smoke target"
+        required: true
+        default: "plan-only"
+        type: choice
+        options:
+          - plan-only
+          - empty-db
+          - staging-copy
+
+jobs:
+  phase11-hardening-contract:
+    name: Phase 11 hardening contract
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - name: Setup pnpm
+        run: |
+          corepack enable
+          corepack prepare pnpm@11.5.2 --activate
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate phase 11 contract
+        run: pnpm run fieldgrid:material-inventory-phase11:check
+
+      - name: Run tests
+        run: pnpm test
+
+      - name: Run typecheck
+        run: pnpm run typecheck
+
+      - name: Describe selected migration target
+        run: |
+          echo "Selected migration target: ${{ inputs.migration_target }}"
+          echo "Actual migration smoke requires FIELDGRID_MIGRATION_DATABASE_URL to point to a disposable empty DB or staging-copy DB."
+
+      - name: Optional migration smoke
+        if: ${{ inputs.migration_target != 'plan-only' }}
+        env:
+          DATABASE_URL: ${{ secrets.FIELDGRID_MIGRATION_DATABASE_URL }}
+        run: |
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "FIELDGRID_MIGRATION_DATABASE_URL is not configured; skipping actual migration smoke."
+            exit 0
+          fi
+
+          pnpm run db:migrate
