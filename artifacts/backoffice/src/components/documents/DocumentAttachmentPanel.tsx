@@ -1,0 +1,268 @@
+"use client";
+
+import { useRef, useState, useTransition } from "react";
+import { AlertCircle, CheckCircle2, Download, File, FileText, Image as ImageIcon, Trash2, Upload } from "lucide-react";
+import {
+  deleteDocument,
+  getDocumentDownloadUrl,
+  uploadDocument,
+  type DocumentEntityType,
+  type DocumentRow,
+} from "@/app/actions/documents";
+
+interface DocumentAttachmentPanelProps {
+  entityType: DocumentEntityType;
+  entityId: string;
+  initialDocuments: DocumentRow[];
+  canWrite: boolean;
+  title: string;
+  uploadLabel?: string;
+  emptyMessage?: string;
+  namePlaceholder?: string;
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("nl-NL", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function getDocumentIcon(mimeType: string) {
+  if (mimeType.startsWith("image/")) return <ImageIcon className="h-4 w-4" style={{ color: "#7C3AED" }} />;
+  if (mimeType === "application/pdf") return <FileText className="h-4 w-4" style={{ color: "#DC2626" }} />;
+  return <File className="h-4 w-4" style={{ color: "#64748B" }} />;
+}
+
+export function DocumentAttachmentPanel({
+  entityType,
+  entityId,
+  initialDocuments,
+  canWrite,
+  title,
+  uploadLabel = "Document uploaden",
+  emptyMessage = "Nog geen documenten gekoppeld.",
+  namePlaceholder = "bijv. Foto, bewijsstuk of handleiding",
+}: DocumentAttachmentPanelProps) {
+  const [documents, setDocuments] = useState<DocumentRow[]>(initialDocuments);
+  const [name, setName] = useState("");
+  const [file, setFile] = useState<File | null>(null);
+  const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
+  const fileRef = useRef<HTMLInputElement>(null);
+
+  function showMessage(type: "success" | "error", text: string) {
+    setMessage({ type, text });
+    window.setTimeout(() => setMessage(null), 4000);
+  }
+
+  function resetForm() {
+    setName("");
+    setFile(null);
+    if (fileRef.current) fileRef.current.value = "";
+  }
+
+  function handleUpload(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    if (!file) {
+      showMessage("error", "Selecteer een bestand.");
+      return;
+    }
+    if (!name.trim()) {
+      showMessage("error", "Voer een naam in.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("name", name.trim());
+    formData.append("entityType", entityType);
+    formData.append("entityId", entityId);
+    formData.append("file", file);
+
+    startTransition(async () => {
+      const result = await uploadDocument(formData);
+      if (result.success && result.data) {
+        const uploaded: DocumentRow = {
+          id: result.data.id,
+          name: name.trim(),
+          filename: file.name,
+          mimeType: file.type,
+          sizeBytes: file.size,
+          entityType,
+          entityId,
+          entityName: null,
+          uploadedBy: "",
+          uploaderEmail: "",
+          uploaderName: null,
+          createdAt: new Date().toISOString(),
+        };
+        setDocuments((current) => [uploaded, ...current]);
+        resetForm();
+        showMessage("success", "Bestand gekoppeld.");
+        return;
+      }
+
+      showMessage("error", (result as { message?: string }).message ?? "Uploaden mislukt.");
+    });
+  }
+
+  function handleDownload(row: DocumentRow) {
+    setDownloadingId(row.id);
+    startTransition(async () => {
+      const result = await getDocumentDownloadUrl(row.id);
+      setDownloadingId(null);
+      if (result.success && result.data) {
+        window.open(result.data.url, "_blank", "noopener,noreferrer");
+        return;
+      }
+
+      showMessage("error", (result as { message?: string }).message ?? "Download mislukt.");
+    });
+  }
+
+  function handleDelete(row: DocumentRow) {
+    if (!window.confirm(`Weet u zeker dat u "${row.name}" wilt verwijderen?`)) return;
+
+    setDeletingId(row.id);
+    startTransition(async () => {
+      const result = await deleteDocument(row.id);
+      setDeletingId(null);
+      if (result.success) {
+        setDocuments((current) => current.filter((doc) => doc.id !== row.id));
+        showMessage("success", "Bestand verwijderd.");
+        return;
+      }
+
+      showMessage("error", (result as { message?: string }).message ?? "Verwijderen mislukt.");
+    });
+  }
+
+  return (
+    <section className="veele-card space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="font-heading text-lg font-semibold" style={{ color: "#081D3A" }}>
+            {title}
+          </h2>
+          <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
+            Bestanden worden tenant-gebonden opgeslagen en downloads krijgen alleen een tijdelijke link.
+          </p>
+        </div>
+        <span className="rounded-full px-2.5 py-1 text-xs font-semibold" style={{ backgroundColor: "#F1F5F9", color: "#475569" }}>
+          {documents.length} bestand{documents.length === 1 ? "" : "en"}
+        </span>
+      </div>
+
+      {message && (
+        <div className="flex items-center gap-2 text-sm" style={{ color: message.type === "error" ? "#DC2626" : "#059669" }}>
+          {message.type === "error" ? <AlertCircle className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+          {message.text}
+        </div>
+      )}
+
+      {canWrite && (
+        <form onSubmit={handleUpload} className="grid gap-3 rounded-md border p-3 md:grid-cols-[minmax(180px,1fr)_minmax(220px,1.4fr)_auto]" style={{ borderColor: "#E2E8F0" }}>
+          <input
+            value={name}
+            onChange={(event) => setName(event.target.value)}
+            className="veele-input w-full"
+            placeholder={namePlaceholder}
+            disabled={isPending}
+            required
+          />
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp"
+            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
+            className="block w-full text-sm text-slate-500 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200"
+            disabled={isPending}
+            required
+          />
+          <button
+            type="submit"
+            disabled={isPending || !file || !name.trim()}
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold text-white disabled:opacity-50"
+            style={{ backgroundColor: "#081D3A" }}
+          >
+            <Upload className="h-4 w-4" />
+            {isPending ? "Uploaden" : uploadLabel}
+          </button>
+        </form>
+      )}
+
+      {documents.length === 0 ? (
+        <div className="rounded-md border border-dashed py-10 text-center text-sm" style={{ borderColor: "#CBD5E1", color: "#64748B" }}>
+          {emptyMessage}
+        </div>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-sm">
+            <thead>
+              <tr style={{ borderBottom: "1px solid #E2E8F0" }}>
+                <th className="px-3 py-2 text-left text-xs font-semibold uppercase" style={{ color: "#64748B" }}>Naam</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold uppercase" style={{ color: "#64748B" }}>Bestand</th>
+                <th className="px-3 py-2 text-left text-xs font-semibold uppercase" style={{ color: "#64748B" }}>Datum</th>
+                <th className="px-3 py-2 text-right text-xs font-semibold uppercase" style={{ color: "#64748B" }}>Acties</th>
+              </tr>
+            </thead>
+            <tbody>
+              {documents.map((row) => (
+                <tr key={row.id} style={{ borderBottom: "1px solid #F1F5F9" }}>
+                  <td className="px-3 py-3">
+                    <div className="flex min-w-0 items-center gap-2">
+                      {getDocumentIcon(row.mimeType)}
+                      <span className="truncate font-medium" style={{ color: "#081D3A" }} title={row.name}>
+                        {row.name}
+                      </span>
+                    </div>
+                  </td>
+                  <td className="px-3 py-3 text-xs" style={{ color: "#64748B" }}>
+                    <span className="block max-w-[240px] truncate" title={row.filename}>{row.filename}</span>
+                    <span>{formatFileSize(row.sizeBytes)}</span>
+                  </td>
+                  <td className="px-3 py-3 text-xs whitespace-nowrap" style={{ color: "#64748B" }}>{formatDate(row.createdAt)}</td>
+                  <td className="px-3 py-3">
+                    <div className="flex justify-end gap-1">
+                      <button
+                        type="button"
+                        onClick={() => handleDownload(row)}
+                        disabled={downloadingId === row.id}
+                        className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-slate-100 disabled:opacity-50"
+                        title="Downloaden"
+                        style={{ color: "#475569" }}
+                      >
+                        <Download className="h-4 w-4" />
+                      </button>
+                      {canWrite && (
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(row)}
+                          disabled={deletingId === row.id}
+                          className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-red-50 disabled:opacity-50"
+                          title="Verwijderen"
+                          style={{ color: "#DC2626" }}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      )}
+                    </div>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </section>
+  );
+}
