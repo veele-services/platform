@@ -93,14 +93,16 @@ export function ObjectDetailActions({ object: obj, sectors, customers }: Props) 
             <SheetTitle>Object bewerken</SheetTitle>
             <SheetDescription>Werk de objectgegevens bij.</SheetDescription>
           </SheetHeader>
-          <ObjectForm
-            mode="edit"
-            objectId={obj.id}
-            sectors={sectors}
-            customers={customers}
-            onSuccess={() => setSheetOpen(false)}
-            onCancel={() => setSheetOpen(false)}
-          />
+          {sheetOpen ? (
+            <ObjectForm
+              mode="edit"
+              objectId={obj.id}
+              sectors={sectors}
+              customers={customers}
+              onSuccess={() => setSheetOpen(false)}
+              onCancel={() => setSheetOpen(false)}
+            />
+          ) : null}
         </SheetContent>
       </Sheet>
 
