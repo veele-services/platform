@@ -1,10 +1,12 @@
 import { db } from "@workspace/db";
 import {
-  assignmentsTable,
   assignmentExtraWorkTable,
+  assignmentInventoryItemsTable,
   assignmentMaterialUsageTable,
+  assignmentsTable,
   assignmentTasksTable,
   auditLogTable,
+  inventoryItemsTable,
   invoicesTable,
   taskCodesTable,
   ASSIGNMENT_STATUS_TRANSITIONS,
@@ -13,7 +15,7 @@ import {
 import { and, asc, eq, inArray } from "drizzle-orm";
 
 export type InvoiceProposalLineItem = {
-  category: "task" | "extra_work" | "material";
+  category: "task" | "extra_work" | "material" | "inventory";
   taskCodeCode: string | null;
   taskCodeName: string | null;
   description: string;
@@ -35,6 +37,7 @@ export type InvoiceProposalData = InvoiceProposalTotals & {
   taskSubtotal: string;
   extraWorkSubtotal: string;
   materialSubtotal: string;
+  inventorySubtotal: string;
 };
 
 function money(value: number): string {
@@ -57,11 +60,19 @@ function buildTotals(amount: number, vatPercentage = 21): InvoiceProposalTotals 
   };
 }
 
+function inventoryUsageLabel(value: string | null | undefined): string {
+  if (value === "rented") return "Verhuur";
+  if (value === "issued") return "Uitgegeven";
+  if (value === "returned") return "Retour";
+  if (value === "defect_found") return "Defect geconstateerd";
+  return "Gebruikt";
+}
+
 export async function calculateInvoiceProposalForAssignment(
   assignmentId: string,
   vatPercentage = 21,
 ): Promise<InvoiceProposalData> {
-  const [taskRows, extraWorkRows, materialRows] = await Promise.all([
+  const [taskRows, extraWorkRows, materialRows, inventoryRows] = await Promise.all([
     db
       .select({
         snapshotCode:        assignmentTasksTable.taskCodeCode,
@@ -80,11 +91,11 @@ export async function calculateInvoiceProposalForAssignment(
 
     db
       .select({
-        code:        taskCodesTable.code,
+        code:         taskCodesTable.code,
         taskCodeName: assignmentExtraWorkTable.taskCodeName,
-        description: assignmentExtraWorkTable.description,
-        hours:       assignmentExtraWorkTable.hours,
-        price:       assignmentExtraWorkTable.price,
+        description:  assignmentExtraWorkTable.description,
+        hours:        assignmentExtraWorkTable.hours,
+        price:        assignmentExtraWorkTable.price,
       })
       .from(assignmentExtraWorkTable)
       .leftJoin(taskCodesTable, eq(assignmentExtraWorkTable.taskCodeId, taskCodesTable.id))
@@ -109,6 +120,30 @@ export async function calculateInvoiceProposalForAssignment(
         ),
       )
       .orderBy(asc(assignmentMaterialUsageTable.createdAt)),
+
+    db
+      .select({
+        inventoryCode: inventoryItemsTable.code,
+        name:          inventoryItemsTable.name,
+        usageType:     assignmentInventoryItemsTable.usageType,
+        quantity:      assignmentInventoryItemsTable.approvedQuantity,
+        unitPrice:     assignmentInventoryItemsTable.approvedUnitPrice,
+        periodLabel:   assignmentInventoryItemsTable.registeredPeriodLabel,
+        invoiceable:   assignmentInventoryItemsTable.invoiceable,
+      })
+      .from(assignmentInventoryItemsTable)
+      .innerJoin(
+        inventoryItemsTable,
+        eq(assignmentInventoryItemsTable.inventoryItemId, inventoryItemsTable.id),
+      )
+      .where(
+        and(
+          eq(assignmentInventoryItemsTable.assignmentId, assignmentId),
+          eq(assignmentInventoryItemsTable.approvalStatus, "approved"),
+          eq(assignmentInventoryItemsTable.invoiceable, true),
+        ),
+      )
+      .orderBy(asc(assignmentInventoryItemsTable.attachedAt)),
   ]);
 
   const taskItems: InvoiceProposalLineItem[] = taskRows.map((row) => {
@@ -162,11 +197,34 @@ export async function calculateInvoiceProposalForAssignment(
     };
   });
 
-  const lineItems = [...taskItems, ...extraWorkItems, ...materialItems];
+  const inventoryItems: InvoiceProposalLineItem[] = inventoryRows.map((row) => {
+    const quantity = parseMoney(row.quantity);
+    const unitPrice = parseMoney(row.unitPrice);
+    const price = money(quantity * unitPrice);
+    const usage = inventoryUsageLabel(row.usageType);
+    const period = row.periodLabel ? ` (${row.periodLabel})` : "";
+
+    return {
+      category:     "inventory",
+      taskCodeCode: row.inventoryCode ?? null,
+      taskCodeName: row.name ?? "Inventaris",
+      description:  `${row.name ?? "Inventaris"} - ${usage}${period}`,
+      quantity:     row.quantity ?? "1",
+      unitPrice:    money(unitPrice),
+      price,
+      invoiceable:  row.invoiceable,
+    };
+  });
+
+  const lineItems = [...taskItems, ...extraWorkItems, ...materialItems, ...inventoryItems];
   const taskSubtotal = taskItems.reduce((sum, item) => sum + (item.invoiceable ? parseMoney(item.price) : 0), 0);
   const extraWorkSubtotal = extraWorkItems.reduce((sum, item) => sum + (item.invoiceable ? parseMoney(item.price) : 0), 0);
   const materialSubtotal = materialItems.reduce((sum, item) => sum + (item.invoiceable ? parseMoney(item.price) : 0), 0);
-  const totals = buildTotals(taskSubtotal + extraWorkSubtotal + materialSubtotal, vatPercentage);
+  const inventorySubtotal = inventoryItems.reduce((sum, item) => sum + (item.invoiceable ? parseMoney(item.price) : 0), 0);
+  const totals = buildTotals(
+    taskSubtotal + extraWorkSubtotal + materialSubtotal + inventorySubtotal,
+    vatPercentage,
+  );
 
   return {
     ...totals,
@@ -174,6 +232,7 @@ export async function calculateInvoiceProposalForAssignment(
     taskSubtotal:      money(taskSubtotal),
     extraWorkSubtotal: money(extraWorkSubtotal),
     materialSubtotal:  money(materialSubtotal),
+    inventorySubtotal: money(inventorySubtotal),
   };
 }
 
@@ -198,12 +257,12 @@ export async function createInvoiceProposalForAssignment(input: {
 
   const [existing] = await db
     .select({
-      id:          invoicesTable.id,
-      amount:      invoicesTable.amount,
+      id:            invoicesTable.id,
+      amount:        invoicesTable.amount,
       vatPercentage: invoicesTable.vatPercentage,
-      vatAmount:   invoicesTable.vatAmount,
-      totalAmount: invoicesTable.totalAmount,
-      status:      invoicesTable.status,
+      vatAmount:     invoicesTable.vatAmount,
+      totalAmount:   invoicesTable.totalAmount,
+      status:        invoicesTable.status,
     })
     .from(invoicesTable)
     .where(
@@ -260,6 +319,7 @@ export async function createInvoiceProposalForAssignment(input: {
         `Taken: EUR ${proposal.taskSubtotal}`,
         `Meerwerk: EUR ${proposal.extraWorkSubtotal}`,
         `Materiaal/verbruik: EUR ${proposal.materialSubtotal}`,
+        `Inventaris/verhuur: EUR ${proposal.inventorySubtotal}`,
       ].join("\n"),
       createdBy:      input.actorUserId,
     })
@@ -289,8 +349,10 @@ export async function createInvoiceProposalForAssignment(input: {
       taskSubtotal:       proposal.taskSubtotal,
       extraWorkSubtotal:  proposal.extraWorkSubtotal,
       materialSubtotal:   proposal.materialSubtotal,
+      inventorySubtotal:  proposal.inventorySubtotal,
       administrativeGate: "draft_requires_review",
       materialGate:       "approved_invoiceable_only",
+      inventoryGate:      "approved_invoiceable_only",
     },
   });
 
