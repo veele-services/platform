@@ -2,7 +2,10 @@ export const dynamic = "force-dynamic";
 
 import { notFound } from "next/navigation";
 import { getMyAssignment } from "@/actions/assignments";
-import { getMaterialUsageForAssignment } from "@/actions/materials";
+import {
+  getMaterialUsageForAssignment,
+  listMaterialCatalogForAssignment,
+} from "@/actions/materials";
 import { WorkOrderHeader } from "../WorkOrderHeader";
 import { MaterialEditor } from "../MaterialEditor";
 import { type AssignmentView } from "../work-order-data";
@@ -18,7 +21,10 @@ export default async function MateriaalPage({ params }: Props) {
 
   if (!assignment) notFound();
 
-  const items = await getMaterialUsageForAssignment(id);
+  const [items, catalog] = await Promise.all([
+    getMaterialUsageForAssignment(id),
+    listMaterialCatalogForAssignment(id),
+  ]);
   const canEdit = ![
     "report_submitted",
     "report_approved",
@@ -31,7 +37,12 @@ export default async function MateriaalPage({ params }: Props) {
   return (
     <div className="min-h-screen bg-[#F4F6FA] md:rounded-[32px] md:bg-white">
       <WorkOrderHeader assignment={assignment} activeTab="werkzaamheden" />
-      <MaterialEditor assignmentId={assignment.id} initialItems={items} canEdit={canEdit} />
+      <MaterialEditor
+        assignmentId={assignment.id}
+        initialItems={items}
+        catalog={catalog}
+        canEdit={canEdit}
+      />
     </div>
   );
 }

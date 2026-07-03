@@ -32,10 +32,18 @@ export type AssignmentView = Pick<
 
 export type MaterialUsageItem = {
   id: string;
+  materialId?: string | null;
+  materialCode?: string | null;
   name: string;
   quantity: number;
   unitPrice: number;
   unitLabel?: string;
+  notes?: string | null;
+  createdBy?: string;
+  usesStock?: boolean;
+  stockLocationName?: string | null;
+  isOther?: boolean;
+  approvalStatus?: string;
 };
 
 export const FINISHED_STATUSES = new Set([

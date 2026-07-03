@@ -1,15 +1,17 @@
 "use client";
 
-import { useState, useTransition, type FormEvent } from "react";
+import { useMemo, useState, useTransition, type FormEvent } from "react";
 import { Boxes, Loader2, Plus, Trash2 } from "lucide-react";
-import { addMaterialUsage, deleteMaterialUsage } from "@/actions/materials";
+import {
+  addMaterialUsage,
+  deleteMaterialUsage,
+  type MaterialCatalogOption,
+} from "@/actions/materials";
 import {
   enqueueOfflineWorkOrderAction,
   isOfflineNow,
 } from "@/lib/offline/work-order-queue";
 import {
-  calculateMaterialLineTotal,
-  formatMoney,
   formatQuantity,
   type MaterialUsageItem,
 } from "./work-order-data";
@@ -17,29 +19,101 @@ import {
 type Props = {
   assignmentId: string;
   initialItems: MaterialUsageItem[];
+  catalog: MaterialCatalogOption[];
   canEdit: boolean;
 };
 
-const EMPTY_FORM = {
-  name: "",
-  quantity: "1",
-  unitPrice: "",
-  unitLabel: "stuk",
-  notes: "",
+type MaterialFormMode = "catalog" | "other";
+
+type MaterialFormState = {
+  mode: MaterialFormMode;
+  materialId: string;
+  name: string;
+  quantity: string;
+  unitLabel: string;
+  notes: string;
+  usesStock: boolean;
+  stockLocationId: string;
 };
 
-export function MaterialEditor({ assignmentId, initialItems, canEdit }: Props) {
+function createEmptyForm(catalog: MaterialCatalogOption[]): MaterialFormState {
+  const firstMaterial = catalog[0] ?? null;
+  return {
+    mode: firstMaterial ? "catalog" : "other",
+    materialId: firstMaterial?.id ?? "",
+    name: "",
+    quantity: "1",
+    unitLabel: firstMaterial?.unit ?? "stuk",
+    notes: "",
+    usesStock: false,
+    stockLocationId: "",
+  };
+}
+
+function parseFormNumber(value: string, fallback: number): number {
+  const parsed = Number.parseFloat(value.replace(",", "."));
+  return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function createClientMutationId(): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `material-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
+export function MaterialEditor({ assignmentId, initialItems, catalog, canEdit }: Props) {
   const [items, setItems] = useState<MaterialUsageItem[]>(initialItems);
-  const [form, setForm] = useState(EMPTY_FORM);
+  const [form, setForm] = useState<MaterialFormState>(() => createEmptyForm(catalog));
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
-  const total = items.reduce((sum, item) => sum + calculateMaterialLineTotal(item), 0);
 
-  function parseFormNumber(value: string, fallback: number): number {
-    const parsed = Number.parseFloat(value.replace(",", "."));
-    return Number.isFinite(parsed) && parsed >= 0 ? parsed : fallback;
+  const selectedMaterial = useMemo(
+    () => catalog.find((material) => material.id === form.materialId) ?? null,
+    [catalog, form.materialId],
+  );
+
+  const availableStockLocations = useMemo(
+    () => selectedMaterial?.stockLocations.filter((source) => source.quantity > 0) ?? [],
+    [selectedMaterial],
+  );
+
+  const selectedStockLocation = availableStockLocations.find((source) => source.id === form.stockLocationId) ?? null;
+  const itemCountLabel = `${items.length} registratie${items.length === 1 ? "" : "s"}`;
+
+  function setMode(mode: MaterialFormMode) {
+    if (mode === "catalog" && catalog.length === 0) return;
+    const firstMaterial = catalog[0] ?? null;
+    setForm((current) => ({
+      ...current,
+      mode,
+      materialId: mode === "catalog" ? current.materialId || firstMaterial?.id || "" : "",
+      name: mode === "catalog" ? "" : current.name,
+      unitLabel: mode === "catalog" ? selectedMaterial?.unit ?? firstMaterial?.unit ?? "stuk" : current.unitLabel || "stuk",
+      usesStock: false,
+      stockLocationId: "",
+    }));
+  }
+
+  function setMaterial(materialId: string) {
+    const material = catalog.find((item) => item.id === materialId) ?? null;
+    setForm((current) => ({
+      ...current,
+      materialId,
+      unitLabel: material?.unit ?? current.unitLabel,
+      usesStock: false,
+      stockLocationId: "",
+    }));
+  }
+
+  function toggleUsesStock(checked: boolean) {
+    setForm((current) => ({
+      ...current,
+      usesStock: checked,
+      stockLocationId: checked ? availableStockLocations[0]?.id ?? "" : "",
+    }));
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -47,18 +121,34 @@ export function MaterialEditor({ assignmentId, initialItems, canEdit }: Props) {
     setError(null);
     setNotice(null);
 
-    const name = form.name.trim();
+    const isOther = form.mode === "other";
+    const name = isOther ? form.name.trim() : selectedMaterial?.name ?? "";
+    const unitLabel = isOther ? form.unitLabel.trim() || "stuk" : selectedMaterial?.unit ?? "stuk";
+    const quantity = form.quantity || "1";
+    const usesStock = !isOther && form.usesStock;
+    const clientMutationId = createClientMutationId();
+
     if (!name) {
-      setError("Materiaalnaam is verplicht");
+      setError(isOther ? "Materiaalnaam is verplicht" : "Kies een materiaal uit de catalogus");
+      return;
+    }
+    if (usesStock && !form.stockLocationId) {
+      setError("Kies een voorraadlocatie");
       return;
     }
 
     const input = {
+      materialId: isOther ? null : selectedMaterial?.id ?? null,
+      materialCode: isOther ? null : selectedMaterial?.code ?? null,
       name,
-      quantity: form.quantity || "1",
-      unitPrice: form.unitPrice || "0",
-      unitLabel: form.unitLabel || null,
+      quantity,
+      unitLabel,
       notes: form.notes || null,
+      usesStock,
+      stockLocationId: usesStock ? form.stockLocationId : null,
+      stockLocationName: usesStock ? selectedStockLocation?.name ?? null : null,
+      isOther,
+      clientMutationId,
     };
 
     startTransition(async () => {
@@ -71,14 +161,21 @@ export function MaterialEditor({ assignmentId, initialItems, canEdit }: Props) {
         setItems((current) => [
           ...current,
           {
-            id:        `local-material-${Date.now()}`,
+            id: `local-material-${clientMutationId}`,
+            materialId: input.materialId,
+            materialCode: input.materialCode,
             name,
-            quantity:  parseFormNumber(form.quantity, 1),
-            unitPrice: parseFormNumber(form.unitPrice, 0),
-            unitLabel: form.unitLabel || undefined,
+            quantity: parseFormNumber(form.quantity, 1),
+            unitPrice: 0,
+            unitLabel,
+            notes: input.notes,
+            usesStock,
+            stockLocationName: input.stockLocationName,
+            isOther,
+            approvalStatus: "pending",
           },
         ]);
-        setForm(EMPTY_FORM);
+        setForm(createEmptyForm(catalog));
         setNotice("Materiaal is offline opgeslagen en wordt automatisch gesynchroniseerd.");
         return;
       }
@@ -92,14 +189,21 @@ export function MaterialEditor({ assignmentId, initialItems, canEdit }: Props) {
       setItems((current) => [
         ...current,
         {
-          id:        result.id!,
+          id: result.id!,
+          materialId: input.materialId,
+          materialCode: input.materialCode,
           name,
-          quantity:  parseFormNumber(form.quantity, 1),
-          unitPrice: parseFormNumber(form.unitPrice, 0),
-          unitLabel: form.unitLabel || undefined,
+          quantity: parseFormNumber(form.quantity, 1),
+          unitPrice: 0,
+          unitLabel,
+          notes: input.notes,
+          usesStock,
+          stockLocationName: input.stockLocationName,
+          isOther,
+          approvalStatus: "pending",
         },
       ]);
-      setForm(EMPTY_FORM);
+      setForm(createEmptyForm(catalog));
     });
   }
 
@@ -131,25 +235,39 @@ export function MaterialEditor({ assignmentId, initialItems, canEdit }: Props) {
           <h2 className="text-[19px] font-black leading-tight" style={{ color: "var(--color-primary)" }}>
             Materiaal / Verbruik
           </h2>
-          <span className="text-[17px] font-black" style={{ color: "var(--color-primary)" }}>
-            {formatMoney(total)}
+          <span className="text-[13px] font-black" style={{ color: "var(--color-accent)" }}>
+            {itemCountLabel}
           </span>
         </div>
 
         <div className="mt-4 space-y-3">
           {items.length > 0 ? items.map((item) => (
-            <div key={item.id} className="grid grid-cols-[1fr_auto_auto] items-center gap-3">
+            <div key={item.id} className="grid grid-cols-[1fr_auto] items-start gap-3">
               <div className="min-w-0">
                 <p className="truncate text-[14px] font-semibold leading-tight" style={{ color: "var(--color-primary)" }}>
                   {item.name}
                 </p>
                 <p className="mt-0.5 text-[13px] font-medium leading-tight" style={{ color: "var(--color-secondary)" }}>
-                  {formatQuantity(item.quantity)} x {formatMoney(item.unitPrice)}
+                  {formatQuantity(item.quantity)} {item.unitLabel ?? "stuk"}{item.usesStock && item.stockLocationName ? ` uit ${item.stockLocationName}` : ""}
                 </p>
+                <div className="mt-1 flex flex-wrap gap-1.5">
+                  {item.materialCode ? (
+                    <span className="rounded-full bg-[#E8F2FF] px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-[#2563A9]">
+                      {item.materialCode}
+                    </span>
+                  ) : null}
+                  {item.usesStock ? (
+                    <span className="rounded-full bg-[#E9FBF8] px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-[#0A837F]">
+                      Uit voorraad
+                    </span>
+                  ) : null}
+                  {item.isOther ? (
+                    <span className="rounded-full bg-[#F4F6FA] px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-slate-600">
+                      Overig
+                    </span>
+                  ) : null}
+                </div>
               </div>
-              <span className="text-[14px] font-black" style={{ color: "var(--color-primary)" }}>
-                {formatMoney(calculateMaterialLineTotal(item))}
-              </span>
               {canEdit ? (
                 <button
                   type="button"
@@ -187,45 +305,71 @@ export function MaterialEditor({ assignmentId, initialItems, canEdit }: Props) {
             Materiaal toevoegen
           </h3>
 
-          <div className="mt-4 space-y-3">
-            <label className="block">
-              <span className="mb-1.5 block text-[12px] font-bold" style={{ color: "var(--color-secondary)" }}>
-                Materiaal
-              </span>
-              <input
-                value={form.name}
-                onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
-                className="w-full rounded-2xl border px-3 py-3 text-[14px] font-semibold outline-none"
-                style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
-                placeholder="Bijv. reinigingsdoek industrieel"
-              />
-            </label>
+          <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-[#F4F6FA] p-1">
+            <button
+              type="button"
+              onClick={() => setMode("catalog")}
+              disabled={catalog.length === 0}
+              className="rounded-xl px-3 py-2 text-[13px] font-black disabled:opacity-50"
+              style={form.mode === "catalog" ? { backgroundColor: "white", color: "var(--color-primary)" } : { color: "var(--color-secondary)" }}
+            >
+              Catalogus
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode("other")}
+              className="rounded-xl px-3 py-2 text-[13px] font-black"
+              style={form.mode === "other" ? { backgroundColor: "white", color: "var(--color-primary)" } : { color: "var(--color-secondary)" }}
+            >
+              Overig
+            </button>
+          </div>
 
-            <div className="grid grid-cols-3 gap-3">
+          <div className="mt-4 space-y-3">
+            {form.mode === "catalog" ? (
+              <label className="block">
+                <span className="mb-1.5 block text-[12px] font-bold" style={{ color: "var(--color-secondary)" }}>
+                  Materiaal
+                </span>
+                <select
+                  value={form.materialId}
+                  onChange={(event) => setMaterial(event.target.value)}
+                  className="w-full rounded-2xl border px-3 py-3 text-[14px] font-semibold outline-none"
+                  style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+                >
+                  {catalog.map((material) => (
+                    <option key={material.id} value={material.id}>
+                      {material.code} - {material.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : (
+              <label className="block">
+                <span className="mb-1.5 block text-[12px] font-bold" style={{ color: "var(--color-secondary)" }}>
+                  Materiaal
+                </span>
+                <input
+                  value={form.name}
+                  onChange={(event) => setForm((current) => ({ ...current, name: event.target.value }))}
+                  className="w-full rounded-2xl border px-3 py-3 text-[14px] font-semibold outline-none"
+                  style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+                  placeholder="Bijv. klein verbruiksartikel"
+                />
+              </label>
+            )}
+
+            <div className="grid grid-cols-2 gap-3">
               <label className="block">
                 <span className="mb-1.5 block text-[12px] font-bold" style={{ color: "var(--color-secondary)" }}>
                   Aantal
                 </span>
                 <input
                   type="number"
-                  min="0"
-                  step="0.01"
+                  min="0.001"
+                  step="0.001"
                   value={form.quantity}
                   onChange={(event) => setForm((current) => ({ ...current, quantity: event.target.value }))}
-                  className="w-full rounded-2xl border px-3 py-3 text-[14px] font-semibold outline-none"
-                  style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
-                />
-              </label>
-              <label className="block">
-                <span className="mb-1.5 block text-[12px] font-bold" style={{ color: "var(--color-secondary)" }}>
-                  Prijs
-                </span>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  value={form.unitPrice}
-                  onChange={(event) => setForm((current) => ({ ...current, unitPrice: event.target.value }))}
                   className="w-full rounded-2xl border px-3 py-3 text-[14px] font-semibold outline-none"
                   style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
                 />
@@ -235,13 +379,50 @@ export function MaterialEditor({ assignmentId, initialItems, canEdit }: Props) {
                   Eenheid
                 </span>
                 <input
-                  value={form.unitLabel}
+                  value={form.mode === "catalog" ? selectedMaterial?.unit ?? form.unitLabel : form.unitLabel}
                   onChange={(event) => setForm((current) => ({ ...current, unitLabel: event.target.value }))}
-                  className="w-full rounded-2xl border px-3 py-3 text-[14px] font-semibold outline-none"
+                  disabled={form.mode === "catalog"}
+                  className="w-full rounded-2xl border px-3 py-3 text-[14px] font-semibold outline-none disabled:bg-[#F8FAFC]"
                   style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
                 />
               </label>
             </div>
+
+            {form.mode === "catalog" ? (
+              <div className="rounded-2xl border px-3 py-3" style={{ borderColor: "var(--color-border)" }}>
+                <label className="flex items-center justify-between gap-3">
+                  <span className="text-[13px] font-black" style={{ color: "var(--color-primary)" }}>
+                    Uit voorraad gebruiken
+                  </span>
+                  <input
+                    type="checkbox"
+                    checked={form.usesStock}
+                    disabled={availableStockLocations.length === 0}
+                    onChange={(event) => toggleUsesStock(event.target.checked)}
+                    className="h-5 w-5 rounded border-slate-300 text-[#00A6A2]"
+                  />
+                </label>
+                {form.usesStock ? (
+                  <select
+                    value={form.stockLocationId}
+                    onChange={(event) => setForm((current) => ({ ...current, stockLocationId: event.target.value }))}
+                    className="mt-3 w-full rounded-2xl border px-3 py-3 text-[14px] font-semibold outline-none"
+                    style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+                  >
+                    {availableStockLocations.map((source) => (
+                      <option key={source.id} value={source.id}>
+                        {source.name} - {formatQuantity(source.quantity)} beschikbaar
+                      </option>
+                    ))}
+                  </select>
+                ) : null}
+                {availableStockLocations.length === 0 ? (
+                  <p className="mt-2 text-[12px] font-semibold" style={{ color: "var(--color-secondary)" }}>
+                    Geen gekoppelde voorraad beschikbaar voor dit materiaal.
+                  </p>
+                ) : null}
+              </div>
+            ) : null}
 
             <label className="block">
               <span className="mb-1.5 block text-[12px] font-bold" style={{ color: "var(--color-secondary)" }}>
