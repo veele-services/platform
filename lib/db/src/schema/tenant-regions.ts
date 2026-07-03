@@ -29,6 +29,7 @@ export const tenantRegionsTable = pgTable(
     normalizedName: varchar("normalized_name", { length: 120 }).notNull(),
     isActive: boolean("is_active").notNull().default(true),
     sortOrder: integer("sort_order").notNull().default(0),
+    source: varchar("source", { length: 40 }).notNull().default("manual").$type<RegionLinkSource>(),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
       .notNull()
