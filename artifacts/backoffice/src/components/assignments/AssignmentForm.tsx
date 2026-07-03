@@ -87,7 +87,7 @@ interface AssignmentFormProps {
   mode:           "create" | "edit";
   assignmentId?:  string;
   customers:      CustomerOption[];
-  regionOptions:  RegionOption[];
+  regionOptions?: RegionOption[];
   defaultDate?:   string;
   onSuccess:      (id: string) => void;
   onCancel:       () => void;
@@ -99,7 +99,7 @@ export function AssignmentForm({
   mode,
   assignmentId,
   customers,
-  regionOptions,
+  regionOptions = [],
   defaultDate,
   onSuccess,
   onCancel,
