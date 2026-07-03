@@ -1,5 +1,10 @@
 import { listPlatformTenants } from "@/app/actions/platform-tenants";
-import { listPlatformUsers, listSupportAccessGrants } from "@/app/actions/platform";
+import {
+  enterSupportMode,
+  listPlatformUsers,
+  listSupportAccessGrants,
+  type SupportAccessGrantRow,
+} from "@/app/actions/platform";
 
 export const metadata = {
   title: "Platformbeheer",
@@ -11,6 +16,14 @@ function formatDate(value: string | null): string {
     dateStyle: "medium",
     timeStyle: "short",
   }).format(new Date(value));
+}
+
+function supportGrantStatus(grant: SupportAccessGrantRow): "Actief" | "Gepland" | "Verlopen" | "Ingetrokken" {
+  const now = Date.now();
+  if (grant.revokedAt) return "Ingetrokken";
+  if (new Date(grant.startsAt).getTime() > now) return "Gepland";
+  if (new Date(grant.expiresAt).getTime() <= now) return "Verlopen";
+  return "Actief";
 }
 
 export default async function PlatformAdminPage() {
@@ -102,17 +115,36 @@ export default async function PlatformAdminPage() {
                     <th className="px-4 py-3 font-semibold">Reden</th>
                     <th className="px-4 py-3 font-semibold">Verloopt</th>
                     <th className="px-4 py-3 font-semibold">Status</th>
+                    <th className="px-4 py-3 font-semibold">Actie</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {supportGrants.map((grant) => (
-                    <tr key={grant.id} className="border-t border-slate-100">
-                      <td className="px-4 py-3 font-medium">{grant.tenantName}</td>
-                      <td className="max-w-72 truncate px-4 py-3 text-slate-600">{grant.reason}</td>
-                      <td className="px-4 py-3 text-slate-600">{formatDate(grant.expiresAt)}</td>
-                      <td className="px-4 py-3 text-slate-600">{grant.revokedAt ? "Ingetrokken" : "Actief"}</td>
-                    </tr>
-                  ))}
+                  {supportGrants.map((grant) => {
+                    const status = supportGrantStatus(grant);
+                    return (
+                      <tr key={grant.id} className="border-t border-slate-100">
+                        <td className="px-4 py-3 font-medium">{grant.tenantName}</td>
+                        <td className="max-w-72 truncate px-4 py-3 text-slate-600">{grant.reason}</td>
+                        <td className="px-4 py-3 text-slate-600">{formatDate(grant.expiresAt)}</td>
+                        <td className="px-4 py-3 text-slate-600">{status}</td>
+                        <td className="px-4 py-3">
+                          {status === "Actief" ? (
+                            <form action={enterSupportMode}>
+                              <input type="hidden" name="tenantId" value={grant.tenantId} />
+                              <button
+                                type="submit"
+                                className="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
+                              >
+                                Open supportmodus
+                              </button>
+                            </form>
+                          ) : (
+                            <span className="text-xs text-slate-400">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
