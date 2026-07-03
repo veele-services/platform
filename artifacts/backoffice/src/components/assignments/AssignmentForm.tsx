@@ -32,6 +32,7 @@ import {
 } from "@/app/actions/assignments";
 import {
   getAssignmentRegionNames,
+  getObjectRegionNames,
   syncAssignmentRequiredRegions,
   type RegionOption,
 } from "@/app/actions/regions";
@@ -108,6 +109,7 @@ export function AssignmentForm({
   const [objects,  setObjects]       = useState<ObjectOption[]>([]);
   const [loadingObjects, setLoadingObjects] = useState(false);
   const [regionNames, setRegionNames] = useState<string[]>([]);
+  const [regionTouched, setRegionTouched] = useState(false);
 
   const form = useForm<FormValues>({
     defaultValues: defaultDate && mode === "create"
@@ -130,6 +132,7 @@ export function AssignmentForm({
   const signatureRequiredVal = watch("customerSignatureRequired") || false;
 
   const updateRegionNames = (next: string[]) => {
+    setRegionTouched(true);
     setRegionNames(next);
     setValue("requiredRegion", next[0] ?? "", { shouldDirty: true });
   };
@@ -147,6 +150,20 @@ export function AssignmentForm({
       setLoadingObjects(false);
     });
   }, [customerIdVal, setValue]);
+
+  useEffect(() => {
+    if (mode !== "create" || regionTouched) return;
+    const objectId = objectIdVal === "NONE" ? "" : objectIdVal;
+    if (!objectId) return;
+
+    getObjectRegionNames(objectId)
+      .then((names) => {
+        if (names.length === 0 || regionTouched) return;
+        setRegionNames(names);
+        setValue("requiredRegion", names[0] ?? "", { shouldDirty: true });
+      })
+      .catch(() => undefined);
+  }, [mode, objectIdVal, regionTouched, setValue]);
 
   // Load existing assignment in edit mode
   useEffect(() => {
@@ -168,6 +185,7 @@ export function AssignmentForm({
         setValue("requiredPersonnelCount", a.requiredPersonnelCount ?? 1);
         setValue("customerSignatureRequired", Boolean(a.customerSignatureRequired));
         setRegionNames(linkedRegions.length > 0 ? linkedRegions : a.requiredRegion ? [a.requiredRegion] : []);
+        setRegionTouched(true);
       }
       setLoading(false);
     });

@@ -2,10 +2,8 @@ import type { Metadata } from "next";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { AssignmentsView } from "@/components/assignments/AssignmentsView";
-import {
-  listAssignments,
-  getCustomerOptions,
-} from "@/app/actions/assignments";
+import { getCustomerOptions } from "@/app/actions/assignments";
+import { listAssignmentsRegionAware } from "@/app/actions/region-runtime";
 import { listRegionOptions } from "@/app/actions/regions";
 
 export const metadata: Metadata = {
@@ -19,6 +17,7 @@ interface Props {
     status?:       string;
     priority?:     string;
     reportStatus?: string;
+    region?:       string;
     sort?:         string;
     dir?:          string;
   }>;
@@ -35,11 +34,12 @@ export default async function AssignmentsPage({ searchParams }: Props) {
   const status       = sp.status       ?? "";
   const priority     = sp.priority     ?? "";
   const reportStatus = sp.reportStatus ?? "";
+  const region       = sp.region       ?? "";
   const sort         = sp.sort         ?? "createdAt";
   const dir          = sp.dir          ?? "desc";
 
   const [{ rows, total }, customers, regionOptions, canWrite] = await Promise.all([
-    listAssignments({ page, search, status, priority, reportStatus, sort, dir }),
+    listAssignmentsRegionAware({ page, search, status, priority, reportStatus, region, sort, dir }),
     getCustomerOptions(),
     listRegionOptions(),
     hasPermission("assignments", "write"),
@@ -64,6 +64,7 @@ export default async function AssignmentsPage({ searchParams }: Props) {
         initialStatus={status}
         initialPriority={priority}
         initialReportStatus={reportStatus}
+        initialRegion={region}
         initialSort={sort}
         initialDir={dir}
       />

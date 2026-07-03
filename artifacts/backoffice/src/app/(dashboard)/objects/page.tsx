@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { ObjectsView } from "@/components/objects/ObjectsView";
-import { listObjects, listCustomerOptions, getObjectStats } from "@/app/actions/objects";
+import { listCustomerOptions, getObjectStats } from "@/app/actions/objects";
+import { listObjectsRegionAware } from "@/app/actions/region-runtime";
 import { listActiveSectors } from "@/app/actions/sectors";
 import { listRegionOptions } from "@/app/actions/regions";
 import { Building2, CheckCircle2, ClipboardList, FileText, PauseCircle } from "lucide-react";
@@ -60,7 +61,7 @@ export default async function ObjectsPage({ searchParams }: Props) {
   const [{ rows, total }, customers, sectors, regionOptions, stats] = await Promise.all([
     safePageData(
       "objects",
-      () => listObjects({ search, customerId, serviceType, region, status, page, sort, dir }),
+      () => listObjectsRegionAware({ search, customerId, serviceType, region, status, page, sort, dir }),
       { rows: [], total: 0 },
     ),
     safePageData("customers", () => listCustomerOptions(), []),
