@@ -12,6 +12,7 @@ import { ObjectContactsTab } from "@/components/objects/tabs/ObjectContactsTab";
 import { ObjectPersonnelTab } from "@/components/objects/tabs/ObjectPersonnelTab";
 import { ObjectServicesTab } from "@/components/objects/tabs/ObjectServicesTab";
 import { MaterialStockPanel } from "@/components/materials/MaterialStockPanel";
+import { InventoryItemsPanel } from "@/components/inventory/InventoryItemsPanel";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { getObjectForDetailPage } from "@/app/actions/object-detail-safe";
 import {
@@ -26,6 +27,7 @@ import {
 import { listSectors } from "@/app/actions/customers";
 import { listAssignmentsForObject } from "@/app/actions/assignments";
 import { listMaterialStockForObject } from "@/app/actions/materials";
+import { listInventoryForObject } from "@/app/actions/inventory";
 
 async function safeOptional<T>(
   label: string,
@@ -94,16 +96,17 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
     ? (rawTab as ObjectTabKey)
     : "overzicht";
 
-  const [canWrite, canReadAssignments, canReadMaterials] = await Promise.all([
+  const [canWrite, canReadAssignments, canReadMaterials, canReadInventory] = await Promise.all([
     hasPermission("objects",     "write"),
     hasPermission("assignments", "read"),
     hasPermission("materials",   "view"),
+    hasPermission("inventory",   "view"),
   ]);
 
   const obj = await safeOptional("object", id, () => getObjectForDetailPage(id), null);
   if (!obj) notFound();
 
-  const [contacts, personnel, personnelOptions, assignments, sectors, customers, performance, history, materialStock] = await Promise.all([
+  const [contacts, personnel, personnelOptions, assignments, sectors, customers, performance, history, materialStock, inventoryItems] = await Promise.all([
     safeOptional("contacts", id, () => listObjectContacts(id), []),
     safeOptional("personnel", id, () => listObjectPersonnel(id), []),
     canWrite
@@ -123,12 +126,16 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
     canReadMaterials
       ? safeOptional("material-stock", id, () => listMaterialStockForObject(id), [])
       : Promise.resolve([]),
+    canReadInventory
+      ? safeOptional("inventory-items", id, () => listInventoryForObject(id), [])
+      : Promise.resolve([]),
   ]);
 
   const counts = {
-    contacten: contacts.length,
-    diensten:  assignments.length,
-    materiaal: materialStock.length,
+    contacten:  contacts.length,
+    diensten:   assignments.length,
+    materiaal:  materialStock.length,
+    inventaris: inventoryItems.length,
   };
 
   return (
@@ -207,6 +214,17 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
           />
         ) : (
           <ForbiddenPage resource="materials" action="view" />
+        )
+      )}
+
+      {activeTab === "inventaris" && (
+        canReadInventory ? (
+          <InventoryItemsPanel
+            rows={inventoryItems}
+            emptyMessage="Er is nog geen inventaris aan dit object gekoppeld."
+          />
+        ) : (
+          <ForbiddenPage resource="inventory" action="view" />
         )
       )}
 
