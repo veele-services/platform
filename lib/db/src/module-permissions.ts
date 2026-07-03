@@ -9,6 +9,7 @@ export const FIELDGRID_PERMISSION_MODULES = {
   customers: "customers",
   customer_contacts: "customers",
   customer_notes: "customers",
+  customer_portal: "customer_portal",
   customer_users: "customer_portal",
 
   objects: "objects",
@@ -16,6 +17,7 @@ export const FIELDGRID_PERMISSION_MODULES = {
   object_personnel: "objects",
 
   personnel: "personnel",
+  personnel_portal: "personnel_portal",
   qualifications: "personnel",
   availability: "personnel",
   leave_periods: "personnel",
