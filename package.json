@@ -12,6 +12,7 @@
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "test": "node --test tests/*.test.mjs",
     "fieldgrid:phase1-fixtures": "node scripts/fieldgrid-phase1-demo-data.mjs",
+    "fieldgrid:sprint1-fixtures": "node scripts/fieldgrid-phase1-demo-data.mjs",
     "fieldgrid:phase2-hardening-report": "pnpm --filter @workspace/db run tenant-hardening:report",
     "fieldgrid:phase3-storage-report": "pnpm --filter @workspace/db run storage-tenancy:report",
     "fieldgrid:phase7-smoke": "node scripts/fieldgrid-phase7-staging-smoke.mjs",
