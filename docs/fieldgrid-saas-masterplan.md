@@ -1,8 +1,8 @@
 # Fieldgrid SaaS masterplan canon
 
-Datum: 2026-07-03  
-Status: actuele canon na recovery, sprints 1 t/m 11, PR #149 en fase 0 canonrefresh.  
-Bronnen: oorspronkelijke Fieldgrid/Veele SaaS-masterplanbijlage, huidige `main` codebase, `docs/fieldgrid-next-major-update-plan.md`, data-classificatie, cross-tenant testmatrix en staging-promotiechecklist.
+Datum: 2026-07-03
+Status: sprint 0 canon refresh 2.0. Actuele uitvoeringsbron: `docs/fieldgrid-saas-proof-sprint-plan.md`.
+Bronnen: oorspronkelijke Fieldgrid/Veele SaaS-masterplanbijlage, huidige `main` codebase, `docs/fieldgrid-data-classification.md`, `docs/fieldgrid-cross-tenant-testmatrix.md`, `docs/fieldgrid-next-major-update-plan.md`, `docs/fieldgrid-staging-promotion-checklist.md` en `docs/fieldgrid-saas-proof-sprint-plan.md`.
 
 ## 1. Doel en vaste besluiten
 
@@ -11,7 +11,7 @@ Fieldgrid is het SaaS-platform. Veele Services is geen platform-uitzondering mee
 Vaste besluiten:
 
 - Productdoel: extern multi-tenant SaaS-platform.
-- Databasekeuze: een gedeelde database met sterke tenant-isolatie.
+- Databasekeuze: gedeelde database met sterke tenant-isolatie.
 - Isolatie-eis: applicatiechecks, RLS/storage policies en cross-tenant tests.
 - Tenantselectie: host/subdomain is leidend; tenant switcher mag hostcontext niet overschrijven.
 - Platformdomeinen nu: `platform.fieldgrid.nl` voor productie en `staging.fieldgrid.nl` voor staging.
@@ -21,106 +21,129 @@ Vaste besluiten:
 - Globale `roles` blijven templates; runtime-RBAC komt uit `tenant_roles`.
 - Modules worden tenant-specifiek aan/uit gezet en server-side afgedwongen.
 - Sectoren blijven een globale catalogus met tenant-toewijzing en tenantpolicy.
+- Regio's worden tenant-configuratie: personeel, objecten en opdrachten moeten meerdere tenant-regio's kunnen gebruiken met backoffice autocomplete/multiselect.
 - Starter, Professional en Enterprise zijn de eerste pakketten.
 - Geen harde aantallimieten in de recovery-MVP, behalve: custom role management is Professional+.
 - Facturatie van Fieldgrid-abonnementen is eerst handmatig; automatische payment-provider komt later.
 - Staging-data blijft behouden; risicomigraties moeten staging-copy smoke getest worden.
 
-## 2. Actuele codebase-status
+## 2. Canonieke statusvelden
 
-### 2.1 Gebouwd of grotendeels gebouwd
+Alle canonbronnen gebruiken vanaf sprint 0 dezelfde statusvelden.
 
-Recovery en governance:
+| Status | Betekenis |
+| --- | --- |
+| `done` | Gebouwd, runtime actief en passend bewezen. |
+| `partial` | Basis bestaat, maar productflow, dekking of randgevallen zijn incompleet. |
+| `runtime-proof-open` | Runtime lijkt aanwezig, maar echte integration/Playwright/DB/RLS/storage-bewijzen ontbreken. |
+| `hardening-open` | Schema/runtime is staging-veilig opgebouwd, maar backfill, constraint validation, `NOT NULL`, policybewijs of cleanup staat open. |
+| `nice-to-have` | Waardevol voor product/operatie, maar niet vereist voor harde SaaS-isolatie. |
 
-- `main` is opnieuw bron van waarheid.
-- `docs/fieldgrid-recovery-execution-plan.md` bewaart de blijvende recovery-guardrails.
-- `docs/fieldgrid-next-major-update-plan.md` is de uitvoeringscanon voor de volgende grote update.
-- `docs/fieldgrid-staging-promotion-checklist.md` bepaalt per fase hoe staging zoveel mogelijk bereikbaar blijft.
-- Canon-docs worden bewaakt met `tests/fieldgrid-canon.test.mjs`.
+Geen onderwerp mag in vervolgwerk alleen als "open" blijven staan zonder status, eigenaar-sprint en test-/hardeningcontract.
 
-Tenantcontext en lifecycle:
+## 3. Actuele codebase-status
 
+### 3.1 `done` of grotendeels bewezen
+
+- `main` is bron van waarheid.
+- Recovery-guardrails staan in `docs/fieldgrid-recovery-execution-plan.md`.
+- Host-first tenantcontext is runtimebasis voor backoffice, API, klantportaal en personeelsapp.
 - `tenant_domains` bestaat.
-- Backoffice, API, klantportaal en personeelsapp zijn host-first tenant-aware.
-- Onbekende Fieldgrid-subdomains falen veilig.
-- Default tenant fallback is beperkt tot non-production met expliciete configuratie.
-- `tenants` bevat lifecycle-status, `plan_key`, creator/auditvelden en statusdata.
-- Membershipchecks sluiten inactieve, suspended en archived tenants uit.
-- Provisioning foundation en runstatus bestaan; de productwizard en volledige operationele smoke ontbreken nog.
+- `tenant_roles`, `tenant_role_permissions` en `tenant_user_roles` zijn runtime-RBAC-bron.
+- Globale `roles` en `role_permissions` blijven templates.
+- Platform-admin en supportgrant-basis bestaan.
+- Tenant-sector foundation en tenant-sector settings bestaan.
+- Modules, plans, tenant modules, dependencies, subscriptions en limits hebben foundation.
+- Materialen/inventaris hebben onderzoeks- en productcanon; volledige modulebouw volgt na SaaS proof of als aparte roadmap.
 
-Tenant-scoped RBAC:
+### 3.2 `partial`
 
-- Canonieke runtime-tabellen bestaan: `tenant_roles`, `tenant_role_permissions`, `tenant_user_roles`.
-- `roles` en `role_permissions` blijven globale templates.
-- Backoffice en API permission lookup gebruiken tenant role ids.
-- Rollenbeheer-actions bestaan voor tenantrollen, permissies, gebruikersrollen en uitnodigingen.
-- Custom roles zijn Professional/Enterprise gated via plan capabilities.
+- Platform onboarding: provisioning form/status bestaat, wizard save/resume/review/rollback ontbreekt.
+- Tenant first-run: checklist/foundation bestaat, echte owner wizard ontbreekt.
+- Support break-glass: reden/expiry/audit bestaan, harde max TTL en centrale flow ontbreken.
+- Usage dashboard: basisstats bestaan, documenten/storage/downloads/actieve modules moeten erbij.
+- Staging smoke: read-only/dashboardbasis bestaat, run history, live smokes en mutating cleanup ontbreken.
+- Demo-data: canon/fixtures bestaan, one-click seed/cleanup ontbreekt.
+- Audit/security: basis bestaat, downloads/PDF/direct-ID/module/storage-denials moeten centraal landen.
+- Regio: legacy `personnel.region`, `personnel.preferredRegions` en `assignments.requiredRegion` bestaan, maar tenant-regio datamodel en multiselect ontbreken.
 
-Modules, plans en entitlements:
+### 3.3 `runtime-proof-open`
 
-- `modules`, `tenant_modules`, `module_dependencies`, `plans`, `plan_modules`, `plan_limits` en `tenant_subscriptions` bestaan.
-- Starter, Professional en Enterprise zijn seedbaar/gemodelleerd.
-- API `requirePermission()` heeft brede modulemapping.
-- Backoffice modulemapping is smaller en dekt vooral documents, finance en reporting; harmonisatie blijft open.
-- Portal- en background-job moduleguards moeten nog breed bewezen of afgerond worden.
+- Host-first tenantcontext moet met Tenant A/B/Veele integration en Playwright bewezen worden.
+- Tenant lifecycle active/suspended/archived moet runtime bewezen worden.
+- Tenant RBAC moet met echte rolverschillen per tenant bewezen worden.
+- Module enforcement moet API, backoffice, portalen en jobs hetzelfde laten reageren.
+- Sector enforcement moet disable/default/single-sector scenario's runtime bewijzen.
+- Veele Portaal klant/personeel moet E2E bewijzen voor documenten, facturen, tickets, opdrachten, media, rapportage, notificaties, module-denials en verkeerde-host scenario's.
+- Personeelsplanning heeft live/minuut-refresh, maar portal acceptance moet blijven bewijzen dat Home/Planning actueel zijn.
 
-Platform-admin en support:
+### 3.4 `hardening-open`
 
-- `platform_users`, platformrollen/status, support grants en support audit bestaan.
-- Platformroutes hebben een platform-admin guard; gewone tenant-users mogen geen platformroutes gebruiken.
-- Support grants hebben tenant scope, tijdvenster, reden, revoke en auditlog.
-- Break-glass heeft nog geen harde maximale TTL-flow.
-- Een centraal security/download/support dashboard ontbreekt nog.
+- `documents`, `reports`, `quotes`, `invoices`, `payments`, `customer_payment_batches`, batch items en tenant-audit in `audit_log` hebben tenant-aware foundation, maar nullable/backfill/constraint validation blijft open.
+- `assignment_photos` en `assignment_report_note_attachments` moeten direct tenant-aware en storage-proof worden.
+- Storagehelpers en guards bestaan, maar fysieke backfill, Supabase Storage policy/RLS bewijs en signed-url/path-guessing tests ontbreken.
+- DB-defaults naar `DEFAULT_TENANT_ID` moeten uit tenantdata verdwijnen.
+- `audit_log.tenant_id` mag alleen bewust nullable blijven voor platform/global audit en moet voor tenant-audit contractueel scherp zijn.
 
-Sectoren en task codes:
+### 3.5 `nice-to-have`
 
-- `tenant_sectors` bestaat.
-- `tenant_sector_settings` en tenant-sector policy foundation bestaan.
-- `task_codes` is tenant-aware en ondersteunt tenantgerichte overrides/foundation.
-- Sectoren worden server-side afgedwongen op de belangrijkste domeinen, maar runtimebewijs en disable/backfill-smokes moeten verder worden uitgebreid.
+- Branding preview per tenant voor backoffice, klantportaal, personeelsapp, email en PDF.
+- Module dependency visualisatie.
+- Security dashboard polish bovenop het noodzakelijke audit/security dashboard.
+- Staging smoke dashboard uitbreiden met historie, trend en mutating smoke-details.
 
-Tenant-aware datafoundation:
+## 4. Regio-canon
 
-- `customers`, `objects`, `personnel`, `assignments`, `customer_users`, notificaties, planning intelligence en domain events hebben expliciete `tenant_id`.
-- `documents`, `reports`, `quotes`, `invoices`, `payments`, `customer_payment_batches`, batch items en `audit_log` hebben tenant-aware foundation gekregen, maar gevoelige tenantdata heeft vaak nog nullable `tenant_id`.
-- Voor `audit_log` is nullable deels bewust voor platform/global audit; tenant-audit moet wel tenant-aware blijven.
-- `assignments.tenant_id` heeft nog een DB-default naar `DEFAULT_TENANT_ID`; dat blijft een SaaS-risico voor toekomstige writes.
+Regio wordt vanaf sprint 0 een tenant-config domein.
 
-Storage en downloads:
+Doelmodel:
 
-- Centrale tenant storage helpers en meerdere signed URL/download guards bestaan.
-- Nieuwe documentpaden zijn richting tenant-prefix gebracht.
-- Fysieke storage-backfill, Supabase Storage policy/RLS bewijs en path guessing tests ontbreken nog.
-- `assignment_photos` en `assignment_report_note_attachments` blijven P1 omdat downloadbaar materiaal nog geen directe `tenant_id` heeft.
+- `tenant_regions` is de tenant-brede bron voor regio's.
+- Personeel kan aan meerdere regio's gekoppeld worden.
+- Objecten kunnen aan meerdere regio's gekoppeld worden.
+- Opdrachten kunnen meerdere vereiste regio's hebben.
+- Backoffice gebruikt overal dezelfde multiselect met autocomplete op bestaande tenant-regio's.
+- Nieuwe regio's mogen via create-on-type worden toegevoegd, tenant-scoped en genormaliseerd.
+- Planning matcht op overlap: opdracht zonder regio heeft geen regiobeperking; opdracht met regio's vereist ten minste een passende personeelsregio.
+- Een regio-id uit een andere tenant faalt server-side.
 
-Portalen en branding:
+Geraakte backofficegebieden:
 
-- Klantportaal en personeelsapp zijn host-first tenant-bound voor identity/profiel.
-- Portal moduleguards, brandingresolver, tenantbranding en storage acceptance tests moeten nog productklaar worden gemaakt.
-- Tenant first-run foundation bestaat; echte wizardvalidatie ontbreekt nog.
+- Personeelslid aanmaken/bewerken.
+- Object aanmaken/bewerken.
+- Opdracht aanmaken/bewerken.
+- Planning/smart planning filters.
+- Customer/object/personnel detailfilters waar regio operationele waarde heeft.
 
-Testdekking:
+## 5. Nieuwe uitvoeringslijn
 
-- Er is veel statische guardrail-dekking.
-- Dat is nuttig, maar nog geen bewijs voor runtime SaaS-isolatie.
-- Nodig blijven Tenant A/B/Veele integration tests, Playwright host tests, DB/RLS tests, storage signed-url tests en migratie-smokes.
+De volledige uitvoeringscanon staat in `docs/fieldgrid-saas-proof-sprint-plan.md`.
 
-### 2.2 Nog ontbreekt of moet gewijzigd worden
+Samenvatting:
 
-Deze lijst is de actuele bron voor de volgende grote update:
+| Sprint | Doel |
+| --- | --- |
+| 0 | Canon refresh 2.0: statusvelden, sprintplan, regio-canon, guardtests. |
+| 1 | Tenant A/B/Veele runtime fixtures en seed/cleanup. |
+| 2 | Regio datamodel en backfill. |
+| 3 | Regio UI backoffice breed met multiselect/autocomplete. |
+| 4 | Regio runtime en planninglogica. |
+| 5 | Runtime security proof suite. |
+| 6 | Playwright host en portal acceptance. |
+| 7 | Migration smoke workflow. |
+| 8 | Tenant-id hardening wave. |
+| 9 | Storage hardening. |
+| 10 | Audit en security dashboard 2.0. |
+| 11 | Module enforcement harmonisatie. |
+| 12 | Platform onboarding wizard. |
+| 13 | Tenant first-run wizard. |
+| 14 | Usage, branding en operational readiness. |
+| 15 | Staging smoke dashboard. |
+| 16 | Final hardening en externe tenant gate. |
 
-1. Canon refresh is uitgevoerd in fase 0; vervolg-PR's moeten de canon actueel houden.
-2. Tests zijn nog te statisch: echte runtime-, Playwright-, DB/RLS-, storage- en migratiebewijzen ontbreken grotendeels.
-3. Directe `tenant_id` is vaak nog nullable voor gevoelige tenantdata; post-migration hardening moet validatie en `NOT NULL` waar mogelijk afdwingen.
-4. Assignment media blijft P1: `assignment_photos` en `assignment_report_note_attachments` moeten direct tenant-aware worden.
-5. News scope is open: `news_posts` wordt expliciet platform-only of tenant-scoped.
-6. Backoffice module mapping moet worden geharmoniseerd met API module guards of bewust worden gedocumenteerd.
-7. DB-defaults naar `DEFAULT_TENANT_ID`, waaronder `assignments.tenant_id`, moeten uit tenantdata verdwijnen.
-8. Support break-glass moet een korte maximale TTL, verplichte reden en auditcontext afdwingen.
-9. Usage dashboard is incompleet: documenten, storagegebruik, downloads en actieve modules moeten worden toegevoegd.
-10. Storage is applicatie-hard, maar nog niet volledig bewezen: fysieke backfill, Supabase policies en path guessing tests ontbreken.
+De oude fase 0-7 planning blijft alleen historisch/contextueel; de sprints 0-16 zijn vanaf nu leidend.
 
-## 3. Canonieke runtime-volgorde
+## 6. Runtime-volgorde
 
 Elke server-side tenant-entrypoint moet uiteindelijk deze volgorde volgen:
 
@@ -131,9 +154,10 @@ Elke server-side tenant-entrypoint moet uiteindelijk deze volgorde volgen:
 5. `requireTenantModule()`
 6. `requirePermission()` via tenantrol
 7. `requireAllowedSector()` waar sector relevant is
-8. `requireEntityInTenant()`
-9. actie uitvoeren
-10. audit schrijven waar nodig
+8. `requireAllowedRegion()` waar regio relevant is
+9. `requireEntityInTenant()`
+10. actie uitvoeren
+11. audit schrijven waar nodig
 
 Voor platformroutes geldt:
 
@@ -149,197 +173,80 @@ Supporttoegang is geen gewone tenantrol. De prioriteit blijft:
 2. actieve support grant voor support entrypoints
 3. tenantrol voor normale tenantwerking
 
-## 4. P0/P1/P2 backlog vanaf nu
+## 7. P0/P1/P2 backlog vanaf sprint 0
 
-### P0 - Eerstvolgende harde SaaS-grenzen
+### P0
 
-- Tenant A/B/Veele integration fixtures bouwen.
-- Playwright host-first tests bouwen.
-- DB/RLS en storage signed-url testbasis opzetten.
-- Migration smoke workflow bouwen op lege database en staging-copy.
+- Tenant A/B/Veele integration fixtures.
+- Playwright host-first tests.
+- DB/RLS en storage signed-url testbasis.
+- Migration smoke workflow op lege database en staging-copy.
+- Regio datamodel/UI/runtime afronden voordat het in planning als harde grens wordt gebruikt.
 - Backoffice/API/portalen/jobs module enforcement harmoniseren.
 - DB-defaults naar `DEFAULT_TENANT_ID` uit tenantdata verwijderen.
 - Support break-glass TTL afdwingen.
-- News scope beslissen voordat news verder productmatig groeit.
+- News scope beslissen.
 
-### P1 - Voor externe SaaS-acceptatie
+### P1
 
-- Post-migration hardening: unresolved rows rapporteren, constraints valideren en `tenant_id NOT NULL` zetten waar stagingdata schoon is.
+- Post-migration hardening: unresolved rows rapporteren, constraints valideren en `tenant_id NOT NULL` waar schoon.
 - Assignment media direct tenant-aware maken.
-- Fysieke storage-backfill uitvoeren met copy-first, verify-second, switch-third, cleanup-last.
-- Supabase Storage policy/RLS bewijs toevoegen.
-- Path guessing tests automatiseren voor documenten, media, rapporten en attachments.
+- Fysieke storage-backfill met copy-first, verify-second, switch-third, cleanup-last.
+- Supabase Storage policy/RLS bewijs.
+- Path guessing tests voor documenten, media, rapporten en attachments.
 - `audit_log` typecontract tenant-aware maken waar tenant-audit bedoeld is.
 - PDF/download audit logging uniform maken.
+- Veele Portaal acceptance suite voor klantportaal en personeelsapp.
 
-### P2 - Productisering en operatie
-
-- Platform-admin onboarding wizard voor nieuwe tenants.
-- Tenant first-run wizard voor eigenaar.
-- Usage dashboard per tenant met users, documenten, opdrachten, storage, actieve modules en support grants.
-- Branding preview per tenant.
-- Security dashboard met downloads, support access en cross-tenant denial events.
-- Module dependency visualisatie.
-- Demo-data generator voor `demo-a`, `demo-b` en `veele`.
-- Staging smoke dashboard voor host, login, modules, sectoren, storage, PDF, support, audit en migraties.
-- Eerste externe tenant checklist.
-
-## 5. Echte verbeteringen met waarde
-
-Deze verbeteringen verlagen direct risico of verhogen beheerbaarheid:
-
-1. Maak een post-migration hardening sprint met validate constraints, unresolved-row rapportage en `tenant_id NOT NULL` waar mogelijk.
-2. Voeg echte integration fixtures toe voor `demo-a`, `demo-b` en `veele`.
-3. Bouw migration smoke op lege database en staging-copy.
-4. Maak een centraal audit/download/security dashboard.
-5. Harmoniseer module enforcement tussen API, backoffice, portalen en jobs.
-6. Verwijder DB-defaults naar `DEFAULT_TENANT_ID` uit tenantdata.
-7. Maak `audit_log` typecontract tenant-aware waar tenant-audit bedoeld is.
-8. Maak support TTL maximaal, bijvoorbeeld 1 tot 4 uur, met expliciete break-glass reason.
-
-## 6. Nice-to-have status
-
-| Nice-to-have | Status | Doelfase |
-| --- | --- | --- |
-| Platform-admin onboarding wizard | Gedeeltelijk: provisioning form + runstatus, geen wizard | Fase 6 |
-| Tenant first-run wizard | Gedeeltelijk: checklist/foundation bestaat, geen echte wizardvalidatie | Fase 6 |
-| Usage dashboard per tenant | Gedeeltelijk: basisstats, geen documenten/storage | Fase 6 |
-| Branding preview per tenant | Niet meegenomen | Fase 6 |
-| Support break-glass flow | Gedeeltelijk: reden + grant + audit, geen korte TTL/max-flow | Fase 5 |
-| Security dashboard | Niet meegenomen, alleen losse support/auditbasis | Fase 5 |
-| Module dependency visualisatie | Gedeeltelijk: dependency keys zichtbaar, geen visualisatie | Fase 4 of 6 |
-| Demo-data generator | Niet meegenomen; wel statische Tenant A/B/Veele fixtures/canon | Fase 1 |
-| Staging smoke dashboard | Niet meegenomen | Fase 7 |
-
-## 7. Faseplanning vanaf nu
-
-De gedetailleerde uitvoeringsplanning staat in `docs/fieldgrid-next-major-update-plan.md`. Deze masterplan-canon vat de fases samen.
-
-### Fase 0 - Canon en updatecontract vastzetten
-
-Status: uitgevoerd in deze fase-0 update.
-
-Scope:
-
-- Masterplan, data-classificatie en testmatrix actualiseren.
-- PR-template uitbreiden met updateplan, data-items, test-id's en stagingchecklist.
-- Staging-promotiechecklist toevoegen.
-- Canon-tests laten bewaken dat oude actuele PR #125-status niet terugkomt.
-
-### Fase 1 - Echte testbasis en demo-data
-
-Scope:
-
-- Tenant A/B/Veele fixtures.
-- Demo-data generator skeleton.
-- Host-first Playwright/integration basis.
-- DB/RLS en storage testbasis.
-- Migration smoke skeleton.
-
-### Fase 2 - Post-migration hardening en tenant_id afdwingen
-
-Scope:
-
-- Unresolved-row rapportages.
-- Constraint validation.
-- `tenant_id NOT NULL` waar schoon.
-- Bewust nullable auditdocumentatie.
-- `DEFAULT_TENANT_ID` defaults verwijderen.
-
-### Fase 3 - Assignment media, news en storage bewijs
-
-Scope:
-
-- Assignment media tenant-aware maken.
-- News platform-only of tenant-scoped kiezen en afdwingen.
-- Storage backfill en storage policy/path guessing bewijs.
-
-### Fase 4 - Module enforcement harmoniseren
-
-Scope:
-
-- API, backoffice, portalen en jobs op dezelfde modulewaarheid zetten.
-- Module-off denial bewijzen via UI, directe URL, server action, API en jobs.
-- Module dependency inzicht toevoegen.
-
-### Fase 5 - Support break-glass en security dashboard
-
-Scope:
-
-- Korte support TTL afdwingen.
-- Break-glass reden en auditcontext verplichten.
-- Read-only security/download/support dashboard bouwen.
-
-### Fase 6 - Productisering: onboarding, first-run, usage en branding
-
-Scope:
+### P2
 
 - Platform-admin onboarding wizard.
 - Tenant first-run wizard.
-- Usage dashboard met documenten/storage.
-- Branding preview.
-
-### Fase 7 - Staging smoke dashboard en operationele acceptatie
-
-Scope:
-
-- Staging smoke dashboard.
-- Smoke API/script.
-- Backup/restore/rollback playbook.
+- Usage dashboard per tenant met users, documenten, opdrachten, storage, downloads, actieve modules en support grants.
+- Branding preview per tenant.
+- Security dashboard uitbreiding.
+- Module dependency visualisatie.
+- Demo-data generator voor `demo-a`, `demo-b` en `veele`.
+- Staging smoke dashboard voor host, login, modules, sectoren, regio's, storage, PDF, support, audit en migraties.
 - Eerste externe tenant checklist.
 
 ## 8. Staging-promotiecontract
 
-Elke fase moet `docs/fieldgrid-staging-promotion-checklist.md` volgen.
+Elke sprint moet `docs/fieldgrid-staging-promotion-checklist.md` volgen.
 
 Minimumregels:
 
-- Docs/test-only fases mogen direct na groene CI naar staging.
-- Runtimefases mogen naar staging na typecheck, build, relevante tests en handmatige smokecheck.
-- Migratiefases mogen naar staging na lege database smoke en staging-copy smoke.
+- Docs/test-only sprints mogen direct na groene CI naar staging.
+- Runtime sprints mogen naar staging na typecheck, build, relevante tests en handmatige smokecheck.
+- Migratiesprints mogen naar staging na lege database smoke en staging-copy smoke.
 - Storagebackfills zijn copy-first, verify-second, switch-third, cleanup-last.
-- Als staging faalt, wordt alleen de betreffende fase gerepareerd; geen reset.
+- Als staging faalt, wordt alleen de betreffende sprint gerepareerd; geen reset.
 
-## 9. Hard rules voor alle vervolgtaken
+## 9. Hard rules
 
 - Nooit tenantdata lezen of schrijven op alleen technische id.
 - Host/subdomain-context wint van tenant switcher.
 - Geen runtime fallback naar `DEFAULT_TENANT_ID` in productie.
 - Module uit betekent server-side uit.
 - Sectorbeperking is een harde businessregel, geen UI-filter.
+- Regiobeperking wordt tenant-scoped en server-side gevalideerd zodra sprint 2-4 live zijn.
 - Veele is tenant; Fieldgrid is platform.
 - Support access is expliciet, tijdelijk, tenant-scoped en geaudit.
 - Nieuwe migraties moeten staging-data behouden en rollbackbaar zijn.
 - Oude globale RBAC-tabellen mogen alleen templates/backfill zijn, niet runtime-autorisatie.
-- Elke risicofase krijgt cross-tenant tests voordat staging wordt gepromoveerd.
+- Elke risicosprint krijgt cross-tenant tests voordat staging wordt gepromoveerd.
 - Statische tests zijn guardrails, geen vervanging voor integration/DB/RLS/storage-tests.
 
-## 10. MVP definitie
+## 10. Definition of Done voor de grote update
 
-Fieldgrid SaaS MVP is klaar wanneer:
+De grote update is klaar wanneer:
 
-- Platform-admin tenants kan aanmaken en configureren zonder SQL.
-- Tenant heeft domein/subdomain, plan, modules, sectoren en owner.
-- Tenant kan active/suspended/archived worden.
-- Modules zijn per tenant server-side afgedwongen.
-- Sectoren zijn per tenant server-side en database-side afgedwongen waar mogelijk.
-- Runtime RBAC gebruikt alleen tenantrollen.
-- Klantportaal en personeelsapp zijn host-first tenant-aware en module-aware.
-- Gevoelige data heeft expliciete, gevalideerde `tenant_id` of een bewust gedocumenteerde uitzondering.
-- Storage is tenant-prefixed en getest.
-- Support grants werken, hebben korte TTL waar break-glass geldt en worden geaudit.
-- Starter/Professional/Enterprise bestaan in database en platform-admin.
-- Fieldgrid draait op de beoogde VPS-domeinen met backup/rollbackproces.
-- Cross-tenant security suite is groen.
-
-## 11. Verplichte uitvoeringsbronnen
-
-Vanaf elke technische PR zijn deze bronnen verplicht:
-
-- `docs/fieldgrid-next-major-update-plan.md`: bepaalt de fase en PR-volgorde voor de volgende grote update.
-- `docs/fieldgrid-data-classification.md`: bepaalt tenantstrategie, prioriteit, migratienoodzaak en gevoelige restpunten.
-- `docs/fieldgrid-cross-tenant-testmatrix.md`: bepaalt de test-id's die in PR-bodies, acceptatiecriteria en staging-promotie moeten worden genoemd.
-- `docs/fieldgrid-staging-promotion-checklist.md`: bepaalt hoe staging bereikbaar blijft per fase.
-- `docs/fieldgrid-recovery-execution-plan.md`: bewaart recovery-guardrails, vooral staging-data behoud en migratieveiligheid.
-
-Elke vervolg-PR met tenant lifecycle, modules, sectoren, storage, finance, documenten, audit, provisioning of portalen moet expliciet noemen welke fase, classificatieregels, test-id's en stagingregels worden geraakt.
+- Geen P0/P1 SaaS-hardening restpunt open staat.
+- Alle canonstatussen `partial`, `runtime-proof-open` en `hardening-open` zijn gesloten of expliciet post-launch geaccepteerd.
+- Runtime proof suite is groen.
+- Migration smoke is groen op lege database en staging-copy.
+- Storage proof is groen.
+- Portal acceptance is groen.
+- Regio-feature is overal multi-select, tenant-safe en bewezen.
+- Platform onboarding, tenant first-run, usage, branding en staging smoke zijn productklaar.
+- Staging bleef bereikbaar zonder drop/reset/rebuild.
