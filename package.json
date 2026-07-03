@@ -13,6 +13,7 @@
     "test": "node --test tests/*.test.mjs",
     "fieldgrid:phase1-fixtures": "node scripts/fieldgrid-phase1-demo-data.mjs",
     "fieldgrid:phase2-hardening-report": "pnpm --filter @workspace/db run tenant-hardening:report",
+    "fieldgrid:phase3-storage-report": "pnpm --filter @workspace/db run storage-tenancy:report",
     "db:generate": "pnpm --filter @workspace/db run generate",
     "db:migrate": "pnpm --filter @workspace/db run db:migrate",
     "db:baseline": "pnpm --filter @workspace/db run db:baseline",
