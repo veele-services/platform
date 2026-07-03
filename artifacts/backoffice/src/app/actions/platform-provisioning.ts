@@ -2,16 +2,37 @@
 
 import {
   completeProvisionedTenantOwnerInvite,
+  db,
   provisionTenant,
   rollbackProvisionedTenant,
+  tenantProvisioningRunsTable,
+  tenantsTable,
   type TenantPlanKey,
 } from "@workspace/db";
+import { desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePlatformAdmin, writeSupportAccessAuditLog } from "@/lib/auth/platform";
 
 const TENANT_PLAN_KEYS = ["starter", "professional", "enterprise"] as const;
+
+export type PlatformProvisioningRunRow = {
+  id: string;
+  tenantId: string | null;
+  tenantName: string | null;
+  name: string;
+  slug: string;
+  planKey: string;
+  primaryDomain: string | null;
+  ownerEmail: string | null;
+  ownerInviteStatus: string;
+  status: string;
+  currentStep: string;
+  errorMessage: string | null;
+  startedAt: string;
+  completedAt: string | null;
+};
 
 function actionValue(formData: FormData, name: string): string {
   return String(formData.get(name) ?? "").trim();
@@ -31,6 +52,38 @@ async function inviteOwnerByEmail(email: string): Promise<string> {
   if (error) throw new Error(`Owner-uitnodiging mislukt: ${error.message}`);
   if (!data.user?.id) throw new Error("Owner-uitnodiging gaf geen gebruiker terug.");
   return data.user.id;
+}
+
+export async function listTenantProvisioningRuns(limit = 12): Promise<PlatformProvisioningRunRow[]> {
+  await requirePlatformAdmin();
+
+  const rows = await db
+    .select({
+      id: tenantProvisioningRunsTable.id,
+      tenantId: tenantProvisioningRunsTable.tenantId,
+      tenantName: tenantsTable.name,
+      name: tenantProvisioningRunsTable.name,
+      slug: tenantProvisioningRunsTable.slug,
+      planKey: tenantProvisioningRunsTable.planKey,
+      primaryDomain: tenantProvisioningRunsTable.primaryDomain,
+      ownerEmail: tenantProvisioningRunsTable.ownerEmail,
+      ownerInviteStatus: tenantProvisioningRunsTable.ownerInviteStatus,
+      status: tenantProvisioningRunsTable.status,
+      currentStep: tenantProvisioningRunsTable.currentStep,
+      errorMessage: tenantProvisioningRunsTable.errorMessage,
+      startedAt: tenantProvisioningRunsTable.startedAt,
+      completedAt: tenantProvisioningRunsTable.completedAt,
+    })
+    .from(tenantProvisioningRunsTable)
+    .leftJoin(tenantsTable, eq(tenantProvisioningRunsTable.tenantId, tenantsTable.id))
+    .orderBy(desc(tenantProvisioningRunsTable.startedAt))
+    .limit(Math.min(Math.max(limit, 1), 50));
+
+  return rows.map((row) => ({
+    ...row,
+    startedAt: row.startedAt.toISOString(),
+    completedAt: row.completedAt?.toISOString() ?? null,
+  }));
 }
 
 export async function createPlatformTenant(formData: FormData): Promise<void> {
