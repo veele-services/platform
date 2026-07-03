@@ -1,8 +1,6 @@
 import Link from "next/link";
-import {
-  createPlatformTenant,
-  listPlatformTenants,
-} from "@/app/actions/platform-tenants";
+import { createPlatformTenant } from "@/app/actions/platform-provisioning";
+import { listPlatformTenants } from "@/app/actions/platform-tenants";
 import {
   enterSupportMode,
   listPlatformUsers,
@@ -60,10 +58,12 @@ export default async function PlatformAdminPage() {
             <div className="mb-4 flex items-center justify-between gap-4">
               <div>
                 <h2 className="text-xl font-semibold tracking-normal">Nieuwe tenant</h2>
-                <p className="mt-1 text-sm text-slate-500">Maak een tenant-shell met plan en optioneel eerste domein.</p>
+                <p className="mt-1 text-sm text-slate-500">
+                  Provision een tenant met plan, domein, modules, sectorbeleid en optionele owner-invite.
+                </p>
               </div>
             </div>
-            <form action={createPlatformTenant} className="grid gap-3 md:grid-cols-[1.2fr_0.8fr_0.7fr_1fr_auto] md:items-end">
+            <form action={createPlatformTenant} className="grid gap-3 md:grid-cols-[1.1fr_0.75fr_0.65fr_1fr_1fr_auto] md:items-end">
               <label className="grid gap-1 text-sm font-medium text-slate-700">
                 Naam
                 <input name="name" required className="rounded border border-slate-300 px-3 py-2 text-sm" placeholder="Demo A" />
@@ -84,8 +84,12 @@ export default async function PlatformAdminPage() {
                 Domein
                 <input name="domain" className="rounded border border-slate-300 px-3 py-2 text-sm" placeholder="demo-a.fieldgrid.nl" />
               </label>
+              <label className="grid gap-1 text-sm font-medium text-slate-700">
+                Owner e-mail
+                <input name="ownerEmail" type="email" className="rounded border border-slate-300 px-3 py-2 text-sm" placeholder="eigenaar@example.nl" />
+              </label>
               <button type="submit" className="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
-                Aanmaken
+                Provisionen
               </button>
             </form>
           </section>
