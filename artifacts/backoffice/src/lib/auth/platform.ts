@@ -1,11 +1,14 @@
-import { db } from "@workspace/db";
 import {
-  platformUsersTable,
-  supportAccessAuditLogTable,
-  supportAccessGrantsTable,
+  FIELDGRID_RUNTIME_ACCESS_PRIORITY,
+  FIELDGRID_SUPPORT_TENANT_COOKIE,
+  getActivePlatformUserForUser,
+  getActiveSupportAccessForUser,
+  isPlatformAdminRole,
+  writeSupportAccessAuditLogForUser,
 } from "@workspace/db";
-import { and, eq, gt, isNull, lte } from "drizzle-orm";
+import { cookies, headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
+import { isPlatformHost, normalizeHost } from "@/lib/auth/tenant-resolver";
 
 export type PlatformUserRole = "owner" | "admin" | "support";
 
@@ -16,24 +19,36 @@ export type CurrentPlatformUser = {
   status: string;
 };
 
-export async function getCurrentPlatformUser(): Promise<CurrentPlatformUser | null> {
+export type CurrentSupportMode = {
+  tenantId: string;
+  grantId: string;
+  platformUserId: string;
+  reason: string;
+  expiresAt: string;
+  ttlSeconds: number;
+  priority: typeof FIELDGRID_RUNTIME_ACCESS_PRIORITY[number];
+};
+
+async function getCurrentUserId(): Promise<string | null> {
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return null;
 
-  const [platformUser] = await db
-    .select({
-      id: platformUsersTable.id,
-      userId: platformUsersTable.userId,
-      role: platformUsersTable.role,
-      status: platformUsersTable.status,
-    })
-    .from(platformUsersTable)
-    .where(and(eq(platformUsersTable.userId, user.id), eq(platformUsersTable.status, "active")))
-    .limit(1);
+  return user?.id ?? null;
+}
 
+async function isCurrentHostPlatformHost(): Promise<boolean> {
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "";
+  return isPlatformHost(normalizeHost(host));
+}
+
+export async function getCurrentPlatformUser(): Promise<CurrentPlatformUser | null> {
+  const userId = await getCurrentUserId();
+  if (!userId) return null;
+
+  const platformUser = await getActivePlatformUserForUser(userId);
   if (!platformUser) return null;
 
   return {
@@ -46,7 +61,7 @@ export async function getCurrentPlatformUser(): Promise<CurrentPlatformUser | nu
 
 export async function requirePlatformAdmin(): Promise<CurrentPlatformUser> {
   const platformUser = await getCurrentPlatformUser();
-  if (!platformUser || !["owner", "admin"].includes(platformUser.role)) {
+  if (!platformUser || !isPlatformAdminRole(platformUser.role)) {
     throw new Error("Forbidden: platform-admin access required");
   }
 
@@ -63,24 +78,36 @@ export async function requirePlatformSupportUser(): Promise<CurrentPlatformUser>
 }
 
 export async function getActiveSupportGrant(tenantId: string) {
-  const platformUser = await requirePlatformSupportUser();
-  const now = new Date();
+  const userId = await getCurrentUserId();
+  if (!userId) return null;
 
-  const [grant] = await db
-    .select()
-    .from(supportAccessGrantsTable)
-    .where(
-      and(
-        eq(supportAccessGrantsTable.tenantId, tenantId),
-        eq(supportAccessGrantsTable.platformUserId, platformUser.id),
-        lte(supportAccessGrantsTable.startsAt, now),
-        gt(supportAccessGrantsTable.expiresAt, now),
-        isNull(supportAccessGrantsTable.revokedAt),
-      ),
-    )
-    .limit(1);
+  const supportAccess = await getActiveSupportAccessForUser(userId, tenantId);
+  return supportAccess?.grant ?? null;
+}
 
-  return grant ?? null;
+export async function getCurrentSupportMode(): Promise<CurrentSupportMode | null> {
+  if (!(await isCurrentHostPlatformHost())) return null;
+
+  const userId = await getCurrentUserId();
+  if (!userId) return null;
+
+  const cookieStore = await cookies();
+  const tenantId = cookieStore.get(FIELDGRID_SUPPORT_TENANT_COOKIE)?.value;
+  if (!tenantId) return null;
+
+  const supportAccess = await getActiveSupportAccessForUser(userId, tenantId);
+  if (!supportAccess) return null;
+
+  const expiresAt = supportAccess.grant.expiresAt;
+  return {
+    tenantId,
+    grantId: supportAccess.grant.id,
+    platformUserId: supportAccess.platformUser.id,
+    reason: supportAccess.grant.reason,
+    expiresAt: expiresAt.toISOString(),
+    ttlSeconds: Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000)),
+    priority: FIELDGRID_RUNTIME_ACCESS_PRIORITY[1],
+  };
 }
 
 export async function requireSupportAccess(tenantId: string) {
@@ -99,20 +126,15 @@ export async function writeSupportAccessAuditLog(input: {
   resourceId?: string | null;
   metadata?: Record<string, unknown> | null;
 }): Promise<void> {
-  try {
-    const platformUser = await requirePlatformSupportUser();
-    const grant = await getActiveSupportGrant(input.tenantId);
+  const userId = await getCurrentUserId();
+  if (!userId) return;
 
-    await db.insert(supportAccessAuditLogTable).values({
-      grantId: grant?.id ?? null,
-      tenantId: input.tenantId,
-      platformUserId: platformUser.id,
-      action: input.action,
-      resource: input.resource ?? null,
-      resourceId: input.resourceId ?? null,
-      metadata: input.metadata ?? null,
-    });
-  } catch (error) {
-    console.error("[support_access] Failed to write audit log", input, error);
-  }
+  await writeSupportAccessAuditLogForUser({
+    userId,
+    tenantId: input.tenantId,
+    action: input.action,
+    resource: input.resource,
+    resourceId: input.resourceId,
+    metadata: input.metadata,
+  });
 }
