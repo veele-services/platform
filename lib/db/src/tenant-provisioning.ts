@@ -32,6 +32,8 @@ const OWNER_ROLE_NAMES = ["Management", "Owner", "Eigenaar", "Administration"] a
 const DEFAULT_FIRST_RUN_STEPS = ["branding", "users", "sectors", "modules"] as const;
 
 type DbExecutor = typeof db | any;
+type ProvisioningSectorRow = { id: string };
+type TemplateRolePermissionRow = { permissionId: string };
 
 export type TenantProvisioningInput = {
   name: string;
@@ -149,7 +151,10 @@ export async function assertTenantProvisioningIsUnique(
   if (duplicateDomain) throw new Error("Dit domein is al gekoppeld aan een tenant.");
 }
 
-async function resolveProvisioningSectors(tx: DbExecutor, input: NormalizedTenantProvisioningInput) {
+async function resolveProvisioningSectors(
+  tx: DbExecutor,
+  input: NormalizedTenantProvisioningInput,
+): Promise<ProvisioningSectorRow[]> {
   if (input.sectorIds.length > 0) {
     return tx
       .select({ id: sectorsTable.id })
@@ -204,7 +209,12 @@ async function copyTemplateRoles(tx: DbExecutor, tenantId: string): Promise<Map<
     if (permissions.length > 0) {
       await tx
         .insert(tenantRolePermissionsTable)
-        .values(permissions.map((permission) => ({ tenantRoleId: roleId, permissionId: permission.permissionId })))
+        .values(
+          permissions.map((permission: TemplateRolePermissionRow) => ({
+            tenantRoleId: roleId,
+            permissionId: permission.permissionId,
+          })),
+        )
         .onConflictDoNothing();
     }
   }
@@ -315,7 +325,7 @@ export async function provisionTenant(
       }
 
       const sectors = await resolveProvisioningSectors(tx, input);
-      const enabledSectorIds = sectors.map((sector) => sector.id);
+      const enabledSectorIds = sectors.map((sector: ProvisioningSectorRow) => sector.id);
       const defaultSectorId = input.defaultSectorId && enabledSectorIds.includes(input.defaultSectorId)
         ? input.defaultSectorId
         : enabledSectorIds[0] ?? null;
@@ -324,7 +334,7 @@ export async function provisionTenant(
       if (enabledSectorIds.length > 0) {
         await tx
           .insert(tenantSectorsTable)
-          .values(enabledSectorIds.map((sectorId) => ({ tenantId: tenant.id, sectorId, isEnabled: true })))
+          .values(enabledSectorIds.map((sectorId: string) => ({ tenantId: tenant.id, sectorId, isEnabled: true })))
           .onConflictDoNothing();
       }
 
