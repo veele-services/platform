@@ -6,6 +6,7 @@ import { useCallback } from "react";
 export const OBJECT_TAB_KEYS = [
   "overzicht",
   "diensten",
+  "materiaal",
   "details",
   "contacten",
 ] as const;
@@ -15,6 +16,7 @@ export type ObjectTabKey = (typeof OBJECT_TAB_KEYS)[number];
 const TAB_LABELS: Record<ObjectTabKey, string> = {
   overzicht: "Overzicht",
   diensten:  "Diensten",
+  materiaal: "Materiaal",
   details:   "Details",
   contacten: "Contacten",
 };
