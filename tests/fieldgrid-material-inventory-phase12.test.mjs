@@ -68,7 +68,7 @@ test("phase 12 documentation covers legacy, nullable columns, monitoring and rol
     "staging-copy",
     "no staging reset",
   ]) {
-    assert.match(doc, new RegExp(term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+    assert.ok(doc.includes(term), `missing documentation term ${term}`);
   }
 });
 
