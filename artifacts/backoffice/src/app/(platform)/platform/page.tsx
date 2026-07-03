@@ -33,6 +33,16 @@ function supportGrantStatus(grant: SupportAccessGrantRow): "Actief" | "Gepland" 
   return "Actief";
 }
 
+function OnboardingStep({ index, title, detail }: { index: number; title: string; detail: string }) {
+  return (
+    <div className="rounded border border-slate-200 bg-slate-50 px-3 py-3">
+      <p className="text-xs font-semibold uppercase text-slate-500">Stap {index}</p>
+      <p className="mt-1 font-medium text-slate-950">{title}</p>
+      <p className="mt-1 text-xs text-slate-500">{detail}</p>
+    </div>
+  );
+}
+
 export default async function PlatformAdminPage() {
   const platformUser = await getCurrentPlatformUser();
   const isPlatformAdmin = platformUser?.role === "owner" || platformUser?.role === "admin";
@@ -69,42 +79,57 @@ export default async function PlatformAdminPage() {
 
         {isPlatformAdmin && (
           <section className="rounded border border-slate-200 bg-white p-5">
-            <div className="mb-4 flex items-center justify-between gap-4">
+            <div className="mb-5 flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
               <div>
-                <h2 className="text-xl font-semibold tracking-normal">Nieuwe tenant</h2>
+                <h2 className="text-xl font-semibold tracking-normal">Tenant onboarding wizard</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Provision een tenant met plan, domein, modules, sectorbeleid en owner-invite.
+                  Richt een nieuwe tenant in met tenantgegevens, domein, plan en owner-invite. Modules, sectoren en first-run worden na provisioning op de tenantpagina afgerond.
                 </p>
               </div>
+              <span className="w-fit rounded bg-emerald-50 px-3 py-1 text-xs font-medium text-emerald-800">Provisioning service</span>
             </div>
-            <form action={createPlatformTenant} className="grid gap-3 md:grid-cols-[1.1fr_0.75fr_0.65fr_1fr_1fr_auto] md:items-end">
-              <label className="grid gap-1 text-sm font-medium text-slate-700">
-                Naam
-                <input name="name" required className="rounded border border-slate-300 px-3 py-2 text-sm" placeholder="Demo A" />
-              </label>
-              <label className="grid gap-1 text-sm font-medium text-slate-700">
-                Slug
-                <input name="slug" className="rounded border border-slate-300 px-3 py-2 text-sm" placeholder="demo-a" />
-              </label>
-              <label className="grid gap-1 text-sm font-medium text-slate-700">
-                Plan
-                <select name="planKey" defaultValue="starter" className="rounded border border-slate-300 px-3 py-2 text-sm">
-                  <option value="starter">Starter</option>
-                  <option value="professional">Professional</option>
-                  <option value="enterprise">Enterprise</option>
-                </select>
-              </label>
-              <label className="grid gap-1 text-sm font-medium text-slate-700">
-                Domein
-                <input name="domain" className="rounded border border-slate-300 px-3 py-2 text-sm" placeholder="demo-a.fieldgrid.nl" />
-              </label>
-              <label className="grid gap-1 text-sm font-medium text-slate-700">
-                Owner e-mail
-                <input name="ownerEmail" type="email" required className="rounded border border-slate-300 px-3 py-2 text-sm" placeholder="eigenaar@example.nl" />
-              </label>
-              <button type="submit" className="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
-                Provisionen
-              </button>
+
+            <div className="mb-5 grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+              <OnboardingStep index={1} title="Tenant" detail="Naam en slug bepalen de SaaS-identiteit." />
+              <OnboardingStep index={2} title="Domein" detail="Host-first routing start met een tenantdomein." />
+              <OnboardingStep index={3} title="Plan" detail="Starter, Professional of Enterprise." />
+              <OnboardingStep index={4} title="Owner" detail="Owner-uitnodiging wordt direct verstuurd." />
+              <OnboardingStep index={5} title="Afronden" detail="Controleer first-run, modules, sectoren en branding." />
+            </div>
+
+            <form action={createPlatformTenant} className="grid gap-5">
+              <div className="grid gap-3 md:grid-cols-[1fr_0.7fr_0.7fr]">
+                <label className="grid gap-1 text-sm font-medium text-slate-700">
+                  Tenantnaam
+                  <input name="name" required className="rounded border border-slate-300 px-3 py-2 text-sm" placeholder="Demo A" />
+                </label>
+                <label className="grid gap-1 text-sm font-medium text-slate-700">
+                  Slug
+                  <input name="slug" className="rounded border border-slate-300 px-3 py-2 text-sm" placeholder="demo-a" />
+                </label>
+                <label className="grid gap-1 text-sm font-medium text-slate-700">
+                  Plan
+                  <select name="planKey" defaultValue="starter" className="rounded border border-slate-300 px-3 py-2 text-sm">
+                    <option value="starter">Starter</option>
+                    <option value="professional">Professional</option>
+                    <option value="enterprise">Enterprise</option>
+                  </select>
+                </label>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-[1fr_1fr_auto] md:items-end">
+                <label className="grid gap-1 text-sm font-medium text-slate-700">
+                  Primair domein
+                  <input name="domain" className="rounded border border-slate-300 px-3 py-2 text-sm" placeholder="demo-a.fieldgrid.nl" />
+                </label>
+                <label className="grid gap-1 text-sm font-medium text-slate-700">
+                  Owner e-mail
+                  <input name="ownerEmail" type="email" required className="rounded border border-slate-300 px-3 py-2 text-sm" placeholder="eigenaar@example.nl" />
+                </label>
+                <button type="submit" className="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
+                  Tenant provisionen
+                </button>
+              </div>
             </form>
           </section>
         )}
