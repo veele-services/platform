@@ -4,9 +4,11 @@ export type PasswordStrength = {
   isMedium: boolean;
 };
 
+export const MIN_PASSWORD_LENGTH = 8;
+
 export function evaluatePasswordStrength(password: string): PasswordStrength {
-  const hasLength = password.length >= 10;
-  const hasLongLength = password.length >= 14;
+  const hasLength = password.length >= MIN_PASSWORD_LENGTH;
+  const hasLongLength = password.length >= 12;
   const hasMixedCase = /[a-z]/.test(password) && /[A-Z]/.test(password);
   const hasDigit = /\d/.test(password);
   const hasSymbol = /[^A-Za-z0-9]/.test(password);
@@ -28,10 +30,10 @@ export function evaluatePasswordStrength(password: string): PasswordStrength {
   return {
     score,
     label,
-    isMedium: score >= 3,
+    isMedium: hasLength && score >= 3,
   };
 }
 
 export function mediumPasswordMessage(): string {
-  return "Gebruik minimaal 10 tekens en combineer hoofdletters, kleine letters, cijfers of symbolen.";
+  return "Gebruik minimaal 8 tekens en combineer hoofdletters, kleine letters, cijfers of symbolen.";
 }
