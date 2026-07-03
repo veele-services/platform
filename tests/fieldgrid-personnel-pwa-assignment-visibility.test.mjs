@@ -44,3 +44,15 @@ test("open personnel assignments also use the host-bound tenant context", () => 
   assert.ok(openAssignments.includes("const tenantId = await requireCurrentPersonnelPortalTenantId()"));
   assert.ok(openAssignments.includes("eq(personnelTable.tenantId, tenantId)"));
 });
+
+test("personnel planning refreshes live and on every visible minute", () => {
+  const provider = read("artifacts/personeel-pwa/src/components/PersonnelRealtimeOfflineProvider.tsx");
+
+  assert.ok(provider.includes("portal_realtime_events"));
+  assert.ok(provider.includes("postgres_changes"));
+  assert.ok(provider.includes("MINUTE_REFRESH_INTERVAL_MS = 60_000"));
+  assert.ok(provider.includes("setInterval(refreshIfVisible, MINUTE_REFRESH_INTERVAL_MS)"));
+  assert.ok(provider.includes("window.addEventListener(\"focus\", handleFocus)"));
+  assert.ok(provider.includes("window.addEventListener(\"pageshow\", handleFocus)"));
+  assert.ok(provider.includes("document.visibilityState === \"visible\""));
+});
