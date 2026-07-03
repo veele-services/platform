@@ -751,8 +751,72 @@ CREATE TRIGGER trg_assignment_inventory_items_set_tenant
 -- Documents entity type length for material and inventory entity names
 -- ---------------------------------------------------------------------------
 
+DROP POLICY IF EXISTS documents_customer_own_select ON documents;
+DROP POLICY IF EXISTS documents_personnel_own_select ON documents;
+
+DO $$
+DECLARE
+  document_constraint_name text;
+BEGIN
+  FOR document_constraint_name IN
+    SELECT conname
+    FROM pg_constraint
+    WHERE conrelid = 'documents'::regclass
+      AND contype = 'c'
+      AND pg_get_constraintdef(oid) ILIKE '%entity_type%'
+  LOOP
+    EXECUTE format('ALTER TABLE documents DROP CONSTRAINT %I', document_constraint_name);
+  END LOOP;
+END $$;
+
 ALTER TABLE documents
   ALTER COLUMN entity_type TYPE varchar(40);
+
+ALTER TABLE documents
+  ADD CONSTRAINT documents_entity_type_check
+  CHECK (
+    entity_type IN (
+      'assignment',
+      'customer',
+      'personnel',
+      'object',
+      'material',
+      'inventory_item',
+      'inventory_issue',
+      'inventory_maintenance',
+      'general'
+    )
+  ) NOT VALID;
+
+CREATE POLICY documents_customer_own_select
+  ON documents
+  FOR SELECT
+  TO authenticated
+  USING (
+    entity_type = 'customer'
+    AND EXISTS (
+      SELECT 1
+      FROM customer_users cu
+      WHERE cu.customer_id = documents.entity_id
+        AND cu.user_id = (SELECT auth.uid())
+        AND cu.status = 'active'
+    )
+  );
+
+CREATE POLICY documents_personnel_own_select
+  ON documents
+  FOR SELECT
+  TO authenticated
+  USING (
+    entity_type = 'personnel'
+    AND EXISTS (
+      SELECT 1
+      FROM personnel p
+      WHERE p.id = documents.entity_id
+        AND p.user_id = (SELECT auth.uid())
+        AND p.is_active = true
+    )
+  );
 
 -- ---------------------------------------------------------------------------
 -- RLS skeleton policies. Runtime server actions still enforce tenant-RBAC and
