@@ -2,7 +2,7 @@
 
 Datum: 2026-07-03
 Broncanon: `docs/research-material-inventory-management.md`
-Status: uitvoeringsplan. Geen runtime-functionaliteit in dit document.
+Status: afgerond uitvoeringsplan; productie-readiness wordt bewaakt via `docs/fieldgrid-material-inventory-production-readiness.md` en `pnpm run fieldgrid:material-inventory-phase12:check`.
 
 ## 1. Doel
 
@@ -449,6 +449,9 @@ Het gehele plan afronden en technische schuld uit de overgang verwijderen.
 - Docs bijwerken.
 - Monitoring toevoegen voor negatieve voorraad, QR-denials, cross-tenant denials, migratiefouten en voorraadconflicten.
 - Productie rollout checklist maken.
+- Voeg `docs/fieldgrid-material-inventory-production-readiness.md` toe als productie-readinesscanon.
+- Voeg `scripts/fieldgrid-material-inventory-phase12-readiness.mjs` toe als uitvoerbare readinesscheck.
+- Bewaak fase 12 met `tests/fieldgrid-material-inventory-phase12.test.mjs` en de handmatige fase-12 workflow.
 
 ### Acceptatie
 
@@ -459,6 +462,8 @@ Het gehele plan afronden en technische schuld uit de overgang verwijderen.
 - Alle securitygrenzen zijn getest.
 - Documentatie en testmatrix zijn actueel.
 - Het plan is afgerond.
+- Production-readiness is vastgelegd in `docs/fieldgrid-material-inventory-production-readiness.md`.
+- `pnpm run fieldgrid:material-inventory-phase12:check` bewaakt de productie-readinesscanon.
 
 ## 17. Eindcriteria
 
@@ -487,3 +492,4 @@ Het gehele plan is klaar wanneer:
 - Notificaties en dashboards werken.
 - Cross-tenant, RLS, storage, PWA en facturatie tests groen zijn.
 - Staging is zonder datareset door alle fases heen gekomen.
+- Fase 12 readiness is groen voordat productiepromotie plaatsvindt.
