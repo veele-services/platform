@@ -26,3 +26,18 @@ test("object detail tabs normalize legacy qualification values before rendering"
   assert.doesNotMatch(details, /obj\.requiredRoles\s+\?\? \[\]/u);
   assert.doesNotMatch(details, /obj\.requiredCertificates \?\? \[\]/u);
 });
+
+test("object detail page uses staging-safe object loader", () => {
+  const page = read("artifacts/backoffice/src/app/(dashboard)/objects/[id]/page.tsx");
+  const loader = read("artifacts/backoffice/src/app/actions/object-detail-safe.ts");
+  const actions = read("artifacts/backoffice/src/components/objects/ObjectDetailActions.tsx");
+
+  assert.match(page, /getObjectForDetailPage/u);
+  assert.match(page, /safeOptional\("object", id, \(\) => getObjectForDetailPage\(id\), null\)/u);
+  assert.match(loader, /function asStringArray\(value: unknown\): string\[\]/u);
+  assert.match(loader, /function toIso\(value: unknown\): string/u);
+  assert.match(loader, /requiredRoles:\s+asStringArray\(row\.requiredRoles\)/u);
+  assert.match(loader, /requiredCertificates:\s+asStringArray\(row\.requiredCertificates\)/u);
+  assert.match(loader, /updatedAt:\s+toIso\(row\.updatedAt \?\? row\.createdAt\)/u);
+  assert.match(actions, /sheetOpen \? \(/u);
+});
