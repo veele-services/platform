@@ -100,6 +100,27 @@ function formatDate(value: string | null): string {
   }).format(new Date(value));
 }
 
+function formatBytes(value: number): string {
+  if (value <= 0) return "0 B";
+  const units = ["B", "KB", "MB", "GB", "TB"];
+  let size = value;
+  let unitIndex = 0;
+  while (size >= 1024 && unitIndex < units.length - 1) {
+    size /= 1024;
+    unitIndex += 1;
+  }
+  return `${size >= 10 || unitIndex === 0 ? Math.round(size) : size.toFixed(1)} ${units[unitIndex]}`;
+}
+
+function initials(value: string): string {
+  return value
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("") || "FG";
+}
+
 function supportGrantStatus(grant: SupportAccessGrantRow): "Actief" | "Gepland" | "Verlopen" | "Ingetrokken" {
   const now = Date.now();
   if (grant.revokedAt) return "Ingetrokken";
@@ -147,6 +168,19 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
 
   const tenantSupportGrants = supportGrants.filter((grant) => grant.tenantId === tenantId);
   const enabledSectors = sectorsModel.sectors.filter((sector) => sector.tenantEnabled);
+  const usageRows = [
+    ["Gebruikers", tenant.usage.users],
+    ["Klanten", tenant.usage.customers],
+    ["Objecten", tenant.usage.objects],
+    ["Personeel", tenant.usage.personnel],
+    ["Opdrachten", tenant.usage.assignments],
+    ["Documenten", tenant.usage.documents],
+    ["Storage", formatBytes(tenant.usage.storageBytes)],
+    ["Domeinen", tenant.usage.domains],
+    ["Actieve modules", tenant.usage.enabledModules],
+    ["Actieve sectoren", tenant.usage.enabledSectors],
+    ["Supportgrants", tenant.usage.activeSupportGrants],
+  ] as const;
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-8 text-slate-950">
@@ -189,16 +223,18 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
           </div>
         </header>
 
-        <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+        <div className="grid gap-3 md:grid-cols-4 2xl:grid-cols-8">
           <Stat label="Gebruikers" value={tenant.usage.users} />
           <Stat label="Klanten" value={tenant.usage.customers} />
           <Stat label="Objecten" value={tenant.usage.objects} />
           <Stat label="Personeel" value={tenant.usage.personnel} />
           <Stat label="Opdrachten" value={tenant.usage.assignments} />
+          <Stat label="Documenten" value={tenant.usage.documents} />
+          <Stat label="Storage" value={formatBytes(tenant.usage.storageBytes)} />
           <Stat label="Supportgrants" value={tenant.usage.activeSupportGrants} />
         </div>
 
-        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="grid gap-8 xl:grid-cols-[minmax(0,1fr)_380px]">
           <div className="flex flex-col gap-8">
             <Section title="Plan en lifecycle" helper="Wijzig het actieve pakket en controleer lifecycle timestamps.">
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
@@ -370,6 +406,57 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
           </div>
 
           <aside className="flex flex-col gap-8">
+            <Section title="First-run" helper={`${tenant.firstRun.completedSteps}/${tenant.firstRun.totalSteps} stappen klaar · ${tenant.firstRun.completionPercent}%`}>
+              <div className="h-2 overflow-hidden rounded bg-slate-100">
+                <div
+                  className="h-full bg-emerald-500"
+                  style={{ width: `${tenant.firstRun.completionPercent}%` }}
+                />
+              </div>
+              <div className="mt-4 grid gap-2 text-sm">
+                {tenant.firstRun.steps.map((step) => (
+                  <div key={step.id} className="rounded border border-slate-200 px-3 py-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-medium text-slate-950">{step.label}</p>
+                      <span className={step.completed ? "rounded bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800" : "rounded bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800"}>
+                        {step.completed ? "Klaar" : "Open"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">{step.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </Section>
+
+            <Section title="Branding preview" helper="Preview van tenantnaam, kleuren en e-mail/PDF uitstraling.">
+              <div className="overflow-hidden rounded border border-slate-200">
+                <div className="p-4 text-white" style={{ backgroundColor: tenant.brandingPreview.primaryColor }}>
+                  <div className="flex items-center gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded bg-white text-sm font-semibold" style={{ color: tenant.brandingPreview.primaryColor }}>
+                      {tenant.brandingPreview.logoUrl ? "Logo" : initials(tenant.brandingPreview.displayName)}
+                    </div>
+                    <div>
+                      <p className="text-sm opacity-80">{tenant.brandingPreview.platformName}</p>
+                      <p className="text-lg font-semibold">{tenant.brandingPreview.displayName}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="grid gap-3 bg-white p-4 text-sm">
+                  <div className="flex gap-2">
+                    <span className="h-6 w-6 rounded border border-slate-200" style={{ backgroundColor: tenant.brandingPreview.primaryColor }} />
+                    <span className="h-6 w-6 rounded border border-slate-200" style={{ backgroundColor: tenant.brandingPreview.accentColor }} />
+                    <span className="text-slate-500">{tenant.brandingPreview.customBrandingEnabled ? "Custom branding toegestaan" : "Fieldgrid branding"}</span>
+                  </div>
+                  <div className="rounded bg-slate-50 p-3">
+                    <p className="font-medium text-slate-950">Voorbeeldbericht</p>
+                    <p className="mt-1 text-slate-600">Uw rapportage staat klaar voor beoordeling.</p>
+                    <div className="mt-3 h-1.5 rounded" style={{ backgroundColor: tenant.brandingPreview.accentColor }} />
+                    <p className="mt-3 whitespace-pre-line text-xs text-slate-500">{tenant.brandingPreview.emailSignature}</p>
+                  </div>
+                </div>
+              </div>
+            </Section>
+
             <Section title="Support grants" helper="Maak tijdelijke supporttoegang en revoke actieve grants.">
               <form action={createSupportAccessGrantFormAction} className="grid gap-3">
                 <input type="hidden" name="tenantId" value={tenant.id} />
@@ -425,9 +512,9 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
               </div>
             </Section>
 
-            <Section title="Gebruik" helper="Basis usage voor platformbeheer en supporttriage.">
+            <Section title="Gebruik" helper="Usage voor beheer, supporttriage en toekomstige limieten.">
               <dl className="grid gap-2 text-sm">
-                {Object.entries(tenant.usage).map(([key, value]) => (
+                {usageRows.map(([key, value]) => (
                   <div key={key} className="flex justify-between gap-4 rounded bg-slate-50 px-3 py-2">
                     <dt className="text-slate-500">{key}</dt>
                     <dd className="font-medium text-slate-950">{value}</dd>
