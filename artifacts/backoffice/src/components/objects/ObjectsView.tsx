@@ -62,6 +62,7 @@ import {
   type ObjectRow,
   type CustomerOption,
 } from "@/app/actions/objects";
+import type { RegionOption } from "@/app/actions/regions";
 import type { SectorOption } from "@/app/actions/sectors";
 
 const PAGE_SIZE = 25;
@@ -113,6 +114,7 @@ interface ObjectsViewProps {
   total:               number;
   customers:           CustomerOption[];
   sectors:             SectorOption[];
+  regionOptions:       RegionOption[];
   canWrite:            boolean;
   page:                number;
   initialSearch:       string;
@@ -129,6 +131,7 @@ export function ObjectsView({
   total,
   customers,
   sectors,
+  regionOptions,
   canWrite,
   page,
   initialSearch,
@@ -606,6 +609,7 @@ export function ObjectsView({
             objectId={editingId ?? undefined}
             sectors={sectors}
             customers={customers}
+            regionOptions={regionOptions}
             onSuccess={handleFormSuccess}
             onCancel={() => setSheetOpen(false)}
           />
