@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@workspace/db";
-import { sql } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { hasPermission, requirePermission } from "@/lib/auth/permissions";
 import { getCurrentBackofficeUser, requireCurrentTenantId } from "@/lib/auth/tenant";
@@ -14,6 +14,7 @@ export type MaterialRow = {
   id: string;
   code: string;
   name: string;
+  categoryId: string | null;
   categoryName: string | null;
   unit: string;
   salePrice: string | null;
@@ -28,17 +29,8 @@ export type MaterialRow = {
   lastMovementAt: string | null;
 };
 
-export type MaterialCategoryOption = {
-  id: string;
-  name: string;
-};
-
-export type MaterialEntityOption = {
-  id: string;
-  label: string;
-  meta: string | null;
-};
-
+export type MaterialCategoryOption = { id: string; name: string };
+export type MaterialEntityOption = { id: string; label: string; meta: string | null };
 export type StockLocationOption = {
   id: string;
   name: string;
@@ -143,6 +135,7 @@ export type MaterialStockMovementInput = {
 };
 
 type SqlResult<T> = { rows?: T[] } | T[];
+type DbExecutor = { execute: (query: SQL) => Promise<unknown> };
 
 const PAGE_SIZE = 25;
 
@@ -175,8 +168,7 @@ function normalizeDecimal(
     return null;
   }
 
-  const normalized = raw.replace(",", ".");
-  const parsed = Number(normalized);
+  const parsed = Number(raw.replace(",", "."));
   if (!Number.isFinite(parsed)) throw new Error(`${label} moet een geldig getal zijn.`);
   if (!options.allowNegative && parsed < 0) throw new Error(`${label} mag niet negatief zijn.`);
   if (parsed === 0 && options.required) throw new Error(`${label} moet groter of kleiner dan 0 zijn.`);
@@ -243,7 +235,7 @@ async function writeTenantAuditLog(input: {
   `);
 }
 
-async function nextMaterialCode(tx: typeof db, tenantId: string): Promise<string> {
+async function nextMaterialCode(tx: DbExecutor, tenantId: string): Promise<string> {
   const result = await tx.execute(sql`
     INSERT INTO tenant_sequences (tenant_id, sequence_key, next_value)
     VALUES (${tenantId}::uuid, 'material_code', 2)
@@ -252,21 +244,20 @@ async function nextMaterialCode(tx: typeof db, tenantId: string): Promise<string
                   updated_at = now()
     RETURNING (next_value - 1)::int AS value
   `);
-
   const [row] = rowsFrom<{ value: number }>(result);
   if (!row) throw new Error("Kon geen materiaalcode genereren.");
   return `M${String(row.value).padStart(5, "0")}`;
 }
 
 async function resolveCategoryId(
-  tx: typeof db,
+  tx: DbExecutor,
   tenantId: string,
   categoryId?: string | null,
   categoryName?: string | null,
 ): Promise<string | null> {
   const cleanCategoryId = cleanText(categoryId);
   if (cleanCategoryId) {
-    const existing = rowsFrom<{ id: string }>(await tx.execute(sql`
+    const [existing] = rowsFrom<{ id: string }>(await tx.execute(sql`
       SELECT id
       FROM material_categories
       WHERE tenant_id = ${tenantId}::uuid
@@ -274,15 +265,14 @@ async function resolveCategoryId(
         AND archived_at IS NULL
       LIMIT 1
     `));
-    if (!existing[0]) throw new Error("Categorie niet gevonden.");
-    return existing[0].id;
+    if (!existing) throw new Error("Categorie niet gevonden.");
+    return existing.id;
   }
 
   const name = cleanText(categoryName);
   if (!name) return null;
-
   const slug = slugify(name);
-  const result = await tx.execute(sql`
+  const [row] = rowsFrom<{ id: string }>(await tx.execute(sql`
     INSERT INTO material_categories (tenant_id, name, slug)
     VALUES (${tenantId}::uuid, ${name}, ${slug})
     ON CONFLICT (tenant_id, slug)
@@ -291,13 +281,12 @@ async function resolveCategoryId(
                   is_active = true,
                   updated_at = now()
     RETURNING id
-  `);
-  const [row] = rowsFrom<{ id: string }>(result);
+  `));
   return row?.id ?? null;
 }
 
 async function getStockLocationById(
-  tx: typeof db,
+  tx: DbExecutor,
   tenantId: string,
   stockLocationId: string,
 ): Promise<StockLocationOption | null> {
@@ -316,13 +305,9 @@ async function getStockLocationById(
   return row ?? null;
 }
 
-async function ensureObjectStockLocation(
-  tx: typeof db,
-  tenantId: string,
-  objectId: string,
-): Promise<string> {
-  const [objectRow] = rowsFrom<{ id: string; name: string; code: string | null }>(await tx.execute(sql`
-    SELECT id, name, code
+async function ensureObjectStockLocation(tx: DbExecutor, tenantId: string, objectId: string): Promise<string> {
+  const [objectRow] = rowsFrom<{ id: string; name: string }>(await tx.execute(sql`
+    SELECT id, name
     FROM objects
     WHERE tenant_id = ${tenantId}::uuid
       AND id = ${objectId}::uuid
@@ -352,11 +337,7 @@ async function ensureObjectStockLocation(
   return created.id;
 }
 
-async function ensurePersonnelStockLocation(
-  tx: typeof db,
-  tenantId: string,
-  personnelId: string,
-): Promise<string> {
+async function ensurePersonnelStockLocation(tx: DbExecutor, tenantId: string, personnelId: string): Promise<string> {
   const [personnelRow] = rowsFrom<{ id: string; name: string }>(await tx.execute(sql`
     SELECT id, concat(first_name, ' ', last_name) AS name
     FROM personnel
@@ -389,13 +370,9 @@ async function ensurePersonnelStockLocation(
 }
 
 async function resolveTargetStockLocation(
-  tx: typeof db,
+  tx: DbExecutor,
   tenantId: string,
-  input: {
-    stockLocationId?: string | null;
-    objectId?: string | null;
-    personnelId?: string | null;
-  },
+  input: { stockLocationId?: string | null; objectId?: string | null; personnelId?: string | null },
 ): Promise<string | null> {
   const stockLocationId = cleanText(input.stockLocationId);
   if (stockLocationId) {
@@ -413,7 +390,7 @@ async function resolveTargetStockLocation(
   return null;
 }
 
-async function assertMaterialExists(tx: typeof db, tenantId: string, materialId: string): Promise<void> {
+async function assertMaterialExists(tx: DbExecutor, tenantId: string, materialId: string): Promise<void> {
   const [material] = rowsFrom<{ id: string }>(await tx.execute(sql`
     SELECT id
     FROM materials
@@ -426,27 +403,15 @@ async function assertMaterialExists(tx: typeof db, tenantId: string, materialId:
 }
 
 async function applyBalanceDelta(
-  tx: typeof db,
+  tx: DbExecutor,
   tenantId: string,
   materialId: string,
   stockLocationId: string,
   delta: string,
 ): Promise<void> {
   await tx.execute(sql`
-    INSERT INTO material_stock_balances (
-      tenant_id,
-      material_id,
-      stock_location_id,
-      quantity,
-      last_movement_at
-    )
-    VALUES (
-      ${tenantId}::uuid,
-      ${materialId}::uuid,
-      ${stockLocationId}::uuid,
-      ${delta}::numeric,
-      now()
-    )
+    INSERT INTO material_stock_balances (tenant_id, material_id, stock_location_id, quantity, last_movement_at)
+    VALUES (${tenantId}::uuid, ${materialId}::uuid, ${stockLocationId}::uuid, ${delta}::numeric, now())
     ON CONFLICT (tenant_id, material_id, stock_location_id)
     DO UPDATE SET quantity = material_stock_balances.quantity + EXCLUDED.quantity,
                   last_movement_at = now(),
@@ -475,18 +440,17 @@ export async function listMaterials(params: {
   const categoryId = cleanText(params.categoryId);
   const page = Math.max(1, params.page ?? 1);
   const offset = (page - 1) * PAGE_SIZE;
-
-  const whereStatus =
-    status === "archived"
-      ? sql`m.archived_at IS NOT NULL`
-      : status === "inactive"
-        ? sql`m.archived_at IS NULL AND m.is_active = false`
-        : sql`m.archived_at IS NULL AND m.is_active = true`;
+  const whereStatus = status === "archived"
+    ? sql`m.archived_at IS NOT NULL`
+    : status === "inactive"
+      ? sql`m.archived_at IS NULL AND m.is_active = false`
+      : sql`m.archived_at IS NULL AND m.is_active = true`;
 
   const rows = rowsFrom<MaterialRow>(await db.execute(sql`
     SELECT m.id,
            m.code,
            m.name,
+           m.category_id::text AS "categoryId",
            c.name AS "categoryName",
            m.unit,
            m.sale_price::text AS "salePrice",
@@ -589,6 +553,7 @@ export async function getMaterialDetail(materialId: string): Promise<MaterialDet
     SELECT m.id,
            m.code,
            m.name,
+           m.category_id::text AS "categoryId",
            c.name AS "categoryName",
            m.description,
            m.unit,
@@ -673,7 +638,7 @@ export async function getMaterialDetail(materialId: string): Promise<MaterialDet
   return { ...material, balances, movements, usages };
 }
 
-async function listMaterialStockRows(where: ReturnType<typeof sql>): Promise<MaterialStockRow[]> {
+async function listMaterialStockRows(where: SQL): Promise<MaterialStockRow[]> {
   const rows = rowsFrom<Omit<MaterialStockRow, "status">>(await db.execute(sql`
     SELECT b.id AS "balanceId",
            m.id AS "materialId",
@@ -724,7 +689,6 @@ export async function createMaterial(input: MaterialFormInput): Promise<ActionRe
   try {
     const name = requireText(input.name, "Naam");
     const unit = requireText(input.unit, "Eenheid");
-    const description = cleanText(input.description);
     const costPrice = normalizeDecimal(input.costPrice, "Kostprijs", { scale: 2 });
     const salePrice = normalizeDecimal(input.salePrice, "Verkoopprijs", { scale: 2 });
     const vatRate = normalizeDecimal(input.vatRate, "BTW", { scale: 2 });
@@ -732,62 +696,34 @@ export async function createMaterial(input: MaterialFormInput): Promise<ActionRe
     const maxStock = normalizeDecimal(input.maxStock, "Maximumvoorraad", { scale: 3 });
 
     const result = await db.transaction(async (tx) => {
-      const categoryId = await resolveCategoryId(tx, tenantId, input.categoryId, input.categoryName);
-      const code = await nextMaterialCode(tx, tenantId);
-      const [created] = rowsFrom<{ id: string; code: string }>(await tx.execute(sql`
+      const exec = tx as unknown as DbExecutor;
+      const categoryId = await resolveCategoryId(exec, tenantId, input.categoryId, input.categoryName);
+      const code = await nextMaterialCode(exec, tenantId);
+      const [created] = rowsFrom<{ id: string; code: string }>(await exec.execute(sql`
         INSERT INTO materials (
-          tenant_id,
-          category_id,
-          code,
-          name,
-          description,
-          unit,
-          cost_price,
-          sale_price,
-          vat_rate,
-          vat_type,
-          supplier_name,
-          supplier_item_number,
-          barcode,
-          min_stock,
-          max_stock,
-          default_invoiceable,
-          notes,
-          created_by
-        )
-        VALUES (
-          ${tenantId}::uuid,
-          ${categoryId}::uuid,
-          ${code},
-          ${name},
-          ${description},
-          ${unit},
-          ${costPrice}::numeric,
-          ${salePrice}::numeric,
-          ${vatRate}::numeric,
-          ${cleanText(input.vatType)},
-          ${cleanText(input.supplierName)},
-          ${cleanText(input.supplierItemNumber)},
-          ${cleanText(input.barcode)},
-          ${minStock}::numeric,
-          ${maxStock}::numeric,
-          ${input.defaultInvoiceable === true},
-          ${cleanText(input.notes)},
-          ${userId}::uuid
+          tenant_id, category_id, code, name, description, unit, cost_price, sale_price,
+          vat_rate, vat_type, supplier_name, supplier_item_number, barcode, min_stock,
+          max_stock, default_invoiceable, notes, created_by
+        ) VALUES (
+          ${tenantId}::uuid, ${categoryId}::uuid, ${code}, ${name}, ${cleanText(input.description)}, ${unit},
+          ${costPrice}::numeric, ${salePrice}::numeric, ${vatRate}::numeric, ${cleanText(input.vatType)},
+          ${cleanText(input.supplierName)}, ${cleanText(input.supplierItemNumber)}, ${cleanText(input.barcode)},
+          ${minStock}::numeric, ${maxStock}::numeric, ${input.defaultInvoiceable === true},
+          ${cleanText(input.notes)}, ${userId}::uuid
         )
         RETURNING id, code
       `));
-
       if (!created) throw new Error("Materiaal kon niet worden aangemaakt.");
-      await writeTenantAuditLog({
-        tenantId,
-        userId,
-        action: "material_created",
-        resource: "materials",
-        resourceId: created.id,
-        metadata: { code: created.code, name },
-      });
       return created;
+    });
+
+    await writeTenantAuditLog({
+      tenantId,
+      userId,
+      action: "material_created",
+      resource: "materials",
+      resourceId: result.id,
+      metadata: { code: result.code, name },
     });
 
     revalidateMaterials(result.id);
@@ -800,10 +736,7 @@ export async function createMaterial(input: MaterialFormInput): Promise<ActionRe
   }
 }
 
-export async function updateMaterial(
-  materialId: string,
-  input: MaterialFormInput,
-): Promise<ActionResult> {
+export async function updateMaterial(materialId: string, input: MaterialFormInput): Promise<ActionResult> {
   await requireMaterialsWrite("update");
   const tenantId = await requireCurrentTenantId();
   const userId = await requireActorId();
@@ -811,7 +744,6 @@ export async function updateMaterial(
   try {
     const name = requireText(input.name, "Naam");
     const unit = requireText(input.unit, "Eenheid");
-    const description = cleanText(input.description);
     const costPrice = normalizeDecimal(input.costPrice, "Kostprijs", { scale: 2 });
     const salePrice = normalizeDecimal(input.salePrice, "Verkoopprijs", { scale: 2 });
     const vatRate = normalizeDecimal(input.vatRate, "BTW", { scale: 2 });
@@ -819,12 +751,13 @@ export async function updateMaterial(
     const maxStock = normalizeDecimal(input.maxStock, "Maximumvoorraad", { scale: 3 });
 
     await db.transaction(async (tx) => {
-      const categoryId = await resolveCategoryId(tx, tenantId, input.categoryId, input.categoryName);
-      const [updated] = rowsFrom<{ id: string; code: string }>(await tx.execute(sql`
+      const exec = tx as unknown as DbExecutor;
+      const categoryId = await resolveCategoryId(exec, tenantId, input.categoryId, input.categoryName);
+      const [updated] = rowsFrom<{ id: string; code: string }>(await exec.execute(sql`
         UPDATE materials
         SET category_id = ${categoryId}::uuid,
             name = ${name},
-            description = ${description},
+            description = ${cleanText(input.description)},
             unit = ${unit},
             cost_price = ${costPrice}::numeric,
             sale_price = ${salePrice}::numeric,
@@ -844,15 +777,15 @@ export async function updateMaterial(
         RETURNING id, code
       `));
       if (!updated) throw new Error("Materiaal niet gevonden.");
+    });
 
-      await writeTenantAuditLog({
-        tenantId,
-        userId,
-        action: "material_updated",
-        resource: "materials",
-        resourceId: updated.id,
-        metadata: { code: updated.code, name },
-      });
+    await writeTenantAuditLog({
+      tenantId,
+      userId,
+      action: "material_updated",
+      resource: "materials",
+      resourceId: materialId,
+      metadata: { name },
     });
 
     revalidateMaterials(materialId);
@@ -911,13 +844,13 @@ export async function recordMaterialStockMovement(
       scale: 3,
     });
     if (!quantity) throw new Error("Aantal is verplicht.");
-
     if (input.movementType !== "corrected" && decimalNumber(quantity) <= 0) {
       throw new Error("Aantal moet groter dan 0 zijn.");
     }
 
     const movement = await db.transaction(async (tx) => {
-      await assertMaterialExists(tx, tenantId, materialId);
+      const exec = tx as unknown as DbExecutor;
+      await assertMaterialExists(exec, tenantId, materialId);
 
       let fromStockLocationId: string | null = null;
       let toStockLocationId: string | null = null;
@@ -925,10 +858,9 @@ export async function recordMaterialStockMovement(
       if (input.movementType === "transferred") {
         fromStockLocationId = cleanText(input.fromStockLocationId);
         if (!fromStockLocationId) throw new Error("Bronlocatie is verplicht bij verplaatsen.");
-        const fromLocation = await getStockLocationById(tx, tenantId, fromStockLocationId);
+        const fromLocation = await getStockLocationById(exec, tenantId, fromStockLocationId);
         if (!fromLocation) throw new Error("Bronlocatie niet gevonden.");
-
-        toStockLocationId = await resolveTargetStockLocation(tx, tenantId, {
+        toStockLocationId = await resolveTargetStockLocation(exec, tenantId, {
           stockLocationId: input.toStockLocationId,
           objectId: input.toObjectId,
           personnelId: input.toPersonnelId,
@@ -938,7 +870,7 @@ export async function recordMaterialStockMovement(
           throw new Error("Bron- en doellocatie mogen niet hetzelfde zijn.");
         }
       } else {
-        toStockLocationId = await resolveTargetStockLocation(tx, tenantId, {
+        toStockLocationId = await resolveTargetStockLocation(exec, tenantId, {
           stockLocationId: input.toStockLocationId,
           objectId: input.toObjectId,
           personnelId: input.toPersonnelId,
@@ -946,56 +878,41 @@ export async function recordMaterialStockMovement(
         if (!toStockLocationId) throw new Error("Voorraadlocatie is verplicht.");
       }
 
-      const [created] = rowsFrom<{ id: string }>(await tx.execute(sql`
+      const [created] = rowsFrom<{ id: string }>(await exec.execute(sql`
         INSERT INTO material_stock_movements (
-          tenant_id,
-          material_id,
-          from_stock_location_id,
-          to_stock_location_id,
-          quantity,
-          movement_type,
-          reason,
-          created_by,
-          notes
-        )
-        VALUES (
-          ${tenantId}::uuid,
-          ${materialId}::uuid,
-          ${fromStockLocationId}::uuid,
-          ${toStockLocationId}::uuid,
-          ${quantity}::numeric,
-          ${input.movementType},
-          ${cleanText(input.reason)},
-          ${userId}::uuid,
-          ${cleanText(input.notes)}
+          tenant_id, material_id, from_stock_location_id, to_stock_location_id,
+          quantity, movement_type, reason, created_by, notes
+        ) VALUES (
+          ${tenantId}::uuid, ${materialId}::uuid, ${fromStockLocationId}::uuid, ${toStockLocationId}::uuid,
+          ${quantity}::numeric, ${input.movementType}, ${cleanText(input.reason)}, ${userId}::uuid, ${cleanText(input.notes)}
         )
         RETURNING id
       `));
       if (!created) throw new Error("Voorraadmutatie kon niet worden opgeslagen.");
 
       if (input.movementType === "transferred") {
-        await applyBalanceDelta(tx, tenantId, materialId, fromStockLocationId!, negateDecimal(quantity));
-        await applyBalanceDelta(tx, tenantId, materialId, toStockLocationId!, quantity);
+        await applyBalanceDelta(exec, tenantId, materialId, fromStockLocationId!, negateDecimal(quantity));
+        await applyBalanceDelta(exec, tenantId, materialId, toStockLocationId!, quantity);
       } else {
-        await applyBalanceDelta(tx, tenantId, materialId, toStockLocationId!, quantity);
+        await applyBalanceDelta(exec, tenantId, materialId, toStockLocationId!, quantity);
       }
 
-      await writeTenantAuditLog({
-        tenantId,
-        userId,
-        action: `material_stock_${input.movementType}`,
-        resource: "material_stock_movements",
-        resourceId: created.id,
-        metadata: {
-          materialId,
-          quantity,
-          fromStockLocationId,
-          toStockLocationId,
-          reason: cleanText(input.reason),
-        },
-      });
+      return { id: created.id, fromStockLocationId, toStockLocationId };
+    });
 
-      return created;
+    await writeTenantAuditLog({
+      tenantId,
+      userId,
+      action: `material_stock_${input.movementType}`,
+      resource: "material_stock_movements",
+      resourceId: movement.id,
+      metadata: {
+        materialId,
+        quantity,
+        fromStockLocationId: movement.fromStockLocationId,
+        toStockLocationId: movement.toStockLocationId,
+        reason: cleanText(input.reason),
+      },
     });
 
     revalidateMaterials(input.materialId);
