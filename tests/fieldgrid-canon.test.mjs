@@ -6,13 +6,11 @@ function read(path) {
   return readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 }
 
-function escapeRegExp(value) {
-  return value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
 function assertContains(content, phrases, label) {
+  const normalized = content.toLowerCase();
+
   for (const phrase of phrases) {
-    assert.match(content, new RegExp(escapeRegExp(phrase), "iu"), `${label} should mention ${phrase}`);
+    assert.ok(normalized.includes(phrase.toLowerCase()), `${label} should mention ${phrase}`);
   }
 }
 
@@ -22,6 +20,7 @@ const canonicalDocs = [
   "docs/fieldgrid-cross-tenant-testmatrix.md",
   "docs/fieldgrid-recovery-execution-plan.md",
   "docs/fieldgrid-next-major-update-plan.md",
+  "docs/fieldgrid-staging-promotion-checklist.md",
 ];
 
 const governanceDocs = [".github/pull_request_template.md"];
@@ -36,6 +35,17 @@ test("Fieldgrid governance docs exist", () => {
   for (const path of governanceDocs) {
     assert.ok(read(path).trim().length > 0, `${path} should not be empty`);
   }
+});
+
+test("phase 0 canon refresh removes stale current PR 125 status", () => {
+  const refreshedCanon = [
+    read("docs/fieldgrid-saas-masterplan.md"),
+    read("docs/fieldgrid-data-classification.md"),
+    read("docs/fieldgrid-cross-tenant-testmatrix.md"),
+  ].join("\n");
+
+  assert.ok(!refreshedCanon.includes("t/m PR #125"), "canon should not describe PR #125 as the current status");
+  assertContains(refreshedCanon, ["PR #149", "fase 0 canonrefresh"], "refreshed canon");
 });
 
 test("data classification contains canonical tenant strategies and priorities", () => {
@@ -57,7 +67,7 @@ test("data classification contains canonical tenant strategies and priorities", 
   assertContains(classification, ["P0", "P1", "P2"], "data classification");
 });
 
-test("data classification keeps known sensitive SaaS rest points explicit", () => {
+test("data classification keeps sensitive SaaS hardening points explicit", () => {
   const classification = read("docs/fieldgrid-data-classification.md");
 
   assertContains(
@@ -72,6 +82,8 @@ test("data classification keeps known sensitive SaaS rest points explicit", () =
       "assignment_photos",
       "assignment_report_note_attachments",
       "audit_log",
+      "nullable",
+      "hardening",
     ],
     "data classification",
   );
@@ -82,7 +94,15 @@ test("data classification captures refreshed current backlog", () => {
 
   assertContains(
     classification,
-    ["Actuele stand", "module-aware", "tenant-prefix", "integration", "Tenant A/B/Veele"],
+    [
+      "Actuele stand",
+      "module enforcement",
+      "tenant-prefix",
+      "integration",
+      "Tenant A/B/Veele",
+      "DEFAULT_TENANT_ID",
+      "tenant_sector_settings",
+    ],
     "data classification",
   );
 });
@@ -109,12 +129,22 @@ test("cross-tenant matrix covers required security boundaries", () => {
   );
 });
 
-test("cross-tenant matrix tracks required automation layers", () => {
+test("cross-tenant matrix tracks required automation layers and status", () => {
   const matrix = read("docs/fieldgrid-cross-tenant-testmatrix.md");
 
   assertContains(
     matrix,
-    ["Automatiseringsstatus", "Tenant A/B/Veele", "static", "Playwright", "DB/RLS", "storage"],
+    [
+      "Automatiseringsstatus",
+      "Teststatus per securitygrens",
+      "Fase 0 status",
+      "Tenant A/B/Veele",
+      "static",
+      "Playwright",
+      "DB/RLS",
+      "storage",
+      "migration",
+    ],
     "cross-tenant matrix",
   );
 });
@@ -133,24 +163,28 @@ test("masterplan captures the current SaaS backlog", () => {
       "Echte verbeteringen",
       "Nice-to-have",
       "Tenant A/B/Veele",
+      "nullable",
+      "Assignment media blijft P1",
     ],
     "masterplan",
   );
 });
 
-test("masterplan captures the phase sprint execution plan", () => {
+test("masterplan captures the next major update phase plan", () => {
   const masterplan = read("docs/fieldgrid-saas-masterplan.md");
 
   assertContains(
     masterplan,
     [
-      "Fasesprints vanaf nu",
-      "Sprint 0 - Canon lock",
-      "Sprint 1 - Tenantcontext",
-      "Sprint 6 - Documenten en storage wave 1",
-      "Sprint 12 - Operatie, release en eerste externe tenant",
-      "Sprint 0: merge PR #126",
-      "Sprint 12 PR B",
+      "Faseplanning vanaf nu",
+      "Fase 0 - Canon en updatecontract vastzetten",
+      "Fase 1 - Echte testbasis en demo-data",
+      "Fase 2 - Post-migration hardening en tenant_id afdwingen",
+      "Fase 3 - Assignment media, news en storage bewijs",
+      "Fase 4 - Module enforcement harmoniseren",
+      "Fase 5 - Support break-glass en security dashboard",
+      "Fase 6 - Productisering: onboarding, first-run, usage en branding",
+      "Fase 7 - Staging smoke dashboard en operationele acceptatie",
     ],
     "masterplan",
   );
@@ -203,6 +237,27 @@ test("next major update plan defines phased execution", () => {
   );
 });
 
+test("staging promotion checklist defines phase-safe promotion rules", () => {
+  const checklist = read("docs/fieldgrid-staging-promotion-checklist.md");
+
+  assertContains(
+    checklist,
+    [
+      "staging zoveel mogelijk bereikbaar",
+      "Geen drop, reset of rebuild",
+      "Fase 0 - Canon en updatecontract",
+      "Fase 1 - Echte testbasis en demo-data",
+      "Fase 2 - Post-migration hardening en tenant_id afdwingen",
+      "Fase 3 - Assignment media, news en storage bewijs",
+      "Fase 4 - Module enforcement harmoniseren",
+      "Fase 5 - Support break-glass en security dashboard",
+      "Fase 6 - Productisering",
+      "Fase 7 - Staging smoke dashboard en operatie",
+    ],
+    "staging promotion checklist",
+  );
+});
+
 test("pull request template enforces Fieldgrid canon discipline", () => {
   const template = read(".github/pull_request_template.md");
 
@@ -210,12 +265,14 @@ test("pull request template enforces Fieldgrid canon discipline", () => {
     template,
     [
       "Fieldgrid canon-impact",
+      "docs/fieldgrid-next-major-update-plan.md",
       "docs/fieldgrid-data-classification.md",
       "docs/fieldgrid-cross-tenant-testmatrix.md",
-      "docs/fieldgrid-saas-masterplan.md",
+      "docs/fieldgrid-staging-promotion-checklist.md",
       "Geraakte test-id's",
       "Staging-data blijft behouden",
       "Minimum green before staging",
+      "staging blijft zoveel mogelijk bereikbaar",
     ],
     "pull request template",
   );
