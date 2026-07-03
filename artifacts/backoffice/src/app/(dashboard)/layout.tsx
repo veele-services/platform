@@ -2,7 +2,8 @@ export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { getEffectiveUserPermissions, getUserRoles } from "@/lib/auth/permissions";
+import { getCurrentEffectiveUserPermissions, getUserRoles } from "@/lib/auth/permissions";
+import { getCurrentSupportMode, type CurrentSupportMode } from "@/lib/auth/platform";
 import { PermissionsProvider } from "@/providers/permissions-provider";
 import { SidebarProvider } from "@/providers/sidebar-provider";
 import { Sidebar } from "@/components/layout/Sidebar";
@@ -13,6 +14,7 @@ import { getPendingReportsCount } from "@/app/actions/reports";
 import { getOutstandingInvoicesCount } from "@/app/actions/invoices";
 import { getPendingQuotesCount } from "@/app/actions/quotes";
 import { getPendingLeaveCount } from "@/app/actions/availability";
+import { exitSupportMode } from "@/app/actions/platform";
 import {
   getActiveBackofficeTenantsForUser,
   getCurrentTenantId,
@@ -31,6 +33,42 @@ function NoActiveTenantAccess() {
         </p>
       </section>
     </main>
+  );
+}
+
+function formatSupportTtl(ttlSeconds: number): string {
+  if (ttlSeconds <= 0) return "verlopen";
+  const minutes = Math.floor(ttlSeconds / 60);
+  if (minutes < 1) return "minder dan 1 minuut";
+  if (minutes < 60) return `${minutes} min`;
+  const hours = Math.floor(minutes / 60);
+  const remainingMinutes = minutes % 60;
+  return remainingMinutes > 0 ? `${hours}u ${remainingMinutes}m` : `${hours}u`;
+}
+
+function SupportModeBanner({ supportMode }: { supportMode: CurrentSupportMode }) {
+  return (
+    <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-950">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <p className="font-semibold">Supportmodus actief</p>
+          <p className="mt-0.5 truncate text-xs text-amber-900">
+            Tenant {supportMode.tenantId} · TTL {formatSupportTtl(supportMode.ttlSeconds)} · Reden: {supportMode.reason}
+          </p>
+          <p className="mt-0.5 truncate text-xs text-amber-800">
+            Auditcontext: grant {supportMode.grantId} · prioriteit {supportMode.priority}
+          </p>
+        </div>
+        <form action={exitSupportMode}>
+          <button
+            type="submit"
+            className="rounded border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-950 transition hover:bg-amber-100"
+          >
+            Stop supportmodus
+          </button>
+        </form>
+      </div>
+    </div>
   );
 }
 
@@ -58,9 +96,10 @@ export default async function DashboardLayout({
     return <NoActiveTenantAccess />;
   }
 
+  const supportMode = await getCurrentSupportMode();
   const [permissions, roles] = await Promise.all([
-    getEffectiveUserPermissions(user.id, tenantId),
-    getUserRoles(user.id, tenantId),
+    getCurrentEffectiveUserPermissions(),
+    supportMode ? Promise.resolve(["Supportmodus"]) : getUserRoles(user.id, tenantId),
   ]);
 
   const canReadReports   = permissions.has("reports:read");
@@ -104,6 +143,7 @@ export default async function DashboardLayout({
                 currentTenantId={tenantId}
                 tenantOptions={tenantOptions}
               />
+              {supportMode && <SupportModeBanner supportMode={supportMode} />}
               <main className="flex-1 overflow-y-auto">{children}</main>
             </div>
           </div>

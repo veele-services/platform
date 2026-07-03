@@ -2,8 +2,11 @@ import type { Request, Response, NextFunction } from "express";
 import { jwtVerify, createRemoteJWKSet } from "jose";
 import {
   db,
+  FIELDGRID_RUNTIME_ACCESS_PRIORITY,
+  getActiveSupportAccessForUser,
   isFieldgridSubdomain,
   isPlatformHost,
+  isSupportRuntimePermission,
   normalizeHost,
   permissionsTable,
   requireTenantModule,
@@ -14,6 +17,7 @@ import {
   tenantUsersTable,
   tenantsTable,
   type FieldgridModuleKey,
+  writeSupportAccessAuditLogForUser,
 } from "@workspace/db";
 import { and, eq, inArray, ne } from "drizzle-orm";
 
@@ -59,6 +63,13 @@ declare global {
     interface Request {
       userId?: string;
       tenantId?: string;
+      supportAccess?: {
+        grantId: string;
+        platformUserId: string;
+        reason: string;
+        expiresAt: string;
+        priority: typeof FIELDGRID_RUNTIME_ACCESS_PRIORITY[number];
+      };
     }
   }
 }
@@ -162,6 +173,32 @@ async function requireEnabledPermissionModule(
   }
 }
 
+async function auditApiSupportPermission(input: {
+  userId: string;
+  tenantId: string;
+  grantId: string;
+  resource: string;
+  action: string;
+  allowed: boolean;
+  reason: string;
+  expiresAt: string;
+}): Promise<void> {
+  await writeSupportAccessAuditLogForUser({
+    userId: input.userId,
+    tenantId: input.tenantId,
+    action: input.allowed ? "api_permission_allowed" : "api_permission_denied",
+    resource: input.resource,
+    metadata: {
+      permission: `${input.resource}:${input.action}`,
+      priority: FIELDGRID_RUNTIME_ACCESS_PRIORITY[1],
+      grantId: input.grantId,
+      reason: input.reason,
+      expiresAt: input.expiresAt,
+    },
+    grantId: input.grantId,
+  });
+}
+
 /**
  * Returns Express middleware that enforces a `resource:action` permission.
  * Must be used after `requireAuth` so `req.userId` is set.
@@ -178,6 +215,31 @@ export function requirePermission(resource: string, action: string) {
     }
     if (!tenantId) {
       res.status(403).json({ error: "Geen actieve tenant-koppeling" });
+      return;
+    }
+
+    if (req.supportAccess) {
+      const allowedBySupportGrant = isSupportRuntimePermission(resource, action);
+      await auditApiSupportPermission({
+        userId,
+        tenantId,
+        grantId: req.supportAccess.grantId,
+        resource,
+        action,
+        allowed: allowedBySupportGrant,
+        reason: req.supportAccess.reason,
+        expiresAt: req.supportAccess.expiresAt,
+      });
+
+      if (!allowedBySupportGrant) {
+        req.log.warn({ userId, tenantId, resource, action }, "Supporttoegang geweigerd");
+        res.status(403).json({ error: "Supporttoegang staat deze actie niet toe" });
+        return;
+      }
+
+      if (!(await requireEnabledPermissionModule(req, res, resource, tenantId))) return;
+
+      next();
       return;
     }
 
@@ -281,6 +343,18 @@ async function firstActiveTenantForUser(userId: string): Promise<string | null> 
   return tenantUser?.tenantId ?? null;
 }
 
+function attachSupportAccess(req: Request, supportAccess: Awaited<ReturnType<typeof getActiveSupportAccessForUser>>): void {
+  if (!supportAccess) return;
+
+  req.supportAccess = {
+    grantId: supportAccess.grant.id,
+    platformUserId: supportAccess.platformUser.id,
+    reason: supportAccess.grant.reason,
+    expiresAt: supportAccess.grant.expiresAt.toISOString(),
+    priority: FIELDGRID_RUNTIME_ACCESS_PRIORITY[1],
+  };
+}
+
 export async function requireTenantScope(
   req: Request,
   res: Response,
@@ -313,6 +387,16 @@ export async function requireTenantScope(
 
   const explicitTenantId = requestedTenantId(req);
   if (explicitTenantId) {
+    if (hostResolution.kind === "platform") {
+      const supportAccess = await getActiveSupportAccessForUser(userId, explicitTenantId);
+      if (supportAccess) {
+        req.tenantId = explicitTenantId;
+        attachSupportAccess(req, supportAccess);
+        next();
+        return;
+      }
+    }
+
     if (await userHasActiveTenant(userId, explicitTenantId)) {
       req.tenantId = explicitTenantId;
       next();
