@@ -212,6 +212,8 @@ export const assignmentExtraWorkTable = pgTable("assignment_extra_work", {
 /** Photos uploaded by personnel for an assignment (optionally linked to an extra work item). */
 export const assignmentPhotosTable = pgTable("assignment_photos", {
   id:           uuid("id").primaryKey().defaultRandom(),
+  tenantId:     uuid("tenant_id")
+    .references(() => tenantsTable.id, { onDelete: "cascade" }),
   assignmentId: uuid("assignment_id")
     .notNull()
     .references(() => assignmentsTable.id, { onDelete: "cascade" }),
@@ -255,6 +257,8 @@ export const assignmentReportNotesTable = pgTable("assignment_report_notes", {
 /** Media attachments linked to a report timeline note. */
 export const assignmentReportNoteAttachmentsTable = pgTable("assignment_report_note_attachments", {
   id:           uuid("id").primaryKey().defaultRandom(),
+  tenantId:     uuid("tenant_id")
+    .references(() => tenantsTable.id, { onDelete: "cascade" }),
   noteId:       uuid("note_id")
     .notNull()
     .references(() => assignmentReportNotesTable.id, { onDelete: "cascade" }),
