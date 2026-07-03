@@ -97,6 +97,38 @@ DECLARE
   enabled_count integer;
 BEGIN
   IF NEW.is_enabled IS DISTINCT FROM true THEN
+    IF TG_OP = 'UPDATE'
+      AND OLD.is_enabled = true
+      AND NEW.is_enabled = false
+    THEN
+      IF EXISTS (
+        SELECT 1
+        FROM tenant_sector_settings tss
+        WHERE tss.tenant_id = NEW.tenant_id
+          AND tss.default_sector_id = NEW.sector_id
+      ) THEN
+        RAISE EXCEPTION 'Sector % is configured as default sector for tenant %', NEW.sector_id, NEW.tenant_id
+          USING ERRCODE = '23514';
+      END IF;
+
+      IF EXISTS (
+        SELECT 1 FROM customers c
+        WHERE c.tenant_id = NEW.tenant_id AND c.sector_id = NEW.sector_id
+      ) OR EXISTS (
+        SELECT 1 FROM objects o
+        WHERE o.tenant_id = NEW.tenant_id AND o.sector_id = NEW.sector_id
+      ) OR EXISTS (
+        SELECT 1 FROM personnel p
+        WHERE p.tenant_id = NEW.tenant_id AND p.sector_id = NEW.sector_id
+      ) OR EXISTS (
+        SELECT 1 FROM task_codes tc
+        WHERE tc.tenant_id = NEW.tenant_id AND tc.sector_id = NEW.sector_id
+      ) THEN
+        RAISE EXCEPTION 'Sector % is still used by tenant % data', NEW.sector_id, NEW.tenant_id
+          USING ERRCODE = '23514';
+      END IF;
+    END IF;
+
     RETURN NEW;
   END IF;
 
