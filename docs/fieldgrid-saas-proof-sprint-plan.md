@@ -1,7 +1,7 @@
 # Fieldgrid SaaS proof sprintplan canon
 
 Datum: 2026-07-03
-Status: sprint 0 canon refresh 2.0.
+Status: sprint 2 regio datamodel en backfill geleverd; sprint 0 canon refresh 2.0 blijft de basis.
 Scope: volledige afronding van SaaS-hardening, runtime-bewijs, tenant-regio's, storage, audit, onboarding, smoke en externe tenant readiness.
 
 ## Doel
@@ -39,7 +39,7 @@ Geen canonitem mag nog als alleen "open" of "ontbreekt" blijven staan zonder een
 | Support grants | `partial` | Sprint 10 | Grant, reden en expiry bestaan; max TTL, break-glass UX en securitydashboard open. |
 | Sector enforcement | `runtime-proof-open` | Sprint 5 | Runtimebasis bestaat; disable/default/single-sector bewijs uitbreiden. |
 | Module enforcement | `partial` | Sprint 11 | API breder dan backoffice; portalen/jobs harmonisatie open. |
-| Tenant-regio's | `partial` | Sprint 2/3/4 | Legacy `region`, `preferredRegions` en `requiredRegion` bestaan; tenant-regio datamodel, multiselect en planningproof open. |
+| Tenant-regio's | `partial` | Sprint 2/3/4 | Sprint 2 datamodel/backfill geleverd; multiselect UI en planningproof blijven Sprint 3/4. |
 | Customers/objects/personnel/assignments | `runtime-proof-open` | Sprint 5/8 | Directe tenant_id bestaat, maar defaults/hardening en direct-ID bewijs moeten dicht. |
 | Documents/reports/quotes/invoices/payments/batches | `hardening-open` | Sprint 8 | Tenant-aware foundation bestaat; nullable/backfill/constraint validation open. |
 | Assignment media | `hardening-open` | Sprint 9 | Directe tenant_id en storageproof moeten afgerond worden. |
@@ -116,6 +116,13 @@ Definition of Done:
 ## Sprint 2 - Regio datamodel en backfill
 
 Doel: regio's tenant-breed modelleren.
+
+Opleverstatus:
+
+- `lib/db/migrations/064_tenant_regions.sql` levert de additive migratie.
+- `lib/db/src/schema/tenant-regions.ts` exporteert de Drizzle tabellen.
+- `docs/fieldgrid-sprint-2-tenant-regions.md` beschrijft het compatibiliteits- en vervolgcontract.
+- `tests/fieldgrid-sprint-2-tenant-regions.test.mjs` bewaakt de migratie, RLS, backfill en schema-export.
 
 Taken:
 

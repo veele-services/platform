@@ -13,6 +13,7 @@ export * from "./tenant-provisioning";
 export * from "./audit-log";
 export * from "./sectors";
 export * from "./tenant-sectors";
+export * from "./tenant-regions";
 export * from "./customer-types";
 export * from "./customers";
 export * from "./customer-users";
