@@ -64,10 +64,14 @@ export async function calculateInvoiceProposalForAssignment(
   const [taskRows, extraWorkRows, materialRows] = await Promise.all([
     db
       .select({
-        code:        taskCodesTable.code,
-        name:        taskCodesTable.name,
-        price:       taskCodesTable.price,
-        invoiceable: taskCodesTable.invoiceable,
+        snapshotCode:        assignmentTasksTable.taskCodeCode,
+        snapshotName:        assignmentTasksTable.taskCodeName,
+        snapshotPrice:       assignmentTasksTable.taskCodePrice,
+        snapshotInvoiceable: assignmentTasksTable.taskCodeInvoiceable,
+        code:                taskCodesTable.code,
+        name:                taskCodesTable.name,
+        price:               taskCodesTable.price,
+        invoiceable:         taskCodesTable.invoiceable,
       })
       .from(assignmentTasksTable)
       .leftJoin(taskCodesTable, eq(assignmentTasksTable.taskCodeId, taskCodesTable.id))
@@ -100,17 +104,20 @@ export async function calculateInvoiceProposalForAssignment(
   ]);
 
   const taskItems: InvoiceProposalLineItem[] = taskRows.map((row) => {
-    const price = row.invoiceable ? money(parseMoney(row.price)) : null;
+    const invoiceable = row.snapshotInvoiceable ?? row.invoiceable ?? false;
+    const code = row.snapshotCode ?? row.code ?? null;
+    const name = row.snapshotName ?? row.name ?? null;
+    const price = invoiceable ? money(parseMoney(row.snapshotPrice ?? row.price)) : null;
 
     return {
       category:     "task",
-      taskCodeCode: row.code ?? null,
-      taskCodeName: row.name ?? null,
-      description:  row.name ?? "Taak zonder taakcode",
+      taskCodeCode: code,
+      taskCodeName: name,
+      description:  name ?? "Taak zonder taakcode",
       quantity:     "1",
       unitPrice:    price,
       price,
-      invoiceable:  Boolean(row.invoiceable),
+      invoiceable,
     };
   });
 

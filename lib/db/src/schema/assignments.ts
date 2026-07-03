@@ -16,7 +16,7 @@ import { z } from "zod/v4";
 import { customersTable } from "./customers";
 import { objectsTable } from "./objects";
 import { personnelTable } from "./personnel";
-import { taskCodesTable } from "./task-codes";
+import { taskCodesTable, tenantTaskCodePricesTable, tenantTaskCodesTable } from "./task-codes";
 import { DEFAULT_TENANT_ID, tenantsTable } from "./tenants";
 
 // ─── Status & Priority enums ───────────────────────────────────────────────────
@@ -179,6 +179,15 @@ export const assignmentTasksTable = pgTable("assignment_tasks", {
     .references(() => assignmentsTable.id, { onDelete: "cascade" }),
   taskCodeId:   uuid("task_code_id")
     .references(() => taskCodesTable.id, { onDelete: "set null" }),
+  tenantTaskCodeId: uuid("tenant_task_code_id")
+    .references(() => tenantTaskCodesTable.id, { onDelete: "set null" }),
+  tenantTaskCodePriceId: uuid("tenant_task_code_price_id")
+    .references(() => tenantTaskCodePricesTable.id, { onDelete: "set null" }),
+  /** Historical task-code snapshot used by quotes/invoices after prices change. */
+  taskCodeCode: varchar("task_code_code", { length: 50 }),
+  taskCodeName: varchar("task_code_name", { length: 200 }),
+  taskCodePrice: numeric("task_code_price", { precision: 10, scale: 2 }),
+  taskCodeInvoiceable: boolean("task_code_invoiceable"),
   notes:        text("notes"),
   sortOrder:    integer("sort_order").notNull().default(0),
   completedAt:  timestamp("completed_at", { withTimezone: true }),
