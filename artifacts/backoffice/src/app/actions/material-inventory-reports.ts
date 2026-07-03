@@ -5,7 +5,7 @@ import { sql } from "drizzle-orm";
 import { requirePermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
 
-type SqlResult<T> = { rows?: T[] } | T[];
+type SqlResult<T> = { rows?: T[] };
 
 export type DashboardMetric = {
   label: string;
@@ -111,8 +111,11 @@ export type CsvExport = {
 
 function rowsFrom<T>(result: unknown): T[] {
   if (Array.isArray(result)) return result as T[];
-  const maybeRows = (result as SqlResult<T> | null)?.rows;
-  return Array.isArray(maybeRows) ? maybeRows : [];
+  if (result && typeof result === "object" && "rows" in result) {
+    const maybeRows = (result as SqlResult<T>).rows;
+    return Array.isArray(maybeRows) ? maybeRows : [];
+  }
+  return [];
 }
 
 function numberText(value: number | null | undefined): string {
