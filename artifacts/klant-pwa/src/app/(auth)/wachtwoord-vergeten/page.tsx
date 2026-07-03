@@ -1,14 +1,21 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 
 export default function WachtwoordVergetenPage() {
+  const router = useRouter();
   const [email,   setEmail]   = useState("");
+  const [code,    setCode]    = useState("");
   const [sent,    setSent]    = useState(false);
   const [error,   setError]   = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+
+  function normalizedEmail(): string {
+    return email.trim().toLowerCase();
+  }
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -19,7 +26,7 @@ export default function WachtwoordVergetenPage() {
       const redirectTo = `${window.location.origin}/klant/auth/confirm?type=recovery`;
 
       const { error: sbError } = await supabase.auth.resetPasswordForEmail(
-        email.trim().toLowerCase(),
+        normalizedEmail(),
         { redirectTo },
       );
 
@@ -29,6 +36,28 @@ export default function WachtwoordVergetenPage() {
       }
 
       setSent(true);
+    });
+  }
+
+  function handleVerifyCode(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+
+    startTransition(async () => {
+      const supabase = createClient();
+      const { error: verifyError } = await supabase.auth.verifyOtp({
+        email: normalizedEmail(),
+        token: code.trim(),
+        type: "recovery",
+      });
+
+      if (verifyError) {
+        setError("De herstelcode is ongeldig of verlopen. Vraag eventueel een nieuwe code aan.");
+        return;
+      }
+
+      router.push("/reset-wachtwoord");
+      router.refresh();
     });
   }
 
@@ -48,27 +77,78 @@ export default function WachtwoordVergetenPage() {
             </div>
             <h1 className="text-2xl font-bold text-white">Wachtwoord vergeten</h1>
             <p className="mt-1 text-sm" style={{ color: "#94A3B8" }}>
-              Vul uw e-mailadres in voor een resetlink
+              Vul uw e-mailadres in voor een herstelcode of resetlink
             </p>
           </div>
 
           <div className="rounded-2xl bg-white p-6 shadow-lg">
             {sent ? (
-              <div className="space-y-4">
+              <form onSubmit={handleVerifyCode} className="space-y-4" noValidate>
                 <div
                   className="rounded-xl px-4 py-3 text-sm"
                   style={{ backgroundColor: "#F0FDF4", color: "#15803D" }}
                 >
-                  Controleer uw inbox. Als dit e-mailadres bekend is, ontvangt u binnen enkele minuten een resetlink.
+                  Controleer uw inbox. Vul de herstelcode hieronder in, of gebruik de resetlink in de e-mail.
                 </div>
-                <Link
-                  href="/login"
-                  className="block text-center text-sm font-medium"
+
+                {error && (
+                  <div
+                    className="rounded-xl px-4 py-3 text-sm font-medium"
+                    style={{ backgroundColor: "rgba(239,68,68,0.10)", color: "#B91C1C" }}
+                  >
+                    {error}
+                  </div>
+                )}
+
+                <div>
+                  <label
+                    htmlFor="code"
+                    className="block text-sm font-medium mb-1.5"
+                    style={{ color: "var(--color-primary)" }}
+                  >
+                    Herstelcode
+                  </label>
+                  <input
+                    id="code"
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="one-time-code"
+                    value={code}
+                    onChange={(e) => setCode(e.target.value)}
+                    required
+                    autoFocus
+                    disabled={pending}
+                    placeholder="Code uit e-mail"
+                    className="w-full rounded-xl border px-4 py-3 text-sm outline-none transition-colors disabled:opacity-60"
+                    style={{
+                      borderColor: "var(--color-border)",
+                      color: "var(--color-primary)",
+                    }}
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={pending || !code.trim()}
+                  className="w-full rounded-xl py-3 text-sm font-semibold text-white transition-opacity disabled:opacity-50"
+                  style={{ backgroundColor: "var(--color-accent)" }}
+                >
+                  {pending ? "Controleren..." : "Code controleren"}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSent(false);
+                    setCode("");
+                    setError(null);
+                  }}
+                  className="block w-full text-center text-sm font-medium"
                   style={{ color: "var(--color-accent)" }}
                 >
-                  Terug naar inloggen
-                </Link>
-              </div>
+                  Andere e-mail gebruiken
+                </button>
+              </form>
             ) : (
               <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                 {error && (
@@ -112,7 +192,7 @@ export default function WachtwoordVergetenPage() {
                   className="w-full rounded-xl py-3 text-sm font-semibold text-white transition-opacity disabled:opacity-50"
                   style={{ backgroundColor: "var(--color-accent)" }}
                 >
-                  {pending ? "Bezig…" : "Resetlink versturen"}
+                  {pending ? "Bezig..." : "Herstelcode versturen"}
                 </button>
 
                 <Link
