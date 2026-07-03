@@ -66,6 +66,15 @@ function normalizePlatformStatus(status: string): "active" | "inactive" | "suspe
     : "active";
 }
 
+function formValue(formData: FormData, name: string): string {
+  return String(formData.get(name) ?? "").trim();
+}
+
+function revalidatePlatformTenant(tenantId: string): void {
+  revalidatePath("/platform");
+  revalidatePath(`/platform/tenants/${tenantId}`);
+}
+
 export async function listPlatformUsers(): Promise<PlatformUserRow[]> {
   await requirePlatformAdmin();
 
@@ -187,7 +196,22 @@ export async function createSupportAccessGrant(input: {
   });
 
   revalidatePath("/platform");
+  revalidatePlatformTenant(tenantId);
   return { success: true, data: { id: row.id } };
+}
+
+export async function createSupportAccessGrantFromForm(formData: FormData): Promise<ActionResult> {
+  const tenantId = formValue(formData, "tenantId");
+  const platformUserId = formValue(formData, "platformUserId");
+  const reason = formValue(formData, "reason");
+  const startsAt = formValue(formData, "startsAt") || null;
+  const expiresAt = formValue(formData, "expiresAt");
+
+  const result = await createSupportAccessGrant({ tenantId, platformUserId, reason, startsAt, expiresAt });
+  if (!result.success) return result;
+
+  revalidatePlatformTenant(tenantId);
+  return { success: true };
 }
 
 export async function revokeSupportAccessGrant(grantId: string): Promise<ActionResult> {
@@ -213,7 +237,13 @@ export async function revokeSupportAccessGrant(grantId: string): Promise<ActionR
   });
 
   revalidatePath("/platform");
+  revalidatePlatformTenant(grant.tenantId);
   return { success: true };
+}
+
+export async function revokeSupportAccessGrantFromForm(formData: FormData): Promise<ActionResult> {
+  const grantId = formValue(formData, "grantId");
+  return revokeSupportAccessGrant(grantId);
 }
 
 export async function assertSupportAccessForTenant(tenantId: string): Promise<ActionResult> {
