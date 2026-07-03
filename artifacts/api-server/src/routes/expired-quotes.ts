@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db } from "@workspace/db";
+import { db, isTenantModuleEnabled } from "@workspace/db";
 import { quotesTable, customersTable, auditLogTable, organizationSettingsTable } from "@workspace/db";
 import { eq, and, lt } from "drizzle-orm";
 import type { Request, Response } from "express";
@@ -55,11 +55,12 @@ router.post("/admin/expired-quotes", async (req: Request, res: Response) => {
 
     const expirableQuotes = await db
       .select({
-        id:            quotesTable.id,
-        quoteNumber:   quotesTable.quoteNumber,
-        amount:        quotesTable.amount,
-        customerName:  customersTable.name,
-        customerEmail: customersTable.contactEmail,
+        id:               quotesTable.id,
+        quoteNumber:      quotesTable.quoteNumber,
+        amount:           quotesTable.amount,
+        customerTenantId: customersTable.tenantId,
+        customerName:     customersTable.name,
+        customerEmail:    customersTable.contactEmail,
       })
       .from(quotesTable)
       .leftJoin(customersTable, eq(quotesTable.customerId, customersTable.id))
@@ -75,8 +76,15 @@ router.post("/admin/expired-quotes", async (req: Request, res: Response) => {
     let expired  = 0;
     let notified = 0;
     let skipped  = 0;
+    let moduleDisabled = 0;
 
     for (const q of expirableQuotes) {
+      if (!q.customerTenantId || !(await isTenantModuleEnabled(q.customerTenantId, "finance"))) {
+        moduleDisabled++;
+        skipped++;
+        continue;
+      }
+
       // Mark as expired
       await db
         .update(quotesTable)
@@ -111,8 +119,8 @@ router.post("/admin/expired-quotes", async (req: Request, res: Response) => {
       }
     }
 
-    req.log.info({ expired, notified, skipped }, "expired-quotes: klaar");
-    res.json({ ok: true, expired, notified, skipped });
+    req.log.info({ expired, notified, skipped, moduleDisabled }, "expired-quotes: klaar");
+    res.json({ ok: true, expired, notified, skipped, moduleDisabled });
   } catch (err) {
     req.log.error({ err }, "expired-quotes: onverwachte fout");
     res.status(500).json({ error: "Interne fout" });
