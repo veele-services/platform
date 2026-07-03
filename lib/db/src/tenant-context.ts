@@ -6,7 +6,11 @@ import {
 
 export const FIELDGRID_ROOT_DOMAIN = "fieldgrid.nl";
 export const FIELDGRID_DOMAIN_SUFFIX = `.${FIELDGRID_ROOT_DOMAIN}`;
-export const DEFAULT_PLATFORM_HOSTS = ["platform.fieldgrid.nl", "staging.fieldgrid.nl"] as const;
+export const DEFAULT_PLATFORM_HOSTS = [
+  "platform.fieldgrid.nl",
+  "staging.fieldgrid.nl",
+  "staging.veele.dgwebservices.nl",
+] as const;
 
 const TENANT_RUNTIME_ACTIVE_STATUS_SET = new Set<string>(TENANT_RUNTIME_ACTIVE_STATUSES);
 
