@@ -92,7 +92,11 @@ export async function createPlatformTenant(formData: FormData): Promise<void> {
   const slug = actionValue(formData, "slug") || null;
   const planKey = normalizePlanKey(actionValue(formData, "planKey"));
   const primaryDomain = actionValue(formData, "domain") || null;
-  const ownerEmail = actionValue(formData, "ownerEmail").toLowerCase() || null;
+  const ownerEmail = actionValue(formData, "ownerEmail").toLowerCase();
+
+  if (!ownerEmail) {
+    throw new Error("Owner e-mail is verplicht voor tenant provisioning.");
+  }
 
   const result = await provisionTenant({
     name,
@@ -104,21 +108,19 @@ export async function createPlatformTenant(formData: FormData): Promise<void> {
     metadata: {
       source: "platform-admin",
       actorPlatformUserId: actor.id,
-      ownerInviteRequested: Boolean(ownerEmail),
+      ownerInviteRequested: true,
     },
   });
 
   try {
-    if (ownerEmail) {
-      const ownerUserId = await inviteOwnerByEmail(ownerEmail);
-      await completeProvisionedTenantOwnerInvite({
-        tenantId: result.tenantId,
-        runId: result.runId,
-        ownerEmail,
-        ownerUserId,
-        invitedBy: actor.userId,
-      });
-    }
+    const ownerUserId = await inviteOwnerByEmail(ownerEmail);
+    await completeProvisionedTenantOwnerInvite({
+      tenantId: result.tenantId,
+      runId: result.runId,
+      ownerEmail,
+      ownerUserId,
+      invitedBy: actor.userId,
+    });
   } catch (error) {
     await rollbackProvisionedTenant({
       tenantId: result.tenantId,
@@ -138,7 +140,7 @@ export async function createPlatformTenant(formData: FormData): Promise<void> {
       slug: result.slug,
       planKey: result.planKey,
       primaryDomain: result.primaryDomain,
-      ownerInviteRequested: Boolean(ownerEmail),
+      ownerInviteRequested: true,
     },
   });
 
