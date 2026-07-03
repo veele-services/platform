@@ -107,6 +107,7 @@ interface AssignmentsViewProps {
   initialStatus:         string;
   initialPriority:       string;
   initialReportStatus:   string;
+  initialRegion:         string;
   initialSort:           string;
   initialDir:            string;
 }
@@ -159,6 +160,7 @@ export function AssignmentsView({
   initialStatus,
   initialPriority,
   initialReportStatus,
+  initialRegion,
   initialSort,
   initialDir,
 }: AssignmentsViewProps) {
@@ -180,6 +182,7 @@ export function AssignmentsView({
       status:       initialStatus        || undefined,
       priority:     initialPriority      || undefined,
       reportStatus: initialReportStatus  || undefined,
+      region:       initialRegion        || undefined,
       sort:         initialSort !== "createdAt" ? initialSort : undefined,
       dir:          initialDir  !== "desc"      ? initialDir  : undefined,
       page:         page > 1 ? String(page) : undefined,
@@ -307,6 +310,21 @@ export function AssignmentsView({
             <SelectItem value="submitted">Ter controle</SelectItem>
             <SelectItem value="approved">Goedgekeurd</SelectItem>
             <SelectItem value="rejected">Afgekeurd</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Select
+          value={initialRegion || "all"}
+          onValueChange={(v) => applyFilter("region", v === "all" ? "" : v)}
+        >
+          <SelectTrigger className="w-[160px] h-9">
+            <SelectValue placeholder="Alle regio's" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Alle regio&apos;s</SelectItem>
+            {regionOptions.map((region) => (
+              <SelectItem key={region.id} value={region.name}>{region.name}</SelectItem>
+            ))}
           </SelectContent>
         </Select>
 

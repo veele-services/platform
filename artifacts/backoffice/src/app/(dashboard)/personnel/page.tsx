@@ -5,13 +5,13 @@ import { PersonnelView } from "@/components/personnel/PersonnelView";
 import { PersonnelStatBar } from "@/components/personnel/PersonnelStatBar";
 import { PersonnelWidgets } from "@/components/personnel/PersonnelWidgets";
 import {
-  listPersonnel,
   listRoles,
   listSectors,
   getPersonnelStats,
   getFlexpoolToday,
   getCapacityByRole,
 } from "@/app/actions/personnel";
+import { listPersonnelRegionAware } from "@/app/actions/region-runtime";
 
 export const metadata: Metadata = { title: "Personeel" };
 
@@ -43,7 +43,7 @@ export default async function PersonnelPage({ searchParams }: Props) {
   const dir           = str(sp.dir, "asc");
 
   const [{ rows, total }, roles, sectors, stats, flexpoolRows, capacityRows] = await Promise.all([
-    listPersonnel({ search, roleId, sectorId, region, status, personnelType, page, sort, dir }),
+    listPersonnelRegionAware({ search, roleId, sectorId, region, status, personnelType, page, sort, dir }),
     listRoles(),
     listSectors(),
     getPersonnelStats(),
