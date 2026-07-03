@@ -63,7 +63,7 @@ export default async function PlatformAdminPage() {
               <div>
                 <h2 className="text-xl font-semibold tracking-normal">Nieuwe tenant</h2>
                 <p className="mt-1 text-sm text-slate-500">
-                  Provision een tenant met plan, domein, modules, sectorbeleid en optionele owner-invite.
+                  Provision een tenant met plan, domein, modules, sectorbeleid en owner-invite.
                 </p>
               </div>
             </div>
@@ -90,7 +90,7 @@ export default async function PlatformAdminPage() {
               </label>
               <label className="grid gap-1 text-sm font-medium text-slate-700">
                 Owner e-mail
-                <input name="ownerEmail" type="email" className="rounded border border-slate-300 px-3 py-2 text-sm" placeholder="eigenaar@example.nl" />
+                <input name="ownerEmail" type="email" required className="rounded border border-slate-300 px-3 py-2 text-sm" placeholder="eigenaar@example.nl" />
               </label>
               <button type="submit" className="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
                 Provisionen
