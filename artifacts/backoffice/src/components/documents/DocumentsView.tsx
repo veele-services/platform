@@ -18,28 +18,40 @@ import { DOCUMENT_ENTITY_TYPES } from "@/types/documents";
 // ─── Constants ────────────────────────────────────────────────────────────────
 
 const ENTITY_TYPE_LABELS: Record<DocumentEntityType | "all", string> = {
-  all:        "Alle",
-  assignment: "Opdrachten",
-  customer:   "Klanten",
-  personnel:  "Personeel",
-  object:     "Objecten",
-  general:    "Algemeen",
+  all:                   "Alle",
+  assignment:            "Opdrachten",
+  customer:              "Klanten",
+  personnel:             "Personeel",
+  object:                "Objecten",
+  material:              "Materialen",
+  inventory_item:        "Inventaris",
+  inventory_issue:       "Storingen",
+  inventory_maintenance: "Onderhoud",
+  general:               "Algemeen",
 };
 
 const ENTITY_TYPE_SINGULAR: Record<DocumentEntityType, string> = {
-  general:    "Algemeen",
-  assignment: "Opdracht",
-  customer:   "Klant",
-  personnel:  "Personeelslid",
-  object:     "Object",
+  general:               "Algemeen",
+  assignment:            "Opdracht",
+  customer:              "Klant",
+  personnel:             "Personeelslid",
+  object:                "Object",
+  material:              "Materiaal",
+  inventory_item:        "Inventarisitem",
+  inventory_issue:       "Inventarisstoring",
+  inventory_maintenance: "Onderhoud/keuring",
 };
 
 const ENTITY_HREF: Record<DocumentEntityType, string> = {
-  general:    "",
-  assignment: "/assignments",
-  customer:   "/customers",
-  personnel:  "/personnel",
-  object:     "",
+  general:               "",
+  assignment:            "/assignments",
+  customer:              "/customers",
+  personnel:             "/personnel",
+  object:                "/objects",
+  material:              "/materials",
+  inventory_item:        "/inventory",
+  inventory_issue:       "/inventory/issues",
+  inventory_maintenance: "",
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -221,9 +233,7 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
     });
   }
 
-  const filterTabs: Array<DocumentEntityType | "all"> = [
-    "all", "assignment", "customer", "personnel", "object", "general",
-  ];
+  const filterTabs: Array<DocumentEntityType | "all"> = ["all", ...DOCUMENT_ENTITY_TYPES];
 
   return (
     <div className="space-y-4">
@@ -298,7 +308,7 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
                 type="text"
                 value={uploadName}
                 onChange={(e) => setUploadName(e.target.value)}
-                placeholder="bijv. SLA-contract 2025"
+                placeholder="bijv. Keuringsbewijs schrobmachine"
                 className="veele-input w-full"
                 disabled={isPending}
                 required
@@ -329,7 +339,7 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
               <label className="block text-xs font-medium mb-1" style={{ color: "#374151" }}>
                 Entiteit-ID{" "}
                 <span className="font-normal" style={{ color: "#94A3B8" }}>
-                  (optioneel — UUID van de gekoppelde {ENTITY_TYPE_SINGULAR[uploadEntityType].toLowerCase()})
+                  (UUID van de gekoppelde {ENTITY_TYPE_SINGULAR[uploadEntityType].toLowerCase()})
                 </span>
               </label>
               <input
@@ -353,7 +363,7 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
             <input
               ref={fileRef}
               type="file"
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp,.svg"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp"
               onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
               disabled={isPending}
               className="block w-full text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5 file:text-sm file:font-medium file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
@@ -435,7 +445,6 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
                     className="hover:bg-slate-50"
                     style={{ borderBottom: "1px solid #F8FAFC" }}
                   >
-                    {/* Naam + bestandsnaam */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 min-w-0">
                         {getMimeIcon(doc.mimeType)}
@@ -456,7 +465,6 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
                       </p>
                     </td>
 
-                    {/* Type badge */}
                     <td className="px-4 py-3">
                       <span
                         className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium"
@@ -466,7 +474,6 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
                       </span>
                     </td>
 
-                    {/* Categorie */}
                     <td className="px-4 py-3">
                       <span
                         className="inline-flex items-center rounded-full px-2 py-0.5 text-xs"
@@ -476,12 +483,10 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
                       </span>
                     </td>
 
-                    {/* Koppeling */}
                     <td className="px-4 py-3">
                       <EntityLink doc={doc} />
                     </td>
 
-                    {/* Uploader */}
                     <td className="px-4 py-3">
                       <div className="text-xs max-w-[140px]">
                         {doc.uploaderName ? (
@@ -501,17 +506,14 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
                       </div>
                     </td>
 
-                    {/* Grootte */}
                     <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: "#64748B" }}>
                       {formatFileSize(doc.sizeBytes)}
                     </td>
 
-                    {/* Datum */}
                     <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: "#64748B" }}>
                       {formatDate(doc.createdAt)}
                     </td>
 
-                    {/* Acties */}
                     <td className="px-4 py-3 text-right">
                       <div className="flex items-center justify-end gap-1">
                         <button
