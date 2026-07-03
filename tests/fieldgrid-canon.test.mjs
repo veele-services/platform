@@ -21,6 +21,8 @@ const canonicalDocs = [
   "docs/fieldgrid-recovery-execution-plan.md",
   "docs/fieldgrid-next-major-update-plan.md",
   "docs/fieldgrid-staging-promotion-checklist.md",
+  "docs/fieldgrid-phase-1-testbasis.md",
+  "docs/fieldgrid-phase-2-tenant-hardening.md",
 ];
 
 const governanceDocs = [".github/pull_request_template.md"];
@@ -256,6 +258,14 @@ test("staging promotion checklist defines phase-safe promotion rules", () => {
     ],
     "staging promotion checklist",
   );
+});
+
+test("phase docs capture executable follow-up contracts", () => {
+  const phase1 = read("docs/fieldgrid-phase-1-testbasis.md");
+  const phase2 = read("docs/fieldgrid-phase-2-tenant-hardening.md");
+
+  assertContains(phase1, ["Tenant A/B/Veele", "demo-data", "FG-MIG-001"], "phase 1 docs");
+  assertContains(phase2, ["fase 2 post-migration hardening", "staging-copy", "tenant-hardening-report", "audit_log"], "phase 2 docs");
 });
 
 test("pull request template enforces Fieldgrid canon discipline", () => {
