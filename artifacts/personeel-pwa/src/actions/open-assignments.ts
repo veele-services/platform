@@ -16,6 +16,7 @@ import {
 } from "@workspace/db";
 import { desc, eq, and, inArray, or, gte, isNull } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
+import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
 import { revalidatePath } from "next/cache";
 
 // ─── Personnel profile helper ──────────────────────────────────────────────────
@@ -41,6 +42,9 @@ async function getPersonnelProfile(): Promise<PersonnelProfile | null> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
+  const tenantId = await requireCurrentPersonnelPortalTenantId();
+  if (!tenantId) return null;
+
   const [row] = await db
     .select({
       id:           personnelTable.id,
@@ -53,7 +57,13 @@ async function getPersonnelProfile(): Promise<PersonnelProfile | null> {
       knowledge:    personnelTable.knowledge,
     })
     .from(personnelTable)
-    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
+    .where(
+      and(
+        eq(personnelTable.userId, user.id),
+        eq(personnelTable.tenantId, tenantId),
+        eq(personnelTable.isActive, true),
+      ),
+    )
     .limit(1);
 
   return row ?? null;
