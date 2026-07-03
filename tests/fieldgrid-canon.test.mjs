@@ -21,6 +21,7 @@ const canonicalDocs = [
   "docs/fieldgrid-recovery-execution-plan.md",
   "docs/fieldgrid-next-major-update-plan.md",
   "docs/fieldgrid-staging-promotion-checklist.md",
+  "docs/fieldgrid-saas-proof-sprint-plan.md",
   "docs/fieldgrid-phase-1-testbasis.md",
   "docs/fieldgrid-phase-2-tenant-hardening.md",
   "docs/fieldgrid-phase-3-storage-media-news.md",
@@ -30,6 +31,7 @@ const canonicalDocs = [
 ];
 
 const governanceDocs = [".github/pull_request_template.md"];
+const statusTerms = ["done", "partial", "runtime-proof-open", "hardening-open", "nice-to-have"];
 
 test("Fieldgrid canon docs exist", () => {
   for (const path of canonicalDocs) {
@@ -43,15 +45,27 @@ test("Fieldgrid governance docs exist", () => {
   }
 });
 
-test("phase 0 canon refresh removes stale current PR 125 status", () => {
+test("sprint 0 canon refresh removes stale current PR 125 status", () => {
   const refreshedCanon = [
     read("docs/fieldgrid-saas-masterplan.md"),
     read("docs/fieldgrid-data-classification.md"),
     read("docs/fieldgrid-cross-tenant-testmatrix.md"),
+    read("docs/fieldgrid-next-major-update-plan.md"),
   ].join("\n");
 
   assert.ok(!refreshedCanon.includes("t/m PR #125"), "canon should not describe PR #125 as the current status");
-  assertContains(refreshedCanon, ["PR #149", "fase 0 canonrefresh"], "refreshed canon");
+  assertContains(refreshedCanon, ["sprint 0 canon refresh 2.0", "docs/fieldgrid-saas-proof-sprint-plan.md"], "refreshed canon");
+});
+
+test("canon uses the sprint 0 status taxonomy", () => {
+  const combined = [
+    read("docs/fieldgrid-saas-masterplan.md"),
+    read("docs/fieldgrid-data-classification.md"),
+    read("docs/fieldgrid-cross-tenant-testmatrix.md"),
+    read("docs/fieldgrid-saas-proof-sprint-plan.md"),
+  ].join("\n");
+
+  assertContains(combined, statusTerms, "canon status taxonomy");
 });
 
 test("data classification contains canonical tenant strategies and priorities", () => {
@@ -66,11 +80,12 @@ test("data classification contains canonical tenant strategies and priorities", 
       "platform_only",
       "tenant_config",
       "needs_migration",
+      "P0",
+      "P1",
+      "P2",
     ],
     "data classification",
   );
-
-  assertContains(classification, ["P0", "P1", "P2"], "data classification");
 });
 
 test("data classification keeps sensitive SaaS hardening points explicit", () => {
@@ -90,26 +105,30 @@ test("data classification keeps sensitive SaaS hardening points explicit", () =>
       "audit_log",
       "nullable",
       "hardening",
+      "DEFAULT_TENANT_ID",
     ],
     "data classification",
   );
 });
 
-test("data classification captures refreshed current backlog", () => {
+test("data classification captures tenant regions as tenant config", () => {
   const classification = read("docs/fieldgrid-data-classification.md");
 
   assertContains(
     classification,
     [
-      "Actuele stand",
-      "module enforcement",
-      "tenant-prefix",
-      "integration",
-      "Tenant A/B/Veele",
-      "DEFAULT_TENANT_ID",
-      "tenant_sector_settings",
+      "Tenant regions",
+      "tenant_regions",
+      "personnel_regions",
+      "object_regions",
+      "assignment_required_regions",
+      "tenant_config",
+      "FG-REGION",
+      "legacy `personnel.region`",
+      "preferred_regions",
+      "required_region",
     ],
-    "data classification",
+    "data classification region canon",
   );
 });
 
@@ -124,8 +143,9 @@ test("cross-tenant matrix covers required security boundaries", () => {
       "support",
       "module",
       "sector",
+      "regio",
       "storage",
-      "direct ID",
+      "direct-ID",
       "demo-a",
       "demo-b",
       "veele",
@@ -135,27 +155,29 @@ test("cross-tenant matrix covers required security boundaries", () => {
   );
 });
 
-test("cross-tenant matrix tracks required automation layers and status", () => {
+test("cross-tenant matrix includes region proof scenarios", () => {
   const matrix = read("docs/fieldgrid-cross-tenant-testmatrix.md");
 
   assertContains(
     matrix,
     [
-      "Automatiseringsstatus",
-      "Teststatus per securitygrens",
-      "Fase 0 status",
-      "Tenant A/B/Veele",
-      "static",
-      "Playwright",
-      "DB/RLS",
-      "storage",
-      "migration",
+      "FG-REGION-001",
+      "FG-REGION-002",
+      "FG-REGION-003",
+      "FG-REGION-004",
+      "FG-REGION-005",
+      "FG-REGION-006",
+      "FG-REGION-007",
+      "FG-REGION-008",
+      "multiselect",
+      "autocomplete",
+      "planning overlap",
     ],
-    "cross-tenant matrix",
+    "cross-tenant matrix region tests",
   );
 });
 
-test("masterplan captures the current SaaS backlog", () => {
+test("masterplan captures the sprint 0 SaaS backlog", () => {
   const masterplan = read("docs/fieldgrid-saas-masterplan.md");
 
   assertContains(
@@ -164,79 +186,84 @@ test("masterplan captures the current SaaS backlog", () => {
       "API module guards",
       "Portal module guards",
       "DEFAULT_TENANT_ID",
-      "tenant_sector_settings",
       "tenant_id",
-      "Echte verbeteringen",
-      "Nice-to-have",
       "Tenant A/B/Veele",
       "nullable",
-      "Assignment media blijft P1",
+      "assignment_photos",
+      "assignment_report_note_attachments",
+      "Veele Portaal",
+      "Staging-promotiecontract",
+      "Definition of Done",
     ],
     "masterplan",
   );
 });
 
-test("masterplan captures the next major update phase plan", () => {
+test("masterplan captures tenant region canon", () => {
   const masterplan = read("docs/fieldgrid-saas-masterplan.md");
 
   assertContains(
     masterplan,
     [
-      "Faseplanning vanaf nu",
-      "Fase 0 - Canon en updatecontract vastzetten",
-      "Fase 1 - Echte testbasis en demo-data",
-      "Fase 2 - Post-migration hardening en tenant_id afdwingen",
-      "Fase 3 - Assignment media, news en storage bewijs",
-      "Fase 4 - Module enforcement harmoniseren",
-      "Fase 5 - Support break-glass en security dashboard",
-      "Fase 6 - Productisering: onboarding, first-run, usage en branding",
-      "Fase 7 - Staging smoke dashboard en operationele acceptatie",
+      "Regio-canon",
+      "tenant_regions",
+      "Personeelslid aanmaken/bewerken",
+      "Object aanmaken/bewerken",
+      "Opdracht aanmaken/bewerken",
+      "multiselect",
+      "autocomplete",
+      "planning",
+      "requireAllowedRegion",
     ],
-    "masterplan",
+    "masterplan region canon",
   );
 });
 
-test("next major update plan captures remaining hardening and staging safety", () => {
+test("sprint plan defines complete execution through final gate", () => {
+  const sprintPlan = read("docs/fieldgrid-saas-proof-sprint-plan.md");
+
+  assertContains(
+    sprintPlan,
+    [
+      "Sprint 0 - Canon refresh 2.0",
+      "Sprint 1 - Tenant A/B/Veele runtime fixtures",
+      "Sprint 2 - Regio datamodel en backfill",
+      "Sprint 3 - Regio UI backoffice breed",
+      "Sprint 4 - Regio runtime en planninglogica",
+      "Sprint 5 - Runtime security proof suite",
+      "Sprint 6 - Playwright host en portal acceptance",
+      "Sprint 7 - Migration smoke workflow",
+      "Sprint 8 - Tenant-id hardening wave",
+      "Sprint 9 - Storage hardening",
+      "Sprint 10 - Audit en security dashboard 2.0",
+      "Sprint 11 - Module enforcement harmonisatie",
+      "Sprint 12 - Platform onboarding wizard",
+      "Sprint 13 - Tenant first-run wizard",
+      "Sprint 14 - Usage, branding en operational readiness",
+      "Sprint 15 - Staging smoke dashboard",
+      "Sprint 16 - Final hardening en externe tenant gate",
+    ],
+    "sprint plan",
+  );
+});
+
+test("next major update plan points to the sprint canon", () => {
   const plan = read("docs/fieldgrid-next-major-update-plan.md");
 
   assertContains(
     plan,
     [
-      "volgende grote update",
-      "staging zoveel mogelijk bereikbaar",
-      "Canon refresh",
+      "docs/fieldgrid-saas-proof-sprint-plan.md",
       "Tests zijn nog te statisch",
-      "Directe tenant_id is vaak nog nullable",
-      "Assignment media blijft P1",
-      "News scope is nog open",
-      "Backoffice module mapping is smaller dan API",
-      "DEFAULT_TENANT_ID",
-      "Support break-glass TTL",
-      "Usage dashboard is incompleet",
-      "Storage is applicatie-hard",
-      "Platform-admin onboarding wizard",
-      "Tenant first-run wizard",
-      "Staging smoke dashboard",
-    ],
-    "next major update plan",
-  );
-});
-
-test("next major update plan defines phased execution", () => {
-  const plan = read("docs/fieldgrid-next-major-update-plan.md");
-
-  assertContains(
-    plan,
-    [
-      "Fase 0 - Canon en updatecontract vastzetten",
-      "Fase 1 - Echte testbasis en demo-data",
-      "Fase 2 - Post-migration hardening en tenant_id afdwingen",
-      "Fase 3 - Assignment media, news en storage bewijs",
-      "Fase 4 - Module enforcement harmoniseren",
-      "Fase 5 - Support break-glass en security dashboard",
-      "Fase 6 - Productisering: onboarding, first-run, usage en branding",
-      "Fase 7 - Staging smoke dashboard en operationele acceptatie",
-      "Aanbevolen PR-volgorde",
+      "Tenant-id hardening is nog niet definitief",
+      "Storage is nog niet volledig bewezen",
+      "Veele Portaal",
+      "Audit moet scherper worden",
+      "Platform onboarding",
+      "Tenant first-run",
+      "Staging smoke",
+      "Regio's in backoffice",
+      "Sprintvolgorde",
       "Definitie van klaar",
     ],
     "next major update plan",
@@ -262,22 +289,6 @@ test("staging promotion checklist defines phase-safe promotion rules", () => {
     ],
     "staging promotion checklist",
   );
-});
-
-test("phase docs capture executable follow-up contracts", () => {
-  const phase1 = read("docs/fieldgrid-phase-1-testbasis.md");
-  const phase2 = read("docs/fieldgrid-phase-2-tenant-hardening.md");
-  const phase3 = read("docs/fieldgrid-phase-3-storage-media-news.md");
-  const phase4 = read("docs/fieldgrid-phase-4-module-enforcement.md");
-  const phase5 = read("docs/fieldgrid-phase-5-support-security.md");
-  const phase6 = read("docs/fieldgrid-phase-6-productization.md");
-
-  assertContains(phase1, ["Tenant A/B/Veele", "demo-data", "FG-MIG-001"], "phase 1 docs");
-  assertContains(phase2, ["fase 2 post-migration hardening", "staging-copy", "tenant-hardening-report", "audit_log"], "phase 2 docs");
-  assertContains(phase3, ["fase 3 assignment media", "platform_only", "storage-tenancy-report", "FG-STORAGE-007"], "phase 3 docs");
-  assertContains(phase4, ["fase 4 module enforcement", "FIELDGRID_PERMISSION_MODULES", "moduleForPermissionResource", "FG-MODULE-005"], "phase 4 docs");
-  assertContains(phase5, ["fase 5 support break-glass", "validateSupportBreakGlassGrant", "securitydashboard", "FG-SUPPORT-005"], "phase 5 docs");
-  assertContains(phase6, ["fase 6 productisering", "first-run", "Branding preview", "FG-USAGE-001"], "phase 6 docs");
 });
 
 test("pull request template enforces Fieldgrid canon discipline", () => {
