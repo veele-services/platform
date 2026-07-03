@@ -29,6 +29,7 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
   const isLoginPage  = pathname === "/login";
+  const isPasswordResetPage = pathname === "/reset-wachtwoord";
   const isPublicPage =
     isLoginPage ||
     pathname === "/wachtwoord-vergeten" ||
@@ -61,6 +62,12 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
+  const mustChangePassword = user?.app_metadata?.force_password_change === true;
+
+  if (user && mustChangePassword && !isPasswordResetPage && !pathname.startsWith("/auth/confirm")) {
+    return NextResponse.redirect(proxyAwareUrl("/reset-wachtwoord?force=1", request));
+  }
 
   if (user && isLoginPage) {
     return NextResponse.redirect(proxyAwareUrl("/", request));
