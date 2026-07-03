@@ -10,6 +10,10 @@ import {
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
+import { tenantsTable } from "./tenants";
+
+export const NEWS_POST_SCOPES = ["platform"] as const;
+export type NewsPostScope = (typeof NEWS_POST_SCOPES)[number];
 
 export const NEWS_POST_STATUSES = ["draft", "scheduled", "published", "archived"] as const;
 export type NewsPostStatus = (typeof NEWS_POST_STATUSES)[number];
@@ -24,10 +28,15 @@ export const NEWS_TARGET_TYPES = [
 ] as const;
 export type NewsTargetType = (typeof NEWS_TARGET_TYPES)[number];
 
+export const PLATFORM_NEWS_TARGET_TYPES = ["all_personnel", "all_customers"] as const;
+export type PlatformNewsTargetType = (typeof PLATFORM_NEWS_TARGET_TYPES)[number];
+
 export const newsPostsTable = pgTable(
   "news_posts",
   {
     id:           uuid("id").primaryKey().defaultRandom(),
+    scope:        varchar("scope", { length: 20 }).notNull().default("platform").$type<NewsPostScope>(),
+    tenantId:     uuid("tenant_id").references(() => tenantsTable.id, { onDelete: "cascade" }),
     slug:         varchar("slug", { length: 180 }).notNull(),
     title:        varchar("title", { length: 180 }).notNull(),
     excerpt:      text("excerpt"),
@@ -45,6 +54,8 @@ export const newsPostsTable = pgTable(
   },
   (table) => [
     uniqueIndex("news_posts_slug_idx").on(table.slug),
+    index("news_posts_scope_idx").on(table.scope),
+    index("news_posts_tenant_idx").on(table.tenantId),
     index("news_posts_status_publish_idx").on(table.status, table.publishAt),
     index("news_posts_created_at_idx").on(table.createdAt),
   ],
@@ -67,6 +78,8 @@ export const newsPostTargetsTable = pgTable(
 
 export const insertNewsPostSchema = createInsertSchema(newsPostsTable).omit({
   id: true,
+  scope: true,
+  tenantId: true,
   createdAt: true,
   updatedAt: true,
 });
