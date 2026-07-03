@@ -47,6 +47,11 @@ function formatDate(value: string | null) {
   });
 }
 
+function asStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+}
+
 function StatCard({
   label,
   value,
@@ -95,6 +100,8 @@ function HistoryBadge({ entry }: { entry: ObjectHistoryEntry }) {
 
 export function ObjectOverviewTab({ object: obj, performance, history }: Props) {
   const fullAddress = [obj.address, obj.postalCode, obj.city].filter(Boolean).join(", ");
+  const requiredRoles = asStringArray(obj.requiredRoles);
+  const requiredCertificates = asStringArray(obj.requiredCertificates);
 
   return (
     <div className="space-y-6">
@@ -194,16 +201,16 @@ export function ObjectOverviewTab({ object: obj, performance, history }: Props) 
             </div>
           )}
 
-          {(obj.requiredRoles.length > 0 || obj.requiredCertificates.length > 0) && (
+          {(requiredRoles.length > 0 || requiredCertificates.length > 0) && (
             <div className="veele-card">
               <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
                 Vereiste kwalificaties
               </p>
-              {obj.requiredRoles.length > 0 && (
+              {requiredRoles.length > 0 && (
                 <div className="mb-2">
                   <p className="text-xs mb-1.5" style={{ color: "#94A3B8" }}>Functies</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {obj.requiredRoles.map((role) => (
+                    {requiredRoles.map((role) => (
                       <span key={role} className="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: "#EEF2FF", color: "#3730A3" }}>
                         {role}
                       </span>
@@ -211,11 +218,11 @@ export function ObjectOverviewTab({ object: obj, performance, history }: Props) 
                   </div>
                 </div>
               )}
-              {obj.requiredCertificates.length > 0 && (
+              {requiredCertificates.length > 0 && (
                 <div>
                   <p className="text-xs mb-1.5" style={{ color: "#94A3B8" }}>Certificaten</p>
                   <div className="flex flex-wrap gap-1.5">
-                    {obj.requiredCertificates.map((cert) => (
+                    {requiredCertificates.map((cert) => (
                       <span key={cert} className="inline-flex items-center rounded px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: "#E0FAFB", color: "#0A7E7A" }}>
                         {cert}
                       </span>
