@@ -16,6 +16,18 @@ const STEP_LABELS: Record<string, { title: string; href: string }> = {
   modules: { title: "Modules", href: "/platform" },
 };
 
+async function completeTenantFirstRunStepFormAction(formData: FormData): Promise<void> {
+  "use server";
+
+  await completeTenantFirstRunStep(formData);
+}
+
+async function skipTenantFirstRunFormAction(_formData: FormData): Promise<void> {
+  "use server";
+
+  await skipTenantFirstRun();
+}
+
 function StepRow({
   step,
   done,
@@ -38,7 +50,7 @@ function StepRow({
           Openen
         </Link>
         {!done && (
-          <form action={completeTenantFirstRunStep}>
+          <form action={completeTenantFirstRunStepFormAction}>
             <input type="hidden" name="step" value={step} />
             <button type="submit" className="rounded bg-slate-950 px-3 py-1.5 text-sm font-semibold text-white">
               Markeer gereed
@@ -74,7 +86,7 @@ export default async function FirstRunPage() {
       </section>
 
       {state.status !== "completed" && state.status !== "skipped" && (
-        <form action={skipTenantFirstRun} className="flex justify-end">
+        <form action={skipTenantFirstRunFormAction} className="flex justify-end">
           <button type="submit" className="rounded border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700">
             Overslaan
           </button>
