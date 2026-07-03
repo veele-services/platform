@@ -5,7 +5,6 @@ import { FormEvent, useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Archive, ArrowLeft, ClipboardList, MapPin, PackageSearch, Pencil } from "lucide-react";
 import {
-  INVENTORY_STATUS_OPTIONS,
   archiveInventoryItem,
   updateInventoryItem,
   type ActionResult,
@@ -13,6 +12,19 @@ import {
   type InventoryFormInput,
   type InventoryManagementOptions,
 } from "@/app/actions/inventory";
+
+const INVENTORY_STATUS_OPTIONS = [
+  "available",
+  "in_use",
+  "assigned_to_object",
+  "assigned_to_personnel",
+  "maintenance",
+  "defect",
+  "out_of_service",
+  "lost",
+  "disposed",
+  "archived",
+] as const;
 
 const STATUS_LABELS: Record<string, string> = {
   available: "Beschikbaar",
