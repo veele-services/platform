@@ -2,7 +2,7 @@ import { randomInt } from "node:crypto";
 import type { User } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 
-export type PortalInviteType = "customer" | "personnel";
+export type PortalInviteType = "customer" | "personnel" | "tenant-admin" | "platform-admin";
 
 const LOWER = "abcdefghijkmnopqrstuvwxyz";
 const UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
