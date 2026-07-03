@@ -32,6 +32,66 @@ type Props = {
   params: Promise<{ tenantId: string }>;
 };
 
+async function updatePlatformTenantLifecycleFormAction(formData: FormData): Promise<void> {
+  "use server";
+
+  await updatePlatformTenantLifecycle(formData);
+}
+
+async function updatePlatformTenantPlanFormAction(formData: FormData): Promise<void> {
+  "use server";
+
+  await updatePlatformTenantPlan(formData);
+}
+
+async function addPlatformTenantDomainFormAction(formData: FormData): Promise<void> {
+  "use server";
+
+  await addPlatformTenantDomain(formData);
+}
+
+async function updatePlatformTenantDomainFormAction(formData: FormData): Promise<void> {
+  "use server";
+
+  await updatePlatformTenantDomain(formData);
+}
+
+async function updatePlatformTenantModuleFormAction(formData: FormData): Promise<void> {
+  "use server";
+
+  await updatePlatformTenantModule(formData);
+}
+
+async function updatePlatformTenantSectorPolicyFormAction(formData: FormData): Promise<void> {
+  "use server";
+
+  await updatePlatformTenantSectorPolicy(formData);
+}
+
+async function updatePlatformTenantSectorFormAction(formData: FormData): Promise<void> {
+  "use server";
+
+  await updatePlatformTenantSector(formData);
+}
+
+async function createSupportAccessGrantFormAction(formData: FormData): Promise<void> {
+  "use server";
+
+  await createSupportAccessGrantFromForm(formData);
+}
+
+async function enterSupportModeFormAction(formData: FormData): Promise<void> {
+  "use server";
+
+  await enterSupportMode(formData);
+}
+
+async function revokeSupportAccessGrantFormAction(formData: FormData): Promise<void> {
+  "use server";
+
+  await revokeSupportAccessGrantFromForm(formData);
+}
+
 function formatDate(value: string | null): string {
   if (!value) return "-";
   return new Intl.DateTimeFormat("nl-NL", {
@@ -104,21 +164,21 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
-              <form action={updatePlatformTenantLifecycle}>
+              <form action={updatePlatformTenantLifecycleFormAction}>
                 <input type="hidden" name="tenantId" value={tenant.id} />
                 <input type="hidden" name="lifecycleAction" value="suspend" />
                 <button type="submit" className="rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-900">
                   Suspend
                 </button>
               </form>
-              <form action={updatePlatformTenantLifecycle}>
+              <form action={updatePlatformTenantLifecycleFormAction}>
                 <input type="hidden" name="tenantId" value={tenant.id} />
                 <input type="hidden" name="lifecycleAction" value="reactivate" />
                 <button type="submit" className="rounded border border-emerald-300 bg-emerald-50 px-3 py-2 text-sm font-medium text-emerald-900">
                   Reactiveren
                 </button>
               </form>
-              <form action={updatePlatformTenantLifecycle}>
+              <form action={updatePlatformTenantLifecycleFormAction}>
                 <input type="hidden" name="tenantId" value={tenant.id} />
                 <input type="hidden" name="lifecycleAction" value="archive" />
                 <button type="submit" className="rounded border border-red-300 bg-red-50 px-3 py-2 text-sm font-medium text-red-900">
@@ -142,7 +202,7 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
           <div className="flex flex-col gap-8">
             <Section title="Plan en lifecycle" helper="Wijzig het actieve pakket en controleer lifecycle timestamps.">
               <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_260px]">
-                <form action={updatePlatformTenantPlan} className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+                <form action={updatePlatformTenantPlanFormAction} className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
                   <input type="hidden" name="tenantId" value={tenant.id} />
                   <label className="grid gap-1 text-sm font-medium text-slate-700">
                     Plan
@@ -169,7 +229,7 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
             </Section>
 
             <Section title="Domeinen" helper="Host-first routing gebruikt alleen geverifieerde tenantdomeinen.">
-              <form action={addPlatformTenantDomain} className="mb-4 grid gap-3 md:grid-cols-[1fr_140px_140px_110px_auto] md:items-end">
+              <form action={addPlatformTenantDomainFormAction} className="mb-4 grid gap-3 md:grid-cols-[1fr_140px_140px_110px_auto] md:items-end">
                 <input type="hidden" name="tenantId" value={tenant.id} />
                 <label className="grid gap-1 text-sm font-medium text-slate-700">
                   Domein
@@ -214,7 +274,7 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
                               ["primary", "Primair"],
                               ["remove", "Verwijder"],
                             ].map(([action, label]) => (
-                              <form key={action} action={updatePlatformTenantDomain}>
+                              <form key={action} action={updatePlatformTenantDomainFormAction}>
                                 <input type="hidden" name="tenantId" value={tenant.id} />
                                 <input type="hidden" name="domainId" value={domain.id} />
                                 <input type="hidden" name="domainAction" value={action} />
@@ -248,7 +308,7 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
                       Plan: {module.planIncluded === null ? "default" : module.planIncluded ? "aan" : "uit"} · Override: {module.tenantOverride === null ? "geen" : module.tenantOverride ? "aan" : "uit"}
                     </p>
                     {module.dependencyKeys.length > 0 && <p className="mt-1 text-xs text-slate-500">Vereist: {module.dependencyKeys.join(", ")}</p>}
-                    <form action={updatePlatformTenantModule} className="mt-3">
+                    <form action={updatePlatformTenantModuleFormAction} className="mt-3">
                       <input type="hidden" name="tenantId" value={tenant.id} />
                       <input type="hidden" name="moduleId" value={module.id} />
                       <input type="hidden" name="enabled" value={module.effectiveEnabled ? "false" : "true"} />
@@ -262,7 +322,7 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
             </Section>
 
             <Section title="Sectorbeleid" helper="Beheer tenantsectoren, defaultsector en single/multi policy.">
-              <form action={updatePlatformTenantSectorPolicy} className="mb-5 grid gap-3 md:grid-cols-[150px_120px_1fr_170px_auto] md:items-end">
+              <form action={updatePlatformTenantSectorPolicyFormAction} className="mb-5 grid gap-3 md:grid-cols-[150px_120px_1fr_170px_auto] md:items-end">
                 <input type="hidden" name="tenantId" value={tenant.id} />
                 <label className="grid gap-1 text-sm font-medium text-slate-700">
                   Modus
@@ -295,7 +355,7 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
                       <p className="font-medium text-slate-950">{sector.name}{sector.isDefault ? " · default" : ""}</p>
                       <p className="text-xs text-slate-500">{sector.globallyActive ? "Globaal actief" : "Globaal inactief"}</p>
                     </div>
-                    <form action={updatePlatformTenantSector}>
+                    <form action={updatePlatformTenantSectorFormAction}>
                       <input type="hidden" name="tenantId" value={tenant.id} />
                       <input type="hidden" name="sectorId" value={sector.id} />
                       <input type="hidden" name="enabled" value={sector.tenantEnabled ? "false" : "true"} />
@@ -311,7 +371,7 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
 
           <aside className="flex flex-col gap-8">
             <Section title="Support grants" helper="Maak tijdelijke supporttoegang en revoke actieve grants.">
-              <form action={createSupportAccessGrantFromForm} className="grid gap-3">
+              <form action={createSupportAccessGrantFormAction} className="grid gap-3">
                 <input type="hidden" name="tenantId" value={tenant.id} />
                 <label className="grid gap-1 text-sm font-medium text-slate-700">
                   Platformgebruiker
@@ -346,13 +406,13 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
                       <p className="mt-1 text-slate-600">{grant.reason}</p>
                       <div className="mt-3 flex flex-wrap gap-2">
                         {status === "Actief" && (
-                          <form action={enterSupportMode}>
+                          <form action={enterSupportModeFormAction}>
                             <input type="hidden" name="tenantId" value={tenant.id} />
                             <button type="submit" className="rounded border border-slate-300 px-2 py-1 text-xs text-slate-700">Open</button>
                           </form>
                         )}
                         {!grant.revokedAt && (
-                          <form action={revokeSupportAccessGrantFromForm}>
+                          <form action={revokeSupportAccessGrantFormAction}>
                             <input type="hidden" name="grantId" value={grant.id} />
                             <button type="submit" className="rounded border border-red-300 px-2 py-1 text-xs text-red-800">Revoke</button>
                           </form>
