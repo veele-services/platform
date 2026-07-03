@@ -59,7 +59,7 @@ export type MaterialUsageInput = {
 type PersonnelBasic = { userId: string; personnelId: string; tenantId: string };
 type AssignmentAccess = { status: string; objectId: string | null };
 type DbExecutor = { execute: (query: SQL) => Promise<unknown> };
-type SqlResult<T> = { rows?: T[] } | T[];
+type SqlResult<T> = { rows?: T[] };
 
 const LOCKED_STATUSES = new Set([
   "report_submitted",
@@ -72,8 +72,11 @@ const LOCKED_STATUSES = new Set([
 
 function rowsFrom<T>(result: unknown): T[] {
   if (Array.isArray(result)) return result as T[];
-  const maybeRows = (result as SqlResult<T> | null)?.rows;
-  return Array.isArray(maybeRows) ? maybeRows : [];
+  if (result && typeof result === "object" && "rows" in result) {
+    const maybeRows = (result as SqlResult<T>).rows;
+    return Array.isArray(maybeRows) ? maybeRows : [];
+  }
+  return [];
 }
 
 function cleanText(value: unknown): string | null {
