@@ -4,6 +4,8 @@ import {
   db,
   assignmentsTable,
   customersTable,
+  FIELDGRID_BRAND_DEFAULTS,
+  getTenantBranding,
   getTenantPlanSnapshot,
   isPlatformHost,
   isTenantModuleEnabled,
@@ -56,10 +58,39 @@ export type PlatformTenantUsage = {
   objects: number;
   personnel: number;
   assignments: number;
+  documents: number;
+  storageBytes: number;
   domains: number;
   enabledModules: number;
   enabledSectors: number;
   activeSupportGrants: number;
+};
+
+export type PlatformTenantBrandingPreview = {
+  displayName: string;
+  platformName: string;
+  plan: TenantPlanKey;
+  customBrandingEnabled: boolean;
+  customized: boolean;
+  logoUrl: string | null;
+  primaryColor: string;
+  accentColor: string;
+  emailFooterText: string;
+  emailSignature: string;
+};
+
+export type PlatformTenantFirstRunStep = {
+  id: string;
+  label: string;
+  completed: boolean;
+  detail: string;
+};
+
+export type PlatformTenantFirstRun = {
+  completionPercent: number;
+  completedSteps: number;
+  totalSteps: number;
+  steps: PlatformTenantFirstRunStep[];
 };
 
 export type PlatformTenantDetail = PlatformTenantRow & {
@@ -69,6 +100,8 @@ export type PlatformTenantDetail = PlatformTenantRow & {
   planName: string;
   planSource: string;
   usage: PlatformTenantUsage;
+  brandingPreview: PlatformTenantBrandingPreview;
+  firstRun: PlatformTenantFirstRun;
 };
 
 export type PlatformTenantDomainRow = {
@@ -140,6 +173,85 @@ function actionValue(formData: FormData, name: string): string {
 
 function booleanValue(formData: FormData, name: string): boolean {
   return formData.get(name) === "on" || formData.get(name) === "true";
+}
+
+function buildBrandingPreview(branding: Awaited<ReturnType<typeof getTenantBranding>>): PlatformTenantBrandingPreview {
+  const customized =
+    Boolean(branding.logoUrl) ||
+    branding.primaryColor !== FIELDGRID_BRAND_DEFAULTS.primaryColor ||
+    branding.accentColor !== FIELDGRID_BRAND_DEFAULTS.accentColor ||
+    branding.emailFooterText !== FIELDGRID_BRAND_DEFAULTS.footerText ||
+    branding.emailSignature !== FIELDGRID_BRAND_DEFAULTS.signature;
+
+  return {
+    displayName: branding.displayName,
+    platformName: branding.platformName,
+    plan: branding.plan,
+    customBrandingEnabled: branding.customBrandingEnabled,
+    customized,
+    logoUrl: branding.logoUrl,
+    primaryColor: branding.primaryColor,
+    accentColor: branding.accentColor,
+    emailFooterText: branding.emailFooterText,
+    emailSignature: branding.emailSignature,
+  };
+}
+
+function buildFirstRunStatus(input: {
+  primaryDomain: string | null;
+  usage: PlatformTenantUsage;
+  brandingPreview: PlatformTenantBrandingPreview;
+}): PlatformTenantFirstRun {
+  const steps: PlatformTenantFirstRunStep[] = [
+    {
+      id: "domain",
+      label: "Domein gekoppeld",
+      completed: Boolean(input.primaryDomain) || input.usage.domains > 0,
+      detail: input.primaryDomain ?? (input.usage.domains > 0 ? "Domein aanwezig, nog geen geverifieerd primair domein." : "Koppel of verifieer een tenantdomein."),
+    },
+    {
+      id: "owner",
+      label: "Owner actief",
+      completed: input.usage.users > 0,
+      detail: input.usage.users > 0 ? `${input.usage.users} actieve gebruiker(s).` : "Nodig de tenant-owner uit.",
+    },
+    {
+      id: "modules",
+      label: "Modules ingesteld",
+      completed: input.usage.enabledModules > 0,
+      detail: input.usage.enabledModules > 0 ? `${input.usage.enabledModules} module(s) actief.` : "Zet de eerste modules aan.",
+    },
+    {
+      id: "sectors",
+      label: "Sectoren ingesteld",
+      completed: input.usage.enabledSectors > 0,
+      detail: input.usage.enabledSectors > 0 ? `${input.usage.enabledSectors} sector(en) actief.` : "Kies tenantsectoren en defaultbeleid.",
+    },
+    {
+      id: "branding",
+      label: "Branding beoordeeld",
+      completed: input.brandingPreview.customBrandingEnabled ? input.brandingPreview.customized : true,
+      detail: input.brandingPreview.customBrandingEnabled
+        ? input.brandingPreview.customized
+          ? "Custom branding is ingesteld."
+          : "Professional/Enterprise tenant kan branding nog personaliseren."
+        : "Starter gebruikt Fieldgrid branding.",
+    },
+    {
+      id: "first-data",
+      label: "Eerste data aanwezig",
+      completed: input.usage.customers + input.usage.objects + input.usage.personnel + input.usage.assignments > 0,
+      detail: "Controleer eerste klant, object, medewerker of opdracht.",
+    },
+  ];
+
+  const completedSteps = steps.filter((step) => step.completed).length;
+  return {
+    completionPercent: Math.round((completedSteps / steps.length) * 100),
+    completedSteps,
+    totalSteps: steps.length,
+    steps,
+  };
 }
 
 async function auditPlatformTenantAction(input: {
@@ -256,10 +368,12 @@ export async function getPlatformTenantDetail(tenantId: string): Promise<Platfor
 
   if (!tenant) return null;
 
-  const [usage, plan] = await Promise.all([
+  const [usage, plan, branding] = await Promise.all([
     getPlatformTenantUsage(tenantId),
     getTenantPlanSnapshot(tenantId),
+    getTenantBranding(tenantId),
   ]);
+  const brandingPreview = buildBrandingPreview(branding);
 
   return {
     ...tenant,
@@ -270,6 +384,8 @@ export async function getPlatformTenantDetail(tenantId: string): Promise<Platfor
     usage,
     planName: plan.planName,
     planSource: plan.source,
+    brandingPreview,
+    firstRun: buildFirstRunStatus({ primaryDomain: tenant.primaryDomain, usage, brandingPreview }),
   };
 }
 
@@ -283,6 +399,8 @@ export async function getPlatformTenantUsage(tenantId: string): Promise<Platform
       objects: sql<number>`(SELECT count(*) FROM objects WHERE tenant_id = ${tenantId}::uuid)::int`,
       personnel: sql<number>`(SELECT count(*) FROM personnel WHERE tenant_id = ${tenantId}::uuid)::int`,
       assignments: sql<number>`(SELECT count(*) FROM assignments WHERE tenant_id = ${tenantId}::uuid)::int`,
+      documents: sql<number>`(SELECT count(*) FROM documents WHERE tenant_id = ${tenantId}::uuid)::int`,
+      storageBytes: sql<number>`COALESCE((SELECT sum(size_bytes) FROM documents WHERE tenant_id = ${tenantId}::uuid), 0)::bigint`,
       domains: sql<number>`(SELECT count(*) FROM tenant_domains WHERE tenant_id = ${tenantId}::uuid AND type <> 'platform_reserved')::int`,
       enabledModules: sql<number>`(SELECT count(*) FROM tenant_modules WHERE tenant_id = ${tenantId}::uuid AND is_enabled = true)::int`,
       enabledSectors: sql<number>`(SELECT count(*) FROM tenant_sectors WHERE tenant_id = ${tenantId}::uuid AND is_enabled = true)::int`,
@@ -304,6 +422,8 @@ export async function getPlatformTenantUsage(tenantId: string): Promise<Platform
     objects: Number(usage?.objects ?? 0),
     personnel: Number(usage?.personnel ?? 0),
     assignments: Number(usage?.assignments ?? 0),
+    documents: Number(usage?.documents ?? 0),
+    storageBytes: Number(usage?.storageBytes ?? 0),
     domains: Number(usage?.domains ?? 0),
     enabledModules: Number(usage?.enabledModules ?? 0),
     enabledSectors: Number(usage?.enabledSectors ?? 0),
