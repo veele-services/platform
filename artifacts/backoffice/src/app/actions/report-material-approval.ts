@@ -5,12 +5,15 @@ import { sql } from "drizzle-orm";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { approveReport, type ActionResult } from "./reports";
 
-type SqlResult<T> = { rows?: T[] } | T[];
+type SqlResult<T> = { rows?: T[] };
 
 function rowsFrom<T>(result: unknown): T[] {
   if (Array.isArray(result)) return result as T[];
-  const maybeRows = (result as SqlResult<T> | null)?.rows;
-  return Array.isArray(maybeRows) ? maybeRows : [];
+  if (result && typeof result === "object" && "rows" in result) {
+    const maybeRows = (result as SqlResult<T>).rows;
+    return Array.isArray(maybeRows) ? maybeRows : [];
+  }
+  return [];
 }
 
 function reviewMessage(materialCount: number, inventoryCount: number): string {

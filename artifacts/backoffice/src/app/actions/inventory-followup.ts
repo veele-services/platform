@@ -77,7 +77,7 @@ export type InventoryMaintenanceInput = {
   notes?: string | null;
 };
 
-type SqlResult<T> = { rows?: T[] } | T[];
+type SqlResult<T> = { rows?: T[] };
 
 const ISSUE_STATUSES = new Set(["new", "in_progress", "waiting_supplier", "resolved", "unresolvable", "cancelled"]);
 const MAINTENANCE_EVENT_TYPES = new Set(["inspection", "maintenance", "repair"]);
@@ -86,8 +86,11 @@ const CLOSED_ISSUE_STATUSES = new Set(["resolved", "unresolvable", "cancelled"])
 
 function rowsFrom<T>(result: unknown): T[] {
   if (Array.isArray(result)) return result as T[];
-  const maybeRows = (result as SqlResult<T> | null)?.rows;
-  return Array.isArray(maybeRows) ? maybeRows : [];
+  if (result && typeof result === "object" && "rows" in result) {
+    const maybeRows = (result as SqlResult<T>).rows;
+    return Array.isArray(maybeRows) ? maybeRows : [];
+  }
+  return [];
 }
 
 function cleanText(value: unknown): string | null {
