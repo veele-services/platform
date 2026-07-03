@@ -4,21 +4,58 @@ import { HeaderActions, MobileHeader } from "@/components/MobileHeader";
 import { getMyCustomerProfile } from "@/actions/customer";
 import { getMyCustomerNotificationSummary } from "@/actions/notifications";
 import { CustomerRealtimeProvider } from "@/components/CustomerRealtimeProvider";
-import type { ReactNode } from "react";
+import { requireCurrentCustomerPortalTenantId } from "@/lib/auth/tenant";
+import {
+  getTenantBranding,
+  getTenantBrandingCssVariables,
+  isTenantModuleEnabled,
+} from "@workspace/db";
+import { redirect } from "next/navigation";
+import type { CSSProperties, ReactNode } from "react";
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
-  const [profile, notificationSummary] = await Promise.all([
+  const tenantId = await requireCurrentCustomerPortalTenantId();
+  if (!tenantId) {
+    redirect(
+      "/login?error=" +
+        encodeURIComponent("Het klantportaal is niet beschikbaar voor deze tenant."),
+    );
+  }
+
+  const [
+    branding,
+    profile,
+    notificationSummary,
+    documentsEnabled,
+    financeEnabled,
+    reportingEnabled,
+  ] = await Promise.all([
+    getTenantBranding(tenantId),
     getMyCustomerProfile(),
     getMyCustomerNotificationSummary(),
+    isTenantModuleEnabled(tenantId, "documents"),
+    isTenantModuleEnabled(tenantId, "finance"),
+    isTenantModuleEnabled(tenantId, "reporting"),
   ]);
+
+  const featureFlags = {
+    documents: documentsEnabled,
+    finance: financeEnabled,
+    reporting: reportingEnabled,
+  };
+  const brandingStyle = getTenantBrandingCssVariables(branding) as CSSProperties;
 
   return (
     <CustomerRealtimeProvider customerId={profile?.id ?? null}>
-      <div className="flex min-h-screen" style={{ backgroundColor: "#F4F7FB" }}>
-        <DesktopSidebar />
+      <div
+        className="flex min-h-screen"
+        style={{ ...brandingStyle, backgroundColor: "#F4F7FB" }}
+      >
+        <DesktopSidebar branding={branding} featureFlags={featureFlags} />
 
         <div className="flex min-w-0 flex-1 flex-col">
           <MobileHeader
+            branding={branding}
             notificationSummary={notificationSummary}
             profile={profile}
           />
@@ -32,7 +69,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                 className="text-xs font-black uppercase tracking-[0.16em]"
                 style={{ color: "var(--color-accent)" }}
               >
-                Veele Services
+                {branding.displayName}
               </p>
               <p
                 className="mt-0.5 text-sm font-semibold"
@@ -49,7 +86,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
                   color: "var(--color-primary)",
                 }}
               >
-                {profile?.name ?? "Veele Services"}
+                {profile?.name ?? branding.displayName}
               </div>
               <HeaderActions
                 notificationSummary={notificationSummary}
