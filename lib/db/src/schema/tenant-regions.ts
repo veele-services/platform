@@ -1,3 +1,4 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
   index,
@@ -60,7 +61,9 @@ export const personnelRegionsTable = pgTable(
   },
   (table) => [
     uniqueIndex("personnel_regions_personnel_region_idx").on(table.personnelId, table.tenantRegionId),
-    uniqueIndex("personnel_regions_primary_idx").on(table.personnelId).where(table.isPrimary),
+    uniqueIndex("personnel_regions_primary_idx")
+      .on(table.personnelId)
+      .where(sql`${table.isPrimary} = true`),
     index("personnel_regions_tenant_idx").on(table.tenantId),
     index("personnel_regions_region_idx").on(table.tenantRegionId),
   ],
