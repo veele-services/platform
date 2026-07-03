@@ -31,6 +31,8 @@ const TENANT_SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{1,78}[a-z0-9]$/u;
 const OWNER_ROLE_NAMES = ["Management", "Owner", "Eigenaar", "Administration"] as const;
 const DEFAULT_FIRST_RUN_STEPS = ["branding", "users", "sectors", "modules"] as const;
 
+type DbExecutor = typeof db | any;
+
 export type TenantProvisioningInput = {
   name: string;
   slug?: string | null;
@@ -147,7 +149,7 @@ export async function assertTenantProvisioningIsUnique(
   if (duplicateDomain) throw new Error("Dit domein is al gekoppeld aan een tenant.");
 }
 
-async function resolveProvisioningSectors(tx: typeof db, input: NormalizedTenantProvisioningInput) {
+async function resolveProvisioningSectors(tx: DbExecutor, input: NormalizedTenantProvisioningInput) {
   if (input.sectorIds.length > 0) {
     return tx
       .select({ id: sectorsTable.id })
@@ -163,7 +165,7 @@ async function resolveProvisioningSectors(tx: typeof db, input: NormalizedTenant
     .orderBy(asc(sectorsTable.name));
 }
 
-async function copyTemplateRoles(tx: typeof db, tenantId: string): Promise<Map<string, string>> {
+async function copyTemplateRoles(tx: DbExecutor, tenantId: string): Promise<Map<string, string>> {
   const templateRoles = await tx
     .select({
       id: rolesTable.id,
@@ -289,20 +291,20 @@ export async function provisionTenant(
         .from(planModulesTable)
         .where(and(eq(planModulesTable.planId, plan.id), eq(planModulesTable.isIncluded, true)));
 
-      const selectedModules = input.moduleKeys
-        ? await tx
+      const selectedModuleIds = input.moduleKeys
+        ? (await tx
             .select({ id: modulesTable.id })
             .from(modulesTable)
-            .where(inArray(modulesTable.key, input.moduleKeys))
-        : planModules;
+            .where(inArray(modulesTable.key, input.moduleKeys))).map((module) => module.id)
+        : planModules.map((module) => module.moduleId);
 
-      if (selectedModules.length > 0) {
+      if (selectedModuleIds.length > 0) {
         await tx
           .insert(tenantModulesTable)
           .values(
-            selectedModules.map((module) => ({
+            selectedModuleIds.map((moduleId) => ({
               tenantId: tenant.id,
-              moduleId: module.id ?? module.moduleId,
+              moduleId,
               isEnabled: true,
               source: "plan" as const,
               configuredBy: input.requestedBy,
@@ -361,7 +363,7 @@ export async function provisionTenant(
           currentStep: input.ownerEmail ? "owner_invite_pending" : "completed",
           metadata: {
             ...(input.metadata ?? {}),
-            moduleCount: selectedModules.length,
+            moduleCount: selectedModuleIds.length,
             sectorCount: enabledSectorIds.length,
             tenantRoleCount: tenantRoleIdByName.size,
           },
@@ -485,12 +487,13 @@ export async function rollbackProvisionedTenant(input: {
     await tx
       .update(tenantProvisioningRunsTable)
       .set({
-        tenantId: input.tenantId,
+        tenantId: null,
         requestedBy: input.requestedBy,
         status: "rolled_back",
         currentStep: "rolled_back",
         ownerInviteStatus: "rolled_back",
         errorMessage: input.reason,
+        metadata: { rolledBackTenantId: input.tenantId, reason: input.reason },
         completedAt: new Date(),
         updatedAt: new Date(),
       })
