@@ -116,8 +116,12 @@ export function RegionMultiSelect({
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-[340px] p-0" align="start">
-          <Command value={query} onValueChange={setQuery}>
-            <CommandInput placeholder="Zoek of typ nieuwe regio..." />
+          <Command>
+            <CommandInput
+              value={query}
+              onValueChange={setQuery}
+              placeholder="Zoek of typ nieuwe regio..."
+            />
             <CommandList>
               <CommandEmpty>{emptyLabel}</CommandEmpty>
               <CommandGroup heading={label}>
