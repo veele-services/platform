@@ -16,6 +16,7 @@ export const db = drizzle(pool, { schema });
 export * from "./schema";
 export * from "./tenant-context";
 export * from "./tenant-entitlements";
+export * from "./module-permissions";
 export * from "./tenant-branding";
 export * from "./tenant-provisioning";
 export * from "./platform-access";
