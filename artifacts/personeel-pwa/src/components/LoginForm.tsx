@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import { useActionState } from "react";
 import { signIn } from "@/actions/auth";
-import { Zap } from "lucide-react";
+import { Eye, EyeOff, Zap } from "lucide-react";
 
 // ─── Dev accounts (only rendered in development) ──────────────────────────────
 
@@ -24,6 +24,7 @@ export function LoginForm() {
     },
     initialState,
   );
+  const [showPassword, setShowPassword] = useState(false);
 
   const formRef     = useRef<HTMLFormElement>(null);
   const emailRef    = useRef<HTMLInputElement>(null);
@@ -36,6 +37,7 @@ export function LoginForm() {
   }
 
   const isDev = process.env.NODE_ENV === "development";
+  const PasswordIcon = showPassword ? EyeOff : Eye;
 
   return (
     <form ref={formRef} action={formAction} className="space-y-4">
@@ -72,21 +74,32 @@ export function LoginForm() {
         >
           Wachtwoord
         </label>
-        <input
-          ref={passwordRef}
-          id="password"
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          placeholder="••••••••"
-          className="w-full rounded-xl border px-4 py-3.5 text-base outline-none transition-colors"
-          style={{
-            borderColor: "var(--color-border)",
-            backgroundColor: "#fff",
-            color: "var(--color-primary)",
-          }}
-        />
+        <div className="relative">
+          <input
+            ref={passwordRef}
+            id="password"
+            name="password"
+            type={showPassword ? "text" : "password"}
+            autoComplete="current-password"
+            required
+            placeholder="••••••••"
+            className="w-full rounded-xl border px-4 py-3.5 pr-12 text-base outline-none transition-colors"
+            style={{
+              borderColor: "var(--color-border)",
+              backgroundColor: "#fff",
+              color: "var(--color-primary)",
+            }}
+          />
+          <button
+            type="button"
+            aria-label={showPassword ? "Wachtwoord verbergen" : "Wachtwoord tonen"}
+            onClick={() => setShowPassword((value) => !value)}
+            disabled={isPending}
+            className="absolute inset-y-0 right-0 flex w-11 items-center justify-center text-slate-500 transition-colors hover:text-slate-800 disabled:opacity-50"
+          >
+            <PasswordIcon className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
       <button
@@ -95,7 +108,7 @@ export function LoginForm() {
         className="w-full rounded-xl px-4 py-4 text-base font-semibold text-white transition-opacity active:opacity-80 disabled:opacity-60 mt-2"
         style={{ backgroundColor: "var(--color-accent)" }}
       >
-        {isPending ? "Inloggen…" : "Inloggen"}
+        {isPending ? "Inloggen..." : "Inloggen"}
       </button>
 
       <div className="text-center">
@@ -116,7 +129,7 @@ export function LoginForm() {
         >
           <p className="flex items-center gap-1.5 text-xs font-semibold" style={{ color: "#92400E" }}>
             <Zap className="h-3 w-3" />
-            DEV — Snel inloggen
+            DEV - Snel inloggen
           </p>
           <div className="flex flex-col gap-1.5">
             {DEV_ACCOUNTS.map((a) => (
