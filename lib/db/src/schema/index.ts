@@ -8,6 +8,7 @@ export * from "./user-roles";
 export * from "./tenant-rbac";
 export * from "./modules";
 export * from "./plans";
+export * from "./tenant-provisioning";
 export * from "./audit-log";
 export * from "./sectors";
 export * from "./tenant-sectors";

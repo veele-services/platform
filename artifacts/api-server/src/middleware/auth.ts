@@ -2,21 +2,47 @@ import type { Request, Response, NextFunction } from "express";
 import { jwtVerify, createRemoteJWKSet } from "jose";
 import {
   db,
+  FIELDGRID_RUNTIME_ACCESS_PRIORITY,
+  getActiveSupportAccessForUser,
   isFieldgridSubdomain,
   isPlatformHost,
+  isSupportRuntimePermission,
   normalizeHost,
   permissionsTable,
+  requireTenantModule,
   TENANT_RUNTIME_ACTIVE_STATUSES,
   tenantDomainsTable,
   tenantRolePermissionsTable,
   tenantUserRolesTable,
   tenantUsersTable,
   tenantsTable,
+  type FieldgridModuleKey,
+  writeSupportAccessAuditLogForUser,
 } from "@workspace/db";
 import { and, eq, inArray, ne } from "drizzle-orm";
 
 const SUPABASE_URL = process.env["SUPABASE_URL"] ?? "";
 const SUPABASE_JWT_SECRET = process.env["SUPABASE_JWT_SECRET"] ?? "";
+
+const PERMISSION_MODULES: Partial<Record<string, FieldgridModuleKey>> = {
+  customers: "customers",
+  objects: "objects",
+  personnel: "personnel",
+  assignments: "assignments",
+  planning: "planning",
+  reports: "reporting",
+  documents: "documents",
+  invoices: "finance",
+  quotes: "finance",
+  payments: "finance",
+  customer_payment_batches: "finance",
+  notifications: "notifications",
+  smart_planning: "smart_planning",
+};
+
+function moduleForPermissionResource(resource: string): FieldgridModuleKey | null {
+  return PERMISSION_MODULES[resource] ?? null;
+}
 
 // ─── JWKS / HMAC key setup ─────────────────────────────────────────────────────
 
@@ -37,6 +63,13 @@ declare global {
     interface Request {
       userId?: string;
       tenantId?: string;
+      supportAccess?: {
+        grantId: string;
+        platformUserId: string;
+        reason: string;
+        expiresAt: string;
+        priority: typeof FIELDGRID_RUNTIME_ACCESS_PRIORITY[number];
+      };
     }
   }
 }
@@ -121,6 +154,51 @@ export async function getUserPermissions(userId: string, tenantId: string): Prom
   return new Set(perms.map((p) => `${p.resource}:${p.action}`));
 }
 
+async function requireEnabledPermissionModule(
+  req: Request,
+  res: Response,
+  resource: string,
+  tenantId: string,
+): Promise<boolean> {
+  const moduleKey = moduleForPermissionResource(resource);
+  if (!moduleKey) return true;
+
+  try {
+    await requireTenantModule(tenantId, moduleKey);
+    return true;
+  } catch (err) {
+    req.log.warn({ err, tenantId, resource, moduleKey }, "Module toegang geweigerd");
+    res.status(403).json({ error: "Module niet beschikbaar voor deze tenant" });
+    return false;
+  }
+}
+
+async function auditApiSupportPermission(input: {
+  userId: string;
+  tenantId: string;
+  grantId: string;
+  resource: string;
+  action: string;
+  allowed: boolean;
+  reason: string;
+  expiresAt: string;
+}): Promise<void> {
+  await writeSupportAccessAuditLogForUser({
+    userId: input.userId,
+    tenantId: input.tenantId,
+    action: input.allowed ? "api_permission_allowed" : "api_permission_denied",
+    resource: input.resource,
+    metadata: {
+      permission: `${input.resource}:${input.action}`,
+      priority: FIELDGRID_RUNTIME_ACCESS_PRIORITY[1],
+      grantId: input.grantId,
+      reason: input.reason,
+      expiresAt: input.expiresAt,
+    },
+    grantId: input.grantId,
+  });
+}
+
 /**
  * Returns Express middleware that enforces a `resource:action` permission.
  * Must be used after `requireAuth` so `req.userId` is set.
@@ -140,12 +218,39 @@ export function requirePermission(resource: string, action: string) {
       return;
     }
 
+    if (req.supportAccess) {
+      const allowedBySupportGrant = isSupportRuntimePermission(resource, action);
+      await auditApiSupportPermission({
+        userId,
+        tenantId,
+        grantId: req.supportAccess.grantId,
+        resource,
+        action,
+        allowed: allowedBySupportGrant,
+        reason: req.supportAccess.reason,
+        expiresAt: req.supportAccess.expiresAt,
+      });
+
+      if (!allowedBySupportGrant) {
+        req.log.warn({ userId, tenantId, resource, action }, "Supporttoegang geweigerd");
+        res.status(403).json({ error: "Supporttoegang staat deze actie niet toe" });
+        return;
+      }
+
+      if (!(await requireEnabledPermissionModule(req, res, resource, tenantId))) return;
+
+      next();
+      return;
+    }
+
     const permissions = await getUserPermissions(userId, tenantId);
     if (!permissions.has(`${resource}:${action}`)) {
       req.log.warn({ userId, tenantId, resource, action }, "Toegang geweigerd");
       res.status(403).json({ error: "Onvoldoende rechten" });
       return;
     }
+
+    if (!(await requireEnabledPermissionModule(req, res, resource, tenantId))) return;
 
     next();
   };
@@ -238,6 +343,18 @@ async function firstActiveTenantForUser(userId: string): Promise<string | null> 
   return tenantUser?.tenantId ?? null;
 }
 
+function attachSupportAccess(req: Request, supportAccess: Awaited<ReturnType<typeof getActiveSupportAccessForUser>>): void {
+  if (!supportAccess) return;
+
+  req.supportAccess = {
+    grantId: supportAccess.grant.id,
+    platformUserId: supportAccess.platformUser.id,
+    reason: supportAccess.grant.reason,
+    expiresAt: supportAccess.grant.expiresAt.toISOString(),
+    priority: FIELDGRID_RUNTIME_ACCESS_PRIORITY[1],
+  };
+}
+
 export async function requireTenantScope(
   req: Request,
   res: Response,
@@ -270,6 +387,16 @@ export async function requireTenantScope(
 
   const explicitTenantId = requestedTenantId(req);
   if (explicitTenantId) {
+    if (hostResolution.kind === "platform") {
+      const supportAccess = await getActiveSupportAccessForUser(userId, explicitTenantId);
+      if (supportAccess) {
+        req.tenantId = explicitTenantId;
+        attachSupportAccess(req, supportAccess);
+        next();
+        return;
+      }
+    }
+
     if (await userHasActiveTenant(userId, explicitTenantId)) {
       req.tenantId = explicitTenantId;
       next();

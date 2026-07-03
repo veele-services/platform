@@ -47,10 +47,10 @@ export const organizationSettingsTable = pgTable("organization_settings", {
     .default("#00B7B3"),
   emailTemplateFooterText: text("email_template_footer_text")
     .notNull()
-    .default("Dit is een automatisch bericht van Veele Services. U ontvangt dit bericht omdat u betrokken bent bij een aanvraag, opdracht, rapportage, factuur of portaalmelding."),
+    .default("Dit is een automatisch bericht van Fieldgrid. U ontvangt dit bericht omdat u betrokken bent bij een aanvraag, opdracht, rapportage, factuur of portaalmelding."),
   emailTemplateSignature: text("email_template_signature")
     .notNull()
-    .default("Met vriendelijke groet,\nVeele Services"),
+    .default("Met vriendelijke groet,\nFieldgrid"),
 
   // ── Notification toggles (all default to true) ──────────────────────────────
   notifRapportGoedgekeurd: boolean("notif_rapport_goedgekeurd")

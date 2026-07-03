@@ -3,14 +3,16 @@
 import { randomUUID } from "node:crypto";
 import { db } from "@workspace/db";
 import {
-  documentsTable,
   auditLogTable,
   assignmentsTable,
+  buildTenantStoragePath,
   customersTable,
-  personnelTable,
-  objectsTable,
-  tenantUsersTable,
+  documentsTable,
   DOCUMENT_ENTITY_TYPES,
+  getTenantBoundStoragePath,
+  objectsTable,
+  personnelTable,
+  tenantUsersTable,
   type DocumentEntityType,
 } from "@workspace/db";
 import { eq, desc, and, inArray } from "drizzle-orm";
@@ -62,7 +64,7 @@ const ALLOWED_MIME_TYPES = new Set([
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function buildStoragePath(
+function buildDocumentStoragePath(
   tenantId: string,
   entityType: DocumentEntityType,
   entityId: string | null,
@@ -73,20 +75,12 @@ function buildStoragePath(
     ? filename.split(".").pop()!.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 12)
     : "bin";
   const safeExt = ext || "bin";
-  if (entityType !== "general" && entityId) {
-    return `${tenantId}/${entityType}/${entityId}/${docId}.${safeExt}`;
-  }
-  return `${tenantId}/general/${docId}.${safeExt}`;
+  const entityParts = entityType !== "general" && entityId ? [entityType, entityId] : ["general"];
+  return buildTenantStoragePath(tenantId, ["documents", ...entityParts, `${docId}.${safeExt}`]);
 }
 
 function getSafeDocumentStoragePath(path: string, tenantId: string): string | null {
-  const normalized = path.trim().replace(/^\/+/, "");
-  if (!normalized) return null;
-  if (/^[a-z][a-z\d+.-]*:\/\//i.test(normalized)) return null;
-  if (normalized.includes("\\")) return null;
-  if (normalized.split("/").some((part) => part.trim() === "" || part === "..")) return null;
-  if (!normalized.startsWith(`${tenantId}/`)) return null;
-  return normalized;
+  return getTenantBoundStoragePath(path, tenantId, { allowLegacyTenantRoot: true });
 }
 
 async function isDocumentEntityInTenant(input: {
@@ -226,7 +220,7 @@ export async function listDocuments(filter?: {
   if (!canRead) return [];
   const tenantId = await requireCurrentTenantModule("documents");
 
-  const conditions = [];
+  const conditions = [eq(documentsTable.tenantId, tenantId)];
   if (filter?.entityType) {
     conditions.push(eq(documentsTable.entityType, filter.entityType));
   }
@@ -247,7 +241,7 @@ export async function listDocuments(filter?: {
       createdAt:  documentsTable.createdAt,
     })
     .from(documentsTable)
-    .where(conditions.length > 0 ? and(...conditions) : undefined)
+    .where(and(...conditions))
     .orderBy(desc(documentsTable.createdAt));
 
   const scopedRows = (
@@ -357,7 +351,7 @@ export async function uploadDocument(
     }
 
     const docId       = randomUUID();
-    const storagePath = buildStoragePath(tenantId, safeEntityType, entityId, docId, file.name);
+    const storagePath = buildDocumentStoragePath(tenantId, safeEntityType, entityId, docId, file.name);
 
     // Upload to Supabase Storage
     const bytes = await file.arrayBuffer();
@@ -381,6 +375,7 @@ export async function uploadDocument(
       .insert(documentsTable)
       .values({
         id:          docId,
+        tenantId,
         name,
         filename:    file.name,
         mimeType:    file.type,
@@ -402,6 +397,7 @@ export async function uploadDocument(
         tenantId,
         name,
         filename:   file.name,
+        storagePath,
         entityType: safeEntityType,
         entityId:   entityId ?? null,
         sizeBytes:  file.size,
@@ -443,7 +439,7 @@ export async function deleteDocument(id: string): Promise<ActionResult> {
         uploadedBy:  documentsTable.uploadedBy,
       })
       .from(documentsTable)
-      .where(eq(documentsTable.id, id))
+      .where(and(eq(documentsTable.id, id), eq(documentsTable.tenantId, tenantId)))
       .limit(1);
 
     if (!doc) return { success: false, message: "Document niet gevonden." };
@@ -463,7 +459,7 @@ export async function deleteDocument(id: string): Promise<ActionResult> {
     await createAdminClient().storage.from(BUCKET).remove([storagePath]);
 
     // Delete from DB
-    await db.delete(documentsTable).where(eq(documentsTable.id, id));
+    await db.delete(documentsTable).where(and(eq(documentsTable.id, id), eq(documentsTable.tenantId, tenantId)));
 
     // Audit log
     await db.insert(auditLogTable).values({
@@ -473,6 +469,7 @@ export async function deleteDocument(id: string): Promise<ActionResult> {
       resourceId: id,
       metadata: {
         tenantId,
+        storagePath,
         name:       doc.name,
         entityType: doc.entityType,
         entityId:   doc.entityId ?? null,
@@ -517,7 +514,7 @@ export async function getDocumentDownloadUrl(
         uploadedBy:  documentsTable.uploadedBy,
       })
       .from(documentsTable)
-      .where(eq(documentsTable.id, id))
+      .where(and(eq(documentsTable.id, id), eq(documentsTable.tenantId, tenantId)))
       .limit(1);
 
     if (!doc) return { success: false, message: "Document niet gevonden." };
@@ -551,6 +548,7 @@ export async function getDocumentDownloadUrl(
         tenantId,
         name:       doc.name,
         filename:   doc.filename,
+        storagePath,
         entityType: doc.entityType,
         entityId:   doc.entityId ?? null,
       } as Record<string, unknown>,

@@ -91,6 +91,17 @@ export type AssignmentQuoteData = {
   }>;
 };
 
+type SnapshotTaskLineItemRow = {
+  snapshotCode: string | null;
+  snapshotName: string | null;
+  snapshotPrice: string | null;
+  snapshotInvoiceable: boolean | null;
+  taskCodeCode: string | null;
+  taskCodeName: string | null;
+  price: string | null;
+  invoiceable: boolean | null;
+};
+
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function todayString(): string {
@@ -106,6 +117,15 @@ function formatEuro(value: string | null | undefined): string {
   return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(
     Number.isFinite(number) ? number : 0,
   );
+}
+
+function resolveSnapshotTaskLineItem(row: SnapshotTaskLineItemRow) {
+  return {
+    taskCodeCode: row.snapshotCode ?? row.taskCodeCode ?? null,
+    taskCodeName: row.snapshotName ?? row.taskCodeName ?? null,
+    price:        row.snapshotPrice ?? row.price ?? null,
+    invoiceable:  row.snapshotInvoiceable ?? row.invoiceable ?? false,
+  };
 }
 
 async function getQuoteAssignmentForCurrentTenant(
@@ -296,10 +316,14 @@ export async function getQuote(id: string): Promise<QuoteDetail | null> {
 
   const lineItems = await db
     .select({
-      taskCodeCode: taskCodesTable.code,
-      taskCodeName: taskCodesTable.name,
-      price:        taskCodesTable.price,
-      invoiceable:  taskCodesTable.invoiceable,
+      snapshotCode:        assignmentTasksTable.taskCodeCode,
+      snapshotName:        assignmentTasksTable.taskCodeName,
+      snapshotPrice:       assignmentTasksTable.taskCodePrice,
+      snapshotInvoiceable: assignmentTasksTable.taskCodeInvoiceable,
+      taskCodeCode:        taskCodesTable.code,
+      taskCodeName:        taskCodesTable.name,
+      price:               taskCodesTable.price,
+      invoiceable:         taskCodesTable.invoiceable,
     })
     .from(assignmentTasksTable)
     .leftJoin(taskCodesTable, eq(assignmentTasksTable.taskCodeId, taskCodesTable.id))
@@ -329,12 +353,7 @@ export async function getQuote(id: string): Promise<QuoteDetail | null> {
     approvedAt:      row.approvedAt      ? row.approvedAt.toISOString() : null,
     createdAt:       row.createdAt.toISOString(),
     updatedAt:       row.updatedAt.toISOString(),
-    lineItems: lineItems.map((li) => ({
-      taskCodeCode: li.taskCodeCode ?? null,
-      taskCodeName: li.taskCodeName ?? null,
-      price:        li.price        ?? null,
-      invoiceable:  li.invoiceable ?? false,
-    })),
+    lineItems:       lineItems.map(resolveSnapshotTaskLineItem),
   };
 }
 
@@ -393,17 +412,22 @@ export async function getAssignmentQuoteData(assignmentId: string): Promise<Assi
 
   const tasks = await db
     .select({
-      taskCodeCode: taskCodesTable.code,
-      taskCodeName: taskCodesTable.name,
-      price:        taskCodesTable.price,
-      invoiceable:  taskCodesTable.invoiceable,
+      snapshotCode:        assignmentTasksTable.taskCodeCode,
+      snapshotName:        assignmentTasksTable.taskCodeName,
+      snapshotPrice:       assignmentTasksTable.taskCodePrice,
+      snapshotInvoiceable: assignmentTasksTable.taskCodeInvoiceable,
+      taskCodeCode:        taskCodesTable.code,
+      taskCodeName:        taskCodesTable.name,
+      price:               taskCodesTable.price,
+      invoiceable:         taskCodesTable.invoiceable,
     })
     .from(assignmentTasksTable)
     .leftJoin(taskCodesTable, eq(assignmentTasksTable.taskCodeId, taskCodesTable.id))
     .where(eq(assignmentTasksTable.assignmentId, assignmentId))
     .orderBy(asc(assignmentTasksTable.sortOrder));
 
-  const suggestedAmount = tasks
+  const lineItems = tasks.map(resolveSnapshotTaskLineItem);
+  const suggestedAmount = lineItems
     .filter((t) => t.invoiceable && t.price)
     .reduce((sum, t) => sum + parseFloat(t.price ?? "0"), 0);
 
@@ -415,12 +439,7 @@ export async function getAssignmentQuoteData(assignmentId: string): Promise<Assi
   return {
     suggestedAmount,
     defaultValidityDate,
-    lineItems: tasks.map((t) => ({
-      taskCodeCode: t.taskCodeCode ?? null,
-      taskCodeName: t.taskCodeName ?? null,
-      price:        t.price        ?? null,
-      invoiceable:  t.invoiceable ?? false,
-    })),
+    lineItems,
   };
 }
 

@@ -1,4 +1,5 @@
 import {
+  index,
   pgTable,
   uuid,
   varchar,
@@ -9,6 +10,7 @@ import {
 import { createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { invoicesTable } from "./invoices";
+import { tenantsTable } from "./tenants";
 
 // ─── Status ────────────────────────────────────────────────────────────────────
 
@@ -22,32 +24,42 @@ export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
  * Each row represents one Mollie payment attempt.
  * Status is updated via the /api/webhooks/mollie endpoint.
  */
-export const paymentsTable = pgTable("payments", {
-  id:              uuid("id").primaryKey().defaultRandom(),
+export const paymentsTable = pgTable(
+  "payments",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
 
-  invoiceId:       uuid("invoice_id")
-    .notNull()
-    .references(() => invoicesTable.id, { onDelete: "cascade" }),
+    tenantId: uuid("tenant_id").references(() => tenantsTable.id, { onDelete: "cascade" }),
 
-  /** Mollie payment ID, e.g. tr_xxxxxxxxxx */
-  molliePaymentId: varchar("mollie_payment_id", { length: 50 }).notNull().unique(),
+    invoiceId: uuid("invoice_id")
+      .notNull()
+      .references(() => invoicesTable.id, { onDelete: "cascade" }),
 
-  /** Amount in euro cents (e.g. 1250 = €12.50) */
-  amountCents:     integer("amount_cents").notNull(),
+    /** Mollie payment ID, e.g. tr_xxxxxxxxxx */
+    molliePaymentId: varchar("mollie_payment_id", { length: 50 }).notNull().unique(),
 
-  currency:        varchar("currency", { length: 3 }).notNull().default("EUR"),
+    /** Amount in euro cents (e.g. 1250 = €12.50) */
+    amountCents: integer("amount_cents").notNull(),
 
-  /** Mollie payment status: open / paid / canceled / expired / failed */
-  status:          varchar("status", { length: 20 }).notNull().default("open"),
+    currency: varchar("currency", { length: 3 }).notNull().default("EUR"),
 
-  /** Mollie checkout URL — redirect customer to this URL to pay */
-  checkoutUrl:     text("checkout_url"),
+    /** Mollie payment status: open / paid / canceled / expired / failed */
+    status: varchar("status", { length: 20 }).notNull().default("open"),
 
-  /** Set when Mollie reports status = paid */
-  paidAt:          timestamp("paid_at", { withTimezone: true }),
+    /** Mollie checkout URL — redirect customer to this URL to pay */
+    checkoutUrl: text("checkout_url"),
 
-  createdAt:       timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-});
+    /** Set when Mollie reports status = paid */
+    paidAt: timestamp("paid_at", { withTimezone: true }),
+
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (table) => [
+    index("payments_tenant_idx").on(table.tenantId),
+    index("payments_tenant_invoice_idx").on(table.tenantId, table.invoiceId),
+    index("payments_tenant_status_idx").on(table.tenantId, table.status),
+  ],
+);
 
 // ─── Zod schemas ───────────────────────────────────────────────────────────────
 

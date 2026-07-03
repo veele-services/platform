@@ -13,6 +13,11 @@ import { eq, ilike, or, and, asc, desc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
+import {
+  listEnabledTenantSectorOptions,
+  resolveTenantSectorForWrite,
+} from "@/lib/tenant-sectors";
 import type { ActionResult } from "./customers";
 import { z } from "zod/v4";
 
@@ -103,6 +108,13 @@ function isUniqueViolation(err: unknown): boolean {
   return (err as { code?: string })?.code === "23505";
 }
 
+function taskCodeValidationError(error: unknown): ActionResult {
+  if (error instanceof Error && error.message.startsWith("Forbidden: sector")) {
+    return { success: false, message: "Sector is niet beschikbaar voor deze tenant." };
+  }
+  throw error;
+}
+
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
 export async function listTaskCodes(params: {
@@ -115,6 +127,7 @@ export async function listTaskCodes(params: {
   dir?:         string;
 }): Promise<{ rows: TaskCodeRow[]; total: number }> {
   await requirePermission("task_codes", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const {
     search,
@@ -127,7 +140,7 @@ export async function listTaskCodes(params: {
   } = params;
 
   type Cond = ReturnType<typeof eq>;
-  const conditions: Cond[] = [];
+  const conditions: Cond[] = [eq(taskCodesTable.tenantId, tenantId) as Cond];
 
   if (search?.trim()) {
     const term = `%${search.trim()}%`;
@@ -149,7 +162,7 @@ export async function listTaskCodes(params: {
   if (status === "active")   conditions.push(eq(taskCodesTable.isActive, true)  as Cond);
   if (status === "inactive") conditions.push(eq(taskCodesTable.isActive, false) as Cond);
 
-  const where = conditions.length ? and(...conditions) : undefined;
+  const where = and(...conditions);
 
   const sortMap: Record<string, unknown> = {
     code:            taskCodesTable.code,
@@ -200,6 +213,7 @@ export async function listTaskCodes(params: {
 
 export async function getTaskCode(id: string): Promise<TaskCodeDetail | null> {
   await requirePermission("task_codes", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const rows = await db
     .select({
@@ -226,7 +240,7 @@ export async function getTaskCode(id: string): Promise<TaskCodeDetail | null> {
     .from(taskCodesTable)
     .leftJoin(sectorsTable, eq(taskCodesTable.sectorId, sectorsTable.id))
     .leftJoin(rolesTable,   eq(taskCodesTable.requiredRoleId, rolesTable.id))
-    .where(eq(taskCodesTable.id, id))
+    .where(and(eq(taskCodesTable.id, id), eq(taskCodesTable.tenantId, tenantId)))
     .limit(1);
 
   if (!rows[0]) return null;
@@ -241,11 +255,9 @@ export async function getTaskCode(id: string): Promise<TaskCodeDetail | null> {
 
 export async function listSectorsForTaskCodes(): Promise<SectorOption[]> {
   await requirePermission("task_codes", "read");
-  return db
-    .select({ id: sectorsTable.id, name: sectorsTable.name })
-    .from(sectorsTable)
-    .where(eq(sectorsTable.isActive, true))
-    .orderBy(asc(sectorsTable.name));
+  const tenantId = await requireCurrentTenantId();
+  const sectors = await listEnabledTenantSectorOptions(tenantId);
+  return sectors.map(({ id, name }) => ({ id, name }));
 }
 
 export async function listRolesForTaskCodes(): Promise<RoleOption[]> {
@@ -281,12 +293,21 @@ export async function createTaskCode(
   data: TaskCodeFormInput,
 ): Promise<ActionResult<{ id: string }>> {
   await requirePermission("task_codes", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  const payload = buildPayload(data);
+  let payload = buildPayload(data);
+  try {
+    payload = {
+      ...payload,
+      sectorId: await resolveTenantSectorForWrite(tenantId, payload.sectorId, "task_codes:create"),
+    };
+  } catch (error) {
+    return taskCodeValidationError(error) as ActionResult<{ id: string }>;
+  }
 
   // Server-side business rule validation (price ≥ 0, duration > 0)
   const bizCheck = serverPayloadSchema.safeParse({
@@ -315,7 +336,7 @@ export async function createTaskCode(
   try {
     const [created] = await db
       .insert(taskCodesTable)
-      .values(parsed.data)
+      .values({ ...parsed.data, tenantId })
       .returning({ id: taskCodesTable.id });
 
     await db.insert(auditLogTable).values({
@@ -323,7 +344,7 @@ export async function createTaskCode(
       action:     "create",
       resource:   "task_codes",
       resourceId: created!.id,
-      metadata:   { code: payload.code, name: payload.name },
+      metadata:   { code: payload.code, name: payload.name, tenantId },
     });
 
     revalidatePath("/settings/task-codes");
@@ -345,12 +366,21 @@ export async function updateTaskCode(
   data: TaskCodeFormInput,
 ): Promise<ActionResult> {
   await requirePermission("task_codes", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  const payload = buildPayload(data);
+  let payload = buildPayload(data);
+  try {
+    payload = {
+      ...payload,
+      sectorId: await resolveTenantSectorForWrite(tenantId, payload.sectorId, "task_codes:update"),
+    };
+  } catch (error) {
+    return taskCodeValidationError(error);
+  }
 
   // Server-side business rule validation (price ≥ 0, duration > 0)
   const bizCheck = serverPayloadSchema.safeParse({
@@ -377,17 +407,20 @@ export async function updateTaskCode(
   }
 
   try {
-    await db
+    const [updated] = await db
       .update(taskCodesTable)
       .set({ ...parsed.data, updatedAt: new Date() })
-      .where(eq(taskCodesTable.id, id));
+      .where(and(eq(taskCodesTable.id, id), eq(taskCodesTable.tenantId, tenantId)))
+      .returning({ id: taskCodesTable.id });
+
+    if (!updated) return { success: false, message: "Taakcode niet gevonden." };
 
     await db.insert(auditLogTable).values({
       userId:     user.id,
       action:     "update",
       resource:   "task_codes",
       resourceId: id,
-      metadata:   { code: payload.code, name: payload.name },
+      metadata:   { code: payload.code, name: payload.name, tenantId },
     });
 
     revalidatePath("/settings/task-codes");
@@ -409,22 +442,26 @@ export async function setTaskCodeStatus(
   isActive: boolean,
 ): Promise<ActionResult> {
   await requirePermission("task_codes", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  await db
+  const [updated] = await db
     .update(taskCodesTable)
     .set({ isActive, updatedAt: new Date() })
-    .where(eq(taskCodesTable.id, id));
+    .where(and(eq(taskCodesTable.id, id), eq(taskCodesTable.tenantId, tenantId)))
+    .returning({ id: taskCodesTable.id });
+
+  if (!updated) return { success: false, message: "Taakcode niet gevonden." };
 
   await db.insert(auditLogTable).values({
     userId:     user.id,
     action:     isActive ? "activate" : "deactivate",
     resource:   "task_codes",
     resourceId: id,
-    metadata:   {},
+    metadata:   { tenantId },
   });
 
   revalidatePath("/settings/task-codes");
@@ -433,6 +470,7 @@ export async function setTaskCodeStatus(
 
 export async function deleteTaskCode(id: string): Promise<ActionResult> {
   await requirePermission("task_codes", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -441,19 +479,19 @@ export async function deleteTaskCode(id: string): Promise<ActionResult> {
   const [tc] = await db
     .select({ code: taskCodesTable.code, name: taskCodesTable.name })
     .from(taskCodesTable)
-    .where(eq(taskCodesTable.id, id))
+    .where(and(eq(taskCodesTable.id, id), eq(taskCodesTable.tenantId, tenantId)))
     .limit(1);
 
   if (!tc) return { success: false, message: "Taakcode niet gevonden." };
 
-  await db.delete(taskCodesTable).where(eq(taskCodesTable.id, id));
+  await db.delete(taskCodesTable).where(and(eq(taskCodesTable.id, id), eq(taskCodesTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
     userId:     user.id,
     action:     "delete",
     resource:   "task_codes",
     resourceId: id,
-    metadata:   { code: tc.code, name: tc.name },
+    metadata:   { code: tc.code, name: tc.name, tenantId },
   });
 
   revalidatePath("/settings/task-codes");

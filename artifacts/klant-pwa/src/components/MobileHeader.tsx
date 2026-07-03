@@ -16,25 +16,51 @@ import { signOut } from "@/actions/auth";
 import type { CustomerNotificationSummary } from "@/actions/notifications";
 import type { CustomerProfile } from "@/actions/customer";
 
-export function VeeleLogo() {
+export type PortalBrandingProps = {
+  displayName: string;
+  platformName: string;
+  logoUrl: string | null;
+  accentColor: string;
+};
+
+function initialsFor(value: string): string {
+  return value
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("") || "FG";
+}
+
+export function VeeleLogo({ branding }: { branding?: PortalBrandingProps }) {
+  const displayName = branding?.displayName || "Fieldgrid";
+  const platformName = branding?.platformName || "Fieldgrid";
+  const logoUrl = branding?.logoUrl ?? null;
+  const accentColor = branding?.accentColor || "#00B7B3";
+
   return (
-    <Link href="/" className="flex items-center gap-2.5" aria-label="Veele Services home">
-      <span className="relative flex h-8 w-8 items-center justify-center">
-        <span
-          className="absolute h-8 w-2 -rotate-[24deg] rounded-full"
-          style={{ backgroundColor: "#00B7B3" }}
-        />
-        <span className="absolute h-8 w-2 rotate-[24deg] rounded-full bg-white" />
+    <Link href="/" className="flex items-center gap-2.5" aria-label={`${displayName} home`}>
+      <span className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-xl bg-white/10">
+        {logoUrl ? (
+          <img src={logoUrl} alt="" className="h-full w-full object-cover" />
+        ) : (
+          <span
+            className="flex h-8 w-8 items-center justify-center rounded-xl text-[11px] font-black text-white"
+            style={{ backgroundColor: accentColor }}
+          >
+            {initialsFor(displayName)}
+          </span>
+        )}
       </span>
-      <span className="leading-none">
-        <span className="block text-[16px] font-black tracking-[0.22em] text-white">
-          VEELE
+      <span className="min-w-0 leading-none">
+        <span className="block max-w-32 truncate text-[16px] font-black tracking-[0.08em] text-white">
+          {displayName.toUpperCase()}
         </span>
         <span
-          className="mt-1 block text-[7px] font-bold tracking-[0.42em]"
+          className="mt-1 block max-w-32 truncate text-[7px] font-bold tracking-[0.24em]"
           style={{ color: "#BFECEA" }}
         >
-          SERVICES
+          {platformName.toUpperCase()}
         </span>
       </span>
     </Link>
@@ -169,7 +195,7 @@ export function HeaderActions({
                 {profile?.contactName ?? profile?.name ?? "Klant"}
               </p>
               <p className="truncate text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>
-                {profile?.name ?? "Veele Services"}
+                {profile?.name ?? "Fieldgrid"}
               </p>
             </div>
             <Link href="/profiel" className="flex items-center gap-2.5 px-3.5 py-2.5 font-bold" role="menuitem" style={{ color: "var(--color-primary)" }}>
@@ -203,19 +229,21 @@ export function HeaderActions({
 }
 
 export function MobileHeader({
+  branding,
   notificationSummary,
   profile,
 }: {
+  branding?: PortalBrandingProps;
   notificationSummary: CustomerNotificationSummary;
   profile: CustomerProfile | null;
 }) {
   return (
     <header
       className="sticky top-0 z-40 md:hidden"
-      style={{ background: "linear-gradient(180deg, #06224A 0%, #061F44 100%)" }}
+      style={{ background: "linear-gradient(180deg, var(--color-primary) 0%, #061F44 100%)" }}
     >
       <div className="flex items-center justify-between px-4 pb-3 pt-[calc(0.7rem+var(--safe-top))]">
-        <VeeleLogo />
+        <VeeleLogo branding={branding} />
         <HeaderActions notificationSummary={notificationSummary} profile={profile} />
       </div>
     </header>

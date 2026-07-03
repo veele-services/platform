@@ -1,6 +1,6 @@
 "use server";
 
-import { getCurrentPortalTenantId } from "@/lib/auth/tenant";
+import { requireCurrentCustomerPortalTenantId } from "@/lib/auth/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@workspace/db";
 import { customerUsersTable, customersTable, customerTypesTable } from "@workspace/db";
@@ -43,7 +43,7 @@ export async function getMyCustomerIdentity(): Promise<CustomerIdentity | null> 
   const { data: { user } } = await supabase.auth.getUser();
   if (!user?.email) return null;
 
-  const tenantId = await getCurrentPortalTenantId();
+  const tenantId = await requireCurrentCustomerPortalTenantId();
   if (!tenantId) return null;
 
   const email = user.email.toLowerCase();

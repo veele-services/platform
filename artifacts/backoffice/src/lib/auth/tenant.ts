@@ -1,6 +1,8 @@
 import {
   db,
   DEFAULT_TENANT_ID,
+  FIELDGRID_SUPPORT_TENANT_COOKIE,
+  getActiveSupportAccessForUser,
   TENANT_RUNTIME_ACTIVE_STATUSES,
   tenantUsersTable,
   tenantsTable,
@@ -128,6 +130,14 @@ export async function getCurrentTenantId(): Promise<string | null> {
 
   if (hostResolution.kind === "blocked") {
     return null;
+  }
+
+  if (hostResolution.kind === "platform") {
+    const cookieStore = await cookies();
+    const supportTenantId = cookieStore.get(FIELDGRID_SUPPORT_TENANT_COOKIE)?.value;
+    if (supportTenantId && await getActiveSupportAccessForUser(user.id, supportTenantId)) {
+      return supportTenantId;
+    }
   }
 
   const tenantOptions = await getActiveBackofficeTenantsForUser(user.id);

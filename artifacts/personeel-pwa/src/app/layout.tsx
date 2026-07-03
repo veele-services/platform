@@ -4,13 +4,13 @@ import { DevNav } from "@/components/DevNav";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Veele Personeel",
-  description: "Veele Services — personeelsapp voor uitvoerend personeel",
+  title: "Fieldgrid Personeel",
+  description: "Fieldgrid - personeelsapp voor uitvoerend personeel",
   manifest: "/personeel/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Veele",
+    title: "Fieldgrid",
   },
 };
 

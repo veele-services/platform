@@ -2,6 +2,7 @@
 
 import { db } from "@workspace/db";
 import {
+  FIELDGRID_SUPPORT_TENANT_COOKIE,
   platformUsersTable,
   supportAccessAuditLogTable,
   supportAccessGrantsTable,
@@ -9,6 +10,8 @@ import {
 } from "@workspace/db";
 import { and, desc, eq, gt, isNull, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
   requirePlatformAdmin,
@@ -61,6 +64,15 @@ function normalizePlatformStatus(status: string): "active" | "inactive" | "suspe
   return ["active", "inactive", "suspended"].includes(status)
     ? (status as "active" | "inactive" | "suspended")
     : "active";
+}
+
+function formValue(formData: FormData, name: string): string {
+  return String(formData.get(name) ?? "").trim();
+}
+
+function revalidatePlatformTenant(tenantId: string): void {
+  revalidatePath("/platform");
+  revalidatePath(`/platform/tenants/${tenantId}`);
 }
 
 export async function listPlatformUsers(): Promise<PlatformUserRow[]> {
@@ -183,8 +195,23 @@ export async function createSupportAccessGrant(input: {
     metadata: { platformUserId, reason, expiresAt: expiresAt.toISOString() },
   });
 
-  revalidatePath("/platform/support-access");
+  revalidatePath("/platform");
+  revalidatePlatformTenant(tenantId);
   return { success: true, data: { id: row.id } };
+}
+
+export async function createSupportAccessGrantFromForm(formData: FormData): Promise<ActionResult> {
+  const tenantId = formValue(formData, "tenantId");
+  const platformUserId = formValue(formData, "platformUserId");
+  const reason = formValue(formData, "reason");
+  const startsAt = formValue(formData, "startsAt") || null;
+  const expiresAt = formValue(formData, "expiresAt");
+
+  const result = await createSupportAccessGrant({ tenantId, platformUserId, reason, startsAt, expiresAt });
+  if (!result.success) return result;
+
+  revalidatePlatformTenant(tenantId);
+  return { success: true };
 }
 
 export async function revokeSupportAccessGrant(grantId: string): Promise<ActionResult> {
@@ -209,8 +236,14 @@ export async function revokeSupportAccessGrant(grantId: string): Promise<ActionR
     resourceId: grant.id,
   });
 
-  revalidatePath("/platform/support-access");
+  revalidatePath("/platform");
+  revalidatePlatformTenant(grant.tenantId);
   return { success: true };
+}
+
+export async function revokeSupportAccessGrantFromForm(formData: FormData): Promise<ActionResult> {
+  const grantId = formValue(formData, "grantId");
+  return revokeSupportAccessGrant(grantId);
 }
 
 export async function assertSupportAccessForTenant(tenantId: string): Promise<ActionResult> {
@@ -222,6 +255,51 @@ export async function assertSupportAccessForTenant(tenantId: string): Promise<Ac
     resourceId: tenantId,
   });
   return { success: true };
+}
+
+export async function enterSupportMode(formData: FormData): Promise<void> {
+  const tenantId = String(formData.get("tenantId") ?? "").trim();
+  if (!tenantId) throw new Error("Forbidden: active support grant required");
+
+  const grant = await requireSupportAccess(tenantId);
+  const cookieStore = await cookies();
+  cookieStore.set(FIELDGRID_SUPPORT_TENANT_COOKIE, tenantId, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    expires: grant.expiresAt,
+  });
+
+  await writeSupportAccessAuditLog({
+    tenantId,
+    action: "support_mode_entered",
+    resource: "support_access_grants",
+    resourceId: grant.id,
+    metadata: {
+      reason: grant.reason,
+      expiresAt: grant.expiresAt.toISOString(),
+    },
+  });
+
+  redirect("/");
+}
+
+export async function exitSupportMode(): Promise<void> {
+  const cookieStore = await cookies();
+  const tenantId = cookieStore.get(FIELDGRID_SUPPORT_TENANT_COOKIE)?.value;
+
+  if (tenantId) {
+    await writeSupportAccessAuditLog({
+      tenantId,
+      action: "support_mode_exited",
+      resource: "tenants",
+      resourceId: tenantId,
+    });
+  }
+
+  cookieStore.delete(FIELDGRID_SUPPORT_TENANT_COOKIE);
+  revalidatePath("/");
 }
 
 export async function listSupportAccessAuditLog(tenantId?: string): Promise<SupportAccessAuditLogRow[]> {

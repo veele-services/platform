@@ -5,6 +5,7 @@ import {
   tenantRolesTable,
   permissionsTable,
   auditLogTable,
+  getSupportRuntimePermissions,
   isTenantModuleEnabled,
   requireTenantModule,
   type FieldgridModuleKey,
@@ -13,6 +14,7 @@ import {
 import { and, eq, inArray } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentTenantId } from "@/lib/auth/tenant";
+import { getCurrentSupportMode, writeSupportAccessAuditLog } from "@/lib/auth/platform";
 
 const PERMISSION_MODULES: Partial<Record<string, FieldgridModuleKey>> = {
   documents: "documents",
@@ -75,6 +77,28 @@ async function requireEnabledPermissionModule(resource: string): Promise<void> {
   }
 
   await requireTenantModule(tenantId, moduleKey);
+}
+
+async function auditCurrentSupportPermission(
+  resource: string,
+  action: string,
+  allowed: boolean,
+): Promise<void> {
+  const supportMode = await getCurrentSupportMode();
+  if (!supportMode) return;
+
+  await writeSupportAccessAuditLog({
+    tenantId: supportMode.tenantId,
+    action: allowed ? "backoffice_permission_allowed" : "backoffice_permission_denied",
+    resource,
+    metadata: {
+      permission: `${resource}:${action}`,
+      priority: supportMode.priority,
+      grantId: supportMode.grantId,
+      reason: supportMode.reason,
+      expiresAt: supportMode.expiresAt,
+    },
+  });
 }
 
 /** Fetch all permission keys for a given Supabase Auth user UUID within one tenant. */
@@ -147,7 +171,28 @@ export async function getCurrentUserPermissions(): Promise<Set<string>> {
   const tenantId = await getCurrentTenantId();
   if (!tenantId) return new Set();
 
+  const supportMode = await getCurrentSupportMode();
+  if (supportMode?.tenantId === tenantId) {
+    return getSupportRuntimePermissions();
+  }
+
   return getUserPermissions(user.id, tenantId);
+}
+
+export async function getCurrentEffectiveUserPermissions(): Promise<Set<string>> {
+  const permissions = await getCurrentUserPermissions();
+  if (permissions.size === 0) return permissions;
+
+  const tenantId = await getCurrentTenantId();
+  if (!tenantId) return new Set();
+
+  const enabledModules = await enabledModulesForPermissions(permissions, tenantId);
+  return new Set(
+    [...permissions].filter((permission) => {
+      const moduleKey = moduleForPermissionResource(resourceFromPermission(permission));
+      return !moduleKey || enabledModules.has(moduleKey);
+    }),
+  );
 }
 
 /**
@@ -156,9 +201,9 @@ export async function getCurrentUserPermissions(): Promise<Set<string>> {
  */
 export async function hasPermission(resource: string, action: string): Promise<boolean> {
   const permissions = await getCurrentUserPermissions();
-  if (!permissions.has(`${resource}:${action}`)) return false;
-
-  return hasEnabledPermissionModule(resource);
+  const allowed = permissions.has(`${resource}:${action}`) && await hasEnabledPermissionModule(resource);
+  await auditCurrentSupportPermission(resource, action, allowed);
+  return allowed;
 }
 
 /**
@@ -168,10 +213,17 @@ export async function hasPermission(resource: string, action: string): Promise<b
 export async function requirePermission(resource: string, action: string): Promise<void> {
   const permissions = await getCurrentUserPermissions();
   if (!permissions.has(`${resource}:${action}`)) {
+    await auditCurrentSupportPermission(resource, action, false);
     throw new Error(`Forbidden: ${resource}:${action}`);
   }
 
-  await requireEnabledPermissionModule(resource);
+  try {
+    await requireEnabledPermissionModule(resource);
+    await auditCurrentSupportPermission(resource, action, true);
+  } catch (error) {
+    await auditCurrentSupportPermission(resource, action, false);
+    throw error;
+  }
 }
 
 /** Write one row to the audit_log table. Never throws - errors are logged but not surfaced. */
