@@ -1,7 +1,7 @@
 # Fieldgrid SaaS proof sprintplan canon
 
-Datum: 2026-07-03
-Status: sprint 2 regio datamodel en backfill geleverd; sprint 0 canon refresh 2.0 blijft de basis.
+Datum: 2026-07-04
+Status: sprint 3 regio UI backoffice breed geleverd; sprint 4 regio runtime/planningproof blijft open; sprint 0 canon refresh 2.0 blijft de basis.
 Scope: volledige afronding van SaaS-hardening, runtime-bewijs, tenant-regio's, storage, audit, onboarding, smoke en externe tenant readiness.
 
 ## Doel
@@ -39,7 +39,7 @@ Geen canonitem mag nog als alleen "open" of "ontbreekt" blijven staan zonder een
 | Support grants | `partial` | Sprint 10 | Grant, reden en expiry bestaan; max TTL, break-glass UX en securitydashboard open. |
 | Sector enforcement | `runtime-proof-open` | Sprint 5 | Runtimebasis bestaat; disable/default/single-sector bewijs uitbreiden. |
 | Module enforcement | `partial` | Sprint 11 | API breder dan backoffice; portalen/jobs harmonisatie open. |
-| Tenant-regio's | `partial` | Sprint 2/3/4 | Sprint 2 datamodel/backfill geleverd; multiselect UI en planningproof blijven Sprint 3/4. |
+| Tenant-regio's | `partial` | Sprint 2/3/4 | Sprint 2 datamodel/backfill en Sprint 3 backoffice multiselect UI geleverd; runtime planningproof blijft Sprint 4. |
 | Customers/objects/personnel/assignments | `runtime-proof-open` | Sprint 5/8 | Directe tenant_id bestaat, maar defaults/hardening en direct-ID bewijs moeten dicht. |
 | Documents/reports/quotes/invoices/payments/batches | `hardening-open` | Sprint 8 | Tenant-aware foundation bestaat; nullable/backfill/constraint validation open. |
 | Assignment media | `hardening-open` | Sprint 9 | Directe tenant_id en storageproof moeten afgerond worden. |
@@ -141,6 +141,16 @@ Definition of Done:
 ## Sprint 3 - Regio UI backoffice breed
 
 Doel: alle relevante backoffice-formulieren ondersteunen multiselect met autofill.
+
+Opleverstatus:
+
+- `artifacts/backoffice/src/components/regions/RegionMultiSelect.tsx` levert de herbruikbare selector met autocomplete en create-on-type.
+- `artifacts/backoffice/src/app/actions/regions.ts` leest en synchroniseert tenant-regio's voor personeel, objecten en opdrachten.
+- Personeelsformulier gebruikt meerdere regio's en vult legacy `personnel.region` en `preferred_regions`.
+- Objectformulier gebruikt meerdere regio's via `object_regions`.
+- Opdrachtformulier gebruikt meerdere regio's via `assignment_required_regions` en vult legacy `assignments.required_region` met de eerste regio.
+- `docs/fieldgrid-sprint-3-region-ui.md` beschrijft het compatibiliteitscontract.
+- `tests/fieldgrid-sprint-3-region-ui.test.mjs` bewaakt de UI- en action-wiring.
 
 Taken:
 
