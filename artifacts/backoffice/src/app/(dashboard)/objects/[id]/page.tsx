@@ -12,6 +12,7 @@ import { ObjectContactsTab } from "@/components/objects/tabs/ObjectContactsTab";
 import { ObjectPersonnelTab } from "@/components/objects/tabs/ObjectPersonnelTab";
 import { ObjectServicesTab } from "@/components/objects/tabs/ObjectServicesTab";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { getObjectForDetailPage } from "@/app/actions/object-detail-safe";
 import {
   getObject,
   getObjectPerformance,
@@ -96,7 +97,7 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
     hasPermission("assignments", "read"),
   ]);
 
-  const obj = await safeOptional("object", id, () => getObject(id), null);
+  const obj = await safeOptional("object", id, () => getObjectForDetailPage(id), null);
   if (!obj) notFound();
 
   const [contacts, personnel, personnelOptions, assignments, sectors, customers, performance, history] = await Promise.all([
