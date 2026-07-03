@@ -2,14 +2,15 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import { CheckCircle2, XCircle, Loader2, AlertTriangle } from "lucide-react";
 import { approveReport, rejectReport } from "@/app/actions/reports";
 
 interface Props {
   reportId: string;
+  approveDisabledReason?: string | null;
 }
 
-export function ReportActions({ reportId }: Props) {
+export function ReportActions({ reportId, approveDisabledReason = null }: Props) {
   const router       = useRouter();
   const [, startT]   = useTransition();
   const [error, setError]  = useState<string | null>(null);
@@ -18,6 +19,11 @@ export function ReportActions({ reportId }: Props) {
   const [rejectNotes, setRejectNotes] = useState("");
 
   async function handleApprove() {
+    if (approveDisabledReason) {
+      setError(approveDisabledReason);
+      return;
+    }
+
     setError(null);
     setLoading("approve");
     const result = await approveReport(reportId);
@@ -51,6 +57,13 @@ export function ReportActions({ reportId }: Props) {
         Beoordeling
       </p>
 
+      {approveDisabledReason ? (
+        <p className="flex items-start gap-2 rounded-lg px-3 py-2 text-xs" style={{ background: "#FFFBEB", color: "#92400E" }}>
+          <AlertTriangle className="mt-0.5 h-3.5 w-3.5 flex-shrink-0" />
+          {approveDisabledReason}
+        </p>
+      ) : null}
+
       {error && (
         <p className="text-xs rounded-lg px-3 py-2" style={{ background: "#FEE2E2", color: "#991B1B" }}>
           {error}
@@ -60,7 +73,7 @@ export function ReportActions({ reportId }: Props) {
       {/* Approve */}
       <button
         onClick={handleApprove}
-        disabled={loading !== null}
+        disabled={loading !== null || Boolean(approveDisabledReason)}
         className="flex items-center justify-center gap-2 w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-colors disabled:opacity-60"
         style={{ backgroundColor: "#D1FAE5", color: "#065F46" }}
       >
