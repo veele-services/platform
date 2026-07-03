@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { db } from "@workspace/db";
+import { db, isTenantModuleEnabled } from "@workspace/db";
 import { invoicesTable, customersTable, auditLogTable, organizationSettingsTable } from "@workspace/db";
 import { eq, and, lte, or, isNull, lt } from "drizzle-orm";
 import type { Request, Response } from "express";
@@ -82,6 +82,7 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
         totalAmount:         invoicesTable.totalAmount,
         dueDate:             invoicesTable.dueDate,
         lastReminderSentAt:  invoicesTable.lastReminderSentAt,
+        customerTenantId:    customersTable.tenantId,
         customerName:        customersTable.name,
         customerEmail:       customersTable.contactEmail,
       })
@@ -104,8 +105,15 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
 
     let sent    = 0;
     let skipped = 0;
+    let moduleDisabled = 0;
 
     for (const invoice of overdueInvoices) {
+      if (!invoice.customerTenantId || !(await isTenantModuleEnabled(invoice.customerTenantId, "finance"))) {
+        moduleDisabled++;
+        skipped++;
+        continue;
+      }
+
       if (!invoice.customerEmail) {
         skipped++;
         continue;
@@ -153,8 +161,8 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
       sent++;
     }
 
-    req.log.info({ sent, skipped }, "payment-reminders: klaar");
-    res.json({ ok: true, sent, skipped });
+    req.log.info({ sent, skipped, moduleDisabled }, "payment-reminders: klaar");
+    res.json({ ok: true, sent, skipped, moduleDisabled });
   } catch (err) {
     req.log.error({ err }, "payment-reminders: onverwachte fout");
     res.status(500).json({ error: "Interne fout" });

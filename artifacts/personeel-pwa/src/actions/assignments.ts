@@ -1,6 +1,6 @@
 "use server";
 
-import { db, assignmentsTable, assignmentPersonnelTable } from "@workspace/db";
+import { db, assignmentsTable, assignmentPersonnelTable, isTenantModuleEnabled } from "@workspace/db";
 import { assignmentTasksTable } from "@workspace/db";
 import { emitAssignmentWorkflowEvent } from "@workspace/db/workflow-events";
 import { and, eq } from "drizzle-orm";
@@ -78,7 +78,11 @@ async function getPersonnelBasic(
     .eq("user_id", userId)
     .eq("is_active", true)
     .single();
-  return data ? { id: data.id, tenantId: data.tenant_id, region: data.region ?? null } : null;
+
+  if (!data?.tenant_id) return null;
+  if (!(await isTenantModuleEnabled(data.tenant_id, "personnel_portal"))) return null;
+
+  return { id: data.id, tenantId: data.tenant_id, region: data.region ?? null };
 }
 
 /** Returns true if the assignment is region-compatible with the personnel member. */
