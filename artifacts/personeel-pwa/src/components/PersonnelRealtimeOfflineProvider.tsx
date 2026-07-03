@@ -34,6 +34,14 @@ type ForegroundPushNotification = {
   receivedAt: number;
 };
 
+const MINUTE_REFRESH_INTERVAL_MS = 60_000;
+
+function msUntilNextMinute(): number {
+  const now = new Date();
+  const elapsedInMinute = now.getSeconds() * 1000 + now.getMilliseconds();
+  return MINUTE_REFRESH_INTERVAL_MS - elapsedInMinute;
+}
+
 async function runQueuedAction(action: OfflineWorkOrderAction) {
   if (action.type === "start-assignment") {
     return startAssignment(action.assignmentId);
@@ -99,6 +107,8 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
   const [pushToast, setPushToast] = useState<ForegroundPushNotification | null>(null);
   const syncingRef = useRef(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const minuteTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const minuteIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const scheduleRefresh = useCallback(() => {
     if (refreshTimerRef.current) {
@@ -183,6 +193,10 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
       void requestOfflineWorkOrderSync();
     };
     const handleOffline = () => setOnline(false);
+    const handleFocus = () => {
+      scheduleRefresh();
+      void processQueue();
+    };
     const handleVisibility = () => {
       if (document.visibilityState === "visible") {
         scheduleRefresh();
@@ -224,6 +238,8 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
 
     window.addEventListener("online", handleOnline);
     window.addEventListener("offline", handleOffline);
+    window.addEventListener("focus", handleFocus);
+    window.addEventListener("pageshow", handleFocus);
     document.addEventListener("visibilitychange", handleVisibility);
     navigator.serviceWorker?.addEventListener("message", handleServiceWorkerMessage);
 
@@ -235,6 +251,8 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
       unsubscribeQueue();
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      window.removeEventListener("focus", handleFocus);
+      window.removeEventListener("pageshow", handleFocus);
       document.removeEventListener("visibilitychange", handleVisibility);
       navigator.serviceWorker?.removeEventListener("message", handleServiceWorkerMessage);
     };
@@ -281,6 +299,30 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
       return;
     }
   }, [personnelId, scheduleRefresh]);
+
+  useEffect(() => {
+    const refreshIfVisible = () => {
+      if (document.visibilityState === "visible") {
+        scheduleRefresh();
+      }
+    };
+
+    minuteTimeoutRef.current = setTimeout(() => {
+      refreshIfVisible();
+      minuteIntervalRef.current = setInterval(refreshIfVisible, MINUTE_REFRESH_INTERVAL_MS);
+    }, msUntilNextMinute());
+
+    return () => {
+      if (minuteTimeoutRef.current) {
+        clearTimeout(minuteTimeoutRef.current);
+      }
+      if (minuteIntervalRef.current) {
+        clearInterval(minuteIntervalRef.current);
+      }
+      minuteTimeoutRef.current = null;
+      minuteIntervalRef.current = null;
+    };
+  }, [scheduleRefresh]);
 
   useEffect(() => {
     return () => {
