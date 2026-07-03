@@ -8,10 +8,6 @@ import {
   personnelTable,
   rolesTable,
   sectorsTable,
-  tenantRegionsTable,
-  personnelRegionsTable,
-  objectRegionsTable,
-  assignmentRequiredRegionsTable,
 } from "@workspace/db";
 import { and, asc, desc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { hasPermission, requirePermission } from "@/lib/auth/permissions";
