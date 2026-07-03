@@ -1,7 +1,7 @@
 {
-  "name": "Veele Personeel",
-  "short_name": "Veele",
-  "description": "Veele Services — personeelsapp voor uitvoerend personeel",
+  "name": "Fieldgrid Personeel",
+  "short_name": "Fieldgrid",
+  "description": "Fieldgrid - personeelsapp voor uitvoerend personeel",
   "start_url": "/personeel",
   "display": "standalone",
   "background_color": "#081D3A",
