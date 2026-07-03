@@ -1,11 +1,19 @@
 import { LoginForm } from "@/components/LoginForm";
 
 type Props = {
-  searchParams: Promise<{ error?: string; message?: string }>;
+  searchParams: Promise<{ error?: string; message?: string; next?: string }>;
 };
 
+function safeNext(value: string | undefined): string | null {
+  if (!value) return null;
+  if (!value.startsWith("/") || value.startsWith("//")) return null;
+  if (value.startsWith("/login")) return null;
+  return value;
+}
+
 export default async function LoginPage({ searchParams }: Props) {
-  const { error, message } = await searchParams;
+  const { error, message, next } = await searchParams;
+  const redirectPath = safeNext(next);
 
   return (
     <div
@@ -46,7 +54,7 @@ export default async function LoginPage({ searchParams }: Props) {
           )}
 
           <div className="rounded-2xl bg-white p-6 shadow-lg">
-            <LoginForm />
+            <LoginForm next={redirectPath} />
           </div>
         </div>
       </div>
