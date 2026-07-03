@@ -102,9 +102,9 @@ test("Sprint 6 document actions use tenant id and shared storage guards", () => 
   assertContains(
     actions,
     [
+      "buildDocumentStoragePath",
       "buildTenantStoragePath",
       "getTenantBoundStoragePath",
-      "tenant/{tenant_id}",
       "eq(documentsTable.tenantId, tenantId)",
       "tenantId,",
       "allowLegacyTenantRoot: true",
