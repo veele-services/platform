@@ -21,6 +21,7 @@
     "storage-tenancy:report": "node ./scripts/storage-tenancy-report.mjs",
     "seed:rbac": "tsx src/seed/rbac.ts",
     "seed:sectors": "tsx src/seed/sectors.ts",
+    "seed:platform-admin": "tsx src/seed/platform-admin.ts",
     "seed:platform-users": "tsx src/seed/platform-users.ts",
     "seed:staging-demo": "tsx src/seed/staging-demo.ts",
     "seed:staging-demo:dry-run": "tsx src/seed/staging-demo.ts --dry-run",
