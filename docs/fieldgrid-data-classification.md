@@ -1,8 +1,8 @@
 # Fieldgrid data-classificatie canon
 
 Datum: 2026-07-03  
-Status: actuele stand na recovery, tenant lifecycle, module/plan foundation en storage-hardening t/m PR #125.  
-Gerelateerd: `docs/fieldgrid-saas-masterplan.md`, `docs/fieldgrid-cross-tenant-testmatrix.md`, `docs/fieldgrid-recovery-execution-plan.md`, `docs/tenant-query-audit-v1.md`, `docs/security-final-audit-v1.md`
+Status: actuele stand na recovery, sprints 1 t/m 11, PR #149 en fase 0 canonrefresh.  
+Gerelateerd: `docs/fieldgrid-saas-masterplan.md`, `docs/fieldgrid-next-major-update-plan.md`, `docs/fieldgrid-cross-tenant-testmatrix.md`, `docs/fieldgrid-staging-promotion-checklist.md`, `docs/fieldgrid-recovery-execution-plan.md`.
 
 ## Doel
 
@@ -12,7 +12,7 @@ De classificatie bepaalt per domein:
 
 - welke tenantstrategie geldt;
 - welk risico prioriteit heeft;
-- of migratie nodig is;
+- of migratie of hardening nodig is;
 - welke tests verplicht worden in volgende fases;
 - welke roadmapfase eigenaar is van het restpunt.
 
@@ -22,12 +22,12 @@ Geen domein mag in vervolgwerk als `unknown` worden behandeld. Als een nieuw sch
 
 | Strategie | Betekenis | Gebruik |
 | --- | --- | --- |
-| `direct_tenant_id` | De tabel heeft zelf een verplichte `tenant_id`. | Voorkeur voor tenantdata die direct gelezen, geschreven, geexporteerd, gedownload, betaald of geaudit wordt. |
+| `direct_tenant_id` | De tabel heeft zelf een verplichte of bewust gevalideerde `tenant_id`. | Voorkeur voor tenantdata die direct gelezen, geschreven, geexporteerd, gedownload, betaald of geaudit wordt. |
 | `parent_scoped` | Tenant loopt bewust via een verplichte parentrelatie. | Tijdelijk acceptabel voor technische child rows met sterke FK, parent-checks en tests. |
-| `global_template` | Globale template of catalogus, geen runtime tenantdata. | Rollen, permissies, sectorcatalogus, modulecatalogus en toekomstige templates. |
+| `global_template` | Globale template of catalogus, geen runtime tenantdata. | Rollen, permissies, sectorcatalogus, modulecatalogus, plantemplates en toekomstige templates. |
 | `platform_only` | Alleen Fieldgrid platform-admin/support gebruikt deze data. | Platform users, support grants, platform audit en platformbreed beheer. |
-| `tenant_config` | Tenantinstelling, entitlement of policy. | Tenant domains, tenant sectors, modules, plans, branding, SMTP en subscriptions. |
-| `needs_migration` | Huidige vorm is onvoldoende voor het SaaS-doelmodel. | Gevoelige tabellen zonder directe tenantkolom, legacy runtimepaden of storage zonder tenant-prefix. |
+| `tenant_config` | Tenantinstelling, entitlement of policy. | Tenant domains, tenant sectors, sector settings, modules, plans, branding, SMTP en subscriptions. |
+| `needs_migration` | Huidige vorm is onvoldoende voor het SaaS-doelmodel. | Gevoelige tabellen met nullable tenantkolom, legacy runtimepaden, open storagebewijs of open scopebesluit. |
 
 ## Prioriteiten
 
@@ -39,118 +39,136 @@ Geen domein mag in vervolgwerk als `unknown` worden behandeld. Als een nieuw sch
 
 ## Actuele stand per 2026-07-03
 
-De recovery is inhoudelijk voorbij: `main` is bron van waarheid, staging-data blijft behouden en de basis voor tenant resolver, tenant lifecycle, tenantrollen, modules/plans, platform-admin, support grants, sectoren en meerdere storage/download guards bestaat.
+De recovery is inhoudelijk voorbij: `main` is bron van waarheid, staging-data blijft behouden en de basis voor tenant resolver, tenant lifecycle, tenantrollen, modules/plans, platform-admin, support grants, sectoren, provisioning, finance/document/payment/audit tenant-awareness en meerdere storage/download guards bestaat.
 
-De codebase is nog niet klaar voor externe SaaS-acceptatie. De grootste gaten zijn runtime-bewijs en data-normalisatie: modules zijn nog niet overal module-aware, support grants zijn nog niet overal in de permissieprioriteit verwerkt, gevoelige finance/document/report/media tabellen missen directe `tenant_id`, storage is nog niet platformbreed tenant-prefixed, en de meeste cross-tenant tests zijn nog statisch in plaats van integration, Playwright, DB/RLS of storage tests.
+De codebase is nog niet klaar voor externe SaaS-acceptatie. De grootste gaten zijn runtime-bewijs en post-migration hardening: veel tests zijn nog statisch, meerdere gevoelige tabellen hebben nullable `tenant_id`, storage is applicatie-hard maar nog niet volledig bewezen met fysieke backfill en policytests, en module enforcement moet tussen API, backoffice, portalen en jobs worden geharmoniseerd.
+
+Deze fase 0 herclassificeert oude "ontbreekt"-items als:
+
+- gebouwd en redelijk compleet;
+- gebouwd maar bewijs ontbreekt;
+- gebouwd maar hardening open;
+- nog open productbesluit;
+- nog niet gebouwd productisering.
 
 ## Classificatiematrix
 
 | Domein | Tabellen of oppervlak | Huidige status | Doelstrategie | Risico | Migratie of werk | Vereiste tests | Roadmapfase |
 | --- | --- | --- | --- | --- | --- | --- | --- |
-| Tenant core | `tenants` | Heeft lifecycle-status, `plan_key`, timestamps en actieve tenantstatus. | `tenant_config` | P0 | Platform-admin lifecycle, provisioning audit en suspended-policy uitwerken. | Host-first active/suspended/archived, geen default fallback. | Fase 1/6/7 |
-| Tenant users | `tenant_users` | Membership is tenant-scoped en inactive/suspended tenants worden uitgesloten. | `direct_tenant_id` | P0 | Geen basismigratie; integration bewijs ontbreekt. | Tenant A/B/Veele membership, direct-ID denial. | Fase 1/2 |
-| Tenant domains | `tenant_domains` | Bestaat met domain, type, primary en verificatievelden. | `tenant_config` | P0 | Platform-admin domeinbeheer en custom-domain bewijs. | Platformhost, tenanthost, custom domain, onbekende host, switcher override. | Fase 1/6 |
-| Globale RBAC templates | `roles`, `permissions`, `role_permissions`, legacy `user_roles` | Blijven template/backfill-bron; mogen geen runtime-rechten geven. | `global_template` | P0 | Legacy runtimepaden opruimen zodra tests groen zijn. | Globale role zonder tenantrol geeft geen toegang. | Fase 2 |
-| Tenant RBAC runtime | `tenant_roles`, `tenant_role_permissions`, `tenant_user_roles` | Canonieke runtime-RBAC bestaat. | `direct_tenant_id` | P0 | Product-permissiematrix en Tenant A/B integration tests. | Zelfde user met verschillende rollen in Tenant A/B; custom roles Professional+. | Fase 2 |
-| Platform users | `platform_users` | Technische platform-admin/support basis bestaat. | `platform_only` | P0 | Platform-admin CRUD, role/statusbeheer en audit. | Actieve admin werkt, gedeactiveerde admin faalt, tenant user faalt. | Fase 6 |
-| Support access | `support_access_grants`, `support_access_audit_log` | Grants en audit bestaan met tenant scope, tijdvenster, reden en revoke. Runtimeprioriteit is nog niet overal bewezen. | `platform_only` + tenant-scoped support | P0 | Supportmodus, banner/TTL, auditcontext en guards integreren. | Geen grant faalt, actieve grant werkt, verlopen/verkeerde tenant faalt, audit verplicht. | Fase 3/6 |
-| Sectorcatalogus | `sectors` | Globale catalogus. | `global_template` | P0 | Geen basismigratie; beheer later in platform-admin. | Globale sector geeft geen tenantdata of tenantrecht. | Fase 4/6 |
-| Tenant sectors | `tenant_sectors` | Koppeling bestaat; enabled checks bestaan. Geen settings/default/single-sector policy. | `tenant_config` | P0 | `tenant_sector_settings`, default sector, max/mode en disable-blocking op bestaande data. | Geldige sector werkt, disabled/outside tenant faalt, single-sector default werkt. | Fase 4 |
-| Customers | `customers`, notes, contacts | `customers.tenant_id` bestaat; child rows meestal parent-scoped. | `direct_tenant_id` + `parent_scoped` | P0 | Child rows opnieuw beoordelen bij gevoelige exports/audit. | Customer direct-ID cross-tenant faalt, sector outside tenant faalt. | Fase 4/5 |
-| Customer users en klantportaal identity | `customer_users`, portal preferences | Tenant/customer/user scope bestaat; klantportaal is host-bound. | `direct_tenant_id` | P0 | Module-aware portal guards, branding en ambiguity tests. | Klant krijgt geen tenantkeuze; host Tenant A met Tenant B user faalt. | Fase 8 |
-| Objects/locations | `objects`, object contacts/personnel | `objects.tenant_id` bestaat; children parent-scoped. | `direct_tenant_id` + `parent_scoped` | P0 | Geen basismigratie; sector/direct-ID bewijs nodig. | Object direct-ID cross-tenant faalt, sector mismatch faalt. | Fase 4/5 |
-| Personnel en personeelsapp identity | `personnel`, availability, qualifications, profile settings | `personnel.tenant_id` bestaat; personeelsapp is host-bound. | `direct_tenant_id` | P0 | Module-aware app guards, branding en media tests. | Personeel ziet alleen eigen tenant en toegewezen data. | Fase 8 |
-| Assignments | `assignments` | `assignments.tenant_id` bestaat. Sector loopt indirect via customer/object/task context. | `direct_tenant_id` | P0 | Expliciet sectorontwerp voor assignments. | Assignment direct-ID faalt; sector mismatch create/update faalt. | Fase 4/5 |
-| Assignment technical children | `assignment_personnel`, `assignment_tasks`, `assignment_extra_work`, `assignment_material_usage`, `assignment_report_notes` | Geen eigen tenant_id; verplichte assignment FK. | `parent_scoped` tijdelijk acceptabel | P1 | Alleen migreren als directe child-routes/downloads blijven bestaan. | Child direct-ID route moet parent tenant checken. | Fase 5 |
-| Assignment media | `assignment_photos`, `assignment_report_note_attachments` | Downloadbaar materiaal zonder directe tenant_id. Er zijn enkele unsafe-path en parent guards. | `needs_migration` naar `direct_tenant_id` | P1 | Backfill via assignment, canonical tenant-prefix storage, signed URL helper centraliseren. | Storage path guessing faalt; signed URL alleen na tenant/entity check. | Fase 5 |
-| Documents | `documents`, document bucket | Geen directe tenant_id. Runtime heeft deels entity en tenant-prefix guards. | `needs_migration` naar `direct_tenant_id` | P1 | `documents.tenant_id`, backfill via entity, tenant-prefixed storagepad. | Upload/download/delete direct-ID en storage guessing cross-tenant faalt. | Fase 5 |
-| Reports | `reports`, report PDFs | Geen directe tenant_id; parent-scoped via assignment. Extern/PDF/download gevoelig. | `needs_migration` naar `direct_tenant_id` | P1 | Backfill via assignment en PDF/download audit. | Report/PDF direct-ID cross-tenant faalt. | Fase 5 |
-| Quotes | `quotes` | Geen directe tenant_id; financieel gevoelig. | `needs_migration` naar `direct_tenant_id` | P1 | Backfill via customer/assignment en PDF/download audit. | Quote/PDF direct-ID cross-tenant faalt. | Fase 5 |
-| Invoices | `invoices` | Geen directe tenant_id; financieel en payment gekoppeld. Invoice PDF route is deels tenant/customer scoped en audited. | `needs_migration` naar `direct_tenant_id` | P1 | Backfill via customer/assignment en uniforme download audit. | Invoice/PDF/payment direct-ID cross-tenant faalt. | Fase 5 |
-| Payments | `payments` | Geen directe tenant_id; loopt via invoice. | `needs_migration` naar `direct_tenant_id` | P1 | Backfill na invoice tenant_id, webhook tenantguard. | Webhook kan tenant niet overschrijven; payment view scoped. | Fase 5 |
-| Customer payment batches | `customer_payment_batches`, `customer_payment_batch_items` | Geen directe tenant_id; loopt via customer/batch/invoice. | `needs_migration` naar `direct_tenant_id` | P1 | Backfill via customer en invoice. | Batch direct-ID/PDF/payment cross-tenant faalt. | Fase 5 |
-| Audit logging | `audit_log` | Geen tenant_id; support audit heeft wel tenant scope. Sommige download metadata bevat tenant context. | `needs_migration` naar tenant/platform auditmodel | P1 | `audit_log.tenant_id` of splitsing tenant audit/platform audit. | Tenant-admin ziet alleen eigen audit; platform/support audit blijft platform-only. | Fase 5/6 |
-| Domain events | `domain_events` | Tenant_id bestaat. | `direct_tenant_id` | P1 | Worker/consumer module- en tenantfilters bewijzen. | Worker verwerkt alleen tenantcontext; aggregate id alleen is onvoldoende. | Fase 5/9 |
-| Notifications | notification settings, dispatch queue, attempts, push tokens | Meeste runtime notificationdata is tenant-scoped; event templates blijven globaal. | `direct_tenant_id` + `global_template` | P1 | Tenant overrides later. | Tenant A ontvangt geen Tenant B dispatch. | Fase 8/9 |
-| Tickets en messages | customer threads/entries, personnel tickets | Threads tenant/customer scoped; entries parent-scoped. | `direct_tenant_id` + `parent_scoped` | P1 | Geen basismigratie; direct-ID tests ontbreken. | Thread/message direct-ID cross-tenant faalt. | Fase 5/8 |
-| News | `news_posts`, `news_post_targets`, images | Nog niet duidelijk platform-only of tenant-news; storage kan tenantgevoelig zijn. | `needs_migration` of expliciet `platform_only` | P1 | Besluit: tenant-scoped news met tenant_id of platform-only news. | Tenant nieuws niet cross-tenant zichtbaar; image path scoped. | Fase 5/8 |
-| Task codes huidig | `task_codes` | Heeft tenant_id, maar code uniqueness en pricing model zijn nog niet SaaS-productklaar. | `tenant_config` nu, later template/override | P0 | `tenant_task_codes`, `tenant_task_code_prices`, tenant/sector prijshistorie. | Task code sector outside tenant faalt; prijs snapshot historisch correct. | Fase 4 |
-| Modules | `modules`, `tenant_modules`, `module_dependencies` | Foundation bestaat; backoffice deels module-aware. API, portalen en jobs missen nog volledige guards. | `tenant_config` | P0 | API module guards, portal module guards, job guards, platform-admin beheer. | Module uit via UI, directe URL, server action en API faalt. | Fase 3 |
-| Plans en subscriptions | `plans`, `plan_modules`, `plan_limits`, `tenant_subscriptions` | Starter/Professional/Enterprise foundation bestaat; custom-role capability werkt. Platform-admin en billing ontbreken. | `tenant_config` | P0/P2 | Platform-admin plan/limit/subscription beheer, usage en handmatige billing. | Custom roles Professional+, plan modules seed, limietconfig zichtbaar. | Fase 3/6 |
-| Organization settings | `organization_settings`, branding, SMTP | Tenant_id bestaat; bevat nog Veele-default teksten. | `tenant_config` | P2 | Fieldgrid platform defaults, tenantbranding, package-gated branding, secrets review. | Branding volgt tenant/plan; SMTP alleen eigen tenant. | Fase 8 |
-| Klantportaal runtime | host-bound customer routes, documents, invoices, tickets | Identity is host-first; module/branding/sector/storage acceptance ontbreekt. | runtime-hardening | P0/P1 | Portal module guards, tenantbranding, download audit en storage tests. | Host-bound access; module-off denies; customer cannot guess other tenant data. | Fase 8 |
-| Personeelsapp runtime | host-bound personnel routes, assignments, photos, tickets | Identity is host-first; module/branding/sector/storage acceptance ontbreekt. | runtime-hardening | P0/P1 | App module guards, tenantbranding, signed URL tests. | Personnel cannot read other tenant assignment/media. | Fase 8 |
-| Storage | documents, assignment photos, report attachments, avatars, news/org assets | Meerdere runtime guards bestaan, maar tenant-prefix is nog niet platformbreed canon. | `needs_migration` naar tenant-prefixed storage | P0/P1 | Canon `tenant/{tenant_id}/...`, backfillplan, shared signed URL validator, storage tests. | Storage path guessing faalt; signed URLs valideren tenant/entity. | Fase 5 |
-| Platform-admin product | platform routes, tenant detail, modules, plans, sectors, support, audit | Guard/shell bestaat; beheerschermen ontbreken grotendeels. | `platform_only` | P2 | CRUD, lifecycle, modules/plans, support grants, audit review, usage. | Tenant user faalt; active admin werkt; inactive admin faalt. | Fase 6 |
-| Provisioning | tenant create service, owner invite, logs | Ontbreekt. | `needs_migration` + `tenant_config` | P2 | Transactionele provisioning, rollback, duplicate slug/domain checks. | Success, rollback, duplicate slug/domain, owner invite. | Fase 7 |
-| Deployment/ops | VPS, DNS, reverse proxy, backups, smoke | Domeinbesluiten zijn canon; playbooks en smoke dashboards ontbreken. | operationeel contract | P2 | DNS/TLS/reverse proxy, backup/restore, monitoring, incident/rollback. | `platform.fieldgrid.nl`, `staging.fieldgrid.nl`, wildcard/custom domain smoke. | Fase 9/10 |
+| Tenant core | `tenants` | Lifecycle-status, plan key en auditbasis bestaan. | `tenant_config` | P0 | Suspended/archived gedrag blijven bewijzen; provisioning/wizard productiseren. | `FG-LIFE-001` t/m `FG-LIFE-004`, Tenant A/B/Veele integration. | Fase 1/6/7 |
+| Tenant users | `tenant_users` | Membership is tenant-scoped en inactive tenants worden uitgesloten. | `direct_tenant_id` | P0 | Geen basismigratie; integration bewijs nodig. | `FG-RBAC-*`, direct-ID denial. | Fase 1/2 |
+| Tenant domains | `tenant_domains` | Host-first resolver gebruikt domeinen; platform/staginghosts zijn canoniek. | `tenant_config` | P0 | Custom-domain bewijs en platformbeheer verder productiseren. | `FG-HOST-001` t/m `FG-HOST-006`. | Fase 1/7 |
+| Globale RBAC templates | `roles`, `permissions`, `role_permissions`, legacy global roles | Blijven template/backfill-bron; geen runtime-rechten. | `global_template` | P0 | Legacy runtimepaden opruimen zodra tests groen zijn. | `FG-RBAC-003`. | Fase 1/2 |
+| Tenant RBAC runtime | `tenant_roles`, `tenant_role_permissions`, `tenant_user_roles` | Runtime-RBAC bestaat via tenantrollen. | `direct_tenant_id` | P0 | Product-permissiematrix en echte Tenant A/B roltests. | `FG-RBAC-001` t/m `FG-RBAC-005`. | Fase 1/2 |
+| Platform users | `platform_users` | Platform-admin/support basis bestaat met status/rollen. | `platform_only` | P0 | CRUD, lifecycle-audit en security dashboard. | `FG-PLATFORM-001` t/m `FG-PLATFORM-003`. | Fase 5/6 |
+| Support access | `support_access_grants`, `support_access_audit_log` | Grants, tenant scope, reden, revoke en audit bestaan. | `platform_only` + tenant-scoped support | P0 | Break-glass max TTL, priority proof en dashboard. | `FG-SUPPORT-001` t/m `FG-SUPPORT-006`, `FG-AUDIT-002`. | Fase 5 |
+| Sectorcatalogus | `sectors` | Globale catalogus. | `global_template` | P0 | Beheer later via platform-admin. | Globale sector geeft geen runtime tenantrecht. | Fase 4/6 |
+| Tenant sectors en policy | `tenant_sectors`, `tenant_sector_settings` | Tenant-sector membership en policy foundation bestaan. | `tenant_config` | P0 | Disable/backfill bewijs, single-sector/default acceptance en UI polish. | `FG-SECTOR-001` t/m `FG-SECTOR-006`. | Fase 1/2 |
+| Customers | `customers`, notes, contacts | `customers.tenant_id` bestaat; children grotendeels parent-scoped. | `direct_tenant_id` + `parent_scoped` | P0 | Child rows opnieuw beoordelen bij exports/audit. | `FG-DATA-001`, sector tests. | Fase 1/2 |
+| Customer users en klantportaal identity | `customer_users`, portal preferences | Tenant/customer/user scope bestaat; klantportaal is host-bound. | `direct_tenant_id` | P0 | Portal module guards, branding en Playwright bewijs. | `FG-PORTAL-C-001` t/m `FG-PORTAL-C-004`. | Fase 1/6 |
+| Objects/locations | `objects`, object contacts/personnel | `objects.tenant_id` bestaat; children parent-scoped. | `direct_tenant_id` + `parent_scoped` | P0 | Direct-ID en sectorbewijs. | `FG-DATA-002`, sector tests. | Fase 1/2 |
+| Personnel en personeelsapp identity | `personnel`, availability, qualifications, profile settings | `personnel.tenant_id` bestaat; personeelsapp is host-bound. | `direct_tenant_id` | P0 | App module guards, branding en media tests. | `FG-PORTAL-P-001` t/m `FG-PORTAL-P-004`. | Fase 1/6 |
+| Assignments | `assignments` | `assignments.tenant_id` bestaat, maar DB-default naar `DEFAULT_TENANT_ID` moet weg. | `direct_tenant_id` | P0 | Default droppen, ontbrekende tenantId-writes laten falen, sectorconsistentie bewijzen. | `FG-DATA-003`, `FG-SECTOR-006`. | Fase 2 |
+| Assignment technical children | `assignment_personnel`, `assignment_tasks`, `assignment_extra_work`, `assignment_material_usage`, `assignment_report_notes` | Parent-scoped via assignment. | `parent_scoped` tijdelijk acceptabel | P1 | Alleen migreren als child zelfstandig download/export/route krijgt. | Parent tenant check bij direct child route. | Fase 2/3 |
+| Assignment media | `assignment_photos`, `assignment_report_note_attachments` | Downloadbaar materiaal blijft zonder directe `tenant_id`. Parent/path guards bestaan deels. | `needs_migration` naar `direct_tenant_id` | P1 | `tenant_id` toevoegen, backfill via assignment, tenant-prefix storage, signed URL helper. | `FG-STORAGE-003`, `FG-STORAGE-004`. | Fase 3 |
+| Documents | `documents`, document bucket | Tenant-aware foundation bestaat; `tenant_id` kan nog nullable/backfill-afhankelijk zijn. | `direct_tenant_id` hardening | P1 | Unresolved rows rapporteren, constraints valideren, `tenant_id NOT NULL` waar schoon, storage bewijs. | `FG-DATA-004`, `FG-STORAGE-001`, `FG-STORAGE-002`, `FG-STORAGE-006`. | Fase 2/3 |
+| Reports | `reports`, report PDFs | Tenant-aware foundation bestaat; nullable/hardening en downloadbewijs open. | `direct_tenant_id` hardening | P1 | Backfill/constraint validation, PDF/download audit. | `FG-DATA-005`, `FG-AUDIT-001`. | Fase 2/3 |
+| Quotes | `quotes` | Tenant-aware foundation bestaat; nullable/hardening en PDFbewijs open. | `direct_tenant_id` hardening | P1 | Backfill/constraint validation, PDF/download audit. | `FG-DATA-006`, `FG-AUDIT-001`. | Fase 2 |
+| Invoices | `invoices` | Tenant-aware foundation bestaat; nullable/hardening en paymentkoppeling open. | `direct_tenant_id` hardening | P1 | Backfill/constraint validation, invoice PDF audit. | `FG-DATA-007`, `FG-AUDIT-001`. | Fase 2 |
+| Payments | `payments` | Tenant-aware foundation bestaat; webhook/status proof open. | `direct_tenant_id` hardening | P1 | Constraint validation, webhook tenantguard en direct-ID tests. | `FG-DATA-008`. | Fase 2 |
+| Customer payment batches | `customer_payment_batches`, `customer_payment_batch_items` | Tenant-aware foundation bestaat; nullable/hardening open. | `direct_tenant_id` hardening | P1 | Constraint validation, batch-item consistency. | Batch direct-ID/payment tests, `FG-DATA-008`. | Fase 2 |
+| Audit logging | `audit_log`, support audit | `audit_log.tenant_id` foundation bestaat maar kan bewust nullable zijn voor platform/global audit. | `direct_tenant_id` voor tenant-audit + `platform_only` voor platform-audit | P1/P0 | Typecontract aanscherpen, tenant-visible audit scheiden van platform/support audit. | `FG-DATA-009`, `FG-AUDIT-001` t/m `FG-AUDIT-005`. | Fase 2/5 |
+| Domain events | `domain_events` | Tenant_id bestaat. | `direct_tenant_id` | P1 | Worker/consumer module- en tenantfilters bewijzen. | Worker integration, module tests. | Fase 4 |
+| Notifications | notification settings, dispatch queue, attempts, push tokens | Runtime notificationdata is tenant-scoped; templates blijven globaal. | `direct_tenant_id` + `global_template` | P1 | Tenant override/audit later. | Tenant A ontvangt geen Tenant B dispatch. | Fase 4/6 |
+| Tickets en messages | customer threads/entries, personnel tickets | Threads tenant/customer scoped; entries parent-scoped. | `direct_tenant_id` + `parent_scoped` | P1 | Direct-ID tests en portal module guards. | Thread/message cross-tenant denial. | Fase 1/6 |
+| News | `news_posts`, `news_post_targets`, images | Scope is open: platform-only news of tenant-scoped news. | `needs_migration` of expliciet `platform_only` | P1 | Productbesluit, schema/runtime afhankelijk van keuze, visibility tests. | `FG-DATA-010`. | Fase 3 |
+| Task codes | `task_codes`, tenant overrides/prices foundation | Tenant-aware foundation bestaat; pricing/snapshot bewijs productklaar maken. | `tenant_config` | P0/P1 | Historische prijssnapshots, sector economie en code uniqueness per tenant bewijzen. | Sector/task-code integration. | Fase 4/6 |
+| Modules | `modules`, `tenant_modules`, `module_dependencies` | Foundation bestaat; API mapping breed, backoffice mapping kleiner, portalen/jobs bewijs open. | `tenant_config` | P0 | Enforcement harmoniseren, module dependency inspectie/visualisatie. | `FG-MODULE-001` t/m `FG-MODULE-008`. | Fase 4 |
+| Plans en subscriptions | `plans`, `plan_modules`, `plan_limits`, `tenant_subscriptions` | Foundation bestaat; usage/billing/productbeheer incompleet. | `tenant_config` | P0/P2 | Platformbeheer, usage, handmatige billing en limieten later. | Plan module seed, custom roles Professional+. | Fase 4/6 |
+| Organization settings | `organization_settings`, branding, SMTP | Tenant-aware; branding resolver/preview en defaults moeten productklaar. | `tenant_config` | P2 | Fieldgrid/Veele defaultscheiding, branding preview, package gating. | Tenantbranding lekt niet. | Fase 6 |
+| Klantportaal runtime | host-bound customer routes, documents, invoices, tickets | Identity is host-first; module/branding/storage bewijs open. | runtime-hardening | P0/P1 | Portal module guards, branding en download audit. | `FG-PORTAL-C-001` t/m `FG-PORTAL-C-004`. | Fase 1/6 |
+| Personeelsapp runtime | host-bound personnel routes, assignments, photos, tickets | Identity is host-first; module/branding/media bewijs open. | runtime-hardening | P0/P1 | App module guards, signed URL tests, branding. | `FG-PORTAL-P-001` t/m `FG-PORTAL-P-004`. | Fase 1/6 |
+| Storage | documents, assignment photos, report attachments, avatars, news/org assets | Applicatieguards en tenant storage helpers bestaan; fysieke backfill/policybewijs open. | `needs_migration` naar tenant-prefixed storage | P0/P1 | Canon `tenant/{tenant_id}/...`, copy-first backfill, policy/RLS bewijs, path guessing tests. | `FG-STORAGE-001` t/m `FG-STORAGE-007`. | Fase 3 |
+| Platform-admin product | platform routes, tenant detail, modules, plans, sectors, support, audit | Guard en MVP-basis bestaan; productwizard/dashboard open. | `platform_only` | P2 | Onboarding wizard, security dashboard, usage, dependency visualisatie. | `FG-PLATFORM-001` t/m `FG-PLATFORM-006`. | Fase 5/6 |
+| Provisioning | tenant create service, owner invite, logs/status | Foundation en runstatus bestaan; onboarding wizard en full smoke open. | `tenant_config` + `platform_only` | P2 | Wizard, rollback/status, duplicate slug/domain acceptance. | Provisioning success/rollback tests. | Fase 6 |
+| Deployment/ops | VPS, DNS, reverse proxy, backups, smoke | Domeinbesluiten zijn canon; staging smoke dashboard ontbreekt. | operationeel contract | P2 | Smoke dashboard, backup/restore, rollback, eerste externe tenant checklist. | `FG-MIG-*`, host/smoke tests. | Fase 7 |
 
-## Directe tenant_id verplicht in migratiegolven
+## Directe tenant_id verplicht in hardeninggolven
 
-Directe `tenant_id` wordt verplicht voor data die zelfstandig wordt gedownload, geexporteerd, betaald, geaudit of via directe route/id gelezen kan worden.
+Directe `tenant_id` wordt verplicht of bewust gedocumenteerd voor data die zelfstandig wordt gedownload, geexporteerd, betaald, geaudit of via directe route/id gelezen kan worden.
 
-Golf 1:
+Golf 1 - hardening van bestaande foundation:
 
 - `documents`
-- `assignment_photos`
-- `assignment_report_note_attachments`
-- storage metadata/paden waar tenantcontext nu alleen uit path of parent wordt afgeleid
-
-Golf 2:
-
 - `reports`
 - `quotes`
 - `invoices`
-- PDF/download audit metadata voor deze domeinen
-
-Golf 3:
-
 - `payments`
 - `customer_payment_batches`
 - `customer_payment_batch_items`
-- payment webhook/status flows
+- tenant-audit in `audit_log`
 
-Golf 4:
+Werk:
 
-- `audit_log` tenant-aware maken of splitsen in tenant audit en platform audit
-- tenant-visible audit filters en platform-only support/platform audit filters
+- unresolved rows rapporteren;
+- backfill controleren;
+- foreign keys/check constraints valideren;
+- `tenant_id NOT NULL` zetten waar staging-copy schoon is;
+- bewuste nullable uitzonderingen vastleggen.
+
+Golf 2 - nog migreren:
+
+- `assignment_photos`
+- `assignment_report_note_attachments`
+- legacy storage metadata/paden waar tenantcontext nu alleen uit path of parent wordt afgeleid
+
+Golf 3 - productbesluit:
+
+- `news_posts` en news images: platform-only of tenant-scoped.
 
 `parent_scoped` blijft tijdelijk acceptabel voor technische child rows die nooit zelfstandig worden getoond, gedownload, betaald of geaudit en altijd via een verplicht parentrecord worden benaderd. Zodra een child row een eigen route, signed URL, export, webhook of auditregel krijgt, moet het domein opnieuw beoordeeld worden.
 
-## Actuele harde volgorde vanaf 2026-07-03
+## Actuele harde volgorde vanaf fase 0
 
 P0 eerst:
 
-1. API module guards toevoegen.
-2. Portal module guards toevoegen aan klantportaal en personeelsapp.
-3. Dashboard/layout fallback naar `DEFAULT_TENANT_ID` verwijderen of fail-safe maken.
-4. `tenant_sector_settings` toevoegen met mode, max, default sector en enforcement flag.
-5. Sector disable-check laten blokkeren op bestaande data.
-6. Support runtime-prioriteit expliciet integreren: platform-admin -> actieve support grant -> tenantrol.
-7. Tenant A/B/Veele integration fixtures bouwen.
-8. RBAC permissiematrix productmatig vastleggen en testen.
+1. Canon en PR-contract actueel houden.
+2. Tenant A/B/Veele integration fixtures bouwen.
+3. Host-first Playwright tests toevoegen.
+4. Migration smoke op lege database en staging-copy bouwen.
+5. Module enforcement harmoniseren tussen API, backoffice, portalen en jobs.
+6. DB-defaults naar `DEFAULT_TENANT_ID` verwijderen uit tenantdata.
+7. Support break-glass max TTL afdwingen.
+8. News scope beslissen.
 
 P1 daarna:
 
-1. `documents.tenant_id` migreren met staging-safe backfill.
-2. Finance/reporting tabellen tenant-aware maken: `invoices`, `quotes`, `reports`, `payments`, `customer_payment_batches`.
-3. Assignment media tenant-aware maken.
-4. Storage tenant-prefix canon en backfillplan uitvoeren.
-5. Audit tenant/platform split of tenant_id migratie uitvoeren.
+1. Nullable tenantdata hardenen met validate constraints en `tenant_id NOT NULL` waar schoon.
+2. Assignment media direct tenant-aware maken.
+3. Storage tenant-prefix backfill uitvoeren en bewijzen.
+4. Storage signed-url/path guessing tests automatiseren.
+5. Audit tenant/platform contract aanscherpen.
 6. PDF/download audit logging uniform maken.
-7. Task-code template/override en prijshistorie ontwerpen.
 
 P2 productisering:
 
-1. Platform-admin tenant detail, lifecycle, modules, plans, sectors, support en audit bouwen.
-2. Provisioning en onboarding bouwen.
-3. Branding resolver en package-gated branding bouwen.
-4. Billing/usage en operationele playbooks bouwen.
-5. Smoke dashboard en monitoring toevoegen.
+1. Platform-admin onboarding wizard.
+2. Tenant first-run wizard.
+3. Usage dashboard inclusief documenten en storagegebruik.
+4. Branding preview.
+5. Security dashboard.
+6. Module dependency visualisatie.
+7. Demo-data generator.
+8. Staging smoke dashboard.
 
 ## Testcontract
 
-Elke PR moet expliciet verwijzen naar de test-id's uit `docs/fieldgrid-cross-tenant-testmatrix.md`.
+Elke PR moet expliciet verwijzen naar:
+
+- de fase uit `docs/fieldgrid-next-major-update-plan.md`;
+- de data-classificatie-items uit dit document;
+- de test-id's uit `docs/fieldgrid-cross-tenant-testmatrix.md`;
+- de stagingregels uit `docs/fieldgrid-staging-promotion-checklist.md`.
 
 Minimum voor technische PR's:
 
