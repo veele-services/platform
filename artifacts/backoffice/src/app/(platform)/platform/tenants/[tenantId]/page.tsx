@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import {
@@ -129,7 +130,7 @@ function supportGrantStatus(grant: SupportAccessGrantRow): "Actief" | "Gepland" 
   return "Actief";
 }
 
-function Section({ title, children, helper }: { title: string; helper?: string; children: React.ReactNode }) {
+function Section({ title, children, helper }: { title: string; helper?: string; children: ReactNode }) {
   return (
     <section className="rounded border border-slate-200 bg-white p-5">
       <div className="mb-4">
@@ -148,6 +149,18 @@ function Stat({ label, value }: { label: string; value: string | number }) {
       <p className="mt-1 text-2xl font-semibold text-slate-950">{value}</p>
     </div>
   );
+}
+
+function readinessStatusClass(status: "ready" | "warning" | "blocked"): string {
+  if (status === "ready") return "rounded bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800";
+  if (status === "warning") return "rounded bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800";
+  return "rounded bg-red-50 px-2 py-1 text-xs font-medium text-red-800";
+}
+
+function readinessStatusLabel(status: "ready" | "warning" | "blocked"): string {
+  if (status === "ready") return "Klaar";
+  if (status === "warning") return "Check";
+  return "Blokkeert";
 }
 
 export default async function PlatformTenantDetailPage({ params }: Props) {
@@ -176,10 +189,15 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
     ["Opdrachten", tenant.usage.assignments],
     ["Documenten", tenant.usage.documents],
     ["Storage", formatBytes(tenant.usage.storageBytes)],
+    ["Downloads/PDF", tenant.usage.downloadAuditEvents],
     ["Domeinen", tenant.usage.domains],
     ["Actieve modules", tenant.usage.enabledModules],
     ["Actieve sectoren", tenant.usage.enabledSectors],
+    ["Regio's", tenant.usage.activeRegions],
     ["Supportgrants", tenant.usage.activeSupportGrants],
+    ["Tenant-prefixed documenten", `${tenant.usage.tenantPrefixedDocuments}/${tenant.usage.documents}`],
+    ["Legacy storagepaden", tenant.usage.legacyDocumentPaths],
+    ["Planlimieten", tenant.usageLimits.length],
   ] as const;
 
   return (
@@ -223,7 +241,8 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
           </div>
         </header>
 
-        <div className="grid gap-3 md:grid-cols-4 2xl:grid-cols-8">
+        <div className="grid gap-3 md:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-10">
+          <Stat label="Readiness" value={`${tenant.operationalReadiness.score}%`} />
           <Stat label="Gebruikers" value={tenant.usage.users} />
           <Stat label="Klanten" value={tenant.usage.customers} />
           <Stat label="Objecten" value={tenant.usage.objects} />
@@ -231,6 +250,7 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
           <Stat label="Opdrachten" value={tenant.usage.assignments} />
           <Stat label="Documenten" value={tenant.usage.documents} />
           <Stat label="Storage" value={formatBytes(tenant.usage.storageBytes)} />
+          <Stat label="Downloads/PDF" value={tenant.usage.downloadAuditEvents} />
           <Stat label="Supportgrants" value={tenant.usage.activeSupportGrants} />
         </div>
 
@@ -406,6 +426,28 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
           </div>
 
           <aside className="flex flex-col gap-8">
+            <Section title="Operational readiness" helper={`${tenant.operationalReadiness.readySignals}/${tenant.operationalReadiness.totalSignals} signalen klaar · ${tenant.operationalReadiness.score}%`}>
+              <div className="h-2 overflow-hidden rounded bg-slate-100">
+                <div
+                  className="h-full bg-sky-500"
+                  style={{ width: `${tenant.operationalReadiness.score}%` }}
+                />
+              </div>
+              <div className="mt-4 grid gap-2 text-sm">
+                {tenant.operationalReadiness.signals.map((signal) => (
+                  <div key={signal.id} className="rounded border border-slate-200 px-3 py-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-medium text-slate-950">{signal.label}</p>
+                      <span className={readinessStatusClass(signal.status)}>
+                        {readinessStatusLabel(signal.status)}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">{signal.detail}</p>
+                  </div>
+                ))}
+              </div>
+            </Section>
+
             <Section title="First-run" helper={`${tenant.firstRun.completedSteps}/${tenant.firstRun.totalSteps} stappen klaar · ${tenant.firstRun.completionPercent}%`}>
               <div className="h-2 overflow-hidden rounded bg-slate-100">
                 <div
@@ -452,6 +494,18 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
                     <p className="mt-1 text-slate-600">Uw rapportage staat klaar voor beoordeling.</p>
                     <div className="mt-3 h-1.5 rounded" style={{ backgroundColor: tenant.brandingPreview.accentColor }} />
                     <p className="mt-3 whitespace-pre-line text-xs text-slate-500">{tenant.brandingPreview.emailSignature}</p>
+                  </div>
+                  <div className="grid gap-2">
+                    {tenant.brandingPreview.surfaces.map((surface) => (
+                      <div key={surface.surface} className="rounded border border-slate-200 bg-white p-3">
+                        <div className="flex items-center justify-between gap-3">
+                          <p className="text-xs font-medium uppercase text-slate-500">{surface.surface}</p>
+                          <span className="h-3 w-3 rounded-full" style={{ backgroundColor: surface.accentColor }} />
+                        </div>
+                        <p className="mt-2 font-medium text-slate-950">{surface.headline}</p>
+                        <p className="mt-1 text-xs text-slate-500">{surface.body}</p>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
@@ -521,6 +575,25 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
                   </div>
                 ))}
               </dl>
+            </Section>
+
+            <Section title="Planlimieten" helper={`${tenant.usageLimits.length} limiet(en) gekoppeld aan ${tenant.planName}.`}>
+              <div className="grid gap-2 text-sm">
+                {tenant.usageLimits.map((limit) => (
+                  <div key={limit.key} className="rounded border border-slate-200 px-3 py-2">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="font-medium text-slate-950">{limit.key}</p>
+                      <span className={limit.isEnabled ? "rounded bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-800" : "rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600"}>
+                        {limit.isEnabled ? "Aan" : "Uit"}
+                      </span>
+                    </div>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {limit.description ?? "Geen omschrijving"} - waarde {limit.limitValue ?? "onbeperkt"}
+                    </p>
+                  </div>
+                ))}
+                {tenant.usageLimits.length === 0 && <p className="text-sm text-slate-500">Geen expliciete planlimieten voor dit pakket.</p>}
+              </div>
             </Section>
 
             <Section title="Audit" helper="Laatste platform/supportregels voor deze tenant.">
