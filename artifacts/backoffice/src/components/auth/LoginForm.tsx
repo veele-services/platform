@@ -47,9 +47,10 @@ const INITIAL_STATE: AuthFormState = { error: null };
 interface LoginFormProps {
   supabaseConfigured: boolean;
   successMessage?: string;
+  nextPath?: string;
 }
 
-export function LoginForm({ supabaseConfigured, successMessage }: LoginFormProps) {
+export function LoginForm({ supabaseConfigured, successMessage, nextPath = "/" }: LoginFormProps) {
   const [state, formAction] = useActionState(signIn, INITIAL_STATE);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -68,6 +69,8 @@ export function LoginForm({ supabaseConfigured, successMessage }: LoginFormProps
 
   return (
     <form ref={formRef} action={formAction} className="space-y-5" noValidate>
+      <input type="hidden" name="next" value={nextPath} />
+
       {successMessage && (
         <div
           className="flex items-start gap-2.5 rounded-lg px-3.5 py-3"
