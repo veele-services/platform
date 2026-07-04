@@ -1,7 +1,7 @@
 # Fieldgrid volgende grote update plan
 
 Datum: 2026-07-04
-Status: sprint 13 tenant first-run wizard geleverd. De actuele uitvoeringscanon staat in `docs/fieldgrid-saas-proof-sprint-plan.md`.
+Status: sprint 14 usage, branding en operational readiness geleverd met open runtimebewijs; sprint 0 canon refresh 2.0 blijft de basis. De actuele uitvoeringscanon staat in `docs/fieldgrid-saas-proof-sprint-plan.md`.
 
 ## 1. Doel
 
@@ -159,6 +159,19 @@ Werk:
 
 Eigenaar: sprint 13.
 
+### Usage, branding en readiness zijn gebouwd
+
+Status: `runtime-proof-open`.
+
+Werk:
+
+- Platform-admin tenantdetail toont usage voor users, documenten, opdrachten, storage, downloads/PDF audit, actieve modules, regio's, support grants en planlimieten.
+- Branding preview bestaat voor backoffice, klantportaal, personeelsapp, email en PDF.
+- Operational readiness score toont host, login, modules, sectoren, regio's, storage, PDF/downloads, migraties en audit.
+- Tenant A/B/Veele Playwright/integration bewijs blijft open.
+
+Eigenaar: sprint 14.
+
 ### Staging smoke is nog vooral read-only
 
 Status: `partial`.
@@ -204,9 +217,9 @@ Deze investeringen verlagen direct risico of verhogen beheerbaarheid:
 | Nice-to-have | Status | Sprint |
 | --- | --- | --- |
 | Platform-admin onboarding wizard | `partial` | 12 |
-| Tenant first-run wizard | `runtime-proof-open` | 13 |
-| Usage dashboard per tenant | `partial` | 14 |
-| Branding preview per tenant | `nice-to-have` | 14 |
+| Tenant first-run wizard | `partial` | 13 |
+| Usage dashboard per tenant | `runtime-proof-open` | 14 |
+| Branding preview per tenant | `runtime-proof-open` | 14 |
 | Support break-glass flow | `partial` | 10 |
 | Security dashboard | `partial` | 10 |
 | Module dependency visualisatie | `done` | 11 |

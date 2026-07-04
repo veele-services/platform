@@ -1,7 +1,7 @@
 # Fieldgrid SaaS masterplan canon
 
 Datum: 2026-07-04
-Status: sprint 13 tenant first-run wizard geleverd; sprint 0 canon refresh 2.0 blijft de basis; actuele uitvoeringsbron: `docs/fieldgrid-saas-proof-sprint-plan.md`.
+Status: sprint 14 usage, branding en operational readiness geleverd met open runtimebewijs; sprint 0 canon refresh 2.0 blijft de basis. Actuele uitvoeringsbron: `docs/fieldgrid-saas-proof-sprint-plan.md`.
 Bronnen: oorspronkelijke Fieldgrid/Veele SaaS-masterplanbijlage, huidige `main` codebase, `docs/fieldgrid-data-classification.md`, `docs/fieldgrid-cross-tenant-testmatrix.md`, `docs/fieldgrid-next-major-update-plan.md`, `docs/fieldgrid-staging-promotion-checklist.md` en `docs/fieldgrid-saas-proof-sprint-plan.md`.
 
 ## 1. Doel en vaste besluiten
@@ -62,7 +62,7 @@ Geen onderwerp mag in vervolgwerk alleen als "open" blijven staan zonder status,
 - Platform onboarding: wizard met save/resume/review/retry/rollback bestaat; runtimebewijs blijft open.
 - Tenant first-run: checklist/foundation bestaat, echte owner wizard ontbreekt.
 - Support break-glass: reden/expiry/audit bestaan, harde max TTL en centrale flow ontbreken.
-- Usage dashboard: basisstats bestaan, documenten/storage/downloads/actieve modules moeten erbij.
+- Usage/readiness dashboard: tenantdetail toont documenten, opdrachten, storage, downloads, modules, regio's, support grants, limieten en readiness; Playwright/integration bewijs ontbreekt nog.
 - Staging smoke: read-only/dashboardbasis bestaat, run history, live smokes en mutating cleanup ontbreken.
 - Demo-data: canon/fixtures bestaan, one-click seed/cleanup ontbreekt.
 - Audit/security: basis bestaat, downloads/PDF/direct-ID/module/storage-denials moeten centraal landen.
@@ -73,7 +73,8 @@ Geen onderwerp mag in vervolgwerk alleen als "open" blijven staan zonder status,
 - Host-first tenantcontext moet met Tenant A/B/Veele integration en Playwright bewezen worden.
 - Tenant lifecycle active/suspended/archived moet runtime bewezen worden.
 - Tenant RBAC moet met echte rolverschillen per tenant bewezen worden.
-- API module guards en Portal module guards zijn geharmoniseerd met gedeelde guards voor backoffice, portalen en jobs; Playwright/integration bewijs blijft open.
+- Module enforcement moet API, backoffice, portalen en jobs hetzelfde laten reageren.
+- API module guards en Portal module guards blijven expliciete acceptatiepunten voor sprint 11 en de final gate.
 - Sector enforcement moet disable/default/single-sector scenario's runtime bewijzen.
 - Tenant first-run moet met `A-OWNER` en `FG-OPS-002` integration/Playwright bewezen worden.
 - Veele Portaal klant/personeel moet E2E bewijzen voor documenten, facturen, tickets, opdrachten, media, rapportage, notificaties, module-denials en verkeerde-host scenario's.
@@ -89,8 +90,8 @@ Geen onderwerp mag in vervolgwerk alleen als "open" blijven staan zonder status,
 
 ### 3.5 `nice-to-have`
 
-- Branding preview per tenant voor backoffice, klantportaal, personeelsapp, email en PDF.
-- Module dependency visualisatie is zichtbaar op platform tenantdetail.
+- Branding preview per tenant voor backoffice, klantportaal, personeelsapp, email en PDF is aanwezig op tenantdetail; Playwright bewijs blijft open.
+- Module dependency visualisatie.
 - Security dashboard polish bovenop het noodzakelijke audit/security dashboard.
 - Staging smoke dashboard uitbreiden met historie, trend en mutating smoke-details.
 
@@ -205,9 +206,9 @@ Supporttoegang is geen gewone tenantrol. De prioriteit blijft:
 ### P2
 
 - Platform-admin onboarding wizard.
-- Tenant first-run runtime proof voor save/resume/readiness.
-- Usage dashboard per tenant met users, documenten, opdrachten, storage, downloads, actieve modules en support grants.
-- Branding preview per tenant.
+- Tenant first-run wizard.
+- Usage dashboard per tenant met users, documenten, opdrachten, storage, downloads, actieve modules, regio's, support grants en limieten is geleverd op tenantdetail; runtime proof blijft open.
+- Branding preview per tenant is geleverd voor backoffice, klantportaal, personeelsapp, email en PDF; runtime proof blijft open.
 - Security dashboard uitbreiding.
 - Module dependency visualisatie verder uitbreiden na tenantfeedback.
 - Demo-data generator voor `demo-a`, `demo-b` en `veele`.

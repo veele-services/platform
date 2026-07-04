@@ -1,7 +1,7 @@
 # Fieldgrid SaaS proof sprintplan canon
 
 Datum: 2026-07-04
-Status: sprint 13 tenant first-run wizard geleverd; runtime proof voor `FG-OPS-002` blijft open; sprint 0 canon refresh 2.0 blijft de basis.
+Status: sprint 14 usage, branding en operational readiness geleverd; runtime proof blijft open; sprint 0 canon refresh 2.0 blijft de basis.
 Scope: volledige afronding van SaaS-hardening, runtime-bewijs, tenant-regio's, storage, audit, onboarding, smoke en externe tenant readiness.
 
 ## Doel
@@ -48,9 +48,9 @@ Geen canonitem mag nog als alleen "open" of "ontbreekt" blijven staan zonder een
 | Veele Portaal klant/personeel | `runtime-proof-open` | Sprint 6 | Host-bound basis bestaat; documenten/facturen/tickets/opdrachten/media/notificaties/module-denials E2E open. |
 | Migration smoke | `partial` | Sprint 7 | Runner bestaat; lege DB en staging-copy workflow moet formeel worden. |
 | Platform onboarding wizard | `partial` | Sprint 12 | Provisioning/status bestaat; echte save/resume/review/rollback wizard open. |
-| Tenant first-run wizard | `runtime-proof-open` | Sprint 13 | Owner wizard met save/resume en readiness bestaat; Playwright/integration bewijs open. |
-| Usage dashboard | `partial` | Sprint 14 | Basisstats bestaan; documenten/storage/downloads/active modules uitbreiden. |
-| Branding preview | `nice-to-have` | Sprint 14 | Basis branding bestaat; preview voor portal/email/PDF open. |
+| Tenant first-run wizard | `partial` | Sprint 13 | Checklist/foundation bestaat; actieve owner-flow open. |
+| Usage dashboard | `runtime-proof-open` | Sprint 14 | Tenantdetail toont users, documenten, opdrachten, storage, downloads, modules, support grants, regio's en limieten; Playwright/integration bewijs open. |
+| Branding preview | `runtime-proof-open` | Sprint 14 | Tenantdetail toont preview voor backoffice, klantportaal, personeelsapp, email en PDF; Playwright bewijs open. |
 | Security dashboard | `partial` | Sprint 10 | Losse basis bestaat; centraal dashboard open. |
 | Module dependency visualisatie | `done` | Sprint 11 | Platform-admin tenantdetail toont ontbrekende dependencies en actieve dependents. |
 | Demo-data generator | `partial` | Sprint 1 | Canon/fixtures bestaan; one-click seed/cleanup open. |
@@ -369,6 +369,13 @@ Definition of Done:
 ## Sprint 14 - Usage, branding en operational readiness
 
 Doel: tenantbeheer productklaar maken.
+
+Opleverstatus:
+
+- `docs/fieldgrid-sprint-14-operational-readiness.md` beschrijft de geleverde tenantdetail health view.
+- Platform-admin ziet usage, brandingkanalen, planlimieten en operational readiness op tenantdetail.
+- Sprint 14 is read-only en heeft geen migratie.
+- `FG-OPS-003` en `FG-OPS-004` staan op `runtime-proof-open` totdat Tenant A/B/Veele Playwright/integration bewijs draait.
 
 Taken:
 

@@ -1,7 +1,7 @@
 # Fieldgrid data-classificatie canon
 
 Datum: 2026-07-04
-Status: sprint 13 tenant first-run wizard geleverd. Actuele uitvoeringsbron: `docs/fieldgrid-saas-proof-sprint-plan.md`.
+Status: sprint 14 usage, branding en operational readiness geleverd met open runtimebewijs; sprint 0 canon refresh 2.0 blijft de basis. Actuele uitvoeringsbron: `docs/fieldgrid-saas-proof-sprint-plan.md`.
 Gerelateerd: `docs/fieldgrid-saas-masterplan.md`, `docs/fieldgrid-cross-tenant-testmatrix.md`, `docs/fieldgrid-next-major-update-plan.md`, `docs/fieldgrid-staging-promotion-checklist.md`, `docs/fieldgrid-recovery-execution-plan.md`.
 
 ## Doel
@@ -79,13 +79,13 @@ De codebase is nog niet klaar voor externe SaaS-acceptatie. De grootste gaten zi
 | News | `news_posts`, `news_post_targets`, images | `partial` | `needs_migration` of expliciet `platform_only` | P1 | Productbesluit: platform-only of tenant-scoped. | `FG-DATA-010`. | 9 |
 | Task codes | `task_codes`, tenant overrides/prices foundation | `runtime-proof-open` | `tenant_config` | P0/P1 | Historische prijssnapshots, sector/regio economie en uniqueness per tenant bewijzen. | Sector/task-code integration. | 5/11 |
 | Modules | `modules`, `tenant_modules`, `module_dependencies` | `partial` | `tenant_config` | P0 | Enforcement harmoniseren, module dependency inspectie/visualisatie. | `FG-MODULE-*`. | 11 |
-| Plans en subscriptions | `plans`, `plan_modules`, `plan_limits`, `tenant_subscriptions` | `partial` | `tenant_config` | P0/P2 | Platformbeheer, usage, handmatige billing. | Plan module seed, custom roles Professional+. | 11/14 |
-| Organization settings | `organization_settings`, branding, SMTP | `runtime-proof-open` | `tenant_config` | P2 | First-run save/resume schrijft tenant-gescopeerd; branding preview, package gating en runtime proof open. | `FG-OPS-002`, tenantbranding lekt niet. | 13/14 |
+| Plans en subscriptions | `plans`, `plan_modules`, `plan_limits`, `tenant_subscriptions` | `partial` | `tenant_config` | P0/P2 | Planlimieten zijn zichtbaar in tenantdetail usage; handmatige billing en pakketbeheer blijven open. | Plan module seed, custom roles Professional+, `FG-OPS-003`. | 11/14 |
+| Organization settings | `organization_settings`, branding, SMTP | `runtime-proof-open` | `tenant_config` | P2 | Branding preview bestaat voor backoffice, klantportaal, personeelsapp, email en PDF; Playwright bewijs blijft open. | Tenantbranding lekt niet, `FG-OPS-004`. | 14 |
 | Klantportaal runtime | customer portal routes, documents, invoices, tickets | `runtime-proof-open` | runtime-hardening | P0/P1 | Module guards, branding, download audit, wrong-host tests. | `FG-PORTAL-C-*`. | 6 |
 | Personeelsapp runtime | personnel portal routes, assignments, photos, tickets | `runtime-proof-open` | runtime-hardening | P0/P1 | App module guards, signed URL tests, planning live/minute acceptance. | `FG-PORTAL-P-*`. | 6/9 |
 | Storage | documents, assignment photos, report attachments, avatars, news/org assets | `hardening-open` | `needs_migration` naar tenant-prefixed storage | P0/P1 | Canon `tenant/{tenant_id}/...`, copy-first backfill, policy/RLS bewijs, path guessing tests. | `FG-STORAGE-*`. | 9 |
-| Platform-admin product | platform routes, tenant detail, modules, plans, sectors, regions, support, audit | `partial` | `platform_only` | P2 | Onboarding wizard gebouwd; security dashboard, usage en dependency visualisatie blijven open. | `FG-PLATFORM-*`, `FG-OPS-001`. | 10/12/14 |
-| Provisioning | tenant create service, owner invite, logs/status | `runtime-proof-open` | `tenant_config` + `platform_only` | P2 | Wizard, rollback/status en retry gebouwd; duplicate slug/domain acceptance en DB bewijs open. | Provisioning success/rollback tests. | 12 |
+| Platform-admin product | platform routes, tenant detail, modules, plans, sectors, regions, support, audit | `partial` | `platform_only` | P2 | Usage, branding en operational readiness zijn zichtbaar op tenantdetail; onboarding wizard, security dashboard en dependency visualisatie blijven open. | `FG-PLATFORM-*`, `FG-OPS-003`, `FG-OPS-004`. | 10/12/14 |
+| Provisioning | tenant create service, owner invite, logs/status | `partial` | `tenant_config` + `platform_only` | P2 | Wizard, rollback/status, duplicate slug/domain acceptance. | Provisioning success/rollback tests. | 12 |
 | Deployment/ops | VPS, DNS, reverse proxy, backups, smoke | `partial` | operationeel contract | P2 | Smoke dashboard, backup/restore, rollback, eerste externe tenant checklist. | `FG-MIG-*`, host/smoke tests. | 15/16 |
 | Materialen en inventaris | materials, inventory, assignment material usage, future inventory issue flows | `partial` | `direct_tenant_id` + `tenant_config` | P1/P2 | Onderzoek/canon bestaat; volledige modulebouw na SaaS proof of aparte roadmap. | Module/RBAC/storage/audit tests zodra gebouwd. | Post Sprint 16 of apart |
 

@@ -1,7 +1,7 @@
 # Fieldgrid cross-tenant testmatrix
 
 Datum: 2026-07-04
-Status: sprint 13 tenant first-run wizard geleverd; runtime bewijs blijft verplicht voor acceptatie. Verplichte acceptatiebasis voor `docs/fieldgrid-saas-proof-sprint-plan.md`.
+Status: sprint 14 usage, branding en operational readiness geleverd met open runtimebewijs; sprint 0 canon refresh 2.0 blijft de basis. Verplichte acceptatiebasis voor `docs/fieldgrid-saas-proof-sprint-plan.md`.
 Gerelateerd: `docs/fieldgrid-saas-masterplan.md`, `docs/fieldgrid-data-classification.md`, `docs/fieldgrid-next-major-update-plan.md`, `docs/fieldgrid-staging-promotion-checklist.md`, `docs/fieldgrid-recovery-execution-plan.md`.
 
 ## Doel
@@ -197,8 +197,8 @@ Maak per tenant vergelijkbare records en noteer ids, slugs, document ids, invoic
 | `FG-MIG-003` | compatibility skip | migration runner | staging-copy | legacy migrations | Draai runner met legacy SQL. | Correct skipped/toegepast zonder duplicate failure. | migration | `partial` |
 | `FG-OPS-001` | platform onboarding wizard | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | new tenant | Doorloop wizard. | Tenant/provisioning run is save/resume/review/rollback-proof. | Playwright, integration | `runtime-proof-open` |
 | `FG-OPS-002` | tenant first-run wizard | `A-OWNER` | `demo-a.fieldgrid.nl` | `demo-a` | Doorloop first-run. | Setupstatus en readiness worden opgeslagen. | Playwright, integration | `partial` |
-| `FG-OPS-003` | usage dashboard | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | Tenant A | Bekijk usage. | Users, docs, opdrachten, storage, downloads, modules zichtbaar. | integration | `partial` |
-| `FG-OPS-004` | branding preview | `A-OWNER` | `demo-a.fieldgrid.nl` | `demo-a` | Wijzig branding en bekijk preview. | Portal/email/PDF preview klopt. | Playwright | `nice-to-have` |
+| `FG-OPS-003` | usage dashboard | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | Tenant A | Bekijk tenantdetail usage en readiness. | Users, docs, opdrachten, storage, downloads, modules, support grants, regio's en limieten zichtbaar. | static, integration | `runtime-proof-open` |
+| `FG-OPS-004` | branding preview | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | Tenant A | Bekijk branding preview in platform tenantdetail. | Backoffice, klantportaal, personeelsapp, email en PDF preview klopt na brandingwijziging. | static, Playwright | `runtime-proof-open` |
 | `FG-OPS-005` | security dashboard | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | all tenants | Filter security events. | Support/download/denial events correct gescheiden. | integration | `partial` |
 | `FG-OPS-006` | module dependency visualisatie | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | Tenant A | Bekijk dependencies. | Dependencies begrijpelijk en consistent met enforcement. | Playwright | `nice-to-have` |
 | `FG-OPS-007` | demo-data generator | migration/test runner | local/CI | demo tenants | Seed en cleanup. | Idempotent, scoped, cleanup veilig. | integration | `partial` |
