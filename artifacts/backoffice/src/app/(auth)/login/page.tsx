@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import { AlertCircle, AlertTriangle } from "lucide-react";
 import { LoginForm } from "@/components/auth/LoginForm";
+import { isPlatformHost, normalizeHost } from "@/lib/auth/tenant-resolver";
 
 export const metadata: Metadata = {
   title: "Sign In",
@@ -12,11 +14,20 @@ const supabaseConfigured = !!(
 );
 
 type Props = {
-  searchParams: Promise<{ message?: string; error?: string }>;
+  searchParams: Promise<{ message?: string; error?: string; next?: string }>;
 };
 
+function safeNextPath(value: string | undefined, fallback = "/"): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return fallback;
+  return value;
+}
+
 export default async function LoginPage({ searchParams }: Props) {
-  const { message, error } = await searchParams;
+  const { message, error, next } = await searchParams;
+  const requestHeaders = await headers();
+  const host = normalizeHost(requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "");
+  const fallbackNextPath = isPlatformHost(host) ? "/platform" : "/";
+  const nextPath = safeNextPath(next, fallbackNextPath);
 
   return (
     <div
@@ -141,7 +152,7 @@ export default async function LoginPage({ searchParams }: Props) {
         </div>
       )}
 
-      <LoginForm supabaseConfigured={supabaseConfigured} successMessage={message} />
+      <LoginForm supabaseConfigured={supabaseConfigured} successMessage={message} nextPath={nextPath} />
     </div>
   );
 }

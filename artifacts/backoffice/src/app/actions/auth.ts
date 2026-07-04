@@ -19,7 +19,17 @@ export type AuthFormState = {
 export type PasswordActionState = {
   success?: boolean;
   error?: string;
+  next?: string;
 };
+
+function redirectPathFromFormValue(value: FormDataEntryValue | null): string {
+  if (typeof value !== "string") return "/";
+
+  const next = value.trim();
+  if (!next || !next.startsWith("/") || next.startsWith("//") || next.includes("\\")) return "/";
+
+  return next;
+}
 
 /**
  * Server Action - sign in with email + password.
@@ -37,6 +47,7 @@ export async function signIn(
 ): Promise<AuthFormState> {
   const email    = (formData.get("email") as string | null)?.trim() ?? "";
   const password = (formData.get("password") as string | null) ?? "";
+  const nextPath = redirectPathFromFormValue(formData.get("next"));
 
   if (!email || !password) {
     return { error: "E-mailadres en wachtwoord zijn verplicht." };
@@ -83,10 +94,10 @@ export async function signIn(
   }
 
   if (data.user.app_metadata?.force_password_change === true) {
-    redirect("/reset-wachtwoord?force=1");
+    redirect(`/reset-wachtwoord?force=1&next=${encodeURIComponent(nextPath)}`);
   }
 
-  redirect("/");
+  redirect(nextPath);
 }
 
 /**
@@ -131,6 +142,7 @@ export async function completePasswordReset(
 ): Promise<PasswordActionState> {
   const password    = String(formData.get("password") ?? "");
   const passwordTwo = String(formData.get("passwordTwo") ?? "");
+  const nextPath    = redirectPathFromFormValue(formData.get("next"));
 
   if (!password || !evaluatePasswordStrength(password).isMedium) {
     return { error: mediumPasswordMessage() };
@@ -183,7 +195,7 @@ export async function completePasswordReset(
   }
 
   await supabase.auth.signOut();
-  return { success: true };
+  return { success: true, next: nextPath };
 }
 
 /**
