@@ -548,6 +548,7 @@ export async function sendQuote(id: string): Promise<ActionResult> {
     .where(eq(assignmentsTable.id, quote.assignmentId));
 
   await db.insert(auditLogTable).values({
+    tenantId,
     userId:     user.id,
     action:     "send_quote",
     resource:   "quotes",
@@ -557,6 +558,7 @@ export async function sendQuote(id: string): Promise<ActionResult> {
 
   await emitDomainEvent({
     eventKey: "quote_sent_to_customer",
+    tenantId,
     actorUserId: user.id,
     audience: "customer",
     aggregate: { type: "quote", id },

@@ -73,7 +73,7 @@ Geen onderwerp mag in vervolgwerk alleen als "open" blijven staan zonder status,
 - Host-first tenantcontext moet met Tenant A/B/Veele integration en Playwright bewezen worden.
 - Tenant lifecycle active/suspended/archived moet runtime bewezen worden.
 - Tenant RBAC moet met echte rolverschillen per tenant bewezen worden.
-- Module enforcement moet API, backoffice, portalen en jobs hetzelfde laten reageren.
+- API module guards en Portal module guards zijn geharmoniseerd met gedeelde guards voor backoffice, portalen en jobs; Playwright/integration bewijs blijft open.
 - Sector enforcement moet disable/default/single-sector scenario's runtime bewijzen.
 - Veele Portaal klant/personeel moet E2E bewijzen voor documenten, facturen, tickets, opdrachten, media, rapportage, notificaties, module-denials en verkeerde-host scenario's.
 - Personeelsplanning heeft live/minuut-refresh, maar portal acceptance moet blijven bewijzen dat Home/Planning actueel zijn.
@@ -89,7 +89,7 @@ Geen onderwerp mag in vervolgwerk alleen als "open" blijven staan zonder status,
 ### 3.5 `nice-to-have`
 
 - Branding preview per tenant voor backoffice, klantportaal, personeelsapp, email en PDF.
-- Module dependency visualisatie.
+- Module dependency visualisatie is zichtbaar op platform tenantdetail.
 - Security dashboard polish bovenop het noodzakelijke audit/security dashboard.
 - Staging smoke dashboard uitbreiden met historie, trend en mutating smoke-details.
 
@@ -183,7 +183,7 @@ Supporttoegang is geen gewone tenantrol. De prioriteit blijft:
 - DB/RLS en storage signed-url testbasis.
 - Migration smoke workflow op lege database en staging-copy.
 - Regio datamodel/UI/runtime afronden voordat het in planning als harde grens wordt gebruikt.
-- Backoffice/API/portalen/jobs module enforcement harmoniseren.
+- Backoffice/API/portalen/jobs module enforcement met Playwright/integration bewijzen.
 - DB-defaults naar `DEFAULT_TENANT_ID` uit tenantdata verwijderen.
 - Support break-glass TTL afdwingen.
 - News scope beslissen.
@@ -206,7 +206,7 @@ Supporttoegang is geen gewone tenantrol. De prioriteit blijft:
 - Usage dashboard per tenant met users, documenten, opdrachten, storage, downloads, actieve modules en support grants.
 - Branding preview per tenant.
 - Security dashboard uitbreiding.
-- Module dependency visualisatie.
+- Module dependency visualisatie verder uitbreiden na tenantfeedback.
 - Demo-data generator voor `demo-a`, `demo-b` en `veele`.
 - Staging smoke dashboard voor host, login, modules, sectoren, regio's, storage, PDF, support, audit en migraties.
 - Eerste externe tenant checklist.
