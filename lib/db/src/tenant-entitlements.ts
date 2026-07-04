@@ -13,6 +13,7 @@ import {
 } from "./schema";
 
 const CUSTOM_ROLE_PLAN_KEYS = new Set<string>(["professional", "enterprise"]);
+const CUSTOM_DOMAIN_PLAN_KEYS = new Set<string>(["enterprise"]);
 const ACTIVE_SUBSCRIPTION_STATUSES = ["trial", "active"] as const;
 
 export type TenantPlanSnapshot = {
@@ -27,6 +28,7 @@ export type TenantPlanCapabilities = {
   tenantId: string;
   plan: TenantPlanKey;
   customRoles: boolean;
+  customDomains: boolean;
 };
 
 export async function getTenantPlanSnapshot(tenantId: string): Promise<TenantPlanSnapshot> {
@@ -89,19 +91,21 @@ export async function getTenantPlanCapabilitiesForTenant(
       tenantId,
       plan: snapshot.plan,
       customRoles: CUSTOM_ROLE_PLAN_KEYS.has(snapshot.plan),
+      customDomains: CUSTOM_DOMAIN_PLAN_KEYS.has(snapshot.plan),
     };
   }
 
-  const [customRoleCapability] = await db
-    .select({ isEnabled: planLimitsTable.isEnabled })
+  const limitRows = await db
+    .select({ key: planLimitsTable.key, isEnabled: planLimitsTable.isEnabled })
     .from(planLimitsTable)
-    .where(and(eq(planLimitsTable.planId, snapshot.planId), eq(planLimitsTable.key, "custom_roles")))
-    .limit(1);
+    .where(and(eq(planLimitsTable.planId, snapshot.planId), inArray(planLimitsTable.key, ["custom_roles", "custom_domains"])));
+  const limits = new Map(limitRows.map((row) => [row.key, row.isEnabled]));
 
   return {
     tenantId,
     plan: snapshot.plan,
-    customRoles: customRoleCapability?.isEnabled ?? CUSTOM_ROLE_PLAN_KEYS.has(snapshot.plan),
+    customRoles: limits.get("custom_roles") ?? CUSTOM_ROLE_PLAN_KEYS.has(snapshot.plan),
+    customDomains: limits.get("custom_domains") ?? CUSTOM_DOMAIN_PLAN_KEYS.has(snapshot.plan),
   };
 }
 

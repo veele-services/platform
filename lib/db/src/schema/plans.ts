@@ -13,7 +13,7 @@ import {
 import { modulesTable } from "./modules";
 import { tenantsTable, type TenantPlanKey } from "./tenants";
 
-export const PLAN_LIMIT_KEYS = ["custom_roles"] as const;
+export const PLAN_LIMIT_KEYS = ["custom_roles", "custom_domains"] as const;
 export const TENANT_SUBSCRIPTION_STATUSES = [
   "trial",
   "active",

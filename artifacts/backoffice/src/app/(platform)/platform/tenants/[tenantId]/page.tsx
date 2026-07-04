@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { customDomainVerificationValue } from "@workspace/db";
 import {
   Activity,
   Bell,
@@ -60,6 +61,8 @@ type Props = {
   params: Promise<{ tenantId: string }>;
   searchParams: Promise<{ tab?: string }>;
 };
+
+type TenantDomainRow = Awaited<ReturnType<typeof listPlatformTenantDomains>>[number];
 
 const TENANT_TABS = [
   { id: "overview", label: "Overzicht", icon: Building2 },
@@ -199,6 +202,46 @@ function readinessStatusLabel(status: "ready" | "warning" | "blocked"): string {
   if (status === "ready") return "Klaar";
   if (status === "warning") return "Check";
   return "Blokkeert";
+}
+
+function tenantHasCustomDomains(tenant: PlatformTenantDetail): boolean {
+  return tenant.planKey === "enterprise" || tenant.usageLimits.some((limit) => limit.key === "custom_domains" && limit.isEnabled);
+}
+
+function domainTypeLabel(type: string): string {
+  if (type === "custom_domain") return "Custom domain";
+  if (type === "platform_reserved") return "Platform";
+  return "Fieldgrid subdomain";
+}
+
+function domainStatusTone(status: string): "neutral" | "good" | "warning" | "danger" {
+  if (status === "verified" || status === "active") return "good";
+  if (status === "failed" || status === "disabled" || status === "disabled_plan") return "danger";
+  if (status === "pending" || status === "pending_dns" || status === "dns_seen" || status === "tls_pending") return "warning";
+  return "neutral";
+}
+
+function tlsStatusTone(status: string): "neutral" | "good" | "warning" | "danger" {
+  if (status === "active") return "good";
+  if (status === "failed" || status === "disabled") return "danger";
+  if (status === "pending") return "warning";
+  return "neutral";
+}
+
+function fieldgridPublicIpv4(): string {
+  return process.env.FIELDGRID_PUBLIC_IPV4?.trim() || "FIELDGRID_PUBLIC_IPV4";
+}
+
+function fieldgridPublicIpv6(): string | null {
+  return process.env.FIELDGRID_PUBLIC_IPV6?.trim() || null;
+}
+
+function fieldgridCnameTarget(tenant: PlatformTenantDetail, domain: TenantDomainRow): string {
+  return domain.dnsTarget || `${tenant.slug}.fieldgrid.nl`;
+}
+
+function canRouteDomain(domain: TenantDomainRow): boolean {
+  return domain.verificationStatus === "verified" || domain.verificationStatus === "active";
 }
 
 function Section({ title, children, helper }: { title: string; helper?: string; children: ReactNode }) {
@@ -530,27 +573,23 @@ function DomainsTab({
   tenant: PlatformTenantDetail;
   domains: Awaited<ReturnType<typeof listPlatformTenantDomains>>;
 }) {
+  const customDomainsEnabled = tenantHasCustomDomains(tenant);
+  const ipv4Target = fieldgridPublicIpv4();
+  const ipv6Target = fieldgridPublicIpv6();
+
   return (
-    <Section title="Domeinen" helper="Host-first routing gebruikt alleen geverifieerde tenantdomeinen. Custom domains worden in fase 6 verder geautomatiseerd.">
-      <form action={addPlatformTenantDomainFormAction} className="mb-5 grid gap-3 md:grid-cols-[1fr_140px_140px_110px_auto] md:items-end">
+    <Section title="Domeinen" helper="Platformbeheer koppelt tenantdomeinen, verifieert DNS en activeert routing per tenant. Custom domains zijn Enterprise-only.">
+      <form action={addPlatformTenantDomainFormAction} className="mb-5 grid gap-3 md:grid-cols-[minmax(0,1fr)_190px_110px_auto] md:items-end">
         <input type="hidden" name="tenantId" value={tenant.id} />
         <label className="grid gap-1 text-sm font-medium text-slate-700">
           Domein
-          <input name="domain" required placeholder="demo-a.fieldgrid.nl" className="h-10 rounded border border-slate-300 px-3 text-sm" />
+          <input name="domain" required placeholder={`${tenant.slug}.fieldgrid.nl`} className="h-10 rounded border border-slate-300 px-3 text-sm" />
         </label>
         <label className="grid gap-1 text-sm font-medium text-slate-700">
           Type
-          <select name="type" defaultValue="custom" className="h-10 rounded border border-slate-300 px-3 text-sm">
-            <option value="subdomain">Subdomain</option>
-            <option value="custom">Custom</option>
-          </select>
-        </label>
-        <label className="grid gap-1 text-sm font-medium text-slate-700">
-          Status
-          <select name="verificationStatus" defaultValue="pending" className="h-10 rounded border border-slate-300 px-3 text-sm">
-            <option value="pending">Pending</option>
-            <option value="verified">Verified</option>
-            <option value="failed">Failed</option>
+          <select name="type" defaultValue="fieldgrid_subdomain" className="h-10 rounded border border-slate-300 px-3 text-sm">
+            <option value="fieldgrid_subdomain">Fieldgrid subdomain</option>
+            <option value="custom_domain" disabled={!customDomainsEnabled}>Custom domain</option>
           </select>
         </label>
         <label className="flex items-center gap-2 pb-2 text-sm text-slate-700">
@@ -558,38 +597,106 @@ function DomainsTab({
         </label>
         <button type="submit" className="h-10 rounded bg-slate-950 px-4 text-sm font-semibold text-white">Toevoegen</button>
       </form>
+      {!customDomainsEnabled && (
+        <p className="mb-5 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          Custom domains zijn geblokkeerd tot deze tenant op Enterprise staat.
+        </p>
+      )}
 
       <div className="grid gap-3">
-        {domains.map((domain) => (
-          <div key={domain.id} className="rounded border border-slate-200 p-4">
-            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-              <div className="min-w-0">
-                <p className="break-all font-medium text-slate-950">{domain.domain}</p>
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <span className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600">{domain.type}</span>
-                  <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(domain.verificationStatus === "verified" ? "good" : domain.verificationStatus === "failed" ? "danger" : "warning")}`}>
-                    {domain.verificationStatus}
-                  </span>
-                  {domain.isPrimary && <span className="rounded border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-medium text-sky-700">primair</span>}
+        {domains.map((domain) => {
+          const isCustomDomain = domain.type === "custom_domain";
+          const isPlatformDomain = domain.type === "platform_reserved";
+          const routeReady = canRouteDomain(domain);
+          const actions: Array<{ action: string; label: string; danger?: boolean; disabled?: boolean }> = isPlatformDomain
+            ? []
+            : [
+                { action: isCustomDomain ? "check_dns" : "verify", label: isCustomDomain ? "Check DNS" : "Verifieer" },
+                ...(isCustomDomain ? [{ action: "check_tls", label: "Check TLS", disabled: !routeReady }] : []),
+                { action: "activate", label: "Activeer", disabled: !routeReady || domain.verificationStatus === "active" },
+                { action: "primary", label: "Primair", disabled: !routeReady || domain.isPrimary },
+                { action: "disable", label: "Uitschakelen", danger: true, disabled: domain.verificationStatus === "disabled" || domain.verificationStatus === "disabled_plan" },
+                { action: "remove", label: "Verwijder", danger: true },
+              ];
+
+          return (
+            <div key={domain.id} className="rounded border border-slate-200 p-4">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0">
+                  <p className="break-all font-medium text-slate-950">{domain.domain}</p>
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    <span className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600">{domainTypeLabel(domain.type)}</span>
+                    <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(domainStatusTone(domain.verificationStatus))}`}>
+                      {domain.verificationStatus}
+                    </span>
+                    <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(tlsStatusTone(domain.tlsStatus))}`}>
+                      TLS {domain.tlsStatus}
+                    </span>
+                    {domain.isPrimary && <span className="rounded border border-sky-200 bg-sky-50 px-2 py-1 text-xs font-medium text-sky-700">primair</span>}
+                  </div>
+                  <p className="mt-2 text-xs text-slate-500">
+                    DNS check: {formatDate(domain.dnsLastCheckedAt)} - TLS check: {formatDate(domain.tlsLastCheckedAt)} - actief: {formatDate(domain.activatedAt)}
+                  </p>
+                  {(domain.dnsLastError || domain.tlsLastError || domain.disabledReason) && (
+                    <p className="mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800">
+                      {domain.dnsLastError || domain.tlsLastError || domain.disabledReason}
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {actions.map(({ action, label, danger, disabled }) => (
+                    <form key={action} action={updatePlatformTenantDomainFormAction}>
+                      <input type="hidden" name="tenantId" value={tenant.id} />
+                      <input type="hidden" name="domainId" value={domain.id} />
+                      <input type="hidden" name="domainAction" value={action} />
+                      <button
+                        type="submit"
+                        disabled={disabled}
+                        className={`rounded border px-3 py-2 text-xs font-medium disabled:cursor-not-allowed disabled:opacity-50 ${
+                          danger ? "border-rose-300 text-rose-800" : "border-slate-300 text-slate-700"
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    </form>
+                  ))}
                 </div>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {[
-                  ["verify", "Verifieer"],
-                  ["primary", "Primair"],
-                  ["remove", "Verwijder"],
-                ].map(([action, label]) => (
-                  <form key={action} action={updatePlatformTenantDomainFormAction}>
-                    <input type="hidden" name="tenantId" value={tenant.id} />
-                    <input type="hidden" name="domainId" value={domain.id} />
-                    <input type="hidden" name="domainAction" value={action} />
-                    <button type="submit" className="rounded border border-slate-300 px-3 py-2 text-xs font-medium text-slate-700">{label}</button>
-                  </form>
-                ))}
-              </div>
+
+              {isCustomDomain && (
+                <div className="mt-4 rounded border border-slate-200 bg-slate-50 p-3">
+                  <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                    <p className="text-sm font-semibold text-slate-950">DNS instructies</p>
+                    <span className="rounded border border-slate-200 bg-white px-2 py-1 text-xs font-medium text-slate-600">
+                      {customDomainsEnabled ? "Enterprise actief" : "Enterprise vereist"}
+                    </span>
+                  </div>
+                  <div className="grid gap-2 text-xs sm:grid-cols-[90px_minmax(0,1fr)_minmax(0,1.4fr)]">
+                    <p className="font-semibold text-slate-500">Type</p>
+                    <p className="font-semibold text-slate-500">Naam</p>
+                    <p className="font-semibold text-slate-500">Waarde</p>
+                    <p className="font-medium text-slate-700">TXT</p>
+                    <p className="break-all text-slate-600">{domain.dnsTxtName || `_fieldgrid-verification.${domain.domain}`}</p>
+                    <p className="break-all text-slate-950">{domain.verificationToken ? customDomainVerificationValue(domain.verificationToken) : "-"}</p>
+                    <p className="font-medium text-slate-700">A</p>
+                    <p className="break-all text-slate-600">{domain.domain}</p>
+                    <p className="break-all text-slate-950">{ipv4Target}</p>
+                    {ipv6Target && (
+                      <>
+                        <p className="font-medium text-slate-700">AAAA</p>
+                        <p className="break-all text-slate-600">{domain.domain}</p>
+                        <p className="break-all text-slate-950">{ipv6Target}</p>
+                      </>
+                    )}
+                    <p className="font-medium text-slate-700">CNAME</p>
+                    <p className="break-all text-slate-600">www of subdomein</p>
+                    <p className="break-all text-slate-950">{fieldgridCnameTarget(tenant, domain)}</p>
+                  </div>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
         {domains.length === 0 && <p className="text-sm text-slate-500">Nog geen domeinen gekoppeld.</p>}
       </div>
     </Section>
