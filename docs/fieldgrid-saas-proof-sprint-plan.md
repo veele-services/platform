@@ -1,7 +1,7 @@
 # Fieldgrid SaaS proof sprintplan canon
 
 Datum: 2026-07-04
-Status: sprint 3 regio UI backoffice breed geleverd; sprint 4 regio runtime/planningproof blijft open; sprint 0 canon refresh 2.0 blijft de basis.
+Status: sprint 13 tenant first-run wizard geleverd; runtime proof voor `FG-OPS-002` blijft open; sprint 0 canon refresh 2.0 blijft de basis.
 Scope: volledige afronding van SaaS-hardening, runtime-bewijs, tenant-regio's, storage, audit, onboarding, smoke en externe tenant readiness.
 
 ## Doel
@@ -48,7 +48,7 @@ Geen canonitem mag nog als alleen "open" of "ontbreekt" blijven staan zonder een
 | Veele Portaal klant/personeel | `runtime-proof-open` | Sprint 6 | Host-bound basis bestaat; documenten/facturen/tickets/opdrachten/media/notificaties/module-denials E2E open. |
 | Migration smoke | `partial` | Sprint 7 | Runner bestaat; lege DB en staging-copy workflow moet formeel worden. |
 | Platform onboarding wizard | `partial` | Sprint 12 | Provisioning/status bestaat; echte save/resume/review/rollback wizard open. |
-| Tenant first-run wizard | `partial` | Sprint 13 | Checklist/foundation bestaat; actieve owner-flow open. |
+| Tenant first-run wizard | `runtime-proof-open` | Sprint 13 | Owner wizard met save/resume en readiness bestaat; Playwright/integration bewijs open. |
 | Usage dashboard | `partial` | Sprint 14 | Basisstats bestaan; documenten/storage/downloads/active modules uitbreiden. |
 | Branding preview | `nice-to-have` | Sprint 14 | Basis branding bestaat; preview voor portal/email/PDF open. |
 | Security dashboard | `partial` | Sprint 10 | Losse basis bestaat; centraal dashboard open. |
@@ -319,6 +319,14 @@ Definition of Done:
 ## Sprint 13 - Tenant first-run wizard
 
 Doel: tenant-eigenaar rondt setup actief af.
+
+Opleverstatus:
+
+- `/first-run` is een tenant-owner wizard met save/resume op bestaande tenantconfiguratie.
+- `tenant_first_run_state` bewaart required/completed wizardstappen.
+- Readiness warnings en score worden gevuld uit bedrijfsgegevens, branding, sectoren, regio's, gebruikers, modules, basisinstellingen en optionele eerste data.
+- `docs/fieldgrid-sprint-13-tenant-first-run.md` beschrijft de stagingveilige oplevering zonder nieuwe migratie.
+- `tests/fieldgrid-sprint-13-tenant-first-run.test.mjs` bewaakt action-, pagina- en canon-wiring.
 
 Taken:
 
