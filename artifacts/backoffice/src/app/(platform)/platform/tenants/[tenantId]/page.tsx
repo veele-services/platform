@@ -1046,6 +1046,12 @@ function SupportTab({
             <input name="reason" required className="h-10 rounded border border-slate-300 px-3 text-sm" placeholder="Ondersteuning bij inrichting" />
           </label>
           <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Scope
+            <select name="scope" required defaultValue="tenant" className="h-10 rounded border border-slate-300 px-3 text-sm">
+              <option value="tenant">Tenant support</option>
+            </select>
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
             Start
             <input name="startsAt" type="datetime-local" className="h-10 rounded border border-slate-300 px-3 text-sm" />
           </label>

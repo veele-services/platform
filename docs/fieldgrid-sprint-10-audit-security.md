@@ -1,7 +1,7 @@
 # Fieldgrid Sprint 10 - Audit en security dashboard 2.0
 
 Datum: 2026-07-04
-Status: `geleverd` voor centraal auditcontract, read-only dashboardfilters en gecombineerde support/tenant/platform auditfeed. Echte Tenant A/B/Veele integration- en Playwright-smokes blijven promotiebewijs.
+Status: `geleverd` voor centraal auditcontract, security dashboard 2.0, support break-glass controls, audit-export en gecombineerde support/tenant/platform auditfeed. Echte Tenant A/B/Veele integration- en Playwright-smokes blijven promotiebewijs.
 
 Gerelateerd: `docs/fieldgrid-saas-proof-sprint-plan.md`, `docs/fieldgrid-data-classification.md`, `docs/fieldgrid-cross-tenant-testmatrix.md`, `docs/fieldgrid-phase-5-support-security.md`.
 
@@ -26,7 +26,14 @@ Sprint 10 maakt gevoelige security-events centraal zichtbaar zonder stagingdata 
   - tenant;
   - actor;
   - eventtype;
+  - resource;
+  - datum;
+  - severity;
+  - support grant;
   - platform/support/tenant scope.
+- Security dashboard 2.0 toont mobiel bruikbare eventcards, denial-breakdown, actieve support grants en support access-log.
+- Audit-export is beschikbaar als CSV op basis van dezelfde filters.
+- Support break-glass vereist reden, tenant-scope en geldige expiry, schrijft denied grantpogingen naar audit en toont revoke-acties centraal.
 - Platform-only audit blijft zichtbaar via platform scope en vereist platform-admin toegang.
 - Tenant-audit blijft tenant-scoped via `audit_log.tenant_id`.
 - Support break-glass max TTL en verplichte reden blijven afgedwongen via de fase-5 policy.
@@ -43,14 +50,18 @@ Nieuwe of aangepaste gevoelige acties moeten auditdata schrijven volgens dit con
 | `direct_id_denial` | `audit_log` | tenant waar bekend, actor, resource, resource-id |
 | `module_denial` | `audit_log` | tenant, actor, module/resource |
 | `storage_denial` | `audit_log` | tenant, actor, storage/resource context |
+| `tenant_mismatch` | `audit_log` | tenant waar bekend, actor, resource, resource-id |
+| `platform_access_denial` | `audit_log` | actor, platform resource, platform-only `tenant_id = NULL` |
 | `platform_admin` | `audit_log` | actor, platform resource, platform-only `tenant_id = NULL` waar geen tenantcontext bestaat |
 
 ## Securitygrenzen
 
 - Te lange break-glass TTL faalt via `validateSupportBreakGlassGrant()`.
+- Break-glass zonder reden, expiry of tenant-scope faalt en wordt als `grant_create_denied` geaudit waar tenant en platformgebruiker bekend zijn.
+- Verlopen of ingetrokken support grants vallen buiten runtime-access via `expires_at > now` en `revoked_at IS NULL`.
 - Downloads en denials zijn dashboardbaar zodra ze in `audit_log` of `support_access_audit_log` staan.
 - Tenant-admin ziet geen platform-only audit omdat `/platform/security` alleen via `requirePlatformAdmin()` loopt.
-- Platform-admin kan filteren op tenant, actor, eventtype en scope.
+- Platform-admin kan filteren op tenant, actor, eventtype, resource, datum, severity, support grant en scope.
 
 ## Test-id koppeling
 
