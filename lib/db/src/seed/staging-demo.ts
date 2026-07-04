@@ -13,8 +13,11 @@
  */
 import type { PoolClient } from "pg";
 import pg from "pg";
+import { loadDbRuntimeEnv } from "../runtime-env";
 
 const { Pool } = pg;
+
+loadDbRuntimeEnv();
 
 const SEED_MARKER = "VEELE_STAGING_DEMO_DEN_HAAG";
 const CONFIRM_VALUE = "seed-den-haag";
