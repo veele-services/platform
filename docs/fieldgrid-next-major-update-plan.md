@@ -206,7 +206,7 @@ Deze investeringen verlagen direct risico of verhogen beheerbaarheid:
 | Branding preview per tenant | `nice-to-have` | 14 |
 | Support break-glass flow | `partial` | 10 |
 | Security dashboard | `partial` | 10 |
-| Module dependency visualisatie | `nice-to-have` | 11 |
+| Module dependency visualisatie | `done` | 11 |
 | Demo-data generator | `partial` | 1 |
 | Staging smoke dashboard | `partial` | 15 |
 
@@ -244,7 +244,7 @@ Deze grote update is klaar wanneer:
 - bewuste nullable uitzonderingen expliciet zijn gedocumenteerd en getest;
 - assignment media direct tenant-aware is;
 - news scope is gekozen en afgedwongen;
-- backoffice/API/portalen/jobs module enforcement consistent is;
+- backoffice/API/portalen/jobs module enforcement consistent is en met Playwright/integration is bewezen;
 - DB-defaults naar `DEFAULT_TENANT_ID` uit tenantdata zijn verwijderd;
 - break-glass support korte TTL afdwingt;
 - usage dashboard documenten en storage toont;

@@ -13,6 +13,7 @@ function assertContains(content, phrases, label) {
 }
 
 const apiAuth = "artifacts/api-server/src/middleware/auth.ts";
+const moduleGuards = "artifacts/api-server/src/lib/module-guards.ts";
 const paymentReminders = "artifacts/api-server/src/routes/payment-reminders.ts";
 const expiredQuotes = "artifacts/api-server/src/routes/expired-quotes.ts";
 const customerTenant = "artifacts/klant-pwa/src/lib/auth/tenant.ts";
@@ -36,16 +37,22 @@ const MODULE_TEST_IDS = [
 
 test("API permission middleware enforces module entitlements after tenant RBAC", () => {
   const auth = read(apiAuth);
+  const moduleContract = read("lib/db/src/module-permissions.ts");
 
   assertContains(
     auth,
     [
       "requireTenantModule",
-      "type FieldgridModuleKey",
-      "const PERMISSION_MODULES",
-      "function moduleForPermissionResource",
+      "moduleForPermissionResource",
       "async function requireEnabledPermissionModule",
       "Module niet beschikbaar voor deze tenant",
+    ],
+    apiAuth,
+  );
+
+  assertContains(
+    moduleContract,
+    [
       "customers: \"customers\"",
       "objects: \"objects\"",
       "personnel: \"personnel\"",
@@ -60,7 +67,7 @@ test("API permission middleware enforces module entitlements after tenant RBAC",
       "notifications: \"notifications\"",
       "smart_planning: \"smart_planning\"",
     ],
-    apiAuth,
+    "module permission contract",
   );
 
   const rbacCheck = auth.indexOf("const permissions = await getUserPermissions(userId, tenantId);");
@@ -127,24 +134,37 @@ test("personnel portal identity and assignment actions require the personnel_por
   assertContains(
     assignments,
     [
-      "isTenantModuleEnabled",
-      "isTenantModuleEnabled(data.tenant_id, \"personnel_portal\")",
-      "if (!data?.tenant_id) return null;",
+      "requireCurrentPersonnelPortalTenantId",
+      "const tenantId = await requireCurrentPersonnelPortalTenantId();",
+      "if (!tenantId) return null;",
     ],
     personnelAssignments,
   );
 });
 
 test("finance background jobs skip tenants without the finance module", () => {
+  const guards = read(moduleGuards);
   const reminders = read(paymentReminders);
   const quotes = read(expiredQuotes);
 
   assertContains(
+    guards,
+    [
+      "requireJobTenantModule",
+      "type FieldgridModuleKey",
+      "missing_tenant",
+      "module_disabled",
+      "isTenantModuleEnabled(tenantId, moduleKey)",
+    ],
+    moduleGuards,
+  );
+
+  assertContains(
     reminders,
     [
-      "isTenantModuleEnabled",
+      "requireJobTenantModule",
       "customerTenantId:    customersTable.tenantId",
-      "isTenantModuleEnabled(invoice.customerTenantId, \"finance\")",
+      "requireJobTenantModule(invoice.customerTenantId, \"finance\")",
       "let moduleDisabled = 0;",
       "moduleDisabled++",
       "res.json({ ok: true, sent, skipped, moduleDisabled });",
@@ -155,9 +175,9 @@ test("finance background jobs skip tenants without the finance module", () => {
   assertContains(
     quotes,
     [
-      "isTenantModuleEnabled",
+      "requireJobTenantModule",
       "customerTenantId: customersTable.tenantId",
-      "isTenantModuleEnabled(q.customerTenantId, \"finance\")",
+      "requireJobTenantModule(q.customerTenantId, \"finance\")",
       "let moduleDisabled = 0;",
       "moduleDisabled++",
       "res.json({ ok: true, expired, notified, skipped, moduleDisabled });",

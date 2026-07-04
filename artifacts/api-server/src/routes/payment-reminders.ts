@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { db, isTenantModuleEnabled } from "@workspace/db";
+import { db } from "@workspace/db";
 import { invoicesTable, customersTable, auditLogTable, organizationSettingsTable } from "@workspace/db";
 import { eq, and, lte, or, isNull, lt } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { sendEmailWithResult, buildPaymentReminderEmail } from "../lib/email";
+import { requireJobTenantModule } from "../lib/module-guards";
 
 const router = Router();
 
@@ -108,7 +109,8 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
     let moduleDisabled = 0;
 
     for (const invoice of overdueInvoices) {
-      if (!invoice.customerTenantId || !(await isTenantModuleEnabled(invoice.customerTenantId, "finance"))) {
+      const moduleGuard = await requireJobTenantModule(invoice.customerTenantId, "finance");
+      if (!moduleGuard.allowed) {
         moduleDisabled++;
         skipped++;
         continue;
