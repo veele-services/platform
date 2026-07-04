@@ -77,12 +77,12 @@ Status: `hardening-open`.
 
 Werk:
 
+- DB-defaults naar `DEFAULT_TENANT_ID` zijn in sprint 8 uit tenantdata verwijderd met `070_sprint8_tenant_id_default_hardening.sql`; staging-copy rapportage moet dit nog bevestigen.
 - Staging-copy rapporten.
 - Backfills.
 - Constraint validation.
 - Waar mogelijk `tenant_id NOT NULL`.
 - Bewuste nullable uitzonderingen voor platform/global audit documenteren.
-- DB-defaults naar `DEFAULT_TENANT_ID` verwijderen uit tenantdata.
 
 Eigenaar: sprint 8.
 

@@ -236,6 +236,12 @@ Definition of Done:
 
 Doel: gevoelige tenantdata definitief sluiten.
 
+Opleverstatus:
+
+- Payments, batches en audit wave 3/4 zijn geleverd met `063_payments_batches_audit_tenant_scope.sql`.
+- Default-fallback hardening is geleverd met `070_sprint8_tenant_id_default_hardening.sql`.
+- Staging-copy constraintvalidatie en `tenant_id SET NOT NULL` blijven `hardening-open` tot de rapportage schoon is.
+
 Taken:
 
 - Backfill reports voor documents, reports, quotes, invoices, payments, batches, audit.

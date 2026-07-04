@@ -3,7 +3,6 @@ import {
   auditLogTable,
   customerNotificationsTable,
   customersTable,
-  DEFAULT_TENANT_ID,
   domainEventsTable,
   db,
   notificationDeliveryQueueTable,
@@ -42,7 +41,7 @@ export type DomainEventAuditInput = {
 
 export type EmitDomainEventInput = {
   eventKey: string;
-  tenantId?: string | null;
+  tenantId: string;
   actorUserId?: string | null;
   audience?: "customer" | "personnel" | "management" | "mixed";
   aggregate?: {
@@ -127,7 +126,11 @@ async function getEventSetting(eventKey: string): Promise<NotificationEventSetti
 }
 
 export async function emitDomainEvent(input: EmitDomainEventInput): Promise<EmitDomainEventResult> {
-  const tenantId = input.tenantId ?? DEFAULT_TENANT_ID;
+  const tenantId = input.tenantId?.trim();
+  if (!tenantId) {
+    throw new Error(`Domain event ${input.eventKey} mist tenantcontext.`);
+  }
+
   const payload: JsonRecord = {
     ...(input.payload ?? {}),
     eventKey: input.eventKey,
@@ -170,6 +173,7 @@ export async function emitDomainEvent(input: EmitDomainEventInput): Promise<Emit
 
   if (input.audit && input.actorUserId) {
     await db.insert(auditLogTable).values({
+      tenantId,
       userId: input.actorUserId,
       action: input.audit.action,
       resource: input.audit.resource,

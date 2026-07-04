@@ -9,10 +9,9 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
-import { DEFAULT_TENANT_ID, tenantsTable } from "./tenants";
+import { tenantsTable } from "./tenants";
 import { sectorsTable } from "./sectors";
 import { personnelTable } from "./personnel";
 import { rolesTable } from "./roles";
@@ -27,7 +26,6 @@ export const qualificationItemsTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
       .notNull()
-      .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     type: varchar("type", { length: 30 }).notNull().$type<QualificationType>(),
     code: varchar("code", { length: 80 }).notNull(),
@@ -65,7 +63,6 @@ export const personnelQualificationsTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
       .notNull()
-      .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     personnelId: uuid("personnel_id")
       .notNull()
@@ -101,7 +98,6 @@ export const roleQualificationsTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
       .notNull()
-      .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     roleId: uuid("role_id")
       .notNull()
@@ -127,7 +123,6 @@ export const taskCodeQualificationsTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
       .notNull()
-      .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     taskCodeId: uuid("task_code_id")
       .notNull()

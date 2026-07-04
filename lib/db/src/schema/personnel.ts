@@ -12,7 +12,7 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { rolesTable } from "./roles";
 import { sectorsTable } from "./sectors";
-import { DEFAULT_TENANT_ID, tenantsTable } from "./tenants";
+import { tenantsTable } from "./tenants";
 
 /**
  * Field worker / employee profile.
@@ -28,7 +28,6 @@ export const personnelTable = pgTable("personnel", {
   id:           uuid("id").primaryKey().defaultRandom(),
   tenantId:     uuid("tenant_id")
     .notNull()
-    .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
     .references(() => tenantsTable.id, { onDelete: "cascade" }),
   /** Supabase Auth UUID — nullable until the employee activates their account. */
   userId:       uuid("user_id").unique(),
