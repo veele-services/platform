@@ -50,10 +50,11 @@ test("sprint 16 script defines a read-only final gate contract", () => {
 
 test("sprint 16 extends the staging smoke dashboard with the external tenant gate", () => {
   const action = read("artifacts/backoffice/src/app/actions/platform-smoke.ts");
+  const types = read("artifacts/backoffice/src/app/actions/platform-smoke.types.ts");
   const page = read("artifacts/backoffice/src/app/(platform)/platform/staging-smoke/page.tsx");
 
   assertContains(
-    action,
+    `${action}\n${types}`,
     [
       "PlatformFinalExternalTenantGate",
       "PlatformFinalGateRequirement",
@@ -77,6 +78,7 @@ test("sprint 16 extends the staging smoke dashboard with the external tenant gat
       "FinalGateCard",
       "gate.requirements",
       "gate.postLaunchExceptions",
+      "platform-smoke.types",
     ],
     "staging smoke page",
   );
