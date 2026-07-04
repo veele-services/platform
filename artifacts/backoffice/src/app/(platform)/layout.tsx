@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { markCurrentPlatformUserSeen } from "@/app/actions/platform";
+import { PlatformShell } from "@/components/platform/PlatformShell";
 import { getCurrentPlatformUser } from "@/lib/auth/platform";
 import { createClient } from "@/lib/supabase/server";
 
@@ -49,5 +50,9 @@ export default async function PlatformLayout({
     console.warn("[platform] last-seen update skipped", error);
   }
 
-  return children;
+  return (
+    <PlatformShell userEmail={user.email ?? platformUser.userId} platformRole={platformUser.role}>
+      {children}
+    </PlatformShell>
+  );
 }
