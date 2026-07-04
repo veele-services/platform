@@ -140,6 +140,35 @@ The deploy workflow validates the multi-service variables as pairs. If
 and the same rule applies to `KLANT_*` and `API_*`. This prevents a green deploy
 where a PWA is built but never restarted or exposed.
 
+## Database Autofix workflow
+
+The workflow `.github/workflows/database-autofix.yml` is the small migration
+autofix path for `main` and `staging`. It is separate from deploy promotion and
+uses the same self-hosted runner plus the same concurrency group format as the
+deploy workflow, so it does not overlap a deploy for the same environment.
+
+Triggers:
+
+- automatic on pushes to `main` or `staging` that touch database or dependency
+  inputs;
+- manual through `workflow_dispatch`, with `target_environment` set to `main` or
+  `staging`.
+
+For both trigger types the job attaches to the matching GitHub Environment and
+reads `DATABASE_URL` from environment secrets. The workflow validates that the
+selected environment is only `main` or `staging`, verifies that `DATABASE_URL` is
+present without printing it, installs dependencies, and runs:
+
+```bash
+pnpm run db:migrate
+```
+
+This workflow does not use the old migration-smoke-only secrets. The required
+secret name is:
+
+- `DATABASE_URL`: Postgres connection string for the selected `main` or
+  `staging` GitHub Environment.
+
 ## Multi-service staging routing
 
 The backoffice, personnel PWA, customer PWA, and API server are separate runtime
