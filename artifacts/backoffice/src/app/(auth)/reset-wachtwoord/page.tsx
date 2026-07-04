@@ -14,12 +14,18 @@ function strengthColor(score: number): string {
   return "#DC2626";
 }
 
+function safeNextPath(value: string | null): string {
+  if (!value || !value.startsWith("/") || value.startsWith("//") || value.includes("\\")) return "/";
+  return value;
+}
+
 export default function ResetWachtwoordPage() {
   const router = useRouter();
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [nextPath, setNextPath] = useState("/");
   const [state, formAction, pending] = useActionState(completePasswordReset, undefined);
 
   const strength = evaluatePasswordStrength(password);
@@ -28,10 +34,19 @@ export default function ResetWachtwoordPage() {
   const ConfirmPasswordIcon = showConfirmPassword ? EyeOff : Eye;
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    setNextPath(safeNextPath(params.get("next")));
+  }, []);
+
+  useEffect(() => {
     if (state?.success) {
-      router.push("/login?message=Wachtwoord+succesvol+gewijzigd.+U+kunt+nu+inloggen.");
+      const params = new URLSearchParams({
+        message: "Wachtwoord succesvol gewijzigd. U kunt nu inloggen.",
+        next: state.next ?? nextPath,
+      });
+      router.push(`/login?${params.toString()}`);
     }
-  }, [router, state?.success]);
+  }, [nextPath, router, state?.next, state?.success]);
 
   return (
     <div
@@ -92,6 +107,8 @@ export default function ResetWachtwoordPage() {
       </div>
 
       <form action={formAction} className="space-y-5" noValidate>
+        <input type="hidden" name="next" value={nextPath} />
+
         {state?.error && (
           <div
             className="flex items-start gap-2.5 rounded-lg px-3.5 py-3"
