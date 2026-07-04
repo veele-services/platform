@@ -321,11 +321,22 @@ Definition of Done:
 
 Doel: platform-admin kan tenants volledig begeleid aanmaken.
 
+Status na sprint 12: `runtime-proof-open`.
+
+Geleverd:
+
+- `/platform` gebruikt een wizard voor tenantgegevens, domein, plan, modules, sectoren, regio's, owner invite, branding en review.
+- Concepten worden in `tenant_provisioning_runs` opgeslagen met `status = draft` en kunnen via querystring worden hervat.
+- Provisioning schrijft gekozen modules, sectorbeleid, tenant-regio's en branding door naar de transactionele provisioningservice.
+- Runhistorie toont status, owner invite status, foutmelding, rollbackpad, hervatten en retry.
+- Owner-invite failure gebruikt rollback en bewaart rollbackmetadata.
+
 Taken:
 
-- Wizard: tenantgegevens, domein, plan, modules, sectoren, regio's, owner invite, branding, review, runstatus, rollback.
-- Save/resume.
-- Provisioning run history en retry/foutafhandeling.
+- Wizard: tenantgegevens, domein, plan, modules, sectoren, regio's, owner invite, branding, review, runstatus, rollback. `geleverd`
+- Save/resume. `geleverd`
+- Provisioning run history en retry/foutafhandeling. `geleverd`
+- Playwright/integration bewijs voor happy path, rollback en retry. `runtime-proof-open`
 
 Definition of Done:
 

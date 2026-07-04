@@ -54,11 +54,13 @@ Geen onderwerp mag in vervolgwerk alleen als "open" blijven staan zonder status,
 - Platform-admin en supportgrant-basis bestaan.
 - Tenant-sector foundation en tenant-sector settings bestaan.
 - Modules, plans, tenant modules, dependencies, subscriptions en limits hebben foundation.
+- API module guards en Portal module guards moeten overal dezelfde module-uit semantiek afdwingen.
 - Materialen/inventaris hebben onderzoeks- en productcanon; volledige modulebouw volgt na SaaS proof of als aparte roadmap.
 
 ### 3.2 `partial`
 
-- Platform onboarding: provisioning form/status bestaat, wizard save/resume/review/rollback ontbreekt.
+- Platform onboarding: wizard met save/resume/review/retry/rollback bestaat; runtimebewijs blijft open.
+- Tenant first-run: checklist/foundation bestaat, echte owner wizard ontbreekt.
 - Support break-glass: reden/expiry/audit bestaan, harde max TTL en centrale flow ontbreken.
 - Usage dashboard: basisstats bestaan, documenten/storage/downloads/actieve modules moeten erbij.
 - Staging smoke: read-only/dashboardbasis bestaat, run history, live smokes en mutating cleanup ontbreken.
