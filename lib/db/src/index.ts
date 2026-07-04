@@ -22,5 +22,6 @@ export * from "./tenant-entitlements";
 export * from "./module-permissions";
 export * from "./tenant-branding";
 export * from "./tenant-provisioning";
+export * from "./custom-domains";
 export * from "./platform-access";
 export * from "./storage-paths";

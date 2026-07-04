@@ -1,6 +1,7 @@
 import express, { type Express, type Request, type Response } from "express";
 import cors from "cors";
 import pinoHttp from "pino-http";
+import caddyRouter from "./routes/caddy";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
@@ -42,6 +43,7 @@ app.use(cors());
 app.use(express.json({ verify: captureRawBody }));
 app.use(express.urlencoded({ extended: true, verify: captureRawBody }));
 
+app.use(caddyRouter);
 app.use("/api", router);
 
 export default app;

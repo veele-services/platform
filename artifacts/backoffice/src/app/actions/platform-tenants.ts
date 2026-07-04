@@ -1,7 +1,12 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
+import { resolve4, resolve6, resolveCname, resolveTxt } from "node:dns/promises";
 import {
   auditLogTable,
+  canTenantUseCustomDomains,
+  customDomainTxtName,
+  customDomainVerificationValue,
   db,
   assignmentsTable,
   customersTable,
@@ -10,6 +15,7 @@ import {
   getTenantBranding,
   getTenantPlanSnapshot,
   isPlatformHost,
+  isTenantRuntimeActive,
   isTenantModuleEnabled,
   moduleDependenciesTable,
   modulesTable,
@@ -22,6 +28,7 @@ import {
   sectorsTable,
   supportAccessAuditLogTable,
   supportAccessGrantsTable,
+  tenantDomainChecksTable,
   tenantDomainsTable,
   tenantModulesTable,
   tenantOwnerInvitesTable,
@@ -43,10 +50,12 @@ import type { ActionResult } from "./customers";
 
 const TENANT_PLAN_KEYS = ["starter", "professional", "enterprise"] as const;
 const TENANT_STATUS_FILTERS = ["provisioning", "trial", "active", "suspended", "archived"] as const;
-const DOMAIN_TYPES = ["subdomain", "custom"] as const;
-const DOMAIN_VERIFICATION_STATUSES = ["pending", "verified", "failed"] as const;
+const DOMAIN_TYPES = ["fieldgrid_subdomain", "custom_domain"] as const;
+const DOMAIN_VERIFICATION_STATUSES = ["pending", "pending_dns", "dns_seen", "verified", "tls_pending", "active", "failed", "disabled", "disabled_plan"] as const;
 const TENANT_LIST_DOMAIN_STATUSES = ["missing", "pending", "verified", "failed"] as const;
 const TENANT_LIST_READINESS_STATUSES = ["ready", "warning", "blocked"] as const;
+const ROUTABLE_DOMAIN_STATUSES = ["verified", "active"] as const;
+const CUSTOM_DOMAIN_TOKEN_BYTES = 24;
 
 export type PlatformTenantListDomainStatus = (typeof TENANT_LIST_DOMAIN_STATUSES)[number];
 export type PlatformTenantListReadinessStatus = (typeof TENANT_LIST_READINESS_STATUSES)[number];
@@ -219,6 +228,18 @@ export type PlatformTenantDomainRow = {
   type: string;
   isPrimary: boolean;
   verificationStatus: string;
+  verificationToken: string | null;
+  verificationMethod: string;
+  dnsTxtName: string | null;
+  dnsTarget: string | null;
+  dnsLastCheckedAt: string | null;
+  dnsLastError: string | null;
+  tlsStatus: string;
+  tlsLastCheckedAt: string | null;
+  tlsLastError: string | null;
+  activatedAt: string | null;
+  disabledAt: string | null;
+  disabledReason: string | null;
   verifiedAt: string | null;
   createdAt: string;
 };
@@ -335,6 +356,114 @@ function actionValue(formData: FormData, name: string): string {
 
 function booleanValue(formData: FormData, name: string): boolean {
   return formData.get(name) === "on" || formData.get(name) === "true";
+}
+
+function randomVerificationToken(): string {
+  return randomBytes(CUSTOM_DOMAIN_TOKEN_BYTES).toString("base64url");
+}
+
+function normalizeDomainType(value: string, domain: string): typeof DOMAIN_TYPES[number] {
+  if (value === "fieldgrid_subdomain" || value === "subdomain") return "fieldgrid_subdomain";
+  if (value === "custom_domain" || value === "custom") return "custom_domain";
+  return domain.endsWith(".fieldgrid.nl") ? "fieldgrid_subdomain" : "custom_domain";
+}
+
+function publicIpv4Target(): string | null {
+  return process.env.FIELDGRID_PUBLIC_IPV4?.trim() || null;
+}
+
+function publicIpv6Target(): string | null {
+  return process.env.FIELDGRID_PUBLIC_IPV6?.trim() || null;
+}
+
+function customDomainCnameTarget(tenantSlug: string): string {
+  return normalizeHost(process.env.FIELDGRID_CUSTOM_DOMAIN_CNAME_TARGET ?? `${tenantSlug}.fieldgrid.nl`);
+}
+
+function domainStatusTone(status: string): "neutral" | "good" | "warning" | "danger" {
+  if (status === "verified" || status === "active") return "good";
+  if (status === "failed" || status === "disabled" || status === "disabled_plan") return "danger";
+  return "warning";
+}
+
+function domainCanRoute(status: string): boolean {
+  return ROUTABLE_DOMAIN_STATUSES.includes(status as typeof ROUTABLE_DOMAIN_STATUSES[number]);
+}
+
+async function tenantCustomDomainGate(tenantId: string): Promise<{
+  allowed: boolean;
+  detail: string;
+  tenant: { id: string; slug: string; name: string; isActive: boolean; status: TenantStatus; planKey: TenantPlanKey } | null;
+}> {
+  const [tenant] = await db
+    .select({
+      id: tenantsTable.id,
+      slug: tenantsTable.slug,
+      name: tenantsTable.name,
+      isActive: tenantsTable.isActive,
+      status: tenantsTable.status,
+      planKey: tenantsTable.planKey,
+    })
+    .from(tenantsTable)
+    .where(eq(tenantsTable.id, tenantId))
+    .limit(1);
+
+  if (!tenant) return { allowed: false, detail: "Tenant niet gevonden.", tenant: null };
+  if (!isTenantRuntimeActive(tenant)) {
+    return { allowed: false, detail: "Custom domains vereisen een actieve tenant.", tenant };
+  }
+
+  const allowed = await canTenantUseCustomDomains(tenantId);
+  return {
+    allowed,
+    detail: allowed ? "Enterprise custom domains toegestaan." : "Custom domains zijn beschikbaar voor Enterprise tenants.",
+    tenant,
+  };
+}
+
+async function recordDomainCheck(input: {
+  tenantDomainId: string;
+  tenantId: string;
+  checkType: string;
+  status: string;
+  details: Record<string, unknown>;
+}): Promise<void> {
+  await db.insert(tenantDomainChecksTable).values({
+    tenantDomainId: input.tenantDomainId,
+    tenantId: input.tenantId,
+    checkType: input.checkType,
+    status: input.status,
+    details: input.details,
+  });
+}
+
+function dnsErrorMessage(error: unknown): string {
+  if (error instanceof Error && error.message) return error.message;
+  return "DNS-record niet gevonden.";
+}
+
+async function resolveTxtValues(name: string): Promise<string[]> {
+  try {
+    return (await resolveTxt(name)).map((parts) => parts.join(""));
+  } catch {
+    return [];
+  }
+}
+
+async function resolveAValues(domain: string): Promise<string[]> {
+  const [ipv4, ipv6] = await Promise.all([
+    resolve4(domain).catch(() => [] as string[]),
+    resolve6(domain).catch(() => [] as string[]),
+  ]);
+  return [...ipv4, ...ipv6];
+}
+
+async function resolveCnameValues(domain: string): Promise<string[]> {
+  try {
+    return (await resolveCname(domain)).map((value) => normalizeHost(value));
+  } catch {
+    return [];
+  }
 }
 
 function buildBrandingPreview(branding: Awaited<ReturnType<typeof getTenantBranding>>): PlatformTenantBrandingPreview {
@@ -628,19 +757,19 @@ function tenantListDomainStatusSql(): SQL<PlatformTenantListDomainStatus> {
         SELECT 1 FROM ${tenantDomainsTable} td
         WHERE td.tenant_id = ${tenantsTable.id}
           AND td.type <> 'platform_reserved'
-          AND td.verification_status = 'failed'
+          AND td.verification_status IN ('failed', 'disabled', 'disabled_plan')
       ) THEN 'failed'
       WHEN EXISTS (
         SELECT 1 FROM ${tenantDomainsTable} td
         WHERE td.tenant_id = ${tenantsTable.id}
           AND td.type <> 'platform_reserved'
-          AND td.verification_status = 'pending'
+          AND td.verification_status IN ('pending', 'pending_dns', 'dns_seen', 'tls_pending')
       ) THEN 'pending'
       WHEN EXISTS (
         SELECT 1 FROM ${tenantDomainsTable} td
         WHERE td.tenant_id = ${tenantsTable.id}
           AND td.type <> 'platform_reserved'
-          AND td.verification_status = 'verified'
+          AND td.verification_status IN ('verified', 'active')
       ) THEN 'verified'
       ELSE 'missing'
     END
@@ -655,7 +784,7 @@ function tenantListReadinessSql(): SQL<PlatformTenantListReadinessStatus> {
           SELECT 1 FROM ${tenantDomainsTable} td
           WHERE td.tenant_id = ${tenantsTable.id}
             AND td.type <> 'platform_reserved'
-            AND td.verification_status = 'verified'
+            AND td.verification_status IN ('verified', 'active')
         )
         OR NOT EXISTS (
           SELECT 1 FROM ${tenantUsersTable} tu
@@ -682,7 +811,7 @@ function tenantListReadinessSql(): SQL<PlatformTenantListReadinessStatus> {
           SELECT 1 FROM ${tenantDomainsTable} td
           WHERE td.tenant_id = ${tenantsTable.id}
             AND td.type <> 'platform_reserved'
-            AND td.verification_status <> 'verified'
+            AND td.verification_status NOT IN ('verified', 'active')
         )
         OR EXISTS (
           SELECT 1 FROM ${tenantSubscriptionsTable} sub
@@ -862,7 +991,7 @@ export async function listPlatformTenants(): Promise<PlatformTenantRow[]> {
         FROM tenant_domains td
         WHERE td.tenant_id = ${tenantsTable.id}
           AND td.type <> 'platform_reserved'
-          AND td.verification_status = 'verified'
+          AND td.verification_status IN ('verified', 'active')
         ORDER BY td.is_primary DESC, td.created_at ASC
         LIMIT 1
       )`,
@@ -919,7 +1048,7 @@ export async function listPlatformTenantList(filters: PlatformTenantListFilters 
           FROM ${tenantDomainsTable} td
           WHERE td.tenant_id = ${tenantsTable.id}
             AND td.type <> 'platform_reserved'
-            AND td.verification_status = 'verified'
+            AND td.verification_status IN ('verified', 'active')
           ORDER BY td.is_primary DESC, td.created_at ASC
           LIMIT 1
         )`,
@@ -1084,7 +1213,7 @@ export async function getPlatformTenantDetail(tenantId: string): Promise<Platfor
         SELECT td.domain FROM tenant_domains td
         WHERE td.tenant_id = ${tenantsTable.id}
           AND td.type <> 'platform_reserved'
-          AND td.verification_status = 'verified'
+          AND td.verification_status IN ('verified', 'active')
         ORDER BY td.is_primary DESC, td.created_at ASC
         LIMIT 1
       )`,
@@ -1362,6 +1491,18 @@ export async function listPlatformTenantDomains(tenantId: string): Promise<Platf
       type: tenantDomainsTable.type,
       isPrimary: tenantDomainsTable.isPrimary,
       verificationStatus: tenantDomainsTable.verificationStatus,
+      verificationToken: tenantDomainsTable.verificationToken,
+      verificationMethod: tenantDomainsTable.verificationMethod,
+      dnsTxtName: tenantDomainsTable.dnsTxtName,
+      dnsTarget: tenantDomainsTable.dnsTarget,
+      dnsLastCheckedAt: tenantDomainsTable.dnsLastCheckedAt,
+      dnsLastError: tenantDomainsTable.dnsLastError,
+      tlsStatus: tenantDomainsTable.tlsStatus,
+      tlsLastCheckedAt: tenantDomainsTable.tlsLastCheckedAt,
+      tlsLastError: tenantDomainsTable.tlsLastError,
+      activatedAt: tenantDomainsTable.activatedAt,
+      disabledAt: tenantDomainsTable.disabledAt,
+      disabledReason: tenantDomainsTable.disabledReason,
       verifiedAt: tenantDomainsTable.verifiedAt,
       createdAt: tenantDomainsTable.createdAt,
     })
@@ -1371,6 +1512,10 @@ export async function listPlatformTenantDomains(tenantId: string): Promise<Platf
 
   return rows.map((row) => ({
     ...row,
+    dnsLastCheckedAt: row.dnsLastCheckedAt?.toISOString() ?? null,
+    tlsLastCheckedAt: row.tlsLastCheckedAt?.toISOString() ?? null,
+    activatedAt: row.activatedAt?.toISOString() ?? null,
+    disabledAt: row.disabledAt?.toISOString() ?? null,
     verifiedAt: row.verifiedAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
   }));
@@ -1541,7 +1686,7 @@ export async function createPlatformTenant(formData: FormData): Promise<void> {
       await tx.insert(tenantDomainsTable).values({
         tenantId: tenant.id,
         domain,
-        type: "subdomain",
+        type: "fieldgrid_subdomain",
         isPrimary: true,
         verificationStatus: "pending",
       });
@@ -1634,19 +1779,27 @@ export async function updatePlatformTenantPlan(formData: FormData): Promise<Acti
 }
 
 export async function addPlatformTenantDomain(formData: FormData): Promise<ActionResult> {
-  await requirePlatformAdmin();
+  const actor = await requirePlatformAdmin();
   const tenantId = actionValue(formData, "tenantId");
   const domain = normalizeHost(actionValue(formData, "domain"));
-  const type = DOMAIN_TYPES.includes(actionValue(formData, "type") as typeof DOMAIN_TYPES[number])
-    ? actionValue(formData, "type")
-    : "custom";
-  const verificationStatus = DOMAIN_VERIFICATION_STATUSES.includes(actionValue(formData, "verificationStatus") as typeof DOMAIN_VERIFICATION_STATUSES[number])
-    ? actionValue(formData, "verificationStatus")
-    : "pending";
+  const type = normalizeDomainType(actionValue(formData, "type"), domain);
   const isPrimary = booleanValue(formData, "isPrimary");
 
   if (!tenantId || !domain) return { success: false, message: "Tenant en domein zijn verplicht." };
   if (isPlatformHost(domain)) return { success: false, message: "Platformhost kan niet aan een tenant worden gekoppeld." };
+
+  const gate = await tenantCustomDomainGate(tenantId);
+  if (!gate.tenant) return { success: false, message: gate.detail };
+
+  const isCustomDomain = type === "custom_domain";
+  if (isCustomDomain && !gate.allowed) return { success: false, message: gate.detail };
+
+  const token = isCustomDomain ? randomVerificationToken() : null;
+  const verificationStatus = isCustomDomain ? "pending_dns" : "verified";
+  const verifiedAt = isCustomDomain ? null : new Date();
+  const dnsTxtName = isCustomDomain ? customDomainTxtName(domain) : null;
+  const dnsTarget = isCustomDomain ? customDomainCnameTarget(gate.tenant.slug) : null;
+  const tlsStatus = isCustomDomain ? "pending" : "active";
 
   try {
     await db.transaction(async (tx) => {
@@ -1660,7 +1813,14 @@ export async function addPlatformTenantDomain(formData: FormData): Promise<Actio
         type,
         isPrimary,
         verificationStatus,
-        verifiedAt: verificationStatus === "verified" ? new Date() : null,
+        verificationToken: token,
+        verificationMethod: "dns_txt",
+        dnsTxtName,
+        dnsTarget,
+        tlsStatus,
+        verifiedAt,
+        activatedAt: isCustomDomain ? null : new Date(),
+        createdByPlatformUserId: actor.id,
       });
     });
   } catch (error) {
@@ -1676,7 +1836,7 @@ export async function addPlatformTenantDomain(formData: FormData): Promise<Actio
 }
 
 export async function updatePlatformTenantDomain(formData: FormData): Promise<ActionResult> {
-  await requirePlatformAdmin();
+  const actor = await requirePlatformAdmin();
   const tenantId = actionValue(formData, "tenantId");
   const domainId = actionValue(formData, "domainId");
   const domainAction = actionValue(formData, "domainAction");
@@ -1684,7 +1844,16 @@ export async function updatePlatformTenantDomain(formData: FormData): Promise<Ac
   if (!tenantId || !domainId) return { success: false, message: "Tenant en domein zijn verplicht." };
 
   const [domain] = await db
-    .select({ id: tenantDomainsTable.id, type: tenantDomainsTable.type })
+    .select({
+      id: tenantDomainsTable.id,
+      tenantId: tenantDomainsTable.tenantId,
+      domain: tenantDomainsTable.domain,
+      type: tenantDomainsTable.type,
+      verificationStatus: tenantDomainsTable.verificationStatus,
+      verificationToken: tenantDomainsTable.verificationToken,
+      dnsTxtName: tenantDomainsTable.dnsTxtName,
+      dnsTarget: tenantDomainsTable.dnsTarget,
+    })
     .from(tenantDomainsTable)
     .where(and(eq(tenantDomainsTable.id, domainId), eq(tenantDomainsTable.tenantId, tenantId)))
     .limit(1);
@@ -1692,16 +1861,143 @@ export async function updatePlatformTenantDomain(formData: FormData): Promise<Ac
   if (!domain) return { success: false, message: "Domein niet gevonden." };
   if (domain.type === "platform_reserved") return { success: false, message: "Platformdomeinen kunnen hier niet worden gewijzigd." };
 
-  if (domainAction === "verify") {
+  const gate = await tenantCustomDomainGate(tenantId);
+  if (!gate.tenant) return { success: false, message: gate.detail };
+  if (domain.type === "custom_domain" && !gate.allowed) {
     await db
       .update(tenantDomainsTable)
-      .set({ verificationStatus: "verified", verifiedAt: new Date(), updatedAt: new Date() })
+      .set({
+        verificationStatus: "disabled_plan",
+        tlsStatus: "disabled",
+        disabledAt: new Date(),
+        disabledReason: gate.detail,
+        updatedAt: new Date(),
+      })
+      .where(eq(tenantDomainsTable.id, domainId));
+    await auditPlatformTenantAction({ tenantId, action: "tenant_domain_disabled_plan", resource: "tenant_domains", resourceId: domainId, metadata: { domain: domain.domain } });
+    revalidatePlatformTenant(tenantId);
+    return { success: false, message: gate.detail };
+  }
+
+  if (domainAction === "check_dns" || domainAction === "verify") {
+    if (domain.type !== "custom_domain") {
+      await db
+        .update(tenantDomainsTable)
+        .set({ verificationStatus: "verified", tlsStatus: "active", verifiedAt: new Date(), updatedAt: new Date() })
+        .where(eq(tenantDomainsTable.id, domainId));
+      await auditPlatformTenantAction({ tenantId, action: "tenant_domain_verified", resource: "tenant_domains", resourceId: domainId, metadata: { domain: domain.domain, type: domain.type } });
+      revalidatePlatformTenant(tenantId);
+      return { success: true };
+    }
+
+    if (!domain.verificationToken || !domain.dnsTxtName) {
+      return { success: false, message: "Verificatietoken ontbreekt. Verwijder en voeg het domein opnieuw toe." };
+    }
+
+    const expectedTxt = customDomainVerificationValue(domain.verificationToken);
+    const expectedIpv4 = publicIpv4Target();
+    const expectedIpv6 = publicIpv6Target();
+    const expectedCname = domain.dnsTarget ? normalizeHost(domain.dnsTarget) : customDomainCnameTarget(gate.tenant.slug);
+    let txtValues: string[] = [];
+    let addressValues: string[] = [];
+    let cnameValues: string[] = [];
+    let status: "dns_seen" | "verified" | "failed" = "failed";
+    let errorMessage: string | null = null;
+
+    try {
+      [txtValues, addressValues, cnameValues] = await Promise.all([
+        resolveTxtValues(domain.dnsTxtName),
+        resolveAValues(domain.domain),
+        resolveCnameValues(domain.domain),
+      ]);
+
+      const txtOk = txtValues.includes(expectedTxt);
+      const aOk = Boolean((expectedIpv4 && addressValues.includes(expectedIpv4)) || (expectedIpv6 && addressValues.includes(expectedIpv6)));
+      const cnameOk = cnameValues.includes(expectedCname);
+      const routingOk = aOk || cnameOk;
+
+      if (txtOk && routingOk) {
+        status = "verified";
+      } else if (txtOk) {
+        status = "dns_seen";
+        errorMessage = "TXT-record klopt, maar A/AAAA/CNAME wijst nog niet naar Fieldgrid.";
+      } else {
+        errorMessage = "TXT-verificatie ontbreekt of heeft een verkeerde waarde.";
+      }
+    } catch (error) {
+      errorMessage = dnsErrorMessage(error);
+    }
+
+    const now = new Date();
+    await db
+      .update(tenantDomainsTable)
+      .set({
+        verificationStatus: status,
+        verifiedAt: status === "verified" ? now : null,
+        verifiedByPlatformUserId: status === "verified" ? actor.id : null,
+        dnsLastCheckedAt: now,
+        dnsLastError: errorMessage,
+        tlsStatus: status === "verified" ? "pending" : "pending",
+        tlsLastError: null,
+        disabledAt: null,
+        disabledReason: null,
+        updatedAt: now,
+      })
+      .where(eq(tenantDomainsTable.id, domainId));
+
+    await recordDomainCheck({
+      tenantDomainId: domainId,
+      tenantId,
+      checkType: "dns",
+      status,
+      details: {
+        expectedTxt,
+        expectedIpv4,
+        expectedIpv6,
+        expectedCname,
+        txtValues,
+        addressValues,
+        cnameValues,
+        errorMessage,
+      },
+    });
+    await auditPlatformTenantAction({ tenantId, action: "tenant_domain_dns_checked", resource: "tenant_domains", resourceId: domainId, metadata: { domain: domain.domain, status, errorMessage } });
+    revalidatePlatformTenant(tenantId);
+
+    return status === "verified"
+      ? { success: true }
+      : { success: false, message: errorMessage ?? "DNS-verificatie is nog niet compleet." };
+  } else if (domainAction === "check_tls") {
+    if (!domainCanRoute(domain.verificationStatus)) {
+      return { success: false, message: "TLS kan pas na DNS-verificatie worden geactiveerd." };
+    }
+    await db
+      .update(tenantDomainsTable)
+      .set({ tlsStatus: "active", tlsLastCheckedAt: new Date(), tlsLastError: null, activatedAt: new Date(), verificationStatus: "active", updatedAt: new Date() })
+      .where(eq(tenantDomainsTable.id, domainId));
+    await recordDomainCheck({ tenantDomainId: domainId, tenantId, checkType: "tls", status: "active", details: { domain: domain.domain } });
+    await auditPlatformTenantAction({ tenantId, action: "tenant_domain_tls_checked", resource: "tenant_domains", resourceId: domainId, metadata: { domain: domain.domain, status: "active" } });
+  } else if (domainAction === "activate") {
+    if (!domainCanRoute(domain.verificationStatus)) {
+      return { success: false, message: "Domein moet eerst geverifieerd zijn." };
+    }
+    await db
+      .update(tenantDomainsTable)
+      .set({ verificationStatus: "active", tlsStatus: "pending", activatedAt: new Date(), disabledAt: null, disabledReason: null, updatedAt: new Date() })
       .where(eq(tenantDomainsTable.id, domainId));
   } else if (domainAction === "primary") {
+    if (!domainCanRoute(domain.verificationStatus)) {
+      return { success: false, message: "Alleen verified/active domeinen kunnen primair worden." };
+    }
     await db.transaction(async (tx) => {
       await tx.update(tenantDomainsTable).set({ isPrimary: false }).where(eq(tenantDomainsTable.tenantId, tenantId));
       await tx.update(tenantDomainsTable).set({ isPrimary: true, updatedAt: new Date() }).where(eq(tenantDomainsTable.id, domainId));
     });
+  } else if (domainAction === "disable") {
+    await db
+      .update(tenantDomainsTable)
+      .set({ verificationStatus: "disabled", tlsStatus: "disabled", disabledAt: new Date(), disabledReason: actionValue(formData, "disabledReason") || "Uitgeschakeld door platformbeheer.", updatedAt: new Date() })
+      .where(eq(tenantDomainsTable.id, domainId));
   } else if (domainAction === "remove") {
     await db.delete(tenantDomainsTable).where(eq(tenantDomainsTable.id, domainId));
   } else {
