@@ -9,7 +9,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { sectorsTable } from "./sectors";
-import { DEFAULT_TENANT_ID, tenantsTable } from "./tenants";
+import { tenantsTable } from "./tenants";
 
 export const TENANT_SECTOR_POLICY_MODES = ["multi", "single"] as const;
 
@@ -21,7 +21,6 @@ export const tenantSectorsTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
       .notNull()
-      .default(DEFAULT_TENANT_ID)
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     sectorId: uuid("sector_id")
       .notNull()

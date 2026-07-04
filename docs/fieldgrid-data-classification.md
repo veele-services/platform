@@ -56,7 +56,7 @@ De codebase is nog niet klaar voor externe SaaS-acceptatie. De grootste gaten zi
 | Globale RBAC templates | `roles`, `permissions`, `role_permissions` | `runtime-proof-open` | `global_template` | P0 | Bewijzen dat globale roles geen runtime-rechten geven. | `FG-RBAC-003`. | 5 |
 | Tenant RBAC runtime | `tenant_roles`, `tenant_role_permissions`, `tenant_user_roles` | `runtime-proof-open` | `direct_tenant_id` | P0 | Echte Tenant A/B roltests. | `FG-RBAC-001` t/m `FG-RBAC-005`. | 5 |
 | Platform users | `platform_users` | `runtime-proof-open` | `platform_only` | P0 | Inactive admin denial, tenant-user denial, platform audit. | `FG-PLATFORM-*`. | 10/12 |
-| Support access | `support_access_grants`, `support_access_audit_log` | `partial` | `platform_only` + tenant-scoped support | P0 | Max TTL, break-glass reason, priority proof, securitydashboard. | `FG-SUPPORT-*`, `FG-AUDIT-002`. | 10 |
+| Support access | `support_access_grants`, `support_access_audit_log` | `partial` | `platform_only` + tenant-scoped support | P0 | Max TTL, break-glass reason en securitydashboard 2.0 zijn geleverd; runtime-proof en Playwright-smoke blijven open. | `FG-SUPPORT-*`, `FG-AUDIT-002`. | 10 |
 | Sectorcatalogus | `sectors` | `partial` | `global_template` | P0 | Platformbeheer later; geen runtime tenantrecht uit globale catalogus. | Sector global/template tests. | 5/14 |
 | Tenant sectors en policy | `tenant_sectors`, `tenant_sector_settings` | `runtime-proof-open` | `tenant_config` | P0 | Disable/backfill/default/single-sector bewijs. | `FG-SECTOR-*`. | 5 |
 | Customers | `customers`, notes, contacts | `runtime-proof-open` | `direct_tenant_id` + `parent_scoped` | P0 | Direct-ID, tenant default hardening, export/audit children beoordelen. | `FG-DATA-001`. | 5/8 |
@@ -65,14 +65,14 @@ De codebase is nog niet klaar voor externe SaaS-acceptatie. De grootste gaten zi
 | Personnel en personeelsapp identity | `personnel`, availability, qualifications, profile settings | `runtime-proof-open` | `direct_tenant_id` | P0 | Personnel-regio multiselect, portal module/media bewijs. | `FG-PORTAL-P-*`, `FG-REGION-*`. | 2/3/4/6 |
 | Assignments | `assignments` | `hardening-open` | `direct_tenant_id` | P0 | `DEFAULT_TENANT_ID` defaults verwijderen; required regions normaliseren; sector/regio consistentie bewijzen. | `FG-DATA-003`, `FG-SECTOR-006`, `FG-REGION-*`. | 2/4/8 |
 | Assignment technical children | `assignment_personnel`, `assignment_tasks`, `assignment_extra_work`, `assignment_material_usage`, `assignment_report_notes` | `partial` | `parent_scoped` tijdelijk acceptabel | P1 | Directe tenant_id alleen nodig als child zelfstandig route/download/export krijgt. | Parent tenant check bij direct child route. | 8/9 |
-| Assignment media | `assignment_photos`, `assignment_report_note_attachments` | `hardening-open` | `needs_migration` naar `direct_tenant_id` | P1 | Direct tenant_id, backfill via assignment, tenant-prefix storage, signed URL helper. | `FG-STORAGE-003`, `FG-STORAGE-004`. | 9 |
+| Assignment media | `assignment_photos`, `assignment_report_note_attachments` | `hardening-open` | `direct_tenant_id` hardening + tenant-prefixed storage | P1 | Direct tenant_id bestaat; Sprint 9 levert canonical uploadpaden en signed URL helpers; fysieke objectcopy en provider-smoke blijven open. | `FG-STORAGE-003`, `FG-STORAGE-004`. | 9 |
 | Documents | `documents`, document bucket | `hardening-open` | `direct_tenant_id` hardening | P1 | Unresolved rows, constraints, `tenant_id NOT NULL` waar schoon, storage bewijs. | `FG-DATA-004`, `FG-STORAGE-*`. | 8/9 |
 | Reports | `reports`, report PDFs | `hardening-open` | `direct_tenant_id` hardening | P1 | Backfill/constraint validation, PDF/download audit. | `FG-DATA-005`, `FG-AUDIT-001`. | 8/10 |
 | Quotes | `quotes` | `hardening-open` | `direct_tenant_id` hardening | P1 | Backfill/constraint validation, PDF audit. | `FG-DATA-006`, `FG-AUDIT-001`. | 8/10 |
 | Invoices | `invoices` | `hardening-open` | `direct_tenant_id` hardening | P1 | Backfill/constraint validation, invoice PDF audit. | `FG-DATA-007`, `FG-AUDIT-001`. | 8/10 |
 | Payments | `payments` | `hardening-open` | `direct_tenant_id` hardening | P1 | Constraint validation, webhook tenantguard, direct-ID tests. | `FG-DATA-008`. | 8 |
 | Customer payment batches | `customer_payment_batches`, `customer_payment_batch_items` | `hardening-open` | `direct_tenant_id` hardening | P1 | Constraint validation, batch-item consistency. | Batch direct-ID/payment tests. | 8 |
-| Audit logging | `audit_log`, support audit | `partial` | `direct_tenant_id` voor tenant-audit + `platform_only` voor platform-audit | P1/P0 | Typecontract aanscherpen, tenant/platform/support audit scheiden, denials centraliseren. | `FG-DATA-009`, `FG-AUDIT-*`. | 8/10 |
+| Audit logging | `audit_log`, support audit | `partial` | `direct_tenant_id` voor tenant-audit + `platform_only` voor platform-audit | P1/P0 | Sprint 10 levert centraal security-auditcontract en dashboardfilters; extra runtimepaden moeten contractueel blijven loggen. | `FG-DATA-009`, `FG-AUDIT-*`. | 8/10 |
 | Domain events | `domain_events`, realtime events | `runtime-proof-open` | `direct_tenant_id` | P1 | Worker/consumer module- en tenantfilters bewijzen. | Worker integration, portal live refresh tests. | 5/6/11 |
 | Notifications | notification settings, dispatch queue, attempts, push tokens | `runtime-proof-open` | `direct_tenant_id` + `global_template` | P1 | Tenant override/audit later; portal acceptance bewijzen. | Tenant A ontvangt geen Tenant B dispatch. | 6/10 |
 | Tickets en messages | customer threads/entries, personnel tickets | `runtime-proof-open` | `direct_tenant_id` + `parent_scoped` | P1 | Direct-ID tests en portal module guards. | Thread/message cross-tenant denial. | 6 |
@@ -83,7 +83,7 @@ De codebase is nog niet klaar voor externe SaaS-acceptatie. De grootste gaten zi
 | Organization settings | `organization_settings`, branding, SMTP | `partial` | `tenant_config` | P2 | Branding preview, defaults, package gating. | Tenantbranding lekt niet. | 14 |
 | Klantportaal runtime | customer portal routes, documents, invoices, tickets | `runtime-proof-open` | runtime-hardening | P0/P1 | Module guards, branding, download audit, wrong-host tests. | `FG-PORTAL-C-*`. | 6 |
 | Personeelsapp runtime | personnel portal routes, assignments, photos, tickets | `runtime-proof-open` | runtime-hardening | P0/P1 | App module guards, signed URL tests, planning live/minute acceptance. | `FG-PORTAL-P-*`. | 6/9 |
-| Storage | documents, assignment photos, report attachments, avatars, news/org assets | `hardening-open` | `needs_migration` naar tenant-prefixed storage | P0/P1 | Canon `tenant/{tenant_id}/...`, copy-first backfill, policy/RLS bewijs, path guessing tests. | `FG-STORAGE-*`. | 9 |
+| Storage | documents, assignment photos, report attachments, avatars, news/org assets | `hardening-open` | tenant-prefixed storage hardening | P0/P1 | Canon `tenant/{tenant_id}/...`; assignment-media runtimeguards geleverd; copy-first backfill, policy/RLS bewijs en path guessing integrationtests blijven vereist. | `FG-STORAGE-*`. | 9 |
 | Platform-admin product | platform routes, tenant detail, modules, plans, sectors, regions, support, audit | `partial` | `platform_only` | P2 | Onboarding wizard, security dashboard, usage, dependency visualisatie. | `FG-PLATFORM-*`. | 10/12/14 |
 | Provisioning | tenant create service, owner invite, logs/status | `partial` | `tenant_config` + `platform_only` | P2 | Wizard, rollback/status, duplicate slug/domain acceptance. | Provisioning success/rollback tests. | 12 |
 | Deployment/ops | VPS, DNS, reverse proxy, backups, smoke | `partial` | operationeel contract | P2 | Smoke dashboard, backup/restore, rollback, eerste externe tenant checklist. | `FG-MIG-*`, host/smoke tests. | 15/16 |
@@ -112,11 +112,12 @@ Werk:
 - `tenant_id NOT NULL` zetten waar staging-copy schoon is;
 - bewuste nullable uitzonderingen vastleggen.
 
-Golf 2 - nog migreren:
+Golf 2 - assignment media storage hardening:
 
 - `assignment_photos`
 - `assignment_report_note_attachments`
 - legacy storage metadata/paden waar tenantcontext nu alleen uit path of parent wordt afgeleid
+- Sprint 9 levert nieuwe canonical uploadpaden en tenant-bound signed URL helpers; fysieke objectcopy blijft copy-first werk.
 
 Golf 3 - productbesluit:
 

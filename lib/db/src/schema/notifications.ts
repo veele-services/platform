@@ -13,7 +13,7 @@ import {
 import { sql } from "drizzle-orm";
 import { customersTable } from "./customers";
 import { personnelTable } from "./personnel";
-import { DEFAULT_TENANT_ID, tenantsTable } from "./tenants";
+import { tenantsTable } from "./tenants";
 
 export const NOTIFICATION_AUDIENCES = [
   "customer",
@@ -53,7 +53,6 @@ export const customerNotificationsTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
       .notNull()
-      .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     customerId: uuid("customer_id")
       .notNull()
@@ -86,7 +85,6 @@ export const pushSubscriptionsTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
       .notNull()
-      .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     ownerType: varchar("owner_type", { length: 20 }).notNull(),
     personnelId: uuid("personnel_id").references(() => personnelTable.id, {
@@ -119,7 +117,6 @@ export const nativePushDeviceTokensTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
       .notNull()
-      .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     ownerType: varchar("owner_type", { length: 20 }).notNull(),
     personnelId: uuid("personnel_id").references(() => personnelTable.id, {
@@ -162,7 +159,6 @@ export const notificationDispatchesTable = pgTable("notification_dispatches", {
   id: uuid("id").primaryKey().defaultRandom(),
   tenantId: uuid("tenant_id")
     .notNull()
-    .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
     .references(() => tenantsTable.id, { onDelete: "cascade" }),
   title: varchar("title", { length: 180 }).notNull(),
   body: text("body").notNull(),
@@ -183,7 +179,6 @@ export const notificationDeliveryQueueTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
       .notNull()
-      .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     eventKey: varchar("event_key", { length: 100 }),
     dispatchId: uuid("dispatch_id").references(() => notificationDispatchesTable.id, {
@@ -239,7 +234,6 @@ export const notificationDeliveryAttemptsTable = pgTable(
       .references(() => notificationDeliveryQueueTable.id, { onDelete: "cascade" }),
     tenantId: uuid("tenant_id")
       .notNull()
-      .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     channel: varchar("channel", { length: 20 }).notNull(),
     attemptNo: integer("attempt_no").notNull(),

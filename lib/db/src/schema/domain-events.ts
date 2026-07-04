@@ -8,7 +8,7 @@ import {
   varchar,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
-import { DEFAULT_TENANT_ID, tenantsTable } from "./tenants";
+import { tenantsTable } from "./tenants";
 
 export const domainEventsTable = pgTable(
   "domain_events",
@@ -16,7 +16,6 @@ export const domainEventsTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
       .notNull()
-      .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     eventKey: varchar("event_key", { length: 100 }).notNull(),
     actorUserId: uuid("actor_user_id"),

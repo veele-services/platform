@@ -97,14 +97,14 @@ Als staging faalt, herstel alleen fase 3. Geen reset, drop of rebuild.
 
 1. Draai het fase-3 rapport op staging-copy.
 2. Los unresolved media-tenant rows op.
-3. Bouw runtime helpers voor nieuwe canonical assignment media uploads waar nog legacy paden ontstaan.
+3. Runtime helpers voor nieuwe canonical assignment media uploads zijn in Sprint 9 geleverd.
 4. Voer fysieke storage-backfill copy-first uit:
    - copy legacy object;
    - verify canonical object;
    - update DB path;
    - smoke download;
    - cleanup pas in een aparte latere PR.
-5. Bouw storage signed-url/path guessing integration tests.
+5. Bouw echte storage signed-url/path guessing integration tests bovenop de Sprint 9 signed-url guards.
 6. Ontwerp tenant-scoped news alleen als er een productbesluit komt dat platform-only news niet genoeg is.
 
 ## Test-id koppeling

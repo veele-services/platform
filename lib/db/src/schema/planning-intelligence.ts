@@ -14,7 +14,7 @@ import { sql } from "drizzle-orm";
 import { assignmentsTable } from "./assignments";
 import { personnelTable } from "./personnel";
 import { sectorsTable } from "./sectors";
-import { DEFAULT_TENANT_ID, tenantsTable } from "./tenants";
+import { tenantsTable } from "./tenants";
 
 export const SMART_PLANNING_CAPACITY_STATUSES = ["green", "orange", "red"] as const;
 export type SmartPlanningCapacityStatus =
@@ -95,7 +95,6 @@ export const assignmentCapacityChecksTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
       .notNull()
-      .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     assignmentId: uuid("assignment_id")
       .notNull()
@@ -147,7 +146,6 @@ export const assignmentCandidatesTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
       .notNull()
-      .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     assignmentId: uuid("assignment_id")
       .notNull()
@@ -195,7 +193,6 @@ export const assignmentInterestRoundsTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
       .notNull()
-      .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     assignmentId: uuid("assignment_id")
       .notNull()
@@ -248,7 +245,6 @@ export const assignmentInterestResponsesTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
       .notNull()
-      .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     assignmentId: uuid("assignment_id")
       .notNull()
@@ -300,7 +296,6 @@ export const planningSectorRulesTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
       .notNull()
-      .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     sectorId: uuid("sector_id").references(() => sectorsTable.id, {
       onDelete: "cascade",

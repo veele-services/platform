@@ -18,6 +18,7 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod/v4";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult };
@@ -128,7 +129,10 @@ async function currentUserId(): Promise<string | null> {
 async function audit(action: string, resourceId: string | null, metadata: Record<string, unknown>) {
   const userId = await currentUserId();
   if (!userId) return;
+  const tenantId = await requireCurrentTenantId().catch(() => null);
+  if (!tenantId) return;
   await db.insert(auditLogTable).values({
+    tenantId,
     userId,
     action,
     resource: "qualifications",
@@ -206,6 +210,7 @@ async function syncTaskCodeLegacyFields(taskCodeId: string) {
 
 export async function listQualificationManagementData(): Promise<QualificationManagementData> {
   await requirePermission("settings", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const [
     items,
@@ -231,6 +236,7 @@ export async function listQualificationManagementData(): Promise<QualificationMa
       })
       .from(qualificationItemsTable)
       .leftJoin(sectorsTable, eq(qualificationItemsTable.sectorId, sectorsTable.id))
+      .where(eq(qualificationItemsTable.tenantId, tenantId))
       .orderBy(asc(qualificationItemsTable.type), asc(qualificationItemsTable.name)),
     db
       .select({
@@ -243,7 +249,7 @@ export async function listQualificationManagementData(): Promise<QualificationMa
       .from(personnelTable)
       .leftJoin(rolesTable, eq(personnelTable.roleId, rolesTable.id))
       .leftJoin(sectorsTable, eq(personnelTable.sectorId, sectorsTable.id))
-      .where(eq(personnelTable.isActive, true))
+      .where(and(eq(personnelTable.tenantId, tenantId), eq(personnelTable.isActive, true)))
       .orderBy(asc(personnelTable.lastName), asc(personnelTable.firstName)),
     db.select({ id: rolesTable.id, name: rolesTable.name }).from(rolesTable).orderBy(asc(rolesTable.name)),
     db
@@ -260,7 +266,7 @@ export async function listQualificationManagementData(): Promise<QualificationMa
       })
       .from(taskCodesTable)
       .leftJoin(sectorsTable, eq(taskCodesTable.sectorId, sectorsTable.id))
-      .where(eq(taskCodesTable.isActive, true))
+      .where(and(eq(taskCodesTable.tenantId, tenantId), eq(taskCodesTable.isActive, true)))
       .orderBy(asc(taskCodesTable.code)),
     db
       .select({
@@ -280,6 +286,7 @@ export async function listQualificationManagementData(): Promise<QualificationMa
       .innerJoin(qualificationItemsTable, eq(personnelQualificationsTable.qualificationId, qualificationItemsTable.id))
       .innerJoin(personnelTable, eq(personnelQualificationsTable.personnelId, personnelTable.id))
       .leftJoin(rolesTable, eq(personnelTable.roleId, rolesTable.id))
+      .where(eq(personnelQualificationsTable.tenantId, tenantId))
       .orderBy(asc(personnelTable.lastName), asc(qualificationItemsTable.name)),
     db
       .select({
@@ -295,6 +302,7 @@ export async function listQualificationManagementData(): Promise<QualificationMa
       .from(roleQualificationsTable)
       .innerJoin(qualificationItemsTable, eq(roleQualificationsTable.qualificationId, qualificationItemsTable.id))
       .innerJoin(rolesTable, eq(roleQualificationsTable.roleId, rolesTable.id))
+      .where(eq(roleQualificationsTable.tenantId, tenantId))
       .orderBy(asc(rolesTable.name), asc(qualificationItemsTable.name)),
     db
       .select({
@@ -311,6 +319,7 @@ export async function listQualificationManagementData(): Promise<QualificationMa
       .from(taskCodeQualificationsTable)
       .innerJoin(qualificationItemsTable, eq(taskCodeQualificationsTable.qualificationId, qualificationItemsTable.id))
       .innerJoin(taskCodesTable, eq(taskCodeQualificationsTable.taskCodeId, taskCodesTable.id))
+      .where(eq(taskCodeQualificationsTable.tenantId, tenantId))
       .orderBy(asc(taskCodesTable.code), asc(qualificationItemsTable.name)),
   ]);
 
@@ -376,6 +385,7 @@ export async function listQualificationManagementData(): Promise<QualificationMa
 
 export async function listPersonnelQualifications(personnelId: string): Promise<QualificationLinkRow[]> {
   await requirePermission("personnel", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const rows = await db
     .select({
@@ -389,7 +399,7 @@ export async function listPersonnelQualifications(personnelId: string): Promise<
     })
     .from(personnelQualificationsTable)
     .innerJoin(qualificationItemsTable, eq(personnelQualificationsTable.qualificationId, qualificationItemsTable.id))
-    .where(eq(personnelQualificationsTable.personnelId, personnelId))
+    .where(and(eq(personnelQualificationsTable.tenantId, tenantId), eq(personnelQualificationsTable.personnelId, personnelId)))
     .orderBy(asc(qualificationItemsTable.type), asc(qualificationItemsTable.name));
 
   return rows.map((row) => ({
@@ -411,11 +421,13 @@ export async function createQualificationItem(data: unknown): Promise<ActionResu
   await requirePermission("settings", "write");
   const parsed = itemInputSchema.safeParse(data);
   if (!parsed.success) return { success: false, message: "Controleer de kwalificatiegegevens." };
+  const tenantId = await requireCurrentTenantId();
 
   try {
     const [created] = await db
       .insert(qualificationItemsTable)
       .values({
+        tenantId,
         type: parsed.data.type,
         code: normalizeCode(parsed.data.code),
         name: parsed.data.name.trim(),
@@ -436,10 +448,11 @@ export async function createQualificationItem(data: unknown): Promise<ActionResu
 
 export async function setQualificationStatus(id: string, isActive: boolean): Promise<ActionResult> {
   await requirePermission("settings", "write");
+  const tenantId = await requireCurrentTenantId();
   await db
     .update(qualificationItemsTable)
     .set({ isActive, updatedAt: new Date() })
-    .where(eq(qualificationItemsTable.id, id));
+    .where(and(eq(qualificationItemsTable.id, id), eq(qualificationItemsTable.tenantId, tenantId)));
   await audit(isActive ? "activate_qualification" : "deactivate_qualification", id, {});
   revalidatePath("/instellingen/kwalificaties");
   return { success: true };
@@ -447,8 +460,11 @@ export async function setQualificationStatus(id: string, isActive: boolean): Pro
 
 export async function deleteQualificationItem(id: string): Promise<ActionResult> {
   await requirePermission("settings", "write");
+  const tenantId = await requireCurrentTenantId();
   try {
-    await db.delete(qualificationItemsTable).where(eq(qualificationItemsTable.id, id));
+    await db
+      .delete(qualificationItemsTable)
+      .where(and(eq(qualificationItemsTable.id, id), eq(qualificationItemsTable.tenantId, tenantId)));
     await audit("delete_qualification", id, {});
     revalidatePath("/instellingen/kwalificaties");
     return { success: true };
@@ -461,18 +477,19 @@ export async function upsertPersonnelQualification(data: unknown): Promise<Actio
   await requirePermission("personnel", "write");
   const parsed = personnelLinkInputSchema.safeParse(data);
   if (!parsed.success) return { success: false, message: "Controleer de personeelskoppeling." };
+  const tenantId = await requireCurrentTenantId();
 
   const [person] = await db
     .select({ tenantId: personnelTable.tenantId })
     .from(personnelTable)
-    .where(eq(personnelTable.id, parsed.data.personnelId))
+    .where(and(eq(personnelTable.id, parsed.data.personnelId), eq(personnelTable.tenantId, tenantId)))
     .limit(1);
   if (!person) return { success: false, message: "Medewerker niet gevonden." };
 
   await db
     .insert(personnelQualificationsTable)
     .values({
-      tenantId: person.tenantId,
+      tenantId,
       personnelId: parsed.data.personnelId,
       qualificationId: parsed.data.qualificationId,
       issuedAt: parsed.data.issuedAt || null,
@@ -501,13 +518,16 @@ export async function upsertPersonnelQualification(data: unknown): Promise<Actio
 
 export async function removePersonnelQualification(id: string): Promise<ActionResult> {
   await requirePermission("personnel", "write");
+  const tenantId = await requireCurrentTenantId();
   const [row] = await db
     .select({ personnelId: personnelQualificationsTable.personnelId })
     .from(personnelQualificationsTable)
-    .where(eq(personnelQualificationsTable.id, id))
+    .where(and(eq(personnelQualificationsTable.id, id), eq(personnelQualificationsTable.tenantId, tenantId)))
     .limit(1);
   if (!row) return { success: false, message: "Koppeling niet gevonden." };
-  await db.delete(personnelQualificationsTable).where(eq(personnelQualificationsTable.id, id));
+  await db
+    .delete(personnelQualificationsTable)
+    .where(and(eq(personnelQualificationsTable.id, id), eq(personnelQualificationsTable.tenantId, tenantId)));
   await syncPersonnelLegacyFields(row.personnelId);
   await audit("remove_personnel_qualification", row.personnelId, { linkId: id });
   revalidatePath("/instellingen/kwalificaties");
@@ -519,10 +539,12 @@ export async function upsertRoleQualification(data: unknown): Promise<ActionResu
   await requirePermission("settings", "write");
   const parsed = roleLinkInputSchema.safeParse(data);
   if (!parsed.success) return { success: false, message: "Controleer de functiekoppeling." };
+  const tenantId = await requireCurrentTenantId();
 
   await db
     .insert(roleQualificationsTable)
     .values({
+      tenantId,
       roleId: parsed.data.roleId,
       qualificationId: parsed.data.qualificationId,
       required: parsed.data.required ?? true,
@@ -538,7 +560,10 @@ export async function upsertRoleQualification(data: unknown): Promise<ActionResu
 
 export async function removeRoleQualification(id: string): Promise<ActionResult> {
   await requirePermission("settings", "write");
-  await db.delete(roleQualificationsTable).where(eq(roleQualificationsTable.id, id));
+  const tenantId = await requireCurrentTenantId();
+  await db
+    .delete(roleQualificationsTable)
+    .where(and(eq(roleQualificationsTable.id, id), eq(roleQualificationsTable.tenantId, tenantId)));
   await audit("remove_role_qualification", id, {});
   revalidatePath("/instellingen/kwalificaties");
   return { success: true };
@@ -548,11 +573,13 @@ export async function upsertTaskCodeQualification(data: unknown): Promise<Action
   await requirePermission("task_codes", "write");
   const parsed = taskCodeLinkInputSchema.safeParse(data);
   if (!parsed.success) return { success: false, message: "Controleer de taakcodekoppeling." };
+  const tenantId = await requireCurrentTenantId();
 
   await db.transaction(async (tx) => {
     await tx
       .insert(taskCodeQualificationsTable)
       .values({
+        tenantId,
         taskCodeId: parsed.data.taskCodeId,
         qualificationId: parsed.data.qualificationId,
         required: parsed.data.required ?? true,
@@ -574,13 +601,16 @@ export async function upsertTaskCodeQualification(data: unknown): Promise<Action
 
 export async function removeTaskCodeQualification(id: string): Promise<ActionResult> {
   await requirePermission("task_codes", "write");
+  const tenantId = await requireCurrentTenantId();
   const [row] = await db
     .select({ taskCodeId: taskCodeQualificationsTable.taskCodeId })
     .from(taskCodeQualificationsTable)
-    .where(eq(taskCodeQualificationsTable.id, id))
+    .where(and(eq(taskCodeQualificationsTable.id, id), eq(taskCodeQualificationsTable.tenantId, tenantId)))
     .limit(1);
   if (!row) return { success: false, message: "Koppeling niet gevonden." };
-  await db.delete(taskCodeQualificationsTable).where(eq(taskCodeQualificationsTable.id, id));
+  await db
+    .delete(taskCodeQualificationsTable)
+    .where(and(eq(taskCodeQualificationsTable.id, id), eq(taskCodeQualificationsTable.tenantId, tenantId)));
   await syncTaskCodeLegacyFields(row.taskCodeId);
   await audit("remove_task_code_qualification", row.taskCodeId, { linkId: id });
   revalidatePath("/instellingen/kwalificaties");

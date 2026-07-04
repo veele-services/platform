@@ -77,12 +77,12 @@ Status: `hardening-open`.
 
 Werk:
 
+- DB-defaults naar `DEFAULT_TENANT_ID` zijn in sprint 8 uit tenantdata verwijderd met `070_sprint8_tenant_id_default_hardening.sql`; staging-copy rapportage moet dit nog bevestigen.
 - Staging-copy rapporten.
 - Backfills.
 - Constraint validation.
 - Waar mogelijk `tenant_id NOT NULL`.
 - Bewuste nullable uitzonderingen voor platform/global audit documenteren.
-- DB-defaults naar `DEFAULT_TENANT_ID` verwijderen uit tenantdata.
 
 Eigenaar: sprint 8.
 
@@ -92,11 +92,11 @@ Status: `hardening-open`.
 
 Werk:
 
-- Fysieke storage-migratie.
-- Legacy-path opruiming.
-- Supabase Storage policy/RLS bewijs.
-- Signed-url/path-guessing tests.
-- Assignment media direct tenant-aware maken.
+- Fysieke storage-migratie uitvoeren volgens Sprint 9 copy-first cleanup-plan.
+- Legacy-path opruiming na rapportage en verify.
+- Supabase Storage policy/RLS bewijs met echte provider-smoke.
+- Signed-url/path-guessing integrationtests.
+- Assignment media direct tenant-aware is in runtime geleverd; staging-proof blijft nodig.
 
 Eigenaar: sprint 9.
 
@@ -119,13 +119,10 @@ Status: `partial`.
 
 Werk:
 
-- Support access.
-- Downloads.
-- PDF's.
-- Direct-ID denials.
-- Module-denials.
-- Storage-denials.
-- Een centraal security/audit model en dashboard.
+- Support access zichtbaar houden via het centrale dashboard.
+- Downloads en PDF's blijven volgens het Sprint 10 auditcontract loggen.
+- Direct-ID denials, module-denials en storage-denials blijven volgens het Sprint 10 auditcontract loggen.
+- Het centrale security/audit model en dashboard 2.0 zijn geleverd; echte runtime-smokes blijven nodig.
 
 Eigenaar: sprint 10.
 
