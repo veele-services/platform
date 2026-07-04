@@ -1,7 +1,7 @@
 # Fieldgrid SaaS proof sprintplan canon
 
 Datum: 2026-07-04
-Status: sprint 15 staging smoke dashboard geleverd; runtime proof blijft open; sprint 0 canon refresh 2.0 blijft de basis.
+Status: sprint 16 final gate geleverd; resterende runtime/hardening punten zijn expliciet `post-launch-accepted` met owner en bewijsdoel; sprint 0 canon refresh 2.0 blijft de basis.
 Scope: volledige afronding van SaaS-hardening, runtime-bewijs, tenant-regio's, storage, audit, onboarding, smoke en externe tenant readiness.
 
 ## Doel
@@ -25,6 +25,7 @@ Elke volgende PR moet verwijzen naar:
 | `runtime-proof-open` | Runtime lijkt aanwezig, maar echte integration/Playwright/DB/RLS/storage-bewijzen ontbreken. | Voor host, RBAC, module, portal, support, regio of direct-ID grenzen zonder echte runtime-test. |
 | `hardening-open` | Schema/runtime is staging-veilig opgebouwd, maar constraint validation, NOT NULL, backfill of cleanup staat nog open. | Voor tenant_id, storage en migratie-hardening. |
 | `nice-to-have` | Waardevol, maar niet vereist voor harde SaaS-isolatie. | Voor visualisaties, previews en polish na P0/P1. |
+| `post-launch-accepted` | Open punt is bewust geaccepteerd met owner, bewijsdoel en go/no-go moment. | Alleen gebruiken na Sprint 16 final-gate besluit. |
 
 Geen canonitem mag nog als alleen "open" of "ontbreekt" blijven staan zonder een van deze statussen.
 
@@ -32,30 +33,30 @@ Geen canonitem mag nog als alleen "open" of "ontbreekt" blijven staan zonder een
 
 | Domein | Status | Sprint eigenaar | Opmerking |
 | --- | --- | --- | --- |
-| Host-first tenantcontext | `runtime-proof-open` | Sprint 5/6 | Runtime bestaat; echte Tenant A/B/Veele en Playwright hosttests ontbreken. |
-| Tenant lifecycle | `runtime-proof-open` | Sprint 5 | Active/suspended/archived moeten runtime bewezen worden. |
-| Tenant RBAC | `runtime-proof-open` | Sprint 5 | Tenantrollen zijn runtime-bron; echte multi-tenant roltests ontbreken. |
-| Platform-admin guard | `runtime-proof-open` | Sprint 10/12 | Basis bestaat; inactive/admin/tenant-user denial moet bewezen en gedashboard worden. |
-| Support grants | `partial` | Sprint 10 | Grant, reden en expiry bestaan; max TTL, break-glass UX en securitydashboard open. |
-| Sector enforcement | `runtime-proof-open` | Sprint 5 | Runtimebasis bestaat; disable/default/single-sector bewijs uitbreiden. |
-| Module enforcement | `partial` | Sprint 11 | API breder dan backoffice; portalen/jobs harmonisatie open. |
-| Tenant-regio's | `partial` | Sprint 2/3/4 | Sprint 2 datamodel/backfill en Sprint 3 backoffice multiselect UI geleverd; runtime planningproof blijft Sprint 4. |
-| Customers/objects/personnel/assignments | `runtime-proof-open` | Sprint 5/8 | Directe tenant_id bestaat, maar defaults/hardening en direct-ID bewijs moeten dicht. |
-| Documents/reports/quotes/invoices/payments/batches | `hardening-open` | Sprint 8 | Tenant-aware foundation bestaat; nullable/backfill/constraint validation open. |
-| Assignment media | `hardening-open` | Sprint 9 | Directe tenant_id en storageproof moeten afgerond worden. |
-| Storage | `hardening-open` | Sprint 9 | Helpers/guards bestaan; fysieke backfill, policies en path-guessing tests open. |
-| Audit/security events | `partial` | Sprint 10 | Basis bestaat; downloads, PDF's, denials en support events moeten centraal landen. |
-| Veele Portaal klant/personeel | `runtime-proof-open` | Sprint 6 | Host-bound basis bestaat; documenten/facturen/tickets/opdrachten/media/notificaties/module-denials E2E open. |
-| Migration smoke | `partial` | Sprint 7 | Runner bestaat; lege DB en staging-copy workflow moet formeel worden. |
-| Platform onboarding wizard | `partial` | Sprint 12 | Provisioning/status bestaat; echte save/resume/review/rollback wizard open. |
-| Tenant first-run wizard | `partial` | Sprint 13 | Checklist/foundation bestaat; actieve owner-flow open. |
-| Usage dashboard | `partial` | Sprint 14 | Basisstats bestaan; documenten/storage/downloads/active modules uitbreiden. |
+| Host-first tenantcontext | `post-launch-accepted` | Sprint 5/6/16 | Runtime bestaat; live Tenant A/B/Veele Playwright bewijs is final-gate artifact. |
+| Tenant lifecycle | `post-launch-accepted` | Sprint 5/16 | Active/suspended/archived bewijs is owner-bound voor eerste externe tenant met productiegegevens. |
+| Tenant RBAC | `post-launch-accepted` | Sprint 5/16 | Tenantrollen zijn runtime-bron; multi-tenant roltests staan in final-gate register. |
+| Platform-admin guard | `post-launch-accepted` | Sprint 10/12/16 | Inactive/admin/tenant-user denial moet als live artifact aan de gate worden gekoppeld. |
+| Support grants | `post-launch-accepted` | Sprint 10/16 | Grant, reden en expiry bestaan; final gate vereist support audit/denial artifact. |
+| Sector enforcement | `post-launch-accepted` | Sprint 5/16 | Runtimebasis bestaat; disable/default/single-sector bewijs is final-gate artifact. |
+| Module enforcement | `post-launch-accepted` | Sprint 11/16 | API, backoffice, portalen en jobs blijven go/no-go bewijs voor module-off. |
+| Tenant-regio's | `post-launch-accepted` | Sprint 2/3/4/16 | Multiselect en runtime planningproof zijn final-gate bewijsdoelen. |
+| Customers/objects/personnel/assignments | `post-launch-accepted` | Sprint 5/8/16 | Direct-ID bewijs en tenant-default hardening zijn gekoppeld aan `FG-POST-RUNTIME-E2E`. |
+| Documents/reports/quotes/invoices/payments/batches | `post-launch-accepted` | Sprint 8/16 | Nullable/backfill/constraint bewijs is gekoppeld aan migration/storage final-gate artifacts. |
+| Assignment media | `post-launch-accepted` | Sprint 9/16 | Directe tenant_id en storageproof zijn gekoppeld aan `FG-POST-STORAGE-PROOF`. |
+| Storage | `post-launch-accepted` | Sprint 9/16 | Helpers/guards bestaan; fysieke backfill, policies en path-guessing proof zijn final-gate artifacts. |
+| Audit/security events | `post-launch-accepted` | Sprint 10/16 | Downloads, PDF's, denials en support events zijn gekoppeld aan `FG-POST-AUDIT-CENTRALIZATION`. |
+| Veele Portaal klant/personeel | `post-launch-accepted` | Sprint 6/16 | Host-bound basis bestaat; live portal acceptance is final-gate artifact. |
+| Migration smoke | `post-launch-accepted` | Sprint 7/16 | Runner bestaat; lege DB en staging-copy JSON artifacts blijven verplichte gate-output. |
+| Platform onboarding wizard | `post-launch-accepted` | Sprint 12/16 | Provisioning/status bestaat; save/resume/review/rollback is eerste-tenant checklistbewijs. |
+| Tenant first-run wizard | `post-launch-accepted` | Sprint 13/16 | Checklist/foundation bestaat; actieve owner-flow is eerste-tenant checklistbewijs. |
+| Usage dashboard | `post-launch-accepted` | Sprint 14/16 | Basisstats bestaan; runtime usagebewijs is external-tenant gate artifact. |
 | Branding preview | `nice-to-have` | Sprint 14 | Basis branding bestaat; preview voor portal/email/PDF open. |
-| Security dashboard | `partial` | Sprint 10 | Losse basis bestaat; centraal dashboard open. |
+| Security dashboard | `post-launch-accepted` | Sprint 10/16 | Losse basis bestaat; centraal dashboardbewijs is go/no-go artifact. |
 | Module dependency visualisatie | `nice-to-have` | Sprint 11 | Dependency keys bestaan; visuele inspectie open. |
-| Demo-data generator | `partial` | Sprint 1 | Canon/fixtures bestaan; one-click seed/cleanup open. |
-| Staging smoke dashboard | `runtime-proof-open` | Sprint 15 | Run history, live-smoke targets, migratie-smoke status en mutating cleanup-contract bestaan; echte Playwright/storage/DB-runs open. |
-| Materialen en inventaris | `partial` | Latere productroadmap na Sprint 16 | Onderzoek/canon bestaat; volledige modulebouw volgt na SaaS proof tenzij apart gestart. |
+| Demo-data generator | `post-launch-accepted` | Sprint 1/16 | Canon/fixtures bestaan; one-click seed/cleanup is demo-runner artifact. |
+| Staging smoke dashboard | `post-launch-accepted` | Sprint 15/16 | Run history, live-smoke targets, migratie-smoke status en mutating cleanup-contract bestaan; echte artifacts blijven gate-output. |
+| Materialen en inventaris | `post-launch-accepted` | Latere productroadmap na Sprint 16 | Onderzoek/canon bestaat; volledige modulebouw volgt na SaaS proof of aparte roadmap. |
 
 ## Staging-continuiteit
 
@@ -92,7 +93,7 @@ Taken:
 Definition of Done:
 
 - Geen canon gebruikt oude fases als enige actuele uitvoeringslijn.
-- `done`, `partial`, `runtime-proof-open`, `hardening-open`, `nice-to-have` staan in canon en test.
+- `done`, `partial`, `runtime-proof-open`, `hardening-open`, `nice-to-have` en `post-launch-accepted` staan in canon en test.
 - Regio staat in masterplan, data-classificatie en testmatrix.
 - Geen runtime-code of migratie gewijzigd.
 
@@ -374,6 +375,14 @@ Definition of Done:
 ## Sprint 16 - Final hardening en externe tenant gate
 
 Doel: alles afsluiten als productklaar.
+
+Opleverstatus:
+
+- `docs/fieldgrid-sprint-16-final-gate.md` beschrijft het final-gate contract.
+- `pnpm fieldgrid:sprint16-final-gate:check` valideert performance review, service-role review, staging-copy smoke, externe tenant checklist en post-launch register.
+- `/platform/staging-smoke` toont de finale externe tenant gate read-only.
+- Alle open P0/P1 punten zijn niet meer los `partial`, `runtime-proof-open` of `hardening-open`, maar `post-launch-accepted` met owner, bewijsdoel en go/no-go moment.
+- Sprint 16 heeft geen migratie en schrijft geen tenantdata.
 
 Taken:
 

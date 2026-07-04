@@ -90,6 +90,38 @@ export type PlatformMutatingSmokeCheck = {
   nextAction: string;
 };
 
+export type PlatformFinalGateRequirement = {
+  id: string;
+  label: string;
+  status: PlatformSmokeStatus;
+  evidence: string;
+  command: string;
+  testIds: string[];
+  nextAction: string;
+};
+
+export type PlatformPostLaunchException = {
+  id: string;
+  label: string;
+  risk: "P0/P1" | "P1" | "P1/P2";
+  owner: string;
+  acceptedUntil: string;
+  targetEvidence: string;
+  testIds: string[];
+  requiresGoNoGoApproval: boolean;
+};
+
+export type PlatformFinalExternalTenantGate = {
+  status: PlatformSmokeStatus;
+  decision: "conditional-go" | "blocked" | "ready";
+  summary: string;
+  command: string;
+  checklist: string;
+  reportDirectory: string;
+  requirements: PlatformFinalGateRequirement[];
+  postLaunchExceptions: PlatformPostLaunchException[];
+};
+
 export type PlatformStagingSmokeDashboard = {
   generatedAt: string;
   environment: {
@@ -129,6 +161,7 @@ export type PlatformStagingSmokeDashboard = {
   liveSmokes: PlatformLiveSmokeTarget[];
   migrationSmoke: PlatformMigrationSmokeStatus;
   mutatingChecks: PlatformMutatingSmokeCheck[];
+  finalExternalTenantGate: PlatformFinalExternalTenantGate;
   minimumGreen: string[];
   playbooks: string[];
 };
@@ -395,6 +428,149 @@ function buildMutatingChecks(totals: PlatformStagingSmokeDashboard["totals"]): P
   ];
 }
 
+function buildFinalExternalTenantGate(input: {
+  checks: PlatformSmokeCheck[];
+  liveSmokes: PlatformLiveSmokeTarget[];
+  migrationSmoke: PlatformMigrationSmokeStatus;
+  mutatingChecks: PlatformMutatingSmokeCheck[];
+}): PlatformFinalExternalTenantGate {
+  const blockedChecks = input.checks.filter((check) => check.status === "blocked");
+  const liveReady = input.liveSmokes.filter((smoke) => smoke.status === "ok").length;
+  const mutatingReady = input.mutatingChecks.every((check) => check.cleanupStatus === "ready");
+  const smokeChecksGreen = blockedChecks.length === 0;
+  const migrationReady = input.migrationSmoke.status === "ok";
+
+  const requirements: PlatformFinalGateRequirement[] = [
+    {
+      id: "FG-FINAL-PERFORMANCE",
+      label: "Performance review op tenantqueries",
+      status: "manual",
+      evidence: "EXPLAIN ANALYZE voor tenantlijst, direct-ID, dashboardstatistieken, planning en storage/download queries.",
+      command: "pnpm fieldgrid:sprint16-final-gate:check",
+      testIds: ["FG-HOST-001", "FG-DATA-001", "FG-DATA-003", "FG-OPS-003"],
+      nextAction: "Leg runtime EXPLAIN-output vast in artifacts/final-gate voordat de eerste externe tenant live gaat.",
+    },
+    {
+      id: "FG-FINAL-SERVICE-ROLE",
+      label: "Security review op service-role gebruik",
+      status: "warning",
+      evidence: "SUPABASE_SERVICE_ROLE_KEY blijft server-only en wordt niet via NEXT_PUBLIC gepubliceerd.",
+      command: "pnpm fieldgrid:sprint16-final-gate:check",
+      testIds: ["FG-PORTAL-C-001", "FG-PORTAL-P-001", "FG-STORAGE-001", "FG-AUDIT-002"],
+      nextAction: "Controleer admin clients en service-role Drizzle paden per portalactie met tenant-scope bewijs.",
+    },
+    {
+      id: "FG-FINAL-STAGING-COPY",
+      label: "Final staging-copy smoke",
+      status: migrationReady ? "ok" : "manual",
+      evidence: "Sprint 7 migration smoke runner met empty-database en staging-copy targets.",
+      command: "pnpm fieldgrid:sprint7-migration-smoke --run --target all",
+      testIds: ["FG-MIG-001", "FG-MIG-002", "FG-MIG-003"],
+      nextAction: "Draai tegen een herstelde staging-copy en koppel het JSON artifact aan de run history.",
+    },
+    {
+      id: "FG-FINAL-RUNTIME-PROOF",
+      label: "Runtime proof, storage proof en portal acceptance",
+      status: smokeChecksGreen && liveReady === input.liveSmokes.length ? "ok" : "manual",
+      evidence: "Sprint 5, 6, 7 en 15 scripts leveren contracten; live artifacts blijven vereist.",
+      command: "pnpm fieldgrid:sprint5-runtime-proof:check && pnpm fieldgrid:sprint6-portal-acceptance:check && pnpm fieldgrid:sprint15-staging-smoke:check",
+      testIds: ["FG-HOST-001", "FG-RBAC-001", "FG-STORAGE-002", "FG-PORTAL-C-004", "FG-PORTAL-P-005"],
+      nextAction: "Koppel live Playwright/storage/DB artifacts aan de staging smoke run history.",
+    },
+    {
+      id: "FG-FINAL-EXTERNAL-TENANT",
+      label: "Eerste externe tenant checklist",
+      status: smokeChecksGreen && mutatingReady ? "manual" : "blocked",
+      evidence: "docs/fieldgrid-first-external-tenant-checklist.md is het go/no-go contract.",
+      command: "pnpm fieldgrid:sprint16-final-gate:check",
+      testIds: ["FG-OPS-001", "FG-OPS-002", "FG-OPS-008", "FG-PLATFORM-004"],
+      nextAction: "Gebruik de checklist als releaseformulier en noteer expliciete owner per manual check.",
+    },
+  ];
+
+  const postLaunchExceptions: PlatformPostLaunchException[] = [
+    {
+      id: "FG-POST-RUNTIME-E2E",
+      label: "Host/RBAC/lifecycle runtime E2E bewijs",
+      risk: "P0/P1",
+      owner: "Platform engineering",
+      acceptedUntil: "Voor eerste externe tenant met productiegegevens",
+      targetEvidence: "Playwright + integration artifacts voor Tenant A/B/Veele host, RBAC, lifecycle en direct-ID denials.",
+      testIds: ["FG-HOST-001", "FG-LIFE-002", "FG-RBAC-002", "FG-DATA-001"],
+      requiresGoNoGoApproval: true,
+    },
+    {
+      id: "FG-POST-STORAGE-PROOF",
+      label: "Supabase Storage policy en fysieke backfill proof",
+      risk: "P0/P1",
+      owner: "Platform engineering",
+      acceptedUntil: "Voor externe tenant document/media gebruik",
+      targetEvidence: "Tenant-prefixed storage artifact, path-guessing denial en policy/RLS bewijs.",
+      testIds: ["FG-STORAGE-001", "FG-STORAGE-002", "FG-STORAGE-006", "FG-STORAGE-007"],
+      requiresGoNoGoApproval: true,
+    },
+    {
+      id: "FG-POST-PORTAL-ACCEPTANCE",
+      label: "Klantportaal en personeelsapp live acceptance",
+      risk: "P0/P1",
+      owner: "Portal engineering",
+      acceptedUntil: "Voor uitnodiging eerste externe portalgebruiker",
+      targetEvidence: "Live Playwright artifacts voor wrong-host, module-off, downloads, media en planning refresh.",
+      testIds: ["FG-PORTAL-C-001", "FG-PORTAL-C-004", "FG-PORTAL-P-003", "FG-PORTAL-P-005"],
+      requiresGoNoGoApproval: true,
+    },
+    {
+      id: "FG-POST-MIGRATION-SMOKE",
+      label: "Lege database en staging-copy migration smoke artifacts",
+      risk: "P0/P1",
+      owner: "Platform engineering",
+      acceptedUntil: "Voor main-to-staging promotie met schemawijziging",
+      targetEvidence: "artifacts/migration-smoke JSON voor empty-database en staging-copy.",
+      testIds: ["FG-MIG-001", "FG-MIG-002", "FG-MIG-003"],
+      requiresGoNoGoApproval: true,
+    },
+    {
+      id: "FG-POST-AUDIT-CENTRALIZATION",
+      label: "Security/audit centralisatie en denial events",
+      risk: "P1",
+      owner: "Platform engineering",
+      acceptedUntil: "Voor eerste externe tenant security review",
+      targetEvidence: "Security dashboard toont support, download, PDF, module-denial en storage-denial events per tenant.",
+      testIds: ["FG-AUDIT-001", "FG-AUDIT-002", "FG-AUDIT-004", "FG-OPS-005"],
+      requiresGoNoGoApproval: true,
+    },
+    {
+      id: "FG-POST-MATERIAL-INVENTORY",
+      label: "Materialen en inventaris productroadmap",
+      risk: "P1/P2",
+      owner: "Product engineering",
+      acceptedUntil: "Na SaaS proof of aparte roadmap",
+      targetEvidence: "Module/RBAC/storage/audit tests zodra de volledige module wordt geactiveerd voor externe tenants.",
+      testIds: ["FG-MODULE-001", "FG-AUDIT-001"],
+      requiresGoNoGoApproval: true,
+    },
+  ];
+
+  const hardBlocked = requirements.some((requirement) => requirement.status === "blocked");
+  const allReady = requirements.every((requirement) => requirement.status === "ok");
+  const status: PlatformSmokeStatus = hardBlocked ? "blocked" : allReady ? "ok" : "warning";
+  const decision: PlatformFinalExternalTenantGate["decision"] = hardBlocked ? "blocked" : allReady ? "ready" : "conditional-go";
+
+  return {
+    status,
+    decision,
+    summary:
+      decision === "blocked"
+        ? "Final gate heeft blokkerende punten voordat een externe tenant veilig kan starten."
+        : "Final gate is conditioneel: open runtime/hardening punten zijn expliciet post-launch geaccepteerd met owner en bewijsdoel.",
+    command: "pnpm fieldgrid:sprint16-final-gate:check",
+    checklist: "docs/fieldgrid-first-external-tenant-checklist.md",
+    reportDirectory: "artifacts/final-gate",
+    requirements,
+    postLaunchExceptions,
+  };
+}
+
 export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagingSmokeDashboard> {
   await requirePlatformAdmin();
 
@@ -570,6 +746,7 @@ export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagin
   const liveSmokes = buildLiveSmokes(checks, totals);
   const migrationSmoke = buildMigrationSmokeStatus(totals, runHistory);
   const mutatingChecks = buildMutatingChecks(totals);
+  const finalExternalTenantGate = buildFinalExternalTenantGate({ checks, liveSmokes, migrationSmoke, mutatingChecks });
 
   return {
     generatedAt,
@@ -580,6 +757,7 @@ export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagin
     liveSmokes,
     migrationSmoke,
     mutatingChecks,
+    finalExternalTenantGate,
     minimumGreen: [
       "FG-SMOKE-HOST",
       "FG-SMOKE-LOGIN",
@@ -592,6 +770,7 @@ export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagin
       "docs/fieldgrid-phase-7-operations.md",
       "docs/fieldgrid-backup-restore-rollback-playbook.md",
       "docs/fieldgrid-first-external-tenant-checklist.md",
+      "docs/fieldgrid-sprint-16-final-gate.md",
     ],
   };
 }

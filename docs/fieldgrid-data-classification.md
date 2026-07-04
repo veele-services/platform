@@ -1,7 +1,7 @@
 # Fieldgrid data-classificatie canon
 
 Datum: 2026-07-04
-Status: sprint 15 staging smoke dashboard geleverd met open runtimebewijs; sprint 0 canon refresh 2.0 blijft de basis. Actuele uitvoeringsbron: `docs/fieldgrid-saas-proof-sprint-plan.md`.
+Status: sprint 16 final gate geleverd; resterende P0/P1 runtime- en hardeningpunten zijn `post-launch-accepted` met owner, bewijsdoel en go/no-go moment; sprint 0 canon refresh 2.0 blijft de basis. Actuele uitvoeringsbron: `docs/fieldgrid-saas-proof-sprint-plan.md`.
 Gerelateerd: `docs/fieldgrid-saas-masterplan.md`, `docs/fieldgrid-cross-tenant-testmatrix.md`, `docs/fieldgrid-next-major-update-plan.md`, `docs/fieldgrid-staging-promotion-checklist.md`, `docs/fieldgrid-recovery-execution-plan.md`.
 
 ## Doel
@@ -30,6 +30,7 @@ Geen domein mag in vervolgwerk als `unknown` worden behandeld. Als een nieuw sch
 | `runtime-proof-open` | Runtime lijkt aanwezig, maar echte integration/Playwright/DB/RLS/storage-bewijzen ontbreken. |
 | `hardening-open` | Schema/runtime is staging-veilig opgebouwd, maar backfill, constraint validation, `NOT NULL`, policybewijs of cleanup staat open. |
 | `nice-to-have` | Waardevol voor product/operatie, maar niet vereist voor harde SaaS-isolatie. |
+| `post-launch-accepted` | Sprint 16 heeft het open punt bewust geaccepteerd met owner, bewijsdoel en go/no-go moment. |
 
 ## Prioriteiten
 
@@ -43,7 +44,7 @@ Geen domein mag in vervolgwerk als `unknown` worden behandeld. Als een nieuw sch
 
 De recovery is voorbij: `main` is bron van waarheid, staging-data blijft behouden en de basis voor tenant resolver, tenant lifecycle, tenantrollen, modules/plans, platform-admin, support grants, sectoren, provisioning, finance/document/payment/audit tenant-awareness en meerdere storage/download guards bestaat.
 
-De codebase is nog niet klaar voor externe SaaS-acceptatie. De grootste gaten zijn runtime-bewijs en post-migration hardening: veel tests zijn nog statisch, meerdere gevoelige tabellen hebben nullable `tenant_id`, storage is applicatie-hard maar nog niet volledig bewezen met fysieke backfill en policytests, module enforcement moet tussen API, backoffice, portalen en jobs worden geharmoniseerd, en regio's moeten van legacy vrije tekst naar tenant-config multiselect.
+Sprint 16 heeft de resterende gaten niet stil weggepoetst: runtime-bewijs, post-migration hardening, storage policyproof, module enforcement, regio runtimeproof en portal acceptance staan in het `post-launch-accepted` register. P0/P1 punten vereisen expliciete go/no-go approval voordat ze externe tenantdata mogen raken.
 
 ## Classificatiematrix
 
@@ -88,6 +89,18 @@ De codebase is nog niet klaar voor externe SaaS-acceptatie. De grootste gaten zi
 | Provisioning | tenant create service, owner invite, logs/status | `partial` | `tenant_config` + `platform_only` | P2 | Wizard, rollback/status, duplicate slug/domain acceptance. | Provisioning success/rollback tests. | 12 |
 | Deployment/ops | VPS, DNS, reverse proxy, backups, smoke | `runtime-proof-open` | operationeel contract | P2 | Smoke dashboard toont run history, live-smokes, migratie-smoke status en mutating cleanup-contract; echte Playwright/storage/DB-runs blijven open. | `FG-MIG-*`, `FG-OPS-008`, host/smoke tests. | 15/16 |
 | Materialen en inventaris | materials, inventory, assignment material usage, future inventory issue flows | `partial` | `direct_tenant_id` + `tenant_config` | P1/P2 | Onderzoek/canon bestaat; volledige modulebouw na SaaS proof of aparte roadmap. | Module/RBAC/storage/audit tests zodra gebouwd. | Post Sprint 16 of apart |
+
+## Sprint 16 final-gate besluit
+
+De classificatiematrix hierboven blijft de technische risicobron. Het Sprint 16 besluit staat in `docs/fieldgrid-sprint-16-final-gate.md` en verplaatst de resterende `partial`, `runtime-proof-open` en `hardening-open` punten naar `post-launch-accepted` zodra er een owner, target evidence en go/no-go moment is vastgelegd.
+
+De verplichte final-gate bewijzen zijn:
+
+- performance review op tenantqueries;
+- service-role security review;
+- final staging-copy migration smoke;
+- runtime proof, storage proof en portal acceptance artifacts;
+- eerste externe tenant checklist.
 
 ## Directe tenant_id verplicht in hardeninggolven
 

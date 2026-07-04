@@ -1,7 +1,7 @@
 # Fieldgrid volgende grote update plan
 
 Datum: 2026-07-04
-Status: sprint 15 staging smoke dashboard geleverd met open runtimebewijs; sprint 0 canon refresh 2.0 blijft de basis. De actuele uitvoeringscanon staat in `docs/fieldgrid-saas-proof-sprint-plan.md`.
+Status: sprint 16 final gate geleverd; resterende runtime/hardening bewijzen zijn `post-launch-accepted` met owner, bewijsdoel en go/no-go moment; sprint 0 canon refresh 2.0 blijft de basis. De actuele uitvoeringscanon staat in `docs/fieldgrid-saas-proof-sprint-plan.md`.
 
 ## 1. Doel
 
@@ -18,6 +18,7 @@ Alle canonbronnen gebruiken vanaf sprint 0:
 - `runtime-proof-open`
 - `hardening-open`
 - `nice-to-have`
+- `post-launch-accepted`
 
 Deze statusvelden staan in:
 
@@ -25,6 +26,7 @@ Deze statusvelden staan in:
 - `docs/fieldgrid-data-classification.md`
 - `docs/fieldgrid-cross-tenant-testmatrix.md`
 - `docs/fieldgrid-saas-proof-sprint-plan.md`
+- `docs/fieldgrid-sprint-16-final-gate.md`
 
 ## 3. Randvoorwaarden voor staging-bereikbaarheid
 
@@ -170,6 +172,20 @@ Werk:
 
 Eigenaar: sprint 15.
 
+### Final external tenant gate
+
+Status: `post-launch-accepted`.
+
+Werk:
+
+- Performance review op tenantqueries.
+- Service-role security review.
+- Final staging-copy smoke.
+- Eerste externe tenant checklist.
+- Post-launch accepted register met owner, bewijsdoel en go/no-go moment.
+
+Eigenaar: sprint 16.
+
 ### Regio's in backoffice
 
 Status: `partial`.
@@ -210,6 +226,7 @@ Deze investeringen verlagen direct risico of verhogen beheerbaarheid:
 | Module dependency visualisatie | `nice-to-have` | 11 |
 | Demo-data generator | `partial` | 1 |
 | Staging smoke dashboard | `runtime-proof-open` | 15 |
+| Final external tenant gate | `post-launch-accepted` | 16 |
 
 ## 7. Sprintvolgorde
 
