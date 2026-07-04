@@ -8,7 +8,7 @@ Scope: runtime-hardening, read-only platformdashboard en statische canonbewaking
 
 Fase 5 maakt supporttoegang tijdelijker, beter toetsbaar en zichtbaarder. Nieuwe support grants worden behandeld als break-glass toegang: expliciet, tenant-scoped, kortdurend, voorzien van reden en auditcontext.
 
-Daarnaast introduceert deze fase een eerste read-only securitydashboard voor platform-admins. Het dashboard gebruikt bestaande auditdata en verandert geen audit- of tenantdata.
+Daarnaast introduceert deze fase een eerste read-only platform securitydashboard voor platform-admins. Het dashboard gebruikt bestaande auditdata en verandert geen audit- of tenantdata.
 
 ## Uitgevoerd
 

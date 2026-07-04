@@ -119,13 +119,10 @@ Status: `partial`.
 
 Werk:
 
-- Support access.
-- Downloads.
-- PDF's.
-- Direct-ID denials.
-- Module-denials.
-- Storage-denials.
-- Een centraal security/audit model en dashboard.
+- Support access zichtbaar houden via het centrale dashboard.
+- Downloads en PDF's blijven volgens het Sprint 10 auditcontract loggen.
+- Direct-ID denials, module-denials en storage-denials blijven volgens het Sprint 10 auditcontract loggen.
+- Het centrale security/audit model en dashboard 2.0 zijn geleverd; echte runtime-smokes blijven nodig.
 
 Eigenaar: sprint 10.
 

@@ -44,14 +44,14 @@ Geen canonitem mag nog als alleen "open" of "ontbreekt" blijven staan zonder een
 | Documents/reports/quotes/invoices/payments/batches | `hardening-open` | Sprint 8 | Tenant-aware foundation bestaat; nullable/backfill/constraint validation open. |
 | Assignment media | `hardening-open` | Sprint 9 | Directe tenant_id en storageproof moeten afgerond worden. |
 | Storage | `hardening-open` | Sprint 9 | Helpers/guards bestaan; fysieke backfill, policies en path-guessing tests open. |
-| Audit/security events | `partial` | Sprint 10 | Basis bestaat; downloads, PDF's, denials en support events moeten centraal landen. |
+| Audit/security events | `partial` | Sprint 10 | Centraal auditcontract en dashboardfilters geleverd; volledige runtime-instrumentatie en E2E bewijs blijven uitbreidbaar. |
 | Veele Portaal klant/personeel | `runtime-proof-open` | Sprint 6 | Host-bound basis bestaat; documenten/facturen/tickets/opdrachten/media/notificaties/module-denials E2E open. |
 | Migration smoke | `partial` | Sprint 7 | Runner bestaat; lege DB en staging-copy workflow moet formeel worden. |
 | Platform onboarding wizard | `partial` | Sprint 12 | Provisioning/status bestaat; echte save/resume/review/rollback wizard open. |
 | Tenant first-run wizard | `partial` | Sprint 13 | Checklist/foundation bestaat; actieve owner-flow open. |
 | Usage dashboard | `partial` | Sprint 14 | Basisstats bestaan; documenten/storage/downloads/active modules uitbreiden. |
 | Branding preview | `nice-to-have` | Sprint 14 | Basis branding bestaat; preview voor portal/email/PDF open. |
-| Security dashboard | `partial` | Sprint 10 | Losse basis bestaat; centraal dashboard open. |
+| Security dashboard | `partial` | Sprint 10 | 2.0 dashboard combineert support-, tenant- en platformaudit met filters; echte Playwright/integration-smoke blijft open. |
 | Module dependency visualisatie | `nice-to-have` | Sprint 11 | Dependency keys bestaan; visuele inspectie open. |
 | Demo-data generator | `partial` | Sprint 1 | Canon/fixtures bestaan; one-click seed/cleanup open. |
 | Staging smoke dashboard | `partial` | Sprint 15 | Dashboardbasis/read-only bestaat; run history, Playwright-smokes en mutating cleanup open. |
@@ -272,17 +272,21 @@ Definition of Done:
 
 Doel: alle gevoelige events centraal zichtbaar maken.
 
+Opleverstatus:
+
+Status: `geleverd` voor `docs/fieldgrid-sprint-10-audit-security.md`. Het dashboard combineert `support_access_audit_log` en `audit_log`, normaliseert events naar support/tenant/platform scope en ondersteunt filters per tenant, actor, eventtype en scope. Nieuwe auditinstrumentatie blijft het centrale contract volgen.
+
 Taken:
 
-- Auditcontract voor support access, downloads, PDF's, direct-ID denials, module-denials, storage-denials en platform-admin acties.
-- Support break-glass max TTL afdwingen met verplichte reden.
-- Dashboard met filters per tenant, actor, eventtype en platform/support scope.
+- Auditcontract voor support access, downloads, PDF's, direct-ID denials, module-denials, storage-denials en platform-admin acties: geleverd in `lib/db/src/platform-access.ts`.
+- Support break-glass max TTL afdwingen met verplichte reden: geleverd via `validateSupportBreakGlassGrant()`.
+- Dashboard met filters per tenant, actor, eventtype en platform/support scope: geleverd op `/platform/security`.
 
 Definition of Done:
 
 - Te lange break-glass TTL faalt.
-- Downloads en denials zijn auditbaar.
-- Tenant-admin ziet geen platform-only audit.
+- Downloads en denials zijn auditbaar zodra hun runtimepad auditregels schrijft.
+- Tenant-admin ziet geen platform-only audit via het platform-only securitydashboard.
 
 ## Sprint 11 - Module enforcement harmonisatie
 
