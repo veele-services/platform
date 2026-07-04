@@ -14,9 +14,10 @@ function assertContains(content, phrases, label) {
 
 test("sprint 15 extends staging smoke data with run history and live smoke contracts", () => {
   const action = read("artifacts/backoffice/src/app/actions/platform-smoke.ts");
+  const types = read("artifacts/backoffice/src/app/actions/platform-smoke.types.ts");
 
   assertContains(
-    action,
+    `${action}\n${types}`,
     [
       "PlatformSmokeRunHistoryEntry",
       "PlatformLiveSmokeTarget",
@@ -52,6 +53,7 @@ test("sprint 15 staging smoke page renders run history, live smokes and cleanup"
       "dashboard.migrationSmoke",
       "dashboard.mutatingChecks",
       "FG-OPS-008",
+      "platform-smoke.types",
       "RunHistoryCard",
       "LiveSmokeCard",
       "MutatingCheckCard",

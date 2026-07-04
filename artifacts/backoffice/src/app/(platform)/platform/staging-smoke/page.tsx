@@ -1,13 +1,13 @@
 import Link from "next/link";
-import {
-  getPlatformStagingSmokeDashboard,
-  type PlatformFinalExternalTenantGate,
-  type PlatformLiveSmokeTarget,
-  type PlatformMutatingSmokeCheck,
-  type PlatformSmokeCheck,
-  type PlatformSmokeRunHistoryEntry,
-  type PlatformSmokeStatus,
-} from "@/app/actions/platform-smoke";
+import { getPlatformStagingSmokeDashboard } from "@/app/actions/platform-smoke";
+import type {
+  PlatformFinalExternalTenantGate,
+  PlatformLiveSmokeTarget,
+  PlatformMutatingSmokeCheck,
+  PlatformSmokeCheck,
+  PlatformSmokeRunHistoryEntry,
+  PlatformSmokeStatus,
+} from "@/app/actions/platform-smoke.types";
 
 export const metadata = {
   title: "Staging smoke",
