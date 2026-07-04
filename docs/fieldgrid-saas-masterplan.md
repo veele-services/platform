@@ -1,7 +1,7 @@
 # Fieldgrid SaaS masterplan canon
 
-Datum: 2026-07-03
-Status: sprint 0 canon refresh 2.0. Actuele uitvoeringsbron: `docs/fieldgrid-saas-proof-sprint-plan.md`.
+Datum: 2026-07-04
+Status: sprint 13 tenant first-run wizard geleverd; sprint 0 canon refresh 2.0 blijft de basis; actuele uitvoeringsbron: `docs/fieldgrid-saas-proof-sprint-plan.md`.
 Bronnen: oorspronkelijke Fieldgrid/Veele SaaS-masterplanbijlage, huidige `main` codebase, `docs/fieldgrid-data-classification.md`, `docs/fieldgrid-cross-tenant-testmatrix.md`, `docs/fieldgrid-next-major-update-plan.md`, `docs/fieldgrid-staging-promotion-checklist.md` en `docs/fieldgrid-saas-proof-sprint-plan.md`.
 
 ## 1. Doel en vaste besluiten
@@ -75,6 +75,7 @@ Geen onderwerp mag in vervolgwerk alleen als "open" blijven staan zonder status,
 - Tenant RBAC moet met echte rolverschillen per tenant bewezen worden.
 - API module guards en Portal module guards zijn geharmoniseerd met gedeelde guards voor backoffice, portalen en jobs; Playwright/integration bewijs blijft open.
 - Sector enforcement moet disable/default/single-sector scenario's runtime bewijzen.
+- Tenant first-run moet met `A-OWNER` en `FG-OPS-002` integration/Playwright bewezen worden.
 - Veele Portaal klant/personeel moet E2E bewijzen voor documenten, facturen, tickets, opdrachten, media, rapportage, notificaties, module-denials en verkeerde-host scenario's.
 - Personeelsplanning heeft live/minuut-refresh, maar portal acceptance moet blijven bewijzen dat Home/Planning actueel zijn.
 
@@ -183,7 +184,9 @@ Supporttoegang is geen gewone tenantrol. De prioriteit blijft:
 - DB/RLS en storage signed-url testbasis.
 - Migration smoke workflow op lege database en staging-copy.
 - Regio datamodel/UI/runtime afronden voordat het in planning als harde grens wordt gebruikt.
-- Backoffice/API/portalen/jobs module enforcement met Playwright/integration bewijzen.
+- Backoffice/API/portalen/jobs module enforcement harmoniseren.
+- API module guards gelijk trekken met backoffice, portalen en jobs.
+- Portal module guards gelijk trekken met API, backoffice en jobs.
 - DB-defaults naar `DEFAULT_TENANT_ID` uit tenantdata verwijderen.
 - Support break-glass TTL afdwingen.
 - News scope beslissen.
@@ -202,7 +205,7 @@ Supporttoegang is geen gewone tenantrol. De prioriteit blijft:
 ### P2
 
 - Platform-admin onboarding wizard.
-- Tenant first-run wizard.
+- Tenant first-run runtime proof voor save/resume/readiness.
 - Usage dashboard per tenant met users, documenten, opdrachten, storage, downloads, actieve modules en support grants.
 - Branding preview per tenant.
 - Security dashboard uitbreiding.

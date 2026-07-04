@@ -1,7 +1,7 @@
 # Fieldgrid data-classificatie canon
 
-Datum: 2026-07-03
-Status: sprint 0 canon refresh 2.0. Actuele uitvoeringsbron: `docs/fieldgrid-saas-proof-sprint-plan.md`.
+Datum: 2026-07-04
+Status: sprint 13 tenant first-run wizard geleverd. Actuele uitvoeringsbron: `docs/fieldgrid-saas-proof-sprint-plan.md`.
 Gerelateerd: `docs/fieldgrid-saas-masterplan.md`, `docs/fieldgrid-cross-tenant-testmatrix.md`, `docs/fieldgrid-next-major-update-plan.md`, `docs/fieldgrid-staging-promotion-checklist.md`, `docs/fieldgrid-recovery-execution-plan.md`.
 
 ## Doel
@@ -80,7 +80,7 @@ De codebase is nog niet klaar voor externe SaaS-acceptatie. De grootste gaten zi
 | Task codes | `task_codes`, tenant overrides/prices foundation | `runtime-proof-open` | `tenant_config` | P0/P1 | Historische prijssnapshots, sector/regio economie en uniqueness per tenant bewijzen. | Sector/task-code integration. | 5/11 |
 | Modules | `modules`, `tenant_modules`, `module_dependencies` | `partial` | `tenant_config` | P0 | Enforcement harmoniseren, module dependency inspectie/visualisatie. | `FG-MODULE-*`. | 11 |
 | Plans en subscriptions | `plans`, `plan_modules`, `plan_limits`, `tenant_subscriptions` | `partial` | `tenant_config` | P0/P2 | Platformbeheer, usage, handmatige billing. | Plan module seed, custom roles Professional+. | 11/14 |
-| Organization settings | `organization_settings`, branding, SMTP | `partial` | `tenant_config` | P2 | Branding preview, defaults, package gating. | Tenantbranding lekt niet. | 14 |
+| Organization settings | `organization_settings`, branding, SMTP | `runtime-proof-open` | `tenant_config` | P2 | First-run save/resume schrijft tenant-gescopeerd; branding preview, package gating en runtime proof open. | `FG-OPS-002`, tenantbranding lekt niet. | 13/14 |
 | Klantportaal runtime | customer portal routes, documents, invoices, tickets | `runtime-proof-open` | runtime-hardening | P0/P1 | Module guards, branding, download audit, wrong-host tests. | `FG-PORTAL-C-*`. | 6 |
 | Personeelsapp runtime | personnel portal routes, assignments, photos, tickets | `runtime-proof-open` | runtime-hardening | P0/P1 | App module guards, signed URL tests, planning live/minute acceptance. | `FG-PORTAL-P-*`. | 6/9 |
 | Storage | documents, assignment photos, report attachments, avatars, news/org assets | `hardening-open` | `needs_migration` naar tenant-prefixed storage | P0/P1 | Canon `tenant/{tenant_id}/...`, copy-first backfill, policy/RLS bewijs, path guessing tests. | `FG-STORAGE-*`. | 9 |

@@ -1,7 +1,7 @@
 # Fieldgrid cross-tenant testmatrix
 
-Datum: 2026-07-03
-Status: sprint 0 canon refresh 2.0. Verplichte acceptatiebasis voor `docs/fieldgrid-saas-proof-sprint-plan.md`.
+Datum: 2026-07-04
+Status: sprint 13 tenant first-run wizard geleverd; runtime bewijs blijft verplicht voor acceptatie. Verplichte acceptatiebasis voor `docs/fieldgrid-saas-proof-sprint-plan.md`.
 Gerelateerd: `docs/fieldgrid-saas-masterplan.md`, `docs/fieldgrid-data-classification.md`, `docs/fieldgrid-next-major-update-plan.md`, `docs/fieldgrid-staging-promotion-checklist.md`, `docs/fieldgrid-recovery-execution-plan.md`.
 
 ## Doel
