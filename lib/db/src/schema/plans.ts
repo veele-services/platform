@@ -13,7 +13,7 @@ import {
 import { modulesTable } from "./modules";
 import { tenantsTable, type TenantPlanKey } from "./tenants";
 
-export const PLAN_LIMIT_KEYS = ["custom_roles", "custom_domains"] as const;
+export const PLAN_LIMIT_KEYS = ["custom_roles", "custom_domains", "max_seats"] as const;
 export const TENANT_SUBSCRIPTION_STATUSES = [
   "trial",
   "active",
@@ -34,6 +34,9 @@ export const plansTable = pgTable(
     key: varchar("key", { length: 40 }).notNull().$type<TenantPlanKey>(),
     name: varchar("name", { length: 120 }).notNull(),
     description: text("description"),
+    supportLevel: varchar("support_level", { length: 40 }).notNull().default("standard"),
+    supportDescription: text("support_description"),
+    maxSeats: integer("max_seats"),
     isActive: boolean("is_active").notNull().default(true),
     isPublic: boolean("is_public").notNull().default(true),
     sortOrder: integer("sort_order").notNull().default(0),
@@ -118,6 +121,8 @@ export const tenantSubscriptionsTable = pgTable(
     currentPeriodStartsAt: timestamp("current_period_starts_at", { withTimezone: true }),
     currentPeriodEndsAt: timestamp("current_period_ends_at", { withTimezone: true }),
     canceledAt: timestamp("canceled_at", { withTimezone: true }),
+    billingReference: varchar("billing_reference", { length: 160 }),
+    manualBillingNotes: text("manual_billing_notes"),
     createdBy: uuid("created_by"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true })
