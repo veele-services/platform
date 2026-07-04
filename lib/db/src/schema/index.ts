@@ -2,6 +2,7 @@ export * from "./tenants";
 export * from "./tenant-domains";
 export * from "./platform-users";
 export * from "./platform-tickets";
+export * from "./platform-notifications";
 export * from "./roles";
 export * from "./permissions";
 export * from "./role-permissions";
