@@ -13,7 +13,7 @@ import { z } from "zod/v4";
 import { assignmentsTable } from "./assignments";
 import { personnelTable } from "./personnel";
 import { assignmentInterestResponsesTable } from "./planning-intelligence";
-import { DEFAULT_TENANT_ID, tenantsTable } from "./tenants";
+import { tenantsTable } from "./tenants";
 
 export const PERSONNEL_TICKET_DEPARTMENTS = [
   "planning",
@@ -57,7 +57,6 @@ export const personnelMessageThreadsTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
       .notNull()
-      .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     personnelId: uuid("personnel_id")
       .notNull()

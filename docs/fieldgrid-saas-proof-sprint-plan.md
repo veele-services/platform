@@ -236,6 +236,12 @@ Definition of Done:
 
 Doel: gevoelige tenantdata definitief sluiten.
 
+Opleverstatus:
+
+- Payments, batches en audit wave 3/4 zijn geleverd met `063_payments_batches_audit_tenant_scope.sql`.
+- Default-fallback hardening is geleverd met `070_sprint8_tenant_id_default_hardening.sql`.
+- Staging-copy constraintvalidatie en `tenant_id SET NOT NULL` blijven `hardening-open` tot de rapportage schoon is.
+
 Taken:
 
 - Backfill reports voor documents, reports, quotes, invoices, payments, batches, audit.
@@ -253,18 +259,22 @@ Definition of Done:
 
 Doel: storage SaaS-proof maken.
 
+Opleverstatus:
+
+Status: `geleverd` voor applicatie-hardening in `docs/fieldgrid-sprint-9-storage-hardening.md`. Nieuwe assignment-media uploads gebruiken `tenant/{tenant_id}/assignments/{assignment_id}/...`; klant-, personeel- en backoffice signed URL helpers binden storage paths aan tenant en assignment voordat Supabase tekent. Fysieke objectcopy blijft copy-first stagingwerk en staat als cleanup-plan vast.
+
 Taken:
 
-- Assignment media direct tenant-aware maken.
-- Copy-first fysieke storagebackfill.
-- Canonieke paden `tenant/{tenant_id}/...`.
-- Supabase Storage policy/RLS bewijs.
-- Signed URL en path guessing tests.
-- Legacy-path cleanup-plan.
+- Assignment media direct tenant-aware maken: geleverd in upload- en signed-url runtimehelpers.
+- Copy-first fysieke storagebackfill: gepland als staging/ops-stap zonder objectverplaatsing in deze PR.
+- Canonieke paden `tenant/{tenant_id}/...`: geleverd voor assignment media als `tenant/{tenant_id}/assignments/{assignment_id}/...`.
+- Supabase Storage policy/RLS bewijs: statische policybasis bestaat; echte provider-smoke blijft vereist.
+- Signed URL en path guessing tests: statische signed-url guards geleverd; echte path-guessing integrationtest blijft vereist.
+- Legacy-path cleanup-plan: geleverd in `docs/fieldgrid-sprint-9-storage-hardening.md`.
 
 Definition of Done:
 
-- Tenant B krijgt geen Tenant A signed URL/path access.
+- Tenant B krijgt geen Tenant A signed URL/path access via applicatie-signed-url helpers.
 - Nieuwe uploads zijn tenant-prefixed.
 - Oude bestanden blijven bereikbaar tijdens transitie.
 
