@@ -1,6 +1,7 @@
 import Link from "next/link";
 import {
   getPlatformStagingSmokeDashboard,
+  type PlatformFinalExternalTenantGate,
   type PlatformLiveSmokeTarget,
   type PlatformMutatingSmokeCheck,
   type PlatformSmokeCheck,
@@ -167,6 +168,66 @@ function MutatingCheckCard({ check }: { check: PlatformMutatingSmokeCheck }) {
   );
 }
 
+function FinalGateCard({ gate }: { gate: PlatformFinalExternalTenantGate }) {
+  return (
+    <section className="rounded border border-slate-200 bg-white p-5">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold tracking-normal text-slate-950">Finale externe tenant gate</h2>
+          <p className="mt-1 text-sm text-slate-500">{gate.summary}</p>
+          <p className="mt-2 text-sm font-medium text-slate-800">{gate.command}</p>
+          <p className="mt-1 text-xs text-slate-500">{gate.checklist} - {gate.reportDirectory}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <span className="rounded border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600">{gate.decision}</span>
+          <span className={`rounded border px-2 py-1 text-xs font-semibold ${statusClass(gate.status)}`}>
+            {STATUS_LABELS[gate.status]}
+          </span>
+        </div>
+      </div>
+      <div className="mt-4 grid gap-3 lg:grid-cols-5">
+        {gate.requirements.map((requirement) => (
+          <div key={requirement.id} className="rounded border border-slate-200 bg-slate-50 p-4">
+            <div className="flex items-start justify-between gap-3">
+              <h3 className="font-semibold text-slate-950">{requirement.label}</h3>
+              <span className={`rounded border px-2 py-1 text-xs font-semibold ${statusClass(requirement.status)}`}>
+                {STATUS_LABELS[requirement.status]}
+              </span>
+            </div>
+            <p className="mt-2 text-sm text-slate-600">{requirement.evidence}</p>
+            <p className="mt-2 text-xs font-medium text-slate-600">{requirement.id}</p>
+          </div>
+        ))}
+      </div>
+      <div className="mt-4 rounded border border-amber-200 bg-amber-50 p-4">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+          <div>
+            <h3 className="font-semibold text-amber-950">Post-launch accepted register</h3>
+            <p className="mt-1 text-sm text-amber-900">
+              Open runtime/hardening punten blijven zichtbaar met owner, bewijsdoel en go/no-go eis.
+            </p>
+          </div>
+          <span className="w-fit rounded border border-amber-300 px-2 py-1 text-xs font-semibold text-amber-950">
+            {gate.postLaunchExceptions.length} uitzonderingen
+          </span>
+        </div>
+        <div className="mt-3 grid gap-2 lg:grid-cols-2">
+          {gate.postLaunchExceptions.map((exception) => (
+            <div key={exception.id} className="rounded border border-amber-200 bg-white px-3 py-2">
+              <div className="flex items-start justify-between gap-3">
+                <p className="text-sm font-semibold text-slate-950">{exception.label}</p>
+                <span className="rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">{exception.risk}</span>
+              </div>
+              <p className="mt-1 text-xs text-slate-500">{exception.owner} - {exception.acceptedUntil}</p>
+              <p className="mt-1 text-xs text-slate-600">{exception.targetEvidence}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 export default async function PlatformStagingSmokePage() {
   const dashboard = await getPlatformStagingSmokeDashboard();
   const requiredChecks = new Set(dashboard.minimumGreen);
@@ -307,6 +368,8 @@ export default async function PlatformStagingSmokePage() {
             ))}
           </div>
         </section>
+
+        <FinalGateCard gate={dashboard.finalExternalTenantGate} />
 
         <div className="grid gap-5 xl:grid-cols-2">
           {dashboard.checks.map((check) => (

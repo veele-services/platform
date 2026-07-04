@@ -1,7 +1,7 @@
 # Fieldgrid SaaS masterplan canon
 
 Datum: 2026-07-04
-Status: sprint 15 staging smoke dashboard geleverd met open runtimebewijs; sprint 0 canon refresh 2.0 blijft de basis. Actuele uitvoeringsbron: `docs/fieldgrid-saas-proof-sprint-plan.md`.
+Status: sprint 16 final gate geleverd; resterende runtime/hardening bewijzen zijn `post-launch-accepted` met owner, bewijsdoel en go/no-go moment; sprint 0 canon refresh 2.0 blijft de basis. Actuele uitvoeringsbron: `docs/fieldgrid-saas-proof-sprint-plan.md`.
 Bronnen: oorspronkelijke Fieldgrid/Veele SaaS-masterplanbijlage, huidige `main` codebase, `docs/fieldgrid-data-classification.md`, `docs/fieldgrid-cross-tenant-testmatrix.md`, `docs/fieldgrid-next-major-update-plan.md`, `docs/fieldgrid-staging-promotion-checklist.md` en `docs/fieldgrid-saas-proof-sprint-plan.md`.
 
 ## 1. Doel en vaste besluiten
@@ -38,6 +38,7 @@ Alle canonbronnen gebruiken vanaf sprint 0 dezelfde statusvelden.
 | `runtime-proof-open` | Runtime lijkt aanwezig, maar echte integration/Playwright/DB/RLS/storage-bewijzen ontbreken. |
 | `hardening-open` | Schema/runtime is staging-veilig opgebouwd, maar backfill, constraint validation, `NOT NULL`, policybewijs of cleanup staat open. |
 | `nice-to-have` | Waardevol voor product/operatie, maar niet vereist voor harde SaaS-isolatie. |
+| `post-launch-accepted` | Sprint 16 heeft het open punt bewust geaccepteerd met owner, bewijsdoel en go/no-go moment. |
 
 Geen onderwerp mag in vervolgwerk alleen als "open" blijven staan zonder status, eigenaar-sprint en test-/hardeningcontract.
 
