@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 import { drizzle } from "drizzle-orm/node-postgres";
 import { migrate as migrateDrizzle } from "drizzle-orm/node-postgres/migrator";
 import pg from "pg";
+import { loadDbRuntimeEnv } from "./runtime-env";
 
 const { Client, Pool } = pg;
 
@@ -48,6 +49,8 @@ type BaselineManifest = {
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+loadDbRuntimeEnv();
 
 const databaseUrl = process.env.DATABASE_URL;
 if (!databaseUrl) {
