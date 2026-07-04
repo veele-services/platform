@@ -29,10 +29,18 @@ test("runtime permission helpers use tenant role ids, not global role ids", () =
 test("platform admin bootstrap is explicit", () => {
   const dbPackage = JSON.parse(read("lib/db/package.json"));
   const seed = read("lib/db/src/seed/platform-users.ts");
+  const platformAdminSeed = read("lib/db/src/seed/platform-admin.ts");
+  const roleConstraintMigration = read("lib/db/migrations/071_platform_users_role_constraint.sql");
   const recoveryPlan = read("docs/fieldgrid-recovery-execution-plan.md");
 
   assert.equal(dbPackage.scripts["seed:platform-users"], "tsx src/seed/platform-users.ts");
+  assert.equal(dbPackage.scripts["seed:platform-admin"], "tsx src/seed/platform-admin.ts");
   assert.match(seed, /PLATFORM_OWNER_USER_IDS/u);
+  assert.match(platformAdminSeed, /values \(\$1, 'owner', 'active', now\(\)\)/u);
+  assert.match(roleConstraintMigration, /DROP CONSTRAINT IF EXISTS platform_users_role_check/u);
+  assert.match(roleConstraintMigration, /super_admin' THEN 'owner'/u);
+  assert.match(roleConstraintMigration, /billing_admin' THEN 'admin'/u);
+  assert.match(roleConstraintMigration, /CHECK \(role IN \('owner', 'admin', 'support'\)\)/u);
   assert.match(recoveryPlan, /seed:platform-users/u);
 });
 
