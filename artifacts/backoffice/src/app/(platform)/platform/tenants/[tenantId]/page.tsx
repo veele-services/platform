@@ -221,6 +221,13 @@ function domainStatusTone(status: string): "neutral" | "good" | "warning" | "dan
   return "neutral";
 }
 
+function subscriptionStatusTone(status: string): "neutral" | "good" | "warning" | "danger" {
+  if (status === "active") return "good";
+  if (status === "trial" || status === "past_due") return "warning";
+  if (status === "canceled" || status === "expired") return "danger";
+  return "neutral";
+}
+
 function tlsStatusTone(status: string): "neutral" | "good" | "warning" | "danger" {
   if (status === "active") return "good";
   if (status === "failed" || status === "disabled") return "danger";
@@ -492,39 +499,69 @@ function SubscriptionTab({
   tenant,
   plans,
   subscriptions,
+  customDomainCount,
 }: {
   tenant: PlatformTenantDetail;
   plans: Awaited<ReturnType<typeof listPlatformPlans>>;
   subscriptions: Awaited<ReturnType<typeof listPlatformTenantSubscriptions>>;
+  customDomainCount: number;
 }) {
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
       <Section title="Actieve subscription" helper="Planwissels zijn transactioneel en schrijven een audit-event.">
-        <form action={updatePlatformTenantPlanFormAction} className="grid gap-3 sm:grid-cols-[1fr_auto] sm:items-end">
+        {customDomainCount > 0 && tenant.planKey === "enterprise" && (
+          <p className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+            Downgrade naar Starter/Professional schakelt {customDomainCount} custom domain(s) uit.
+          </p>
+        )}
+        <form action={updatePlatformTenantPlanFormAction} className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_180px_minmax(0,1fr)_auto] lg:items-end">
           <input type="hidden" name="tenantId" value={tenant.id} />
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Plan
             <select name="planKey" defaultValue={tenant.planKey} className="h-10 rounded border border-slate-300 px-3 text-sm">
               {plans.map((plan) => (
                 <option key={plan.id} value={plan.key}>
-                  {plan.name}{plan.customRoles ? " - custom roles" : ""}
+                  {plan.name}{plan.customDomains ? " - custom domains" : plan.customRoles ? " - custom roles" : ""}
                 </option>
               ))}
             </select>
           </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Periode-einde
+            <input name="currentPeriodEndsAt" type="datetime-local" className="h-10 rounded border border-slate-300 px-3 text-sm" />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Billing referentie
+            <input name="billingReference" className="h-10 rounded border border-slate-300 px-3 text-sm" />
+          </label>
           <button type="submit" className="h-10 rounded bg-slate-950 px-4 text-sm font-semibold text-white">
             Plan opslaan
           </button>
+          <label className="grid gap-1 text-sm font-medium text-slate-700 lg:col-span-4">
+            Manual billing notes
+            <textarea name="manualBillingNotes" rows={2} className="rounded border border-slate-300 px-3 py-2 text-sm" />
+          </label>
         </form>
 
+        <div className="mt-5 grid gap-2 text-sm md:grid-cols-3">
+          {plans.map((plan) => (
+            <div key={plan.id} className="rounded border border-slate-200 px-3 py-2">
+              <p className="font-medium text-slate-950">{plan.name}</p>
+              <p className="mt-1 text-xs text-slate-500">{plan.supportLevel} support - {plan.maxSeats ?? "contract"} seats</p>
+              <p className="mt-1 text-xs text-slate-500">{plan.limitSummary ?? "geen expliciete limits"}</p>
+            </div>
+          ))}
+        </div>
+
         <div className="mt-5 overflow-x-auto rounded border border-slate-200">
-          <table className="w-full min-w-[760px] text-left text-sm">
+          <table className="w-full min-w-[920px] text-left text-sm">
             <thead className="bg-slate-100 text-xs uppercase text-slate-500">
               <tr>
                 <th className="px-3 py-2">Plan</th>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2">Bron</th>
                 <th className="px-3 py-2">Periode</th>
+                <th className="px-3 py-2">Billing</th>
                 <th className="px-3 py-2">Bijgewerkt</th>
               </tr>
             </thead>
@@ -532,14 +569,19 @@ function SubscriptionTab({
               {subscriptions.map((subscription) => (
                 <tr key={subscription.id} className="border-t border-slate-100">
                   <td className="px-3 py-2 font-medium">{subscription.planName}</td>
-                  <td className="px-3 py-2">{subscription.status}</td>
+                  <td className="px-3 py-2">
+                    <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(subscriptionStatusTone(subscription.status))}`}>
+                      {subscription.status}
+                    </span>
+                  </td>
                   <td className="px-3 py-2 text-slate-600">{subscription.source}</td>
                   <td className="px-3 py-2 text-slate-600">{formatDate(subscription.currentPeriodStartsAt)} - {formatDate(subscription.currentPeriodEndsAt)}</td>
+                  <td className="px-3 py-2 text-slate-600">{subscription.billingReference ?? subscription.manualBillingNotes ?? "-"}</td>
                   <td className="px-3 py-2 text-slate-600">{formatDate(subscription.updatedAt)}</td>
                 </tr>
               ))}
               {subscriptions.length === 0 && (
-                <tr><td colSpan={5} className="px-3 py-8 text-center text-slate-500">Geen subscriptions gevonden.</td></tr>
+                <tr><td colSpan={6} className="px-3 py-8 text-center text-slate-500">Geen subscriptions gevonden.</td></tr>
               )}
             </tbody>
           </table>
@@ -1173,7 +1215,14 @@ export default async function PlatformTenantDetailPage({ params, searchParams }:
         <TenantTabs tenantId={tenant.id} activeTab={activeTab} />
 
         {activeTab === "overview" && <OverviewTab tenant={tenant} provisioningRuns={tenantProvisioningRuns} />}
-        {activeTab === "subscription" && <SubscriptionTab tenant={tenant} plans={plans} subscriptions={subscriptions} />}
+        {activeTab === "subscription" && (
+          <SubscriptionTab
+            tenant={tenant}
+            plans={plans}
+            subscriptions={subscriptions}
+            customDomainCount={domains.filter((domain) => domain.type === "custom_domain").length}
+          />
+        )}
         {activeTab === "domains" && <DomainsTab tenant={tenant} domains={domains} />}
         {activeTab === "modules" && <ModulesTab tenant={tenant} modules={modules} />}
         {activeTab === "sectors" && <SectorsAndRegionsTab tenant={tenant} sectorsModel={sectorsModel} regions={regions} />}

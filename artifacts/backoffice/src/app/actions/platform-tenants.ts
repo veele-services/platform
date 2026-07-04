@@ -40,6 +40,7 @@ import {
   tenantUsersTable,
   type TenantPlanKey,
   type TenantSectorPolicyMode,
+  type TenantSubscriptionStatus,
   type TenantStatus,
 } from "@workspace/db";
 import { and, asc, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
@@ -50,6 +51,7 @@ import type { ActionResult } from "./customers";
 
 const TENANT_PLAN_KEYS = ["starter", "professional", "enterprise"] as const;
 const TENANT_STATUS_FILTERS = ["provisioning", "trial", "active", "suspended", "archived"] as const;
+const TENANT_SUBSCRIPTION_STATUS_VALUES = ["trial", "active", "past_due", "canceled", "expired"] as const;
 const DOMAIN_TYPES = ["fieldgrid_subdomain", "custom_domain"] as const;
 const DOMAIN_VERIFICATION_STATUSES = ["pending", "pending_dns", "dns_seen", "verified", "tls_pending", "active", "failed", "disabled", "disabled_plan"] as const;
 const TENANT_LIST_DOMAIN_STATUSES = ["missing", "pending", "verified", "failed"] as const;
@@ -249,9 +251,19 @@ export type PlatformPlanRow = {
   key: TenantPlanKey;
   name: string;
   description: string | null;
+  supportLevel: string;
+  supportDescription: string | null;
+  maxSeats: number | null;
   isActive: boolean;
   isPublic: boolean;
   customRoles: boolean;
+  customDomains: boolean;
+  moduleCount: number;
+  limitSummary: string | null;
+  activeSubscriptions: number;
+  trialSubscriptions: number;
+  pastDueSubscriptions: number;
+  tenantCount: number;
 };
 
 export type PlatformTenantModuleRow = {
@@ -296,8 +308,33 @@ export type PlatformTenantSubscriptionRow = {
   currentPeriodStartsAt: string | null;
   currentPeriodEndsAt: string | null;
   canceledAt: string | null;
+  billingReference: string | null;
+  manualBillingNotes: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+export type PlatformSubscriptionListRow = PlatformTenantSubscriptionRow & {
+  tenantId: string;
+  tenantName: string;
+  tenantSlug: string;
+  tenantStatus: TenantStatus;
+  customDomainCount: number;
+  activeCustomDomainCount: number;
+  downgradeImpact: string | null;
+};
+
+export type PlatformSubscriptionDashboard = {
+  plans: PlatformPlanRow[];
+  subscriptions: PlatformSubscriptionListRow[];
+  stats: {
+    totalSubscriptions: number;
+    trial: number;
+    active: number;
+    pastDue: number;
+    canceled: number;
+    expired: number;
+  };
 };
 
 export type PlatformTenantUserRow = {
@@ -347,6 +384,7 @@ function normalizePlanKey(value: string): TenantPlanKey {
 
 function revalidatePlatformTenant(tenantId: string): void {
   revalidatePath("/platform");
+  revalidatePath("/platform/subscriptions");
   revalidatePath(`/platform/tenants/${tenantId}`);
 }
 
@@ -356,6 +394,28 @@ function actionValue(formData: FormData, name: string): string {
 
 function booleanValue(formData: FormData, name: string): boolean {
   return formData.get(name) === "on" || formData.get(name) === "true";
+}
+
+function textValue(formData: FormData, name: string, maxLength = 1000): string | null {
+  const value = actionValue(formData, name);
+  return value ? value.slice(0, maxLength) : null;
+}
+
+function normalizeSubscriptionStatus(value: string): TenantSubscriptionStatus {
+  return TENANT_SUBSCRIPTION_STATUS_VALUES.includes(value as TenantSubscriptionStatus)
+    ? (value as TenantSubscriptionStatus)
+    : "active";
+}
+
+function optionalDateValue(formData: FormData, name: string): Date | null {
+  const value = actionValue(formData, name);
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function subscriptionIsRuntimeActive(status: TenantSubscriptionStatus): boolean {
+  return status === "trial" || status === "active";
 }
 
 function randomVerificationToken(): string {
@@ -1359,6 +1419,9 @@ export async function listPlatformPlans(): Promise<PlatformPlanRow[]> {
       key: plansTable.key,
       name: plansTable.name,
       description: plansTable.description,
+      supportLevel: plansTable.supportLevel,
+      supportDescription: plansTable.supportDescription,
+      maxSeats: plansTable.maxSeats,
       isActive: plansTable.isActive,
       isPublic: plansTable.isPublic,
       customRoles: sql<boolean>`COALESCE((
@@ -1367,6 +1430,53 @@ export async function listPlatformPlans(): Promise<PlatformPlanRow[]> {
           AND pl.key = 'custom_roles'
         LIMIT 1
       ), ${plansTable.key} IN ('professional', 'enterprise'))`,
+      customDomains: sql<boolean>`COALESCE((
+        SELECT pl.is_enabled FROM plan_limits pl
+        WHERE pl.plan_id = ${plansTable.id}
+          AND pl.key = 'custom_domains'
+        LIMIT 1
+      ), ${plansTable.key} = 'enterprise')`,
+      moduleCount: sql<number>`(
+        SELECT count(*)
+        FROM ${planModulesTable} pm
+        WHERE pm.plan_id = ${plansTable.id}
+          AND pm.is_included = true
+      )::int`,
+      limitSummary: sql<string | null>`(
+        SELECT string_agg(
+          pl.key || '=' || CASE
+            WHEN pl.limit_value IS NOT NULL THEN pl.limit_value::text
+            WHEN pl.is_enabled THEN 'aan'
+            ELSE 'uit'
+          END,
+          ', ' ORDER BY pl.key
+        )
+        FROM ${planLimitsTable} pl
+        WHERE pl.plan_id = ${plansTable.id}
+      )`,
+      activeSubscriptions: sql<number>`(
+        SELECT count(*)
+        FROM ${tenantSubscriptionsTable} sub
+        WHERE sub.plan_id = ${plansTable.id}
+          AND sub.status = 'active'
+      )::int`,
+      trialSubscriptions: sql<number>`(
+        SELECT count(*)
+        FROM ${tenantSubscriptionsTable} sub
+        WHERE sub.plan_id = ${plansTable.id}
+          AND sub.status = 'trial'
+      )::int`,
+      pastDueSubscriptions: sql<number>`(
+        SELECT count(*)
+        FROM ${tenantSubscriptionsTable} sub
+        WHERE sub.plan_id = ${plansTable.id}
+          AND sub.status = 'past_due'
+      )::int`,
+      tenantCount: sql<number>`(
+        SELECT count(*)
+        FROM ${tenantsTable} tenant
+        WHERE tenant.plan_key = ${plansTable.key}
+      )::int`,
     })
     .from(plansTable)
     .orderBy(asc(plansTable.sortOrder), asc(plansTable.name));
@@ -1388,6 +1498,8 @@ export async function listPlatformTenantSubscriptions(tenantId: string): Promise
       currentPeriodStartsAt: tenantSubscriptionsTable.currentPeriodStartsAt,
       currentPeriodEndsAt: tenantSubscriptionsTable.currentPeriodEndsAt,
       canceledAt: tenantSubscriptionsTable.canceledAt,
+      billingReference: tenantSubscriptionsTable.billingReference,
+      manualBillingNotes: tenantSubscriptionsTable.manualBillingNotes,
       createdAt: tenantSubscriptionsTable.createdAt,
       updatedAt: tenantSubscriptionsTable.updatedAt,
     })
@@ -1405,6 +1517,90 @@ export async function listPlatformTenantSubscriptions(tenantId: string): Promise
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),
   }));
+}
+
+export async function listPlatformSubscriptionDashboard(): Promise<PlatformSubscriptionDashboard> {
+  await requirePlatformAdmin();
+
+  const [plans, subscriptions, statusRows] = await Promise.all([
+    listPlatformPlans(),
+    db
+      .select({
+        id: tenantSubscriptionsTable.id,
+        tenantId: tenantSubscriptionsTable.tenantId,
+        tenantName: tenantsTable.name,
+        tenantSlug: tenantsTable.slug,
+        tenantStatus: tenantsTable.status,
+        planName: plansTable.name,
+        planKey: plansTable.key,
+        status: tenantSubscriptionsTable.status,
+        source: tenantSubscriptionsTable.source,
+        startsAt: tenantSubscriptionsTable.startsAt,
+        currentPeriodStartsAt: tenantSubscriptionsTable.currentPeriodStartsAt,
+        currentPeriodEndsAt: tenantSubscriptionsTable.currentPeriodEndsAt,
+        canceledAt: tenantSubscriptionsTable.canceledAt,
+        billingReference: tenantSubscriptionsTable.billingReference,
+        manualBillingNotes: tenantSubscriptionsTable.manualBillingNotes,
+        createdAt: tenantSubscriptionsTable.createdAt,
+        updatedAt: tenantSubscriptionsTable.updatedAt,
+        customDomainCount: sql<number>`(
+          SELECT count(*)
+          FROM ${tenantDomainsTable} td
+          WHERE td.tenant_id = ${tenantSubscriptionsTable.tenantId}
+            AND td.type = 'custom_domain'
+        )::int`,
+        activeCustomDomainCount: sql<number>`(
+          SELECT count(*)
+          FROM ${tenantDomainsTable} td
+          WHERE td.tenant_id = ${tenantSubscriptionsTable.tenantId}
+            AND td.type = 'custom_domain'
+            AND td.verification_status IN ('verified', 'active')
+        )::int`,
+      })
+      .from(tenantSubscriptionsTable)
+      .innerJoin(plansTable, eq(tenantSubscriptionsTable.planId, plansTable.id))
+      .innerJoin(tenantsTable, eq(tenantSubscriptionsTable.tenantId, tenantsTable.id))
+      .orderBy(desc(tenantSubscriptionsTable.updatedAt))
+      .limit(250),
+    db
+      .select({
+        status: tenantSubscriptionsTable.status,
+        total: sql<number>`count(*)::int`,
+      })
+      .from(tenantSubscriptionsTable)
+      .groupBy(tenantSubscriptionsTable.status),
+  ]);
+
+  const statusTotals = new Map(statusRows.map((row) => [row.status, Number(row.total)]));
+
+  return {
+    plans,
+    subscriptions: subscriptions.map((row) => {
+      const customDomainCount = Number(row.customDomainCount ?? 0);
+      return {
+        ...row,
+        customDomainCount,
+        activeCustomDomainCount: Number(row.activeCustomDomainCount ?? 0),
+        downgradeImpact: row.planKey === "enterprise" && customDomainCount > 0
+          ? `${customDomainCount} custom domain(s) worden uitgeschakeld bij downgrade naar Starter/Professional.`
+          : null,
+        startsAt: row.startsAt.toISOString(),
+        currentPeriodStartsAt: row.currentPeriodStartsAt?.toISOString() ?? null,
+        currentPeriodEndsAt: row.currentPeriodEndsAt?.toISOString() ?? null,
+        canceledAt: row.canceledAt?.toISOString() ?? null,
+        createdAt: row.createdAt.toISOString(),
+        updatedAt: row.updatedAt.toISOString(),
+      };
+    }),
+    stats: {
+      totalSubscriptions: [...statusTotals.values()].reduce((total, value) => total + value, 0),
+      trial: statusTotals.get("trial") ?? 0,
+      active: statusTotals.get("active") ?? 0,
+      pastDue: statusTotals.get("past_due") ?? 0,
+      canceled: statusTotals.get("canceled") ?? 0,
+      expired: statusTotals.get("expired") ?? 0,
+    },
+  };
 }
 
 export async function listPlatformTenantUsersAndOwner(tenantId: string): Promise<PlatformTenantUsersAndOwner> {
@@ -1741,16 +1937,50 @@ export async function updatePlatformTenantPlan(formData: FormData): Promise<Acti
   const actor = await requirePlatformAdmin();
   const tenantId = actionValue(formData, "tenantId");
   const planKey = normalizePlanKey(actionValue(formData, "planKey"));
+  const billingReference = textValue(formData, "billingReference", 160);
+  const manualBillingNotes = textValue(formData, "manualBillingNotes", 2000);
+  const currentPeriodEndsAt = optionalDateValue(formData, "currentPeriodEndsAt");
 
   if (!tenantId) return { success: false, message: "Tenant is verplicht." };
 
+  const previousPlan = await getTenantPlanSnapshot(tenantId);
   const [plan] = await db
-    .select({ id: plansTable.id })
+    .select({
+      id: plansTable.id,
+      name: plansTable.name,
+      customDomains: sql<boolean>`COALESCE((
+        SELECT pl.is_enabled FROM ${planLimitsTable} pl
+        WHERE pl.plan_id = ${plansTable.id}
+          AND pl.key = 'custom_domains'
+        LIMIT 1
+      ), ${plansTable.key} = 'enterprise')`,
+      customRoles: sql<boolean>`COALESCE((
+        SELECT pl.is_enabled FROM ${planLimitsTable} pl
+        WHERE pl.plan_id = ${plansTable.id}
+          AND pl.key = 'custom_roles'
+        LIMIT 1
+      ), ${plansTable.key} IN ('professional', 'enterprise'))`,
+    })
     .from(plansTable)
     .where(and(eq(plansTable.key, planKey), eq(plansTable.isActive, true)))
     .limit(1);
 
   if (!plan) return { success: false, message: "Plan niet gevonden of inactief." };
+
+  const [impact] = await db
+    .select({
+      customDomains: sql<number>`(
+        SELECT count(*)
+        FROM ${tenantDomainsTable}
+        WHERE tenant_id = ${tenantId}::uuid
+          AND type = 'custom_domain'
+          AND verification_status NOT IN ('disabled', 'disabled_plan')
+      )::int`,
+    })
+    .from(tenantsTable)
+    .where(eq(tenantsTable.id, tenantId))
+    .limit(1);
+  const customDomainsDisabled = plan.customDomains ? 0 : Number(impact?.customDomains ?? 0);
 
   await db.transaction(async (tx) => {
     await tx.update(tenantsTable).set({ planKey, updatedAt: new Date() }).where(eq(tenantsTable.id, tenantId));
@@ -1760,7 +1990,7 @@ export async function updatePlatformTenantPlan(formData: FormData): Promise<Acti
       .where(
         and(
           eq(tenantSubscriptionsTable.tenantId, tenantId),
-          inArray(tenantSubscriptionsTable.status, ["trial", "active"]),
+          inArray(tenantSubscriptionsTable.status, ["trial", "active", "past_due"]),
         ),
       );
     await tx.insert(tenantSubscriptionsTable).values({
@@ -1770,11 +2000,116 @@ export async function updatePlatformTenantPlan(formData: FormData): Promise<Acti
       source: "manual",
       createdBy: actor.userId,
       currentPeriodStartsAt: new Date(),
+      currentPeriodEndsAt,
+      billingReference,
+      manualBillingNotes,
     });
+
+    if (!plan.customDomains) {
+      await tx
+        .update(tenantDomainsTable)
+        .set({
+          verificationStatus: "disabled_plan",
+          tlsStatus: "disabled",
+          disabledAt: new Date(),
+          disabledReason: "Custom domains zijn niet inbegrepen in het actieve subscription-plan.",
+          updatedAt: new Date(),
+        })
+        .where(
+          and(
+            eq(tenantDomainsTable.tenantId, tenantId),
+            eq(tenantDomainsTable.type, "custom_domain"),
+            inArray(tenantDomainsTable.verificationStatus, ["pending", "pending_dns", "dns_seen", "verified", "tls_pending", "active", "failed"]),
+          ),
+        );
+    }
   });
 
-  await auditPlatformTenantAction({ tenantId, action: "tenant_plan_updated", metadata: { planKey } });
+  await auditPlatformTenantAction({
+    tenantId,
+    action: "tenant_plan_updated",
+    metadata: {
+      fromPlan: previousPlan.plan,
+      toPlan: planKey,
+      planName: plan.name,
+      customRoles: plan.customRoles,
+      customDomains: plan.customDomains,
+      disabledCustomDomains: customDomainsDisabled,
+      billingReference,
+      hasManualBillingNotes: Boolean(manualBillingNotes),
+    },
+  });
   revalidatePlatformTenant(tenantId);
+  return { success: true };
+}
+
+export async function updatePlatformTenantSubscription(formData: FormData): Promise<ActionResult> {
+  const actor = await requirePlatformAdmin();
+  const subscriptionId = actionValue(formData, "subscriptionId");
+  const status = normalizeSubscriptionStatus(actionValue(formData, "status"));
+  const currentPeriodEndsAt = optionalDateValue(formData, "currentPeriodEndsAt");
+  const billingReference = textValue(formData, "billingReference", 160);
+  const manualBillingNotes = textValue(formData, "manualBillingNotes", 2000);
+
+  if (!subscriptionId) return { success: false, message: "Subscription is verplicht." };
+
+  const [subscription] = await db
+    .select({
+      id: tenantSubscriptionsTable.id,
+      tenantId: tenantSubscriptionsTable.tenantId,
+      planId: tenantSubscriptionsTable.planId,
+      planKey: plansTable.key,
+      planName: plansTable.name,
+    })
+    .from(tenantSubscriptionsTable)
+    .innerJoin(plansTable, eq(tenantSubscriptionsTable.planId, plansTable.id))
+    .where(eq(tenantSubscriptionsTable.id, subscriptionId))
+    .limit(1);
+
+  if (!subscription) return { success: false, message: "Subscription niet gevonden." };
+
+  await db.transaction(async (tx) => {
+    if (subscriptionIsRuntimeActive(status)) {
+      await tx
+        .update(tenantSubscriptionsTable)
+        .set({ status: "canceled", canceledAt: new Date(), updatedAt: new Date() })
+        .where(
+          and(
+            eq(tenantSubscriptionsTable.tenantId, subscription.tenantId),
+            inArray(tenantSubscriptionsTable.status, ["trial", "active"]),
+          ),
+        );
+      await tx.update(tenantsTable).set({ planKey: subscription.planKey, updatedAt: new Date() }).where(eq(tenantsTable.id, subscription.tenantId));
+    }
+
+    await tx
+      .update(tenantSubscriptionsTable)
+      .set({
+        status,
+        currentPeriodEndsAt,
+        billingReference,
+        manualBillingNotes,
+        canceledAt: subscriptionIsRuntimeActive(status) ? null : status === "canceled" ? new Date() : null,
+        updatedAt: new Date(),
+      })
+      .where(eq(tenantSubscriptionsTable.id, subscriptionId));
+  });
+
+  await auditPlatformTenantAction({
+    tenantId: subscription.tenantId,
+    action: "tenant_subscription_updated",
+    resource: "tenant_subscriptions",
+    resourceId: subscription.id,
+    metadata: {
+      status,
+      planKey: subscription.planKey,
+      planName: subscription.planName,
+      billingReference,
+      hasManualBillingNotes: Boolean(manualBillingNotes),
+      updatedBy: actor.userId,
+    },
+  });
+  revalidatePlatformTenant(subscription.tenantId);
   return { success: true };
 }
 
