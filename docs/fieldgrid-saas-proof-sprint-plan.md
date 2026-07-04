@@ -38,7 +38,7 @@ Geen canonitem mag nog als alleen "open" of "ontbreekt" blijven staan zonder een
 | Platform-admin guard | `runtime-proof-open` | Sprint 10/12 | Basis bestaat; inactive/admin/tenant-user denial moet bewezen en gedashboard worden. |
 | Support grants | `partial` | Sprint 10 | Grant, reden en expiry bestaan; max TTL, break-glass UX en securitydashboard open. |
 | Sector enforcement | `runtime-proof-open` | Sprint 5 | Runtimebasis bestaat; disable/default/single-sector bewijs uitbreiden. |
-| Module enforcement | `partial` | Sprint 11 | API breder dan backoffice; portalen/jobs harmonisatie open. |
+| Module enforcement | `runtime-proof-open` | Sprint 11 | Runtime-brede guards voor API, backoffice, portalen en jobs geleverd; Playwright/integration bewijs open. |
 | Tenant-regio's | `partial` | Sprint 2/3/4 | Sprint 2 datamodel/backfill en Sprint 3 backoffice multiselect UI geleverd; runtime planningproof blijft Sprint 4. |
 | Customers/objects/personnel/assignments | `runtime-proof-open` | Sprint 5/8 | Directe tenant_id bestaat, maar defaults/hardening en direct-ID bewijs moeten dicht. |
 | Documents/reports/quotes/invoices/payments/batches | `hardening-open` | Sprint 8 | Tenant-aware foundation bestaat; nullable/backfill/constraint validation open. |
@@ -51,8 +51,8 @@ Geen canonitem mag nog als alleen "open" of "ontbreekt" blijven staan zonder een
 | Tenant first-run wizard | `partial` | Sprint 13 | Checklist/foundation bestaat; actieve owner-flow open. |
 | Usage dashboard | `partial` | Sprint 14 | Basisstats bestaan; documenten/storage/downloads/active modules uitbreiden. |
 | Branding preview | `nice-to-have` | Sprint 14 | Basis branding bestaat; preview voor portal/email/PDF open. |
-| Security dashboard | `partial` | Sprint 10 | 2.0 dashboard combineert support-, tenant- en platformaudit met filters; echte Playwright/integration-smoke blijft open. |
-| Module dependency visualisatie | `nice-to-have` | Sprint 11 | Dependency keys bestaan; visuele inspectie open. |
+| Security dashboard | `partial` | Sprint 10 | Losse basis bestaat; centraal dashboard open. |
+| Module dependency visualisatie | `done` | Sprint 11 | Platform-admin tenantdetail toont ontbrekende dependencies en actieve dependents. |
 | Demo-data generator | `partial` | Sprint 1 | Canon/fixtures bestaan; one-click seed/cleanup open. |
 | Staging smoke dashboard | `partial` | Sprint 15 | Dashboardbasis/read-only bestaat; run history, Playwright-smokes en mutating cleanup open. |
 | Materialen en inventaris | `partial` | Latere productroadmap na Sprint 16 | Onderzoek/canon bestaat; volledige modulebouw volgt na SaaS proof tenzij apart gestart. |
@@ -302,13 +302,15 @@ Definition of Done:
 
 Doel: API, backoffice, portalen en jobs hetzelfde modulegedrag geven.
 
+Status: `geleverd` in `docs/fieldgrid-sprint-11-module-enforcement.md`. Geen schema- of migratiewijziging.
+
 Taken:
 
-- Centrale module-permission mapping.
-- Backoffice mapping gelijk trekken met API.
-- Portalguards en jobguards uitbreiden.
-- Module dependency inspectie en visualisatie.
-- Module-off tests voor UI, directe URL, server action, API en job.
+- Centrale module-permission mapping: geleverd via `FIELDGRID_PERMISSION_MODULES`.
+- Backoffice mapping gelijk trekken met API: geleverd via gedeelde mapping en effectieve permissions.
+- Portalguards en jobguards uitbreiden: geleverd via portal identity helpers en `requireJobTenantModule`.
+- Module dependency inspectie en visualisatie: geleverd op platform tenantdetail.
+- Module-off tests voor UI, directe URL, server action, API en job: statisch geborgd; Playwright/integration blijft vervolg.
 
 Definition of Done:
 

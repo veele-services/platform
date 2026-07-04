@@ -30,6 +30,7 @@ const canonicalDocs = [
   "docs/fieldgrid-phase-4-module-enforcement.md",
   "docs/fieldgrid-phase-5-support-security.md",
   "docs/fieldgrid-phase-6-productization.md",
+  "docs/fieldgrid-sprint-11-module-enforcement.md",
 ];
 
 const governanceDocs = [".github/pull_request_template.md"];

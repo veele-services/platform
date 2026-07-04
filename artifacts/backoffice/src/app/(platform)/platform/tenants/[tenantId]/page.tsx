@@ -326,9 +326,14 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
               </div>
             </Section>
 
-            <Section title="Modules" helper="Manual overrides winnen van plan/default. Dependency-validatie blokkeert onveilige toggles.">
+            <Section title="Modules" helper="Manual overrides winnen van plan/default. Dependency inspectie toont waarom een module niet veilig aan of uit kan.">
               <div className="grid gap-3 lg:grid-cols-2">
-                {modules.map((module) => (
+                {modules.map((module) => {
+                  const moduleToggleBlocked = module.effectiveEnabled
+                    ? module.enabledDependentKeys.length > 0
+                    : module.missingDependencyKeys.length > 0;
+
+                  return (
                   <div key={module.id} className="rounded border border-slate-200 p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div>
@@ -344,16 +349,31 @@ export default async function PlatformTenantDetailPage({ params }: Props) {
                       Plan: {module.planIncluded === null ? "default" : module.planIncluded ? "aan" : "uit"} · Override: {module.tenantOverride === null ? "geen" : module.tenantOverride ? "aan" : "uit"}
                     </p>
                     {module.dependencyKeys.length > 0 && <p className="mt-1 text-xs text-slate-500">Vereist: {module.dependencyKeys.join(", ")}</p>}
+                    {module.missingDependencyKeys.length > 0 && (
+                      <p className="mt-1 rounded bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800">
+                        Aanzetten geblokkeerd door: {module.missingDependencyKeys.join(", ")}
+                      </p>
+                    )}
+                    {module.enabledDependentKeys.length > 0 && (
+                      <p className="mt-1 rounded bg-sky-50 px-2 py-1 text-xs font-medium text-sky-800">
+                        Uitzetten geblokkeerd door actieve modules: {module.enabledDependentKeys.join(", ")}
+                      </p>
+                    )}
                     <form action={updatePlatformTenantModuleFormAction} className="mt-3">
                       <input type="hidden" name="tenantId" value={tenant.id} />
                       <input type="hidden" name="moduleId" value={module.id} />
                       <input type="hidden" name="enabled" value={module.effectiveEnabled ? "false" : "true"} />
-                      <button type="submit" className="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700">
+                      <button
+                        type="submit"
+                        disabled={moduleToggleBlocked}
+                        className="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 disabled:cursor-not-allowed disabled:opacity-50"
+                      >
                         {module.effectiveEnabled ? "Uitzetten" : "Aanzetten"}
                       </button>
                     </form>
                   </div>
-                ))}
+                  );
+                })}
               </div>
             </Section>
 
