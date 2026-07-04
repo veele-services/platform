@@ -1,7 +1,7 @@
 # Fieldgrid volgende grote update plan
 
-Datum: 2026-07-03
-Status: sprint 0 canon refresh 2.0. De actuele uitvoeringscanon staat in `docs/fieldgrid-saas-proof-sprint-plan.md`.
+Datum: 2026-07-04
+Status: sprint 13 tenant first-run wizard geleverd. De actuele uitvoeringscanon staat in `docs/fieldgrid-saas-proof-sprint-plan.md`.
 
 ## 1. Doel
 
@@ -141,15 +141,15 @@ Werk:
 
 Eigenaar: sprint 12.
 
-### Tenant first-run is nog beperkt
+### Tenant first-run runtime proof staat nog open
 
-Status: `partial`.
+Status: `runtime-proof-open`.
 
 Werk:
 
-- Owner first-run wizard.
-- Actieve configuratie van bedrijfsgegevens, branding, sectoren, regio's, gebruikers, modules en basisinstellingen.
-- Readiness-score vullen.
+- Playwright-flow voor `A-OWNER` op `demo-a.fieldgrid.nl`.
+- Integration test dat save/resume en readinessstatus in `tenant_first_run_state` landen.
+- Externe tenant livegang koppelen aan sprint 14-16 operational readiness.
 
 Eigenaar: sprint 13.
 
@@ -198,7 +198,7 @@ Deze investeringen verlagen direct risico of verhogen beheerbaarheid:
 | Nice-to-have | Status | Sprint |
 | --- | --- | --- |
 | Platform-admin onboarding wizard | `partial` | 12 |
-| Tenant first-run wizard | `partial` | 13 |
+| Tenant first-run wizard | `runtime-proof-open` | 13 |
 | Usage dashboard per tenant | `partial` | 14 |
 | Branding preview per tenant | `nice-to-have` | 14 |
 | Support break-glass flow | `partial` | 10 |
