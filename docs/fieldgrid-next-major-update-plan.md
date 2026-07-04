@@ -1,7 +1,7 @@
 # Fieldgrid volgende grote update plan
 
 Datum: 2026-07-04
-Status: sprint 14 usage, branding en operational readiness geleverd met open runtimebewijs; sprint 0 canon refresh 2.0 blijft de basis. De actuele uitvoeringscanon staat in `docs/fieldgrid-saas-proof-sprint-plan.md`.
+Status: sprint 15 staging smoke dashboard geleverd met open runtimebewijs; sprint 0 canon refresh 2.0 blijft de basis. De actuele uitvoeringscanon staat in `docs/fieldgrid-saas-proof-sprint-plan.md`.
 
 ## 1. Doel
 
@@ -159,29 +159,17 @@ Werk:
 
 Eigenaar: sprint 13.
 
-### Usage, branding en readiness zijn gebouwd
+### Staging smoke dashboard is gebouwd
 
 Status: `runtime-proof-open`.
 
 Werk:
 
-- Platform-admin tenantdetail toont usage voor users, documenten, opdrachten, storage, downloads/PDF audit, actieve modules, regio's, support grants en planlimieten.
-- Branding preview bestaat voor backoffice, klantportaal, personeelsapp, email en PDF.
-- Operational readiness score toont host, login, modules, sectoren, regio's, storage, PDF/downloads, migraties en audit.
-- Tenant A/B/Veele Playwright/integration bewijs blijft open.
-
-Eigenaar: sprint 14.
-
-### Staging smoke is nog vooral read-only
-
-Status: `partial`.
-
-Werk:
-
-- Run history.
-- Live Playwright-smokes.
-- Migratie-smokes.
-- Gecontroleerde mutating checks met cleanup.
+- Run history staat op het platform smoke dashboard.
+- Live Playwright-smoke targets zijn zichtbaar voor host, modules, sectoren, regio's, storage, PDF, portalen en personeelsplanning.
+- Migratie-smoke status verwijst naar de Sprint 7 runner en JSON artifacts.
+- Gecontroleerde mutating checks hebben demo-tenant scope, confirm-env en cleanupselectors.
+- Echte Playwright/storage/DB-runs en mutating cleanup-runs blijven open.
 
 Eigenaar: sprint 15.
 
@@ -224,7 +212,7 @@ Deze investeringen verlagen direct risico of verhogen beheerbaarheid:
 | Security dashboard | `partial` | 10 |
 | Module dependency visualisatie | `done` | 11 |
 | Demo-data generator | `partial` | 1 |
-| Staging smoke dashboard | `partial` | 15 |
+| Staging smoke dashboard | `runtime-proof-open` | 15 |
 
 ## 7. Sprintvolgorde
 

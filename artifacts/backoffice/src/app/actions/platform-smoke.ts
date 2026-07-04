@@ -1,5 +1,7 @@
 "use server";
 
+import { readdir, readFile } from "node:fs/promises";
+import { join } from "node:path";
 import {
   auditLogTable,
   db,
@@ -14,6 +16,7 @@ import {
   supportAccessGrantsTable,
   tenantDomainsTable,
   tenantModulesTable,
+  tenantRegionsTable,
   tenantSectorSettingsTable,
   tenantSectorsTable,
   tenantUsersTable,
@@ -30,6 +33,59 @@ export type PlatformSmokeCheck = {
   status: PlatformSmokeStatus;
   summary: string;
   detail: string;
+  testIds: string[];
+  nextAction: string;
+};
+
+export type PlatformSmokeRunHistoryEntry = {
+  id: string;
+  kind: "dashboard-snapshot" | "migration-smoke" | "staging-smoke";
+  label: string;
+  status: PlatformSmokeStatus;
+  startedAt: string;
+  finishedAt: string;
+  source: string;
+  summary: string;
+  artifactPath: string | null;
+  checks: string[];
+  cleanup: "not-needed" | "required" | "completed" | "unknown";
+};
+
+export type PlatformLiveSmokeTarget = {
+  id: string;
+  label: string;
+  status: PlatformSmokeStatus;
+  host: string;
+  route: string;
+  command: string;
+  testIds: string[];
+  nextAction: string;
+};
+
+export type PlatformMigrationSmokeStatus = {
+  status: PlatformSmokeStatus;
+  command: string;
+  reportDirectory: string;
+  latestRun: PlatformSmokeRunHistoryEntry | null;
+  targets: {
+    id: "empty-database" | "staging-copy";
+    label: string;
+    status: PlatformSmokeStatus;
+    requiredSecret: string;
+    confirmVar: string;
+    testIds: string[];
+  }[];
+  nextAction: string;
+};
+
+export type PlatformMutatingSmokeCheck = {
+  id: string;
+  label: string;
+  status: PlatformSmokeStatus;
+  tenantScope: string;
+  cleanupStatus: "required-before-run" | "ready" | "not-configured";
+  confirmVar: string;
+  cleanupSelector: string;
   testIds: string[];
   nextAction: string;
 };
@@ -55,6 +111,7 @@ export type PlatformStagingSmokeDashboard = {
     enabledTenantModules: number;
     tenantSectors: number;
     tenantSectorSettings: number;
+    tenantRegions: number;
     documents: number;
     tenantPrefixedDocuments: number;
     legacyDocumentPaths: number;
@@ -68,6 +125,10 @@ export type PlatformStagingSmokeDashboard = {
     migrationHistoryTables: number;
   };
   checks: PlatformSmokeCheck[];
+  runHistory: PlatformSmokeRunHistoryEntry[];
+  liveSmokes: PlatformLiveSmokeTarget[];
+  migrationSmoke: PlatformMigrationSmokeStatus;
+  mutatingChecks: PlatformMutatingSmokeCheck[];
   minimumGreen: string[];
   playbooks: string[];
 };
@@ -78,6 +139,260 @@ function makeCheck(input: PlatformSmokeCheck): PlatformSmokeCheck {
 
 function countValue(value: unknown): number {
   return Number(value ?? 0);
+}
+
+function statusFromSummary(value: unknown): PlatformSmokeStatus {
+  if (value === "pass" || value === "ok") return "ok";
+  if (value === "fail" || value === "blocked") return "blocked";
+  if (value === "warning") return "warning";
+  return "manual";
+}
+
+function stringValue(value: unknown, fallback: string): string {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function recordValue(value: unknown): Record<string, unknown> {
+  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+}
+
+function stringList(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
+}
+
+function runStatusFromChecks(checks: PlatformSmokeCheck[]): PlatformSmokeStatus {
+  if (checks.some((check) => check.status === "blocked")) return "blocked";
+  if (checks.some((check) => check.status === "warning")) return "warning";
+  if (checks.some((check) => check.status === "manual")) return "manual";
+  return "ok";
+}
+
+async function readJsonReport(path: string): Promise<Record<string, unknown> | null> {
+  try {
+    return recordValue(JSON.parse(await readFile(path, "utf8")));
+  } catch {
+    return null;
+  }
+}
+
+async function readSmokeRunReports(): Promise<PlatformSmokeRunHistoryEntry[]> {
+  const reportSources = [
+    {
+      kind: "staging-smoke" as const,
+      directory: join(process.cwd(), "artifacts", "staging-smoke"),
+      relativeDirectory: "artifacts/staging-smoke",
+      label: "Staging smoke snapshot",
+    },
+    {
+      kind: "migration-smoke" as const,
+      directory: join(process.cwd(), "artifacts", "migration-smoke"),
+      relativeDirectory: "artifacts/migration-smoke",
+      label: "Migration smoke",
+    },
+  ];
+  const reports: PlatformSmokeRunHistoryEntry[] = [];
+
+  for (const source of reportSources) {
+    let filenames: string[] = [];
+    try {
+      filenames = (await readdir(source.directory)).filter((filename) => filename.endsWith(".json")).sort().reverse().slice(0, 3);
+    } catch {
+      continue;
+    }
+
+    for (const filename of filenames) {
+      const absolutePath = join(source.directory, filename);
+      const report = await readJsonReport(absolutePath);
+      if (!report) continue;
+
+      const summary = recordValue(report["summary"]);
+      const results = Array.isArray(report["results"]) ? report["results"].map(recordValue) : [];
+      const checks = stringList(report["checks"]).concat(results.map((result) => stringValue(result["target"], "")).filter(Boolean));
+      const createdAt = stringValue(report["createdAt"], stringValue(report["generatedAt"], new Date(0).toISOString()));
+      const startedAt = stringValue(results[0]?.["startedAt"], createdAt);
+      const finishedAt = stringValue(results.at(-1)?.["finishedAt"], createdAt);
+      const status = statusFromSummary(summary["status"] ?? report["status"]);
+
+      reports.push({
+        id: `${source.kind}:${filename}`,
+        kind: source.kind,
+        label: source.label,
+        status,
+        startedAt,
+        finishedAt,
+        source: source.relativeDirectory,
+        summary: stringValue(summary["message"], `${source.label}: ${status}`),
+        artifactPath: `${source.relativeDirectory}/${filename}`,
+        checks,
+        cleanup: source.kind === "migration-smoke" ? "not-needed" : "unknown",
+      });
+    }
+  }
+
+  return reports.sort((a, b) => new Date(b.finishedAt).getTime() - new Date(a.finishedAt).getTime()).slice(0, 6);
+}
+
+function buildCurrentRunHistory(generatedAt: string, checks: PlatformSmokeCheck[]): PlatformSmokeRunHistoryEntry {
+  const status = runStatusFromChecks(checks);
+  return {
+    id: `dashboard:${generatedAt}`,
+    kind: "dashboard-snapshot",
+    label: "Huidige dashboard snapshot",
+    status,
+    startedAt: generatedAt,
+    finishedAt: generatedAt,
+    source: "getPlatformStagingSmokeDashboard",
+    summary: `${checks.filter((check) => check.status === "ok").length}/${checks.length} checks groen, ${checks.filter((check) => check.status === "blocked").length} blokkerend.`,
+    artifactPath: null,
+    checks: checks.map((check) => check.id),
+    cleanup: "not-needed",
+  };
+}
+
+function buildLiveSmokes(checks: PlatformSmokeCheck[], totals: PlatformStagingSmokeDashboard["totals"]): PlatformLiveSmokeTarget[] {
+  const byId = new Map(checks.map((check) => [check.id, check]));
+  const checkStatus = (id: string): PlatformSmokeStatus => byId.get(id)?.status ?? "manual";
+
+  return [
+    {
+      id: "FG-LIVE-HOST",
+      label: "Host-first platform en tenants",
+      status: checkStatus("FG-SMOKE-HOST"),
+      host: "staging.fieldgrid.nl",
+      route: "/platform",
+      command: "Playwright host-first smoke voor platform, demo-a, demo-b en veele.",
+      testIds: ["FG-HOST-001", "FG-HOST-002", "FG-HOST-003", "FG-HOST-004"],
+      nextAction: "Draai host-first browser smoke met platform owner en Tenant A/B/Veele hosts.",
+    },
+    {
+      id: "FG-LIVE-MODULES",
+      label: "Modules en sectoren",
+      status: checkStatus("FG-SMOKE-MODULES") === "ok" && checkStatus("FG-SMOKE-SECTORS") === "ok" ? "ok" : "warning",
+      host: "demo-a.fieldgrid.nl",
+      route: "/",
+      command: "Playwright module-off en sector-denial smoke.",
+      testIds: ["FG-MODULE-001", "FG-MODULE-003", "FG-SECTOR-001", "FG-SECTOR-006"],
+      nextAction: "Controleer dat module/sector blokkades ook via directe route server-side falen.",
+    },
+    {
+      id: "FG-LIVE-REGIONS",
+      label: "Regio's",
+      status: totals.tenantRegions > 0 ? "warning" : "manual",
+      host: "demo-a.fieldgrid.nl",
+      route: "/planning",
+      command: "Playwright regio-filter en planning-overlap smoke.",
+      testIds: ["FG-REGION-003", "FG-REGION-006", "FG-REGION-007"],
+      nextAction: "Gebruik Tenant A/B/Veele fixtures om regio-overlap en cross-tenant regio-denials te bewijzen.",
+    },
+    {
+      id: "FG-LIVE-CUSTOMER-PORTAL",
+      label: "Klantportaal",
+      status: "manual",
+      host: "demo-a.fieldgrid.nl",
+      route: "/portal",
+      command: "Playwright klantportaal documenten/facturen/tickets smoke.",
+      testIds: ["FG-PORTAL-C-001", "FG-PORTAL-C-002", "FG-PORTAL-C-003", "FG-PORTAL-C-004"],
+      nextAction: "Draai klantportaal smoke met A-CUSTOMER en verkeerde-host denial.",
+    },
+    {
+      id: "FG-LIVE-PERSONNEL-PLANNING",
+      label: "Personeelsapp planning",
+      status: "manual",
+      host: "demo-a.fieldgrid.nl",
+      route: "/app",
+      command: "Playwright personeelsapp Home/Planning actualiteit smoke.",
+      testIds: ["FG-PORTAL-P-001", "FG-PORTAL-P-002", "FG-PORTAL-P-005"],
+      nextAction: "Controleer personeelsplanning na wijziging met realtime event of zichtbare minuut-refresh.",
+    },
+    {
+      id: "FG-LIVE-STORAGE-PDF",
+      label: "Storage en PDF/downloads",
+      status: checkStatus("FG-SMOKE-STORAGE") === "ok" && checkStatus("FG-SMOKE-PDF-DOWNLOADS") === "ok" ? "ok" : "manual",
+      host: "demo-a.fieldgrid.nl",
+      route: "/documents",
+      command: "Playwright signed URL/path guessing en PDF-download smoke.",
+      testIds: ["FG-STORAGE-001", "FG-STORAGE-002", "FG-DATA-004", "FG-AUDIT-001"],
+      nextAction: "Download tenantdocument/PDF en bevestig audit plus Tenant B denial.",
+    },
+  ];
+}
+
+function buildMigrationSmokeStatus(
+  totals: PlatformStagingSmokeDashboard["totals"],
+  runHistory: PlatformSmokeRunHistoryEntry[],
+): PlatformMigrationSmokeStatus {
+  const latestRun = runHistory.find((run) => run.kind === "migration-smoke") ?? null;
+  const status = latestRun?.status ?? (totals.migrationHistoryTables >= 2 ? "warning" : "blocked");
+
+  return {
+    status,
+    command: "pnpm fieldgrid:sprint7-migration-smoke --run --target all",
+    reportDirectory: "artifacts/migration-smoke",
+    latestRun,
+    targets: [
+      {
+        id: "empty-database",
+        label: "Lege database",
+        status: latestRun?.checks.includes("empty-database") ? latestRun.status : "manual",
+        requiredSecret: "FIELDGRID_MIGRATION_SMOKE_EMPTY_DATABASE_URL",
+        confirmVar: "FIELDGRID_MIGRATION_SMOKE_EMPTY_CONFIRM",
+        testIds: ["FG-MIG-001", "FG-MIG-003"],
+      },
+      {
+        id: "staging-copy",
+        label: "Staging-copy",
+        status: latestRun?.checks.includes("staging-copy") ? latestRun.status : "manual",
+        requiredSecret: "FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_DATABASE_URL",
+        confirmVar: "FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_CONFIRM",
+        testIds: ["FG-MIG-002", "FG-MIG-003"],
+      },
+    ],
+    nextAction: latestRun
+      ? "Controleer het migration-smoke artifact voordat staging wordt gepromoot."
+      : "Draai de lege database en staging-copy migration smoke en upload het JSON artifact.",
+  };
+}
+
+function buildMutatingChecks(totals: PlatformStagingSmokeDashboard["totals"]): PlatformMutatingSmokeCheck[] {
+  const demoTenantsReady = totals.demoTenants >= 3;
+  const status: PlatformSmokeStatus = demoTenantsReady ? "manual" : "blocked";
+  const cleanupStatus: PlatformMutatingSmokeCheck["cleanupStatus"] = demoTenantsReady ? "ready" : "not-configured";
+
+  return [
+    {
+      id: "FG-MUTATE-LIFECYCLE",
+      label: "Lifecycle mutatie met rollback",
+      status,
+      tenantScope: "demo-a",
+      cleanupStatus,
+      confirmVar: "FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only",
+      cleanupSelector: "fieldgrid-sprint-15-mutating-lifecycle",
+      testIds: ["FG-LIFE-001", "FG-LIFE-002", "FG-PLATFORM-004"],
+      nextAction: "Voer alleen uit op demo-a en herstel status direct in dezelfde run.",
+    },
+    {
+      id: "FG-MUTATE-SUPPORT-GRANT",
+      label: "Supportgrant aanmaken en revoken",
+      status,
+      tenantScope: "demo-a",
+      cleanupStatus,
+      confirmVar: "FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only",
+      cleanupSelector: "fieldgrid-sprint-15-mutating-support",
+      testIds: ["FG-SUPPORT-002", "FG-SUPPORT-003", "FG-PLATFORM-006"],
+      nextAction: "Maak een korte grant met marker en revoke hem voordat de run eindigt.",
+    },
+    {
+      id: "FG-MUTATE-DOCUMENT-DOWNLOAD",
+      label: "Document/PDF audit met cleanup",
+      status,
+      tenantScope: "demo-a/demo-b",
+      cleanupStatus,
+      confirmVar: "FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only",
+      cleanupSelector: "fieldgrid-sprint-15-mutating-document",
+      testIds: ["FG-DATA-004", "FG-STORAGE-001", "FG-AUDIT-001"],
+      nextAction: "Gebruik marker-scoped demo-documenten en verwijder alleen die markerdata.",
+    },
+  ];
 }
 
 export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagingSmokeDashboard> {
@@ -97,6 +412,7 @@ export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagin
       enabledTenantModules: sql<number>`(SELECT count(*) FROM ${tenantModulesTable} WHERE is_enabled = true)::int`,
       tenantSectors: sql<number>`(SELECT count(*) FROM ${tenantSectorsTable} WHERE is_enabled = true)::int`,
       tenantSectorSettings: sql<number>`(SELECT count(*) FROM ${tenantSectorSettingsTable})::int`,
+      tenantRegions: sql<number>`(SELECT count(*) FROM ${tenantRegionsTable} WHERE is_active = true)::int`,
       documents: sql<number>`(SELECT count(*) FROM ${documentsTable} WHERE tenant_id IS NOT NULL)::int`,
       tenantPrefixedDocuments: sql<number>`(SELECT count(*) FROM ${documentsTable} WHERE tenant_id IS NOT NULL AND storage_path LIKE 'tenant/%')::int`,
       legacyDocumentPaths: sql<number>`(SELECT count(*) FROM ${documentsTable} WHERE tenant_id IS NOT NULL AND storage_path NOT LIKE 'tenant/%')::int`,
@@ -145,6 +461,7 @@ export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagin
     enabledTenantModules: countValue(snapshot?.enabledTenantModules),
     tenantSectors: countValue(snapshot?.tenantSectors),
     tenantSectorSettings: countValue(snapshot?.tenantSectorSettings),
+    tenantRegions: countValue(snapshot?.tenantRegions),
     documents: countValue(snapshot?.documents),
     tenantPrefixedDocuments: countValue(snapshot?.tenantPrefixedDocuments),
     legacyDocumentPaths: countValue(snapshot?.legacyDocumentPaths),
@@ -247,12 +564,22 @@ export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagin
       nextAction: "Controleer tenant-audit isolation en platform-only audit via het securitydashboard.",
     }),
   ];
+  const generatedAt = new Date().toISOString();
+  const reportHistory = await readSmokeRunReports();
+  const runHistory = [buildCurrentRunHistory(generatedAt, checks), ...reportHistory];
+  const liveSmokes = buildLiveSmokes(checks, totals);
+  const migrationSmoke = buildMigrationSmokeStatus(totals, runHistory);
+  const mutatingChecks = buildMutatingChecks(totals);
 
   return {
-    generatedAt: new Date().toISOString(),
+    generatedAt,
     environment: { platformHost, stagingHost, platformHostKnown, stagingHostKnown },
     totals,
     checks,
+    runHistory,
+    liveSmokes,
+    migrationSmoke,
+    mutatingChecks,
     minimumGreen: [
       "FG-SMOKE-HOST",
       "FG-SMOKE-LOGIN",

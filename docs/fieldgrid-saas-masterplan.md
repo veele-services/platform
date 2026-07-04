@@ -1,7 +1,7 @@
 # Fieldgrid SaaS masterplan canon
 
 Datum: 2026-07-04
-Status: sprint 14 usage, branding en operational readiness geleverd met open runtimebewijs; sprint 0 canon refresh 2.0 blijft de basis. Actuele uitvoeringsbron: `docs/fieldgrid-saas-proof-sprint-plan.md`.
+Status: sprint 15 staging smoke dashboard geleverd met open runtimebewijs; sprint 0 canon refresh 2.0 blijft de basis. Actuele uitvoeringsbron: `docs/fieldgrid-saas-proof-sprint-plan.md`.
 Bronnen: oorspronkelijke Fieldgrid/Veele SaaS-masterplanbijlage, huidige `main` codebase, `docs/fieldgrid-data-classification.md`, `docs/fieldgrid-cross-tenant-testmatrix.md`, `docs/fieldgrid-next-major-update-plan.md`, `docs/fieldgrid-staging-promotion-checklist.md` en `docs/fieldgrid-saas-proof-sprint-plan.md`.
 
 ## 1. Doel en vaste besluiten
@@ -62,8 +62,8 @@ Geen onderwerp mag in vervolgwerk alleen als "open" blijven staan zonder status,
 - Platform onboarding: wizard met save/resume/review/retry/rollback bestaat; runtimebewijs blijft open.
 - Tenant first-run: checklist/foundation bestaat, echte owner wizard ontbreekt.
 - Support break-glass: reden/expiry/audit bestaan, harde max TTL en centrale flow ontbreken.
-- Usage/readiness dashboard: tenantdetail toont documenten, opdrachten, storage, downloads, modules, regio's, support grants, limieten en readiness; Playwright/integration bewijs ontbreekt nog.
-- Staging smoke: read-only/dashboardbasis bestaat, run history, live smokes en mutating cleanup ontbreken.
+- Usage dashboard: basisstats bestaan, documenten/storage/downloads/actieve modules moeten erbij.
+- Staging smoke: dashboard toont run history, live-smoke targets, migratie-smoke status en mutating cleanup-contract; echte Playwright/storage/DB-runs ontbreken nog.
 - Demo-data: canon/fixtures bestaan, one-click seed/cleanup ontbreekt.
 - Audit/security: basis bestaat, downloads/PDF/direct-ID/module/storage-denials moeten centraal landen.
 - Regio: legacy `personnel.region`, `personnel.preferredRegions` en `assignments.requiredRegion` bestaan, maar tenant-regio datamodel en multiselect ontbreken.
@@ -93,7 +93,7 @@ Geen onderwerp mag in vervolgwerk alleen als "open" blijven staan zonder status,
 - Branding preview per tenant voor backoffice, klantportaal, personeelsapp, email en PDF is aanwezig op tenantdetail; Playwright bewijs blijft open.
 - Module dependency visualisatie.
 - Security dashboard polish bovenop het noodzakelijke audit/security dashboard.
-- Staging smoke dashboard uitbreiden met historie, trend en mutating smoke-details.
+- Staging smoke dashboard heeft historie en mutating smoke-details; trend en echte live-run artifacts blijven vervolgproof.
 
 ## 4. Regio-canon
 
@@ -212,7 +212,7 @@ Supporttoegang is geen gewone tenantrol. De prioriteit blijft:
 - Security dashboard uitbreiding.
 - Module dependency visualisatie verder uitbreiden na tenantfeedback.
 - Demo-data generator voor `demo-a`, `demo-b` en `veele`.
-- Staging smoke dashboard voor host, login, modules, sectoren, regio's, storage, PDF, support, audit en migraties.
+- Staging smoke dashboard voor host, login, modules, sectoren, regio's, storage, PDF, support, audit, migraties, run history en mutating cleanup.
 - Eerste externe tenant checklist.
 
 ## 8. Staging-promotiecontract

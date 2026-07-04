@@ -23,7 +23,7 @@ const canonicalDocs = [
   "docs/fieldgrid-staging-promotion-checklist.md",
   "docs/fieldgrid-saas-proof-sprint-plan.md",
   "docs/fieldgrid-sprint-7-migration-smoke.md",
-  "docs/fieldgrid-sprint-14-operational-readiness.md",
+  "docs/fieldgrid-sprint-15-staging-smoke.md",
   "docs/fieldgrid-phase-1-testbasis.md",
   "docs/fieldgrid-phase-2-tenant-hardening.md",
   "docs/fieldgrid-phase-3-storage-media-news.md",
