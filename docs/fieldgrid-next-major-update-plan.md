@@ -129,18 +129,24 @@ Werk:
 
 Eigenaar: sprint 10.
 
-### Platform onboarding is nog geen echte wizard
+### Platform onboarding wizard is gebouwd
 
-Status: `partial`.
+Status: `runtime-proof-open`.
 
-Werk:
+Geleverd in sprint 12:
 
-- Save/resume.
-- Review.
-- Runstatus.
-- Retry.
-- Rollback.
+- Save/resume via `tenant_provisioning_runs`.
+- Reviewmetadata in de wizard.
+- Runstatus met owner invite status.
+- Retry vanuit runhistorie.
+- Rollbackpad bij owner invite failure.
 - Domein, plan, modules, sectoren, regio's, owner invite en branding in een flow.
+
+Open runtimebewijs:
+
+- Playwright happy path.
+- Integration success/rollback/retry.
+- Duplicate slug/domain foutstatus.
 
 Eigenaar: sprint 12.
 

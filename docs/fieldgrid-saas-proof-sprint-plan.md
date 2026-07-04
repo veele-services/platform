@@ -1,7 +1,7 @@
 # Fieldgrid SaaS proof sprintplan canon
 
 Datum: 2026-07-04
-Status: sprint 3 regio UI backoffice breed geleverd; sprint 4 regio runtime/planningproof blijft open; sprint 0 canon refresh 2.0 blijft de basis.
+Status: sprint 12 platform onboarding wizard geleverd; runtimebewijs voor wizard/provisioning blijft open.
 Scope: volledige afronding van SaaS-hardening, runtime-bewijs, tenant-regio's, storage, audit, onboarding, smoke en externe tenant readiness.
 
 ## Doel
@@ -47,7 +47,7 @@ Geen canonitem mag nog als alleen "open" of "ontbreekt" blijven staan zonder een
 | Audit/security events | `partial` | Sprint 10 | Basis bestaat; downloads, PDF's, denials en support events moeten centraal landen. |
 | Veele Portaal klant/personeel | `runtime-proof-open` | Sprint 6 | Host-bound basis bestaat; documenten/facturen/tickets/opdrachten/media/notificaties/module-denials E2E open. |
 | Migration smoke | `partial` | Sprint 7 | Runner bestaat; lege DB en staging-copy workflow moet formeel worden. |
-| Platform onboarding wizard | `partial` | Sprint 12 | Provisioning/status bestaat; echte save/resume/review/rollback wizard open. |
+| Platform onboarding wizard | `runtime-proof-open` | Sprint 12 | Save/resume/review/retry/rollback wizard gebouwd; Playwright en DB integration bewijs open. |
 | Tenant first-run wizard | `partial` | Sprint 13 | Checklist/foundation bestaat; actieve owner-flow open. |
 | Usage dashboard | `partial` | Sprint 14 | Basisstats bestaan; documenten/storage/downloads/active modules uitbreiden. |
 | Branding preview | `nice-to-have` | Sprint 14 | Basis branding bestaat; preview voor portal/email/PDF open. |
@@ -305,11 +305,22 @@ Definition of Done:
 
 Doel: platform-admin kan tenants volledig begeleid aanmaken.
 
+Status na sprint 12: `runtime-proof-open`.
+
+Geleverd:
+
+- `/platform` gebruikt een wizard voor tenantgegevens, domein, plan, modules, sectoren, regio's, owner invite, branding en review.
+- Concepten worden in `tenant_provisioning_runs` opgeslagen met `status = draft` en kunnen via querystring worden hervat.
+- Provisioning schrijft gekozen modules, sectorbeleid, tenant-regio's en branding door naar de transactionele provisioningservice.
+- Runhistorie toont status, owner invite status, foutmelding, rollbackpad, hervatten en retry.
+- Owner-invite failure gebruikt rollback en bewaart rollbackmetadata.
+
 Taken:
 
-- Wizard: tenantgegevens, domein, plan, modules, sectoren, regio's, owner invite, branding, review, runstatus, rollback.
-- Save/resume.
-- Provisioning run history en retry/foutafhandeling.
+- Wizard: tenantgegevens, domein, plan, modules, sectoren, regio's, owner invite, branding, review, runstatus, rollback. `geleverd`
+- Save/resume. `geleverd`
+- Provisioning run history en retry/foutafhandeling. `geleverd`
+- Playwright/integration bewijs voor happy path, rollback en retry. `runtime-proof-open`
 
 Definition of Done:
 
