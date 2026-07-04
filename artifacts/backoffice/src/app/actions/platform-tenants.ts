@@ -48,6 +48,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePlatformAdmin, writeSupportAccessAuditLog } from "@/lib/auth/platform";
 import type { ActionResult } from "./customers";
+import { ensurePlatformTicketForDomainFailure } from "./platform-tickets";
 
 const TENANT_PLAN_KEYS = ["starter", "professional", "enterprise"] as const;
 const TENANT_STATUS_FILTERS = ["provisioning", "trial", "active", "suspended", "archived"] as const;
@@ -494,6 +495,53 @@ async function recordDomainCheck(input: {
     checkType: input.checkType,
     status: input.status,
     details: input.details,
+  });
+}
+
+async function maybeOpenDomainVerificationTicket(input: {
+  tenantId: string;
+  domainId: string;
+  domain: string;
+  status: "dns_seen" | "failed";
+  errorMessage: string | null;
+}): Promise<void> {
+  const [failureStats] = await db
+    .select({ failureCount: sql<number>`count(*)::int` })
+    .from(tenantDomainChecksTable)
+    .where(
+      and(
+        eq(tenantDomainChecksTable.tenantDomainId, input.domainId),
+        eq(tenantDomainChecksTable.checkType, "dns"),
+        inArray(tenantDomainChecksTable.status, ["failed", "dns_seen"]),
+      ),
+    )
+    .limit(1);
+
+  const failureCount = Number(failureStats?.failureCount ?? 0);
+  if (failureCount < 3) return;
+
+  const ticketId = await ensurePlatformTicketForDomainFailure({
+    tenantId: input.tenantId,
+    domainId: input.domainId,
+    domain: input.domain,
+    failureCount,
+    latestError: input.errorMessage,
+  });
+
+  if (!ticketId) return;
+
+  await auditPlatformTenantAction({
+    tenantId: input.tenantId,
+    action: "platform_ticket_created_from_domain_failure",
+    resource: "platform_tickets",
+    resourceId: ticketId,
+    metadata: {
+      domainId: input.domainId,
+      domain: input.domain,
+      status: input.status,
+      failureCount,
+      errorMessage: input.errorMessage,
+    },
   });
 }
 
@@ -2297,6 +2345,17 @@ export async function updatePlatformTenantDomain(formData: FormData): Promise<Ac
       },
     });
     await auditPlatformTenantAction({ tenantId, action: "tenant_domain_dns_checked", resource: "tenant_domains", resourceId: domainId, metadata: { domain: domain.domain, status, errorMessage } });
+
+    if (status !== "verified") {
+      await maybeOpenDomainVerificationTicket({
+        tenantId,
+        domainId,
+        domain: domain.domain,
+        status,
+        errorMessage,
+      });
+    }
+
     revalidatePlatformTenant(tenantId);
 
     return status === "verified"
