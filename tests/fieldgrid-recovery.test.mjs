@@ -31,6 +31,7 @@ test("platform admin bootstrap is explicit", () => {
   const seed = read("lib/db/src/seed/platform-users.ts");
   const platformAdminSeed = read("lib/db/src/seed/platform-admin.ts");
   const roleConstraintMigration = read("lib/db/migrations/071_platform_users_role_constraint.sql");
+  const runtimeColumnsMigration = read("lib/db/migrations/072_platform_users_runtime_columns.sql");
   const recoveryPlan = read("docs/fieldgrid-recovery-execution-plan.md");
 
   assert.equal(dbPackage.scripts["seed:platform-users"], "tsx src/seed/platform-users.ts");
@@ -41,6 +42,9 @@ test("platform admin bootstrap is explicit", () => {
   assert.match(roleConstraintMigration, /super_admin' THEN 'owner'/u);
   assert.match(roleConstraintMigration, /billing_admin' THEN 'admin'/u);
   assert.match(roleConstraintMigration, /CHECK \(role IN \('owner', 'admin', 'support'\)\)/u);
+  assert.match(runtimeColumnsMigration, /ADD COLUMN IF NOT EXISTS created_by uuid/u);
+  assert.match(runtimeColumnsMigration, /ADD COLUMN IF NOT EXISTS updated_at timestamp with time zone DEFAULT now\(\)/u);
+  assert.match(runtimeColumnsMigration, /ADD COLUMN IF NOT EXISTS last_seen_at timestamp with time zone/u);
   assert.match(recoveryPlan, /seed:platform-users/u);
 });
 
