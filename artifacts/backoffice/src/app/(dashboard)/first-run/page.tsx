@@ -14,8 +14,8 @@ import {
   getTenantFirstRunWizard,
   saveTenantFirstRunWizardDraft,
   skipTenantFirstRun,
-  type TenantFirstRunWizardStep,
 } from "@/app/actions/tenant-first-run";
+import type { TenantFirstRunWizardStep } from "@/app/actions/tenant-first-run.types";
 
 export const metadata = {
   title: "Tenant onboarding",
