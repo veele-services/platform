@@ -14,6 +14,7 @@ function assertIncludes(content, phrases, label) {
 
 test("sprint 13 promotes first-run from checklist to wizard status", () => {
   const actions = read("artifacts/backoffice/src/app/actions/tenant-first-run.ts");
+  const types = read("artifacts/backoffice/src/app/actions/tenant-first-run.types.ts");
 
   assertIncludes(
     actions,
@@ -31,6 +32,15 @@ test("sprint 13 promotes first-run from checklist to wizard status", () => {
       "requiredSteps",
     ],
     "tenant first-run actions",
+  );
+  assertIncludes(
+    types,
+    ["export const FIRST_RUN_WIZARD_STEPS", "export type TenantFirstRunWizardStep"],
+    "tenant first-run types",
+  );
+  assert.ok(
+    !actions.includes("export const FIRST_RUN_WIZARD_STEPS"),
+    "tenant first-run server action should not export runtime constants",
   );
 });
 
@@ -83,7 +93,7 @@ test("sprint 13 readiness uses existing tenant data without new migrations", () 
       "tenant first-run wizard",
       "Owner kan een concept opslaan en later hervatten",
       "geen nieuwe migratie",
-      "Tenant first-run wizard | `runtime-proof-open` | Sprint 13",
+      "Tenant first-run wizard | `post-launch-accepted` | Sprint 13/16",
     ],
     "sprint 13 canon",
   );
