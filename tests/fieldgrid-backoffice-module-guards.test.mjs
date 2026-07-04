@@ -27,15 +27,15 @@ test("backoffice exposes a tenant-scoped module guard helper", () => {
 
 test("permission checks enforce module gates for sensitive backoffice domains", () => {
   const permissions = read("artifacts/backoffice/src/lib/auth/permissions.ts");
+  const moduleContract = read("lib/db/src/module-permissions.ts");
 
   for (const token of [
-    "PERMISSION_MODULES",
     "moduleForPermissionResource",
     "hasEnabledPermissionModule",
     "requireEnabledPermissionModule",
     "getEffectiveUserPermissions",
     "enabledModulesForPermissions",
-    "resourceFromPermission",
+    "resourceFromPermissionKey",
     "isTenantModuleEnabled",
     "requireTenantModule",
     "FieldgridModuleKey",
@@ -51,7 +51,7 @@ test("permission checks enforce module gates for sensitive backoffice domains", 
     ["customer_payment_batches", "finance"],
     ["reports", "reporting"],
   ]) {
-    assert.match(permissions, new RegExp(`${resource}:\\s*\"${moduleKey}\"`, "u"));
+    assert.match(moduleContract, new RegExp(`${resource}:\\s*\"${moduleKey}\"`, "u"));
   }
 
   assert.match(permissions, /getEffectiveUserPermissions[\s\S]*enabledModulesForPermissions\(permissions, tenantId\)/u);
@@ -62,7 +62,7 @@ test("permission checks enforce module gates for sensitive backoffice domains", 
 test("dashboard layout gives client UI module-filtered permissions", () => {
   const layout = read("artifacts/backoffice/src/app/(dashboard)/layout.tsx");
 
-  assert.match(layout, /getEffectiveUserPermissions/u);
+  assert.match(layout, /getCurrentEffectiveUserPermissions/u);
   assert.doesNotMatch(layout, /getUserPermissions/u);
   assert.match(layout, /<PermissionsProvider permissions=\{\[\.\.\.permissions\]\}/u);
   assert.match(layout, /canReadReports\s*=\s*permissions\.has\("reports:read"\)/u);

@@ -31,6 +31,8 @@ const canonicalDocs = [
   "docs/fieldgrid-phase-4-module-enforcement.md",
   "docs/fieldgrid-phase-5-support-security.md",
   "docs/fieldgrid-phase-6-productization.md",
+  "docs/fieldgrid-sprint-12-platform-onboarding.md",
+  "docs/fieldgrid-sprint-13-tenant-first-run.md",
 ];
 
 const governanceDocs = [".github/pull_request_template.md"];

@@ -1,9 +1,11 @@
 "use server";
 
 import {
+  auditLogTable,
   db,
   assignmentsTable,
   customersTable,
+  documentsTable,
   FIELDGRID_BRAND_DEFAULTS,
   getTenantBranding,
   getTenantPlanSnapshot,
@@ -18,9 +20,11 @@ import {
   planModulesTable,
   plansTable,
   sectorsTable,
+  supportAccessAuditLogTable,
   supportAccessGrantsTable,
   tenantDomainsTable,
   tenantModulesTable,
+  tenantRegionsTable,
   tenantSectorSettingsTable,
   tenantSectorsTable,
   tenantsTable,
@@ -60,10 +64,33 @@ export type PlatformTenantUsage = {
   assignments: number;
   documents: number;
   storageBytes: number;
+  downloadAuditEvents: number;
+  pdfAuditEvents: number;
   domains: number;
   enabledModules: number;
   enabledSectors: number;
+  activeRegions: number;
   activeSupportGrants: number;
+  tenantPrefixedDocuments: number;
+  legacyDocumentPaths: number;
+  auditEvents: number;
+  supportAuditEvents: number;
+  migrationHistoryTables: number;
+};
+
+export type PlatformTenantUsageLimit = {
+  key: string;
+  description: string | null;
+  isEnabled: boolean;
+  limitValue: number | null;
+};
+
+export type PlatformTenantBrandingSurfacePreview = {
+  surface: "Backoffice" | "Klantportaal" | "Personeelsapp" | "E-mail" | "PDF";
+  headline: string;
+  body: string;
+  primaryColor: string;
+  accentColor: string;
 };
 
 export type PlatformTenantBrandingPreview = {
@@ -77,6 +104,7 @@ export type PlatformTenantBrandingPreview = {
   accentColor: string;
   emailFooterText: string;
   emailSignature: string;
+  surfaces: PlatformTenantBrandingSurfacePreview[];
 };
 
 export type PlatformTenantFirstRunStep = {
@@ -93,6 +121,22 @@ export type PlatformTenantFirstRun = {
   steps: PlatformTenantFirstRunStep[];
 };
 
+export type PlatformTenantReadinessStatus = "ready" | "warning" | "blocked";
+
+export type PlatformTenantReadinessSignal = {
+  id: string;
+  label: string;
+  status: PlatformTenantReadinessStatus;
+  detail: string;
+};
+
+export type PlatformTenantOperationalReadiness = {
+  score: number;
+  readySignals: number;
+  totalSignals: number;
+  signals: PlatformTenantReadinessSignal[];
+};
+
 export type PlatformTenantDetail = PlatformTenantRow & {
   suspendedAt: string | null;
   archivedAt: string | null;
@@ -100,8 +144,10 @@ export type PlatformTenantDetail = PlatformTenantRow & {
   planName: string;
   planSource: string;
   usage: PlatformTenantUsage;
+  usageLimits: PlatformTenantUsageLimit[];
   brandingPreview: PlatformTenantBrandingPreview;
   firstRun: PlatformTenantFirstRun;
+  operationalReadiness: PlatformTenantOperationalReadiness;
 };
 
 export type PlatformTenantDomainRow = {
@@ -136,6 +182,8 @@ export type PlatformTenantModuleRow = {
   defaultEnabled: boolean;
   source: string | null;
   dependencyKeys: string[];
+  missingDependencyKeys: string[];
+  enabledDependentKeys: string[];
 };
 
 export type PlatformTenantSectorRow = {
@@ -194,6 +242,128 @@ function buildBrandingPreview(branding: Awaited<ReturnType<typeof getTenantBrand
     accentColor: branding.accentColor,
     emailFooterText: branding.emailFooterText,
     emailSignature: branding.emailSignature,
+    surfaces: [
+      {
+        surface: "Backoffice",
+        headline: `${branding.displayName} beheer`,
+        body: `${branding.platformName} toont planning, klanten en opdrachten met tenantkleuren.`,
+        primaryColor: branding.primaryColor,
+        accentColor: branding.accentColor,
+      },
+      {
+        surface: "Klantportaal",
+        headline: `${branding.displayName} portaal`,
+        body: "Opdrachtgevers zien documenten, tickets en rapportages in dezelfde merklaag.",
+        primaryColor: branding.primaryColor,
+        accentColor: branding.accentColor,
+      },
+      {
+        surface: "Personeelsapp",
+        headline: `${branding.displayName} app`,
+        body: "Medewerkers herkennen planning, werkbonnen en meldingen aan de tenantstijl.",
+        primaryColor: branding.primaryColor,
+        accentColor: branding.accentColor,
+      },
+      {
+        surface: "E-mail",
+        headline: branding.emailSignature || `${branding.displayName} notificatie`,
+        body: branding.emailFooterText,
+        primaryColor: branding.primaryColor,
+        accentColor: branding.accentColor,
+      },
+      {
+        surface: "PDF",
+        headline: `${branding.displayName} rapportage`,
+        body: "PDF's gebruiken dezelfde naam, primaire kleur en accentkleur als de tenant.",
+        primaryColor: branding.primaryColor,
+        accentColor: branding.accentColor,
+      },
+    ],
+  };
+}
+
+function readinessSignal(input: PlatformTenantReadinessSignal): PlatformTenantReadinessSignal {
+  return input;
+}
+
+function buildOperationalReadiness(input: {
+  primaryDomain: string | null;
+  usage: PlatformTenantUsage;
+}): PlatformTenantOperationalReadiness {
+  const signals = [
+    readinessSignal({
+      id: "host",
+      label: "Host",
+      status: input.primaryDomain || input.usage.domains > 0 ? "ready" : "blocked",
+      detail: input.primaryDomain ?? (input.usage.domains > 0 ? "Domein aanwezig, primair/verified nog controleren." : "Geen tenantdomein gekoppeld."),
+    }),
+    readinessSignal({
+      id: "login",
+      label: "Login",
+      status: input.usage.users > 0 ? "ready" : "blocked",
+      detail: input.usage.users > 0 ? `${input.usage.users} actieve gebruiker(s).` : "Geen actieve tenantgebruiker gevonden.",
+    }),
+    readinessSignal({
+      id: "modules",
+      label: "Modules",
+      status: input.usage.enabledModules > 0 ? "ready" : "blocked",
+      detail: input.usage.enabledModules > 0 ? `${input.usage.enabledModules} module(s) actief.` : "Nog geen actieve tenantmodules.",
+    }),
+    readinessSignal({
+      id: "sectors",
+      label: "Sectoren",
+      status: input.usage.enabledSectors > 0 ? "ready" : "blocked",
+      detail: input.usage.enabledSectors > 0 ? `${input.usage.enabledSectors} sector(en) actief.` : "Tenantsectoren ontbreken of staan uit.",
+    }),
+    readinessSignal({
+      id: "regions",
+      label: "Regio's",
+      status: input.usage.activeRegions > 0 ? "ready" : "warning",
+      detail: input.usage.activeRegions > 0 ? `${input.usage.activeRegions} actieve regio(s).` : "Geen actieve tenantregio's gevonden.",
+    }),
+    readinessSignal({
+      id: "storage",
+      label: "Storage",
+      status: input.usage.documents === 0 ? "warning" : input.usage.legacyDocumentPaths === 0 ? "ready" : "warning",
+      detail:
+        input.usage.documents === 0
+          ? "Nog geen documenten om storagepaden te bewijzen."
+          : `${input.usage.tenantPrefixedDocuments}/${input.usage.documents} documenten tenant-prefixed, ${input.usage.legacyDocumentPaths} legacy pad(en).`,
+    }),
+    readinessSignal({
+      id: "pdf",
+      label: "PDF en downloads",
+      status: input.usage.downloadAuditEvents > 0 ? "ready" : "warning",
+      detail:
+        input.usage.downloadAuditEvents > 0
+          ? `${input.usage.downloadAuditEvents} download/PDF audit-event(s), waarvan ${input.usage.pdfAuditEvents} PDF.`
+          : "Nog geen download- of PDF-auditbewijs voor deze tenant.",
+    }),
+    readinessSignal({
+      id: "migrations",
+      label: "Migraties",
+      status: input.usage.migrationHistoryTables > 0 ? "ready" : "warning",
+      detail: `${input.usage.migrationHistoryTables} migration history tabel(len) zichtbaar. Sprint 14 voegt geen migratie toe.`,
+    }),
+    readinessSignal({
+      id: "audit",
+      label: "Audit",
+      status: input.usage.auditEvents + input.usage.supportAuditEvents > 0 ? "ready" : "warning",
+      detail: `${input.usage.auditEvents} tenant/platform audit-event(s), ${input.usage.supportAuditEvents} support-event(s).`,
+    }),
+  ];
+
+  const scoreUnits = signals.reduce((total, signal) => {
+    if (signal.status === "ready") return total + 1;
+    if (signal.status === "warning") return total + 0.5;
+    return total;
+  }, 0);
+
+  return {
+    score: Math.round((scoreUnits / signals.length) * 100),
+    readySignals: signals.filter((signal) => signal.status === "ready").length,
+    totalSignals: signals.length,
+    signals,
   };
 }
 
@@ -333,6 +503,28 @@ export async function listPlatformTenants(): Promise<PlatformTenantRow[]> {
   }));
 }
 
+async function listPlatformTenantUsageLimits(planId: string | null): Promise<PlatformTenantUsageLimit[]> {
+  if (!planId) return [];
+
+  const rows = await db
+    .select({
+      key: planLimitsTable.key,
+      description: planLimitsTable.description,
+      isEnabled: planLimitsTable.isEnabled,
+      limitValue: planLimitsTable.limitValue,
+    })
+    .from(planLimitsTable)
+    .where(eq(planLimitsTable.planId, planId))
+    .orderBy(asc(planLimitsTable.key));
+
+  return rows.map((row) => ({
+    key: row.key,
+    description: row.description,
+    isEnabled: row.isEnabled,
+    limitValue: row.limitValue,
+  }));
+}
+
 export async function getPlatformTenantDetail(tenantId: string): Promise<PlatformTenantDetail | null> {
   await requirePlatformAdmin();
 
@@ -373,7 +565,12 @@ export async function getPlatformTenantDetail(tenantId: string): Promise<Platfor
     getTenantPlanSnapshot(tenantId),
     getTenantBranding(tenantId),
   ]);
+  const usageLimits = await listPlatformTenantUsageLimits(plan.planId);
   const brandingPreview = buildBrandingPreview(branding);
+  const operationalReadiness = buildOperationalReadiness({
+    primaryDomain: tenant.primaryDomain,
+    usage,
+  });
 
   return {
     ...tenant,
@@ -382,10 +579,12 @@ export async function getPlatformTenantDetail(tenantId: string): Promise<Platfor
     suspendedAt: tenant.suspendedAt?.toISOString() ?? null,
     archivedAt: tenant.archivedAt?.toISOString() ?? null,
     usage,
+    usageLimits,
     planName: plan.planName,
     planSource: plan.source,
     brandingPreview,
     firstRun: buildFirstRunStatus({ primaryDomain: tenant.primaryDomain, usage, brandingPreview }),
+    operationalReadiness,
   };
 }
 
@@ -401,15 +600,63 @@ export async function getPlatformTenantUsage(tenantId: string): Promise<Platform
       assignments: sql<number>`(SELECT count(*) FROM assignments WHERE tenant_id = ${tenantId}::uuid)::int`,
       documents: sql<number>`(SELECT count(*) FROM documents WHERE tenant_id = ${tenantId}::uuid)::int`,
       storageBytes: sql<number>`COALESCE((SELECT sum(size_bytes) FROM documents WHERE tenant_id = ${tenantId}::uuid), 0)::bigint`,
+      downloadAuditEvents: sql<number>`(
+        (SELECT count(*) FROM ${auditLogTable}
+          WHERE tenant_id = ${tenantId}::uuid
+            AND (
+              lower(concat_ws(' ', action, resource, resource_id, metadata::text)) LIKE '%download%'
+              OR lower(concat_ws(' ', action, resource, resource_id, metadata::text)) LIKE '%pdf%'
+              OR lower(concat_ws(' ', action, resource, resource_id, metadata::text)) LIKE '%signed%'
+            )
+        ) +
+        (SELECT count(*) FROM ${supportAccessAuditLogTable}
+          WHERE tenant_id = ${tenantId}::uuid
+            AND (
+              lower(concat_ws(' ', action, resource, resource_id, metadata::text)) LIKE '%download%'
+              OR lower(concat_ws(' ', action, resource, resource_id, metadata::text)) LIKE '%pdf%'
+              OR lower(concat_ws(' ', action, resource, resource_id, metadata::text)) LIKE '%signed%'
+            )
+        )
+      )::int`,
+      pdfAuditEvents: sql<number>`(
+        (SELECT count(*) FROM ${auditLogTable}
+          WHERE tenant_id = ${tenantId}::uuid
+            AND lower(concat_ws(' ', action, resource, resource_id, metadata::text)) LIKE '%pdf%'
+        ) +
+        (SELECT count(*) FROM ${supportAccessAuditLogTable}
+          WHERE tenant_id = ${tenantId}::uuid
+            AND lower(concat_ws(' ', action, resource, resource_id, metadata::text)) LIKE '%pdf%'
+        )
+      )::int`,
       domains: sql<number>`(SELECT count(*) FROM tenant_domains WHERE tenant_id = ${tenantId}::uuid AND type <> 'platform_reserved')::int`,
       enabledModules: sql<number>`(SELECT count(*) FROM tenant_modules WHERE tenant_id = ${tenantId}::uuid AND is_enabled = true)::int`,
       enabledSectors: sql<number>`(SELECT count(*) FROM tenant_sectors WHERE tenant_id = ${tenantId}::uuid AND is_enabled = true)::int`,
+      activeRegions: sql<number>`(SELECT count(*) FROM ${tenantRegionsTable} WHERE tenant_id = ${tenantId}::uuid AND is_active = true)::int`,
       activeSupportGrants: sql<number>`(
-        SELECT count(*) FROM support_access_grants
+        SELECT count(*) FROM ${supportAccessGrantsTable}
         WHERE tenant_id = ${tenantId}::uuid
           AND revoked_at IS NULL
           AND starts_at <= now()
           AND expires_at > now()
+      )::int`,
+      tenantPrefixedDocuments: sql<number>`(
+        SELECT count(*) FROM ${documentsTable}
+        WHERE tenant_id = ${tenantId}::uuid
+          AND storage_path LIKE ${`tenant/${tenantId}/%`}
+      )::int`,
+      legacyDocumentPaths: sql<number>`(
+        SELECT count(*) FROM ${documentsTable}
+        WHERE tenant_id = ${tenantId}::uuid
+          AND storage_path NOT LIKE ${`tenant/${tenantId}/%`}
+      )::int`,
+      auditEvents: sql<number>`(SELECT count(*) FROM ${auditLogTable} WHERE tenant_id = ${tenantId}::uuid)::int`,
+      supportAuditEvents: sql<number>`(SELECT count(*) FROM ${supportAccessAuditLogTable} WHERE tenant_id = ${tenantId}::uuid)::int`,
+      migrationHistoryTables: sql<number>`(
+        SELECT count(*)
+        FROM pg_catalog.pg_class c
+        INNER JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
+        WHERE n.nspname = 'drizzle'
+          AND c.relname IN ('__drizzle_migrations', 'veele_sql_migrations')
       )::int`,
     })
     .from(tenantsTable)
@@ -424,10 +671,18 @@ export async function getPlatformTenantUsage(tenantId: string): Promise<Platform
     assignments: Number(usage?.assignments ?? 0),
     documents: Number(usage?.documents ?? 0),
     storageBytes: Number(usage?.storageBytes ?? 0),
+    downloadAuditEvents: Number(usage?.downloadAuditEvents ?? 0),
+    pdfAuditEvents: Number(usage?.pdfAuditEvents ?? 0),
     domains: Number(usage?.domains ?? 0),
     enabledModules: Number(usage?.enabledModules ?? 0),
     enabledSectors: Number(usage?.enabledSectors ?? 0),
+    activeRegions: Number(usage?.activeRegions ?? 0),
     activeSupportGrants: Number(usage?.activeSupportGrants ?? 0),
+    tenantPrefixedDocuments: Number(usage?.tenantPrefixedDocuments ?? 0),
+    legacyDocumentPaths: Number(usage?.legacyDocumentPaths ?? 0),
+    auditEvents: Number(usage?.auditEvents ?? 0),
+    supportAuditEvents: Number(usage?.supportAuditEvents ?? 0),
+    migrationHistoryTables: Number(usage?.migrationHistoryTables ?? 0),
   };
 }
 
@@ -482,7 +737,7 @@ export async function listPlatformTenantDomains(tenantId: string): Promise<Platf
 export async function listPlatformTenantModules(tenantId: string): Promise<PlatformTenantModuleRow[]> {
   await requirePlatformAdmin();
 
-  const [modules, overrides, plan, dependencies] = await Promise.all([
+  const [modules, overrides, plan, dependencies, dependents] = await Promise.all([
     db.select().from(modulesTable).orderBy(asc(modulesTable.category), asc(modulesTable.name)),
     db.select().from(tenantModulesTable).where(eq(tenantModulesTable.tenantId, tenantId)),
     getTenantPlanSnapshot(tenantId),
@@ -493,6 +748,13 @@ export async function listPlatformTenantModules(tenantId: string): Promise<Platf
       })
       .from(moduleDependenciesTable)
       .innerJoin(modulesTable, eq(moduleDependenciesTable.dependsOnModuleId, modulesTable.id)),
+    db
+      .select({
+        moduleId: moduleDependenciesTable.dependsOnModuleId,
+        dependentKey: modulesTable.key,
+      })
+      .from(moduleDependenciesTable)
+      .innerJoin(modulesTable, eq(moduleDependenciesTable.moduleId, modulesTable.id)),
   ]);
 
   const planModules = plan.planId
@@ -510,8 +772,14 @@ export async function listPlatformTenantModules(tenantId: string): Promise<Platf
     keys.push(dependency.dependencyKey);
     dependencyKeysByModuleId.set(dependency.moduleId, keys);
   }
+  const dependentKeysByModuleId = new Map<string, string[]>();
+  for (const dependent of dependents) {
+    const keys = dependentKeysByModuleId.get(dependent.moduleId) ?? [];
+    keys.push(dependent.dependentKey);
+    dependentKeysByModuleId.set(dependent.moduleId, keys);
+  }
 
-  return modules.map((module) => {
+  const moduleRows = modules.map((module) => {
     const override = overrideByModuleId.get(module.id);
     const planModule = planByModuleId.get(module.id);
     return {
@@ -526,8 +794,17 @@ export async function listPlatformTenantModules(tenantId: string): Promise<Platf
       defaultEnabled: module.isEnabledByDefault,
       source: override?.source ?? null,
       dependencyKeys: dependencyKeysByModuleId.get(module.id) ?? [],
+      missingDependencyKeys: [],
+      enabledDependentKeys: [],
     };
   });
+  const enabledByKey = new Map(moduleRows.map((module) => [module.key, module.effectiveEnabled]));
+
+  return moduleRows.map((module) => ({
+    ...module,
+    missingDependencyKeys: module.dependencyKeys.filter((dependencyKey) => !enabledByKey.get(dependencyKey)),
+    enabledDependentKeys: (dependentKeysByModuleId.get(module.id) ?? []).filter((dependentKey) => enabledByKey.get(dependentKey)),
+  }));
 }
 
 export async function listPlatformTenantSectors(tenantId: string): Promise<{

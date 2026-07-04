@@ -14,6 +14,7 @@ import {
   tenantModulesTable,
   tenantOwnerInvitesTable,
   tenantProvisioningRunsTable,
+  tenantRegionsTable,
   tenantRolePermissionsTable,
   tenantRolesTable,
   tenantSectorSettingsTable,
@@ -30,10 +31,18 @@ import {
 const TENANT_SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{1,78}[a-z0-9]$/u;
 const OWNER_ROLE_NAMES = ["Management", "Owner", "Eigenaar", "Administration"] as const;
 const DEFAULT_FIRST_RUN_STEPS = ["branding", "users", "sectors", "modules"] as const;
+const COLOR_PATTERN = /^#[0-9a-f]{6}$/iu;
 
 type DbExecutor = typeof db | any;
 type ProvisioningSectorRow = { id: string };
 type TemplateRolePermissionRow = { permissionId: string };
+
+export type TenantProvisioningBrandingInput = {
+  displayName?: string | null;
+  primaryColor?: string | null;
+  accentColor?: string | null;
+  emailSignature?: string | null;
+};
 
 export type TenantProvisioningInput = {
   name: string;
@@ -46,6 +55,8 @@ export type TenantProvisioningInput = {
   defaultSectorId?: string | null;
   sectorMode?: TenantSectorPolicyMode | null;
   moduleKeys?: string[];
+  regionNames?: string[];
+  branding?: TenantProvisioningBrandingInput | null;
   metadata?: Record<string, unknown> | null;
 };
 
@@ -54,7 +65,7 @@ export type NormalizedTenantProvisioningInput = {
   slug: string;
   planKey: TenantPlanKey;
   primaryDomain: string;
-  domainType: "subdomain" | "custom";
+  domainType: "fieldgrid_subdomain" | "custom_domain";
   domainVerificationStatus: "pending" | "verified";
   requestedBy: string;
   ownerEmail: string | null;
@@ -62,6 +73,13 @@ export type NormalizedTenantProvisioningInput = {
   defaultSectorId: string | null;
   sectorMode: TenantSectorPolicyMode | null;
   moduleKeys: string[] | null;
+  regionNames: string[];
+  branding: {
+    displayName: string | null;
+    primaryColor: string | null;
+    accentColor: string | null;
+    emailSignature: string | null;
+  };
   metadata: Record<string, unknown> | null;
 };
 
@@ -76,6 +94,40 @@ export type TenantProvisioningResult = {
 
 function uniqueValues(values: string[] | undefined): string[] {
   return [...new Set((values ?? []).map((value) => value.trim()).filter(Boolean))];
+}
+
+function normalizeTenantProvisioningRegionName(value: string): string {
+  return value.trim().replace(/\s+/gu, " ").toLowerCase();
+}
+
+function uniqueRegionNames(values: string[] | undefined): string[] {
+  const seen = new Set<string>();
+  const names: string[] = [];
+
+  for (const value of values ?? []) {
+    const name = value.trim().replace(/\s+/gu, " ").slice(0, 120);
+    const normalized = normalizeTenantProvisioningRegionName(name);
+    if (!name || seen.has(normalized)) continue;
+    seen.add(normalized);
+    names.push(name);
+  }
+
+  return names;
+}
+
+function normalizeOptionalColor(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed) return null;
+  return COLOR_PATTERN.test(trimmed) ? trimmed : null;
+}
+
+function normalizeProvisioningBranding(input: TenantProvisioningBrandingInput | null | undefined): NormalizedTenantProvisioningInput["branding"] {
+  return {
+    displayName: input?.displayName?.trim().slice(0, 200) || null,
+    primaryColor: normalizeOptionalColor(input?.primaryColor),
+    accentColor: normalizeOptionalColor(input?.accentColor),
+    emailSignature: input?.emailSignature?.trim().slice(0, 2000) || null,
+  };
 }
 
 export function normalizeTenantProvisioningSlug(value: string): string {
@@ -119,7 +171,7 @@ export function normalizeTenantProvisioningInput(
     slug,
     planKey,
     primaryDomain,
-    domainType: isFieldgridSubdomain ? "subdomain" : "custom",
+    domainType: isFieldgridSubdomain ? "fieldgrid_subdomain" : "custom_domain",
     domainVerificationStatus: isFieldgridSubdomain ? "verified" : "pending",
     requestedBy: input.requestedBy,
     ownerEmail,
@@ -127,6 +179,8 @@ export function normalizeTenantProvisioningInput(
     defaultSectorId: input.defaultSectorId?.trim() || null,
     sectorMode: input.sectorMode === "single" || input.sectorMode === "multi" ? input.sectorMode : null,
     moduleKeys: input.moduleKeys ? uniqueValues(input.moduleKeys) : null,
+    regionNames: uniqueRegionNames(input.regionNames),
+    branding: normalizeProvisioningBranding(input.branding),
     metadata: input.metadata ?? null,
   };
 }
@@ -276,7 +330,15 @@ export async function provisionTenant(
         .set({ tenantId: tenant.id, currentStep: "configuration" })
         .where(eq(tenantProvisioningRunsTable.id, run.id));
 
-      await tx.insert(organizationSettingsTable).values({ tenantId: tenant.id, naam: input.name });
+      const organizationSettingsValues: typeof organizationSettingsTable.$inferInsert = {
+        tenantId: tenant.id,
+        naam: input.branding.displayName ?? input.name,
+      };
+      if (input.branding.primaryColor) organizationSettingsValues.emailTemplateBrandColor = input.branding.primaryColor;
+      if (input.branding.accentColor) organizationSettingsValues.emailTemplateAccentColor = input.branding.accentColor;
+      if (input.branding.emailSignature) organizationSettingsValues.emailTemplateSignature = input.branding.emailSignature;
+
+      await tx.insert(organizationSettingsTable).values(organizationSettingsValues);
 
       await tx.insert(tenantDomainsTable).values({
         tenantId: tenant.id,
@@ -346,6 +408,21 @@ export async function provisionTenant(
         enforceSectorScope: true,
       });
 
+      if (input.regionNames.length > 0) {
+        await tx
+          .insert(tenantRegionsTable)
+          .values(
+            input.regionNames.map((name, index) => ({
+              tenantId: tenant.id,
+              name,
+              normalizedName: normalizeTenantProvisioningRegionName(name),
+              source: "manual" as const,
+              sortOrder: index,
+            })),
+          )
+          .onConflictDoNothing();
+      }
+
       const tenantRoleIdByName = await copyTemplateRoles(tx, tenant.id);
 
       if (input.ownerEmail) {
@@ -375,6 +452,13 @@ export async function provisionTenant(
             ...(input.metadata ?? {}),
             moduleCount: selectedModuleIds.length,
             sectorCount: enabledSectorIds.length,
+            regionCount: input.regionNames.length,
+            brandingSeeded: Boolean(
+              input.branding.displayName ||
+              input.branding.primaryColor ||
+              input.branding.accentColor ||
+              input.branding.emailSignature
+            ),
             tenantRoleCount: tenantRoleIdByName.size,
           },
           completedAt: new Date(),
@@ -487,6 +571,12 @@ export async function rollbackProvisionedTenant(input: {
   reason: string;
 }): Promise<void> {
   await db.transaction(async (tx) => {
+    const [run] = await tx
+      .select({ metadata: tenantProvisioningRunsTable.metadata })
+      .from(tenantProvisioningRunsTable)
+      .where(eq(tenantProvisioningRunsTable.id, input.runId))
+      .limit(1);
+
     await tx
       .update(tenantOwnerInvitesTable)
       .set({ status: "rolled_back", rollbackAt: new Date(), errorMessage: input.reason, updatedAt: new Date() })
@@ -503,7 +593,16 @@ export async function rollbackProvisionedTenant(input: {
         currentStep: "rolled_back",
         ownerInviteStatus: "rolled_back",
         errorMessage: input.reason,
-        metadata: { rolledBackTenantId: input.tenantId, reason: input.reason },
+        metadata: {
+          ...(run?.metadata ?? {}),
+          rolledBackTenantId: input.tenantId,
+          rollback: {
+            tenantId: input.tenantId,
+            reason: input.reason,
+            requestedBy: input.requestedBy,
+            rolledBackAt: new Date().toISOString(),
+          },
+        },
         completedAt: new Date(),
         updatedAt: new Date(),
       })

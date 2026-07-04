@@ -237,6 +237,12 @@ Definition of Done:
 
 Doel: gevoelige tenantdata definitief sluiten.
 
+Opleverstatus:
+
+- Payments, batches en audit wave 3/4 zijn geleverd met `063_payments_batches_audit_tenant_scope.sql`.
+- Default-fallback hardening is geleverd met `070_sprint8_tenant_id_default_hardening.sql`.
+- Staging-copy constraintvalidatie en `tenant_id SET NOT NULL` blijven `hardening-open` tot de rapportage schoon is.
+
 Taken:
 
 - Backfill reports voor documents, reports, quotes, invoices, payments, batches, audit.
@@ -254,18 +260,22 @@ Definition of Done:
 
 Doel: storage SaaS-proof maken.
 
+Opleverstatus:
+
+Status: `geleverd` voor applicatie-hardening in `docs/fieldgrid-sprint-9-storage-hardening.md`. Nieuwe assignment-media uploads gebruiken `tenant/{tenant_id}/assignments/{assignment_id}/...`; klant-, personeel- en backoffice signed URL helpers binden storage paths aan tenant en assignment voordat Supabase tekent. Fysieke objectcopy blijft copy-first stagingwerk en staat als cleanup-plan vast.
+
 Taken:
 
-- Assignment media direct tenant-aware maken.
-- Copy-first fysieke storagebackfill.
-- Canonieke paden `tenant/{tenant_id}/...`.
-- Supabase Storage policy/RLS bewijs.
-- Signed URL en path guessing tests.
-- Legacy-path cleanup-plan.
+- Assignment media direct tenant-aware maken: geleverd in upload- en signed-url runtimehelpers.
+- Copy-first fysieke storagebackfill: gepland als staging/ops-stap zonder objectverplaatsing in deze PR.
+- Canonieke paden `tenant/{tenant_id}/...`: geleverd voor assignment media als `tenant/{tenant_id}/assignments/{assignment_id}/...`.
+- Supabase Storage policy/RLS bewijs: statische policybasis bestaat; echte provider-smoke blijft vereist.
+- Signed URL en path guessing tests: statische signed-url guards geleverd; echte path-guessing integrationtest blijft vereist.
+- Legacy-path cleanup-plan: geleverd in `docs/fieldgrid-sprint-9-storage-hardening.md`.
 
 Definition of Done:
 
-- Tenant B krijgt geen Tenant A signed URL/path access.
+- Tenant B krijgt geen Tenant A signed URL/path access via applicatie-signed-url helpers.
 - Nieuwe uploads zijn tenant-prefixed.
 - Oude bestanden blijven bereikbaar tijdens transitie.
 
@@ -273,29 +283,35 @@ Definition of Done:
 
 Doel: alle gevoelige events centraal zichtbaar maken.
 
+Opleverstatus:
+
+Status: `geleverd` voor `docs/fieldgrid-sprint-10-audit-security.md`. Het dashboard combineert `support_access_audit_log` en `audit_log`, normaliseert events naar support/tenant/platform scope en ondersteunt filters per tenant, actor, eventtype en scope. Nieuwe auditinstrumentatie blijft het centrale contract volgen.
+
 Taken:
 
-- Auditcontract voor support access, downloads, PDF's, direct-ID denials, module-denials, storage-denials en platform-admin acties.
-- Support break-glass max TTL afdwingen met verplichte reden.
-- Dashboard met filters per tenant, actor, eventtype en platform/support scope.
+- Auditcontract voor support access, downloads, PDF's, direct-ID denials, module-denials, storage-denials en platform-admin acties: geleverd in `lib/db/src/platform-access.ts`.
+- Support break-glass max TTL afdwingen met verplichte reden: geleverd via `validateSupportBreakGlassGrant()`.
+- Dashboard met filters per tenant, actor, eventtype en platform/support scope: geleverd op `/platform/security`.
 
 Definition of Done:
 
 - Te lange break-glass TTL faalt.
-- Downloads en denials zijn auditbaar.
-- Tenant-admin ziet geen platform-only audit.
+- Downloads en denials zijn auditbaar zodra hun runtimepad auditregels schrijft.
+- Tenant-admin ziet geen platform-only audit via het platform-only securitydashboard.
 
 ## Sprint 11 - Module enforcement harmonisatie
 
 Doel: API, backoffice, portalen en jobs hetzelfde modulegedrag geven.
 
+Status: `geleverd` in `docs/fieldgrid-sprint-11-module-enforcement.md`. Geen schema- of migratiewijziging.
+
 Taken:
 
-- Centrale module-permission mapping.
-- Backoffice mapping gelijk trekken met API.
-- Portalguards en jobguards uitbreiden.
-- Module dependency inspectie en visualisatie.
-- Module-off tests voor UI, directe URL, server action, API en job.
+- Centrale module-permission mapping: geleverd via `FIELDGRID_PERMISSION_MODULES`.
+- Backoffice mapping gelijk trekken met API: geleverd via gedeelde mapping en effectieve permissions.
+- Portalguards en jobguards uitbreiden: geleverd via portal identity helpers en `requireJobTenantModule`.
+- Module dependency inspectie en visualisatie: geleverd op platform tenantdetail.
+- Module-off tests voor UI, directe URL, server action, API en job: statisch geborgd; Playwright/integration blijft vervolg.
 
 Definition of Done:
 
@@ -306,11 +322,22 @@ Definition of Done:
 
 Doel: platform-admin kan tenants volledig begeleid aanmaken.
 
+Status na sprint 12: `runtime-proof-open`.
+
+Geleverd:
+
+- `/platform` gebruikt een wizard voor tenantgegevens, domein, plan, modules, sectoren, regio's, owner invite, branding en review.
+- Concepten worden in `tenant_provisioning_runs` opgeslagen met `status = draft` en kunnen via querystring worden hervat.
+- Provisioning schrijft gekozen modules, sectorbeleid, tenant-regio's en branding door naar de transactionele provisioningservice.
+- Runhistorie toont status, owner invite status, foutmelding, rollbackpad, hervatten en retry.
+- Owner-invite failure gebruikt rollback en bewaart rollbackmetadata.
+
 Taken:
 
-- Wizard: tenantgegevens, domein, plan, modules, sectoren, regio's, owner invite, branding, review, runstatus, rollback.
-- Save/resume.
-- Provisioning run history en retry/foutafhandeling.
+- Wizard: tenantgegevens, domein, plan, modules, sectoren, regio's, owner invite, branding, review, runstatus, rollback. `geleverd`
+- Save/resume. `geleverd`
+- Provisioning run history en retry/foutafhandeling. `geleverd`
+- Playwright/integration bewijs voor happy path, rollback en retry. `runtime-proof-open`
 
 Definition of Done:
 
@@ -320,6 +347,14 @@ Definition of Done:
 ## Sprint 13 - Tenant first-run wizard
 
 Doel: tenant-eigenaar rondt setup actief af.
+
+Opleverstatus:
+
+- `/first-run` is een tenant-owner wizard met save/resume op bestaande tenantconfiguratie.
+- `tenant_first_run_state` bewaart required/completed wizardstappen.
+- Readiness warnings en score worden gevuld uit bedrijfsgegevens, branding, sectoren, regio's, gebruikers, modules, basisinstellingen en optionele eerste data.
+- `docs/fieldgrid-sprint-13-tenant-first-run.md` beschrijft de stagingveilige oplevering zonder nieuwe migratie.
+- `tests/fieldgrid-sprint-13-tenant-first-run.test.mjs` bewaakt action-, pagina- en canon-wiring.
 
 Taken:
 
@@ -335,6 +370,13 @@ Definition of Done:
 ## Sprint 14 - Usage, branding en operational readiness
 
 Doel: tenantbeheer productklaar maken.
+
+Opleverstatus:
+
+- `docs/fieldgrid-sprint-14-operational-readiness.md` beschrijft de geleverde tenantdetail health view.
+- Platform-admin ziet usage, brandingkanalen, planlimieten en operational readiness op tenantdetail.
+- Sprint 14 is read-only en heeft geen migratie.
+- `FG-OPS-003` en `FG-OPS-004` staan op `runtime-proof-open` totdat Tenant A/B/Veele Playwright/integration bewijs draait.
 
 Taken:
 

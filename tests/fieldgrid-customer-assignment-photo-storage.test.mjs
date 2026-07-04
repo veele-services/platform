@@ -20,13 +20,11 @@ test("customer assignment photo signed URLs require scoped storage paths", () =>
   const body = functionBlock(customerAssignments, "getMyAssignmentDetail");
 
   assert.ok(customerAssignments.includes("function getSafeCustomerAssignmentPhotoStoragePath"));
-  assert.ok(customerAssignments.includes("`tenants/${tenantId}/assignments/${assignmentId}/`"));
-  assert.ok(customerAssignments.includes("`${tenantId}/assignments/${assignmentId}/`"));
-  assert.ok(customerAssignments.includes("`assignments/${assignmentId}/`"));
-  assert.ok(customerAssignments.includes("`${assignmentId}/`"));
-  assert.ok(customerAssignments.includes('if (/^[a-z][a-z\\d+.-]*:\\/\\//i.test(normalized)) return null;'));
-  assert.ok(customerAssignments.includes('if (normalized.includes("\\\\")) return null;'));
-  assert.ok(customerAssignments.includes('normalized.split("/").some((segment) => !segment || segment === "..")'));
+  assert.ok(customerAssignments.includes("getTenantBoundAssignmentMediaStoragePath"));
+  assert.ok(customerAssignments.includes("allowLegacyAssignmentRoot: true"));
+  assert.ok(customerAssignments.includes("allowLegacyPluralTenantRoot: true"));
+  assert.ok(customerAssignments.includes("allowLegacyTenantRoot: true"));
+  assert.doesNotMatch(customerAssignments, /const allowedPrefixes = \[/u);
 
   assert.match(body, /eq\(assignmentsTable\.customerId, identity\.customerId\)/u);
   assert.match(body, /eq\(assignmentsTable\.tenantId,\s+identity\.tenantId\)/u);

@@ -1,11 +1,21 @@
 import Link from "next/link";
 import {
   listPlatformSecurityDashboard,
+  type PlatformSecurityDashboardFilters,
   type PlatformSecurityEventRow,
 } from "@/app/actions/platform";
 
 export const metadata = {
   title: "Securitydashboard",
+};
+
+type Props = {
+  searchParams: Promise<{
+    tenantId?: string;
+    actorId?: string;
+    eventType?: string;
+    scope?: string;
+  }>;
 };
 
 function formatDate(value: string): string {
@@ -28,6 +38,24 @@ function metadataLabel(metadata: Record<string, unknown> | null): string {
 
   if (grantType) return grantType;
   return JSON.stringify(metadata).slice(0, 120);
+}
+
+function parseFilterValue(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  return trimmed || undefined;
+}
+
+function parseSecurityFilters(searchParams: Awaited<Props["searchParams"]>): PlatformSecurityDashboardFilters {
+  return {
+    tenantId: parseFilterValue(searchParams.tenantId),
+    actorId: parseFilterValue(searchParams.actorId),
+    eventType: parseFilterValue(searchParams.eventType) as PlatformSecurityDashboardFilters["eventType"],
+    scope: parseFilterValue(searchParams.scope) as PlatformSecurityDashboardFilters["scope"],
+  };
+}
+
+function categoryLabel(event: PlatformSecurityEventRow): string {
+  return event.categories.length > 0 ? event.categories.join(", ") : "-";
 }
 
 function EventTable({
@@ -54,8 +82,10 @@ function EventTable({
           <thead className="bg-slate-100 text-xs uppercase text-slate-500">
             <tr>
               <th className="px-3 py-2 font-semibold">Tenant</th>
+              <th className="px-3 py-2 font-semibold">Scope</th>
               <th className="px-3 py-2 font-semibold">Actie</th>
               <th className="px-3 py-2 font-semibold">Resource</th>
+              <th className="px-3 py-2 font-semibold">Actor</th>
               <th className="px-3 py-2 font-semibold">Context</th>
               <th className="px-3 py-2 font-semibold">Tijd</th>
             </tr>
@@ -64,15 +94,17 @@ function EventTable({
             {events.map((event) => (
               <tr key={event.id} className="border-t border-slate-100">
                 <td className="px-3 py-2 font-medium text-slate-950">{event.tenantName}</td>
+                <td className="px-3 py-2 text-slate-600">{event.scope} / {categoryLabel(event)}</td>
                 <td className="px-3 py-2 text-slate-700">{event.action}</td>
                 <td className="px-3 py-2 text-slate-600">{event.resource ?? "-"}</td>
+                <td className="max-w-44 truncate px-3 py-2 text-slate-600">{event.actorId}</td>
                 <td className="max-w-80 truncate px-3 py-2 text-slate-600">{metadataLabel(event.metadata)}</td>
                 <td className="px-3 py-2 text-slate-600">{formatDate(event.createdAt)}</td>
               </tr>
             ))}
             {events.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-3 py-6 text-center text-sm text-slate-500">
+                <td colSpan={7} className="px-3 py-6 text-center text-sm text-slate-500">
                   Geen events gevonden in de huidige auditbasis.
                 </td>
               </tr>
@@ -84,8 +116,9 @@ function EventTable({
   );
 }
 
-export default async function PlatformSecurityPage() {
-  const dashboard = await listPlatformSecurityDashboard();
+export default async function PlatformSecurityPage({ searchParams }: Props) {
+  const filters = parseSecurityFilters(await searchParams);
+  const dashboard = await listPlatformSecurityDashboard(filters);
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-8 text-slate-950">
@@ -98,11 +131,61 @@ export default async function PlatformSecurityPage() {
             <p className="text-sm font-medium text-slate-500">Fieldgrid security</p>
             <h1 className="text-3xl font-semibold tracking-normal">Securitydashboard</h1>
             <p className="mt-1 text-sm text-slate-500">
-              Read-only overzicht van support access, downloads, denials en platformwijzigingen op basis van bestaande auditregels.
+              Read-only overzicht van support access, downloads, denials en platformwijzigingen op basis van support- en tenant-auditregels.
             </p>
             <p className="mt-2 text-xs text-slate-400">Gegenereerd: {formatDate(dashboard.generatedAt)}</p>
           </div>
         </header>
+
+        <form method="get" className="grid gap-3 rounded border border-slate-200 bg-white p-4 md:grid-cols-[1fr_1fr_0.8fr_0.8fr_auto] md:items-end">
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Tenant
+            <select name="tenantId" defaultValue={dashboard.filters.tenantId ?? ""} className="rounded border border-slate-300 px-3 py-2 text-sm">
+              <option value="">Alle tenants</option>
+              {dashboard.tenantOptions.map((tenant) => (
+                <option key={tenant.id} value={tenant.id}>
+                  {tenant.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Actor ID
+            <input
+              name="actorId"
+              defaultValue={dashboard.filters.actorId ?? ""}
+              className="rounded border border-slate-300 px-3 py-2 text-sm"
+              placeholder="User of platform-user UUID"
+            />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Eventtype
+            <select name="eventType" defaultValue={dashboard.filters.eventType} className="rounded border border-slate-300 px-3 py-2 text-sm">
+              <option value="all">Alle events</option>
+              <option value="support">Support</option>
+              <option value="download">Downloads/PDF</option>
+              <option value="denial">Denials</option>
+              <option value="platform">Platform</option>
+            </select>
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Scope
+            <select name="scope" defaultValue={dashboard.filters.scope} className="rounded border border-slate-300 px-3 py-2 text-sm">
+              <option value="all">Alle scopes</option>
+              <option value="support">Support</option>
+              <option value="tenant">Tenant-audit</option>
+              <option value="platform">Platform-only</option>
+            </select>
+          </label>
+          <div className="flex gap-2">
+            <button type="submit" className="rounded bg-slate-950 px-4 py-2 text-sm font-semibold text-white transition hover:bg-slate-800">
+              Filter
+            </button>
+            <Link href="/platform/security" className="rounded border border-slate-300 px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100">
+              Reset
+            </Link>
+          </div>
+        </form>
 
         <div className="grid gap-3 md:grid-cols-4">
           <div className="rounded border border-slate-200 bg-white px-4 py-3">
