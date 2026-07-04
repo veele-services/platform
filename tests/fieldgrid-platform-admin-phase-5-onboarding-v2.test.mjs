@@ -1,0 +1,75 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { test } from "node:test";
+
+function read(path) {
+  return readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+}
+
+function assertIncludes(content, phrases, label) {
+  for (const phrase of phrases) {
+    assert.ok(content.includes(phrase), `${label} should include ${phrase}`);
+  }
+}
+
+test("platform onboarding v2 adds preflight, workspace and rollback actions", () => {
+  const action = read("artifacts/backoffice/src/app/actions/platform-provisioning.ts");
+
+  assertIncludes(
+    action,
+    [
+      "ONBOARDING_WIZARD_STEPS",
+      "readOnboardingPreflight",
+      "Duplicate slug",
+      "Duplicate domain",
+      "fieldgridSubdomain",
+      "getPlatformOnboardingWorkspace",
+      "rollbackPlatformTenantProvisioning",
+      "tenantFirstRunStateTable",
+      "firstRunReadiness",
+      "preflightStatus",
+    ],
+    "platform onboarding v2 actions",
+  );
+});
+
+test("platform onboarding v2 has a dedicated mobile-safe platform route", () => {
+  const page = read("artifacts/backoffice/src/app/(platform)/platform/onboarding/page.tsx");
+  const shell = read("artifacts/backoffice/src/components/platform/PlatformShell.tsx");
+  const dashboard = read("artifacts/backoffice/src/app/(platform)/platform/page.tsx");
+
+  assertIncludes(
+    `${page}\n${shell}\n${dashboard}`,
+    [
+      "Onboarding en provisioning 2.0",
+      "Fieldgrid subdomain",
+      "Preflight",
+      "Duplicate slug/domain",
+      "Tenant provisionen",
+      "Concept opslaan",
+      "Provisioning runs",
+      "Rollback provisioning",
+      "href=\"/platform/onboarding\"",
+      "Open Onboarding 2.0",
+    ],
+    "platform onboarding v2 route",
+  );
+});
+
+test("platform onboarding v2 docs capture acceptance and runtime boundary", () => {
+  const doc = read("docs/fieldgrid-platform-admin-phase-5-onboarding-v2.md");
+
+  assertIncludes(
+    doc,
+    [
+      "/platform/onboarding",
+      "demo-x.fieldgrid.nl",
+      "Duplicate slug/domain",
+      "Save/resume",
+      "owner invite",
+      "first-run",
+      "staging-smoke",
+    ],
+    "platform onboarding v2 docs",
+  );
+});

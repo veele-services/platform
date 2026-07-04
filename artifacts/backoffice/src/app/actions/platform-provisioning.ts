@@ -4,12 +4,17 @@ import {
   FIELDGRID_BRAND_DEFAULTS,
   completeProvisionedTenantOwnerInvite,
   db,
+  defaultTenantDomainForSlug,
+  isPlatformHost,
   modulesTable,
+  normalizeHost,
   normalizeTenantProvisioningSlug,
   plansTable,
   provisionTenant,
   rollbackProvisionedTenant,
   sectorsTable,
+  tenantDomainsTable,
+  tenantFirstRunStateTable,
   tenantProvisioningRunsTable,
   tenantsTable,
   type TenantPlanKey,
@@ -25,6 +30,21 @@ import { requirePlatformAdmin, writeSupportAccessAuditLog } from "@/lib/auth/pla
 const TENANT_PLAN_KEYS = ["starter", "professional", "enterprise"] as const;
 const TENANT_SECTOR_POLICY_MODES = ["single", "multi"] as const;
 const COLOR_PATTERN = /^#[0-9a-f]{6}$/iu;
+const TENANT_SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{1,78}[a-z0-9]$/u;
+const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/u;
+
+const ONBOARDING_WIZARD_STEPS = [
+  "tenantgegevens",
+  "plan",
+  "fieldgrid_subdomain",
+  "modules",
+  "sectoren",
+  "regios",
+  "branding",
+  "owner_invite",
+  "review",
+  "provisioning_run",
+] as const;
 
 type PlatformActor = Awaited<ReturnType<typeof requirePlatformAdmin>>;
 
@@ -75,6 +95,31 @@ export type PlatformOnboardingDraft = PlatformOnboardingInput & {
   savedAt: string;
 };
 
+export type PlatformOnboardingPreflightStatus = "ready" | "warning" | "blocked";
+
+export type PlatformOnboardingPreflightCheck = {
+  id: string;
+  label: string;
+  status: PlatformOnboardingPreflightStatus;
+  detail: string;
+};
+
+export type PlatformOnboardingPreflight = {
+  status: PlatformOnboardingPreflightStatus;
+  canProvision: boolean;
+  slug: string | null;
+  primaryDomain: string | null;
+  fieldgridSubdomain: string | null;
+  checks: PlatformOnboardingPreflightCheck[];
+};
+
+export type PlatformProvisioningStepRow = {
+  id: string;
+  label: string;
+  status: "pending" | "active" | "completed" | "failed" | "rolled_back";
+  detail: string;
+};
+
 export type PlatformProvisioningRunRow = {
   id: string;
   tenantId: string | null;
@@ -96,8 +141,21 @@ export type PlatformProvisioningRunRow = {
   brandingDisplayName: string | null;
   reviewStatus: string;
   rollbackPath: string;
+  steps: PlatformProvisioningStepRow[];
+  firstRunStatus: string | null;
+  firstRunCompletedSteps: number;
+  firstRunRequiredSteps: number;
+  readinessLabel: string;
   canResume: boolean;
   canRetry: boolean;
+  canRollback: boolean;
+};
+
+export type PlatformOnboardingWorkspace = {
+  catalog: PlatformOnboardingCatalog;
+  draft: PlatformOnboardingDraft | null;
+  preflight: PlatformOnboardingPreflight | null;
+  runs: PlatformProvisioningRunRow[];
 };
 
 function actionValue(formData: FormData, name: string): string {
@@ -207,7 +265,8 @@ function parseOnboardingInput(formData: FormData): PlatformOnboardingInput {
   const requestedSlug = actionValue(formData, "slug");
   const slug = requestedSlug ? normalizeTenantProvisioningSlug(requestedSlug) : null;
   const planKey = normalizePlanKey(actionValue(formData, "planKey"));
-  const primaryDomain = actionValue(formData, "domain") || null;
+  const fieldgridSubdomain = normalizeTenantProvisioningSlug(actionValue(formData, "fieldgridSubdomain"));
+  const primaryDomain = actionValue(formData, "domain") || (fieldgridSubdomain ? defaultTenantDomainForSlug(fieldgridSubdomain) : null);
   const ownerEmail = actionValue(formData, "ownerEmail").toLowerCase();
   const sectorIds = actionValues(formData, "sectorIds");
   const defaultSectorId = actionValue(formData, "defaultSectorId") || sectorIds[0] || null;
@@ -234,20 +293,28 @@ function parseOnboardingInput(formData: FormData): PlatformOnboardingInput {
   };
 }
 
-function metadataForInput(input: PlatformOnboardingInput, actor: PlatformActor, sourceRunId: string | null, reviewStatus: "draft" | "approved") {
+function metadataForInput(
+  input: PlatformOnboardingInput,
+  actor: PlatformActor,
+  sourceRunId: string | null,
+  reviewStatus: "draft" | "approved",
+  preflight: PlatformOnboardingPreflight | null = null,
+) {
   return {
     source: "platform-admin-onboarding-wizard",
     actorPlatformUserId: actor.id,
     ownerInviteRequested: Boolean(input.ownerEmail),
     sourceRunId,
     onboardingWizard: {
-      version: 1,
+      version: 2,
       reviewStatus,
       saveResume: true,
+      steps: [...ONBOARDING_WIZARD_STEPS],
       name: input.name,
       slug: input.slug,
       planKey: input.planKey,
       primaryDomain: input.primaryDomain,
+      fieldgridSubdomain: preflight?.fieldgridSubdomain ?? null,
       ownerEmail: input.ownerEmail,
       moduleKeys: input.moduleKeys,
       sectorIds: input.sectorIds,
@@ -256,6 +323,18 @@ function metadataForInput(input: PlatformOnboardingInput, actor: PlatformActor, 
       regionNames: input.regionNames,
       branding: input.branding,
       reviewNotes: input.reviewNotes,
+      preflight: preflight
+        ? {
+            status: preflight.status,
+            canProvision: preflight.canProvision,
+            checkedAt: new Date().toISOString(),
+            checks: preflight.checks,
+          }
+        : null,
+      firstRunReadiness: {
+        ownerInviteRequired: true,
+        requiredSteps: ["branding", "users", "sectors", "modules"],
+      },
       savedAt: new Date().toISOString(),
     },
   };
@@ -272,6 +351,206 @@ function runRollbackPath(row: { status: string; currentStep: string; tenantId: s
   if (row.status === "failed") return "Geen tenant aangemaakt; hervat of retry de wizard na correctie.";
   if (row.currentStep === "owner_invite_pending") return "Tenant bestaat; owner invite kan opnieuw worden opgepakt.";
   return "Niet nodig.";
+}
+
+function effectiveOnboardingSlug(input: PlatformOnboardingInput): string | null {
+  const slug = input.slug || normalizeTenantProvisioningSlug(input.name || "");
+  return slug || null;
+}
+
+function effectiveOnboardingDomain(input: PlatformOnboardingInput, slug: string | null): string | null {
+  const domain = normalizeHost(input.primaryDomain || (slug ? defaultTenantDomainForSlug(slug) : ""));
+  return domain || null;
+}
+
+function fieldgridSubdomainFromDomain(domain: string | null): string | null {
+  if (!domain?.endsWith(".fieldgrid.nl")) return null;
+  return domain.slice(0, -".fieldgrid.nl".length);
+}
+
+function preflightStatus(checks: PlatformOnboardingPreflightCheck[]): PlatformOnboardingPreflightStatus {
+  if (checks.some((check) => check.status === "blocked")) return "blocked";
+  if (checks.some((check) => check.status === "warning")) return "warning";
+  return "ready";
+}
+
+function provisioningStepStatus(input: {
+  stepIndex: number;
+  activeIndex: number;
+  runStatus: string;
+}): PlatformProvisioningStepRow["status"] {
+  if (input.runStatus === "rolled_back") {
+    return input.stepIndex <= input.activeIndex ? "rolled_back" : "pending";
+  }
+  if (input.runStatus === "failed") {
+    if (input.stepIndex < input.activeIndex) return "completed";
+    return input.stepIndex === input.activeIndex ? "failed" : "pending";
+  }
+  if (input.runStatus === "draft") return input.stepIndex === 0 ? "active" : "pending";
+  if (input.stepIndex < input.activeIndex) return "completed";
+  if (input.stepIndex === input.activeIndex) return input.runStatus === "succeeded" ? "completed" : "active";
+  return "pending";
+}
+
+function buildProvisioningSteps(row: {
+  status: string;
+  currentStep: string;
+  ownerInviteStatus: string;
+  errorMessage: string | null;
+  firstRunStatus: string | null;
+}): PlatformProvisioningStepRow[] {
+  const steps = [
+    { id: "draft", label: "Concept", detail: "Tenantgegevens, plan en scope zijn opgeslagen." },
+    { id: "preflight", label: "Preflight", detail: "Slug, domein en owner invite worden server-side gecontroleerd." },
+    { id: "tenant", label: "Tenant", detail: "Tenantrecord, hostcontext en plan worden aangemaakt." },
+    { id: "configuration", label: "Configuratie", detail: "Modules, sectoren, regio's en branding worden gezaaid." },
+    { id: "owner_invite_pending", label: "Owner invite", detail: `Owner invite status: ${row.ownerInviteStatus}.` },
+    { id: "completed", label: "First-run", detail: `Tenant first-run status: ${row.firstRunStatus ?? "pending"}.` },
+  ];
+  const currentStep = row.status === "draft" ? "draft" : row.currentStep;
+  const activeIndex = Math.max(0, steps.findIndex((step) => step.id === currentStep || (currentStep === "failed" && step.id === "preflight")));
+
+  return steps.map((step, index) => ({
+    ...step,
+    status: provisioningStepStatus({
+      stepIndex: index,
+      activeIndex,
+      runStatus: row.status,
+    }),
+    detail: row.status === "failed" && index === activeIndex && row.errorMessage ? row.errorMessage : step.detail,
+  }));
+}
+
+function readinessLabel(input: {
+  status: string;
+  ownerInviteStatus: string;
+  firstRunStatus: string | null;
+  firstRunCompletedSteps: number;
+  firstRunRequiredSteps: number;
+}): string {
+  if (input.status === "failed" || input.status === "rolled_back") return "Provisioning geblokkeerd";
+  if (input.ownerInviteStatus !== "sent" && input.ownerInviteStatus !== "accepted") return "Owner invite open";
+  if (input.firstRunStatus === "completed" || input.firstRunStatus === "skipped") return "First-run afgerond";
+  return `First-run ${input.firstRunCompletedSteps}/${input.firstRunRequiredSteps}`;
+}
+
+async function readOnboardingPreflight(input: PlatformOnboardingInput): Promise<PlatformOnboardingPreflight> {
+  const slug = effectiveOnboardingSlug(input);
+  const primaryDomain = effectiveOnboardingDomain(input, slug);
+  const checks: PlatformOnboardingPreflightCheck[] = [];
+
+  checks.push({
+    id: "tenantgegevens",
+    label: "Tenantgegevens",
+    status: input.name.trim() ? "ready" : "blocked",
+    detail: input.name.trim() ? "Tenantnaam is ingevuld." : "Tenantnaam is verplicht.",
+  });
+
+  checks.push({
+    id: "slug",
+    label: "Slug",
+    status: slug && TENANT_SLUG_PATTERN.test(slug) ? "ready" : "blocked",
+    detail: slug && TENANT_SLUG_PATTERN.test(slug)
+      ? `Slug wordt ${slug}.`
+      : "Slug moet 3-80 tekens zijn en alleen kleine letters, cijfers en koppeltekens bevatten.",
+  });
+
+  checks.push({
+    id: "fieldgrid_subdomain",
+    label: "Fieldgrid subdomain",
+    status: primaryDomain?.endsWith(".fieldgrid.nl") ? "ready" : "warning",
+    detail: primaryDomain?.endsWith(".fieldgrid.nl")
+      ? `${primaryDomain} wordt direct geverifieerd.`
+      : "Geen Fieldgrid subdomain ingevuld; custom domains blijven pending tot DNS-verificatie.",
+  });
+
+  checks.push({
+    id: "domain",
+    label: "Primair domein",
+    status: primaryDomain && !isPlatformHost(primaryDomain) ? "ready" : "blocked",
+    detail: !primaryDomain
+      ? "Primair domein ontbreekt."
+      : isPlatformHost(primaryDomain)
+        ? "Platformhosts kunnen niet aan een tenant worden gekoppeld."
+        : `Primair domein wordt ${primaryDomain}.`,
+  });
+
+  checks.push({
+    id: "owner_invite",
+    label: "Owner invite",
+    status: EMAIL_PATTERN.test(input.ownerEmail) ? "ready" : "blocked",
+    detail: EMAIL_PATTERN.test(input.ownerEmail)
+      ? `Owner invite gaat naar ${input.ownerEmail}.`
+      : "Een geldig owner e-mailadres is verplicht.",
+  });
+
+  if (slug && TENANT_SLUG_PATTERN.test(slug)) {
+    const [duplicateSlug] = await db
+      .select({ id: tenantsTable.id })
+      .from(tenantsTable)
+      .where(eq(tenantsTable.slug, slug))
+      .limit(1);
+
+    checks.push({
+      id: "duplicate_slug",
+      label: "Duplicate slug",
+      status: duplicateSlug ? "blocked" : "ready",
+      detail: duplicateSlug ? "Er bestaat al een tenant met deze slug." : "Slug is nog vrij.",
+    });
+  }
+
+  if (primaryDomain && !isPlatformHost(primaryDomain)) {
+    const [duplicateDomain] = await db
+      .select({ id: tenantDomainsTable.id })
+      .from(tenantDomainsTable)
+      .where(eq(tenantDomainsTable.domain, primaryDomain))
+      .limit(1);
+
+    checks.push({
+      id: "duplicate_domain",
+      label: "Duplicate domain",
+      status: duplicateDomain ? "blocked" : "ready",
+      detail: duplicateDomain ? "Dit domein is al gekoppeld aan een tenant." : "Domein is nog vrij.",
+    });
+  }
+
+  checks.push({
+    id: "modules",
+    label: "Modules",
+    status: input.moduleKeys.length > 0 ? "ready" : "warning",
+    detail: input.moduleKeys.length > 0 ? `${input.moduleKeys.length} module(s) geselecteerd.` : "Geen modules geselecteerd; plan-defaults worden gebruikt.",
+  });
+
+  checks.push({
+    id: "sectoren",
+    label: "Sectoren",
+    status: input.sectorIds.length > 0 ? "ready" : "warning",
+    detail: input.sectorIds.length > 0 ? `${input.sectorIds.length} sector(en) geselecteerd.` : "Geen sectoren geselecteerd; actieve sectors worden gebruikt.",
+  });
+
+  checks.push({
+    id: "regios",
+    label: "Regio's",
+    status: input.regionNames.length > 0 ? "ready" : "warning",
+    detail: input.regionNames.length > 0 ? `${input.regionNames.length} regio(s) klaar voor provisioning.` : "Regio's kunnen later worden toegevoegd.",
+  });
+
+  checks.push({
+    id: "first_run",
+    label: "First-run readiness",
+    status: "ready",
+    detail: "Provisioning maakt tenant first-run pending met branding, users, sectors en modules als readiness-stappen.",
+  });
+
+  const status = preflightStatus(checks);
+  return {
+    status,
+    canProvision: status !== "blocked",
+    slug,
+    primaryDomain,
+    fieldgridSubdomain: fieldgridSubdomainFromDomain(primaryDomain),
+    checks,
+  };
 }
 
 async function inviteOwnerByEmail(email: string): Promise<string> {
@@ -339,6 +618,12 @@ async function runPlatformTenantProvisioning(
     throw new Error("Owner e-mail is verplicht voor tenant provisioning.");
   }
 
+  const preflight = await readOnboardingPreflight(input);
+  if (!preflight.canProvision) {
+    const blocked = preflight.checks.filter((check) => check.status === "blocked");
+    throw new Error(blocked.map((check) => check.detail).join(" ") || "Onboarding preflight blokkeert provisioning.");
+  }
+
   const result = await provisionTenant({
     name: input.name,
     slug: input.slug,
@@ -352,7 +637,7 @@ async function runPlatformTenantProvisioning(
     sectorMode: input.sectorMode,
     regionNames: input.regionNames,
     branding: input.branding,
-    metadata: metadataForInput(input, actor, sourceRunId, "approved"),
+    metadata: metadataForInput(input, actor, sourceRunId, "approved", preflight),
   });
 
   try {
@@ -385,6 +670,7 @@ async function runPlatformTenantProvisioning(
       primaryDomain: result.primaryDomain,
       ownerInviteRequested: true,
       sourceRunId,
+      preflightStatus: preflight.status,
     },
   });
 
@@ -447,9 +733,13 @@ export async function listTenantProvisioningRuns(limit = 12): Promise<PlatformPr
       metadata: tenantProvisioningRunsTable.metadata,
       startedAt: tenantProvisioningRunsTable.startedAt,
       completedAt: tenantProvisioningRunsTable.completedAt,
+      firstRunStatus: tenantFirstRunStateTable.status,
+      firstRunRequiredSteps: tenantFirstRunStateTable.requiredSteps,
+      firstRunCompletedSteps: tenantFirstRunStateTable.completedSteps,
     })
     .from(tenantProvisioningRunsTable)
     .leftJoin(tenantsTable, eq(tenantProvisioningRunsTable.tenantId, tenantsTable.id))
+    .leftJoin(tenantFirstRunStateTable, eq(tenantFirstRunStateTable.tenantId, tenantProvisioningRunsTable.tenantId))
     .orderBy(desc(tenantProvisioningRunsTable.startedAt))
     .limit(Math.min(Math.max(limit, 1), 50));
 
@@ -467,8 +757,26 @@ export async function listTenantProvisioningRuns(limit = 12): Promise<PlatformPr
       brandingDisplayName: optionalString(branding.displayName),
       reviewStatus: optionalString(wizard.reviewStatus) ?? "-",
       rollbackPath: runRollbackPath(row),
+      steps: buildProvisioningSteps({
+        status: row.status,
+        currentStep: row.currentStep,
+        ownerInviteStatus: row.ownerInviteStatus,
+        errorMessage: row.errorMessage,
+        firstRunStatus: row.firstRunStatus,
+      }),
+      firstRunStatus: row.firstRunStatus,
+      firstRunCompletedSteps: Array.isArray(row.firstRunCompletedSteps) ? row.firstRunCompletedSteps.length : 0,
+      firstRunRequiredSteps: Array.isArray(row.firstRunRequiredSteps) ? row.firstRunRequiredSteps.length : 0,
+      readinessLabel: readinessLabel({
+        status: row.status,
+        ownerInviteStatus: row.ownerInviteStatus,
+        firstRunStatus: row.firstRunStatus,
+        firstRunCompletedSteps: Array.isArray(row.firstRunCompletedSteps) ? row.firstRunCompletedSteps.length : 0,
+        firstRunRequiredSteps: Array.isArray(row.firstRunRequiredSteps) ? row.firstRunRequiredSteps.length : 0,
+      }),
       canResume: row.status === "draft" && row.currentStep === "draft",
       canRetry: row.status === "failed" || row.status === "rolled_back",
+      canRollback: Boolean(row.tenantId && row.status === "failed"),
     };
   });
 }
@@ -479,14 +787,16 @@ export async function savePlatformOnboardingDraft(formData: FormData): Promise<v
   const draftRunId = actionValue(formData, "draftRunId");
   const name = input.name || "Concept tenant";
   const slug = fallbackDraftSlug(input);
-  const metadata = metadataForInput({ ...input, name, slug }, actor, draftRunId || null, "draft");
+  const draftInput = { ...input, name, slug };
+  const preflight = await readOnboardingPreflight(draftInput);
+  const metadata = metadataForInput(draftInput, actor, draftRunId || null, "draft", preflight);
   const ownerInviteStatus: "pending" | "not_requested" = input.ownerEmail ? "pending" : "not_requested";
   const values = {
     requestedBy: actor.userId,
     name,
     slug,
-    planKey: input.planKey,
-    primaryDomain: input.primaryDomain,
+    planKey: draftInput.planKey,
+    primaryDomain: preflight.primaryDomain ?? draftInput.primaryDomain,
     ownerEmail: input.ownerEmail || null,
     ownerInviteStatus,
     status: "draft" as const,
@@ -511,7 +821,8 @@ export async function savePlatformOnboardingDraft(formData: FormData): Promise<v
   }
 
   revalidatePath("/platform");
-  redirect(`/platform?onboardingDraft=${runId}`);
+  revalidatePath("/platform/onboarding");
+  redirect(`/platform/onboarding?onboardingDraft=${runId}`);
 }
 
 export async function retryPlatformTenantProvisioning(formData: FormData): Promise<void> {
@@ -525,6 +836,7 @@ export async function retryPlatformTenantProvisioning(formData: FormData): Promi
   const result = await runPlatformTenantProvisioning(draft, actor, sourceRunId);
 
   revalidatePath("/platform");
+  revalidatePath("/platform/onboarding");
   revalidatePath(`/platform/tenants/${result.tenantId}`);
   redirect(`/platform/tenants/${result.tenantId}`);
 }
@@ -536,6 +848,58 @@ export async function createPlatformTenant(formData: FormData): Promise<void> {
   const result = await runPlatformTenantProvisioning(input, actor, draftRunId);
 
   revalidatePath("/platform");
+  revalidatePath("/platform/onboarding");
   revalidatePath(`/platform/tenants/${result.tenantId}`);
   redirect(`/platform/tenants/${result.tenantId}`);
+}
+
+export async function rollbackPlatformTenantProvisioning(formData: FormData): Promise<void> {
+  const actor = await requirePlatformAdmin();
+  const runId = actionValue(formData, "runId");
+  if (!runId) throw new Error("Provisioning run ontbreekt.");
+
+  const [run] = await db
+    .select({
+      tenantId: tenantProvisioningRunsTable.tenantId,
+      status: tenantProvisioningRunsTable.status,
+      errorMessage: tenantProvisioningRunsTable.errorMessage,
+    })
+    .from(tenantProvisioningRunsTable)
+    .where(eq(tenantProvisioningRunsTable.id, runId))
+    .limit(1);
+
+  if (!run?.tenantId) throw new Error("Rollback kan alleen op een run met aangemaakte tenant.");
+  if (run.status !== "failed") throw new Error("Rollback is alleen beschikbaar voor mislukte provisioning runs.");
+
+  await writeSupportAccessAuditLog({
+    tenantId: run.tenantId,
+    action: "tenant_provisioning_rollback_requested",
+    resource: "tenant_provisioning_runs",
+    resourceId: runId,
+    metadata: { reason: run.errorMessage ?? "Handmatige rollback vanuit platform onboarding." },
+  });
+
+  await rollbackProvisionedTenant({
+    tenantId: run.tenantId,
+    runId,
+    requestedBy: actor.userId,
+    reason: run.errorMessage ?? "Handmatige rollback vanuit platform onboarding.",
+  });
+
+  revalidatePath("/platform");
+  revalidatePath("/platform/onboarding");
+  redirect("/platform/onboarding#provisioning-runs");
+}
+
+export async function getPlatformOnboardingWorkspace(onboardingDraft?: string): Promise<PlatformOnboardingWorkspace> {
+  await requirePlatformAdmin();
+
+  const [catalog, draft, runs] = await Promise.all([
+    listPlatformOnboardingCatalog(),
+    onboardingDraft ? getPlatformOnboardingDraft(onboardingDraft) : Promise.resolve(null),
+    listTenantProvisioningRuns(20),
+  ]);
+
+  const preflight = draft ? await readOnboardingPreflight(draft) : null;
+  return { catalog, draft, preflight, runs };
 }
