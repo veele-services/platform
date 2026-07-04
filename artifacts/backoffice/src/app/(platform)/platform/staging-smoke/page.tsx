@@ -1,7 +1,10 @@
 import Link from "next/link";
 import {
   getPlatformStagingSmokeDashboard,
+  type PlatformLiveSmokeTarget,
+  type PlatformMutatingSmokeCheck,
   type PlatformSmokeCheck,
+  type PlatformSmokeRunHistoryEntry,
   type PlatformSmokeStatus,
 } from "@/app/actions/platform-smoke";
 
@@ -88,12 +91,89 @@ function Stat({ label, value }: { label: string; value: string | number }) {
   );
 }
 
+function RunHistoryCard({ run }: { run: PlatformSmokeRunHistoryEntry }) {
+  return (
+    <div className="rounded border border-slate-200 bg-white p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium uppercase text-slate-500">{run.kind}</p>
+          <h3 className="mt-1 font-semibold text-slate-950">{run.label}</h3>
+        </div>
+        <span className={`rounded border px-2 py-1 text-xs font-semibold ${statusClass(run.status)}`}>
+          {STATUS_LABELS[run.status]}
+        </span>
+      </div>
+      <p className="mt-2 text-sm text-slate-600">{run.summary}</p>
+      <p className="mt-2 text-xs text-slate-500">{formatDate(run.finishedAt)} - {run.source}</p>
+      {run.artifactPath && <p className="mt-1 text-xs font-medium text-slate-600">{run.artifactPath}</p>}
+      <div className="mt-3 flex flex-wrap gap-2">
+        {run.checks.slice(0, 8).map((check) => (
+          <span key={check} className="rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">{check}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function LiveSmokeCard({ smoke }: { smoke: PlatformLiveSmokeTarget }) {
+  return (
+    <div className="rounded border border-slate-200 bg-white p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium uppercase text-slate-500">{smoke.host}{smoke.route}</p>
+          <h3 className="mt-1 font-semibold text-slate-950">{smoke.label}</h3>
+        </div>
+        <span className={`rounded border px-2 py-1 text-xs font-semibold ${statusClass(smoke.status)}`}>
+          {STATUS_LABELS[smoke.status]}
+        </span>
+      </div>
+      <p className="mt-2 text-sm text-slate-600">{smoke.command}</p>
+      <p className="mt-2 text-sm font-medium text-slate-800">Volgende actie</p>
+      <p className="mt-1 text-sm text-slate-600">{smoke.nextAction}</p>
+      <div className="mt-3 flex flex-wrap gap-2">
+        {smoke.testIds.map((testId) => (
+          <span key={testId} className="rounded bg-slate-100 px-2 py-1 text-xs font-medium text-slate-600">{testId}</span>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function MutatingCheckCard({ check }: { check: PlatformMutatingSmokeCheck }) {
+  return (
+    <div className="rounded border border-slate-200 bg-white p-4">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="text-xs font-medium uppercase text-slate-500">{check.tenantScope}</p>
+          <h3 className="mt-1 font-semibold text-slate-950">{check.label}</h3>
+        </div>
+        <span className={`rounded border px-2 py-1 text-xs font-semibold ${statusClass(check.status)}`}>
+          {STATUS_LABELS[check.status]}
+        </span>
+      </div>
+      <dl className="mt-3 grid gap-2 text-sm">
+        <div className="flex justify-between gap-3 rounded bg-slate-50 px-3 py-2">
+          <dt className="text-slate-500">Cleanup</dt>
+          <dd className="font-medium text-slate-950">{check.cleanupStatus}</dd>
+        </div>
+        <div className="flex justify-between gap-3 rounded bg-slate-50 px-3 py-2">
+          <dt className="text-slate-500">Confirm</dt>
+          <dd className="font-medium text-slate-950">{check.confirmVar}</dd>
+        </div>
+      </dl>
+      <p className="mt-3 text-xs font-medium text-slate-600">{check.cleanupSelector}</p>
+      <p className="mt-2 text-sm text-slate-600">{check.nextAction}</p>
+    </div>
+  );
+}
+
 export default async function PlatformStagingSmokePage() {
   const dashboard = await getPlatformStagingSmokeDashboard();
   const requiredChecks = new Set(dashboard.minimumGreen);
   const blockingChecks = dashboard.checks.filter((check) => check.status === "blocked").length;
   const warningChecks = dashboard.checks.filter((check) => check.status === "warning").length;
   const okChecks = dashboard.checks.filter((check) => check.status === "ok").length;
+  const liveReadyChecks = dashboard.liveSmokes.filter((smoke) => smoke.status === "ok").length;
 
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-8 text-slate-950">
@@ -120,11 +200,13 @@ export default async function PlatformStagingSmokePage() {
           </div>
         </header>
 
-        <section className="grid gap-3 md:grid-cols-4">
+        <section className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
           <Stat label="Groene checks" value={okChecks} />
           <Stat label="Aandacht" value={warningChecks} />
           <Stat label="Blokkerend" value={blockingChecks} />
           <Stat label="Demo tenants" value={`${dashboard.totals.demoTenants}/3`} />
+          <Stat label="Run history" value={dashboard.runHistory.length} />
+          <Stat label="Live smokes" value={`${liveReadyChecks}/${dashboard.liveSmokes.length}`} />
         </section>
 
         <section className="rounded border border-slate-200 bg-white p-5">
@@ -156,7 +238,74 @@ export default async function PlatformStagingSmokePage() {
           <Stat label="Actieve tenants" value={`${dashboard.totals.activeTenants}/${dashboard.totals.tenants}`} />
           <Stat label="Actieve modules" value={dashboard.totals.enabledTenantModules} />
           <Stat label="Actieve sectoren" value={dashboard.totals.tenantSectors} />
-          <Stat label="Support audit" value={dashboard.totals.supportAuditEvents} />
+          <Stat label="Actieve regio's" value={dashboard.totals.tenantRegions} />
+        </section>
+
+        <section className="rounded border border-slate-200 bg-white p-5">
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold tracking-normal text-slate-950">Run history</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Laatste dashboard-, staging-smoke- en migration-smoke runs. JSON artifacts uit `artifacts/staging-smoke` en `artifacts/migration-smoke` verschijnen hier automatisch.
+              </p>
+            </div>
+            <span className="rounded border border-slate-200 px-2 py-1 text-xs font-medium text-slate-600">FG-OPS-008</span>
+          </div>
+          <div className="mt-4 grid gap-3 lg:grid-cols-3">
+            {dashboard.runHistory.map((run) => (
+              <RunHistoryCard key={run.id} run={run} />
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded border border-slate-200 bg-white p-5">
+          <h2 className="text-lg font-semibold tracking-normal text-slate-950">Live Playwright-smokes</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Live targets voor host, login, modules, sectoren, regio's, storage, PDF, portalen en personeelsplanning.
+          </p>
+          <div className="mt-4 grid gap-3 lg:grid-cols-2">
+            {dashboard.liveSmokes.map((smoke) => (
+              <LiveSmokeCard key={smoke.id} smoke={smoke} />
+            ))}
+          </div>
+        </section>
+
+        <section className="rounded border border-slate-200 bg-white p-5">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold tracking-normal text-slate-950">Migratie-smoke status</h2>
+              <p className="mt-1 text-sm text-slate-500">{dashboard.migrationSmoke.nextAction}</p>
+            </div>
+            <span className={`w-fit rounded border px-2 py-1 text-xs font-semibold ${statusClass(dashboard.migrationSmoke.status)}`}>
+              {STATUS_LABELS[dashboard.migrationSmoke.status]}
+            </span>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {dashboard.migrationSmoke.targets.map((target) => (
+              <div key={target.id} className="rounded border border-slate-200 bg-slate-50 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-semibold text-slate-950">{target.label}</p>
+                  <span className={`rounded border px-2 py-1 text-xs font-semibold ${statusClass(target.status)}`}>{STATUS_LABELS[target.status]}</span>
+                </div>
+                <p className="mt-2 text-xs text-slate-500">{target.requiredSecret}</p>
+                <p className="mt-1 text-xs text-slate-500">{target.confirmVar}</p>
+              </div>
+            ))}
+          </div>
+          <p className="mt-4 text-sm font-medium text-slate-800">{dashboard.migrationSmoke.command}</p>
+          <p className="mt-1 text-sm text-slate-500">Rapportmap: {dashboard.migrationSmoke.reportDirectory}</p>
+        </section>
+
+        <section className="rounded border border-slate-200 bg-white p-5">
+          <h2 className="text-lg font-semibold tracking-normal text-slate-950">Mutating checks en cleanup</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Muterende checks zijn alleen toegestaan op dedicated demo-tenants met marker-scoped cleanup en expliciete confirm-env.
+          </p>
+          <div className="mt-4 grid gap-3 lg:grid-cols-3">
+            {dashboard.mutatingChecks.map((check) => (
+              <MutatingCheckCard key={check.id} check={check} />
+            ))}
+          </div>
         </section>
 
         <div className="grid gap-5 xl:grid-cols-2">

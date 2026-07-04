@@ -1,7 +1,7 @@
 # Fieldgrid volgende grote update plan
 
-Datum: 2026-07-03
-Status: sprint 0 canon refresh 2.0. De actuele uitvoeringscanon staat in `docs/fieldgrid-saas-proof-sprint-plan.md`.
+Datum: 2026-07-04
+Status: sprint 15 staging smoke dashboard geleverd met open runtimebewijs; sprint 0 canon refresh 2.0 blijft de basis. De actuele uitvoeringscanon staat in `docs/fieldgrid-saas-proof-sprint-plan.md`.
 
 ## 1. Doel
 
@@ -156,16 +156,17 @@ Werk:
 
 Eigenaar: sprint 13.
 
-### Staging smoke is nog vooral read-only
+### Staging smoke dashboard is gebouwd
 
-Status: `partial`.
+Status: `runtime-proof-open`.
 
 Werk:
 
-- Run history.
-- Live Playwright-smokes.
-- Migratie-smokes.
-- Gecontroleerde mutating checks met cleanup.
+- Run history staat op het platform smoke dashboard.
+- Live Playwright-smoke targets zijn zichtbaar voor host, modules, sectoren, regio's, storage, PDF, portalen en personeelsplanning.
+- Migratie-smoke status verwijst naar de Sprint 7 runner en JSON artifacts.
+- Gecontroleerde mutating checks hebben demo-tenant scope, confirm-env en cleanupselectors.
+- Echte Playwright/storage/DB-runs en mutating cleanup-runs blijven open.
 
 Eigenaar: sprint 15.
 
@@ -208,7 +209,7 @@ Deze investeringen verlagen direct risico of verhogen beheerbaarheid:
 | Security dashboard | `partial` | 10 |
 | Module dependency visualisatie | `nice-to-have` | 11 |
 | Demo-data generator | `partial` | 1 |
-| Staging smoke dashboard | `partial` | 15 |
+| Staging smoke dashboard | `runtime-proof-open` | 15 |
 
 ## 7. Sprintvolgorde
 

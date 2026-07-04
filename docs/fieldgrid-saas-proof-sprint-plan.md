@@ -1,7 +1,7 @@
 # Fieldgrid SaaS proof sprintplan canon
 
 Datum: 2026-07-04
-Status: sprint 3 regio UI backoffice breed geleverd; sprint 4 regio runtime/planningproof blijft open; sprint 0 canon refresh 2.0 blijft de basis.
+Status: sprint 15 staging smoke dashboard geleverd; runtime proof blijft open; sprint 0 canon refresh 2.0 blijft de basis.
 Scope: volledige afronding van SaaS-hardening, runtime-bewijs, tenant-regio's, storage, audit, onboarding, smoke en externe tenant readiness.
 
 ## Doel
@@ -54,7 +54,7 @@ Geen canonitem mag nog als alleen "open" of "ontbreekt" blijven staan zonder een
 | Security dashboard | `partial` | Sprint 10 | Losse basis bestaat; centraal dashboard open. |
 | Module dependency visualisatie | `nice-to-have` | Sprint 11 | Dependency keys bestaan; visuele inspectie open. |
 | Demo-data generator | `partial` | Sprint 1 | Canon/fixtures bestaan; one-click seed/cleanup open. |
-| Staging smoke dashboard | `partial` | Sprint 15 | Dashboardbasis/read-only bestaat; run history, Playwright-smokes en mutating cleanup open. |
+| Staging smoke dashboard | `runtime-proof-open` | Sprint 15 | Run history, live-smoke targets, migratie-smoke status en mutating cleanup-contract bestaan; echte Playwright/storage/DB-runs open. |
 | Materialen en inventaris | `partial` | Latere productroadmap na Sprint 16 | Onderzoek/canon bestaat; volledige modulebouw volgt na SaaS proof tenzij apart gestart. |
 
 ## Staging-continuiteit
@@ -349,6 +349,14 @@ Definition of Done:
 ## Sprint 15 - Staging smoke dashboard
 
 Doel: staging continu bewijsbaar maken.
+
+Opleverstatus:
+
+- `docs/fieldgrid-sprint-15-staging-smoke.md` beschrijft de geleverde smoke-dashboard uitbreiding.
+- `/platform/staging-smoke` toont run history, live Playwright-smoke targets, migratie-smoke status en mutating cleanup-contracten.
+- `pnpm fieldgrid:sprint15-staging-smoke:check` valideert het sprint 15 contract.
+- Sprint 15 heeft geen migratie en schrijft geen tenantdata.
+- `FG-OPS-008` blijft `runtime-proof-open` totdat echte Playwright/storage/DB-runs en mutating cleanup-runs zijn uitgevoerd.
 
 Taken:
 

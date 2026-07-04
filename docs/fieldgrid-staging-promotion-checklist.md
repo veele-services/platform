@@ -1,7 +1,7 @@
 # Fieldgrid staging-promotie checklist
 
-Datum: 2026-07-03  
-Status: verplicht releasecontract voor de volgende grote update.  
+Datum: 2026-07-04
+Status: verplicht releasecontract voor de volgende grote update; sprint 15 staging smoke dashboard toegevoegd.
 Gerelateerd: `docs/fieldgrid-next-major-update-plan.md`, `docs/fieldgrid-saas-masterplan.md`, `docs/fieldgrid-data-classification.md`, `docs/fieldgrid-cross-tenant-testmatrix.md`.
 
 ## Doel
@@ -93,6 +93,9 @@ Staging-impact: additive UI; bestaande routes blijven bruikbaar.
 ## Fase 7 - Staging smoke dashboard en operatie
 
 - [ ] Smoke dashboard is read-only of gebruikt dedicated demo-tenants.
+- [ ] Smoke dashboard toont run history en laatste JSON-artifacts waar beschikbaar.
+- [ ] Live Playwright-smoke targets zijn zichtbaar voor host, portalen, storage/PDF en personeelsplanning.
+- [ ] Migration-smoke status verwijst naar lege database en staging-copy targets.
 - [ ] Muterende smokechecks hebben cleanup.
 - [ ] Backup/restore en rollback playbook zijn actueel.
 - [ ] Staging smoke toont host, login, modules, sectoren, storage, PDF/downloads, migraties, support grants en audit.

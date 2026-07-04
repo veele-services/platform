@@ -1,7 +1,7 @@
 # Fieldgrid cross-tenant testmatrix
 
-Datum: 2026-07-03
-Status: sprint 0 canon refresh 2.0. Verplichte acceptatiebasis voor `docs/fieldgrid-saas-proof-sprint-plan.md`.
+Datum: 2026-07-04
+Status: sprint 15 staging smoke dashboard geleverd met open runtimebewijs; sprint 0 canon refresh 2.0 blijft de basis. Verplichte acceptatiebasis voor `docs/fieldgrid-saas-proof-sprint-plan.md`.
 Gerelateerd: `docs/fieldgrid-saas-masterplan.md`, `docs/fieldgrid-data-classification.md`, `docs/fieldgrid-next-major-update-plan.md`, `docs/fieldgrid-staging-promotion-checklist.md`, `docs/fieldgrid-recovery-execution-plan.md`.
 
 ## Doel
@@ -202,7 +202,7 @@ Maak per tenant vergelijkbare records en noteer ids, slugs, document ids, invoic
 | `FG-OPS-005` | security dashboard | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | all tenants | Filter security events. | Support/download/denial events correct gescheiden. | integration | `partial` |
 | `FG-OPS-006` | module dependency visualisatie | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | Tenant A | Bekijk dependencies. | Dependencies begrijpelijk en consistent met enforcement. | Playwright | `nice-to-have` |
 | `FG-OPS-007` | demo-data generator | migration/test runner | local/CI | demo tenants | Seed en cleanup. | Idempotent, scoped, cleanup veilig. | integration | `partial` |
-| `FG-OPS-008` | staging smoke dashboard | `PLAT-OWNER-ACTIVE` | `staging.fieldgrid.nl` | staging | Bekijk smoke run history. | Host/login/modules/sectoren/regio/storage/PDF/migraties zichtbaar. | Playwright, smoke | `partial` |
+| `FG-OPS-008` | staging smoke dashboard | `PLAT-OWNER-ACTIVE` | `staging.fieldgrid.nl` | staging | Bekijk smoke run history, live-smokes en mutating cleanup-contract. | Host/login/modules/sectoren/regio/storage/PDF/migraties zichtbaar met run history en cleanupstatus. | static, Playwright, smoke | `runtime-proof-open` |
 
 ## Minimum green before staging
 
