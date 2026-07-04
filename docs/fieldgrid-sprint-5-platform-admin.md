@@ -39,7 +39,7 @@ Sprint 5 volgt direct op Sprint 4:
   - single/multi mode;
   - max sectors;
   - enforce flag.
-- Support grants UI toegevoegd op tenant detail:
+- Support grants UI toegevoegd op tenant detail (support grants UI):
   - grant aanmaken;
   - actieve grant openen;
   - grant revoken;

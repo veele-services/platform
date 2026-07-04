@@ -30,6 +30,12 @@ Doet staging-safe:
 - voegt `CHECK (tenant_id IS NOT NULL) NOT VALID` toe voor gevoelige tenantdata;
 - laat `audit_log.tenant_id` bewust nullable voor platform/global audit.
 
+Aanvulling sprint 8:
+
+- `lib/db/migrations/070_sprint8_tenant_id_default_hardening.sql` verwijdert resterende `tenant_id` database-defaults naar `DEFAULT_TENANT_ID` uit tenant-scoped runtime- en configuratietabellen;
+- `emitDomainEvent` en bekende backoffice-writes moeten tenantcontext expliciet meesturen;
+- Ontbrekende tenantcontext schrijft niet stil naar de default tenant.
+
 Niet gedaan in deze fase:
 
 - geen `ALTER COLUMN tenant_id SET NOT NULL` op gevoelige nullable tabellen;
@@ -55,6 +61,7 @@ Het script is read-only en rapporteert:
 
 - unresolved `tenant_id` rows per gevoelige tabel;
 - of `assignments.tenant_id` nog een default heeft;
+- of sprint 8 default-hardened tabellen nog een `tenant_id` default hebben;
 - of de required-check bestaat en gevalideerd is;
 - welke tabellen klaar zijn voor een latere `SET NOT NULL` wave;
 - `audit_log` nullable rows per resource.

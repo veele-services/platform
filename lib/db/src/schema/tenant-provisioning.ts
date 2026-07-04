@@ -12,6 +12,7 @@ import {
 import { tenantsTable, type TenantPlanKey } from "./tenants";
 
 export const TENANT_PROVISIONING_STATUSES = [
+  "draft",
   "started",
   "succeeded",
   "failed",

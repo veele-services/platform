@@ -54,11 +54,12 @@ Geen onderwerp mag in vervolgwerk alleen als "open" blijven staan zonder status,
 - Platform-admin en supportgrant-basis bestaan.
 - Tenant-sector foundation en tenant-sector settings bestaan.
 - Modules, plans, tenant modules, dependencies, subscriptions en limits hebben foundation.
+- API module guards en Portal module guards moeten overal dezelfde module-uit semantiek afdwingen.
 - Materialen/inventaris hebben onderzoeks- en productcanon; volledige modulebouw volgt na SaaS proof of als aparte roadmap.
 
 ### 3.2 `partial`
 
-- Platform onboarding: provisioning form/status bestaat, wizard save/resume/review/rollback ontbreekt.
+- Platform onboarding: wizard met save/resume/review/retry/rollback bestaat; runtimebewijs blijft open.
 - Tenant first-run: checklist/foundation bestaat, echte owner wizard ontbreekt.
 - Support break-glass: reden/expiry/audit bestaan, harde max TTL en centrale flow ontbreken.
 - Usage/readiness dashboard: tenantdetail toont documenten, opdrachten, storage, downloads, modules, regio's, support grants, limieten en readiness; Playwright/integration bewijs ontbreekt nog.
@@ -75,6 +76,7 @@ Geen onderwerp mag in vervolgwerk alleen als "open" blijven staan zonder status,
 - Module enforcement moet API, backoffice, portalen en jobs hetzelfde laten reageren.
 - API module guards en Portal module guards blijven expliciete acceptatiepunten voor sprint 11 en de final gate.
 - Sector enforcement moet disable/default/single-sector scenario's runtime bewijzen.
+- Tenant first-run moet met `A-OWNER` en `FG-OPS-002` integration/Playwright bewezen worden.
 - Veele Portaal klant/personeel moet E2E bewijzen voor documenten, facturen, tickets, opdrachten, media, rapportage, notificaties, module-denials en verkeerde-host scenario's.
 - Personeelsplanning heeft live/minuut-refresh, maar portal acceptance moet blijven bewijzen dat Home/Planning actueel zijn.
 
@@ -184,6 +186,8 @@ Supporttoegang is geen gewone tenantrol. De prioriteit blijft:
 - Migration smoke workflow op lege database en staging-copy.
 - Regio datamodel/UI/runtime afronden voordat het in planning als harde grens wordt gebruikt.
 - Backoffice/API/portalen/jobs module enforcement harmoniseren.
+- API module guards gelijk trekken met backoffice, portalen en jobs.
+- Portal module guards gelijk trekken met API, backoffice en jobs.
 - DB-defaults naar `DEFAULT_TENANT_ID` uit tenantdata verwijderen.
 - Support break-glass TTL afdwingen.
 - News scope beslissen.
@@ -206,7 +210,7 @@ Supporttoegang is geen gewone tenantrol. De prioriteit blijft:
 - Usage dashboard per tenant met users, documenten, opdrachten, storage, downloads, actieve modules, regio's, support grants en limieten is geleverd op tenantdetail; runtime proof blijft open.
 - Branding preview per tenant is geleverd voor backoffice, klantportaal, personeelsapp, email en PDF; runtime proof blijft open.
 - Security dashboard uitbreiding.
-- Module dependency visualisatie.
+- Module dependency visualisatie verder uitbreiden na tenantfeedback.
 - Demo-data generator voor `demo-a`, `demo-b` en `veele`.
 - Staging smoke dashboard voor host, login, modules, sectoren, regio's, storage, PDF, support, audit en migraties.
 - Eerste externe tenant checklist.

@@ -182,6 +182,8 @@ export type PlatformTenantModuleRow = {
   defaultEnabled: boolean;
   source: string | null;
   dependencyKeys: string[];
+  missingDependencyKeys: string[];
+  enabledDependentKeys: string[];
 };
 
 export type PlatformTenantSectorRow = {
@@ -735,7 +737,7 @@ export async function listPlatformTenantDomains(tenantId: string): Promise<Platf
 export async function listPlatformTenantModules(tenantId: string): Promise<PlatformTenantModuleRow[]> {
   await requirePlatformAdmin();
 
-  const [modules, overrides, plan, dependencies] = await Promise.all([
+  const [modules, overrides, plan, dependencies, dependents] = await Promise.all([
     db.select().from(modulesTable).orderBy(asc(modulesTable.category), asc(modulesTable.name)),
     db.select().from(tenantModulesTable).where(eq(tenantModulesTable.tenantId, tenantId)),
     getTenantPlanSnapshot(tenantId),
@@ -746,6 +748,13 @@ export async function listPlatformTenantModules(tenantId: string): Promise<Platf
       })
       .from(moduleDependenciesTable)
       .innerJoin(modulesTable, eq(moduleDependenciesTable.dependsOnModuleId, modulesTable.id)),
+    db
+      .select({
+        moduleId: moduleDependenciesTable.dependsOnModuleId,
+        dependentKey: modulesTable.key,
+      })
+      .from(moduleDependenciesTable)
+      .innerJoin(modulesTable, eq(moduleDependenciesTable.moduleId, modulesTable.id)),
   ]);
 
   const planModules = plan.planId
@@ -763,8 +772,14 @@ export async function listPlatformTenantModules(tenantId: string): Promise<Platf
     keys.push(dependency.dependencyKey);
     dependencyKeysByModuleId.set(dependency.moduleId, keys);
   }
+  const dependentKeysByModuleId = new Map<string, string[]>();
+  for (const dependent of dependents) {
+    const keys = dependentKeysByModuleId.get(dependent.moduleId) ?? [];
+    keys.push(dependent.dependentKey);
+    dependentKeysByModuleId.set(dependent.moduleId, keys);
+  }
 
-  return modules.map((module) => {
+  const moduleRows = modules.map((module) => {
     const override = overrideByModuleId.get(module.id);
     const planModule = planByModuleId.get(module.id);
     return {
@@ -779,8 +794,17 @@ export async function listPlatformTenantModules(tenantId: string): Promise<Platf
       defaultEnabled: module.isEnabledByDefault,
       source: override?.source ?? null,
       dependencyKeys: dependencyKeysByModuleId.get(module.id) ?? [],
+      missingDependencyKeys: [],
+      enabledDependentKeys: [],
     };
   });
+  const enabledByKey = new Map(moduleRows.map((module) => [module.key, module.effectiveEnabled]));
+
+  return moduleRows.map((module) => ({
+    ...module,
+    missingDependencyKeys: module.dependencyKeys.filter((dependencyKey) => !enabledByKey.get(dependencyKey)),
+    enabledDependentKeys: (dependentKeysByModuleId.get(module.id) ?? []).filter((dependentKey) => enabledByKey.get(dependentKey)),
+  }));
 }
 
 export async function listPlatformTenantSectors(tenantId: string): Promise<{

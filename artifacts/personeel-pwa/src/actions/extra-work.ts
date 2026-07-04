@@ -136,7 +136,14 @@ async function isAssignmentEditable(assignmentId: string): Promise<boolean> {
   return !LOCKED_STATUSES.has(row.status);
 }
 
-async function generateSignedUrl(storagePath: string): Promise<string | null> {
+async function generateSignedUrl(
+  storagePath: string,
+  tenantId: string,
+  assignmentId: string,
+  extraWorkId: string,
+): Promise<string | null> {
+  if (!isExtraWorkPhotoPath(tenantId, assignmentId, extraWorkId, storagePath)) return null;
+
   try {
     const admin = createAdminClient();
     const { data } = await admin.storage
@@ -199,7 +206,9 @@ export async function getExtraWorkForAssignment(assignmentId: string): Promise<E
       id:          p.id,
       storagePath: p.storagePath,
       extraWorkId: p.extraWorkId,
-      signedUrl:   await generateSignedUrl(p.storagePath),
+      signedUrl:   p.extraWorkId
+        ? await generateSignedUrl(p.storagePath, auth.tenantId, assignmentId, p.extraWorkId)
+        : null,
     })),
   );
 
@@ -407,6 +416,7 @@ export async function prepareExtraWorkPhotoUpload(
   if (!validation.valid) return { success: false, error: validation.error };
 
   const storagePath = buildExtraWorkPhotoPath(
+    auth.tenantId,
     assignmentId,
     extraWorkId,
     validation.fileName,
@@ -460,7 +470,7 @@ export async function savePhotoPath(
     .limit(1);
   if (!ew) return { success: false, error: "Meerwerk-item niet gevonden" };
 
-  if (!isExtraWorkPhotoPath(assignmentId, extraWorkId, storagePath.trim())) {
+  if (!isExtraWorkPhotoPath(auth.tenantId, assignmentId, extraWorkId, storagePath.trim())) {
     return { success: false, error: "Bijlagepad hoort niet bij dit meerwerk-item" };
   }
 
@@ -508,6 +518,7 @@ export async function deletePhoto(
     .select({
       uploadedBy:  assignmentPhotosTable.uploadedBy,
       assignmentId: assignmentPhotosTable.assignmentId,
+      extraWorkId:  assignmentPhotosTable.extraWorkId,
       storagePath: assignmentPhotosTable.storagePath,
     })
     .from(assignmentPhotosTable)
@@ -525,6 +536,10 @@ export async function deletePhoto(
 
   const editable = await isAssignmentEditable(assignmentId);
   if (!editable) return { success: false, error: "De opdracht is afgesloten voor verdere wijzigingen" };
+
+  if (!photo.extraWorkId || !isExtraWorkPhotoPath(auth.tenantId, assignmentId, photo.extraWorkId, photo.storagePath)) {
+    return { success: false, error: "Foto hoort niet bij deze opdracht" };
+  }
 
   // Delete from storage using DB-backed storagePath only
   const admin = createAdminClient();

@@ -6,12 +6,11 @@ import {
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
-import { sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { customerUsersTable } from "./customer-users";
 import { customersTable } from "./customers";
-import { DEFAULT_TENANT_ID, tenantsTable } from "./tenants";
+import { tenantsTable } from "./tenants";
 
 export const CUSTOMER_TICKET_DEPARTMENTS = [
   "planning",
@@ -55,7 +54,6 @@ export const customerMessageThreadsTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
       .notNull()
-      .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     customerId: uuid("customer_id")
       .notNull()
@@ -140,6 +138,7 @@ export const insertCustomerMessageThreadSchema = createInsertSchema(
   customerMessageThreadsTable,
 ).omit({
   id: true,
+  tenantId: true,
   createdAt: true,
   updatedAt: true,
 });
