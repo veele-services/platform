@@ -73,7 +73,7 @@ Geen onderwerp mag in vervolgwerk alleen als "open" blijven staan zonder status,
 - Tenant lifecycle active/suspended/archived moet runtime bewezen worden.
 - Tenant RBAC moet met echte rolverschillen per tenant bewezen worden.
 - Module enforcement moet API, backoffice, portalen en jobs hetzelfde laten reageren.
-- API module guards en Portal module guards moeten hetzelfde module-off gedrag afdwingen.
+- API module guards en Portal module guards moeten dezelfde tenant/modulebesluiten afdwingen.
 - Sector enforcement moet disable/default/single-sector scenario's runtime bewijzen.
 - Veele Portaal klant/personeel moet E2E bewijzen voor documenten, facturen, tickets, opdrachten, media, rapportage, notificaties, module-denials en verkeerde-host scenario's.
 - Personeelsplanning heeft live/minuut-refresh, maar portal acceptance moet blijven bewijzen dat Home/Planning actueel zijn.
