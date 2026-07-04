@@ -265,6 +265,57 @@ export type PlatformTenantSectorPolicy = {
   enforceSectorScope: boolean;
 };
 
+export type PlatformTenantSubscriptionRow = {
+  id: string;
+  planName: string;
+  planKey: TenantPlanKey;
+  status: string;
+  source: string;
+  startsAt: string;
+  currentPeriodStartsAt: string | null;
+  currentPeriodEndsAt: string | null;
+  canceledAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PlatformTenantUserRow = {
+  id: string;
+  userId: string;
+  role: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PlatformTenantOwnerInviteRow = {
+  id: string;
+  email: string;
+  userId: string | null;
+  status: string;
+  inviteSentAt: string | null;
+  rollbackAt: string | null;
+  errorMessage: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PlatformTenantUsersAndOwner = {
+  users: PlatformTenantUserRow[];
+  ownerInvites: PlatformTenantOwnerInviteRow[];
+};
+
+export type PlatformTenantRegionRow = {
+  id: string;
+  name: string;
+  normalizedName: string;
+  isActive: boolean;
+  source: string;
+  sortOrder: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
 function normalizeSlug(value: string): string {
   return value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
 }
@@ -1192,6 +1243,113 @@ export async function listPlatformPlans(): Promise<PlatformPlanRow[]> {
     .orderBy(asc(plansTable.sortOrder), asc(plansTable.name));
 
   return rows;
+}
+
+export async function listPlatformTenantSubscriptions(tenantId: string): Promise<PlatformTenantSubscriptionRow[]> {
+  await requirePlatformAdmin();
+
+  const rows = await db
+    .select({
+      id: tenantSubscriptionsTable.id,
+      planName: plansTable.name,
+      planKey: plansTable.key,
+      status: tenantSubscriptionsTable.status,
+      source: tenantSubscriptionsTable.source,
+      startsAt: tenantSubscriptionsTable.startsAt,
+      currentPeriodStartsAt: tenantSubscriptionsTable.currentPeriodStartsAt,
+      currentPeriodEndsAt: tenantSubscriptionsTable.currentPeriodEndsAt,
+      canceledAt: tenantSubscriptionsTable.canceledAt,
+      createdAt: tenantSubscriptionsTable.createdAt,
+      updatedAt: tenantSubscriptionsTable.updatedAt,
+    })
+    .from(tenantSubscriptionsTable)
+    .innerJoin(plansTable, eq(tenantSubscriptionsTable.planId, plansTable.id))
+    .where(eq(tenantSubscriptionsTable.tenantId, tenantId))
+    .orderBy(desc(tenantSubscriptionsTable.updatedAt));
+
+  return rows.map((row) => ({
+    ...row,
+    startsAt: row.startsAt.toISOString(),
+    currentPeriodStartsAt: row.currentPeriodStartsAt?.toISOString() ?? null,
+    currentPeriodEndsAt: row.currentPeriodEndsAt?.toISOString() ?? null,
+    canceledAt: row.canceledAt?.toISOString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  }));
+}
+
+export async function listPlatformTenantUsersAndOwner(tenantId: string): Promise<PlatformTenantUsersAndOwner> {
+  await requirePlatformAdmin();
+
+  const [users, ownerInvites] = await Promise.all([
+    db
+      .select({
+        id: tenantUsersTable.id,
+        userId: tenantUsersTable.userId,
+        role: tenantUsersTable.role,
+        status: tenantUsersTable.status,
+        createdAt: tenantUsersTable.createdAt,
+        updatedAt: tenantUsersTable.updatedAt,
+      })
+      .from(tenantUsersTable)
+      .where(eq(tenantUsersTable.tenantId, tenantId))
+      .orderBy(asc(tenantUsersTable.role), desc(tenantUsersTable.updatedAt)),
+    db
+      .select({
+        id: tenantOwnerInvitesTable.id,
+        email: tenantOwnerInvitesTable.email,
+        userId: tenantOwnerInvitesTable.userId,
+        status: tenantOwnerInvitesTable.status,
+        inviteSentAt: tenantOwnerInvitesTable.inviteSentAt,
+        rollbackAt: tenantOwnerInvitesTable.rollbackAt,
+        errorMessage: tenantOwnerInvitesTable.errorMessage,
+        createdAt: tenantOwnerInvitesTable.createdAt,
+        updatedAt: tenantOwnerInvitesTable.updatedAt,
+      })
+      .from(tenantOwnerInvitesTable)
+      .where(eq(tenantOwnerInvitesTable.tenantId, tenantId))
+      .orderBy(desc(tenantOwnerInvitesTable.updatedAt)),
+  ]);
+
+  return {
+    users: users.map((row) => ({
+      ...row,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    })),
+    ownerInvites: ownerInvites.map((row) => ({
+      ...row,
+      inviteSentAt: row.inviteSentAt?.toISOString() ?? null,
+      rollbackAt: row.rollbackAt?.toISOString() ?? null,
+      createdAt: row.createdAt.toISOString(),
+      updatedAt: row.updatedAt.toISOString(),
+    })),
+  };
+}
+
+export async function listPlatformTenantRegions(tenantId: string): Promise<PlatformTenantRegionRow[]> {
+  await requirePlatformAdmin();
+
+  const rows = await db
+    .select({
+      id: tenantRegionsTable.id,
+      name: tenantRegionsTable.name,
+      normalizedName: tenantRegionsTable.normalizedName,
+      isActive: tenantRegionsTable.isActive,
+      source: tenantRegionsTable.source,
+      sortOrder: tenantRegionsTable.sortOrder,
+      createdAt: tenantRegionsTable.createdAt,
+      updatedAt: tenantRegionsTable.updatedAt,
+    })
+    .from(tenantRegionsTable)
+    .where(eq(tenantRegionsTable.tenantId, tenantId))
+    .orderBy(asc(tenantRegionsTable.sortOrder), asc(tenantRegionsTable.name));
+
+  return rows.map((row) => ({
+    ...row,
+    createdAt: row.createdAt.toISOString(),
+    updatedAt: row.updatedAt.toISOString(),
+  }));
 }
 
 export async function listPlatformTenantDomains(tenantId: string): Promise<PlatformTenantDomainRow[]> {
