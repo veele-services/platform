@@ -22,6 +22,54 @@ export const FIELDGRID_SUPPORT_BREAK_GLASS_GRANT_TYPE = "break_glass" as const;
 export const FIELDGRID_SUPPORT_BREAK_GLASS_MAX_TTL_MINUTES = 240;
 export const FIELDGRID_SUPPORT_BREAK_GLASS_MIN_REASON_LENGTH = 12;
 
+export const FIELDGRID_SECURITY_AUDIT_SCOPES = [
+  "tenant",
+  "platform",
+  "support",
+] as const;
+
+export const FIELDGRID_SECURITY_AUDIT_EVENT_TYPES = [
+  "support_access",
+  "download",
+  "pdf",
+  "direct_id_denial",
+  "module_denial",
+  "storage_denial",
+  "platform_admin",
+] as const;
+
+export const FIELDGRID_SECURITY_AUDIT_CONTRACT = {
+  support_access: {
+    source: "support_access_audit_log",
+    required: ["tenantId", "platformUserId", "grantId", "reason"],
+  },
+  download: {
+    source: "audit_log",
+    required: ["tenantId", "userId", "resource", "resourceId"],
+  },
+  pdf: {
+    source: "audit_log",
+    required: ["tenantId", "userId", "resource", "resourceId"],
+  },
+  direct_id_denial: {
+    source: "audit_log",
+    required: ["tenantId", "userId", "resource", "resourceId"],
+  },
+  module_denial: {
+    source: "audit_log",
+    required: ["tenantId", "userId", "resource"],
+  },
+  storage_denial: {
+    source: "audit_log",
+    required: ["tenantId", "userId", "resource", "resourceId"],
+  },
+  platform_admin: {
+    source: "audit_log",
+    required: ["userId", "resource", "resourceId"],
+    tenantId: "null-for-platform-only",
+  },
+} as const;
+
 export const FIELDGRID_SUPPORT_RUNTIME_PERMISSION_KEYS = [
   "dashboard:read",
   "customers:read",
