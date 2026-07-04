@@ -79,19 +79,20 @@ test("report timeline attachments are gated by the tenant-scoped report", () => 
 
   assert.match(body, /const report = await getReport\(id\);/u);
   assert.match(body, /if \(!report\) return \[\];/u);
+  assert.match(body, /const tenantId = await requireCurrentTenantId\(\);/u);
   assert.match(body, /where\(eq\(assignmentReportNotesTable\.assignmentId, report\.assignmentId\)\)/u);
   assert.match(body, /const noteIds = notes\.map\(\(note\) => note\.id\);/u);
   assert.match(body, /\.from\(assignmentReportNoteAttachmentsTable\)/u);
   assert.match(body, /inArray\(assignmentReportNoteAttachmentsTable\.noteId, noteIds\)/u);
   assert.match(body, /eq\(assignmentReportNoteAttachmentsTable\.assignmentId, report\.assignmentId\)/u);
-  assert.match(body, /createSignedReportAttachmentUrl\(attachment\.storagePath\)/u);
+  assert.match(body, /createSignedReportAttachmentUrl\(attachment\.storagePath, tenantId, report\.assignmentId\)/u);
 
   assert.ok(
     body.indexOf("const report = await getReport(id);") < body.indexOf(".from(assignmentReportNotesTable)"),
     "timeline notes should only load after the tenant-scoped report lookup succeeds",
   );
   assert.ok(
-    body.indexOf("if (!report) return [];") < body.indexOf("createSignedReportAttachmentUrl(attachment.storagePath)"),
+    body.indexOf("if (!report) return [];") < body.indexOf("createSignedReportAttachmentUrl(attachment.storagePath, tenantId, report.assignmentId)"),
     "signed attachment URLs should only be considered after the report access check",
   );
 });
@@ -101,24 +102,23 @@ test("report attachment signed URLs use the assignment media bucket with a short
   const helper = block(reports, "createSignedReportAttachmentUrl");
 
   assert.match(helper, /createAdminClient\(\)/u);
-  assert.match(helper, /\.from\("assignment-photos"\)/u);
-  assert.match(helper, /createSignedUrl\(storagePath, 3600\)/u);
+  assert.match(helper, /\.from\(ASSIGNMENT_MEDIA_BUCKET\)/u);
+  assert.match(helper, /createSignedUrl\(safeStoragePath, 3600\)/u);
 });
 
-test("report attachment signed URLs reject unsafe storage paths before signing", () => {
+test("report attachment signed URLs bind paths to tenant and assignment before signing", () => {
   const reports = read("artifacts/backoffice/src/app/actions/reports.ts");
-  const unsafe = block(reports, "hasUnsafeReportAttachmentStoragePath");
   const helper = block(reports, "createSignedReportAttachmentUrl");
 
-  assert.ok(unsafe.includes('path.startsWith("/")'));
-  assert.ok(unsafe.includes('path.endsWith("/")'));
-  assert.ok(unsafe.includes('path.includes("..")'));
-  assert.ok(unsafe.includes('path.includes("\\\\")'));
-  assert.match(unsafe, /segments\.some\(\(segment\) => segment\.trim\(\) === ""\)/u);
-  assert.match(helper, /hasUnsafeReportAttachmentStoragePath\(storagePath\)/u);
+  assert.match(helper, /getTenantBoundAssignmentMediaStoragePath\(storagePath, tenantId, assignmentId/u);
+  assert.match(helper, /allowLegacyAssignmentRoot: true/u);
+  assert.match(helper, /allowLegacyPluralTenantRoot: true/u);
+  assert.match(helper, /allowLegacyTenantRoot: true/u);
+  assert.match(helper, /if \(!safeStoragePath\) return null;/u);
 
   assert.ok(
-    helper.indexOf("hasUnsafeReportAttachmentStoragePath(storagePath)") < helper.indexOf("createSignedUrl(storagePath, 3600)"),
-    "unsafe report attachment paths must be rejected before Supabase creates a signed URL",
+    helper.indexOf("getTenantBoundAssignmentMediaStoragePath(storagePath, tenantId, assignmentId") <
+      helper.indexOf("createSignedUrl(safeStoragePath, 3600)"),
+    "report attachment paths must be tenant-bound before Supabase creates a signed URL",
   );
 });

@@ -1,7 +1,7 @@
 # Fieldgrid volgende grote update plan
 
-Datum: 2026-07-03
-Status: sprint 0 canon refresh 2.0. De actuele uitvoeringscanon staat in `docs/fieldgrid-saas-proof-sprint-plan.md`.
+Datum: 2026-07-04
+Status: sprint 16 final gate geleverd; resterende runtime/hardening bewijzen zijn `post-launch-accepted` met owner, bewijsdoel en go/no-go moment; sprint 0 canon refresh 2.0 blijft de basis. De actuele uitvoeringscanon staat in `docs/fieldgrid-saas-proof-sprint-plan.md`.
 
 ## 1. Doel
 
@@ -18,6 +18,7 @@ Alle canonbronnen gebruiken vanaf sprint 0:
 - `runtime-proof-open`
 - `hardening-open`
 - `nice-to-have`
+- `post-launch-accepted`
 
 Deze statusvelden staan in:
 
@@ -25,6 +26,7 @@ Deze statusvelden staan in:
 - `docs/fieldgrid-data-classification.md`
 - `docs/fieldgrid-cross-tenant-testmatrix.md`
 - `docs/fieldgrid-saas-proof-sprint-plan.md`
+- `docs/fieldgrid-sprint-16-final-gate.md`
 
 ## 3. Randvoorwaarden voor staging-bereikbaarheid
 
@@ -77,12 +79,12 @@ Status: `hardening-open`.
 
 Werk:
 
+- DB-defaults naar `DEFAULT_TENANT_ID` zijn in sprint 8 uit tenantdata verwijderd met `070_sprint8_tenant_id_default_hardening.sql`; staging-copy rapportage moet dit nog bevestigen.
 - Staging-copy rapporten.
 - Backfills.
 - Constraint validation.
 - Waar mogelijk `tenant_id NOT NULL`.
 - Bewuste nullable uitzonderingen voor platform/global audit documenteren.
-- DB-defaults naar `DEFAULT_TENANT_ID` verwijderen uit tenantdata.
 
 Eigenaar: sprint 8.
 
@@ -92,11 +94,11 @@ Status: `hardening-open`.
 
 Werk:
 
-- Fysieke storage-migratie.
-- Legacy-path opruiming.
-- Supabase Storage policy/RLS bewijs.
-- Signed-url/path-guessing tests.
-- Assignment media direct tenant-aware maken.
+- Fysieke storage-migratie uitvoeren volgens Sprint 9 copy-first cleanup-plan.
+- Legacy-path opruiming na rapportage en verify.
+- Supabase Storage policy/RLS bewijs met echte provider-smoke.
+- Signed-url/path-guessing integrationtests.
+- Assignment media direct tenant-aware is in runtime geleverd; staging-proof blijft nodig.
 
 Eigenaar: sprint 9.
 
@@ -119,55 +121,73 @@ Status: `partial`.
 
 Werk:
 
-- Support access.
-- Downloads.
-- PDF's.
-- Direct-ID denials.
-- Module-denials.
-- Storage-denials.
-- Een centraal security/audit model en dashboard.
+- Support access zichtbaar houden via het centrale dashboard.
+- Downloads en PDF's blijven volgens het Sprint 10 auditcontract loggen.
+- Direct-ID denials, module-denials en storage-denials blijven volgens het Sprint 10 auditcontract loggen.
+- Het centrale security/audit model en dashboard 2.0 zijn geleverd; echte runtime-smokes blijven nodig.
 
 Eigenaar: sprint 10.
 
-### Platform onboarding is nog geen echte wizard
+### Platform onboarding wizard is gebouwd
 
-Status: `partial`.
+Status: `runtime-proof-open`.
 
-Werk:
+Geleverd in sprint 12:
 
-- Save/resume.
-- Review.
-- Runstatus.
-- Retry.
-- Rollback.
+- Save/resume via `tenant_provisioning_runs`.
+- Reviewmetadata in de wizard.
+- Runstatus met owner invite status.
+- Retry vanuit runhistorie.
+- Rollbackpad bij owner invite failure.
 - Domein, plan, modules, sectoren, regio's, owner invite en branding in een flow.
+
+Open runtimebewijs:
+
+- Playwright happy path.
+- Integration success/rollback/retry.
+- Duplicate slug/domain foutstatus.
 
 Eigenaar: sprint 12.
 
-### Tenant first-run is nog beperkt
+### Tenant first-run runtime proof staat nog open
 
-Status: `partial`.
+Status: `runtime-proof-open`.
 
 Werk:
 
-- Owner first-run wizard.
-- Actieve configuratie van bedrijfsgegevens, branding, sectoren, regio's, gebruikers, modules en basisinstellingen.
-- Readiness-score vullen.
+- Playwright-flow voor `A-OWNER` op `demo-a.fieldgrid.nl`.
+- Integration test dat save/resume en readinessstatus in `tenant_first_run_state` landen.
+- Externe tenant livegang koppelen aan sprint 14-16 operational readiness.
 
 Eigenaar: sprint 13.
 
-### Staging smoke is nog vooral read-only
+### Staging smoke dashboard is gebouwd
 
-Status: `partial`.
+Status: `runtime-proof-open`.
 
 Werk:
 
-- Run history.
-- Live Playwright-smokes.
-- Migratie-smokes.
-- Gecontroleerde mutating checks met cleanup.
+- Run history staat op het platform smoke dashboard.
+- Live Playwright-smoke targets zijn zichtbaar voor host, modules, sectoren, regio's, storage, PDF, portalen en personeelsplanning.
+- Migratie-smoke status verwijst naar de Sprint 7 runner en JSON artifacts.
+- Gecontroleerde mutating checks hebben demo-tenant scope, confirm-env en cleanupselectors.
+- Echte Playwright/storage/DB-runs en mutating cleanup-runs blijven open.
 
 Eigenaar: sprint 15.
+
+### Final external tenant gate
+
+Status: `post-launch-accepted`.
+
+Werk:
+
+- Performance review op tenantqueries.
+- Service-role security review.
+- Final staging-copy smoke.
+- Eerste externe tenant checklist.
+- Post-launch accepted register met owner, bewijsdoel en go/no-go moment.
+
+Eigenaar: sprint 16.
 
 ### Regio's in backoffice
 
@@ -202,13 +222,14 @@ Deze investeringen verlagen direct risico of verhogen beheerbaarheid:
 | --- | --- | --- |
 | Platform-admin onboarding wizard | `partial` | 12 |
 | Tenant first-run wizard | `partial` | 13 |
-| Usage dashboard per tenant | `partial` | 14 |
-| Branding preview per tenant | `nice-to-have` | 14 |
+| Usage dashboard per tenant | `runtime-proof-open` | 14 |
+| Branding preview per tenant | `runtime-proof-open` | 14 |
 | Support break-glass flow | `partial` | 10 |
 | Security dashboard | `partial` | 10 |
-| Module dependency visualisatie | `nice-to-have` | 11 |
+| Module dependency visualisatie | `done` | 11 |
 | Demo-data generator | `partial` | 1 |
-| Staging smoke dashboard | `partial` | 15 |
+| Staging smoke dashboard | `runtime-proof-open` | 15 |
+| Final external tenant gate | `post-launch-accepted` | 16 |
 
 ## 7. Sprintvolgorde
 
@@ -244,7 +265,7 @@ Deze grote update is klaar wanneer:
 - bewuste nullable uitzonderingen expliciet zijn gedocumenteerd en getest;
 - assignment media direct tenant-aware is;
 - news scope is gekozen en afgedwongen;
-- backoffice/API/portalen/jobs module enforcement consistent is;
+- backoffice/API/portalen/jobs module enforcement consistent is en met Playwright/integration is bewezen;
 - DB-defaults naar `DEFAULT_TENANT_ID` uit tenantdata zijn verwijderd;
 - break-glass support korte TTL afdwingt;
 - usage dashboard documenten en storage toont;

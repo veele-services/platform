@@ -1,8 +1,8 @@
 # Fieldgrid fase 7 staging smoke en operationele acceptatie
 
-Datum: 2026-07-03  
-Status: fase 7 uitgevoerd als read-only operationele basis.  
-Gerelateerd: `docs/fieldgrid-next-major-update-plan.md`, `docs/fieldgrid-staging-promotion-checklist.md`, `docs/fieldgrid-cross-tenant-testmatrix.md`, `docs/fieldgrid-backup-restore-rollback-playbook.md`, `docs/fieldgrid-first-external-tenant-checklist.md`.
+Datum: 2026-07-04
+Status: fase 7 uitgevoerd als read-only operationele basis; sprint 16 heeft final external tenant gate en post-launch accepted register toegevoegd.
+Gerelateerd: `docs/fieldgrid-next-major-update-plan.md`, `docs/fieldgrid-staging-promotion-checklist.md`, `docs/fieldgrid-cross-tenant-testmatrix.md`, `docs/fieldgrid-backup-restore-rollback-playbook.md`, `docs/fieldgrid-first-external-tenant-checklist.md`, `docs/fieldgrid-sprint-16-final-gate.md`.
 
 ## Doel
 
@@ -12,6 +12,10 @@ Deze fase levert:
 
 - een read-only staging smoke dashboard voor platform-admins;
 - een read-only smoke API voor ops/CI;
+- run history voor dashboard-, staging-smoke- en migration-smoke artifacts;
+- live Playwright-smoke targets voor host, modules, sectoren, regio's, storage, PDF, portalen en personeelsplanning;
+- mutating checks met demo-tenant scope, confirm-env en cleanupselectors;
+- finale externe tenant gate met post-launch accepted register;
 - een plan-only smoke script voor contractvalidatie;
 - een backup/restore/rollback playbook;
 - een eerste externe tenant checklist;
@@ -25,6 +29,8 @@ Gebouwd:
 - Platformpagina `/platform/staging-smoke`.
 - JSON endpoint `/api/platform/staging-smoke`.
 - `pnpm fieldgrid:phase7-smoke` als plan-only script.
+- `pnpm fieldgrid:sprint15-staging-smoke:check` als sprint 15 dashboard/history/live-smoke contract.
+- `pnpm fieldgrid:sprint16-final-gate:check` als sprint 16 final-gate contract.
 - Operationele playbooks en checklistdocs.
 
 Niet gebouwd in deze fase:
@@ -132,6 +138,34 @@ Fase 7 is functioneel klaar wanneer:
 - backup/restore/rollback playbook bestaat;
 - eerste externe tenant checklist bestaat;
 - statische fase-7 test bewaakt dashboard, endpoint, script en docs.
+
+## Sprint 15 vervolgstatus
+
+Sprint 15 levert:
+
+- run history op `/platform/staging-smoke`;
+- JSON-artifact discovery voor `artifacts/staging-smoke` en `artifacts/migration-smoke`;
+- read-only snapshot script `pnpm fieldgrid:sprint15-staging-smoke:run-read-only`;
+- live Playwright-smoke targets;
+- mutating cleanup-contracten.
+
+## Sprint 16 final-gate status
+
+Sprint 16 levert:
+
+- `Finale externe tenant gate` in `/platform/staging-smoke`;
+- `post-launch-accepted` register met owner, bewijsdoel en go/no-go moment;
+- performance review op tenantqueries als verplicht artifact;
+- service-role security review;
+- final staging-copy smoke als expliciet gatepunt;
+- eerste externe tenant checklist als releaseformulier.
+
+Post-launch accepted runtimebewijs:
+
+- echte Playwright-runs tegen staging;
+- echte storage policy/path guessing tests;
+- echte DB/RLS validatie;
+- echte mutating runner met cleanup.
 
 ## Open vervolgwerk
 

@@ -1,8 +1,8 @@
 # Fieldgrid eerste externe tenant checklist
 
-Datum: 2026-07-03  
-Status: operationele acceptatiechecklist voor fase 7.  
-Gerelateerd: `docs/fieldgrid-phase-7-operations.md`, `docs/fieldgrid-cross-tenant-testmatrix.md`, `docs/fieldgrid-staging-promotion-checklist.md`.
+Datum: 2026-07-04
+Status: operationele acceptatiechecklist voor Sprint 16 final gate.
+Gerelateerd: `docs/fieldgrid-phase-7-operations.md`, `docs/fieldgrid-cross-tenant-testmatrix.md`, `docs/fieldgrid-staging-promotion-checklist.md`, `docs/fieldgrid-sprint-16-final-gate.md`.
 
 ## Doel
 
@@ -14,10 +14,13 @@ Deze checklist bepaalt wanneer Fieldgrid klaar is om de eerste externe tenant ge
 - [ ] Staging draait op `staging.fieldgrid.nl`.
 - [ ] Productieplatform draait op `platform.fieldgrid.nl`.
 - [ ] `/platform/staging-smoke` is bereikbaar voor platform owner/admin.
+- [ ] `/platform/staging-smoke` toont `Finale externe tenant gate`.
+- [ ] `pnpm fieldgrid:sprint16-final-gate:check` is groen.
 - [ ] `FG-SMOKE-HOST` is groen of heeft een expliciete owner.
 - [ ] `FG-SMOKE-LOGIN` is groen.
 - [ ] `FG-SMOKE-MIGRATIONS` is groen of staging-copy smoke is apart vastgelegd.
 - [ ] Backupbewijs is vastgelegd volgens `docs/fieldgrid-backup-restore-rollback-playbook.md`.
+- [ ] Alle `post-launch-accepted` punten hebben owner, bewijsdoel en go/no-go moment.
 
 ## 2. Tenant provisioning
 
@@ -45,6 +48,7 @@ Deze checklist bepaalt wanneer Fieldgrid klaar is om de eerste externe tenant ge
 - [ ] `FG-SMOKE-STORAGE` is groen, of legacy paths zijn gedocumenteerd.
 - [ ] PDF/download audit is gecontroleerd als rapporten, offertes of facturen worden gebruikt.
 - [ ] Tenant B kan geen Tenant A data of storagepath openen in de relevante smoke.
+- [ ] `FG-POST-STORAGE-PROOF` heeft een owner en artifactplanning voordat documenten/media extern gebruikt worden.
 
 ## 5. Security en support
 
@@ -55,6 +59,7 @@ Deze checklist bepaalt wanneer Fieldgrid klaar is om de eerste externe tenant ge
 - [ ] Verlopen support grant faalt.
 - [ ] `/platform/security` toont support en auditcontext zonder tenantdata te lekken.
 - [ ] Tenant-admin krijgt geen platform/support-only auditdata te zien.
+- [ ] `FG-FINAL-SERVICE-ROLE` bevestigt dat `SUPABASE_SERVICE_ROLE_KEY` alleen server-side wordt gebruikt.
 
 ## 6. Branding en first-run
 
@@ -63,7 +68,15 @@ Deze checklist bepaalt wanneer Fieldgrid klaar is om de eerste externe tenant ge
 - [ ] Tenant first-run status is beoordeeld.
 - [ ] Owner weet welke first-run stappen nog open staan.
 
-## 7. Go/no-go
+## 7. Final gate en post-launch accepted
+
+- [ ] `FG-FINAL-PERFORMANCE` heeft EXPLAIN-artifactplanning voor tenantquery hotspots.
+- [ ] `FG-FINAL-STAGING-COPY` heeft empty-database en staging-copy migration smoke status.
+- [ ] `FG-FINAL-RUNTIME-PROOF` heeft live Playwright/storage/DB bewijs of expliciete go/no-go owner.
+- [ ] `FG-FINAL-EXTERNAL-TENANT` is door platform owner afgetekend.
+- [ ] `FG-POST-RUNTIME-E2E`, `FG-POST-STORAGE-PROOF`, `FG-POST-PORTAL-ACCEPTANCE`, `FG-POST-MIGRATION-SMOKE` en `FG-POST-AUDIT-CENTRALIZATION` zijn niet ownerloos.
+
+## 8. Go/no-go
 
 Go wanneer:
 
@@ -74,6 +87,7 @@ Go wanneer:
 - module en sector denial werken voor ten minste een kritieke route;
 - support access is tijdelijk, expliciet en geaudit;
 - backup/rollback is klaar.
+- post-launch accepted P0/P1 punten expliciet zijn geaccepteerd door de owner.
 
 No-go wanneer:
 
@@ -83,8 +97,9 @@ No-go wanneer:
 - storage signed URL cross-tenant werkt;
 - migration state onduidelijk is;
 - rollbackpad ontbreekt.
+- een P0/P1 post-launch punt geen owner of go/no-go moment heeft.
 
-## 8. Na onboarding
+## 9. Na onboarding
 
 - [ ] Noteer tenant-id, slug en domein in operationele administratie.
 - [ ] Noteer plan, modules en sectoren.

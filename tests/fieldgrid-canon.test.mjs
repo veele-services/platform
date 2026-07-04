@@ -23,16 +23,20 @@ const canonicalDocs = [
   "docs/fieldgrid-staging-promotion-checklist.md",
   "docs/fieldgrid-saas-proof-sprint-plan.md",
   "docs/fieldgrid-sprint-7-migration-smoke.md",
+  "docs/fieldgrid-sprint-15-staging-smoke.md",
+  "docs/fieldgrid-sprint-16-final-gate.md",
   "docs/fieldgrid-phase-1-testbasis.md",
   "docs/fieldgrid-phase-2-tenant-hardening.md",
   "docs/fieldgrid-phase-3-storage-media-news.md",
   "docs/fieldgrid-phase-4-module-enforcement.md",
   "docs/fieldgrid-phase-5-support-security.md",
   "docs/fieldgrid-phase-6-productization.md",
+  "docs/fieldgrid-sprint-12-platform-onboarding.md",
+  "docs/fieldgrid-sprint-13-tenant-first-run.md",
 ];
 
 const governanceDocs = [".github/pull_request_template.md"];
-const statusTerms = ["done", "partial", "runtime-proof-open", "hardening-open", "nice-to-have"];
+const statusTerms = ["done", "partial", "runtime-proof-open", "hardening-open", "nice-to-have", "post-launch-accepted"];
 
 test("Fieldgrid canon docs exist", () => {
   for (const path of canonicalDocs) {

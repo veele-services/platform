@@ -1,0 +1,85 @@
+name: Database Autofix
+
+on:
+  workflow_dispatch:
+    inputs:
+      target_environment:
+        description: GitHub environment to migrate
+        required: true
+        default: staging
+        type: choice
+        options:
+          - main
+          - staging
+  push:
+    branches:
+      - main
+      - staging
+    paths:
+      - "lib/db/**"
+      - "package.json"
+      - "pnpm-lock.yaml"
+      - ".github/workflows/database-autofix.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: veele-${{ github.event_name == 'workflow_dispatch' && inputs.target_environment || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  migrate:
+    name: Autofix ${{ github.event_name == 'workflow_dispatch' && inputs.target_environment || github.ref_name }} database
+    if: github.event_name == 'workflow_dispatch' || github.ref_name == 'main' || github.ref_name == 'staging'
+    runs-on: [self-hosted, linux, x64, veele]
+    timeout-minutes: 30
+    environment:
+      name: ${{ github.event_name == 'workflow_dispatch' && inputs.target_environment || github.ref_name }}
+    env:
+      TARGET_ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.target_environment || github.ref_name }}
+      APP_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.target_environment || github.ref_name }}
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check runtime
+        shell: bash
+        run: |
+          set -euo pipefail
+          node -v
+          pnpm -v
+
+      - name: Validate database environment
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          case "$TARGET_ENVIRONMENT" in
+            main|staging)
+              ;;
+            *)
+              echo "::error::Database Autofix only supports the main and staging environments."
+              exit 1
+              ;;
+          esac
+
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "::error::DATABASE_URL is not configured for the '$TARGET_ENVIRONMENT' GitHub environment."
+            exit 1
+          fi
+
+          echo "Database Autofix target: $TARGET_ENVIRONMENT"
+
+      - name: Install dependencies
+        run: |
+          set -euo pipefail
+          corepack enable
+          pnpm install --frozen-lockfile --prod=false
+
+      - name: Run database migrations
+        run: |
+          set -euo pipefail
+          pnpm run db:migrate

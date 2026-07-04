@@ -1,7 +1,7 @@
 # Fieldgrid staging-promotie checklist
 
-Datum: 2026-07-03  
-Status: verplicht releasecontract voor de volgende grote update.  
+Datum: 2026-07-04
+Status: verplicht releasecontract voor de volgende grote update; sprint 16 final gate toegevoegd.
 Gerelateerd: `docs/fieldgrid-next-major-update-plan.md`, `docs/fieldgrid-saas-masterplan.md`, `docs/fieldgrid-data-classification.md`, `docs/fieldgrid-cross-tenant-testmatrix.md`.
 
 ## Doel
@@ -93,9 +93,25 @@ Staging-impact: additive UI; bestaande routes blijven bruikbaar.
 ## Fase 7 - Staging smoke dashboard en operatie
 
 - [ ] Smoke dashboard is read-only of gebruikt dedicated demo-tenants.
+- [ ] Smoke dashboard toont run history en laatste JSON-artifacts waar beschikbaar.
+- [ ] Live Playwright-smoke targets zijn zichtbaar voor host, portalen, storage/PDF en personeelsplanning.
+- [ ] Migration-smoke status verwijst naar lege database en staging-copy targets.
 - [ ] Muterende smokechecks hebben cleanup.
+- [ ] Final external tenant gate toont performance review, service-role review, staging-copy smoke en post-launch accepted register.
 - [ ] Backup/restore en rollback playbook zijn actueel.
 - [ ] Staging smoke toont host, login, modules, sectoren, storage, PDF/downloads, migraties, support grants en audit.
 - [ ] Eerste externe tenant checklist is bijgewerkt.
+- [ ] `pnpm fieldgrid:sprint16-final-gate:check` is groen.
 
 Staging-impact: operationele validatie zonder destructieve acties.
+
+## Fase 8 - Sprint 16 final gate
+
+- [ ] Geen migratie of tenantmutatie.
+- [ ] `post-launch-accepted` punten hebben owner, bewijsdoel en go/no-go moment.
+- [ ] `FG-FINAL-PERFORMANCE` is gepland of voorzien van EXPLAIN artifacts.
+- [ ] `FG-FINAL-SERVICE-ROLE` bevestigt server-only service-role gebruik.
+- [ ] `FG-FINAL-STAGING-COPY` verwijst naar empty-database en staging-copy smoke artifacts.
+- [ ] `FG-FINAL-EXTERNAL-TENANT` is gekoppeld aan `docs/fieldgrid-first-external-tenant-checklist.md`.
+
+Staging-impact: read-only releasebesluit; staging blijft bereikbaar.

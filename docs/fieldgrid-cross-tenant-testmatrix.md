@@ -1,7 +1,7 @@
 # Fieldgrid cross-tenant testmatrix
 
-Datum: 2026-07-03
-Status: sprint 0 canon refresh 2.0. Verplichte acceptatiebasis voor `docs/fieldgrid-saas-proof-sprint-plan.md`.
+Datum: 2026-07-04
+Status: sprint 16 final gate geleverd; open runtime/hardening bewijzen zijn `post-launch-accepted` met owner, bewijsdoel en go/no-go moment. Verplichte acceptatiebasis voor `docs/fieldgrid-saas-proof-sprint-plan.md`.
 Gerelateerd: `docs/fieldgrid-saas-masterplan.md`, `docs/fieldgrid-data-classification.md`, `docs/fieldgrid-next-major-update-plan.md`, `docs/fieldgrid-staging-promotion-checklist.md`, `docs/fieldgrid-recovery-execution-plan.md`.
 
 ## Doel
@@ -33,6 +33,7 @@ Statische tests mogen alleen bewijzen dat canon of codepatronen bestaan. Runtime
 | `runtime-proof-open` | Guard/static of runtimebasis bestaat, maar echte runtime-test ontbreekt. |
 | `hardening-open` | Test wacht op migratie, backfill, storage policy of constraint validation. |
 | `nice-to-have` | Test is nuttig voor product/operatie, maar geen P0/P1 securitygate. |
+| `post-launch-accepted` | Sprint 16 heeft het open bewijs bewust geaccepteerd met owner, target evidence en go/no-go moment. |
 
 ## Teststatus per securitygrens
 
@@ -53,6 +54,8 @@ Statische tests mogen alleen bewijzen dat canon of codepatronen bestaan. Runtime
 | Platform-admin | `FG-PLATFORM-001` t/m `FG-PLATFORM-006` | `runtime-proof-open` | Playwright + integration. | 10/12 |
 | Migraties | `FG-MIG-001` t/m `FG-MIG-003` | `partial` | Lege DB en staging-copy smoke. | 7 |
 | Onboarding/first-run/usage/smoke | `FG-OPS-001` t/m `FG-OPS-008` | `partial` | Playwright + integration + read-only/mutating smoke met cleanup. | 12/13/14/15 |
+
+Sprint 16 voegt `FG-FINAL-*` en `FG-POST-*` toe als release-gate over deze matrix. De detailstatussen blijven zichtbaar als bewijsstatus, maar externe-tenant go/no-go gebruikt het `post-launch-accepted` register in `docs/fieldgrid-sprint-16-final-gate.md`.
 
 ## Vaste tenants
 
@@ -195,14 +198,14 @@ Maak per tenant vergelijkbare records en noteer ids, slugs, document ids, invoic
 | `FG-MIG-001` | lege database smoke | migration runner | local/CI | empty DB | Draai alle migraties. | Migrations slagen idempotent. | migration | `partial` |
 | `FG-MIG-002` | staging-copy smoke | migration runner | staging-copy | existing data | Draai migraties. | Geen destructieve reset; backfills slagen. | migration | `partial` |
 | `FG-MIG-003` | compatibility skip | migration runner | staging-copy | legacy migrations | Draai runner met legacy SQL. | Correct skipped/toegepast zonder duplicate failure. | migration | `partial` |
-| `FG-OPS-001` | platform onboarding wizard | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | new tenant | Doorloop wizard. | Tenant/provisioning run is save/resume/review/rollback-proof. | Playwright, integration | `partial` |
+| `FG-OPS-001` | platform onboarding wizard | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | new tenant | Doorloop wizard. | Tenant/provisioning run is save/resume/review/rollback-proof. | Playwright, integration | `runtime-proof-open` |
 | `FG-OPS-002` | tenant first-run wizard | `A-OWNER` | `demo-a.fieldgrid.nl` | `demo-a` | Doorloop first-run. | Setupstatus en readiness worden opgeslagen. | Playwright, integration | `partial` |
-| `FG-OPS-003` | usage dashboard | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | Tenant A | Bekijk usage. | Users, docs, opdrachten, storage, downloads, modules zichtbaar. | integration | `partial` |
-| `FG-OPS-004` | branding preview | `A-OWNER` | `demo-a.fieldgrid.nl` | `demo-a` | Wijzig branding en bekijk preview. | Portal/email/PDF preview klopt. | Playwright | `nice-to-have` |
+| `FG-OPS-003` | usage dashboard | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | Tenant A | Bekijk tenantdetail usage en readiness. | Users, docs, opdrachten, storage, downloads, modules, support grants, regio's en limieten zichtbaar. | static, integration | `runtime-proof-open` |
+| `FG-OPS-004` | branding preview | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | Tenant A | Bekijk branding preview in platform tenantdetail. | Backoffice, klantportaal, personeelsapp, email en PDF preview klopt na brandingwijziging. | static, Playwright | `runtime-proof-open` |
 | `FG-OPS-005` | security dashboard | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | all tenants | Filter security events. | Support/download/denial events correct gescheiden. | integration | `partial` |
 | `FG-OPS-006` | module dependency visualisatie | `PLAT-OWNER-ACTIVE` | `platform.fieldgrid.nl` | Tenant A | Bekijk dependencies. | Dependencies begrijpelijk en consistent met enforcement. | Playwright | `nice-to-have` |
 | `FG-OPS-007` | demo-data generator | migration/test runner | local/CI | demo tenants | Seed en cleanup. | Idempotent, scoped, cleanup veilig. | integration | `partial` |
-| `FG-OPS-008` | staging smoke dashboard | `PLAT-OWNER-ACTIVE` | `staging.fieldgrid.nl` | staging | Bekijk smoke run history. | Host/login/modules/sectoren/regio/storage/PDF/migraties zichtbaar. | Playwright, smoke | `partial` |
+| `FG-OPS-008` | staging smoke dashboard | `PLAT-OWNER-ACTIVE` | `staging.fieldgrid.nl` | staging | Bekijk smoke run history, live-smokes en mutating cleanup-contract. | Host/login/modules/sectoren/regio/storage/PDF/migraties zichtbaar met run history en cleanupstatus. | static, Playwright, smoke | `runtime-proof-open` |
 
 ## Minimum green before staging
 
@@ -251,6 +254,15 @@ Voor portalen:
 Voor productisering en operatie:
 
 - `FG-OPS-001` t/m `FG-OPS-008` voor geraakte wizard/dashboard/smoke onderdelen
+
+Voor Sprint 16 final gate:
+
+- `FG-FINAL-PERFORMANCE` voor tenantquery performance review.
+- `FG-FINAL-SERVICE-ROLE` voor server-only service-role review.
+- `FG-FINAL-STAGING-COPY` voor empty-database en staging-copy migration smoke.
+- `FG-FINAL-RUNTIME-PROOF` voor runtime proof, storage proof en portal acceptance artifacts.
+- `FG-FINAL-EXTERNAL-TENANT` voor de eerste externe tenant checklist.
+- `FG-POST-RUNTIME-E2E`, `FG-POST-STORAGE-PROOF`, `FG-POST-PORTAL-ACCEPTANCE`, `FG-POST-MIGRATION-SMOKE`, `FG-POST-AUDIT-CENTRALIZATION` en `FG-POST-MATERIAL-INVENTORY` voor bewust `post-launch-accepted` bewijs.
 
 Statische tests alleen tellen nooit als minimum green voor een runtime securitygrens; er moet minimaal een unit/integration/Playwright/DB/RLS/storage test bij waar de grens runtime raakt.
 

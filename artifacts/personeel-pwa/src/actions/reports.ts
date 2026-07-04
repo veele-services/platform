@@ -144,7 +144,13 @@ async function isLinkedToAssignment(
   return !!row;
 }
 
-async function createSignedAttachmentUrl(storagePath: string): Promise<string | null> {
+async function createSignedAttachmentUrl(
+  storagePath: string,
+  tenantId: string,
+  assignmentId: string,
+): Promise<string | null> {
+  if (!isReportNoteAttachmentPath(tenantId, assignmentId, storagePath)) return null;
+
   try {
     const admin = createAdminClient();
     const { data } = await admin.storage
@@ -169,13 +175,14 @@ async function getAssignmentTenantName(assignmentId: string): Promise<string> {
 }
 
 function normalizeAttachmentInput(
+  tenantId: string,
   assignmentId: string,
   input: ReportNoteAttachmentInput,
 ): ReportNoteAttachmentInput | null {
   const storagePath = input.storagePath.trim();
   const fileName = input.fileName.trim();
 
-  if (!storagePath || !isReportNoteAttachmentPath(assignmentId, storagePath)) return null;
+  if (!storagePath || !isReportNoteAttachmentPath(tenantId, assignmentId, storagePath)) return null;
   if (!fileName) return null;
 
   const validation = validateAssignmentMediaDescriptor({
@@ -272,6 +279,7 @@ export async function prepareReportNoteAttachmentUploads(
     }
 
     const storagePath = buildReportNoteAttachmentPath(
+      auth.tenantId,
       assignmentId,
       validation.fileName,
       uniqueUploadId(),
@@ -405,7 +413,7 @@ export async function getReportNotesForAssignment(
       id:          attachment.id,
       noteId:      attachment.noteId,
       storagePath: attachment.storagePath,
-      signedUrl:   await createSignedAttachmentUrl(attachment.storagePath),
+      signedUrl:   await createSignedAttachmentUrl(attachment.storagePath, auth.tenantId, assignmentId),
       fileName:    attachment.fileName,
       mimeType:    attachment.mimeType ?? null,
       fileSize:    attachment.fileSize ?? null,
@@ -577,7 +585,7 @@ export async function addReportNote(
   }
 
   const normalizedAttachments = attachmentInput.map((attachment) =>
-    normalizeAttachmentInput(assignmentId, attachment),
+    normalizeAttachmentInput(auth.tenantId, assignmentId, attachment),
   );
   if (normalizedAttachments.some((attachment) => attachment === null)) {
     return { success: false, error: "Bijlage kon niet worden gekoppeld" };
@@ -639,7 +647,7 @@ export async function addReportNote(
       attachments.map(async (attachment) => ({
         id:          attachment.id,
         storagePath: attachment.storagePath,
-        signedUrl:   await createSignedAttachmentUrl(attachment.storagePath),
+        signedUrl:   await createSignedAttachmentUrl(attachment.storagePath, auth.tenantId, assignmentId),
         fileName:    attachment.fileName,
         mimeType:    attachment.mimeType ?? null,
         fileSize:    attachment.fileSize ?? null,

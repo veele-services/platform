@@ -17,7 +17,7 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { sectorsTable } from "./sectors";
 import { rolesTable } from "./roles";
-import { DEFAULT_TENANT_ID, tenantsTable } from "./tenants";
+import { tenantsTable } from "./tenants";
 
 /**
  * Centrally managed work type definitions.
@@ -29,7 +29,6 @@ export const taskCodesTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
       .notNull()
-      .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     code: varchar("code", { length: 50 }).notNull(),
     name: varchar("name", { length: 200 }).notNull(),

@@ -7,6 +7,7 @@ import {
   assignmentTasksTable,
   assignmentPhotosTable,
   taskCodesTable,
+  getTenantBoundAssignmentMediaStoragePath,
   quotesTable,
   invoicesTable,
   insertAssignmentSchema,
@@ -136,20 +137,11 @@ function getSafeCustomerAssignmentPhotoStoragePath(
   tenantId: string,
   assignmentId: string,
 ): string | null {
-  const normalized = storagePath.trim().replace(/^\/+/, "");
-  if (!normalized) return null;
-  if (/^[a-z][a-z\d+.-]*:\/\//i.test(normalized)) return null;
-  if (normalized.includes("\\")) return null;
-  if (normalized.split("/").some((segment) => !segment || segment === "..")) return null;
-
-  const allowedPrefixes = [
-    `tenants/${tenantId}/assignments/${assignmentId}/`,
-    `${tenantId}/assignments/${assignmentId}/`,
-    `assignments/${assignmentId}/`,
-    `${assignmentId}/`,
-  ];
-
-  return allowedPrefixes.some((prefix) => normalized.startsWith(prefix)) ? normalized : null;
+  return getTenantBoundAssignmentMediaStoragePath(storagePath, tenantId, assignmentId, {
+    allowLegacyAssignmentRoot: true,
+    allowLegacyPluralTenantRoot: true,
+    allowLegacyTenantRoot: true,
+  });
 }
 
 export type RequestAssignmentInput = z.infer<typeof requestSchema>;
