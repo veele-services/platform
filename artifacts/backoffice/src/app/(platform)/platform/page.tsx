@@ -1,6 +1,23 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
 import {
+  Activity,
+  AlertTriangle,
+  Bell,
+  Building2,
+  Clock3,
+  CreditCard,
+  ExternalLink,
+  LifeBuoy,
+  ShieldCheck,
+  Ticket,
+  type LucideIcon,
+} from "lucide-react";
+import {
+  getPlatformDashboardSignals,
+  type PlatformDashboardSignals,
+} from "@/app/actions/platform-dashboard";
+import {
   createPlatformTenant,
   getPlatformOnboardingDraft,
   listPlatformOnboardingCatalog,
@@ -9,12 +26,21 @@ import {
   savePlatformOnboardingDraft,
   type PlatformOnboardingCatalog,
   type PlatformOnboardingDraft,
+  type PlatformProvisioningRunRow,
 } from "@/app/actions/platform-provisioning";
-import { listPlatformTenants } from "@/app/actions/platform-tenants";
+import { getPlatformStagingSmokeDashboard } from "@/app/actions/platform-smoke";
+import type {
+  PlatformSmokeStatus,
+  PlatformStagingSmokeDashboard,
+} from "@/app/actions/platform-smoke.types";
+import { listPlatformTenants, type PlatformTenantRow } from "@/app/actions/platform-tenants";
 import {
   enterSupportMode,
+  listPlatformSecurityDashboard,
   listPlatformUsers,
   listSupportAccessGrants,
+  type PlatformSecurityDashboard,
+  type PlatformSecurityEventRow,
   type SupportAccessGrantRow,
 } from "@/app/actions/platform";
 import { listCurrentSupportAccessGrants } from "@/app/actions/support-mode";
@@ -348,18 +374,489 @@ function OnboardingWizard({
   );
 }
 
+type DashboardTone = "neutral" | "good" | "warning" | "danger";
+
+type DashboardMetric = {
+  label: string;
+  value: string | number;
+  detail: string;
+  href: string;
+  icon: LucideIcon;
+  tone: DashboardTone;
+};
+
+type DashboardAction = {
+  id: string;
+  label: string;
+  detail: string;
+  href: string;
+  meta: string;
+  tone: DashboardTone;
+};
+
+function dashboardToneClasses(tone: DashboardTone): string {
+  if (tone === "good") return "border-emerald-200 bg-emerald-50 text-emerald-700";
+  if (tone === "warning") return "border-amber-200 bg-amber-50 text-amber-700";
+  if (tone === "danger") return "border-rose-200 bg-rose-50 text-rose-700";
+  return "border-slate-200 bg-slate-50 text-slate-600";
+}
+
+function dashboardStatusLabel(status: PlatformSmokeStatus): string {
+  if (status === "ok") return "Groen";
+  if (status === "warning") return "Aandacht";
+  if (status === "blocked") return "Geblokkeerd";
+  return "Handmatig";
+}
+
+function dashboardStatusTone(status: PlatformSmokeStatus): DashboardTone {
+  if (status === "ok") return "good";
+  if (status === "blocked") return "danger";
+  if (status === "warning") return "warning";
+  return "neutral";
+}
+
+function metricValueClass(tone: DashboardTone): string {
+  if (tone === "good") return "text-emerald-700";
+  if (tone === "warning") return "text-amber-700";
+  if (tone === "danger") return "text-rose-700";
+  return "text-slate-950";
+}
+
+function DashboardMetricCard({ metric }: { metric: DashboardMetric }) {
+  const Icon = metric.icon;
+
+  return (
+    <Link
+      href={metric.href}
+      className="group flex min-h-36 flex-col justify-between rounded border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:shadow-sm"
+    >
+      <div className="flex items-start justify-between gap-3">
+        <span className={`inline-flex size-9 items-center justify-center rounded border ${dashboardToneClasses(metric.tone)}`}>
+          <Icon className="size-4" aria-hidden="true" />
+        </span>
+        <ExternalLink className="size-4 text-slate-300 transition group-hover:text-slate-500" aria-hidden="true" />
+      </div>
+      <div>
+        <p className={`mt-5 text-2xl font-semibold tracking-normal ${metricValueClass(metric.tone)}`}>{metric.value}</p>
+        <p className="mt-1 text-sm font-medium text-slate-900">{metric.label}</p>
+        <p className="mt-1 text-xs leading-5 text-slate-500">{metric.detail}</p>
+      </div>
+    </Link>
+  );
+}
+
+function DashboardActionList({ actions }: { actions: DashboardAction[] }) {
+  return (
+    <section className="rounded border border-slate-200 bg-white p-4">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
+        <div>
+          <h2 className="text-base font-semibold tracking-normal">Actielijst</h2>
+          <p className="mt-1 text-xs text-slate-500">Onboarding, domeinen, subscriptions, support en smoke checks.</p>
+        </div>
+        <span className="rounded bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{actions.length}</span>
+      </div>
+      <div className="divide-y divide-slate-100">
+        {actions.length > 0 ? (
+          actions.map((action) => (
+            <Link key={action.id} href={action.href} className="group flex items-start justify-between gap-4 py-3">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={`rounded border px-2 py-0.5 text-[11px] font-medium ${dashboardToneClasses(action.tone)}`}>
+                    {action.meta}
+                  </span>
+                  <p className="font-medium text-slate-950">{action.label}</p>
+                </div>
+                <p className="mt-1 text-sm leading-5 text-slate-500">{action.detail}</p>
+              </div>
+              <ExternalLink className="mt-1 size-4 shrink-0 text-slate-300 transition group-hover:text-slate-500" aria-hidden="true" />
+            </Link>
+          ))
+        ) : (
+          <div className="py-6 text-sm text-slate-500">Geen directe acties gevonden.</div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function RecentAuditEvents({ events }: { events: PlatformSecurityEventRow[] }) {
+  return (
+    <section className="rounded border border-slate-200 bg-white p-4">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
+        <div>
+          <h2 className="text-base font-semibold tracking-normal">Recente audit-events</h2>
+          <p className="mt-1 text-xs text-slate-500">Platform-, support- en tenantsecurity in tijdvolgorde.</p>
+        </div>
+        <Link href="/platform/security" className="text-sm font-medium text-slate-700 underline-offset-2 hover:underline">
+          Open
+        </Link>
+      </div>
+      <div className="divide-y divide-slate-100">
+        {events.length > 0 ? (
+          events.map((event) => (
+            <div key={`${event.source}:${event.id}`} className="py-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="rounded border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+                  {event.scope}
+                </span>
+                <p className="font-medium text-slate-950">{event.action}</p>
+              </div>
+              <p className="mt-1 text-sm text-slate-500">
+                {event.tenantName} · {event.resource ?? "platform"} · {formatDate(event.createdAt)}
+              </p>
+            </div>
+          ))
+        ) : (
+          <div className="py-6 text-sm text-slate-500">Nog geen audit-events zichtbaar.</div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function RecentTicketsAndNotifications() {
+  return (
+    <section className="rounded border border-slate-200 bg-white p-4">
+      <div className="border-b border-slate-100 pb-3">
+        <h2 className="text-base font-semibold tracking-normal">Tickets en meldingen</h2>
+        <p className="mt-1 text-xs text-slate-500">Routes staan klaar; centrale platform-inbox volgt in de ticket- en notificatiefase.</p>
+      </div>
+      <div className="divide-y divide-slate-100">
+        <Link href="/platform/tickets" className="group flex items-center justify-between gap-4 py-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="inline-flex size-9 items-center justify-center rounded border border-slate-200 bg-slate-50 text-slate-600">
+              <Ticket className="size-4" aria-hidden="true" />
+            </span>
+            <div>
+              <p className="font-medium text-slate-950">Geen open platformtickets</p>
+              <p className="text-sm text-slate-500">Databron wordt gekoppeld in de ticketsysteemfase.</p>
+            </div>
+          </div>
+          <ExternalLink className="size-4 shrink-0 text-slate-300 transition group-hover:text-slate-500" aria-hidden="true" />
+        </Link>
+        <Link href="/platform/notifications" className="group flex items-center justify-between gap-4 py-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <span className="inline-flex size-9 items-center justify-center rounded border border-slate-200 bg-slate-50 text-slate-600">
+              <Bell className="size-4" aria-hidden="true" />
+            </span>
+            <div>
+              <p className="font-medium text-slate-950">Geen platformmeldingen</p>
+              <p className="text-sm text-slate-500">Realtime meldingencentrum volgt na de dashboardbasis.</p>
+            </div>
+          </div>
+          <ExternalLink className="size-4 shrink-0 text-slate-300 transition group-hover:text-slate-500" aria-hidden="true" />
+        </Link>
+      </div>
+    </section>
+  );
+}
+
+function quickTenantLinks(tenants: PlatformTenantRow[], signals: PlatformDashboardSignals): PlatformTenantRow[] {
+  const byId = new Map(tenants.map((tenant) => [tenant.id, tenant]));
+  const selected: PlatformTenantRow[] = [];
+  const seen = new Set<string>();
+  const pick = (tenant: PlatformTenantRow | undefined) => {
+    if (!tenant || seen.has(tenant.id)) return;
+    seen.add(tenant.id);
+    selected.push(tenant);
+  };
+
+  signals.pendingDomains.rows.forEach((row) => pick(byId.get(row.tenantId)));
+  signals.pastDueSubscriptions.rows.forEach((row) => pick(byId.get(row.tenantId)));
+  tenants.filter((tenant) => tenant.status === "suspended").forEach(pick);
+  tenants.filter((tenant) => tenant.status === "trial").forEach(pick);
+  tenants.forEach(pick);
+
+  return selected.slice(0, 6);
+}
+
+function QuickTenantLinks({
+  tenants,
+  signals,
+}: {
+  tenants: PlatformTenantRow[];
+  signals: PlatformDashboardSignals;
+}) {
+  const quickLinks = quickTenantLinks(tenants, signals);
+
+  return (
+    <section className="rounded border border-slate-200 bg-white p-4">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
+        <div>
+          <h2 className="text-base font-semibold tracking-normal">Snelle tenantlinks</h2>
+          <p className="mt-1 text-xs text-slate-500">Eerst tenants met open acties, daarna trial en actieve tenants.</p>
+        </div>
+        <Link href="/platform/tenants" className="text-sm font-medium text-slate-700 underline-offset-2 hover:underline">
+          Alles
+        </Link>
+      </div>
+      <div className="divide-y divide-slate-100">
+        {quickLinks.map((tenant) => (
+          <Link key={tenant.id} href={`/platform/tenants/${tenant.id}`} className="group flex items-center justify-between gap-4 py-3">
+            <div className="min-w-0">
+              <p className="truncate font-medium text-slate-950">{tenant.name}</p>
+              <p className="truncate text-sm text-slate-500">
+                {tenant.slug} · {tenant.planKey} · {tenant.status}
+              </p>
+            </div>
+            <ExternalLink className="size-4 shrink-0 text-slate-300 transition group-hover:text-slate-500" aria-hidden="true" />
+          </Link>
+        ))}
+        {quickLinks.length === 0 && <div className="py-6 text-sm text-slate-500">Nog geen tenants beschikbaar.</div>}
+      </div>
+    </section>
+  );
+}
+
+function buildDashboardActions(input: {
+  signals: PlatformDashboardSignals;
+  provisioningRuns: PlatformProvisioningRunRow[];
+  supportGrants: SupportAccessGrantRow[];
+  smokeDashboard: PlatformStagingSmokeDashboard;
+}): DashboardAction[] {
+  const actions: DashboardAction[] = [];
+  const now = Date.now();
+  const soon = now + 24 * 60 * 60 * 1000;
+
+  for (const run of input.provisioningRuns) {
+    if (run.canResume) {
+      actions.push({
+        id: `resume:${run.id}`,
+        label: `${run.name} onboarding hervatten`,
+        detail: `${run.slug} staat als concept op ${run.currentStep}.`,
+        href: `/platform?onboardingDraft=${run.id}`,
+        meta: "Onboarding",
+        tone: "warning",
+      });
+    } else if (run.canRetry) {
+      actions.push({
+        id: `retry:${run.id}`,
+        label: `${run.name} provisioning opnieuw bekijken`,
+        detail: run.errorMessage ?? run.rollbackPath,
+        href: "/platform#provisioning-runs",
+        meta: "Retry",
+        tone: "danger",
+      });
+    } else if (run.ownerInviteStatus === "pending") {
+      actions.push({
+        id: `owner-invite:${run.id}`,
+        label: `${run.name} owner invite staat open`,
+        detail: run.ownerEmail ? `${run.ownerEmail} heeft nog geen afgeronde owner-koppeling.` : "Owner invite status staat op pending.",
+        href: run.tenantId ? `/platform/tenants/${run.tenantId}` : "/platform#provisioning-runs",
+        meta: "Owner",
+        tone: "warning",
+      });
+    }
+  }
+
+  for (const domain of input.signals.pendingDomains.rows) {
+    actions.push({
+      id: `domain:${domain.id}`,
+      label: `${domain.domain} verifieren`,
+      detail: `${domain.tenantName} heeft domeinstatus ${domain.verificationStatus}.`,
+      href: `/platform/tenants/${domain.tenantId}`,
+      meta: "Domein",
+      tone: "warning",
+    });
+  }
+
+  for (const subscription of input.signals.pastDueSubscriptions.rows) {
+    actions.push({
+      id: `subscription:${subscription.id}`,
+      label: `${subscription.tenantName} subscription past due`,
+      detail: `${subscription.planName} staat sinds ${formatDate(subscription.updatedAt)} op ${subscription.status}.`,
+      href: `/platform/tenants/${subscription.tenantId}`,
+      meta: "Billing",
+      tone: "danger",
+    });
+  }
+
+  for (const grant of input.supportGrants) {
+    const expiresAt = new Date(grant.expiresAt).getTime();
+    if (supportGrantStatus(grant) !== "Actief" || expiresAt > soon) continue;
+    actions.push({
+      id: `support:${grant.id}`,
+      label: `${grant.tenantName} supportgrant verloopt bijna`,
+      detail: `Verloopt ${formatDate(grant.expiresAt)}. Reden: ${grant.reason}`,
+      href: `/platform/tenants/${grant.tenantId}`,
+      meta: "Support",
+      tone: "warning",
+    });
+  }
+
+  if (input.smokeDashboard.finalExternalTenantGate.status !== "ok") {
+    actions.push({
+      id: "smoke:final-gate",
+      label: "Final external tenant gate vraagt aandacht",
+      detail: input.smokeDashboard.finalExternalTenantGate.summary,
+      href: "/platform/staging-smoke",
+      meta: "Smoke",
+      tone: dashboardStatusTone(input.smokeDashboard.finalExternalTenantGate.status),
+    });
+  }
+
+  input.smokeDashboard.checks
+    .filter((check) => check.status === "blocked")
+    .slice(0, 2)
+    .forEach((check) => {
+      actions.push({
+        id: `smoke:${check.id}`,
+        label: `${check.label} is geblokkeerd`,
+        detail: check.nextAction,
+        href: "/platform/staging-smoke",
+        meta: "Smoke",
+        tone: "danger",
+      });
+    });
+
+  return actions.slice(0, 10);
+}
+
+function PlatformDashboardOverview({
+  tenants,
+  supportGrants,
+  provisioningRuns,
+  signals,
+  securityDashboard,
+  smokeDashboard,
+}: {
+  tenants: PlatformTenantRow[];
+  supportGrants: SupportAccessGrantRow[];
+  provisioningRuns: PlatformProvisioningRunRow[];
+  signals: PlatformDashboardSignals;
+  securityDashboard: PlatformSecurityDashboard;
+  smokeDashboard: PlatformStagingSmokeDashboard;
+}) {
+  const activeTenants = tenants.filter((tenant) => tenant.isActive && ["trial", "active"].includes(tenant.status)).length;
+  const trialTenants = tenants.filter((tenant) => tenant.status === "trial").length;
+  const suspendedTenants = tenants.filter((tenant) => tenant.status === "suspended").length;
+  const activeSupportGrants = supportGrants.filter((grant) => supportGrantStatus(grant) === "Actief").length;
+  const blockedSmokeChecks = smokeDashboard.checks.filter((check) => check.status === "blocked").length;
+  const warningSmokeChecks = smokeDashboard.checks.filter((check) => check.status === "warning").length;
+  const smokeTone = dashboardStatusTone(smokeDashboard.finalExternalTenantGate.status);
+  const actions = buildDashboardActions({ signals, provisioningRuns, supportGrants, smokeDashboard });
+
+  const metrics: DashboardMetric[] = [
+    {
+      label: "Actieve tenants",
+      value: activeTenants,
+      detail: `${tenants.length} totaal in platformbeheer.`,
+      href: "/platform/tenants",
+      icon: Building2,
+      tone: "good",
+    },
+    {
+      label: "Tenants in trial",
+      value: trialTenants,
+      detail: "Trial tenants die opvolging of conversie nodig kunnen hebben.",
+      href: "/platform/tenants",
+      icon: Clock3,
+      tone: trialTenants > 0 ? "warning" : "neutral",
+    },
+    {
+      label: "Suspended tenants",
+      value: suspendedTenants,
+      detail: "Geblokkeerde of gepauzeerde klantomgevingen.",
+      href: "/platform/tenants",
+      icon: AlertTriangle,
+      tone: suspendedTenants > 0 ? "danger" : "good",
+    },
+    {
+      label: "Open platformtickets",
+      value: 0,
+      detail: "Ticketdatabron volgt; route is beschikbaar.",
+      href: "/platform/tickets",
+      icon: Ticket,
+      tone: "neutral",
+    },
+    {
+      label: "Actieve support grants",
+      value: activeSupportGrants,
+      detail: "Break-glass toegang met actieve TTL.",
+      href: "/platform/users",
+      icon: LifeBuoy,
+      tone: activeSupportGrants > 0 ? "warning" : "neutral",
+    },
+    {
+      label: "Domeinen pending",
+      value: signals.pendingDomains.total,
+      detail: "Niet-geverifieerde tenantdomeinen.",
+      href: "/platform/tenants",
+      icon: ShieldCheck,
+      tone: signals.pendingDomains.total > 0 ? "warning" : "good",
+    },
+    {
+      label: "Subscriptions past due",
+      value: signals.pastDueSubscriptions.total,
+      detail: "Abonnementen die betaal- of statusactie vragen.",
+      href: "/platform/subscriptions",
+      icon: CreditCard,
+      tone: signals.pastDueSubscriptions.total > 0 ? "danger" : "good",
+    },
+    {
+      label: "Platformmeldingen",
+      value: 0,
+      detail: "Notificatie-inbox wordt in een volgende fase gekoppeld.",
+      href: "/platform/notifications",
+      icon: Bell,
+      tone: "neutral",
+    },
+    {
+      label: "Smoke status",
+      value: dashboardStatusLabel(smokeDashboard.finalExternalTenantGate.status),
+      detail: `${blockedSmokeChecks} geblokkeerd, ${warningSmokeChecks} aandachtspunt(en).`,
+      href: "/platform/staging-smoke",
+      icon: Activity,
+      tone: smokeTone,
+    },
+  ];
+
+  return (
+    <section className="grid gap-4">
+      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+        {metrics.map((metric) => (
+          <DashboardMetricCard key={metric.label} metric={metric} />
+        ))}
+      </div>
+
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1.35fr)_minmax(320px,0.65fr)]">
+        <DashboardActionList actions={actions} />
+        <QuickTenantLinks tenants={tenants} signals={signals} />
+      </div>
+
+      <div className="grid gap-4 lg:grid-cols-2">
+        <RecentAuditEvents events={securityDashboard.events.slice(0, 6)} />
+        <RecentTicketsAndNotifications />
+      </div>
+    </section>
+  );
+}
+
 export default async function PlatformAdminPage({ searchParams }: Props) {
   const { onboardingDraft } = await searchParams;
   const platformUser = await getCurrentPlatformUser();
   const isPlatformAdmin = platformUser?.role === "owner" || platformUser?.role === "admin";
 
-  const [tenants, platformUsers, supportGrants, provisioningRuns, onboardingCatalog, onboardingDraftData] = await Promise.all([
+  const [
+    tenants,
+    platformUsers,
+    supportGrants,
+    provisioningRuns,
+    onboardingCatalog,
+    onboardingDraftData,
+    dashboardSignals,
+    securityDashboard,
+    smokeDashboard,
+  ] = await Promise.all([
     isPlatformAdmin ? listPlatformTenants() : Promise.resolve([]),
     isPlatformAdmin ? listPlatformUsers() : Promise.resolve([]),
     isPlatformAdmin ? listSupportAccessGrants() : listCurrentSupportAccessGrants(),
     isPlatformAdmin ? listTenantProvisioningRuns() : Promise.resolve([]),
     isPlatformAdmin ? listPlatformOnboardingCatalog() : Promise.resolve(EMPTY_ONBOARDING_CATALOG),
     isPlatformAdmin && onboardingDraft ? getPlatformOnboardingDraft(onboardingDraft) : Promise.resolve(null),
+    isPlatformAdmin ? getPlatformDashboardSignals() : Promise.resolve(null),
+    isPlatformAdmin ? listPlatformSecurityDashboard({ limit: 80 }) : Promise.resolve(null),
+    isPlatformAdmin ? getPlatformStagingSmokeDashboard() : Promise.resolve(null),
   ]);
 
   return (
@@ -385,10 +882,21 @@ export default async function PlatformAdminPage({ searchParams }: Props) {
           )}
         </header>
 
+        {isPlatformAdmin && dashboardSignals && securityDashboard && smokeDashboard && (
+          <PlatformDashboardOverview
+            tenants={tenants}
+            supportGrants={supportGrants}
+            provisioningRuns={provisioningRuns}
+            signals={dashboardSignals}
+            securityDashboard={securityDashboard}
+            smokeDashboard={smokeDashboard}
+          />
+        )}
+
         {isPlatformAdmin && <OnboardingWizard catalog={onboardingCatalog} draft={onboardingDraftData} />}
 
         {isPlatformAdmin && provisioningRuns.length > 0 && (
-          <section className="flex flex-col gap-3">
+          <section id="provisioning-runs" className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-4">
               <h2 className="text-xl font-semibold tracking-normal">Provisioning runs</h2>
               <span className="text-sm text-slate-500">{provisioningRuns.length}</span>
