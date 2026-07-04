@@ -624,7 +624,7 @@ function buildDashboardActions(input: {
         id: `resume:${run.id}`,
         label: `${run.name} onboarding hervatten`,
         detail: `${run.slug} staat als concept op ${run.currentStep}.`,
-        href: `/platform?onboardingDraft=${run.id}`,
+        href: `/platform/onboarding?onboardingDraft=${run.id}`,
         meta: "Onboarding",
         tone: "warning",
       });
@@ -633,7 +633,7 @@ function buildDashboardActions(input: {
         id: `retry:${run.id}`,
         label: `${run.name} provisioning opnieuw bekijken`,
         detail: run.errorMessage ?? run.rollbackPath,
-        href: "/platform#provisioning-runs",
+        href: "/platform/onboarding#provisioning-runs",
         meta: "Retry",
         tone: "danger",
       });
@@ -642,7 +642,7 @@ function buildDashboardActions(input: {
         id: `owner-invite:${run.id}`,
         label: `${run.name} owner invite staat open`,
         detail: run.ownerEmail ? `${run.ownerEmail} heeft nog geen afgeronde owner-koppeling.` : "Owner invite status staat op pending.",
-        href: run.tenantId ? `/platform/tenants/${run.tenantId}` : "/platform#provisioning-runs",
+        href: run.tenantId ? `/platform/tenants/${run.tenantId}` : "/platform/onboarding#provisioning-runs",
         meta: "Owner",
         tone: "warning",
       });
@@ -895,6 +895,16 @@ export default async function PlatformAdminPage({ searchParams }: Props) {
 
         {isPlatformAdmin && <OnboardingWizard catalog={onboardingCatalog} draft={onboardingDraftData} />}
 
+        {isPlatformAdmin && (
+          <Link
+            href="/platform/onboarding"
+            className="inline-flex w-fit items-center gap-2 rounded border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+          >
+            Open Onboarding 2.0
+            <ExternalLink aria-hidden="true" className="size-4" />
+          </Link>
+        )}
+
         {isPlatformAdmin && provisioningRuns.length > 0 && (
           <section id="provisioning-runs" className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-4">
@@ -941,7 +951,7 @@ export default async function PlatformAdminPage({ searchParams }: Props) {
                         <div className="flex flex-wrap gap-2">
                           {run.canResume && (
                             <Link
-                              href={`/platform?onboardingDraft=${run.id}`}
+                              href={`/platform/onboarding?onboardingDraft=${run.id}`}
                               className="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
                             >
                               Hervat

@@ -14,6 +14,7 @@ import {
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
+  Rocket,
   Settings,
   ShieldCheck,
   Ticket,
@@ -49,6 +50,7 @@ type PlatformNavItem = {
 
 const NAV_ITEMS: PlatformNavItem[] = [
   { href: "/platform", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/platform/onboarding", label: "Onboarding", icon: Rocket, adminOnly: true },
   { href: "/platform/tenants", label: "Tenants", icon: Building2, adminOnly: true },
   { href: "/platform/subscriptions", label: "Subscriptions", icon: CreditCard, adminOnly: true },
   { href: "/platform/tickets", label: "Tickets", icon: Ticket, adminOnly: true },
@@ -69,6 +71,11 @@ const ROUTE_LABELS: Array<{ test: (pathname: string) => boolean; title: string; 
     test: (pathname) => pathname === "/platform/tenants",
     title: "Tenants",
     crumbs: [{ label: "Platformbeheer", href: "/platform" }, { label: "Tenants" }],
+  },
+  {
+    test: (pathname) => pathname.startsWith("/platform/onboarding"),
+    title: "Onboarding",
+    crumbs: [{ label: "Platformbeheer", href: "/platform" }, { label: "Onboarding" }],
   },
   {
     test: (pathname) => pathname.startsWith("/platform/tenants/"),
