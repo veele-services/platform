@@ -12,7 +12,7 @@ import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { customersTable } from "./customers";
 import { sectorsTable } from "./sectors";
-import { DEFAULT_TENANT_ID, tenantsTable } from "./tenants";
+import { tenantsTable } from "./tenants";
 
 /**
  * A service location or physical asset belonging to a customer.
@@ -22,7 +22,6 @@ export const objectsTable = pgTable("objects", {
   id:          uuid("id").primaryKey().defaultRandom(),
   tenantId:    uuid("tenant_id")
     .notNull()
-    .default(sql`'${sql.raw(DEFAULT_TENANT_ID)}'::uuid`)
     .references(() => tenantsTable.id, { onDelete: "cascade" }),
   customerId:  uuid("customer_id").notNull().references(() => customersTable.id, { onDelete: "cascade" }),
   sectorId:    uuid("sector_id").references(() => sectorsTable.id, { onDelete: "set null" }),

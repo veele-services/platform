@@ -2,6 +2,7 @@
 
 import { db } from "@workspace/db";
 import {
+  auditLogTable,
   FIELDGRID_SUPPORT_BREAK_GLASS_GRANT_TYPE,
   FIELDGRID_SUPPORT_BREAK_GLASS_MAX_TTL_MINUTES,
   FIELDGRID_SUPPORT_TENANT_COOKIE,
@@ -11,7 +12,7 @@ import {
   tenantsTable,
   validateSupportBreakGlassGrant,
 } from "@workspace/db";
-import { and, desc, eq, gt, isNull, lte } from "drizzle-orm";
+import { and, desc, eq, gt, isNull, lte, type SQL } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -57,12 +58,45 @@ export type SupportAccessAuditLogRow = {
   createdAt: string;
 };
 
-export type PlatformSecurityEventRow = SupportAccessAuditLogRow & {
+export type PlatformSecurityEventCategory = "support" | "download" | "denial" | "platform";
+export type PlatformSecurityEventScope = "support" | "tenant" | "platform";
+export type PlatformSecurityEventSource = "support_access_audit_log" | "audit_log";
+
+export type PlatformSecurityDashboardFilters = {
+  tenantId?: string;
+  actorId?: string;
+  eventType?: PlatformSecurityEventCategory | "all";
+  scope?: PlatformSecurityEventScope | "all";
+  limit?: number;
+};
+
+export type PlatformSecurityTenantOption = {
+  id: string;
+  name: string;
+};
+
+export type PlatformSecurityEventRow = {
+  id: string;
+  source: PlatformSecurityEventSource;
+  scope: PlatformSecurityEventScope;
+  categories: PlatformSecurityEventCategory[];
+  tenantId: string | null;
   tenantName: string;
+  actorId: string;
+  grantId: string | null;
+  action: string;
+  resource: string | null;
+  resourceId: string | null;
+  metadata: Record<string, unknown> | null;
+  createdAt: string;
 };
 
 export type PlatformSecurityDashboard = {
   generatedAt: string;
+  filters: Required<Pick<PlatformSecurityDashboardFilters, "eventType" | "scope">> &
+    Pick<PlatformSecurityDashboardFilters, "tenantId" | "actorId">;
+  tenantOptions: PlatformSecurityTenantOption[];
+  events: PlatformSecurityEventRow[];
   supportEvents: PlatformSecurityEventRow[];
   downloadEvents: PlatformSecurityEventRow[];
   denialEvents: PlatformSecurityEventRow[];
@@ -92,7 +126,7 @@ function revalidatePlatformTenant(tenantId: string): void {
 }
 
 function securityEventText(event: PlatformSecurityEventRow): string {
-  return `${event.action} ${event.resource ?? ""} ${event.resourceId ?? ""} ${JSON.stringify(event.metadata ?? {})}`.toLowerCase();
+  return `${event.source} ${event.action} ${event.resource ?? ""} ${event.resourceId ?? ""} ${JSON.stringify(event.metadata ?? {})}`.toLowerCase();
 }
 
 function isDownloadSecurityEvent(event: PlatformSecurityEventRow): boolean {
@@ -105,11 +139,22 @@ function isDenialSecurityEvent(event: PlatformSecurityEventRow): boolean {
   return [
     "denied",
     "denial",
+    "deny",
     "geweigerd",
     "forbidden",
+    "module_denied",
+    "module-denied",
+    "module_denial",
+    "module-denial",
+    "storage_denied",
+    "storage-denied",
+    "storage_denial",
+    "storage-denial",
     "expired",
     "wrong_tenant",
+    "wrong-tenant",
     "cross-tenant",
+    "direct_id",
     "direct-id",
     "path_guess",
     "path-guess",
@@ -119,14 +164,62 @@ function isDenialSecurityEvent(event: PlatformSecurityEventRow): boolean {
 function isPlatformSecurityEvent(event: PlatformSecurityEventRow): boolean {
   const text = securityEventText(event);
   return (
+    event.scope === "platform" ||
     event.action.startsWith("grant_") ||
-    ["platform", "tenant", "module", "sector", "support_access_grants"].some((marker) => text.includes(marker))
+    ["platform", "tenant", "module", "sector", "plan", "support_access_grants"].some((marker) => text.includes(marker))
   );
 }
 
 function isSupportSecurityEvent(event: PlatformSecurityEventRow): boolean {
   const text = securityEventText(event);
-  return ["support", "grant_", "support_access_grants"].some((marker) => text.includes(marker));
+  return event.scope === "support" || ["support", "grant_", "support_access_grants"].some((marker) => text.includes(marker));
+}
+
+function securityEventCategories(event: Omit<PlatformSecurityEventRow, "categories">): PlatformSecurityEventCategory[] {
+  const categories: PlatformSecurityEventCategory[] = [];
+  const candidate = { ...event, categories } satisfies PlatformSecurityEventRow;
+
+  if (isSupportSecurityEvent(candidate)) categories.push("support");
+  if (isDownloadSecurityEvent(candidate)) categories.push("download");
+  if (isDenialSecurityEvent(candidate)) categories.push("denial");
+  if (isPlatformSecurityEvent(candidate)) categories.push("platform");
+
+  if (categories.length > 0) return categories;
+  if (event.scope === "support") return ["support"];
+  if (event.scope === "platform") return ["platform"];
+  return [];
+}
+
+function normalizeSecurityFilters(
+  filters: PlatformSecurityDashboardFilters = {},
+): Required<Pick<PlatformSecurityDashboardFilters, "eventType" | "scope" | "limit">> &
+  Pick<PlatformSecurityDashboardFilters, "tenantId" | "actorId"> {
+  const eventType = ["support", "download", "denial", "platform"].includes(filters.eventType ?? "")
+    ? filters.eventType as PlatformSecurityEventCategory
+    : "all";
+  const scope = ["support", "tenant", "platform"].includes(filters.scope ?? "")
+    ? filters.scope as PlatformSecurityEventScope
+    : "all";
+  const limit = Number.isFinite(filters.limit ?? NaN)
+    ? Math.max(25, Math.min(500, Math.round(filters.limit!)))
+    : 300;
+
+  return {
+    tenantId: filters.tenantId?.trim() || undefined,
+    actorId: filters.actorId?.trim() || undefined,
+    eventType,
+    scope,
+    limit,
+  };
+}
+
+function matchesPlatformSecurityFilter(
+  event: PlatformSecurityEventRow,
+  filters: ReturnType<typeof normalizeSecurityFilters>,
+): boolean {
+  if (filters.scope !== "all" && event.scope !== filters.scope) return false;
+  if (filters.eventType !== "all" && !event.categories.includes(filters.eventType)) return false;
+  return true;
 }
 
 export async function listPlatformUsers(): Promise<PlatformUserRow[]> {
@@ -390,45 +483,116 @@ export async function listSupportAccessAuditLog(tenantId?: string): Promise<Supp
 }
 
 export async function listPlatformSecurityDashboard(
-  tenantId?: string,
+  filters: PlatformSecurityDashboardFilters = {},
 ): Promise<PlatformSecurityDashboard> {
   await requirePlatformAdmin();
 
-  const where = tenantId ? eq(supportAccessAuditLogTable.tenantId, tenantId) : undefined;
-  const rows = await db
-    .select({
-      id: supportAccessAuditLogTable.id,
-      grantId: supportAccessAuditLogTable.grantId,
-      tenantId: supportAccessAuditLogTable.tenantId,
-      tenantName: tenantsTable.name,
-      platformUserId: supportAccessAuditLogTable.platformUserId,
-      action: supportAccessAuditLogTable.action,
-      resource: supportAccessAuditLogTable.resource,
-      resourceId: supportAccessAuditLogTable.resourceId,
-      metadata: supportAccessAuditLogTable.metadata,
-      createdAt: supportAccessAuditLogTable.createdAt,
-    })
-    .from(supportAccessAuditLogTable)
-    .innerJoin(tenantsTable, eq(supportAccessAuditLogTable.tenantId, tenantsTable.id))
-    .where(where)
-    .orderBy(desc(supportAccessAuditLogTable.createdAt))
-    .limit(300);
+  const normalizedFilters = normalizeSecurityFilters(filters);
+  const supportConditions: SQL[] = [];
+  const auditConditions: SQL[] = [];
 
-  const events = rows.map((row) => ({
-    id: row.id,
-    grantId: row.grantId,
-    tenantId: row.tenantId,
-    tenantName: row.tenantName,
-    platformUserId: row.platformUserId,
-    action: row.action,
-    resource: row.resource,
-    resourceId: row.resourceId,
-    metadata: row.metadata as Record<string, unknown> | null,
-    createdAt: row.createdAt.toISOString(),
-  }));
+  if (normalizedFilters.tenantId) {
+    supportConditions.push(eq(supportAccessAuditLogTable.tenantId, normalizedFilters.tenantId));
+    auditConditions.push(eq(auditLogTable.tenantId, normalizedFilters.tenantId));
+  }
+  if (normalizedFilters.actorId) {
+    supportConditions.push(eq(supportAccessAuditLogTable.platformUserId, normalizedFilters.actorId));
+    auditConditions.push(eq(auditLogTable.userId, normalizedFilters.actorId));
+  }
+
+  const [supportRows, auditRows, tenantRows] = await Promise.all([
+    db
+      .select({
+        id: supportAccessAuditLogTable.id,
+        grantId: supportAccessAuditLogTable.grantId,
+        tenantId: supportAccessAuditLogTable.tenantId,
+        tenantName: tenantsTable.name,
+        platformUserId: supportAccessAuditLogTable.platformUserId,
+        action: supportAccessAuditLogTable.action,
+        resource: supportAccessAuditLogTable.resource,
+        resourceId: supportAccessAuditLogTable.resourceId,
+        metadata: supportAccessAuditLogTable.metadata,
+        createdAt: supportAccessAuditLogTable.createdAt,
+      })
+      .from(supportAccessAuditLogTable)
+      .innerJoin(tenantsTable, eq(supportAccessAuditLogTable.tenantId, tenantsTable.id))
+      .where(supportConditions.length > 0 ? and(...supportConditions) : undefined)
+      .orderBy(desc(supportAccessAuditLogTable.createdAt))
+      .limit(normalizedFilters.limit),
+    db
+      .select({
+        id: auditLogTable.id,
+        tenantId: auditLogTable.tenantId,
+        tenantName: tenantsTable.name,
+        userId: auditLogTable.userId,
+        action: auditLogTable.action,
+        resource: auditLogTable.resource,
+        resourceId: auditLogTable.resourceId,
+        metadata: auditLogTable.metadata,
+        createdAt: auditLogTable.createdAt,
+      })
+      .from(auditLogTable)
+      .leftJoin(tenantsTable, eq(auditLogTable.tenantId, tenantsTable.id))
+      .where(auditConditions.length > 0 ? and(...auditConditions) : undefined)
+      .orderBy(desc(auditLogTable.createdAt))
+      .limit(normalizedFilters.limit),
+    db
+      .select({ id: tenantsTable.id, name: tenantsTable.name })
+      .from(tenantsTable)
+      .orderBy(tenantsTable.name),
+  ]);
+
+  const supportEvents = supportRows.map((row): PlatformSecurityEventRow => {
+    const eventWithoutCategories: Omit<PlatformSecurityEventRow, "categories"> = {
+      id: row.id,
+      source: "support_access_audit_log",
+      scope: "support",
+      tenantId: row.tenantId,
+      tenantName: row.tenantName,
+      actorId: row.platformUserId,
+      grantId: row.grantId,
+      action: row.action,
+      resource: row.resource,
+      resourceId: row.resourceId,
+      metadata: row.metadata as Record<string, unknown> | null,
+      createdAt: row.createdAt.toISOString(),
+    };
+    return { ...eventWithoutCategories, categories: securityEventCategories(eventWithoutCategories) };
+  });
+
+  const auditEvents = auditRows.map((row): PlatformSecurityEventRow => {
+    const eventWithoutCategories: Omit<PlatformSecurityEventRow, "categories"> = {
+      id: row.id,
+      source: "audit_log",
+      scope: row.tenantId ? "tenant" : "platform",
+      tenantId: row.tenantId,
+      tenantName: row.tenantName ?? "Platform",
+      actorId: row.userId,
+      grantId: null,
+      action: row.action,
+      resource: row.resource,
+      resourceId: row.resourceId,
+      metadata: row.metadata as Record<string, unknown> | null,
+      createdAt: row.createdAt.toISOString(),
+    };
+    return { ...eventWithoutCategories, categories: securityEventCategories(eventWithoutCategories) };
+  });
+
+  const events = [...supportEvents, ...auditEvents]
+    .filter((event) => matchesPlatformSecurityFilter(event, normalizedFilters))
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, normalizedFilters.limit);
 
   return {
     generatedAt: new Date().toISOString(),
+    filters: {
+      tenantId: normalizedFilters.tenantId,
+      actorId: normalizedFilters.actorId,
+      eventType: normalizedFilters.eventType,
+      scope: normalizedFilters.scope,
+    },
+    tenantOptions: tenantRows.map((row) => ({ id: row.id, name: row.name })),
+    events,
     supportEvents: events.filter(isSupportSecurityEvent).slice(0, 40),
     downloadEvents: events.filter(isDownloadSecurityEvent).slice(0, 40),
     denialEvents: events.filter(isDenialSecurityEvent).slice(0, 40),
