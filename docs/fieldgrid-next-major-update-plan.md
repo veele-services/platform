@@ -205,9 +205,9 @@ Deze investeringen verlagen direct risico of verhogen beheerbaarheid:
 | Nice-to-have | Status | Sprint |
 | --- | --- | --- |
 | Platform-admin onboarding wizard | `partial` | 12 |
-| Tenant first-run wizard | `runtime-proof-open` | 13 |
-| Usage dashboard per tenant | `partial` | 14 |
-| Branding preview per tenant | `nice-to-have` | 14 |
+| Tenant first-run wizard | `partial` | 13 |
+| Usage dashboard per tenant | `runtime-proof-open` | 14 |
+| Branding preview per tenant | `runtime-proof-open` | 14 |
 | Support break-glass flow | `partial` | 10 |
 | Security dashboard | `partial` | 10 |
 | Module dependency visualisatie | `done` | 11 |

@@ -90,8 +90,8 @@ Geen onderwerp mag in vervolgwerk alleen als "open" blijven staan zonder status,
 
 ### 3.5 `nice-to-have`
 
-- Branding preview per tenant voor backoffice, klantportaal, personeelsapp, email en PDF.
-- Module dependency visualisatie is zichtbaar op platform tenantdetail.
+- Branding preview per tenant voor backoffice, klantportaal, personeelsapp, email en PDF is aanwezig op tenantdetail; Playwright bewijs blijft open.
+- Module dependency visualisatie.
 - Security dashboard polish bovenop het noodzakelijke audit/security dashboard.
 - Staging smoke dashboard heeft historie en mutating smoke-details; trend en echte live-run artifacts blijven vervolgproof.
 
@@ -206,9 +206,9 @@ Supporttoegang is geen gewone tenantrol. De prioriteit blijft:
 ### P2
 
 - Platform-admin onboarding wizard.
-- Tenant first-run runtime proof voor save/resume/readiness.
-- Usage dashboard per tenant met users, documenten, opdrachten, storage, downloads, actieve modules en support grants.
-- Branding preview per tenant.
+- Tenant first-run wizard.
+- Usage dashboard per tenant met users, documenten, opdrachten, storage, downloads, actieve modules, regio's, support grants en limieten is geleverd op tenantdetail; runtime proof blijft open.
+- Branding preview per tenant is geleverd voor backoffice, klantportaal, personeelsapp, email en PDF; runtime proof blijft open.
 - Security dashboard uitbreiding.
 - Module dependency visualisatie verder uitbreiden na tenantfeedback.
 - Demo-data generator voor `demo-a`, `demo-b` en `veele`.
