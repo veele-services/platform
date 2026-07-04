@@ -2175,16 +2175,20 @@ export async function markInterestCandidate(
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
+  const tenantId = await requireCurrentTenantId();
+
   const [response] = await db
     .select({
       id: assignmentInterestResponsesTable.id,
       personnelId: assignmentInterestResponsesTable.personnelId,
     })
     .from(assignmentInterestResponsesTable)
+    .innerJoin(assignmentsTable, eq(assignmentInterestResponsesTable.assignmentId, assignmentsTable.id))
     .where(
       and(
         eq(assignmentInterestResponsesTable.assignmentId, assignmentId),
         eq(assignmentInterestResponsesTable.personnelId, personnelId),
+        eq(assignmentsTable.tenantId, tenantId),
       ),
     )
     .orderBy(desc(assignmentInterestResponsesTable.createdAt))
@@ -2200,11 +2204,12 @@ export async function markInterestCandidate(
   const [[assignment], [personnel]] = await Promise.all([
     db
       .select({
+        tenantId: assignmentsTable.tenantId,
         code: assignmentsTable.code,
         title: assignmentsTable.title,
       })
       .from(assignmentsTable)
-      .where(eq(assignmentsTable.id, assignmentId))
+      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
       .limit(1),
     db
       .select({
@@ -2227,6 +2232,7 @@ export async function markInterestCandidate(
       .where(eq(assignmentInterestResponsesTable.id, response.id));
 
     await tx.insert(auditLogTable).values({
+      tenantId,
       userId: user.id,
       action: `assignment_interest_${status}`,
       resource: "assignments",
@@ -2244,6 +2250,7 @@ export async function markInterestCandidate(
         status === "reserve"
           ? "assignment_interest_reserve"
           : "assignment_interest_selected",
+      tenantId: assignment.tenantId,
       actorUserId: user.id,
       audience: "personnel",
       aggregate: { type: "assignment", id: assignmentId },

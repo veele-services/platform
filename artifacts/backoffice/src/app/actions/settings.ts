@@ -35,6 +35,7 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { hasPermission, requirePermission } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { getTenantPlanCapabilities } from "@/lib/tenant-plan";
 import type { ActionResult } from "./customers";
 
@@ -776,6 +777,7 @@ export async function sendManualNotification(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
+  const tenantId = await requireCurrentTenantId();
 
   const title = safeTrim(input.title, 180);
   const body = safeTrim(input.body, 4000);
@@ -800,7 +802,7 @@ export async function sendManualNotification(
   const wantsPersonnel = input.audience === "personnel" || input.audience === "both";
   const wantsCustomers = input.audience === "customer" || input.audience === "both";
 
-  const personnelConditions = [eq(personnelTable.isActive, true)];
+  const personnelConditions = [eq(personnelTable.tenantId, tenantId), eq(personnelTable.isActive, true)];
   if (input.targetMode === "sector" && sectorIds.length > 0) {
     personnelConditions.push(inArray(personnelTable.sectorId, sectorIds));
   }
@@ -808,7 +810,7 @@ export async function sendManualNotification(
     personnelConditions.push(inArray(personnelTable.id, personnelIds));
   }
 
-  const customerConditions = [eq(customersTable.isActive, true)];
+  const customerConditions = [eq(customersTable.tenantId, tenantId), eq(customersTable.isActive, true)];
   if (input.targetMode === "sector" && sectorIds.length > 0) {
     customerConditions.push(inArray(customersTable.sectorId, sectorIds));
   }
@@ -855,6 +857,7 @@ export async function sendManualNotification(
   const [dispatch] = await db
     .insert(notificationDispatchesTable)
     .values({
+      tenantId,
       title,
       body,
       audience: input.audience,
@@ -887,6 +890,7 @@ export async function sendManualNotification(
         personnelRecipients.map((person) => {
           const recipientName = `${person.firstName} ${person.lastName}`.trim();
           return {
+            tenantId,
             personnelId: person.id,
             title: normalizeShortcodeText(title, {
               "recipient.name": recipientName,
@@ -911,6 +915,7 @@ export async function sendManualNotification(
     if (inAppEnabled && customerRecipients.length > 0) {
       await tx.insert(customerNotificationsTable).values(
         customerRecipients.map((customer) => ({
+          tenantId,
           customerId: customer.id,
           title: normalizeShortcodeText(title, {
             "recipient.name": customer.name,
@@ -936,6 +941,7 @@ export async function sendManualNotification(
           .map((person) => {
             const recipientName = `${person.firstName} ${person.lastName}`.trim();
             return {
+              tenantId,
               dispatchId: dispatch.id,
               channel: "push" as const,
               recipientType: "personnel",
@@ -956,6 +962,7 @@ export async function sendManualNotification(
         ...customerRecipients
           .filter((customer) => customer.pushEnabled ?? false)
           .map((customer) => ({
+            tenantId,
             dispatchId: dispatch.id,
             channel: "push" as const,
             recipientType: "customer",
@@ -1046,6 +1053,7 @@ export async function sendManualNotification(
       else emailFailedCount += 1;
 
       emailRows.push({
+        tenantId,
         dispatchId: dispatch.id,
         channel: "email",
         recipientType: recipient.type,
