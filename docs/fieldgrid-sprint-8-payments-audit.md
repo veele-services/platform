@@ -41,6 +41,26 @@ Sprint 8 volgt deze vaste besluiten:
   - Mollie webhook-afhandeling update alleen payment, invoice en assignment binnen dezelfde tenant;
   - customer payment listing filtert op `payments.tenant_id` en `invoices.tenant_id`.
 
+## Aanvulling: tenant-id default hardening
+
+Datum: 2026-07-04
+Status: uitgevoerd op branch `codex/sprint-8-tenant-id-hardening`.
+
+Deze aanvulling sluit het sprint 8-besluit "Ontbrekende tenantcontext schrijft niet stil naar de default tenant":
+
+- `lib/db/migrations/070_sprint8_tenant_id_default_hardening.sql` dropt database-defaults op `tenant_id` voor tenant-scoped runtime- en configuratietabellen.
+- Drizzle schema-defaults naar `DEFAULT_TENANT_ID` zijn verwijderd uit klanten, personeel, objecten, tickets, notificaties, planning intelligence, kwalificaties, task codes, tenant domains, tenant RBAC en tenant sectoren.
+- `emitDomainEvent` vereist nu expliciete `tenantId` en faalt als tenantcontext ontbreekt.
+- Backoffice quote-, assignment-, kwalificatie- en handmatige notificatie-writes geven tenantcontext expliciet mee.
+- `lib/db/scripts/tenant-hardening-report.mjs` rapporteert `default_hardened_tables` en `default_removed`.
+- Statische bewaking: `tests/fieldgrid-sprint-8-tenant-id-hardening.test.mjs`.
+
+Bewust nog open voor staging-copy bewijs:
+
+- constraintvalidatie op bestaande data;
+- `tenant_id SET NOT NULL` alleen op tabellen waar de rapportage nul unresolved rows toont;
+- audit-log uitzonderingen blijven nullable waar platform/global audit dat vereist.
+
 ## Auditcontract
 
 `audit_log.tenant_id` blijft bewust nullable:
@@ -73,6 +93,7 @@ Sprint 8 raakt deze canonieke test-id's:
 - `FG-MIG-002`
 
 Statische bewaking: `tests/fieldgrid-sprint-8-payments-audit.test.mjs`.
+Default-hardening bewaking: `tests/fieldgrid-sprint-8-tenant-id-hardening.test.mjs`.
 
 Echte runtime-bewijsvoering blijft verplicht voor SaaS-acceptatie:
 
