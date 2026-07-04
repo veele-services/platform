@@ -42,8 +42,8 @@ Geen canonitem mag nog als alleen "open" of "ontbreekt" blijven staan zonder een
 | Tenant-regio's | `partial` | Sprint 2/3/4 | Sprint 2 datamodel/backfill en Sprint 3 backoffice multiselect UI geleverd; runtime planningproof blijft Sprint 4. |
 | Customers/objects/personnel/assignments | `runtime-proof-open` | Sprint 5/8 | Directe tenant_id bestaat, maar defaults/hardening en direct-ID bewijs moeten dicht. |
 | Documents/reports/quotes/invoices/payments/batches | `hardening-open` | Sprint 8 | Tenant-aware foundation bestaat; nullable/backfill/constraint validation open. |
-| Assignment media | `hardening-open` | Sprint 9 | Directe tenant_id en storageproof moeten afgerond worden. |
-| Storage | `hardening-open` | Sprint 9 | Helpers/guards bestaan; fysieke backfill, policies en path-guessing tests open. |
+| Assignment media | `hardening-open` | Sprint 9 | Runtime uploadpaden en signed-url guards geleverd; fysieke objectcopy en storage-provider bewijs blijven promotiepunten. |
+| Storage | `hardening-open` | Sprint 9 | Canonieke assignment-media helpers/guards bestaan; fysieke backfill, policy-smoke en path-guessing tests blijven open. |
 | Audit/security events | `partial` | Sprint 10 | Basis bestaat; downloads, PDF's, denials en support events moeten centraal landen. |
 | Veele Portaal klant/personeel | `runtime-proof-open` | Sprint 6 | Host-bound basis bestaat; documenten/facturen/tickets/opdrachten/media/notificaties/module-denials E2E open. |
 | Migration smoke | `partial` | Sprint 7 | Runner bestaat; lege DB en staging-copy workflow moet formeel worden. |
@@ -253,18 +253,22 @@ Definition of Done:
 
 Doel: storage SaaS-proof maken.
 
+Opleverstatus:
+
+Status: `geleverd` voor applicatie-hardening in `docs/fieldgrid-sprint-9-storage-hardening.md`. Nieuwe assignment-media uploads gebruiken `tenant/{tenant_id}/assignments/{assignment_id}/...`; klant-, personeel- en backoffice signed URL helpers binden storage paths aan tenant en assignment voordat Supabase tekent. Fysieke objectcopy blijft copy-first stagingwerk en staat als cleanup-plan vast.
+
 Taken:
 
-- Assignment media direct tenant-aware maken.
-- Copy-first fysieke storagebackfill.
-- Canonieke paden `tenant/{tenant_id}/...`.
-- Supabase Storage policy/RLS bewijs.
-- Signed URL en path guessing tests.
-- Legacy-path cleanup-plan.
+- Assignment media direct tenant-aware maken: geleverd in upload- en signed-url runtimehelpers.
+- Copy-first fysieke storagebackfill: gepland als staging/ops-stap zonder objectverplaatsing in deze PR.
+- Canonieke paden `tenant/{tenant_id}/...`: geleverd voor assignment media als `tenant/{tenant_id}/assignments/{assignment_id}/...`.
+- Supabase Storage policy/RLS bewijs: statische policybasis bestaat; echte provider-smoke blijft vereist.
+- Signed URL en path guessing tests: statische signed-url guards geleverd; echte path-guessing integrationtest blijft vereist.
+- Legacy-path cleanup-plan: geleverd in `docs/fieldgrid-sprint-9-storage-hardening.md`.
 
 Definition of Done:
 
-- Tenant B krijgt geen Tenant A signed URL/path access.
+- Tenant B krijgt geen Tenant A signed URL/path access via applicatie-signed-url helpers.
 - Nieuwe uploads zijn tenant-prefixed.
 - Oude bestanden blijven bereikbaar tijdens transitie.
 
