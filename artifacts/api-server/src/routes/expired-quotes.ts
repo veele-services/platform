@@ -1,9 +1,10 @@
 import { Router } from "express";
-import { db, isTenantModuleEnabled } from "@workspace/db";
+import { db } from "@workspace/db";
 import { quotesTable, customersTable, auditLogTable, organizationSettingsTable } from "@workspace/db";
 import { eq, and, lt } from "drizzle-orm";
 import type { Request, Response } from "express";
 import { sendEmail, buildQuoteExpiredEmail } from "../lib/email";
+import { requireJobTenantModule } from "../lib/module-guards";
 
 const router = Router();
 
@@ -79,7 +80,8 @@ router.post("/admin/expired-quotes", async (req: Request, res: Response) => {
     let moduleDisabled = 0;
 
     for (const q of expirableQuotes) {
-      if (!q.customerTenantId || !(await isTenantModuleEnabled(q.customerTenantId, "finance"))) {
+      const moduleGuard = await requireJobTenantModule(q.customerTenantId, "finance");
+      if (!moduleGuard.allowed) {
         moduleDisabled++;
         skipped++;
         continue;

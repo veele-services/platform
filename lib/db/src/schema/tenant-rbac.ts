@@ -12,7 +12,7 @@ import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { permissionsTable } from "./permissions";
 import { rolesTable } from "./roles";
-import { DEFAULT_TENANT_ID, tenantsTable } from "./tenants";
+import { tenantsTable } from "./tenants";
 
 export const tenantRolesTable = pgTable(
   "tenant_roles",
@@ -20,7 +20,6 @@ export const tenantRolesTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
       .notNull()
-      .default(DEFAULT_TENANT_ID)
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     templateRoleId: uuid("template_role_id").references(() => rolesTable.id, { onDelete: "set null" }),
     name: varchar("name", { length: 100 }).notNull(),
@@ -64,7 +63,6 @@ export const tenantUserRolesTable = pgTable(
     id: uuid("id").primaryKey().defaultRandom(),
     tenantId: uuid("tenant_id")
       .notNull()
-      .default(DEFAULT_TENANT_ID)
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     userId: uuid("user_id").notNull(),
     tenantRoleId: uuid("tenant_role_id")

@@ -71,7 +71,7 @@ Geen onderwerp mag in vervolgwerk alleen als "open" blijven staan zonder status,
 - Host-first tenantcontext moet met Tenant A/B/Veele integration en Playwright bewezen worden.
 - Tenant lifecycle active/suspended/archived moet runtime bewezen worden.
 - Tenant RBAC moet met echte rolverschillen per tenant bewezen worden.
-- Module enforcement moet API, backoffice, portalen en jobs hetzelfde laten reageren.
+- API module guards en Portal module guards zijn geharmoniseerd met gedeelde guards voor backoffice, portalen en jobs; Playwright/integration bewijs blijft open.
 - Sector enforcement moet disable/default/single-sector scenario's runtime bewijzen.
 - Tenant first-run moet met `A-OWNER` en `FG-OPS-002` integration/Playwright bewezen worden.
 - Veele Portaal klant/personeel moet E2E bewijzen voor documenten, facturen, tickets, opdrachten, media, rapportage, notificaties, module-denials en verkeerde-host scenario's.
@@ -88,7 +88,7 @@ Geen onderwerp mag in vervolgwerk alleen als "open" blijven staan zonder status,
 ### 3.5 `nice-to-have`
 
 - Branding preview per tenant voor backoffice, klantportaal, personeelsapp, email en PDF.
-- Module dependency visualisatie.
+- Module dependency visualisatie is zichtbaar op platform tenantdetail.
 - Security dashboard polish bovenop het noodzakelijke audit/security dashboard.
 - Staging smoke dashboard uitbreiden met historie, trend en mutating smoke-details.
 
@@ -207,7 +207,7 @@ Supporttoegang is geen gewone tenantrol. De prioriteit blijft:
 - Usage dashboard per tenant met users, documenten, opdrachten, storage, downloads, actieve modules en support grants.
 - Branding preview per tenant.
 - Security dashboard uitbreiding.
-- Module dependency visualisatie.
+- Module dependency visualisatie verder uitbreiden na tenantfeedback.
 - Demo-data generator voor `demo-a`, `demo-b` en `veele`.
 - Staging smoke dashboard voor host, login, modules, sectoren, regio's, storage, PDF, support, audit en migraties.
 - Eerste externe tenant checklist.

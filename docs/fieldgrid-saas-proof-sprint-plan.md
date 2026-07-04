@@ -38,13 +38,13 @@ Geen canonitem mag nog als alleen "open" of "ontbreekt" blijven staan zonder een
 | Platform-admin guard | `runtime-proof-open` | Sprint 10/12 | Basis bestaat; inactive/admin/tenant-user denial moet bewezen en gedashboard worden. |
 | Support grants | `partial` | Sprint 10 | Grant, reden en expiry bestaan; max TTL, break-glass UX en securitydashboard open. |
 | Sector enforcement | `runtime-proof-open` | Sprint 5 | Runtimebasis bestaat; disable/default/single-sector bewijs uitbreiden. |
-| Module enforcement | `partial` | Sprint 11 | API breder dan backoffice; portalen/jobs harmonisatie open. |
+| Module enforcement | `runtime-proof-open` | Sprint 11 | Runtime-brede guards voor API, backoffice, portalen en jobs geleverd; Playwright/integration bewijs open. |
 | Tenant-regio's | `partial` | Sprint 2/3/4 | Sprint 2 datamodel/backfill en Sprint 3 backoffice multiselect UI geleverd; runtime planningproof blijft Sprint 4. |
 | Customers/objects/personnel/assignments | `runtime-proof-open` | Sprint 5/8 | Directe tenant_id bestaat, maar defaults/hardening en direct-ID bewijs moeten dicht. |
 | Documents/reports/quotes/invoices/payments/batches | `hardening-open` | Sprint 8 | Tenant-aware foundation bestaat; nullable/backfill/constraint validation open. |
 | Assignment media | `hardening-open` | Sprint 9 | Directe tenant_id en storageproof moeten afgerond worden. |
 | Storage | `hardening-open` | Sprint 9 | Helpers/guards bestaan; fysieke backfill, policies en path-guessing tests open. |
-| Audit/security events | `partial` | Sprint 10 | Basis bestaat; downloads, PDF's, denials en support events moeten centraal landen. |
+| Audit/security events | `partial` | Sprint 10 | Centraal auditcontract en dashboardfilters geleverd; volledige runtime-instrumentatie en E2E bewijs blijven uitbreidbaar. |
 | Veele Portaal klant/personeel | `runtime-proof-open` | Sprint 6 | Host-bound basis bestaat; documenten/facturen/tickets/opdrachten/media/notificaties/module-denials E2E open. |
 | Migration smoke | `partial` | Sprint 7 | Runner bestaat; lege DB en staging-copy workflow moet formeel worden. |
 | Platform onboarding wizard | `partial` | Sprint 12 | Provisioning/status bestaat; echte save/resume/review/rollback wizard open. |
@@ -52,7 +52,7 @@ Geen canonitem mag nog als alleen "open" of "ontbreekt" blijven staan zonder een
 | Usage dashboard | `partial` | Sprint 14 | Basisstats bestaan; documenten/storage/downloads/active modules uitbreiden. |
 | Branding preview | `nice-to-have` | Sprint 14 | Basis branding bestaat; preview voor portal/email/PDF open. |
 | Security dashboard | `partial` | Sprint 10 | Losse basis bestaat; centraal dashboard open. |
-| Module dependency visualisatie | `nice-to-have` | Sprint 11 | Dependency keys bestaan; visuele inspectie open. |
+| Module dependency visualisatie | `done` | Sprint 11 | Platform-admin tenantdetail toont ontbrekende dependencies en actieve dependents. |
 | Demo-data generator | `partial` | Sprint 1 | Canon/fixtures bestaan; one-click seed/cleanup open. |
 | Staging smoke dashboard | `partial` | Sprint 15 | Dashboardbasis/read-only bestaat; run history, Playwright-smokes en mutating cleanup open. |
 | Materialen en inventaris | `partial` | Latere productroadmap na Sprint 16 | Onderzoek/canon bestaat; volledige modulebouw volgt na SaaS proof tenzij apart gestart. |
@@ -236,6 +236,12 @@ Definition of Done:
 
 Doel: gevoelige tenantdata definitief sluiten.
 
+Opleverstatus:
+
+- Payments, batches en audit wave 3/4 zijn geleverd met `063_payments_batches_audit_tenant_scope.sql`.
+- Default-fallback hardening is geleverd met `070_sprint8_tenant_id_default_hardening.sql`.
+- Staging-copy constraintvalidatie en `tenant_id SET NOT NULL` blijven `hardening-open` tot de rapportage schoon is.
+
 Taken:
 
 - Backfill reports voor documents, reports, quotes, invoices, payments, batches, audit.
@@ -253,18 +259,22 @@ Definition of Done:
 
 Doel: storage SaaS-proof maken.
 
+Opleverstatus:
+
+Status: `geleverd` voor applicatie-hardening in `docs/fieldgrid-sprint-9-storage-hardening.md`. Nieuwe assignment-media uploads gebruiken `tenant/{tenant_id}/assignments/{assignment_id}/...`; klant-, personeel- en backoffice signed URL helpers binden storage paths aan tenant en assignment voordat Supabase tekent. Fysieke objectcopy blijft copy-first stagingwerk en staat als cleanup-plan vast.
+
 Taken:
 
-- Assignment media direct tenant-aware maken.
-- Copy-first fysieke storagebackfill.
-- Canonieke paden `tenant/{tenant_id}/...`.
-- Supabase Storage policy/RLS bewijs.
-- Signed URL en path guessing tests.
-- Legacy-path cleanup-plan.
+- Assignment media direct tenant-aware maken: geleverd in upload- en signed-url runtimehelpers.
+- Copy-first fysieke storagebackfill: gepland als staging/ops-stap zonder objectverplaatsing in deze PR.
+- Canonieke paden `tenant/{tenant_id}/...`: geleverd voor assignment media als `tenant/{tenant_id}/assignments/{assignment_id}/...`.
+- Supabase Storage policy/RLS bewijs: statische policybasis bestaat; echte provider-smoke blijft vereist.
+- Signed URL en path guessing tests: statische signed-url guards geleverd; echte path-guessing integrationtest blijft vereist.
+- Legacy-path cleanup-plan: geleverd in `docs/fieldgrid-sprint-9-storage-hardening.md`.
 
 Definition of Done:
 
-- Tenant B krijgt geen Tenant A signed URL/path access.
+- Tenant B krijgt geen Tenant A signed URL/path access via applicatie-signed-url helpers.
 - Nieuwe uploads zijn tenant-prefixed.
 - Oude bestanden blijven bereikbaar tijdens transitie.
 
@@ -272,29 +282,35 @@ Definition of Done:
 
 Doel: alle gevoelige events centraal zichtbaar maken.
 
+Opleverstatus:
+
+Status: `geleverd` voor `docs/fieldgrid-sprint-10-audit-security.md`. Het dashboard combineert `support_access_audit_log` en `audit_log`, normaliseert events naar support/tenant/platform scope en ondersteunt filters per tenant, actor, eventtype en scope. Nieuwe auditinstrumentatie blijft het centrale contract volgen.
+
 Taken:
 
-- Auditcontract voor support access, downloads, PDF's, direct-ID denials, module-denials, storage-denials en platform-admin acties.
-- Support break-glass max TTL afdwingen met verplichte reden.
-- Dashboard met filters per tenant, actor, eventtype en platform/support scope.
+- Auditcontract voor support access, downloads, PDF's, direct-ID denials, module-denials, storage-denials en platform-admin acties: geleverd in `lib/db/src/platform-access.ts`.
+- Support break-glass max TTL afdwingen met verplichte reden: geleverd via `validateSupportBreakGlassGrant()`.
+- Dashboard met filters per tenant, actor, eventtype en platform/support scope: geleverd op `/platform/security`.
 
 Definition of Done:
 
 - Te lange break-glass TTL faalt.
-- Downloads en denials zijn auditbaar.
-- Tenant-admin ziet geen platform-only audit.
+- Downloads en denials zijn auditbaar zodra hun runtimepad auditregels schrijft.
+- Tenant-admin ziet geen platform-only audit via het platform-only securitydashboard.
 
 ## Sprint 11 - Module enforcement harmonisatie
 
 Doel: API, backoffice, portalen en jobs hetzelfde modulegedrag geven.
 
+Status: `geleverd` in `docs/fieldgrid-sprint-11-module-enforcement.md`. Geen schema- of migratiewijziging.
+
 Taken:
 
-- Centrale module-permission mapping.
-- Backoffice mapping gelijk trekken met API.
-- Portalguards en jobguards uitbreiden.
-- Module dependency inspectie en visualisatie.
-- Module-off tests voor UI, directe URL, server action, API en job.
+- Centrale module-permission mapping: geleverd via `FIELDGRID_PERMISSION_MODULES`.
+- Backoffice mapping gelijk trekken met API: geleverd via gedeelde mapping en effectieve permissions.
+- Portalguards en jobguards uitbreiden: geleverd via portal identity helpers en `requireJobTenantModule`.
+- Module dependency inspectie en visualisatie: geleverd op platform tenantdetail.
+- Module-off tests voor UI, directe URL, server action, API en job: statisch geborgd; Playwright/integration blijft vervolg.
 
 Definition of Done:
 

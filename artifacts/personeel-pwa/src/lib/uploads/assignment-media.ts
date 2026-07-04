@@ -1,4 +1,6 @@
 export const ASSIGNMENT_MEDIA_BUCKET = "assignment-photos";
+export const ASSIGNMENT_MEDIA_TENANT_ROOT = "tenant";
+export const ASSIGNMENT_MEDIA_ASSIGNMENT_ROOT = "assignments";
 
 export const MAX_REPORT_NOTE_ATTACHMENTS = 5;
 export const MAX_EXTRA_WORK_PHOTOS = 5;
@@ -17,6 +19,9 @@ const ALLOWED_VIDEO_TYPES = new Set([
   "video/webm",
   "video/quicktime",
 ]);
+
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/iu;
+const URL_SCHEME_PATTERN = /^[a-z][a-z\d+.-]*:\/\//iu;
 
 export type AssignmentMediaKind = "image" | "video";
 
@@ -60,6 +65,21 @@ export function safeStorageFileName(fileName: string): string {
   return cleaned || fallback;
 }
 
+function safeStorageSegment(value: string, fallback = "item"): string {
+  const cleaned = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120);
+
+  return cleaned || fallback;
+}
+
+function isValidStorageId(value: string): boolean {
+  return UUID_PATTERN.test(value);
+}
+
 export function hasUnsafeStoragePath(path: string): boolean {
   return (
     path.includes("..") ||
@@ -70,24 +90,96 @@ export function hasUnsafeStoragePath(path: string): boolean {
   );
 }
 
-export function isReportNoteAttachmentPath(assignmentId: string, storagePath: string): boolean {
-  return !hasUnsafeStoragePath(storagePath) && storagePath.startsWith(`${assignmentId}/report-notes/`);
+function normalizeAssignmentMediaStoragePath(path: string): string | null {
+  const normalized = path.trim().replace(/^\/+/, "");
+  if (!normalized) return null;
+  if (URL_SCHEME_PATTERN.test(normalized)) return null;
+  if (hasUnsafeStoragePath(normalized)) return null;
+  return normalized;
+}
+
+function getAssignmentMediaSuffix(
+  tenantId: string,
+  assignmentId: string,
+  storagePath: string,
+): string | null {
+  if (!isValidStorageId(tenantId) || !isValidStorageId(assignmentId)) return null;
+
+  const normalized = normalizeAssignmentMediaStoragePath(storagePath);
+  if (!normalized) return null;
+
+  const allowedPrefixes = [
+    `${ASSIGNMENT_MEDIA_TENANT_ROOT}/${tenantId}/${ASSIGNMENT_MEDIA_ASSIGNMENT_ROOT}/${assignmentId}/`,
+    `${tenantId}/${ASSIGNMENT_MEDIA_ASSIGNMENT_ROOT}/${assignmentId}/`,
+    `tenants/${tenantId}/${ASSIGNMENT_MEDIA_ASSIGNMENT_ROOT}/${assignmentId}/`,
+    `${ASSIGNMENT_MEDIA_ASSIGNMENT_ROOT}/${assignmentId}/`,
+    `${assignmentId}/`,
+  ];
+
+  for (const prefix of allowedPrefixes) {
+    if (normalized.startsWith(prefix)) {
+      return normalized.slice(prefix.length);
+    }
+  }
+
+  return null;
+}
+
+export function isReportNoteAttachmentPath(tenantId: string, assignmentId: string, storagePath: string): boolean {
+  return getAssignmentMediaSuffix(tenantId, assignmentId, storagePath)?.startsWith("report-notes/") ?? false;
 }
 
 export function isExtraWorkPhotoPath(
+  tenantId: string,
   assignmentId: string,
   extraWorkId: string,
   storagePath: string,
 ): boolean {
-  return !hasUnsafeStoragePath(storagePath) && storagePath.startsWith(`${assignmentId}/extra-work/${extraWorkId}/`);
+  if (!isValidStorageId(extraWorkId)) return false;
+  const suffix = getAssignmentMediaSuffix(tenantId, assignmentId, storagePath);
+  return suffix?.startsWith(`extra-work/${extraWorkId}/`) ?? false;
 }
 
-export function buildReportNoteAttachmentPath(assignmentId: string, fileName: string, uniqueId: string): string {
-  return `${assignmentId}/report-notes/${Date.now()}-${uniqueId}-${safeStorageFileName(fileName)}`;
+export function buildReportNoteAttachmentPath(
+  tenantId: string,
+  assignmentId: string,
+  fileName: string,
+  uniqueId: string,
+): string {
+  if (!isValidStorageId(tenantId) || !isValidStorageId(assignmentId)) {
+    throw new Error("Ongeldige opdracht voor uploadpad");
+  }
+
+  return [
+    ASSIGNMENT_MEDIA_TENANT_ROOT,
+    tenantId,
+    ASSIGNMENT_MEDIA_ASSIGNMENT_ROOT,
+    assignmentId,
+    "report-notes",
+    `${Date.now()}-${safeStorageSegment(uniqueId, "upload")}-${safeStorageFileName(fileName)}`,
+  ].join("/");
 }
 
-export function buildExtraWorkPhotoPath(assignmentId: string, extraWorkId: string, fileName: string, uniqueId: string): string {
-  return `${assignmentId}/extra-work/${extraWorkId}/${Date.now()}-${uniqueId}-${safeStorageFileName(fileName)}`;
+export function buildExtraWorkPhotoPath(
+  tenantId: string,
+  assignmentId: string,
+  extraWorkId: string,
+  fileName: string,
+  uniqueId: string,
+): string {
+  if (!isValidStorageId(tenantId) || !isValidStorageId(assignmentId) || !isValidStorageId(extraWorkId)) {
+    throw new Error("Ongeldige opdracht voor uploadpad");
+  }
+
+  return [
+    ASSIGNMENT_MEDIA_TENANT_ROOT,
+    tenantId,
+    ASSIGNMENT_MEDIA_ASSIGNMENT_ROOT,
+    assignmentId,
+    "extra-work",
+    extraWorkId,
+    `${Date.now()}-${safeStorageSegment(uniqueId, "upload")}-${safeStorageFileName(fileName)}`,
+  ].join("/");
 }
 
 export function validateAssignmentMediaDescriptor(

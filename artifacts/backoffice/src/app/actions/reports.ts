@@ -7,6 +7,7 @@ import {
   assignmentReportNoteAttachmentsTable,
   assignmentReportNotesTable,
   assignmentPersonnelTable,
+  getTenantBoundAssignmentMediaStoragePath,
   customersTable,
   objectsTable,
   personnelTable,
@@ -36,6 +37,7 @@ import type { ActionResult } from "./customers";
 export type { ActionResult, ReportStatus };
 
 const PAGE_SIZE = 25;
+const ASSIGNMENT_MEDIA_BUCKET = "assignment-photos";
 
 // ─── Aliases for double personnel join ────────────────────────────────────────
 
@@ -343,28 +345,23 @@ const REPORT_DETAIL_SELECT = {
   createdAt:       reportsTable.createdAt,
 } as const;
 
-function hasUnsafeReportAttachmentStoragePath(path: string): boolean {
-  const segments = path.split("/");
-
-  return (
-    path.startsWith("/") ||
-    path.endsWith("/") ||
-    path.includes("..") ||
-    path.includes("\\") ||
-    segments.some((segment) => segment.trim() === "")
-  );
-}
-
-async function createSignedReportAttachmentUrl(storagePath: string): Promise<string | null> {
-  if (hasUnsafeReportAttachmentStoragePath(storagePath)) {
-    return null;
-  }
+async function createSignedReportAttachmentUrl(
+  storagePath: string,
+  tenantId: string,
+  assignmentId: string,
+): Promise<string | null> {
+  const safeStoragePath = getTenantBoundAssignmentMediaStoragePath(storagePath, tenantId, assignmentId, {
+    allowLegacyAssignmentRoot: true,
+    allowLegacyPluralTenantRoot: true,
+    allowLegacyTenantRoot: true,
+  });
+  if (!safeStoragePath) return null;
 
   try {
     const admin = createAdminClient();
     const { data } = await admin.storage
-      .from("assignment-photos")
-      .createSignedUrl(storagePath, 3600);
+      .from(ASSIGNMENT_MEDIA_BUCKET)
+      .createSignedUrl(safeStoragePath, 3600);
 
     return data?.signedUrl ?? null;
   } catch {
@@ -427,6 +424,7 @@ export async function getReport(id: string): Promise<ReportDetail | null> {
 export async function getReportTimelineNotes(id: string): Promise<ReportTimelineNote[]> {
   const report = await getReport(id);
   if (!report) return [];
+  const tenantId = await requireCurrentTenantId();
 
   const notes = await db
     .select({
@@ -470,7 +468,7 @@ export async function getReportTimelineNotes(id: string): Promise<ReportTimeline
       id:          attachment.id,
       noteId:      attachment.noteId,
       storagePath: attachment.storagePath,
-      signedUrl:   await createSignedReportAttachmentUrl(attachment.storagePath),
+      signedUrl:   await createSignedReportAttachmentUrl(attachment.storagePath, tenantId, report.assignmentId),
       fileName:    attachment.fileName,
       mimeType:    attachment.mimeType ?? null,
       fileSize:    attachment.fileSize ?? null,
