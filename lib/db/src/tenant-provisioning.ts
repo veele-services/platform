@@ -32,6 +32,23 @@ const TENANT_SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{1,78}[a-z0-9]$/u;
 const OWNER_ROLE_NAMES = ["Management", "Owner", "Eigenaar", "Administration"] as const;
 const DEFAULT_FIRST_RUN_STEPS = ["branding", "users", "sectors", "modules"] as const;
 const COLOR_PATTERN = /^#[0-9a-f]{6}$/iu;
+const DEFAULT_ORGANIZATION_SETTINGS = {
+  betaaltermijnDagen: 30,
+  availabilityAdvanceDays: 60,
+  smtpEnabled: false,
+  smtpEncryption: "starttls",
+  emailTemplateBrandColor: "#081D3A",
+  emailTemplateAccentColor: "#00B7B3",
+  emailTemplateFooterText:
+    "Dit is een automatisch bericht van Fieldgrid. U ontvangt dit bericht omdat u betrokken bent bij een aanvraag, opdracht, rapportage, factuur of portaalmelding.",
+  emailTemplateSignature: "Met vriendelijke groet,\nFieldgrid",
+  notifRapportGoedgekeurd: true,
+  notifRapportAfgekeurd: true,
+  notifOfferteVerstuurd: true,
+  notifOfferteVerlopen: true,
+  notifBetalingHerinnering: true,
+  notifHerinneringDagen: 7,
+} as const;
 
 type DbExecutor = typeof db | any;
 type ProvisioningSectorRow = { id: string };
@@ -333,6 +350,8 @@ export async function provisionTenant(
       const organizationSettingsValues: typeof organizationSettingsTable.$inferInsert = {
         tenantId: tenant.id,
         naam: input.branding.displayName ?? input.name,
+        ...DEFAULT_ORGANIZATION_SETTINGS,
+        updatedAt: new Date(),
       };
       if (input.branding.primaryColor) organizationSettingsValues.emailTemplateBrandColor = input.branding.primaryColor;
       if (input.branding.accentColor) organizationSettingsValues.emailTemplateAccentColor = input.branding.accentColor;
