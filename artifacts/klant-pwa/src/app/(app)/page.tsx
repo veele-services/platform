@@ -3,27 +3,40 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import {
+  AlertTriangle,
   ArrowRight,
   Bell,
-  Building2,
+  CalendarDays,
   CheckCircle2,
+  Clock,
   FileCheck2,
   FileText,
   Headphones,
   PlusCircle,
-  Receipt,
-  ShieldCheck,
-  Siren,
+  WalletCards,
 } from "lucide-react";
 import { getMyCustomerProfile } from "@/actions/customer";
 import { getMyAssignments } from "@/actions/assignments";
+import { getMyDocuments } from "@/actions/documents";
 import { getMyInvoiceSummary } from "@/actions/invoices";
 import { getMyPendingQuoteCount } from "@/actions/quotes";
 import { getMyObjects } from "@/actions/objects";
 import { getMyReports } from "@/actions/reports";
 import { getMyCustomerNotifications } from "@/actions/notifications";
+import { getMyCustomerTicketSummary } from "@/actions/tickets";
+import { requireCurrentCustomerPortalTenantId } from "@/lib/auth/tenant";
+import { getTenantBranding } from "@workspace/db";
 import { STATUS_COLOR, STATUS_LABEL } from "@/types/assignments";
 import type { ReactNode } from "react";
+
+type ActionTone = "accent" | "warning" | "danger" | "neutral";
+
+type ActionInboxItem = {
+  href: string;
+  title: string;
+  description: string;
+  tone: ActionTone;
+};
 
 function formatAmount(amount: string): string {
   return Number.parseFloat(amount || "0").toLocaleString("nl-NL", {
@@ -40,108 +53,194 @@ function formatDate(value: string | null): string {
   });
 }
 
-function StatCard({
-  icon,
-  title,
-  value,
-  hint,
-  href,
+function formatDateTime(value: string): string {
+  return new Date(value).toLocaleDateString("nl-NL", {
+    day: "numeric",
+    month: "short",
+  });
+}
+
+function greetingForNow(): string {
+  const hour = new Date().getHours();
+  if (hour < 12) return "Goedemorgen";
+  if (hour < 18) return "Goedemiddag";
+  return "Goedenavond";
+}
+
+function toneStyles(tone: ActionTone) {
+  if (tone === "danger") {
+    return { bg: "#FEF2F2", color: "#991B1B", border: "#FECACA" };
+  }
+  if (tone === "warning") {
+    return { bg: "#FEF3C7", color: "#92400E", border: "#FDE68A" };
+  }
+  if (tone === "accent") {
+    return { bg: "#E8FBFA", color: "#087C79", border: "#BDEDEA" };
+  }
+  return { bg: "#F1F5F9", color: "var(--color-secondary)", border: "var(--color-border)" };
+}
+
+function SummaryStrip({
+  items,
 }: {
-  icon: ReactNode;
-  title: string;
-  value: string | number;
-  hint: string;
-  href: string;
+  items: Array<{ label: string; value: string | number; href: string; hint: string }>;
 }) {
   return (
-    <Link
-      href={href}
-      className="rounded-[18px] border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-      style={{ borderColor: "var(--color-border)" }}
-    >
-      <div className="flex items-start gap-3">
-        <span
-          className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
-          style={{ backgroundColor: "#E8FBFA", color: "var(--color-accent)" }}
+    <section className="grid gap-2 rounded-[22px] border bg-white p-2 shadow-sm md:grid-cols-4" style={{ borderColor: "var(--color-border)" }}>
+      {items.map((item) => (
+        <Link
+          key={item.label}
+          href={item.href}
+          className="rounded-[18px] px-3 py-3 transition hover:bg-slate-50"
         >
-          {icon}
-        </span>
-        <span className="min-w-0">
-          <span
-            className="block text-sm font-black"
-            style={{ color: "var(--color-primary)" }}
-          >
-            {title}
+          <span className="block text-[11px] font-black uppercase tracking-[0.12em]" style={{ color: "var(--color-secondary)" }}>
+            {item.label}
           </span>
-          <span
-            className="mt-2 block text-[27px] font-black leading-none"
-            style={{ color: "var(--color-primary)" }}
-          >
-            {value}
+          <span className="mt-1 block text-xl font-black leading-none" style={{ color: "var(--color-primary)" }}>
+            {item.value}
           </span>
-          <span
-            className="mt-1 block text-xs font-bold"
-            style={{ color: "var(--color-accent)" }}
-          >
-            {hint}
+          <span className="mt-1 block text-xs font-semibold" style={{ color: "var(--color-accent)" }}>
+            {item.hint}
           </span>
-        </span>
-      </div>
-    </Link>
+        </Link>
+      ))}
+    </section>
   );
 }
 
-function QuickAction({
+function ActionInbox({ items }: { items: ActionInboxItem[] }) {
+  return (
+    <section className="rounded-[22px] border bg-white p-4 shadow-sm" style={{ borderColor: "var(--color-border)" }}>
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-black" style={{ color: "var(--color-primary)" }}>
+            Actie nodig
+          </h2>
+          <p className="mt-0.5 text-sm font-semibold" style={{ color: "var(--color-secondary)" }}>
+            Maximaal vijf punten die aandacht vragen.
+          </p>
+        </div>
+        <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+          {items.length}
+        </span>
+      </div>
+
+      <div className="mt-4 space-y-2">
+        {items.length > 0 ? (
+          items.map((item) => {
+            const tone = toneStyles(item.tone);
+            return (
+              <Link
+                key={`${item.href}-${item.title}`}
+                href={item.href}
+                className="flex items-start gap-3 rounded-2xl border px-3 py-3 transition hover:-translate-y-0.5 hover:shadow-sm"
+                style={{ borderColor: tone.border, backgroundColor: item.tone === "neutral" ? "#FFFFFF" : tone.bg }}
+              >
+                <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-full" style={{ backgroundColor: tone.bg, color: tone.color }}>
+                  {item.tone === "danger" ? <AlertTriangle size={16} /> : item.tone === "warning" ? <Clock size={16} /> : <CheckCircle2 size={16} />}
+                </span>
+                <span className="min-w-0 flex-1">
+                  <span className="block text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                    {item.title}
+                  </span>
+                  <span className="mt-0.5 block text-xs font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
+                    {item.description}
+                  </span>
+                </span>
+                <ArrowRight size={16} className="mt-2 shrink-0" style={{ color: tone.color }} />
+              </Link>
+            );
+          })
+        ) : (
+          <div className="rounded-2xl bg-slate-50 px-4 py-5 text-sm font-semibold" style={{ color: "var(--color-secondary)" }}>
+            Geen open acties. Nieuwe berichten, offertes of facturen verschijnen hier.
+          </div>
+        )}
+      </div>
+    </section>
+  );
+}
+
+function FocusPanel({
   href,
   title,
-  subtitle,
-  icon,
-  primary = false,
+  eyebrow,
+  description,
+  Icon,
+  children,
 }: {
   href: string;
   title: string;
-  subtitle: string;
-  icon: ReactNode;
-  primary?: boolean;
+  eyebrow: string;
+  description: string;
+  Icon: typeof CalendarDays;
+  children: ReactNode;
 }) {
   return (
-    <Link
-      href={href}
-      className="flex items-center gap-3 rounded-[16px] border p-4 shadow-sm transition active:scale-[0.99]"
-      style={{
-        background: primary
-          ? "linear-gradient(135deg, #06224A 0%, #07366F 100%)"
-          : "#FFFFFF",
-        borderColor: primary ? "transparent" : "var(--color-border)",
-        color: primary ? "#FFFFFF" : "var(--color-primary)",
-      }}
-    >
-      <span
-        className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl"
-        style={{
-          backgroundColor: primary ? "rgba(0,183,179,0.22)" : "#E8FBFA",
-          color: primary ? "#7DF4EE" : "var(--color-accent)",
-        }}
-      >
-        {icon}
-      </span>
-      <span className="min-w-0">
-        <span className="block text-sm font-black">{title}</span>
-        <span
-          className="mt-0.5 block text-xs font-semibold"
-          style={{
-            color: primary ? "rgba(255,255,255,0.7)" : "var(--color-secondary)",
-          }}
-        >
-          {subtitle}
-        </span>
-      </span>
-    </Link>
+    <section className="rounded-[22px] border bg-white p-4 shadow-sm" style={{ borderColor: "var(--color-border)" }}>
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex items-start gap-3">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#E8FBFA] text-[#087C79]">
+            <Icon size={21} strokeWidth={2.35} />
+          </span>
+          <div>
+            <p className="text-[11px] font-black uppercase tracking-[0.12em]" style={{ color: "var(--color-accent)" }}>
+              {eyebrow}
+            </p>
+            <h2 className="text-lg font-black" style={{ color: "var(--color-primary)" }}>
+              {title}
+            </h2>
+            <p className="mt-1 text-sm font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
+              {description}
+            </p>
+          </div>
+        </div>
+        <Link href={href} className="shrink-0 text-xs font-black" style={{ color: "var(--color-accent)" }}>
+          Open
+        </Link>
+      </div>
+      <div className="mt-4">{children}</div>
+    </section>
+  );
+}
+
+function SecondaryCard({
+  title,
+  href,
+  actionLabel,
+  children,
+}: {
+  title: string;
+  href: string;
+  actionLabel: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-[22px] border bg-white p-4 shadow-sm" style={{ borderColor: "var(--color-border)" }}>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <h2 className="text-base font-black" style={{ color: "var(--color-primary)" }}>
+          {title}
+        </h2>
+        <Link href={href} className="text-xs font-black" style={{ color: "var(--color-accent)" }}>
+          {actionLabel}
+        </Link>
+      </div>
+      {children}
+    </section>
   );
 }
 
 export default async function DashboardPage() {
+  const tenantId = await requireCurrentCustomerPortalTenantId();
+  if (!tenantId) {
+    redirect(
+      "/login?error=" +
+        encodeURIComponent("Het klantportaal is niet beschikbaar voor deze tenant."),
+    );
+  }
+
   const [
+    branding,
     profile,
     assignments,
     invoiceSummary,
@@ -149,7 +248,10 @@ export default async function DashboardPage() {
     objects,
     reports,
     notifications,
+    ticketSummary,
+    documents,
   ] = await Promise.all([
+    getTenantBranding(tenantId),
     getMyCustomerProfile(),
     getMyAssignments(),
     getMyInvoiceSummary(),
@@ -157,6 +259,8 @@ export default async function DashboardPage() {
     getMyObjects(),
     getMyReports(),
     getMyCustomerNotifications(),
+    getMyCustomerTicketSummary(),
+    getMyDocuments(),
   ]);
 
   if (!profile) {
@@ -179,218 +283,195 @@ export default async function DashboardPage() {
       "in_progress",
     ].includes(a.status),
   );
-  const recentAssignments = assignments.slice(0, 4);
+  const activeAssignment =
+    openAssignments.find((assignment) => assignment.status === "in_progress") ??
+    openAssignments.find((assignment) => assignment.status === "scheduled") ??
+    openAssignments[0] ??
+    null;
+  const recentAssignments = assignments.slice(0, 3);
   const recentObjects = objects.slice(0, 3);
+  const recentReports = reports.slice(0, 3);
+  const recentDocuments = documents.slice(0, 3);
   const recentNotifications = notifications
     .filter((item) => item.category !== "system")
-    .slice(0, 4);
+    .slice(0, 3);
+
+  const actionItems: ActionInboxItem[] = [];
+  if (pendingQuoteCount > 0) {
+    actionItems.push({
+      href: "/offertes",
+      title: `${pendingQuoteCount} offerte${pendingQuoteCount === 1 ? "" : "s"} wacht${pendingQuoteCount === 1 ? "" : "en"} op akkoord`,
+      description: "Controleer de offerte en geef digitaal akkoord of afwijzing.",
+      tone: "warning",
+    });
+  }
+  if (invoiceSummary.openCount > 0) {
+    actionItems.push({
+      href: "/financieel",
+      title: `${invoiceSummary.openCount} factuur${invoiceSummary.openCount === 1 ? "" : "en"} open`,
+      description: `${formatAmount(invoiceSummary.openTotal)} staat klaar voor betaling.`,
+      tone: "danger",
+    });
+  }
+  if (ticketSummary.unreadCount > 0) {
+    actionItems.push({
+      href: "/meldingen/tickets",
+      title: `${ticketSummary.unreadCount} nieuw supportbericht${ticketSummary.unreadCount === 1 ? "" : "en"}`,
+      description: "Bekijk de laatste reactie in Support.",
+      tone: "accent",
+    });
+  }
+  for (const item of notifications.filter((notification) => !notification.readAt && notification.priority === "high")) {
+    actionItems.push({
+      href: item.href,
+      title: item.title,
+      description: item.body,
+      tone: "warning",
+    });
+  }
+  if (openAssignments.length > 0) {
+    actionItems.push({
+      href: "/opdrachten",
+      title: `${openAssignments.length} lopende opdracht${openAssignments.length === 1 ? "" : "en"}`,
+      description: "Bekijk status, planning en eventuele vervolgstappen.",
+      tone: "neutral",
+    });
+  }
+
+  const visibleActionItems = actionItems.slice(0, 5);
+  const contactName = profile.contactName ?? profile.name;
+  const tenantName = branding.displayName;
 
   return (
     <div className="mx-auto w-full max-w-[1500px] space-y-5 px-3.5 pb-[calc(6.4rem+var(--safe-bottom))] pt-4 md:px-1 md:pb-0 md:pt-1 xl:space-y-6">
-      <section
-        className="rounded-[26px] bg-white p-5 shadow-sm md:border md:px-6 md:py-5"
-        style={{ borderColor: "var(--color-border)" }}
-      >
-        <p
-          className="text-sm font-bold"
-          style={{ color: "var(--color-secondary)" }}
-        >
-          Goedemiddag!
-        </p>
-        <div className="mt-1 flex flex-wrap items-end justify-between gap-4">
+      <section className="rounded-[26px] bg-white p-5 shadow-sm md:border md:px-6 md:py-5" style={{ borderColor: "var(--color-border)" }}>
+        <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <h1
-              className="text-[30px] font-black leading-tight md:text-[38px]"
-              style={{ color: "var(--color-primary)" }}
-            >
-              Welkom terug bij Veele Services
+            <p className="text-sm font-bold" style={{ color: "var(--color-secondary)" }}>
+              {greetingForNow()}, {contactName}
+            </p>
+            <h1 className="mt-1 text-[30px] font-black leading-tight md:text-[38px]" style={{ color: "var(--color-primary)" }}>
+              {tenantName} klantportaal
             </h1>
-            <p
-              className="mt-1 text-sm font-medium"
-              style={{ color: "var(--color-secondary)" }}
-            >
-              {profile.name} · overzicht van actuele aanvragen, rapporten,
-              facturen en objecten.
+            <p className="mt-1 max-w-3xl text-sm font-medium leading-6" style={{ color: "var(--color-secondary)" }}>
+              Status, acties en documenten voor {profile.name}. De belangrijkste vervolgstappen staan bovenaan.
             </p>
           </div>
-          <Link
-            href="/profiel"
-            className="hidden rounded-full border px-4 py-2 text-sm font-black md:inline-flex"
-            style={{
-              borderColor: "var(--color-border)",
-              color: "var(--color-primary)",
-            }}
-          >
-            {profile.contactName ?? profile.name}
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/opdrachten/aanvragen"
+              className="inline-flex items-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-black text-white"
+              style={{ backgroundColor: "var(--color-accent)" }}
+            >
+              <PlusCircle size={16} />
+              Opdracht aanvragen
+            </Link>
+            <Link
+              href="/opdrachten/aanvragen?prioriteit=urgent"
+              className="inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-black"
+              style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+            >
+              <AlertTriangle size={16} />
+              Urgente opdracht
+            </Link>
+          </div>
         </div>
       </section>
 
-      <section className="grid gap-3 md:grid-cols-4 xl:gap-4">
-        <QuickAction
-          href="/opdrachten/aanvragen"
-          title="Opdracht aanvragen"
-          subtitle="Start direct een aanvraag"
-          icon={<PlusCircle size={22} />}
-          primary
-        />
-        <QuickAction
-          href="/opdrachten/aanvragen"
-          title="Spoedaanvraag"
-          subtitle="24/7 bereikbaar"
-          icon={<Siren size={22} />}
-        />
-        <QuickAction
-          href="/rapporten"
-          title="Rapportages"
-          subtitle="Bekijk rapportages"
-          icon={<FileCheck2 size={22} />}
-        />
-        <QuickAction
-          href="/meldingen/tickets"
-          title="Support"
-          subtitle="Ticket of vraag stellen"
-          icon={<Headphones size={22} />}
-        />
-      </section>
+      <SummaryStrip
+        items={[
+          { label: "Opdrachten", value: openAssignments.length, href: "/opdrachten", hint: "lopende status" },
+          { label: "Openstaand", value: formatAmount(invoiceSummary.openTotal), href: "/financieel", hint: `${invoiceSummary.openCount} factuur${invoiceSummary.openCount === 1 ? "" : "en"}` },
+          { label: "Support", value: ticketSummary.openCount, href: "/meldingen/tickets", hint: `${ticketSummary.unreadCount} nieuw` },
+          { label: "Documenten", value: documents.length, href: "/documenten", hint: "beschikbaar" },
+        ]}
+      />
 
-      <section className="grid gap-3 md:grid-cols-4 xl:gap-4">
-        <StatCard
-          href="/opdrachten"
-          icon={<PlusCircle size={21} />}
-          title="Open aanvragen"
-          value={openAssignments.length}
-          hint="Bekijk status"
-        />
-        <StatCard
-          href="/rapporten"
-          icon={<FileText size={21} />}
-          title="Rapportages beschikbaar"
-          value={reports.length}
-          hint="Nieuwe rapporten"
-        />
-        <StatCard
-          href="/facturen"
-          icon={<Receipt size={21} />}
-          title="Open facturen"
-          value={formatAmount(invoiceSummary.openTotal)}
-          hint={`${invoiceSummary.openCount} openstaand`}
-        />
-        <StatCard
-          href="/objecten"
-          icon={<Building2 size={21} />}
-          title="Objecten"
-          value={objects.length}
-          hint="Actief in beheer"
-        />
-      </section>
+      <section className="grid gap-4 xl:grid-cols-[0.92fr_1.55fr]">
+        <ActionInbox items={visibleActionItems} />
 
-      {pendingQuoteCount > 0 ? (
-        <Link
-          href="/offertes"
-          className="flex items-center gap-3 rounded-[20px] border bg-amber-50 px-5 py-4 shadow-sm"
-          style={{ borderColor: "#FDE68A" }}
-        >
-          <ShieldCheck size={22} style={{ color: "#B45309" }} />
-          <span className="min-w-0 flex-1">
-            <span className="block text-sm font-black text-amber-900">
-              {pendingQuoteCount} offerte{pendingQuoteCount === 1 ? "" : "s"}{" "}
-              wacht{pendingQuoteCount === 1 ? "" : "en"} op akkoord
-            </span>
-            <span className="block text-xs font-semibold text-amber-700">
-              Controleer en keur offertes direct digitaal goed.
-            </span>
-          </span>
-          <ArrowRight size={18} className="text-amber-800" />
-        </Link>
-      ) : null}
-
-      <section className="grid gap-4 lg:grid-cols-[1fr_1.15fr_1fr] xl:gap-5">
-        <div
-          className="rounded-[22px] border bg-white p-4 shadow-sm"
-          style={{ borderColor: "var(--color-border)" }}
-        >
-          <div className="mb-3 flex items-center justify-between">
-            <h2
-              className="text-base font-black"
-              style={{ color: "var(--color-primary)" }}
-            >
-              Mijn objecten
-            </h2>
-            <Link
-              href="/objecten"
-              className="text-xs font-black"
-              style={{ color: "var(--color-accent)" }}
-            >
-              Bekijk alle
-            </Link>
-          </div>
-          <div className="space-y-3">
-            {recentObjects.length > 0 ? (
-              recentObjects.map((object, index) => (
-                <Link
-                  key={object.id}
-                  href={`/objecten/${object.id}`}
-                  className="flex items-center gap-3 rounded-2xl border p-2.5"
-                  style={{ borderColor: "var(--color-border)" }}
-                >
+        <div className="grid gap-4 lg:grid-cols-3">
+          <FocusPanel
+            href="/opdrachten"
+            title="Opdrachten"
+            eyebrow="Planning"
+            description={activeAssignment ? "Volg de eerstvolgende lopende opdracht." : "Vraag een opdracht aan of bekijk historie."}
+            Icon={CalendarDays}
+          >
+            {activeAssignment ? (
+              <Link href={`/opdrachten/${activeAssignment.id}`} className="block rounded-2xl border px-3 py-3" style={{ borderColor: "var(--color-border)" }}>
+                <span className="block font-mono text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+                  {activeAssignment.code}
+                </span>
+                <span className="mt-1 block line-clamp-1 text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                  {activeAssignment.title}
+                </span>
+                <span className="mt-2 flex flex-wrap items-center gap-2">
                   <span
-                    className="flex h-14 w-16 shrink-0 items-center justify-center rounded-xl text-sm font-black text-white"
+                    className="rounded-full px-2.5 py-1 text-[11px] font-black"
                     style={{
-                      background: ["#0E7490", "#155E75", "#0369A1"][index % 3],
+                      backgroundColor: (STATUS_COLOR[activeAssignment.status] ?? { bg: "#F1F5F9" }).bg,
+                      color: (STATUS_COLOR[activeAssignment.status] ?? { color: "#64748B" }).color,
                     }}
                   >
-                    {object.name.slice(0, 2).toUpperCase()}
+                    {STATUS_LABEL[activeAssignment.status] ?? activeAssignment.status}
                   </span>
-                  <span className="min-w-0 flex-1">
-                    <span
-                      className="block truncate text-sm font-black"
-                      style={{ color: "var(--color-primary)" }}
-                    >
-                      {object.name}
-                    </span>
-                    <span
-                      className="block truncate text-xs font-semibold"
-                      style={{ color: "var(--color-secondary)" }}
-                    >
-                      {[object.address, object.city].filter(Boolean).join(", ")}
-                    </span>
+                  <span className="text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>
+                    {formatDate(activeAssignment.scheduledDate)}
                   </span>
-                  <span className="rounded-full bg-[#E8FBFA] px-2 py-1 text-[10px] font-black text-[#087C79]">
-                    Actief
-                  </span>
-                </Link>
-              ))
+                </span>
+              </Link>
             ) : (
-              <p
-                className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold"
-                style={{ color: "var(--color-secondary)" }}
-              >
-                Geen objecten beschikbaar.
-              </p>
+              <Link href="/opdrachten/aanvragen" className="inline-flex w-full items-center justify-center rounded-2xl bg-[#E8FBFA] px-4 py-3 text-sm font-black text-[#087C79]">
+                Nieuwe opdracht aanvragen
+              </Link>
             )}
-          </div>
-        </div>
+          </FocusPanel>
 
-        <div
-          className="rounded-[22px] border bg-white p-4 shadow-sm"
-          style={{ borderColor: "var(--color-border)" }}
-        >
-          <div className="mb-3 flex items-center justify-between">
-            <h2
-              className="text-base font-black"
-              style={{ color: "var(--color-primary)" }}
-            >
-              Lopende aanvragen
-            </h2>
-            <Link
-              href="/opdrachten"
-              className="text-xs font-black"
-              style={{ color: "var(--color-accent)" }}
-            >
-              Bekijk alle
-            </Link>
-          </div>
+          <FocusPanel
+            href="/financieel"
+            title="Financieel"
+            eyebrow="Facturen"
+            description="Facturen, betalingen en offertes staan samen."
+            Icon={WalletCards}
+          >
+            <div className="rounded-2xl border px-3 py-3" style={{ borderColor: "var(--color-border)" }}>
+              <span className="block text-xs font-black uppercase tracking-[0.12em]" style={{ color: "var(--color-secondary)" }}>
+                Openstaand
+              </span>
+              <span className="mt-1 block text-xl font-black" style={{ color: "var(--color-primary)" }}>
+                {formatAmount(invoiceSummary.openTotal)}
+              </span>
+              <span className="mt-1 block text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>
+                {pendingQuoteCount} offerte{pendingQuoteCount === 1 ? "" : "s"} vraagt{pendingQuoteCount === 1 ? "" : "en"} akkoord
+              </span>
+            </div>
+          </FocusPanel>
+
+          <FocusPanel
+            href="/meldingen/tickets"
+            title="Support"
+            eyebrow="Tickets"
+            description="Vragen en reacties richting uw dienstverlener."
+            Icon={Headphones}
+          >
+            <div className="rounded-2xl border px-3 py-3" style={{ borderColor: "var(--color-border)" }}>
+              <span className="block text-xs font-black uppercase tracking-[0.12em]" style={{ color: "var(--color-secondary)" }}>
+                Open tickets
+              </span>
+              <span className="mt-1 block text-xl font-black" style={{ color: "var(--color-primary)" }}>
+                {ticketSummary.openCount}
+              </span>
+              <span className="mt-1 block text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>
+                {ticketSummary.unreadCount} ongelezen bericht{ticketSummary.unreadCount === 1 ? "" : "en"}
+              </span>
+            </div>
+          </FocusPanel>
+        </div>
+      </section>
+
+      <section className="grid gap-4 lg:grid-cols-3">
+        <SecondaryCard title="Recente opdrachten" href="/opdrachten" actionLabel="Alle opdrachten">
           <div className="space-y-2.5">
             {recentAssignments.length > 0 ? (
               recentAssignments.map((assignment) => {
@@ -405,116 +486,127 @@ export default async function DashboardPage() {
                     className="flex items-center gap-3 rounded-2xl border px-3 py-3"
                     style={{ borderColor: "var(--color-border)" }}
                   >
-                    <FileText
-                      size={17}
-                      style={{ color: "var(--color-secondary)" }}
-                    />
+                    <FileText size={17} style={{ color: "var(--color-secondary)" }} />
                     <span className="min-w-0 flex-1">
-                      <span
-                        className="block font-mono text-xs font-black"
-                        style={{ color: "var(--color-primary)" }}
-                      >
+                      <span className="block font-mono text-xs font-black" style={{ color: "var(--color-primary)" }}>
                         {assignment.code}
                       </span>
-                      <span
-                        className="block truncate text-xs font-semibold"
-                        style={{ color: "var(--color-secondary)" }}
-                      >
-                        {assignment.title} ·{" "}
-                        {formatDate(assignment.scheduledDate)}
+                      <span className="block truncate text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>
+                        {assignment.title} - {formatDate(assignment.scheduledDate)}
                       </span>
                     </span>
-                    <span
-                      className="rounded-full px-2 py-1 text-[10px] font-black"
-                      style={{ backgroundColor: cfg.bg, color: cfg.color }}
-                    >
+                    <span className="rounded-full px-2 py-1 text-[10px] font-black" style={{ backgroundColor: cfg.bg, color: cfg.color }}>
                       {STATUS_LABEL[assignment.status] ?? assignment.status}
                     </span>
                   </Link>
                 );
               })
             ) : (
-              <p
-                className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold"
-                style={{ color: "var(--color-secondary)" }}
-              >
-                Nog geen aanvragen.
+              <p className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold" style={{ color: "var(--color-secondary)" }}>
+                Er zijn nog geen opdrachten.
               </p>
             )}
           </div>
-        </div>
+        </SecondaryCard>
 
-        <div
-          className="rounded-[22px] border bg-white p-4 shadow-sm"
-          style={{ borderColor: "var(--color-border)" }}
-        >
-          <div className="mb-3 flex items-center justify-between">
-            <h2
-              className="text-base font-black"
-              style={{ color: "var(--color-primary)" }}
-            >
-              Recente activiteit
-            </h2>
-            <Link
-              href="/meldingen"
-              className="text-xs font-black"
-              style={{ color: "var(--color-accent)" }}
-            >
-              Alle meldingen
-            </Link>
-          </div>
+        <SecondaryCard title="Documenten en rapportages" href="/documenten" actionLabel="Documenten">
           <div className="space-y-2.5">
-            {recentNotifications.length > 0 ? (
-              recentNotifications.map((item) => (
+            {recentDocuments.length > 0 ? (
+              recentDocuments.map((document) => (
                 <Link
-                  key={item.id}
-                  href={item.href}
-                  className="flex items-start gap-3 rounded-2xl border px-3 py-3"
+                  key={document.id}
+                  href="/documenten"
+                  className="flex items-center gap-3 rounded-2xl border px-3 py-3"
                   style={{ borderColor: "var(--color-border)" }}
                 >
-                  <span
-                    className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full"
-                    style={{
-                      backgroundColor:
-                        item.priority === "high" ? "#FEF3C7" : "#E8FBFA",
-                      color:
-                        item.priority === "high"
-                          ? "#B45309"
-                          : "var(--color-accent)",
-                    }}
-                  >
-                    {item.priority === "high" ? (
-                      <Bell size={15} />
-                    ) : (
-                      <CheckCircle2 size={15} />
-                    )}
-                  </span>
-                  <span className="min-w-0">
-                    <span
-                      className="block line-clamp-1 text-sm font-black"
-                      style={{ color: "var(--color-primary)" }}
-                    >
-                      {item.title}
+                  <FileText size={17} style={{ color: "var(--color-secondary)" }} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                      {document.name}
                     </span>
-                    <span
-                      className="mt-0.5 block line-clamp-2 text-xs font-semibold"
-                      style={{ color: "var(--color-secondary)" }}
-                    >
-                      {item.body}
+                    <span className="block text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>
+                      {formatDateTime(document.createdAt)}
+                    </span>
+                  </span>
+                </Link>
+              ))
+            ) : recentReports.length > 0 ? (
+              recentReports.map((report) => (
+                <Link
+                  key={report.id}
+                  href="/rapporten"
+                  className="flex items-center gap-3 rounded-2xl border px-3 py-3"
+                  style={{ borderColor: "var(--color-border)" }}
+                >
+                  <FileCheck2 size={17} style={{ color: "var(--color-secondary)" }} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                      {report.assignmentTitle}
+                    </span>
+                    <span className="block text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>
+                      Rapportage - {formatDateTime(report.submittedAt)}
                     </span>
                   </span>
                 </Link>
               ))
             ) : (
-              <p
-                className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold"
-                style={{ color: "var(--color-secondary)" }}
-              >
-                Geen recente activiteit.
+              <p className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold" style={{ color: "var(--color-secondary)" }}>
+                Documenten en rapportages verschijnen hier zodra ze gedeeld zijn.
               </p>
             )}
           </div>
-        </div>
+        </SecondaryCard>
+
+        <SecondaryCard title="Objecten en activiteit" href="/objecten" actionLabel="Objecten">
+          <div className="space-y-2.5">
+            {recentObjects.length > 0 ? (
+              recentObjects.map((object, index) => (
+                <Link
+                  key={object.id}
+                  href={`/objecten/${object.id}`}
+                  className="flex items-center gap-3 rounded-2xl border p-2.5"
+                  style={{ borderColor: "var(--color-border)" }}
+                >
+                  <span
+                    className="flex h-12 w-14 shrink-0 items-center justify-center rounded-xl text-sm font-black text-white"
+                    style={{ background: ["#0E7490", "#155E75", "#0369A1"][index % 3] }}
+                  >
+                    {object.name.slice(0, 2).toUpperCase()}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                      {object.name}
+                    </span>
+                    <span className="block truncate text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>
+                      {[object.address, object.city].filter(Boolean).join(", ") || "Geen adres bekend"}
+                    </span>
+                  </span>
+                </Link>
+              ))
+            ) : (
+              <p className="rounded-2xl bg-slate-50 p-4 text-sm font-semibold" style={{ color: "var(--color-secondary)" }}>
+                Er zijn nog geen objecten gekoppeld.
+              </p>
+            )}
+
+            {recentNotifications.length > 0 ? (
+              <Link
+                href="/meldingen"
+                className="mt-3 flex items-center gap-3 rounded-2xl bg-slate-50 px-3 py-3"
+              >
+                <Bell size={16} style={{ color: "var(--color-secondary)" }} />
+                <span className="min-w-0 flex-1">
+                  <span className="block line-clamp-1 text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                    {recentNotifications[0]?.title}
+                  </span>
+                  <span className="block text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>
+                    Laatste melding
+                  </span>
+                </span>
+              </Link>
+            ) : null}
+          </div>
+        </SecondaryCard>
       </section>
     </div>
   );
