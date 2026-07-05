@@ -1,0 +1,408 @@
+[
+  {
+    "app": "customer",
+    "path": "/klant/healthz",
+    "status": 200,
+    "location": "",
+    "ok": true
+  },
+  {
+    "app": "customer",
+    "path": "/klant/login",
+    "status": 200,
+    "location": "",
+    "ok": true
+  },
+  {
+    "app": "customer",
+    "path": "/klant/wachtwoord-vergeten",
+    "status": 200,
+    "location": "",
+    "ok": true
+  },
+  {
+    "app": "customer",
+    "path": "/klant/reset-wachtwoord",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/auth/confirm",
+    "status": 307,
+    "location": "http://127.0.0.1:4301/klant/login?error=Ongeldige+resetlink",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant",
+    "status": 500,
+    "location": "",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/objecten",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/objecten/nieuw",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/objecten/example-id",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/opdrachten",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/opdrachten/aanvragen",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/opdrachten/example-id",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/facturen",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/facturen/example-id",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/betalingen",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/betalingen/succes",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/betalingen/mislukt",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/offertes",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/rapporten",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/documenten",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/meldingen",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/meldingen/tickets",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/meldingen/tickets/example-id",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/profiel",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/beveiliging",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/instellingen",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "customer",
+    "path": "/klant/meer",
+    "status": 307,
+    "location": "http://localhost:4301/klant/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/healthz",
+    "status": 200,
+    "location": "",
+    "ok": true
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/login",
+    "status": 200,
+    "location": "",
+    "ok": true
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/wachtwoord-vergeten",
+    "status": 200,
+    "location": "",
+    "ok": true
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/reset-wachtwoord",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/auth/confirm",
+    "status": 307,
+    "location": "http://127.0.0.1:4302/personeel/login?error=Ongeldige+resetlink",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/i/example-token",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/scan/inventory",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/scan/inventory/example-token",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel",
+    "status": 500,
+    "location": "",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/opdrachten",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/opdrachten/example-id",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/opdrachten/example-id/afronden",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/opdrachten/example-id/materiaal",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/opdrachten/example-id/inventaris",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/opdrachten/example-id/meerwerk",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/openstaand",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/uren",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/beschikbaarheid",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/verlof",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/berichten",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/berichten/example-id",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/meldingen",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/instellingen",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/instellingen/meldingen",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/beveiliging",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/documenten",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/profiel",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/nieuws",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/nieuws/example-slug",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/meer",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  },
+  {
+    "app": "personnel",
+    "path": "/personeel/debug/native",
+    "status": 307,
+    "location": "http://localhost:4302/personeel/login",
+    "ok": false
+  }
+]
