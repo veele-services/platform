@@ -843,7 +843,14 @@ export async function retryPlatformTenantProvisioning(formData: FormData): Promi
   const draft = await readProvisioningDraft(sourceRunId);
   if (!draft) throw new Error("Provisioning run niet gevonden.");
 
-  const result = await runPlatformTenantProvisioning(draft, actor, sourceRunId);
+  let result;
+  try {
+    result = await runPlatformTenantProvisioning(draft, actor, sourceRunId);
+  } catch {
+    revalidatePath("/platform");
+    revalidatePath("/platform/onboarding");
+    redirect("/platform/onboarding#provisioning-runs");
+  }
 
   revalidatePath("/platform");
   revalidatePath("/platform/onboarding");
@@ -855,7 +862,14 @@ export async function createPlatformTenant(formData: FormData): Promise<void> {
   const actor = await requirePlatformAdmin();
   const draftRunId = actionValue(formData, "draftRunId") || null;
   const input = parseOnboardingInput(formData);
-  const result = await runPlatformTenantProvisioning(input, actor, draftRunId);
+  let result;
+  try {
+    result = await runPlatformTenantProvisioning(input, actor, draftRunId);
+  } catch {
+    revalidatePath("/platform");
+    revalidatePath("/platform/onboarding");
+    redirect("/platform/onboarding#provisioning-runs");
+  }
 
   revalidatePath("/platform");
   revalidatePath("/platform/onboarding");

@@ -36,7 +36,7 @@ const DEFAULT_ORGANIZATION_SETTINGS = {
   betaaltermijnDagen: 30,
   availabilityAdvanceDays: 60,
   smtpEnabled: false,
-  smtpEncryption: "starttls",
+  smtpEncryption: "tls",
   emailTemplateBrandColor: "#081D3A",
   emailTemplateAccentColor: "#00B7B3",
   emailTemplateFooterText:
@@ -53,6 +53,15 @@ const DEFAULT_ORGANIZATION_SETTINGS = {
 type DbExecutor = typeof db | any;
 type ProvisioningSectorRow = { id: string };
 type TemplateRolePermissionRow = { permissionId: string };
+type ErrorDetails = {
+  message?: unknown;
+  cause?: unknown;
+  code?: unknown;
+  detail?: unknown;
+  table?: unknown;
+  column?: unknown;
+  constraint?: unknown;
+};
 
 export type TenantProvisioningBrandingInput = {
   displayName?: string | null;
@@ -136,6 +145,25 @@ function normalizeOptionalColor(value: string | null | undefined): string | null
   const trimmed = value?.trim();
   if (!trimmed) return null;
   return COLOR_PATTERN.test(trimmed) ? trimmed : null;
+}
+
+function stringDetail(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function provisioningErrorMessage(error: unknown): string {
+  const details = error as ErrorDetails;
+  const parts = [
+    stringDetail(details.message),
+    stringDetail((details.cause as ErrorDetails | undefined)?.message),
+    stringDetail(details.code ?? (details.cause as ErrorDetails | undefined)?.code),
+    stringDetail(details.detail ?? (details.cause as ErrorDetails | undefined)?.detail),
+    stringDetail(details.table ?? (details.cause as ErrorDetails | undefined)?.table),
+    stringDetail(details.column ?? (details.cause as ErrorDetails | undefined)?.column),
+    stringDetail(details.constraint ?? (details.cause as ErrorDetails | undefined)?.constraint),
+  ];
+
+  return [...new Set(parts.filter((part): part is string => Boolean(part)))].join(" | ") || "Provisioning mislukt.";
 }
 
 function normalizeProvisioningBranding(input: TenantProvisioningBrandingInput | null | undefined): NormalizedTenantProvisioningInput["branding"] {
@@ -496,7 +524,7 @@ export async function provisionTenant(
 
     return result;
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Provisioning mislukt.";
+    const message = provisioningErrorMessage(error);
     await db
       .update(tenantProvisioningRunsTable)
       .set({ status: "failed", currentStep: "failed", errorMessage: message, completedAt: new Date() })
