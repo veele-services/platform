@@ -11,6 +11,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { getMyPaymentBatches, getMyPayments } from "@/actions/payments";
+import { FinanceSectionHeader, FinanceSummaryStrip } from "@/components/FinanceWorkspace";
 import { PaymentActionButton } from "@/components/PaymentActionButton";
 import {
   PortalActionMenu,
@@ -52,6 +53,18 @@ function formatDate(iso: string | null): string {
     month: "short",
     year: "numeric",
   });
+}
+
+function latestPaymentDate(
+  payments: CustomerPayment[],
+  batches: CustomerPaymentBatch[],
+): string | null {
+  const latest = [
+    ...payments.map((payment) => payment.paidAt ?? payment.createdAt),
+    ...batches.map((batch) => batch.paidAt ?? batch.createdAt),
+  ].sort((a, b) => new Date(b).getTime() - new Date(a).getTime())[0];
+
+  return latest ?? null;
 }
 
 function statusConfig(status: string) {
@@ -271,6 +284,17 @@ export default async function BetalingenPage({
   const openCount =
     payments.filter((payment) => statusGroup(payment.status) === "open").length +
     batches.filter((batch) => statusGroup(batch.status) === "open").length;
+  const paidTotal =
+    payments
+      .filter((payment) => statusGroup(payment.status) === "paid")
+      .reduce((sum, payment) => sum + payment.amountCents, 0) +
+    batches
+      .filter((batch) => statusGroup(batch.status) === "paid")
+      .reduce((sum, batch) => sum + batch.amountCents, 0);
+  const failedCount =
+    payments.filter((payment) => statusGroup(payment.status) === "failed").length +
+    batches.filter((batch) => statusGroup(batch.status) === "failed").length;
+  const latestDate = latestPaymentDate(payments, batches);
 
   const activeFilters = [
     query
@@ -296,6 +320,39 @@ export default async function BetalingenPage({
         tone: openCount > 0 ? "warning" : "accent",
       }}
     >
+      <FinanceSummaryStrip
+        items={[
+          {
+            label: "Open betalingen",
+            value: `${openCount}`,
+            description: "Betaallinks die nog afgerond kunnen worden.",
+            icon: <Clock size={18} />,
+            tone: openCount > 0 ? "warning" : "neutral",
+          },
+          {
+            label: "Betaald totaal",
+            value: cents(paidTotal),
+            description: "Totaal van afgeronde losse en verzamelbetalingen.",
+            icon: <CheckCircle2 size={18} />,
+            tone: paidTotal > 0 ? "success" : "neutral",
+          },
+          {
+            label: "Niet afgerond",
+            value: `${failedCount}`,
+            description: "Mislukte, verlopen of geannuleerde betaalpogingen.",
+            icon: <XCircle size={18} />,
+            tone: failedCount > 0 ? "danger" : "neutral",
+          },
+          {
+            label: "Laatste betaling",
+            value: latestDate ? formatDate(latestDate) : "-",
+            description: latestDate ? "Meest recente betaalactiviteit." : "Nog geen betaling gestart.",
+            icon: <WalletCards size={18} />,
+            tone: latestDate ? "accent" : "neutral",
+          },
+        ]}
+      />
+
       <PortalToolbar
         resultLabel={`${visiblePayments.length + visibleBatches.length} van ${payments.length + batches.length} betalingen`}
         activeFilters={<PortalActiveFilterChips filters={activeFilters} clearHref="/betalingen" />}
@@ -332,7 +389,7 @@ export default async function BetalingenPage({
       </PortalToolbar>
 
       <section className="space-y-4">
-        <FinanceSectionTitle
+        <FinanceSectionHeader
           icon={<CreditCard size={20} />}
           title="Losse betalingen"
           subtitle="Betalingen per factuur."
@@ -357,7 +414,7 @@ export default async function BetalingenPage({
       </section>
 
       <section className="space-y-4">
-        <FinanceSectionTitle
+        <FinanceSectionHeader
           icon={<WalletCards size={20} />}
           title="Verzamelfacturen"
           subtitle="Een checkout voor meerdere open facturen."
@@ -441,32 +498,6 @@ function PaymentFilterForm({
         </button>
       </div>
     </form>
-  );
-}
-
-function FinanceSectionTitle({
-  icon,
-  title,
-  subtitle,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  subtitle: string;
-}) {
-  return (
-    <div className="flex items-center gap-3">
-      <span className="flex h-11 w-11 items-center justify-center rounded-xl bg-[#E8FBFA] text-[#087C79]">
-        {icon}
-      </span>
-      <div>
-        <h2 className="text-lg font-black" style={{ color: "var(--color-primary)" }}>
-          {title}
-        </h2>
-        <p className="text-sm font-semibold" style={{ color: "var(--color-secondary)" }}>
-          {subtitle}
-        </p>
-      </div>
-    </div>
   );
 }
 

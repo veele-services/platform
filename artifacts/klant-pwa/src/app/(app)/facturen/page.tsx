@@ -2,6 +2,8 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import {
+  AlertTriangle,
+  CalendarClock,
   CheckCircle2,
   Clock,
   Download,
@@ -9,6 +11,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { getMyInvoices } from "@/actions/invoices";
+import { FinanceSummaryStrip } from "@/components/FinanceWorkspace";
 import { InvoiceBatchPaymentPanel } from "@/components/InvoiceBatchPaymentPanel";
 import { PaidBanner } from "@/components/PaidBanner";
 import { PaymentActionButton } from "@/components/PaymentActionButton";
@@ -29,6 +32,7 @@ import {
 
 type CustomerInvoice = Awaited<ReturnType<typeof getMyInvoices>>[number];
 type InvoiceStatusFilter = "all" | "sent" | "paid" | "other";
+const DAY_MS = 24 * 60 * 60 * 1000;
 
 const STATUS_CONFIG: Record<
   string,
@@ -66,6 +70,18 @@ function formatAmount(amount: string): string {
     currency: "EUR",
     minimumFractionDigits: 2,
   });
+}
+
+function daysUntil(dateStr: string): number {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const dueDate = new Date(`${dateStr}T00:00:00`);
+  return Math.ceil((dueDate.getTime() - today.getTime()) / DAY_MS);
+}
+
+function invoiceTotal(invoices: CustomerInvoice[]): string {
+  const total = invoices.reduce((sum, invoice) => sum + Number.parseFloat(invoice.totalAmount || "0"), 0);
+  return formatAmount(total.toFixed(2));
 }
 
 function normalizeQuery(value?: string): string {
@@ -204,6 +220,13 @@ export default async function FacturenPage({
   const status = normalizeStatus(params.status);
   const invoices = await getMyInvoices();
   const openInvoices = invoices.filter((invoice) => invoice.status === "sent");
+  const overdueInvoices = openInvoices.filter((invoice) => invoice.dueDate && daysUntil(invoice.dueDate) < 0);
+  const dueSoonInvoices = openInvoices.filter((invoice) => {
+    if (!invoice.dueDate) return false;
+    const days = daysUntil(invoice.dueDate);
+    return days >= 0 && days <= 14;
+  });
+  const paidInvoices = invoices.filter((invoice) => invoice.status === "paid");
   const visibleInvoices = filterInvoices(invoices, query, status);
 
   const activeFilters = [
@@ -231,6 +254,39 @@ export default async function FacturenPage({
       }}
     >
       {paid === "1" ? <PaidBanner /> : null}
+
+      <FinanceSummaryStrip
+        items={[
+          {
+            label: "Openstaand saldo",
+            value: invoiceTotal(openInvoices),
+            description: `${openInvoices.length} factuur${openInvoices.length === 1 ? "" : "en"} klaar voor betaling.`,
+            icon: <Clock size={18} />,
+            tone: openInvoices.length > 0 ? "warning" : "success",
+          },
+          {
+            label: "Vervallen",
+            value: invoiceTotal(overdueInvoices),
+            description: `${overdueInvoices.length} factuur${overdueInvoices.length === 1 ? "" : "en"} over de vervaldatum.`,
+            icon: <AlertTriangle size={18} />,
+            tone: overdueInvoices.length > 0 ? "danger" : "neutral",
+          },
+          {
+            label: "Binnenkort",
+            value: invoiceTotal(dueSoonInvoices),
+            description: `${dueSoonInvoices.length} factuur${dueSoonInvoices.length === 1 ? "" : "en"} vervalt binnen 14 dagen.`,
+            icon: <CalendarClock size={18} />,
+            tone: dueSoonInvoices.length > 0 ? "warning" : "neutral",
+          },
+          {
+            label: "Betaald",
+            value: `${paidInvoices.length}`,
+            description: `${paidInvoices.length} factuur${paidInvoices.length === 1 ? "" : "en"} afgerond.`,
+            icon: <CheckCircle2 size={18} />,
+            tone: paidInvoices.length > 0 ? "success" : "neutral",
+          },
+        ]}
+      />
 
       <PortalToolbar
         resultLabel={`${visibleInvoices.length} van ${invoices.length} facturen`}

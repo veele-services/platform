@@ -9,6 +9,7 @@ import {
   XCircle,
 } from "lucide-react";
 import { getMyQuotes } from "@/actions/quotes";
+import { FinanceActionPanel, FinanceSummaryStrip } from "@/components/FinanceWorkspace";
 import { OfferteActieButtons } from "@/components/OfferteActieButtons";
 import { OfferteRegelitems } from "@/components/OfferteRegelitems";
 import {
@@ -76,6 +77,11 @@ function formatAmount(amount: string): string {
     currency: "EUR",
     minimumFractionDigits: 2,
   });
+}
+
+function quoteTotal(quotes: CustomerQuote[]): string {
+  const total = quotes.reduce((sum, quote) => sum + Number.parseFloat(quote.amount || "0"), 0);
+  return formatAmount(total.toFixed(2));
 }
 
 function normalizeQuery(value?: string): string {
@@ -230,6 +236,9 @@ export default async function OffertesPage({
   const quotes = await getMyQuotes();
   const visibleQuotes = filterQuotes(quotes, query, filter);
   const actionRequired = quotes.filter((quote) => quote.assignmentStatus === "awaiting_approval");
+  const sentQuotes = quotes.filter((quote) => quoteFilterFor(quote) === "sent");
+  const approvedQuotes = quotes.filter((quote) => quoteFilterFor(quote) === "approved");
+  const expiredQuotes = quotes.filter((quote) => quoteFilterFor(quote) === "expired");
 
   const activeFilters = [
     query
@@ -255,6 +264,39 @@ export default async function OffertesPage({
         tone: actionRequired.length > 0 ? "warning" : "accent",
       }}
     >
+      <FinanceSummaryStrip
+        items={[
+          {
+            label: "Actie vereist",
+            value: `${actionRequired.length}`,
+            description: `${quoteTotal(actionRequired)} wacht op akkoord of afwijzing.`,
+            icon: <AlertTriangle size={18} />,
+            tone: actionRequired.length > 0 ? "warning" : "neutral",
+          },
+          {
+            label: "Ter beoordeling",
+            value: `${sentQuotes.length}`,
+            description: `${quoteTotal(sentQuotes)} aan open offertes.`,
+            icon: <Clock size={18} />,
+            tone: sentQuotes.length > 0 ? "accent" : "neutral",
+          },
+          {
+            label: "Goedgekeurd",
+            value: `${approvedQuotes.length}`,
+            description: `${quoteTotal(approvedQuotes)} akkoord gegeven.`,
+            icon: <CheckCircle2 size={18} />,
+            tone: approvedQuotes.length > 0 ? "success" : "neutral",
+          },
+          {
+            label: "Verlopen",
+            value: `${expiredQuotes.length}`,
+            description: `${quoteTotal(expiredQuotes)} is niet meer geldig.`,
+            icon: <XCircle size={18} />,
+            tone: expiredQuotes.length > 0 ? "danger" : "neutral",
+          },
+        ]}
+      />
+
       <PortalToolbar
         resultLabel={`${visibleQuotes.length} van ${quotes.length} offertes`}
         activeFilters={<PortalActiveFilterChips filters={activeFilters} clearHref="/offertes" />}
@@ -293,7 +335,22 @@ export default async function OffertesPage({
       </PortalToolbar>
 
       {actionRequired.length > 0 ? (
-        <section className="grid gap-3 lg:grid-cols-2">
+        <FinanceActionPanel
+          eyebrow="Actie nodig"
+          title="Te beoordelen offertes"
+          description="Controleer de belangrijkste details en keur direct goed of wijs af."
+          tone="warning"
+          action={
+            <Link
+              href="/offertes?filter=action_required"
+              className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-black text-white shadow-sm"
+              style={{ backgroundColor: "var(--color-accent)" }}
+            >
+              Alle acties tonen
+            </Link>
+          }
+        >
+          <div className="grid gap-3 lg:grid-cols-2">
           {actionRequired.map((quote) => (
             <article
               key={quote.id}
@@ -319,7 +376,8 @@ export default async function OffertesPage({
               <OfferteActieButtons assignmentId={quote.assignmentId} title={quote.assignmentTitle} />
             </article>
           ))}
-        </section>
+          </div>
+        </FinanceActionPanel>
       ) : null}
 
       <PortalDataList
