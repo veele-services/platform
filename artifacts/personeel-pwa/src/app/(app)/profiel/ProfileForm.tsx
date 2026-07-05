@@ -2,11 +2,15 @@
 
 import { useActionState } from "react";
 import type { HTMLAttributes, ReactNode } from "react";
-import { CheckCircle2, Home, Loader2, MapPin, Phone, User } from "lucide-react";
+import { Home, MapPin, Phone, User } from "lucide-react";
 import {
   updateMyProfile,
   type PersonnelProfile,
 } from "@/actions/personnel";
+import {
+  PersonnelSettingsFeedback,
+  PersonnelSettingsSaveBar,
+} from "@/components/SettingsShell";
 
 export function ProfileForm({ profile }: { profile: PersonnelProfile }) {
   const [state, formAction, isPending] = useActionState(
@@ -96,25 +100,19 @@ export function ProfileForm({ profile }: { profile: PersonnelProfile }) {
       </div>
 
       {state?.error ? (
-        <p className="mt-3 rounded-2xl bg-red-50 px-3 py-2.5 text-sm font-bold text-red-600">
-          {state.error}
-        </p>
+        <div className="mt-3">
+          <PersonnelSettingsFeedback type="error">{state.error}</PersonnelSettingsFeedback>
+        </div>
       ) : null}
       {state?.success ? (
-        <p className="mt-3 flex items-center gap-2 rounded-2xl bg-emerald-50 px-3 py-2.5 text-sm font-bold text-emerald-700">
-          <CheckCircle2 size={17} strokeWidth={2.4} />
-          Profiel opgeslagen
-        </p>
+        <div className="mt-3">
+          <PersonnelSettingsFeedback type="success">
+            Profiel opgeslagen
+          </PersonnelSettingsFeedback>
+        </div>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="mt-4 flex w-full items-center justify-center gap-2 rounded-2xl bg-[#00B7B3] px-4 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-60"
-      >
-        {isPending ? <Loader2 size={19} className="animate-spin" /> : null}
-        Profiel opslaan
-      </button>
+      <PersonnelSettingsSaveBar pending={isPending} label="Profiel opslaan" />
     </form>
   );
 }

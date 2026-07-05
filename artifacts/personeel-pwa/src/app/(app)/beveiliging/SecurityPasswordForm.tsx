@@ -1,9 +1,13 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
-import { CheckCircle2, Eye, EyeOff, Loader2 } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 import { changeMyPassword } from "@/actions/auth";
 import { evaluatePasswordStrength } from "@/lib/password-strength";
+import {
+  PersonnelSettingsFeedback,
+  PersonnelSettingsSaveBar,
+} from "@/components/SettingsShell";
 
 const STRENGTH_COLORS = ["#EF4444", "#F97316", "#F59E0B", "#00B7B3", "#10B981"];
 
@@ -56,25 +60,15 @@ export function SecurityPasswordForm() {
       </div>
 
       {state?.error ? (
-        <p className="rounded-2xl bg-red-50 px-3 py-2.5 text-sm font-bold text-red-600">
-          {state.error}
-        </p>
+        <PersonnelSettingsFeedback type="error">{state.error}</PersonnelSettingsFeedback>
       ) : null}
       {state?.success ? (
-        <p className="flex items-center gap-2 rounded-2xl bg-emerald-50 px-3 py-2.5 text-sm font-bold text-emerald-700">
-          <CheckCircle2 size={17} strokeWidth={2.4} />
+        <PersonnelSettingsFeedback type="success">
           Wachtwoord gewijzigd
-        </p>
+        </PersonnelSettingsFeedback>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#00B7B3] px-4 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-60"
-      >
-        {isPending ? <Loader2 size={19} className="animate-spin" /> : null}
-        Wachtwoord opslaan
-      </button>
+      <PersonnelSettingsSaveBar pending={isPending} label="Wachtwoord opslaan" />
     </form>
   );
 }

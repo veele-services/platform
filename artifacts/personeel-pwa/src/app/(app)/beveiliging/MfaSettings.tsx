@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useState, useTransition } from "react";
 import {
-  CheckCircle2,
   Loader2,
   QrCode,
   ShieldAlert,
@@ -10,6 +9,7 @@ import {
   Smartphone,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { PersonnelSettingsFeedback } from "@/components/SettingsShell";
 
 type Factor = {
   id: string;
@@ -79,7 +79,7 @@ export function MfaSettings() {
 
       if (enrollError || !data) {
         setError(
-          "2FA activeren mislukt. Controleer of MFA/TOTP voor deze omgeving is ingeschakeld.",
+          "Tweestapsverificatie is nog niet beschikbaar voor deze omgeving.",
         );
         return;
       }
@@ -169,7 +169,7 @@ export function MfaSettings() {
         )}
         <div>
           <p className="text-sm font-black">
-            {factor ? "2FA actief" : "2FA niet actief"}
+            {factor ? "Tweestapsverificatie actief" : "Tweestapsverificatie niet actief"}
           </p>
           <p className="text-xs font-semibold opacity-80">
             {factor
@@ -219,15 +219,14 @@ export function MfaSettings() {
       ) : null}
 
       {message ? (
-        <p className="flex items-center gap-2 rounded-2xl bg-emerald-50 px-3 py-2.5 text-sm font-bold text-emerald-700">
-          <CheckCircle2 size={17} strokeWidth={2.4} />
+        <PersonnelSettingsFeedback type="success">
           {message}
-        </p>
+        </PersonnelSettingsFeedback>
       ) : null}
       {error ? (
-        <p className="rounded-2xl bg-red-50 px-3 py-2.5 text-sm font-bold text-red-600">
+        <PersonnelSettingsFeedback type="error">
           {error}
-        </p>
+        </PersonnelSettingsFeedback>
       ) : null}
 
       {factor ? (

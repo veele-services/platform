@@ -1,13 +1,17 @@
 "use client";
 
 import { useActionState, useState, useTransition } from "react";
-import { Loader2, Save, Smartphone } from "lucide-react";
+import { Loader2, Smartphone } from "lucide-react";
 import {
   updateMyPortalPreferences,
   type CustomerPortalPreferenceState,
   type PreferenceResult,
 } from "@/actions/preferences";
 import { saveMyCustomerPushSubscription } from "@/actions/push";
+import {
+  CustomerSettingsFeedback,
+  CustomerSettingsSaveBar,
+} from "./SettingsShell";
 
 const VAPID_PUBLIC_KEY = process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? "";
 
@@ -17,8 +21,8 @@ const OPTIONS = [
   { name: "quoteEmails",         label: "Offertes", description: "Offertes die beoordeling of akkoord nodig hebben." },
   { name: "reportEmails",        label: "Rapportages", description: "Nieuwe rapportages en documenten na uitvoering." },
   { name: "serviceUpdateEmails", label: "Service-updates", description: "Updates over aanvragen, planning en objecten." },
-  { name: "marketingEmails",     label: "Commerciële updates", description: "Nieuws over diensten en algemene campagnes." },
-  { name: "pushNotifications",   label: "Pushmeldingen", description: "Voorbereid voor PWA pushnotificaties." },
+  { name: "marketingEmails",     label: "Commerciele updates", description: "Nieuws over diensten en algemene campagnes." },
+  { name: "pushNotifications",   label: "Pushmeldingen", description: "Apparaatmeldingen wanneer push voor dit portaal actief is." },
 ] as const;
 
 function urlBase64ToUint8Array(base64String: string) {
@@ -44,7 +48,7 @@ export function PortalPreferencesForm({ preferences }: { preferences: CustomerPo
       if (!VAPID_PUBLIC_KEY) {
         setPushStatus({
           type: "error",
-          text: "Push is technisch voorbereid. Stel eerst NEXT_PUBLIC_VAPID_PUBLIC_KEY en de server-side VAPID keys in.",
+          text: "Pushmeldingen zijn nog niet actief voor deze omgeving. E-mailmeldingen blijven beschikbaar.",
         });
         return;
       }
@@ -128,51 +132,52 @@ export function PortalPreferencesForm({ preferences }: { preferences: CustomerPo
       </div>
 
       {state && !state.success && state.error ? (
-        <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-600">
-          {state.error}
-        </p>
+        <div className="mt-4">
+          <CustomerSettingsFeedback type="error">{state.error}</CustomerSettingsFeedback>
+        </div>
       ) : null}
       {state?.success && !pending ? (
-        <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
-          Instellingen opgeslagen.
-        </p>
+        <div className="mt-4">
+          <CustomerSettingsFeedback type="success">
+            Instellingen opgeslagen.
+          </CustomerSettingsFeedback>
+        </div>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="mt-5 inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-black text-white disabled:opacity-60"
-        style={{ backgroundColor: "var(--color-accent)" }}
-      >
-        <Save size={16} />
-        {pending ? "Opslaan..." : "Instellingen opslaan"}
-      </button>
-
-      <button
-        type="button"
-        disabled={isRegisteringPush}
-        onClick={registerPush}
-        className="ml-0 mt-3 inline-flex items-center justify-center gap-2 rounded-2xl border bg-white px-5 py-3 text-sm font-black disabled:opacity-60 md:ml-3"
-        style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
-      >
-        {isRegisteringPush ? (
-          <Loader2 size={16} className="animate-spin" />
+      <CustomerSettingsSaveBar pending={pending} label="Instellingen opslaan">
+        {VAPID_PUBLIC_KEY ? (
+          <button
+            type="button"
+            disabled={isRegisteringPush}
+            onClick={registerPush}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border bg-white px-4 py-2.5 text-sm font-black disabled:opacity-60"
+            style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          >
+            {isRegisteringPush ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <Smartphone size={16} />
+            )}
+            Browser push activeren
+          </button>
         ) : (
-          <Smartphone size={16} />
+          <span
+            className="inline-flex min-h-11 items-center rounded-2xl bg-slate-50 px-4 py-2.5 text-sm font-bold"
+            style={{ color: "var(--color-secondary)" }}
+          >
+            Pushregistratie is niet actief voor deze omgeving.
+          </span>
         )}
-        Browser push activeren
-      </button>
+      </CustomerSettingsSaveBar>
 
       {pushStatus ? (
-        <p
-          className={`mt-4 rounded-2xl px-4 py-3 text-sm font-bold ${
-            pushStatus.type === "success"
-              ? "bg-emerald-50 text-emerald-700"
-              : "bg-amber-50 text-amber-800"
-          }`}
-        >
-          {pushStatus.text}
-        </p>
+        <div className="mt-4">
+          <CustomerSettingsFeedback
+            type={pushStatus.type === "success" ? "success" : "warning"}
+          >
+            {pushStatus.text}
+          </CustomerSettingsFeedback>
+        </div>
       ) : null}
     </form>
   );

@@ -4,7 +4,7 @@ import { redirect } from "next/navigation";
 import { Building2, Globe2, Hash, Mail, MapPin, Phone, UserCircle } from "lucide-react";
 import { getMyCustomerProfile } from "@/actions/customer";
 import { ContactInfoForm } from "@/components/ContactInfoForm";
-import { PageShell } from "@/components/PageShell";
+import { CustomerSettingsShell } from "@/components/SettingsShell";
 
 function valueOrEmpty(value: string | null): string {
   return value?.trim() || "Niet ingesteld";
@@ -26,8 +26,18 @@ export default async function ProfielPage() {
   ];
 
   return (
-    <PageShell title="Profiel" subtitle="Uw bedrijfs- en contactgegevens binnen het klantportaal.">
-      <section className="grid gap-4 lg:grid-cols-[1fr_24rem]">
+    <CustomerSettingsShell
+      active="profile"
+      title="Profiel"
+      subtitle="Uw bedrijfs- en contactgegevens binnen het klantportaal."
+      aside={
+        <ContactInfoForm
+          contactName={profile.contactName}
+          contactPhone={profile.contactPhone}
+          mobile={profile.mobile}
+        />
+      }
+    >
         <div className="rounded-[22px] bg-white p-5 shadow-sm">
           <div className="flex items-start gap-3">
             <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#E8FBFA] text-[#087C79]">
@@ -57,13 +67,6 @@ export default async function ProfielPage() {
             ))}
           </dl>
         </div>
-
-        <ContactInfoForm
-          contactName={profile.contactName}
-          contactPhone={profile.contactPhone}
-          mobile={profile.mobile}
-        />
-      </section>
-    </PageShell>
+    </CustomerSettingsShell>
   );
 }

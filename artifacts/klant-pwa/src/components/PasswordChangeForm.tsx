@@ -1,9 +1,13 @@
 "use client";
 
 import { useActionState, useMemo, useState } from "react";
-import { LockKeyhole, Save } from "lucide-react";
+import { LockKeyhole } from "lucide-react";
 import { changeMyPassword } from "@/actions/auth";
 import { evaluatePasswordStrength } from "@/lib/password-strength";
+import {
+  CustomerSettingsFeedback,
+  CustomerSettingsSaveBar,
+} from "./SettingsShell";
 
 export function PasswordChangeForm() {
   const [password, setPassword] = useState("");
@@ -69,25 +73,19 @@ export function PasswordChangeForm() {
       </div>
 
       {state?.error ? (
-        <p className="mt-4 rounded-2xl bg-red-50 px-4 py-3 text-sm font-bold text-red-600">
-          {state.error}
-        </p>
+        <div className="mt-4">
+          <CustomerSettingsFeedback type="error">{state.error}</CustomerSettingsFeedback>
+        </div>
       ) : null}
       {state?.success ? (
-        <p className="mt-4 rounded-2xl bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-700">
-          Wachtwoord opgeslagen.
-        </p>
+        <div className="mt-4">
+          <CustomerSettingsFeedback type="success">
+            Wachtwoord opgeslagen.
+          </CustomerSettingsFeedback>
+        </div>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={pending}
-        className="mt-5 inline-flex items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-black text-white disabled:opacity-60"
-        style={{ backgroundColor: "var(--color-accent)" }}
-      >
-        <Save size={16} />
-        {pending ? "Opslaan..." : "Wachtwoord opslaan"}
-      </button>
+      <CustomerSettingsSaveBar pending={pending} label="Wachtwoord opslaan" />
     </form>
   );
 }
