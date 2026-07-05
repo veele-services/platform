@@ -215,6 +215,16 @@ function optionalString(value: unknown): string | null {
   return typeof value === "string" && value.trim() ? value.trim() : null;
 }
 
+function isoTimestamp(value: Date | string | null | undefined): string | null {
+  if (!value) return null;
+  const date = value instanceof Date ? value : new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date.toISOString();
+}
+
+function requiredIsoTimestamp(value: Date | string | null | undefined): string {
+  return isoTimestamp(value) ?? new Date(0).toISOString();
+}
+
 function onboardingMetadata(metadata: Record<string, unknown> | null | undefined): Record<string, unknown> {
   const wizard = isRecord(metadata?.onboardingWizard) ? metadata.onboardingWizard : null;
   return wizard ?? {};
@@ -229,7 +239,7 @@ function parseOnboardingInputFromMetadata(row: {
   ownerEmail: string | null;
   status: string;
   currentStep: string;
-  startedAt: Date;
+  startedAt: Date | string;
   metadata: Record<string, unknown> | null;
 }): PlatformOnboardingDraft {
   const wizard = onboardingMetadata(row.metadata);
@@ -239,7 +249,7 @@ function parseOnboardingInputFromMetadata(row: {
     id: row.id,
     status: row.status,
     currentStep: row.currentStep,
-    savedAt: row.startedAt.toISOString(),
+    savedAt: requiredIsoTimestamp(row.startedAt),
     name: optionalString(wizard.name) ?? row.name,
     slug: optionalString(wizard.slug) ?? row.slug,
     planKey: normalizePlanKey(optionalString(wizard.planKey) ?? row.planKey),
@@ -749,8 +759,8 @@ export async function listTenantProvisioningRuns(limit = 12): Promise<PlatformPr
 
     return {
       ...row,
-      startedAt: row.startedAt.toISOString(),
-      completedAt: row.completedAt?.toISOString() ?? null,
+      startedAt: requiredIsoTimestamp(row.startedAt),
+      completedAt: isoTimestamp(row.completedAt),
       moduleKeys: stringArray(wizard.moduleKeys),
       sectorIds: stringArray(wizard.sectorIds),
       regionNames: stringArray(wizard.regionNames),
