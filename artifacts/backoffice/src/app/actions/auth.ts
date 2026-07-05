@@ -7,6 +7,20 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/auth/permissions";
 import { COOKIE_NAME } from "@/lib/auth/session-permissions";
+import {
+  findAuthUserByEmail,
+  generatePasswordResetCode,
+  isTemporaryPasswordExpired,
+  passwordResetCodeExpiresAt,
+  setExistingAuthUserTemporaryPassword,
+  type PortalInviteType,
+} from "@/lib/auth/portal-invites";
+import {
+  backofficeUrl,
+  buildPasswordResetCodeEmail,
+  personeelPortalUrl,
+  sendEmailWithResult,
+} from "@/lib/email";
 import { evaluatePasswordStrength, mediumPasswordMessage } from "@/lib/password-strength";
 import { db } from "@workspace/db";
 import { auditLogTable, personnelTable } from "@workspace/db";
@@ -94,6 +108,10 @@ export async function signIn(
   }
 
   if (data.user.app_metadata?.force_password_change === true) {
+    if (isTemporaryPasswordExpired(data.user.app_metadata)) {
+      await supabase.auth.signOut();
+      return { error: "De tijdelijke code is verlopen. Vraag een nieuwe herstelcode aan." };
+    }
     redirect(`/reset-wachtwoord?force=1&next=${encodeURIComponent(nextPath)}`);
   }
 
@@ -169,12 +187,16 @@ export async function completePasswordReset(
   if (user.app_metadata?.force_password_change === true) {
     try {
       const admin = createAdminClient();
+      const appMetadata: Record<string, unknown> = {
+        ...(user.app_metadata ?? {}),
+        force_password_change: false,
+        password_changed_at: new Date().toISOString(),
+      };
+      delete appMetadata["temporary_password_issued_at"];
+      delete appMetadata["temporary_password_expires_at"];
+      delete appMetadata["temporary_password_kind"];
       const { error: metadataError } = await admin.auth.admin.updateUserById(user.id, {
-        app_metadata: {
-          ...(user.app_metadata ?? {}),
-          force_password_change: false,
-          password_changed_at: new Date().toISOString(),
-        },
+        app_metadata: appMetadata,
       });
       if (metadataError) throw metadataError;
     } catch {
@@ -198,12 +220,73 @@ export async function completePasswordReset(
   return { success: true, next: nextPath };
 }
 
+async function sendManagedPasswordResetCode(opts: {
+  email: string;
+  recipientName?: string | null;
+  portal: PortalInviteType;
+  portalName: string;
+  resetUrl: string;
+  revealMissingUser?: boolean;
+}): Promise<ActionResult<{ userId: string | null }>> {
+  const email = opts.email.trim().toLowerCase();
+  if (!email) return { success: false, message: "E-mailadres is verplicht." };
+
+  const admin = createAdminClient();
+  const authUser = await findAuthUserByEmail(admin, email);
+  if (!authUser) {
+    if (opts.revealMissingUser) return { success: false, message: "Geen auth-account gevonden voor dit e-mailadres." };
+    return { success: true, data: { userId: null } };
+  }
+
+  const code = generatePasswordResetCode();
+  await setExistingAuthUserTemporaryPassword({
+    userId: authUser.id,
+    email,
+    fullName: opts.recipientName,
+    portal: opts.portal,
+    temporaryPassword: code,
+    temporaryPasswordKind: "reset_code",
+    expiresAt: passwordResetCodeExpiresAt(),
+  });
+
+  const { subject, html } = buildPasswordResetCodeEmail({
+    recipientName: opts.recipientName?.trim() || authUser.user_metadata?.["full_name"] || email,
+    portalName:    opts.portalName,
+    resetUrl:      opts.resetUrl,
+    code,
+  });
+  const sent = await sendEmailWithResult({ to: email, subject, html });
+  if (!sent.success) {
+    return { success: false, message: sent.error ?? "Herstelmail versturen mislukt." };
+  }
+
+  return { success: true, data: { userId: authUser.id } };
+}
+
+export async function requestPasswordResetCode(email: string): Promise<ActionResult> {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) return { success: false, message: "E-mailadres is verplicht." };
+
+  const result = await sendManagedPasswordResetCode({
+    email: normalizedEmail,
+    portal: "tenant-admin",
+    portalName: "Fieldgrid backoffice",
+    resetUrl: `${backofficeUrl()}/wachtwoord-vergeten`,
+  });
+
+  if (!result.success) {
+    console.error("[auth] Backoffice password reset mail failed:", result.message);
+    return { success: false, message: "Herstelmail versturen mislukt. Probeer het later opnieuw." };
+  }
+
+  return { success: true };
+}
+
 /**
- * Server Action - send a password-reset e-mail to a personnel member.
+ * Server Action - send a managed password-reset code to a personnel member.
  *
  * Only callable by users with personnel:write permission.
  * The employee must have an active portal account (user_id set).
- * Supabase sends the reset e-mail via its configured SMTP transport.
  */
 export async function sendPasswordReset(personnelId: string): Promise<ActionResult> {
   await requirePermission("personnel", "write");
@@ -223,15 +306,14 @@ export async function sendPasswordReset(personnelId: string): Promise<ActionResu
     return { success: false, message: "Medewerker heeft nog geen actief portaalaccount." };
   }
 
-  const admin = createAdminClient();
-  const { error } = await admin.auth.admin.generateLink({
-    type:  "recovery",
+  const result = await sendManagedPasswordResetCode({
     email: person.email,
+    portal: "personnel",
+    portalName: "Personeelsportaal",
+    resetUrl: `${personeelPortalUrl()}/wachtwoord-vergeten`,
+    revealMissingUser: true,
   });
-
-  if (error) {
-    return { success: false, message: error.message ?? "Wachtwoord-reset mislukt." };
-  }
+  if (!result.success) return result;
 
   await db.insert(auditLogTable).values({
     userId:     user.id,

@@ -37,6 +37,18 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { hasPermission, requirePermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { getTenantPlanCapabilities } from "@/lib/tenant-plan";
+import {
+  generatePasswordResetCode,
+  passwordResetCodeExpiresAt,
+  provisionPortalUserWithTemporaryPassword,
+  setExistingAuthUserTemporaryPassword,
+} from "@/lib/auth/portal-invites";
+import {
+  backofficeUrl,
+  buildPasswordResetCodeEmail,
+  buildTemporaryPasswordEmail,
+  sendEmailWithResult,
+} from "@/lib/email";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult };
@@ -1528,14 +1540,28 @@ export async function inviteUser(data: {
   const email = data.email.trim().toLowerCase();
   if (!email) return { success: false, message: "E-mailadres is verplicht." };
 
-  const admin = createAdminClient();
-  const { data: inviteData, error } =
-    await admin.auth.admin.inviteUserByEmail(email);
-  if (error) {
-    return { success: false, message: `Uitnodiging mislukt: ${error.message}` };
+  let invitedUserId: string;
+  try {
+    const invite = await provisionPortalUserWithTemporaryPassword({
+      email,
+      fullName: email,
+      portal: "tenant-admin",
+      allowExistingActive: true,
+    });
+    const { subject, html } = buildTemporaryPasswordEmail({
+      recipientName: email,
+      portalName: "Tenant backoffice",
+      loginUrl: `${backofficeUrl()}/login`,
+      temporaryPassword: invite.temporaryPassword,
+    });
+    const sent = await sendEmailWithResult({ to: email, subject, html });
+    if (!sent.success) {
+      return { success: false, message: sent.error ?? "Uitnodigingsmail versturen mislukt." };
+    }
+    invitedUserId = invite.user.id;
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : "Uitnodiging mislukt." };
   }
-
-  const invitedUserId = inviteData.user.id;
 
   await db
     .insert(userRolesTable)
@@ -1597,8 +1623,8 @@ export async function deactivateUser(userId: string): Promise<ActionResult> {
 }
 
 /**
- * Resend an invitation by user ID.
- * Looks up the user's email via Admin API, then re-invites.
+ * Send a fresh temporary password by user ID.
+ * Looks up the user's email via Admin API, then sends a platform-managed mail.
  */
 export async function resendInvite(userId: string): Promise<ActionResult> {
   await requirePermission("users", "write");
@@ -1619,13 +1645,28 @@ export async function resendInvite(userId: string): Promise<ActionResult> {
     };
   }
 
-  const { error } = await admin.auth.admin.inviteUserByEmail(
-    targetUser.user.email,
-  );
-  if (error) {
+  try {
+    const email = targetUser.user.email;
+    const invite = await provisionPortalUserWithTemporaryPassword({
+      email,
+      fullName: String(targetUser.user.user_metadata?.["full_name"] ?? targetUser.user.user_metadata?.["name"] ?? email),
+      portal: "tenant-admin",
+      allowExistingActive: true,
+    });
+    const { subject, html } = buildTemporaryPasswordEmail({
+      recipientName: email,
+      portalName: "Tenant backoffice",
+      loginUrl: `${backofficeUrl()}/login`,
+      temporaryPassword: invite.temporaryPassword,
+    });
+    const sent = await sendEmailWithResult({ to: email, subject, html });
+    if (!sent.success) {
+      return { success: false, message: sent.error ?? "Tijdelijk wachtwoord versturen mislukt." };
+    }
+  } catch (error) {
     return {
       success: false,
-      message: `Opnieuw versturen mislukt: ${error.message}`,
+      message: error instanceof Error ? error.message : "Opnieuw versturen mislukt.",
     };
   }
 
@@ -1635,6 +1676,65 @@ export async function resendInvite(userId: string): Promise<ActionResult> {
     resource: "users",
     resourceId: userId,
     metadata: { email: targetUser.user.email },
+  });
+
+  revalidatePath("/instellingen/gebruikers");
+  return { success: true };
+}
+
+export async function sendUserPasswordReset(userId: string): Promise<ActionResult> {
+  await requirePermission("users", "write");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const admin = createAdminClient();
+  const { data: targetUser, error: fetchError } = await admin.auth.admin.getUserById(userId);
+  if (fetchError || !targetUser.user.email) {
+    return {
+      success: false,
+      message: "Gebruiker niet gevonden of heeft geen e-mailadres.",
+    };
+  }
+
+  const email = targetUser.user.email;
+  const code = generatePasswordResetCode();
+  try {
+    await setExistingAuthUserTemporaryPassword({
+      userId,
+      email,
+      fullName: String(targetUser.user.user_metadata?.["full_name"] ?? targetUser.user.user_metadata?.["name"] ?? email),
+      portal: "tenant-admin",
+      temporaryPassword: code,
+      temporaryPasswordKind: "reset_code",
+      expiresAt: passwordResetCodeExpiresAt(),
+    });
+    const { subject, html } = buildPasswordResetCodeEmail({
+      recipientName: email,
+      portalName: "Tenant backoffice",
+      resetUrl: `${backofficeUrl()}/wachtwoord-vergeten`,
+      code,
+    });
+    const sent = await sendEmailWithResult({ to: email, subject, html });
+    if (!sent.success) {
+      return { success: false, message: sent.error ?? "Herstelcode versturen mislukt." };
+    }
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Herstelcode versturen mislukt.",
+    };
+  }
+
+  await db.insert(auditLogTable).values({
+    userId: user.id,
+    action: "password_reset_sent",
+    resource: "users",
+    resourceId: userId,
+    metadata: { email },
   });
 
   revalidatePath("/instellingen/gebruikers");

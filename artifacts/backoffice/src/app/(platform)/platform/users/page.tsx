@@ -1,6 +1,7 @@
 import {
   invitePlatformUserFromForm,
   listPlatformUsers,
+  sendPlatformUserPasswordResetFromForm,
   updatePlatformUserFromForm,
   type PlatformRole,
   type PlatformUserAuthStatus,
@@ -37,6 +38,11 @@ async function invitePlatformUserAction(formData: FormData): Promise<void> {
 async function updatePlatformUserAction(formData: FormData): Promise<void> {
   "use server";
   await updatePlatformUserFromForm(formData);
+}
+
+async function resetPlatformUserPasswordAction(formData: FormData): Promise<void> {
+  "use server";
+  await sendPlatformUserPasswordResetFromForm(formData);
 }
 
 function formatDate(value: string | null): string {
@@ -108,7 +114,7 @@ export default async function PlatformUsersPage() {
           <div className="rounded border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-semibold tracking-normal text-slate-950">Uitnodigen</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Verstuur een Supabase invite en koppel de gebruiker direct aan een platformrol.
+              Verstuur een Fieldgrid tijdelijk wachtwoord en koppel de gebruiker direct aan een platformrol.
             </p>
             <form action={invitePlatformUserAction} className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_160px_auto]">
               <label className="grid gap-1 text-sm font-medium text-slate-700">
@@ -194,32 +200,42 @@ export default async function PlatformUsersPage() {
                   </dl>
                 </div>
 
-                <form action={updatePlatformUserAction} className="grid gap-3 rounded bg-slate-50 p-3 sm:grid-cols-[1fr_1fr_auto]">
-                  <input type="hidden" name="platformUserId" value={user.id} />
-                  <label className="grid gap-1 text-sm font-medium text-slate-700">
-                    Rol wijzigen
-                    <select name="role" defaultValue={user.role} className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950">
-                      {ROLE_OPTIONS.map((role) => (
-                        <option key={role.value} value={role.value}>
-                          {role.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label className="grid gap-1 text-sm font-medium text-slate-700">
-                    Status wijzigen
-                    <select name="status" defaultValue={user.status} className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950">
-                      {STATUS_OPTIONS.map((status) => (
-                        <option key={status.value} value={status.value}>
-                          {status.label}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <button type="submit" className="mt-auto min-h-11 rounded border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-100">
-                    Opslaan
-                  </button>
-                </form>
+                <div className="grid gap-3">
+                  <form action={updatePlatformUserAction} className="grid gap-3 rounded bg-slate-50 p-3 sm:grid-cols-[1fr_1fr_auto]">
+                    <input type="hidden" name="platformUserId" value={user.id} />
+                    <label className="grid gap-1 text-sm font-medium text-slate-700">
+                      Rol wijzigen
+                      <select name="role" defaultValue={user.role} className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950">
+                        {ROLE_OPTIONS.map((role) => (
+                          <option key={role.value} value={role.value}>
+                            {role.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label className="grid gap-1 text-sm font-medium text-slate-700">
+                      Status wijzigen
+                      <select name="status" defaultValue={user.status} className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950">
+                        {STATUS_OPTIONS.map((status) => (
+                          <option key={status.value} value={status.value}>
+                            {status.label}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <button type="submit" className="mt-auto min-h-11 rounded border border-slate-300 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-100">
+                      Opslaan
+                    </button>
+                  </form>
+                  {user.email && (
+                    <form action={resetPlatformUserPasswordAction} className="flex justify-end">
+                      <input type="hidden" name="platformUserId" value={user.id} />
+                      <button type="submit" className="min-h-10 rounded border border-cyan-200 bg-cyan-50 px-4 text-sm font-semibold text-cyan-800 hover:bg-cyan-100">
+                        Resetcode mailen
+                      </button>
+                    </form>
+                  )}
+                </div>
               </div>
             </article>
           ))}

@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
   const origin = getOrigin(request);
 
   if (!code) {
-    return NextResponse.redirect(`${origin}/login?error=Ongeldige+resetlink`);
+    return NextResponse.redirect(`${origin}/login?error=Ongeldige+herstellink`);
   }
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;

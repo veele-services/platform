@@ -24,8 +24,9 @@ import {
 import { asc, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePlatformAdmin, writeSupportAccessAuditLog } from "@/lib/auth/platform";
+import { provisionPortalUserWithTemporaryPassword } from "@/lib/auth/portal-invites";
+import { buildTemporaryPasswordEmail, sendEmailWithResult } from "@/lib/email";
 
 const TENANT_PLAN_KEYS = ["starter", "professional", "enterprise"] as const;
 const TENANT_SECTOR_POLICY_MODES = ["single", "multi"] as const;
@@ -563,12 +564,23 @@ async function readOnboardingPreflight(input: PlatformOnboardingInput): Promise<
   };
 }
 
-async function inviteOwnerByEmail(email: string): Promise<string> {
-  const admin = createAdminClient();
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(email);
-  if (error) throw new Error(`Owner-uitnodiging mislukt: ${error.message}`);
-  if (!data.user?.id) throw new Error("Owner-uitnodiging gaf geen gebruiker terug.");
-  return data.user.id;
+async function inviteOwnerByEmail(email: string, primaryDomain: string | null): Promise<string> {
+  const invite = await provisionPortalUserWithTemporaryPassword({
+    email,
+    fullName: email,
+    portal: "tenant-admin",
+    allowExistingActive: true,
+  });
+  const host = normalizeHost(primaryDomain ?? "") || "admin.fieldgrid.nl";
+  const { subject, html } = buildTemporaryPasswordEmail({
+    recipientName: email,
+    portalName: "Tenant backoffice",
+    loginUrl: `https://${host}/admin/login`,
+    temporaryPassword: invite.temporaryPassword,
+  });
+  const sent = await sendEmailWithResult({ to: email, subject, html });
+  if (!sent.success) throw new Error(sent.error ?? "Owner-uitnodigingsmail versturen mislukt.");
+  return invite.user.id;
 }
 
 async function readProvisioningDraft(runId: string): Promise<PlatformOnboardingDraft | null> {
@@ -651,7 +663,7 @@ async function runPlatformTenantProvisioning(
   });
 
   try {
-    const ownerUserId = await inviteOwnerByEmail(input.ownerEmail);
+    const ownerUserId = await inviteOwnerByEmail(input.ownerEmail, result.primaryDomain ?? defaultTenantDomainForSlug(result.slug));
     await completeProvisionedTenantOwnerInvite({
       tenantId: result.tenantId,
       runId: result.runId,

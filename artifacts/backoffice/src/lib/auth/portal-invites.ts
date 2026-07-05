@@ -3,6 +3,7 @@ import type { User } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 export type PortalInviteType = "customer" | "personnel" | "tenant-admin" | "platform-admin";
+export type TemporaryPasswordKind = "invite" | "reset_code";
 
 const LOWER = "abcdefghijkmnopqrstuvwxyz";
 const UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
@@ -37,6 +38,25 @@ export function generateTemporaryPassword(): string {
   return shuffle(chars).join("");
 }
 
+export function generatePasswordResetCode(): string {
+  let code = "";
+  for (let i = 0; i < 6; i += 1) {
+    code += String(randomInt(10));
+  }
+  return code;
+}
+
+export function passwordResetCodeExpiresAt(now = new Date()): string {
+  return new Date(now.getTime() + 30 * 60 * 1000).toISOString();
+}
+
+export function isTemporaryPasswordExpired(appMetadata: Record<string, unknown> | null | undefined): boolean {
+  const expiresAt = appMetadata?.["temporary_password_expires_at"];
+  if (typeof expiresAt !== "string" || !expiresAt) return false;
+  const expiry = new Date(expiresAt).getTime();
+  return Number.isFinite(expiry) && expiry <= Date.now();
+}
+
 function isEmailExistsError(error: { code?: string; message?: string } | null): boolean {
   const message = error?.message?.toLowerCase() ?? "";
   return error?.code === "email_exists" ||
@@ -45,7 +65,7 @@ function isEmailExistsError(error: { code?: string; message?: string } | null): 
     message.includes("already exists");
 }
 
-async function findAuthUserByEmail(
+export async function findAuthUserByEmail(
   admin: ReturnType<typeof createAdminClient>,
   email: string,
 ): Promise<User | null> {
@@ -69,21 +89,50 @@ async function findAuthUserByEmail(
   return null;
 }
 
+function temporaryPasswordAppMetadata(opts: {
+  existing?: Record<string, unknown> | null;
+  portal: PortalInviteType;
+  kind: TemporaryPasswordKind;
+  issuedAt: string;
+  expiresAt?: string | null;
+}): Record<string, unknown> {
+  const appMetadata: Record<string, unknown> = {
+    ...(opts.existing ?? {}),
+    force_password_change: true,
+    portal: opts.portal,
+    temporary_password_issued_at: opts.issuedAt,
+    temporary_password_kind: opts.kind,
+  };
+
+  if (opts.expiresAt) {
+    appMetadata["temporary_password_expires_at"] = opts.expiresAt;
+  } else {
+    delete appMetadata["temporary_password_expires_at"];
+  }
+
+  return appMetadata;
+}
+
 export async function provisionPortalUserWithTemporaryPassword(opts: {
   email: string;
   fullName: string;
   portal: PortalInviteType;
+  temporaryPassword?: string;
+  temporaryPasswordKind?: TemporaryPasswordKind;
+  expiresAt?: string | null;
+  allowExistingActive?: boolean;
 }): Promise<{ user: User; temporaryPassword: string; created: boolean }> {
   const admin = createAdminClient();
   const email = opts.email.trim().toLowerCase();
-  const temporaryPassword = generateTemporaryPassword();
+  const temporaryPassword = opts.temporaryPassword ?? generateTemporaryPassword();
   const issuedAt = new Date().toISOString();
 
-  const appMetadata = {
-    force_password_change: true,
+  const appMetadata = temporaryPasswordAppMetadata({
     portal: opts.portal,
-    temporary_password_issued_at: issuedAt,
-  };
+    kind: opts.temporaryPasswordKind ?? "invite",
+    issuedAt,
+    expiresAt: opts.expiresAt,
+  });
   const userMetadata = {
     full_name: opts.fullName,
     name: opts.fullName,
@@ -111,7 +160,7 @@ export async function provisionPortalUserWithTemporaryPassword(opts: {
   }
 
   const existingPortal = existingUser.app_metadata?.portal;
-  if (existingPortal && existingPortal !== opts.portal) {
+  if (existingPortal && existingPortal !== opts.portal && !opts.allowExistingActive) {
     throw new Error("Dit e-mailadres is al gekoppeld aan een ander portaalaccount.");
   }
 
@@ -128,7 +177,7 @@ export async function provisionPortalUserWithTemporaryPassword(opts: {
     !existingAuthState.confirmed_at &&
     !existingAuthState.email_confirmed_at;
 
-  if (!isPendingTemporaryPassword && !isLegacyPendingInvite) {
+  if (!opts.allowExistingActive && !isPendingTemporaryPassword && !isLegacyPendingInvite) {
     throw new Error("Er bestaat al een actief account voor dit e-mailadres. Gebruik daarvoor een wachtwoord-reset.");
   }
 
@@ -137,10 +186,13 @@ export async function provisionPortalUserWithTemporaryPassword(opts: {
     {
       password: temporaryPassword,
       email_confirm: true,
-      app_metadata: {
-        ...(existingUser.app_metadata ?? {}),
-        ...appMetadata,
-      },
+      app_metadata: temporaryPasswordAppMetadata({
+        existing: existingUser.app_metadata,
+        portal: opts.portal,
+        kind: opts.temporaryPasswordKind ?? "invite",
+        issuedAt,
+        expiresAt: opts.expiresAt,
+      }),
       user_metadata: {
         ...(existingUser.user_metadata ?? {}),
         ...userMetadata,
@@ -153,4 +205,45 @@ export async function provisionPortalUserWithTemporaryPassword(opts: {
   }
 
   return { user: updatedData.user, temporaryPassword, created: false };
+}
+
+export async function setExistingAuthUserTemporaryPassword(opts: {
+  userId: string;
+  email: string;
+  fullName?: string | null;
+  portal: PortalInviteType;
+  temporaryPassword: string;
+  temporaryPasswordKind: TemporaryPasswordKind;
+  expiresAt?: string | null;
+}): Promise<User> {
+  const admin = createAdminClient();
+  const { data: current, error: fetchError } = await admin.auth.admin.getUserById(opts.userId);
+  if (fetchError || !current.user) {
+    throw new Error(fetchError?.message ?? "Auth-gebruiker kon niet worden opgehaald.");
+  }
+
+  const issuedAt = new Date().toISOString();
+  const fullName = opts.fullName?.trim() || current.user.user_metadata?.["full_name"] || current.user.email || opts.email;
+  const { data, error } = await admin.auth.admin.updateUserById(opts.userId, {
+    password: opts.temporaryPassword,
+    email_confirm: true,
+    app_metadata: temporaryPasswordAppMetadata({
+      existing: current.user.app_metadata,
+      portal: opts.portal,
+      kind: opts.temporaryPasswordKind,
+      issuedAt,
+      expiresAt: opts.expiresAt,
+    }),
+    user_metadata: {
+      ...(current.user.user_metadata ?? {}),
+      full_name: fullName,
+      name: fullName,
+    },
+  });
+
+  if (error || !data.user) {
+    throw new Error(error?.message ?? "Tijdelijk wachtwoord instellen mislukt.");
+  }
+
+  return data.user;
 }

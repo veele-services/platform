@@ -1,9 +1,53 @@
 "use server";
 
+import { randomInt } from "node:crypto";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { evaluatePasswordStrength, mediumPasswordMessage } from "@/lib/password-strength";
+import { buildPasswordResetCodeEmail, klantPortalUrl, sendEmail } from "@/lib/email";
+
+type AuthUserRecord = {
+  id: string;
+  email?: string | null;
+  app_metadata?: Record<string, unknown>;
+  user_metadata?: Record<string, unknown>;
+};
+
+function generatePasswordResetCode(): string {
+  let code = "";
+  for (let i = 0; i < 6; i += 1) code += String(randomInt(10));
+  return code;
+}
+
+function passwordResetCodeExpiresAt(now = new Date()): string {
+  return new Date(now.getTime() + 30 * 60 * 1000).toISOString();
+}
+
+async function findAuthUserByEmail(email: string): Promise<AuthUserRecord | null> {
+  const admin = createAdminClient();
+  const normalized = email.trim().toLowerCase();
+  for (let page = 1; page <= 20; page += 1) {
+    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
+    if (error) throw new Error(error.message ?? "Auth-gebruiker zoeken mislukt.");
+    const user = data.users.find((candidate) => candidate.email?.toLowerCase() === normalized);
+    if (user) return user as AuthUserRecord;
+    if (data.users.length < 1000) return null;
+  }
+  return null;
+}
+
+function displayName(user: AuthUserRecord, fallbackEmail: string): string {
+  const value = user.user_metadata?.["full_name"] ?? user.user_metadata?.["name"];
+  return typeof value === "string" && value.trim() ? value.trim() : fallbackEmail;
+}
+
+function isTemporaryPasswordExpired(appMetadata: Record<string, unknown> | null | undefined): boolean {
+  const expiresAt = appMetadata?.["temporary_password_expires_at"];
+  if (typeof expiresAt !== "string" || !expiresAt) return false;
+  const expiry = new Date(expiresAt).getTime();
+  return Number.isFinite(expiry) && expiry <= Date.now();
+}
 
 export async function signOut() {
   const supabase = await createClient();
@@ -43,12 +87,16 @@ export async function completePasswordReset(
   if (user.app_metadata?.force_password_change === true) {
     try {
       const admin = createAdminClient();
+      const appMetadata: Record<string, unknown> = {
+        ...(user.app_metadata ?? {}),
+        force_password_change: false,
+        password_changed_at: new Date().toISOString(),
+      };
+      delete appMetadata["temporary_password_issued_at"];
+      delete appMetadata["temporary_password_expires_at"];
+      delete appMetadata["temporary_password_kind"];
       const { error: metadataError } = await admin.auth.admin.updateUserById(user.id, {
-        app_metadata: {
-          ...(user.app_metadata ?? {}),
-          force_password_change: false,
-          password_changed_at: new Date().toISOString(),
-        },
+        app_metadata: appMetadata,
       });
       if (metadataError) throw metadataError;
     } catch {
@@ -58,6 +106,51 @@ export async function completePasswordReset(
 
   await supabase.auth.signOut();
   return { success: true };
+}
+
+export async function requestPasswordResetCode(email: string): Promise<{ success: boolean; message?: string }> {
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail) return { success: false, message: "E-mailadres is verplicht." };
+
+  try {
+    const authUser = await findAuthUserByEmail(normalizedEmail);
+    if (!authUser) return { success: true };
+
+    const code = generatePasswordResetCode();
+    const admin = createAdminClient();
+    const { error } = await admin.auth.admin.updateUserById(authUser.id, {
+      password: code,
+      email_confirm: true,
+      app_metadata: {
+        ...(authUser.app_metadata ?? {}),
+        force_password_change: true,
+        portal: "customer",
+        temporary_password_issued_at: new Date().toISOString(),
+        temporary_password_expires_at: passwordResetCodeExpiresAt(),
+        temporary_password_kind: "reset_code",
+      },
+    });
+    if (error) throw error;
+
+    const { subject, html } = buildPasswordResetCodeEmail({
+      recipientName: displayName(authUser, normalizedEmail),
+      portalName: "Klantportaal",
+      resetUrl: `${klantPortalUrl()}/wachtwoord-vergeten`,
+      code,
+    });
+    await sendEmail({ to: normalizedEmail, subject, html });
+  } catch (error) {
+    console.error("[auth] Klant password reset mail failed:", error);
+    return { success: false, message: "Herstelmail versturen mislukt. Probeer het later opnieuw." };
+  }
+
+  return { success: true };
+}
+
+export async function isCurrentTemporaryPasswordExpired(): Promise<boolean> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  return isTemporaryPasswordExpired(user?.app_metadata as Record<string, unknown> | null | undefined);
 }
 
 export async function changeMyPassword(

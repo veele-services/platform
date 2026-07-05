@@ -83,7 +83,7 @@ export function PersonnelDetailActions({
       const result = await sendPasswordReset(personnelId);
       if (result.success) {
         setResetOpen(false);
-        toast.success("Wachtwoord-reset e-mail verstuurd");
+        toast.success("Herstelcode per e-mail verstuurd");
       } else {
         toast.error(result.message ?? "Wachtwoord-reset mislukt.");
         setResetOpen(false);
