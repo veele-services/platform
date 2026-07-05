@@ -19,7 +19,9 @@ import {
   UserCog,
 } from "lucide-react";
 import {
+  addPlatformTenantAdmin,
   addPlatformTenantDomain,
+  deletePlatformTenantAdmin,
   getPlatformTenantDetail,
   listPlatformPlans,
   listPlatformTenantDomains,
@@ -31,6 +33,8 @@ import {
   updatePlatformTenantDomain,
   updatePlatformTenantLifecycle,
   updatePlatformTenantModule,
+  updatePlatformTenantAdmin,
+  updatePlatformTenantOwnerInvite,
   updatePlatformTenantPlan,
   updatePlatformTenantSector,
   updatePlatformTenantSectorPolicy,
@@ -115,6 +119,26 @@ async function updatePlatformTenantSectorPolicyFormAction(formData: FormData): P
 async function updatePlatformTenantSectorFormAction(formData: FormData): Promise<void> {
   "use server";
   await updatePlatformTenantSector(formData);
+}
+
+async function addPlatformTenantAdminFormAction(formData: FormData): Promise<void> {
+  "use server";
+  await addPlatformTenantAdmin(formData);
+}
+
+async function updatePlatformTenantAdminFormAction(formData: FormData): Promise<void> {
+  "use server";
+  await updatePlatformTenantAdmin(formData);
+}
+
+async function deletePlatformTenantAdminFormAction(formData: FormData): Promise<void> {
+  "use server";
+  await deletePlatformTenantAdmin(formData);
+}
+
+async function updatePlatformTenantOwnerInviteFormAction(formData: FormData): Promise<void> {
+  "use server";
+  await updatePlatformTenantOwnerInvite(formData);
 }
 
 async function createSupportAccessGrantFormAction(formData: FormData): Promise<void> {
@@ -249,6 +273,14 @@ function fieldgridCnameTarget(tenant: PlatformTenantDetail, domain: TenantDomain
 
 function canRouteDomain(domain: TenantDomainRow): boolean {
   return domain.verificationStatus === "verified" || domain.verificationStatus === "active";
+}
+
+function preferredTenantAdminRoleIds(roles: Awaited<ReturnType<typeof listPlatformTenantUsersAndOwner>>["roles"]): string[] {
+  const preferredNames = ["Admin", "Administrator", "Administration", "Beheerder", "Management", "Owner", "Eigenaar"];
+  const role = preferredNames
+    .map((name) => roles.find((candidate) => candidate.name.toLowerCase() === name.toLowerCase()))
+    .find(Boolean) ?? roles[0] ?? null;
+  return role ? [role.id] : [];
 }
 
 function Section({ title, children, helper }: { title: string; helper?: string; children: ReactNode }) {
@@ -887,30 +919,131 @@ function SectorsAndRegionsTab({
 }
 
 function UsersTab({
+  tenant,
   tenantUsersAndOwner,
 }: {
+  tenant: PlatformTenantDetail;
   tenantUsersAndOwner: Awaited<ReturnType<typeof listPlatformTenantUsersAndOwner>>;
 }) {
+  const defaultAdminRoleIds = preferredTenantAdminRoleIds(tenantUsersAndOwner.roles);
+  const hasTenantRoles = tenantUsersAndOwner.roles.length > 0;
+
   return (
     <div className="grid gap-5 xl:grid-cols-2">
-      <Section title="Tenantgebruikers" helper="Tenantrollen en status, server-side opgehaald voor deze tenant.">
+      <Section title="Tenant admins" helper="Voeg tenantbeheerders toe, wijzig rollen/status of verwijder tenanttoegang. Supabase Auth-gebruikers zelf blijven bestaan.">
         <div className="grid gap-3">
+          <form action={addPlatformTenantAdminFormAction} className="rounded border border-slate-200 bg-slate-50 p-3 text-sm">
+            <input type="hidden" name="tenantId" value={tenant.id} />
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-end">
+              <label className="grid gap-1">
+                <span className="text-xs font-medium uppercase text-slate-500">Nieuwe tenant admin</span>
+                <input
+                  type="email"
+                  name="email"
+                  required
+                  placeholder="admin@example.nl"
+                  className="h-10 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-slate-500"
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={!hasTenantRoles}
+                className="h-10 rounded bg-slate-950 px-4 text-sm font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                Toevoegen
+              </button>
+            </div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2">
+              {tenantUsersAndOwner.roles.map((role) => (
+                <label key={role.id} className="flex items-start gap-2 rounded border border-slate-200 bg-white px-3 py-2">
+                  <input
+                    type="checkbox"
+                    name="tenantRoleIds"
+                    value={role.id}
+                    defaultChecked={defaultAdminRoleIds.includes(role.id)}
+                    className="mt-1"
+                  />
+                  <span>
+                    <span className="block font-medium text-slate-800">{role.name}</span>
+                    {role.description && <span className="block text-xs leading-5 text-slate-500">{role.description}</span>}
+                  </span>
+                </label>
+              ))}
+            </div>
+            {!hasTenantRoles && <p className="mt-2 text-xs text-amber-700">Deze tenant heeft nog geen rollen; rond provisioning/rolseed eerst af.</p>}
+          </form>
+
           {tenantUsersAndOwner.users.map((user) => (
             <div key={user.id} className="rounded border border-slate-200 p-3 text-sm">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <p className="max-w-full truncate font-medium text-slate-950">{user.userId}</p>
+                <div className="min-w-0">
+                  <p className="max-w-full truncate font-medium text-slate-950">{user.email ?? user.userId}</p>
+                  <p className="mt-0.5 truncate text-xs text-slate-500">{user.userId}</p>
+                </div>
                 <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(user.status === "active" ? "good" : "neutral")}`}>
                   {user.status}
                 </span>
               </div>
-              <p className="mt-1 text-slate-500">{user.role} - bijgewerkt {formatDate(user.updatedAt)}</p>
+              <p className="mt-2 text-slate-500">
+                Basisrol {user.role} - Auth {user.authStatus} - bijgewerkt {formatDate(user.updatedAt)}
+              </p>
+              {user.tenantRoles.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {user.tenantRoles.map((role) => (
+                    <span key={role.id} className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600">{role.name}</span>
+                  ))}
+                </div>
+              )}
+              <form action={updatePlatformTenantAdminFormAction} className="mt-3 grid gap-3 rounded bg-slate-50 p-3">
+                <input type="hidden" name="tenantId" value={tenant.id} />
+                <input type="hidden" name="userId" value={user.userId} />
+                <label className="grid gap-1">
+                  <span className="text-xs font-medium uppercase text-slate-500">Status</span>
+                  <select
+                    name="status"
+                    defaultValue={user.status}
+                    className="h-10 rounded border border-slate-300 bg-white px-3 text-sm outline-none focus:border-slate-500"
+                  >
+                    <option value="active">Actief</option>
+                    <option value="inactive">Inactief</option>
+                    <option value="suspended">Geschorst</option>
+                  </select>
+                </label>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {tenantUsersAndOwner.roles.map((role) => (
+                    <label key={role.id} className="flex items-start gap-2 rounded border border-slate-200 bg-white px-3 py-2">
+                      <input
+                        type="checkbox"
+                        name="tenantRoleIds"
+                        value={role.id}
+                        defaultChecked={user.tenantRoles.some((assignedRole) => assignedRole.id === role.id)}
+                        className="mt-1"
+                      />
+                      <span>
+                        <span className="block font-medium text-slate-800">{role.name}</span>
+                        {role.description && <span className="block text-xs leading-5 text-slate-500">{role.description}</span>}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+                <div className="flex flex-wrap justify-end gap-2">
+                  <button type="submit" className="rounded bg-slate-950 px-3 py-2 text-xs font-semibold text-white">Opslaan</button>
+                </div>
+              </form>
+              <form action={deletePlatformTenantAdminFormAction} className="mt-2 flex justify-end">
+                <input type="hidden" name="tenantId" value={tenant.id} />
+                <input type="hidden" name="userId" value={user.userId} />
+                <button type="submit" className="rounded border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">
+                  Tenanttoegang verwijderen
+                </button>
+              </form>
             </div>
           ))}
           {tenantUsersAndOwner.users.length === 0 && <p className="text-sm text-slate-500">Geen tenantgebruikers gevonden.</p>}
         </div>
       </Section>
 
-      <Section title="Owner invites" helper="Owner-uitnodigingen die via provisioning of platformbeheer zijn aangemaakt.">
+      <Section title="Owner invites" helper="Corrigeer een verkeerd owner e-mailadres en verstuur de Supabase invite opnieuw. De owner krijgt direct tenant owner-toegang.">
         <div className="grid gap-3">
           {tenantUsersAndOwner.ownerInvites.map((invite) => (
             <div key={invite.id} className="rounded border border-slate-200 p-3 text-sm">
@@ -921,10 +1054,53 @@ function UsersTab({
                 </span>
               </div>
               <p className="mt-1 text-slate-500">Verstuurd {formatDate(invite.inviteSentAt)} - bijgewerkt {formatDate(invite.updatedAt)}</p>
+              {invite.userId && <p className="mt-1 truncate text-xs text-slate-500">Auth user {invite.userId}</p>}
               {invite.errorMessage && <p className="mt-2 rounded border border-rose-200 bg-rose-50 px-2 py-1 text-xs text-rose-700">{invite.errorMessage}</p>}
+              <form action={updatePlatformTenantOwnerInviteFormAction} className="mt-3 grid gap-2 rounded bg-slate-50 p-3">
+                <input type="hidden" name="tenantId" value={tenant.id} />
+                <input type="hidden" name="inviteId" value={invite.id} />
+                <label className="grid gap-1">
+                  <span className="text-xs font-medium uppercase text-slate-500">Owner e-mail</span>
+                  <input
+                    type="email"
+                    name="email"
+                    required
+                    defaultValue={invite.email}
+                    className="h-10 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-slate-500"
+                  />
+                </label>
+                <button
+                  type="submit"
+                  disabled={!hasTenantRoles}
+                  className="w-fit rounded bg-slate-950 px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+                >
+                  Wijzigen en opnieuw versturen
+                </button>
+              </form>
             </div>
           ))}
-          {tenantUsersAndOwner.ownerInvites.length === 0 && <p className="text-sm text-slate-500">Geen owner invites gevonden.</p>}
+          {tenantUsersAndOwner.ownerInvites.length === 0 && (
+            <form action={updatePlatformTenantOwnerInviteFormAction} className="rounded border border-slate-200 bg-slate-50 p-3 text-sm">
+              <input type="hidden" name="tenantId" value={tenant.id} />
+              <label className="grid gap-1">
+                <span className="text-xs font-medium uppercase text-slate-500">Owner e-mail</span>
+                <input
+                  type="email"
+                  name="email"
+                  required
+                  placeholder="owner@example.nl"
+                  className="h-10 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-slate-500"
+                />
+              </label>
+              <button
+                type="submit"
+                disabled={!hasTenantRoles}
+                className="mt-3 rounded bg-slate-950 px-3 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:bg-slate-300"
+              >
+                Owner invite aanmaken
+              </button>
+            </form>
+          )}
         </div>
       </Section>
     </div>
@@ -1232,7 +1408,7 @@ export default async function PlatformTenantDetailPage({ params, searchParams }:
         {activeTab === "domains" && <DomainsTab tenant={tenant} domains={domains} />}
         {activeTab === "modules" && <ModulesTab tenant={tenant} modules={modules} />}
         {activeTab === "sectors" && <SectorsAndRegionsTab tenant={tenant} sectorsModel={sectorsModel} regions={regions} />}
-        {activeTab === "users" && <UsersTab tenantUsersAndOwner={tenantUsersAndOwner} />}
+        {activeTab === "users" && <UsersTab tenant={tenant} tenantUsersAndOwner={tenantUsersAndOwner} />}
         {activeTab === "branding" && <BrandingTab tenant={tenant} />}
         {activeTab === "usage" && <UsageTab tenant={tenant} />}
         {activeTab === "support" && <SupportTab tenant={tenant} platformUsers={platformUsers} tenantSupportGrants={tenantSupportGrants} />}
