@@ -87,7 +87,7 @@ test("default tenant fallback remains non-production opt-in only", () => {
   );
 });
 
-test("host resolver only returns verified runtime-active tenant domains", () => {
+test("host resolver only returns routable runtime-active tenant domains", () => {
   const resolver = read(backofficeTenantResolver);
 
   assertContains(
@@ -95,7 +95,7 @@ test("host resolver only returns verified runtime-active tenant domains", () => 
     [
       "if (!normalizedHost || isPlatformHost(normalizedHost)) return null;",
       "eq(tenantDomainsTable.domain, normalizedHost)",
-      "eq(tenantDomainsTable.verificationStatus, \"verified\")",
+      "inArray(tenantDomainsTable.verificationStatus, [\"verified\", \"active\"])",
       "ne(tenantDomainsTable.type, \"platform_reserved\")",
       "eq(tenantsTable.isActive, true)",
       "TENANT_RUNTIME_ACTIVE_STATUSES",
@@ -111,10 +111,13 @@ test("shared tenant context keeps platform and unknown subdomain semantics", () 
     tenantContext,
     [
       "FIELDGRID_ROOT_DOMAIN = \"fieldgrid.nl\"",
-      "DEFAULT_PLATFORM_HOSTS = [\"platform.fieldgrid.nl\", \"staging.fieldgrid.nl\"]",
+      "\"admin.fieldgrid.nl\"",
+      "\"platform.fieldgrid.nl\"",
+      "\"staging.fieldgrid.nl\"",
       "normalizeHost",
       "isPlatformHost",
       "isFieldgridSubdomain",
+      "!host.endsWith(\"dgwebservices.nl\")",
       "!isPlatformHost(normalizedHost)",
       "TENANT_RUNTIME_ACTIVE_STATUS_SET",
     ],

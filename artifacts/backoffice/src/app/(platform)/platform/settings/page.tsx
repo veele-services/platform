@@ -1,9 +1,11 @@
 import {
   getPlatformSettingsDashboard,
   requestPlatformSettingChange,
+  updatePlatformSmtpSettings,
   type PlatformSettingRow,
   type PlatformSettingsCategory,
   type PlatformSettingsStatus,
+  type PlatformSmtpSettings,
 } from "@/app/actions/platform-settings";
 
 export const metadata = {
@@ -28,6 +30,11 @@ const CATEGORY_LABELS: Record<PlatformSettingsCategory, string> = {
 async function requestPlatformSettingChangeAction(formData: FormData): Promise<void> {
   "use server";
   await requestPlatformSettingChange(formData);
+}
+
+async function updatePlatformSmtpSettingsAction(formData: FormData): Promise<void> {
+  "use server";
+  await updatePlatformSmtpSettings(formData);
 }
 
 function statusClass(status: PlatformSettingsStatus): string {
@@ -85,6 +92,142 @@ function SettingCard({ setting }: { setting: PlatformSettingRow }) {
   );
 }
 
+function SmtpSettingsPanel({ smtp }: { smtp: PlatformSmtpSettings }) {
+  return (
+    <section className="rounded border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-col gap-2 border-b border-slate-200 pb-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <p className="text-sm font-medium text-slate-500">Platformbrede mail</p>
+          <h2 className="mt-1 text-lg font-semibold tracking-normal text-slate-950">SMTP instellingen</h2>
+          <p className="mt-1 max-w-3xl text-sm text-slate-600">
+            Deze configuratie geldt platformbreed voor systeemmails, uitnodigingen en notificaties. Wachtwoorden worden alleen
+            overschreven wanneer u een nieuw wachtwoord invult of wissen aanvinkt.
+          </p>
+        </div>
+        <span className={`w-fit rounded border px-2 py-1 text-xs font-semibold ${smtp.smtpEnabled ? "border-emerald-200 bg-emerald-50 text-emerald-800" : "border-sky-200 bg-sky-50 text-sky-900"}`}>
+          {smtp.smtpEnabled ? "Actief" : "Uit"}
+        </span>
+      </div>
+
+      <form action={updatePlatformSmtpSettingsAction} className="mt-5 grid gap-4">
+        <div className="flex flex-col gap-3 rounded border border-slate-200 bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-slate-950">SMTP transport gebruiken</p>
+            <p className="text-sm text-slate-600">Laat uit staan wanneer Resend of een latere SendGrid-koppeling tijdelijk de fallback is.</p>
+          </div>
+          <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
+            <input name="smtpEnabled" type="checkbox" defaultChecked={smtp.smtpEnabled} className="h-4 w-4 rounded border-slate-300 text-cyan-600" />
+            Actief
+          </label>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          <label className="grid gap-1 text-sm font-medium text-slate-700 lg:col-span-2">
+            SMTP host
+            <input
+              name="smtpHost"
+              defaultValue={smtp.smtpHost}
+              placeholder="smtp.sendgrid.net"
+              className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+            />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Poort
+            <input
+              name="smtpPort"
+              type="number"
+              min={1}
+              max={65535}
+              defaultValue={smtp.smtpPort ?? ""}
+              placeholder="587"
+              className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+            />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Beveiliging
+            <select name="smtpEncryption" defaultValue={smtp.smtpEncryption} className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950">
+              <option value="starttls">STARTTLS</option>
+              <option value="tls">TLS</option>
+              <option value="none">Geen</option>
+            </select>
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Gebruikersnaam
+            <input
+              name="smtpUsername"
+              defaultValue={smtp.smtpUsername}
+              placeholder="apikey"
+              className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+            />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Wachtwoord
+            <input
+              name="smtpPassword"
+              type="password"
+              placeholder={smtp.smtpPasswordConfigured ? "Ingesteld, leeg laten om te behouden" : "Nog niet ingesteld"}
+              className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+            />
+          </label>
+        </div>
+
+        <div className="grid gap-4 lg:grid-cols-3">
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Afzendernaam
+            <input
+              name="smtpFromName"
+              defaultValue={smtp.smtpFromName}
+              placeholder="Fieldgrid"
+              className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+            />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Afzender e-mail
+            <input
+              name="smtpFromEmail"
+              type="email"
+              defaultValue={smtp.smtpFromEmail}
+              placeholder="noreply@fieldgrid.nl"
+              className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+            />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700">
+            Reply-to
+            <input
+              name="smtpReplyTo"
+              type="email"
+              defaultValue={smtp.smtpReplyTo}
+              placeholder="support@fieldgrid.nl"
+              className="min-h-11 rounded border border-slate-300 bg-white px-3 text-sm text-slate-950 outline-none focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+            />
+          </label>
+        </div>
+
+        <div className="grid gap-3 rounded border border-cyan-100 bg-cyan-50 p-4 text-sm text-slate-700 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+          <div>
+            <p className="font-semibold text-slate-950">Mail roadmap</p>
+            <p className="mt-1">
+              SendGrid wordt later als beheerde koppeling toegevoegd. Tenants krijgen standaard afzenders volgens{" "}
+              <span className="font-semibold">{smtp.defaultTenantFromPattern}</span>. Eigen maildomeinen blijven alleen voor
+              Enterprise en worden door platform support gekoppeld.
+            </p>
+          </div>
+          <label className="inline-flex items-center gap-2 text-sm font-semibold text-slate-800">
+            <input name="clearPassword" type="checkbox" className="h-4 w-4 rounded border-slate-300 text-cyan-600" />
+            Wachtwoord wissen
+          </label>
+        </div>
+
+        <div className="flex justify-end">
+          <button type="submit" className="min-h-11 rounded bg-cyan-600 px-4 text-sm font-semibold text-white hover:bg-cyan-700">
+            SMTP opslaan
+          </button>
+        </div>
+      </form>
+    </section>
+  );
+}
+
 export default async function PlatformSettingsPage() {
   const dashboard = await getPlatformSettingsDashboard();
 
@@ -106,6 +249,8 @@ export default async function PlatformSettingsPage() {
           <Stat label="Aandacht" value={dashboard.summary.warning} />
           <Stat label="Handmatig" value={dashboard.summary.manual} />
         </section>
+
+        <SmtpSettingsPanel smtp={dashboard.smtp} />
 
         <section className="grid gap-4 lg:grid-cols-2">
           {dashboard.settings.map((setting) => (

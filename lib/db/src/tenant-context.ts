@@ -7,9 +7,9 @@ import {
 export const FIELDGRID_ROOT_DOMAIN = "fieldgrid.nl";
 export const FIELDGRID_DOMAIN_SUFFIX = `.${FIELDGRID_ROOT_DOMAIN}`;
 export const DEFAULT_PLATFORM_HOSTS = [
+  "admin.fieldgrid.nl",
   "platform.fieldgrid.nl",
   "staging.fieldgrid.nl",
-  "staging.veele.dgwebservices.nl",
 ] as const;
 
 const TENANT_RUNTIME_ACTIVE_STATUS_SET = new Set<string>(TENANT_RUNTIME_ACTIVE_STATUSES);
@@ -47,7 +47,7 @@ export function platformHosts(rawHosts = process.env.PLATFORM_HOSTS ?? ""): Set<
   const configuredHosts = rawHosts
     .split(",")
     .map((host) => normalizeHost(host))
-    .filter(Boolean);
+    .filter((host) => Boolean(host) && !host.endsWith("dgwebservices.nl"));
 
   return new Set(configuredHosts.length > 0 ? configuredHosts : DEFAULT_PLATFORM_HOSTS);
 }

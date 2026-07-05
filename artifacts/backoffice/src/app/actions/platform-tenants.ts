@@ -1092,11 +1092,15 @@ function tenantListReadinessSql(): SQL<PlatformTenantListReadinessStatus> {
 }
 
 function tenantListLatestActivitySql(): SQL<Date> {
-  return sql<Date>`GREATEST(
-    ${tenantsTable.updatedAt},
-    COALESCE((SELECT max(al.created_at) FROM ${auditLogTable} al WHERE al.tenant_id = ${tenantsTable.id}), ${tenantsTable.updatedAt}),
-    COALESCE((SELECT max(sal.created_at) FROM ${supportAccessAuditLogTable} sal WHERE sal.tenant_id = ${tenantsTable.id}), ${tenantsTable.updatedAt})
-  )`;
+  return sql<Date>`${tenantsTable.updatedAt}`;
+}
+
+function dateLikeToIsoString(value: Date | string | null | undefined, fallback: Date | string = new Date()): string {
+  const candidate = value ?? fallback;
+  if (candidate instanceof Date) return candidate.toISOString();
+  const parsed = new Date(candidate);
+  if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+  return fallback instanceof Date ? fallback.toISOString() : new Date(fallback).toISOString();
 }
 
 function platformTenantListConditions(filters: PlatformTenantListResult["filters"]): SQL[] {
@@ -1268,7 +1272,7 @@ export async function listPlatformTenants(): Promise<PlatformTenantRow[]> {
 
   return rows.map((row) => ({
     ...row,
-    createdAt: row.createdAt.toISOString(),
+    createdAt: dateLikeToIsoString(row.createdAt),
   }));
 }
 
@@ -1276,6 +1280,7 @@ export async function listPlatformTenantList(filters: PlatformTenantListFilters 
   await requirePlatformAdmin();
 
   const normalizedFilters = normalizeTenantListFilters(filters);
+  try {
   const conditions = platformTenantListConditions(normalizedFilters);
   const where = conditions.length > 0 ? and(...conditions) : undefined;
   const domainStatus = tenantListDomainStatusSql();
@@ -1413,8 +1418,8 @@ export async function listPlatformTenantList(filters: PlatformTenantListFilters 
     rows: rows.map((row) => {
       const normalizedRow = {
         ...row,
-        createdAt: row.createdAt.toISOString(),
-        latestActivityAt: row.latestActivityAt.toISOString(),
+        createdAt: dateLikeToIsoString(row.createdAt),
+        latestActivityAt: dateLikeToIsoString(row.latestActivityAt, row.createdAt),
       };
       return {
         ...normalizedRow,
@@ -1432,6 +1437,10 @@ export async function listPlatformTenantList(filters: PlatformTenantListFilters 
       hasPreviousPage: page > 1,
     },
   };
+  } catch (error) {
+    console.error("[platform-tenants] Rijke tenantlijst kon niet laden; basislijst wordt gebruikt.", error);
+    return listPlatformTenantListFallback(normalizedFilters);
+  }
 }
 
 async function listPlatformTenantUsageLimits(planId: string | null): Promise<PlatformTenantUsageLimit[]> {
@@ -1888,6 +1897,134 @@ export async function listPlatformTenantUsersAndOwner(tenantId: string): Promise
       updatedAt: row.updatedAt.toISOString(),
     })),
     roles,
+  };
+}
+
+function staticPlatformTenantListFacets(): PlatformTenantListResult["facets"] {
+  return {
+    statuses: TENANT_STATUS_FILTERS.map((status) => ({ value: status, label: status })),
+    plans: TENANT_PLAN_KEYS.map((plan) => ({ value: plan, label: plan })),
+    modules: [],
+    sectors: [],
+    regions: [],
+    domainStatuses: [
+      { value: "missing", label: "Geen domein" },
+      { value: "pending", label: "Pending" },
+      { value: "verified", label: "Verified" },
+      { value: "failed", label: "Failed" },
+    ],
+    readinessStatuses: [
+      { value: "ready", label: "Ready" },
+      { value: "warning", label: "Aandacht" },
+      { value: "blocked", label: "Blocked" },
+    ],
+  };
+}
+
+async function listPlatformTenantListFallback(
+  filters: PlatformTenantListResult["filters"],
+): Promise<PlatformTenantListResult> {
+  const conditions: SQL[] = [];
+
+  if (filters.q) {
+    const pattern = `%${filters.q.toLowerCase()}%`;
+    conditions.push(sql`(
+      lower(${tenantsTable.name}) LIKE ${pattern}
+      OR lower(${tenantsTable.slug}) LIKE ${pattern}
+    )`);
+  }
+  if (filters.status !== "all") conditions.push(eq(tenantsTable.status, filters.status));
+  if (filters.plan !== "all") conditions.push(eq(tenantsTable.planKey, filters.plan));
+
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  const [countRows, rows] = await Promise.all([
+    db
+      .select({ total: sql<number>`COUNT(*)::int` })
+      .from(tenantsTable)
+      .where(where),
+    db
+      .select({
+        id: tenantsTable.id,
+        slug: tenantsTable.slug,
+        name: tenantsTable.name,
+        isActive: tenantsTable.isActive,
+        status: tenantsTable.status,
+        planKey: tenantsTable.planKey,
+        createdAt: tenantsTable.createdAt,
+        updatedAt: tenantsTable.updatedAt,
+        userCount: sql<number>`(
+          SELECT COUNT(*)
+          FROM ${tenantUsersTable} tu
+          WHERE tu.tenant_id = ${tenantsTable.id}
+            AND tu.status = 'active'
+        )::int`,
+        primaryDomain: sql<string | null>`(
+          SELECT td.domain
+          FROM ${tenantDomainsTable} td
+          WHERE td.tenant_id = ${tenantsTable.id}
+            AND td.type <> 'platform_reserved'
+            AND td.verification_status IN ('verified', 'active')
+          ORDER BY td.is_primary DESC, td.created_at ASC
+          LIMIT 1
+        )`,
+      })
+      .from(tenantsTable)
+      .where(where)
+      .orderBy(desc(tenantsTable.updatedAt), asc(tenantsTable.name))
+      .limit(filters.pageSize)
+      .offset((filters.page - 1) * filters.pageSize),
+  ]);
+
+  const total = Number(countRows[0]?.total ?? 0);
+  const totalPages = Math.max(1, Math.ceil(total / filters.pageSize));
+  const page = Math.min(filters.page, totalPages);
+
+  return {
+    rows: rows.map((row) => {
+      const domainStatus: PlatformTenantListDomainStatus = row.primaryDomain ? "verified" : "missing";
+      const readinessStatus: PlatformTenantListReadinessStatus =
+        row.status === "suspended" || row.status === "archived" || !row.primaryDomain || Number(row.userCount ?? 0) === 0
+          ? "blocked"
+          : "warning";
+      const normalizedRow = {
+        id: row.id,
+        slug: row.slug,
+        name: row.name,
+        isActive: row.isActive,
+        status: row.status,
+        planKey: row.planKey,
+        userCount: Number(row.userCount ?? 0),
+        primaryDomain: row.primaryDomain,
+        createdAt: dateLikeToIsoString(row.createdAt),
+        ownerEmail: null,
+        ownerStatus: null,
+        domainStatus,
+        readinessStatus,
+        enabledModules: 0,
+        moduleSummary: null,
+        enabledSectors: 0,
+        sectorSummary: null,
+        activeRegions: 0,
+        regionSummary: null,
+        latestActivityAt: dateLikeToIsoString(row.updatedAt, row.createdAt),
+        subscriptionStatus: null,
+      };
+
+      return {
+        ...normalizedRow,
+        openActions: tenantListOpenActions(normalizedRow),
+      };
+    }),
+    facets: staticPlatformTenantListFacets(),
+    filters: { ...filters, page },
+    pagination: {
+      total,
+      page,
+      pageSize: filters.pageSize,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
+    },
   };
 }
 

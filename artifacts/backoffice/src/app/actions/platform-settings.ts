@@ -8,7 +8,7 @@ import {
   organizationSettingsTable,
   platformHosts,
 } from "@workspace/db";
-import { sql } from "drizzle-orm";
+import { desc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requirePlatformAdmin } from "@/lib/auth/platform";
 import type { ActionResult } from "./customers";
@@ -33,11 +33,25 @@ export type PlatformSettingRow = {
   nextAction: string;
 };
 
+export type PlatformSmtpSettings = {
+  smtpEnabled: boolean;
+  smtpHost: string;
+  smtpPort: number | null;
+  smtpEncryption: "none" | "starttls" | "tls";
+  smtpUsername: string;
+  smtpPasswordConfigured: boolean;
+  smtpFromName: string;
+  smtpFromEmail: string;
+  smtpReplyTo: string;
+  defaultTenantFromPattern: string;
+};
+
 export type PlatformSettingsDashboard = {
   generatedAt: string;
   settings: PlatformSettingRow[];
   summary: Record<PlatformSettingsStatus, number>;
   changeRequestOptions: Array<{ id: string; label: string }>;
+  smtp: PlatformSmtpSettings;
 };
 
 function envValue(name: string): string | null {
@@ -45,8 +59,38 @@ function envValue(name: string): string | null {
   return value || null;
 }
 
+function isLegacyDgwebservicesValue(value: string | null): boolean {
+  return Boolean(value && value.toLowerCase().includes("dgwebservices.nl"));
+}
+
+function fieldgridDnsTargetValue(): string {
+  const explicitTarget =
+    envValue("FIELDGRID_CUSTOM_DOMAIN_CNAME_TARGET") ??
+    envValue("FIELDGRID_CUSTOM_DOMAIN_DNS_TARGET") ??
+    envValue("FIELDGRID_PUBLIC_IPV4") ??
+    envValue("FIELDGRID_PUBLIC_IPV6");
+
+  if (explicitTarget && !isLegacyDgwebservicesValue(explicitTarget)) {
+    return explicitTarget.replace(/^https?:\/\//u, "").replace(/\/$/u, "");
+  }
+
+  return "fieldgrid.nl";
+}
+
 function formValue(formData: FormData, name: string): string {
   return String(formData.get(name) ?? "").trim();
+}
+
+function nullableFormValue(formData: FormData, name: string): string | null {
+  return formValue(formData, name) || null;
+}
+
+function formCheckbox(formData: FormData, name: string): boolean {
+  return formData.get(name) === "on";
+}
+
+function isEmailLike(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(value);
 }
 
 function configuredStatus(value: string | null): PlatformSettingsStatus {
@@ -91,17 +135,49 @@ async function getMailSnapshot(): Promise<{
   };
 }
 
+function normalizeSmtpEncryption(value: string | null | undefined): PlatformSmtpSettings["smtpEncryption"] {
+  if (value === "none" || value === "tls" || value === "starttls") return value;
+  return "starttls";
+}
+
+async function getPlatformSmtpSettings(): Promise<PlatformSmtpSettings> {
+  const [settings] = await db
+    .select({
+      smtpEnabled: organizationSettingsTable.smtpEnabled,
+      smtpHost: organizationSettingsTable.smtpHost,
+      smtpPort: organizationSettingsTable.smtpPort,
+      smtpEncryption: organizationSettingsTable.smtpEncryption,
+      smtpUsername: organizationSettingsTable.smtpUsername,
+      smtpPassword: organizationSettingsTable.smtpPassword,
+      smtpFromName: organizationSettingsTable.smtpFromName,
+      smtpFromEmail: organizationSettingsTable.smtpFromEmail,
+      smtpReplyTo: organizationSettingsTable.smtpReplyTo,
+    })
+    .from(organizationSettingsTable)
+    .orderBy(desc(organizationSettingsTable.updatedAt))
+    .limit(1);
+
+  return {
+    smtpEnabled: Boolean(settings?.smtpEnabled),
+    smtpHost: settings?.smtpHost ?? "",
+    smtpPort: settings?.smtpPort ?? null,
+    smtpEncryption: normalizeSmtpEncryption(settings?.smtpEncryption),
+    smtpUsername: settings?.smtpUsername ?? "",
+    smtpPasswordConfigured: Boolean(settings?.smtpPassword),
+    smtpFromName: settings?.smtpFromName ?? "Fieldgrid",
+    smtpFromEmail: settings?.smtpFromEmail ?? "noreply@fieldgrid.nl",
+    smtpReplyTo: settings?.smtpReplyTo ?? "",
+    defaultTenantFromPattern: "<mail>@<slug>.fieldgrid.nl",
+  };
+}
+
 export async function getPlatformSettingsDashboard(): Promise<PlatformSettingsDashboard> {
   await requirePlatformAdmin();
 
-  const mail = await getMailSnapshot();
+  const [mail, smtp] = await Promise.all([getMailSnapshot(), getPlatformSmtpSettings()]);
   const hosts = Array.from(platformHosts()).sort();
   const platformHostSource = envValue("PLATFORM_HOSTS") ? "PLATFORM_HOSTS" : `default: ${DEFAULT_PLATFORM_HOSTS.join(", ")}`;
-  const customDomainTarget =
-    envValue("FIELDGRID_CUSTOM_DOMAIN_DNS_TARGET") ??
-    envValue("FIELDGRID_PUBLIC_IPV4") ??
-    envValue("FIELDGRID_PUBLIC_IPV6") ??
-    envValue("APP_URL");
+  const customDomainTarget = fieldgridDnsTargetValue();
   const caddyAskMode =
     envValue("CADDY_ASK_MODE") ??
     (envValue("CADDY_ASK_ENDPOINT") || envValue("API_INTERNAL_URL") ? "ask endpoint via API" : null);
@@ -110,7 +186,9 @@ export async function getPlatformSettingsDashboard(): Promise<PlatformSettingsDa
     envValue("FIELDGRID_MIGRATION_SMOKE_EMPTY_DATABASE_URL") ? "empty-db smoke geconfigureerd" : "empty-db smoke handmatig",
     envValue("FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_DATABASE_URL") ? "staging-copy smoke geconfigureerd" : "staging-copy smoke handmatig",
   ].join(" / ");
-  const systemMailConfigured = mail.smtpConfigured > 0 || Boolean(envValue("RESEND_API_KEY"));
+  const systemMailConfigured =
+    (smtp.smtpEnabled && Boolean(smtp.smtpHost) && Boolean(smtp.smtpPort) && Boolean(smtp.smtpFromEmail)) ||
+    Boolean(envValue("RESEND_API_KEY"));
   const defaultBrandName = envValue("FIELDGRID_DEFAULT_BRAND_NAME") ?? "Fieldgrid";
 
   const settings: PlatformSettingRow[] = [
@@ -122,7 +200,7 @@ export async function getPlatformSettingsDashboard(): Promise<PlatformSettingsDa
       value: hosts.join(", ") || "Niet geconfigureerd",
       source: platformHostSource,
       detail: "Hosts die als platformbeheer worden behandeld en dus geen tenantcontext mogen krijgen.",
-      nextAction: "Houd admin.fieldgrid.nl, staging.fieldgrid.nl en eventuele legacy hosts expliciet in PLATFORM_HOSTS.",
+      nextAction: "Houd admin.fieldgrid.nl en staging.fieldgrid.nl expliciet in PLATFORM_HOSTS.",
     },
     {
       id: "support-ttl-default",
@@ -140,7 +218,7 @@ export async function getPlatformSettingsDashboard(): Promise<PlatformSettingsDa
       category: "domains",
       status: configuredStatus(customDomainTarget),
       value: customDomainTarget ?? "Niet geconfigureerd",
-      source: "FIELDGRID_CUSTOM_DOMAIN_DNS_TARGET / FIELDGRID_PUBLIC_IPV4 / FIELDGRID_PUBLIC_IPV6 / APP_URL",
+      source: "FIELDGRID_CUSTOM_DOMAIN_CNAME_TARGET / FIELDGRID_CUSTOM_DOMAIN_DNS_TARGET / FIELDGRID_PUBLIC_IPV4 / FIELDGRID_PUBLIC_IPV6",
       detail: "Waarde die platform-admins tonen als custom domain DNS target bij Enterprise DNS-instructies.",
       nextAction: customDomainTarget
         ? "Controleer of deze waarde overeenkomt met de Caddy/VPS ingress."
@@ -162,11 +240,13 @@ export async function getPlatformSettingsDashboard(): Promise<PlatformSettingsDa
       category: "mail",
       status: systemMailConfigured ? "ok" : "manual",
       value: systemMailConfigured
-        ? `${mail.smtpConfigured} SMTP tenantconfiguratie(s), from ${mail.fromEmail ?? "tenant-default"}, Resend ${envValue("RESEND_API_KEY") ? "aanwezig" : "niet nodig"}`
-        : "Geen SMTP-configuratie of RESEND_API_KEY zichtbaar",
-      source: "organization_settings SMTP / RESEND_API_KEY",
-      detail: "Geeft aan of systeemmail technisch verzonden kan worden zonder secrets te tonen.",
-      nextAction: systemMailConfigured ? "Draai bij release een echte testmail." : "Configureer SMTP of RESEND_API_KEY voor uitnodigingen en meldingen.",
+        ? `Platform SMTP ${smtp.smtpEnabled ? "actief" : "via fallback"}, from ${smtp.smtpFromEmail || mail.fromEmail || "tenant-default"}, Resend ${envValue("RESEND_API_KEY") ? "aanwezig" : "niet nodig"}`
+        : "Geen platform SMTP of RESEND_API_KEY zichtbaar",
+      source: "Platform instellingen / organization_settings SMTP / RESEND_API_KEY",
+      detail: "Platformbrede e-mailtransportconfiguratie voor uitnodigingen, notificaties en systeemmails zonder secrets te tonen.",
+      nextAction: systemMailConfigured
+        ? `Standaard tenantafzenders blijven ${smtp.defaultTenantFromPattern}; SendGrid volgt als aparte koppeling.`
+        : "Configureer platform SMTP of RESEND_API_KEY voor uitnodigingen en meldingen.",
     },
     {
       id: "default-branding",
@@ -195,7 +275,90 @@ export async function getPlatformSettingsDashboard(): Promise<PlatformSettingsDa
     settings,
     summary: summarizeStatus(settings),
     changeRequestOptions: settings.map((setting) => ({ id: setting.id, label: setting.label })),
+    smtp,
   };
+}
+
+export async function updatePlatformSmtpSettings(formData: FormData): Promise<ActionResult> {
+  const actor = await requirePlatformAdmin();
+  const smtpPortRaw = formValue(formData, "smtpPort");
+  const smtpPort = smtpPortRaw ? Number(smtpPortRaw) : null;
+  const smtpEncryption = normalizeSmtpEncryption(formValue(formData, "smtpEncryption"));
+  const payload = {
+    smtpEnabled: formCheckbox(formData, "smtpEnabled"),
+    smtpHost: nullableFormValue(formData, "smtpHost"),
+    smtpPort,
+    smtpEncryption,
+    smtpUsername: nullableFormValue(formData, "smtpUsername"),
+    smtpFromName: nullableFormValue(formData, "smtpFromName"),
+    smtpFromEmail: nullableFormValue(formData, "smtpFromEmail"),
+    smtpReplyTo: nullableFormValue(formData, "smtpReplyTo"),
+  };
+  const smtpPassword = nullableFormValue(formData, "smtpPassword");
+  const clearPassword = formCheckbox(formData, "clearPassword");
+
+  if (smtpPortRaw && (!Number.isInteger(smtpPort) || smtpPort! < 1 || smtpPort! > 65535)) {
+    return { success: false, message: "SMTP-poort moet tussen 1 en 65535 liggen." };
+  }
+  if (payload.smtpEnabled) {
+    if (!payload.smtpHost) return { success: false, message: "SMTP-host is verplicht wanneer SMTP actief is." };
+    if (!payload.smtpPort) return { success: false, message: "SMTP-poort is verplicht wanneer SMTP actief is." };
+    if (!payload.smtpFromEmail || !isEmailLike(payload.smtpFromEmail)) {
+      return { success: false, message: "Een geldig afzenderadres is verplicht wanneer SMTP actief is." };
+    }
+  }
+  if (payload.smtpFromEmail && !isEmailLike(payload.smtpFromEmail)) {
+    return { success: false, message: "Afzender e-mailadres is ongeldig." };
+  }
+  if (payload.smtpReplyTo && !isEmailLike(payload.smtpReplyTo)) {
+    return { success: false, message: "Reply-to e-mailadres is ongeldig." };
+  }
+
+  const updateData: Partial<typeof organizationSettingsTable.$inferInsert> = {
+    ...payload,
+    emailAfzender: payload.smtpFromEmail,
+    updatedAt: new Date(),
+    updatedBy: actor.userId,
+  };
+
+  if (clearPassword) {
+    updateData.smtpPassword = null;
+  } else if (smtpPassword) {
+    updateData.smtpPassword = smtpPassword;
+  }
+
+  const updatedRows = await db
+    .update(organizationSettingsTable)
+    .set(updateData)
+    .returning({ id: organizationSettingsTable.id });
+
+  if (updatedRows.length === 0) {
+    return { success: false, message: "Er is nog geen organisatie-instellingenrecord om platform SMTP op toe te passen." };
+  }
+
+  await db.insert(auditLogTable).values({
+    userId: actor.userId,
+    action: "platform_smtp_settings_updated",
+    resource: "platform_settings",
+    resourceId: "smtp",
+    metadata: {
+      smtpEnabled: payload.smtpEnabled,
+      smtpHost: payload.smtpHost,
+      smtpPort: payload.smtpPort,
+      smtpEncryption: payload.smtpEncryption,
+      smtpFromEmail: payload.smtpFromEmail,
+      smtpReplyTo: payload.smtpReplyTo,
+      passwordChanged: Boolean(smtpPassword || clearPassword),
+      updatedRows: updatedRows.length,
+      sendgridRoadmap: true,
+      defaultTenantFromPattern: "<mail>@<slug>.fieldgrid.nl",
+      enterpriseCustomMailDomainsOnly: true,
+    },
+  });
+
+  revalidatePath("/platform/settings");
+  revalidatePath("/platform/operations");
+  return { success: true };
 }
 
 export async function requestPlatformSettingChange(formData: FormData): Promise<ActionResult> {
