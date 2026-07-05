@@ -157,10 +157,10 @@ export function PlatformShell({ children, userEmail, platformRole }: PlatformShe
   }
 
   return (
-    <div className="flex h-screen overflow-hidden bg-slate-50 text-slate-950">
+    <div className="platform-shell flex h-screen overflow-hidden bg-slate-50 text-slate-950">
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-50 flex w-[264px] select-none flex-col border-r border-slate-800/60 bg-slate-950 text-white shadow-xl transition-all duration-200 ease-out",
+          "fixed inset-y-0 left-0 z-50 flex w-[264px] max-w-[calc(100vw-2rem)] select-none flex-col border-r border-slate-800/60 bg-slate-950 text-white shadow-xl transition-all duration-200 ease-out",
           "md:static md:h-full md:shrink-0 md:translate-x-0 md:shadow-none",
           collapsed ? "md:w-[76px]" : "md:w-[264px]",
           open ? "translate-x-0" : "-translate-x-full",
@@ -205,7 +205,7 @@ export function PlatformShell({ children, userEmail, platformRole }: PlatformShe
                   onClick={closeNavigation}
                   title={label}
                   className={cn(
-                    "flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white",
+                    "flex min-h-11 items-center gap-3 rounded-md px-3 text-sm font-medium text-slate-300 transition hover:bg-white/10 hover:text-white",
                     collapsed && "md:justify-center md:px-0",
                     active && "bg-cyan-400/15 text-cyan-100 ring-1 ring-cyan-300/20",
                   )}
@@ -232,7 +232,7 @@ export function PlatformShell({ children, userEmail, platformRole }: PlatformShe
       {open && <button type="button" className="fixed inset-0 z-40 bg-slate-950/50 md:hidden" onClick={closeNavigation} aria-label="Navigatie sluiten" />}
 
       <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
-        <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-3 border-b border-slate-200 bg-white px-4 md:px-5">
+        <header className="sticky top-0 z-30 flex min-h-16 shrink-0 items-center gap-2 border-b border-slate-200 bg-white px-3 sm:gap-3 sm:px-4 md:px-5">
           <Button
             type="button"
             variant="ghost"
@@ -256,7 +256,7 @@ export function PlatformShell({ children, userEmail, platformRole }: PlatformShe
             {collapsed ? <PanelLeftOpen className="h-5 w-5" /> : <PanelLeftClose className="h-5 w-5" />}
           </Button>
 
-          <div className="min-w-0 flex-1">
+          <div className="min-w-0 flex-1 overflow-hidden">
             <nav aria-label="Breadcrumb" className="hidden items-center gap-1 text-xs text-slate-500 sm:flex">
               {route.crumbs.map((crumb, index) => (
                 <span key={`${crumb.label}-${index}`} className="flex min-w-0 items-center gap-1">
@@ -271,14 +271,14 @@ export function PlatformShell({ children, userEmail, platformRole }: PlatformShe
                 </span>
               ))}
             </nav>
-            <h1 className="truncate text-lg font-semibold tracking-normal text-slate-950 sm:mt-0.5">{route.title}</h1>
+            <h1 className="truncate text-base font-semibold tracking-normal text-slate-950 sm:mt-0.5 sm:text-lg">{route.title}</h1>
           </div>
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button
                 type="button"
-                className="flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/30"
+                className="flex min-h-11 min-w-0 items-center gap-2 rounded-md px-1.5 py-1.5 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/30 sm:px-2"
               >
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-slate-900 text-sm font-semibold text-white">
                   {userInitial(userEmail)}

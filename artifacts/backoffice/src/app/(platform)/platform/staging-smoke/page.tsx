@@ -237,7 +237,7 @@ export default async function PlatformStagingSmokePage() {
   const liveReadyChecks = dashboard.liveSmokes.filter((smoke) => smoke.status === "ok").length;
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-8 text-slate-950">
+    <main className="platform-page min-h-screen bg-slate-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
         <header className="flex flex-col gap-3 border-b border-slate-200 pb-5">
           <Link href="/platform" className="text-sm text-slate-500 underline-offset-2 hover:underline">

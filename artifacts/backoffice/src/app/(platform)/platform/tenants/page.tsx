@@ -139,7 +139,7 @@ function ActionChips({ actions }: { actions: string[] }) {
 function TenantDesktopTable({ rows }: { rows: PlatformTenantListRow[] }) {
   return (
     <section className="hidden overflow-hidden rounded border border-slate-200 bg-white lg:block">
-      <div className="overflow-x-auto">
+      <div className="platform-scroll-x">
         <table className="w-full min-w-[1120px] border-collapse text-left text-sm">
           <thead className="bg-slate-100 text-xs uppercase text-slate-500">
             <tr>
@@ -284,7 +284,7 @@ function Pagination({ result }: { result: PlatformTenantListResult }) {
       <p>
         {from}-{to} van {pagination.total} tenants
       </p>
-      <div className="flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
         <Link
           href={tenantPageHref(result, Math.max(1, pagination.page - 1))}
           aria-disabled={!pagination.hasPreviousPage}
@@ -333,7 +333,7 @@ export default async function PlatformTenantsPage({ searchParams }: Props) {
   });
 
   return (
-    <main className="min-h-full bg-slate-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
+    <main className="platform-page min-h-full bg-slate-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-5">
         <header className="flex flex-col gap-3 border-b border-slate-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
           <div>

@@ -328,7 +328,7 @@ export default async function PlatformTicketsPage() {
   const dashboard = await listPlatformTickets();
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 md:p-6">
+    <main className="platform-page mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 md:p-6">
       <div className="flex flex-col gap-2 border-b border-slate-200 pb-4">
         <Link href="/platform" className="text-sm text-slate-500 underline-offset-2 hover:underline">
           Platformbeheer
@@ -372,7 +372,7 @@ export default async function PlatformTicketsPage() {
         ))}
 
         {dashboard.tickets.length === 0 && (
-          <p className="rounded border border-slate-200 bg-white px-4 py-8 text-center text-sm text-slate-500">
+        <p className="platform-empty-state text-sm">
             Nog geen platformtickets.
           </p>
         )}

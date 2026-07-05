@@ -253,7 +253,7 @@ function canRouteDomain(domain: TenantDomainRow): boolean {
 
 function Section({ title, children, helper }: { title: string; helper?: string; children: ReactNode }) {
   return (
-    <section className="rounded border border-slate-200 bg-white p-5">
+    <section className="rounded border border-slate-200 bg-white p-4 shadow-sm sm:p-5">
       <div className="mb-4">
         <h2 className="text-lg font-semibold tracking-normal text-slate-950">{title}</h2>
         {helper && <p className="mt-1 text-sm leading-6 text-slate-500">{helper}</p>}
@@ -275,8 +275,8 @@ function Stat({ label, value, detail }: { label: string; value: string | number;
 
 function TenantTabs({ tenantId, activeTab }: { tenantId: string; activeTab: TenantTabId }) {
   return (
-    <nav className="-mx-4 overflow-x-auto px-4 sm:mx-0 sm:px-0" aria-label="Tenantdetail tabs">
-      <div className="flex min-w-max gap-2 border-b border-slate-200">
+    <nav className="platform-scroll-x -mx-4 px-4 pb-1 sm:mx-0 sm:px-0" aria-label="Tenantdetail tabs">
+      <div className="platform-tab-strip flex min-w-max gap-2 border-b border-slate-200">
         {TENANT_TABS.map((tab) => {
           const Icon = tab.icon;
           const active = tab.id === activeTab;
@@ -284,7 +284,7 @@ function TenantTabs({ tenantId, activeTab }: { tenantId: string; activeTab: Tena
             <Link
               key={tab.id}
               href={`/platform/tenants/${tenantId}?tab=${tab.id}`}
-              className={`inline-flex items-center gap-2 border-b-2 px-3 py-3 text-sm font-medium ${
+              className={`inline-flex min-h-11 shrink-0 items-center gap-2 whitespace-nowrap border-b-2 px-3 py-3 text-sm font-medium ${
                 active
                   ? "border-slate-950 text-slate-950"
                   : "border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-800"
@@ -553,7 +553,7 @@ function SubscriptionTab({
           ))}
         </div>
 
-        <div className="mt-5 overflow-x-auto rounded border border-slate-200">
+        <div className="platform-scroll-x mt-5 rounded border border-slate-200">
           <table className="w-full min-w-[920px] text-left text-sm">
             <thead className="bg-slate-100 text-xs uppercase text-slate-500">
               <tr>
@@ -665,7 +665,7 @@ function DomainsTab({
             <div key={domain.id} className="rounded border border-slate-200 p-4">
               <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                 <div className="min-w-0">
-                  <p className="break-all font-medium text-slate-950">{domain.domain}</p>
+                  <p className="platform-long-text font-medium text-slate-950">{domain.domain}</p>
                   <div className="mt-2 flex flex-wrap gap-2">
                     <span className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600">{domainTypeLabel(domain.type)}</span>
                     <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(domainStatusTone(domain.verificationStatus))}`}>
@@ -680,7 +680,7 @@ function DomainsTab({
                     DNS check: {formatDate(domain.dnsLastCheckedAt)} - TLS check: {formatDate(domain.tlsLastCheckedAt)} - actief: {formatDate(domain.activatedAt)}
                   </p>
                   {(domain.dnsLastError || domain.tlsLastError || domain.disabledReason) && (
-                    <p className="mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800">
+                    <p className="platform-long-text mt-2 rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs text-amber-800">
                       {domain.dnsLastError || domain.tlsLastError || domain.disabledReason}
                     </p>
                   )}
@@ -718,21 +718,21 @@ function DomainsTab({
                     <p className="font-semibold text-slate-500">Naam</p>
                     <p className="font-semibold text-slate-500">Waarde</p>
                     <p className="font-medium text-slate-700">TXT</p>
-                    <p className="break-all text-slate-600">{domain.dnsTxtName || `_fieldgrid-verification.${domain.domain}`}</p>
-                    <p className="break-all text-slate-950">{domain.verificationToken ? customDomainVerificationValue(domain.verificationToken) : "-"}</p>
+                    <p className="platform-long-text text-slate-600">{domain.dnsTxtName || `_fieldgrid-verification.${domain.domain}`}</p>
+                    <p className="platform-long-text text-slate-950">{domain.verificationToken ? customDomainVerificationValue(domain.verificationToken) : "-"}</p>
                     <p className="font-medium text-slate-700">A</p>
-                    <p className="break-all text-slate-600">{domain.domain}</p>
-                    <p className="break-all text-slate-950">{ipv4Target}</p>
+                    <p className="platform-long-text text-slate-600">{domain.domain}</p>
+                    <p className="platform-long-text text-slate-950">{ipv4Target}</p>
                     {ipv6Target && (
                       <>
                         <p className="font-medium text-slate-700">AAAA</p>
-                        <p className="break-all text-slate-600">{domain.domain}</p>
-                        <p className="break-all text-slate-950">{ipv6Target}</p>
+                        <p className="platform-long-text text-slate-600">{domain.domain}</p>
+                        <p className="platform-long-text text-slate-950">{ipv6Target}</p>
                       </>
                     )}
                     <p className="font-medium text-slate-700">CNAME</p>
-                    <p className="break-all text-slate-600">www of subdomein</p>
-                    <p className="break-all text-slate-950">{fieldgridCnameTarget(tenant, domain)}</p>
+                    <p className="platform-long-text text-slate-600">www of subdomein</p>
+                    <p className="platform-long-text text-slate-950">{fieldgridCnameTarget(tenant, domain)}</p>
                   </div>
                 </div>
               )}
@@ -1209,7 +1209,7 @@ export default async function PlatformTenantDetailPage({ params, searchParams }:
   const tenantProvisioningRuns = provisioningRuns.filter((run) => run.tenantId === tenantId);
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
+    <main className="platform-page min-h-screen bg-slate-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
         <header className="flex flex-col gap-3 border-b border-slate-200 pb-5">
           <Link href="/platform/tenants" className="w-fit text-sm text-slate-500 underline-offset-2 hover:underline">

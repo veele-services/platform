@@ -258,7 +258,7 @@ export default async function PlatformTicketDetailPage({ params }: Props) {
   if (!ticket) notFound();
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 md:p-6">
+    <main className="platform-page mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 md:p-6">
       <div className="flex flex-col gap-3 border-b border-slate-200 pb-4">
         <Link href="/platform/tickets" className="inline-flex w-fit items-center gap-2 text-sm text-slate-500 underline-offset-2 hover:underline">
           <ArrowLeft className="h-4 w-4" />

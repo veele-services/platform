@@ -32,6 +32,7 @@
     "fieldgrid:material-inventory-phase11:check": "node scripts/fieldgrid-material-inventory-phase11-hardening.mjs --check",
     "fieldgrid:material-inventory-phase12": "node scripts/fieldgrid-material-inventory-phase12-readiness.mjs",
     "fieldgrid:material-inventory-phase12:check": "node scripts/fieldgrid-material-inventory-phase12-readiness.mjs --check",
+    "fieldgrid:platform-phase13-visual-smoke": "node scripts/fieldgrid-platform-admin-phase13-visual-smoke.mjs",
     "db:generate": "pnpm --filter @workspace/db run generate",
     "db:migrate": "pnpm --filter @workspace/db run db:migrate",
     "db:baseline": "pnpm --filter @workspace/db run db:baseline",

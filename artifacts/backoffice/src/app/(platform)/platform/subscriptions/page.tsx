@@ -179,7 +179,7 @@ export default async function PlatformSubscriptionsPage() {
   const dashboard = await listPlatformSubscriptionDashboard();
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 md:p-6">
+    <main className="platform-page mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 md:p-6">
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
         <Stat label="Trial" value={dashboard.stats.trial} icon={CreditCard} />
         <Stat label="Active" value={dashboard.stats.active} icon={CheckCircle2} />
@@ -256,7 +256,7 @@ export default async function PlatformSubscriptionsPage() {
             <SubscriptionCard key={subscription.id} subscription={subscription} planOptions={dashboard.plans} />
           ))}
           {dashboard.subscriptions.length === 0 && (
-            <p className="rounded border border-slate-200 bg-slate-50 px-4 py-8 text-center text-sm text-slate-500">
+            <p className="platform-empty-state text-sm">
               Geen subscriptions gevonden.
             </p>
           )}
