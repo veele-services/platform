@@ -11,6 +11,10 @@ import {
   personnelTable,
   type NotificationEventSetting,
 } from "./index";
+import {
+  sanitizeCustomerPortalHref,
+  sanitizePersonnelPortalHref,
+} from "./portal-routes";
 
 type JsonRecord = Record<string, unknown>;
 
@@ -191,6 +195,7 @@ export async function emitDomainEvent(input: EmitDomainEventInput): Promise<Emit
   let queuedDeliveries = 0;
 
   const personnelIds = input.recipients?.personnelIds?.filter(Boolean) ?? [];
+  const personnelHref = sanitizePersonnelPortalHref(href);
   if (personnelIds.length > 0) {
     const personnel = await db
       .select({
@@ -212,7 +217,7 @@ export async function emitDomainEvent(input: EmitDomainEventInput): Promise<Emit
           category: asPersonnelCategory(category),
           priority,
           sourceLabel: input.fallback.sourceLabel ?? "Veele Services",
-          href,
+          href: personnelHref,
         })),
       );
       personnelNotifications += personnel.length;
@@ -232,7 +237,7 @@ export async function emitDomainEvent(input: EmitDomainEventInput): Promise<Emit
           title,
           body,
           html: emailHtml,
-          payload: { ...payload, href },
+          payload: { ...payload, href: personnelHref },
         });
       }
       if ((setting?.pushEnabled ?? false) && person.pushEnabled) {
@@ -244,7 +249,7 @@ export async function emitDomainEvent(input: EmitDomainEventInput): Promise<Emit
           personnelId: person.id,
           title: pushTitle,
           body: pushBody,
-          payload: { ...payload, href, priority },
+          payload: { ...payload, href: personnelHref, priority },
         });
       }
       return result;
@@ -257,6 +262,7 @@ export async function emitDomainEvent(input: EmitDomainEventInput): Promise<Emit
   }
 
   const customerIds = input.recipients?.customerIds?.filter(Boolean) ?? [];
+  const customerHref = sanitizeCustomerPortalHref(href);
   if (customerIds.length > 0) {
     const customers = await db
       .select({
@@ -276,7 +282,7 @@ export async function emitDomainEvent(input: EmitDomainEventInput): Promise<Emit
           category,
           priority,
           sourceLabel: input.fallback.sourceLabel ?? "Veele Services",
-          href,
+          href: customerHref,
         })),
       );
       customerNotifications += customers.length;
@@ -296,7 +302,7 @@ export async function emitDomainEvent(input: EmitDomainEventInput): Promise<Emit
           title,
           body,
           html: emailHtml,
-          payload: { ...payload, href },
+          payload: { ...payload, href: customerHref },
         });
       }
       if (setting?.pushEnabled ?? false) {
@@ -308,7 +314,7 @@ export async function emitDomainEvent(input: EmitDomainEventInput): Promise<Emit
           customerId: customer.id,
           title: pushTitle,
           body: pushBody,
-          payload: { ...payload, href, priority },
+          payload: { ...payload, href: customerHref, priority },
         });
       }
       return result;

@@ -20,6 +20,7 @@ import {
 } from "@/lib/ticket-options";
 import { and, asc, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { backofficeRoutes } from "@workspace/db/portal-routes";
 
 export type PersonnelTicketListItem = {
   id: string;
@@ -468,6 +469,7 @@ export async function askQuestionAboutAssignment(
 
     return threadId;
   });
+  const backofficeHref = backofficeRoutes.personnelTicket(ticketId);
 
   await emitDomainEvent({
     eventKey: "personnel_assignment_question_created",
@@ -487,14 +489,14 @@ export async function askQuestionAboutAssignment(
         scheduledEnd: assignment.scheduledEnd,
       },
       ticket: { id: ticketId, subject },
-      href: `/tickets/personnel/${ticketId}`,
+      backofficeHref,
     },
     fallback: {
       title: `Vraag over ${assignment.code || "werkbon"}`,
       body: `${personnel.name} heeft een vraag gesteld over ${assignment.code || assignment.title}.`,
       category: "message",
       priority: eventPriority(priority),
-      href: `/tickets/personnel/${ticketId}`,
+      href: backofficeHref,
       sourceLabel: "Personeelsapp",
     },
     audit: {

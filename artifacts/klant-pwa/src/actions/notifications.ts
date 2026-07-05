@@ -4,6 +4,10 @@ import {
   customerNotificationsTable,
   db,
 } from "@workspace/db";
+import {
+  customerPortalRoutes,
+  sanitizeCustomerPortalHref,
+} from "@workspace/db/portal-routes";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getMyAssignments } from "./assignments";
@@ -85,7 +89,7 @@ function mapPersistedNotification(
     body:        row.body ?? "",
     category:    normalizeCategory(row.category),
     priority:    normalizePriority(row.priority),
-    href:        row.href ?? "/meldingen",
+    href:        sanitizeCustomerPortalHref(row.href),
     sourceLabel: row.sourceLabel,
     readAt:      row.readAt?.toISOString() ?? null,
     createdAt:   row.createdAt.toISOString(),
@@ -132,7 +136,7 @@ export async function getMyCustomerNotifications(): Promise<CustomerNotification
       body:        `Te betalen: ${Number.parseFloat(invoice.totalAmount).toLocaleString("nl-NL", { style: "currency", currency: "EUR" })}.`,
       category:    "invoice",
       priority:    "high",
-      href:        `/facturen/${invoice.id}`,
+      href:        customerPortalRoutes.invoice(invoice.id),
       sourceLabel: "Financieel",
       readAt:      null,
       createdAt:   invoice.createdAt,
@@ -174,7 +178,7 @@ export async function getMyCustomerNotifications(): Promise<CustomerNotification
       body:        assignment.title,
       category:    "request",
       priority:    "low",
-      href:        `/opdrachten/${assignment.id}`,
+      href:        customerPortalRoutes.assignment(assignment.id),
       sourceLabel: "Aanvragen",
       readAt:      null,
       createdAt:   assignment.createdAt,

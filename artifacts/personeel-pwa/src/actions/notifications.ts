@@ -5,6 +5,7 @@ import {
   personnelNotificationsTable,
   personnelTable,
 } from "@workspace/db";
+import { sanitizePersonnelPortalHref } from "@workspace/db/portal-routes";
 import { createClient } from "@/lib/supabase/server";
 import { and, desc, eq, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -54,7 +55,7 @@ function mapNotification(
     category: row.category,
     priority: row.priority,
     sourceLabel: row.sourceLabel,
-    href: row.href,
+    href: sanitizePersonnelPortalHref(row.href),
     readAt: row.readAt?.toISOString() ?? null,
     createdAt: row.createdAt.toISOString(),
   };

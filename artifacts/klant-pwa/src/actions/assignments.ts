@@ -22,6 +22,7 @@ import {
 import { eq, desc, and, inArray } from "drizzle-orm";
 import { sendEmail, buildQuoteDecisionEmail } from "@/lib/email";
 import { emitDomainEvent } from "@workspace/db/events";
+import { backofficeRoutes } from "@workspace/db/portal-routes";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { z } from "zod/v4";
 import { revalidatePath } from "next/cache";
@@ -238,6 +239,7 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
     .returning({ id: assignmentsTable.id });
 
   if (!inserted) return { success: false, message: "Aanmaken mislukt." };
+  const backofficeHref = backofficeRoutes.assignment(inserted.id);
 
   await db.insert(auditLogTable).values({
     userId:     user.id,
@@ -296,13 +298,14 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
         id: sectorId,
         name: sector.name,
       },
+      backofficeHref,
     },
     fallback: {
       title: "Nieuwe klantaanvraag",
       body: `${title} is aangevraagd voor ${object.name}.`,
       category: "planning",
       priority: priority === "urgent" ? "high" : "normal",
-      href: `/assignments/${inserted.id}`,
+      href: backofficeHref,
       sourceLabel: "Klantportaal",
     },
     audit: false,
@@ -547,6 +550,7 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
   if (!assignment) {
     return { success: false, message: "Offerte niet gevonden of al verwerkt." };
   }
+  const backofficeHref = backofficeRoutes.assignment(assignmentId);
 
   await db.transaction(async (tx) => {
     await tx
@@ -603,12 +607,13 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
         amount: formatEuro(assignment.quoteAmount),
         valid_until: assignment.validityDate ?? "",
       },
+      backofficeHref,
     },
     fallback: {
       title: "Offerte geaccepteerd",
       body: "Een klant heeft een offerte geaccepteerd. De opdracht is nu planbaar.",
       category: "quotes",
-      href: `/assignments/${assignmentId}`,
+      href: backofficeHref,
       sourceLabel: "Klantportaal",
     },
     audit: false,
@@ -685,6 +690,7 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
   if (!assignment) {
     return { success: false, message: "Offerte niet gevonden of al verwerkt." };
   }
+  const backofficeHref = backofficeRoutes.assignment(assignmentId);
 
   await db.transaction(async (tx) => {
     await tx
@@ -741,6 +747,7 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
         number: assignment.quoteNumber,
         rejection_reason: reason?.trim() || "",
       },
+      backofficeHref,
     },
     fallback: {
       title: "Offerte afgewezen",
@@ -749,7 +756,7 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
         : "Een klant heeft een offerte afgewezen.",
       category: "quotes",
       priority: "high",
-      href: `/assignments/${assignmentId}`,
+      href: backofficeHref,
       sourceLabel: "Klantportaal",
     },
     audit: false,

@@ -1,7 +1,7 @@
 "use server";
 
-import { db, isTenantModuleEnabled } from "@workspace/db";
-import { personnelTable } from "@workspace/db";
+import { db, isTenantModuleEnabled, personnelTable } from "@workspace/db";
+import { backofficeRoutes } from "@workspace/db/portal-routes";
 import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -87,6 +87,7 @@ async function enqueueManagementNotification(input: {
   inventoryName: string;
   severity: string;
 }) {
+  const backofficeHref = backofficeRoutes.inventoryIssue(input.issueId);
   await db.execute(sql`
     INSERT INTO notification_delivery_queue (
       tenant_id, event_key, channel, recipient_type, title, body, payload, idempotency_key
@@ -97,7 +98,7 @@ async function enqueueManagementNotification(input: {
       'management',
       ${`Nieuwe inventarisstoring ${input.inventoryCode}`},
       ${`${input.inventoryName} is gemeld met prioriteit ${input.severity}.`},
-      ${JSON.stringify({ href: `/inventory/issues/${input.issueId}`, issueId: input.issueId, inventoryCode: input.inventoryCode, severity: input.severity })}::jsonb,
+      ${JSON.stringify({ backofficeHref, issueId: input.issueId, inventoryCode: input.inventoryCode, severity: input.severity })}::jsonb,
       ${`inventory_issue_reported:${input.issueId}`}
     )
     ON CONFLICT (idempotency_key) DO NOTHING

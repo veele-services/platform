@@ -16,6 +16,10 @@ import {
 } from "@workspace/db";
 import { emitDomainEvent } from "@workspace/db/events";
 import {
+  customerPortalRoutes,
+  personnelPortalRoutes,
+} from "@workspace/db/portal-routes";
+import {
   and,
   asc,
   desc,
@@ -459,6 +463,7 @@ export async function replyToTicket(
       .limit(1);
 
     if (!thread) return { success: false, error: "Ticket niet gevonden." };
+    const customerHref = customerPortalRoutes.ticket(id);
 
     await db.transaction(async (tx) => {
       await tx.insert(customerMessageEntriesTable).values({
@@ -493,14 +498,14 @@ export async function replyToTicket(
       payload: {
         customer: { id: thread.customerId, name: thread.customerName },
         ticket: { id, subject: thread.subject, department: thread.department },
-        href: `/meldingen/tickets/${id}`,
+        href: customerHref,
       },
       fallback: {
         title: `Reactie op ticket: ${thread.subject}`,
         body: "Veele Services heeft gereageerd op uw ticket.",
         category: "message",
         priority: priorityForEvent(thread.priority),
-        href: `/meldingen/tickets/${id}`,
+        href: customerHref,
         sourceLabel: "Veele Services",
       },
       audit: {
@@ -532,6 +537,7 @@ export async function replyToTicket(
     .limit(1);
 
   if (!thread) return { success: false, error: "Ticket niet gevonden." };
+  const personnelHref = personnelPortalRoutes.ticket(id);
 
   await db.transaction(async (tx) => {
     await tx.insert(personnelMessageEntriesTable).values({
@@ -569,14 +575,14 @@ export async function replyToTicket(
         name: `${thread.firstName} ${thread.lastName}`.trim(),
       },
       ticket: { id, subject: thread.subject, department: thread.department },
-      href: `/berichten/${id}`,
+      href: personnelHref,
     },
     fallback: {
       title: `Reactie op ticket: ${thread.subject}`,
       body: "Veele Services heeft gereageerd op je ticket.",
       category: "message",
       priority: priorityForEvent(thread.priority),
-      href: `/berichten/${id}`,
+      href: personnelHref,
       sourceLabel: "Veele Services",
     },
     audit: {

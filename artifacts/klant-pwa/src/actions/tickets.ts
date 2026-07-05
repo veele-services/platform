@@ -10,6 +10,7 @@ import {
   type CustomerTicketStatus,
 } from "@workspace/db";
 import { emitDomainEvent } from "@workspace/db/events";
+import { backofficeRoutes } from "@workspace/db/portal-routes";
 import { and, asc, desc, eq, inArray, isNull, ne } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getMyCustomerIdentity } from "./customer";
@@ -285,6 +286,7 @@ export async function createMyCustomerTicket(
   });
 
   if (!createdThread) return { success: false, error: "Ticket aanmaken mislukt" };
+  const backofficeHref = backofficeRoutes.customerTicket(createdThread.id);
 
   await emitDomainEvent({
     eventKey: "customer_ticket_created",
@@ -295,14 +297,14 @@ export async function createMyCustomerTicket(
     payload: {
       customer: { id: identity.customerId, name: identity.customerName },
       ticket: { id: createdThread.id, subject, department, priority },
-      href: `/tickets/customer/${createdThread.id}`,
+      backofficeHref,
     },
     fallback: {
       title: `Nieuw klantticket: ${subject}`,
       body: `${identity.customerName} heeft een nieuw ticket aangemaakt.`,
       category: "message",
       priority: priority === "urgent" ? "high" : "normal",
-      href: `/tickets/customer/${createdThread.id}`,
+      href: backofficeHref,
       sourceLabel: "Klantportaal",
     },
     audit: false,
@@ -336,6 +338,7 @@ export async function replyToMyCustomerTicket(
     .limit(1);
 
   if (!thread) return { success: false, error: "Ticket niet gevonden" };
+  const backofficeHref = backofficeRoutes.customerTicket(thread.id);
 
   const authorName = identity.contactName ?? identity.customerName;
 
@@ -371,13 +374,13 @@ export async function replyToMyCustomerTicket(
     payload: {
       customer: { id: identity.customerId, name: identity.customerName },
       ticket: { id: thread.id, subject: thread.subject, department: thread.department },
-      href: `/tickets/customer/${thread.id}`,
+      backofficeHref,
     },
     fallback: {
       title: `Nieuwe klantreactie: ${thread.subject}`,
       body: `${identity.customerName} heeft gereageerd op een ticket.`,
       category: "message",
-      href: `/tickets/customer/${thread.id}`,
+      href: backofficeHref,
       sourceLabel: "Klantportaal",
     },
     audit: false,
