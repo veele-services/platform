@@ -1,7 +1,14 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { AlertTriangle, ArrowLeft } from "lucide-react";
+import { AlertTriangle, ArrowRight, Inbox } from "lucide-react";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
+import {
+  TenantCommandBar,
+  TenantPageHeader,
+  TenantPageShell,
+  TenantWorkbenchLayout,
+  TenantWorkbenchPanel,
+} from "@/components/tenant-ui";
 import { hasPermission } from "@/lib/auth/permissions";
 import { listInventoryIssues } from "@/app/actions/inventory-followup";
 
@@ -46,61 +53,110 @@ export default async function InventoryIssuesPage({ searchParams }: Props) {
   const itemQuery = itemId ? `&itemId=${encodeURIComponent(itemId)}` : "";
   const issues = await listInventoryIssues({ status, itemId });
 
+  const urgentCount = issues.filter((issue) => issue.severity === "urgent" || issue.severity === "high").length;
+  const openCount = issues.filter((issue) => !["resolved", "cancelled", "unresolvable"].includes(issue.status)).length;
+
   return (
-    <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-6 p-8">
-      <Link href="/inventory" className="inline-flex items-center gap-1 text-sm hover:underline" style={{ color: "#64748B" }}>
-        <ArrowLeft className="h-4 w-4" />
-        Inventarisbeheer
-      </Link>
+    <TenantPageShell size="wide">
+      <TenantPageHeader
+        title="Inventarisstoringen"
+        description="Review-inbox voor defecten, onderhoudsopvolging en leverancieracties."
+        breadcrumbs={[{ label: "Inventarisbeheer", href: "/inventory" }, { label: "Storingen" }]}
+        badges={
+          urgentCount > 0 ? (
+            <span className="rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-700">
+              {urgentCount} urgent/hoog
+            </span>
+          ) : null
+        }
+        meta={<span>{openCount} open in huidige selectie</span>}
+      />
 
-      <div className="veele-card flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-5 w-5" style={{ color: "#B45309" }} />
-            <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>Inventarisstoringen</h1>
+      <TenantCommandBar
+        title="Ticketinbox"
+        description="Filter op werkvoorraad en open een melding om status, bewijs en onderhoud te reviewen."
+        filters={
+          <div className="flex flex-wrap gap-2 text-sm">
+            {[["open", "Open"], ["all", "Alles"], ["resolved", "Opgelost"]].map(([value, label]) => (
+              <Link
+                key={value}
+                href={`/inventory/issues?status=${value}${itemQuery}`}
+                className="rounded-md border px-3 py-2 font-medium"
+                style={{ borderColor: status === value ? "#0F766E" : "#CBD5E1", color: status === value ? "#0F766E" : "#334155" }}
+              >
+                {label}
+              </Link>
+            ))}
           </div>
-          <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-            Open meldingen, defecten en onderhoudsopvolging per tenant.
-          </p>
-        </div>
-        <div className="flex flex-wrap gap-2 text-sm">
-          {[["open", "Open"], ["all", "Alles"], ["resolved", "Opgelost"]].map(([value, label]) => (
-            <Link key={value} href={`/inventory/issues?status=${value}${itemQuery}`} className="rounded-md border px-3 py-2 font-medium" style={{ borderColor: status === value ? "#0F766E" : "#CBD5E1", color: status === value ? "#0F766E" : "#334155" }}>
-              {label}
-            </Link>
-          ))}
-        </div>
-      </div>
+        }
+      />
 
-      <div className="veele-card overflow-hidden p-0">
-        {issues.length === 0 ? (
-          <p className="px-5 py-8 text-sm" style={{ color: "#64748B" }}>Geen inventarisstoringen gevonden.</p>
-        ) : (
-          <div className="divide-y" style={{ borderColor: "#E2E8F0" }}>
-            {issues.map((issue) => {
-              const tone = issueTone(issue.severity);
-              return (
-                <Link key={issue.id} href={`/inventory/issues/${issue.id}`} className="block px-5 py-4 hover:bg-slate-50">
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <p className="font-semibold" style={{ color: "#081D3A" }}>{issue.inventoryCode} - {issue.inventoryName}</p>
-                        <span className="rounded px-2 py-0.5 text-xs font-semibold" style={{ backgroundColor: tone.bg, color: tone.color }}>{SEVERITY_LABELS[issue.severity] ?? issue.severity}</span>
-                        <span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">{STATUS_LABELS[issue.status] ?? issue.status}</span>
+      <TenantWorkbenchLayout
+        aside={
+          <TenantWorkbenchPanel title="Reviewregels" description="Gebruik iedere melding als ticket met status, bewijs en eventuele onderhoudsactie.">
+            <div className="space-y-3 px-4 py-4 text-sm text-muted-foreground">
+              <ReviewStep label="1. Intake" value="Controleer locatie, prioriteit en omschrijving." />
+              <ReviewStep label="2. Opvolging" value="Zet status naar in behandeling of wacht op leverancier." />
+              <ReviewStep label="3. Afronding" value="Leg oplossing, bewijs en onderhoud vast." />
+            </div>
+          </TenantWorkbenchPanel>
+        }
+      >
+        <TenantWorkbenchPanel
+          title="Meldingen"
+          description={issues.length === 0 ? "Geen tickets in deze selectie." : `${issues.length} ticket${issues.length === 1 ? "" : "s"} gevonden.`}
+        >
+          {issues.length === 0 ? (
+            <div className="flex items-center gap-3 px-5 py-8 text-sm text-muted-foreground">
+              <Inbox className="h-5 w-5" />
+              Geen inventarisstoringen gevonden.
+            </div>
+          ) : (
+            <div className="divide-y divide-border">
+              {issues.map((issue) => {
+                const tone = issueTone(issue.severity);
+                return (
+                  <Link key={issue.id} href={`/inventory/issues/${issue.id}`} className="block px-5 py-4 hover:bg-slate-50">
+                    <div className="flex flex-wrap items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="font-semibold text-foreground">{issue.inventoryCode} - {issue.inventoryName}</p>
+                          <span className="rounded px-2 py-0.5 text-xs font-semibold" style={{ backgroundColor: tone.bg, color: tone.color }}>
+                            {SEVERITY_LABELS[issue.severity] ?? issue.severity}
+                          </span>
+                          <span className="rounded bg-slate-100 px-2 py-0.5 text-xs font-semibold text-slate-700">
+                            {STATUS_LABELS[issue.status] ?? issue.status}
+                          </span>
+                        </div>
+                        <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{issue.description}</p>
+                        <p className="mt-1 text-xs text-muted-foreground">
+                          {issue.objectName ?? issue.personnelName ?? "Geen locatie"}{issue.assignmentCode ? ` - werkbon ${issue.assignmentCode}` : ""}
+                        </p>
                       </div>
-                      <p className="mt-1 line-clamp-2 text-sm" style={{ color: "#64748B" }}>{issue.description}</p>
-                      <p className="mt-1 text-xs" style={{ color: "#94A3B8" }}>
-                        {issue.objectName ?? issue.personnelName ?? "Geen locatie"}{issue.assignmentCode ? ` - werkbon ${issue.assignmentCode}` : ""}
-                      </p>
+                      <div className="flex shrink-0 items-center gap-2 text-xs text-muted-foreground">
+                        {formatDateTime(issue.createdAt)}
+                        <ArrowRight className="h-3.5 w-3.5" />
+                      </div>
                     </div>
-                    <p className="text-xs" style={{ color: "#94A3B8" }}>{formatDateTime(issue.createdAt)}</p>
-                  </div>
-                </Link>
-              );
-            })}
-          </div>
-        )}
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+        </TenantWorkbenchPanel>
+      </TenantWorkbenchLayout>
+    </TenantPageShell>
+  );
+}
+
+function ReviewStep({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-border bg-muted/30 px-3 py-2">
+      <div className="flex items-center gap-2 font-medium text-foreground">
+        <AlertTriangle className="h-3.5 w-3.5 text-amber-700" />
+        {label}
       </div>
+      <p className="mt-1 text-xs leading-5">{value}</p>
     </div>
   );
 }
