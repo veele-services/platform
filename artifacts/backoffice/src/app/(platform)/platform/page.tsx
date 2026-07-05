@@ -689,7 +689,7 @@ function buildDashboardActions(input: {
       id: "smoke:final-gate",
       label: "Final external tenant gate vraagt aandacht",
       detail: input.smokeDashboard.finalExternalTenantGate.summary,
-      href: "/platform/staging-smoke",
+      href: "/platform/operations",
       meta: "Smoke",
       tone: dashboardStatusTone(input.smokeDashboard.finalExternalTenantGate.status),
     });
@@ -703,7 +703,7 @@ function buildDashboardActions(input: {
         id: `smoke:${check.id}`,
         label: `${check.label} is geblokkeerd`,
         detail: check.nextAction,
-        href: "/platform/staging-smoke",
+        href: "/platform/operations",
         meta: "Smoke",
         tone: "danger",
       });
@@ -805,7 +805,7 @@ function PlatformDashboardOverview({
       label: "Smoke status",
       value: dashboardStatusLabel(smokeDashboard.finalExternalTenantGate.status),
       detail: `${blockedSmokeChecks} geblokkeerd, ${warningSmokeChecks} aandachtspunt(en).`,
-      href: "/platform/staging-smoke",
+      href: "/platform/operations",
       icon: Activity,
       tone: smokeTone,
     },
