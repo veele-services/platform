@@ -8,6 +8,7 @@ import {
   declineAssignmentInterest,
 } from "@/actions/open-assignments";
 import { askQuestionAboutAssignment } from "@/actions/messages";
+import { PersonnelConfirmDialog } from "@/components/PersonnelConfirmDialog";
 
 interface Props {
   assignmentId:     string;
@@ -28,6 +29,8 @@ const STATUS_LABELS: Record<string, string> = {
   confirmed: "Bevestigd",
 };
 
+type ConfirmAction = "apply" | "decline" | null;
+
 export function ApplyButton({
   assignmentId,
   title,
@@ -40,6 +43,7 @@ export function ApplyButton({
   const [asking, setAsking] = useState(false);
   const [question, setQuestion] = useState("");
   const [ticketId, setTicketId] = useState<string | null>(null);
+  const [confirmAction, setConfirmAction] = useState<ConfirmAction>(null);
   const [pending, startTransition] = useTransition();
   const applied =
     isAlreadyApplied ||
@@ -79,28 +83,26 @@ export function ApplyButton({
     );
   }
 
-  function handleApply() {
-    if (!confirm(`Wilt u interesse tonen voor "${title}"? De planner neemt de definitieve beslissing.`)) return;
-    setError(null);
-    startTransition(async () => {
-      const result = await applyForAssignment(assignmentId);
-      if (result.success) {
-        setStatus("interested");
-      } else {
-        setError(result.error ?? "Aanmelden mislukt");
-      }
-    });
-  }
+  function handleConfirmedAction() {
+    const action = confirmAction;
+    if (!action) return;
 
-  function handleDecline() {
-    if (!confirm(`Wilt u doorgeven dat u niet beschikbaar bent voor "${title}"?`)) return;
     setError(null);
     startTransition(async () => {
-      const result = await declineAssignmentInterest(assignmentId);
+      const result =
+        action === "apply"
+          ? await applyForAssignment(assignmentId)
+          : await declineAssignmentInterest(assignmentId);
+
       if (result.success) {
-        setStatus("unavailable");
+        setConfirmAction(null);
+        setStatus(action === "apply" ? "interested" : "unavailable");
       } else {
-        setError(result.error ?? "Reactie opslaan mislukt");
+        setConfirmAction(null);
+        setError(
+          result.error ??
+          (action === "apply" ? "Aanmelden mislukt" : "Reactie opslaan mislukt"),
+        );
       }
     });
   }
@@ -147,7 +149,7 @@ export function ApplyButton({
         {canDecline && (
           <button
             type="button"
-            onClick={handleDecline}
+            onClick={() => setConfirmAction("decline")}
             disabled={pending}
             className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold transition-opacity disabled:opacity-50"
             style={{ backgroundColor: "#FEF2F2", color: "#B91C1C" }}
@@ -158,7 +160,7 @@ export function ApplyButton({
         )}
         <button
           type="button"
-          onClick={handleApply}
+          onClick={() => setConfirmAction("apply")}
           disabled={pending}
           className="inline-flex items-center gap-1.5 rounded-xl px-3 py-1.5 text-xs font-semibold text-white transition-opacity disabled:opacity-50"
           style={{ backgroundColor: "var(--color-accent)" }}
@@ -206,6 +208,20 @@ export function ApplyButton({
           {error}
         </p>
       )}
+      <PersonnelConfirmDialog
+        open={confirmAction !== null}
+        title={confirmAction === "decline" ? "Niet beschikbaar doorgeven?" : "Interesse tonen?"}
+        description={
+          confirmAction === "decline"
+            ? `Je geeft door dat je niet beschikbaar bent voor "${title}". Planning ziet dit direct terug.`
+            : `Je toont interesse in "${title}". De planner maakt daarna de definitieve keuze.`
+        }
+        confirmLabel={confirmAction === "decline" ? "Niet beschikbaar" : "Interesse tonen"}
+        tone={confirmAction === "decline" ? "danger" : "accent"}
+        pending={pending}
+        onConfirm={handleConfirmedAction}
+        onClose={() => setConfirmAction(null)}
+      />
     </div>
   );
 }
