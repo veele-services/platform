@@ -33,6 +33,7 @@ const CUSTOMER_VISIBLE_QUOTE_STATUSES: QuoteStatus[] = ["sent", "approved", "rej
 
 export type CustomerAssignment = {
   id:               string;
+  objectId:         string | null;
   code:             string;
   title:            string;
   status:           AssignmentStatus;
@@ -57,6 +58,7 @@ export async function getMyAssignments(): Promise<CustomerAssignment[]> {
   const rows = await db
     .select({
       id:               assignmentsTable.id,
+      objectId:         assignmentsTable.objectId,
       code:             assignmentsTable.code,
       title:            assignmentsTable.title,
       status:           assignmentsTable.status,
@@ -91,6 +93,7 @@ export async function getMyAssignments(): Promise<CustomerAssignment[]> {
 
   return rows.map((r) => ({
     id:               r.id,
+    objectId:         r.objectId ?? null,
     code:             r.code,
     title:            r.title,
     status:           r.status as AssignmentStatus,
@@ -342,6 +345,7 @@ export type AssignmentInvoice = {
 
 export type CustomerAssignmentDetail = {
   id:             string;
+  objectId:       string | null;
   code:           string;
   title:          string;
   description:    string | null;
@@ -380,6 +384,7 @@ export async function getMyAssignmentDetail(
   const [row] = await db
     .select({
       id:                assignmentsTable.id,
+      objectId:          assignmentsTable.objectId,
       code:              assignmentsTable.code,
       title:             assignmentsTable.title,
       description:       assignmentsTable.description,
@@ -489,6 +494,7 @@ export async function getMyAssignmentDetail(
 
   return {
     id:               row.id,
+    objectId:         row.objectId ?? null,
     code:             row.code,
     title:            row.title,
     description:      row.description ?? null,

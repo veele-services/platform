@@ -25,7 +25,15 @@ const DOCUMENT_TYPE_OPTIONS = [
   { value: "other", label: "Overig" },
 ] as const;
 
+const DATE_FILTER_OPTIONS = [
+  { value: "all", label: "Alle datums" },
+  { value: "30d", label: "Laatste 30 dagen" },
+  { value: "90d", label: "Laatste 90 dagen" },
+  { value: "year", label: "Dit jaar" },
+] as const;
+
 type DocumentTypeFilter = (typeof DOCUMENT_TYPE_OPTIONS)[number]["value"];
+type DocumentDateFilter = (typeof DATE_FILTER_OPTIONS)[number]["value"];
 
 function formatDate(isoStr: string): string {
   return new Date(isoStr).toLocaleDateString("nl-NL", {
@@ -49,6 +57,12 @@ function mimeLabel(mimeType: string): string {
   return "Bestand";
 }
 
+function entityLabel(doc: CustomerDocument): string {
+  if (doc.entityType === "assignment") return doc.assignmentCode ? `Opdracht ${doc.assignmentCode}` : "Opdracht";
+  if (doc.entityType === "object") return doc.objectName ? `Object ${doc.objectName}` : "Object";
+  return "Organisatie";
+}
+
 function typeFilterForMime(mimeType: string): DocumentTypeFilter {
   if (mimeType.includes("pdf")) return "pdf";
   if (mimeType.includes("word")) return "word";
@@ -63,6 +77,12 @@ function normalizeTypeFilter(value?: string): DocumentTypeFilter {
     : "all";
 }
 
+function normalizeDateFilter(value?: string): DocumentDateFilter {
+  return DATE_FILTER_OPTIONS.some((option) => option.value === value)
+    ? (value as DocumentDateFilter)
+    : "all";
+}
+
 function normalizeQuery(value?: string): string {
   return value?.trim().slice(0, 80) ?? "";
 }
@@ -74,6 +94,10 @@ function matchesDocumentSearch(document: CustomerDocument, query: string) {
     document.filename,
     document.mimeType,
     mimeLabel(document.mimeType),
+    document.entityLabel,
+    document.objectName,
+    document.assignmentCode,
+    document.assignmentTitle,
   ]
     .join(" ")
     .toLowerCase();
@@ -81,31 +105,79 @@ function matchesDocumentSearch(document: CustomerDocument, query: string) {
   return haystack.includes(query.toLowerCase());
 }
 
-function filterDocuments(
-  documents: CustomerDocument[],
-  query: string,
-  type: DocumentTypeFilter,
-) {
+function matchesDateFilter(createdAt: string, date: DocumentDateFilter) {
+  if (date === "all") return true;
+  const created = new Date(createdAt);
+  const now = new Date();
+  if (date === "year") return created.getFullYear() === now.getFullYear();
+  const days = date === "30d" ? 30 : 90;
+  const threshold = new Date(now);
+  threshold.setDate(now.getDate() - days);
+  return created >= threshold;
+}
+
+function filterDocuments({
+  documents,
+  query,
+  type,
+  objectId,
+  assignmentId,
+  date,
+}: {
+  documents: CustomerDocument[];
+  query: string;
+  type: DocumentTypeFilter;
+  objectId: string;
+  assignmentId: string;
+  date: DocumentDateFilter;
+}) {
   return documents.filter((document) => {
     const matchesType = type === "all" || typeFilterForMime(document.mimeType) === type;
-    return matchesType && matchesDocumentSearch(document, query);
+    const matchesObject = objectId === "all" || document.objectId === objectId;
+    const matchesAssignment = assignmentId === "all" || document.assignmentId === assignmentId;
+    return (
+      matchesType &&
+      matchesObject &&
+      matchesAssignment &&
+      matchesDateFilter(document.createdAt, date) &&
+      matchesDocumentSearch(document, query)
+    );
   });
 }
 
 function removeFilterHref({
   query,
   type,
+  objectId,
+  assignmentId,
+  date,
   remove,
 }: {
   query: string;
   type: DocumentTypeFilter;
-  remove: "query" | "type";
+  objectId: string;
+  assignmentId: string;
+  date: DocumentDateFilter;
+  remove: "query" | "type" | "object" | "assignment" | "date";
 }) {
   const params = new URLSearchParams();
   if (remove !== "query" && query) params.set("q", query);
   if (remove !== "type" && type !== "all") params.set("type", type);
+  if (remove !== "object" && objectId !== "all") params.set("object", objectId);
+  if (remove !== "assignment" && assignmentId !== "all") params.set("assignment", assignmentId);
+  if (remove !== "date" && date !== "all") params.set("date", date);
   const value = params.toString();
   return value ? `/documenten?${value}` : "/documenten";
+}
+
+function uniqueOptions(items: Array<{ id: string | null; label: string | null }>) {
+  const map = new Map<string, string>();
+  for (const item of items) {
+    if (item.id && item.label && !map.has(item.id)) map.set(item.id, item.label);
+  }
+  return [...map.entries()]
+    .map(([id, label]) => ({ id, label }))
+    .sort((a, b) => a.label.localeCompare(b.label, "nl"));
 }
 
 function documentColumns(): Array<PortalDataColumn<CustomerDocument>> {
@@ -143,6 +215,22 @@ function documentColumns(): Array<PortalDataColumn<CustomerDocument>> {
       ),
     },
     {
+      key: "context",
+      header: "Koppeling",
+      render: (doc) => (
+        <span className="block min-w-[12rem]">
+          <span className="block text-sm font-black" style={{ color: "var(--color-primary)" }}>
+            {entityLabel(doc)}
+          </span>
+          {doc.assignmentTitle || doc.objectName ? (
+            <span className="mt-0.5 block truncate text-xs font-semibold" style={{ color: "var(--color-muted-fg)" }}>
+              {doc.assignmentTitle ?? doc.objectName}
+            </span>
+          ) : null}
+        </span>
+      ),
+    },
+    {
       key: "size",
       header: "Grootte",
       render: (doc) => (
@@ -176,27 +264,107 @@ function documentColumns(): Array<PortalDataColumn<CustomerDocument>> {
 export default async function DocumentenPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; type?: string }>;
+  searchParams: Promise<{ q?: string; type?: string; object?: string; assignment?: string; date?: string }>;
 }) {
   const params = await searchParams;
   const query = normalizeQuery(params.q);
   const selectedType = normalizeTypeFilter(params.type);
+  const selectedObject = params.object?.trim() || "all";
+  const selectedAssignment = params.assignment?.trim() || "all";
+  const selectedDate = normalizeDateFilter(params.date);
   const documents = await getMyDocuments();
-  const visibleDocuments = filterDocuments(documents, query, selectedType);
+  const visibleDocuments = filterDocuments({
+    documents,
+    query,
+    type: selectedType,
+    objectId: selectedObject,
+    assignmentId: selectedAssignment,
+    date: selectedDate,
+  });
+  const objectOptions = uniqueOptions(
+    documents.map((document) => ({ id: document.objectId, label: document.objectName })),
+  );
+  const assignmentOptions = uniqueOptions(
+    documents.map((document) => ({
+      id: document.assignmentId,
+      label: document.assignmentCode
+        ? `${document.assignmentCode} - ${document.assignmentTitle ?? "Opdracht"}`
+        : document.assignmentTitle,
+    })),
+  );
   const selectedTypeLabel =
     DOCUMENT_TYPE_OPTIONS.find((option) => option.value === selectedType)?.label ?? "Alle typen";
+  const selectedObjectLabel =
+    objectOptions.find((option) => option.id === selectedObject)?.label ?? "Object";
+  const selectedAssignmentLabel =
+    assignmentOptions.find((option) => option.id === selectedAssignment)?.label ?? "Opdracht";
+  const selectedDateLabel =
+    DATE_FILTER_OPTIONS.find((option) => option.value === selectedDate)?.label ?? "Alle datums";
 
   const activeFilters = [
     query
       ? {
           label: `Zoeken: ${query}`,
-          href: removeFilterHref({ query, type: selectedType, remove: "query" }),
+          href: removeFilterHref({
+            query,
+            type: selectedType,
+            objectId: selectedObject,
+            assignmentId: selectedAssignment,
+            date: selectedDate,
+            remove: "query",
+          }),
         }
       : null,
     selectedType !== "all"
       ? {
           label: `Type: ${selectedTypeLabel}`,
-          href: removeFilterHref({ query, type: selectedType, remove: "type" }),
+          href: removeFilterHref({
+            query,
+            type: selectedType,
+            objectId: selectedObject,
+            assignmentId: selectedAssignment,
+            date: selectedDate,
+            remove: "type",
+          }),
+        }
+      : null,
+    selectedObject !== "all"
+      ? {
+          label: `Object: ${selectedObjectLabel}`,
+          href: removeFilterHref({
+            query,
+            type: selectedType,
+            objectId: selectedObject,
+            assignmentId: selectedAssignment,
+            date: selectedDate,
+            remove: "object",
+          }),
+        }
+      : null,
+    selectedAssignment !== "all"
+      ? {
+          label: `Opdracht: ${selectedAssignmentLabel}`,
+          href: removeFilterHref({
+            query,
+            type: selectedType,
+            objectId: selectedObject,
+            assignmentId: selectedAssignment,
+            date: selectedDate,
+            remove: "assignment",
+          }),
+        }
+      : null,
+    selectedDate !== "all"
+      ? {
+          label: `Datum: ${selectedDateLabel}`,
+          href: removeFilterHref({
+            query,
+            type: selectedType,
+            objectId: selectedObject,
+            assignmentId: selectedAssignment,
+            date: selectedDate,
+            remove: "date",
+          }),
         }
       : null,
   ].filter((filter): filter is { label: string; href: string } => Boolean(filter));
@@ -213,10 +381,18 @@ export default async function DocumentenPage({
         actions={
           <PortalFilterSheet
             title="Documentfilters"
-            description="Verfijn de lijst op bestandsnaam, type of formaat."
+            description="Verfijn de lijst op object, opdracht, type, datum of bestandsnaam."
             activeCount={activeFilters.length}
           >
-            <DocumentFilterForm query={query} selectedType={selectedType} />
+            <DocumentFilterForm
+              query={query}
+              selectedType={selectedType}
+              selectedObject={selectedObject}
+              selectedAssignment={selectedAssignment}
+              selectedDate={selectedDate}
+              objectOptions={objectOptions}
+              assignmentOptions={assignmentOptions}
+            />
           </PortalFilterSheet>
         }
       >
@@ -237,6 +413,9 @@ export default async function DocumentenPage({
               </option>
             ))}
           </PortalToolbarSelect>
+          {selectedObject !== "all" ? <input type="hidden" name="object" value={selectedObject} /> : null}
+          {selectedAssignment !== "all" ? <input type="hidden" name="assignment" value={selectedAssignment} /> : null}
+          {selectedDate !== "all" ? <input type="hidden" name="date" value={selectedDate} /> : null}
           <button
             type="submit"
             className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-black text-white shadow-sm transition-opacity hover:opacity-90"
@@ -291,6 +470,10 @@ export default async function DocumentenPage({
                 >
                   {mimeLabel(doc.mimeType)} - {formatBytes(doc.sizeBytes)} - {formatDate(doc.createdAt)}
                 </p>
+                <p className="mt-1 text-xs font-bold" style={{ color: "var(--color-muted-fg)" }}>
+                  {entityLabel(doc)}
+                  {doc.assignmentTitle || doc.objectName ? ` - ${doc.assignmentTitle ?? doc.objectName}` : ""}
+                </p>
               </div>
               <PortalActionMenu label={`Acties voor ${doc.name}`}>
                 <DocumentDownloadButton documentId={doc.id} filename={doc.filename} />
@@ -306,9 +489,19 @@ export default async function DocumentenPage({
 function DocumentFilterForm({
   query,
   selectedType,
+  selectedObject,
+  selectedAssignment,
+  selectedDate,
+  objectOptions,
+  assignmentOptions,
 }: {
   query: string;
   selectedType: DocumentTypeFilter;
+  selectedObject: string;
+  selectedAssignment: string;
+  selectedDate: DocumentDateFilter;
+  objectOptions: Array<{ id: string; label: string }>;
+  assignmentOptions: Array<{ id: string; label: string }>;
 }) {
   return (
     <form action="/documenten" className="space-y-4">
@@ -352,6 +545,74 @@ function DocumentFilterForm({
           }}
         >
           {DOCUMENT_TYPE_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label
+          htmlFor="document-filter-object"
+          className="text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
+          Object
+        </label>
+        <select
+          id="document-filter-object"
+          name="object"
+          defaultValue={selectedObject}
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+        >
+          <option value="all">Alle objecten</option>
+          {objectOptions.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label
+          htmlFor="document-filter-assignment"
+          className="text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
+          Opdracht
+        </label>
+        <select
+          id="document-filter-assignment"
+          name="assignment"
+          defaultValue={selectedAssignment}
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+        >
+          <option value="all">Alle opdrachten</option>
+          {assignmentOptions.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label
+          htmlFor="document-filter-date"
+          className="text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
+          Datum
+        </label>
+        <select
+          id="document-filter-date"
+          name="date"
+          defaultValue={selectedDate}
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+        >
+          {DATE_FILTER_OPTIONS.map((option) => (
             <option key={option.value} value={option.value}>
               {option.label}
             </option>

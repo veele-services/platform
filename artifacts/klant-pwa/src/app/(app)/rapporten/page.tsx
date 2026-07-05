@@ -20,6 +20,14 @@ import {
 
 type CustomerReport = Awaited<ReturnType<typeof getMyReports>>[number];
 type ReportFilter = "all" | "hours" | "summary";
+type ReportDateFilter = "all" | "30d" | "90d" | "year";
+
+const DATE_FILTER_OPTIONS: Array<{ value: ReportDateFilter; label: string }> = [
+  { value: "all", label: "Alle datums" },
+  { value: "30d", label: "Laatste 30 dagen" },
+  { value: "90d", label: "Laatste 90 dagen" },
+  { value: "year", label: "Dit jaar" },
+];
 
 function formatDate(isoStr: string): string {
   return new Date(isoStr).toLocaleDateString("nl-NL", {
@@ -41,6 +49,10 @@ function normalizeFilter(value?: string): ReportFilter {
   return value === "hours" || value === "summary" ? value : "all";
 }
 
+function normalizeDateFilter(value?: string): ReportDateFilter {
+  return value === "30d" || value === "90d" || value === "year" ? value : "all";
+}
+
 function reportFilterLabel(value: ReportFilter) {
   const labels: Record<ReportFilter, string> = {
     all: "Alle rapporten",
@@ -54,6 +66,8 @@ function matchesReportSearch(report: CustomerReport, query: string) {
   if (!query) return true;
   const haystack = [
     report.assignmentTitle,
+    report.assignmentCode,
+    report.objectName,
     report.customerVisibleSummary,
     report.hoursWorked,
   ]
@@ -64,29 +78,80 @@ function matchesReportSearch(report: CustomerReport, query: string) {
   return haystack.includes(query.toLowerCase());
 }
 
-function filterReports(reports: CustomerReport[], query: string, filter: ReportFilter) {
+function matchesDateFilter(submittedAt: string, date: ReportDateFilter) {
+  if (date === "all") return true;
+  const submitted = new Date(submittedAt);
+  const now = new Date();
+  if (date === "year") return submitted.getFullYear() === now.getFullYear();
+  const threshold = new Date(now);
+  threshold.setDate(now.getDate() - (date === "30d" ? 30 : 90));
+  return submitted >= threshold;
+}
+
+function filterReports({
+  reports,
+  query,
+  filter,
+  objectId,
+  assignmentId,
+  date,
+}: {
+  reports: CustomerReport[];
+  query: string;
+  filter: ReportFilter;
+  objectId: string;
+  assignmentId: string;
+  date: ReportDateFilter;
+}) {
   return reports.filter((report) => {
     const matchesFilter =
       filter === "all" ||
       (filter === "hours" ? Boolean(report.hoursWorked) : Boolean(report.customerVisibleSummary));
-    return matchesFilter && matchesReportSearch(report, query);
+    const matchesObject = objectId === "all" || report.objectId === objectId;
+    const matchesAssignment = assignmentId === "all" || report.assignmentId === assignmentId;
+    return (
+      matchesFilter &&
+      matchesObject &&
+      matchesAssignment &&
+      matchesDateFilter(report.submittedAt, date) &&
+      matchesReportSearch(report, query)
+    );
   });
 }
 
 function filterHref({
   query,
   filter,
+  objectId,
+  assignmentId,
+  date,
   remove,
 }: {
   query: string;
   filter: ReportFilter;
-  remove: "query" | "filter";
+  objectId: string;
+  assignmentId: string;
+  date: ReportDateFilter;
+  remove: "query" | "filter" | "object" | "assignment" | "date";
 }) {
   const params = new URLSearchParams();
   if (remove !== "query" && query) params.set("q", query);
   if (remove !== "filter" && filter !== "all") params.set("filter", filter);
+  if (remove !== "object" && objectId !== "all") params.set("object", objectId);
+  if (remove !== "assignment" && assignmentId !== "all") params.set("assignment", assignmentId);
+  if (remove !== "date" && date !== "all") params.set("date", date);
   const value = params.toString();
   return value ? `/rapporten?${value}` : "/rapporten";
+}
+
+function uniqueOptions(items: Array<{ id: string | null; label: string | null }>) {
+  const map = new Map<string, string>();
+  for (const item of items) {
+    if (item.id && item.label && !map.has(item.id)) map.set(item.id, item.label);
+  }
+  return [...map.entries()]
+    .map(([id, label]) => ({ id, label }))
+    .sort((a, b) => a.label.localeCompare(b.label, "nl"));
 }
 
 function reportColumns(): Array<PortalDataColumn<CustomerReport>> {
@@ -100,7 +165,7 @@ function reportColumns(): Array<PortalDataColumn<CustomerReport>> {
             {report.assignmentTitle}
           </span>
           <span className="mt-0.5 block text-xs font-semibold" style={{ color: "var(--color-muted-fg)" }}>
-            Goedgekeurd werkrapport
+            {report.assignmentCode} {report.objectName ? `- ${report.objectName}` : ""}
           </span>
         </span>
       ),
@@ -153,25 +218,103 @@ function reportColumns(): Array<PortalDataColumn<CustomerReport>> {
 export default async function RapportenPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; filter?: string }>;
+  searchParams: Promise<{ q?: string; filter?: string; object?: string; assignment?: string; date?: string }>;
 }) {
   const params = await searchParams;
   const query = normalizeQuery(params.q);
   const filter = normalizeFilter(params.filter);
+  const selectedObject = params.object?.trim() || "all";
+  const selectedAssignment = params.assignment?.trim() || "all";
+  const selectedDate = normalizeDateFilter(params.date);
   const reports = await getMyReports();
-  const visibleReports = filterReports(reports, query, filter);
+  const visibleReports = filterReports({
+    reports,
+    query,
+    filter,
+    objectId: selectedObject,
+    assignmentId: selectedAssignment,
+    date: selectedDate,
+  });
+  const objectOptions = uniqueOptions(
+    reports.map((report) => ({ id: report.objectId, label: report.objectName })),
+  );
+  const assignmentOptions = uniqueOptions(
+    reports.map((report) => ({
+      id: report.assignmentId,
+      label: `${report.assignmentCode} - ${report.assignmentTitle}`,
+    })),
+  );
+  const selectedObjectLabel =
+    objectOptions.find((option) => option.id === selectedObject)?.label ?? "Object";
+  const selectedAssignmentLabel =
+    assignmentOptions.find((option) => option.id === selectedAssignment)?.label ?? "Opdracht";
+  const selectedDateLabel =
+    DATE_FILTER_OPTIONS.find((option) => option.value === selectedDate)?.label ?? "Alle datums";
 
   const activeFilters = [
     query
       ? {
           label: `Zoeken: ${query}`,
-          href: filterHref({ query, filter, remove: "query" }),
+          href: filterHref({
+            query,
+            filter,
+            objectId: selectedObject,
+            assignmentId: selectedAssignment,
+            date: selectedDate,
+            remove: "query",
+          }),
         }
       : null,
     filter !== "all"
       ? {
           label: reportFilterLabel(filter),
-          href: filterHref({ query, filter, remove: "filter" }),
+          href: filterHref({
+            query,
+            filter,
+            objectId: selectedObject,
+            assignmentId: selectedAssignment,
+            date: selectedDate,
+            remove: "filter",
+          }),
+        }
+      : null,
+    selectedObject !== "all"
+      ? {
+          label: `Object: ${selectedObjectLabel}`,
+          href: filterHref({
+            query,
+            filter,
+            objectId: selectedObject,
+            assignmentId: selectedAssignment,
+            date: selectedDate,
+            remove: "object",
+          }),
+        }
+      : null,
+    selectedAssignment !== "all"
+      ? {
+          label: `Opdracht: ${selectedAssignmentLabel}`,
+          href: filterHref({
+            query,
+            filter,
+            objectId: selectedObject,
+            assignmentId: selectedAssignment,
+            date: selectedDate,
+            remove: "assignment",
+          }),
+        }
+      : null,
+    selectedDate !== "all"
+      ? {
+          label: `Datum: ${selectedDateLabel}`,
+          href: filterHref({
+            query,
+            filter,
+            objectId: selectedObject,
+            assignmentId: selectedAssignment,
+            date: selectedDate,
+            remove: "date",
+          }),
         }
       : null,
   ].filter((item): item is { label: string; href: string } => Boolean(item));
@@ -188,10 +331,18 @@ export default async function RapportenPage({
         actions={
           <PortalFilterSheet
             title="Rapportfilters"
-            description="Filter op titel, samenvatting of urengegevens."
+            description="Filter op object, opdracht, rapporttype, datum of inhoud."
             activeCount={activeFilters.length}
           >
-            <ReportFilterForm query={query} filter={filter} />
+            <ReportFilterForm
+              query={query}
+              filter={filter}
+              selectedObject={selectedObject}
+              selectedAssignment={selectedAssignment}
+              selectedDate={selectedDate}
+              objectOptions={objectOptions}
+              assignmentOptions={assignmentOptions}
+            />
           </PortalFilterSheet>
         }
       >
@@ -206,6 +357,9 @@ export default async function RapportenPage({
             <option value="hours">Met uren</option>
             <option value="summary">Met samenvatting</option>
           </PortalToolbarSelect>
+          {selectedObject !== "all" ? <input type="hidden" name="object" value={selectedObject} /> : null}
+          {selectedAssignment !== "all" ? <input type="hidden" name="assignment" value={selectedAssignment} /> : null}
+          {selectedDate !== "all" ? <input type="hidden" name="date" value={selectedDate} /> : null}
           <button
             type="submit"
             className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-black text-white shadow-sm transition-opacity hover:opacity-90"
@@ -240,6 +394,8 @@ export default async function RapportenPage({
                   {report.assignmentTitle}
                 </h3>
                 <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>
+                  <span>{report.assignmentCode}</span>
+                  {report.objectName ? <span>{report.objectName}</span> : null}
                   <span>{formatDate(report.submittedAt)}</span>
                   <span>{formatHours(report.hoursWorked)}</span>
                 </div>
@@ -269,7 +425,23 @@ export default async function RapportenPage({
   );
 }
 
-function ReportFilterForm({ query, filter }: { query: string; filter: ReportFilter }) {
+function ReportFilterForm({
+  query,
+  filter,
+  selectedObject,
+  selectedAssignment,
+  selectedDate,
+  objectOptions,
+  assignmentOptions,
+}: {
+  query: string;
+  filter: ReportFilter;
+  selectedObject: string;
+  selectedAssignment: string;
+  selectedDate: ReportDateFilter;
+  objectOptions: Array<{ id: string; label: string }>;
+  assignmentOptions: Array<{ id: string; label: string }>;
+}) {
   return (
     <form action="/rapporten" className="space-y-4">
       <div>
@@ -288,7 +460,7 @@ function ReportFilterForm({ query, filter }: { query: string; filter: ReportFilt
       </div>
       <div>
         <label htmlFor="report-filter-kind" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
-          Filter
+          Type
         </label>
         <select
           id="report-filter-kind"
@@ -300,6 +472,62 @@ function ReportFilterForm({ query, filter }: { query: string; filter: ReportFilt
           <option value="all">Alle rapporten</option>
           <option value="hours">Met uren</option>
           <option value="summary">Met samenvatting</option>
+        </select>
+      </div>
+      <div>
+        <label htmlFor="report-filter-object" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+          Object
+        </label>
+        <select
+          id="report-filter-object"
+          name="object"
+          defaultValue={selectedObject}
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+        >
+          <option value="all">Alle objecten</option>
+          {objectOptions.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label htmlFor="report-filter-assignment" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+          Opdracht
+        </label>
+        <select
+          id="report-filter-assignment"
+          name="assignment"
+          defaultValue={selectedAssignment}
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+        >
+          <option value="all">Alle opdrachten</option>
+          {assignmentOptions.map((option) => (
+            <option key={option.id} value={option.id}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+      </div>
+      <div>
+        <label htmlFor="report-filter-date" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+          Datum
+        </label>
+        <select
+          id="report-filter-date"
+          name="date"
+          defaultValue={selectedDate}
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+        >
+          {DATE_FILTER_OPTIONS.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
         </select>
       </div>
       <div className="grid grid-cols-2 gap-2 pt-2">

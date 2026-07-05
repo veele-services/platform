@@ -85,6 +85,7 @@ const optionalEmail = z
   .transform((value) => (value.length > 0 ? value.toLowerCase() : null));
 
 const objectFormSchema = z.object({
+  reviewMode:         z.enum(["concept", "review", "approved"]).optional(),
   name:              requiredText("Objectnaam", 255),
   sectorId:          z.union([z.string().uuid(), z.literal("")]).transform((value) => value || null),
   serviceType:       optionalText(100),
@@ -123,6 +124,7 @@ function firstFieldErrors(error: z.ZodError): Record<string, string> {
 function parseObjectForm(formData: FormData) {
   return objectFormSchema.safeParse({
     name:              formValue(formData, "name"),
+    reviewMode:        formValue(formData, "reviewMode") || undefined,
     sectorId:          formValue(formData, "sectorId"),
     serviceType:       formValue(formData, "serviceType"),
     address:           formValue(formData, "address"),
@@ -180,6 +182,7 @@ function buildObjectPayload(data: ObjectFormValues, customerId: string, tenantId
     alarmInfo:         data.alarmInfo,
     fixedInstructions: data.fixedInstructions,
     specialNotes:      data.specialNotes,
+    ...(data.reviewMode ? { isActive: data.reviewMode === "approved" } : {}),
     ...(userId ? { createdBy: userId } : {}),
   };
 }
@@ -358,7 +361,12 @@ export async function createCustomerObject(
       action:     "customer_create_object",
       resource:   "objects",
       resourceId: created.id,
-      metadata:   { customerId: context.customerId, name: parsed.data.name },
+      metadata:   {
+        customerId: context.customerId,
+        name: parsed.data.name,
+        governance: parsed.data.reviewMode ?? "review",
+        isActive: parsed.data.reviewMode === "approved",
+      },
     });
 
     revalidatePath("/");
