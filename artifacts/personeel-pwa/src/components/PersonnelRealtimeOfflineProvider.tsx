@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Bell, CloudOff, RefreshCcw, Wifi, X } from "lucide-react";
 import { completeAssignment, notCompleteAssignment, setAssignmentTaskCompletion, startAssignment } from "@/actions/assignments";
 import { addExtraWork } from "@/actions/extra-work";
+import { addInventoryUsage } from "@/actions/inventory";
 import { addMaterialUsage } from "@/actions/materials";
 import { addReportNote } from "@/actions/reports";
 import {
@@ -67,6 +68,10 @@ async function runQueuedAction(action: OfflineWorkOrderAction) {
     return addExtraWork(action.assignmentId, action.payload);
   }
 
+  if (action.type === "add-inventory-usage") {
+    return addInventoryUsage(action.assignmentId, action.payload);
+  }
+
   return addMaterialUsage(action.assignmentId, action.payload);
 }
 
@@ -103,6 +108,7 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
   const [failedCount, setFailedCount] = useState(0);
   const [syncing, setSyncing] = useState(false);
   const [syncError, setSyncError] = useState<string | null>(null);
+  const [syncedNotice, setSyncedNotice] = useState(false);
   const [realtimeState, setRealtimeState] = useState<RealtimeState>("idle");
   const [pushToast, setPushToast] = useState<ForegroundPushNotification | null>(null);
   const syncingRef = useRef(false);
@@ -140,6 +146,8 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
     syncingRef.current = true;
     setSyncing(true);
     setSyncError(null);
+    setSyncedNotice(false);
+    let syncedAnyAction = false;
 
     try {
       for (const action of queue) {
@@ -159,12 +167,17 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
           break;
         }
         removeOfflineWorkOrderAction(action.id);
+        syncedAnyAction = true;
       }
     } finally {
       syncingRef.current = false;
       setSyncing(false);
       setPendingCount(getOfflineWorkOrderQueueCount());
       setFailedCount(getOfflineWorkOrderFailureCount());
+      if (syncedAnyAction && getOfflineWorkOrderQueueCount() === 0) {
+        setSyncedNotice(true);
+        window.setTimeout(() => setSyncedNotice(false), 4500);
+      }
       scheduleRefresh();
     }
   }, [scheduleRefresh]);
@@ -341,7 +354,7 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
     return () => clearTimeout(timeout);
   }, [pushToast]);
 
-  const showStatus = !online || pendingCount > 0 || syncing || Boolean(syncError) || realtimeState === "error";
+  const showStatus = !online || pendingCount > 0 || syncing || Boolean(syncError) || syncedNotice || realtimeState === "error";
 
   return (
     <>
@@ -434,6 +447,11 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
               <>
                 <Wifi size={15} strokeWidth={2.4} className="text-[#D97706]" />
                 Realtime opnieuw verbinden
+              </>
+            ) : syncedNotice ? (
+              <>
+                <Wifi size={15} strokeWidth={2.4} className="text-[#0A9F9A]" />
+                Offline acties gesynchroniseerd
               </>
             ) : (
               <>

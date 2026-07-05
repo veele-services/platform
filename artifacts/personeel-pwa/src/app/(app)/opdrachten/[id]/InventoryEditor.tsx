@@ -8,6 +8,10 @@ import {
   type InventoryUsageItem,
   type InventoryUsageType,
 } from "@/actions/inventory";
+import {
+  enqueueOfflineWorkOrderAction,
+  isOfflineNow,
+} from "@/lib/offline/work-order-queue";
 import { formatQuantity } from "./work-order-data";
 
 type Props = {
@@ -48,6 +52,13 @@ function parseQuantity(value: string): number {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : 1;
 }
 
+function createClientMutationId(inventoryItemId: string): string {
+  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
+    return crypto.randomUUID();
+  }
+  return `${inventoryItemId}-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+}
+
 function usageLabel(value: string): string {
   return USAGE_LABELS[value as InventoryUsageType] ?? value;
 }
@@ -72,14 +83,45 @@ export function InventoryEditor({ assignmentId, initialItems, catalog, canEdit }
       return;
     }
 
+    const clientMutationId = createClientMutationId(selectedItem.id);
+    const input = {
+      inventoryItemId: selectedItem.id,
+      inventoryCode: selectedItem.code,
+      name: selectedItem.name,
+      usageType: form.usageType,
+      quantity: form.quantity,
+      periodLabel: form.periodLabel || null,
+      notes: form.notes || null,
+      clientMutationId,
+    };
+
     startTransition(async () => {
-      const result = await addInventoryUsage(assignmentId, {
-        inventoryItemId: selectedItem.id,
-        usageType: form.usageType,
-        quantity: form.quantity,
-        periodLabel: form.periodLabel || null,
-        notes: form.notes || null,
-      });
+      if (isOfflineNow()) {
+        enqueueOfflineWorkOrderAction({
+          type: "add-inventory-usage",
+          assignmentId,
+          payload: input,
+        });
+        setItems((current) => [
+          ...current.filter((item) => item.inventoryItemId !== selectedItem.id),
+          {
+            id: `local-inventory-${clientMutationId}`,
+            inventoryItemId: selectedItem.id,
+            inventoryCode: selectedItem.code,
+            name: selectedItem.name,
+            usageType: form.usageType,
+            quantity: parseQuantity(form.quantity),
+            periodLabel: form.periodLabel || null,
+            notes: form.notes || null,
+            approvalStatus: "pending",
+          },
+        ]);
+        setForm(createEmptyForm(catalog));
+        setNotice("Inventaris is offline opgeslagen en wordt automatisch gesynchroniseerd.");
+        return;
+      }
+
+      const result = await addInventoryUsage(assignmentId, input);
 
       if (!result.success || !result.id) {
         setError(result.error ?? "Inventaris opslaan mislukt");
