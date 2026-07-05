@@ -7,6 +7,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { SettingsStickySaveBar } from "@/components/settings/SettingsStickySaveBar";
 import {
   resetSmartPlanningSectorRule,
   updateSmartPlanningSectorRule,
@@ -454,6 +455,24 @@ export function SmartPlanningRulesView({ data, canWrite }: Props) {
                     </ul>
                   </div>
                 </aside>
+              </div>
+              <div className="px-5 pb-5">
+                <SettingsStickySaveBar
+                  canWrite={canWrite}
+                  pending={pending}
+                  submitLabel={`Opslaan voor ${rule.sectorName}`}
+                  onSave={() => saveRule(rule)}
+                >
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={!canWrite || pending}
+                    onClick={() => resetRule(rule)}
+                  >
+                    {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
+                    Reset
+                  </Button>
+                </SettingsStickySaveBar>
               </div>
             </section>
           );

@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { AlertCircle, CheckCircle2, KeyRound, Mail, Send, Server, Trash2 } from "lucide-react";
 import { sendTestMailSettings, updateMailSettings } from "@/app/actions/settings";
 import type { OrgSettings } from "@/app/actions/settings";
+import { SettingsStickySaveBar } from "@/components/settings/SettingsStickySaveBar";
 
 interface Props {
   settings: OrgSettings | null;
@@ -331,31 +332,13 @@ export function MailSettingsView({ settings, canWrite }: Props) {
         )}
       </div>
 
-      {canWrite && (
-        <div className="flex items-center gap-3">
-          <button
-            type="submit"
-            disabled={isPending}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-opacity disabled:opacity-60"
-            style={{ backgroundColor: "#081D3A" }}
-          >
-            {isPending ? "Opslaan..." : "Mailinstellingen opslaan"}
-          </button>
-
-          {saved && (
-            <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: "#059669" }}>
-              <CheckCircle2 className="h-4 w-4" />
-              Opgeslagen
-            </span>
-          )}
-          {error && (
-            <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: "#DC2626" }}>
-              <AlertCircle className="h-4 w-4" />
-              {error}
-            </span>
-          )}
-        </div>
-      )}
+      <SettingsStickySaveBar
+        canWrite={canWrite}
+        pending={isPending}
+        saved={saved}
+        error={error}
+        submitLabel="Mailinstellingen opslaan"
+      />
     </form>
   );
 }

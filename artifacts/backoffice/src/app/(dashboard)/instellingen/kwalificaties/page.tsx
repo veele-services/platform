@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
-import { SettingsTabs } from "@/components/settings/SettingsTabs";
 import { QualificationsView } from "@/components/settings/QualificationsView";
+import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import { listQualificationManagementData } from "@/app/actions/qualifications";
 
 export const metadata: Metadata = {
@@ -20,17 +20,11 @@ export default async function QualificationsSettingsPage() {
   const data = await listQualificationManagementData();
 
   return (
-    <div className="p-8">
-      <div className="mb-6">
-        <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-          Kwalificaties
-        </h1>
-        <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-          Beheer certificaten, diploma&apos;s en kennisgebieden voor personeelsbeheer, taakcodes en slimme planning.
-        </p>
-      </div>
-      <SettingsTabs />
+    <SettingsSectionShell
+      title="Kwalificaties"
+      description="Beheer certificaten, diploma's en kennisgebieden voor personeelsbeheer, taakcodes en slimme planning."
+    >
       <QualificationsView data={data} canWrite={canWrite} />
-    </div>
+    </SettingsSectionShell>
   );
 }
