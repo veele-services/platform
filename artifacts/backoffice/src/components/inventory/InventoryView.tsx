@@ -8,6 +8,7 @@ import {
   ArrowRight,
   PackageSearch,
   Plus,
+  QrCode,
   Search,
 } from "lucide-react";
 import {
@@ -272,6 +273,10 @@ export function InventoryView({
                       <td className="px-4 py-3" style={{ color: "#475569" }}>{row.nextInspectionDate ? new Date(`${row.nextInspectionDate}T00:00:00`).toLocaleDateString("nl-NL") : "-"}</td>
                       <td className="px-4 py-3 text-right">
                         <div className="inline-flex items-center gap-2">
+                          <Link href={`/inventory/${row.id}/qr`} className="inline-flex items-center gap-1 text-xs font-medium hover:underline" style={{ color: "#334155" }}>
+                            <QrCode className="h-3.5 w-3.5" />
+                            QR
+                          </Link>
                           <Link href={`/inventory/${row.id}`} className="inline-flex items-center gap-1 text-xs font-medium hover:underline" style={{ color: "#0F766E" }}>
                             Openen
                             <ArrowRight className="h-3.5 w-3.5" />

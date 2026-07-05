@@ -1,8 +1,9 @@
 "use client";
 
 import { FormEvent, useMemo, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Archive, MapPin, PackageSearch, Pencil } from "lucide-react";
+import { Archive, MapPin, PackageSearch, Pencil, QrCode } from "lucide-react";
 import {
   archiveInventoryItem,
   updateInventoryItem,
@@ -165,28 +166,38 @@ export function InventoryDetailView({
     </>
   );
 
-  const actions = canWrite && !item.archivedAt ? (
+  const actions = (
     <>
-      <EditInventorySheet
-        item={item}
-        locationType={locationType}
-        options={options}
-        pending={pending}
-        onLocationTypeChange={setLocationType}
-        onSubmit={handleUpdate}
-      />
-      <Button
-        type="button"
-        variant="outline"
-        disabled={pending}
-        onClick={() => run(() => archiveInventoryItem(item.id), "Inventarisitem gearchiveerd.")}
-        className="text-amber-700"
-      >
-        <Archive className="h-4 w-4" />
-        Archiveer
+      <Button type="button" variant="outline" asChild>
+        <Link href={`/inventory/${item.id}/qr`}>
+          <QrCode className="h-4 w-4" />
+          QR-label
+        </Link>
       </Button>
+      {canWrite && !item.archivedAt ? (
+        <>
+          <EditInventorySheet
+            item={item}
+            locationType={locationType}
+            options={options}
+            pending={pending}
+            onLocationTypeChange={setLocationType}
+            onSubmit={handleUpdate}
+          />
+          <Button
+            type="button"
+            variant="outline"
+            disabled={pending}
+            onClick={() => run(() => archiveInventoryItem(item.id), "Inventarisitem gearchiveerd.")}
+            className="text-amber-700"
+          >
+            <Archive className="h-4 w-4" />
+            Archiveer
+          </Button>
+        </>
+      ) : null}
     </>
-  ) : null;
+  );
 
   return (
     <TenantPageShell size="wide">
