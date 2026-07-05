@@ -25,7 +25,7 @@ export function PortalConfirmDialog({
   const titleId = useId();
   const descriptionId = useId();
 
-  function confirm() {
+  function confirmAction() {
     startTransition(async () => {
       await onConfirm();
       setOpen(false);
@@ -83,7 +83,7 @@ export function PortalConfirmDialog({
               </button>
               <button
                 type="button"
-                onClick={confirm}
+                onClick={confirmAction}
                 disabled={pending}
                 className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-black text-white disabled:opacity-60"
                 style={{
