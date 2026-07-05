@@ -32,11 +32,14 @@ import {
   tenantDomainsTable,
   tenantModulesTable,
   tenantOwnerInvitesTable,
+  tenantProvisioningRunsTable,
   tenantRegionsTable,
+  tenantRolesTable,
   tenantSectorSettingsTable,
   tenantSectorsTable,
   tenantsTable,
   tenantSubscriptionsTable,
+  tenantUserRolesTable,
   tenantUsersTable,
   type TenantPlanKey,
   type TenantSectorPolicyMode,
@@ -47,6 +50,7 @@ import { and, asc, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePlatformAdmin, writeSupportAccessAuditLog } from "@/lib/auth/platform";
+import { createAdminClient } from "@/lib/supabase/admin";
 import type { ActionResult } from "./customers";
 import { ensurePlatformTicketForDomainFailure } from "./platform-tickets";
 
@@ -59,6 +63,8 @@ const TENANT_LIST_DOMAIN_STATUSES = ["missing", "pending", "verified", "failed"]
 const TENANT_LIST_READINESS_STATUSES = ["ready", "warning", "blocked"] as const;
 const ROUTABLE_DOMAIN_STATUSES = ["verified", "active"] as const;
 const CUSTOM_DOMAIN_TOKEN_BYTES = 24;
+const TENANT_OWNER_ROLE_NAMES = ["Management", "Owner", "Eigenaar", "Administration"] as const;
+const TENANT_ADMIN_ROLE_NAMES = ["Admin", "Administrator", "Administration", "Beheerder", "Management", "Owner", "Eigenaar"] as const;
 
 export type PlatformTenantListDomainStatus = (typeof TENANT_LIST_DOMAIN_STATUSES)[number];
 export type PlatformTenantListReadinessStatus = (typeof TENANT_LIST_READINESS_STATUSES)[number];
@@ -338,11 +344,23 @@ export type PlatformSubscriptionDashboard = {
   };
 };
 
+export type PlatformTenantRoleOption = {
+  id: string;
+  name: string;
+  description: string | null;
+  isSystem: boolean;
+  isCustom: boolean;
+};
+
 export type PlatformTenantUserRow = {
   id: string;
   userId: string;
+  email: string | null;
+  authStatus: "confirmed" | "invited" | "unknown";
+  lastSignInAt: string | null;
   role: string;
   status: string;
+  tenantRoles: PlatformTenantRoleOption[];
   createdAt: string;
   updatedAt: string;
 };
@@ -362,6 +380,7 @@ export type PlatformTenantOwnerInviteRow = {
 export type PlatformTenantUsersAndOwner = {
   users: PlatformTenantUserRow[];
   ownerInvites: PlatformTenantOwnerInviteRow[];
+  roles: PlatformTenantRoleOption[];
 };
 
 export type PlatformTenantRegionRow = {
@@ -391,6 +410,21 @@ function revalidatePlatformTenant(tenantId: string): void {
 
 function actionValue(formData: FormData, name: string): string {
   return String(formData.get(name) ?? "").trim();
+}
+
+function actionValues(formData: FormData, name: string): string[] {
+  return formData
+    .getAll(name)
+    .map((value) => String(value).trim())
+    .filter(Boolean);
+}
+
+function normalizeEmail(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(value);
 }
 
 function booleanValue(formData: FormData, name: string): boolean {
@@ -801,6 +835,131 @@ async function assertTenantExists(tenantId: string): Promise<void> {
   if (!tenant) throw new Error("Tenant niet gevonden.");
 }
 
+type TenantAuthUserSnapshot = {
+  email: string | null;
+  authStatus: "confirmed" | "invited" | "unknown";
+  lastSignInAt: string | null;
+};
+
+type TenantAuthUserInviteResult = {
+  userId: string;
+  deliveryStatus: "sent" | "existing_auth_user";
+  deliveryMessage: string | null;
+};
+
+async function platformTenantAuthUsersById(userIds: string[]): Promise<Map<string, TenantAuthUserSnapshot>> {
+  const requestedIds = new Set(userIds.filter(Boolean));
+  if (requestedIds.size === 0) return new Map();
+
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    if (error) return new Map();
+
+    const users = new Map<string, TenantAuthUserSnapshot>();
+    for (const user of data.users) {
+      if (!requestedIds.has(user.id)) continue;
+      const confirmedAt = user.confirmed_at ?? user.email_confirmed_at ?? null;
+      users.set(user.id, {
+        email: user.email ?? null,
+        authStatus: confirmedAt ? "confirmed" : "invited",
+        lastSignInAt: user.last_sign_in_at ?? null,
+      });
+    }
+    return users;
+  } catch {
+    return new Map();
+  }
+}
+
+async function findPlatformTenantAuthUserByEmail(email: string): Promise<{ id: string; email: string | null } | null> {
+  const admin = createAdminClient();
+  const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+  if (error) throw new Error(`Auth-gebruiker kon niet worden opgezocht: ${error.message}`);
+
+  const normalizedEmail = normalizeEmail(email);
+  const user = data.users.find((candidate) => normalizeEmail(candidate.email ?? "") === normalizedEmail);
+  return user ? { id: user.id, email: user.email ?? null } : null;
+}
+
+async function inviteOrFindTenantAuthUser(email: string): Promise<TenantAuthUserInviteResult> {
+  const admin = createAdminClient();
+  const { data, error } = await admin.auth.admin.inviteUserByEmail(email);
+  if (!error) {
+    const userId = data.user?.id;
+    if (!userId) throw new Error("Supabase gaf geen gebruiker terug voor deze uitnodiging.");
+    return { userId, deliveryStatus: "sent", deliveryMessage: null };
+  }
+
+  const existingUser = await findPlatformTenantAuthUserByEmail(email);
+  if (existingUser) {
+    return {
+      userId: existingUser.id,
+      deliveryStatus: "existing_auth_user",
+      deliveryMessage: `Supabase Auth-user bestaat al; toegang is gekoppeld zonder nieuwe invite-mail. Laat de gebruiker eventueel wachtwoord vergeten gebruiken.`,
+    };
+  }
+
+  throw new Error(`Uitnodiging kon niet worden verstuurd: ${error.message}`);
+}
+
+async function listTenantRoleOptions(tenantId: string): Promise<PlatformTenantRoleOption[]> {
+  return db
+    .select({
+      id: tenantRolesTable.id,
+      name: tenantRolesTable.name,
+      description: tenantRolesTable.description,
+      isSystem: tenantRolesTable.isSystem,
+      isCustom: tenantRolesTable.isCustom,
+    })
+    .from(tenantRolesTable)
+    .where(eq(tenantRolesTable.tenantId, tenantId))
+    .orderBy(desc(tenantRolesTable.isSystem), asc(tenantRolesTable.name));
+}
+
+function preferredRoleId(roles: PlatformTenantRoleOption[], preferredNames: readonly string[]): string | null {
+  const preferred = preferredNames
+    .map((name) => roles.find((role) => role.name.toLowerCase() === name.toLowerCase()))
+    .find(Boolean);
+  return preferred?.id ?? roles[0]?.id ?? null;
+}
+
+async function resolveTenantRoleSelection(
+  tenantId: string,
+  requestedRoleIds: string[],
+  preferredNames: readonly string[],
+): Promise<{ roleIds: string[]; roleNames: string[]; roles: PlatformTenantRoleOption[] }> {
+  const roles = await listTenantRoleOptions(tenantId);
+  if (roles.length === 0) throw new Error("Deze tenant heeft nog geen tenantrollen.");
+
+  const requested = [...new Set(requestedRoleIds.filter(Boolean))];
+  const selectedRoleIds = requested.length > 0
+    ? requested
+    : [preferredRoleId(roles, preferredNames)].filter((value): value is string => Boolean(value));
+
+  const validRoles = roles.filter((role) => selectedRoleIds.includes(role.id));
+  if (validRoles.length !== selectedRoleIds.length) {
+    throw new Error("Een of meer rollen horen niet bij deze tenant.");
+  }
+
+  return {
+    roleIds: selectedRoleIds,
+    roleNames: validRoles.map((role) => role.name),
+    roles,
+  };
+}
+
+function tenantAccessRoleFromRoleNames(roleNames: string[]): "owner" | "admin" | "member" {
+  const normalized = new Set(roleNames.map((name) => name.toLowerCase()));
+  if (["owner", "eigenaar", "management"].some((name) => normalized.has(name))) return "owner";
+  if (["admin", "administrator", "administration", "beheerder"].some((name) => normalized.has(name))) return "admin";
+  return "member";
+}
+
+function normalizeTenantUserStatus(value: string): string {
+  return ["active", "inactive", "suspended"].includes(value) ? value : "active";
+}
+
 async function countTenantSectorUsage(tenantId: string, sectorId: string): Promise<number> {
   const [usage] = await db
     .select({
@@ -933,11 +1092,15 @@ function tenantListReadinessSql(): SQL<PlatformTenantListReadinessStatus> {
 }
 
 function tenantListLatestActivitySql(): SQL<Date> {
-  return sql<Date>`GREATEST(
-    ${tenantsTable.updatedAt},
-    COALESCE((SELECT max(al.created_at) FROM ${auditLogTable} al WHERE al.tenant_id = ${tenantsTable.id}), ${tenantsTable.updatedAt}),
-    COALESCE((SELECT max(sal.created_at) FROM ${supportAccessAuditLogTable} sal WHERE sal.tenant_id = ${tenantsTable.id}), ${tenantsTable.updatedAt})
-  )`;
+  return sql<Date>`${tenantsTable.updatedAt}`;
+}
+
+function dateLikeToIsoString(value: Date | string | null | undefined, fallback: Date | string = new Date()): string {
+  const candidate = value ?? fallback;
+  if (candidate instanceof Date) return candidate.toISOString();
+  const parsed = new Date(candidate);
+  if (!Number.isNaN(parsed.getTime())) return parsed.toISOString();
+  return fallback instanceof Date ? fallback.toISOString() : new Date(fallback).toISOString();
 }
 
 function platformTenantListConditions(filters: PlatformTenantListResult["filters"]): SQL[] {
@@ -1109,7 +1272,7 @@ export async function listPlatformTenants(): Promise<PlatformTenantRow[]> {
 
   return rows.map((row) => ({
     ...row,
-    createdAt: row.createdAt.toISOString(),
+    createdAt: dateLikeToIsoString(row.createdAt),
   }));
 }
 
@@ -1117,6 +1280,7 @@ export async function listPlatformTenantList(filters: PlatformTenantListFilters 
   await requirePlatformAdmin();
 
   const normalizedFilters = normalizeTenantListFilters(filters);
+  try {
   const conditions = platformTenantListConditions(normalizedFilters);
   const where = conditions.length > 0 ? and(...conditions) : undefined;
   const domainStatus = tenantListDomainStatusSql();
@@ -1254,8 +1418,8 @@ export async function listPlatformTenantList(filters: PlatformTenantListFilters 
     rows: rows.map((row) => {
       const normalizedRow = {
         ...row,
-        createdAt: row.createdAt.toISOString(),
-        latestActivityAt: row.latestActivityAt.toISOString(),
+        createdAt: dateLikeToIsoString(row.createdAt),
+        latestActivityAt: dateLikeToIsoString(row.latestActivityAt, row.createdAt),
       };
       return {
         ...normalizedRow,
@@ -1273,6 +1437,10 @@ export async function listPlatformTenantList(filters: PlatformTenantListFilters 
       hasPreviousPage: page > 1,
     },
   };
+  } catch (error) {
+    console.error("[platform-tenants] Rijke tenantlijst kon niet laden; basislijst wordt gebruikt.", error);
+    return listPlatformTenantListFallback(normalizedFilters);
+  }
 }
 
 async function listPlatformTenantUsageLimits(planId: string | null): Promise<PlatformTenantUsageLimit[]> {
@@ -1654,7 +1822,7 @@ export async function listPlatformSubscriptionDashboard(): Promise<PlatformSubsc
 export async function listPlatformTenantUsersAndOwner(tenantId: string): Promise<PlatformTenantUsersAndOwner> {
   await requirePlatformAdmin();
 
-  const [users, ownerInvites] = await Promise.all([
+  const [users, ownerInvites, roles, roleAssignments] = await Promise.all([
     db
       .select({
         id: tenantUsersTable.id,
@@ -1682,11 +1850,42 @@ export async function listPlatformTenantUsersAndOwner(tenantId: string): Promise
       .from(tenantOwnerInvitesTable)
       .where(eq(tenantOwnerInvitesTable.tenantId, tenantId))
       .orderBy(desc(tenantOwnerInvitesTable.updatedAt)),
+    listTenantRoleOptions(tenantId),
+    db
+      .select({
+        userId: tenantUserRolesTable.userId,
+        id: tenantRolesTable.id,
+        name: tenantRolesTable.name,
+        description: tenantRolesTable.description,
+        isSystem: tenantRolesTable.isSystem,
+        isCustom: tenantRolesTable.isCustom,
+      })
+      .from(tenantUserRolesTable)
+      .innerJoin(tenantRolesTable, eq(tenantUserRolesTable.tenantRoleId, tenantRolesTable.id))
+      .where(eq(tenantUserRolesTable.tenantId, tenantId))
+      .orderBy(asc(tenantRolesTable.name)),
   ]);
+  const authUsers = await platformTenantAuthUsersById(users.map((row) => row.userId));
+  const rolesByUser = new Map<string, PlatformTenantRoleOption[]>();
+  for (const role of roleAssignments) {
+    const existing = rolesByUser.get(role.userId) ?? [];
+    existing.push({
+      id: role.id,
+      name: role.name,
+      description: role.description,
+      isSystem: role.isSystem,
+      isCustom: role.isCustom,
+    });
+    rolesByUser.set(role.userId, existing);
+  }
 
   return {
     users: users.map((row) => ({
       ...row,
+      email: authUsers.get(row.userId)?.email ?? null,
+      authStatus: authUsers.get(row.userId)?.authStatus ?? "unknown",
+      lastSignInAt: authUsers.get(row.userId)?.lastSignInAt ?? null,
+      tenantRoles: rolesByUser.get(row.userId) ?? [],
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     })),
@@ -1697,7 +1896,404 @@ export async function listPlatformTenantUsersAndOwner(tenantId: string): Promise
       createdAt: row.createdAt.toISOString(),
       updatedAt: row.updatedAt.toISOString(),
     })),
+    roles,
   };
+}
+
+function staticPlatformTenantListFacets(): PlatformTenantListResult["facets"] {
+  return {
+    statuses: TENANT_STATUS_FILTERS.map((status) => ({ value: status, label: status })),
+    plans: TENANT_PLAN_KEYS.map((plan) => ({ value: plan, label: plan })),
+    modules: [],
+    sectors: [],
+    regions: [],
+    domainStatuses: [
+      { value: "missing", label: "Geen domein" },
+      { value: "pending", label: "Pending" },
+      { value: "verified", label: "Verified" },
+      { value: "failed", label: "Failed" },
+    ],
+    readinessStatuses: [
+      { value: "ready", label: "Ready" },
+      { value: "warning", label: "Aandacht" },
+      { value: "blocked", label: "Blocked" },
+    ],
+  };
+}
+
+async function listPlatformTenantListFallback(
+  filters: PlatformTenantListResult["filters"],
+): Promise<PlatformTenantListResult> {
+  const conditions: SQL[] = [];
+
+  if (filters.q) {
+    const pattern = `%${filters.q.toLowerCase()}%`;
+    conditions.push(sql`(
+      lower(${tenantsTable.name}) LIKE ${pattern}
+      OR lower(${tenantsTable.slug}) LIKE ${pattern}
+    )`);
+  }
+  if (filters.status !== "all") conditions.push(eq(tenantsTable.status, filters.status));
+  if (filters.plan !== "all") conditions.push(eq(tenantsTable.planKey, filters.plan));
+
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  const [countRows, rows] = await Promise.all([
+    db
+      .select({ total: sql<number>`COUNT(*)::int` })
+      .from(tenantsTable)
+      .where(where),
+    db
+      .select({
+        id: tenantsTable.id,
+        slug: tenantsTable.slug,
+        name: tenantsTable.name,
+        isActive: tenantsTable.isActive,
+        status: tenantsTable.status,
+        planKey: tenantsTable.planKey,
+        createdAt: tenantsTable.createdAt,
+        updatedAt: tenantsTable.updatedAt,
+        userCount: sql<number>`(
+          SELECT COUNT(*)
+          FROM ${tenantUsersTable} tu
+          WHERE tu.tenant_id = ${tenantsTable.id}
+            AND tu.status = 'active'
+        )::int`,
+        primaryDomain: sql<string | null>`(
+          SELECT td.domain
+          FROM ${tenantDomainsTable} td
+          WHERE td.tenant_id = ${tenantsTable.id}
+            AND td.type <> 'platform_reserved'
+            AND td.verification_status IN ('verified', 'active')
+          ORDER BY td.is_primary DESC, td.created_at ASC
+          LIMIT 1
+        )`,
+      })
+      .from(tenantsTable)
+      .where(where)
+      .orderBy(desc(tenantsTable.updatedAt), asc(tenantsTable.name))
+      .limit(filters.pageSize)
+      .offset((filters.page - 1) * filters.pageSize),
+  ]);
+
+  const total = Number(countRows[0]?.total ?? 0);
+  const totalPages = Math.max(1, Math.ceil(total / filters.pageSize));
+  const page = Math.min(filters.page, totalPages);
+
+  return {
+    rows: rows.map((row) => {
+      const domainStatus: PlatformTenantListDomainStatus = row.primaryDomain ? "verified" : "missing";
+      const readinessStatus: PlatformTenantListReadinessStatus =
+        row.status === "suspended" || row.status === "archived" || !row.primaryDomain || Number(row.userCount ?? 0) === 0
+          ? "blocked"
+          : "warning";
+      const normalizedRow = {
+        id: row.id,
+        slug: row.slug,
+        name: row.name,
+        isActive: row.isActive,
+        status: row.status,
+        planKey: row.planKey,
+        userCount: Number(row.userCount ?? 0),
+        primaryDomain: row.primaryDomain,
+        createdAt: dateLikeToIsoString(row.createdAt),
+        ownerEmail: null,
+        ownerStatus: null,
+        domainStatus,
+        readinessStatus,
+        enabledModules: 0,
+        moduleSummary: null,
+        enabledSectors: 0,
+        sectorSummary: null,
+        activeRegions: 0,
+        regionSummary: null,
+        latestActivityAt: dateLikeToIsoString(row.updatedAt, row.createdAt),
+        subscriptionStatus: null,
+      };
+
+      return {
+        ...normalizedRow,
+        openActions: tenantListOpenActions(normalizedRow),
+      };
+    }),
+    facets: staticPlatformTenantListFacets(),
+    filters: { ...filters, page },
+    pagination: {
+      total,
+      page,
+      pageSize: filters.pageSize,
+      totalPages,
+      hasNextPage: page < totalPages,
+      hasPreviousPage: page > 1,
+    },
+  };
+}
+
+export async function addPlatformTenantAdmin(formData: FormData): Promise<void> {
+  const actor = await requirePlatformAdmin();
+  const tenantId = actionValue(formData, "tenantId");
+  const email = normalizeEmail(actionValue(formData, "email"));
+  if (!tenantId) throw new Error("Tenant ontbreekt.");
+  if (!email || !isValidEmail(email)) throw new Error("Vul een geldig e-mailadres in.");
+
+  await assertTenantExists(tenantId);
+  const roleSelection = await resolveTenantRoleSelection(tenantId, actionValues(formData, "tenantRoleIds"), TENANT_ADMIN_ROLE_NAMES);
+  const invite = await inviteOrFindTenantAuthUser(email);
+  const accessRole = tenantAccessRoleFromRoleNames(roleSelection.roleNames);
+
+  await db.transaction(async (tx) => {
+    await tx
+      .insert(tenantUsersTable)
+      .values({ tenantId, userId: invite.userId, role: accessRole, status: "active" })
+      .onConflictDoUpdate({
+        target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
+        set: { role: accessRole, status: "active", updatedAt: new Date() },
+      });
+
+    await tx
+      .delete(tenantUserRolesTable)
+      .where(and(eq(tenantUserRolesTable.tenantId, tenantId), eq(tenantUserRolesTable.userId, invite.userId)));
+
+    await tx
+      .insert(tenantUserRolesTable)
+      .values(roleSelection.roleIds.map((tenantRoleId) => ({ tenantId, userId: invite.userId, tenantRoleId })))
+      .onConflictDoNothing();
+  });
+
+  await auditPlatformTenantAction({
+    tenantId,
+    action: "tenant_admin_added",
+    resource: "tenant_users",
+    resourceId: invite.userId,
+    metadata: {
+      email,
+      roleIds: roleSelection.roleIds,
+      roleNames: roleSelection.roleNames,
+      accessRole,
+      deliveryStatus: invite.deliveryStatus,
+      deliveryMessage: invite.deliveryMessage,
+      actorUserId: actor.userId,
+    },
+  });
+
+  revalidatePlatformTenant(tenantId);
+  redirect(`/platform/tenants/${tenantId}?tab=users`);
+}
+
+export async function updatePlatformTenantAdmin(formData: FormData): Promise<void> {
+  const actor = await requirePlatformAdmin();
+  const tenantId = actionValue(formData, "tenantId");
+  const userId = actionValue(formData, "userId");
+  const status = normalizeTenantUserStatus(actionValue(formData, "status"));
+  if (!tenantId || !userId) throw new Error("Tenantgebruiker ontbreekt.");
+
+  await assertTenantExists(tenantId);
+  const [tenantUser] = await db
+    .select({ id: tenantUsersTable.id })
+    .from(tenantUsersTable)
+    .where(and(eq(tenantUsersTable.tenantId, tenantId), eq(tenantUsersTable.userId, userId)))
+    .limit(1);
+  if (!tenantUser) throw new Error("Tenantgebruiker niet gevonden.");
+
+  const roleSelection = await resolveTenantRoleSelection(tenantId, actionValues(formData, "tenantRoleIds"), TENANT_ADMIN_ROLE_NAMES);
+  const accessRole = tenantAccessRoleFromRoleNames(roleSelection.roleNames);
+
+  await db.transaction(async (tx) => {
+    await tx
+      .update(tenantUsersTable)
+      .set({ role: accessRole, status, updatedAt: new Date() })
+      .where(and(eq(tenantUsersTable.tenantId, tenantId), eq(tenantUsersTable.userId, userId)));
+
+    await tx
+      .delete(tenantUserRolesTable)
+      .where(and(eq(tenantUserRolesTable.tenantId, tenantId), eq(tenantUserRolesTable.userId, userId)));
+
+    await tx
+      .insert(tenantUserRolesTable)
+      .values(roleSelection.roleIds.map((tenantRoleId) => ({ tenantId, userId, tenantRoleId })))
+      .onConflictDoNothing();
+  });
+
+  await auditPlatformTenantAction({
+    tenantId,
+    action: "tenant_admin_updated",
+    resource: "tenant_users",
+    resourceId: userId,
+    metadata: {
+      status,
+      roleIds: roleSelection.roleIds,
+      roleNames: roleSelection.roleNames,
+      accessRole,
+      actorUserId: actor.userId,
+    },
+  });
+
+  revalidatePlatformTenant(tenantId);
+  redirect(`/platform/tenants/${tenantId}?tab=users`);
+}
+
+export async function deletePlatformTenantAdmin(formData: FormData): Promise<void> {
+  const actor = await requirePlatformAdmin();
+  const tenantId = actionValue(formData, "tenantId");
+  const userId = actionValue(formData, "userId");
+  if (!tenantId || !userId) throw new Error("Tenantgebruiker ontbreekt.");
+
+  await assertTenantExists(tenantId);
+  const [tenantUser] = await db
+    .select({ id: tenantUsersTable.id, role: tenantUsersTable.role, status: tenantUsersTable.status })
+    .from(tenantUsersTable)
+    .where(and(eq(tenantUsersTable.tenantId, tenantId), eq(tenantUsersTable.userId, userId)))
+    .limit(1);
+  if (!tenantUser) throw new Error("Tenantgebruiker niet gevonden.");
+
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(tenantUserRolesTable)
+      .where(and(eq(tenantUserRolesTable.tenantId, tenantId), eq(tenantUserRolesTable.userId, userId)));
+
+    await tx
+      .delete(tenantUsersTable)
+      .where(and(eq(tenantUsersTable.tenantId, tenantId), eq(tenantUsersTable.userId, userId)));
+  });
+
+  await auditPlatformTenantAction({
+    tenantId,
+    action: "tenant_admin_deleted",
+    resource: "tenant_users",
+    resourceId: userId,
+    metadata: {
+      previousRole: tenantUser.role,
+      previousStatus: tenantUser.status,
+      actorUserId: actor.userId,
+    },
+  });
+
+  revalidatePlatformTenant(tenantId);
+  redirect(`/platform/tenants/${tenantId}?tab=users`);
+}
+
+export async function updatePlatformTenantOwnerInvite(formData: FormData): Promise<void> {
+  const actor = await requirePlatformAdmin();
+  const tenantId = actionValue(formData, "tenantId");
+  const inviteId = actionValue(formData, "inviteId");
+  const email = normalizeEmail(actionValue(formData, "email"));
+  if (!tenantId) throw new Error("Tenant ontbreekt.");
+  if (!email || !isValidEmail(email)) throw new Error("Vul een geldig owner e-mailadres in.");
+
+  await assertTenantExists(tenantId);
+  const [existingInvite] = inviteId
+    ? await db
+        .select({
+          id: tenantOwnerInvitesTable.id,
+          email: tenantOwnerInvitesTable.email,
+          metadata: tenantOwnerInvitesTable.metadata,
+        })
+        .from(tenantOwnerInvitesTable)
+        .where(and(eq(tenantOwnerInvitesTable.id, inviteId), eq(tenantOwnerInvitesTable.tenantId, tenantId)))
+        .limit(1)
+    : [];
+
+  if (inviteId && !existingInvite) throw new Error("Owner invite niet gevonden.");
+
+  const roleSelection = await resolveTenantRoleSelection(tenantId, [], TENANT_OWNER_ROLE_NAMES);
+  const invite = await inviteOrFindTenantAuthUser(email);
+  const now = new Date();
+
+  await db.transaction(async (tx) => {
+    if (existingInvite && normalizeEmail(existingInvite.email) !== email) {
+      await tx
+        .update(tenantOwnerInvitesTable)
+        .set({
+          status: "rolled_back",
+          rollbackAt: now,
+          errorMessage: `Vervangen door ${email}.`,
+          updatedAt: now,
+          metadata: {
+            ...(existingInvite.metadata ?? {}),
+            replacedByEmail: email,
+            replacedByPlatformUserId: actor.userId,
+          },
+        })
+        .where(eq(tenantOwnerInvitesTable.id, existingInvite.id));
+    }
+
+    await tx
+      .insert(tenantOwnerInvitesTable)
+      .values({
+        tenantId,
+        email,
+        userId: invite.userId,
+        status: "sent",
+        invitedBy: actor.userId,
+        inviteSentAt: now,
+        errorMessage: invite.deliveryMessage,
+        metadata: {
+          source: "platform_tenant_detail",
+          previousInviteId: existingInvite?.id ?? null,
+          deliveryStatus: invite.deliveryStatus,
+        },
+      })
+      .onConflictDoUpdate({
+        target: [tenantOwnerInvitesTable.tenantId, tenantOwnerInvitesTable.email],
+        set: {
+          userId: invite.userId,
+          status: "sent",
+          invitedBy: actor.userId,
+          inviteSentAt: now,
+          rollbackAt: null,
+          errorMessage: invite.deliveryMessage,
+          updatedAt: now,
+          metadata: {
+            source: "platform_tenant_detail",
+            previousInviteId: existingInvite?.id ?? null,
+            deliveryStatus: invite.deliveryStatus,
+          },
+        },
+      });
+
+    await tx
+      .insert(tenantUsersTable)
+      .values({ tenantId, userId: invite.userId, role: "owner", status: "active" })
+      .onConflictDoUpdate({
+        target: [tenantUsersTable.tenantId, tenantUsersTable.userId],
+        set: { role: "owner", status: "active", updatedAt: now },
+      });
+
+    await tx
+      .insert(tenantUserRolesTable)
+      .values(roleSelection.roleIds.map((tenantRoleId) => ({ tenantId, userId: invite.userId, tenantRoleId })))
+      .onConflictDoNothing();
+
+    await tx
+      .update(tenantProvisioningRunsTable)
+      .set({
+        ownerEmail: email,
+        ownerUserId: invite.userId,
+        ownerInviteStatus: "sent",
+        errorMessage: null,
+        updatedAt: now,
+      })
+      .where(eq(tenantProvisioningRunsTable.tenantId, tenantId));
+  });
+
+  await auditPlatformTenantAction({
+    tenantId,
+    action: "tenant_owner_invite_updated",
+    resource: "tenant_owner_invites",
+    resourceId: existingInvite?.id ?? invite.userId,
+    metadata: {
+      email,
+      userId: invite.userId,
+      roleIds: roleSelection.roleIds,
+      roleNames: roleSelection.roleNames,
+      deliveryStatus: invite.deliveryStatus,
+      deliveryMessage: invite.deliveryMessage,
+      actorUserId: actor.userId,
+    },
+  });
+
+  revalidatePlatformTenant(tenantId);
+  revalidatePath("/platform/onboarding");
+  redirect(`/platform/tenants/${tenantId}?tab=users`);
 }
 
 export async function listPlatformTenantRegions(tenantId: string): Promise<PlatformTenantRegionRow[]> {

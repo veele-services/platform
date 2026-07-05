@@ -80,6 +80,18 @@ function envValue(name: string): string | null {
   return value || null;
 }
 
+function canonicalFieldgridUrl(value: string | null): string | null {
+  if (!value) return null;
+  const normalized = value.trim();
+  if (!normalized.toLowerCase().includes("dgwebservices.nl")) return normalized;
+
+  return normalized
+    .replace(/staging\.veele\.dgwebservices\.nl/giu, "staging.fieldgrid.nl")
+    .replace(/app\.veele\.dgwebservices\.nl/giu, "veele.fieldgrid.nl")
+    .replace(/veele\.dgwebservices\.nl/giu, "veele.fieldgrid.nl")
+    .replace(/dgwebservices\.nl/giu, "fieldgrid.nl");
+}
+
 function appendPath(baseUrl: string, path: string): string {
   const normalizedBase = baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
@@ -188,17 +200,17 @@ async function buildHealthChecks(
 ): Promise<PlatformOperationsHealthCheck[]> {
   const generatedAt = new Date().toISOString();
   const apiEndpoint = firstUrl([
-    envValue("API_INTERNAL_URL") ? appendPath(envValue("API_INTERNAL_URL")!, "/api/healthz") : null,
+    envValue("API_INTERNAL_URL") ? canonicalFieldgridUrl(appendPath(envValue("API_INTERNAL_URL")!, "/api/healthz")) : null,
     localUrlFromPort("API_PORT", "/api/healthz"),
   ]);
   const klantEndpoint = firstUrl([
-    envValue("KLANT_PORTAL_URL") ? appendPath(envValue("KLANT_PORTAL_URL")!, "/healthz") : null,
-    envValue("NEXT_PUBLIC_KLANT_PORTAL_URL") ? appendPath(envValue("NEXT_PUBLIC_KLANT_PORTAL_URL")!, "/healthz") : null,
+    envValue("KLANT_PORTAL_URL") ? canonicalFieldgridUrl(appendPath(envValue("KLANT_PORTAL_URL")!, "/healthz")) : null,
+    envValue("NEXT_PUBLIC_KLANT_PORTAL_URL") ? canonicalFieldgridUrl(appendPath(envValue("NEXT_PUBLIC_KLANT_PORTAL_URL")!, "/healthz")) : null,
     localUrlFromPort("KLANT_PORT", "/healthz"),
   ]);
   const personeelEndpoint = firstUrl([
-    envValue("PERSONEEL_PORTAL_URL") ? appendPath(envValue("PERSONEEL_PORTAL_URL")!, "/healthz") : null,
-    envValue("NEXT_PUBLIC_PERSONEEL_PORTAL_URL") ? appendPath(envValue("NEXT_PUBLIC_PERSONEEL_PORTAL_URL")!, "/healthz") : null,
+    envValue("PERSONEEL_PORTAL_URL") ? canonicalFieldgridUrl(appendPath(envValue("PERSONEEL_PORTAL_URL")!, "/healthz")) : null,
+    envValue("NEXT_PUBLIC_PERSONEEL_PORTAL_URL") ? canonicalFieldgridUrl(appendPath(envValue("NEXT_PUBLIC_PERSONEEL_PORTAL_URL")!, "/healthz")) : null,
     localUrlFromPort("PERSONEEL_PORT", "/healthz"),
   ]);
   const [apiHealth, klantHealth, personeelHealth, mailHealth] = await Promise.all([
@@ -341,8 +353,8 @@ function buildManualRuns(smoke: PlatformStagingSmokeDashboard): PlatformOperatio
 function buildDeployment(): PlatformOperationsDeployment {
   return {
     environment: envValue("FIELDGRID_ENV") ?? envValue("NODE_ENV") ?? "unknown",
-    appUrl: envValue("APP_URL") ?? envValue("NEXT_PUBLIC_APP_URL"),
-    siteUrl: envValue("SITE_URL") ?? envValue("NEXT_PUBLIC_SITE_URL"),
+    appUrl: canonicalFieldgridUrl(envValue("APP_URL") ?? envValue("NEXT_PUBLIC_APP_URL")),
+    siteUrl: canonicalFieldgridUrl(envValue("SITE_URL") ?? envValue("NEXT_PUBLIC_SITE_URL")),
     backofficeService: envValue("BACKOFFICE_SERVICE_NAME") ?? envValue("SERVICE_NAME"),
     apiService: envValue("API_SERVICE_NAME"),
     klantService: envValue("KLANT_SERVICE_NAME"),

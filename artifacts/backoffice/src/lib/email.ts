@@ -14,7 +14,7 @@ function getClient(): Resend | null {
 }
 
 function fromAddress(): string {
-  return process.env["RESEND_FROM_EMAIL"] ?? "Veele <noreply@veele.nl>";
+  return process.env["RESEND_FROM_EMAIL"] ?? "Fieldgrid <noreply@fieldgrid.nl>";
 }
 
 function normalizeEncryption(value: string | null): SmtpEncryption {
@@ -59,7 +59,7 @@ async function getSmtpConfig(): Promise<SmtpMailConfig | null> {
 function siteUrl(): string {
   const domains = process.env["REPLIT_DOMAINS"];
   if (domains) return `https://${domains.split(",")[0]!.trim()}`;
-  return process.env["NEXT_PUBLIC_SITE_URL"] ?? "https://veele.nl";
+  return process.env["NEXT_PUBLIC_SITE_URL"] ?? "https://fieldgrid.nl";
 }
 
 // ── Core send helpers ─────────────────────────────────────────────────────────
@@ -130,7 +130,7 @@ export function klantPortalUrl(): string {
   if (domains) return `https://${domains.split(",")[0]!.trim()}/klant`;
   const siteUrl = process.env["NEXT_PUBLIC_SITE_URL"];
   if (siteUrl) return `${siteUrl}/klant`;
-  return "https://veele.nl/klant";
+  return "https://fieldgrid.nl/klant";
 }
 
 export function personeelPortalUrl(): string {
@@ -140,7 +140,7 @@ export function personeelPortalUrl(): string {
   if (domains) return `https://${domains.split(",")[0]!.trim()}/personeel`;
   const siteUrl = process.env["NEXT_PUBLIC_SITE_URL"];
   if (siteUrl) return `${siteUrl}/personeel`;
-  return "https://veele.nl/personeel";
+  return "https://fieldgrid.nl/personeel";
 }
 
 // ── Shared base template ───────────────────────────────────────────────────────
