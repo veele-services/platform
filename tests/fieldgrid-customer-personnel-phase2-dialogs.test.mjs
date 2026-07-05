@@ -61,8 +61,8 @@ test("phase 2 replaces risky personnel actions with app confirm dialogs", () => 
   const applyButton = read("artifacts/personeel-pwa/src/app/(app)/openstaand/ApplyButton.tsx");
   const statusProgress = read("artifacts/personeel-pwa/src/app/(app)/opdrachten/[id]/WorkOrderStatusProgress.tsx");
 
-  assert.match(applyButton, /PersonnelConfirmDialog/u);
-  assert.match(applyButton, /confirmAction/u);
+  assert.match(applyButton, /ResponseBottomSheet/u);
+  assert.match(applyButton, /sheetAction/u);
   assert.match(applyButton, /Interesse tonen\?/u);
   assert.match(applyButton, /Niet beschikbaar doorgeven\?/u);
 
