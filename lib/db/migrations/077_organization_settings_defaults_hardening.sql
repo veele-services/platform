@@ -9,14 +9,7 @@
 ALTER TABLE organization_settings
   ADD COLUMN IF NOT EXISTS availability_advance_days integer,
   ADD COLUMN IF NOT EXISTS smtp_enabled boolean,
-  ADD COLUMN IF NOT EXISTS smtp_host varchar(255),
-  ADD COLUMN IF NOT EXISTS smtp_port integer,
   ADD COLUMN IF NOT EXISTS smtp_encryption varchar(20),
-  ADD COLUMN IF NOT EXISTS smtp_username varchar(255),
-  ADD COLUMN IF NOT EXISTS smtp_password text,
-  ADD COLUMN IF NOT EXISTS smtp_from_name varchar(200),
-  ADD COLUMN IF NOT EXISTS smtp_from_email varchar(255),
-  ADD COLUMN IF NOT EXISTS smtp_reply_to varchar(255),
   ADD COLUMN IF NOT EXISTS email_template_brand_color varchar(20),
   ADD COLUMN IF NOT EXISTS email_template_accent_color varchar(20),
   ADD COLUMN IF NOT EXISTS email_template_footer_text text,
@@ -28,28 +21,13 @@ ALTER TABLE organization_settings
   ADD COLUMN IF NOT EXISTS notif_betaling_herinnering boolean,
   ADD COLUMN IF NOT EXISTS notif_herinnering_dagen integer;
 
-ALTER TABLE organization_settings
-  DROP CONSTRAINT IF EXISTS organization_settings_smtp_encryption_check,
-  DROP CONSTRAINT IF EXISTS organization_settings_smtp_port_check,
-  DROP CONSTRAINT IF EXISTS organization_settings_availability_advance_days_check;
-
 UPDATE organization_settings
 SET
   naam = COALESCE(naam, ''),
   betaaltermijn_dagen = COALESCE(betaaltermijn_dagen, 30),
-  availability_advance_days = CASE
-    WHEN availability_advance_days BETWEEN 7 AND 365 THEN availability_advance_days
-    ELSE 60
-  END,
+  availability_advance_days = COALESCE(availability_advance_days, 60),
   smtp_enabled = COALESCE(smtp_enabled, false),
-  smtp_port = CASE
-    WHEN smtp_port IS NULL OR (smtp_port >= 1 AND smtp_port <= 65535) THEN smtp_port
-    ELSE NULL
-  END,
-  smtp_encryption = CASE
-    WHEN smtp_encryption IN ('none', 'starttls', 'tls') THEN smtp_encryption
-    ELSE 'starttls'
-  END,
+  smtp_encryption = COALESCE(smtp_encryption, 'starttls'),
   email_template_brand_color = COALESCE(email_template_brand_color, '#081D3A'),
   email_template_accent_color = COALESCE(email_template_accent_color, '#00B7B3'),
   email_template_footer_text = COALESCE(
@@ -99,10 +77,35 @@ ALTER TABLE organization_settings
   ALTER COLUMN updated_at SET DEFAULT now(),
   ALTER COLUMN updated_at SET NOT NULL;
 
-ALTER TABLE organization_settings
-  ADD CONSTRAINT organization_settings_smtp_encryption_check
-  CHECK (smtp_encryption IN ('none', 'starttls', 'tls')),
-  ADD CONSTRAINT organization_settings_smtp_port_check
-  CHECK (smtp_port IS NULL OR (smtp_port >= 1 AND smtp_port <= 65535)),
-  ADD CONSTRAINT organization_settings_availability_advance_days_check
-  CHECK (availability_advance_days BETWEEN 7 AND 365);
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'organization_settings_smtp_encryption_check'
+  ) THEN
+    ALTER TABLE organization_settings
+      ADD CONSTRAINT organization_settings_smtp_encryption_check
+      CHECK (smtp_encryption IN ('none', 'starttls', 'tls'));
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'organization_settings_smtp_port_check'
+  ) THEN
+    ALTER TABLE organization_settings
+      ADD CONSTRAINT organization_settings_smtp_port_check
+      CHECK (smtp_port IS NULL OR (smtp_port >= 1 AND smtp_port <= 65535));
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM pg_constraint
+    WHERE conname = 'organization_settings_availability_advance_days_check'
+  ) THEN
+    ALTER TABLE organization_settings
+      ADD CONSTRAINT organization_settings_availability_advance_days_check
+      CHECK (availability_advance_days BETWEEN 7 AND 365);
+  END IF;
+END $$;
