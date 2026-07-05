@@ -13,6 +13,12 @@ import {
 import { ReportActions } from "@/components/reports/ReportActions";
 import { AssignmentMaterialsApprovalPanel } from "@/components/materials/AssignmentMaterialsApprovalPanel";
 import { ProcessStatusBadge, ProcessStepper } from "@/components/workflows/ProcessStatus";
+import {
+  TenantDetailActionPanel,
+  TenantDetailHeader,
+  TenantDetailSectionNav,
+  TenantPageShell,
+} from "@/components/tenant-ui";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -179,9 +185,39 @@ export default async function ReportDetailPage({ params }: Props) {
   }
 
   return (
-    <div className="p-8 max-w-4xl">
+    <TenantPageShell size="default">
+      <TenantDetailHeader
+        backHref="/reports"
+        backLabel="Rapporten"
+        title={`Rapport - ${report.assignmentTitle}`}
+        badges={
+          <>
+            <ProcessStatusBadge kind="report" status={report.status} />
+            <span className="rounded bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">
+              {report.assignmentCode}
+            </span>
+          </>
+        }
+        meta={[
+          { label: "Klant", value: report.customerName },
+          { label: "Ingediend", value: formatDate(report.submittedAt) },
+          { label: "Door", value: report.submittedByName },
+          { label: "Materiaalregels", value: materialApprovalRows.length },
+        ]}
+        summary={<ProcessStepper kind="report" status={report.status} />}
+      />
+
+      <TenantDetailSectionNav
+        items={[
+          { label: "Gegevens", href: "#details", active: true },
+          { label: "Inhoud", href: "#content" },
+          { label: "Notities", href: "#timeline", count: reportNotes.length },
+          { label: "Materiaal", href: "#materials", count: materialApprovalRows.length },
+          { label: "Acties", href: "#actions" },
+        ]}
+      />
       {/* ── Header ── */}
-      <div className="mb-8">
+      <div className="hidden">
         <Link
           href="/reports"
           className="inline-flex items-center gap-1 text-sm mb-3 transition-colors hover:underline"
@@ -219,7 +255,7 @@ export default async function ReportDetailPage({ params }: Props) {
         {/* Left: report content */}
         <div className="lg:col-span-2 flex flex-col gap-6">
           {/* Meta */}
-          <div className="veele-card">
+          <div id="details" className="veele-card scroll-mt-24">
             <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "#94A3B8" }}>
               Rapportgegevens
             </p>
@@ -303,7 +339,7 @@ export default async function ReportDetailPage({ params }: Props) {
           </div>
 
           {/* Report body */}
-          <div className="veele-card">
+          <div id="content" className="veele-card scroll-mt-24">
             <h2
               className="font-heading text-base font-semibold mb-3 flex items-center gap-2"
               style={{ color: "#081D3A" }}
@@ -327,14 +363,18 @@ export default async function ReportDetailPage({ params }: Props) {
             )}
           </div>
 
-          <ReportTimeline notes={reportNotes} />
+          <div id="timeline" className="scroll-mt-24">
+            <ReportTimeline notes={reportNotes} />
+          </div>
 
           {canApproveMaterials && (report.status === "submitted" || materialApprovalRows.length > 0) ? (
-            <AssignmentMaterialsApprovalPanel
-              assignmentId={report.assignmentId}
-              rows={materialApprovalRows}
-              readOnly={report.status !== "submitted"}
-            />
+            <div id="materials" className="scroll-mt-24">
+              <AssignmentMaterialsApprovalPanel
+                assignmentId={report.assignmentId}
+                rows={materialApprovalRows}
+                readOnly={report.status !== "submitted"}
+              />
+            </div>
           ) : null}
 
           {/* Management feedback (rejection notes) */}
@@ -358,7 +398,11 @@ export default async function ReportDetailPage({ params }: Props) {
         </div>
 
         {/* Right: actions */}
-        <div className="flex flex-col gap-4">
+        <TenantDetailActionPanel
+          id="actions"
+          title="Reviewacties"
+          description="Beoordeel rapportage, controleer facturatie en open de opdracht."
+        >
           {canWrite && report.status === "submitted" && (
             <ReportActions reportId={report.id} approveDisabledReason={approveDisabledReason} />
           )}
@@ -415,8 +459,8 @@ export default async function ReportDetailPage({ params }: Props) {
               ↗ Opdracht openen
             </Link>
           </div>
-        </div>
+        </TenantDetailActionPanel>
       </div>
-    </div>
+    </TenantPageShell>
   );
 }

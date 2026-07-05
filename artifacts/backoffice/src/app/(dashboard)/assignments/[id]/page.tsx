@@ -46,6 +46,12 @@ import { InterestPollButton } from "@/components/assignments/InterestPollButton"
 import { InterestRoundHistory } from "@/components/assignments/InterestRoundHistory";
 import { SmartCandidateActions } from "@/components/assignments/SmartCandidateActions";
 import { ProcessStatusBadge, ProcessStepper } from "@/components/workflows/ProcessStatus";
+import {
+  TenantDetailActionPanel,
+  TenantDetailHeader,
+  TenantDetailSectionNav,
+  TenantPageShell,
+} from "@/components/tenant-ui";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -551,10 +557,42 @@ export default async function AssignmentDetailPage({ params }: Props) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] p-8">
+    <TenantPageShell>
+      <TenantDetailHeader
+        backHref="/assignments"
+        backLabel="Opdrachten"
+        title={assignment.title}
+        badges={
+          <>
+            <span className="rounded bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">
+              {assignment.code}
+            </span>
+            <AssignmentStatusBadge status={assignment.status} />
+            <AssignmentPriorityBadge priority={assignment.priority} />
+          </>
+        }
+        meta={[
+          { label: "Klant", value: assignment.customerName },
+          { label: "Gepland", value: scheduledLabel },
+          { label: "Tijdslot", value: timeLabel ?? "Nog geen tijdslot" },
+          { label: "Bijgewerkt", value: updatedAt },
+        ]}
+        summary={<ProcessStepper kind="assignment" status={assignment.status} />}
+      />
+
+      <TenantDetailSectionNav
+        items={[
+          { label: "Workflow", href: "#workflow", active: true },
+          { label: "Gegevens", href: "#details" },
+          { label: "Offerte", href: "#quote", count: existingQuote ? 1 : 0 },
+          { label: "Rapport", href: "#report", count: existingReport ? 1 : 0 },
+          { label: "Factuur", href: "#invoice", count: existingInvoice ? 1 : 0 },
+          { label: "Bijlagen", href: "#documents", count: assignmentDocuments.length },
+        ]}
+      />
 
       {/* ── Header ─────────────────────────────────────── */}
-      <div className="mb-8">
+      <div className="hidden">
         <Link
           href="/assignments"
           className="inline-flex items-center gap-1 text-sm mb-3 transition-colors hover:underline"
@@ -591,7 +629,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
 
       {/* ── Two-column layout ─────────────────────────── */}
       {planningReadiness && (
-        <div className="mb-6">
+        <div id="workflow" className="mb-6 scroll-mt-24">
           <CapacityMatchingSection
             assignmentId={assignment.id}
             planningReadiness={planningReadiness}
@@ -600,7 +638,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
         </div>
       )}
 
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
+      <div id="details" className="grid scroll-mt-24 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
 
         {/* Left: static details */}
         <div className="flex flex-col gap-6">
@@ -701,7 +739,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
 
           {/* ── Existing quote info card ──────────────────── */}
           {existingQuote && (
-            <div className="veele-card">
+            <div id="quote" className="veele-card scroll-mt-24">
               <h2
                 className="font-heading text-base font-semibold mb-3 flex items-center gap-2"
                 style={{ color: "#081D3A" }}
@@ -751,7 +789,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
           )}
 
           {existingReport && (
-            <div className="veele-card">
+            <div id="report" className="veele-card scroll-mt-24">
               <h2
                 className="font-heading text-base font-semibold mb-3 flex items-center gap-2"
                 style={{ color: "#081D3A" }}
@@ -779,7 +817,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
           )}
 
           {existingInvoice && (
-            <div className="veele-card">
+            <div id="invoice" className="veele-card scroll-mt-24">
               <h2
                 className="font-heading text-base font-semibold mb-3 flex items-center gap-2"
                 style={{ color: "#081D3A" }}
@@ -810,7 +848,10 @@ export default async function AssignmentDetailPage({ params }: Props) {
         </div>
 
         {/* Right: interactive actions panel (or read-only for viewers) */}
-        <div className="flex flex-col gap-4 xl:sticky xl:top-24 xl:self-start">
+        <TenantDetailActionPanel
+          title="Workflowacties"
+          description="Volgende stap, planning, personeel en taken voor deze opdracht."
+        >
           {/* Direct approval button — only when status is review and user can write quotes */}
           {assignment.status === "review" && canWrite && canReadQuotes && (
             <DirectApprovalButton assignmentId={assignment.id} />
@@ -885,12 +926,12 @@ export default async function AssignmentDetailPage({ params }: Props) {
               )}
             </>
           )}
-        </div>
+        </TenantDetailActionPanel>
       </div>
 
       {/* ── Bijlagen ─────────────────────────────────────── */}
       {canReadDocuments && (
-        <div className="mt-6">
+        <div id="documents" className="mt-6 scroll-mt-24">
           <AssignmentDocumentsPanel
             assignmentId={assignment.id}
             initialDocuments={assignmentDocuments}
@@ -898,6 +939,6 @@ export default async function AssignmentDetailPage({ params }: Props) {
           />
         </div>
       )}
-    </div>
+    </TenantPageShell>
   );
 }

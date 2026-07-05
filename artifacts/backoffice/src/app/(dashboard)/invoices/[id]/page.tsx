@@ -17,6 +17,12 @@ import { getInvoice, getInvoiceStatusHistory } from "@/app/actions/invoices";
 import { getPaymentHistory, type PaymentRecord } from "@/app/actions/payments";
 import { InvoiceActions } from "@/components/invoices/InvoiceActions";
 import { ProcessStatusBadge, ProcessStepper } from "@/components/workflows/ProcessStatus";
+import {
+  TenantDetailActionPanel,
+  TenantDetailHeader,
+  TenantDetailSectionNav,
+  TenantPageShell,
+} from "@/components/tenant-ui";
 
 // ── Read-only payment history (for users without write permission) ─────────────
 
@@ -115,10 +121,61 @@ export default async function InvoiceDetailPage({ params }: Props) {
   const isOverdue   = invoice.status === "sent" && new Date(invoice.dueDate) < new Date();
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] p-8">
+    <TenantPageShell>
+      <TenantDetailHeader
+        backHref="/invoices"
+        backLabel="Facturen"
+        title={invoice.invoiceNumber}
+        badges={
+          <>
+            <ProcessStatusBadge kind="invoice" status={invoice.status} size="md" />
+            {isOverdue && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">
+                <Clock className="h-3.5 w-3.5" />
+                Achterstallig
+              </span>
+            )}
+          </>
+        }
+        meta={[
+          { label: "Klant", value: invoice.customerName },
+          { label: "Totaal", value: formatEur(invoice.totalAmount) },
+          { label: "Vervaldatum", value: formatDate(invoice.dueDate) },
+          {
+            label: "Aangemaakt",
+            value: new Date(invoice.createdAt).toLocaleDateString("nl-NL", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            }),
+          },
+        ]}
+        actions={
+          <Link
+            href={`/api/invoices/${invoice.id}/pdf`}
+            target="_blank"
+            className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
+          >
+            <Download className="h-4 w-4" />
+            Download PDF
+          </Link>
+        }
+        summary={<ProcessStepper kind="invoice" status={invoice.status} />}
+      />
+
+      <TenantDetailSectionNav
+        items={[
+          { label: "Klant", href: "#customer", active: true },
+          { label: "Opdracht", href: "#assignment" },
+          { label: "Regels", href: "#lines", count: invoice.lineItems.length },
+          { label: "Financien", href: "#finance" },
+          { label: "Betaling", href: "#payment", count: paymentHistory.length },
+          { label: "Historie", href: "#history", count: statusHistory.length },
+        ]}
+      />
 
       {/* ── Header ── */}
-      <div className="mb-8">
+      <div className="hidden">
         <Link
           href="/invoices"
           className="inline-flex items-center gap-1 text-sm mb-3 transition-colors hover:underline"
@@ -174,7 +231,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
         <div className="flex flex-col gap-6">
 
           {/* Customer info */}
-          <div className="veele-card">
+          <div id="customer" className="veele-card scroll-mt-24">
             <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "#94A3B8" }}>
               Klantgegevens
             </p>
@@ -211,7 +268,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
           </div>
 
           {/* Assignment info */}
-          <div className="veele-card">
+          <div id="assignment" className="veele-card scroll-mt-24">
             <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "#94A3B8" }}>
               Opdrachtgegevens
             </p>
@@ -261,7 +318,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
 
           {/* Invoice lines */}
           {invoice.lineItems.length > 0 && (
-            <div className="veele-card">
+            <div id="lines" className="veele-card scroll-mt-24">
               <h2
                 className="font-heading text-base font-semibold mb-4 flex items-center gap-2"
                 style={{ color: "#081D3A" }}
@@ -317,7 +374,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
           )}
 
           {/* Financial summary */}
-          <div className="veele-card">
+          <div id="finance" className="veele-card scroll-mt-24">
             <h2
               className="font-heading text-base font-semibold mb-4 flex items-center gap-2"
               style={{ color: "#081D3A" }}
@@ -358,10 +415,13 @@ export default async function InvoiceDetailPage({ params }: Props) {
         </div>
 
         {/* Right: actions + status info + history */}
-        <div className="flex flex-col gap-4 xl:sticky xl:top-24 xl:self-start">
+        <TenantDetailActionPanel
+          title="Factuuracties"
+          description="Betaallink, reminders, betaalhistorie en statusinformatie."
+        >
 
           {/* Due date card */}
-          <div className="veele-card">
+          <div id="payment" className="veele-card scroll-mt-24">
             <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#94A3B8" }}>
               Betalingsgegevens
             </p>
@@ -403,7 +463,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
 
           {/* Status history */}
           {statusHistory.length > 0 && (
-            <div className="veele-card">
+            <div id="history" className="veele-card scroll-mt-24">
               <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "#94A3B8" }}>
                 Statusgeschiedenis
               </p>
@@ -435,8 +495,8 @@ export default async function InvoiceDetailPage({ params }: Props) {
               </ol>
             </div>
           )}
-        </div>
+        </TenantDetailActionPanel>
       </div>
-    </div>
+    </TenantPageShell>
   );
 }

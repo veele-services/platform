@@ -30,6 +30,13 @@ import {
   PERSONNEL_TYPE_COLORS,
   type PersonnelType,
 } from "@/types/personnel";
+import {
+  TenantDetailActionPanel,
+  TenantDetailHeader,
+  TenantDetailLayout,
+  TenantDetailSectionNav,
+  TenantPageShell,
+} from "@/components/tenant-ui";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -99,9 +106,85 @@ export default async function PersonnelDetailPage({ params }: Props) {
     : null;
 
   return (
-    <div className="p-8 max-w-5xl">
+    <TenantPageShell size="default">
+      <TenantDetailHeader
+        backHref="/personnel"
+        backLabel="Personeel"
+        title={fullName}
+        description={person.email}
+        badges={
+          <>
+            <span className="rounded bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">
+              {person.code}
+            </span>
+            {typeLabel && typeColor && (
+              <span
+                className="rounded px-2.5 py-1 text-xs font-semibold"
+                style={{ backgroundColor: typeColor.bg, color: typeColor.color }}
+              >
+                {typeLabel}
+              </span>
+            )}
+            {person.roleName && (
+              <span className="rounded bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
+                {person.roleName}
+              </span>
+            )}
+            {person.sectorName && (
+              <span className="rounded bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700">
+                {person.sectorName}
+              </span>
+            )}
+            <StatusBadge isActive={person.isActive} />
+            {person.emergencyAvailable && (
+              <span className="inline-flex items-center gap-1 rounded bg-red-50 px-2.5 py-1 text-xs font-semibold text-red-700">
+                <AlertCircle className="h-3 w-3" />
+                Spoedsbeschikbaar
+              </span>
+            )}
+          </>
+        }
+        meta={[
+          { label: "Beschikbaar", value: person.isAvailable ? "Ja" : "Nee" },
+          { label: "Regio", value: person.region ?? "Geen primaire regio" },
+          { label: "Aangemaakt", value: new Date(person.createdAt).toLocaleDateString("nl-NL") },
+        ]}
+      />
+
+      <TenantDetailSectionNav
+        items={[
+          { label: "Beschikbaarheid", href: "#availability", active: true },
+          { label: "Profiel", href: "#profile" },
+          { label: "Opdrachten", href: "#assignments", count: assignmentHistory.length },
+          { label: "Inventaris", href: "#inventory", count: inventoryItems.length },
+          { label: "Documenten", href: "#documents", count: documents.length },
+        ]}
+      />
+
+      <TenantDetailLayout
+        aside={
+          canWrite ? (
+            <TenantDetailActionPanel
+              title="Personeelsacties"
+              description="Beheer profiel, toegang en beschikbaarheid vanuit dit dossier."
+            >
+              <PersonnelDetailActions
+                personnelId={person.id}
+                personnelName={fullName}
+                personnelEmail={person.email}
+                isActive={person.isActive}
+                userId={person.userId}
+                inviteSentAt={person.inviteSentAt}
+                authStatus={authStatus}
+                roles={roles}
+                sectors={sectors}
+              />
+            </TenantDetailActionPanel>
+          ) : undefined
+        }
+      >
       {/* ── Header ──────────────────────────────────────── */}
-      <div className="flex items-start justify-between mb-8">
+      <div className="hidden">
         <div className="flex items-start gap-4">
           <Link
             href="/personnel"
@@ -174,7 +257,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
       </div>
 
       {/* ── Beschikbaarheid & verlof ─────────────────────────────── */}
-      <div className="mb-6">
+      <section id="availability" className="mb-6 scroll-mt-24">
         <h2 className="font-heading text-base font-semibold mb-4" style={{ color: "#081D3A" }}>
           Beschikbaarheid &amp; verlof
         </h2>
@@ -184,9 +267,9 @@ export default async function PersonnelDetailPage({ params }: Props) {
           leavePeriods={leavePeriods}
           canWrite={canWrite}
         />
-      </div>
+      </section>
 
-      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
+      <div id="profile" className="grid scroll-mt-24 grid-cols-1 gap-5 lg:grid-cols-3">
         {/* ── Left column ──────────────────────────────── */}
         <div className="lg:col-span-2 flex flex-col gap-5">
 
@@ -412,7 +495,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
 
       {/* ── Assignment history ────────────────────────── */}
       {canReadAssignments && (
-        <div className="mt-5">
+        <div id="assignments" className="mt-5 scroll-mt-24">
           <div className="veele-card overflow-hidden p-0">
             <div className="flex items-center justify-between px-5 py-4">
               <h2
@@ -443,7 +526,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
 
       {/* ── Inventory ─────────────────────────────────── */}
       {canReadInventory && (
-        <div className="mt-5">
+        <div id="inventory" className="mt-5 scroll-mt-24">
           <InventoryItemsPanel
             rows={inventoryItems}
             title="Inventaris"
@@ -454,7 +537,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
 
       {/* ── Documents ─────────────────────────────────── */}
       {canReadDocuments && (
-        <div className="mt-5">
+        <div id="documents" className="mt-5 scroll-mt-24">
           <EntityDocumentsPanel
             entityType="personnel"
             entityId={id}
@@ -463,7 +546,8 @@ export default async function PersonnelDetailPage({ params }: Props) {
           />
         </div>
       )}
-    </div>
+      </TenantDetailLayout>
+    </TenantPageShell>
   );
 }
 
