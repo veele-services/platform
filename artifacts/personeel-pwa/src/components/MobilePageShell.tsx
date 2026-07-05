@@ -23,7 +23,7 @@ export function MobilePageShell({
       </section>
 
       <section className="-mt-7 min-h-[calc(100vh-14rem)] rounded-t-[28px] bg-[#F4F7FB] px-3.5 pb-[calc(6.4rem+var(--safe-bottom))] pt-4 md:mt-0 md:min-h-0 md:rounded-3xl md:px-0 md:pb-0 md:pt-0">
-        <div className="mx-auto max-w-xl space-y-4 md:max-w-3xl">
+        <div className="mx-auto max-w-xl space-y-4 md:max-w-5xl xl:max-w-6xl">
           {children}
         </div>
       </section>

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
+import type { ReactNode } from "react";
 import {
   Bell,
   CheckCheck,
@@ -334,13 +335,35 @@ export function MobileHeader({
       className="sticky top-0 z-40 md:hidden"
       style={{ background: "linear-gradient(180deg, var(--color-primary) 0%, #061F44 100%)" }}
     >
-      <div className="flex items-center justify-between px-4 pb-3 pt-[calc(0.7rem+var(--safe-top))]">
-        <VeeleLogo branding={branding} />
-        <MobileHeaderActions
-          notificationSummary={notificationSummary}
-          ticketSummary={ticketSummary}
-        />
-      </div>
+      <MobileHeaderBar
+        branding={branding}
+        notificationSummary={notificationSummary}
+        ticketSummary={ticketSummary}
+      />
     </header>
+  );
+}
+
+export function MobileHeaderBar({
+  branding,
+  notificationSummary,
+  ticketSummary,
+  leading,
+}: {
+  branding?: PortalBrandingProps;
+  notificationSummary: NotificationSummary;
+  ticketSummary: TicketSummary;
+  leading?: ReactNode;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 px-4 pb-3 pt-[calc(0.7rem+var(--safe-top))]">
+      <div className="min-w-0">
+        {leading ?? <VeeleLogo branding={branding} />}
+      </div>
+      <MobileHeaderActions
+        notificationSummary={notificationSummary}
+        ticketSummary={ticketSummary}
+      />
+    </div>
   );
 }

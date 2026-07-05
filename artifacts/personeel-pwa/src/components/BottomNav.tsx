@@ -4,18 +4,18 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home,
-  Newspaper,
   CalendarDays,
   Clock,
+  MessageSquare,
   Menu,
 } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/",           icon: Home,         label: "Home",     match: ["/"] },
-  { href: "/nieuws",     icon: Newspaper,    label: "Nieuws",   match: ["/nieuws"] },
   { href: "/opdrachten", icon: CalendarDays, label: "Planning", match: ["/opdrachten", "/openstaand"] },
   { href: "/uren",       icon: Clock,        label: "Uren",     match: ["/uren"] },
-  { href: "/meer",       icon: Menu,         label: "Meer",     match: ["/meer", "/instellingen", "/profiel", "/beveiliging", "/meldingen", "/berichten", "/documenten", "/verlof", "/beschikbaarheid"] },
+  { href: "/berichten",  icon: MessageSquare, label: "Berichten", match: ["/berichten", "/meldingen"] },
+  { href: "/meer",       icon: Menu,         label: "Meer",     match: ["/meer", "/instellingen", "/profiel", "/beveiliging", "/documenten", "/verlof", "/beschikbaarheid", "/nieuws"] },
 ];
 
 export function BottomNav() {
