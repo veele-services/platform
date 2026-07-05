@@ -12,6 +12,7 @@ import {
   CheckSquare,
   ImageIcon,
   FileText,
+  MessageSquare,
   Receipt,
 } from "lucide-react";
 import { getMyAssignmentDetail } from "@/actions/assignments";
@@ -94,6 +95,15 @@ function formatAmount(amount: string): string {
   });
 }
 
+function supportHrefForAssignment(code: string, title: string): string {
+  return `/meldingen/tickets?${new URLSearchParams({
+    context: "assignment",
+    department: "planning",
+    subject: `Vraag over opdracht ${code} - ${title}`,
+    body: `Opdracht: ${code} - ${title}\n\nVraag:`,
+  }).toString()}`;
+}
+
 function StatusPil({ status }: { status: AssignmentStatus }) {
   const cfg = STATUS_COLOR[status] ?? { bg: "#F1F5F9", color: "#64748B" };
   const lbl = STATUS_LABEL[status] ?? status;
@@ -134,6 +144,7 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
     .join(" – ");
 
   const { quote, invoice } = assignment;
+  const supportHref = supportHrefForAssignment(assignment.code, assignment.title);
 
   return (
     <div
@@ -195,6 +206,13 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
           </div>
           <div className="flex items-center gap-3">
             <StatusPil status={assignment.status} />
+            <Link
+              href={supportHref}
+              className="inline-flex items-center gap-2 rounded-2xl bg-[#E8FBFA] px-4 py-2.5 text-sm font-black text-[#087C79]"
+            >
+              <MessageSquare size={16} />
+              Vraag over opdracht
+            </Link>
             <Link
               href="/opdrachten"
               className="inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-black"
@@ -301,6 +319,23 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
             </strong>
           </p>
         </div>
+
+        <Link
+          href={supportHref}
+          className="flex items-start gap-3 rounded-2xl bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+        >
+          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-[#E8FBFA] text-[#087C79]">
+            <MessageSquare size={18} />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-sm font-black" style={{ color: "var(--color-primary)" }}>
+              Vraag over deze opdracht
+            </span>
+            <span className="mt-1 block text-sm font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
+              Start een supportticket met opdrachtnummer en context alvast ingevuld.
+            </span>
+          </span>
+        </Link>
 
         {/* Omschrijving */}
         {assignment.description && (

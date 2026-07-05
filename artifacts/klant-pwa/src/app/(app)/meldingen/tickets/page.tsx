@@ -1,7 +1,14 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { Inbox, MessageSquare } from "lucide-react";
+import {
+  BriefcaseBusiness,
+  Building2,
+  Inbox,
+  MessageSquare,
+  Receipt,
+  Wrench,
+} from "lucide-react";
 import { getMyCustomerTickets } from "@/actions/tickets";
 import {
   PortalActionMenu,
@@ -27,6 +34,63 @@ import {
 type CustomerTicket = Awaited<ReturnType<typeof getMyCustomerTickets>>[number];
 type TicketFilter = "all" | "open" | "waiting_backoffice" | "waiting_customer" | "closed";
 type TicketPriorityFilter = "all" | "urgent" | "high" | "normal" | "low";
+type TicketContextFilter = "all" | "object" | "assignment" | "invoice" | "general";
+type TicketDateFilter = "all" | "today" | "week" | "month" | "older";
+
+function ticketPrefillHref(params: Record<string, string>): string {
+  return `/meldingen/tickets?${new URLSearchParams(params).toString()}`;
+}
+
+const TOPICS = [
+  {
+    key: "object",
+    label: "Object",
+    description: "Locatie, toegang, sleutels of contactgegevens.",
+    Icon: Building2,
+    href: ticketPrefillHref({
+      context: "object",
+      department: "service",
+      subject: "Vraag over object",
+      body: "Object:\n\nVraag:",
+    }),
+  },
+  {
+    key: "assignment",
+    label: "Opdracht",
+    description: "Planning, uitvoering, rapportage of werkbon.",
+    Icon: BriefcaseBusiness,
+    href: ticketPrefillHref({
+      context: "assignment",
+      department: "planning",
+      subject: "Vraag over opdracht",
+      body: "Opdracht:\n\nVraag:",
+    }),
+  },
+  {
+    key: "invoice",
+    label: "Factuur",
+    description: "Factuur, betaling, offerte of verzamelfactuur.",
+    Icon: Receipt,
+    href: ticketPrefillHref({
+      context: "invoice",
+      department: "finance",
+      subject: "Vraag over factuur",
+      body: "Factuur:\n\nVraag:",
+    }),
+  },
+  {
+    key: "general",
+    label: "Algemeen",
+    description: "Andere vraag voor support of backoffice.",
+    Icon: Wrench,
+    href: ticketPrefillHref({
+      context: "general",
+      department: "support",
+      subject: "Algemene vraag",
+      body: "Vraag:",
+    }),
+  },
+] as const;
 
 function formatDate(value: string) {
   return new Intl.DateTimeFormat("nl-NL", {
@@ -41,6 +105,10 @@ function normalizeQuery(value?: string): string {
   return value?.trim().slice(0, 80) ?? "";
 }
 
+function normalizeTextParam(value?: string): string {
+  return value?.trim().slice(0, 500) ?? "";
+}
+
 function normalizeStatus(value?: string): TicketFilter {
   return ["open", "waiting_backoffice", "waiting_customer", "closed"].includes(value ?? "")
     ? (value as TicketFilter)
@@ -50,6 +118,18 @@ function normalizeStatus(value?: string): TicketFilter {
 function normalizePriority(value?: string): TicketPriorityFilter {
   return ["urgent", "high", "normal", "low"].includes(value ?? "")
     ? (value as TicketPriorityFilter)
+    : "all";
+}
+
+function normalizeContext(value?: string): TicketContextFilter {
+  return ["object", "assignment", "invoice", "general"].includes(value ?? "")
+    ? (value as TicketContextFilter)
+    : "all";
+}
+
+function normalizeDateFilter(value?: string): TicketDateFilter {
+  return ["today", "week", "month", "older"].includes(value ?? "")
+    ? (value as TicketDateFilter)
     : "all";
 }
 
@@ -75,9 +155,30 @@ function ticketPriorityLabel(value: TicketPriorityFilter) {
   return labels[value];
 }
 
-function matchesTicketSearch(ticket: CustomerTicket, query: string) {
-  if (!query) return true;
-  const haystack = [
+function ticketContextLabel(value: TicketContextFilter) {
+  const labels: Record<TicketContextFilter, string> = {
+    all: "Alle contexten",
+    object: "Object",
+    assignment: "Opdracht",
+    invoice: "Factuur",
+    general: "Algemeen",
+  };
+  return labels[value];
+}
+
+function ticketDateLabel(value: TicketDateFilter) {
+  const labels: Record<TicketDateFilter, string> = {
+    all: "Alle datums",
+    today: "Vandaag",
+    week: "Laatste 7 dagen",
+    month: "Laatste 30 dagen",
+    older: "Ouder dan 30 dagen",
+  };
+  return labels[value];
+}
+
+function ticketSearchText(ticket: CustomerTicket) {
+  return [
     ticket.subject,
     ticket.lastMessagePreview,
     departmentLabel(ticket.department),
@@ -87,8 +188,43 @@ function matchesTicketSearch(ticket: CustomerTicket, query: string) {
     .filter(Boolean)
     .join(" ")
     .toLowerCase();
+}
 
-  return haystack.includes(query.toLowerCase());
+function matchesTicketSearch(ticket: CustomerTicket, query: string) {
+  return !query || ticketSearchText(ticket).includes(query.toLowerCase());
+}
+
+function matchesTicketContext(ticket: CustomerTicket, context: TicketContextFilter): boolean {
+  if (context === "all") return true;
+  const text = ticketSearchText(ticket);
+
+  if (context === "object") {
+    return text.includes("object") || text.includes("locatie") || ticket.department === "service";
+  }
+  if (context === "assignment") {
+    return text.includes("opdracht") || text.includes("werkbon") || ticket.department === "planning";
+  }
+  if (context === "invoice") {
+    return text.includes("factuur") || text.includes("betaling") || ticket.department === "finance";
+  }
+
+  return !matchesTicketContext(ticket, "object") &&
+    !matchesTicketContext(ticket, "assignment") &&
+    !matchesTicketContext(ticket, "invoice");
+}
+
+function matchesTicketDate(ticket: CustomerTicket, date: TicketDateFilter) {
+  if (date === "all") return true;
+
+  const lastMessageAt = new Date(ticket.lastMessageAt).getTime();
+  const now = Date.now();
+  const day = 24 * 60 * 60 * 1000;
+  const ageDays = (now - lastMessageAt) / day;
+
+  if (date === "today") return ageDays < 1;
+  if (date === "week") return ageDays < 7;
+  if (date === "month") return ageDays < 30;
+  return ageDays >= 30;
 }
 
 function filterTickets(
@@ -96,11 +232,19 @@ function filterTickets(
   query: string,
   status: TicketFilter,
   priority: TicketPriorityFilter,
+  context: TicketContextFilter,
+  date: TicketDateFilter,
 ) {
   return tickets.filter((ticket) => {
     const matchesStatus = status === "all" || ticket.status === status;
     const matchesPriority = priority === "all" || ticket.priority === priority;
-    return matchesStatus && matchesPriority && matchesTicketSearch(ticket, query);
+    return (
+      matchesStatus &&
+      matchesPriority &&
+      matchesTicketContext(ticket, context) &&
+      matchesTicketDate(ticket, date) &&
+      matchesTicketSearch(ticket, query)
+    );
   });
 }
 
@@ -108,17 +252,23 @@ function filterHref({
   query,
   status,
   priority,
+  context,
+  date,
   remove,
 }: {
   query: string;
   status: TicketFilter;
   priority: TicketPriorityFilter;
-  remove: "query" | "status" | "priority";
+  context: TicketContextFilter;
+  date: TicketDateFilter;
+  remove: "query" | "status" | "priority" | "context" | "date";
 }) {
   const params = new URLSearchParams();
   if (remove !== "query" && query) params.set("q", query);
   if (remove !== "status" && status !== "all") params.set("status", status);
   if (remove !== "priority" && priority !== "all") params.set("priority", priority);
+  if (remove !== "context" && context !== "all") params.set("context", context);
+  if (remove !== "date" && date !== "all") params.set("date", date);
   const value = params.toString();
   return value ? `/meldingen/tickets?${value}` : "/meldingen/tickets";
 }
@@ -189,33 +339,59 @@ function ticketColumns(): Array<PortalDataColumn<CustomerTicket>> {
 export default async function CustomerTicketsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; priority?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    status?: string;
+    priority?: string;
+    context?: string;
+    date?: string;
+    department?: string;
+    subject?: string;
+    body?: string;
+  }>;
 }) {
   const params = await searchParams;
   const query = normalizeQuery(params.q);
   const status = normalizeStatus(params.status);
   const priority = normalizePriority(params.priority);
+  const context = normalizeContext(params.context);
+  const date = normalizeDateFilter(params.date);
+  const initialSubject = normalizeTextParam(params.subject);
+  const initialBody = normalizeTextParam(params.body);
   const tickets = await getMyCustomerTickets();
-  const visibleTickets = filterTickets(tickets, query, status, priority);
+  const visibleTickets = filterTickets(tickets, query, status, priority, context, date);
   const unreadTotal = tickets.reduce((sum, ticket) => sum + ticket.unreadCount, 0);
+  const openTickets = tickets.filter((ticket) => ticket.status !== "closed").length;
 
   const activeFilters = [
     query
       ? {
           label: `Zoeken: ${query}`,
-          href: filterHref({ query, status, priority, remove: "query" }),
+          href: filterHref({ query, status, priority, context, date, remove: "query" }),
         }
       : null,
     status !== "all"
       ? {
           label: ticketStatusLabel(status),
-          href: filterHref({ query, status, priority, remove: "status" }),
+          href: filterHref({ query, status, priority, context, date, remove: "status" }),
         }
       : null,
     priority !== "all"
       ? {
           label: `Prioriteit: ${ticketPriorityLabel(priority)}`,
-          href: filterHref({ query, status, priority, remove: "priority" }),
+          href: filterHref({ query, status, priority, context, date, remove: "priority" }),
+        }
+      : null,
+    context !== "all"
+      ? {
+          label: `Context: ${ticketContextLabel(context)}`,
+          href: filterHref({ query, status, priority, context, date, remove: "context" }),
+        }
+      : null,
+    date !== "all"
+      ? {
+          label: ticketDateLabel(date),
+          href: filterHref({ query, status, priority, context, date, remove: "date" }),
         }
       : null,
   ].filter((item): item is { label: string; href: string } => Boolean(item));
@@ -223,13 +399,34 @@ export default async function CustomerTicketsPage({
   return (
     <PortalPageShell
       title="Support"
-      subtitle="Tickets en vragen richting uw dienstverlener."
+      subtitle="Tickets, vragen en opvolging richting uw dienstverlener."
       status={{
-        label: unreadTotal > 0 ? `${unreadTotal} nieuw` : `${tickets.length} tickets`,
-        tone: unreadTotal > 0 ? "warning" : "accent",
+        label: unreadTotal > 0 ? `${unreadTotal} nieuw` : `${openTickets} open`,
+        tone: unreadTotal > 0 || openTickets > 0 ? "warning" : "accent",
       }}
       size="default"
     >
+      <section className="grid gap-3 md:grid-cols-4">
+        {TOPICS.map(({ key, label, description, Icon, href }) => (
+          <Link
+            key={key}
+            href={href}
+            className="rounded-2xl border bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            style={{ borderColor: context === key ? "var(--color-accent)" : "var(--color-border)" }}
+          >
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-[#E8FBFA] text-[#087C79]">
+              <Icon size={18} />
+            </span>
+            <h2 className="mt-3 text-sm font-black" style={{ color: "var(--color-primary)" }}>
+              {label}
+            </h2>
+            <p className="mt-1 text-xs font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
+              {description}
+            </p>
+          </Link>
+        ))}
+      </section>
+
       <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_24rem]">
         <section className="space-y-4">
           <PortalToolbar
@@ -240,10 +437,16 @@ export default async function CustomerTicketsPage({
             actions={
               <PortalFilterSheet
                 title="Ticketfilters"
-                description="Filter op status, prioriteit of onderwerp."
+                description="Filter op status, prioriteit, context en recente activiteit."
                 activeCount={activeFilters.length}
               >
-                <TicketFilterForm query={query} status={status} priority={priority} />
+                <TicketFilterForm
+                  query={query}
+                  status={status}
+                  priority={priority}
+                  context={context}
+                  date={date}
+                />
               </PortalFilterSheet>
             }
           >
@@ -261,6 +464,8 @@ export default async function CustomerTicketsPage({
                 <option value="closed">Afgesloten</option>
               </PortalToolbarSelect>
               <input type="hidden" name="priority" value={priority} />
+              <input type="hidden" name="context" value={context} />
+              <input type="hidden" name="date" value={date} />
               <button
                 type="submit"
                 className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-black text-white shadow-sm transition-opacity hover:opacity-90"
@@ -270,6 +475,16 @@ export default async function CustomerTicketsPage({
               </button>
             </form>
           </PortalToolbar>
+
+          <div className="rounded-2xl border bg-white px-4 py-3 shadow-sm" style={{ borderColor: "var(--color-border)" }}>
+            <p className="text-sm font-black" style={{ color: "var(--color-primary)" }}>
+              Supportstatus
+            </p>
+            <p className="mt-1 text-sm font-semibold leading-6" style={{ color: "var(--color-secondary)" }}>
+              Open tickets worden opgepakt door de juiste afdeling. Prioriteit en afdeling
+              bepalen de volgorde; SLA-tijden kunnen later per contract worden getoond.
+            </p>
+          </div>
 
           <PortalDataList
             items={visibleTickets}
@@ -282,7 +497,7 @@ export default async function CustomerTicketsPage({
               description:
                 activeFilters.length > 0
                   ? "Pas uw zoekopdracht of filters aan om de support inbox opnieuw te bekijken."
-                  : "Start rechts een nieuw contactverzoek.",
+                  : "Kies bovenaan een onderwerp of start rechts een nieuw contactverzoek.",
             }}
             renderMobileCard={(ticket) => (
               <article
@@ -351,7 +566,13 @@ export default async function CustomerTicketsPage({
           />
         </section>
 
-        <NewTicketForm />
+        <NewTicketForm
+          initialDepartment={params.department}
+          initialPriority={priority === "all" ? "normal" : priority}
+          initialSubject={initialSubject}
+          initialBody={initialBody}
+          contextLabel={context === "all" ? undefined : ticketContextLabel(context)}
+        />
       </div>
     </PortalPageShell>
   );
@@ -361,10 +582,14 @@ function TicketFilterForm({
   query,
   status,
   priority,
+  context,
+  date,
 }: {
   query: string;
   status: TicketFilter;
   priority: TicketPriorityFilter;
+  context: TicketContextFilter;
+  date: TicketDateFilter;
 }) {
   return (
     <form action="/meldingen/tickets" className="space-y-4">
@@ -416,6 +641,42 @@ function TicketFilterForm({
           <option value="high">Hoog</option>
           <option value="normal">Normaal</option>
           <option value="low">Laag</option>
+        </select>
+      </div>
+      <div>
+        <label htmlFor="ticket-filter-context" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+          Context
+        </label>
+        <select
+          id="ticket-filter-context"
+          name="context"
+          defaultValue={context}
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+        >
+          <option value="all">Alle contexten</option>
+          <option value="object">Object</option>
+          <option value="assignment">Opdracht</option>
+          <option value="invoice">Factuur</option>
+          <option value="general">Algemeen</option>
+        </select>
+      </div>
+      <div>
+        <label htmlFor="ticket-filter-date" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+          Datum
+        </label>
+        <select
+          id="ticket-filter-date"
+          name="date"
+          defaultValue={date}
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+        >
+          <option value="all">Alle datums</option>
+          <option value="today">Vandaag</option>
+          <option value="week">Laatste 7 dagen</option>
+          <option value="month">Laatste 30 dagen</option>
+          <option value="older">Ouder dan 30 dagen</option>
         </select>
       </div>
       <div className="grid grid-cols-2 gap-2 pt-2">

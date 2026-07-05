@@ -60,6 +60,10 @@ function formatDateTime(value: string): string {
   });
 }
 
+function supportPrefillHref(params: Record<string, string>): string {
+  return `/meldingen/tickets?${new URLSearchParams(params).toString()}`;
+}
+
 function greetingForNow(): string {
   const hour = new Date().getHours();
   if (hour < 12) return "Goedemorgen";
@@ -295,6 +299,12 @@ export default async function DashboardPage() {
   const recentNotifications = notifications
     .filter((item) => item.category !== "system")
     .slice(0, 3);
+  const generalSupportHref = supportPrefillHref({
+    context: "general",
+    department: "support",
+    subject: "Algemene vraag",
+    body: "Vraag:",
+  });
 
   const actionItems: ActionInboxItem[] = [];
   if (pendingQuoteCount > 0) {
@@ -466,6 +476,13 @@ export default async function DashboardPage() {
                 {ticketSummary.unreadCount} ongelezen bericht{ticketSummary.unreadCount === 1 ? "" : "en"}
               </span>
             </div>
+            <Link
+              href={generalSupportHref}
+              className="mt-3 inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-[#E8FBFA] px-4 py-3 text-sm font-black text-[#087C79]"
+            >
+              <PlusCircle size={16} />
+              Nieuw ticket
+            </Link>
           </FocusPanel>
         </div>
       </section>

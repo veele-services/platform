@@ -2,7 +2,7 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Building2, KeyRound, MapPin, Phone, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowLeft, Building2, KeyRound, MapPin, MessageSquare, Phone, ShieldCheck, UserRound } from "lucide-react";
 import { getCustomerObjectSectors, getMyObject } from "@/actions/objects";
 import { CustomerObjectForm } from "@/components/CustomerObjectForm";
 import { PageShell } from "@/components/PageShell";
@@ -28,6 +28,15 @@ function DetailItem({
   );
 }
 
+function supportHrefForObject(code: string, name: string): string {
+  return `/meldingen/tickets?${new URLSearchParams({
+    context: "object",
+    department: "service",
+    subject: `Vraag over object ${code} - ${name}`,
+    body: `Object: ${code} - ${name}\n\nVraag:`,
+  }).toString()}`;
+}
+
 export default async function ObjectDetailPage({ params }: Props) {
   const { id } = await params;
   const [object, sectors] = await Promise.all([
@@ -38,24 +47,34 @@ export default async function ObjectDetailPage({ params }: Props) {
   if (!object) notFound();
 
   const addressLine = [object.address, object.postalCode, object.city].filter(Boolean).join(" ");
+  const supportHref = supportHrefForObject(object.code, object.name);
 
   return (
     <PageShell
       title={object.name}
       subtitle={`${object.code} - objectgegevens en instructies`}
       actions={
-        <Link
-          href="/objecten"
-          className="inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-black"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
-        >
-          <ArrowLeft size={16} />
-          Objecten
-        </Link>
+        <>
+          <Link
+            href={supportHref}
+            className="inline-flex items-center gap-2 rounded-2xl bg-[#E8FBFA] px-4 py-2.5 text-sm font-black text-[#087C79]"
+          >
+            <MessageSquare size={16} />
+            Vraag over object
+          </Link>
+          <Link
+            href="/objecten"
+            className="inline-flex items-center gap-2 rounded-2xl border px-4 py-2.5 text-sm font-black"
+            style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          >
+            <ArrowLeft size={16} />
+            Objecten
+          </Link>
+        </>
       }
     >
       <div className="space-y-4">
-        <div className="md:hidden">
+        <div className="flex flex-wrap gap-2 md:hidden">
           <Link
             href="/objecten"
             className="inline-flex items-center gap-2 rounded-2xl border bg-white px-4 py-2.5 text-sm font-black shadow-sm"
@@ -63,6 +82,13 @@ export default async function ObjectDetailPage({ params }: Props) {
           >
             <ArrowLeft size={16} />
             Terug naar objecten
+          </Link>
+          <Link
+            href={supportHref}
+            className="inline-flex items-center gap-2 rounded-2xl bg-[#E8FBFA] px-4 py-2.5 text-sm font-black text-[#087C79] shadow-sm"
+          >
+            <MessageSquare size={16} />
+            Supportvraag
           </Link>
         </div>
 

@@ -22,13 +22,40 @@ const PRIORITY_OPTIONS = [
   { value: "urgent", label: "Urgent" },
 ] as const;
 
-export function NewTicketForm() {
+type DepartmentValue = (typeof DEPARTMENT_OPTIONS)[number]["value"];
+type PriorityValue = (typeof PRIORITY_OPTIONS)[number]["value"];
+
+function isDepartmentValue(value?: string): value is DepartmentValue {
+  return DEPARTMENT_OPTIONS.some((option) => option.value === value);
+}
+
+function isPriorityValue(value?: string): value is PriorityValue {
+  return PRIORITY_OPTIONS.some((option) => option.value === value);
+}
+
+export function NewTicketForm({
+  initialDepartment = "service",
+  initialPriority = "normal",
+  initialSubject = "",
+  initialBody = "",
+  contextLabel,
+}: {
+  initialDepartment?: string;
+  initialPriority?: string;
+  initialSubject?: string;
+  initialBody?: string;
+  contextLabel?: string;
+}) {
   const router = useRouter();
   const formRef = useRef<HTMLFormElement>(null);
   const [state, formAction, isPending] = useActionState(
     createMyCustomerTicket,
     undefined,
   );
+  const department = isDepartmentValue(initialDepartment)
+    ? initialDepartment
+    : "service";
+  const priority = isPriorityValue(initialPriority) ? initialPriority : "normal";
 
   useEffect(() => {
     if (!state?.success) return;
@@ -53,6 +80,11 @@ export function NewTicketForm() {
           <p className="mt-1 text-sm font-medium text-slate-500">
             Stuur uw vraag direct naar de juiste afdeling.
           </p>
+          {contextLabel ? (
+            <p className="mt-2 rounded-xl bg-[#F0FDFB] px-3 py-2 text-xs font-black text-[#087C79]">
+              Context: {contextLabel}
+            </p>
+          ) : null}
         </div>
       </div>
 
@@ -61,7 +93,7 @@ export function NewTicketForm() {
           <select
             name="department"
             className="mt-1 w-full bg-transparent text-base font-bold text-[#081D3A] outline-none"
-            defaultValue="service"
+            defaultValue={department}
           >
             {DEPARTMENT_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -74,7 +106,7 @@ export function NewTicketForm() {
           <select
             name="priority"
             className="mt-1 w-full bg-transparent text-base font-bold text-[#081D3A] outline-none"
-            defaultValue="normal"
+            defaultValue={priority}
           >
             {PRIORITY_OPTIONS.map((option) => (
               <option key={option.value} value={option.value}>
@@ -90,6 +122,7 @@ export function NewTicketForm() {
           <input
             name="subject"
             maxLength={180}
+            defaultValue={initialSubject}
             className="mt-1 w-full bg-transparent text-base font-bold text-[#081D3A] outline-none"
             placeholder="Bijvoorbeeld: Vraag over factuur of object"
           />
@@ -99,10 +132,21 @@ export function NewTicketForm() {
             name="body"
             rows={4}
             maxLength={4000}
+            defaultValue={initialBody}
             className="mt-1 w-full resize-none bg-transparent text-base font-bold text-[#081D3A] outline-none"
             placeholder="Beschrijf uw vraag of melding zo concreet mogelijk."
           />
         </Field>
+      </div>
+
+      <div className="mt-3 rounded-2xl border border-[#D8E8F3] bg-[#F8FBFE] px-3 py-2.5">
+        <p className="text-xs font-black uppercase tracking-wide text-slate-400">
+          Bijlagen
+        </p>
+        <p className="mt-1 text-sm font-semibold leading-5 text-slate-500">
+          Noem relevante bestandsnamen of documenten in uw bericht. Bestanden
+          worden veilig gedeeld via Documenten of op verzoek van support.
+        </p>
       </div>
 
       {state?.error ? (
