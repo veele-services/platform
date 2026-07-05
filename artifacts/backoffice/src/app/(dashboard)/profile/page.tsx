@@ -5,6 +5,7 @@ import { Mail, Shield, Settings } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getUserRoles } from "@/lib/auth/permissions";
 import { getCurrentTenantId } from "@/lib/auth/tenant";
+import { TenantPageHeader, TenantPageShell } from "@/components/tenant-ui";
 
 export const metadata: Metadata = { title: "Profiel" };
 
@@ -20,7 +21,11 @@ export default async function ProfilePage() {
   const initial = (email[0] ?? "U").toUpperCase();
 
   return (
-    <div className="mx-auto w-full max-w-[900px] p-6">
+    <TenantPageShell size="narrow">
+      <TenantPageHeader
+        title="Profiel"
+        description="Accountgegevens en toegang voor deze backoffice."
+      />
       <section className="rounded-lg border bg-white p-6 shadow-sm" style={{ borderColor: "#E2E8F0" }}>
         <div className="flex items-start gap-4">
           <div
@@ -55,7 +60,7 @@ export default async function ProfilePage() {
           </Link>
         </div>
       </section>
-    </div>
+    </TenantPageShell>
   );
 }
 

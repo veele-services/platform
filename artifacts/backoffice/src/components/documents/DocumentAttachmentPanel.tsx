@@ -1,7 +1,17 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { AlertCircle, CheckCircle2, Download, File, FileText, Image as ImageIcon, Trash2, Upload } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  Download,
+  File,
+  FileText,
+  Image as ImageIcon,
+  Trash2,
+  Upload,
+} from "lucide-react";
+
 import {
   deleteDocument,
   getDocumentDownloadUrl,
@@ -9,6 +19,9 @@ import {
   type DocumentEntityType,
   type DocumentRow,
 } from "@/app/actions/documents";
+import { Button } from "@/components/ui/button";
+import { TenantConfirmDialog } from "@/components/tenant-ui";
+import { DocumentUploadSheet } from "./DocumentUploadSheet";
 
 interface DocumentAttachmentPanelProps {
   entityType: DocumentEntityType;
@@ -36,8 +49,12 @@ function formatDate(iso: string): string {
 }
 
 function getDocumentIcon(mimeType: string) {
-  if (mimeType.startsWith("image/")) return <ImageIcon className="h-4 w-4" style={{ color: "#7C3AED" }} />;
-  if (mimeType === "application/pdf") return <FileText className="h-4 w-4" style={{ color: "#DC2626" }} />;
+  if (mimeType.startsWith("image/")) {
+    return <ImageIcon className="h-4 w-4" style={{ color: "#7C3AED" }} />;
+  }
+  if (mimeType === "application/pdf") {
+    return <FileText className="h-4 w-4" style={{ color: "#DC2626" }} />;
+  }
   return <File className="h-4 w-4" style={{ color: "#64748B" }} />;
 }
 
@@ -52,11 +69,13 @@ export function DocumentAttachmentPanel({
   namePlaceholder = "bijv. Foto, bewijsstuk of handleiding",
 }: DocumentAttachmentPanelProps) {
   const [documents, setDocuments] = useState<DocumentRow[]>(initialDocuments);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const [name, setName] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DocumentRow | null>(null);
   const [isPending, startTransition] = useTransition();
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -69,6 +88,11 @@ export function DocumentAttachmentPanel({
     setName("");
     setFile(null);
     if (fileRef.current) fileRef.current.value = "";
+  }
+
+  function handleUploadOpenChange(open: boolean) {
+    setUploadOpen(open);
+    if (!open) resetForm();
   }
 
   function handleUpload(event: React.FormEvent<HTMLFormElement>) {
@@ -107,6 +131,7 @@ export function DocumentAttachmentPanel({
         };
         setDocuments((current) => [uploaded, ...current]);
         resetForm();
+        setUploadOpen(false);
         showMessage("success", "Bestand gekoppeld.");
         return;
       }
@@ -130,8 +155,6 @@ export function DocumentAttachmentPanel({
   }
 
   function handleDelete(row: DocumentRow) {
-    if (!window.confirm(`Weet u zeker dat u "${row.name}" wilt verwijderen?`)) return;
-
     setDeletingId(row.id);
     startTransition(async () => {
       const result = await deleteDocument(row.id);
@@ -139,10 +162,10 @@ export function DocumentAttachmentPanel({
       if (result.success) {
         setDocuments((current) => current.filter((doc) => doc.id !== row.id));
         showMessage("success", "Bestand verwijderd.");
-        return;
+      } else {
+        showMessage("error", (result as { message?: string }).message ?? "Verwijderen mislukt.");
       }
-
-      showMessage("error", (result as { message?: string }).message ?? "Verwijderen mislukt.");
+      setDeleteTarget(null);
     });
   }
 
@@ -157,9 +180,17 @@ export function DocumentAttachmentPanel({
             Bestanden worden tenant-gebonden opgeslagen en downloads krijgen alleen een tijdelijke link.
           </p>
         </div>
-        <span className="rounded-full px-2.5 py-1 text-xs font-semibold" style={{ backgroundColor: "#F1F5F9", color: "#475569" }}>
-          {documents.length} bestand{documents.length === 1 ? "" : "en"}
-        </span>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="rounded-full px-2.5 py-1 text-xs font-semibold" style={{ backgroundColor: "#F1F5F9", color: "#475569" }}>
+            {documents.length} bestand{documents.length === 1 ? "" : "en"}
+          </span>
+          {canWrite && (
+            <Button type="button" size="sm" onClick={() => setUploadOpen(true)}>
+              <Upload className="h-4 w-4" />
+              {uploadLabel}
+            </Button>
+          )}
+        </div>
       </div>
 
       {message && (
@@ -169,36 +200,20 @@ export function DocumentAttachmentPanel({
         </div>
       )}
 
-      {canWrite && (
-        <form onSubmit={handleUpload} className="grid gap-3 rounded-md border p-3 md:grid-cols-[minmax(180px,1fr)_minmax(220px,1.4fr)_auto]" style={{ borderColor: "#E2E8F0" }}>
-          <input
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            className="veele-input w-full"
-            placeholder={namePlaceholder}
-            disabled={isPending}
-            required
-          />
-          <input
-            ref={fileRef}
-            type="file"
-            accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp"
-            onChange={(event) => setFile(event.target.files?.[0] ?? null)}
-            className="block w-full text-sm text-slate-500 file:mr-3 file:rounded-md file:border-0 file:bg-slate-100 file:px-3 file:py-2 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200"
-            disabled={isPending}
-            required
-          />
-          <button
-            type="submit"
-            disabled={isPending || !file || !name.trim()}
-            className="inline-flex h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-semibold text-white disabled:opacity-50"
-            style={{ backgroundColor: "#081D3A" }}
-          >
-            <Upload className="h-4 w-4" />
-            {isPending ? "Uploaden" : uploadLabel}
-          </button>
-        </form>
-      )}
+      <DocumentUploadSheet
+        open={uploadOpen}
+        onOpenChange={handleUploadOpenChange}
+        title={uploadLabel}
+        name={name}
+        onNameChange={setName}
+        namePlaceholder={namePlaceholder}
+        file={file}
+        fileInputRef={fileRef}
+        onFileChange={setFile}
+        pending={isPending}
+        submitLabel={uploadLabel}
+        onSubmit={handleUpload}
+      />
 
       {documents.length === 0 ? (
         <div className="rounded-md border border-dashed py-10 text-center text-sm" style={{ borderColor: "#CBD5E1", color: "#64748B" }}>
@@ -230,7 +245,7 @@ export function DocumentAttachmentPanel({
                     <span className="block max-w-[240px] truncate" title={row.filename}>{row.filename}</span>
                     <span>{formatFileSize(row.sizeBytes)}</span>
                   </td>
-                  <td className="px-3 py-3 text-xs whitespace-nowrap" style={{ color: "#64748B" }}>{formatDate(row.createdAt)}</td>
+                  <td className="whitespace-nowrap px-3 py-3 text-xs" style={{ color: "#64748B" }}>{formatDate(row.createdAt)}</td>
                   <td className="px-3 py-3">
                     <div className="flex justify-end gap-1">
                       <button
@@ -246,7 +261,7 @@ export function DocumentAttachmentPanel({
                       {canWrite && (
                         <button
                           type="button"
-                          onClick={() => handleDelete(row)}
+                          onClick={() => setDeleteTarget(row)}
                           disabled={deletingId === row.id}
                           className="inline-flex h-8 w-8 items-center justify-center rounded-md hover:bg-red-50 disabled:opacity-50"
                           title="Verwijderen"
@@ -263,6 +278,20 @@ export function DocumentAttachmentPanel({
           </table>
         </div>
       )}
+
+      <TenantConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Document verwijderen?"
+        description={deleteTarget ? `Weet u zeker dat u "${deleteTarget.name}" wilt verwijderen?` : undefined}
+        confirmLabel="Verwijderen"
+        destructive
+        onConfirm={() => {
+          if (deleteTarget) handleDelete(deleteTarget);
+        }}
+      />
     </section>
   );
 }

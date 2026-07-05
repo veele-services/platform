@@ -12,8 +12,6 @@ import {
   Link2,
   Plus,
   Trash2,
-  Upload,
-  X,
 } from "lucide-react";
 
 import {
@@ -35,6 +33,7 @@ import {
   type TenantDataTableColumn,
 } from "@/components/tenant-ui";
 import { DOCUMENT_ENTITY_TYPES } from "@/types/documents";
+import { DocumentUploadSheet } from "./DocumentUploadSheet";
 
 const ENTITY_TYPE_LABELS: Record<DocumentEntityType | "all", string> = {
   all: "Alle",
@@ -196,6 +195,11 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
     setUploadFile(null);
     setUploadError(null);
     if (fileRef.current) fileRef.current.value = "";
+  }
+
+  function handleUploadOpenChange(open: boolean) {
+    setShowUpload(open);
+    if (!open) resetUploadForm();
   }
 
   function handleUploadSubmit(event: React.FormEvent) {
@@ -404,13 +408,10 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
             {canWrite && (
               <Button
                 type="button"
-                onClick={() => {
-                  setShowUpload((current) => !current);
-                  if (showUpload) resetUploadForm();
-                }}
+                onClick={() => setShowUpload(true)}
               >
-                {showUpload ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-                {showUpload ? "Annuleren" : "Document uploaden"}
+                <Plus className="h-4 w-4" />
+                Document uploaden
               </Button>
             )}
           </>
@@ -418,90 +419,55 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
         activeFilters={<TenantActiveFilters filters={activeFilters} />}
       />
 
-      {showUpload && (
-        <form onSubmit={handleUploadSubmit} className="veele-card space-y-4">
-          <p className="text-sm font-semibold text-foreground">Nieuw document uploaden</p>
+      <DocumentUploadSheet
+        open={showUpload}
+        onOpenChange={handleUploadOpenChange}
+        title="Nieuw document uploaden"
+        name={uploadName}
+        onNameChange={setUploadName}
+        namePlaceholder="bijv. Keuringsbewijs schrobmachine"
+        file={uploadFile}
+        fileInputRef={fileRef}
+        onFileChange={setUploadFile}
+        error={uploadError}
+        pending={isPending}
+        submitLabel="Uploaden"
+        onSubmit={handleUploadSubmit}
+      >
+        <label className="block text-sm font-medium text-foreground">
+          Categorie
+          <select
+            value={uploadEntityType}
+            onChange={(event) => {
+              setUploadEntityType(event.target.value as DocumentEntityType);
+              setUploadEntityId("");
+            }}
+            className="veele-input mt-1 w-full"
+            disabled={isPending}
+          >
+            {DOCUMENT_ENTITY_TYPES.map((type) => (
+              <option key={type} value={type}>{ENTITY_TYPE_SINGULAR[type]}</option>
+            ))}
+          </select>
+        </label>
 
-          <div className="grid gap-4 sm:grid-cols-2">
-            <label className="block text-xs font-medium text-slate-700">
-              Naam <span className="text-red-600">*</span>
-              <input
-                type="text"
-                value={uploadName}
-                onChange={(event) => setUploadName(event.target.value)}
-                placeholder="bijv. Keuringsbewijs schrobmachine"
-                className="veele-input mt-1 w-full"
-                disabled={isPending}
-                required
-              />
-            </label>
-
-            <label className="block text-xs font-medium text-slate-700">
-              Categorie
-              <select
-                value={uploadEntityType}
-                onChange={(event) => {
-                  setUploadEntityType(event.target.value as DocumentEntityType);
-                  setUploadEntityId("");
-                }}
-                className="veele-input mt-1 w-full"
-                disabled={isPending}
-              >
-                {DOCUMENT_ENTITY_TYPES.map((type) => (
-                  <option key={type} value={type}>{ENTITY_TYPE_SINGULAR[type]}</option>
-                ))}
-              </select>
-            </label>
-          </div>
-
-          {uploadEntityType !== "general" && (
-            <label className="block text-xs font-medium text-slate-700">
-              Entiteit-ID <span className="font-normal text-muted-foreground">(UUID van de gekoppelde {ENTITY_TYPE_SINGULAR[uploadEntityType].toLowerCase()})</span>
-              <input
-                type="text"
-                value={uploadEntityId}
-                onChange={(event) => setUploadEntityId(event.target.value)}
-                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                className="veele-input mt-1 w-full font-mono text-xs"
-                disabled={isPending}
-              />
-            </label>
-          )}
-
-          <label className="block text-xs font-medium text-slate-700">
-            Bestand <span className="text-red-600">*</span>
-            <span className="ml-1 font-normal text-muted-foreground">(PDF, Word, Excel, afbeelding - max. 20 MB)</span>
+        {uploadEntityType !== "general" && (
+          <label className="block text-sm font-medium text-foreground">
+            Entiteit-ID
+            <span className="block text-xs font-normal text-muted-foreground">
+              UUID van de gekoppelde {ENTITY_TYPE_SINGULAR[uploadEntityType].toLowerCase()}
+            </span>
             <input
-              ref={fileRef}
-              type="file"
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp"
-              onChange={(event) => setUploadFile(event.target.files?.[0] ?? null)}
+              type="text"
+              value={uploadEntityId}
+              onChange={(event) => setUploadEntityId(event.target.value)}
+              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+              className="veele-input mt-1 w-full font-mono text-xs"
               disabled={isPending}
-              className="mt-1 block w-full cursor-pointer text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-100 file:px-3 file:py-1.5 file:text-sm file:font-medium file:text-slate-700 hover:file:bg-slate-200"
             />
-            {uploadFile && <p className="mt-1 text-xs text-muted-foreground">{uploadFile.name} - {formatFileSize(uploadFile.size)}</p>}
           </label>
-
-          {uploadError && <p className="text-sm text-red-600">{uploadError}</p>}
-
-          <div className="flex gap-2">
-            <Button type="submit" disabled={isPending || !uploadFile || !uploadName.trim()}>
-              <Upload className="h-4 w-4" />
-              {isPending ? "Uploaden..." : "Uploaden"}
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => {
-                setShowUpload(false);
-                resetUploadForm();
-              }}
-            >
-              Annuleren
-            </Button>
-          </div>
-        </form>
-      )}
+        )}
+      </DocumentUploadSheet>
 
       <TenantDataTable
         rows={filtered}
