@@ -56,6 +56,7 @@ const NAV_ITEMS: PlatformNavItem[] = [
   { href: "/platform/tickets", label: "Tickets", icon: Ticket, adminOnly: true },
   { href: "/platform/notifications", label: "Meldingen", icon: Bell, adminOnly: true },
   { href: "/platform/security", label: "Security en audit", icon: ShieldCheck, adminOnly: true },
+  { href: "/platform/operations", label: "Operations", icon: Activity, adminOnly: true },
   { href: "/platform/staging-smoke", label: "Staging smoke", icon: Activity, adminOnly: true },
   { href: "/platform/users", label: "Platformgebruikers", icon: UsersRound, adminOnly: true },
   { href: "/platform/settings", label: "Instellingen", icon: Settings, adminOnly: true },
@@ -101,6 +102,11 @@ const ROUTE_LABELS: Array<{ test: (pathname: string) => boolean; title: string; 
     test: (pathname) => pathname.startsWith("/platform/security"),
     title: "Security en audit",
     crumbs: [{ label: "Platformbeheer", href: "/platform" }, { label: "Security en audit" }],
+  },
+  {
+    test: (pathname) => pathname.startsWith("/platform/operations"),
+    title: "Operations",
+    crumbs: [{ label: "Platformbeheer", href: "/platform" }, { label: "Operations" }],
   },
   {
     test: (pathname) => pathname.startsWith("/platform/staging-smoke"),
