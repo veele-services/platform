@@ -16,7 +16,6 @@ import {
   Loader2,
   MapPin,
   Search,
-  SlidersHorizontal,
   Sparkles,
   Users,
   X,
@@ -24,11 +23,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { TenantDetailDrawer, TenantFilterDrawer } from "@/components/tenant-ui";
 import {
   Tooltip,
   TooltipContent,
@@ -451,6 +446,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
 
   const [searchValue, setSearchValue] = useState(searchParams.get("search") ?? "");
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const [detailAssignmentId, setDetailAssignmentId] = useState<string | null>(null);
   const [openQueueOpen, setOpenQueueOpen] = useState(false);
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [ghostInfo, setGhostInfo] = useState<GhostInfo | null>(null);
@@ -467,6 +463,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
 
   const activeAssignmentId = dragging?.assignmentId ?? selectedAssignmentId;
   const activeAssignment = activeAssignmentId ? assignmentById.get(activeAssignmentId) : null;
+  const detailAssignment = detailAssignmentId ? assignmentById.get(detailAssignmentId) : null;
   const visiblePersonnel = useMemo(() => {
     if (!activeAssignment) return data.personnel;
 
@@ -748,6 +745,16 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
   const selectedRegion = searchParams.get("region") ?? "all";
   const selectedPriority = searchParams.get("priority") ?? "all";
   const selectedStatus = searchParams.get("status") ?? "all";
+  const activeFilterCount = [
+    searchParams.get("search"),
+    selectedCustomer !== "all" ? selectedCustomer : null,
+    selectedSector !== "all" ? selectedSector : null,
+    selectedRegion !== "all" ? selectedRegion : null,
+    selectedPriority !== "all" ? selectedPriority : null,
+    selectedStatus !== "all" ? selectedStatus : null,
+  ].filter(Boolean).length;
+  const detailMatches = detailAssignment ? data.matchesByAssignmentId[detailAssignment.id] ?? [] : [];
+  const detailStats = matchStats(detailMatches);
 
   return (
     <TooltipProvider delayDuration={180}>
@@ -852,14 +859,12 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
               </div>
             )}
 
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button type="button" variant="outline" size="sm" className="h-10">
-                  <SlidersHorizontal className="h-4 w-4" />
-                  Filters
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-[340px] p-3">
+            <TenantFilterDrawer
+              title="Planningfilters"
+              description="Verfijn het planbord op datum, klant, sector, regio, prioriteit en status."
+              activeCount={activeFilterCount}
+              footer={null}
+            >
                 <div className="grid gap-3">
                   <label className="grid gap-1 text-xs font-medium" style={{ color: "#64748B" }}>
                     Datum
@@ -925,8 +930,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                     Filters wissen
                   </Button>
                 </div>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            </TenantFilterDrawer>
           </div>
         </section>
 
@@ -973,7 +977,11 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                       draggable={canWrite}
                       onDragStart={(e) => handleDragStart(e, assignment)}
                       onDragEnd={handleDragEnd}
-                      onClick={() => setSelectedAssignmentId(selected ? null : assignment.id)}
+                      onClick={() => {
+                        const nextId = selected ? null : assignment.id;
+                        setSelectedAssignmentId(nextId);
+                        setDetailAssignmentId(nextId);
+                      }}
                       className="group relative overflow-hidden rounded-xl border bg-white p-2.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
                       style={{
                         borderColor: selected ? "#00B7B3" : "#E2E8F0",
@@ -1122,6 +1130,11 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                 )}
               </div>
               <div className="flex flex-wrap items-center gap-2">
+                {activeAssignment && (
+                  <Button type="button" variant="outline" size="sm" className="h-8" onClick={() => setDetailAssignmentId(activeAssignment.id)}>
+                    Details
+                  </Button>
+                )}
                 <div className="relative">
                   <Button
                     type="button"
@@ -1167,7 +1180,9 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                 onDragStart={(e) => handleDragStart(e, assignment)}
                                 onDragEnd={handleDragEnd}
                                 onClick={() => {
-                                  setSelectedAssignmentId(selected ? null : assignment.id);
+                                  const nextId = selected ? null : assignment.id;
+                                  setSelectedAssignmentId(nextId);
+                                  setDetailAssignmentId(nextId);
                                   setOpenQueueOpen(false);
                                 }}
                                 className="relative overflow-hidden rounded-lg border bg-white p-2.5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
@@ -1526,7 +1541,126 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
             )}
           </section>
         </div>
+
+        <TenantDetailDrawer
+          open={Boolean(detailAssignment)}
+          onOpenChange={(open) => {
+            if (!open) setDetailAssignmentId(null);
+          }}
+          title={detailAssignment ? detailAssignment.code : "Werkbon"}
+          description={detailAssignment ? displayWorkOrderTitle(detailAssignment.title) : undefined}
+        >
+          {detailAssignment && (
+            <div className="space-y-5">
+              <div className="flex flex-wrap gap-1.5">
+                <AssignmentPriorityBadge priority={detailAssignment.priority} />
+                <AssignmentStatusBadge status={detailAssignment.status} />
+                {detailAssignment.hasConflict && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-800">
+                    <AlertTriangle className="h-3.5 w-3.5" />
+                    Conflict
+                  </span>
+                )}
+              </div>
+
+              <div className="grid gap-3 rounded-lg border border-border bg-muted/30 p-3 text-sm">
+                <DetailLine label="Klant" value={detailAssignment.customerName} />
+                <DetailLine label="Object" value={detailAssignment.objectName ?? "Geen object gekoppeld"} />
+                <DetailLine label="Sector" value={detailAssignment.sectorName ?? "Geen sector"} />
+                <DetailLine label="Regio" value={detailAssignment.requiredRegion ?? "Geen regio-eis"} />
+                <DetailLine label="Tijd" value={`${formatShortDate(detailAssignment.scheduledDate ?? data.date)} - ${workOrderTimeLabel(detailAssignment)}`} />
+                <DetailLine label="Bezetting" value={slotLabel(detailAssignment.filledSlots, detailAssignment.requiredSlots)} />
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-foreground">Eisen</h3>
+                <div className="flex flex-wrap gap-2 text-xs">
+                  {detailAssignment.requirements.requiredRoleNames.length > 0 ? (
+                    detailAssignment.requirements.requiredRoleNames.map((role) => (
+                      <span key={role} className="rounded-full border border-border bg-background px-2.5 py-1 font-medium">
+                        {role}
+                      </span>
+                    ))
+                  ) : (
+                    <span className="text-muted-foreground">Geen specifieke rollen vereist.</span>
+                  )}
+                  <span className="rounded-full border border-border bg-background px-2.5 py-1 font-medium">
+                    {durationForAssignment(detailAssignment)} minuten
+                  </span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-3 gap-2 text-center text-xs">
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-emerald-900">
+                  <p className="font-semibold">{detailStats.match}</p>
+                  <p className="opacity-75">match</p>
+                </div>
+                <div className="rounded-lg border border-amber-200 bg-amber-50 p-2 text-amber-900">
+                  <p className="font-semibold">{detailStats.warning}</p>
+                  <p className="opacity-75">check</p>
+                </div>
+                <div className="rounded-lg border border-red-200 bg-red-50 p-2 text-red-900">
+                  <p className="font-semibold">{detailStats.blocked}</p>
+                  <p className="opacity-75">blok</p>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <h3 className="text-sm font-semibold text-foreground">Beste matches</h3>
+                {detailMatches.length > 0 ? (
+                  <div className="space-y-2">
+                    {detailMatches.slice(0, 5).map((match) => {
+                      const person = data.personnel.find((item) => item.id === match.personnelId);
+                      const config = matchConfig(match);
+                      return (
+                        <div key={match.personnelId} className="rounded-lg border border-border bg-background p-3">
+                          <div className="flex items-start justify-between gap-3">
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-semibold text-foreground">
+                                {person ? `${person.firstName} ${person.lastName}` : "Onbekende medewerker"}
+                              </p>
+                              <p className="mt-1 text-xs text-muted-foreground">
+                                {person?.roleName ?? "Geen rol"}{person?.region ? ` - ${person.region}` : ""}
+                              </p>
+                            </div>
+                            <span className="rounded-full border px-2 py-1 text-xs font-semibold" style={{ borderColor: config.border, background: config.bg, color: config.text }}>
+                              {config.label}
+                            </span>
+                          </div>
+                          {match.reasons.length > 0 && (
+                            <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                              {match.reasons.slice(0, 3).map((reason) => (
+                                <li key={`${match.personnelId}-${reason.code}-${reason.label}`}>{reason.label}</li>
+                              ))}
+                            </ul>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="rounded-lg border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
+                    Geen matchdetails beschikbaar voor deze werkbon.
+                  </p>
+                )}
+              </div>
+
+              <Button asChild className="w-full">
+                <Link href={`/assignments/${detailAssignment.id}`}>Open werkbon</Link>
+              </Button>
+            </div>
+          )}
+        </TenantDetailDrawer>
       </div>
     </TooltipProvider>
+  );
+}
+
+function DetailLine({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <span className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</span>
+      <span className="min-w-0 text-right font-medium text-foreground">{value}</span>
+    </div>
   );
 }
