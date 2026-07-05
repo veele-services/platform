@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Eye, EyeOff, Zap } from "lucide-react";
@@ -139,13 +140,13 @@ export function LoginForm() {
       </button>
 
       <div className="text-center">
-        <a
+        <Link
           href="/wachtwoord-vergeten"
           className="text-sm"
           style={{ color: "#64748B" }}
         >
           Wachtwoord vergeten?
-        </a>
+        </Link>
       </div>
 
       {/* ── DEV only: quick-access buttons ────────────────────────────── */}

@@ -79,7 +79,7 @@ export function MfaSettings() {
 
       if (enrollError || !data) {
         setError(
-          "2FA activeren is nog niet beschikbaar. Controleer of MFA/TOTP in Supabase is ingeschakeld.",
+          "2FA activeren mislukt. Controleer of MFA/TOTP voor deze omgeving is ingeschakeld.",
         );
         return;
       }
@@ -174,7 +174,7 @@ export function MfaSettings() {
           <p className="text-xs font-semibold opacity-80">
             {factor
               ? "Inloggen vraagt om een extra authenticator-code."
-              : "Activeer dit zodra Supabase MFA voor de omgeving aanstaat."}
+              : "Koppel een authenticator-app om inloggen extra te beveiligen."}
           </p>
         </div>
       </div>
