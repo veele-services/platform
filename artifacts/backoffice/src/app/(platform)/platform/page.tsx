@@ -624,7 +624,7 @@ function buildDashboardActions(input: {
         id: `resume:${run.id}`,
         label: `${run.name} onboarding hervatten`,
         detail: `${run.slug} staat als concept op ${run.currentStep}.`,
-        href: `/platform?onboardingDraft=${run.id}`,
+        href: `/platform/onboarding?onboardingDraft=${run.id}`,
         meta: "Onboarding",
         tone: "warning",
       });
@@ -633,7 +633,7 @@ function buildDashboardActions(input: {
         id: `retry:${run.id}`,
         label: `${run.name} provisioning opnieuw bekijken`,
         detail: run.errorMessage ?? run.rollbackPath,
-        href: "/platform#provisioning-runs",
+        href: "/platform/onboarding#provisioning-runs",
         meta: "Retry",
         tone: "danger",
       });
@@ -642,7 +642,7 @@ function buildDashboardActions(input: {
         id: `owner-invite:${run.id}`,
         label: `${run.name} owner invite staat open`,
         detail: run.ownerEmail ? `${run.ownerEmail} heeft nog geen afgeronde owner-koppeling.` : "Owner invite status staat op pending.",
-        href: run.tenantId ? `/platform/tenants/${run.tenantId}` : "/platform#provisioning-runs",
+        href: run.tenantId ? `/platform/tenants/${run.tenantId}` : "/platform/onboarding#provisioning-runs",
         meta: "Owner",
         tone: "warning",
       });
@@ -689,7 +689,7 @@ function buildDashboardActions(input: {
       id: "smoke:final-gate",
       label: "Final external tenant gate vraagt aandacht",
       detail: input.smokeDashboard.finalExternalTenantGate.summary,
-      href: "/platform/staging-smoke",
+      href: "/platform/operations",
       meta: "Smoke",
       tone: dashboardStatusTone(input.smokeDashboard.finalExternalTenantGate.status),
     });
@@ -703,7 +703,7 @@ function buildDashboardActions(input: {
         id: `smoke:${check.id}`,
         label: `${check.label} is geblokkeerd`,
         detail: check.nextAction,
-        href: "/platform/staging-smoke",
+        href: "/platform/operations",
         meta: "Smoke",
         tone: "danger",
       });
@@ -805,7 +805,7 @@ function PlatformDashboardOverview({
       label: "Smoke status",
       value: dashboardStatusLabel(smokeDashboard.finalExternalTenantGate.status),
       detail: `${blockedSmokeChecks} geblokkeerd, ${warningSmokeChecks} aandachtspunt(en).`,
-      href: "/platform/staging-smoke",
+      href: "/platform/operations",
       icon: Activity,
       tone: smokeTone,
     },
@@ -860,7 +860,7 @@ export default async function PlatformAdminPage({ searchParams }: Props) {
   ]);
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-8 text-slate-950">
+    <main className="platform-page min-h-screen bg-slate-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
         <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex flex-col gap-2">
@@ -895,13 +895,23 @@ export default async function PlatformAdminPage({ searchParams }: Props) {
 
         {isPlatformAdmin && <OnboardingWizard catalog={onboardingCatalog} draft={onboardingDraftData} />}
 
+        {isPlatformAdmin && (
+          <Link
+            href="/platform/onboarding"
+            className="inline-flex w-fit items-center gap-2 rounded border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+          >
+            Open Onboarding 2.0
+            <ExternalLink aria-hidden="true" className="size-4" />
+          </Link>
+        )}
+
         {isPlatformAdmin && provisioningRuns.length > 0 && (
           <section id="provisioning-runs" className="flex flex-col gap-3">
             <div className="flex items-center justify-between gap-4">
               <h2 className="text-xl font-semibold tracking-normal">Provisioning runs</h2>
               <span className="text-sm text-slate-500">{provisioningRuns.length}</span>
             </div>
-            <div className="overflow-x-auto rounded border border-slate-200 bg-white">
+            <div className="platform-scroll-x rounded border border-slate-200 bg-white">
               <table className="w-full border-collapse text-left text-sm">
                 <thead className="bg-slate-100 text-xs uppercase text-slate-500">
                   <tr>
@@ -941,7 +951,7 @@ export default async function PlatformAdminPage({ searchParams }: Props) {
                         <div className="flex flex-wrap gap-2">
                           {run.canResume && (
                             <Link
-                              href={`/platform?onboardingDraft=${run.id}`}
+                              href={`/platform/onboarding?onboardingDraft=${run.id}`}
                               className="rounded border border-slate-300 px-3 py-1.5 text-xs font-medium text-slate-700 transition hover:bg-slate-100"
                             >
                               Hervat
@@ -975,7 +985,7 @@ export default async function PlatformAdminPage({ searchParams }: Props) {
               <h2 className="text-xl font-semibold tracking-normal">Tenants</h2>
               <span className="text-sm text-slate-500">{tenants.length}</span>
             </div>
-            <div className="overflow-x-auto rounded border border-slate-200 bg-white">
+            <div className="platform-scroll-x rounded border border-slate-200 bg-white">
               <table className="w-full border-collapse text-left text-sm">
                 <thead className="bg-slate-100 text-xs uppercase text-slate-500">
                   <tr>
@@ -1015,7 +1025,7 @@ export default async function PlatformAdminPage({ searchParams }: Props) {
                 <h2 className="text-xl font-semibold tracking-normal">Platformgebruikers</h2>
                 <span className="text-sm text-slate-500">{platformUsers.length}</span>
               </div>
-              <div className="overflow-x-auto rounded border border-slate-200 bg-white">
+              <div className="platform-scroll-x rounded border border-slate-200 bg-white">
                 <table className="w-full border-collapse text-left text-sm">
                   <thead className="bg-slate-100 text-xs uppercase text-slate-500">
                     <tr>
@@ -1045,7 +1055,7 @@ export default async function PlatformAdminPage({ searchParams }: Props) {
               <h2 className="text-xl font-semibold tracking-normal">Supporttoegang</h2>
               <span className="text-sm text-slate-500">{supportGrants.length}</span>
             </div>
-            <div className="overflow-x-auto rounded border border-slate-200 bg-white">
+            <div className="platform-scroll-x rounded border border-slate-200 bg-white">
               <table className="w-full border-collapse text-left text-sm">
                 <thead className="bg-slate-100 text-xs uppercase text-slate-500">
                   <tr>

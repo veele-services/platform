@@ -25,6 +25,9 @@ import {
 import { sql } from "drizzle-orm";
 import { requirePlatformAdmin } from "@/lib/auth/platform";
 import type {
+  PlatformAdminReleaseGate,
+  PlatformAdminReleaseGateException,
+  PlatformAdminReleaseGateItem,
   PlatformFinalExternalTenantGate,
   PlatformFinalGateRequirement,
   PlatformLiveSmokeTarget,
@@ -442,6 +445,242 @@ function buildFinalExternalTenantGate(input: {
   };
 }
 
+function buildPlatformAdminReleaseGate(input: {
+  checks: PlatformSmokeCheck[];
+  liveSmokes: PlatformLiveSmokeTarget[];
+  migrationSmoke: PlatformMigrationSmokeStatus;
+  mutatingChecks: PlatformMutatingSmokeCheck[];
+  finalExternalTenantGate: PlatformFinalExternalTenantGate;
+}): PlatformAdminReleaseGate {
+  const checkById = new Map(input.checks.map((check) => [check.id, check]));
+  const liveSmokeById = new Map(input.liveSmokes.map((smoke) => [smoke.id, smoke]));
+  const mutatingById = new Map(input.mutatingChecks.map((check) => [check.id, check]));
+  const hostSmokeStatus = liveSmokeById.get("FG-LIVE-HOST")?.status ?? checkById.get("FG-SMOKE-HOST")?.status ?? "manual";
+  const loginStatus = checkById.get("FG-SMOKE-LOGIN")?.status === "ok" ? "manual" : "blocked";
+  const lifecycleStatus = mutatingById.get("FG-MUTATE-LIFECYCLE")?.status ?? "manual";
+  const auditStatus = checkById.get("FG-SMOKE-AUDIT")?.status === "ok" ? "manual" : "blocked";
+
+  const items: PlatformAdminReleaseGateItem[] = [
+    {
+      id: "FG-PA-GATE-ROLES",
+      label: "Runtime tests voor platform owner, admin en support",
+      status: loginStatus,
+      owner: "Platform engineering",
+      persona: "owner",
+      host: "admin.fieldgrid.nl",
+      route: "/platform",
+      command: "Run platform owner/admin/support Playwright smoke met drie ingelogde accounts.",
+      evidence: "Screenshots en trace artifacts voor /platform, /platform/security, /platform/users en support-only denials.",
+      testIds: ["FG-PLATFORM-001", "FG-PLATFORM-002", "FG-PLATFORM-003", "FG-SUPPORT-001"],
+      nextAction: "Bevestig owner/admin/support autorisaties op staging en voeg artifacts toe aan artifacts/platform-admin-final-gate.",
+      blocksRelease: true,
+    },
+    {
+      id: "FG-PA-GATE-HOST-FIRST",
+      label: "Tenant A/B/Veele host-first checks",
+      status: hostSmokeStatus,
+      owner: "Platform engineering",
+      persona: "tenant-a-b-veele",
+      host: "demo-a.fieldgrid.nl, demo-b.fieldgrid.nl, veele.fieldgrid.nl",
+      route: "/admin, /klant, /personeel",
+      command: "Playwright host-first smoke voor Tenant A/B/Veele plus wrong-host denial.",
+      evidence: "Browser traces tonen dat hostcontext leidend is en directe tenant-id routes niet lekken.",
+      testIds: ["FG-HOST-001", "FG-HOST-002", "FG-HOST-003", "FG-DATA-001"],
+      nextAction: "Draai host-first smoke met Tenant A/B/Veele fixtures en noteer run-id in het releaseformulier.",
+      blocksRelease: true,
+    },
+    {
+      id: "FG-PA-GATE-ENTERPRISE-CUSTOM-DOMAIN",
+      label: "Enterprise custom-domain staging test",
+      status: hostSmokeStatus === "ok" ? "manual" : "blocked",
+      owner: "Platform engineering",
+      persona: "enterprise",
+      host: "enterprise-demo custom domain",
+      route: "/admin",
+      command: "Voeg een Enterprise custom domain toe, verifieer DNS/TLS en open tenant via dat domein.",
+      evidence: "tenant_domains check artifact plus browser screenshot op custom domain.",
+      testIds: ["FG-HOST-006", "FG-PLATFORM-004", "FG-OPS-008"],
+      nextAction: "Gebruik een staging custom domain met DNS TXT en Caddy on-demand TLS voordat productie wordt vrijgegeven.",
+      blocksRelease: true,
+    },
+    {
+      id: "FG-PA-GATE-NON-ENTERPRISE-DENIAL",
+      label: "Non-Enterprise custom-domain denial",
+      status: "manual",
+      owner: "Platform engineering",
+      persona: "non-enterprise",
+      host: "starter/professional tenant",
+      route: "/platform/tenants/:tenantId?tab=domains",
+      command: "Probeer custom domain toe te voegen op non-Enterprise tenant en bevestig server-side denial.",
+      evidence: "UI-disabled screenshot plus server action/audit denial artifact.",
+      testIds: ["FG-HOST-006", "FG-PLATFORM-005", "FG-AUDIT-001"],
+      nextAction: "Leg denied action en audit-event vast met Starter of Professional tenant.",
+      blocksRelease: true,
+    },
+    {
+      id: "FG-PA-GATE-CADDY-ASK",
+      label: "Caddy ask endpoint staging test",
+      status: "manual",
+      owner: "Platform engineering",
+      persona: "platform",
+      host: "api/internal",
+      route: "/internal/caddy/ask-domain",
+      command: "curl ask-domain voor verified Enterprise, pending, disabled, non-Enterprise en onbekend domein.",
+      evidence: "HTTP 200 alleen voor verified/active Enterprise domain; alle andere requests 403.",
+      testIds: ["FG-HOST-006", "FG-OPS-008", "FG-AUDIT-004"],
+      nextAction: "Draai vanaf de VPS of CI met interne API URL en voeg statusmatrix toe aan het gate artifact.",
+      blocksRelease: true,
+    },
+    {
+      id: "FG-PA-GATE-LIFECYCLE",
+      label: "Tenant lifecycle smoke",
+      status: lifecycleStatus,
+      owner: "Platform engineering",
+      persona: "platform",
+      host: "admin.fieldgrid.nl",
+      route: "/platform/tenants/:tenantId",
+      command: "Suspend/reactivate/archive/retry smoke op demo tenant met rollback.",
+      evidence: "Mutating smoke run met marker-scoped cleanup en audit-events.",
+      testIds: ["FG-LIFE-001", "FG-LIFE-002", "FG-PLATFORM-004"],
+      nextAction: "Voer alleen uit met FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only.",
+      blocksRelease: true,
+    },
+    {
+      id: "FG-PA-GATE-SUBSCRIPTION-DOWNGRADE",
+      label: "Subscription downgrade smoke",
+      status: "manual",
+      owner: "Platform engineering",
+      persona: "platform",
+      host: "admin.fieldgrid.nl",
+      route: "/platform/subscriptions",
+      command: "Downgrade Enterprise naar Professional/Starter en bevestig disabled_plan voor custom domains.",
+      evidence: "Subscription update artifact, disabled custom-domain status en audit-event.",
+      testIds: ["FG-OPS-003", "FG-HOST-006", "FG-AUDIT-001"],
+      nextAction: "Gebruik demo Enterprise tenant en herstel plan na de smoke.",
+      blocksRelease: true,
+    },
+    {
+      id: "FG-PA-GATE-TICKETS",
+      label: "Ticket lifecycle smoke",
+      status: "manual",
+      owner: "Support operations",
+      persona: "support",
+      host: "admin.fieldgrid.nl",
+      route: "/platform/tickets",
+      command: "Maak platformticket, voeg interne notitie toe, wijzig status/SLA en sluit ticket.",
+      evidence: "Ticketdetail screenshot en platform_ticket_* audit-events.",
+      testIds: ["FG-SUPPORT-001", "FG-SUPPORT-004", "FG-AUDIT-001"],
+      nextAction: "Draai ticket lifecycle met supportaccount en bevestig owner/admin toegang.",
+      blocksRelease: true,
+    },
+    {
+      id: "FG-PA-GATE-NOTIFICATIONS",
+      label: "Meldingen smoke",
+      status: "manual",
+      owner: "Support operations",
+      persona: "admin",
+      host: "admin.fieldgrid.nl",
+      route: "/platform/notifications",
+      command: "Maak template dispatch voor specifieke tenant owners en controleer ontvangersnapshot.",
+      evidence: "Recipient preview, dispatch history en platform_notification_dispatch_created audit-event.",
+      testIds: ["FG-PORTAL-C-004", "FG-AUDIT-001", "FG-PLATFORM-005"],
+      nextAction: "Gebruik een interne stagingtemplate en verstuur niet naar productieadressen.",
+      blocksRelease: true,
+    },
+    {
+      id: "FG-PA-GATE-AUDIT-EXPORT",
+      label: "Audit export smoke",
+      status: auditStatus,
+      owner: "Platform engineering",
+      persona: "admin",
+      host: "admin.fieldgrid.nl",
+      route: "/api/platform/security/export",
+      command: "Download CSV met tenant, actor, severity en supportGrant filters.",
+      evidence: "CSV artifact met expected headers en gefilterde auditregels.",
+      testIds: ["FG-AUDIT-001", "FG-AUDIT-002", "FG-AUDIT-004"],
+      nextAction: "Draai export op staging en controleer dat metadata geen cross-tenant data lekt.",
+      blocksRelease: true,
+    },
+    {
+      id: "FG-PA-GATE-MOBILE-SCREENSHOTS",
+      label: "Mobile screenshots",
+      status: "manual",
+      owner: "Platform engineering",
+      persona: "ci",
+      host: "admin.fieldgrid.nl",
+      route: "/platform, /platform/tenants, tenantdetail, domains, tickets, security",
+      command: "pnpm fieldgrid:platform-phase13-visual-smoke",
+      evidence: "390px, 768px en 1440px screenshots plus phase13-visual-smoke.json.",
+      testIds: ["FG-OPS-008", "FG-PLATFORM-001"],
+      nextAction: "Draai met FIELDGRID_PLATFORM_PHASE13_COOKIE en tenant detail path.",
+      blocksRelease: true,
+    },
+    {
+      id: "FG-PA-GATE-BUILD-TYPECHECK",
+      label: "Build en typecheck volledig groen",
+      status: "manual",
+      owner: "Platform engineering",
+      persona: "ci",
+      host: "CI",
+      route: "workspace",
+      command: "pnpm run typecheck && pnpm -r --if-present run build",
+      evidence: "CI job op Node 24 met schone pnpm install.",
+      testIds: ["FG-OPS-008"],
+      nextAction: "Blokkeer release als typecheck of build faalt.",
+      blocksRelease: true,
+    },
+  ];
+
+  const exceptions: PlatformAdminReleaseGateException[] = [
+    {
+      id: "FG-PA-EXCEPTION-RUNTIME-ARTIFACTS",
+      label: "Live runtime artifacts ontbreken in repository",
+      severity: "P0",
+      owner: "Platform engineering",
+      acceptedUntil: "Voor promotie van main naar staging en voor eerste productie-tenant",
+      targetEvidence: "artifacts/platform-admin-final-gate met role, host-first, lifecycle, subscription en domain smoke JSON.",
+      goNoGoRequired: true,
+    },
+    {
+      id: "FG-PA-EXCEPTION-MOBILE-ARTIFACTS",
+      label: "Mobile screenshots moeten per release opnieuw worden vastgelegd",
+      severity: "P1",
+      owner: "Platform engineering",
+      acceptedUntil: "Voor releasecandidate markering",
+      targetEvidence: "artifacts/platform-mobile-polish/phase13-visual-smoke.json plus screenshots.",
+      goNoGoRequired: true,
+    },
+  ];
+
+  const blockedItems = items.filter((item) => item.blocksRelease && item.status === "blocked");
+  const openManualItems = items.filter((item) => item.blocksRelease && item.status !== "ok");
+  const status: PlatformSmokeStatus = blockedItems.length > 0 ? "blocked" : openManualItems.length > 0 ? "warning" : "ok";
+  const decision: PlatformAdminReleaseGate["decision"] = blockedItems.length > 0 ? "blocked" : openManualItems.length > 0 ? "conditional-go" : "ready";
+
+  return {
+    status,
+    decision,
+    summary:
+      decision === "ready"
+        ? "Platform-admin release gate is volledig groen."
+        : decision === "blocked"
+          ? "Platform-admin release gate heeft blokkerende runtimepunten."
+          : "Platform-admin release gate is conditioneel: handmatige stagingbewijzen moeten aan het releaseformulier worden gekoppeld.",
+    command: "pnpm fieldgrid:platform-admin-final-gate:check",
+    checklist: "docs/fieldgrid-platform-admin-phase-14-final-gate.md",
+    reportDirectory: "artifacts/platform-admin-final-gate",
+    items,
+    exceptions,
+    requiredCommands: [
+      "pnpm fieldgrid:platform-admin-final-gate:check",
+      "pnpm run typecheck && pnpm -r --if-present run build",
+      "pnpm fieldgrid:platform-phase13-visual-smoke",
+      "pnpm fieldgrid:sprint15-staging-smoke:run-read-only",
+      "pnpm fieldgrid:sprint7-migration-smoke --run --target all",
+    ],
+  };
+}
+
 export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagingSmokeDashboard> {
   await requirePlatformAdmin();
 
@@ -618,6 +857,7 @@ export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagin
   const migrationSmoke = buildMigrationSmokeStatus(totals, runHistory);
   const mutatingChecks = buildMutatingChecks(totals);
   const finalExternalTenantGate = buildFinalExternalTenantGate({ checks, liveSmokes, migrationSmoke, mutatingChecks });
+  const platformAdminReleaseGate = buildPlatformAdminReleaseGate({ checks, liveSmokes, migrationSmoke, mutatingChecks, finalExternalTenantGate });
 
   return {
     generatedAt,
@@ -629,6 +869,7 @@ export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagin
     migrationSmoke,
     mutatingChecks,
     finalExternalTenantGate,
+    platformAdminReleaseGate,
     minimumGreen: [
       "FG-SMOKE-HOST",
       "FG-SMOKE-LOGIN",
@@ -642,6 +883,7 @@ export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagin
       "docs/fieldgrid-backup-restore-rollback-playbook.md",
       "docs/fieldgrid-first-external-tenant-checklist.md",
       "docs/fieldgrid-sprint-16-final-gate.md",
+      "docs/fieldgrid-platform-admin-phase-14-final-gate.md",
     ],
   };
 }

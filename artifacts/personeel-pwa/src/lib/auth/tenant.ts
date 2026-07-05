@@ -93,7 +93,7 @@ export async function resolvePortalTenantFromHost(): Promise<PortalHostTenantRes
     .where(
       and(
         eq(tenantDomainsTable.domain, normalizedHost),
-        eq(tenantDomainsTable.verificationStatus, "verified"),
+        inArray(tenantDomainsTable.verificationStatus, ["verified", "active"]),
         ne(tenantDomainsTable.type, "platform_reserved"),
         eq(tenantsTable.isActive, true),
         inArray(tenantsTable.status, [...TENANT_RUNTIME_ACTIVE_STATUSES]),

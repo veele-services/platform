@@ -29,8 +29,8 @@ test("customer and personnel portals resolve tenant context from the request hos
 test("customer portal identity is scoped to the host tenant", () => {
   const customer = read("artifacts/klant-pwa/src/actions/customer.ts");
 
-  assert.match(customer, /getCurrentPortalTenantId/u);
-  assert.match(customer, /const tenantId = await getCurrentPortalTenantId\(\);/u);
+  assert.match(customer, /requireCurrentCustomerPortalTenantId/u);
+  assert.match(customer, /const tenantId = await requireCurrentCustomerPortalTenantId\(\);/u);
   assert.match(customer, /if \(!tenantId\) return null;/u);
   assert.match(customer, /eq\(customerUsersTable\.tenantId, tenantId\)/u);
   assert.match(customer, /eq\(customersTable\.tenantId, tenantId\)/u);

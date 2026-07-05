@@ -253,3 +253,79 @@
     pointer-events: none;
   }
 }
+
+@layer components {
+  .platform-page {
+    overflow-x: hidden;
+  }
+
+  .platform-page :where(input, select, textarea) {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  .platform-page :where(button, input, select) {
+    min-height: 2.5rem;
+  }
+
+  .platform-page :where(a.rounded, button.rounded) {
+    min-height: 2.5rem;
+    align-items: center;
+  }
+
+  .platform-long-text {
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  .platform-chip {
+    display: inline-flex;
+    max-width: 100%;
+    align-items: center;
+    gap: 0.25rem;
+    overflow-wrap: anywhere;
+    line-height: 1.2;
+  }
+
+  .platform-scroll-x {
+    max-width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-gutter: stable both-edges;
+  }
+
+  .platform-tab-strip {
+    scroll-snap-type: x proximity;
+  }
+
+  .platform-tab-strip > * {
+    scroll-snap-align: start;
+  }
+
+  .platform-empty-state {
+    border: 1px dashed #CBD5E1;
+    border-radius: 6px;
+    background: #FFFFFF;
+    padding: 1.5rem;
+    text-align: center;
+    color: #64748B;
+  }
+
+  @media (max-width: 767px) {
+    .platform-page {
+      padding-left: 1rem;
+      padding-right: 1rem;
+    }
+
+    .platform-page :where(h1) {
+      font-size: 1.5rem;
+      line-height: 2rem;
+      overflow-wrap: anywhere;
+    }
+
+    .platform-page :where(h2, h3, p, dd, dt, span, a) {
+      overflow-wrap: anywhere;
+    }
+  }
+}

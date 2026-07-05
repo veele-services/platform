@@ -35,6 +35,8 @@ export const FIELDGRID_SECURITY_AUDIT_EVENT_TYPES = [
   "direct_id_denial",
   "module_denial",
   "storage_denial",
+  "tenant_mismatch",
+  "platform_access_denial",
   "platform_admin",
 ] as const;
 
@@ -62,6 +64,15 @@ export const FIELDGRID_SECURITY_AUDIT_CONTRACT = {
   storage_denial: {
     source: "audit_log",
     required: ["tenantId", "userId", "resource", "resourceId"],
+  },
+  tenant_mismatch: {
+    source: "audit_log",
+    required: ["tenantId", "userId", "resource", "resourceId"],
+  },
+  platform_access_denial: {
+    source: "audit_log",
+    required: ["userId", "resource", "resourceId"],
+    tenantId: "null-for-platform-only",
   },
   platform_admin: {
     source: "audit_log",
