@@ -64,13 +64,13 @@ export function TenantPageHeader({
         <div className="min-w-0 space-y-2">
           {eyebrow && <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{eyebrow}</p>}
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold leading-tight text-foreground sm:text-3xl">{title}</h1>
+            <h1 className="min-w-0 max-w-full break-words text-2xl font-semibold leading-tight text-foreground sm:text-3xl">{title}</h1>
             {badges}
           </div>
-          {description && <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{description}</p>}
+          {description && <p className="max-w-3xl break-words text-sm leading-6 text-muted-foreground">{description}</p>}
           {meta && <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">{meta}</div>}
         </div>
-        {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+        {actions && <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:shrink-0">{actions}</div>}
       </div>
     </header>
   );

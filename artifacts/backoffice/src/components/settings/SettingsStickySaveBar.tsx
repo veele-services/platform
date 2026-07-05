@@ -42,9 +42,9 @@ export function SettingsStickySaveBar({
             <span>Niet-opgeslagen wijzigingen worden hier bevestigd.</span>
           )}
         </div>
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">
           {children}
-          <Button type={onSave ? "button" : "submit"} onClick={onSave} disabled={pending}>
+          <Button className="w-full sm:w-auto" type={onSave ? "button" : "submit"} onClick={onSave} disabled={pending}>
             {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
             {pending ? pendingLabel : submitLabel}
           </Button>

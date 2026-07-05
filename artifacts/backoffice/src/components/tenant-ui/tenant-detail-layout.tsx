@@ -51,22 +51,22 @@ export function TenantDetailHeader({
       <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div className="min-w-0 space-y-3">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-2xl font-semibold leading-tight text-foreground sm:text-3xl">{title}</h1>
+            <h1 className="min-w-0 max-w-full break-words text-2xl font-semibold leading-tight text-foreground sm:text-3xl">{title}</h1>
             {badges}
           </div>
-          {description && <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{description}</p>}
+          {description && <p className="max-w-3xl break-words text-sm leading-6 text-muted-foreground">{description}</p>}
           {meta && meta.length > 0 && (
             <dl className="flex flex-wrap gap-x-4 gap-y-2 text-xs text-muted-foreground">
               {meta.map((item, index) => (
-                <div key={index} className="flex items-center gap-1.5">
+                <div key={index} className="min-w-0 max-w-full flex-wrap items-center gap-1.5 sm:flex">
                   <dt className="font-medium text-muted-foreground">{item.label}</dt>
-                  <dd className="text-foreground">{item.value}</dd>
+                  <dd className="break-words text-foreground">{item.value}</dd>
                 </div>
               ))}
             </dl>
           )}
         </div>
-        {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+        {actions && <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:shrink-0">{actions}</div>}
       </div>
 
       {summary && <div className="mt-5">{summary}</div>}

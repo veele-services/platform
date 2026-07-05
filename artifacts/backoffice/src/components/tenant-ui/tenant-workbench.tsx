@@ -41,7 +41,7 @@ export function TenantCommandBar({
             {title && <h2 className="text-sm font-semibold text-foreground">{title}</h2>}
             {description && <p className="max-w-3xl text-xs leading-5 text-muted-foreground">{description}</p>}
           </div>
-          {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+          {actions && <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:shrink-0">{actions}</div>}
         </div>
       )}
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -151,7 +151,7 @@ export function TenantWorkbenchPanel({
             {title && <h2 className="text-sm font-semibold text-foreground">{title}</h2>}
             {description && <p className="max-w-2xl text-xs leading-5 text-muted-foreground">{description}</p>}
           </div>
-          {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+          {actions && <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">{actions}</div>}
         </div>
       )}
       {children}
