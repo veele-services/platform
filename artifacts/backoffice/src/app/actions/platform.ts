@@ -12,10 +12,11 @@ import {
   tenantsTable,
   validateSupportBreakGlassGrant,
 } from "@workspace/db";
-import { and, desc, eq, gt, gte, isNull, lte, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, gt, gte, isNull, lte, ne, sql, type SQL } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
   requirePlatformAdmin,
@@ -25,13 +26,21 @@ import {
 } from "@/lib/auth/platform";
 import type { ActionResult } from "./customers";
 
+export type PlatformRole = "owner" | "admin" | "support";
+export type PlatformUserStatus = "active" | "inactive" | "suspended";
+export type PlatformUserAuthStatus = "confirmed" | "invited" | "unknown";
+
 export type PlatformUserRow = {
   id: string;
   userId: string;
-  role: string;
-  status: string;
+  email: string | null;
+  role: PlatformRole;
+  status: PlatformUserStatus;
   createdAt: string;
   lastSeenAt: string | null;
+  lastSignInAt: string | null;
+  authStatus: PlatformUserAuthStatus;
+  mfaStatus: "later";
 };
 
 export type SupportAccessGrantRow = {
@@ -153,15 +162,15 @@ export type PlatformSecurityDashboard = {
   denialBreakdown: Record<PlatformSecurityDenialType, number>;
 };
 
-function normalizePlatformRole(role: string): "owner" | "admin" | "support" {
+function normalizePlatformRole(role: string): PlatformRole {
   return ["owner", "admin", "support"].includes(role)
-    ? (role as "owner" | "admin" | "support")
+    ? (role as PlatformRole)
     : "support";
 }
 
-function normalizePlatformStatus(status: string): "active" | "inactive" | "suspended" {
+function normalizePlatformStatus(status: string): PlatformUserStatus {
   return ["active", "inactive", "suspended"].includes(status)
-    ? (status as "active" | "inactive" | "suspended")
+    ? (status as PlatformUserStatus)
     : "active";
 }
 
@@ -169,9 +178,126 @@ function formValue(formData: FormData, name: string): string {
   return String(formData.get(name) ?? "").trim();
 }
 
+type PlatformUserRecord = typeof platformUsersTable.$inferSelect;
+
+type PlatformUserActor = {
+  id: string;
+  userId: string;
+  role: PlatformRole;
+};
+
+type PlatformAuthUserSnapshot = {
+  email: string | null;
+  authStatus: PlatformUserAuthStatus;
+  lastSignInAt: string | null;
+};
+
+function normalizeEmail(value: string): string {
+  return value.trim().toLowerCase();
+}
+
+function isValidEmail(value: string): boolean {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/u.test(value);
+}
+
+async function writePlatformAuditLog(input: {
+  actor: PlatformUserActor;
+  action: string;
+  resource: string;
+  resourceId?: string | null;
+  metadata?: Record<string, unknown> | null;
+}): Promise<void> {
+  await db.insert(auditLogTable).values({
+    userId: input.actor.userId,
+    action: input.action,
+    resource: input.resource,
+    resourceId: input.resourceId ?? null,
+    metadata: input.metadata ?? null,
+  });
+}
+
+async function hasAnotherActiveOwner(targetId: string): Promise<boolean> {
+  const [row] = await db
+    .select({
+      count: sql<number>`count(*)::int`,
+    })
+    .from(platformUsersTable)
+    .where(
+      and(
+        eq(platformUsersTable.role, "owner"),
+        eq(platformUsersTable.status, "active"),
+        ne(platformUsersTable.id, targetId),
+      ),
+    );
+
+  return Number(row?.count ?? 0) > 0;
+}
+
+async function validatePlatformUserManagement(input: {
+  actor: PlatformUserActor;
+  target: PlatformUserRecord | null;
+  nextRole: PlatformRole;
+  nextStatus: PlatformUserStatus;
+}): Promise<ActionResult> {
+  const { actor, target, nextRole, nextStatus } = input;
+
+  if (actor.role === "support") {
+    return { success: false, message: "Support kan platformgebruikers niet beheren." };
+  }
+
+  if (actor.role !== "owner" && (nextRole === "owner" || target?.role === "owner")) {
+    return { success: false, message: "Alleen owners kunnen owner-rollen aanmaken of wijzigen." };
+  }
+
+  if (target?.userId === actor.userId && (target.role !== nextRole || target.status !== nextStatus)) {
+    return { success: false, message: "U kunt uw eigen platformrol of status niet via deze pagina wijzigen." };
+  }
+
+  const removesActiveOwner =
+    target?.role === "owner" &&
+    target.status === "active" &&
+    (nextRole !== "owner" || nextStatus !== "active");
+  if (removesActiveOwner && !(await hasAnotherActiveOwner(target.id))) {
+    return { success: false, message: "Er moet altijd minimaal een actieve platform-owner overblijven." };
+  }
+
+  return { success: true };
+}
+
+async function platformAuthUsersById(userIds: string[]): Promise<Map<string, PlatformAuthUserSnapshot>> {
+  if (userIds.length === 0) return new Map();
+
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin.auth.admin.listUsers({ page: 1, perPage: 1000 });
+    if (error) return new Map();
+
+    const requestedIds = new Set(userIds);
+    const users = new Map<string, PlatformAuthUserSnapshot>();
+    for (const user of data.users) {
+      if (!requestedIds.has(user.id)) continue;
+      const confirmedAt = user.confirmed_at ?? user.email_confirmed_at ?? null;
+      users.set(user.id, {
+        email: user.email ?? null,
+        authStatus: confirmedAt ? "confirmed" : "invited",
+        lastSignInAt: user.last_sign_in_at ?? null,
+      });
+    }
+    return users;
+  } catch {
+    return new Map();
+  }
+}
+
 function revalidatePlatformTenant(tenantId: string): void {
   revalidatePath("/platform");
   revalidatePath(`/platform/tenants/${tenantId}`);
+  revalidatePath("/platform/security");
+}
+
+function revalidatePlatformUsers(): void {
+  revalidatePath("/platform");
+  revalidatePath("/platform/users");
   revalidatePath("/platform/security");
 }
 
@@ -368,14 +494,19 @@ export async function listPlatformUsers(): Promise<PlatformUserRow[]> {
     .select()
     .from(platformUsersTable)
     .orderBy(platformUsersTable.role, platformUsersTable.createdAt);
+  const authUsers = await platformAuthUsersById(rows.map((row) => row.userId));
 
   return rows.map((row) => ({
     id: row.id,
     userId: row.userId,
-    role: row.role,
-    status: row.status,
+    email: authUsers.get(row.userId)?.email ?? null,
+    role: normalizePlatformRole(row.role),
+    status: normalizePlatformStatus(row.status),
     createdAt: row.createdAt.toISOString(),
     lastSeenAt: row.lastSeenAt?.toISOString() ?? null,
+    lastSignInAt: authUsers.get(row.userId)?.lastSignInAt ?? null,
+    authStatus: authUsers.get(row.userId)?.authStatus ?? "unknown",
+    mfaStatus: "later",
   }));
 }
 
@@ -390,6 +521,18 @@ export async function upsertPlatformUser(input: {
 
   const role = normalizePlatformRole(input.role);
   const status = normalizePlatformStatus(input.status ?? "active");
+  const [target] = await db
+    .select()
+    .from(platformUsersTable)
+    .where(eq(platformUsersTable.userId, userId))
+    .limit(1);
+  const policy = await validatePlatformUserManagement({
+    actor,
+    target: target ?? null,
+    nextRole: role,
+    nextStatus: status,
+  });
+  if (!policy.success) return policy;
 
   const [row] = await db
     .insert(platformUsersTable)
@@ -400,8 +543,139 @@ export async function upsertPlatformUser(input: {
     })
     .returning({ id: platformUsersTable.id });
 
-  revalidatePath("/platform");
+  await writePlatformAuditLog({
+    actor,
+    action: target ? "platform_user_updated" : "platform_user_created",
+    resource: "platform_users",
+    resourceId: row.id,
+    metadata: {
+      userId,
+      previousRole: target?.role ?? null,
+      previousStatus: target?.status ?? null,
+      role,
+      status,
+      source: "upsertPlatformUser",
+    },
+  });
+
+  revalidatePlatformUsers();
   return { success: true, data: { id: row.id } };
+}
+
+export async function invitePlatformUserFromForm(formData: FormData): Promise<ActionResult<{ id: string }>> {
+  const actor = await requirePlatformAdmin();
+  const email = normalizeEmail(formValue(formData, "email"));
+  const role = normalizePlatformRole(formValue(formData, "role"));
+  const status = normalizePlatformStatus(formValue(formData, "status") || "active");
+
+  if (!email || !isValidEmail(email)) {
+    return { success: false, message: "Vul een geldig e-mailadres in." };
+  }
+
+  const policy = await validatePlatformUserManagement({
+    actor,
+    target: null,
+    nextRole: role,
+    nextStatus: status,
+  });
+  if (!policy.success) return policy;
+
+  let userId: string | null = null;
+  try {
+    const admin = createAdminClient();
+    const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
+      data: { platform_role: role },
+    });
+    if (error) {
+      return { success: false, message: `Uitnodiging kon niet worden verstuurd: ${error.message}` };
+    }
+    userId = data.user?.id ?? null;
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Supabase admin-client kon niet worden geladen.",
+    };
+  }
+
+  if (!userId) {
+    return { success: false, message: "Supabase gaf geen gebruiker terug voor deze uitnodiging." };
+  }
+
+  const [row] = await db
+    .insert(platformUsersTable)
+    .values({ userId, role, status, createdBy: actor.userId })
+    .onConflictDoUpdate({
+      target: platformUsersTable.userId,
+      set: { role, status, updatedAt: new Date() },
+    })
+    .returning({ id: platformUsersTable.id });
+
+  await writePlatformAuditLog({
+    actor,
+    action: "platform_user_invited",
+    resource: "platform_users",
+    resourceId: row.id,
+    metadata: {
+      email,
+      invitedUserId: userId,
+      role,
+      status,
+    },
+  });
+
+  revalidatePlatformUsers();
+  return { success: true, data: { id: row.id } };
+}
+
+export async function updatePlatformUserFromForm(formData: FormData): Promise<ActionResult> {
+  const actor = await requirePlatformAdmin();
+  const platformUserId = formValue(formData, "platformUserId");
+  const role = normalizePlatformRole(formValue(formData, "role"));
+  const status = normalizePlatformStatus(formValue(formData, "status"));
+
+  if (!platformUserId) {
+    return { success: false, message: "Platformgebruiker ontbreekt." };
+  }
+
+  const [target] = await db
+    .select()
+    .from(platformUsersTable)
+    .where(eq(platformUsersTable.id, platformUserId))
+    .limit(1);
+  if (!target) {
+    return { success: false, message: "Platformgebruiker niet gevonden." };
+  }
+
+  const policy = await validatePlatformUserManagement({
+    actor,
+    target,
+    nextRole: role,
+    nextStatus: status,
+  });
+  if (!policy.success) return policy;
+
+  await db
+    .update(platformUsersTable)
+    .set({ role, status, updatedAt: new Date() })
+    .where(eq(platformUsersTable.id, target.id));
+
+  await writePlatformAuditLog({
+    actor,
+    action: "platform_user_updated",
+    resource: "platform_users",
+    resourceId: target.id,
+    metadata: {
+      userId: target.userId,
+      previousRole: target.role,
+      previousStatus: target.status,
+      role,
+      status,
+      source: "platform_users_page",
+    },
+  });
+
+  revalidatePlatformUsers();
+  return { success: true };
 }
 
 export async function listSupportAccessGrants(): Promise<SupportAccessGrantRow[]> {
