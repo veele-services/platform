@@ -1,9 +1,15 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { FormEvent, useState, useTransition } from "react";
 import {
-  Users, Plus, Mail, MoreHorizontal, CheckCircle2, AlertCircle,
-  UserX, Pencil, X,
+  AlertCircle,
+  CheckCircle2,
+  Mail,
+  Pencil,
+  Plus,
+  RotateCcw,
+  UserX,
+  Users,
 } from "lucide-react";
 import {
   inviteUser,
@@ -12,45 +18,61 @@ import {
   updateUserRoles,
 } from "@/app/actions/settings";
 import type { UserRow, RoleRow } from "@/app/actions/settings";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { TenantActionMenu } from "@/components/tenant-ui/tenant-action-menu";
+import { TenantConfirmDialog } from "@/components/tenant-ui/tenant-confirm-dialog";
 
 const STATUS_LABELS: Record<UserRow["status"], { label: string; bg: string; color: string }> = {
-  actief:       { label: "Actief",       bg: "#D1FAE5", color: "#065F46" },
-  uitgenodigd:  { label: "Uitgenodigd",  bg: "#EFF6FF", color: "#1D4ED8" },
-  inactief:     { label: "Inactief",     bg: "#FEE2E2", color: "#991B1B" },
+  actief: { label: "Actief", bg: "#D1FAE5", color: "#065F46" },
+  uitgenodigd: { label: "Uitgenodigd", bg: "#EFF6FF", color: "#1D4ED8" },
+  inactief: { label: "Inactief", bg: "#FEE2E2", color: "#991B1B" },
 };
 
 interface Props {
-  users:    UserRow[];
-  roles:    RoleRow[];
+  users: UserRow[];
+  roles: RoleRow[];
   canWrite: boolean;
 }
 
 export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) {
-  const [users, setUsers]             = useState(initialUsers);
-  const [showInvite, setShowInvite]   = useState(false);
-  const [email, setEmail]             = useState("");
-  const [roleId, setRoleId]           = useState(roles[0]?.id ?? "");
-  const [isPending, startTransition]  = useTransition();
-  const [error, setError]             = useState<string | null>(null);
-  const [success, setSuccess]         = useState<string | null>(null);
+  const [users, setUsers] = useState(initialUsers);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [email, setEmail] = useState("");
+  const [roleId, setRoleId] = useState(roles[0]?.id ?? "");
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [actionError, setActionError] = useState<Record<string, string>>({});
 
-  // Role-editing state
   const [editingRolesFor, setEditingRolesFor] = useState<string | null>(null);
-  const [editRoleIds, setEditRoleIds]          = useState<string[]>([]);
+  const [editRoleIds, setEditRoleIds] = useState<string[]>([]);
+  const editingUser = users.find((user) => user.userId === editingRolesFor) ?? null;
 
   function showFlash(msg: string, isErr: boolean) {
-    if (isErr) { setError(msg); setTimeout(() => setError(null), 3000); }
-    else        { setSuccess(msg); setTimeout(() => setSuccess(null), 3000); }
+    if (isErr) {
+      setError(msg);
+      setTimeout(() => setError(null), 3000);
+    } else {
+      setSuccess(msg);
+      setTimeout(() => setSuccess(null), 3000);
+    }
   }
 
-  function handleInvite(e: React.FormEvent) {
+  function handleInvite(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     startTransition(async () => {
       const result = await inviteUser({ email: email.trim(), roleId });
       if (result.success) {
-        setShowInvite(false);
+        setInviteOpen(false);
         setEmail("");
         showFlash("Uitnodiging verstuurd.", false);
       } else {
@@ -59,14 +81,13 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
     });
   }
 
-  function handleDeactivate(userId: string, displayName: string) {
-    if (!confirm(`Weet u zeker dat u ${displayName} wilt deactiveren?`)) return;
+  function handleDeactivate(userId: string) {
     setActionError((prev) => ({ ...prev, [userId]: "" }));
     startTransition(async () => {
       const result = await deactivateUser(userId);
       if (result.success) {
         setUsers((prev) =>
-          prev.map((u) => u.userId === userId ? { ...u, status: "inactief" as const } : u),
+          prev.map((user) => user.userId === userId ? { ...user, status: "inactief" as const } : user),
         );
         showFlash("Gebruiker gedeactiveerd.", false);
       } else {
@@ -92,7 +113,7 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
   function startEditRoles(userId: string, currentRoleIds: string[]) {
     setEditingRolesFor(userId);
     setEditRoleIds([...currentRoleIds]);
-    setShowInvite(false);
+    setInviteOpen(false);
   }
 
   function cancelEditRoles() {
@@ -100,9 +121,9 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
     setEditRoleIds([]);
   }
 
-  function toggleRoleId(roleId: string) {
+  function toggleRoleId(nextRoleId: string) {
     setEditRoleIds((prev) =>
-      prev.includes(roleId) ? prev.filter((id) => id !== roleId) : [...prev, roleId],
+      prev.includes(nextRoleId) ? prev.filter((id) => id !== nextRoleId) : [...prev, nextRoleId],
     );
   }
 
@@ -111,13 +132,13 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
       const result = await updateUserRoles(userId, editRoleIds);
       if (result.success) {
         const newRoleNames = roles
-          .filter((r) => editRoleIds.includes(r.id))
-          .map((r) => r.name);
+          .filter((role) => editRoleIds.includes(role.id))
+          .map((role) => role.name);
         setUsers((prev) =>
-          prev.map((u) =>
-            u.userId === userId
-              ? { ...u, roles: newRoleNames, roleIds: [...editRoleIds] }
-              : u,
+          prev.map((user) =>
+            user.userId === userId
+              ? { ...user, roles: newRoleNames, roleIds: [...editRoleIds] }
+              : user,
           ),
         );
         cancelEditRoles();
@@ -133,231 +154,105 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          {error   && <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: "#DC2626" }}><AlertCircle className="h-4 w-4" />{error}</span>}
-          {success && <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: "#059669" }}><CheckCircle2 className="h-4 w-4" />{success}</span>}
+          {error && <Flash tone="error" text={error} />}
+          {success && <Flash tone="success" text={success} />}
         </div>
         {canWrite && (
-          <button
-            onClick={() => { setShowInvite((v) => !v); cancelEditRoles(); }}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white"
-            style={{ backgroundColor: "#081D3A" }}
-          >
-            <Plus className="h-4 w-4" />
-            Gebruiker uitnodigen
-          </button>
+          <InviteUserSheet
+            open={inviteOpen}
+            onOpenChange={setInviteOpen}
+            email={email}
+            roleId={roleId}
+            roles={roles}
+            pending={isPending}
+            error={error}
+            onEmailChange={setEmail}
+            onRoleChange={setRoleId}
+            onSubmit={handleInvite}
+          />
         )}
       </div>
 
-      {showInvite && (
-        <form onSubmit={handleInvite} className="veele-card space-y-3">
-          <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>Nieuwe gebruiker uitnodigen</p>
-
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: "#374151" }}>
-                E-mailadres <span style={{ color: "#DC2626" }}>*</span>
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="veele-input w-full"
-                placeholder="naam@organisatie.nl"
-                disabled={isPending}
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: "#374151" }}>
-                Rol <span style={{ color: "#DC2626" }}>*</span>
-              </label>
-              <select
-                value={roleId}
-                onChange={(e) => setRoleId(e.target.value)}
-                disabled={isPending}
-                className="veele-input w-full"
-              >
-                {roles.map((r) => (
-                  <option key={r.id} value={r.id}>{r.name}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {error && <p className="text-sm" style={{ color: "#DC2626" }}>{error}</p>}
-
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={isPending || !email.trim() || !roleId}
-              className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-              style={{ backgroundColor: "#081D3A" }}
-            >
-              <Mail className="h-3.5 w-3.5" />
-              {isPending ? "Versturen…" : "Uitnodiging versturen"}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setShowInvite(false); setEmail(""); setError(null); }}
-              className="rounded-lg px-3 py-1.5 text-sm font-medium border"
-              style={{ borderColor: "#E2E8F0", color: "#475569" }}
-            >
-              Annuleren
-            </button>
-          </div>
-        </form>
-      )}
-
-      <div className="veele-card p-0 overflow-hidden">
+      <div className="veele-card overflow-hidden p-0">
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: "1px solid #F1F5F9" }}>
-              {["Naam", "E-mail", "Rollen", "Status", "Aangemeld", ""].map((h) => (
+              {["Naam", "E-mail", "Rollen", "Status", "Aangemeld", ""].map((header) => (
                 <th
-                  key={h}
+                  key={header}
                   className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide"
                   style={{ color: "#94A3B8" }}
                 >
-                  {h}
+                  {header}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {users.map((u) => {
-              const st          = STATUS_LABELS[u.status];
-              const displayName = u.name ?? u.email.split("@")[0];
-              const isEditing   = editingRolesFor === u.userId;
+            {users.map((user) => {
+              const status = STATUS_LABELS[user.status];
+              const displayName = user.name ?? user.email.split("@")[0];
 
               return (
-                <>
-                  <tr
-                    key={u.userId}
-                    style={{ borderBottom: isEditing ? "none" : "1px solid #F8FAFC" }}
-                    className="hover:bg-slate-50"
-                  >
-                    <td className="px-4 py-3 font-medium" style={{ color: "#081D3A" }}>
-                      {u.name ?? <span style={{ color: "#94A3B8" }}>—</span>}
-                    </td>
-                    <td className="px-4 py-3" style={{ color: "#475569" }}>
-                      {u.email || <span style={{ color: "#94A3B8" }}>—</span>}
-                    </td>
-                    <td className="px-4 py-3">
-                      {u.roles.length > 0 ? (
-                        <div className="flex flex-wrap gap-1">
-                          {u.roles.map((r) => (
-                            <span
-                              key={r}
-                              className="inline-flex items-center rounded px-1.5 py-0.5 text-xs"
-                              style={{ backgroundColor: "#F1F5F9", color: "#475569" }}
-                            >
-                              {r}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span style={{ color: "#CBD5E1" }}>Geen rol</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span
-                        className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
-                        style={{ backgroundColor: st.bg, color: st.color }}
-                      >
-                        {st.label}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs" style={{ color: "#64748B" }}>
-                      {new Date(u.createdAt).toLocaleDateString("nl-NL", {
-                        day: "numeric", month: "short", year: "numeric",
-                      })}
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {canWrite && (
-                        <ActionMenu
-                          user={u}
-                          displayName={displayName}
-                          isPending={isPending}
-                          actionError={actionError[u.userId]}
-                          onDeactivate={() => handleDeactivate(u.userId, displayName)}
-                          onResend={() => handleResend(u.userId)}
-                          onEditRoles={() => startEditRoles(u.userId, u.roleIds)}
-                        />
-                      )}
-                    </td>
-                  </tr>
-
-                  {/* Inline role editor */}
-                  {isEditing && (
-                    <tr key={`${u.userId}-edit`} style={{ borderBottom: "1px solid #F8FAFC" }}>
-                      <td colSpan={6} className="px-4 pb-4 pt-1">
-                        <div
-                          className="rounded-lg p-4 space-y-3"
-                          style={{ backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0" }}
-                        >
-                          <div className="flex items-center justify-between">
-                            <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
-                              Rollen bewerken voor <em className="not-italic" style={{ color: "#00B7B3" }}>{displayName}</em>
-                            </p>
-                            <button
-                              type="button"
-                              onClick={cancelEditRoles}
-                              className="rounded p-1 hover:bg-slate-200 transition-colors"
-                            >
-                              <X className="h-4 w-4" style={{ color: "#64748B" }} />
-                            </button>
-                          </div>
-
-                          <div className="flex flex-wrap gap-3">
-                            {roles.map((r) => (
-                              <label
-                                key={r.id}
-                                className="flex items-center gap-2 cursor-pointer select-none"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={editRoleIds.includes(r.id)}
-                                  onChange={() => toggleRoleId(r.id)}
-                                  disabled={isPending}
-                                  className="rounded border-gray-300"
-                                />
-                                <span className="text-sm" style={{ color: "#374151" }}>{r.name}</span>
-                                {r.description && (
-                                  <span className="text-xs" style={{ color: "#94A3B8" }}>— {r.description}</span>
-                                )}
-                              </label>
-                            ))}
-                          </div>
-
-                          {actionError[u.userId] && (
-                            <p className="text-sm" style={{ color: "#DC2626" }}>{actionError[u.userId]}</p>
-                          )}
-
-                          <div className="flex gap-2">
-                            <button
-                              type="button"
-                              onClick={() => handleSaveRoles(u.userId)}
-                              disabled={isPending}
-                              className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-                              style={{ backgroundColor: "#081D3A" }}
-                            >
-                              {isPending ? "Opslaan…" : "Rollen opslaan"}
-                            </button>
-                            <button
-                              type="button"
-                              onClick={cancelEditRoles}
-                              className="rounded-lg px-3 py-1.5 text-sm font-medium border"
-                              style={{ borderColor: "#E2E8F0", color: "#475569" }}
-                            >
-                              Annuleren
-                            </button>
-                          </div>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                </>
+                <tr
+                  key={user.userId}
+                  style={{ borderBottom: "1px solid #F8FAFC" }}
+                  className="hover:bg-slate-50"
+                >
+                  <td className="px-4 py-3 font-medium" style={{ color: "#081D3A" }}>
+                    {user.name ?? <span style={{ color: "#94A3B8" }}>-</span>}
+                  </td>
+                  <td className="px-4 py-3" style={{ color: "#475569" }}>
+                    {user.email || <span style={{ color: "#94A3B8" }}>-</span>}
+                  </td>
+                  <td className="px-4 py-3">
+                    {user.roles.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {user.roles.map((role) => (
+                          <span
+                            key={role}
+                            className="inline-flex items-center rounded px-1.5 py-0.5 text-xs"
+                            style={{ backgroundColor: "#F1F5F9", color: "#475569" }}
+                          >
+                            {role}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span style={{ color: "#CBD5E1" }}>Geen rol</span>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <span
+                      className="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium"
+                      style={{ backgroundColor: status.bg, color: status.color }}
+                    >
+                      {status.label}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 text-xs" style={{ color: "#64748B" }}>
+                    {new Date(user.createdAt).toLocaleDateString("nl-NL", {
+                      day: "numeric",
+                      month: "short",
+                      year: "numeric",
+                    })}
+                  </td>
+                  <td className="px-4 py-3 text-right">
+                    {canWrite && (
+                      <UserActionMenu
+                        user={user}
+                        displayName={displayName}
+                        pending={isPending}
+                        actionError={actionError[user.userId]}
+                        onDeactivate={() => handleDeactivate(user.userId)}
+                        onResend={() => handleResend(user.userId)}
+                        onEditRoles={() => startEditRoles(user.userId, user.roleIds)}
+                      />
+                    )}
+                  </td>
+                </tr>
               );
             })}
           </tbody>
@@ -365,92 +260,234 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
 
         {users.length === 0 && (
           <div className="py-12 text-center" style={{ color: "#94A3B8" }}>
-            <Users className="h-8 w-8 mx-auto mb-2" strokeWidth={1.5} />
+            <Users className="mx-auto mb-2 h-8 w-8" strokeWidth={1.5} />
             <p className="text-sm">Geen gebruikers gevonden.</p>
           </div>
         )}
       </div>
+
+      <EditRolesSheet
+        open={Boolean(editingUser)}
+        user={editingUser}
+        roles={roles}
+        selectedRoleIds={editRoleIds}
+        pending={isPending}
+        actionError={editingUser ? actionError[editingUser.userId] : undefined}
+        onOpenChange={(open) => !open && cancelEditRoles()}
+        onToggleRole={toggleRoleId}
+        onSubmit={() => editingUser && handleSaveRoles(editingUser.userId)}
+      />
     </div>
   );
 }
 
-function ActionMenu({
+function InviteUserSheet({
+  open,
+  onOpenChange,
+  email,
+  roleId,
+  roles,
+  pending,
+  error,
+  onEmailChange,
+  onRoleChange,
+  onSubmit,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  email: string;
+  roleId: string;
+  roles: RoleRow[];
+  pending: boolean;
+  error: string | null;
+  onEmailChange: (value: string) => void;
+  onRoleChange: (value: string) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetTrigger asChild>
+        <Button type="button">
+          <Plus className="h-4 w-4" />
+          Gebruiker uitnodigen
+        </Button>
+      </SheetTrigger>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+        <SheetHeader>
+          <SheetTitle>Gebruiker uitnodigen</SheetTitle>
+          <SheetDescription>Kies een rol en verstuur een uitnodiging per e-mail.</SheetDescription>
+        </SheetHeader>
+        <form onSubmit={onSubmit} className="mt-6 space-y-4">
+          <label className="block text-xs font-medium" style={{ color: "#374151" }}>
+            E-mailadres
+            <input
+              type="email"
+              value={email}
+              onChange={(event) => onEmailChange(event.target.value)}
+              className="veele-input mt-1 w-full"
+              placeholder="naam@organisatie.nl"
+              disabled={pending}
+              required
+            />
+          </label>
+          <label className="block text-xs font-medium" style={{ color: "#374151" }}>
+            Rol
+            <select
+              value={roleId}
+              onChange={(event) => onRoleChange(event.target.value)}
+              disabled={pending}
+              className="veele-input mt-1 w-full"
+              required
+            >
+              {roles.map((role) => (
+                <option key={role.id} value={role.id}>{role.name}</option>
+              ))}
+            </select>
+          </label>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button type="submit" disabled={pending || !email.trim() || !roleId}>
+            <Mail className="h-4 w-4" />
+            {pending ? "Versturen..." : "Uitnodiging versturen"}
+          </Button>
+        </form>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function EditRolesSheet({
+  open,
+  user,
+  roles,
+  selectedRoleIds,
+  pending,
+  actionError,
+  onOpenChange,
+  onToggleRole,
+  onSubmit,
+}: {
+  open: boolean;
+  user: UserRow | null;
+  roles: RoleRow[];
+  selectedRoleIds: string[];
+  pending: boolean;
+  actionError: string | undefined;
+  onOpenChange: (open: boolean) => void;
+  onToggleRole: (roleId: string) => void;
+  onSubmit: () => void;
+}) {
+  const displayName = user?.name ?? user?.email.split("@")[0] ?? "gebruiker";
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+        <SheetHeader>
+          <SheetTitle>Rollen bewerken</SheetTitle>
+          <SheetDescription>Wijzig de actieve rollen voor {displayName}.</SheetDescription>
+        </SheetHeader>
+        <div className="mt-6 space-y-4">
+          <div className="space-y-3">
+            {roles.map((role) => (
+              <label key={role.id} className="flex cursor-pointer items-start gap-3 rounded-lg border border-border bg-card p-3">
+                <input
+                  type="checkbox"
+                  checked={selectedRoleIds.includes(role.id)}
+                  onChange={() => onToggleRole(role.id)}
+                  disabled={pending}
+                  className="mt-0.5 h-4 w-4 rounded border-gray-300"
+                />
+                <span>
+                  <span className="block text-sm font-medium text-foreground">{role.name}</span>
+                  {role.description && <span className="mt-0.5 block text-xs text-muted-foreground">{role.description}</span>}
+                </span>
+              </label>
+            ))}
+          </div>
+          {actionError && <p className="text-sm text-destructive">{actionError}</p>}
+          <Button type="button" onClick={onSubmit} disabled={pending}>
+            {pending ? "Opslaan..." : "Rollen opslaan"}
+          </Button>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function UserActionMenu({
   user,
   displayName,
-  isPending,
+  pending,
   actionError,
   onDeactivate,
   onResend,
   onEditRoles,
 }: {
-  user:         UserRow;
-  displayName:  string;
-  isPending:    boolean;
-  actionError:  string | undefined;
+  user: UserRow;
+  displayName: string;
+  pending: boolean;
+  actionError: string | undefined;
   onDeactivate: () => void;
-  onResend:     () => void;
-  onEditRoles:  () => void;
+  onResend: () => void;
+  onEditRoles: () => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   return (
-    <div className="relative inline-block">
-      <button
-        onClick={() => setOpen((v) => !v)}
-        className="rounded p-1 hover:bg-slate-100 transition-colors"
-        disabled={isPending}
-      >
-        <MoreHorizontal className="h-4 w-4" style={{ color: "#64748B" }} />
-      </button>
-
-      {open && (
-        <>
-          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
-          <div
-            className="absolute right-0 z-20 mt-1 min-w-[200px] rounded-lg border bg-white py-1 shadow-lg"
-            style={{ borderColor: "#E2E8F0" }}
-          >
-            <button
-              onClick={() => { setOpen(false); onEditRoles(); }}
-              className="flex w-full items-center gap-2 px-3 py-2 text-xs hover:bg-slate-50 text-left"
-              style={{ color: "#374151" }}
-            >
-              <Pencil className="h-3.5 w-3.5" style={{ color: "#64748B" }} />
-              Rollen bewerken
-            </button>
-            {user.status === "uitgenodigd" && (
-              <button
-                onClick={() => { setOpen(false); onResend(); }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-xs hover:bg-slate-50 text-left"
-                style={{ color: "#374151" }}
-              >
-                <Mail className="h-3.5 w-3.5" style={{ color: "#64748B" }} />
-                Uitnodiging opnieuw sturen
-              </button>
-            )}
-            {user.status !== "inactief" && (
-              <button
-                onClick={() => { setOpen(false); onDeactivate(); }}
-                className="flex w-full items-center gap-2 px-3 py-2 text-xs hover:bg-slate-50 text-left"
-                style={{ color: "#DC2626" }}
-              >
-                <UserX className="h-3.5 w-3.5" />
-                Deactiveren
-              </button>
-            )}
-            {user.status === "inactief" && (
-              <p className="px-3 py-2 text-xs" style={{ color: "#94A3B8" }}>
-                Geen acties beschikbaar
-              </p>
-            )}
-          </div>
-        </>
-      )}
-      {actionError && (
-        <p className="absolute right-0 mt-1 text-xs whitespace-nowrap" style={{ color: "#DC2626" }}>
-          {actionError}
-        </p>
-      )}
+    <div className="inline-flex items-center justify-end">
+      <TenantActionMenu
+        actions={[
+          {
+            id: "roles",
+            label: "Rollen bewerken",
+            icon: <Pencil className="h-3.5 w-3.5" />,
+            disabled: pending,
+            onSelect: () => onEditRoles(),
+          },
+          ...(user.status === "uitgenodigd"
+            ? [{
+                id: "resend",
+                label: "Uitnodiging opnieuw sturen",
+                icon: <RotateCcw className="h-3.5 w-3.5" />,
+                disabled: pending,
+                onSelect: () => onResend(),
+              }]
+            : []),
+          ...(user.status !== "inactief"
+            ? [{
+                id: "deactivate",
+                label: "Deactiveren",
+                icon: <UserX className="h-3.5 w-3.5" />,
+                destructive: true,
+                separatorBefore: true,
+                disabled: pending,
+                onSelect: (event: Event) => {
+                  event.preventDefault();
+                  setConfirmOpen(true);
+                },
+              }]
+            : []),
+        ]}
+      />
+      <TenantConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        title="Gebruiker deactiveren?"
+        description={`Weet u zeker dat u ${displayName} wilt deactiveren?`}
+        confirmLabel="Deactiveren"
+        destructive
+        onConfirm={onDeactivate}
+      />
+      {actionError && <p className="ml-2 text-xs text-destructive">{actionError}</p>}
     </div>
+  );
+}
+
+function Flash({ tone, text }: { tone: "success" | "error"; text: string }) {
+  const Icon = tone === "success" ? CheckCircle2 : AlertCircle;
+  return (
+    <span className={tone === "success" ? "inline-flex items-center gap-1.5 text-sm text-emerald-700" : "inline-flex items-center gap-1.5 text-sm text-destructive"}>
+      <Icon className="h-4 w-4" />
+      {text}
+    </span>
   );
 }

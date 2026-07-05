@@ -5,14 +5,12 @@ import { useRouter, usePathname } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
-  Search,
   Plus,
   ChevronLeft,
   ChevronRight,
   ChevronUp,
   ChevronDown,
   ChevronsUpDown,
-  MoreHorizontal,
   Eye,
   Pencil,
   Trash2,
@@ -31,22 +29,13 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+  TenantActionMenu,
+  TenantActiveFilters,
+  TenantConfirmDialog,
+  TenantFilterDrawer,
+  TenantToolbar,
+  TenantToolbarSearch,
+} from "@/components/tenant-ui";
 import {
   Sheet,
   SheetContent,
@@ -345,29 +334,90 @@ export function PersonnelView({
     });
   }
 
+  const activeFilters = [
+    initialSearch ? { id: "search", label: "Zoeken", value: initialSearch, onRemove: () => applyFilter("search", "") } : null,
+    initialRegion ? { id: "region", label: "Regio", value: initialRegion, onRemove: () => applyFilter("region", "") } : null,
+    initialRoleId
+      ? { id: "role", label: "Rol", value: roles.find((role) => role.id === initialRoleId)?.name ?? initialRoleId, onRemove: () => applyFilter("roleId", "") }
+      : null,
+    initialSectorId
+      ? { id: "sector", label: "Sector", value: sectors.find((sector) => sector.id === initialSectorId)?.name ?? initialSectorId, onRemove: () => applyFilter("sectorId", "") }
+      : null,
+    initialPersonnelType && initialPersonnelType !== "ALL"
+      ? {
+          id: "personnelType",
+          label: "Type",
+          value: PERSONNEL_TYPE_LABELS[initialPersonnelType as PersonnelType] ?? initialPersonnelType,
+          onRemove: () => applyFilter("personnelType", ""),
+        }
+      : null,
+    initialStatus !== "all"
+      ? { id: "status", label: "Status", value: initialStatus === "active" ? "Actief" : "Inactief", onRemove: () => applyFilter("status", "") }
+      : null,
+  ].filter(Boolean) as Parameters<typeof TenantActiveFilters>[0]["filters"];
+
+  function renderRowActions(row: PersonnelRow) {
+    return (
+      <TenantActionMenu
+        actions={[
+          {
+            id: "view",
+            label: "Bekijken",
+            href: `/personnel/${row.id}`,
+            icon: <Eye className="h-4 w-4" />,
+          },
+          ...(canWrite
+            ? [
+                {
+                  id: "edit",
+                  label: "Bewerken",
+                  icon: <Pencil className="h-4 w-4" />,
+                  onSelect: () => {
+                    setSlimProfiel(null);
+                    openEdit(row.id);
+                  },
+                },
+                {
+                  id: "status",
+                  label: row.isActive ? "Deactiveren" : "Activeren",
+                  icon: row.isActive ? <ToggleLeft className="h-4 w-4" /> : <ToggleRight className="h-4 w-4" />,
+                  disabled: bulkPending,
+                  separatorBefore: true,
+                  onSelect: () => handleStatusToggle(row.id, row.isActive),
+                },
+                {
+                  id: "delete",
+                  label: "Verwijderen",
+                  icon: <Trash2 className="h-4 w-4" />,
+                  destructive: true,
+                  separatorBefore: true,
+                  onSelect: () => setDeleteTarget({ id: row.id, name: `${row.firstName} ${row.lastName}` }),
+                },
+              ]
+            : []),
+        ]}
+      />
+    );
+  }
+
   const colCount = canWrite ? 13 : 12;
 
   // ─── Render ───────────────────────────────────────────────────────────────────
   return (
     <>
       {/* Toolbar */}
-      <div className="flex items-center gap-3 mb-5 flex-wrap">
-        <form
+      <TenantToolbar
+        search={
+          <form
           onSubmit={handleSearchSubmit}
-          className="flex items-center gap-2 flex-1 min-w-[200px] max-w-sm"
+          className="flex min-w-0 flex-1 gap-2 sm:max-w-lg"
         >
-          <div className="relative flex-1">
-            <Search
-              className="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none"
-              style={{ color: "#94A3B8" }}
-            />
-            <Input
+          <TenantToolbarSearch
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}
               placeholder="Zoek op naam of e-mail…"
-              className="pl-8 h-9"
+              wrapperClassName="max-w-none"
             />
-          </div>
           <Input
             value={regionInput}
             onChange={(e) => setRegionInput(e.target.value)}
@@ -377,7 +427,12 @@ export function PersonnelView({
           <Button type="submit" variant="outline" size="sm" className="h-9">
             Zoeken
           </Button>
-        </form>
+          </form>
+        }
+        actions={
+          <>
+            <TenantFilterDrawer activeCount={activeFilters.length} title="Personeelsfilters">
+              <div className="grid gap-4">
 
         <Select
           value={initialRoleId || "ALL"}
@@ -438,6 +493,9 @@ export function PersonnelView({
           </SelectContent>
         </Select>
 
+              </div>
+            </TenantFilterDrawer>
+
         <div className="ml-auto">
           {canWrite && (
             <Button size="sm" onClick={openCreate}>
@@ -446,7 +504,10 @@ export function PersonnelView({
             </Button>
           )}
         </div>
-      </div>
+          </>
+        }
+        activeFilters={<TenantActiveFilters filters={activeFilters} />}
+      />
 
       {/* Bulk actions bar */}
       {selected.size > 0 && canWrite && (
@@ -468,7 +529,50 @@ export function PersonnelView({
       )}
 
       {/* Table + Slim profiel panel side-by-side */}
-      <div className="flex gap-0 overflow-hidden rounded-xl" style={{ border: "1px solid #E2E8F0" }}>
+      {rows.length === 0 ? (
+        <div className="mt-4 rounded-lg border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground md:hidden">
+          Geen personeelsrecords gevonden
+        </div>
+      ) : (
+        <div className="mt-4 grid gap-3 md:hidden">
+          {rows.map((row) => (
+            <article key={row.id} className="rounded-lg border border-border bg-card p-4 shadow-card">
+              <div className="flex items-start justify-between gap-3">
+                <div className="flex min-w-0 items-start gap-3">
+                  {canWrite && (
+                    <Checkbox
+                      checked={selected.has(row.id)}
+                      onCheckedChange={() => toggleOne(row.id)}
+                      aria-label={`Select ${row.firstName} ${row.lastName}`}
+                    />
+                  )}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2">
+                      <UserCircle2 className="h-4 w-4 text-muted-foreground" />
+                      <Link href={`/personnel/${row.id}`} className="font-medium text-foreground hover:underline">
+                        {row.firstName} {row.lastName}
+                      </Link>
+                    </div>
+                    <p className="truncate text-xs text-muted-foreground">{row.email}</p>
+                    <p className="mt-1 font-mono text-xs text-muted-foreground">{row.code}</p>
+                  </div>
+                </div>
+                {renderRowActions(row)}
+              </div>
+              <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <StatusBadge isActive={row.isActive} />
+                <InviteBadge userId={row.userId} inviteSentAt={row.inviteSentAt} />
+                <AvailabilityBadge status={row.availabilityStatus} />
+                {row.sectorName && <span>{row.sectorName}</span>}
+                {row.roleName && <span>{row.roleName}</span>}
+                {row.region && <span>{row.region}</span>}
+              </div>
+            </article>
+          ))}
+        </div>
+      )}
+
+      <div className="hidden gap-0 overflow-hidden rounded-xl md:flex" style={{ border: "1px solid #E2E8F0" }}>
         <div className="flex-1 overflow-x-auto min-w-0">
           <table className="w-full">
             <thead>
@@ -608,43 +712,7 @@ export function PersonnelView({
                         <InviteBadge userId={row.userId} inviteSentAt={row.inviteSentAt} />
                       </td>
                       <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8">
-                              <MoreHorizontal className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem asChild>
-                              <Link href={`/personnel/${row.id}`}>
-                                <Eye className="mr-2 h-4 w-4" />Bekijken
-                              </Link>
-                            </DropdownMenuItem>
-                            {canWrite && (
-                              <>
-                                <DropdownMenuItem onClick={() => { setSlimProfiel(null); openEdit(row.id); }}>
-                                  <Pencil className="mr-2 h-4 w-4" />Bewerken
-                                </DropdownMenuItem>
-                                <DropdownMenuItem
-                                  onClick={() => handleStatusToggle(row.id, row.isActive)}
-                                  disabled={bulkPending}
-                                >
-                                  {row.isActive
-                                    ? <><ToggleLeft className="mr-2 h-4 w-4" />Deactiveren</>
-                                    : <><ToggleRight className="mr-2 h-4 w-4" />Activeren</>
-                                  }
-                                </DropdownMenuItem>
-                                <DropdownMenuSeparator />
-                                <DropdownMenuItem
-                                  className="text-red-600 focus:text-red-600"
-                                  onClick={() => setDeleteTarget({ id: row.id, name: `${row.firstName} ${row.lastName}` })}
-                                >
-                                  <Trash2 className="mr-2 h-4 w-4" />Verwijderen
-                                </DropdownMenuItem>
-                              </>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+                        {renderRowActions(row)}
                       </td>
                     </tr>
                   );
@@ -714,29 +782,21 @@ export function PersonnelView({
         </SheetContent>
       </Sheet>
 
-      {/* Delete confirmation */}
-      <AlertDialog open={!!deleteTarget} onOpenChange={(o) => { if (!o) setDeleteTarget(null); }}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Medewerker verwijderen?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {deleteTarget
-                ? `Weet je zeker dat je "${deleteTarget.name}" wilt verwijderen? Dit kan niet ongedaan worden gemaakt.`
-                : ""}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuleren</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-red-600 hover:bg-red-700"
-              onClick={handleConfirmDelete}
-              disabled={bulkPending}
-            >
-              Verwijderen
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <TenantConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Medewerker verwijderen?"
+        description={
+          deleteTarget
+            ? `Weet je zeker dat je ${deleteTarget.name} wilt verwijderen? Dit kan niet ongedaan worden gemaakt.`
+            : undefined
+        }
+        confirmLabel={bulkPending ? "Verwijderen..." : "Verwijderen"}
+        destructive
+        onConfirm={handleConfirmDelete}
+      />
     </>
   );
 }

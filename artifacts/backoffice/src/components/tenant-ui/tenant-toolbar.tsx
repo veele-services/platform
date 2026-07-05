@@ -31,7 +31,7 @@ export function TenantToolbar({
           {filters}
           {children}
         </div>
-        {actions && <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>}
+        {actions && <div className="flex w-full flex-wrap items-center gap-2 lg:w-auto lg:shrink-0">{actions}</div>}
       </div>
       {activeFilters && <div className="mt-3 border-t border-border pt-3">{activeFilters}</div>}
     </div>
@@ -86,7 +86,7 @@ export function TenantActiveFilters({
   }
 
   return (
-    <div className={cn("flex flex-wrap items-center gap-2", className)} {...props}>
+    <div className={cn("flex min-w-0 flex-wrap items-center gap-2", className)} {...props}>
       {filters.map((filter) => {
         const label = (
           <>
@@ -96,13 +96,13 @@ export function TenantActiveFilters({
         );
 
         return (
-          <Badge key={filter.id} variant="outline" className="gap-1.5 bg-white">
+          <Badge key={filter.id} variant="outline" className="max-w-full gap-1.5 bg-white">
             {filter.href ? (
-              <Link href={filter.href} className="inline-flex items-center gap-1.5">
+              <Link href={filter.href} className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-1.5">
                 {label}
               </Link>
             ) : (
-              <span className="inline-flex items-center gap-1.5">{label}</span>
+              <span className="inline-flex min-w-0 max-w-full flex-wrap items-center gap-1.5">{label}</span>
             )}
             {filter.onRemove && (
               <button

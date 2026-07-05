@@ -2,10 +2,22 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Layers3, Loader2, ExternalLink, Download } from "lucide-react";
+import { Download, ExternalLink, Layers3, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+
 import { createCollectiveInvoicePayment } from "@/app/actions/invoices";
 import type { CollectiveInvoiceBatchRow, CollectiveInvoiceCandidate } from "@/app/actions/invoices";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { TenantWorkbenchPanel } from "@/components/tenant-ui";
 import { ProcessStatusBadge } from "@/components/workflows/ProcessStatus";
 
 type Props = {
@@ -30,6 +42,7 @@ function cents(value: string): number {
 export function CollectiveInvoicePanel({ candidates, batches, canWrite }: Props) {
   const router = useRouter();
   const [, startTransition] = useTransition();
+  const [open, setOpen] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [periodStart, setPeriodStart] = useState("");
   const [periodEnd, setPeriodEnd] = useState("");
@@ -93,117 +106,167 @@ export function CollectiveInvoicePanel({ candidates, batches, canWrite }: Props)
       return;
     }
 
-    const data = (result as { success: true; data: { id: string; checkoutUrl: string } }).data;
+    const data = result.data;
+    if (!data) {
+      toast.error("Verzamelfactuur aanmaken mislukt.");
+      return;
+    }
     toast.success("Verzamelfactuur aangemaakt");
     setSelectedIds([]);
     setNotes("");
+    setOpen(false);
     startTransition(() => router.refresh());
     if (data.checkoutUrl) window.open(data.checkoutUrl, "_blank", "noopener,noreferrer");
   }
 
   return (
-    <div className="veele-card mb-6">
-      <div className="mb-4 flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-        <div>
-          <h2 className="font-heading text-base font-semibold flex items-center gap-2" style={{ color: "#081D3A" }}>
-            <Layers3 className="h-4 w-4" style={{ color: "#00B7B3" }} />
-            Verzamelfacturen
-          </h2>
-          <p className="mt-1 text-xs" style={{ color: "#64748B" }}>
-            Bundel meerdere verzonden facturen van dezelfde klant. Open of betaalde batches blokkeren dubbele facturatie.
-          </p>
-        </div>
-        <div className="rounded-lg px-3 py-2 text-xs" style={{ background: "#F8FAFC", color: "#475569", border: "1px solid #E2E8F0" }}>
-          {selected.length} geselecteerd · totaal {formatEurCents(total)}
-        </div>
-      </div>
+    <TenantWorkbenchPanel
+      title="Verzamelfacturen"
+      description="Bundel meerdere verzonden facturen van dezelfde klant in een gecontroleerde batchflow."
+      actions={
+        <Sheet open={open} onOpenChange={setOpen}>
+          <SheetTrigger asChild>
+            <Button disabled={!canWrite || candidates.length < 2}>
+              <Layers3 className="h-4 w-4" />
+              Batch wizard
+            </Button>
+          </SheetTrigger>
+          <SheetContent side="right" className="flex w-full flex-col overflow-y-auto sm:max-w-3xl">
+            <SheetHeader>
+              <SheetTitle>Verzamelfactuur wizard</SheetTitle>
+              <SheetDescription>
+                Selecteer minimaal twee verzonden facturen van dezelfde klant. Open of betaalde batches blokkeren dubbele facturatie.
+              </SheetDescription>
+            </SheetHeader>
 
-      <div className="mb-4 grid grid-cols-1 gap-3 lg:grid-cols-5">
-        <input type="date" value={periodStart} onChange={(event) => setPeriodStart(event.target.value)} className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: "#E2E8F0" }} />
-        <input type="date" value={periodEnd} onChange={(event) => setPeriodEnd(event.target.value)} className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: "#E2E8F0" }} />
-        <select value={objectId} onChange={(event) => setObjectId(event.target.value)} className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: "#E2E8F0" }}>
-          <option value="">Alle objecten</option>
-          {objectOptions.map((object) => <option key={object.id} value={object.id}>{object.name}</option>)}
-        </select>
-        <input type="number" step="0.01" min="0" value={discountEuros} onChange={(event) => setDiscountEuros(event.target.value)} placeholder="Korting" className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: "#E2E8F0" }} />
-        <input type="number" step="0.01" min="0" value={surchargeEuros} onChange={(event) => setSurchargeEuros(event.target.value)} placeholder="Toeslag" className="rounded-lg border px-3 py-2 text-sm" style={{ borderColor: "#E2E8F0" }} />
-      </div>
+            <div className="flex-1 space-y-5 py-5">
+              <div className="grid gap-3 md:grid-cols-5">
+                <label className="grid gap-1 text-sm font-medium">
+                  Vanaf
+                  <input type="date" value={periodStart} onChange={(event) => setPeriodStart(event.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm" />
+                </label>
+                <label className="grid gap-1 text-sm font-medium">
+                  Tot
+                  <input type="date" value={periodEnd} onChange={(event) => setPeriodEnd(event.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm" />
+                </label>
+                <label className="grid gap-1 text-sm font-medium">
+                  Object
+                  <select value={objectId} onChange={(event) => setObjectId(event.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm">
+                    <option value="">Alle objecten</option>
+                    {objectOptions.map((object) => <option key={object.id} value={object.id}>{object.name}</option>)}
+                  </select>
+                </label>
+                <label className="grid gap-1 text-sm font-medium">
+                  Korting
+                  <input type="number" step="0.01" min="0" value={discountEuros} onChange={(event) => setDiscountEuros(event.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm" />
+                </label>
+                <label className="grid gap-1 text-sm font-medium">
+                  Toeslag
+                  <input type="number" step="0.01" min="0" value={surchargeEuros} onChange={(event) => setSurchargeEuros(event.target.value)} className="h-10 rounded-md border border-input bg-background px-3 text-sm" />
+                </label>
+              </div>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-[1.5fr_1fr]">
-        <div className="max-h-80 overflow-auto rounded-xl border" style={{ borderColor: "#E2E8F0" }}>
-          {selectableCandidates.length === 0 ? (
-            <p className="p-4 text-sm" style={{ color: "#64748B" }}>Geen bundelbare open facturen gevonden.</p>
-          ) : (
-            <table className="w-full text-sm">
-              <thead>
-                <tr style={{ borderBottom: "1px solid #F1F5F9" }}>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase" style={{ color: "#94A3B8" }}>Selectie</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase" style={{ color: "#94A3B8" }}>Factuur</th>
-                  <th className="px-3 py-2 text-left text-xs font-semibold uppercase" style={{ color: "#94A3B8" }}>Klant/object</th>
-                  <th className="px-3 py-2 text-right text-xs font-semibold uppercase" style={{ color: "#94A3B8" }}>Totaal</th>
-                </tr>
-              </thead>
-              <tbody>
-                {selectableCandidates.map((invoice) => (
-                  <tr key={invoice.id} style={{ borderBottom: "1px solid #F8FAFC" }}>
-                    <td className="px-3 py-2">
-                      <input type="checkbox" checked={selectedIds.includes(invoice.id)} onChange={() => toggle(invoice.id)} disabled={Boolean(selectedCustomerId && invoice.customerId !== selectedCustomerId)} />
-                    </td>
-                    <td className="px-3 py-2">
-                      <div className="font-mono text-xs font-semibold" style={{ color: "#00B7B3" }}>{invoice.invoiceNumber}</div>
-                      <div className="text-xs" style={{ color: "#64748B" }}>{invoice.assignmentCode} · {invoice.scheduledDate ?? "geen datum"}</div>
-                    </td>
-                    <td className="px-3 py-2">
-                      <div style={{ color: "#081D3A" }}>{invoice.customerName}</div>
-                      <div className="text-xs" style={{ color: "#64748B" }}>{invoice.objectName ?? "Geen object"}</div>
-                    </td>
-                    <td className="px-3 py-2 text-right font-semibold" style={{ color: "#081D3A" }}>{formatEur(invoice.totalAmount)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
+              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+                <div className="max-h-[480px] overflow-auto rounded-lg border border-border">
+                  {selectableCandidates.length === 0 ? (
+                    <p className="p-4 text-sm text-muted-foreground">Geen bundelbare open facturen gevonden.</p>
+                  ) : (
+                    <table className="w-full text-sm">
+                      <thead className="sticky top-0 border-b border-border bg-muted/50">
+                        <tr>
+                          <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-muted-foreground">Selectie</th>
+                          <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-muted-foreground">Factuur</th>
+                          <th className="px-3 py-2 text-left text-xs font-semibold uppercase text-muted-foreground">Klant/object</th>
+                          <th className="px-3 py-2 text-right text-xs font-semibold uppercase text-muted-foreground">Totaal</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectableCandidates.map((invoice) => (
+                          <tr key={invoice.id} className="border-b border-border/60">
+                            <td className="px-3 py-2">
+                              <input
+                                type="checkbox"
+                                checked={selectedIds.includes(invoice.id)}
+                                onChange={() => toggle(invoice.id)}
+                                disabled={Boolean(selectedCustomerId && invoice.customerId !== selectedCustomerId)}
+                              />
+                            </td>
+                            <td className="px-3 py-2">
+                              <div className="font-mono text-xs font-semibold text-primary">{invoice.invoiceNumber}</div>
+                              <div className="text-xs text-muted-foreground">{invoice.assignmentCode} - {invoice.scheduledDate ?? "geen datum"}</div>
+                            </td>
+                            <td className="px-3 py-2">
+                              <div className="text-foreground">{invoice.customerName}</div>
+                              <div className="text-xs text-muted-foreground">{invoice.objectName ?? "Geen object"}</div>
+                            </td>
+                            <td className="px-3 py-2 text-right font-semibold text-foreground">{formatEur(invoice.totalAmount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
 
-        <div className="flex flex-col gap-3">
-          <div className="rounded-xl border p-3 text-sm" style={{ borderColor: "#E2E8F0", background: "#F8FAFC" }}>
-            <div className="flex justify-between"><span>Subtotaal</span><span>{formatEurCents(subtotal)}</span></div>
-            <div className="flex justify-between"><span>Btw</span><span>{formatEurCents(vat)}</span></div>
-            <div className="flex justify-between"><span>Korting</span><span>- {formatEurCents(discount)}</span></div>
-            <div className="flex justify-between"><span>Toeslag</span><span>{formatEurCents(surcharge)}</span></div>
-            <div className="mt-2 flex justify-between border-t pt-2 font-bold" style={{ borderColor: "#E2E8F0", color: "#081D3A" }}>
-              <span>Te betalen</span><span>{formatEurCents(total)}</span>
+                <div className="space-y-3">
+                  <div className="rounded-lg border border-border bg-muted/30 p-3 text-sm">
+                    <div className="flex justify-between"><span>Geselecteerd</span><span>{selected.length}</span></div>
+                    <div className="mt-2 flex justify-between"><span>Subtotaal</span><span>{formatEurCents(subtotal)}</span></div>
+                    <div className="flex justify-between"><span>Btw</span><span>{formatEurCents(vat)}</span></div>
+                    <div className="flex justify-between"><span>Korting</span><span>- {formatEurCents(discount)}</span></div>
+                    <div className="flex justify-between"><span>Toeslag</span><span>{formatEurCents(surcharge)}</span></div>
+                    <div className="mt-2 flex justify-between border-t border-border pt-2 font-semibold text-foreground">
+                      <span>Te betalen</span><span>{formatEurCents(total)}</span>
+                    </div>
+                  </div>
+                  <textarea
+                    value={notes}
+                    onChange={(event) => setNotes(event.target.value)}
+                    rows={4}
+                    placeholder="Administratieve notitie, korting/toeslag toelichting..."
+                    className="w-full rounded-lg border border-input bg-background px-3 py-2 text-sm"
+                  />
+                  {customerMismatch && <p className="text-xs text-red-600">Selecteer alleen facturen van dezelfde klant.</p>}
+                </div>
+              </div>
             </div>
-          </div>
-          <textarea value={notes} onChange={(event) => setNotes(event.target.value)} rows={3} placeholder="Administratieve notitie, korting/toeslag toelichting..." className="rounded-xl border px-3 py-2 text-sm" style={{ borderColor: "#E2E8F0" }} />
-          <button onClick={submit} disabled={!canSubmit} className="inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-sm font-semibold disabled:opacity-50" style={{ background: "#081D3A", color: "#fff" }}>
-            {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Layers3 className="h-4 w-4" />}
-            Verzamelfactuur aanmaken
-          </button>
-          {customerMismatch && <p className="text-xs" style={{ color: "#DC2626" }}>Selecteer alleen facturen van dezelfde klant.</p>}
-        </div>
+
+            <SheetFooter className="gap-2 sm:space-x-0">
+              <Button type="button" variant="outline" onClick={() => setOpen(false)}>Sluiten</Button>
+              <Button type="button" onClick={submit} disabled={!canSubmit}>
+                {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Layers3 className="h-4 w-4" />}
+                Verzamelfactuur aanmaken
+              </Button>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>
+      }
+    >
+      <div className="grid gap-3 p-4 md:grid-cols-3">
+        <Metric label="Bundelbaar" value={candidates.length} helper="verzonden facturen" />
+        <Metric label="Open batches" value={batches.filter((batch) => batch.status === "open").length} helper="wachten op betaling" />
+        <Metric label="Geselecteerd" value={selected.length} helper={formatEurCents(total)} />
       </div>
 
       {batches.length > 0 && (
-        <div className="mt-5">
-          <p className="mb-2 text-xs font-semibold uppercase tracking-wider" style={{ color: "#94A3B8" }}>Recente verzamelbetalingen</p>
-          <div className="grid grid-cols-1 gap-2 lg:grid-cols-2">
+        <div className="border-t border-border p-4">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-muted-foreground">Recente verzamelbetalingen</p>
+          <div className="grid gap-3 lg:grid-cols-2">
             {batches.slice(0, 6).map((batch) => (
-              <div key={batch.id} className="rounded-xl border p-3" style={{ borderColor: "#E2E8F0" }}>
+              <div key={batch.id} className="rounded-lg border border-border bg-card p-3">
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <span className="text-sm font-semibold" style={{ color: "#081D3A" }}>{batch.customerName}</span>
+                  <span className="truncate text-sm font-semibold text-foreground">{batch.customerName}</span>
                   <ProcessStatusBadge kind="payment" status={batch.status} size="xs" />
                 </div>
-                <p className="text-xs" style={{ color: "#64748B" }}>
-                  {batch.invoiceCount} facturen · {formatEurCents(batch.amountCents)}
-                  {batch.objectName ? ` · ${batch.objectName}` : ""}
+                <p className="text-xs text-muted-foreground">
+                  {batch.invoiceCount} facturen - {formatEurCents(batch.amountCents)}
+                  {batch.objectName ? ` - ${batch.objectName}` : ""}
                 </p>
-                <div className="mt-2 flex flex-wrap gap-3">
-                  <a href={`/api/invoices/batches/${batch.id}/pdf`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: "#081D3A" }}>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  <a href={`/api/invoices/batches/${batch.id}/pdf`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-foreground">
                     PDF controleren <Download className="h-3 w-3" />
                   </a>
                   {batch.checkoutUrl && batch.status === "open" && (
-                    <a href={batch.checkoutUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold" style={{ color: "#00B7B3" }}>
+                    <a href={batch.checkoutUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 text-xs font-semibold text-primary">
                       Betaallink openen <ExternalLink className="h-3 w-3" />
                     </a>
                   )}
@@ -213,6 +276,16 @@ export function CollectiveInvoicePanel({ candidates, batches, canWrite }: Props)
           </div>
         </div>
       )}
+    </TenantWorkbenchPanel>
+  );
+}
+
+function Metric({ label, value, helper }: { label: string; value: number; helper: string }) {
+  return (
+    <div className="rounded-lg border border-border bg-muted/30 px-3 py-2">
+      <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">{label}</p>
+      <p className="mt-1 text-2xl font-semibold text-foreground">{value}</p>
+      <p className="text-xs text-muted-foreground">{helper}</p>
     </div>
   );
 }

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { AlertCircle, Save } from "lucide-react";
 import { toggleRolePermission, updateRole } from "@/app/actions/settings";
 import type { RoleDetail, PermissionItem, RolePlanCapabilities } from "@/app/actions/settings";
+import { SettingsStickySaveBar } from "@/components/settings/SettingsStickySaveBar";
 
 interface Props {
   role:     RoleDetail;
@@ -190,6 +191,13 @@ function RoleMetadataForm({
           </button>
         )}
       </div>
+      <SettingsStickySaveBar
+        canWrite={canEdit}
+        pending={isPending || !name.trim()}
+        saved={message === "Rol opgeslagen."}
+        error={message && message !== "Rol opgeslagen." ? message : undefined}
+        submitLabel="Rol opslaan"
+      />
     </form>
   );
 }

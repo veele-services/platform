@@ -8,7 +8,6 @@ import {
   Mail,
   MessageSquareText,
   Palette,
-  Save,
   Send,
   Smartphone,
 } from "lucide-react";
@@ -20,6 +19,7 @@ import {
   type NotificationEventSettingRow,
   type OrgSettings,
 } from "@/app/actions/settings";
+import { SettingsStickySaveBar } from "@/components/settings/SettingsStickySaveBar";
 
 interface Props {
   settings: OrgSettings | null;
@@ -255,16 +255,6 @@ function EventTemplateEditor({
             {event.description}
           </p>
         </div>
-        <button
-          type="button"
-          disabled={!canWrite || isPending}
-          onClick={handleSave}
-          className="inline-flex shrink-0 items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-          style={{ background: "#081D3A" }}
-        >
-          <Save className="h-4 w-4" />
-          {isPending ? "Opslaan..." : "Opslaan"}
-        </button>
       </div>
 
       <div className="grid gap-3 sm:grid-cols-3">
@@ -307,7 +297,14 @@ function EventTemplateEditor({
         </div>
       </div>
 
-      {notice && <NoticeMessage notice={notice} />}
+      <SettingsStickySaveBar
+        canWrite={canWrite}
+        pending={isPending}
+        saved={notice?.type === "success"}
+        error={notice?.type === "error" ? notice.text : undefined}
+        submitLabel="Template opslaan"
+        onSave={handleSave}
+      />
     </div>
   );
 }
@@ -571,19 +568,14 @@ function EmailStylePanel({
       <Field label="Voettekst">
         <textarea className="veele-input min-h-[100px] w-full resize-y" value={footerText} disabled={!canWrite} onChange={(e) => setFooterText(e.target.value)} />
       </Field>
-      <div className="flex flex-wrap items-center gap-3">
-        <button
-          type="button"
-          disabled={!canWrite || isPending}
-          onClick={save}
-          className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
-          style={{ background: "#081D3A" }}
-        >
-          <Save className="h-4 w-4" />
-          {isPending ? "Opslaan..." : "Huisstijl opslaan"}
-        </button>
-        {notice && <NoticeMessage notice={notice} />}
-      </div>
+      <SettingsStickySaveBar
+        canWrite={canWrite}
+        pending={isPending}
+        saved={notice?.type === "success"}
+        error={notice?.type === "error" ? notice.text : undefined}
+        submitLabel="Huisstijl opslaan"
+        onSave={save}
+      />
     </section>
   );
 }

@@ -1,19 +1,29 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useRef, useState, useTransition } from "react";
 import {
-  Upload, Download, Trash2, FileText, FileSpreadsheet,
-  Image as ImageIcon, File, Paperclip, Plus, AlertCircle, CheckCircle2,
+  AlertCircle,
+  CheckCircle2,
+  Download,
+  File,
+  FileSpreadsheet,
+  FileText,
+  Image as ImageIcon,
+  Paperclip,
+  Plus,
+  Trash2,
+  Upload,
 } from "lucide-react";
+
 import {
-  uploadDocument,
   deleteDocument,
   getDocumentDownloadUrl,
-  type DocumentRow,
+  uploadDocument,
   type DocumentEntityType,
+  type DocumentRow,
 } from "@/app/actions/documents";
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+import { TenantConfirmDialog } from "@/components/tenant-ui";
+import { DocumentUploadSheet } from "./DocumentUploadSheet";
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -23,29 +33,33 @@ function formatFileSize(bytes: number): string {
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("nl-NL", {
-    day: "numeric", month: "short", year: "numeric",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   });
 }
 
 function getMimeIcon(mimeType: string) {
-  if (mimeType === "application/pdf")
+  if (mimeType === "application/pdf") {
     return <FileText className="h-4 w-4 flex-shrink-0" style={{ color: "#DC2626" }} />;
-  if (mimeType.includes("spreadsheet") || mimeType.includes("excel"))
+  }
+  if (mimeType.includes("spreadsheet") || mimeType.includes("excel")) {
     return <FileSpreadsheet className="h-4 w-4 flex-shrink-0" style={{ color: "#16A34A" }} />;
-  if (mimeType.startsWith("image/"))
+  }
+  if (mimeType.startsWith("image/")) {
     return <ImageIcon className="h-4 w-4 flex-shrink-0" style={{ color: "#7C3AED" }} />;
-  if (mimeType.includes("word") || mimeType.includes("wordprocessing"))
+  }
+  if (mimeType.includes("word") || mimeType.includes("wordprocessing")) {
     return <FileText className="h-4 w-4 flex-shrink-0" style={{ color: "#1D4ED8" }} />;
+  }
   return <File className="h-4 w-4 flex-shrink-0" style={{ color: "#64748B" }} />;
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 interface Props {
-  entityType:       DocumentEntityType;
-  entityId:         string;
+  entityType: DocumentEntityType;
+  entityId: string;
   initialDocuments: DocumentRow[];
-  canWrite:         boolean;
+  canWrite: boolean;
 }
 
 export function EntityDocumentsPanel({
@@ -54,22 +68,28 @@ export function EntityDocumentsPanel({
   initialDocuments,
   canWrite,
 }: Props) {
-  const [documents, setDocuments]         = useState(initialDocuments);
-  const [showUpload, setShowUpload]       = useState(false);
-  const [isPending, startTransition]      = useTransition();
-  const [error, setError]                 = useState<string | null>(null);
-  const [success, setSuccess]             = useState<string | null>(null);
+  const [documents, setDocuments] = useState(initialDocuments);
+  const [showUpload, setShowUpload] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [deletingId, setDeletingId]       = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DocumentRow | null>(null);
 
-  const [uploadName, setUploadName]   = useState("");
-  const [uploadFile, setUploadFile]   = useState<File | null>(null);
+  const [uploadName, setUploadName] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   function showFlash(msg: string, isErr: boolean) {
-    if (isErr) { setError(msg); setTimeout(() => setError(null), 4000); }
-    else        { setSuccess(msg); setTimeout(() => setSuccess(null), 4000); }
+    if (isErr) {
+      setError(msg);
+      setTimeout(() => setError(null), 4000);
+      return;
+    }
+    setSuccess(msg);
+    setTimeout(() => setSuccess(null), 4000);
   }
 
   function resetForm() {
@@ -79,42 +99,53 @@ export function EntityDocumentsPanel({
     if (fileRef.current) fileRef.current.value = "";
   }
 
+  function handleUploadOpenChange(open: boolean) {
+    setShowUpload(open);
+    if (!open) resetForm();
+  }
+
   function handleUploadSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!uploadFile)       { setUploadError("Selecteer een bestand."); return; }
-    if (!uploadName.trim()) { setUploadError("Voer een naam in.");      return; }
+    if (!uploadFile) {
+      setUploadError("Selecteer een bestand.");
+      return;
+    }
+    if (!uploadName.trim()) {
+      setUploadError("Voer een naam in.");
+      return;
+    }
     setUploadError(null);
 
     const fd = new FormData();
-    fd.append("name",       uploadName.trim());
+    fd.append("name", uploadName.trim());
     fd.append("entityType", entityType);
-    fd.append("entityId",   entityId);
-    fd.append("file",       uploadFile);
+    fd.append("entityId", entityId);
+    fd.append("file", uploadFile);
 
     startTransition(async () => {
       const result = await uploadDocument(fd);
       if (result.success && result.data) {
         const newDoc: DocumentRow = {
-          id:            result.data.id,
-          name:          uploadName.trim(),
-          filename:      uploadFile.name,
-          mimeType:      uploadFile.type,
-          sizeBytes:     uploadFile.size,
+          id: result.data.id,
+          name: uploadName.trim(),
+          filename: uploadFile.name,
+          mimeType: uploadFile.type,
+          sizeBytes: uploadFile.size,
           entityType,
           entityId,
-          entityName:    null,
-          uploadedBy:    "",
+          entityName: null,
+          uploadedBy: "",
           uploaderEmail: "",
-          uploaderName:  null,
-          createdAt:     new Date().toISOString(),
+          uploaderName: null,
+          createdAt: new Date().toISOString(),
         };
         setDocuments((prev) => [newDoc, ...prev]);
         resetForm();
         setShowUpload(false);
         showFlash("Bijlage toegevoegd.", false);
-      } else {
-        setUploadError((result as { message?: string }).message ?? "Uploaden mislukt.");
+        return;
       }
+      setUploadError((result as { message?: string }).message ?? "Uploaden mislukt.");
     });
   }
 
@@ -125,14 +156,13 @@ export function EntityDocumentsPanel({
       setDownloadingId(null);
       if (result.success && result.data) {
         window.open(result.data.url, "_blank", "noopener,noreferrer");
-      } else {
-        showFlash((result as { message?: string }).message ?? "Download mislukt.", true);
+        return;
       }
+      showFlash((result as { message?: string }).message ?? "Download mislukt.", true);
     });
   }
 
   function handleDelete(doc: DocumentRow) {
-    if (!confirm(`Weet u zeker dat u "${doc.name}" wilt verwijderen?`)) return;
     setDeletingId(doc.id);
     startTransition(async () => {
       const result = await deleteDocument(doc.id);
@@ -143,22 +173,22 @@ export function EntityDocumentsPanel({
       } else {
         showFlash((result as { message?: string }).message ?? "Verwijderen mislukt.", true);
       }
+      setDeleteTarget(null);
     });
   }
 
   return (
     <div className="veele-card space-y-4">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h2
-          className="font-heading text-base font-semibold flex items-center gap-2"
+          className="font-heading flex items-center gap-2 text-base font-semibold"
           style={{ color: "#081D3A" }}
         >
           <Paperclip className="h-4 w-4" style={{ color: "#00B7B3" }} />
           Bijlagen
           {documents.length > 0 && (
             <span
-              className="inline-flex items-center justify-center rounded-full text-xs font-semibold px-1.5 py-0.5 min-w-[20px]"
+              className="inline-flex min-w-[20px] items-center justify-center rounded-full px-1.5 py-0.5 text-xs font-semibold"
               style={{ backgroundColor: "#F1F5F9", color: "#64748B" }}
             >
               {documents.length}
@@ -167,7 +197,7 @@ export function EntityDocumentsPanel({
         </h2>
         {canWrite && (
           <button
-            onClick={() => { setShowUpload((v) => !v); if (showUpload) resetForm(); }}
+            onClick={() => setShowUpload(true)}
             className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white"
             style={{ backgroundColor: "#081D3A" }}
           >
@@ -177,88 +207,36 @@ export function EntityDocumentsPanel({
         )}
       </div>
 
-      {/* Flash messages */}
-      {error   && (
+      {error && (
         <p className="inline-flex items-center gap-1.5 text-sm" style={{ color: "#DC2626" }}>
-          <AlertCircle className="h-4 w-4" />{error}
+          <AlertCircle className="h-4 w-4" />
+          {error}
         </p>
       )}
       {success && (
         <p className="inline-flex items-center gap-1.5 text-sm" style={{ color: "#059669" }}>
-          <CheckCircle2 className="h-4 w-4" />{success}
+          <CheckCircle2 className="h-4 w-4" />
+          {success}
         </p>
       )}
 
-      {/* Inline upload form */}
-      {showUpload && (
-        <form
-          onSubmit={handleUploadSubmit}
-          className="rounded-lg p-4 space-y-3"
-          style={{ backgroundColor: "#F8FAFC", border: "1px solid #E2E8F0" }}
-        >
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: "#374151" }}>
-                Naam <span style={{ color: "#DC2626" }}>*</span>
-              </label>
-              <input
-                type="text"
-                value={uploadName}
-                onChange={(e) => setUploadName(e.target.value)}
-                placeholder="bijv. Contract"
-                className="veele-input w-full"
-                disabled={isPending}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: "#374151" }}>
-                Bestand <span style={{ color: "#DC2626" }}>*</span>
-              </label>
-              <input
-                ref={fileRef}
-                type="file"
-                accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp,.svg"
-                onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
-                disabled={isPending}
-                className="block w-full text-xs text-slate-500 file:mr-2 file:rounded file:border-0 file:px-2.5 file:py-1 file:text-xs file:font-medium file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
-              />
-              {uploadFile && (
-                <p className="text-xs mt-0.5" style={{ color: "#64748B" }}>
-                  {uploadFile.name} · {formatFileSize(uploadFile.size)}
-                </p>
-              )}
-            </div>
-          </div>
+      <DocumentUploadSheet
+        open={showUpload}
+        onOpenChange={handleUploadOpenChange}
+        title="Bijlage toevoegen"
+        name={uploadName}
+        onNameChange={setUploadName}
+        namePlaceholder="bijv. Contract"
+        file={uploadFile}
+        fileInputRef={fileRef}
+        onFileChange={setUploadFile}
+        error={uploadError}
+        pending={isPending}
+        submitLabel="Uploaden"
+        onSubmit={handleUploadSubmit}
+      />
 
-          {uploadError && (
-            <p className="text-xs" style={{ color: "#DC2626" }}>{uploadError}</p>
-          )}
-
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={isPending || !uploadFile || !uploadName.trim()}
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium text-white disabled:opacity-50"
-              style={{ backgroundColor: "#00B7B3" }}
-            >
-              <Upload className="h-3.5 w-3.5" />
-              {isPending ? "Uploaden…" : "Uploaden"}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setShowUpload(false); resetForm(); }}
-              className="rounded-lg px-3 py-1.5 text-xs font-medium border"
-              style={{ borderColor: "#E2E8F0", color: "#475569" }}
-            >
-              Annuleren
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* Document list */}
-      {documents.length === 0 && !showUpload ? (
+      {documents.length === 0 ? (
         <div className="py-4 text-center" style={{ color: "#94A3B8" }}>
           <p className="text-sm">Geen bijlagen gevonden.</p>
           {canWrite && (
@@ -277,24 +255,20 @@ export function EntityDocumentsPanel({
           {documents.map((doc) => (
             <li key={doc.id} className="flex items-center gap-3 py-2.5">
               {getMimeIcon(doc.mimeType)}
-              <div className="flex-1 min-w-0">
-                <p
-                  className="text-sm font-medium truncate"
-                  style={{ color: "#081D3A" }}
-                  title={doc.name}
-                >
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-sm font-medium" style={{ color: "#081D3A" }} title={doc.name}>
                   {doc.name}
                 </p>
                 <p className="text-xs" style={{ color: "#94A3B8" }}>
-                  {formatFileSize(doc.sizeBytes)} · {formatDate(doc.createdAt)}
+                  {formatFileSize(doc.sizeBytes)} - {formatDate(doc.createdAt)}
                 </p>
               </div>
-              <div className="flex items-center gap-1 flex-shrink-0">
+              <div className="flex flex-shrink-0 items-center gap-1">
                 <button
                   onClick={() => handleDownload(doc)}
                   disabled={isPending && downloadingId === doc.id}
                   title="Downloaden"
-                  className="rounded p-1.5 hover:bg-slate-100 transition-colors disabled:opacity-50"
+                  className="rounded p-1.5 transition-colors hover:bg-slate-100 disabled:opacity-50"
                 >
                   <Download
                     className="h-3.5 w-3.5"
@@ -303,10 +277,10 @@ export function EntityDocumentsPanel({
                 </button>
                 {canWrite && (
                   <button
-                    onClick={() => handleDelete(doc)}
+                    onClick={() => setDeleteTarget(doc)}
                     disabled={isPending && deletingId === doc.id}
                     title="Verwijderen"
-                    className="rounded p-1.5 hover:bg-red-50 transition-colors disabled:opacity-50"
+                    className="rounded p-1.5 transition-colors hover:bg-red-50 disabled:opacity-50"
                   >
                     <Trash2
                       className="h-3.5 w-3.5"
@@ -319,6 +293,20 @@ export function EntityDocumentsPanel({
           ))}
         </ul>
       )}
+
+      <TenantConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Bijlage verwijderen?"
+        description={deleteTarget ? `Weet u zeker dat u "${deleteTarget.name}" wilt verwijderen?` : undefined}
+        confirmLabel="Verwijderen"
+        destructive
+        onConfirm={() => {
+          if (deleteTarget) handleDelete(deleteTarget);
+        }}
+      />
     </div>
   );
 }

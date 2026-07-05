@@ -1,41 +1,51 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import Link from "next/link";
+import { FormEvent, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Shield, ChevronRight, Plus, Users, Lock, AlertCircle, Trash2, RotateCcw } from "lucide-react";
+import { AlertCircle, Lock, Pencil, Plus, RotateCcw, Shield, Trash2, Users } from "lucide-react";
 import { createRole, deleteRole, resetSystemRolesToDefault } from "@/app/actions/settings";
 import type { RolePlanCapabilities, RoleRow } from "@/app/actions/settings";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { TenantActionMenu } from "@/components/tenant-ui/tenant-action-menu";
+import { TenantConfirmDialog } from "@/components/tenant-ui/tenant-confirm-dialog";
 
 interface Props {
-  roles:    RoleRow[];
+  roles: RoleRow[];
   canWrite: boolean;
   capabilities: RolePlanCapabilities;
 }
 
 export function RollenView({ roles: initialRoles, canWrite, capabilities }: Props) {
   const router = useRouter();
-  const [roles,      setRoles]      = useState(initialRoles);
-  const [showCreate, setShowCreate] = useState(false);
-  const [name, setName]   = useState("");
-  const [desc, setDesc]   = useState("");
+  const [roles, setRoles] = useState(initialRoles);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [name, setName] = useState("");
+  const [desc, setDesc] = useState("");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [resetError, setResetError] = useState<string | null>(null);
   const [isResetting, startResetTransition] = useTransition();
+  const [deleteTargetId, setDeleteTargetId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, startDeleteTransition] = useTransition();
 
-  const [deleteTargetId,    setDeleteTargetId]    = useState<string | null>(null);
-  const [deleteError,       setDeleteError]       = useState<string | null>(null);
-  const [isDeleting,        startDeleteTransition] = useTransition();
+  const deleteTarget = roles.find((role) => role.id === deleteTargetId);
 
-  const deleteTarget = roles.find((r) => r.id === deleteTargetId);
-
-  function handleCreate(e: React.FormEvent) {
+  function handleCreate(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     startTransition(async () => {
       const result = await createRole({ name: name.trim(), description: desc.trim() || null });
       if (result.success && result.data) {
+        setCreateOpen(false);
         router.push(`/instellingen/rollen/${result.data.id}`);
       } else {
         setError((result as { message?: string }).message ?? "Aanmaken mislukt.");
@@ -61,7 +71,7 @@ export function RollenView({ roles: initialRoles, canWrite, capabilities }: Prop
     startDeleteTransition(async () => {
       const result = await deleteRole(deleteTargetId);
       if (result.success) {
-        setRoles((prev) => prev.filter((r) => r.id !== deleteTargetId));
+        setRoles((prev) => prev.filter((role) => role.id !== deleteTargetId));
         setDeleteTargetId(null);
       } else {
         setDeleteError((result as { message?: string }).message ?? "Verwijderen mislukt.");
@@ -76,123 +86,68 @@ export function RollenView({ roles: initialRoles, canWrite, capabilities }: Prop
           <p className="text-sm font-medium" style={{ color: "#081D3A" }}>
             Custom rollen: {capabilities.customRoles ? "beschikbaar" : "niet beschikbaar"}
           </p>
-          <p className="text-sm mt-1" style={{ color: resetError ? "#DC2626" : "#64748B" }}>
+          <p className="mt-1 text-sm" style={{ color: resetError ? "#DC2626" : "#64748B" }}>
             {resetError ?? `Het huidige tenantplan (${capabilities.plan}) staat geen custom rollen toe. Systeemrollen en permissies blijven wel inzichtelijk.`}
           </p>
         </div>
       )}
 
       {canWrite && (
-        <div className="flex justify-end gap-2">
+        <div className="flex flex-wrap justify-end gap-2">
           {capabilities.canResetSystemRoles && (
-            <button
-              onClick={handleResetDefaults}
-              disabled={isResetting}
-              className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium border disabled:opacity-50"
-              style={{ borderColor: "#E2E8F0", color: "#475569" }}
-            >
-              <RotateCcw className="h-4 w-4" />
-              {isResetting ? "Resetten…" : "Systeemrollen resetten"}
-            </button>
+            <TenantConfirmDialog
+              title="Systeemrollen resetten?"
+              description="Alle systeemrollen worden teruggezet naar de standaardrechten voor dit tenantplan."
+              confirmLabel="Resetten"
+              onConfirm={handleResetDefaults}
+              trigger={
+                <Button type="button" variant="outline" disabled={isResetting}>
+                  <RotateCcw className="h-4 w-4" />
+                  {isResetting ? "Resetten..." : "Systeemrollen resetten"}
+                </Button>
+              }
+            />
           )}
-          <button
-            onClick={() => setShowCreate((v) => !v)}
-            disabled={!capabilities.customRoles}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white disabled:opacity-50"
-            style={{ backgroundColor: "#081D3A" }}
-          >
-            <Plus className="h-4 w-4" />
-            Nieuwe rol
-          </button>
+          {capabilities.customRoles && (
+            <CreateRoleSheet
+              open={createOpen}
+              onOpenChange={setCreateOpen}
+              name={name}
+              description={desc}
+              pending={isPending}
+              error={error}
+              onNameChange={setName}
+              onDescriptionChange={setDesc}
+              onSubmit={handleCreate}
+            />
+          )}
         </div>
       )}
 
-      {showCreate && capabilities.customRoles && (
-        <form onSubmit={handleCreate} className="veele-card space-y-3">
-          <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>Nieuwe rol aanmaken</p>
-          <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: "#374151" }}>
-              Naam <span style={{ color: "#DC2626" }}>*</span>
-            </label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              className="veele-input w-full max-w-sm"
-              placeholder="bijv. Supervisor"
-              disabled={isPending}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: "#374151" }}>
-              Beschrijving
-            </label>
-            <input
-              type="text"
-              value={desc}
-              onChange={(e) => setDesc(e.target.value)}
-              className="veele-input w-full max-w-sm"
-              placeholder="Optionele beschrijving"
-              disabled={isPending}
-            />
-          </div>
-          {error && (
-            <p className="inline-flex items-center gap-1.5 text-sm" style={{ color: "#DC2626" }}>
-              <AlertCircle className="h-4 w-4" />{error}
-            </p>
-          )}
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={isPending || !name.trim()}
-              className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-              style={{ backgroundColor: "#081D3A" }}
-            >
-              {isPending ? "Aanmaken…" : "Aanmaken"}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setShowCreate(false); setName(""); setDesc(""); setError(null); }}
-              className="rounded-lg px-3 py-1.5 text-sm font-medium border"
-              style={{ borderColor: "#E2E8F0", color: "#475569" }}
-            >
-              Annuleren
-            </button>
-          </div>
-        </form>
-      )}
-
-      <div className="veele-card p-0 overflow-hidden">
+      <div className="veele-card overflow-hidden p-0">
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: "1px solid #F1F5F9" }}>
-              {["Rol", "Beschrijving", "Gebruikers", "Rechten", ""].map((h) => (
+              {["Rol", "Beschrijving", "Gebruikers", "Rechten", ""].map((header) => (
                 <th
-                  key={h}
+                  key={header}
                   className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide"
                   style={{ color: "#94A3B8" }}
                 >
-                  {h}
+                  {header}
                 </th>
               ))}
             </tr>
           </thead>
           <tbody>
             {roles.map((role) => (
-              <tr
-                key={role.id}
-                style={{ borderBottom: "1px solid #F8FAFC" }}
-                className="hover:bg-slate-50"
-              >
+              <tr key={role.id} style={{ borderBottom: "1px solid #F8FAFC" }} className="hover:bg-slate-50">
                 <td className="px-4 py-3">
                   <div className="flex items-center gap-2">
                     <Shield className="h-4 w-4 flex-shrink-0" style={{ color: "#00B7B3" }} strokeWidth={1.5} />
                     <span className="font-medium" style={{ color: "#081D3A" }}>{role.name}</span>
                     {role.isSystem && (
-                      <span
-                        className="inline-flex items-center gap-1 text-xs px-1.5 py-0.5 rounded"
-                        style={{ backgroundColor: "#E0FAFB", color: "#00B7B3" }}
-                      >
+                      <span className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-xs" style={{ backgroundColor: "#E0FAFB", color: "#00B7B3" }}>
                         <Lock className="h-2.5 w-2.5" />
                         Systeem
                       </span>
@@ -200,7 +155,7 @@ export function RollenView({ roles: initialRoles, canWrite, capabilities }: Prop
                   </div>
                 </td>
                 <td className="px-4 py-3" style={{ color: "#64748B" }}>
-                  {role.description ?? <span style={{ color: "#CBD5E1" }}>—</span>}
+                  {role.description ?? <span style={{ color: "#CBD5E1" }}>-</span>}
                 </td>
                 <td className="px-4 py-3">
                   <span className="inline-flex items-center gap-1 text-sm" style={{ color: "#64748B" }}>
@@ -209,31 +164,34 @@ export function RollenView({ roles: initialRoles, canWrite, capabilities }: Prop
                   </span>
                 </td>
                 <td className="px-4 py-3">
-                  <span className="text-sm" style={{ color: "#64748B" }}>
-                    {role.permCount} rechten
-                  </span>
+                  <span className="text-sm" style={{ color: "#64748B" }}>{role.permCount} rechten</span>
                 </td>
                 <td className="px-4 py-3 text-right">
-                  <div className="inline-flex items-center gap-1">
-                    {canWrite && capabilities.customRoles && !role.isSystem && (
-                      <button
-                        onClick={() => { setDeleteTargetId(role.id); setDeleteError(null); }}
-                        className="inline-flex items-center justify-center h-7 w-7 rounded transition-colors hover:bg-red-50"
-                        title="Rol verwijderen"
-                        disabled={isDeleting}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" style={{ color: "#DC2626" }} />
-                      </button>
-                    )}
-                    <Link
-                      href={`/instellingen/rollen/${role.id}`}
-                      className="inline-flex items-center gap-1 text-xs font-medium rounded px-2 py-1 transition-colors hover:bg-slate-100"
-                      style={{ color: "#00B7B3" }}
-                    >
-                      Bewerken
-                      <ChevronRight className="h-3.5 w-3.5" />
-                    </Link>
-                  </div>
+                  <TenantActionMenu
+                    actions={[
+                      {
+                        id: "edit",
+                        label: "Permissies openen",
+                        href: `/instellingen/rollen/${role.id}`,
+                        icon: <Pencil className="h-3.5 w-3.5" />,
+                      },
+                      ...(canWrite && capabilities.customRoles && !role.isSystem
+                        ? [{
+                            id: "delete",
+                            label: "Rol verwijderen",
+                            icon: <Trash2 className="h-3.5 w-3.5" />,
+                            destructive: true,
+                            separatorBefore: true,
+                            disabled: isDeleting,
+                            onSelect: (event: Event) => {
+                              event.preventDefault();
+                              setDeleteError(null);
+                              setDeleteTargetId(role.id);
+                            },
+                          }]
+                        : []),
+                    ]}
+                  />
                 </td>
               </tr>
             ))}
@@ -242,67 +200,106 @@ export function RollenView({ roles: initialRoles, canWrite, capabilities }: Prop
 
         {roles.length === 0 && (
           <div className="py-12 text-center" style={{ color: "#94A3B8" }}>
-            <Shield className="h-8 w-8 mx-auto mb-2" strokeWidth={1.5} />
+            <Shield className="mx-auto mb-2 h-8 w-8" strokeWidth={1.5} />
             <p className="text-sm">Geen rollen gevonden.</p>
           </div>
         )}
       </div>
 
-      {/* ── Delete confirmation overlay ── */}
-      {deleteTargetId && deleteTarget && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          style={{ backgroundColor: "rgba(8,29,58,0.4)" }}
-        >
-          <div className="veele-card max-w-sm w-full shadow-xl">
-            <div className="flex items-center gap-3 mb-3">
-              <div
-                className="flex items-center justify-center h-10 w-10 rounded-lg flex-shrink-0"
-                style={{ backgroundColor: "#FEE2E2" }}
-              >
-                <Trash2 className="h-5 w-5" style={{ color: "#DC2626" }} />
-              </div>
-              <h3 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>
-                Rol verwijderen?
-              </h3>
-            </div>
-            <p className="text-sm mb-4" style={{ color: "#475569" }}>
-              Rol <strong>&ldquo;{deleteTarget.name}&rdquo;</strong> wordt permanent verwijderd inclusief alle gekoppelde rechten.
-              {deleteTarget.userCount > 0 && (
-                <span className="block mt-1" style={{ color: "#DC2626" }}>
-                  Let op: {deleteTarget.userCount} gebruiker{deleteTarget.userCount !== 1 ? "s" : ""} gekoppeld.
-                </span>
-              )}
-            </p>
-
-            {deleteError && (
-              <p className="inline-flex items-center gap-1.5 text-sm mb-3" style={{ color: "#DC2626" }}>
-                <AlertCircle className="h-4 w-4 flex-shrink-0" />
-                {deleteError}
-              </p>
-            )}
-
-            <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => { setDeleteTargetId(null); setDeleteError(null); }}
-                disabled={isDeleting}
-                className="rounded-lg px-3 py-1.5 text-sm font-medium border"
-                style={{ borderColor: "#E2E8F0", color: "#475569" }}
-              >
-                Annuleren
-              </button>
-              <button
-                onClick={handleDeleteConfirm}
-                disabled={isDeleting}
-                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-                style={{ backgroundColor: "#DC2626" }}
-              >
-                {isDeleting ? "Verwijderen…" : "Verwijderen"}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <TenantConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDeleteTargetId(null);
+            setDeleteError(null);
+          }
+        }}
+        title="Rol verwijderen?"
+        description={deleteTarget ? `Rol "${deleteTarget.name}" wordt permanent verwijderd inclusief alle gekoppelde rechten.` : undefined}
+        confirmLabel="Verwijderen"
+        destructive
+        onConfirm={handleDeleteConfirm}
+      >
+        {deleteTarget?.userCount ? (
+          <span className="text-destructive">
+            Let op: {deleteTarget.userCount} gebruiker{deleteTarget.userCount !== 1 ? "s" : ""} gekoppeld.
+          </span>
+        ) : null}
+        {deleteError ? (
+          <span className="mt-2 inline-flex items-center gap-1.5 text-destructive">
+            <AlertCircle className="h-4 w-4" />
+            {deleteError}
+          </span>
+        ) : null}
+      </TenantConfirmDialog>
     </div>
+  );
+}
+
+function CreateRoleSheet({
+  open,
+  onOpenChange,
+  name,
+  description,
+  pending,
+  error,
+  onNameChange,
+  onDescriptionChange,
+  onSubmit,
+}: {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  name: string;
+  description: string;
+  pending: boolean;
+  error: string | null;
+  onNameChange: (value: string) => void;
+  onDescriptionChange: (value: string) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetTrigger asChild>
+        <Button type="button">
+          <Plus className="h-4 w-4" />
+          Nieuwe rol
+        </Button>
+      </SheetTrigger>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+        <SheetHeader>
+          <SheetTitle>Nieuwe rol</SheetTitle>
+          <SheetDescription>Maak een custom rol aan en stel daarna de permissie-matrix in.</SheetDescription>
+        </SheetHeader>
+        <form onSubmit={onSubmit} className="mt-6 space-y-4">
+          <label className="block text-xs font-medium" style={{ color: "#374151" }}>
+            Naam
+            <input
+              type="text"
+              value={name}
+              onChange={(event) => onNameChange(event.target.value)}
+              className="veele-input mt-1 w-full"
+              placeholder="bijv. Supervisor"
+              disabled={pending}
+              required
+            />
+          </label>
+          <label className="block text-xs font-medium" style={{ color: "#374151" }}>
+            Beschrijving
+            <input
+              type="text"
+              value={description}
+              onChange={(event) => onDescriptionChange(event.target.value)}
+              className="veele-input mt-1 w-full"
+              placeholder="Optionele beschrijving"
+              disabled={pending}
+            />
+          </label>
+          {error && <p className="text-sm text-destructive">{error}</p>}
+          <Button type="submit" disabled={pending || !name.trim()}>
+            {pending ? "Aanmaken..." : "Aanmaken"}
+          </Button>
+        </form>
+      </SheetContent>
+    </Sheet>
   );
 }

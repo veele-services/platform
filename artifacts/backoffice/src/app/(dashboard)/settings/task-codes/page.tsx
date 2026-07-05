@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { TaskCodesView } from "@/components/task-codes/TaskCodesView";
-import { SettingsTabs } from "@/components/settings/SettingsTabs";
+import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 import {
   listTaskCodes,
   listSectorsForTaskCodes,
@@ -27,14 +27,14 @@ export default async function TaskCodesPage({ searchParams }: Props) {
 
   if (!canRead) return <ForbiddenPage resource="taakcodes" action="read" />;
 
-  const sp       = await searchParams;
-  const search   = str(sp.search);
+  const sp = await searchParams;
+  const search = str(sp.search);
   const sectorId = str(sp.sectorId);
-  const invoice  = str(sp.invoice, "all");
-  const status   = str(sp.status,  "all");
-  const page     = Math.max(1, parseInt(str(sp.page, "1")) || 1);
-  const sort     = str(sp.sort, "code");
-  const dir      = str(sp.dir,  "asc");
+  const invoice = str(sp.invoice, "all");
+  const status = str(sp.status, "all");
+  const page = Math.max(1, parseInt(str(sp.page, "1")) || 1);
+  const sort = str(sp.sort, "code");
+  const dir = str(sp.dir, "asc");
 
   const [{ rows, total }, sectors, roles] = await Promise.all([
     listTaskCodes({ search, sectorId, invoiceable: invoice, status, page, sort, dir }),
@@ -43,16 +43,10 @@ export default async function TaskCodesPage({ searchParams }: Props) {
   ]);
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] p-6">
-      <SettingsTabs />
-      <div className="mb-6">
-        <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-          {total} code{total !== 1 ? "s" : ""}
-          {search ? ` die overeenkomen met "${search}"` : ""}
-          {" — "}Centraal beheerde catalogus voor opdrachten, planning en facturering.
-        </p>
-      </div>
-
+    <SettingsSectionShell
+      title="Taakcodes"
+      description={`${total} code${total !== 1 ? "s" : ""}${search ? ` voor "${search}"` : ""} - centraal beheerde catalogus voor opdrachten, planning en facturering.`}
+    >
       <TaskCodesView
         rows={rows}
         total={total}
@@ -67,6 +61,6 @@ export default async function TaskCodesPage({ searchParams }: Props) {
         initialSort={sort}
         initialDir={dir}
       />
-    </div>
+    </SettingsSectionShell>
   );
 }

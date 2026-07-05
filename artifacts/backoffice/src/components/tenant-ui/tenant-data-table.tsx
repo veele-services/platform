@@ -73,11 +73,11 @@ export function TenantDataTable<TData>({
 
       <div
         className={cn(
-          "overflow-hidden rounded-lg border border-border bg-card shadow-card",
+          "max-w-full overflow-x-auto rounded-lg border border-border bg-card shadow-card",
           renderMobileCard && "hidden md:block",
         )}
       >
-        <Table className={tableClassName}>
+        <Table className={cn("min-w-full", tableClassName)}>
           {caption && <TableCaption>{caption}</TableCaption>}
           <TableHeader>
             <TableRow className="bg-muted/50 hover:bg-muted/50">

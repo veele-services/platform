@@ -1,12 +1,10 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { CustomerDetailActions } from "@/components/customers/CustomerDetailActions";
-import { CustomerProfileHeader } from "@/components/customers/CustomerProfileHeader";
-import { CustomerTabs, type TabKey } from "@/components/customers/CustomerTabs";
+import type { TabKey } from "@/components/customers/CustomerTabs";
+import { CustomerStatusBadge } from "@/components/customers/CustomerStatusBadge";
 import { CustomerOverviewTab } from "@/components/customers/tabs/CustomerOverviewTab";
 import { CustomerContactsTab } from "@/components/customers/tabs/CustomerContactsTab";
 import { CustomerObjectsTab } from "@/components/customers/tabs/CustomerObjectsTab";
@@ -35,12 +33,46 @@ import { listInvoicesForCustomer } from "@/app/actions/invoices";
 import { listPaymentsForCustomer } from "@/app/actions/payments";
 import { listDocuments } from "@/app/actions/documents";
 import { listReportsForCustomer } from "@/app/actions/reports";
+import {
+  TenantDetailActionPanel,
+  TenantDetailHeader,
+  TenantDetailLayout,
+  TenantDetailSectionNav,
+  TenantPageShell,
+} from "@/components/tenant-ui";
 
 const VALID_TABS = [
   "overzicht", "contacten", "objecten", "opdrachten",
   "facturen", "betalingen", "rapporten", "documenten",
   "notities", "geschiedenis",
 ] as const;
+
+const TAB_LABELS: Record<TabKey, string> = {
+  overzicht: "Overzicht",
+  contacten: "Contacten",
+  objecten: "Objecten",
+  opdrachten: "Opdrachten",
+  facturen: "Facturen",
+  betalingen: "Betalingen",
+  rapporten: "Rapporten",
+  documenten: "Documenten",
+  notities: "Notities",
+  geschiedenis: "Geschiedenis",
+};
+
+function formatCurrency(value: string | null | undefined): string {
+  const parsed = parseFloat(value ?? "0");
+  return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(Number.isFinite(parsed) ? parsed : 0);
+}
+
+function formatDate(value: string | null | undefined): string {
+  if (!value) return "Geen activiteit";
+  return new Date(value).toLocaleDateString("nl-NL", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+  });
+}
 
 interface Props {
   params:       Promise<{ id: string }>;
@@ -134,40 +166,75 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
     geschiedenis: history.length,
   };
 
+  const customerSummary = [
+    { label: "Omzet deze maand", value: formatCurrency(kpis.monthlyRevenue) },
+    { label: "Actieve objecten", value: kpis.activeObjects },
+    { label: "Open opdrachten", value: kpis.openAssignments },
+    { label: "Open facturen", value: kpis.openInvoices },
+    { label: "Openstaand saldo", value: formatCurrency(kpis.outstandingBalance) },
+    { label: "Laatste activiteit", value: formatDate(kpis.lastActivityDate) },
+  ];
+
   return (
-    <div className="mx-auto w-full max-w-[1600px] p-8">
-      {/* Back link */}
-      <Link
-        href="/customers"
-        className="inline-flex items-center gap-1 text-sm mb-4 transition-colors hover:underline"
-        style={{ color: "#64748B" }}
-      >
-        <ArrowLeft className="h-4 w-4" />
-        Klanten
-      </Link>
-
-      {/* Hero header with KPIs */}
-      <div className="mb-6 flex items-start justify-between gap-4">
-        <div className="flex-1 min-w-0">
-          <CustomerProfileHeader customer={safeCustomer} kpis={kpis} />
-        </div>
-        {canWrite && (
-          <div className="flex-shrink-0 mt-1">
-            <CustomerDetailActions
-              customer={safeCustomer}
-              sectors={sectors}
-              customerTypes={customerTypes}
-              accountManagers={accountManagers}
-              canWriteNotes={canWrite}
-            />
+    <TenantPageShell>
+      <TenantDetailHeader
+        backHref="/customers"
+        backLabel="Klanten"
+        title={safeCustomer.name}
+        description={[
+          safeCustomer.sectorName,
+          safeCustomer.customerTypeName,
+          safeCustomer.website?.replace(/^https?:\/\//, ""),
+        ].filter(Boolean).join(" · ")}
+        badges={
+          <>
+            {safeCustomer.code && (
+              <span className="rounded bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">
+                {safeCustomer.code}
+              </span>
+            )}
+            <CustomerStatusBadge status={safeCustomer.status} />
+          </>
+        }
+        summary={
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
+            {customerSummary.map((item) => (
+              <div key={item.label} className="rounded-md border border-border bg-background px-3 py-3">
+                <p className="text-xs text-muted-foreground">{item.label}</p>
+                <p className="mt-1 text-lg font-semibold text-foreground">{item.value}</p>
+              </div>
+            ))}
           </div>
-        )}
-      </div>
+        }
+      />
 
-      {/* Tab navigation */}
-      <CustomerTabs activeTab={activeTab} counts={counts} />
+      <TenantDetailSectionNav
+        items={VALID_TABS.map((tab) => ({
+          label: TAB_LABELS[tab],
+          href: `/customers/${id}?tab=${tab}`,
+          active: activeTab === tab,
+          count: counts[tab as keyof typeof counts],
+        }))}
+      />
 
-      {/* Tab content */}
+      <TenantDetailLayout
+        aside={
+          canWrite ? (
+            <TenantDetailActionPanel
+              title="Klantacties"
+              description="Beheer klantgegevens, notities en klantdossieracties."
+            >
+              <CustomerDetailActions
+                customer={safeCustomer}
+                sectors={sectors}
+                customerTypes={customerTypes}
+                accountManagers={accountManagers}
+                canWriteNotes={canWrite}
+              />
+            </TenantDetailActionPanel>
+          ) : undefined
+        }
+      >
       {activeTab === "overzicht" && (
         <CustomerOverviewTab
           customer={safeCustomer}
@@ -254,6 +321,7 @@ export default async function CustomerDetailPage({ params, searchParams }: Props
           history={history}
         />
       )}
-    </div>
+      </TenantDetailLayout>
+    </TenantPageShell>
   );
 }

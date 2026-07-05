@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useEffect, useRef } from "react";
 import { useRouter, usePathname } from "next/navigation";
-import { Search, History, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, History, ChevronLeft, ChevronRight, Eye } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -12,6 +12,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import type { AuditLogEntry } from "@/app/actions/settings";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -111,9 +118,11 @@ export function ActiviteitslogView({
   const [, startTransition] = useTransition();
 
   const [searchInput, setSearchInput] = useState(initialSearch);
+  const [selectedEntryId, setSelectedEntryId] = useState<string | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
+  const selectedEntry = entries.find((entry) => entry.id === selectedEntryId) ?? null;
 
   // Debounce search: fire 400 ms after the user stops typing
   useEffect(() => {
@@ -291,7 +300,18 @@ export function ActiviteitslogView({
                       )}
                     </td>
                     <td className="px-4 py-3 max-w-xs">
-                      <MetadataCell metadata={e.metadata} action={e.action} />
+                      <div className="flex items-center justify-between gap-3">
+                        <MetadataCell metadata={e.metadata} action={e.action} />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedEntryId(e.id)}
+                        >
+                          <Eye className="h-4 w-4" />
+                          Details
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))
@@ -332,6 +352,12 @@ export function ActiviteitslogView({
           </div>
         </div>
       )}
+
+      <AuditDetailSheet
+        entry={selectedEntry}
+        open={Boolean(selectedEntry)}
+        onOpenChange={(open) => !open && setSelectedEntryId(null)}
+      />
     </div>
   );
 }
@@ -399,5 +425,53 @@ function formatDateTime(iso: string): string {
     d.toLocaleDateString("nl-NL", { day: "2-digit", month: "2-digit", year: "numeric" }) +
     " " +
     d.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" })
+  );
+}
+
+function AuditDetailSheet({
+  entry,
+  open,
+  onOpenChange,
+}: {
+  entry: AuditLogEntry | null;
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+}) {
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetHeader>
+          <SheetTitle>Auditregel</SheetTitle>
+          <SheetDescription>Volledige context van deze activiteit.</SheetDescription>
+        </SheetHeader>
+        {entry && (
+          <div className="mt-6 space-y-4">
+            <dl className="grid gap-3 text-sm sm:grid-cols-2">
+              <DetailItem label="Datum/tijd" value={formatDateTime(entry.createdAt)} />
+              <DetailItem label="Gebruiker" value={entry.userName ?? "Onbekend"} />
+              <DetailItem label="E-mail" value={entry.userEmail ?? "-"} />
+              <DetailItem label="Actie" value={ACTION_LABELS[entry.action] ?? entry.action} />
+              <DetailItem label="Module" value={RESOURCE_LABELS[entry.resource] ?? entry.resource} />
+              <DetailItem label="Resource ID" value={entry.resourceId ?? "-"} />
+            </dl>
+            <div className="rounded-lg border border-border bg-muted/30 p-3">
+              <p className="mb-2 text-xs font-semibold uppercase text-muted-foreground">Metadata</p>
+              <pre className="max-h-96 overflow-auto whitespace-pre-wrap break-words text-xs text-foreground">
+                {entry.metadata ? JSON.stringify(entry.metadata, null, 2) : "-"}
+              </pre>
+            </div>
+          </div>
+        )}
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function DetailItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <dt className="text-xs font-semibold uppercase text-muted-foreground">{label}</dt>
+      <dd className="mt-1 text-foreground">{value}</dd>
+    </div>
   );
 }

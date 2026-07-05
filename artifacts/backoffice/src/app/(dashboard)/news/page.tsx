@@ -3,6 +3,7 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { getNewsAudienceOptions, listNewsPosts } from "@/app/actions/news";
 import { NewsView } from "@/components/news/NewsView";
+import { TenantPageHeader, TenantPageShell } from "@/components/tenant-ui";
 
 export const metadata: Metadata = {
   title: "Nieuws",
@@ -22,13 +23,11 @@ export default async function NewsPage() {
   ]);
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] p-6">
-      <div className="mb-4">
-        <p className="text-sm" style={{ color: "#64748B" }}>
-          Beheer tenantnieuws voor medewerkers en klanten met doelgroepselectie per groep, sector of individuele ontvanger.
-        </p>
-      </div>
-
+    <TenantPageShell size="wide" className="max-w-[1600px]">
+      <TenantPageHeader
+        title="Nieuws"
+        description="Beheer tenantnieuws voor medewerkers en klanten met doelgroepselectie per groep, sector of individuele ontvanger."
+      />
       <NewsView
         initialPosts={posts}
         audienceOptions={audienceOptions}
@@ -36,6 +35,6 @@ export default async function NewsPage() {
         canSend={canSend}
         canDelete={canDelete}
       />
-    </div>
+    </TenantPageShell>
   );
 }

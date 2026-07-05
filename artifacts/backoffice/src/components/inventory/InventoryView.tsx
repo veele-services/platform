@@ -18,6 +18,15 @@ import {
   type InventoryManagementOptions,
   type InventoryRow,
 } from "@/app/actions/inventory";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const PAGE_SIZE = 25;
 const INVENTORY_STATUS_OPTIONS = [
@@ -206,13 +215,21 @@ export function InventoryView({
               <option key={status} value={status}>{STATUS_LABELS[status] ?? status}</option>
             ))}
           </select>
+          {canWrite && (
+            <CreateInventorySheet
+              locationType={locationType}
+              options={options}
+              pending={pending}
+              onLocationTypeChange={setLocationType}
+              onSubmit={handleCreate}
+            />
+          )}
         </div>
       </div>
 
       {message && <div className="rounded-md border px-4 py-3 text-sm" style={{ borderColor: "#CBD5E1", color: "#334155" }}>{message}</div>}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="veele-card overflow-hidden p-0">
+      <div className="veele-card overflow-hidden p-0">
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
             <div>
               <h2 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>Inventarisregister</h2>
@@ -278,88 +295,111 @@ export function InventoryView({
             <Link href={buildUrl({ page: page > 2 ? String(page - 1) : undefined })} className="rounded-md border px-3 py-1.5 text-sm aria-disabled:pointer-events-none aria-disabled:opacity-40" style={{ borderColor: "#CBD5E1", color: "#334155" }} aria-disabled={page <= 1}>Vorige</Link>
             <Link href={buildUrl({ page: page < totalPages ? String(page + 1) : undefined })} className="rounded-md border px-3 py-1.5 text-sm aria-disabled:pointer-events-none aria-disabled:opacity-40" style={{ borderColor: "#CBD5E1", color: "#334155" }} aria-disabled={page >= totalPages}>Volgende</Link>
           </div>
-        </div>
-
-        {canWrite && (
-          <form onSubmit={handleCreate} className="veele-card flex flex-col gap-4">
-            <div className="flex items-center gap-2">
-              <PackageSearch className="h-4 w-4" style={{ color: "#0F766E" }} />
-              <h2 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>Nieuw inventarisitem</h2>
-            </div>
-            <input name="name" required placeholder="Naam" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-            <div className="grid grid-cols-2 gap-3">
-              <input name="type" placeholder="Type" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              <input name="serialNumber" placeholder="Serienummer" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <input name="brand" placeholder="Merk" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              <input name="model" placeholder="Model" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-            </div>
-            <label className="text-sm font-medium" style={{ color: "#334155" }}>
-              Categorie
-              <select name="categoryId" className="mt-1 h-10 w-full rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
-                <option value="">Geen categorie</option>
-                {options.categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-                <option value="__new">Nieuwe categorie</option>
-              </select>
-            </label>
-            <input name="categoryName" placeholder="Nieuwe categorie indien gekozen" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-            <div className="grid grid-cols-2 gap-3">
-              <input name="purchaseDate" type="date" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              <input name="purchaseValue" inputMode="decimal" placeholder="Aanschafwaarde" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <select name="status" defaultValue="available" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
-                {INVENTORY_STATUS_OPTIONS.filter((status) => status !== "archived").map((status) => <option key={status} value={status}>{STATUS_LABELS[status] ?? status}</option>)}
-              </select>
-              <input name="nextInspectionDate" type="date" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-            </div>
-            <label className="text-sm font-medium" style={{ color: "#334155" }}>
-              Locatie
-              <select name="locationType" value={locationType} onChange={(event) => setLocationType(event.target.value)} className="mt-1 h-10 w-full rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
-                <option value="none">Geen locatie</option>
-                <option value="object">Object</option>
-                <option value="personnel">Personeelslid</option>
-                <option value="existing">Bestaande locatie</option>
-              </select>
-            </label>
-            {locationType === "object" && (
-              <select name="objectId" required className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
-                <option value="">Kies object</option>
-                {options.objects.map((object) => <option key={object.id} value={object.id}>{object.label}{object.meta ? ` - ${object.meta}` : ""}</option>)}
-              </select>
-            )}
-            {locationType === "personnel" && (
-              <select name="personnelId" required className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
-                <option value="">Kies personeelslid</option>
-                {options.personnel.map((person) => <option key={person.id} value={person.id}>{person.label}</option>)}
-              </select>
-            )}
-            {locationType === "existing" && (
-              <select name="stockLocationId" required className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
-                <option value="">Kies locatie</option>
-                {options.stockLocations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
-              </select>
-            )}
-            <div className="grid grid-cols-2 gap-3">
-              <input name="inspectionIntervalDays" inputMode="numeric" placeholder="Keuringsinterval dagen" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              <input name="maintenanceIntervalDays" inputMode="numeric" placeholder="Onderhoudsinterval dagen" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-            </div>
-            <input name="warrantyUntil" type="date" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-            <input name="movementReason" placeholder="Reden locatie/status" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-            <textarea name="notes" rows={3} placeholder="Notities" className="rounded-md border px-3 py-2 text-sm" style={{ borderColor: "#CBD5E1" }} />
-            <label className="inline-flex items-center gap-2 text-sm" style={{ color: "#334155" }}>
-              <input name="customerVisible" type="checkbox" />
-              Klantzichtbaar
-            </label>
-            <button type="submit" disabled={pending} className="inline-flex h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium text-white disabled:opacity-60" style={{ backgroundColor: "#0F766E" }}>
-              <Plus className="h-4 w-4" />
-              Inventaris aanmaken
-            </button>
-            <p className="text-xs" style={{ color: "#64748B" }}>Code wordt automatisch als I000001 per tenant gegenereerd.</p>
-          </form>
-        )}
       </div>
     </div>
+  );
+}
+
+function CreateInventorySheet({
+  locationType,
+  options,
+  pending,
+  onLocationTypeChange,
+  onSubmit,
+}: {
+  locationType: string;
+  options: InventoryManagementOptions;
+  pending: boolean;
+  onLocationTypeChange: (value: string) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button type="button">
+          <Plus className="h-4 w-4" />
+          Nieuw item
+        </Button>
+      </SheetTrigger>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetHeader>
+          <SheetTitle>Nieuw inventarisitem</SheetTitle>
+          <SheetDescription>Registreer locatie, status, keuring en dossierinformatie.</SheetDescription>
+        </SheetHeader>
+        <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
+          <input name="name" required placeholder="Naam" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          <div className="grid grid-cols-2 gap-3">
+            <input name="type" placeholder="Type" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+            <input name="serialNumber" placeholder="Serienummer" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <input name="brand" placeholder="Merk" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+            <input name="model" placeholder="Model" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          </div>
+          <label className="text-sm font-medium" style={{ color: "#334155" }}>
+            Categorie
+            <select name="categoryId" className="mt-1 h-10 w-full rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
+              <option value="">Geen categorie</option>
+              {options.categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+              <option value="__new">Nieuwe categorie</option>
+            </select>
+          </label>
+          <input name="categoryName" placeholder="Nieuwe categorie indien gekozen" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          <div className="grid grid-cols-2 gap-3">
+            <input name="purchaseDate" type="date" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+            <input name="purchaseValue" inputMode="decimal" placeholder="Aanschafwaarde" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <select name="status" defaultValue="available" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
+              {INVENTORY_STATUS_OPTIONS.filter((status) => status !== "archived").map((status) => <option key={status} value={status}>{STATUS_LABELS[status] ?? status}</option>)}
+            </select>
+            <input name="nextInspectionDate" type="date" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          </div>
+          <label className="text-sm font-medium" style={{ color: "#334155" }}>
+            Locatie
+            <select name="locationType" value={locationType} onChange={(event) => onLocationTypeChange(event.target.value)} className="mt-1 h-10 w-full rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
+              <option value="none">Geen locatie</option>
+              <option value="object">Object</option>
+              <option value="personnel">Personeelslid</option>
+              <option value="existing">Bestaande locatie</option>
+            </select>
+          </label>
+          {locationType === "object" && (
+            <select name="objectId" required className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
+              <option value="">Kies object</option>
+              {options.objects.map((object) => <option key={object.id} value={object.id}>{object.label}{object.meta ? ` - ${object.meta}` : ""}</option>)}
+            </select>
+          )}
+          {locationType === "personnel" && (
+            <select name="personnelId" required className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
+              <option value="">Kies personeelslid</option>
+              {options.personnel.map((person) => <option key={person.id} value={person.id}>{person.label}</option>)}
+            </select>
+          )}
+          {locationType === "existing" && (
+            <select name="stockLocationId" required className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
+              <option value="">Kies locatie</option>
+              {options.stockLocations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
+            </select>
+          )}
+          <div className="grid grid-cols-2 gap-3">
+            <input name="inspectionIntervalDays" inputMode="numeric" placeholder="Keuringsinterval dagen" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+            <input name="maintenanceIntervalDays" inputMode="numeric" placeholder="Onderhoudsinterval dagen" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          </div>
+          <input name="warrantyUntil" type="date" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          <input name="movementReason" placeholder="Reden locatie/status" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          <textarea name="notes" rows={3} placeholder="Notities" className="rounded-md border px-3 py-2 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          <label className="inline-flex items-center gap-2 text-sm" style={{ color: "#334155" }}>
+            <input name="customerVisible" type="checkbox" />
+            Klantzichtbaar
+          </label>
+          <Button type="submit" disabled={pending}>
+            <PackageSearch className="h-4 w-4" />
+            Inventaris aanmaken
+          </Button>
+          <p className="text-xs" style={{ color: "#64748B" }}>Code wordt automatisch als I000001 per tenant gegenereerd.</p>
+        </form>
+      </SheetContent>
+    </Sheet>
   );
 }

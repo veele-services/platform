@@ -7,7 +7,7 @@ import {
   listNotificationEventSettings,
 } from "@/app/actions/settings";
 import { NotificatiesView } from "@/components/settings/NotificatiesView";
-import { SettingsTabs } from "@/components/settings/SettingsTabs";
+import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 
 export const metadata: Metadata = { title: "Notificatie-instellingen" };
 
@@ -26,27 +26,16 @@ export default async function NotificatiesPage() {
   ]);
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] p-6">
-      <SettingsTabs />
-      <div className="mb-6 max-w-2xl">
-        <div className="flex items-center gap-2 text-sm mb-3" style={{ color: "#94A3B8" }}>
-          <a href="/instellingen/organisatie" className="hover:underline">Instellingen</a>
-          <span>/</span>
-          <span style={{ color: "#081D3A" }}>Notificaties</span>
-        </div>
-        <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-          Beheer automatische triggers, e-mailtemplates, push/in-app notificaties en handmatige berichten.
-        </p>
-      </div>
-
-      <div className="max-w-6xl">
-        <NotificatiesView
-          settings={settings}
-          events={events}
-          audienceOptions={audienceOptions}
-          canWrite={canWrite}
-        />
-      </div>
-    </div>
+    <SettingsSectionShell
+      title="Notificaties"
+      description="Beheer automatische triggers, e-mailtemplates, push/in-app notificaties en handmatige berichten."
+    >
+      <NotificatiesView
+        settings={settings}
+        events={events}
+        audienceOptions={audienceOptions}
+        canWrite={canWrite}
+      />
+    </SettingsSectionShell>
   );
 }

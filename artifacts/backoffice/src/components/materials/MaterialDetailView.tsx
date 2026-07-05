@@ -1,8 +1,8 @@
 "use client";
 
-import Link from "next/link";
 import { FormEvent, useState, useTransition } from "react";
-import { Archive, ArrowLeft, ClipboardList, Package, Pencil } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { Archive, Pencil } from "lucide-react";
 import {
   archiveMaterial,
   updateMaterial,
@@ -11,7 +11,23 @@ import {
   type MaterialManagementOptions,
 } from "@/app/actions/materials";
 import { MaterialStockPanel } from "@/components/materials/MaterialStockPanel";
-import { useRouter } from "next/navigation";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
+  TenantDetailActionPanel,
+  TenantDetailHeader,
+  TenantDetailLayout,
+  TenantDetailSectionNav,
+  TenantPageShell,
+  TenantWorkbenchPanel,
+} from "@/components/tenant-ui";
 
 function formString(formData: FormData, key: string): string | null {
   const value = formData.get(key);
@@ -89,175 +105,207 @@ export function MaterialDetailView({
     );
   }
 
-  return (
-    <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-6 p-8">
-      <Link href="/materials" className="inline-flex items-center gap-1 text-sm hover:underline" style={{ color: "#64748B" }}>
-        <ArrowLeft className="h-4 w-4" />
-        Materiaalbeheer
-      </Link>
+  const badges = (
+    <>
+      <span className="rounded bg-slate-100 px-2 py-1 font-mono text-xs text-slate-600">{material.code}</span>
+      {material.archivedAt && (
+        <span className="rounded bg-red-50 px-2 py-1 text-xs font-semibold text-red-700">
+          Gearchiveerd
+        </span>
+      )}
+    </>
+  );
 
-      <div className="veele-card flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <div className="flex flex-wrap items-center gap-3">
-            <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>{material.name}</h1>
-            <span className="rounded bg-slate-100 px-2 py-1 font-mono text-xs" style={{ color: "#475569" }}>{material.code}</span>
-            {material.archivedAt && (
-              <span className="rounded px-2 py-1 text-xs font-semibold" style={{ backgroundColor: "#FEF2F2", color: "#B91C1C" }}>
-                Gearchiveerd
-              </span>
-            )}
-          </div>
-          <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-            {material.categoryName ?? "Geen categorie"} - {material.unit}
-          </p>
-        </div>
-        {canWrite && !material.archivedAt && (
-          <button
-            type="button"
-            onClick={() => run(() => archiveMaterial(material.id), "Materiaal gearchiveerd.")}
-            disabled={pending}
-            className="inline-flex h-10 items-center gap-2 rounded-md border px-3 text-sm font-medium disabled:opacity-60"
-            style={{ borderColor: "#FCD34D", color: "#B45309" }}
-          >
-            <Archive className="h-4 w-4" />
-            Archiveer
-          </button>
-        )}
-      </div>
+  const actions = canWrite && !material.archivedAt ? (
+    <>
+      <EditMaterialSheet material={material} options={options} pending={pending} onSubmit={handleUpdate} />
+      <Button
+        type="button"
+        variant="outline"
+        disabled={pending}
+        onClick={() => run(() => archiveMaterial(material.id), "Materiaal gearchiveerd.")}
+        className="text-amber-700"
+      >
+        <Archive className="h-4 w-4" />
+        Archiveer
+      </Button>
+    </>
+  ) : null;
+
+  return (
+    <TenantPageShell size="wide">
+      <TenantDetailHeader
+        backHref="/materials"
+        backLabel="Materiaalbeheer"
+        title={material.name}
+        description={`${material.categoryName ?? "Geen categorie"} - ${material.unit}`}
+        badges={badges}
+        actions={actions}
+        meta={[
+          { label: "Factureerbaar", value: material.defaultInvoiceable ? "Ja" : "Nee" },
+          { label: "Leverancier", value: material.supplierName ?? "-" },
+        ]}
+      />
+
+      <TenantDetailSectionNav
+        items={[
+          { label: "Overzicht", href: "#overzicht", active: true },
+          { label: "Voorraad", href: "#voorraad", count: material.balances.length },
+          { label: "Tijdlijn", href: "#tijdlijn", count: material.movements.length },
+          { label: "Verbruik", href: "#verbruik", count: material.usages.length },
+          { label: "Financieel", href: "#financieel" },
+        ]}
+      />
 
       {message && (
-        <div className="rounded-md border px-4 py-3 text-sm" style={{ borderColor: "#CBD5E1", color: "#334155" }}>
+        <div className="rounded-md border border-border bg-card px-4 py-3 text-sm text-foreground">
           {message}
         </div>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
+      <TenantDetailLayout
+        aside={
+          <TenantDetailActionPanel
+            title="Materiaalacties"
+            description="Bewerk catalogusdata, archiveer of beoordeel financiele instellingen."
+          >
+            <TenantWorkbenchPanel id="financieel" title="Financieel">
+              <dl className="space-y-3 px-4 py-4 text-sm">
+                <Info label="Kostprijs" value={money(material.costPrice)} />
+                <Info label="Verkoopprijs" value={money(material.salePrice)} />
+                <Info label="BTW" value={material.vatRate ? `${material.vatRate}%` : "-"} />
+                <Info label="Factureerbaar" value={material.defaultInvoiceable ? "Ja" : "Nee"} />
+              </dl>
+            </TenantWorkbenchPanel>
+          </TenantDetailActionPanel>
+        }
+      >
         <div className="flex flex-col gap-6">
-          <div className="grid gap-4 md:grid-cols-4">
+          <section id="overzicht" className="grid gap-4 md:grid-cols-4">
             <Metric label="Totale voorraad" value={quantity(material.totalStock, material.unit)} />
             <Metric label="Locaties" value={String(material.locationsCount)} />
             <Metric label="Lage voorraad" value={String(material.lowLocationsCount)} tone={material.lowLocationsCount > 0 ? "warn" : "ok"} />
             <Metric label="Negatief" value={String(material.negativeLocationsCount)} tone={material.negativeLocationsCount > 0 ? "danger" : "ok"} />
-          </div>
+          </section>
 
-          <MaterialStockPanel rows={material.balances} />
+          <section id="voorraad">
+            <MaterialStockPanel rows={material.balances} />
+          </section>
 
-          <div className="veele-card overflow-hidden p-0">
-            <div className="flex items-center gap-2 px-5 py-4">
-              <ClipboardList className="h-4 w-4" style={{ color: "#0F766E" }} />
-              <h2 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>Voorraadmutaties</h2>
-            </div>
-            <div className="border-t" style={{ borderColor: "#E2E8F0" }}>
-              {material.movements.length === 0 ? (
-                <p className="px-5 py-6 text-sm" style={{ color: "#64748B" }}>Nog geen voorraadmutaties.</p>
-              ) : (
-                <div className="divide-y" style={{ borderColor: "#E2E8F0" }}>
-                  {material.movements.map((movement) => (
-                    <div key={movement.id} className="px-5 py-3 text-sm">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="font-medium" style={{ color: "#081D3A" }}>
-                          {movement.movementType} - {quantity(movement.quantity, material.unit)}
-                        </p>
-                        <p className="text-xs" style={{ color: "#94A3B8" }}>
-                          {new Date(movement.createdAt).toLocaleString("nl-NL")}
-                        </p>
-                      </div>
-                      <p className="mt-1 text-xs" style={{ color: "#64748B" }}>
-                        {movement.fromLocationName ?? "-"}{" -> "}{movement.toLocationName ?? "-"}
-                        {movement.reason ? ` - ${movement.reason}` : ""}
+          <TenantWorkbenchPanel id="tijdlijn" title="Tijdlijn voorraadmutaties" description="Laatste voorraadbewegingen per locatie en reden.">
+            {material.movements.length === 0 ? (
+              <p className="px-5 py-6 text-sm text-muted-foreground">Nog geen voorraadmutaties.</p>
+            ) : (
+              <div className="divide-y divide-border">
+                {material.movements.map((movement) => (
+                  <div key={movement.id} className="px-5 py-3 text-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-medium text-foreground">
+                        {movement.movementType} - {quantity(movement.quantity, material.unit)}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {new Date(movement.createdAt).toLocaleString("nl-NL")}
                       </p>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {movement.fromLocationName ?? "-"}{" -> "}{movement.toLocationName ?? "-"}
+                      {movement.reason ? ` - ${movement.reason}` : ""}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TenantWorkbenchPanel>
 
-          <div className="veele-card overflow-hidden p-0">
-            <div className="flex items-center gap-2 px-5 py-4">
-              <Package className="h-4 w-4" style={{ color: "#0F766E" }} />
-              <h2 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>Verbruik op werkbonnen</h2>
-            </div>
-            <div className="border-t" style={{ borderColor: "#E2E8F0" }}>
-              {material.usages.length === 0 ? (
-                <p className="px-5 py-6 text-sm" style={{ color: "#64748B" }}>Nog geen verbruikshistorie.</p>
-              ) : (
-                <div className="divide-y" style={{ borderColor: "#E2E8F0" }}>
-                  {material.usages.map((usage) => (
-                    <div key={usage.id} className="px-5 py-3 text-sm">
-                      <div className="flex flex-wrap items-center justify-between gap-2">
-                        <p className="font-medium" style={{ color: "#081D3A" }}>{usage.name}</p>
-                        <span className="rounded bg-slate-100 px-2 py-0.5 text-xs" style={{ color: "#475569" }}>
-                          {usage.approvalStatus}
-                        </span>
-                      </div>
-                      <p className="mt-1 text-xs" style={{ color: "#64748B" }}>
-                        {usage.assignmentCode ?? "Werkbon"} - {quantity(usage.quantity, usage.unitLabel ?? material.unit)}
-                        {usage.invoiceable ? " - factureerbaar" : ""}
-                        {usage.customerVisible ? " - klantzichtbaar" : ""}
-                      </p>
+          <TenantWorkbenchPanel id="verbruik" title="Verbruik op werkbonnen" description="Werkbonregels waarin dit materiaal is gebruikt.">
+            {material.usages.length === 0 ? (
+              <p className="px-5 py-6 text-sm text-muted-foreground">Nog geen verbruikshistorie.</p>
+            ) : (
+              <div className="divide-y divide-border">
+                {material.usages.map((usage) => (
+                  <div key={usage.id} className="px-5 py-3 text-sm">
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="font-medium text-foreground">{usage.name}</p>
+                      <span className="rounded bg-slate-100 px-2 py-0.5 text-xs text-slate-600">
+                        {usage.approvalStatus}
+                      </span>
                     </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      {usage.assignmentCode ?? "Werkbon"} - {quantity(usage.quantity, usage.unitLabel ?? material.unit)}
+                      {usage.invoiceable ? " - factureerbaar" : ""}
+                      {usage.customerVisible ? " - klantzichtbaar" : ""}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TenantWorkbenchPanel>
         </div>
+      </TenantDetailLayout>
+    </TenantPageShell>
+  );
+}
 
-        <div className="flex flex-col gap-6">
-          <div className="veele-card">
-            <h2 className="font-heading mb-4 text-sm font-semibold" style={{ color: "#081D3A" }}>Financieel</h2>
-            <dl className="space-y-3 text-sm">
-              <Info label="Kostprijs" value={money(material.costPrice)} />
-              <Info label="Verkoopprijs" value={money(material.salePrice)} />
-              <Info label="BTW" value={material.vatRate ? `${material.vatRate}%` : "-"} />
-              <Info label="Factureerbaar" value={material.defaultInvoiceable ? "Ja" : "Nee"} />
-            </dl>
+function EditMaterialSheet({
+  material,
+  options,
+  pending,
+  onSubmit,
+}: {
+  material: MaterialDetail;
+  options: MaterialManagementOptions;
+  pending: boolean;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button type="button">
+          <Pencil className="h-4 w-4" />
+          Bewerken
+        </Button>
+      </SheetTrigger>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetHeader>
+          <SheetTitle>Materiaal bewerken</SheetTitle>
+          <SheetDescription>Werk catalogusdata, prijzen, voorraadgrenzen en leverancierinformatie bij.</SheetDescription>
+        </SheetHeader>
+        <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
+          <input name="name" defaultValue={material.name} required className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          <div className="grid grid-cols-2 gap-3">
+            <input name="unit" defaultValue={material.unit} required className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+            <input name="vatRate" defaultValue={material.vatRate ?? ""} inputMode="decimal" placeholder="BTW %" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
           </div>
-
-          {canWrite && !material.archivedAt && (
-            <form onSubmit={handleUpdate} className="veele-card flex flex-col gap-4">
-              <div className="flex items-center gap-2">
-                <Pencil className="h-4 w-4" style={{ color: "#0F766E" }} />
-                <h2 className="font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>Bewerken</h2>
-              </div>
-              <input name="name" defaultValue={material.name} required className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              <div className="grid grid-cols-2 gap-3">
-                <input name="unit" defaultValue={material.unit} required className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-                <input name="vatRate" defaultValue={material.vatRate ?? ""} inputMode="decimal" placeholder="BTW %" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              </div>
-              <select name="categoryId" defaultValue="" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
-                <option value="">Geen categorie wijzigen</option>
-                {options.categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-                <option value="__new">Nieuwe categorie</option>
-              </select>
-              <input name="categoryName" placeholder="Nieuwe categorie indien gekozen" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              <div className="grid grid-cols-2 gap-3">
-                <input name="costPrice" defaultValue={material.costPrice ?? ""} inputMode="decimal" placeholder="Kostprijs" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-                <input name="salePrice" defaultValue={material.salePrice ?? ""} inputMode="decimal" placeholder="Verkoopprijs" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <input name="minStock" defaultValue={material.minStock ?? ""} inputMode="decimal" placeholder="Minimumvoorraad" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-                <input name="maxStock" defaultValue={material.maxStock ?? ""} inputMode="decimal" placeholder="Maximumvoorraad" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              </div>
-              <input name="barcode" defaultValue={material.barcode ?? ""} placeholder="Barcode" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              <input name="supplierName" defaultValue={material.supplierName ?? ""} placeholder="Leverancier" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              <input name="supplierItemNumber" defaultValue={material.supplierItemNumber ?? ""} placeholder="Leveranciersartikelnummer" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              <textarea name="description" defaultValue={material.description ?? ""} rows={3} placeholder="Omschrijving" className="rounded-md border px-3 py-2 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              <textarea name="notes" defaultValue={material.notes ?? ""} rows={2} placeholder="Notities" className="rounded-md border px-3 py-2 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              <label className="inline-flex items-center gap-2 text-sm" style={{ color: "#334155" }}>
-                <input name="defaultInvoiceable" type="checkbox" defaultChecked={material.defaultInvoiceable} />
-                Standaard factureerbaar
-              </label>
-              <button type="submit" disabled={pending} className="inline-flex h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium text-white disabled:opacity-60" style={{ backgroundColor: "#0F766E" }}>
-                <Pencil className="h-4 w-4" />
-                Opslaan
-              </button>
-            </form>
-          )}
-        </div>
-      </div>
-    </div>
+          <select name="categoryId" defaultValue="" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
+            <option value="">Geen categorie wijzigen</option>
+            {options.categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+            <option value="__new">Nieuwe categorie</option>
+          </select>
+          <input name="categoryName" placeholder="Nieuwe categorie indien gekozen" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          <div className="grid grid-cols-2 gap-3">
+            <input name="costPrice" defaultValue={material.costPrice ?? ""} inputMode="decimal" placeholder="Kostprijs" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+            <input name="salePrice" defaultValue={material.salePrice ?? ""} inputMode="decimal" placeholder="Verkoopprijs" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <input name="minStock" defaultValue={material.minStock ?? ""} inputMode="decimal" placeholder="Minimumvoorraad" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+            <input name="maxStock" defaultValue={material.maxStock ?? ""} inputMode="decimal" placeholder="Maximumvoorraad" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          </div>
+          <input name="barcode" defaultValue={material.barcode ?? ""} placeholder="Barcode" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          <input name="supplierName" defaultValue={material.supplierName ?? ""} placeholder="Leverancier" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          <input name="supplierItemNumber" defaultValue={material.supplierItemNumber ?? ""} placeholder="Leveranciersartikelnummer" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          <textarea name="description" defaultValue={material.description ?? ""} rows={3} placeholder="Omschrijving" className="rounded-md border px-3 py-2 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          <textarea name="notes" defaultValue={material.notes ?? ""} rows={2} placeholder="Notities" className="rounded-md border px-3 py-2 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          <label className="inline-flex items-center gap-2 text-sm" style={{ color: "#334155" }}>
+            <input name="defaultInvoiceable" type="checkbox" defaultChecked={material.defaultInvoiceable} />
+            Standaard factureerbaar
+          </label>
+          <Button type="submit" disabled={pending}>
+            <Pencil className="h-4 w-4" />
+            Opslaan
+          </Button>
+        </form>
+      </SheetContent>
+    </Sheet>
   );
 }
 
@@ -274,8 +322,8 @@ function Metric({ label, value, tone = "neutral" }: { label: string; value: stri
 function Info({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-4">
-      <dt style={{ color: "#64748B" }}>{label}</dt>
-      <dd className="font-medium" style={{ color: "#081D3A" }}>{value}</dd>
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="font-medium text-foreground">{value}</dd>
     </div>
   );
 }

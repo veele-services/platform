@@ -4,7 +4,7 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { getRole, getRolePlanCapabilities } from "@/app/actions/settings";
 import { RolDetailView } from "@/components/settings/RolDetailView";
-import { SettingsTabs } from "@/components/settings/SettingsTabs";
+import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 
 export const metadata: Metadata = { title: "Rol bewerken" };
 
@@ -25,37 +25,11 @@ export default async function RolDetailPage({ params }: Props) {
   if (!role) notFound();
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] p-6">
-      <SettingsTabs />
-      <div className="mb-6">
-        <div className="flex items-center gap-2 text-sm mb-3" style={{ color: "#94A3B8" }}>
-          <a href="/settings" className="hover:underline">Instellingen</a>
-          <span>/</span>
-          <a href="/instellingen/rollen" className="hover:underline">Rollen & rechten</a>
-          <span>/</span>
-          <span style={{ color: "#081D3A" }}>{role.name}</span>
-        </div>
-        <div className="flex items-center gap-3">
-          <h1 className="font-heading text-2xl font-bold" style={{ color: "#081D3A" }}>
-            {role.name}
-          </h1>
-          {role.isSystem && (
-            <span
-              className="text-xs font-medium px-2 py-0.5 rounded-full"
-              style={{ backgroundColor: "#E0FAFB", color: "#00B7B3" }}
-            >
-              Systeemrol
-            </span>
-          )}
-        </div>
-        {role.description && (
-          <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
-            {role.description}
-          </p>
-        )}
-      </div>
-
+    <SettingsSectionShell
+      title={role.name}
+      description={role.description ?? (role.isSystem ? "Systeemrol met centraal beheerde permissies." : "Custom rol en permissie-matrix.")}
+    >
       <RolDetailView role={role} canWrite={canWrite} capabilities={capabilities} />
-    </div>
+    </SettingsSectionShell>
   );
 }

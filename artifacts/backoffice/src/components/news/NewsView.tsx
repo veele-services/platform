@@ -33,6 +33,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { TenantConfirmDialog } from "@/components/tenant-ui";
 import { cn } from "@/lib/utils";
 import { TipTapNewsEditor } from "./TipTapNewsEditor";
 
@@ -252,6 +253,7 @@ export function NewsView({
   const [message, setMessage] = useState<{ type: "success" | "error"; text: string } | null>(null);
   const [isPending, startTransition] = useTransition();
   const [uploadingHero, setUploadingHero] = useState(false);
+  const [archiveTargetId, setArchiveTargetId] = useState<string | null>(null);
   const heroInputRef = useRef<HTMLInputElement>(null);
 
   const filteredPosts = useMemo(() => {
@@ -355,18 +357,19 @@ export function NewsView({
     });
   }
 
-  function archiveSelected() {
-    if (!form.id || !canDelete) return;
-    if (!window.confirm("Weet u zeker dat u dit nieuwsbericht wilt archiveren?")) return;
+  function archiveSelected(postId: string) {
+    if (!canDelete) return;
 
     startTransition(async () => {
-      const result = await archiveNewsPost(form.id!);
+      const result = await archiveNewsPost(postId);
       if (!result.success) {
         flash("error", result.message ?? "Archiveren mislukt.");
+        setArchiveTargetId(null);
         return;
       }
       flash("success", "Nieuwsbericht gearchiveerd.");
-      refreshList(form.id!);
+      refreshList(postId);
+      setArchiveTargetId(null);
     });
   }
 
@@ -481,7 +484,7 @@ export function NewsView({
               </Badge>
             )}
             {canDelete && form.id && form.status !== "archived" && (
-              <Button type="button" variant="outline" size="sm" onClick={archiveSelected} disabled={isPending}>
+              <Button type="button" variant="outline" size="sm" onClick={() => setArchiveTargetId(form.id)} disabled={isPending}>
                 <Archive className="h-4 w-4" />
                 Archiveer
               </Button>
@@ -746,6 +749,20 @@ export function NewsView({
           </aside>
         </div>
       </section>
+
+      <TenantConfirmDialog
+        open={!!archiveTargetId}
+        onOpenChange={(open) => {
+          if (!open) setArchiveTargetId(null);
+        }}
+        title="Nieuwsbericht archiveren?"
+        description="Het bericht verdwijnt uit actieve lijsten, maar blijft bewaard in de historie."
+        confirmLabel="Archiveren"
+        destructive
+        onConfirm={() => {
+          if (archiveTargetId) archiveSelected(archiveTargetId);
+        }}
+      />
     </div>
   );
 }

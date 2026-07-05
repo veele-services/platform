@@ -11,6 +11,7 @@ import {
   deleteCustomerNote,
   type CustomerNoteRow,
 } from "@/app/actions/customers";
+import { TenantConfirmDialog } from "@/components/tenant-ui";
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("nl-NL", {
@@ -32,6 +33,7 @@ export function CustomerNotesPanel({ customerId, initialNotes }: Props) {
   const [deletingId, setDeletingId]   = useState<string | null>(null);
   const [editingId, setEditingId]     = useState<string | null>(null);
   const [editContent, setEditContent] = useState("");
+  const [deleteTarget, setDeleteTarget] = useState<CustomerNoteRow | null>(null);
 
   // ── Add ────────────────────────────────────────────────────────────────────
 
@@ -97,7 +99,6 @@ export function CustomerNotesPanel({ customerId, initialNotes }: Props) {
   // ── Delete ─────────────────────────────────────────────────────────────────
 
   function handleDelete(noteId: string) {
-    if (!confirm("Notitie verwijderen?")) return;
     setDeletingId(noteId);
     startTransition(async () => {
       const result = await deleteCustomerNote(noteId, customerId);
@@ -107,6 +108,7 @@ export function CustomerNotesPanel({ customerId, initialNotes }: Props) {
       } else {
         setError(result.message);
       }
+      setDeleteTarget(null);
     });
   }
 
@@ -230,7 +232,7 @@ export function CustomerNotesPanel({ customerId, initialNotes }: Props) {
                     </button>
                     <button
                       type="button"
-                      onClick={() => handleDelete(note.id)}
+                      onClick={() => setDeleteTarget(note)}
                       disabled={isPending && deletingId === note.id}
                       title="Verwijderen"
                       className="rounded p-1 hover:bg-red-50 transition-colors disabled:opacity-50"
@@ -257,6 +259,20 @@ export function CustomerNotesPanel({ customerId, initialNotes }: Props) {
           ))}
         </ul>
       )}
+
+      <TenantConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Notitie verwijderen?"
+        description="Deze notitie wordt permanent verwijderd uit de klantgeschiedenis."
+        confirmLabel="Verwijderen"
+        destructive
+        onConfirm={() => {
+          if (deleteTarget) handleDelete(deleteTarget.id);
+        }}
+      />
     </div>
   );
 }

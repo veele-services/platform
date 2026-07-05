@@ -15,6 +15,7 @@ import {
   type LeaveStatus,
 } from "@/app/actions/availability";
 import { LEAVE_TYPES } from "@/types/availability";
+import { TenantConfirmDialog } from "@/components/tenant-ui";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -66,6 +67,8 @@ export function BeschikbaarheidView({
   const [leavePeriods, setLeavePeriods]   = useState(initialLeave);
   const [showAddLeave, setShowAddLeave]   = useState(false);
   const [editingLeaveId, setEditingLeaveId] = useState<string | null>(null);
+  const [deleteLeaveId, setDeleteLeaveId] = useState<string | null>(null);
+  const [rejectLeaveId, setRejectLeaveId] = useState<string | null>(null);
 
   const [scheduleSaved, setScheduleSaved] = useState(false);
   const [scheduleError, setScheduleError] = useState<string | null>(null);
@@ -116,7 +119,6 @@ export function BeschikbaarheidView({
   // ─── Leave handlers ─────────────────────────────────────────────────────────
 
   function handleDeleteLeave(id: string) {
-    if (!confirm("Weet u zeker dat u deze verlofperiode wilt verwijderen?")) return;
     setLeaveError(null);
     startLeave(async () => {
       const result = await deleteLeavePeriod(id, personnelId);
@@ -125,6 +127,7 @@ export function BeschikbaarheidView({
       } else {
         setLeaveError((result as { message?: string }).message ?? "Verwijderen mislukt.");
       }
+      setDeleteLeaveId(null);
     });
   }
 
@@ -150,7 +153,6 @@ export function BeschikbaarheidView({
   }
 
   function handleReject(id: string) {
-    if (!confirm("Weet u zeker dat u deze verlofaanvraag wilt afwijzen?")) return;
     setLeaveError(null);
     startApproval(async () => {
       const result = await rejectLeavePeriod(id, personnelId);
@@ -161,6 +163,7 @@ export function BeschikbaarheidView({
       } else {
         setLeaveError((result as { message?: string }).message ?? "Afwijzen mislukt.");
       }
+      setRejectLeaveId(null);
     });
   }
 
@@ -411,7 +414,7 @@ export function BeschikbaarheidView({
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleReject(lp.id)}
+                              onClick={() => setRejectLeaveId(lp.id)}
                               disabled={approvalPending}
                               className="inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition-colors disabled:opacity-40"
                               style={{ backgroundColor: "#FEE2E2", color: "#991B1B" }}
@@ -436,7 +439,7 @@ export function BeschikbaarheidView({
                             </button>
                             <button
                               type="button"
-                              onClick={() => handleDeleteLeave(lp.id)}
+                              onClick={() => setDeleteLeaveId(lp.id)}
                               disabled={leavePending}
                               className="rounded p-1 hover:bg-red-50 transition-colors disabled:opacity-40"
                               title="Verwijderen"
@@ -454,6 +457,34 @@ export function BeschikbaarheidView({
           </table>
         ) : null}
       </div>
+
+      <TenantConfirmDialog
+        open={!!deleteLeaveId}
+        onOpenChange={(open) => {
+          if (!open) setDeleteLeaveId(null);
+        }}
+        title="Verlofperiode verwijderen?"
+        description="Deze periode verdwijnt direct uit de beschikbaarheid van dit personeelslid."
+        confirmLabel="Verwijderen"
+        destructive
+        onConfirm={() => {
+          if (deleteLeaveId) handleDeleteLeave(deleteLeaveId);
+        }}
+      />
+
+      <TenantConfirmDialog
+        open={!!rejectLeaveId}
+        onOpenChange={(open) => {
+          if (!open) setRejectLeaveId(null);
+        }}
+        title="Verlofaanvraag afwijzen?"
+        description="De aanvraag krijgt de status afgewezen en blijft zichtbaar in de historie."
+        confirmLabel="Afwijzen"
+        destructive
+        onConfirm={() => {
+          if (rejectLeaveId) handleReject(rejectLeaveId);
+        }}
+      />
     </div>
   );
 }

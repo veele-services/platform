@@ -15,6 +15,12 @@ import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { getQuote } from "@/app/actions/quotes";
 import { QuoteActions } from "@/components/quotes/QuoteActions";
 import { ProcessStatusBadge, ProcessStepper } from "@/components/workflows/ProcessStatus";
+import {
+  TenantDetailActionPanel,
+  TenantDetailHeader,
+  TenantDetailSectionNav,
+  TenantPageShell,
+} from "@/components/tenant-ui";
 
 interface Props {
   params: Promise<{ id: string }>;
@@ -63,9 +69,31 @@ export default async function QuoteDetailPage({ params }: Props) {
     : null;
 
   return (
-    <div className="p-8 max-w-6xl">
+    <TenantPageShell size="default">
+      <TenantDetailHeader
+        backHref="/quotes"
+        backLabel="Offertes"
+        title={quote.quoteNumber}
+        badges={<ProcessStatusBadge kind="quote" status={displayStatus} size="md" />}
+        meta={[
+          { label: "Klant", value: quote.customerName },
+          { label: "Bedrag", value: fmt(quote.amount) },
+          { label: "Geldig tot", value: fmtDate(quote.validityDate) },
+          { label: "Aangemaakt", value: fmtDate(quote.createdAt) },
+        ]}
+        summary={<ProcessStepper kind="quote" status={displayStatus} />}
+      />
+
+      <TenantDetailSectionNav
+        items={[
+          { label: "Offerte", href: "#quote", active: true },
+          { label: "Regels", href: "#lines", count: quote.lineItems.length },
+          { label: "Notities", href: "#notes", count: quote.notes ? 1 : 0 },
+          { label: "Acties", href: "#actions" },
+        ]}
+      />
       {/* Header */}
-      <div className="mb-8">
+      <div className="hidden">
         <Link
           href="/quotes"
           className="inline-flex items-center gap-1 text-sm mb-3 transition-colors hover:underline"
@@ -147,7 +175,7 @@ export default async function QuoteDetailPage({ params }: Props) {
         <div className="lg:col-span-2 flex flex-col gap-6">
 
           {/* Customer & assignment info */}
-          <div className="veele-card">
+          <div id="quote" className="veele-card scroll-mt-24">
             <p className="text-xs font-semibold uppercase tracking-wider mb-4" style={{ color: "#94A3B8" }}>
               Offertegegevens
             </p>
@@ -229,7 +257,7 @@ export default async function QuoteDetailPage({ params }: Props) {
 
           {/* Task code line items */}
           {quote.lineItems.length > 0 && (
-            <div className="veele-card p-0 overflow-hidden">
+            <div id="lines" className="veele-card overflow-hidden p-0 scroll-mt-24">
               <div className="px-5 py-4" style={{ borderBottom: "1px solid #F1F5F9" }}>
                 <h2 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>
                   Taakoverzicht
@@ -278,7 +306,8 @@ export default async function QuoteDetailPage({ params }: Props) {
           {/* Notes */}
           {quote.notes && (
             <div
-              className="veele-card"
+              id="notes"
+              className="veele-card scroll-mt-24"
               style={{ backgroundColor: "#FFFBEB", borderColor: "#FDE68A" }}
             >
               <h2
@@ -295,7 +324,11 @@ export default async function QuoteDetailPage({ params }: Props) {
         </div>
 
         {/* Right: financial summary + actions */}
-        <div className="flex flex-col gap-4">
+        <TenantDetailActionPanel
+          id="actions"
+          title="Offerteacties"
+          description="Bedrag, klantreactie en goedkeuringsacties."
+        >
           {/* Amount card */}
           <div className="veele-card">
             <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#94A3B8" }}>
@@ -315,8 +348,8 @@ export default async function QuoteDetailPage({ params }: Props) {
             canWrite={canWrite}
             canApprove={canApprove}
           />
-        </div>
+        </TenantDetailActionPanel>
       </div>
-    </div>
+    </TenantPageShell>
   );
 }

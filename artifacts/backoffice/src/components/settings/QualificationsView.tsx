@@ -19,6 +19,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import {
   createQualificationItem,
   deleteQualificationItem,
   removePersonnelQualification,
@@ -212,50 +220,14 @@ export function QualificationsView({ data, canWrite }: Props) {
               Beheer de vaste lijst met certificaten, diploma's en kennisgebieden. Deze lijst stuurt personeelsprofielen, taakcodes en planningfilters.
             </p>
           </div>
+          {canWrite && (
+            <CreateQualificationSheet
+              data={data}
+              isPending={isPending}
+              onSubmit={handleCreateItem}
+            />
+          )}
         </div>
-        {canWrite && (
-          <form onSubmit={handleCreateItem} className="grid gap-3 bg-slate-50 px-5 py-4 lg:grid-cols-6" style={{ borderBottom: "1px solid #E2E8F0" }}>
-            <div className="space-y-1">
-              <Label>Type</Label>
-              <select name="type" className="h-9 w-full rounded-md border bg-white px-3 text-sm" defaultValue="certificate">
-                <option value="certificate">Certificaat</option>
-                <option value="diploma">Diploma</option>
-                <option value="knowledge">Kennisgebied</option>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <Label>Code</Label>
-              <Input name="code" placeholder="VCA" required />
-            </div>
-            <div className="space-y-1 lg:col-span-2">
-              <Label>Naam</Label>
-              <Input name="name" placeholder="VCA basis" required />
-            </div>
-            <div className="space-y-1">
-              <Label>Sector</Label>
-              <select name="sectorId" className="h-9 w-full rounded-md border bg-white px-3 text-sm" defaultValue="">
-                <option value="">Alle sectoren</option>
-                {data.sectors.map((sector) => (
-                  <option key={sector.id} value={sector.id}>{sector.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1">
-              <Label>Geldig maanden</Label>
-              <Input name="validityMonths" type="number" min={1} max={240} placeholder="36" />
-            </div>
-            <div className="space-y-1 lg:col-span-5">
-              <Label>Omschrijving</Label>
-              <Textarea name="description" className="min-h-9" placeholder="Waar is deze kwalificatie voor nodig?" />
-            </div>
-            <div className="flex items-end">
-              <Button type="submit" className="w-full" disabled={isPending}>
-                {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
-                Toevoegen
-              </Button>
-            </div>
-          </form>
-        )}
         <div className="grid gap-5 p-5 lg:grid-cols-3">
           {(["certificate", "diploma", "knowledge"] as QualificationType[]).map((type) => (
             <QualificationGroup
@@ -376,6 +348,74 @@ function SectionHeader({ title, description }: { title: string; description: str
       <h2 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>{title}</h2>
       <p className="mt-1 text-sm" style={{ color: "#64748B" }}>{description}</p>
     </div>
+  );
+}
+
+function CreateQualificationSheet({
+  data,
+  isPending,
+  onSubmit,
+}: {
+  data: QualificationManagementData;
+  isPending: boolean;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button type="button" size="sm">
+          <Plus className="h-4 w-4" />
+          Toevoegen
+        </Button>
+      </SheetTrigger>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetHeader>
+          <SheetTitle>Kwalificatie toevoegen</SheetTitle>
+          <SheetDescription>Voeg een certificaat, diploma of kennisgebied toe aan de catalogus.</SheetDescription>
+        </SheetHeader>
+        <form onSubmit={onSubmit} className="mt-6 grid gap-4">
+          <div className="space-y-1">
+            <Label>Type</Label>
+            <select name="type" className="h-9 w-full rounded-md border bg-white px-3 text-sm" defaultValue="certificate">
+              <option value="certificate">Certificaat</option>
+              <option value="diploma">Diploma</option>
+              <option value="knowledge">Kennisgebied</option>
+            </select>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1">
+              <Label>Code</Label>
+              <Input name="code" placeholder="VCA" required />
+            </div>
+            <div className="space-y-1">
+              <Label>Geldig maanden</Label>
+              <Input name="validityMonths" type="number" min={1} max={240} placeholder="36" />
+            </div>
+          </div>
+          <div className="space-y-1">
+            <Label>Naam</Label>
+            <Input name="name" placeholder="VCA basis" required />
+          </div>
+          <div className="space-y-1">
+            <Label>Sector</Label>
+            <select name="sectorId" className="h-9 w-full rounded-md border bg-white px-3 text-sm" defaultValue="">
+              <option value="">Alle sectoren</option>
+              {data.sectors.map((sector) => (
+                <option key={sector.id} value={sector.id}>{sector.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="space-y-1">
+            <Label>Omschrijving</Label>
+            <Textarea name="description" className="min-h-24" placeholder="Waar is deze kwalificatie voor nodig?" />
+          </div>
+          <Button type="submit" disabled={isPending}>
+            {isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+            Toevoegen
+          </Button>
+        </form>
+      </SheetContent>
+    </Sheet>
   );
 }
 

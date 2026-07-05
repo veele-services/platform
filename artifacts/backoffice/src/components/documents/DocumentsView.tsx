@@ -1,60 +1,76 @@
 "use client";
 
-import { useState, useTransition, useRef } from "react";
+import { useRef, useState, useTransition } from "react";
 import {
-  Upload, Download, Trash2, FileText, FileSpreadsheet,
-  Image as ImageIcon, File, Plus, X, AlertCircle, CheckCircle2,
+  AlertCircle,
+  CheckCircle2,
+  Download,
+  File,
+  FileSpreadsheet,
+  FileText,
+  Image as ImageIcon,
   Link2,
+  Plus,
+  Trash2,
 } from "lucide-react";
+
 import {
-  uploadDocument,
   deleteDocument,
   getDocumentDownloadUrl,
-  type DocumentRow,
+  uploadDocument,
   type DocumentEntityType,
+  type DocumentRow,
 } from "@/app/actions/documents";
+import { Button } from "@/components/ui/button";
+import {
+  TenantActionMenu,
+  TenantActiveFilters,
+  TenantConfirmDialog,
+  TenantDataTable,
+  TenantFilterDrawer,
+  TenantToolbar,
+  TenantToolbarSearch,
+  type TenantDataTableColumn,
+} from "@/components/tenant-ui";
 import { DOCUMENT_ENTITY_TYPES } from "@/types/documents";
-
-// ─── Constants ────────────────────────────────────────────────────────────────
+import { DocumentUploadSheet } from "./DocumentUploadSheet";
 
 const ENTITY_TYPE_LABELS: Record<DocumentEntityType | "all", string> = {
-  all:                   "Alle",
-  assignment:            "Opdrachten",
-  customer:              "Klanten",
-  personnel:             "Personeel",
-  object:                "Objecten",
-  material:              "Materialen",
-  inventory_item:        "Inventaris",
-  inventory_issue:       "Storingen",
+  all: "Alle",
+  assignment: "Opdrachten",
+  customer: "Klanten",
+  personnel: "Personeel",
+  object: "Objecten",
+  material: "Materialen",
+  inventory_item: "Inventaris",
+  inventory_issue: "Storingen",
   inventory_maintenance: "Onderhoud",
-  general:               "Algemeen",
+  general: "Algemeen",
 };
 
 const ENTITY_TYPE_SINGULAR: Record<DocumentEntityType, string> = {
-  general:               "Algemeen",
-  assignment:            "Opdracht",
-  customer:              "Klant",
-  personnel:             "Personeelslid",
-  object:                "Object",
-  material:              "Materiaal",
-  inventory_item:        "Inventarisitem",
-  inventory_issue:       "Inventarisstoring",
+  general: "Algemeen",
+  assignment: "Opdracht",
+  customer: "Klant",
+  personnel: "Personeelslid",
+  object: "Object",
+  material: "Materiaal",
+  inventory_item: "Inventarisitem",
+  inventory_issue: "Inventarisstoring",
   inventory_maintenance: "Onderhoud/keuring",
 };
 
 const ENTITY_HREF: Record<DocumentEntityType, string> = {
-  general:               "",
-  assignment:            "/assignments",
-  customer:              "/customers",
-  personnel:             "/personnel",
-  object:                "/objects",
-  material:              "/materials",
-  inventory_item:        "/inventory",
-  inventory_issue:       "/inventory/issues",
+  general: "",
+  assignment: "/assignments",
+  customer: "/customers",
+  personnel: "/personnel",
+  object: "/objects",
+  material: "/materials",
+  inventory_item: "/inventory",
+  inventory_issue: "/inventory/issues",
   inventory_maintenance: "",
 };
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -64,20 +80,18 @@ function formatFileSize(bytes: number): string {
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString("nl-NL", {
-    day: "numeric", month: "short", year: "numeric",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
   });
 }
 
 function getMimeIcon(mimeType: string) {
-  if (mimeType === "application/pdf")
-    return <FileText className="h-4 w-4 flex-shrink-0" style={{ color: "#DC2626" }} />;
-  if (mimeType.includes("spreadsheet") || mimeType.includes("excel"))
-    return <FileSpreadsheet className="h-4 w-4 flex-shrink-0" style={{ color: "#16A34A" }} />;
-  if (mimeType.startsWith("image/"))
-    return <ImageIcon className="h-4 w-4 flex-shrink-0" style={{ color: "#7C3AED" }} />;
-  if (mimeType.includes("word") || mimeType.includes("wordprocessing"))
-    return <FileText className="h-4 w-4 flex-shrink-0" style={{ color: "#1D4ED8" }} />;
-  return <File className="h-4 w-4 flex-shrink-0" style={{ color: "#64748B" }} />;
+  if (mimeType === "application/pdf") return <FileText className="h-4 w-4 flex-shrink-0 text-red-600" />;
+  if (mimeType.includes("spreadsheet") || mimeType.includes("excel")) return <FileSpreadsheet className="h-4 w-4 flex-shrink-0 text-green-600" />;
+  if (mimeType.startsWith("image/")) return <ImageIcon className="h-4 w-4 flex-shrink-0 text-violet-600" />;
+  if (mimeType.includes("word") || mimeType.includes("wordprocessing")) return <FileText className="h-4 w-4 flex-shrink-0 text-blue-700" />;
+  return <File className="h-4 w-4 flex-shrink-0 text-muted-foreground" />;
 }
 
 function getMimeBadge(mimeType: string): string {
@@ -91,20 +105,15 @@ function getMimeBadge(mimeType: string): string {
 
 function EntityLink({ doc }: { doc: DocumentRow }) {
   if (doc.entityType === "general" || !doc.entityId) {
-    return <span style={{ color: "#94A3B8" }}>—</span>;
+    return <span className="text-muted-foreground">-</span>;
   }
 
-  const label = doc.entityName ?? doc.entityId.slice(0, 8) + "…";
-  const base  = ENTITY_HREF[doc.entityType];
+  const label = doc.entityName ?? `${doc.entityId.slice(0, 8)}...`;
+  const base = ENTITY_HREF[doc.entityType];
 
   if (base && doc.entityName) {
     return (
-      <a
-        href={`${base}/${doc.entityId}`}
-        className="inline-flex items-center gap-1 text-xs hover:underline truncate max-w-[180px]"
-        style={{ color: "#00B7B3" }}
-        title={doc.entityName}
-      >
+      <a href={`${base}/${doc.entityId}`} className="inline-flex max-w-[180px] items-center gap-1 truncate text-xs text-primary hover:underline" title={doc.entityName}>
         <Link2 className="h-3 w-3 flex-shrink-0" />
         {label}
       </a>
@@ -112,49 +121,71 @@ function EntityLink({ doc }: { doc: DocumentRow }) {
   }
 
   return (
-    <span
-      className="inline-flex items-center gap-1 text-xs truncate max-w-[180px]"
-      style={{ color: "#475569" }}
-      title={doc.entityId}
-    >
+    <span className="inline-flex max-w-[180px] items-center gap-1 truncate text-xs text-slate-600" title={doc.entityId}>
       <Link2 className="h-3 w-3 flex-shrink-0" />
       {label}
     </span>
   );
 }
 
-// ─── Component ────────────────────────────────────────────────────────────────
-
 interface Props {
   initialDocuments: DocumentRow[];
-  canWrite:         boolean;
+  canWrite: boolean;
 }
 
 export function DocumentsView({ initialDocuments, canWrite }: Props) {
-  const [documents, setDocuments]       = useState(initialDocuments);
+  const [documents, setDocuments] = useState(initialDocuments);
   const [activeFilter, setActiveFilter] = useState<DocumentEntityType | "all">("all");
-  const [showUpload, setShowUpload]     = useState(false);
-  const [isPending, startTransition]    = useTransition();
-  const [error, setError]               = useState<string | null>(null);
-  const [success, setSuccess]           = useState<string | null>(null);
+  const [searchInput, setSearchInput] = useState("");
+  const [showUpload, setShowUpload] = useState(false);
+  const [isPending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [downloadingId, setDownloadingId] = useState<string | null>(null);
-  const [deletingId, setDeletingId]     = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<DocumentRow | null>(null);
 
-  // Upload form state
-  const [uploadName, setUploadName]             = useState("");
+  const [uploadName, setUploadName] = useState("");
   const [uploadEntityType, setUploadEntityType] = useState<DocumentEntityType>("general");
-  const [uploadEntityId, setUploadEntityId]     = useState("");
-  const [uploadFile, setUploadFile]             = useState<File | null>(null);
-  const [uploadError, setUploadError]           = useState<string | null>(null);
+  const [uploadEntityId, setUploadEntityId] = useState("");
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const filtered = activeFilter === "all"
-    ? documents
-    : documents.filter((d) => d.entityType === activeFilter);
+  const normalizedSearch = searchInput.trim().toLowerCase();
+  const filtered = documents.filter((document) => {
+    const matchesType = activeFilter === "all" || document.entityType === activeFilter;
+    const matchesSearch =
+      !normalizedSearch ||
+      [document.name, document.filename, document.entityName, document.uploaderName, document.uploaderEmail]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(normalizedSearch));
 
-  function showFlash(msg: string, isErr: boolean) {
-    if (isErr) { setError(msg); setTimeout(() => setError(null), 4000); }
-    else        { setSuccess(msg); setTimeout(() => setSuccess(null), 4000); }
+    return matchesType && matchesSearch;
+  });
+
+  const activeFilters = [
+    searchInput
+      ? { id: "search", label: "Zoeken", value: searchInput, onRemove: () => setSearchInput("") }
+      : null,
+    activeFilter !== "all"
+      ? {
+          id: "entityType",
+          label: "Categorie",
+          value: ENTITY_TYPE_LABELS[activeFilter],
+          onRemove: () => setActiveFilter("all"),
+        }
+      : null,
+  ].filter(Boolean) as Parameters<typeof TenantActiveFilters>[0]["filters"];
+
+  function showFlash(message: string, isError: boolean) {
+    if (isError) {
+      setError(message);
+      setTimeout(() => setError(null), 4000);
+    } else {
+      setSuccess(message);
+      setTimeout(() => setSuccess(null), 4000);
+    }
   }
 
   function resetUploadForm() {
@@ -166,39 +197,50 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
     if (fileRef.current) fileRef.current.value = "";
   }
 
-  function handleUploadSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!uploadFile) { setUploadError("Selecteer een bestand."); return; }
-    if (!uploadName.trim()) { setUploadError("Voer een naam in."); return; }
+  function handleUploadOpenChange(open: boolean) {
+    setShowUpload(open);
+    if (!open) resetUploadForm();
+  }
+
+  function handleUploadSubmit(event: React.FormEvent) {
+    event.preventDefault();
+    if (!uploadFile) {
+      setUploadError("Selecteer een bestand.");
+      return;
+    }
+    if (!uploadName.trim()) {
+      setUploadError("Voer een naam in.");
+      return;
+    }
     setUploadError(null);
 
-    const fd = new FormData();
-    fd.append("name",       uploadName.trim());
-    fd.append("entityType", uploadEntityType);
-    fd.append("entityId",   uploadEntityId.trim());
-    fd.append("file",       uploadFile);
+    const formData = new FormData();
+    formData.append("name", uploadName.trim());
+    formData.append("entityType", uploadEntityType);
+    formData.append("entityId", uploadEntityId.trim());
+    formData.append("file", uploadFile);
 
     startTransition(async () => {
-      const result = await uploadDocument(fd);
+      const result = await uploadDocument(formData);
       if (result.success && result.data) {
         const newDoc: DocumentRow = {
-          id:            result.data.id,
-          name:          uploadName.trim(),
-          filename:      uploadFile.name,
-          mimeType:      uploadFile.type,
-          sizeBytes:     uploadFile.size,
-          entityType:    uploadEntityType,
-          entityId:      uploadEntityId.trim() || null,
-          entityName:    null,
-          uploadedBy:    "",
+          id: result.data.id,
+          name: uploadName.trim(),
+          filename: uploadFile.name,
+          mimeType: uploadFile.type,
+          sizeBytes: uploadFile.size,
+          entityType: uploadEntityType,
+          entityId: uploadEntityId.trim() || null,
+          entityName: null,
+          uploadedBy: "",
           uploaderEmail: "",
-          uploaderName:  null,
-          createdAt:     new Date().toISOString(),
+          uploaderName: null,
+          createdAt: new Date().toISOString(),
         };
-        setDocuments((prev) => [newDoc, ...prev]);
+        setDocuments((current) => [newDoc, ...current]);
         resetUploadForm();
         setShowUpload(false);
-        showFlash("Document geüpload.", false);
+        showFlash("Document geupload.", false);
       } else {
         setUploadError((result as { message?: string }).message ?? "Uploaden mislukt.");
       }
@@ -219,343 +261,263 @@ export function DocumentsView({ initialDocuments, canWrite }: Props) {
   }
 
   function handleDelete(doc: DocumentRow) {
-    if (!confirm(`Weet u zeker dat u "${doc.name}" wilt verwijderen?`)) return;
     setDeletingId(doc.id);
     startTransition(async () => {
       const result = await deleteDocument(doc.id);
       setDeletingId(null);
       if (result.success) {
-        setDocuments((prev) => prev.filter((d) => d.id !== doc.id));
+        setDocuments((current) => current.filter((document) => document.id !== doc.id));
         showFlash("Document verwijderd.", false);
       } else {
         showFlash((result as { message?: string }).message ?? "Verwijderen mislukt.", true);
       }
+      setDeleteTarget(null);
     });
   }
 
-  const filterTabs: Array<DocumentEntityType | "all"> = ["all", ...DOCUMENT_ENTITY_TYPES];
+  const columns: TenantDataTableColumn<DocumentRow>[] = [
+    {
+      id: "name",
+      header: "Naam",
+      cell: (doc) => (
+        <div className="flex min-w-0 items-center gap-2">
+          {getMimeIcon(doc.mimeType)}
+          <div className="min-w-0">
+            <p className="max-w-[180px] truncate font-medium text-foreground" title={doc.name}>{doc.name}</p>
+            <p className="max-w-[180px] truncate text-xs text-muted-foreground" title={doc.filename}>{doc.filename}</p>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: "type",
+      header: "Type",
+      cell: (doc) => (
+        <span className="inline-flex rounded bg-muted px-1.5 py-0.5 text-xs font-medium text-slate-600">
+          {getMimeBadge(doc.mimeType)}
+        </span>
+      ),
+    },
+    {
+      id: "category",
+      header: "Categorie",
+      cell: (doc) => (
+        <span className="inline-flex rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700">
+          {ENTITY_TYPE_SINGULAR[doc.entityType]}
+        </span>
+      ),
+    },
+    {
+      id: "entity",
+      header: "Koppeling",
+      cell: (doc) => <EntityLink doc={doc} />,
+    },
+    {
+      id: "uploader",
+      header: "Geupload door",
+      cell: (doc) => (
+        <div className="max-w-[160px] text-xs">
+          {doc.uploaderName ? (
+            <>
+              <p className="truncate font-medium text-slate-700" title={doc.uploaderName}>{doc.uploaderName}</p>
+              <p className="truncate text-muted-foreground" title={doc.uploaderEmail}>{doc.uploaderEmail}</p>
+            </>
+          ) : (
+            <p className="truncate text-slate-600" title={doc.uploaderEmail}>{doc.uploaderEmail}</p>
+          )}
+        </div>
+      ),
+    },
+    {
+      id: "size",
+      header: "Grootte",
+      cell: (doc) => <span className="whitespace-nowrap text-xs text-muted-foreground">{formatFileSize(doc.sizeBytes)}</span>,
+    },
+    {
+      id: "date",
+      header: "Datum",
+      cell: (doc) => <span className="whitespace-nowrap text-xs text-muted-foreground">{formatDate(doc.createdAt)}</span>,
+    },
+    {
+      id: "actions",
+      header: "",
+      className: "w-12 text-right",
+      cell: (doc) => (
+        <TenantActionMenu
+          actions={[
+            {
+              id: "download",
+              label: downloadingId === doc.id ? "Downloaden..." : "Downloaden",
+              icon: <Download className="h-4 w-4" />,
+              disabled: isPending && downloadingId === doc.id,
+              onSelect: () => handleDownload(doc),
+            },
+            ...(canWrite
+              ? [
+                  {
+                    id: "delete",
+                    label: deletingId === doc.id ? "Verwijderen..." : "Verwijderen",
+                    icon: <Trash2 className="h-4 w-4" />,
+                    disabled: isPending && deletingId === doc.id,
+                    destructive: true,
+                    separatorBefore: true,
+                    onSelect: () => setDeleteTarget(doc),
+                  },
+                ]
+              : []),
+          ]}
+        />
+      ),
+    },
+  ];
 
   return (
     <div className="space-y-4">
-
-      {/* Flash messages */}
       {(error || success) && (
         <div className="flex items-center gap-2">
-          {error   && <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: "#DC2626" }}><AlertCircle className="h-4 w-4" />{error}</span>}
-          {success && <span className="inline-flex items-center gap-1.5 text-sm" style={{ color: "#059669" }}><CheckCircle2 className="h-4 w-4" />{success}</span>}
+          {error && <span className="inline-flex items-center gap-1.5 text-sm text-red-600"><AlertCircle className="h-4 w-4" />{error}</span>}
+          {success && <span className="inline-flex items-center gap-1.5 text-sm text-emerald-600"><CheckCircle2 className="h-4 w-4" />{success}</span>}
         </div>
       )}
 
-      {/* Filter bar + upload button */}
-      <div className="flex items-center justify-between gap-4 flex-wrap">
-        <div className="flex items-center gap-1 flex-wrap">
-          {filterTabs.map((type) => {
-            const count = type === "all"
-              ? documents.length
-              : documents.filter((d) => d.entityType === type).length;
-            return (
-              <button
-                key={type}
-                onClick={() => setActiveFilter(type)}
-                className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors"
-                style={
-                  activeFilter === type
-                    ? { backgroundColor: "#081D3A", color: "#FFFFFF" }
-                    : { backgroundColor: "#F1F5F9", color: "#475569" }
-                }
-              >
-                {ENTITY_TYPE_LABELS[type]}
-                <span
-                  className="inline-flex items-center justify-center rounded-full px-1.5 py-0.5 text-[10px] font-semibold min-w-[18px]"
-                  style={
-                    activeFilter === type
-                      ? { backgroundColor: "rgba(255,255,255,0.2)", color: "#fff" }
-                      : { backgroundColor: "#E2E8F0", color: "#64748B" }
-                  }
+      <TenantToolbar
+        search={
+          <TenantToolbarSearch
+            value={searchInput}
+            placeholder="Zoek document..."
+            onChange={(event) => setSearchInput(event.target.value)}
+          />
+        }
+        actions={
+          <>
+            <TenantFilterDrawer activeCount={activeFilters.length} title="Documentfilters">
+              <label className="flex flex-col gap-1 text-sm">
+                <span className="font-medium text-foreground">Categorie</span>
+                <select
+                  value={activeFilter}
+                  onChange={(event) => setActiveFilter(event.target.value as DocumentEntityType | "all")}
+                  className="veele-input"
                 >
-                  {count}
-                </span>
-              </button>
-            );
-          })}
-        </div>
-
-        {canWrite && (
-          <button
-            onClick={() => { setShowUpload((v) => !v); if (showUpload) resetUploadForm(); }}
-            className="inline-flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white"
-            style={{ backgroundColor: "#081D3A" }}
-          >
-            {showUpload ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-            {showUpload ? "Annuleren" : "Document uploaden"}
-          </button>
-        )}
-      </div>
-
-      {/* Upload form */}
-      {showUpload && (
-        <form onSubmit={handleUploadSubmit} className="veele-card space-y-4">
-          <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
-            Nieuw document uploaden
-          </p>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: "#374151" }}>
-                Naam <span style={{ color: "#DC2626" }}>*</span>
-              </label>
-              <input
-                type="text"
-                value={uploadName}
-                onChange={(e) => setUploadName(e.target.value)}
-                placeholder="bijv. Keuringsbewijs schrobmachine"
-                className="veele-input w-full"
-                disabled={isPending}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: "#374151" }}>
-                Categorie
-              </label>
-              <select
-                value={uploadEntityType}
-                onChange={(e) => {
-                  setUploadEntityType(e.target.value as DocumentEntityType);
-                  setUploadEntityId("");
-                }}
-                className="veele-input w-full"
-                disabled={isPending}
-              >
-                {DOCUMENT_ENTITY_TYPES.map((t) => (
-                  <option key={t} value={t}>{ENTITY_TYPE_SINGULAR[t]}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-
-          {uploadEntityType !== "general" && (
-            <div>
-              <label className="block text-xs font-medium mb-1" style={{ color: "#374151" }}>
-                Entiteit-ID{" "}
-                <span className="font-normal" style={{ color: "#94A3B8" }}>
-                  (UUID van de gekoppelde {ENTITY_TYPE_SINGULAR[uploadEntityType].toLowerCase()})
-                </span>
-              </label>
-              <input
-                type="text"
-                value={uploadEntityId}
-                onChange={(e) => setUploadEntityId(e.target.value)}
-                placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-                className="veele-input w-full font-mono text-xs"
-                disabled={isPending}
-              />
-            </div>
-          )}
-
-          <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: "#374151" }}>
-              Bestand <span style={{ color: "#DC2626" }}>*</span>
-              <span className="ml-1 font-normal" style={{ color: "#94A3B8" }}>
-                (PDF, Word, Excel, afbeelding — max. 20 MB)
-              </span>
-            </label>
-            <input
-              ref={fileRef}
-              type="file"
-              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.gif,.webp"
-              onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
-              disabled={isPending}
-              className="block w-full text-sm text-slate-500 file:mr-3 file:rounded-lg file:border-0 file:px-3 file:py-1.5 file:text-sm file:font-medium file:bg-slate-100 file:text-slate-700 hover:file:bg-slate-200 cursor-pointer"
-            />
-            {uploadFile && (
-              <p className="text-xs mt-1" style={{ color: "#64748B" }}>
-                {uploadFile.name} · {formatFileSize(uploadFile.size)}
-              </p>
-            )}
-          </div>
-
-          {uploadError && (
-            <p className="text-sm" style={{ color: "#DC2626" }}>{uploadError}</p>
-          )}
-
-          <div className="flex gap-2">
-            <button
-              type="submit"
-              disabled={isPending || !uploadFile || !uploadName.trim()}
-              className="inline-flex items-center gap-2 rounded-lg px-3 py-1.5 text-sm font-medium text-white disabled:opacity-50"
-              style={{ backgroundColor: "#00B7B3" }}
-            >
-              <Upload className="h-4 w-4" />
-              {isPending ? "Uploaden…" : "Uploaden"}
-            </button>
-            <button
-              type="button"
-              onClick={() => { setShowUpload(false); resetUploadForm(); }}
-              className="rounded-lg px-3 py-1.5 text-sm font-medium border"
-              style={{ borderColor: "#E2E8F0", color: "#475569" }}
-            >
-              Annuleren
-            </button>
-          </div>
-        </form>
-      )}
-
-      {/* Document table */}
-      <div className="veele-card p-0 overflow-hidden">
-        {filtered.length === 0 ? (
-          <div className="py-16 flex flex-col items-center gap-3" style={{ color: "#94A3B8" }}>
-            <File className="h-10 w-10" strokeWidth={1.5} />
-            <p className="text-sm">
-              {activeFilter === "all"
-                ? "Nog geen documenten opgeslagen."
-                : `Geen documenten in categorie "${ENTITY_TYPE_LABELS[activeFilter]}".`}
-            </p>
-            {canWrite && !showUpload && (
-              <button
-                onClick={() => setShowUpload(true)}
-                className="inline-flex items-center gap-1.5 text-sm font-medium"
-                style={{ color: "#00B7B3" }}
-              >
-                <Upload className="h-3.5 w-3.5" />
-                Document uploaden
-              </button>
-            )}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr style={{ borderBottom: "1px solid #F1F5F9" }}>
-                  {["Naam", "Type", "Categorie", "Koppeling", "Geüpload door", "Grootte", "Datum", ""].map((h) => (
-                    <th
-                      key={h}
-                      className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide whitespace-nowrap"
-                      style={{ color: "#94A3B8" }}
-                    >
-                      {h}
-                    </th>
+                  <option value="all">Alle categorieen</option>
+                  {DOCUMENT_ENTITY_TYPES.map((type) => (
+                    <option key={type} value={type}>{ENTITY_TYPE_LABELS[type]}</option>
                   ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((doc) => (
-                  <tr
-                    key={doc.id}
-                    className="hover:bg-slate-50"
-                    style={{ borderBottom: "1px solid #F8FAFC" }}
-                  >
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2 min-w-0">
-                        {getMimeIcon(doc.mimeType)}
-                        <span
-                          className="font-medium truncate max-w-[160px]"
-                          style={{ color: "#081D3A" }}
-                          title={doc.name}
-                        >
-                          {doc.name}
-                        </span>
-                      </div>
-                      <p
-                        className="text-xs mt-0.5 ml-6 truncate max-w-[160px]"
-                        style={{ color: "#94A3B8" }}
-                        title={doc.filename}
-                      >
-                        {doc.filename}
-                      </p>
-                    </td>
+                </select>
+              </label>
+            </TenantFilterDrawer>
+            {canWrite && (
+              <Button
+                type="button"
+                onClick={() => setShowUpload(true)}
+              >
+                <Plus className="h-4 w-4" />
+                Document uploaden
+              </Button>
+            )}
+          </>
+        }
+        activeFilters={<TenantActiveFilters filters={activeFilters} />}
+      />
 
-                    <td className="px-4 py-3">
-                      <span
-                        className="inline-flex items-center rounded px-1.5 py-0.5 text-xs font-medium"
-                        style={{ backgroundColor: "#F1F5F9", color: "#475569" }}
-                      >
-                        {getMimeBadge(doc.mimeType)}
-                      </span>
-                    </td>
+      <DocumentUploadSheet
+        open={showUpload}
+        onOpenChange={handleUploadOpenChange}
+        title="Nieuw document uploaden"
+        name={uploadName}
+        onNameChange={setUploadName}
+        namePlaceholder="bijv. Keuringsbewijs schrobmachine"
+        file={uploadFile}
+        fileInputRef={fileRef}
+        onFileChange={setUploadFile}
+        error={uploadError}
+        pending={isPending}
+        submitLabel="Uploaden"
+        onSubmit={handleUploadSubmit}
+      >
+        <label className="block text-sm font-medium text-foreground">
+          Categorie
+          <select
+            value={uploadEntityType}
+            onChange={(event) => {
+              setUploadEntityType(event.target.value as DocumentEntityType);
+              setUploadEntityId("");
+            }}
+            className="veele-input mt-1 w-full"
+            disabled={isPending}
+          >
+            {DOCUMENT_ENTITY_TYPES.map((type) => (
+              <option key={type} value={type}>{ENTITY_TYPE_SINGULAR[type]}</option>
+            ))}
+          </select>
+        </label>
 
-                    <td className="px-4 py-3">
-                      <span
-                        className="inline-flex items-center rounded-full px-2 py-0.5 text-xs"
-                        style={{ backgroundColor: "#EFF6FF", color: "#1D4ED8" }}
-                      >
-                        {ENTITY_TYPE_SINGULAR[doc.entityType]}
-                      </span>
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <EntityLink doc={doc} />
-                    </td>
-
-                    <td className="px-4 py-3">
-                      <div className="text-xs max-w-[140px]">
-                        {doc.uploaderName ? (
-                          <>
-                            <p className="font-medium truncate" style={{ color: "#374151" }} title={doc.uploaderName}>
-                              {doc.uploaderName}
-                            </p>
-                            <p className="truncate" style={{ color: "#94A3B8" }} title={doc.uploaderEmail}>
-                              {doc.uploaderEmail}
-                            </p>
-                          </>
-                        ) : (
-                          <p className="truncate" style={{ color: "#475569" }} title={doc.uploaderEmail}>
-                            {doc.uploaderEmail}
-                          </p>
-                        )}
-                      </div>
-                    </td>
-
-                    <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: "#64748B" }}>
-                      {formatFileSize(doc.sizeBytes)}
-                    </td>
-
-                    <td className="px-4 py-3 text-xs whitespace-nowrap" style={{ color: "#64748B" }}>
-                      {formatDate(doc.createdAt)}
-                    </td>
-
-                    <td className="px-4 py-3 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => handleDownload(doc)}
-                          disabled={isPending && downloadingId === doc.id}
-                          title="Downloaden"
-                          className="rounded p-1.5 hover:bg-slate-100 transition-colors disabled:opacity-50"
-                        >
-                          <Download
-                            className="h-4 w-4"
-                            style={{ color: downloadingId === doc.id ? "#94A3B8" : "#00B7B3" }}
-                          />
-                        </button>
-                        {canWrite && (
-                          <button
-                            onClick={() => handleDelete(doc)}
-                            disabled={isPending && deletingId === doc.id}
-                            title="Verwijderen"
-                            className="rounded p-1.5 hover:bg-red-50 transition-colors disabled:opacity-50"
-                          >
-                            <Trash2
-                              className="h-4 w-4"
-                              style={{ color: deletingId === doc.id ? "#94A3B8" : "#DC2626" }}
-                            />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        {uploadEntityType !== "general" && (
+          <label className="block text-sm font-medium text-foreground">
+            Entiteit-ID
+            <span className="block text-xs font-normal text-muted-foreground">
+              UUID van de gekoppelde {ENTITY_TYPE_SINGULAR[uploadEntityType].toLowerCase()}
+            </span>
+            <input
+              type="text"
+              value={uploadEntityId}
+              onChange={(event) => setUploadEntityId(event.target.value)}
+              placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+              className="veele-input mt-1 w-full font-mono text-xs"
+              disabled={isPending}
+            />
+          </label>
         )}
-      </div>
+      </DocumentUploadSheet>
+
+      <TenantDataTable
+        rows={filtered}
+        columns={columns}
+        getRowKey={(doc) => doc.id}
+        emptyTitle={activeFilter === "all" ? "Nog geen documenten opgeslagen" : `Geen documenten in categorie ${ENTITY_TYPE_LABELS[activeFilter]}`}
+        emptyDescription="Pas de filters aan of upload een nieuw document."
+        renderMobileCard={(doc) => (
+          <article className="rounded-lg border border-border bg-card p-4 shadow-card">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <div className="flex min-w-0 items-center gap-2">
+                  {getMimeIcon(doc.mimeType)}
+                  <p className="truncate font-medium text-foreground">{doc.name}</p>
+                </div>
+                <p className="mt-1 truncate text-xs text-muted-foreground">{doc.filename}</p>
+              </div>
+              {columns[7]?.cell(doc, 0)}
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <span className="rounded bg-muted px-1.5 py-0.5">{getMimeBadge(doc.mimeType)}</span>
+              <span>{ENTITY_TYPE_SINGULAR[doc.entityType]}</span>
+              <span>{formatFileSize(doc.sizeBytes)}</span>
+              <span>{formatDate(doc.createdAt)}</span>
+            </div>
+            {doc.entityType !== "general" && <div className="mt-2"><EntityLink doc={doc} /></div>}
+          </article>
+        )}
+      />
 
       {filtered.length > 0 && (
-        <p className="text-xs" style={{ color: "#94A3B8" }}>
+        <p className="text-xs text-muted-foreground">
           {filtered.length} document{filtered.length !== 1 ? "en" : ""}
           {activeFilter !== "all" && ` in categorie "${ENTITY_TYPE_LABELS[activeFilter]}"`}
         </p>
       )}
+
+      <TenantConfirmDialog
+        open={!!deleteTarget}
+        onOpenChange={(open) => {
+          if (!open) setDeleteTarget(null);
+        }}
+        title="Document verwijderen?"
+        description={deleteTarget ? `Weet u zeker dat u "${deleteTarget.name}" wilt verwijderen?` : undefined}
+        confirmLabel="Verwijderen"
+        destructive
+        onConfirm={() => {
+          if (deleteTarget) handleDelete(deleteTarget);
+        }}
+      />
     </div>
   );
 }

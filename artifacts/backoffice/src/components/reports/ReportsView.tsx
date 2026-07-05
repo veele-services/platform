@@ -1,10 +1,22 @@
 "use client";
 
-import { useRouter, useSearchParams, usePathname } from "next/navigation";
-import { useCallback, useTransition } from "react";
 import Link from "next/link";
-import { FileText, Search } from "lucide-react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { useCallback, useTransition } from "react";
+import { Eye } from "lucide-react";
+
 import type { ReportRow, ReportStatus } from "@/app/actions/reports";
+import { Button } from "@/components/ui/button";
+import {
+  TenantActionMenu,
+  TenantActiveFilters,
+  TenantDataTable,
+  TenantFilterDrawer,
+  TenantPageShell,
+  TenantToolbar,
+  TenantToolbarSearch,
+  type TenantDataTableColumn,
+} from "@/components/tenant-ui";
 import { ProcessStatusBadge } from "@/components/workflows/ProcessStatus";
 import { processStatusLabel } from "@/lib/process-status";
 
@@ -15,34 +27,34 @@ function ReportStatusBadge({ status }: { status: ReportStatus }) {
 }
 
 interface Props {
-  rows:         ReportRow[];
-  total:        number;
-  page:         number;
-  search:       string;
+  rows: ReportRow[];
+  total: number;
+  page: number;
+  search: string;
   statusFilter: string;
-  canWrite:     boolean;
+  canWrite: boolean;
 }
 
 const STATUS_OPTIONS = [
-  { value: "",          label: "Alle statussen" },
+  { value: "", label: "Alle statussen" },
   { value: "submitted", label: processStatusLabel("report", "submitted") },
-  { value: "approved",  label: processStatusLabel("report", "approved") },
-  { value: "rejected",  label: processStatusLabel("report", "rejected") },
-  { value: "draft",     label: processStatusLabel("report", "draft") },
+  { value: "approved", label: processStatusLabel("report", "approved") },
+  { value: "rejected", label: processStatusLabel("report", "rejected") },
+  { value: "draft", label: processStatusLabel("report", "draft") },
 ];
 
 export function ReportsView({ rows, total, page, search, statusFilter }: Props) {
-  const router     = useRouter();
-  const pathname   = usePathname();
-  const sp         = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const sp = useSearchParams();
   const [, startT] = useTransition();
 
   const push = useCallback(
     (updates: Record<string, string>) => {
       const params = new URLSearchParams(sp.toString());
-      for (const [k, v] of Object.entries(updates)) {
-        if (v) params.set(k, v);
-        else params.delete(k);
+      for (const [key, value] of Object.entries(updates)) {
+        if (value) params.set(key, value);
+        else params.delete(key);
       }
       params.delete("page");
       startT(() => router.push(`${pathname}?${params.toString()}`));
@@ -54,161 +66,186 @@ export function ReportsView({ rows, total, page, search, statusFilter }: Props) 
 
   function formatDate(iso: string) {
     return new Date(iso).toLocaleDateString("nl-NL", {
-      day: "numeric", month: "short", year: "numeric",
+      day: "numeric",
+      month: "short",
+      year: "numeric",
     });
   }
 
+  const activeFilters = [
+    search ? { id: "search", label: "Zoeken", value: search, onRemove: () => push({ search: "" }) } : null,
+    statusFilter
+      ? {
+          id: "status",
+          label: "Status",
+          value: STATUS_OPTIONS.find((option) => option.value === statusFilter)?.label ?? statusFilter,
+          onRemove: () => push({ status: "" }),
+        }
+      : null,
+  ].filter(Boolean) as Parameters<typeof TenantActiveFilters>[0]["filters"];
+
+  const columns: TenantDataTableColumn<ReportRow>[] = [
+    {
+      id: "assignment",
+      header: "Opdracht",
+      cell: (row) => (
+        <Link href={`/reports/${row.id}`} className="flex items-center gap-1.5 font-medium text-foreground hover:underline">
+          <span className="flex-shrink-0 rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
+            {row.assignmentCode}
+          </span>
+          <span className="max-w-[180px] truncate">{row.assignmentTitle}</span>
+        </Link>
+      ),
+    },
+    {
+      id: "customer",
+      header: "Klant",
+      cell: (row) => <span className="text-slate-700">{row.customerName}</span>,
+    },
+    {
+      id: "status",
+      header: "Status",
+      cell: (row) => <ReportStatusBadge status={row.status} />,
+    },
+    {
+      id: "hours",
+      header: "Uren",
+      cell: (row) => <span className="font-mono text-xs text-slate-700">{row.hoursWorked ? `${row.hoursWorked}u` : "-"}</span>,
+    },
+    {
+      id: "submittedBy",
+      header: "Ingediend door",
+      cell: (row) => <span className="text-slate-700">{row.submittedByName}</span>,
+    },
+    {
+      id: "submittedAt",
+      header: "Ingediend op",
+      cell: (row) => <span className="text-muted-foreground">{formatDate(row.submittedAt)}</span>,
+    },
+    {
+      id: "actions",
+      header: "",
+      className: "w-12 text-right",
+      cell: (row) => (
+        <TenantActionMenu
+          actions={[
+            {
+              id: "view",
+              label: "Openen",
+              href: `/reports/${row.id}`,
+              icon: <Eye className="h-4 w-4" />,
+            },
+          ]}
+        />
+      ),
+    },
+  ];
+
   return (
-    <div className="mx-auto w-full max-w-[1600px] p-6">
-      <div className="flex flex-wrap items-center gap-3 mb-6">
-        <div className="relative flex-1 min-w-[200px] max-w-xs">
-          <Search
-            className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 pointer-events-none"
-            style={{ color: "#94A3B8" }}
-          />
-          <input
-            type="search"
+    <TenantPageShell>
+      <TenantToolbar
+        search={
+          <TenantToolbarSearch
             defaultValue={search}
-            placeholder="Zoek op opdracht of klant…"
-            className="w-full pl-9 pr-3 py-2 text-sm rounded-lg border outline-none focus:ring-2 transition"
-            style={{
-              borderColor: "#E2E8F0",
-              color: "#081D3A",
-              backgroundColor: "#FFFFFF",
-            }}
-            onChange={(e) => push({ search: e.target.value })}
+            placeholder="Zoek op opdracht of klant..."
+            onChange={(event) => push({ search: event.target.value })}
           />
-        </div>
+        }
+        actions={
+          <>
+            <TenantFilterDrawer activeCount={activeFilters.length} title="Rapportagefilters">
+              <label className="flex flex-col gap-1 text-sm">
+                <span className="font-medium text-foreground">Status</span>
+                <select value={statusFilter} onChange={(event) => push({ status: event.target.value })} className="veele-input">
+                  {STATUS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </TenantFilterDrawer>
+            <span className="text-sm text-muted-foreground">
+              {total} {total === 1 ? "rapport" : "rapporten"}
+            </span>
+          </>
+        }
+        activeFilters={<TenantActiveFilters filters={activeFilters} />}
+      />
 
-        <select
-          value={statusFilter}
-          onChange={(e) => push({ status: e.target.value })}
-          className="px-3 py-2 text-sm rounded-lg border outline-none focus:ring-2 transition"
-          style={{ borderColor: "#E2E8F0", color: "#081D3A", backgroundColor: "#FFFFFF" }}
-        >
-          {STATUS_OPTIONS.map((o) => (
-            <option key={o.value} value={o.value}>{o.label}</option>
-          ))}
-        </select>
-
-        <span className="text-sm ml-auto" style={{ color: "#94A3B8" }}>
-          {total} {total === 1 ? "rapport" : "rapporten"}
-        </span>
-      </div>
-
-      {/* ── Table ───────────────────────────────────────── */}
-      <div className="veele-card p-0 overflow-hidden">
-        {rows.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <FileText className="h-10 w-10" style={{ color: "#CBD5E1" }} strokeWidth={1.5} />
-            <p className="text-sm" style={{ color: "#94A3B8" }}>
-              Geen rapporten gevonden.
-            </p>
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead>
-              <tr style={{ borderBottom: "1px solid #F1F5F9", backgroundColor: "#F8FAFC" }}>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#94A3B8" }}>
-                  Opdracht
-                </th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#94A3B8" }}>
-                  Klant
-                </th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#94A3B8" }}>
-                  Status
-                </th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#94A3B8" }}>
-                  Uren
-                </th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#94A3B8" }}>
-                  Ingediend door
-                </th>
-                <th className="px-5 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#94A3B8" }}>
-                  Ingediend op
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((r, i) => (
-                <tr
-                  key={r.id}
-                  style={{ borderBottom: i < rows.length - 1 ? "1px solid #F1F5F9" : undefined }}
-                  className="hover:bg-slate-50 transition-colors"
-                >
-                  <td className="px-5 py-3.5">
-                    <Link
-                      href={`/reports/${r.id}`}
-                      className="font-medium hover:underline flex items-center gap-1.5"
-                      style={{ color: "#081D3A" }}
-                    >
-                      <span
-                        className="font-mono text-xs rounded px-1.5 py-0.5 flex-shrink-0"
-                        style={{ backgroundColor: "#F1F5F9", color: "#64748B" }}
-                      >
-                        {r.assignmentCode}
-                      </span>
-                      <span className="truncate max-w-[180px]">{r.assignmentTitle}</span>
-                    </Link>
-                  </td>
-                  <td className="px-5 py-3.5" style={{ color: "#374151" }}>
-                    {r.customerName}
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <ReportStatusBadge status={r.status} />
-                  </td>
-                  <td className="px-5 py-3.5 font-mono text-xs" style={{ color: "#374151" }}>
-                    {r.hoursWorked ? `${r.hoursWorked}u` : "—"}
-                  </td>
-                  <td className="px-5 py-3.5 text-sm" style={{ color: "#374151" }}>
-                    {r.submittedByName}
-                  </td>
-                  <td className="px-5 py-3.5" style={{ color: "#64748B" }}>
-                    {formatDate(r.submittedAt)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <TenantDataTable
+        rows={rows}
+        columns={columns}
+        getRowKey={(row) => row.id}
+        emptyTitle="Geen rapporten gevonden"
+        emptyDescription="Pas de zoekopdracht of filters aan."
+        renderMobileCard={(row) => (
+          <article className="rounded-lg border border-border bg-card p-4 shadow-card">
+            <div className="flex items-start justify-between gap-3">
+              <Link href={`/reports/${row.id}`} className="min-w-0 space-y-1">
+                <span className="inline-flex rounded bg-muted px-1.5 py-0.5 font-mono text-xs text-muted-foreground">
+                  {row.assignmentCode}
+                </span>
+                <p className="font-medium text-foreground">{row.assignmentTitle}</p>
+                <p className="text-sm text-muted-foreground">{row.customerName}</p>
+              </Link>
+              <TenantActionMenu
+                actions={[
+                  {
+                    id: "view",
+                    label: "Openen",
+                    href: `/reports/${row.id}`,
+                    icon: <Eye className="h-4 w-4" />,
+                  },
+                ]}
+              />
+            </div>
+            <div className="mt-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+              <ReportStatusBadge status={row.status} />
+              <span>{row.hoursWorked ? `${row.hoursWorked}u` : "Geen uren"}</span>
+              <span>{formatDate(row.submittedAt)}</span>
+            </div>
+          </article>
         )}
-      </div>
+      />
 
-      {/* ── Pagination ──────────────────────────────────── */}
       {totalPages > 1 && (
-        <div className="flex items-center justify-between mt-4">
-          <p className="text-sm" style={{ color: "#94A3B8" }}>
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
             Pagina {page} van {totalPages}
           </p>
           <div className="flex gap-2">
             {page > 1 && (
-              <button
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => {
                   const params = new URLSearchParams(sp.toString());
                   params.set("page", String(page - 1));
                   router.push(`${pathname}?${params.toString()}`);
                 }}
-                className="px-3 py-1.5 rounded-lg border text-sm transition-colors hover:bg-slate-50"
-                style={{ borderColor: "#E2E8F0", color: "#374151" }}
               >
                 Vorige
-              </button>
+              </Button>
             )}
             {page < totalPages && (
-              <button
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
                 onClick={() => {
                   const params = new URLSearchParams(sp.toString());
                   params.set("page", String(page + 1));
                   router.push(`${pathname}?${params.toString()}`);
                 }}
-                className="px-3 py-1.5 rounded-lg border text-sm transition-colors hover:bg-slate-50"
-                style={{ borderColor: "#E2E8F0", color: "#374151" }}
               >
                 Volgende
-              </button>
+              </Button>
             )}
           </div>
         </div>
       )}
-    </div>
+    </TenantPageShell>
   );
 }

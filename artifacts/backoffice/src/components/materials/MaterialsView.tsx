@@ -22,6 +22,15 @@ import {
   type MaterialRow,
   type MaterialStockMovementInput,
 } from "@/app/actions/materials";
+import { Button } from "@/components/ui/button";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const PAGE_SIZE = 25;
 
@@ -218,6 +227,21 @@ export function MaterialsView({
             <option value="inactive">Inactief</option>
             <option value="archived">Gearchiveerd</option>
           </select>
+          {canAdjust && (
+            <StockMovementSheet
+              activeRows={activeRows}
+              options={options}
+              pending={pending}
+              stockType={stockType}
+              targetType={targetType}
+              onStockTypeChange={setStockType}
+              onTargetTypeChange={setTargetType}
+              onSubmit={handleStock}
+            />
+          )}
+          {canWrite && (
+            <CreateMaterialSheet options={options} pending={pending} onSubmit={handleCreate} />
+          )}
         </div>
       </div>
 
@@ -227,8 +251,7 @@ export function MaterialsView({
         </div>
       )}
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="veele-card overflow-hidden p-0">
+      <div className="veele-card overflow-hidden p-0">
           <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-4">
             <div>
               <h2 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>
@@ -338,152 +361,189 @@ export function MaterialsView({
               Volgende
             </Link>
           </div>
-        </div>
-
-        <div className="flex flex-col gap-6">
-          {canWrite && (
-            <form onSubmit={handleCreate} className="veele-card flex flex-col gap-4">
-              <div className="flex items-center gap-2">
-                <PackagePlus className="h-4 w-4" style={{ color: "#0F766E" }} />
-                <h2 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>Nieuw materiaal</h2>
-              </div>
-              <label className="text-sm font-medium" style={{ color: "#334155" }}>
-                Naam
-                <input name="name" required className="mt-1 h-10 w-full rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="text-sm font-medium" style={{ color: "#334155" }}>
-                  Eenheid
-                  <input name="unit" required placeholder="stuks" className="mt-1 h-10 w-full rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-                </label>
-                <label className="text-sm font-medium" style={{ color: "#334155" }}>
-                  BTW %
-                  <input name="vatRate" inputMode="decimal" placeholder="21" className="mt-1 h-10 w-full rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-                </label>
-              </div>
-              <label className="text-sm font-medium" style={{ color: "#334155" }}>
-                Categorie
-                <select name="categoryId" className="mt-1 h-10 w-full rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
-                  <option value="">Geen categorie</option>
-                  {options.categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-                  <option value="__new">Nieuwe categorie</option>
-                </select>
-              </label>
-              <input name="categoryName" placeholder="Nieuwe categorie indien gekozen" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              <div className="grid grid-cols-2 gap-3">
-                <input name="costPrice" inputMode="decimal" placeholder="Kostprijs" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-                <input name="salePrice" inputMode="decimal" placeholder="Verkoopprijs" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <input name="minStock" inputMode="decimal" placeholder="Minimumvoorraad" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-                <input name="maxStock" inputMode="decimal" placeholder="Maximumvoorraad" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              </div>
-              <input name="barcode" placeholder="Barcode / QR optioneel" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              <textarea name="description" rows={3} placeholder="Omschrijving" className="rounded-md border px-3 py-2 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              <label className="inline-flex items-center gap-2 text-sm" style={{ color: "#334155" }}>
-                <input name="defaultInvoiceable" type="checkbox" />
-                Standaard factureerbaar
-              </label>
-              <button
-                type="submit"
-                disabled={pending}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium text-white disabled:opacity-60"
-                style={{ backgroundColor: "#0F766E" }}
-              >
-                <Plus className="h-4 w-4" />
-                Materiaal aanmaken
-              </button>
-            </form>
-          )}
-
-          {canAdjust && (
-            <form onSubmit={handleStock} className="veele-card flex flex-col gap-4">
-              <div className="flex items-center gap-2">
-                <ArrowRightLeft className="h-4 w-4" style={{ color: "#0F766E" }} />
-                <h2 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>Voorraadmutatie</h2>
-              </div>
-              <label className="text-sm font-medium" style={{ color: "#334155" }}>
-                Materiaal
-                <select name="materialId" required className="mt-1 h-10 w-full rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
-                  <option value="">Kies materiaal</option>
-                  {activeRows.map((row) => <option key={row.id} value={row.id}>{row.code} - {row.name}</option>)}
-                </select>
-              </label>
-              <div className="grid grid-cols-2 gap-3">
-                <label className="text-sm font-medium" style={{ color: "#334155" }}>
-                  Type
-                  <select
-                    name="movementType"
-                    value={stockType}
-                    onChange={(event) => setStockType(event.target.value as MaterialStockMovementInput["movementType"])}
-                    className="mt-1 h-10 w-full rounded-md border px-3 text-sm"
-                    style={{ borderColor: "#CBD5E1" }}
-                  >
-                    <option value="received">Ontvangen</option>
-                    <option value="corrected">Corrigeren</option>
-                    <option value="transferred">Verplaatsen</option>
-                  </select>
-                </label>
-                <label className="text-sm font-medium" style={{ color: "#334155" }}>
-                  Aantal
-                  <input name="quantity" required inputMode="decimal" placeholder={stockType === "corrected" ? "Bijv. -2 of 5" : "Bijv. 10"} className="mt-1 h-10 w-full rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-                </label>
-              </div>
-              {stockType === "transferred" && (
-                <label className="text-sm font-medium" style={{ color: "#334155" }}>
-                  Bronlocatie
-                  <select name="fromStockLocationId" required className="mt-1 h-10 w-full rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
-                    <option value="">Kies bronlocatie</option>
-                    {options.stockLocations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
-                  </select>
-                </label>
-              )}
-              <label className="text-sm font-medium" style={{ color: "#334155" }}>
-                Doeltype
-                <select
-                  value={targetType}
-                  onChange={(event) => setTargetType(event.target.value)}
-                  className="mt-1 h-10 w-full rounded-md border px-3 text-sm"
-                  style={{ borderColor: "#CBD5E1" }}
-                >
-                  <option value="object">Object</option>
-                  <option value="personnel">Personeel</option>
-                  <option value="existing">Bestaande voorraadlocatie</option>
-                </select>
-              </label>
-              {targetType === "object" && (
-                <select name="toObjectId" required className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
-                  <option value="">Kies object</option>
-                  {options.objects.map((object) => <option key={object.id} value={object.id}>{object.label}{object.meta ? ` - ${object.meta}` : ""}</option>)}
-                </select>
-              )}
-              {targetType === "personnel" && (
-                <select name="toPersonnelId" required className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
-                  <option value="">Kies personeelslid</option>
-                  {options.personnel.map((person) => <option key={person.id} value={person.id}>{person.label}</option>)}
-                </select>
-              )}
-              {targetType === "existing" && (
-                <select name="toStockLocationId" required className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
-                  <option value="">Kies locatie</option>
-                  {options.stockLocations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
-                </select>
-              )}
-              <input name="reason" placeholder="Reden" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              <textarea name="notes" rows={2} placeholder="Notitie" className="rounded-md border px-3 py-2 text-sm" style={{ borderColor: "#CBD5E1" }} />
-              <button
-                type="submit"
-                disabled={pending}
-                className="inline-flex h-10 items-center justify-center gap-2 rounded-md px-3 text-sm font-medium text-white disabled:opacity-60"
-                style={{ backgroundColor: "#0F766E" }}
-              >
-                <Boxes className="h-4 w-4" />
-                Mutatie opslaan
-              </button>
-            </form>
-          )}
-        </div>
       </div>
     </div>
+  );
+}
+
+function CreateMaterialSheet({
+  options,
+  pending,
+  onSubmit,
+}: {
+  options: MaterialManagementOptions;
+  pending: boolean;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button type="button">
+          <Plus className="h-4 w-4" />
+          Nieuw materiaal
+        </Button>
+      </SheetTrigger>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetHeader>
+          <SheetTitle>Nieuw materiaal</SheetTitle>
+          <SheetDescription>Voeg catalogusgegevens, prijzen en voorraadgrenzen toe.</SheetDescription>
+        </SheetHeader>
+        <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
+          <label className="text-sm font-medium" style={{ color: "#334155" }}>
+            Naam
+            <input name="name" required className="mt-1 h-10 w-full rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="text-sm font-medium" style={{ color: "#334155" }}>
+              Eenheid
+              <input name="unit" required placeholder="stuks" className="mt-1 h-10 w-full rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+            </label>
+            <label className="text-sm font-medium" style={{ color: "#334155" }}>
+              BTW %
+              <input name="vatRate" inputMode="decimal" placeholder="21" className="mt-1 h-10 w-full rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+            </label>
+          </div>
+          <label className="text-sm font-medium" style={{ color: "#334155" }}>
+            Categorie
+            <select name="categoryId" className="mt-1 h-10 w-full rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
+              <option value="">Geen categorie</option>
+              {options.categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
+              <option value="__new">Nieuwe categorie</option>
+            </select>
+          </label>
+          <input name="categoryName" placeholder="Nieuwe categorie indien gekozen" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          <div className="grid grid-cols-2 gap-3">
+            <input name="costPrice" inputMode="decimal" placeholder="Kostprijs" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+            <input name="salePrice" inputMode="decimal" placeholder="Verkoopprijs" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <input name="minStock" inputMode="decimal" placeholder="Minimumvoorraad" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+            <input name="maxStock" inputMode="decimal" placeholder="Maximumvoorraad" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          </div>
+          <input name="barcode" placeholder="Barcode / QR optioneel" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          <textarea name="description" rows={3} placeholder="Omschrijving" className="rounded-md border px-3 py-2 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          <label className="inline-flex items-center gap-2 text-sm" style={{ color: "#334155" }}>
+            <input name="defaultInvoiceable" type="checkbox" />
+            Standaard factureerbaar
+          </label>
+          <Button type="submit" disabled={pending}>
+            <PackagePlus className="h-4 w-4" />
+            Materiaal aanmaken
+          </Button>
+        </form>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+function StockMovementSheet({
+  activeRows,
+  options,
+  pending,
+  stockType,
+  targetType,
+  onStockTypeChange,
+  onTargetTypeChange,
+  onSubmit,
+}: {
+  activeRows: MaterialRow[];
+  options: MaterialManagementOptions;
+  pending: boolean;
+  stockType: MaterialStockMovementInput["movementType"];
+  targetType: string;
+  onStockTypeChange: (value: MaterialStockMovementInput["movementType"]) => void;
+  onTargetTypeChange: (value: string) => void;
+  onSubmit: (event: FormEvent<HTMLFormElement>) => void;
+}) {
+  return (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button type="button" variant="outline">
+          <ArrowRightLeft className="h-4 w-4" />
+          Voorraadmutatie
+        </Button>
+      </SheetTrigger>
+      <SheetContent className="w-full overflow-y-auto sm:max-w-xl">
+        <SheetHeader>
+          <SheetTitle>Voorraadmutatie</SheetTitle>
+          <SheetDescription>Ontvang, corrigeer of verplaats materiaalvoorraad.</SheetDescription>
+        </SheetHeader>
+        <form onSubmit={onSubmit} className="mt-6 flex flex-col gap-4">
+          <label className="text-sm font-medium" style={{ color: "#334155" }}>
+            Materiaal
+            <select name="materialId" required className="mt-1 h-10 w-full rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
+              <option value="">Kies materiaal</option>
+              {activeRows.map((row) => <option key={row.id} value={row.id}>{row.code} - {row.name}</option>)}
+            </select>
+          </label>
+          <div className="grid grid-cols-2 gap-3">
+            <label className="text-sm font-medium" style={{ color: "#334155" }}>
+              Type
+              <select
+                name="movementType"
+                value={stockType}
+                onChange={(event) => onStockTypeChange(event.target.value as MaterialStockMovementInput["movementType"])}
+                className="mt-1 h-10 w-full rounded-md border px-3 text-sm"
+                style={{ borderColor: "#CBD5E1" }}
+              >
+                <option value="received">Ontvangen</option>
+                <option value="corrected">Corrigeren</option>
+                <option value="transferred">Verplaatsen</option>
+              </select>
+            </label>
+            <label className="text-sm font-medium" style={{ color: "#334155" }}>
+              Aantal
+              <input name="quantity" required inputMode="decimal" placeholder={stockType === "corrected" ? "Bijv. -2 of 5" : "Bijv. 10"} className="mt-1 h-10 w-full rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+            </label>
+          </div>
+          {stockType === "transferred" && (
+            <label className="text-sm font-medium" style={{ color: "#334155" }}>
+              Bronlocatie
+              <select name="fromStockLocationId" required className="mt-1 h-10 w-full rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
+                <option value="">Kies bronlocatie</option>
+                {options.stockLocations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
+              </select>
+            </label>
+          )}
+          <label className="text-sm font-medium" style={{ color: "#334155" }}>
+            Doeltype
+            <select
+              value={targetType}
+              onChange={(event) => onTargetTypeChange(event.target.value)}
+              className="mt-1 h-10 w-full rounded-md border px-3 text-sm"
+              style={{ borderColor: "#CBD5E1" }}
+            >
+              <option value="object">Object</option>
+              <option value="personnel">Personeel</option>
+              <option value="existing">Bestaande voorraadlocatie</option>
+            </select>
+          </label>
+          {targetType === "object" && (
+            <select name="toObjectId" required className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
+              <option value="">Kies object</option>
+              {options.objects.map((object) => <option key={object.id} value={object.id}>{object.label}{object.meta ? ` - ${object.meta}` : ""}</option>)}
+            </select>
+          )}
+          {targetType === "personnel" && (
+            <select name="toPersonnelId" required className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
+              <option value="">Kies personeelslid</option>
+              {options.personnel.map((person) => <option key={person.id} value={person.id}>{person.label}</option>)}
+            </select>
+          )}
+          {targetType === "existing" && (
+            <select name="toStockLocationId" required className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }}>
+              <option value="">Kies locatie</option>
+              {options.stockLocations.map((location) => <option key={location.id} value={location.id}>{location.name}</option>)}
+            </select>
+          )}
+          <input name="reason" placeholder="Reden" className="h-10 rounded-md border px-3 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          <textarea name="notes" rows={2} placeholder="Notitie" className="rounded-md border px-3 py-2 text-sm" style={{ borderColor: "#CBD5E1" }} />
+          <Button type="submit" disabled={pending}>
+            <Boxes className="h-4 w-4" />
+            Mutatie opslaan
+          </Button>
+        </form>
+      </SheetContent>
+    </Sheet>
   );
 }
