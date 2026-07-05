@@ -108,7 +108,7 @@ export function PersonnelPortalAccessCard({
     startTransition(async () => {
       const result = await sendPasswordReset(personnelId);
       if (result.success) {
-        toast.success("Wachtwoord-reset e-mail verstuurd");
+        toast.success("Herstelcode per e-mail verstuurd");
       } else {
         toast.error(result.message ?? "Wachtwoord-reset mislukt.");
       }

@@ -19,6 +19,18 @@ import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import {
+  generatePasswordResetCode,
+  passwordResetCodeExpiresAt,
+  provisionPortalUserWithTemporaryPassword,
+  setExistingAuthUserTemporaryPassword,
+} from "@/lib/auth/portal-invites";
+import {
+  buildPasswordResetCodeEmail,
+  buildTemporaryPasswordEmail,
+  platformAdminUrl,
+  sendEmailWithResult,
+} from "@/lib/email";
+import {
   requirePlatformAdmin,
   requirePlatformSupportUser,
   requireSupportAccess,
@@ -582,23 +594,32 @@ export async function invitePlatformUserFromForm(formData: FormData): Promise<Ac
 
   let userId: string | null = null;
   try {
-    const admin = createAdminClient();
-    const { data, error } = await admin.auth.admin.inviteUserByEmail(email, {
-      data: { platform_role: role },
+    const invite = await provisionPortalUserWithTemporaryPassword({
+      email,
+      fullName: email,
+      portal: "platform-admin",
+      allowExistingActive: true,
     });
-    if (error) {
-      return { success: false, message: `Uitnodiging kon niet worden verstuurd: ${error.message}` };
+    const { subject, html } = buildTemporaryPasswordEmail({
+      recipientName: email,
+      portalName: "Fieldgrid platformbeheer",
+      loginUrl: `${platformAdminUrl()}/login`,
+      temporaryPassword: invite.temporaryPassword,
+    });
+    const sent = await sendEmailWithResult({ to: email, subject, html });
+    if (!sent.success) {
+      return { success: false, message: sent.error ?? "Uitnodigingsmail versturen mislukt." };
     }
-    userId = data.user?.id ?? null;
+    userId = invite.user.id;
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Supabase admin-client kon niet worden geladen.",
+      message: error instanceof Error ? error.message : "Auth-beheer kon niet worden geladen.",
     };
   }
 
   if (!userId) {
-    return { success: false, message: "Supabase gaf geen gebruiker terug voor deze uitnodiging." };
+    return { success: false, message: "Auth-beheer gaf geen gebruiker terug voor deze uitnodiging." };
   }
 
   const [row] = await db
@@ -676,6 +697,56 @@ export async function updatePlatformUserFromForm(formData: FormData): Promise<Ac
 
   revalidatePlatformUsers();
   return { success: true };
+}
+
+export async function sendPlatformUserPasswordResetFromForm(formData: FormData): Promise<void> {
+  const actor = await requirePlatformAdmin();
+  if (actor.role === "support") throw new Error("Support kan geen platformgebruikers resetten.");
+
+  const platformUserId = formValue(formData, "platformUserId");
+  if (!platformUserId) throw new Error("Platformgebruiker ontbreekt.");
+
+  const [target] = await db
+    .select()
+    .from(platformUsersTable)
+    .where(eq(platformUsersTable.id, platformUserId))
+    .limit(1);
+  if (!target) throw new Error("Platformgebruiker niet gevonden.");
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.auth.admin.getUserById(target.userId);
+  if (error || !data.user?.email) throw new Error(error?.message ?? "Auth-gebruiker heeft geen e-mailadres.");
+
+  const email = data.user.email;
+  const code = generatePasswordResetCode();
+  await setExistingAuthUserTemporaryPassword({
+    userId: target.userId,
+    email,
+    fullName: String(data.user.user_metadata?.["full_name"] ?? data.user.user_metadata?.["name"] ?? email),
+    portal: "platform-admin",
+    temporaryPassword: code,
+    temporaryPasswordKind: "reset_code",
+    expiresAt: passwordResetCodeExpiresAt(),
+  });
+
+  const { subject, html } = buildPasswordResetCodeEmail({
+    recipientName: email,
+    portalName: "Fieldgrid platformbeheer",
+    resetUrl: `${platformAdminUrl()}/wachtwoord-vergeten`,
+    code,
+  });
+  const sent = await sendEmailWithResult({ to: email, subject, html });
+  if (!sent.success) throw new Error(sent.error ?? "Resetmail versturen mislukt.");
+
+  await writePlatformAuditLog({
+    actor,
+    action: "platform_user_password_reset_sent",
+    resource: "platform_users",
+    resourceId: target.id,
+    metadata: { userId: target.userId, email },
+  });
+
+  revalidatePlatformUsers();
 }
 
 export async function listSupportAccessGrants(): Promise<SupportAccessGrantRow[]> {

@@ -943,7 +943,7 @@ export async function getPersonnelAuthStatus(id: string): Promise<PersonnelAuthS
 
 /**
  * Allows management to correct the invite e-mail before the first invite is sent.
- * Blocked when a userId is already linked (account is active — use Supabase dashboard).
+ * Blocked when a userId is already linked (account is active — reset access through user management).
  */
 export async function updatePersonnelEmail(
   id:    string,
@@ -971,7 +971,7 @@ export async function updatePersonnelEmail(
   if (person.userId) {
     return {
       success: false,
-      message: "E-mailadres kan niet worden gewijzigd van een account dat al actief is. Gebruik het Supabase dashboard.",
+      message: "E-mailadres kan niet worden gewijzigd van een account dat al actief is. Gebruik gebruikersbeheer voor toegang of reset.",
     };
   }
 

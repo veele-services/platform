@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, PackageSearch } from "lucide-react";
+import { ArrowRight, PackageSearch, QrCode } from "lucide-react";
 import type { InventoryDossierItem } from "@/app/actions/inventory";
 
 const STATUS_LABELS: Record<string, { label: string; bg: string; color: string }> = {
@@ -94,10 +94,16 @@ export function InventoryItemsPanel({
                     </td>
                     <td className="px-4 py-3" style={{ color: "#475569" }}>{formatDate(row.nextInspectionDate)}</td>
                     <td className="px-4 py-3 text-right">
-                      <Link href={`/inventory/${row.id}`} className="inline-flex items-center gap-1 text-xs font-medium hover:underline" style={{ color: "#0F766E" }}>
-                        Openen
-                        <ArrowRight className="h-3.5 w-3.5" />
-                      </Link>
+                      <div className="inline-flex items-center gap-2">
+                        <Link href={`/inventory/${row.id}/qr`} className="inline-flex items-center gap-1 text-xs font-medium hover:underline" style={{ color: "#334155" }}>
+                          <QrCode className="h-3.5 w-3.5" />
+                          QR
+                        </Link>
+                        <Link href={`/inventory/${row.id}`} className="inline-flex items-center gap-1 text-xs font-medium hover:underline" style={{ color: "#0F766E" }}>
+                          Openen
+                          <ArrowRight className="h-3.5 w-3.5" />
+                        </Link>
+                      </div>
                     </td>
                   </tr>
                 );

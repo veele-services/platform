@@ -51,6 +51,13 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePlatformAdmin, writeSupportAccessAuditLog } from "@/lib/auth/platform";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  generatePasswordResetCode,
+  passwordResetCodeExpiresAt,
+  provisionPortalUserWithTemporaryPassword,
+  setExistingAuthUserTemporaryPassword,
+} from "@/lib/auth/portal-invites";
+import { buildPasswordResetCodeEmail, buildTemporaryPasswordEmail, sendEmailWithResult } from "@/lib/email";
 import type { ActionResult } from "./customers";
 import { ensurePlatformTicketForDomainFailure } from "./platform-tickets";
 
@@ -882,25 +889,47 @@ async function findPlatformTenantAuthUserByEmail(email: string): Promise<{ id: s
   return user ? { id: user.id, email: user.email ?? null } : null;
 }
 
-async function inviteOrFindTenantAuthUser(email: string): Promise<TenantAuthUserInviteResult> {
-  const admin = createAdminClient();
-  const { data, error } = await admin.auth.admin.inviteUserByEmail(email);
-  if (!error) {
-    const userId = data.user?.id;
-    if (!userId) throw new Error("Supabase gaf geen gebruiker terug voor deze uitnodiging.");
-    return { userId, deliveryStatus: "sent", deliveryMessage: null };
+async function tenantAdminLoginUrl(tenantId: string): Promise<string> {
+  const [tenant] = await db
+    .select({ slug: tenantsTable.slug })
+    .from(tenantsTable)
+    .where(eq(tenantsTable.id, tenantId))
+    .limit(1);
+  const [domain] = await db
+    .select({ domain: tenantDomainsTable.domain })
+    .from(tenantDomainsTable)
+    .where(and(eq(tenantDomainsTable.tenantId, tenantId), inArray(tenantDomainsTable.verificationStatus, ["verified", "active"])))
+    .orderBy(desc(tenantDomainsTable.isPrimary), asc(tenantDomainsTable.createdAt))
+    .limit(1);
+
+  const host = domain?.domain ?? (tenant?.slug ? `${tenant.slug}.fieldgrid.nl` : "admin.fieldgrid.nl");
+  return `https://${host}/admin/login`;
+}
+
+async function inviteOrFindTenantAuthUser(email: string, tenantId: string): Promise<TenantAuthUserInviteResult> {
+  const invite = await provisionPortalUserWithTemporaryPassword({
+    email,
+    fullName: email,
+    portal: "tenant-admin",
+    allowExistingActive: true,
+  });
+
+  const { subject, html } = buildTemporaryPasswordEmail({
+    recipientName: email,
+    portalName: "Tenant backoffice",
+    loginUrl: await tenantAdminLoginUrl(tenantId),
+    temporaryPassword: invite.temporaryPassword,
+  });
+  const sent = await sendEmailWithResult({ to: email, subject, html });
+  if (!sent.success) {
+    throw new Error(sent.error ?? "Tenant admin-uitnodigingsmail versturen mislukt.");
   }
 
-  const existingUser = await findPlatformTenantAuthUserByEmail(email);
-  if (existingUser) {
-    return {
-      userId: existingUser.id,
-      deliveryStatus: "existing_auth_user",
-      deliveryMessage: `Supabase Auth-user bestaat al; toegang is gekoppeld zonder nieuwe invite-mail. Laat de gebruiker eventueel wachtwoord vergeten gebruiken.`,
-    };
-  }
-
-  throw new Error(`Uitnodiging kon niet worden verstuurd: ${error.message}`);
+  return {
+    userId: invite.user.id,
+    deliveryStatus: "sent",
+    deliveryMessage: invite.created ? null : "Nieuw tijdelijk wachtwoord verstuurd naar bestaand auth-account.",
+  };
 }
 
 async function listTenantRoleOptions(tenantId: string): Promise<PlatformTenantRoleOption[]> {
@@ -2037,7 +2066,7 @@ export async function addPlatformTenantAdmin(formData: FormData): Promise<void> 
 
   await assertTenantExists(tenantId);
   const roleSelection = await resolveTenantRoleSelection(tenantId, actionValues(formData, "tenantRoleIds"), TENANT_ADMIN_ROLE_NAMES);
-  const invite = await inviteOrFindTenantAuthUser(email);
+  const invite = await inviteOrFindTenantAuthUser(email, tenantId);
   const accessRole = tenantAccessRoleFromRoleNames(roleSelection.roleNames);
 
   await db.transaction(async (tx) => {
@@ -2171,6 +2200,58 @@ export async function deletePlatformTenantAdmin(formData: FormData): Promise<voi
   redirect(`/platform/tenants/${tenantId}?tab=users`);
 }
 
+export async function sendPlatformTenantAdminPasswordReset(formData: FormData): Promise<void> {
+  const actor = await requirePlatformAdmin();
+  const tenantId = actionValue(formData, "tenantId");
+  const userId = actionValue(formData, "userId");
+  if (!tenantId || !userId) throw new Error("Tenantgebruiker ontbreekt.");
+
+  await assertTenantExists(tenantId);
+  const [tenantUser] = await db
+    .select({ id: tenantUsersTable.id })
+    .from(tenantUsersTable)
+    .where(and(eq(tenantUsersTable.tenantId, tenantId), eq(tenantUsersTable.userId, userId)))
+    .limit(1);
+  if (!tenantUser) throw new Error("Tenantgebruiker niet gevonden.");
+
+  const admin = createAdminClient();
+  const { data, error } = await admin.auth.admin.getUserById(userId);
+  if (error || !data.user?.email) throw new Error(error?.message ?? "Auth-gebruiker heeft geen e-mailadres.");
+
+  const email = data.user.email;
+  const code = generatePasswordResetCode();
+  await setExistingAuthUserTemporaryPassword({
+    userId,
+    email,
+    fullName: String(data.user.user_metadata?.["full_name"] ?? data.user.user_metadata?.["name"] ?? email),
+    portal: "tenant-admin",
+    temporaryPassword: code,
+    temporaryPasswordKind: "reset_code",
+    expiresAt: passwordResetCodeExpiresAt(),
+  });
+
+  const resetUrl = (await tenantAdminLoginUrl(tenantId)).replace(/\/login$/u, "/wachtwoord-vergeten");
+  const { subject, html } = buildPasswordResetCodeEmail({
+    recipientName: email,
+    portalName: "Tenant backoffice",
+    resetUrl,
+    code,
+  });
+  const sent = await sendEmailWithResult({ to: email, subject, html });
+  if (!sent.success) throw new Error(sent.error ?? "Resetmail versturen mislukt.");
+
+  await auditPlatformTenantAction({
+    tenantId,
+    action: "tenant_admin_password_reset_sent",
+    resource: "tenant_users",
+    resourceId: userId,
+    metadata: { email, actorUserId: actor.userId },
+  });
+
+  revalidatePlatformTenant(tenantId);
+  redirect(`/platform/tenants/${tenantId}?tab=users`);
+}
+
 export async function updatePlatformTenantOwnerInvite(formData: FormData): Promise<void> {
   const actor = await requirePlatformAdmin();
   const tenantId = actionValue(formData, "tenantId");
@@ -2195,7 +2276,7 @@ export async function updatePlatformTenantOwnerInvite(formData: FormData): Promi
   if (inviteId && !existingInvite) throw new Error("Owner invite niet gevonden.");
 
   const roleSelection = await resolveTenantRoleSelection(tenantId, [], TENANT_OWNER_ROLE_NAMES);
-  const invite = await inviteOrFindTenantAuthUser(email);
+  const invite = await inviteOrFindTenantAuthUser(email, tenantId);
   const now = new Date();
 
   await db.transaction(async (tx) => {

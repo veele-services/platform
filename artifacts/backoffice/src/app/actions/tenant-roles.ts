@@ -19,6 +19,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { getTenantPlanCapabilities } from "@/lib/tenant-plan";
+import { provisionPortalUserWithTemporaryPassword } from "@/lib/auth/portal-invites";
+import { backofficeUrl, buildTemporaryPasswordEmail, sendEmailWithResult } from "@/lib/email";
 import type { ActionResult } from "./customers";
 
 export type TenantPermissionItem = {
@@ -548,11 +550,26 @@ export async function inviteTenantUser(input: {
 
   if (!role) return { success: false, message: "Rol niet gevonden voor deze tenant." };
 
-  const admin = createAdminClient();
-  const { data: inviteData, error } = await admin.auth.admin.inviteUserByEmail(email);
-  if (error) return { success: false, message: `Uitnodiging mislukt: ${error.message}` };
-
-  const invitedUserId = inviteData.user.id;
+  let invitedUserId: string;
+  try {
+    const invite = await provisionPortalUserWithTemporaryPassword({
+      email,
+      fullName: email,
+      portal: "tenant-admin",
+      allowExistingActive: true,
+    });
+    const { subject, html } = buildTemporaryPasswordEmail({
+      recipientName: email,
+      portalName: "Tenant backoffice",
+      loginUrl: `${backofficeUrl()}/login`,
+      temporaryPassword: invite.temporaryPassword,
+    });
+    const sent = await sendEmailWithResult({ to: email, subject, html });
+    if (!sent.success) return { success: false, message: sent.error ?? "Uitnodigingsmail versturen mislukt." };
+    invitedUserId = invite.user.id;
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : "Uitnodiging mislukt." };
+  }
 
   await db
     .insert(tenantUsersTable)

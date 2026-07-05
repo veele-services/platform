@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
+import { requestPasswordResetCode } from "@/actions/auth";
 
 export default function WachtwoordVergetenPage() {
   const router = useRouter();
@@ -22,16 +23,9 @@ export default function WachtwoordVergetenPage() {
     setError(null);
 
     startTransition(async () => {
-      const supabase   = createClient();
-      const redirectTo = `${window.location.origin}/klant/auth/confirm?type=recovery`;
-
-      const { error: sbError } = await supabase.auth.resetPasswordForEmail(
-        normalizedEmail(),
-        { redirectTo },
-      );
-
-      if (sbError) {
-        setError("Er is een fout opgetreden. Controleer uw e-mailadres en probeer het opnieuw.");
+      const result = await requestPasswordResetCode(normalizedEmail());
+      if (!result.success) {
+        setError(result.message ?? "Er is een fout opgetreden. Controleer uw e-mailadres en probeer het opnieuw.");
         return;
       }
 
@@ -45,18 +39,24 @@ export default function WachtwoordVergetenPage() {
 
     startTransition(async () => {
       const supabase = createClient();
-      const { error: verifyError } = await supabase.auth.verifyOtp({
+      const { data, error: verifyError } = await supabase.auth.signInWithPassword({
         email: normalizedEmail(),
-        token: code.trim(),
-        type: "recovery",
+        password: code.trim(),
       });
 
-      if (verifyError) {
+      if (verifyError || data.user?.app_metadata?.force_password_change !== true) {
         setError("De herstelcode is ongeldig of verlopen. Vraag eventueel een nieuwe code aan.");
         return;
       }
 
-      router.push("/reset-wachtwoord");
+      const expiresAt = data.user.app_metadata?.temporary_password_expires_at;
+      if (typeof expiresAt === "string" && new Date(expiresAt).getTime() <= Date.now()) {
+        await supabase.auth.signOut();
+        setError("De herstelcode is verlopen. Vraag een nieuwe code aan.");
+        return;
+      }
+
+      router.push("/reset-wachtwoord?force=1");
       router.refresh();
     });
   }
@@ -77,7 +77,7 @@ export default function WachtwoordVergetenPage() {
             </div>
             <h1 className="text-2xl font-bold text-white">Wachtwoord vergeten</h1>
             <p className="mt-1 text-sm" style={{ color: "#94A3B8" }}>
-              Vul uw e-mailadres in voor een herstelcode of resetlink
+              Vul uw e-mailadres in voor een herstelcode
             </p>
           </div>
 
@@ -88,7 +88,7 @@ export default function WachtwoordVergetenPage() {
                   className="rounded-xl px-4 py-3 text-sm"
                   style={{ backgroundColor: "#F0FDF4", color: "#15803D" }}
                 >
-                  Controleer uw inbox. Vul de herstelcode hieronder in, of gebruik de resetlink in de e-mail.
+                  Controleer uw inbox. Vul de herstelcode hieronder in om een nieuw wachtwoord te kiezen.
                 </div>
 
                 {error && (

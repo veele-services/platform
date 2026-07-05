@@ -20,7 +20,7 @@ import {
 import { toast } from "sonner";
 
 import { createMolliePayment } from "@/app/actions/payments";
-import { sendPaymentReminders } from "@/app/actions/invoices";
+import { exportInvoices, sendPaymentReminders } from "@/app/actions/invoices";
 import type {
   CollectiveInvoiceBatchRow,
   CollectiveInvoiceCandidate,
@@ -76,6 +76,16 @@ function statusLabel(value: string): string {
   return STATUS_OPTIONS.find((option) => option.value === value)?.label ?? value;
 }
 
+function downloadCsv(csv: string, filename: string) {
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
 interface Props {
   rows: InvoiceRow[];
   total: number;
@@ -108,6 +118,7 @@ export function InvoicesView({
   const [paymentLoading, setPaymentLoading] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [reminderLoading, setReminderLoading] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const activeFilterCount = [search, statusFilter].filter(Boolean).length;
@@ -139,6 +150,23 @@ export function InvoicesView({
       else toast.success(parts.join(", "));
     } else {
       toast.error("message" in result ? result.message : "Verzenden mislukt");
+    }
+  }
+
+  async function handleExportCsv() {
+    setExportLoading(true);
+    try {
+      const result = await exportInvoices({ search, status: statusFilter });
+      if (result.success && "data" in result && result.data) {
+        downloadCsv(result.data.csv, result.data.filename);
+        toast.success("Facturen CSV gedownload");
+      } else {
+        toast.error("message" in result ? result.message : "CSV exporteren mislukt");
+      }
+    } catch {
+      toast.error("CSV exporteren mislukt. Probeer het opnieuw.");
+    } finally {
+      setExportLoading(false);
     }
   }
 
@@ -245,6 +273,12 @@ export function InvoicesView({
       <TenantCommandBar
         title="Factuurregister"
         description="Zoek op factuurnummer, klant of opdrachtcode. Betaallinks, PDF's en reminders lopen via action menus en panelen."
+        actions={
+          <Button type="button" variant="outline" size="sm" onClick={handleExportCsv} disabled={exportLoading}>
+            {exportLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            CSV downloaden
+          </Button>
+        }
         search={
           <form
             className="flex min-w-0 flex-1 gap-2"

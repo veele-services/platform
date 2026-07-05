@@ -15,6 +15,7 @@ import {
   inviteUser,
   deactivateUser,
   resendInvite,
+  sendUserPasswordReset,
   updateUserRoles,
 } from "@/app/actions/settings";
 import type { UserRow, RoleRow } from "@/app/actions/settings";
@@ -103,9 +104,20 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
     startTransition(async () => {
       const result = await resendInvite(userId);
       if (result.success) {
-        showFlash("Uitnodiging opnieuw verstuurd.", false);
+        showFlash("Tijdelijk wachtwoord verstuurd.", false);
       } else {
         showFlash((result as { message?: string }).message ?? "Opnieuw versturen mislukt.", true);
+      }
+    });
+  }
+
+  function handlePasswordReset(userId: string) {
+    startTransition(async () => {
+      const result = await sendUserPasswordReset(userId);
+      if (result.success) {
+        showFlash("Herstelcode per e-mail verstuurd.", false);
+      } else {
+        showFlash((result as { message?: string }).message ?? "Herstelcode versturen mislukt.", true);
       }
     });
   }
@@ -248,6 +260,7 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
                         actionError={actionError[user.userId]}
                         onDeactivate={() => handleDeactivate(user.userId)}
                         onResend={() => handleResend(user.userId)}
+                        onPasswordReset={() => handlePasswordReset(user.userId)}
                         onEditRoles={() => startEditRoles(user.userId, user.roleIds)}
                       />
                     )}
@@ -420,6 +433,7 @@ function UserActionMenu({
   actionError,
   onDeactivate,
   onResend,
+  onPasswordReset,
   onEditRoles,
 }: {
   user: UserRow;
@@ -428,6 +442,7 @@ function UserActionMenu({
   actionError: string | undefined;
   onDeactivate: () => void;
   onResend: () => void;
+  onPasswordReset: () => void;
   onEditRoles: () => void;
 }) {
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -443,10 +458,17 @@ function UserActionMenu({
             disabled: pending,
             onSelect: () => onEditRoles(),
           },
+          {
+            id: "password-reset",
+            label: "Resetcode mailen",
+            icon: <Mail className="h-3.5 w-3.5" />,
+            disabled: pending,
+            onSelect: () => onPasswordReset(),
+          },
           ...(user.status === "uitgenodigd"
             ? [{
                 id: "resend",
-                label: "Uitnodiging opnieuw sturen",
+                label: "Tijdelijk wachtwoord mailen",
                 icon: <RotateCcw className="h-3.5 w-3.5" />,
                 disabled: pending,
                 onSelect: () => onResend(),

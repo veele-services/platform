@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   BarChart3,
+  Boxes,
   Building2,
   Calendar,
   CalendarClock,
@@ -32,6 +33,7 @@ const NAV_ITEMS = [
   { href: "/customers", icon: Users, label: "Klanten", permission: "customers:read" },
   { href: "/objects", icon: Building2, label: "Objecten", permission: "objects:read" },
   { href: "/personnel", icon: UserCog, label: "Personeel", permission: "personnel:read" },
+  { href: "/materials", icon: Boxes, label: "Materialen", permission: "materials:view" },
   { href: "/inventory", icon: PackageSearch, label: "Inventaris", permission: "inventory:view" },
   { href: "/personnel/verlof", icon: CalendarClock, label: "Verlof-inbox", permission: "personnel:read" },
   { href: "/reports", icon: BarChart3, label: "Rapporten", permission: "reports:read" },

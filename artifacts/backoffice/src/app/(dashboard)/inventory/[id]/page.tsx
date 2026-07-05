@@ -75,13 +75,6 @@ export default async function InventoryDetailPage({ params }: Props) {
           >
             Storingen
           </Link>
-          <Link
-            href={`/inventory/${item.id}/qr`}
-            className="inline-flex h-10 items-center rounded-md border px-3 text-sm font-medium"
-            style={{ borderColor: "#CBD5E1", color: "#334155" }}
-          >
-            QR-label printen
-          </Link>
         </div>
         <div className="grid gap-3 md:grid-cols-3">
           <FollowupMetric label="Open storingen" value={String(followup.openIssueCount)} tone={followup.openIssueCount > 0 ? "warn" : "neutral"} />

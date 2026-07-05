@@ -2,9 +2,10 @@
 
 import { useState, useTransition, useCallback } from "react";
 import Link from "next/link";
-import { AlertTriangle, ChevronLeft, ChevronRight, FileCheck2, Search, TrendingUp } from "lucide-react";
+import { AlertTriangle, ChevronLeft, ChevronRight, Download, FileCheck2, Loader2, Search, TrendingUp } from "lucide-react";
+import { toast } from "sonner";
 
-import { listQuotes } from "@/app/actions/quotes";
+import { exportQuotes, listQuotes } from "@/app/actions/quotes";
 import type { QuoteRow, QuoteSummary } from "@/app/actions/quotes";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,6 +54,16 @@ function statusLabel(value: string) {
   return STATUS_OPTIONS.find((option) => option.value === value)?.label ?? value;
 }
 
+function downloadCsv(csv: string, filename: string) {
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
 export function QuotesView({ initialRows, initialTotal, summary }: QuotesViewProps) {
   const [rows, setRows] = useState<QuoteRow[]>(initialRows);
   const [total, setTotal] = useState(initialTotal);
@@ -60,6 +71,7 @@ export function QuotesView({ initialRows, initialTotal, summary }: QuotesViewPro
   const [search, setSearch] = useState("");
   const [submittedSearch, setSubmittedSearch] = useState("");
   const [status, setStatus] = useState("");
+  const [exportPending, setExportPending] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const load = useCallback(
@@ -83,6 +95,23 @@ export function QuotesView({ initialRows, initialTotal, summary }: QuotesViewPro
   function handleStatusChange(value: string) {
     setStatus(value);
     load(1, search.trim(), value);
+  }
+
+  async function handleExportCsv() {
+    setExportPending(true);
+    try {
+      const result = await exportQuotes({ search: submittedSearch, status });
+      if (result.success && "data" in result && result.data) {
+        downloadCsv(result.data.csv, result.data.filename);
+        toast.success("Offertes CSV gedownload");
+      } else {
+        toast.error("message" in result ? result.message : "CSV exporteren mislukt");
+      }
+    } catch {
+      toast.error("CSV exporteren mislukt. Probeer het opnieuw.");
+    } finally {
+      setExportPending(false);
+    }
   }
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
@@ -113,6 +142,12 @@ export function QuotesView({ initialRows, initialTotal, summary }: QuotesViewPro
       <TenantCommandBar
         title="Offerteregister"
         description="Zoek op offertenummer, klant of opdracht en open acties via het rijmenu."
+        actions={
+          <Button type="button" variant="outline" size="sm" onClick={handleExportCsv} disabled={exportPending}>
+            {exportPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            CSV downloaden
+          </Button>
+        }
         search={
           <form className="flex min-w-0 flex-1 gap-2" onSubmit={handleSearch}>
             <TenantToolbarSearch
@@ -248,6 +283,7 @@ function QuoteRowActions({ row }: { row: QuoteRow }) {
       actions={[
         { id: "open", label: "Open offerte", href: `/quotes/${row.id}`, icon: <FileCheck2 className="h-4 w-4" /> },
         { id: "assignment", label: "Open opdracht", href: `/assignments/${row.assignmentId}`, icon: <TrendingUp className="h-4 w-4" /> },
+        { id: "pdf", label: "Download PDF", href: `/api/quotes/${row.id}/pdf`, icon: <Download className="h-4 w-4" /> },
       ]}
     />
   );

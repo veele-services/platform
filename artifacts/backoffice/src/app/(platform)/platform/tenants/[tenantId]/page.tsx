@@ -30,6 +30,7 @@ import {
   listPlatformTenantSectors,
   listPlatformTenantSubscriptions,
   listPlatformTenantUsersAndOwner,
+  sendPlatformTenantAdminPasswordReset,
   updatePlatformTenantDomain,
   updatePlatformTenantLifecycle,
   updatePlatformTenantModule,
@@ -134,6 +135,11 @@ async function updatePlatformTenantAdminFormAction(formData: FormData): Promise<
 async function deletePlatformTenantAdminFormAction(formData: FormData): Promise<void> {
   "use server";
   await deletePlatformTenantAdmin(formData);
+}
+
+async function sendPlatformTenantAdminPasswordResetFormAction(formData: FormData): Promise<void> {
+  "use server";
+  await sendPlatformTenantAdminPasswordReset(formData);
 }
 
 async function updatePlatformTenantOwnerInviteFormAction(formData: FormData): Promise<void> {
@@ -930,7 +936,7 @@ function UsersTab({
 
   return (
     <div className="grid gap-5 xl:grid-cols-2">
-      <Section title="Tenant admins" helper="Voeg tenantbeheerders toe, wijzig rollen/status of verwijder tenanttoegang. Supabase Auth-gebruikers zelf blijven bestaan.">
+      <Section title="Tenant admins" helper="Voeg tenantbeheerders toe, wijzig rollen/status of verwijder tenanttoegang. Wachtwoorden en resetcodes worden door Fieldgrid gemaild.">
         <div className="grid gap-3">
           <form action={addPlatformTenantAdminFormAction} className="rounded border border-slate-200 bg-slate-50 p-3 text-sm">
             <input type="hidden" name="tenantId" value={tenant.id} />
@@ -1030,20 +1036,29 @@ function UsersTab({
                   <button type="submit" className="rounded bg-slate-950 px-3 py-2 text-xs font-semibold text-white">Opslaan</button>
                 </div>
               </form>
-              <form action={deletePlatformTenantAdminFormAction} className="mt-2 flex justify-end">
-                <input type="hidden" name="tenantId" value={tenant.id} />
-                <input type="hidden" name="userId" value={user.userId} />
-                <button type="submit" className="rounded border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">
-                  Tenanttoegang verwijderen
-                </button>
-              </form>
+              <div className="mt-2 flex flex-wrap justify-end gap-2">
+                <form action={sendPlatformTenantAdminPasswordResetFormAction}>
+                  <input type="hidden" name="tenantId" value={tenant.id} />
+                  <input type="hidden" name="userId" value={user.userId} />
+                  <button type="submit" className="rounded border border-cyan-200 bg-cyan-50 px-3 py-2 text-xs font-semibold text-cyan-800 hover:bg-cyan-100">
+                    Resetcode mailen
+                  </button>
+                </form>
+                <form action={deletePlatformTenantAdminFormAction}>
+                  <input type="hidden" name="tenantId" value={tenant.id} />
+                  <input type="hidden" name="userId" value={user.userId} />
+                  <button type="submit" className="rounded border border-rose-200 px-3 py-2 text-xs font-semibold text-rose-700 hover:bg-rose-50">
+                    Tenanttoegang verwijderen
+                  </button>
+                </form>
+              </div>
             </div>
           ))}
           {tenantUsersAndOwner.users.length === 0 && <p className="text-sm text-slate-500">Geen tenantgebruikers gevonden.</p>}
         </div>
       </Section>
 
-      <Section title="Owner invites" helper="Corrigeer een verkeerd owner e-mailadres en verstuur de Supabase invite opnieuw. De owner krijgt direct tenant owner-toegang.">
+      <Section title="Owner invites" helper="Corrigeer een verkeerd owner e-mailadres en verstuur opnieuw een Fieldgrid tijdelijk wachtwoord. De owner krijgt direct tenant owner-toegang.">
         <div className="grid gap-3">
           {tenantUsersAndOwner.ownerInvites.map((invite) => (
             <div key={invite.id} className="rounded border border-slate-200 p-3 text-sm">

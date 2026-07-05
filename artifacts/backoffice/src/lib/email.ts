@@ -62,6 +62,26 @@ function siteUrl(): string {
   return process.env["NEXT_PUBLIC_SITE_URL"] ?? "https://fieldgrid.nl";
 }
 
+export function backofficeUrl(): string {
+  const explicit =
+    process.env["BACKOFFICE_URL"] ??
+    process.env["NEXT_PUBLIC_BACKOFFICE_URL"] ??
+    process.env["NEXT_PUBLIC_SITE_URL"];
+  if (explicit) return explicit.replace(/\/$/, "");
+  const domains = process.env["REPLIT_DOMAINS"];
+  if (domains) return `https://${domains.split(",")[0]!.trim()}`;
+  return "https://admin.fieldgrid.nl";
+}
+
+export function platformAdminUrl(): string {
+  const explicit =
+    process.env["PLATFORM_ADMIN_URL"] ??
+    process.env["NEXT_PUBLIC_PLATFORM_ADMIN_URL"] ??
+    process.env["BACKOFFICE_URL"] ??
+    process.env["NEXT_PUBLIC_BACKOFFICE_URL"];
+  return (explicit ?? "https://admin.fieldgrid.nl").replace(/\/$/, "");
+}
+
 // ── Core send helpers ─────────────────────────────────────────────────────────
 // Fire-and-forget variant: awaited by callers but never throws.
 
@@ -290,6 +310,30 @@ export function buildTemporaryPasswordEmail(opts: {
     ${ctaButton(opts.loginUrl, `Inloggen op ${opts.portalName}`)}
     <p style="font-size:13px;color:#64748b;margin-top:16px">
       Bewaar dit tijdelijke wachtwoord niet. Het is alleen bedoeld voor de eerste login.
+    </p>
+  `);
+  return { subject, html };
+}
+
+export function buildPasswordResetCodeEmail(opts: {
+  recipientName: string;
+  portalName:    string;
+  resetUrl:      string;
+  code:          string;
+}): { subject: string; html: string } {
+  const subject = `Wachtwoord opnieuw instellen voor ${opts.portalName}`;
+  const html = baseTemplate(subject, `
+    <h2 style="margin-top:0;color:${BRAND_COLOR}">Wachtwoord opnieuw instellen</h2>
+    <p>Beste ${opts.recipientName},</p>
+    <p>Er is een wachtwoord-reset aangevraagd voor uw account in ${opts.portalName}.</p>
+    <p>Open de resetpagina en vul onderstaande code in. Daarna kiest u direct een nieuw wachtwoord.</p>
+    <div style="margin:18px 0;padding:14px 16px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px">
+      <p style="margin:0 0 6px;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:.08em">Herstelcode</p>
+      <code style="font-size:22px;font-weight:800;color:${BRAND_COLOR};letter-spacing:.18em">${opts.code}</code>
+    </div>
+    ${ctaButton(opts.resetUrl, "Resetpagina openen")}
+    <p style="font-size:13px;color:#64748b;margin-top:16px">
+      Deze code is 30 minuten geldig. Heeft u dit niet aangevraagd, dan kunt u deze e-mail negeren.
     </p>
   `);
   return { subject, html };

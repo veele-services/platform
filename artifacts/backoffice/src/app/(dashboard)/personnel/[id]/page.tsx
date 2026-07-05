@@ -14,6 +14,7 @@ import { PersonnelCompetenciesEditButton } from "@/components/personnel/Personne
 import { AssignmentHistoryTable } from "@/components/assignments/AssignmentHistoryTable";
 import { EntityDocumentsPanel } from "@/components/documents/EntityDocumentsPanel";
 import { InventoryItemsPanel } from "@/components/inventory/InventoryItemsPanel";
+import { MaterialStockPanel } from "@/components/materials/MaterialStockPanel";
 import { getPersonnel, listRoles, listSectors, getPersonnelAuthStatus, getLinkedObjects } from "@/app/actions/personnel";
 import { getAvailabilityWindows, listLeavePeriods } from "@/app/actions/availability";
 import { BeschikbaarheidView } from "@/components/personnel/BeschikbaarheidView";
@@ -21,6 +22,7 @@ import { PersonnelPortalAccessCard } from "@/components/personnel/PersonnelPorta
 import { listAssignmentsForPersonnel } from "@/app/actions/assignments";
 import { listDocuments } from "@/app/actions/documents";
 import { listInventoryForPersonnel } from "@/app/actions/inventory";
+import { listMaterialStockForPersonnel } from "@/app/actions/materials";
 import {
   listPersonnelQualifications,
   type QualificationLinkRow,
@@ -60,11 +62,12 @@ export default async function PersonnelDetailPage({ params }: Props) {
 
   const { id } = await params;
 
-  const [canWrite, canReadAssignments, canReadDocuments, canWriteDocuments, canReadInventory] = await Promise.all([
+  const [canWrite, canReadAssignments, canReadDocuments, canWriteDocuments, canReadMaterials, canReadInventory] = await Promise.all([
     hasPermission("personnel", "write"),
     hasPermission("assignments", "read"),
     hasPermission("documents", "read"),
     hasPermission("documents", "write"),
+    hasPermission("materials", "view"),
     hasPermission("inventory", "view"),
   ]);
 
@@ -79,6 +82,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
     authStatus,
     linkedObjects,
     qualificationLinks,
+    materialStock,
     inventoryItems,
   ] = await Promise.all([
     getPersonnel(id),
@@ -91,6 +95,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
     getPersonnelAuthStatus(id),
     getLinkedObjects(id),
     listPersonnelQualifications(id),
+    canReadMaterials ? listMaterialStockForPersonnel(id) : Promise.resolve([]),
     canReadInventory ? listInventoryForPersonnel(id) : Promise.resolve([]),
   ]);
 
@@ -156,6 +161,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
           { label: "Beschikbaarheid", href: "#availability", active: true },
           { label: "Profiel", href: "#profile" },
           { label: "Opdrachten", href: "#assignments", count: assignmentHistory.length },
+          { label: "Materiaal", href: "#materials", count: materialStock.length },
           { label: "Inventaris", href: "#inventory", count: inventoryItems.length },
           { label: "Documenten", href: "#documents", count: documents.length },
         ]}
@@ -524,7 +530,17 @@ export default async function PersonnelDetailPage({ params }: Props) {
         </div>
       )}
 
-      {/* ── Inventory ─────────────────────────────────── */}
+      {/* Materiaal / voorraad */}
+      {canReadMaterials && (
+        <div id="materials" className="mt-5 scroll-mt-24">
+          <MaterialStockPanel
+            rows={materialStock}
+            title="Materiaal / voorraad"
+            emptyMessage="Er is nog geen materiaalvoorraad aan dit personeelslid gekoppeld."
+          />
+        </div>
+      )}
+
       {canReadInventory && (
         <div id="inventory" className="mt-5 scroll-mt-24">
           <InventoryItemsPanel
