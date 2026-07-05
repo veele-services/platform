@@ -89,7 +89,7 @@ export default async function PlatformSettingsPage() {
   const dashboard = await getPlatformSettingsDashboard();
 
   return (
-    <main className="min-h-full bg-slate-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
+    <main className="platform-page min-h-full bg-slate-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-5">
         <header className="flex flex-col gap-2 border-b border-slate-200 pb-5">
           <p className="text-sm font-medium text-slate-500">Fieldgrid platform</p>

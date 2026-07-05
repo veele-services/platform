@@ -860,7 +860,7 @@ export default async function PlatformAdminPage({ searchParams }: Props) {
   ]);
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 py-8 text-slate-950">
+    <main className="platform-page min-h-screen bg-slate-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
         <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex flex-col gap-2">
@@ -911,7 +911,7 @@ export default async function PlatformAdminPage({ searchParams }: Props) {
               <h2 className="text-xl font-semibold tracking-normal">Provisioning runs</h2>
               <span className="text-sm text-slate-500">{provisioningRuns.length}</span>
             </div>
-            <div className="overflow-x-auto rounded border border-slate-200 bg-white">
+            <div className="platform-scroll-x rounded border border-slate-200 bg-white">
               <table className="w-full border-collapse text-left text-sm">
                 <thead className="bg-slate-100 text-xs uppercase text-slate-500">
                   <tr>
@@ -985,7 +985,7 @@ export default async function PlatformAdminPage({ searchParams }: Props) {
               <h2 className="text-xl font-semibold tracking-normal">Tenants</h2>
               <span className="text-sm text-slate-500">{tenants.length}</span>
             </div>
-            <div className="overflow-x-auto rounded border border-slate-200 bg-white">
+            <div className="platform-scroll-x rounded border border-slate-200 bg-white">
               <table className="w-full border-collapse text-left text-sm">
                 <thead className="bg-slate-100 text-xs uppercase text-slate-500">
                   <tr>
@@ -1025,7 +1025,7 @@ export default async function PlatformAdminPage({ searchParams }: Props) {
                 <h2 className="text-xl font-semibold tracking-normal">Platformgebruikers</h2>
                 <span className="text-sm text-slate-500">{platformUsers.length}</span>
               </div>
-              <div className="overflow-x-auto rounded border border-slate-200 bg-white">
+              <div className="platform-scroll-x rounded border border-slate-200 bg-white">
                 <table className="w-full border-collapse text-left text-sm">
                   <thead className="bg-slate-100 text-xs uppercase text-slate-500">
                     <tr>
@@ -1055,7 +1055,7 @@ export default async function PlatformAdminPage({ searchParams }: Props) {
               <h2 className="text-xl font-semibold tracking-normal">Supporttoegang</h2>
               <span className="text-sm text-slate-500">{supportGrants.length}</span>
             </div>
-            <div className="overflow-x-auto rounded border border-slate-200 bg-white">
+            <div className="platform-scroll-x rounded border border-slate-200 bg-white">
               <table className="w-full border-collapse text-left text-sm">
                 <thead className="bg-slate-100 text-xs uppercase text-slate-500">
                   <tr>

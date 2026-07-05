@@ -317,7 +317,7 @@ export default async function PlatformSecurityPage({ searchParams }: Props) {
   ]);
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
+    <main className="platform-page min-h-screen bg-slate-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
       <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
         <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -452,7 +452,7 @@ export default async function PlatformSecurityPage({ searchParams }: Props) {
             <div className="mt-4 grid gap-3">
               {dashboard.activeSupportGrants.map((grant) => <SupportGrantCard key={grant.id} grant={grant} />)}
               {dashboard.activeSupportGrants.length === 0 && (
-                <p className="rounded border border-dashed border-slate-200 px-4 py-6 text-center text-sm text-slate-500">
+                <p className="platform-empty-state text-sm">
                   Geen actieve support grants voor deze filters.
                 </p>
               )}

@@ -151,8 +151,8 @@ function TextInput({
 
 function StepRail() {
   return (
-    <nav aria-label="Onboarding stappen" className="overflow-x-auto pb-1">
-      <ol className="flex min-w-max gap-2">
+    <nav aria-label="Onboarding stappen" className="platform-scroll-x pb-1">
+      <ol className="platform-tab-strip flex min-w-max gap-2">
         {WIZARD_STEPS.map((step, index) => (
           <li key={step.id} className="flex items-center gap-2">
             <span className="flex h-8 min-w-8 items-center justify-center rounded-full bg-slate-950 text-xs font-semibold text-white">
@@ -497,7 +497,7 @@ export default async function PlatformOnboardingPage({ searchParams }: Props) {
   const workspace = await getPlatformOnboardingWorkspace(onboardingDraft);
 
   return (
-    <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 text-slate-950 sm:p-6">
+    <main className="platform-page mx-auto flex w-full max-w-7xl flex-col gap-6 p-4 text-slate-950 sm:p-6">
       <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
         <div>
           <div className="flex items-center gap-2 text-sm font-medium text-slate-500">
