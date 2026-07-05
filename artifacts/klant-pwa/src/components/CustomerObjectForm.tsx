@@ -343,7 +343,7 @@ export function CustomerObjectForm({ mode, sectors, object }: Props) {
       <Section
         icon={<ShieldCheck size={20} />}
         title="Vaste instructies"
-        description="Afspraken die bij iedere aanvraag of werkbon voor dit object moeten worden meegenomen."
+        description="Instructies die bij iedere aanvraag of werkbon voor dit object moeten worden meegenomen."
       >
         <div className="grid gap-4 md:grid-cols-2">
           <TextArea

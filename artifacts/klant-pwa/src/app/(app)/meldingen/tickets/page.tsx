@@ -25,8 +25,8 @@ export default async function CustomerTicketsPage() {
 
   return (
     <PageShell
-      title="Contact"
-      subtitle="Tickets en vragen richting Veele Services."
+      title="Support"
+      subtitle="Tickets en vragen richting uw dienstverlener."
     >
       <div className="mx-auto grid max-w-6xl gap-5 lg:grid-cols-[1fr_24rem]">
         <section className="rounded-[22px] bg-white p-4 shadow-[0_14px_34px_rgba(8,29,58,0.11)] md:p-5">

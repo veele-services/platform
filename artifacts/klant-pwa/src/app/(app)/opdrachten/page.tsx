@@ -63,8 +63,8 @@ export default async function OpdrachtenPage() {
 
   return (
     <PageShell
-      title="Mijn opdrachten"
-      subtitle="Aanvragen, afspraken en afgeronde werkbonnen."
+      title="Opdrachten"
+      subtitle="Aanvragen, geplande opdrachten en afgeronde werkbonnen."
       actions={
         <Link
           href="/opdrachten/aanvragen"
@@ -72,7 +72,7 @@ export default async function OpdrachtenPage() {
           style={{ backgroundColor: "var(--color-accent)" }}
         >
           <PlusCircle size={14} />
-          Aanvragen
+          Opdracht aanvragen
         </Link>
       }
     >

@@ -4,16 +4,12 @@ import type { ComponentType } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Bell,
   Building2,
   CalendarDays,
-  FileCheck2,
   FileText,
   Headphones,
   Home,
   LogOut,
-  Receipt,
-  Send,
   Settings,
   WalletCards,
 } from "lucide-react";
@@ -33,20 +29,18 @@ type NavIcon = ComponentType<{
 }>;
 
 const NAV_ITEMS = [
-  { href: "/", label: "Dashboard", Icon: Home },
-  { href: "/objecten", label: "Mijn objecten", Icon: Building2 },
-  { href: "/opdrachten/aanvragen", label: "Aanvragen", Icon: Send },
-  { href: "/rapporten", label: "Rapportages", Icon: FileCheck2, moduleKey: "reporting" },
-  { href: "/facturen", label: "Facturen", Icon: Receipt, moduleKey: "finance" },
-  { href: "/betalingen", label: "Betalingen", Icon: WalletCards, moduleKey: "finance" },
-  { href: "/opdrachten", label: "Afspraken", Icon: CalendarDays },
-  { href: "/meldingen", label: "Meldingen", Icon: Bell },
+  { href: "/", label: "Home", Icon: Home },
+  { href: "/opdrachten", label: "Opdrachten", Icon: CalendarDays },
+  { href: "/objecten", label: "Objecten", Icon: Building2 },
+  { href: "/meldingen/tickets", label: "Support", Icon: Headphones, match: ["/meldingen"] },
+  { href: "/financieel", label: "Financieel", Icon: WalletCards, moduleKey: "finance", match: ["/financieel", "/facturen", "/betalingen", "/offertes"] },
   { href: "/documenten", label: "Documenten", Icon: FileText, moduleKey: "documents" },
 ] satisfies Array<{
   href: string;
   label: string;
   Icon: NavIcon;
   moduleKey?: keyof CustomerPortalFeatureFlags;
+  match?: string[];
 }>;
 
 function isVisible(
@@ -79,11 +73,11 @@ export function DesktopSidebar({
       </div>
 
       <nav className="flex-1 space-y-1 overflow-y-auto px-4 py-2">
-        {visibleItems.map(({ href, label, Icon }) => {
-          const isActive =
-            href === "/"
-              ? pathname === "/"
-              : pathname.startsWith(href);
+        {visibleItems.map(({ href, label, Icon, match }) => {
+          const activePaths = match ?? [href];
+          const isActive = activePaths.some((path) =>
+            path === "/" ? pathname === "/" : pathname.startsWith(path),
+          );
 
           return (
             <Link
@@ -104,11 +98,11 @@ export function DesktopSidebar({
 
       <div className="space-y-1 border-t border-white/10 px-4 py-5">
         <Link
-          href="/meer"
+          href="/meldingen/tickets"
           className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold text-white/70"
         >
           <Headphones size={18} />
-          Hulp & contact
+          Contact opnemen
         </Link>
         <Link
           href="/instellingen"

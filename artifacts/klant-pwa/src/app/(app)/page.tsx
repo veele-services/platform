@@ -229,7 +229,7 @@ export default async function DashboardPage() {
       <section className="grid gap-3 md:grid-cols-4 xl:gap-4">
         <QuickAction
           href="/opdrachten/aanvragen"
-          title="Nieuwe aanvraag"
+          title="Opdracht aanvragen"
           subtitle="Start direct een aanvraag"
           icon={<PlusCircle size={22} />}
           primary
@@ -247,9 +247,9 @@ export default async function DashboardPage() {
           icon={<FileCheck2 size={22} />}
         />
         <QuickAction
-          href="/meer"
-          title="Contact opnemen"
-          subtitle="Stel uw vraag"
+          href="/meldingen/tickets"
+          title="Support"
+          subtitle="Ticket of vraag stellen"
           icon={<Headphones size={22} />}
         />
       </section>
