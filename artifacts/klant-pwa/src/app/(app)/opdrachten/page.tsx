@@ -1,7 +1,7 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { ClipboardList, FileText, PlusCircle } from "lucide-react";
+import { ClipboardList, Download, FileText, PlusCircle } from "lucide-react";
 import type { QuoteStatus } from "@workspace/db";
 import { getMyAssignments } from "@/actions/assignments";
 import { STATUS_COLOR, STATUS_LABEL } from "@/types/assignments";
@@ -204,6 +204,11 @@ function assignmentColumns(): Array<PortalDataColumn<CustomerAssignment>> {
           <PortalActionMenuLink href={`/opdrachten/${assignment.id}`}>
             Details bekijken
           </PortalActionMenuLink>
+          {assignment.quoteId ? (
+            <PortalActionMenuLink href={`/api/offerte/${assignment.quoteId}/pdf`} external>
+              Offerte PDF downloaden
+            </PortalActionMenuLink>
+          ) : null}
           {assignment.status === "awaiting_approval" ? (
             <PortalActionMenuLink href="/offertes">
               Naar offertes
@@ -328,6 +333,18 @@ export default async function OpdrachtenPage({
                   </div>
                   <AssignmentStatusBadge assignment={assignment} />
                 </div>
+                {assignment.quoteId ? (
+                  <Link
+                    href={`/api/offerte/${assignment.quoteId}/pdf`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-black shadow-sm"
+                    style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+                  >
+                    <Download size={16} />
+                    Offerte PDF
+                  </Link>
+                ) : null}
                 <OfferteActieButtons assignmentId={assignment.id} title={assignment.title} />
               </article>
             ))}
@@ -410,6 +427,11 @@ export default async function OpdrachtenPage({
                 <PortalActionMenuLink href={`/opdrachten/${assignment.id}`}>
                   Details bekijken
                 </PortalActionMenuLink>
+                {assignment.quoteId ? (
+                  <PortalActionMenuLink href={`/api/offerte/${assignment.quoteId}/pdf`} external>
+                    Offerte PDF downloaden
+                  </PortalActionMenuLink>
+                ) : null}
                 {assignment.status === "awaiting_approval" ? (
                   <PortalActionMenuLink href="/offertes">Naar offertes</PortalActionMenuLink>
                 ) : null}

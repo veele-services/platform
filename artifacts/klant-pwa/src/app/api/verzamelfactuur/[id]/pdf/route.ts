@@ -13,18 +13,22 @@ import {
   objectsTable,
 } from "@workspace/db";
 import { getMyCustomerIdentity } from "@/actions/customer";
+import {
+  PDF_BRAND,
+  PDF_PAGE,
+  drawPdfFooter,
+  drawPdfHeader,
+  drawPdfRecipientPanel,
+  drawPdfSectionTitle,
+  drawPdfTableHeader,
+  drawPdfTotalPanel,
+  ensurePdfPage,
+  formatPdfDate,
+  formatPdfEuroCents,
+  sanitizePdfFilename,
+} from "@/lib/pdf-style";
 
 export const runtime = "nodejs";
-
-function fmtDate(value: string | Date | null | undefined): string {
-  if (!value) return "-";
-  const d = typeof value === "string" ? new Date(`${value.slice(0, 10)}T00:00:00`) : value;
-  return d.toLocaleDateString("nl-NL", { day: "numeric", month: "long", year: "numeric" });
-}
-
-function fmtEurCents(cents: number | null | undefined): string {
-  return ((cents ?? 0) / 100).toLocaleString("nl-NL", { style: "currency", currency: "EUR" });
-}
 
 export async function GET(
   _request: Request,
@@ -98,97 +102,67 @@ export async function GET(
 
   await new Promise<void>((resolve) => {
     doc.on("end", resolve);
-    const navy = "#081D3A";
-    const teal = "#00B7B3";
-    const slate = "#64748B";
-    const border = "#E2E8F0";
-    const soft = "#F8FAFC";
-    const L = 55;
-    const R = 540;
+    const L = PDF_PAGE.left;
+    const R = PDF_PAGE.right;
     const W = R - L;
     let y = 148;
 
-    doc.rect(0, 0, 595.28, 122).fill(navy);
-    doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(22).text("VEELE", L, 38);
-    doc.fillColor("#7DF3EF").font("Helvetica").fontSize(8).text("SERVICES", L + 2, 64, { characterSpacing: 2 });
-    doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(19).text("VERZAMELFACTUUR", 300, 38, { width: 240, align: "right" });
-    doc.fillColor("#C7D2FE").font("Helvetica").fontSize(9).text(batch.id.slice(0, 8).toUpperCase(), 300, 66, { width: 240, align: "right" });
-
-    doc.roundedRect(L, y, W, 112, 12).fill(soft).strokeColor(border).stroke();
-    doc.fillColor(slate).font("Helvetica-Bold").fontSize(8).text("KLANT", L + 18, y + 16);
-    doc.fillColor(navy).font("Helvetica-Bold").fontSize(12).text(batch.customerName ?? identity.customerName, L + 18, y + 32, { width: 220 });
     const cityLine = [batch.customerPostalCode, batch.customerCity].filter(Boolean).join(" ");
-    doc.fillColor("#111827").font("Helvetica").fontSize(9);
-    if (batch.customerAddress) doc.text(batch.customerAddress, L + 18, y + 52, { width: 220 });
-    if (cityLine) doc.text(cityLine, L + 18, y + 66, { width: 220 });
+    drawPdfHeader(doc, { title: "VERZAMELFACTUUR", reference: batch.id.slice(0, 8).toUpperCase() });
+    y = drawPdfRecipientPanel(doc, {
+      y,
+      label: "Klant",
+      name: batch.customerName ?? identity.customerName,
+      lines: [batch.customerAddress ?? "", cityLine],
+      height: 118,
+      meta: [
+        ["Status", String(batch.status)],
+        ["Aangemaakt", formatPdfDate(batch.createdAt)],
+        ["Periode", batch.periodStart || batch.periodEnd ? `${formatPdfDate(batch.periodStart)} t/m ${formatPdfDate(batch.periodEnd)}` : "-"],
+        ["Object", batch.objectName ?? "-"],
+        ["Facturen", String(items.length)],
+      ],
+    });
 
-    const metaRows: [string, string][] = [
-      ["Status", String(batch.status)],
-      ["Aangemaakt", fmtDate(batch.createdAt)],
-      ["Periode", batch.periodStart || batch.periodEnd ? `${fmtDate(batch.periodStart)} t/m ${fmtDate(batch.periodEnd)}` : "-"],
-      ["Object", batch.objectName ?? "-"],
-      ["Facturen", String(items.length)],
-    ];
-    let metaY = y + 18;
-    for (const [label, value] of metaRows) {
-      doc.fillColor(slate).font("Helvetica").fontSize(8).text(label, 340, metaY, { width: 80 });
-      doc.fillColor(navy).font("Helvetica-Bold").fontSize(8).text(value, 425, metaY, { width: 110 });
-      metaY += 16;
-    }
-
-    y += 142;
-    doc.fillColor(navy).font("Helvetica-Bold").fontSize(13).text("Gebundelde facturen", L, y);
-    y += 22;
+    y = drawPdfSectionTitle(doc, "Gebundelde facturen", y);
+    y = drawPdfTableHeader(doc, y, [
+      { label: "Factuur", x: L + 10, width: 84 },
+      { label: "Opdracht", x: L + 100, width: 178 },
+      { label: "Datum", x: R - 145, width: 82 },
+      { label: "Totaal", x: R - 62, width: 62, align: "right" },
+    ]);
 
     for (const item of items) {
-      if (y > 730) {
-        doc.addPage();
-        y = 55;
-      }
-      doc.roundedRect(L, y, W, 42, 8).fill("#FFFFFF").strokeColor(border).stroke();
-      doc.fillColor(teal).font("Helvetica-Bold").fontSize(8).text(item.invoiceNumber, L + 10, y + 12, { width: 84 });
-      doc.fillColor(navy).font("Helvetica-Bold").fontSize(8).text(item.assignmentCode, L + 100, y + 8, { width: 80 });
-      doc.fillColor("#111827").font("Helvetica").fontSize(8).text(item.assignmentTitle, L + 182, y + 8, { width: 150 });
-      doc.fillColor(slate).text(fmtDate(item.scheduledDate), R - 145, y + 12, { width: 82 });
-      doc.fillColor(navy).font("Helvetica-Bold").text(fmtEurCents(item.itemAmountCents), R - 62, y + 12, { width: 62, align: "right" });
+      y = ensurePdfPage(doc, y, 48);
+      doc.roundedRect(L, y, W, 42, 8).fill("#FFFFFF").strokeColor(PDF_BRAND.border).stroke();
+      doc.fillColor(PDF_BRAND.cyan).font("Helvetica-Bold").fontSize(8).text(item.invoiceNumber, L + 10, y + 12, { width: 84 });
+      doc.fillColor(PDF_BRAND.ink).font("Helvetica-Bold").fontSize(8).text(item.assignmentCode, L + 100, y + 8, { width: 80 });
+      doc.fillColor(PDF_BRAND.ink).font("Helvetica").fontSize(8).text(item.assignmentTitle, L + 182, y + 8, { width: 96 });
+      doc.fillColor(PDF_BRAND.slate).text(formatPdfDate(item.scheduledDate), R - 145, y + 12, { width: 82 });
+      doc.fillColor(PDF_BRAND.ink).font("Helvetica-Bold").text(formatPdfEuroCents(item.itemAmountCents), R - 62, y + 12, { width: 62, align: "right" });
       y += 50;
     }
 
     y += 10;
-    if (y > 650) {
-      doc.addPage();
-      y = 55;
-    }
-    const totalsX = 330;
-    doc.roundedRect(totalsX, y, 210, 132, 12).fill(soft).strokeColor(border).stroke();
-    let ty = y + 18;
-    for (const [label, value, strong] of [
-      ["Subtotaal excl. BTW", fmtEurCents(batch.subtotalCents), false],
-      ["BTW", fmtEurCents(batch.vatCents), false],
-      ["Korting", `- ${fmtEurCents(batch.discountCents)}`, false],
-      ["Toeslag", fmtEurCents(batch.surchargeCents), false],
-      ["Totaal te betalen", fmtEurCents(batch.amountCents), true],
-    ] as const) {
-      doc.fillColor(strong ? navy : slate).font(strong ? "Helvetica-Bold" : "Helvetica").fontSize(strong ? 11 : 9);
-      doc.text(label, totalsX + 16, ty, { width: 105 });
-      doc.text(value, totalsX + 118, ty, { width: 76, align: "right" });
-      ty += strong ? 22 : 18;
-    }
+    y = ensurePdfPage(doc, y, 145);
+    y = drawPdfTotalPanel(doc, y, [
+      { label: "Subtotaal excl. BTW", value: formatPdfEuroCents(batch.subtotalCents) },
+      { label: "BTW", value: formatPdfEuroCents(batch.vatCents) },
+      { label: "Korting", value: `- ${formatPdfEuroCents(batch.discountCents)}` },
+      { label: "Toeslag", value: formatPdfEuroCents(batch.surchargeCents) },
+      { label: "Totaal te betalen", value: formatPdfEuroCents(batch.amountCents), strong: true },
+    ]);
 
-    const range = doc.bufferedPageRange();
-    for (let i = 0; i < range.count; i++) {
-      doc.switchToPage(i);
-      doc.fillColor(slate).font("Helvetica").fontSize(8)
-        .text("Veele Services - Verzamelfactuur", L, 800, { width: W, align: "center" });
-    }
+    drawPdfFooter(doc, "Veele Services - Verzamelfactuur gegenereerd vanuit Fieldgrid.");
     doc.end();
   });
 
   const pdfBuffer = Buffer.concat(chunks);
+  const filename = `${sanitizePdfFilename(`verzamelfactuur-${batch.id.slice(0, 8)}`, "verzamelfactuur")}.pdf`;
   return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {
       "Content-Type":        "application/pdf",
-      "Content-Disposition": `inline; filename="verzamelfactuur-${batch.id.slice(0, 8)}.pdf"`,
+      "Content-Disposition": `inline; filename="${filename}"`,
       "Content-Length":      String(pdfBuffer.byteLength),
     },
   });

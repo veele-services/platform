@@ -14,7 +14,7 @@ import {
   type AssignmentStatus,
   type InvoiceStatus,
 } from "@workspace/db";
-import { eq, ilike, or, and, asc, desc, sql, inArray, lt } from "drizzle-orm";
+import { eq, ilike, or, and, asc, desc, sql, inArray, lt, type SQL } from "drizzle-orm";
 import { emitInvoiceWorkflowEvent } from "@workspace/db/workflow-events";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -28,6 +28,7 @@ import type { ActionResult } from "./customers";
 export type { ActionResult, InvoiceStatus };
 
 const PAGE_SIZE = 25;
+const EXPORT_LIMIT = 5000;
 
 function parseAmountCents(value: string | null | undefined): number {
   const parsed = Number.parseFloat(value ?? "0");
@@ -36,6 +37,17 @@ function parseAmountCents(value: string | null | undefined): number {
 
 function centsToMollieValue(cents: number): string {
   return (cents / 100).toFixed(2);
+}
+
+function csvCell(value: string | number | null | undefined): string {
+  const text = String(value ?? "");
+  if (/[",\n\r]/u.test(text)) return `"${text.replace(/"/gu, '""')}"`;
+  return text;
+}
+
+function exportStamp(): string {
+  const now = new Date();
+  return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
 }
 
 function getBaseUrl(): string {
@@ -280,6 +292,96 @@ export async function listInvoices(params: {
       createdAt:      r.createdAt.toISOString(),
     })),
     total: count,
+  };
+}
+
+export async function exportInvoices(params: {
+  search?: string;
+  status?: string;
+}): Promise<ActionResult<{ csv: string; filename: string }>> {
+  await requirePermission("invoices", "read");
+
+  const tenantId = await requireCurrentTenantId();
+  const { search = "", status = "" } = params;
+  const conditions: SQL[] = [eq(assignmentsTable.tenantId, tenantId)];
+
+  if (search.trim()) {
+    const searchCondition = or(
+      ilike(invoicesTable.invoiceNumber, `%${search.trim()}%`),
+      ilike(customersTable.name, `%${search.trim()}%`),
+      ilike(assignmentsTable.code, `%${search.trim()}%`),
+    );
+    if (searchCondition) conditions.push(searchCondition);
+  }
+  if (status && (["draft", "sent", "paid", "cancelled"] as string[]).includes(status)) {
+    conditions.push(eq(invoicesTable.status, status));
+  }
+
+  const rows = await db
+    .select({
+      invoiceNumber: invoicesTable.invoiceNumber,
+      customerName: customersTable.name,
+      assignmentCode: assignmentsTable.code,
+      amount: invoicesTable.amount,
+      vatPercentage: invoicesTable.vatPercentage,
+      vatAmount: invoicesTable.vatAmount,
+      totalAmount: invoicesTable.totalAmount,
+      status: invoicesTable.status,
+      dueDate: invoicesTable.dueDate,
+      paidDate: invoicesTable.paidDate,
+      createdAt: invoicesTable.createdAt,
+    })
+    .from(invoicesTable)
+    .innerJoin(customersTable, eq(invoicesTable.customerId, customersTable.id))
+    .innerJoin(assignmentsTable, eq(invoicesTable.assignmentId, assignmentsTable.id))
+    .where(and(...conditions))
+    .orderBy(desc(invoicesTable.createdAt))
+    .limit(EXPORT_LIMIT);
+
+  const headers = [
+    "Factuurnummer",
+    "Klant",
+    "Opdracht",
+    "Subtotaal",
+    "BTW percentage",
+    "BTW bedrag",
+    "Totaal",
+    "Status",
+    "Vervaldatum",
+    "Betaaldatum",
+    "Aangemaakt op",
+  ];
+  const csv = [
+    headers.join(","),
+    ...rows.map((row) => [
+      row.invoiceNumber,
+      row.customerName,
+      row.assignmentCode,
+      row.amount ?? "0",
+      row.vatPercentage ?? "21",
+      row.vatAmount ?? "0",
+      row.totalAmount ?? "0",
+      row.status,
+      row.dueDate,
+      row.paidDate ?? "",
+      row.createdAt.toISOString().slice(0, 10),
+    ].map(csvCell).join(",")),
+  ].join("\n");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    await db.insert(auditLogTable).values({
+      userId: user.id,
+      action: "export_csv",
+      resource: "invoices",
+      metadata: { search, status, rowCount: rows.length },
+    });
+  }
+
+  return {
+    success: true,
+    data: { csv, filename: `facturen_${exportStamp()}.csv` },
   };
 }
 

@@ -16,6 +16,7 @@ import {
 import { and, asc, eq, inArray } from "drizzle-orm";
 import { getMyCustomerIdentity } from "@/actions/customer";
 import { generateCustomerInvoicePdf, type CustomerInvoicePdfLineItem } from "@/lib/invoice-pdf";
+import { sanitizePdfFilename } from "@/lib/pdf-style";
 
 export const runtime = "nodejs";
 
@@ -179,7 +180,7 @@ export async function GET(
   return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {
       "Content-Type":        "application/pdf",
-      "Content-Disposition": `inline; filename="${invoice.invoiceNumber.replace(/[^a-zA-Z0-9-_]/g, "-")}.pdf"`,
+      "Content-Disposition": `inline; filename="${sanitizePdfFilename(invoice.invoiceNumber, `factuur-${invoice.id.slice(0, 8)}`)}.pdf"`,
       "Content-Length":      String(pdfBuffer.byteLength),
     },
   });

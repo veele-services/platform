@@ -13,7 +13,7 @@ import {
   type AssignmentStatus,
   type QuoteStatus,
 } from "@workspace/db";
-import { eq, ilike, or, and, asc, desc, sql, lt } from "drizzle-orm";
+import { eq, ilike, or, and, asc, desc, sql, lt, type SQL } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
@@ -25,6 +25,7 @@ import type { ActionResult } from "./customers";
 export type { ActionResult, QuoteStatus };
 
 const PAGE_SIZE = 25;
+const EXPORT_LIMIT = 5000;
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -117,6 +118,17 @@ function formatEuro(value: string | null | undefined): string {
   return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(
     Number.isFinite(number) ? number : 0,
   );
+}
+
+function csvCell(value: string | number | null | undefined): string {
+  const text = String(value ?? "");
+  if (/[",\n\r]/u.test(text)) return `"${text.replace(/"/gu, '""')}"`;
+  return text;
+}
+
+function exportStamp(): string {
+  const now = new Date();
+  return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
 }
 
 function resolveSnapshotTaskLineItem(row: SnapshotTaskLineItemRow) {
@@ -275,6 +287,84 @@ export async function listQuotes(params: {
       createdAt:      r.createdAt.toISOString(),
     })),
     total: count ?? 0,
+  };
+}
+
+export async function exportQuotes(params: {
+  search?: string;
+  status?: string;
+}): Promise<ActionResult<{ csv: string; filename: string }>> {
+  await requirePermission("quotes", "read");
+
+  const tenantId = await requireCurrentTenantId();
+  const { search = "", status = "" } = params;
+  const conditions: SQL[] = [eq(assignmentsTable.tenantId, tenantId)];
+
+  if (search.trim()) {
+    const searchCondition = or(
+      ilike(quotesTable.quoteNumber, `%${search.trim()}%`),
+      ilike(customersTable.name, `%${search.trim()}%`),
+      ilike(assignmentsTable.code, `%${search.trim()}%`),
+    );
+    if (searchCondition) conditions.push(searchCondition);
+  }
+  if (status && ["draft", "sent", "approved", "rejected", "expired"].includes(status)) {
+    if (status === "expired") {
+      const expiredCondition = or(
+        eq(quotesTable.status, "expired"),
+        and(eq(quotesTable.status, "sent"), lt(quotesTable.validityDate, todayString())),
+      );
+      if (expiredCondition) conditions.push(expiredCondition);
+    } else {
+      conditions.push(eq(quotesTable.status, status));
+    }
+  }
+
+  const rows = await db
+    .select({
+      quoteNumber: quotesTable.quoteNumber,
+      customerName: customersTable.name,
+      assignmentCode: assignmentsTable.code,
+      amount: quotesTable.amount,
+      validityDate: quotesTable.validityDate,
+      status: quotesTable.status,
+      createdAt: quotesTable.createdAt,
+    })
+    .from(quotesTable)
+    .leftJoin(customersTable, eq(quotesTable.customerId, customersTable.id))
+    .innerJoin(assignmentsTable, eq(quotesTable.assignmentId, assignmentsTable.id))
+    .where(and(...conditions))
+    .orderBy(desc(quotesTable.createdAt))
+    .limit(EXPORT_LIMIT);
+
+  const headers = ["Offertenummer", "Klant", "Opdracht", "Bedrag", "Status", "Geldig tot", "Aangemaakt op"];
+  const csv = [
+    headers.join(","),
+    ...rows.map((row) => [
+      row.quoteNumber,
+      row.customerName ?? "",
+      row.assignmentCode ?? "",
+      row.amount ?? "0",
+      isExpired(row.status ?? "", row.validityDate ?? "") ? "expired" : row.status,
+      row.validityDate ?? "",
+      row.createdAt.toISOString().slice(0, 10),
+    ].map(csvCell).join(",")),
+  ].join("\n");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) {
+    await db.insert(auditLogTable).values({
+      userId: user.id,
+      action: "export_csv",
+      resource: "quotes",
+      metadata: { search, status, rowCount: rows.length },
+    });
+  }
+
+  return {
+    success: true,
+    data: { csv, filename: `offertes_${exportStamp()}.csv` },
   };
 }
 

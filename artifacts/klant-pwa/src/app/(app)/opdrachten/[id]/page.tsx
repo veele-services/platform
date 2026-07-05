@@ -9,6 +9,7 @@ import {
   CheckSquare,
   ChevronLeft,
   Clock,
+  Download,
   FileCheck2,
   FileText,
   MapPin,
@@ -293,9 +294,21 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
                 <p className="mt-3 text-xl font-black" style={{ color: "var(--color-primary)" }}>
                   {formatAmount(quote.amount)}
                 </p>
-                <Link href="/offertes" className="mt-2 inline-flex text-xs font-black" style={{ color: "var(--color-accent)" }}>
-                  Offertes bekijken
-                </Link>
+                <div className="mt-3 flex flex-wrap gap-3">
+                  <Link href="/offertes" className="inline-flex text-xs font-black" style={{ color: "var(--color-accent)" }}>
+                    Offertes bekijken
+                  </Link>
+                  <Link
+                    href={`/api/offerte/${quote.id}/pdf`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1 text-xs font-black"
+                    style={{ color: "var(--color-accent)" }}
+                  >
+                    <Download size={14} />
+                    PDF downloaden
+                  </Link>
+                </div>
               </div>
             ) : null}
             {invoice ? (

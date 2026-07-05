@@ -5,6 +5,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   Clock,
+  Download,
   FileText,
   XCircle,
 } from "lucide-react";
@@ -211,6 +212,9 @@ function quoteColumns(): Array<PortalDataColumn<CustomerQuote>> {
       align: "right",
       render: (quote) => (
         <PortalActionMenu label={`Acties voor offerte ${quote.quoteNumber}`}>
+          <PortalActionMenuLink href={`/api/offerte/${quote.id}/pdf`} external>
+            PDF downloaden
+          </PortalActionMenuLink>
           <PortalActionMenuLink href={`/opdrachten/${quote.assignmentId}`}>
             Opdracht bekijken
           </PortalActionMenuLink>
@@ -373,6 +377,16 @@ export default async function OffertesPage({
                 <QuoteStatusBadge quote={quote} />
               </div>
               <OfferteRegelitems lineItems={quote.lineItems} amount={quote.amount} />
+              <Link
+                href={`/api/offerte/${quote.id}/pdf`}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-black shadow-sm"
+                style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+              >
+                <Download size={16} />
+                PDF downloaden
+              </Link>
               <OfferteActieButtons assignmentId={quote.assignmentId} title={quote.assignmentTitle} />
             </article>
           ))}
@@ -424,6 +438,9 @@ export default async function OffertesPage({
             ) : null}
             <div className="mt-3 flex justify-end">
               <PortalActionMenu label={`Acties voor offerte ${quote.quoteNumber}`}>
+                <PortalActionMenuLink href={`/api/offerte/${quote.id}/pdf`} external>
+                  PDF downloaden
+                </PortalActionMenuLink>
                 <PortalActionMenuLink href={`/opdrachten/${quote.assignmentId}`}>
                   Opdracht bekijken
                 </PortalActionMenuLink>

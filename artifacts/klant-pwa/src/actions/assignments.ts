@@ -45,6 +45,7 @@ export type CustomerAssignment = {
   objectCity:       string | null;
   createdAt:        string;
   /** Linked quote (if any). */
+  quoteId:          string | null;
   quoteNumber:      string | null;
   quoteAmount:      string | null;
   quoteStatus:      QuoteStatus | null;
@@ -69,6 +70,7 @@ export async function getMyAssignments(): Promise<CustomerAssignment[]> {
       objectName:       objectsTable.name,
       objectAddress:    objectsTable.address,
       objectCity:       objectsTable.city,
+      quoteId:          quotesTable.id,
       quoteNumber:      quotesTable.quoteNumber,
       quoteAmount:      quotesTable.amount,
       quoteStatus:      quotesTable.status,
@@ -104,6 +106,7 @@ export async function getMyAssignments(): Promise<CustomerAssignment[]> {
     objectAddress:    r.objectAddress ?? null,
     objectCity:       r.objectCity ?? null,
     createdAt:        r.createdAt.toISOString(),
+    quoteId:          r.quoteId ?? null,
     quoteNumber:      r.quoteNumber ?? null,
     quoteAmount:      r.quoteAmount ?? null,
     quoteStatus:      (r.quoteStatus ?? null) as QuoteStatus | null,

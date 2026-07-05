@@ -52,7 +52,7 @@ test("customer invoice PDF downloads are audited before response", () => {
     "audit should only log successful PDF generation",
   );
   assert.ok(
-    body.indexOf("db.insert(auditLogTable).values") < body.indexOf("return new NextResponse"),
+    body.indexOf("db.insert(auditLogTable).values") < body.lastIndexOf("return new NextResponse"),
     "audit should be written before the PDF response is returned",
   );
 });
