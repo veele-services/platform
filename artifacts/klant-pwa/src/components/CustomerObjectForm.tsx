@@ -166,6 +166,56 @@ export function CustomerObjectForm({ mode, sectors, object }: Props) {
 
   return (
     <form action={formAction} className="space-y-4">
+      {mode === "create" ? (
+        <Section
+          icon={<ShieldCheck size={20} />}
+          title="Review en activering"
+          description="Kies hoe dit object na opslaan behandeld moet worden. Zo wordt een nieuwe locatie niet ongemerkt operationeel actief."
+        >
+          <div className="grid gap-3 md:grid-cols-3">
+            {[
+              {
+                value: "concept",
+                title: "Concept bewaren",
+                text: "Nog niet gebruiken voor aanvragen. U kunt de gegevens later aanvullen.",
+              },
+              {
+                value: "review",
+                title: "Ter review aanbieden",
+                text: "Aanbevolen. Het object blijft inactief totdat de backoffice het controleert.",
+              },
+              {
+                value: "approved",
+                title: "Direct actief gebruiken",
+                text: "Alle gegevens zijn compleet en het object mag direct gebruikt worden.",
+              },
+            ].map((option) => (
+              <label
+                key={option.value}
+                className="flex cursor-pointer gap-3 rounded-2xl border bg-white p-4"
+                style={{ borderColor: "var(--color-border)" }}
+              >
+                <input
+                  type="radio"
+                  name="reviewMode"
+                  value={option.value}
+                  defaultChecked={option.value === "review"}
+                  className="mt-1 h-4 w-4 accent-[#00B7B3]"
+                />
+                <span className="min-w-0">
+                  <span className="block text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                    {option.title}
+                  </span>
+                  <span className="mt-1 block text-xs font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
+                    {option.text}
+                  </span>
+                </span>
+              </label>
+            ))}
+          </div>
+        </Section>
+      ) : null}
+
       <Section
         icon={<Building2 size={20} />}
         title="Objectgegevens"
@@ -343,7 +393,7 @@ export function CustomerObjectForm({ mode, sectors, object }: Props) {
       <Section
         icon={<ShieldCheck size={20} />}
         title="Vaste instructies"
-        description="Afspraken die bij iedere aanvraag of werkbon voor dit object moeten worden meegenomen."
+        description="Instructies die bij iedere aanvraag of werkbon voor dit object moeten worden meegenomen."
       >
         <div className="grid gap-4 md:grid-cols-2">
           <TextArea

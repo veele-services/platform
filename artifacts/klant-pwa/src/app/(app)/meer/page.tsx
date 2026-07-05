@@ -3,11 +3,11 @@ export const dynamic = "force-dynamic";
 import Link from "next/link";
 import {
   Building2,
+  CalendarDays,
   FileCheck2,
   FileText,
   Headphones,
   MailOpen,
-  Receipt,
   Settings,
   ShieldCheck,
   UserCircle,
@@ -16,15 +16,16 @@ import {
 import { PageShell } from "@/components/PageShell";
 
 const ITEMS = [
-  { href: "/profiel",      label: "Profiel",       description: "Contactgegevens en bedrijfsprofiel.", Icon: UserCircle },
-  { href: "/beveiliging",  label: "Beveiliging",   description: "Wachtwoord en toegang beveiligen.", Icon: ShieldCheck },
-  { href: "/instellingen", label: "Instellingen",  description: "E-mail- en notificatievoorkeuren.", Icon: Settings },
-  { href: "/facturen",     label: "Facturen",      description: "Openstaande en betaalde facturen.", Icon: Receipt },
-  { href: "/betalingen",   label: "Betalingen",    description: "Mollie betalingen en verzamelbetalingen.", Icon: WalletCards },
-  { href: "/rapporten",    label: "Rapportages",   description: "Goedgekeurde werkrapportages.", Icon: FileCheck2 },
-  { href: "/documenten",   label: "Documenten",    description: "Gedeelde documenten downloaden.", Icon: FileText },
-  { href: "/objecten",     label: "Objecten",      description: "Uw locaties en objectinformatie.", Icon: Building2 },
-  { href: "/meldingen",    label: "Meldingen",     description: "Actuele meldingen en acties.", Icon: MailOpen },
+  { href: "/opdrachten",        label: "Opdrachten",   description: "Status, planning en opdrachtgeschiedenis.", Icon: CalendarDays },
+  { href: "/objecten",          label: "Objecten",     description: "Uw locaties en objectinformatie.", Icon: Building2 },
+  { href: "/meldingen/tickets", label: "Support",      description: "Tickets bekijken of een vraag stellen.", Icon: Headphones },
+  { href: "/financieel",        label: "Financieel",   description: "Facturen, betalingen en offertes.", Icon: WalletCards },
+  { href: "/documenten",        label: "Documenten",   description: "Gedeelde documenten downloaden.", Icon: FileText },
+  { href: "/rapporten",         label: "Rapportages",  description: "Goedgekeurde werkrapportages.", Icon: FileCheck2 },
+  { href: "/meldingen",         label: "Meldingen",    description: "Actuele meldingen en acties.", Icon: MailOpen },
+  { href: "/profiel",           label: "Profiel",      description: "Contactgegevens en bedrijfsprofiel.", Icon: UserCircle },
+  { href: "/beveiliging",       label: "Beveiliging",  description: "Wachtwoord en toegang beveiligen.", Icon: ShieldCheck },
+  { href: "/instellingen",      label: "Instellingen", description: "E-mail- en notificatievoorkeuren.", Icon: Settings },
 ];
 
 export default function MeerPage() {
@@ -65,9 +66,15 @@ export default function MeerPage() {
               Hulp & contact
             </h2>
             <p className="mt-1 text-sm font-semibold leading-6" style={{ color: "var(--color-secondary)" }}>
-              Voor spoed of vragen over lopende aanvragen kunt u contact opnemen met Veele Services.
-              De ticketfunctie voor klanten wordt later op deze plek uitgebreid.
+              Stel een vraag over een object, opdracht, factuur of algemeen onderwerp via Support.
             </p>
+            <Link
+              href="/meldingen/tickets"
+              className="mt-4 inline-flex rounded-2xl px-4 py-2.5 text-sm font-black text-white"
+              style={{ backgroundColor: "var(--color-accent)" }}
+            >
+              Naar Support
+            </Link>
           </div>
         </div>
       </section>

@@ -11,7 +11,8 @@ type OfflineActionBase = {
     | "set-task-completion"
     | "add-report-note"
     | "add-extra-work"
-    | "add-material-usage";
+    | "add-material-usage"
+    | "add-inventory-usage";
   assignmentId: string;
   createdAt: string;
   updatedAt: string;
@@ -59,6 +60,7 @@ export type OfflineWorkOrderAction =
         description: string;
         hours?: string | null;
         price?: string | null;
+        clientMutationId?: string | null;
       };
     })
   | (OfflineActionBase & {
@@ -77,6 +79,19 @@ export type OfflineWorkOrderAction =
         isOther?: boolean;
         clientMutationId?: string | null;
       };
+    })
+  | (OfflineActionBase & {
+      type: "add-inventory-usage";
+      payload: {
+        inventoryItemId: string;
+        inventoryCode?: string | null;
+        name?: string | null;
+        usageType?: string | null;
+        quantity?: string | number | null;
+        periodLabel?: string | null;
+        notes?: string | null;
+        clientMutationId?: string | null;
+      };
     });
 
 export type OfflineWorkOrderActionInput =
@@ -93,7 +108,9 @@ export type OfflineWorkOrderActionInput =
   | Omit<Extract<OfflineWorkOrderAction, { type: "add-extra-work" }>, keyof OfflineActionBase>
     & Pick<Extract<OfflineWorkOrderAction, { type: "add-extra-work" }>, "type" | "assignmentId" | "payload">
   | Omit<Extract<OfflineWorkOrderAction, { type: "add-material-usage" }>, keyof OfflineActionBase>
-    & Pick<Extract<OfflineWorkOrderAction, { type: "add-material-usage" }>, "type" | "assignmentId" | "payload">;
+    & Pick<Extract<OfflineWorkOrderAction, { type: "add-material-usage" }>, "type" | "assignmentId" | "payload">
+  | Omit<Extract<OfflineWorkOrderAction, { type: "add-inventory-usage" }>, keyof OfflineActionBase>
+    & Pick<Extract<OfflineWorkOrderAction, { type: "add-inventory-usage" }>, "type" | "assignmentId" | "payload">;
 
 const QUEUE_KEY = "veele-personeel-offline-work-order-actions-v1";
 const QUEUE_EVENT = "veele:offline-work-order-queue";
@@ -123,6 +140,7 @@ function isActionType(value: unknown): value is OfflineWorkOrderAction["type"] {
     "add-report-note",
     "add-extra-work",
     "add-material-usage",
+    "add-inventory-usage",
   ].includes(String(value));
 }
 
@@ -154,7 +172,7 @@ function normalizeAction(item: unknown): OfflineWorkOrderAction | null {
   }
 
   if (
-    ["complete-assignment", "not-complete-assignment", "add-report-note", "add-extra-work", "add-material-usage"].includes(
+    ["complete-assignment", "not-complete-assignment", "add-report-note", "add-extra-work", "add-material-usage", "add-inventory-usage"].includes(
       base.type,
     ) && (!base.payload || typeof base.payload !== "object")
   ) {
@@ -215,6 +233,10 @@ export function enqueueOfflineWorkOrderAction(
     if (nextAction.type === "set-task-completion") {
       return queued.type !== "set-task-completion" || queued.taskId !== nextAction.taskId;
     }
+    if (nextAction.type === "add-inventory-usage") {
+      return queued.type !== "add-inventory-usage"
+        || queued.payload.inventoryItemId !== nextAction.payload.inventoryItemId;
+    }
     return true;
   });
 
@@ -226,6 +248,15 @@ export function enqueueOfflineWorkOrderAction(
 export function removeOfflineWorkOrderAction(id: string) {
   const queue = readOfflineWorkOrderQueue();
   writeOfflineWorkOrderQueue(queue.filter((action) => action.id !== id));
+}
+
+export function removeOfflineWorkOrderActionsByClientMutationId(clientMutationId: string) {
+  const queue = readOfflineWorkOrderQueue();
+  writeOfflineWorkOrderQueue(queue.filter((action) => {
+    if (!("payload" in action) || !action.payload || typeof action.payload !== "object") return true;
+    const payload = action.payload as Record<string, unknown>;
+    return payload["clientMutationId"] !== clientMutationId;
+  }));
 }
 
 export function updateOfflineWorkOrderAction(

@@ -6,7 +6,18 @@ import { getMyCustomerId } from "@/actions/customer";
 import { redirect } from "next/navigation";
 import { PageShell } from "@/components/PageShell";
 
-export default async function AanvragenPage() {
+type Props = {
+  searchParams: Promise<{ prioriteit?: string }>;
+};
+
+function initialPriorityFromSearch(value: string | undefined): "low" | "normal" | "high" | "urgent" {
+  return value === "low" || value === "normal" || value === "high" || value === "urgent"
+    ? value
+    : "normal";
+}
+
+export default async function AanvragenPage({ searchParams }: Props) {
+  const { prioriteit } = await searchParams;
   const customerId = await getMyCustomerId();
   if (!customerId) {
     redirect("/login?error=" + encodeURIComponent("Geen klantprofiel gevonden."));
@@ -20,7 +31,11 @@ export default async function AanvragenPage() {
   return (
     <PageShell title="Opdracht aanvragen" subtitle="Vul het formulier in en wij nemen zo snel mogelijk contact op.">
       <div className="rounded-2xl bg-white p-5 shadow-sm">
-        <RequestAssignmentForm objects={objects} sectors={sectors} />
+        <RequestAssignmentForm
+          objects={objects}
+          sectors={sectors}
+          initialPriority={initialPriorityFromSearch(prioriteit)}
+        />
       </div>
     </PageShell>
   );

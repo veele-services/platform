@@ -1,14 +1,17 @@
 "use server";
 
 import { db } from "@workspace/db";
-import { reportsTable, assignmentsTable } from "@workspace/db";
+import { reportsTable, assignmentsTable, objectsTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
 import { getMyCustomerIdentity } from "./customer";
 
 export type CustomerReport = {
   id:              string;
   assignmentId:    string;
+  assignmentCode:  string;
   assignmentTitle: string;
+  objectId:        string | null;
+  objectName:      string | null;
   submittedAt:     string;
   hoursWorked:     string | null;
   /** Customer-visible report body. Internal review notes are never exposed here. */
@@ -28,13 +31,17 @@ export async function getMyReports(): Promise<CustomerReport[]> {
     .select({
       id:              reportsTable.id,
       assignmentId:    reportsTable.assignmentId,
+      assignmentCode:  assignmentsTable.code,
       assignmentTitle: assignmentsTable.title,
+      objectId:        assignmentsTable.objectId,
+      objectName:      objectsTable.name,
       submittedAt:     reportsTable.submittedAt,
       hoursWorked:     reportsTable.hoursWorked,
       customerVisibleSummary: reportsTable.content,
     })
     .from(reportsTable)
     .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
+    .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
     .where(
       and(
         eq(assignmentsTable.customerId, identity.customerId),
@@ -47,7 +54,10 @@ export async function getMyReports(): Promise<CustomerReport[]> {
   return rows.map((r) => ({
     id:              r.id,
     assignmentId:    r.assignmentId,
+    assignmentCode:  r.assignmentCode,
     assignmentTitle: r.assignmentTitle,
+    objectId:        r.objectId ?? null,
+    objectName:      r.objectName ?? null,
     submittedAt:     r.submittedAt.toISOString(),
     hoursWorked:     r.hoursWorked ?? null,
     customerVisibleSummary: r.customerVisibleSummary,

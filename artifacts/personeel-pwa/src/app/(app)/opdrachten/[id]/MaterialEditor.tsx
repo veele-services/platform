@@ -10,6 +10,7 @@ import {
 import {
   enqueueOfflineWorkOrderAction,
   isOfflineNow,
+  removeOfflineWorkOrderActionsByClientMutationId,
 } from "@/lib/offline/work-order-queue";
 import {
   formatQuantity,
@@ -209,7 +210,13 @@ export function MaterialEditor({ assignmentId, initialItems, catalog, canEdit }:
 
   function handleDelete(item: MaterialUsageItem) {
     if (item.id.startsWith("local-material-")) {
+      removeOfflineWorkOrderActionsByClientMutationId(item.id.replace("local-material-", ""));
       setItems((current) => current.filter((currentItem) => currentItem.id !== item.id));
+      return;
+    }
+
+    if (isOfflineNow()) {
+      setError("Verwijderen is online-only. Probeer opnieuw zodra je verbinding hebt; offline toevoegingen kun je wel direct verwijderen.");
       return;
     }
 

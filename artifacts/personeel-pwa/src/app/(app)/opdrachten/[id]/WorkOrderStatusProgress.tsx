@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Check, Play, X } from "lucide-react";
 import { startAssignment } from "@/actions/assignments";
+import { PersonnelConfirmDialog } from "@/components/PersonnelConfirmDialog";
 import {
   enqueueOfflineWorkOrderAction,
   isOfflineNow,
@@ -118,6 +119,7 @@ export function InteractiveStatusProgress({ assignment }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [startDialogOpen, setStartDialogOpen] = useState(false);
   const [finishDialogOpen, setFinishDialogOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
@@ -128,18 +130,24 @@ export function InteractiveStatusProgress({ assignment }: Props) {
   const canStart = status === "scheduled" || status === "seen";
   const canFinish = status === "in_progress";
 
-  async function handleStart() {
+  function handleStart() {
     setError(null);
     setNotice(null);
     if (!canStart || isPending) return;
-    const confirmed = window.confirm("Weet je zeker dat je aan de werkzaamheden gaat beginnen?");
-    if (!confirmed) return;
+    setStartDialogOpen(true);
+  }
+
+  function confirmStart() {
+    setError(null);
+    setNotice(null);
+    if (!canStart || isPending) return;
 
     if (isOfflineNow()) {
       enqueueOfflineWorkOrderAction({
         type: "start-assignment",
         assignmentId: assignment.id,
       });
+      setStartDialogOpen(false);
       setNotice("Starten is offline opgeslagen en wordt automatisch gesynchroniseerd.");
       return;
     }
@@ -147,9 +155,11 @@ export function InteractiveStatusProgress({ assignment }: Props) {
     startTransition(async () => {
       const result = await startAssignment(assignment.id);
       if (!result.success) {
+        setStartDialogOpen(false);
         setError(result.error ?? "Starten mislukt");
         return;
       }
+      setStartDialogOpen(false);
       router.refresh();
     });
   }
@@ -259,6 +269,15 @@ export function InteractiveStatusProgress({ assignment }: Props) {
       {finishDialogOpen ? (
         <FinishChoiceDialog assignmentId={assignment.id} onClose={() => setFinishDialogOpen(false)} />
       ) : null}
+      <PersonnelConfirmDialog
+        open={startDialogOpen}
+        title="Werkzaamheden starten?"
+        description="Hiermee zet je de werkbon op gestart. Gebruik dit zodra je daadwerkelijk met de werkzaamheden begint."
+        confirmLabel="Start werkzaamheden"
+        pending={isPending}
+        onConfirm={confirmStart}
+        onClose={() => setStartDialogOpen(false)}
+      />
     </section>
   );
 }

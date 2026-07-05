@@ -3,19 +3,19 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
-  Bell,
   Building2,
+  CalendarDays,
+  Headphones,
   Home,
   Menu,
-  Send,
 } from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/",                    icon: Home,      label: "Home",      match: ["/"] },
-  { href: "/objecten",            icon: Building2, label: "Objecten",  match: ["/objecten"] },
-  { href: "/opdrachten/aanvragen", icon: Send,      label: "Aanvragen", match: ["/opdrachten/aanvragen"] },
-  { href: "/meldingen",           icon: Bell,      label: "Meldingen", match: ["/meldingen"] },
-  { href: "/meer",                icon: Menu,      label: "Meer",      match: ["/meer", "/profiel", "/beveiliging", "/instellingen", "/facturen", "/rapporten", "/documenten", "/betalingen", "/offertes"] },
+  { href: "/",                  icon: Home,         label: "Home",       match: ["/"] },
+  { href: "/opdrachten",        icon: CalendarDays, label: "Opdrachten", match: ["/opdrachten"] },
+  { href: "/objecten",          icon: Building2,    label: "Objecten",   match: ["/objecten"] },
+  { href: "/meldingen/tickets", icon: Headphones,   label: "Support",    match: ["/meldingen"] },
+  { href: "/meer",              icon: Menu,         label: "Meer",       match: ["/meer", "/profiel", "/beveiliging", "/instellingen", "/financieel", "/facturen", "/rapporten", "/documenten", "/betalingen", "/offertes"] },
 ];
 
 export function BottomNav() {

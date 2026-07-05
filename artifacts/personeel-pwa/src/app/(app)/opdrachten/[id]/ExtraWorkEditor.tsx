@@ -11,6 +11,7 @@ import {
 import {
   enqueueOfflineWorkOrderAction,
   isOfflineNow,
+  removeOfflineWorkOrderActionsByClientMutationId,
 } from "@/lib/offline/work-order-queue";
 import {
   calculateExtraWorkLineTotal,
@@ -62,6 +63,7 @@ export function ExtraWorkEditor({ assignmentId, initialItems, taskCodes, canEdit
   const [items, setItems] = useState<ExtraWorkItem[]>(initialItems);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
@@ -87,6 +89,7 @@ export function ExtraWorkEditor({ assignmentId, initialItems, taskCodes, canEdit
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
+    setNotice(null);
 
     const description = form.description.trim();
     if (!description) {
@@ -94,12 +97,17 @@ export function ExtraWorkEditor({ assignmentId, initialItems, taskCodes, canEdit
       return;
     }
 
+    const clientMutationId =
+      typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `extra-work-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const input = {
       taskCodeId:   form.taskCodeId || null,
       taskCodeName: form.taskCodeName || null,
       description,
       hours:        form.hours || null,
       price:        form.price || null,
+      clientMutationId,
     };
 
     startTransition(async () => {
@@ -114,13 +122,18 @@ export function ExtraWorkEditor({ assignmentId, initialItems, taskCodes, canEdit
         setItems((current) => [
           ...current,
           {
-            id:           `local-${Date.now()}`,
-            ...input,
+            id:           `local-extra-work-${clientMutationId}`,
+            taskCodeId:   input.taskCodeId,
+            taskCodeName: input.taskCodeName,
+            description:  input.description,
+            hours:        input.hours,
+            price:        input.price,
             createdBy:    "local",
             photos:       [],
           },
         ]);
         setForm(EMPTY_FORM);
+        setNotice("Meerwerk is offline opgeslagen en wordt automatisch gesynchroniseerd.");
         return;
       }
 
@@ -134,7 +147,11 @@ export function ExtraWorkEditor({ assignmentId, initialItems, taskCodes, canEdit
         ...current,
         {
           id:        result.id!,
-          ...input,
+          taskCodeId: input.taskCodeId,
+          taskCodeName: input.taskCodeName,
+          description: input.description,
+          hours: input.hours,
+          price: input.price,
           createdBy: "",
           photos:    [],
         },
@@ -144,6 +161,17 @@ export function ExtraWorkEditor({ assignmentId, initialItems, taskCodes, canEdit
   }
 
   function handleDelete(item: ExtraWorkItem) {
+    if (item.id.startsWith("local-extra-work-")) {
+      removeOfflineWorkOrderActionsByClientMutationId(item.id.replace("local-extra-work-", ""));
+      setItems((current) => current.filter((currentItem) => currentItem.id !== item.id));
+      return;
+    }
+
+    if (isOfflineNow()) {
+      setError("Verwijderen is online-only. Probeer opnieuw zodra je verbinding hebt; offline toevoegingen kun je wel direct verwijderen.");
+      return;
+    }
+
     setDeletingId(item.id);
     startTransition(async () => {
       try {
@@ -294,6 +322,11 @@ export function ExtraWorkEditor({ assignmentId, initialItems, taskCodes, canEdit
             {error ? (
               <p className="rounded-2xl px-3 py-2 text-[13px] font-bold" style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}>
                 {error}
+              </p>
+            ) : null}
+            {notice ? (
+              <p className="rounded-2xl px-3 py-2 text-[13px] font-bold" style={{ backgroundColor: "#E9FBF8", color: "#0A837F" }}>
+                {notice}
               </p>
             ) : null}
 

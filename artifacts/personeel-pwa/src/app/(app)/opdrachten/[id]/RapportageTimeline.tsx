@@ -257,6 +257,10 @@ export function RapportageTimeline({ assignmentId, initialNotes, canAdd, canPers
 
   function addFiles(fileList: FileList | null) {
     if (!fileList) return;
+    if (isOfflineNow()) {
+      setError("Bijlagen en foto's zijn online-only. Voeg ze toe zodra je verbinding hebt; tekstnotities kun je offline opslaan.");
+      return;
+    }
 
     const slotsLeft = Math.max(0, MAX_REPORT_NOTE_ATTACHMENTS - files.length);
     if (slotsLeft <= 0) {
@@ -537,7 +541,7 @@ export function RapportageTimeline({ assignmentId, initialNotes, canAdd, canPers
           ) : null}
 
           <p className="text-[12px] font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
-            Maximaal {MAX_REPORT_NOTE_ATTACHMENTS} bijlagen. Foto's tot {formatUploadLimit(MAX_ASSIGNMENT_IMAGE_BYTES)}, video's tot {formatUploadLimit(MAX_ASSIGNMENT_VIDEO_BYTES)}.
+            Maximaal {MAX_REPORT_NOTE_ATTACHMENTS} bijlagen. Foto&apos;s tot {formatUploadLimit(MAX_ASSIGNMENT_IMAGE_BYTES)}, video&apos;s tot {formatUploadLimit(MAX_ASSIGNMENT_VIDEO_BYTES)}. Bijlagen uploaden is online-only; tekstnotities worden offline gesynchroniseerd.
           </p>
 
           <div className="flex gap-2">

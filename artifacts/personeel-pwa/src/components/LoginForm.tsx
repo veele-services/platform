@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useActionState } from "react";
+import Link from "next/link";
 import { signIn } from "@/actions/auth";
 import { Eye, EyeOff, Zap } from "lucide-react";
 
@@ -113,13 +114,13 @@ export function LoginForm({ next }: { next?: string | null }) {
       </button>
 
       <div className="text-center">
-        <a
-          href="/personeel/wachtwoord-vergeten"
+        <Link
+          href="/wachtwoord-vergeten"
           className="text-sm"
           style={{ color: "#64748B" }}
         >
           Wachtwoord vergeten?
-        </a>
+        </Link>
       </div>
 
       {/* ── DEV only: quick-access buttons ────────────────────────────── */}

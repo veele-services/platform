@@ -5,6 +5,11 @@ import {
   pool,
   pushSubscriptionsTable,
 } from "@workspace/db";
+import {
+  sanitizeBackofficeHref,
+  sanitizeCustomerPortalHref,
+  sanitizePersonnelPortalHref,
+} from "@workspace/db/portal-routes";
 import { sendEmailWithResult } from "./email";
 import { logger as defaultLogger } from "./logger";
 import { sendFcmPush } from "./native-push";
@@ -363,30 +368,27 @@ async function recordAttempt(
   }
 }
 
+function withBasePath(path: string, basePath: string): string {
+  if (path === basePath || path.startsWith(`${basePath}/`)) return path;
+  return path === "/" ? basePath : `${basePath}${path}`;
+}
+
 function normalizePortalHref(recipientType: string, href: unknown): string {
+  const rawHref = typeof href === "string" ? href : null;
   const basePath =
     recipientType === "personnel"
       ? "/personeel"
       : recipientType === "customer"
         ? "/klant"
         : "";
-  const fallback = basePath ? `${basePath}/meldingen` : "/meldingen";
 
-  if (typeof href !== "string" || href.trim().length === 0) {
-    return fallback;
+  if (recipientType === "personnel") {
+    return withBasePath(sanitizePersonnelPortalHref(rawHref), basePath);
   }
-
-  const trimmed = href.trim();
-  if (/^https?:\/\//iu.test(trimmed)) {
-    return trimmed;
+  if (recipientType === "customer") {
+    return withBasePath(sanitizeCustomerPortalHref(rawHref), basePath);
   }
-
-  const path = trimmed.startsWith("/") ? trimmed : `/${trimmed}`;
-  if (!basePath || path === basePath || path.startsWith(`${basePath}/`)) {
-    return path;
-  }
-
-  return `${basePath}${path}`;
+  return sanitizeBackofficeHref(rawHref);
 }
 
 function normalizeUrgency(value: unknown): WebPushUrgency {
@@ -398,7 +400,12 @@ function normalizeUrgency(value: unknown): WebPushUrgency {
 
 function buildPayload(item: QueueRow): WebPushPayload {
   const payload = toRecord(item.payload);
-  const href = normalizePortalHref(item.recipient_type, payload["href"]);
+  const href = normalizePortalHref(
+    item.recipient_type,
+    item.recipient_type === "management"
+      ? payload["backofficeHref"] ?? payload["href"]
+      : payload["href"],
+  );
   const priority =
     typeof payload["priority"] === "string" ? payload["priority"] : "normal";
   const urgency = normalizeUrgency(payload["urgency"] ?? priority);

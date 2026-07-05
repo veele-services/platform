@@ -2,9 +2,7 @@
 
 import { useActionState, useEffect, useState, useTransition } from "react";
 import {
-  BellRing,
   CalendarClock,
-  CheckCircle2,
   Clock3,
   Loader2,
   Mail,
@@ -36,6 +34,10 @@ import {
   unregisterNativePush,
   type NativePushRegistration,
 } from "@/lib/native-push";
+import {
+  PersonnelSettingsFeedback,
+  PersonnelSettingsSaveBar,
+} from "@/components/SettingsShell";
 
 const OPTIONS = [
   {
@@ -528,40 +530,24 @@ export function NotificationSettingsForm({
       })}
 
       {state?.error ? (
-        <p className="rounded-2xl bg-red-50 px-3 py-2.5 text-sm font-bold text-red-600">
+        <PersonnelSettingsFeedback type="error">
           {state.error}
-        </p>
+        </PersonnelSettingsFeedback>
       ) : null}
       {state?.success ? (
-        <p className="flex items-center gap-2 rounded-2xl bg-emerald-50 px-3 py-2.5 text-sm font-bold text-emerald-700">
-          <CheckCircle2 size={17} strokeWidth={2.4} />
+        <PersonnelSettingsFeedback type="success">
           Voorkeuren opgeslagen
-        </p>
+        </PersonnelSettingsFeedback>
       ) : null}
 
-      <button
-        type="submit"
-        disabled={isPending}
-        className="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#00B7B3] px-4 py-3.5 text-base font-black text-white shadow-lg disabled:opacity-60"
-      >
-        {isPending ? (
-          <Loader2 size={19} className="animate-spin" />
-        ) : (
-          <BellRing size={19} strokeWidth={2.4} />
-        )}
-        Meldingen opslaan
-      </button>
+      <PersonnelSettingsSaveBar pending={isPending} label="Meldingen opslaan" />
 
       {pushStatus ? (
-        <p
-          className={`rounded-2xl px-3 py-2.5 text-sm font-bold ${
-            pushStatus.type === "success"
-              ? "bg-emerald-50 text-emerald-700"
-              : "bg-amber-50 text-amber-800"
-          }`}
+        <PersonnelSettingsFeedback
+          type={pushStatus.type === "success" ? "success" : "warning"}
         >
           {pushStatus.text}
-        </p>
+        </PersonnelSettingsFeedback>
       ) : null}
     </form>
   );

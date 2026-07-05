@@ -2,10 +2,12 @@ import Link from "next/link";
 import {
   CalendarCheck,
   ChevronRight,
+  Bell,
   FileText,
   FolderOpen,
   LogOut,
   MessageSquare,
+  Newspaper,
   Plane,
   Settings,
 } from "lucide-react";
@@ -14,8 +16,10 @@ import { signOut } from "@/actions/auth";
 export const dynamic = "force-dynamic";
 
 const MORE_LINKS = [
-  { href: "/instellingen", label: "Instellingen", description: "Profiel, beveiliging en meldingen", Icon: Settings },
+  { href: "/nieuws", label: "Nieuws", description: "Updates en interne berichten", Icon: Newspaper },
   { href: "/berichten", label: "Berichten", description: "Tickets met afdelingen", Icon: MessageSquare },
+  { href: "/meldingen", label: "Meldingen", description: "Notificaties en acties", Icon: Bell },
+  { href: "/instellingen", label: "Instellingen", description: "Profiel, beveiliging en meldingen", Icon: Settings },
   { href: "/beschikbaarheid", label: "Beschikbaarheid", description: "Beschikbare dagen beheren", Icon: CalendarCheck },
   { href: "/verlof", label: "Verlof", description: "Verlofaanvragen bekijken en indienen", Icon: Plane },
   { href: "/documenten", label: "Documenten", description: "Bestanden en formulieren", Icon: FolderOpen },

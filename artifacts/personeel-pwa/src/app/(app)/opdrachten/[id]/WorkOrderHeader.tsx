@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { MobileHeaderActions, VeeleLogo } from "@/components/MobileHeader";
+import { MobileHeaderBar, VeeleLogo } from "@/components/MobileHeader";
 import { getMyTicketSummary } from "@/actions/messages";
 import { getMyNotificationSummary } from "@/actions/notifications";
 import { getHeaderStatus, type AssignmentView, type WorkOrderTab } from "./work-order-data";
@@ -33,23 +33,22 @@ export async function WorkOrderHeader({ assignment, activeTab }: Props) {
       className="overflow-hidden text-white md:rounded-t-[32px]"
       style={{ background: "linear-gradient(180deg, #06224A 0%, #061F44 100%)" }}
     >
-      <div className="flex items-center justify-between gap-3 px-4 pb-4 pt-[calc(0.9rem+var(--safe-top))]">
-        <div className="flex min-w-0 items-center gap-3">
-          <Link
-            href="/opdrachten"
-            className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white active:scale-95"
-            aria-label="Terug naar planning"
-          >
-            <ChevronLeft size={29} strokeWidth={2.35} />
-          </Link>
-          <VeeleLogo />
-        </div>
-
-        <MobileHeaderActions
-          notificationSummary={notificationSummary}
-          ticketSummary={ticketSummary}
-        />
-      </div>
+      <MobileHeaderBar
+        notificationSummary={notificationSummary}
+        ticketSummary={ticketSummary}
+        leading={
+          <div className="flex min-w-0 items-center gap-3">
+            <Link
+              href="/opdrachten"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-white active:scale-95"
+              aria-label="Terug naar planning"
+            >
+              <ChevronLeft size={29} strokeWidth={2.35} />
+            </Link>
+            <VeeleLogo />
+          </div>
+        }
+      />
 
       <div className="flex items-end justify-between gap-3 px-5 pb-7 pt-4">
         <div className="min-w-0">

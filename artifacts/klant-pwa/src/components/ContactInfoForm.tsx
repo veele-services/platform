@@ -4,6 +4,7 @@ import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Pencil, X, Check, Loader2, Phone, Smartphone, User } from "lucide-react";
 import { updateMyContactInfo, type UpdateContactResult } from "@/actions/customer";
+import { CustomerSettingsFeedback } from "./SettingsShell";
 
 const initialState: UpdateContactResult = { success: false, error: "" } as unknown as UpdateContactResult;
 
@@ -188,29 +189,32 @@ export function ContactInfoForm({ contactName, contactPhone, mobile }: Props) {
         </div>
 
         {state && !state.success && "error" in state && state.error && (
-          <p className="rounded-xl px-3 py-2 text-sm font-medium" style={{ backgroundColor: "#FEF2F2", color: "#E02D3C" }}>
-            {state.error}
-          </p>
+          <CustomerSettingsFeedback type="error">{state.error}</CustomerSettingsFeedback>
         )}
 
-        <button
-          type="submit"
-          disabled={pending}
-          className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white transition-opacity disabled:opacity-60"
-          style={{ backgroundColor: "var(--color-accent)" }}
+        <div
+          className="sticky bottom-[calc(4.9rem+var(--safe-bottom))] -mx-4 border-t bg-white/95 px-4 py-3 backdrop-blur md:bottom-4"
+          style={{ borderColor: "var(--color-border)" }}
         >
-          {pending ? (
-            <>
-              <Loader2 size={16} className="animate-spin" />
-              Opslaan…
-            </>
-          ) : (
-            <>
-              <Check size={16} />
-              Opslaan
-            </>
-          )}
-        </button>
+          <button
+            type="submit"
+            disabled={pending}
+            className="flex w-full items-center justify-center gap-2 rounded-xl py-3 text-sm font-bold text-white transition-opacity disabled:opacity-60"
+            style={{ backgroundColor: "var(--color-accent)" }}
+          >
+            {pending ? (
+              <>
+                <Loader2 size={16} className="animate-spin" />
+                Opslaan...
+              </>
+            ) : (
+              <>
+                <Check size={16} />
+                Opslaan
+              </>
+            )}
+          </button>
+        </div>
       </form>
     </div>
   );

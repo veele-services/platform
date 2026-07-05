@@ -2,7 +2,10 @@ export const dynamic = "force-dynamic";
 
 import Link from "next/link";
 import { BellRing, ChevronRight, KeyRound, UserCircle } from "lucide-react";
-import { MobilePageShell } from "@/components/MobilePageShell";
+import {
+  PersonnelSettingsCard,
+  PersonnelSettingsShell,
+} from "@/components/SettingsShell";
 
 const SETTINGS_LINKS = [
   {
@@ -27,11 +30,12 @@ const SETTINGS_LINKS = [
 
 export default function InstellingenPage() {
   return (
-    <MobilePageShell
+    <PersonnelSettingsShell
+      active="overview"
       title="Instellingen"
       subtitle="Beheer je profiel, beveiliging en meldingen."
     >
-      <section className="rounded-[22px] bg-white p-4 shadow-[0_14px_34px_rgba(8,29,58,0.10)] md:p-5">
+      <PersonnelSettingsCard>
         <div className="space-y-3">
           {SETTINGS_LINKS.map(({ href, label, description, Icon }) => (
             <Link
@@ -55,7 +59,7 @@ export default function InstellingenPage() {
             </Link>
           ))}
         </div>
-      </section>
-    </MobilePageShell>
+      </PersonnelSettingsCard>
+    </PersonnelSettingsShell>
   );
 }

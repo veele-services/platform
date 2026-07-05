@@ -4,6 +4,7 @@ import type { ComponentType } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
+  Bell,
   Calendar,
   ClipboardCheck,
   ClipboardList,
@@ -11,7 +12,10 @@ import {
   FolderOpen,
   Home,
   LogOut,
+  MessageSquare,
+  Newspaper,
   Plane,
+  Settings,
   User,
 } from "lucide-react";
 import { signOut } from "@/actions/auth";
@@ -30,13 +34,17 @@ type NavIcon = ComponentType<{
 
 const NAV_ITEMS = [
   { href: "/", label: "Home", Icon: Home },
-  { href: "/opdrachten", label: "Opdrachten", Icon: ClipboardList },
-  { href: "/openstaand", label: "Openstaand", Icon: ClipboardCheck },
+  { href: "/opdrachten", label: "Planning", Icon: ClipboardList },
+  { href: "/openstaand", label: "Open diensten", Icon: ClipboardCheck },
   { href: "/uren", label: "Uren", Icon: Clock },
-  { href: "/beschikbaarheid", label: "Beschikbaar", Icon: Calendar },
+  { href: "/berichten", label: "Berichten", Icon: MessageSquare },
+  { href: "/nieuws", label: "Nieuws", Icon: Newspaper },
+  { href: "/meldingen", label: "Meldingen", Icon: Bell, moduleKey: "notifications" },
+  { href: "/beschikbaarheid", label: "Beschikbaarheid", Icon: Calendar },
   { href: "/verlof", label: "Verlof", Icon: Plane },
   { href: "/documenten", label: "Documenten", Icon: FolderOpen, moduleKey: "documents" },
-  { href: "/profiel", label: "Mijn profiel", Icon: User },
+  { href: "/instellingen", label: "Instellingen", Icon: Settings },
+  { href: "/profiel", label: "Profiel", Icon: User },
 ] satisfies Array<{
   href: string;
   label: string;

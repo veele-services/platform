@@ -17,6 +17,7 @@ import type { CustomerObject, CustomerSectorOption } from "@/actions/objects";
 interface Props {
   objects: CustomerObject[];
   sectors: CustomerSectorOption[];
+  initialPriority?: "low" | "normal" | "high" | "urgent";
 }
 
 const PRIORITY_OPTIONS = [
@@ -33,7 +34,7 @@ function localDateInput(date = new Date()): string {
   return `${year}-${month}-${day}`;
 }
 
-export function RequestAssignmentForm({ objects, sectors }: Props) {
+export function RequestAssignmentForm({ objects, sectors, initialPriority = "normal" }: Props) {
   const router = useRouter();
   const initialSectorId =
     objects.find((object) => object.isActive && object.sectorId)?.sectorId ?? sectors[0]?.id ?? "";
@@ -47,7 +48,7 @@ export function RequestAssignmentForm({ objects, sectors }: Props) {
   const [scheduledDate,  setScheduledDate]  = useState(localDateInput());
   const [scheduledStart, setScheduledStart] = useState("09:00");
   const [scheduledEnd,   setScheduledEnd]   = useState("17:00");
-  const [priority,       setPriority]       = useState<"low" | "normal" | "high" | "urgent">("normal");
+  const [priority,       setPriority]       = useState<"low" | "normal" | "high" | "urgent">(initialPriority);
   const [error,          setError]          = useState<string | null>(null);
   const [success,        setSuccess]        = useState(false);
 
@@ -101,7 +102,7 @@ export function RequestAssignmentForm({ objects, sectors }: Props) {
           Aanvraag ingediend
         </h2>
         <p className="mt-1 max-w-sm text-sm" style={{ color: "var(--color-secondary)" }}>
-          Veele Services beoordeelt de aanvraag en stuurt daarna een offerte ter akkoord.
+          Uw aanvraag wordt beoordeeld. Daarna ontvangt u een offerte ter akkoord.
         </p>
       </div>
     );
