@@ -4,6 +4,7 @@ import { Bell, Building2, Shield, Users, ClipboardList, ChevronRight, History, T
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { SettingsTabs } from "@/components/settings/SettingsTabs";
+import { TenantPageHeader, TenantPageShell } from "@/components/tenant-ui";
 
 export const metadata: Metadata = { title: "Instellingen" };
 
@@ -21,7 +22,11 @@ export default async function SettingsPage() {
   ]);
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] p-6">
+    <TenantPageShell>
+      <TenantPageHeader
+        title="Instellingen"
+        description="Beheer tenantinstellingen, gebruikers, rollen, notificaties en operationele configuratie vanuit een rustig startpunt."
+      />
       <SettingsTabs />
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -104,7 +109,7 @@ export default async function SettingsPage() {
           />
         )}
       </div>
-    </div>
+    </TenantPageShell>
   );
 }
 
