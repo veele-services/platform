@@ -33,7 +33,12 @@ test("tenant provisioning writes explicit organization settings defaults", () =>
 });
 
 test("organization settings hardening migration repairs default drift", () => {
-  const migration = `${read("lib/db/migrations/077_organization_settings_defaults_hardening.sql")}\n${read("lib/db/migrations/078_organization_settings_constraint_repair.sql")}\n${read("lib/db/migrations/079_organization_settings_complete_repair.sql")}`;
+  const migration = [
+    "lib/db/migrations/077_organization_settings_defaults_hardening.sql",
+    "lib/db/migrations/078_organization_settings_constraint_repair.sql",
+    "lib/db/migrations/079_organization_settings_complete_repair.sql",
+    "lib/db/migrations/080_organization_settings_tenant_unique.sql",
+  ].map(read).join("\n");
 
   assertIncludes(
     migration,
@@ -41,9 +46,13 @@ test("organization settings hardening migration repairs default drift", () => {
       "Organization settings defaults hardening",
       "Organization settings constraint repair",
       "Organization settings complete repair",
+      "Organization settings tenant uniqueness",
       "Never edit recorded migration files",
       "ADD COLUMN IF NOT EXISTS availability_advance_days",
       "ADD COLUMN IF NOT EXISTS smtp_from_email",
+      "DROP CONSTRAINT IF EXISTS org_settings_singleton_idx",
+      "DROP INDEX IF EXISTS org_settings_singleton_idx",
+      "CREATE UNIQUE INDEX IF NOT EXISTS organization_settings_tenant_unique_idx",
       "DROP CONSTRAINT IF EXISTS organization_settings_smtp_encryption_check",
       "COALESCE(betaaltermijn_dagen, 30)",
       "WHEN smtp_encryption IN ('none', 'starttls', 'tls') THEN smtp_encryption",
