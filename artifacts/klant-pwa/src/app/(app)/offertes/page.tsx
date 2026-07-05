@@ -1,38 +1,37 @@
 export const dynamic = "force-dynamic";
 
+import Link from "next/link";
 import {
-  FileText,
-  CheckCircle2,
-  XCircle,
-  Clock,
   AlertTriangle,
+  CheckCircle2,
+  Clock,
+  FileText,
+  XCircle,
 } from "lucide-react";
 import { getMyQuotes } from "@/actions/quotes";
 import { OfferteActieButtons } from "@/components/OfferteActieButtons";
 import { OfferteRegelitems } from "@/components/OfferteRegelitems";
-import { PageShell } from "@/components/PageShell";
+import {
+  PortalActionMenu,
+  PortalActionMenuLink,
+} from "@/components/PortalActionMenu";
+import { PortalFilterSheet } from "@/components/PortalFilterSheet";
+import {
+  PortalActiveFilterChips,
+  PortalDataList,
+  PortalPageShell,
+  PortalToolbar,
+  PortalToolbarSearch,
+  PortalToolbarSelect,
+  type PortalDataColumn,
+} from "@/components/portal-ui";
 
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "";
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("nl-NL", {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-  });
-}
-
-function formatAmount(amount: string): string {
-  return parseFloat(amount).toLocaleString("nl-NL", {
-    style: "currency",
-    currency: "EUR",
-    minimumFractionDigits: 2,
-  });
-}
+type CustomerQuote = Awaited<ReturnType<typeof getMyQuotes>>[number];
+type QuoteFilter = "all" | "action_required" | "sent" | "approved" | "rejected" | "expired";
 
 const STATUS_CONFIG: Record<
   string,
-  { label: string; bg: string; color: string; Icon: React.ElementType }
+  { label: string; bg: string; color: string; Icon: typeof Clock }
 > = {
   draft: { label: "Concept", bg: "#F1F5F9", color: "#64748B", Icon: Clock },
   sent: {
@@ -61,221 +60,391 @@ const STATUS_CONFIG: Record<
   },
 };
 
-export default async function OffertesPage() {
-  const quotes = await getMyQuotes();
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return "";
+  const date = new Date(`${dateStr}T00:00:00`);
+  return date.toLocaleDateString("nl-NL", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
 
-  const pending = quotes.filter(
-    (q) => q.assignmentStatus === "awaiting_approval",
-  );
-  const rest = quotes.filter((q) => q.assignmentStatus !== "awaiting_approval");
+function formatAmount(amount: string): string {
+  return parseFloat(amount).toLocaleString("nl-NL", {
+    style: "currency",
+    currency: "EUR",
+    minimumFractionDigits: 2,
+  });
+}
+
+function normalizeQuery(value?: string): string {
+  return value?.trim().slice(0, 80) ?? "";
+}
+
+function normalizeFilter(value?: string): QuoteFilter {
+  return ["action_required", "sent", "approved", "rejected", "expired"].includes(value ?? "")
+    ? (value as QuoteFilter)
+    : "all";
+}
+
+function effectiveStatus(quote: CustomerQuote) {
+  return quote.isExpired ? "expired" : quote.status;
+}
+
+function quoteFilterFor(quote: CustomerQuote): QuoteFilter {
+  if (quote.assignmentStatus === "awaiting_approval") return "action_required";
+  const status = effectiveStatus(quote);
+  if (status === "approved" || status === "rejected" || status === "expired") return status;
+  return "sent";
+}
+
+function quoteFilterLabel(value: QuoteFilter) {
+  const labels: Record<QuoteFilter, string> = {
+    all: "Alle offertes",
+    action_required: "Actie vereist",
+    sent: "Ter beoordeling",
+    approved: "Goedgekeurd",
+    rejected: "Afgewezen",
+    expired: "Verlopen",
+  };
+  return labels[value];
+}
+
+function matchesQuoteSearch(quote: CustomerQuote, query: string) {
+  if (!query) return true;
+  const haystack = [
+    quote.quoteNumber,
+    quote.assignmentTitle,
+    quote.amount,
+    quoteFilterLabel(quoteFilterFor(quote)),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return haystack.includes(query.toLowerCase());
+}
+
+function filterQuotes(quotes: CustomerQuote[], query: string, filter: QuoteFilter) {
+  return quotes.filter((quote) => {
+    const matchesFilter = filter === "all" || quoteFilterFor(quote) === filter;
+    return matchesFilter && matchesQuoteSearch(quote, query);
+  });
+}
+
+function filterHref({
+  query,
+  filter,
+  remove,
+}: {
+  query: string;
+  filter: QuoteFilter;
+  remove: "query" | "filter";
+}) {
+  const params = new URLSearchParams();
+  if (remove !== "query" && query) params.set("q", query);
+  if (remove !== "filter" && filter !== "all") params.set("filter", filter);
+  const value = params.toString();
+  return value ? `/offertes?${value}` : "/offertes";
+}
+
+function quoteColumns(): Array<PortalDataColumn<CustomerQuote>> {
+  return [
+    {
+      key: "quote",
+      header: "Offerte",
+      render: (quote) => (
+        <span className="font-mono text-xs font-black" style={{ color: "var(--color-primary)" }}>
+          {quote.quoteNumber}
+        </span>
+      ),
+    },
+    {
+      key: "assignment",
+      header: "Opdracht",
+      render: (quote) => (
+        <span className="block min-w-[18rem]">
+          <span className="block truncate text-sm font-black" style={{ color: "var(--color-primary)" }}>
+            {quote.assignmentTitle}
+          </span>
+          {quote.assignmentStatus === "awaiting_approval" ? (
+            <span className="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-black text-amber-700">
+              Actie vereist
+            </span>
+          ) : null}
+        </span>
+      ),
+    },
+    {
+      key: "amount",
+      header: "Bedrag",
+      render: (quote) => (
+        <span className="text-sm font-black" style={{ color: "var(--color-primary)" }}>
+          {formatAmount(quote.amount)}
+        </span>
+      ),
+    },
+    {
+      key: "validity",
+      header: "Geldig t/m",
+      render: (quote) => (
+        <span className="text-sm font-semibold" style={{ color: "var(--color-secondary)" }}>
+          {formatDate(quote.validityDate)}
+        </span>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (quote) => <QuoteStatusBadge quote={quote} />,
+    },
+    {
+      key: "actions",
+      header: "Acties",
+      align: "right",
+      render: (quote) => (
+        <PortalActionMenu label={`Acties voor offerte ${quote.quoteNumber}`}>
+          <PortalActionMenuLink href={`/opdrachten/${quote.assignmentId}`}>
+            Opdracht bekijken
+          </PortalActionMenuLink>
+          {quote.assignmentStatus === "awaiting_approval" ? (
+            <PortalActionMenuLink href="/offertes?filter=action_required">
+              Acties tonen
+            </PortalActionMenuLink>
+          ) : null}
+        </PortalActionMenu>
+      ),
+    },
+  ];
+}
+
+export default async function OffertesPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; filter?: string }>;
+}) {
+  const params = await searchParams;
+  const query = normalizeQuery(params.q);
+  const filter = normalizeFilter(params.filter);
+  const quotes = await getMyQuotes();
+  const visibleQuotes = filterQuotes(quotes, query, filter);
+  const actionRequired = quotes.filter((quote) => quote.assignmentStatus === "awaiting_approval");
+
+  const activeFilters = [
+    query
+      ? {
+          label: `Zoeken: ${query}`,
+          href: filterHref({ query, filter, remove: "query" }),
+        }
+      : null,
+    filter !== "all"
+      ? {
+          label: quoteFilterLabel(filter),
+          href: filterHref({ query, filter, remove: "filter" }),
+        }
+      : null,
+  ].filter((item): item is { label: string; href: string } => Boolean(item));
 
   return (
-    <PageShell
+    <PortalPageShell
       title="Offertes"
       subtitle="Controleer en keur offertes digitaal goed of af."
+      status={{
+        label: actionRequired.length > 0 ? `${actionRequired.length} actie vereist` : `${quotes.length} offertes`,
+        tone: actionRequired.length > 0 ? "warning" : "accent",
+      }}
     >
-      {quotes.length === 0 ? (
-        <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
-          <FileText
-            size={32}
-            className="mx-auto mb-3"
-            style={{ color: "var(--color-muted-fg)" }}
+      <PortalToolbar
+        resultLabel={`${visibleQuotes.length} van ${quotes.length} offertes`}
+        activeFilters={<PortalActiveFilterChips filters={activeFilters} clearHref="/offertes" />}
+        actions={
+          <PortalFilterSheet
+            title="Offertefilters"
+            description="Filter op status, offertnummer of opdracht."
+            activeCount={activeFilters.length}
+          >
+            <QuoteFilterForm query={query} filter={filter} />
+          </PortalFilterSheet>
+        }
+      >
+        <form action="/offertes" className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row">
+          <PortalToolbarSearch
+            name="q"
+            defaultValue={query}
+            placeholder="Zoek offerte of opdracht"
           />
-          <p
-            className="text-sm font-medium"
-            style={{ color: "var(--color-primary)" }}
+          <PortalToolbarSelect name="filter" label="Status" defaultValue={filter}>
+            <option value="all">Alle offertes</option>
+            <option value="action_required">Actie vereist</option>
+            <option value="sent">Ter beoordeling</option>
+            <option value="approved">Goedgekeurd</option>
+            <option value="rejected">Afgewezen</option>
+            <option value="expired">Verlopen</option>
+          </PortalToolbarSelect>
+          <button
+            type="submit"
+            className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-black text-white shadow-sm transition-opacity hover:opacity-90"
+            style={{ backgroundColor: "var(--color-accent)" }}
           >
-            Nog geen offertes
-          </p>
-          <p
-            className="mt-1 text-xs"
-            style={{ color: "var(--color-secondary)" }}
-          >
-            Offertes verschijnen hier zodra ze zijn aangemaakt.
-          </p>
-        </div>
-      ) : (
-        <>
-          {pending.length > 0 && (
-            <QuoteGroup title="Uw goedkeuring vereist" quotes={pending} />
-          )}
-          {rest.length > 0 && (
-            <QuoteGroup title="Eerder ontvangen" quotes={rest} />
-          )}
-        </>
-      )}
-    </PageShell>
+            Toepassen
+          </button>
+        </form>
+      </PortalToolbar>
+
+      {actionRequired.length > 0 ? (
+        <section className="grid gap-3 lg:grid-cols-2">
+          {actionRequired.map((quote) => (
+            <article
+              key={quote.id}
+              className="rounded-2xl border bg-white p-4 shadow-sm"
+              style={{ borderColor: "#FDE68A" }}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-mono text-xs font-black" style={{ color: "var(--color-muted-fg)" }}>
+                    {quote.quoteNumber}
+                  </p>
+                  <h2 className="mt-1 truncate text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                    {quote.assignmentTitle}
+                  </h2>
+                  <p className="mt-1 text-sm font-semibold" style={{ color: "var(--color-secondary)" }}>
+                    {formatAmount(quote.amount)}
+                    {quote.validityDate ? ` - geldig t/m ${formatDate(quote.validityDate)}` : ""}
+                  </p>
+                </div>
+                <QuoteStatusBadge quote={quote} />
+              </div>
+              <OfferteRegelitems lineItems={quote.lineItems} amount={quote.amount} />
+              <OfferteActieButtons assignmentId={quote.assignmentId} title={quote.assignmentTitle} />
+            </article>
+          ))}
+        </section>
+      ) : null}
+
+      <PortalDataList
+        items={visibleQuotes}
+        columns={quoteColumns()}
+        getItemKey={(quote) => quote.id}
+        tableLabel="Offertes"
+        emptyState={{
+          icon: <FileText size={32} style={{ color: "var(--color-muted-fg)" }} />,
+          title: activeFilters.length > 0 ? "Geen offertes gevonden" : "Nog geen offertes",
+          description:
+            activeFilters.length > 0
+              ? "Pas uw zoekopdracht of filters aan om de offertes opnieuw te bekijken."
+              : "Offertes verschijnen hier zodra ze zijn aangemaakt.",
+        }}
+        renderMobileCard={(quote) => (
+          <article className="rounded-2xl bg-white p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <span
+                  className="rounded px-1.5 py-0.5 font-mono text-xs font-black"
+                  style={{
+                    backgroundColor: "var(--color-muted)",
+                    color: "var(--color-secondary)",
+                  }}
+                >
+                  {quote.quoteNumber}
+                </span>
+                <h3 className="mt-2 truncate font-black" style={{ color: "var(--color-primary)" }}>
+                  {quote.assignmentTitle}
+                </h3>
+                <p className="mt-1 text-2xl font-black" style={{ color: "var(--color-primary)" }}>
+                  {formatAmount(quote.amount)}
+                </p>
+                <p className="mt-0.5 text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>
+                  Geldig t/m: {formatDate(quote.validityDate)}
+                </p>
+              </div>
+              <QuoteStatusBadge quote={quote} />
+            </div>
+            <OfferteRegelitems lineItems={quote.lineItems} amount={quote.amount} />
+            {quote.assignmentStatus === "awaiting_approval" ? (
+              <OfferteActieButtons assignmentId={quote.assignmentId} title={quote.assignmentTitle} />
+            ) : null}
+            <div className="mt-3 flex justify-end">
+              <PortalActionMenu label={`Acties voor offerte ${quote.quoteNumber}`}>
+                <PortalActionMenuLink href={`/opdrachten/${quote.assignmentId}`}>
+                  Opdracht bekijken
+                </PortalActionMenuLink>
+              </PortalActionMenu>
+            </div>
+          </article>
+        )}
+      />
+    </PortalPageShell>
   );
 }
 
-function QuoteGroup({
-  title,
-  quotes,
-}: {
-  title: string;
-  quotes: Awaited<ReturnType<typeof getMyQuotes>>;
-}) {
+function QuoteFilterForm({ query, filter }: { query: string; filter: QuoteFilter }) {
   return (
-    <section>
-      <h2
-        className="mb-2 text-sm font-semibold uppercase tracking-wide"
-        style={{ color: "var(--color-secondary)" }}
-      >
-        {title}
-      </h2>
-      <div
-        className="hidden overflow-x-auto rounded-[22px] border bg-white shadow-sm md:block"
-        style={{ borderColor: "var(--color-border)" }}
-      >
-        <div
-          className="grid grid-cols-[10rem_minmax(18rem,1.5fr)_10rem_10rem_10rem] gap-4 border-b px-5 py-3 text-xs font-black uppercase tracking-[0.08em]"
-          style={{
-            borderColor: "var(--color-border)",
-            color: "var(--color-secondary)",
-          }}
-        >
-          <span>Offerte</span>
-          <span>Opdracht</span>
-          <span>Bedrag</span>
-          <span>Geldig t/m</span>
-          <span className="text-right">Status</span>
-        </div>
-        <div
-          className="divide-y"
-          style={{ borderColor: "var(--color-border)" }}
-        >
-          {quotes.map((q) => {
-            const effectiveStatus = q.isExpired ? "expired" : q.status;
-            const cfg = STATUS_CONFIG[effectiveStatus] ?? STATUS_CONFIG.draft;
-            const StatusIcon = cfg.Icon;
-            const needsAction = q.assignmentStatus === "awaiting_approval";
-
-            return (
-              <div
-                key={q.id}
-                className="grid grid-cols-[10rem_minmax(18rem,1.5fr)_10rem_10rem_10rem] items-center gap-4 px-5 py-4"
-              >
-                <span
-                  className="font-mono text-xs font-black"
-                  style={{ color: "var(--color-primary)" }}
-                >
-                  {q.quoteNumber}
-                </span>
-                <span className="min-w-0">
-                  <span
-                    className="block truncate text-sm font-black"
-                    style={{ color: "var(--color-primary)" }}
-                  >
-                    {q.assignmentTitle}
-                  </span>
-                  {needsAction ? (
-                    <span className="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-black text-amber-700">
-                      Actie vereist
-                    </span>
-                  ) : null}
-                </span>
-                <span
-                  className="text-sm font-black"
-                  style={{ color: "var(--color-primary)" }}
-                >
-                  {formatAmount(q.amount)}
-                </span>
-                <span
-                  className="text-sm font-semibold"
-                  style={{ color: "var(--color-secondary)" }}
-                >
-                  {formatDate(q.validityDate)}
-                </span>
-                <span className="text-right">
-                  <span
-                    className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black"
-                    style={{ backgroundColor: cfg.bg, color: cfg.color }}
-                  >
-                    <StatusIcon size={11} />
-                    {cfg.label}
-                  </span>
-                </span>
-                {needsAction ? (
-                  <div
-                    className="col-span-5 border-t pt-3"
-                    style={{ borderColor: "var(--color-border)" }}
-                  >
-                    <OfferteRegelitems
-                      lineItems={q.lineItems}
-                      amount={q.amount}
-                    />
-                    <OfferteActieButtons
-                      assignmentId={q.assignmentId}
-                      title={q.assignmentTitle}
-                    />
-                  </div>
-                ) : null}
-              </div>
-            );
-          })}
-        </div>
+    <form action="/offertes" className="space-y-4">
+      <div>
+        <label htmlFor="quote-filter-query" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+          Zoeken
+        </label>
+        <input
+          id="quote-filter-query"
+          type="search"
+          name="q"
+          defaultValue={query}
+          placeholder="Offertenummer of opdracht"
+          className="mt-1 h-11 w-full rounded-xl border px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+        />
       </div>
-
-      <div className="space-y-3 md:hidden">
-        {quotes.map((q) => {
-          const effectiveStatus = q.isExpired ? "expired" : q.status;
-          const cfg = STATUS_CONFIG[effectiveStatus] ?? STATUS_CONFIG.draft;
-          const StatusIcon = cfg.Icon;
-          const needsAction = q.assignmentStatus === "awaiting_approval";
-
-          return (
-            <div key={q.id} className="rounded-2xl bg-white p-4 shadow-sm">
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <span
-                    className="font-mono text-xs rounded px-1.5 py-0.5"
-                    style={{
-                      backgroundColor: "var(--color-muted)",
-                      color: "var(--color-secondary)",
-                    }}
-                  >
-                    {q.quoteNumber}
-                  </span>
-                  <p
-                    className="mt-2 truncate font-semibold"
-                    style={{ color: "var(--color-primary)" }}
-                  >
-                    {q.assignmentTitle}
-                  </p>
-                  <p
-                    className="mt-1 text-2xl font-bold"
-                    style={{ color: "var(--color-primary)" }}
-                  >
-                    {formatAmount(q.amount)}
-                  </p>
-                  <p
-                    className="mt-0.5 text-xs"
-                    style={{ color: "var(--color-secondary)" }}
-                  >
-                    Geldig t/m: {formatDate(q.validityDate)}
-                  </p>
-                </div>
-                <span
-                  className="shrink-0 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium"
-                  style={{ backgroundColor: cfg.bg, color: cfg.color }}
-                >
-                  <StatusIcon size={10} />
-                  {cfg.label}
-                </span>
-              </div>
-
-              <OfferteRegelitems lineItems={q.lineItems} amount={q.amount} />
-
-              {needsAction && (
-                <OfferteActieButtons
-                  assignmentId={q.assignmentId}
-                  title={q.assignmentTitle}
-                />
-              )}
-            </div>
-          );
-        })}
+      <div>
+        <label htmlFor="quote-filter-status" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+          Status
+        </label>
+        <select
+          id="quote-filter-status"
+          name="filter"
+          defaultValue={filter}
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+        >
+          <option value="all">Alle offertes</option>
+          <option value="action_required">Actie vereist</option>
+          <option value="sent">Ter beoordeling</option>
+          <option value="approved">Goedgekeurd</option>
+          <option value="rejected">Afgewezen</option>
+          <option value="expired">Verlopen</option>
+        </select>
       </div>
-    </section>
+      <div className="grid grid-cols-2 gap-2 pt-2">
+        <Link
+          href="/offertes"
+          className="inline-flex h-10 items-center justify-center rounded-xl border text-sm font-black"
+          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+        >
+          Wissen
+        </Link>
+        <button
+          type="submit"
+          className="inline-flex h-10 items-center justify-center rounded-xl text-sm font-black text-white"
+          style={{ backgroundColor: "var(--color-accent)" }}
+        >
+          Toepassen
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function QuoteStatusBadge({ quote }: { quote: CustomerQuote }) {
+  const status = effectiveStatus(quote);
+  const config = STATUS_CONFIG[status] ?? STATUS_CONFIG.draft;
+  const StatusIcon = config.Icon;
+  return (
+    <span
+      className="inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-black"
+      style={{ backgroundColor: config.bg, color: config.color }}
+    >
+      <StatusIcon size={11} />
+      {config.label}
+    </span>
   );
 }

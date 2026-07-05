@@ -1,30 +1,28 @@
 export const dynamic = "force-dynamic";
 
 import Link from "next/link";
-import { ClipboardList, PlusCircle, FileText } from "lucide-react";
-import { getMyAssignments } from "@/actions/assignments";
-import { STATUS_LABEL, STATUS_COLOR } from "@/types/assignments";
-import { OfferteActieButtons } from "@/components/OfferteActieButtons";
-import { PageShell } from "@/components/PageShell";
+import { ClipboardList, FileText, PlusCircle } from "lucide-react";
 import type { QuoteStatus } from "@workspace/db";
+import { getMyAssignments } from "@/actions/assignments";
+import { STATUS_COLOR, STATUS_LABEL } from "@/types/assignments";
+import { OfferteActieButtons } from "@/components/OfferteActieButtons";
+import {
+  PortalActionMenu,
+  PortalActionMenuLink,
+} from "@/components/PortalActionMenu";
+import { PortalFilterSheet } from "@/components/PortalFilterSheet";
+import {
+  PortalActiveFilterChips,
+  PortalDataList,
+  PortalPageShell,
+  PortalToolbar,
+  PortalToolbarSearch,
+  PortalToolbarSelect,
+  type PortalDataColumn,
+} from "@/components/portal-ui";
 
-function formatDate(dateStr: string | null): string {
-  if (!dateStr) return "";
-  const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("nl-NL", {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-  });
-}
-
-function formatAmount(amount: string | null): string {
-  if (!amount) return "";
-  return parseFloat(amount).toLocaleString("nl-NL", {
-    style: "currency",
-    currency: "EUR",
-  });
-}
+type CustomerAssignment = Awaited<ReturnType<typeof getMyAssignments>>[number];
+type AssignmentFilter = "all" | "action_required" | "active" | "open" | "history";
 
 const ACTIVE_STATUSES = new Set([
   "scheduled",
@@ -48,378 +46,480 @@ const QUOTE_STATUS_BADGE: Partial<
   expired: { label: "Offerte verlopen", bg: "#F1F5F9", color: "#64748B" },
 };
 
-export default async function OpdrachtenPage() {
-  const assignments = await getMyAssignments();
+function formatDate(dateStr: string | null): string {
+  if (!dateStr) return "";
+  const date = new Date(`${dateStr}T00:00:00`);
+  return date.toLocaleDateString("nl-NL", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+  });
+}
 
-  const quotes = assignments.filter((a) => a.status === "awaiting_approval");
-  const active = assignments.filter((a) => ACTIVE_STATUSES.has(a.status));
-  const open = assignments.filter((a) => OPEN_STATUSES.has(a.status));
-  const history = assignments.filter(
-    (a) =>
-      a.status !== "awaiting_approval" &&
-      !ACTIVE_STATUSES.has(a.status) &&
-      !OPEN_STATUSES.has(a.status),
-  );
+function formatAmount(amount: string | null): string {
+  if (!amount) return "";
+  return parseFloat(amount).toLocaleString("nl-NL", {
+    style: "currency",
+    currency: "EUR",
+  });
+}
 
-  return (
-    <PageShell
-      title="Opdrachten"
-      subtitle="Aanvragen, geplande opdrachten en afgeronde werkbonnen."
-      actions={
-        <Link
-          href="/opdrachten/aanvragen"
-          className="inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-medium text-white"
-          style={{ backgroundColor: "var(--color-accent)" }}
-        >
-          <PlusCircle size={14} />
-          Opdracht aanvragen
-        </Link>
-      }
-    >
-      {assignments.length === 0 && (
-        <div className="rounded-2xl bg-white p-8 text-center shadow-sm">
-          <ClipboardList
-            size={32}
-            className="mx-auto mb-3"
-            style={{ color: "var(--color-muted-fg)" }}
-          />
-          <p
-            className="text-sm font-medium"
-            style={{ color: "var(--color-primary)" }}
-          >
-            Nog geen opdrachten
-          </p>
-          <p
-            className="mt-1 text-xs"
+function normalizeQuery(value?: string): string {
+  return value?.trim().slice(0, 80) ?? "";
+}
+
+function normalizeFilter(value?: string): AssignmentFilter {
+  return ["action_required", "active", "open", "history"].includes(value ?? "")
+    ? (value as AssignmentFilter)
+    : "all";
+}
+
+function assignmentFilterFor(assignment: CustomerAssignment): AssignmentFilter {
+  if (assignment.status === "awaiting_approval") return "action_required";
+  if (ACTIVE_STATUSES.has(assignment.status)) return "active";
+  if (OPEN_STATUSES.has(assignment.status)) return "open";
+  return "history";
+}
+
+function assignmentFilterLabel(value: AssignmentFilter) {
+  const labels: Record<AssignmentFilter, string> = {
+    all: "Alle opdrachten",
+    action_required: "Actie vereist",
+    active: "In uitvoering",
+    open: "Lopende aanvragen",
+    history: "Historie",
+  };
+  return labels[value];
+}
+
+function matchesAssignmentSearch(assignment: CustomerAssignment, query: string) {
+  if (!query) return true;
+  const haystack = [
+    assignment.code,
+    assignment.title,
+    assignment.objectName,
+    assignment.objectCity,
+    assignment.quoteNumber,
+    STATUS_LABEL[assignment.status] ?? assignment.status,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return haystack.includes(query.toLowerCase());
+}
+
+function filterAssignments(
+  assignments: CustomerAssignment[],
+  query: string,
+  filter: AssignmentFilter,
+) {
+  return assignments.filter((assignment) => {
+    const matchesFilter = filter === "all" || assignmentFilterFor(assignment) === filter;
+    return matchesFilter && matchesAssignmentSearch(assignment, query);
+  });
+}
+
+function filterHref({
+  query,
+  filter,
+  remove,
+}: {
+  query: string;
+  filter: AssignmentFilter;
+  remove: "query" | "filter";
+}) {
+  const params = new URLSearchParams();
+  if (remove !== "query" && query) params.set("q", query);
+  if (remove !== "filter" && filter !== "all") params.set("filter", filter);
+  const value = params.toString();
+  return value ? `/opdrachten?${value}` : "/opdrachten";
+}
+
+function assignmentColumns(): Array<PortalDataColumn<CustomerAssignment>> {
+  return [
+    {
+      key: "code",
+      header: "Werkbon",
+      render: (assignment) => (
+        <span className="font-mono text-xs font-black" style={{ color: "var(--color-primary)" }}>
+          {assignment.code}
+        </span>
+      ),
+    },
+    {
+      key: "assignment",
+      header: "Opdracht",
+      render: (assignment) => (
+        <span className="block min-w-[18rem]">
+          <span className="block truncate text-sm font-black" style={{ color: "var(--color-primary)" }}>
+            {assignment.title}
+          </span>
+          <span
+            className="mt-0.5 block truncate text-xs font-semibold"
             style={{ color: "var(--color-secondary)" }}
           >
-            Dien een nieuwe aanvraag in om te beginnen.
-          </p>
-          <Link
-            href="/opdrachten/aanvragen"
-            className="mt-4 inline-flex items-center gap-1.5 rounded-xl px-4 py-2 text-sm font-medium text-white"
+            {assignment.objectName ?? "Geen object"}
+            {assignment.objectCity ? ` - ${assignment.objectCity}` : ""}
+          </span>
+        </span>
+      ),
+    },
+    {
+      key: "planning",
+      header: "Planning",
+      render: (assignment) => (
+        <span
+          className="block min-w-[10rem] text-sm font-semibold"
+          style={{
+            color: assignment.scheduledDate
+              ? "var(--color-primary)"
+              : "var(--color-muted-fg)",
+          }}
+        >
+          {assignment.scheduledDate
+            ? `${formatDate(assignment.scheduledDate)}${
+                assignment.scheduledStart ? ` - ${assignment.scheduledStart}` : ""
+              }`
+            : "Nog niet gepland"}
+        </span>
+      ),
+    },
+    {
+      key: "quote",
+      header: "Offerte",
+      render: (assignment) => <QuoteCell assignment={assignment} />,
+    },
+    {
+      key: "status",
+      header: "Status",
+      render: (assignment) => <AssignmentStatusBadge assignment={assignment} />,
+    },
+    {
+      key: "actions",
+      header: "Acties",
+      align: "right",
+      render: (assignment) => (
+        <PortalActionMenu label={`Acties voor ${assignment.title}`}>
+          <PortalActionMenuLink href={`/opdrachten/${assignment.id}`}>
+            Details bekijken
+          </PortalActionMenuLink>
+          {assignment.status === "awaiting_approval" ? (
+            <PortalActionMenuLink href="/offertes">
+              Naar offertes
+            </PortalActionMenuLink>
+          ) : null}
+        </PortalActionMenu>
+      ),
+    },
+  ];
+}
+
+export default async function OpdrachtenPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; filter?: string }>;
+}) {
+  const params = await searchParams;
+  const query = normalizeQuery(params.q);
+  const filter = normalizeFilter(params.filter);
+  const assignments = await getMyAssignments();
+  const visibleAssignments = filterAssignments(assignments, query, filter);
+  const actionRequired = assignments.filter((assignment) => assignment.status === "awaiting_approval");
+
+  const activeFilters = [
+    query
+      ? {
+          label: `Zoeken: ${query}`,
+          href: filterHref({ query, filter, remove: "query" }),
+        }
+      : null,
+    filter !== "all"
+      ? {
+          label: assignmentFilterLabel(filter),
+          href: filterHref({ query, filter, remove: "filter" }),
+        }
+      : null,
+  ].filter((item): item is { label: string; href: string } => Boolean(item));
+
+  return (
+    <PortalPageShell
+      title="Opdrachten"
+      subtitle="Aanvragen, geplande opdrachten en afgeronde werkbonnen."
+      status={{
+        label: actionRequired.length > 0 ? `${actionRequired.length} actie vereist` : `${assignments.length} opdrachten`,
+        tone: actionRequired.length > 0 ? "warning" : "accent",
+      }}
+      primaryAction={{ label: "Opdracht aanvragen", href: "/opdrachten/aanvragen" }}
+    >
+      <PortalToolbar
+        resultLabel={`${visibleAssignments.length} van ${assignments.length} opdrachten`}
+        activeFilters={<PortalActiveFilterChips filters={activeFilters} clearHref="/opdrachten" />}
+        actions={
+          <PortalFilterSheet
+            title="Opdrachtfilters"
+            description="Filter op statusgroep, werkbonnummer, object of titel."
+            activeCount={activeFilters.length}
+          >
+            <AssignmentFilterForm query={query} filter={filter} />
+          </PortalFilterSheet>
+        }
+      >
+        <form action="/opdrachten" className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row">
+          <PortalToolbarSearch
+            name="q"
+            defaultValue={query}
+            placeholder="Zoek opdracht, werkbon of object"
+          />
+          <PortalToolbarSelect name="filter" label="Statusgroep" defaultValue={filter}>
+            <option value="all">Alle opdrachten</option>
+            <option value="action_required">Actie vereist</option>
+            <option value="active">In uitvoering</option>
+            <option value="open">Lopende aanvragen</option>
+            <option value="history">Historie</option>
+          </PortalToolbarSelect>
+          <button
+            type="submit"
+            className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-black text-white shadow-sm transition-opacity hover:opacity-90"
             style={{ backgroundColor: "var(--color-accent)" }}
           >
-            <PlusCircle size={16} />
-            Opdracht aanvragen
-          </Link>
-        </div>
-      )}
+            Toepassen
+          </button>
+        </form>
+      </PortalToolbar>
 
-      {/* ── Offertes — actie vereist ─────────────────────────────────────────── */}
-      {quotes.length > 0 && (
-        <section>
-          <div className="mb-2 flex items-center gap-1.5">
-            <FileText size={14} style={{ color: "#92400E" }} />
-            <h2
-              className="text-sm font-semibold uppercase tracking-wide"
-              style={{ color: "#92400E" }}
-            >
-              Offertes — actie vereist
-            </h2>
+      {actionRequired.length > 0 ? (
+        <section
+          className="rounded-2xl border bg-white p-4 shadow-sm"
+          style={{ borderColor: "#FDE68A" }}
+        >
+          <div className="mb-3 flex items-start gap-3">
+            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-700">
+              <FileText size={18} />
+            </span>
+            <div>
+              <h2 className="text-base font-black" style={{ color: "var(--color-primary)" }}>
+                Offertes met actie vereist
+              </h2>
+              <p className="text-sm font-semibold" style={{ color: "var(--color-secondary)" }}>
+                Controleer de offerte en keur deze digitaal goed of af.
+              </p>
+            </div>
           </div>
-          <div
-            className="rounded-2xl p-1 space-y-2"
-            style={{ backgroundColor: "#FEF9C3" }}
-          >
-            {quotes.map((a) => {
-              const s = STATUS_COLOR[a.status] ?? {
-                bg: "#F1F5F9",
-                color: "#64748B",
-              };
-              return (
-                <div key={a.id} className="rounded-xl bg-white p-4 shadow-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span
-                          className="font-mono text-xs rounded px-1.5 py-0.5 shrink-0"
-                          style={{
-                            backgroundColor: "var(--color-muted)",
-                            color: "var(--color-secondary)",
-                          }}
-                        >
-                          {a.code}
-                        </span>
-                        {a.quoteNumber && (
-                          <span
-                            className="font-mono text-xs rounded px-1.5 py-0.5 shrink-0"
-                            style={{
-                              backgroundColor: "#FEF9C3",
-                              color: "#92400E",
-                            }}
-                          >
-                            {a.quoteNumber}
-                          </span>
-                        )}
-                      </div>
-                      <p
-                        className="truncate font-semibold"
-                        style={{ color: "var(--color-primary)" }}
-                      >
-                        {a.title}
-                      </p>
-                      {a.objectName && (
-                        <p
-                          className="mt-0.5 truncate text-xs"
-                          style={{ color: "var(--color-muted-fg)" }}
-                        >
-                          {a.objectName}
-                          {a.objectCity ? ` · ${a.objectCity}` : ""}
-                        </p>
-                      )}
-                      {/* Quote amount + validity for the action card */}
-                      {(a.quoteAmount || a.quoteValidityDate) && (
-                        <div className="mt-2 flex flex-wrap gap-3 items-baseline">
-                          {a.quoteAmount && (
-                            <span
-                              className="text-sm font-semibold"
-                              style={{ color: "var(--color-primary)" }}
-                            >
-                              {formatAmount(a.quoteAmount)}
-                            </span>
-                          )}
-                          {a.quoteValidityDate && (
-                            <span
-                              className="text-xs"
-                              style={{ color: "var(--color-secondary)" }}
-                            >
-                              Geldig t/m {formatDate(a.quoteValidityDate)}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    <span
-                      className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
-                      style={{ backgroundColor: s.bg, color: s.color }}
-                    >
-                      {STATUS_LABEL[a.status] ?? a.status}
-                    </span>
+          <div className="grid gap-3 lg:grid-cols-2">
+            {actionRequired.map((assignment) => (
+              <article
+                key={assignment.id}
+                className="rounded-2xl border p-4"
+                style={{ borderColor: "var(--color-border)" }}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-mono text-xs font-black" style={{ color: "var(--color-muted-fg)" }}>
+                      {assignment.quoteNumber ?? assignment.code}
+                    </p>
+                    <h3 className="mt-1 truncate text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                      {assignment.title}
+                    </h3>
+                    <p className="mt-1 text-sm font-semibold" style={{ color: "var(--color-secondary)" }}>
+                      {assignment.quoteAmount ? formatAmount(assignment.quoteAmount) : "Offertebedrag volgt"}
+                      {assignment.quoteValidityDate ? ` - geldig t/m ${formatDate(assignment.quoteValidityDate)}` : ""}
+                    </p>
                   </div>
-                  <OfferteActieButtons assignmentId={a.id} title={a.title} />
+                  <AssignmentStatusBadge assignment={assignment} />
                 </div>
-              );
-            })}
+                <OfferteActieButtons assignmentId={assignment.id} title={assignment.title} />
+              </article>
+            ))}
           </div>
         </section>
-      )}
+      ) : null}
 
-      {active.length > 0 && (
-        <AssignmentGroup title="In uitvoering" items={active} />
-      )}
-      {open.length > 0 && (
-        <AssignmentGroup title="Lopende aanvragen" items={open} />
-      )}
-      {history.length > 0 && (
-        <AssignmentGroup title="Afgerond" items={history} />
-      )}
-    </PageShell>
+      <PortalDataList
+        items={visibleAssignments}
+        columns={assignmentColumns()}
+        getItemKey={(assignment) => assignment.id}
+        tableLabel="Opdrachten"
+        emptyState={{
+          icon: <ClipboardList size={32} style={{ color: "var(--color-muted-fg)" }} />,
+          title: activeFilters.length > 0 ? "Geen opdrachten gevonden" : "Nog geen opdrachten",
+          description:
+            activeFilters.length > 0
+              ? "Pas uw zoekopdracht of filters aan om de opdrachtlijst opnieuw te bekijken."
+              : "Dien een nieuwe aanvraag in om te beginnen.",
+          action: (
+            <Link
+              href="/opdrachten/aanvragen"
+              className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black text-white"
+              style={{ backgroundColor: "var(--color-accent)" }}
+            >
+              <PlusCircle size={16} />
+              Opdracht aanvragen
+            </Link>
+          ),
+        }}
+        renderMobileCard={(assignment) => (
+          <article className="rounded-2xl bg-white p-4 shadow-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0 flex-1">
+                <span
+                  className="rounded px-1.5 py-0.5 font-mono text-xs font-black"
+                  style={{
+                    backgroundColor: "var(--color-muted)",
+                    color: "var(--color-secondary)",
+                  }}
+                >
+                  {assignment.code}
+                </span>
+                <h3 className="mt-2 truncate font-black" style={{ color: "var(--color-primary)" }}>
+                  {assignment.title}
+                </h3>
+                {assignment.objectName ? (
+                  <p className="mt-0.5 truncate text-xs font-semibold" style={{ color: "var(--color-muted-fg)" }}>
+                    {assignment.objectName}
+                    {assignment.objectCity ? ` - ${assignment.objectCity}` : ""}
+                  </p>
+                ) : null}
+                {assignment.scheduledDate ? (
+                  <p className="mt-1 text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>
+                    {formatDate(assignment.scheduledDate)}
+                    {assignment.scheduledStart ? ` - ${assignment.scheduledStart}` : ""}
+                  </p>
+                ) : null}
+                <div className="mt-2">
+                  <QuoteCell assignment={assignment} />
+                </div>
+              </div>
+              <AssignmentStatusBadge assignment={assignment} />
+            </div>
+            {assignment.status === "awaiting_approval" ? (
+              <OfferteActieButtons assignmentId={assignment.id} title={assignment.title} />
+            ) : null}
+            <div
+              className="mt-3 flex items-center justify-between border-t pt-3"
+              style={{ borderColor: "var(--color-border)" }}
+            >
+              <Link
+                href={`/opdrachten/${assignment.id}`}
+                className="text-xs font-black"
+                style={{ color: "var(--color-accent)" }}
+              >
+                Details bekijken
+              </Link>
+              <PortalActionMenu label={`Acties voor ${assignment.title}`}>
+                <PortalActionMenuLink href={`/opdrachten/${assignment.id}`}>
+                  Details bekijken
+                </PortalActionMenuLink>
+                {assignment.status === "awaiting_approval" ? (
+                  <PortalActionMenuLink href="/offertes">Naar offertes</PortalActionMenuLink>
+                ) : null}
+              </PortalActionMenu>
+            </div>
+          </article>
+        )}
+      />
+    </PortalPageShell>
   );
 }
 
-function AssignmentGroup({
-  title,
-  items,
+function AssignmentFilterForm({
+  query,
+  filter,
 }: {
-  title: string;
-  items: ReturnType<typeof getMyAssignments> extends Promise<infer T>
-    ? T
-    : never;
+  query: string;
+  filter: AssignmentFilter;
 }) {
   return (
-    <section>
-      <h2
-        className="mb-2 text-sm font-semibold uppercase tracking-wide"
-        style={{ color: "var(--color-secondary)" }}
-      >
-        {title}
-      </h2>
-      <div
-        className="hidden overflow-x-auto rounded-[22px] border bg-white shadow-sm md:block"
-        style={{ borderColor: "var(--color-border)" }}
-      >
-        <div
-          className="grid grid-cols-[10rem_minmax(18rem,1.5fr)_12rem_10rem_8rem] gap-4 border-b px-5 py-3 text-xs font-black uppercase tracking-[0.08em]"
-          style={{
-            borderColor: "var(--color-border)",
-            color: "var(--color-secondary)",
-          }}
-        >
-          <span>Werkbon</span>
-          <span>Opdracht</span>
-          <span>Planning</span>
-          <span>Offerte</span>
-          <span className="text-right">Status</span>
-        </div>
-        <div
-          className="divide-y"
-          style={{ borderColor: "var(--color-border)" }}
-        >
-          {items.map((a) => {
-            const s = STATUS_COLOR[a.status] ?? {
-              bg: "#F1F5F9",
-              color: "#64748B",
-            };
-            const quoteBadge = a.quoteStatus
-              ? QUOTE_STATUS_BADGE[a.quoteStatus]
-              : null;
-            return (
-              <Link
-                key={a.id}
-                href={`/opdrachten/${a.id}`}
-                className="grid grid-cols-[10rem_minmax(18rem,1.5fr)_12rem_10rem_8rem] items-center gap-4 px-5 py-4 transition hover:bg-slate-50"
-              >
-                <span
-                  className="font-mono text-xs font-black"
-                  style={{ color: "var(--color-primary)" }}
-                >
-                  {a.code}
-                </span>
-                <span className="min-w-0">
-                  <span
-                    className="block truncate text-sm font-black"
-                    style={{ color: "var(--color-primary)" }}
-                  >
-                    {a.title}
-                  </span>
-                  <span
-                    className="mt-0.5 block truncate text-xs font-semibold"
-                    style={{ color: "var(--color-secondary)" }}
-                  >
-                    {a.objectName ?? "Geen object"}
-                    {a.objectCity ? ` - ${a.objectCity}` : ""}
-                  </span>
-                </span>
-                <span
-                  className="text-sm font-semibold"
-                  style={{
-                    color: a.scheduledDate
-                      ? "var(--color-primary)"
-                      : "var(--color-muted-fg)",
-                  }}
-                >
-                  {a.scheduledDate
-                    ? `${formatDate(a.scheduledDate)}${a.scheduledStart ? ` - ${a.scheduledStart}` : ""}`
-                    : "Nog niet gepland"}
-                </span>
-                <span>
-                  {quoteBadge ? (
-                    <span
-                      className="rounded-full px-2.5 py-1 text-[11px] font-black"
-                      style={{
-                        backgroundColor: quoteBadge.bg,
-                        color: quoteBadge.color,
-                      }}
-                    >
-                      {quoteBadge.label}
-                    </span>
-                  ) : a.quoteAmount ? (
-                    <span
-                      className="text-sm font-bold"
-                      style={{ color: "var(--color-primary)" }}
-                    >
-                      {formatAmount(a.quoteAmount)}
-                    </span>
-                  ) : (
-                    <span
-                      className="text-sm font-semibold"
-                      style={{ color: "var(--color-muted-fg)" }}
-                    >
-                      -
-                    </span>
-                  )}
-                </span>
-                <span className="text-right">
-                  <span
-                    className="rounded-full px-2.5 py-1 text-[11px] font-black"
-                    style={{ backgroundColor: s.bg, color: s.color }}
-                  >
-                    {STATUS_LABEL[a.status] ?? a.status}
-                  </span>
-                </span>
-              </Link>
-            );
-          })}
-        </div>
+    <form action="/opdrachten" className="space-y-4">
+      <div>
+        <label htmlFor="assignment-filter-query" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+          Zoeken
+        </label>
+        <input
+          id="assignment-filter-query"
+          type="search"
+          name="q"
+          defaultValue={query}
+          placeholder="Opdracht, werkbon of object"
+          className="mt-1 h-11 w-full rounded-xl border px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+        />
       </div>
+      <div>
+        <label htmlFor="assignment-filter-status" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+          Statusgroep
+        </label>
+        <select
+          id="assignment-filter-status"
+          name="filter"
+          defaultValue={filter}
+          className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
+          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+        >
+          <option value="all">Alle opdrachten</option>
+          <option value="action_required">Actie vereist</option>
+          <option value="active">In uitvoering</option>
+          <option value="open">Lopende aanvragen</option>
+          <option value="history">Historie</option>
+        </select>
+      </div>
+      <div className="grid grid-cols-2 gap-2 pt-2">
+        <Link
+          href="/opdrachten"
+          className="inline-flex h-10 items-center justify-center rounded-xl border text-sm font-black"
+          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+        >
+          Wissen
+        </Link>
+        <button
+          type="submit"
+          className="inline-flex h-10 items-center justify-center rounded-xl text-sm font-black text-white"
+          style={{ backgroundColor: "var(--color-accent)" }}
+        >
+          Toepassen
+        </button>
+      </div>
+    </form>
+  );
+}
 
-      <div className="space-y-2 md:hidden">
-        {items.map((a) => {
-          const s = STATUS_COLOR[a.status] ?? {
-            bg: "#F1F5F9",
-            color: "#64748B",
-          };
-          const quoteBadge = a.quoteStatus
-            ? QUOTE_STATUS_BADGE[a.quoteStatus]
-            : null;
-          return (
-            <Link
-              key={a.id}
-              href={`/opdrachten/${a.id}`}
-              className="block rounded-2xl bg-white p-4 shadow-sm transition-all active:scale-[0.99]"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className="font-mono text-xs rounded px-1.5 py-0.5 shrink-0"
-                      style={{
-                        backgroundColor: "var(--color-muted)",
-                        color: "var(--color-secondary)",
-                      }}
-                    >
-                      {a.code}
-                    </span>
-                  </div>
-                  <p
-                    className="truncate font-semibold"
-                    style={{ color: "var(--color-primary)" }}
-                  >
-                    {a.title}
-                  </p>
-                  {a.objectName && (
-                    <p
-                      className="mt-0.5 truncate text-xs"
-                      style={{ color: "var(--color-muted-fg)" }}
-                    >
-                      {a.objectName}
-                      {a.objectCity ? ` · ${a.objectCity}` : ""}
-                    </p>
-                  )}
-                  {a.scheduledDate && (
-                    <p
-                      className="mt-0.5 text-xs"
-                      style={{ color: "var(--color-secondary)" }}
-                    >
-                      {formatDate(a.scheduledDate)}
-                      {a.scheduledStart ? ` · ${a.scheduledStart}` : ""}
-                    </p>
-                  )}
-                  {/* Quote status badge — only for non-draft statuses */}
-                  {quoteBadge && (
-                    <span
-                      className="mt-1.5 inline-block rounded-full px-2 py-0.5 text-xs font-medium"
-                      style={{
-                        backgroundColor: quoteBadge.bg,
-                        color: quoteBadge.color,
-                      }}
-                    >
-                      {quoteBadge.label}
-                    </span>
-                  )}
-                </div>
-                <span
-                  className="shrink-0 rounded-full px-2 py-0.5 text-xs font-medium"
-                  style={{ backgroundColor: s.bg, color: s.color }}
-                >
-                  {STATUS_LABEL[a.status] ?? a.status}
-                </span>
-              </div>
-            </Link>
-          );
-        })}
-      </div>
-    </section>
+function QuoteCell({ assignment }: { assignment: CustomerAssignment }) {
+  const quoteBadge = assignment.quoteStatus ? QUOTE_STATUS_BADGE[assignment.quoteStatus] : null;
+
+  if (quoteBadge) {
+    return (
+      <span
+        className="inline-flex rounded-full px-2.5 py-1 text-[11px] font-black"
+        style={{ backgroundColor: quoteBadge.bg, color: quoteBadge.color }}
+      >
+        {quoteBadge.label}
+      </span>
+    );
+  }
+
+  if (assignment.quoteAmount) {
+    return (
+      <span className="text-sm font-bold" style={{ color: "var(--color-primary)" }}>
+        {formatAmount(assignment.quoteAmount)}
+      </span>
+    );
+  }
+
+  return (
+    <span className="text-sm font-semibold" style={{ color: "var(--color-muted-fg)" }}>
+      -
+    </span>
+  );
+}
+
+function AssignmentStatusBadge({ assignment }: { assignment: CustomerAssignment }) {
+  const style = STATUS_COLOR[assignment.status] ?? { bg: "#F1F5F9", color: "#64748B" };
+  return (
+    <span
+      className="inline-flex shrink-0 rounded-full px-2.5 py-1 text-[11px] font-black"
+      style={{ backgroundColor: style.bg, color: style.color }}
+    >
+      {STATUS_LABEL[assignment.status] ?? assignment.status}
+    </span>
   );
 }

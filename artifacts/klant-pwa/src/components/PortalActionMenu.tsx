@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { MoreHorizontal } from "lucide-react";
@@ -60,5 +61,28 @@ export function PortalActionMenu({
         </div>
       ) : null}
     </div>
+  );
+}
+
+export function PortalActionMenuLink({
+  href,
+  children,
+  external = false,
+}: {
+  href: string;
+  children: ReactNode;
+  external?: boolean;
+}) {
+  return (
+    <Link
+      href={href}
+      target={external ? "_blank" : undefined}
+      rel={external ? "noopener noreferrer" : undefined}
+      prefetch={external ? false : undefined}
+      className="flex w-full items-center rounded-xl px-3 py-2 text-sm font-black transition-colors hover:bg-slate-50"
+      style={{ color: "var(--color-primary)" }}
+    >
+      {children}
+    </Link>
   );
 }
