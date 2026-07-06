@@ -360,6 +360,15 @@ Klaar wanneer:
 - Statuswijzigingen schrijven auditlog en notificaties.
 - Tenant admins zien alleen toegestane items.
 
+Implementatiestatus:
+
+- Boardkaarten zijn compacter gemaakt en tonen tenant, modules, releasekoppelingen, stemmen, comments en laatste statusinformatie.
+- Elke statuskolom scheidt tenant featurewensen van global roadmapitems, zodat triage en productroadmap niet door elkaar lopen.
+- Snelle statusknoppen staan direct op de kaarten; statuswijzigingen blijven via de bestaande auditlog- en notificatieflow lopen.
+- Het triage-sidepanel op `/platform/roadmap?item=...` beheert status, prioriteit, releasekoppelingen, comments, global-conversie en archiveren zonder detailpagina.
+- Statusgeschiedenis en comments zijn zichtbaar in het sidepanel.
+- Archiveren schrijft nu ook statushistorie en stuurt dezelfde roadmapstatus-notificatieflow aan.
+
 ## Fase 10 - Tenant KB, Feature Requests, Feedback En Analytics
 
 Doel: P2 functionaliteit toevoegen zonder multi-tenant risico.

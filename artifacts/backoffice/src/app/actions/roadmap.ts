@@ -1002,6 +1002,71 @@ export async function changePlatformRoadmapStatus(formData: FormData): Promise<v
   }
 }
 
+export async function changePlatformRoadmapPriority(formData: FormData): Promise<void> {
+  const actor = await requirePlatformAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  const priority = normalizePriority(String(formData.get("priority") ?? ""));
+  if (!id) return;
+
+  await db.transaction(async (tx) => {
+    const [existing] = await tx.select().from(roadmapItemsTable).where(eq(roadmapItemsTable.id, id)).limit(1);
+    if (!existing || existing.priority === priority) return;
+
+    await tx.update(roadmapItemsTable).set({
+      priority,
+      updatedBy: actor.userId,
+      updatedAt: new Date(),
+    }).where(eq(roadmapItemsTable.id, id));
+
+    await tx.insert(auditLogTable).values({
+      tenantId: existing.tenantId,
+      userId: actor.userId,
+      action: "roadmap_priority_changed",
+      resource: "roadmap",
+      resourceId: id,
+      metadata: { fromPriority: existing.priority, toPriority: priority },
+    });
+  });
+
+  revalidateRoadmapPaths();
+}
+
+export async function linkPlatformRoadmapReleases(formData: FormData): Promise<void> {
+  const actor = await requirePlatformAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  const releaseIds = uniqueStrings(formData.getAll("releaseIds").map(String));
+  if (!id) return;
+
+  await db.transaction(async (tx) => {
+    const [existing] = await tx.select().from(roadmapItemsTable).where(eq(roadmapItemsTable.id, id)).limit(1);
+    if (!existing) return;
+
+    await tx.delete(releaseRoadmapLinksTable).where(eq(releaseRoadmapLinksTable.roadmapItemId, id));
+    if (releaseIds.length > 0) {
+      await tx.insert(releaseRoadmapLinksTable).values(releaseIds.map((releaseId) => ({
+        roadmapItemId: id,
+        releaseId,
+      })));
+    }
+
+    await tx.update(roadmapItemsTable).set({
+      updatedBy: actor.userId,
+      updatedAt: new Date(),
+    }).where(eq(roadmapItemsTable.id, id));
+
+    await tx.insert(auditLogTable).values({
+      tenantId: existing.tenantId,
+      userId: actor.userId,
+      action: "roadmap_release_links_updated",
+      resource: "roadmap",
+      resourceId: id,
+      metadata: { releaseIds },
+    });
+  });
+
+  revalidateRoadmapPaths();
+}
+
 export async function addPlatformRoadmapComment(formData: FormData): Promise<void> {
   const actor = await requirePlatformAdmin();
   const id = String(formData.get("id") ?? "").trim();
@@ -1150,22 +1215,79 @@ export async function archivePlatformRoadmapItem(formData: FormData): Promise<vo
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
 
-  await db.update(roadmapItemsTable).set({
-    status: "archived",
-    archivedAt: new Date(),
-    updatedBy: actor.userId,
-    updatedAt: new Date(),
-  }).where(eq(roadmapItemsTable.id, id));
+  const eventInfo = await db.transaction(async (tx) => {
+    const [existing] = await tx.select().from(roadmapItemsTable).where(eq(roadmapItemsTable.id, id)).limit(1);
+    if (!existing) return null;
 
-  await db.insert(auditLogTable).values({
-    userId: actor.userId,
-    action: "roadmap_item_archived",
-    resource: "roadmap",
-    resourceId: id,
-    metadata: {},
+    const now = new Date();
+    await tx.update(roadmapItemsTable).set({
+      status: "archived",
+      archivedAt: existing.archivedAt ?? now,
+      updatedBy: actor.userId,
+      updatedAt: now,
+    }).where(eq(roadmapItemsTable.id, id));
+
+    if (existing.status !== "archived") {
+      await tx.insert(roadmapItemStatusHistoryTable).values({
+        roadmapItemId: id,
+        fromStatus: existing.status,
+        toStatus: "archived",
+        changedBy: actor.userId,
+        note: "Gearchiveerd via snelle triage.",
+      });
+    }
+
+    await tx.insert(auditLogTable).values({
+      tenantId: existing.tenantId,
+      userId: actor.userId,
+      action: "roadmap_item_archived",
+      resource: "roadmap",
+      resourceId: id,
+      metadata: { fromStatus: existing.status, toStatus: "archived" },
+    });
+
+    return existing.status === "archived"
+      ? null
+      : {
+        id,
+        title: existing.title,
+        previousStatus: existing.status,
+        status: "archived" as RoadmapStatus,
+      };
   });
 
   revalidateRoadmapPaths();
+
+  if (eventInfo) {
+    const scopeInfo = await roadmapNotificationScope(eventInfo.id);
+    if (!scopeInfo) return;
+
+    await emitFieldgridContentNotification({
+      eventKey: "roadmap_status_changed",
+      actorUserId: actor.userId,
+      tenantIds: scopeInfo.tenantIds,
+      moduleKeys: scopeInfo.moduleKeys,
+      requiredModuleKeys: ["roadmap"],
+      audienceKeys: scopeInfo.audienceKeys,
+      requiredPermissionKeys: ["roadmap:view"],
+      aggregate: { type: "roadmap", id: eventInfo.id },
+      payload: {
+        roadmap: {
+          id: eventInfo.id,
+          title: eventInfo.title,
+          from_status: eventInfo.previousStatus,
+          to_status: eventInfo.status,
+          note: "Gearchiveerd via snelle triage.",
+        },
+      },
+      fallback: {
+        title: `Roadmapstatus gewijzigd: ${eventInfo.title}`,
+        body: `De status is gewijzigd van ${eventInfo.previousStatus} naar archived.`,
+        category: "roadmap",
+        href: `/roadmap/${eventInfo.id}`,
+      },
+    });
+  }
 }
 
 export async function convertRoadmapItemToGlobal(formData: FormData): Promise<void> {
