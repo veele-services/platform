@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { CapacitorRuntimeBridge } from "@/components/CapacitorRuntimeBridge";
 import { DevNav } from "@/components/DevNav";
+import { OfflineContentNavigation } from "@/components/OfflineContentNavigation";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -54,6 +55,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <OfflineContentNavigation />
         <CapacitorRuntimeBridge />
         <DevNav current="personeel" />
         {children}

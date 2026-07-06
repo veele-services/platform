@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { DevNav } from "@/components/DevNav";
+import { OfflineContentNavigation } from "@/components/OfflineContentNavigation";
 import "./globals.css";
 import type { ReactNode } from "react";
 
@@ -45,6 +46,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <OfflineContentNavigation />
         <DevNav current="klant" />
         {children}
       </body>

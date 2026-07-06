@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BookOpen, Sparkles } from "lucide-react";
 import { getPersonnelKnowledgebaseHelpIndex } from "@/actions/knowledgebase";
 import { KnowledgebaseAutocompleteSearch } from "@/components/KnowledgebaseAutocompleteSearch";
+import { OfflineContentNotice } from "@/components/OfflineContentNotice";
 
 type Props = {
   searchParams: Promise<{ q?: string }>;
@@ -18,6 +19,8 @@ export default async function PersonnelHelpPage({ searchParams }: Props) {
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-5 md:px-0">
+      <OfflineContentNotice />
+
       <section className="rounded-2xl border bg-white p-5 shadow-sm" style={{ borderColor: "#E2E8F0" }}>
         <p className="text-xs font-black uppercase tracking-[0.16em]" style={{ color: "var(--color-accent)" }}>Help</p>
         <h1 className="mt-2 text-2xl font-black" style={{ color: "var(--color-primary)" }}>Waar kunnen we mee helpen?</h1>

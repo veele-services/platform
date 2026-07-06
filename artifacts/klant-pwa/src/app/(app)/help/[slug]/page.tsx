@@ -6,6 +6,7 @@ import {
   submitCustomerKnowledgebaseFeedback,
 } from "@/actions/knowledgebase";
 import { KnowledgebaseContentRenderer } from "@/components/KnowledgebaseContentRenderer";
+import { OfflineContentNotice } from "@/components/OfflineContentNotice";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -24,6 +25,8 @@ export default async function CustomerHelpArticlePage({ params }: Props) {
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-5 md:px-0">
+      <OfflineContentNotice />
+
       <article className="grid gap-4">
         <header className="rounded-2xl border bg-white p-5 shadow-sm" style={{ borderColor: "var(--color-border)" }}>
           <Link href="/help" className="inline-flex items-center gap-2 text-sm font-black" style={{ color: "var(--color-accent)" }}>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { CalendarDays, Megaphone } from "lucide-react";
 import { listCustomerReleases } from "@/actions/releases";
+import { OfflineContentNotice } from "@/components/OfflineContentNotice";
 
 export const metadata = {
   title: "Release notes",
@@ -24,6 +25,8 @@ export default async function CustomerReleasesPage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-5 md:px-0">
+      <OfflineContentNotice message="U bent offline. Eerder geopende release notes blijven beschikbaar; media en bijlagen openen weer zodra u online bent." />
+
       <section className="rounded-2xl border bg-white p-5 shadow-sm" style={{ borderColor: "var(--color-border)" }}>
         <p className="text-xs font-black uppercase tracking-[0.16em]" style={{ color: "var(--color-accent)" }}>
           Releases

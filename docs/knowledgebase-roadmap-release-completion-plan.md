@@ -432,6 +432,16 @@ Klaar wanneer:
 - Nieuwe versies verversen correct.
 - Geen gevoelige media lekt via cache.
 
+Implementatiestatus:
+
+- Klant-PWA en personeels-PWA service workers gebruiken een aparte static cache en content cache.
+- Alleen navigatie-HTML voor `/help`, `/help/[slug]`, `/releases` en `/releases/[slug]` wordt network-first gecachet nadat de server de pagina succesvol heeft vrijgegeven. Daarmee worden alleen eerder bezochte en toegestane pagina's lokaal opgeslagen.
+- Help- en release-media routes (`/help/media/*`, `/releases/media/*`) worden niet door de service worker onderschept of opgeslagen, zodat private signed media niet onbeperkt lokaal blijft staan.
+- De content cache wordt beperkt tot 24 pagina's per PWA en oude cacheversies worden bij service-worker activatie verwijderd.
+- Als de gebruiker online is, haalt network-first altijd eerst de serverversie op en overschrijft daarmee oude content na artikel- of releaseupdates.
+- Help- en releasepagina's tonen een mobiele offline notice wanneer `navigator.onLine` false is. Als een niet-gecachete pagina offline wordt geopend, geeft de service worker een compacte offline fallback.
+- Een client-side offline navigation guard forceert help/release links naar documentnavigatie wanneer de PWA offline is, zodat Next client routing de service-worker cache niet omzeilt.
+
 ## Fase 12 - Echte Playwright QA En Acceptatie
 
 Doel: aantoonbaar bewijs dat alles werkt op desktop, tablet en mobiel.

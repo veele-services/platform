@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, CheckCircle2, FileText } from "lucide-react";
 import { getCustomerRelease, recordCustomerReleaseRead } from "@/actions/releases";
 import { KnowledgebaseContentRenderer } from "@/components/KnowledgebaseContentRenderer";
+import { OfflineContentNotice } from "@/components/OfflineContentNotice";
 
 export const metadata = {
   title: "Release note",
@@ -25,6 +26,8 @@ export default async function CustomerReleaseDetailPage({ params }: Props) {
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-5 md:px-0">
+      <OfflineContentNotice message="U bent offline. Deze release note komt uit de lokale cache. Media en bijlagen openen weer zodra u online bent." />
+
       <Link href="/releases" className="mb-4 inline-flex items-center gap-2 text-sm font-black text-slate-600">
         <ArrowLeft className="h-4 w-4" />
         Terug naar releases
