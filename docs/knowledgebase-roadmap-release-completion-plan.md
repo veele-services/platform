@@ -207,20 +207,30 @@ Geraakte helpers:
 
 - `listKnowledgebaseSearchSuggestionsForContext`.
 - Search event logging.
+- Suggestion API-routes per surface:
+  - `artifacts/backoffice/src/app/api/help/search-suggestions/route.ts`.
+  - `artifacts/klant-pwa/src/app/api/help/search-suggestions/route.ts`.
+  - `artifacts/personeel-pwa/src/app/api/help/search-suggestions/route.ts`.
+- Autocomplete components:
+  - `artifacts/backoffice/src/components/knowledgebase/KnowledgebaseAutocompleteSearch.tsx`.
+  - `artifacts/klant-pwa/src/components/KnowledgebaseAutocompleteSearch.tsx`.
+  - `artifacts/personeel-pwa/src/components/KnowledgebaseAutocompleteSearch.tsx`.
 
 Taken:
 
 - Autocomplete component bouwen.
-- Suggesties op titel, categorie, keyword en smart term tonen.
+- Suggesties op titel, inhoud, categorie, module, keyword en smart term tonen.
 - Geen-resultaten state toevoegen.
 - Search analytics netjes registreren.
 - Mobile-safe gedrag controleren.
+- Gate toevoegen: `scripts/fieldgrid-kb-roadmap-release-phase5-autocomplete.mjs`.
 
 Klaar wanneer:
 
 - Autocomplete werkt in alle Help-surfaces.
 - Resultaten zijn visibility-filtered.
 - Geen-resultaten flow is duidelijk.
+- `fieldgrid:kb-roadmap-release-phase5-autocomplete:check` slaagt.
 
 ## Fase 6 - Platform Preview Als Audience/Tenant/Rol
 

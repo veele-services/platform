@@ -4,12 +4,16 @@ import {
   db,
   getKnowledgebaseArticleByIdForContext,
   getKnowledgebaseArticleBySlugForContext,
+  getKnowledgebaseFeatureHelpForContext,
   kbArticleFeedbackTable,
   listEnabledKnowledgebaseModuleKeysForTenant,
   listKnowledgebaseHelpIndexForContext,
+  listKnowledgebaseSearchSuggestionsForContext,
   recordKnowledgebaseSearchEvent,
   type KnowledgebaseArticleSummary,
+  type KnowledgebaseFeatureHelp,
   type KnowledgebaseHelpIndex,
+  type KnowledgebaseSearchSuggestion,
 } from "@workspace/db";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
@@ -61,10 +65,31 @@ export async function getPersonnelKnowledgebaseHelpIndex(query?: string | null):
   return index;
 }
 
+export async function getPersonnelKnowledgebaseSearchSuggestions(query?: string | null): Promise<KnowledgebaseSearchSuggestion[]> {
+  const context = await personnelKnowledgebaseContext();
+  if (!context) return [];
+
+  return listKnowledgebaseSearchSuggestionsForContext(context, query, 10);
+}
+
 export async function getPersonnelKnowledgebaseArticle(slug: string): Promise<KnowledgebaseArticleSummary | null> {
   const context = await personnelKnowledgebaseContext();
   if (!context) return null;
   return getKnowledgebaseArticleBySlugForContext(context, slug);
+}
+
+export async function getPersonnelFeatureHelp(
+  featureKey: string,
+  moduleKey?: string | null,
+): Promise<KnowledgebaseFeatureHelp | null> {
+  const context = await personnelKnowledgebaseContext();
+  if (!context) return null;
+
+  return getKnowledgebaseFeatureHelpForContext(context, featureKey, {
+    moduleKey,
+    audience: "tenant_personnel",
+    articleHrefPrefix: "/help",
+  });
 }
 
 export async function submitPersonnelKnowledgebaseFeedback(formData: FormData): Promise<void> {

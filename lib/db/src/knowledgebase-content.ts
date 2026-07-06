@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, type SQL } from "drizzle-orm";
 import { db } from "./index";
 import {
   canReadPublishedContent,
@@ -137,6 +137,9 @@ function searchableText(article: KnowledgebaseArticleSummary): string {
       article.contentText,
       article.category?.name,
       article.category?.description,
+      article.category?.moduleKey,
+      ...article.moduleKeys,
+      ...article.requiredModuleKeys,
       ...article.keywords,
       ...article.smartTerms,
     ].filter(Boolean).join(" "),
@@ -171,6 +174,7 @@ function searchScore(article: KnowledgebaseArticleSummary, query: string | null 
   const title = normalizeSearch(article.title);
   const summary = normalizeSearch(article.summary);
   const category = normalizeSearch(article.category?.name);
+  const modules = [...article.moduleKeys, ...article.requiredModuleKeys].map(normalizeSearch);
   const keywords = article.keywords.map(normalizeSearch);
   const smartTerms = article.smartTerms.map(normalizeSearch);
   const content = normalizeSearch(article.contentText);
@@ -182,6 +186,7 @@ function searchScore(article: KnowledgebaseArticleSummary, query: string | null 
     if (keywords.some((keyword) => keyword === token || keyword.startsWith(token))) score += 42;
     if (smartTerms.some((term) => term === token || term.startsWith(token))) score += 34;
     if (category.includes(token)) score += 24;
+    if (modules.some((moduleKey) => moduleKey === token || moduleKey.includes(token))) score += 22;
     if (summary.includes(token)) score += 16;
     if (content.includes(token)) score += 6;
     return score;
@@ -291,6 +296,16 @@ function buildSearchSuggestions(
         value: keyword,
         description: article.category?.name ?? null,
         score: article.smartTerms.includes(keyword) ? 44 : 38,
+      });
+    }
+
+    for (const moduleKey of [...new Set([...article.moduleKeys, ...article.requiredModuleKeys])]) {
+      add({
+        type: "term",
+        label: moduleKey,
+        value: moduleKey,
+        description: article.category?.name ?? "Module",
+        score: 36,
       });
     }
   }
@@ -461,25 +476,10 @@ export async function listKnowledgebaseArticlesForContext(
   const normalizedContext = normalizeVisibilityContext(context);
   const language = options.language?.trim() || "nl";
   const conditions: SQL[] = [eq(kbArticlesTable.language, language)];
-  const searchQuery = options.query?.trim();
-
   if (!options.includeArchived) {
     conditions.push(eq(kbArticlesTable.status, "published"));
   } else if (!options.includeUnpublished && !normalizedContext.isPlatformAdmin) {
     conditions.push(eq(kbArticlesTable.status, "published"));
-  }
-
-  if (searchQuery) {
-    const likeQuery = `%${searchQuery}%`;
-    conditions.push(sql`(
-      to_tsvector('simple', COALESCE(${kbArticlesTable.title}, '') || ' ' || COALESCE(${kbArticlesTable.summary}, '') || ' ' || COALESCE(${kbArticlesTable.contentText}, ''))
-        @@ plainto_tsquery('simple', ${searchQuery})
-      OR ${kbArticlesTable.title} ILIKE ${likeQuery}
-      OR ${kbArticlesTable.summary} ILIKE ${likeQuery}
-      OR ${kbArticlesTable.contentText} ILIKE ${likeQuery}
-      OR ${kbArticlesTable.keywords}::text ILIKE ${likeQuery}
-      OR ${kbArticlesTable.smartTerms}::text ILIKE ${likeQuery}
-    )`);
   }
 
   const rows = await db

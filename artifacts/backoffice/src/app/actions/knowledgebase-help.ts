@@ -4,21 +4,27 @@ import {
   db,
   getKnowledgebaseArticleByIdForContext,
   getKnowledgebaseArticleBySlugForContext,
+  getKnowledgebaseFeatureHelpForContext,
   getKnowledgebaseMediaByIdForContext,
   kbArticleFeedbackTable,
   kbArticlesTable,
   listEnabledKnowledgebaseModuleKeysForTenant,
   listKnowledgebaseHelpIndexForContext,
+  listKnowledgebaseSearchSuggestionsForContext,
   recordKnowledgebaseSearchEvent,
   TENANT_RUNTIME_ACTIVE_STATUSES,
   tenantsTable,
   type KnowledgebaseArticleSummary,
+  type KnowledgebaseFeatureHelp,
   type KnowledgebaseMediaAccess,
   type KnowledgebaseHelpIndex,
+  type KnowledgebaseSearchSuggestion,
+  type FieldgridContentAudience,
 } from "@workspace/db";
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getCurrentEffectiveUserPermissions, getEffectiveUserPermissions } from "@/lib/auth/permissions";
+import { requirePlatformAdmin } from "@/lib/auth/platform";
 import { requireCurrentTenantId, userHasActiveTenant } from "@/lib/auth/tenant";
 import {
   knowledgebaseSupportPath,
@@ -194,6 +200,13 @@ export async function getTenantKnowledgebaseHelpIndex(query?: string | null): Pr
   return index;
 }
 
+export async function getTenantKnowledgebaseSearchSuggestions(query?: string | null): Promise<KnowledgebaseSearchSuggestion[]> {
+  const context = await tenantKnowledgebaseContext();
+  if (!context) return [];
+
+  return listKnowledgebaseSearchSuggestionsForContext(context, query, 10);
+}
+
 export async function getTenantKnowledgebaseArticle(slug: string): Promise<KnowledgebaseArticleSummary | null> {
   const context = await tenantKnowledgebaseContext();
   if (!context) return null;
@@ -210,6 +223,45 @@ export async function getTenantKnowledgebaseSupportLink(slug: string): Promise<s
 
   if (!tenant) return null;
   return knowledgebaseSupportUrl(tenant.slug, slug);
+}
+
+export async function getPlatformFeatureHelp(
+  featureKey: string,
+  moduleKey?: string | null,
+): Promise<KnowledgebaseFeatureHelp | null> {
+  await requirePlatformAdmin();
+
+  return getKnowledgebaseFeatureHelpForContext(
+    {
+      surface: "platform_backoffice",
+      isPlatformAdmin: true,
+      audiences: ["platform_admin", "support"],
+      activeModuleKeys: [],
+      permissionKeys: [],
+    },
+    featureKey,
+    {
+      moduleKey,
+      audience: "platform_admin",
+      articleHrefPrefix: "/platform/knowledgebase/articles",
+      articleHrefMode: "id",
+    },
+  );
+}
+
+export async function getTenantFeatureHelp(
+  featureKey: string,
+  moduleKey?: string | null,
+  audience: FieldgridContentAudience = "tenant_admin",
+): Promise<KnowledgebaseFeatureHelp | null> {
+  const context = await tenantKnowledgebaseContext();
+  if (!context) return null;
+
+  return getKnowledgebaseFeatureHelpForContext(context, featureKey, {
+    moduleKey,
+    audience,
+    articleHrefPrefix: "/help",
+  });
 }
 
 export async function getShortcodeKnowledgebaseArticle(

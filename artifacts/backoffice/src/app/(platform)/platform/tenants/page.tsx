@@ -13,6 +13,7 @@ import {
   type PlatformTenantListResult,
   type PlatformTenantListRow,
 } from "@/app/actions/platform-tenants";
+import { ResolvedFeatureHelp } from "@/components/knowledgebase/ResolvedFeatureHelp";
 
 export const metadata = {
   title: "Tenants",
@@ -338,7 +339,10 @@ export default async function PlatformTenantsPage({ searchParams }: Props) {
         <header className="flex flex-col gap-3 border-b border-slate-200 pb-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm font-medium text-slate-500">Fieldgrid platform</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal text-slate-950">Tenants</h2>
+            <div className="mt-1 flex items-center gap-2">
+              <h2 className="text-2xl font-semibold tracking-normal text-slate-950">Tenants</h2>
+              <ResolvedFeatureHelp surface="platform" featureKey="platform.tenants" moduleKey="knowledgebase" />
+            </div>
             <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
               Zoek en filter server-side op tenant, domein, owner, modules, sectoren, regio's en readiness.
             </p>

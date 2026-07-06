@@ -26,6 +26,7 @@ import { listTenantReleases } from "@/app/actions/releases";
 import { AssignmentStatusBadge } from "@/components/assignments/AssignmentStatusBadge";
 import { DashboardRefresher } from "@/components/dashboard/DashboardRefresher";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
+import { ResolvedFeatureHelp } from "@/components/knowledgebase/ResolvedFeatureHelp";
 import { TenantPageHeader, TenantPageShell } from "@/components/tenant-ui";
 import { hasPermission } from "@/lib/auth/permissions";
 
@@ -231,6 +232,7 @@ export default async function DashboardPage() {
         title="Dashboard"
         eyebrow="Tenant command center"
         description={`Rustig operationeel overzicht voor ${todayDisplay}. Begin bij de inbox en stuur daarna op planning, finance en tickets.`}
+        badges={<ResolvedFeatureHelp featureKey="tenant.dashboard" moduleKey="knowledgebase" />}
         actions={<DashboardRefresher />}
       />
 

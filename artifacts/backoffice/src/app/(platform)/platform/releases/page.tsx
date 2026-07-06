@@ -8,6 +8,7 @@ import {
 } from "@/app/actions/releases";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ResolvedFeatureHelp } from "@/components/knowledgebase/ResolvedFeatureHelp";
 
 export const metadata = {
   title: "Releases",
@@ -55,7 +56,10 @@ export default async function PlatformReleasesPage() {
         <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm font-medium text-slate-500">Platformbeheer</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950">Releasebeheer</h1>
+            <div className="mt-1 flex items-center gap-2">
+              <h1 className="text-3xl font-semibold tracking-normal text-slate-950">Releasebeheer</h1>
+              <ResolvedFeatureHelp surface="platform" featureKey="platform.releases" moduleKey="releases" />
+            </div>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
               Publiceer versienotes per audience, module en surface. Highlights tonen als gele balk en zijn per gebruiker dismissable.
             </p>
