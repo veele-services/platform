@@ -7,6 +7,7 @@ import {
   Building2,
   CalendarDays,
   FileText,
+  HelpCircle,
   Headphones,
   Home,
   LogOut,
@@ -20,6 +21,7 @@ type CustomerPortalFeatureFlags = {
   documents: boolean;
   finance: boolean;
   reporting: boolean;
+  knowledgebase: boolean;
 };
 
 type NavIcon = ComponentType<{
@@ -35,6 +37,7 @@ const NAV_ITEMS = [
   { href: "/meldingen/tickets", label: "Support", Icon: Headphones, match: ["/meldingen"] },
   { href: "/financieel", label: "Financieel", Icon: WalletCards, moduleKey: "finance", match: ["/financieel", "/facturen", "/betalingen", "/offertes"] },
   { href: "/documenten", label: "Documenten", Icon: FileText, moduleKey: "documents" },
+  { href: "/help", label: "Help", Icon: HelpCircle, moduleKey: "knowledgebase" },
 ] satisfies Array<{
   href: string;
   label: string;
@@ -52,7 +55,7 @@ function isVisible(
 
 export function DesktopSidebar({
   branding,
-  featureFlags = { documents: true, finance: true, reporting: true },
+  featureFlags = { documents: true, finance: true, reporting: true, knowledgebase: true },
 }: {
   branding?: PortalBrandingProps;
   featureFlags?: CustomerPortalFeatureFlags;

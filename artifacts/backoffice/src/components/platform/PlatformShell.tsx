@@ -6,6 +6,7 @@ import { useMemo, useState, type ReactNode } from "react";
 import {
   Activity,
   Bell,
+  BookOpen,
   Building2,
   ChevronDown,
   CreditCard,
@@ -55,6 +56,7 @@ const NAV_ITEMS: PlatformNavItem[] = [
   { href: "/platform/subscriptions", label: "Subscriptions", icon: CreditCard, adminOnly: true },
   { href: "/platform/tickets", label: "Tickets", icon: Ticket, adminOnly: true },
   { href: "/platform/notifications", label: "Meldingen", icon: Bell, adminOnly: true },
+  { href: "/platform/knowledgebase", label: "Knowledgebase", icon: BookOpen, adminOnly: true },
   { href: "/platform/security", label: "Security en audit", icon: ShieldCheck, adminOnly: true },
   { href: "/platform/operations", label: "Operations", icon: Activity, adminOnly: true },
   { href: "/platform/staging-smoke", label: "Staging smoke", icon: Activity, adminOnly: true },
@@ -97,6 +99,11 @@ const ROUTE_LABELS: Array<{ test: (pathname: string) => boolean; title: string; 
     test: (pathname) => pathname.startsWith("/platform/notifications"),
     title: "Meldingen",
     crumbs: [{ label: "Platformbeheer", href: "/platform" }, { label: "Meldingen" }],
+  },
+  {
+    test: (pathname) => pathname.startsWith("/platform/knowledgebase"),
+    title: "Knowledgebase",
+    crumbs: [{ label: "Platformbeheer", href: "/platform" }, { label: "Knowledgebase" }],
   },
   {
     test: (pathname) => pathname.startsWith("/platform/security"),

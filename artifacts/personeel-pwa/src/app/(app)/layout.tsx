@@ -35,6 +35,7 @@ export default async function AppLayout({
     personnel,
     documentsEnabled,
     notificationsEnabled,
+    knowledgebaseEnabled,
   ] = await Promise.all([
     getTenantBranding(tenantId),
     getMyNotificationSummary(),
@@ -42,11 +43,13 @@ export default async function AppLayout({
     getMyPersonnel(),
     isTenantModuleEnabled(tenantId, "documents"),
     isTenantModuleEnabled(tenantId, "notifications"),
+    isTenantModuleEnabled(tenantId, "knowledgebase"),
   ]);
 
   const featureFlags = {
     documents: documentsEnabled,
     notifications: notificationsEnabled,
+    knowledgebase: knowledgebaseEnabled,
   };
   const brandingStyle = getTenantBrandingCssVariables(branding) as CSSProperties;
 

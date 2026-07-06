@@ -5,6 +5,7 @@ import {
   Bell,
   FileText,
   FolderOpen,
+  HelpCircle,
   LogOut,
   MessageSquare,
   Newspaper,
@@ -23,6 +24,7 @@ const MORE_LINKS = [
   { href: "/beschikbaarheid", label: "Beschikbaarheid", description: "Beschikbare dagen beheren", Icon: CalendarCheck },
   { href: "/verlof", label: "Verlof", description: "Verlofaanvragen bekijken en indienen", Icon: Plane },
   { href: "/documenten", label: "Documenten", description: "Bestanden en formulieren", Icon: FolderOpen },
+  { href: "/help", label: "Help", description: "Handleidingen en uitleg bij functies", Icon: HelpCircle },
   { href: "/openstaand", label: "Open diensten", description: "Beschikbare werkbonnen", Icon: FileText },
 ];
 

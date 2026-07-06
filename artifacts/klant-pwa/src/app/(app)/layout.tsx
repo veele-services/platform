@@ -29,6 +29,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     documentsEnabled,
     financeEnabled,
     reportingEnabled,
+    knowledgebaseEnabled,
   ] = await Promise.all([
     getTenantBranding(tenantId),
     getMyCustomerProfile(),
@@ -36,12 +37,14 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
     isTenantModuleEnabled(tenantId, "documents"),
     isTenantModuleEnabled(tenantId, "finance"),
     isTenantModuleEnabled(tenantId, "reporting"),
+    isTenantModuleEnabled(tenantId, "knowledgebase"),
   ]);
 
   const featureFlags = {
     documents: documentsEnabled,
     finance: financeEnabled,
     reporting: reportingEnabled,
+    knowledgebase: knowledgebaseEnabled,
   };
   const brandingStyle = getTenantBrandingCssVariables(branding) as CSSProperties;
 

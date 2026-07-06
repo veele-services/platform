@@ -10,6 +10,7 @@ import {
   ClipboardList,
   Clock,
   FolderOpen,
+  HelpCircle,
   Home,
   LogOut,
   MessageSquare,
@@ -24,6 +25,7 @@ import { VeeleLogo, type PortalBrandingProps } from "./MobileHeader";
 type PersonnelPortalFeatureFlags = {
   documents: boolean;
   notifications: boolean;
+  knowledgebase: boolean;
 };
 
 type NavIcon = ComponentType<{
@@ -43,6 +45,7 @@ const NAV_ITEMS = [
   { href: "/beschikbaarheid", label: "Beschikbaarheid", Icon: Calendar },
   { href: "/verlof", label: "Verlof", Icon: Plane },
   { href: "/documenten", label: "Documenten", Icon: FolderOpen, moduleKey: "documents" },
+  { href: "/help", label: "Help", Icon: HelpCircle, moduleKey: "knowledgebase" },
   { href: "/instellingen", label: "Instellingen", Icon: Settings },
   { href: "/profiel", label: "Profiel", Icon: User },
 ] satisfies Array<{
@@ -61,7 +64,7 @@ function isVisible(
 
 export function DesktopSidebar({
   branding,
-  featureFlags = { documents: true, notifications: true },
+  featureFlags = { documents: true, notifications: true, knowledgebase: true },
 }: {
   branding?: PortalBrandingProps;
   featureFlags?: PersonnelPortalFeatureFlags;
