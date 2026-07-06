@@ -3,6 +3,14 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const BASE = "/klant";
 
+function routePath(pathname: string): string {
+  if (pathname === BASE) return "/";
+  if (pathname.startsWith(`${BASE}/`)) {
+    return pathname.slice(BASE.length) || "/";
+  }
+  return pathname;
+}
+
 function proxyAwareUrl(pathname: string, request: NextRequest): URL {
   const host =
     request.headers.get("x-forwarded-host") ??
@@ -17,12 +25,20 @@ export async function middleware(request: NextRequest) {
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   const { pathname } = request.nextUrl;
-  const isLoginPage  = pathname === "/login";
-  const isPasswordResetPage = pathname === "/reset-wachtwoord";
+  const normalizedPathname = routePath(pathname);
+  const isLoginPage  = normalizedPathname === "/login";
+  const isPasswordResetPage = normalizedPathname === "/reset-wachtwoord";
+  const isPwaAsset =
+    normalizedPathname === "/manifest.json" ||
+    normalizedPathname === "/sw.js" ||
+    normalizedPathname === "/favicon.svg" ||
+    normalizedPathname.startsWith("/icons/");
   const isPublicPage =
+    isPwaAsset ||
     isLoginPage ||
-    pathname === "/wachtwoord-vergeten" ||
-    pathname.startsWith("/auth/confirm");
+    normalizedPathname === "/wachtwoord-vergeten" ||
+    normalizedPathname.startsWith("/api/auth/password-reset") ||
+    normalizedPathname.startsWith("/auth/confirm");
 
   if (!url || !key) {
     if (isPublicPage) return NextResponse.next();
@@ -54,7 +70,7 @@ export async function middleware(request: NextRequest) {
 
   const mustChangePassword = user?.app_metadata?.force_password_change === true;
 
-  if (user && mustChangePassword && !isPasswordResetPage && !pathname.startsWith("/auth/confirm")) {
+  if (user && mustChangePassword && !isPasswordResetPage && !normalizedPathname.startsWith("/auth/confirm")) {
     return NextResponse.redirect(proxyAwareUrl(`${BASE}/reset-wachtwoord?force=1`, request));
   }
 

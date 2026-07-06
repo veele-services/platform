@@ -1,9 +1,13 @@
 "use server";
 
 import { randomInt } from "node:crypto";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { and, eq, inArray, sql } from "drizzle-orm";
+import { customerUsersTable, customersTable, db } from "@workspace/db";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireCurrentCustomerPortalTenantId } from "@/lib/auth/tenant";
 import { evaluatePasswordStrength, mediumPasswordMessage } from "@/lib/password-strength";
 import { buildPasswordResetCodeEmail, klantPortalUrl, sendEmailWithResult } from "@/lib/email";
 
@@ -24,6 +28,21 @@ function passwordResetCodeExpiresAt(now = new Date()): string {
   return new Date(now.getTime() + 30 * 60 * 1000).toISOString();
 }
 
+function firstForwardedValue(value: string | null): string {
+  return (value ?? "").split(",")[0]?.trim() ?? "";
+}
+
+async function currentKlantPortalUrl(): Promise<string> {
+  const requestHeaders = await headers();
+  const host =
+    firstForwardedValue(requestHeaders.get("x-forwarded-host")) ||
+    requestHeaders.get("host");
+  if (!host) return klantPortalUrl();
+
+  const proto = firstForwardedValue(requestHeaders.get("x-forwarded-proto")) || "https";
+  return `${proto}://${host.replace(/\/$/, "")}/klant`;
+}
+
 async function findAuthUserByEmail(email: string): Promise<AuthUserRecord | null> {
   const admin = createAdminClient();
   const normalized = email.trim().toLowerCase();
@@ -40,6 +59,65 @@ async function findAuthUserByEmail(email: string): Promise<AuthUserRecord | null
 function displayName(user: AuthUserRecord, fallbackEmail: string): string {
   const value = user.user_metadata?.["full_name"] ?? user.user_metadata?.["name"];
   return typeof value === "string" && value.trim() ? value.trim() : fallbackEmail;
+}
+
+function customerDisplayName(
+  row: { firstName: string | null; lastName: string | null; customerName: string | null },
+  fallbackEmail: string,
+): string {
+  const fullName = [row.firstName, row.lastName].map((part) => part?.trim()).filter(Boolean).join(" ");
+  return fullName || row.customerName?.trim() || fallbackEmail;
+}
+
+async function findCustomerResetAccount(
+  tenantId: string,
+  email: string,
+): Promise<{ authUser: AuthUserRecord; recipientName: string } | null> {
+  const normalizedEmail = email.trim().toLowerCase();
+  const [portalUser] = await db
+    .select({
+      userId:       customerUsersTable.userId,
+      email:        customerUsersTable.email,
+      firstName:    customerUsersTable.firstName,
+      lastName:     customerUsersTable.lastName,
+      customerName: customersTable.name,
+    })
+    .from(customerUsersTable)
+    .innerJoin(
+      customersTable,
+      and(
+        eq(customersTable.id, customerUsersTable.customerId),
+        eq(customersTable.tenantId, customerUsersTable.tenantId),
+      ),
+    )
+    .where(
+      and(
+        eq(customerUsersTable.tenantId, tenantId),
+        sql`lower(${customerUsersTable.email}) = ${normalizedEmail}`,
+        inArray(customerUsersTable.status, ["active", "invited"]),
+        eq(customersTable.isActive, true),
+      ),
+    )
+    .limit(1);
+
+  if (!portalUser) return null;
+
+  let authUser: AuthUserRecord | null = null;
+  if (portalUser.userId) {
+    const admin = createAdminClient();
+    const { data, error } = await admin.auth.admin.getUserById(portalUser.userId);
+    if (error) throw new Error(error.message ?? "Auth-gebruiker ophalen mislukt.");
+    authUser = data.user as AuthUserRecord | null;
+    if (authUser?.email?.toLowerCase() !== normalizedEmail) return null;
+  } else {
+    authUser = await findAuthUserByEmail(normalizedEmail);
+  }
+
+  if (!authUser) return null;
+  return {
+    authUser,
+    recipientName: customerDisplayName(portalUser, displayName(authUser, normalizedEmail)),
+  };
 }
 
 function isTemporaryPasswordExpired(appMetadata: Record<string, unknown> | null | undefined): boolean {
@@ -113,18 +191,24 @@ export async function requestPasswordResetCode(email: string): Promise<{ success
   if (!normalizedEmail) return { success: false, message: "E-mailadres is verplicht." };
 
   try {
-    const authUser = await findAuthUserByEmail(normalizedEmail);
-    if (!authUser) return { success: true };
+    const tenantId = await requireCurrentCustomerPortalTenantId();
+    if (!tenantId) {
+      return { success: false, message: "Klantportaal voor deze host is niet beschikbaar." };
+    }
+
+    const account = await findCustomerResetAccount(tenantId, normalizedEmail);
+    if (!account) return { success: true };
 
     const code = generatePasswordResetCode();
     const admin = createAdminClient();
-    const { error } = await admin.auth.admin.updateUserById(authUser.id, {
+    const { error } = await admin.auth.admin.updateUserById(account.authUser.id, {
       password: code,
       email_confirm: true,
       app_metadata: {
-        ...(authUser.app_metadata ?? {}),
+        ...(account.authUser.app_metadata ?? {}),
         force_password_change: true,
         portal: "customer",
+        tenant_id: tenantId,
         temporary_password_issued_at: new Date().toISOString(),
         temporary_password_expires_at: passwordResetCodeExpiresAt(),
         temporary_password_kind: "reset_code",
@@ -133,12 +217,18 @@ export async function requestPasswordResetCode(email: string): Promise<{ success
     if (error) throw error;
 
     const { subject, html } = buildPasswordResetCodeEmail({
-      recipientName: displayName(authUser, normalizedEmail),
+      recipientName: account.recipientName,
       portalName: "Klantportaal",
-      resetUrl: `${klantPortalUrl()}/wachtwoord-vergeten`,
+      resetUrl: `${await currentKlantPortalUrl()}/wachtwoord-vergeten`,
       code,
     });
-    const sent = await sendEmailWithResult({ to: normalizedEmail, subject, html });
+    const sent = await sendEmailWithResult({
+      to: normalizedEmail,
+      subject,
+      html,
+      tenantId,
+      purpose: "customer_portal_password_reset",
+    });
     if (!sent.success) throw new Error(sent.error ?? "Herstelmail versturen mislukt.");
   } catch (error) {
     console.error("[auth] Klant password reset mail failed:", error);
