@@ -1,5 +1,6 @@
 import { Resend } from "resend";
 import { db, organizationSettingsTable } from "@workspace/db";
+import { desc, eq } from "drizzle-orm";
 import { sendSmtpMail, type SmtpMailConfig, type SmtpEncryption } from "@/lib/smtp-mailer";
 
 // ── Singleton ─────────────────────────────────────────────────────────────────
@@ -23,7 +24,7 @@ function normalizeEncryption(value: string | null): SmtpEncryption {
 }
 
 async function getSmtpConfig(): Promise<SmtpMailConfig | null> {
-  const [settings] = await db
+  const smtpRows = await db
     .select({
       smtpEnabled:    organizationSettingsTable.smtpEnabled,
       smtpHost:       organizationSettingsTable.smtpHost,
@@ -36,9 +37,18 @@ async function getSmtpConfig(): Promise<SmtpMailConfig | null> {
       smtpReplyTo:    organizationSettingsTable.smtpReplyTo,
     })
     .from(organizationSettingsTable)
-    .limit(1);
+    .where(eq(organizationSettingsTable.smtpEnabled, true))
+    .orderBy(desc(organizationSettingsTable.updatedAt))
+    .limit(25);
 
-  if (!settings?.smtpEnabled) return null;
+  const settings = smtpRows.find((row) => row.smtpHost && row.smtpPort && row.smtpFromEmail);
+
+  if (!settings) {
+    if (smtpRows.length > 0) {
+      throw new Error("SMTP is actief, maar host, poort of afzender ontbreekt.");
+    }
+    return null;
+  }
 
   if (!settings.smtpHost || !settings.smtpPort || !settings.smtpFromEmail) {
     throw new Error("SMTP is actief, maar host, poort of afzender ontbreekt.");

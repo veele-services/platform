@@ -17,6 +17,8 @@ import {
   insertCustomerSchema,
   updateCustomerSchema,
   personnelTable,
+  tenantsTable,
+  tenantDomainsTable,
 } from "@workspace/db";
 import { eq, ilike, or, and, asc, desc, inArray, sql, gte, lt, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -192,6 +194,117 @@ const PAGE_SIZE = 25;
 
 function isUniqueViolation(err: unknown): boolean {
   return (err as { code?: string })?.code === "23505";
+}
+
+function splitCustomerPortalName(name: string): { firstName: string | null; lastName: string | null } {
+  const parts = name.trim().split(/\s+/u).filter(Boolean);
+  if (parts.length === 0) return { firstName: null, lastName: null };
+  if (parts.length === 1) return { firstName: parts[0]!, lastName: null };
+  return { firstName: parts.slice(0, -1).join(" "), lastName: parts.at(-1)! };
+}
+
+async function customerPortalLoginUrl(tenantId: string): Promise<string> {
+  const [tenant] = await db
+    .select({ slug: tenantsTable.slug })
+    .from(tenantsTable)
+    .where(eq(tenantsTable.id, tenantId))
+    .limit(1);
+  const [domain] = await db
+    .select({ domain: tenantDomainsTable.domain })
+    .from(tenantDomainsTable)
+    .where(and(
+      eq(tenantDomainsTable.tenantId, tenantId),
+      inArray(tenantDomainsTable.verificationStatus, ["verified", "active"]),
+    ))
+    .orderBy(desc(tenantDomainsTable.isPrimary), asc(tenantDomainsTable.createdAt))
+    .limit(1);
+
+  if (domain?.domain) return `https://${domain.domain}/klant/login`;
+  if (tenant?.slug) return `https://${tenant.slug}.fieldgrid.nl/klant/login`;
+  return `${klantPortalUrl()}/login`;
+}
+
+async function upsertCustomerPortalInviteLink(input: {
+  tenantId: string;
+  customerId: string;
+  authUserId: string;
+  email: string;
+  fullName: string;
+}): Promise<string> {
+  const name = splitCustomerPortalName(input.fullName);
+  const [existing] = await db
+    .select({
+      id: customerUsersTable.id,
+      role: customerUsersTable.role,
+    })
+    .from(customerUsersTable)
+    .where(and(
+      eq(customerUsersTable.tenantId, input.tenantId),
+      eq(customerUsersTable.customerId, input.customerId),
+      eq(customerUsersTable.email, input.email),
+    ))
+    .limit(1);
+
+  if (existing) {
+    await db
+      .update(customerUsersTable)
+      .set({
+        userId: input.authUserId,
+        firstName: name.firstName,
+        lastName: name.lastName,
+        role: existing.role ?? "primary",
+        status: "invited",
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(customerUsersTable.id, existing.id),
+        eq(customerUsersTable.tenantId, input.tenantId),
+      ));
+    return existing.id;
+  }
+
+  try {
+    const [created] = await db
+      .insert(customerUsersTable)
+      .values({
+        tenantId: input.tenantId,
+        customerId: input.customerId,
+        userId: input.authUserId,
+        email: input.email,
+        firstName: name.firstName,
+        lastName: name.lastName,
+        role: "primary",
+        status: "invited",
+      })
+      .returning({ id: customerUsersTable.id });
+    return created!.id;
+  } catch (error) {
+    if (!isUniqueViolation(error)) throw error;
+    const [raced] = await db
+      .update(customerUsersTable)
+      .set({
+        userId: input.authUserId,
+        firstName: name.firstName,
+        lastName: name.lastName,
+        status: "invited",
+        updatedAt: new Date(),
+      })
+      .where(and(
+        eq(customerUsersTable.tenantId, input.tenantId),
+        eq(customerUsersTable.customerId, input.customerId),
+        eq(customerUsersTable.email, input.email),
+      ))
+      .returning({ id: customerUsersTable.id });
+    if (!raced) throw error;
+    return raced.id;
+  }
+}
+
+async function markCustomerPortalInviteSent(tenantId: string, customerUserId: string): Promise<void> {
+  await db
+    .update(customerUsersTable)
+    .set({ inviteSentAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(customerUsersTable.id, customerUserId), eq(customerUsersTable.tenantId, tenantId)));
 }
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
@@ -486,18 +599,27 @@ export async function inviteCustomerPortal(id: string): Promise<ActionResult> {
     return { success: false, message: "Deze klant heeft geen contact-e-mailadres." };
   }
 
-  let invite: { userId: string; created: boolean };
+  let invite: { userId: string; customerUserId: string; created: boolean };
   try {
+    const fullName = customer.contactName || customer.name;
     const provisioned = await provisionPortalUserWithTemporaryPassword({
       email,
-      fullName: customer.contactName || customer.name,
+      fullName,
       portal: "customer",
     });
 
+    const customerUserId = await upsertCustomerPortalInviteLink({
+      tenantId,
+      customerId: id,
+      authUserId: provisioned.user.id,
+      email,
+      fullName,
+    });
+
     const { subject, html } = buildTemporaryPasswordEmail({
-      recipientName:     customer.contactName || customer.name,
+      recipientName:     fullName,
       portalName:        "Klantportaal",
-      loginUrl:          klantPortalUrl(),
+      loginUrl:          await customerPortalLoginUrl(tenantId),
       temporaryPassword: provisioned.temporaryPassword,
     });
 
@@ -511,7 +633,9 @@ export async function inviteCustomerPortal(id: string): Promise<ActionResult> {
       throw new Error(sent.error ?? "Uitnodigingsmail versturen mislukt.");
     }
 
-    invite = { userId: provisioned.user.id, created: provisioned.created };
+    await markCustomerPortalInviteSent(tenantId, customerUserId);
+
+    invite = { userId: provisioned.user.id, customerUserId, created: provisioned.created };
   } catch (error) {
     return {
       success: false,
@@ -528,6 +652,7 @@ export async function inviteCustomerPortal(id: string): Promise<ActionResult> {
       customerName: customer.name,
       email,
       authUserId: invite.userId,
+      customerUserId: invite.customerUserId,
       temporaryPassword: true,
       authUserCreated: invite.created,
     },
