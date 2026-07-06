@@ -104,11 +104,20 @@ export type CustomerFormInput = {
   status?: string;
   accountManagerId?: string;
   notes?: string;
+  invitePortal?: boolean;
 };
 
 export type ActionResult<T = undefined> =
   | { success: true; data?: T }
   | { success: false; message: string; fieldErrors?: Record<string, string> };
+
+export type CustomerCreateResult = {
+  id: string;
+  invite?: {
+    sent: boolean;
+    message?: string;
+  };
+};
 
 export type CustomerNoteRow = {
   id: string;
@@ -194,6 +203,51 @@ const PAGE_SIZE = 25;
 
 function isUniqueViolation(err: unknown): boolean {
   return (err as { code?: string })?.code === "23505";
+}
+
+function pgConstraint(err: unknown): string | null {
+  return (err as { constraint?: string })?.constraint ?? null;
+}
+
+function customerCreateError(err: unknown): ActionResult {
+  if (isUniqueViolation(err)) {
+    const constraint = pgConstraint(err);
+    if (
+      constraint === "customers_contact_email_unique" ||
+      constraint === "customers_tenant_contact_email_unique_idx"
+    ) {
+      return {
+        success: false,
+        message: "Er bestaat al een klant met dit e-mailadres binnen deze tenant.",
+        fieldErrors: { contactEmail: "E-mailadres is al in gebruik" },
+      };
+    }
+    if (constraint === "customers_code_unique") {
+      return {
+        success: false,
+        message: "De klantcode kon niet uniek worden aangemaakt. Probeer opnieuw.",
+      };
+    }
+    return {
+      success: false,
+      message: "Er bestaat al een klant met dezelfde unieke gegevens.",
+    };
+  }
+
+  const code = (err as { code?: string })?.code;
+  if (code === "23503") {
+    return {
+      success: false,
+      message: "Een gekozen sector, klanttype of accountmanager bestaat niet meer. Ververs de pagina en probeer opnieuw.",
+    };
+  }
+
+  const message = err instanceof Error ? err.message : "";
+  console.error("[customers] Create customer failed:", err);
+  return {
+    success: false,
+    message: message ? `Klant aanmaken mislukt: ${message}` : "Klant aanmaken mislukt door een onbekende fout.",
+  };
 }
 
 function splitCustomerPortalName(name: string): { firstName: string | null; lastName: string | null } {
@@ -305,6 +359,68 @@ async function markCustomerPortalInviteSent(tenantId: string, customerUserId: st
     .update(customerUsersTable)
     .set({ inviteSentAt: new Date(), updatedAt: new Date() })
     .where(and(eq(customerUsersTable.id, customerUserId), eq(customerUsersTable.tenantId, tenantId)));
+}
+
+async function sendCustomerPortalInvite(input: {
+  tenantId: string;
+  customerId: string;
+}): Promise<{ userId: string; customerUserId: string; created: boolean; email: string; customerName: string }> {
+  const [customer] = await db
+    .select({
+      name:         customersTable.name,
+      contactName:  customersTable.contactName,
+      contactEmail: customersTable.contactEmail,
+    })
+    .from(customersTable)
+    .where(and(eq(customersTable.id, input.customerId), eq(customersTable.tenantId, input.tenantId)))
+    .limit(1);
+
+  if (!customer) throw new Error("Klant niet gevonden.");
+
+  const email = customer.contactEmail?.trim().toLowerCase();
+  if (!email) throw new Error("Deze klant heeft geen contact-e-mailadres.");
+
+  const fullName = customer.contactName || customer.name;
+  const provisioned = await provisionPortalUserWithTemporaryPassword({
+    email,
+    fullName,
+    portal: "customer",
+  });
+
+  const customerUserId = await upsertCustomerPortalInviteLink({
+    tenantId: input.tenantId,
+    customerId: input.customerId,
+    authUserId: provisioned.user.id,
+    email,
+    fullName,
+  });
+
+  const { subject, html } = buildTemporaryPasswordEmail({
+    recipientName:     fullName,
+    portalName:        "Klantportaal",
+    loginUrl:          await customerPortalLoginUrl(input.tenantId),
+    temporaryPassword: provisioned.temporaryPassword,
+  });
+
+  const sent = await sendEmailWithResult({
+    to: email,
+    subject,
+    html,
+  });
+
+  if (!sent.success) {
+    throw new Error(sent.error ?? "Uitnodigingsmail versturen mislukt.");
+  }
+
+  await markCustomerPortalInviteSent(input.tenantId, customerUserId);
+
+  return {
+    userId: provisioned.user.id,
+    customerUserId,
+    created: provisioned.created,
+    email,
+    customerName: customer.name,
+  };
 }
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
@@ -582,60 +698,21 @@ export async function inviteCustomerPortal(id: string): Promise<ActionResult> {
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  const [customer] = await db
-    .select({
-      name:         customersTable.name,
-      contactName:  customersTable.contactName,
-      contactEmail: customersTable.contactEmail,
-    })
-    .from(customersTable)
-    .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)))
-    .limit(1);
-
-  if (!customer) return { success: false, message: "Klant niet gevonden." };
-
-  const email = customer.contactEmail?.trim().toLowerCase();
-  if (!email) {
-    return { success: false, message: "Deze klant heeft geen contact-e-mailadres." };
-  }
-
   let invite: { userId: string; customerUserId: string; created: boolean };
+  let customerName = "";
+  let email = "";
   try {
-    const fullName = customer.contactName || customer.name;
-    const provisioned = await provisionPortalUserWithTemporaryPassword({
-      email,
-      fullName,
-      portal: "customer",
-    });
-
-    const customerUserId = await upsertCustomerPortalInviteLink({
+    const sentInvite = await sendCustomerPortalInvite({
       tenantId,
       customerId: id,
-      authUserId: provisioned.user.id,
-      email,
-      fullName,
     });
-
-    const { subject, html } = buildTemporaryPasswordEmail({
-      recipientName:     fullName,
-      portalName:        "Klantportaal",
-      loginUrl:          await customerPortalLoginUrl(tenantId),
-      temporaryPassword: provisioned.temporaryPassword,
-    });
-
-    const sent = await sendEmailWithResult({
-      to: email,
-      subject,
-      html,
-    });
-
-    if (!sent.success) {
-      throw new Error(sent.error ?? "Uitnodigingsmail versturen mislukt.");
-    }
-
-    await markCustomerPortalInviteSent(tenantId, customerUserId);
-
-    invite = { userId: provisioned.user.id, customerUserId, created: provisioned.created };
+    email = sentInvite.email;
+    customerName = sentInvite.customerName;
+    invite = {
+      userId: sentInvite.userId,
+      customerUserId: sentInvite.customerUserId,
+      created: sentInvite.created,
+    };
   } catch (error) {
     return {
       success: false,
@@ -649,7 +726,7 @@ export async function inviteCustomerPortal(id: string): Promise<ActionResult> {
     resource:   "customers",
     resourceId: id,
     metadata:   {
-      customerName: customer.name,
+      customerName,
       email,
       authUserId: invite.userId,
       customerUserId: invite.customerUserId,
@@ -1094,7 +1171,7 @@ export async function getCustomerKpis(customerId: string): Promise<CustomerKpis>
 
 export async function createCustomer(
   data: CustomerFormInput,
-): Promise<ActionResult<{ id: string }>> {
+): Promise<ActionResult<CustomerCreateResult>> {
   await requirePermission("customers", "write");
   const tenantId = await requireCurrentTenantId();
 
@@ -1108,7 +1185,7 @@ export async function createCustomer(
     name:                    data.name.trim(),
     sectorId:                data.sectorId                            || null,
     contactName:             data.contactName?.trim()                 || null,
-    contactEmail:            data.contactEmail?.trim()                || null,
+    contactEmail:            data.contactEmail?.trim().toLowerCase()  || null,
     contactPhone:            data.contactPhone?.trim()                || null,
     address:                 data.address?.trim()                     || null,
     city:                    data.city?.trim()                        || null,
@@ -1137,6 +1214,14 @@ export async function createCustomer(
     return { success: false, message: "Validatie mislukt.", fieldErrors };
   }
 
+  if (data.invitePortal && !parsed.data.contactEmail) {
+    return {
+      success: false,
+      message: "Vul een e-mailadres in om direct een klantportaaluitnodiging te versturen.",
+      fieldErrors: { contactEmail: "E-mailadres is verplicht voor direct uitnodigen" },
+    };
+  }
+
   try {
     const [created] = await db
       .insert(customersTable)
@@ -1157,17 +1242,44 @@ export async function createCustomer(
       metadata:   { name: payload.name },
     });
 
-    revalidatePath("/customers");
-    return { success: true, data: { id: created!.id } };
-  } catch (err) {
-    if (isUniqueViolation(err)) {
-      return {
-        success: false,
-        message: "Er bestaat al een klant met dit e-mailadres.",
-        fieldErrors: { contactEmail: "E-mailadres is al in gebruik" },
-      };
+    let inviteResult: CustomerCreateResult["invite"];
+    if (data.invitePortal) {
+      try {
+        const invite = await sendCustomerPortalInvite({
+          tenantId,
+          customerId: created!.id,
+        });
+
+        await db.insert(auditLogTable).values({
+          userId:     user.id,
+          action:     "auto_invite_customer_portal",
+          resource:   "customers",
+          resourceId: created!.id,
+          metadata:   {
+            customerName: payload.name,
+            email: invite.email,
+            authUserId: invite.userId,
+            customerUserId: invite.customerUserId,
+            temporaryPassword: true,
+            authUserCreated: invite.created,
+          },
+        });
+
+        inviteResult = { sent: true };
+      } catch (inviteError) {
+        const message =
+          inviteError instanceof Error
+            ? inviteError.message
+            : "Klantportaaluitnodiging versturen mislukt.";
+        console.error("[customers] Auto customer portal invite failed:", inviteError);
+        inviteResult = { sent: false, message };
+      }
     }
-    return { success: false, message: "Klant aanmaken mislukt." };
+
+    revalidatePath("/customers");
+    return { success: true, data: { id: created!.id, invite: inviteResult } };
+  } catch (err) {
+    return customerCreateError(err);
   }
 }
 
