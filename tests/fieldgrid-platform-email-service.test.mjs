@@ -19,6 +19,12 @@ test("platform email service centralizes providers, encrypted config and deliver
   assert.match(service, /FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY/u);
   assert.match(service, /encryptPlatformEmailConfig/u);
   assert.match(service, /decryptPlatformEmailConfig/u);
+  assert.match(service, /safeDecryptPlatformEmailConfig/u);
+  assert.match(service, /E-mailsecret kon niet worden ontcijferd/u);
+  assert.match(service, /status:\s*configError \? "error"/u);
+  assert.match(service, /safeDecryptPlatformEmailConfig\(existing\.encryptedConfigJson\)\.config/u);
+  assert.match(service, /try \{\s*provider = await resolveActiveProvider\(input\.tenantId\);/u);
+  assert.match(service, /return \{ success: false, message: sanitizeError\(error\) \}/u);
   assert.match(service, /emailDeliveryLogTable/u);
   assert.match(smtp, /STARTTLS/u);
   assert.match(smtp, /AUTH LOGIN/u);

@@ -199,6 +199,21 @@ export function decryptPlatformEmailConfig(value: string | null | undefined): Em
   return isRecord(config) ? (config as EmailProviderConfig) : {};
 }
 
+function safeDecryptPlatformEmailConfig(value: string | null | undefined): {
+  config: EmailProviderConfig;
+  error: string | null;
+} {
+  try {
+    return { config: decryptPlatformEmailConfig(value), error: null };
+  } catch (error) {
+    console.error("[email-service] provider config decrypt failed:", sanitizeError(error));
+    return {
+      config: {},
+      error: "E-mailsecret kon niet worden ontcijferd. Vul de API key of het wachtwoord opnieuw in en sla opnieuw op.",
+    };
+  }
+}
+
 export function maskEmailSecret(value: string | null | undefined, prefixLength = 3): string | null {
   if (!value) return null;
   if (value.length <= prefixLength + 4) return "geconfigureerd";
@@ -318,7 +333,7 @@ async function getTenantProvider(tenantId: string | null | undefined): Promise<R
   }
 
   if (transport === "api") {
-    const config = decryptPlatformEmailConfig(settings.emailApiKeyEncrypted);
+    const config = safeDecryptPlatformEmailConfig(settings.emailApiKeyEncrypted).config;
     return {
       id: null,
       providerType: "resend_api",
@@ -347,13 +362,14 @@ async function resolveActiveProvider(tenantId?: string | null): Promise<Resolved
     .limit(1);
 
   if (provider) {
+    const config = safeDecryptPlatformEmailConfig(provider.encryptedConfigJson).config;
     return {
       id: provider.id,
       providerType: provider.providerType as PlatformEmailProviderType,
       fromEmail: provider.fromEmail,
       fromName: provider.fromName,
       replyToEmail: provider.replyToEmail,
-      config: decryptPlatformEmailConfig(provider.encryptedConfigJson),
+      config,
     };
   }
 
@@ -447,7 +463,15 @@ async function sendWithSmtp(provider: ResolvedProvider, input: TransactionalEmai
 }
 
 export async function sendTransactionalEmail(input: TransactionalEmailInput): Promise<TransactionalEmailResult> {
-  const provider = await resolveActiveProvider(input.tenantId);
+  let provider: ResolvedProvider | null;
+  try {
+    provider = await resolveActiveProvider(input.tenantId);
+  } catch (error) {
+    const message = sanitizeError(error);
+    await logDelivery(input, null, "failed", message);
+    return { success: false, error: message, providerType: "none", providerId: null };
+  }
+
   if (!provider) {
     const error = "Geen actieve e-mailprovider geconfigureerd.";
     await logDelivery(input, null, "skipped", error);
@@ -495,7 +519,7 @@ function providerStatus(provider: PlatformEmailProvider, config: EmailProviderCo
 }
 
 function toAdminView(provider: PlatformEmailProvider): PlatformEmailProviderAdminView {
-  const config = decryptPlatformEmailConfig(provider.encryptedConfigJson);
+  const { config, error: configError } = safeDecryptPlatformEmailConfig(provider.encryptedConfigJson);
   const type = provider.providerType as PlatformEmailProviderType;
   return {
     id: provider.id,
@@ -506,12 +530,12 @@ function toAdminView(provider: PlatformEmailProvider): PlatformEmailProviderAdmi
     fromEmail: provider.fromEmail,
     fromName: provider.fromName,
     replyToEmail: provider.replyToEmail ?? "",
-    status: providerStatus(provider, config),
-    configured: type === "resend_api" ? Boolean(config.apiKey) : Boolean(config.host && config.port),
+    status: configError ? "error" : providerStatus(provider, config),
+    configured: !configError && (type === "resend_api" ? Boolean(config.apiKey) : Boolean(config.host && config.port)),
     maskedSecret: type === "resend_api" ? maskEmailSecret(config.apiKey, 3) : maskEmailSecret(config.password, 0),
     lastTestedAt: provider.lastTestedAt?.toISOString() ?? null,
     lastTestStatus: provider.lastTestStatus as PlatformEmailTestStatus | null,
-    lastTestError: provider.lastTestError,
+    lastTestError: configError ?? provider.lastTestError,
     config: {
       sendingDomain: config.sendingDomain ?? "",
       smtpHost: config.host ?? "",
@@ -613,7 +637,7 @@ export async function savePlatformEmailProviderSettings(input: SavePlatformEmail
     .where(eq(platformEmailProvidersTable.providerType, input.providerType))
     .limit(1);
 
-  const existingConfig = existing ? decryptPlatformEmailConfig(existing.encryptedConfigJson) : {};
+  const existingConfig = existing ? safeDecryptPlatformEmailConfig(existing.encryptedConfigJson).config : {};
   const config: EmailProviderConfig =
     input.providerType === "resend_api"
       ? {
@@ -632,7 +656,12 @@ export async function savePlatformEmailProviderSettings(input: SavePlatformEmail
   if (validationError) return { success: false, message: validationError };
 
   const status: PlatformEmailProviderStatus = input.isActive ? "configured" : "disabled";
-  const encryptedConfigJson = encryptPlatformEmailConfig(config);
+  let encryptedConfigJson: string;
+  try {
+    encryptedConfigJson = encryptPlatformEmailConfig(config);
+  } catch (error) {
+    return { success: false, message: sanitizeError(error) };
+  }
   const payload = {
     providerType: input.providerType,
     name: input.name?.trim() || (input.providerType === "resend_api" ? "Resend API" : "SMTP"),
