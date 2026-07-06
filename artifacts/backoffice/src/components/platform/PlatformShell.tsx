@@ -10,6 +10,7 @@ import {
   Building2,
   ChevronDown,
   CreditCard,
+  GitPullRequest,
   LayoutDashboard,
   LogOut,
   Menu,
@@ -57,6 +58,7 @@ const NAV_ITEMS: PlatformNavItem[] = [
   { href: "/platform/tickets", label: "Tickets", icon: Ticket, adminOnly: true },
   { href: "/platform/notifications", label: "Meldingen", icon: Bell, adminOnly: true },
   { href: "/platform/knowledgebase", label: "Knowledgebase", icon: BookOpen, adminOnly: true },
+  { href: "/platform/roadmap", label: "Roadmap", icon: GitPullRequest, adminOnly: true },
   { href: "/platform/security", label: "Security en audit", icon: ShieldCheck, adminOnly: true },
   { href: "/platform/operations", label: "Operations", icon: Activity, adminOnly: true },
   { href: "/platform/staging-smoke", label: "Staging smoke", icon: Activity, adminOnly: true },
@@ -104,6 +106,11 @@ const ROUTE_LABELS: Array<{ test: (pathname: string) => boolean; title: string; 
     test: (pathname) => pathname.startsWith("/platform/knowledgebase"),
     title: "Knowledgebase",
     crumbs: [{ label: "Platformbeheer", href: "/platform" }, { label: "Knowledgebase" }],
+  },
+  {
+    test: (pathname) => pathname.startsWith("/platform/roadmap"),
+    title: "Roadmap",
+    crumbs: [{ label: "Platformbeheer", href: "/platform" }, { label: "Roadmap" }],
   },
   {
     test: (pathname) => pathname.startsWith("/platform/security"),

@@ -14,6 +14,7 @@ import {
   FolderOpen,
   HelpCircle,
   LayoutDashboard,
+  Lightbulb,
   MessageSquare,
   Newspaper,
   PackageSearch,
@@ -43,6 +44,7 @@ const NAV_ITEMS = [
   { href: "/tickets", icon: MessageSquare, label: "Tickets", permission: "tickets:read" },
   { href: "/news", icon: Newspaper, label: "Nieuws", permission: "news:read" },
   { href: "/help", icon: HelpCircle, label: "Help", permission: "kb:view" },
+  { href: "/roadmap", icon: Lightbulb, label: "Roadmap", permission: "roadmap:view" },
   { href: "/settings", icon: Settings, label: "Instellingen", permission: "settings:read" },
 ] as const;
 
