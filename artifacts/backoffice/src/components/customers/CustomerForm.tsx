@@ -105,6 +105,7 @@ export function CustomerForm({
   const [pending, startTransition]    = useTransition();
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [invitePortal, setInvitePortal] = useState(false);
+  const [invitePortalTouched, setInvitePortalTouched] = useState(false);
 
   const form = useForm<FormValues>({ defaultValues: DEFAULTS });
   const {
@@ -126,8 +127,13 @@ export function CustomerForm({
     /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmailValue.trim());
 
   useEffect(() => {
-    if (!canInvitePortal && invitePortal) setInvitePortal(false);
-  }, [canInvitePortal, invitePortal]);
+    if (mode !== "create") return;
+    if (!canInvitePortal) {
+      if (invitePortal) setInvitePortal(false);
+      return;
+    }
+    if (!invitePortalTouched) setInvitePortal(true);
+  }, [canInvitePortal, invitePortal, invitePortalTouched, mode]);
 
   useEffect(() => {
     if (mode !== "edit" || !customerId) return;
@@ -365,40 +371,42 @@ export function CustomerForm({
             <Label htmlFor="contactPhone">Telefoon</Label>
             <Input id="contactPhone" {...register("contactPhone")} placeholder="+31 20 000 0000" />
           </div>
+          {mode === "create" && (
+            <div
+              className="col-span-2 flex items-start gap-3 rounded-lg border px-4 py-3"
+              style={{ borderColor: canInvitePortal ? "#99F6E4" : "#E2E8F0", backgroundColor: canInvitePortal ? "#F0FDFA" : "#F8FAFC" }}
+            >
+              <Checkbox
+                id="invitePortal"
+                checked={invitePortal}
+                disabled={!canInvitePortal}
+                onCheckedChange={(val) => {
+                  setInvitePortalTouched(true);
+                  setInvitePortal(val === true);
+                }}
+                className="mt-0.5"
+              />
+              <div>
+                <label
+                  htmlFor="invitePortal"
+                  className="cursor-pointer text-sm font-medium"
+                  style={{ color: canInvitePortal ? "#081D3A" : "#94A3B8" }}
+                >
+                  Direct uitnodigen voor klantportaal
+                </label>
+                <p className="mt-0.5 text-xs" style={{ color: "#64748B" }}>
+                  {canInvitePortal
+                    ? `Staat standaard aan. De klant ontvangt een tijdelijk wachtwoord op ${contactEmailValue.trim().toLowerCase()}.`
+                    : "Vul eerst een geldig e-mailadres in bij primair contact."}
+                </p>
+              </div>
+            </div>
+          )}
           <div className="col-span-2 space-y-1">
             <Label htmlFor="mobile">Mobiel</Label>
             <Input id="mobile" {...register("mobile")} placeholder="+31 6 00 00 00 00" />
           </div>
         </div>
-
-        {mode === "create" && (
-          <div
-            className="mt-4 flex items-start gap-3 rounded-lg border px-4 py-3"
-            style={{ borderColor: "#E2E8F0" }}
-          >
-            <Checkbox
-              id="invitePortal"
-              checked={invitePortal}
-              disabled={!canInvitePortal}
-              onCheckedChange={(val) => setInvitePortal(val === true)}
-              className="mt-0.5"
-            />
-            <div>
-              <label
-                htmlFor="invitePortal"
-                className="cursor-pointer text-sm font-medium"
-                style={{ color: canInvitePortal ? "#081D3A" : "#94A3B8" }}
-              >
-                Direct uitnodigen voor klantportaal
-              </label>
-              <p className="mt-0.5 text-xs" style={{ color: "#94A3B8" }}>
-                {canInvitePortal
-                  ? `Er wordt een tijdelijk wachtwoord gestuurd naar ${contactEmailValue.trim().toLowerCase()}.`
-                  : "Vul eerst een geldig e-mailadres in bij primair contact."}
-              </p>
-            </div>
-          </div>
-        )}
       </section>
 
       <Separator />

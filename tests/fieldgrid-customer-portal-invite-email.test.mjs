@@ -31,9 +31,13 @@ test("creating a customer can immediately invite the primary contact", () => {
   assert.match(action, /if \(data\.invitePortal && !parsed\.data\.contactEmail\)/u);
   assert.match(action, /sendCustomerPortalInvite\(\{\s*tenantId,\s*customerId:\s*created!\.id,/u);
   assert.match(action, /action:\s*"auto_invite_customer_portal"/u);
+  assert.match(action, /action:\s*"auto_invite_customer_portal_failed"/u);
+  assert.match(action, /purpose:\s*"customer_portal_invite"/u);
   assert.match(action, /inviteResult = \{ sent: false, message \}/u);
 
   assert.match(form, /id="invitePortal"/u);
+  assert.match(form, /invitePortalTouched/u);
+  assert.match(form, /if \(!invitePortalTouched\) setInvitePortal\(true\)/u);
   assert.match(form, /disabled=\{!canInvitePortal\}/u);
   assert.match(form, /invitePortal:\s+mode === "create" \? invitePortal : undefined/u);
   assert.match(form, /Klant aangemaakt en klantportaaluitnodiging verstuurd/u);
