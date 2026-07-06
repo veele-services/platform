@@ -3,6 +3,14 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const BASE = "/personeel";
 
+function routePath(pathname: string): string {
+  if (pathname === BASE) return "/";
+  if (pathname.startsWith(`${BASE}/`)) {
+    return pathname.slice(BASE.length) || "/";
+  }
+  return pathname;
+}
+
 function proxyAwareUrl(pathname: string, request: NextRequest): URL {
   const host =
     request.headers.get("x-forwarded-host") ??
@@ -16,14 +24,22 @@ export async function middleware(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-  // With Next.js basePath the middleware receives paths WITHOUT the base prefix.
   const { pathname } = request.nextUrl;
-  const isLoginPage  = pathname === "/login";
-  const isPasswordResetPage = pathname === "/reset-wachtwoord";
+  const normalizedPathname = routePath(pathname);
+  const isLoginPage  = normalizedPathname === "/login";
+  const isPasswordResetPage = normalizedPathname === "/reset-wachtwoord";
+  const isPwaAsset =
+    normalizedPathname === "/manifest.json" ||
+    normalizedPathname === "/sw.js" ||
+    normalizedPathname === "/favicon.ico" ||
+    normalizedPathname === "/icon-192.png" ||
+    normalizedPathname === "/icon-512.png" ||
+    normalizedPathname.startsWith("/icons/");
   const isPublicPage =
+    isPwaAsset ||
     isLoginPage ||
-    pathname === "/wachtwoord-vergeten" ||
-    pathname.startsWith("/auth/confirm");
+    normalizedPathname === "/wachtwoord-vergeten" ||
+    normalizedPathname.startsWith("/auth/confirm");
 
   if (!url || !key) {
     if (isPublicPage) return NextResponse.next();
@@ -55,7 +71,7 @@ export async function middleware(request: NextRequest) {
 
   const mustChangePassword = user?.app_metadata?.force_password_change === true;
 
-  if (user && mustChangePassword && !isPasswordResetPage && !pathname.startsWith("/auth/confirm")) {
+  if (user && mustChangePassword && !isPasswordResetPage && !normalizedPathname.startsWith("/auth/confirm")) {
     return NextResponse.redirect(proxyAwareUrl(`${BASE}/reset-wachtwoord?force=1`, request));
   }
 

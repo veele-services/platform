@@ -23,13 +23,17 @@ export async function sendEmailWithResult(opts: {
   subject: string;
   html:    string;
   text?:   string;
+  tenantId?: string | null;
+  purpose?: string | null;
 }): Promise<{ success: boolean; error?: string }> {
   const result = await sendTransactionalEmail({
     to: opts.to,
     subject: opts.subject,
     html: opts.html,
     text: opts.text,
+    tenantId: opts.tenantId ?? null,
     templateKey: "customer_portal",
+    purpose: opts.purpose ?? null,
     triggeredByType: "customer_user",
   });
 
@@ -40,6 +44,8 @@ export async function sendEmail(opts: {
   to:      string | string[];
   subject: string;
   html:    string;
+  tenantId?: string | null;
+  purpose?: string | null;
 }): Promise<void> {
   const result = await sendEmailWithResult(opts);
   if (!result.success) console.error("[email] Verzenden mislukt:", result.error);

@@ -22,18 +22,36 @@ export async function sendEmail(opts: {
   to:      string | string[];
   subject: string;
   html:    string;
+  tenantId?: string | null;
+  purpose?: string | null;
 }): Promise<void> {
-  const result = await sendTransactionalEmail({
-    to: opts.to,
-    subject: opts.subject,
-    html: opts.html,
-    templateKey: "personnel_portal",
-    triggeredByType: "personnel_user",
-  });
+  const result = await sendEmailWithResult(opts);
 
   if (!result.success) {
     console.error("[email] Verzenden mislukt:", result.error);
   }
+}
+
+export async function sendEmailWithResult(opts: {
+  to:      string | string[];
+  subject: string;
+  html:    string;
+  text?:   string;
+  tenantId?: string | null;
+  purpose?: string | null;
+}): Promise<{ success: boolean; error?: string }> {
+  const result = await sendTransactionalEmail({
+    to: opts.to,
+    subject: opts.subject,
+    html: opts.html,
+    text: opts.text,
+    tenantId: opts.tenantId ?? null,
+    templateKey: "personnel_portal",
+    purpose: opts.purpose ?? null,
+    triggeredByType: "personnel_user",
+  });
+
+  return result.success ? { success: true } : { success: false, error: result.error };
 }
 
 // ── Shared base template ───────────────────────────────────────────────────────

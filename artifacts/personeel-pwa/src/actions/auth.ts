@@ -1,12 +1,16 @@
 "use server";
 
 import { randomInt } from "node:crypto";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { and, eq, sql } from "drizzle-orm";
+import { db, personnelTable } from "@workspace/db";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
 import { evaluatePasswordStrength, mediumPasswordMessage } from "@/lib/password-strength";
-import { buildPasswordResetCodeEmail, personeelPortalUrl, sendEmail } from "@/lib/email";
+import { buildPasswordResetCodeEmail, personeelPortalUrl, sendEmailWithResult } from "@/lib/email";
 
 type AuthUserRecord = {
   id: string;
@@ -25,6 +29,21 @@ function passwordResetCodeExpiresAt(now = new Date()): string {
   return new Date(now.getTime() + 30 * 60 * 1000).toISOString();
 }
 
+function firstForwardedValue(value: string | null): string {
+  return (value ?? "").split(",")[0]?.trim() ?? "";
+}
+
+async function currentPersoneelPortalUrl(): Promise<string> {
+  const requestHeaders = await headers();
+  const host =
+    firstForwardedValue(requestHeaders.get("x-forwarded-host")) ||
+    requestHeaders.get("host");
+  if (!host) return personeelPortalUrl();
+
+  const proto = firstForwardedValue(requestHeaders.get("x-forwarded-proto")) || "https";
+  return `${proto}://${host.replace(/\/$/, "")}/personeel`;
+}
+
 async function findAuthUserByEmail(email: string): Promise<AuthUserRecord | null> {
   const admin = createAdminClient();
   const normalized = email.trim().toLowerCase();
@@ -41,6 +60,53 @@ async function findAuthUserByEmail(email: string): Promise<AuthUserRecord | null
 function displayName(user: AuthUserRecord, fallbackEmail: string): string {
   const value = user.user_metadata?.["full_name"] ?? user.user_metadata?.["name"];
   return typeof value === "string" && value.trim() ? value.trim() : fallbackEmail;
+}
+
+function personnelDisplayName(row: { firstName: string; lastName: string }, fallbackEmail: string): string {
+  const fullName = `${row.firstName} ${row.lastName}`.trim();
+  return fullName || fallbackEmail;
+}
+
+async function findPersonnelResetAccount(
+  tenantId: string,
+  email: string,
+): Promise<{ authUser: AuthUserRecord; recipientName: string } | null> {
+  const normalizedEmail = email.trim().toLowerCase();
+  const [personnel] = await db
+    .select({
+      userId:    personnelTable.userId,
+      email:     personnelTable.email,
+      firstName: personnelTable.firstName,
+      lastName:  personnelTable.lastName,
+    })
+    .from(personnelTable)
+    .where(
+      and(
+        eq(personnelTable.tenantId, tenantId),
+        sql`lower(${personnelTable.email}) = ${normalizedEmail}`,
+        eq(personnelTable.isActive, true),
+      ),
+    )
+    .limit(1);
+
+  if (!personnel) return null;
+
+  let authUser: AuthUserRecord | null = null;
+  if (personnel.userId) {
+    const admin = createAdminClient();
+    const { data, error } = await admin.auth.admin.getUserById(personnel.userId);
+    if (error) throw new Error(error.message ?? "Auth-gebruiker ophalen mislukt.");
+    authUser = data.user as AuthUserRecord | null;
+    if (authUser?.email?.toLowerCase() !== normalizedEmail) return null;
+  } else {
+    authUser = await findAuthUserByEmail(normalizedEmail);
+  }
+
+  if (!authUser) return null;
+  return {
+    authUser,
+    recipientName: personnelDisplayName(personnel, displayName(authUser, normalizedEmail)),
+  };
 }
 
 function isTemporaryPasswordExpired(appMetadata: Record<string, unknown> | null | undefined): boolean {
@@ -172,18 +238,24 @@ export async function requestPasswordResetCode(email: string): Promise<{ success
   if (!normalizedEmail) return { success: false, message: "E-mailadres is verplicht." };
 
   try {
-    const authUser = await findAuthUserByEmail(normalizedEmail);
-    if (!authUser) return { success: true };
+    const tenantId = await requireCurrentPersonnelPortalTenantId();
+    if (!tenantId) {
+      return { success: false, message: "Personeelsportaal voor deze host is niet beschikbaar." };
+    }
+
+    const account = await findPersonnelResetAccount(tenantId, normalizedEmail);
+    if (!account) return { success: true };
 
     const code = generatePasswordResetCode();
     const admin = createAdminClient();
-    const { error } = await admin.auth.admin.updateUserById(authUser.id, {
+    const { error } = await admin.auth.admin.updateUserById(account.authUser.id, {
       password: code,
       email_confirm: true,
       app_metadata: {
-        ...(authUser.app_metadata ?? {}),
+        ...(account.authUser.app_metadata ?? {}),
         force_password_change: true,
         portal: "personnel",
+        tenant_id: tenantId,
         temporary_password_issued_at: new Date().toISOString(),
         temporary_password_expires_at: passwordResetCodeExpiresAt(),
         temporary_password_kind: "reset_code",
@@ -192,12 +264,19 @@ export async function requestPasswordResetCode(email: string): Promise<{ success
     if (error) throw error;
 
     const { subject, html } = buildPasswordResetCodeEmail({
-      recipientName: displayName(authUser, normalizedEmail),
+      recipientName: account.recipientName,
       portalName: "Personeelsportaal",
-      resetUrl: `${personeelPortalUrl()}/wachtwoord-vergeten`,
+      resetUrl: `${await currentPersoneelPortalUrl()}/wachtwoord-vergeten`,
       code,
     });
-    await sendEmail({ to: normalizedEmail, subject, html });
+    const sent = await sendEmailWithResult({
+      to: normalizedEmail,
+      subject,
+      html,
+      tenantId,
+      purpose: "personnel_portal_password_reset",
+    });
+    if (!sent.success) throw new Error(sent.error ?? "Herstelmail versturen mislukt.");
   } catch (error) {
     console.error("[auth] Personeel password reset mail failed:", error);
     return { success: false, message: "Herstelmail versturen mislukt. Probeer het later opnieuw." };

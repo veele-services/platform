@@ -130,13 +130,62 @@ test("klant PWA password reset avoids deployment-stale server action ids", () =>
 
   assertContains(requestRoute, ["requestPasswordResetCode", "Cache-Control", "no-store"], "request route");
   assertContains(completeRoute, ["completePasswordReset", "Cache-Control", "no-store"], "complete route");
-  assertContains(authActions, ["sendEmailWithResult", "if (!sent.success) throw new Error"], "klant auth actions");
+  assertContains(authActions, [
+    "requireCurrentCustomerPortalTenantId",
+    "findCustomerResetAccount",
+    "eq(customerUsersTable.tenantId, tenantId)",
+    "tenant_id: tenantId",
+    "sendEmailWithResult",
+    "purpose: \"customer_portal_password_reset\"",
+    "if (!sent.success) throw new Error",
+  ], "klant auth actions");
   assertContains(mailHelper, [
     "@workspace/db/email-service",
     "sendTransactionalEmail",
+    "tenantId: opts.tenantId ?? null",
     "customer_portal",
   ], "klant mail helper");
   assert.doesNotMatch(mailHelper, /new Resend|sendSmtpMail|RESEND_API_KEY/u);
   assertContains(serviceWorker, ["static-v3"], "klant service worker");
   assert.doesNotMatch(serviceWorker, /pathname\.startsWith\(`\$\{APP_PREFIX\}\/_next\/static\/`\)/u);
+});
+
+test("portal password reset and logged-out routes are tenant-aware behind /klant and /personeel prefixes", () => {
+  const customerMiddleware = read("artifacts/klant-pwa/src/middleware.ts");
+  const personnelMiddleware = read("artifacts/personeel-pwa/src/middleware.ts");
+  const personnelActions = read("artifacts/personeel-pwa/src/actions/auth.ts");
+  const personnelMailHelper = read("artifacts/personeel-pwa/src/lib/email.ts");
+
+  assertContains(customerMiddleware, [
+    "function routePath",
+    "pathname.startsWith(`${BASE}/`)",
+    "normalizedPathname === \"/login\"",
+    "normalizedPathname === \"/wachtwoord-vergeten\"",
+    "normalizedPathname.startsWith(\"/api/auth/password-reset\")",
+    "normalizedPathname === \"/sw.js\"",
+    "normalizedPathname === \"/manifest.json\"",
+  ], "customer portal middleware");
+
+  assertContains(personnelMiddleware, [
+    "function routePath",
+    "pathname.startsWith(`${BASE}/`)",
+    "normalizedPathname === \"/login\"",
+    "normalizedPathname === \"/wachtwoord-vergeten\"",
+    "normalizedPathname === \"/sw.js\"",
+    "normalizedPathname === \"/manifest.json\"",
+  ], "personnel portal middleware");
+
+  assertContains(personnelActions, [
+    "requireCurrentPersonnelPortalTenantId",
+    "findPersonnelResetAccount",
+    "eq(personnelTable.tenantId, tenantId)",
+    "tenant_id: tenantId",
+    "purpose: \"personnel_portal_password_reset\"",
+    "if (!sent.success) throw new Error",
+  ], "personnel auth actions");
+  assertContains(personnelMailHelper, [
+    "sendEmailWithResult",
+    "tenantId: opts.tenantId ?? null",
+    "personnel_portal",
+  ], "personnel mail helper");
 });
