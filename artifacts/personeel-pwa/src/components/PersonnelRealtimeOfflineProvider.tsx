@@ -36,6 +36,9 @@ type ForegroundPushNotification = {
 };
 
 const MINUTE_REFRESH_INTERVAL_MS = 60_000;
+const REFRESH_DEBOUNCE_MS = 180;
+const MIN_REFRESH_INTERVAL_MS = 15_000;
+const MIN_BACKGROUND_REFRESH_MS = 30_000;
 
 function msUntilNextMinute(): number {
   const now = new Date();
@@ -115,16 +118,24 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const minuteTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const minuteIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastRefreshAtRef = useRef(0);
+  const hiddenAtRef = useRef<number | null>(null);
 
-  const scheduleRefresh = useCallback(() => {
+  const scheduleRefresh = useCallback((force = false) => {
+    const now = Date.now();
+    if (!force && now - lastRefreshAtRef.current < MIN_REFRESH_INTERVAL_MS) {
+      return;
+    }
+
     if (refreshTimerRef.current) {
       clearTimeout(refreshTimerRef.current);
     }
 
     refreshTimerRef.current = setTimeout(() => {
+      lastRefreshAtRef.current = Date.now();
       router.refresh();
       refreshTimerRef.current = null;
-    }, 180);
+    }, REFRESH_DEBOUNCE_MS);
   }, [router]);
 
   const updateQueueCount = useCallback(() => {
@@ -207,11 +218,26 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
     };
     const handleOffline = () => setOnline(false);
     const handleFocus = () => {
+      const hiddenAt = hiddenAtRef.current;
+      if (!hiddenAt || Date.now() - hiddenAt < MIN_BACKGROUND_REFRESH_MS) {
+        return;
+      }
+      hiddenAtRef.current = null;
       scheduleRefresh();
       void processQueue();
     };
     const handleVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAtRef.current = Date.now();
+        return;
+      }
+
       if (document.visibilityState === "visible") {
+        const hiddenAt = hiddenAtRef.current;
+        hiddenAtRef.current = null;
+        if (!hiddenAt || Date.now() - hiddenAt < MIN_BACKGROUND_REFRESH_MS) {
+          return;
+        }
         scheduleRefresh();
         void processQueue();
       }
@@ -223,7 +249,7 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
       }
 
       if (event.data?.type === "VEELE_PUSH_NOTIFICATION") {
-        scheduleRefresh();
+        scheduleRefresh(true);
         if (document.visibilityState !== "visible") return;
 
         const payload =
@@ -293,7 +319,7 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
             table: "portal_realtime_events",
             filter: `realtime_key=eq.${realtimeKey}`,
           },
-          scheduleRefresh,
+          () => scheduleRefresh(true),
         )
         .subscribe((status) => {
           if (closed) return;

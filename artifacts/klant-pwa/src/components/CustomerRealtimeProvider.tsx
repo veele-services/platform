@@ -9,19 +9,31 @@ type Props = {
   children: ReactNode;
 };
 
+const REFRESH_DEBOUNCE_MS = 220;
+const MIN_REFRESH_INTERVAL_MS = 15_000;
+const MIN_BACKGROUND_REFRESH_MS = 30_000;
+
 export function CustomerRealtimeProvider({ customerId, children }: Props) {
   const router = useRouter();
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastRefreshAtRef = useRef(0);
+  const hiddenAtRef = useRef<number | null>(null);
 
-  const scheduleRefresh = useCallback(() => {
+  const scheduleRefresh = useCallback((force = false) => {
+    const now = Date.now();
+    if (!force && now - lastRefreshAtRef.current < MIN_REFRESH_INTERVAL_MS) {
+      return;
+    }
+
     if (refreshTimerRef.current) {
       clearTimeout(refreshTimerRef.current);
     }
 
     refreshTimerRef.current = setTimeout(() => {
+      lastRefreshAtRef.current = Date.now();
       router.refresh();
       refreshTimerRef.current = null;
-    }, 220);
+    }, REFRESH_DEBOUNCE_MS);
   }, [router]);
 
   useEffect(() => {
@@ -43,7 +55,7 @@ export function CustomerRealtimeProvider({ customerId, children }: Props) {
             filter: `realtime_key=eq.${realtimeKey}`,
           },
           () => {
-            if (!closed) scheduleRefresh();
+            if (!closed) scheduleRefresh(true);
           },
         )
         .subscribe();
@@ -59,7 +71,17 @@ export function CustomerRealtimeProvider({ customerId, children }: Props) {
 
   useEffect(() => {
     const handleVisibility = () => {
+      if (document.visibilityState === "hidden") {
+        hiddenAtRef.current = Date.now();
+        return;
+      }
+
       if (document.visibilityState === "visible") {
+        const hiddenAt = hiddenAtRef.current;
+        hiddenAtRef.current = null;
+        if (!hiddenAt || Date.now() - hiddenAt < MIN_BACKGROUND_REFRESH_MS) {
+          return;
+        }
         scheduleRefresh();
       }
     };

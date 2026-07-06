@@ -44,6 +44,27 @@ function formatDate(value: string | null): string {
   }).format(new Date(value));
 }
 
+const AUDIENCE_LABELS: Record<string, string> = {
+  platform_admin: "Platform admin",
+  support: "Support",
+  tenant_admin: "Tenant admin",
+  tenant_management: "Management",
+  tenant_planning: "Planning",
+  tenant_administration: "Administratie",
+  tenant_personnel: "Personeel",
+  tenant_customer: "Klant",
+};
+
+function formatAudienceKeys(values: string[]): string {
+  if (values.length === 0) return "Alle doelgroepen";
+  return values.map((value) => AUDIENCE_LABELS[value] ?? value.replace(/_/g, " ")).join(", ");
+}
+
+function formatModuleKeys(values: string[]): string {
+  if (values.length === 0) return "Alle modules";
+  return values.map((value) => value.replace(/_/g, " ")).join(", ");
+}
+
 export default async function PlatformKnowledgebasePage({ searchParams }: Props) {
   const resolvedSearchParams = await searchParams;
   const { q } = resolvedSearchParams;
@@ -169,8 +190,8 @@ export default async function PlatformKnowledgebasePage({ searchParams }: Props)
                       {article.featured && <Badge className="ml-2 bg-cyan-600">Uitgelicht</Badge>}
                     </td>
                     <td className="px-4 py-4 text-slate-700">{article.category?.name ?? "-"}</td>
-                    <td className="px-4 py-4 text-xs text-slate-600">{article.audienceKeys.join(", ") || "Alle doelgroepen"}</td>
-                    <td className="px-4 py-4 text-xs text-slate-600">{article.moduleKeys.join(", ") || "Alle modules"}</td>
+                    <td className="px-4 py-4 text-xs text-slate-600">{formatAudienceKeys(article.audienceKeys)}</td>
+                    <td className="px-4 py-4 text-xs text-slate-600">{formatModuleKeys(article.moduleKeys)}</td>
                     <td className="px-4 py-4 text-slate-600">{formatDate(article.updatedAt)}</td>
                     <td className="px-4 py-4">
                       <div className="flex justify-end gap-2">
