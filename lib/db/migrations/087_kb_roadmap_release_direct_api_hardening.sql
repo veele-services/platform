@@ -3,9 +3,12 @@
 -- Runtime reads for these surfaces are intentionally mediated by server-side
 -- helpers so tenant, audience, module and permission checks stay centralized.
 -- This migration makes the direct Supabase Data API posture explicit: anon and
--- authenticated roles get no table privileges for these content tables. The
--- existing management-only RLS policies remain as defense-in-depth if direct
--- grants are deliberately reintroduced in a future migration.
+-- authenticated roles get no table privileges for these content tables.
+-- service_role/postgres/database-owner access is not changed here; privileged
+-- access remains server-only through route handlers, server actions and
+-- DATABASE_URL/service-role infrastructure. The existing management-only RLS
+-- policies remain as defense-in-depth if direct grants are deliberately
+-- reintroduced in a future migration.
 
 DO $$
 DECLARE

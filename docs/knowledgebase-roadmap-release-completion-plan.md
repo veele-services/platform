@@ -28,6 +28,7 @@ Doel: voorkomen dat punten half afgerond blijven.
 Geraakte onderdelen:
 
 - Documentatie: `docs/knowledgebase-roadmap-release-completion-plan.md`.
+- Fase-1 evidence: `docs/knowledgebase-roadmap-release-phase1-security.md`.
 - Scripts: bestaande fase-7 gate en fase-1 security gate.
 - CI/build: workspace typecheck en build.
 
@@ -69,6 +70,7 @@ Taken:
 - Geen directe publieke storage policy voor `knowledgebase-media`.
 - Media alleen via signed URL routes tonen nadat article visibility is gecontroleerd.
 - Security gate toevoegen die RLS, anti-patterns, grants, media privacy en visibility helpers controleert.
+- Cross-tenant regressiematrix en service-role/client-boundary documenteren in `docs/knowledgebase-roadmap-release-phase1-security.md`.
 
 Klaar wanneer:
 
@@ -76,6 +78,7 @@ Klaar wanneer:
 - Klant/personeel ziet geen admin-only content.
 - Platform admin beheer blijft via server-side platform routes werken.
 - Directe Supabase/Data API toegang is expliciet afgesloten voor deze tabellen.
+- Service-role blijft server-only en wordt niet door publieke clients gebruikt.
 - `pnpm run fieldgrid:kb-roadmap-release-phase1-security:check` slaagt.
 
 ## Fase 2 - Help Shortcode En Deeplink Routes

@@ -61,8 +61,10 @@ const report = {
     checkRlsCoverage(),
     checkDirectApiRevokes(),
     checkNoDirectRegrants(),
+    checkServiceRoleAndClientBoundary(),
     checkRlsAntiPatterns(),
     checkServerSideVisibility(),
+    checkCrossTenantRegressionEvidence(),
     checkKnowledgebaseMediaPrivacy(),
     checkProtectedMediaRoutes(),
   ],
@@ -183,6 +185,83 @@ function checkNoDirectRegrants() {
   return check("no-direct-regrants", "No migration grants direct content table access to anon/authenticated", failures);
 }
 
+function checkServiceRoleAndClientBoundary() {
+  const failures = [];
+  const hardeningPath = "lib/db/migrations/087_kb_roadmap_release_direct_api_hardening.sql";
+
+  failures.push(...expectFileContains(hardeningPath, [
+    {
+      pattern: "FROM anon, authenticated",
+      message: "Hardening migration must only revoke public client roles for this surface.",
+    },
+    {
+      pattern: "server-side visibility helpers",
+      message: "Hardening migration must document that runtime access stays server-side.",
+    },
+  ]));
+
+  if (fileExists(hardeningPath)) {
+    const sql = read(hardeningPath);
+    if (/\b(?:REVOKE|GRANT)\b[\s\S]{0,220}\b(?:service_role|postgres)\b/iu.test(sql)) {
+      failures.push(failure("Phase 1 must not alter service_role/postgres privileges for these content tables.", hardeningPath));
+    }
+  }
+
+  const clientFiles = [
+    "artifacts/backoffice/src/lib/supabase/client.ts",
+    "artifacts/backoffice/src/lib/supabase/server.ts",
+    "artifacts/klant-pwa/src/lib/supabase/client.ts",
+    "artifacts/klant-pwa/src/lib/supabase/server.ts",
+    "artifacts/personeel-pwa/src/lib/supabase/client.ts",
+    "artifacts/personeel-pwa/src/lib/supabase/server.ts",
+  ];
+
+  for (const path of clientFiles) {
+    if (!fileExists(path)) {
+      failures.push(failure(`Missing Supabase client boundary file: ${path}`));
+      continue;
+    }
+
+    const text = read(path);
+    if (/SUPABASE_SERVICE_ROLE_KEY|service_role/iu.test(text)) {
+      failures.push(failure("Public/SSR Supabase clients must not reference the service role key.", path));
+    }
+    if (!/NEXT_PUBLIC_SUPABASE_ANON_KEY/u.test(text)) {
+      failures.push(failure("Public/SSR Supabase clients should use the anon key, not privileged credentials.", path));
+    }
+  }
+
+  const adminFiles = [
+    "artifacts/backoffice/src/lib/supabase/admin.ts",
+    "artifacts/klant-pwa/src/lib/supabase/admin.ts",
+    "artifacts/personeel-pwa/src/lib/supabase/admin.ts",
+  ];
+
+  for (const path of adminFiles) {
+    failures.push(...expectFileContains(path, [
+      {
+        pattern: "SUPABASE_SERVICE_ROLE_KEY",
+        message: "Server-only admin clients must source the service role key explicitly.",
+      },
+      {
+        pattern: "persistSession: false",
+        message: "Admin clients must not persist service-role sessions.",
+      },
+    ]));
+  }
+
+  const envFiles = [".env.example", "artifacts/backoffice/.env.example"];
+  for (const path of envFiles) {
+    if (!fileExists(path)) continue;
+    const text = read(path);
+    if (/NEXT_PUBLIC_SUPABASE_SERVICE_ROLE(?:_KEY)?\s*=/iu.test(text)) {
+      failures.push(failure("Service role keys must never use NEXT_PUBLIC env names.", path));
+    }
+  }
+
+  return check("service-role-client-boundary", "Service role remains server-only while public clients use anon credentials", failures);
+}
+
 function checkRlsAntiPatterns() {
   const failures = [];
   for (const path of migrationPaths) {
@@ -224,6 +303,31 @@ function checkServerSideVisibility() {
   ];
 
   return check("server-side-visibility", "Server-side helpers enforce tenant, audience, module and permission scope", failures);
+}
+
+function checkCrossTenantRegressionEvidence() {
+  const failures = [
+    ...expectFileContains("docs/knowledgebase-roadmap-release-phase1-security.md", [
+      { pattern: "Cross-Tenant Regression Matrix", message: "Phase 1 evidence must include a cross-tenant regression matrix." },
+      { pattern: "Tenant A", message: "Cross-tenant evidence must explicitly mention Tenant A/B checks." },
+      { pattern: "Geen privileges", message: "Direct Data API denial must be documented." },
+      { pattern: /service[_ -]role/iu, message: "Service role posture must be documented." },
+      { pattern: "protected signed URL routes", message: "Media signed URL flow must be documented." },
+    ]),
+    ...expectFileContains("lib/db/src/content-visibility.ts", [
+      { pattern: "target.scope === \"tenant\"", message: "Tenant-scoped content must require matching tenant context." },
+      { pattern: "target.tenantId === context.tenantId", message: "Tenant scope must compare target tenant to context tenant." },
+      { pattern: "context.isPlatformAdmin", message: "Platform admins must retain explicit visibility override." },
+    ]),
+    ...expectFileContains("artifacts/backoffice/src/app/actions/roadmap.ts", [
+      { pattern: "item.tenantId === context.tenantId", message: "Tenant roadmap must compare item tenant to current tenant." },
+      { pattern: "item.scope === \"tenant\"", message: "Tenant roadmap must branch tenant-scoped items before global/public visibility." },
+      { pattern: "item.publicVisible", message: "Tenant roadmap must require public visibility for global tenant-facing items." },
+      { pattern: "item.tenantLinks.some", message: "Tenant roadmap must allow non-public global items only through tenant links." },
+    ]),
+  ];
+
+  return check("cross-tenant-regression-evidence", "Cross-tenant denial scenarios are documented and enforced by central helpers", failures);
 }
 
 function checkKnowledgebaseMediaPrivacy() {
