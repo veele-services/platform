@@ -4,7 +4,35 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
-import { requestPasswordResetCode } from "@/actions/auth";
+
+type PasswordResetResponse = {
+  success: boolean;
+  message?: string;
+};
+
+async function requestResetCode(email: string): Promise<PasswordResetResponse> {
+  try {
+    const response = await fetch("/klant/api/auth/password-reset/request", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      cache: "no-store",
+      body: JSON.stringify({ email }),
+    });
+    const payload = await response.json().catch(() => null) as Partial<PasswordResetResponse> | null;
+    if (!response.ok || payload?.success === false) {
+      return {
+        success: false,
+        message: payload?.message ?? "Herstelmail versturen mislukt. Probeer het later opnieuw.",
+      };
+    }
+    return { success: true, message: payload?.message };
+  } catch {
+    return {
+      success: false,
+      message: "Herstelmail versturen mislukt. Controleer uw verbinding en probeer opnieuw.",
+    };
+  }
+}
 
 export default function WachtwoordVergetenPage() {
   const router = useRouter();
@@ -23,7 +51,7 @@ export default function WachtwoordVergetenPage() {
     setError(null);
 
     startTransition(async () => {
-      const result = await requestPasswordResetCode(normalizedEmail());
+      const result = await requestResetCode(normalizedEmail());
       if (!result.success) {
         setError(result.message ?? "Er is een fout opgetreden. Controleer uw e-mailadres en probeer het opnieuw.");
         return;
