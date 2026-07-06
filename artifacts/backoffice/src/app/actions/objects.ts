@@ -353,7 +353,12 @@ export async function getObjectStats(): Promise<ObjectStats> {
         .where(and(eq(objectsTable.tenantId, tenantId), sql`${objectsTable.serviceType} IS NOT NULL AND trim(${objectsTable.serviceType}) <> ''`)),
       db.select({ count: sql<number>`count(*)::int` }).from(objectsTable).where(and(eq(objectsTable.tenantId, tenantId), eq(objectsTable.isActive, false))),
       db.select({ count: sql<number>`count(*)::int` }).from(documentsTable)
-        .where(eq(documentsTable.entityType, "object")),
+        .where(
+          and(
+            eq(documentsTable.tenantId, tenantId),
+            eq(documentsTable.entityType, "object"),
+          ),
+        ),
     ]);
 
     return {
@@ -514,7 +519,13 @@ export async function getObjectPerformance(objectId: string): Promise<ObjectPerf
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(documentsTable)
-      .where(and(eq(documentsTable.entityType, "object"), eq(documentsTable.entityId, objectId))),
+      .where(
+        and(
+          eq(documentsTable.tenantId, scope.tenantId),
+          eq(documentsTable.entityType, "object"),
+          eq(documentsTable.entityId, objectId),
+        ),
+      ),
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(customerMessageThreadsTable)
@@ -648,7 +659,13 @@ export async function listObjectHistory(
         createdAt: documentsTable.createdAt,
       })
       .from(documentsTable)
-      .where(and(eq(documentsTable.entityType, "object"), eq(documentsTable.entityId, objectId)))
+      .where(
+        and(
+          eq(documentsTable.tenantId, scope.tenantId),
+          eq(documentsTable.entityType, "object"),
+          eq(documentsTable.entityId, objectId),
+        ),
+      )
       .orderBy(desc(documentsTable.createdAt))
       .limit(limit),
     db
