@@ -9,6 +9,7 @@ import {
   listEnabledKnowledgebaseModuleKeysForTenant,
   listReleasesForContext,
   releaseDismissalsTable,
+  releaseReadReceiptsTable,
   type ReleaseHighlightSummary,
   type ReleaseMediaAccess,
   type ReleaseSummary,
@@ -43,6 +44,23 @@ export async function getCustomerRelease(slug: string): Promise<ReleaseSummary |
   const context = await customerReleaseContext();
   if (!context) return null;
   return getReleaseBySlugForContext(context, slug);
+}
+
+export async function recordCustomerReleaseRead(slug: string): Promise<void> {
+  const context = await customerReleaseContext();
+  if (!context?.customerId) return;
+  const release = await getReleaseBySlugForContext(context, slug);
+  if (!release) return;
+
+  await db.insert(releaseReadReceiptsTable).values({
+    releaseId: release.id,
+    tenantId: context.tenantId,
+    userId: context.userId,
+    customerId: context.customerId,
+    surface: "customer_pwa",
+    audienceKey: "tenant_customer",
+    metadata: { slug },
+  }).onConflictDoNothing();
 }
 
 export async function getCustomerReleaseMedia(mediaId: string): Promise<ReleaseMediaAccess | null> {

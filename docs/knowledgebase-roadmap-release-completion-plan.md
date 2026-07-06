@@ -54,7 +54,7 @@ Geraakte tabellen:
 
 - Knowledgebase: `kb_categories`, `kb_articles`, `kb_article_audiences`, `kb_article_modules`, `kb_article_permissions`, `kb_article_media`, `kb_article_related`, `kb_article_versions`, `kb_article_feedback`, `kb_search_terms`, `kb_search_events`, `kb_tooltips`, `kb_tooltip_audiences`, `kb_tooltip_related_articles`.
 - Roadmap: `roadmap_items`, `roadmap_item_audiences`, `roadmap_item_modules`, `roadmap_item_tenant_links`, `roadmap_item_comments`, `roadmap_item_votes`, `roadmap_item_status_history`, `roadmap_item_ticket_links`.
-- Releases: `release_categories`, `releases`, `release_items`, `release_audiences`, `release_modules`, `release_media`, `release_highlights`, `release_dismissals`, `release_roadmap_links`, `release_ticket_links`.
+- Releases: `release_categories`, `releases`, `release_items`, `release_audiences`, `release_modules`, `release_media`, `release_highlights`, `release_dismissals`, `release_read_receipts`, `release_roadmap_links`, `release_ticket_links`.
 
 Geraakte routes/actions:
 
@@ -381,11 +381,34 @@ Geraakte onderdelen:
 - Search analytics.
 - Release read receipts.
 
+Geraakte routes en UI's:
+
+- Tenant backoffice: `/help/beheer`, `/help/beheer/nieuw`, `/help/beheer/[articleId]`, `/help/beheer/feedback`.
+- Tenant instellingen: `/instellingen/productervaring`.
+- Platform admin: `/platform/knowledgebase/feedback`, `/platform/releases`.
+- Klant-PWA: `/roadmap/new`, `/meer`, `/releases/[slug]`.
+- Personeels-PWA: `/roadmap/new`, `/meer`, `/releases/[slug]`.
+
+Geraakte actions en tabellen:
+
+- Actions: `knowledgebase.ts`, PWA `feature-requests.ts`, PWA/backoffice `releases.ts`.
+- Tabellen: `organization_settings`, `kb_articles`, `kb_article_*`, `kb_article_feedback`, `kb_search_events`, `roadmap_items`, `roadmap_item_*`, `release_read_receipts`.
+
 Klaar wanneer:
 
 - Tenant content blijft strikt tenant-scoped.
 - Feedback en search analytics zijn bruikbaar voor platformbeheer.
 - Feature request indiening is tenant-configureerbaar.
+
+Implementatiestatus:
+
+- Tenant admins kunnen tenant-eigen helpartikelen beheren als `kbTenantAuthoringEnabled` en `kb:manage` actief zijn. Artikelen worden met `scope = tenant` en huidige `tenant_id` opgeslagen, en editoropties worden beperkt tot actieve modules en effectieve permissies.
+- Productervaring-instellingen maken tenant-KB authoring en featurewensen vanuit klantportaal/personeelsapp tenant-configureerbaar.
+- Klant- en personeels-PWA hebben featurewensformulieren die alleen werken als de tenant-toggle en roadmapmodule actief zijn. Aangemaakte wensen krijgen tenant-scope, statusgeschiedenis, auditlog, audience-scope en module-scope.
+- Platform admin heeft een feedback/search dashboard voor helpartikelen over de laatste 90 dagen. Tenant helpbeheer heeft dezelfde inzichten tenant-scoped.
+- Search analytics worden uit bestaande `kb_search_events` gehaald en zero-result zoektermen worden apart zichtbaar gemaakt.
+- Release read receipts worden geregistreerd na zichtbare release-detailviews in platform admin, tenant backoffice, klant-PWA en personeels-PWA. Platform releasebeheer toont read-counts en surface breakdowns.
+- `release_read_receipts` heeft RLS, revoke voor `anon`/`authenticated`, indexen en idempotente unieke partial indexes.
 
 ## Fase 11 - Offline/PWA Help Caching
 

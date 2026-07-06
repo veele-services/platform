@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CheckCircle2, FileText } from "lucide-react";
-import { getTenantRelease } from "@/app/actions/releases";
+import { getTenantRelease, recordTenantReleaseRead } from "@/app/actions/releases";
 import { KnowledgebaseContentRenderer } from "@/components/knowledgebase/KnowledgebaseContentRenderer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,6 +23,7 @@ export default async function TenantReleaseDetailPage({ params }: Props) {
   const { slug } = await params;
   const release = await getTenantRelease(slug);
   if (!release) notFound();
+  await recordTenantReleaseRead(slug);
 
   return (
     <main className="px-4 py-6 md:px-6">

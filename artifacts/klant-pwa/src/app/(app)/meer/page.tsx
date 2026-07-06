@@ -8,6 +8,7 @@ import {
   FileText,
   HelpCircle,
   Headphones,
+  Lightbulb,
   MailOpen,
   Megaphone,
   Settings,
@@ -26,15 +27,28 @@ const ITEMS = [
   { href: "/rapporten",         label: "Rapportages",  description: "Goedgekeurde werkrapportages.", Icon: FileCheck2 },
   { href: "/help",              label: "Help",         description: "Handleidingen en uitleg bij functies.", Icon: HelpCircle },
   { href: "/releases",          label: "Releases",     description: "Nieuwste updates voor het klantportaal.", Icon: Megaphone },
+  { href: "/roadmap/new",       label: "Featurewens",  description: "Dien een productwens in bij uw leverancier.", Icon: Lightbulb },
   { href: "/meldingen",         label: "Meldingen",    description: "Actuele meldingen en acties.", Icon: MailOpen },
   { href: "/profiel",           label: "Profiel",      description: "Contactgegevens en bedrijfsprofiel.", Icon: UserCircle },
   { href: "/beveiliging",       label: "Beveiliging",  description: "Wachtwoord en toegang beveiligen.", Icon: ShieldCheck },
   { href: "/instellingen",      label: "Instellingen", description: "E-mail- en notificatievoorkeuren.", Icon: Settings },
 ];
 
-export default function MeerPage() {
+type Props = {
+  searchParams?: Promise<{ featureRequest?: string }>;
+};
+
+export default async function MeerPage({ searchParams }: Props) {
+  const params = searchParams ? await searchParams : {};
+
   return (
     <PageShell title="Meer" subtitle="Alle klantportaalfuncties op een vaste plek.">
+      {params.featureRequest === "sent" && (
+        <div className="rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
+          Featurewens ontvangen. Bedankt voor uw input.
+        </div>
+      )}
+
       <section className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {ITEMS.map(({ href, label, description, Icon }) => (
           <Link

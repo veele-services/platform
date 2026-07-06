@@ -6,6 +6,7 @@ import {
   FileText,
   FolderOpen,
   HelpCircle,
+  Lightbulb,
   LogOut,
   MessageSquare,
   Megaphone,
@@ -27,10 +28,17 @@ const MORE_LINKS = [
   { href: "/documenten", label: "Documenten", description: "Bestanden en formulieren", Icon: FolderOpen },
   { href: "/help", label: "Help", description: "Handleidingen en uitleg bij functies", Icon: HelpCircle },
   { href: "/releases", label: "Releases", description: "Nieuwe functies en verbeteringen", Icon: Megaphone },
+  { href: "/roadmap/new", label: "Featurewens", description: "Dien een productwens in bij de tenant", Icon: Lightbulb },
   { href: "/openstaand", label: "Open diensten", description: "Beschikbare werkbonnen", Icon: FileText },
 ];
 
-export default function MeerPage() {
+type Props = {
+  searchParams?: Promise<{ featureRequest?: string }>;
+};
+
+export default async function MeerPage({ searchParams }: Props) {
+  const params = searchParams ? await searchParams : {};
+
   return (
     <div className="min-h-screen bg-[#F6F8FB] px-5 py-6">
       <div className="mb-6">
@@ -41,6 +49,12 @@ export default function MeerPage() {
           Profiel, instellingen en extra functies.
         </p>
       </div>
+
+      {params.featureRequest === "sent" && (
+        <div className="mb-4 rounded-[20px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-bold text-emerald-800">
+          Featurewens ontvangen. Bedankt voor uw input.
+        </div>
+      )}
 
       <div className="space-y-3">
         {MORE_LINKS.map(({ href, label, description, Icon }) => (

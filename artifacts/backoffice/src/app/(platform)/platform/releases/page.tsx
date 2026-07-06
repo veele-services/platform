@@ -1,8 +1,9 @@
 import Link from "next/link";
-import { Archive, FilePlus2, Megaphone, Tags } from "lucide-react";
+import { Archive, Eye, FilePlus2, Megaphone, Tags } from "lucide-react";
 import {
   archiveRelease,
   listReleaseEditorOptions,
+  listPlatformReleaseReadReceiptStats,
   listPlatformReleases,
 } from "@/app/actions/releases";
 import { Badge } from "@/components/ui/badge";
@@ -48,11 +49,13 @@ function formatDate(value: string | null): string {
 
 export default async function PlatformReleasesPage({ searchParams }: Props) {
   const resolvedSearchParams = await searchParams;
-  const [releases, options, previewModel] = await Promise.all([
+  const [releases, options, previewModel, readStats] = await Promise.all([
     listPlatformReleases(),
     listReleaseEditorOptions(),
     getPlatformContentPreviewModel("releases", resolvedSearchParams),
+    listPlatformReleaseReadReceiptStats(),
   ]);
+  const readStatsByRelease = new Map(readStats.map((entry) => [entry.releaseId, entry]));
   const published = releases.filter((release) => release.status === "published").length;
   const drafts = releases.filter((release) => release.status === "draft").length;
 
@@ -102,6 +105,9 @@ export default async function PlatformReleasesPage({ searchParams }: Props) {
             <div className="divide-y divide-slate-200">
               {releases.map((release) => (
                 <article key={release.id} className="p-4">
+                  {(() => {
+                    const stats = readStatsByRelease.get(release.id);
+                    return (
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0">
                       <Link href={`/platform/releases/${release.slug}`} className="text-lg font-semibold text-slate-950 hover:underline">
@@ -119,8 +125,11 @@ export default async function PlatformReleasesPage({ searchParams }: Props) {
                       <span>Publicatie: {formatDate(release.publishedAt)}</span>
                       <span>{release.items.length} items</span>
                       <span>{release.roadmapItems.length} roadmaplinks</span>
+                      <span>{stats?.total ?? 0} gelezen</span>
                     </div>
                   </div>
+                    );
+                  })()}
                   {release.status !== "archived" && (
                     <form action={archiveAction} className="mt-3 flex justify-end">
                       <input type="hidden" name="id" value={release.id} />
@@ -171,6 +180,29 @@ export default async function PlatformReleasesPage({ searchParams }: Props) {
               <p className="mt-2 text-sm leading-6 text-slate-700">
                 Maak highlights aan op de releasedetailpagina. Een highlight wordt alleen getoond als de release gepubliceerd is en de audience/module matcht.
               </p>
+            </section>
+
+            <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center gap-2">
+                <Eye className="h-5 w-5 text-cyan-700" />
+                <h2 className="text-lg font-semibold text-slate-950">Read receipts</h2>
+              </div>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Eerste reads per release, uitgesplitst naar platform, tenant backoffice, personeelsapp en klantportaal.
+              </p>
+              <div className="mt-4 grid gap-2">
+                {readStats.slice(0, 8).map((entry) => (
+                  <div key={entry.releaseId} className="rounded-md border border-slate-200 p-3 text-sm">
+                    <Link href={`/platform/releases/${entry.releaseSlug}`} className="font-medium text-slate-950 hover:underline">
+                      {entry.releaseVersion} - {entry.releaseTitle}
+                    </Link>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {entry.total} totaal - platform {entry.platformBackoffice}, backoffice {entry.tenantBackoffice}, personeel {entry.personnelPwa}, klant {entry.customerPwa}
+                    </p>
+                  </div>
+                ))}
+                {readStats.length === 0 && <p className="text-sm text-slate-500">Nog geen release reads geregistreerd.</p>}
+              </div>
             </section>
           </aside>
         </section>

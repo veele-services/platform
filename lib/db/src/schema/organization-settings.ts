@@ -70,6 +70,15 @@ export const organizationSettingsTable = pgTable("organization_settings", {
   notifHerinneringDagen: integer("notif_herinnering_dagen")
     .notNull()
     .default(7),
+  kbTenantAuthoringEnabled: boolean("kb_tenant_authoring_enabled")
+    .notNull()
+    .default(false),
+  roadmapPersonnelRequestsEnabled: boolean("roadmap_personnel_requests_enabled")
+    .notNull()
+    .default(false),
+  roadmapCustomerRequestsEnabled: boolean("roadmap_customer_requests_enabled")
+    .notNull()
+    .default(false),
 
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
@@ -115,6 +124,9 @@ export const updateOrganizationSettingsSchema = createInsertSchema(
     notifOfferteVerlopen: z.boolean().optional(),
     notifBetalingHerinnering: z.boolean().optional(),
     notifHerinneringDagen: z.number().int().min(1).max(90).optional(),
+    kbTenantAuthoringEnabled: z.boolean().optional(),
+    roadmapPersonnelRequestsEnabled: z.boolean().optional(),
+    roadmapCustomerRequestsEnabled: z.boolean().optional(),
   });
 
 export type OrganizationSettings =

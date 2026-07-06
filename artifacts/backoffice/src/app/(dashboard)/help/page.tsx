@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BookOpen, Sparkles } from "lucide-react";
+import { getTenantKnowledgebaseDashboard } from "@/app/actions/knowledgebase";
 import { getTenantKnowledgebaseHelpIndex } from "@/app/actions/knowledgebase-help";
 import { KnowledgebaseAutocompleteSearch } from "@/components/knowledgebase/KnowledgebaseAutocompleteSearch";
 
@@ -13,7 +14,10 @@ type Props = {
 
 export default async function TenantHelpPage({ searchParams }: Props) {
   const { q } = await searchParams;
-  const index = await getTenantKnowledgebaseHelpIndex(q);
+  const [index, management] = await Promise.all([
+    getTenantKnowledgebaseHelpIndex(q),
+    getTenantKnowledgebaseDashboard(),
+  ]);
 
   return (
     <main className="px-4 py-6 md:px-8">
@@ -24,6 +28,11 @@ export default async function TenantHelpPage({ searchParams }: Props) {
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
             Zoek in artikelen die passen bij uw modules en rechten binnen deze tenant.
           </p>
+          {management.state.enabled && management.state.canManage && (
+            <Link href="/help/beheer" className="mt-4 inline-flex rounded-md border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">
+              Eigen helpartikelen beheren
+            </Link>
+          )}
           <KnowledgebaseAutocompleteSearch defaultValue={q ?? ""} className="mt-5 max-w-2xl" />
         </header>
 

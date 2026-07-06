@@ -18,6 +18,7 @@ import {
   releaseMediaTable,
   releaseModulesTable,
   releaseRoadmapLinksTable,
+  releaseReadReceiptsTable,
   releasesTable,
   roadmapItemsTable,
   type FieldgridContentAudience,
@@ -65,6 +66,19 @@ export type ReleaseEditorOptions = {
   categories: ReleaseCategoryOption[];
   modules: ReleaseModuleOption[];
   roadmapItems: ReleaseRoadmapOption[];
+};
+
+export type ReleaseReadReceiptStats = {
+  releaseId: string;
+  releaseSlug: string;
+  releaseVersion: string;
+  releaseTitle: string;
+  total: number;
+  platformBackoffice: number;
+  tenantBackoffice: number;
+  personnelPwa: number;
+  customerPwa: number;
+  lastReadAt: string | null;
 };
 
 export type ReleaseItemInput = {
@@ -348,6 +362,74 @@ export async function getPlatformRelease(slug: string): Promise<ReleaseSummary |
   );
 }
 
+export async function listPlatformReleaseReadReceiptStats(): Promise<ReleaseReadReceiptStats[]> {
+  await requirePlatformAdmin();
+  const rows = await db
+    .select({
+      releaseId: releasesTable.id,
+      releaseSlug: releasesTable.slug,
+      releaseVersion: releasesTable.version,
+      releaseTitle: releasesTable.title,
+      surface: releaseReadReceiptsTable.surface,
+      readAt: releaseReadReceiptsTable.readAt,
+    })
+    .from(releaseReadReceiptsTable)
+    .innerJoin(releasesTable, eq(releaseReadReceiptsTable.releaseId, releasesTable.id))
+    .orderBy(desc(releaseReadReceiptsTable.readAt))
+    .limit(5000);
+
+  const stats = new Map<string, ReleaseReadReceiptStats>();
+  for (const row of rows) {
+    const current = stats.get(row.releaseId) ?? {
+      releaseId: row.releaseId,
+      releaseSlug: row.releaseSlug,
+      releaseVersion: row.releaseVersion,
+      releaseTitle: row.releaseTitle,
+      total: 0,
+      platformBackoffice: 0,
+      tenantBackoffice: 0,
+      personnelPwa: 0,
+      customerPwa: 0,
+      lastReadAt: null,
+    };
+
+    current.total += 1;
+    if (row.surface === "platform_backoffice") current.platformBackoffice += 1;
+    if (row.surface === "tenant_backoffice") current.tenantBackoffice += 1;
+    if (row.surface === "personnel_pwa") current.personnelPwa += 1;
+    if (row.surface === "customer_pwa") current.customerPwa += 1;
+    const readAt = row.readAt.toISOString();
+    if (!current.lastReadAt || new Date(current.lastReadAt) < row.readAt) current.lastReadAt = readAt;
+    stats.set(row.releaseId, current);
+  }
+
+  return [...stats.values()].sort((left, right) => right.total - left.total || (right.lastReadAt ?? "").localeCompare(left.lastReadAt ?? ""));
+}
+
+export async function recordPlatformReleaseRead(slug: string): Promise<void> {
+  const actor = await requirePlatformAdmin();
+  const release = await getReleaseBySlugForContext(
+    {
+      surface: "platform_backoffice",
+      audiences: ["platform_admin", "support"],
+      activeModuleKeys: [],
+      userId: actor.userId,
+      isPlatformAdmin: true,
+    },
+    slug,
+    { includeUnpublished: true, includeArchived: true },
+  );
+  if (!release) return;
+
+  await db.insert(releaseReadReceiptsTable).values({
+    releaseId: release.id,
+    userId: actor.userId,
+    surface: "platform_backoffice",
+    audienceKey: "platform_admin",
+    metadata: { slug },
+  }).onConflictDoNothing();
+}
+
 export async function listTenantReleases(): Promise<ReleaseSummary[]> {
   const context = await tenantReleaseContext();
   if (!context) return [];
@@ -358,6 +440,22 @@ export async function getTenantRelease(slug: string): Promise<ReleaseSummary | n
   const context = await tenantReleaseContext();
   if (!context) return null;
   return getReleaseBySlugForContext(context, slug);
+}
+
+export async function recordTenantReleaseRead(slug: string): Promise<void> {
+  const context = await tenantReleaseContext();
+  if (!context?.userId) return;
+  const release = await getReleaseBySlugForContext(context, slug);
+  if (!release) return;
+
+  await db.insert(releaseReadReceiptsTable).values({
+    releaseId: release.id,
+    tenantId: context.tenantId,
+    userId: context.userId,
+    surface: "tenant_backoffice",
+    audienceKey: context.audiences[0] ?? "tenant_admin",
+    metadata: { slug },
+  }).onConflictDoNothing();
 }
 
 export async function getTenantReleaseMedia(mediaId: string): Promise<ReleaseMediaAccess | null> {

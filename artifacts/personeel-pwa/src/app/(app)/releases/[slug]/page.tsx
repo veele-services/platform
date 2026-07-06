@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, CheckCircle2, FileText } from "lucide-react";
-import { getPersonnelRelease } from "@/actions/releases";
+import { getPersonnelRelease, recordPersonnelReleaseRead } from "@/actions/releases";
 import { KnowledgebaseContentRenderer } from "@/components/KnowledgebaseContentRenderer";
 
 export const metadata = {
@@ -21,6 +21,7 @@ export default async function PersonnelReleaseDetailPage({ params }: Props) {
   const { slug } = await params;
   const release = await getPersonnelRelease(slug);
   if (!release) notFound();
+  await recordPersonnelReleaseRead(slug);
 
   return (
     <main className="mx-auto w-full max-w-4xl px-4 py-5 md:px-0">

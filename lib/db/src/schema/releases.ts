@@ -214,6 +214,30 @@ export const releaseDismissalsTable = pgTable(
   ],
 );
 
+export const releaseReadReceiptsTable = pgTable(
+  "release_read_receipts",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    releaseId: uuid("release_id").notNull().references(() => releasesTable.id, { onDelete: "cascade" }),
+    tenantId: uuid("tenant_id").references(() => tenantsTable.id, { onDelete: "cascade" }),
+    userId: uuid("user_id"),
+    personnelId: uuid("personnel_id"),
+    customerId: uuid("customer_id"),
+    surface: varchar("surface", { length: 40 }).notNull().$type<ReleaseHighlightSurface>(),
+    audienceKey: varchar("audience_key", { length: 40 }).notNull().$type<FieldgridContentAudience>(),
+    readAt: timestamp("read_at", { withTimezone: true }).notNull().defaultNow(),
+    metadata: jsonb("metadata").$type<Record<string, unknown> | null>(),
+  },
+  (table) => [
+    index("release_read_receipts_release_idx").on(table.releaseId, table.readAt),
+    index("release_read_receipts_tenant_idx").on(table.tenantId, table.readAt),
+    index("release_read_receipts_user_idx").on(table.userId),
+    index("release_read_receipts_personnel_idx").on(table.personnelId),
+    index("release_read_receipts_customer_idx").on(table.customerId),
+    index("release_read_receipts_surface_audience_idx").on(table.surface, table.audienceKey),
+  ],
+);
+
 export const releaseRoadmapLinksTable = pgTable(
   "release_roadmap_links",
   {
@@ -255,5 +279,6 @@ export type ReleaseModule = typeof releaseModulesTable.$inferSelect;
 export type ReleaseMedia = typeof releaseMediaTable.$inferSelect;
 export type ReleaseHighlight = typeof releaseHighlightsTable.$inferSelect;
 export type ReleaseDismissal = typeof releaseDismissalsTable.$inferSelect;
+export type ReleaseReadReceipt = typeof releaseReadReceiptsTable.$inferSelect;
 export type ReleaseRoadmapLink = typeof releaseRoadmapLinksTable.$inferSelect;
 export type ReleaseTicketLink = typeof releaseTicketLinksTable.$inferSelect;

@@ -40,6 +40,7 @@ const contentTables = [
   "release_media",
   "release_highlights",
   "release_dismissals",
+  "release_read_receipts",
   "release_roadmap_links",
   "release_ticket_links",
 ];
@@ -52,6 +53,8 @@ const migrationPaths = [
   "lib/db/migrations/085_retroactive_release_note_drafts.sql",
   "lib/db/migrations/086_knowledgebase_media_privacy_hardening.sql",
   "lib/db/migrations/087_kb_roadmap_release_direct_api_hardening.sql",
+  "lib/db/migrations/090_release_media_storage.sql",
+  "lib/db/migrations/091_kb_roadmap_release_p2.sql",
 ];
 
 const report = {
@@ -116,18 +119,19 @@ function expectFileContains(path, expectations) {
 }
 
 function checkRlsCoverage() {
-  const foundationPath = "lib/db/migrations/081_knowledgebase_roadmap_releases_foundation.sql";
   const hardeningPath = "lib/db/migrations/087_kb_roadmap_release_direct_api_hardening.sql";
   const failures = [];
+  const migrationSql = migrationPaths
+    .filter((path) => fileExists(path))
+    .map((path) => read(path))
+    .join("\n");
 
-  if (!fileExists(foundationPath)) {
-    failures.push(failure(`Missing foundation migration: ${foundationPath}`));
-  } else {
-    const sql = read(foundationPath);
-    for (const table of contentTables) {
-      if (!sql.includes(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY;`)) {
-        failures.push(failure(`Missing foundation RLS enable statement for ${table}.`, foundationPath));
-      }
+  for (const table of contentTables) {
+    if (
+      !migrationSql.includes(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY;`) &&
+      !migrationSql.includes(`ALTER TABLE public.${table} ENABLE ROW LEVEL SECURITY;`)
+    ) {
+      failures.push(failure(`Missing RLS enable statement for ${table}.`, "lib/db/migrations"));
     }
   }
 
@@ -154,12 +158,18 @@ function checkDirectApiRevokes() {
     },
   ]);
 
-  if (fileExists(path)) {
-    const sql = read(path);
-    for (const table of contentTables) {
-      if (!sql.includes(`'${table}'`)) {
-        failures.push(failure(`Direct API hardening migration does not cover ${table}.`, path));
-      }
+  const combinedSql = migrationPaths
+    .filter((migrationPath) => fileExists(migrationPath))
+    .map((migrationPath) => read(migrationPath))
+    .join("\n");
+
+  for (const table of contentTables) {
+    if (
+      !combinedSql.includes(`'${table}'`) &&
+      !combinedSql.includes(`ON TABLE ${table} FROM anon, authenticated`) &&
+      !combinedSql.includes(`ON TABLE public.${table} FROM anon, authenticated`)
+    ) {
+      failures.push(failure(`Direct API hardening migration does not cover ${table}.`, "lib/db/migrations"));
     }
   }
 

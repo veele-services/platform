@@ -474,9 +474,13 @@ export async function listKnowledgebaseArticlesForContext(
   options: KnowledgebaseListOptions = {},
 ): Promise<KnowledgebaseArticleSummary[]> {
   const normalizedContext = normalizeVisibilityContext(context);
+  const canManageTenantKnowledgebase =
+    Boolean(options.includeUnpublished) &&
+    Boolean(normalizedContext.tenantId) &&
+    normalizedContext.permissionKeys.includes("kb:manage");
   const language = options.language?.trim() || "nl";
   const conditions: SQL[] = [eq(kbArticlesTable.language, language)];
-  if (!options.includeArchived) {
+  if (!options.includeArchived && !normalizedContext.isPlatformAdmin && !canManageTenantKnowledgebase) {
     conditions.push(eq(kbArticlesTable.status, "published"));
   } else if (!options.includeUnpublished && !normalizedContext.isPlatformAdmin) {
     conditions.push(eq(kbArticlesTable.status, "published"));
@@ -555,6 +559,14 @@ export async function listKnowledgebaseArticlesForContext(
   const visibleArticles = articles
     .filter((article) => {
       if (normalizedContext.isPlatformAdmin && options.includeUnpublished) return true;
+      if (
+        canManageTenantKnowledgebase &&
+        article.scope === "tenant" &&
+        article.tenantId === normalizedContext.tenantId &&
+        (options.includeArchived || !article.archivedAt)
+      ) {
+        return true;
+      }
       return canReadPublishedContent(normalizedContext, {
         scope: article.scope,
         tenantId: article.tenantId,

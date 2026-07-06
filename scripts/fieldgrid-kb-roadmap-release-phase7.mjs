@@ -40,6 +40,7 @@ const rlsTables = [
   "release_media",
   "release_highlights",
   "release_dismissals",
+  "release_read_receipts",
   "release_roadmap_links",
   "release_ticket_links",
 ];
@@ -128,12 +129,21 @@ function expectFileContains(path, expectations) {
 }
 
 function checkRlsCoverage() {
-  const path = "lib/db/migrations/081_knowledgebase_roadmap_releases_foundation.sql";
-  if (!fileExists(path)) return check("rls-coverage", "RLS enabled on all foundation tables", [failure(`Missing file: ${path}`)]);
-  const sql = read(path);
+  const paths = [
+    "lib/db/migrations/081_knowledgebase_roadmap_releases_foundation.sql",
+    "lib/db/migrations/091_kb_roadmap_release_p2.sql",
+  ];
+  const missing = paths.filter((path) => !fileExists(path));
+  if (missing.length > 0) {
+    return check("rls-coverage", "RLS enabled on all foundation tables", missing.map((path) => failure(`Missing file: ${path}`)));
+  }
+  const sql = paths.map((path) => read(path)).join("\n");
   const failures = rlsTables
-    .filter((table) => !sql.includes(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY;`))
-    .map((table) => failure(`Missing RLS enable statement for ${table}.`, path));
+    .filter((table) =>
+      !sql.includes(`ALTER TABLE ${table} ENABLE ROW LEVEL SECURITY;`) &&
+      !sql.includes(`ALTER TABLE public.${table} ENABLE ROW LEVEL SECURITY;`),
+    )
+    .map((table) => failure(`Missing RLS enable statement for ${table}.`, "lib/db/migrations"));
   return check("rls-coverage", "RLS enabled on all foundation tables", failures);
 }
 
@@ -145,6 +155,9 @@ function checkRlsAntiPatterns() {
     "lib/db/migrations/084_release_highlight_dismissal_uniqueness.sql",
     "lib/db/migrations/085_retroactive_release_note_drafts.sql",
     "lib/db/migrations/086_knowledgebase_media_privacy_hardening.sql",
+    "lib/db/migrations/087_kb_roadmap_release_direct_api_hardening.sql",
+    "lib/db/migrations/090_release_media_storage.sql",
+    "lib/db/migrations/091_kb_roadmap_release_p2.sql",
   ];
   const failures = [];
   for (const path of migrationPaths) {

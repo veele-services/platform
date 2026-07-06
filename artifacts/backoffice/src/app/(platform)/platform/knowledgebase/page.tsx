@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Archive, BookOpen, FilePlus2, HelpCircle, Search, Tags } from "lucide-react";
+import { Archive, BarChart3, BookOpen, FilePlus2, HelpCircle, Search, Tags } from "lucide-react";
 import {
   archiveKnowledgebaseArticle,
   listKnowledgebaseManagementArticles,
@@ -80,6 +80,12 @@ export default async function PlatformKnowledgebasePage({ searchParams }: Props)
               <Link href="/platform/knowledgebase/tooltips">
                 <HelpCircle className="h-4 w-4" />
                 Tooltips
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="gap-2">
+              <Link href="/platform/knowledgebase/feedback">
+                <BarChart3 className="h-4 w-4" />
+                Feedback
               </Link>
             </Button>
             <Button asChild className="gap-2">
