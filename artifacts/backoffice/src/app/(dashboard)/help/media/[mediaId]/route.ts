@@ -17,8 +17,14 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ mediaId: string }> },
 ) {
-  const tenantId = await requireCurrentTenantId();
-  const permissionSet = await getCurrentEffectiveUserPermissions();
+  let tenantId: string;
+  let permissionSet: Set<string>;
+  try {
+    tenantId = await requireCurrentTenantId();
+    permissionSet = await getCurrentEffectiveUserPermissions();
+  } catch {
+    return new NextResponse("Not found", { status: 404 });
+  }
   if (!permissionSet.has("kb:view")) return new NextResponse("Forbidden", { status: 403 });
 
   const activeModuleKeys = await listEnabledKnowledgebaseModuleKeysForTenant(tenantId);

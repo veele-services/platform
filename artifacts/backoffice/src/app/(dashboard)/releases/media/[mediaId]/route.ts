@@ -13,7 +13,12 @@ export async function GET(
   { params }: { params: Promise<{ mediaId: string }> },
 ) {
   const { mediaId } = await params;
-  const media = await getTenantReleaseMedia(mediaId);
+  let media;
+  try {
+    media = await getTenantReleaseMedia(mediaId);
+  } catch {
+    return new NextResponse("Not found", { status: 404 });
+  }
   if (!media) return new NextResponse("Not found", { status: 404 });
 
   const { data, error } = await createAdminClient()

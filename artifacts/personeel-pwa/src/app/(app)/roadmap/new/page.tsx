@@ -35,6 +35,11 @@ export default async function PersonnelFeatureRequestPage() {
           </div>
         </div>
 
+        <div className="mt-5 grid gap-2 rounded-2xl border border-cyan-100 bg-cyan-50/70 p-4 text-sm text-slate-700">
+          <p className="font-black text-slate-950">Statusflow</p>
+          <p>Na indienen start je wens als Nieuw. Daarna beoordeelt de backoffice deze als In overweging, In ontwikkeling of Afgerond.</p>
+        </div>
+
         {!options.enabled ? (
           <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
             {options.reason ?? "Featurewensen zijn niet beschikbaar."}
