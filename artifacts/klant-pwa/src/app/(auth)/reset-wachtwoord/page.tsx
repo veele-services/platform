@@ -1,8 +1,7 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { completePasswordReset } from "@/actions/auth";
 import { evaluatePasswordStrength } from "@/lib/password-strength";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -19,7 +18,8 @@ export default function ResetWachtwoordPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-  const [state, formAction, pending] = useActionState(completePasswordReset, undefined);
+  const [state, setState] = useState<{ success?: boolean; error?: string } | undefined>(undefined);
+  const [pending, startTransition] = useTransition();
 
   const strength = evaluatePasswordStrength(password);
   const passwordsMatch = !confirmPassword || password === confirmPassword;
@@ -31,6 +31,32 @@ export default function ResetWachtwoordPage() {
       router.push("/login?message=Wachtwoord+succesvol+gewijzigd");
     }
   }, [router, state?.success]);
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setState(undefined);
+
+    startTransition(async () => {
+      try {
+        const response = await fetch("/klant/api/auth/password-reset/complete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          body: JSON.stringify({ password, passwordTwo: confirmPassword }),
+        });
+        const payload = await response.json().catch(() => null) as { success?: boolean; error?: string } | null;
+        if (!response.ok || payload?.error) {
+          setState({
+            error: payload?.error ?? "Wachtwoord opslaan mislukt. Vraag zo nodig een nieuwe reset aan.",
+          });
+          return;
+        }
+        setState({ success: true });
+      } catch {
+        setState({ error: "Wachtwoord opslaan mislukt. Controleer uw verbinding en probeer opnieuw." });
+      }
+    });
+  }
 
   return (
     <div
@@ -53,7 +79,7 @@ export default function ResetWachtwoordPage() {
           </div>
 
           <div className="rounded-2xl bg-white p-6 shadow-lg">
-            <form action={formAction} className="space-y-4" noValidate>
+            <form onSubmit={handleSubmit} className="space-y-4" noValidate>
               {state?.error && (
                 <div
                   className="rounded-xl px-4 py-3 text-sm font-medium"

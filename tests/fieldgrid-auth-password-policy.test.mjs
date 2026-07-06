@@ -64,7 +64,7 @@ test("backoffice forces temporary password users through reset", () => {
   const middleware = read("artifacts/backoffice/src/middleware.ts");
   const actions = read("artifacts/backoffice/src/app/actions/auth.ts");
 
-  assertContains(middleware, ["force_password_change", "reset-wachtwoord?force=1"], "backoffice middleware");
+  assertContains(middleware, ["force_password_change", "resetPasswordUrlWithNext", "url.searchParams.set(\"force\", \"1\")"], "backoffice middleware");
   assertContains(actions, [
     "completePasswordReset",
     "force_password_change: false",
@@ -98,6 +98,46 @@ test("forgot password screens support recovery code verification", () => {
 
   for (const path of files) {
     const content = read(path);
-    assertContains(content, ["verifyOtp", "type: \"recovery\"", "Herstelcode", "Code controleren"], path);
+    assertContains(content, ["Herstelcode", "Code controleren"], path);
+    assert.ok(
+      content.includes("verifyOtp") || content.includes("signInWithPassword"),
+      `${path} should verify the recovery code before opening password reset`,
+    );
   }
+});
+
+test("klant PWA password reset avoids deployment-stale server action ids", () => {
+  const forgotPage = read("artifacts/klant-pwa/src/app/(auth)/wachtwoord-vergeten/page.tsx");
+  const resetPage = read("artifacts/klant-pwa/src/app/(auth)/reset-wachtwoord/page.tsx");
+  const authActions = read("artifacts/klant-pwa/src/actions/auth.ts");
+  const mailHelper = read("artifacts/klant-pwa/src/lib/email.ts");
+  const requestRoute = read("artifacts/klant-pwa/src/app/api/auth/password-reset/request/route.ts");
+  const completeRoute = read("artifacts/klant-pwa/src/app/api/auth/password-reset/complete/route.ts");
+  const serviceWorker = read("artifacts/klant-pwa/public/sw.js");
+  const smtpMailer = read("artifacts/klant-pwa/src/lib/smtp-mailer.ts");
+
+  assertContains(forgotPage, [
+    "fetch(\"/klant/api/auth/password-reset/request\"",
+    "cache: \"no-store\"",
+  ], "klant forgot password page");
+  assert.doesNotMatch(forgotPage, /import \{ requestPasswordResetCode \}/u);
+
+  assertContains(resetPage, [
+    "fetch(\"/klant/api/auth/password-reset/complete\"",
+    "cache: \"no-store\"",
+  ], "klant reset password page");
+  assert.doesNotMatch(resetPage, /useActionState/u);
+  assert.doesNotMatch(resetPage, /import \{ completePasswordReset \}/u);
+
+  assertContains(requestRoute, ["requestPasswordResetCode", "Cache-Control", "no-store"], "request route");
+  assertContains(completeRoute, ["completePasswordReset", "Cache-Control", "no-store"], "complete route");
+  assertContains(authActions, ["sendEmailWithResult", "if (!sent.success) throw new Error"], "klant auth actions");
+  assertContains(mailHelper, [
+    "organizationSettingsTable.smtpEnabled",
+    "sendSmtpMail",
+    "RESEND_API_KEY",
+  ], "klant mail helper");
+  assertContains(smtpMailer, ["STARTTLS", "AUTH LOGIN", "MAIL FROM", "RCPT TO"], "klant SMTP helper");
+  assertContains(serviceWorker, ["static-v3"], "klant service worker");
+  assert.doesNotMatch(serviceWorker, /pathname\.startsWith\(`\$\{APP_PREFIX\}\/_next\/static\/`\)/u);
 });

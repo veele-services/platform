@@ -1,5 +1,5 @@
 const CACHE_PREFIX = "fieldgrid-klant-pwa";
-const STATIC_CACHE = `${CACHE_PREFIX}-static-v2`;
+const STATIC_CACHE = `${CACHE_PREFIX}-static-v3`;
 const CONTENT_CACHE = `${CACHE_PREFIX}-content-v1`;
 const APP_PREFIX = "/klant";
 const MAX_CONTENT_PAGES = 24;
@@ -43,7 +43,6 @@ function shouldCacheResponse(response) {
 
 function isStaticAsset(pathname) {
   return (
-    pathname.startsWith(`${APP_PREFIX}/_next/static/`) ||
     pathname === `${APP_PREFIX}/manifest.json` ||
     pathname === `${APP_PREFIX}/favicon.svg`
   );

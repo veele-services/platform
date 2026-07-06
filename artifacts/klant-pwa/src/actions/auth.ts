@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { evaluatePasswordStrength, mediumPasswordMessage } from "@/lib/password-strength";
-import { buildPasswordResetCodeEmail, klantPortalUrl, sendEmail } from "@/lib/email";
+import { buildPasswordResetCodeEmail, klantPortalUrl, sendEmailWithResult } from "@/lib/email";
 
 type AuthUserRecord = {
   id: string;
@@ -138,7 +138,8 @@ export async function requestPasswordResetCode(email: string): Promise<{ success
       resetUrl: `${klantPortalUrl()}/wachtwoord-vergeten`,
       code,
     });
-    await sendEmail({ to: normalizedEmail, subject, html });
+    const sent = await sendEmailWithResult({ to: normalizedEmail, subject, html });
+    if (!sent.success) throw new Error(sent.error ?? "Herstelmail versturen mislukt.");
   } catch (error) {
     console.error("[auth] Klant password reset mail failed:", error);
     return { success: false, message: "Herstelmail versturen mislukt. Probeer het later opnieuw." };

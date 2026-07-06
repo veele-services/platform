@@ -1,4 +1,7 @@
 import { Resend } from "resend";
+import { db, organizationSettingsTable } from "@workspace/db";
+import { desc, eq } from "drizzle-orm";
+import { sendSmtpMail, type SmtpMailConfig, type SmtpEncryption } from "@/lib/smtp-mailer";
 
 // ── Singleton ─────────────────────────────────────────────────────────────────
 
@@ -13,6 +16,48 @@ function getClient(): Resend | null {
 
 function fromAddress(): string {
   return process.env["RESEND_FROM_EMAIL"] ?? "Veele <noreply@veele.nl>";
+}
+
+function normalizeEncryption(value: string | null): SmtpEncryption {
+  if (value === "none" || value === "tls" || value === "starttls") return value;
+  return "starttls";
+}
+
+async function getSmtpConfig(): Promise<SmtpMailConfig | null> {
+  const smtpRows = await db
+    .select({
+      smtpEnabled:    organizationSettingsTable.smtpEnabled,
+      smtpHost:       organizationSettingsTable.smtpHost,
+      smtpPort:       organizationSettingsTable.smtpPort,
+      smtpEncryption: organizationSettingsTable.smtpEncryption,
+      smtpUsername:   organizationSettingsTable.smtpUsername,
+      smtpPassword:   organizationSettingsTable.smtpPassword,
+      smtpFromName:   organizationSettingsTable.smtpFromName,
+      smtpFromEmail:  organizationSettingsTable.smtpFromEmail,
+      smtpReplyTo:    organizationSettingsTable.smtpReplyTo,
+    })
+    .from(organizationSettingsTable)
+    .where(eq(organizationSettingsTable.smtpEnabled, true))
+    .orderBy(desc(organizationSettingsTable.updatedAt))
+    .limit(25);
+
+  const settings = smtpRows.find((row) => row.smtpHost && row.smtpPort && row.smtpFromEmail);
+
+  if (!settings) {
+    if (smtpRows.length > 0) throw new Error("SMTP is actief, maar host, poort of afzender ontbreekt.");
+    return null;
+  }
+
+  return {
+    host:       settings.smtpHost!,
+    port:       settings.smtpPort!,
+    encryption: normalizeEncryption(settings.smtpEncryption),
+    username:   settings.smtpUsername,
+    password:   settings.smtpPassword,
+    fromEmail:  settings.smtpFromEmail!,
+    fromName:   settings.smtpFromName,
+    replyTo:    settings.smtpReplyTo,
+  };
 }
 
 function backofficeUrl(): string {
@@ -31,17 +76,67 @@ export function klantPortalUrl(): string {
 // ── Core send helper ──────────────────────────────────────────────────────────
 // Fire-and-forget: never throws — errors are logged only.
 
+export async function sendEmailWithResult(opts: {
+  to:      string | string[];
+  subject: string;
+  html:    string;
+  text?:   string;
+}): Promise<{ success: boolean; error?: string }> {
+  try {
+    const smtpConfig = await getSmtpConfig();
+    if (smtpConfig) {
+      await sendSmtpMail(smtpConfig, opts);
+      return { success: true };
+    }
+  } catch (error) {
+    const msg = String((error as { message?: string }).message ?? error);
+    console.error("[email] SMTP verzenden mislukt:", msg);
+    return { success: false, error: msg };
+  }
+
+  const resend = getClient();
+  if (!resend) {
+    console.warn("[email] RESEND_API_KEY not set - e-mail overgeslagen:", opts.subject);
+    return { success: false, error: "E-mailclient niet geconfigureerd. Vul SMTP-instellingen in of configureer RESEND_API_KEY." };
+  }
+
+  try {
+    const { error } = await resend.emails.send({
+      from:    fromAddress(),
+      to:      opts.to,
+      subject: opts.subject,
+      html:    opts.html,
+      text:    opts.text,
+    });
+    if (error) {
+      const msg = String((error as { message?: string }).message ?? error);
+      console.error("[email] Verzenden mislukt:", msg);
+      return { success: false, error: msg };
+    }
+  } catch (error) {
+    const msg = String((error as { message?: string }).message ?? error);
+    console.error("[email] Verzenden mislukt:", msg);
+    return { success: false, error: msg };
+  }
+
+  return { success: true };
+}
+
 export async function sendEmail(opts: {
   to:      string | string[];
   subject: string;
   html:    string;
 }): Promise<void> {
+  const result = await sendEmailWithResult(opts);
+  if (!result.success) console.error("[email] Verzenden mislukt:", result.error);
+  return;
+
   const resend = getClient();
   if (!resend) {
     console.warn("[email] RESEND_API_KEY not set — e-mail overgeslagen:", opts.subject);
     return;
   }
-  const { error } = await resend.emails.send({
+  const { error } = await resend!.emails.send({
     from:    fromAddress(),
     to:      opts.to,
     subject: opts.subject,
