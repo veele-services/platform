@@ -3,8 +3,10 @@ import { notFound } from "next/navigation";
 import { ArrowLeft, FileText } from "lucide-react";
 import {
   getTenantKnowledgebaseArticle,
+  getTenantKnowledgebaseSupportLink,
   submitTenantKnowledgebaseFeedback,
 } from "@/app/actions/knowledgebase-help";
+import { CopySupportLinkButton } from "@/components/knowledgebase/CopySupportLinkButton";
 import { Button } from "@/components/ui/button";
 
 type Props = {
@@ -19,7 +21,10 @@ export async function generateMetadata({ params }: Props) {
 
 export default async function TenantHelpArticlePage({ params }: Props) {
   const { slug } = await params;
-  const article = await getTenantKnowledgebaseArticle(slug);
+  const [article, supportUrl] = await Promise.all([
+    getTenantKnowledgebaseArticle(slug),
+    getTenantKnowledgebaseSupportLink(slug),
+  ]);
   if (!article) notFound();
 
   return (
@@ -32,9 +37,20 @@ export default async function TenantHelpArticlePage({ params }: Props) {
               Terug naar help
             </Link>
           </Button>
-          <p className="text-sm font-semibold text-cyan-700">{article.category?.name ?? "Handleiding"}</p>
-          <h1 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950">{article.title}</h1>
-          {article.summary && <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">{article.summary}</p>}
+          <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-cyan-700">{article.category?.name ?? "Handleiding"}</p>
+              <h1 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950">{article.title}</h1>
+              {article.summary && <p className="mt-3 max-w-3xl text-sm leading-6 text-slate-600">{article.summary}</p>}
+            </div>
+            {supportUrl && <CopySupportLinkButton value={supportUrl} />}
+          </div>
+          {supportUrl && (
+            <div className="mt-5 rounded-md border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+              <span className="font-semibold text-slate-800">Stabiele supportlink:</span>
+              <span className="ml-2 break-all">{supportUrl}</span>
+            </div>
+          )}
         </header>
 
         <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">

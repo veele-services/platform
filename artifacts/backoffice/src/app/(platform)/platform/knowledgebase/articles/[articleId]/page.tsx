@@ -5,8 +5,10 @@ import {
   getKnowledgebaseArticleForEdit,
   listKnowledgebaseEditorOptions,
 } from "@/app/actions/knowledgebase";
+import { CopySupportLinkButton } from "@/components/knowledgebase/CopySupportLinkButton";
 import { KnowledgebaseArticleForm } from "@/components/knowledgebase/KnowledgebaseArticleForm";
 import { Button } from "@/components/ui/button";
+import { knowledgebaseSupportUrlTemplate } from "@/lib/knowledgebase-support-links";
 
 type Props = {
   params: Promise<{ articleId: string }>;
@@ -45,6 +47,23 @@ export default async function EditKnowledgebaseArticlePage({ params }: Props) {
             </p>
           </div>
         </header>
+
+        <section className="rounded-lg border border-cyan-100 bg-cyan-50 p-4 text-sm text-slate-700">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="font-semibold text-slate-950">Supportlink template</h2>
+              <p className="mt-1 break-all text-slate-600">{knowledgebaseSupportUrlTemplate(article.slug)}</p>
+              <p className="mt-1 text-xs text-slate-500">
+                Vervang <span className="font-semibold text-slate-700">{"{tenant-code}"}</span> door de tenantcode om een stabiele help-link te delen.
+              </p>
+            </div>
+            <CopySupportLinkButton
+              value={knowledgebaseSupportUrlTemplate(article.slug)}
+              label="Template kopieren"
+              copiedLabel="Template gekopieerd"
+            />
+          </div>
+        </section>
 
         <KnowledgebaseArticleForm article={article} options={options} />
       </div>

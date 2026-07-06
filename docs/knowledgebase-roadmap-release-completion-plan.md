@@ -90,11 +90,13 @@ Geraakte routes:
 - `fieldgrid.nl/h/{tenant-code}/{article-slug}`.
 - Optioneel `help.fieldgrid.nl/{tenant-code}/{article-slug}`.
 - Loginredirects vanuit backoffice, klantportaal en personeelsapp.
+- Protected media: `/h/{tenant-code}/{article-slug}/media/{media-id}`.
 
 Geraakte data:
 
 - Tenant shortcode/slug/hostcontext.
 - Knowledgebase article slug.
+- Tenant module-entitlements en `kb:view` permissie.
 
 Taken:
 
@@ -103,12 +105,24 @@ Taken:
 - Loginredirect bewaren.
 - Geen toegang/niet gevonden/module uit states bouwen.
 - Copy-link actie toevoegen voor support en platform admin.
+- Statische fase-2 gate toevoegen voor deeplink regressies.
 
 Klaar wanneer:
 
 - Een supportlink opent het juiste artikel na login.
 - Onbevoegde gebruikers zien geen inhoud.
 - Tenantdomeinwijzigingen breken supportlinks niet.
+- `pnpm run fieldgrid:kb-roadmap-release-phase2-deeplinks:check` slaagt.
+
+Implementatiepunten:
+
+- Shortcode route: `artifacts/backoffice/src/app/h/[tenantCode]/[slug]/page.tsx`.
+- Shortcode media route: `artifacts/backoffice/src/app/h/[tenantCode]/[slug]/media/[mediaId]/route.ts`.
+- Resolver/actions: `artifacts/backoffice/src/app/actions/knowledgebase-help.ts`.
+- Supportlink helper: `artifacts/backoffice/src/lib/knowledgebase-support-links.ts`.
+- Copy UI: `artifacts/backoffice/src/components/knowledgebase/CopySupportLinkButton.tsx`.
+- Login-next behoud: `artifacts/backoffice/src/middleware.ts`.
+- Gate: `scripts/fieldgrid-kb-roadmap-release-phase2-deeplinks.mjs`.
 
 ## Fase 3 - Notificatie-Events Voor KB, Roadmap En Releases
 
