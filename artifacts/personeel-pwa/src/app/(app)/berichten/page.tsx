@@ -164,7 +164,7 @@ export default async function BerichtenPage() {
       </section>
 
       <section className="-mt-7 min-h-[calc(100vh-14rem)] rounded-t-[28px] bg-[#F4F7FB] px-3.5 pb-[calc(6.4rem+var(--safe-bottom))] pt-4 md:mt-0 md:min-h-0 md:rounded-3xl md:px-0 md:pb-0 md:pt-0">
-        <div className="mx-auto grid max-w-6xl gap-4 md:grid-cols-[minmax(0,1fr)_22rem] md:items-start">
+        <div className="mx-auto grid max-w-6xl gap-4 md:grid-cols-[minmax(18rem,1fr)_minmax(0,2fr)] md:items-start">
           <div className="space-y-4">
             <TicketSummaryStrip
               unreadCount={unreadCount}
