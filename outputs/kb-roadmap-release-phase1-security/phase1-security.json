@@ -1,0 +1,60 @@
+{
+  "createdAt": "2026-07-06T14:27:58.039Z",
+  "mode": "check",
+  "checks": [
+    {
+      "id": "rls-coverage",
+      "label": "RLS is enabled for every KB, roadmap and release content table",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "direct-api-revokes",
+      "label": "Direct anon/authenticated Data API table privileges are explicitly revoked",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "no-direct-regrants",
+      "label": "No migration grants direct content table access to anon/authenticated",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "service-role-client-boundary",
+      "label": "Service role remains server-only while public clients use anon credentials",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "rls-anti-patterns",
+      "label": "RLS migrations avoid known Supabase anti-patterns",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "server-side-visibility",
+      "label": "Server-side helpers enforce tenant, audience, module and permission scope",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "cross-tenant-regression-evidence",
+      "label": "Cross-tenant denial scenarios are documented and enforced by central helpers",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "knowledgebase-media-privacy",
+      "label": "Knowledgebase media is private and management-gated",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "protected-media-routes",
+      "label": "Protected media routes enforce visibility before signed URL creation",
+      "status": "passed",
+      "failures": []
+    }
+  ]
+}

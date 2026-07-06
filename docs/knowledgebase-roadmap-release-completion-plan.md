@@ -465,3 +465,16 @@ Klaar wanneer:
 - Screenshots en testoutput zijn beschikbaar.
 - Geen horizontale scroll, overlap of kapotte dialogs.
 - Alle gates slagen.
+
+Implementatiestatus:
+
+- Uitvoerbare fase-12 runner toegevoegd: `scripts/fieldgrid-kb-roadmap-release-phase12-acceptance.mjs`.
+- Package scripts toegevoegd:
+  - `fieldgrid:kb-roadmap-release-phase12-acceptance`
+  - `fieldgrid:kb-roadmap-release-phase12-acceptance:check`
+  - `fieldgrid:kb-roadmap-release-phase12-acceptance:strict`
+- Statische contractcheck valideert routes, autocomplete, tooltips, TipTap, release media/category beheer, roadmap triage, notificatie-events en protected media routes.
+- Live Playwright-mode gebruikt storageState of cookies voor platform admin, tenant admin, klant en personeel.
+- Strict evidence faalt als niet alle vier rollen een base URL en ingelogde sessie hebben.
+- Screenshots en JSON bewijs worden geschreven naar `outputs/kb-roadmap-release-phase12-acceptance`.
+- Documentatie staat in `docs/fieldgrid-knowledgebase-roadmap-release-phase12-acceptance.md`.
