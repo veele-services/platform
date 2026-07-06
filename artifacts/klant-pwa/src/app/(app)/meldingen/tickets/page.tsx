@@ -427,7 +427,7 @@ export default async function CustomerTicketsPage({
         ))}
       </section>
 
-      <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_24rem]">
+      <div className="grid gap-5 lg:grid-cols-[minmax(18rem,1fr)_minmax(0,2fr)]">
         <section className="space-y-4">
           <PortalToolbar
             resultLabel={`${visibleTickets.length} van ${tickets.length} tickets`}
