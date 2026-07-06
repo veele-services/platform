@@ -1,19 +1,6 @@
-import { Resend } from "resend";
+import { sendTransactionalEmail } from "@workspace/db/email-service";
 
 // ── Singleton ─────────────────────────────────────────────────────────────────
-
-let _client: Resend | null = null;
-
-function getClient(): Resend | null {
-  const key = process.env["RESEND_API_KEY"];
-  if (!key) return null;
-  if (!_client) _client = new Resend(key);
-  return _client;
-}
-
-function fromAddress(): string {
-  return process.env["RESEND_FROM_EMAIL"] ?? "Veele <noreply@veele.nl>";
-}
 
 function siteUrl(): string {
   const domains = process.env["REPLIT_DOMAINS"];
@@ -36,19 +23,16 @@ export async function sendEmail(opts: {
   subject: string;
   html:    string;
 }): Promise<void> {
-  const resend = getClient();
-  if (!resend) {
-    console.warn("[email] RESEND_API_KEY not set — e-mail overgeslagen:", opts.subject);
-    return;
-  }
-  const { error } = await resend.emails.send({
-    from:    fromAddress(),
-    to:      opts.to,
+  const result = await sendTransactionalEmail({
+    to: opts.to,
     subject: opts.subject,
-    html:    opts.html,
+    html: opts.html,
+    templateKey: "personnel_portal",
+    triggeredByType: "personnel_user",
   });
-  if (error) {
-    console.error("[email] Verzenden mislukt:", error);
+
+  if (!result.success) {
+    console.error("[email] Verzenden mislukt:", result.error);
   }
 }
 

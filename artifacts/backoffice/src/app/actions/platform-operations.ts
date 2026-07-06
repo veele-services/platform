@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@workspace/db";
-import { auditLogTable, organizationSettingsTable } from "@workspace/db";
-import { sql } from "drizzle-orm";
+import { auditLogTable } from "@workspace/db";
+import { getPlatformEmailProviderSettings } from "@workspace/db/email-service";
 import { revalidatePath } from "next/cache";
 import { requirePlatformAdmin } from "@/lib/auth/platform";
 import { getPlatformStagingSmokeDashboard } from "./platform-smoke";
@@ -164,19 +164,9 @@ function combinedStatus(checks: Array<{ status: PlatformSmokeStatus }>): Platfor
 }
 
 async function getMailHealth(generatedAt: string): Promise<PlatformOperationsHealthCheck> {
-  const [mailSnapshot] = await db
-    .select({
-      smtpConfigured: sql<number>`count(*) filter (
-        where smtp_enabled = true
-          and smtp_host is not null
-          and smtp_port is not null
-          and smtp_from_email is not null
-      )::int`,
-    })
-    .from(organizationSettingsTable);
-  const smtpConfigured = Number(mailSnapshot?.smtpConfigured ?? 0);
-  const resendConfigured = Boolean(envValue("RESEND_API_KEY"));
-  const status: PlatformSmokeStatus = smtpConfigured > 0 || resendConfigured ? "ok" : "manual";
+  const providers = await getPlatformEmailProviderSettings();
+  const activeProvider = providers.find((provider) => provider.isActive);
+  const status: PlatformSmokeStatus = activeProvider?.configured ? "ok" : "manual";
 
   return {
     id: "mail",
@@ -185,13 +175,13 @@ async function getMailHealth(generatedAt: string): Promise<PlatformOperationsHea
     status,
     summary:
       status === "ok"
-        ? `${smtpConfigured} SMTP-configuratie(s), Resend ${resendConfigured ? "aanwezig" : "niet nodig"}.`
-        : "Geen SMTP-configuratie of RESEND_API_KEY zichtbaar.",
+        ? `${activeProvider?.name ?? "E-mailprovider"} actief (${activeProvider?.providerType}).`
+        : "Geen actieve platform e-mailprovider geconfigureerd.",
     detail: "Controleert of e-mailtransport operationeel geconfigureerd lijkt zonder testmail te versturen.",
     endpoint: null,
     lastCheckedAt: generatedAt,
     responseMs: null,
-    nextAction: status === "ok" ? "Draai alleen bij release een echte testmail via instellingen." : "Configureer SMTP of RESEND_API_KEY voordat notificaties live gaan.",
+    nextAction: status === "ok" ? "Draai alleen bij release een echte testmail via instellingen." : "Configureer Resend API of SMTP voordat notificaties live gaan.",
   };
 }
 

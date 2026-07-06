@@ -8,7 +8,14 @@ import {
   organizationSettingsTable,
   platformHosts,
 } from "@workspace/db";
-import { desc, sql } from "drizzle-orm";
+import {
+  getPlatformEmailProviderSettings,
+  savePlatformEmailProviderSettings,
+  sendPlatformEmailTest,
+  type PlatformEmailProviderAdminView,
+  type PlatformEmailProviderType,
+} from "@workspace/db/email-service";
+import { sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requirePlatformAdmin } from "@/lib/auth/platform";
 import type { ActionResult } from "./customers";
@@ -52,6 +59,7 @@ export type PlatformSettingsDashboard = {
   summary: Record<PlatformSettingsStatus, number>;
   changeRequestOptions: Array<{ id: string; label: string }>;
   smtp: PlatformSmtpSettings;
+  emailProviders: PlatformEmailProviderAdminView[];
 };
 
 function envValue(name: string): string | null {
@@ -141,32 +149,18 @@ function normalizeSmtpEncryption(value: string | null | undefined): PlatformSmtp
 }
 
 async function getPlatformSmtpSettings(): Promise<PlatformSmtpSettings> {
-  const [settings] = await db
-    .select({
-      smtpEnabled: organizationSettingsTable.smtpEnabled,
-      smtpHost: organizationSettingsTable.smtpHost,
-      smtpPort: organizationSettingsTable.smtpPort,
-      smtpEncryption: organizationSettingsTable.smtpEncryption,
-      smtpUsername: organizationSettingsTable.smtpUsername,
-      smtpPassword: organizationSettingsTable.smtpPassword,
-      smtpFromName: organizationSettingsTable.smtpFromName,
-      smtpFromEmail: organizationSettingsTable.smtpFromEmail,
-      smtpReplyTo: organizationSettingsTable.smtpReplyTo,
-    })
-    .from(organizationSettingsTable)
-    .orderBy(desc(organizationSettingsTable.updatedAt))
-    .limit(1);
+  const smtp = (await getPlatformEmailProviderSettings()).find((provider) => provider.providerType === "smtp");
 
   return {
-    smtpEnabled: Boolean(settings?.smtpEnabled),
-    smtpHost: settings?.smtpHost ?? "",
-    smtpPort: settings?.smtpPort ?? null,
-    smtpEncryption: normalizeSmtpEncryption(settings?.smtpEncryption),
-    smtpUsername: settings?.smtpUsername ?? "",
-    smtpPasswordConfigured: Boolean(settings?.smtpPassword),
-    smtpFromName: settings?.smtpFromName ?? "Fieldgrid",
-    smtpFromEmail: settings?.smtpFromEmail ?? "noreply@fieldgrid.nl",
-    smtpReplyTo: settings?.smtpReplyTo ?? "",
+    smtpEnabled: Boolean(smtp?.isActive),
+    smtpHost: smtp?.config.smtpHost ?? "",
+    smtpPort: smtp?.config.smtpPort ?? null,
+    smtpEncryption: normalizeSmtpEncryption(smtp?.config.smtpEncryption),
+    smtpUsername: smtp?.config.smtpUsername ?? "",
+    smtpPasswordConfigured: Boolean(smtp?.config.smtpPasswordConfigured),
+    smtpFromName: smtp?.fromName ?? "Fieldgrid",
+    smtpFromEmail: smtp?.fromEmail ?? "noreply@fieldgrid.nl",
+    smtpReplyTo: smtp?.replyToEmail ?? "",
     defaultTenantFromPattern: "<mail>@<slug>.fieldgrid.nl",
   };
 }
@@ -174,7 +168,11 @@ async function getPlatformSmtpSettings(): Promise<PlatformSmtpSettings> {
 export async function getPlatformSettingsDashboard(): Promise<PlatformSettingsDashboard> {
   await requirePlatformAdmin();
 
-  const [mail, smtp] = await Promise.all([getMailSnapshot(), getPlatformSmtpSettings()]);
+  const [mail, smtp, emailProviders] = await Promise.all([
+    getMailSnapshot(),
+    getPlatformSmtpSettings(),
+    getPlatformEmailProviderSettings(),
+  ]);
   const hosts = Array.from(platformHosts()).sort();
   const platformHostSource = envValue("PLATFORM_HOSTS") ? "PLATFORM_HOSTS" : `default: ${DEFAULT_PLATFORM_HOSTS.join(", ")}`;
   const customDomainTarget = fieldgridDnsTargetValue();
@@ -186,9 +184,8 @@ export async function getPlatformSettingsDashboard(): Promise<PlatformSettingsDa
     envValue("FIELDGRID_MIGRATION_SMOKE_EMPTY_DATABASE_URL") ? "empty-db smoke geconfigureerd" : "empty-db smoke handmatig",
     envValue("FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_DATABASE_URL") ? "staging-copy smoke geconfigureerd" : "staging-copy smoke handmatig",
   ].join(" / ");
-  const systemMailConfigured =
-    (smtp.smtpEnabled && Boolean(smtp.smtpHost) && Boolean(smtp.smtpPort) && Boolean(smtp.smtpFromEmail)) ||
-    Boolean(envValue("RESEND_API_KEY"));
+  const activeEmailProvider = emailProviders.find((provider) => provider.isActive);
+  const systemMailConfigured = Boolean(activeEmailProvider?.configured);
   const defaultBrandName = envValue("FIELDGRID_DEFAULT_BRAND_NAME") ?? "Fieldgrid";
 
   const settings: PlatformSettingRow[] = [
@@ -236,17 +233,17 @@ export async function getPlatformSettingsDashboard(): Promise<PlatformSettingsDa
     },
     {
       id: "smtp-system-mail",
-      label: "SMTP/system mail",
+      label: "E-mailprovider",
       category: "mail",
       status: systemMailConfigured ? "ok" : "manual",
       value: systemMailConfigured
-        ? `Platform SMTP ${smtp.smtpEnabled ? "actief" : "via fallback"}, from ${smtp.smtpFromEmail || mail.fromEmail || "tenant-default"}, Resend ${envValue("RESEND_API_KEY") ? "aanwezig" : "niet nodig"}`
-        : "Geen platform SMTP of RESEND_API_KEY zichtbaar",
-      source: "Platform instellingen / organization_settings SMTP / RESEND_API_KEY",
-      detail: "Platformbrede e-mailtransportconfiguratie voor uitnodigingen, notificaties en systeemmails zonder secrets te tonen.",
+        ? `${activeEmailProvider?.name ?? "Provider"} actief, from ${activeEmailProvider?.fromEmail || smtp.smtpFromEmail || mail.fromEmail || "tenant-default"}`
+        : "Geen actieve platform e-mailprovider geconfigureerd",
+      source: "platform_email_providers",
+      detail: "Platformbrede e-mailtransportconfiguratie voor uitnodigingen, notificaties en systeemmails met encrypted secrets.",
       nextAction: systemMailConfigured
         ? `Standaard tenantafzenders blijven ${smtp.defaultTenantFromPattern}; SendGrid volgt als aparte koppeling.`
-        : "Configureer platform SMTP of RESEND_API_KEY voor uitnodigingen en meldingen.",
+        : "Configureer Resend API of SMTP voordat uitnodigingen en meldingen live gaan.",
     },
     {
       id: "default-branding",
@@ -276,6 +273,7 @@ export async function getPlatformSettingsDashboard(): Promise<PlatformSettingsDa
     summary: summarizeStatus(settings),
     changeRequestOptions: settings.map((setting) => ({ id: setting.id, label: setting.label })),
     smtp,
+    emailProviders,
   };
 }
 
@@ -314,31 +312,27 @@ export async function updatePlatformSmtpSettings(formData: FormData): Promise<Ac
     return { success: false, message: "Reply-to e-mailadres is ongeldig." };
   }
 
-  const updateData: Partial<typeof organizationSettingsTable.$inferInsert> = {
-    ...payload,
-    emailAfzender: payload.smtpFromEmail,
-    updatedAt: new Date(),
+  const saved = await savePlatformEmailProviderSettings({
+    providerType: "smtp",
+    name: "SMTP",
+    isActive: payload.smtpEnabled,
+    fromEmail: payload.smtpFromEmail ?? "noreply@fieldgrid.nl",
+    fromName: payload.smtpFromName ?? "Fieldgrid",
+    replyToEmail: payload.smtpReplyTo,
+    smtpHost: payload.smtpHost,
+    smtpPort: payload.smtpPort,
+    smtpEncryption: payload.smtpEncryption,
+    smtpUsername: payload.smtpUsername,
+    smtpPassword,
+    clearSmtpPassword: clearPassword,
     updatedBy: actor.userId,
-  };
+  });
 
-  if (clearPassword) {
-    updateData.smtpPassword = null;
-  } else if (smtpPassword) {
-    updateData.smtpPassword = smtpPassword;
-  }
-
-  const updatedRows = await db
-    .update(organizationSettingsTable)
-    .set(updateData)
-    .returning({ id: organizationSettingsTable.id });
-
-  if (updatedRows.length === 0) {
-    return { success: false, message: "Er is nog geen organisatie-instellingenrecord om platform SMTP op toe te passen." };
-  }
+  if (!saved.success) return saved;
 
   await db.insert(auditLogTable).values({
     userId: actor.userId,
-    action: "platform_smtp_settings_updated",
+    action: "platform_email_provider_updated",
     resource: "platform_settings",
     resourceId: "smtp",
     metadata: {
@@ -349,7 +343,6 @@ export async function updatePlatformSmtpSettings(formData: FormData): Promise<Ac
       smtpFromEmail: payload.smtpFromEmail,
       smtpReplyTo: payload.smtpReplyTo,
       passwordChanged: Boolean(smtpPassword || clearPassword),
-      updatedRows: updatedRows.length,
       sendgridRoadmap: true,
       defaultTenantFromPattern: "<mail>@<slug>.fieldgrid.nl",
       enterpriseCustomMailDomainsOnly: true,
@@ -358,7 +351,87 @@ export async function updatePlatformSmtpSettings(formData: FormData): Promise<Ac
 
   revalidatePath("/platform/settings");
   revalidatePath("/platform/operations");
-  return { success: true };
+  return saved;
+}
+
+export async function updatePlatformEmailProviderSettings(formData: FormData): Promise<ActionResult> {
+  const actor = await requirePlatformAdmin();
+  const providerTypeRaw = formValue(formData, "providerType");
+  const providerType = providerTypeRaw === "smtp" ? "smtp" : providerTypeRaw === "resend_api" ? "resend_api" : null;
+  if (!providerType) return { success: false, message: "Kies een geldige e-mailprovider." };
+
+  const smtpPortRaw = formValue(formData, "smtpPort");
+  const smtpPort = smtpPortRaw ? Number(smtpPortRaw) : null;
+  if (smtpPortRaw && (!Number.isInteger(smtpPort) || smtpPort! < 1 || smtpPort! > 65535)) {
+    return { success: false, message: "SMTP-poort moet tussen 1 en 65535 liggen." };
+  }
+
+  const fromEmail = formValue(formData, "fromEmail");
+  const replyToEmail = nullableFormValue(formData, "replyToEmail");
+  if (!fromEmail || !isEmailLike(fromEmail)) return { success: false, message: "Vul een geldig afzenderadres in." };
+  if (replyToEmail && !isEmailLike(replyToEmail)) return { success: false, message: "Reply-to e-mailadres is ongeldig." };
+
+  const saved = await savePlatformEmailProviderSettings({
+    providerType: providerType as PlatformEmailProviderType,
+    name: nullableFormValue(formData, "name"),
+    isActive: formCheckbox(formData, "isActive"),
+    fromEmail,
+    fromName: formValue(formData, "fromName") || "Fieldgrid",
+    replyToEmail,
+    resendApiKey: nullableFormValue(formData, "resendApiKey"),
+    sendingDomain: nullableFormValue(formData, "sendingDomain"),
+    smtpHost: nullableFormValue(formData, "smtpHost"),
+    smtpPort,
+    smtpEncryption: normalizeSmtpEncryption(formValue(formData, "smtpEncryption")),
+    smtpUsername: nullableFormValue(formData, "smtpUsername"),
+    smtpPassword: nullableFormValue(formData, "smtpPassword"),
+    clearSmtpPassword: formCheckbox(formData, "clearSmtpPassword"),
+    updatedBy: actor.userId,
+  });
+
+  if (!saved.success) return saved;
+
+  await db.insert(auditLogTable).values({
+    userId: actor.userId,
+    action: "platform_email_provider_updated",
+    resource: "platform_settings",
+    resourceId: providerType,
+    metadata: {
+      providerType,
+      active: formCheckbox(formData, "isActive"),
+      fromEmail,
+      replyToEmail,
+      secretChanged: Boolean(nullableFormValue(formData, "resendApiKey") || nullableFormValue(formData, "smtpPassword") || formCheckbox(formData, "clearSmtpPassword")),
+    },
+  });
+
+  revalidatePath("/platform/settings");
+  revalidatePath("/platform/operations");
+  return saved;
+}
+
+export async function sendPlatformEmailTestAction(formData: FormData): Promise<ActionResult> {
+  const actor = await requirePlatformAdmin();
+  const testEmail = formValue(formData, "testEmail");
+  if (!testEmail || !isEmailLike(testEmail)) return { success: false, message: "Vul een geldig test e-mailadres in." };
+
+  const result = await sendPlatformEmailTest({ to: testEmail, triggeredBy: actor.userId });
+  await db.insert(auditLogTable).values({
+    userId: actor.userId,
+    action: "platform_email_test_sent",
+    resource: "platform_settings",
+    resourceId: result.providerId ?? result.providerType,
+    metadata: {
+      providerType: result.providerType,
+      success: result.success,
+      error: result.error ?? null,
+    },
+  });
+
+  revalidatePath("/platform/settings");
+  return result.success
+    ? { success: true }
+    : { success: false, message: result.error ?? "Testmail versturen mislukt." };
 }
 
 export async function requestPlatformSettingChange(formData: FormData): Promise<ActionResult> {

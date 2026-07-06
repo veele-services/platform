@@ -1,70 +1,7 @@
-import { Resend } from "resend";
 import { db, organizationSettingsTable } from "@workspace/db";
-import { desc, eq } from "drizzle-orm";
-import { sendSmtpMail, type SmtpMailConfig, type SmtpEncryption } from "@/lib/smtp-mailer";
+import { sendTransactionalEmail } from "@workspace/db/email-service";
 
 // ── Singleton ─────────────────────────────────────────────────────────────────
-
-let _client: Resend | null = null;
-
-function getClient(): Resend | null {
-  const key = process.env["RESEND_API_KEY"];
-  if (!key) return null;
-  if (!_client) _client = new Resend(key);
-  return _client;
-}
-
-function fromAddress(): string {
-  return process.env["RESEND_FROM_EMAIL"] ?? "Fieldgrid <noreply@fieldgrid.nl>";
-}
-
-function normalizeEncryption(value: string | null): SmtpEncryption {
-  if (value === "none" || value === "tls" || value === "starttls") return value;
-  return "starttls";
-}
-
-async function getSmtpConfig(): Promise<SmtpMailConfig | null> {
-  const smtpRows = await db
-    .select({
-      smtpEnabled:    organizationSettingsTable.smtpEnabled,
-      smtpHost:       organizationSettingsTable.smtpHost,
-      smtpPort:       organizationSettingsTable.smtpPort,
-      smtpEncryption: organizationSettingsTable.smtpEncryption,
-      smtpUsername:   organizationSettingsTable.smtpUsername,
-      smtpPassword:   organizationSettingsTable.smtpPassword,
-      smtpFromName:   organizationSettingsTable.smtpFromName,
-      smtpFromEmail:  organizationSettingsTable.smtpFromEmail,
-      smtpReplyTo:    organizationSettingsTable.smtpReplyTo,
-    })
-    .from(organizationSettingsTable)
-    .where(eq(organizationSettingsTable.smtpEnabled, true))
-    .orderBy(desc(organizationSettingsTable.updatedAt))
-    .limit(25);
-
-  const settings = smtpRows.find((row) => row.smtpHost && row.smtpPort && row.smtpFromEmail);
-
-  if (!settings) {
-    if (smtpRows.length > 0) {
-      throw new Error("SMTP is actief, maar host, poort of afzender ontbreekt.");
-    }
-    return null;
-  }
-
-  if (!settings.smtpHost || !settings.smtpPort || !settings.smtpFromEmail) {
-    throw new Error("SMTP is actief, maar host, poort of afzender ontbreekt.");
-  }
-
-  return {
-    host:       settings.smtpHost,
-    port:       settings.smtpPort,
-    encryption: normalizeEncryption(settings.smtpEncryption),
-    username:   settings.smtpUsername,
-    password:   settings.smtpPassword,
-    fromEmail:  settings.smtpFromEmail,
-    fromName:   settings.smtpFromName,
-    replyTo:    settings.smtpReplyTo,
-  };
-}
 
 function siteUrl(): string {
   const domains = process.env["REPLIT_DOMAINS"];
@@ -117,64 +54,18 @@ export async function sendEmailWithResult(opts: {
   tenantId?:    string;
   purpose?:     string;
 }): Promise<{ success: boolean; error?: string }> {
-  try {
-    const smtpConfig = await getSmtpConfig();
-    if (smtpConfig) {
-      await sendSmtpMail(smtpConfig, opts);
-      return { success: true };
-    }
-  } catch (error) {
-    const msg = String((error as { message?: string }).message ?? error);
-    console.error("[email] SMTP verzenden mislukt:", {
-      error: msg,
-      purpose: opts.purpose ?? null,
-      tenantId: opts.tenantId ?? null,
-      subject: opts.subject,
-    });
-    return { success: false, error: msg };
-  }
+  const result = await sendTransactionalEmail({
+    to: opts.to,
+    subject: opts.subject,
+    html: opts.html,
+    text: opts.text,
+    attachments: opts.attachments,
+    tenantId: opts.tenantId ?? null,
+    templateKey: opts.purpose ?? null,
+    purpose: opts.purpose ?? null,
+  });
 
-  const resend = getClient();
-  if (!resend) {
-    console.warn("[email] Mailprovider context:", {
-      purpose: opts.purpose ?? null,
-      tenantId: opts.tenantId ?? null,
-      subject: opts.subject,
-    });
-    console.warn("[email] RESEND_API_KEY not set - e-mail overgeslagen.");
-    return { success: false, error: "E-mailclient niet geconfigureerd. Vul SMTP-instellingen in of configureer RESEND_API_KEY." };
-  }
-  try {
-    const { error } = await resend.emails.send({
-      from:        fromAddress(),
-      to:          opts.to,
-      subject:     opts.subject,
-      html:        opts.html,
-      text:        opts.text,
-      attachments: opts.attachments,
-    });
-    if (error) {
-      const msg = String((error as { message?: string }).message ?? error);
-      console.error("[email] Verzenden mislukt:", {
-        error: msg,
-        purpose: opts.purpose ?? null,
-        tenantId: opts.tenantId ?? null,
-        subject: opts.subject,
-      });
-      return { success: false, error: msg };
-    }
-  } catch (error) {
-    const msg = String((error as { message?: string }).message ?? error);
-    console.error("[email] Verzenden mislukt:", {
-      error: msg,
-      purpose: opts.purpose ?? null,
-      tenantId: opts.tenantId ?? null,
-      subject: opts.subject,
-    });
-    return { success: false, error: msg };
-  }
-
-  return { success: true };
+  return result.success ? { success: true } : { success: false, error: result.error };
 }
 
 export function klantPortalUrl(): string {

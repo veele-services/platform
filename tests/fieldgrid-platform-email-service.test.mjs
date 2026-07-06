@@ -1,0 +1,74 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { test } from "node:test";
+
+function read(path) {
+  return readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+}
+
+test("platform email service centralizes providers, encrypted config and delivery logging", () => {
+  const service = read("lib/db/src/email-service.ts");
+  const smtp = read("lib/db/src/email-smtp.ts");
+  const schema = read("lib/db/src/schema/platform-email.ts");
+  const migration = read("lib/db/migrations/093_platform_email_providers.sql");
+  const pkg = read("lib/db/package.json");
+
+  assert.match(service, /sendTransactionalEmail/u);
+  assert.match(service, /new Resend/u);
+  assert.match(service, /sendSmtpMail/u);
+  assert.match(service, /FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY/u);
+  assert.match(service, /encryptPlatformEmailConfig/u);
+  assert.match(service, /decryptPlatformEmailConfig/u);
+  assert.match(service, /emailDeliveryLogTable/u);
+  assert.match(smtp, /STARTTLS/u);
+  assert.match(smtp, /AUTH LOGIN/u);
+  assert.match(schema, /platformEmailProvidersTable/u);
+  assert.match(schema, /emailDeliveryLogTable/u);
+  assert.match(migration, /encrypted_config_json text NOT NULL/u);
+  assert.match(migration, /ALTER TABLE public\.platform_email_providers ENABLE ROW LEVEL SECURITY/u);
+  assert.match(migration, /REVOKE ALL ON TABLE public\.email_delivery_log FROM anon, authenticated/u);
+  assert.match(pkg, /"\.\/email-service": "\.\/src\/email-service\.ts"/u);
+});
+
+test("application surfaces no longer call mail providers directly", () => {
+  const appMailFiles = [
+    "artifacts/backoffice/src/lib/email.ts",
+    "artifacts/klant-pwa/src/lib/email.ts",
+    "artifacts/personeel-pwa/src/lib/email.ts",
+    "artifacts/api-server/src/lib/email.ts",
+  ];
+
+  for (const file of appMailFiles) {
+    const content = read(file);
+    assert.match(content, /sendTransactionalEmail/u, `${file} should use the central service`);
+    assert.doesNotMatch(content, /new Resend|resend\.emails|sendSmtpMail|@\/lib\/smtp-mailer/u, `${file} should not call providers directly`);
+  }
+
+  const appPackageFiles = [
+    "artifacts/backoffice/package.json",
+    "artifacts/klant-pwa/package.json",
+    "artifacts/personeel-pwa/package.json",
+    "artifacts/api-server/package.json",
+  ];
+
+  for (const file of appPackageFiles) {
+    const content = read(file);
+    assert.doesNotMatch(content, /"resend"/u, `${file} should not depend on Resend directly`);
+  }
+});
+
+test("platform admin exposes provider-agnostic email settings and testmail", () => {
+  const action = read("artifacts/backoffice/src/app/actions/platform-settings.ts");
+  const page = read("artifacts/backoffice/src/app/(platform)/platform/settings/page.tsx");
+
+  assert.match(action, /getPlatformEmailProviderSettings/u);
+  assert.match(action, /savePlatformEmailProviderSettings/u);
+  assert.match(action, /sendPlatformEmailTest/u);
+  assert.match(action, /platform_email_provider_updated/u);
+  assert.match(action, /platform_email_test_sent/u);
+  assert.match(page, /Resend API/u);
+  assert.match(page, /SMTP/u);
+  assert.match(page, /Testmail versturen/u);
+  assert.match(page, /maskedSecret/u);
+  assert.doesNotMatch(page, /RESEND_API_KEY/u);
+});

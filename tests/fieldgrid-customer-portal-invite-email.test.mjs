@@ -64,12 +64,19 @@ test("customer portal activates invited links after a valid first login", () => 
   assert.match(portal, /set\(\{\s*status:\s*"active",\s*lastLoginAt:\s*new Date\(\)\s*\}\)/u);
 });
 
-test("system mailer selects an enabled SMTP configuration instead of an arbitrary tenant row", () => {
+test("system mailer uses the central platform email service", () => {
   const email = read("artifacts/backoffice/src/lib/email.ts");
+  const service = read("lib/db/src/email-service.ts");
+  const migration = read("lib/db/migrations/093_platform_email_providers.sql");
 
-  assert.match(email, /where\(eq\(organizationSettingsTable\.smtpEnabled,\s*true\)\)/u);
-  assert.match(email, /orderBy\(desc\(organizationSettingsTable\.updatedAt\)\)/u);
-  assert.match(email, /smtpRows\.find\(\(row\) => row\.smtpHost && row\.smtpPort && row\.smtpFromEmail\)/u);
+  assert.match(email, /sendTransactionalEmail/u);
+  assert.doesNotMatch(email, /new Resend|sendSmtpMail|RESEND_API_KEY/u);
+  assert.match(service, /platformEmailProvidersTable/u);
+  assert.match(service, /emailDeliveryLogTable/u);
+  assert.match(service, /encryptPlatformEmailConfig/u);
+  assert.match(migration, /platform_email_providers/u);
+  assert.match(migration, /email_delivery_log/u);
+  assert.match(migration, /REVOKE ALL ON TABLE public\.platform_email_providers FROM anon, authenticated/u);
 });
 
 test("playwright authentication state output is ignored", () => {

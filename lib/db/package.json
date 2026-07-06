@@ -6,6 +6,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./schema": "./src/schema/index.ts",
+    "./email-service": "./src/email-service.ts",
     "./events": "./src/events.ts",
     "./portal-routes": "./src/portal-routes.ts",
     "./workflow-events": "./src/workflow-events.ts",
@@ -32,6 +33,7 @@
     "drizzle-orm": "catalog:",
     "drizzle-zod": "^0.8.3",
     "pg": "^8.20.0",
+    "resend": "^6.12.4",
     "zod": "catalog:"
   },
   "devDependencies": {

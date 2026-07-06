@@ -13,14 +13,8 @@ if (!process.env["MOLLIE_API_KEY"]) {
   process.exit(1);
 }
 
-// RESEND_API_KEY is optional at startup but required for email delivery.
-// Warn loudly so operators are alerted; email sending fails gracefully at runtime.
-if (!process.env["RESEND_API_KEY"]) {
-  logger.warn(
-    "RESEND_API_KEY is not set — e-mail notificaties zijn uitgeschakeld. " +
-    "Stel de variabele in en herstart de server om e-mails in te schakelen.",
-  );
-}
+// Outgoing email is configured through platform_email_providers in the database.
+// FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY is required when saving provider secrets.
 
 if (
   !(process.env["VAPID_PUBLIC_KEY"] ?? process.env["NEXT_PUBLIC_VAPID_PUBLIC_KEY"]) ||

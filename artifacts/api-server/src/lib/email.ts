@@ -1,20 +1,7 @@
-import { Resend } from "resend";
+import { sendTransactionalEmail } from "@workspace/db/email-service";
 import { logger } from "./logger";
 
 // ── Singleton ─────────────────────────────────────────────────────────────────
-
-let _client: Resend | null = null;
-
-function getClient(): Resend | null {
-  const key = process.env["RESEND_API_KEY"];
-  if (!key) return null;
-  if (!_client) _client = new Resend(key);
-  return _client;
-}
-
-function fromAddress(): string {
-  return process.env["RESEND_FROM_EMAIL"] ?? "Veele <noreply@veele.nl>";
-}
 
 function siteUrl(): string {
   const domains = process.env["REPLIT_DOMAINS"];
@@ -29,19 +16,15 @@ export async function sendEmail(opts: {
   subject: string;
   html:    string;
 }): Promise<void> {
-  const resend = getClient();
-  if (!resend) {
-    logger.warn({ subject: opts.subject }, "RESEND_API_KEY not set — e-mail overgeslagen");
-    return;
-  }
-  const { error } = await resend.emails.send({
-    from:    fromAddress(),
-    to:      opts.to,
+  const result = await sendTransactionalEmail({
+    to: opts.to,
     subject: opts.subject,
-    html:    opts.html,
+    html: opts.html,
+    templateKey: "api_server",
+    triggeredByType: "system",
   });
-  if (error) {
-    logger.error({ error }, "E-mail verzenden mislukt");
+  if (!result.success) {
+    logger.error({ error: result.error, subject: opts.subject }, "E-mail verzenden mislukt");
   }
 }
 
@@ -54,21 +37,16 @@ export async function sendEmailWithResult(opts: {
   subject: string;
   html:    string;
 }): Promise<{ success: boolean; error?: string }> {
-  const resend = getClient();
-  if (!resend) {
-    const msg = "RESEND_API_KEY niet geconfigureerd";
-    logger.warn({ subject: opts.subject }, msg);
-    return { success: false, error: msg };
-  }
-  const { error } = await resend.emails.send({
-    from:    fromAddress(),
-    to:      opts.to,
+  const result = await sendTransactionalEmail({
+    to: opts.to,
     subject: opts.subject,
-    html:    opts.html,
+    html: opts.html,
+    templateKey: "api_server",
+    triggeredByType: "system",
   });
-  if (error) {
-    const msg = String((error as { message?: string }).message ?? error);
-    logger.error({ error }, "E-mail verzenden mislukt");
+  if (!result.success) {
+    const msg = result.error ?? "E-mailprovider niet geconfigureerd";
+    logger.warn({ subject: opts.subject }, msg);
     return { success: false, error: msg };
   }
   return { success: true };
