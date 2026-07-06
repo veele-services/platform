@@ -1,13 +1,17 @@
 "use server";
 
 import {
+  db,
+  getKnowledgebaseArticleByIdForContext,
   getKnowledgebaseArticleBySlugForContext,
+  kbArticleFeedbackTable,
   listEnabledKnowledgebaseModuleKeysForTenant,
   listKnowledgebaseHelpIndexForContext,
   recordKnowledgebaseSearchEvent,
   type KnowledgebaseArticleSummary,
   type KnowledgebaseHelpIndex,
 } from "@workspace/db";
+import { revalidatePath } from "next/cache";
 import { getMyCustomerIdentity } from "@/actions/customer";
 
 async function customerKnowledgebaseContext() {
@@ -28,7 +32,7 @@ async function customerKnowledgebaseContext() {
 
 export async function getCustomerKnowledgebaseHelpIndex(query?: string | null): Promise<KnowledgebaseHelpIndex> {
   const context = await customerKnowledgebaseContext();
-  if (!context) return { articles: [], categories: [], featured: [], recent: [] };
+  if (!context) return { articles: [], categories: [], featured: [], recent: [], suggestions: [] };
 
   const index = await listKnowledgebaseHelpIndexForContext(context, { query });
   if (query?.trim()) {
@@ -52,4 +56,32 @@ export async function getCustomerKnowledgebaseArticle(slug: string): Promise<Kno
   const context = await customerKnowledgebaseContext();
   if (!context) return null;
   return getKnowledgebaseArticleBySlugForContext(context, slug);
+}
+
+export async function submitCustomerKnowledgebaseFeedback(formData: FormData): Promise<void> {
+  const identity = await getMyCustomerIdentity();
+  const context = await customerKnowledgebaseContext();
+  if (!identity || !context) return;
+
+  const articleId = String(formData.get("articleId") ?? "").trim();
+  const slug = String(formData.get("slug") ?? "").trim();
+  const isHelpful = String(formData.get("isHelpful") ?? "") === "true";
+  const comment = String(formData.get("comment") ?? "").trim().slice(0, 1000) || null;
+  if (!articleId) return;
+
+  const article = await getKnowledgebaseArticleByIdForContext(context, articleId);
+  if (!article) return;
+
+  await db.insert(kbArticleFeedbackTable).values({
+    articleId,
+    tenantId: identity.tenantId,
+    userId: identity.userId,
+    customerId: identity.customerId,
+    audienceKey: "tenant_customer",
+    isHelpful,
+    comment,
+    metadata: { surface: "customer_pwa", slug: article.slug },
+  });
+
+  revalidatePath(slug ? `/help/${slug}` : `/help/${article.slug}`);
 }

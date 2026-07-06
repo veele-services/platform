@@ -13,6 +13,9 @@ import {
   kbArticlesTable,
   kbCategoriesTable,
   kbSearchTermsTable,
+  kbTooltipAudiencesTable,
+  kbTooltipRelatedArticlesTable,
+  kbTooltipsTable,
   listKnowledgebaseArticlesForContext,
   modulesTable,
   permissionsTable,
@@ -58,6 +61,25 @@ export type KnowledgebaseArticleOption = {
   slug: string;
   summary: string | null;
   status: FieldgridContentStatus;
+};
+
+export type KnowledgebaseTooltipRow = {
+  id: string;
+  stableKey: string;
+  title: string;
+  description: string;
+  articleId: string | null;
+  articleTitle: string | null;
+  articleSlug: string | null;
+  moduleKey: string | null;
+  permissionKey: string | null;
+  status: "draft" | "published" | "archived";
+  placement: string;
+  openInDrawer: boolean;
+  showRelatedArticles: boolean;
+  audienceKeys: FieldgridContentAudience[];
+  relatedArticleIds: string[];
+  updatedAt: string;
 };
 
 export type KnowledgebaseEditorOptions = {
@@ -151,6 +173,11 @@ function uniqueStrings(values: string[] | undefined): string[] {
 
 function normalizeStatus(value: string): FieldgridContentStatus {
   return value === "published" || value === "archived" ? value : "draft";
+}
+
+function normalizeTooltipStatus(value: string): "draft" | "published" | "archived" {
+  if (value === "published" || value === "archived") return value;
+  return "draft";
 }
 
 function parseCsv(value: FormDataEntryValue | null): string[] {
@@ -601,6 +628,198 @@ export async function uploadKnowledgebaseMedia(formData: FormData): Promise<Acti
   } catch (error) {
     return { success: false, message: (error as Error).message || "Media uploaden mislukt." };
   }
+}
+
+async function loadTooltipRelations(tooltipIds: string[]) {
+  if (tooltipIds.length === 0) {
+    return {
+      audiences: new Map<string, FieldgridContentAudience[]>(),
+      related: new Map<string, string[]>(),
+    };
+  }
+
+  const [audienceRows, relatedRows] = await Promise.all([
+    db
+      .select({
+        tooltipId: kbTooltipAudiencesTable.tooltipId,
+        audienceKey: kbTooltipAudiencesTable.audienceKey,
+      })
+      .from(kbTooltipAudiencesTable)
+      .where(inArray(kbTooltipAudiencesTable.tooltipId, tooltipIds)),
+    db
+      .select({
+        tooltipId: kbTooltipRelatedArticlesTable.tooltipId,
+        articleId: kbTooltipRelatedArticlesTable.articleId,
+      })
+      .from(kbTooltipRelatedArticlesTable)
+      .where(inArray(kbTooltipRelatedArticlesTable.tooltipId, tooltipIds)),
+  ]);
+
+  const audiences = new Map<string, FieldgridContentAudience[]>();
+  for (const row of audienceRows) {
+    const list = audiences.get(row.tooltipId) ?? [];
+    list.push(row.audienceKey);
+    audiences.set(row.tooltipId, list);
+  }
+
+  const related = new Map<string, string[]>();
+  for (const row of relatedRows) {
+    const list = related.get(row.tooltipId) ?? [];
+    list.push(row.articleId);
+    related.set(row.tooltipId, list);
+  }
+
+  return { audiences, related };
+}
+
+export async function listKnowledgebaseTooltipsForManagement(): Promise<KnowledgebaseTooltipRow[]> {
+  await requirePlatformAdmin();
+
+  const rows = await db
+    .select({
+      id: kbTooltipsTable.id,
+      stableKey: kbTooltipsTable.stableKey,
+      title: kbTooltipsTable.title,
+      description: kbTooltipsTable.description,
+      articleId: kbTooltipsTable.articleId,
+      articleTitle: kbArticlesTable.title,
+      articleSlug: kbArticlesTable.slug,
+      moduleKey: kbTooltipsTable.moduleKey,
+      permissionKey: kbTooltipsTable.permissionKey,
+      status: kbTooltipsTable.status,
+      placement: kbTooltipsTable.placement,
+      openInDrawer: kbTooltipsTable.openInDrawer,
+      showRelatedArticles: kbTooltipsTable.showRelatedArticles,
+      updatedAt: kbTooltipsTable.updatedAt,
+    })
+    .from(kbTooltipsTable)
+    .leftJoin(kbArticlesTable, eq(kbTooltipsTable.articleId, kbArticlesTable.id))
+    .orderBy(asc(kbTooltipsTable.stableKey));
+
+  const relations = await loadTooltipRelations(rows.map((row) => row.id));
+
+  return rows.map((row) => ({
+    ...row,
+    status: normalizeTooltipStatus(row.status),
+    updatedAt: row.updatedAt.toISOString(),
+    audienceKeys: relations.audiences.get(row.id) ?? [],
+    relatedArticleIds: relations.related.get(row.id) ?? [],
+  }));
+}
+
+export async function saveKnowledgebaseTooltipFromForm(formData: FormData): Promise<void> {
+  const actor = await requirePlatformAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  const stableKey = String(formData.get("stableKey") ?? "").trim();
+  const title = String(formData.get("title") ?? "").trim();
+  const description = String(formData.get("description") ?? "").trim();
+  const articleId = String(formData.get("articleId") ?? "").trim() || null;
+  const moduleKey = String(formData.get("moduleKey") ?? "").trim() || null;
+  const permissionKey = String(formData.get("permissionKey") ?? "").trim() || null;
+  const status = normalizeTooltipStatus(String(formData.get("status") ?? ""));
+  const placement = String(formData.get("placement") ?? "top").trim() || "top";
+  const openInDrawer = formData.get("openInDrawer") === "on";
+  const showRelatedArticles = formData.getAll("showRelatedArticles").map(String).includes("on");
+  const audienceKeys = formData.getAll("audienceKeys").map(String).filter((key): key is FieldgridContentAudience =>
+    AUDIENCE_OPTIONS.some((option) => option.key === key),
+  );
+  const relatedArticleIds = uniqueStrings(formData.getAll("relatedArticleIds").map(String));
+
+  if (!stableKey) throw new Error("Stabiele tooltip-key is verplicht.");
+  if (!title) throw new Error("Tooltip titel is verplicht.");
+  if (!description) throw new Error("Tooltip beschrijving is verplicht.");
+
+  await db.transaction(async (tx) => {
+    const values = {
+      stableKey,
+      title,
+      description,
+      articleId,
+      moduleKey,
+      permissionKey,
+      status,
+      placement,
+      openInDrawer,
+      showRelatedArticles,
+      updatedBy: actor.userId,
+      updatedAt: new Date(),
+    };
+
+    const [row] = id
+      ? await tx
+        .update(kbTooltipsTable)
+        .set(values)
+        .where(eq(kbTooltipsTable.id, id))
+        .returning({ id: kbTooltipsTable.id })
+      : await tx
+        .insert(kbTooltipsTable)
+        .values({
+          ...values,
+          createdBy: actor.userId,
+        })
+        .returning({ id: kbTooltipsTable.id });
+
+    if (!row) throw new Error("Tooltip kon niet worden opgeslagen.");
+
+    await tx.delete(kbTooltipAudiencesTable).where(eq(kbTooltipAudiencesTable.tooltipId, row.id));
+    await tx.delete(kbTooltipRelatedArticlesTable).where(eq(kbTooltipRelatedArticlesTable.tooltipId, row.id));
+
+    if (audienceKeys.length > 0) {
+      await tx.insert(kbTooltipAudiencesTable).values(
+        audienceKeys.map((audienceKey) => ({
+          tooltipId: row.id,
+          audienceKey,
+        })),
+      );
+    }
+
+    const related = relatedArticleIds.filter((relatedArticleId) => relatedArticleId !== articleId);
+    if (related.length > 0) {
+      await tx.insert(kbTooltipRelatedArticlesTable).values(
+        related.map((relatedArticleId, index) => ({
+          tooltipId: row.id,
+          articleId: relatedArticleId,
+          sortOrder: index + 1,
+        })),
+      );
+    }
+
+    await tx.insert(auditLogTable).values({
+      userId: actor.userId,
+      action: id ? "update" : "create",
+      resource: "help_tooltips",
+      resourceId: row.id,
+      metadata: { stableKey, title, status, articleId, moduleKey, permissionKey, audienceKeys },
+    });
+  });
+
+  revalidateKnowledgebasePaths();
+  revalidatePath("/platform/knowledgebase/tooltips");
+}
+
+export async function archiveKnowledgebaseTooltip(formData: FormData): Promise<void> {
+  const actor = await requirePlatformAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+
+  await db
+    .update(kbTooltipsTable)
+    .set({
+      status: "archived",
+      updatedBy: actor.userId,
+      updatedAt: new Date(),
+    })
+    .where(eq(kbTooltipsTable.id, id));
+
+  await db.insert(auditLogTable).values({
+    userId: actor.userId,
+    action: "archive",
+    resource: "help_tooltips",
+    resourceId: id,
+    metadata: {},
+  });
+
+  revalidatePath("/platform/knowledgebase/tooltips");
 }
 
 export async function saveKnowledgebaseArticleFromForm(formData: FormData): Promise<ActionResult<{ id: string; slug: string }>> {

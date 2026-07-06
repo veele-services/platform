@@ -1,15 +1,20 @@
 "use server";
 
 import {
+  db,
+  getKnowledgebaseArticleByIdForContext,
   getKnowledgebaseArticleBySlugForContext,
+  kbArticleFeedbackTable,
   listEnabledKnowledgebaseModuleKeysForTenant,
   listKnowledgebaseHelpIndexForContext,
   recordKnowledgebaseSearchEvent,
   type KnowledgebaseArticleSummary,
   type KnowledgebaseHelpIndex,
 } from "@workspace/db";
+import { revalidatePath } from "next/cache";
 import { getCurrentEffectiveUserPermissions } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
+import { createClient } from "@/lib/supabase/server";
 
 async function tenantKnowledgebaseContext() {
   const tenantId = await requireCurrentTenantId();
@@ -30,7 +35,7 @@ async function tenantKnowledgebaseContext() {
 
 export async function getTenantKnowledgebaseHelpIndex(query?: string | null): Promise<KnowledgebaseHelpIndex> {
   const context = await tenantKnowledgebaseContext();
-  if (!context) return { articles: [], categories: [], featured: [], recent: [] };
+  if (!context) return { articles: [], categories: [], featured: [], recent: [], suggestions: [] };
 
   const index = await listKnowledgebaseHelpIndexForContext(context, { query });
   if (query?.trim()) {
@@ -53,4 +58,33 @@ export async function getTenantKnowledgebaseArticle(slug: string): Promise<Knowl
   const context = await tenantKnowledgebaseContext();
   if (!context) return null;
   return getKnowledgebaseArticleBySlugForContext(context, slug);
+}
+
+export async function submitTenantKnowledgebaseFeedback(formData: FormData): Promise<void> {
+  const context = await tenantKnowledgebaseContext();
+  if (!context) return;
+
+  const articleId = String(formData.get("articleId") ?? "").trim();
+  const slug = String(formData.get("slug") ?? "").trim();
+  const isHelpful = String(formData.get("isHelpful") ?? "") === "true";
+  const comment = String(formData.get("comment") ?? "").trim().slice(0, 1000) || null;
+  if (!articleId) return;
+
+  const article = await getKnowledgebaseArticleByIdForContext(context, articleId);
+  if (!article) return;
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+
+  await db.insert(kbArticleFeedbackTable).values({
+    articleId,
+    tenantId: context.tenantId,
+    userId: user?.id ?? null,
+    audienceKey: "tenant_admin",
+    isHelpful,
+    comment,
+    metadata: { surface: "tenant_backoffice", slug: article.slug },
+  });
+
+  revalidatePath(slug ? `/help/${slug}` : `/help/${article.slug}`);
 }

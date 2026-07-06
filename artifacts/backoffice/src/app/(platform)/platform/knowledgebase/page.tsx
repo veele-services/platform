@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Archive, BookOpen, FilePlus2, Search, Tags } from "lucide-react";
+import { Archive, BookOpen, FilePlus2, HelpCircle, Search, Tags } from "lucide-react";
 import {
   archiveKnowledgebaseArticle,
   listKnowledgebaseManagementArticles,
@@ -41,6 +41,7 @@ export default async function PlatformKnowledgebasePage({ searchParams }: Props)
   const published = articles.filter((article) => article.status === "published").length;
   const drafts = articles.filter((article) => article.status === "draft").length;
   const archived = articles.filter((article) => article.status === "archived").length;
+  const suggestions = [...new Set(articles.flatMap((article) => [article.title, ...article.keywords, ...article.smartTerms]).filter(Boolean))].slice(0, 80);
 
   return (
     <main className="px-5 py-6 md:px-8">
@@ -58,6 +59,12 @@ export default async function PlatformKnowledgebasePage({ searchParams }: Props)
               <Link href="/platform/knowledgebase/categories">
                 <Tags className="h-4 w-4" />
                 Categorieen
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="gap-2">
+              <Link href="/platform/knowledgebase/tooltips">
+                <HelpCircle className="h-4 w-4" />
+                Tooltips
               </Link>
             </Button>
             <Button asChild className="gap-2">
@@ -96,9 +103,15 @@ export default async function PlatformKnowledgebasePage({ searchParams }: Props)
                 <input
                   name="q"
                   defaultValue={q ?? ""}
+                  list="platform-kb-search-suggestions"
                   placeholder="Zoeken..."
                   className="h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm"
                 />
+                <datalist id="platform-kb-search-suggestions">
+                  {suggestions.map((suggestion) => (
+                    <option key={suggestion} value={suggestion} />
+                  ))}
+                </datalist>
               </div>
               <Button type="submit" variant="outline">Zoek</Button>
             </form>

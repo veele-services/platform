@@ -1,7 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ArrowLeft, FileText } from "lucide-react";
-import { getCustomerKnowledgebaseArticle } from "@/actions/knowledgebase";
+import {
+  getCustomerKnowledgebaseArticle,
+  submitCustomerKnowledgebaseFeedback,
+} from "@/actions/knowledgebase";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -58,13 +61,41 @@ export default async function CustomerHelpArticlePage({ params }: Props) {
             <div className="mt-3 grid gap-2">
               {article.relatedArticles.map((related) => (
                 <Link key={related.id} href={`/help/${related.slug}`} className="rounded-xl border p-3" style={{ borderColor: "var(--color-border)" }}>
-                  <h3 className="font-black" style={{ color: "var(--color-primary)" }}>{related.title}</h3>
+                  <div className="flex items-start justify-between gap-3">
+                    <h3 className="font-black" style={{ color: "var(--color-primary)" }}>{related.title}</h3>
+                    <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-black text-slate-600">
+                      {related.relationType === "suggested" ? "Suggestie" : "Gekoppeld"}
+                    </span>
+                  </div>
                   {related.summary && <p className="mt-1 text-sm leading-6 text-slate-600">{related.summary}</p>}
                 </Link>
               ))}
             </div>
           </section>
         )}
+
+        <section className="rounded-2xl border bg-white p-5 shadow-sm" style={{ borderColor: "var(--color-border)" }}>
+          <h2 className="font-black" style={{ color: "var(--color-primary)" }}>Was dit artikel nuttig?</h2>
+          <p className="mt-1 text-sm leading-6 text-slate-600">Uw feedback helpt om de handleidingen te verbeteren.</p>
+          <form action={submitCustomerKnowledgebaseFeedback} className="mt-4 grid gap-3">
+            <input type="hidden" name="articleId" value={article.id} />
+            <input type="hidden" name="slug" value={article.slug} />
+            <textarea
+              name="comment"
+              placeholder="Optioneel: wat mist er of wat was juist duidelijk?"
+              className="min-h-24 rounded-xl border bg-white px-3 py-2 text-sm"
+              style={{ borderColor: "var(--color-border)" }}
+            />
+            <div className="flex flex-wrap gap-2">
+              <button type="submit" name="isHelpful" value="true" className="rounded-xl px-4 py-2 text-sm font-black text-white" style={{ backgroundColor: "var(--color-accent)" }}>
+                Ja, duidelijk
+              </button>
+              <button type="submit" name="isHelpful" value="false" className="rounded-xl border px-4 py-2 text-sm font-black" style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}>
+                Nee, kan beter
+              </button>
+            </div>
+          </form>
+        </section>
       </article>
     </main>
   );

@@ -28,10 +28,18 @@ export default async function PersonnelHelpPage({ searchParams }: Props) {
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
             <input
               name="q"
+              list="personnel-kb-search-suggestions"
               defaultValue={q ?? ""}
               placeholder="Zoeken..."
               className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-3 text-sm"
             />
+            <datalist id="personnel-kb-search-suggestions">
+              {index.suggestions.map((suggestion) => (
+                <option key={`${suggestion.type}-${suggestion.value}`} value={suggestion.value}>
+                  {suggestion.label}
+                </option>
+              ))}
+            </datalist>
           </div>
           <button type="submit" className="rounded-xl px-4 text-sm font-black text-white" style={{ backgroundColor: "var(--color-accent)" }}>
             Zoek

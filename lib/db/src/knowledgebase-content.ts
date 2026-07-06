@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, sql, type SQL } from "drizzle-orm";
 import { db } from "./index";
 import {
   canReadPublishedContent,
@@ -73,6 +73,17 @@ export type KnowledgebaseRelatedArticleSummary = {
   title: string;
   slug: string;
   summary: string | null;
+  relationType?: "manual" | "suggested";
+  score?: number;
+};
+
+export type KnowledgebaseSearchSuggestion = {
+  type: "article" | "category" | "term";
+  label: string;
+  value: string;
+  href?: string;
+  description?: string | null;
+  score: number;
 };
 
 export type KnowledgebaseHelpIndex = {
@@ -80,6 +91,7 @@ export type KnowledgebaseHelpIndex = {
   categories: Array<KnowledgebaseCategorySummary & { articleCount: number }>;
   featured: KnowledgebaseArticleSummary[];
   recent: KnowledgebaseArticleSummary[];
+  suggestions: KnowledgebaseSearchSuggestion[];
 };
 
 export type KnowledgebaseListOptions = {
@@ -125,10 +137,169 @@ function searchableText(article: KnowledgebaseArticleSummary): string {
   );
 }
 
+function tokenSet(value: string | null | undefined): Set<string> {
+  return new Set(normalizeSearch(value).split(/\s+/).filter((token) => token.length >= 2));
+}
+
+function intersectCount(left: readonly string[], right: readonly string[]): number {
+  if (left.length === 0 || right.length === 0) return 0;
+  const values = new Set(left);
+  return right.filter((value) => values.has(value)).length;
+}
+
+function queryTokens(query: string | null | undefined): string[] {
+  return normalizeSearch(query).split(/\s+/).filter((token) => token.length > 0);
+}
+
 function matchesQuery(article: KnowledgebaseArticleSummary, query: string | null | undefined): boolean {
-  const normalized = normalizeSearch(query);
-  if (!normalized) return true;
-  return normalized.split(/\s+/).every((part) => searchableText(article).includes(part));
+  const tokens = queryTokens(query);
+  if (tokens.length === 0) return true;
+  const text = searchableText(article);
+  return tokens.every((part) => text.includes(part));
+}
+
+function searchScore(article: KnowledgebaseArticleSummary, query: string | null | undefined): number {
+  const tokens = queryTokens(query);
+  if (tokens.length === 0) return article.featured ? 10 : 0;
+
+  const title = normalizeSearch(article.title);
+  const summary = normalizeSearch(article.summary);
+  const category = normalizeSearch(article.category?.name);
+  const keywords = article.keywords.map(normalizeSearch);
+  const smartTerms = article.smartTerms.map(normalizeSearch);
+  const content = normalizeSearch(article.contentText);
+
+  return tokens.reduce((score, token) => {
+    if (title === token) return score + 120;
+    if (title.startsWith(token)) score += 80;
+    if (title.includes(token)) score += 50;
+    if (keywords.some((keyword) => keyword === token || keyword.startsWith(token))) score += 42;
+    if (smartTerms.some((term) => term === token || term.startsWith(token))) score += 34;
+    if (category.includes(token)) score += 24;
+    if (summary.includes(token)) score += 16;
+    if (content.includes(token)) score += 6;
+    return score;
+  }, article.featured ? 10 : 0);
+}
+
+function relatedScore(article: KnowledgebaseArticleSummary, candidate: KnowledgebaseArticleSummary): number {
+  let score = 0;
+  if (article.category?.id && article.category.id === candidate.category?.id) score += 40;
+  score += intersectCount(article.moduleKeys, candidate.moduleKeys) * 18;
+  score += intersectCount(article.requiredModuleKeys, candidate.requiredModuleKeys) * 10;
+  score += intersectCount(article.audienceKeys, candidate.audienceKeys) * 8;
+  score += intersectCount(article.keywords, candidate.keywords) * 7;
+  score += intersectCount(article.smartTerms, candidate.smartTerms) * 5;
+
+  const titleTokens = [...tokenSet(article.title)];
+  const candidateTitleTokens = [...tokenSet(candidate.title)];
+  score += intersectCount(titleTokens, candidateTitleTokens) * 3;
+
+  if (candidate.featured) score += 3;
+  return score;
+}
+
+function enrichRelatedArticles(
+  articles: KnowledgebaseArticleSummary[],
+  limit = 5,
+): KnowledgebaseArticleSummary[] {
+  const visibleById = new Map(articles.map((article) => [article.id, article]));
+
+  return articles.map((article) => {
+    const manual = article.relatedArticles
+      .map((related) => visibleById.get(related.id))
+      .filter((related): related is KnowledgebaseArticleSummary => Boolean(related))
+      .map((related): KnowledgebaseRelatedArticleSummary => ({
+        id: related.id,
+        title: related.title,
+        slug: related.slug,
+        summary: related.summary,
+        relationType: "manual",
+        score: 100,
+      }));
+
+    const manualIds = new Set(manual.map((related) => related.id));
+    const suggested = articles
+      .filter((candidate) => candidate.id !== article.id && !manualIds.has(candidate.id))
+      .map((candidate) => ({
+        candidate,
+        score: relatedScore(article, candidate),
+      }))
+      .filter((entry) => entry.score > 0)
+      .sort((left, right) => right.score - left.score || left.candidate.title.localeCompare(right.candidate.title))
+      .slice(0, Math.max(0, limit - manual.length))
+      .map((entry): KnowledgebaseRelatedArticleSummary => ({
+        id: entry.candidate.id,
+        title: entry.candidate.title,
+        slug: entry.candidate.slug,
+        summary: entry.candidate.summary,
+        relationType: "suggested",
+        score: entry.score,
+      }));
+
+    return {
+      ...article,
+      relatedArticles: [...manual, ...suggested].slice(0, limit),
+    };
+  });
+}
+
+function buildSearchSuggestions(
+  articles: KnowledgebaseArticleSummary[],
+  query?: string | null,
+  limit = 12,
+): KnowledgebaseSearchSuggestion[] {
+  const normalizedQuery = normalizeSearch(query);
+  const suggestions = new Map<string, KnowledgebaseSearchSuggestion>();
+
+  function add(suggestion: KnowledgebaseSearchSuggestion) {
+    const key = `${suggestion.type}:${normalizeSearch(suggestion.value)}`;
+    const existing = suggestions.get(key);
+    if (!existing || suggestion.score > existing.score) suggestions.set(key, suggestion);
+  }
+
+  for (const article of articles) {
+    add({
+      type: "article",
+      label: article.title,
+      value: article.title,
+      href: `/help/${article.slug}`,
+      description: article.summary,
+      score: 100 + (article.featured ? 10 : 0),
+    });
+
+    if (article.category) {
+      add({
+        type: "category",
+        label: article.category.name,
+        value: article.category.name,
+        description: article.category.description,
+        score: 60,
+      });
+    }
+
+    for (const keyword of [...article.keywords, ...article.smartTerms]) {
+      add({
+        type: "term",
+        label: keyword,
+        value: keyword,
+        description: article.category?.name ?? null,
+        score: article.smartTerms.includes(keyword) ? 44 : 38,
+      });
+    }
+  }
+
+  return [...suggestions.values()]
+    .filter((suggestion) => {
+      if (!normalizedQuery) return true;
+      return normalizeSearch(`${suggestion.label} ${suggestion.description ?? ""}`).includes(normalizedQuery);
+    })
+    .sort((left, right) => {
+      const leftExact = normalizeSearch(left.value).startsWith(normalizedQuery) ? 1 : 0;
+      const rightExact = normalizeSearch(right.value).startsWith(normalizedQuery) ? 1 : 0;
+      return rightExact - leftExact || right.score - left.score || left.label.localeCompare(right.label);
+    })
+    .slice(0, limit);
 }
 
 function categoryFromRow(row: {
@@ -283,12 +454,26 @@ export async function listKnowledgebaseArticlesForContext(
 ): Promise<KnowledgebaseArticleSummary[]> {
   const normalizedContext = normalizeVisibilityContext(context);
   const language = options.language?.trim() || "nl";
-  const conditions = [eq(kbArticlesTable.language, language)];
+  const conditions: SQL[] = [eq(kbArticlesTable.language, language)];
+  const searchQuery = options.query?.trim();
 
   if (!options.includeArchived) {
     conditions.push(eq(kbArticlesTable.status, "published"));
   } else if (!options.includeUnpublished && !normalizedContext.isPlatformAdmin) {
     conditions.push(eq(kbArticlesTable.status, "published"));
+  }
+
+  if (searchQuery) {
+    const likeQuery = `%${searchQuery}%`;
+    conditions.push(sql`(
+      to_tsvector('simple', COALESCE(${kbArticlesTable.title}, '') || ' ' || COALESCE(${kbArticlesTable.summary}, '') || ' ' || COALESCE(${kbArticlesTable.contentText}, ''))
+        @@ plainto_tsquery('simple', ${searchQuery})
+      OR ${kbArticlesTable.title} ILIKE ${likeQuery}
+      OR ${kbArticlesTable.summary} ILIKE ${likeQuery}
+      OR ${kbArticlesTable.contentText} ILIKE ${likeQuery}
+      OR ${kbArticlesTable.keywords}::text ILIKE ${likeQuery}
+      OR ${kbArticlesTable.smartTerms}::text ILIKE ${likeQuery}
+    )`);
   }
 
   const rows = await db
@@ -375,9 +560,15 @@ export async function listKnowledgebaseArticlesForContext(
         permissionKeys: article.permissionKeys,
       });
     })
-    .filter((article) => matchesQuery(article, options.query));
+    .filter((article) => matchesQuery(article, options.query))
+    .sort((left, right) => {
+      const scoreDiff = searchScore(right, options.query) - searchScore(left, options.query);
+      if (scoreDiff !== 0) return scoreDiff;
+      return new Date(right.publishedAt ?? right.updatedAt).getTime() - new Date(left.publishedAt ?? left.updatedAt).getTime();
+    });
 
-  return typeof options.limit === "number" ? visibleArticles.slice(0, options.limit) : visibleArticles;
+  const enrichedArticles = enrichRelatedArticles(visibleArticles);
+  return typeof options.limit === "number" ? enrichedArticles.slice(0, options.limit) : enrichedArticles;
 }
 
 export async function getKnowledgebaseArticleBySlugForContext(
@@ -421,7 +612,17 @@ export async function listKnowledgebaseHelpIndexForContext(
     recent: [...articles]
       .sort((left, right) => new Date(right.publishedAt ?? right.updatedAt).getTime() - new Date(left.publishedAt ?? left.updatedAt).getTime())
       .slice(0, 8),
+    suggestions: buildSearchSuggestions(articles, options.query),
   };
+}
+
+export async function listKnowledgebaseSearchSuggestionsForContext(
+  context: FieldgridContentVisibilityContext,
+  query?: string | null,
+  limit = 12,
+): Promise<KnowledgebaseSearchSuggestion[]> {
+  const articles = await listKnowledgebaseArticlesForContext(context, { query, limit: 60 });
+  return buildSearchSuggestions(articles, query, limit);
 }
 
 export async function recordKnowledgebaseSearchEvent(input: {
