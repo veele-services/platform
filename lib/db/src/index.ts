@@ -22,6 +22,7 @@ export * from "./tenant-entitlements";
 export * from "./module-permissions";
 export * from "./content-visibility";
 export * from "./knowledgebase-content";
+export * from "./knowledgebase-tooltips";
 export * from "./release-content";
 export * from "./tenant-branding";
 export * from "./tenant-provisioning";

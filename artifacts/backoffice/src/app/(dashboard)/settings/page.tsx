@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bell, Building2, Shield, Users, ClipboardList, ChevronRight, History, Tag, Layers3, Mail, SlidersHorizontal } from "lucide-react";
+import { Bell, Building2, Shield, Users, ClipboardList, ChevronRight, History, Tag, Layers3, Mail, SlidersHorizontal, Sparkles } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { SettingsTabs } from "@/components/settings/SettingsTabs";
@@ -52,6 +52,14 @@ export default async function SettingsPage() {
             icon={<Bell className="h-6 w-6" style={{ color: "#00B7B3" }} strokeWidth={1.5} />}
             title="Notificaties"
             description="Beheer automatische triggers, e-mailtemplates, push/inbox-kanalen, shortcodes en handmatige meldingen."
+          />
+        )}
+        {canWriteSettings && (
+          <SettingsCard
+            href="/instellingen/productervaring"
+            icon={<Sparkles className="h-6 w-6" style={{ color: "#00B7B3" }} strokeWidth={1.5} />}
+            title="Productervaring"
+            description="Activeer tenant-eigen helpartikelen en featurewensen vanuit personeel of klanten."
           />
         )}
         {canReadRoles && (

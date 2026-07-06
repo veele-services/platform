@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
 import Link from "next/link";
 import { CalendarDays, LayoutGrid, ListChecks } from "lucide-react";
 
@@ -12,6 +13,7 @@ import { PlanningBoardView } from "@/components/assignments/PlanningBoardView";
 import { PlanningDayView } from "@/components/assignments/PlanningDayView";
 import { PlanningMonthView } from "@/components/assignments/PlanningMonthView";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
+import { ResolvedFeatureHelp } from "@/components/knowledgebase/ResolvedFeatureHelp";
 import { Button } from "@/components/ui/button";
 import {
   TenantConflictStrip,
@@ -115,6 +117,7 @@ export default async function PlanningPage({ searchParams }: Props) {
           description="Sleep werkbonnen naar een tijdslot, bewaak conflicten en stuur de dagplanning vanuit een rustige workbench."
           currentLabel={formatDate(day)}
           date={day}
+          helpSlot={<ResolvedFeatureHelp featureKey="tenant.planning" moduleKey="planning" />}
         />
         <TenantConflictStrip
           items={[
@@ -144,6 +147,7 @@ export default async function PlanningPage({ searchParams }: Props) {
           description="Gebruik de maandweergave om bezetting, drukte en conflicten per dag snel te scannen."
           currentLabel={formatMonth(month)}
           date={`${month}-01`}
+          helpSlot={<ResolvedFeatureHelp featureKey="tenant.planning" moduleKey="planning" />}
         />
         <TenantConflictStrip
           items={[
@@ -187,6 +191,7 @@ export default async function PlanningPage({ searchParams }: Props) {
         description="Plan open werkbonnen met drag-and-drop, matchscores, detaildrawer en conflictbewaking."
         currentLabel={formatDate(boardData.date)}
         date={boardData.date}
+        helpSlot={<ResolvedFeatureHelp featureKey="tenant.planning" moduleKey="planning" />}
       />
       <TenantConflictStrip
         items={[
@@ -209,18 +214,21 @@ function PlanningHeader({
   description,
   currentLabel,
   date,
+  helpSlot,
 }: {
   mode: "board" | "day" | "month";
   title: string;
   description: string;
   currentLabel: string;
   date: string;
+  helpSlot?: ReactNode;
 }) {
   return (
     <TenantPageHeader
       title={title}
       description={description}
       eyebrow="Tenant planning"
+      badges={helpSlot}
       meta={
         <span className="inline-flex items-center gap-1.5 capitalize">
           <CalendarDays className="h-3.5 w-3.5" />

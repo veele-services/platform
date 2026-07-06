@@ -1,9 +1,11 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import {
   auditLogTable,
   db,
   getActiveReleaseHighlightsForContext,
+  getReleaseMediaByIdForContext,
   getReleaseBySlugForContext,
   listEnabledKnowledgebaseModuleKeysForTenant,
   listReleasesForContext,
@@ -13,13 +15,16 @@ import {
   releaseDismissalsTable,
   releaseHighlightsTable,
   releaseItemsTable,
+  releaseMediaTable,
   releaseModulesTable,
   releaseRoadmapLinksTable,
+  releaseReadReceiptsTable,
   releasesTable,
   roadmapItemsTable,
   type FieldgridContentAudience,
   type ReleaseHighlightSurface,
   type ReleaseImpactLevel,
+  type ReleaseMediaAccess,
   type ReleaseStatus,
   type ReleaseSummary,
   type ReleaseHighlightSummary,
@@ -29,6 +34,12 @@ import { revalidatePath } from "next/cache";
 import { requirePlatformAdmin } from "@/lib/auth/platform";
 import { getCurrentEffectiveUserPermissions } from "@/lib/auth/permissions";
 import { getCurrentBackofficeUser, requireCurrentTenantId } from "@/lib/auth/tenant";
+import { emitFieldgridContentNotification } from "@/lib/content-notification-events";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+export type ActionResult<T = undefined> =
+  | { success: true; data: T }
+  | { success: false; message: string };
 
 export type ReleaseCategoryOption = {
   id: string;
@@ -55,6 +66,19 @@ export type ReleaseEditorOptions = {
   categories: ReleaseCategoryOption[];
   modules: ReleaseModuleOption[];
   roadmapItems: ReleaseRoadmapOption[];
+};
+
+export type ReleaseReadReceiptStats = {
+  releaseId: string;
+  releaseSlug: string;
+  releaseVersion: string;
+  releaseTitle: string;
+  total: number;
+  platformBackoffice: number;
+  tenantBackoffice: number;
+  personnelPwa: number;
+  customerPwa: number;
+  lastReadAt: string | null;
 };
 
 export type ReleaseItemInput = {
@@ -95,6 +119,18 @@ const AUDIENCE_OPTIONS: Array<{ key: FieldgridContentAudience; label: string }> 
   { key: "tenant_customer", label: "Klanten" },
 ];
 
+const RELEASE_MEDIA_BUCKET = "release-media";
+const MAX_RELEASE_MEDIA_BYTES = 50 * 1024 * 1024;
+const ALLOWED_RELEASE_MEDIA_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "video/mp4",
+  "video/webm",
+  "application/pdf",
+]);
+
 function slugify(value: string): string {
   return value
     .normalize("NFKD")
@@ -104,6 +140,56 @@ function slugify(value: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 180);
+}
+
+function escapeHtmlAttribute(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function sanitizeContentUrl(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const compact = trimmed.replace(/[\u0000-\u001F\s]+/g, "").toLowerCase();
+  if (compact.startsWith("javascript:") || compact.startsWith("data:") || compact.startsWith("vbscript:")) {
+    return null;
+  }
+
+  if (trimmed.startsWith("/") || trimmed.startsWith("#")) {
+    return trimmed;
+  }
+
+  try {
+    const url = new URL(trimmed);
+    if (["http:", "https:", "mailto:", "tel:"].includes(url.protocol)) {
+      return url.toString();
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function sanitizeHtmlFragment(html: string | null | undefined): string | null {
+  const sanitized = (html ?? "")
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, "")
+    .replace(/<object[\s\S]*?>[\s\S]*?<\/object>/gi, "")
+    .replace(/<embed[\s\S]*?>/gi, "")
+    .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/\sstyle\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/\s(href|src)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, (_match, attribute: string, rawValue: string) => {
+      const value = rawValue.replace(/^["']|["']$/g, "");
+      const safeValue = sanitizeContentUrl(value);
+      return safeValue ? ` ${attribute.toLowerCase()}="${escapeHtmlAttribute(safeValue)}"` : "";
+    })
+    .trim();
+  return sanitized || null;
 }
 
 function uniqueStrings(values: string[]): string[] {
@@ -135,6 +221,39 @@ function revalidateReleasePaths(): void {
   revalidatePath("/releases");
   revalidatePath("/klant/releases");
   revalidatePath("/personeel/releases");
+}
+
+async function releaseNotificationScope(releaseId: string): Promise<{
+  release: { id: string; version: string; title: string; slug: string; summary: string | null; featured: boolean; status: ReleaseStatus };
+  moduleKeys: string[];
+  audienceKeys: FieldgridContentAudience[];
+} | null> {
+  const [release] = await db
+    .select({
+      id: releasesTable.id,
+      version: releasesTable.version,
+      title: releasesTable.title,
+      slug: releasesTable.slug,
+      summary: releasesTable.summary,
+      featured: releasesTable.featured,
+      status: releasesTable.status,
+    })
+    .from(releasesTable)
+    .where(eq(releasesTable.id, releaseId))
+    .limit(1);
+
+  if (!release) return null;
+
+  const [moduleRows, audienceRows] = await Promise.all([
+    db.select({ moduleKey: releaseModulesTable.moduleKey }).from(releaseModulesTable).where(eq(releaseModulesTable.releaseId, releaseId)),
+    db.select({ audienceKey: releaseAudiencesTable.audienceKey }).from(releaseAudiencesTable).where(eq(releaseAudiencesTable.releaseId, releaseId)),
+  ]);
+
+  return {
+    release,
+    moduleKeys: uniqueStrings(moduleRows.map((row) => row.moduleKey)),
+    audienceKeys: normalizeAudienceKeys(audienceRows.map((row) => row.audienceKey)),
+  };
 }
 
 function releaseTextFromHtml(html: string | null | undefined): string | null {
@@ -201,6 +320,21 @@ export async function listReleaseEditorOptions(): Promise<ReleaseEditorOptions> 
   return { categories, modules, roadmapItems };
 }
 
+export async function listReleaseCategoriesForManagement(): Promise<ReleaseCategoryOption[]> {
+  await requirePlatformAdmin();
+  return db
+    .select({
+      id: releaseCategoriesTable.id,
+      name: releaseCategoriesTable.name,
+      slug: releaseCategoriesTable.slug,
+      moduleKey: releaseCategoriesTable.moduleKey,
+      sortOrder: releaseCategoriesTable.sortOrder,
+      isActive: releaseCategoriesTable.isActive,
+    })
+    .from(releaseCategoriesTable)
+    .orderBy(asc(releaseCategoriesTable.sortOrder), asc(releaseCategoriesTable.name));
+}
+
 export async function listPlatformReleases(): Promise<ReleaseSummary[]> {
   await requirePlatformAdmin();
   return listReleasesForContext(
@@ -228,6 +362,74 @@ export async function getPlatformRelease(slug: string): Promise<ReleaseSummary |
   );
 }
 
+export async function listPlatformReleaseReadReceiptStats(): Promise<ReleaseReadReceiptStats[]> {
+  await requirePlatformAdmin();
+  const rows = await db
+    .select({
+      releaseId: releasesTable.id,
+      releaseSlug: releasesTable.slug,
+      releaseVersion: releasesTable.version,
+      releaseTitle: releasesTable.title,
+      surface: releaseReadReceiptsTable.surface,
+      readAt: releaseReadReceiptsTable.readAt,
+    })
+    .from(releaseReadReceiptsTable)
+    .innerJoin(releasesTable, eq(releaseReadReceiptsTable.releaseId, releasesTable.id))
+    .orderBy(desc(releaseReadReceiptsTable.readAt))
+    .limit(5000);
+
+  const stats = new Map<string, ReleaseReadReceiptStats>();
+  for (const row of rows) {
+    const current = stats.get(row.releaseId) ?? {
+      releaseId: row.releaseId,
+      releaseSlug: row.releaseSlug,
+      releaseVersion: row.releaseVersion,
+      releaseTitle: row.releaseTitle,
+      total: 0,
+      platformBackoffice: 0,
+      tenantBackoffice: 0,
+      personnelPwa: 0,
+      customerPwa: 0,
+      lastReadAt: null,
+    };
+
+    current.total += 1;
+    if (row.surface === "platform_backoffice") current.platformBackoffice += 1;
+    if (row.surface === "tenant_backoffice") current.tenantBackoffice += 1;
+    if (row.surface === "personnel_pwa") current.personnelPwa += 1;
+    if (row.surface === "customer_pwa") current.customerPwa += 1;
+    const readAt = row.readAt.toISOString();
+    if (!current.lastReadAt || new Date(current.lastReadAt) < row.readAt) current.lastReadAt = readAt;
+    stats.set(row.releaseId, current);
+  }
+
+  return [...stats.values()].sort((left, right) => right.total - left.total || (right.lastReadAt ?? "").localeCompare(left.lastReadAt ?? ""));
+}
+
+export async function recordPlatformReleaseRead(slug: string): Promise<void> {
+  const actor = await requirePlatformAdmin();
+  const release = await getReleaseBySlugForContext(
+    {
+      surface: "platform_backoffice",
+      audiences: ["platform_admin", "support"],
+      activeModuleKeys: [],
+      userId: actor.userId,
+      isPlatformAdmin: true,
+    },
+    slug,
+    { includeUnpublished: true, includeArchived: true },
+  );
+  if (!release) return;
+
+  await db.insert(releaseReadReceiptsTable).values({
+    releaseId: release.id,
+    userId: actor.userId,
+    surface: "platform_backoffice",
+    audienceKey: "platform_admin",
+    metadata: { slug },
+  }).onConflictDoNothing();
+}
+
 export async function listTenantReleases(): Promise<ReleaseSummary[]> {
   const context = await tenantReleaseContext();
   if (!context) return [];
@@ -238,6 +440,28 @@ export async function getTenantRelease(slug: string): Promise<ReleaseSummary | n
   const context = await tenantReleaseContext();
   if (!context) return null;
   return getReleaseBySlugForContext(context, slug);
+}
+
+export async function recordTenantReleaseRead(slug: string): Promise<void> {
+  const context = await tenantReleaseContext();
+  if (!context?.userId) return;
+  const release = await getReleaseBySlugForContext(context, slug);
+  if (!release) return;
+
+  await db.insert(releaseReadReceiptsTable).values({
+    releaseId: release.id,
+    tenantId: context.tenantId,
+    userId: context.userId,
+    surface: "tenant_backoffice",
+    audienceKey: context.audiences[0] ?? "tenant_admin",
+    metadata: { slug },
+  }).onConflictDoNothing();
+}
+
+export async function getTenantReleaseMedia(mediaId: string): Promise<ReleaseMediaAccess | null> {
+  const context = await tenantReleaseContext();
+  if (!context) return null;
+  return getReleaseMediaByIdForContext(context, mediaId);
 }
 
 export async function getTenantReleaseHighlight(): Promise<ReleaseHighlightSummary | null> {
@@ -271,18 +495,19 @@ export async function saveRelease(input: SaveReleaseInput): Promise<{ id: string
   if (!version) throw new Error("Versie is verplicht.");
   if (!slug) throw new Error("Slug is verplicht.");
 
-  const release = await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [existing] = input.id
       ? await tx.select().from(releasesTable).where(eq(releasesTable.id, input.id)).limit(1)
       : [];
 
+    const contentHtml = sanitizeHtmlFragment(input.contentHtml);
     const values = {
       version,
       title,
       slug,
       summary: input.summary?.trim() || null,
-      contentHtml: input.contentHtml?.trim() || null,
-      contentText: input.contentText?.trim() || releaseTextFromHtml(input.contentHtml),
+      contentHtml,
+      contentText: input.contentText?.trim() || releaseTextFromHtml(contentHtml),
       status,
       impactLevel: normalizeImpact(input.impactLevel),
       featured: input.featured,
@@ -350,11 +575,62 @@ export async function saveRelease(input: SaveReleaseInput): Promise<{ id: string
       metadata: { status, impactLevel: values.impactLevel, audienceKeys, moduleKeys, roadmapItemIds },
     });
 
-    return saved;
+    return {
+      release: saved,
+      previousStatus: existing?.status ?? null,
+      previousFeatured: existing?.featured ?? false,
+    };
   });
 
   revalidateReleasePaths();
-  return { id: release.id, slug: release.slug };
+  const scopeInfo = await releaseNotificationScope(result.release.id);
+  if (scopeInfo && result.release.status === "published") {
+    const notificationBase = {
+      actorUserId: actor.userId,
+      moduleKeys: scopeInfo.moduleKeys,
+      requiredModuleKeys: ["releases"],
+      audienceKeys: scopeInfo.audienceKeys,
+      requiredPermissionKeys: ["releases:view"],
+      aggregate: { type: "releases", id: result.release.id },
+      payload: {
+        release: {
+          id: result.release.id,
+          version: result.release.version,
+          title: result.release.title,
+          slug: result.release.slug,
+          summary: result.release.summary ?? "",
+        },
+      },
+      fallback: {
+        title: `Nieuwe release: ${result.release.version}`,
+        body: result.release.summary ?? result.release.title,
+        category: "releases",
+        href: `/releases/${result.release.slug}`,
+      },
+    };
+
+    if (result.previousStatus !== "published") {
+      await emitFieldgridContentNotification({
+        ...notificationBase,
+        eventKey: "release_published",
+      });
+    }
+
+    if (result.release.featured && !result.previousFeatured) {
+      await emitFieldgridContentNotification({
+        ...notificationBase,
+        eventKey: "release_featured",
+        fallback: {
+          ...notificationBase.fallback,
+          title: `Uitgelichte release: ${result.release.version}`,
+          body: result.release.summary ?? "Een belangrijke Fieldgrid release is uitgelicht.",
+          priority: "high",
+        },
+      });
+    }
+  }
+
+  return { id: result.release.id, slug: result.release.slug };
 }
 
 export async function saveReleaseFromForm(formData: FormData): Promise<void> {
@@ -415,6 +691,114 @@ export async function saveReleaseCategoryFromForm(formData: FormData): Promise<v
   revalidateReleasePaths();
 }
 
+export async function archiveReleaseCategoryFromForm(formData: FormData): Promise<void> {
+  const actor = await requirePlatformAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+
+  await db
+    .update(releaseCategoriesTable)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(eq(releaseCategoriesTable.id, id));
+
+  await db.insert(auditLogTable).values({
+    userId: actor.userId,
+    action: "release_category_archived",
+    resource: "releases",
+    resourceId: id,
+    metadata: {},
+  });
+
+  revalidateReleasePaths();
+}
+
+export async function uploadReleaseMedia(formData: FormData): Promise<ActionResult<{ id: string; url: string; path: string }>> {
+  try {
+    const actor = await requirePlatformAdmin();
+    const releaseId = String(formData.get("releaseId") ?? "").trim();
+    const altText = String(formData.get("altText") ?? "").trim() || null;
+    const caption = String(formData.get("caption") ?? "").trim() || null;
+    const sortOrder = Number.parseInt(String(formData.get("sortOrder") ?? "0"), 10) || 0;
+    const file = formData.get("file") as File | null;
+
+    if (!releaseId) return { success: false, message: "Sla de release eerst op voordat u media toevoegt." };
+    if (!file || file.size === 0) return { success: false, message: "Geen bestand geselecteerd." };
+    if (!altText) return { success: false, message: "Alt-tekst is verplicht voor release-media." };
+    if (file.size > MAX_RELEASE_MEDIA_BYTES) return { success: false, message: "Bestand mag maximaal 50 MB zijn." };
+    if (!ALLOWED_RELEASE_MEDIA_TYPES.has(file.type)) {
+      return { success: false, message: "Gebruik JPG, PNG, WebP, GIF, MP4, WebM of PDF." };
+    }
+
+    const [release] = await db
+      .select({ id: releasesTable.id })
+      .from(releasesTable)
+      .where(eq(releasesTable.id, releaseId))
+      .limit(1);
+    if (!release) return { success: false, message: "Release niet gevonden." };
+
+    const ext = file.name.includes(".") ? file.name.split(".").pop()!.toLowerCase() : "bin";
+    const mediaType = file.type.startsWith("image/")
+      ? "image"
+      : file.type.startsWith("video/")
+        ? "video"
+        : "attachment";
+    const path = `platform/${releaseId}/${randomUUID()}.${ext}`;
+    const bytes = await file.arrayBuffer();
+    const { error } = await createAdminClient()
+      .storage
+      .from(RELEASE_MEDIA_BUCKET)
+      .upload(path, bytes, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (error) return { success: false, message: `Upload mislukt: ${error.message}` };
+
+    const [saved] = await db
+      .insert(releaseMediaTable)
+      .values({
+        releaseId,
+        mediaType,
+        storagePath: path,
+        publicUrl: null,
+        mimeType: file.type,
+        sizeBytes: file.size,
+        altText,
+        caption,
+        sortOrder,
+        createdBy: actor.userId,
+      })
+      .returning({ id: releaseMediaTable.id });
+
+    await db.insert(auditLogTable).values({
+      userId: actor.userId,
+      action: "release_media_uploaded",
+      resource: "releases",
+      resourceId: releaseId,
+      metadata: { mediaId: saved.id, path, mediaType, mimeType: file.type },
+    });
+
+    revalidateReleasePaths();
+    return { success: true, data: { id: saved.id, url: `/platform/releases/media/${saved.id}`, path } };
+  } catch (error) {
+    return { success: false, message: (error as Error).message || "Release-media uploaden mislukt." };
+  }
+}
+
+export async function getPlatformReleaseMedia(mediaId: string): Promise<ReleaseMediaAccess | null> {
+  await requirePlatformAdmin();
+  return getReleaseMediaByIdForContext(
+    {
+      surface: "platform_backoffice",
+      audiences: ["platform_admin", "support"],
+      activeModuleKeys: [],
+      isPlatformAdmin: true,
+    },
+    mediaId,
+    { includeUnpublished: true, includeArchived: true },
+  );
+}
+
 export async function saveReleaseHighlightFromForm(formData: FormData): Promise<void> {
   const actor = await requirePlatformAdmin();
   const releaseId = String(formData.get("releaseId") ?? "").trim();
@@ -451,6 +835,52 @@ export async function saveReleaseHighlightFromForm(formData: FormData): Promise<
   });
 
   revalidateReleasePaths();
+
+  const now = new Date();
+  const starts = startsAt ? new Date(startsAt) : null;
+  const ends = endsAt ? new Date(endsAt) : null;
+  const isActiveNow =
+    surface !== "platform_backoffice" &&
+    (!starts || starts <= now) &&
+    (!ends || ends >= now);
+
+  if (saved?.id && isActiveNow) {
+    const scopeInfo = await releaseNotificationScope(releaseId);
+    if (scopeInfo?.release.status === "published") {
+      await emitFieldgridContentNotification({
+        eventKey: "release_highlight_active",
+        actorUserId: actor.userId,
+        moduleKeys: uniqueStrings([...scopeInfo.moduleKeys, moduleKey ?? ""]),
+        requiredModuleKeys: ["releases"],
+        audienceKeys: [audienceKey],
+        requiredPermissionKeys: ["releases:view"],
+        aggregate: { type: "release_highlight", id: saved.id },
+        payload: {
+          release: {
+            id: scopeInfo.release.id,
+            version: scopeInfo.release.version,
+            title: scopeInfo.release.title,
+            slug: scopeInfo.release.slug,
+          },
+          highlight: {
+            id: saved.id,
+            title,
+            message,
+            surface,
+            audience_key: audienceKey,
+            module_key: moduleKey ?? "",
+          },
+        },
+        fallback: {
+          title,
+          body: message,
+          category: "releases",
+          priority: "high",
+          href: `/releases/${scopeInfo.release.slug}`,
+        },
+      });
+    }
+  }
 }
 
 export async function archiveRelease(formData: FormData): Promise<void> {

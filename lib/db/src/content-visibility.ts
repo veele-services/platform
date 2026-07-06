@@ -138,6 +138,60 @@ export function canReadPublishedContent(
   );
 }
 
+export type FieldgridContentVisibilityExplanation = {
+  visible: boolean;
+  reasons: string[];
+  matched: string[];
+};
+
+export function explainPublishedContentVisibility(
+  context: FieldgridContentVisibilityContext,
+  target: FieldgridContentVisibilityTarget,
+): FieldgridContentVisibilityExplanation {
+  const normalized = normalizeVisibilityContext(context);
+  const reasons: string[] = [];
+  const matched: string[] = [];
+
+  if (isPublishedVisibilityTarget(target)) {
+    matched.push("Content is gepubliceerd en niet gearchiveerd.");
+  } else if (target.status !== "published") {
+    reasons.push(`Status is ${target.status ?? "onbekend"}, niet gepubliceerd.`);
+  } else {
+    reasons.push("Content is gearchiveerd.");
+  }
+
+  if (matchesTenantScope(normalized, target)) {
+    matched.push(normalized.isPlatformAdmin ? "Platform admin mag tenant- en globale scope zien." : "Tenant/global scope matcht.");
+  } else {
+    reasons.push("Tenant scope matcht niet met de gekozen previewtenant.");
+  }
+
+  if (matchesAudienceScope(normalized, target)) {
+    matched.push("Audience scope matcht.");
+  } else {
+    reasons.push(`Audience vereist ${target.audienceKeys?.join(", ") || "geen specifieke audience"}.`);
+  }
+
+  if (matchesModuleScope(normalized, target)) {
+    matched.push("Module scope matcht.");
+  } else {
+    const requiredModules = target.requiredModuleKeys?.length ? target.requiredModuleKeys : target.moduleKeys;
+    reasons.push(`Module ontbreekt of is niet actief: ${requiredModules?.join(", ") || "onbekend"}.`);
+  }
+
+  if (matchesPermissionScope(normalized, target)) {
+    matched.push("Permissie scope matcht.");
+  } else {
+    reasons.push(`Permissie ontbreekt: ${target.permissionKeys?.join(", ") || "onbekend"}.`);
+  }
+
+  return {
+    visible: reasons.length === 0,
+    reasons,
+    matched,
+  };
+}
+
 export function canPreviewContent(
   context: FieldgridContentVisibilityContext,
   target: FieldgridContentVisibilityTarget,

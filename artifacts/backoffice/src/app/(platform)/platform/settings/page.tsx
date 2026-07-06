@@ -7,6 +7,7 @@ import {
   type PlatformSettingsStatus,
   type PlatformSmtpSettings,
 } from "@/app/actions/platform-settings";
+import { ResolvedFeatureHelp } from "@/components/knowledgebase/ResolvedFeatureHelp";
 
 export const metadata = {
   title: "Platforminstellingen",
@@ -236,7 +237,10 @@ export default async function PlatformSettingsPage() {
       <div className="mx-auto flex w-full max-w-6xl flex-col gap-5">
         <header className="flex flex-col gap-2 border-b border-slate-200 pb-5">
           <p className="text-sm font-medium text-slate-500">Fieldgrid platform</p>
-          <h1 className="text-2xl font-semibold tracking-normal text-slate-950">Instellingen</h1>
+          <div className="flex items-center gap-2">
+            <h1 className="text-2xl font-semibold tracking-normal text-slate-950">Instellingen</h1>
+            <ResolvedFeatureHelp surface="platform" featureKey="platform.settings" moduleKey="knowledgebase" />
+          </div>
           <p className="max-w-3xl text-sm text-slate-600">
             Platformhosts, support TTL default, custom domain DNS target, Caddy ask mode, SMTP/system mail, default branding
             en smoke targets op een plek. Wijzigingen lopen via auditbare wijzigverzoeken.

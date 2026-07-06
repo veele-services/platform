@@ -23,6 +23,7 @@ import {
   type PlatformProvisioningRunRow,
   type PlatformProvisioningStepRow,
 } from "@/app/actions/platform-provisioning";
+import { ResolvedFeatureHelp } from "@/components/knowledgebase/ResolvedFeatureHelp";
 
 export const metadata = {
   title: "Platform onboarding",
@@ -504,7 +505,10 @@ export default async function PlatformOnboardingPage({ searchParams }: Props) {
             <ShieldCheck aria-hidden="true" className="size-4" />
             Platform onboarding
           </div>
-          <h1 className="mt-2 text-3xl font-semibold tracking-normal">Onboarding en provisioning 2.0</h1>
+          <div className="mt-2 flex items-center gap-2">
+            <h1 className="text-3xl font-semibold tracking-normal">Onboarding en provisioning 2.0</h1>
+            <ResolvedFeatureHelp surface="platform" featureKey="platform.onboarding" moduleKey="knowledgebase" />
+          </div>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
             Maak een tenant aan zonder SQL, bewaar en hervat concepten, controleer duplicate slug/domain vooraf en volg provisioning tot owner invite en first-run readiness.
           </p>

@@ -1,0 +1,36 @@
+{
+  "createdAt": "2026-07-06T14:27:55.834Z",
+  "mode": "check",
+  "checks": [
+    {
+      "id": "shortcode-route",
+      "label": "Stable /h/{tenant-code}/{article-slug} route exists",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "protected-media-route",
+      "label": "Shortcode media route keeps storage signed and permission checked",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "login-next-preservation",
+      "label": "Protected deeplinks preserve next through login and password reset",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "visibility-statuses",
+      "label": "Shortcode action resolves tenant and keeps article visibility server-side",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "support-copy-ui",
+      "label": "Platform and tenant help UIs expose copyable stable support links",
+      "status": "passed",
+      "failures": []
+    }
+  ]
+}

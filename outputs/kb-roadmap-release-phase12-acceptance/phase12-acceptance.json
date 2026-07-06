@@ -1,0 +1,289 @@
+{
+  "version": "fieldgrid-kb-roadmap-release-phase12-acceptance-v1",
+  "createdAt": "2026-07-06T14:27:41.545Z",
+  "mode": "check",
+  "strictEvidence": false,
+  "viewports": [
+    {
+      "id": "mobile-390",
+      "width": 390,
+      "height": 844
+    },
+    {
+      "id": "tablet-768",
+      "width": 768,
+      "height": 1024
+    },
+    {
+      "id": "desktop-1440",
+      "width": 1440,
+      "height": 1100
+    }
+  ],
+  "livePlan": [
+    {
+      "id": "platform-admin",
+      "label": "Platform admin",
+      "baseUrl": "",
+      "hasAuth": false,
+      "hasStorageState": false,
+      "hasCookie": false,
+      "targets": [
+        {
+          "id": "knowledgebase",
+          "path": "/platform/knowledgebase",
+          "label": "Platform knowledgebase",
+          "expectations": [
+            "autocomplete",
+            "tooltip"
+          ]
+        },
+        {
+          "id": "knowledgebase-new",
+          "path": "/platform/knowledgebase/articles/new",
+          "label": "TipTap article editor",
+          "expectations": [
+            "tiptap",
+            "media"
+          ]
+        },
+        {
+          "id": "tooltips",
+          "path": "/platform/knowledgebase/tooltips",
+          "label": "Tooltip management",
+          "expectations": [
+            "tooltip"
+          ]
+        },
+        {
+          "id": "releases",
+          "path": "/platform/releases",
+          "label": "Release management",
+          "expectations": [
+            "release"
+          ]
+        },
+        {
+          "id": "release-categories",
+          "path": "/platform/releases/categories",
+          "label": "Release categories",
+          "expectations": [
+            "release"
+          ]
+        },
+        {
+          "id": "roadmap",
+          "path": "/platform/roadmap",
+          "label": "Roadmap Kanban",
+          "expectations": [
+            "roadmap",
+            "tooltip"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "tenant-admin",
+      "label": "Tenant admin",
+      "baseUrl": "",
+      "hasAuth": false,
+      "hasStorageState": false,
+      "hasCookie": false,
+      "targets": [
+        {
+          "id": "help",
+          "path": "/help",
+          "label": "Tenant help",
+          "expectations": [
+            "autocomplete"
+          ]
+        },
+        {
+          "id": "releases",
+          "path": "/releases",
+          "label": "Tenant releases",
+          "expectations": [
+            "release"
+          ]
+        },
+        {
+          "id": "roadmap",
+          "path": "/roadmap",
+          "label": "Tenant roadmap",
+          "expectations": [
+            "roadmap"
+          ]
+        },
+        {
+          "id": "tenant-kb-management",
+          "path": "/help/beheer",
+          "label": "Tenant KB management",
+          "expectations": [
+            "tiptap"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "customer",
+      "label": "Customer PWA",
+      "baseUrl": "",
+      "hasAuth": false,
+      "hasStorageState": false,
+      "hasCookie": false,
+      "targets": [
+        {
+          "id": "help",
+          "path": "/help",
+          "label": "Customer help",
+          "expectations": [
+            "autocomplete"
+          ]
+        },
+        {
+          "id": "releases",
+          "path": "/releases",
+          "label": "Customer releases",
+          "expectations": [
+            "release"
+          ]
+        },
+        {
+          "id": "feature-request",
+          "path": "/roadmap/new",
+          "label": "Customer feature request",
+          "expectations": [
+            "roadmap"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "personnel",
+      "label": "Personnel PWA",
+      "baseUrl": "",
+      "hasAuth": false,
+      "hasStorageState": false,
+      "hasCookie": false,
+      "targets": [
+        {
+          "id": "help",
+          "path": "/help",
+          "label": "Personnel help",
+          "expectations": [
+            "autocomplete"
+          ]
+        },
+        {
+          "id": "releases",
+          "path": "/releases",
+          "label": "Personnel releases",
+          "expectations": [
+            "release"
+          ]
+        },
+        {
+          "id": "feature-request",
+          "path": "/roadmap/new",
+          "label": "Personnel feature request",
+          "expectations": [
+            "roadmap"
+          ]
+        }
+      ]
+    }
+  ],
+  "staticChecks": [
+    {
+      "id": "package-scripts",
+      "label": "Package scripts expose phase 12 acceptance gate",
+      "status": "passed",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "id": "playwright-harness",
+      "label": "Phase 12 has an executable Playwright evidence harness",
+      "status": "passed",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "id": "surface-routes",
+      "label": "Phase 12 runtime surfaces exist for all audiences",
+      "status": "passed",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "id": "autocomplete-runtime",
+      "label": "Help search/autocomplete is testable on every runtime surface",
+      "status": "passed",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "id": "tooltip-runtime",
+      "label": "FeatureHelp tooltips are available to Playwright by accessible label",
+      "status": "passed",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "id": "tiptap-runtime",
+      "label": "TipTap authoring and rendering are covered by QA selectors",
+      "status": "passed",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "id": "release-media-highlights",
+      "label": "Release media, categories, highlights and dismiss state are QA-visible",
+      "status": "passed",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "id": "roadmap-triage",
+      "label": "Roadmap Kanban triage has quick actions, history and event hooks",
+      "status": "passed",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "id": "notification-events",
+      "label": "KB, roadmap and release notification events are wired to the worker",
+      "status": "passed",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "id": "protected-media-routes",
+      "label": "Knowledgebase and release media routes are private and access-checked",
+      "status": "passed",
+      "warnings": [],
+      "failures": []
+    },
+    {
+      "id": "completion-plan",
+      "label": "Completion plan documents phase 12 QA gate",
+      "status": "passed",
+      "warnings": [],
+      "failures": []
+    }
+  ],
+  "liveResults": [],
+  "mediaAccessResults": [],
+  "liveError": null,
+  "finalAcceptance": {
+    "staticGate": "passed",
+    "configuredRoles": [],
+    "screenshotsCaptured": 0,
+    "screenshotFailures": 0,
+    "mediaAccessChecks": 0,
+    "mediaAccessFailures": 0,
+    "liveError": null,
+    "strictCommand": "pnpm fieldgrid:kb-roadmap-release-phase12-acceptance:strict",
+    "artifactDirectory": "outputs/kb-roadmap-release-phase12-acceptance"
+  }
+}

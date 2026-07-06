@@ -4,12 +4,16 @@ import {
   db,
   getKnowledgebaseArticleByIdForContext,
   getKnowledgebaseArticleBySlugForContext,
+  getKnowledgebaseFeatureHelpForContext,
   kbArticleFeedbackTable,
   listEnabledKnowledgebaseModuleKeysForTenant,
   listKnowledgebaseHelpIndexForContext,
+  listKnowledgebaseSearchSuggestionsForContext,
   recordKnowledgebaseSearchEvent,
   type KnowledgebaseArticleSummary,
+  type KnowledgebaseFeatureHelp,
   type KnowledgebaseHelpIndex,
+  type KnowledgebaseSearchSuggestion,
 } from "@workspace/db";
 import { revalidatePath } from "next/cache";
 import { getMyCustomerIdentity } from "@/actions/customer";
@@ -52,10 +56,31 @@ export async function getCustomerKnowledgebaseHelpIndex(query?: string | null): 
   return index;
 }
 
+export async function getCustomerKnowledgebaseSearchSuggestions(query?: string | null): Promise<KnowledgebaseSearchSuggestion[]> {
+  const context = await customerKnowledgebaseContext();
+  if (!context) return [];
+
+  return listKnowledgebaseSearchSuggestionsForContext(context, query, 10);
+}
+
 export async function getCustomerKnowledgebaseArticle(slug: string): Promise<KnowledgebaseArticleSummary | null> {
   const context = await customerKnowledgebaseContext();
   if (!context) return null;
   return getKnowledgebaseArticleBySlugForContext(context, slug);
+}
+
+export async function getCustomerFeatureHelp(
+  featureKey: string,
+  moduleKey?: string | null,
+): Promise<KnowledgebaseFeatureHelp | null> {
+  const context = await customerKnowledgebaseContext();
+  if (!context) return null;
+
+  return getKnowledgebaseFeatureHelpForContext(context, featureKey, {
+    moduleKey,
+    audience: "tenant_customer",
+    articleHrefPrefix: "/help",
+  });
 }
 
 export async function submitCustomerKnowledgebaseFeedback(formData: FormData): Promise<void> {

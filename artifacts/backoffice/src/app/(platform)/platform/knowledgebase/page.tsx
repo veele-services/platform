@@ -1,18 +1,26 @@
 import Link from "next/link";
-import { Archive, BookOpen, FilePlus2, HelpCircle, Search, Tags } from "lucide-react";
+import { Archive, BarChart3, BookOpen, FilePlus2, HelpCircle, Search, Tags } from "lucide-react";
 import {
   archiveKnowledgebaseArticle,
   listKnowledgebaseManagementArticles,
 } from "@/app/actions/knowledgebase";
 import { Button } from "@/components/ui/button";
+import { ResolvedFeatureHelp } from "@/components/knowledgebase/ResolvedFeatureHelp";
 import { Badge } from "@/components/ui/badge";
+import { PlatformContentPreviewPanel } from "@/components/platform/PlatformContentPreviewPanel";
+import { getPlatformContentPreviewModel } from "@/lib/platform-content-preview";
 
 export const metadata = {
   title: "Knowledgebase",
 };
 
 type Props = {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    previewMode?: string | string[];
+    previewTenantId?: string | string[];
+    previewModuleKeys?: string | string[];
+  }>;
 };
 
 async function archiveArticleAction(formData: FormData): Promise<void> {
@@ -36,8 +44,12 @@ function formatDate(value: string | null): string {
 }
 
 export default async function PlatformKnowledgebasePage({ searchParams }: Props) {
-  const { q } = await searchParams;
-  const articles = await listKnowledgebaseManagementArticles(q);
+  const resolvedSearchParams = await searchParams;
+  const { q } = resolvedSearchParams;
+  const [articles, previewModel] = await Promise.all([
+    listKnowledgebaseManagementArticles(q),
+    getPlatformContentPreviewModel("knowledgebase", resolvedSearchParams),
+  ]);
   const published = articles.filter((article) => article.status === "published").length;
   const drafts = articles.filter((article) => article.status === "draft").length;
   const archived = articles.filter((article) => article.status === "archived").length;
@@ -49,7 +61,10 @@ export default async function PlatformKnowledgebasePage({ searchParams }: Props)
         <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm font-medium text-slate-500">Platformbeheer</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950">Knowledgebase</h1>
+            <div className="mt-1 flex items-center gap-2">
+              <h1 className="text-3xl font-semibold tracking-normal text-slate-950">Knowledgebase</h1>
+              <ResolvedFeatureHelp surface="platform" featureKey="platform.knowledgebase" moduleKey="knowledgebase" />
+            </div>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
               Beheer globale handleidingen met doelgroep-, module- en permissiescope voor backoffice, personeelsapp en klantportaal.
             </p>
@@ -65,6 +80,12 @@ export default async function PlatformKnowledgebasePage({ searchParams }: Props)
               <Link href="/platform/knowledgebase/tooltips">
                 <HelpCircle className="h-4 w-4" />
                 Tooltips
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="gap-2">
+              <Link href="/platform/knowledgebase/feedback">
+                <BarChart3 className="h-4 w-4" />
+                Feedback
               </Link>
             </Button>
             <Button asChild className="gap-2">
@@ -90,6 +111,12 @@ export default async function PlatformKnowledgebasePage({ searchParams }: Props)
             <p className="mt-2 text-3xl font-semibold text-slate-950">{archived}</p>
           </div>
         </section>
+
+        <PlatformContentPreviewPanel
+          resource="knowledgebase"
+          model={previewModel}
+          preserveParams={{ q }}
+        />
 
         <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
           <div className="flex flex-col gap-3 border-b border-slate-200 p-4 md:flex-row md:items-center md:justify-between">

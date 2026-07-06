@@ -1,0 +1,78 @@
+{
+  "createdAt": "2026-07-06T14:28:19.451Z",
+  "mode": "check",
+  "checks": [
+    {
+      "id": "rls-coverage",
+      "label": "RLS enabled on all foundation tables",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "rls-anti-patterns",
+      "label": "RLS migrations avoid known Supabase anti-patterns",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "media-privacy",
+      "label": "Knowledgebase media is private-by-default",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "media-routes",
+      "label": "Knowledgebase media routes enforce visibility before signed URL creation",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "no-direct-media-links",
+      "label": "Knowledgebase UI does not expose direct public media URLs",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "visibility-helpers",
+      "label": "Tenant, audience, module and permission visibility is centralized",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "roadmap-visibility",
+      "label": "Roadmap board gates tenant items by module, audience and tenant",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "release-dismiss-state",
+      "label": "Release highlights are audience/module scoped and dismissable per user",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "audit-coverage",
+      "label": "Knowledgebase, roadmap and release mutations are audit logged",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "deeplinks",
+      "label": "Help, roadmap, release and protected media deeplinks exist",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "pwa-mobile-surface",
+      "label": "PWA help surfaces retain mobile-safe structure",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "no-tenant-hardcoding",
+      "label": "No tenant-specific hardcoding was introduced",
+      "status": "passed",
+      "failures": []
+    }
+  ]
+}

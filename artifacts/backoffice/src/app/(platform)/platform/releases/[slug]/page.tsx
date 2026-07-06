@@ -4,6 +4,7 @@ import { ArrowLeft, Megaphone, Send } from "lucide-react";
 import {
   getPlatformRelease,
   listReleaseEditorOptions,
+  recordPlatformReleaseRead,
   saveReleaseHighlightFromForm,
 } from "@/app/actions/releases";
 import { ReleaseForm } from "@/components/releases/ReleaseForm";
@@ -49,6 +50,7 @@ export default async function PlatformReleaseDetailPage({ params }: Props) {
   ]);
 
   if (!release) notFound();
+  await recordPlatformReleaseRead(slug);
 
   return (
     <main className="px-5 py-6 md:px-8">

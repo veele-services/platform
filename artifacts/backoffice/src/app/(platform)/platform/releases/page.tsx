@@ -1,22 +1,28 @@
 import Link from "next/link";
-import { Archive, FilePlus2, Megaphone, Save, Tags } from "lucide-react";
+import { Archive, Eye, FilePlus2, Megaphone, Tags } from "lucide-react";
 import {
   archiveRelease,
-  listPlatformReleases,
   listReleaseEditorOptions,
-  saveReleaseCategoryFromForm,
+  listPlatformReleaseReadReceiptStats,
+  listPlatformReleases,
 } from "@/app/actions/releases";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ResolvedFeatureHelp } from "@/components/knowledgebase/ResolvedFeatureHelp";
+import { PlatformContentPreviewPanel } from "@/components/platform/PlatformContentPreviewPanel";
+import { getPlatformContentPreviewModel } from "@/lib/platform-content-preview";
 
 export const metadata = {
   title: "Releases",
 };
 
-async function categoryAction(formData: FormData): Promise<void> {
-  "use server";
-  await saveReleaseCategoryFromForm(formData);
-}
+type Props = {
+  searchParams: Promise<{
+    previewMode?: string | string[];
+    previewTenantId?: string | string[];
+    previewModuleKeys?: string | string[];
+  }>;
+};
 
 async function archiveAction(formData: FormData): Promise<void> {
   "use server";
@@ -41,11 +47,15 @@ function formatDate(value: string | null): string {
   return new Intl.DateTimeFormat("nl-NL", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
-export default async function PlatformReleasesPage() {
-  const [releases, options] = await Promise.all([
+export default async function PlatformReleasesPage({ searchParams }: Props) {
+  const resolvedSearchParams = await searchParams;
+  const [releases, options, previewModel, readStats] = await Promise.all([
     listPlatformReleases(),
     listReleaseEditorOptions(),
+    getPlatformContentPreviewModel("releases", resolvedSearchParams),
+    listPlatformReleaseReadReceiptStats(),
   ]);
+  const readStatsByRelease = new Map(readStats.map((entry) => [entry.releaseId, entry]));
   const published = releases.filter((release) => release.status === "published").length;
   const drafts = releases.filter((release) => release.status === "draft").length;
 
@@ -55,7 +65,10 @@ export default async function PlatformReleasesPage() {
         <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm font-medium text-slate-500">Platformbeheer</p>
-            <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950">Releasebeheer</h1>
+            <div className="mt-1 flex items-center gap-2">
+              <h1 className="text-3xl font-semibold tracking-normal text-slate-950">Releasebeheer</h1>
+              <ResolvedFeatureHelp surface="platform" featureKey="platform.releases" moduleKey="releases" />
+            </div>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
               Publiceer versienotes per audience, module en surface. Highlights tonen als gele balk en zijn per gebruiker dismissable.
             </p>
@@ -63,6 +76,12 @@ export default async function PlatformReleasesPage() {
           <div className="flex flex-wrap gap-2">
             <Badge variant="outline" className="border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700">{published} gepubliceerd</Badge>
             <Badge variant="outline" className="border-amber-200 bg-amber-50 px-3 py-1 text-amber-700">{drafts} concepten</Badge>
+            <Button asChild variant="outline" className="gap-2">
+              <Link href="/platform/releases/categories">
+                <Tags className="h-4 w-4" />
+                Categorieen
+              </Link>
+            </Button>
             <Button asChild className="gap-2">
               <Link href="/platform/releases/new">
                 <FilePlus2 className="h-4 w-4" />
@@ -71,6 +90,11 @@ export default async function PlatformReleasesPage() {
             </Button>
           </div>
         </header>
+
+        <PlatformContentPreviewPanel
+          resource="releases"
+          model={previewModel}
+        />
 
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -81,6 +105,9 @@ export default async function PlatformReleasesPage() {
             <div className="divide-y divide-slate-200">
               {releases.map((release) => (
                 <article key={release.id} className="p-4">
+                  {(() => {
+                    const stats = readStatsByRelease.get(release.id);
+                    return (
                   <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
                     <div className="min-w-0">
                       <Link href={`/platform/releases/${release.slug}`} className="text-lg font-semibold text-slate-950 hover:underline">
@@ -98,8 +125,11 @@ export default async function PlatformReleasesPage() {
                       <span>Publicatie: {formatDate(release.publishedAt)}</span>
                       <span>{release.items.length} items</span>
                       <span>{release.roadmapItems.length} roadmaplinks</span>
+                      <span>{stats?.total ?? 0} gelezen</span>
                     </div>
                   </div>
+                    );
+                  })()}
                   {release.status !== "archived" && (
                     <form action={archiveAction} className="mt-3 flex justify-end">
                       <input type="hidden" name="id" value={release.id} />
@@ -123,25 +153,15 @@ export default async function PlatformReleasesPage() {
                 <Tags className="h-5 w-5 text-cyan-700" />
                 <h2 className="text-lg font-semibold text-slate-950">Categorieen</h2>
               </div>
-              <form action={categoryAction} className="mt-4 grid gap-3">
-                <input name="name" required placeholder="Naam" className="h-10 rounded-md border border-slate-300 px-3 text-sm" />
-                <input name="slug" placeholder="slug" className="h-10 rounded-md border border-slate-300 px-3 text-sm" />
-                <select name="moduleKey" className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm">
-                  <option value="">Geen module</option>
-                  {options.modules.map((module) => (
-                    <option key={module.key} value={module.key}>{module.name}</option>
-                  ))}
-                </select>
-                <input name="sortOrder" type="number" defaultValue={0} className="h-10 rounded-md border border-slate-300 px-3 text-sm" />
-                <label className="flex items-center gap-2 text-sm">
-                  <input name="isActive" type="checkbox" defaultChecked />
-                  Actief
-                </label>
-                <Button type="submit" className="gap-2">
-                  <Save className="h-4 w-4" />
-                  Categorie opslaan
-                </Button>
-              </form>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Beheer categorieen op een aparte pagina, inclusief sortering, modulekoppeling en archiveren.
+              </p>
+              <Button asChild variant="outline" className="mt-4 w-full gap-2">
+                <Link href="/platform/releases/categories">
+                  <Tags className="h-4 w-4" />
+                  Categorieen beheren
+                </Link>
+              </Button>
               <div className="mt-4 grid gap-2">
                 {options.categories.map((category) => (
                   <div key={category.id} className="rounded-md border border-slate-200 p-3 text-sm">
@@ -160,6 +180,29 @@ export default async function PlatformReleasesPage() {
               <p className="mt-2 text-sm leading-6 text-slate-700">
                 Maak highlights aan op de releasedetailpagina. Een highlight wordt alleen getoond als de release gepubliceerd is en de audience/module matcht.
               </p>
+            </section>
+
+            <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+              <div className="flex items-center gap-2">
+                <Eye className="h-5 w-5 text-cyan-700" />
+                <h2 className="text-lg font-semibold text-slate-950">Read receipts</h2>
+              </div>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Eerste reads per release, uitgesplitst naar platform, tenant backoffice, personeelsapp en klantportaal.
+              </p>
+              <div className="mt-4 grid gap-2">
+                {readStats.slice(0, 8).map((entry) => (
+                  <div key={entry.releaseId} className="rounded-md border border-slate-200 p-3 text-sm">
+                    <Link href={`/platform/releases/${entry.releaseSlug}`} className="font-medium text-slate-950 hover:underline">
+                      {entry.releaseVersion} - {entry.releaseTitle}
+                    </Link>
+                    <p className="mt-1 text-xs text-slate-500">
+                      {entry.total} totaal - platform {entry.platformBackoffice}, backoffice {entry.tenantBackoffice}, personeel {entry.personnelPwa}, klant {entry.customerPwa}
+                    </p>
+                  </div>
+                ))}
+                {readStats.length === 0 && <p className="text-sm text-slate-500">Nog geen release reads geregistreerd.</p>}
+              </div>
             </section>
           </aside>
         </section>

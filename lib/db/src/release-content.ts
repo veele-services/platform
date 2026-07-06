@@ -6,11 +6,13 @@ import {
   releaseDismissalsTable,
   releaseHighlightsTable,
   releaseItemsTable,
+  releaseMediaTable,
   releaseModulesTable,
   releaseRoadmapLinksTable,
   releasesTable,
   roadmapItemsTable,
   type FieldgridContentAudience,
+  type ReleaseMedia,
   type ReleaseHighlightSurface,
   type ReleaseImpactLevel,
   type ReleaseStatus,
@@ -21,6 +23,7 @@ export type ReleaseVisibilityContext = {
   surface: ReleaseHighlightSurface;
   audiences: FieldgridContentAudience[];
   activeModuleKeys: string[];
+  permissionKeys?: readonly string[];
   userId?: string | null;
   personnelId?: string | null;
   customerId?: string | null;
@@ -51,6 +54,25 @@ export type ReleaseRoadmapSummary = {
   status: string;
 };
 
+export type ReleaseMediaSummary = {
+  id: string;
+  mediaType: "image" | "video" | "attachment";
+  storagePath: string;
+  publicUrl: string | null;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  altText: string | null;
+  caption: string | null;
+  sortOrder: number;
+};
+
+export type ReleaseMediaAccess = ReleaseMediaSummary & {
+  releaseId: string;
+  releaseSlug: string;
+  releaseTitle: string;
+  releaseVersion: string;
+};
+
 export type ReleaseSummary = {
   id: string;
   version: string;
@@ -68,6 +90,7 @@ export type ReleaseSummary = {
   audienceKeys: FieldgridContentAudience[];
   moduleKeys: string[];
   items: ReleaseItemSummary[];
+  media: ReleaseMediaSummary[];
   roadmapItems: ReleaseRoadmapSummary[];
 };
 
@@ -97,6 +120,7 @@ type ReleaseRelationMaps = {
   audiences: Map<string, FieldgridContentAudience[]>;
   modules: Map<string, string[]>;
   items: Map<string, ReleaseItemSummary[]>;
+  media: Map<string, ReleaseMediaSummary[]>;
   roadmapItems: Map<string, ReleaseRoadmapSummary[]>;
 };
 
@@ -119,17 +143,68 @@ function canReadRelease(context: ReleaseVisibilityContext, release: Pick<Release
   return true;
 }
 
+export type ReleaseVisibilityExplanation = {
+  visible: boolean;
+  reasons: string[];
+  matched: string[];
+};
+
+export function explainReleaseVisibility(
+  context: ReleaseVisibilityContext,
+  release: Pick<ReleaseSummary, "status" | "archivedAt" | "audienceKeys" | "moduleKeys">,
+  options: { includeUnpublished?: boolean; requireViewPermission?: boolean } = {},
+): ReleaseVisibilityExplanation {
+  const reasons: string[] = [];
+  const matched: string[] = [];
+  const visibleByReleaseResolver = canReadRelease(context, release, options.includeUnpublished);
+
+  if (context.isPlatformAdmin && options.includeUnpublished) {
+    matched.push("Platform admin preview mag concepten en archief inspecteren.");
+  } else if (release.status === "published" && !release.archivedAt) {
+    matched.push("Release is gepubliceerd en niet gearchiveerd.");
+  } else if (release.status !== "published") {
+    reasons.push(`Status is ${release.status}, niet gepubliceerd.`);
+  } else {
+    reasons.push("Release is gearchiveerd.");
+  }
+
+  if (release.audienceKeys.length === 0 || intersects(release.audienceKeys, context.audiences) || (context.isPlatformAdmin && options.includeUnpublished)) {
+    matched.push("Audience scope matcht.");
+  } else {
+    reasons.push(`Audience vereist ${release.audienceKeys.join(", ")}.`);
+  }
+
+  if (release.moduleKeys.length === 0 || intersects(release.moduleKeys, context.activeModuleKeys) || (context.isPlatformAdmin && options.includeUnpublished)) {
+    matched.push("Module scope matcht.");
+  } else {
+    reasons.push(`Module ontbreekt of is niet actief: ${release.moduleKeys.join(", ")}.`);
+  }
+
+  if (options.requireViewPermission && !context.isPlatformAdmin && context.permissionKeys && !context.permissionKeys.includes("releases:view")) {
+    reasons.push("Permissie ontbreekt: releases:view.");
+  } else if (options.requireViewPermission) {
+    matched.push("Permissie releases:view matcht.");
+  }
+
+  return {
+    visible: visibleByReleaseResolver && reasons.length === 0,
+    reasons,
+    matched,
+  };
+}
+
 async function loadReleaseRelations(releaseIds: string[]): Promise<ReleaseRelationMaps> {
   if (releaseIds.length === 0) {
     return {
       audiences: new Map(),
       modules: new Map(),
       items: new Map(),
+      media: new Map(),
       roadmapItems: new Map(),
     };
   }
 
-  const [audienceRows, moduleRows, itemRows, roadmapRows] = await Promise.all([
+  const [audienceRows, moduleRows, itemRows, mediaRows, roadmapRows] = await Promise.all([
     db
       .select({
         releaseId: releaseAudiencesTable.releaseId,
@@ -163,6 +238,11 @@ async function loadReleaseRelations(releaseIds: string[]): Promise<ReleaseRelati
       .leftJoin(releaseCategoriesTable, eq(releaseItemsTable.categoryId, releaseCategoriesTable.id))
       .where(inArray(releaseItemsTable.releaseId, releaseIds))
       .orderBy(asc(releaseItemsTable.sortOrder), asc(releaseItemsTable.title)),
+    db
+      .select()
+      .from(releaseMediaTable)
+      .where(inArray(releaseMediaTable.releaseId, releaseIds))
+      .orderBy(asc(releaseMediaTable.sortOrder), asc(releaseMediaTable.createdAt)),
     db
       .select({
         releaseId: releaseRoadmapLinksTable.releaseId,
@@ -212,6 +292,13 @@ async function loadReleaseRelations(releaseIds: string[]): Promise<ReleaseRelati
     items.set(row.releaseId, list);
   }
 
+  const media = new Map<string, ReleaseMediaSummary[]>();
+  for (const row of mediaRows) {
+    const list = media.get(row.releaseId) ?? [];
+    list.push(mapReleaseMedia(row));
+    media.set(row.releaseId, list);
+  }
+
   const roadmapItems = new Map<string, ReleaseRoadmapSummary[]>();
   for (const row of roadmapRows) {
     const list = roadmapItems.get(row.releaseId) ?? [];
@@ -223,7 +310,21 @@ async function loadReleaseRelations(releaseIds: string[]): Promise<ReleaseRelati
     roadmapItems.set(row.releaseId, list);
   }
 
-  return { audiences, modules, items, roadmapItems };
+  return { audiences, modules, items, media, roadmapItems };
+}
+
+function mapReleaseMedia(row: ReleaseMedia): ReleaseMediaSummary {
+  return {
+    id: row.id,
+    mediaType: row.mediaType,
+    storagePath: row.storagePath,
+    publicUrl: null,
+    mimeType: row.mimeType,
+    sizeBytes: row.sizeBytes,
+    altText: row.altText,
+    caption: row.caption,
+    sortOrder: row.sortOrder,
+  };
 }
 
 export async function listReleasesForContext(
@@ -275,6 +376,7 @@ export async function listReleasesForContext(
       audienceKeys,
       moduleKeys,
       items: relations.items.get(row.id) ?? [],
+      media: relations.media.get(row.id) ?? [],
       roadmapItems: relations.roadmapItems.get(row.id) ?? [],
     };
   });
@@ -290,6 +392,33 @@ export async function getReleaseBySlugForContext(
 ): Promise<ReleaseSummary | null> {
   const releases = await listReleasesForContext(context, options);
   return releases.find((release) => release.slug === slug) ?? null;
+}
+
+export async function getReleaseMediaByIdForContext(
+  context: ReleaseVisibilityContext,
+  mediaId: string,
+  options: ReleaseListOptions = {},
+): Promise<ReleaseMediaAccess | null> {
+  const [media] = await db
+    .select()
+    .from(releaseMediaTable)
+    .where(eq(releaseMediaTable.id, mediaId))
+    .limit(1);
+
+  if (!media) return null;
+
+  const releases = await listReleasesForContext(context, options);
+  const release = releases.find((entry) => entry.id === media.releaseId);
+  if (!release) return null;
+  if (!release.media.some((item) => item.id === media.id)) return null;
+
+  return {
+    ...mapReleaseMedia(media),
+    releaseId: release.id,
+    releaseSlug: release.slug,
+    releaseTitle: release.title,
+    releaseVersion: release.version,
+  };
 }
 
 export async function getActiveReleaseHighlightsForContext(

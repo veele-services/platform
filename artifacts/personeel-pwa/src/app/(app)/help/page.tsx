@@ -1,6 +1,8 @@
 import Link from "next/link";
-import { BookOpen, Search, Sparkles } from "lucide-react";
+import { BookOpen, Sparkles } from "lucide-react";
 import { getPersonnelKnowledgebaseHelpIndex } from "@/actions/knowledgebase";
+import { KnowledgebaseAutocompleteSearch } from "@/components/KnowledgebaseAutocompleteSearch";
+import { OfflineContentNotice } from "@/components/OfflineContentNotice";
 
 type Props = {
   searchParams: Promise<{ q?: string }>;
@@ -17,34 +19,17 @@ export default async function PersonnelHelpPage({ searchParams }: Props) {
 
   return (
     <main className="mx-auto w-full max-w-5xl px-4 py-5 md:px-0">
+      <OfflineContentNotice />
+
       <section className="rounded-2xl border bg-white p-5 shadow-sm" style={{ borderColor: "#E2E8F0" }}>
         <p className="text-xs font-black uppercase tracking-[0.16em]" style={{ color: "var(--color-accent)" }}>Help</p>
         <h1 className="mt-2 text-2xl font-black" style={{ color: "var(--color-primary)" }}>Waar kunnen we mee helpen?</h1>
         <p className="mt-2 text-sm leading-6 text-slate-600">
           Zoek in handleidingen voor de personeelsapp, uw planning en operationele processen.
         </p>
-        <form className="mt-4 flex gap-2">
-          <div className="relative min-w-0 flex-1">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-            <input
-              name="q"
-              list="personnel-kb-search-suggestions"
-              defaultValue={q ?? ""}
-              placeholder="Zoeken..."
-              className="h-11 w-full rounded-xl border border-slate-300 bg-white pl-9 pr-3 text-sm"
-            />
-            <datalist id="personnel-kb-search-suggestions">
-              {index.suggestions.map((suggestion) => (
-                <option key={`${suggestion.type}-${suggestion.value}`} value={suggestion.value}>
-                  {suggestion.label}
-                </option>
-              ))}
-            </datalist>
-          </div>
-          <button type="submit" className="rounded-xl px-4 text-sm font-black text-white" style={{ backgroundColor: "var(--color-accent)" }}>
-            Zoek
-          </button>
-        </form>
+        <div className="mt-4">
+          <KnowledgebaseAutocompleteSearch defaultValue={q ?? ""} />
+        </div>
       </section>
 
       {index.categories.length > 0 && (
@@ -94,7 +79,16 @@ export default async function PersonnelHelpPage({ searchParams }: Props) {
         </div>
         {articles.length === 0 && (
           <div className="mt-3 rounded-2xl border border-dashed bg-white p-8 text-center text-sm text-slate-500">
-            Geen artikelen gevonden.
+            <p className="font-black" style={{ color: "var(--color-primary)" }}>Geen artikelen gevonden.</p>
+            <p className="mt-1">Probeer een andere zoekterm of stuur een bericht naar de backoffice.</p>
+            <div className="mt-4 flex flex-wrap justify-center gap-2">
+              <Link href="/help" className="rounded-xl border border-slate-300 px-3 py-2 text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                Wis zoekterm
+              </Link>
+              <Link href="/berichten" className="rounded-xl px-3 py-2 text-sm font-black text-white" style={{ backgroundColor: "var(--color-accent)" }}>
+                Bericht sturen
+              </Link>
+            </div>
           </div>
         )}
       </section>

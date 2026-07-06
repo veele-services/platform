@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
+import { ResolvedFeatureHelp } from "@/components/knowledgebase/ResolvedFeatureHelp";
 import { PersonnelView } from "@/components/personnel/PersonnelView";
 import { PersonnelStatBar } from "@/components/personnel/PersonnelStatBar";
 import { PersonnelWidgets } from "@/components/personnel/PersonnelWidgets";
@@ -53,6 +54,10 @@ export default async function PersonnelPage({ searchParams }: Props) {
 
   return (
     <div className="mx-auto w-full max-w-[1600px] p-6">
+      <div className="mb-2 flex items-center gap-2">
+        <h1 className="font-heading text-2xl font-semibold text-slate-950">Personeel</h1>
+        <ResolvedFeatureHelp featureKey="tenant.personnel" moduleKey="personnel" />
+      </div>
       <p className="mb-4 text-sm" style={{ color: "#64748B" }}>
         {total} medewerker{total !== 1 ? "s" : ""}
         {search ? ` die overeenkomen met "${search}"` : ""}

@@ -1,0 +1,36 @@
+{
+  "createdAt": "2026-07-06T14:28:16.961Z",
+  "mode": "check",
+  "checks": [
+    {
+      "id": "shared-visibility",
+      "label": "Preview explanations are shared with runtime visibility helpers",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "preview-service",
+      "label": "Platform preview service supports mode, tenant and module selectors",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "preview-component",
+      "label": "Platform preview component renders controls and explanations",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "platform-pages",
+      "label": "KB, release and tooltip management pages expose preview controls",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "completion-plan",
+      "label": "Completion plan documents phase 6 implementation and gate",
+      "status": "passed",
+      "failures": []
+    }
+  ]
+}

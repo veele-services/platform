@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
-import { getTenantRelease } from "@/app/actions/releases";
+import { ArrowLeft, CheckCircle2, FileText } from "lucide-react";
+import { getTenantRelease, recordTenantReleaseRead } from "@/app/actions/releases";
+import { KnowledgebaseContentRenderer } from "@/components/knowledgebase/KnowledgebaseContentRenderer";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -22,6 +23,7 @@ export default async function TenantReleaseDetailPage({ params }: Props) {
   const { slug } = await params;
   const release = await getTenantRelease(slug);
   if (!release) notFound();
+  await recordTenantReleaseRead(slug);
 
   return (
     <main className="px-4 py-6 md:px-6">
@@ -44,11 +46,41 @@ export default async function TenantReleaseDetailPage({ params }: Props) {
 
         <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           {release.contentHtml ? (
-            <div className="prose prose-slate max-w-none" dangerouslySetInnerHTML={{ __html: release.contentHtml }} />
+            <KnowledgebaseContentRenderer html={release.contentHtml} mediaBasePath="/releases/media" />
           ) : (
             <p className="text-sm leading-7 text-slate-600">{release.contentText ?? release.summary}</p>
           )}
         </section>
+
+        {release.media.length > 0 && (
+          <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+            <h2 className="text-lg font-semibold text-slate-950">Media en bijlagen</h2>
+            <div className="mt-4 grid gap-3 sm:grid-cols-2">
+              {release.media.map((item) => (
+                <a
+                  key={item.id}
+                  href={`/releases/media/${item.id}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-sm hover:border-cyan-200 hover:bg-white"
+                >
+                  {item.mediaType === "image" ? (
+                    <img src={`/releases/media/${item.id}`} alt={item.altText ?? item.caption ?? "Release media"} className="h-40 w-full object-cover" />
+                  ) : (
+                    <div className="flex h-40 items-center justify-center bg-slate-100 text-slate-500">
+                      <FileText className="mr-2 h-4 w-4" />
+                      {item.mediaType === "video" ? "Video" : "Bijlage"}
+                    </div>
+                  )}
+                  <div className="p-3">
+                    <p className="truncate font-medium text-slate-950">{item.caption || item.altText || item.storagePath}</p>
+                    <p className="mt-1 text-xs text-slate-500">{item.mediaType}</p>
+                  </div>
+                </a>
+              ))}
+            </div>
+          </section>
+        )}
 
         {release.items.length > 0 && (
           <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">

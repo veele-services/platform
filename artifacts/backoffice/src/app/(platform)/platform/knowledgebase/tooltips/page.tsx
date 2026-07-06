@@ -9,11 +9,21 @@ import {
   type KnowledgebaseTooltipRow,
 } from "@/app/actions/knowledgebase";
 import { FeatureHelp } from "@/components/knowledgebase/FeatureHelp";
+import { PlatformContentPreviewPanel } from "@/components/platform/PlatformContentPreviewPanel";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { getPlatformContentPreviewModel } from "@/lib/platform-content-preview";
 
 export const metadata = {
   title: "Knowledgebase tooltips",
+};
+
+type Props = {
+  searchParams: Promise<{
+    previewMode?: string | string[];
+    previewTenantId?: string | string[];
+    previewModuleKeys?: string | string[];
+  }>;
 };
 
 async function saveTooltipAction(formData: FormData): Promise<void> {
@@ -263,10 +273,12 @@ function TooltipForm({
   );
 }
 
-export default async function KnowledgebaseTooltipsPage() {
-  const [tooltips, options] = await Promise.all([
+export default async function KnowledgebaseTooltipsPage({ searchParams }: Props) {
+  const resolvedSearchParams = await searchParams;
+  const [tooltips, options, previewModel] = await Promise.all([
     listKnowledgebaseTooltipsForManagement(),
     listKnowledgebaseEditorOptions(),
+    getPlatformContentPreviewModel("tooltips", resolvedSearchParams),
   ]);
   const published = tooltips.filter((tooltip) => tooltip.status === "published").length;
 
@@ -296,6 +308,8 @@ export default async function KnowledgebaseTooltipsPage() {
             </Badge>
           </div>
         </header>
+
+        <PlatformContentPreviewPanel resource="tooltips" model={previewModel} />
 
         <TooltipForm tooltip={null} options={options} />
 

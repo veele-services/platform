@@ -23,6 +23,23 @@ function proxyAwareUrl(pathname: string, request: NextRequest): URL {
   return new URL(pathname, `${proto}://${host}`);
 }
 
+function nextPathFromRequest(request: NextRequest): string {
+  return `${request.nextUrl.pathname}${request.nextUrl.search}`;
+}
+
+function loginUrlWithNext(request: NextRequest): URL {
+  const url = proxyAwareUrl("/login", request);
+  url.searchParams.set("next", nextPathFromRequest(request));
+  return url;
+}
+
+function resetPasswordUrlWithNext(request: NextRequest): URL {
+  const url = proxyAwareUrl("/reset-wachtwoord", request);
+  url.searchParams.set("force", "1");
+  url.searchParams.set("next", nextPathFromRequest(request));
+  return url;
+}
+
 export async function middleware(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -37,7 +54,7 @@ export async function middleware(request: NextRequest) {
 
   if (!url || !key) {
     if (isPublicPage) return NextResponse.next();
-    return NextResponse.redirect(proxyAwareUrl("/login", request));
+    return NextResponse.redirect(loginUrlWithNext(request));
   }
 
   let supabaseResponse = NextResponse.next({ request });
@@ -66,15 +83,17 @@ export async function middleware(request: NextRequest) {
   const mustChangePassword = user?.app_metadata?.force_password_change === true;
 
   if (user && mustChangePassword && !isPasswordResetPage && !pathname.startsWith("/auth/confirm")) {
-    return NextResponse.redirect(proxyAwareUrl("/reset-wachtwoord?force=1", request));
+    return NextResponse.redirect(resetPasswordUrlWithNext(request));
   }
 
   if (user && isLoginPage) {
-    return NextResponse.redirect(proxyAwareUrl("/", request));
+    const next = request.nextUrl.searchParams.get("next");
+    const nextPath = next && next.startsWith("/") && !next.startsWith("//") && !next.includes("\\") ? next : "/";
+    return NextResponse.redirect(proxyAwareUrl(nextPath, request));
   }
 
   if (!user && !isPublicPage) {
-    return NextResponse.redirect(proxyAwareUrl("/login", request));
+    return NextResponse.redirect(loginUrlWithNext(request));
   }
 
   return supabaseResponse;

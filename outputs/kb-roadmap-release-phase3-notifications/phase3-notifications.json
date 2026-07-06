@@ -1,0 +1,42 @@
+{
+  "createdAt": "2026-07-06T14:27:57.565Z",
+  "mode": "check",
+  "checks": [
+    {
+      "id": "templates",
+      "label": "Notification event templates exist and are idempotent",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "shared-emitter",
+      "label": "Shared content notification emitter scopes and queues events",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "knowledgebase-hooks",
+      "label": "Knowledgebase publish/update/featured actions emit events",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "roadmap-hooks",
+      "label": "Roadmap submit/status/comment/done actions emit events",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "release-hooks",
+      "label": "Release publish/featured/highlight actions emit events",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "admin-toggles",
+      "label": "Existing notification settings UI can manage event toggles",
+      "status": "passed",
+      "failures": []
+    }
+  ]
+}

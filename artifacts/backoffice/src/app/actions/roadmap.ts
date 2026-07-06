@@ -27,6 +27,7 @@ import { revalidatePath } from "next/cache";
 import { requirePlatformAdmin } from "@/lib/auth/platform";
 import { getCurrentEffectiveUserPermissions, requirePermission } from "@/lib/auth/permissions";
 import { getCurrentBackofficeUser, requireCurrentTenantId } from "@/lib/auth/tenant";
+import { emitFieldgridContentNotification } from "@/lib/content-notification-events";
 
 export type RoadmapModuleOption = {
   key: string;
@@ -195,6 +196,56 @@ function normalizeAudienceKeys(values: string[]): FieldgridContentAudience[] {
 function revalidateRoadmapPaths(): void {
   revalidatePath("/platform/roadmap");
   revalidatePath("/roadmap");
+}
+
+async function roadmapNotificationScope(itemId: string): Promise<{
+  item: { id: string; title: string; status: RoadmapStatus; scope: RoadmapScope; tenantId: string | null; publicVisible: boolean };
+  tenantIds: string[] | undefined;
+  moduleKeys: string[];
+  audienceKeys: FieldgridContentAudience[];
+} | null> {
+  const [item] = await db
+    .select({
+      id: roadmapItemsTable.id,
+      title: roadmapItemsTable.title,
+      status: roadmapItemsTable.status,
+      scope: roadmapItemsTable.scope,
+      tenantId: roadmapItemsTable.tenantId,
+      publicVisible: roadmapItemsTable.publicVisible,
+    })
+    .from(roadmapItemsTable)
+    .where(eq(roadmapItemsTable.id, itemId))
+    .limit(1);
+
+  if (!item) return null;
+
+  const [moduleRows, audienceRows, tenantLinkRows] = await Promise.all([
+    db
+      .select({ moduleKey: roadmapItemModulesTable.moduleKey })
+      .from(roadmapItemModulesTable)
+      .where(eq(roadmapItemModulesTable.roadmapItemId, itemId)),
+    db
+      .select({ audienceKey: roadmapItemAudiencesTable.audienceKey })
+      .from(roadmapItemAudiencesTable)
+      .where(eq(roadmapItemAudiencesTable.roadmapItemId, itemId)),
+    db
+      .select({ tenantId: roadmapItemTenantLinksTable.tenantId })
+      .from(roadmapItemTenantLinksTable)
+      .where(eq(roadmapItemTenantLinksTable.roadmapItemId, itemId)),
+  ]);
+
+  const tenantIds = item.scope === "tenant" && item.tenantId
+    ? [item.tenantId]
+    : item.publicVisible
+      ? undefined
+      : tenantLinkRows.map((row) => row.tenantId);
+
+  return {
+    item,
+    tenantIds,
+    moduleKeys: uniqueStrings(moduleRows.map((row) => row.moduleKey)),
+    audienceKeys: normalizeAudienceKeys(audienceRows.map((row) => row.audienceKey)),
+  };
 }
 
 async function getTenantRoadmapContext(): Promise<RoadmapTenantContext | null> {
@@ -589,7 +640,7 @@ export async function savePlatformRoadmapItemFromForm(formData: FormData): Promi
   if (!slug) throw new Error("Slug is verplicht.");
   if (scope === "tenant" && !tenantId) throw new Error("Tenant is verplicht voor tenantwensen.");
 
-  await db.transaction(async (tx) => {
+  const eventInfo = await db.transaction(async (tx) => {
     const [existing] = id
       ? await tx.select().from(roadmapItemsTable).where(eq(roadmapItemsTable.id, id)).limit(1)
       : [];
@@ -679,9 +730,73 @@ export async function savePlatformRoadmapItemFromForm(formData: FormData): Promi
       resourceId: saved.id,
       metadata: { scope, status, priority, publicVisible, featured, moduleKeys, audienceKeys, releaseIds },
     });
+
+    return {
+      id: saved.id,
+      title: saved.title,
+      previousStatus: existing?.status ?? null,
+      status,
+    };
   });
 
   revalidateRoadmapPaths();
+
+  if (eventInfo.previousStatus && eventInfo.previousStatus !== eventInfo.status) {
+    const scopeInfo = await roadmapNotificationScope(eventInfo.id);
+    if (scopeInfo) {
+      await emitFieldgridContentNotification({
+        eventKey: "roadmap_status_changed",
+        actorUserId: actor.userId,
+        tenantIds: scopeInfo.tenantIds,
+        moduleKeys: scopeInfo.moduleKeys,
+        requiredModuleKeys: ["roadmap"],
+        audienceKeys: scopeInfo.audienceKeys,
+        requiredPermissionKeys: ["roadmap:view"],
+        aggregate: { type: "roadmap", id: eventInfo.id },
+        payload: {
+          roadmap: {
+            id: eventInfo.id,
+            title: eventInfo.title,
+            from_status: eventInfo.previousStatus,
+            to_status: eventInfo.status,
+          },
+        },
+        fallback: {
+          title: `Roadmapstatus gewijzigd: ${eventInfo.title}`,
+          body: `De status is gewijzigd van ${eventInfo.previousStatus} naar ${eventInfo.status}.`,
+          category: "roadmap",
+          href: `/roadmap/${eventInfo.id}`,
+        },
+      });
+
+      if (eventInfo.status === "done") {
+        await emitFieldgridContentNotification({
+          eventKey: "roadmap_item_done",
+          actorUserId: actor.userId,
+          tenantIds: scopeInfo.tenantIds,
+          moduleKeys: scopeInfo.moduleKeys,
+          requiredModuleKeys: ["roadmap"],
+          audienceKeys: scopeInfo.audienceKeys,
+          requiredPermissionKeys: ["roadmap:view"],
+          aggregate: { type: "roadmap", id: eventInfo.id },
+          payload: {
+            roadmap: {
+              id: eventInfo.id,
+              title: eventInfo.title,
+              status: eventInfo.status,
+            },
+          },
+          fallback: {
+            title: `Roadmapitem afgerond: ${eventInfo.title}`,
+            body: "Een roadmapitem dat voor uw tenant zichtbaar is, is afgerond.",
+            category: "roadmap",
+            priority: "high",
+            href: `/roadmap/${eventInfo.id}`,
+          },
+        });
+      }
+    }
+  }
 }
 
 export async function submitTenantRoadmapRequest(formData: FormData): Promise<void> {
@@ -698,7 +813,7 @@ export async function submitTenantRoadmapRequest(formData: FormData): Promise<vo
   if (!title) throw new Error("Titel is verplicht.");
   if (!description) throw new Error("Omschrijving is verplicht.");
 
-  await db.transaction(async (tx) => {
+  const savedItem = await db.transaction(async (tx) => {
     const [saved] = await tx
       .insert(roadmapItemsTable)
       .values({
@@ -751,9 +866,35 @@ export async function submitTenantRoadmapRequest(formData: FormData): Promise<vo
       resourceId: saved.id,
       metadata: { source: "tenant_backoffice", moduleKeys, priority },
     });
+
+    return saved;
   });
 
   revalidateRoadmapPaths();
+
+  await emitFieldgridContentNotification({
+    eventKey: "roadmap_request_submitted",
+    actorUserId: context.userId,
+    tenantIds: [context.tenantId],
+    moduleKeys,
+    requiredModuleKeys: ["roadmap"],
+    audienceKeys: ["tenant_admin", "tenant_management"],
+    requiredPermissionKeys: ["roadmap:view"],
+    aggregate: { type: "roadmap", id: savedItem.id },
+    payload: {
+      roadmap: {
+        id: savedItem.id,
+        title: savedItem.title,
+        priority,
+      },
+    },
+    fallback: {
+      title: `Nieuwe roadmapwens: ${savedItem.title}`,
+      body: "Er is een nieuwe featurewens ingediend vanuit de tenant backoffice.",
+      category: "roadmap",
+      href: `/roadmap/${savedItem.id}`,
+    },
+  });
 }
 
 export async function changePlatformRoadmapStatus(formData: FormData): Promise<void> {
@@ -763,10 +904,10 @@ export async function changePlatformRoadmapStatus(formData: FormData): Promise<v
   const note = String(formData.get("note") ?? "").trim() || null;
   if (!id) return;
 
-  await db.transaction(async (tx) => {
+  const eventInfo = await db.transaction(async (tx) => {
     const [existing] = await tx.select().from(roadmapItemsTable).where(eq(roadmapItemsTable.id, id)).limit(1);
-    if (!existing) return;
-    if (existing.status === status) return;
+    if (!existing) return null;
+    if (existing.status === status) return null;
 
     await tx.update(roadmapItemsTable).set({
       status,
@@ -790,6 +931,136 @@ export async function changePlatformRoadmapStatus(formData: FormData): Promise<v
       resource: "roadmap",
       resourceId: id,
       metadata: { fromStatus: existing.status, toStatus: status, note },
+    });
+
+    return {
+      id,
+      title: existing.title,
+      previousStatus: existing.status,
+      status,
+    };
+  });
+
+  revalidateRoadmapPaths();
+
+  if (eventInfo) {
+    const scopeInfo = await roadmapNotificationScope(eventInfo.id);
+    if (!scopeInfo) return;
+
+    await emitFieldgridContentNotification({
+      eventKey: "roadmap_status_changed",
+      actorUserId: actor.userId,
+      tenantIds: scopeInfo.tenantIds,
+      moduleKeys: scopeInfo.moduleKeys,
+      requiredModuleKeys: ["roadmap"],
+      audienceKeys: scopeInfo.audienceKeys,
+      requiredPermissionKeys: ["roadmap:view"],
+      aggregate: { type: "roadmap", id: eventInfo.id },
+      payload: {
+        roadmap: {
+          id: eventInfo.id,
+          title: eventInfo.title,
+          from_status: eventInfo.previousStatus,
+          to_status: eventInfo.status,
+          note: note ?? "",
+        },
+      },
+      fallback: {
+        title: `Roadmapstatus gewijzigd: ${eventInfo.title}`,
+        body: `De status is gewijzigd van ${eventInfo.previousStatus} naar ${eventInfo.status}.`,
+        category: "roadmap",
+        href: `/roadmap/${eventInfo.id}`,
+      },
+    });
+
+    if (eventInfo.status === "done") {
+      await emitFieldgridContentNotification({
+        eventKey: "roadmap_item_done",
+        actorUserId: actor.userId,
+        tenantIds: scopeInfo.tenantIds,
+        moduleKeys: scopeInfo.moduleKeys,
+        requiredModuleKeys: ["roadmap"],
+        audienceKeys: scopeInfo.audienceKeys,
+        requiredPermissionKeys: ["roadmap:view"],
+        aggregate: { type: "roadmap", id: eventInfo.id },
+        payload: {
+          roadmap: {
+            id: eventInfo.id,
+            title: eventInfo.title,
+            status: eventInfo.status,
+          },
+        },
+        fallback: {
+          title: `Roadmapitem afgerond: ${eventInfo.title}`,
+          body: "Een roadmapitem dat voor uw tenant zichtbaar is, is afgerond.",
+          category: "roadmap",
+          priority: "high",
+          href: `/roadmap/${eventInfo.id}`,
+        },
+      });
+    }
+  }
+}
+
+export async function changePlatformRoadmapPriority(formData: FormData): Promise<void> {
+  const actor = await requirePlatformAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  const priority = normalizePriority(String(formData.get("priority") ?? ""));
+  if (!id) return;
+
+  await db.transaction(async (tx) => {
+    const [existing] = await tx.select().from(roadmapItemsTable).where(eq(roadmapItemsTable.id, id)).limit(1);
+    if (!existing || existing.priority === priority) return;
+
+    await tx.update(roadmapItemsTable).set({
+      priority,
+      updatedBy: actor.userId,
+      updatedAt: new Date(),
+    }).where(eq(roadmapItemsTable.id, id));
+
+    await tx.insert(auditLogTable).values({
+      tenantId: existing.tenantId,
+      userId: actor.userId,
+      action: "roadmap_priority_changed",
+      resource: "roadmap",
+      resourceId: id,
+      metadata: { fromPriority: existing.priority, toPriority: priority },
+    });
+  });
+
+  revalidateRoadmapPaths();
+}
+
+export async function linkPlatformRoadmapReleases(formData: FormData): Promise<void> {
+  const actor = await requirePlatformAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  const releaseIds = uniqueStrings(formData.getAll("releaseIds").map(String));
+  if (!id) return;
+
+  await db.transaction(async (tx) => {
+    const [existing] = await tx.select().from(roadmapItemsTable).where(eq(roadmapItemsTable.id, id)).limit(1);
+    if (!existing) return;
+
+    await tx.delete(releaseRoadmapLinksTable).where(eq(releaseRoadmapLinksTable.roadmapItemId, id));
+    if (releaseIds.length > 0) {
+      await tx.insert(releaseRoadmapLinksTable).values(releaseIds.map((releaseId) => ({
+        roadmapItemId: id,
+        releaseId,
+      })));
+    }
+
+    await tx.update(roadmapItemsTable).set({
+      updatedBy: actor.userId,
+      updatedAt: new Date(),
+    }).where(eq(roadmapItemsTable.id, id));
+
+    await tx.insert(auditLogTable).values({
+      tenantId: existing.tenantId,
+      userId: actor.userId,
+      action: "roadmap_release_links_updated",
+      resource: "roadmap",
+      resourceId: id,
+      metadata: { releaseIds },
     });
   });
 
@@ -819,6 +1090,37 @@ export async function addPlatformRoadmapComment(formData: FormData): Promise<voi
   });
 
   revalidateRoadmapPaths();
+
+  if (visibility === "tenant_visible") {
+    const scopeInfo = await roadmapNotificationScope(id);
+    if (scopeInfo) {
+      await emitFieldgridContentNotification({
+        eventKey: "roadmap_comment_added",
+        actorUserId: actor.userId,
+        tenantIds: scopeInfo.tenantIds,
+        moduleKeys: scopeInfo.moduleKeys,
+        requiredModuleKeys: ["roadmap"],
+        audienceKeys: scopeInfo.audienceKeys,
+        requiredPermissionKeys: ["roadmap:view"],
+        aggregate: { type: "roadmap", id },
+        payload: {
+          roadmap: {
+            id,
+            title: scopeInfo.item.title,
+          },
+          comment: {
+            body: body.slice(0, 240),
+          },
+        },
+        fallback: {
+          title: `Nieuwe roadmapreactie: ${scopeInfo.item.title}`,
+          body: body.slice(0, 500),
+          category: "roadmap",
+          href: `/roadmap/${id}`,
+        },
+      });
+    }
+  }
 }
 
 export async function addTenantRoadmapComment(formData: FormData): Promise<void> {
@@ -851,6 +1153,32 @@ export async function addTenantRoadmapComment(formData: FormData): Promise<void>
   });
 
   revalidateRoadmapPaths();
+
+  await emitFieldgridContentNotification({
+    eventKey: "roadmap_comment_added",
+    actorUserId: context.userId,
+    tenantIds: [context.tenantId],
+    moduleKeys: item.moduleKeys,
+    requiredModuleKeys: ["roadmap"],
+    audienceKeys: item.audienceKeys,
+    requiredPermissionKeys: ["roadmap:view"],
+    aggregate: { type: "roadmap", id },
+    payload: {
+      roadmap: {
+        id,
+        title: item.title,
+      },
+      comment: {
+        body: body.slice(0, 240),
+      },
+    },
+    fallback: {
+      title: `Nieuwe roadmapreactie: ${item.title}`,
+      body: body.slice(0, 500),
+      category: "roadmap",
+      href: `/roadmap/${id}`,
+    },
+  });
 }
 
 export async function toggleTenantRoadmapVote(formData: FormData): Promise<void> {
@@ -887,22 +1215,79 @@ export async function archivePlatformRoadmapItem(formData: FormData): Promise<vo
   const id = String(formData.get("id") ?? "").trim();
   if (!id) return;
 
-  await db.update(roadmapItemsTable).set({
-    status: "archived",
-    archivedAt: new Date(),
-    updatedBy: actor.userId,
-    updatedAt: new Date(),
-  }).where(eq(roadmapItemsTable.id, id));
+  const eventInfo = await db.transaction(async (tx) => {
+    const [existing] = await tx.select().from(roadmapItemsTable).where(eq(roadmapItemsTable.id, id)).limit(1);
+    if (!existing) return null;
 
-  await db.insert(auditLogTable).values({
-    userId: actor.userId,
-    action: "roadmap_item_archived",
-    resource: "roadmap",
-    resourceId: id,
-    metadata: {},
+    const now = new Date();
+    await tx.update(roadmapItemsTable).set({
+      status: "archived",
+      archivedAt: existing.archivedAt ?? now,
+      updatedBy: actor.userId,
+      updatedAt: now,
+    }).where(eq(roadmapItemsTable.id, id));
+
+    if (existing.status !== "archived") {
+      await tx.insert(roadmapItemStatusHistoryTable).values({
+        roadmapItemId: id,
+        fromStatus: existing.status,
+        toStatus: "archived",
+        changedBy: actor.userId,
+        note: "Gearchiveerd via snelle triage.",
+      });
+    }
+
+    await tx.insert(auditLogTable).values({
+      tenantId: existing.tenantId,
+      userId: actor.userId,
+      action: "roadmap_item_archived",
+      resource: "roadmap",
+      resourceId: id,
+      metadata: { fromStatus: existing.status, toStatus: "archived" },
+    });
+
+    return existing.status === "archived"
+      ? null
+      : {
+        id,
+        title: existing.title,
+        previousStatus: existing.status,
+        status: "archived" as RoadmapStatus,
+      };
   });
 
   revalidateRoadmapPaths();
+
+  if (eventInfo) {
+    const scopeInfo = await roadmapNotificationScope(eventInfo.id);
+    if (!scopeInfo) return;
+
+    await emitFieldgridContentNotification({
+      eventKey: "roadmap_status_changed",
+      actorUserId: actor.userId,
+      tenantIds: scopeInfo.tenantIds,
+      moduleKeys: scopeInfo.moduleKeys,
+      requiredModuleKeys: ["roadmap"],
+      audienceKeys: scopeInfo.audienceKeys,
+      requiredPermissionKeys: ["roadmap:view"],
+      aggregate: { type: "roadmap", id: eventInfo.id },
+      payload: {
+        roadmap: {
+          id: eventInfo.id,
+          title: eventInfo.title,
+          from_status: eventInfo.previousStatus,
+          to_status: eventInfo.status,
+          note: "Gearchiveerd via snelle triage.",
+        },
+      },
+      fallback: {
+        title: `Roadmapstatus gewijzigd: ${eventInfo.title}`,
+        body: `De status is gewijzigd van ${eventInfo.previousStatus} naar archived.`,
+        category: "roadmap",
+        href: `/roadmap/${eventInfo.id}`,
+      },
+    });
+  }
 }
 
 export async function convertRoadmapItemToGlobal(formData: FormData): Promise<void> {

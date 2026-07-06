@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Check, ImagePlus, Loader2, Save } from "lucide-react";
 import {
   saveKnowledgebaseArticle,
+  saveTenantKnowledgebaseArticle,
+  uploadTenantKnowledgebaseMedia,
   uploadKnowledgebaseMedia,
   type KnowledgebaseEditorOptions,
   type SaveKnowledgebaseArticleInput,
@@ -21,6 +23,9 @@ import type { FieldgridContentAudience, FieldgridContentStatus, KnowledgebaseArt
 type KnowledgebaseArticleFormProps = {
   article: KnowledgebaseArticleSummary | null;
   options: KnowledgebaseEditorOptions;
+  mode?: "platform" | "tenant";
+  afterCreatePath?: (id: string) => string;
+  mediaBasePath?: string;
 };
 
 function csv(values: string[]): string {
@@ -58,7 +63,13 @@ function statusLabel(status: FieldgridContentStatus): string {
   return "Concept";
 }
 
-export function KnowledgebaseArticleForm({ article, options }: KnowledgebaseArticleFormProps) {
+export function KnowledgebaseArticleForm({
+  article,
+  options,
+  mode = "platform",
+  afterCreatePath = (id) => `/platform/knowledgebase/articles/${id}`,
+  mediaBasePath = "/platform/knowledgebase/media",
+}: KnowledgebaseArticleFormProps) {
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
@@ -123,7 +134,9 @@ export function KnowledgebaseArticleForm({ article, options }: KnowledgebaseArti
     };
 
     startTransition(async () => {
-      const result = await saveKnowledgebaseArticle(payload);
+      const result = mode === "tenant"
+        ? await saveTenantKnowledgebaseArticle(payload)
+        : await saveKnowledgebaseArticle(payload);
       if (!result.success) {
         setMessage(result.message);
         return;
@@ -132,7 +145,7 @@ export function KnowledgebaseArticleForm({ article, options }: KnowledgebaseArti
       setSavedArticleId(result.data.id);
       setMessage("Artikel opgeslagen.");
       if (!article) {
-        router.replace(`/platform/knowledgebase/articles/${result.data.id}`);
+        router.replace(afterCreatePath(result.data.id));
       } else {
         router.refresh();
       }
@@ -152,7 +165,9 @@ export function KnowledgebaseArticleForm({ article, options }: KnowledgebaseArti
     formData.set("articleId", savedArticleId);
 
     startUploadTransition(async () => {
-      const result = await uploadKnowledgebaseMedia(formData);
+      const result = mode === "tenant"
+        ? await uploadTenantKnowledgebaseMedia(formData)
+        : await uploadKnowledgebaseMedia(formData);
       if (!result.success) {
         setMessage(result.message);
         return;
@@ -201,6 +216,7 @@ export function KnowledgebaseArticleForm({ article, options }: KnowledgebaseArti
           </div>
           <TipTapKnowledgebaseEditor
             initialHtml={article?.contentHtml}
+            media={article?.media ?? []}
             onChange={(html, json) => {
               setContentHtml(html);
               setContentJson(json);
@@ -372,9 +388,12 @@ export function KnowledgebaseArticleForm({ article, options }: KnowledgebaseArti
 
         <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-950">Media</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Upload media eerst hier en voeg deze daarna inline in via de editor-toolbar. Alt-tekst is verplicht voor toegankelijke artikelen.
+          </p>
           <form onSubmit={uploadMedia} className="mt-3 grid gap-3">
             <Input ref={fileInputRef} name="file" type="file" accept="image/*,video/mp4,video/webm,application/pdf" />
-            <Input name="altText" placeholder="Alt-tekst" />
+            <Input name="altText" placeholder="Alt-tekst (verplicht)" required />
             <Input name="caption" placeholder="Caption" />
             <Button type="submit" variant="outline" disabled={isUploading || !savedArticleId} className="gap-2">
               {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}
@@ -388,7 +407,7 @@ export function KnowledgebaseArticleForm({ article, options }: KnowledgebaseArti
             ) : article?.media.map((item) => (
               <a
                 key={item.id}
-                href={`/platform/knowledgebase/media/${item.id}`}
+                href={`${mediaBasePath}/${item.id}`}
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"

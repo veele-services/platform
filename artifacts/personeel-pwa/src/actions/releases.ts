@@ -4,11 +4,14 @@ import {
   auditLogTable,
   db,
   getActiveReleaseHighlightsForContext,
+  getReleaseMediaByIdForContext,
   getReleaseBySlugForContext,
   listEnabledKnowledgebaseModuleKeysForTenant,
   listReleasesForContext,
   releaseDismissalsTable,
+  releaseReadReceiptsTable,
   type ReleaseHighlightSummary,
+  type ReleaseMediaAccess,
   type ReleaseSummary,
 } from "@workspace/db";
 import { revalidatePath } from "next/cache";
@@ -50,6 +53,29 @@ export async function getPersonnelRelease(slug: string): Promise<ReleaseSummary 
   const context = await personnelReleaseContext();
   if (!context) return null;
   return getReleaseBySlugForContext(context, slug);
+}
+
+export async function recordPersonnelReleaseRead(slug: string): Promise<void> {
+  const context = await personnelReleaseContext();
+  if (!context?.personnelId) return;
+  const release = await getReleaseBySlugForContext(context, slug);
+  if (!release) return;
+
+  await db.insert(releaseReadReceiptsTable).values({
+    releaseId: release.id,
+    tenantId: context.tenantId,
+    userId: context.userId,
+    personnelId: context.personnelId,
+    surface: "personnel_pwa",
+    audienceKey: "tenant_personnel",
+    metadata: { slug },
+  }).onConflictDoNothing();
+}
+
+export async function getPersonnelReleaseMedia(mediaId: string): Promise<ReleaseMediaAccess | null> {
+  const context = await personnelReleaseContext();
+  if (!context) return null;
+  return getReleaseMediaByIdForContext(context, mediaId);
 }
 
 export async function getPersonnelReleaseHighlight(): Promise<ReleaseHighlightSummary | null> {

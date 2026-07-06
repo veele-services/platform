@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
+import { ResolvedFeatureHelp } from "@/components/knowledgebase/ResolvedFeatureHelp";
 import { AssignmentsView } from "@/components/assignments/AssignmentsView";
 import { getCustomerOptions } from "@/app/actions/assignments";
 import { listAssignmentsRegionAware } from "@/app/actions/region-runtime";
@@ -47,6 +48,10 @@ export default async function AssignmentsPage({ searchParams }: Props) {
 
   return (
     <div className="mx-auto w-full max-w-[1600px] p-6">
+      <div className="mb-2 flex items-center gap-2">
+        <h1 className="font-heading text-2xl font-semibold text-slate-950">Opdrachten</h1>
+        <ResolvedFeatureHelp featureKey="tenant.assignments" moduleKey="assignments" />
+      </div>
       <p className="mb-4 text-sm" style={{ color: "#64748B" }}>
         {total === 0
           ? "Nog geen opdrachten aangemaakt."

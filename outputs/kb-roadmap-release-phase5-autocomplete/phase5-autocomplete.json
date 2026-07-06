@@ -1,0 +1,36 @@
+{
+  "createdAt": "2026-07-06T14:28:20.781Z",
+  "mode": "check",
+  "checks": [
+    {
+      "id": "search-helper",
+      "label": "Search helper covers title, content, keywords, smart terms, category and module",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "surface-actions",
+      "label": "All surfaces expose visibility-filtered suggestion actions",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "api-routes",
+      "label": "All surfaces have autocomplete JSON endpoints",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "autocomplete-components",
+      "label": "Autocomplete components work on desktop and mobile",
+      "status": "passed",
+      "failures": []
+    },
+    {
+      "id": "help-pages",
+      "label": "All Help pages use autocomplete and no-results states",
+      "status": "passed",
+      "failures": []
+    }
+  ]
+}
