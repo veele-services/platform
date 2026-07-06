@@ -51,7 +51,7 @@ export default async function TenantHelpArticlePage({ params }: Props) {
               {article.media.map((item) => (
                 <a
                   key={item.id}
-                  href={item.publicUrl ?? "#"}
+                  href={`/help/media/${item.id}`}
                   target="_blank"
                   rel="noreferrer"
                   className="flex items-center gap-3 rounded-md border border-slate-200 p-3 text-sm hover:bg-slate-50"

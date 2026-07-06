@@ -68,6 +68,12 @@ export type KnowledgebaseArticleMediaSummary = {
   sortOrder: number;
 };
 
+export type KnowledgebaseMediaAccess = KnowledgebaseArticleMediaSummary & {
+  articleId: string;
+  articleSlug: string;
+  articleTitle: string;
+};
+
 export type KnowledgebaseRelatedArticleSummary = {
   id: string;
   title: string;
@@ -423,7 +429,7 @@ function mapMedia(row: KbArticleMedia): KnowledgebaseArticleMediaSummary {
     id: row.id,
     mediaType: row.mediaType,
     storagePath: row.storagePath,
-    publicUrl: row.publicUrl,
+    publicUrl: null,
     mimeType: row.mimeType,
     sizeBytes: row.sizeBytes,
     altText: row.altText,
@@ -587,6 +593,50 @@ export async function getKnowledgebaseArticleByIdForContext(
 ): Promise<KnowledgebaseArticleSummary | null> {
   const articles = await listKnowledgebaseArticlesForContext(context, options);
   return articles.find((article) => article.id === id) ?? null;
+}
+
+export async function getKnowledgebaseMediaByIdForContext(
+  context: FieldgridContentVisibilityContext,
+  mediaId: string,
+  options: Omit<KnowledgebaseListOptions, "query" | "limit"> = {},
+): Promise<KnowledgebaseMediaAccess | null> {
+  const [media] = await db
+    .select({
+      id: kbArticleMediaTable.id,
+      articleId: kbArticleMediaTable.articleId,
+      mediaType: kbArticleMediaTable.mediaType,
+      storagePath: kbArticleMediaTable.storagePath,
+      publicUrl: kbArticleMediaTable.publicUrl,
+      mimeType: kbArticleMediaTable.mimeType,
+      sizeBytes: kbArticleMediaTable.sizeBytes,
+      altText: kbArticleMediaTable.altText,
+      caption: kbArticleMediaTable.caption,
+      sortOrder: kbArticleMediaTable.sortOrder,
+    })
+    .from(kbArticleMediaTable)
+    .where(eq(kbArticleMediaTable.id, mediaId))
+    .limit(1);
+
+  if (!media) return null;
+
+  const article = await getKnowledgebaseArticleByIdForContext(context, media.articleId, options);
+  if (!article) return null;
+  if (!article.media.some((item) => item.id === media.id)) return null;
+
+  return {
+    id: media.id,
+    articleId: media.articleId,
+    articleSlug: article.slug,
+    articleTitle: article.title,
+    mediaType: media.mediaType,
+    storagePath: media.storagePath,
+    publicUrl: null,
+    mimeType: media.mimeType,
+    sizeBytes: media.sizeBytes,
+    altText: media.altText,
+    caption: media.caption,
+    sortOrder: media.sortOrder,
+  };
 }
 
 export async function listKnowledgebaseHelpIndexForContext(

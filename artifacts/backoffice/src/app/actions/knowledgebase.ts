@@ -597,7 +597,6 @@ export async function uploadKnowledgebaseMedia(formData: FormData): Promise<Acti
 
     if (error) return { success: false, message: `Upload mislukt: ${error.message}` };
 
-    const { data: { publicUrl } } = supabase.storage.from(KB_MEDIA_BUCKET).getPublicUrl(path);
     const [saved] = await db
       .insert(kbArticleMediaTable)
       .values({
@@ -606,7 +605,7 @@ export async function uploadKnowledgebaseMedia(formData: FormData): Promise<Acti
         scope: "platform_global",
         mediaType,
         storagePath: path,
-        publicUrl,
+        publicUrl: null,
         mimeType: file.type,
         sizeBytes: file.size,
         altText,
@@ -624,7 +623,7 @@ export async function uploadKnowledgebaseMedia(formData: FormData): Promise<Acti
     });
 
     revalidateKnowledgebasePaths();
-    return { success: true, data: { id: saved.id, url: publicUrl, path } };
+    return { success: true, data: { id: saved.id, url: `/platform/knowledgebase/media/${saved.id}`, path } };
   } catch (error) {
     return { success: false, message: (error as Error).message || "Media uploaden mislukt." };
   }

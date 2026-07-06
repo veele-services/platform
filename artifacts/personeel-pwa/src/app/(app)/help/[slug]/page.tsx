@@ -46,7 +46,7 @@ export default async function PersonnelHelpArticlePage({ params }: Props) {
             <h2 className="font-black" style={{ color: "var(--color-primary)" }}>Media en bijlagen</h2>
             <div className="mt-3 grid gap-2">
               {article.media.map((item) => (
-                <a key={item.id} href={item.publicUrl ?? "#"} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm">
+                <a key={item.id} href={`/help/media/${item.id}`} target="_blank" rel="noreferrer" className="flex items-center gap-3 rounded-xl border border-slate-200 p-3 text-sm">
                   <FileText className="h-4 w-4" style={{ color: "var(--color-accent)" }} />
                   <span className="min-w-0 flex-1 truncate">{item.caption || item.altText || item.storagePath}</span>
                 </a>

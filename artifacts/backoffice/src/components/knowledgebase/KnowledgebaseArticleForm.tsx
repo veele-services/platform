@@ -388,7 +388,7 @@ export function KnowledgebaseArticleForm({ article, options }: KnowledgebaseArti
             ) : article?.media.map((item) => (
               <a
                 key={item.id}
-                href={item.publicUrl ?? "#"}
+                href={`/platform/knowledgebase/media/${item.id}`}
                 target="_blank"
                 rel="noreferrer"
                 className="flex items-center gap-2 rounded-md border border-slate-200 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50"
