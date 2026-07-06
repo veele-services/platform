@@ -26,6 +26,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ResolvedFeatureHelp } from "@/components/knowledgebase/ResolvedFeatureHelp";
+import { RoadmapBoardClient } from "./RoadmapBoardClient";
 import type { RoadmapPriority, RoadmapStatus } from "@workspace/db";
 
 export const metadata = {
@@ -585,7 +586,6 @@ export default async function PlatformRoadmapPage({ searchParams }: Props) {
   const resolvedSearchParams = await searchParams;
   const selectedItemId = normalizedSearchParam(resolvedSearchParams.item);
   const { items, options } = await listPlatformRoadmapBoard();
-  const selectedItem = items.find((item) => item.id === selectedItemId) ?? null;
   const tenantRequests = items.filter((item) => item.scope === "tenant").length;
   const globalItems = items.filter((item) => item.scope === "global").length;
   const doneItems = items.filter((item) => item.status === "done").length;
@@ -613,20 +613,7 @@ export default async function PlatformRoadmapPage({ searchParams }: Props) {
 
         <RoadmapCreateForm options={options} />
 
-        <section className="grid gap-5 2xl:grid-cols-[minmax(0,1fr)_420px]">
-          <div className="grid gap-4 xl:grid-cols-4">
-            {STATUS_COLUMNS.map((column) => (
-              <RoadmapColumn
-                key={column.key}
-                column={column}
-                items={items}
-                options={options}
-                selectedItemId={selectedItemId}
-              />
-            ))}
-          </div>
-          <TriagePanel item={selectedItem} options={options} />
-        </section>
+        <RoadmapBoardClient items={items} options={options} selectedItemId={selectedItemId} />
 
         <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="flex items-center gap-2 text-lg font-semibold text-slate-950">
