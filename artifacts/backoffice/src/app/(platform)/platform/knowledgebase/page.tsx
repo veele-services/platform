@@ -7,13 +7,20 @@ import {
 import { Button } from "@/components/ui/button";
 import { ResolvedFeatureHelp } from "@/components/knowledgebase/ResolvedFeatureHelp";
 import { Badge } from "@/components/ui/badge";
+import { PlatformContentPreviewPanel } from "@/components/platform/PlatformContentPreviewPanel";
+import { getPlatformContentPreviewModel } from "@/lib/platform-content-preview";
 
 export const metadata = {
   title: "Knowledgebase",
 };
 
 type Props = {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{
+    q?: string;
+    previewMode?: string | string[];
+    previewTenantId?: string | string[];
+    previewModuleKeys?: string | string[];
+  }>;
 };
 
 async function archiveArticleAction(formData: FormData): Promise<void> {
@@ -37,8 +44,12 @@ function formatDate(value: string | null): string {
 }
 
 export default async function PlatformKnowledgebasePage({ searchParams }: Props) {
-  const { q } = await searchParams;
-  const articles = await listKnowledgebaseManagementArticles(q);
+  const resolvedSearchParams = await searchParams;
+  const { q } = resolvedSearchParams;
+  const [articles, previewModel] = await Promise.all([
+    listKnowledgebaseManagementArticles(q),
+    getPlatformContentPreviewModel("knowledgebase", resolvedSearchParams),
+  ]);
   const published = articles.filter((article) => article.status === "published").length;
   const drafts = articles.filter((article) => article.status === "draft").length;
   const archived = articles.filter((article) => article.status === "archived").length;
@@ -94,6 +105,12 @@ export default async function PlatformKnowledgebasePage({ searchParams }: Props)
             <p className="mt-2 text-3xl font-semibold text-slate-950">{archived}</p>
           </div>
         </section>
+
+        <PlatformContentPreviewPanel
+          resource="knowledgebase"
+          model={previewModel}
+          preserveParams={{ q }}
+        />
 
         <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
           <div className="flex flex-col gap-3 border-b border-slate-200 p-4 md:flex-row md:items-center md:justify-between">

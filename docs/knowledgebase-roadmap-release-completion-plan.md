@@ -238,20 +238,26 @@ Doel: platform admin kan vooraf zien wat een doelgroep ziet.
 
 Geraakte UI's:
 
-- Platform KB article editor/detail.
-- Platform release editor/detail.
-- Platform tooltip beheer.
+- Platform KB-artikelen: `/platform/knowledgebase`.
+- Platform releasebeheer: `/platform/releases`.
+- Platform tooltipbeheer: `/platform/knowledgebase/tooltips`.
+- Gedeeld previewpaneel: `PlatformContentPreviewPanel`.
 
 Taken:
 
-- Preview selector voor tenant, surface, audience en rol.
-- Preview gebruikt echte visibility helpers.
-- Toon zichtbaarheidsoordeel en blokkaderedenen.
+- Preview selector voor tenant, role/audience en modules.
+- Preview gebruikt dezelfde runtime visibility helpers:
+  `explainPublishedContentVisibility`, `explainReleaseVisibility` en
+  `explainKnowledgebaseFeatureHelpVisibility`.
+- Toon runtime context, actieve modules, permissies, zichtbaarheidsoordeel en blokkaderedenen.
+- Gate: `fieldgrid:kb-roadmap-release-phase6-preview:check`.
 
 Klaar wanneer:
 
 - Preview komt overeen met runtime portalweergave.
 - Platform admin kan zichtbaarheid debuggen zonder handmatig in te loggen als testgebruiker.
+- KB-artikelen, releases en tooltips tonen hetzelfde previewpaneel.
+- Tenant/module/role selectors zijn via queryparameters deelbaar.
 
 ## Fase 7 - TipTap Editor Volledig Maken
 

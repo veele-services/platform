@@ -37,6 +37,13 @@ export type KnowledgebaseFeatureHelpOptions = {
   articleHrefMode?: "slug" | "id";
 };
 
+export type KnowledgebaseFeatureHelpVisibilityExplanation = {
+  visible: boolean;
+  reasons: string[];
+  matched: string[];
+  help: KnowledgebaseFeatureHelp | null;
+};
+
 const PLACEMENTS = new Set(["top", "right", "bottom", "left"]);
 
 function normalizePlacement(value: string): "top" | "right" | "bottom" | "left" {
@@ -201,4 +208,95 @@ export async function listKnowledgebaseFeatureHelpsForContext(
   );
 
   return Object.fromEntries(entries);
+}
+
+export async function explainKnowledgebaseFeatureHelpVisibility(
+  context: FieldgridContentVisibilityContext,
+  featureKey: string,
+  options: KnowledgebaseFeatureHelpOptions = {},
+): Promise<KnowledgebaseFeatureHelpVisibilityExplanation> {
+  const help = await getKnowledgebaseFeatureHelpForContext(context, featureKey, options);
+  if (help) {
+    return {
+      visible: true,
+      reasons: [],
+      matched: ["Tooltip resolver retourneert zichtbare hulp voor deze context."],
+      help,
+    };
+  }
+
+  const stableKey = featureKey.trim();
+  if (!stableKey) {
+    return { visible: false, reasons: ["Tooltip-key ontbreekt."], matched: [], help: null };
+  }
+
+  const [tooltip] = await db
+    .select({
+      id: kbTooltipsTable.id,
+      stableKey: kbTooltipsTable.stableKey,
+      title: kbTooltipsTable.title,
+      articleId: kbTooltipsTable.articleId,
+      moduleKey: kbTooltipsTable.moduleKey,
+      permissionKey: kbTooltipsTable.permissionKey,
+      status: kbTooltipsTable.status,
+    })
+    .from(kbTooltipsTable)
+    .where(eq(kbTooltipsTable.stableKey, stableKey))
+    .limit(1);
+
+  if (!tooltip) {
+    return { visible: false, reasons: ["Tooltip bestaat niet."], matched: [], help: null };
+  }
+
+  const normalizedContext = normalizeVisibilityContext(context);
+  const reasons: string[] = [];
+  const matched: string[] = [];
+
+  if (tooltip.status === "published") {
+    matched.push("Tooltip is gepubliceerd.");
+  } else {
+    reasons.push(`Tooltipstatus is ${tooltip.status}, niet gepubliceerd.`);
+  }
+
+  const moduleKey = options.moduleKey ?? tooltip.moduleKey;
+  if (!moduleKey || normalizedContext.isPlatformAdmin || normalizedContext.activeModuleKeys.includes(moduleKey)) {
+    matched.push("Tooltip module-scope matcht.");
+  } else {
+    reasons.push(`Tooltipmodule ontbreekt of is niet actief: ${moduleKey}.`);
+  }
+
+  if (!tooltip.permissionKey || normalizedContext.isPlatformAdmin || normalizedContext.permissionKeys.includes(tooltip.permissionKey)) {
+    matched.push("Tooltip permissie-scope matcht.");
+  } else {
+    reasons.push(`Tooltippermissie ontbreekt: ${tooltip.permissionKey}.`);
+  }
+
+  const audienceRows = await db
+    .select({ audienceKey: kbTooltipAudiencesTable.audienceKey })
+    .from(kbTooltipAudiencesTable)
+    .where(eq(kbTooltipAudiencesTable.tooltipId, tooltip.id));
+  const tooltipAudiences = audienceRows.map((row) => row.audienceKey);
+  if (hasAudience(context, tooltipAudiences, options.audience)) {
+    matched.push("Tooltip audience-scope matcht.");
+  } else {
+    reasons.push(`Tooltip audience vereist ${tooltipAudiences.join(", ") || "geen specifieke audience"}.`);
+  }
+
+  if (tooltip.articleId) {
+    const article = await getKnowledgebaseArticleByIdForContext(context, tooltip.articleId);
+    if (article) {
+      matched.push("Gekoppeld artikel is zichtbaar.");
+    } else {
+      reasons.push("Gekoppeld artikel is niet zichtbaar voor deze context.");
+    }
+  } else {
+    matched.push("Geen gekoppeld artikel vereist.");
+  }
+
+  return {
+    visible: false,
+    reasons,
+    matched,
+    help: null,
+  };
 }

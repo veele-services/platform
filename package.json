@@ -49,6 +49,8 @@
     "fieldgrid:kb-roadmap-release-phase3-notifications:check": "node scripts/fieldgrid-kb-roadmap-release-phase3-notifications.mjs --check",
     "fieldgrid:kb-roadmap-release-phase5-autocomplete": "node scripts/fieldgrid-kb-roadmap-release-phase5-autocomplete.mjs",
     "fieldgrid:kb-roadmap-release-phase5-autocomplete:check": "node scripts/fieldgrid-kb-roadmap-release-phase5-autocomplete.mjs --check",
+    "fieldgrid:kb-roadmap-release-phase6-preview": "node scripts/fieldgrid-kb-roadmap-release-phase6-preview.mjs",
+    "fieldgrid:kb-roadmap-release-phase6-preview:check": "node scripts/fieldgrid-kb-roadmap-release-phase6-preview.mjs --check",
     "db:generate": "pnpm --filter @workspace/db run generate",
     "db:migrate": "pnpm --filter @workspace/db run db:migrate",
     "db:baseline": "pnpm --filter @workspace/db run db:baseline",

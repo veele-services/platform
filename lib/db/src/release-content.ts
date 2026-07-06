@@ -21,6 +21,7 @@ export type ReleaseVisibilityContext = {
   surface: ReleaseHighlightSurface;
   audiences: FieldgridContentAudience[];
   activeModuleKeys: string[];
+  permissionKeys?: readonly string[];
   userId?: string | null;
   personnelId?: string | null;
   customerId?: string | null;
@@ -117,6 +118,56 @@ function canReadRelease(context: ReleaseVisibilityContext, release: Pick<Release
   if (release.audienceKeys.length > 0 && !intersects(release.audienceKeys, context.audiences)) return false;
   if (release.moduleKeys.length > 0 && !intersects(release.moduleKeys, context.activeModuleKeys)) return false;
   return true;
+}
+
+export type ReleaseVisibilityExplanation = {
+  visible: boolean;
+  reasons: string[];
+  matched: string[];
+};
+
+export function explainReleaseVisibility(
+  context: ReleaseVisibilityContext,
+  release: Pick<ReleaseSummary, "status" | "archivedAt" | "audienceKeys" | "moduleKeys">,
+  options: { includeUnpublished?: boolean; requireViewPermission?: boolean } = {},
+): ReleaseVisibilityExplanation {
+  const reasons: string[] = [];
+  const matched: string[] = [];
+  const visibleByReleaseResolver = canReadRelease(context, release, options.includeUnpublished);
+
+  if (context.isPlatformAdmin && options.includeUnpublished) {
+    matched.push("Platform admin preview mag concepten en archief inspecteren.");
+  } else if (release.status === "published" && !release.archivedAt) {
+    matched.push("Release is gepubliceerd en niet gearchiveerd.");
+  } else if (release.status !== "published") {
+    reasons.push(`Status is ${release.status}, niet gepubliceerd.`);
+  } else {
+    reasons.push("Release is gearchiveerd.");
+  }
+
+  if (release.audienceKeys.length === 0 || intersects(release.audienceKeys, context.audiences) || (context.isPlatformAdmin && options.includeUnpublished)) {
+    matched.push("Audience scope matcht.");
+  } else {
+    reasons.push(`Audience vereist ${release.audienceKeys.join(", ")}.`);
+  }
+
+  if (release.moduleKeys.length === 0 || intersects(release.moduleKeys, context.activeModuleKeys) || (context.isPlatformAdmin && options.includeUnpublished)) {
+    matched.push("Module scope matcht.");
+  } else {
+    reasons.push(`Module ontbreekt of is niet actief: ${release.moduleKeys.join(", ")}.`);
+  }
+
+  if (options.requireViewPermission && !context.isPlatformAdmin && context.permissionKeys && !context.permissionKeys.includes("releases:view")) {
+    reasons.push("Permissie ontbreekt: releases:view.");
+  } else if (options.requireViewPermission) {
+    matched.push("Permissie releases:view matcht.");
+  }
+
+  return {
+    visible: visibleByReleaseResolver && reasons.length === 0,
+    reasons,
+    matched,
+  };
 }
 
 async function loadReleaseRelations(releaseIds: string[]): Promise<ReleaseRelationMaps> {

@@ -9,9 +9,19 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ResolvedFeatureHelp } from "@/components/knowledgebase/ResolvedFeatureHelp";
+import { PlatformContentPreviewPanel } from "@/components/platform/PlatformContentPreviewPanel";
+import { getPlatformContentPreviewModel } from "@/lib/platform-content-preview";
 
 export const metadata = {
   title: "Releases",
+};
+
+type Props = {
+  searchParams: Promise<{
+    previewMode?: string | string[];
+    previewTenantId?: string | string[];
+    previewModuleKeys?: string | string[];
+  }>;
 };
 
 async function categoryAction(formData: FormData): Promise<void> {
@@ -42,10 +52,12 @@ function formatDate(value: string | null): string {
   return new Intl.DateTimeFormat("nl-NL", { dateStyle: "medium", timeStyle: "short" }).format(new Date(value));
 }
 
-export default async function PlatformReleasesPage() {
-  const [releases, options] = await Promise.all([
+export default async function PlatformReleasesPage({ searchParams }: Props) {
+  const resolvedSearchParams = await searchParams;
+  const [releases, options, previewModel] = await Promise.all([
     listPlatformReleases(),
     listReleaseEditorOptions(),
+    getPlatformContentPreviewModel("releases", resolvedSearchParams),
   ]);
   const published = releases.filter((release) => release.status === "published").length;
   const drafts = releases.filter((release) => release.status === "draft").length;
@@ -75,6 +87,11 @@ export default async function PlatformReleasesPage() {
             </Button>
           </div>
         </header>
+
+        <PlatformContentPreviewPanel
+          resource="releases"
+          model={previewModel}
+        />
 
         <section className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_360px]">
           <div className="rounded-lg border border-slate-200 bg-white shadow-sm">
