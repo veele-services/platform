@@ -15,10 +15,24 @@ import { eq, and, lte, gte, inArray, isNull, or, asc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { sendEmail, buildLeaveDecisionEmail } from "@/lib/email";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, LeaveType, AvailabilityStatus };
+
+async function hasTenantPersonnel(personnelId: string): Promise<boolean> {
+  const tenantId = await requireCurrentTenantId();
+  const [personnel] = await db
+    .select({ id: personnelTable.id })
+    .from(personnelTable)
+    .where(
+      and(eq(personnelTable.id, personnelId), eq(personnelTable.tenantId, tenantId)),
+    )
+    .limit(1);
+
+  return Boolean(personnel);
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -49,6 +63,7 @@ export async function getAvailabilityWindows(
   personnelId: string,
 ): Promise<AvailabilityWindow[]> {
   await requirePermission("personnel", "read");
+  if (!(await hasTenantPersonnel(personnelId))) return [];
 
   const rows = await db
     .select()
@@ -74,6 +89,9 @@ export async function setAvailabilityWindows(
   windows: Array<{ dayOfWeek: number; startTime: string; endTime: string }>,
 ): Promise<ActionResult> {
   await requirePermission("personnel", "write");
+  if (!(await hasTenantPersonnel(personnelId))) {
+    return { success: false, message: "Medewerker niet gevonden." };
+  }
 
   const supabase = await createClient();
   const {
@@ -138,6 +156,7 @@ export async function listLeavePeriods(
   personnelId: string,
 ): Promise<LeavePeriod[]> {
   await requirePermission("personnel", "read");
+  if (!(await hasTenantPersonnel(personnelId))) return [];
 
   const rows = await db
     .select()
@@ -165,6 +184,9 @@ export async function addLeavePeriod(data: {
   reason?: string;
 }): Promise<ActionResult<{ id: string }>> {
   await requirePermission("personnel", "write");
+  if (!(await hasTenantPersonnel(data.personnelId))) {
+    return { success: false, message: "Medewerker niet gevonden." };
+  }
 
   const supabase = await createClient();
   const {
@@ -232,6 +254,9 @@ export async function updateLeavePeriod(
   },
 ): Promise<ActionResult> {
   await requirePermission("personnel", "write");
+  if (!(await hasTenantPersonnel(personnelId))) {
+    return { success: false, message: "Medewerker niet gevonden." };
+  }
 
   const supabase = await createClient();
   const {
@@ -296,6 +321,9 @@ export async function deleteLeavePeriod(
   personnelId: string,
 ): Promise<ActionResult> {
   await requirePermission("personnel", "write");
+  if (!(await hasTenantPersonnel(personnelId))) {
+    return { success: false, message: "Medewerker niet gevonden." };
+  }
 
   const supabase = await createClient();
   const {
@@ -334,6 +362,10 @@ export async function approveLeavePeriod(
   personnelId: string,
 ): Promise<ActionResult> {
   await requirePermission("personnel", "write");
+  const tenantId = await requireCurrentTenantId();
+  if (!(await hasTenantPersonnel(personnelId))) {
+    return { success: false, message: "Medewerker niet gevonden." };
+  }
 
   const supabase = await createClient();
   const {
@@ -381,7 +413,9 @@ export async function approveLeavePeriod(
         email: personnelTable.email,
       })
       .from(personnelTable)
-      .where(eq(personnelTable.id, personnelId))
+      .where(
+        and(eq(personnelTable.id, personnelId), eq(personnelTable.tenantId, tenantId)),
+      )
       .limit(1);
     const [leavePeriod] = await db
       .select({
@@ -418,6 +452,10 @@ export async function rejectLeavePeriod(
   personnelId: string,
 ): Promise<ActionResult> {
   await requirePermission("personnel", "write");
+  const tenantId = await requireCurrentTenantId();
+  if (!(await hasTenantPersonnel(personnelId))) {
+    return { success: false, message: "Medewerker niet gevonden." };
+  }
 
   const supabase = await createClient();
   const {
@@ -465,7 +503,9 @@ export async function rejectLeavePeriod(
         email: personnelTable.email,
       })
       .from(personnelTable)
-      .where(eq(personnelTable.id, personnelId))
+      .where(
+        and(eq(personnelTable.id, personnelId), eq(personnelTable.tenantId, tenantId)),
+      )
       .limit(1);
     const [leavePeriod] = await db
       .select({
@@ -517,10 +557,18 @@ export async function getPendingLeaveCount(): Promise<number> {
   } catch {
     return 0;
   }
+  const tenantId = await requireCurrentTenantId();
+
   const [row] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(leavePeriodsTable)
-    .where(eq(leavePeriodsTable.status, "pending"));
+    .innerJoin(personnelTable, eq(leavePeriodsTable.personnelId, personnelTable.id))
+    .where(
+      and(
+        eq(personnelTable.tenantId, tenantId),
+        eq(leavePeriodsTable.status, "pending"),
+      ),
+    );
   return row?.count ?? 0;
 }
 
@@ -531,6 +579,7 @@ export async function listAllPendingLeaveRequests(): Promise<
   PendingLeaveRequest[]
 > {
   await requirePermission("personnel", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const rows = await db
     .select({
@@ -547,7 +596,10 @@ export async function listAllPendingLeaveRequests(): Promise<
     .from(leavePeriodsTable)
     .innerJoin(
       personnelTable,
-      eq(leavePeriodsTable.personnelId, personnelTable.id),
+      and(
+        eq(leavePeriodsTable.personnelId, personnelTable.id),
+        eq(personnelTable.tenantId, tenantId),
+      ),
     )
     .where(eq(leavePeriodsTable.status, "pending"))
     .orderBy(asc(leavePeriodsTable.startDate));
@@ -653,6 +705,7 @@ export async function getAvailabilityStatus(
   dateStr: string,
 ): Promise<AvailabilityStatus> {
   await requirePermission("personnel", "read");
+  if (!(await hasTenantPersonnel(personnelId))) return "niet_ingesteld";
   return computeAvailabilityStatus(personnelId, dateStr);
 }
 

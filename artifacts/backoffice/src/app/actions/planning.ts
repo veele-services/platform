@@ -35,6 +35,7 @@ import {
   sql,
 } from "drizzle-orm";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import {
@@ -549,11 +550,15 @@ export async function getPlanningBoardData(
   };
   if (!canRead) return empty;
 
+  const tenantId = await requireCurrentTenantId();
   const date =
     filters.date && isDateKey(filters.date) ? filters.date : todayDateKey();
   const statuses = normalizeStatuses(filters.statuses);
 
-  const conditions = [eq(assignmentsTable.isActive, true)];
+  const conditions = [
+    eq(assignmentsTable.tenantId, tenantId),
+    eq(assignmentsTable.isActive, true),
+  ];
   const boardScope = or(
     eq(assignmentsTable.scheduledDate, date),
     inArray(assignmentsTable.status, OPEN_ASSIGNMENT_STATUSES),
@@ -591,6 +596,7 @@ export async function getPlanningBoardData(
         inner join ${taskCodesTable}
           on ${taskCodesTable.id} = ${assignmentTasksTable.taskCodeId}
         where ${assignmentTasksTable.assignmentId} = ${assignmentsTable.id}
+          and ${taskCodesTable.tenantId} = ${tenantId}
           and ${taskCodesTable.sectorId} = ${filters.sectorId}
       )`,
     );
@@ -602,6 +608,7 @@ export async function getPlanningBoardData(
   }
 
   const personnelConditions = [
+    eq(personnelTable.tenantId, tenantId),
     eq(personnelTable.isActive, true),
     eq(personnelTable.isAvailable, true),
   ];
@@ -633,9 +640,18 @@ export async function getPlanningBoardData(
         .from(assignmentsTable)
         .leftJoin(
           customersTable,
-          eq(assignmentsTable.customerId, customersTable.id),
+          and(
+            eq(assignmentsTable.customerId, customersTable.id),
+            eq(customersTable.tenantId, tenantId),
+          ),
         )
-        .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
+        .leftJoin(
+          objectsTable,
+          and(
+            eq(assignmentsTable.objectId, objectsTable.id),
+            eq(objectsTable.tenantId, tenantId),
+          ),
+        )
         .where(and(...conditions))
         .orderBy(
           asc(assignmentsTable.scheduledDate),
@@ -676,7 +692,12 @@ export async function getPlanningBoardData(
       db
         .select({ id: customersTable.id, name: customersTable.name })
         .from(customersTable)
-        .where(eq(customersTable.isActive, true))
+        .where(
+          and(
+            eq(customersTable.tenantId, tenantId),
+            eq(customersTable.isActive, true),
+          ),
+        )
         .orderBy(asc(customersTable.name)),
     ]);
 
@@ -701,7 +722,10 @@ export async function getPlanningBoardData(
             .from(assignmentTasksTable)
             .leftJoin(
               taskCodesTable,
-              eq(assignmentTasksTable.taskCodeId, taskCodesTable.id),
+              and(
+                eq(assignmentTasksTable.taskCodeId, taskCodesTable.id),
+                eq(taskCodesTable.tenantId, tenantId),
+              ),
             )
             .leftJoin(
               rolesTable,
@@ -717,6 +741,13 @@ export async function getPlanningBoardData(
               personnelId: assignmentPersonnelTable.personnelId,
             })
             .from(assignmentPersonnelTable)
+            .innerJoin(
+              personnelTable,
+              and(
+                eq(assignmentPersonnelTable.personnelId, personnelTable.id),
+                eq(personnelTable.tenantId, tenantId),
+              ),
+            )
             .where(
               and(
                 inArray(assignmentPersonnelTable.assignmentId, assignmentIds),
@@ -1159,8 +1190,25 @@ export async function getPersonnelForAssignment(
 ): Promise<PersonnelForAssignmentResult | null> {
   const canRead = await hasPermission("planning", "read");
   if (!canRead) return null;
+  const tenantId = await requireCurrentTenantId();
 
-  const [taskRows, personnelRows, assignedRows, [assignmentRow]] =
+  const [assignmentRow] = await db
+    .select({
+      scheduledDate: assignmentsTable.scheduledDate,
+      requiredRegion: assignmentsTable.requiredRegion,
+    })
+    .from(assignmentsTable)
+    .where(
+      and(
+        eq(assignmentsTable.id, assignmentId),
+        eq(assignmentsTable.tenantId, tenantId),
+      ),
+    )
+    .limit(1);
+
+  if (!assignmentRow) return null;
+
+  const [taskRows, personnelRows, assignedRows] =
     await Promise.all([
       db
         .select({
@@ -1172,7 +1220,10 @@ export async function getPersonnelForAssignment(
         .from(assignmentTasksTable)
         .innerJoin(
           taskCodesTable,
-          eq(assignmentTasksTable.taskCodeId, taskCodesTable.id),
+          and(
+            eq(assignmentTasksTable.taskCodeId, taskCodesTable.id),
+            eq(taskCodesTable.tenantId, tenantId),
+          ),
         )
         .where(eq(assignmentTasksTable.assignmentId, assignmentId)),
 
@@ -1194,7 +1245,12 @@ export async function getPersonnelForAssignment(
         .from(personnelTable)
         .leftJoin(rolesTable, eq(personnelTable.roleId, rolesTable.id))
         .leftJoin(sectorsTable, eq(personnelTable.sectorId, sectorsTable.id))
-        .where(eq(personnelTable.isActive, true))
+        .where(
+          and(
+            eq(personnelTable.tenantId, tenantId),
+            eq(personnelTable.isActive, true),
+          ),
+        )
         .orderBy(personnelTable.lastName),
 
       db
@@ -1203,21 +1259,19 @@ export async function getPersonnelForAssignment(
           personnelId: assignmentPersonnelTable.personnelId,
         })
         .from(assignmentPersonnelTable)
+        .innerJoin(
+          personnelTable,
+          and(
+            eq(assignmentPersonnelTable.personnelId, personnelTable.id),
+            eq(personnelTable.tenantId, tenantId),
+          ),
+        )
         .where(
           and(
             eq(assignmentPersonnelTable.assignmentId, assignmentId),
             eq(assignmentPersonnelTable.status, "assigned"),
           ),
         ),
-
-      db
-        .select({
-          scheduledDate: assignmentsTable.scheduledDate,
-          requiredRegion: assignmentsTable.requiredRegion,
-        })
-        .from(assignmentsTable)
-        .where(eq(assignmentsTable.id, assignmentId))
-        .limit(1),
     ]);
 
   const assignedMap = new Map(
@@ -1315,6 +1369,7 @@ export async function unassignPersonnel(
   personnelId: string,
 ): Promise<ActionResult> {
   await requirePermission("assignments", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -1326,6 +1381,20 @@ export async function unassignPersonnel(
     db
       .select({ id: assignmentPersonnelTable.id })
       .from(assignmentPersonnelTable)
+      .innerJoin(
+        assignmentsTable,
+        and(
+          eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id),
+          eq(assignmentsTable.tenantId, tenantId),
+        ),
+      )
+      .innerJoin(
+        personnelTable,
+        and(
+          eq(assignmentPersonnelTable.personnelId, personnelTable.id),
+          eq(personnelTable.tenantId, tenantId),
+        ),
+      )
       .where(
         and(
           eq(assignmentPersonnelTable.assignmentId, assignmentId),
@@ -1336,7 +1405,12 @@ export async function unassignPersonnel(
     db
       .select({ status: assignmentsTable.status })
       .from(assignmentsTable)
-      .where(eq(assignmentsTable.id, assignmentId))
+      .where(
+        and(
+          eq(assignmentsTable.id, assignmentId),
+          eq(assignmentsTable.tenantId, tenantId),
+        ),
+      )
       .limit(1),
   ]);
 
@@ -1350,7 +1424,12 @@ export async function unassignPersonnel(
     await db
       .update(assignmentsTable)
       .set({ status: "plannable", updatedAt: new Date() })
-      .where(eq(assignmentsTable.id, assignmentId));
+      .where(
+        and(
+          eq(assignmentsTable.id, assignmentId),
+          eq(assignmentsTable.tenantId, tenantId),
+        ),
+      );
   }
 
   await db.insert(auditLogTable).values({
@@ -1370,6 +1449,7 @@ export async function scheduleAssignmentOnBoard(
   input: PlanningBoardScheduleInput,
 ): Promise<PlanningBoardScheduleResult> {
   await requirePermission("planning", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const assignmentId = input.assignmentId.trim();
   const personnelId = input.personnelId.trim();
@@ -1424,10 +1504,24 @@ export async function scheduleAssignmentOnBoard(
         .from(assignmentsTable)
         .leftJoin(
           customersTable,
-          eq(assignmentsTable.customerId, customersTable.id),
+          and(
+            eq(assignmentsTable.customerId, customersTable.id),
+            eq(customersTable.tenantId, tenantId),
+          ),
         )
-        .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
-        .where(eq(assignmentsTable.id, assignmentId))
+        .leftJoin(
+          objectsTable,
+          and(
+            eq(assignmentsTable.objectId, objectsTable.id),
+            eq(objectsTable.tenantId, tenantId),
+          ),
+        )
+        .where(
+          and(
+            eq(assignmentsTable.id, assignmentId),
+            eq(assignmentsTable.tenantId, tenantId),
+          ),
+        )
         .limit(1),
 
       db
@@ -1446,7 +1540,12 @@ export async function scheduleAssignmentOnBoard(
           isAvailable: personnelTable.isAvailable,
         })
         .from(personnelTable)
-        .where(eq(personnelTable.id, personnelId))
+        .where(
+          and(
+            eq(personnelTable.id, personnelId),
+            eq(personnelTable.tenantId, tenantId),
+          ),
+        )
         .limit(1),
 
       db
@@ -1462,7 +1561,10 @@ export async function scheduleAssignmentOnBoard(
         .from(assignmentTasksTable)
         .leftJoin(
           taskCodesTable,
-          eq(assignmentTasksTable.taskCodeId, taskCodesTable.id),
+          and(
+            eq(assignmentTasksTable.taskCodeId, taskCodesTable.id),
+            eq(taskCodesTable.tenantId, tenantId),
+          ),
         )
         .leftJoin(rolesTable, eq(taskCodesTable.requiredRoleId, rolesTable.id))
         .where(eq(assignmentTasksTable.assignmentId, assignmentId)),
@@ -1473,6 +1575,13 @@ export async function scheduleAssignmentOnBoard(
           personnelId: assignmentPersonnelTable.personnelId,
         })
         .from(assignmentPersonnelTable)
+        .innerJoin(
+          personnelTable,
+          and(
+            eq(assignmentPersonnelTable.personnelId, personnelTable.id),
+            eq(personnelTable.tenantId, tenantId),
+          ),
+        )
         .where(
           and(
             eq(assignmentPersonnelTable.assignmentId, assignmentId),
@@ -1633,13 +1742,25 @@ export async function scheduleAssignmentOnBoard(
       .from(assignmentPersonnelTable)
       .innerJoin(
         assignmentsTable,
-        eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id),
+        and(
+          eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id),
+          eq(assignmentsTable.tenantId, tenantId),
+        ),
       )
       .leftJoin(
         customersTable,
-        eq(assignmentsTable.customerId, customersTable.id),
+        and(
+          eq(assignmentsTable.customerId, customersTable.id),
+          eq(customersTable.tenantId, tenantId),
+        ),
       )
-      .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
+      .leftJoin(
+        objectsTable,
+        and(
+          eq(assignmentsTable.objectId, objectsTable.id),
+          eq(objectsTable.tenantId, tenantId),
+        ),
+      )
       .where(
         and(
           eq(assignmentPersonnelTable.personnelId, personnelId),
@@ -1760,7 +1881,12 @@ export async function scheduleAssignmentOnBoard(
           status: nextStatus,
           updatedAt: new Date(),
         })
-        .where(eq(assignmentsTable.id, assignmentId));
+        .where(
+          and(
+            eq(assignmentsTable.id, assignmentId),
+            eq(assignmentsTable.tenantId, tenantId),
+          ),
+        );
 
       const [existingLink] = await tx
         .select({

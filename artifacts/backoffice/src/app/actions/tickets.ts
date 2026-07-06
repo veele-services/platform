@@ -32,6 +32,7 @@ import {
 } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requirePermission } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { createClient } from "@/lib/supabase/server";
 
 export type TicketKind = "customer" | "personnel";
@@ -150,6 +151,7 @@ export async function listTickets(params: {
   source?: string;
 } = {}): Promise<TicketListResult> {
   await requirePermission("tickets", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const search = params.search?.trim();
   const status = params.status?.trim() ?? "all";
@@ -160,7 +162,7 @@ export async function listTickets(params: {
   const rows: BackofficeTicketListItem[] = [];
 
   if ((source === "all" || source === "customer") && status !== "waiting_personnel") {
-    const conditions: SQL[] = [];
+    const conditions: SQL[] = [eq(customerMessageThreadsTable.tenantId, tenantId)];
     if (status !== "all") {
       conditions.push(eq(customerMessageThreadsTable.status, status as CustomerTicketStatus));
     }
@@ -190,8 +192,14 @@ export async function listTickets(params: {
         customerCode: customersTable.code,
       })
       .from(customerMessageThreadsTable)
-      .innerJoin(customersTable, eq(customerMessageThreadsTable.customerId, customersTable.id))
-      .where(conditions.length ? and(...conditions) : undefined)
+      .innerJoin(
+        customersTable,
+        and(
+          eq(customerMessageThreadsTable.customerId, customersTable.id),
+          eq(customersTable.tenantId, tenantId),
+        ),
+      )
+      .where(and(...conditions))
       .orderBy(desc(customerMessageThreadsTable.lastMessageAt))
       .limit(200);
 
@@ -218,7 +226,7 @@ export async function listTickets(params: {
   }
 
   if ((source === "all" || source === "personnel") && status !== "waiting_customer") {
-    const conditions: SQL[] = [];
+    const conditions: SQL[] = [eq(personnelMessageThreadsTable.tenantId, tenantId)];
     if (status !== "all") {
       conditions.push(eq(personnelMessageThreadsTable.status, status as PersonnelTicketStatus));
     }
@@ -249,8 +257,14 @@ export async function listTickets(params: {
         personnelEmail: personnelTable.email,
       })
       .from(personnelMessageThreadsTable)
-      .innerJoin(personnelTable, eq(personnelMessageThreadsTable.personnelId, personnelTable.id))
-      .where(conditions.length ? and(...conditions) : undefined)
+      .innerJoin(
+        personnelTable,
+        and(
+          eq(personnelMessageThreadsTable.personnelId, personnelTable.id),
+          eq(personnelTable.tenantId, tenantId),
+        ),
+      )
+      .where(and(...conditions))
       .orderBy(desc(personnelMessageThreadsTable.lastMessageAt))
       .limit(200);
 
@@ -290,6 +304,7 @@ export async function getTicket(
   id: string,
 ): Promise<BackofficeTicketDetail | null> {
   await requirePermission("tickets", "read");
+  const tenantId = await requireCurrentTenantId();
 
   if (kind === "customer") {
     const [thread] = await db
@@ -308,8 +323,19 @@ export async function getTicket(
         customerCode: customersTable.code,
       })
       .from(customerMessageThreadsTable)
-      .innerJoin(customersTable, eq(customerMessageThreadsTable.customerId, customersTable.id))
-      .where(eq(customerMessageThreadsTable.id, id))
+      .innerJoin(
+        customersTable,
+        and(
+          eq(customerMessageThreadsTable.customerId, customersTable.id),
+          eq(customersTable.tenantId, tenantId),
+        ),
+      )
+      .where(
+        and(
+          eq(customerMessageThreadsTable.id, id),
+          eq(customerMessageThreadsTable.tenantId, tenantId),
+        ),
+      )
       .limit(1);
 
     if (!thread) return null;
@@ -384,9 +410,26 @@ export async function getTicket(
       assignmentScheduledEnd: assignmentsTable.scheduledEnd,
     })
     .from(personnelMessageThreadsTable)
-    .innerJoin(personnelTable, eq(personnelMessageThreadsTable.personnelId, personnelTable.id))
-    .leftJoin(assignmentsTable, eq(personnelMessageThreadsTable.assignmentId, assignmentsTable.id))
-    .where(eq(personnelMessageThreadsTable.id, id))
+    .innerJoin(
+      personnelTable,
+      and(
+        eq(personnelMessageThreadsTable.personnelId, personnelTable.id),
+        eq(personnelTable.tenantId, tenantId),
+      ),
+    )
+    .leftJoin(
+      assignmentsTable,
+      and(
+        eq(personnelMessageThreadsTable.assignmentId, assignmentsTable.id),
+        eq(assignmentsTable.tenantId, tenantId),
+      ),
+    )
+    .where(
+      and(
+        eq(personnelMessageThreadsTable.id, id),
+        eq(personnelMessageThreadsTable.tenantId, tenantId),
+      ),
+    )
     .limit(1);
 
   if (!thread) return null;
@@ -440,6 +483,7 @@ export async function replyToTicket(
   formData: FormData,
 ): Promise<ActionResult> {
   await requirePermission("tickets", "write");
+  const tenantId = await requireCurrentTenantId();
   const user = await getBackofficeUser();
   if (!user) return { success: false, error: "Niet geauthenticeerd." };
 
@@ -458,8 +502,19 @@ export async function replyToTicket(
         customerName: customersTable.name,
       })
       .from(customerMessageThreadsTable)
-      .innerJoin(customersTable, eq(customerMessageThreadsTable.customerId, customersTable.id))
-      .where(eq(customerMessageThreadsTable.id, id))
+      .innerJoin(
+        customersTable,
+        and(
+          eq(customerMessageThreadsTable.customerId, customersTable.id),
+          eq(customersTable.tenantId, tenantId),
+        ),
+      )
+      .where(
+        and(
+          eq(customerMessageThreadsTable.id, id),
+          eq(customerMessageThreadsTable.tenantId, tenantId),
+        ),
+      )
       .limit(1);
 
     if (!thread) return { success: false, error: "Ticket niet gevonden." };
@@ -485,7 +540,12 @@ export async function replyToTicket(
           lastMessageAt: new Date(),
           updatedAt: new Date(),
         })
-        .where(eq(customerMessageThreadsTable.id, id));
+        .where(
+          and(
+            eq(customerMessageThreadsTable.id, id),
+            eq(customerMessageThreadsTable.tenantId, tenantId),
+          ),
+        );
     });
 
     await emitDomainEvent({
@@ -532,8 +592,19 @@ export async function replyToTicket(
       lastName: personnelTable.lastName,
     })
     .from(personnelMessageThreadsTable)
-    .innerJoin(personnelTable, eq(personnelMessageThreadsTable.personnelId, personnelTable.id))
-    .where(eq(personnelMessageThreadsTable.id, id))
+    .innerJoin(
+      personnelTable,
+      and(
+        eq(personnelMessageThreadsTable.personnelId, personnelTable.id),
+        eq(personnelTable.tenantId, tenantId),
+      ),
+    )
+    .where(
+      and(
+        eq(personnelMessageThreadsTable.id, id),
+        eq(personnelMessageThreadsTable.tenantId, tenantId),
+      ),
+    )
     .limit(1);
 
   if (!thread) return { success: false, error: "Ticket niet gevonden." };
@@ -559,7 +630,12 @@ export async function replyToTicket(
         lastMessageAt: new Date(),
         updatedAt: new Date(),
       })
-      .where(eq(personnelMessageThreadsTable.id, id));
+      .where(
+        and(
+          eq(personnelMessageThreadsTable.id, id),
+          eq(personnelMessageThreadsTable.tenantId, tenantId),
+        ),
+      );
   });
 
   await emitDomainEvent({
@@ -603,6 +679,7 @@ export async function updateTicketStatus(
   status: BackofficeTicketStatus,
 ): Promise<ActionResult> {
   await requirePermission("tickets", "write");
+  const tenantId = await requireCurrentTenantId();
 
   if (kind === "customer") {
     const allowed = new Set<CustomerTicketStatus>([
@@ -622,7 +699,12 @@ export async function updateTicketStatus(
         closedAt: status === "closed" ? new Date() : null,
         updatedAt: new Date(),
       })
-      .where(eq(customerMessageThreadsTable.id, id))
+      .where(
+        and(
+          eq(customerMessageThreadsTable.id, id),
+          eq(customerMessageThreadsTable.tenantId, tenantId),
+        ),
+      )
       .returning({ id: customerMessageThreadsTable.id });
 
     if (!updated) return { success: false, error: "Ticket niet gevonden." };
@@ -647,7 +729,12 @@ export async function updateTicketStatus(
       closedAt: status === "closed" ? new Date() : null,
       updatedAt: new Date(),
     })
-    .where(eq(personnelMessageThreadsTable.id, id))
+    .where(
+      and(
+        eq(personnelMessageThreadsTable.id, id),
+        eq(personnelMessageThreadsTable.tenantId, tenantId),
+      ),
+    )
     .returning({ id: personnelMessageThreadsTable.id });
 
   if (!updated) return { success: false, error: "Ticket niet gevonden." };

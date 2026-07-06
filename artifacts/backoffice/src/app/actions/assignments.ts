@@ -481,6 +481,7 @@ export async function getAssignmentsForWeek(
 ): Promise<WeekAssignment[]> {
   const canRead = await hasPermission("planning", "read");
   if (!canRead) return [];
+  const tenantId = await requireCurrentTenantId();
 
   const rows = await db
     .select({
@@ -497,11 +498,21 @@ export async function getAssignmentsForWeek(
     .from(assignmentsTable)
     .leftJoin(
       customersTable,
-      eq(assignmentsTable.customerId, customersTable.id),
+      and(
+        eq(assignmentsTable.customerId, customersTable.id),
+        eq(customersTable.tenantId, tenantId),
+      ),
     )
-    .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
+    .leftJoin(
+      objectsTable,
+      and(
+        eq(assignmentsTable.objectId, objectsTable.id),
+        eq(objectsTable.tenantId, tenantId),
+      ),
+    )
     .where(
       and(
+        eq(assignmentsTable.tenantId, tenantId),
         gte(assignmentsTable.scheduledDate, weekStart),
         lte(assignmentsTable.scheduledDate, weekEnd),
       ),
@@ -520,9 +531,12 @@ export async function getAssignmentsForWeek(
       lastName: personnelTable.lastName,
     })
     .from(assignmentPersonnelTable)
-    .leftJoin(
+    .innerJoin(
       personnelTable,
-      eq(assignmentPersonnelTable.personnelId, personnelTable.id),
+      and(
+        eq(assignmentPersonnelTable.personnelId, personnelTable.id),
+        eq(personnelTable.tenantId, tenantId),
+      ),
     )
     .where(
       and(
@@ -708,6 +722,7 @@ export async function getDashboardCounts(): Promise<{
       open: 0,
     };
 
+  const tenantId = await requireCurrentTenantId();
   const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
 
   const [counts] = await db
@@ -718,7 +733,8 @@ export async function getDashboardCounts(): Promise<{
       completedToday: sql<number>`count(*) FILTER (WHERE status = 'completed' AND scheduled_date = ${today})::int`,
       open: sql<number>`count(*) FILTER (WHERE status NOT IN ('closed', 'paid', 'cancelled'))::int`,
     })
-    .from(assignmentsTable);
+    .from(assignmentsTable)
+    .where(eq(assignmentsTable.tenantId, tenantId));
 
   return {
     requested: counts?.requested ?? 0,
@@ -732,10 +748,16 @@ export async function getDashboardCounts(): Promise<{
 // ─── Dropdown helpers ─────────────────────────────────────────────────────────
 
 export async function getCustomerOptions(): Promise<CustomerOption[]> {
+  const tenantId = await requireCurrentTenantId();
   const rows = await db
     .select({ id: customersTable.id, name: customersTable.name })
     .from(customersTable)
-    .where(eq(customersTable.isActive, true))
+    .where(
+      and(
+        eq(customersTable.tenantId, tenantId),
+        eq(customersTable.isActive, true),
+      ),
+    )
     .orderBy(asc(customersTable.name));
   return rows;
 }
@@ -744,11 +766,13 @@ export async function getObjectsByCustomer(
   customerId: string,
 ): Promise<ObjectOption[]> {
   if (!customerId) return [];
+  const tenantId = await requireCurrentTenantId();
   const rows = await db
     .select({ id: objectsTable.id, name: objectsTable.name })
     .from(objectsTable)
     .where(
       and(
+        eq(objectsTable.tenantId, tenantId),
         eq(objectsTable.customerId, customerId),
         eq(objectsTable.isActive, true),
       ),
@@ -760,6 +784,7 @@ export async function getObjectsByCustomer(
 export async function getPersonnelOptions(
   scheduledDate?: string | null,
 ): Promise<PersonnelOption[]> {
+  const tenantId = await requireCurrentTenantId();
   const rows = await db
     .select({
       id: personnelTable.id,
@@ -769,6 +794,7 @@ export async function getPersonnelOptions(
     .from(personnelTable)
     .where(
       and(
+        eq(personnelTable.tenantId, tenantId),
         eq(personnelTable.isActive, true),
         eq(personnelTable.isAvailable, true),
       ),
@@ -798,6 +824,7 @@ export async function getDayTimelineData(dateStr: string): Promise<{
 }> {
   const canRead = await hasPermission("planning", "read");
   if (!canRead) return { rows: [], unassigned: [] };
+  const tenantId = await requireCurrentTenantId();
 
   // All assignments on this day
   const asgnRows = await db
@@ -812,9 +839,17 @@ export async function getDayTimelineData(dateStr: string): Promise<{
     .from(assignmentsTable)
     .leftJoin(
       customersTable,
-      eq(assignmentsTable.customerId, customersTable.id),
+      and(
+        eq(assignmentsTable.customerId, customersTable.id),
+        eq(customersTable.tenantId, tenantId),
+      ),
     )
-    .where(eq(assignmentsTable.scheduledDate, dateStr))
+    .where(
+      and(
+        eq(assignmentsTable.tenantId, tenantId),
+        eq(assignmentsTable.scheduledDate, dateStr),
+      ),
+    )
     .orderBy(asc(assignmentsTable.scheduledStart));
 
   if (asgnRows.length === 0) return { rows: [], unassigned: [] };
@@ -830,9 +865,12 @@ export async function getDayTimelineData(dateStr: string): Promise<{
       lastName: personnelTable.lastName,
     })
     .from(assignmentPersonnelTable)
-    .leftJoin(
+    .innerJoin(
       personnelTable,
-      eq(assignmentPersonnelTable.personnelId, personnelTable.id),
+      and(
+        eq(assignmentPersonnelTable.personnelId, personnelTable.id),
+        eq(personnelTable.tenantId, tenantId),
+      ),
     )
     .where(
       and(
