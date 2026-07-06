@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { AlertCircle, BookOpen, FileText, Lock, SearchX } from "lucide-react";
 import { getShortcodeKnowledgebaseArticle } from "@/app/actions/knowledgebase-help";
 import { CopySupportLinkButton } from "@/components/knowledgebase/CopySupportLinkButton";
+import { KnowledgebaseContentRenderer } from "@/components/knowledgebase/KnowledgebaseContentRenderer";
 import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
@@ -128,9 +129,9 @@ export default async function KnowledgebaseShortcodeArticlePage({ params }: Prop
         </header>
 
         <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <div
-            className="news-editor-content max-w-none"
-            dangerouslySetInnerHTML={{ __html: article.contentHtml ?? "<p>Geen inhoud beschikbaar.</p>" }}
+          <KnowledgebaseContentRenderer
+            html={article.contentHtml}
+            mediaBasePath={`/h/${result.tenantCode}/${article.slug}/media`}
           />
         </section>
 

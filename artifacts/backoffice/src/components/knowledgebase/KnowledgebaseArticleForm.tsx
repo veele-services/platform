@@ -201,6 +201,7 @@ export function KnowledgebaseArticleForm({ article, options }: KnowledgebaseArti
           </div>
           <TipTapKnowledgebaseEditor
             initialHtml={article?.contentHtml}
+            media={article?.media ?? []}
             onChange={(html, json) => {
               setContentHtml(html);
               setContentJson(json);
@@ -372,9 +373,12 @@ export function KnowledgebaseArticleForm({ article, options }: KnowledgebaseArti
 
         <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-950">Media</h2>
+          <p className="mt-1 text-xs text-slate-500">
+            Upload media eerst hier en voeg deze daarna inline in via de editor-toolbar. Alt-tekst is verplicht voor toegankelijke artikelen.
+          </p>
           <form onSubmit={uploadMedia} className="mt-3 grid gap-3">
             <Input ref={fileInputRef} name="file" type="file" accept="image/*,video/mp4,video/webm,application/pdf" />
-            <Input name="altText" placeholder="Alt-tekst" />
+            <Input name="altText" placeholder="Alt-tekst (verplicht)" required />
             <Input name="caption" placeholder="Caption" />
             <Button type="submit" variant="outline" disabled={isUploading || !savedArticleId} className="gap-2">
               {isUploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <ImagePlus className="h-4 w-4" />}

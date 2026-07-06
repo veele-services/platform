@@ -284,6 +284,13 @@ Klaar wanneer:
 - Output is veilig en consistent per portal.
 - Media blijft private en visibility-aware.
 
+Implementatiestatus:
+
+- Editor ondersteunt lokale TipTap-nodes voor tabellen, callouts, inline media, video embeds, preview, undo/redo en gevalideerde links.
+- Backoffice, klant-PWA en personeel-PWA gebruiken een gedeelde renderstijl voor KB-content met veilige media-url herschrijving per surface.
+- Upload vereist alt-tekst; captions blijven optioneel maar worden inline weergegeven.
+- Server-action sanitizing verwijdert scripts, inline event handlers, inline styling en onveilige URL-protocollen voordat HTML wordt opgeslagen.
+
 ## Fase 8 - Release Media En Category Management
 
 Doel: releasebeheer krijgt dezelfde volwassenheid als knowledgebasebeheer.

@@ -7,6 +7,7 @@ import {
   submitTenantKnowledgebaseFeedback,
 } from "@/app/actions/knowledgebase-help";
 import { CopySupportLinkButton } from "@/components/knowledgebase/CopySupportLinkButton";
+import { KnowledgebaseContentRenderer } from "@/components/knowledgebase/KnowledgebaseContentRenderer";
 import { Button } from "@/components/ui/button";
 
 type Props = {
@@ -54,10 +55,7 @@ export default async function TenantHelpArticlePage({ params }: Props) {
         </header>
 
         <section className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
-          <div
-            className="news-editor-content max-w-none"
-            dangerouslySetInnerHTML={{ __html: article.contentHtml ?? "<p>Geen inhoud beschikbaar.</p>" }}
-          />
+          <KnowledgebaseContentRenderer html={article.contentHtml} mediaBasePath="/help/media" />
         </section>
 
         {article.media.length > 0 && (
