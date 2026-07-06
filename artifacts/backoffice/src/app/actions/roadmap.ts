@@ -1067,6 +1067,42 @@ export async function linkPlatformRoadmapReleases(formData: FormData): Promise<v
   revalidateRoadmapPaths();
 }
 
+export async function updatePlatformRoadmapAudiences(formData: FormData): Promise<void> {
+  const actor = await requirePlatformAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  const audienceKeys = normalizeAudienceKeys(formData.getAll("audienceKeys").map(String));
+  if (!id) return;
+
+  await db.transaction(async (tx) => {
+    const [existing] = await tx.select().from(roadmapItemsTable).where(eq(roadmapItemsTable.id, id)).limit(1);
+    if (!existing) return;
+
+    await tx.delete(roadmapItemAudiencesTable).where(eq(roadmapItemAudiencesTable.roadmapItemId, id));
+    if (audienceKeys.length > 0) {
+      await tx.insert(roadmapItemAudiencesTable).values(audienceKeys.map((audienceKey) => ({
+        roadmapItemId: id,
+        audienceKey,
+      })));
+    }
+
+    await tx.update(roadmapItemsTable).set({
+      updatedBy: actor.userId,
+      updatedAt: new Date(),
+    }).where(eq(roadmapItemsTable.id, id));
+
+    await tx.insert(auditLogTable).values({
+      tenantId: existing.tenantId,
+      userId: actor.userId,
+      action: "roadmap_audiences_updated",
+      resource: "roadmap",
+      resourceId: id,
+      metadata: { audienceKeys },
+    });
+  });
+
+  revalidateRoadmapPaths();
+}
+
 export async function addPlatformRoadmapComment(formData: FormData): Promise<void> {
   const actor = await requirePlatformAdmin();
   const id = String(formData.get("id") ?? "").trim();
