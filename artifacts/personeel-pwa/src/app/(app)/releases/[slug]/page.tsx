@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CheckCircle2 } from "lucide-react";
+import { ArrowLeft, CheckCircle2, FileText } from "lucide-react";
 import { getPersonnelRelease } from "@/actions/releases";
+import { KnowledgebaseContentRenderer } from "@/components/KnowledgebaseContentRenderer";
 
 export const metadata = {
   title: "Release note",
@@ -37,12 +38,36 @@ export default async function PersonnelReleaseDetailPage({ params }: Props) {
 
         <div className="mt-5 border-t border-slate-200 pt-5">
           {release.contentHtml ? (
-            <div className="prose prose-slate max-w-none" dangerouslySetInnerHTML={{ __html: release.contentHtml }} />
+            <KnowledgebaseContentRenderer html={release.contentHtml} mediaBasePath="/releases/media" />
           ) : (
             <p className="text-sm leading-7 text-slate-600">{release.contentText ?? release.summary}</p>
           )}
         </div>
       </article>
+
+      {release.media.length > 0 && (
+        <section className="mt-5 rounded-2xl border bg-white p-5 shadow-sm" style={{ borderColor: "#E2E8F0" }}>
+          <h2 className="font-black" style={{ color: "var(--color-primary)" }}>Media en bijlagen</h2>
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            {release.media.map((item) => (
+              <a key={item.id} href={`/releases/media/${item.id}`} target="_blank" rel="noreferrer" className="overflow-hidden rounded-2xl border border-slate-200 text-sm">
+                {item.mediaType === "image" ? (
+                  <img src={`/releases/media/${item.id}`} alt={item.altText ?? item.caption ?? "Release media"} className="h-40 w-full object-cover" />
+                ) : (
+                  <div className="flex h-40 items-center justify-center bg-slate-100 text-slate-500">
+                    <FileText className="mr-2 h-4 w-4" />
+                    {item.mediaType === "video" ? "Video" : "Bijlage"}
+                  </div>
+                )}
+                <div className="p-3">
+                  <p className="truncate font-black" style={{ color: "var(--color-primary)" }}>{item.caption || item.altText || item.storagePath}</p>
+                  <p className="mt-1 text-xs text-slate-500">{item.mediaType}</p>
+                </div>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
 
       {release.items.length > 0 && (
         <section className="mt-5 rounded-2xl border bg-white p-5 shadow-sm" style={{ borderColor: "#E2E8F0" }}>

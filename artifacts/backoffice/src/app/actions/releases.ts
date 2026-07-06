@@ -1,9 +1,11 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
 import {
   auditLogTable,
   db,
   getActiveReleaseHighlightsForContext,
+  getReleaseMediaByIdForContext,
   getReleaseBySlugForContext,
   listEnabledKnowledgebaseModuleKeysForTenant,
   listReleasesForContext,
@@ -13,6 +15,7 @@ import {
   releaseDismissalsTable,
   releaseHighlightsTable,
   releaseItemsTable,
+  releaseMediaTable,
   releaseModulesTable,
   releaseRoadmapLinksTable,
   releasesTable,
@@ -20,6 +23,7 @@ import {
   type FieldgridContentAudience,
   type ReleaseHighlightSurface,
   type ReleaseImpactLevel,
+  type ReleaseMediaAccess,
   type ReleaseStatus,
   type ReleaseSummary,
   type ReleaseHighlightSummary,
@@ -30,6 +34,11 @@ import { requirePlatformAdmin } from "@/lib/auth/platform";
 import { getCurrentEffectiveUserPermissions } from "@/lib/auth/permissions";
 import { getCurrentBackofficeUser, requireCurrentTenantId } from "@/lib/auth/tenant";
 import { emitFieldgridContentNotification } from "@/lib/content-notification-events";
+import { createAdminClient } from "@/lib/supabase/admin";
+
+export type ActionResult<T = undefined> =
+  | { success: true; data: T }
+  | { success: false; message: string };
 
 export type ReleaseCategoryOption = {
   id: string;
@@ -96,6 +105,18 @@ const AUDIENCE_OPTIONS: Array<{ key: FieldgridContentAudience; label: string }> 
   { key: "tenant_customer", label: "Klanten" },
 ];
 
+const RELEASE_MEDIA_BUCKET = "release-media";
+const MAX_RELEASE_MEDIA_BYTES = 50 * 1024 * 1024;
+const ALLOWED_RELEASE_MEDIA_TYPES = new Set([
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+  "image/gif",
+  "video/mp4",
+  "video/webm",
+  "application/pdf",
+]);
+
 function slugify(value: string): string {
   return value
     .normalize("NFKD")
@@ -105,6 +126,56 @@ function slugify(value: string): string {
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
     .slice(0, 180);
+}
+
+function escapeHtmlAttribute(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/"/g, "&quot;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function sanitizeContentUrl(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const compact = trimmed.replace(/[\u0000-\u001F\s]+/g, "").toLowerCase();
+  if (compact.startsWith("javascript:") || compact.startsWith("data:") || compact.startsWith("vbscript:")) {
+    return null;
+  }
+
+  if (trimmed.startsWith("/") || trimmed.startsWith("#")) {
+    return trimmed;
+  }
+
+  try {
+    const url = new URL(trimmed);
+    if (["http:", "https:", "mailto:", "tel:"].includes(url.protocol)) {
+      return url.toString();
+    }
+  } catch {
+    return null;
+  }
+
+  return null;
+}
+
+function sanitizeHtmlFragment(html: string | null | undefined): string | null {
+  const sanitized = (html ?? "")
+    .replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "")
+    .replace(/<style[\s\S]*?>[\s\S]*?<\/style>/gi, "")
+    .replace(/<object[\s\S]*?>[\s\S]*?<\/object>/gi, "")
+    .replace(/<embed[\s\S]*?>/gi, "")
+    .replace(/\son[a-z]+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/\sstyle\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+    .replace(/\s(href|src)\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, (_match, attribute: string, rawValue: string) => {
+      const value = rawValue.replace(/^["']|["']$/g, "");
+      const safeValue = sanitizeContentUrl(value);
+      return safeValue ? ` ${attribute.toLowerCase()}="${escapeHtmlAttribute(safeValue)}"` : "";
+    })
+    .trim();
+  return sanitized || null;
 }
 
 function uniqueStrings(values: string[]): string[] {
@@ -235,6 +306,21 @@ export async function listReleaseEditorOptions(): Promise<ReleaseEditorOptions> 
   return { categories, modules, roadmapItems };
 }
 
+export async function listReleaseCategoriesForManagement(): Promise<ReleaseCategoryOption[]> {
+  await requirePlatformAdmin();
+  return db
+    .select({
+      id: releaseCategoriesTable.id,
+      name: releaseCategoriesTable.name,
+      slug: releaseCategoriesTable.slug,
+      moduleKey: releaseCategoriesTable.moduleKey,
+      sortOrder: releaseCategoriesTable.sortOrder,
+      isActive: releaseCategoriesTable.isActive,
+    })
+    .from(releaseCategoriesTable)
+    .orderBy(asc(releaseCategoriesTable.sortOrder), asc(releaseCategoriesTable.name));
+}
+
 export async function listPlatformReleases(): Promise<ReleaseSummary[]> {
   await requirePlatformAdmin();
   return listReleasesForContext(
@@ -274,6 +360,12 @@ export async function getTenantRelease(slug: string): Promise<ReleaseSummary | n
   return getReleaseBySlugForContext(context, slug);
 }
 
+export async function getTenantReleaseMedia(mediaId: string): Promise<ReleaseMediaAccess | null> {
+  const context = await tenantReleaseContext();
+  if (!context) return null;
+  return getReleaseMediaByIdForContext(context, mediaId);
+}
+
 export async function getTenantReleaseHighlight(): Promise<ReleaseHighlightSummary | null> {
   const context = await tenantReleaseContext();
   if (!context) return null;
@@ -310,13 +402,14 @@ export async function saveRelease(input: SaveReleaseInput): Promise<{ id: string
       ? await tx.select().from(releasesTable).where(eq(releasesTable.id, input.id)).limit(1)
       : [];
 
+    const contentHtml = sanitizeHtmlFragment(input.contentHtml);
     const values = {
       version,
       title,
       slug,
       summary: input.summary?.trim() || null,
-      contentHtml: input.contentHtml?.trim() || null,
-      contentText: input.contentText?.trim() || releaseTextFromHtml(input.contentHtml),
+      contentHtml,
+      contentText: input.contentText?.trim() || releaseTextFromHtml(contentHtml),
       status,
       impactLevel: normalizeImpact(input.impactLevel),
       featured: input.featured,
@@ -498,6 +591,114 @@ export async function saveReleaseCategoryFromForm(formData: FormData): Promise<v
   });
 
   revalidateReleasePaths();
+}
+
+export async function archiveReleaseCategoryFromForm(formData: FormData): Promise<void> {
+  const actor = await requirePlatformAdmin();
+  const id = String(formData.get("id") ?? "").trim();
+  if (!id) return;
+
+  await db
+    .update(releaseCategoriesTable)
+    .set({ isActive: false, updatedAt: new Date() })
+    .where(eq(releaseCategoriesTable.id, id));
+
+  await db.insert(auditLogTable).values({
+    userId: actor.userId,
+    action: "release_category_archived",
+    resource: "releases",
+    resourceId: id,
+    metadata: {},
+  });
+
+  revalidateReleasePaths();
+}
+
+export async function uploadReleaseMedia(formData: FormData): Promise<ActionResult<{ id: string; url: string; path: string }>> {
+  try {
+    const actor = await requirePlatformAdmin();
+    const releaseId = String(formData.get("releaseId") ?? "").trim();
+    const altText = String(formData.get("altText") ?? "").trim() || null;
+    const caption = String(formData.get("caption") ?? "").trim() || null;
+    const sortOrder = Number.parseInt(String(formData.get("sortOrder") ?? "0"), 10) || 0;
+    const file = formData.get("file") as File | null;
+
+    if (!releaseId) return { success: false, message: "Sla de release eerst op voordat u media toevoegt." };
+    if (!file || file.size === 0) return { success: false, message: "Geen bestand geselecteerd." };
+    if (!altText) return { success: false, message: "Alt-tekst is verplicht voor release-media." };
+    if (file.size > MAX_RELEASE_MEDIA_BYTES) return { success: false, message: "Bestand mag maximaal 50 MB zijn." };
+    if (!ALLOWED_RELEASE_MEDIA_TYPES.has(file.type)) {
+      return { success: false, message: "Gebruik JPG, PNG, WebP, GIF, MP4, WebM of PDF." };
+    }
+
+    const [release] = await db
+      .select({ id: releasesTable.id })
+      .from(releasesTable)
+      .where(eq(releasesTable.id, releaseId))
+      .limit(1);
+    if (!release) return { success: false, message: "Release niet gevonden." };
+
+    const ext = file.name.includes(".") ? file.name.split(".").pop()!.toLowerCase() : "bin";
+    const mediaType = file.type.startsWith("image/")
+      ? "image"
+      : file.type.startsWith("video/")
+        ? "video"
+        : "attachment";
+    const path = `platform/${releaseId}/${randomUUID()}.${ext}`;
+    const bytes = await file.arrayBuffer();
+    const { error } = await createAdminClient()
+      .storage
+      .from(RELEASE_MEDIA_BUCKET)
+      .upload(path, bytes, {
+        contentType: file.type,
+        upsert: false,
+      });
+
+    if (error) return { success: false, message: `Upload mislukt: ${error.message}` };
+
+    const [saved] = await db
+      .insert(releaseMediaTable)
+      .values({
+        releaseId,
+        mediaType,
+        storagePath: path,
+        publicUrl: null,
+        mimeType: file.type,
+        sizeBytes: file.size,
+        altText,
+        caption,
+        sortOrder,
+        createdBy: actor.userId,
+      })
+      .returning({ id: releaseMediaTable.id });
+
+    await db.insert(auditLogTable).values({
+      userId: actor.userId,
+      action: "release_media_uploaded",
+      resource: "releases",
+      resourceId: releaseId,
+      metadata: { mediaId: saved.id, path, mediaType, mimeType: file.type },
+    });
+
+    revalidateReleasePaths();
+    return { success: true, data: { id: saved.id, url: `/platform/releases/media/${saved.id}`, path } };
+  } catch (error) {
+    return { success: false, message: (error as Error).message || "Release-media uploaden mislukt." };
+  }
+}
+
+export async function getPlatformReleaseMedia(mediaId: string): Promise<ReleaseMediaAccess | null> {
+  await requirePlatformAdmin();
+  return getReleaseMediaByIdForContext(
+    {
+      surface: "platform_backoffice",
+      audiences: ["platform_admin", "support"],
+      activeModuleKeys: [],
+      isPlatformAdmin: true,
+    },
+    mediaId,
+    { includeUnpublished: true, includeArchived: true },
+  );
 }
 
 export async function saveReleaseHighlightFromForm(formData: FormData): Promise<void> {

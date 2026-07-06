@@ -16,7 +16,7 @@ function rewriteKnowledgebaseMediaUrls(html: string, mediaBasePath?: string): st
   if (!basePath) return html;
 
   return html.replace(
-    /\b(src|href)=["']\/(?:platform\/knowledgebase|help)\/media\/([a-f0-9-]+)["']/gi,
+    /\b(src|href)=["']\/(?:platform\/knowledgebase|platform\/releases|help|releases)\/media\/([a-f0-9-]+)["']/gi,
     (_match, attribute: string, mediaId: string) => `${attribute}="${basePath}/${mediaId}"`,
   );
 }

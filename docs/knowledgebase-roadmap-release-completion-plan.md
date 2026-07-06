@@ -319,6 +319,14 @@ Klaar wanneer:
 - Platform admin kan releasecategorieen volledig beheren.
 - Releases kunnen media tonen zonder publieke storagelekken.
 
+Implementatiestatus:
+
+- Releasecategorieen hebben een eigen beheerpagina voor create/edit/archive met modulekoppeling en sortering.
+- Release-media gebruikt een private `release-media` bucket en wordt alleen via signed-url routes geserveerd na release visibility checks.
+- Platform admin kan screenshots, video of PDF-bijlagen uploaden, previewen en inline invoegen in release notes.
+- Tenant backoffice, klant-PWA en personeel-PWA renderen release notes via dezelfde rijke contentrenderer en tonen media/bijlagen per toegestane release.
+- Release editor heeft sectienavigatie voor basisgegevens, notes, items, media en zichtbaarheid.
+
 ## Fase 9 - Roadmap Kanban Polish En Snelle Triage
 
 Doel: roadmap wordt een werkbaar productboard.

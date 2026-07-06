@@ -1,10 +1,9 @@
 import Link from "next/link";
-import { Archive, FilePlus2, Megaphone, Save, Tags } from "lucide-react";
+import { Archive, FilePlus2, Megaphone, Tags } from "lucide-react";
 import {
   archiveRelease,
-  listPlatformReleases,
   listReleaseEditorOptions,
-  saveReleaseCategoryFromForm,
+  listPlatformReleases,
 } from "@/app/actions/releases";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -23,11 +22,6 @@ type Props = {
     previewModuleKeys?: string | string[];
   }>;
 };
-
-async function categoryAction(formData: FormData): Promise<void> {
-  "use server";
-  await saveReleaseCategoryFromForm(formData);
-}
 
 async function archiveAction(formData: FormData): Promise<void> {
   "use server";
@@ -79,6 +73,12 @@ export default async function PlatformReleasesPage({ searchParams }: Props) {
           <div className="flex flex-wrap gap-2">
             <Badge variant="outline" className="border-emerald-200 bg-emerald-50 px-3 py-1 text-emerald-700">{published} gepubliceerd</Badge>
             <Badge variant="outline" className="border-amber-200 bg-amber-50 px-3 py-1 text-amber-700">{drafts} concepten</Badge>
+            <Button asChild variant="outline" className="gap-2">
+              <Link href="/platform/releases/categories">
+                <Tags className="h-4 w-4" />
+                Categorieen
+              </Link>
+            </Button>
             <Button asChild className="gap-2">
               <Link href="/platform/releases/new">
                 <FilePlus2 className="h-4 w-4" />
@@ -144,25 +144,15 @@ export default async function PlatformReleasesPage({ searchParams }: Props) {
                 <Tags className="h-5 w-5 text-cyan-700" />
                 <h2 className="text-lg font-semibold text-slate-950">Categorieen</h2>
               </div>
-              <form action={categoryAction} className="mt-4 grid gap-3">
-                <input name="name" required placeholder="Naam" className="h-10 rounded-md border border-slate-300 px-3 text-sm" />
-                <input name="slug" placeholder="slug" className="h-10 rounded-md border border-slate-300 px-3 text-sm" />
-                <select name="moduleKey" className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm">
-                  <option value="">Geen module</option>
-                  {options.modules.map((module) => (
-                    <option key={module.key} value={module.key}>{module.name}</option>
-                  ))}
-                </select>
-                <input name="sortOrder" type="number" defaultValue={0} className="h-10 rounded-md border border-slate-300 px-3 text-sm" />
-                <label className="flex items-center gap-2 text-sm">
-                  <input name="isActive" type="checkbox" defaultChecked />
-                  Actief
-                </label>
-                <Button type="submit" className="gap-2">
-                  <Save className="h-4 w-4" />
-                  Categorie opslaan
-                </Button>
-              </form>
+              <p className="mt-2 text-sm leading-6 text-slate-600">
+                Beheer categorieen op een aparte pagina, inclusief sortering, modulekoppeling en archiveren.
+              </p>
+              <Button asChild variant="outline" className="mt-4 w-full gap-2">
+                <Link href="/platform/releases/categories">
+                  <Tags className="h-4 w-4" />
+                  Categorieen beheren
+                </Link>
+              </Button>
               <div className="mt-4 grid gap-2">
                 {options.categories.map((category) => (
                   <div key={category.id} className="rounded-md border border-slate-200 p-3 text-sm">

@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition, type FormEvent } from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Save, Trash2 } from "lucide-react";
+import { Check, ImagePlus, Plus, Save, Trash2 } from "lucide-react";
 import {
   saveRelease,
+  uploadReleaseMedia,
   type ReleaseEditorOptions,
   type ReleaseItemInput,
   type SaveReleaseInput,
@@ -64,7 +65,9 @@ function emptyItem(): ReleaseItemInput {
 
 export function ReleaseForm({ release, options }: ReleaseFormProps) {
   const router = useRouter();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPending, startTransition] = useTransition();
+  const [isUploading, startUploadTransition] = useTransition();
   const [message, setMessage] = useState<string | null>(null);
   const [version, setVersion] = useState(release?.version ?? "");
   const [title, setTitle] = useState(release?.title ?? "");
@@ -92,6 +95,14 @@ export function ReleaseForm({ release, options }: ReleaseFormProps) {
       }))
       : [emptyItem()],
   );
+
+  const sections = [
+    { href: "#release-basis", label: "Basis" },
+    { href: "#release-content", label: "Notes" },
+    { href: "#release-items", label: "Items" },
+    { href: "#release-media", label: "Media" },
+    { href: "#release-visibility", label: "Zichtbaarheid" },
+  ];
 
   function onTitleChange(value: string) {
     setTitle(value);
@@ -133,10 +144,47 @@ export function ReleaseForm({ release, options }: ReleaseFormProps) {
     });
   }
 
+  function uploadMedia(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setMessage(null);
+    if (!release?.id) {
+      setMessage("Sla de release eerst op voordat u media toevoegt.");
+      return;
+    }
+
+    const form = event.currentTarget;
+    const formData = new FormData(form);
+    formData.set("releaseId", release.id);
+
+    startUploadTransition(async () => {
+      const result = await uploadReleaseMedia(formData);
+      if (!result.success) {
+        setMessage(result.message);
+        return;
+      }
+      form.reset();
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setMessage("Media toegevoegd.");
+      router.refresh();
+    });
+  }
+
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
       <div className="grid gap-5">
-        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <nav className="sticky top-16 z-10 flex gap-2 overflow-x-auto rounded-lg border border-slate-200 bg-white p-2 shadow-sm">
+          {sections.map((section) => (
+            <a
+              key={section.href}
+              href={section.href}
+              className="inline-flex h-9 shrink-0 items-center rounded-md px-3 text-sm font-semibold text-slate-600 hover:bg-slate-100 hover:text-slate-950"
+            >
+              {section.label}
+            </a>
+          ))}
+        </nav>
+
+        <section id="release-basis" className="scroll-mt-28 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <div className="grid gap-4 md:grid-cols-[180px_minmax(0,1fr)_260px]">
             <div className="space-y-2">
               <Label htmlFor="version">Versie</Label>
@@ -163,18 +211,20 @@ export function ReleaseForm({ release, options }: ReleaseFormProps) {
           </div>
         </section>
 
-        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <section id="release-content" className="scroll-mt-28 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-950">Release notes</h2>
           <div className="mt-4">
             <TipTapKnowledgebaseEditor
               initialHtml={contentHtml}
+              media={release?.media ?? []}
+              mediaBasePath="/platform/releases/media"
               placeholder="Schrijf de release note met duidelijke impact, modules, verbeteringen en eventuele actie voor gebruikers..."
               onChange={(html) => setContentHtml(html)}
             />
           </div>
         </section>
 
-        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <section id="release-items" className="scroll-mt-28 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <div className="flex items-center justify-between gap-3">
             <div>
               <h2 className="text-lg font-semibold text-slate-950">Release items</h2>
@@ -218,10 +268,64 @@ export function ReleaseForm({ release, options }: ReleaseFormProps) {
             ))}
           </div>
         </section>
+
+        <section id="release-media" className="scroll-mt-28 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-950">Media</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                Upload screenshots, video's of PDF-bijlagen en voeg ze daarna inline toe in de release notes.
+              </p>
+            </div>
+            <Badge variant="outline">{release?.media.length ?? 0} bestanden</Badge>
+          </div>
+          <form onSubmit={uploadMedia} className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,1fr)_220px_220px_110px_auto]">
+            <Input ref={fileInputRef} name="file" type="file" accept="image/*,video/mp4,video/webm,application/pdf" disabled={!release?.id} />
+            <Input name="altText" placeholder="Alt-tekst (verplicht)" required disabled={!release?.id} />
+            <Input name="caption" placeholder="Caption" disabled={!release?.id} />
+            <Input name="sortOrder" type="number" defaultValue={0} disabled={!release?.id} />
+            <Button type="submit" variant="outline" disabled={isUploading || !release?.id} className="gap-2">
+              {isUploading ? <ImagePlus className="h-4 w-4 animate-pulse" /> : <ImagePlus className="h-4 w-4" />}
+              Upload
+            </Button>
+          </form>
+          {!release?.id && (
+            <p className="mt-2 text-xs text-slate-500">Maak de release eerst aan voordat media veilig gekoppeld kan worden.</p>
+          )}
+          <div className="mt-4 grid gap-3 md:grid-cols-2">
+            {(release?.media ?? []).map((item) => (
+              <a
+                key={item.id}
+                href={`/platform/releases/media/${item.id}`}
+                target="_blank"
+                rel="noreferrer"
+                className="group overflow-hidden rounded-lg border border-slate-200 bg-slate-50 text-sm hover:border-cyan-200 hover:bg-white"
+              >
+                {item.mediaType === "image" ? (
+                  <img src={`/platform/releases/media/${item.id}`} alt={item.altText ?? item.caption ?? "Release media"} className="h-40 w-full object-cover" />
+                ) : (
+                  <div className="flex h-40 items-center justify-center bg-slate-100 text-slate-500">
+                    {item.mediaType === "video" ? "Video preview" : "Bijlage"}
+                  </div>
+                )}
+                <div className="flex items-center gap-2 p-3">
+                  <Check className="h-4 w-4 text-emerald-600" />
+                  <span className="min-w-0 flex-1 truncate">{item.caption || item.altText || item.storagePath}</span>
+                  <Badge variant="outline">{item.mediaType}</Badge>
+                </div>
+              </a>
+            ))}
+            {(release?.media ?? []).length === 0 && (
+              <div className="rounded-lg border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500 md:col-span-2">
+                Nog geen media gekoppeld.
+              </div>
+            )}
+          </div>
+        </section>
       </div>
 
       <aside className="grid gap-5 self-start">
-        <section className="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+        <section id="release-visibility" className="scroll-mt-28 rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
           <h2 className="text-lg font-semibold text-slate-950">Publicatie</h2>
           <div className="mt-4 grid gap-3">
             <label className="grid gap-1 text-sm font-medium text-slate-700">

@@ -33,6 +33,7 @@ import type { KnowledgebaseArticleMediaSummary } from "@workspace/db";
 type TipTapKnowledgebaseEditorProps = {
   initialHtml?: string | null;
   media?: KnowledgebaseArticleMediaSummary[];
+  mediaBasePath?: string;
   onChange: (html: string, json: Record<string, unknown>) => void;
   placeholder?: string;
 };
@@ -328,13 +329,14 @@ function buildTableContent() {
   };
 }
 
-function mediaUrl(mediaId: string): string {
-  return `/platform/knowledgebase/media/${mediaId}`;
+function mediaUrl(mediaBasePath: string, mediaId: string): string {
+  return `${mediaBasePath.replace(/\/+$/, "")}/${mediaId}`;
 }
 
 export function TipTapKnowledgebaseEditor({
   initialHtml,
   media = [],
+  mediaBasePath = "/platform/knowledgebase/media",
   onChange,
   placeholder = "Schrijf de handleiding met duidelijke stappen, tips en waarschuwingen...",
 }: TipTapKnowledgebaseEditorProps) {
@@ -432,14 +434,14 @@ export function TipTapKnowledgebaseEditor({
         attrs: {
           mediaId: item.id,
           mediaType: item.mediaType,
-          src: mediaUrl(item.id),
+          src: mediaUrl(mediaBasePath, item.id),
           alt: item.altText || item.caption || item.storagePath,
           caption: item.caption || "",
         },
       })
       .run();
     setSelectedMediaId("");
-  }, [editor, media, selectedMediaId]);
+  }, [editor, media, mediaBasePath, selectedMediaId]);
 
   const insertVideoEmbed = useCallback(() => {
     if (!editor) return;
@@ -638,7 +640,7 @@ export function TipTapKnowledgebaseEditor({
 
       {mode === "preview" ? (
         <div className="min-h-[360px] bg-white px-4 py-3">
-          <KnowledgebaseContentRenderer html={previewHtml} mediaBasePath="/platform/knowledgebase/media" />
+          <KnowledgebaseContentRenderer html={previewHtml} mediaBasePath={mediaBasePath} />
         </div>
       ) : (
         <div className="news-editor px-4 py-3">

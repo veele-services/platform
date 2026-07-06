@@ -6,11 +6,13 @@ import {
   releaseDismissalsTable,
   releaseHighlightsTable,
   releaseItemsTable,
+  releaseMediaTable,
   releaseModulesTable,
   releaseRoadmapLinksTable,
   releasesTable,
   roadmapItemsTable,
   type FieldgridContentAudience,
+  type ReleaseMedia,
   type ReleaseHighlightSurface,
   type ReleaseImpactLevel,
   type ReleaseStatus,
@@ -52,6 +54,25 @@ export type ReleaseRoadmapSummary = {
   status: string;
 };
 
+export type ReleaseMediaSummary = {
+  id: string;
+  mediaType: "image" | "video" | "attachment";
+  storagePath: string;
+  publicUrl: string | null;
+  mimeType: string | null;
+  sizeBytes: number | null;
+  altText: string | null;
+  caption: string | null;
+  sortOrder: number;
+};
+
+export type ReleaseMediaAccess = ReleaseMediaSummary & {
+  releaseId: string;
+  releaseSlug: string;
+  releaseTitle: string;
+  releaseVersion: string;
+};
+
 export type ReleaseSummary = {
   id: string;
   version: string;
@@ -69,6 +90,7 @@ export type ReleaseSummary = {
   audienceKeys: FieldgridContentAudience[];
   moduleKeys: string[];
   items: ReleaseItemSummary[];
+  media: ReleaseMediaSummary[];
   roadmapItems: ReleaseRoadmapSummary[];
 };
 
@@ -98,6 +120,7 @@ type ReleaseRelationMaps = {
   audiences: Map<string, FieldgridContentAudience[]>;
   modules: Map<string, string[]>;
   items: Map<string, ReleaseItemSummary[]>;
+  media: Map<string, ReleaseMediaSummary[]>;
   roadmapItems: Map<string, ReleaseRoadmapSummary[]>;
 };
 
@@ -176,11 +199,12 @@ async function loadReleaseRelations(releaseIds: string[]): Promise<ReleaseRelati
       audiences: new Map(),
       modules: new Map(),
       items: new Map(),
+      media: new Map(),
       roadmapItems: new Map(),
     };
   }
 
-  const [audienceRows, moduleRows, itemRows, roadmapRows] = await Promise.all([
+  const [audienceRows, moduleRows, itemRows, mediaRows, roadmapRows] = await Promise.all([
     db
       .select({
         releaseId: releaseAudiencesTable.releaseId,
@@ -214,6 +238,11 @@ async function loadReleaseRelations(releaseIds: string[]): Promise<ReleaseRelati
       .leftJoin(releaseCategoriesTable, eq(releaseItemsTable.categoryId, releaseCategoriesTable.id))
       .where(inArray(releaseItemsTable.releaseId, releaseIds))
       .orderBy(asc(releaseItemsTable.sortOrder), asc(releaseItemsTable.title)),
+    db
+      .select()
+      .from(releaseMediaTable)
+      .where(inArray(releaseMediaTable.releaseId, releaseIds))
+      .orderBy(asc(releaseMediaTable.sortOrder), asc(releaseMediaTable.createdAt)),
     db
       .select({
         releaseId: releaseRoadmapLinksTable.releaseId,
@@ -263,6 +292,13 @@ async function loadReleaseRelations(releaseIds: string[]): Promise<ReleaseRelati
     items.set(row.releaseId, list);
   }
 
+  const media = new Map<string, ReleaseMediaSummary[]>();
+  for (const row of mediaRows) {
+    const list = media.get(row.releaseId) ?? [];
+    list.push(mapReleaseMedia(row));
+    media.set(row.releaseId, list);
+  }
+
   const roadmapItems = new Map<string, ReleaseRoadmapSummary[]>();
   for (const row of roadmapRows) {
     const list = roadmapItems.get(row.releaseId) ?? [];
@@ -274,7 +310,21 @@ async function loadReleaseRelations(releaseIds: string[]): Promise<ReleaseRelati
     roadmapItems.set(row.releaseId, list);
   }
 
-  return { audiences, modules, items, roadmapItems };
+  return { audiences, modules, items, media, roadmapItems };
+}
+
+function mapReleaseMedia(row: ReleaseMedia): ReleaseMediaSummary {
+  return {
+    id: row.id,
+    mediaType: row.mediaType,
+    storagePath: row.storagePath,
+    publicUrl: null,
+    mimeType: row.mimeType,
+    sizeBytes: row.sizeBytes,
+    altText: row.altText,
+    caption: row.caption,
+    sortOrder: row.sortOrder,
+  };
 }
 
 export async function listReleasesForContext(
@@ -326,6 +376,7 @@ export async function listReleasesForContext(
       audienceKeys,
       moduleKeys,
       items: relations.items.get(row.id) ?? [],
+      media: relations.media.get(row.id) ?? [],
       roadmapItems: relations.roadmapItems.get(row.id) ?? [],
     };
   });
@@ -341,6 +392,33 @@ export async function getReleaseBySlugForContext(
 ): Promise<ReleaseSummary | null> {
   const releases = await listReleasesForContext(context, options);
   return releases.find((release) => release.slug === slug) ?? null;
+}
+
+export async function getReleaseMediaByIdForContext(
+  context: ReleaseVisibilityContext,
+  mediaId: string,
+  options: ReleaseListOptions = {},
+): Promise<ReleaseMediaAccess | null> {
+  const [media] = await db
+    .select()
+    .from(releaseMediaTable)
+    .where(eq(releaseMediaTable.id, mediaId))
+    .limit(1);
+
+  if (!media) return null;
+
+  const releases = await listReleasesForContext(context, options);
+  const release = releases.find((entry) => entry.id === media.releaseId);
+  if (!release) return null;
+  if (!release.media.some((item) => item.id === media.id)) return null;
+
+  return {
+    ...mapReleaseMedia(media),
+    releaseId: release.id,
+    releaseSlug: release.slug,
+    releaseTitle: release.title,
+    releaseVersion: release.version,
+  };
 }
 
 export async function getActiveReleaseHighlightsForContext(

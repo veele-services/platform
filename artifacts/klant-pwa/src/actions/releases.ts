@@ -4,11 +4,13 @@ import {
   auditLogTable,
   db,
   getActiveReleaseHighlightsForContext,
+  getReleaseMediaByIdForContext,
   getReleaseBySlugForContext,
   listEnabledKnowledgebaseModuleKeysForTenant,
   listReleasesForContext,
   releaseDismissalsTable,
   type ReleaseHighlightSummary,
+  type ReleaseMediaAccess,
   type ReleaseSummary,
 } from "@workspace/db";
 import { revalidatePath } from "next/cache";
@@ -41,6 +43,12 @@ export async function getCustomerRelease(slug: string): Promise<ReleaseSummary |
   const context = await customerReleaseContext();
   if (!context) return null;
   return getReleaseBySlugForContext(context, slug);
+}
+
+export async function getCustomerReleaseMedia(mediaId: string): Promise<ReleaseMediaAccess | null> {
+  const context = await customerReleaseContext();
+  if (!context) return null;
+  return getReleaseMediaByIdForContext(context, mediaId);
 }
 
 export async function getCustomerReleaseHighlight(): Promise<ReleaseHighlightSummary | null> {
