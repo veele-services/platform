@@ -100,6 +100,8 @@ export async function sendEmail(opts: {
   subject: string;
   html:    string;
   text?:   string;
+  tenantId?: string;
+  purpose?:  string;
 }): Promise<void> {
   const result = await sendEmailWithResult(opts);
   if (!result.success) console.error("[email] Verzenden mislukt:", result.error);
@@ -112,6 +114,8 @@ export async function sendEmailWithResult(opts: {
   html:        string;
   text?:       string;
   attachments?: Array<{ filename: string; content: Buffer }>;
+  tenantId?:    string;
+  purpose?:     string;
 }): Promise<{ success: boolean; error?: string }> {
   try {
     const smtpConfig = await getSmtpConfig();
@@ -121,13 +125,23 @@ export async function sendEmailWithResult(opts: {
     }
   } catch (error) {
     const msg = String((error as { message?: string }).message ?? error);
-    console.error("[email] SMTP verzenden mislukt:", msg);
+    console.error("[email] SMTP verzenden mislukt:", {
+      error: msg,
+      purpose: opts.purpose ?? null,
+      tenantId: opts.tenantId ?? null,
+      subject: opts.subject,
+    });
     return { success: false, error: msg };
   }
 
   const resend = getClient();
   if (!resend) {
-    console.warn("[email] RESEND_API_KEY not set — e-mail overgeslagen:", opts.subject);
+    console.warn("[email] Mailprovider context:", {
+      purpose: opts.purpose ?? null,
+      tenantId: opts.tenantId ?? null,
+      subject: opts.subject,
+    });
+    console.warn("[email] RESEND_API_KEY not set - e-mail overgeslagen.");
     return { success: false, error: "E-mailclient niet geconfigureerd. Vul SMTP-instellingen in of configureer RESEND_API_KEY." };
   }
   try {
@@ -141,12 +155,22 @@ export async function sendEmailWithResult(opts: {
     });
     if (error) {
       const msg = String((error as { message?: string }).message ?? error);
-      console.error("[email] Verzenden mislukt:", msg);
+      console.error("[email] Verzenden mislukt:", {
+        error: msg,
+        purpose: opts.purpose ?? null,
+        tenantId: opts.tenantId ?? null,
+        subject: opts.subject,
+      });
       return { success: false, error: msg };
     }
   } catch (error) {
     const msg = String((error as { message?: string }).message ?? error);
-    console.error("[email] Verzenden mislukt:", msg);
+    console.error("[email] Verzenden mislukt:", {
+      error: msg,
+      purpose: opts.purpose ?? null,
+      tenantId: opts.tenantId ?? null,
+      subject: opts.subject,
+    });
     return { success: false, error: msg };
   }
 

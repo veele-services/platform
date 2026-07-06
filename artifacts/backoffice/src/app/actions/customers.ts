@@ -406,6 +406,8 @@ async function sendCustomerPortalInvite(input: {
     to: email,
     subject,
     html,
+    tenantId: input.tenantId,
+    purpose: "customer_portal_invite",
   });
 
   if (!sent.success) {
@@ -1272,6 +1274,17 @@ export async function createCustomer(
             ? inviteError.message
             : "Klantportaaluitnodiging versturen mislukt.";
         console.error("[customers] Auto customer portal invite failed:", inviteError);
+        await db.insert(auditLogTable).values({
+          userId:     user.id,
+          action:     "auto_invite_customer_portal_failed",
+          resource:   "customers",
+          resourceId: created!.id,
+          metadata:   {
+            customerName: payload.name,
+            email: parsed.data.contactEmail,
+            error: message,
+          },
+        });
         inviteResult = { sent: false, message };
       }
     }
