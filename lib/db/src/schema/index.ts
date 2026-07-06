@@ -1,6 +1,7 @@
 export * from "./tenants";
 export * from "./tenant-domains";
 export * from "./platform-users";
+export * from "./platform-email";
 export * from "./platform-tickets";
 export * from "./platform-notifications";
 export * from "./roles";

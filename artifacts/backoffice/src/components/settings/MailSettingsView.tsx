@@ -141,7 +141,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
         >
           {smtpEnabled
             ? "SMTP staat aan. Host, poort en afzender zijn verplicht voordat e-mail kan worden verzonden."
-            : "SMTP staat uit. Het platform gebruikt de bestaande RESEND_API_KEY/RESEND_FROM_EMAIL fallback wanneer die aanwezig is."}
+            : "SMTP staat uit. Het platform gebruikt de centrale platform e-mailprovider wanneer die actief is."}
         </div>
       </div>
 

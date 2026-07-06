@@ -5,21 +5,21 @@ import tls from "node:tls";
 export type SmtpEncryption = "none" | "starttls" | "tls";
 
 export type SmtpMailConfig = {
-  host:       string;
-  port:       number;
+  host: string;
+  port: number;
   encryption: SmtpEncryption;
-  username:   string | null;
-  password:   string | null;
-  fromEmail:  string;
-  fromName:   string | null;
-  replyTo:    string | null;
+  username: string | null;
+  password: string | null;
+  fromEmail: string;
+  fromName: string | null;
+  replyTo: string | null;
 };
 
 export type SmtpMailOptions = {
-  to:          string | string[];
-  subject:     string;
-  html:        string;
-  text?:       string;
+  to: string | string[];
+  subject: string;
+  html: string;
+  text?: string;
   attachments?: Array<{ filename: string; content: Buffer }>;
 };
 
@@ -175,7 +175,7 @@ function encodeHeader(value: string): string {
 
 function messageIdDomain(fromEmail: string): string {
   const domain = fromEmail.split("@")[1]?.trim().toLowerCase();
-  if (!domain || !/^[a-z0-9.-]+\.[a-z]{2,}$/u.test(domain)) return "veeleservices.nl";
+  if (!domain || !/^[a-z0-9.-]+\.[a-z]{2,}$/u.test(domain)) return "fieldgrid.nl";
   return domain;
 }
 
@@ -218,8 +218,8 @@ function dotStuff(message: string): string {
 }
 
 function buildMessage(config: SmtpMailConfig, options: SmtpMailOptions, recipients: string[]): string {
-  const mixedBoundary = `veele-mixed-${randomUUID()}`;
-  const alternativeBoundary = `veele-alt-${randomUUID()}`;
+  const mixedBoundary = `fieldgrid-mixed-${randomUUID()}`;
+  const alternativeBoundary = `fieldgrid-alt-${randomUUID()}`;
   const text = options.text?.trim() || htmlToText(options.html);
   const headers = [
     `From: ${formatAddress(config.fromEmail, config.fromName)}`,
@@ -284,10 +284,7 @@ function buildMessage(config: SmtpMailConfig, options: SmtpMailOptions, recipien
   ].join("\r\n");
 }
 
-export async function sendSmtpMail(
-  config: SmtpMailConfig,
-  options: SmtpMailOptions,
-): Promise<void> {
+export async function sendSmtpMail(config: SmtpMailConfig, options: SmtpMailOptions): Promise<string | null> {
   const recipients = normalizeRecipients(options.to);
   if (recipients.length === 0) {
     throw new Error("Geen ontvanger opgegeven.");
@@ -302,14 +299,14 @@ export async function sendSmtpMail(
 
   try {
     ensureCode(await reader.read(), 220, "SMTP-greeting");
-    await smtpCommand(socket, reader, "EHLO veele.local", 250, "EHLO");
+    await smtpCommand(socket, reader, "EHLO fieldgrid.local", 250, "EHLO");
 
     if (config.encryption === "starttls") {
       await smtpCommand(socket, reader, "STARTTLS", 220, "STARTTLS");
       reader.dispose();
       socket = await connectTls(config, socket as net.Socket);
       reader = new ResponseReader(socket);
-      await smtpCommand(socket, reader, "EHLO veele.local", 250, "EHLO");
+      await smtpCommand(socket, reader, "EHLO fieldgrid.local", 250, "EHLO");
     }
 
     if (config.username) {
@@ -337,13 +334,16 @@ export async function sendSmtpMail(
 
     await smtpCommand(socket, reader, "DATA", 354, "DATA");
     socket.write(`${dotStuff(buildMessage(config, options, recipients))}\r\n.\r\n`);
-    ensureCode(await reader.read(), 250, "DATA body");
+    const accepted = await reader.read();
+    ensureCode(accepted, 250, "DATA body");
 
     try {
       await smtpCommand(socket, reader, "QUIT", 221, "QUIT");
     } catch {
       // The mail was already accepted after DATA; QUIT failures are not actionable.
     }
+
+    return accepted.text;
   } finally {
     reader.dispose();
     socket.end();

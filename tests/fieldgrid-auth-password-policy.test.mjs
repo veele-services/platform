@@ -114,7 +114,6 @@ test("klant PWA password reset avoids deployment-stale server action ids", () =>
   const requestRoute = read("artifacts/klant-pwa/src/app/api/auth/password-reset/request/route.ts");
   const completeRoute = read("artifacts/klant-pwa/src/app/api/auth/password-reset/complete/route.ts");
   const serviceWorker = read("artifacts/klant-pwa/public/sw.js");
-  const smtpMailer = read("artifacts/klant-pwa/src/lib/smtp-mailer.ts");
 
   assertContains(forgotPage, [
     "fetch(\"/klant/api/auth/password-reset/request\"",
@@ -133,11 +132,11 @@ test("klant PWA password reset avoids deployment-stale server action ids", () =>
   assertContains(completeRoute, ["completePasswordReset", "Cache-Control", "no-store"], "complete route");
   assertContains(authActions, ["sendEmailWithResult", "if (!sent.success) throw new Error"], "klant auth actions");
   assertContains(mailHelper, [
-    "organizationSettingsTable.smtpEnabled",
-    "sendSmtpMail",
-    "RESEND_API_KEY",
+    "@workspace/db/email-service",
+    "sendTransactionalEmail",
+    "customer_portal",
   ], "klant mail helper");
-  assertContains(smtpMailer, ["STARTTLS", "AUTH LOGIN", "MAIL FROM", "RCPT TO"], "klant SMTP helper");
+  assert.doesNotMatch(mailHelper, /new Resend|sendSmtpMail|RESEND_API_KEY/u);
   assertContains(serviceWorker, ["static-v3"], "klant service worker");
   assert.doesNotMatch(serviceWorker, /pathname\.startsWith\(`\$\{APP_PREFIX\}\/_next\/static\/`\)/u);
 });

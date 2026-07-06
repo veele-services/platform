@@ -190,9 +190,6 @@ importers:
       pino-http:
         specifier: ^10.5.0
         version: 10.5.0
-      resend:
-        specifier: ^6.12.4
-        version: 6.12.4
     devDependencies:
       '@types/cookie-parser':
         specifier: ^1.4.10
@@ -341,9 +338,6 @@ importers:
       react-hook-form:
         specifier: ^7.55.0
         version: 7.75.0(react@19.1.0)
-      resend:
-        specifier: ^6.12.4
-        version: 6.12.4
       sonner:
         specifier: ^2.0.7
         version: 2.0.7(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -414,9 +408,6 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 19.1.0(react@19.1.0)
-      resend:
-        specifier: ^6.12.4
-        version: 6.12.4
       tailwind-merge:
         specifier: 'catalog:'
         version: 3.5.0
@@ -679,9 +670,6 @@ importers:
       react-dom:
         specifier: 'catalog:'
         version: 19.1.0(react@19.1.0)
-      resend:
-        specifier: ^6.12.4
-        version: 6.12.4
       tailwind-merge:
         specifier: 'catalog:'
         version: 3.5.0
@@ -743,6 +731,9 @@ importers:
       pg:
         specifier: ^8.20.0
         version: 8.20.0
+      resend:
+        specifier: ^6.12.4
+        version: 6.12.4
       zod:
         specifier: 'catalog:'
         version: 3.25.76

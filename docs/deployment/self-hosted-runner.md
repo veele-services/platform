@@ -74,7 +74,7 @@ Required when payments, webhooks, e-mail, or scheduled admin routes are enabled:
 - `MOLLIE_API_KEY`: Mollie API key for payment creation and webhook reconciliation.
 - `MOLLIE_WEBHOOK_SECRET`: HMAC secret expected in `x-mollie-signature`.
 - `ADMIN_API_SECRET`: bearer token used by `/api/admin/payment-reminders`, `/api/admin/expired-quotes`, `/api/admin/notification-worker`, and the legacy notification endpoints.
-- `RESEND_API_KEY`: Resend API key for transactional e-mail.
+- `FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY`: encryption key for platform e-mail provider secrets. Resend/SMTP credentials are configured in platform admin, not as primary environment secrets.
 - `VAPID_PRIVATE_KEY`: private Web Push VAPID key used only by the API-server push delivery route.
 - `FCM_SERVICE_ACCOUNT_JSON_BASE64`: optional Firebase service-account JSON,
   base64 encoded, for native Capacitor/FCM push.

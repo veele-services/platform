@@ -517,7 +517,7 @@ async function deliverEmailItem(
       status: "sent",
       error: null,
       retryAt: null,
-      response: { provider: "resend" },
+      response: { provider: "platform_email" },
       deactivatedSubscriptions: 0,
       deactivatedNativeTokens: 0,
     };
@@ -528,7 +528,7 @@ async function deliverEmailItem(
     config,
     true,
     result.error ?? "E-mail delivery mislukt.",
-    { provider: "resend" },
+    { provider: "platform_email" },
   );
 }
 
