@@ -29,6 +29,7 @@ import { revalidatePath } from "next/cache";
 import { requirePlatformAdmin } from "@/lib/auth/platform";
 import { getCurrentEffectiveUserPermissions } from "@/lib/auth/permissions";
 import { getCurrentBackofficeUser, requireCurrentTenantId } from "@/lib/auth/tenant";
+import { emitFieldgridContentNotification } from "@/lib/content-notification-events";
 
 export type ReleaseCategoryOption = {
   id: string;
@@ -135,6 +136,39 @@ function revalidateReleasePaths(): void {
   revalidatePath("/releases");
   revalidatePath("/klant/releases");
   revalidatePath("/personeel/releases");
+}
+
+async function releaseNotificationScope(releaseId: string): Promise<{
+  release: { id: string; version: string; title: string; slug: string; summary: string | null; featured: boolean; status: ReleaseStatus };
+  moduleKeys: string[];
+  audienceKeys: FieldgridContentAudience[];
+} | null> {
+  const [release] = await db
+    .select({
+      id: releasesTable.id,
+      version: releasesTable.version,
+      title: releasesTable.title,
+      slug: releasesTable.slug,
+      summary: releasesTable.summary,
+      featured: releasesTable.featured,
+      status: releasesTable.status,
+    })
+    .from(releasesTable)
+    .where(eq(releasesTable.id, releaseId))
+    .limit(1);
+
+  if (!release) return null;
+
+  const [moduleRows, audienceRows] = await Promise.all([
+    db.select({ moduleKey: releaseModulesTable.moduleKey }).from(releaseModulesTable).where(eq(releaseModulesTable.releaseId, releaseId)),
+    db.select({ audienceKey: releaseAudiencesTable.audienceKey }).from(releaseAudiencesTable).where(eq(releaseAudiencesTable.releaseId, releaseId)),
+  ]);
+
+  return {
+    release,
+    moduleKeys: uniqueStrings(moduleRows.map((row) => row.moduleKey)),
+    audienceKeys: normalizeAudienceKeys(audienceRows.map((row) => row.audienceKey)),
+  };
 }
 
 function releaseTextFromHtml(html: string | null | undefined): string | null {
@@ -271,7 +305,7 @@ export async function saveRelease(input: SaveReleaseInput): Promise<{ id: string
   if (!version) throw new Error("Versie is verplicht.");
   if (!slug) throw new Error("Slug is verplicht.");
 
-  const release = await db.transaction(async (tx) => {
+  const result = await db.transaction(async (tx) => {
     const [existing] = input.id
       ? await tx.select().from(releasesTable).where(eq(releasesTable.id, input.id)).limit(1)
       : [];
@@ -350,11 +384,62 @@ export async function saveRelease(input: SaveReleaseInput): Promise<{ id: string
       metadata: { status, impactLevel: values.impactLevel, audienceKeys, moduleKeys, roadmapItemIds },
     });
 
-    return saved;
+    return {
+      release: saved,
+      previousStatus: existing?.status ?? null,
+      previousFeatured: existing?.featured ?? false,
+    };
   });
 
   revalidateReleasePaths();
-  return { id: release.id, slug: release.slug };
+  const scopeInfo = await releaseNotificationScope(result.release.id);
+  if (scopeInfo && result.release.status === "published") {
+    const notificationBase = {
+      actorUserId: actor.userId,
+      moduleKeys: scopeInfo.moduleKeys,
+      requiredModuleKeys: ["releases"],
+      audienceKeys: scopeInfo.audienceKeys,
+      requiredPermissionKeys: ["releases:view"],
+      aggregate: { type: "releases", id: result.release.id },
+      payload: {
+        release: {
+          id: result.release.id,
+          version: result.release.version,
+          title: result.release.title,
+          slug: result.release.slug,
+          summary: result.release.summary ?? "",
+        },
+      },
+      fallback: {
+        title: `Nieuwe release: ${result.release.version}`,
+        body: result.release.summary ?? result.release.title,
+        category: "releases",
+        href: `/releases/${result.release.slug}`,
+      },
+    };
+
+    if (result.previousStatus !== "published") {
+      await emitFieldgridContentNotification({
+        ...notificationBase,
+        eventKey: "release_published",
+      });
+    }
+
+    if (result.release.featured && !result.previousFeatured) {
+      await emitFieldgridContentNotification({
+        ...notificationBase,
+        eventKey: "release_featured",
+        fallback: {
+          ...notificationBase.fallback,
+          title: `Uitgelichte release: ${result.release.version}`,
+          body: result.release.summary ?? "Een belangrijke Fieldgrid release is uitgelicht.",
+          priority: "high",
+        },
+      });
+    }
+  }
+
+  return { id: result.release.id, slug: result.release.slug };
 }
 
 export async function saveReleaseFromForm(formData: FormData): Promise<void> {
@@ -451,6 +536,52 @@ export async function saveReleaseHighlightFromForm(formData: FormData): Promise<
   });
 
   revalidateReleasePaths();
+
+  const now = new Date();
+  const starts = startsAt ? new Date(startsAt) : null;
+  const ends = endsAt ? new Date(endsAt) : null;
+  const isActiveNow =
+    surface !== "platform_backoffice" &&
+    (!starts || starts <= now) &&
+    (!ends || ends >= now);
+
+  if (saved?.id && isActiveNow) {
+    const scopeInfo = await releaseNotificationScope(releaseId);
+    if (scopeInfo?.release.status === "published") {
+      await emitFieldgridContentNotification({
+        eventKey: "release_highlight_active",
+        actorUserId: actor.userId,
+        moduleKeys: uniqueStrings([...scopeInfo.moduleKeys, moduleKey ?? ""]),
+        requiredModuleKeys: ["releases"],
+        audienceKeys: [audienceKey],
+        requiredPermissionKeys: ["releases:view"],
+        aggregate: { type: "release_highlight", id: saved.id },
+        payload: {
+          release: {
+            id: scopeInfo.release.id,
+            version: scopeInfo.release.version,
+            title: scopeInfo.release.title,
+            slug: scopeInfo.release.slug,
+          },
+          highlight: {
+            id: saved.id,
+            title,
+            message,
+            surface,
+            audience_key: audienceKey,
+            module_key: moduleKey ?? "",
+          },
+        },
+        fallback: {
+          title,
+          body: message,
+          category: "releases",
+          priority: "high",
+          href: `/releases/${scopeInfo.release.slug}`,
+        },
+      });
+    }
+  }
 }
 
 export async function archiveRelease(formData: FormData): Promise<void> {

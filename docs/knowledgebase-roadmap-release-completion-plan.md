@@ -146,12 +146,27 @@ Taken:
 - Templates/copy toevoegen.
 - In-app/push/mail waar passend aansluiten.
 - Auditlog behouden.
+- Aansluiten op bestaande `notification_event_settings`, `domain_events` en `notification_delivery_queue`.
+- Management recipients filteren op actieve tenantgebruikers en effectieve permissies.
+- Personeel/klanten alleen targeten als de content-audience dit toestaat.
 
 Klaar wanneer:
 
 - Elke relevante actie maakt exact de juiste notificatie-events.
 - Verkeerde audiences ontvangen niets.
 - Events zijn idempotent waar nodig.
+- Tenant zonder actieve contentmodule of notificatiemodule krijgt geen event.
+- Bestaande notificatie-instellingenpagina kan e-mail/push/in-app toggles beheren.
+- `pnpm run fieldgrid:kb-roadmap-release-phase3-notifications:check` slaagt.
+
+Implementatiepunten:
+
+- Emitter: `artifacts/backoffice/src/lib/content-notification-events.ts`.
+- KB hooks: `artifacts/backoffice/src/app/actions/knowledgebase.ts`.
+- Roadmap hooks: `artifacts/backoffice/src/app/actions/roadmap.ts`.
+- Release hooks: `artifacts/backoffice/src/app/actions/releases.ts`.
+- Templates/backfill: `lib/db/migrations/088_kb_roadmap_release_notification_events.sql`.
+- Gate: `scripts/fieldgrid-kb-roadmap-release-phase3-notifications.mjs`.
 
 ## Fase 4 - Tooltips Uitrollen Op Kernflows
 

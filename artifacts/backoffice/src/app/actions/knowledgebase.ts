@@ -27,6 +27,7 @@ import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { requirePlatformAdmin } from "@/lib/auth/platform";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { emitFieldgridContentNotification } from "@/lib/content-notification-events";
 
 export type ActionResult<T = undefined> =
   | { success: true; data: T }
@@ -326,7 +327,7 @@ export async function saveKnowledgebaseArticle(input: SaveKnowledgebaseArticleIn
     const normalized = normalizeInput(input);
     const now = new Date();
 
-    const article = await db.transaction(async (tx) => {
+    const result = await db.transaction(async (tx) => {
       const [existing] = normalized.id
         ? await tx
           .select()
@@ -469,11 +470,72 @@ export async function saveKnowledgebaseArticle(input: SaveKnowledgebaseArticleIn
         },
       });
 
-      return saved;
+      return {
+        article: saved,
+        previousStatus: existing?.status ?? null,
+        previousFeatured: existing?.featured ?? false,
+      };
     });
 
     revalidateKnowledgebasePaths();
-    return { success: true, data: { id: article.id, slug: article.slug } };
+
+    if (result.article.status === "published") {
+      const notificationBase = {
+        actorUserId: actor.userId,
+        moduleKeys: normalized.moduleKeys,
+        requiredModuleKeys: uniqueStrings(["knowledgebase", ...normalized.requiredModuleKeys]),
+        audienceKeys: normalized.audienceKeys,
+        permissionKeys: normalized.permissionKeys,
+        requiredPermissionKeys: ["kb:view"],
+        aggregate: { type: "kb", id: result.article.id },
+        payload: {
+          article: {
+            id: result.article.id,
+            title: result.article.title,
+            slug: result.article.slug,
+            summary: result.article.summary ?? "",
+          },
+        },
+        fallback: {
+          title: `Nieuwe handleiding: ${result.article.title}`,
+          body: result.article.summary ?? "Er staat een nieuwe Fieldgrid handleiding klaar.",
+          category: "knowledgebase",
+          href: `/help/${result.article.slug}`,
+        },
+      };
+
+      if (result.previousStatus !== "published") {
+        await emitFieldgridContentNotification({
+          ...notificationBase,
+          eventKey: "kb_article_published",
+        });
+      } else {
+        await emitFieldgridContentNotification({
+          ...notificationBase,
+          eventKey: "kb_article_updated",
+          fallback: {
+            ...notificationBase.fallback,
+            title: `Handleiding bijgewerkt: ${result.article.title}`,
+            body: result.article.summary ?? "Een Fieldgrid handleiding is bijgewerkt.",
+          },
+        });
+      }
+
+      if (result.article.featured && !result.previousFeatured) {
+        await emitFieldgridContentNotification({
+          ...notificationBase,
+          eventKey: "kb_article_featured",
+          fallback: {
+            ...notificationBase.fallback,
+            title: `Belangrijke handleiding: ${result.article.title}`,
+            body: result.article.summary ?? "Een belangrijke Fieldgrid handleiding is uitgelicht.",
+            priority: "high",
+          },
+        });
+      }
+    }
+
+    return { success: true, data: { id: result.article.id, slug: result.article.slug } };
   } catch (error) {
     return { success: false, message: (error as Error).message || "Artikel opslaan mislukt." };
   }
