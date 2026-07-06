@@ -49,6 +49,13 @@ import {
   buildTemporaryPasswordEmail,
   sendEmailWithResult,
 } from "@/lib/email";
+import {
+  decryptPlatformEmailConfig,
+  encryptPlatformEmailConfig,
+  maskEmailSecret,
+  type TenantEmailApiProvider,
+  type TenantEmailTransport,
+} from "@workspace/db/email-service";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult };
@@ -74,6 +81,11 @@ export type OrgSettings = {
   smtpFromName: string | null;
   smtpFromEmail: string | null;
   smtpReplyTo: string | null;
+  emailTransport: TenantEmailTransport;
+  emailApiProvider: TenantEmailApiProvider;
+  emailApiKeyConfigured: boolean;
+  emailApiKeyMasked: string | null;
+  emailApiSendingDomain: string | null;
   emailTemplateBrandColor: string;
   emailTemplateAccentColor: string;
   emailTemplateFooterText: string;
@@ -206,13 +218,36 @@ export type AuditLogEntry = {
 
 // ─── Organisation settings ────────────────────────────────────────────────────
 
+function normalizeMailTransport(value: string | null | undefined, smtpEnabled?: boolean): TenantEmailTransport {
+  if (value === "platform" || value === "smtp" || value === "api") return value;
+  return smtpEnabled ? "smtp" : "platform";
+}
+
+function readTenantEmailApiConfig(encrypted: string | null | undefined): {
+  apiKey?: string | null;
+  sendingDomain?: string | null;
+} {
+  if (!encrypted) return {};
+  try {
+    return decryptPlatformEmailConfig(encrypted);
+  } catch {
+    return {};
+  }
+}
+
 export async function getOrganizationSettings(): Promise<OrgSettings | null> {
   await requirePermission("settings", "read");
+  const tenantId = await requireCurrentTenantId();
 
-  const rows = await db.select().from(organizationSettingsTable).limit(1);
+  const rows = await db
+    .select()
+    .from(organizationSettingsTable)
+    .where(eq(organizationSettingsTable.tenantId, tenantId))
+    .limit(1);
 
   if (rows.length === 0) return null;
   const r = rows[0];
+  const emailApiConfig = readTenantEmailApiConfig(r.emailApiKeyEncrypted);
   return {
     id: r.id,
     naam: r.naam,
@@ -233,6 +268,11 @@ export async function getOrganizationSettings(): Promise<OrgSettings | null> {
     smtpFromName: r.smtpFromName,
     smtpFromEmail: r.smtpFromEmail,
     smtpReplyTo: r.smtpReplyTo,
+    emailTransport: normalizeMailTransport(r.emailTransport, r.smtpEnabled),
+    emailApiProvider: r.emailApiProvider === "resend" ? r.emailApiProvider : "resend",
+    emailApiKeyConfigured: Boolean(emailApiConfig.apiKey),
+    emailApiKeyMasked: maskEmailSecret(emailApiConfig.apiKey, 3),
+    emailApiSendingDomain: r.emailApiSendingDomain ?? emailApiConfig.sendingDomain ?? null,
     emailTemplateBrandColor: r.emailTemplateBrandColor,
     emailTemplateAccentColor: r.emailTemplateAccentColor,
     emailTemplateFooterText: r.emailTemplateFooterText,
@@ -263,6 +303,7 @@ export async function updateOrganizationSettings(data: {
   notifHerinneringDagen?: number;
 }): Promise<ActionResult> {
   await requirePermission("settings", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -283,14 +324,15 @@ export async function updateOrganizationSettings(data: {
 
   await db
     .update(organizationSettingsTable)
-    .set({ ...data, updatedAt: new Date(), updatedBy: user.id });
+    .set({ ...data, updatedAt: new Date(), updatedBy: user.id })
+    .where(eq(organizationSettingsTable.tenantId, tenantId));
 
   await db.insert(auditLogTable).values({
     userId: user.id,
     action: "update",
     resource: "settings",
     resourceId: "organization",
-    metadata: { fields: Object.keys(data) },
+    metadata: { tenantId, fields: Object.keys(data) },
   });
 
   revalidatePath("/instellingen/organisatie");
@@ -298,6 +340,11 @@ export async function updateOrganizationSettings(data: {
 }
 
 type MailSettingsInput = {
+  emailTransport: TenantEmailTransport;
+  emailApiProvider: TenantEmailApiProvider;
+  emailApiKey?: string | null;
+  clearApiKey?: boolean;
+  emailApiSendingDomain?: string | null;
   smtpEnabled: boolean;
   smtpHost: string | null;
   smtpPort: number | null;
@@ -318,6 +365,7 @@ export async function updateMailSettings(
   data: MailSettingsInput,
 ): Promise<ActionResult> {
   await requirePermission("settings", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -325,8 +373,29 @@ export async function updateMailSettings(
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
+  const emailTransport = normalizeMailTransport(data.emailTransport, data.smtpEnabled);
+  if (data.emailApiProvider !== "resend") {
+    return { success: false, message: "Voor API-mail wordt momenteel alleen Resend ondersteund." };
+  }
+
+  const [existingSettings] = await db
+    .select({
+      emailApiKeyEncrypted: organizationSettingsTable.emailApiKeyEncrypted,
+    })
+    .from(organizationSettingsTable)
+    .where(eq(organizationSettingsTable.tenantId, tenantId))
+    .limit(1);
+
+  const existingApiConfig = readTenantEmailApiConfig(existingSettings?.emailApiKeyEncrypted);
+  const apiKeyInput = data.emailApiKey?.trim() || null;
+  const emailApiSendingDomain = data.emailApiSendingDomain?.trim() || null;
+  const effectiveApiKey = data.clearApiKey ? null : apiKeyInput ?? existingApiConfig.apiKey ?? null;
+
   const payload = {
-    smtpEnabled: data.smtpEnabled,
+    emailTransport,
+    emailApiProvider: data.emailApiProvider,
+    emailApiSendingDomain,
+    smtpEnabled: emailTransport === "smtp",
     smtpHost: data.smtpHost?.trim() || null,
     smtpPort: data.smtpPort,
     smtpEncryption: data.smtpEncryption,
@@ -348,7 +417,7 @@ export async function updateMailSettings(
       message: "SMTP-poort moet tussen 1 en 65535 liggen.",
     };
   }
-  if (payload.smtpEnabled) {
+  if (emailTransport === "smtp") {
     if (!payload.smtpHost)
       return {
         success: false,
@@ -367,6 +436,20 @@ export async function updateMailSettings(
       };
     }
   }
+  if (emailTransport === "api") {
+    if (!payload.smtpFromEmail || !isEmailLike(payload.smtpFromEmail)) {
+      return {
+        success: false,
+        message: "Een geldig afzenderadres is verplicht wanneer Resend API actief is.",
+      };
+    }
+    if (!effectiveApiKey) {
+      return {
+        success: false,
+        message: "Resend API key is verplicht wanneer API-mail actief is.",
+      };
+    }
+  }
   if (payload.smtpFromEmail && !isEmailLike(payload.smtpFromEmail)) {
     return { success: false, message: "Afzender e-mailadres is ongeldig." };
   }
@@ -380,13 +463,34 @@ export async function updateMailSettings(
     updatedBy: user.id,
   };
 
+  if (data.clearApiKey) {
+    updateData.emailApiKeyEncrypted = null;
+    updateData.emailApiKeyUpdatedAt = new Date();
+  } else if (apiKeyInput || (effectiveApiKey && emailApiSendingDomain !== (existingApiConfig.sendingDomain ?? null))) {
+    try {
+      updateData.emailApiKeyEncrypted = encryptPlatformEmailConfig({
+        apiKey: effectiveApiKey,
+        sendingDomain: emailApiSendingDomain,
+      });
+      updateData.emailApiKeyUpdatedAt = new Date();
+    } catch (error) {
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : "API key versleutelen mislukt.",
+      };
+    }
+  }
+
   if (data.clearPassword) {
     updateData.smtpPassword = null;
   } else if (data.smtpPassword?.trim()) {
     updateData.smtpPassword = data.smtpPassword.trim();
   }
 
-  await db.update(organizationSettingsTable).set(updateData);
+  await db
+    .update(organizationSettingsTable)
+    .set(updateData)
+    .where(eq(organizationSettingsTable.tenantId, tenantId));
 
   await db.insert(auditLogTable).values({
     userId: user.id,
@@ -394,6 +498,10 @@ export async function updateMailSettings(
     resource: "settings",
     resourceId: "mail",
     metadata: {
+      tenantId,
+      emailTransport,
+      emailApiProvider: payload.emailApiProvider,
+      apiKeyChanged: Boolean(apiKeyInput) || Boolean(data.clearApiKey),
       smtpEnabled: payload.smtpEnabled,
       smtpHost: payload.smtpHost,
       smtpPort: payload.smtpPort,
@@ -680,6 +788,7 @@ export async function updateEmailTemplateStyle(data: {
   signature: string;
 }): Promise<ActionResult> {
   await requirePermission("settings", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -701,14 +810,14 @@ export async function updateEmailTemplateStyle(data: {
     emailTemplateSignature: safeTrim(data.signature, 2000),
     updatedAt: new Date(),
     updatedBy: user.id,
-  });
+  }).where(eq(organizationSettingsTable.tenantId, tenantId));
 
   await db.insert(auditLogTable).values({
     userId: user.id,
     action: "update_email_template_style",
     resource: "settings",
     resourceId: "notifications",
-    metadata: { brandColor, accentColor },
+    metadata: { tenantId, brandColor, accentColor },
   });
 
   revalidatePath("/instellingen/notificaties");
@@ -2056,10 +2165,12 @@ export async function sendTestNotification(
   label: string,
 ): Promise<ActionResult> {
   await requirePermission("settings", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const [orgSettings] = await db
     .select({ emailAfzender: organizationSettingsTable.emailAfzender })
     .from(organizationSettingsTable)
+    .where(eq(organizationSettingsTable.tenantId, tenantId))
     .limit(1);
 
   if (!orgSettings?.emailAfzender) {
@@ -2096,6 +2207,8 @@ export async function sendTestNotification(
     to: orgSettings.emailAfzender,
     subject,
     html,
+    tenantId,
+    purpose: "notification_test",
   });
   if (!result.success) {
     return {
@@ -2111,6 +2224,7 @@ export async function sendTestMailSettings(
   template: "basic" | "temporary_password" = "basic",
 ): Promise<ActionResult> {
   await requirePermission("settings", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const to = recipientEmail.trim().toLowerCase();
   if (!isEmailLike(to)) {
@@ -2158,6 +2272,8 @@ export async function sendTestMailSettings(
     to,
     subject: message.subject,
     html: message.html,
+    tenantId,
+    purpose: "tenant_mail_settings_test",
   });
   if (!result.success) {
     return {

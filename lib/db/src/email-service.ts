@@ -14,6 +14,8 @@ export type PlatformEmailProviderType = "resend_api" | "smtp";
 export type RuntimeEmailProviderType = PlatformEmailProviderType | "legacy_smtp" | "env_resend" | "none";
 export type PlatformEmailProviderStatus = "draft" | "configured" | "disabled" | "error";
 export type PlatformEmailTestStatus = "success" | "failed";
+export type TenantEmailTransport = "platform" | "smtp" | "api";
+export type TenantEmailApiProvider = "resend";
 
 export type EmailAttachment = {
   filename: string;
@@ -121,6 +123,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 function normalizeEncryption(value: string | null | undefined): SmtpEncryption {
   if (value === "none" || value === "tls" || value === "starttls") return value;
   return "starttls";
+}
+
+function normalizeTenantTransport(value: string | null | undefined, smtpEnabled?: boolean | null): TenantEmailTransport {
+  if (value === "platform" || value === "smtp" || value === "api") return value;
+  return smtpEnabled ? "smtp" : "platform";
 }
 
 function normalizeEmail(value: string | null | undefined): string {
@@ -264,7 +271,74 @@ async function getEnvResendProvider(): Promise<ResolvedProvider | null> {
   };
 }
 
-async function resolveActiveProvider(): Promise<ResolvedProvider | null> {
+async function getTenantProvider(tenantId: string | null | undefined): Promise<ResolvedProvider | null> {
+  if (!tenantId) return null;
+
+  const [settings] = await db
+    .select({
+      naam: organizationSettingsTable.naam,
+      emailTransport: organizationSettingsTable.emailTransport,
+      emailApiProvider: organizationSettingsTable.emailApiProvider,
+      emailApiKeyEncrypted: organizationSettingsTable.emailApiKeyEncrypted,
+      emailApiSendingDomain: organizationSettingsTable.emailApiSendingDomain,
+      smtpEnabled: organizationSettingsTable.smtpEnabled,
+      smtpHost: organizationSettingsTable.smtpHost,
+      smtpPort: organizationSettingsTable.smtpPort,
+      smtpEncryption: organizationSettingsTable.smtpEncryption,
+      smtpUsername: organizationSettingsTable.smtpUsername,
+      smtpPassword: organizationSettingsTable.smtpPassword,
+      smtpFromName: organizationSettingsTable.smtpFromName,
+      smtpFromEmail: organizationSettingsTable.smtpFromEmail,
+      smtpReplyTo: organizationSettingsTable.smtpReplyTo,
+    })
+    .from(organizationSettingsTable)
+    .where(eq(organizationSettingsTable.tenantId, tenantId))
+    .limit(1);
+
+  if (!settings) return null;
+
+  const transport = normalizeTenantTransport(settings.emailTransport, settings.smtpEnabled);
+  const fromName = settings.smtpFromName ?? settings.naam ?? DEFAULT_FROM_NAME;
+
+  if (transport === "smtp") {
+    return {
+      id: null,
+      providerType: "smtp",
+      fromEmail: settings.smtpFromEmail ?? "",
+      fromName,
+      replyToEmail: settings.smtpReplyTo ?? null,
+      config: {
+        host: settings.smtpHost,
+        port: settings.smtpPort,
+        encryption: normalizeEncryption(settings.smtpEncryption),
+        username: settings.smtpUsername,
+        password: settings.smtpPassword,
+      },
+    };
+  }
+
+  if (transport === "api") {
+    const config = decryptPlatformEmailConfig(settings.emailApiKeyEncrypted);
+    return {
+      id: null,
+      providerType: "resend_api",
+      fromEmail: settings.smtpFromEmail ?? "",
+      fromName,
+      replyToEmail: settings.smtpReplyTo ?? null,
+      config: {
+        apiKey: config.apiKey ?? null,
+        sendingDomain: settings.emailApiSendingDomain ?? config.sendingDomain ?? null,
+      },
+    };
+  }
+
+  return null;
+}
+
+async function resolveActiveProvider(tenantId?: string | null): Promise<ResolvedProvider | null> {
+  const tenantProvider = await getTenantProvider(tenantId);
+  if (tenantProvider) return tenantProvider;
+
   const [provider] = await db
     .select()
     .from(platformEmailProvidersTable)
@@ -373,9 +447,9 @@ async function sendWithSmtp(provider: ResolvedProvider, input: TransactionalEmai
 }
 
 export async function sendTransactionalEmail(input: TransactionalEmailInput): Promise<TransactionalEmailResult> {
-  const provider = await resolveActiveProvider();
+  const provider = await resolveActiveProvider(input.tenantId);
   if (!provider) {
-    const error = "Geen actieve platform e-mailprovider geconfigureerd.";
+    const error = "Geen actieve e-mailprovider geconfigureerd.";
     await logDelivery(input, null, "skipped", error);
     return { success: false, error, providerType: "none", providerId: null };
   }

@@ -187,6 +187,7 @@ async function sendPersonnelTemporaryPasswordInvite(person: {
   firstName: string;
   lastName:  string;
   email:     string;
+  tenantId:  string;
 }): Promise<{ userId: string; created: boolean }> {
   const fullName = `${person.firstName} ${person.lastName}`.trim();
   const invite = await provisionPortalUserWithTemporaryPassword({
@@ -206,6 +207,8 @@ async function sendPersonnelTemporaryPasswordInvite(person: {
     to: person.email,
     subject,
     html,
+    tenantId: person.tenantId,
+    purpose: "personnel_portal_invite",
   });
 
   if (!sent.success) {
@@ -665,6 +668,7 @@ export async function createPersonnel(
           firstName: payload.firstName,
           lastName:  payload.lastName,
           email:     payload.email,
+          tenantId,
         });
         await db
           .update(personnelTable)
@@ -868,7 +872,7 @@ export async function invitePersonnel(id: string): Promise<ActionResult> {
 
   let temporaryInvite: { userId: string; created: boolean };
   try {
-    temporaryInvite = await sendPersonnelTemporaryPasswordInvite(person);
+    temporaryInvite = await sendPersonnelTemporaryPasswordInvite({ ...person, tenantId });
   } catch (error) {
     return {
       success: false,
