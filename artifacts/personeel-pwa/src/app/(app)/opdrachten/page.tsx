@@ -222,7 +222,7 @@ function PlanningCommandBar({
   return (
     <form
       action="/opdrachten"
-      className="rounded-[18px] bg-white p-3 shadow-sm md:grid md:grid-cols-[1fr_11rem_12rem_10rem_auto] md:items-end md:gap-3"
+      className="rounded-[18px] bg-white p-3 shadow-sm xl:grid xl:grid-cols-[1fr_11rem_12rem_10rem_auto] xl:items-end xl:gap-3"
       style={{ boxShadow: "0 12px 28px rgba(8,29,58,0.06)" }}
     >
       <div>
@@ -241,7 +241,7 @@ function PlanningCommandBar({
         </div>
       </div>
 
-      <div className="mt-3 md:mt-0">
+      <div className="mt-3 xl:mt-0">
         <label htmlFor="planning-date" className="mb-1.5 block text-[11px] font-black uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
           Datum
         </label>
@@ -255,7 +255,7 @@ function PlanningCommandBar({
         />
       </div>
 
-      <div className="mt-3 md:mt-0">
+      <div className="mt-3 xl:mt-0">
         <label htmlFor="planning-status" className="mb-1.5 block text-[11px] font-black uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
           Status
         </label>
@@ -274,7 +274,7 @@ function PlanningCommandBar({
         </select>
       </div>
 
-      <div className="mt-3 md:mt-0">
+      <div className="mt-3 xl:mt-0">
         <label htmlFor="planning-view" className="mb-1.5 block text-[11px] font-black uppercase tracking-wide" style={{ color: "var(--color-secondary)" }}>
           Weergave
         </label>
@@ -290,10 +290,10 @@ function PlanningCommandBar({
         </select>
       </div>
 
-      <div className="mt-3 flex items-center gap-2 md:mt-0">
+      <div className="mt-3 flex items-center gap-2 xl:mt-0">
         <button
           type="submit"
-          className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl px-4 text-[14px] font-black text-white md:flex-none"
+          className="inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-2xl px-4 text-[14px] font-black text-white xl:flex-none"
           style={{ backgroundColor: "var(--color-accent)" }}
         >
           <SlidersHorizontal size={16} strokeWidth={2.5} />
@@ -308,7 +308,7 @@ function PlanningCommandBar({
         </Link>
       </div>
 
-      <p className="mt-3 flex items-center gap-2 text-[12px] font-bold md:col-span-full md:mt-0" style={{ color: "var(--color-secondary)" }}>
+      <p className="mt-3 flex items-center gap-2 text-[12px] font-bold xl:col-span-full xl:mt-0" style={{ color: "var(--color-secondary)" }}>
         <LayoutList size={14} strokeWidth={2.3} />
         {filteredCount} van {totalCount} werkbonnen zichtbaar
       </p>
