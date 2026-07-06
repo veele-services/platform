@@ -13,6 +13,7 @@ import {
   GitPullRequest,
   LayoutDashboard,
   LogOut,
+  Megaphone,
   Menu,
   PanelLeftClose,
   PanelLeftOpen,
@@ -59,6 +60,7 @@ const NAV_ITEMS: PlatformNavItem[] = [
   { href: "/platform/notifications", label: "Meldingen", icon: Bell, adminOnly: true },
   { href: "/platform/knowledgebase", label: "Knowledgebase", icon: BookOpen, adminOnly: true },
   { href: "/platform/roadmap", label: "Roadmap", icon: GitPullRequest, adminOnly: true },
+  { href: "/platform/releases", label: "Releases", icon: Megaphone, adminOnly: true },
   { href: "/platform/security", label: "Security en audit", icon: ShieldCheck, adminOnly: true },
   { href: "/platform/operations", label: "Operations", icon: Activity, adminOnly: true },
   { href: "/platform/staging-smoke", label: "Staging smoke", icon: Activity, adminOnly: true },
@@ -111,6 +113,11 @@ const ROUTE_LABELS: Array<{ test: (pathname: string) => boolean; title: string; 
     test: (pathname) => pathname.startsWith("/platform/roadmap"),
     title: "Roadmap",
     crumbs: [{ label: "Platformbeheer", href: "/platform" }, { label: "Roadmap" }],
+  },
+  {
+    test: (pathname) => pathname.startsWith("/platform/releases"),
+    title: "Releases",
+    crumbs: [{ label: "Platformbeheer", href: "/platform" }, { label: "Releases" }],
   },
   {
     test: (pathname) => pathname.startsWith("/platform/security"),

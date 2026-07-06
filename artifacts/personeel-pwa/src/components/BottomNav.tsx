@@ -15,7 +15,7 @@ const NAV_ITEMS = [
   { href: "/opdrachten", icon: CalendarDays, label: "Planning", match: ["/opdrachten", "/openstaand"] },
   { href: "/uren",       icon: Clock,        label: "Uren",     match: ["/uren"] },
   { href: "/berichten",  icon: MessageSquare, label: "Berichten", match: ["/berichten", "/meldingen"] },
-  { href: "/meer",       icon: Menu,         label: "Meer",     match: ["/meer", "/instellingen", "/profiel", "/beveiliging", "/documenten", "/verlof", "/beschikbaarheid", "/nieuws", "/help"] },
+  { href: "/meer",       icon: Menu,         label: "Meer",     match: ["/meer", "/instellingen", "/profiel", "/beveiliging", "/documenten", "/verlof", "/beschikbaarheid", "/nieuws", "/help", "/releases"] },
 ];
 
 export function BottomNav() {

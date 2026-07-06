@@ -22,6 +22,7 @@ import {
   type StaffAvailabilityEntry,
   type WeekDayCount,
 } from "@/app/actions/dashboard";
+import { listTenantReleases } from "@/app/actions/releases";
 import { AssignmentStatusBadge } from "@/components/assignments/AssignmentStatusBadge";
 import { DashboardRefresher } from "@/components/dashboard/DashboardRefresher";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
@@ -116,6 +117,7 @@ export default async function DashboardPage() {
   const canReadAssignments = await hasPermission("assignments", "read");
   const canReadPersonnel = await hasPermission("personnel", "read");
   const canReadSettings = await hasPermission("settings", "read");
+  const canReadReleases = await hasPermission("releases", "view");
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -140,6 +142,7 @@ export default async function DashboardPage() {
     managementMetrics,
     planningMetrics,
     administrationMetrics,
+    releases,
   ] = await Promise.all([
     canReadAssignments ? getDashboardCounts().catch(() => emptyCounts) : Promise.resolve(emptyCounts),
     getDashboardFinancials().catch(() => null as DashboardFinancials | null),
@@ -157,6 +160,7 @@ export default async function DashboardPage() {
     getManagementDashboardMetrics().catch(() => null as ManagementDashboardMetrics | null),
     getPlanningDashboardMetrics().catch(() => null as PlanningDashboardMetrics | null),
     getAdministrationDashboardMetrics().catch(() => null as AdministrationDashboardMetrics | null),
+    canReadReleases ? listTenantReleases().catch(() => []) : Promise.resolve([]),
   ]);
 
   const totalStaff = staffAvailability.length;
@@ -294,10 +298,37 @@ export default async function DashboardPage() {
             />
           )}
 
+          {canReadReleases && <LatestReleasePanel releases={releases.slice(0, 3)} />}
+
           {recentActivity.length > 0 && <ActivityPanel entries={recentActivity} />}
         </div>
       </section>
     </TenantPageShell>
+  );
+}
+
+function LatestReleasePanel({ releases }: { releases: Awaited<ReturnType<typeof listTenantReleases>> }) {
+  const latest = releases[0] ?? null;
+
+  return (
+    <DashboardPanel title="Release notes" subtitle="Laatste wijzigingen voor uw actieve modules." href="/releases" linkLabel="Alle releases">
+      {latest ? (
+        <div className="space-y-3">
+          <Link href={`/releases/${latest.slug}`} className="block rounded-lg border border-cyan-100 bg-cyan-50 p-3 transition hover:bg-cyan-100">
+            <p className="text-xs font-semibold uppercase tracking-wide text-cyan-700">{latest.version}</p>
+            <h3 className="mt-1 font-heading text-base font-semibold text-slate-950">{latest.title}</h3>
+            {latest.summary && <p className="mt-1 text-sm leading-6 text-slate-600">{latest.summary}</p>}
+          </Link>
+          {releases.slice(1).map((release) => (
+            <Link key={release.id} href={`/releases/${release.slug}`} className="block text-sm font-medium text-slate-700 hover:underline">
+              {release.version} - {release.title}
+            </Link>
+          ))}
+        </div>
+      ) : (
+        <p className="text-sm text-muted-foreground">Nog geen release notes zichtbaar voor deze tenant.</p>
+      )}
+    </DashboardPanel>
   );
 }
 

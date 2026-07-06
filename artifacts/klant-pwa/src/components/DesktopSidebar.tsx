@@ -11,6 +11,7 @@ import {
   Headphones,
   Home,
   LogOut,
+  Megaphone,
   Settings,
   WalletCards,
 } from "lucide-react";
@@ -22,6 +23,7 @@ type CustomerPortalFeatureFlags = {
   finance: boolean;
   reporting: boolean;
   knowledgebase: boolean;
+  releases: boolean;
 };
 
 type NavIcon = ComponentType<{
@@ -38,6 +40,7 @@ const NAV_ITEMS = [
   { href: "/financieel", label: "Financieel", Icon: WalletCards, moduleKey: "finance", match: ["/financieel", "/facturen", "/betalingen", "/offertes"] },
   { href: "/documenten", label: "Documenten", Icon: FileText, moduleKey: "documents" },
   { href: "/help", label: "Help", Icon: HelpCircle, moduleKey: "knowledgebase" },
+  { href: "/releases", label: "Releases", Icon: Megaphone, moduleKey: "releases" },
 ] satisfies Array<{
   href: string;
   label: string;
@@ -55,7 +58,7 @@ function isVisible(
 
 export function DesktopSidebar({
   branding,
-  featureFlags = { documents: true, finance: true, reporting: true, knowledgebase: true },
+  featureFlags = { documents: true, finance: true, reporting: true, knowledgebase: true, releases: true },
 }: {
   branding?: PortalBrandingProps;
   featureFlags?: CustomerPortalFeatureFlags;

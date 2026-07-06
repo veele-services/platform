@@ -45,6 +45,7 @@ const NAV_ITEMS = [
   { href: "/news", icon: Newspaper, label: "Nieuws", permission: "news:read" },
   { href: "/help", icon: HelpCircle, label: "Help", permission: "kb:view" },
   { href: "/roadmap", icon: Lightbulb, label: "Roadmap", permission: "roadmap:view" },
+  { href: "/releases", icon: FileText, label: "Releases", permission: "releases:view" },
   { href: "/settings", icon: Settings, label: "Instellingen", permission: "settings:read" },
 ] as const;
 

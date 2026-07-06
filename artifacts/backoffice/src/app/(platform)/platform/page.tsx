@@ -43,8 +43,10 @@ import {
   type PlatformSecurityEventRow,
   type SupportAccessGrantRow,
 } from "@/app/actions/platform";
+import { listPlatformReleases } from "@/app/actions/releases";
 import { listCurrentSupportAccessGrants } from "@/app/actions/support-mode";
 import { getCurrentPlatformUser } from "@/lib/auth/platform";
+import type { ReleaseSummary } from "@workspace/db";
 
 export const metadata = {
   title: "Platformbeheer",
@@ -551,6 +553,41 @@ function RecentTicketsAndNotifications() {
   );
 }
 
+function LatestPlatformRelease({ release }: { release: ReleaseSummary | null }) {
+  return (
+    <section className="rounded border border-slate-200 bg-white p-4">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
+        <div>
+          <h2 className="text-base font-semibold tracking-normal">Laatste release</h2>
+          <p className="mt-1 text-xs text-slate-500">Globale release notes, highlights en gekoppelde roadmapitems.</p>
+        </div>
+        <Link href="/platform/releases" className="text-sm font-medium text-slate-700 underline-offset-2 hover:underline">
+          Beheer
+        </Link>
+      </div>
+      {release ? (
+        <Link href={`/platform/releases/${release.slug}`} className="group block py-4">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="rounded border border-cyan-200 bg-cyan-50 px-2 py-0.5 text-[11px] font-medium text-cyan-700">
+              {release.version}
+            </span>
+            <span className="rounded border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-medium text-slate-600">
+              {release.status}
+            </span>
+          </div>
+          <p className="mt-2 font-medium text-slate-950 group-hover:underline">{release.title}</p>
+          {release.summary && <p className="mt-1 text-sm leading-5 text-slate-500">{release.summary}</p>}
+          <p className="mt-2 text-xs text-slate-500">
+            {release.items.length} items · {release.roadmapItems.length} roadmaplinks
+          </p>
+        </Link>
+      ) : (
+        <div className="py-6 text-sm text-slate-500">Nog geen releases aangemaakt.</div>
+      )}
+    </section>
+  );
+}
+
 function quickTenantLinks(tenants: PlatformTenantRow[], signals: PlatformDashboardSignals): PlatformTenantRow[] {
   const byId = new Map(tenants.map((tenant) => [tenant.id, tenant]));
   const selected: PlatformTenantRow[] = [];
@@ -719,6 +756,7 @@ function PlatformDashboardOverview({
   signals,
   securityDashboard,
   smokeDashboard,
+  latestRelease,
 }: {
   tenants: PlatformTenantRow[];
   supportGrants: SupportAccessGrantRow[];
@@ -726,6 +764,7 @@ function PlatformDashboardOverview({
   signals: PlatformDashboardSignals;
   securityDashboard: PlatformSecurityDashboard;
   smokeDashboard: PlatformStagingSmokeDashboard;
+  latestRelease: ReleaseSummary | null;
 }) {
   const activeTenants = tenants.filter((tenant) => tenant.isActive && ["trial", "active"].includes(tenant.status)).length;
   const trialTenants = tenants.filter((tenant) => tenant.status === "trial").length;
@@ -826,6 +865,7 @@ function PlatformDashboardOverview({
 
       <div className="grid gap-4 lg:grid-cols-2">
         <RecentAuditEvents events={securityDashboard.events.slice(0, 6)} />
+        <LatestPlatformRelease release={latestRelease} />
         <RecentTicketsAndNotifications />
       </div>
     </section>
@@ -847,6 +887,7 @@ export default async function PlatformAdminPage({ searchParams }: Props) {
     dashboardSignals,
     securityDashboard,
     smokeDashboard,
+    platformReleases,
   ] = await Promise.all([
     isPlatformAdmin ? listPlatformTenants() : Promise.resolve([]),
     isPlatformAdmin ? listPlatformUsers() : Promise.resolve([]),
@@ -857,6 +898,7 @@ export default async function PlatformAdminPage({ searchParams }: Props) {
     isPlatformAdmin ? getPlatformDashboardSignals() : Promise.resolve(null),
     isPlatformAdmin ? listPlatformSecurityDashboard({ limit: 80 }) : Promise.resolve(null),
     isPlatformAdmin ? getPlatformStagingSmokeDashboard() : Promise.resolve(null),
+    isPlatformAdmin ? listPlatformReleases() : Promise.resolve([]),
   ]);
 
   return (
@@ -890,6 +932,7 @@ export default async function PlatformAdminPage({ searchParams }: Props) {
             signals={dashboardSignals}
             securityDashboard={securityDashboard}
             smokeDashboard={smokeDashboard}
+            latestRelease={platformReleases[0] ?? null}
           />
         )}
 

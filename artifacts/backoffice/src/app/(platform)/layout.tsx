@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { markCurrentPlatformUserSeen } from "@/app/actions/platform";
+import { dismissPlatformReleaseHighlight, getPlatformReleaseHighlight } from "@/app/actions/releases";
 import { PlatformShell } from "@/components/platform/PlatformShell";
 import { getCurrentPlatformUser } from "@/lib/auth/platform";
 import { createClient } from "@/lib/supabase/server";
+import type { ReleaseHighlightSummary } from "@workspace/db";
 
 function NoPlatformAccess() {
   return (
@@ -22,6 +24,38 @@ function NoPlatformAccess() {
         </Link>
       </section>
     </main>
+  );
+}
+
+function PlatformReleaseHighlightBanner({ highlight }: { highlight: ReleaseHighlightSummary | null }) {
+  if (!highlight) return null;
+
+  return (
+    <div className="border-b border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950 sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <p className="font-semibold">{highlight.title}</p>
+          <p className="mt-0.5 text-xs leading-5 text-amber-900">{highlight.message}</p>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <Link
+            href={`/platform/releases/${highlight.releaseSlug}`}
+            className="rounded border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-950 transition hover:bg-amber-100"
+          >
+            Lees meer
+          </Link>
+          <form action={dismissPlatformReleaseHighlight}>
+            <input type="hidden" name="highlightId" value={highlight.id} />
+            <button
+              type="submit"
+              className="rounded border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100"
+            >
+              Sluiten
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -50,8 +84,12 @@ export default async function PlatformLayout({
     console.warn("[platform] last-seen update skipped", error);
   }
 
+  const canReadPlatformReleases = platformUser.role === "owner" || platformUser.role === "admin";
+  const releaseHighlight = canReadPlatformReleases ? await getPlatformReleaseHighlight() : null;
+
   return (
     <PlatformShell userEmail={user.email ?? platformUser.userId} platformRole={platformUser.role}>
+      <PlatformReleaseHighlightBanner highlight={releaseHighlight} />
       {children}
     </PlatformShell>
   );

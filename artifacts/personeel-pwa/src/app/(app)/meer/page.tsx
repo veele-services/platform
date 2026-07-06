@@ -8,6 +8,7 @@ import {
   HelpCircle,
   LogOut,
   MessageSquare,
+  Megaphone,
   Newspaper,
   Plane,
   Settings,
@@ -25,6 +26,7 @@ const MORE_LINKS = [
   { href: "/verlof", label: "Verlof", description: "Verlofaanvragen bekijken en indienen", Icon: Plane },
   { href: "/documenten", label: "Documenten", description: "Bestanden en formulieren", Icon: FolderOpen },
   { href: "/help", label: "Help", description: "Handleidingen en uitleg bij functies", Icon: HelpCircle },
+  { href: "/releases", label: "Releases", description: "Nieuwe functies en verbeteringen", Icon: Megaphone },
   { href: "/openstaand", label: "Open diensten", description: "Beschikbare werkbonnen", Icon: FileText },
 ];
 
