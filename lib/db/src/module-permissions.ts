@@ -45,6 +45,12 @@ export const FIELDGRID_PERMISSION_MODULES = {
   notifications: "notifications",
   news: "notifications",
 
+  kb: "knowledgebase",
+  knowledgebase: "knowledgebase",
+  help_tooltips: "knowledgebase",
+  roadmap: "roadmap",
+  releases: "releases",
+
   task_codes: "assignments",
 
   materials: "materials",
