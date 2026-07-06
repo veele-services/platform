@@ -7,6 +7,7 @@ import type { KnowledgebaseSearchSuggestion } from "@workspace/db";
 
 type KnowledgebaseAutocompleteSearchProps = {
   defaultValue?: string | null;
+  action?: string;
   endpoint?: string;
   placeholder?: string;
   submitLabel?: string;
@@ -21,6 +22,7 @@ function suggestionLabel(type: KnowledgebaseSearchSuggestion["type"]) {
 
 export function KnowledgebaseAutocompleteSearch({
   defaultValue,
+  action = "/help",
   endpoint = "/api/help/search-suggestions",
   placeholder = "Zoek op functie, probleem of module...",
   submitLabel = "Zoeken",
@@ -88,12 +90,12 @@ export function KnowledgebaseAutocompleteSearch({
     if (suggestion.href) {
       router.push(suggestion.href);
     } else {
-      router.push(`/help?q=${encodeURIComponent(suggestion.value)}`);
+      router.push(`${action}?q=${encodeURIComponent(suggestion.value)}`);
     }
   }
 
   return (
-    <form ref={rootRef} className={`relative flex gap-2 ${className}`} action="/help">
+    <form ref={rootRef} className={`relative flex gap-2 ${className}`} action={action}>
       <div className="relative min-w-0 flex-1">
         <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
         <input

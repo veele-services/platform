@@ -22,6 +22,32 @@ function statusClass(visible: boolean): string {
     : "border-amber-200 bg-amber-50 text-amber-800";
 }
 
+const AUDIENCE_LABELS: Record<string, string> = {
+  platform_admin: "Platform admin",
+  support: "Support",
+  tenant_admin: "Tenant admin",
+  tenant_management: "Management",
+  tenant_planning: "Planning",
+  tenant_administration: "Administratie",
+  tenant_personnel: "Personeel",
+  tenant_customer: "Klant",
+};
+
+function audienceLabel(key: string): string {
+  return AUDIENCE_LABELS[key] ?? key.replace(/_/g, " ");
+}
+
+function humanizePreviewText(value: string): string {
+  return Object.entries(AUDIENCE_LABELS).reduce(
+    (text, [key, label]) => text.replaceAll(key, label),
+    value,
+  );
+}
+
+function joinPreviewLabels(values: string[], formatter = (value: string) => value): string {
+  return values.map(formatter).join(", ") || "-";
+}
+
 export function PlatformContentPreviewPanel({
   model,
   resource,
@@ -110,20 +136,20 @@ export function PlatformContentPreviewPanel({
           <dl className="mt-3 grid gap-2 text-sm">
             <div>
               <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Audiences</dt>
-              <dd className="mt-1 break-words text-slate-700">{snapshot.runtimeAudiences.join(", ") || "-"}</dd>
+              <dd className="mt-1 break-words text-slate-700">{joinPreviewLabels(snapshot.runtimeAudiences, audienceLabel)}</dd>
             </div>
             <div>
               <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Actieve modules</dt>
-              <dd className="mt-1 break-words text-slate-700">{snapshot.activeModuleKeys.join(", ") || "-"}</dd>
+              <dd className="mt-1 break-words text-slate-700">{joinPreviewLabels(snapshot.activeModuleKeys)}</dd>
             </div>
             <div>
               <dt className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Permissies</dt>
-              <dd className="mt-1 max-h-20 overflow-auto break-words text-slate-700">{snapshot.permissionKeys.join(", ") || "-"}</dd>
+              <dd className="mt-1 max-h-20 overflow-auto break-words text-slate-700">{joinPreviewLabels(snapshot.permissionKeys)}</dd>
             </div>
           </dl>
           {snapshot.baseReasons.length > 0 && (
             <div className="mt-3 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-              {snapshot.baseReasons.join(" ")}
+              {humanizePreviewText(snapshot.baseReasons.join(" "))}
             </div>
           )}
         </div>
@@ -175,14 +201,14 @@ function PreviewList({
               </span>
             </div>
             <div className="mt-2 flex flex-wrap gap-1">
-              {item.audienceKeys.map((audience) => <Badge key={audience} variant="outline">{audience}</Badge>)}
+              {item.audienceKeys.map((audience) => <Badge key={audience} variant="outline">{audienceLabel(audience)}</Badge>)}
               {item.moduleKeys.map((moduleKey) => <Badge key={moduleKey} variant="outline">{moduleKey}</Badge>)}
               <Badge variant="outline">{item.status}</Badge>
             </div>
             {(item.visible ? item.matched : item.reasons).length > 0 && (
               <ul className="mt-2 list-disc space-y-1 pl-4 text-xs leading-5 text-slate-600">
                 {(item.visible ? item.matched : item.reasons).slice(0, 4).map((reason) => (
-                  <li key={reason}>{reason}</li>
+                  <li key={reason}>{humanizePreviewText(reason)}</li>
                 ))}
               </ul>
             )}

@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Archive, BarChart3, BookOpen, FilePlus2, Search } from "lucide-react";
+import { Archive, BarChart3, BookOpen, FilePlus2, Search, Sparkles } from "lucide-react";
 import {
   archiveTenantKnowledgebaseArticle,
   getTenantKnowledgebaseDashboard,
@@ -93,6 +93,27 @@ export default async function TenantKnowledgebaseManagementPage({ searchParams }
           <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
             <p className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">Concepten</p>
             <p className="mt-2 text-3xl font-semibold text-slate-950">{drafts}</p>
+          </div>
+        </section>
+
+        <section className="rounded-lg border border-cyan-100 bg-cyan-50/60 p-5 shadow-sm">
+          <div className="flex items-start gap-3">
+            <span className="rounded-md bg-white p-2 text-cyan-700 shadow-sm">
+              <Sparkles className="h-4 w-4" />
+            </span>
+            <div>
+              <h2 className="text-base font-semibold text-slate-950">Editor en preview</h2>
+              <p className="mt-1 text-sm leading-6 text-slate-600">
+                Nieuwe en bestaande artikelen openen in de TipTap-editor met Tip, Let op,
+                Voorbeeld, Tabel, Afbeelding, Video, Voorvertoning, Undo en Redo. Publicatie
+                blijft tenant-, audience-, module- en permissiegebonden.
+              </p>
+              {dashboard.state.enabled && dashboard.state.canManage && (
+                <Button asChild variant="outline" className="mt-3">
+                  <Link href="/help/beheer/nieuw">Artikel in editor maken</Link>
+                </Button>
+              )}
+            </div>
           </div>
         </section>
 

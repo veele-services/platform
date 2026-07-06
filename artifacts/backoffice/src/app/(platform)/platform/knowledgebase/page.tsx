@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Archive, BarChart3, BookOpen, FilePlus2, HelpCircle, Search, Tags } from "lucide-react";
+import { Archive, BarChart3, BookOpen, FilePlus2, HelpCircle, Tags } from "lucide-react";
 import {
   archiveKnowledgebaseArticle,
   listKnowledgebaseManagementArticles,
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { ResolvedFeatureHelp } from "@/components/knowledgebase/ResolvedFeatureHelp";
 import { Badge } from "@/components/ui/badge";
 import { PlatformContentPreviewPanel } from "@/components/platform/PlatformContentPreviewPanel";
+import { KnowledgebaseAutocompleteSearch } from "@/components/knowledgebase/KnowledgebaseAutocompleteSearch";
 import { getPlatformContentPreviewModel } from "@/lib/platform-content-preview";
 
 export const metadata = {
@@ -53,8 +54,6 @@ export default async function PlatformKnowledgebasePage({ searchParams }: Props)
   const published = articles.filter((article) => article.status === "published").length;
   const drafts = articles.filter((article) => article.status === "draft").length;
   const archived = articles.filter((article) => article.status === "archived").length;
-  const suggestions = [...new Set(articles.flatMap((article) => [article.title, ...article.keywords, ...article.smartTerms]).filter(Boolean))].slice(0, 80);
-
   return (
     <main className="px-5 py-6 md:px-8">
       <div className="mx-auto grid w-full max-w-[1500px] gap-6">
@@ -124,24 +123,13 @@ export default async function PlatformKnowledgebasePage({ searchParams }: Props)
               <h2 className="text-lg font-semibold text-slate-950">Artikelen</h2>
               <p className="mt-1 text-sm text-slate-500">Zoek op titel, inhoud, zoekwoorden of categorie.</p>
             </div>
-            <form className="flex w-full gap-2 md:w-[420px]">
-              <div className="relative min-w-0 flex-1">
-                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-                <input
-                  name="q"
-                  defaultValue={q ?? ""}
-                  list="platform-kb-search-suggestions"
-                  placeholder="Zoeken..."
-                  className="h-10 w-full rounded-md border border-slate-300 bg-white pl-9 pr-3 text-sm"
-                />
-                <datalist id="platform-kb-search-suggestions">
-                  {suggestions.map((suggestion) => (
-                    <option key={suggestion} value={suggestion} />
-                  ))}
-                </datalist>
-              </div>
-              <Button type="submit" variant="outline">Zoek</Button>
-            </form>
+            <KnowledgebaseAutocompleteSearch
+              action="/platform/knowledgebase"
+              endpoint="/api/platform/knowledgebase/search-suggestions"
+              defaultValue={q ?? ""}
+              placeholder="Zoek artikel, keyword of module..."
+              className="w-full md:w-[520px]"
+            />
           </div>
 
           <div className="overflow-x-auto">
