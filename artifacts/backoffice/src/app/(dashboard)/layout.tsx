@@ -1,6 +1,9 @@
 export const dynamic = "force-dynamic";
 
 import { redirect } from "next/navigation";
+import Link from "next/link";
+import type { ReleaseHighlightSummary } from "@workspace/db";
+import { dismissTenantReleaseHighlight, getTenantReleaseHighlight } from "@/app/actions/releases";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentEffectiveUserPermissions, getUserRoles } from "@/lib/auth/permissions";
 import { getCurrentSupportMode, type CurrentSupportMode } from "@/lib/auth/platform";
@@ -72,6 +75,40 @@ function SupportModeBanner({ supportMode }: { supportMode: CurrentSupportMode })
   );
 }
 
+function ReleaseHighlightBanner({ highlight }: { highlight: ReleaseHighlightSummary | null }) {
+  if (!highlight) return null;
+
+  return (
+    <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-950">
+      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-3 md:flex-row md:items-center md:justify-between">
+        <div className="min-w-0">
+          <p className="font-semibold">{highlight.title}</p>
+          <p className="mt-0.5 text-xs leading-5 text-amber-900">
+            {highlight.message}
+          </p>
+        </div>
+        <div className="flex shrink-0 flex-wrap items-center gap-2">
+          <Link
+            href={`/releases/${highlight.releaseSlug}`}
+            className="rounded border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-950 transition hover:bg-amber-100"
+          >
+            Lees meer
+          </Link>
+          <form action={dismissTenantReleaseHighlight}>
+            <input type="hidden" name="highlightId" value={highlight.id} />
+            <button
+              type="submit"
+              className="rounded border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100"
+            >
+              Sluiten
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -107,11 +144,14 @@ export default async function DashboardLayout({
   const canReadQuotes    = permissions.has("quotes:read");
   const canReadPersonnel = permissions.has("personnel:read");
 
-  const [pendingReportsCount, outstandingInvoicesCount, pendingQuotesCount, pendingLeaveCount] = await Promise.all([
+  const canViewReleases = permissions.has("releases:view");
+
+  const [pendingReportsCount, outstandingInvoicesCount, pendingQuotesCount, pendingLeaveCount, releaseHighlight] = await Promise.all([
     canReadReports   ? getPendingReportsCount()      : Promise.resolve(0),
     canReadInvoices  ? getOutstandingInvoicesCount() : Promise.resolve(0),
     canReadQuotes    ? getPendingQuotesCount()        : Promise.resolve(0),
     canReadPersonnel ? getPendingLeaveCount()         : Promise.resolve(0),
+    canViewReleases  ? getTenantReleaseHighlight()    : Promise.resolve(null),
   ]);
 
   const userEmail   = user.email ?? "";
@@ -144,6 +184,7 @@ export default async function DashboardLayout({
                 tenantOptions={tenantOptions}
               />
               {supportMode && <SupportModeBanner supportMode={supportMode} />}
+              <ReleaseHighlightBanner highlight={releaseHighlight} />
               <main className="flex-1 overflow-y-auto">{children}</main>
             </div>
           </div>
