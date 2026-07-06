@@ -72,3 +72,25 @@ test("platform admin exposes provider-agnostic email settings and testmail", () 
   assert.match(page, /maskedSecret/u);
   assert.doesNotMatch(page, /RESEND_API_KEY/u);
 });
+
+test("tenant mail settings support platform, SMTP and Resend API transports", () => {
+  const service = read("lib/db/src/email-service.ts");
+  const schema = read("lib/db/src/schema/organization-settings.ts");
+  const migration = read("lib/db/migrations/094_tenant_email_transport.sql");
+  const action = read("artifacts/backoffice/src/app/actions/settings.ts");
+  const view = read("artifacts/backoffice/src/components/settings/MailSettingsView.tsx");
+
+  assert.match(schema, /emailTransport/u);
+  assert.match(schema, /emailApiKeyEncrypted/u);
+  assert.match(migration, /email_transport/u);
+  assert.match(migration, /organization_settings_email_transport_check/u);
+  assert.match(service, /getTenantProvider/u);
+  assert.match(service, /resolveActiveProvider\(input\.tenantId\)/u);
+  assert.match(action, /encryptPlatformEmailConfig/u);
+  assert.match(action, /clearApiKey/u);
+  assert.match(action, /where\(eq\(organizationSettingsTable\.tenantId,\s*tenantId\)\)/u);
+  assert.match(view, /Platform standaard/u);
+  assert.match(view, /Resend/u);
+  assert.match(view, /Opgeslagen API key verwijderen/u);
+  assert.doesNotMatch(view, /RESEND_API_KEY/u);
+});

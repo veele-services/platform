@@ -37,6 +37,15 @@ export const organizationSettingsTable = pgTable("organization_settings", {
   smtpFromName: varchar("smtp_from_name", { length: 200 }),
   smtpFromEmail: varchar("smtp_from_email", { length: 255 }),
   smtpReplyTo: varchar("smtp_reply_to", { length: 255 }),
+  emailTransport: varchar("email_transport", { length: 20 })
+    .notNull()
+    .default("platform"),
+  emailApiProvider: varchar("email_api_provider", { length: 40 })
+    .notNull()
+    .default("resend"),
+  emailApiKeyEncrypted: text("email_api_key_encrypted"),
+  emailApiSendingDomain: varchar("email_api_sending_domain", { length: 255 }),
+  emailApiKeyUpdatedAt: timestamp("email_api_key_updated_at", { withTimezone: true }),
   emailTemplateBrandColor: varchar("email_template_brand_color", { length: 20 })
     .notNull()
     .default("#081D3A"),
@@ -114,6 +123,11 @@ export const updateOrganizationSettingsSchema = createInsertSchema(
     smtpFromName: z.string().max(200).nullable().optional(),
     smtpFromEmail: z.string().max(255).nullable().optional(),
     smtpReplyTo: z.string().max(255).nullable().optional(),
+    emailTransport: z.enum(["platform", "smtp", "api"]).optional(),
+    emailApiProvider: z.enum(["resend"]).optional(),
+    emailApiKeyEncrypted: z.string().nullable().optional(),
+    emailApiSendingDomain: z.string().max(255).nullable().optional(),
+    emailApiKeyUpdatedAt: z.date().nullable().optional(),
     emailTemplateBrandColor: z.string().max(20).optional(),
     emailTemplateAccentColor: z.string().max(20).optional(),
     emailTemplateFooterText: z.string().max(2000).optional(),
