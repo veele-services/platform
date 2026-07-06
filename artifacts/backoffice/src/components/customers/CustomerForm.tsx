@@ -6,6 +6,7 @@ import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { z } from "zod/v4";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -103,6 +104,7 @@ export function CustomerForm({
   const [loading, setLoading]         = useState(mode === "edit");
   const [pending, startTransition]    = useTransition();
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
+  const [invitePortal, setInvitePortal] = useState(false);
 
   const form = useForm<FormValues>({ defaultValues: DEFAULTS });
   const {
@@ -118,6 +120,14 @@ export function CustomerForm({
   const customerTypeValue    = watch("customerTypeId")   || "NONE";
   const statusValue          = watch("status")           || "active";
   const accountManagerValue  = watch("accountManagerId") || "NONE";
+  const contactEmailValue    = watch("contactEmail")     || "";
+  const canInvitePortal =
+    mode === "create" &&
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contactEmailValue.trim());
+
+  useEffect(() => {
+    if (!canInvitePortal && invitePortal) setInvitePortal(false);
+  }, [canInvitePortal, invitePortal]);
 
   useEffect(() => {
     if (mode !== "edit" || !customerId) return;
@@ -164,6 +174,7 @@ export function CustomerForm({
         sectorId:        parsed.data.sectorId        === "NONE" ? undefined : parsed.data.sectorId        || undefined,
         customerTypeId:  parsed.data.customerTypeId  === "NONE" ? undefined : parsed.data.customerTypeId  || undefined,
         accountManagerId: parsed.data.accountManagerId === "NONE" ? undefined : parsed.data.accountManagerId || undefined,
+        invitePortal:    mode === "create" ? invitePortal : undefined,
       };
 
       const result =
@@ -181,8 +192,19 @@ export function CustomerForm({
         return;
       }
 
-      toast.success(mode === "create" ? "Klant aangemaakt" : "Klant bijgewerkt");
       const id = mode === "create" && result.data ? result.data.id : (customerId ?? "");
+      if (mode === "create" && result.data?.invite) {
+        if (result.data.invite.sent) {
+          toast.success("Klant aangemaakt en klantportaaluitnodiging verstuurd");
+        } else {
+          toast.warning(
+            `Klant aangemaakt, maar uitnodiging niet verstuurd: ${result.data.invite.message ?? "onbekende fout"}`,
+            { duration: 8000 },
+          );
+        }
+      } else {
+        toast.success(mode === "create" ? "Klant aangemaakt" : "Klant bijgewerkt");
+      }
       onSuccess(id);
     });
   });
@@ -348,6 +370,35 @@ export function CustomerForm({
             <Input id="mobile" {...register("mobile")} placeholder="+31 6 00 00 00 00" />
           </div>
         </div>
+
+        {mode === "create" && (
+          <div
+            className="mt-4 flex items-start gap-3 rounded-lg border px-4 py-3"
+            style={{ borderColor: "#E2E8F0" }}
+          >
+            <Checkbox
+              id="invitePortal"
+              checked={invitePortal}
+              disabled={!canInvitePortal}
+              onCheckedChange={(val) => setInvitePortal(val === true)}
+              className="mt-0.5"
+            />
+            <div>
+              <label
+                htmlFor="invitePortal"
+                className="cursor-pointer text-sm font-medium"
+                style={{ color: canInvitePortal ? "#081D3A" : "#94A3B8" }}
+              >
+                Direct uitnodigen voor klantportaal
+              </label>
+              <p className="mt-0.5 text-xs" style={{ color: "#94A3B8" }}>
+                {canInvitePortal
+                  ? `Er wordt een tijdelijk wachtwoord gestuurd naar ${contactEmailValue.trim().toLowerCase()}.`
+                  : "Vul eerst een geldig e-mailadres in bij primair contact."}
+              </p>
+            </div>
+          </div>
+        )}
       </section>
 
       <Separator />
