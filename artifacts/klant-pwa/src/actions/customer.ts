@@ -4,7 +4,7 @@ import { requireCurrentCustomerPortalTenantId } from "@/lib/auth/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@workspace/db";
 import { customerUsersTable, customersTable, customerTypesTable } from "@workspace/db";
-import { and, eq, isNull, or } from "drizzle-orm";
+import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { z } from "zod/v4";
 
 export type CustomerProfile = {
@@ -64,7 +64,7 @@ export async function getMyCustomerIdentity(): Promise<CustomerIdentity | null> 
     .where(
       and(
         eq(customerUsersTable.tenantId, tenantId),
-        eq(customerUsersTable.status, "active"),
+        inArray(customerUsersTable.status, ["active", "invited"]),
         eq(customersTable.tenantId, tenantId),
         eq(customersTable.tenantId, customerUsersTable.tenantId),
         or(
@@ -82,7 +82,7 @@ export async function getMyCustomerIdentity(): Promise<CustomerIdentity | null> 
     if (!linked.userId) {
       await db
         .update(customerUsersTable)
-        .set({ userId: user.id, lastLoginAt: new Date() })
+        .set({ userId: user.id, status: "active", lastLoginAt: new Date() })
         .where(
           and(
             eq(customerUsersTable.id, linked.id),
@@ -93,7 +93,7 @@ export async function getMyCustomerIdentity(): Promise<CustomerIdentity | null> 
     } else {
       await db
         .update(customerUsersTable)
-        .set({ lastLoginAt: new Date() })
+        .set({ status: "active", lastLoginAt: new Date() })
         .where(and(eq(customerUsersTable.id, linked.id), eq(customerUsersTable.tenantId, tenantId)));
     }
 
