@@ -434,7 +434,13 @@ export async function approveLeavePeriod(
         endDate: leavePeriod.endDate ?? null,
         leaveType: leavePeriod.leaveType,
       });
-      await sendEmail({ to: person.email, subject, html });
+      await sendEmail({
+        to: person.email,
+        subject,
+        html,
+        tenantId,
+        purpose: "leave_request_decision",
+      });
     }
   })();
 
@@ -524,7 +530,13 @@ export async function rejectLeavePeriod(
         endDate: leavePeriod.endDate ?? null,
         leaveType: leavePeriod.leaveType,
       });
-      await sendEmail({ to: person.email, subject, html });
+      await sendEmail({
+        to: person.email,
+        subject,
+        html,
+        tenantId,
+        purpose: "leave_request_decision",
+      });
     }
   })();
 

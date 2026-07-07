@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import {
   Building2,
   CalendarDays,
+  FileCheck2,
   FileText,
   HelpCircle,
   Headphones,
@@ -37,6 +38,7 @@ const NAV_ITEMS = [
   { href: "/opdrachten", label: "Opdrachten", Icon: CalendarDays },
   { href: "/objecten", label: "Objecten", Icon: Building2 },
   { href: "/meldingen/tickets", label: "Support", Icon: Headphones, match: ["/meldingen"] },
+  { href: "/rapporten", label: "Rapportages", Icon: FileCheck2, moduleKey: "reporting" },
   { href: "/financieel", label: "Financieel", Icon: WalletCards, moduleKey: "finance", match: ["/financieel", "/facturen", "/betalingen", "/offertes"] },
   { href: "/documenten", label: "Documenten", Icon: FileText, moduleKey: "documents" },
   { href: "/help", label: "Help", Icon: HelpCircle, moduleKey: "knowledgebase" },

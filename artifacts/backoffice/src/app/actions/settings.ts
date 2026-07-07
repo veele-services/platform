@@ -8,6 +8,7 @@ import {
   rolePermissionsTable,
   userRolesTable,
   auditLogTable,
+  buildTenantBrandingAssetStoragePath,
   customerNotificationsTable,
   customersTable,
   customerPortalPreferencesTable,
@@ -17,6 +18,7 @@ import {
   personnelTable,
   personnelNotificationsTable,
   sectorsTable,
+  toSafeStorageSegment,
 } from "@workspace/db";
 import {
   eq,
@@ -1040,7 +1042,7 @@ export async function sendManualNotification(
             }),
             category: "system" as const,
             priority,
-            sourceLabel: "Veele Services",
+            sourceLabel: "Fieldgrid",
             href,
             createdAt,
           };
@@ -1063,7 +1065,7 @@ export async function sendManualNotification(
           }),
           category: "message",
           priority,
-          sourceLabel: "Veele Services",
+          sourceLabel: "Fieldgrid",
           href,
           createdAt,
         })),
@@ -1173,6 +1175,7 @@ export async function sendManualNotification(
       });
       const message = await buildStyledNotificationEmail({
         subject: renderedTitle,
+        tenantId,
         preheader: renderedBody.slice(0, 180),
         bodyHtml: bodyTextToHtml(renderedBody),
         bodyText: renderedBody,
@@ -1184,6 +1187,7 @@ export async function sendManualNotification(
         subject: message.subject,
         html: message.html,
         text: message.text,
+        tenantId,
       });
       if (result.success) emailSuccessCount += 1;
       else emailFailedCount += 1;
@@ -1251,6 +1255,7 @@ export async function uploadOrgLogo(
   formData: FormData,
 ): Promise<ActionResult<{ url: string }>> {
   await requirePermission("settings", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -1267,15 +1272,32 @@ export async function uploadOrgLogo(
     return { success: false, message: "Logo mag maximaal 2 MB zijn." };
   }
 
-  const ext = file.name.split(".").pop() ?? "png";
-  const path = `logo.${ext}`;
-  const bytes = await file.arrayBuffer();
+  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+  const mimeType = file.type.toLowerCase();
+  const allowedTypes = new Map([
+    ["image/png", "png"],
+    ["image/jpeg", "jpg"],
+    ["image/webp", "webp"],
+  ]);
+  if (mimeType === "image/svg+xml" || extension === "svg") {
+    return { success: false, message: "SVG-logo's zijn nog niet toegestaan. Upload PNG, JPG of WebP." };
+  }
 
-  const { error } = await supabase.storage
+  const ext = allowedTypes.get(mimeType);
+  if (!ext) {
+    return { success: false, message: "Upload een PNG, JPG of WebP-logo." };
+  }
+
+  const safeName = toSafeStorageSegment(file.name, `logo.${ext}`);
+  const path = buildTenantBrandingAssetStoragePath(tenantId, "logo", `${Date.now()}-${safeName}`);
+  const bytes = await file.arrayBuffer();
+  const admin = createAdminClient();
+
+  const { error } = await admin.storage
     .from("org-assets")
     .upload(path, bytes, {
       contentType: file.type,
-      upsert: true,
+      upsert: false,
     });
 
   if (error) {
@@ -1284,18 +1306,19 @@ export async function uploadOrgLogo(
 
   const {
     data: { publicUrl },
-  } = supabase.storage.from("org-assets").getPublicUrl(path);
+  } = admin.storage.from("org-assets").getPublicUrl(path);
 
   await db
     .update(organizationSettingsTable)
-    .set({ logoUrl: publicUrl, updatedAt: new Date(), updatedBy: user.id });
+    .set({ logoUrl: publicUrl, updatedAt: new Date(), updatedBy: user.id })
+    .where(eq(organizationSettingsTable.tenantId, tenantId));
 
   await db.insert(auditLogTable).values({
     userId: user.id,
     action: "update",
     resource: "settings",
     resourceId: "organization",
-    metadata: { field: "logo_url" },
+    metadata: { tenantId, field: "logo_url", path },
   });
 
   revalidatePath("/instellingen/organisatie");
@@ -1660,6 +1683,7 @@ export async function inviteUser(data: {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
+  const tenantId = await requireCurrentTenantId();
 
   const email = data.email.trim().toLowerCase();
   if (!email) return { success: false, message: "E-mailadres is verplicht." };
@@ -1678,7 +1702,13 @@ export async function inviteUser(data: {
       loginUrl: `${backofficeUrl()}/login`,
       temporaryPassword: invite.temporaryPassword,
     });
-    const sent = await sendEmailWithResult({ to: email, subject, html });
+    const sent = await sendEmailWithResult({
+      to: email,
+      subject,
+      html,
+      tenantId,
+      purpose: "account_invite",
+    });
     if (!sent.success) {
       return { success: false, message: sent.error ?? "Uitnodigingsmail versturen mislukt." };
     }
@@ -1718,6 +1748,7 @@ export async function deactivateUser(userId: string): Promise<ActionResult> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
+  const tenantId = await requireCurrentTenantId();
 
   if (userId === user.id) {
     return {
@@ -1758,6 +1789,7 @@ export async function resendInvite(userId: string): Promise<ActionResult> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
+  const tenantId = await requireCurrentTenantId();
 
   const admin = createAdminClient();
   const { data: targetUser, error: fetchError } =
@@ -1783,7 +1815,13 @@ export async function resendInvite(userId: string): Promise<ActionResult> {
       loginUrl: `${backofficeUrl()}/login`,
       temporaryPassword: invite.temporaryPassword,
     });
-    const sent = await sendEmailWithResult({ to: email, subject, html });
+    const sent = await sendEmailWithResult({
+      to: email,
+      subject,
+      html,
+      tenantId,
+      purpose: "account_invite",
+    });
     if (!sent.success) {
       return { success: false, message: sent.error ?? "Tijdelijk wachtwoord versturen mislukt." };
     }
@@ -1814,6 +1852,7 @@ export async function sendUserPasswordReset(userId: string): Promise<ActionResul
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
+  const tenantId = await requireCurrentTenantId();
 
   const admin = createAdminClient();
   const { data: targetUser, error: fetchError } = await admin.auth.admin.getUserById(userId);
@@ -1842,7 +1881,13 @@ export async function sendUserPasswordReset(userId: string): Promise<ActionResul
       resetUrl: `${backofficeUrl()}/wachtwoord-vergeten`,
       code,
     });
-    const sent = await sendEmailWithResult({ to: email, subject, html });
+    const sent = await sendEmailWithResult({
+      to: email,
+      subject,
+      html,
+      tenantId,
+      purpose: "password_reset",
+    });
     if (!sent.success) {
       return { success: false, message: sent.error ?? "Herstelcode versturen mislukt." };
     }
@@ -2195,33 +2240,17 @@ export async function sendTestNotification(
     };
   }
 
-  const { sendEmailWithResult } = await import("@/lib/email");
-
-  const subject = `Test: ${label}`;
-  const html = `<!DOCTYPE html>
-<html lang="nl">
-<head><meta charset="utf-8"><title>${subject}</title></head>
-<body style="font-family:sans-serif;color:#1a1a1a;background:#f5f5f5;margin:0;padding:24px">
-  <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden">
-    <div style="background:#081D3A;padding:20px 24px">
-      <span style="color:#fff;font-size:20px;font-weight:700;letter-spacing:-0.5px">Veele</span>
-    </div>
-    <div style="padding:28px 24px">
-      <h2 style="margin-top:0;color:#081D3A">Testmelding: ${label}</h2>
-      <p>Dit is een testmelding voor het notificatietype <strong>${label}</strong> (<code>${type}</code>).</p>
-      <p>Als u dit bericht ontvangt, werkt de e-mailconfiguratie correct.</p>
-    </div>
-    <div style="padding:16px 24px;background:#f8fafc;font-size:12px;color:#94a3b8">
-      Dit is een automatisch bericht van het Veele platform. Antwoorden op deze e-mail worden niet verwerkt.
-    </div>
-  </div>
-</body>
-</html>`;
+  const { buildNotificationTestEmail, sendEmailWithResult } = await import("@/lib/email");
+  const message = buildNotificationTestEmail({
+    notificationType: type,
+    notificationTypeLabel: label,
+  });
 
   const result = await sendEmailWithResult({
     to: orgSettings.emailAfzender,
-    subject,
-    html,
+    subject: message.subject,
+    html: message.html,
+    text: message.text,
     tenantId,
     purpose: "notification_test",
   });
@@ -2247,6 +2276,7 @@ export async function sendTestMailSettings(
   }
 
   const {
+    buildTenantMailSettingsTestEmail,
     buildTemporaryPasswordEmail,
     personeelPortalUrl,
     sendEmailWithResult,
@@ -2258,35 +2288,15 @@ export async function sendTestMailSettings(
           recipientName: "Testgebruiker",
           portalName: "Personeelsportaal",
           loginUrl: personeelPortalUrl(),
-          temporaryPassword: "Veele-Test-2026!",
+          temporaryPassword: "Fieldgrid-Test-2026!",
         })
-      : {
-          subject: "Test SMTP-instellingen Veele",
-          html: `<!DOCTYPE html>
-<html lang="nl">
-<head><meta charset="utf-8"><title>Test SMTP-instellingen Veele</title></head>
-<body style="font-family:sans-serif;color:#1a1a1a;background:#f5f5f5;margin:0;padding:24px">
-  <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden">
-    <div style="background:#081D3A;padding:20px 24px">
-      <span style="color:#fff;font-size:20px;font-weight:700;letter-spacing:-0.5px">Veele</span>
-    </div>
-    <div style="padding:28px 24px">
-      <h2 style="margin-top:0;color:#081D3A">SMTP-test geslaagd</h2>
-      <p>Deze e-mail is verzonden vanuit de mailinstellingen van het Veele platform.</p>
-      <p>Als u dit bericht ontvangt, kan het platform e-mail afleveren met de huidige configuratie.</p>
-    </div>
-    <div style="padding:16px 24px;background:#f8fafc;font-size:12px;color:#94a3b8">
-      Dit is een automatisch testbericht van het Veele platform.
-    </div>
-  </div>
-</body>
-</html>`,
-        };
+      : buildTenantMailSettingsTestEmail();
 
   const result = await sendEmailWithResult({
     to,
     subject: message.subject,
     html: message.html,
+    text: message.text,
     tenantId,
     purpose: "tenant_mail_settings_test",
   });

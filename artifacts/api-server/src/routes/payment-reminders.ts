@@ -129,7 +129,13 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
         invoiceId:     invoice.id,
       });
 
-      const emailResult = await sendEmailWithResult({ to: invoice.customerEmail, subject, html });
+      const emailResult = await sendEmailWithResult({
+        to: invoice.customerEmail,
+        subject,
+        html,
+        tenantId: invoice.customerTenantId,
+        purpose: "invoice_payment_reminder",
+      });
 
       if (!emailResult.success) {
         req.log.warn(

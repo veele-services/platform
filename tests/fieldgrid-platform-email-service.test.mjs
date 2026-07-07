@@ -23,7 +23,9 @@ test("platform email service centralizes providers, encrypted config and deliver
   assert.match(service, /E-mailsecret kon niet worden ontcijferd/u);
   assert.match(service, /status:\s*configError \? "error"/u);
   assert.match(service, /safeDecryptPlatformEmailConfig\(existing\.encryptedConfigJson\)\.config/u);
-  assert.match(service, /try \{\s*provider = await resolveActiveProvider\(input\.tenantId\);/u);
+  assert.match(service, /normalizeTemplateInput/u);
+  assert.match(service, /provider = await resolveActiveProvider\(normalizedInput\.tenantId\);/u);
+  assert.match(service, /sendTemplatedEmail/u);
   assert.match(service, /return \{ success: false, message: sanitizeError\(error\) \}/u);
   assert.match(service, /emailDeliveryLogTable/u);
   assert.match(smtp, /STARTTLS/u);
@@ -91,7 +93,7 @@ test("tenant mail settings support platform, SMTP and Resend API transports", ()
   assert.match(migration, /email_transport/u);
   assert.match(migration, /organization_settings_email_transport_check/u);
   assert.match(service, /getTenantProvider/u);
-  assert.match(service, /resolveActiveProvider\(input\.tenantId\)/u);
+  assert.match(service, /resolveActiveProvider\(normalizedInput\.tenantId\)/u);
   assert.match(action, /encryptPlatformEmailConfig/u);
   assert.match(action, /clearApiKey/u);
   assert.match(action, /where\(eq\(organizationSettingsTable\.tenantId,\s*tenantId\)\)/u);

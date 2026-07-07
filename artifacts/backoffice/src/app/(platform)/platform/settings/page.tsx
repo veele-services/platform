@@ -9,7 +9,9 @@ import {
   type PlatformSettingsStatus,
   type PlatformSmtpSettings,
 } from "@/app/actions/platform-settings";
+import { getPlatformThemeSettings } from "@/app/actions/theme-settings";
 import { ResolvedFeatureHelp } from "@/components/knowledgebase/ResolvedFeatureHelp";
+import { BrandThemeForm } from "@/components/theme/BrandThemeForm";
 import type { PlatformEmailProviderAdminView } from "@workspace/db/email-service";
 
 export const metadata = {
@@ -374,7 +376,10 @@ function SmtpSettingsPanel({ smtp }: { smtp: PlatformSmtpSettings }) {
 }
 
 export default async function PlatformSettingsPage() {
-  const dashboard = await getPlatformSettingsDashboard();
+  const [dashboard, themeSettings] = await Promise.all([
+    getPlatformSettingsDashboard(),
+    getPlatformThemeSettings(),
+  ]);
 
   return (
     <main className="platform-page min-h-full bg-slate-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
@@ -399,6 +404,13 @@ export default async function PlatformSettingsPage() {
         </section>
 
         <EmailProviderSettingsPanel providers={dashboard.emailProviders} />
+
+        <BrandThemeForm
+          mode="platform"
+          theme={themeSettings.theme}
+          useCustomTheme={themeSettings.useCustomTheme}
+          canWrite
+        />
 
         <section className="grid gap-4 lg:grid-cols-2">
           {dashboard.settings.map((setting) => (

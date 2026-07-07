@@ -7,6 +7,7 @@
     ".": "./src/index.ts",
     "./schema": "./src/schema/index.ts",
     "./email-service": "./src/email-service.ts",
+    "./email-templates": "./src/email-templates.ts",
     "./events": "./src/events.ts",
     "./portal-routes": "./src/portal-routes.ts",
     "./workflow-events": "./src/workflow-events.ts",

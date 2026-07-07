@@ -577,7 +577,13 @@ export async function sendPaymentReminders(): Promise<ActionResult<SendReminders
       dueDate:       dueDateFormatted,
     });
 
-    const result = await sendEmailWithResult({ to: row.customerEmail!, subject, html });
+    const result = await sendEmailWithResult({
+      to: row.customerEmail!,
+      subject,
+      html,
+      tenantId,
+      purpose: "invoice_payment_reminder",
+    });
 
     if (result.success) {
       await db.insert(auditLogTable).values({
@@ -1235,6 +1241,7 @@ export async function emailInvoice(invoiceId: string): Promise<ActionResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
+  const tenantId = await requireCurrentTenantId();
 
   const invoice = await getInvoice(invoiceId);
   if (!invoice) return { success: false, message: "Factuur niet gevonden." };
@@ -1274,6 +1281,8 @@ export async function emailInvoice(invoiceId: string): Promise<ActionResult> {
     subject,
     html,
     attachments: [{ filename: `${invoice.invoiceNumber}.pdf`, content: pdfBuffer }],
+    tenantId,
+    purpose: "invoice_available",
   });
 
   if (!result.success) {

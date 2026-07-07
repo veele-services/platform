@@ -684,7 +684,7 @@ export async function sendQuote(id: string): Promise<ActionResult> {
       body: "Er staat een nieuwe offerte klaar in het klantportaal.",
       category: "quotes",
       href: "/offertes",
-      sourceLabel: "Veele Services",
+      sourceLabel: "Offertes",
       emailSubject: `Offerte ${quote.quoteNumber} staat klaar`,
       emailHtml: `
         <h2>Uw offerte staat klaar</h2>
@@ -848,7 +848,13 @@ export async function processExpiredQuotes(): Promise<ActionResult<{ expired: nu
         quoteNumber:  q.quoteNumber,
         amount:       q.amount ?? "0",
       });
-      await sendEmail({ to: q.customerEmail, subject, html });
+      await sendEmail({
+        to: q.customerEmail,
+        subject,
+        html,
+        tenantId,
+        purpose: "quote_expired",
+      });
       notified++;
     }
   }

@@ -3,6 +3,10 @@ export const dynamic = "force-dynamic";
 import { redirect } from "next/navigation";
 import Link from "next/link";
 import type { ReleaseHighlightSummary } from "@workspace/db";
+import {
+  getTenantBranding,
+  getTenantBrandingCssVariables,
+} from "@workspace/db";
 import { dismissTenantReleaseHighlight, getTenantReleaseHighlight } from "@/app/actions/releases";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentEffectiveUserPermissions, getUserRoles } from "@/lib/auth/permissions";
@@ -22,6 +26,7 @@ import {
   getActiveBackofficeTenantsForUser,
   getCurrentTenantId,
 } from "@/lib/auth/tenant";
+import type { CSSProperties } from "react";
 
 function NoActiveTenantAccess() {
   return (
@@ -134,9 +139,10 @@ export default async function DashboardLayout({
   }
 
   const supportMode = await getCurrentSupportMode();
-  const [permissions, roles] = await Promise.all([
+  const [permissions, roles, branding] = await Promise.all([
     getCurrentEffectiveUserPermissions(),
     supportMode ? Promise.resolve(["Supportmodus"]) : getUserRoles(user.id, tenantId),
+    getTenantBranding(tenantId),
   ]);
 
   const canReadReports   = permissions.has("reports:read");
@@ -157,6 +163,7 @@ export default async function DashboardLayout({
   const userEmail   = user.email ?? "";
   const userInitial = (userEmail[0] ?? "U").toUpperCase();
   const userRole    = roles[0] ?? "User";
+  const brandingStyle = getTenantBrandingCssVariables(branding) as CSSProperties;
 
   return (
     <PermissionsProvider permissions={[...permissions]} tenantId={tenantId}>
@@ -164,7 +171,7 @@ export default async function DashboardLayout({
         <SidebarProvider>
           <div
             className="flex h-screen overflow-hidden"
-            style={{ backgroundColor: "#F8FAFC" }}
+            style={{ ...brandingStyle, backgroundColor: "var(--color-background)" }}
           >
             <Sidebar
               pendingReportsCount={pendingReportsCount}

@@ -510,6 +510,8 @@ async function deliverEmailItem(
     to: item.recipient_email,
     subject: item.subject,
     html: item.html,
+    tenantId: item.tenant_id,
+    purpose: "notification_worker",
   });
 
   if (result.success) {

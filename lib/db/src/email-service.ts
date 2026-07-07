@@ -9,6 +9,12 @@ import {
   type PlatformEmailProvider,
 } from "./schema";
 import { sendSmtpMail, type SmtpEncryption, type SmtpMailConfig } from "./email-smtp";
+import {
+  consumeRenderedEmailMetadata,
+  renderEmailTemplate,
+  type EmailTemplateKey,
+  type EmailTemplateVariables,
+} from "./email-templates";
 
 export type PlatformEmailProviderType = "resend_api" | "smtp";
 export type RuntimeEmailProviderType = PlatformEmailProviderType | "legacy_smtp" | "env_resend" | "none";
@@ -42,6 +48,11 @@ export type TransactionalEmailResult = {
   providerType: RuntimeEmailProviderType;
   providerId?: string | null;
   providerMessageId?: string | null;
+};
+
+export type TemplatedEmailInput = Omit<TransactionalEmailInput, "subject" | "html" | "text" | "templateKey"> & {
+  templateKey: EmailTemplateKey;
+  variables: EmailTemplateVariables;
 };
 
 type ResendProviderConfig = {
@@ -462,19 +473,51 @@ async function sendWithSmtp(provider: ResolvedProvider, input: TransactionalEmai
   });
 }
 
+async function normalizeTemplateInput(input: TransactionalEmailInput): Promise<TransactionalEmailInput> {
+  const metadata = consumeRenderedEmailMetadata(input.html);
+  if (!metadata) return input;
+
+  const rendered = await renderEmailTemplate({
+    templateKey: metadata.templateKey,
+    variables: metadata.variables,
+    tenantId: input.tenantId ?? null,
+  });
+
+  return {
+    ...input,
+    subject: rendered.subject,
+    html: rendered.html,
+    text: input.text ?? rendered.text,
+    templateKey: input.templateKey ?? metadata.templateKey,
+    metadata: {
+      ...input.metadata,
+      renderedTemplateKey: metadata.templateKey,
+    },
+  };
+}
+
 export async function sendTransactionalEmail(input: TransactionalEmailInput): Promise<TransactionalEmailResult> {
-  let provider: ResolvedProvider | null;
+  let normalizedInput: TransactionalEmailInput;
   try {
-    provider = await resolveActiveProvider(input.tenantId);
+    normalizedInput = await normalizeTemplateInput(input);
   } catch (error) {
     const message = sanitizeError(error);
     await logDelivery(input, null, "failed", message);
     return { success: false, error: message, providerType: "none", providerId: null };
   }
 
+  let provider: ResolvedProvider | null;
+  try {
+    provider = await resolveActiveProvider(normalizedInput.tenantId);
+  } catch (error) {
+    const message = sanitizeError(error);
+    await logDelivery(normalizedInput, null, "failed", message);
+    return { success: false, error: message, providerType: "none", providerId: null };
+  }
+
   if (!provider) {
     const error = "Geen actieve e-mailprovider geconfigureerd.";
-    await logDelivery(input, null, "skipped", error);
+    await logDelivery(normalizedInput, null, "skipped", error);
     return { success: false, error, providerType: "none", providerId: null };
   }
 
@@ -482,10 +525,10 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
     assertProviderReady(provider);
     const providerMessageId =
       provider.providerType === "resend_api" || provider.providerType === "env_resend"
-        ? await sendWithResend(provider, input)
-        : await sendWithSmtp(provider, input);
+        ? await sendWithResend(provider, normalizedInput)
+        : await sendWithSmtp(provider, normalizedInput);
 
-    await logDelivery(input, provider, "success", null, providerMessageId);
+    await logDelivery(normalizedInput, provider, "success", null, providerMessageId);
     return {
       success: true,
       providerType: provider.providerType,
@@ -494,7 +537,7 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
     };
   } catch (error) {
     const message = sanitizeError(error);
-    await logDelivery(input, provider, "failed", message);
+    await logDelivery(normalizedInput, provider, "failed", message);
     return {
       success: false,
       error: message,
@@ -508,6 +551,43 @@ export async function sendEmail(input: TransactionalEmailInput): Promise<void> {
   const result = await sendTransactionalEmail(input);
   if (!result.success) {
     console.error("[email-service] Verzenden mislukt:", result.error);
+  }
+}
+
+export async function sendTemplatedEmail(input: TemplatedEmailInput): Promise<TransactionalEmailResult> {
+  try {
+    const rendered = await renderEmailTemplate({
+      templateKey: input.templateKey,
+      variables: input.variables,
+      tenantId: input.tenantId ?? null,
+    });
+
+    return sendTransactionalEmail({
+      ...input,
+      subject: rendered.subject,
+      html: rendered.html,
+      text: rendered.text,
+      templateKey: input.templateKey,
+      metadata: {
+        ...input.metadata,
+        renderedTemplateKey: input.templateKey,
+      },
+    });
+  } catch (error) {
+    const message = sanitizeError(error);
+    await logDelivery(
+      {
+        ...input,
+        subject: `Template ${input.templateKey}`,
+        html: "",
+        text: "",
+        templateKey: input.templateKey,
+      },
+      null,
+      "failed",
+      message,
+    );
+    return { success: false, error: message, providerType: "none", providerId: null };
   }
 }
 
@@ -706,18 +786,10 @@ export async function sendPlatformEmailTest(input: {
     return { success: false, error: "Vul een geldig test e-mailadres in.", providerType: "none" };
   }
 
-  const result = await sendTransactionalEmail({
+  const result = await sendTemplatedEmail({
     to,
-    subject: "Testmail vanuit Fieldgrid / platform e-mailinstellingen",
-    html: `
-      <div style="font-family:Arial,sans-serif;line-height:1.5;color:#0f172a">
-        <h2 style="margin:0 0 12px">Fieldgrid testmail</h2>
-        <p>Dit is een testmail vanuit de globale platform e-mailconfiguratie.</p>
-        <p>Als je deze mail ontvangt, werkt de actieve e-mailprovider correct.</p>
-      </div>
-    `,
-    text: "Dit is een testmail vanuit de globale platform e-mailconfiguratie. Als je deze mail ontvangt, werkt de actieve e-mailprovider correct.",
     templateKey: "platform_email_test",
+    variables: { triggeredAt: new Date().toLocaleString("nl-NL") },
     triggeredBy: input.triggeredBy ?? null,
     triggeredByType: input.triggeredBy ? "platform_admin" : "system",
   });

@@ -920,7 +920,13 @@ async function inviteOrFindTenantAuthUser(email: string, tenantId: string): Prom
     loginUrl: await tenantAdminLoginUrl(tenantId),
     temporaryPassword: invite.temporaryPassword,
   });
-  const sent = await sendEmailWithResult({ to: email, subject, html });
+  const sent = await sendEmailWithResult({
+    to: email,
+    subject,
+    html,
+    tenantId,
+    purpose: "account_invite",
+  });
   if (!sent.success) {
     throw new Error(sent.error ?? "Tenant admin-uitnodigingsmail versturen mislukt.");
   }
@@ -2237,7 +2243,13 @@ export async function sendPlatformTenantAdminPasswordReset(formData: FormData): 
     resetUrl,
     code,
   });
-  const sent = await sendEmailWithResult({ to: email, subject, html });
+  const sent = await sendEmailWithResult({
+    to: email,
+    subject,
+    html,
+    tenantId,
+    purpose: "password_reset",
+  });
   if (!sent.success) throw new Error(sent.error ?? "Resetmail versturen mislukt.");
 
   await auditPlatformTenantAction({

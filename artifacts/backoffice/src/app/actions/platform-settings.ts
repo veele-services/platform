@@ -5,6 +5,7 @@ import {
   db,
   DEFAULT_PLATFORM_HOSTS,
   FIELDGRID_SUPPORT_BREAK_GLASS_MAX_TTL_MINUTES,
+  getPlatformBrandTheme,
   organizationSettingsTable,
   platformHosts,
 } from "@workspace/db";
@@ -168,10 +169,11 @@ async function getPlatformSmtpSettings(): Promise<PlatformSmtpSettings> {
 export async function getPlatformSettingsDashboard(): Promise<PlatformSettingsDashboard> {
   await requirePlatformAdmin();
 
-  const [mail, smtp, emailProviders] = await Promise.all([
+  const [mail, smtp, emailProviders, platformTheme] = await Promise.all([
     getMailSnapshot(),
     getPlatformSmtpSettings(),
     getPlatformEmailProviderSettings(),
+    getPlatformBrandTheme(),
   ]);
   const hosts = Array.from(platformHosts()).sort();
   const platformHostSource = envValue("PLATFORM_HOSTS") ? "PLATFORM_HOSTS" : `default: ${DEFAULT_PLATFORM_HOSTS.join(", ")}`;
@@ -186,7 +188,6 @@ export async function getPlatformSettingsDashboard(): Promise<PlatformSettingsDa
   ].join(" / ");
   const activeEmailProvider = emailProviders.find((provider) => provider.isActive);
   const systemMailConfigured = Boolean(activeEmailProvider?.configured);
-  const defaultBrandName = envValue("FIELDGRID_DEFAULT_BRAND_NAME") ?? "Fieldgrid";
 
   const settings: PlatformSettingRow[] = [
     {
@@ -250,10 +251,10 @@ export async function getPlatformSettingsDashboard(): Promise<PlatformSettingsDa
       label: "Default branding",
       category: "branding",
       status: "ok",
-      value: `${defaultBrandName}, ${mail.brandingConfigured} tenant brandingconfiguratie(s)`,
-      source: "FIELDGRID_DEFAULT_BRAND_NAME / organization_settings email template defaults",
-      detail: "Fallback naam en templatekleuren voor default branding voordat tenants eigen branding zetten.",
-      nextAction: "Houd Fieldgrid als fallback consistent met marketing en tenant first-run.",
+      value: `${platformTheme.brandName}, ${mail.brandingConfigured} tenant brandingconfiguratie(s)`,
+      source: "platform_theme_settings / tenant_theme_settings / organization_settings legacy defaults",
+      detail: "Platformthema is de fallback voordat tenants een eigen thema activeren.",
+      nextAction: "Beheer kleuren, logo's en e-mailstijl in Branding & Thema op deze pagina.",
     },
     {
       id: "smoke-targets",
