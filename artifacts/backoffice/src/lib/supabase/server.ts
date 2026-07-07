@@ -1,5 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
-import { cookies } from "next/headers";
+import { cookies, headers } from "next/headers";
+import {
+  createSupabaseCookieOptions,
+  withHostOnlyCookieOptions,
+} from "./session-cookies";
 
 /**
  * Server-side Supabase client for Server Components and Server Actions.
@@ -18,8 +22,11 @@ export async function createClient() {
   }
 
   const cookieStore = await cookies();
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
 
   return createServerClient(url, key, {
+    cookieOptions: createSupabaseCookieOptions(host),
     cookies: {
       getAll() {
         return cookieStore.getAll();
@@ -27,7 +34,7 @@ export async function createClient() {
       setAll(cookiesToSet) {
         try {
           cookiesToSet.forEach(({ name, value, options }) =>
-            cookieStore.set(name, value, options),
+            cookieStore.set(name, value, withHostOnlyCookieOptions(options)),
           );
         } catch {
           // Server Components cannot set cookies — the middleware handles refresh.

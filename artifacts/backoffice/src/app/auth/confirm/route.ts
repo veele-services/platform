@@ -1,6 +1,10 @@
 import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
+import {
+  createSupabaseCookieOptions,
+  withHostOnlyCookieOptions,
+} from "@/lib/supabase/session-cookies";
 
 function getOrigin(request: NextRequest): string {
   const host =
@@ -39,18 +43,23 @@ export async function GET(request: NextRequest) {
   }
 
   const cookieStore = await cookies();
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
   const destination = type === "recovery" ? `${origin}/reset-wachtwoord` : `${origin}/`;
   const response     = NextResponse.redirect(destination);
 
   const supabase = createServerClient(url, key, {
+    cookieOptions: createSupabaseCookieOptions(host),
     cookies: {
       getAll() {
         return cookieStore.getAll();
       },
-      setAll(cookiesToSet) {
+      setAll(cookiesToSet, responseHeaders) {
         cookiesToSet.forEach(({ name, value, options }) => {
-          response.cookies.set(name, value, options);
+          response.cookies.set(name, value, withHostOnlyCookieOptions(options));
         });
+        Object.entries(responseHeaders).forEach(([header, value]) =>
+          response.headers.set(header, value),
+        );
       },
     },
   });

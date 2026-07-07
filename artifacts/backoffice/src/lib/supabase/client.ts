@@ -1,6 +1,7 @@
 "use client";
 
 import { createBrowserClient } from "@supabase/ssr";
+import { createSupabaseCookieOptions } from "./session-cookies";
 
 /**
  * Browser-side Supabase client.
@@ -16,5 +17,9 @@ export function createClient() {
     );
   }
 
-  return createBrowserClient(url, key);
+  const host = typeof window === "undefined" ? null : window.location.host;
+
+  return createBrowserClient(url, key, {
+    cookieOptions: createSupabaseCookieOptions(host),
+  });
 }

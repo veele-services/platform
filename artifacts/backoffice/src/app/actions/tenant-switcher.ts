@@ -8,6 +8,7 @@ import {
   getCurrentBackofficeUser,
   userHasActiveTenant,
 } from "@/lib/auth/tenant";
+import { withHostOnlyCookieOptions } from "@/lib/supabase/session-cookies";
 
 const switchTenantSchema = z.object({
   tenantId: z.string().uuid(),
@@ -33,13 +34,17 @@ export async function switchBackofficeTenant(formData: FormData) {
   }
 
   const cookieStore = await cookies();
-  cookieStore.set(BACKOFFICE_TENANT_COOKIE, parsed.data.tenantId, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: 60 * 60 * 24 * 365,
-  });
+  cookieStore.set(
+    BACKOFFICE_TENANT_COOKIE,
+    parsed.data.tenantId,
+    withHostOnlyCookieOptions({
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 60 * 60 * 24 * 365,
+    }),
+  );
 
   revalidatePath("/", "layout");
 }
