@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Check, Play, X } from "lucide-react";
-import { startAssignment } from "@/actions/assignments";
+import { Check, Navigation, Play, X } from "lucide-react";
+import { markAssignmentEnRoute, startAssignment } from "@/actions/assignments";
 import { PersonnelConfirmDialog } from "@/components/PersonnelConfirmDialog";
 import {
   enqueueOfflineWorkOrderAction,
@@ -12,6 +12,7 @@ import {
 import {
   FAILED_FINAL_STATUSES,
   FINISHED_STATUSES,
+  formatDateTimeTime,
   getActiveStep,
   getDisplayedTimeSlot,
   type AssignmentView,
@@ -21,7 +22,7 @@ type Props = {
   assignment: AssignmentView;
 };
 
-type StepKind = "seen" | "start" | "finish";
+type StepKind = "seen" | "en_route" | "start" | "finish";
 
 function StepCircle({
   kind,
@@ -44,7 +45,13 @@ function StepCircle({
         className="flex h-10 w-10 items-center justify-center rounded-full text-white ring-4 ring-[#B9F0EE]"
         style={{ backgroundColor: "var(--color-accent)" }}
       >
-        {kind === "start" ? <Play size={18} fill="currentColor" strokeWidth={2.4} /> : <Check size={20} strokeWidth={2.7} />}
+        {kind === "start" ? (
+          <Play size={18} fill="currentColor" strokeWidth={2.4} />
+        ) : kind === "en_route" ? (
+          <Navigation size={18} fill="currentColor" strokeWidth={2.4} />
+        ) : (
+          <Check size={20} strokeWidth={2.7} />
+        )}
       </span>
     );
   }
@@ -60,6 +67,7 @@ function StepCircle({
   return (
     <span className="flex h-10 w-10 items-center justify-center rounded-full border-2 border-[#D7DDE8] bg-[#E7EBF2] ring-4 ring-[#F1F3F7]">
       {kind === "start" ? <Play size={16} strokeWidth={2.35} className="text-[#8EA0B7]" /> : null}
+      {kind === "en_route" ? <Navigation size={16} strokeWidth={2.35} className="text-[#8EA0B7]" /> : null}
     </span>
   );
 }
@@ -119,6 +127,7 @@ export function InteractiveStatusProgress({ assignment }: Props) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [enRouteDialogOpen, setEnRouteDialogOpen] = useState(false);
   const [startDialogOpen, setStartDialogOpen] = useState(false);
   const [finishDialogOpen, setFinishDialogOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
@@ -127,8 +136,43 @@ export function InteractiveStatusProgress({ assignment }: Props) {
   const activeStep = getActiveStep(status);
   const failedFinal = FAILED_FINAL_STATUSES.has(status);
   const finished = FINISHED_STATUSES.has(status);
-  const canStart = status === "scheduled" || status === "seen";
+  const canMarkEnRoute = status === "scheduled" || status === "seen";
+  const canStart = status === "en_route";
   const canFinish = status === "in_progress";
+
+  function handleEnRoute() {
+    setError(null);
+    setNotice(null);
+    if (!canMarkEnRoute || isPending) return;
+    setEnRouteDialogOpen(true);
+  }
+
+  function confirmEnRoute() {
+    setError(null);
+    setNotice(null);
+    if (!canMarkEnRoute || isPending) return;
+
+    if (isOfflineNow()) {
+      enqueueOfflineWorkOrderAction({
+        type: "mark-assignment-en-route",
+        assignmentId: assignment.id,
+      });
+      setEnRouteDialogOpen(false);
+      setNotice("Onderweg melden is offline opgeslagen en wordt automatisch gesynchroniseerd.");
+      return;
+    }
+
+    startTransition(async () => {
+      const result = await markAssignmentEnRoute(assignment.id);
+      if (!result.success) {
+        setEnRouteDialogOpen(false);
+        setError(result.error ?? "Onderweg melden mislukt");
+        return;
+      }
+      setEnRouteDialogOpen(false);
+      router.refresh();
+    });
+  }
 
   function handleStart() {
     setError(null);
@@ -177,6 +221,7 @@ export function InteractiveStatusProgress({ assignment }: Props) {
   const steps: Array<{
     kind:     StepKind;
     label:    string;
+    time?:    string | null;
     state:    "done" | "active" | "pending" | "failed";
     onClick?: () => void;
     disabled?: boolean;
@@ -184,11 +229,21 @@ export function InteractiveStatusProgress({ assignment }: Props) {
     {
       kind:  "seen",
       label: "Gezien",
+      time:  formatDateTimeTime(assignment.seenAt),
       state: activeStep > 0 || status === "seen" || status === "scheduled" ? "done" : "active",
+    },
+    {
+      kind:     "en_route",
+      label:    "Onderweg",
+      time:     formatDateTimeTime(assignment.enRouteAt),
+      state:    activeStep > 1 || status === "en_route" || finished || failedFinal ? "done" : activeStep === 0 ? "active" : "pending",
+      onClick:  handleEnRoute,
+      disabled: !canMarkEnRoute || isPending,
     },
     {
       kind:     "start",
       label:    status === "in_progress" || finished || failedFinal ? "Gestart" : "Start",
+      time:     formatDateTimeTime(assignment.actualStartedAt),
       state:    activeStep > 1 || finished || failedFinal ? "done" : activeStep === 1 ? "active" : "pending",
       onClick:  handleStart,
       disabled: !canStart || isPending,
@@ -196,6 +251,7 @@ export function InteractiveStatusProgress({ assignment }: Props) {
     {
       kind:     "finish",
       label:    failedFinal ? "Afgemeld" : finished ? "Afgerond" : "Afronden",
+      time:     formatDateTimeTime(assignment.actualCompletedAt),
       state:    failedFinal ? "failed" : finished ? "done" : activeStep === 2 ? "active" : "pending",
       onClick:  handleFinish,
       disabled: !canFinish,
@@ -226,10 +282,8 @@ export function InteractiveStatusProgress({ assignment }: Props) {
 
       <div className="mt-6 flex items-start">
         {steps.map((step, index) => {
-          const lineIsDone = index === 0
-            ? activeStep > 0 || finished || failedFinal
-            : finished;
-          const lineIsFailed = failedFinal && index === 1;
+          const lineIsDone = activeStep > index || finished || failedFinal;
+          const lineIsFailed = failedFinal && index === 2;
           const clickable = Boolean(step.onClick) && !step.disabled;
 
           return (
@@ -252,8 +306,13 @@ export function InteractiveStatusProgress({ assignment }: Props) {
                         : "var(--color-secondary)",
                   }}
                 >
-                  {isPending && step.kind === "start" ? "Start..." : step.label}
+                  {isPending && step.kind === "en_route" ? "Onderweg..." : isPending && step.kind === "start" ? "Start..." : step.label}
                 </span>
+                {step.time ? (
+                  <span className="mt-0.5 text-[10px] font-black" style={{ color: "var(--color-secondary)" }}>
+                    {step.time}
+                  </span>
+                ) : null}
               </button>
               {index < steps.length - 1 ? (
                 <div
@@ -269,6 +328,15 @@ export function InteractiveStatusProgress({ assignment }: Props) {
       {finishDialogOpen ? (
         <FinishChoiceDialog assignmentId={assignment.id} onClose={() => setFinishDialogOpen(false)} />
       ) : null}
+      <PersonnelConfirmDialog
+        open={enRouteDialogOpen}
+        title="Onderweg naar klant?"
+        description="Hiermee meldt u aan de klant dat onze medewerker onderweg is. Bij meerdere medewerkers wordt de klantmelding alleen de eerste keer verstuurd."
+        confirmLabel="Onderweg melden"
+        pending={isPending}
+        onConfirm={confirmEnRoute}
+        onClose={() => setEnRouteDialogOpen(false)}
+      />
       <PersonnelConfirmDialog
         open={startDialogOpen}
         title="Werkzaamheden starten?"

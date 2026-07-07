@@ -7,8 +7,8 @@ import { PlanningWeekStrip, type PlanningWeekDay } from "@/components/PlanningWe
 import { RealtimeStatusDot } from "@/components/RealtimeStatusDot";
 import { FAILED_FINAL_STATUSES, FINISHED_STATUSES } from "./[id]/work-order-data";
 
-type PlanningStatus = "NIEUW" | "GEZIEN" | "GESTART" | "AFGEROND" | "NIET AFGEROND";
-type PlanningStatusFilter = "all" | "open" | "in_progress" | "completed" | "not_completed";
+type PlanningStatus = "NIEUW" | "GEZIEN" | "ONDERWEG" | "GESTART" | "AFGEROND" | "NIET AFGEROND";
+type PlanningStatusFilter = "all" | "open" | "en_route" | "in_progress" | "completed" | "not_completed";
 type PlanningViewMode = "cards" | "compact";
 
 type Props = {
@@ -23,6 +23,7 @@ type Props = {
 const STATUS_STYLES: Record<PlanningStatus, { background: string; color: string }> = {
   NIEUW:          { background: "#EAF5FF", color: "#2563A9" },
   GEZIEN:         { background: "#E9FBF5", color: "#139873" },
+  ONDERWEG:       { background: "#CCFBF1", color: "#115E59" },
   GESTART:        { background: "#FFF4D8", color: "#C68212" },
   AFGEROND:       { background: "#E6F8ED", color: "#249357" },
   "NIET AFGEROND": { background: "#FEE2E2", color: "#DC2626" },
@@ -35,6 +36,7 @@ const DATE_KEY_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 const STATUS_FILTERS: Array<{ value: PlanningStatusFilter; label: string }> = [
   { value: "all", label: "Alle statussen" },
   { value: "open", label: "Open" },
+  { value: "en_route", label: "Onderweg" },
   { value: "in_progress", label: "Gestart" },
   { value: "completed", label: "Afgerond" },
   { value: "not_completed", label: "Niet afgerond" },
@@ -135,6 +137,7 @@ function getPlanningStatus(assignment: MyAssignment): PlanningStatus {
   if (FAILED_FINAL_STATUSES.has(assignment.status)) return "NIET AFGEROND";
   if (FINISHED_STATUSES.has(assignment.status)) return "AFGEROND";
   if (assignment.status === "in_progress") return "GESTART";
+  if (assignment.status === "en_route") return "ONDERWEG";
   if (assignment.status === "seen" || assignment.seenAt) return "GEZIEN";
   return "NIEUW";
 }
@@ -143,6 +146,7 @@ function matchesStatusFilter(assignment: MyAssignment, statusFilter: PlanningSta
   if (statusFilter === "all") return true;
   if (statusFilter === "completed") return FINISHED_STATUSES.has(assignment.status);
   if (statusFilter === "not_completed") return FAILED_FINAL_STATUSES.has(assignment.status);
+  if (statusFilter === "en_route") return assignment.status === "en_route";
   if (statusFilter === "in_progress") return assignment.status === "in_progress";
   return !FINISHED_STATUSES.has(assignment.status)
     && !FAILED_FINAL_STATUSES.has(assignment.status)

@@ -27,6 +27,7 @@ type AssignmentFilter = "all" | "action_required" | "active" | "open" | "history
 const ACTIVE_STATUSES = new Set([
   "scheduled",
   "seen",
+  "en_route",
   "in_progress",
   "plannable",
 ]);

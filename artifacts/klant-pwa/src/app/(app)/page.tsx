@@ -284,11 +284,13 @@ export default async function DashboardPage() {
       "plannable",
       "scheduled",
       "seen",
+      "en_route",
       "in_progress",
     ].includes(a.status),
   );
   const activeAssignment =
     openAssignments.find((assignment) => assignment.status === "in_progress") ??
+    openAssignments.find((assignment) => assignment.status === "en_route") ??
     openAssignments.find((assignment) => assignment.status === "scheduled") ??
     openAssignments[0] ??
     null;

@@ -13,6 +13,7 @@ export type AssignmentView = Pick<
   | "scheduledStart"
   | "scheduledEnd"
   | "seenAt"
+  | "enRouteAt"
   | "actualStartedAt"
   | "actualCompletedAt"
   | "completionReason"
@@ -58,7 +59,7 @@ export const FINISHED_STATUSES = new Set([
 
 export const FAILED_FINAL_STATUSES = new Set(["not_completed", "cancelled", "canceled", "afgemeld"]);
 
-export const STEP_LABELS = ["Gezien", "Gestart", "Afgerond"];
+export const STEP_LABELS = ["Gezien", "Onderweg", "Gestart", "Afgerond"];
 
 export const NOT_COMPLETED_REASONS = [
   "Klant niet aanwezig",
@@ -107,6 +108,9 @@ export function getHeaderStatus(status: string): { label: string; background: st
   if (status === "in_progress") {
     return { label: "GESTART", background: "#FFF4D8", color: "#B7790F" };
   }
+  if (status === "en_route") {
+    return { label: "ONDERWEG", background: "#CCFBF1", color: "#115E59" };
+  }
   if (status === "seen" || status === "scheduled") {
     return { label: "GEZIEN", background: "#EAF5FF", color: "#2563A9" };
   }
@@ -114,8 +118,9 @@ export function getHeaderStatus(status: string): { label: string; background: st
 }
 
 export function getActiveStep(status: string): number {
-  if (FAILED_FINAL_STATUSES.has(status) || FINISHED_STATUSES.has(status)) return 2;
-  if (status === "in_progress") return 1;
+  if (FAILED_FINAL_STATUSES.has(status) || FINISHED_STATUSES.has(status)) return 3;
+  if (status === "in_progress") return 2;
+  if (status === "en_route") return 1;
   return 0;
 }
 

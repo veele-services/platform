@@ -47,6 +47,7 @@ const OPEN_ASSIGNMENT_STATUSES = new Set([
   "plannable",
   "scheduled",
   "seen",
+  "en_route",
   "in_progress",
 ]);
 const OPEN_REQUEST_STATUSES = new Set([

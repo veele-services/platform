@@ -5,6 +5,7 @@ export type OfflineActionStatus = "pending" | "syncing" | "failed";
 type OfflineActionBase = {
   id: string;
   type:
+    | "mark-assignment-en-route"
     | "start-assignment"
     | "complete-assignment"
     | "not-complete-assignment"
@@ -22,6 +23,9 @@ type OfflineActionBase = {
 };
 
 export type OfflineWorkOrderAction =
+  | (OfflineActionBase & {
+      type: "mark-assignment-en-route";
+    })
   | (OfflineActionBase & {
       type: "start-assignment";
     })
@@ -95,6 +99,8 @@ export type OfflineWorkOrderAction =
     });
 
 export type OfflineWorkOrderActionInput =
+  | Omit<Extract<OfflineWorkOrderAction, { type: "mark-assignment-en-route" }>, keyof OfflineActionBase>
+    & Pick<Extract<OfflineWorkOrderAction, { type: "mark-assignment-en-route" }>, "type" | "assignmentId">
   | Omit<Extract<OfflineWorkOrderAction, { type: "start-assignment" }>, keyof OfflineActionBase>
     & Pick<Extract<OfflineWorkOrderAction, { type: "start-assignment" }>, "type" | "assignmentId">
   | Omit<Extract<OfflineWorkOrderAction, { type: "complete-assignment" }>, keyof OfflineActionBase>
@@ -134,6 +140,7 @@ function emitQueueChange() {
 function isActionType(value: unknown): value is OfflineWorkOrderAction["type"] {
   return [
     "start-assignment",
+    "mark-assignment-en-route",
     "complete-assignment",
     "not-complete-assignment",
     "set-task-completion",
@@ -226,6 +233,9 @@ export function enqueueOfflineWorkOrderAction(
     if (queued.assignmentId !== nextAction.assignmentId) return true;
     if (nextAction.type === "start-assignment") {
       return queued.type !== "start-assignment";
+    }
+    if (nextAction.type === "mark-assignment-en-route") {
+      return queued.type !== "mark-assignment-en-route";
     }
     if (nextAction.type === "complete-assignment" || nextAction.type === "not-complete-assignment") {
       return queued.type !== "complete-assignment" && queued.type !== "not-complete-assignment";

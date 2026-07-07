@@ -236,6 +236,7 @@ function pastelForAppointment(assignment: Pick<PlanningBoardPersonnelAssignment,
   }
   if (status === "scheduled") return { bg: "#E8F4FF", border: "#93C5FD", text: "#0F3A5F", rail: "#3B82F6" };
   if (status === "seen") return { bg: "#E2FAF8", border: "#8CE7E2", text: "#075E5D", rail: "#00B7B3" };
+  if (status === "en_route") return { bg: "#CCFBF1", border: "#5EEAD4", text: "#115E59", rail: "#14B8A6" };
   if (status === "in_progress") return { bg: "#F2EEFF", border: "#C4B5FD", text: "#3F2D75", rail: "#8B5CF6" };
   if (status === "completed" || status === "report_submitted" || status === "report_approved" || status === "invoice_ready" || status === "invoiced" || status === "paid" || status === "closed") {
     return { bg: "#EAF8F1", border: "#86D9AE", text: "#14523C", rail: "#22C55E" };

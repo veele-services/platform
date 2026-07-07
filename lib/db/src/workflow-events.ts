@@ -180,6 +180,15 @@ function assignmentFallback(eventKey: string, code: string): DomainEventFallback
         category: "planning",
         href: `/assignments`,
       };
+    case "assignment_en_route":
+      return {
+        title: `Medewerker onderweg voor werkbon ${code}`,
+        body: "Onze medewerker is onderweg naar de locatie.",
+        pushTitle: `Medewerker onderweg`,
+        pushBody: `Onze medewerker is onderweg voor werkbon ${code}.`,
+        category: "planning",
+        href: `/opdrachten`,
+      };
     case "assignment_completed":
       return {
         title: `Werkbon ${code} afgerond`,
@@ -216,7 +225,7 @@ export async function emitAssignmentWorkflowEvent(input: {
   if (!assignment) return null;
 
   const recipients = input.recipients ?? (
-    input.eventKey === "assignment_completed"
+    input.eventKey === "assignment_completed" || input.eventKey === "assignment_en_route"
       ? { customerIds: [assignment.customerId] }
       : undefined
   );
