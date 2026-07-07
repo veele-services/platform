@@ -66,6 +66,24 @@ const drizzleSchema = "drizzle";
 const drizzleMigrationsTable = "__drizzle_migrations";
 const sqlMigrationsTable = "veele_sql_migrations";
 
+const legacySqlPrerequisites = `
+  DO $$
+  BEGIN
+    IF to_regprocedure('public.set_updated_at()') IS NULL THEN
+      CREATE FUNCTION public.set_updated_at()
+      RETURNS trigger
+      LANGUAGE plpgsql
+      AS $function$
+      BEGIN
+        NEW.updated_at = now();
+        RETURN NEW;
+      END;
+      $function$;
+    END IF;
+  END;
+  $$;
+`;
+
 function parseMode(value: string): Mode {
   if (value === "migrate" || value === "baseline") {
     return value;
@@ -213,6 +231,10 @@ async function ensureHistoryTables(client: pg.Client): Promise<void> {
       baselined boolean NOT NULL DEFAULT false
     )
   `);
+}
+
+async function ensureLegacySqlPrerequisites(client: pg.Client): Promise<void> {
+  await client.query(legacySqlPrerequisites);
 }
 
 async function existingPublicTables(client: pg.Client, tableNames: string[]): Promise<Set<string>> {
@@ -488,6 +510,7 @@ async function migrate(): Promise<void> {
   const client = await createClient();
   try {
     await ensureHistoryTables(client);
+    await ensureLegacySqlPrerequisites(client);
     await runSqlMigrations(client, sqlMigrations);
   } finally {
     await client.end();

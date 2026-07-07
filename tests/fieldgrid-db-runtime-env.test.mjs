@@ -41,3 +41,29 @@ test("db cli entrypoints load deployment env files before requiring DATABASE_URL
     assertContains(content, ["loadDbRuntimeEnv();", "DATABASE_URL"], label);
   }
 });
+
+test("migration runner installs legacy updated-at trigger helper before SQL migrations", () => {
+  const migrate = read("lib/db/src/migrate.ts");
+
+  assertContains(
+    migrate,
+    [
+      "const legacySqlPrerequisites",
+      "to_regprocedure('public.set_updated_at()') IS NULL",
+      "CREATE FUNCTION public.set_updated_at()",
+      "RETURNS trigger",
+      "NEW.updated_at = now();",
+      "async function ensureLegacySqlPrerequisites",
+      "await ensureLegacySqlPrerequisites(client);",
+      "await runSqlMigrations(client, sqlMigrations);",
+    ],
+    "migration runner legacy SQL prerequisites",
+  );
+
+  assert.ok(
+    migrate.indexOf("await ensureLegacySqlPrerequisites(client);") <
+      migrate.indexOf("await runSqlMigrations(client, sqlMigrations);"),
+    "legacy SQL prerequisites should run before hand-written SQL migrations",
+  );
+  assert.doesNotMatch(migrate, /SECURITY\s+DEFINER/iu);
+});
