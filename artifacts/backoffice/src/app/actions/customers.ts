@@ -26,8 +26,12 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
-import { provisionPortalUserWithTemporaryPassword } from "@/lib/auth/portal-invites";
 import {
+  findAuthUserByEmail,
+  provisionPortalUserWithTemporaryPassword,
+} from "@/lib/auth/portal-invites";
+import {
+  buildStyledNotificationEmail,
   buildTemporaryPasswordEmail,
   klantPortalUrl,
   sendEmailWithResult,
@@ -284,8 +288,10 @@ async function upsertCustomerPortalInviteLink(input: {
   authUserId: string;
   email: string;
   fullName: string;
+  status?: "invited" | "active";
 }): Promise<string> {
   const name = splitCustomerPortalName(input.fullName);
+  const status = input.status ?? "invited";
   const [existing] = await db
     .select({
       id: customerUsersTable.id,
@@ -307,7 +313,7 @@ async function upsertCustomerPortalInviteLink(input: {
         firstName: name.firstName,
         lastName: name.lastName,
         role: existing.role ?? "primary",
-        status: "invited",
+        status,
         updatedAt: new Date(),
       })
       .where(and(
@@ -328,7 +334,7 @@ async function upsertCustomerPortalInviteLink(input: {
         firstName: name.firstName,
         lastName: name.lastName,
         role: "primary",
-        status: "invited",
+        status,
       })
       .returning({ id: customerUsersTable.id });
     return created!.id;
@@ -340,7 +346,7 @@ async function upsertCustomerPortalInviteLink(input: {
         userId: input.authUserId,
         firstName: name.firstName,
         lastName: name.lastName,
-        status: "invited",
+        status,
         updatedAt: new Date(),
       })
       .where(and(
@@ -364,7 +370,14 @@ async function markCustomerPortalInviteSent(tenantId: string, customerUserId: st
 async function sendCustomerPortalInvite(input: {
   tenantId: string;
   customerId: string;
-}): Promise<{ userId: string; customerUserId: string; created: boolean; email: string; customerName: string }> {
+}): Promise<{
+  userId: string;
+  customerUserId: string;
+  created: boolean;
+  email: string;
+  customerName: string;
+  delivery: "temporary_password" | "existing_access";
+}> {
   const [customer] = await db
     .select({
       name:         customersTable.name,
@@ -381,10 +394,77 @@ async function sendCustomerPortalInvite(input: {
   if (!email) throw new Error("Deze klant heeft geen contact-e-mailadres.");
 
   const fullName = customer.contactName || customer.name;
+  const loginUrl = await customerPortalLoginUrl(input.tenantId);
+  const admin = createAdminClient();
+  const existingAuthUser = await findAuthUserByEmail(admin, email);
+  const existingAuthState = existingAuthUser as typeof existingAuthUser & {
+    confirmed_at?: string | null;
+    email_confirmed_at?: string | null;
+    last_sign_in_at?: string | null;
+  };
+  const hasUsableExistingAccount =
+    Boolean(existingAuthUser) &&
+    existingAuthUser?.app_metadata?.force_password_change !== true &&
+    (
+      Boolean(existingAuthState?.last_sign_in_at) ||
+      Boolean(existingAuthState?.confirmed_at) ||
+      Boolean(existingAuthState?.email_confirmed_at)
+    );
+
+  if (existingAuthUser && hasUsableExistingAccount) {
+    const customerUserId = await upsertCustomerPortalInviteLink({
+      tenantId: input.tenantId,
+      customerId: input.customerId,
+      authUserId: existingAuthUser.id,
+      email,
+      fullName,
+      status: "active",
+    });
+
+    const { subject, html, text } = await buildStyledNotificationEmail({
+      tenantId: input.tenantId,
+      subject: "Toegang tot het klantportaal toegevoegd",
+      preheader: "Uw bestaande Fieldgrid-account heeft toegang gekregen tot een extra klantportaal.",
+      bodyText: [
+        `Beste ${fullName},`,
+        "",
+        `Uw bestaande Fieldgrid-account heeft nu toegang tot het klantportaal voor ${customer.name}.`,
+        "Log in met uw bestaande e-mailadres en wachtwoord. Bent u uw wachtwoord kwijt, gebruik dan Wachtwoord vergeten op de inlogpagina.",
+      ].join("\n"),
+      ctaHref: loginUrl,
+      ctaLabel: "Klantportaal openen",
+    });
+
+    const sent = await sendEmailWithResult({
+      to: email,
+      subject,
+      html,
+      text,
+      tenantId: input.tenantId,
+      purpose: "customer_portal_invite",
+    });
+
+    if (!sent.success) {
+      throw new Error(sent.error ?? "Uitnodigingsmail versturen mislukt.");
+    }
+
+    await markCustomerPortalInviteSent(input.tenantId, customerUserId);
+
+    return {
+      userId: existingAuthUser.id,
+      customerUserId,
+      created: false,
+      email,
+      customerName: customer.name,
+      delivery: "existing_access",
+    };
+  }
+
   const provisioned = await provisionPortalUserWithTemporaryPassword({
     email,
     fullName,
     portal: "customer",
+    allowExistingActive: true,
   });
 
   const customerUserId = await upsertCustomerPortalInviteLink({
@@ -393,12 +473,13 @@ async function sendCustomerPortalInvite(input: {
     authUserId: provisioned.user.id,
     email,
     fullName,
+    status: "invited",
   });
 
   const { subject, html } = buildTemporaryPasswordEmail({
     recipientName:     fullName,
     portalName:        "Klantportaal",
-    loginUrl:          await customerPortalLoginUrl(input.tenantId),
+    loginUrl,
     temporaryPassword: provisioned.temporaryPassword,
   });
 
@@ -422,6 +503,7 @@ async function sendCustomerPortalInvite(input: {
     created: provisioned.created,
     email,
     customerName: customer.name,
+    delivery: "temporary_password",
   };
 }
 
@@ -700,7 +782,12 @@ export async function inviteCustomerPortal(id: string): Promise<ActionResult> {
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  let invite: { userId: string; customerUserId: string; created: boolean };
+  let invite: {
+    userId: string;
+    customerUserId: string;
+    created: boolean;
+    delivery: "temporary_password" | "existing_access";
+  };
   let customerName = "";
   let email = "";
   try {
@@ -714,6 +801,7 @@ export async function inviteCustomerPortal(id: string): Promise<ActionResult> {
       userId: sentInvite.userId,
       customerUserId: sentInvite.customerUserId,
       created: sentInvite.created,
+      delivery: sentInvite.delivery,
     };
   } catch (error) {
     return {
@@ -732,8 +820,9 @@ export async function inviteCustomerPortal(id: string): Promise<ActionResult> {
       email,
       authUserId: invite.userId,
       customerUserId: invite.customerUserId,
-      temporaryPassword: true,
+      temporaryPassword: invite.delivery === "temporary_password",
       authUserCreated: invite.created,
+      delivery: invite.delivery,
     },
   });
 
@@ -1262,8 +1351,9 @@ export async function createCustomer(
             email: invite.email,
             authUserId: invite.userId,
             customerUserId: invite.customerUserId,
-            temporaryPassword: true,
+            temporaryPassword: invite.delivery === "temporary_password",
             authUserCreated: invite.created,
+            delivery: invite.delivery,
           },
         });
 
