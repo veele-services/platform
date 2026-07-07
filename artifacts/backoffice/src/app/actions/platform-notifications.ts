@@ -627,7 +627,7 @@ export async function createPlatformNotificationDispatch(formData: FormData): Pr
         queuedAt: scheduleType === "immediate" ? now : null,
         metadata: {
           source: "platform_admin",
-          pushDelivery: channels.includes("push") ? "planned_later" : null,
+          pushDelivery: channels.includes("push") ? "not_configured" : null,
         },
       })
       .returning({ id: platformNotificationDispatchesTable.id });

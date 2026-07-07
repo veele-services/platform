@@ -276,7 +276,7 @@ function SmtpSettingsPanel({ smtp }: { smtp: PlatformSmtpSettings }) {
           <div>
             <p className="font-semibold text-slate-950">Mail roadmap</p>
             <p className="mt-1">
-              SendGrid wordt later als beheerde koppeling toegevoegd. Tenants krijgen standaard afzenders volgens{" "}
+              SendGrid kan als beheerde koppeling worden toegevoegd. Tenants krijgen standaard afzenders volgens{" "}
               <span className="font-semibold">{smtp.defaultTenantFromPattern}</span>. Eigen maildomeinen blijven alleen voor
               Enterprise en worden door platform support gekoppeld.
             </p>

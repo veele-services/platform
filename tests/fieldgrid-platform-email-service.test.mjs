@@ -38,6 +38,19 @@ test("platform email service centralizes providers, encrypted config and deliver
   assert.match(pkg, /"\.\/email-service": "\.\/src\/email-service\.ts"/u);
 });
 
+test("deploy workflow passes platform email encryption key to runtime env", () => {
+  const deploy = read(".github/workflows/deploy.yml");
+
+  assert.match(
+    deploy,
+    /FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY:\s*\$\{\{\s*secrets\.FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY\s*\}\}/u,
+  );
+  assert.match(
+    deploy,
+    /printf 'FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY=%s\\n' "\$FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY"/u,
+  );
+});
+
 test("application surfaces no longer call mail providers directly", () => {
   const appMailFiles = [
     "artifacts/backoffice/src/lib/email.ts",

@@ -67,7 +67,8 @@ test("sprint 11 platform flow requires owner invite and exposes run status", () 
   assertIncludes(
     action,
     [
-      "inviteUserByEmail",
+      "inviteOwnerByEmail",
+      "provisionPortalUserWithTemporaryPassword",
       "Owner e-mail is verplicht",
       "rollbackProvisionedTenant",
       "completeProvisionedTenantOwnerInvite",

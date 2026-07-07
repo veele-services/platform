@@ -67,7 +67,7 @@ test("phase 10 routes and overview links expose management dashboards", () => {
 });
 
 test("phase 10 migration adds dashboard performance indexes only", () => {
-  const migration = read("lib/db/migrations/065_material_inventory_dashboard_indexes.sql");
+  const migration = read("lib/db/migrations/069_material_inventory_dashboard_indexes.sql");
 
   assertContains(
     migration,

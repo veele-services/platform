@@ -258,7 +258,7 @@ export function InventoryDetailView({
             <Metric label="Aanschafwaarde" value={money(item.purchaseValue)} />
           </section>
 
-          <TenantWorkbenchPanel id="tijdlijn" title="Tijdlijn locatie en status" description="Laatste locatie- en statusbewegingen voor dit inventarisitem.">
+          <TenantWorkbenchPanel id="tijdlijn" title="Locatiegeschiedenis" description="Laatste locatie- en statusbewegingen voor dit inventarisitem.">
             {item.movements.length === 0 ? (
               <p className="px-5 py-6 text-sm text-muted-foreground">Nog geen locatie- of statushistorie.</p>
             ) : (

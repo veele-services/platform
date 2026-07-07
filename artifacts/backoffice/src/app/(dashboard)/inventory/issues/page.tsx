@@ -73,7 +73,7 @@ export default async function InventoryIssuesPage({ searchParams }: Props) {
       />
 
       <TenantCommandBar
-        title="Ticketinbox"
+        title="Open meldingen"
         description="Filter op werkvoorraad en open een melding om status, bewijs en onderhoud te reviewen."
         filters={
           <div className="flex flex-wrap gap-2 text-sm">

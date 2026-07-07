@@ -56,7 +56,7 @@ test("phase 13 makes personnel messages read as an inbox", () => {
     "Actie nodig",
     "Lopende gesprekken",
     "Afgerond",
-    "md:grid-cols-[minmax(0,1fr)_22rem]",
+    "md:grid-cols-[minmax(18rem,1fr)_minmax(0,2fr)]",
     "NewTicketForm",
   ]) {
     assert.match(page, new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "u"));

@@ -8,7 +8,7 @@ Status: canoniek releasecontract voor productiepromotie.
 
 Dit document sluit het materiaal- en inventarisplan functioneel af. Het vervangt geen echte CI-resultaten, staging-copy migratietesten of handmatige productie-go/no-go, maar legt vast wat groen moet zijn voordat materiaalbeheer en inventarisbeheer als productiegeschikt worden beschouwd.
 
-De fase blijft non-destructief: geen staging reset, geen rebuild, geen drop en geen automatische mutatie van bestaande staging-data.
+De fase blijft non-destructief: geen staging reset, geen rebuild, geen drop en geen automatische mutatie van bestaande staging-data. Het releasecriterium blijft expliciet: no staging reset.
 
 ## Doel van fase 12
 

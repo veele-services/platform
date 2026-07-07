@@ -41,10 +41,11 @@ test("phase 4 adds a finance hub for invoices payments and quotes", () => {
 
   const financePage = read(financePagePath);
   assert.match(financePage, /title="Financieel"/u);
-  assert.match(financePage, /getMyInvoiceSummary/u);
+  assert.match(financePage, /getMyInvoices/u);
   assert.match(financePage, /getMyPayments/u);
   assert.match(financePage, /getMyPaymentBatches/u);
-  assert.match(financePage, /getMyPendingQuoteCount/u);
+  assert.match(financePage, /getMyQuotes/u);
+  assert.match(financePage, /pendingQuotes/u);
   assert.match(financePage, /href="\/facturen"/u);
   assert.match(financePage, /href="\/betalingen"/u);
   assert.match(financePage, /href="\/offertes"/u);

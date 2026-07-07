@@ -1,12 +1,28 @@
 # Fieldgrid eerste externe tenant checklist
 
-Datum: 2026-07-04
-Status: operationele acceptatiechecklist voor Sprint 16 final gate.
+Datum: 2026-07-07
+Status: operationele acceptatiechecklist voor Sprint 16 final gate. Sprint 1 dry-run is ingevuld als `blocked-on-evidence`.
 Gerelateerd: `docs/fieldgrid-phase-7-operations.md`, `docs/fieldgrid-cross-tenant-testmatrix.md`, `docs/fieldgrid-staging-promotion-checklist.md`, `docs/fieldgrid-sprint-16-final-gate.md`.
 
 ## Doel
 
 Deze checklist bepaalt wanneer Fieldgrid klaar is om de eerste externe tenant gecontroleerd te onboarden. Veele blijft een gewone tenant en is geen platform-uitzondering.
+
+## Sprint 1 dry-run status - 2026-07-07
+
+Pilottenant dry-run zonder echte klantdruk is nog niet live uitgevoerd. De code/testbasis is wel opgeschoond en lokaal groen, maar staging-auth, portal storage-state en smoke database-URLs ontbreken in de huidige shell.
+
+| Onderdeel | Status | Evidence | Owner / actie |
+| --- | --- | --- | --- |
+| Full suite | Groen | `node --test tests/*.test.mjs`: 505/505 pass | Geen open actie |
+| Staging smoke contract | Groen | `node scripts/fieldgrid-sprint15-staging-smoke.mjs --check` | Geen open actie |
+| Staging smoke live | Geblokkeerd | HTTP 401 op `https://staging.fieldgrid.nl/api/platform/staging-smoke` | Platform owner levert `FIELDGRID_STAGING_SMOKE_COOKIE` of bearer |
+| Migration smoke contract | Groen | `node scripts/fieldgrid-sprint7-migration-smoke.mjs --check` | Geen open actie |
+| Migration smoke live | Geblokkeerd | Empty/staging-copy targets `not-configured`, geen migraties uitgevoerd | Platform owner levert smoke DB URLs en confirms |
+| Platform-admin strict evidence | Geblokkeerd | Mist `artifacts/platform-admin-final-gate` JSON en `phase13-visual-smoke.json` | Platform owner levert platform cookie en tenant detail path |
+| Customer/personnel strict evidence | Geblokkeerd | Mist customer/personnel base URLs en auth cookies/storage-state | Platform owner levert portal sessies en concrete detailroutes |
+| Placeholder/security-copy | Groen | MFA "later" copy verwijderd; push metadata neutraal | Geen open actie |
+| Pilottenant dry-run | Niet gestart | Geen slug/owner/plan bevestigd en geen mutating smoke confirm | Kies pilot slug, owner e-mail, plan, modules en `FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only` |
 
 ## 1. Platform en staging readiness
 

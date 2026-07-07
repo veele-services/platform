@@ -99,7 +99,7 @@ export default async function PlatformUsersPage() {
           <h1 className="text-2xl font-semibold tracking-normal text-slate-950">Platformgebruikers</h1>
           <p className="max-w-3xl text-sm text-slate-600">
             Beheer owner-, admin- en supportaccounts. Rol wijzigen, status wijzigen, uitnodigen en last seen zijn auditbaar.
-            MFA/status later blijft zichtbaar als toekomstige security-uitbreiding.
+            MFA-status wordt alleen getoond zodra de feature actief en meetbaar is.
           </p>
         </header>
 
@@ -195,7 +195,7 @@ export default async function PlatformUsersPage() {
                     </div>
                     <div className="rounded bg-slate-50 px-3 py-2">
                       <dt className="text-xs font-medium uppercase text-slate-500">MFA</dt>
-                      <dd className="mt-1 font-medium text-slate-900">Later</dd>
+                      <dd className="mt-1 font-medium text-slate-900">Niet actief</dd>
                     </div>
                   </dl>
                 </div>

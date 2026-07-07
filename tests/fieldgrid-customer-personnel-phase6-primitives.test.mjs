@@ -66,7 +66,7 @@ test("phase 6 migrates documents as low-risk reference page without changing dat
 
   assert.match(documentsPage, /getMyDocuments\(\)/u);
   assert.match(documentsPage, /DocumentDownloadButton/u);
-  assert.match(documentsPage, /filterDocuments\(documents, query, selectedType\)/u);
-  assert.match(documentsPage, /searchParams: Promise<\{ q\?: string; type\?: string \}>/u);
+  assert.match(documentsPage, /filterDocuments\(\{\s*documents,\s*query,\s*type: selectedType,/u);
+  assert.match(documentsPage, /searchParams: Promise<\{ q\?: string; type\?: string; object\?: string; assignment\?: string; date\?: string \}>/u);
   assert.doesNotMatch(documentsPage, /Veele Services/u);
 });
