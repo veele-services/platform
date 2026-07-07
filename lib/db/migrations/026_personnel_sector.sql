@@ -1,7 +1,7 @@
 -- ============================================================================
 -- Personnel sector assignment.
 --
--- Fieldgrid uses three default operational sectors: Facilitair, Schoonmaak and Beveiliging.
+-- Veele uses three operational sectors: Facilitair, Schoonmaak and Beveiliging.
 -- Customers, objects and task codes already had a sector relation; personnel now
 -- gets the same relation so the planning board can match people to work orders.
 -- ============================================================================

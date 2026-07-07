@@ -236,7 +236,7 @@ VALUES
     'tickets',
     'customer',
     'Reactie op uw ticket',
-    'Backoffice heeft gereageerd op een klantticket.',
+    'Veele Services heeft gereageerd op een klantticket.',
     true,
     true,
     true,
