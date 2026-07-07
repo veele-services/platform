@@ -191,7 +191,7 @@ function timeBlock(
 }
 
 function alignToPlanningGrid(value: number, slotMinutes: number, workdayStart: string, mode: "nearest" | "up"): number {
-  const interval = Math.max(15, Math.min(240, slotMinutes));
+  const interval = Math.max(1, Math.min(240, slotMinutes));
   const base = parseTimeMin(workdayStart) ?? DAY_START_MIN;
   const raw = (value - base) / interval;
   return base + (mode === "up" ? Math.ceil(raw) : Math.round(raw)) * interval;

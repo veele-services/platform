@@ -263,7 +263,7 @@ function addMinutes(value: string, minutes: number): string {
 const PLANNING_SNAP_MINUTES = 5;
 
 function alignToPlanningGrid(value: number, slotMinutes: number, workdayStart: string, mode: "nearest" | "up"): number {
-  const interval = Math.max(15, Math.min(240, slotMinutes));
+  const interval = Math.max(1, Math.min(240, slotMinutes));
   const base = isTimeKey(workdayStart) ? timeToMinutes(workdayStart) : 0;
   const raw = (value - base) / interval;
   return base + (mode === "up" ? Math.ceil(raw) : Math.round(raw)) * interval;
@@ -1750,11 +1750,11 @@ export async function scheduleAssignmentOnBoard(
   if (!personnel || !personnel.isActive)
     return { success: false, message: "Medewerker niet gevonden of inactief." };
 
-  const allowedStatuses: AssignmentStatus[] = ["plannable", "scheduled"];
+  const allowedStatuses: AssignmentStatus[] = ["plannable", "scheduled", "seen", "en_route", "in_progress"];
   if (!allowedStatuses.includes(assignment.status as AssignmentStatus)) {
     return {
       success: false,
-      message: `Alleen planbare of ingeplande werkbonnen kunnen via het planbord worden geplaatst (huidige status: ${assignment.status}).`,
+      message: `Alleen planbare, ingeplande of actieve werkbonnen kunnen via het planbord worden geplaatst (huidige status: ${assignment.status}).`,
     };
   }
 
