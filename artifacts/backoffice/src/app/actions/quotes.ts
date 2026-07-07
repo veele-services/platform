@@ -684,7 +684,7 @@ export async function sendQuote(id: string): Promise<ActionResult> {
       body: "Er staat een nieuwe offerte klaar in het klantportaal.",
       category: "quotes",
       href: "/offertes",
-      sourceLabel: "Veele Services",
+      sourceLabel: "Offertes",
       emailSubject: `Offerte ${quote.quoteNumber} staat klaar`,
       emailHtml: `
         <h2>Uw offerte staat klaar</h2>

@@ -115,7 +115,7 @@ async function getBackofficeUser() {
   return {
     id: user.id,
     email: user.email ?? null,
-    name: metadata?.full_name ?? metadata?.name ?? user.email ?? "Veele Services",
+    name: metadata?.full_name ?? metadata?.name ?? user.email ?? "Support",
   };
 }
 
@@ -562,11 +562,11 @@ export async function replyToTicket(
       },
       fallback: {
         title: `Reactie op ticket: ${thread.subject}`,
-        body: "Veele Services heeft gereageerd op uw ticket.",
+        body: "Er is gereageerd op uw ticket.",
         category: "message",
         priority: priorityForEvent(thread.priority),
         href: customerHref,
-        sourceLabel: "Veele Services",
+        sourceLabel: "Support",
       },
       audit: {
         action: "reply",
@@ -655,11 +655,11 @@ export async function replyToTicket(
     },
     fallback: {
       title: `Reactie op ticket: ${thread.subject}`,
-      body: "Veele Services heeft gereageerd op je ticket.",
+      body: "Er is gereageerd op je ticket.",
       category: "message",
       priority: priorityForEvent(thread.priority),
       href: personnelHref,
-      sourceLabel: "Veele Services",
+      sourceLabel: "Support",
     },
     audit: {
       action: "reply",

@@ -32,22 +32,68 @@ type Notice = { type: "success" | "error"; text: string } | null;
 type Channel = "email" | "push" | "in_app";
 
 const CHANNELS: Array<{ key: Channel; label: string; Icon: typeof Mail; hint: string }> = [
-  { key: "email", label: "E-mail", Icon: Mail, hint: "HTML-mail via SMTP/Resend" },
-  { key: "push", label: "Push", Icon: Smartphone, hint: "PWA push-queue + inboxmelding" },
+  { key: "email", label: "E-mail", Icon: Mail, hint: "HTML-mail via de ingestelde e-mailprovider" },
+  { key: "push", label: "Push", Icon: Smartphone, hint: "Pushbericht + inboxmelding" },
   { key: "in_app", label: "Inbox", Icon: Bell, hint: "Melding in portaal/PWA" },
 ];
 
 const SHORTCODE_HELP = [
-  ["{{recipient.name}}", "Naam van de ontvanger"],
-  ["{{customer.name}}", "Klantnaam"],
-  ["{{personnel.first_name}}", "Voornaam medewerker"],
-  ["{{assignment.code}}", "Werkbonnummer"],
-  ["{{assignment.title}}", "Titel van opdracht"],
-  ["{{assignment.date}}", "Datum van opdracht"],
-  ["{{quote.number}}", "Offertenummer"],
-  ["{{invoice.number}}", "Factuurnummer"],
-  ["{{news.title}}", "Titel nieuwsbericht"],
+  ["recipient.name", "Naam ontvanger"],
+  ["recipient.first_name", "Voornaam ontvanger"],
+  ["recipient.email", "E-mailadres ontvanger"],
+  ["organization.name", "Organisatienaam"],
+  ["href", "Fieldgrid-link"],
+  ["portal.name", "Portaalnaam"],
+  ["portal.login_url", "Loginlink"],
+  ["customer.name", "Klantnaam"],
+  ["customer.contact_name", "Klantcontact"],
+  ["object.name", "Objectnaam"],
+  ["object.address", "Objectadres"],
+  ["object.city", "Plaats"],
+  ["assignment.code", "Werkbonnummer"],
+  ["assignment.number", "Opdrachtnummer"],
+  ["assignment.title", "Opdrachtnaam"],
+  ["assignment.date", "Opdrachtdatum"],
+  ["assignment.start", "Starttijd"],
+  ["assignment.start_time", "Starttijd"],
+  ["assignment.end", "Eindtijd"],
+  ["assignment.end_time", "Eindtijd"],
+  ["personnel.name", "Medewerkernaam"],
+  ["personnel.first_name", "Voornaam medewerker"],
+  ["leave.period", "Verlofperiode"],
+  ["leave.type", "Verloftype"],
+  ["leave.decision", "Beslissing verlof"],
+  ["quote.number", "Offertenummer"],
+  ["quote.amount", "Offertebedrag"],
+  ["quote.valid_until", "Geldig tot"],
+  ["invoice.number", "Factuurnummer"],
+  ["invoice.amount", "Factuurbedrag"],
+  ["invoice.due_date", "Vervaldatum"],
+  ["report.number", "Rapportnummer"],
+  ["ticket.number", "Ticketnummer"],
+  ["ticket.subject", "Ticketonderwerp"],
+  ["document.name", "Documentnaam"],
+  ["article.title", "Artikel titel"],
+  ["roadmap.title", "Roadmap titel"],
+  ["release.version", "Release versie"],
+  ["release.title", "Release titel"],
+  ["highlight.title", "Highlight titel"],
 ] as const;
+
+const SHORTCODE_LABELS = new Map<string, string>(SHORTCODE_HELP.map(([code, label]) => [code, label]));
+
+function normalizeShortcode(code: string): string {
+  return code.trim().replace(/^\{\{\s*/, "").replace(/\s*\}\}$/, "");
+}
+
+function shortcodeToken(code: string): string {
+  return `{{${normalizeShortcode(code)}}}`;
+}
+
+function shortcodeLabel(code: string): string {
+  const normalized = normalizeShortcode(code);
+  return SHORTCODE_LABELS.get(normalized) ?? normalized;
+}
 
 function groupEvents(events: NotificationEventSettingRow[]) {
   return events.reduce<Record<string, NotificationEventSettingRow[]>>((acc, event) => {
@@ -79,10 +125,10 @@ export function NotificatiesView({
             </span>
             <div>
               <h2 className="text-sm font-semibold" style={{ color: "#081D3A" }}>
-                Automatische triggers
+                Automatische meldingen
               </h2>
               <p className="mt-1 text-xs leading-relaxed" style={{ color: "#64748B" }}>
-                Dit zijn de acties in het platform die e-mail, push of inboxmeldingen kunnen activeren.
+                Dit zijn de acties die e-mail, push of inboxmeldingen kunnen activeren.
               </p>
             </div>
           </div>
@@ -167,7 +213,7 @@ function AnalysisCards({ events }: { events: NotificationEventSettingRow[] }) {
     <section className="grid gap-3 md:grid-cols-4">
       <MetricCard title="Triggers" value={events.length} text="Platformacties met template" Icon={Bell} />
       <MetricCard title="E-mail actief" value={emailCount} text="HTML-templates ingeschakeld" Icon={Mail} />
-      <MetricCard title="Push actief" value={pushCount} text="PWA queue voorbereid" Icon={Smartphone} />
+      <MetricCard title="Push actief" value={pushCount} text="Pushverzending voorbereid" Icon={Smartphone} />
       <MetricCard title="Inbox actief" value={inAppCount} text="Portaalmeldingen" Icon={MessageSquareText} />
     </section>
   );
@@ -288,9 +334,10 @@ function EventTemplateEditor({
             </p>
             <div className="mt-2 flex flex-wrap gap-1.5">
               {event.shortcodes.map((code) => (
-                <code key={code} className="rounded bg-white px-2 py-1 text-xs" style={{ color: "#075E5D" }}>
-                  {code}
-                </code>
+                <span key={code} className="rounded bg-white px-2 py-1 text-xs" style={{ color: "#075E5D" }}>
+                  <span className="font-semibold">{shortcodeLabel(code)}</span>
+                  <code className="ml-1 text-[11px] text-slate-500">{shortcodeToken(code)}</code>
+                </span>
               ))}
             </div>
           </div>
@@ -325,9 +372,9 @@ function ManualNotificationPanel({
   const [personnelIds, setPersonnelIds] = useState<string[]>([]);
   const [customerIds, setCustomerIds] = useState<string[]>([]);
   const [priority, setPriority] = useState<"low" | "normal" | "high">("normal");
-  const [title, setTitle] = useState("Nieuwe melding van Veele Services");
+  const [title, setTitle] = useState("Nieuwe melding");
   const [body, setBody] = useState(
-    "Beste {{recipient.name}},\n\nEr staat een nieuwe melding klaar in het portaal. Log in om de details te bekijken.\n\nMet vriendelijke groet,\nVeele Services",
+    "Beste {{recipient.name}},\n\nEr staat een nieuwe melding klaar in het portaal. Log in om de details te bekijken.\n\nMet vriendelijke groet,\nFieldgrid",
   );
   const [href, setHref] = useState("");
 
@@ -376,11 +423,11 @@ function ManualNotificationPanel({
         </span>
         <div>
           <h2 className="text-sm font-semibold" style={{ color: "#081D3A" }}>
-            Handmatige push/notificatie sturen
+            Handmatige melding sturen
           </h2>
           <p className="mt-1 text-xs leading-relaxed" style={{ color: "#64748B" }}>
             Verstuur een gerichte melding naar personeel, klanten, sectoren of individuele ontvangers.
-            Push schrijft ook een delivery queue, zodat Web Push delivery later exact dezelfde payload gebruikt.
+            Push wordt klaargezet voor verzending en tegelijk als inboxmelding bewaard.
           </p>
         </div>
       </div>
@@ -591,10 +638,10 @@ function ShortcodesPanel() {
         medewerker, offerte, factuur of nieuwsbericht. Per event ziet u de toegestane shortcodes in de editor.
       </p>
       <div className="mt-4 grid gap-2 md:grid-cols-2">
-        {SHORTCODE_HELP.map(([code, text]) => (
+        {SHORTCODE_HELP.map(([code, label]) => (
           <div key={code} className="rounded-xl border bg-slate-50 px-3 py-2" style={{ borderColor: "#E2E8F0" }}>
-            <code className="text-xs font-semibold" style={{ color: "#075E5D" }}>{code}</code>
-            <p className="mt-1 text-xs" style={{ color: "#64748B" }}>{text}</p>
+            <p className="text-xs font-semibold" style={{ color: "#075E5D" }}>{label}</p>
+            <code className="mt-1 block text-xs" style={{ color: "#64748B" }}>{shortcodeToken(code)}</code>
           </div>
         ))}
       </div>

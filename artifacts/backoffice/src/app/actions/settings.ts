@@ -1042,7 +1042,7 @@ export async function sendManualNotification(
             }),
             category: "system" as const,
             priority,
-            sourceLabel: "Veele Services",
+            sourceLabel: "Fieldgrid",
             href,
             createdAt,
           };
@@ -1065,7 +1065,7 @@ export async function sendManualNotification(
           }),
           category: "message",
           priority,
-          sourceLabel: "Veele Services",
+          sourceLabel: "Fieldgrid",
           href,
           createdAt,
         })),
