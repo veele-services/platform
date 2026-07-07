@@ -367,6 +367,28 @@ function summarizeReport(results) {
   };
 }
 
+export function formatMigrationSmokeResult(result) {
+  const details = [];
+  if (result.exitCode !== null && result.exitCode !== undefined) details.push(`exit=${result.exitCode}`);
+  if (result.timedOut) details.push("timed-out");
+  if (result.appliedMigrations?.length > 0) details.push(`applied=${result.appliedMigrations.length}`);
+  if (result.skippedMigrations?.length > 0) details.push(`skipped=${result.skippedMigrations.length}`);
+  if (result.compatibilitySkippedMigrations?.length > 0) {
+    details.push(`compatibility-skipped=${result.compatibilitySkippedMigrations.length}`);
+  }
+
+  const suffix = details.length > 0 ? ` (${details.join(", ")})` : "";
+  const lines = [`[fieldgrid:migration-smoke] ${result.target}: ${result.readiness}${suffix}`];
+
+  if (result.readiness !== "pass" && result.safetyReason) {
+    lines.push(`[fieldgrid:migration-smoke] ${result.target} reason: ${result.safetyReason}`);
+  } else if (result.readiness !== "pass" && result.failedStatement) {
+    lines.push(`[fieldgrid:migration-smoke] ${result.target} failure: ${result.failedStatement}`);
+  }
+
+  return lines.join("\n");
+}
+
 async function runCommand(command, args, options) {
   return new Promise((resolvePromise) => {
     const child = spawn(command, args, {
@@ -455,7 +477,9 @@ export async function runMigrationSmoke(options = parseArgs([])) {
 
   for (const target of selectedTargets) {
     console.log(`\n[fieldgrid:migration-smoke] Running ${target.id}`);
-    results.push(await runMigrationSmokeTarget(target, options));
+    const result = await runMigrationSmokeTarget(target, options);
+    console.log(formatMigrationSmokeResult(result));
+    results.push(result);
   }
 
   const report = {
