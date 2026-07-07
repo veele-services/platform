@@ -32,6 +32,7 @@ export async function middleware(request: NextRequest) {
   const normalizedPathname = routePath(pathname);
   const isLoginPage  = normalizedPathname === "/login";
   const isPasswordResetPage = normalizedPathname === "/reset-wachtwoord";
+  const isPasswordResetApi = normalizedPathname.startsWith("/api/auth/password-reset");
   const isPwaAsset =
     normalizedPathname === "/manifest.json" ||
     normalizedPathname === "/sw.js" ||
@@ -41,7 +42,12 @@ export async function middleware(request: NextRequest) {
     isPwaAsset ||
     isLoginPage ||
     normalizedPathname === "/wachtwoord-vergeten" ||
-    normalizedPathname.startsWith("/api/auth/password-reset") ||
+    isPasswordResetApi ||
+    normalizedPathname.startsWith("/auth/confirm");
+  const canBypassForcedPasswordChange =
+    isPasswordResetPage ||
+    isPasswordResetApi ||
+    isPwaAsset ||
     normalizedPathname.startsWith("/auth/confirm");
 
   if (!url || !key) {
@@ -79,7 +85,7 @@ export async function middleware(request: NextRequest) {
 
   const mustChangePassword = user?.app_metadata?.force_password_change === true;
 
-  if (user && mustChangePassword && !isPasswordResetPage && !normalizedPathname.startsWith("/auth/confirm")) {
+  if (user && mustChangePassword && !canBypassForcedPasswordChange) {
     return NextResponse.redirect(proxyAwareUrl(`${BASE}/reset-wachtwoord?force=1`, request));
   }
 

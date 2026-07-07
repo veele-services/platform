@@ -161,9 +161,12 @@ test("portal password reset and logged-out routes are tenant-aware behind /klant
     "pathname.startsWith(`${BASE}/`)",
     "normalizedPathname === \"/login\"",
     "normalizedPathname === \"/wachtwoord-vergeten\"",
+    "const isPasswordResetApi = normalizedPathname.startsWith(\"/api/auth/password-reset\")",
+    "const canBypassForcedPasswordChange",
     "normalizedPathname.startsWith(\"/api/auth/password-reset\")",
     "normalizedPathname === \"/sw.js\"",
     "normalizedPathname === \"/manifest.json\"",
+    "user && mustChangePassword && !canBypassForcedPasswordChange",
   ], "customer portal middleware");
 
   assertContains(personnelMiddleware, [
