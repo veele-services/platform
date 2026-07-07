@@ -1,14 +1,14 @@
 -- ============================================================================
 -- Tenant RBAC backfill
 --
--- Creates tenant-scoped role tables, backfills the default Fieldgrid tenant from
+-- Creates tenant-scoped role tables, backfills the default Veele tenant from
 -- existing global RBAC roles, migrates current user-role assignments, and seeds
 -- the recommended starter role set with permissions copied from the current
 -- RBAC templates where applicable.
 -- ============================================================================
 
 INSERT INTO tenants (id, slug, name)
-VALUES ('00000000-0000-0000-0000-000000000010'::uuid, 'veele-services', 'Fieldgrid Default')
+VALUES ('00000000-0000-0000-0000-000000000010'::uuid, 'veele-services', 'Veele Services')
 ON CONFLICT (id) DO UPDATE
   SET slug = excluded.slug,
       name = excluded.name,
@@ -56,7 +56,7 @@ CREATE INDEX IF NOT EXISTS tenant_user_roles_user_idx ON tenant_user_roles(user_
 CREATE INDEX IF NOT EXISTS tenant_user_roles_role_idx ON tenant_user_roles(tenant_role_id);
 
 -- 1/2. Use all existing global roles as templates and create matching tenant roles
--- for the existing/default Fieldgrid tenant.
+-- for the existing/default Veele tenant.
 INSERT INTO tenant_roles (tenant_id, template_role_id, name, description, is_system, created_at, updated_at)
 SELECT
   '00000000-0000-0000-0000-000000000010'::uuid,
