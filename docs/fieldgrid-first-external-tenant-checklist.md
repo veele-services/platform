@@ -24,11 +24,31 @@ Pilottenant dry-run zonder echte klantdruk is nog niet live uitgevoerd. De code/
 | Placeholder/security-copy | Groen | MFA "later" copy verwijderd; push metadata neutraal | Geen open actie |
 | Pilottenant dry-run | Gekozen, runtime evidence open | Slug `field-demo`, owner `services@fieldgrid.nl`, plan Enterprise, modules all; mutating confirm vereist | Draai pilot-smoke alleen met `FIELDGRID_MUTATING_SMOKE_CONFIRM=field-demo-only` |
 
+## MVP Sprint 2 runtime proof status - 2026-07-08
+
+Sprint 2 voegt de formele runtime gate `pnpm fieldgrid:mvp-sprint2-runtime-proof:check` toe. De strict variant blokkeert totdat alle live evidence echt groen is:
+
+```bash
+pnpm fieldgrid:mvp-sprint2-runtime-proof:strict
+```
+
+| Onderdeel | Status | Evidence | Owner / actie |
+| --- | --- | --- | --- |
+| `FG-MVP2-MIGRATIONS` | Groen gemeld | GitHub Actions run https://github.com/veele-services/platform/actions/runs/28902141188 voor empty DB en staging-copy | Artifact-URL bewaren bij releaseformulier |
+| `FG-MVP2-STAGING-SMOKE` | Geblokkeerd | Nieuwe cookiepoging gaf HTTP 401 `Authenticatie vereist` | Verse platform-admin cookie/bearer leveren |
+| `FG-MVP2-LOGIN-HOST` | Evidence open | Contracten groen; live dashboard mist auth | Playwright login/host smoke draaien |
+| `FG-MVP2-TENANT-ISOLATION` | Evidence open | Sprint 5/6 contracten groen | Live wrong-host/direct-ID denial vastleggen |
+| `FG-MVP2-STORAGE-DOWNLOAD` | Evidence open | Lokale guards groen | Live signed URL, denial en auditregel vastleggen |
+| `FG-MVP2-PORTALS` | Evidence open | Customer/personnel final gate bestaat | Portal cookies/storage-state leveren en strict gate draaien |
+| `FG-MVP2-NOTIFICATIONS-EMAIL` | Evidence open | Template/provider/dispatch tests groen | Interne field-demo sandbox dispatch draaien |
+| `FG-MVP2-PLATFORM-ADMIN` | Evidence open | Platform-admin final gate contract groen | Owner/admin/support role smoke vastleggen |
+
 ## 1. Platform en staging readiness
 
 - [ ] `main` is bron van waarheid.
 - [ ] Staging draait op `staging.fieldgrid.nl`.
 - [ ] Productieplatform draait op `platform.fieldgrid.nl`.
+- [ ] `pnpm fieldgrid:mvp-sprint2-runtime-proof:strict` is groen of alle open `FG-MVP2-*` punten zijn expliciet geaccepteerd door de platform owner.
 - [ ] `/platform/staging-smoke` is bereikbaar voor platform owner/admin.
 - [ ] `/platform/staging-smoke` toont `Finale externe tenant gate`.
 - [ ] `pnpm fieldgrid:sprint16-final-gate:check` is groen.

@@ -15,12 +15,14 @@ Voor `main -> staging` moeten deze statische signalen groen zijn:
 ```bash
 pnpm fieldgrid:migration-order-check:check
 pnpm fieldgrid:test-layers:check
+pnpm fieldgrid:mvp-sprint2-runtime-proof:check
 pnpm fieldgrid:staging-promotion-gate:check
 ```
 
 Runtime evidence blijft verplicht voor releases die tenantgrenzen, storage/downloads, migraties of platform-admin raken:
 
 ```bash
+pnpm fieldgrid:mvp-sprint2-runtime-proof:strict
 pnpm fieldgrid:sprint15-staging-smoke:run-read-only
 pnpm fieldgrid:sprint7-migration-smoke --run --target all
 ```
@@ -114,6 +116,7 @@ Staging-impact: additive UI; bestaande routes blijven bruikbaar.
 - [ ] Live Playwright-smoke targets zijn zichtbaar voor host, portalen, storage/PDF en personeelsplanning.
 - [ ] Migration-smoke status verwijst naar lege database en staging-copy targets.
 - [ ] Muterende smokechecks hebben cleanup.
+- [ ] MVP Sprint 2 runtime proof heeft `FG-MVP2-*` owners voor migraties, staging smoke, login/host, tenant-isolatie, storage/downloads, portals, notificatie/e-mail en platform-admin.
 - [ ] Final external tenant gate toont performance review, service-role review, staging-copy smoke en post-launch accepted register.
 - [ ] Backup/restore en rollback playbook zijn actueel.
 - [ ] Staging smoke toont host, login, modules, sectoren, storage, PDF/downloads, migraties, support grants en audit.
