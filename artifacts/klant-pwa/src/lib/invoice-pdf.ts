@@ -25,6 +25,7 @@ export type CustomerInvoicePdfLineItem = {
 };
 
 export type CustomerInvoicePdfData = {
+  brandName?: string | null;
   invoiceNumber: string;
   customerName: string;
   customerAddress: string | null;
@@ -48,6 +49,7 @@ function categoryLabel(category: string): string {
 }
 
 export async function generateCustomerInvoicePdf(invoice: CustomerInvoicePdfData): Promise<Buffer> {
+  const brandName = invoice.brandName?.trim() || "Fieldgrid";
   const doc = new PDFDocument({ size: "A4", margin: 55, bufferPages: true });
   const chunks: Buffer[] = [];
   doc.on("data", (chunk: Buffer) => chunks.push(chunk));
@@ -55,7 +57,12 @@ export async function generateCustomerInvoicePdf(invoice: CustomerInvoicePdfData
   await new Promise<void>((resolve) => {
     doc.on("end", resolve);
 
-    drawPdfHeader(doc, { title: "FACTUUR", reference: invoice.invoiceNumber });
+    drawPdfHeader(doc, {
+      title: "FACTUUR",
+      reference: invoice.invoiceNumber,
+      brandTitle: brandName.toUpperCase(),
+      brandSubtitle: "FIELDGRID",
+    });
 
     const L = PDF_PAGE.left;
     const R = PDF_PAGE.right;
@@ -124,7 +131,7 @@ export async function generateCustomerInvoicePdf(invoice: CustomerInvoicePdfData
       );
     }
 
-    drawPdfFooter(doc, "Veele Services - Bedankt voor uw opdracht.");
+    drawPdfFooter(doc, `${brandName} - Factuur gegenereerd vanuit Fieldgrid.`);
     doc.end();
   });
 

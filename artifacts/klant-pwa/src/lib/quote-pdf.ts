@@ -22,6 +22,7 @@ export type CustomerQuotePdfLineItem = {
 };
 
 export type CustomerQuotePdfData = {
+  brandName?: string | null;
   quoteNumber: string;
   customerName: string;
   customerAddress: string | null;
@@ -47,6 +48,7 @@ function statusLabel(status: string, isExpired: boolean): string {
 }
 
 export async function generateCustomerQuotePdf(quote: CustomerQuotePdfData): Promise<Buffer> {
+  const brandName = quote.brandName?.trim() || "Fieldgrid";
   const doc = new PDFDocument({ size: "A4", margin: 55, bufferPages: true });
   const chunks: Buffer[] = [];
 
@@ -55,7 +57,12 @@ export async function generateCustomerQuotePdf(quote: CustomerQuotePdfData): Pro
   await new Promise<void>((resolve) => {
     doc.on("end", resolve);
 
-    drawPdfHeader(doc, { title: "OFFERTE", reference: quote.quoteNumber });
+    drawPdfHeader(doc, {
+      title: "OFFERTE",
+      reference: quote.quoteNumber,
+      brandTitle: brandName.toUpperCase(),
+      brandSubtitle: "FIELDGRID",
+    });
 
     const L = PDF_PAGE.left;
     const R = PDF_PAGE.right;
@@ -143,7 +150,7 @@ export async function generateCustomerQuotePdf(quote: CustomerQuotePdfData): Pro
       );
     }
 
-    drawPdfFooter(doc, "Veele Services - Offerte gegenereerd vanuit Fieldgrid.");
+    drawPdfFooter(doc, `${brandName} - Offerte gegenereerd vanuit Fieldgrid.`);
     doc.end();
   });
 

@@ -193,7 +193,7 @@ function LinkPanel({ ticket }: { ticket: PlatformTicketDetail }) {
           href={ticket.tenantId ? `/platform/tenants/${ticket.tenantId}` : null}
         />
         <LinkedItem label="Domein" value={ticket.domainLabel} />
-        <LinkedItem label="Subscription" value={ticket.subscriptionLabel} />
+        <LinkedItem label="Abonnement" value={ticket.subscriptionLabel} />
         <LinkedItem label="Support grant" value={ticket.supportGrantLabel} />
         <LinkedItem label="Smoke run" value={ticket.smokeRunId} />
         <LinkedItem label="Audit event" value={ticket.auditLogLabel ?? ticket.auditLogId} />
@@ -205,7 +205,7 @@ function LinkPanel({ ticket }: { ticket: PlatformTicketDetail }) {
         <input type="hidden" name="priority" value={ticket.priority} />
         <input type="hidden" name="slaDueAt" value={dateTimeLocalValue(ticket.slaDueAt)} />
         <input type="hidden" name="assigneePlatformUserId" value={ticket.assigneePlatformUserId ?? "__none"} />
-        <LinkSelect name="subscriptionId" label="Subscription" options={ticket.linkOptions.subscriptions} defaultValue={ticket.subscriptionId} />
+        <LinkSelect name="subscriptionId" label="Abonnement" options={ticket.linkOptions.subscriptions} defaultValue={ticket.subscriptionId} />
         <LinkSelect name="domainId" label="Domein" options={ticket.linkOptions.domains} defaultValue={ticket.domainId} />
         <LinkSelect name="supportGrantId" label="Support grant" options={ticket.linkOptions.supportGrants} defaultValue={ticket.supportGrantId} />
         <LinkSelect name="auditLogId" label="Audit event" options={ticket.linkOptions.auditEvents} defaultValue={ticket.auditLogId} />

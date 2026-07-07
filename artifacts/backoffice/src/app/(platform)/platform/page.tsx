@@ -453,7 +453,7 @@ function DashboardActionList({ actions }: { actions: DashboardAction[] }) {
       <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
         <div>
           <h2 className="text-base font-semibold tracking-normal">Actielijst</h2>
-          <p className="mt-1 text-xs text-slate-500">Onboarding, domeinen, subscriptions, support en smoke checks.</p>
+          <p className="mt-1 text-xs text-slate-500">Onboarding, domeinen, abonnementen, support en smoke checks.</p>
         </div>
         <span className="rounded bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{actions.length}</span>
       </div>
@@ -700,7 +700,7 @@ function buildDashboardActions(input: {
   for (const subscription of input.signals.pastDueSubscriptions.rows) {
     actions.push({
       id: `subscription:${subscription.id}`,
-      label: `${subscription.tenantName} subscription past due`,
+      label: `${subscription.tenantName} abonnement met betalingsachterstand`,
       detail: `${subscription.planName} staat sinds ${formatDate(subscription.updatedAt)} op ${subscription.status}.`,
       href: `/platform/tenants/${subscription.tenantId}`,
       meta: "Billing",
@@ -825,7 +825,7 @@ function PlatformDashboardOverview({
       tone: signals.pendingDomains.total > 0 ? "warning" : "good",
     },
     {
-      label: "Subscriptions past due",
+      label: "Abonnementen met achterstand",
       value: signals.pastDueSubscriptions.total,
       detail: "Abonnementen die betaal- of statusactie vragen.",
       href: "/platform/subscriptions",

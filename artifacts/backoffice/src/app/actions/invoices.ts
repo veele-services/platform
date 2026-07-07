@@ -2,6 +2,7 @@
 
 import { db } from "@workspace/db";
 import {
+  getTenantBranding,
   invoicesTable,
   assignmentsTable,
   customersTable,
@@ -128,6 +129,7 @@ export type InvoiceRow = {
 
 export type InvoiceDetail = {
   id:                  string;
+  brandName:           string;
   invoiceNumber:       string;
   customerId:          string;
   customerName:        string;
@@ -425,10 +427,14 @@ export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
 
   if (!row) return null;
 
-  const proposal = await calculateInvoiceProposalForAssignment(row.assignmentId, parseFloat(row.vatPercentage ?? "21"));
+  const [proposal, branding] = await Promise.all([
+    calculateInvoiceProposalForAssignment(row.assignmentId, parseFloat(row.vatPercentage ?? "21")),
+    getTenantBranding(tenantId),
+  ]);
 
   return {
     id:                 row.id,
+    brandName:          branding.displayName,
     invoiceNumber:      row.invoiceNumber,
     customerId:         row.customerId,
     customerName:       row.customerName ?? "",
@@ -999,6 +1005,7 @@ export async function createCollectiveInvoicePayment(input: {
   const baseUrl = getBaseUrl();
   const webhookUrl = process.env.MOLLIE_WEBHOOK_URL ?? `${baseUrl}/api/webhooks/mollie`;
   const invoiceNumbers = invoices.map((invoice) => invoice.invoiceNumber).join(", ");
+  const branding = await getTenantBranding(tenantId);
 
   let mollieResp: Response;
   try {
@@ -1013,7 +1020,7 @@ export async function createCollectiveInvoicePayment(input: {
           currency: "EUR",
           value: centsToMollieValue(amountCents),
         },
-        description: `Verzamelfactuur Veele Services (${invoices.length} facturen)`,
+        description: `Verzamelfactuur ${branding.displayName} (${invoices.length} facturen)`,
         redirectUrl: `${baseUrl}/klant/betalingen/succes`,
         webhookUrl,
         metadata: {

@@ -4,8 +4,10 @@ import { and, asc, eq } from "drizzle-orm";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { hasPermission } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { db } from "@workspace/db";
 import {
+  getTenantBranding,
   assignmentPhotosTable,
   assignmentsTable,
   customersTable,
@@ -55,10 +57,18 @@ async function fetchImageBuffer(signedUrl: string): Promise<Buffer | null> {
   }
 }
 
-function drawHeader(doc: PDFKit.PDFDocument, title: string, reference: string) {
+function drawHeader(doc: PDFKit.PDFDocument, title: string, reference: string, brandName: string) {
+  const rawBrandTitle = brandName.trim().toUpperCase() || "FIELDGRID";
+  const brandTitle = rawBrandTitle.length > 14 ? `${rawBrandTitle.slice(0, 13)}.` : rawBrandTitle;
+  const titleFontSize = brandTitle.length > 10 ? 12 : brandTitle.length > 8 ? 15 : 22;
+
   doc.rect(0, 0, 595.28, 122).fill(BRAND.navy);
-  doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(22).text("VEELE", 55, 38);
-  doc.fillColor("#7DF3EF").font("Helvetica").fontSize(8).text("SERVICES", 57, 64, { characterSpacing: 2 });
+  doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(titleFontSize).text(brandTitle, 55, 38, {
+    width: 120,
+    height: 20,
+    ellipsis: true,
+  });
+  doc.fillColor("#7DF3EF").font("Helvetica").fontSize(8).text("FIELDGRID", 57, 64, { characterSpacing: 2 });
   doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(19).text(title, 330, 38, { width: 210, align: "right" });
   doc.fillColor("#C7D2FE").font("Helvetica").fontSize(9).text(reference, 330, 66, { width: 210, align: "right" });
 }
@@ -69,7 +79,7 @@ function ensurePage(doc: PDFKit.PDFDocument, y: number, needed = 80): number {
   return 55;
 }
 
-function drawFooter(doc: PDFKit.PDFDocument, assignmentCode: string) {
+function drawFooter(doc: PDFKit.PDFDocument, assignmentCode: string, brandName: string) {
   const range = doc.bufferedPageRange();
   for (let i = 0; i < range.count; i++) {
     doc.switchToPage(i);
@@ -77,7 +87,7 @@ function drawFooter(doc: PDFKit.PDFDocument, assignmentCode: string) {
       .font("Helvetica")
       .fontSize(8)
       .fillColor(BRAND.slate)
-      .text(`Veele Services - Rapport ${assignmentCode} - Gegenereerd ${fmtDateTime(new Date())}`, 55, 800, {
+      .text(`${brandName} - Rapport ${assignmentCode} - Gegenereerd ${fmtDateTime(new Date())}`, 55, 800, {
         width: 485,
         align: "center",
       });
@@ -96,6 +106,9 @@ export async function GET(
 
   const canRead = await hasPermission("reports", "read");
   if (!canRead) return new NextResponse("Forbidden", { status: 403 });
+  const tenantId = await requireCurrentTenantId();
+  const branding = await getTenantBranding(tenantId);
+  const brandName = branding.displayName || "Fieldgrid";
 
   const [row] = await db
     .select({
@@ -151,7 +164,7 @@ export async function GET(
   await new Promise<void>((resolve) => {
     doc.on("end", resolve);
 
-    drawHeader(doc, "RAPPORTAGE", row.assignmentCode);
+    drawHeader(doc, "RAPPORTAGE", row.assignmentCode, brandName);
 
     const L = 55;
     const R = 540;
@@ -169,9 +182,9 @@ export async function GET(
     const metaRows: [string, string][] = [
       ["Datum uitvoering", fmtDate(row.scheduledDate)],
       ["Gewerkte uren", row.hoursWorked ? `${row.hoursWorked} uur` : "-"],
-      ["Ingediend door", "Veele Services"],
+      ["Ingediend door", brandName],
       ["Ingediend op", fmtDateTime(row.submittedAt)],
-      ["Goedgekeurd door", "Veele Services"],
+      ["Goedgekeurd door", brandName],
       ["Goedgekeurd op", fmtDateTime(row.reviewedAt)],
     ];
     let metaY = y + 18;
@@ -205,7 +218,7 @@ export async function GET(
 
     if (photoBuffers.length > 0) {
       doc.addPage();
-      drawHeader(doc, "BIJLAGEN", row.assignmentCode);
+      drawHeader(doc, "BIJLAGEN", row.assignmentCode, brandName);
       y = 148;
       doc.fillColor(BRAND.navy).font("Helvetica-Bold").fontSize(13).text("Goedgekeurde foto's", L, y);
       y += 26;
@@ -224,7 +237,7 @@ export async function GET(
       }
     }
 
-    drawFooter(doc, row.assignmentCode);
+    drawFooter(doc, row.assignmentCode, brandName);
     doc.end();
   });
 

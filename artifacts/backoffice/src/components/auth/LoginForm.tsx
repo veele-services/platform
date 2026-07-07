@@ -12,9 +12,9 @@ import { AlertCircle, Eye, EyeOff, Loader2, Zap } from "lucide-react";
 // ─── Dev accounts (only rendered in development) ──────────────────────────────
 
 const DEV_ACCOUNTS = [
-  { label: "Management",    email: "admin@veele.nl",       password: "Test1234!", bg: "#081D3A", color: "#fff" },
-  { label: "Planner",       email: "planner@veele.nl",     password: "Test1234!", bg: "#0E7490", color: "#fff" },
-  { label: "Administratie", email: "admin2@veele.nl",      password: "Test1234!", bg: "#475569", color: "#fff" },
+  { label: "Management",    email: "admin@fieldgrid.nl",       password: "Test1234!", bg: "#081D3A", color: "#fff" },
+  { label: "Planner",       email: "planner@fieldgrid.nl",     password: "Test1234!", bg: "#0E7490", color: "#fff" },
+  { label: "Administratie", email: "administratie@fieldgrid.nl", password: "Test1234!", bg: "#475569", color: "#fff" },
 ];
 
 // ─── Submit button ────────────────────────────────────────────────────────────

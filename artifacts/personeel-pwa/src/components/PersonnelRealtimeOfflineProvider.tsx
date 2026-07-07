@@ -247,12 +247,12 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
       }
     };
     const handleServiceWorkerMessage = (event: MessageEvent) => {
-      if (event.data?.type === "VEELE_PROCESS_OFFLINE_QUEUE") {
+      if (event.data?.type === "FIELDGRID_PROCESS_OFFLINE_QUEUE") {
         void processQueue();
         return;
       }
 
-      if (event.data?.type === "VEELE_PUSH_NOTIFICATION") {
+      if (event.data?.type === "FIELDGRID_PUSH_NOTIFICATION") {
         scheduleRefresh(true);
         if (document.visibilityState !== "visible") return;
 
@@ -264,7 +264,7 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
           title:
             typeof payload["title"] === "string" && payload["title"].trim()
               ? payload["title"]
-              : "Veele Services",
+              : "Nieuwe melding",
           body:
             typeof payload["body"] === "string" && payload["body"].trim()
               ? payload["body"]

@@ -2749,7 +2749,7 @@ export async function updatePlatformTenantPlan(formData: FormData): Promise<Acti
           verificationStatus: "disabled_plan",
           tlsStatus: "disabled",
           disabledAt: new Date(),
-          disabledReason: "Custom domains zijn niet inbegrepen in het actieve subscription-plan.",
+          disabledReason: "Custom domeinen zijn niet inbegrepen in het actieve abonnementsplan.",
           updatedAt: new Date(),
         })
         .where(
@@ -2788,7 +2788,7 @@ export async function updatePlatformTenantSubscription(formData: FormData): Prom
   const billingReference = textValue(formData, "billingReference", 160);
   const manualBillingNotes = textValue(formData, "manualBillingNotes", 2000);
 
-  if (!subscriptionId) return { success: false, message: "Subscription is verplicht." };
+  if (!subscriptionId) return { success: false, message: "Abonnement is verplicht." };
 
   const [subscription] = await db
     .select({
@@ -2803,7 +2803,7 @@ export async function updatePlatformTenantSubscription(formData: FormData): Prom
     .where(eq(tenantSubscriptionsTable.id, subscriptionId))
     .limit(1);
 
-  if (!subscription) return { success: false, message: "Subscription niet gevonden." };
+  if (!subscription) return { success: false, message: "Abonnement niet gevonden." };
 
   await db.transaction(async (tx) => {
     if (subscriptionIsRuntimeActive(status)) {

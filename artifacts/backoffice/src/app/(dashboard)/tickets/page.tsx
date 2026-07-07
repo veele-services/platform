@@ -93,7 +93,7 @@ export default async function TicketsPage({ searchParams }: Props) {
       <TenantConflictStrip
         items={[
           { label: "Open tickets", value: result.openCount, description: "actieve gesprekken", tone: result.openCount > 0 ? "info" : "success" },
-          { label: "Actie backoffice", value: result.waitingBackofficeCount, description: "wacht op Veele", tone: result.waitingBackofficeCount > 0 ? "warning" : "success" },
+          { label: "Actie backoffice", value: result.waitingBackofficeCount, description: "wacht op backoffice", tone: result.waitingBackofficeCount > 0 ? "warning" : "success" },
           { label: "Ongelezen", value: result.unreadCount, description: "nieuwe berichten", tone: result.unreadCount > 0 ? "danger" : "success" },
           { label: "Inbox", value: result.rows.length, description: "tickets in deze selectie", tone: "neutral" },
         ]}

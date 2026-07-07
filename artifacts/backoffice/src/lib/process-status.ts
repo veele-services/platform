@@ -37,7 +37,7 @@ export const TONE_STYLES: Record<ProcessTone, { bg: string; text: string; border
 
 const assignment: ProcessStatusConfig[] = [
   { value: "requested", label: "Aangevraagd", description: "Aanvraag is binnengekomen.", tone: "info", order: 10 },
-  { value: "review", label: "In beoordeling", description: "Veele beoordeelt inhoud, planning en capaciteit.", tone: "review", order: 20 },
+  { value: "review", label: "In beoordeling", description: "Backoffice beoordeelt inhoud, planning en capaciteit.", tone: "review", order: 20 },
   { value: "quote_preparation", label: "Offerte opstellen", shortLabel: "Offerte", description: "Prijsopgave wordt voorbereid.", tone: "review", order: 30 },
   { value: "awaiting_approval", label: "Wacht op klantakkoord", shortLabel: "Klantakkoord", description: "Klant moet akkoord geven.", tone: "warning", order: 40 },
   { value: "approved", label: "Goedgekeurd", description: "Opdracht is inhoudelijk akkoord.", tone: "success", order: 50 },
@@ -89,7 +89,7 @@ const payment: ProcessStatusConfig[] = [
 
 const ticket: ProcessStatusConfig[] = [
   { value: "open", label: "Open", description: "Ticket is nieuw of actief.", tone: "info", order: 10 },
-  { value: "waiting_backoffice", label: "Actie Veele", description: "Backoffice moet reageren.", tone: "warning", order: 20 },
+  { value: "waiting_backoffice", label: "Actie backoffice", description: "Backoffice moet reageren.", tone: "warning", order: 20 },
   { value: "waiting_customer", label: "Wacht op klant", description: "Klant moet reageren.", tone: "review", order: 30 },
   { value: "waiting_personnel", label: "Wacht op medewerker", description: "Medewerker moet reageren.", tone: "review", order: 30 },
   { value: "closed", label: "Afgesloten", description: "Ticket is afgerond.", tone: "closed", order: 40 },

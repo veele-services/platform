@@ -41,7 +41,7 @@ function initialsFor(value: string): string {
     .join("") || "FG";
 }
 
-export function VeeleLogo({ branding }: { branding?: PortalBrandingProps }) {
+export function FieldgridLogo({ branding }: { branding?: PortalBrandingProps }) {
   const displayName = branding?.displayName || "Fieldgrid";
   const platformName = branding?.platformName || "Fieldgrid";
   const logoUrl = branding?.logoUrl ?? null;
@@ -358,7 +358,7 @@ export function MobileHeaderBar({
   return (
     <div className="flex items-center justify-between gap-3 px-4 pb-3 pt-[calc(0.7rem+var(--safe-top))]">
       <div className="min-w-0">
-        {leading ?? <VeeleLogo branding={branding} />}
+        {leading ?? <FieldgridLogo branding={branding} />}
       </div>
       <MobileHeaderActions
         notificationSummary={notificationSummary}

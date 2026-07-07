@@ -132,7 +132,7 @@ export function OrganisatieForm({ settings, canWrite }: Props) {
             defaultValue={s?.naam ?? ""}
             disabled={!canWrite || isPending}
             className="veele-input w-full"
-            placeholder="Veele Services B.V."
+            placeholder="Fieldgrid B.V."
           />
         </Field>
         <Field label="Adres" htmlFor="adres">
@@ -246,7 +246,7 @@ export function OrganisatieForm({ settings, canWrite }: Props) {
             defaultValue={s?.emailAfzender ?? ""}
             disabled={!canWrite || isPending}
             className="veele-input w-full"
-            placeholder="noreply@veeleservices.nl"
+            placeholder="noreply@fieldgrid.nl"
           />
         </Field>
       </div>

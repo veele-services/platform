@@ -103,7 +103,7 @@ test("sprint 10 applies branding props and module-aware navigation in both porta
   );
   assertIncludes(
     personnelSidebar,
-    ["featureFlags", "moduleKey: \"documents\"", "VeeleLogo branding={branding}"],
+    ["featureFlags", "moduleKey: \"documents\"", "FieldgridLogo branding={branding}"],
     "personnel portal sidebar",
   );
 });

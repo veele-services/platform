@@ -161,7 +161,7 @@ seed(type, code, name, description, sector_hint, validity_months) AS (
     ('diploma', 'BEVEILIGER_2', 'Beveiliger 2', 'MBO beveiligingsdiploma voor beveiligingswerkzaamheden.', 'beveilig', NULL),
     ('diploma', 'BEVEILIGING_NIVEAU_2', 'Beveiliging niveau 2', 'Legacy naam voor Beveiliger 2 in bestaande testdata.', 'beveilig', NULL),
     ('diploma', 'MBO_FACILITAIR', 'MBO Facilitair', 'Facilitaire vakopleiding voor operationele dienstverlening.', 'facilit', NULL),
-    ('knowledge', 'SCHOONMAAKPROTOCOL', 'Schoonmaakprotocol', 'Werken volgens Veele schoonmaakprotocollen.', 'schoon', NULL),
+    ('knowledge', 'SCHOONMAAKPROTOCOL', 'Schoonmaakprotocol', 'Werken volgens organisatieprotocollen voor schoonmaak.', 'schoon', NULL),
     ('knowledge', 'CALAMITEITENREINIGING', 'Calamiteitenreiniging', 'Spoed- en incidentreiniging op locatie.', 'schoon', NULL),
     ('knowledge', 'VEILIG_WERKEN_OP_HOOGTE', 'Veilig werken op hoogte', 'Werkvoorbereiding en uitvoering voor hoogtewerk.', 'schoon', NULL),
     ('knowledge', 'GASTVRIJ_WERKEN', 'Gastvrij werken', 'Gastvrij en representatief werken bij klanten.', 'schoon', NULL),

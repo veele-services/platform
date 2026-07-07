@@ -7,7 +7,7 @@ const serverUrl =
 
 const config: CapacitorConfig = {
   appId: "nl.veeleservices.personeel",
-  appName: "Veele Personeel",
+  appName: "Fieldgrid Personeel",
   webDir: "native/www",
   server: {
     url: serverUrl,

@@ -710,7 +710,7 @@ export function CustomerOverviewTab({
           >
             <div className="space-y-3">
               <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 px-4 py-3">
-                <p className="text-sm font-semibold text-emerald-800">Klant ziet Veele Services als uitvoerder</p>
+                <p className="text-sm font-semibold text-emerald-800">Klant ziet uw organisatienaam als uitvoerder</p>
                 <p className="mt-1 text-xs text-emerald-700">
                   Personeelsnamen en interne rapportagecontrole blijven buiten klantgerichte schermen.
                 </p>

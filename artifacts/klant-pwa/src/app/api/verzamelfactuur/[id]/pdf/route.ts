@@ -5,6 +5,7 @@ import PDFDocument from "pdfkit";
 import { asc, eq, and, inArray } from "drizzle-orm";
 import { db } from "@workspace/db";
 import {
+  getTenantBranding,
   assignmentsTable,
   customerPaymentBatchItemsTable,
   customerPaymentBatchesTable,
@@ -70,6 +71,7 @@ export async function GET(
     .limit(1);
 
   if (!batch) return new NextResponse("Not found", { status: 404 });
+  const branding = await getTenantBranding(identity.tenantId);
 
   const items = await db
     .select({
@@ -108,7 +110,12 @@ export async function GET(
     let y = 148;
 
     const cityLine = [batch.customerPostalCode, batch.customerCity].filter(Boolean).join(" ");
-    drawPdfHeader(doc, { title: "VERZAMELFACTUUR", reference: batch.id.slice(0, 8).toUpperCase() });
+    drawPdfHeader(doc, {
+      title: "VERZAMELFACTUUR",
+      reference: batch.id.slice(0, 8).toUpperCase(),
+      brandTitle: branding.displayName.toUpperCase(),
+      brandSubtitle: "FIELDGRID",
+    });
     y = drawPdfRecipientPanel(doc, {
       y,
       label: "Klant",
@@ -153,7 +160,7 @@ export async function GET(
       { label: "Totaal te betalen", value: formatPdfEuroCents(batch.amountCents), strong: true },
     ]);
 
-    drawPdfFooter(doc, "Veele Services - Verzamelfactuur gegenereerd vanuit Fieldgrid.");
+    drawPdfFooter(doc, `${branding.displayName} - Verzamelfactuur gegenereerd vanuit Fieldgrid.`);
     doc.end();
   });
 

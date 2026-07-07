@@ -49,7 +49,7 @@ export function TicketStatusBadge({
       Icon: Inbox,
     },
     waiting_backoffice: {
-      label: "Actie Veele",
+      label: "Actie backoffice",
       color: "#B45309",
       bg: "#FFFBEB",
       Icon: Hourglass,

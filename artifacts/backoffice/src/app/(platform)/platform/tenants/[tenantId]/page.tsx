@@ -71,7 +71,7 @@ type TenantDomainRow = Awaited<ReturnType<typeof listPlatformTenantDomains>>[num
 
 const TENANT_TABS = [
   { id: "overview", label: "Overzicht", icon: Building2 },
-  { id: "subscription", label: "Subscription", icon: CreditCard },
+  { id: "subscription", label: "Abonnement", icon: CreditCard },
   { id: "domains", label: "Domeinen", icon: Globe2 },
   { id: "modules", label: "Modules", icon: Boxes },
   { id: "sectors", label: "Sectoren en regio's", icon: Activity },
@@ -546,7 +546,7 @@ function SubscriptionTab({
 }) {
   return (
     <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_380px]">
-      <Section title="Actieve subscription" helper="Planwissels zijn transactioneel en schrijven een audit-event.">
+      <Section title="Actief abonnement" helper="Planwissels zijn transactioneel en schrijven een audit-event. Billingstatus wordt handmatig beheerd totdat automatische facturatie is gekoppeld.">
         {customDomainCount > 0 && tenant.planKey === "enterprise" && (
           <p className="mb-4 rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-800">
             Downgrade naar Starter/Professional schakelt {customDomainCount} custom domain(s) uit.
@@ -559,7 +559,7 @@ function SubscriptionTab({
             <select name="planKey" defaultValue={tenant.planKey} className="h-10 rounded border border-slate-300 px-3 text-sm">
               {plans.map((plan) => (
                 <option key={plan.id} value={plan.key}>
-                  {plan.name}{plan.customDomains ? " - custom domains" : plan.customRoles ? " - custom roles" : ""}
+                  {plan.name}{plan.customDomains ? " - custom domeinen" : plan.customRoles ? " - custom rollen" : ""}
                 </option>
               ))}
             </select>
@@ -576,7 +576,7 @@ function SubscriptionTab({
             Plan opslaan
           </button>
           <label className="grid gap-1 text-sm font-medium text-slate-700 lg:col-span-4">
-            Manual billing notes
+            Handmatige billingnotities
             <textarea name="manualBillingNotes" rows={2} className="rounded border border-slate-300 px-3 py-2 text-sm" />
           </label>
         </form>
@@ -619,7 +619,7 @@ function SubscriptionTab({
                 </tr>
               ))}
               {subscriptions.length === 0 && (
-                <tr><td colSpan={6} className="px-3 py-8 text-center text-slate-500">Geen subscriptions gevonden.</td></tr>
+                <tr><td colSpan={6} className="px-3 py-8 text-center text-slate-500">Geen abonnementen gevonden.</td></tr>
               )}
             </tbody>
           </table>

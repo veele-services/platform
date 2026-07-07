@@ -21,7 +21,7 @@ export default async function LoginPage({ searchParams }: Props) {
             >
               <span className="text-2xl font-bold text-white">V</span>
             </div>
-            <h1 className="text-2xl font-bold text-white">Veele Klantportaal</h1>
+            <h1 className="text-2xl font-bold text-white">Fieldgrid Klantportaal</h1>
             <p className="mt-1 text-sm" style={{ color: "#94A3B8" }}>
               Log in met uw e-mailadres
             </p>

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
-import { MobileHeaderBar, VeeleLogo } from "@/components/MobileHeader";
+import { FieldgridLogo, MobileHeaderBar } from "@/components/MobileHeader";
 import { getMyTicketSummary } from "@/actions/messages";
 import { getMyNotificationSummary } from "@/actions/notifications";
 import { getHeaderStatus, type AssignmentView, type WorkOrderTab } from "./work-order-data";
@@ -45,7 +45,7 @@ export async function WorkOrderHeader({ assignment, activeTab }: Props) {
             >
               <ChevronLeft size={29} strokeWidth={2.35} />
             </Link>
-            <VeeleLogo />
+            <FieldgridLogo />
           </div>
         }
       />

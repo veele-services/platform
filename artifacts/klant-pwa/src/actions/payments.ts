@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { db } from "@workspace/db";
 import {
+  getTenantBranding,
   auditLogTable,
   customersTable,
   customerPaymentBatchItemsTable,
@@ -291,9 +292,10 @@ export async function createCustomerBatchPayment(invoiceIds: string[]): Promise<
   if (amountCents <= 0) return { success: false, message: "Ongeldig totaalbedrag." };
 
   const invoiceNumbers = invoices.map((invoice) => invoice.invoiceNumber).join(", ");
+  const branding = await getTenantBranding(auth.tenantId);
   const payment = await createMolliePaymentRequest({
     amountCents,
-    description: `Verzamelfactuur Veele Services (${invoices.length} facturen)`,
+    description: `Verzamelfactuur ${branding.displayName} (${invoices.length} facturen)`,
     redirectUrl: `${getBaseUrl()}/klant/betalingen/succes`,
     metadata: {
       type:          "customer_payment_batch",

@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import PDFDocument from "pdfkit";
 import { asc, eq } from "drizzle-orm";
 import { hasPermission } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { db } from "@workspace/db";
 import {
+  getTenantBranding,
   assignmentsTable,
   customerPaymentBatchItemsTable,
   customerPaymentBatchesTable,
@@ -37,6 +39,8 @@ export async function GET(
   if (!canRead) return new NextResponse("Forbidden", { status: 403 });
 
   const { id } = await params;
+  const tenantId = await requireCurrentTenantId();
+  const branding = await getTenantBranding(tenantId);
 
   const [batch] = await db
     .select({
@@ -98,7 +102,12 @@ export async function GET(
     const W = R - L;
     let y = 148;
 
-    drawPdfHeader(doc, { title: "VERZAMELFACTUUR", reference: batch.id.slice(0, 8).toUpperCase() });
+    drawPdfHeader(doc, {
+      title: "VERZAMELFACTUUR",
+      reference: batch.id.slice(0, 8).toUpperCase(),
+      brandTitle: branding.displayName.toUpperCase(),
+      brandSubtitle: "FIELDGRID",
+    });
     y = drawPdfRecipientPanel(doc, {
       y,
       label: "Klant",
@@ -154,7 +163,7 @@ export async function GET(
       doc.fillColor(PDF_BRAND.ink).font("Helvetica").fontSize(9).text(batch.notes, L, y + 18, { width: W });
     }
 
-    drawPdfFooter(doc, "Veele Services - Verzamelfactuur gegenereerd vanuit Fieldgrid.");
+    drawPdfFooter(doc, `${branding.displayName} - Verzamelfactuur gegenereerd vanuit Fieldgrid.`);
     doc.end();
   });
 

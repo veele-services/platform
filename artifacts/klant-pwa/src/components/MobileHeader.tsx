@@ -32,7 +32,7 @@ function initialsFor(value: string): string {
     .join("") || "FG";
 }
 
-export function VeeleLogo({ branding }: { branding?: PortalBrandingProps }) {
+export function FieldgridLogo({ branding }: { branding?: PortalBrandingProps }) {
   const displayName = branding?.displayName || "Fieldgrid";
   const platformName = branding?.platformName || "Fieldgrid";
   const logoUrl = branding?.logoUrl ?? null;
@@ -243,7 +243,7 @@ export function MobileHeader({
       style={{ background: "linear-gradient(180deg, var(--color-primary) 0%, #061F44 100%)" }}
     >
       <div className="flex items-center justify-between px-4 pb-3 pt-[calc(0.7rem+var(--safe-top))]">
-        <VeeleLogo branding={branding} />
+        <FieldgridLogo branding={branding} />
         <HeaderActions notificationSummary={notificationSummary} profile={profile} />
       </div>
     </header>

@@ -105,7 +105,7 @@ export function Sidebar({
             className="font-bold tracking-widest text-white"
             style={{ fontFamily: "var(--font-poppins), Poppins, sans-serif", fontSize: "15px" }}
           >
-            VEELE
+            FIELDGRID
           </span>
           <span
             style={{

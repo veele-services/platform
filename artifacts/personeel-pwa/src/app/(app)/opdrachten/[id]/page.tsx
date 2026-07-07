@@ -48,7 +48,7 @@ function reportAsNote(report: MyReport | null): ReportNote[] {
   return [{
     id:          report.id,
     body:        report.content,
-    authorName:  "Veele Services",
+    authorName:  "Backoffice",
     createdAt:   report.submittedAt,
     attachments: [],
   }];

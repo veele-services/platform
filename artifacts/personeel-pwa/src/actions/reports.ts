@@ -78,7 +78,7 @@ const LOCKED_REPORT_NOTE_STATUSES = new Set([
   "closed",
 ]);
 
-const DEFAULT_PUBLIC_REPORT_AUTHOR = "Veele Services";
+const DEFAULT_PUBLIC_REPORT_AUTHOR = "Backoffice";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 

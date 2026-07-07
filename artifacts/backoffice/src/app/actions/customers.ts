@@ -1885,7 +1885,7 @@ export async function exportCustomersPdf(params: {
 <html lang="nl">
 <head>
   <meta charset="UTF-8" />
-  <title>Klantenlijst — Veele</title>
+  <title>Klantenlijst - Fieldgrid</title>
   <style>
     @page { size: A4 landscape; margin: 15mm 12mm; }
     * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1908,7 +1908,7 @@ export async function exportCustomersPdf(params: {
 <body>
   <header>
     <div>
-      <div class="brand">VEELE<span>.</span></div>
+      <div class="brand">FIELDGRID<span>.</span></div>
     </div>
     <div class="meta">
       <div>Gegenereerd op: ${generated}</div>
