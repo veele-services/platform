@@ -10,6 +10,7 @@ import {
   ExternalLink,
   LifeBuoy,
   ShieldCheck,
+  Sparkles,
   Ticket,
   type LucideIcon,
 } from "lucide-react";
@@ -915,12 +916,21 @@ export default async function PlatformAdminPage({ searchParams }: Props) {
             )}
           </div>
           {isPlatformAdmin && (
-            <Link
-              href="/platform/security"
-              className="w-fit rounded border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
-            >
-              Securitydashboard
-            </Link>
+            <div className="flex flex-wrap gap-2">
+              <Link
+                href="/platform/accelerators"
+                className="inline-flex w-fit items-center gap-2 rounded border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+              >
+                <Sparkles aria-hidden="true" className="size-4" />
+                Platformversnellers
+              </Link>
+              <Link
+                href="/platform/security"
+                className="w-fit rounded border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+              >
+                Securitydashboard
+              </Link>
+            </div>
           )}
         </header>
 
