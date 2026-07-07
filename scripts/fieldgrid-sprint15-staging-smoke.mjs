@@ -9,8 +9,25 @@ const repoRoot = join(__dirname, "..");
 
 export const SPRINT15_STAGING_SMOKE_VERSION = "sprint-15-staging-smoke-v1";
 export const DEFAULT_STAGING_SMOKE_API_URL = "https://staging.fieldgrid.nl/api/platform/staging-smoke";
+export const DEFAULT_STAGING_PILOT_TENANT_SLUG = "field-demo";
+export const DEFAULT_MUTATING_SMOKE_CONFIRM_VALUE = "field-demo-only";
 
-export const liveSmokeTargets = [
+function pilotTenantSlug(env = process.env) {
+  return env.FIELDGRID_STAGING_PILOT_TENANT_SLUG?.trim() || DEFAULT_STAGING_PILOT_TENANT_SLUG;
+}
+
+function pilotTenantHost(env = process.env) {
+  return `${pilotTenantSlug(env)}.fieldgrid.nl`;
+}
+
+function mutatingSmokeConfirmValue(env = process.env) {
+  return env.FIELDGRID_MUTATING_SMOKE_CONFIRM_VALUE?.trim() || DEFAULT_MUTATING_SMOKE_CONFIRM_VALUE;
+}
+
+export function buildLiveSmokeTargets(env = process.env) {
+  const host = pilotTenantHost(env);
+
+  return [
   {
     id: "FG-LIVE-HOST",
     label: "Host-first platform en tenants",
@@ -23,7 +40,7 @@ export const liveSmokeTargets = [
     id: "FG-LIVE-MODULES",
     label: "Modules en sectoren",
     runner: "Playwright",
-    host: "demo-a.fieldgrid.nl",
+    host,
     route: "/",
     testIds: ["FG-MODULE-001", "FG-MODULE-003", "FG-SECTOR-001", "FG-SECTOR-006"],
   },
@@ -31,7 +48,7 @@ export const liveSmokeTargets = [
     id: "FG-LIVE-REGIONS",
     label: "Regio planning",
     runner: "Playwright",
-    host: "demo-a.fieldgrid.nl",
+    host,
     route: "/planning",
     testIds: ["FG-REGION-003", "FG-REGION-006", "FG-REGION-007"],
   },
@@ -39,54 +56,64 @@ export const liveSmokeTargets = [
     id: "FG-LIVE-CUSTOMER-PORTAL",
     label: "Klantportaal",
     runner: "Playwright",
-    host: "demo-a.fieldgrid.nl",
-    route: "/portal",
+    host,
+    route: "/klant",
     testIds: ["FG-PORTAL-C-001", "FG-PORTAL-C-002", "FG-PORTAL-C-004"],
   },
   {
     id: "FG-LIVE-PERSONNEL-PLANNING",
     label: "Personeelsapp planning",
     runner: "Playwright",
-    host: "demo-a.fieldgrid.nl",
-    route: "/app",
+    host,
+    route: "/personeel",
     testIds: ["FG-PORTAL-P-001", "FG-PORTAL-P-002", "FG-PORTAL-P-005"],
   },
   {
     id: "FG-LIVE-STORAGE-PDF",
     label: "Storage en PDF/downloads",
     runner: "Playwright",
-    host: "demo-a.fieldgrid.nl",
+    host,
     route: "/documents",
     testIds: ["FG-STORAGE-001", "FG-STORAGE-002", "FG-DATA-004", "FG-AUDIT-001"],
   },
-];
+  ];
+}
 
-export const mutatingChecks = [
+export const liveSmokeTargets = buildLiveSmokeTargets();
+
+export function buildMutatingChecks(env = process.env) {
+  const tenantScope = pilotTenantSlug(env);
+  const confirmVar = `FIELDGRID_MUTATING_SMOKE_CONFIRM=${mutatingSmokeConfirmValue(env)}`;
+
+  return [
   {
     id: "FG-MUTATE-LIFECYCLE",
     label: "Lifecycle mutatie met rollback",
-    tenantScope: "demo-a",
-    confirmVar: "FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only",
+    tenantScope,
+    confirmVar,
     cleanupSelector: "fieldgrid-sprint-15-mutating-lifecycle",
     testIds: ["FG-LIFE-001", "FG-LIFE-002", "FG-PLATFORM-004"],
   },
   {
     id: "FG-MUTATE-SUPPORT-GRANT",
     label: "Supportgrant aanmaken en revoken",
-    tenantScope: "demo-a",
-    confirmVar: "FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only",
+    tenantScope,
+    confirmVar,
     cleanupSelector: "fieldgrid-sprint-15-mutating-support",
     testIds: ["FG-SUPPORT-002", "FG-SUPPORT-003", "FG-PLATFORM-006"],
   },
   {
     id: "FG-MUTATE-DOCUMENT-DOWNLOAD",
     label: "Document/PDF audit met cleanup",
-    tenantScope: "demo-a/demo-b",
-    confirmVar: "FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only",
+    tenantScope,
+    confirmVar,
     cleanupSelector: "fieldgrid-sprint-15-mutating-document",
     testIds: ["FG-DATA-004", "FG-STORAGE-001", "FG-AUDIT-001"],
   },
-];
+  ];
+}
+
+export const mutatingChecks = buildMutatingChecks();
 
 export function parseArgs(argv = process.argv.slice(2)) {
   const options = {
@@ -134,10 +161,14 @@ export function parseArgs(argv = process.argv.slice(2)) {
 }
 
 export function buildSprint15StagingSmokePlan(env = process.env) {
+  const liveSmokeTargets = buildLiveSmokeTargets(env);
+  const mutatingChecks = buildMutatingChecks(env);
+
   return {
     version: SPRINT15_STAGING_SMOKE_VERSION,
     sprint: 15,
     marker: "fieldgrid-sprint-15-staging-smoke",
+    pilotTenantSlug: pilotTenantSlug(env),
     destructive: false,
     mutatesExistingTenants: false,
     dashboardRoute: "/platform/staging-smoke",
@@ -238,13 +269,14 @@ export async function runReadOnlySnapshot(options = parseArgs([]), env = process
 }
 
 function usage() {
-  return `Fieldgrid sprint 15 staging smoke\n\nUsage:\n  pnpm fieldgrid:sprint15-staging-smoke:check\n  pnpm fieldgrid:sprint15-staging-smoke --json\n  pnpm fieldgrid:sprint15-staging-smoke --run-read-only\n\nEnvironment:\n  FIELDGRID_STAGING_SMOKE_API_URL     Defaults to ${DEFAULT_STAGING_SMOKE_API_URL}\n  FIELDGRID_STAGING_SMOKE_COOKIE      Platform-admin session cookie for the read-only API\n  FIELDGRID_STAGING_SMOKE_BEARER      Optional bearer token for the read-only API\n  FIELDGRID_MUTATING_SMOKE_CONFIRM    Must be demo-tenants-only before any future mutating runner exists\n`;
+  return `Fieldgrid sprint 15 staging smoke\n\nUsage:\n  pnpm fieldgrid:sprint15-staging-smoke:check\n  pnpm fieldgrid:sprint15-staging-smoke --json\n  pnpm fieldgrid:sprint15-staging-smoke --run-read-only\n\nEnvironment:\n  FIELDGRID_STAGING_SMOKE_API_URL      Defaults to ${DEFAULT_STAGING_SMOKE_API_URL}\n  FIELDGRID_STAGING_SMOKE_COOKIE       Platform-admin session cookie for the read-only API\n  FIELDGRID_STAGING_SMOKE_BEARER       Optional bearer token for the read-only API\n  FIELDGRID_STAGING_PILOT_TENANT_SLUG  Defaults to ${DEFAULT_STAGING_PILOT_TENANT_SLUG}\n  FIELDGRID_MUTATING_SMOKE_CONFIRM     Must be ${DEFAULT_MUTATING_SMOKE_CONFIRM_VALUE} before any future mutating runner exists\n`;
 }
 
 function printPlan(plan) {
   console.log("Fieldgrid sprint 15 staging smoke dashboard");
   console.log("");
   console.log(`Version: ${plan.version}`);
+  console.log(`Pilot tenant: ${plan.pilotTenantSlug}`);
   console.log(`Dashboard: ${plan.dashboardRoute}`);
   console.log(`JSON API: ${plan.smokeApiRoute}`);
   console.log(`Run history: ${plan.runHistoryDirectories.join(", ")}`);

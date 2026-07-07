@@ -42,6 +42,15 @@ import type {
   PlatformStagingPromotionGateSignal,
 } from "./platform-smoke.types";
 
+const STAGING_PILOT_TENANT_SLUG =
+  process.env.FIELDGRID_STAGING_PILOT_TENANT_SLUG?.trim() || "field-demo";
+const STAGING_PILOT_TENANT_HOST = `${STAGING_PILOT_TENANT_SLUG}.fieldgrid.nl`;
+const DEFAULT_STAGING_MUTATING_SMOKE_CONFIRM_VALUE = "field-demo-only";
+const STAGING_MUTATING_SMOKE_CONFIRM_VALUE =
+  process.env.FIELDGRID_MUTATING_SMOKE_CONFIRM_VALUE?.trim() ||
+  DEFAULT_STAGING_MUTATING_SMOKE_CONFIRM_VALUE;
+const STAGING_MUTATING_SMOKE_CONFIRM = `FIELDGRID_MUTATING_SMOKE_CONFIRM=${STAGING_MUTATING_SMOKE_CONFIRM_VALUE}`;
+
 function makeCheck(input: PlatformSmokeCheck): PlatformSmokeCheck {
   return input;
 }
@@ -203,10 +212,10 @@ function buildLiveSmokes(
       host: "staging.fieldgrid.nl",
       route: "/platform",
       command:
-        "Playwright host-first smoke voor platform, demo-a, demo-b en veele.",
+        `Playwright host-first smoke voor platform, staging en ${STAGING_PILOT_TENANT_SLUG}.`,
       testIds: ["FG-HOST-001", "FG-HOST-002", "FG-HOST-003", "FG-HOST-004"],
       nextAction:
-        "Draai host-first browser smoke met platform owner en Tenant A/B/Veele hosts.",
+        `Draai host-first browser smoke met platform owner en ${STAGING_PILOT_TENANT_HOST}.`,
     },
     {
       id: "FG-LIVE-MODULES",
@@ -216,7 +225,7 @@ function buildLiveSmokes(
         checkStatus("FG-SMOKE-SECTORS") === "ok"
           ? "ok"
           : "warning",
-      host: "demo-a.fieldgrid.nl",
+      host: STAGING_PILOT_TENANT_HOST,
       route: "/",
       command: "Playwright module-off en sector-denial smoke.",
       testIds: [
@@ -232,19 +241,19 @@ function buildLiveSmokes(
       id: "FG-LIVE-REGIONS",
       label: "Regio's",
       status: totals.tenantRegions > 0 ? "warning" : "manual",
-      host: "demo-a.fieldgrid.nl",
+      host: STAGING_PILOT_TENANT_HOST,
       route: "/planning",
       command: "Playwright regio-filter en planning-overlap smoke.",
       testIds: ["FG-REGION-003", "FG-REGION-006", "FG-REGION-007"],
       nextAction:
-        "Gebruik Tenant A/B/Veele fixtures om regio-overlap en cross-tenant regio-denials te bewijzen.",
+        `Gebruik ${STAGING_PILOT_TENANT_SLUG} voor regio-overlap en koppel cross-tenant denial evidence apart.`,
     },
     {
       id: "FG-LIVE-CUSTOMER-PORTAL",
       label: "Klantportaal",
       status: "manual",
-      host: "demo-a.fieldgrid.nl",
-      route: "/portal",
+      host: STAGING_PILOT_TENANT_HOST,
+      route: "/klant",
       command: "Playwright klantportaal documenten/facturen/tickets smoke.",
       testIds: [
         "FG-PORTAL-C-001",
@@ -253,14 +262,14 @@ function buildLiveSmokes(
         "FG-PORTAL-C-004",
       ],
       nextAction:
-        "Draai klantportaal smoke met A-CUSTOMER en verkeerde-host denial.",
+        `Draai klantportaal smoke op ${STAGING_PILOT_TENANT_SLUG} met verkeerde-host denial.`,
     },
     {
       id: "FG-LIVE-PERSONNEL-PLANNING",
       label: "Personeelsapp planning",
       status: "manual",
-      host: "demo-a.fieldgrid.nl",
-      route: "/app",
+      host: STAGING_PILOT_TENANT_HOST,
+      route: "/personeel",
       command: "Playwright personeelsapp Home/Planning actualiteit smoke.",
       testIds: ["FG-PORTAL-P-001", "FG-PORTAL-P-002", "FG-PORTAL-P-005"],
       nextAction:
@@ -274,7 +283,7 @@ function buildLiveSmokes(
         checkStatus("FG-SMOKE-PDF-DOWNLOADS") === "ok"
           ? "ok"
           : "manual",
-      host: "demo-a.fieldgrid.nl",
+      host: STAGING_PILOT_TENANT_HOST,
       route: "/documents",
       command: "Playwright signed URL/path guessing en PDF-download smoke.",
       testIds: [
@@ -284,7 +293,7 @@ function buildLiveSmokes(
         "FG-AUDIT-001",
       ],
       nextAction:
-        "Download tenantdocument/PDF en bevestig audit plus Tenant B denial.",
+        `Download ${STAGING_PILOT_TENANT_SLUG} document/PDF en bevestig audit plus wrong-host denial.`,
     },
   ];
 }
@@ -335,31 +344,31 @@ function buildMigrationSmokeStatus(
 function buildMutatingChecks(
   totals: PlatformStagingSmokeDashboard["totals"],
 ): PlatformMutatingSmokeCheck[] {
-  const demoTenantsReady = totals.demoTenants >= 3;
-  const status: PlatformSmokeStatus = demoTenantsReady ? "manual" : "blocked";
+  const pilotTenantReady = totals.pilotTenants >= 1;
+  const status: PlatformSmokeStatus = pilotTenantReady ? "manual" : "blocked";
   const cleanupStatus: PlatformMutatingSmokeCheck["cleanupStatus"] =
-    demoTenantsReady ? "ready" : "not-configured";
+    pilotTenantReady ? "ready" : "not-configured";
 
   return [
     {
       id: "FG-MUTATE-LIFECYCLE",
       label: "Lifecycle mutatie met rollback",
       status,
-      tenantScope: "demo-a",
+      tenantScope: STAGING_PILOT_TENANT_SLUG,
       cleanupStatus,
-      confirmVar: "FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only",
+      confirmVar: STAGING_MUTATING_SMOKE_CONFIRM,
       cleanupSelector: "fieldgrid-sprint-15-mutating-lifecycle",
       testIds: ["FG-LIFE-001", "FG-LIFE-002", "FG-PLATFORM-004"],
       nextAction:
-        "Voer alleen uit op demo-a en herstel status direct in dezelfde run.",
+        `Voer alleen uit op ${STAGING_PILOT_TENANT_SLUG} en herstel status direct in dezelfde run.`,
     },
     {
       id: "FG-MUTATE-SUPPORT-GRANT",
       label: "Supportgrant aanmaken en revoken",
       status,
-      tenantScope: "demo-a",
+      tenantScope: STAGING_PILOT_TENANT_SLUG,
       cleanupStatus,
-      confirmVar: "FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only",
+      confirmVar: STAGING_MUTATING_SMOKE_CONFIRM,
       cleanupSelector: "fieldgrid-sprint-15-mutating-support",
       testIds: ["FG-SUPPORT-002", "FG-SUPPORT-003", "FG-PLATFORM-006"],
       nextAction:
@@ -369,9 +378,9 @@ function buildMutatingChecks(
       id: "FG-MUTATE-DOCUMENT-DOWNLOAD",
       label: "Document/PDF audit met cleanup",
       status,
-      tenantScope: "demo-a/demo-b",
+      tenantScope: STAGING_PILOT_TENANT_SLUG,
       cleanupStatus,
-      confirmVar: "FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only",
+      confirmVar: STAGING_MUTATING_SMOKE_CONFIRM,
       cleanupSelector: "fieldgrid-sprint-15-mutating-document",
       testIds: ["FG-DATA-004", "FG-STORAGE-001", "FG-AUDIT-001"],
       nextAction:
@@ -479,7 +488,7 @@ function buildFinalExternalTenantGate(input: {
       owner: "Platform engineering",
       acceptedUntil: "Voor eerste externe tenant met productiegegevens",
       targetEvidence:
-        "Playwright + integration artifacts voor Tenant A/B/Veele host, RBAC, lifecycle en direct-ID denials.",
+        `${STAGING_PILOT_TENANT_SLUG} Playwright + integration artifacts voor host, RBAC, lifecycle en direct-ID denials.`,
       testIds: ["FG-HOST-001", "FG-LIFE-002", "FG-RBAC-002", "FG-DATA-001"],
       requiresGoNoGoApproval: true,
     },
@@ -632,19 +641,19 @@ function buildPlatformAdminReleaseGate(input: {
     },
     {
       id: "FG-PA-GATE-HOST-FIRST",
-      label: "Tenant A/B/Veele host-first checks",
+      label: `${STAGING_PILOT_TENANT_SLUG} pilot host-first checks`,
       status: hostSmokeStatus,
       owner: "Platform engineering",
-      persona: "tenant-a-b-veele",
-      host: "demo-a.fieldgrid.nl, demo-b.fieldgrid.nl, veele.fieldgrid.nl",
-      route: "/admin, /klant, /personeel",
+      persona: "tenant-pilot",
+      host: STAGING_PILOT_TENANT_HOST,
+      route: "/, /klant, /personeel",
       command:
-        "Playwright host-first smoke voor Tenant A/B/Veele plus wrong-host denial.",
+        `Playwright host-first smoke voor ${STAGING_PILOT_TENANT_SLUG} plus wrong-host denial.`,
       evidence:
         "Browser traces tonen dat hostcontext leidend is en directe tenant-id routes niet lekken.",
       testIds: ["FG-HOST-001", "FG-HOST-002", "FG-HOST-003", "FG-DATA-001"],
       nextAction:
-        "Draai host-first smoke met Tenant A/B/Veele fixtures en noteer run-id in het releaseformulier.",
+        `Draai host-first smoke met ${STAGING_PILOT_TENANT_SLUG} en noteer run-id in het releaseformulier.`,
       blocksRelease: true,
     },
     {
@@ -707,11 +716,11 @@ function buildPlatformAdminReleaseGate(input: {
       host: "admin.fieldgrid.nl",
       route: "/platform/tenants/:tenantId",
       command:
-        "Suspend/reactivate/archive/retry smoke op demo tenant met rollback.",
+        `Suspend/reactivate/archive/retry smoke op ${STAGING_PILOT_TENANT_SLUG} met rollback.`,
       evidence: "Mutating smoke run met marker-scoped cleanup en audit-events.",
       testIds: ["FG-LIFE-001", "FG-LIFE-002", "FG-PLATFORM-004"],
       nextAction:
-        "Voer alleen uit met FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only.",
+        `Voer alleen uit met ${STAGING_MUTATING_SMOKE_CONFIRM}.`,
       blocksRelease: true,
     },
     {
@@ -1058,7 +1067,13 @@ export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagin
     .select({
       tenants: sql<number>`(SELECT count(*) FROM ${tenantsTable})::int`,
       activeTenants: sql<number>`(SELECT count(*) FROM ${tenantsTable} WHERE status IN ('trial', 'active') AND is_active = true)::int`,
-      demoTenants: sql<number>`(SELECT count(*) FROM ${tenantsTable} WHERE slug IN ('demo-a', 'demo-b', 'veele'))::int`,
+      pilotTenants: sql<number>`(
+        SELECT count(*)
+        FROM ${tenantsTable}
+        WHERE slug = ${STAGING_PILOT_TENANT_SLUG}
+          AND status IN ('trial', 'active')
+          AND is_active = true
+      )::int`,
       tenantDomains: sql<number>`(SELECT count(*) FROM ${tenantDomainsTable} WHERE type <> 'platform_reserved')::int`,
       verifiedTenantDomains: sql<number>`(SELECT count(*) FROM ${tenantDomainsTable} WHERE type <> 'platform_reserved' AND verification_status = 'verified')::int`,
       activeTenantUsers: sql<number>`(SELECT count(*) FROM ${tenantUsersTable} WHERE status = 'active')::int`,
@@ -1107,7 +1122,7 @@ export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagin
   const totals = {
     tenants: countValue(snapshot?.tenants),
     activeTenants: countValue(snapshot?.activeTenants),
-    demoTenants: countValue(snapshot?.demoTenants),
+    pilotTenants: countValue(snapshot?.pilotTenants),
     tenantDomains: countValue(snapshot?.tenantDomains),
     verifiedTenantDomains: countValue(snapshot?.verifiedTenantDomains),
     activeTenantUsers: countValue(snapshot?.activeTenantUsers),
@@ -1172,7 +1187,7 @@ export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagin
         "FG-RBAC-001",
       ],
       nextAction:
-        "Controleer handmatig login voor platform owner en Tenant A/B/Veele actoren.",
+        `Controleer handmatig login voor platform owner en ${STAGING_PILOT_TENANT_SLUG} actoren.`,
     }),
     makeCheck({
       id: "FG-SMOKE-MODULES",
@@ -1209,7 +1224,7 @@ export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagin
         "FG-SECTOR-003",
         "FG-SECTOR-006",
       ],
-      nextAction: "Draai sector happy/denial smoke voor Tenant A en Tenant B.",
+      nextAction: `Draai sector happy/denial smoke voor ${STAGING_PILOT_TENANT_SLUG} en wrong-host denial.`,
     }),
     makeCheck({
       id: "FG-SMOKE-STORAGE",
@@ -1248,7 +1263,7 @@ export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagin
         "FG-AUDIT-001",
       ],
       nextAction:
-        "Download document, report, quote en invoice via Tenant A en bevestig audit en Tenant B denial.",
+        `Download document, report, quote en invoice via ${STAGING_PILOT_TENANT_SLUG} en bevestig audit plus wrong-host denial.`,
     }),
     makeCheck({
       id: "FG-SMOKE-MIGRATIONS",
@@ -1276,7 +1291,7 @@ export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagin
         "FG-SUPPORT-005",
       ],
       nextAction:
-        "Maak een korte dedicated supportgrant voor Tenant A en test verlopen/verkeerde tenant denial.",
+        `Maak een korte dedicated supportgrant voor ${STAGING_PILOT_TENANT_SLUG} en test verlopen/verkeerde tenant denial.`,
     }),
     makeCheck({
       id: "FG-SMOKE-AUDIT",
@@ -1326,6 +1341,8 @@ export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagin
     environment: {
       platformHost,
       stagingHost,
+      pilotTenantSlug: STAGING_PILOT_TENANT_SLUG,
+      pilotTenantHost: STAGING_PILOT_TENANT_HOST,
       platformHostKnown,
       stagingHostKnown,
     },

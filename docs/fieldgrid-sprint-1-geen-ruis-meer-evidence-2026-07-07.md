@@ -56,7 +56,7 @@ Deze variabelen waren niet gezet in de lokale shell:
 2. Lever customer en personnel staging sessies aan via cookies/storage-state plus concrete base URLs.
 3. Lever twee geisoleerde smoke database-URLs aan: disposable empty DB en restored staging-copy DB.
 4. Kies een pilottenant dry-run doel: slug, owner e-mail, plan, modules en of muterende demo-smokes toegestaan zijn.
-5. Zet muterende smokes pas aan met `FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only`.
+5. Zet muterende smokes pas aan met `FIELDGRID_MUTATING_SMOKE_CONFIRM=field-demo-only` en scope ze op `field-demo`.
 
 ## Go/no-go voor externe tenant
 

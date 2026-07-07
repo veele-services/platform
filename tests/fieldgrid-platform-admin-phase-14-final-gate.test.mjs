@@ -99,7 +99,7 @@ test("phase 14 documentation records the go/no-go checklist with owners and exce
     [
       "Go/no-go checklist",
       "Runtime tests voor platform owner/admin/support",
-      "Tenant A/B/Veele host-first checks",
+      "field-demo pilot host-first checks",
       "Enterprise custom-domain staging test",
       "Non-Enterprise custom-domain denial",
       "Caddy ask endpoint staging test",

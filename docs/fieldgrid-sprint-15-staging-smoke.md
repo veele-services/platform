@@ -40,8 +40,8 @@ artifacts/staging-smoke/*.json
 
 Mutating checks blijven geblokkeerd totdat een toekomstige runner expliciet werkt met:
 
-- dedicated demo-tenants `demo-a`, `demo-b` en `veele`;
-- `FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only`;
+- dedicated pilottenant `field-demo`;
+- `FIELDGRID_MUTATING_SMOKE_CONFIRM=field-demo-only`;
 - marker-scoped cleanup selectors zoals `fieldgrid-sprint-15-mutating-*`;
 - cleanup in dezelfde run.
 
@@ -73,7 +73,7 @@ Gerelateerd:
 
 Nog `runtime-proof-open`:
 
-- echte Playwright-runs met platform-owner en Tenant A/B/Veele actoren;
+- echte Playwright-runs met platform-owner en `field-demo` actoren;
 - echte storage signed URL/path guessing tests;
 - echte DB/RLS validatie;
 - echte mutating runner met cleanup;

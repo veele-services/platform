@@ -22,7 +22,7 @@ Pilottenant dry-run zonder echte klantdruk is nog niet live uitgevoerd. De code/
 | Platform-admin strict evidence | Geblokkeerd | Mist `artifacts/platform-admin-final-gate` JSON en `phase13-visual-smoke.json` | Platform owner levert platform cookie en tenant detail path |
 | Customer/personnel strict evidence | Geblokkeerd | Mist customer/personnel base URLs en auth cookies/storage-state | Platform owner levert portal sessies en concrete detailroutes |
 | Placeholder/security-copy | Groen | MFA "later" copy verwijderd; push metadata neutraal | Geen open actie |
-| Pilottenant dry-run | Niet gestart | Geen slug/owner/plan bevestigd en geen mutating smoke confirm | Kies pilot slug, owner e-mail, plan, modules en `FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only` |
+| Pilottenant dry-run | Gekozen, runtime evidence open | Slug `field-demo`, owner `services@fieldgrid.nl`, plan Enterprise, modules all; mutating confirm vereist | Draai pilot-smoke alleen met `FIELDGRID_MUTATING_SMOKE_CONFIRM=field-demo-only` |
 
 ## 1. Platform en staging readiness
 
