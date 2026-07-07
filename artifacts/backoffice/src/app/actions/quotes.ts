@@ -848,7 +848,13 @@ export async function processExpiredQuotes(): Promise<ActionResult<{ expired: nu
         quoteNumber:  q.quoteNumber,
         amount:       q.amount ?? "0",
       });
-      await sendEmail({ to: q.customerEmail, subject, html });
+      await sendEmail({
+        to: q.customerEmail,
+        subject,
+        html,
+        tenantId,
+        purpose: "quote_expired",
+      });
       notified++;
     }
   }

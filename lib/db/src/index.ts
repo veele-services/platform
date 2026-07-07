@@ -25,6 +25,7 @@ export * from "./knowledgebase-content";
 export * from "./knowledgebase-tooltips";
 export * from "./release-content";
 export * from "./tenant-branding";
+export * from "./email-templates";
 export * from "./tenant-provisioning";
 export * from "./custom-domains";
 export * from "./platform-access";

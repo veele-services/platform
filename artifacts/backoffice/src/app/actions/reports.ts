@@ -643,7 +643,13 @@ export async function submitReport(
           assignmentId,
           reportId:        created!.id,
         });
-        await sendEmail({ to: orgSettings.emailAfzender, subject, html });
+        await sendEmail({
+          to: orgSettings.emailAfzender,
+          subject,
+          html,
+          tenantId,
+          purpose: "report_submitted",
+        });
       }
     })();
 
@@ -746,7 +752,13 @@ export async function approveReport(reportId: string): Promise<ActionResult> {
         assignmentTitle: detail.assignmentTitle,
         reportId,
       });
-      await sendEmail({ to: detail.personnelEmail, subject, html });
+      await sendEmail({
+        to: detail.personnelEmail,
+        subject,
+        html,
+        tenantId,
+        purpose: "report_approved",
+      });
     }
   })();
 
@@ -837,7 +849,13 @@ export async function rejectReport(reportId: string, notes: string): Promise<Act
         reportId,
         reason:          trimmedNotes,
       });
-      await sendEmail({ to: detail.personnelEmail, subject, html });
+      await sendEmail({
+        to: detail.personnelEmail,
+        subject,
+        html,
+        tenantId,
+        purpose: "report_rejected",
+      });
     }
   })();
 

@@ -112,7 +112,7 @@ test("effective theme is applied to backoffice shell, portals and styled email",
   assertIncludes(backofficeLayout, ["getTenantBranding", "getTenantBrandingCssVariables", "brandingStyle"], "backoffice layout");
   assertIncludes(customerLayout, ["getTenantBranding", "getTenantBrandingCssVariables"], "customer portal layout");
   assertIncludes(personnelLayout, ["getTenantBranding", "getTenantBrandingCssVariables"], "personnel portal layout");
-  assertIncludes(email, ["tenantId?: string | null", "getEffectiveBrandTheme(opts.tenantId ?? null)", "theme.logoUrl"], "styled email");
+  assertIncludes(email, ["tenantId?: string | null", "renderEmailTemplate({", "templateKey: \"notification_manual\"", "tenantId: opts.tenantId ?? null"], "styled email");
   assertIncludes(settingsActions, ["tenantId,", "sendEmailWithResult({", "html: message.html"], "notification send action");
   assertIncludes(globals, ["var(--color-background", "var(--color-foreground", "var(--radius-card", "var(--color-ring"], "backoffice globals");
 });

@@ -758,7 +758,13 @@ export async function submitMyReport(
           assignmentTitle: assignment?.title ?? assignmentId,
           assignmentId,
         });
-        await sendEmail({ to: orgSettings.emailAfzender, subject, html });
+        await sendEmail({
+          to: orgSettings.emailAfzender,
+          subject,
+          html,
+          tenantId: identity.tenantId,
+          purpose: "report_submitted",
+        });
       }
     })();
 

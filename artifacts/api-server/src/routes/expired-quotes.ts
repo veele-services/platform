@@ -116,7 +116,13 @@ router.post("/admin/expired-quotes", async (req: Request, res: Response) => {
           amount:       q.amount ?? "0",
         });
 
-        await sendEmail({ to: q.customerEmail, subject, html });
+        await sendEmail({
+          to: q.customerEmail,
+          subject,
+          html,
+          tenantId: q.customerTenantId,
+          purpose: "quote_expired",
+        });
         notified++;
       }
     }

@@ -564,7 +564,13 @@ export async function inviteTenantUser(input: {
       loginUrl: `${backofficeUrl()}/login`,
       temporaryPassword: invite.temporaryPassword,
     });
-    const sent = await sendEmailWithResult({ to: email, subject, html });
+    const sent = await sendEmailWithResult({
+      to: email,
+      subject,
+      html,
+      tenantId,
+      purpose: "account_invite",
+    });
     if (!sent.success) return { success: false, message: sent.error ?? "Uitnodigingsmail versturen mislukt." };
     invitedUserId = invite.user.id;
   } catch (error) {

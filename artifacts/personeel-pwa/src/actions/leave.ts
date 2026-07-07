@@ -99,7 +99,11 @@ export async function requestLeave(
       .limit(1);
     if (orgSettings?.emailAfzender) {
       const [person] = await db
-        .select({ firstName: personnelTable.firstName, lastName: personnelTable.lastName })
+        .select({
+          firstName: personnelTable.firstName,
+          lastName: personnelTable.lastName,
+          tenantId: personnelTable.tenantId,
+        })
         .from(personnelTable)
         .where(eq(personnelTable.id, personnelId))
         .limit(1);
@@ -110,7 +114,13 @@ export async function requestLeave(
         leaveType,
         reason:        reason ?? null,
       });
-      await sendEmail({ to: orgSettings.emailAfzender, subject, html });
+      await sendEmail({
+        to: orgSettings.emailAfzender,
+        subject,
+        html,
+        tenantId: person?.tenantId ?? null,
+        purpose: "leave_request_submitted",
+      });
     }
   })();
 

@@ -654,7 +654,13 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
       decision:     "geaccepteerd",
       reason:       null,
     });
-    await sendEmail({ to: orgSettings.emailAfzender, subject, html });
+    await sendEmail({
+      to: orgSettings.emailAfzender,
+      subject,
+      html,
+      tenantId: identity.tenantId,
+      purpose: "quote_decision_received",
+    });
   })();
 
   revalidatePath("/opdrachten");
@@ -797,7 +803,13 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
       decision:     "afgewezen",
       reason:       reason?.trim() || null,
     });
-    await sendEmail({ to: orgSettings.emailAfzender, subject, html });
+    await sendEmail({
+      to: orgSettings.emailAfzender,
+      subject,
+      html,
+      tenantId: identity.tenantId,
+      purpose: "quote_decision_received",
+    });
   })();
 
   revalidatePath("/opdrachten");
