@@ -105,7 +105,7 @@ export type PlatformAdminReleaseGateItem = {
     | "admin"
     | "support"
     | "platform"
-    | "tenant-a-b-veele"
+    | "tenant-pilot"
     | "enterprise"
     | "non-enterprise"
     | "ci";
@@ -170,13 +170,15 @@ export type PlatformStagingSmokeDashboard = {
   environment: {
     platformHost: string;
     stagingHost: string;
+    pilotTenantSlug: string;
+    pilotTenantHost: string;
     platformHostKnown: boolean;
     stagingHostKnown: boolean;
   };
   totals: {
     tenants: number;
     activeTenants: number;
-    demoTenants: number;
+    pilotTenants: number;
     tenantDomains: number;
     verifiedTenantDomains: number;
     activeTenantUsers: number;

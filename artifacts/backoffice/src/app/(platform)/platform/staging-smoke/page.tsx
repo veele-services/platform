@@ -635,8 +635,8 @@ export default async function PlatformStagingSmokePage() {
           <Stat label="Aandacht" value={warningChecks} />
           <Stat label="Blokkerend" value={blockingChecks} />
           <Stat
-            label="Demo tenants"
-            value={`${dashboard.totals.demoTenants}/3`}
+            label="Pilottenant"
+            value={`${dashboard.totals.pilotTenants}/1`}
           />
           <Stat label="Run history" value={dashboard.runHistory.length} />
           <Stat
@@ -682,7 +682,7 @@ export default async function PlatformStagingSmokePage() {
                 {dashboard.totals.tenantDomains} verified
               </p>
               <p className="text-xs text-slate-500">
-                Host-first smokebasis voor Tenant A/B/Veele.
+                Host-first smokebasis voor {dashboard.environment.pilotTenantHost}.
               </p>
             </div>
             <div>
@@ -808,7 +808,7 @@ export default async function PlatformStagingSmokePage() {
             Mutating checks en cleanup
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Muterende checks zijn alleen toegestaan op dedicated demo-tenants
+            Muterende checks zijn alleen toegestaan op {dashboard.environment.pilotTenantSlug}
             met marker-scoped cleanup en expliciete confirm-env.
           </p>
           <div className="mt-4 grid gap-3 lg:grid-cols-3">

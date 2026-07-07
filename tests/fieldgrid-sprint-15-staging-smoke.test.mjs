@@ -32,7 +32,8 @@ test("sprint 15 extends staging smoke data with run history and live smoke contr
       "FG-LIVE-HOST",
       "FG-LIVE-PERSONNEL-PLANNING",
       "FG-MUTATE-LIFECYCLE",
-      "FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only",
+      "field-demo",
+      "field-demo-only",
     ],
     "platform smoke action",
   );
@@ -72,6 +73,7 @@ test("sprint 15 script is plan-only by default and supports read-only snapshots"
       "fieldgrid-sprint-15-staging-smoke",
       "FIELDGRID_STAGING_SMOKE_COOKIE",
       "FIELDGRID_STAGING_SMOKE_BEARER",
+      "FIELDGRID_STAGING_PILOT_TENANT_SLUG",
       "FIELDGRID_MUTATING_SMOKE_CONFIRM",
       "runReadOnlySnapshot",
       "artifacts/staging-smoke",

@@ -50,7 +50,7 @@ Staging-impact: geen runtime-impact; staging blijft bereikbaar.
 
 ## Fase 1 - Echte testbasis en demo-data
 
-- [ ] Demo-data gebruikt `demo-a`, `demo-b` en `veele` als gewone tenants.
+- [ ] Pilotdata gebruikt `field-demo` als gecontroleerde stagingtenant; legacy A/B/Veele fixtures blijven lokale regressiedekking.
 - [ ] Testdata is reproduceerbaar en opruimbaar.
 - [ ] Muterende smoke- of seed-acties raken geen bestaande staging-tenants.
 - [ ] Host-first, membership, RBAC, direct-ID en support hebben minimaal eerste integrationdekking.
@@ -109,7 +109,7 @@ Staging-impact: additive UI; bestaande routes blijven bruikbaar.
 
 ## Fase 7 - Staging smoke dashboard en operatie
 
-- [ ] Smoke dashboard is read-only of gebruikt dedicated demo-tenants.
+- [ ] Smoke dashboard is read-only of gebruikt dedicated pilottenant `field-demo`.
 - [ ] Smoke dashboard toont run history en laatste JSON-artifacts waar beschikbaar.
 - [ ] Live Playwright-smoke targets zijn zichtbaar voor host, portalen, storage/PDF en personeelsplanning.
 - [ ] Migration-smoke status verwijst naar lege database en staging-copy targets.

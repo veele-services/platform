@@ -16,13 +16,11 @@ export function buildPhase7StagingSmokePlan() {
     dashboardRoute: "/platform/staging-smoke",
     smokeApiRoute: "/api/platform/staging-smoke",
     recommendedStagingUrl: "https://staging.fieldgrid.nl/platform/staging-smoke",
-    requiredTenants: ["demo-a", "demo-b", "veele"],
+    requiredTenants: ["field-demo"],
     requiredHosts: [
       "platform.fieldgrid.nl",
       "staging.fieldgrid.nl",
-      "demo-a.fieldgrid.nl",
-      "demo-b.fieldgrid.nl",
-      "veele.fieldgrid.nl",
+      "field-demo.fieldgrid.nl",
     ],
     checks: [
       { id: "FG-SMOKE-HOST", boundary: "host", testIds: ["FG-HOST-001", "FG-HOST-002", "FG-HOST-003", "FG-HOST-004"] },

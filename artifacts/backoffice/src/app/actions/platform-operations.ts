@@ -331,11 +331,11 @@ function buildManualRuns(smoke: PlatformStagingSmokeDashboard): PlatformOperatio
       id: "mutating-demo-cleanup",
       label: "Mutating smoke met cleanup",
       status: smoke.mutatingChecks.every((check) => check.cleanupStatus === "ready") ? "manual" : "blocked",
-      command: "FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only pnpm fieldgrid:sprint15-staging-smoke --run-mutating-demo",
-      environment: "demo-a/demo-b/veele only",
+      command: "FIELDGRID_MUTATING_SMOKE_CONFIRM=field-demo-only pnpm fieldgrid:sprint15-staging-smoke --run-mutating-demo",
+      environment: "field-demo only",
       cleanupContract: "Marker-scoped data moet in dezelfde run worden gerevoked/verwijderd.",
       latestRun: latestStaging,
-      nextAction: "Alleen uitvoeren wanneer demo tenants gereed zijn en cleanup selector is vastgelegd.",
+      nextAction: "Alleen uitvoeren wanneer field-demo gereed is en cleanup selector is vastgelegd.",
     },
   ];
 }
