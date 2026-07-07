@@ -117,6 +117,7 @@ test("sprint 7 documentation and PR template require migration smoke evidence", 
     assert.match(content, /fieldgrid:sprint7-migration-smoke/);
   }
 
+  assert.match(workflow, /environment:\s+staging/);
   assert.match(doc, /lege database/i);
   assert.match(doc, /staging-copy/i);
   assert.match(template, /Lege database smoke/i);

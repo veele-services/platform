@@ -57,6 +57,7 @@ export const promotionSourceContracts = [
   {
     path: ".github/workflows/fieldgrid-migration-smoke.yml",
     phrases: [
+      "environment: staging",
       "pnpm fieldgrid:migration-order-check:check",
       "pnpm fieldgrid:sprint7-migration-smoke:check",
     ],
