@@ -108,7 +108,12 @@ export async function getUserPermissions(userId: string, tenantId: string): Prom
     })
     .from(tenantRolePermissionsTable)
     .innerJoin(permissionsTable, eq(tenantRolePermissionsTable.permissionId, permissionsTable.id))
-    .where(inArray(tenantRolePermissionsTable.tenantRoleId, tenantRoleIds));
+    .where(
+      and(
+        inArray(tenantRolePermissionsTable.tenantRoleId, tenantRoleIds),
+        eq(tenantRolePermissionsTable.tenantId, tenantId),
+      ),
+    );
 
   return new Set(perms.map((p) => `${p.resource}:${p.action}`));
 }

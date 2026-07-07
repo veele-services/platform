@@ -15,14 +15,20 @@ function functionBlock(source, functionName) {
 }
 
 const documents = read("artifacts/backoffice/src/app/actions/documents.ts");
+const storagePaths = read("lib/db/src/storage-paths.ts");
 
 test("document storage helper requires tenant-prefixed safe paths", () => {
   assert.ok(documents.includes("function getSafeDocumentStoragePath(path: string, tenantId: string): string | null"));
-  assert.ok(documents.includes('path.trim().replace(/^\\/+/, "")'));
-  assert.ok(documents.includes('if (/^[a-z][a-z\\d+.-]*:\\/\\//i.test(normalized)) return null;'));
-  assert.ok(documents.includes('if (normalized.includes("\\\\")) return null;'));
-  assert.ok(documents.includes('normalized.split("/").some((part) => part.trim() === "" || part === "..")'));
-  assert.ok(documents.includes("if (!normalized.startsWith(`${tenantId}/`)) return null;"));
+  assert.ok(documents.includes("getTenantBoundStoragePath(path, tenantId, { allowLegacyTenantRoot: true })"));
+  assert.ok(documents.includes("buildTenantStoragePath"));
+  assert.ok(documents.includes("getTenantBoundStoragePath"));
+
+  assert.ok(storagePaths.includes('const normalized = path.trim().replace(/^\\/+/, "");'));
+  assert.ok(storagePaths.includes("if (URL_SCHEME_PATTERN.test(normalized)) return null;"));
+  assert.ok(storagePaths.includes('if (normalized.includes("\\\\")) return null;'));
+  assert.ok(storagePaths.includes('segment.trim() === "" || segment === "." || segment === ".."'));
+  assert.ok(storagePaths.includes("const canonicalPrefix = `${FIELDGRID_STORAGE_TENANT_ROOT}/${tenantId}/`;"));
+  assert.ok(storagePaths.includes('normalized.startsWith(`${tenantId}/`)'));
 });
 
 test("document downloads sign only tenant-validated storage paths", () => {
@@ -36,7 +42,7 @@ test("document downloads sign only tenant-validated storage paths", () => {
   assert.match(body, /createSignedUrl\(storagePath, 3600\)/u);
   assert.doesNotMatch(body, /createSignedUrl\(doc\.storagePath/u);
   assert.match(body, /tenantId,/u);
-  assert.match(body, /action:\s+"download"/u);
+  assert.match(body, /action:\s+"document_signed_url_issued"/u);
 });
 
 test("document deletes remove only tenant-validated storage paths", () => {
@@ -50,13 +56,13 @@ test("document deletes remove only tenant-validated storage paths", () => {
   assert.match(body, /remove\(\[storagePath\]\)/u);
   assert.doesNotMatch(body, /remove\(\[doc\.storagePath\]\)/u);
   assert.match(body, /tenantId,/u);
-  assert.match(body, /action:\s+"delete"/u);
+  assert.match(body, /action:\s+"document_deleted"/u);
 });
 
 test("document upload audit includes tenant context", () => {
   const body = functionBlock(documents, "uploadDocument");
 
-  assert.match(body, /buildStoragePath\(tenantId, safeEntityType, entityId, docId, file\.name\)/u);
-  assert.match(body, /action:\s+"create"/u);
-  assert.match(body, /metadata:\s*\{[\s\S]*tenantId,[\s\S]*name,/u);
+  assert.match(body, /buildDocumentStoragePath\(tenantId, safeEntityType, entityId, docId, file\.name\)/u);
+  assert.match(body, /values\(\{[\s\S]*tenantId,[\s\S]*action:\s+"document_uploaded"/u);
+  assert.match(body, /metadata:\s*\{[\s\S]*name,[\s\S]*filename:\s+file\.name,[\s\S]*storagePath,[\s\S]*entityType:\s+safeEntityType/u);
 });

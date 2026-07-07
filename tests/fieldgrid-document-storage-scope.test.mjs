@@ -31,15 +31,15 @@ function block(source, functionName) {
 const documents = read("artifacts/backoffice/src/app/actions/documents.ts");
 
 test("new document storage paths are prefixed by current tenant", () => {
-  const helper = block(documents, "buildStoragePath");
+  const helper = block(documents, "buildDocumentStoragePath");
   const upload = block(documents, "uploadDocument");
 
   assert.match(helper, /tenantId: string/u);
-  assert.match(helper, /return `\$\{tenantId\}\/\$\{entityType\}\/\$\{entityId\}\/\$\{docId\}\.\$\{safeExt\}`;/u);
-  assert.match(helper, /return `\$\{tenantId\}\/general\/\$\{docId\}\.\$\{safeExt\}`;/u);
+  assert.match(helper, /const entityParts = entityType !== "general" && entityId \? \[entityType, entityId\] : \["general"\]/u);
+  assert.match(helper, /return buildTenantStoragePath\(tenantId, \["documents", \.\.\.entityParts, `\$\{docId\}\.\$\{safeExt\}`\]\)/u);
 
   assert.match(upload, /const tenantId = await requireCurrentTenantModule\("documents"\)/u);
-  assert.match(upload, /buildStoragePath\(tenantId, safeEntityType, entityId, docId, file\.name\)/u);
+  assert.match(upload, /buildDocumentStoragePath\(tenantId, safeEntityType, entityId, docId, file\.name\)/u);
   assert.match(upload, /\.upload\(storagePath, bytes/u);
 });
 
@@ -59,11 +59,17 @@ test("document delete checks tenant membership before storage removal", () => {
   assert.match(body, /const tenantId = await requireCurrentTenantModule\("documents"\)/u);
   assert.match(body, /const allowed = await isDocumentEntityInTenant\(/u);
   assert.match(body, /if \(!allowed\) return/u);
-  assert.match(body, /hasUnsafeStoragePath\(doc\.storagePath\)/u);
-  assert.match(body, /storage\.from\(BUCKET\)\.remove\(\[doc\.storagePath\]\)/u);
+  assert.match(body, /const storagePath = getSafeDocumentStoragePath\(doc\.storagePath, tenantId\)/u);
+  assert.match(body, /if \(!storagePath\)/u);
+  assert.match(body, /storage\.from\(BUCKET\)\.remove\(\[storagePath\]\)/u);
+  assert.doesNotMatch(body, /remove\(\[doc\.storagePath\]\)/u);
   assert.ok(
-    body.indexOf("if (!allowed) return") < body.indexOf("storage.from(BUCKET).remove"),
+    body.indexOf("if (!allowed) return") < body.indexOf("getSafeDocumentStoragePath"),
     "tenant denial should happen before storage removal",
+  );
+  assert.ok(
+    body.indexOf("if (!storagePath)") < body.indexOf("storage.from(BUCKET).remove"),
+    "storage path validation should happen before storage removal",
   );
 });
 
@@ -73,11 +79,17 @@ test("document download checks tenant membership before creating signed URL", ()
   assert.match(body, /const tenantId = await requireCurrentTenantModule\("documents"\)/u);
   assert.match(body, /const allowed = await isDocumentEntityInTenant\(/u);
   assert.match(body, /if \(!allowed\) return/u);
-  assert.match(body, /hasUnsafeStoragePath\(doc\.storagePath\)/u);
-  assert.match(body, /createSignedUrl\(doc\.storagePath, 3600\)/u);
+  assert.match(body, /const storagePath = getSafeDocumentStoragePath\(doc\.storagePath, tenantId\)/u);
+  assert.match(body, /if \(!storagePath\)/u);
+  assert.match(body, /createSignedUrl\(storagePath, 3600\)/u);
+  assert.doesNotMatch(body, /createSignedUrl\(doc\.storagePath/u);
   assert.ok(
-    body.indexOf("if (!allowed) return") < body.indexOf("createSignedUrl(doc.storagePath"),
+    body.indexOf("if (!allowed) return") < body.indexOf("getSafeDocumentStoragePath"),
     "tenant denial should happen before signed URL creation",
+  );
+  assert.ok(
+    body.indexOf("if (!storagePath)") < body.indexOf("createSignedUrl(storagePath"),
+    "storage path validation should happen before signed URL creation",
   );
 });
 
@@ -87,7 +99,7 @@ test("document download writes an audit log after signed URL creation", () => {
   assert.match(body, /const supabase = await createClient\(\)/u);
   assert.match(body, /supabase\.auth\.getUser\(\)/u);
   assert.match(body, /db\.insert\(auditLogTable\)\.values\(/u);
-  assert.match(body, /action:\s+"download"/u);
+  assert.match(body, /action:\s+"document_signed_url_issued"/u);
   assert.match(body, /resource:\s+"documents"/u);
   assert.match(body, /resourceId:\s+id/u);
   assert.match(body, /filename:\s+doc\.filename/u);
@@ -97,7 +109,7 @@ test("document download writes an audit log after signed URL creation", () => {
     "tenant denial should happen before download audit logging",
   );
   assert.ok(
-    body.indexOf("createSignedUrl(doc.storagePath, 3600)") < body.indexOf("db.insert(auditLogTable).values"),
+    body.indexOf("createSignedUrl(storagePath, 3600)") < body.indexOf("db.insert(auditLogTable).values"),
     "successful signed URL creation should happen before audit logging",
   );
 });

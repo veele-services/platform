@@ -74,12 +74,12 @@ export function MfaSettings() {
     startTransition(async () => {
       const { data, error: enrollError } = await supabase.auth.mfa.enroll({
         factorType: "totp",
-        friendlyName: "Veele Services",
+        friendlyName: "Fieldgrid personeelsapp",
       });
 
       if (enrollError || !data) {
         setError(
-          "Tweestapsverificatie is nog niet beschikbaar voor deze omgeving.",
+          "Tweestapsverificatie activeren mislukt. Probeer het opnieuw of neem contact op met support.",
         );
         return;
       }
