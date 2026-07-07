@@ -29,6 +29,7 @@ export const ASSIGNMENT_STATUSES = [
   "plannable",
   "scheduled",
   "seen",
+  "en_route",
   "in_progress",
   "not_completed",
   "completed",
@@ -62,8 +63,9 @@ export const ASSIGNMENT_STATUS_TRANSITIONS: Record<AssignmentStatus, AssignmentS
   awaiting_approval: ["approved", "review"],
   approved:          ["plannable"],
   plannable:         ["scheduled"],
-  scheduled:         ["seen", "in_progress", "plannable"],
-  seen:              ["in_progress", "scheduled"],
+  scheduled:         ["seen", "en_route", "in_progress", "plannable"],
+  seen:              ["en_route", "in_progress", "scheduled"],
+  en_route:          ["in_progress", "scheduled"],
   in_progress:       ["completed", "not_completed"],
   not_completed:     ["in_progress", "plannable", "report_submitted"],
   completed:         ["report_submitted"],
@@ -117,6 +119,8 @@ export const assignmentsTable = pgTable("assignments", {
 
   /** When the assigned personnel member first opened the work order. */
   seenAt:          timestamp("seen_at", { withTimezone: true }),
+  /** First timestamp at which any assigned personnel member marked the work order as en route. */
+  enRouteAt:       timestamp("en_route_at", { withTimezone: true }),
   /** Actual start timestamp captured from the personnel PWA. */
   actualStartedAt: timestamp("actual_started_at", { withTimezone: true }),
   /** Actual completion or not-completed timestamp captured from the personnel PWA. */

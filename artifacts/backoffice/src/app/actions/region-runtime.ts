@@ -248,7 +248,7 @@ export async function listObjectsRegionAware(params: {
     where a.object_id = ${objectsTable.id}
       and a.tenant_id = ${objectsTable.tenantId}
       and a.scheduled_date >= to_char(current_date, 'YYYY-MM-DD')
-      and a.status in ('scheduled', 'plannable', 'approved', 'seen')
+      and a.status in ('scheduled', 'plannable', 'approved', 'seen', 'en_route')
     order by a.scheduled_date asc
     limit 1
   )`;

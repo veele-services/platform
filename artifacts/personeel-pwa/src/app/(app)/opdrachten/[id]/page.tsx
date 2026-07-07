@@ -73,9 +73,15 @@ function nextActionCopy(assignment: AssignmentView): { label: string; descriptio
       description: "Werk de checklist, materiaal en rapportage bij voordat je de opdracht afrondt.",
     };
   }
+  if (assignment.status === "en_route") {
+    return {
+      label:       "Werkzaamheden starten",
+      description: "Je bent onderweg. Start de werkbon zodra je daadwerkelijk met de werkzaamheden begint.",
+    };
+  }
   return {
-    label:       "Werkzaamheden starten",
-    description: "Controleer object, contact, toegangsinformatie en checklist. Start zodra je op locatie begint.",
+    label:       "Onderweg melden",
+    description: "Controleer object, contact, toegangsinformatie en checklist. Meld onderweg zodra je vertrekt.",
   };
 }
 

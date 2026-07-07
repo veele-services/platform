@@ -103,6 +103,7 @@ const STATUS_BLOCK_BG: Record<string, string> = {
   plannable:         "#D1FAE5",
   scheduled:         "#DBEAFE",
   seen:              "#DBEAFE",
+  en_route:          "#CCFBF1",
   in_progress:       "#00B7B3",
   not_completed:     "#FEE2E2",
   completed:         "#D1FAE5",
@@ -114,6 +115,7 @@ const STATUS_BLOCK_BG: Record<string, string> = {
   closed:            "#F1F5F9",
 };
 const STATUS_BLOCK_TEXT: Record<string, string> = {
+  en_route: "#115E59",
   in_progress: "#fff",
 };
 

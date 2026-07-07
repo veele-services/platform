@@ -9,7 +9,7 @@ import {
   objectsTable,
 } from "@workspace/db";
 import { emitAssignmentWorkflowEvent } from "@workspace/db/workflow-events";
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
 import { revalidatePath } from "next/cache";
@@ -22,6 +22,7 @@ export type MyAssignment = {
   scheduledStart:   string | null;
   scheduledEnd:     string | null;
   seenAt:           string | null;
+  enRouteAt:        string | null;
   actualStartedAt:  string | null;
   actualCompletedAt: string | null;
   completionReason: string | null;
@@ -56,6 +57,7 @@ type LinkedAssignment = {
   tenantId:                   string;
   status:                    string;
   seenAt:                    Date | null;
+  enRouteAt:                 Date | null;
   actualStartedAt:           Date | null;
   actualCompletedAt:         Date | null;
   customerSignatureRequired: boolean;
@@ -69,6 +71,7 @@ type AssignmentRow = {
   scheduledStart: string | null;
   scheduledEnd: string | null;
   seenAt: Date | string | null;
+  enRouteAt: Date | string | null;
   actualStartedAt: Date | string | null;
   actualCompletedAt: Date | string | null;
   completionReason: string | null;
@@ -154,6 +157,7 @@ function mapAssignmentRow(row: AssignmentRow): MyAssignment {
     scheduledStart:   row.scheduledStart ?? null,
     scheduledEnd:     row.scheduledEnd ?? null,
     seenAt:           toIsoString(row.seenAt),
+    enRouteAt:        toIsoString(row.enRouteAt),
     actualStartedAt:  toIsoString(row.actualStartedAt),
     actualCompletedAt: toIsoString(row.actualCompletedAt),
     completionReason: row.completionReason ?? null,
@@ -203,6 +207,7 @@ export async function getMyAssignments(): Promise<MyAssignment[]> {
       scheduledStart: assignmentsTable.scheduledStart,
       scheduledEnd: assignmentsTable.scheduledEnd,
       seenAt: assignmentsTable.seenAt,
+      enRouteAt: assignmentsTable.enRouteAt,
       actualStartedAt: assignmentsTable.actualStartedAt,
       actualCompletedAt: assignmentsTable.actualCompletedAt,
       completionReason: assignmentsTable.completionReason,
@@ -253,6 +258,7 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
       scheduledStart: assignmentsTable.scheduledStart,
       scheduledEnd: assignmentsTable.scheduledEnd,
       seenAt: assignmentsTable.seenAt,
+      enRouteAt: assignmentsTable.enRouteAt,
       actualStartedAt: assignmentsTable.actualStartedAt,
       actualCompletedAt: assignmentsTable.actualCompletedAt,
       completionReason: assignmentsTable.completionReason,
@@ -312,9 +318,10 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
 }
 
 const STATUS_TRANSITIONS: Record<string, string[]> = {
-  plannable:   ["scheduled", "in_progress"],
-  scheduled:   ["seen", "in_progress"],
-  seen:        ["in_progress"],
+  plannable:   ["scheduled", "en_route", "in_progress"],
+  scheduled:   ["seen", "en_route", "in_progress"],
+  seen:        ["en_route", "in_progress"],
+  en_route:    ["in_progress"],
   in_progress: ["completed", "not_completed"],
 };
 
@@ -328,6 +335,7 @@ async function getLinkedAssignment(
       tenantId:                   assignmentsTable.tenantId,
       status:                    assignmentsTable.status,
       seenAt:                    assignmentsTable.seenAt,
+      enRouteAt:                 assignmentsTable.enRouteAt,
       actualStartedAt:           assignmentsTable.actualStartedAt,
       actualCompletedAt:         assignmentsTable.actualCompletedAt,
       customerSignatureRequired: assignmentsTable.customerSignatureRequired,
@@ -407,19 +415,49 @@ export async function setAssignmentStatus(
   if (newStatus === "seen") {
     updateValues.seenAt = current.seenAt ?? now;
   }
+  if (newStatus === "en_route") {
+    updateValues.seenAt = current.seenAt ?? now;
+    updateValues.enRouteAt = current.enRouteAt ?? now;
+  }
   if (newStatus === "in_progress") {
     updateValues.seenAt = current.seenAt ?? now;
+    updateValues.enRouteAt = current.enRouteAt ?? now;
     updateValues.actualStartedAt = current.actualStartedAt ?? now;
   }
   if (newStatus === "completed" || newStatus === "not_completed") {
     updateValues.actualCompletedAt = current.actualCompletedAt ?? now;
   }
 
+  let firstEnRouteTrigger = false;
   try {
-    await db
-      .update(assignmentsTable)
-      .set(updateValues)
-      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)));
+    if (newStatus === "en_route") {
+      const rows = await db
+        .update(assignmentsTable)
+        .set(updateValues)
+        .where(and(
+          eq(assignmentsTable.id, assignmentId),
+          eq(assignmentsTable.tenantId, current.tenantId),
+          isNull(assignmentsTable.enRouteAt),
+        ))
+        .returning({ id: assignmentsTable.id });
+      firstEnRouteTrigger = rows.length > 0;
+
+      if (!firstEnRouteTrigger) {
+        await db
+          .update(assignmentsTable)
+          .set({
+            status:    newStatus,
+            seenAt:   current.seenAt ?? now,
+            updatedAt: now,
+          })
+          .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)));
+      }
+    } else {
+      await db
+        .update(assignmentsTable)
+        .set(updateValues)
+        .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)));
+    }
   } catch {
     return { success: false, error: "Bijwerken mislukt" };
   }
@@ -430,6 +468,14 @@ export async function setAssignmentStatus(
       assignmentId,
       actorUserId: user.id,
       audience: "management",
+    });
+  }
+  if (newStatus === "en_route" && firstEnRouteTrigger) {
+    await notifyAssignmentWorkflow({
+      eventKey: "assignment_en_route",
+      assignmentId,
+      actorUserId: user.id,
+      audience: "customer",
     });
   }
   if (newStatus === "in_progress") {
@@ -449,6 +495,12 @@ export async function startAssignment(
   assignmentId: string,
 ): Promise<{ success: boolean; error?: string }> {
   return setAssignmentStatus(assignmentId, "in_progress");
+}
+
+export async function markAssignmentEnRoute(
+  assignmentId: string,
+): Promise<{ success: boolean; error?: string }> {
+  return setAssignmentStatus(assignmentId, "en_route");
 }
 
 export async function setAssignmentTaskCompletion(

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, CloudOff, RefreshCcw, Wifi, X } from "lucide-react";
-import { completeAssignment, notCompleteAssignment, setAssignmentTaskCompletion, startAssignment } from "@/actions/assignments";
+import { completeAssignment, markAssignmentEnRoute, notCompleteAssignment, setAssignmentTaskCompletion, startAssignment } from "@/actions/assignments";
 import { addExtraWork } from "@/actions/extra-work";
 import { addInventoryUsage } from "@/actions/inventory";
 import { addMaterialUsage } from "@/actions/materials";
@@ -49,6 +49,10 @@ function msUntilNextMinute(): number {
 async function runQueuedAction(action: OfflineWorkOrderAction) {
   if (action.type === "start-assignment") {
     return startAssignment(action.assignmentId);
+  }
+
+  if (action.type === "mark-assignment-en-route") {
+    return markAssignmentEnRoute(action.assignmentId);
   }
 
   if (action.type === "complete-assignment") {

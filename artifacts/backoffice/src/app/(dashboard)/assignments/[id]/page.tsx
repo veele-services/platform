@@ -462,7 +462,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
 
   const REPORT_STATUSES  = ["completed", "not_completed", "report_submitted", "report_approved", "invoice_ready", "invoiced", "paid", "closed"];
   const INVOICE_STATUSES = ["invoice_ready", "invoiced", "paid", "closed"];
-  const QUOTE_STATUSES_SHOW = ["quote_preparation", "awaiting_approval", "approved", "plannable", "scheduled", "seen", "in_progress", "not_completed", "completed", "report_submitted", "report_approved", "invoice_ready", "invoiced", "paid", "closed"];
+  const QUOTE_STATUSES_SHOW = ["quote_preparation", "awaiting_approval", "approved", "plannable", "scheduled", "seen", "en_route", "in_progress", "not_completed", "completed", "report_submitted", "report_approved", "invoice_ready", "invoiced", "paid", "closed"];
 
   const existingReport = canReadReports && REPORT_STATUSES.includes(assignment.status)
     ? await safeOptional("report", id, () => getReportForAssignment(id), null)
