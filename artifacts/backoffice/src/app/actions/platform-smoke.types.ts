@@ -100,7 +100,15 @@ export type PlatformAdminReleaseGateItem = {
   label: string;
   status: PlatformSmokeStatus;
   owner: string;
-  persona: "owner" | "admin" | "support" | "platform" | "tenant-a-b-veele" | "enterprise" | "non-enterprise" | "ci";
+  persona:
+    | "owner"
+    | "admin"
+    | "support"
+    | "platform"
+    | "tenant-a-b-veele"
+    | "enterprise"
+    | "non-enterprise"
+    | "ci";
   host: string;
   route: string;
   command: string;
@@ -130,6 +138,31 @@ export type PlatformAdminReleaseGate = {
   items: PlatformAdminReleaseGateItem[];
   exceptions: PlatformAdminReleaseGateException[];
   requiredCommands: string[];
+};
+
+export type PlatformStagingPromotionGateSignal = {
+  id: string;
+  label: string;
+  status: PlatformSmokeStatus;
+  owner: string;
+  command: string;
+  evidence: string;
+  nextAction: string;
+  testIds: string[];
+  blocksPromotion: boolean;
+};
+
+export type PlatformStagingPromotionGate = {
+  status: PlatformSmokeStatus;
+  decision: "ready" | "conditional-go" | "blocked";
+  summary: string;
+  command: string;
+  checklist: string;
+  reportDirectory: string;
+  evidenceDirectories: string[];
+  signals: PlatformStagingPromotionGateSignal[];
+  requiredCommands: string[];
+  evidenceRuns: PlatformSmokeRunHistoryEntry[];
 };
 
 export type PlatformStagingSmokeDashboard = {
@@ -173,6 +206,7 @@ export type PlatformStagingSmokeDashboard = {
   mutatingChecks: PlatformMutatingSmokeCheck[];
   finalExternalTenantGate: PlatformFinalExternalTenantGate;
   platformAdminReleaseGate: PlatformAdminReleaseGate;
+  stagingPromotionGate: PlatformStagingPromotionGate;
   minimumGreen: string[];
   playbooks: string[];
 };

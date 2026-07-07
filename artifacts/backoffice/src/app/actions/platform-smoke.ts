@@ -38,6 +38,8 @@ import type {
   PlatformSmokeRunHistoryEntry,
   PlatformSmokeStatus,
   PlatformStagingSmokeDashboard,
+  PlatformStagingPromotionGate,
+  PlatformStagingPromotionGateSignal,
 } from "./platform-smoke.types";
 
 function makeCheck(input: PlatformSmokeCheck): PlatformSmokeCheck {
@@ -60,21 +62,29 @@ function stringValue(value: unknown, fallback: string): string {
 }
 
 function recordValue(value: unknown): Record<string, unknown> {
-  return value && typeof value === "object" && !Array.isArray(value) ? (value as Record<string, unknown>) : {};
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, unknown>)
+    : {};
 }
 
 function stringList(value: unknown): string[] {
-  return Array.isArray(value) ? value.filter((entry): entry is string => typeof entry === "string") : [];
+  return Array.isArray(value)
+    ? value.filter((entry): entry is string => typeof entry === "string")
+    : [];
 }
 
-function runStatusFromChecks(checks: PlatformSmokeCheck[]): PlatformSmokeStatus {
+function runStatusFromChecks(
+  checks: PlatformSmokeCheck[],
+): PlatformSmokeStatus {
   if (checks.some((check) => check.status === "blocked")) return "blocked";
   if (checks.some((check) => check.status === "warning")) return "warning";
   if (checks.some((check) => check.status === "manual")) return "manual";
   return "ok";
 }
 
-async function readJsonReport(path: string): Promise<Record<string, unknown> | null> {
+async function readJsonReport(
+  path: string,
+): Promise<Record<string, unknown> | null> {
   try {
     return recordValue(JSON.parse(await readFile(path, "utf8")));
   } catch {
@@ -102,7 +112,11 @@ async function readSmokeRunReports(): Promise<PlatformSmokeRunHistoryEntry[]> {
   for (const source of reportSources) {
     let filenames: string[] = [];
     try {
-      filenames = (await readdir(source.directory)).filter((filename) => filename.endsWith(".json")).sort().reverse().slice(0, 3);
+      filenames = (await readdir(source.directory))
+        .filter((filename) => filename.endsWith(".json"))
+        .sort()
+        .reverse()
+        .slice(0, 3);
     } catch {
       continue;
     }
@@ -113,9 +127,18 @@ async function readSmokeRunReports(): Promise<PlatformSmokeRunHistoryEntry[]> {
       if (!report) continue;
 
       const summary = recordValue(report["summary"]);
-      const results = Array.isArray(report["results"]) ? report["results"].map(recordValue) : [];
-      const checks = stringList(report["checks"]).concat(results.map((result) => stringValue(result["target"], "")).filter(Boolean));
-      const createdAt = stringValue(report["createdAt"], stringValue(report["generatedAt"], new Date(0).toISOString()));
+      const results = Array.isArray(report["results"])
+        ? report["results"].map(recordValue)
+        : [];
+      const checks = stringList(report["checks"]).concat(
+        results
+          .map((result) => stringValue(result["target"], ""))
+          .filter(Boolean),
+      );
+      const createdAt = stringValue(
+        report["createdAt"],
+        stringValue(report["generatedAt"], new Date(0).toISOString()),
+      );
       const startedAt = stringValue(results[0]?.["startedAt"], createdAt);
       const finishedAt = stringValue(results.at(-1)?.["finishedAt"], createdAt);
       const status = statusFromSummary(summary["status"] ?? report["status"]);
@@ -136,10 +159,18 @@ async function readSmokeRunReports(): Promise<PlatformSmokeRunHistoryEntry[]> {
     }
   }
 
-  return reports.sort((a, b) => new Date(b.finishedAt).getTime() - new Date(a.finishedAt).getTime()).slice(0, 6);
+  return reports
+    .sort(
+      (a, b) =>
+        new Date(b.finishedAt).getTime() - new Date(a.finishedAt).getTime(),
+    )
+    .slice(0, 6);
 }
 
-function buildCurrentRunHistory(generatedAt: string, checks: PlatformSmokeCheck[]): PlatformSmokeRunHistoryEntry {
+function buildCurrentRunHistory(
+  generatedAt: string,
+  checks: PlatformSmokeCheck[],
+): PlatformSmokeRunHistoryEntry {
   const status = runStatusFromChecks(checks);
   return {
     id: `dashboard:${generatedAt}`,
@@ -156,9 +187,13 @@ function buildCurrentRunHistory(generatedAt: string, checks: PlatformSmokeCheck[
   };
 }
 
-function buildLiveSmokes(checks: PlatformSmokeCheck[], totals: PlatformStagingSmokeDashboard["totals"]): PlatformLiveSmokeTarget[] {
+function buildLiveSmokes(
+  checks: PlatformSmokeCheck[],
+  totals: PlatformStagingSmokeDashboard["totals"],
+): PlatformLiveSmokeTarget[] {
   const byId = new Map(checks.map((check) => [check.id, check]));
-  const checkStatus = (id: string): PlatformSmokeStatus => byId.get(id)?.status ?? "manual";
+  const checkStatus = (id: string): PlatformSmokeStatus =>
+    byId.get(id)?.status ?? "manual";
 
   return [
     {
@@ -167,19 +202,31 @@ function buildLiveSmokes(checks: PlatformSmokeCheck[], totals: PlatformStagingSm
       status: checkStatus("FG-SMOKE-HOST"),
       host: "staging.fieldgrid.nl",
       route: "/platform",
-      command: "Playwright host-first smoke voor platform, demo-a, demo-b en veele.",
+      command:
+        "Playwright host-first smoke voor platform, demo-a, demo-b en veele.",
       testIds: ["FG-HOST-001", "FG-HOST-002", "FG-HOST-003", "FG-HOST-004"],
-      nextAction: "Draai host-first browser smoke met platform owner en Tenant A/B/Veele hosts.",
+      nextAction:
+        "Draai host-first browser smoke met platform owner en Tenant A/B/Veele hosts.",
     },
     {
       id: "FG-LIVE-MODULES",
       label: "Modules en sectoren",
-      status: checkStatus("FG-SMOKE-MODULES") === "ok" && checkStatus("FG-SMOKE-SECTORS") === "ok" ? "ok" : "warning",
+      status:
+        checkStatus("FG-SMOKE-MODULES") === "ok" &&
+        checkStatus("FG-SMOKE-SECTORS") === "ok"
+          ? "ok"
+          : "warning",
       host: "demo-a.fieldgrid.nl",
       route: "/",
       command: "Playwright module-off en sector-denial smoke.",
-      testIds: ["FG-MODULE-001", "FG-MODULE-003", "FG-SECTOR-001", "FG-SECTOR-006"],
-      nextAction: "Controleer dat module/sector blokkades ook via directe route server-side falen.",
+      testIds: [
+        "FG-MODULE-001",
+        "FG-MODULE-003",
+        "FG-SECTOR-001",
+        "FG-SECTOR-006",
+      ],
+      nextAction:
+        "Controleer dat module/sector blokkades ook via directe route server-side falen.",
     },
     {
       id: "FG-LIVE-REGIONS",
@@ -189,7 +236,8 @@ function buildLiveSmokes(checks: PlatformSmokeCheck[], totals: PlatformStagingSm
       route: "/planning",
       command: "Playwright regio-filter en planning-overlap smoke.",
       testIds: ["FG-REGION-003", "FG-REGION-006", "FG-REGION-007"],
-      nextAction: "Gebruik Tenant A/B/Veele fixtures om regio-overlap en cross-tenant regio-denials te bewijzen.",
+      nextAction:
+        "Gebruik Tenant A/B/Veele fixtures om regio-overlap en cross-tenant regio-denials te bewijzen.",
     },
     {
       id: "FG-LIVE-CUSTOMER-PORTAL",
@@ -198,8 +246,14 @@ function buildLiveSmokes(checks: PlatformSmokeCheck[], totals: PlatformStagingSm
       host: "demo-a.fieldgrid.nl",
       route: "/portal",
       command: "Playwright klantportaal documenten/facturen/tickets smoke.",
-      testIds: ["FG-PORTAL-C-001", "FG-PORTAL-C-002", "FG-PORTAL-C-003", "FG-PORTAL-C-004"],
-      nextAction: "Draai klantportaal smoke met A-CUSTOMER en verkeerde-host denial.",
+      testIds: [
+        "FG-PORTAL-C-001",
+        "FG-PORTAL-C-002",
+        "FG-PORTAL-C-003",
+        "FG-PORTAL-C-004",
+      ],
+      nextAction:
+        "Draai klantportaal smoke met A-CUSTOMER en verkeerde-host denial.",
     },
     {
       id: "FG-LIVE-PERSONNEL-PLANNING",
@@ -209,17 +263,28 @@ function buildLiveSmokes(checks: PlatformSmokeCheck[], totals: PlatformStagingSm
       route: "/app",
       command: "Playwright personeelsapp Home/Planning actualiteit smoke.",
       testIds: ["FG-PORTAL-P-001", "FG-PORTAL-P-002", "FG-PORTAL-P-005"],
-      nextAction: "Controleer personeelsplanning na wijziging met realtime event of zichtbare minuut-refresh.",
+      nextAction:
+        "Controleer personeelsplanning na wijziging met realtime event of zichtbare minuut-refresh.",
     },
     {
       id: "FG-LIVE-STORAGE-PDF",
       label: "Storage en PDF/downloads",
-      status: checkStatus("FG-SMOKE-STORAGE") === "ok" && checkStatus("FG-SMOKE-PDF-DOWNLOADS") === "ok" ? "ok" : "manual",
+      status:
+        checkStatus("FG-SMOKE-STORAGE") === "ok" &&
+        checkStatus("FG-SMOKE-PDF-DOWNLOADS") === "ok"
+          ? "ok"
+          : "manual",
       host: "demo-a.fieldgrid.nl",
       route: "/documents",
       command: "Playwright signed URL/path guessing en PDF-download smoke.",
-      testIds: ["FG-STORAGE-001", "FG-STORAGE-002", "FG-DATA-004", "FG-AUDIT-001"],
-      nextAction: "Download tenantdocument/PDF en bevestig audit plus Tenant B denial.",
+      testIds: [
+        "FG-STORAGE-001",
+        "FG-STORAGE-002",
+        "FG-DATA-004",
+        "FG-AUDIT-001",
+      ],
+      nextAction:
+        "Download tenantdocument/PDF en bevestig audit plus Tenant B denial.",
     },
   ];
 }
@@ -228,8 +293,11 @@ function buildMigrationSmokeStatus(
   totals: PlatformStagingSmokeDashboard["totals"],
   runHistory: PlatformSmokeRunHistoryEntry[],
 ): PlatformMigrationSmokeStatus {
-  const latestRun = runHistory.find((run) => run.kind === "migration-smoke") ?? null;
-  const status = latestRun?.status ?? (totals.migrationHistoryTables >= 2 ? "warning" : "blocked");
+  const latestRun =
+    runHistory.find((run) => run.kind === "migration-smoke") ?? null;
+  const status =
+    latestRun?.status ??
+    (totals.migrationHistoryTables >= 2 ? "warning" : "blocked");
 
   return {
     status,
@@ -240,7 +308,9 @@ function buildMigrationSmokeStatus(
       {
         id: "empty-database",
         label: "Lege database",
-        status: latestRun?.checks.includes("empty-database") ? latestRun.status : "manual",
+        status: latestRun?.checks.includes("empty-database")
+          ? latestRun.status
+          : "manual",
         requiredSecret: "FIELDGRID_MIGRATION_SMOKE_EMPTY_DATABASE_URL",
         confirmVar: "FIELDGRID_MIGRATION_SMOKE_EMPTY_CONFIRM",
         testIds: ["FG-MIG-001", "FG-MIG-003"],
@@ -248,7 +318,9 @@ function buildMigrationSmokeStatus(
       {
         id: "staging-copy",
         label: "Staging-copy",
-        status: latestRun?.checks.includes("staging-copy") ? latestRun.status : "manual",
+        status: latestRun?.checks.includes("staging-copy")
+          ? latestRun.status
+          : "manual",
         requiredSecret: "FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_DATABASE_URL",
         confirmVar: "FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_CONFIRM",
         testIds: ["FG-MIG-002", "FG-MIG-003"],
@@ -260,10 +332,13 @@ function buildMigrationSmokeStatus(
   };
 }
 
-function buildMutatingChecks(totals: PlatformStagingSmokeDashboard["totals"]): PlatformMutatingSmokeCheck[] {
+function buildMutatingChecks(
+  totals: PlatformStagingSmokeDashboard["totals"],
+): PlatformMutatingSmokeCheck[] {
   const demoTenantsReady = totals.demoTenants >= 3;
   const status: PlatformSmokeStatus = demoTenantsReady ? "manual" : "blocked";
-  const cleanupStatus: PlatformMutatingSmokeCheck["cleanupStatus"] = demoTenantsReady ? "ready" : "not-configured";
+  const cleanupStatus: PlatformMutatingSmokeCheck["cleanupStatus"] =
+    demoTenantsReady ? "ready" : "not-configured";
 
   return [
     {
@@ -275,7 +350,8 @@ function buildMutatingChecks(totals: PlatformStagingSmokeDashboard["totals"]): P
       confirmVar: "FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only",
       cleanupSelector: "fieldgrid-sprint-15-mutating-lifecycle",
       testIds: ["FG-LIFE-001", "FG-LIFE-002", "FG-PLATFORM-004"],
-      nextAction: "Voer alleen uit op demo-a en herstel status direct in dezelfde run.",
+      nextAction:
+        "Voer alleen uit op demo-a en herstel status direct in dezelfde run.",
     },
     {
       id: "FG-MUTATE-SUPPORT-GRANT",
@@ -286,7 +362,8 @@ function buildMutatingChecks(totals: PlatformStagingSmokeDashboard["totals"]): P
       confirmVar: "FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only",
       cleanupSelector: "fieldgrid-sprint-15-mutating-support",
       testIds: ["FG-SUPPORT-002", "FG-SUPPORT-003", "FG-PLATFORM-006"],
-      nextAction: "Maak een korte grant met marker en revoke hem voordat de run eindigt.",
+      nextAction:
+        "Maak een korte grant met marker en revoke hem voordat de run eindigt.",
     },
     {
       id: "FG-MUTATE-DOCUMENT-DOWNLOAD",
@@ -297,7 +374,8 @@ function buildMutatingChecks(totals: PlatformStagingSmokeDashboard["totals"]): P
       confirmVar: "FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only",
       cleanupSelector: "fieldgrid-sprint-15-mutating-document",
       testIds: ["FG-DATA-004", "FG-STORAGE-001", "FG-AUDIT-001"],
-      nextAction: "Gebruik marker-scoped demo-documenten en verwijder alleen die markerdata.",
+      nextAction:
+        "Gebruik marker-scoped demo-documenten en verwijder alleen die markerdata.",
     },
   ];
 }
@@ -308,9 +386,15 @@ function buildFinalExternalTenantGate(input: {
   migrationSmoke: PlatformMigrationSmokeStatus;
   mutatingChecks: PlatformMutatingSmokeCheck[];
 }): PlatformFinalExternalTenantGate {
-  const blockedChecks = input.checks.filter((check) => check.status === "blocked");
-  const liveReady = input.liveSmokes.filter((smoke) => smoke.status === "ok").length;
-  const mutatingReady = input.mutatingChecks.every((check) => check.cleanupStatus === "ready");
+  const blockedChecks = input.checks.filter(
+    (check) => check.status === "blocked",
+  );
+  const liveReady = input.liveSmokes.filter(
+    (smoke) => smoke.status === "ok",
+  ).length;
+  const mutatingReady = input.mutatingChecks.every(
+    (check) => check.cleanupStatus === "ready",
+  );
   const smokeChecksGreen = blockedChecks.length === 0;
   const migrationReady = input.migrationSmoke.status === "ok";
 
@@ -319,46 +403,71 @@ function buildFinalExternalTenantGate(input: {
       id: "FG-FINAL-PERFORMANCE",
       label: "Performance review op tenantqueries",
       status: "manual",
-      evidence: "EXPLAIN ANALYZE voor tenantlijst, direct-ID, dashboardstatistieken, planning en storage/download queries.",
+      evidence:
+        "EXPLAIN ANALYZE voor tenantlijst, direct-ID, dashboardstatistieken, planning en storage/download queries.",
       command: "pnpm fieldgrid:sprint16-final-gate:check",
       testIds: ["FG-HOST-001", "FG-DATA-001", "FG-DATA-003", "FG-OPS-003"],
-      nextAction: "Leg runtime EXPLAIN-output vast in artifacts/final-gate voordat de eerste externe tenant live gaat.",
+      nextAction:
+        "Leg runtime EXPLAIN-output vast in artifacts/final-gate voordat de eerste externe tenant live gaat.",
     },
     {
       id: "FG-FINAL-SERVICE-ROLE",
       label: "Security review op service-role gebruik",
       status: "warning",
-      evidence: "SUPABASE_SERVICE_ROLE_KEY blijft server-only en wordt niet via NEXT_PUBLIC gepubliceerd.",
+      evidence:
+        "SUPABASE_SERVICE_ROLE_KEY blijft server-only en wordt niet via NEXT_PUBLIC gepubliceerd.",
       command: "pnpm fieldgrid:sprint16-final-gate:check",
-      testIds: ["FG-PORTAL-C-001", "FG-PORTAL-P-001", "FG-STORAGE-001", "FG-AUDIT-002"],
-      nextAction: "Controleer admin clients en service-role Drizzle paden per portalactie met tenant-scope bewijs.",
+      testIds: [
+        "FG-PORTAL-C-001",
+        "FG-PORTAL-P-001",
+        "FG-STORAGE-001",
+        "FG-AUDIT-002",
+      ],
+      nextAction:
+        "Controleer admin clients en service-role Drizzle paden per portalactie met tenant-scope bewijs.",
     },
     {
       id: "FG-FINAL-STAGING-COPY",
       label: "Final staging-copy smoke",
       status: migrationReady ? "ok" : "manual",
-      evidence: "Sprint 7 migration smoke runner met empty-database en staging-copy targets.",
+      evidence:
+        "Sprint 7 migration smoke runner met empty-database en staging-copy targets.",
       command: "pnpm fieldgrid:sprint7-migration-smoke --run --target all",
       testIds: ["FG-MIG-001", "FG-MIG-002", "FG-MIG-003"],
-      nextAction: "Draai tegen een herstelde staging-copy en koppel het JSON artifact aan de run history.",
+      nextAction:
+        "Draai tegen een herstelde staging-copy en koppel het JSON artifact aan de run history.",
     },
     {
       id: "FG-FINAL-RUNTIME-PROOF",
       label: "Runtime proof, storage proof en portal acceptance",
-      status: smokeChecksGreen && liveReady === input.liveSmokes.length ? "ok" : "manual",
-      evidence: "Sprint 5, 6, 7 en 15 scripts leveren contracten; live artifacts blijven vereist.",
-      command: "pnpm fieldgrid:sprint5-runtime-proof:check && pnpm fieldgrid:sprint6-portal-acceptance:check && pnpm fieldgrid:sprint15-staging-smoke:check",
-      testIds: ["FG-HOST-001", "FG-RBAC-001", "FG-STORAGE-002", "FG-PORTAL-C-004", "FG-PORTAL-P-005"],
-      nextAction: "Koppel live Playwright/storage/DB artifacts aan de staging smoke run history.",
+      status:
+        smokeChecksGreen && liveReady === input.liveSmokes.length
+          ? "ok"
+          : "manual",
+      evidence:
+        "Sprint 5, 6, 7 en 15 scripts leveren contracten; live artifacts blijven vereist.",
+      command:
+        "pnpm fieldgrid:sprint5-runtime-proof:check && pnpm fieldgrid:sprint6-portal-acceptance:check && pnpm fieldgrid:sprint15-staging-smoke:check",
+      testIds: [
+        "FG-HOST-001",
+        "FG-RBAC-001",
+        "FG-STORAGE-002",
+        "FG-PORTAL-C-004",
+        "FG-PORTAL-P-005",
+      ],
+      nextAction:
+        "Koppel live Playwright/storage/DB artifacts aan de staging smoke run history.",
     },
     {
       id: "FG-FINAL-EXTERNAL-TENANT",
       label: "Eerste externe tenant checklist",
       status: smokeChecksGreen && mutatingReady ? "manual" : "blocked",
-      evidence: "docs/fieldgrid-first-external-tenant-checklist.md is het go/no-go contract.",
+      evidence:
+        "docs/fieldgrid-first-external-tenant-checklist.md is het go/no-go contract.",
       command: "pnpm fieldgrid:sprint16-final-gate:check",
       testIds: ["FG-OPS-001", "FG-OPS-002", "FG-OPS-008", "FG-PLATFORM-004"],
-      nextAction: "Gebruik de checklist als releaseformulier en noteer expliciete owner per manual check.",
+      nextAction:
+        "Gebruik de checklist als releaseformulier en noteer expliciete owner per manual check.",
     },
   ];
 
@@ -369,7 +478,8 @@ function buildFinalExternalTenantGate(input: {
       risk: "P0/P1",
       owner: "Platform engineering",
       acceptedUntil: "Voor eerste externe tenant met productiegegevens",
-      targetEvidence: "Playwright + integration artifacts voor Tenant A/B/Veele host, RBAC, lifecycle en direct-ID denials.",
+      targetEvidence:
+        "Playwright + integration artifacts voor Tenant A/B/Veele host, RBAC, lifecycle en direct-ID denials.",
       testIds: ["FG-HOST-001", "FG-LIFE-002", "FG-RBAC-002", "FG-DATA-001"],
       requiresGoNoGoApproval: true,
     },
@@ -379,8 +489,14 @@ function buildFinalExternalTenantGate(input: {
       risk: "P0/P1",
       owner: "Platform engineering",
       acceptedUntil: "Voor externe tenant document/media gebruik",
-      targetEvidence: "Tenant-prefixed storage artifact, path-guessing denial en policy/RLS bewijs.",
-      testIds: ["FG-STORAGE-001", "FG-STORAGE-002", "FG-STORAGE-006", "FG-STORAGE-007"],
+      targetEvidence:
+        "Tenant-prefixed storage artifact, path-guessing denial en policy/RLS bewijs.",
+      testIds: [
+        "FG-STORAGE-001",
+        "FG-STORAGE-002",
+        "FG-STORAGE-006",
+        "FG-STORAGE-007",
+      ],
       requiresGoNoGoApproval: true,
     },
     {
@@ -389,8 +505,14 @@ function buildFinalExternalTenantGate(input: {
       risk: "P0/P1",
       owner: "Portal engineering",
       acceptedUntil: "Voor uitnodiging eerste externe portalgebruiker",
-      targetEvidence: "Live Playwright artifacts voor wrong-host, module-off, downloads, media en planning refresh.",
-      testIds: ["FG-PORTAL-C-001", "FG-PORTAL-C-004", "FG-PORTAL-P-003", "FG-PORTAL-P-005"],
+      targetEvidence:
+        "Live Playwright artifacts voor wrong-host, module-off, downloads, media en planning refresh.",
+      testIds: [
+        "FG-PORTAL-C-001",
+        "FG-PORTAL-C-004",
+        "FG-PORTAL-P-003",
+        "FG-PORTAL-P-005",
+      ],
       requiresGoNoGoApproval: true,
     },
     {
@@ -399,7 +521,8 @@ function buildFinalExternalTenantGate(input: {
       risk: "P0/P1",
       owner: "Platform engineering",
       acceptedUntil: "Voor main-to-staging promotie met schemawijziging",
-      targetEvidence: "artifacts/migration-smoke JSON voor empty-database en staging-copy.",
+      targetEvidence:
+        "artifacts/migration-smoke JSON voor empty-database en staging-copy.",
       testIds: ["FG-MIG-001", "FG-MIG-002", "FG-MIG-003"],
       requiresGoNoGoApproval: true,
     },
@@ -409,7 +532,8 @@ function buildFinalExternalTenantGate(input: {
       risk: "P1",
       owner: "Platform engineering",
       acceptedUntil: "Voor eerste externe tenant security review",
-      targetEvidence: "Security dashboard toont support, download, PDF, module-denial en storage-denial events per tenant.",
+      targetEvidence:
+        "Security dashboard toont support, download, PDF, module-denial en storage-denial events per tenant.",
       testIds: ["FG-AUDIT-001", "FG-AUDIT-002", "FG-AUDIT-004", "FG-OPS-005"],
       requiresGoNoGoApproval: true,
     },
@@ -419,16 +543,29 @@ function buildFinalExternalTenantGate(input: {
       risk: "P1/P2",
       owner: "Product engineering",
       acceptedUntil: "Na SaaS proof of aparte roadmap",
-      targetEvidence: "Module/RBAC/storage/audit tests zodra de volledige module wordt geactiveerd voor externe tenants.",
+      targetEvidence:
+        "Module/RBAC/storage/audit tests zodra de volledige module wordt geactiveerd voor externe tenants.",
       testIds: ["FG-MODULE-001", "FG-AUDIT-001"],
       requiresGoNoGoApproval: true,
     },
   ];
 
-  const hardBlocked = requirements.some((requirement) => requirement.status === "blocked");
-  const allReady = requirements.every((requirement) => requirement.status === "ok");
-  const status: PlatformSmokeStatus = hardBlocked ? "blocked" : allReady ? "ok" : "warning";
-  const decision: PlatformFinalExternalTenantGate["decision"] = hardBlocked ? "blocked" : allReady ? "ready" : "conditional-go";
+  const hardBlocked = requirements.some(
+    (requirement) => requirement.status === "blocked",
+  );
+  const allReady = requirements.every(
+    (requirement) => requirement.status === "ok",
+  );
+  const status: PlatformSmokeStatus = hardBlocked
+    ? "blocked"
+    : allReady
+      ? "ok"
+      : "warning";
+  const decision: PlatformFinalExternalTenantGate["decision"] = hardBlocked
+    ? "blocked"
+    : allReady
+      ? "ready"
+      : "conditional-go";
 
   return {
     status,
@@ -453,12 +590,22 @@ function buildPlatformAdminReleaseGate(input: {
   finalExternalTenantGate: PlatformFinalExternalTenantGate;
 }): PlatformAdminReleaseGate {
   const checkById = new Map(input.checks.map((check) => [check.id, check]));
-  const liveSmokeById = new Map(input.liveSmokes.map((smoke) => [smoke.id, smoke]));
-  const mutatingById = new Map(input.mutatingChecks.map((check) => [check.id, check]));
-  const hostSmokeStatus = liveSmokeById.get("FG-LIVE-HOST")?.status ?? checkById.get("FG-SMOKE-HOST")?.status ?? "manual";
-  const loginStatus = checkById.get("FG-SMOKE-LOGIN")?.status === "ok" ? "manual" : "blocked";
-  const lifecycleStatus = mutatingById.get("FG-MUTATE-LIFECYCLE")?.status ?? "manual";
-  const auditStatus = checkById.get("FG-SMOKE-AUDIT")?.status === "ok" ? "manual" : "blocked";
+  const liveSmokeById = new Map(
+    input.liveSmokes.map((smoke) => [smoke.id, smoke]),
+  );
+  const mutatingById = new Map(
+    input.mutatingChecks.map((check) => [check.id, check]),
+  );
+  const hostSmokeStatus =
+    liveSmokeById.get("FG-LIVE-HOST")?.status ??
+    checkById.get("FG-SMOKE-HOST")?.status ??
+    "manual";
+  const loginStatus =
+    checkById.get("FG-SMOKE-LOGIN")?.status === "ok" ? "manual" : "blocked";
+  const lifecycleStatus =
+    mutatingById.get("FG-MUTATE-LIFECYCLE")?.status ?? "manual";
+  const auditStatus =
+    checkById.get("FG-SMOKE-AUDIT")?.status === "ok" ? "manual" : "blocked";
 
   const items: PlatformAdminReleaseGateItem[] = [
     {
@@ -469,10 +616,18 @@ function buildPlatformAdminReleaseGate(input: {
       persona: "owner",
       host: "admin.fieldgrid.nl",
       route: "/platform",
-      command: "Run platform owner/admin/support Playwright smoke met drie ingelogde accounts.",
-      evidence: "Screenshots en trace artifacts voor /platform, /platform/security, /platform/users en support-only denials.",
-      testIds: ["FG-PLATFORM-001", "FG-PLATFORM-002", "FG-PLATFORM-003", "FG-SUPPORT-001"],
-      nextAction: "Bevestig owner/admin/support autorisaties op staging en voeg artifacts toe aan artifacts/platform-admin-final-gate.",
+      command:
+        "Run platform owner/admin/support Playwright smoke met drie ingelogde accounts.",
+      evidence:
+        "Screenshots en trace artifacts voor /platform, /platform/security, /platform/users en support-only denials.",
+      testIds: [
+        "FG-PLATFORM-001",
+        "FG-PLATFORM-002",
+        "FG-PLATFORM-003",
+        "FG-SUPPORT-001",
+      ],
+      nextAction:
+        "Bevestig owner/admin/support autorisaties op staging en voeg artifacts toe aan artifacts/platform-admin-final-gate.",
       blocksRelease: true,
     },
     {
@@ -483,10 +638,13 @@ function buildPlatformAdminReleaseGate(input: {
       persona: "tenant-a-b-veele",
       host: "demo-a.fieldgrid.nl, demo-b.fieldgrid.nl, veele.fieldgrid.nl",
       route: "/admin, /klant, /personeel",
-      command: "Playwright host-first smoke voor Tenant A/B/Veele plus wrong-host denial.",
-      evidence: "Browser traces tonen dat hostcontext leidend is en directe tenant-id routes niet lekken.",
+      command:
+        "Playwright host-first smoke voor Tenant A/B/Veele plus wrong-host denial.",
+      evidence:
+        "Browser traces tonen dat hostcontext leidend is en directe tenant-id routes niet lekken.",
       testIds: ["FG-HOST-001", "FG-HOST-002", "FG-HOST-003", "FG-DATA-001"],
-      nextAction: "Draai host-first smoke met Tenant A/B/Veele fixtures en noteer run-id in het releaseformulier.",
+      nextAction:
+        "Draai host-first smoke met Tenant A/B/Veele fixtures en noteer run-id in het releaseformulier.",
       blocksRelease: true,
     },
     {
@@ -497,10 +655,13 @@ function buildPlatformAdminReleaseGate(input: {
       persona: "enterprise",
       host: "enterprise-demo custom domain",
       route: "/admin",
-      command: "Voeg een Enterprise custom domain toe, verifieer DNS/TLS en open tenant via dat domein.",
-      evidence: "tenant_domains check artifact plus browser screenshot op custom domain.",
+      command:
+        "Voeg een Enterprise custom domain toe, verifieer DNS/TLS en open tenant via dat domein.",
+      evidence:
+        "tenant_domains check artifact plus browser screenshot op custom domain.",
       testIds: ["FG-HOST-006", "FG-PLATFORM-004", "FG-OPS-008"],
-      nextAction: "Gebruik een staging custom domain met DNS TXT en Caddy on-demand TLS voordat productie wordt vrijgegeven.",
+      nextAction:
+        "Gebruik een staging custom domain met DNS TXT en Caddy on-demand TLS voordat productie wordt vrijgegeven.",
       blocksRelease: true,
     },
     {
@@ -511,10 +672,13 @@ function buildPlatformAdminReleaseGate(input: {
       persona: "non-enterprise",
       host: "starter/professional tenant",
       route: "/platform/tenants/:tenantId?tab=domains",
-      command: "Probeer custom domain toe te voegen op non-Enterprise tenant en bevestig server-side denial.",
-      evidence: "UI-disabled screenshot plus server action/audit denial artifact.",
+      command:
+        "Probeer custom domain toe te voegen op non-Enterprise tenant en bevestig server-side denial.",
+      evidence:
+        "UI-disabled screenshot plus server action/audit denial artifact.",
       testIds: ["FG-HOST-006", "FG-PLATFORM-005", "FG-AUDIT-001"],
-      nextAction: "Leg denied action en audit-event vast met Starter of Professional tenant.",
+      nextAction:
+        "Leg denied action en audit-event vast met Starter of Professional tenant.",
       blocksRelease: true,
     },
     {
@@ -525,10 +689,13 @@ function buildPlatformAdminReleaseGate(input: {
       persona: "platform",
       host: "api/internal",
       route: "/internal/caddy/ask-domain",
-      command: "curl ask-domain voor verified Enterprise, pending, disabled, non-Enterprise en onbekend domein.",
-      evidence: "HTTP 200 alleen voor verified/active Enterprise domain; alle andere requests 403.",
+      command:
+        "curl ask-domain voor verified Enterprise, pending, disabled, non-Enterprise en onbekend domein.",
+      evidence:
+        "HTTP 200 alleen voor verified/active Enterprise domain; alle andere requests 403.",
       testIds: ["FG-HOST-006", "FG-OPS-008", "FG-AUDIT-004"],
-      nextAction: "Draai vanaf de VPS of CI met interne API URL en voeg statusmatrix toe aan het gate artifact.",
+      nextAction:
+        "Draai vanaf de VPS of CI met interne API URL en voeg statusmatrix toe aan het gate artifact.",
       blocksRelease: true,
     },
     {
@@ -539,10 +706,12 @@ function buildPlatformAdminReleaseGate(input: {
       persona: "platform",
       host: "admin.fieldgrid.nl",
       route: "/platform/tenants/:tenantId",
-      command: "Suspend/reactivate/archive/retry smoke op demo tenant met rollback.",
+      command:
+        "Suspend/reactivate/archive/retry smoke op demo tenant met rollback.",
       evidence: "Mutating smoke run met marker-scoped cleanup en audit-events.",
       testIds: ["FG-LIFE-001", "FG-LIFE-002", "FG-PLATFORM-004"],
-      nextAction: "Voer alleen uit met FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only.",
+      nextAction:
+        "Voer alleen uit met FIELDGRID_MUTATING_SMOKE_CONFIRM=demo-tenants-only.",
       blocksRelease: true,
     },
     {
@@ -553,8 +722,10 @@ function buildPlatformAdminReleaseGate(input: {
       persona: "platform",
       host: "admin.fieldgrid.nl",
       route: "/platform/subscriptions",
-      command: "Downgrade Enterprise naar Professional/Starter en bevestig disabled_plan voor custom domains.",
-      evidence: "Subscription update artifact, disabled custom-domain status en audit-event.",
+      command:
+        "Downgrade Enterprise naar Professional/Starter en bevestig disabled_plan voor custom domains.",
+      evidence:
+        "Subscription update artifact, disabled custom-domain status en audit-event.",
       testIds: ["FG-OPS-003", "FG-HOST-006", "FG-AUDIT-001"],
       nextAction: "Gebruik demo Enterprise tenant en herstel plan na de smoke.",
       blocksRelease: true,
@@ -567,10 +738,12 @@ function buildPlatformAdminReleaseGate(input: {
       persona: "support",
       host: "admin.fieldgrid.nl",
       route: "/platform/tickets",
-      command: "Maak platformticket, voeg interne notitie toe, wijzig status/SLA en sluit ticket.",
+      command:
+        "Maak platformticket, voeg interne notitie toe, wijzig status/SLA en sluit ticket.",
       evidence: "Ticketdetail screenshot en platform_ticket_* audit-events.",
       testIds: ["FG-SUPPORT-001", "FG-SUPPORT-004", "FG-AUDIT-001"],
-      nextAction: "Draai ticket lifecycle met supportaccount en bevestig owner/admin toegang.",
+      nextAction:
+        "Draai ticket lifecycle met supportaccount en bevestig owner/admin toegang.",
       blocksRelease: true,
     },
     {
@@ -581,10 +754,13 @@ function buildPlatformAdminReleaseGate(input: {
       persona: "admin",
       host: "admin.fieldgrid.nl",
       route: "/platform/notifications",
-      command: "Maak template dispatch voor specifieke tenant owners en controleer ontvangersnapshot.",
-      evidence: "Recipient preview, dispatch history en platform_notification_dispatch_created audit-event.",
+      command:
+        "Maak template dispatch voor specifieke tenant owners en controleer ontvangersnapshot.",
+      evidence:
+        "Recipient preview, dispatch history en platform_notification_dispatch_created audit-event.",
       testIds: ["FG-PORTAL-C-004", "FG-AUDIT-001", "FG-PLATFORM-005"],
-      nextAction: "Gebruik een interne stagingtemplate en verstuur niet naar productieadressen.",
+      nextAction:
+        "Gebruik een interne stagingtemplate en verstuur niet naar productieadressen.",
       blocksRelease: true,
     },
     {
@@ -595,10 +771,12 @@ function buildPlatformAdminReleaseGate(input: {
       persona: "admin",
       host: "admin.fieldgrid.nl",
       route: "/api/platform/security/export",
-      command: "Download CSV met tenant, actor, severity en supportGrant filters.",
+      command:
+        "Download CSV met tenant, actor, severity en supportGrant filters.",
       evidence: "CSV artifact met expected headers en gefilterde auditregels.",
       testIds: ["FG-AUDIT-001", "FG-AUDIT-002", "FG-AUDIT-004"],
-      nextAction: "Draai export op staging en controleer dat metadata geen cross-tenant data lekt.",
+      nextAction:
+        "Draai export op staging en controleer dat metadata geen cross-tenant data lekt.",
       blocksRelease: true,
     },
     {
@@ -608,11 +786,14 @@ function buildPlatformAdminReleaseGate(input: {
       owner: "Platform engineering",
       persona: "ci",
       host: "admin.fieldgrid.nl",
-      route: "/platform, /platform/tenants, tenantdetail, domains, tickets, security",
+      route:
+        "/platform, /platform/tenants, tenantdetail, domains, tickets, security",
       command: "pnpm fieldgrid:platform-phase13-visual-smoke",
-      evidence: "390px, 768px en 1440px screenshots plus phase13-visual-smoke.json.",
+      evidence:
+        "390px, 768px en 1440px screenshots plus phase13-visual-smoke.json.",
       testIds: ["FG-OPS-008", "FG-PLATFORM-001"],
-      nextAction: "Draai met FIELDGRID_PLATFORM_PHASE13_COOKIE en tenant detail path.",
+      nextAction:
+        "Draai met FIELDGRID_PLATFORM_PHASE13_COOKIE en tenant detail path.",
       blocksRelease: true,
     },
     {
@@ -637,8 +818,10 @@ function buildPlatformAdminReleaseGate(input: {
       label: "Live runtime artifacts ontbreken in repository",
       severity: "P0",
       owner: "Platform engineering",
-      acceptedUntil: "Voor promotie van main naar staging en voor eerste productie-tenant",
-      targetEvidence: "artifacts/platform-admin-final-gate met role, host-first, lifecycle, subscription en domain smoke JSON.",
+      acceptedUntil:
+        "Voor promotie van main naar staging en voor eerste productie-tenant",
+      targetEvidence:
+        "artifacts/platform-admin-final-gate met role, host-first, lifecycle, subscription en domain smoke JSON.",
       goNoGoRequired: true,
     },
     {
@@ -647,15 +830,30 @@ function buildPlatformAdminReleaseGate(input: {
       severity: "P1",
       owner: "Platform engineering",
       acceptedUntil: "Voor releasecandidate markering",
-      targetEvidence: "artifacts/platform-mobile-polish/phase13-visual-smoke.json plus screenshots.",
+      targetEvidence:
+        "artifacts/platform-mobile-polish/phase13-visual-smoke.json plus screenshots.",
       goNoGoRequired: true,
     },
   ];
 
-  const blockedItems = items.filter((item) => item.blocksRelease && item.status === "blocked");
-  const openManualItems = items.filter((item) => item.blocksRelease && item.status !== "ok");
-  const status: PlatformSmokeStatus = blockedItems.length > 0 ? "blocked" : openManualItems.length > 0 ? "warning" : "ok";
-  const decision: PlatformAdminReleaseGate["decision"] = blockedItems.length > 0 ? "blocked" : openManualItems.length > 0 ? "conditional-go" : "ready";
+  const blockedItems = items.filter(
+    (item) => item.blocksRelease && item.status === "blocked",
+  );
+  const openManualItems = items.filter(
+    (item) => item.blocksRelease && item.status !== "ok",
+  );
+  const status: PlatformSmokeStatus =
+    blockedItems.length > 0
+      ? "blocked"
+      : openManualItems.length > 0
+        ? "warning"
+        : "ok";
+  const decision: PlatformAdminReleaseGate["decision"] =
+    blockedItems.length > 0
+      ? "blocked"
+      : openManualItems.length > 0
+        ? "conditional-go"
+        : "ready";
 
   return {
     status,
@@ -678,6 +876,178 @@ function buildPlatformAdminReleaseGate(input: {
       "pnpm fieldgrid:sprint15-staging-smoke:run-read-only",
       "pnpm fieldgrid:sprint7-migration-smoke --run --target all",
     ],
+  };
+}
+
+function buildStagingPromotionGate(input: {
+  runHistory: PlatformSmokeRunHistoryEntry[];
+  liveSmokes: PlatformLiveSmokeTarget[];
+  migrationSmoke: PlatformMigrationSmokeStatus;
+  finalExternalTenantGate: PlatformFinalExternalTenantGate;
+  platformAdminReleaseGate: PlatformAdminReleaseGate;
+}): PlatformStagingPromotionGate {
+  const stagingEvidenceRuns = input.runHistory.filter(
+    (run) => run.kind === "staging-smoke" && run.artifactPath,
+  );
+  const migrationEvidenceRuns = input.runHistory.filter(
+    (run) => run.kind === "migration-smoke" && run.artifactPath,
+  );
+  const liveBlocked = input.liveSmokes.some(
+    (smoke) => smoke.status === "blocked",
+  );
+  const liveReady =
+    input.liveSmokes.length > 0 &&
+    input.liveSmokes.every((smoke) => smoke.status === "ok");
+
+  const signals: PlatformStagingPromotionGateSignal[] = [
+    {
+      id: "FG-OPS-CI-MIGRATION-ORDER",
+      label: "Migratievolgorde en naming",
+      status: "manual" as const,
+      owner: "Platform engineering",
+      command: "pnpm fieldgrid:migration-order-check:check",
+      evidence:
+        "CI bewaakt legacy numerieke migraties, timestamp-cutover en nieuwe naming.",
+      nextAction: "Laat de CI-check groen zijn voordat main naar staging gaat.",
+      testIds: ["FG-MIG-001", "FG-MIG-002", "FG-MIG-003"],
+      blocksPromotion: true,
+    },
+    {
+      id: "FG-OPS-CI-TEST-LAYERS",
+      label: "Security/UI/DB/live testlagen",
+      status: "manual" as const,
+      owner: "Platform engineering",
+      command: "pnpm fieldgrid:test-layers:check",
+      evidence:
+        "Testlagenmanifest splitst security guards, UI contracttests, DB/migration smoke en live E2E.",
+      nextAction:
+        "Draai minimaal de security- en DB-lagen voor risicovolle PR's.",
+      testIds: ["FG-RBAC-001", "FG-STORAGE-001", "FG-OPS-008"],
+      blocksPromotion: true,
+    },
+    {
+      id: "FG-OPS-CI-RUN-HISTORY",
+      label: "Run history evidence",
+      status:
+        stagingEvidenceRuns.length > 0 && migrationEvidenceRuns.length > 0
+          ? "ok"
+          : "warning",
+      owner: "Platform operations",
+      command:
+        "pnpm fieldgrid:sprint15-staging-smoke:run-read-only && pnpm fieldgrid:sprint7-migration-smoke --run --target all",
+      evidence: `${stagingEvidenceRuns.length} staging-smoke artifact(s), ${migrationEvidenceRuns.length} migration-smoke artifact(s).`,
+      nextAction:
+        "Koppel de laatste JSON artifacts aan de release en controleer dat ze in run history verschijnen.",
+      testIds: ["FG-LIVE-HOST", "FG-LIVE-STORAGE", "FG-OPS-008"],
+      blocksPromotion: true,
+    },
+    {
+      id: "FG-OPS-CI-LIVE-E2E",
+      label: "Live E2E targets",
+      status: liveBlocked ? "blocked" : liveReady ? "ok" : "manual",
+      owner: "Platform operations",
+      command: "pnpm fieldgrid:sprint15-staging-smoke:run-read-only",
+      evidence: `${input.liveSmokes.filter((smoke) => smoke.status === "ok").length}/${input.liveSmokes.length} live smoke targets groen.`,
+      nextAction:
+        "Draai host, login, storage/download, portaal en personeelsplanning smokes op staging.",
+      testIds: [
+        "FG-LIVE-HOST",
+        "FG-LIVE-LOGIN",
+        "FG-LIVE-STORAGE",
+        "FG-LIVE-PERSONNEL-PLANNING",
+      ],
+      blocksPromotion: true,
+    },
+    {
+      id: "FG-OPS-CI-MIGRATION-SMOKE",
+      label: "Migration smoke evidence",
+      status: input.migrationSmoke.latestRun
+        ? input.migrationSmoke.status
+        : "warning",
+      owner: "Platform engineering",
+      command: "pnpm fieldgrid:sprint7-migration-smoke --run --target all",
+      evidence: input.migrationSmoke.latestRun
+        ? `Laatste artifact: ${input.migrationSmoke.latestRun.artifactPath ?? input.migrationSmoke.latestRun.source}`
+        : "Nog geen migration-smoke artifact in run history.",
+      nextAction:
+        "Draai lege database en staging-copy smoke voor migratie-PR's.",
+      testIds: ["FG-MIG-001", "FG-MIG-002", "FG-MIG-003"],
+      blocksPromotion: true,
+    },
+    {
+      id: "FG-OPS-CI-FINAL-GATES",
+      label: "Final en platform-admin gates",
+      status:
+        input.finalExternalTenantGate.status === "blocked" ||
+        input.platformAdminReleaseGate.status === "blocked"
+          ? "blocked"
+          : input.finalExternalTenantGate.status === "ok" &&
+              input.platformAdminReleaseGate.status === "ok"
+            ? "ok"
+            : "warning",
+      owner: "Platform engineering",
+      command:
+        "pnpm fieldgrid:sprint16-final-gate:check && pnpm fieldgrid:platform-admin-final-gate:check",
+      evidence: `${input.finalExternalTenantGate.decision}; platform-admin ${input.platformAdminReleaseGate.decision}.`,
+      nextAction:
+        "Los blokkerende gate-items op of leg handmatige evidence met owner vast.",
+      testIds: [
+        "FG-FINAL-STAGING-COPY",
+        "FG-FINAL-EXTERNAL-TENANT",
+        "FG-PA-GATE-HOST-FIRST",
+      ],
+      blocksPromotion: true,
+    },
+  ];
+
+  const blockingSignals = signals.filter(
+    (signal) => signal.blocksPromotion && signal.status === "blocked",
+  );
+  const openSignals = signals.filter((signal) => signal.status !== "ok");
+  const status: PlatformSmokeStatus =
+    blockingSignals.length > 0
+      ? "blocked"
+      : openSignals.length > 0
+        ? "warning"
+        : "ok";
+  const decision: PlatformStagingPromotionGate["decision"] =
+    status === "ok"
+      ? "ready"
+      : status === "blocked"
+        ? "blocked"
+        : "conditional-go";
+
+  return {
+    status,
+    decision,
+    summary:
+      decision === "ready"
+        ? "Staging promotion gate is groen met gekoppelde runtime evidence."
+        : decision === "blocked"
+          ? "Staging promotion gate heeft blokkerende signalen voor main -> staging."
+          : "Staging promotion gate is conditioneel: CI-signalen en runtime evidence moeten aan de release worden gekoppeld.",
+    command: "pnpm fieldgrid:staging-promotion-gate:check",
+    checklist: "docs/fieldgrid-staging-promotion-checklist.md",
+    reportDirectory: "artifacts/staging-promotion-gate",
+    evidenceDirectories: [
+      "artifacts/staging-smoke",
+      "artifacts/migration-smoke",
+      "artifacts/platform-admin-final-gate",
+      "artifacts/final-gate",
+      "artifacts/staging-promotion-gate",
+    ],
+    signals,
+    requiredCommands: [
+      "pnpm fieldgrid:migration-order-check:check",
+      "pnpm fieldgrid:test-layers:check",
+      "pnpm fieldgrid:sprint7-migration-smoke:check",
+      "pnpm fieldgrid:sprint15-staging-smoke:check",
+      "pnpm fieldgrid:staging-promotion-gate:check",
+    ],
+    evidenceRuns: [...stagingEvidenceRuns, ...migrationEvidenceRuns].slice(
+      0,
+      6,
+    ),
   };
 }
 
@@ -765,103 +1135,200 @@ export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagin
   const stagingHost = "staging.fieldgrid.nl";
   const platformHostKnown = isPlatformHost(platformHost);
   const stagingHostKnown = isPlatformHost(stagingHost);
-  const documentSurface = totals.documents + totals.reports + totals.quotes + totals.invoices;
+  const documentSurface =
+    totals.documents + totals.reports + totals.quotes + totals.invoices;
 
   const checks = [
     makeCheck({
       id: "FG-SMOKE-HOST",
       label: "Host en domeinen",
-      status: platformHostKnown && stagingHostKnown && totals.verifiedTenantDomains > 0 ? "ok" : "warning",
+      status:
+        platformHostKnown &&
+        stagingHostKnown &&
+        totals.verifiedTenantDomains > 0
+          ? "ok"
+          : "warning",
       summary: `${totals.verifiedTenantDomains}/${totals.tenantDomains} tenantdomeinen verified`,
-      detail: "Controleert platform.fieldgrid.nl, staging.fieldgrid.nl en geverifieerde tenantdomeinen zonder hostcontext te overschrijven.",
+      detail:
+        "Controleert platform.fieldgrid.nl, staging.fieldgrid.nl en geverifieerde tenantdomeinen zonder hostcontext te overschrijven.",
       testIds: ["FG-HOST-001", "FG-HOST-002", "FG-HOST-003", "FG-HOST-004"],
-      nextAction: "Voer Playwright host-first smoke uit voor platform-, staging- en tenanthosts.",
+      nextAction:
+        "Voer Playwright host-first smoke uit voor platform-, staging- en tenanthosts.",
     }),
     makeCheck({
       id: "FG-SMOKE-LOGIN",
       label: "Login en identiteit",
-      status: totals.activePlatformUsers > 0 && totals.activeTenantUsers > 0 ? "ok" : "blocked",
+      status:
+        totals.activePlatformUsers > 0 && totals.activeTenantUsers > 0
+          ? "ok"
+          : "blocked",
       summary: `${totals.activePlatformUsers} actieve platformgebruiker(s), ${totals.activeTenantUsers} actieve tenantgebruiker(s)`,
-      detail: "Bewijst dat platform- en tenantidentiteit aanwezig zijn voor operationele staging-smokes.",
-      testIds: ["FG-PLATFORM-001", "FG-PLATFORM-002", "FG-PLATFORM-003", "FG-RBAC-001"],
-      nextAction: "Controleer handmatig login voor platform owner en Tenant A/B/Veele actoren.",
+      detail:
+        "Bewijst dat platform- en tenantidentiteit aanwezig zijn voor operationele staging-smokes.",
+      testIds: [
+        "FG-PLATFORM-001",
+        "FG-PLATFORM-002",
+        "FG-PLATFORM-003",
+        "FG-RBAC-001",
+      ],
+      nextAction:
+        "Controleer handmatig login voor platform owner en Tenant A/B/Veele actoren.",
     }),
     makeCheck({
       id: "FG-SMOKE-MODULES",
       label: "Modules",
-      status: totals.moduleCatalog > 0 && totals.tenantsWithEnabledModules > 0 ? "ok" : "warning",
+      status:
+        totals.moduleCatalog > 0 && totals.tenantsWithEnabledModules > 0
+          ? "ok"
+          : "warning",
       summary: `${totals.enabledTenantModules} tenantmodule-koppelingen actief over ${totals.tenantsWithEnabledModules} tenant(s)`,
-      detail: "Smoke voor plan/module seed en tenant-entitlements voordat module-off tests naar staging gaan.",
-      testIds: ["FG-MODULE-001", "FG-MODULE-002", "FG-MODULE-003", "FG-MODULE-005"],
-      nextAction: "Controleer module-off denial via UI, directe URL, server action en API.",
+      detail:
+        "Smoke voor plan/module seed en tenant-entitlements voordat module-off tests naar staging gaan.",
+      testIds: [
+        "FG-MODULE-001",
+        "FG-MODULE-002",
+        "FG-MODULE-003",
+        "FG-MODULE-005",
+      ],
+      nextAction:
+        "Controleer module-off denial via UI, directe URL, server action en API.",
     }),
     makeCheck({
       id: "FG-SMOKE-SECTORS",
       label: "Sectoren",
-      status: totals.tenantSectors > 0 && totals.tenantSectorSettings > 0 ? "ok" : "warning",
+      status:
+        totals.tenantSectors > 0 && totals.tenantSectorSettings > 0
+          ? "ok"
+          : "warning",
       summary: `${totals.tenantSectors} actieve tenantsectoren en ${totals.tenantSectorSettings} policyrecord(s)`,
-      detail: "Controleert dat tenantsectoren en sectorpolicy beschikbaar zijn voor harde server-side validatie.",
-      testIds: ["FG-SECTOR-001", "FG-SECTOR-002", "FG-SECTOR-003", "FG-SECTOR-006"],
+      detail:
+        "Controleert dat tenantsectoren en sectorpolicy beschikbaar zijn voor harde server-side validatie.",
+      testIds: [
+        "FG-SECTOR-001",
+        "FG-SECTOR-002",
+        "FG-SECTOR-003",
+        "FG-SECTOR-006",
+      ],
       nextAction: "Draai sector happy/denial smoke voor Tenant A en Tenant B.",
     }),
     makeCheck({
       id: "FG-SMOKE-STORAGE",
       label: "Storage",
-      status: totals.documents === 0 ? "manual" : totals.legacyDocumentPaths === 0 ? "ok" : "warning",
+      status:
+        totals.documents === 0
+          ? "manual"
+          : totals.legacyDocumentPaths === 0
+            ? "ok"
+            : "warning",
       summary: `${totals.tenantPrefixedDocuments}/${totals.documents} documenten tenant-prefixed, ${totals.legacyDocumentPaths} legacy pad(en)`,
-      detail: "Read-only indicatie of documentstorage tenant-prefixed is; fysieke Supabase policytests blijven apart verplicht.",
-      testIds: ["FG-STORAGE-001", "FG-STORAGE-002", "FG-STORAGE-006", "FG-STORAGE-007"],
-      nextAction: "Voer signed URL/path guessing smoke uit en plan legacy storage backfill waar nodig.",
+      detail:
+        "Read-only indicatie of documentstorage tenant-prefixed is; fysieke Supabase policytests blijven apart verplicht.",
+      testIds: [
+        "FG-STORAGE-001",
+        "FG-STORAGE-002",
+        "FG-STORAGE-006",
+        "FG-STORAGE-007",
+      ],
+      nextAction:
+        "Voer signed URL/path guessing smoke uit en plan legacy storage backfill waar nodig.",
     }),
     makeCheck({
       id: "FG-SMOKE-PDF-DOWNLOADS",
       label: "PDF en downloads",
-      status: documentSurface > 0 && totals.downloadAuditEvents > 0 ? "ok" : "manual",
+      status:
+        documentSurface > 0 && totals.downloadAuditEvents > 0 ? "ok" : "manual",
       summary: `${documentSurface} downloadbare records, ${totals.downloadAuditEvents} download/PDF audit-event(s)`,
-      detail: "Koppelt document/report/quote/invoice oppervlak aan auditbewijs voor PDF- en downloadpaden.",
-      testIds: ["FG-DATA-004", "FG-DATA-005", "FG-DATA-006", "FG-DATA-007", "FG-AUDIT-001"],
-      nextAction: "Download document, report, quote en invoice via Tenant A en bevestig audit en Tenant B denial.",
+      detail:
+        "Koppelt document/report/quote/invoice oppervlak aan auditbewijs voor PDF- en downloadpaden.",
+      testIds: [
+        "FG-DATA-004",
+        "FG-DATA-005",
+        "FG-DATA-006",
+        "FG-DATA-007",
+        "FG-AUDIT-001",
+      ],
+      nextAction:
+        "Download document, report, quote en invoice via Tenant A en bevestig audit en Tenant B denial.",
     }),
     makeCheck({
       id: "FG-SMOKE-MIGRATIONS",
       label: "Migraties",
       status: totals.migrationHistoryTables >= 2 ? "ok" : "warning",
       summary: `${totals.migrationHistoryTables}/2 migration history tables gevonden`,
-      detail: "Controleert of Drizzle- en SQL-migration history aanwezig zijn; staging-copy smoke blijft het harde bewijs.",
+      detail:
+        "Controleert of Drizzle- en SQL-migration history aanwezig zijn; staging-copy smoke blijft het harde bewijs.",
       testIds: ["FG-MIG-001", "FG-MIG-002", "FG-MIG-003"],
-      nextAction: "Draai lege database smoke en staging-copy smoke voor elke migratie-PR.",
+      nextAction:
+        "Draai lege database smoke en staging-copy smoke voor elke migratie-PR.",
     }),
     makeCheck({
       id: "FG-SMOKE-SUPPORT",
       label: "Support grants",
       status: totals.activeSupportGrants > 0 ? "ok" : "manual",
       summary: `${totals.activeSupportGrants} actieve supportgrant(s), ${totals.supportAuditEvents} support audit-event(s)`,
-      detail: "Laat zien of break-glass/supporttoegang operationeel en auditbaar is op staging.",
-      testIds: ["FG-SUPPORT-001", "FG-SUPPORT-002", "FG-SUPPORT-003", "FG-SUPPORT-004", "FG-SUPPORT-005"],
-      nextAction: "Maak een korte dedicated supportgrant voor Tenant A en test verlopen/verkeerde tenant denial.",
+      detail:
+        "Laat zien of break-glass/supporttoegang operationeel en auditbaar is op staging.",
+      testIds: [
+        "FG-SUPPORT-001",
+        "FG-SUPPORT-002",
+        "FG-SUPPORT-003",
+        "FG-SUPPORT-004",
+        "FG-SUPPORT-005",
+      ],
+      nextAction:
+        "Maak een korte dedicated supportgrant voor Tenant A en test verlopen/verkeerde tenant denial.",
     }),
     makeCheck({
       id: "FG-SMOKE-AUDIT",
       label: "Audit",
-      status: totals.auditEvents + totals.supportAuditEvents > 0 ? "ok" : "manual",
+      status:
+        totals.auditEvents + totals.supportAuditEvents > 0 ? "ok" : "manual",
       summary: `${totals.auditEvents} tenant/platform audit-event(s), ${totals.supportAuditEvents} support audit-event(s)`,
-      detail: "Read-only operationele indicatie dat security-, support- en downloadsmokes auditsporen kunnen opleveren.",
+      detail:
+        "Read-only operationele indicatie dat security-, support- en downloadsmokes auditsporen kunnen opleveren.",
       testIds: ["FG-AUDIT-001", "FG-AUDIT-002", "FG-AUDIT-003", "FG-AUDIT-004"],
-      nextAction: "Controleer tenant-audit isolation en platform-only audit via het securitydashboard.",
+      nextAction:
+        "Controleer tenant-audit isolation en platform-only audit via het securitydashboard.",
     }),
   ];
   const generatedAt = new Date().toISOString();
   const reportHistory = await readSmokeRunReports();
-  const runHistory = [buildCurrentRunHistory(generatedAt, checks), ...reportHistory];
+  const runHistory = [
+    buildCurrentRunHistory(generatedAt, checks),
+    ...reportHistory,
+  ];
   const liveSmokes = buildLiveSmokes(checks, totals);
   const migrationSmoke = buildMigrationSmokeStatus(totals, runHistory);
   const mutatingChecks = buildMutatingChecks(totals);
-  const finalExternalTenantGate = buildFinalExternalTenantGate({ checks, liveSmokes, migrationSmoke, mutatingChecks });
-  const platformAdminReleaseGate = buildPlatformAdminReleaseGate({ checks, liveSmokes, migrationSmoke, mutatingChecks, finalExternalTenantGate });
+  const finalExternalTenantGate = buildFinalExternalTenantGate({
+    checks,
+    liveSmokes,
+    migrationSmoke,
+    mutatingChecks,
+  });
+  const platformAdminReleaseGate = buildPlatformAdminReleaseGate({
+    checks,
+    liveSmokes,
+    migrationSmoke,
+    mutatingChecks,
+    finalExternalTenantGate,
+  });
+  const stagingPromotionGate = buildStagingPromotionGate({
+    runHistory,
+    liveSmokes,
+    migrationSmoke,
+    finalExternalTenantGate,
+    platformAdminReleaseGate,
+  });
 
   return {
     generatedAt,
-    environment: { platformHost, stagingHost, platformHostKnown, stagingHostKnown },
+    environment: {
+      platformHost,
+      stagingHost,
+      platformHostKnown,
+      stagingHostKnown,
+    },
     totals,
     checks,
     runHistory,
@@ -870,6 +1337,7 @@ export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagin
     mutatingChecks,
     finalExternalTenantGate,
     platformAdminReleaseGate,
+    stagingPromotionGate,
     minimumGreen: [
       "FG-SMOKE-HOST",
       "FG-SMOKE-LOGIN",
@@ -884,6 +1352,7 @@ export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagin
       "docs/fieldgrid-first-external-tenant-checklist.md",
       "docs/fieldgrid-sprint-16-final-gate.md",
       "docs/fieldgrid-platform-admin-phase-14-final-gate.md",
+      "docs/fieldgrid-phase-4-ops-ci-teststructure.md",
     ],
   };
 }

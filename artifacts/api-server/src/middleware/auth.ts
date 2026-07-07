@@ -14,6 +14,7 @@ import {
   TENANT_RUNTIME_ACTIVE_STATUSES,
   tenantDomainsTable,
   tenantRolePermissionsTable,
+  tenantRolesTable,
   tenantUserRolesTable,
   tenantUsersTable,
   tenantsTable,
@@ -48,7 +49,7 @@ declare global {
         platformUserId: string;
         reason: string;
         expiresAt: string;
-        priority: typeof FIELDGRID_RUNTIME_ACCESS_PRIORITY[number];
+        priority: (typeof FIELDGRID_RUNTIME_ACCESS_PRIORITY)[number];
       };
     }
   }
@@ -85,7 +86,9 @@ export async function requireAuth(
       const result = await jwtVerify(token, secret);
       payload = result.payload as Record<string, unknown>;
     } else {
-      req.log.error("SUPABASE_URL and SUPABASE_JWT_SECRET are both unset - auth disabled");
+      req.log.error(
+        "SUPABASE_URL and SUPABASE_JWT_SECRET are both unset - auth disabled",
+      );
       res.status(503).json({ error: "Authenticatie niet geconfigureerd" });
       return;
     }
@@ -107,7 +110,10 @@ export async function requireAuth(
 // ─── RBAC permission lookup ───────────────────────────────────────────────────
 
 /** Fetch the full permission set for a user from the tenant-scoped RBAC tables. */
-export async function getUserPermissions(userId: string, tenantId: string): Promise<Set<string>> {
+export async function getUserPermissions(
+  userId: string,
+  tenantId: string,
+): Promise<Set<string>> {
   const userRoles = await db
     .select({ tenantRoleId: tenantUserRolesTable.tenantRoleId })
     .from(tenantUserRolesTable)
@@ -128,11 +134,18 @@ export async function getUserPermissions(userId: string, tenantId: string): Prom
       action: permissionsTable.action,
     })
     .from(tenantRolePermissionsTable)
-    .innerJoin(permissionsTable, eq(tenantRolePermissionsTable.permissionId, permissionsTable.id))
+    .innerJoin(
+      tenantRolesTable,
+      eq(tenantRolePermissionsTable.tenantRoleId, tenantRolesTable.id),
+    )
+    .innerJoin(
+      permissionsTable,
+      eq(tenantRolePermissionsTable.permissionId, permissionsTable.id),
+    )
     .where(
       and(
         inArray(tenantRolePermissionsTable.tenantRoleId, tenantRoleIds),
-        eq(tenantRolePermissionsTable.tenantId, tenantId),
+        eq(tenantRolesTable.tenantId, tenantId),
       ),
     );
 
@@ -152,7 +165,10 @@ async function requireEnabledPermissionModule(
     await requireTenantModule(tenantId, moduleKey);
     return true;
   } catch (err) {
-    req.log.warn({ err, tenantId, resource, moduleKey }, "Module toegang geweigerd");
+    req.log.warn(
+      { err, tenantId, resource, moduleKey },
+      "Module toegang geweigerd",
+    );
     res.status(403).json({ error: "Module niet beschikbaar voor deze tenant" });
     return false;
   }
@@ -191,7 +207,11 @@ async function auditApiSupportPermission(input: {
  * Returns 403 Forbidden when the authenticated user lacks the permission.
  */
 export function requirePermission(resource: string, action: string) {
-  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+  return async (
+    req: Request,
+    res: Response,
+    next: NextFunction,
+  ): Promise<void> => {
     const userId = req.userId;
     const tenantId = req.tenantId;
     if (!userId) {
@@ -204,7 +224,10 @@ export function requirePermission(resource: string, action: string) {
     }
 
     if (req.supportAccess) {
-      const allowedBySupportGrant = isSupportRuntimePermission(resource, action);
+      const allowedBySupportGrant = isSupportRuntimePermission(
+        resource,
+        action,
+      );
       await auditApiSupportPermission({
         userId,
         tenantId,
@@ -217,12 +240,18 @@ export function requirePermission(resource: string, action: string) {
       });
 
       if (!allowedBySupportGrant) {
-        req.log.warn({ userId, tenantId, resource, action }, "Supporttoegang geweigerd");
-        res.status(403).json({ error: "Supporttoegang staat deze actie niet toe" });
+        req.log.warn(
+          { userId, tenantId, resource, action },
+          "Supporttoegang geweigerd",
+        );
+        res
+          .status(403)
+          .json({ error: "Supporttoegang staat deze actie niet toe" });
         return;
       }
 
-      if (!(await requireEnabledPermissionModule(req, res, resource, tenantId))) return;
+      if (!(await requireEnabledPermissionModule(req, res, resource, tenantId)))
+        return;
 
       next();
       return;
@@ -235,7 +264,8 @@ export function requirePermission(resource: string, action: string) {
       return;
     }
 
-    if (!(await requireEnabledPermissionModule(req, res, resource, tenantId))) return;
+    if (!(await requireEnabledPermissionModule(req, res, resource, tenantId)))
+      return;
 
     next();
   };
@@ -248,7 +278,7 @@ type ApiHostTenantResolution =
   | { kind: "none" };
 
 function headerValue(value: string | string[] | undefined): string {
-  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+  return Array.isArray(value) ? (value[0] ?? "") : (value ?? "");
 }
 
 function firstForwardedValue(value: string): string {
@@ -256,7 +286,10 @@ function firstForwardedValue(value: string): string {
 }
 
 function requestHost(req: Request): string {
-  return firstForwardedValue(headerValue(req.headers["x-forwarded-host"])) || headerValue(req.headers.host);
+  return (
+    firstForwardedValue(headerValue(req.headers["x-forwarded-host"])) ||
+    headerValue(req.headers.host)
+  );
 }
 
 function requestedTenantId(req: Request): string {
@@ -266,7 +299,9 @@ function requestedTenantId(req: Request): string {
   ).trim();
 }
 
-async function resolveTenantByHost(host: string): Promise<ApiHostTenantResolution> {
+async function resolveTenantByHost(
+  host: string,
+): Promise<ApiHostTenantResolution> {
   const normalizedHost = normalizeHost(host);
   if (!normalizedHost) return { kind: "none" };
   if (isPlatformHost(normalizedHost)) return { kind: "platform" };
@@ -291,7 +326,10 @@ async function resolveTenantByHost(host: string): Promise<ApiHostTenantResolutio
   return { kind: "none" };
 }
 
-async function userHasActiveTenant(userId: string, tenantId: string): Promise<boolean> {
+async function userHasActiveTenant(
+  userId: string,
+  tenantId: string,
+): Promise<boolean> {
   const [tenantUser] = await db
     .select({ tenantId: tenantUsersTable.tenantId })
     .from(tenantUsersTable)
@@ -310,7 +348,9 @@ async function userHasActiveTenant(userId: string, tenantId: string): Promise<bo
   return Boolean(tenantUser);
 }
 
-async function firstActiveTenantForUser(userId: string): Promise<string | null> {
+async function firstActiveTenantForUser(
+  userId: string,
+): Promise<string | null> {
   const [tenantUser] = await db
     .select({ tenantId: tenantUsersTable.tenantId })
     .from(tenantUsersTable)
@@ -328,7 +368,10 @@ async function firstActiveTenantForUser(userId: string): Promise<string | null> 
   return tenantUser?.tenantId ?? null;
 }
 
-function attachSupportAccess(req: Request, supportAccess: Awaited<ReturnType<typeof getActiveSupportAccessForUser>>): void {
+function attachSupportAccess(
+  req: Request,
+  supportAccess: Awaited<ReturnType<typeof getActiveSupportAccessForUser>>,
+): void {
   if (!supportAccess) return;
 
   req.supportAccess = {
@@ -359,13 +402,21 @@ export async function requireTenantScope(
       return;
     }
 
-    req.log.warn({ userId, tenantId: hostResolution.tenantId }, "Geen actieve tenant-koppeling voor API-host");
-    res.status(403).json({ error: "Geen actieve tenant-koppeling voor deze host" });
+    req.log.warn(
+      { userId, tenantId: hostResolution.tenantId },
+      "Geen actieve tenant-koppeling voor API-host",
+    );
+    res
+      .status(403)
+      .json({ error: "Geen actieve tenant-koppeling voor deze host" });
     return;
   }
 
   if (hostResolution.kind === "blocked") {
-    req.log.warn({ userId, host: requestHost(req) }, "Onbekende of inactieve Fieldgrid tenant-host");
+    req.log.warn(
+      { userId, host: requestHost(req) },
+      "Onbekende of inactieve Fieldgrid tenant-host",
+    );
     res.status(404).json({ error: "Tenant niet gevonden" });
     return;
   }
@@ -373,7 +424,10 @@ export async function requireTenantScope(
   const explicitTenantId = requestedTenantId(req);
   if (explicitTenantId) {
     if (hostResolution.kind === "platform") {
-      const supportAccess = await getActiveSupportAccessForUser(userId, explicitTenantId);
+      const supportAccess = await getActiveSupportAccessForUser(
+        userId,
+        explicitTenantId,
+      );
       if (supportAccess) {
         req.tenantId = explicitTenantId;
         attachSupportAccess(req, supportAccess);
@@ -388,7 +442,10 @@ export async function requireTenantScope(
       return;
     }
 
-    req.log.warn({ userId, tenantId: explicitTenantId }, "Ongeldige expliciete tenantcontext voor API-verzoek");
+    req.log.warn(
+      { userId, tenantId: explicitTenantId },
+      "Ongeldige expliciete tenantcontext voor API-verzoek",
+    );
     res.status(403).json({ error: "Geen actieve tenant-koppeling" });
     return;
   }

@@ -17,11 +17,14 @@ const dbIndex = "lib/db/src/index.ts";
 const apiAuth = "artifacts/api-server/src/middleware/auth.ts";
 const backofficeTenant = "artifacts/backoffice/src/lib/auth/tenant.ts";
 const backofficePlatform = "artifacts/backoffice/src/lib/auth/platform.ts";
-const backofficePermissions = "artifacts/backoffice/src/lib/auth/permissions.ts";
+const backofficePermissions =
+  "artifacts/backoffice/src/lib/auth/permissions.ts";
 const dashboardLayout = "artifacts/backoffice/src/app/(dashboard)/layout.tsx";
-const platformPage = "artifacts/backoffice/src/app/(platform)/platform/page.tsx";
+const platformPage =
+  "artifacts/backoffice/src/app/(platform)/platform/page.tsx";
 const platformActions = "artifacts/backoffice/src/app/actions/platform.ts";
-const supportModeActions = "artifacts/backoffice/src/app/actions/support-mode.ts";
+const supportModeActions =
+  "artifacts/backoffice/src/app/actions/support-mode.ts";
 const sprintContract = "docs/fieldgrid-sprint-4-rbac-support.md";
 const rbacMatrix = "docs/fieldgrid-rbac-permission-matrix.md";
 const testMatrix = "docs/fieldgrid-cross-tenant-testmatrix.md";
@@ -65,7 +68,7 @@ test("shared platform access helper codifies RBAC and support priority", () => {
     platformAccess,
   );
 
-  assertContains(index, ["export * from \"./platform-access\";"], dbIndex);
+  assertContains(index, ['export * from "./platform-access";'], dbIndex);
 });
 
 test("API support access is explicit, audited and checked before tenant RBAC", () => {
@@ -77,8 +80,8 @@ test("API support access is explicit, audited and checked before tenant RBAC", (
       "supportAccess?",
       "getActiveSupportAccessForUser",
       "attachSupportAccess",
-      "hostResolution.kind === \"platform\"",
-      "isSupportRuntimePermission(resource, action)",
+      'hostResolution.kind === "platform"',
+      "isSupportRuntimePermission",
       "writeSupportAccessAuditLogForUser",
       "api_permission_allowed",
       "api_permission_denied",
@@ -87,16 +90,32 @@ test("API support access is explicit, audited and checked before tenant RBAC", (
     ],
     apiAuth,
   );
+  assert.match(
+    auth,
+    /isSupportRuntimePermission\(\s*resource,\s*action,\s*\)/u,
+  );
 
   const supportCheck = auth.indexOf("if (req.supportAccess)");
-  const tenantRoleCheck = auth.indexOf("const permissions = await getUserPermissions(userId, tenantId);");
+  const tenantRoleCheck = auth.indexOf(
+    "const permissions = await getUserPermissions(userId, tenantId);",
+  );
   assert.notEqual(supportCheck, -1, "API support check should exist");
   assert.notEqual(tenantRoleCheck, -1, "API tenant role check should exist");
-  assert.ok(supportCheck < tenantRoleCheck, "active support grant must be evaluated before tenant-role RBAC");
+  assert.ok(
+    supportCheck < tenantRoleCheck,
+    "active support grant must be evaluated before tenant-role RBAC",
+  );
 
-  const tenantHostBranch = auth.indexOf("if (hostResolution.kind === \"tenant\")");
-  const platformSupportBranch = auth.indexOf("if (hostResolution.kind === \"platform\")");
-  assert.ok(tenantHostBranch < platformSupportBranch, "tenant host resolution must stay host-first before support context");
+  const tenantHostBranch = auth.indexOf(
+    'if (hostResolution.kind === "tenant")',
+  );
+  const platformSupportBranch = auth.indexOf(
+    'if (hostResolution.kind === "platform")',
+  );
+  assert.ok(
+    tenantHostBranch < platformSupportBranch,
+    "tenant host resolution must stay host-first before support context",
+  );
 });
 
 test("backoffice support mode is platform-host bound and visible in the dashboard shell", () => {
@@ -112,15 +131,20 @@ test("backoffice support mode is platform-host bound and visible in the dashboar
     [
       "FIELDGRID_SUPPORT_TENANT_COOKIE",
       "getActiveSupportAccessForUser",
-      "if (hostResolution.kind === \"platform\")",
+      'if (hostResolution.kind === "platform")',
       "return supportTenantId;",
     ],
     backofficeTenant,
   );
 
   const supportCookie = tenant.indexOf("FIELDGRID_SUPPORT_TENANT_COOKIE");
-  const tenantOptions = tenant.indexOf("const tenantOptions = await getActiveBackofficeTenantsForUser(user.id);");
-  assert.ok(supportCookie < tenantOptions, "support mode must be resolved before normal tenant switcher fallback");
+  const tenantOptions = tenant.indexOf(
+    "const tenantOptions = await getActiveBackofficeTenantsForUser(user.id);",
+  );
+  assert.ok(
+    supportCookie < tenantOptions,
+    "support mode must be resolved before normal tenant switcher fallback",
+  );
 
   assertContains(
     platform,
@@ -171,7 +195,11 @@ test("backoffice support mode is platform-host bound and visible in the dashboar
     platformActions,
   );
 
-  assertContains(supportActions, ["listCurrentSupportAccessGrants", "requirePlatformSupportUser"], supportModeActions);
+  assertContains(
+    supportActions,
+    ["listCurrentSupportAccessGrants", "requirePlatformSupportUser"],
+    supportModeActions,
+  );
 });
 
 test("backoffice permission runtime remains tenant-role first unless explicit support mode is active", () => {
@@ -192,9 +220,16 @@ test("backoffice permission runtime remains tenant-role first unless explicit su
     backofficePermissions,
   );
 
-  const getUserPermissionsStart = permissions.indexOf("export async function getUserPermissions");
-  const getEffectiveStart = permissions.indexOf("/** Fetch runtime permissions after tenant module entitlements are applied. */");
-  const getUserPermissionsBlock = permissions.slice(getUserPermissionsStart, getEffectiveStart);
+  const getUserPermissionsStart = permissions.indexOf(
+    "export async function getUserPermissions",
+  );
+  const getEffectiveStart = permissions.indexOf(
+    "/** Fetch runtime permissions after tenant module entitlements are applied. */",
+  );
+  const getUserPermissionsBlock = permissions.slice(
+    getUserPermissionsStart,
+    getEffectiveStart,
+  );
 
   assert.doesNotMatch(getUserPermissionsBlock, /\buserRolesTable\b/u);
   assert.doesNotMatch(getUserPermissionsBlock, /\brolePermissionsTable\b/u);

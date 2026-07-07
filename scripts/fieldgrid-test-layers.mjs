@@ -1,0 +1,283 @@
+#!/usr/bin/env node
+import { access, readFile } from "node:fs/promises";
+import { constants } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const repoRoot = join(__dirname, "..");
+
+export const FIELDGRID_TEST_LAYERS_VERSION = "fieldgrid-test-layers-v1";
+
+export const fieldgridTestLayers = [
+  {
+    id: "security-guards",
+    label: "Security guards",
+    owner: "Platform engineering",
+    purpose:
+      "Tenantgrenzen, sessie-scope, RBAC, storage/download guards en auditdenials blijven hard.",
+    ciCommand:
+      "node --test tests/tenant-permissions.test.mjs tests/fieldgrid-cross-tenant-permissions.test.mjs tests/fieldgrid-document-storage-download-tenant-guard.test.mjs tests/fieldgrid-auth-cookie-scope.test.mjs tests/fieldgrid-backoffice-tenant-isolation-regression.test.mjs tests/fieldgrid-sprint-10-audit-security.test.mjs",
+    requiredTestFiles: [
+      "tests/tenant-permissions.test.mjs",
+      "tests/fieldgrid-cross-tenant-permissions.test.mjs",
+      "tests/fieldgrid-document-storage-download-tenant-guard.test.mjs",
+      "tests/fieldgrid-auth-cookie-scope.test.mjs",
+      "tests/fieldgrid-backoffice-tenant-isolation-regression.test.mjs",
+      "tests/fieldgrid-sprint-10-audit-security.test.mjs",
+    ],
+    requiredSignals: [
+      "FG-RBAC-001",
+      "FG-DATA-001",
+      "FG-STORAGE-001",
+      "FG-AUDIT-001",
+    ],
+  },
+  {
+    id: "ui-contracttests",
+    label: "UI contracttests",
+    owner: "Product engineering",
+    purpose:
+      "Backoffice, portalen, platform-admin en tenant-ready copy houden hun zichtbare contracten vast.",
+    ciCommand:
+      "node --test tests/fieldgrid-platform-admin-phase-14-final-gate.test.mjs tests/fieldgrid-customer-personnel-phase16-releasegate.test.mjs tests/fieldgrid-notification-content-v1.test.mjs tests/fieldgrid-sprint-15-staging-smoke.test.mjs",
+    requiredTestFiles: [
+      "tests/fieldgrid-platform-admin-phase-14-final-gate.test.mjs",
+      "tests/fieldgrid-customer-personnel-phase16-releasegate.test.mjs",
+      "tests/fieldgrid-notification-content-v1.test.mjs",
+      "tests/fieldgrid-sprint-15-staging-smoke.test.mjs",
+    ],
+    requiredSignals: [
+      "FG-OPS-008",
+      "FG-PLATFORM-001",
+      "FG-PORTAL-C-004",
+      "FG-PORTAL-P-005",
+    ],
+  },
+  {
+    id: "db-migration-smoke",
+    label: "DB/migration smoke",
+    owner: "Platform engineering",
+    purpose:
+      "Migratievolgorde, naming, DB runtime-env en lege/staging-copy smoke blijven reproduceerbaar.",
+    ciCommand:
+      "pnpm fieldgrid:migration-order-check:check && node --test tests/fieldgrid-db-runtime-env.test.mjs tests/fieldgrid-database-autofix.test.mjs tests/fieldgrid-sprint-7-migration-smoke.test.mjs",
+    requiredTestFiles: [
+      "tests/fieldgrid-db-runtime-env.test.mjs",
+      "tests/fieldgrid-database-autofix.test.mjs",
+      "tests/fieldgrid-sprint-7-migration-smoke.test.mjs",
+    ],
+    requiredSignals: ["FG-MIG-001", "FG-MIG-002", "FG-MIG-003"],
+  },
+  {
+    id: "live-e2e",
+    label: "Live E2E",
+    owner: "Platform operations",
+    purpose:
+      "Staging runtime proof gebruikt echte hosts, run history, storage/download evidence en gate-artifacts.",
+    ciCommand:
+      "pnpm fieldgrid:sprint15-staging-smoke:run-read-only && pnpm fieldgrid:staging-promotion-gate:strict",
+    requiredTestFiles: [
+      "tests/fieldgrid-sprint-15-staging-smoke.test.mjs",
+      "tests/fieldgrid-platform-admin-phase-14-final-gate.test.mjs",
+      "tests/fieldgrid-customer-personnel-phase16-releasegate.test.mjs",
+    ],
+    requiredSignals: [
+      "FG-LIVE-HOST",
+      "FG-LIVE-STORAGE",
+      "FG-OPS-008",
+      "FG-PA-GATE-HOST-FIRST",
+    ],
+  },
+];
+
+export function parseArgs(argv = process.argv.slice(2)) {
+  const options = {
+    check: false,
+    json: false,
+    help: false,
+  };
+
+  for (const arg of argv) {
+    switch (arg) {
+      case "--check":
+        options.check = true;
+        break;
+      case "--json":
+        options.json = true;
+        break;
+      case "--help":
+      case "-h":
+        options.help = true;
+        break;
+      default:
+        throw new Error(`Unknown argument: ${arg}`);
+    }
+  }
+
+  return options;
+}
+
+async function exists(relativePath) {
+  try {
+    await access(join(repoRoot, relativePath), constants.R_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export async function buildFieldgridTestLayersPlan() {
+  const layers = [];
+
+  for (const layer of fieldgridTestLayers) {
+    const fileChecks = await Promise.all(
+      layer.requiredTestFiles.map(async (path) => ({
+        path,
+        exists: await exists(path),
+      })),
+    );
+
+    layers.push({
+      ...layer,
+      missingTestFiles: fileChecks
+        .filter((file) => !file.exists)
+        .map((file) => file.path),
+    });
+  }
+
+  return {
+    version: FIELDGRID_TEST_LAYERS_VERSION,
+    marker: "fieldgrid-phase-4-test-layers",
+    destructive: false,
+    noTenantMutation: true,
+    layers,
+    requiredLayerIds: [
+      "security-guards",
+      "ui-contracttests",
+      "db-migration-smoke",
+      "live-e2e",
+    ],
+    packageScripts: {
+      "fieldgrid:test-layers": "node scripts/fieldgrid-test-layers.mjs",
+      "fieldgrid:test-layers:check":
+        "node scripts/fieldgrid-test-layers.mjs --check",
+      "fieldgrid:test:security": fieldgridTestLayers.find(
+        (layer) => layer.id === "security-guards",
+      )?.ciCommand,
+      "fieldgrid:test:ui-contracts": fieldgridTestLayers.find(
+        (layer) => layer.id === "ui-contracttests",
+      )?.ciCommand,
+      "fieldgrid:test:db-migration": fieldgridTestLayers.find(
+        (layer) => layer.id === "db-migration-smoke",
+      )?.ciCommand,
+      "fieldgrid:test:live-e2e": fieldgridTestLayers.find(
+        (layer) => layer.id === "live-e2e",
+      )?.ciCommand,
+    },
+  };
+}
+
+export async function validateFieldgridTestLayersPlan(plan) {
+  const resolvedPlan = plan ?? (await buildFieldgridTestLayersPlan());
+  const errors = [];
+  const layerIds = new Set(resolvedPlan.layers.map((layer) => layer.id));
+
+  if (resolvedPlan.destructive)
+    errors.push("Testlagenmanifest mag geen destructieve acties uitvoeren.");
+  if (!resolvedPlan.noTenantMutation)
+    errors.push(
+      "Testlagenmanifest moet read-only zijn; live mutaties horen achter aparte confirm-env.",
+    );
+  if (resolvedPlan.version !== FIELDGRID_TEST_LAYERS_VERSION)
+    errors.push("Onverwachte testlagenmanifest versie.");
+
+  for (const requiredLayerId of resolvedPlan.requiredLayerIds) {
+    if (!layerIds.has(requiredLayerId))
+      errors.push(`Testlagenmanifest mist laag ${requiredLayerId}.`);
+  }
+
+  for (const layer of resolvedPlan.layers) {
+    if (!layer.owner) errors.push(`${layer.id} mist owner.`);
+    if (!layer.purpose) errors.push(`${layer.id} mist purpose.`);
+    if (!layer.ciCommand) errors.push(`${layer.id} mist ciCommand.`);
+    if (
+      !Array.isArray(layer.requiredSignals) ||
+      layer.requiredSignals.length === 0
+    ) {
+      errors.push(`${layer.id} mist requiredSignals.`);
+    }
+    for (const missingFile of layer.missingTestFiles) {
+      errors.push(`${layer.id} verwijst naar ontbrekende test ${missingFile}.`);
+    }
+  }
+
+  const packageJson = await readFile(join(repoRoot, "package.json"), "utf8");
+  for (const scriptName of Object.keys(resolvedPlan.packageScripts)) {
+    if (!packageJson.includes(`"${scriptName}"`))
+      errors.push(`package.json mist script ${scriptName}.`);
+  }
+
+  return errors;
+}
+
+function usage() {
+  return `Fieldgrid test layers
+
+Usage:
+  pnpm fieldgrid:test-layers:check
+  pnpm fieldgrid:test-layers --json
+
+Layers:
+  security-guards, ui-contracttests, db-migration-smoke, live-e2e
+`;
+}
+
+function printPlan(plan) {
+  console.log("Fieldgrid test layers");
+  console.log("");
+  console.log(`Version: ${plan.version}`);
+  console.log(`Layers: ${plan.layers.map((layer) => layer.id).join(", ")}`);
+}
+
+export async function main(argv = process.argv.slice(2)) {
+  const options = parseArgs(argv);
+
+  if (options.help) {
+    console.log(usage());
+    return 0;
+  }
+
+  const plan = await buildFieldgridTestLayersPlan();
+  const errors = await validateFieldgridTestLayersPlan(plan);
+
+  if (options.json) {
+    console.log(JSON.stringify(plan, null, 2));
+  }
+
+  if (errors.length > 0) {
+    console.error("Fieldgrid test layers contract failed:");
+    for (const error of errors) console.error(`- ${error}`);
+    return 1;
+  }
+
+  if (options.check) {
+    console.log("Fieldgrid test layers contract is valid.");
+    return 0;
+  }
+
+  if (!options.json) printPlan(plan);
+  return 0;
+}
+
+if (process.argv[1] && resolve(process.argv[1]) === __filename) {
+  main()
+    .then((exitCode) => {
+      process.exitCode = exitCode;
+    })
+    .catch((error) => {
+      console.error(error instanceof Error ? error.message : error);
+      process.exitCode = 1;
+    });
+}

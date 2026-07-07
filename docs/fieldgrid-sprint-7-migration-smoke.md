@@ -14,6 +14,7 @@ De runner gebruikt de bestaande `@workspace/db` migratierunner en schrijft een m
 
 ## Geleverde onderdelen
 
+- `scripts/fieldgrid-migration-order-check.mjs`: CI-check voor migratievolgorde, legacy dubbele prefixes en timestamp-cutover.
 - `scripts/fieldgrid-sprint7-migration-smoke.mjs`: runner en rapportagecontract.
 - `.github/workflows/fieldgrid-migration-smoke.yml`: handmatige workflow voor lege DB en staging-copy smoke.
 - `tests/fieldgrid-sprint-7-migration-smoke.test.mjs`: guardtests voor targets, safety, parser, workflow, PR-template en package scripts.
@@ -22,17 +23,18 @@ De runner gebruikt de bestaande `@workspace/db` migratierunner en schrijft een m
 
 ## Test-id dekking
 
-| Test-id | Betekenis | Target |
-| --- | --- | --- |
-| `FG-MIG-001` | Lege database smoke | `empty-database` |
-| `FG-MIG-002` | Staging-copy smoke | `staging-copy` |
-| `FG-MIG-003` | Compatibility skip en legacy-migratiegedrag | beide targets |
+| Test-id      | Betekenis                                   | Target           |
+| ------------ | ------------------------------------------- | ---------------- |
+| `FG-MIG-001` | Lege database smoke                         | `empty-database` |
+| `FG-MIG-002` | Staging-copy smoke                          | `staging-copy`   |
+| `FG-MIG-003` | Compatibility skip en legacy-migratiegedrag | beide targets    |
 
 ## Runner
 
 Contractcheck zonder database:
 
 ```bash
+pnpm fieldgrid:migration-order-check:check
 pnpm fieldgrid:sprint7-migration-smoke:check
 ```
 
@@ -105,7 +107,7 @@ De workflow `Fieldgrid Migration Smoke` is handmatig (`workflow_dispatch`) en ge
 - `FIELDGRID_MIGRATION_SMOKE_EMPTY_DATABASE_URL`
 - `FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_DATABASE_URL`
 
-De workflow valideert eerst het contract en draait daarna de gevraagde target. Het JSON-rapport wordt als artifact geupload.
+De workflow valideert eerst migratievolgorde/naming, daarna het smokecontract en draait daarna de gevraagde target. Het JSON-rapport wordt als artifact geupload.
 
 ## PR-contract voor migraties
 
@@ -121,10 +123,17 @@ Elke migratie-PR moet in de PR-body vastleggen:
 Minimum voor migratie-PR's:
 
 ```bash
+pnpm fieldgrid:migration-order-check:check
 pnpm fieldgrid:sprint7-migration-smoke:check
 pnpm fieldgrid:sprint7-migration-smoke --run --target empty-database
 pnpm fieldgrid:sprint7-migration-smoke --run --target staging-copy
 ```
+
+## Migratievolgorde en naming
+
+De SQL-runner sorteert lexicografisch. Omdat er al een timestamp-migratie na `101_fieldgrid_notification_content_v1.sql` bestaat, blokkeert Fase 4 nieuwe numerieke migraties boven `101`.
+
+Nieuwe migraties gebruiken een timestamp-prefix na `20260618201212`. Bekende legacy dubbele prefixes blijven toegestaan, maar nieuwe dubbele numerieke prefixes falen in CI.
 
 ## Stagingcontinuiteit
 
