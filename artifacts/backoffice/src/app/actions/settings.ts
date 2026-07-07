@@ -71,6 +71,8 @@ export type OrgSettings = {
   logoUrl: string | null;
   betaaltermijnDagen: number;
   availabilityAdvanceDays: number;
+  planningWorkdayStart: string;
+  planningTimeSlotMinutes: number;
   emailAfzender: string | null;
   smtpEnabled: boolean;
   smtpHost: string | null;
@@ -257,6 +259,8 @@ export async function getOrganizationSettings(): Promise<OrgSettings | null> {
     logoUrl: r.logoUrl,
     betaaltermijnDagen: r.betaaltermijnDagen,
     availabilityAdvanceDays: r.availabilityAdvanceDays,
+    planningWorkdayStart: r.planningWorkdayStart,
+    planningTimeSlotMinutes: r.planningTimeSlotMinutes,
     emailAfzender: r.emailAfzender,
     smtpEnabled: r.smtpEnabled,
     smtpHost: r.smtpHost,
@@ -294,6 +298,8 @@ export async function updateOrganizationSettings(data: {
   logoUrl?: string | null;
   betaaltermijnDagen?: number;
   availabilityAdvanceDays?: number;
+  planningWorkdayStart?: string;
+  planningTimeSlotMinutes?: number;
   emailAfzender?: string | null;
   notifRapportGoedgekeurd?: boolean;
   notifRapportAfgekeurd?: boolean;
@@ -320,6 +326,15 @@ export async function updateOrganizationSettings(data: {
       message:
         "Beschikbaarheid vooruit invullen moet tussen 7 en 365 dagen liggen.",
     };
+  }
+  if (data.planningWorkdayStart !== undefined && !/^([01]\d|2[0-3]):[0-5]\d$/.test(data.planningWorkdayStart)) {
+    return { success: false, message: "Start werkdag moet een geldige HH:MM-tijd zijn." };
+  }
+  if (
+    data.planningTimeSlotMinutes !== undefined &&
+    (data.planningTimeSlotMinutes < 15 || data.planningTimeSlotMinutes > 240)
+  ) {
+    return { success: false, message: "Tijdvakgrootte moet tussen 15 en 240 minuten liggen." };
   }
 
   await db

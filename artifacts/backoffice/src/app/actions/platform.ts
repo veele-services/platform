@@ -36,6 +36,7 @@ import {
   requireSupportAccess,
   writeSupportAccessAuditLog,
 } from "@/lib/auth/platform";
+import { withHostOnlyCookieOptions } from "@/lib/supabase/session-cookies";
 import type { ActionResult } from "./customers";
 
 export type PlatformRole = "owner" | "admin" | "support";
@@ -926,13 +927,17 @@ export async function enterSupportMode(formData: FormData): Promise<void> {
 
   const grant = await requireSupportAccess(tenantId);
   const cookieStore = await cookies();
-  cookieStore.set(FIELDGRID_SUPPORT_TENANT_COOKIE, tenantId, {
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    expires: grant.expiresAt,
-  });
+  cookieStore.set(
+    FIELDGRID_SUPPORT_TENANT_COOKIE,
+    tenantId,
+    withHostOnlyCookieOptions({
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      expires: grant.expiresAt,
+    }),
+  );
 
   await writeSupportAccessAuditLog({
     tenantId,
@@ -964,7 +969,17 @@ export async function exitSupportMode(): Promise<void> {
     });
   }
 
-  cookieStore.delete(FIELDGRID_SUPPORT_TENANT_COOKIE);
+  cookieStore.set(
+    FIELDGRID_SUPPORT_TENANT_COOKIE,
+    "",
+    withHostOnlyCookieOptions({
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 0,
+    }),
+  );
   revalidatePath("/");
 }
 

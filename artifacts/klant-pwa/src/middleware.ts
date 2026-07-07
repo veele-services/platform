@@ -1,5 +1,9 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import {
+  createSupabaseCookieOptions,
+  withHostOnlyCookieOptions,
+} from "@/lib/supabase/session-cookies";
 
 const BASE = "/klant";
 
@@ -46,19 +50,24 @@ export async function middleware(request: NextRequest) {
   }
 
   let supabaseResponse = NextResponse.next({ request });
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
 
   const supabase = createServerClient(url, key, {
+    cookieOptions: createSupabaseCookieOptions(host),
     cookies: {
       getAll() {
         return request.cookies.getAll();
       },
-      setAll(cookiesToSet) {
+      setAll(cookiesToSet, responseHeaders) {
         cookiesToSet.forEach(({ name, value }) =>
           request.cookies.set(name, value),
         );
         supabaseResponse = NextResponse.next({ request });
         cookiesToSet.forEach(({ name, value, options }) =>
-          supabaseResponse.cookies.set(name, value, options),
+          supabaseResponse.cookies.set(name, value, withHostOnlyCookieOptions(options)),
+        );
+        Object.entries(responseHeaders).forEach(([header, value]) =>
+          supabaseResponse.headers.set(header, value),
         );
       },
     },

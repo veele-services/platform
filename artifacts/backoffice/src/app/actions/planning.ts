@@ -15,6 +15,7 @@ import {
   assignmentCandidatesTable,
   availabilityDayEntriesTable,
   availabilityWindowsTable,
+  organizationSettingsTable,
   qualificationItemsTable,
   roleQualificationsTable,
   ASSIGNMENT_PRIORITIES,
@@ -205,6 +206,7 @@ export type PlanningBoardData = {
   personnel: PlanningBoardPersonnel[];
   matchesByAssignmentId: Record<string, PlanningBoardMatch[]>;
   filterOptions: PlanningBoardFilterOptions;
+  planningSettings: { workdayStart: string; slotMinutes: number };
 };
 
 export type PlanningBoardScheduleInput = {
@@ -256,6 +258,46 @@ function minutesToTime(value: number): string {
 
 function addMinutes(value: string, minutes: number): string {
   return minutesToTime(timeToMinutes(value) + minutes);
+}
+
+const PLANNING_SNAP_MINUTES = 5;
+
+function alignToPlanningGrid(value: number, slotMinutes: number, workdayStart: string, mode: "nearest" | "up"): number {
+  const interval = Math.max(1, Math.min(240, slotMinutes));
+  const base = isTimeKey(workdayStart) ? timeToMinutes(workdayStart) : 0;
+  const raw = (value - base) / interval;
+  return base + (mode === "up" ? Math.ceil(raw) : Math.round(raw)) * interval;
+}
+
+function overlapsMinutes(startA: number, endA: number, startB: number, endB: number): boolean {
+  return startA < endB && endA > startB;
+}
+
+function nextNonOverlappingStart(input: {
+  preferredStart: string;
+  durationMinutes: number;
+  slotMinutes: number;
+  workdayStart: string;
+  movingAssignmentId: string;
+  existingAssignments: Array<{ id: string; scheduledStart: string | null; scheduledEnd: string | null }>;
+}): string {
+  let start = alignToPlanningGrid(timeToMinutes(input.preferredStart), input.slotMinutes, input.workdayStart, "nearest");
+  let changed = true;
+  while (changed) {
+    changed = false;
+    const end = start + input.durationMinutes;
+    for (const assignment of input.existingAssignments) {
+      if (assignment.id === input.movingAssignmentId || !assignment.scheduledStart || !assignment.scheduledEnd) continue;
+      const otherStart = timeToMinutes(assignment.scheduledStart);
+      const otherEnd = timeToMinutes(assignment.scheduledEnd);
+      if (overlapsMinutes(start, end, otherStart, otherEnd)) {
+        start = alignToPlanningGrid(otherEnd, input.slotMinutes, input.workdayStart, "up");
+        changed = true;
+        break;
+      }
+    }
+  }
+  return minutesToTime(start);
 }
 
 function durationMinutes(
@@ -547,6 +589,7 @@ export async function getPlanningBoardData(
       priorities: [...ASSIGNMENT_PRIORITIES],
       statuses: [...ASSIGNMENT_STATUSES],
     },
+    planningSettings: { workdayStart: "08:00", slotMinutes: 90 },
   };
   if (!canRead) return empty;
 
@@ -616,7 +659,7 @@ export async function getPlanningBoardData(
     personnelConditions.push(eq(personnelTable.sectorId, filters.sectorId));
   }
 
-  const [assignmentRows, personnelRows, sectorRows, customerRows] =
+  const [assignmentRows, personnelRows, sectorRows, customerRows, [settingsRow]] =
     await Promise.all([
       db
         .select({
@@ -699,6 +742,15 @@ export async function getPlanningBoardData(
           ),
         )
         .orderBy(asc(customersTable.name)),
+
+      db
+        .select({
+          workdayStart: organizationSettingsTable.planningWorkdayStart,
+          slotMinutes: organizationSettingsTable.planningTimeSlotMinutes,
+        })
+        .from(organizationSettingsTable)
+        .where(eq(organizationSettingsTable.tenantId, tenantId))
+        .limit(1),
     ]);
 
   const assignmentIds = assignmentRows.map((row) => row.id);
@@ -1176,6 +1228,10 @@ export async function getPlanningBoardData(
       priorities: [...ASSIGNMENT_PRIORITIES],
       statuses: [...ASSIGNMENT_STATUSES],
     },
+    planningSettings: {
+      workdayStart: settingsRow?.workdayStart ?? "08:00",
+      slotMinutes: Math.max(15, Math.min(240, settingsRow?.slotMinutes ?? 90)),
+    },
   };
 }
 
@@ -1445,6 +1501,104 @@ export async function unassignPersonnel(
   return { success: true };
 }
 
+async function rebalancePersonnelDaySchedule(params: {
+  tenantId: string;
+  personnelId: string;
+  changedAssignmentId: string;
+  date: string;
+}): Promise<PlanningBoardMatchReason[]> {
+  const warnings: PlanningBoardMatchReason[] = [];
+  const rows = await db
+    .select({
+      assignmentId: assignmentsTable.id,
+      title: assignmentsTable.title,
+      scheduledStart: assignmentsTable.scheduledStart,
+      scheduledEnd: assignmentsTable.scheduledEnd,
+      status: assignmentsTable.status,
+    })
+    .from(assignmentPersonnelTable)
+    .innerJoin(assignmentsTable, and(
+      eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id),
+      eq(assignmentsTable.tenantId, params.tenantId),
+    ))
+    .where(and(
+      eq(assignmentPersonnelTable.personnelId, params.personnelId),
+      eq(assignmentPersonnelTable.status, "assigned"),
+      eq(assignmentsTable.scheduledDate, params.date),
+    ))
+    .orderBy(asc(assignmentsTable.scheduledStart));
+
+  const [availability] = await db
+    .select({ startTime: availabilityDayEntriesTable.startTime, endTime: availabilityDayEntriesTable.endTime })
+    .from(availabilityDayEntriesTable)
+    .where(and(
+      eq(availabilityDayEntriesTable.personnelId, params.personnelId),
+      eq(availabilityDayEntriesTable.date, params.date),
+    ))
+    .limit(1);
+  const fallbackEnd = availability?.endTime ?? "23:59";
+  const availableEnd = timeToMinutes(fallbackEnd);
+
+  let cursor: number | null = null;
+  for (const row of rows) {
+    const startMin = row.scheduledStart ? timeToMinutes(row.scheduledStart) : null;
+    const endMin = row.scheduledEnd ? timeToMinutes(row.scheduledEnd) : null;
+    if (startMin === null || endMin === null || endMin <= startMin) continue;
+    const duration = endMin - startMin;
+    const nextStart: number = cursor === null ? startMin : Math.max(startMin, cursor);
+    const nextEnd: number = nextStart + duration;
+
+    if (nextEnd > availableEnd + 30) {
+      await db.delete(assignmentPersonnelTable).where(and(
+        eq(assignmentPersonnelTable.assignmentId, row.assignmentId),
+        eq(assignmentPersonnelTable.personnelId, params.personnelId),
+      ));
+
+      const remaining = await db
+        .select({ id: assignmentPersonnelTable.id })
+        .from(assignmentPersonnelTable)
+        .where(and(
+          eq(assignmentPersonnelTable.assignmentId, row.assignmentId),
+          eq(assignmentPersonnelTable.status, "assigned"),
+        ));
+      if (remaining.length === 0) {
+        await db.update(assignmentsTable).set({
+          status: "plannable",
+          scheduledDate: null,
+          scheduledStart: null,
+          scheduledEnd: null,
+          updatedAt: new Date(),
+        }).where(and(
+          eq(assignmentsTable.id, row.assignmentId),
+          eq(assignmentsTable.tenantId, params.tenantId),
+        ));
+        warnings.push(buildReason("outside_availability_window", `${row.title} is teruggezet naar planbaar: eindtijd valt meer dan 30 minuten buiten beschikbaarheid.`, "warning"));
+      } else {
+        warnings.push(buildReason("outside_availability_window", `${row.title} heeft te weinig personeel: deze medewerker valt buiten beschikbaarheid.`, "warning"));
+      }
+      continue;
+    }
+
+    if (nextStart !== startMin || nextEnd !== endMin) {
+      await db.update(assignmentsTable).set({
+        scheduledStart: minutesToTime(nextStart),
+        scheduledEnd: minutesToTime(nextEnd),
+        status: row.status === "plannable" ? "scheduled" : row.status,
+        updatedAt: new Date(),
+      }).where(and(
+        eq(assignmentsTable.id, row.assignmentId),
+        eq(assignmentsTable.tenantId, params.tenantId),
+      ));
+      if (row.assignmentId !== params.changedAssignmentId) {
+        warnings.push(buildReason("already_booked", `${row.title} is automatisch doorgeschoven naar ${minutesToTime(nextStart)}-${minutesToTime(nextEnd)}.`, "warning"));
+      }
+    }
+    cursor = nextEnd;
+  }
+
+  return warnings;
+}
+
 export async function scheduleAssignmentOnBoard(
   input: PlanningBoardScheduleInput,
 ): Promise<PlanningBoardScheduleResult> {
@@ -1455,7 +1609,7 @@ export async function scheduleAssignmentOnBoard(
   const personnelId = input.personnelId.trim();
   const sourcePersonnelId = input.sourcePersonnelId?.trim() || null;
   const date = input.date.trim();
-  const start = input.start.trim();
+  let start = input.start.trim();
 
   if (!assignmentId || !personnelId) {
     return {
@@ -1596,11 +1750,11 @@ export async function scheduleAssignmentOnBoard(
   if (!personnel || !personnel.isActive)
     return { success: false, message: "Medewerker niet gevonden of inactief." };
 
-  const allowedStatuses: AssignmentStatus[] = ["plannable", "scheduled"];
+  const allowedStatuses: AssignmentStatus[] = ["plannable", "scheduled", "seen", "en_route", "in_progress"];
   if (!allowedStatuses.includes(assignment.status as AssignmentStatus)) {
     return {
       success: false,
-      message: `Alleen planbare of ingeplande werkbonnen kunnen via het planbord worden geplaatst (huidige status: ${assignment.status}).`,
+      message: `Alleen planbare, ingeplande of actieve werkbonnen kunnen via het planbord worden geplaatst (huidige status: ${assignment.status}).`,
     };
   }
 
@@ -1672,27 +1826,13 @@ export async function scheduleAssignmentOnBoard(
     };
   }
 
-  const end = input.end?.trim() || addMinutes(start, estimatedDurationMinutes);
-  if (!isTimeKey(end)) {
-    return {
-      success: false,
-      message: "Ongeldige eindtijd.",
-      fieldErrors: { end: "Gebruik HH:MM." },
-    };
-  }
-  if (timeToMinutes(end) <= timeToMinutes(start)) {
-    return {
-      success: false,
-      message: "Eindtijd moet na starttijd liggen.",
-      fieldErrors: { end: "Kies een latere eindtijd." },
-    };
-  }
 
   const [
     availabilityMap,
     [availabilityDayEntry],
     [availabilityWindow],
     existingRows,
+    [settingsRow],
   ] = await Promise.all([
     getBatchAvailabilityStatus([personnelId], date),
 
@@ -1767,14 +1907,48 @@ export async function scheduleAssignmentOnBoard(
           eq(assignmentPersonnelTable.status, "assigned"),
           eq(assignmentsTable.scheduledDate, date),
           ne(assignmentsTable.id, assignmentId),
-          or(
-            isNull(assignmentsTable.scheduledStart),
-            isNull(assignmentsTable.scheduledEnd),
-            sql<boolean>`${assignmentsTable.scheduledStart} < ${end} AND ${assignmentsTable.scheduledEnd} > ${start}`,
-          ),
         ),
       ),
+
+    db
+      .select({
+        workdayStart: organizationSettingsTable.planningWorkdayStart,
+        slotMinutes: organizationSettingsTable.planningTimeSlotMinutes,
+      })
+      .from(organizationSettingsTable)
+      .where(eq(organizationSettingsTable.tenantId, tenantId))
+      .limit(1),
   ]);
+
+  const planningSlotMinutes = Math.max(15, Math.min(240, settingsRow?.slotMinutes ?? 90));
+  const planningWorkdayStart = settingsRow?.workdayStart ?? "08:00";
+  const requestedDuration = input.end?.trim() && isTimeKey(input.end.trim())
+    ? timeToMinutes(input.end.trim()) - timeToMinutes(start)
+    : estimatedDurationMinutes;
+  const duration = Math.max(15, requestedDuration);
+  start = nextNonOverlappingStart({
+    preferredStart: start,
+    durationMinutes: duration,
+    slotMinutes: PLANNING_SNAP_MINUTES,
+    workdayStart: planningWorkdayStart,
+    movingAssignmentId: assignmentId,
+    existingAssignments: existingRows,
+  });
+  const end = addMinutes(start, duration);
+  if (!isTimeKey(end)) {
+    return {
+      success: false,
+      message: "Ongeldige eindtijd.",
+      fieldErrors: { end: "Gebruik HH:MM." },
+    };
+  }
+  if (timeToMinutes(end) <= timeToMinutes(start)) {
+    return {
+      success: false,
+      message: "Eindtijd moet na starttijd liggen.",
+      fieldErrors: { end: "Kies een latere eindtijd." },
+    };
+  }
 
   const sectorId =
     assignment.objectSectorId ??
@@ -1992,6 +2166,8 @@ export async function scheduleAssignmentOnBoard(
       message: "Inplannen via het planbord is mislukt.",
     };
   }
+
+  warnings.push(...await rebalancePersonnelDaySchedule({ tenantId, personnelId, changedAssignmentId: assignmentId, date }));
 
   revalidatePath("/planning");
   revalidatePath(`/assignments/${assignmentId}`);
