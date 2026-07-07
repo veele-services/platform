@@ -326,7 +326,7 @@ export async function requestOfflineWorkOrderSync() {
       return;
     }
 
-    registration.active?.postMessage({ type: "VEELE_PROCESS_OFFLINE_QUEUE" });
+    registration.active?.postMessage({ type: "FIELDGRID_PROCESS_OFFLINE_QUEUE" });
   } catch {
     // Background sync is progressive enhancement; the provider also syncs on online/focus.
   }

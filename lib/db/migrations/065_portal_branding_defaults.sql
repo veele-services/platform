@@ -2,7 +2,7 @@
 -- Portal branding defaults
 --
 -- Staging-safe migration:
--- - changes only future organization_settings defaults from Veele text to
+-- - changes only future organization_settings defaults from legacy text to
 --   Fieldgrid platform-neutral copy;
 -- - keeps existing tenant rows unchanged so tenant-specific branding/content is
 --   preserved.

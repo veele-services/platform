@@ -24,10 +24,10 @@ export const viewport: Viewport = {
 
 export const metadata: Metadata = {
   title: {
-    default: "Veele Services",
-    template: "%s — Veele",
+    default: "Fieldgrid",
+    template: "%s - Fieldgrid",
   },
-  description: "Veele Services Management Platform — operations, planning, and reporting.",
+  description: "Fieldgrid managementplatform voor operations, planning en rapportage.",
   robots: { index: false, follow: false },
 };
 

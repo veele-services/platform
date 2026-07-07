@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS tenants (
 CREATE UNIQUE INDEX IF NOT EXISTS tenants_slug_idx ON tenants(slug);
 
 INSERT INTO tenants (id, slug, name)
-VALUES ('00000000-0000-0000-0000-000000000010', 'veele-services', 'Veele Services')
+VALUES ('00000000-0000-0000-0000-000000000010', 'veele-services', 'Fieldgrid Default')
 ON CONFLICT (id) DO UPDATE
   SET slug = excluded.slug,
       name = excluded.name,

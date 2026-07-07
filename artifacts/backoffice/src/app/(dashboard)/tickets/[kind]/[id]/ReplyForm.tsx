@@ -40,7 +40,7 @@ export function ReplyForm({
           disabled={disabled}
           className="mt-1 w-full resize-none bg-transparent text-sm font-semibold leading-6 outline-none disabled:opacity-50"
           style={{ color: "#081D3A" }}
-          placeholder={disabled ? "Dit ticket is gesloten." : "Typ de reactie namens Veele Services..."}
+          placeholder={disabled ? "Dit ticket is gesloten." : "Typ de reactie namens de backoffice..."}
         />
       </label>
 

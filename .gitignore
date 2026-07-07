@@ -36,6 +36,13 @@ node_modules
 /.sass-cache
 /connect.lock
 /coverage
+/artifacts/final-gate/
+/artifacts/migration-smoke/
+/artifacts/platform-admin-final-gate/
+/artifacts/platform-mobile-polish/
+/artifacts/staging-promotion-gate/
+/artifacts/staging-smoke/
+/artifacts/visual-regression/
 /outputs/**/auth/
 /libpeerconnection.log
 npm-debug.log

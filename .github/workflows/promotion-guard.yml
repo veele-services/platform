@@ -15,9 +15,8 @@ permissions:
   contents: read
 
 env:
-  # Temporary recovery freeze: while true, every PR into staging is blocked.
-  # Recovery PRs must target main; staging is updated later from main after reconciliation.
-  STAGING_RECOVERY_FREEZE: "true"
+  # Fase 4: staging is no longer frozen; main -> staging is guarded by reproducible release signals below.
+  STAGING_RECOVERY_FREEZE: "false"
 
 jobs:
   enforce-release-flow:
@@ -71,6 +70,24 @@ jobs:
           echo "Received:"
           echo "  $head_branch -> $base_branch"
           exit 1
+
+      - name: Enable corepack
+        run: corepack enable
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Validate Fieldgrid release signals
+        run: |
+          pnpm fieldgrid:migration-order-check:check
+          pnpm fieldgrid:test-layers:check
+          pnpm fieldgrid:staging-promotion-gate:check
 
       - name: Block staging-only seed assets from production
         if: ${{ github.base_ref == 'production' }}

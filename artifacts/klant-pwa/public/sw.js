@@ -156,7 +156,7 @@ self.addEventListener("fetch", (event) => {
 function parsePushPayload(event) {
   if (!event.data) {
     return {
-      title: "Veele Services",
+      title: "Nieuwe melding",
       body: "Er staat een nieuwe melding voor u klaar.",
       href: "/klant/meldingen",
     };
@@ -165,7 +165,7 @@ function parsePushPayload(event) {
   try {
     const payload = event.data.json();
     return {
-      title: payload.title || "Veele Services",
+      title: payload.title || "Nieuwe melding",
       body: payload.body || "Er staat een nieuwe melding voor u klaar.",
       href: payload.href || payload.url || "/klant/meldingen",
       tag: payload.tag,
@@ -173,7 +173,7 @@ function parsePushPayload(event) {
     };
   } catch {
     return {
-      title: "Veele Services",
+      title: "Nieuwe melding",
       body: event.data.text(),
       href: "/klant/meldingen",
     };

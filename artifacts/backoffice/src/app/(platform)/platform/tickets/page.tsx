@@ -195,7 +195,7 @@ function CreateTicketForm({ dashboard }: { dashboard: PlatformTicketDashboard })
               ))}
             </select>
           </label>
-          <LinkSelect name="subscriptionId" label="Subscription" options={dashboard.subscriptions} />
+          <LinkSelect name="subscriptionId" label="Abonnement" options={dashboard.subscriptions} />
           <LinkSelect name="domainId" label="Domein" options={dashboard.domains} />
           <LinkSelect name="supportGrantId" label="Support grant" options={dashboard.supportGrants} />
           <LinkSelect name="auditLogId" label="Audit event" options={dashboard.auditEvents} />

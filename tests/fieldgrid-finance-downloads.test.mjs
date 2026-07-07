@@ -19,8 +19,12 @@ test("tenant backoffice finance PDF and CSV downloads are wired", () => {
   assert.match(pdfStyle, /drawPdfHeader/u);
   assert.match(pdfStyle, /drawPdfFooter/u);
   assert.match(pdfStyle, /drawPdfTotalPanel/u);
-  assert.match(invoicePdf, /drawPdfHeader\(doc, \{ title: "FACTUUR"/u);
-  assert.match(quotePdf, /drawPdfHeader\(doc, \{ title: "OFFERTE"/u);
+  assert.match(invoicePdf, /const brandName = invoice\.brandName\?\.trim\(\) \|\| "Fieldgrid"/u);
+  assert.match(invoicePdf, /drawPdfHeader\(doc,\s*\{\s*title: "FACTUUR"/u);
+  assert.match(invoicePdf, /brandTitle: brandName\.toUpperCase\(\)/u);
+  assert.match(quotePdf, /const brandName = quote\.brandName\?\.trim\(\) \|\| "Fieldgrid"/u);
+  assert.match(quotePdf, /drawPdfHeader\(doc,\s*\{\s*title: "OFFERTE"/u);
+  assert.match(quotePdf, /brandTitle: brandName\.toUpperCase\(\)/u);
 
   assert.match(quoteRoute, /hasPermission\("quotes", "read"\)/u);
   assert.match(quoteRoute, /generateQuotePdf\(quote\)/u);
@@ -54,13 +58,18 @@ test("customer portal quote and invoice PDFs use secured enterprise styling", ()
 
   assert.match(pdfStyle, /drawPdfHeader/u);
   assert.match(pdfStyle, /drawPdfRecipientPanel/u);
-  assert.match(invoicePdf, /drawPdfHeader\(doc, \{ title: "FACTUUR"/u);
-  assert.match(quotePdf, /drawPdfHeader\(doc, \{ title: "OFFERTE"/u);
-  assert.match(batchRoute, /drawPdfHeader\(doc, \{ title: "VERZAMELFACTUUR"/u);
+  assert.match(invoicePdf, /brandName\?: string \| null/u);
+  assert.match(invoicePdf, /drawPdfHeader\(doc,\s*\{\s*title: "FACTUUR"/u);
+  assert.match(quotePdf, /brandName\?: string \| null/u);
+  assert.match(quotePdf, /drawPdfHeader\(doc,\s*\{\s*title: "OFFERTE"/u);
+  assert.match(batchRoute, /getTenantBranding\(identity\.tenantId\)/u);
+  assert.match(batchRoute, /drawPdfHeader\(doc,\s*\{\s*title: "VERZAMELFACTUUR"/u);
 
   assert.match(invoiceRoute, /getMyCustomerIdentity\(\)/u);
+  assert.match(invoiceRoute, /getTenantBranding\(identity\.tenantId\)/u);
   assert.match(invoiceRoute, /sanitizePdfFilename/u);
   assert.match(quoteRoute, /getMyCustomerIdentity\(\)/u);
+  assert.match(quoteRoute, /getTenantBranding\(identity\.tenantId\)/u);
   assert.match(quoteRoute, /eq\(quotesTable\.customerId, identity\.customerId\)/u);
   assert.match(quoteRoute, /eq\(assignmentsTable\.tenantId, identity\.tenantId\)/u);
   assert.match(quoteRoute, /inArray\(quotesTable\.status, CUSTOMER_VISIBLE_QUOTE_STATUSES\)/u);

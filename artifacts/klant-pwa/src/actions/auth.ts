@@ -178,7 +178,7 @@ export async function completePasswordReset(
       });
       if (metadataError) throw metadataError;
     } catch {
-      return { error: "Wachtwoord opgeslagen, maar de eerste-login status kon niet worden afgerond. Neem contact op met Veele Services." };
+      return { error: "Wachtwoord opgeslagen, maar de eerste-login status kon niet worden afgerond. Neem contact op met support." };
     }
   }
 

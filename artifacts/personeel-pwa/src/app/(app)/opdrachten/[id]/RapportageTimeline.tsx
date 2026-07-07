@@ -452,7 +452,7 @@ export function RapportageTimeline({ assignmentId, initialNotes, canAdd, canPers
           {
             id:          `local-report-note-${Date.now()}`,
             body:        trimmedBody,
-            authorName:  "Veele Services",
+            authorName:  "Backoffice",
             createdAt:   now,
             attachments: files.map((item) => ({
               id:          item.id,

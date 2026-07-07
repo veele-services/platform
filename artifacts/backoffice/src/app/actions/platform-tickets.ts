@@ -246,7 +246,7 @@ async function selectTicketRows(where?: SQL): Promise<PlatformTicketRow[]> {
   return rows.map((row) => {
     const meta = noteMeta.get(row.id);
     const subscriptionLabel = row.subscriptionId
-      ? `${row.subscriptionPlanName ?? "Subscription"} - ${row.subscriptionStatus ?? "onbekend"}`
+      ? `${row.subscriptionPlanName ?? "Abonnement"} - ${row.subscriptionStatus ?? "onbekend"}`
       : null;
     const supportGrantLabel = row.supportGrantId
       ? `${row.supportGrantReason ?? "Support grant"}${row.supportGrantExpiresAt ? ` tot ${row.supportGrantExpiresAt.toISOString().slice(0, 10)}` : ""}`

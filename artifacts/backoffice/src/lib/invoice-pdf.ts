@@ -22,6 +22,7 @@ function categoryLabel(category: string): string {
 }
 
 export async function generateInvoicePdf(invoice: InvoiceDetail): Promise<Buffer> {
+  const brandName = invoice.brandName?.trim() || "Fieldgrid";
   const doc = new PDFDocument({ size: "A4", margin: 55, bufferPages: true });
   const chunks: Buffer[] = [];
 
@@ -30,7 +31,12 @@ export async function generateInvoicePdf(invoice: InvoiceDetail): Promise<Buffer
   await new Promise<void>((resolve) => {
     doc.on("end", resolve);
 
-    drawPdfHeader(doc, { title: "FACTUUR", reference: invoice.invoiceNumber });
+    drawPdfHeader(doc, {
+      title: "FACTUUR",
+      reference: invoice.invoiceNumber,
+      brandTitle: brandName.toUpperCase(),
+      brandSubtitle: "FIELDGRID",
+    });
 
     const L = PDF_PAGE.left;
     const R = PDF_PAGE.right;
@@ -106,7 +112,7 @@ export async function generateInvoicePdf(invoice: InvoiceDetail): Promise<Buffer
       doc.fillColor(PDF_BRAND.ink).font("Helvetica").fontSize(9).text(invoice.notes, L, y + 18, { width: W, lineGap: 2 });
     }
 
-    drawPdfFooter(doc, "Veele Services - Een partner. Een standaard. Totale zorg.");
+    drawPdfFooter(doc, `${brandName} - Factuur gegenereerd vanuit Fieldgrid.`);
     doc.end();
   });
 

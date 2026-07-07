@@ -58,14 +58,18 @@ export function drawPdfHeader(
     brandSubtitle?: string;
   },
 ) {
-  const brandTitle = input.brandTitle ?? "VEELE";
-  const brandSubtitle = input.brandSubtitle ?? "SERVICES";
+  const rawBrandTitle = (input.brandTitle ?? "FIELDGRID").trim() || "FIELDGRID";
+  const brandTitle = rawBrandTitle.length > 14 ? `${rawBrandTitle.slice(0, 13)}.` : rawBrandTitle;
+  const brandSubtitle = (input.brandSubtitle ?? "PLATFORM").trim() || "PLATFORM";
+  const titleFontSize = brandTitle.length > 10 ? 11 : brandTitle.length > 8 ? 13 : 16;
 
   doc.rect(0, 0, PDF_PAGE.width, 122).fill(PDF_BRAND.navy);
   doc.roundedRect(PDF_PAGE.left, 30, 96, 54, 8).fill("#FFFFFF");
-  doc.fillColor(PDF_BRAND.blue).font("Helvetica-Bold").fontSize(16).text(brandTitle, PDF_PAGE.left + 14, 43, {
+  doc.fillColor(PDF_BRAND.blue).font("Helvetica-Bold").fontSize(titleFontSize).text(brandTitle, PDF_PAGE.left + 14, 43, {
     width: 68,
     align: "center",
+    height: 16,
+    ellipsis: true,
   });
   doc.fillColor(PDF_BRAND.cyan).font("Helvetica-Bold").fontSize(6).text(brandSubtitle, PDF_PAGE.left + 14, 62, {
     width: 68,

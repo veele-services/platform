@@ -36,7 +36,7 @@ const TEMPLATE_LABELS: Record<string, string> = {
   incident: "Storing",
   onboarding_reminder: "Onboarding reminder",
   domain_dns_reminder: "Domain DNS reminder",
-  subscription_warning: "Subscription warning",
+  subscription_warning: "Abonnementswaarschuwing",
 };
 
 const CHANNEL_LABELS: Record<string, string> = {
@@ -96,7 +96,7 @@ function TemplateGuide({ dashboard }: { dashboard: PlatformNotificationCenter })
     <section className="rounded border border-slate-200 bg-white p-5">
       <div className="mb-4">
         <h2 className="text-lg font-semibold tracking-normal text-slate-950">Templates</h2>
-        <p className="mt-1 text-sm text-slate-500">Standaardteksten voor onderhoud, storing, onboarding, domein-DNS en subscription waarschuwingen.</p>
+        <p className="mt-1 text-sm text-slate-500">Standaardteksten voor onderhoud, storing, onboarding, domein-DNS en abonnementswaarschuwingen.</p>
       </div>
       <div className="grid gap-3 lg:grid-cols-5">
         {dashboard.templates.map((template) => (

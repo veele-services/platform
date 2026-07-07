@@ -7,7 +7,7 @@
 -- ============================================================================
 
 INSERT INTO tenants (id, slug, name)
-VALUES ('00000000-0000-0000-0000-000000000010'::uuid, 'veele-services', 'Veele Services')
+VALUES ('00000000-0000-0000-0000-000000000010'::uuid, 'veele-services', 'Fieldgrid Default')
 ON CONFLICT (id) DO UPDATE
   SET slug = excluded.slug,
       name = excluded.name,

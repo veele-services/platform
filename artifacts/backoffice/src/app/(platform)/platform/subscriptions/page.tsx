@@ -8,7 +8,7 @@ import {
 } from "@/app/actions/platform-tenants";
 
 export const metadata = {
-  title: "Subscriptions",
+  title: "Abonnementen",
 };
 
 async function updateSubscriptionFormAction(formData: FormData): Promise<void> {
@@ -41,6 +41,15 @@ function statusTone(status: string): "neutral" | "good" | "warning" | "danger" {
   if (status === "trial" || status === "past_due") return "warning";
   if (status === "canceled" || status === "expired") return "danger";
   return "neutral";
+}
+
+function statusLabel(status: string): string {
+  if (status === "trial") return "Proefperiode";
+  if (status === "active") return "Actief";
+  if (status === "past_due") return "Betalingsachterstand";
+  if (status === "canceled") return "Geannuleerd";
+  if (status === "expired") return "Verlopen";
+  return status;
 }
 
 function statusChipClass(tone: "neutral" | "good" | "warning" | "danger"): string {
@@ -86,14 +95,14 @@ function SubscriptionCard({
               {subscription.tenantName}
             </Link>
             <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(statusTone(subscription.status))}`}>
-              {subscription.status}
+              {statusLabel(subscription.status)}
             </span>
             <span className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600">
               {subscription.planName}
             </span>
           </div>
           <p className="mt-1 text-sm text-slate-500">
-            {subscription.tenantSlug} - {subscription.source} - bijgewerkt {formatDate(subscription.updatedAt)}
+            {subscription.tenantSlug} - bron: {subscription.source} - bijgewerkt {formatDate(subscription.updatedAt)}
           </p>
           <p className="mt-1 text-sm text-slate-500">
             Periode {formatDate(subscription.currentPeriodStartsAt)} tot {formatDate(subscription.currentPeriodEndsAt)}
@@ -110,7 +119,7 @@ function SubscriptionCard({
             <p className="mt-1 font-medium text-slate-950">{subscription.tenantStatus}</p>
           </div>
           <div className="rounded bg-slate-50 px-3 py-2">
-            <p className="text-xs uppercase text-slate-500">Custom</p>
+            <p className="text-xs uppercase text-slate-500">Domeinen</p>
             <p className="mt-1 font-medium text-slate-950">{subscription.customDomainCount}</p>
           </div>
           <div className="rounded bg-slate-50 px-3 py-2">
@@ -118,7 +127,7 @@ function SubscriptionCard({
             <p className="mt-1 font-medium text-slate-950">{subscription.activeCustomDomainCount}</p>
           </div>
           <div className="rounded bg-slate-50 px-3 py-2">
-            <p className="text-xs uppercase text-slate-500">Ref</p>
+            <p className="text-xs uppercase text-slate-500">Referentie</p>
             <p className="mt-1 truncate font-medium text-slate-950">{subscription.billingReference ?? "-"}</p>
           </div>
         </div>
@@ -132,7 +141,7 @@ function SubscriptionCard({
             <select name="planKey" defaultValue={subscription.planKey} className="h-10 rounded border border-slate-300 bg-white px-3 text-sm">
               {planOptions.map((plan) => (
                 <option key={plan.id} value={plan.key}>
-                  {plan.name}{plan.customDomains ? " - custom domains" : ""}
+                  {plan.name}{plan.customDomains ? " - custom domeinen" : ""}
                 </option>
               ))}
             </select>
@@ -147,11 +156,11 @@ function SubscriptionCard({
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Status
             <select name="status" defaultValue={subscription.status} className="h-10 rounded border border-slate-300 bg-white px-3 text-sm">
-              <option value="trial">trial</option>
-              <option value="active">active</option>
-              <option value="past_due">past_due</option>
-              <option value="canceled">canceled</option>
-              <option value="expired">expired</option>
+              <option value="trial">Proefperiode</option>
+              <option value="active">Actief</option>
+              <option value="past_due">Betalingsachterstand</option>
+              <option value="canceled">Geannuleerd</option>
+              <option value="expired">Verlopen</option>
             </select>
           </label>
           <label className="grid gap-1 text-sm font-medium text-slate-700">
@@ -166,7 +175,7 @@ function SubscriptionCard({
             Opslaan
           </button>
           <label className="grid gap-1 text-sm font-medium text-slate-700 md:col-span-4">
-            Manual billing notes
+            Handmatige billingnotities
             <textarea name="manualBillingNotes" defaultValue={subscription.manualBillingNotes ?? ""} rows={2} className="rounded border border-slate-300 bg-white px-3 py-2 text-sm" />
           </label>
         </form>
@@ -180,22 +189,29 @@ export default async function PlatformSubscriptionsPage() {
 
   return (
     <main className="platform-page mx-auto flex w-full max-w-7xl flex-col gap-5 p-4 md:p-6">
+      <section className="rounded border border-slate-200 bg-white p-5">
+        <h1 className="text-xl font-semibold tracking-normal text-slate-950">Abonnementen</h1>
+        <p className="mt-1 max-w-3xl text-sm text-slate-500">
+          Plan, periode, status en billingreferentie worden handmatig beheerd en geaudit totdat automatische facturatie is gekoppeld.
+        </p>
+      </section>
+
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
-        <Stat label="Trial" value={dashboard.stats.trial} icon={CreditCard} />
-        <Stat label="Active" value={dashboard.stats.active} icon={CheckCircle2} />
-        <Stat label="Past due" value={dashboard.stats.pastDue} icon={AlertTriangle} />
-        <Stat label="Canceled" value={dashboard.stats.canceled} icon={UsersRound} />
-        <Stat label="Expired" value={dashboard.stats.expired} icon={ShieldCheck} />
+        <Stat label="Proefperiode" value={dashboard.stats.trial} icon={CreditCard} />
+        <Stat label="Actief" value={dashboard.stats.active} icon={CheckCircle2} />
+        <Stat label="Achterstand" value={dashboard.stats.pastDue} icon={AlertTriangle} />
+        <Stat label="Geannuleerd" value={dashboard.stats.canceled} icon={UsersRound} />
+        <Stat label="Verlopen" value={dashboard.stats.expired} icon={ShieldCheck} />
       </div>
 
       <section className="rounded border border-slate-200 bg-white p-5">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold tracking-normal text-slate-950">Plans</h2>
+            <h2 className="text-lg font-semibold tracking-normal text-slate-950">Plannen</h2>
             <p className="mt-1 text-sm text-slate-500">Starter, Professional en Enterprise met modules, limits en supportniveau.</p>
           </div>
           <span className="rounded border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-medium text-slate-600">
-            {dashboard.stats.totalSubscriptions} subscriptions
+            {dashboard.stats.totalSubscriptions} abonnementen
           </span>
         </div>
         <div className="grid gap-3 lg:grid-cols-3">
@@ -218,24 +234,24 @@ export default async function PlatformSubscriptionsPage() {
               </div>
               <div className="mt-4 flex flex-wrap gap-2">
                 <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(plan.customRoles ? "good" : "neutral")}`}>
-                  custom roles {plan.customRoles ? "aan" : "uit"}
+                  custom rollen {plan.customRoles ? "aan" : "uit"}
                 </span>
                 <span className={`rounded border px-2 py-1 text-xs font-medium ${statusChipClass(plan.customDomains ? "good" : "neutral")}`}>
-                  custom domains {plan.customDomains ? "aan" : "uit"}
+                  custom domeinen {plan.customDomains ? "aan" : "uit"}
                 </span>
               </div>
               <div className="mt-4 grid grid-cols-3 gap-2 text-center text-sm">
                 <div className="rounded bg-slate-50 px-2 py-2">
                   <p className="font-semibold text-slate-950">{plan.trialSubscriptions}</p>
-                  <p className="text-xs text-slate-500">trial</p>
+                  <p className="text-xs text-slate-500">proefperiode</p>
                 </div>
                 <div className="rounded bg-slate-50 px-2 py-2">
                   <p className="font-semibold text-slate-950">{plan.activeSubscriptions}</p>
-                  <p className="text-xs text-slate-500">active</p>
+                  <p className="text-xs text-slate-500">actief</p>
                 </div>
                 <div className="rounded bg-slate-50 px-2 py-2">
                   <p className="font-semibold text-slate-950">{plan.pastDueSubscriptions}</p>
-                  <p className="text-xs text-slate-500">past due</p>
+                  <p className="text-xs text-slate-500">achterstand</p>
                 </div>
               </div>
             </div>
@@ -246,8 +262,8 @@ export default async function PlatformSubscriptionsPage() {
       <section className="rounded border border-slate-200 bg-white p-5">
         <div className="mb-4 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h2 className="text-lg font-semibold tracking-normal text-slate-950">Tenant subscriptions</h2>
-            <p className="mt-1 text-sm text-slate-500">Status, planwissel, periode en manual billing per tenant.</p>
+            <h2 className="text-lg font-semibold tracking-normal text-slate-950">Tenantabonnementen</h2>
+            <p className="mt-1 text-sm text-slate-500">Status, planwissel, periode en handmatige billing per tenant.</p>
           </div>
           <Building2 className="hidden h-5 w-5 text-slate-400 sm:block" />
         </div>
@@ -257,7 +273,7 @@ export default async function PlatformSubscriptionsPage() {
           ))}
           {dashboard.subscriptions.length === 0 && (
             <p className="platform-empty-state text-sm">
-              Geen subscriptions gevonden.
+              Geen abonnementen gevonden.
             </p>
           )}
         </div>

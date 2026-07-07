@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextResponse } from "next/server";
 import { db } from "@workspace/db";
 import {
+  getTenantBranding,
   assignmentExtraWorkTable,
   assignmentMaterialUsageTable,
   assignmentTasksTable,
@@ -146,8 +147,10 @@ export async function GET(
       };
     }),
   ];
+  const branding = await getTenantBranding(identity.tenantId);
 
   const pdfBuffer = await generateCustomerInvoicePdf({
+    brandName: branding.displayName,
     invoiceNumber: invoice.invoiceNumber,
     customerName: invoice.customerName ?? identity.customerName,
     customerAddress: invoice.customerAddress ?? null,

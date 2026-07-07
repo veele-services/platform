@@ -215,6 +215,14 @@ jobs:
           set -euo pipefail
           pnpm install --frozen-lockfile
 
+      - name: Validate Fieldgrid release signals
+        working-directory: ${{ env.RELEASE }}
+        run: |
+          set -euo pipefail
+          pnpm fieldgrid:migration-order-check:check
+          pnpm fieldgrid:test-layers:check
+          pnpm fieldgrid:staging-promotion-gate:check
+
       - name: Build
         working-directory: ${{ env.RELEASE }}
         run: |

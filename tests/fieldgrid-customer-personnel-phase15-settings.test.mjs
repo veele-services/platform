@@ -77,6 +77,6 @@ test("phase 15 keeps unfinished security functionality behind flags and producti
   const mfaSettings = read("artifacts/personeel-pwa/src/app/(app)/beveiliging/MfaSettings.tsx");
 
   assert.match(securityPage, /NEXT_PUBLIC_ENABLE_PERSONNEL_MFA === "true"/u);
-  assert.match(mfaSettings, /Tweestapsverificatie is nog niet beschikbaar voor deze omgeving\./u);
-  assert.doesNotMatch(mfaSettings, /MFA\/TOTP/u);
+  assert.match(mfaSettings, /Tweestapsverificatie activeren mislukt\. Probeer het opnieuw of neem contact op met support\./u);
+  assert.doesNotMatch(mfaSettings, /MFA\/TOTP|nog niet beschikbaar|zodra Supabase/u);
 });

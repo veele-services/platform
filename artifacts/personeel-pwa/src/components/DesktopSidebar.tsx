@@ -21,7 +21,7 @@ import {
   User,
 } from "lucide-react";
 import { signOut } from "@/actions/auth";
-import { VeeleLogo, type PortalBrandingProps } from "./MobileHeader";
+import { FieldgridLogo, type PortalBrandingProps } from "./MobileHeader";
 
 type PersonnelPortalFeatureFlags = {
   documents: boolean;
@@ -87,7 +87,7 @@ export function DesktopSidebar({
           borderColor: "#E2E8F0",
         }}
       >
-        <VeeleLogo branding={branding} />
+        <FieldgridLogo branding={branding} />
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto px-3 py-4">

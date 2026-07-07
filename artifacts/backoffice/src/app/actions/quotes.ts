@@ -2,6 +2,7 @@
 
 import { db } from "@workspace/db";
 import {
+  getTenantBranding,
   quotesTable,
   assignmentsTable,
   assignmentTasksTable,
@@ -45,6 +46,7 @@ export type QuoteRow = {
 
 export type QuoteDetail = {
   id:              string;
+  brandName:       string;
   quoteNumber:     string;
   customerId:      string;
   customerName:    string;
@@ -404,26 +406,30 @@ export async function getQuote(id: string): Promise<QuoteDetail | null> {
 
   if (!row) return null;
 
-  const lineItems = await db
-    .select({
-      snapshotCode:        assignmentTasksTable.taskCodeCode,
-      snapshotName:        assignmentTasksTable.taskCodeName,
-      snapshotPrice:       assignmentTasksTable.taskCodePrice,
-      snapshotInvoiceable: assignmentTasksTable.taskCodeInvoiceable,
-      taskCodeCode:        taskCodesTable.code,
-      taskCodeName:        taskCodesTable.name,
-      price:               taskCodesTable.price,
-      invoiceable:         taskCodesTable.invoiceable,
-    })
-    .from(assignmentTasksTable)
-    .leftJoin(taskCodesTable, eq(assignmentTasksTable.taskCodeId, taskCodesTable.id))
-    .where(eq(assignmentTasksTable.assignmentId, row.assignmentId))
-    .orderBy(asc(assignmentTasksTable.sortOrder));
+  const [lineItems, branding] = await Promise.all([
+    db
+      .select({
+        snapshotCode:        assignmentTasksTable.taskCodeCode,
+        snapshotName:        assignmentTasksTable.taskCodeName,
+        snapshotPrice:       assignmentTasksTable.taskCodePrice,
+        snapshotInvoiceable: assignmentTasksTable.taskCodeInvoiceable,
+        taskCodeCode:        taskCodesTable.code,
+        taskCodeName:        taskCodesTable.name,
+        price:               taskCodesTable.price,
+        invoiceable:         taskCodesTable.invoiceable,
+      })
+      .from(assignmentTasksTable)
+      .leftJoin(taskCodesTable, eq(assignmentTasksTable.taskCodeId, taskCodesTable.id))
+      .where(eq(assignmentTasksTable.assignmentId, row.assignmentId))
+      .orderBy(asc(assignmentTasksTable.sortOrder)),
+    getTenantBranding(tenantId),
+  ]);
 
   const today = todayString();
 
   return {
     id:              row.id,
+    brandName:       branding.displayName,
     quoteNumber:     row.quoteNumber,
     customerId:      row.customerId,
     customerName:    row.customerName    ?? "",

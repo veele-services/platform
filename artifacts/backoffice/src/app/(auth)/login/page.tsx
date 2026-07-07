@@ -50,7 +50,7 @@ export default async function LoginPage({ searchParams }: Props) {
               color: "#081D3A",
             }}
           >
-            VEELE
+            FIELDGRID
           </span>
           <span
             className="uppercase tracking-[0.22em]"
@@ -84,7 +84,7 @@ export default async function LoginPage({ searchParams }: Props) {
             color: "#64748B",
           }}
         >
-          Inloggen met uw Veele account
+          Inloggen met uw Fieldgrid-account
         </p>
       </div>
 

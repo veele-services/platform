@@ -37,7 +37,7 @@ const CUSTOMER_TICKET_PRIORITY_OPTIONS: Array<{
   { value: "urgent", label: "Urgent" },
 ];
 
-const CUSTOMER_VISIBLE_TENANT_AUTHOR = "Veele Services";
+const CUSTOMER_VISIBLE_TENANT_AUTHOR = "Uw dienstverlener";
 
 export type CustomerTicketListItem = {
   id: string;

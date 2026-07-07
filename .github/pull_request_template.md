@@ -6,16 +6,11 @@
 
 Vul dit altijd in voor PR's die tenant lifecycle, modules, sectoren, RBAC, support access, platform-admin, portalen, storage, finance, documenten, audit, provisioning, deployment of staging-promotie raken.
 
-- Geraakte updatefase uit `docs/fieldgrid-next-major-update-plan.md`:
-  -
-- Geraakte sprint uit `docs/fieldgrid-saas-proof-sprint-plan.md`:
-  -
-- Geraakte data-classificatie-items uit `docs/fieldgrid-data-classification.md`:
-  -
-- Geraakte test-id's uit `docs/fieldgrid-cross-tenant-testmatrix.md`:
-  -
-- Geraakte staging-promotiechecklist uit `docs/fieldgrid-staging-promotion-checklist.md`:
-  -
+- ## Geraakte updatefase uit `docs/fieldgrid-next-major-update-plan.md`:
+- ## Geraakte sprint uit `docs/fieldgrid-saas-proof-sprint-plan.md`:
+- ## Geraakte data-classificatie-items uit `docs/fieldgrid-data-classification.md`:
+- ## Geraakte test-id's uit `docs/fieldgrid-cross-tenant-testmatrix.md`:
+- ## Geraakte staging-promotiechecklist uit `docs/fieldgrid-staging-promotion-checklist.md`:
 
 ## Scope
 
@@ -27,6 +22,7 @@ Vul dit altijd in voor PR's die tenant lifecycle, modules, sectoren, RBAC, suppo
 ## Migraties en data
 
 - [ ] Niet van toepassing.
+- [ ] `pnpm fieldgrid:migration-order-check:check` groen.
 - [ ] Lege database smoke vereist.
 - [ ] Staging-copy smoke vereist.
 - [ ] `pnpm fieldgrid:sprint7-migration-smoke:check` groen.
@@ -42,12 +38,13 @@ Vul dit altijd in voor PR's die tenant lifecycle, modules, sectoren, RBAC, suppo
 - [ ] `pnpm test`
 - [ ] `pnpm run typecheck`
 - [ ] Build/checks volgens CI
-- [ ] Extra tests voor genoemde test-id's:
-  -
+- [ ] ## Extra tests voor genoemde test-id's:
 
 ## Staging-promotie
 
 - [ ] PR raakt geen staging-promotie.
+- [ ] `pnpm fieldgrid:test-layers:check` groen.
+- [ ] `pnpm fieldgrid:staging-promotion-gate:check` groen wanneer deze PR main -> staging raakt.
 - [ ] Minimum green before staging uit `docs/fieldgrid-cross-tenant-testmatrix.md` is gecontroleerd.
 - [ ] Fasechecklist uit `docs/fieldgrid-staging-promotion-checklist.md` is gecontroleerd.
 - [ ] Staging blijft zoveel mogelijk bereikbaar; geen geplande downtime zonder expliciete reden.

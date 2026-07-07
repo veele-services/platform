@@ -55,7 +55,7 @@ const NAV_ITEMS: PlatformNavItem[] = [
   { href: "/platform", label: "Dashboard", icon: LayoutDashboard },
   { href: "/platform/onboarding", label: "Onboarding", icon: Rocket, adminOnly: true },
   { href: "/platform/tenants", label: "Tenants", icon: Building2, adminOnly: true },
-  { href: "/platform/subscriptions", label: "Subscriptions", icon: CreditCard, adminOnly: true },
+  { href: "/platform/subscriptions", label: "Abonnementen", icon: CreditCard, adminOnly: true },
   { href: "/platform/tickets", label: "Tickets", icon: Ticket, adminOnly: true },
   { href: "/platform/notifications", label: "Meldingen", icon: Bell, adminOnly: true },
   { href: "/platform/knowledgebase", label: "Knowledgebase", icon: BookOpen, adminOnly: true },
@@ -91,8 +91,8 @@ const ROUTE_LABELS: Array<{ test: (pathname: string) => boolean; title: string; 
   },
   {
     test: (pathname) => pathname.startsWith("/platform/subscriptions"),
-    title: "Subscriptions",
-    crumbs: [{ label: "Platformbeheer", href: "/platform" }, { label: "Subscriptions" }],
+    title: "Abonnementen",
+    crumbs: [{ label: "Platformbeheer", href: "/platform" }, { label: "Abonnementen" }],
   },
   {
     test: (pathname) => pathname.startsWith("/platform/tickets"),

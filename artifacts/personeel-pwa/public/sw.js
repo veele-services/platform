@@ -165,7 +165,7 @@ self.addEventListener("fetch", (event) => {
 function parsePushPayload(event) {
   if (!event.data) {
     return {
-      title: "Veele Services",
+      title: "Nieuwe melding",
       body: "Er staat een nieuwe melding voor je klaar.",
       href: "/personeel/meldingen",
       priority: "normal",
@@ -177,7 +177,7 @@ function parsePushPayload(event) {
     const payload = event.data.json();
     const priority = payload.priority || payload.urgency || "normal";
     return {
-      title: payload.title || "Veele Services",
+      title: payload.title || "Nieuwe melding",
       body: payload.body || "Er staat een nieuwe melding voor je klaar.",
       href: payload.href || payload.url || "/personeel/meldingen",
       tag: payload.tag,
@@ -187,7 +187,7 @@ function parsePushPayload(event) {
     };
   } catch {
     return {
-      title: "Veele Services",
+      title: "Nieuwe melding",
       body: event.data.text(),
       href: "/personeel/meldingen",
       priority: "normal",
@@ -214,29 +214,29 @@ async function notifyClients(message) {
 
 self.addEventListener("sync", (event) => {
   if (event.tag !== SYNC_TAG) return;
-  event.waitUntil(notifyClients({ type: "VEELE_PROCESS_OFFLINE_QUEUE" }));
+  event.waitUntil(notifyClients({ type: "FIELDGRID_PROCESS_OFFLINE_QUEUE" }));
 });
 
 self.addEventListener("message", (event) => {
-  if (event.data?.type === "VEELE_SKIP_WAITING") {
+  if (event.data?.type === "FIELDGRID_SKIP_WAITING") {
     self.skipWaiting();
     return;
   }
 
-  if (event.data?.type === "VEELE_REQUEST_OFFLINE_SYNC") {
-    event.waitUntil(notifyClients({ type: "VEELE_PROCESS_OFFLINE_QUEUE" }));
+  if (event.data?.type === "FIELDGRID_REQUEST_OFFLINE_SYNC") {
+    event.waitUntil(notifyClients({ type: "FIELDGRID_PROCESS_OFFLINE_QUEUE" }));
   }
 });
 
 self.addEventListener("push", (event) => {
   const payload = parsePushPayload(event);
   const isHighPriority = payload.priority === "high" || payload.urgency === "high";
-  const tag = payload.tag || `veele-${Date.now()}`;
+  const tag = payload.tag || `fieldgrid-${Date.now()}`;
 
   event.waitUntil(
     Promise.all([
       notifyClients({
-        type: "VEELE_PUSH_NOTIFICATION",
+        type: "FIELDGRID_PUSH_NOTIFICATION",
         payload: {
           title: payload.title,
           body: payload.body,

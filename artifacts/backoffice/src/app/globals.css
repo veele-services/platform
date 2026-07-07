@@ -3,9 +3,9 @@
 
 @theme {
   /* ══════════════════════════════════════════════════
-     shadcn/ui Semantic Token Layer → Veele Palette
+     shadcn/ui Semantic Token Layer → Fieldgrid Palette
      These map the shadcn class names (bg-primary, ring-ring, etc.)
-     to Veele brand colors so all Radix/shadcn components
+     to Fieldgrid brand colors so all Radix/shadcn components
      render on-brand from day one.
      ══════════════════════════════════════════════════ */
 
@@ -50,7 +50,7 @@
   /* Outline button border variable */
   --button-outline:              #E2E8F0;
 
-  /* ── Veele Brand Colors (direct tokens) ── */
+  /* ── Fieldgrid Brand Colors (direct tokens) ── */
   --color-navy:            #081D3A;
   --color-navy-secondary:  #133D6B;
   --color-teal:            #00B7B3;

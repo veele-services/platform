@@ -29,7 +29,7 @@ export function MobileHeader() {
             fontSize:   "14px",
           }}
         >
-          VEELE
+          FIELDGRID
         </span>
         <span
           style={{

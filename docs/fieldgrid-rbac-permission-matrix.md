@@ -58,7 +58,7 @@ Dit is de productmatrix voor de eerste SaaS-hardeningfase. Concrete tenants kunn
 | `settings` | read/update | read/update | none | none | read |
 | `task_codes` | read/create/update/delete | read/create/update | read | none | read |
 
-Supportmodus is bewust read-first. Schrijfacties via support blijven uit scope tot het platform-admin/supportbeheer in Sprint 5 expliciet productrechten en auditflows krijgt.
+Supportmodus is bewust read-first. Schrijfacties via support blijven uit scope tot het platform-admin/supportbeheer in Sprint 5 expliciet productrechten en auditflows krijgt. Supportacties schrijven naar `support_access_audit_log`, zodat elke supportovername, permissiecontrole en beëindiging tenantgebonden bewijs houdt.
 
 ## Supportmodus contract
 

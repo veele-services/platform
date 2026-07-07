@@ -68,7 +68,7 @@ export default function ResetWachtwoordPage() {
               color: "#081D3A",
             }}
           >
-            VEELE
+            FIELDGRID
           </span>
           <span
             className="uppercase tracking-[0.22em]"

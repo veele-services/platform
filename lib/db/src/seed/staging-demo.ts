@@ -1,5 +1,5 @@
 /**
- * Staging-only demo data seed for the Veele platform.
+ * Staging-only demo data seed for the Fieldgrid platform.
  *
  * This script creates realistic Den Haag test data across the full platform:
  * customers, contacts, objects, object contacts, linked personnel, planning,

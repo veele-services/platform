@@ -1,12 +1,29 @@
 # Fieldgrid staging-promotie checklist
 
-Datum: 2026-07-04
-Status: verplicht releasecontract voor de volgende grote update; sprint 16 final gate toegevoegd.
-Gerelateerd: `docs/fieldgrid-next-major-update-plan.md`, `docs/fieldgrid-saas-masterplan.md`, `docs/fieldgrid-data-classification.md`, `docs/fieldgrid-cross-tenant-testmatrix.md`.
+Datum: 2026-07-07
+Status: verplicht releasecontract; Fase 4 voegt automatische CI-signalen en staging promotion gate toe.
+Gerelateerd: `docs/fieldgrid-next-major-update-plan.md`, `docs/fieldgrid-saas-masterplan.md`, `docs/fieldgrid-data-classification.md`, `docs/fieldgrid-cross-tenant-testmatrix.md`, `docs/fieldgrid-phase-4-ops-ci-teststructure.md`.
 
 ## Doel
 
 Deze checklist houdt staging zoveel mogelijk bereikbaar tijdens de volgende grote update. Elke fase-PR moet expliciet aangeven welke checklistregels gelden en welke test-id's uit de cross-tenant testmatrix geraakt worden.
+
+## Automatische signalen
+
+Voor `main -> staging` moeten deze statische signalen groen zijn:
+
+```bash
+pnpm fieldgrid:migration-order-check:check
+pnpm fieldgrid:test-layers:check
+pnpm fieldgrid:staging-promotion-gate:check
+```
+
+Runtime evidence blijft verplicht voor releases die tenantgrenzen, storage/downloads, migraties of platform-admin raken:
+
+```bash
+pnpm fieldgrid:sprint15-staging-smoke:run-read-only
+pnpm fieldgrid:sprint7-migration-smoke --run --target all
+```
 
 ## Altijd geldig
 
@@ -115,3 +132,16 @@ Staging-impact: operationele validatie zonder destructieve acties.
 - [ ] `FG-FINAL-EXTERNAL-TENANT` is gekoppeld aan `docs/fieldgrid-first-external-tenant-checklist.md`.
 
 Staging-impact: read-only releasebesluit; staging blijft bereikbaar.
+
+## Fase 9 - Ops, CI en teststructuur
+
+- [ ] `pnpm fieldgrid:migration-order-check:check` is groen.
+- [ ] `pnpm fieldgrid:test-layers:check` is groen.
+- [ ] `pnpm fieldgrid:staging-promotion-gate:check` is groen.
+- [ ] Promotion Guard workflow is groen voor `main -> staging`.
+- [ ] Deploy workflow draait release-signalen voordat build en migraties starten.
+- [ ] `/platform/staging-smoke` toont run history, migration smoke, platform-admin gate en staging promotion gate.
+- [ ] Live staging-smoke en migration-smoke artifacts zijn gekoppeld aan het releaseformulier.
+- [ ] Docs-maintenance inventaris is bekeken voor samenvoeg-, archiveer- en verwijderkandidaten.
+
+Staging-impact: read-only guardrails; live evidence draait alleen tegen staging of staging-copy volgens de bestaande smoke-contracten.
