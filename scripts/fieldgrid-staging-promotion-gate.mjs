@@ -393,8 +393,29 @@ export async function buildStagingPromotionGatePlan(options = {}) {
   };
 }
 
+export async function readSourceContractText(relativePath, options = {}) {
+  const roots = [options.repoRoot ?? repoRoot];
+  const githubWorkspace =
+    options.githubWorkspace ?? process.env.GITHUB_WORKSPACE?.trim();
+
+  if (githubWorkspace && !roots.includes(githubWorkspace)) {
+    roots.push(githubWorkspace);
+  }
+
+  let firstError = null;
+  for (const root of roots) {
+    try {
+      return await readFile(join(root, relativePath), "utf8");
+    } catch (error) {
+      firstError ??= error;
+    }
+  }
+
+  throw firstError ?? new Error(`Bronbestand ontbreekt: ${relativePath}`);
+}
+
 async function readText(relativePath) {
-  return readFile(join(repoRoot, relativePath), "utf8");
+  return readSourceContractText(relativePath);
 }
 
 export async function validateStagingPromotionGatePlan(plan) {

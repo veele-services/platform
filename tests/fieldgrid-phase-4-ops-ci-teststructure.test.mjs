@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { execFileSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { test } from "node:test";
 import {
   MIGRATION_ORDER_POLICY,
@@ -14,6 +16,7 @@ import {
 } from "../scripts/fieldgrid-test-layers.mjs";
 import {
   buildStagingPromotionGatePlan,
+  readSourceContractText,
   validateStagingPromotionGatePlan,
 } from "../scripts/fieldgrid-staging-promotion-gate.mjs";
 
@@ -100,6 +103,31 @@ test("phase 4 staging promotion gate validates static CI contracts", async () =>
   assert.ok(
     plan.signals.some((signal) => signal.id === "FG-OPS-CI-RUN-HISTORY"),
   );
+});
+
+test("phase 4 staging promotion gate can validate workflow contracts from GitHub workspace", async () => {
+  const releaseRoot = mkdtempSync(join(tmpdir(), "fieldgrid-release-"));
+  const workspaceRoot = mkdtempSync(join(tmpdir(), "fieldgrid-workspace-"));
+
+  try {
+    mkdirSync(join(workspaceRoot, ".github", "workflows"), { recursive: true });
+    writeFileSync(
+      join(workspaceRoot, ".github", "workflows", "deploy.yml"),
+      "Validate Fieldgrid release signals\npnpm fieldgrid:staging-promotion-gate:check\n",
+      "utf8",
+    );
+
+    const content = await readSourceContractText(".github/workflows/deploy.yml", {
+      repoRoot: releaseRoot,
+      githubWorkspace: workspaceRoot,
+    });
+
+    assert.match(content, /Validate Fieldgrid release signals/u);
+    assert.match(content, /pnpm fieldgrid:staging-promotion-gate:check/u);
+  } finally {
+    rmSync(releaseRoot, { recursive: true, force: true });
+    rmSync(workspaceRoot, { recursive: true, force: true });
+  }
 });
 
 test("phase 4 package scripts and workflows expose the release signals", () => {
