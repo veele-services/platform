@@ -6,6 +6,7 @@ import {
   MIGRATION_SMOKE_TARGETS,
   buildMigrationSmokePlan,
   classifyDatabaseUrlSafety,
+  formatMigrationSmokeResult,
   parseEnvFileContent,
   parseMigrationOutput,
   validateMigrationSmokeContract,
@@ -95,6 +96,22 @@ test("migration smoke env parser supports quoted values", () => {
 
   assert.equal(env.FIELDGRID_MIGRATION_SMOKE_EMPTY_CONFIRM, "empty-database");
   assert.equal(env.DATABASE_URL, "postgres://user:pass@localhost:5432/fieldgrid_empty_smoke");
+});
+
+test("migration smoke result formatter prints failed target reason", () => {
+  const formatted = formatMigrationSmokeResult({
+    target: "empty-database",
+    readiness: "not-configured",
+    safetyReason: "FIELDGRID_MIGRATION_SMOKE_EMPTY_DATABASE_URL or DATABASE_URL is required.",
+    exitCode: null,
+    timedOut: false,
+    appliedMigrations: [],
+    skippedMigrations: [],
+    compatibilitySkippedMigrations: [],
+  });
+
+  assert.match(formatted, /empty-database: not-configured/u);
+  assert.match(formatted, /FIELDGRID_MIGRATION_SMOKE_EMPTY_DATABASE_URL/u);
 });
 
 test("sprint 7 runner validates from the command line", () => {
