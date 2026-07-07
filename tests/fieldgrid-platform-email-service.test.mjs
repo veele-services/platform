@@ -68,17 +68,26 @@ test("application surfaces no longer call mail providers directly", () => {
 test("platform admin exposes provider-agnostic email settings and testmail", () => {
   const action = read("artifacts/backoffice/src/app/actions/platform-settings.ts");
   const page = read("artifacts/backoffice/src/app/(platform)/platform/settings/page.tsx");
+  const form = read("artifacts/backoffice/src/components/platform/PlatformEmailProviderForm.tsx");
 
   assert.match(action, /getPlatformEmailProviderSettings/u);
   assert.match(action, /savePlatformEmailProviderSettings/u);
   assert.match(action, /sendPlatformEmailTest/u);
   assert.match(action, /platform_email_provider_updated/u);
   assert.match(action, /platform_email_test_sent/u);
+  assert.match(page, /PlatformEmailProviderForm/u);
+  assert.match(page, /updatePlatformEmailProviderSettingsAction\(formData:\s*FormData\)/u);
+  assert.match(form, /event\.preventDefault\(\)/u);
+  assert.match(form, /useTransition/u);
+  assert.match(form, /setState\(result\)/u);
+  assert.match(form, /role=\{state\.success \? "status" : "alert"\}/u);
+  assert.match(form, /router\.refresh\(\)/u);
   assert.match(page, /Resend API/u);
   assert.match(page, /SMTP/u);
   assert.match(page, /Testmail versturen/u);
-  assert.match(page, /maskedSecret/u);
+  assert.match(form, /maskedSecret/u);
   assert.doesNotMatch(page, /RESEND_API_KEY/u);
+  assert.doesNotMatch(form, /RESEND_API_KEY/u);
 });
 
 test("tenant mail settings support platform, SMTP and Resend API transports", () => {
