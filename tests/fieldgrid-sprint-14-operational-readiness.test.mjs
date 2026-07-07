@@ -50,7 +50,7 @@ test("sprint 14 tenant detail renders readiness, channel previews and limits", (
       "Operational readiness",
       "tenant.operationalReadiness.score",
       "tenant.operationalReadiness.signals",
-      "readinessStatusClass",
+      "statusChipClass(readinessTone(signal.status))",
       "tenant.brandingPreview.surfaces",
       "Downloads/PDF",
       "Planlimieten",

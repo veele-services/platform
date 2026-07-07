@@ -327,7 +327,7 @@ export default async function PlatformSecurityPage({ searchParams }: Props) {
             <p className="mt-4 text-sm font-medium text-slate-500">Fieldgrid security</p>
             <h1 className="text-3xl font-semibold tracking-normal">Security dashboard 2.0</h1>
             <p className="mt-1 max-w-3xl text-sm text-slate-500">
-              Centraal overzicht van support access, denial events, downloads en platformwijzigingen met audit export.
+              Read-only overzicht van support access events, denial events, downloads en platformwijzigingen met audit export.
             </p>
             <p className="mt-2 text-xs text-slate-400">Gegenereerd: {formatDate(dashboard.generatedAt)}</p>
           </div>
@@ -461,14 +461,24 @@ export default async function PlatformSecurityPage({ searchParams }: Props) {
         </div>
 
         <EventSection
-          title="Support access-log"
-          helper="Grant-aanmaak, denied grantpogingen, revoke, supportmodus en support checks."
-          events={dashboard.supportAccessLog}
+          title="Support access events"
+          helper="Grant-aanmaak, denied grantpogingen, revoke, supportmodus en support checks met break-glass risk label."
+          events={dashboard.supportEvents}
+        />
+        <EventSection
+          title="Downloads"
+          helper="Download- en PDF-events die securityrelevant zijn voor storage, document en rapportcontrole."
+          events={dashboard.downloadEvents}
         />
         <EventSection
           title="Denials"
           helper="Geweigerde acties en policy-denials zodra ze in audit_log of support_access_audit_log staan."
           events={dashboard.denialEvents}
+        />
+        <EventSection
+          title="Platform changes"
+          helper="Platformbeheer-acties en tenantwijzigingen die los van reguliere tenant-audit beoordeeld worden."
+          events={dashboard.platformEvents}
         />
         <EventSection
           title="Security events"

@@ -93,7 +93,7 @@ test("object form uses tenant region links", () => {
     form,
     [
       "RegionMultiSelect",
-      "regionOptions: RegionOption[]",
+      "regionOptions?: RegionOption[]",
       "getObjectRegionNames",
       "syncObjectRegions",
       "setRegionNames(linkedRegions)",
@@ -110,7 +110,7 @@ test("assignment form uses multi-region UI while preserving requiredRegion", () 
     form,
     [
       "RegionMultiSelect",
-      "regionOptions:  RegionOption[]",
+      "regionOptions?: RegionOption[]",
       "getAssignmentRegionNames",
       "syncAssignmentRequiredRegions",
       "requiredRegion: regionNames[0] || undefined",

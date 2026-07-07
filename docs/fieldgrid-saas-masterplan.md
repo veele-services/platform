@@ -75,6 +75,7 @@ Geen onderwerp mag in vervolgwerk alleen als "open" blijven staan zonder status,
 - Tenant lifecycle active/suspended/archived moet runtime bewezen worden.
 - Tenant RBAC moet met echte rolverschillen per tenant bewezen worden.
 - Module enforcement moet API, backoffice, portalen en jobs hetzelfde laten reageren.
+- `modules`, `tenant_modules` en `module_dependencies` bestaan als canonieke entitlementbasis.
 - API module guards en Portal module guards blijven expliciete acceptatiepunten voor sprint 11 en de final gate.
 - Sector enforcement moet disable/default/single-sector scenario's runtime bewijzen.
 - Tenant first-run moet met `A-OWNER` en `FG-OPS-002` integration/Playwright bewezen worden.

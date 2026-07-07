@@ -28,7 +28,7 @@ Sprint 7 volgt deze vaste besluiten:
   - quotes via assignment, daarna customer als fallback;
   - invoices via assignment, daarna customer als fallback.
 - `NOT VALID` foreign keys naar `tenants` toegevoegd zodat bestaande staging-data inspecteerbaar blijft.
-- Write-time tenant consistency triggers toegevoegd:
+- Write-time tenant consistency triggers toegevoegd; dit zijn de write-time tenant consistency triggers voor finance/report-tenanting:
   - `trg_reports_set_tenant_id`;
   - `trg_quotes_set_tenant_id`;
   - `trg_invoices_set_tenant_id`.
