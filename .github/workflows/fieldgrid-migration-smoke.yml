@@ -17,6 +17,7 @@ jobs:
   migration-smoke:
     name: Migration smoke
     runs-on: ubuntu-latest
+    environment: staging
     timeout-minutes: 45
     env:
       FIELDGRID_MIGRATION_SMOKE_EMPTY_DATABASE_URL: ${{ secrets.FIELDGRID_MIGRATION_SMOKE_EMPTY_DATABASE_URL }}
