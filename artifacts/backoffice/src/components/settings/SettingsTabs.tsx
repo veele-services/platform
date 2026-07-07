@@ -10,6 +10,7 @@ import {
   History,
   Layers3,
   Mail,
+  Palette,
   Shield,
   SlidersHorizontal,
   Tag,
@@ -20,6 +21,7 @@ import { usePermissions } from "@/providers/permissions-provider";
 
 const SETTINGS_TABS = [
   { href: "/instellingen/organisatie", label: "Organisatie", icon: Building2, permission: "settings:write" },
+  { href: "/instellingen/branding", label: "Branding & thema", icon: Palette, permission: "settings:write" },
   { href: "/instellingen/notificaties", label: "Notificaties", icon: Bell, permission: "settings:write" },
   { href: "/instellingen/mail", label: "Mail", icon: Mail, permission: "settings:write" },
   { href: "/instellingen/rollen", label: "Rollen & rechten", icon: Shield, permission: "roles:read" },

@@ -36,6 +36,7 @@ export * from "./reports";
 export * from "./invoices";
 export * from "./quotes";
 export * from "./organization-settings";
+export * from "./theme-settings";
 export * from "./availability";
 export * from "./documents";
 export * from "./payments";

@@ -8,6 +8,7 @@ import {
   rolePermissionsTable,
   userRolesTable,
   auditLogTable,
+  buildTenantBrandingAssetStoragePath,
   customerNotificationsTable,
   customersTable,
   customerPortalPreferencesTable,
@@ -17,6 +18,7 @@ import {
   personnelTable,
   personnelNotificationsTable,
   sectorsTable,
+  toSafeStorageSegment,
 } from "@workspace/db";
 import {
   eq,
@@ -1173,6 +1175,7 @@ export async function sendManualNotification(
       });
       const message = await buildStyledNotificationEmail({
         subject: renderedTitle,
+        tenantId,
         preheader: renderedBody.slice(0, 180),
         bodyHtml: bodyTextToHtml(renderedBody),
         bodyText: renderedBody,
@@ -1184,6 +1187,7 @@ export async function sendManualNotification(
         subject: message.subject,
         html: message.html,
         text: message.text,
+        tenantId,
       });
       if (result.success) emailSuccessCount += 1;
       else emailFailedCount += 1;
@@ -1251,6 +1255,7 @@ export async function uploadOrgLogo(
   formData: FormData,
 ): Promise<ActionResult<{ url: string }>> {
   await requirePermission("settings", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -1267,15 +1272,32 @@ export async function uploadOrgLogo(
     return { success: false, message: "Logo mag maximaal 2 MB zijn." };
   }
 
-  const ext = file.name.split(".").pop() ?? "png";
-  const path = `logo.${ext}`;
-  const bytes = await file.arrayBuffer();
+  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+  const mimeType = file.type.toLowerCase();
+  const allowedTypes = new Map([
+    ["image/png", "png"],
+    ["image/jpeg", "jpg"],
+    ["image/webp", "webp"],
+  ]);
+  if (mimeType === "image/svg+xml" || extension === "svg") {
+    return { success: false, message: "SVG-logo's zijn nog niet toegestaan. Upload PNG, JPG of WebP." };
+  }
 
-  const { error } = await supabase.storage
+  const ext = allowedTypes.get(mimeType);
+  if (!ext) {
+    return { success: false, message: "Upload een PNG, JPG of WebP-logo." };
+  }
+
+  const safeName = toSafeStorageSegment(file.name, `logo.${ext}`);
+  const path = buildTenantBrandingAssetStoragePath(tenantId, "logo", `${Date.now()}-${safeName}`);
+  const bytes = await file.arrayBuffer();
+  const admin = createAdminClient();
+
+  const { error } = await admin.storage
     .from("org-assets")
     .upload(path, bytes, {
       contentType: file.type,
-      upsert: true,
+      upsert: false,
     });
 
   if (error) {
@@ -1284,18 +1306,19 @@ export async function uploadOrgLogo(
 
   const {
     data: { publicUrl },
-  } = supabase.storage.from("org-assets").getPublicUrl(path);
+  } = admin.storage.from("org-assets").getPublicUrl(path);
 
   await db
     .update(organizationSettingsTable)
-    .set({ logoUrl: publicUrl, updatedAt: new Date(), updatedBy: user.id });
+    .set({ logoUrl: publicUrl, updatedAt: new Date(), updatedBy: user.id })
+    .where(eq(organizationSettingsTable.tenantId, tenantId));
 
   await db.insert(auditLogTable).values({
     userId: user.id,
     action: "update",
     resource: "settings",
     resourceId: "organization",
-    metadata: { field: "logo_url" },
+    metadata: { tenantId, field: "logo_url", path },
   });
 
   revalidatePath("/instellingen/organisatie");

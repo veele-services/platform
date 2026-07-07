@@ -3,6 +3,9 @@ const URL_SCHEME_PATTERN = /^[a-z][a-z\d+.-]*:\/\//iu;
 
 export const FIELDGRID_STORAGE_TENANT_ROOT = "tenant";
 export const FIELDGRID_ASSIGNMENT_MEDIA_ROOT = "assignments";
+export const FIELDGRID_BRANDING_ASSETS_ROOT = "branding";
+
+export type BrandingAssetKind = "logo" | "favicon";
 
 export type TenantStoragePathOptions = {
   allowLegacyTenantRoot?: boolean;
@@ -67,6 +70,30 @@ export function buildAssignmentMediaStoragePath(
     FIELDGRID_ASSIGNMENT_MEDIA_ROOT,
     assignmentId,
     ...safeParts,
+  ].join("/");
+}
+
+export function buildTenantBrandingAssetStoragePath(
+  tenantId: string,
+  assetKind: BrandingAssetKind,
+  fileName: string,
+): string {
+  return buildTenantStoragePath(tenantId, [
+    FIELDGRID_BRANDING_ASSETS_ROOT,
+    assetKind,
+    fileName,
+  ]);
+}
+
+export function buildPlatformBrandingAssetStoragePath(
+  assetKind: BrandingAssetKind,
+  fileName: string,
+): string {
+  return [
+    FIELDGRID_BRANDING_ASSETS_ROOT,
+    "platform",
+    assetKind,
+    toSafeStorageSegment(fileName, `${assetKind}.png`),
   ].join("/");
 }
 

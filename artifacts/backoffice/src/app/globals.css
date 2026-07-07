@@ -98,8 +98,8 @@
   }
 
   body {
-    background-color: #F8FAFC;
-    color: #081D3A;
+    background-color: var(--color-background, #F8FAFC);
+    color: var(--color-foreground, #081D3A);
     font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
     font-size: 14px;
     line-height: 1.5;
@@ -108,7 +108,7 @@
   h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-poppins), 'Poppins', system-ui, sans-serif;
     font-weight: 600;
-    color: #081D3A;
+    color: var(--color-foreground, #081D3A);
   }
 }
 
@@ -137,31 +137,31 @@
   .veele-input {
     display: block;
     width: 100%;
-    border-radius: 6px;
-    border: 1px solid #E2E8F0;
-    background-color: #FFFFFF;
+    border-radius: var(--radius-input, 6px);
+    border: 1px solid var(--color-border, #E2E8F0);
+    background-color: var(--color-card, #FFFFFF);
     padding: 6px 10px;
     font-size: 14px;
     line-height: 1.5;
-    color: #0F172A;
+    color: var(--color-foreground, #0F172A);
     outline: none;
     transition: border-color 0.15s, box-shadow 0.15s;
   }
   .veele-input:focus {
-    border-color: #00B7B3;
-    box-shadow: 0 0 0 3px rgba(0,183,179,0.12);
+    border-color: var(--color-ring, #00B7B3);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-ring, #00B7B3) 16%, transparent);
   }
   .veele-input:disabled {
-    background-color: #F8FAFC;
+    background-color: var(--color-background, #F8FAFC);
     color: #94A3B8;
     cursor: not-allowed;
   }
 
   /* Card utility */
   .veele-card {
-    background-color: #FFFFFF;
-    border-radius: 12px;
-    border: 1px solid #E2E8F0;
+    background-color: var(--color-card, #FFFFFF);
+    border-radius: var(--radius-card, 12px);
+    border: 1px solid var(--color-border, #E2E8F0);
     box-shadow: var(--shadow-card);
     padding: 24px;
   }
@@ -178,8 +178,8 @@
   /* Page header */
   .page-header {
     padding: 32px 32px 24px;
-    border-bottom: 1px solid #E2E8F0;
-    background: #FFFFFF;
+    border-bottom: 1px solid var(--color-border, #E2E8F0);
+    background: var(--color-card, #FFFFFF);
   }
 
   /* Sidebar link */
@@ -202,7 +202,7 @@
   }
   .sidebar-link.active {
     color: #FFFFFF;
-    background-color: #00B7B3;
+    background-color: var(--color-accent, #00B7B3);
   }
   .sidebar-link.active svg {
     color: #FFFFFF;

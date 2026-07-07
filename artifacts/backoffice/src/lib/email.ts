@@ -1,4 +1,7 @@
-import { db, organizationSettingsTable } from "@workspace/db";
+import {
+  FIELDGRID_BRAND_DEFAULTS,
+  getEffectiveBrandTheme,
+} from "@workspace/db";
 import { sendTransactionalEmail } from "@workspace/db/email-service";
 
 // ── Singleton ─────────────────────────────────────────────────────────────────
@@ -90,8 +93,8 @@ export function personeelPortalUrl(): string {
 
 // ── Shared base template ───────────────────────────────────────────────────────
 
-const BRAND_COLOR = "#081D3A";
-const ACCENT_COLOR = "#00B7B3";
+const BRAND_COLOR = FIELDGRID_BRAND_DEFAULTS.primaryColor;
+const ACCENT_COLOR = FIELDGRID_BRAND_DEFAULTS.accentColor;
 
 function escapeHtml(value: string): string {
   return value
@@ -112,13 +115,13 @@ function baseTemplate(title: string, bodyHtml: string): string {
 <body style="font-family:sans-serif;color:#1a1a1a;background:#f5f5f5;margin:0;padding:24px">
   <div style="max-width:600px;margin:0 auto;background:#fff;border-radius:8px;overflow:hidden">
     <div style="background:${BRAND_COLOR};padding:20px 24px">
-      <span style="color:#fff;font-size:20px;font-weight:700;letter-spacing:-0.5px">Veele</span>
+      <span style="color:#fff;font-size:20px;font-weight:700;letter-spacing:-0.5px">Fieldgrid</span>
     </div>
     <div style="padding:28px 24px">
       ${bodyHtml}
     </div>
     <div style="padding:16px 24px;background:#f8fafc;font-size:12px;color:#94a3b8">
-      Dit is een automatisch bericht van het Veele platform. Antwoorden op deze e-mail worden niet verwerkt.
+      Dit is een automatisch bericht van Fieldgrid. Antwoorden op deze e-mail worden niet verwerkt.
     </div>
   </div>
 </body>
@@ -131,6 +134,7 @@ function ctaButton(href: string, label: string): string {
 
 export type StyledNotificationEmailInput = {
   subject: string;
+  tenantId?: string | null;
   preheader?: string | null;
   bodyHtml?: string | null;
   bodyText?: string | null;
@@ -141,27 +145,16 @@ export type StyledNotificationEmailInput = {
 export async function buildStyledNotificationEmail(
   opts: StyledNotificationEmailInput,
 ): Promise<{ subject: string; html: string; text: string }> {
-  const [settings] = await db
-    .select({
-      naam: organizationSettingsTable.naam,
-      logoUrl: organizationSettingsTable.logoUrl,
-      brandColor: organizationSettingsTable.emailTemplateBrandColor,
-      accentColor: organizationSettingsTable.emailTemplateAccentColor,
-      footerText: organizationSettingsTable.emailTemplateFooterText,
-      signature: organizationSettingsTable.emailTemplateSignature,
-    })
-    .from(organizationSettingsTable)
-    .limit(1);
-
-  const brandColor = settings?.brandColor || BRAND_COLOR;
-  const accentColor = settings?.accentColor || ACCENT_COLOR;
-  const companyName = settings?.naam?.trim() || "Veele Services";
+  const theme = await getEffectiveBrandTheme(opts.tenantId ?? null);
+  const brandColor = theme.primaryColor || BRAND_COLOR;
+  const accentColor = theme.accentColor || ACCENT_COLOR;
+  const companyName = theme.brandName.trim() || "Fieldgrid";
   const preheader = opts.preheader?.trim() || opts.subject;
   const body = opts.bodyHtml?.trim()
     ? opts.bodyHtml
     : `<p>${nl2br(opts.bodyText ?? "")}</p>`;
-  const signature = nl2br(settings?.signature || "Met vriendelijke groet,\nVeele Services");
-  const footer = nl2br(settings?.footerText || "Dit is een automatisch bericht van het Veele platform.");
+  const signature = nl2br(theme.emailSignature || FIELDGRID_BRAND_DEFAULTS.signature);
+  const footer = nl2br(theme.emailFooterText || FIELDGRID_BRAND_DEFAULTS.footerText);
   const cta = opts.ctaHref && opts.ctaLabel
     ? `<p style="margin:26px 0 4px"><a href="${escapeHtml(opts.ctaHref)}" style="display:inline-block;padding:13px 24px;background:${accentColor};color:#fff;border-radius:999px;text-decoration:none;font-weight:700;font-size:14px">${escapeHtml(opts.ctaLabel)}</a></p>`
     : "";
@@ -181,8 +174,8 @@ export async function buildStyledNotificationEmail(
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:680px;background:#ffffff;border-radius:22px;overflow:hidden;border:1px solid #DDE7F0;box-shadow:0 18px 45px rgba(8,29,58,.10)">
           <tr>
             <td style="background:${brandColor};padding:30px 34px">
-              ${settings?.logoUrl
-                ? `<img src="${escapeHtml(settings.logoUrl)}" alt="${escapeHtml(companyName)}" style="display:block;max-height:54px;max-width:220px">`
+              ${theme.logoUrl
+                ? `<img src="${escapeHtml(theme.logoUrl)}" alt="${escapeHtml(companyName)}" style="display:block;max-height:54px;max-width:220px">`
                 : `<div style="color:#fff;font-size:22px;font-weight:800;letter-spacing:.16em;text-transform:uppercase">${escapeHtml(companyName)}</div>`}
               <div style="margin-top:18px;height:3px;width:72px;background:${accentColor};border-radius:99px"></div>
             </td>
@@ -226,7 +219,7 @@ export function buildTemporaryPasswordEmail(opts: {
   const html = baseTemplate(subject, `
     <h2 style="margin-top:0;color:${BRAND_COLOR}">Uw portaaltoegang</h2>
     <p>Beste ${opts.recipientName},</p>
-    <p>Er is een account voor u aangemaakt in het Veele platform.</p>
+    <p>Er is een account voor u aangemaakt in Fieldgrid.</p>
     <p>Log in met onderstaand tijdelijk wachtwoord. Na de eerste login moet u direct een eigen wachtwoord kiezen.</p>
     <div style="margin:18px 0;padding:14px 16px;background:#F8FAFC;border:1px solid #E2E8F0;border-radius:8px">
       <p style="margin:0 0 6px;color:#64748B;font-size:12px;text-transform:uppercase;letter-spacing:.08em">Tijdelijk wachtwoord</p>
@@ -543,7 +536,7 @@ export function buildQuoteSentEmail(opts: {
 }): { subject: string; html: string } {
   const url    = `${siteUrl()}/klant/offertes`;
   const amount = parseFloat(opts.amount).toLocaleString("nl-NL", { style: "currency", currency: "EUR" });
-  const subject = `Uw offerte ${opts.quoteNumber} van Veele`;
+  const subject = `Uw offerte ${opts.quoteNumber}`;
   const html    = baseTemplate(subject, `
     <h2 style="margin-top:0;color:${BRAND_COLOR}">Offerte ${opts.quoteNumber}</h2>
     <p>Beste ${opts.customerName},</p>
