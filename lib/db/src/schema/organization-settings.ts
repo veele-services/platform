@@ -25,6 +25,12 @@ export const organizationSettingsTable = pgTable("organization_settings", {
   availabilityAdvanceDays: integer("availability_advance_days")
     .notNull()
     .default(60),
+  planningWorkdayStart: varchar("planning_workday_start", { length: 5 })
+    .notNull()
+    .default("08:00"),
+  planningTimeSlotMinutes: integer("planning_time_slot_minutes")
+    .notNull()
+    .default(90),
   emailAfzender: varchar("email_afzender", { length: 200 }),
   smtpEnabled: boolean("smtp_enabled").notNull().default(false),
   smtpHost: varchar("smtp_host", { length: 255 }),
@@ -113,6 +119,8 @@ export const updateOrganizationSettingsSchema = createInsertSchema(
       .max(365)
       .optional()
       .default(60),
+    planningWorkdayStart: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional().default("08:00"),
+    planningTimeSlotMinutes: z.number().int().min(15).max(240).optional().default(90),
     emailAfzender: z.string().max(200).nullable().optional(),
     smtpEnabled: z.boolean().optional(),
     smtpHost: z.string().max(255).nullable().optional(),

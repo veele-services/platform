@@ -1,7 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
-import { Building2, CalendarCheck, Upload } from "lucide-react";
+import { Building2, CalendarCheck, Clock, Upload } from "lucide-react";
 import {
   updateOrganizationSettings,
   uploadOrgLogo,
@@ -36,6 +36,8 @@ export function OrganisatieForm({ settings, canWrite }: Props) {
       btwNummer: (fd.get("btwNummer") as string).trim() || null,
       betaaltermijnDagen: parseInt(fd.get("betaaltermijnDagen") as string, 10) || 30,
       availabilityAdvanceDays: parseInt(fd.get("availabilityAdvanceDays") as string, 10) || 60,
+      planningWorkdayStart: (fd.get("planningWorkdayStart") as string) || "08:00",
+      planningTimeSlotMinutes: parseInt(fd.get("planningTimeSlotMinutes") as string, 10) || 90,
       emailAfzender: (fd.get("emailAfzender") as string).trim() || null,
     };
 
@@ -196,6 +198,28 @@ export function OrganisatieForm({ settings, canWrite }: Props) {
             className="veele-input w-32"
           />
         </Field>
+      </div>
+
+      <div className="veele-card space-y-4">
+        <div className="flex items-start gap-3">
+          <span className="flex h-10 w-10 items-center justify-center rounded-lg" style={{ backgroundColor: "#EFF6FF", color: "#2563EB" }}>
+            <Clock className="h-5 w-5" strokeWidth={2.2} />
+          </span>
+          <div>
+            <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>Planning tijdvakken</p>
+            <p className="mt-0.5 text-xs" style={{ color: "#64748B" }}>
+              Bepaal welke tijdvakken zichtbaar zijn op het planbord; werkbonnen blijven per 5 minuten planbaar.
+            </p>
+          </div>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field label="Start werkdag" htmlFor="planningWorkdayStart">
+            <input id="planningWorkdayStart" name="planningWorkdayStart" type="time" defaultValue={s?.planningWorkdayStart ?? "08:00"} disabled={!canWrite || isPending} className="veele-input w-32" />
+          </Field>
+          <Field label="Zichtbaar tijdvak (minuten)" htmlFor="planningTimeSlotMinutes">
+            <input id="planningTimeSlotMinutes" name="planningTimeSlotMinutes" type="number" min={15} max={240} step={15} defaultValue={s?.planningTimeSlotMinutes ?? 90} disabled={!canWrite || isPending} className="veele-input w-32" />
+          </Field>
+        </div>
       </div>
 
       <div className="veele-card space-y-4">
