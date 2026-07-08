@@ -281,6 +281,10 @@ staging.veele.dgwebservices.nl {
     reverse_proxy 127.0.0.1:3303
   }
 
+  handle /api/platform/* {
+    reverse_proxy 127.0.0.1:3301
+  }
+
   handle /api/* {
     reverse_proxy 127.0.0.1:3304
   }
