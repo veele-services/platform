@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { ImageIcon, Paintbrush, Save, Type, Upload } from "lucide-react";
 import {
   savePlatformThemeSettings,
@@ -36,6 +37,7 @@ export function BrandThemeForm({
   customThemeAllowed?: boolean;
   canWrite: boolean;
 }) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -80,6 +82,7 @@ export function BrandThemeForm({
 
       if (result.success) {
         setSaved(true);
+        router.refresh();
         setTimeout(() => setSaved(false), 2500);
       } else {
         setError(result.message);
@@ -116,6 +119,7 @@ export function BrandThemeForm({
           ? { ...current, logoUrl: uploaded.url, logoStoragePath: uploaded.path }
           : { ...current, faviconUrl: uploaded.url, faviconStoragePath: uploaded.path });
         if (mode === "tenant") setCustomThemeEnabled(true);
+        router.refresh();
       }
     });
   }
