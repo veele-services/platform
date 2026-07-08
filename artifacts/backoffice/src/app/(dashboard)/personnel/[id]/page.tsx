@@ -17,6 +17,7 @@ import { InventoryItemsPanel } from "@/components/inventory/InventoryItemsPanel"
 import { MaterialStockPanel } from "@/components/materials/MaterialStockPanel";
 import { getPersonnel, listRoles, listSectors, getPersonnelAuthStatus, getLinkedObjects } from "@/app/actions/personnel";
 import { getAvailabilityWindows, listLeavePeriods } from "@/app/actions/availability";
+import { formatPersonnelRoleName } from "@/lib/personnel-role-labels";
 import { BeschikbaarheidView } from "@/components/personnel/BeschikbaarheidView";
 import { PersonnelPortalAccessCard } from "@/components/personnel/PersonnelPortalAccessCard";
 import { listAssignmentsForPersonnel } from "@/app/actions/assignments";
@@ -132,7 +133,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
             )}
             {person.roleName && (
               <span className="rounded bg-blue-50 px-2.5 py-1 text-xs font-semibold text-blue-700">
-                {person.roleName}
+                {formatPersonnelRoleName(person.roleName)}
               </span>
             )}
             {person.sectorName && (
@@ -151,7 +152,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
         }
         meta={[
           { label: "Beschikbaar", value: person.isAvailable ? "Ja" : "Nee" },
-          { label: "Regio", value: person.region ?? "Geen primaire regio" },
+          { label: "Branch/regio", value: person.region ?? "Geen primaire branch/regio" },
           { label: "Aangemaakt", value: new Date(person.createdAt).toLocaleDateString("nl-NL") },
         ]}
       />
@@ -221,7 +222,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
                   className="text-xs font-semibold px-2.5 py-0.5 rounded"
                   style={{ backgroundColor: "#F0F4FF", color: "#3B5CE0" }}
                 >
-                  {person.roleName}
+                  {formatPersonnelRoleName(person.roleName)}
                 </span>
               )}
               {person.sectorName && (

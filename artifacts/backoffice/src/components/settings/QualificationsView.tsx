@@ -40,6 +40,7 @@ import {
   type QualificationLinkRow,
   type QualificationManagementData,
 } from "@/app/actions/qualifications";
+import { formatPersonnelRoleName } from "@/lib/personnel-role-labels";
 
 type QualificationType = "certificate" | "diploma" | "knowledge";
 
@@ -248,7 +249,7 @@ export function QualificationsView({ data, canWrite }: Props) {
           <SectionHeader title="Koppelen aan medewerkers" description="Registreer wie welk certificaat, diploma of kennisgebied bezit. Verloopdatums worden zichtbaar als waarschuwing." />
           {canWrite && (
             <form onSubmit={handlePersonnelLink} className="mt-4 grid gap-3 rounded-lg bg-slate-50 p-4 lg:grid-cols-2">
-              <FieldSelect name="personnelId" label="Medewerker" options={data.personnel.map((p) => ({ id: p.id, label: `${p.label}${p.roleName ? ` - ${p.roleName}` : ""}` }))} />
+              <FieldSelect name="personnelId" label="Medewerker" options={data.personnel.map((p) => ({ id: p.id, label: `${p.label}${p.roleName ? ` - ${formatPersonnelRoleName(p.roleName)}` : ""}` }))} />
               <FieldSelect name="qualificationId" label="Kwalificatie" options={itemOptions} />
               <FieldInput name="issuedAt" label="Afgiftedatum" type="date" />
               <FieldInput name="expiresAt" label="Verloopdatum" type="date" />
@@ -277,7 +278,7 @@ export function QualificationsView({ data, canWrite }: Props) {
           <SectionHeader title="Koppelen aan functies" description="Functie-eisen worden meegenomen in slimme planning wanneer een taakcode een functie vereist." />
           {canWrite && (
             <form onSubmit={handleRoleLink} className="mt-4 grid gap-3 rounded-lg bg-slate-50 p-4">
-              <FieldSelect name="roleId" label="Functie/rol" options={data.roles.map((role) => ({ id: role.id, label: role.name }))} />
+              <FieldSelect name="roleId" label="Functie/rol" options={data.roles.map((role) => ({ id: role.id, label: formatPersonnelRoleName(role.name) }))} />
               <FieldSelect name="qualificationId" label="Vereiste kwalificatie" options={itemOptions} />
               <CheckField name="required" label="Hard vereiste" />
               <Button type="submit" disabled={isPending}>
@@ -571,10 +572,10 @@ function LinkList({
                     </span>
                   )}
                 </div>
-                <p className="mt-1 text-sm font-semibold" style={{ color: "#081D3A" }}>{row.targetLabel}</p>
+                <p className="mt-1 text-sm font-semibold" style={{ color: "#081D3A" }}>{formatPersonnelRoleName(row.targetLabel)}</p>
                 <p className="text-xs" style={{ color: "#64748B" }}>
                   {row.qualificationName} ({row.qualificationCode})
-                  {row.secondaryLabel ? ` - ${row.secondaryLabel}` : ""}
+                  {row.secondaryLabel ? ` - ${formatPersonnelRoleName(row.secondaryLabel)}` : ""}
                   {row.expiresAt ? ` - verloopt ${new Date(`${row.expiresAt}T00:00:00`).toLocaleDateString("nl-NL")}` : ""}
                 </p>
               </div>

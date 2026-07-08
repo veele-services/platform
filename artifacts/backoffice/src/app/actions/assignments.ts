@@ -140,7 +140,7 @@ export type AssignmentDetail = {
     personnelId: string;
     firstName: string;
     lastName: string;
-    /** 'assigned' = confirmed by planner; 'suggested' = self-applied via PWA pending confirmation */
+    /** Confirmed planner assignment. Suggested/self-applied candidates stay out of the work-order detail. */
     linkStatus: string;
   }>;
   tasks: Array<{
@@ -420,8 +420,13 @@ export async function getAssignment(
         personnelTable,
         eq(assignmentPersonnelTable.personnelId, personnelTable.id),
       )
-      // Show ALL links (assigned + suggested) so planner can review and confirm candidates
-      .where(eq(assignmentPersonnelTable.assignmentId, id))
+      // Keep candidate suggestions out of the work-order detail; the planning flow handles triage.
+      .where(
+        and(
+          eq(assignmentPersonnelTable.assignmentId, id),
+          eq(assignmentPersonnelTable.status, "assigned"),
+        ),
+      )
       .orderBy(asc(personnelTable.lastName)),
 
     db

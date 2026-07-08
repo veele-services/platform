@@ -677,7 +677,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
             {assignment.requiredRegion && (
               <InfoRow
                 icon={MapPin}
-                label="Regio"
+                label="Branch/regio"
                 value={assignment.requiredRegion}
               />
             )}

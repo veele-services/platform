@@ -13,6 +13,7 @@ import {
   type PersonnelRow,
   type LinkedObject,
 } from "@/app/actions/personnel";
+import { formatPersonnelRoleName } from "@/lib/personnel-role-labels";
 import {
   PERSONNEL_TYPE_LABELS,
   PERSONNEL_TYPE_COLORS,
@@ -122,7 +123,7 @@ export function SlimProfielPanel({ person, onClose }: SlimProfielPanelProps) {
                   className="inline-block rounded px-2 py-0.5 text-xs font-medium"
                   style={{ backgroundColor: "#F0F4FF", color: "#3B5CE0" }}
                 >
-                  {person.roleName}
+                  {formatPersonnelRoleName(person.roleName)}
                 </span>
               )}
               {person.sectorName && (

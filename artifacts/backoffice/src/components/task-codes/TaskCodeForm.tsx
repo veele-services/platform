@@ -19,6 +19,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { TagInput } from "@/components/ui/tag-input";
+import { formatPersonnelRoleName } from "@/lib/personnel-role-labels";
 import {
   getTaskCode,
   createTaskCode,
@@ -354,7 +355,7 @@ export function TaskCodeForm({
               <SelectContent>
                 <SelectItem value="NONE">— Elke rol —</SelectItem>
                 {roles.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                  <SelectItem key={r.id} value={r.id}>{formatPersonnelRoleName(r.name)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>

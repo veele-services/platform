@@ -46,6 +46,7 @@ import {
 import { StatusBadge } from "@/components/ui/status-badge";
 import { PersonnelForm } from "@/components/personnel/PersonnelForm";
 import { SlimProfielPanel } from "@/components/personnel/SlimProfielPanel";
+import { formatPersonnelRoleName } from "@/lib/personnel-role-labels";
 import {
   bulkSetPersonnelStatus,
   setPersonnelStatus,
@@ -336,9 +337,14 @@ export function PersonnelView({
 
   const activeFilters = [
     initialSearch ? { id: "search", label: "Zoeken", value: initialSearch, onRemove: () => applyFilter("search", "") } : null,
-    initialRegion ? { id: "region", label: "Regio", value: initialRegion, onRemove: () => applyFilter("region", "") } : null,
+    initialRegion ? { id: "region", label: "Branch/regio", value: initialRegion, onRemove: () => applyFilter("region", "") } : null,
     initialRoleId
-      ? { id: "role", label: "Rol", value: roles.find((role) => role.id === initialRoleId)?.name ?? initialRoleId, onRemove: () => applyFilter("roleId", "") }
+      ? {
+          id: "role",
+          label: "Rol",
+          value: formatPersonnelRoleName(roles.find((role) => role.id === initialRoleId)?.name) || initialRoleId,
+          onRemove: () => applyFilter("roleId", ""),
+        }
       : null,
     initialSectorId
       ? { id: "sector", label: "Sector", value: sectors.find((sector) => sector.id === initialSectorId)?.name ?? initialSectorId, onRemove: () => applyFilter("sectorId", "") }
@@ -421,7 +427,7 @@ export function PersonnelView({
           <Input
             value={regionInput}
             onChange={(e) => setRegionInput(e.target.value)}
-            placeholder="Regio…"
+            placeholder="Branch/regio..."
             className="w-32 h-9"
           />
           <Button type="submit" variant="outline" size="sm" className="h-9">
@@ -444,7 +450,7 @@ export function PersonnelView({
           <SelectContent>
             <SelectItem value="ALL">Alle rollen</SelectItem>
             {roles.map((r) => (
-              <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+              <SelectItem key={r.id} value={r.id}>{formatPersonnelRoleName(r.name)}</SelectItem>
             ))}
           </SelectContent>
         </Select>
@@ -564,7 +570,7 @@ export function PersonnelView({
                 <InviteBadge userId={row.userId} inviteSentAt={row.inviteSentAt} />
                 <AvailabilityBadge status={row.availabilityStatus} />
                 {row.sectorName && <span>{row.sectorName}</span>}
-                {row.roleName && <span>{row.roleName}</span>}
+                {row.roleName && <span>{formatPersonnelRoleName(row.roleName)}</span>}
                 {row.region && <span>{row.region}</span>}
               </div>
             </article>
@@ -588,7 +594,7 @@ export function PersonnelView({
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Type</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Sector</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Functie(s)</th>
-                <SortHeader label="Regio"     columnKey="region"    currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
+                <SortHeader label="Branch/regio" columnKey="region" currentSort={initialSort} currentDir={initialDir} onSort={handleSort} />
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Certificaten</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Beschikbaarheid</th>
                 <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B" }}>Status</th>
@@ -675,7 +681,7 @@ export function PersonnelView({
                             className="inline-block rounded px-2 py-0.5 text-xs font-medium"
                             style={{ backgroundColor: "#F0F4FF", color: "#3B5CE0" }}
                           >
-                            {row.roleName}
+                            {formatPersonnelRoleName(row.roleName)}
                           </span>
                         ) : (
                           <span style={{ color: "#94A3B8", fontSize: "14px" }}>—</span>

@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { assignPersonnel } from "@/app/actions/assignments";
 import { unassignPersonnel, getPersonnelForAssignment } from "@/app/actions/planning";
+import { formatPersonnelRoleName } from "@/lib/personnel-role-labels";
 import type {
   AssignmentRequirements,
   PersonnelEligibilityEntry,
@@ -308,7 +309,7 @@ function PersonnelRow({
               {name}
             </p>
             <p className="text-xs truncate" style={{ color: "#64748B" }}>
-              {person.roleName ?? "Geen rol"}
+              {formatPersonnelRoleName(person.roleName) || "Geen rol"}
             </p>
           </div>
         </div>
