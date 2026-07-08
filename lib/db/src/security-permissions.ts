@@ -51,7 +51,14 @@ export const FIELDGRID_PERMISSION_MATRIX: Record<FieldgridRole, Partial<Record<F
 
 export function normalizePlatformRole(role: string): FieldgridPlatformRole | null { return PLATFORM_ROLE_ALIASES[role] ?? (role in FIELDGRID_PERMISSION_MATRIX && role.startsWith("platform_") ? role as FieldgridPlatformRole : null); }
 export function normalizeTenantRole(role: string): FieldgridTenantRole | null { return TENANT_ROLE_ALIASES[role] ?? (role in FIELDGRID_PERMISSION_MATRIX && role.startsWith("tenant_") ? role as FieldgridTenantRole : null); }
-export function hasAccessLevel(role: FieldgridRole, scope: FieldgridDataScope, level: FieldgridAccessLevel): boolean { return FIELDGRID_PERMISSION_MATRIX[role]?.[scope]?.includes(level) ?? false; }
+export function hasAccessLevel(role: FieldgridRole, scope: FieldgridDataScope, level: FieldgridAccessLevel): boolean {
+  const levels = FIELDGRID_PERMISSION_MATRIX[role]?.[scope] ?? [];
+  if (levels.includes(level)) return true;
+  if (level === "masked_read" && levels.includes("full_read")) return true;
+  if (level === "metadata_only" && (levels.includes("full_read") || levels.includes("masked_read"))) return true;
+  if (level === "aggregate_only" && (levels.includes("full_read") || levels.includes("metadata_only"))) return true;
+  return false;
+}
 
 export function authorizeFieldgridAccess(input: { role: FieldgridRole; scope: FieldgridDataScope; accessLevel: FieldgridAccessLevel; actorTenantId?: string | null; resourceTenantId?: string | null; hasActiveSensitiveGrant?: boolean; breakGlassReason?: string | null; }): { allowed: boolean; reason: string; masked: boolean; auditRequired: boolean } {
   if (input.actorTenantId && input.resourceTenantId && input.actorTenantId !== input.resourceTenantId) return { allowed: false, reason: "cross_tenant_denied", masked: false, auditRequired: true };
@@ -59,7 +66,11 @@ export function authorizeFieldgridAccess(input: { role: FieldgridRole; scope: Fi
   const direct = hasAccessLevel(input.role, input.scope, input.accessLevel);
   const sensitive = requiresSensitiveAccess(level);
   if (input.accessLevel === "break_glass") return { allowed: direct && Boolean(input.breakGlassReason?.trim()), reason: direct ? "break_glass" : "break_glass_denied", masked: false, auditRequired: true };
-  if (sensitive && input.role.startsWith("platform_") && input.accessLevel === "full_read" && !input.hasActiveSensitiveGrant) return { allowed: false, reason: "sensitive_grant_required", masked: true, auditRequired: true };
+  if (sensitive && input.role.startsWith("platform_") && ["full_read", "export"].includes(input.accessLevel)) {
+    if (!input.hasActiveSensitiveGrant) return { allowed: false, reason: "sensitive_grant_required", masked: true, auditRequired: true };
+    if (["platform_developer", "external_developer"].includes(input.role)) return { allowed: false, reason: "production_sensitive_data_denied", masked: true, auditRequired: true };
+    return { allowed: true, reason: "sensitive_grant_allowed", masked: false, auditRequired: true };
+  }
   if (!direct) return { allowed: false, reason: "permission_denied", masked: false, auditRequired: sensitive };
   return { allowed: true, reason: "allowed", masked: input.accessLevel === "masked_read", auditRequired: sensitive || input.accessLevel === "export" };
 }

@@ -24,6 +24,8 @@ import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { sendEmailWithResult, buildInvoiceEmail, buildPaymentReminderEmail, klantPortalUrl } from "@/lib/email";
 import { generateInvoicePdf } from "@/lib/invoice-pdf";
 import { calculateInvoiceProposalForAssignment, type InvoiceProposalLineItem } from "@/lib/invoice-proposals";
+import { requireSensitiveRuntimeAccess } from "@/lib/security/sensitive-runtime";
+import { toPlatformInvoiceMetadataDto } from "@/lib/security/safe-dtos";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, InvoiceStatus };
@@ -305,6 +307,14 @@ export async function exportInvoices(params: {
 
   const tenantId = await requireCurrentTenantId();
   const { search = "", status = "" } = params;
+  await requireSensitiveRuntimeAccess({
+    tenantId,
+    scope: "tenant_invoices",
+    accessLevel: "export",
+    resourceType: "invoices",
+    exportDownload: true,
+    metadata: { search, status, rowLimit: EXPORT_LIMIT },
+  });
   const conditions: SQL[] = [eq(assignmentsTable.tenantId, tenantId)];
 
   if (search.trim()) {
@@ -374,6 +384,7 @@ export async function exportInvoices(params: {
   const { data: { user } } = await supabase.auth.getUser();
   if (user) {
     await db.insert(auditLogTable).values({
+      tenantId,
       userId: user.id,
       action: "export_csv",
       resource: "invoices",
@@ -427,12 +438,20 @@ export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
 
   if (!row) return null;
 
+  const sensitiveDecision = await requireSensitiveRuntimeAccess({
+    tenantId,
+    scope: "tenant_invoices",
+    accessLevel: "masked_read",
+    resourceType: "invoices",
+    resourceId: id,
+  });
+
   const [proposal, branding] = await Promise.all([
     calculateInvoiceProposalForAssignment(row.assignmentId, parseFloat(row.vatPercentage ?? "21")),
     getTenantBranding(tenantId),
   ]);
 
-  return {
+  const detail: InvoiceDetail = {
     id:                 row.id,
     brandName:          branding.displayName,
     invoiceNumber:      row.invoiceNumber,
@@ -459,6 +478,7 @@ export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
     updatedAt:          row.updatedAt.toISOString(),
     lineItems: proposal.lineItems,
   };
+  return toPlatformInvoiceMetadataDto(detail, sensitiveDecision);
 }
 
 /**
@@ -1053,6 +1073,7 @@ export async function createCollectiveInvoicePayment(input: {
   const [batch] = await db
     .insert(customerPaymentBatchesTable)
     .values({
+      tenantId,
       customerId,
       molliePaymentId: molliePayment.id,
       amountCents,
@@ -1075,6 +1096,7 @@ export async function createCollectiveInvoicePayment(input: {
 
   await db.insert(customerPaymentBatchItemsTable).values(
     invoices.map((invoice) => ({
+      tenantId,
       batchId: batch.id,
       invoiceId: invoice.id,
       amountCents: parseAmountCents(invoice.totalAmount),
@@ -1082,15 +1104,14 @@ export async function createCollectiveInvoicePayment(input: {
   );
 
   await db.insert(auditLogTable).values({
+    tenantId,
     userId:     user.id,
     action:     "create_collective_invoice_payment",
     resource:   "customer_payment_batches",
     resourceId: batch.id,
     metadata: {
       customerId,
-      customerName: invoices[0]?.customerName,
-      invoiceIds,
-      invoiceNumbers,
+      invoiceCount: invoiceIds.length,
       subtotalCents,
       vatCents,
       discountCents,

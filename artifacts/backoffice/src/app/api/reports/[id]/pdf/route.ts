@@ -5,6 +5,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { hasPermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
+import { requireSensitiveRuntimeAccess } from "@/lib/security/sensitive-runtime";
 import { db } from "@workspace/db";
 import {
   getTenantBranding,
@@ -107,6 +108,15 @@ export async function GET(
   const canRead = await hasPermission("reports", "read");
   if (!canRead) return new NextResponse("Forbidden", { status: 403 });
   const tenantId = await requireCurrentTenantId();
+  await requireSensitiveRuntimeAccess({
+    tenantId,
+    scope: "reports",
+    accessLevel: "export",
+    resourceType: "reports",
+    resourceId: id,
+    exportDownload: true,
+    metadata: { format: "pdf" },
+  });
   const branding = await getTenantBranding(tenantId);
   const brandName = branding.displayName || "Fieldgrid";
 
@@ -132,7 +142,7 @@ export async function GET(
     .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
     .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
-    .where(eq(reportsTable.id, id))
+    .where(and(eq(reportsTable.id, id), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
 
   if (!row) return new NextResponse("Not found", { status: 404 });

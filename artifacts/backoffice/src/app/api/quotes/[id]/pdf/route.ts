@@ -3,6 +3,8 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { getQuote } from "@/app/actions/quotes";
 import { generateQuotePdf } from "@/lib/quote-pdf";
 import { sanitizePdfFilename } from "@/lib/pdf-style";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
+import { requireSensitiveRuntimeAccess } from "@/lib/security/sensitive-runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +17,16 @@ export async function GET(
   if (!canRead) return new NextResponse("Forbidden", { status: 403 });
 
   const { id } = await params;
+  const tenantId = await requireCurrentTenantId();
+  await requireSensitiveRuntimeAccess({
+    tenantId,
+    scope: "tenant_invoices",
+    accessLevel: "export",
+    resourceType: "quotes",
+    resourceId: id,
+    exportDownload: true,
+    metadata: { format: "pdf" },
+  });
   const quote = await getQuote(id);
   if (!quote) return new NextResponse("Not found", { status: 404 });
 

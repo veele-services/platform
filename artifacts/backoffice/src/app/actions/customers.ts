@@ -36,6 +36,11 @@ import {
   klantPortalUrl,
   sendEmailWithResult,
 } from "@/lib/email";
+import { requireSensitiveRuntimeAccess } from "@/lib/security/sensitive-runtime";
+import {
+  toPlatformCustomerContactMaskedDto,
+  toPlatformCustomerMaskedDto,
+} from "@/lib/security/safe-dtos";
 
 // ─── Shared Types ─────────────────────────────────────────────────────────────
 
@@ -509,6 +514,16 @@ async function sendCustomerPortalInvite(input: {
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
+async function currentTenantCustomer(customerId: string): Promise<{ tenantId: string } | null> {
+  const tenantId = await requireCurrentTenantId();
+  const [customer] = await db
+    .select({ tenantId: customersTable.tenantId })
+    .from(customersTable)
+    .where(and(eq(customersTable.id, customerId), eq(customersTable.tenantId, tenantId)))
+    .limit(1);
+  return customer ? { tenantId } : null;
+}
+
 export async function listCustomers(params: {
   search?: string;
   sectorId?: string;
@@ -525,6 +540,13 @@ export async function listCustomers(params: {
 }): Promise<{ rows: CustomerRow[]; total: number }> {
   await requirePermission("customers", "read");
   const tenantId = await requireCurrentTenantId();
+  const sensitiveDecision = await requireSensitiveRuntimeAccess({
+    tenantId,
+    scope: "tenant_customers_contacts",
+    accessLevel: "masked_read",
+    resourceType: "customers",
+    metadata: { operation: "listCustomers" },
+  });
 
   const {
     search,
@@ -624,7 +646,7 @@ export async function listCustomers(params: {
         r.accountManagerFirstName || r.accountManagerLastName
           ? `${r.accountManagerFirstName ?? ""} ${r.accountManagerLastName ?? ""}`.trim()
           : null;
-      return {
+      return toPlatformCustomerMaskedDto({
         id:               r.id,
         name:             r.name,
         code:             r.code,
@@ -639,7 +661,7 @@ export async function listCustomers(params: {
         accountManagerId: r.accountManagerId,
         accountManagerName,
         createdAt:        r.createdAt.toISOString(),
-      };
+      }, sensitiveDecision);
     }),
     total: countRows[0]?.total ?? 0,
   };
@@ -648,6 +670,13 @@ export async function listCustomers(params: {
 export async function getCustomer(id: string): Promise<CustomerDetail | null> {
   await requirePermission("customers", "read");
   const tenantId = await requireCurrentTenantId();
+  const sensitiveDecision = await requireSensitiveRuntimeAccess({
+    tenantId,
+    scope: "tenant_customers_contacts",
+    accessLevel: "masked_read",
+    resourceType: "customers",
+    resourceId: id,
+  });
   const canSeeNotes = await hasPermission("customers", "write");
 
   const rows = await db
@@ -684,7 +713,7 @@ export async function getCustomer(id: string): Promise<CustomerDetail | null> {
     .leftJoin(sectorsTable,      eq(customersTable.sectorId,           sectorsTable.id))
     .leftJoin(customerTypesTable, eq(customersTable.customerTypeId,    customerTypesTable.id))
     .leftJoin(personnelTable,     eq(customersTable.accountManagerId,  personnelTable.id))
-    .where(eq(customersTable.id, id))
+    .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)))
     .limit(1);
 
   if (!rows[0]) return null;
@@ -693,7 +722,7 @@ export async function getCustomer(id: string): Promise<CustomerDetail | null> {
     r.accountManagerFirstName || r.accountManagerLastName
       ? `${r.accountManagerFirstName ?? ""} ${r.accountManagerLastName ?? ""}`.trim()
       : null;
-  return {
+  const detail: CustomerDetail = {
     id:                      r.id,
     name:                    r.name,
     code:                    r.code,
@@ -721,6 +750,7 @@ export async function getCustomer(id: string): Promise<CustomerDetail | null> {
     createdAt:               r.createdAt.toISOString(),
     updatedAt:               r.updatedAt.toISOString(),
   };
+  return toPlatformCustomerMaskedDto(detail, sensitiveDecision);
 }
 
 export async function deleteCustomer(id: string): Promise<ActionResult> {
@@ -921,11 +951,7 @@ export async function listCustomerPortalUsers(customerId: string): Promise<Custo
   const canRead = await hasPermission("customers", "read");
   if (!canRead) return [];
 
-  const [customer] = await db
-    .select({ tenantId: customersTable.tenantId })
-    .from(customersTable)
-    .where(eq(customersTable.id, customerId))
-    .limit(1);
+  const customer = await currentTenantCustomer(customerId);
   if (!customer) return [];
 
   const rows = await db
@@ -971,11 +997,7 @@ export async function listCustomerTicketsForCustomer(
   const canRead = await hasPermission("tickets", "read");
   if (!canRead) return [];
 
-  const [customer] = await db
-    .select({ tenantId: customersTable.tenantId })
-    .from(customersTable)
-    .where(eq(customersTable.id, customerId))
-    .limit(1);
+  const customer = await currentTenantCustomer(customerId);
   if (!customer) return [];
 
   const rows = await db
@@ -1032,6 +1054,22 @@ export async function listCustomerTicketsForCustomer(
 
 export async function listCustomerContacts(customerId: string): Promise<CustomerContactRow[]> {
   await requirePermission("customers", "read");
+  const tenantId = await requireCurrentTenantId();
+
+  const [customer] = await db
+    .select({ id: customersTable.id })
+    .from(customersTable)
+    .where(and(eq(customersTable.id, customerId), eq(customersTable.tenantId, tenantId)))
+    .limit(1);
+  if (!customer) return [];
+
+  const sensitiveDecision = await requireSensitiveRuntimeAccess({
+    tenantId,
+    scope: "tenant_customers_contacts",
+    accessLevel: "masked_read",
+    resourceType: "customer_contacts",
+    resourceId: customerId,
+  });
 
   const rows = await db
     .select()
@@ -1039,7 +1077,7 @@ export async function listCustomerContacts(customerId: string): Promise<Customer
     .where(eq(customerContactsTable.customerId, customerId))
     .orderBy(desc(customerContactsTable.isPrimary), asc(customerContactsTable.firstName));
 
-  return rows.map((r) => ({
+  return rows.map((r) => toPlatformCustomerContactMaskedDto({
     id:                 r.id,
     customerId:         r.customerId,
     firstName:          r.firstName,
@@ -1051,7 +1089,7 @@ export async function listCustomerContacts(customerId: string): Promise<Customer
     preferredComm:      r.preferredComm ?? null,
     isEmergencyContact: r.isEmergencyContact,
     isPrimary:          r.isPrimary,
-  }));
+  }, sensitiveDecision));
 }
 
 export async function addCustomerContact(
@@ -1059,6 +1097,8 @@ export async function addCustomerContact(
   data: CustomerContactInput,
 ): Promise<ActionResult<{ id: string }>> {
   await requirePermission("customers", "write");
+  const customer = await currentTenantCustomer(customerId);
+  if (!customer) return { success: false, message: "Klant niet gevonden." };
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -1092,11 +1132,12 @@ export async function addCustomerContact(
     .returning({ id: customerContactsTable.id });
 
   await db.insert(auditLogTable).values({
+    tenantId:    customer.tenantId,
     userId:     user.id,
     action:     "create",
     resource:   "customer_contacts",
     resourceId: created!.id,
-    metadata:   { customerId, name: `${data.firstName} ${data.lastName}` },
+    metadata:   { customerId },
   });
 
   revalidatePath(`/customers/${customerId}`);
@@ -1109,6 +1150,8 @@ export async function updateCustomerContact(
   data: CustomerContactInput,
 ): Promise<ActionResult> {
   await requirePermission("customers", "write");
+  const customer = await currentTenantCustomer(customerId);
+  if (!customer) return { success: false, message: "Klant niet gevonden." };
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -1147,6 +1190,7 @@ export async function updateCustomerContact(
     .where(eq(customerContactsTable.id, contactId));
 
   await db.insert(auditLogTable).values({
+    tenantId:    customer.tenantId,
     userId:     user.id,
     action:     "update",
     resource:   "customer_contacts",
@@ -1163,6 +1207,8 @@ export async function deleteCustomerContact(
   customerId: string,
 ): Promise<ActionResult> {
   await requirePermission("customers", "write");
+  const customer = await currentTenantCustomer(customerId);
+  if (!customer) return { success: false, message: "Klant niet gevonden." };
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -1173,6 +1219,7 @@ export async function deleteCustomerContact(
     .where(and(eq(customerContactsTable.id, contactId), eq(customerContactsTable.customerId, customerId)));
 
   await db.insert(auditLogTable).values({
+    tenantId:    customer.tenantId,
     userId:     user.id,
     action:     "delete",
     resource:   "customer_contacts",
@@ -1188,6 +1235,18 @@ export async function deleteCustomerContact(
 
 export async function getCustomerKpis(customerId: string): Promise<CustomerKpis> {
   await requirePermission("customers", "read");
+  const customer = await currentTenantCustomer(customerId);
+  if (!customer) {
+    return {
+      monthlyRevenue: "0",
+      activeObjects: 0,
+      openAssignments: 0,
+      openInvoices: 0,
+      outstandingBalance: "0",
+      lastActivityDate: null,
+    };
+  }
+  const tenantId = customer.tenantId;
 
   const now = new Date();
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -1203,7 +1262,7 @@ export async function getCustomerKpis(customerId: string): Promise<CustomerKpis>
     db
       .select({ count: sql<number>`count(*)::int` })
       .from(objectsTable)
-      .where(and(eq(objectsTable.customerId, customerId), eq(objectsTable.isActive, true))),
+      .where(and(eq(objectsTable.customerId, customerId), eq(objectsTable.tenantId, tenantId), eq(objectsTable.isActive, true))),
 
     // Open assignments (not closed/archived)
     db
@@ -1212,6 +1271,7 @@ export async function getCustomerKpis(customerId: string): Promise<CustomerKpis>
       .where(
         and(
           eq(assignmentsTable.customerId, customerId),
+          eq(assignmentsTable.tenantId, tenantId),
           sql`${assignmentsTable.status} NOT IN ('paid', 'closed', 'cancelled')`,
         ),
       ),
@@ -1223,7 +1283,7 @@ export async function getCustomerKpis(customerId: string): Promise<CustomerKpis>
         balance: sql<string>`coalesce(sum(total_amount), 0)::text`,
       })
       .from(invoicesTable)
-      .where(and(eq(invoicesTable.customerId, customerId), eq(invoicesTable.status, "sent"))),
+      .where(and(eq(invoicesTable.customerId, customerId), eq(invoicesTable.tenantId, tenantId), eq(invoicesTable.status, "sent"))),
 
     // Monthly revenue (paid invoices this month)
     db
@@ -1232,6 +1292,7 @@ export async function getCustomerKpis(customerId: string): Promise<CustomerKpis>
       .where(
         and(
           eq(invoicesTable.customerId, customerId),
+          eq(invoicesTable.tenantId, tenantId),
           eq(invoicesTable.status, "paid"),
           gte(invoicesTable.createdAt, startOfMonth),
         ),
@@ -1241,7 +1302,7 @@ export async function getCustomerKpis(customerId: string): Promise<CustomerKpis>
     db
       .select({ scheduledDate: assignmentsTable.scheduledDate })
       .from(assignmentsTable)
-      .where(eq(assignmentsTable.customerId, customerId))
+      .where(and(eq(assignmentsTable.customerId, customerId), eq(assignmentsTable.tenantId, tenantId)))
       .orderBy(desc(assignmentsTable.scheduledDate))
       .limit(1),
   ]);
@@ -1528,6 +1589,7 @@ export async function bulkSetCustomerStatus(
 ): Promise<ActionResult> {
   if (!ids.length) return { success: true };
   await requirePermission("customers", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -1538,9 +1600,10 @@ export async function bulkSetCustomerStatus(
   await db
     .update(customersTable)
     .set({ isActive, status: isActive ? "active" : "inactive", updatedAt: new Date() })
-    .where(inArray(customersTable.id, ids));
+    .where(and(inArray(customersTable.id, ids), eq(customersTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
+    tenantId,
     userId:     user.id,
     action:     isActive ? "bulk_activate" : "bulk_deactivate",
     resource:   "customers",
@@ -1557,6 +1620,8 @@ export async function bulkSetCustomerStatus(
 export async function listCustomerHistory(customerId: string, limit = 25): Promise<CustomerHistoryEntry[]> {
   const canReadHistory = await hasPermission("customers", "write");
   if (!canReadHistory) return [];
+  const customer = await currentTenantCustomer(customerId);
+  if (!customer) return [];
 
   const rows = await db
     .select({
@@ -1577,6 +1642,7 @@ export async function listCustomerHistory(customerId: string, limit = 25): Promi
       and(
         eq(auditLogTable.resource, "customers"),
         eq(auditLogTable.resourceId, customerId),
+        eq(auditLogTable.tenantId, customer.tenantId),
       ),
     )
     .orderBy(desc(auditLogTable.createdAt))
@@ -1599,6 +1665,8 @@ export async function listCustomerHistory(customerId: string, limit = 25): Promi
 export async function listCustomerNotes(customerId: string): Promise<CustomerNoteRow[]> {
   const canRead = await hasPermission("customers", "write");
   if (!canRead) return [];
+  const customer = await currentTenantCustomer(customerId);
+  if (!customer) return [];
 
   const rows = await db
     .select({
@@ -1643,6 +1711,8 @@ export async function addCustomerNote(
   content: string,
 ): Promise<ActionResult<{ id: string; createdAt: string }>> {
   await requirePermission("customers", "write");
+  const customer = await currentTenantCustomer(customerId);
+  if (!customer) return { success: false, message: "Klant niet gevonden." };
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -1658,6 +1728,7 @@ export async function addCustomerNote(
     .returning({ id: customerNotesTable.id, createdAt: customerNotesTable.createdAt });
 
   await db.insert(auditLogTable).values({
+    tenantId:    customer.tenantId,
     userId:     user.id,
     action:     "create",
     resource:   "customer_notes",
@@ -1675,6 +1746,8 @@ export async function updateCustomerNote(
   content: string,
 ): Promise<ActionResult> {
   await requirePermission("customers", "write");
+  const customer = await currentTenantCustomer(customerId);
+  if (!customer) return { success: false, message: "Klant niet gevonden." };
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -1701,6 +1774,7 @@ export async function updateCustomerNote(
     .where(eq(customerNotesTable.id, noteId));
 
   await db.insert(auditLogTable).values({
+    tenantId:    customer.tenantId,
     userId:     user.id,
     action:     "update",
     resource:   "customer_notes",
@@ -1717,6 +1791,8 @@ export async function deleteCustomerNote(
   customerId: string,
 ): Promise<ActionResult> {
   await requirePermission("customers", "write");
+  const customer = await currentTenantCustomer(customerId);
+  if (!customer) return { success: false, message: "Klant niet gevonden." };
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -1730,6 +1806,7 @@ export async function deleteCustomerNote(
     ));
 
   await db.insert(auditLogTable).values({
+    tenantId:    customer.tenantId,
     userId:     user.id,
     action:     "delete",
     resource:   "customer_notes",
@@ -1751,6 +1828,7 @@ export type AccountManagerOption = {
 export async function listAccountManagers(): Promise<AccountManagerOption[]> {
   const canRead = await hasPermission("customers", "read");
   if (!canRead) return [];
+  const tenantId = await requireCurrentTenantId();
 
   const rows = await db
     .select({
@@ -1759,6 +1837,7 @@ export async function listAccountManagers(): Promise<AccountManagerOption[]> {
       lastName:  personnelTable.lastName,
     })
     .from(personnelTable)
+    .where(eq(personnelTable.tenantId, tenantId))
     .orderBy(asc(personnelTable.lastName), asc(personnelTable.firstName));
 
   return rows.map((r) => ({
@@ -1781,13 +1860,23 @@ export async function exportCustomers(params: {
   dateTo?: string;
 }): Promise<ActionResult<{ csv: string; filename: string }>> {
   await requirePermission("customers", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const {
     search, sectorId, status = "all", customerTypeId,
     city, country, accountManagerId, dateFrom, dateTo,
   } = params;
 
-  const conditions: ReturnType<typeof eq>[] = [];
+  await requireSensitiveRuntimeAccess({
+    tenantId,
+    scope: "tenant_customers_contacts",
+    accessLevel: "export",
+    resourceType: "customers",
+    exportDownload: true,
+    metadata: { format: "csv", search, status },
+  });
+
+  const conditions: ReturnType<typeof eq>[] = [eq(customersTable.tenantId, tenantId) as ReturnType<typeof eq>];
   if (search?.trim()) {
     const term = `%${search.trim()}%`;
     const clause = or(ilike(customersTable.name, term), ilike(customersTable.code, term));
@@ -1881,13 +1970,23 @@ export async function exportCustomersPdf(params: {
   dateTo?: string;
 }): Promise<ActionResult<{ html: string; filename: string }>> {
   await requirePermission("customers", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const {
     search, sectorId, status = "all", customerTypeId,
     city, country, accountManagerId, dateFrom, dateTo,
   } = params;
 
-  const conditions: ReturnType<typeof eq>[] = [];
+  await requireSensitiveRuntimeAccess({
+    tenantId,
+    scope: "tenant_customers_contacts",
+    accessLevel: "export",
+    resourceType: "customers",
+    exportDownload: true,
+    metadata: { format: "pdf", search, status },
+  });
+
+  const conditions: ReturnType<typeof eq>[] = [eq(customersTable.tenantId, tenantId) as ReturnType<typeof eq>];
   if (search?.trim()) {
     const term = `%${search.trim()}%`;
     const clause = or(ilike(customersTable.name, term), ilike(customersTable.code, term));

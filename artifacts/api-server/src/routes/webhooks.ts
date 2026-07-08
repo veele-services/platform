@@ -7,6 +7,7 @@ import {
   auditLogTable,
   customerPaymentBatchesTable,
   customerPaymentBatchItemsTable,
+  maskPaymentProviderId,
 } from "@workspace/db";
 import { eq } from "drizzle-orm";
 import type { Request, Response } from "express";
@@ -70,12 +71,13 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
 
   const molliePaymentId = (req.body as Record<string, string>)["id"];
   if (!molliePaymentId || !molliePaymentId.startsWith("tr_")) {
-    req.log.warn({ body: req.body }, "Mollie webhook received invalid or missing payment ID");
+    req.log.warn({ bodyKeys: Object.keys((req.body as Record<string, unknown>) ?? {}) }, "Mollie webhook received invalid or missing payment ID");
     res.status(200).send("ok");
     return;
   }
+  const molliePaymentReference = maskPaymentProviderId(molliePaymentId);
 
-  req.log.info({ molliePaymentId }, "Mollie webhook received");
+  req.log.info({ molliePaymentReference }, "Mollie webhook received");
 
   // Re-fetch payment from Mollie to get the authoritative status
   let mollieStatus: string;
@@ -85,7 +87,7 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
     });
 
     if (!response.ok) {
-      req.log.error({ molliePaymentId, status: response.status }, "Failed to fetch payment from Mollie");
+      req.log.error({ molliePaymentReference, status: response.status }, "Failed to fetch payment from Mollie");
       res.status(200).send("ok");
       return;
     }
@@ -94,7 +96,7 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
     const data = (await response.json()) as MolliePayment;
     mollieStatus = data.status;
 
-    req.log.info({ molliePaymentId, mollieStatus }, "Fetched payment status from Mollie");
+    req.log.info({ molliePaymentReference, mollieStatus }, "Fetched payment status from Mollie");
 
     // Find local single-invoice payment record first.
     const [payment] = await db
@@ -121,7 +123,7 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
         .limit(1);
 
       if (!batch) {
-        req.log.warn({ molliePaymentId }, "No local payment or payment batch found for Mollie payment ID");
+        req.log.warn({ molliePaymentReference }, "No local payment or payment batch found for Mollie payment ID");
         res.status(200).send("ok");
         return;
       }
@@ -142,7 +144,7 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
         resource:   "customer_payment_batches",
         resourceId: batch.id,
         metadata:   {
-          molliePaymentId,
+          paymentReference: molliePaymentReference,
           customerId: batch.customerId,
           previousStatus,
           newStatus: mollieStatus,
@@ -187,7 +189,7 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
           action:     "mollie_payment_batch_received",
           resource:   "customer_payment_batches",
           resourceId: batch.id,
-          metadata:   { molliePaymentId, paidAt: paidAt.toISOString(), invoiceCount: items.length },
+          metadata:   { paymentReference: molliePaymentReference, paidAt: paidAt.toISOString(), invoiceCount: items.length },
         });
       }
 
@@ -213,7 +215,7 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
       resource:   "payments",
       resourceId: payment.id,
       metadata:   {
-        molliePaymentId,
+        paymentReference: molliePaymentReference,
         invoiceId: payment.invoiceId,
         previousStatus,
         newStatus: mollieStatus,
@@ -252,14 +254,14 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
           action:     "mollie_payment_received",
           resource:   "invoices",
           resourceId: invoice.id,
-          metadata:   { molliePaymentId, paidAt: paidAt.toISOString() },
+          metadata:   { paymentReference: molliePaymentReference, paidAt: paidAt.toISOString() },
         });
 
-        req.log.info({ invoiceId: invoice.id, molliePaymentId }, "Invoice marked as paid via Mollie webhook");
+        req.log.info({ invoiceId: invoice.id, molliePaymentReference }, "Invoice marked as paid via Mollie webhook");
       }
     }
   } catch (err) {
-    req.log.error({ err, molliePaymentId }, "Unexpected error in Mollie webhook handler");
+    req.log.error({ err, molliePaymentReference }, "Unexpected error in Mollie webhook handler");
   }
 
   // Always return 200 — Mollie will retry on non-200

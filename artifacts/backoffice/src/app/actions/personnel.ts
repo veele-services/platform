@@ -27,6 +27,8 @@ import {
   personeelPortalUrl,
   sendEmailWithResult,
 } from "@/lib/email";
+import { requireSensitiveRuntimeAccess } from "@/lib/security/sensitive-runtime";
+import { toPlatformPersonnelMaskedDto } from "@/lib/security/safe-dtos";
 import type { ActionResult } from "./customers";
 import type { ContractInfo, CertificateEntry } from "@/types/personnel";
 
@@ -233,6 +235,13 @@ export async function listPersonnel(params: {
 }): Promise<{ rows: PersonnelRow[]; total: number }> {
   await requirePermission("personnel", "read");
   const tenantId = await requireCurrentTenantId();
+  const sensitiveDecision = await requireSensitiveRuntimeAccess({
+    tenantId,
+    scope: "tenant_staff_employees",
+    accessLevel: "masked_read",
+    resourceType: "personnel",
+    metadata: { operation: "listPersonnel" },
+  });
 
   const {
     search,
@@ -322,14 +331,14 @@ export async function listPersonnel(params: {
   const statusMap = await getBatchAvailabilityStatus(ids, today);
 
   return {
-    rows: rows.map((r) => ({
+    rows: rows.map((r) => toPlatformPersonnelMaskedDto({
       ...r,
       createdAt:          r.createdAt.toISOString(),
       inviteSentAt:       r.inviteSentAt ? r.inviteSentAt.toISOString() : null,
       availabilityStatus: statusMap[r.id] ?? "niet_ingesteld",
       certificates:       extractCertNames(r.certificates),
       preferredRegions:   (r.preferredRegions as string[]) ?? [],
-    })),
+    }, sensitiveDecision)),
     total: countRows[0]?.total ?? 0,
   };
 }
@@ -337,6 +346,13 @@ export async function listPersonnel(params: {
 export async function getPersonnel(id: string): Promise<PersonnelDetail | null> {
   await requirePermission("personnel", "read");
   const tenantId = await requireCurrentTenantId();
+  const sensitiveDecision = await requireSensitiveRuntimeAccess({
+    tenantId,
+    scope: "tenant_staff_employees",
+    accessLevel: "masked_read",
+    resourceType: "personnel",
+    resourceId: id,
+  });
 
   const rows = await db
     .select({
@@ -373,7 +389,7 @@ export async function getPersonnel(id: string): Promise<PersonnelDetail | null> 
 
   if (!rows[0]) return null;
   const r = rows[0];
-  return {
+  const detail: PersonnelDetail = {
     ...r,
     inviteSentAt:     r.inviteSentAt ? r.inviteSentAt.toISOString() : null,
     createdAt:        r.createdAt.toISOString(),
@@ -385,6 +401,7 @@ export async function getPersonnel(id: string): Promise<PersonnelDetail | null> 
     preferredRegions: (r.preferredRegions as string[]) ?? [],
     contractInfo:     (r.contractInfo as ContractInfo | null) ?? null,
   };
+  return toPlatformPersonnelMaskedDto(detail, sensitiveDecision);
 }
 
 export async function listRoles(): Promise<RoleOption[]> {

@@ -12,6 +12,17 @@ import {
   type PlatformUserRow,
   type SupportAccessGrantRow,
 } from "@/app/actions/platform";
+import {
+  approveSensitiveAccessRequestFromForm,
+  createBreakGlassSensitiveAccessFromForm,
+  denySensitiveAccessRequestFromForm,
+  listSensitiveAccessDashboard,
+  requestSensitiveAccessFromForm,
+  revokeSensitiveAccessGrantFromForm,
+  type SensitiveAccessDashboard,
+  type SensitiveAccessGrantRow,
+  type SensitiveAccessRequestRow,
+} from "@/app/actions/sensitive-access";
 
 export const metadata = {
   title: "Securitydashboard",
@@ -54,6 +65,31 @@ async function createSupportGrantAction(formData: FormData): Promise<void> {
 async function revokeSupportGrantAction(formData: FormData): Promise<void> {
   "use server";
   await revokeSupportAccessGrantFromForm(formData);
+}
+
+async function requestSensitiveAccessAction(formData: FormData): Promise<void> {
+  "use server";
+  await requestSensitiveAccessFromForm(formData);
+}
+
+async function approveSensitiveAccessAction(formData: FormData): Promise<void> {
+  "use server";
+  await approveSensitiveAccessRequestFromForm(formData);
+}
+
+async function denySensitiveAccessAction(formData: FormData): Promise<void> {
+  "use server";
+  await denySensitiveAccessRequestFromForm(formData);
+}
+
+async function revokeSensitiveAccessAction(formData: FormData): Promise<void> {
+  "use server";
+  await revokeSensitiveAccessGrantFromForm(formData);
+}
+
+async function breakGlassSensitiveAccessAction(formData: FormData): Promise<void> {
+  "use server";
+  await createBreakGlassSensitiveAccessFromForm(formData);
 }
 
 function formatDate(value: string): string {
@@ -309,11 +345,212 @@ function SupportGrantForm({
   );
 }
 
+function sensitiveGrantStatusLabel(status: SensitiveAccessGrantRow["status"]): string {
+  if (status === "active") return "Actief";
+  if (status === "revoked") return "Ingetrokken";
+  return "Verlopen";
+}
+
+function SensitiveAccessGrantCard({ grant }: { grant: SensitiveAccessGrantRow }) {
+  return (
+    <article className="rounded border border-slate-200 bg-white p-4 text-sm">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`rounded border px-2 py-1 text-xs font-medium ${grant.isActive ? "border-amber-200 bg-amber-50 text-amber-800" : "border-slate-200 bg-slate-50 text-slate-600"}`}>
+              {sensitiveGrantStatusLabel(grant.status)}
+            </span>
+            <span className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600">
+              {grant.scope} / {grant.permission}
+            </span>
+          </div>
+          <p className="mt-3 font-semibold text-slate-950">{grant.tenantName}</p>
+          <p className="mt-1 break-all text-xs text-slate-500">User: {grant.userId}</p>
+          <p className="mt-1 text-xs text-slate-500">Verloopt: {formatDate(grant.expiresAt)}</p>
+        </div>
+        {grant.isActive && (
+          <form action={revokeSensitiveAccessAction} className="grid min-w-52 gap-2">
+            <input type="hidden" name="grantId" value={grant.id} />
+            <input name="reason" required minLength={12} className="h-9 rounded border border-slate-300 px-2 text-xs" placeholder="Reden intrekken" />
+            <button type="submit" className="rounded border border-rose-300 bg-white px-3 py-2 text-xs font-semibold text-rose-800 hover:bg-rose-50">
+              Revoke
+            </button>
+          </form>
+        )}
+      </div>
+    </article>
+  );
+}
+
+function SensitiveAccessRequestCard({
+  request,
+  permissions,
+}: {
+  request: SensitiveAccessRequestRow;
+  permissions: SensitiveAccessDashboard["permissionOptions"];
+}) {
+  return (
+    <article className="rounded border border-slate-200 bg-white p-4 text-sm">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="rounded border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-800">
+          {request.status}
+        </span>
+        <span className="rounded border border-slate-200 bg-slate-50 px-2 py-1 text-xs font-medium text-slate-600">
+          Level {request.classification} / {request.scope}
+        </span>
+      </div>
+      <p className="mt-3 font-semibold text-slate-950">{request.tenantName}</p>
+      <p className="mt-1 break-words text-slate-600">{request.reason}</p>
+      <p className="mt-2 break-all text-xs text-slate-500">
+        Aanvrager: {request.requestedByUserId} / {request.requestedRole}
+      </p>
+      <p className="mt-1 text-xs text-slate-500">Vervalt: {formatDate(request.expiresAt)}</p>
+      {request.status === "pending" && (
+        <div className="mt-3 grid gap-2 md:grid-cols-2">
+          <form action={approveSensitiveAccessAction} className="grid gap-2 rounded border border-emerald-200 bg-emerald-50 p-3">
+            <input type="hidden" name="requestId" value={request.id} />
+            <select name="permission" defaultValue="full_read" className="h-9 rounded border border-emerald-200 px-2 text-xs">
+              {permissions.map((permission) => <option key={permission} value={permission}>{permission}</option>)}
+            </select>
+            <input name="durationMinutes" type="number" min={1} max={240} defaultValue={60} className="h-9 rounded border border-emerald-200 px-2 text-xs" />
+            <input name="reason" minLength={12} className="h-9 rounded border border-emerald-200 px-2 text-xs" placeholder="Goedkeuringsreden" />
+            <button type="submit" className="rounded bg-emerald-700 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-800">
+              Goedkeuren
+            </button>
+          </form>
+          <form action={denySensitiveAccessAction} className="grid gap-2 rounded border border-rose-200 bg-rose-50 p-3">
+            <input type="hidden" name="requestId" value={request.id} />
+            <input name="reason" required minLength={12} className="h-9 rounded border border-rose-200 px-2 text-xs" placeholder="Reden weigering" />
+            <button type="submit" className="rounded bg-rose-700 px-3 py-2 text-xs font-semibold text-white hover:bg-rose-800">
+              Weigeren
+            </button>
+          </form>
+        </div>
+      )}
+    </article>
+  );
+}
+
+function SensitiveAccessPanel({ dashboard }: { dashboard: SensitiveAccessDashboard }) {
+  return (
+    <section className="grid gap-5 xl:grid-cols-[420px_minmax(0,1fr)]">
+      <div className="grid gap-5">
+        <section className="rounded border border-slate-200 bg-white p-5">
+          <div className="mb-4">
+            <h2 className="text-lg font-semibold tracking-normal text-slate-950">Sensitive access aanvragen</h2>
+            <p className="mt-1 text-sm text-slate-500">
+              Full-read en export voor gevoelige tenantdata verlopen via tijdelijke grants met reden en audit.
+            </p>
+          </div>
+          <form action={requestSensitiveAccessAction} className="grid gap-3">
+            <label className="grid gap-1 text-sm font-medium text-slate-700">
+              Tenant
+              <select name="tenantId" required className="h-10 rounded border border-slate-300 px-3 text-sm">
+                <option value="">Kies tenant</option>
+                {dashboard.tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.name}</option>)}
+              </select>
+            </label>
+            <label className="grid gap-1 text-sm font-medium text-slate-700">
+              Scope
+              <select name="scope" required className="h-10 rounded border border-slate-300 px-3 text-sm">
+                {dashboard.scopeOptions.map((scope) => (
+                  <option key={scope.value} value={scope.value}>{scope.label} / level {scope.classification}</option>
+                ))}
+              </select>
+            </label>
+            <label className="grid gap-1 text-sm font-medium text-slate-700">
+              Permissie
+              <select name="permission" required defaultValue="full_read" className="h-10 rounded border border-slate-300 px-3 text-sm">
+                {dashboard.permissionOptions.map((permission) => <option key={permission} value={permission}>{permission}</option>)}
+              </select>
+            </label>
+            <label className="grid gap-1 text-sm font-medium text-slate-700">
+              TTL minuten
+              <input name="durationMinutes" type="number" min={1} max={dashboard.maxTtlMinutes} defaultValue={60} className="h-10 rounded border border-slate-300 px-3 text-sm" />
+            </label>
+            <label className="grid gap-1 text-sm font-medium text-slate-700">
+              Ticket/reference
+              <input name="supportTicketReference" className="h-10 rounded border border-slate-300 px-3 text-sm" placeholder="Ticket of incidentreferentie" />
+            </label>
+            <label className="grid gap-1 text-sm font-medium text-slate-700">
+              Reden
+              <textarea name="reason" required minLength={12} rows={3} className="rounded border border-slate-300 px-3 py-2 text-sm" />
+            </label>
+            <button type="submit" className="h-10 rounded bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-slate-800">
+              Aanvraag maken
+            </button>
+          </form>
+        </section>
+        <section className="rounded border border-rose-200 bg-rose-50 p-5">
+          <h2 className="text-lg font-semibold tracking-normal text-rose-950">Break-glass sensitive access</h2>
+          <p className="mt-1 text-sm text-rose-700">
+            Alleen voor urgente incidenten. Max TTL: {dashboard.maxTtlMinutes} minuten.
+          </p>
+          <form action={breakGlassSensitiveAccessAction} className="mt-4 grid gap-3">
+            <select name="tenantId" required className="h-10 rounded border border-rose-200 px-3 text-sm">
+              <option value="">Kies tenant</option>
+              {dashboard.tenants.map((tenant) => <option key={tenant.id} value={tenant.id}>{tenant.name}</option>)}
+            </select>
+            <select name="scope" required className="h-10 rounded border border-rose-200 px-3 text-sm">
+              {dashboard.scopeOptions.map((scope) => <option key={scope.value} value={scope.value}>{scope.label}</option>)}
+            </select>
+            <select name="permission" required defaultValue="full_read" className="h-10 rounded border border-rose-200 px-3 text-sm">
+              {dashboard.permissionOptions.map((permission) => <option key={permission} value={permission}>{permission}</option>)}
+            </select>
+            <input name="durationMinutes" type="number" min={1} max={dashboard.maxTtlMinutes} defaultValue={30} className="h-10 rounded border border-rose-200 px-3 text-sm" />
+            <input name="supportTicketReference" className="h-10 rounded border border-rose-200 px-3 text-sm" placeholder="Incident/ticket" />
+            <textarea name="reason" required minLength={12} rows={3} className="rounded border border-rose-200 px-3 py-2 text-sm" placeholder="Urgente reden" />
+            <button type="submit" className="h-10 rounded bg-rose-800 px-4 text-sm font-semibold text-white hover:bg-rose-900">
+              Break-glass grant maken
+            </button>
+          </form>
+        </section>
+      </div>
+      <div className="grid gap-5">
+        {dashboard.activeGrants.length > 0 && (
+          <section className="rounded border border-amber-200 bg-amber-50 p-5">
+            <h2 className="text-lg font-semibold tracking-normal text-amber-950">Actieve sensitive grants</h2>
+            <p className="mt-1 text-sm text-amber-700">
+              Deze grants maken full-read of export tijdelijk mogelijk voor de genoemde scope.
+            </p>
+            <div className="mt-4 grid gap-3">
+              {dashboard.activeGrants.map((grant) => <SensitiveAccessGrantCard key={grant.id} grant={grant} />)}
+            </div>
+          </section>
+        )}
+        <section className="rounded border border-slate-200 bg-white p-5">
+          <h2 className="text-lg font-semibold tracking-normal text-slate-950">Pending sensitive access</h2>
+          <div className="mt-4 grid gap-3">
+            {dashboard.pendingRequests.map((request) => (
+              <SensitiveAccessRequestCard key={request.id} request={request} permissions={dashboard.permissionOptions} />
+            ))}
+            {dashboard.pendingRequests.length === 0 && (
+              <p className="platform-empty-state text-sm">Geen open sensitive access aanvragen.</p>
+            )}
+          </div>
+        </section>
+        <section className="rounded border border-slate-200 bg-white p-5">
+          <h2 className="text-lg font-semibold tracking-normal text-slate-950">Sensitive access audit trail</h2>
+          <div className="mt-4 grid gap-3">
+            {dashboard.requests.slice(0, 8).map((request) => (
+              <SensitiveAccessRequestCard key={request.id} request={request} permissions={dashboard.permissionOptions} />
+            ))}
+            {dashboard.requests.length === 0 && (
+              <p className="platform-empty-state text-sm">Nog geen sensitive access events.</p>
+            )}
+          </div>
+        </section>
+      </div>
+    </section>
+  );
+}
+
 export default async function PlatformSecurityPage({ searchParams }: Props) {
   const filters = parseSecurityFilters(await searchParams);
-  const [dashboard, platformUsers] = await Promise.all([
+  const [dashboard, platformUsers, sensitiveDashboard] = await Promise.all([
     listPlatformSecurityDashboard(filters),
     listPlatformUsers(),
+    listSensitiveAccessDashboard(),
   ]);
 
   return (
@@ -459,6 +696,8 @@ export default async function PlatformSecurityPage({ searchParams }: Props) {
             </div>
           </section>
         </div>
+
+        <SensitiveAccessPanel dashboard={sensitiveDashboard} />
 
         <EventSection
           title="Support access events"

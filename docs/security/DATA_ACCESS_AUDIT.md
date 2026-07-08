@@ -39,8 +39,10 @@
 - Customer internal notes are stored separately with management-only RLS intent.
 
 ## Refactoring completed / needed
-- Completed in this change: central data classification, role/permission matrix, masking utilities, sensitive access request/grant tables, sensitive audit helper and tests.
-- Still needed: wire every high-risk route/action/export to `assertFieldgridAccess`, replace platform-admin DTOs with safe summary DTOs, add UI request/approval screens and tenant notifications, and run database migration in staging/production.
+- Foundation completed: central data classification, role/permission matrix, masking utilities, sensitive access request/grant tables, sensitive audit helper and tests.
+- Runtime integration pass completed on 2026-07-08: sensitive access lifecycle service, backoffice runtime authorizer, platform/support safe DTOs, security dashboard request/approval/break-glass UI, finance/customer/personnel/document/export/PDF guards and API webhook log redaction.
+- Current runtime mapping and verification evidence lives in `docs/security/RUNTIME_ACCESS_INTEGRATION_CHECKLIST.md`.
+- Remaining items are business/legal decisions, not known implementation gaps: tenant-admin finance export policy, tenant owner co-approval rules, audit retention and security auditor activation procedure.
 
 ## Concrete code references
 - DB entry point: `lib/db/src/index.ts`.

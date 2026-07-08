@@ -6,6 +6,7 @@ import {
   invoicesTable,
   assignmentsTable,
   auditLogTable,
+  maskPaymentProviderId,
   type PaymentStatus,
 } from "@workspace/db";
 import { and, eq, desc } from "drizzle-orm";
@@ -14,6 +15,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
+import { requireSensitiveRuntimeAccess } from "@/lib/security/sensitive-runtime";
+import { toPlatformPaymentDiagnosticDto } from "@/lib/security/safe-dtos";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, PaymentStatus };
@@ -75,6 +78,13 @@ export async function getPaymentHistory(invoiceId: string): Promise<PaymentRecor
   if (!canRead) return [];
 
   const tenantId = await requireCurrentTenantId();
+  const sensitiveDecision = await requireSensitiveRuntimeAccess({
+    tenantId,
+    scope: "tenant_payments",
+    accessLevel: "masked_read",
+    resourceType: "payments",
+    resourceId: invoiceId,
+  });
   const rows = await db
     .select({
       id:              paymentsTable.id,
@@ -97,7 +107,7 @@ export async function getPaymentHistory(invoiceId: string): Promise<PaymentRecor
     )
     .orderBy(desc(paymentsTable.createdAt));
 
-  return rows.map((r) => ({
+  return rows.map((r) => toPlatformPaymentDiagnosticDto({
     id:              r.id,
     molliePaymentId: r.molliePaymentId,
     amountCents:     r.amountCents,
@@ -106,7 +116,7 @@ export async function getPaymentHistory(invoiceId: string): Promise<PaymentRecor
     checkoutUrl:     r.checkoutUrl ?? null,
     paidAt:          r.paidAt?.toISOString() ?? null,
     createdAt:       r.createdAt.toISOString(),
-  }));
+  }, sensitiveDecision));
 }
 
 // ─── Mutations ────────────────────────────────────────────────────────────────
@@ -207,6 +217,7 @@ export async function createMolliePayment(
 
   const molliePaymentId = molliePayment.id;
   const checkoutUrl     = molliePayment._links?.checkout?.href ?? null;
+  const paymentReference = maskPaymentProviderId(molliePaymentId);
 
   // Store in DB
   try {
@@ -229,7 +240,7 @@ export async function createMolliePayment(
     action:     "create_mollie_payment",
     resource:   "invoices",
     resourceId: invoiceId,
-    metadata:   { tenantId, molliePaymentId, amountCents, checkoutUrl },
+    metadata:   { tenantId, paymentReference, amountCents, checkoutIssued: Boolean(checkoutUrl) },
   });
 
   revalidatePath(`/invoices/${invoiceId}`);
@@ -304,7 +315,7 @@ export async function markInvoicePaidByMollie(
       action:      "mollie_payment_received",
       resource:    "invoices",
       resourceId:  invoice.id,
-      metadata:    { tenantId: payment.tenantId, molliePaymentId, paidAt: paidAt.toISOString() },
+      metadata:    { tenantId: payment.tenantId, paymentReference: maskPaymentProviderId(molliePaymentId), paidAt: paidAt.toISOString() },
     });
 
     await notifyInvoiceWorkflow({
@@ -342,6 +353,13 @@ export async function listPaymentsForCustomer(
   if (!canRead) return [];
 
   const tenantId = await requireCurrentTenantId();
+  const sensitiveDecision = await requireSensitiveRuntimeAccess({
+    tenantId,
+    scope: "tenant_payments",
+    accessLevel: "masked_read",
+    resourceType: "payments",
+    resourceId: customerId,
+  });
   const rows = await db
     .select({
       id:              paymentsTable.id,
@@ -366,7 +384,7 @@ export async function listPaymentsForCustomer(
     .orderBy(desc(paymentsTable.createdAt))
     .limit(limit);
 
-  return rows.map((r) => ({
+  return rows.map((r) => toPlatformPaymentDiagnosticDto({
     id:              r.id,
     invoiceId:       r.invoiceId,
     invoiceNumber:   r.invoiceNumber,
@@ -376,5 +394,5 @@ export async function listPaymentsForCustomer(
     status:          r.status,
     paidAt:          r.paidAt  ? r.paidAt.toISOString()  : null,
     createdAt:       r.createdAt.toISOString(),
-  }));
+  }, sensitiveDecision));
 }
