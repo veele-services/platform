@@ -47,7 +47,7 @@ export default async function TenantKnowledgebaseManagementPage({ searchParams }
             <p className="text-sm font-medium text-slate-500">Handleidingen</p>
             <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950">Eigen helpartikelen</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-              Beheer tenant-interne artikelen die alleen zichtbaar zijn voor deze tenant en dezelfde audience-, module- en permissieregels volgen.
+              Beheer organisatie-interne artikelen die alleen zichtbaar zijn voor deze organisatie en dezelfde audience-, module- en permissieregels volgen.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -121,7 +121,7 @@ export default async function TenantKnowledgebaseManagementPage({ searchParams }
           <div className="flex flex-col gap-3 border-b border-slate-200 p-4 md:flex-row md:items-center md:justify-between">
             <div>
               <h2 className="text-lg font-semibold text-slate-950">Tenantartikelen</h2>
-              <p className="mt-1 text-sm text-slate-500">Concepten, gepubliceerde artikelen en archief voor deze tenant.</p>
+              <p className="mt-1 text-sm text-slate-500">Concepten, gepubliceerde artikelen en archief voor deze organisatie.</p>
             </div>
             <form className="flex w-full gap-2 md:w-[420px]">
               <div className="relative min-w-0 flex-1">

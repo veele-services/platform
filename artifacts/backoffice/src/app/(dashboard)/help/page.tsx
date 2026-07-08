@@ -26,7 +26,7 @@ export default async function TenantHelpPage({ searchParams }: Props) {
           <p className="text-sm font-semibold text-cyan-700">Handleidingen</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-normal text-slate-950">Waar kunnen we mee helpen?</h1>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-            Zoek in artikelen die passen bij uw modules en rechten binnen deze tenant.
+            Zoek in artikelen die passen bij uw modules en rechten binnen deze organisatie.
           </p>
           {management.state.enabled && management.state.canManage && (
             <Link href="/help/beheer" className="mt-4 inline-flex rounded-md border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700">

@@ -25,7 +25,7 @@ export default async function NewTenantKnowledgebaseArticlePage() {
             <p className="text-sm font-medium text-slate-500">Helpbeheer</p>
             <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950">Nieuw eigen artikel</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-              Maak een tenant-interne handleiding. Zichtbaarheid blijft beperkt tot deze tenant.
+              Maak een organisatie-interne handleiding. Zichtbaarheid blijft beperkt tot deze organisatie.
             </p>
           </div>
         </header>

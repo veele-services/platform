@@ -106,7 +106,7 @@ export async function GET(
       title: "VERZAMELFACTUUR",
       reference: batch.id.slice(0, 8).toUpperCase(),
       brandTitle: branding.displayName.toUpperCase(),
-      brandSubtitle: "FIELDGRID",
+      brandSubtitle: branding.customBrandingEnabled ? "" : "PLATFORM",
     });
     y = drawPdfRecipientPanel(doc, {
       y,
@@ -163,7 +163,7 @@ export async function GET(
       doc.fillColor(PDF_BRAND.ink).font("Helvetica").fontSize(9).text(batch.notes, L, y + 18, { width: W });
     }
 
-    drawPdfFooter(doc, `${branding.displayName} - Verzamelfactuur gegenereerd vanuit Fieldgrid.`);
+    drawPdfFooter(doc, `${branding.displayName} - Verzamelfactuur gegenereerd.`);
     doc.end();
   });
 

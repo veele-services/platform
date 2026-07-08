@@ -105,7 +105,7 @@ function RoadmapDetail({ item }: { item: RoadmapItemSummary }) {
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-slate-500">Scope</dt>
-              <dd className="font-medium text-slate-900">{item.scope === "global" ? "Fieldgrid" : "Mijn tenant"}</dd>
+              <dd className="font-medium text-slate-900">{item.scope === "global" ? "Platform" : "Mijn organisatie"}</dd>
             </div>
             <div className="flex justify-between gap-3">
               <dt className="text-slate-500">Geplande versie</dt>
@@ -149,7 +149,7 @@ export default async function TenantRoadmapDetailPage({ params }: Props) {
           <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950">{item.title}</h1>
           <div className="mt-3 flex flex-wrap gap-2">
             <Badge variant="outline">{statusLabel(item.status)}</Badge>
-            <Badge variant="outline">{item.scope === "global" ? "Fieldgrid" : "Mijn tenant"}</Badge>
+            <Badge variant="outline">{item.scope === "global" ? "Platform" : "Mijn organisatie"}</Badge>
             <Badge variant="outline">{item.priority}</Badge>
           </div>
         </header>

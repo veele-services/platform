@@ -49,6 +49,7 @@ function statusLabel(status: string, isExpired: boolean): string {
 
 export async function generateCustomerQuotePdf(quote: CustomerQuotePdfData): Promise<Buffer> {
   const brandName = quote.brandName?.trim() || "Fieldgrid";
+  const isFieldgridBrand = brandName.toLowerCase() === "fieldgrid";
   const doc = new PDFDocument({ size: "A4", margin: 55, bufferPages: true });
   const chunks: Buffer[] = [];
 
@@ -61,7 +62,7 @@ export async function generateCustomerQuotePdf(quote: CustomerQuotePdfData): Pro
       title: "OFFERTE",
       reference: quote.quoteNumber,
       brandTitle: brandName.toUpperCase(),
-      brandSubtitle: "FIELDGRID",
+      brandSubtitle: isFieldgridBrand ? "PLATFORM" : "",
     });
 
     const L = PDF_PAGE.left;
@@ -150,7 +151,7 @@ export async function generateCustomerQuotePdf(quote: CustomerQuotePdfData): Pro
       );
     }
 
-    drawPdfFooter(doc, `${brandName} - Offerte gegenereerd vanuit Fieldgrid.`);
+    drawPdfFooter(doc, `${brandName} - Offerte gegenereerd.`);
     doc.end();
   });
 

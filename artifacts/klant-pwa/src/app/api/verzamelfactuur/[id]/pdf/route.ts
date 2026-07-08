@@ -114,7 +114,7 @@ export async function GET(
       title: "VERZAMELFACTUUR",
       reference: batch.id.slice(0, 8).toUpperCase(),
       brandTitle: branding.displayName.toUpperCase(),
-      brandSubtitle: "FIELDGRID",
+      brandSubtitle: branding.customBrandingEnabled ? "" : "PLATFORM",
     });
     y = drawPdfRecipientPanel(doc, {
       y,
@@ -160,7 +160,7 @@ export async function GET(
       { label: "Totaal te betalen", value: formatPdfEuroCents(batch.amountCents), strong: true },
     ]);
 
-    drawPdfFooter(doc, `${branding.displayName} - Verzamelfactuur gegenereerd vanuit Fieldgrid.`);
+    drawPdfFooter(doc, `${branding.displayName} - Verzamelfactuur gegenereerd.`);
     doc.end();
   });
 

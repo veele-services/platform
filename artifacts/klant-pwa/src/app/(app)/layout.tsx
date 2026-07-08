@@ -53,7 +53,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
   if (!tenantId) {
     redirect(
       "/login?error=" +
-        encodeURIComponent("Het klantportaal is niet beschikbaar voor deze tenant."),
+        encodeURIComponent("Het klantportaal is niet beschikbaar voor deze organisatie."),
     );
   }
 

@@ -20,13 +20,14 @@ export default async function BrandingPage() {
   return (
     <SettingsSectionShell
       title="Branding & thema"
-      description="Beheer de tenantnaam, huisstijl, logo's en e-mailstijl voor deze tenant."
+      description="Beheer de organisatienaam, huisstijl, logo's en e-mailstijl voor uw organisatie."
       size="wide"
     >
       <BrandThemeForm
         mode="tenant"
         theme={settings.theme}
         useCustomTheme={settings.useCustomTheme}
+        customThemeAllowed={settings.customThemeAllowed}
         canWrite={canWrite}
       />
     </SettingsSectionShell>

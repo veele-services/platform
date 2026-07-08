@@ -51,7 +51,7 @@ function RoadmapCard({ item }: { item: RoadmapItemSummary }) {
 
       <div className="mt-3 flex flex-wrap gap-2">
         <span className={`rounded-full border px-2 py-1 text-xs font-semibold ${priorityClass(item.priority)}`}>{item.priority}</span>
-        <Badge variant="outline">{item.scope === "global" ? "Fieldgrid" : "Mijn tenant"}</Badge>
+        <Badge variant="outline">{item.scope === "global" ? "Platform" : "Mijn organisatie"}</Badge>
         {item.linkedReleases.length > 0 && <Badge variant="outline">{item.linkedReleases[0]?.version}</Badge>}
       </div>
 
@@ -84,11 +84,11 @@ export default async function TenantRoadmapPage() {
             <p className="text-sm font-medium text-slate-500">Support</p>
             <h1 className="mt-1 text-3xl font-semibold tracking-normal text-slate-950">Roadmap en wensen</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-              Bekijk relevante Fieldgrid roadmapitems en volg de status van wensen die door uw tenant zijn ingediend.
+              Bekijk relevante roadmapitems en volg de status van wensen die door uw organisatie zijn ingediend.
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Badge variant="outline" className="px-3 py-1">{globalItems} Fieldgrid items</Badge>
+            <Badge variant="outline" className="px-3 py-1">{globalItems} platformitems</Badge>
             <Badge variant="outline" className="border-cyan-200 bg-cyan-50 px-3 py-1 text-cyan-800">{tenantRequests} eigen wensen</Badge>
             <Button asChild className="gap-2">
               <Link href="/roadmap/new">

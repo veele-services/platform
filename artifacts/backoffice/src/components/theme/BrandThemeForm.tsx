@@ -18,17 +18,22 @@ type ColorName =
   | "backgroundColor"
   | "surfaceColor"
   | "textColor"
-  | "mutedColor";
+  | "mutedColor"
+  | "sidebarBackgroundColor"
+  | "sidebarTextColor"
+  | "sidebarAccentColor";
 
 export function BrandThemeForm({
   mode,
   theme,
   useCustomTheme = true,
+  customThemeAllowed = true,
   canWrite,
 }: {
   mode: BrandThemeFormMode;
   theme: BrandTheme;
   useCustomTheme?: boolean;
+  customThemeAllowed?: boolean;
   canWrite: boolean;
 }) {
   const [isPending, startTransition] = useTransition();
@@ -44,6 +49,9 @@ export function BrandThemeForm({
     surfaceColor: theme.surfaceColor,
     textColor: theme.textColor,
     mutedColor: theme.mutedColor,
+    sidebarBackgroundColor: theme.sidebarBackgroundColor,
+    sidebarTextColor: theme.sidebarTextColor,
+    sidebarAccentColor: theme.sidebarAccentColor,
   });
   const [assets, setAssets] = useState({
     logoUrl: theme.logoUrl,
@@ -53,7 +61,7 @@ export function BrandThemeForm({
   });
   const logoRef = useRef<HTMLInputElement>(null);
   const faviconRef = useRef<HTMLInputElement>(null);
-  const editable = canWrite && (mode === "platform" || customThemeEnabled);
+  const editable = canWrite && (mode === "platform" || (customThemeAllowed && customThemeEnabled));
 
   function updateColor(name: ColorName, value: string) {
     setColors((current) => ({ ...current, [name]: value }));
@@ -80,7 +88,7 @@ export function BrandThemeForm({
   }
 
   function uploadAsset(kind: BrandingAssetKind, file: File | undefined) {
-    if (!file || !canWrite) return;
+    if (!file || !canWrite || (mode === "tenant" && !customThemeAllowed)) return;
     setSaved(false);
     setError(null);
     const formData = new FormData();
@@ -126,15 +134,20 @@ export function BrandThemeForm({
               name="useCustomTheme"
               type="checkbox"
               checked={customThemeEnabled}
-              disabled={!canWrite || isPending}
+              disabled={!canWrite || !customThemeAllowed || isPending}
               onChange={(event) => setCustomThemeEnabled(event.target.checked)}
               className="mt-1 h-4 w-4 rounded border-slate-300 text-cyan-600"
             />
             <span>
-              <span className="block text-sm font-semibold text-slate-950">Eigen tenantthema gebruiken</span>
+              <span className="block text-sm font-semibold text-slate-950">Eigen organisatiethema gebruiken</span>
               <span className="mt-1 block text-sm text-slate-600">
-                Uitgeschakeld gebruikt deze tenant het platformthema met de bestaande organisatienaam.
+                Uitgeschakeld gebruikt uw organisatie de standaard platformuitstraling.
               </span>
+              {!customThemeAllowed ? (
+                <span className="mt-2 block rounded border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-900">
+                  Whitelabel branding is beschikbaar voor Enterprise organisaties.
+                </span>
+              ) : null}
             </span>
           </label>
         </section>
@@ -172,8 +185,8 @@ export function BrandThemeForm({
                   ref={logoRef}
                   id="logoUpload"
                   type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  disabled={!canWrite || isPending}
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  disabled={!canWrite || (mode === "tenant" && !customThemeAllowed) || isPending}
                   className="hidden"
                   onChange={(event) => {
                     uploadAsset("logo", event.target.files?.[0]);
@@ -183,7 +196,7 @@ export function BrandThemeForm({
                 <button
                   type="button"
                   onClick={() => logoRef.current?.click()}
-                  disabled={!canWrite || isPending}
+                  disabled={!canWrite || (mode === "tenant" && !customThemeAllowed) || isPending}
                   className="inline-flex min-h-10 items-center gap-2 rounded border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                 >
                   <Upload className="h-4 w-4" />
@@ -204,8 +217,8 @@ export function BrandThemeForm({
                   ref={faviconRef}
                   id="faviconUpload"
                   type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  disabled={!canWrite || isPending}
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  disabled={!canWrite || (mode === "tenant" && !customThemeAllowed) || isPending}
                   className="hidden"
                   onChange={(event) => {
                     uploadAsset("favicon", event.target.files?.[0]);
@@ -215,7 +228,7 @@ export function BrandThemeForm({
                 <button
                   type="button"
                   onClick={() => faviconRef.current?.click()}
-                  disabled={!canWrite || isPending}
+                  disabled={!canWrite || (mode === "tenant" && !customThemeAllowed) || isPending}
                   className="inline-flex min-h-10 items-center gap-2 rounded border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
                 >
                   <Upload className="h-4 w-4" />
@@ -223,7 +236,7 @@ export function BrandThemeForm({
                 </button>
               </div>
             </Field>
-            <p className="self-end text-xs text-slate-500">PNG, JPG of WebP. Maximaal 2 MB.</p>
+            <p className="self-end text-xs text-slate-500">PNG, JPG, WebP of SVG. Maximaal 2 MB.</p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -234,6 +247,9 @@ export function BrandThemeForm({
             <ColorField label="Vlakken" name="surfaceColor" value={colors.surfaceColor} disabled={!editable || isPending} onChange={updateColor} />
             <ColorField label="Tekst" name="textColor" value={colors.textColor} disabled={!editable || isPending} onChange={updateColor} />
             <ColorField label="Subtekst" name="mutedColor" value={colors.mutedColor} disabled={!editable || isPending} onChange={updateColor} />
+            <ColorField label="Sidebar achtergrond" name="sidebarBackgroundColor" value={colors.sidebarBackgroundColor} disabled={!editable || isPending} onChange={updateColor} />
+            <ColorField label="Sidebar tekst" name="sidebarTextColor" value={colors.sidebarTextColor} disabled={!editable || isPending} onChange={updateColor} />
+            <ColorField label="Sidebar accent" name="sidebarAccentColor" value={colors.sidebarAccentColor} disabled={!editable || isPending} onChange={updateColor} />
           </div>
 
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -281,6 +297,15 @@ export function BrandThemeForm({
               <span className="h-2 rounded-full" style={{ backgroundColor: colors.primaryColor }} />
               <span className="h-2 w-4/5 rounded-full" style={{ backgroundColor: colors.secondaryColor }} />
               <span className="h-2 w-3/5 rounded-full" style={{ backgroundColor: colors.accentColor }} />
+            </div>
+            <div
+              className="mt-4 rounded p-3"
+              style={{ backgroundColor: colors.sidebarBackgroundColor, color: colors.sidebarTextColor }}
+            >
+              <div className="flex items-center gap-2">
+                <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: colors.sidebarAccentColor }} />
+                <span className="text-xs font-semibold">Sidebar preview</span>
+              </div>
             </div>
             <button type="button" className="mt-5 min-h-10 rounded px-4 text-sm font-semibold text-white" style={{ backgroundColor: colors.accentColor }}>
               Actie

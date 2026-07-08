@@ -328,7 +328,7 @@ function LatestReleasePanel({ releases }: { releases: Awaited<ReturnType<typeof 
           ))}
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">Nog geen release notes zichtbaar voor deze tenant.</p>
+        <p className="text-sm text-muted-foreground">Nog geen release notes zichtbaar voor deze organisatie.</p>
       )}
     </DashboardPanel>
   );

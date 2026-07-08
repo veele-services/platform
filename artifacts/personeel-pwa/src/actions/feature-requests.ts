@@ -73,10 +73,10 @@ export async function getPersonnelFeatureRequestOptions(): Promise<PersonnelFeat
   const context = await loadContext();
   if (!context) return { enabled: false, reason: "Geen actieve personeelstoegang.", modules: [] };
   if (!context.activeModuleKeys.includes("roadmap")) {
-    return { enabled: false, reason: "Roadmapmodule is niet actief voor deze tenant.", modules: [] };
+    return { enabled: false, reason: "Roadmapmodule is niet actief voor deze organisatie.", modules: [] };
   }
   if (!context.enabled) {
-    return { enabled: false, reason: "Featurewensen vanuit de personeelsapp staan uit voor deze tenant.", modules: [] };
+    return { enabled: false, reason: "Featurewensen vanuit de personeelsapp staan uit voor deze organisatie.", modules: [] };
   }
 
   const modules = await db

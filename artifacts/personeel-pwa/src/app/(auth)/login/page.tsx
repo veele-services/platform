@@ -1,4 +1,6 @@
 import { LoginForm } from "@/components/LoginForm";
+import { getTenantBranding } from "@workspace/db";
+import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
 
 type Props = {
   searchParams: Promise<{ error?: string; message?: string; next?: string }>;
@@ -11,14 +13,27 @@ function safeNext(value: string | undefined): string | null {
   return value;
 }
 
+function initialsFor(value: string): string {
+  return value
+    .split(/\s+/u)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("") || "FG";
+}
+
 export default async function LoginPage({ searchParams }: Props) {
   const { error, message, next } = await searchParams;
   const redirectPath = safeNext(next);
+  const tenantId = await requireCurrentPersonnelPortalTenantId();
+  const branding = tenantId ? await getTenantBranding(tenantId) : null;
+  const displayName = branding?.displayName ?? "Fieldgrid";
+  const title = branding?.customBrandingEnabled ? `${displayName} Personeel` : "Fieldgrid Personeel";
 
   return (
     <div
       className="flex min-h-screen flex-col"
-      style={{ backgroundColor: "var(--color-primary)" }}
+      style={{ backgroundColor: branding?.primaryColor ?? "var(--color-primary)" }}
     >
       <div className="flex flex-1 flex-col items-center justify-center px-6 py-12">
         <div className="w-full max-w-sm">
@@ -27,9 +42,13 @@ export default async function LoginPage({ searchParams }: Props) {
               className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
               style={{ backgroundColor: "var(--color-accent)" }}
             >
-              <span className="text-2xl font-bold text-white">V</span>
+              {branding?.logoUrl && branding.customBrandingEnabled ? (
+                <img src={branding.logoUrl} alt="" className="h-full w-full object-contain p-2" />
+              ) : (
+                <span className="text-2xl font-bold text-white">{initialsFor(displayName).slice(0, 2)}</span>
+              )}
             </div>
-            <h1 className="text-2xl font-bold text-white">Fieldgrid Personeel</h1>
+            <h1 className="text-2xl font-bold text-white">{title}</h1>
             <p className="mt-1 text-sm" style={{ color: "#94A3B8" }}>
               Log in met je werkaccount
             </p>

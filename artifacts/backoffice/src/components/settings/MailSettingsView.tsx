@@ -48,7 +48,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
   const [smtpPassword, setSmtpPassword] = useState("");
   const [passwordConfigured, setPasswordConfigured] = useState(settings?.smtpPasswordConfigured ?? false);
   const [clearPassword, setClearPassword] = useState(false);
-  const [smtpFromName, setSmtpFromName] = useState(settings?.smtpFromName ?? settings?.naam ?? "Fieldgrid");
+  const [smtpFromName, setSmtpFromName] = useState(settings?.smtpFromName ?? settings?.naam ?? "Organisatie");
   const [smtpFromEmail, setSmtpFromEmail] = useState(settings?.smtpFromEmail ?? "");
   const [smtpReplyTo, setSmtpReplyTo] = useState(settings?.smtpReplyTo ?? "");
   const [testEmail, setTestEmail] = useState(settings?.emailAfzender ?? settings?.smtpFromEmail ?? "");
@@ -144,7 +144,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
               E-mailtransport
             </p>
             <p className="mt-0.5 text-xs leading-relaxed" style={{ color: "#64748B" }}>
-              Kies of deze tenant de centrale platformprovider gebruikt, eigen SMTP gebruikt of via een API-provider
+              Kies of deze organisatie de centrale platformprovider gebruikt, eigen SMTP gebruikt of via een API-provider
               verstuurt.
             </p>
           </div>
@@ -155,7 +155,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
             value="platform"
             current={emailTransport}
             title="Platform standaard"
-            description="Gebruik de globale Fieldgrid mailprovider."
+            description="Gebruik de centrale platform mailprovider."
             icon={<ShieldCheck className="h-4 w-4" />}
             disabled={disabled}
             onSelect={setEmailTransport}
@@ -391,7 +391,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
               onChange={(e) => setSmtpFromName(e.target.value)}
               disabled={disabled}
               className="veele-input w-full"
-              placeholder={settings?.naam ?? "Fieldgrid"}
+              placeholder={settings?.naam ?? "Organisatie"}
             />
           </Field>
 

@@ -97,7 +97,7 @@ export function OrganisatieForm({ settings, canWrite }: Props) {
               <input
                 ref={fileRef}
                 type="file"
-                accept="image/png,image/jpeg,image/webp"
+                accept="image/png,image/jpeg,image/webp,image/svg+xml"
                 className="hidden"
                 onChange={handleLogoChange}
               />
@@ -112,7 +112,7 @@ export function OrganisatieForm({ settings, canWrite }: Props) {
                 Logo uploaden
               </button>
               <p className="mt-1 text-xs" style={{ color: "#94A3B8" }}>
-                PNG, JPG of WebP - max. 2 MB
+                PNG, JPG, WebP of SVG - max. 2 MB
               </p>
               {logoError && <p className="mt-1 text-xs text-destructive">{logoError}</p>}
             </div>
@@ -132,7 +132,7 @@ export function OrganisatieForm({ settings, canWrite }: Props) {
             defaultValue={s?.naam ?? ""}
             disabled={!canWrite || isPending}
             className="veele-input w-full"
-            placeholder="Fieldgrid B.V."
+            placeholder="Uw organisatie B.V."
           />
         </Field>
         <Field label="Adres" htmlFor="adres">

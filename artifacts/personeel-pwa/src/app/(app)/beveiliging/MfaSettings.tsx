@@ -74,7 +74,7 @@ export function MfaSettings() {
     startTransition(async () => {
       const { data, error: enrollError } = await supabase.auth.mfa.enroll({
         factorType: "totp",
-        friendlyName: "Fieldgrid personeelsapp",
+        friendlyName: "Personeelsapp",
       });
 
       if (enrollError || !data) {
