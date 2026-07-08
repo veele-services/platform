@@ -145,6 +145,40 @@ test("sprint 15 JSON API uses route-handler platform auth", () => {
   );
 });
 
+test("sprint 15 API server passes platform API routes to backoffice before tenant auth", () => {
+  const apiRoutes = read("artifacts/api-server/src/routes/index.ts");
+  const platformProxy = read("artifacts/api-server/src/routes/platform-backoffice.ts");
+  const docs = read("docs/deployment/self-hosted-runner.md");
+
+  assert.ok(
+    apiRoutes.indexOf("router.use(platformBackofficeRouter)") <
+      apiRoutes.indexOf("router.use(customersRouter)"),
+    "platform API pass-through should run before tenant customer auth middleware",
+  );
+  assertContains(
+    platformProxy,
+    [
+      "router.use(\"/platform\"",
+      "BACKOFFICE_INTERNAL_URL",
+      "BACKOFFICE_PORT",
+      "req.originalUrl",
+      "x-forwarded-host",
+      "fetch(upstreamUrl",
+      "GET, HEAD",
+    ],
+    "API server platform pass-through",
+  );
+  assertContains(
+    docs,
+    [
+      "handle /api/platform/*",
+      "reverse_proxy 127.0.0.1:3301",
+      "handle /api/*",
+    ],
+    "deployment routing docs",
+  );
+});
+
 test("sprint 15 docs capture staging smoke dashboard delivery", () => {
   const sprint15 = read("docs/fieldgrid-sprint-15-staging-smoke.md");
   const sprintPlan = read("docs/fieldgrid-saas-proof-sprint-plan.md");
