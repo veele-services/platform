@@ -57,7 +57,8 @@ test("phase 7 exposes a protected JSON smoke endpoint", () => {
     route,
     [
       "NextResponse.json",
-      "getPlatformStagingSmokeDashboard",
+      "requirePlatformAdminFromRequest",
+      "buildPlatformStagingSmokeDashboard",
       "export async function GET",
     ],
     "staging smoke route",

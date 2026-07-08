@@ -98,6 +98,53 @@ test("sprint 15 script is plan-only by default and supports read-only snapshots"
   );
 });
 
+test("sprint 15 JSON API uses route-handler platform auth", () => {
+  const route = read("artifacts/backoffice/src/app/api/platform/staging-smoke/route.ts");
+  const platformAuth = read("artifacts/backoffice/src/lib/auth/platform.ts");
+  const supabaseServer = read("artifacts/backoffice/src/lib/supabase/server.ts");
+  const platformSmoke = read("artifacts/backoffice/src/app/actions/platform-smoke.ts");
+
+  assertContains(
+    route,
+    [
+      "requirePlatformAdminFromRequest(request)",
+      "buildPlatformStagingSmokeDashboard",
+      "Authenticatie vereist",
+      "Cache-Control",
+      "private, no-store",
+    ],
+    "staging smoke JSON route",
+  );
+  assertContains(
+    platformAuth,
+    [
+      "createClientFromRequest(request)",
+      "getCurrentPlatformUserFromRequest",
+      "requirePlatformAdminFromRequest",
+    ],
+    "platform route-handler auth",
+  );
+  assertContains(
+    supabaseServer,
+    [
+      "cookieHeaderToPairs",
+      "createClientFromRequest",
+      "request.headers.get(\"cookie\")",
+      "createSupabaseCookieOptions(host)",
+    ],
+    "route-handler Supabase client",
+  );
+  assertContains(
+    platformSmoke,
+    [
+      "buildPlatformStagingSmokeDashboard",
+      "getPlatformStagingSmokeDashboard",
+      "return buildPlatformStagingSmokeDashboard()",
+    ],
+    "platform smoke dashboard builder",
+  );
+});
+
 test("sprint 15 docs capture staging smoke dashboard delivery", () => {
   const sprint15 = read("docs/fieldgrid-sprint-15-staging-smoke.md");
   const sprintPlan = read("docs/fieldgrid-saas-proof-sprint-plan.md");
