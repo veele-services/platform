@@ -196,12 +196,12 @@ async function buildHealthChecks(
   const klantEndpoint = firstUrl([
     envValue("KLANT_PORTAL_URL") ? canonicalFieldgridUrl(appendPath(envValue("KLANT_PORTAL_URL")!, "/healthz")) : null,
     envValue("NEXT_PUBLIC_KLANT_PORTAL_URL") ? canonicalFieldgridUrl(appendPath(envValue("NEXT_PUBLIC_KLANT_PORTAL_URL")!, "/healthz")) : null,
-    localUrlFromPort("KLANT_PORT", "/healthz"),
+    localUrlFromPort("KLANT_PORT", "/klant/healthz"),
   ]);
   const personeelEndpoint = firstUrl([
     envValue("PERSONEEL_PORTAL_URL") ? canonicalFieldgridUrl(appendPath(envValue("PERSONEEL_PORTAL_URL")!, "/healthz")) : null,
     envValue("NEXT_PUBLIC_PERSONEEL_PORTAL_URL") ? canonicalFieldgridUrl(appendPath(envValue("NEXT_PUBLIC_PERSONEEL_PORTAL_URL")!, "/healthz")) : null,
-    localUrlFromPort("PERSONEEL_PORT", "/healthz"),
+    localUrlFromPort("PERSONEEL_PORT", "/personeel/healthz"),
   ]);
   const [apiHealth, klantHealth, personeelHealth, mailHealth] = await Promise.all([
     fetchHealthEndpoint(apiEndpoint),
@@ -239,7 +239,7 @@ async function buildHealthChecks(
       label: "Klant-PWA",
       category: "runtime",
       ...klantHealth,
-      detail: "Probeert /healthz van het klantenportaal via portaal-URL of KLANT_PORT.",
+      detail: "Probeert de healthcheck van het klantenportaal via portaal-URL of KLANT_PORT.",
       endpoint: klantEndpoint,
       lastCheckedAt: generatedAt,
       nextAction: klantHealth.status === "ok" ? "Geen actie nodig." : "Controleer KLANT_PORTAL_URL/NEXT_PUBLIC_KLANT_PORTAL_URL/KLANT_PORT en de PWA-service.",
@@ -249,7 +249,7 @@ async function buildHealthChecks(
       label: "Personeel-PWA",
       category: "runtime",
       ...personeelHealth,
-      detail: "Probeert /healthz van het personeelsportaal via portaal-URL of PERSONEEL_PORT.",
+      detail: "Probeert de healthcheck van het personeelsportaal via portaal-URL of PERSONEEL_PORT.",
       endpoint: personeelEndpoint,
       lastCheckedAt: generatedAt,
       nextAction: personeelHealth.status === "ok" ? "Geen actie nodig." : "Controleer PERSONEEL_PORTAL_URL/NEXT_PUBLIC_PERSONEEL_PORTAL_URL/PERSONEEL_PORT en de PWA-service.",
