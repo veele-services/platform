@@ -7,7 +7,7 @@ import {
   writeSupportAccessAuditLogForUser,
 } from "@workspace/db";
 import { cookies, headers } from "next/headers";
-import { createClient } from "@/lib/supabase/server";
+import { createClient, createClientFromRequest } from "@/lib/supabase/server";
 import { isPlatformHost, normalizeHost } from "@/lib/auth/tenant-resolver";
 
 export type PlatformUserRole = "owner" | "admin" | "support";
@@ -38,6 +38,15 @@ async function getCurrentUserId(): Promise<string | null> {
   return user?.id ?? null;
 }
 
+async function getCurrentUserIdFromRequest(request: Request): Promise<string | null> {
+  const supabase = createClientFromRequest(request);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  return user?.id ?? null;
+}
+
 async function isCurrentHostPlatformHost(): Promise<boolean> {
   const requestHeaders = await headers();
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host") ?? "";
@@ -46,6 +55,10 @@ async function isCurrentHostPlatformHost(): Promise<boolean> {
 
 export async function getCurrentPlatformUser(): Promise<CurrentPlatformUser | null> {
   const userId = await getCurrentUserId();
+  return getPlatformUserForUserId(userId);
+}
+
+async function getPlatformUserForUserId(userId: string | null): Promise<CurrentPlatformUser | null> {
   if (!userId) return null;
 
   const platformUser = await getActivePlatformUserForUser(userId);
@@ -59,8 +72,22 @@ export async function getCurrentPlatformUser(): Promise<CurrentPlatformUser | nu
   };
 }
 
+export async function getCurrentPlatformUserFromRequest(request: Request): Promise<CurrentPlatformUser | null> {
+  const userId = await getCurrentUserIdFromRequest(request);
+  return getPlatformUserForUserId(userId);
+}
+
 export async function requirePlatformAdmin(): Promise<CurrentPlatformUser> {
   const platformUser = await getCurrentPlatformUser();
+  if (!platformUser || !isPlatformAdminRole(platformUser.role)) {
+    throw new Error("Forbidden: platform-admin access required");
+  }
+
+  return platformUser;
+}
+
+export async function requirePlatformAdminFromRequest(request: Request): Promise<CurrentPlatformUser> {
+  const platformUser = await getCurrentPlatformUserFromRequest(request);
   if (!platformUser || !isPlatformAdminRole(platformUser.role)) {
     throw new Error("Forbidden: platform-admin access required");
   }

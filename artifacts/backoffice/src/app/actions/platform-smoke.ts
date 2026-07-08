@@ -196,6 +196,11 @@ function buildCurrentRunHistory(
   };
 }
 
+export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagingSmokeDashboard> {
+  await requirePlatformAdmin();
+  return buildPlatformStagingSmokeDashboard();
+}
+
 function buildLiveSmokes(
   checks: PlatformSmokeCheck[],
   totals: PlatformStagingSmokeDashboard["totals"],
@@ -1060,9 +1065,7 @@ function buildStagingPromotionGate(input: {
   };
 }
 
-export async function getPlatformStagingSmokeDashboard(): Promise<PlatformStagingSmokeDashboard> {
-  await requirePlatformAdmin();
-
+export async function buildPlatformStagingSmokeDashboard(): Promise<PlatformStagingSmokeDashboard> {
   const [snapshot] = await db
     .select({
       tenants: sql<number>`(SELECT count(*) FROM ${tenantsTable})::int`,
