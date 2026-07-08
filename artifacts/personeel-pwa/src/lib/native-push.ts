@@ -173,7 +173,7 @@ export async function ensureNativePushRegistration(): Promise<NativePushRegistra
   if (normalizePlatform(getCapacitorPlatform()) === "android") {
     await bridge.createChannel?.({
       id: "veele_operations",
-      name: "Fieldgrid meldingen",
+      name: "Meldingen",
       description: "Planning, werkbonnen en urgente operationele meldingen.",
       importance: 5,
       visibility: 1,

@@ -192,20 +192,20 @@
     font-size: 13.5px;
     font-weight: 500;
     font-family: var(--font-inter), 'Inter', system-ui, sans-serif;
-    color: rgba(255,255,255,0.65);
+    color: color-mix(in srgb, var(--sidebar-text, #FFFFFF) 68%, transparent);
     transition: color 0.15s ease, background-color 0.15s ease;
     text-decoration: none;
   }
   .sidebar-link:hover {
-    color: #FFFFFF;
+    color: var(--sidebar-text, #FFFFFF);
     background-color: rgba(255,255,255,0.08);
   }
   .sidebar-link.active {
-    color: #FFFFFF;
-    background-color: var(--color-accent, #00B7B3);
+    color: var(--sidebar-active-text, #FFFFFF);
+    background-color: var(--sidebar-accent, var(--color-accent, #00B7B3));
   }
   .sidebar-link.active svg {
-    color: #FFFFFF;
+    color: var(--sidebar-active-text, #FFFFFF);
   }
 
   .news-editor .ProseMirror {

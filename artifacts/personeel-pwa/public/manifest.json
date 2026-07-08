@@ -1,7 +1,7 @@
 {
-  "name": "Fieldgrid Personeel",
-  "short_name": "Fieldgrid",
-  "description": "Fieldgrid - personeelsapp voor uitvoerend personeel",
+  "name": "Personeelsapp",
+  "short_name": "Personeel",
+  "description": "Personeelsapp voor uitvoerend personeel",
   "start_url": "/personeel",
   "display": "standalone",
   "background_color": "#081D3A",

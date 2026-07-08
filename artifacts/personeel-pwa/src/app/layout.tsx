@@ -5,13 +5,13 @@ import { OfflineContentNavigation } from "@/components/OfflineContentNavigation"
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Fieldgrid Personeel",
-  description: "Fieldgrid - personeelsapp voor uitvoerend personeel",
+  title: "Personeelsapp",
+  description: "Personeelsapp voor uitvoerend personeel",
   manifest: "/personeel/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Fieldgrid",
+    title: "Personeelsapp",
   },
 };
 

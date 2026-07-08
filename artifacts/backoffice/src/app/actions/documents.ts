@@ -25,6 +25,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantModule } from "@/lib/auth/modules";
+import { requireSensitiveRuntimeAccess } from "@/lib/security/sensitive-runtime";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, DocumentEntityType };
@@ -585,6 +586,7 @@ export async function getDocumentDownloadUrl(
       .select({
         storagePath: documentsTable.storagePath,
         filename:    documentsTable.filename,
+        mimeType:    documentsTable.mimeType,
         name:        documentsTable.name,
         entityType:  documentsTable.entityType,
         entityId:    documentsTable.entityId,
@@ -608,6 +610,21 @@ export async function getDocumentDownloadUrl(
       return { success: false, message: "Ongeldig opslagpad." };
     }
 
+    const sensitiveDecision = await requireSensitiveRuntimeAccess({
+      tenantId,
+      scope: "attachments",
+      accessLevel: "full_read",
+      resourceType: "documents",
+      resourceId: id,
+      exportDownload: true,
+      metadata: {
+        entityType: doc.entityType,
+        hasEntityId: Boolean(doc.entityId),
+        mimeType: doc.mimeType,
+        ttlSeconds: 3600,
+      },
+    });
+
     const { data, error } = await createAdminClient().storage
       .from(BUCKET)
       .createSignedUrl(storagePath, 3600); // 1-hour TTL
@@ -623,12 +640,11 @@ export async function getDocumentDownloadUrl(
       resource:   "documents",
       resourceId: id,
       metadata: {
-        name:       doc.name,
-        filename:   doc.filename,
-        storagePath,
-        entityType: doc.entityType,
-        entityId:   doc.entityId ?? null,
-        ttlSeconds: 3600,
+        entityType:            doc.entityType,
+        hasEntityId:           Boolean(doc.entityId),
+        ttlSeconds:            3600,
+        sensitiveAccessRole:   sensitiveDecision.role,
+        sensitiveAccessGrantId: sensitiveDecision.grantId,
       } as Record<string, unknown>,
     });
 

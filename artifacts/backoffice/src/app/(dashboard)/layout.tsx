@@ -33,11 +33,11 @@ function NoActiveTenantAccess() {
     <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6">
       <section className="max-w-lg rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">
         <h1 className="font-heading text-2xl font-semibold" style={{ color: "#081D3A" }}>
-          Geen actieve tenanttoegang
+          Geen actieve organisatietoegang
         </h1>
         <p className="mt-3 text-sm leading-6" style={{ color: "#64748B" }}>
-          Deze gebruiker heeft geen actieve tenantkoppeling voor deze host. Controleer de tenantstatus,
-          domeinkoppeling of gebruikerskoppeling in platform-admin.
+          Deze gebruiker heeft geen actieve organisatiekoppeling voor deze host. Controleer de organisatiestatus,
+          domeinkoppeling of gebruikerskoppeling in platformbeheer.
         </p>
       </section>
     </main>
@@ -61,7 +61,7 @@ function SupportModeBanner({ supportMode }: { supportMode: CurrentSupportMode })
         <div className="min-w-0">
           <p className="font-semibold">Supportmodus actief</p>
           <p className="mt-0.5 truncate text-xs text-amber-900">
-            Tenant {supportMode.tenantId} · TTL {formatSupportTtl(supportMode.ttlSeconds)} · Reden: {supportMode.reason}
+            Organisatie {supportMode.tenantId} · TTL {formatSupportTtl(supportMode.ttlSeconds)} · Reden: {supportMode.reason}
           </p>
           <p className="mt-0.5 truncate text-xs text-amber-800">
             Auditcontext: grant {supportMode.grantId} · prioriteit {supportMode.priority}
@@ -174,6 +174,14 @@ export default async function DashboardLayout({
             style={{ ...brandingStyle, backgroundColor: "var(--color-background)" }}
           >
             <Sidebar
+              branding={{
+                displayName: branding.displayName,
+                logoUrl: branding.logoUrl,
+                customBrandingEnabled: branding.customBrandingEnabled,
+                sidebarBackgroundColor: branding.sidebarBackgroundColor,
+                sidebarTextColor: branding.sidebarTextColor,
+                sidebarAccentColor: branding.sidebarAccentColor,
+              }}
               pendingReportsCount={pendingReportsCount}
               outstandingInvoicesCount={outstandingInvoicesCount}
               pendingQuotesCount={pendingQuotesCount}

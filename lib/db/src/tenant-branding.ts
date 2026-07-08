@@ -9,7 +9,7 @@ import {
 } from "./schema";
 import { getTenantPlanSnapshot } from "./tenant-entitlements";
 
-const CUSTOM_BRANDING_PLAN_KEYS = new Set<TenantPlanKey>(["professional", "enterprise"]);
+const CUSTOM_BRANDING_PLAN_KEYS = new Set<TenantPlanKey>(["enterprise"]);
 const HEX_COLOR_PATTERN = /^#[0-9a-f]{6}$/iu;
 
 export const BRAND_THEME_FONT_OPTIONS = ["inter", "poppins", "system"] as const;
@@ -34,6 +34,9 @@ export type BrandTheme = {
   surfaceColor: string;
   textColor: string;
   mutedColor: string;
+  sidebarBackgroundColor: string;
+  sidebarTextColor: string;
+  sidebarAccentColor: string;
   fontFamily: BrandThemeFont;
   headingFontFamily: BrandThemeFont;
   borderRadius: BrandThemeRadius;
@@ -55,6 +58,9 @@ export type BrandThemeOverride = Partial<{
   surfaceColor: string | null;
   textColor: string | null;
   mutedColor: string | null;
+  sidebarBackgroundColor: string | null;
+  sidebarTextColor: string | null;
+  sidebarAccentColor: string | null;
   fontFamily: string | null;
   headingFontFamily: string | null;
   borderRadius: string | null;
@@ -77,6 +83,9 @@ export const FIELDGRID_DEFAULT_BRAND_THEME: BrandTheme = {
   surfaceColor: "#FFFFFF",
   textColor: "#081D3A",
   mutedColor: "#64748B",
+  sidebarBackgroundColor: "#081D3A",
+  sidebarTextColor: "#FFFFFF",
+  sidebarAccentColor: "#00B7B3",
   fontFamily: "inter",
   headingFontFamily: "poppins",
   borderRadius: "md",
@@ -145,6 +154,9 @@ export function mergeBrandTheme(base: BrandTheme, override: BrandThemeOverride |
     surfaceColor: normalizeHexColor(override.surfaceColor, base.surfaceColor),
     textColor: normalizeHexColor(override.textColor, base.textColor),
     mutedColor: normalizeHexColor(override.mutedColor, base.mutedColor),
+    sidebarBackgroundColor: normalizeHexColor(override.sidebarBackgroundColor, base.sidebarBackgroundColor),
+    sidebarTextColor: normalizeHexColor(override.sidebarTextColor, base.sidebarTextColor),
+    sidebarAccentColor: normalizeHexColor(override.sidebarAccentColor, base.sidebarAccentColor),
     fontFamily: normalizeChoice(override.fontFamily, BRAND_THEME_FONT_OPTIONS, base.fontFamily),
     headingFontFamily: normalizeChoice(override.headingFontFamily, BRAND_THEME_FONT_OPTIONS, base.headingFontFamily),
     borderRadius: normalizeChoice(override.borderRadius, BRAND_THEME_RADIUS_OPTIONS, base.borderRadius),
@@ -171,6 +183,9 @@ function platformThemeOverrideFromRow(
     surfaceColor: row.surfaceColor,
     textColor: row.textColor,
     mutedColor: row.mutedColor,
+    sidebarBackgroundColor: row.sidebarBackgroundColor,
+    sidebarTextColor: row.sidebarTextColor,
+    sidebarAccentColor: row.sidebarAccentColor,
     fontFamily: row.fontFamily,
     headingFontFamily: row.headingFontFamily,
     borderRadius: row.borderRadius,
@@ -197,6 +212,9 @@ function tenantThemeOverrideFromRow(
     surfaceColor: row.surfaceColor,
     textColor: row.textColor,
     mutedColor: row.mutedColor,
+    sidebarBackgroundColor: row.sidebarBackgroundColor,
+    sidebarTextColor: row.sidebarTextColor,
+    sidebarAccentColor: row.sidebarAccentColor,
     fontFamily: row.fontFamily,
     headingFontFamily: row.headingFontFamily,
     borderRadius: row.borderRadius,
@@ -240,6 +258,9 @@ export async function getTenantBranding(tenantId: string): Promise<TenantBrandin
         tenantThemeSurfaceColor: tenantThemeSettingsTable.surfaceColor,
         tenantThemeTextColor: tenantThemeSettingsTable.textColor,
         tenantThemeMutedColor: tenantThemeSettingsTable.mutedColor,
+        tenantThemeSidebarBackgroundColor: tenantThemeSettingsTable.sidebarBackgroundColor,
+        tenantThemeSidebarTextColor: tenantThemeSettingsTable.sidebarTextColor,
+        tenantThemeSidebarAccentColor: tenantThemeSettingsTable.sidebarAccentColor,
         tenantThemeFontFamily: tenantThemeSettingsTable.fontFamily,
         tenantThemeHeadingFontFamily: tenantThemeSettingsTable.headingFontFamily,
         tenantThemeBorderRadius: tenantThemeSettingsTable.borderRadius,
@@ -257,20 +278,30 @@ export async function getTenantBranding(tenantId: string): Promise<TenantBrandin
     getPlatformBrandTheme(),
   ]);
 
-  const planAllowsLegacyBranding = canTenantUseCustomBranding(plan.plan);
+  const planAllowsCustomBranding = canTenantUseCustomBranding(plan.plan);
   const tenantName =
     nonEmpty(row?.organizationName) ??
     nonEmpty(row?.tenantName) ??
     platformTheme.brandName;
-  const legacyTenantTheme = mergeBrandTheme(platformTheme, {
-    brandName: tenantName,
-    logoUrl: planAllowsLegacyBranding ? row?.logoUrl : null,
-    primaryColor: planAllowsLegacyBranding ? row?.brandColor : null,
-    accentColor: planAllowsLegacyBranding ? row?.accentColor : null,
-    emailFooterText: row?.footerText,
-    emailSignature: row?.signature,
-  });
-  const tenantOverride = row?.tenantThemeUseCustomTheme
+  const whitelabelFooter =
+    nonEmpty(row?.footerText) ??
+    FIELDGRID_DEFAULT_BRAND_THEME.emailFooterText.replaceAll("Fieldgrid", tenantName);
+  const whitelabelSignature =
+    nonEmpty(row?.signature) ??
+    FIELDGRID_DEFAULT_BRAND_THEME.emailSignature.replaceAll("Fieldgrid", tenantName);
+  const legacyTenantTheme = planAllowsCustomBranding
+    ? mergeBrandTheme(platformTheme, {
+        brandName: tenantName,
+        logoUrl: row?.logoUrl,
+        primaryColor: row?.brandColor,
+        accentColor: row?.accentColor,
+        sidebarBackgroundColor: row?.brandColor,
+        sidebarAccentColor: row?.accentColor,
+        emailFooterText: whitelabelFooter,
+        emailSignature: whitelabelSignature,
+      })
+    : mergeBrandTheme(platformTheme, null);
+  const tenantOverride = planAllowsCustomBranding && row?.tenantThemeUseCustomTheme
     ? {
         useCustomTheme: row.tenantThemeUseCustomTheme,
         brandName: row.tenantThemeBrandName,
@@ -285,6 +316,9 @@ export async function getTenantBranding(tenantId: string): Promise<TenantBrandin
         surfaceColor: row.tenantThemeSurfaceColor,
         textColor: row.tenantThemeTextColor,
         mutedColor: row.tenantThemeMutedColor,
+        sidebarBackgroundColor: row.tenantThemeSidebarBackgroundColor,
+        sidebarTextColor: row.tenantThemeSidebarTextColor,
+        sidebarAccentColor: row.tenantThemeSidebarAccentColor,
         fontFamily: row.tenantThemeFontFamily,
         headingFontFamily: row.tenantThemeHeadingFontFamily,
         borderRadius: row.tenantThemeBorderRadius,
@@ -294,17 +328,18 @@ export async function getTenantBranding(tenantId: string): Promise<TenantBrandin
       }
     : null;
   const tenantTheme = mergeBrandTheme(legacyTenantTheme, tenantThemeOverrideFromRow(tenantOverride));
-  const customBrandingEnabled = planAllowsLegacyBranding || Boolean(row?.tenantThemeUseCustomTheme);
+  const customBrandingEnabled = planAllowsCustomBranding;
 
   return {
     ...tenantTheme,
     tenantId,
     tenantName,
-    displayName: tenantTheme.brandName,
+    displayName: customBrandingEnabled ? tenantTheme.brandName.replaceAll("Fieldgrid", tenantName) : tenantTheme.brandName,
+    platformName: customBrandingEnabled ? "" : tenantTheme.platformName,
     plan: plan.plan,
     customBrandingEnabled,
-    emailFooterText: tenantTheme.emailFooterText,
-    emailSignature: tenantTheme.emailSignature,
+    emailFooterText: customBrandingEnabled ? tenantTheme.emailFooterText.replaceAll("Fieldgrid", tenantName) : tenantTheme.emailFooterText,
+    emailSignature: customBrandingEnabled ? tenantTheme.emailSignature.replaceAll("Fieldgrid", tenantName) : tenantTheme.emailSignature,
   };
 }
 
@@ -357,6 +392,9 @@ export function getTenantBrandingCssVariables(branding: BrandTheme): Record<stri
     "--brand-surface": branding.surfaceColor,
     "--brand-text": branding.textColor,
     "--brand-muted": branding.mutedColor,
+    "--brand-sidebar-background": branding.sidebarBackgroundColor,
+    "--brand-sidebar-text": branding.sidebarTextColor,
+    "--brand-sidebar-accent": branding.sidebarAccentColor,
     "--color-background": branding.backgroundColor,
     "--color-foreground": branding.textColor,
     "--color-card": branding.surfaceColor,

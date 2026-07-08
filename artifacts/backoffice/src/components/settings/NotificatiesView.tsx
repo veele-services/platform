@@ -42,7 +42,7 @@ const SHORTCODE_HELP = [
   ["recipient.first_name", "Voornaam ontvanger"],
   ["recipient.email", "E-mailadres ontvanger"],
   ["organization.name", "Organisatienaam"],
-  ["href", "Fieldgrid-link"],
+  ["href", "Portaallink"],
   ["portal.name", "Portaalnaam"],
   ["portal.login_url", "Loginlink"],
   ["customer.name", "Klantnaam"],
@@ -374,7 +374,7 @@ function ManualNotificationPanel({
   const [priority, setPriority] = useState<"low" | "normal" | "high">("normal");
   const [title, setTitle] = useState("Nieuwe melding");
   const [body, setBody] = useState(
-    "Beste {{recipient.name}},\n\nEr staat een nieuwe melding klaar in het portaal. Log in om de details te bekijken.\n\nMet vriendelijke groet,\nFieldgrid",
+    "Beste {{recipient.name}},\n\nEr staat een nieuwe melding klaar in het portaal. Log in om de details te bekijken.\n\nMet vriendelijke groet,\nUw organisatie",
   );
   const [href, setHref] = useState("");
 

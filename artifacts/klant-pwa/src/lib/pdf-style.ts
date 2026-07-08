@@ -60,7 +60,7 @@ export function drawPdfHeader(
 ) {
   const rawBrandTitle = (input.brandTitle ?? "FIELDGRID").trim() || "FIELDGRID";
   const brandTitle = rawBrandTitle.length > 14 ? `${rawBrandTitle.slice(0, 13)}.` : rawBrandTitle;
-  const brandSubtitle = (input.brandSubtitle ?? "PLATFORM").trim() || "PLATFORM";
+  const brandSubtitle = input.brandSubtitle === undefined ? "PLATFORM" : input.brandSubtitle.trim();
   const titleFontSize = brandTitle.length > 10 ? 11 : brandTitle.length > 8 ? 13 : 16;
 
   doc.rect(0, 0, PDF_PAGE.width, 122).fill(PDF_BRAND.navy);
@@ -71,11 +71,13 @@ export function drawPdfHeader(
     height: 16,
     ellipsis: true,
   });
-  doc.fillColor(PDF_BRAND.cyan).font("Helvetica-Bold").fontSize(6).text(brandSubtitle, PDF_PAGE.left + 14, 62, {
-    width: 68,
-    align: "center",
-    characterSpacing: 1.8,
-  });
+  if (brandSubtitle) {
+    doc.fillColor(PDF_BRAND.cyan).font("Helvetica-Bold").fontSize(6).text(brandSubtitle, PDF_PAGE.left + 14, 62, {
+      width: 68,
+      align: "center",
+      characterSpacing: 1.8,
+    });
+  }
   doc.roundedRect(PDF_PAGE.width - 270, 30, 215, 54, 8).fill("#0F172A");
   doc.fillColor("#FFFFFF").font("Helvetica-Bold").fontSize(18).text(input.title, PDF_PAGE.width - 255, 42, {
     width: 185,

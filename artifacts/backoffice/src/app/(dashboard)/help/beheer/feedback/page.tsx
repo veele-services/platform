@@ -44,7 +44,7 @@ export default async function TenantKnowledgebaseFeedbackPage() {
             <BarChart3 className="h-6 w-6 text-cyan-700" />
           </div>
           <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-600">
-            Tenant-scoped signalen uit de laatste {dashboard.windowDays} dagen. Alleen feedback en zoekopdrachten van deze tenant worden getoond.
+            Organisatie-scoped signalen uit de laatste {dashboard.windowDays} dagen. Alleen feedback en zoekopdrachten van deze organisatie worden getoond.
           </p>
         </header>
 

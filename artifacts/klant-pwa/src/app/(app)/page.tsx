@@ -239,7 +239,7 @@ export default async function DashboardPage() {
   if (!tenantId) {
     redirect(
       "/login?error=" +
-        encodeURIComponent("Het klantportaal is niet beschikbaar voor deze tenant."),
+        encodeURIComponent("Het klantportaal is niet beschikbaar voor deze organisatie."),
     );
   }
 

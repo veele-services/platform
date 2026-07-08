@@ -1042,7 +1042,7 @@ export async function sendManualNotification(
             }),
             category: "system" as const,
             priority,
-            sourceLabel: "Fieldgrid",
+            sourceLabel: "Melding",
             href,
             createdAt,
           };
@@ -1065,7 +1065,7 @@ export async function sendManualNotification(
           }),
           category: "message",
           priority,
-          sourceLabel: "Fieldgrid",
+          sourceLabel: "Melding",
           href,
           createdAt,
         })),
@@ -1278,14 +1278,12 @@ export async function uploadOrgLogo(
     ["image/png", "png"],
     ["image/jpeg", "jpg"],
     ["image/webp", "webp"],
+    ["image/svg+xml", "svg"],
   ]);
-  if (mimeType === "image/svg+xml" || extension === "svg") {
-    return { success: false, message: "SVG-logo's zijn nog niet toegestaan. Upload PNG, JPG of WebP." };
-  }
 
-  const ext = allowedTypes.get(mimeType);
+  const ext = allowedTypes.get(mimeType) ?? (extension === "svg" ? "svg" : null);
   if (!ext) {
-    return { success: false, message: "Upload een PNG, JPG of WebP-logo." };
+    return { success: false, message: "Upload een PNG, JPG, WebP of SVG-logo." };
   }
 
   const safeName = toSafeStorageSegment(file.name, `logo.${ext}`);
@@ -2288,7 +2286,7 @@ export async function sendTestMailSettings(
           recipientName: "Testgebruiker",
           portalName: "Personeelsportaal",
           loginUrl: personeelPortalUrl(),
-          temporaryPassword: "Fieldgrid-Test-2026!",
+          temporaryPassword: "Testmail-2026!",
         })
       : buildTenantMailSettingsTestEmail();
 

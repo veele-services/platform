@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import PDFDocument from "pdfkit";
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { hasPermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
+import { requireSensitiveRuntimeAccess } from "@/lib/security/sensitive-runtime";
 import { db } from "@workspace/db";
 import {
   getTenantBranding,
@@ -40,6 +41,15 @@ export async function GET(
 
   const { id } = await params;
   const tenantId = await requireCurrentTenantId();
+  await requireSensitiveRuntimeAccess({
+    tenantId,
+    scope: "tenant_invoices",
+    accessLevel: "export",
+    resourceType: "customer_payment_batches",
+    resourceId: id,
+    exportDownload: true,
+    metadata: { format: "pdf" },
+  });
   const branding = await getTenantBranding(tenantId);
 
   const [batch] = await db
@@ -65,7 +75,7 @@ export async function GET(
     .from(customerPaymentBatchesTable)
     .innerJoin(customersTable, eq(customersTable.id, customerPaymentBatchesTable.customerId))
     .leftJoin(objectsTable, eq(objectsTable.id, customerPaymentBatchesTable.objectId))
-    .where(eq(customerPaymentBatchesTable.id, id))
+    .where(and(eq(customerPaymentBatchesTable.id, id), eq(customerPaymentBatchesTable.tenantId, tenantId)))
     .limit(1);
 
   if (!batch) return new NextResponse("Not found", { status: 404 });
@@ -87,7 +97,7 @@ export async function GET(
     .innerJoin(invoicesTable, eq(invoicesTable.id, customerPaymentBatchItemsTable.invoiceId))
     .innerJoin(assignmentsTable, eq(assignmentsTable.id, invoicesTable.assignmentId))
     .leftJoin(objectsTable, eq(objectsTable.id, assignmentsTable.objectId))
-    .where(eq(customerPaymentBatchItemsTable.batchId, id))
+    .where(and(eq(customerPaymentBatchItemsTable.batchId, id), eq(customerPaymentBatchItemsTable.tenantId, tenantId)))
     .orderBy(asc(assignmentsTable.scheduledDate), asc(invoicesTable.invoiceNumber));
 
   const doc = new PDFDocument({ size: "A4", margin: 55, bufferPages: true });
@@ -106,7 +116,7 @@ export async function GET(
       title: "VERZAMELFACTUUR",
       reference: batch.id.slice(0, 8).toUpperCase(),
       brandTitle: branding.displayName.toUpperCase(),
-      brandSubtitle: "FIELDGRID",
+      brandSubtitle: branding.customBrandingEnabled ? "" : "PLATFORM",
     });
     y = drawPdfRecipientPanel(doc, {
       y,
@@ -163,7 +173,7 @@ export async function GET(
       doc.fillColor(PDF_BRAND.ink).font("Helvetica").fontSize(9).text(batch.notes, L, y + 18, { width: W });
     }
 
-    drawPdfFooter(doc, `${branding.displayName} - Verzamelfactuur gegenereerd vanuit Fieldgrid.`);
+    drawPdfFooter(doc, `${branding.displayName} - Verzamelfactuur gegenereerd.`);
     doc.end();
   });
 

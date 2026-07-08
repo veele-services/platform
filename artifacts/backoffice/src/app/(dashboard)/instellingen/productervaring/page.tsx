@@ -29,7 +29,7 @@ export default async function ProductExperienceSettingsPage() {
   return (
     <SettingsSectionShell
       title="Productervaring"
-      description="Bepaal welke P2-productfuncties voor deze tenant actief zijn."
+      description="Bepaal welke P2-productfuncties voor deze organisatie actief zijn."
     >
       <div className="mb-4">
         <Button asChild variant="ghost" className="-ml-3 gap-2">

@@ -5,6 +5,7 @@ import {
   auditLogTable,
   buildPlatformBrandingAssetStoragePath,
   buildTenantBrandingAssetStoragePath,
+  canTenantUseCustomBranding,
   db,
   FIELDGRID_DEFAULT_BRAND_THEME,
   getPlatformBrandTheme,
@@ -27,6 +28,8 @@ import type { ActionResult } from "./customers";
 export type ThemeSettingsView = {
   theme: BrandTheme;
   useCustomTheme: boolean;
+  customThemeAllowed: boolean;
+  plan: string;
 };
 
 const BRANDING_BUCKET = "org-assets";
@@ -35,6 +38,7 @@ const ALLOWED_BRAND_ASSET_TYPES = new Map([
   ["image/png", "png"],
   ["image/jpeg", "jpg"],
   ["image/webp", "webp"],
+  ["image/svg+xml", "svg"],
 ]);
 
 function formValue(formData: FormData, name: string): string {
@@ -76,6 +80,9 @@ function parseThemeForm(formData: FormData, fallback: BrandTheme): BrandTheme {
     surfaceColor: normalizeHexColor(formValue(formData, "surfaceColor"), fallback.surfaceColor),
     textColor: normalizeHexColor(formValue(formData, "textColor"), fallback.textColor),
     mutedColor: normalizeHexColor(formValue(formData, "mutedColor"), fallback.mutedColor),
+    sidebarBackgroundColor: normalizeHexColor(formValue(formData, "sidebarBackgroundColor"), fallback.sidebarBackgroundColor),
+    sidebarTextColor: normalizeHexColor(formValue(formData, "sidebarTextColor"), fallback.sidebarTextColor),
+    sidebarAccentColor: normalizeHexColor(formValue(formData, "sidebarAccentColor"), fallback.sidebarAccentColor),
     fontFamily: normalizeChoice(formValue(formData, "fontFamily"), ["inter", "poppins", "system"] as const, fallback.fontFamily),
     headingFontFamily: normalizeChoice(formValue(formData, "headingFontFamily"), ["inter", "poppins", "system"] as const, fallback.headingFontFamily),
     borderRadius: normalizeChoice(formValue(formData, "borderRadius"), ["sm", "md", "lg"] as const, fallback.borderRadius),
@@ -91,18 +98,16 @@ function validateBrandAssetFile(file: File): ActionResult<{ extension: string }>
     return { success: false, message: "Logo of icoon mag maximaal 2 MB zijn." };
   }
 
-  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
   const mimeType = file.type.toLowerCase();
-  if (mimeType === "image/svg+xml" || extension === "svg") {
-    return { success: false, message: "SVG-bestanden zijn voor branding nog niet toegestaan. Upload PNG, JPG of WebP." };
-  }
+  const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
 
   const allowedExtension = ALLOWED_BRAND_ASSET_TYPES.get(mimeType);
-  if (!allowedExtension) {
-    return { success: false, message: "Upload een PNG, JPG of WebP-bestand." };
+  const resolvedExtension = allowedExtension ?? (extension === "svg" ? "svg" : null);
+  if (!resolvedExtension) {
+    return { success: false, message: "Upload een PNG, JPG, WebP of SVG-bestand." };
   }
 
-  return { success: true, data: { extension: allowedExtension } };
+  return { success: true, data: { extension: resolvedExtension } };
 }
 
 function parseAssetKind(formData: FormData): BrandingAssetKind {
@@ -144,6 +149,8 @@ export async function getPlatformThemeSettings(): Promise<ThemeSettingsView> {
   return {
     theme: await getPlatformBrandTheme(),
     useCustomTheme: true,
+    customThemeAllowed: true,
+    plan: "platform",
   };
 }
 
@@ -161,7 +168,9 @@ export async function getTenantThemeSettings(): Promise<ThemeSettingsView> {
 
   return {
     theme,
-    useCustomTheme: Boolean(row?.useCustomTheme),
+    useCustomTheme: theme.customBrandingEnabled && Boolean(row?.useCustomTheme),
+    customThemeAllowed: canTenantUseCustomBranding(theme.plan),
+    plan: theme.plan,
   };
 }
 
@@ -189,6 +198,9 @@ export async function savePlatformThemeSettings(formData: FormData): Promise<Act
     surfaceColor: theme.surfaceColor,
     textColor: theme.textColor,
     mutedColor: theme.mutedColor,
+    sidebarBackgroundColor: theme.sidebarBackgroundColor,
+    sidebarTextColor: theme.sidebarTextColor,
+    sidebarAccentColor: theme.sidebarAccentColor,
     fontFamily: theme.fontFamily,
     headingFontFamily: theme.headingFontFamily,
     borderRadius: theme.borderRadius,
@@ -228,6 +240,12 @@ export async function saveTenantThemeSettings(formData: FormData): Promise<Actio
 
   const useCustomTheme = formCheckbox(formData, "useCustomTheme");
   const fallback = await getTenantBranding(tenantId);
+  if (useCustomTheme && !canTenantUseCustomBranding(fallback.plan)) {
+    return {
+      success: false,
+      message: "Whitelabel branding is beschikbaar voor Enterprise organisaties.",
+    };
+  }
   const theme = parseThemeForm(formData, fallback);
   const [existing] = await db
     .select({ id: tenantThemeSettingsTable.id })
@@ -250,6 +268,9 @@ export async function saveTenantThemeSettings(formData: FormData): Promise<Actio
         surfaceColor: theme.surfaceColor,
         textColor: theme.textColor,
         mutedColor: theme.mutedColor,
+        sidebarBackgroundColor: theme.sidebarBackgroundColor,
+        sidebarTextColor: theme.sidebarTextColor,
+        sidebarAccentColor: theme.sidebarAccentColor,
         fontFamily: theme.fontFamily,
         headingFontFamily: theme.headingFontFamily,
         borderRadius: theme.borderRadius,
@@ -331,6 +352,9 @@ export async function uploadPlatformThemeAsset(
         surfaceColor: FIELDGRID_DEFAULT_BRAND_THEME.surfaceColor,
         textColor: FIELDGRID_DEFAULT_BRAND_THEME.textColor,
         mutedColor: FIELDGRID_DEFAULT_BRAND_THEME.mutedColor,
+        sidebarBackgroundColor: FIELDGRID_DEFAULT_BRAND_THEME.sidebarBackgroundColor,
+        sidebarTextColor: FIELDGRID_DEFAULT_BRAND_THEME.sidebarTextColor,
+        sidebarAccentColor: FIELDGRID_DEFAULT_BRAND_THEME.sidebarAccentColor,
         fontFamily: FIELDGRID_DEFAULT_BRAND_THEME.fontFamily,
         headingFontFamily: FIELDGRID_DEFAULT_BRAND_THEME.headingFontFamily,
         borderRadius: FIELDGRID_DEFAULT_BRAND_THEME.borderRadius,
@@ -368,6 +392,13 @@ export async function uploadTenantThemeAsset(
 
   const file = formData.get("asset") as File | null;
   if (!file) return { success: false, message: "Geen bestand geselecteerd." };
+  const branding = await getTenantBranding(tenantId);
+  if (!canTenantUseCustomBranding(branding.plan)) {
+    return {
+      success: false,
+      message: "Logo's en eigen thema's zijn beschikbaar voor Enterprise organisaties.",
+    };
+  }
 
   const validation = validateBrandAssetFile(file);
   if (!validation.success) return validation;

@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import type { CSSProperties } from "react";
 import {
   BarChart3,
   Boxes,
@@ -58,13 +59,31 @@ function isActive(pathname: string, href: string): boolean {
 }
 
 interface SidebarProps {
+  branding?: {
+    displayName: string;
+    logoUrl: string | null;
+    customBrandingEnabled: boolean;
+    sidebarBackgroundColor: string;
+    sidebarTextColor: string;
+    sidebarAccentColor: string;
+  };
   pendingReportsCount?: number;
   outstandingInvoicesCount?: number;
   pendingQuotesCount?: number;
   pendingLeaveCount?: number;
 }
 
+function initialsFor(value: string): string {
+  return value
+    .split(/\s+/u)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() ?? "")
+    .join("") || "FG";
+}
+
 export function Sidebar({
+  branding,
   pendingReportsCount = 0,
   outstandingInvoicesCount = 0,
   pendingQuotesCount = 0,
@@ -74,6 +93,12 @@ export function Sidebar({
   const permissions = usePermissions();
   const { open, close, collapsed } = useSidebar();
   const visibleItems = NAV_ITEMS.filter((item) => permissions.has(item.permission));
+  const whitelabel = Boolean(branding?.customBrandingEnabled);
+  const sidebarBackgroundColor = branding?.sidebarBackgroundColor ?? "#081D3A";
+  const sidebarTextColor = branding?.sidebarTextColor ?? "#FFFFFF";
+  const sidebarAccentColor = branding?.sidebarAccentColor ?? "#00B7B3";
+  const displayName = whitelabel ? branding?.displayName?.trim() || "Organisatie" : "Fieldgrid";
+  const compactInitials = whitelabel ? initialsFor(displayName) : "V";
 
   return (
     <aside
@@ -83,12 +108,17 @@ export function Sidebar({
         collapsed ? "md:w-[72px]" : "md:w-[240px]",
         open ? "translate-x-0" : "-translate-x-full",
       )}
-      style={{ backgroundColor: "#081D3A" }}
+      style={{
+        backgroundColor: sidebarBackgroundColor,
+        "--sidebar-text": sidebarTextColor,
+        "--sidebar-accent": sidebarAccentColor,
+        "--sidebar-active-text": "#FFFFFF",
+      } as CSSProperties}
     >
       <div
         className={cn(
-          "flex h-16 flex-shrink-0 items-center border-b border-white/10 px-5",
-          collapsed ? "md:justify-center md:px-0" : "md:justify-start md:px-6",
+          "flex h-20 flex-shrink-0 items-center border-b border-white/10 px-5",
+          collapsed ? "md:justify-center md:px-0" : "md:justify-center md:px-6",
         )}
       >
         <button
@@ -100,35 +130,57 @@ export function Sidebar({
           <X size={18} strokeWidth={1.75} />
         </button>
 
-        <div className={cn("flex flex-col leading-none", collapsed && "md:hidden")}>
-          <span
-            className="font-bold tracking-widest text-white"
-            style={{ fontFamily: "var(--font-poppins), Poppins, sans-serif", fontSize: "15px" }}
-          >
-            FIELDGRID
-          </span>
-          <span
-            style={{
-              fontFamily: "var(--font-inter), Inter, sans-serif",
-              fontSize: "9px",
-              color: "#44D6D1",
-              marginTop: "2px",
-              letterSpacing: "0.22em",
-              textTransform: "uppercase",
-            }}
-          >
-            Services
-          </span>
-        </div>
+        {whitelabel ? (
+          <div className={cn("flex min-w-0 flex-1 items-center justify-center", collapsed && "md:hidden")}>
+            {branding?.logoUrl ? (
+              <img
+                src={branding.logoUrl}
+                alt=""
+                className="max-h-12 max-w-[170px] object-contain"
+              />
+            ) : (
+              <span
+                className="max-w-[170px] truncate text-center text-sm font-bold"
+                style={{
+                  color: sidebarTextColor,
+                  fontFamily: "var(--font-poppins), Poppins, sans-serif",
+                }}
+              >
+                {displayName}
+              </span>
+            )}
+          </div>
+        ) : (
+          <div className={cn("flex flex-col leading-none", collapsed && "md:hidden")}>
+            <span
+              className="font-bold tracking-widest text-white"
+              style={{ fontFamily: "var(--font-poppins), Poppins, sans-serif", fontSize: "15px" }}
+            >
+              FIELDGRID
+            </span>
+            <span
+              style={{
+                fontFamily: "var(--font-inter), Inter, sans-serif",
+                fontSize: "9px",
+                color: "#44D6D1",
+                marginTop: "2px",
+                letterSpacing: "0.22em",
+                textTransform: "uppercase",
+              }}
+            >
+              Services
+            </span>
+          </div>
+        )}
 
         <div
           className={cn(
             "hidden h-8 w-8 items-center justify-center rounded-lg text-sm font-bold text-white",
             collapsed && "md:flex",
           )}
-          style={{ backgroundColor: "#00B7B3" }}
+          style={{ backgroundColor: sidebarAccentColor }}
         >
-          V
+          {compactInitials.slice(0, 2)}
         </div>
       </div>
 
@@ -184,7 +236,7 @@ export function Sidebar({
                     strokeWidth={active ? 2.5 : 1.75}
                   />
                   {hasBadge && (
-                    <span className="absolute -right-1 -top-1 hidden h-2 w-2 rounded-full bg-[#00B7B3] md:block lg:hidden" />
+                    <span className="absolute -right-1 -top-1 hidden h-2 w-2 rounded-full md:block lg:hidden" style={{ backgroundColor: sidebarAccentColor }} />
                   )}
                 </div>
                 <span className={cn("flex-1", collapsed && "md:hidden")}>{label}</span>
@@ -195,7 +247,7 @@ export function Sidebar({
                       collapsed ? "md:hidden" : "md:flex",
                     )}
                     style={{
-                      backgroundColor: "#00B7B3",
+                      backgroundColor: sidebarAccentColor,
                       fontSize: "10px",
                       minWidth: "18px",
                       height: "18px",

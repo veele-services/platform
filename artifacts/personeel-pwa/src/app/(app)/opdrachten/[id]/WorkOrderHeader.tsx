@@ -3,6 +3,8 @@ import { ChevronLeft } from "lucide-react";
 import { FieldgridLogo, MobileHeaderBar } from "@/components/MobileHeader";
 import { getMyTicketSummary } from "@/actions/messages";
 import { getMyNotificationSummary } from "@/actions/notifications";
+import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
+import { getTenantBranding } from "@workspace/db";
 import { getHeaderStatus, type AssignmentView, type WorkOrderTab } from "./work-order-data";
 
 type Props = {
@@ -23,15 +25,17 @@ function tabHref(id: string, tab: WorkOrderTab): string {
 
 export async function WorkOrderHeader({ assignment, activeTab }: Props) {
   const statusBadge = getHeaderStatus(assignment.status);
-  const [notificationSummary, ticketSummary] = await Promise.all([
+  const tenantId = await requireCurrentPersonnelPortalTenantId();
+  const [notificationSummary, ticketSummary, branding] = await Promise.all([
     getMyNotificationSummary(),
     getMyTicketSummary(),
+    tenantId ? getTenantBranding(tenantId) : Promise.resolve(null),
   ]);
 
   return (
     <section
       className="overflow-hidden text-white md:rounded-t-[32px]"
-      style={{ background: "linear-gradient(180deg, #06224A 0%, #061F44 100%)" }}
+      style={{ background: `linear-gradient(180deg, ${branding?.primaryColor ?? "#06224A"} 0%, #061F44 100%)` }}
     >
       <MobileHeaderBar
         notificationSummary={notificationSummary}
@@ -45,7 +49,7 @@ export async function WorkOrderHeader({ assignment, activeTab }: Props) {
             >
               <ChevronLeft size={29} strokeWidth={2.35} />
             </Link>
-            <FieldgridLogo />
+            <FieldgridLogo branding={branding ?? undefined} />
           </div>
         }
       />

@@ -3,6 +3,8 @@ import { hasPermission } from "@/lib/auth/permissions";
 import { getInvoice } from "@/app/actions/invoices";
 import { generateInvoicePdf } from "@/lib/invoice-pdf";
 import { sanitizePdfFilename } from "@/lib/pdf-style";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
+import { requireSensitiveRuntimeAccess } from "@/lib/security/sensitive-runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -15,6 +17,16 @@ export async function GET(
   if (!canRead) return new NextResponse("Forbidden", { status: 403 });
 
   const { id } = await params;
+  const tenantId = await requireCurrentTenantId();
+  await requireSensitiveRuntimeAccess({
+    tenantId,
+    scope: "tenant_invoices",
+    accessLevel: "export",
+    resourceType: "invoices",
+    resourceId: id,
+    exportDownload: true,
+    metadata: { format: "pdf" },
+  });
   const invoice = await getInvoice(id);
   if (!invoice) return new NextResponse("Not found", { status: 404 });
 

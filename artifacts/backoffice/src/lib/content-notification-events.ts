@@ -124,7 +124,7 @@ function buildEmailHtml(title: string, body: string, href: string): string {
     .join("");
 
   const button = href
-    ? `<p style="margin:24px 0 0"><a href="${escapeHtml(href)}" style="display:inline-block;background:#081d3a;color:#fff;text-decoration:none;border-radius:8px;padding:12px 16px;font-weight:700">Openen in Fieldgrid</a></p>`
+    ? `<p style="margin:24px 0 0"><a href="${escapeHtml(href)}" style="display:inline-block;background:#081d3a;color:#fff;text-decoration:none;border-radius:8px;padding:12px 16px;font-weight:700">Openen</a></p>`
     : "";
 
   return [
@@ -132,13 +132,13 @@ function buildEmailHtml(title: string, body: string, href: string): string {
     '<html lang="nl">',
     '<body style="margin:0;padding:24px;background:#f3f6fa;font-family:Arial,sans-serif;color:#0b1f3f">',
     '<div style="max-width:640px;margin:0 auto;background:#fff;border-radius:14px;overflow:hidden;border:1px solid #dbe4ef">',
-    '<div style="background:#081d3a;padding:22px 26px;color:#fff;font-weight:700;letter-spacing:.18em">FIELDGRID</div>',
+    '<div style="background:#081d3a;padding:22px 26px;color:#fff;font-weight:700;letter-spacing:.18em">MELDING</div>',
     '<div style="padding:28px 26px">',
     `<h1 style="font-size:22px;line-height:1.25;margin:0 0 16px;color:#0b1f3f">${escapeHtml(title)}</h1>`,
-    paragraphs || "<p>Er is een update in Fieldgrid.</p>",
+    paragraphs || "<p>Er is een update.</p>",
     button,
     "</div>",
-    '<div style="padding:16px 26px;background:#f8fafc;color:#64748b;font-size:12px">Dit is een automatisch bericht van Fieldgrid.</div>',
+    '<div style="padding:16px 26px;background:#f8fafc;color:#64748b;font-size:12px">Dit is een automatisch bericht.</div>',
     "</div>",
     "</body>",
     "</html>",
@@ -386,7 +386,7 @@ export async function emitFieldgridContentNotification(input: FieldgridContentNo
             body,
             category: "system" as const,
             priority,
-            sourceLabel: "Fieldgrid",
+            sourceLabel: "Melding",
             href: input.fallback.href,
           })),
         );
@@ -436,7 +436,7 @@ export async function emitFieldgridContentNotification(input: FieldgridContentNo
             body,
             category,
             priority,
-            sourceLabel: "Fieldgrid",
+            sourceLabel: "Melding",
             href: input.fallback.href,
           })),
         );

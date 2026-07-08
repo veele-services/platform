@@ -29,7 +29,7 @@ export function MobileHeader() {
             fontSize:   "14px",
           }}
         >
-          FIELDGRID
+          PORTAAL
         </span>
         <span
           style={{
@@ -41,7 +41,7 @@ export function MobileHeader() {
             textTransform: "uppercase",
           }}
         >
-          Services
+          Backoffice
         </span>
       </div>
     </header>

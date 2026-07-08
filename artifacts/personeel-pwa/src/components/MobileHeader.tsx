@@ -43,7 +43,7 @@ function initialsFor(value: string): string {
 
 export function FieldgridLogo({ branding }: { branding?: PortalBrandingProps }) {
   const displayName = branding?.displayName || "Fieldgrid";
-  const platformName = branding?.platformName || "Fieldgrid";
+  const platformName = branding ? branding.platformName.trim() : "Fieldgrid";
   const logoUrl = branding?.logoUrl ?? null;
   const accentColor = branding?.accentColor || "#00B7B3";
 
@@ -51,7 +51,7 @@ export function FieldgridLogo({ branding }: { branding?: PortalBrandingProps }) 
     <Link href="/" className="flex items-center gap-2.5" aria-label={`${displayName} home`}>
       <span className="relative flex h-8 w-8 items-center justify-center overflow-hidden rounded-xl bg-white/10">
         {logoUrl ? (
-          <img src={logoUrl} alt="" className="h-full w-full object-cover" />
+          <img src={logoUrl} alt="" className="h-full w-full object-contain p-1" />
         ) : (
           <span
             className="flex h-8 w-8 items-center justify-center rounded-xl text-[11px] font-black text-white"
@@ -65,12 +65,14 @@ export function FieldgridLogo({ branding }: { branding?: PortalBrandingProps }) 
         <span className="block max-w-32 truncate text-[16px] font-black tracking-[0.08em] text-white">
           {displayName.toUpperCase()}
         </span>
-        <span
-          className="mt-1 block max-w-32 truncate text-[7px] font-bold tracking-[0.24em]"
-          style={{ color: "#BFECEA" }}
-        >
-          {platformName.toUpperCase()}
-        </span>
+        {platformName ? (
+          <span
+            className="mt-1 block max-w-32 truncate text-[7px] font-bold tracking-[0.24em]"
+            style={{ color: "#BFECEA" }}
+          >
+            {platformName.toUpperCase()}
+          </span>
+        ) : null}
       </span>
     </Link>
   );

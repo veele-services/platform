@@ -21,6 +21,8 @@ import { requirePermission, hasPermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { sendEmail, buildQuoteExpiredEmail } from "@/lib/email";
 import { emitDomainEvent } from "@workspace/db/events";
+import { requireSensitiveRuntimeAccess } from "@/lib/security/sensitive-runtime";
+import { toPlatformInvoiceMetadataDto } from "@/lib/security/safe-dtos";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, QuoteStatus };
@@ -300,6 +302,14 @@ export async function exportQuotes(params: {
 
   const tenantId = await requireCurrentTenantId();
   const { search = "", status = "" } = params;
+  await requireSensitiveRuntimeAccess({
+    tenantId,
+    scope: "tenant_invoices",
+    accessLevel: "export",
+    resourceType: "quotes",
+    exportDownload: true,
+    metadata: { search, status, rowLimit: EXPORT_LIMIT },
+  });
   const conditions: SQL[] = [eq(assignmentsTable.tenantId, tenantId)];
 
   if (search.trim()) {
@@ -357,6 +367,7 @@ export async function exportQuotes(params: {
   const { data: { user } } = await supabase.auth.getUser();
   if (user) {
     await db.insert(auditLogTable).values({
+      tenantId,
       userId: user.id,
       action: "export_csv",
       resource: "quotes",
@@ -406,6 +417,14 @@ export async function getQuote(id: string): Promise<QuoteDetail | null> {
 
   if (!row) return null;
 
+  const sensitiveDecision = await requireSensitiveRuntimeAccess({
+    tenantId,
+    scope: "tenant_invoices",
+    accessLevel: "masked_read",
+    resourceType: "quotes",
+    resourceId: id,
+  });
+
   const [lineItems, branding] = await Promise.all([
     db
       .select({
@@ -427,7 +446,7 @@ export async function getQuote(id: string): Promise<QuoteDetail | null> {
 
   const today = todayString();
 
-  return {
+  const detail: QuoteDetail = {
     id:              row.id,
     brandName:       branding.displayName,
     quoteNumber:     row.quoteNumber,
@@ -451,6 +470,7 @@ export async function getQuote(id: string): Promise<QuoteDetail | null> {
     updatedAt:       row.updatedAt.toISOString(),
     lineItems:       lineItems.map(resolveSnapshotTaskLineItem),
   };
+  return toPlatformInvoiceMetadataDto(detail, sensitiveDecision);
 }
 
 export async function getQuoteForAssignment(assignmentId: string): Promise<{

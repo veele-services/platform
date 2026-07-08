@@ -5,13 +5,13 @@ import "./globals.css";
 import type { ReactNode } from "react";
 
 export const metadata: Metadata = {
-  title: "Fieldgrid Klantportaal",
-  description: "Fieldgrid - portaal voor klanten",
+  title: "Klantportaal",
+  description: "Portaal voor klanten",
   manifest: "/klant/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "Fieldgrid",
+    title: "Klantportaal",
   },
 };
 

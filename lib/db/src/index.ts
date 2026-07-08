@@ -34,3 +34,4 @@ export * from "./security-data-classification";
 export * from "./security-masking";
 export * from "./security-permissions";
 export * from "./security-audit";
+export * from "./sensitive-access";

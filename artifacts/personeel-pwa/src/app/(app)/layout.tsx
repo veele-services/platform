@@ -59,7 +59,7 @@ export default async function AppLayout({
   if (!tenantId) {
     redirect(
       "/login?error=" +
-        encodeURIComponent("De personeelsapp is niet beschikbaar voor deze tenant."),
+        encodeURIComponent("De personeelsapp is niet beschikbaar voor deze organisatie."),
     );
   }
 

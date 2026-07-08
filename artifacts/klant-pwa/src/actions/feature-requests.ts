@@ -62,10 +62,10 @@ export async function getCustomerFeatureRequestOptions(): Promise<CustomerFeatur
   const context = await loadContext();
   if (!context) return { enabled: false, reason: "Geen actieve klanttoegang.", modules: [] };
   if (!context.activeModuleKeys.includes("roadmap")) {
-    return { enabled: false, reason: "Roadmapmodule is niet actief voor deze tenant.", modules: [] };
+    return { enabled: false, reason: "Roadmapmodule is niet actief voor deze organisatie.", modules: [] };
   }
   if (!context.enabled) {
-    return { enabled: false, reason: "Featurewensen vanuit het klantportaal staan uit voor deze tenant.", modules: [] };
+    return { enabled: false, reason: "Featurewensen vanuit het klantportaal staan uit voor deze organisatie.", modules: [] };
   }
 
   const modules = await db
