@@ -5,7 +5,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const branding = await getCustomerPwaBranding();
-  const fallback = branding.faviconUrl ?? "/klant/favicon.svg";
-  return NextResponse.redirect(externalOrLocalUrl(branding.splashUrl, request.url, fallback));
+  if (!branding.splashUrl) {
+    return NextResponse.json({ error: "No splashscreen configured" }, { status: 404 });
+  }
+
+  return NextResponse.redirect(externalOrLocalUrl(branding.splashUrl, request.url, "/klant/favicon.svg"));
 }
 

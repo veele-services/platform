@@ -5,7 +5,10 @@ export const dynamic = "force-dynamic";
 
 export async function GET(request: NextRequest) {
   const branding = await getPersonnelPwaBranding();
-  const fallback = branding.faviconUrl ?? "/personeel/icons/icon-512.png";
-  return NextResponse.redirect(externalOrLocalUrl(branding.splashUrl, request.url, fallback));
+  if (!branding.splashUrl) {
+    return NextResponse.json({ error: "No splashscreen configured" }, { status: 404 });
+  }
+
+  return NextResponse.redirect(externalOrLocalUrl(branding.splashUrl, request.url, "/personeel/icons/icon-512.png"));
 }
 

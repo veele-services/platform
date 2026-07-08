@@ -25,6 +25,11 @@ const replitDevOrigins: string[] = process.env.REPLIT_DOMAINS
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   compress: true,
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "8mb",
+    },
+  },
   ...(process.env.NODE_ENV !== "production" &&
     replitDevOrigins.length > 0 && {
       allowedDevOrigins: replitDevOrigins,

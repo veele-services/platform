@@ -35,6 +35,7 @@ export type ThemeSettingsView = {
 
 const BRANDING_BUCKET = "org-assets";
 const MAX_BRAND_ASSET_BYTES = 2 * 1024 * 1024;
+const MAX_SPLASH_ASSET_BYTES = 6 * 1024 * 1024;
 const SPLASH_COLUMNS_PENDING_MESSAGE =
   "Splashscreen opslag is nog niet actief op deze omgeving. Deploy de laatste migraties en probeer daarna opnieuw.";
 const ALLOWED_BRAND_ASSET_TYPES = new Map([
@@ -97,10 +98,16 @@ function parseThemeForm(formData: FormData, fallback: BrandTheme): BrandTheme {
   };
 }
 
-function validateBrandAssetFile(file: File): ActionResult<{ extension: string }> {
+function formatBytes(bytes: number): string {
+  return `${Math.round((bytes / (1024 * 1024)) * 10) / 10} MB`;
+}
+
+function validateBrandAssetFile(file: File, assetKind: BrandingAssetKind): ActionResult<{ extension: string }> {
+  const maxBytes = assetKind === "splash" ? MAX_SPLASH_ASSET_BYTES : MAX_BRAND_ASSET_BYTES;
+  const label = assetKind === "splash" ? "Splashscreen" : assetKind === "favicon" ? "Favicon/app-icoon" : "Logo";
   if (file.size === 0) return { success: false, message: "Geen bestand geselecteerd." };
-  if (file.size > MAX_BRAND_ASSET_BYTES) {
-    return { success: false, message: "Logo of icoon mag maximaal 2 MB zijn." };
+  if (file.size > maxBytes) {
+    return { success: false, message: `${label} mag maximaal ${formatBytes(maxBytes)} zijn.` };
   }
 
   const mimeType = file.type.toLowerCase();
@@ -332,12 +339,12 @@ export async function uploadPlatformThemeAsset(
   const file = formData.get("asset") as File | null;
   if (!file) return { success: false, message: "Geen bestand geselecteerd." };
 
-  const validation = validateBrandAssetFile(file);
+  const assetKind = parseAssetKind(formData);
+  const validation = validateBrandAssetFile(file, assetKind);
   if (!validation.success) return validation;
   const extension = validation.data?.extension;
   if (!extension) return { success: false, message: "Bestandstype kon niet worden gevalideerd." };
 
-  const assetKind = parseAssetKind(formData);
   if (assetKind === "splash" && !(await themeSplashColumnsAvailable("platform_theme_settings"))) {
     return { success: false, message: SPLASH_COLUMNS_PENDING_MESSAGE };
   }
@@ -426,12 +433,12 @@ export async function uploadTenantThemeAsset(
     };
   }
 
-  const validation = validateBrandAssetFile(file);
+  const assetKind = parseAssetKind(formData);
+  const validation = validateBrandAssetFile(file, assetKind);
   if (!validation.success) return validation;
   const extension = validation.data?.extension;
   if (!extension) return { success: false, message: "Bestandstype kon niet worden gevalideerd." };
 
-  const assetKind = parseAssetKind(formData);
   if (assetKind === "splash" && !(await themeSplashColumnsAvailable("tenant_theme_settings"))) {
     return { success: false, message: SPLASH_COLUMNS_PENDING_MESSAGE };
   }
