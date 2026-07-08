@@ -50,11 +50,16 @@
   html {
     font-family: var(--font-sans);
     font-size: 16px;
+    width: 100%;
+    overflow-x: hidden;
     -webkit-text-size-adjust: 100%;
     overscroll-behavior: none;
   }
 
   body {
+    width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
     background-color: var(--color-muted);
     color: var(--color-primary);
     overscroll-behavior: none;

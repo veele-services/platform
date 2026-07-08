@@ -41,7 +41,7 @@ export default function InstellingenPage() {
             <Link
               key={href}
               href={href}
-              className="flex items-center gap-3 rounded-[20px] border bg-white px-3 py-3 shadow-sm active:scale-[0.99]"
+              className="flex min-w-0 items-center gap-3 rounded-[20px] border bg-white px-3 py-3 shadow-sm active:scale-[0.99]"
               style={{ borderColor: "var(--color-border)" }}
             >
               <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#E8FBFA] text-[#009E9A]">
@@ -51,11 +51,11 @@ export default function InstellingenPage() {
                 <span className="block text-sm font-black text-[#081D3A]">
                   {label}
                 </span>
-                <span className="block text-xs font-semibold text-slate-500">
+                <span className="line-clamp-2 text-xs font-semibold leading-5 text-slate-500">
                   {description}
                 </span>
               </span>
-              <ChevronRight size={19} className="text-slate-400" />
+              <ChevronRight size={19} className="shrink-0 text-slate-400" />
             </Link>
           ))}
         </div>
