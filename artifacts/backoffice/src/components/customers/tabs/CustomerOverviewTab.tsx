@@ -41,6 +41,7 @@ import type { ObjectRow } from "@/app/actions/objects";
 import type { CustomerPaymentRow } from "@/app/actions/payments";
 import type { ReportRow } from "@/app/actions/reports";
 import { ProcessStatusBadge } from "@/components/workflows/ProcessStatus";
+import { GeocodeStatusBadge } from "@/components/geocoding/GeocodeStatus";
 
 const OPEN_ASSIGNMENT_STATUSES = new Set([
   "approved",
@@ -415,6 +416,7 @@ export function CustomerOverviewTab({
               </div>
               <div className="space-y-3">
                 <InfoRow icon={<MapPin className="h-4 w-4" />} label="Adres" value={[customer.address, customer.postalCode, customer.city].filter(Boolean).join(", ") || "-"} />
+                <InfoRow icon={<MapPin className="h-4 w-4" />} label="Geocode" value={<GeocodeStatusBadge status={customer.geocodingStatus} />} />
                 <InfoRow icon={<Building2 className="h-4 w-4" />} label="Sector" value={customer.sectorName ?? "-"} />
                 <InfoRow icon={<FileText className="h-4 w-4" />} label="BTW / KVK" value={[customer.vatNumber, customer.chamberOfCommerceNumber].filter(Boolean).join(" / ") || "-"} />
                 <InfoRow icon={<Calendar className="h-4 w-4" />} label="Aangemaakt" value={formatDate(customer.createdAt)} />

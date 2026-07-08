@@ -79,6 +79,8 @@
     "fieldgrid:live-day-map-phase1:check": "node scripts/fieldgrid-live-day-map-phase1-baseline.mjs --check",
     "fieldgrid:live-day-map-phase2": "node scripts/fieldgrid-live-day-map-phase2-datamodel.mjs",
     "fieldgrid:live-day-map-phase2:check": "node scripts/fieldgrid-live-day-map-phase2-datamodel.mjs --check",
+    "fieldgrid:live-day-map-phase3": "node scripts/fieldgrid-live-day-map-phase3-geocoding.mjs",
+    "fieldgrid:live-day-map-phase3:check": "node scripts/fieldgrid-live-day-map-phase3-geocoding.mjs --check",
     "db:generate": "pnpm --filter @workspace/db run generate",
     "db:migrate": "pnpm --filter @workspace/db run db:migrate",
     "db:baseline": "pnpm --filter @workspace/db run db:baseline",
