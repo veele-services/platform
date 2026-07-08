@@ -17,15 +17,25 @@ const PLATFORM_ROLE_ALIASES: Record<string, FieldgridPlatformRole> = {
 
 const TENANT_ROLE_ALIASES: Record<string, FieldgridTenantRole> = {
   owner: "tenant_owner",
+  eigenaar: "tenant_owner",
   admin: "tenant_admin",
+  administrator: "tenant_admin",
+  beheerder: "tenant_admin",
   management: "tenant_admin",
   administration: "tenant_finance",
+  administratie: "tenant_finance",
   finance: "tenant_finance",
   planning: "tenant_manager",
   teamlead: "tenant_manager",
+  teamleider: "tenant_manager",
   employee: "tenant_staff",
+  medewerker: "tenant_staff",
+  "flex employee": "tenant_staff",
+  flexmedewerker: "tenant_staff",
   readonly: "tenant_readonly",
   bookkeeper: "tenant_bookkeeper",
+  boekhouder: "tenant_bookkeeper",
+  support: "tenant_manager",
   support_contact: "tenant_support_contact",
 };
 
@@ -49,8 +59,27 @@ export const FIELDGRID_PERMISSION_MATRIX: Record<FieldgridRole, Partial<Record<F
   tenant_support_contact: { support_diagnostics: ["full_read"], audit_logs: ["metadata_only"] },
 };
 
-export function normalizePlatformRole(role: string): FieldgridPlatformRole | null { return PLATFORM_ROLE_ALIASES[role] ?? (role in FIELDGRID_PERMISSION_MATRIX && role.startsWith("platform_") ? role as FieldgridPlatformRole : null); }
-export function normalizeTenantRole(role: string): FieldgridTenantRole | null { return TENANT_ROLE_ALIASES[role] ?? (role in FIELDGRID_PERMISSION_MATRIX && role.startsWith("tenant_") ? role as FieldgridTenantRole : null); }
+function normalizeRoleKey(role: string): string {
+  return role.trim().toLowerCase();
+}
+
+export function normalizePlatformRole(role: string): FieldgridPlatformRole | null {
+  const normalizedRole = normalizeRoleKey(role);
+  return PLATFORM_ROLE_ALIASES[normalizedRole] ?? (
+    normalizedRole in FIELDGRID_PERMISSION_MATRIX && normalizedRole.startsWith("platform_")
+      ? normalizedRole as FieldgridPlatformRole
+      : null
+  );
+}
+
+export function normalizeTenantRole(role: string): FieldgridTenantRole | null {
+  const normalizedRole = normalizeRoleKey(role);
+  return TENANT_ROLE_ALIASES[normalizedRole] ?? (
+    normalizedRole in FIELDGRID_PERMISSION_MATRIX && normalizedRole.startsWith("tenant_")
+      ? normalizedRole as FieldgridTenantRole
+      : null
+  );
+}
 export function hasAccessLevel(role: FieldgridRole, scope: FieldgridDataScope, level: FieldgridAccessLevel): boolean {
   const levels = FIELDGRID_PERMISSION_MATRIX[role]?.[scope] ?? [];
   if (levels.includes(level)) return true;

@@ -628,7 +628,13 @@ export async function listCustomers(params: {
       .from(customersTable)
       .leftJoin(sectorsTable,      eq(customersTable.sectorId,          sectorsTable.id))
       .leftJoin(customerTypesTable, eq(customersTable.customerTypeId,   customerTypesTable.id))
-      .leftJoin(personnelTable,     eq(customersTable.accountManagerId, personnelTable.id))
+      .leftJoin(
+        personnelTable,
+        and(
+          eq(customersTable.accountManagerId, personnelTable.id),
+          eq(customersTable.tenantId, personnelTable.tenantId),
+        ),
+      )
       .where(where)
       .orderBy(orderBy)
       .limit(PAGE_SIZE)
@@ -712,7 +718,13 @@ export async function getCustomer(id: string): Promise<CustomerDetail | null> {
     .from(customersTable)
     .leftJoin(sectorsTable,      eq(customersTable.sectorId,           sectorsTable.id))
     .leftJoin(customerTypesTable, eq(customersTable.customerTypeId,    customerTypesTable.id))
-    .leftJoin(personnelTable,     eq(customersTable.accountManagerId,  personnelTable.id))
+    .leftJoin(
+      personnelTable,
+      and(
+        eq(customersTable.accountManagerId, personnelTable.id),
+        eq(customersTable.tenantId, personnelTable.tenantId),
+      ),
+    )
     .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)))
     .limit(1);
 
