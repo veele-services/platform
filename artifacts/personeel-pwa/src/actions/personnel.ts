@@ -344,7 +344,7 @@ export async function uploadMyAvatar(
 
   const { data } = admin.storage.from("personnel-avatars").getPublicUrl(path);
 
-  await db
+  const [updated] = await db
     .update(personnelTable)
     .set({
       avatarPath: path,
@@ -359,13 +359,20 @@ export async function uploadMyAvatar(
         eq(personnelTable.tenantId, tenantId),
         eq(personnelTable.isActive, true),
       ),
-    );
+    )
+    .returning({ id: personnelTable.id });
+
+  if (!updated) {
+    await admin.storage.from("personnel-avatars").remove([path]);
+    return { success: false, error: "Profielfoto opslaan mislukt" };
+  }
 
   if (personnel.avatarPath && personnel.avatarPath !== path) {
     await admin.storage.from("personnel-avatars").remove([personnel.avatarPath]);
   }
 
   revalidatePath("/profiel");
+  revalidatePath("/instellingen");
   return { success: true };
 }
 
