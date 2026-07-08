@@ -30,15 +30,6 @@ function safeNext(value: string | undefined): string | null {
   return trimmed;
 }
 
-function initialsFor(value: string): string {
-  return value
-    .split(/\s+/u)
-    .filter(Boolean)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase() ?? "")
-    .join("") || "FG";
-}
-
 export default async function LoginPage({ searchParams }: Props) {
   const { error, message, next } = await searchParams;
   const redirectPath = safeNext(next);
@@ -59,11 +50,11 @@ export default async function LoginPage({ searchParams }: Props) {
               className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl"
               style={{ backgroundColor: "var(--color-accent)" }}
             >
-              {branding?.logoUrl && branding.customBrandingEnabled ? (
-                <img src={branding.logoUrl} alt="" className="h-full w-full object-contain p-2" />
-              ) : (
-                <span className="text-2xl font-bold text-white">{initialsFor(displayName).slice(0, 2)}</span>
-              )}
+              <img
+                src="/personeel/api/pwa/icon?size=192"
+                alt=""
+                className="h-full w-full rounded-2xl object-contain p-1.5"
+              />
             </div>
             <h1 className="text-2xl font-bold text-white">{title}</h1>
             <p className="mt-1 text-sm" style={{ color: "#94A3B8" }}>
