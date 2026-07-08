@@ -2,7 +2,7 @@
 
 import { FormEvent, useState, useTransition } from "react";
 import { toast } from "sonner";
-import { Loader2, Pencil, Plus, ToggleLeft, ToggleRight } from "lucide-react";
+import { Loader2, Pencil, Plus, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,6 +19,7 @@ import { TenantActionMenu } from "@/components/tenant-ui/tenant-action-menu";
 import { TenantConfirmDialog } from "@/components/tenant-ui/tenant-confirm-dialog";
 import {
   createSector,
+  deleteSector,
   updateSector,
   type SectorRow,
 } from "@/app/actions/sectors";
@@ -47,6 +48,7 @@ export function SectorsManager({ initialSectors, canWrite }: Props) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [toggleTarget, setToggleTarget] = useState<SectorRow | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<SectorRow | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const editingSector = sectors.find((sector) => sector.id === editingId) ?? null;
@@ -130,6 +132,21 @@ export function SectorsManager({ initialSectors, canWrite }: Props) {
         );
         setToggleTarget(null);
         toast.success(!target.isActive ? "Sector geactiveerd" : "Sector gedeactiveerd");
+      } else {
+        toast.error(result.message);
+      }
+    });
+  }
+
+  function handleDeleteSector() {
+    if (!deleteTarget) return;
+    const target = deleteTarget;
+    startTransition(async () => {
+      const result = await deleteSector(target.id);
+      if (result.success) {
+        setSectors((prev) => prev.filter((sector) => sector.id !== target.id));
+        setDeleteTarget(null);
+        toast.success("Sector verwijderd");
       } else {
         toast.error(result.message);
       }
@@ -230,6 +247,17 @@ export function SectorsManager({ initialSectors, canWrite }: Props) {
                               setToggleTarget(sector);
                             },
                           },
+                          {
+                            id: "delete",
+                            label: "Verwijderen",
+                            icon: <Trash2 className="h-3.5 w-3.5" />,
+                            destructive: true,
+                            disabled: isPending,
+                            onSelect: (event: Event) => {
+                              event.preventDefault();
+                              setDeleteTarget(sector);
+                            },
+                          },
                         ]}
                       />
                     </td>
@@ -253,6 +281,22 @@ export function SectorsManager({ initialSectors, canWrite }: Props) {
         confirmLabel={toggleTarget?.isActive ? "Deactiveren" : "Activeren"}
         destructive={Boolean(toggleTarget?.isActive)}
         onConfirm={handleToggleActive}
+      />
+
+      <TenantConfirmDialog
+        open={Boolean(deleteTarget)}
+        onOpenChange={(open) => !open && setDeleteTarget(null)}
+        title="Sector verwijderen?"
+        description={
+          deleteTarget
+            ? usageTotal(deleteTarget) > 0
+              ? `${deleteTarget.name} heeft ${usageTotal(deleteTarget)} bestaande koppelingen. Verwijderen koppelt sectorreferenties los waar de database dat toestaat. Dit kan niet ongedaan worden gemaakt.`
+              : `${deleteTarget.name} wordt definitief verwijderd. Dit kan niet ongedaan worden gemaakt.`
+            : undefined
+        }
+        confirmLabel="Verwijderen"
+        destructive
+        onConfirm={handleDeleteSector}
       />
     </div>
   );
