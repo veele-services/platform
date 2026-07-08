@@ -5,6 +5,7 @@ import {
   varchar,
   text,
   boolean,
+  numeric,
   timestamp,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
@@ -32,6 +33,15 @@ export const customersTable = pgTable(
     city:         varchar("city", { length: 100 }),
     postalCode:   varchar("postal_code", { length: 20 }),
     country:      varchar("country", { length: 100 }).notNull().default("NL"),
+    latitude:     numeric("latitude", { precision: 9, scale: 6 }),
+    longitude:    numeric("longitude", { precision: 9, scale: 6 }),
+    geocodedAt:   timestamp("geocoded_at", { withTimezone: true }),
+    geocodingProvider: varchar("geocoding_provider", { length: 40 }),
+    geocodingStatus:   varchar("geocoding_status", { length: 30 })
+      .notNull()
+      .default("pending"),
+    geocodingConfidence: numeric("geocoding_confidence", { precision: 5, scale: 2 }),
+    geocodingError: text("geocoding_error"),
 
     // Legacy single-contact fields (kept for backward compat)
     contactName:  varchar("contact_name", { length: 200 }),

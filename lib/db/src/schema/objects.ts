@@ -4,6 +4,7 @@ import {
   varchar,
   text,
   boolean,
+  numeric,
   timestamp,
   jsonb,
 } from "drizzle-orm/pg-core";
@@ -33,6 +34,15 @@ export const objectsTable = pgTable("objects", {
   address:     text("address"),
   city:        varchar("city", { length: 100 }),
   postalCode:  varchar("postal_code", { length: 20 }),
+  latitude:    numeric("latitude", { precision: 9, scale: 6 }),
+  longitude:   numeric("longitude", { precision: 9, scale: 6 }),
+  geocodedAt:  timestamp("geocoded_at", { withTimezone: true }),
+  geocodingProvider: varchar("geocoding_provider", { length: 40 }),
+  geocodingStatus:   varchar("geocoding_status", { length: 30 })
+    .notNull()
+    .default("pending"),
+  geocodingConfidence: numeric("geocoding_confidence", { precision: 5, scale: 2 }),
+  geocodingError: text("geocoding_error"),
 
   description: text("description"),
   isActive:    boolean("is_active").notNull().default(true),
