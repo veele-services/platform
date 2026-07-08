@@ -60,9 +60,12 @@ export function BrandThemeForm({
     logoStoragePath: theme.logoStoragePath,
     faviconUrl: theme.faviconUrl,
     faviconStoragePath: theme.faviconStoragePath,
+    splashUrl: theme.splashUrl,
+    splashStoragePath: theme.splashStoragePath,
   });
   const logoRef = useRef<HTMLInputElement>(null);
   const faviconRef = useRef<HTMLInputElement>(null);
+  const splashRef = useRef<HTMLInputElement>(null);
   const editable = canWrite && (mode === "platform" || (customThemeAllowed && customThemeEnabled));
 
   function updateColor(name: ColorName, value: string) {
@@ -115,9 +118,11 @@ export function BrandThemeForm({
 
       const uploaded = result.data;
       if (uploaded) {
-        setAssets((current) => kind === "logo"
-          ? { ...current, logoUrl: uploaded.url, logoStoragePath: uploaded.path }
-          : { ...current, faviconUrl: uploaded.url, faviconStoragePath: uploaded.path });
+        setAssets((current) => {
+          if (kind === "logo") return { ...current, logoUrl: uploaded.url, logoStoragePath: uploaded.path };
+          if (kind === "favicon") return { ...current, faviconUrl: uploaded.url, faviconStoragePath: uploaded.path };
+          return { ...current, splashUrl: uploaded.url, splashStoragePath: uploaded.path };
+        });
         if (mode === "tenant") setCustomThemeEnabled(true);
         router.refresh();
       }
@@ -130,6 +135,8 @@ export function BrandThemeForm({
       <input type="hidden" name="logoStoragePath" value={assets.logoStoragePath ?? ""} />
       <input type="hidden" name="faviconUrl" value={assets.faviconUrl ?? ""} />
       <input type="hidden" name="faviconStoragePath" value={assets.faviconStoragePath ?? ""} />
+      <input type="hidden" name="splashUrl" value={assets.splashUrl ?? ""} />
+      <input type="hidden" name="splashStoragePath" value={assets.splashStoragePath ?? ""} />
 
       {mode === "tenant" && (
         <section className="rounded border border-slate-200 bg-white p-5 shadow-sm">
@@ -240,7 +247,39 @@ export function BrandThemeForm({
                 </button>
               </div>
             </Field>
-            <p className="self-end text-xs text-slate-500">PNG, JPG, WebP of SVG. Maximaal 2 MB.</p>
+            <Field label="Splashscreen" htmlFor="splashUpload">
+              <div className="flex items-center gap-3">
+                <div className="flex h-16 w-12 items-center justify-center overflow-hidden rounded border border-slate-200 bg-slate-50">
+                  {assets.splashUrl ? (
+                    <img src={assets.splashUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <ImageIcon className="h-5 w-5 text-slate-400" />
+                  )}
+                </div>
+                <input
+                  ref={splashRef}
+                  id="splashUpload"
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                  disabled={!canWrite || (mode === "tenant" && !customThemeAllowed) || isPending}
+                  className="hidden"
+                  onChange={(event) => {
+                    uploadAsset("splash", event.target.files?.[0]);
+                    event.currentTarget.value = "";
+                  }}
+                />
+                <button
+                  type="button"
+                  onClick={() => splashRef.current?.click()}
+                  disabled={!canWrite || (mode === "tenant" && !customThemeAllowed) || isPending}
+                  className="inline-flex min-h-10 items-center gap-2 rounded border border-slate-300 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-50"
+                >
+                  <Upload className="h-4 w-4" />
+                  Upload
+                </button>
+              </div>
+            </Field>
+            <p className="self-end text-xs text-slate-500">PNG, JPG, WebP of SVG. Maximaal 2 MB. Gebruik voor PWA-icon bij voorkeur PNG/WebP 512x512; splash bij voorkeur 1080x1920.</p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

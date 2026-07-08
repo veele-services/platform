@@ -73,6 +73,8 @@ function parseThemeForm(formData: FormData, fallback: BrandTheme): BrandTheme {
     logoStoragePath: nullableFormValue(formData, "logoStoragePath") ?? fallback.logoStoragePath,
     faviconUrl: nullableFormValue(formData, "faviconUrl") ?? fallback.faviconUrl,
     faviconStoragePath: nullableFormValue(formData, "faviconStoragePath") ?? fallback.faviconStoragePath,
+    splashUrl: nullableFormValue(formData, "splashUrl") ?? fallback.splashUrl,
+    splashStoragePath: nullableFormValue(formData, "splashStoragePath") ?? fallback.splashStoragePath,
     primaryColor: normalizeHexColor(formValue(formData, "primaryColor"), fallback.primaryColor),
     secondaryColor: normalizeHexColor(formValue(formData, "secondaryColor"), fallback.secondaryColor),
     accentColor: normalizeHexColor(formValue(formData, "accentColor"), fallback.accentColor),
@@ -111,7 +113,9 @@ function validateBrandAssetFile(file: File): ActionResult<{ extension: string }>
 }
 
 function parseAssetKind(formData: FormData): BrandingAssetKind {
-  return formValue(formData, "assetKind") === "favicon" ? "favicon" : "logo";
+  const value = formValue(formData, "assetKind");
+  if (value === "favicon" || value === "splash") return value;
+  return "logo";
 }
 
 async function uploadBrandAsset(input: {
@@ -191,6 +195,8 @@ export async function savePlatformThemeSettings(formData: FormData): Promise<Act
     logoStoragePath: theme.logoStoragePath,
     faviconUrl: theme.faviconUrl,
     faviconStoragePath: theme.faviconStoragePath,
+    splashUrl: theme.splashUrl,
+    splashStoragePath: theme.splashStoragePath,
     primaryColor: theme.primaryColor,
     secondaryColor: theme.secondaryColor,
     accentColor: theme.accentColor,
@@ -261,6 +267,8 @@ export async function saveTenantThemeSettings(formData: FormData): Promise<Actio
         logoStoragePath: theme.logoStoragePath,
         faviconUrl: theme.faviconUrl,
         faviconStoragePath: theme.faviconStoragePath,
+        splashUrl: theme.splashUrl,
+        splashStoragePath: theme.splashStoragePath,
         primaryColor: theme.primaryColor,
         secondaryColor: theme.secondaryColor,
         accentColor: theme.accentColor,
@@ -326,7 +334,9 @@ export async function uploadPlatformThemeAsset(
 
   const patch = assetKind === "logo"
     ? { logoUrl: uploadedData.url, logoStoragePath: uploadedData.path }
-    : { faviconUrl: uploadedData.url, faviconStoragePath: uploadedData.path };
+    : assetKind === "favicon"
+      ? { faviconUrl: uploadedData.url, faviconStoragePath: uploadedData.path }
+      : { splashUrl: uploadedData.url, splashStoragePath: uploadedData.path };
 
   const [existing] = await db
     .select({ id: platformThemeSettingsTable.id })
@@ -415,7 +425,9 @@ export async function uploadTenantThemeAsset(
 
   const patch = assetKind === "logo"
     ? { logoUrl: uploadedData.url, logoStoragePath: uploadedData.path }
-    : { faviconUrl: uploadedData.url, faviconStoragePath: uploadedData.path };
+    : assetKind === "favicon"
+      ? { faviconUrl: uploadedData.url, faviconStoragePath: uploadedData.path }
+      : { splashUrl: uploadedData.url, splashStoragePath: uploadedData.path };
   const [existing] = await db
     .select({ id: tenantThemeSettingsTable.id })
     .from(tenantThemeSettingsTable)

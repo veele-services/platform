@@ -27,6 +27,8 @@ export type BrandTheme = {
   logoStoragePath: string | null;
   faviconUrl: string | null;
   faviconStoragePath: string | null;
+  splashUrl: string | null;
+  splashStoragePath: string | null;
   primaryColor: string;
   secondaryColor: string;
   accentColor: string;
@@ -51,6 +53,8 @@ export type BrandThemeOverride = Partial<{
   logoStoragePath: string | null;
   faviconUrl: string | null;
   faviconStoragePath: string | null;
+  splashUrl: string | null;
+  splashStoragePath: string | null;
   primaryColor: string | null;
   secondaryColor: string | null;
   accentColor: string | null;
@@ -76,6 +80,8 @@ export const FIELDGRID_DEFAULT_BRAND_THEME: BrandTheme = {
   logoStoragePath: null,
   faviconUrl: null,
   faviconStoragePath: null,
+  splashUrl: null,
+  splashStoragePath: null,
   primaryColor: "#081D3A",
   secondaryColor: "#133D6B",
   accentColor: "#00B7B3",
@@ -147,6 +153,8 @@ export function mergeBrandTheme(base: BrandTheme, override: BrandThemeOverride |
     logoStoragePath: nonEmpty(override.logoStoragePath) ?? base.logoStoragePath,
     faviconUrl: nonEmpty(override.faviconUrl) ?? base.faviconUrl,
     faviconStoragePath: nonEmpty(override.faviconStoragePath) ?? base.faviconStoragePath,
+    splashUrl: nonEmpty(override.splashUrl) ?? base.splashUrl,
+    splashStoragePath: nonEmpty(override.splashStoragePath) ?? base.splashStoragePath,
     primaryColor: normalizeHexColor(override.primaryColor, base.primaryColor),
     secondaryColor: normalizeHexColor(override.secondaryColor, base.secondaryColor),
     accentColor: normalizeHexColor(override.accentColor, base.accentColor),
@@ -176,6 +184,8 @@ function platformThemeOverrideFromRow(
     logoStoragePath: row.logoStoragePath,
     faviconUrl: row.faviconUrl,
     faviconStoragePath: row.faviconStoragePath,
+    splashUrl: row.splashUrl,
+    splashStoragePath: row.splashStoragePath,
     primaryColor: row.primaryColor,
     secondaryColor: row.secondaryColor,
     accentColor: row.accentColor,
@@ -205,6 +215,8 @@ function tenantThemeOverrideFromRow(
     logoStoragePath: row.logoStoragePath,
     faviconUrl: row.faviconUrl,
     faviconStoragePath: row.faviconStoragePath,
+    splashUrl: row.splashUrl,
+    splashStoragePath: row.splashStoragePath,
     primaryColor: row.primaryColor,
     secondaryColor: row.secondaryColor,
     accentColor: row.accentColor,
@@ -251,6 +263,8 @@ export async function getTenantBranding(tenantId: string): Promise<TenantBrandin
         tenantThemeLogoStoragePath: tenantThemeSettingsTable.logoStoragePath,
         tenantThemeFaviconUrl: tenantThemeSettingsTable.faviconUrl,
         tenantThemeFaviconStoragePath: tenantThemeSettingsTable.faviconStoragePath,
+        tenantThemeSplashUrl: tenantThemeSettingsTable.splashUrl,
+        tenantThemeSplashStoragePath: tenantThemeSettingsTable.splashStoragePath,
         tenantThemePrimaryColor: tenantThemeSettingsTable.primaryColor,
         tenantThemeSecondaryColor: tenantThemeSettingsTable.secondaryColor,
         tenantThemeAccentColor: tenantThemeSettingsTable.accentColor,
@@ -309,6 +323,8 @@ export async function getTenantBranding(tenantId: string): Promise<TenantBrandin
         logoStoragePath: row.tenantThemeLogoStoragePath,
         faviconUrl: row.tenantThemeFaviconUrl,
         faviconStoragePath: row.tenantThemeFaviconStoragePath,
+        splashUrl: row.tenantThemeSplashUrl,
+        splashStoragePath: row.tenantThemeSplashStoragePath,
         primaryColor: row.tenantThemePrimaryColor,
         secondaryColor: row.tenantThemeSecondaryColor,
         accentColor: row.tenantThemeAccentColor,

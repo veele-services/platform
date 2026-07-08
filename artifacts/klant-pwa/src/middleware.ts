@@ -35,8 +35,10 @@ export async function middleware(request: NextRequest) {
   const isPasswordResetApi = normalizedPathname.startsWith("/api/auth/password-reset");
   const isPwaAsset =
     normalizedPathname === "/manifest.json" ||
+    normalizedPathname === "/manifest.webmanifest" ||
     normalizedPathname === "/sw.js" ||
     normalizedPathname === "/favicon.svg" ||
+    normalizedPathname.startsWith("/api/pwa/") ||
     normalizedPathname.startsWith("/icons/");
   const isPublicPage =
     isPwaAsset ||
@@ -98,6 +100,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon\\.ico|healthz).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|manifest\\.webmanifest|healthz).*)",
   ],
 };
