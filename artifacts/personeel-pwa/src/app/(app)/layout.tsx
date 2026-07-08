@@ -102,12 +102,12 @@ export default async function AppLayout({
   return (
     <PersonnelRealtimeOfflineProvider personnelId={personnel.id}>
       <div
-        className="flex min-h-screen"
+        className="flex min-h-screen w-full min-w-0 overflow-x-hidden"
         style={{ ...brandingStyle, backgroundColor: "var(--color-muted)" }}
       >
         <DesktopSidebar branding={branding} featureFlags={featureFlags} />
 
-        <div className="flex flex-1 flex-col min-w-0">
+        <div className="flex min-w-0 flex-1 flex-col overflow-x-hidden">
           <MobileHeader
             branding={branding}
             notificationSummary={notificationSummary}
@@ -116,8 +116,8 @@ export default async function AppLayout({
           <NativePushTokenSync enabled={personnel.notificationPushEnabled ?? false} />
           <ReleaseHighlightBanner highlight={releaseHighlight} />
 
-          <main className="flex-1 pb-[calc(5.2rem+var(--safe-bottom))] md:pb-0">
-            <div className="mx-auto w-full max-w-[1440px] px-0 md:px-5 md:py-6 lg:px-8">
+          <main className="min-w-0 flex-1 overflow-x-hidden pb-[calc(5.2rem+var(--safe-bottom))] md:pb-0">
+            <div className="mx-auto w-full min-w-0 max-w-[1440px] px-0 md:px-5 md:py-6 lg:px-8">
               {children}
             </div>
           </main>

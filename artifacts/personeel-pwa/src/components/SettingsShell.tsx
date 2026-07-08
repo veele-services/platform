@@ -67,7 +67,7 @@ export function PersonnelSettingsShell({
 }) {
   return (
     <MobilePageShell title={title} subtitle={subtitle}>
-      <section className="grid gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
+      <section className="grid min-w-0 gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
         <PersonnelSettingsNav active={active} />
         <div className="min-w-0 space-y-4">{children}</div>
       </section>
@@ -84,7 +84,7 @@ export function PersonnelSettingsCard({
 }) {
   return (
     <section
-      className={`rounded-[22px] bg-white p-4 shadow-[0_14px_34px_rgba(8,29,58,0.10)] md:p-5 ${className}`}
+      className={`min-w-0 overflow-hidden rounded-[22px] bg-white p-4 shadow-[0_14px_34px_rgba(8,29,58,0.10)] md:p-5 ${className}`}
     >
       {children}
     </section>
@@ -149,10 +149,10 @@ function PersonnelSettingsNav({ active }: { active: PersonnelSettingsSection }) 
   return (
     <nav
       aria-label="Instellingen"
-      className="rounded-[22px] border bg-white p-2 shadow-[0_14px_34px_rgba(8,29,58,0.08)] lg:sticky lg:top-6 lg:self-start"
+      className="min-w-0 overflow-hidden rounded-[22px] border bg-white p-2 shadow-[0_14px_34px_rgba(8,29,58,0.08)] lg:sticky lg:top-6 lg:self-start"
       style={{ borderColor: "var(--color-border)" }}
     >
-      <div className="flex gap-2 overflow-x-auto lg:block lg:space-y-1 lg:overflow-visible">
+      <div className="flex min-w-0 snap-x gap-2 overflow-x-auto overscroll-x-contain pb-1 [-webkit-overflow-scrolling:touch] lg:block lg:space-y-1 lg:overflow-visible lg:pb-0">
         {SETTINGS_LINKS.map(({ key, href, label, description, Icon }) => {
           const isActive = key === active;
           return (
@@ -160,7 +160,7 @@ function PersonnelSettingsNav({ active }: { active: PersonnelSettingsSection }) 
               key={key}
               href={href}
               aria-current={isActive ? "page" : undefined}
-              className="flex min-w-[13rem] items-center gap-3 rounded-2xl px-3 py-3 transition active:scale-[0.99] lg:min-w-0"
+              className="flex w-[min(76vw,13rem)] shrink-0 snap-start items-center gap-3 rounded-2xl px-3 py-3 transition active:scale-[0.99] lg:w-auto lg:min-w-0"
               style={{
                 backgroundColor: isActive ? "rgba(0,183,179,0.10)" : "transparent",
                 color: isActive ? "var(--color-primary)" : "var(--color-secondary)",
@@ -175,7 +175,7 @@ function PersonnelSettingsNav({ active }: { active: PersonnelSettingsSection }) 
               >
                 <Icon size={19} strokeWidth={2.4} />
               </span>
-              <span className="min-w-0">
+              <span className="min-w-0 flex-1">
                 <span className="block text-sm font-black">{label}</span>
                 <span className="block truncate text-xs font-semibold">
                   {description}
