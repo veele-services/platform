@@ -12,6 +12,7 @@ import {
   getTenantBranding,
   platformThemeSettingsTable,
   tenantThemeSettingsTable,
+  themeSplashColumnsAvailable,
   toSafeStorageSegment,
   type BrandTheme,
   type BrandingAssetKind,
@@ -34,6 +35,8 @@ export type ThemeSettingsView = {
 
 const BRANDING_BUCKET = "org-assets";
 const MAX_BRAND_ASSET_BYTES = 2 * 1024 * 1024;
+const SPLASH_COLUMNS_PENDING_MESSAGE =
+  "Splashscreen opslag is nog niet actief op deze omgeving. Deploy de laatste migraties en probeer daarna opnieuw.";
 const ALLOWED_BRAND_ASSET_TYPES = new Map([
   ["image/png", "png"],
   ["image/jpeg", "jpg"],
@@ -182,6 +185,7 @@ export async function savePlatformThemeSettings(formData: FormData): Promise<Act
   const actor = await requirePlatformAdmin();
   const fallback = await getPlatformBrandTheme();
   const theme = parseThemeForm(formData, fallback);
+  const splashColumnsReady = await themeSplashColumnsAvailable("platform_theme_settings");
 
   const [existing] = await db
     .select({ id: platformThemeSettingsTable.id })
@@ -195,8 +199,6 @@ export async function savePlatformThemeSettings(formData: FormData): Promise<Act
     logoStoragePath: theme.logoStoragePath,
     faviconUrl: theme.faviconUrl,
     faviconStoragePath: theme.faviconStoragePath,
-    splashUrl: theme.splashUrl,
-    splashStoragePath: theme.splashStoragePath,
     primaryColor: theme.primaryColor,
     secondaryColor: theme.secondaryColor,
     accentColor: theme.accentColor,
@@ -216,6 +218,12 @@ export async function savePlatformThemeSettings(formData: FormData): Promise<Act
     updatedAt: new Date(),
     updatedBy: actor.userId,
   };
+  if (splashColumnsReady) {
+    Object.assign(values, {
+      splashUrl: theme.splashUrl,
+      splashStoragePath: theme.splashStoragePath,
+    });
+  }
 
   if (existing) {
     await db.update(platformThemeSettingsTable).set(values).where(eq(platformThemeSettingsTable.id, existing.id));
@@ -253,6 +261,7 @@ export async function saveTenantThemeSettings(formData: FormData): Promise<Actio
     };
   }
   const theme = parseThemeForm(formData, fallback);
+  const splashColumnsReady = await themeSplashColumnsAvailable("tenant_theme_settings");
   const [existing] = await db
     .select({ id: tenantThemeSettingsTable.id })
     .from(tenantThemeSettingsTable)
@@ -267,8 +276,6 @@ export async function saveTenantThemeSettings(formData: FormData): Promise<Actio
         logoStoragePath: theme.logoStoragePath,
         faviconUrl: theme.faviconUrl,
         faviconStoragePath: theme.faviconStoragePath,
-        splashUrl: theme.splashUrl,
-        splashStoragePath: theme.splashStoragePath,
         primaryColor: theme.primaryColor,
         secondaryColor: theme.secondaryColor,
         accentColor: theme.accentColor,
@@ -293,6 +300,12 @@ export async function saveTenantThemeSettings(formData: FormData): Promise<Actio
         updatedAt: new Date(),
         updatedBy: user.id,
       };
+  if (useCustomTheme && splashColumnsReady) {
+    Object.assign(values, {
+      splashUrl: theme.splashUrl,
+      splashStoragePath: theme.splashStoragePath,
+    });
+  }
 
   if (existing) {
     await db.update(tenantThemeSettingsTable).set(values).where(eq(tenantThemeSettingsTable.id, existing.id));
@@ -325,6 +338,9 @@ export async function uploadPlatformThemeAsset(
   if (!extension) return { success: false, message: "Bestandstype kon niet worden gevalideerd." };
 
   const assetKind = parseAssetKind(formData);
+  if (assetKind === "splash" && !(await themeSplashColumnsAvailable("platform_theme_settings"))) {
+    return { success: false, message: SPLASH_COLUMNS_PENDING_MESSAGE };
+  }
   const safeName = toSafeStorageSegment(file.name, `${assetKind}.${extension}`);
   const path = buildPlatformBrandingAssetStoragePath(assetKind, `${Date.now()}-${randomUUID()}-${safeName}`);
   const uploaded = await uploadBrandAsset({ file, assetKind, path });
@@ -416,6 +432,9 @@ export async function uploadTenantThemeAsset(
   if (!extension) return { success: false, message: "Bestandstype kon niet worden gevalideerd." };
 
   const assetKind = parseAssetKind(formData);
+  if (assetKind === "splash" && !(await themeSplashColumnsAvailable("tenant_theme_settings"))) {
+    return { success: false, message: SPLASH_COLUMNS_PENDING_MESSAGE };
+  }
   const safeName = toSafeStorageSegment(file.name, `${assetKind}.${extension}`);
   const path = buildTenantBrandingAssetStoragePath(tenantId, assetKind, `${Date.now()}-${randomUUID()}-${safeName}`);
   const uploaded = await uploadBrandAsset({ file, assetKind, path });
