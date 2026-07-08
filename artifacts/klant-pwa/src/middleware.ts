@@ -89,10 +89,6 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(proxyAwareUrl(`${BASE}/reset-wachtwoord?force=1`, request));
   }
 
-  if (user && isLoginPage) {
-    return NextResponse.redirect(proxyAwareUrl(`${BASE}`, request));
-  }
-
   if (!user && !isPublicPage) {
     return NextResponse.redirect(proxyAwareUrl(`${BASE}/login`, request));
   }
