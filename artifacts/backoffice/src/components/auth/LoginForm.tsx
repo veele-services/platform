@@ -19,7 +19,7 @@ const DEV_ACCOUNTS = [
 
 // ─── Submit button ────────────────────────────────────────────────────────────
 
-function SubmitButton({ disabled }: { disabled?: boolean }) {
+function SubmitButton({ disabled, accentColor = "#00B7B3" }: { disabled?: boolean; accentColor?: string }) {
   const { pending } = useFormStatus();
   const isDisabled = pending || disabled;
 
@@ -31,7 +31,7 @@ function SubmitButton({ disabled }: { disabled?: boolean }) {
       style={{
         fontFamily: "var(--font-inter), Inter, sans-serif",
         fontSize: "14px",
-        backgroundColor: isDisabled ? "#94A3B8" : "#00B7B3",
+        backgroundColor: isDisabled ? "#94A3B8" : accentColor,
         cursor: isDisabled ? "not-allowed" : "pointer",
         letterSpacing: "0.01em",
       }}
@@ -48,9 +48,19 @@ interface LoginFormProps {
   supabaseConfigured: boolean;
   successMessage?: string;
   nextPath?: string;
+  accentColor?: string;
+  textColor?: string;
+  mutedColor?: string;
 }
 
-export function LoginForm({ supabaseConfigured, successMessage, nextPath = "/" }: LoginFormProps) {
+export function LoginForm({
+  supabaseConfigured,
+  successMessage,
+  nextPath = "/",
+  accentColor = "#00B7B3",
+  textColor = "#081D3A",
+  mutedColor = "#64748B",
+}: LoginFormProps) {
   const [state, formAction] = useActionState(signIn, INITIAL_STATE);
   const [showPassword, setShowPassword] = useState(false);
 
@@ -120,7 +130,7 @@ export function LoginForm({ supabaseConfigured, successMessage, nextPath = "/" }
             fontFamily: "var(--font-inter), Inter, sans-serif",
             fontSize: "13px",
             fontWeight: 500,
-            color: "#081D3A",
+            color: textColor,
           }}
         >
           E-mailadres
@@ -146,7 +156,7 @@ export function LoginForm({ supabaseConfigured, successMessage, nextPath = "/" }
             fontFamily: "var(--font-inter), Inter, sans-serif",
             fontSize: "13px",
             fontWeight: 500,
-            color: "#081D3A",
+            color: textColor,
           }}
         >
           Wachtwoord
@@ -175,13 +185,13 @@ export function LoginForm({ supabaseConfigured, successMessage, nextPath = "/" }
         </div>
       </div>
 
-      <SubmitButton disabled={!supabaseConfigured} />
+      <SubmitButton disabled={!supabaseConfigured} accentColor={accentColor} />
 
       <div className="text-center">
         <Link
           href="/wachtwoord-vergeten"
           className="text-sm transition-colors hover:underline"
-          style={{ color: "#64748B" }}
+          style={{ color: mutedColor }}
         >
           Wachtwoord vergeten?
         </Link>
