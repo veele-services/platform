@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import { CapacitorRuntimeBridge } from "@/components/CapacitorRuntimeBridge";
 import { DevNav } from "@/components/DevNav";
 import { OfflineContentNavigation } from "@/components/OfflineContentNavigation";
+import { PwaSplashScreen } from "@/components/PwaSplashScreen";
+import { getPersonnelPwaBranding } from "@/lib/pwa-branding";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -23,17 +25,21 @@ export const viewport: Viewport = {
   themeColor: "#081D3A",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const branding = await getPersonnelPwaBranding().catch(() => null);
+  const splashUrl = branding?.splashUrl ?? null;
+  const splashBackgroundColor = branding?.primaryColor ?? "#081D3A";
+
   return (
     <html lang="nl">
       <head>
         <link rel="icon" href="/personeel/api/pwa/icon?size=192" sizes="any" />
         <link rel="apple-touch-icon" href="/personeel/api/pwa/icon?size=192" />
-        <link rel="apple-touch-startup-image" href="/personeel/api/pwa/splash" />
+        {splashUrl ? <link rel="apple-touch-startup-image" href="/personeel/api/pwa/splash" /> : null}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -56,6 +62,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <PwaSplashScreen splashUrl={splashUrl} backgroundColor={splashBackgroundColor} />
         <OfflineContentNavigation />
         <CapacitorRuntimeBridge />
         <DevNav current="personeel" />

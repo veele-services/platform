@@ -24,6 +24,19 @@ type ColorName =
   | "sidebarTextColor"
   | "sidebarAccentColor";
 
+const MAX_BRAND_ASSET_BYTES = 2 * 1024 * 1024;
+const MAX_SPLASH_ASSET_BYTES = 6 * 1024 * 1024;
+
+function formatBytes(bytes: number): string {
+  return `${Math.round((bytes / (1024 * 1024)) * 10) / 10} MB`;
+}
+
+function assetLabel(kind: BrandingAssetKind): string {
+  if (kind === "splash") return "Splashscreen";
+  if (kind === "favicon") return "Favicon/app-icoon";
+  return "Logo";
+}
+
 export function BrandThemeForm({
   mode,
   theme,
@@ -97,6 +110,12 @@ export function BrandThemeForm({
     if (!file || !canWrite || (mode === "tenant" && !customThemeAllowed)) return;
     setSaved(false);
     setError(null);
+    const maxBytes = kind === "splash" ? MAX_SPLASH_ASSET_BYTES : MAX_BRAND_ASSET_BYTES;
+    if (file.size > maxBytes) {
+      setError(`${assetLabel(kind)} mag maximaal ${formatBytes(maxBytes)} zijn.`);
+      return;
+    }
+
     const formData = new FormData();
     formData.append("assetKind", kind);
     formData.append("asset", file);
@@ -279,7 +298,10 @@ export function BrandThemeForm({
                 </button>
               </div>
             </Field>
-            <p className="self-end text-xs text-slate-500">PNG, JPG, WebP of SVG. Maximaal 2 MB. Gebruik voor PWA-icon bij voorkeur PNG/WebP 512x512; splash bij voorkeur 1080x1920.</p>
+            <p className="self-end text-xs text-slate-500">
+              PNG, JPG, WebP of SVG. Logo en app-icoon maximaal 2 MB; splashscreen maximaal 6 MB.
+              Gebruik voor PWA-icon bij voorkeur PNG/WebP 512x512; splash bij voorkeur 1080x1920.
+            </p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from "next";
 import { DevNav } from "@/components/DevNav";
 import { OfflineContentNavigation } from "@/components/OfflineContentNavigation";
+import { PwaSplashScreen } from "@/components/PwaSplashScreen";
+import { getCustomerPwaBranding } from "@/lib/pwa-branding";
 import "./globals.css";
 import type { ReactNode } from "react";
 
@@ -23,17 +25,21 @@ export const viewport: Viewport = {
   themeColor: "#081D3A",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: ReactNode;
 }) {
+  const branding = await getCustomerPwaBranding().catch(() => null);
+  const splashUrl = branding?.splashUrl ?? null;
+  const splashBackgroundColor = branding?.primaryColor ?? "#081D3A";
+
   return (
     <html lang="nl">
       <head>
         <link rel="icon" href="/klant/api/pwa/icon?size=192" sizes="any" />
         <link rel="apple-touch-icon" href="/klant/api/pwa/icon?size=192" />
-        <link rel="apple-touch-startup-image" href="/klant/api/pwa/splash" />
+        {splashUrl ? <link rel="apple-touch-startup-image" href="/klant/api/pwa/splash" /> : null}
         <script
           dangerouslySetInnerHTML={{
             __html: `
@@ -47,6 +53,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <PwaSplashScreen splashUrl={splashUrl} backgroundColor={splashBackgroundColor} />
         <OfflineContentNavigation />
         <DevNav current="klant" />
         {children}
