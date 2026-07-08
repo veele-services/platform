@@ -6,11 +6,28 @@ type Props = {
   searchParams: Promise<{ error?: string; message?: string; next?: string }>;
 };
 
+const PORTAL_BASE = "/personeel";
+
+function isLoginPath(value: string): boolean {
+  const pathname = value.split(/[?#]/u)[0] || value;
+  return (
+    pathname === "/login" ||
+    pathname.startsWith("/login/") ||
+    pathname === `${PORTAL_BASE}/login` ||
+    pathname.startsWith(`${PORTAL_BASE}/login/`)
+  );
+}
+
 function safeNext(value: string | undefined): string | null {
   if (!value) return null;
-  if (!value.startsWith("/") || value.startsWith("//")) return null;
-  if (value.startsWith("/login")) return null;
-  return value;
+  const trimmed = value.trim();
+  if (!trimmed.startsWith("/") || trimmed.startsWith("//")) return null;
+  if (isLoginPath(trimmed)) return null;
+  if (trimmed === PORTAL_BASE) return "/";
+  if (trimmed.startsWith(`${PORTAL_BASE}/`)) {
+    return trimmed.slice(PORTAL_BASE.length) || "/";
+  }
+  return trimmed;
 }
 
 function initialsFor(value: string): string {

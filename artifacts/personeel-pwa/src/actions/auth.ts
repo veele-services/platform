@@ -116,11 +116,27 @@ function isTemporaryPasswordExpired(appMetadata: Record<string, unknown> | null 
   return Number.isFinite(expiry) && expiry <= Date.now();
 }
 
+const PORTAL_BASE = "/personeel";
+
+function isLoginPath(value: string): boolean {
+  const pathname = value.split(/[?#]/u)[0] || value;
+  return (
+    pathname === "/login" ||
+    pathname.startsWith("/login/") ||
+    pathname === `${PORTAL_BASE}/login` ||
+    pathname.startsWith(`${PORTAL_BASE}/login/`)
+  );
+}
+
 function sanitizeRedirectPath(value: FormDataEntryValue | null): string | null {
   if (typeof value !== "string") return null;
   const trimmed = value.trim();
   if (!trimmed.startsWith("/") || trimmed.startsWith("//")) return null;
-  if (trimmed.startsWith("/login")) return null;
+  if (isLoginPath(trimmed)) return null;
+  if (trimmed === PORTAL_BASE) return "/";
+  if (trimmed.startsWith(`${PORTAL_BASE}/`)) {
+    return trimmed.slice(PORTAL_BASE.length) || "/";
+  }
   return trimmed;
 }
 
