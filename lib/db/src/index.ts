@@ -30,3 +30,7 @@ export * from "./tenant-provisioning";
 export * from "./custom-domains";
 export * from "./platform-access";
 export * from "./storage-paths";
+export * from "./security-data-classification";
+export * from "./security-masking";
+export * from "./security-permissions";
+export * from "./security-audit";
