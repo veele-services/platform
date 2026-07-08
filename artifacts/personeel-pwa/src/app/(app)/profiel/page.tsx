@@ -15,6 +15,7 @@ import {
 } from "@/components/SettingsShell";
 import { AvatarUploadForm } from "./AvatarUploadForm";
 import { ProfileForm } from "./ProfileForm";
+import { formatPersonnelRoleLabel } from "@/lib/personnel-labels";
 
 export default async function ProfielPage() {
   const profile = await getMyPersonnel();
@@ -34,9 +35,10 @@ export default async function ProfielPage() {
   }
 
   const initials = `${profile.firstName[0] ?? ""}${profile.lastName[0] ?? ""}`;
+  const roleLabel = formatPersonnelRoleLabel(profile.roleName);
   const workFields = [
     { label: "E-mail", value: profile.email, Icon: Mail },
-    { label: "Rol", value: profile.roleName, Icon: ShieldCheck },
+    { label: "Rol", value: roleLabel, Icon: ShieldCheck },
     { label: "Sector", value: profile.sectorName, Icon: BriefcaseBusiness },
     { label: "Regio", value: profile.region, Icon: MapPin },
   ].filter((field) => field.value);
@@ -51,13 +53,13 @@ export default async function ProfielPage() {
       title="Mijn profiel"
       subtitle="Beheer je gegevens en profielfoto."
     >
-      <div className="mx-auto max-w-3xl space-y-4">
+      <div className="mx-auto w-full max-w-3xl min-w-0 space-y-4 overflow-hidden">
         <PersonnelSettingsCard>
           <AvatarUploadForm
             avatarUrl={profile.avatarUrl}
             initials={initials}
             fullName={`${profile.firstName} ${profile.lastName}`}
-            subtitle={`${profile.roleName ?? "Medewerker"}${profile.sectorName ? ` - ${profile.sectorName}` : ""}`}
+            subtitle={`${roleLabel}${profile.sectorName ? ` - ${profile.sectorName}` : ""}`}
           />
         </PersonnelSettingsCard>
 
@@ -71,11 +73,11 @@ export default async function ProfielPage() {
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl bg-[#E8FBFA] text-[#009E9A]">
                   <Icon size={19} strokeWidth={2.4} />
                 </span>
-                <span className="min-w-0">
+                <span className="min-w-0 flex-1">
                   <span className="block text-xs font-bold uppercase tracking-wide text-slate-400">
                     {label}
                   </span>
-                  <span className="block truncate text-sm font-bold text-[#081D3A]">
+                  <span className="block break-words text-sm font-bold text-[#081D3A]">
                     {value}
                   </span>
                 </span>

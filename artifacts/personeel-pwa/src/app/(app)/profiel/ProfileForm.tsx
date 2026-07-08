@@ -21,14 +21,14 @@ export function ProfileForm({ profile }: { profile: PersonnelProfile }) {
   return (
     <form
       action={formAction}
-      className="rounded-[22px] bg-white p-4 shadow-[0_14px_34px_rgba(8,29,58,0.10)] md:p-5"
+      className="w-full min-w-0 overflow-hidden rounded-[22px] bg-white p-4 shadow-[0_14px_34px_rgba(8,29,58,0.10)] md:p-5"
     >
       <div className="mb-4 flex items-start justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-black text-[#081D3A]">
+        <div className="min-w-0 flex-1">
+          <h2 className="break-words text-lg font-black text-[#081D3A]">
             Persoonsgegevens
           </h2>
-          <p className="mt-1 text-sm font-medium text-slate-500">
+          <p className="mt-1 break-words text-sm font-medium text-slate-500">
             Naam, adres en contactgegevens.
           </p>
         </div>
@@ -133,12 +133,12 @@ function TextField({
   inputMode?: HTMLAttributes<HTMLInputElement>["inputMode"];
 }) {
   return (
-    <label className="block rounded-2xl border border-[#D8E8F3] bg-white px-3 py-2.5">
+    <label className="block min-w-0 rounded-2xl border border-[#D8E8F3] bg-white px-3 py-2.5">
       <span className="block text-xs font-bold uppercase tracking-wide text-slate-400">
         {label}
       </span>
-      <span className="mt-1 flex items-center gap-2">
-        {icon ? <span className="text-[#009E9A]">{icon}</span> : null}
+      <span className="mt-1 flex min-w-0 items-center gap-2">
+        {icon ? <span className="shrink-0 text-[#009E9A]">{icon}</span> : null}
         <input
           name={name}
           defaultValue={defaultValue}
