@@ -1,4 +1,4 @@
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "./index";
 import {
   organizationSettingsTable,
@@ -119,6 +119,19 @@ export type TenantBranding = BrandTheme & {
   emailSignature: string;
 };
 
+type SqlResult<T> = { rows?: T[] };
+type ThemeSettingsTableName = "platform_theme_settings" | "tenant_theme_settings";
+type ThemeSplashOverride = Pick<BrandThemeOverride, "splashUrl" | "splashStoragePath">;
+
+function rowsFrom<T>(result: unknown): T[] {
+  if (Array.isArray(result)) return result as T[];
+  if (result && typeof result === "object" && "rows" in result) {
+    const maybeRows = (result as SqlResult<T>).rows;
+    return Array.isArray(maybeRows) ? maybeRows : [];
+  }
+  return [];
+}
+
 function nonEmpty(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
   return trimmed ? trimmed : null;
@@ -175,7 +188,7 @@ export function mergeBrandTheme(base: BrandTheme, override: BrandThemeOverride |
 }
 
 function platformThemeOverrideFromRow(
-  row: typeof platformThemeSettingsTable.$inferSelect | null | undefined,
+  row: BrandThemeOverride | null | undefined,
 ): BrandThemeOverride | null {
   if (!row) return null;
   return {
@@ -203,6 +216,66 @@ function platformThemeOverrideFromRow(
     emailFooterText: row.emailFooterText,
     emailSignature: row.emailSignature,
   };
+}
+
+export async function themeSplashColumnsAvailable(tableName: ThemeSettingsTableName): Promise<boolean> {
+  try {
+    const result = await db.execute<{ available: boolean }>(sql`
+      select count(*)::int = 2 as available
+      from information_schema.columns
+      where table_schema = 'public'
+        and table_name = ${tableName}
+        and column_name in ('splash_url', 'splash_storage_path')
+    `);
+    const [row] = rowsFrom<{ available: boolean }>(result);
+    return row?.available === true;
+  } catch {
+    return false;
+  }
+}
+
+async function getPlatformSplashOverride(): Promise<ThemeSplashOverride> {
+  if (!(await themeSplashColumnsAvailable("platform_theme_settings"))) {
+    return { splashUrl: null, splashStoragePath: null };
+  }
+
+  try {
+    const result = await db.execute<{ splash_url: string | null; splash_storage_path: string | null }>(sql`
+      select splash_url, splash_storage_path
+      from platform_theme_settings
+      where singleton_key is true
+      limit 1
+    `);
+    const [row] = rowsFrom<{ splash_url: string | null; splash_storage_path: string | null }>(result);
+    return {
+      splashUrl: row?.splash_url ?? null,
+      splashStoragePath: row?.splash_storage_path ?? null,
+    };
+  } catch {
+    return { splashUrl: null, splashStoragePath: null };
+  }
+}
+
+async function getTenantSplashOverride(tenantId: string): Promise<ThemeSplashOverride> {
+  if (!(await themeSplashColumnsAvailable("tenant_theme_settings"))) {
+    return { splashUrl: null, splashStoragePath: null };
+  }
+
+  try {
+    const result = await db.execute<{ splash_url: string | null; splash_storage_path: string | null }>(sql`
+      select splash_url, splash_storage_path
+      from tenant_theme_settings
+      where tenant_id = ${tenantId}
+      limit 1
+    `);
+    const [row] = rowsFrom<{ splash_url: string | null; splash_storage_path: string | null }>(result);
+    return {
+      splashUrl: row?.splash_url ?? null,
+      splashStoragePath: row?.splash_storage_path ?? null,
+    };
+  } catch {
+    return { splashUrl: null, splashStoragePath: null };
+  }
 }
 
 function tenantThemeOverrideFromRow(
@@ -237,17 +310,46 @@ function tenantThemeOverrideFromRow(
 }
 
 export async function getPlatformBrandTheme(): Promise<BrandTheme> {
-  const [row] = await db
-    .select()
-    .from(platformThemeSettingsTable)
-    .where(eq(platformThemeSettingsTable.singletonKey, true))
-    .limit(1);
+  const [row, splashOverride] = await Promise.all([
+    db
+      .select({
+        brandName: platformThemeSettingsTable.brandName,
+        logoUrl: platformThemeSettingsTable.logoUrl,
+        logoStoragePath: platformThemeSettingsTable.logoStoragePath,
+        faviconUrl: platformThemeSettingsTable.faviconUrl,
+        faviconStoragePath: platformThemeSettingsTable.faviconStoragePath,
+        primaryColor: platformThemeSettingsTable.primaryColor,
+        secondaryColor: platformThemeSettingsTable.secondaryColor,
+        accentColor: platformThemeSettingsTable.accentColor,
+        backgroundColor: platformThemeSettingsTable.backgroundColor,
+        surfaceColor: platformThemeSettingsTable.surfaceColor,
+        textColor: platformThemeSettingsTable.textColor,
+        mutedColor: platformThemeSettingsTable.mutedColor,
+        sidebarBackgroundColor: platformThemeSettingsTable.sidebarBackgroundColor,
+        sidebarTextColor: platformThemeSettingsTable.sidebarTextColor,
+        sidebarAccentColor: platformThemeSettingsTable.sidebarAccentColor,
+        fontFamily: platformThemeSettingsTable.fontFamily,
+        headingFontFamily: platformThemeSettingsTable.headingFontFamily,
+        borderRadius: platformThemeSettingsTable.borderRadius,
+        density: platformThemeSettingsTable.density,
+        emailFooterText: platformThemeSettingsTable.emailFooterText,
+        emailSignature: platformThemeSettingsTable.emailSignature,
+      })
+      .from(platformThemeSettingsTable)
+      .where(eq(platformThemeSettingsTable.singletonKey, true))
+      .limit(1)
+      .then((rows) => rows[0]),
+    getPlatformSplashOverride(),
+  ]);
 
-  return mergeBrandTheme(FIELDGRID_DEFAULT_BRAND_THEME, platformThemeOverrideFromRow(row));
+  return mergeBrandTheme(FIELDGRID_DEFAULT_BRAND_THEME, {
+    ...(platformThemeOverrideFromRow(row) ?? {}),
+    ...splashOverride,
+  });
 }
 
 export async function getTenantBranding(tenantId: string): Promise<TenantBranding> {
-  const [row, plan, platformTheme] = await Promise.all([
+  const [row, plan, platformTheme, tenantSplashOverride] = await Promise.all([
     db
       .select({
         tenantName: tenantsTable.name,
@@ -263,8 +365,6 @@ export async function getTenantBranding(tenantId: string): Promise<TenantBrandin
         tenantThemeLogoStoragePath: tenantThemeSettingsTable.logoStoragePath,
         tenantThemeFaviconUrl: tenantThemeSettingsTable.faviconUrl,
         tenantThemeFaviconStoragePath: tenantThemeSettingsTable.faviconStoragePath,
-        tenantThemeSplashUrl: tenantThemeSettingsTable.splashUrl,
-        tenantThemeSplashStoragePath: tenantThemeSettingsTable.splashStoragePath,
         tenantThemePrimaryColor: tenantThemeSettingsTable.primaryColor,
         tenantThemeSecondaryColor: tenantThemeSettingsTable.secondaryColor,
         tenantThemeAccentColor: tenantThemeSettingsTable.accentColor,
@@ -290,6 +390,7 @@ export async function getTenantBranding(tenantId: string): Promise<TenantBrandin
       .then((rows) => rows[0]),
     getTenantPlanSnapshot(tenantId),
     getPlatformBrandTheme(),
+    getTenantSplashOverride(tenantId),
   ]);
 
   const planAllowsCustomBranding = canTenantUseCustomBranding(plan.plan);
@@ -323,8 +424,7 @@ export async function getTenantBranding(tenantId: string): Promise<TenantBrandin
         logoStoragePath: row.tenantThemeLogoStoragePath,
         faviconUrl: row.tenantThemeFaviconUrl,
         faviconStoragePath: row.tenantThemeFaviconStoragePath,
-        splashUrl: row.tenantThemeSplashUrl,
-        splashStoragePath: row.tenantThemeSplashStoragePath,
+        ...tenantSplashOverride,
         primaryColor: row.tenantThemePrimaryColor,
         secondaryColor: row.tenantThemeSecondaryColor,
         accentColor: row.tenantThemeAccentColor,
