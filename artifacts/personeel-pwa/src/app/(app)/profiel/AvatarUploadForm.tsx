@@ -36,8 +36,11 @@ export function AvatarUploadForm({
   }, [fileName, state]);
 
   return (
-    <form action={formAction} className="flex items-center gap-4">
-      <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-[28px] bg-[#E8FBFA]">
+    <form
+      action={formAction}
+      className="flex min-w-0 flex-col items-stretch gap-4 sm:flex-row sm:items-center"
+    >
+      <div className="relative mx-auto h-24 w-24 shrink-0 overflow-hidden rounded-[28px] bg-[#E8FBFA] sm:mx-0">
         {previewUrl || avatarUrl ? (
           <img
             src={previewUrl ?? avatarUrl ?? undefined}
@@ -51,13 +54,15 @@ export function AvatarUploadForm({
         )}
       </div>
 
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-2xl font-black leading-tight text-[#081D3A]">
+      <div className="min-w-0 flex-1 text-center sm:text-left">
+        <p className="break-words text-2xl font-black leading-tight text-[#081D3A]">
           {fullName}
         </p>
-        <p className="mt-1 text-sm font-semibold text-slate-500">{subtitle}</p>
-        <div className="mt-3 flex flex-wrap items-center gap-2">
-          <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl border border-[#D8E8F3] bg-white px-3 py-2 text-xs font-black text-[#081D3A] shadow-sm">
+        <p className="mt-1 break-words text-sm font-semibold text-slate-500">
+          {subtitle}
+        </p>
+        <div className="mt-3 grid gap-2 min-[380px]:grid-cols-2 sm:flex sm:flex-wrap sm:items-center">
+          <label className="inline-flex min-h-10 cursor-pointer items-center justify-center gap-2 rounded-2xl border border-[#D8E8F3] bg-white px-3 py-2 text-xs font-black text-[#081D3A] shadow-sm sm:min-h-0">
             <Camera size={16} strokeWidth={2.4} className="text-[#009E9A]" />
             Kies foto
             <input
@@ -78,7 +83,7 @@ export function AvatarUploadForm({
           <button
             type="submit"
             disabled={isPending}
-            className="inline-flex items-center gap-1 rounded-2xl bg-[#00B7B3] px-3 py-2 text-xs font-black text-white shadow-sm disabled:opacity-60"
+            className="inline-flex min-h-10 items-center justify-center gap-1 rounded-2xl bg-[#00B7B3] px-3 py-2 text-xs font-black text-white shadow-sm disabled:opacity-60 sm:min-h-0"
           >
             {isPending ? (
               <Loader2 size={14} className="animate-spin" />
@@ -89,7 +94,7 @@ export function AvatarUploadForm({
           </button>
         </div>
         <p
-          className={`mt-2 truncate text-xs font-semibold ${
+          className={`mt-2 break-words text-xs font-semibold ${
             state?.error ? "text-red-600" : "text-slate-500"
           }`}
         >
