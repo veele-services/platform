@@ -38,13 +38,24 @@ function InfoRow({ icon: Icon, label, children }: {
   );
 }
 
-function formatDate(value: string | null) {
+function formatDate(value: Date | string | null | undefined) {
   if (!value) return "Nog niet bekend";
-  return new Date(value).toLocaleDateString("nl-NL", {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "Nog niet bekend";
+
+  return date.toLocaleDateString("nl-NL", {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
+}
+
+function textOr(value: unknown, fallback: string) {
+  return typeof value === "string" && value.trim().length > 0 ? value : fallback;
+}
+
+function internalHrefOrNull(value: unknown) {
+  return typeof value === "string" && value.startsWith("/") ? value : null;
 }
 
 function asStringArray(value: unknown): string[] {
@@ -89,11 +100,12 @@ function HistoryBadge({ entry }: { entry: ObjectHistoryEntry }) {
     media: { bg: "#F0FDFA", color: "#0F766E" },
     document: { bg: "#F1F5F9", color: "#475569" },
   };
-  const style = tone[entry.type];
+  const style = tone[entry.type as keyof typeof tone] ?? tone.document;
+  const badge = textOr(entry.badge, "Activiteit");
 
   return (
     <span className="rounded-full px-2 py-0.5 text-xs font-medium" style={{ backgroundColor: style.bg, color: style.color }}>
-      {entry.badge}
+      {badge}
     </span>
   );
 }
@@ -137,11 +149,7 @@ export function ObjectOverviewTab({ object: obj, performance, history }: Props) 
           </InfoRow>
 
           <InfoRow icon={Calendar} label="Aangemaakt">
-            {new Date(obj.createdAt).toLocaleDateString("nl-NL", {
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            })}
+            {formatDate(obj.createdAt)}
           </InfoRow>
 
           <div className="flex items-center gap-3 py-3">
@@ -255,6 +263,11 @@ export function ObjectOverviewTab({ object: obj, performance, history }: Props) 
         ) : (
           <div className="divide-y" style={{ borderColor: "#F1F5F9" }}>
             {history.slice(0, 12).map((entry) => {
+              const title = textOr(entry.title, "Activiteit");
+              const description = textOr(entry.description, "");
+              const status = textOr(entry.status, "");
+              const href = internalHrefOrNull(entry.href);
+              const entryKey = textOr(entry.id, `${title}-${entry.occurredAt ?? "unknown"}`);
               const content = (
                 <div className="flex items-start justify-between gap-4 py-3">
                   <div className="min-w-0">
@@ -263,30 +276,30 @@ export function ObjectOverviewTab({ object: obj, performance, history }: Props) 
                       <span className="text-xs" style={{ color: "#94A3B8" }}>
                         {formatDate(entry.occurredAt)}
                       </span>
-                      {entry.status && (
+                      {status && (
                         <span className="text-xs" style={{ color: "#64748B" }}>
-                          {entry.status}
+                          {status}
                         </span>
                       )}
                     </div>
                     <p className="text-sm font-medium truncate" style={{ color: "#081D3A" }}>
-                      {entry.title}
+                      {title}
                     </p>
-                    {entry.description && (
+                    {description && (
                       <p className="text-xs mt-0.5 truncate" style={{ color: "#64748B" }}>
-                        {entry.description}
+                        {description}
                       </p>
                     )}
                   </div>
                 </div>
               );
 
-              return entry.href ? (
-                <Link key={entry.id} href={entry.href} className="block hover:bg-slate-50/70 transition-colors px-1">
+              return href ? (
+                <Link key={entryKey} href={href} className="block hover:bg-slate-50/70 transition-colors px-1">
                   {content}
                 </Link>
               ) : (
-                <div key={entry.id} className="px-1">
+                <div key={entryKey} className="px-1">
                   {content}
                 </div>
               );

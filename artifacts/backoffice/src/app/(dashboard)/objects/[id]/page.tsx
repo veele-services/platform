@@ -80,6 +80,16 @@ const emptyPerformance: Awaited<ReturnType<typeof getObjectPerformance>> = {
   nextServiceDate: null,
 };
 
+function asArray<T>(value: T[] | null | undefined): T[] {
+  return Array.isArray(value) ? value : [];
+}
+
+function asPerformance(
+  value: Awaited<ReturnType<typeof getObjectPerformance>> | null | undefined,
+): Awaited<ReturnType<typeof getObjectPerformance>> {
+  return value ? { ...emptyPerformance, ...value } : emptyPerformance;
+}
+
 export async function generateMetadata({
   params,
 }: {
@@ -123,16 +133,16 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
   if (!obj) notFound();
 
   const [
-    contacts,
-    personnel,
-    personnelOptions,
-    assignments,
-    sectors,
-    customers,
-    performance,
-    history,
-    materialStock,
-    inventoryItems,
+    rawContacts,
+    rawPersonnel,
+    rawPersonnelOptions,
+    rawAssignments,
+    rawSectors,
+    rawCustomers,
+    rawPerformance,
+    rawHistory,
+    rawMaterialStock,
+    rawInventoryItems,
   ] = await Promise.all([
     safeOptional("contacts", id, () => listObjectContacts(id), []),
     safeOptional("personnel", id, () => listObjectPersonnel(id), []),
@@ -145,6 +155,17 @@ export default async function ObjectDetailPage({ params, searchParams }: Props) 
     canReadMaterials ? safeOptional("material-stock", id, () => listMaterialStockForObject(id), []) : Promise.resolve([]),
     canReadInventory ? safeOptional("inventory-items", id, () => listInventoryForObject(id), []) : Promise.resolve([]),
   ]);
+
+  const contacts         = asArray(rawContacts);
+  const personnel        = asArray(rawPersonnel);
+  const personnelOptions = asArray(rawPersonnelOptions);
+  const assignments      = asArray(rawAssignments);
+  const sectors          = asArray(rawSectors);
+  const customers        = asArray(rawCustomers);
+  const performance      = asPerformance(rawPerformance);
+  const history          = asArray(rawHistory);
+  const materialStock    = asArray(rawMaterialStock);
+  const inventoryItems   = asArray(rawInventoryItems);
 
   const counts = {
     contacten: contacts.length,
