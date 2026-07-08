@@ -98,7 +98,7 @@ export function Sidebar({
   const sidebarTextColor = branding?.sidebarTextColor ?? "#FFFFFF";
   const sidebarAccentColor = branding?.sidebarAccentColor ?? "#00B7B3";
   const displayName = whitelabel ? branding?.displayName?.trim() || "Organisatie" : "Fieldgrid";
-  const compactInitials = whitelabel ? initialsFor(displayName) : "V";
+  const compactInitials = whitelabel ? initialsFor(displayName) : "FG";
 
   return (
     <aside

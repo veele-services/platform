@@ -61,29 +61,6 @@ export async function getTenantPlanSnapshot(tenantId: string): Promise<TenantPla
     };
   }
 
-  const [latestSubscription] = await db
-    .select({ id: tenantSubscriptionsTable.id })
-    .from(tenantSubscriptionsTable)
-    .where(eq(tenantSubscriptionsTable.tenantId, tenantId))
-    .orderBy(desc(tenantSubscriptionsTable.updatedAt), desc(tenantSubscriptionsTable.createdAt))
-    .limit(1);
-
-  if (latestSubscription) {
-    const [defaultPlan] = await db
-      .select({ planId: plansTable.id, plan: plansTable.key, planName: plansTable.name })
-      .from(plansTable)
-      .where(and(eq(plansTable.key, DEFAULT_PLAN_KEY), eq(plansTable.isActive, true)))
-      .limit(1);
-
-    return {
-      tenantId,
-      planId: defaultPlan?.planId ?? null,
-      plan: defaultPlan?.plan ?? DEFAULT_PLAN_KEY,
-      planName: defaultPlan?.planName ?? "Starter",
-      source: "default",
-    };
-  }
-
   const [tenant] = await db
     .select({ plan: tenantsTable.planKey })
     .from(tenantsTable)
