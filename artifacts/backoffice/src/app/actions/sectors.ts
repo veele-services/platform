@@ -34,6 +34,10 @@ function isUniqueViolation(err: unknown): boolean {
   return (err as { code?: string })?.code === "23505";
 }
 
+function isForeignKeyViolation(err: unknown): boolean {
+  return (err as { code?: string })?.code === "23503";
+}
+
 function normalizeText(value: string | undefined): string | null {
   const trimmed = value?.trim() ?? "";
   return trimmed ? trimmed : null;
@@ -184,5 +188,45 @@ export async function updateSector(
       return { success: false, message: "Er bestaat al een sector met deze naam." };
     }
     return { success: false, message: "Sector bijwerken mislukt." };
+  }
+}
+
+export async function deleteSector(id: string): Promise<ActionResult> {
+  await requirePermission("settings", "write");
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [sector] = await db
+    .select({ id: sectorsTable.id, name: sectorsTable.name })
+    .from(sectorsTable)
+    .where(eq(sectorsTable.id, id));
+
+  if (!sector) return { success: false, message: "Sector niet gevonden." };
+
+  try {
+    await db.delete(sectorsTable).where(eq(sectorsTable.id, id));
+
+    await db.insert(auditLogTable).values({
+      userId: user.id,
+      action: "delete",
+      resource: "sectors",
+      resourceId: id,
+      metadata: { name: sector.name },
+    });
+
+    revalidateSectorConsumers();
+    return { success: true };
+  } catch (err) {
+    if (isForeignKeyViolation(err)) {
+      return {
+        success: false,
+        message: "Sector kan niet verwijderd worden omdat er nog gekoppelde gegevens bestaan. Deactiveer de sector of verwijder de koppelingen eerst.",
+      };
+    }
+    return { success: false, message: "Sector verwijderen mislukt." };
   }
 }

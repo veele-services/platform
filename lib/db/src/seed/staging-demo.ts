@@ -202,7 +202,7 @@ async function ensureSector(client: PoolClient, name: string, description: strin
     `insert into sectors (name, description, is_active)
      values ($1, $2, true)
      returning id`,
-    [name, `${description} (${SEED_MARKER})`],
+    [name, description],
   );
   return inserted.id;
 }
