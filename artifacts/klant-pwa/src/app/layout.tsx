@@ -7,7 +7,7 @@ import type { ReactNode } from "react";
 export const metadata: Metadata = {
   title: "Klantportaal",
   description: "Portaal voor klanten",
-  manifest: "/klant/manifest.json",
+  manifest: "/klant/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -31,8 +31,9 @@ export default function RootLayout({
   return (
     <html lang="nl">
       <head>
-        <link rel="icon" href="/klant/favicon.svg" sizes="any" />
-        <link rel="apple-touch-icon" href="/klant/favicon.svg" />
+        <link rel="icon" href="/klant/api/pwa/icon?size=192" sizes="any" />
+        <link rel="apple-touch-icon" href="/klant/api/pwa/icon?size=192" />
+        <link rel="apple-touch-startup-image" href="/klant/api/pwa/splash" />
         <script
           dangerouslySetInnerHTML={{
             __html: `

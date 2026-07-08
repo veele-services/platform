@@ -5,7 +5,7 @@ export const FIELDGRID_STORAGE_TENANT_ROOT = "tenant";
 export const FIELDGRID_ASSIGNMENT_MEDIA_ROOT = "assignments";
 export const FIELDGRID_BRANDING_ASSETS_ROOT = "branding";
 
-export type BrandingAssetKind = "logo" | "favicon";
+export type BrandingAssetKind = "logo" | "favicon" | "splash";
 
 export type TenantStoragePathOptions = {
   allowLegacyTenantRoot?: boolean;

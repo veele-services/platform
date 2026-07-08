@@ -7,7 +7,7 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Personeelsapp",
   description: "Personeelsapp voor uitvoerend personeel",
-  manifest: "/personeel/manifest.json",
+  manifest: "/personeel/manifest.webmanifest",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
@@ -31,8 +31,9 @@ export default function RootLayout({
   return (
     <html lang="nl">
       <head>
-        <link rel="icon" href="/personeel/favicon.ico" sizes="any" />
-        <link rel="apple-touch-icon" href="/personeel/icon-192.png" />
+        <link rel="icon" href="/personeel/api/pwa/icon?size=192" sizes="any" />
+        <link rel="apple-touch-icon" href="/personeel/api/pwa/icon?size=192" />
+        <link rel="apple-touch-startup-image" href="/personeel/api/pwa/splash" />
         <script
           dangerouslySetInnerHTML={{
             __html: `
