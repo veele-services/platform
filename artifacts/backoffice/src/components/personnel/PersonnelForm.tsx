@@ -20,6 +20,7 @@ import {
 } from "@/components/ui/select";
 import { TagInput } from "@/components/ui/tag-input";
 import { RegionMultiSelect } from "@/components/regions/RegionMultiSelect";
+import { formatPersonnelRoleName } from "@/lib/personnel-role-labels";
 import {
   getPersonnel,
   createPersonnel,
@@ -340,7 +341,7 @@ export function PersonnelForm({
               <SelectContent>
                 <SelectItem value="NONE">— Geen rol —</SelectItem>
                 {roles.map((r) => (
-                  <SelectItem key={r.id} value={r.id}>{r.name}</SelectItem>
+                  <SelectItem key={r.id} value={r.id}>{formatPersonnelRoleName(r.name)}</SelectItem>
                 ))}
               </SelectContent>
             </Select>
@@ -404,19 +405,19 @@ export function PersonnelForm({
       {/* ── Availability & Regions ─────────────────────── */}
       <section>
         <p className="text-xs font-semibold uppercase tracking-wider mb-3" style={{ color: "#64748B" }}>
-          Beschikbaarheid &amp; Regio&apos;s
+          Beschikbaarheid &amp; branches
         </p>
         <div className="flex flex-col gap-4">
           <div className="space-y-1">
-            <Label>Regio&apos;s</Label>
+            <Label>Branches / regio&apos;s</Label>
             <RegionMultiSelect
               value={regionNames}
               onChange={setRegionNames}
               options={regionOptions}
-              placeholder="Selecteer of maak regio's..."
+              placeholder="Selecteer of maak branches..."
             />
             <p className="text-xs" style={{ color: "#94A3B8" }}>
-              De eerste geselecteerde regio wordt de primaire regio; extra regio&apos;s blijven beschikbaar voor planning.
+              De eerste selectie wordt de primaire branch/regio; extra branches blijven beschikbaar voor planning.
             </p>
           </div>
 

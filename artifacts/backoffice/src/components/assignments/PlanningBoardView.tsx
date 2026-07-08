@@ -25,6 +25,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { TenantDetailDrawer, TenantFilterDrawer } from "@/components/tenant-ui";
+import { formatPersonnelRoleName } from "@/lib/personnel-role-labels";
 import {
   Tooltip,
   TooltipContent,
@@ -1148,7 +1149,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                       <div className="mt-2 flex flex-wrap gap-1">
                         {assignment.requirements.requiredRoleNames.slice(0, 2).map((role) => (
                           <span key={role} className="rounded border px-1.5 py-0.5 text-[10px]" style={{ borderColor: "#E2E8F0", color: "#64748B" }}>
-                            {role}
+                            {formatPersonnelRoleName(role)}
                           </span>
                         ))}
                         {assignment.requiredSlots > 1 && (
@@ -1432,8 +1433,8 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                   <TooltipContent side="right" className="max-w-[280px] space-y-2 rounded-xl border bg-white p-3 text-xs shadow-xl" style={{ color: "#334155" }}>
                                     <p className="font-semibold" style={{ color: "#081D3A" }}>{person.lastName}, {person.firstName}</p>
                                     <p><span className="font-medium">Beschikbaarheid:</span> {availability.label}{person.availabilityWindow ? ` · ${person.availabilityWindow.startTime}-${person.availabilityWindow.endTime}` : ""}</p>
-                                    <p><span className="font-medium">Regio's:</span> {[person.region, ...person.preferredRegions].filter(Boolean).join(", ") || "Geen regio"}</p>
-                                    <p><span className="font-medium">Diensten:</span> {person.sectorName ?? person.roleName ?? "Niet ingesteld"}</p>
+                                    <p><span className="font-medium">Branches/regio's:</span> {[person.region, ...person.preferredRegions].filter(Boolean).join(", ") || "Geen branch/regio"}</p>
+                                    <p><span className="font-medium">Diensten:</span> {person.sectorName ?? (formatPersonnelRoleName(person.roleName) || "Niet ingesteld")}</p>
                                   </TooltipContent>
                                 </Tooltip>
                               </div>
@@ -1659,7 +1660,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                 <DetailLine label="Klant" value={detailAssignment.customerName} />
                 <DetailLine label="Object" value={detailAssignment.objectName ?? "Geen object gekoppeld"} />
                 <DetailLine label="Sector" value={detailAssignment.sectorName ?? "Geen sector"} />
-                <DetailLine label="Regio" value={detailAssignment.requiredRegion ?? "Geen regio-eis"} />
+                                <DetailLine label="Branch/regio" value={detailAssignment.requiredRegion ?? "Geen branch/regio-eis"} />
                 <DetailLine label="Tijd" value={`${formatShortDate(detailAssignment.scheduledDate ?? data.date)} - ${workOrderTimeLabel(detailAssignment)}`} />
                 <DetailLine label="Bezetting" value={slotLabel(detailAssignment.filledSlots, detailAssignment.requiredSlots)} />
               </div>
@@ -1670,7 +1671,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                   {detailAssignment.requirements.requiredRoleNames.length > 0 ? (
                     detailAssignment.requirements.requiredRoleNames.map((role) => (
                       <span key={role} className="rounded-full border border-border bg-background px-2.5 py-1 font-medium">
-                        {role}
+                        {formatPersonnelRoleName(role)}
                       </span>
                     ))
                   ) : (
@@ -1712,7 +1713,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                 {person ? `${person.firstName} ${person.lastName}` : "Onbekende medewerker"}
                               </p>
                               <p className="mt-1 text-xs text-muted-foreground">
-                                {person?.roleName ?? "Geen rol"}{person?.region ? ` - ${person.region}` : ""}
+                                {formatPersonnelRoleName(person?.roleName) || "Geen rol"}{person?.region ? ` - ${person.region}` : ""}
                               </p>
                             </div>
                             <span className="rounded-full border px-2 py-1 text-xs font-semibold" style={{ borderColor: config.border, background: config.bg, color: config.text }}>

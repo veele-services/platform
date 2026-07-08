@@ -58,9 +58,9 @@ export function RegionMultiSelect({
   value,
   onChange,
   options,
-  label = "Regio's",
-  placeholder = "Selecteer of maak regio...",
-  emptyLabel = "Geen regio's gevonden.",
+  label = "Branches/regio's",
+  placeholder = "Selecteer of maak branch/regio...",
+  emptyLabel = "Geen branches/regio's gevonden.",
   className,
   disabled = false,
 }: RegionMultiSelectProps) {
@@ -110,7 +110,7 @@ export function RegionMultiSelect({
             className="min-h-9 w-full justify-between px-3 py-2 text-left font-normal"
           >
             <span className={cn("truncate", !selected.length && "text-muted-foreground")}>
-              {selected.length ? `${selected.length} regio${selected.length === 1 ? "" : "'s"} geselecteerd` : placeholder}
+              {selected.length ? `${selected.length} branch/regio${selected.length === 1 ? "" : "'s"} geselecteerd` : placeholder}
             </span>
             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
           </Button>
@@ -120,7 +120,7 @@ export function RegionMultiSelect({
             <CommandInput
               value={query}
               onValueChange={setQuery}
-              placeholder="Zoek of typ nieuwe regio..."
+              placeholder="Zoek of typ nieuwe branch/regio..."
             />
             <CommandList>
               <CommandEmpty>{emptyLabel}</CommandEmpty>
@@ -137,7 +137,7 @@ export function RegionMultiSelect({
                 {canCreate && (
                   <CommandItem value={cleanQuery} onSelect={() => toggle(cleanQuery)}>
                     <Plus className="h-4 w-4" />
-                    <span className="truncate">Nieuwe regio: {cleanQuery}</span>
+                    <span className="truncate">Nieuwe branch/regio: {cleanQuery}</span>
                   </CommandItem>
                 )}
               </CommandGroup>

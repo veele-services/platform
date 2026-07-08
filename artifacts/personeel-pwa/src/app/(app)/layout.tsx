@@ -83,6 +83,13 @@ export default async function AppLayout({
     isTenantModuleEnabled(tenantId, "releases"),
   ]);
 
+  if (!personnel) {
+    redirect(
+      "/login?error=" +
+        encodeURIComponent("Log in om de personeelsapp te gebruiken."),
+    );
+  }
+
   const featureFlags = {
     documents: documentsEnabled,
     notifications: notificationsEnabled,
@@ -93,7 +100,7 @@ export default async function AppLayout({
   const releaseHighlight = releasesEnabled ? await getPersonnelReleaseHighlight() : null;
 
   return (
-    <PersonnelRealtimeOfflineProvider personnelId={personnel?.id ?? null}>
+    <PersonnelRealtimeOfflineProvider personnelId={personnel.id}>
       <div
         className="flex min-h-screen"
         style={{ ...brandingStyle, backgroundColor: "var(--color-muted)" }}
@@ -106,7 +113,7 @@ export default async function AppLayout({
             notificationSummary={notificationSummary}
             ticketSummary={ticketSummary}
           />
-          <NativePushTokenSync enabled={personnel?.notificationPushEnabled ?? false} />
+          <NativePushTokenSync enabled={personnel.notificationPushEnabled ?? false} />
           <ReleaseHighlightBanner highlight={releaseHighlight} />
 
           <main className="flex-1 pb-[calc(5.2rem+var(--safe-bottom))] md:pb-0">

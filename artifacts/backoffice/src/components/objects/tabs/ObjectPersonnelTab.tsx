@@ -11,6 +11,7 @@ import {
   Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList,
 } from "@/components/ui/command";
 import { cn } from "@/lib/utils";
+import { formatPersonnelRoleName } from "@/lib/personnel-role-labels";
 import {
   linkObjectPersonnel,
   unlinkObjectPersonnel,
@@ -106,7 +107,7 @@ export function ObjectPersonnelTab({ objectId, personnel: initialPersonnel, opti
                         <div className="flex flex-col min-w-0">
                           <span className="text-sm truncate">{o.firstName} {o.lastName}</span>
                           <span className="text-xs" style={{ color: "#94A3B8" }}>
-                            {o.code}{o.roleName ? ` - ${o.roleName}` : ""}
+                            {o.code}{o.roleName ? ` - ${formatPersonnelRoleName(o.roleName)}` : ""}
                           </span>
                         </div>
                       </CommandItem>
@@ -158,7 +159,7 @@ export function ObjectPersonnelTab({ objectId, personnel: initialPersonnel, opti
                     </span>
                   </td>
                   <td className="px-5 py-3 text-sm" style={{ color: "#64748B" }}>
-                    {p.roleName ?? "-"}
+                    {formatPersonnelRoleName(p.roleName) || "-"}
                   </td>
                   <td className="px-5 py-3 text-sm" style={{ color: "#64748B" }}>
                     <span className="font-medium" style={{ color: "#081D3A" }}>{p.assignmentCount}</span>

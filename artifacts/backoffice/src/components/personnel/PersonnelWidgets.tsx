@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Zap, Users2, Award, ArrowRight } from "lucide-react";
 import type { FlexpoolRow, CapacityByRoleRow, PersonnelStats } from "@/app/actions/personnel";
+import { formatPersonnelRoleName } from "@/lib/personnel-role-labels";
 import {
   PERSONNEL_TYPE_LABELS,
   PERSONNEL_TYPE_COLORS,
@@ -59,7 +60,7 @@ function FlexpoolWidget({ rows }: { rows: FlexpoolRow[] }) {
                       {r.firstName} {r.lastName}
                     </p>
                     <p className="text-xs truncate" style={{ color: "#94A3B8" }}>
-                      {r.roleName ?? "—"}{r.region ? ` · ${r.region}` : ""}
+                      {formatPersonnelRoleName(r.roleName) || "—"}{r.region ? ` · ${r.region}` : ""}
                     </p>
                   </div>
                   {typeLabel && typeColor && (
@@ -130,7 +131,7 @@ function CapacityWidget({ rows }: { rows: CapacityByRoleRow[] }) {
               <div key={r.roleId}>
                 <div className="flex items-center justify-between mb-1">
                   <span className="text-xs font-medium truncate" style={{ color: "#475569" }}>
-                    {r.roleName}
+                    {formatPersonnelRoleName(r.roleName)}
                   </span>
                   <span className="text-xs flex-shrink-0 ml-2" style={{ color: "#94A3B8" }}>
                     {r.availableToday}/{r.total}
