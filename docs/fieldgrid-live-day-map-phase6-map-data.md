@@ -54,12 +54,11 @@ Fase 6 mag niet:
 
 - assignments bijwerken;
 - assignment_personnel wijzigen;
-- routecontexten herberekenen;
 - routeproviders aanroepen;
 - provider metadata of secrets expose-en;
 - UI-componenten of MapLibre laden.
 
-Fase 6 mag alleen bestaande, tenant-scoped planning- en routecontextdata lezen en normaliseren.
+Fase 6 mag alleen tenant-scoped planning- en routecontextdata lezen, normaliseren en ontbrekende of stale routecontexten vernieuwen voordat de kaartdata wordt opgebouwd.
 
 ## Verificatie
 
