@@ -5,7 +5,6 @@ import {
   AlertTriangle,
   Bell,
   Building2,
-  Clock3,
   CreditCard,
   ExternalLink,
   LifeBuoy,
@@ -431,19 +430,20 @@ function DashboardMetricCard({ metric }: { metric: DashboardMetric }) {
   return (
     <Link
       href={metric.href}
-      className="group rounded border border-slate-200 bg-white px-3.5 py-3 transition hover:border-slate-300 hover:bg-slate-50"
+      className="group rounded-lg border border-slate-200 bg-white px-3 py-2.5 transition hover:border-slate-300 hover:bg-slate-50"
+      title={metric.detail}
     >
       <div className="flex items-start gap-3">
-        <span className={`mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded border ${dashboardToneClasses(metric.tone)}`}>
+        <span className={`mt-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-md border ${dashboardToneClasses(metric.tone)}`}>
           <Icon className="size-3.5" aria-hidden="true" />
         </span>
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">
-            <p className={`text-xl font-semibold leading-6 tracking-normal ${metricValueClass(metric.tone)}`}>{metric.value}</p>
+            <p className={`text-lg font-semibold leading-6 tracking-normal ${metricValueClass(metric.tone)}`}>{metric.value}</p>
             <ExternalLink className="mt-0.5 size-3.5 shrink-0 text-slate-300 transition group-hover:text-slate-500" aria-hidden="true" />
           </div>
           <p className="mt-0.5 truncate text-sm font-medium text-slate-900">{metric.label}</p>
-          <p className="mt-0.5 line-clamp-1 text-xs leading-5 text-slate-500">{metric.detail}</p>
+          <p className="mt-0.5 line-clamp-1 text-xs leading-4 text-slate-500">{metric.detail}</p>
         </div>
       </div>
     </Link>
@@ -452,29 +452,39 @@ function DashboardMetricCard({ metric }: { metric: DashboardMetric }) {
 
 function DashboardActionList({ actions }: { actions: DashboardAction[] }) {
   return (
-    <section className="rounded border border-slate-200 bg-white p-4">
+    <section className="rounded-lg border border-slate-200 bg-white p-4">
       <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
         <div>
           <h2 className="text-base font-semibold tracking-normal">Actielijst</h2>
-          <p className="mt-1 text-xs text-slate-500">Onboarding, domeinen, abonnementen, support en smoke checks.</p>
+          <p className="mt-1 text-xs text-slate-500">Compact overzicht. Details staan per actie ingeklapt.</p>
         </div>
         <span className="rounded bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">{actions.length}</span>
       </div>
       <div className="divide-y divide-slate-100">
         {actions.length > 0 ? (
           actions.map((action) => (
-            <Link key={action.id} href={action.href} className="group flex items-start justify-between gap-4 py-3">
+            <div key={action.id} className="grid gap-2 py-2.5">
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className={`rounded border px-2 py-0.5 text-[11px] font-medium ${dashboardToneClasses(action.tone)}`}>
                     {action.meta}
                   </span>
-                  <p className="font-medium text-slate-950">{action.label}</p>
+                  <Link href={action.href} className="font-medium text-slate-950 underline-offset-2 hover:underline">
+                    {action.label}
+                  </Link>
                 </div>
-                <p className="mt-1 text-sm leading-5 text-slate-500">{action.detail}</p>
+                <details className="group/details mt-1">
+                  <summary className="cursor-pointer list-none text-xs font-medium text-slate-500 hover:text-slate-800">
+                    Details
+                    <span className="ml-1 text-slate-300 group-open/details:hidden">+</span>
+                    <span className="ml-1 hidden text-slate-300 group-open/details:inline">-</span>
+                  </summary>
+                  <p className="mt-2 rounded-md bg-slate-50 p-2 text-xs leading-5 text-slate-600 break-words">
+                    {action.detail}
+                  </p>
+                </details>
               </div>
-              <ExternalLink className="mt-1 size-4 shrink-0 text-slate-300 transition group-hover:text-slate-500" aria-hidden="true" />
-            </Link>
+            </div>
           ))
         ) : (
           <div className="py-6 text-sm text-slate-500">Geen directe acties gevonden.</div>
@@ -486,7 +496,7 @@ function DashboardActionList({ actions }: { actions: DashboardAction[] }) {
 
 function RecentAuditEvents({ events }: { events: PlatformSecurityEventRow[] }) {
   return (
-    <section className="rounded border border-slate-200 bg-white p-4">
+    <section className="rounded-lg border border-slate-200 bg-white p-4">
       <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
         <div>
           <h2 className="text-base font-semibold tracking-normal">Recente audit-events</h2>
@@ -521,7 +531,7 @@ function RecentAuditEvents({ events }: { events: PlatformSecurityEventRow[] }) {
 
 function RecentTicketsAndNotifications() {
   return (
-    <section className="rounded border border-slate-200 bg-white p-4">
+    <section className="rounded-lg border border-slate-200 bg-white p-4">
       <div className="border-b border-slate-100 pb-3">
         <h2 className="text-base font-semibold tracking-normal">Tickets en meldingen</h2>
         <p className="mt-1 text-xs text-slate-500">Routes staan klaar; centrale platform-inbox volgt in de ticket- en notificatiefase.</p>
@@ -558,7 +568,7 @@ function RecentTicketsAndNotifications() {
 
 function LatestPlatformRelease({ release }: { release: ReleaseSummary | null }) {
   return (
-    <section className="rounded border border-slate-200 bg-white p-4">
+    <section className="rounded-lg border border-slate-200 bg-white p-4">
       <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
         <div>
           <h2 className="text-base font-semibold tracking-normal">Laatste release</h2>
@@ -620,11 +630,11 @@ function QuickTenantLinks({
   const quickLinks = quickTenantLinks(tenants, signals);
 
   return (
-    <section className="rounded border border-slate-200 bg-white p-4">
+    <section className="rounded-lg border border-slate-200 bg-white p-4">
       <div className="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
         <div>
           <h2 className="text-base font-semibold tracking-normal">Snelle tenantlinks</h2>
-          <p className="mt-1 text-xs text-slate-500">Eerst tenants met open acties, daarna trial en actieve tenants.</p>
+          <p className="mt-1 text-xs text-slate-500">Prioriteit op open acties, trial en actieve tenants.</p>
         </div>
         <Link href="/platform/tenants" className="text-sm font-medium text-slate-700 underline-offset-2 hover:underline">
           Alles
@@ -632,10 +642,10 @@ function QuickTenantLinks({
       </div>
       <div className="divide-y divide-slate-100">
         {quickLinks.map((tenant) => (
-          <Link key={tenant.id} href={`/platform/tenants/${tenant.id}`} className="group flex items-center justify-between gap-4 py-3">
+          <Link key={tenant.id} href={`/platform/tenants/${tenant.id}`} className="group flex items-center justify-between gap-4 py-2.5">
             <div className="min-w-0">
               <p className="truncate font-medium text-slate-950">{tenant.name}</p>
-              <p className="truncate text-sm text-slate-500">
+              <p className="truncate text-xs text-slate-500">
                 {tenant.slug} · {tenant.planKey} · {tenant.status}
               </p>
             </div>
@@ -770,7 +780,6 @@ function PlatformDashboardOverview({
   latestRelease: ReleaseSummary | null;
 }) {
   const activeTenants = tenants.filter((tenant) => tenant.isActive && ["trial", "active"].includes(tenant.status)).length;
-  const trialTenants = tenants.filter((tenant) => tenant.status === "trial").length;
   const suspendedTenants = tenants.filter((tenant) => tenant.status === "suspended").length;
   const activeSupportGrants = supportGrants.filter((grant) => supportGrantStatus(grant) === "Actief").length;
   const blockedSmokeChecks = smokeDashboard.checks.filter((check) => check.status === "blocked").length;
@@ -788,28 +797,12 @@ function PlatformDashboardOverview({
       tone: "good",
     },
     {
-      label: "Tenants in trial",
-      value: trialTenants,
-      detail: "Trial tenants die opvolging of conversie nodig kunnen hebben.",
-      href: "/platform/tenants",
-      icon: Clock3,
-      tone: trialTenants > 0 ? "warning" : "neutral",
-    },
-    {
       label: "Suspended tenants",
       value: suspendedTenants,
       detail: "Geblokkeerde of gepauzeerde klantomgevingen.",
       href: "/platform/tenants",
       icon: AlertTriangle,
       tone: suspendedTenants > 0 ? "danger" : "good",
-    },
-    {
-      label: "Open platformtickets",
-      value: 0,
-      detail: "Ticketdatabron volgt; route is beschikbaar.",
-      href: "/platform/tickets",
-      icon: Ticket,
-      tone: "neutral",
     },
     {
       label: "Actieve support grants",
@@ -836,14 +829,6 @@ function PlatformDashboardOverview({
       tone: signals.pastDueSubscriptions.total > 0 ? "danger" : "good",
     },
     {
-      label: "Platformmeldingen",
-      value: 0,
-      detail: "Notificatie-inbox wordt in een volgende fase gekoppeld.",
-      href: "/platform/notifications",
-      icon: Bell,
-      tone: "neutral",
-    },
-    {
       label: "Smoke status",
       value: dashboardStatusLabel(smokeDashboard.finalExternalTenantGate.status),
       detail: `${blockedSmokeChecks} geblokkeerd, ${warningSmokeChecks} aandachtspunt(en).`,
@@ -855,7 +840,7 @@ function PlatformDashboardOverview({
 
   return (
     <section className="grid gap-4">
-      <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3 2xl:grid-cols-6">
         {metrics.map((metric) => (
           <DashboardMetricCard key={metric.label} metric={metric} />
         ))}
@@ -905,12 +890,12 @@ export default async function PlatformAdminPage({ searchParams }: Props) {
   ]);
 
   return (
-    <main className="platform-page min-h-screen bg-slate-50 px-4 py-6 text-slate-950 sm:px-6 lg:px-8">
-      <div className="mx-auto flex w-full max-w-7xl flex-col gap-8">
-        <header className="flex flex-col gap-4 border-b border-slate-200 pb-5 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex flex-col gap-2">
-            <p className="text-sm font-medium text-slate-500">Fieldgrid</p>
-            <h1 className="text-3xl font-semibold tracking-normal">Platformbeheer</h1>
+    <main className="platform-page min-h-screen bg-slate-50 px-4 py-5 text-slate-950 sm:px-6 lg:px-8">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-5">
+        <header className="flex flex-col gap-3 border-b border-slate-200 pb-4 sm:flex-row sm:items-end sm:justify-between">
+          <div className="flex flex-col gap-1">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Fieldgrid platform</p>
+            <h1 className="text-2xl font-semibold tracking-normal">Platformbeheer</h1>
             {!isPlatformAdmin && (
               <p className="text-sm text-slate-500">
                 Je ziet alleen supportgrants die expliciet aan jouw platformgebruiker zijn toegekend.
