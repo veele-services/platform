@@ -431,18 +431,20 @@ function DashboardMetricCard({ metric }: { metric: DashboardMetric }) {
   return (
     <Link
       href={metric.href}
-      className="group flex min-h-36 flex-col justify-between rounded border border-slate-200 bg-white p-4 transition hover:border-slate-300 hover:shadow-sm"
+      className="group rounded border border-slate-200 bg-white px-3.5 py-3 transition hover:border-slate-300 hover:bg-slate-50"
     >
-      <div className="flex items-start justify-between gap-3">
-        <span className={`inline-flex size-9 items-center justify-center rounded border ${dashboardToneClasses(metric.tone)}`}>
-          <Icon className="size-4" aria-hidden="true" />
+      <div className="flex items-start gap-3">
+        <span className={`mt-0.5 inline-flex size-8 shrink-0 items-center justify-center rounded border ${dashboardToneClasses(metric.tone)}`}>
+          <Icon className="size-3.5" aria-hidden="true" />
         </span>
-        <ExternalLink className="size-4 text-slate-300 transition group-hover:text-slate-500" aria-hidden="true" />
-      </div>
-      <div>
-        <p className={`mt-5 text-2xl font-semibold tracking-normal ${metricValueClass(metric.tone)}`}>{metric.value}</p>
-        <p className="mt-1 text-sm font-medium text-slate-900">{metric.label}</p>
-        <p className="mt-1 text-xs leading-5 text-slate-500">{metric.detail}</p>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-2">
+            <p className={`text-xl font-semibold leading-6 tracking-normal ${metricValueClass(metric.tone)}`}>{metric.value}</p>
+            <ExternalLink className="mt-0.5 size-3.5 shrink-0 text-slate-300 transition group-hover:text-slate-500" aria-hidden="true" />
+          </div>
+          <p className="mt-0.5 truncate text-sm font-medium text-slate-900">{metric.label}</p>
+          <p className="mt-0.5 line-clamp-1 text-xs leading-5 text-slate-500">{metric.detail}</p>
+        </div>
       </div>
     </Link>
   );
@@ -853,7 +855,7 @@ function PlatformDashboardOverview({
 
   return (
     <section className="grid gap-4">
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      <div className="grid gap-2.5 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
         {metrics.map((metric) => (
           <DashboardMetricCard key={metric.label} metric={metric} />
         ))}
