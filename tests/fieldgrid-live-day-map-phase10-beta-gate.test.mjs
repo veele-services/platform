@@ -14,6 +14,7 @@ test("phase 10 keeps live day map beta-gated and preserves planning views", () =
   const featureFlag = read("artifacts/backoffice/src/lib/planning/day-map-feature.ts");
   const layout = read("artifacts/backoffice/src/app/(dashboard)/layout.tsx");
   const sidebar = read("artifacts/backoffice/src/components/layout/Sidebar.tsx");
+  const header = read("artifacts/backoffice/src/components/layout/DashboardHeader.tsx");
 
   assert.match(featureFlag, /FIELDGRID_PLANNING_DAY_MAP_ENABLED/);
   assert.match(featureFlag, /betaEnvironmentValues/);
@@ -28,6 +29,7 @@ test("phase 10 keeps live day map beta-gated and preserves planning views", () =
   assert.match(sidebar, /feature: "planning-map"/);
   assert.match(sidebar, /useSearchParams/);
   assert.match(sidebar, /href === "\/planning" && searchParams\.get\("view"\) === "map"/);
+  assert.match(header, /searchParams\.get\("view"\) === "map"\) return "Kaart"/);
   assert.match(page, /PlanningBoardView/);
   assert.match(page, /PlanningDayView/);
   assert.match(page, /PlanningMonthView/);
@@ -73,7 +75,7 @@ test("phase 10 map UI avoids fixed-width overflow and lazy-loads MapLibre", () =
   assert.match(mapView, /overflow-hidden/);
   assert.match(mapView, /w-full overflow-y-auto sm:max-w-xl/);
   assert.match(mapView, /max-h-\[390px\]/);
-  assert.match(mapView, /min-h-\[420px\]/);
+  assert.match(mapView, /min-h-\[520px\]/);
   assert.match(mapView, /await import\("maplibre-gl"\)/);
   assert.doesNotMatch(mapView, /min-w-\[/);
 });

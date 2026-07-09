@@ -48,6 +48,15 @@ function todayKey(): string {
   return dateKey(new Date());
 }
 
+function formatDate(value: string): string {
+  return new Intl.DateTimeFormat("nl-NL", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  }).format(new Date(`${value}T00:00:00`));
+}
+
 interface Props {
   searchParams: Promise<{
     week?: string;
@@ -124,7 +133,7 @@ export default async function PlanningPage({ searchParams }: Props) {
     return (
       <TenantPageShell size="wide" className="max-w-[1800px]">
         <TenantWorkbenchPanel className="border-0 bg-transparent shadow-none">
-          <PlanningMapView data={mapData} canApplySuggestions={canWrite} />
+          <PlanningMapView data={mapData} canApplySuggestions={canWrite} dateLabel={formatDate(mapData.date)} />
         </TenantWorkbenchPanel>
       </TenantPageShell>
     );

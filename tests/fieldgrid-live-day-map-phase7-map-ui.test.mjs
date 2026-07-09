@@ -45,6 +45,9 @@ test("phase 7 map UI exposes marker, route, warning and detail surfaces", () => 
   assert.match(mapView, /<svg viewBox="0 0 24 24"/);
   assert.match(mapView, /markerPopupHtml/);
   assert.match(mapView, /mouseenter/);
+  assert.match(mapView, /pointerenter/);
+  assert.match(mapView, /dateLabel/);
+  assert.match(mapView, /min-h-\[520px\]/);
   assert.match(mapView, /Adresgegevens/);
   assert.match(mapView, /Opdrachtinformatie/);
   assert.doesNotMatch(mapView, />Routecontext</);

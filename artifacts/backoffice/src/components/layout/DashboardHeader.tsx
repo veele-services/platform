@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { FormEvent, useMemo, useState } from "react";
 import {
   ChevronDown,
@@ -54,8 +54,9 @@ const ROUTE_TITLES: Array<{ prefix: string; title: string }> = [
   { prefix: "/profile", title: "Profiel" },
 ];
 
-function titleForPath(pathname: string): string {
+function titleForPath(pathname: string, searchParams: URLSearchParams): string {
   if (pathname === "/") return "Dashboard";
+  if (pathname === "/planning" && searchParams.get("view") === "map") return "Kaart";
   return ROUTE_TITLES.find((route) => pathname.startsWith(route.prefix))?.title ?? "Dashboard";
 }
 
@@ -81,11 +82,12 @@ export function DashboardHeader({
   tenantOptions,
 }: DashboardHeaderProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const router = useRouter();
   const { toggle, collapsed, toggleCollapsed } = useSidebar();
   const [query, setQuery] = useState("");
 
-  const title = useMemo(() => titleForPath(pathname), [pathname]);
+  const title = useMemo(() => titleForPath(pathname, searchParams), [pathname, searchParams]);
   const target = useMemo(() => searchTargetForPath(pathname), [pathname]);
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
