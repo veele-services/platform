@@ -1448,6 +1448,7 @@ export async function getPersonnelEligibilityForAssignment(
 
 export type AssignmentPlanningReadiness = {
   hasMoment: boolean;
+  hasPlannedDate: boolean;
   requiredSlots: number;
   eligibleCount: number;
   fullyAvailableCount: number;
@@ -1468,6 +1469,8 @@ export type AssignmentPlanningReadiness = {
     name: string;
     sectorName: string | null;
     availabilityStatus: AvailabilityStatus;
+    assignmentLinkStatus: string | null;
+    interestStatus: SmartPlanningInterestResponseStatus | null;
     reasons: string[];
     matchScore: number;
     positives: string[];
@@ -1478,6 +1481,8 @@ export type AssignmentPlanningReadiness = {
     name: string;
     sectorName: string | null;
     hardStatus: "eligible" | "warning" | "blocked";
+    assignmentLinkStatus: string | null;
+    interestStatus: SmartPlanningInterestResponseStatus | null;
     matchScore: number;
     reasons: string[];
     positives: string[];
@@ -1550,6 +1555,7 @@ export async function getAssignmentPlanningReadiness(
   if (!canRead) {
     return {
       hasMoment: false,
+      hasPlannedDate: false,
       requiredSlots: 1,
       eligibleCount: 0,
       fullyAvailableCount: 0,
@@ -1570,7 +1576,7 @@ export async function getAssignmentPlanningReadiness(
     };
   }
 
-  const [[assignment], capacity, links] = await Promise.all([
+  const [[assignment], capacity, links, interestResponses] = await Promise.all([
     db
       .select({
         status: assignmentsTable.status,
@@ -1583,14 +1589,27 @@ export async function getAssignmentPlanningReadiness(
       .limit(1),
     calculateAssignmentCapacity(assignmentId, { persist: true }),
     db
-      .select({ status: assignmentPersonnelTable.status })
+      .select({
+        personnelId: assignmentPersonnelTable.personnelId,
+        status: assignmentPersonnelTable.status,
+      })
       .from(assignmentPersonnelTable)
       .where(eq(assignmentPersonnelTable.assignmentId, assignmentId)),
+    db
+      .select({
+        personnelId: assignmentInterestResponsesTable.personnelId,
+        status: assignmentInterestResponsesTable.status,
+        createdAt: assignmentInterestResponsesTable.createdAt,
+      })
+      .from(assignmentInterestResponsesTable)
+      .where(eq(assignmentInterestResponsesTable.assignmentId, assignmentId))
+      .orderBy(desc(assignmentInterestResponsesTable.createdAt)),
   ]);
 
   if (!capacity) {
     return {
       hasMoment: false,
+      hasPlannedDate: false,
       requiredSlots: 1,
       eligibleCount: 0,
       fullyAvailableCount: 0,
@@ -1616,6 +1635,7 @@ export async function getAssignmentPlanningReadiness(
     assignment.scheduledStart &&
     assignment.scheduledEnd,
   );
+  const hasPlannedDate = Boolean(assignment?.scheduledDate);
   const eligible = capacity.candidates.filter((person) => person.eligible);
   const fullyAvailable = capacity.candidates.filter((person) => person.available);
   const warningCount = capacity.candidates.filter(
@@ -1626,6 +1646,18 @@ export async function getAssignmentPlanningReadiness(
   ).length;
   const assignedCount = links.filter((link) => link.status === "assigned").length;
   const suggestedCount = links.filter((link) => link.status === "suggested").length;
+  const linkStatusByPersonnelId = new Map(
+    links.map((link) => [link.personnelId, link.status]),
+  );
+  const interestStatusByPersonnelId = new Map<string, SmartPlanningInterestResponseStatus>();
+  for (const response of interestResponses) {
+    if (!interestStatusByPersonnelId.has(response.personnelId)) {
+      interestStatusByPersonnelId.set(
+        response.personnelId,
+        response.status as SmartPlanningInterestResponseStatus,
+      );
+    }
+  }
   const pollableStatuses: AssignmentStatus[] = [
     "requested",
     "review",
@@ -1635,6 +1667,7 @@ export async function getAssignmentPlanningReadiness(
 
   return {
     hasMoment,
+    hasPlannedDate,
     requiredSlots: capacity.requiredSlots,
     eligibleCount: eligible.length,
     fullyAvailableCount: fullyAvailable.length,
@@ -1658,6 +1691,8 @@ export async function getAssignmentPlanningReadiness(
       name: `${person.firstName} ${person.lastName}`.trim(),
       sectorName: person.sectorName,
       availabilityStatus: "beschikbaar" as AvailabilityStatus,
+      assignmentLinkStatus: linkStatusByPersonnelId.get(person.personnelId) ?? null,
+      interestStatus: interestStatusByPersonnelId.get(person.personnelId) ?? null,
       reasons: person.reasons.map((reason) => reason.label),
       matchScore: person.matchScore,
       positives: person.positives,
@@ -1668,6 +1703,8 @@ export async function getAssignmentPlanningReadiness(
       name: `${person.firstName} ${person.lastName}`.trim(),
       sectorName: person.sectorName,
       hardStatus: person.hardStatus,
+      assignmentLinkStatus: linkStatusByPersonnelId.get(person.personnelId) ?? null,
+      interestStatus: interestStatusByPersonnelId.get(person.personnelId) ?? null,
       matchScore: person.matchScore,
       reasons: person.reasons.map((reason) => reason.label),
       positives: person.positives,

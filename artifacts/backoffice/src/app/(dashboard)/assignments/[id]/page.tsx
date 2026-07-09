@@ -162,6 +162,77 @@ type AssignmentDetail = NonNullable<Awaited<ReturnType<typeof getAssignment>>>;
 type PlanningReadiness = NonNullable<Awaited<ReturnType<typeof getAssignmentPlanningReadiness>>>;
 type InterestRounds = Awaited<ReturnType<typeof listAssignmentInterestRounds>>;
 
+type PlanningPersonState = {
+  label: string;
+  bg: string;
+  text: string;
+  border: string;
+};
+
+function getPlanningPersonState(
+  person: {
+    assignmentLinkStatus: string | null;
+    interestStatus: string | null;
+  },
+  hasPlannedDate: boolean,
+): PlanningPersonState | null {
+  if (person.assignmentLinkStatus === "assigned") {
+    return {
+      label: hasPlannedDate ? "Ingepland" : "Gekoppeld",
+      bg: "#ECFDF5",
+      text: "#047857",
+      border: "#A7F3D0",
+    };
+  }
+
+  if (person.assignmentLinkStatus === "suggested") {
+    return {
+      label: "Voorgesteld",
+      bg: "#EFF6FF",
+      text: "#1D4ED8",
+      border: "#BFDBFE",
+    };
+  }
+
+  if (person.interestStatus === "confirmed") {
+    return {
+      label: "Bevestigd",
+      bg: "#ECFDF5",
+      text: "#047857",
+      border: "#A7F3D0",
+    };
+  }
+
+  if (person.interestStatus === "selected") {
+    return {
+      label: "Geselecteerd",
+      bg: "#EEF2FF",
+      text: "#4338CA",
+      border: "#C7D2FE",
+    };
+  }
+
+  if (person.interestStatus === "reserve") {
+    return {
+      label: "Reserve",
+      bg: "#FFFBEB",
+      text: "#B45309",
+      border: "#FCD34D",
+    };
+  }
+
+  if (person.interestStatus === "interested") {
+    return {
+      label: "Interesse",
+      bg: "#ECFEFF",
+      text: "#0F766E",
+      border: "#A5F3FC",
+    };
+  }
+
+  return null;
+}
+
 function CapacityMatchingSection({
   assignmentId,
   planningReadiness,
@@ -301,36 +372,57 @@ function CapacityMatchingSection({
             Beste matches
           </p>
           <div className="grid gap-3 lg:grid-cols-3">
-            {planningReadiness.topMatches.map((person) => (
-              <div
-                key={person.id}
-                className="rounded-2xl bg-slate-50 px-4 py-3 text-sm"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <p className="truncate font-semibold" style={{ color: "#081D3A" }}>{person.name}</p>
-                    <p className="mt-0.5 truncate text-xs" style={{ color: "#64748B" }}>
-                      {person.sectorName ?? "Geen sector"}
-                    </p>
+            {planningReadiness.topMatches.map((person) => {
+              const personState = getPlanningPersonState(
+                person,
+                planningReadiness.hasPlannedDate,
+              );
+
+              return (
+                <div
+                  key={person.id}
+                  className="rounded-2xl bg-slate-50 px-4 py-3 text-sm"
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <p className="truncate font-semibold" style={{ color: "#081D3A" }}>{person.name}</p>
+                      <p className="mt-0.5 truncate text-xs" style={{ color: "#64748B" }}>
+                        {person.sectorName ?? "Geen sector"}
+                      </p>
+                    </div>
+                    <div className="flex flex-col items-end gap-1">
+                      <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
+                        {person.matchScore}%
+                      </span>
+                      {personState && (
+                        <span
+                          className="rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+                          style={{
+                            backgroundColor: personState.bg,
+                            borderColor: personState.border,
+                            color: personState.text,
+                          }}
+                        >
+                          {personState.label}
+                        </span>
+                      )}
+                    </div>
                   </div>
-                  <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-semibold text-emerald-700">
-                    {person.matchScore}%
-                  </span>
+                  <div className="mt-3 flex flex-wrap gap-1.5">
+                    {person.positives.slice(0, 3).map((reason) => (
+                      <span key={reason} className="rounded bg-emerald-50 px-2 py-1 text-[11px] text-emerald-700">
+                        + {reason}
+                      </span>
+                    ))}
+                    {person.negatives.slice(0, 2).map((reason) => (
+                      <span key={reason} className="rounded bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
+                        - {reason}
+                      </span>
+                    ))}
+                  </div>
                 </div>
-                <div className="mt-3 flex flex-wrap gap-1.5">
-                  {person.positives.slice(0, 3).map((reason) => (
-                    <span key={reason} className="rounded bg-emerald-50 px-2 py-1 text-[11px] text-emerald-700">
-                      + {reason}
-                    </span>
-                  ))}
-                  {person.negatives.slice(0, 2).map((reason) => (
-                    <span key={reason} className="rounded bg-amber-50 px-2 py-1 text-[11px] text-amber-700">
-                      - {reason}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       )}
@@ -348,60 +440,82 @@ function CapacityMatchingSection({
 
           {planningReadiness.candidates.length > 0 ? (
             <div className="grid max-h-[560px] gap-3 overflow-y-auto pr-1 2xl:grid-cols-2">
-              {planningReadiness.candidates.slice(0, 12).map((candidate) => (
-                <div
-                  key={candidate.id}
-                  className="rounded-2xl border p-4 text-sm"
-                  style={{
-                    borderColor:
-                      candidate.hardStatus === "eligible"
-                        ? "#A7F3D0"
-                        : candidate.hardStatus === "warning"
-                          ? "#FCD34D"
-                          : "#FECACA",
-                    backgroundColor:
-                      candidate.hardStatus === "eligible"
-                        ? "#F8FFFC"
-                        : candidate.hardStatus === "warning"
-                          ? "#FFFCF3"
-                          : "#FFF7F7",
-                  }}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <p className="truncate font-semibold" style={{ color: "#081D3A" }}>
-                        {candidate.name}
-                      </p>
-                      <p className="mt-0.5 truncate text-xs" style={{ color: "#64748B" }}>
-                        {candidate.sectorName ?? "Geen sector"}
-                      </p>
+              {planningReadiness.candidates.slice(0, 12).map((candidate) => {
+                const candidateState = getPlanningPersonState(
+                  candidate,
+                  planningReadiness.hasPlannedDate,
+                );
+                const isAlreadyAssigned = candidate.assignmentLinkStatus === "assigned";
+
+                return (
+                  <div
+                    key={candidate.id}
+                    className="rounded-2xl border p-4 text-sm"
+                    style={{
+                      borderColor:
+                        candidate.hardStatus === "eligible"
+                          ? "#A7F3D0"
+                          : candidate.hardStatus === "warning"
+                            ? "#FCD34D"
+                            : "#FECACA",
+                      backgroundColor:
+                        candidate.hardStatus === "eligible"
+                          ? "#F8FFFC"
+                          : candidate.hardStatus === "warning"
+                            ? "#FFFCF3"
+                            : "#FFF7F7",
+                    }}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <p className="truncate font-semibold" style={{ color: "#081D3A" }}>
+                          {candidate.name}
+                        </p>
+                        <p className="mt-0.5 truncate text-xs" style={{ color: "#64748B" }}>
+                          {candidate.sectorName ?? "Geen sector"}
+                        </p>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold" style={{ color: "#081D3A" }}>
+                          {candidate.matchScore}%
+                        </span>
+                        {candidateState && (
+                          <span
+                            className="rounded-full border px-2 py-0.5 text-[11px] font-semibold"
+                            style={{
+                              backgroundColor: candidateState.bg,
+                              borderColor: candidateState.border,
+                              color: candidateState.text,
+                            }}
+                          >
+                            {candidateState.label}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <span className="rounded-full bg-white px-2 py-0.5 text-xs font-semibold" style={{ color: "#081D3A" }}>
-                      {candidate.matchScore}%
-                    </span>
-                  </div>
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {candidate.positives.slice(0, 3).map((reason) => (
-                      <span key={reason} className="rounded bg-emerald-50 px-2 py-1 text-[11px] text-emerald-700">
-                        + {reason}
-                      </span>
-                    ))}
-                    {candidate.negatives.slice(0, 3).map((reason) => (
-                      <span key={reason} className="rounded bg-red-50 px-2 py-1 text-[11px] text-red-700">
-                        - {reason}
-                      </span>
-                    ))}
-                  </div>
-                  {candidate.hardStatus !== "blocked" && (
-                    <div className="mt-3">
-                      <SmartCandidateActions
-                        assignmentId={assignmentId}
-                        personnelId={candidate.id}
-                      />
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {candidate.positives.slice(0, 3).map((reason) => (
+                        <span key={reason} className="rounded bg-emerald-50 px-2 py-1 text-[11px] text-emerald-700">
+                          + {reason}
+                        </span>
+                      ))}
+                      {candidate.negatives.slice(0, 3).map((reason) => (
+                        <span key={reason} className="rounded bg-red-50 px-2 py-1 text-[11px] text-red-700">
+                          - {reason}
+                        </span>
+                      ))}
                     </div>
-                  )}
-                </div>
-              ))}
+                    {candidate.hardStatus !== "blocked" && !isAlreadyAssigned && (
+                      <div className="mt-3">
+                        <SmartCandidateActions
+                          assignmentId={assignmentId}
+                          personnelId={candidate.id}
+                        />
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           ) : (
             <div className="rounded-2xl border border-dashed p-6 text-sm" style={{ borderColor: "#CBD5E1", color: "#64748B" }}>
@@ -782,18 +896,18 @@ export default async function AssignmentDetailPage({ params, searchParams }: Pro
           </>
         }
         actions={
-          <dl className="grid grid-cols-1 gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs sm:grid-cols-3">
-            <div>
-              <dt className="font-medium text-muted-foreground">Gepland</dt>
-              <dd className="mt-0.5 font-semibold text-foreground">{scheduledLabel}</dd>
+          <dl className="grid w-full grid-cols-2 gap-x-4 gap-y-2 text-left sm:w-auto sm:grid-cols-3 sm:text-right">
+            <div className="min-w-0">
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/80">Gepland</dt>
+              <dd className="mt-0.5 text-sm font-medium text-foreground">{scheduledLabel}</dd>
             </div>
-            <div>
-              <dt className="font-medium text-muted-foreground">Tijdslot</dt>
-              <dd className="mt-0.5 font-semibold text-foreground">{timeLabel ?? "Nog geen tijdslot"}</dd>
+            <div className="min-w-0">
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/80">Tijdslot</dt>
+              <dd className="mt-0.5 text-sm font-medium text-foreground">{timeLabel ?? "Nog geen tijdslot"}</dd>
             </div>
-            <div>
-              <dt className="font-medium text-muted-foreground">Bijgewerkt</dt>
-              <dd className="mt-0.5 font-semibold text-foreground">{updatedAt}</dd>
+            <div className="col-span-2 min-w-0 sm:col-span-1">
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/80">Bijgewerkt</dt>
+              <dd className="mt-0.5 text-sm font-medium text-foreground">{updatedAt}</dd>
             </div>
           </dl>
         }

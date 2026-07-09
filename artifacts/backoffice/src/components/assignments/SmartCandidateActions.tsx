@@ -1,6 +1,7 @@
 "use client";
 
 import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Link2, Loader2, Star, UserCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -21,6 +22,7 @@ export function SmartCandidateActions({
   disabled,
 }: Props) {
   const [pending, startTransition] = useTransition();
+  const router = useRouter();
 
   function run(action: "selected" | "reserve" | "assign") {
     startTransition(async () => {
@@ -45,6 +47,8 @@ export function SmartCandidateActions({
               : "Medewerker gekoppeld.",
         );
       }
+
+      router.refresh();
     });
   }
 
