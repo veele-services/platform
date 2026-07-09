@@ -430,9 +430,13 @@ export async function getAssignment(
         lastName: personnelTable.lastName,
       })
       .from(assignmentPersonnelTable)
-      .leftJoin(
+      .innerJoin(
         personnelTable,
-        eq(assignmentPersonnelTable.personnelId, personnelTable.id),
+        and(
+          eq(assignmentPersonnelTable.personnelId, personnelTable.id),
+          eq(personnelTable.tenantId, tenantId),
+          eq(personnelTable.isActive, true),
+        ),
       )
       // Keep candidate suggestions out of the work-order detail; the planning flow handles triage.
       .where(
@@ -1070,6 +1074,7 @@ export async function getPersonnelEligibilityForAssignment(
 ): Promise<PersonnelEligibilityResult[]> {
   const canRead = await hasPermission("assignments", "read");
   if (!canRead) return [];
+  const tenantId = await requireCurrentTenantId();
 
   // ── 1. Fetch assignment meta (date + times + required_region for eligibility) ──
   const [asgn] = await db
@@ -1084,8 +1089,10 @@ export async function getPersonnelEligibilityForAssignment(
     .from(assignmentsTable)
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
     .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
-    .where(eq(assignmentsTable.id, assignmentId))
+    .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
+
+  if (!asgn) return [];
 
   const dateStr = asgn?.scheduledDate ?? null;
   const asgnStart = asgn?.scheduledStart ?? null; // "HH:MM" or null
@@ -1153,6 +1160,7 @@ export async function getPersonnelEligibilityForAssignment(
     .leftJoin(sectorsTable, eq(personnelTable.sectorId, sectorsTable.id))
     .where(
       and(
+        eq(personnelTable.tenantId, tenantId),
         eq(personnelTable.isActive, true),
         eq(personnelTable.isAvailable, true),
       ),
@@ -1161,7 +1169,21 @@ export async function getPersonnelEligibilityForAssignment(
 
   if (personnelRows.length === 0) return [];
 
-  const personnelIds = personnelRows.map((p) => p.id);
+  const currentLinks = await db
+    .select({ personnelId: assignmentPersonnelTable.personnelId })
+    .from(assignmentPersonnelTable)
+    .where(
+      and(
+        eq(assignmentPersonnelTable.assignmentId, assignmentId),
+        eq(assignmentPersonnelTable.status, "assigned"),
+      ),
+    );
+  const currentPersonnelIds = new Set(currentLinks.map((link) => link.personnelId));
+  const candidatePersonnelRows = personnelRows.filter((p) => !currentPersonnelIds.has(p.id));
+
+  if (candidatePersonnelRows.length === 0) return [];
+
+  const personnelIds = candidatePersonnelRows.map((p) => p.id);
 
   // ── 4. Parallel: batch availability + conflicts + availability windows ─────
   const conflictWhereExtra = asgnHasTimes
@@ -1190,6 +1212,7 @@ export async function getPersonnelEligibilityForAssignment(
             .where(
               and(
                 eq(assignmentsTable.scheduledDate, dateStr),
+                eq(assignmentsTable.tenantId, tenantId),
                 inArray(assignmentPersonnelTable.personnelId, personnelIds),
                 ne(assignmentPersonnelTable.assignmentId, assignmentId),
                 // Only confirmed links count as conflicts — suggestions are not yet scheduled
@@ -1277,7 +1300,7 @@ export async function getPersonnelEligibilityForAssignment(
   }
 
   // ── 5. Compute eligibility per person ─────────────────────────────────────
-  return personnelRows.map((p) => {
+  return candidatePersonnelRows.map((p) => {
     const availStatus = (statusMap[p.id] ??
       "niet_ingesteld") as AvailabilityStatus;
     const hasConflict = conflictSet.has(p.id);
@@ -3297,28 +3320,65 @@ export async function assignPersonnel(
     .limit(1);
 
   const [personnel] = await db
-    .select({ id: personnelTable.id })
+    .select({ id: personnelTable.id, isActive: personnelTable.isActive })
     .from(personnelTable)
     .where(and(eq(personnelTable.id, personnelId), eq(personnelTable.tenantId, tenantId)))
     .limit(1);
 
-  if (!assignment || !personnel) {
-    return { success: false, message: "Opdracht of medewerker niet gevonden binnen deze tenant." };
+  if (!assignment) {
+    return { success: false, message: "Opdracht niet gevonden binnen deze organisatie." };
+  }
+  if (!personnel) {
+    return { success: false, message: "Medewerker niet gevonden binnen deze organisatie." };
+  }
+  if (!personnel.isActive) {
+    return { success: false, message: "Deze medewerker is niet actief en kan niet worden gekoppeld." };
   }
 
   try {
-    await db.insert(assignmentPersonnelTable).values({
-      assignmentId,
-      personnelId,
-      assignedBy: user.id,
-    });
+    const [existingLink] = await db
+      .select({ id: assignmentPersonnelTable.id, status: assignmentPersonnelTable.status })
+      .from(assignmentPersonnelTable)
+      .where(
+        and(
+          eq(assignmentPersonnelTable.assignmentId, assignmentId),
+          eq(assignmentPersonnelTable.personnelId, personnelId),
+        ),
+      )
+      .limit(1);
+
+    if (existingLink?.status === "assigned") {
+      revalidatePath(`/assignments/${assignmentId}`);
+      revalidatePath("/planning");
+      return {
+        success: true,
+        warning: "Deze medewerker was al gekoppeld aan deze werkbon.",
+      };
+    }
+
+    if (existingLink) {
+      await db
+        .update(assignmentPersonnelTable)
+        .set({
+          status: "assigned",
+          assignedAt: new Date(),
+          assignedBy: user.id,
+        })
+        .where(eq(assignmentPersonnelTable.id, existingLink.id));
+    } else {
+      await db.insert(assignmentPersonnelTable).values({
+        assignmentId,
+        personnelId,
+        assignedBy: user.id,
+      });
+    }
 
     await db.insert(auditLogTable).values({
       userId: user.id,
       action: "assign_personnel",
       resource: "assignments",
       resourceId: assignmentId,
-      metadata: { personnelId },
+      metadata: { personnelId, previousStatus: existingLink?.status ?? null },
     });
 
     // ── Auto-transition plannable → scheduled ─────────────────────────────

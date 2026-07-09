@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Pencil, ChevronRight, Plus, X, Loader2, UserPlus, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
@@ -99,11 +99,18 @@ export function AssignmentDetailActions({
   const [selectedStatus,   setSelectedStatus]   = useState<AssignmentStatus>(status);
   const [selectedPersonnel, setSelectedPersonnel] = useState("");
   const [selectedTaskCode, setSelectedTaskCode] = useState("");
+  const [optimisticAssignedPersonnelIds, setOptimisticAssignedPersonnelIds] = useState<Set<string>>(
+    () => new Set(personnel.map((p) => p.personnelId)),
+  );
   const [removingPersonnel, setRemovingPersonnel] = useState<string | null>(null);
   const [removingTask,      setRemovingTask]      = useState<string | null>(null);
   const [pending,           startTransition]      = useTransition();
 
   const nextStatuses = ASSIGNMENT_STATUS_TRANSITIONS[status] ?? [];
+
+  useEffect(() => {
+    setOptimisticAssignedPersonnelIds(new Set(personnel.map((p) => p.personnelId)));
+  }, [personnel]);
 
   function handleStatusChange() {
     if (selectedStatus === status) return;
@@ -111,6 +118,7 @@ export function AssignmentDetailActions({
       const result = await setAssignmentStatus(assignmentId, selectedStatus);
       if (result.success) {
         toast.success(`Status gewijzigd naar "${statusLabel(selectedStatus)}"`);
+        router.refresh();
       } else {
         toast.error(result.message);
         setSelectedStatus(status);
@@ -120,27 +128,40 @@ export function AssignmentDetailActions({
 
   function handleAddPersonnel() {
     if (!selectedPersonnel) return;
+    const personnelToAssign = selectedPersonnel;
     startTransition(async () => {
-      const result = await assignPersonnel(assignmentId, selectedPersonnel);
+      const result = await assignPersonnel(assignmentId, personnelToAssign);
       if (result.success) {
+        setOptimisticAssignedPersonnelIds((current) => {
+          const next = new Set(current);
+          next.add(personnelToAssign);
+          return next;
+        });
         if (result.warning) {
           toast.warning(result.warning, { duration: 6000 });
         } else {
           toast.success("Medewerker gekoppeld");
         }
         setSelectedPersonnel("");
+        router.refresh();
       } else {
         toast.error(result.message);
       }
     });
   }
 
-  function handleRemovePersonnel(linkId: string, name: string) {
+  function handleRemovePersonnel(linkId: string, personnelId: string, name: string) {
     setRemovingPersonnel(linkId);
     startTransition(async () => {
       const result = await removePersonnel(assignmentId, linkId);
       if (result.success) {
+        setOptimisticAssignedPersonnelIds((current) => {
+          const next = new Set(current);
+          next.delete(personnelId);
+          return next;
+        });
         toast.success(`${name} ontkoppeld`);
+        router.refresh();
       } else {
         toast.error(result.message);
       }
@@ -155,6 +176,7 @@ export function AssignmentDetailActions({
       if (result.success) {
         toast.success("Taak toegevoegd");
         setSelectedTaskCode("");
+        router.refresh();
       } else {
         toast.error(result.message);
       }
@@ -167,6 +189,7 @@ export function AssignmentDetailActions({
       const result = await removeAssignmentTask(assignmentId, taskId);
       if (result.success) {
         toast.success("Taak verwijderd");
+        router.refresh();
       } else {
         toast.error(result.message);
       }
@@ -260,7 +283,7 @@ export function AssignmentDetailActions({
                     className="h-7 w-7 p-0"
                     disabled={pending && removingPersonnel === p.id}
                     onClick={() =>
-                      handleRemovePersonnel(p.id, `${p.firstName} ${p.lastName}`)
+                      handleRemovePersonnel(p.id, p.personnelId, `${p.firstName} ${p.lastName}`)
                     }
                   >
                     {pending && removingPersonnel === p.id ? (
@@ -289,7 +312,7 @@ export function AssignmentDetailActions({
                 <SelectItem value="NONE">— Selecteer medewerker —</SelectItem>
                 <TooltipProvider delayDuration={200}>
                   {personnelList
-                    .filter((p) => !personnel.some((ap) => ap.personnelId === p.id))
+                    .filter((p) => !optimisticAssignedPersonnelIds.has(p.id))
                     .sort((a, b) => {
                       const scoreA = a.eligible ? 0 : 1;
                       const scoreB = b.eligible ? 0 : 1;

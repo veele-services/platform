@@ -347,6 +347,12 @@ export async function calculateAssignmentCapacity(
       .from(personnelTable)
       .leftJoin(rolesTable, eq(personnelTable.roleId, rolesTable.id))
       .leftJoin(sectorsTable, eq(personnelTable.sectorId, sectorsTable.id))
+      .where(
+        and(
+          eq(personnelTable.tenantId, assignment.tenantId),
+          eq(personnelTable.isActive, true),
+        ),
+      )
       .orderBy(asc(personnelTable.lastName), asc(personnelTable.firstName)),
   ]);
 
