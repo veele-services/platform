@@ -13,7 +13,6 @@ import {
   TenantActiveFilters,
   TenantCommandBar,
   TenantConflictStrip,
-  TenantPageHeader,
   TenantPageShell,
   TenantToolbarSearch,
   TenantWorkbenchPanel,
@@ -119,26 +118,6 @@ export function QuotesView({ initialRows, initialTotal, summary }: QuotesViewPro
 
   return (
     <TenantPageShell size="wide">
-      <TenantPageHeader
-        title="Offertes"
-        description="Finance workbench voor offertevoorstellen, klantgoedkeuringen en verlopen offertes."
-        eyebrow="Tenant finance"
-        badges={summary.expiredCount > 0 ? (
-          <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-800">
-            {summary.expiredCount} verlopen
-          </span>
-        ) : null}
-      />
-
-      <TenantConflictStrip
-        items={[
-          { label: "Concept", value: summary.draftCount, description: "nog niet verzonden", tone: summary.draftCount > 0 ? "warning" : "neutral" },
-          { label: "Ter goedkeuring", value: summary.sentCount, description: "bij klant", tone: summary.sentCount > 0 ? "info" : "neutral" },
-          { label: "Goedgekeurd", value: summary.approvedCount, description: "klaar voor vervolg", tone: "success" },
-          { label: "Verlopen", value: summary.expiredCount, description: `${summary.totalCount} offertes totaal`, tone: summary.expiredCount > 0 ? "danger" : "success" },
-        ]}
-      />
-
       <TenantCommandBar
         title="Offerteregister"
         description="Zoek op offertenummer, klant of opdracht en open acties via het rijmenu."
@@ -193,6 +172,15 @@ export function QuotesView({ initialRows, initialTotal, summary }: QuotesViewPro
             ) : undefined}
           />
         }
+      />
+
+      <TenantConflictStrip
+        items={[
+          { label: "Concept", value: summary.draftCount, description: "nog niet verzonden", tone: summary.draftCount > 0 ? "warning" : "neutral" },
+          { label: "Ter goedkeuring", value: summary.sentCount, description: "bij klant", tone: summary.sentCount > 0 ? "info" : "neutral" },
+          { label: "Goedgekeurd", value: summary.approvedCount, description: "klaar voor vervolg", tone: "success" },
+          { label: "Verlopen", value: summary.expiredCount, description: `${summary.totalCount} offertes totaal`, tone: summary.expiredCount > 0 ? "danger" : "success" },
+        ]}
       />
 
       <TenantWorkbenchPanel
