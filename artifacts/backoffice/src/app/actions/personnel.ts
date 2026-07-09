@@ -924,6 +924,7 @@ export async function updatePersonnel(
       personnelId: id,
       reason: "personnel_home_address_updated",
       source: "backoffice",
+      fromDate: "0001-01-01",
     });
     return { success: true };
   } catch (err) {

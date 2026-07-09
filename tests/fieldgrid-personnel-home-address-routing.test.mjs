@@ -35,6 +35,8 @@ test("backoffice and personnel PWA offer secured address autocomplete", () => {
   assert.match(personnelRoute, /getMyPersonnel\(\)/);
   assert.match(personnelRoute, /suggestDutchAddresses/);
   assert.match(backofficeForm, /\/api\/address-suggestions\?q=/);
+  assert.match(backofficeForm, /absolute left-3 right-3/);
+  assert.match(backofficeForm, /z-\[80\]/);
   assert.match(personnelForm, /\/personeel\/api\/address-suggestions\?q=/);
   assert.match(personnelForm, /Dit adres wordt gebruikt als vertrekpunt voor je eerste werkbon/);
 });
@@ -47,6 +49,7 @@ test("personnel address updates geocode and refresh planning route contexts", ()
 
   assert.match(backofficeActions, /buildPersonnelAddressGeocodePatch/);
   assert.match(backofficeActions, /safeRefreshPlanningRoutesForPersonnel/);
+  assert.match(backofficeActions, /fromDate:\s*"0001-01-01"/);
   assert.match(personnelActions, /buildAddressGeocodePatch/);
   assert.match(personnelActions, /addressGeocodingStatus:\s*"geocoded"/);
   assert.match(routeRefresh, /refreshPlanningRoutesForPersonnel/);
