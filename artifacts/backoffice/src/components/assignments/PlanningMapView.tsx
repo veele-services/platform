@@ -4,11 +4,9 @@ import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } f
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  AlertTriangle,
   Car,
   Clock,
   Info,
-  Layers3,
   LocateFixed,
   MapPin,
   Navigation,
@@ -174,15 +172,6 @@ function markerTone(marker: MapMarker) {
   return STATUS_COLORS[marker.status] ?? STATUS_COLORS.scheduled;
 }
 
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#39;");
-}
-
 function formatTimeRange(marker: Pick<MapMarker, "scheduledStart" | "scheduledEnd">): string {
   if (marker.scheduledStart && marker.scheduledEnd) {
     return `${marker.scheduledStart} - ${marker.scheduledEnd}`;
@@ -230,20 +219,6 @@ function personnelSummary(marker: Pick<MapMarker, "assignedPersonnel">): string 
   return marker.assignedPersonnel.map((person) => person.name).join(", ") || "Geen personeel gekoppeld";
 }
 
-function markerPopupHtml(marker: MapMarker): string {
-  return `
-    <div class="text-sm" style="min-width:220px;max-width:280px">
-      <p class="font-semibold text-slate-950">${escapeHtml(marker.code)} - ${escapeHtml(marker.title)}</p>
-      <p class="mt-1 text-xs text-slate-500">${escapeHtml(formatTimeRange(marker))}</p>
-      <div class="mt-2 space-y-1 text-xs text-slate-700">
-        <p><span class="font-medium text-slate-900">Object:</span> ${escapeHtml(marker.objectName ?? "Geen object")}</p>
-        <p><span class="font-medium text-slate-900">Adres:</span> ${escapeHtml(formatObjectAddress(marker))}</p>
-        <p><span class="font-medium text-slate-900">Medewerkers:</span> ${escapeHtml(personnelSummary(marker))}</p>
-      </div>
-    </div>
-  `;
-}
-
 function snapStatusLabel(value: string | null): string {
   const labels: Record<string, string> = {
     ok: "OK",
@@ -273,28 +248,111 @@ function mapCenter(markers: MapMarker[]): [number, number] {
   return [totals.lng / visible.length, totals.lat / visible.length];
 }
 
-function createRouteFeatures(markers: MapMarker[], routes: PersonnelRoute[]) {
-  const markerById = new Map(markers.map((marker) => [marker.id, marker]));
-  return routes
-    .map((route) => {
-      const coordinates = route.stops
-        .map((stop) => markerById.get(stop.assignmentId)?.coordinate)
-        .filter((coordinate): coordinate is Coordinate => Boolean(coordinate))
-        .map((coordinate) => [coordinate.lng, coordinate.lat]);
-      if (coordinates.length < 2) return null;
+type MapSize = {
+  width: number;
+  height: number;
+};
+
+type StaticMapView = {
+  center: { lat: number; lng: number };
+  zoom: number;
+  topLeft: { x: number; y: number };
+};
+
+const TILE_SIZE = 256;
+const DEFAULT_MAP_SIZE: MapSize = { width: 1200, height: 620 };
+
+function projectLngLat(coordinate: { lat: number; lng: number }, zoom: number): { x: number; y: number } {
+  const scale = TILE_SIZE * 2 ** zoom;
+  const sinLat = Math.sin((coordinate.lat * Math.PI) / 180);
+  return {
+    x: ((coordinate.lng + 180) / 360) * scale,
+    y: (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * scale,
+  };
+}
+
+function unprojectLngLat(point: { x: number; y: number }, zoom: number): { lat: number; lng: number } {
+  const scale = TILE_SIZE * 2 ** zoom;
+  const lng = (point.x / scale) * 360 - 180;
+  const n = Math.PI - (2 * Math.PI * point.y) / scale;
+  const lat = (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
+  return { lat, lng };
+}
+
+function chooseStaticMapView(markers: MapMarker[], size: MapSize): StaticMapView {
+  const visible = markers.filter((marker) => marker.coordinate);
+  const safeSize = {
+    width: Math.max(320, size.width || DEFAULT_MAP_SIZE.width),
+    height: Math.max(320, size.height || DEFAULT_MAP_SIZE.height),
+  };
+
+  if (visible.length === 0) {
+    const center = { lat: 52.1326, lng: 5.2913 };
+    const centerPoint = projectLngLat(center, 7);
+    return {
+      center,
+      zoom: 7,
+      topLeft: {
+        x: centerPoint.x - safeSize.width / 2,
+        y: centerPoint.y - safeSize.height / 2,
+      },
+    };
+  }
+
+  if (visible.length === 1) {
+    const center = visible[0]!.coordinate!;
+    const zoom = 15;
+    const centerPoint = projectLngLat(center, zoom);
+    return {
+      center,
+      zoom,
+      topLeft: {
+        x: centerPoint.x - safeSize.width / 2,
+        y: centerPoint.y - safeSize.height / 2,
+      },
+    };
+  }
+
+  for (let zoom = 16; zoom >= 6; zoom -= 1) {
+    const points = visible.map((marker) => projectLngLat(marker.coordinate!, zoom));
+    const minX = Math.min(...points.map((point) => point.x));
+    const maxX = Math.max(...points.map((point) => point.x));
+    const minY = Math.min(...points.map((point) => point.y));
+    const maxY = Math.max(...points.map((point) => point.y));
+    const padding = 96;
+    if (maxX - minX <= safeSize.width - padding && maxY - minY <= safeSize.height - padding) {
+      const centerPoint = { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
       return {
-        type: "Feature" as const,
-        properties: {
-          personnelId: route.personnelId,
-          personnelName: route.personnelName,
-        },
-        geometry: {
-          type: "LineString" as const,
-          coordinates,
+        center: unprojectLngLat(centerPoint, zoom),
+        zoom,
+        topLeft: {
+          x: centerPoint.x - safeSize.width / 2,
+          y: centerPoint.y - safeSize.height / 2,
         },
       };
-    })
-    .filter((feature): feature is NonNullable<typeof feature> => Boolean(feature));
+    }
+  }
+
+  const center = mapCenter(markers);
+  const normalizedCenter = { lng: center[0], lat: center[1] };
+  const zoom = 6;
+  const centerPoint = projectLngLat(normalizedCenter, zoom);
+  return {
+    center: normalizedCenter,
+    zoom,
+    topLeft: {
+      x: centerPoint.x - safeSize.width / 2,
+      y: centerPoint.y - safeSize.height / 2,
+    },
+  };
+}
+
+function tileUrl(x: number, y: number, z: number): string {
+  return `https://basemaps.cartocdn.com/light_all/${z}/${x}/${y}.png`;
+}
+
+function fallbackTileUrl(x: number, y: number, z: number): string {
+  return `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
 }
 
 function OverlayChip({
@@ -332,12 +390,10 @@ function OverlayChip({
 export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }: PlanningMapViewProps) {
   const router = useRouter();
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<unknown>(null);
-  const markerCleanupRef = useRef<(() => void)[]>([]);
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
   const [highlightedMarkerId, setHighlightedMarkerId] = useState<string | null>(null);
-  const [mapError, setMapError] = useState<string | null>(null);
-  const [mapReady, setMapReady] = useState(false);
+  const [hoveredMarkerId, setHoveredMarkerId] = useState<string | null>(null);
+  const [mapSize, setMapSize] = useState<MapSize>(DEFAULT_MAP_SIZE);
   const [pendingSuggestion, setPendingSuggestion] = useState<PendingSuggestion | null>(null);
   const [suggestionMessage, setSuggestionMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [isApplyingSuggestion, startApplySuggestionTransition] = useTransition();
@@ -347,10 +403,60 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
     () => data.markers.filter((marker) => marker.coordinate),
     [data.markers],
   );
-  const routeFeatures = useMemo(
-    () => createRouteFeatures(data.markers, data.personnelRoutes),
-    [data.markers, data.personnelRoutes],
+  const staticMapView = useMemo(
+    () => chooseStaticMapView(data.markers, mapSize),
+    [data.markers, mapSize],
   );
+  const tiles = useMemo(() => {
+    const startX = Math.floor(staticMapView.topLeft.x / TILE_SIZE);
+    const endX = Math.floor((staticMapView.topLeft.x + mapSize.width) / TILE_SIZE);
+    const startY = Math.floor(staticMapView.topLeft.y / TILE_SIZE);
+    const endY = Math.floor((staticMapView.topLeft.y + mapSize.height) / TILE_SIZE);
+    const maxTile = 2 ** staticMapView.zoom;
+    const nextTiles: Array<{ key: string; x: number; y: number; wrappedX: number; left: number; top: number }> = [];
+    for (let x = startX; x <= endX; x += 1) {
+      for (let y = startY; y <= endY; y += 1) {
+        if (y < 0 || y >= maxTile) continue;
+        const wrappedX = ((x % maxTile) + maxTile) % maxTile;
+        nextTiles.push({
+          key: `${staticMapView.zoom}-${x}-${y}`,
+          x,
+          y,
+          wrappedX,
+          left: x * TILE_SIZE - staticMapView.topLeft.x,
+          top: y * TILE_SIZE - staticMapView.topLeft.y,
+        });
+      }
+    }
+    return nextTiles;
+  }, [mapSize.height, mapSize.width, staticMapView.topLeft.x, staticMapView.topLeft.y, staticMapView.zoom]);
+  const markerPositions = useMemo(() => {
+    return new Map(
+      visibleMarkers.map((marker) => {
+        const projected = projectLngLat(marker.coordinate!, staticMapView.zoom);
+        return [
+          marker.id,
+          {
+            x: projected.x - staticMapView.topLeft.x,
+            y: projected.y - staticMapView.topLeft.y,
+          },
+        ] as const;
+      }),
+    );
+  }, [staticMapView.topLeft.x, staticMapView.topLeft.y, staticMapView.zoom, visibleMarkers]);
+  const routeLines = useMemo(() => {
+    const markerById = new Map(data.markers.map((marker) => [marker.id, marker]));
+    return data.personnelRoutes
+      .map((route) => {
+        const points = route.stops
+          .map((stop) => markerById.get(stop.assignmentId))
+          .filter((marker): marker is MapMarker => Boolean(marker?.coordinate))
+          .map((marker) => markerPositions.get(marker.id))
+          .filter((point): point is { x: number; y: number } => Boolean(point));
+        return points.length > 1 ? points.map((point) => `${point.x},${point.y}`).join(" ") : null;
+      })
+      .filter((points): points is string => Boolean(points));
+  }, [data.markers, data.personnelRoutes, markerPositions]);
 
   function personnelNameForContext(marker: MapMarker, context: MapRouteContext): string {
     return marker.assignedPersonnel.find((person) => person.id === context.personnelId)?.name ?? "Gekoppeld personeel";
@@ -359,13 +465,6 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
   function focusMarker(marker: MapMarker, options: { openDrawer?: boolean } = {}) {
     setHighlightedMarkerId(marker.id);
     if (options.openDrawer) setSelectedMarkerId(marker.id);
-    if (marker.coordinate) {
-      (mapRef.current as { flyTo?: (options: unknown) => void } | null)?.flyTo?.({
-        center: [marker.coordinate.lng, marker.coordinate.lat],
-        zoom: 15,
-        essential: true,
-      });
-    }
   }
 
   function openSuggestionDialog(marker: MapMarker, context: MapRouteContext) {
@@ -398,189 +497,20 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
   }
 
   useEffect(() => {
-    let cancelled = false;
-    let mapInstance: unknown = null;
-
-    async function bootMap() {
-      if (!mapContainerRef.current || mapRef.current || data.accessDenied) return;
-      try {
-        const maplibre = await import("maplibre-gl");
-        if (cancelled || !mapContainerRef.current) return;
-        const map = new maplibre.Map({
-          container: mapContainerRef.current,
-          style: {
-            version: 8,
-            sources: {
-              osm: {
-                type: "raster",
-                tiles: ["https://tile.openstreetmap.org/{z}/{x}/{y}.png"],
-                tileSize: 256,
-                attribution: "OpenStreetMap",
-              },
-            },
-            layers: [{ id: "osm", type: "raster", source: "osm" }],
-          },
-          center: mapCenter(data.markers),
-          zoom: visibleMarkers.length > 0 ? 10 : 6,
-          attributionControl: false,
-        });
-        map.addControl(new maplibre.NavigationControl({ visualizePitch: false }), "top-right");
-        map.addControl(new maplibre.AttributionControl({ compact: true }), "bottom-right");
-        map.on("load", () => {
-          if (cancelled) return;
-          map.resize();
-          window.setTimeout(() => map.resize(), 100);
-          window.setTimeout(() => map.resize(), 350);
-          map.addSource("planning-routes", {
-            type: "geojson",
-            data: {
-              type: "FeatureCollection",
-              features: routeFeatures,
-            },
-          });
-          map.addLayer({
-            id: "planning-routes-line",
-            type: "line",
-            source: "planning-routes",
-            paint: {
-              "line-color": "#00B7B3",
-              "line-opacity": 0.72,
-              "line-width": 4,
-            },
-          });
-          setMapReady(true);
-        });
-        mapRef.current = map;
-        mapInstance = map;
-      } catch (error) {
-        setMapError(error instanceof Error ? error.message : "Kaart kon niet laden.");
-      }
-    }
-
-    void bootMap();
-
-    return () => {
-      cancelled = true;
-      markerCleanupRef.current.forEach((cleanup) => cleanup());
-      markerCleanupRef.current = [];
-      const map = (mapInstance ?? mapRef.current) as { remove?: () => void } | null;
-      map?.remove?.();
-      mapRef.current = null;
+    if (!mapContainerRef.current) return;
+    const resize = () => {
+      if (!mapContainerRef.current) return;
+      const rect = mapContainerRef.current.getBoundingClientRect();
+      setMapSize({
+        width: Math.max(320, Math.round(rect.width)),
+        height: Math.max(320, Math.round(rect.height)),
+      });
     };
-  }, [data.accessDenied, data.markers, routeFeatures, visibleMarkers.length]);
-
-  useEffect(() => {
-    const map = mapRef.current as
-      | {
-          getSource?: (id: string) => { setData?: (data: unknown) => void } | undefined;
-          resize?: () => void;
-        }
-      | null;
-    if (!mapReady || !map) return;
-    map.resize?.();
-    map.getSource?.("planning-routes")?.setData?.({
-      type: "FeatureCollection",
-      features: routeFeatures,
-    });
-  }, [mapReady, routeFeatures]);
-
-  useEffect(() => {
-    if (!mapReady || !mapContainerRef.current) return;
-    const map = mapRef.current as { resize?: () => void } | null;
-    const resize = () => map?.resize?.();
     resize();
     const observer = new ResizeObserver(resize);
     observer.observe(mapContainerRef.current);
-    window.setTimeout(resize, 150);
     return () => observer.disconnect();
-  }, [mapReady]);
-
-  useEffect(() => {
-    let cancelled = false;
-    async function renderMarkers() {
-      const map = mapRef.current as
-        | {
-            fitBounds?: (bounds: unknown, options?: unknown) => void;
-          }
-        | null;
-      if (!mapReady || !map) return;
-      const maplibre = await import("maplibre-gl");
-      if (cancelled) return;
-
-      markerCleanupRef.current.forEach((cleanup) => cleanup());
-      markerCleanupRef.current = [];
-
-      const bounds = new maplibre.LngLatBounds();
-      visibleMarkers.forEach((marker) => {
-        const tone = markerTone(marker);
-        const highlighted = marker.id === highlightedMarkerId;
-        const node = document.createElement("button");
-        node.type = "button";
-        node.className =
-          "planning-waypoint-marker flex h-11 w-11 items-center justify-center rounded-full transition hover:scale-110 focus:outline-none focus:ring-2 focus:ring-cyan-400";
-        node.style.position = "relative";
-        node.style.zIndex = "20";
-        node.style.border = "0";
-        node.style.background = "transparent";
-        node.style.padding = "0";
-        node.style.cursor = "pointer";
-        node.style.transform = highlighted ? "scale(1.25)" : "scale(1)";
-        node.style.filter = highlighted
-          ? "drop-shadow(0 0 0 rgba(0,0,0,0)) drop-shadow(0 0 12px rgba(0,183,179,0.65))"
-          : "drop-shadow(0 4px 8px rgba(8,29,58,0.25))";
-        node.style.color = tone.color;
-        node.innerHTML = `
-          <svg viewBox="0 0 24 24" style="width:44px;height:44px;display:block" fill="currentColor" aria-hidden="true">
-            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7Z" />
-            <circle cx="12" cy="9" r="3.1" fill="white" />
-          </svg>
-        `;
-        node.setAttribute("aria-label", `${marker.code} openen`);
-        node.addEventListener("click", () => focusMarker(marker, { openDrawer: true }));
-
-        const mapMarker = new maplibre.Marker({ element: node, anchor: "bottom" })
-          .setLngLat([marker.coordinate!.lng, marker.coordinate!.lat])
-          .addTo(map as never);
-        const popup = new maplibre.Popup({
-          closeButton: false,
-          closeOnClick: false,
-          offset: 18,
-          className: "planning-marker-popup",
-        }).setHTML(markerPopupHtml(marker));
-        const showPopup = () => {
-          popup.setLngLat([marker.coordinate!.lng, marker.coordinate!.lat]).addTo(map as never);
-        };
-        node.title = `${marker.code} - ${marker.title}\n${formatObjectAddress(marker)}\n${personnelSummary(marker)}`;
-        node.addEventListener("mouseenter", showPopup);
-        node.addEventListener("pointerenter", showPopup);
-        node.addEventListener("mouseleave", () => popup.remove());
-        node.addEventListener("pointerleave", () => popup.remove());
-        node.addEventListener("focus", showPopup);
-        node.addEventListener("blur", () => popup.remove());
-        bounds.extend([marker.coordinate!.lng, marker.coordinate!.lat]);
-        markerCleanupRef.current.push(() => {
-          popup.remove();
-          mapMarker.remove();
-        });
-      });
-
-      if (visibleMarkers.length === 1) {
-        const marker = visibleMarkers[0];
-        (map as { flyTo?: (options: unknown) => void }).flyTo?.({
-          center: [marker.coordinate!.lng, marker.coordinate!.lat],
-          zoom: 13,
-          essential: true,
-        });
-      } else if (visibleMarkers.length > 1) {
-        map.fitBounds?.(bounds, { padding: 60, maxZoom: 13, duration: 0 });
-      }
-    }
-
-    void renderMarkers();
-    return () => {
-      cancelled = true;
-    };
-  }, [highlightedMarkerId, mapReady, visibleMarkers]);
+  }, []);
 
   if (data.accessDenied) {
     return (
@@ -733,41 +663,109 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
           </div>
         </div>
 
-        {mapError ? (
-          <div className="m-4 rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-            <div className="flex items-start gap-2">
-              <AlertTriangle className="mt-0.5 h-4 w-4" />
-              <div>
-                <p className="font-semibold">Kaart kon niet laden.</p>
-                <p className="mt-1">{mapError}</p>
+        <div>
+          <div ref={mapContainerRef} className="relative h-[calc(100vh-13rem)] min-h-[620px] overflow-hidden bg-slate-100">
+            {tiles.map((tile) => (
+              <img
+                key={tile.key}
+                alt=""
+                src={tileUrl(tile.wrappedX, tile.y, staticMapView.zoom)}
+                className="absolute select-none"
+                draggable={false}
+                loading="eager"
+                onError={(event) => {
+                  const image = event.currentTarget;
+                  if (image.dataset.fallback) return;
+                  image.dataset.fallback = "1";
+                  image.src = fallbackTileUrl(tile.wrappedX, tile.y, staticMapView.zoom);
+                }}
+                style={{
+                  left: tile.left,
+                  top: tile.top,
+                  width: TILE_SIZE,
+                  height: TILE_SIZE,
+                }}
+              />
+            ))}
+
+            {routeLines.length > 0 && (
+              <svg className="pointer-events-none absolute inset-0 h-full w-full">
+                {routeLines.map((points, index) => (
+                  <polyline
+                    key={`${points}-${index}`}
+                    points={points}
+                    fill="none"
+                    stroke="#00B7B3"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeOpacity="0.75"
+                    strokeWidth="4"
+                  />
+                ))}
+              </svg>
+            )}
+
+            {visibleMarkers.map((marker) => {
+              const position = markerPositions.get(marker.id);
+              if (!position) return null;
+              const tone = markerTone(marker);
+              const highlighted = marker.id === highlightedMarkerId;
+              const hovered = marker.id === hoveredMarkerId;
+
+              return (
+                <div
+                  key={marker.id}
+                  className="absolute z-20"
+                  style={{ left: position.x, top: position.y, transform: "translate(-50%, -100%)" }}
+                >
+                  <button
+                    type="button"
+                    className="planning-waypoint-marker flex h-11 w-11 items-center justify-center rounded-full transition hover:scale-110 focus:outline-none focus:ring-2 focus:ring-cyan-400"
+                    onClick={() => focusMarker(marker, { openDrawer: true })}
+                    onMouseEnter={() => setHoveredMarkerId(marker.id)}
+                    onMouseLeave={() => setHoveredMarkerId(null)}
+                    onFocus={() => setHoveredMarkerId(marker.id)}
+                    onBlur={() => setHoveredMarkerId(null)}
+                    title={`${marker.code} - ${marker.title}\n${formatObjectAddress(marker)}\n${personnelSummary(marker)}`}
+                    style={{
+                      color: tone.color,
+                      transform: highlighted ? "scale(1.25)" : "scale(1)",
+                      filter: highlighted
+                        ? "drop-shadow(0 0 12px rgba(0,183,179,0.65))"
+                        : "drop-shadow(0 4px 8px rgba(8,29,58,0.25))",
+                    }}
+                  >
+                    <svg viewBox="0 0 24 24" className="h-11 w-11" fill="currentColor" aria-hidden="true">
+                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7Z" />
+                      <circle cx="12" cy="9" r="3.1" fill="white" />
+                    </svg>
+                  </button>
+                  {hovered && (
+                    <div className="absolute left-1/2 top-[-0.5rem] z-30 w-72 -translate-x-1/2 -translate-y-full rounded-lg border border-slate-200 bg-white p-3 text-sm shadow-xl">
+                      <p className="font-semibold text-slate-950">{marker.code} - {marker.title}</p>
+                      <p className="mt-1 text-xs text-slate-500">{formatTimeRange(marker)}</p>
+                      <div className="mt-2 space-y-1 text-xs text-slate-700">
+                        <p><span className="font-medium text-slate-900">Object:</span> {marker.objectName ?? "Geen object"}</p>
+                        <p><span className="font-medium text-slate-900">Adres:</span> {formatObjectAddress(marker)}</p>
+                        <p><span className="font-medium text-slate-900">Medewerkers:</span> {personnelSummary(marker)}</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+
+            <div className="absolute bottom-2 right-2 rounded bg-white/90 px-2 py-1 text-[11px] text-slate-600 shadow-sm">
+              &copy; OpenStreetMap & CARTO
+            </div>
+
+            {visibleMarkers.length === 0 && (
+              <div className="absolute inset-x-4 top-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 shadow-sm">
+                Geen werkbonnen met bruikbare coordinaten. Vul objectlocaties aan om markers te tonen.
               </div>
-            </div>
+            )}
           </div>
-        ) : data.markers.length === 0 ? (
-          <div className="m-4 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-8 text-center">
-            <Layers3 className="mx-auto h-8 w-8 text-slate-400" />
-            <p className="mt-3 font-semibold text-slate-900">Geen kaartdata voor deze dag.</p>
-            <p className="mt-1 text-sm text-slate-500">Plan werkbonnen op deze datum om markers en routes te zien.</p>
-          </div>
-        ) : (
-          <div>
-            <div className="relative h-[calc(100vh-13rem)] min-h-[620px] overflow-hidden bg-slate-100">
-              <div ref={mapContainerRef} className="absolute inset-0" />
-              {!mapReady && (
-                <div className="absolute inset-0 flex items-center justify-center bg-slate-100/80">
-                  <div className="rounded-lg border bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-sm">
-                    Kaart laden...
-                  </div>
-                </div>
-              )}
-              {visibleMarkers.length === 0 && (
-                <div className="absolute inset-x-4 top-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 shadow-sm">
-                  Geen werkbonnen met bruikbare coordinaten. Vul objectlocaties aan om markers te tonen.
-                </div>
-              )}
-            </div>
-          </div>
-        )}
+        </div>
       </section>
 
       <Sheet open={Boolean(selectedMarker)} onOpenChange={(open) => !open && setSelectedMarkerId(null)}>

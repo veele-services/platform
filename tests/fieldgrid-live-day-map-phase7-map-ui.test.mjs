@@ -23,15 +23,14 @@ test("phase 7 planning map tab is guarded by the feature flag", () => {
   assert.doesNotMatch(page, /TenantConflictStrip/);
 });
 
-test("phase 7 map component lazy-loads MapLibre client-side only", () => {
+test("phase 7 map component renders keyless static raster tiles client-side only", () => {
   const mapView = read("artifacts/backoffice/src/components/assignments/PlanningMapView.tsx");
-  const globals = read("artifacts/backoffice/src/app/globals.css");
 
-  // lazy import test
   assert.match(mapView, /"use client";/);
-  assert.match(mapView, /await import\("maplibre-gl"\)/);
-  assert.match(globals, /maplibre-gl\/dist\/maplibre-gl\.css/);
-  assert.doesNotMatch(mapView, /from "maplibre-gl"/);
+  assert.match(mapView, /basemaps\.cartocdn\.com\/light_all/);
+  assert.match(mapView, /tile\.openstreetmap\.org/);
+  assert.match(mapView, /ResizeObserver/);
+  assert.doesNotMatch(mapView, /maplibre-gl/);
   assert.doesNotMatch(mapView, /NEXT_PUBLIC/);
   assert.doesNotMatch(mapView, /MAPBOX|GOOGLE/);
 });
@@ -43,9 +42,7 @@ test("phase 7 map UI exposes marker, route, warning and detail surfaces", () => 
   assert.match(mapView, /STATUS_COLORS/);
   assert.match(mapView, /planning-waypoint-marker/);
   assert.match(mapView, /<svg viewBox="0 0 24 24"/);
-  assert.match(mapView, /markerPopupHtml/);
-  assert.match(mapView, /mouseenter/);
-  assert.match(mapView, /pointerenter/);
+  assert.match(mapView, /hoveredMarkerId/);
   assert.match(mapView, /dateLabel/);
   assert.match(mapView, /min-h-\[620px\]/);
   assert.match(mapView, /Adresgegevens/);
@@ -58,14 +55,13 @@ test("phase 7 map UI exposes marker, route, warning and detail surfaces", () => 
   assert.doesNotMatch(mapView, /Routepaneel/);
   assert.match(mapView, /SheetContent/);
   assert.match(mapView, /Geen werkbonnen met bruikbare coordinaten/);
-  assert.match(mapView, /Kaart kon niet laden/);
   assert.match(mapView, /Werkbon openen/);
 });
 
-test("phase 7 MapLibre dependency is scoped to backoffice package and lockfile", () => {
+test("phase 7 avoids MapLibre dependency for the map surface", () => {
   const pkg = JSON.parse(read("artifacts/backoffice/package.json"));
   const lock = read("pnpm-lock.yaml");
 
-  assert.equal(pkg.dependencies["maplibre-gl"], "^5.24.0");
-  assert.match(lock, /maplibre-gl@5\.24\.0/);
+  assert.equal(pkg.dependencies["maplibre-gl"], undefined);
+  assert.doesNotMatch(lock, /maplibre-gl@/);
 });
