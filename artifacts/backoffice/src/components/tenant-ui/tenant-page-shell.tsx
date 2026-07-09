@@ -6,8 +6,8 @@ type TenantPageShellSize = "narrow" | "default" | "wide";
 
 const shellSizeClass: Record<TenantPageShellSize, string> = {
   narrow: "max-w-5xl",
-  default: "max-w-[1400px]",
-  wide: "max-w-[1600px]",
+  default: "max-w-[1800px]",
+  wide: "max-w-[1800px]",
 };
 
 export interface TenantPageShellProps extends React.HTMLAttributes<HTMLDivElement> {

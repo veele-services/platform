@@ -13,7 +13,7 @@ export default async function NewTenantKnowledgebaseArticlePage() {
 
   return (
     <main className="px-4 py-6 md:px-8">
-      <div className="mx-auto grid w-full max-w-[1500px] gap-6">
+      <div className="mx-auto grid w-full max-w-[1800px] gap-6">
         <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 md:flex-row md:items-end md:justify-between">
           <div>
             <Button asChild variant="ghost" className="-ml-3 mb-2 gap-2">

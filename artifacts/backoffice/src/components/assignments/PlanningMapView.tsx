@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -12,7 +12,6 @@ import {
   LocateFixed,
   MapPin,
   Navigation,
-  Route,
   UserRound,
 } from "lucide-react";
 
@@ -30,6 +29,11 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
 import {
   Sheet,
   SheetContent,
@@ -293,12 +297,45 @@ function createRouteFeatures(markers: MapMarker[], routes: PersonnelRoute[]) {
     .filter((feature): feature is NonNullable<typeof feature> => Boolean(feature));
 }
 
+function OverlayChip({
+  label,
+  count,
+  children,
+}: {
+  label: string;
+  count: number;
+  children: ReactNode;
+}) {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <div onMouseEnter={() => setOpen(true)} onMouseLeave={() => setOpen(false)}>
+        <PopoverTrigger asChild>
+          <button
+            type="button"
+            onClick={() => setOpen((value) => !value)}
+            className="inline-flex h-7 items-center gap-1.5 rounded-md border border-slate-300 bg-white px-2.5 text-xs font-semibold text-slate-800 shadow-sm transition hover:border-cyan-300 hover:bg-cyan-50"
+          >
+            <span>{count}</span>
+            <span>{label}</span>
+          </button>
+        </PopoverTrigger>
+        <PopoverContent align="end" className="w-[min(420px,calc(100vw-2rem))] p-0">
+          {children}
+        </PopoverContent>
+      </div>
+    </Popover>
+  );
+}
+
 export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }: PlanningMapViewProps) {
   const router = useRouter();
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<unknown>(null);
   const markerCleanupRef = useRef<(() => void)[]>([]);
-  const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(data.markers[0]?.id ?? null);
+  const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
+  const [highlightedMarkerId, setHighlightedMarkerId] = useState<string | null>(null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
   const [pendingSuggestion, setPendingSuggestion] = useState<PendingSuggestion | null>(null);
@@ -317,6 +354,18 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
 
   function personnelNameForContext(marker: MapMarker, context: MapRouteContext): string {
     return marker.assignedPersonnel.find((person) => person.id === context.personnelId)?.name ?? "Gekoppeld personeel";
+  }
+
+  function focusMarker(marker: MapMarker, options: { openDrawer?: boolean } = {}) {
+    setHighlightedMarkerId(marker.id);
+    if (options.openDrawer) setSelectedMarkerId(marker.id);
+    if (marker.coordinate) {
+      (mapRef.current as { flyTo?: (options: unknown) => void } | null)?.flyTo?.({
+        center: [marker.coordinate.lng, marker.coordinate.lat],
+        zoom: 15,
+        essential: true,
+      });
+    }
   }
 
   function openSuggestionDialog(marker: MapMarker, context: MapRouteContext) {
@@ -379,6 +428,9 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
         map.addControl(new maplibre.AttributionControl({ compact: true }), "bottom-right");
         map.on("load", () => {
           if (cancelled) return;
+          map.resize();
+          window.setTimeout(() => map.resize(), 100);
+          window.setTimeout(() => map.resize(), 350);
           map.addSource("planning-routes", {
             type: "geojson",
             data: {
@@ -421,14 +473,27 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
     const map = mapRef.current as
       | {
           getSource?: (id: string) => { setData?: (data: unknown) => void } | undefined;
+          resize?: () => void;
         }
       | null;
     if (!mapReady || !map) return;
+    map.resize?.();
     map.getSource?.("planning-routes")?.setData?.({
       type: "FeatureCollection",
       features: routeFeatures,
     });
   }, [mapReady, routeFeatures]);
+
+  useEffect(() => {
+    if (!mapReady || !mapContainerRef.current) return;
+    const map = mapRef.current as { resize?: () => void } | null;
+    const resize = () => map?.resize?.();
+    resize();
+    const observer = new ResizeObserver(resize);
+    observer.observe(mapContainerRef.current);
+    window.setTimeout(resize, 150);
+    return () => observer.disconnect();
+  }, [mapReady]);
 
   useEffect(() => {
     let cancelled = false;
@@ -448,6 +513,7 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
       const bounds = new maplibre.LngLatBounds();
       visibleMarkers.forEach((marker) => {
         const tone = markerTone(marker);
+        const highlighted = marker.id === highlightedMarkerId;
         const node = document.createElement("button");
         node.type = "button";
         node.className =
@@ -458,7 +524,10 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
         node.style.background = "transparent";
         node.style.padding = "0";
         node.style.cursor = "pointer";
-        node.style.filter = "drop-shadow(0 4px 8px rgba(8,29,58,0.25))";
+        node.style.transform = highlighted ? "scale(1.25)" : "scale(1)";
+        node.style.filter = highlighted
+          ? "drop-shadow(0 0 0 rgba(0,0,0,0)) drop-shadow(0 0 12px rgba(0,183,179,0.65))"
+          : "drop-shadow(0 4px 8px rgba(8,29,58,0.25))";
         node.style.color = tone.color;
         node.innerHTML = `
           <svg viewBox="0 0 24 24" style="width:44px;height:44px;display:block" fill="currentColor" aria-hidden="true">
@@ -467,9 +536,9 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
           </svg>
         `;
         node.setAttribute("aria-label", `${marker.code} openen`);
-        node.addEventListener("click", () => setSelectedMarkerId(marker.id));
+        node.addEventListener("click", () => focusMarker(marker, { openDrawer: true }));
 
-        const mapMarker = new maplibre.Marker({ element: node, anchor: "center" })
+        const mapMarker = new maplibre.Marker({ element: node, anchor: "bottom" })
           .setLngLat([marker.coordinate!.lng, marker.coordinate!.lat])
           .addTo(map as never);
         const popup = new maplibre.Popup({
@@ -511,7 +580,7 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
     return () => {
       cancelled = true;
     };
-  }, [mapReady, visibleMarkers]);
+  }, [highlightedMarkerId, mapReady, visibleMarkers]);
 
   if (data.accessDenied) {
     return (
@@ -522,9 +591,9 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
   }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_380px]">
-      <section className="overflow-hidden rounded-xl border bg-white shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
+    <div className="grid gap-4">
+      <section className="overflow-visible rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
           <div>
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-cyan-600" />
@@ -534,16 +603,133 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
               <p className="mt-1 text-sm font-medium capitalize text-slate-600">{dateLabel}</p>
             ) : (
               <p className="mt-1 text-sm text-slate-500">
-                Markers, opdrachtinformatie en ETA-waarschuwingen voor deze planningsdag.
+                Werkbonnen, route-informatie en waarschuwingen voor deze planningsdag.
               </p>
             )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline">{data.markers.length} werkbonnen</Badge>
-            <Badge variant={data.warnings.length > 0 ? "secondary" : "outline"}>
-              {data.warnings.length} waarschuwingen
-            </Badge>
-            <Badge variant="outline">{data.personnelRoutes.length} routes</Badge>
+            <OverlayChip label="werkbonnen" count={data.markers.length}>
+              <div className="border-b px-3 py-2">
+                <p className="text-sm font-semibold text-slate-950">Werkbonnen deze dag</p>
+                <p className="text-xs text-slate-500">Klik een werkbon om de waypoint uit te lichten.</p>
+              </div>
+              <div className="max-h-80 overflow-y-auto p-2">
+                {data.markers.length > 0 ? (
+                  data.markers.map((marker) => (
+                    <div key={marker.id} className="rounded-md p-2 hover:bg-slate-50">
+                      <button
+                        type="button"
+                        onClick={() => focusMarker(marker)}
+                        className="w-full text-left"
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-semibold text-slate-950">{marker.code} - {marker.title}</p>
+                            <p className="mt-0.5 truncate text-xs text-slate-500">{formatObjectAddress(marker)}</p>
+                            <p className="mt-0.5 text-xs text-slate-500">{personnelSummary(marker)}</p>
+                          </div>
+                          <span
+                            className="mt-1 h-3 w-3 shrink-0 rounded-full"
+                            style={{ background: markerTone(marker).color }}
+                          />
+                        </div>
+                      </button>
+                      <div className="mt-2 flex items-center justify-between gap-2">
+                        <AssignmentStatusBadge status={marker.status as never} />
+                        <Button asChild variant="outline" size="sm" className="h-7 px-2 text-xs">
+                          <Link href={`/assignments/${marker.id}`}>Openen</Link>
+                        </Button>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="p-3 text-sm text-slate-500">Geen werkbonnen voor deze dag.</p>
+                )}
+              </div>
+            </OverlayChip>
+
+            <OverlayChip label="waarschuwingen" count={data.warnings.length}>
+              <div className="border-b px-3 py-2">
+                <p className="text-sm font-semibold text-slate-950">Waarschuwingen</p>
+                <p className="text-xs text-slate-500">Route- en locatieblokkades voor deze dag.</p>
+              </div>
+              <div className="max-h-72 overflow-y-auto p-2">
+                {data.warnings.length > 0 ? (
+                  data.warnings.map((warning) => (
+                    <button
+                      key={`${warning.assignmentId}-${warning.personnelId ?? "assignment"}-${warning.warningCode}`}
+                      type="button"
+                      onClick={() => {
+                        const marker = data.markers.find((item) => item.id === warning.assignmentId);
+                        if (marker) focusMarker(marker);
+                      }}
+                      className="block w-full rounded-md border border-amber-200 bg-amber-50 p-3 text-left text-sm text-amber-950"
+                    >
+                      <span className="font-semibold">{warning.code}</span>
+                      <span className="mt-1 block text-xs">{warning.warningMessage}</span>
+                    </button>
+                  ))
+                ) : (
+                  <p className="rounded-md border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
+                    Geen route- of locatieblokkades.
+                  </p>
+                )}
+              </div>
+            </OverlayChip>
+
+            <OverlayChip label="routes" count={data.personnelRoutes.length}>
+              <div className="border-b px-3 py-2">
+                <p className="text-sm font-semibold text-slate-950">Routes</p>
+                <p className="text-xs text-slate-500">Reistijd en afstand per medewerker.</p>
+              </div>
+              <div className="max-h-80 overflow-y-auto p-2">
+                {data.personnelRoutes.length > 0 ? (
+                  data.personnelRoutes.map((route) => (
+                    <div key={route.personnelId} className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <p className="font-semibold text-slate-950">{route.personnelName}</p>
+                          <p className="text-xs text-slate-500">{vehicleLabel(route.vehicleType)} - {route.region ?? "Geen regio"}</p>
+                        </div>
+                        {route.warningCount > 0 && <Badge variant="secondary">{route.warningCount} waarschuwing</Badge>}
+                      </div>
+                      <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
+                        <div className="rounded-md bg-white p-2">
+                          <p className="text-slate-500">Reistijd</p>
+                          <p className="font-semibold text-slate-900">{formatDuration(route.totalTravelDurationSeconds)}</p>
+                        </div>
+                        <div className="rounded-md bg-white p-2">
+                          <p className="text-slate-500">Afstand</p>
+                          <p className="font-semibold text-slate-900">{formatDistance(route.totalTravelDistanceMeters)}</p>
+                        </div>
+                      </div>
+                      <ol className="mt-3 space-y-1.5">
+                        {route.stops.map((stop, index) => (
+                          <li key={`${route.personnelId}-${stop.assignmentId}`} className="flex gap-2 text-sm">
+                            <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-100 text-xs font-bold text-cyan-700">
+                              {index + 1}
+                            </span>
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const marker = data.markers.find((item) => item.id === stop.assignmentId);
+                                if (marker) focusMarker(marker);
+                              }}
+                              className="min-w-0 text-left hover:underline"
+                            >
+                              <span className="block truncate font-medium text-slate-900">{stop.code}</span>
+                              <span className="block truncate text-xs text-slate-500">{snapStatusLabel(stop.snapStatus)}</span>
+                            </button>
+                          </li>
+                        ))}
+                      </ol>
+                    </div>
+                  ))
+                ) : (
+                  <p className="p-3 text-sm text-slate-500">Nog geen routes beschikbaar.</p>
+                )}
+              </div>
+            </OverlayChip>
           </div>
         </div>
 
@@ -564,8 +750,8 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
             <p className="mt-1 text-sm text-slate-500">Plan werkbonnen op deze datum om markers en routes te zien.</p>
           </div>
         ) : (
-          <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="relative h-[min(72vh,680px)] min-h-[520px] overflow-hidden bg-slate-100">
+          <div>
+            <div className="relative h-[calc(100vh-13rem)] min-h-[620px] overflow-hidden bg-slate-100">
               <div ref={mapContainerRef} className="absolute inset-0" />
               {!mapReady && (
                 <div className="absolute inset-0 flex items-center justify-center bg-slate-100/80">
@@ -580,130 +766,9 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
                 </div>
               )}
             </div>
-
-            <aside className="border-t bg-slate-50 p-3 lg:border-l lg:border-t-0">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-slate-900">Markers</p>
-                <span className="text-xs text-slate-500">{data.missingLocationCount} zonder locatie</span>
-              </div>
-              <div className="mt-3 max-h-[390px] space-y-2 overflow-y-auto pr-1">
-                {data.markers.map((marker) => {
-                  const tone = markerTone(marker);
-                  const active = marker.id === selectedMarkerId;
-                  return (
-                    <button
-                      key={marker.id}
-                      type="button"
-                      onClick={() => setSelectedMarkerId(marker.id)}
-                      className={`w-full rounded-lg border bg-white p-3 text-left shadow-sm transition hover:border-cyan-300 ${
-                        active ? "ring-2 ring-cyan-300" : ""
-                      }`}
-                    >
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <p className="truncate text-sm font-semibold text-slate-950">{marker.code} - {marker.title}</p>
-                          <p className="mt-1 truncate text-xs text-slate-500">{marker.customerName || "Geen klant"} - {formatTimeRange(marker)}</p>
-                        </div>
-                        <span
-                          className="h-3 w-3 rounded-full border"
-                          style={{ background: tone.color, borderColor: tone.border }}
-                        />
-                      </div>
-                      <div className="mt-2 flex flex-wrap gap-1.5">
-                        <AssignmentStatusBadge status={marker.status as never} />
-                        {marker.missingLocation && <Badge variant="secondary">Geen locatie</Badge>}
-                        {marker.primaryWarningCode && <Badge variant="secondary">Waarschuwing</Badge>}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </aside>
           </div>
         )}
       </section>
-
-      <aside className="space-y-4">
-        <section className="rounded-xl border bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2">
-            <Route className="h-4 w-4 text-cyan-600" />
-            <h2 className="font-semibold text-slate-950">Routepaneel</h2>
-          </div>
-          <p className="mt-1 text-sm text-slate-500">Per medewerker de volgorde, reistijd en afstand.</p>
-          <div className="mt-4 space-y-3">
-            {data.personnelRoutes.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
-                Nog geen routes beschikbaar.
-              </p>
-            ) : (
-              data.personnelRoutes.map((route) => (
-                <div key={route.personnelId} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-                  <div className="flex items-start justify-between gap-2">
-                    <div>
-                      <p className="font-semibold text-slate-950">{route.personnelName}</p>
-                      <p className="text-xs text-slate-500">{vehicleLabel(route.vehicleType)} - {route.region ?? "Geen regio"}</p>
-                    </div>
-                    {route.warningCount > 0 && <Badge variant="secondary">{route.warningCount} waarschuwing</Badge>}
-                  </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-                    <div className="rounded-md bg-white p-2">
-                      <p className="text-slate-500">Reistijd</p>
-                      <p className="font-semibold text-slate-900">{formatDuration(route.totalTravelDurationSeconds)}</p>
-                    </div>
-                    <div className="rounded-md bg-white p-2">
-                      <p className="text-slate-500">Afstand</p>
-                      <p className="font-semibold text-slate-900">{formatDistance(route.totalTravelDistanceMeters)}</p>
-                    </div>
-                  </div>
-                  <ol className="mt-3 space-y-2">
-                    {route.stops.map((stop, index) => (
-                      <li key={`${route.personnelId}-${stop.assignmentId}`} className="flex gap-2 text-sm">
-                        <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-cyan-100 text-xs font-bold text-cyan-700">
-                          {index + 1}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => setSelectedMarkerId(stop.assignmentId)}
-                          className="min-w-0 text-left hover:underline"
-                        >
-                          <span className="block truncate font-medium text-slate-900">{stop.code}</span>
-                          <span className="block truncate text-xs text-slate-500">{snapStatusLabel(stop.snapStatus)}</span>
-                        </button>
-                      </li>
-                    ))}
-                  </ol>
-                </div>
-              ))
-            )}
-          </div>
-        </section>
-
-        <section className="rounded-xl border bg-white p-4 shadow-sm">
-          <div className="flex items-center gap-2">
-            <AlertTriangle className="h-4 w-4 text-amber-600" />
-            <h2 className="font-semibold text-slate-950">Warnings</h2>
-          </div>
-          {data.warnings.length === 0 ? (
-            <p className="mt-3 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">
-              Geen route- of locatieblokkades.
-            </p>
-          ) : (
-            <div className="mt-3 space-y-2">
-              {data.warnings.map((warning) => (
-                <button
-                  key={`${warning.assignmentId}-${warning.personnelId ?? "assignment"}-${warning.warningCode}`}
-                  type="button"
-                  onClick={() => setSelectedMarkerId(warning.assignmentId)}
-                  className="w-full rounded-lg border border-amber-200 bg-amber-50 p-3 text-left text-sm text-amber-950"
-                >
-                  <span className="font-semibold">{warning.code}</span>
-                  <span className="mt-1 block">{warning.warningMessage}</span>
-                </button>
-              ))}
-            </div>
-          )}
-        </section>
-      </aside>
 
       <Sheet open={Boolean(selectedMarker)} onOpenChange={(open) => !open && setSelectedMarkerId(null)}>
         <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">

@@ -53,7 +53,7 @@ export default async function PersonnelPage({ searchParams }: Props) {
   ]);
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] p-6">
+    <div className="mx-auto w-full max-w-[1800px] p-6">
       <div className="mb-2 flex items-center gap-2">
         <h1 className="font-heading text-2xl font-semibold text-slate-950">Personeel</h1>
         <ResolvedFeatureHelp featureKey="tenant.personnel" moduleKey="personnel" />

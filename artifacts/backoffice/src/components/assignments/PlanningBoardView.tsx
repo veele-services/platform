@@ -1178,7 +1178,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
             )}
           </section>
 
-          <section className="min-w-0 overflow-visible rounded-xl border bg-white shadow-sm" style={{ borderColor: "#DDE7F0" }}>
+          <section className="min-w-0 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
             <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3" style={{ borderColor: "#E2E8F0", background: "#FBFDFF" }}>
               <div className="min-w-0 text-xs" style={{ color: "#64748B" }}>
                 {activeAssignment ? (
@@ -1320,11 +1320,11 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
             ) : (
               <div
                 ref={boardScrollRef}
-                className="max-w-full overflow-x-auto overscroll-x-contain"
+                className="max-h-[calc(100vh-300px)] min-h-[420px] max-w-full overflow-auto overscroll-contain"
                 style={{ opacity: isPending ? 0.82 : 1 }}
               >
                 <div style={{ width: BOARD_WIDTH, minWidth: "100%" }}>
-                  <div className="relative h-10 border-b" style={{ borderColor: "#E2E8F0" }}>
+                  <div className="sticky top-0 z-30 h-10 border-b bg-white" style={{ borderColor: "#E2E8F0" }}>
                     <div
                       className="sticky left-0 top-0 z-30 flex h-full items-center border-r bg-white px-3 text-[11px] font-semibold uppercase tracking-wide"
                       style={{ width: PERSONNEL_COL_WIDTH, borderColor: "#E2E8F0", color: "#64748B" }}
@@ -1339,15 +1339,6 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                           style={{ left: `${hour.pct}%`, color: "#94A3B8" }}
                         >
                           {hour.label}
-                        </div>
-                      ))}
-                      {visibleSlotMarkers.map((slot) => (
-                        <div
-                          key={`slot-label-${slot.label}`}
-                          className="absolute bottom-1 -translate-x-1/2 rounded-full bg-white px-1.5 py-0.5 text-[9px] font-semibold shadow-sm"
-                          style={{ left: `${slot.pct}%`, color: slot.isStart ? "#00A6A2" : "#64748B" }}
-                        >
-                          {slot.label}
                         </div>
                       ))}
                       {currentTimePct !== null && (

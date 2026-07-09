@@ -71,11 +71,11 @@ test("phase 10 route provider has deterministic fallback without external API ke
 test("phase 10 map UI avoids fixed-width overflow and lazy-loads MapLibre", () => {
   const mapView = read("artifacts/backoffice/src/components/assignments/PlanningMapView.tsx");
 
-  assert.match(mapView, /minmax\(0,1fr\)/);
+  assert.match(mapView, /OverlayChip/);
   assert.match(mapView, /overflow-hidden/);
   assert.match(mapView, /w-full overflow-y-auto sm:max-w-xl/);
-  assert.match(mapView, /max-h-\[390px\]/);
-  assert.match(mapView, /min-h-\[520px\]/);
+  assert.match(mapView, /max-h-80/);
+  assert.match(mapView, /min-h-\[620px\]/);
   assert.match(mapView, /await import\("maplibre-gl"\)/);
   assert.doesNotMatch(mapView, /min-w-\[/);
 });

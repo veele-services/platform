@@ -19,7 +19,7 @@ export default async function DocumentsPage() {
   ]);
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] p-6">
+    <div className="mx-auto w-full max-w-[1800px] p-6">
       <div className="mb-4">
         <p className="text-sm" style={{ color: "#64748B" }}>
           Contracten, certificaten, SLA-documenten en opdrachtbijlagen — centraal opgeslagen en beveiligd.

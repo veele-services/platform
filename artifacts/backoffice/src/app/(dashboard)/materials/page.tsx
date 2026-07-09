@@ -38,7 +38,7 @@ export default async function MaterialsPage({ searchParams }: Props) {
   ]);
 
   return (
-    <div className="mx-auto w-full max-w-[1700px] p-8">
+    <div className="mx-auto w-full max-w-[1800px] p-8">
       <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">

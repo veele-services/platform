@@ -66,7 +66,7 @@ export default async function InventoryDetailPage({ params }: Props) {
 
   return (
     <>
-      <div className="mx-auto flex w-full max-w-[1500px] flex-col gap-4 px-8 pt-8">
+      <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-4 px-8 pt-8">
         <div className="flex justify-end gap-2">
           <Link
             href={`/inventory/issues?status=open&itemId=${item.id}`}
@@ -84,7 +84,7 @@ export default async function InventoryDetailPage({ params }: Props) {
       </div>
       <InventoryDetailView item={item} options={options} canWrite={canUpdate || canManage} />
       {canReadDocuments && (
-        <div className="mx-auto w-full max-w-[1500px] px-8 pb-8">
+        <div className="mx-auto w-full max-w-[1800px] px-8 pb-8">
           <DocumentAttachmentPanel
             entityType="inventory_item"
             entityId={item.id}

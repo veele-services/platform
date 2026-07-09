@@ -130,11 +130,11 @@ mustMatch(
 mustContain("mockProvider", "createMockRouteProvider", "mock provider for CI/beta fallback");
 mustContain("routeUtils", "validateRouteCoordinates", "coordinate validation before provider call");
 
-mustContain("mapView", "minmax(0,1fr)", "responsive grid tracks");
+mustContain("mapView", "OverlayChip", "compact map overlays");
 mustContain("mapView", "overflow-hidden", "map shell clips map canvas");
 mustContain("mapView", "w-full overflow-y-auto sm:max-w-xl", "mobile-safe drawer width");
-mustContain("mapView", "max-h-[390px]", "bounded marker list");
-mustContain("mapView", "min-h-[520px]", "stable map height");
+mustContain("mapView", "max-h-80", "bounded overlay lists");
+mustContain("mapView", "min-h-[620px]", "stable map height");
 mustContain("mapView", "await import(\"maplibre-gl\")", "lazy map dependency");
 mustNotContain("mapView", "min-w-[", "no fixed minimum width causing mobile overflow");
 
