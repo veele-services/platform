@@ -58,7 +58,7 @@ mustContain("mapData", "PlanningDayMapPersonnelRoute", "personeelsroute contract
 mustContain("mapData", "PlanningDayMapWarning", "warning contract");
 mustContain("mapData", "resolvePlanningMapCoordinate", "coordinaten normalisatie");
 mustContain("mapData", 'source: "object"', "objectcoordinaten hebben prioriteit");
-mustContain("mapData", 'source: "customer"', "klantcoordinaten fallback");
+mustNotContain("mapData", 'source: "customer"', "klantcoordinaten fallback");
 mustContain("mapData", "missing_location", "ontbrekende coordinaten warning");
 mustContain("mapData", "warningsOnly", "warnings filter");
 mustContain("mapData", "accessDenied", "permission-safe response");
@@ -70,7 +70,7 @@ mustNotContain("mapData", "db.update", "database-mutatie in read-only datafase")
 mustNotContain("mapData", ".update(", "database-mutatie in read-only datafase");
 
 mustNotContain("action", "applyRouteTimeSuggestion", "planner-mutatie hoort niet in map data action");
-mustNotContain("action", "recalculatePlanningRouteContexts(", "route recalculatie hoort niet in map data action");
+mustContain("action", "ensurePlanningDayRouteContextsFresh", "stale routecontext refresh voor kaartdata");
 
 mustContain("test", "buildPlanningDayMapDataFromRows", "normalisatie unit test");
 mustContain("test", "tenant boundary", "tenantisolatie contract test");

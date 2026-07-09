@@ -24,7 +24,7 @@ De action retourneert:
 - `markers`: werkbonmarkers met klant/object, status, prioriteit, geplande tijden, coordinate en gekoppeld personeel.
 - `personnelRoutes`: genormaliseerde routevolgorde per medewerker met stops, reistijd, afstand en waarschuwingsteller.
 - `warnings`: routewarnings zoals `missing_location`, providerwarnings uit fase 5 en tijdvensterwaarschuwingen.
-- `missingLocationCount`: teller voor werkbonnen zonder bruikbare object- of klantcoordinaten.
+- `missingLocationCount`: teller voor werkbonnen zonder bruikbare objectcoordinaten.
 - `accessDenied`: expliciete vlag voor permissieafwijzing.
 
 ## Coordinaten
@@ -32,8 +32,7 @@ De action retourneert:
 Coordinaten worden bewust beperkt tot bruikbare markerpunten:
 
 1. Objectcoordinaten.
-2. Klantcoordinaten als fallback.
-3. `missing_location` wanneer beide ontbreken of ongeldig zijn.
+2. `missing_location` wanneer objectcoordinaten ontbreken of ongeldig zijn.
 
 Ruwe providerresponses blijven in de routecache en worden niet meegenomen in de map-data response.
 
@@ -55,12 +54,11 @@ Fase 6 mag niet:
 
 - assignments bijwerken;
 - assignment_personnel wijzigen;
-- routecontexten herberekenen;
 - routeproviders aanroepen;
 - provider metadata of secrets expose-en;
 - UI-componenten of MapLibre laden.
 
-Fase 6 mag alleen bestaande, tenant-scoped planning- en routecontextdata lezen en normaliseren.
+Fase 6 mag alleen tenant-scoped planning- en routecontextdata lezen, normaliseren en ontbrekende of stale routecontexten vernieuwen voordat de kaartdata wordt opgebouwd.
 
 ## Verificatie
 

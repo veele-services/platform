@@ -1274,6 +1274,7 @@ async function ensurePlanningDayRouteContextsFresh(input: {
       routeContextId: assignmentRouteContextsTable.id,
       contextCalculatedAt: assignmentRouteContextsTable.calculatedAt,
       addressGeocodedAt: personnelTable.addressGeocodedAt,
+      objectGeocodedAt: objectsTable.geocodedAt,
     })
     .from(assignmentsTable)
     .innerJoin(
@@ -1286,6 +1287,13 @@ async function ensurePlanningDayRouteContextsFresh(input: {
         eq(assignmentPersonnelTable.personnelId, personnelTable.id),
         eq(personnelTable.tenantId, input.tenantId),
         eq(personnelTable.isActive, true),
+      ),
+    )
+    .leftJoin(
+      objectsTable,
+      and(
+        eq(assignmentsTable.objectId, objectsTable.id),
+        eq(objectsTable.tenantId, input.tenantId),
       ),
     )
     .leftJoin(
@@ -1309,8 +1317,12 @@ async function ensurePlanningDayRouteContextsFresh(input: {
     const addressIsNewer =
       addressGeocodedAt !== null &&
       (contextCalculatedAt === null || addressGeocodedAt > contextCalculatedAt);
+    const objectGeocodedAt = timestampValue(row.objectGeocodedAt);
+    const objectIsNewer =
+      objectGeocodedAt !== null &&
+      (contextCalculatedAt === null || objectGeocodedAt > contextCalculatedAt);
 
-    if (!row.routeContextId || addressIsNewer) {
+    if (!row.routeContextId || addressIsNewer || objectIsNewer) {
       stalePersonnelIds.add(row.personnelId);
     }
   }

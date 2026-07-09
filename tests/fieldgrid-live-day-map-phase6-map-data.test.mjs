@@ -82,21 +82,19 @@ function row(overrides = {}) {
   return { ...baseRow, ...overrides };
 }
 
-test("phase 6 map data prefers object coordinates and falls back to customer coordinates", () => {
+test("phase 6 map data uses object coordinates and does not fall back to customer coordinates", () => {
   const objectCoordinate = resolvePlanningMapCoordinate(row());
   assert.equal(objectCoordinate.lat, 52.0705);
   assert.equal(objectCoordinate.lng, 4.3007);
   assert.equal(objectCoordinate.source, "object");
 
-  const customerCoordinate = resolvePlanningMapCoordinate(
+  const customerFallback = resolvePlanningMapCoordinate(
     row({
       objectLat: null,
       objectLng: null,
     }),
   );
-  assert.equal(customerCoordinate.lat, 51.9225);
-  assert.equal(customerCoordinate.lng, 4.4792);
-  assert.equal(customerCoordinate.source, "customer");
+  assert.equal(customerFallback, null);
 
   const missing = resolvePlanningMapCoordinate(
     row({

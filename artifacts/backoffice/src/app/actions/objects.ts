@@ -31,6 +31,7 @@ import {
   hasGeocodableAddress,
   type GeocodeAddressInput,
 } from "@/lib/planning/geocoding";
+import { safeRefreshPlanningRoutesForObject } from "@/lib/planning/route-refresh";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult };
@@ -248,6 +249,37 @@ function coordinateString(value: number): string {
 
 function confidenceString(value: number): string {
   return value.toFixed(2);
+}
+
+async function buildObjectAddressGeocodePatch(input: GeocodeAddressInput) {
+  const addressInput = { ...input, country: input.country ?? "NL" };
+
+  if (!hasGeocodableAddress(addressInput)) {
+    return geocodingResetForAddress(addressInput);
+  }
+
+  const result = await geocodeAddress(addressInput);
+  if (!result.success) {
+    return {
+      latitude: null,
+      longitude: null,
+      geocodedAt: null,
+      geocodingProvider: result.provider,
+      geocodingStatus: "failed",
+      geocodingConfidence: null,
+      geocodingError: result.error,
+    };
+  }
+
+  return {
+    latitude: coordinateString(result.latitude),
+    longitude: coordinateString(result.longitude),
+    geocodedAt: new Date(),
+    geocodingProvider: result.provider,
+    geocodingStatus: "geocoded",
+    geocodingConfidence: confidenceString(result.confidence),
+    geocodingError: null,
+  };
 }
 
 async function getObjectScope(objectId: string): Promise<{
@@ -1193,7 +1225,7 @@ export async function createObject(
   }
 
   try {
-    const geocodingState = geocodingResetForAddress(payload);
+    const geocodingState = await buildObjectAddressGeocodePatch(payload);
     const [created] = await db
       .insert(objectsTable)
       .values({ ...parsed.data, ...geocodingState, tenantId })
@@ -1259,7 +1291,7 @@ export async function updateObject(
 
     const shouldResetGeocoding = locationChanged(existing, payload);
     const geocodingState = shouldResetGeocoding
-      ? geocodingResetForAddress(payload)
+      ? await buildObjectAddressGeocodePatch(payload)
       : {};
 
     await db
@@ -1280,6 +1312,15 @@ export async function updateObject(
     revalidatePath(`/customers/${payload.customerId}`);
     if (existing.customerId !== payload.customerId) {
       revalidatePath(`/customers/${existing.customerId}`);
+    }
+    if (shouldResetGeocoding) {
+      await safeRefreshPlanningRoutesForObject({
+        tenantId,
+        objectId: id,
+        reason: "object_location_updated",
+        source: "backoffice",
+        fromDate: "0001-01-01",
+      });
     }
     return { success: true };
   } catch (err) {
@@ -1333,6 +1374,13 @@ export async function geocodeObjectLocation(
     revalidatePath("/objects");
     revalidatePath(`/objects/${id}`);
     revalidatePath(`/customers/${object.customerId}`);
+    await safeRefreshPlanningRoutesForObject({
+      tenantId,
+      objectId: id,
+      reason: "object_location_updated",
+      source: "backoffice",
+      fromDate: "0001-01-01",
+    });
     return {
       success: false,
       message: "Adresgegevens ontbreken. Vul straat, postcode of plaats in.",
@@ -1401,6 +1449,13 @@ export async function geocodeObjectLocation(
   revalidatePath("/objects");
   revalidatePath(`/objects/${id}`);
   revalidatePath(`/customers/${object.customerId}`);
+  await safeRefreshPlanningRoutesForObject({
+    tenantId,
+    objectId: id,
+    reason: "object_location_updated",
+    source: "backoffice",
+    fromDate: "0001-01-01",
+  });
   return {
     success: true,
     data: {
