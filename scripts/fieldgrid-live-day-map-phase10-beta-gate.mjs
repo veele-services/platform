@@ -122,6 +122,7 @@ mustMatch("planningActions", /eq\(assignmentRouteContextsTable\.tenantId,\s*tena
 
 mustContain("routeProvider", "FIELDGRID_ROUTE_PROVIDER", "route provider env switch");
 mustContain("routeProvider", "mock", "mock provider fallback option");
+mustMatch("routeProvider", /GOOGLE_ROUTES_API_KEY[\s\S]*\?\s*"google"\s*:\s*"mock"/, "default mock provider without Google key");
 mustContain("googleProvider", "GOOGLE_ROUTES_API_KEY is niet geconfigureerd.", "safe no-api-key failure");
 mustMatch(
   "googleProvider",
