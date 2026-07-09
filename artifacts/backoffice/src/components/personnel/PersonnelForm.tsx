@@ -354,7 +354,7 @@ export function PersonnelForm({
             <Input id="phone" {...register("phone")} placeholder="+31 6 00 00 00 00" />
           </div>
 
-          <div className="col-span-2 rounded-lg border p-3" style={{ borderColor: "#E2E8F0" }}>
+          <div className="relative col-span-2 rounded-lg border p-3" style={{ borderColor: "#E2E8F0" }}>
             <div className="mb-3 flex items-center justify-between gap-3">
               <div>
                 <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>Huisadres</p>
@@ -403,7 +403,10 @@ export function PersonnelForm({
               </div>
             </div>
             {addressSuggestions.length > 0 ? (
-              <div className="mt-3 rounded-md border bg-white" style={{ borderColor: "#D8E8F3" }}>
+              <div
+                className="absolute left-3 right-3 top-[calc(100%-0.75rem)] z-[80] rounded-md border bg-white shadow-xl"
+                style={{ borderColor: "#D8E8F3" }}
+              >
                 <p className="border-b px-3 py-2 text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B", borderColor: "#E2E8F0" }}>
                   Adres aanvullen
                 </p>
