@@ -58,7 +58,7 @@ function formatSupportTtl(ttlSeconds: number): string {
 function SupportModeBanner({ supportMode }: { supportMode: CurrentSupportMode }) {
   return (
     <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-950">
-      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0">
           <p className="font-semibold">Supportmodus actief</p>
           <p className="mt-0.5 truncate text-xs text-amber-900">
@@ -86,7 +86,7 @@ function ReleaseHighlightBanner({ highlight }: { highlight: ReleaseHighlightSumm
 
   return (
     <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-950">
-      <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div className="min-w-0">
           <p className="font-semibold">{highlight.title}</p>
           <p className="mt-0.5 text-xs leading-5 text-amber-900">

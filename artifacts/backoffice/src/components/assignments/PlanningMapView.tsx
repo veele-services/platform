@@ -592,8 +592,8 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
 
   return (
     <div className="grid gap-4">
-      <section className="overflow-visible rounded-xl border bg-white shadow-sm">
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b px-4 py-3">
+      <section className="overflow-visible rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-4 py-3">
           <div>
             <div className="flex items-center gap-2">
               <MapPin className="h-4 w-4 text-cyan-600" />

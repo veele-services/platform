@@ -59,7 +59,7 @@ export default async function MaterialDetailPage({ params }: Props) {
     <>
       <MaterialDetailView material={material} options={options} canWrite={canWrite} />
       {canReadDocuments && (
-        <div className="mx-auto w-full max-w-[1500px] px-8 pb-8">
+        <div className="mx-auto w-full max-w-[1800px] px-8 pb-8">
           <DocumentAttachmentPanel
             entityType="material"
             entityId={material.id}

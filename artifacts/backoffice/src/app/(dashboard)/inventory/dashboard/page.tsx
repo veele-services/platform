@@ -15,7 +15,7 @@ export default async function InventoryDashboardPage() {
   const data = await getInventoryDashboard();
 
   return (
-    <div className="mx-auto flex w-full max-w-[1700px] flex-col gap-6 p-8">
+    <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-6 p-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <Link href="/inventory" className="mb-3 inline-flex items-center gap-1 text-sm hover:underline" style={{ color: "#64748B" }}>

@@ -78,7 +78,7 @@ export default async function TenantRoadmapPage() {
 
   return (
     <main className="px-4 py-6 md:px-6">
-      <div className="mx-auto grid w-full max-w-[1500px] gap-6">
+      <div className="mx-auto grid w-full max-w-[1800px] gap-6">
         <header className="flex flex-col gap-4 border-b border-slate-200 pb-6 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm font-medium text-slate-500">Support</p>

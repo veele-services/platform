@@ -137,7 +137,7 @@ export default async function TenantRoadmapDetailPage({ params }: Props) {
 
   return (
     <main className="px-4 py-6 md:px-6">
-      <div className="mx-auto grid w-full max-w-[1200px] gap-6">
+      <div className="mx-auto grid w-full max-w-[1800px] gap-6">
         <header className="border-b border-slate-200 pb-6">
           <Button asChild variant="ghost" className="-ml-3 mb-2 gap-2">
             <Link href="/roadmap">

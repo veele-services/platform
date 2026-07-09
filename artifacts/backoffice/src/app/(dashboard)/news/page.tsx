@@ -23,7 +23,7 @@ export default async function NewsPage() {
   ]);
 
   return (
-    <TenantPageShell size="wide" className="max-w-[1600px]">
+    <TenantPageShell size="wide" className="max-w-[1800px]">
       <TenantPageHeader
         title="Nieuws"
         description="Beheer tenantnieuws voor medewerkers en klanten met doelgroepselectie per groep, sector of individuele ontvanger."

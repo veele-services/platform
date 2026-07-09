@@ -16,7 +16,7 @@ export default async function VerlofInboxPage() {
   const requests = await listAllPendingLeaveRequests();
 
   return (
-    <div className="mx-auto w-full max-w-[1600px] p-6">
+    <div className="mx-auto w-full max-w-[1800px] p-6">
       <div className="mb-4 flex items-center gap-2 text-sm" style={{ color: "#64748B" }}>
         <CalendarClock style={{ width: "18px", height: "18px", color: "#00B7B3" }} />
         <span>Verlofaanvragen van medewerkers die wachten op goedkeuring</span>

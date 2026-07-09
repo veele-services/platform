@@ -45,7 +45,7 @@ export default async function AssignmentInventoryPage({ params }: Props) {
   const attachableItems = canManage ? await listAttachableInventoryForAssignment(id) : [];
 
   return (
-    <div className="mx-auto w-full max-w-[1200px] p-8">
+    <div className="mx-auto w-full max-w-[1800px] p-8">
       <div className="mb-8">
         <Link
           href={`/assignments/${assignment.id}`}

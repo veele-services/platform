@@ -45,7 +45,7 @@ export default async function PersonnelMaterialsPage({ params }: Props) {
   const fullName = `${person.firstName} ${person.lastName}`;
 
   return (
-    <div className="mx-auto flex w-full max-w-[1400px] flex-col gap-6 p-8">
+    <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-6 p-8">
       <Link
         href={`/personnel/${id}`}
         className="inline-flex items-center gap-1 text-sm hover:underline"
