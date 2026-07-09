@@ -505,7 +505,7 @@ export function PlanningMapView({ data, canApplySuggestions = false }: PlanningM
               )}
               {visibleMarkers.length === 0 && (
                 <div className="absolute inset-x-4 top-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 shadow-sm">
-                  Geen werkbonnen met bruikbare coordinaten. Gebruik object- of klantlocaties om markers te tonen.
+                  Geen werkbonnen met bruikbare coordinaten. Vul objectlocaties aan om markers te tonen.
                 </div>
               )}
             </div>
@@ -651,7 +651,7 @@ export function PlanningMapView({ data, canApplySuggestions = false }: PlanningM
                   {selectedMarker.coordinate ? (
                     <Badge variant="outline">
                       <LocateFixed className="mr-1 h-3 w-3" />
-                      {selectedMarker.coordinate.source === "object" ? "Objectlocatie" : "Klantlocatie"}
+                      Objectlocatie
                     </Badge>
                   ) : (
                     <Badge variant="secondary">Geen locatie</Badge>

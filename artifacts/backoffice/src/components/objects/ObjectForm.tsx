@@ -73,6 +73,16 @@ const objectFormSchema = z.object({
 
 type FormValues = z.infer<typeof objectFormSchema>;
 
+type AddressSuggestion = {
+  id: string;
+  label: string;
+  street: string | null;
+  postalCode: string | null;
+  city: string | null;
+  country: string;
+  confidence: number;
+};
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 interface ObjectFormProps {
@@ -123,6 +133,8 @@ export function ObjectForm({
   const [customerOpen, setCustomerOpen]   = useState(false);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [regionNames, setRegionNames]     = useState<string[]>([]);
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
+  const [addressLoading, setAddressLoading] = useState(false);
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -143,6 +155,9 @@ export function ObjectForm({
   const sectorIdValue        = watch("sectorId") || "NONE";
   const requiredRoles        = watch("requiredRoles");
   const requiredCertificates = watch("requiredCertificates");
+  const addressValue         = watch("address");
+  const postalCodeValue      = watch("postalCode");
+  const cityValue            = watch("city");
 
   const selectedCustomer = customers.find((c) => c.id === customerIdValue);
 
@@ -177,6 +192,46 @@ export function ObjectForm({
       })
       .finally(() => setLoading(false));
   }, [mode, objectId, setValue]);
+
+  useEffect(() => {
+    const query = [addressValue, postalCodeValue, cityValue]
+      .map((value) => value?.trim())
+      .filter(Boolean)
+      .join(" ");
+
+    if (query.length < 4) {
+      setAddressSuggestions([]);
+      setAddressLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      setAddressLoading(true);
+      try {
+        const response = await fetch(`/api/address-suggestions?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          setAddressSuggestions([]);
+          return;
+        }
+        const payload = (await response.json()) as { suggestions?: AddressSuggestion[] };
+        setAddressSuggestions(payload.suggestions ?? []);
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          setAddressSuggestions([]);
+        }
+      } finally {
+        setAddressLoading(false);
+      }
+    }, 350);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
+  }, [addressValue, postalCodeValue, cityValue]);
 
   const onSubmit = handleSubmit((data) => {
     const parsed = objectFormSchema.safeParse(data);
@@ -407,19 +462,79 @@ export function ObjectForm({
           Adres
         </p>
         <div className="grid grid-cols-2 gap-3">
-          <div className="col-span-2 space-y-1">
-            <Label>Straat &amp; Huisnummer</Label>
-            <Input {...register("address")} placeholder="Hoofdstraat 1" />
-          </div>
-          <div className="space-y-1">
-            <Label>Stad</Label>
-            <Input {...register("city")} placeholder="Amsterdam" aria-invalid={!!errors.city} />
-            {errors.city && <p className="text-xs text-destructive">{errors.city.message}</p>}
-          </div>
-          <div className="space-y-1">
-            <Label>Postcode</Label>
-            <Input {...register("postalCode")} placeholder="1234 AB" aria-invalid={!!errors.postalCode} />
-            {errors.postalCode && <p className="text-xs text-destructive">{errors.postalCode.message}</p>}
+          <div className="relative col-span-2 rounded-lg border p-3" style={{ borderColor: "#E2E8F0" }}>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>Objectadres</p>
+                <p className="text-xs" style={{ color: "#64748B" }}>
+                  Wordt gebruikt voor kaartweergave en reistijd vanaf het huisadres van de medewerker.
+                </p>
+              </div>
+              {addressLoading ? <Loader2 className="h-4 w-4 animate-spin" style={{ color: "#00B7B3" }} /> : null}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2 space-y-1">
+                <Label htmlFor="objectAddress">Straat &amp; huisnummer</Label>
+                <Input
+                  id="objectAddress"
+                  {...register("address")}
+                  placeholder="Hoofdstraat 1"
+                  autoComplete="street-address"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="objectCity">Stad</Label>
+                <Input
+                  id="objectCity"
+                  {...register("city")}
+                  placeholder="Amsterdam"
+                  autoComplete="address-level2"
+                  aria-invalid={!!errors.city}
+                />
+                {errors.city && <p className="text-xs text-destructive">{errors.city.message}</p>}
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="objectPostalCode">Postcode</Label>
+                <Input
+                  id="objectPostalCode"
+                  {...register("postalCode")}
+                  placeholder="1234 AB"
+                  autoComplete="postal-code"
+                  aria-invalid={!!errors.postalCode}
+                />
+                {errors.postalCode && <p className="text-xs text-destructive">{errors.postalCode.message}</p>}
+              </div>
+            </div>
+            {addressSuggestions.length > 0 ? (
+              <div
+                className="absolute left-3 right-3 top-[calc(100%-0.75rem)] z-[80] rounded-md border bg-white shadow-xl"
+                style={{ borderColor: "#D8E8F3" }}
+              >
+                <p className="border-b px-3 py-2 text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B", borderColor: "#E2E8F0" }}>
+                  Adres aanvullen
+                </p>
+                <div className="max-h-44 overflow-y-auto p-1">
+                  {addressSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion.id}
+                      type="button"
+                      className="block w-full rounded px-3 py-2 text-left text-sm hover:bg-slate-50"
+                      onClick={() => {
+                        setValue("address", suggestion.street ?? "");
+                        setValue("postalCode", suggestion.postalCode ?? "");
+                        setValue("city", suggestion.city ?? "");
+                        setAddressSuggestions([]);
+                      }}
+                    >
+                      <span className="block font-medium" style={{ color: "#081D3A" }}>{suggestion.label}</span>
+                      <span className="text-xs" style={{ color: "#64748B" }}>
+                        PDOK - {Math.round(suggestion.confidence)}% match
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </section>

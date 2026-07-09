@@ -5,7 +5,9 @@ import { hasPermission } from "@/lib/auth/permissions";
 export async function GET(request: Request) {
   const canReadPersonnel = await hasPermission("personnel", "read");
   const canWritePersonnel = await hasPermission("personnel", "write");
-  if (!canReadPersonnel && !canWritePersonnel) {
+  const canReadObjects = await hasPermission("objects", "read");
+  const canWriteObjects = await hasPermission("objects", "write");
+  if (!canReadPersonnel && !canWritePersonnel && !canReadObjects && !canWriteObjects) {
     return NextResponse.json({ suggestions: [] }, { status: 403 });
   }
 

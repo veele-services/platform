@@ -28,15 +28,20 @@ test("backoffice and personnel PWA offer secured address autocomplete", () => {
   const backofficeRoute = read("artifacts/backoffice/src/app/api/address-suggestions/route.ts");
   const personnelRoute = read("artifacts/personeel-pwa/src/app/api/address-suggestions/route.ts");
   const backofficeForm = read("artifacts/backoffice/src/components/personnel/PersonnelForm.tsx");
+  const objectForm = read("artifacts/backoffice/src/components/objects/ObjectForm.tsx");
   const personnelForm = read("artifacts/personeel-pwa/src/app/(app)/profiel/ProfileForm.tsx");
 
   assert.match(backofficeRoute, /hasPermission\("personnel",\s*"read"\)/);
+  assert.match(backofficeRoute, /hasPermission\("objects",\s*"read"\)/);
   assert.match(backofficeRoute, /suggestDutchAddresses/);
   assert.match(personnelRoute, /getMyPersonnel\(\)/);
   assert.match(personnelRoute, /suggestDutchAddresses/);
   assert.match(backofficeForm, /\/api\/address-suggestions\?q=/);
   assert.match(backofficeForm, /absolute left-3 right-3/);
   assert.match(backofficeForm, /z-\[80\]/);
+  assert.match(objectForm, /\/api\/address-suggestions\?q=/);
+  assert.match(objectForm, /Objectadres/);
+  assert.match(objectForm, /setValue\("postalCode", suggestion\.postalCode/);
   assert.match(personnelForm, /\/personeel\/api\/address-suggestions\?q=/);
   assert.match(personnelForm, /Dit adres wordt gebruikt als vertrekpunt voor je eerste werkbon/);
 });
@@ -74,4 +79,22 @@ test("planning map refreshes missing or stale route contexts before rendering", 
   assert.match(planningActions, /!row\.routeContextId\s*\|\|\s*addressIsNewer/);
   assert.match(planningActions, /recalculatePlanningRouteContexts\(\{/);
   assert.match(planningActions, /await ensurePlanningDayRouteContextsFresh\(\{/);
+});
+
+test("object address updates geocode automatically and refresh route contexts", () => {
+  const objectActions = read("artifacts/backoffice/src/app/actions/objects.ts");
+  const routeRefresh = read("artifacts/backoffice/src/lib/planning/route-refresh.ts");
+  const realtime = read("lib/db/src/planning-realtime.ts");
+  const etaEngine = read("artifacts/backoffice/src/lib/planning/eta-engine.ts");
+  const mapData = read("artifacts/backoffice/src/lib/planning/map-data.ts");
+
+  assert.match(objectActions, /buildObjectAddressGeocodePatch/);
+  assert.match(objectActions, /await buildObjectAddressGeocodePatch\(payload\)/);
+  assert.match(objectActions, /geocodingStatus:\s*"geocoded"/);
+  assert.match(objectActions, /safeRefreshPlanningRoutesForObject/);
+  assert.match(objectActions, /reason:\s*"object_location_updated"/);
+  assert.match(routeRefresh, /refreshPlanningRoutesForObject/);
+  assert.match(realtime, /object_location_updated/);
+  assert.doesNotMatch(etaEngine, /kind:\s*"customer"/);
+  assert.match(mapData, /Deze werkbon heeft geen bruikbare objectcoordinaten/);
 });

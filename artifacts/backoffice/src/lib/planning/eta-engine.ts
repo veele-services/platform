@@ -65,7 +65,7 @@ type RecalculatePlanningRouteContextsResult = {
 };
 
 type AssignmentLocation = {
-  kind: "object" | "customer";
+  kind: "object";
   coordinate: RouteCoordinate;
 };
 
@@ -154,11 +154,6 @@ function resolveAssignmentLocation(row: RouteAssignmentRow): AssignmentLocation 
   const objectCoordinate = coordinateFromDb(row.objectLat, row.objectLng);
   if (objectCoordinate) {
     return { kind: "object", coordinate: objectCoordinate };
-  }
-
-  const customerCoordinate = coordinateFromDb(row.customerLat, row.customerLng);
-  if (customerCoordinate) {
-    return { kind: "customer", coordinate: customerCoordinate };
   }
 
   return null;

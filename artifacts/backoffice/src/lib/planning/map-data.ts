@@ -20,7 +20,7 @@ export type PlanningDayMapFilters = {
 export type PlanningDayMapCoordinate = {
   lat: number;
   lng: number;
-  source: "object" | "customer";
+  source: "object";
 };
 
 export type PlanningDayMapRouteContext = {
@@ -191,11 +191,6 @@ export function resolvePlanningMapCoordinate(
     return { ...objectCoordinate, source: "object" };
   }
 
-  const customerCoordinate = validCoordinate(row.customerLat, row.customerLng);
-  if (customerCoordinate) {
-    return { ...customerCoordinate, source: "customer" };
-  }
-
   return null;
 }
 
@@ -356,7 +351,7 @@ export function buildPlanningDayMapDataFromRows(
     const warningMessage =
       context.warningMessage ??
       (!coordinate
-        ? "Deze werkbon heeft geen bruikbare object- of klantcoordinaten."
+        ? "Deze werkbon heeft geen bruikbare objectcoordinaten."
         : null);
     if (warningCode && warningMessage) {
       warnings.push({

@@ -167,3 +167,76 @@ export async function safeRefreshPlanningRoutesForPersonnel(input: Parameters<ty
     });
   }
 }
+
+export async function refreshPlanningRoutesForObject(input: {
+  tenantId: string;
+  objectId: string;
+  reason: PlanningRouteRefreshReason;
+  source?: "backoffice" | "personnel-pwa" | "system";
+  fromDate?: string;
+}): Promise<void> {
+  const fromDate = input.fromDate ?? new Date().toISOString().slice(0, 10);
+  const rows = await db
+    .select({
+      scheduledDate: assignmentsTable.scheduledDate,
+      personnelId: assignmentPersonnelTable.personnelId,
+    })
+    .from(assignmentsTable)
+    .innerJoin(
+      assignmentPersonnelTable,
+      and(
+        eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id),
+        eq(assignmentPersonnelTable.status, "assigned"),
+      ),
+    )
+    .where(
+      and(
+        eq(assignmentsTable.tenantId, input.tenantId),
+        eq(assignmentsTable.objectId, input.objectId),
+        eq(assignmentsTable.isActive, true),
+      ),
+    );
+
+  const combos = new Map<string, { scheduledDate: string; personnelId: string }>();
+  for (const row of rows) {
+    if (!row.scheduledDate || row.scheduledDate < fromDate || !DATE_KEY_RE.test(row.scheduledDate)) {
+      continue;
+    }
+    combos.set(`${row.scheduledDate}:${row.personnelId}`, {
+      scheduledDate: row.scheduledDate,
+      personnelId: row.personnelId,
+    });
+  }
+
+  let recalculated = false;
+  for (const combo of combos.values()) {
+    await recalculatePlanningRouteContexts({
+      tenantId: input.tenantId,
+      scheduledDate: combo.scheduledDate,
+      personnelId: combo.personnelId,
+    });
+    recalculated = true;
+  }
+
+  await emitPlanningRouteRefreshEvent({
+    tenantId: input.tenantId,
+    assignmentId: null,
+    reason: input.reason,
+    scheduledDates: dateKeys([...combos.values()].map((combo) => combo.scheduledDate)),
+    personnelIds: [...new Set([...combos.values()].map((combo) => combo.personnelId))],
+    recalculated,
+    source: input.source ?? "system",
+  });
+}
+
+export async function safeRefreshPlanningRoutesForObject(input: Parameters<typeof refreshPlanningRoutesForObject>[0]): Promise<void> {
+  try {
+    await refreshPlanningRoutesForObject(input);
+  } catch (error) {
+    console.error("planning object route refresh failed", {
+      objectId: input.objectId,
+      reason: input.reason,
+      error,
+    });
+  }
+}

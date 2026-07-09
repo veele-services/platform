@@ -48,7 +48,7 @@ De kaart toont:
 - warnings voor ontbrekende locaties en routecontextproblemen;
 - detaildrawer voor de geselecteerde werkbon.
 
-Ontbrekende object- of klantcoordinaten blokkeren de pagina niet. De gebruiker ziet een nette waarschuwing en kan de werkbon alsnog openen.
+Ontbrekende objectcoordinaten blokkeren de pagina niet. De gebruiker ziet een nette waarschuwing en kan de werkbon alsnog openen.
 
 ## Rollback
 

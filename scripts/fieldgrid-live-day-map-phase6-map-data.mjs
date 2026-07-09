@@ -58,7 +58,7 @@ mustContain("mapData", "PlanningDayMapPersonnelRoute", "personeelsroute contract
 mustContain("mapData", "PlanningDayMapWarning", "warning contract");
 mustContain("mapData", "resolvePlanningMapCoordinate", "coordinaten normalisatie");
 mustContain("mapData", 'source: "object"', "objectcoordinaten hebben prioriteit");
-mustContain("mapData", 'source: "customer"', "klantcoordinaten fallback");
+mustNotContain("mapData", 'source: "customer"', "klantcoordinaten fallback");
 mustContain("mapData", "missing_location", "ontbrekende coordinaten warning");
 mustContain("mapData", "warningsOnly", "warnings filter");
 mustContain("mapData", "accessDenied", "permission-safe response");
