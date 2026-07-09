@@ -66,6 +66,7 @@ test("assignment detail prioritizes work-order information after personnel is li
   assert.match(page, /Adresgegevens|Object & adres/u);
   assert.match(page, /Checklist & taken/u);
   assert.match(page, /showPlanningFirst/u);
-  assert.match(page, /label: showPlanningFirst \? "Workflow" : "Werkbon"/u);
-  assert.match(page, /id="planning"/u);
+  assert.match(page, /activeTab === "werkbon"/u);
+  assert.match(page, /activeTab === "planning"/u);
+  assert.match(page, /tabHref\("planning"\)/u);
 });
