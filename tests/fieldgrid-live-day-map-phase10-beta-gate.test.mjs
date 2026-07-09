@@ -16,6 +16,9 @@ test("phase 10 keeps live day map beta-gated and preserves planning views", () =
   const sidebar = read("artifacts/backoffice/src/components/layout/Sidebar.tsx");
 
   assert.match(featureFlag, /FIELDGRID_PLANNING_DAY_MAP_ENABLED/);
+  assert.match(featureFlag, /betaEnvironmentValues/);
+  assert.match(featureFlag, /APP_ENV/);
+  assert.match(featureFlag, /VERCEL_ENV/);
   assert.match(page, /isPlanningDayMapEnabled/);
   assert.match(page, /mapEnabled\s*&&\s*view\s*===\s*"map"/);
   assert.match(layout, /isPlanningDayMapEnabled/);

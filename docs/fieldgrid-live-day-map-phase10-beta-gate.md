@@ -8,6 +8,7 @@ Fase 10 maakt de live dagkaart beta-ready door de bestaande ETA-, snap-, provide
 
 - De planning kan optioneel een live dagkaart tonen via `FIELDGRID_PLANNING_DAY_MAP_ENABLED`.
 - Als de flag aan staat verschijnt in de tenant backoffice-sidebar direct onder Planning het menu-item `Kaart`.
+- In `APP_ENV=staging`, `VERCEL_ENV=preview` of `FIELDGRID_ENV=beta` staat de kaart automatisch aan als `FIELDGRID_PLANNING_DAY_MAP_ENABLED` ontbreekt.
 - De kaart toont werkbonmarkers, routecontexten, ontbrekende locaties, ETA-waarschuwingen en routepanelen per personeelslid.
 - Routevoorstellen blijven bewust handmatig: een planner moet het voorstel expliciet toepassen.
 - Bestaande planningweergaven blijven beschikbaar: bord, dag en maand.
@@ -26,8 +27,9 @@ Fase 10 maakt de live dagkaart beta-ready door de bestaande ETA-, snap-, provide
 
 ## Beheerinstructies
 
-1. Laat de functie standaard uit totdat beta start: `FIELDGRID_PLANNING_DAY_MAP_ENABLED=false`.
-2. Zet beta bewust aan per environment: `FIELDGRID_PLANNING_DAY_MAP_ENABLED=true`.
+1. Productie blijft standaard uit totdat beta live mag: `FIELDGRID_PLANNING_DAY_MAP_ENABLED=false` of geen beta environment.
+2. Staging/preview staat automatisch aan via `APP_ENV=staging`, `VERCEL_ENV=preview` of `FIELDGRID_ENV=beta`.
+3. Zet beta bewust aan per productie-environment: `FIELDGRID_PLANNING_DAY_MAP_ENABLED=true`.
 3. Gebruik productieprovider alleen met een geldige `GOOGLE_ROUTES_API_KEY`.
 4. Gebruik `FIELDGRID_ROUTE_PROVIDER=mock` voor CI, demo of wanneer geen routeprovider gebruikt mag worden.
 5. Controleer dat objecten of klanten coordinaten hebben; zonder locatie blijft de werkbon zichtbaar als waarschuwing, niet als marker.
