@@ -1273,6 +1273,7 @@ async function ensurePlanningDayRouteContextsFresh(input: {
       personnelId: assignmentPersonnelTable.personnelId,
       routeContextId: assignmentRouteContextsTable.id,
       contextCalculatedAt: assignmentRouteContextsTable.calculatedAt,
+      warningCode: assignmentRouteContextsTable.warningCode,
       addressGeocodedAt: personnelTable.addressGeocodedAt,
       objectGeocodedAt: objectsTable.geocodedAt,
     })
@@ -1321,8 +1322,11 @@ async function ensurePlanningDayRouteContextsFresh(input: {
     const objectIsNewer =
       objectGeocodedAt !== null &&
       (contextCalculatedAt === null || objectGeocodedAt > contextCalculatedAt);
+    const providerErrorCanUseMock =
+      row.warningCode === "provider_error" &&
+      process.env.FIELDGRID_ROUTE_PROVIDER !== "google";
 
-    if (!row.routeContextId || addressIsNewer || objectIsNewer) {
+    if (!row.routeContextId || addressIsNewer || objectIsNewer || providerErrorCanUseMock) {
       stalePersonnelIds.add(row.personnelId);
     }
   }

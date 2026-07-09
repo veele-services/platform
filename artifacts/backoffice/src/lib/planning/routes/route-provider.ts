@@ -14,14 +14,16 @@ export type CreateRouteProviderOptions = {
   mockFailure?: boolean;
 };
 
-function routeProviderKindFromEnv(): RouteProviderKind {
-  return process.env.FIELDGRID_ROUTE_PROVIDER === "mock" ? "mock" : "google";
+function routeProviderKindFromEnv(googleApiKey?: string): RouteProviderKind {
+  if (process.env.FIELDGRID_ROUTE_PROVIDER === "mock") return "mock";
+  if (process.env.FIELDGRID_ROUTE_PROVIDER === "google") return "google";
+  return googleApiKey || process.env.GOOGLE_ROUTES_API_KEY ? "google" : "mock";
 }
 
 export function createRouteProvider(
   options: CreateRouteProviderOptions = {},
 ): RouteProvider {
-  const kind = options.kind ?? routeProviderKindFromEnv();
+  const kind = options.kind ?? routeProviderKindFromEnv(options.googleApiKey);
 
   if (kind === "mock") {
     return createMockRouteProvider({ forceFailure: options.mockFailure });

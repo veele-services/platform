@@ -58,6 +58,7 @@ test("phase 10 route provider has deterministic fallback without external API ke
 
   assert.match(routeProvider, /FIELDGRID_ROUTE_PROVIDER/);
   assert.match(routeProvider, /createMockRouteProvider/);
+  assert.match(routeProvider, /GOOGLE_ROUTES_API_KEY\s*\?\s*"google"\s*:\s*"mock"/);
   assert.match(googleProvider, /GOOGLE_ROUTES_API_KEY is niet geconfigureerd\./);
   assert.match(
     googleProvider,

@@ -15,7 +15,7 @@ Fase 4 implementeert de routeprovider en routecache zonder UI. Er is bewust nog 
 
 ## Routeprovider
 
-De default provider is Google Routes. De API-key wordt alleen gelezen uit `GOOGLE_ROUTES_API_KEY` en mag nooit als `NEXT_PUBLIC_*` worden geconfigureerd. Als de key ontbreekt, geeft de provider een gecontroleerd foutresultaat terug in plaats van een exception.
+De default provider is de deterministische mockprovider zolang `GOOGLE_ROUTES_API_KEY` ontbreekt. Google Routes wordt alleen gebruikt wanneer `FIELDGRID_ROUTE_PROVIDER=google` is gezet of wanneer er een server-only `GOOGLE_ROUTES_API_KEY` beschikbaar is. De API-key mag nooit als `NEXT_PUBLIC_*` worden geconfigureerd.
 
 Ondersteunde vervoerstypes volgen `PersonnelVehicleType`:
 

@@ -12,7 +12,7 @@ Fase 10 maakt de live dagkaart beta-ready door de bestaande ETA-, snap-, provide
 - De kaart toont werkbonmarkers, routecontexten, ontbrekende locaties, ETA-waarschuwingen en routepanelen per personeelslid.
 - Routevoorstellen blijven bewust handmatig: een planner moet het voorstel expliciet toepassen.
 - Bestaande planningweergaven blijven beschikbaar: bord, dag en maand.
-- Provider fallback is veilig: zonder `GOOGLE_ROUTES_API_KEY` faalt de Google provider gecontroleerd en kan `FIELDGRID_ROUTE_PROVIDER=mock` voor CI of demo worden gebruikt.
+- Provider fallback is veilig: zonder `GOOGLE_ROUTES_API_KEY` gebruikt de default provider de deterministische mockprovider. Zet `FIELDGRID_ROUTE_PROVIDER=google` alleen wanneer een geldige server-only Google key beschikbaar is.
 - De fase-10 gate bewaakt tenantisolatie, permissies, responsive UI-contracten, provider fallback en performance met minimaal 50 opdrachten en 20 personeelsleden.
 
 ## Geraakte routes, acties en tabellen
@@ -30,8 +30,8 @@ Fase 10 maakt de live dagkaart beta-ready door de bestaande ETA-, snap-, provide
 1. Productie blijft standaard uit totdat beta live mag: `FIELDGRID_PLANNING_DAY_MAP_ENABLED=false` of geen beta environment.
 2. Staging/preview staat automatisch aan via `APP_ENV=staging`, `VERCEL_ENV=preview` of `FIELDGRID_ENV=beta`.
 3. Zet beta bewust aan per productie-environment: `FIELDGRID_PLANNING_DAY_MAP_ENABLED=true`.
-3. Gebruik productieprovider alleen met een geldige `GOOGLE_ROUTES_API_KEY`.
-4. Gebruik `FIELDGRID_ROUTE_PROVIDER=mock` voor CI, demo of wanneer geen routeprovider gebruikt mag worden.
+3. Gebruik de Google productieprovider alleen met een geldige `GOOGLE_ROUTES_API_KEY`.
+4. Laat de key leeg of gebruik `FIELDGRID_ROUTE_PROVIDER=mock` voor CI, demo of wanneer geen externe routeprovider gebruikt mag worden.
 5. Controleer dat objecten of klanten coordinaten hebben; zonder locatie blijft de werkbon zichtbaar als waarschuwing, niet als marker.
 6. Draai voor release:
    - `pnpm fieldgrid:live-day-map-phase10:check`
@@ -101,7 +101,7 @@ De strict gate faalt als screenshots of rapport ontbreken. Hiermee wordt zichtba
 1. Zet `FIELDGRID_PLANNING_DAY_MAP_ENABLED=false`.
 2. Laat routecontexten en providerconfiguratie staan; ze worden niet zichtbaar gebruikt.
 3. Bord-, dag- en maandplanning blijven de bestaande primaire planningervaring.
-4. Als providerproblemen optreden, zet tijdelijk `FIELDGRID_ROUTE_PROVIDER=mock` of laat `GOOGLE_ROUTES_API_KEY` leeg zodat er gecontroleerde waarschuwingen ontstaan.
+4. Als providerproblemen optreden, zet tijdelijk `FIELDGRID_ROUTE_PROVIDER=mock` of laat `GOOGLE_ROUTES_API_KEY` leeg zodat de mockprovider routecontexten kan berekenen.
 
 ## Open beta checks
 
