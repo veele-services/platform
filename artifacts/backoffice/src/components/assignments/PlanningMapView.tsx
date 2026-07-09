@@ -143,6 +143,7 @@ type PlanningMapData = {
 type PlanningMapViewProps = {
   data: PlanningMapData;
   canApplySuggestions?: boolean;
+  dateLabel?: string;
 };
 
 type PendingSuggestion = {
@@ -292,7 +293,7 @@ function createRouteFeatures(markers: MapMarker[], routes: PersonnelRoute[]) {
     .filter((feature): feature is NonNullable<typeof feature> => Boolean(feature));
 }
 
-export function PlanningMapView({ data, canApplySuggestions = false }: PlanningMapViewProps) {
+export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }: PlanningMapViewProps) {
   const router = useRouter();
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<unknown>(null);
@@ -477,13 +478,15 @@ export function PlanningMapView({ data, canApplySuggestions = false }: PlanningM
           offset: 18,
           className: "planning-marker-popup",
         }).setHTML(markerPopupHtml(marker));
-        node.addEventListener("mouseenter", () => {
+        const showPopup = () => {
           popup.setLngLat([marker.coordinate!.lng, marker.coordinate!.lat]).addTo(map as never);
-        });
+        };
+        node.title = `${marker.code} - ${marker.title}\n${formatObjectAddress(marker)}\n${personnelSummary(marker)}`;
+        node.addEventListener("mouseenter", showPopup);
+        node.addEventListener("pointerenter", showPopup);
         node.addEventListener("mouseleave", () => popup.remove());
-        node.addEventListener("focus", () => {
-          popup.setLngLat([marker.coordinate!.lng, marker.coordinate!.lat]).addTo(map as never);
-        });
+        node.addEventListener("pointerleave", () => popup.remove());
+        node.addEventListener("focus", showPopup);
         node.addEventListener("blur", () => popup.remove());
         bounds.extend([marker.coordinate!.lng, marker.coordinate!.lat]);
         markerCleanupRef.current.push(() => {
@@ -527,9 +530,13 @@ export function PlanningMapView({ data, canApplySuggestions = false }: PlanningM
               <MapPin className="h-4 w-4 text-cyan-600" />
               <h2 className="text-base font-semibold text-slate-950">Live dagkaart</h2>
             </div>
-            <p className="mt-1 text-sm text-slate-500">
-              Markers, opdrachtinformatie en ETA-waarschuwingen voor deze planningsdag.
-            </p>
+            {dateLabel ? (
+              <p className="mt-1 text-sm font-medium capitalize text-slate-600">{dateLabel}</p>
+            ) : (
+              <p className="mt-1 text-sm text-slate-500">
+                Markers, opdrachtinformatie en ETA-waarschuwingen voor deze planningsdag.
+              </p>
+            )}
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">{data.markers.length} werkbonnen</Badge>
@@ -558,7 +565,7 @@ export function PlanningMapView({ data, canApplySuggestions = false }: PlanningM
           </div>
         ) : (
           <div className="grid gap-0 lg:grid-cols-[minmax(0,1fr)_320px]">
-            <div className="relative min-h-[420px] bg-slate-100">
+            <div className="relative h-[min(72vh,680px)] min-h-[520px] overflow-hidden bg-slate-100">
               <div ref={mapContainerRef} className="absolute inset-0" />
               {!mapReady && (
                 <div className="absolute inset-0 flex items-center justify-center bg-slate-100/80">

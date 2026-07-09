@@ -106,10 +106,8 @@ mustContain("planningPage", "PlanningBoardView", "board planning view");
 mustContain("planningPage", "PlanningDayView", "day planning view");
 mustContain("planningPage", "PlanningMonthView", "month planning view");
 mustContain("planningPage", "PlanningMapView", "map planning view");
-mustContain("planningPage", "/planning?date=", "board navigation");
-mustContain("planningPage", "/planning?day=", "day navigation");
-mustContain("planningPage", "/planning?month=", "month navigation");
-mustContain("planningPage", "view=map&date=", "map navigation");
+mustNotContain("planningPage", "Planning workbench", "duplicated planning page title");
+mustNotContain("planningPage", "Tenant planning", "duplicated planning page eyebrow");
 
 mustContain("planningActions", "hasPermission(\"planning\", \"read\")", "planning read permission check");
 mustContain("planningActions", "createEmptyPlanningDayMapData(date, { accessDenied: true })", "access denied empty result");
@@ -136,7 +134,7 @@ mustContain("mapView", "minmax(0,1fr)", "responsive grid tracks");
 mustContain("mapView", "overflow-hidden", "map shell clips map canvas");
 mustContain("mapView", "w-full overflow-y-auto sm:max-w-xl", "mobile-safe drawer width");
 mustContain("mapView", "max-h-[390px]", "bounded marker list");
-mustContain("mapView", "min-h-[420px]", "stable map height");
+mustContain("mapView", "min-h-[520px]", "stable map height");
 mustContain("mapView", "await import(\"maplibre-gl\")", "lazy map dependency");
 mustNotContain("mapView", "min-w-[", "no fixed minimum width causing mobile overflow");
 

@@ -54,9 +54,9 @@ mustContain("planningPage", "isPlanningDayMapEnabled", "planning page feature fl
 mustContain("planningPage", "mapEnabled && view === \"map\"", "map route achter flag");
 mustContain("planningPage", "getPlanningDayMapData", "map data server action");
 mustContain("planningPage", "PlanningMapView", "map client component");
-mustContain("planningPage", "Kaart", "vierde tab label");
-mustContain("planningPage", "view=map", "map tab query");
-mustContain("planningPage", "TenantConflictStrip", "map summary strip");
+mustNotContain("planningPage", "Planning workbench", "duplicated page title");
+mustNotContain("planningPage", "Tenant planning", "duplicated planning eyebrow");
+mustNotContain("planningPage", "TenantConflictStrip", "duplicated planning summary strip");
 
 mustContain("mapView", '"use client";', "client component");
 mustContain("mapView", 'await import("maplibre-gl")', "lazy MapLibre import");

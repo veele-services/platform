@@ -18,8 +18,9 @@ test("phase 7 planning map tab is guarded by the feature flag", () => {
   assert.match(page, /if \(mapEnabled && view === "map"\)/);
   assert.match(page, /getPlanningDayMapData/);
   assert.match(page, /PlanningMapView/);
-  assert.match(page, /view=map&date=/);
-  assert.match(page, />\s*Kaart\s*</);
+  assert.doesNotMatch(page, /Planning workbench/);
+  assert.doesNotMatch(page, /Tenant planning/);
+  assert.doesNotMatch(page, /TenantConflictStrip/);
 });
 
 test("phase 7 map component lazy-loads MapLibre client-side only", () => {
@@ -44,6 +45,9 @@ test("phase 7 map UI exposes marker, route, warning and detail surfaces", () => 
   assert.match(mapView, /<svg viewBox="0 0 24 24"/);
   assert.match(mapView, /markerPopupHtml/);
   assert.match(mapView, /mouseenter/);
+  assert.match(mapView, /pointerenter/);
+  assert.match(mapView, /dateLabel/);
+  assert.match(mapView, /min-h-\[520px\]/);
   assert.match(mapView, /Adresgegevens/);
   assert.match(mapView, /Opdrachtinformatie/);
   assert.doesNotMatch(mapView, />Routecontext</);
