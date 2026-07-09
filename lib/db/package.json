@@ -9,6 +9,7 @@
     "./email-service": "./src/email-service.ts",
     "./email-templates": "./src/email-templates.ts",
     "./events": "./src/events.ts",
+    "./address-geocoding": "./src/address-geocoding.ts",
     "./portal-routes": "./src/portal-routes.ts",
     "./planning-realtime": "./src/planning-realtime.ts",
     "./workflow-events": "./src/workflow-events.ts",

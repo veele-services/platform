@@ -54,6 +54,10 @@ const personnelFormSchema = z.object({
       "Ongeldig e-mailadres",
     ),
   phone:              z.string().max(50, "Max 50 tekens"),
+  addressStreet:      z.string().max(200, "Max 200 tekens"),
+  addressPostalCode:  z.string().max(20, "Max 20 tekens"),
+  addressCity:        z.string().max(120, "Max 120 tekens"),
+  addressCountry:     z.string().max(80, "Max 80 tekens"),
   roleId:             z.string(),
   sectorId:           z.string(),
   region:             z.string().max(100, "Max 100 tekens"),
@@ -64,6 +68,16 @@ const personnelFormSchema = z.object({
 });
 
 type TextFormValues = z.infer<typeof personnelFormSchema>;
+
+type AddressSuggestion = {
+  id: string;
+  label: string;
+  street: string | null;
+  postalCode: string | null;
+  city: string | null;
+  country: string;
+  confidence: number;
+};
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
@@ -81,6 +95,10 @@ const TEXT_DEFAULTS: TextFormValues = {
   lastName:          "",
   email:             "",
   phone:             "",
+  addressStreet:     "",
+  addressPostalCode: "",
+  addressCity:       "",
+  addressCountry:    "Nederland",
   roleId:            "",
   sectorId:          "",
   region:            "",
@@ -114,6 +132,8 @@ export function PersonnelForm({
   const [personnelType,     setPersonnelType]     = useState<string>("");
   // Create-mode only: send invite email immediately after creating the record
   const [autoInvite,        setAutoInvite]        = useState(false);
+  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
+  const [addressLoading, setAddressLoading] = useState(false);
 
   const form = useForm<TextFormValues>({ defaultValues: TEXT_DEFAULTS });
   const {
@@ -127,6 +147,9 @@ export function PersonnelForm({
 
   const roleIdValue = watch("roleId") || "NONE";
   const sectorIdValue = watch("sectorId") || "NONE";
+  const addressStreetValue = watch("addressStreet");
+  const addressPostalCodeValue = watch("addressPostalCode");
+  const addressCityValue = watch("addressCity");
 
   useEffect(() => {
     listRegionOptions().then(setRegionOptions).catch(() => setRegionOptions([]));
@@ -143,6 +166,10 @@ export function PersonnelForm({
           setValue("lastName",          p.lastName  ?? "");
           setValue("email",             p.email     ?? "");
           setValue("phone",             p.phone     ?? "");
+          setValue("addressStreet",     p.addressStreet     ?? "");
+          setValue("addressPostalCode", p.addressPostalCode ?? "");
+          setValue("addressCity",       p.addressCity       ?? "");
+          setValue("addressCountry",    p.addressCountry    ?? "Nederland");
           setValue("roleId",            p.roleId    ?? "");
           setValue("sectorId",          p.sectorId  ?? "");
           setValue("region",            p.region    ?? "");
@@ -163,6 +190,46 @@ export function PersonnelForm({
       })
       .finally(() => setLoading(false));
   }, [mode, personnelId, setValue]);
+
+  useEffect(() => {
+    const query = [addressStreetValue, addressPostalCodeValue, addressCityValue]
+      .map((value) => value?.trim())
+      .filter(Boolean)
+      .join(" ");
+
+    if (query.length < 4) {
+      setAddressSuggestions([]);
+      setAddressLoading(false);
+      return;
+    }
+
+    const controller = new AbortController();
+    const timeout = window.setTimeout(async () => {
+      setAddressLoading(true);
+      try {
+        const response = await fetch(`/api/address-suggestions?q=${encodeURIComponent(query)}`, {
+          signal: controller.signal,
+        });
+        if (!response.ok) {
+          setAddressSuggestions([]);
+          return;
+        }
+        const payload = (await response.json()) as { suggestions?: AddressSuggestion[] };
+        setAddressSuggestions(payload.suggestions ?? []);
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          setAddressSuggestions([]);
+        }
+      } finally {
+        setAddressLoading(false);
+      }
+    }, 350);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timeout);
+    };
+  }, [addressStreetValue, addressPostalCodeValue, addressCityValue]);
 
   const onSubmit = handleSubmit((data) => {
     const parsed = personnelFormSchema.safeParse(data);
@@ -192,6 +259,10 @@ export function PersonnelForm({
         lastName:           parsed.data.lastName,
         email:              parsed.data.email,
         phone:              parsed.data.phone     || undefined,
+        addressStreet:      parsed.data.addressStreet || undefined,
+        addressPostalCode:  parsed.data.addressPostalCode || undefined,
+        addressCity:        parsed.data.addressCity || undefined,
+        addressCountry:     parsed.data.addressCountry || "Nederland",
         roleId:             parsed.data.roleId === "NONE" ? undefined : parsed.data.roleId || undefined,
         sectorId:           parsed.data.sectorId === "NONE" ? undefined : parsed.data.sectorId || undefined,
         region:             regionNames[0] || parsed.data.region || undefined,
@@ -281,6 +352,84 @@ export function PersonnelForm({
           <div className="col-span-2 space-y-1">
             <Label htmlFor="phone">Telefoon</Label>
             <Input id="phone" {...register("phone")} placeholder="+31 6 00 00 00 00" />
+          </div>
+
+          <div className="col-span-2 rounded-lg border p-3" style={{ borderColor: "#E2E8F0" }}>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>Huisadres</p>
+                <p className="text-xs" style={{ color: "#64748B" }}>
+                  Wordt gebruikt als vertrekpunt voor de eerste werkbon op de planningskaart.
+                </p>
+              </div>
+              {addressLoading ? <Loader2 className="h-4 w-4 animate-spin" style={{ color: "#00B7B3" }} /> : null}
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="col-span-2 space-y-1">
+                <Label htmlFor="addressStreet">Straat en huisnummer</Label>
+                <Input
+                  id="addressStreet"
+                  {...register("addressStreet")}
+                  placeholder="Voorbeeldstraat 12"
+                  autoComplete="street-address"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="addressPostalCode">Postcode</Label>
+                <Input
+                  id="addressPostalCode"
+                  {...register("addressPostalCode")}
+                  placeholder="1234 AB"
+                  autoComplete="postal-code"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="addressCity">Plaats</Label>
+                <Input
+                  id="addressCity"
+                  {...register("addressCity")}
+                  placeholder="Den Haag"
+                  autoComplete="address-level2"
+                />
+              </div>
+              <div className="col-span-2 space-y-1">
+                <Label htmlFor="addressCountry">Land</Label>
+                <Input
+                  id="addressCountry"
+                  {...register("addressCountry")}
+                  placeholder="Nederland"
+                  autoComplete="country-name"
+                />
+              </div>
+            </div>
+            {addressSuggestions.length > 0 ? (
+              <div className="mt-3 rounded-md border bg-white" style={{ borderColor: "#D8E8F3" }}>
+                <p className="border-b px-3 py-2 text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B", borderColor: "#E2E8F0" }}>
+                  Adres aanvullen
+                </p>
+                <div className="max-h-44 overflow-y-auto p-1">
+                  {addressSuggestions.map((suggestion) => (
+                    <button
+                      key={suggestion.id}
+                      type="button"
+                      className="block w-full rounded px-3 py-2 text-left text-sm hover:bg-slate-50"
+                      onClick={() => {
+                        setValue("addressStreet", suggestion.street ?? "");
+                        setValue("addressPostalCode", suggestion.postalCode ?? "");
+                        setValue("addressCity", suggestion.city ?? "");
+                        setValue("addressCountry", suggestion.country);
+                        setAddressSuggestions([]);
+                      }}
+                    >
+                      <span className="block font-medium" style={{ color: "#081D3A" }}>{suggestion.label}</span>
+                      <span className="text-xs" style={{ color: "#64748B" }}>
+                        PDOK - {Math.round(suggestion.confidence)}% match
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         </div>
       </section>

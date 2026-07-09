@@ -26,6 +26,11 @@ export function toPlatformCustomerMaskedDto<T extends AnyRecord>(
     contactEmail: typeof row.contactEmail === "string" ? maskEmail(row.contactEmail) : row.contactEmail,
     contactPhone: typeof row.contactPhone === "string" ? maskPhone(row.contactPhone) : row.contactPhone,
     mobile: typeof row.mobile === "string" ? maskPhone(row.mobile) : row.mobile,
+    addressStreet: typeof row.addressStreet === "string" ? "Adres verborgen" : row.addressStreet,
+    addressPostalCode: row.addressPostalCode ? maskReference(String(row.addressPostalCode)) : row.addressPostalCode,
+    addressCity: typeof row.addressCity === "string" ? row.addressCity : row.addressCity,
+    addressLatitude: row.addressLatitude ? null : row.addressLatitude,
+    addressLongitude: row.addressLongitude ? null : row.addressLongitude,
     address: maskAddress({
       street: typeof row.address === "string" ? row.address : null,
       city: typeof row.city === "string" ? row.city : null,

@@ -69,6 +69,11 @@ type AssignmentLocation = {
   coordinate: RouteCoordinate;
 };
 
+type PersonnelHomeLocation = {
+  kind: "personnel_home";
+  coordinate: RouteCoordinate;
+};
+
 type RouteAssignmentRow = EtaAssignmentForSequence & {
   tenantId: string;
   assignmentId: string;
@@ -80,10 +85,13 @@ type RouteAssignmentRow = EtaAssignmentForSequence & {
   objectLng: number | string | null;
   customerLat: number | string | null;
   customerLng: number | string | null;
+  personnelAddressLat: number | string | null;
+  personnelAddressLng: number | string | null;
 };
 
 type RouteAssignment = RouteAssignmentRow & {
   location: AssignmentLocation | null;
+  personnelHomeLocation: PersonnelHomeLocation | null;
 };
 
 function safePlanningSettings(
@@ -156,6 +164,11 @@ function resolveAssignmentLocation(row: RouteAssignmentRow): AssignmentLocation 
   return null;
 }
 
+function resolvePersonnelHomeLocation(row: RouteAssignmentRow): PersonnelHomeLocation | null {
+  const coordinate = coordinateFromDb(row.personnelAddressLat, row.personnelAddressLng);
+  return coordinate ? { kind: "personnel_home", coordinate } : null;
+}
+
 function routeContextCoordinates(
   coordinate: RouteCoordinate | null,
 ): { lat: string | null; lng: string | null } {
@@ -175,6 +188,7 @@ function baseRouteContextValues(input: {
   now: Date;
   settings: EtaPlanningSettings;
   origin: RouteCoordinate | null;
+  originKind: "previous_assignment" | "personnel_home" | null;
   routeDurationSeconds: number | null;
   routeDistanceMeters: number | null;
   bufferMinutes: number;
@@ -189,7 +203,7 @@ function baseRouteContextValues(input: {
     previousAssignmentId: input.previous?.assignmentId ?? null,
     scheduledDate: input.assignment.scheduledDate,
     sequenceIndex: input.sequenceIndex,
-    originKind: input.previous ? "previous_assignment" : null,
+    originKind: input.originKind,
     originAssignmentId: input.previous?.assignmentId ?? null,
     originLat: origin.lat,
     originLng: origin.lng,
@@ -248,6 +262,8 @@ async function loadRoutePlanningRows(input: {
       objectLng: objectsTable.longitude,
       customerLat: customersTable.latitude,
       customerLng: customersTable.longitude,
+      personnelAddressLat: personnelTable.addressLatitude,
+      personnelAddressLng: personnelTable.addressLongitude,
     })
     .from(assignmentPersonnelTable)
     .innerJoin(
@@ -287,6 +303,7 @@ async function loadRoutePlanningRows(input: {
     status: row.status as AssignmentStatus,
     personnelVehicleType: row.personnelVehicleType as PersonnelVehicleType,
     location: resolveAssignmentLocation(row as RouteAssignmentRow),
+    personnelHomeLocation: resolvePersonnelHomeLocation(row as RouteAssignmentRow),
   })) as RouteAssignment[];
 }
 
@@ -339,46 +356,21 @@ async function buildRouteContexts(input: {
       const bufferMinutes = previous
         ? getRouteBufferMinutes(input.settings, vehicleType)
         : 0;
-      const origin = previous?.location?.coordinate ?? null;
+      const origin = previous?.location?.coordinate ?? assignment.personnelHomeLocation?.coordinate ?? null;
+      const originKind = previous
+        ? "previous_assignment"
+        : assignment.personnelHomeLocation
+          ? "personnel_home"
+          : null;
       const destination = assignment.location?.coordinate ?? null;
-      const departureTime = selectDepartureTime({
-        previousAssignment: previous,
-        now: input.now,
-      });
+      const departureTime = previous
+        ? selectDepartureTime({
+            previousAssignment: previous,
+            now: input.now,
+          })
+        : dateTimeForTime(assignment.scheduledDate, input.settings.planningWorkdayStart);
       let routeDurationSeconds: number | null = null;
       let routeDistanceMeters: number | null = null;
-
-      if (!previous) {
-        const snap = computeEtaSnapSuggestion({
-          scheduledDate: assignment.scheduledDate,
-          scheduledStart: assignment.scheduledStart,
-          scheduledEnd: assignment.scheduledEnd,
-          customerWindowStart: assignment.customerWindowStart,
-          customerWindowEnd: assignment.customerWindowEnd,
-          departureTime: null,
-          routeDurationSeconds: null,
-          bufferMinutes,
-          slotMinutes: input.settings.planningTimeSlotMinutes,
-          workdayStart: input.settings.planningWorkdayStart,
-          missingLocation: !destination,
-        });
-        contexts.push(
-          baseRouteContextValues({
-            tenantId: input.tenantId,
-            assignment,
-            previous,
-            sequenceIndex: index,
-            now: input.now,
-            settings: input.settings,
-            origin,
-            routeDurationSeconds,
-            routeDistanceMeters,
-            bufferMinutes,
-            snap,
-          }),
-        );
-        continue;
-      }
 
       if (!origin || !destination || !departureTime) {
         const snap = computeEtaSnapSuggestion({
@@ -392,7 +384,7 @@ async function buildRouteContexts(input: {
           bufferMinutes,
           slotMinutes: input.settings.planningTimeSlotMinutes,
           workdayStart: input.settings.planningWorkdayStart,
-          missingLocation: true,
+          missingLocation: !origin || !destination,
         });
         contexts.push({
           ...baseRouteContextValues({
@@ -403,6 +395,7 @@ async function buildRouteContexts(input: {
             now: input.now,
             settings: input.settings,
             origin,
+            originKind,
             routeDurationSeconds,
             routeDistanceMeters,
             bufferMinutes,
@@ -451,6 +444,7 @@ async function buildRouteContexts(input: {
             now: input.now,
             settings: input.settings,
             origin,
+            originKind,
             routeDurationSeconds,
             routeDistanceMeters,
             bufferMinutes,
@@ -484,6 +478,7 @@ async function buildRouteContexts(input: {
           now: input.now,
           settings: input.settings,
           origin,
+          originKind,
           routeDurationSeconds,
           routeDistanceMeters,
           bufferMinutes,
@@ -558,5 +553,6 @@ export const etaEngineInternals = {
   buildRouteContexts,
   coordinateFromDb,
   resolveAssignmentLocation,
+  resolvePersonnelHomeLocation,
   safePlanningSettings,
 };

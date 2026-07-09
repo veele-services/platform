@@ -14,6 +14,7 @@ export type PlanningRouteRefreshReason =
   | "assignment_unassigned"
   | "assignment_rescheduled"
   | "assignment_reshifted"
+  | "personnel_home_address_updated"
   | "route_time_suggestion_applied"
   | "planning_board_schedule";
 
