@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
-import { ResolvedFeatureHelp } from "@/components/knowledgebase/ResolvedFeatureHelp";
 import { ObjectsView } from "@/components/objects/ObjectsView";
 import { listCustomerOptions, getObjectStats } from "@/app/actions/objects";
 import { listObjectsRegionAware } from "@/app/actions/region-runtime";
@@ -105,16 +104,7 @@ export default async function ObjectsPage({ searchParams }: Props) {
   ];
 
   return (
-    <div className="mx-auto w-full max-w-[1800px] p-6">
-      <div className="mb-2 flex items-center gap-2">
-        <h1 className="font-heading text-2xl font-semibold text-slate-950">Objecten</h1>
-        <ResolvedFeatureHelp featureKey="tenant.objects" moduleKey="objects" />
-      </div>
-      <p className="mb-4 text-sm" style={{ color: "#64748B" }}>
-        {total} object{total !== 1 ? "en" : ""}
-        {search ? ` die overeenkomen met "${search}"` : ""}
-      </p>
-
+    <div className="mx-auto w-full max-w-[1800px] px-4 py-5 sm:px-6 lg:px-8">
       {/* 5-metric stat bar */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-6">
         {statCards.map(({ icon: Icon, label, value, color }) => (

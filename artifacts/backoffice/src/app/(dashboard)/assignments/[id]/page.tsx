@@ -60,6 +60,7 @@ import {
 
 interface Props {
   params: Promise<{ id: string }>;
+  searchParams?: Promise<{ tab?: string }>;
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -599,11 +600,24 @@ async function safeOptional<T>(
   }
 }
 
-export default async function AssignmentDetailPage({ params }: Props) {
+type AssignmentDetailTab = "werkbon" | "gegevens" | "planning" | "offerte" | "rapport" | "factuur" | "bijlagen";
+
+function isAssignmentDetailTab(value: string | undefined): value is AssignmentDetailTab {
+  return value === "werkbon" ||
+    value === "gegevens" ||
+    value === "planning" ||
+    value === "offerte" ||
+    value === "rapport" ||
+    value === "factuur" ||
+    value === "bijlagen";
+}
+
+export default async function AssignmentDetailPage({ params, searchParams }: Props) {
   const canRead = await hasPermission("assignments", "read");
   if (!canRead) return <ForbiddenPage resource="assignments" action="read" />;
 
   const { id } = await params;
+  const requestedTab = (await searchParams)?.tab;
 
   const [
     assignment,
@@ -748,6 +762,10 @@ export default async function AssignmentDetailPage({ params }: Props) {
     planningFirstStatuses.includes(assignment.status) ||
     assignment.personnel.length < assignment.requiredPersonnelCount;
   const showPlanningFirst = Boolean(planningReadiness && needsPlanning);
+  const defaultTab: AssignmentDetailTab = showPlanningFirst ? "planning" : "werkbon";
+  const activeTab: AssignmentDetailTab = isAssignmentDetailTab(requestedTab) ? requestedTab : defaultTab;
+  const tabHref = (tab: AssignmentDetailTab) => `/assignments/${assignment.id}?tab=${tab}`;
+  const showWorkflowPanel = activeTab === "gegevens";
 
   return (
     <TenantPageShell>
@@ -760,30 +778,39 @@ export default async function AssignmentDetailPage({ params }: Props) {
             <span className="rounded bg-muted px-2 py-1 font-mono text-xs text-muted-foreground">
               {assignment.code}
             </span>
-            <AssignmentStatusBadge status={assignment.status} />
             <AssignmentPriorityBadge priority={assignment.priority} />
           </>
         }
-        meta={[
-          { label: "Klant", value: assignment.customerName },
-          { label: "Gepland", value: scheduledLabel },
-          { label: "Tijdslot", value: timeLabel ?? "Nog geen tijdslot" },
-          { label: "Bijgewerkt", value: updatedAt },
-        ]}
+        actions={
+          <dl className="grid grid-cols-1 gap-2 rounded-lg border border-border bg-muted/30 px-3 py-2 text-xs sm:grid-cols-3">
+            <div>
+              <dt className="font-medium text-muted-foreground">Gepland</dt>
+              <dd className="mt-0.5 font-semibold text-foreground">{scheduledLabel}</dd>
+            </div>
+            <div>
+              <dt className="font-medium text-muted-foreground">Tijdslot</dt>
+              <dd className="mt-0.5 font-semibold text-foreground">{timeLabel ?? "Nog geen tijdslot"}</dd>
+            </div>
+            <div>
+              <dt className="font-medium text-muted-foreground">Bijgewerkt</dt>
+              <dd className="mt-0.5 font-semibold text-foreground">{updatedAt}</dd>
+            </div>
+          </dl>
+        }
         summary={<ProcessStepper kind="assignment" status={assignment.status} />}
       />
 
       <TenantDetailSectionNav
         items={[
-          { label: showPlanningFirst ? "Workflow" : "Werkbon", href: "#workflow", active: true },
-          { label: "Gegevens", href: "#details" },
-          ...(planningReadiness && !showPlanningFirst
-            ? [{ label: "Planning", href: "#planning", count: planningReadiness.candidates.length }]
+          { label: "Werkbon", href: tabHref("werkbon"), active: activeTab === "werkbon" },
+          { label: "Gegevens", href: tabHref("gegevens"), active: activeTab === "gegevens" },
+          ...(planningReadiness
+            ? [{ label: "Planning", href: tabHref("planning"), active: activeTab === "planning", count: planningReadiness.candidates.length }]
             : []),
-          { label: "Offerte", href: "#quote", count: existingQuote ? 1 : 0 },
-          { label: "Rapport", href: "#report", count: existingReport ? 1 : 0 },
-          { label: "Factuur", href: "#invoice", count: existingInvoice ? 1 : 0 },
-          { label: "Bijlagen", href: "#documents", count: assignmentDocuments.length },
+          { label: "Offerte", href: tabHref("offerte"), active: activeTab === "offerte", count: existingQuote ? 1 : 0 },
+          { label: "Rapport", href: tabHref("rapport"), active: activeTab === "rapport", count: existingReport ? 1 : 0 },
+          { label: "Factuur", href: tabHref("factuur"), active: activeTab === "factuur", count: existingInvoice ? 1 : 0 },
+          { label: "Bijlagen", href: tabHref("bijlagen"), active: activeTab === "bijlagen", count: assignmentDocuments.length },
         ]}
       />
 
@@ -824,8 +851,8 @@ export default async function AssignmentDetailPage({ params }: Props) {
       </div>
 
       {/* ── Two-column layout ─────────────────────────── */}
-      {showPlanningFirst && planningReadiness && (
-        <div id="workflow" className="mb-6 scroll-mt-24">
+      {activeTab === "planning" && planningReadiness && (
+        <div className="scroll-mt-24">
           <CapacityMatchingSection
             assignmentId={assignment.id}
             planningReadiness={planningReadiness}
@@ -834,22 +861,23 @@ export default async function AssignmentDetailPage({ params }: Props) {
         </div>
       )}
 
-      {!showPlanningFirst && (
-        <div id="workflow" className="mb-6 scroll-mt-24">
+      {activeTab === "werkbon" && (
+        <div className="scroll-mt-24">
           <WorkOrderOverviewSection assignment={assignment} canWrite={canWrite} />
         </div>
       )}
 
-      <div id="details" className="grid scroll-mt-24 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
+      {["gegevens", "offerte", "rapport", "factuur"].includes(activeTab) && (
+      <div className={showWorkflowPanel
+        ? "grid scroll-mt-24 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_390px]"
+        : "grid scroll-mt-24 grid-cols-1 gap-6"}
+      >
 
         {/* Left: static details */}
         <div className="flex flex-col gap-6">
-          {showPlanningFirst && (
-            <WorkOrderOverviewSection assignment={assignment} canWrite={canWrite} />
-          )}
 
           {/* General info */}
-          <div className="veele-card">
+          <div className={activeTab === "gegevens" ? "veele-card" : "hidden"}>
             <p
               className="text-xs font-semibold uppercase tracking-wider mb-4"
               style={{ color: "#94A3B8" }}
@@ -903,7 +931,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
           </div>
 
           {/* Description */}
-          {assignment.description && (
+          {activeTab === "gegevens" && assignment.description && (
             <div className="veele-card">
               <h2
                 className="font-heading text-base font-semibold mb-3 flex items-center gap-2"
@@ -919,7 +947,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
           )}
 
           {/* Internal notes — management only */}
-          {canWrite && assignment.notes && (
+          {activeTab === "gegevens" && canWrite && assignment.notes && (
             <div
               className="veele-card"
               style={{ background: "#FFFBEB", borderColor: "#FDE68A" }}
@@ -938,13 +966,13 @@ export default async function AssignmentDetailPage({ params }: Props) {
           )}
 
           {/* ── Quote section — status: review ────────────── */}
-          {assignment.status === "review" && canReadQuotes && quotePrefill && (
+          {activeTab === "offerte" && assignment.status === "review" && canReadQuotes && quotePrefill && (
             <CreateQuoteForm assignmentId={assignment.id} prefill={quotePrefill} />
           )}
 
           {/* ── Existing quote info card ──────────────────── */}
-          {existingQuote && (
-            <div id="quote" className="veele-card scroll-mt-24">
+          {activeTab === "offerte" && existingQuote && (
+            <div className="veele-card scroll-mt-24">
               <h2
                 className="font-heading text-base font-semibold mb-3 flex items-center gap-2"
                 style={{ color: "#081D3A" }}
@@ -987,14 +1015,14 @@ export default async function AssignmentDetailPage({ params }: Props) {
           )}
 
           {/* ── Report section ────────────────────────────── */}
-          {(assignment.status === "completed" || assignment.status === "not_completed") &&
+          {activeTab === "rapport" && (assignment.status === "completed" || assignment.status === "not_completed") &&
             (!existingReport || existingReport.status === "rejected") &&
             canSubmitReport && (
             <SubmitReportForm assignmentId={assignment.id} rejectedReport={existingReport ?? null} />
           )}
 
-          {existingReport && (
-            <div id="report" className="veele-card scroll-mt-24">
+          {activeTab === "rapport" && existingReport && (
+            <div className="veele-card scroll-mt-24">
               <h2
                 className="font-heading text-base font-semibold mb-3 flex items-center gap-2"
                 style={{ color: "#081D3A" }}
@@ -1017,12 +1045,12 @@ export default async function AssignmentDetailPage({ params }: Props) {
           )}
 
           {/* ── Invoice section ───────────────────────────── */}
-          {invoicePrefill && (
+          {activeTab === "factuur" && invoicePrefill && (
             <CreateInvoiceForm assignmentId={assignment.id} prefill={invoicePrefill} />
           )}
 
-          {existingInvoice && (
-            <div id="invoice" className="veele-card scroll-mt-24">
+          {activeTab === "factuur" && existingInvoice && (
+            <div className="veele-card scroll-mt-24">
               <h2
                 className="font-heading text-base font-semibold mb-3 flex items-center gap-2"
                 style={{ color: "#081D3A" }}
@@ -1054,6 +1082,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
 
         {/* Right: interactive actions panel (or read-only for viewers) */}
         <TenantDetailActionPanel
+          className={showWorkflowPanel ? undefined : "hidden"}
           title="Workflowacties"
           description="Volgende stap, planning, personeel en taken voor deze opdracht."
         >
@@ -1133,20 +1162,11 @@ export default async function AssignmentDetailPage({ params }: Props) {
           )}
         </TenantDetailActionPanel>
       </div>
-
-      {!showPlanningFirst && planningReadiness && (
-        <div id="planning" className="mt-6 scroll-mt-24">
-          <CapacityMatchingSection
-            assignmentId={assignment.id}
-            planningReadiness={planningReadiness}
-            interestRounds={interestRounds}
-          />
-        </div>
       )}
 
       {/* ── Bijlagen ─────────────────────────────────────── */}
-      {canReadDocuments && (
-        <div id="documents" className="mt-6 scroll-mt-24">
+      {activeTab === "bijlagen" && canReadDocuments && (
+        <div className="scroll-mt-24">
           <AssignmentDocumentsPanel
             assignmentId={assignment.id}
             initialDocuments={assignmentDocuments}
