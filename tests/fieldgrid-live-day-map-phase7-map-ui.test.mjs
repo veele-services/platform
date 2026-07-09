@@ -24,10 +24,12 @@ test("phase 7 planning map tab is guarded by the feature flag", () => {
 
 test("phase 7 map component lazy-loads MapLibre client-side only", () => {
   const mapView = read("artifacts/backoffice/src/components/assignments/PlanningMapView.tsx");
+  const globals = read("artifacts/backoffice/src/app/globals.css");
 
   // lazy import test
   assert.match(mapView, /"use client";/);
   assert.match(mapView, /await import\("maplibre-gl"\)/);
+  assert.match(globals, /maplibre-gl\/dist\/maplibre-gl\.css/);
   assert.doesNotMatch(mapView, /from "maplibre-gl"/);
   assert.doesNotMatch(mapView, /NEXT_PUBLIC/);
   assert.doesNotMatch(mapView, /MAPBOX|GOOGLE/);
