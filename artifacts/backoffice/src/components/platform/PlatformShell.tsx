@@ -53,6 +53,7 @@ type PlatformNavItem = {
 
 const NAV_ITEMS: PlatformNavItem[] = [
   { href: "/platform", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/platform/accelerators", label: "Versnellers", icon: Rocket, adminOnly: true },
   { href: "/platform/onboarding", label: "Onboarding", icon: Rocket, adminOnly: true },
   { href: "/platform/tenants", label: "Tenants", icon: Building2, adminOnly: true },
   { href: "/platform/subscriptions", label: "Abonnementen", icon: CreditCard, adminOnly: true },
@@ -83,6 +84,11 @@ const ROUTE_LABELS: Array<{ test: (pathname: string) => boolean; title: string; 
     test: (pathname) => pathname.startsWith("/platform/onboarding"),
     title: "Onboarding",
     crumbs: [{ label: "Platformbeheer", href: "/platform" }, { label: "Onboarding" }],
+  },
+  {
+    test: (pathname) => pathname.startsWith("/platform/accelerators"),
+    title: "Platformversnellers",
+    crumbs: [{ label: "Platformbeheer", href: "/platform" }, { label: "Platformversnellers" }],
   },
   {
     test: (pathname) => pathname.startsWith("/platform/tenants/"),

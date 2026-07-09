@@ -65,9 +65,13 @@ test("phase 11 adds API and navigation for operations", () => {
 
   assertContains(route, ["getPlatformOperationsDashboard", "Cache-Control", "no-store"], "operations API route");
   assertContains(shell, ["/platform/operations", "Operations"], "platform shell navigation");
+  assertContains(shell, ["/platform/accelerators", "Versnellers"], "platform accelerators navigation");
   assertContains(dashboard, ["/platform/operations"], "platform dashboard operations links");
   assert.doesNotMatch(dashboard, /min-h-36/);
+  assert.doesNotMatch(dashboard, /Open platformtickets/);
+  assert.doesNotMatch(dashboard, /Platformmeldingen/);
   assert.match(dashboard, /line-clamp-1/);
+  assert.match(dashboard, /<details className="group\/details mt-1">/);
 });
 
 test("phase 11 documentation records the non-destructive rerun contract", () => {
