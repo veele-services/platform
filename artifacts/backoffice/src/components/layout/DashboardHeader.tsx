@@ -25,6 +25,7 @@ import {
 import { signOut } from "@/app/actions/auth";
 import { useSidebar } from "@/providers/sidebar-provider";
 import { TenantSwitcher } from "@/components/layout/TenantSwitcher";
+import { FeatureHelp } from "@/components/knowledgebase/FeatureHelp";
 import type { BackofficeTenantOption } from "@/lib/auth/tenant";
 
 type DashboardHeaderProps = {
@@ -54,10 +55,43 @@ const ROUTE_TITLES: Array<{ prefix: string; title: string }> = [
   { prefix: "/profile", title: "Profiel" },
 ];
 
+const ROUTE_HELP: Array<{ prefix: string; title: string; description: string }> = [
+  {
+    prefix: "/planning",
+    title: "Planning",
+    description: "Plan werkbonnen, bekijk dag-, maand- en kaartweergaven en bewaak conflicten.",
+  },
+  {
+    prefix: "/assignments",
+    title: "Opdrachten",
+    description: "Beheer werkbonnen, taken, personeel, rapportage en opvolging.",
+  },
+  {
+    prefix: "/quotes",
+    title: "Offertes",
+    description: "Volg offertevoorstellen, klantgoedkeuringen, bedragen en vervaldatums.",
+  },
+  {
+    prefix: "/customers",
+    title: "Klanten",
+    description: "Beheer klantgegevens, sectoren, contacten, objecten en klantnotities.",
+  },
+];
+
 function titleForPath(pathname: string, searchParams: URLSearchParams): string {
   if (pathname === "/") return "Dashboard";
   if (pathname === "/planning" && searchParams.get("view") === "map") return "Kaart";
   return ROUTE_TITLES.find((route) => pathname.startsWith(route.prefix))?.title ?? "Dashboard";
+}
+
+function helpForPath(pathname: string, searchParams: URLSearchParams) {
+  if (pathname === "/planning" && searchParams.get("view") === "map") {
+    return {
+      title: "Kaart",
+      description: "Bekijk geplande werkbonnen op de kaart met objectlocaties, routes en waarschuwingen.",
+    };
+  }
+  return ROUTE_HELP.find((route) => pathname.startsWith(route.prefix)) ?? null;
 }
 
 function searchTargetForPath(pathname: string): string {
@@ -88,6 +122,7 @@ export function DashboardHeader({
   const [query, setQuery] = useState("");
 
   const title = useMemo(() => titleForPath(pathname, searchParams), [pathname, searchParams]);
+  const help = useMemo(() => helpForPath(pathname, searchParams), [pathname, searchParams]);
   const target = useMemo(() => searchTargetForPath(pathname), [pathname]);
 
   function handleSearch(event: FormEvent<HTMLFormElement>) {
@@ -126,9 +161,20 @@ export function DashboardHeader({
       </Button>
 
       <div className="min-w-[150px] shrink-0">
-        <h1 className="font-heading text-xl font-semibold leading-tight" style={{ color: "#081D3A" }}>
-          {title}
-        </h1>
+        <div className="flex items-center gap-2">
+          <h1 className="font-heading text-xl font-semibold leading-tight" style={{ color: "#081D3A" }}>
+            {title}
+          </h1>
+          {help && (
+            <FeatureHelp
+              title={help.title}
+              description={help.description}
+              placement="bottom"
+              showRelatedArticles={false}
+              className="h-6 w-6 shadow-none"
+            />
+          )}
+        </div>
       </div>
 
       <form onSubmit={handleSearch} className="hidden min-w-0 flex-1 md:block">

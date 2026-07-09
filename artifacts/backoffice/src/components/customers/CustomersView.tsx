@@ -664,11 +664,11 @@ export function CustomersView({
 
       {/* Table */}
       {rows.length === 0 ? (
-        <div className="mt-4 rounded-lg border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground md:hidden">
+        <div className="mt-6 rounded-lg border border-dashed border-border bg-card p-8 text-center text-sm text-muted-foreground md:hidden">
           Geen klanten gevonden
         </div>
       ) : (
-        <div className="mt-4 grid gap-3 md:hidden">
+        <div className="mt-6 grid gap-3 md:hidden">
           {rows.map((row) => (
             <article key={row.id} className="rounded-lg border border-border bg-card p-4 shadow-card">
               <div className="flex items-start justify-between gap-3">
@@ -699,7 +699,7 @@ export function CustomersView({
         </div>
       )}
 
-      <div className="veele-card hidden overflow-hidden p-0 md:block">
+      <div className="veele-card mt-6 hidden overflow-hidden p-0 md:block">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
