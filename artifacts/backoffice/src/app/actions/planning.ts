@@ -55,6 +55,7 @@ import {
   type PlanningDayMapFilters,
   type PlanningDayMapRow,
 } from "@/lib/planning/map-data";
+import { safeRefreshPlanningRoutesForAssignment } from "@/lib/planning/route-refresh";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1772,6 +1773,7 @@ export async function scheduleAssignmentOnBoard(
           title: assignmentsTable.title,
           status: assignmentsTable.status,
           priority: assignmentsTable.priority,
+          scheduledDate: assignmentsTable.scheduledDate,
           customerId: assignmentsTable.customerId,
           customerName: customersTable.name,
           customerSectorId: customersTable.sectorId,
@@ -2293,6 +2295,16 @@ export async function scheduleAssignmentOnBoard(
   }
 
   warnings.push(...await rebalancePersonnelDaySchedule({ tenantId, personnelId, changedAssignmentId: assignmentId, date }));
+
+  await safeRefreshPlanningRoutesForAssignment({
+    tenantId,
+    assignmentId,
+    reason: "planning_board_schedule",
+    previousScheduledDate: assignment.scheduledDate,
+    status: nextStatus,
+    personnelIds: [personnelId, sourcePersonnelId].filter((value): value is string => Boolean(value)),
+    source: "backoffice",
+  });
 
   revalidatePath("/planning");
   revalidatePath(`/assignments/${assignmentId}`);

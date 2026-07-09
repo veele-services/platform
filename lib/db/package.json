@@ -10,6 +10,7 @@
     "./email-templates": "./src/email-templates.ts",
     "./events": "./src/events.ts",
     "./portal-routes": "./src/portal-routes.ts",
+    "./planning-realtime": "./src/planning-realtime.ts",
     "./workflow-events": "./src/workflow-events.ts",
     "./planning-intelligence": "./src/planning-intelligence.ts"
   },

@@ -91,6 +91,8 @@
     "fieldgrid:live-day-map-phase7:check": "node scripts/fieldgrid-live-day-map-phase7-map-ui.mjs --check && node --test tests/fieldgrid-live-day-map-phase7-map-ui.test.mjs",
     "fieldgrid:live-day-map-phase8": "node scripts/fieldgrid-live-day-map-phase8-time-suggestions.mjs && node --test tests/fieldgrid-live-day-map-phase8-time-suggestions.test.mjs",
     "fieldgrid:live-day-map-phase8:check": "node scripts/fieldgrid-live-day-map-phase8-time-suggestions.mjs --check && node --test tests/fieldgrid-live-day-map-phase8-time-suggestions.test.mjs",
+    "fieldgrid:live-day-map-phase9": "node scripts/fieldgrid-live-day-map-phase9-realtime-status.mjs && node --test tests/fieldgrid-live-day-map-phase9-realtime-status.test.mjs",
+    "fieldgrid:live-day-map-phase9:check": "node scripts/fieldgrid-live-day-map-phase9-realtime-status.mjs --check && node --test tests/fieldgrid-live-day-map-phase9-realtime-status.test.mjs",
     "db:generate": "pnpm --filter @workspace/db run generate",
     "db:migrate": "pnpm --filter @workspace/db run db:migrate",
     "db:baseline": "pnpm --filter @workspace/db run db:baseline",

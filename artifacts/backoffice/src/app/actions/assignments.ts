@@ -56,6 +56,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { triggerNotificationWorker } from "@/lib/notification-worker";
+import { safeRefreshPlanningRoutesForAssignment } from "@/lib/planning/route-refresh";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, AssignmentStatus, AssignmentPriority };
@@ -84,6 +85,18 @@ async function notifyAssignmentWorkflow(input: Parameters<typeof emitAssignmentW
     });
   }
 }
+
+const ROUTE_REFRESH_STATUS_REASONS: Partial<
+  Record<
+    AssignmentStatus,
+    Parameters<typeof safeRefreshPlanningRoutesForAssignment>[0]["reason"]
+  >
+> = {
+  en_route: "status_en_route",
+  in_progress: "status_in_progress",
+  completed: "status_completed",
+  not_completed: "status_not_completed",
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -2394,6 +2407,7 @@ export async function rescheduleAssignment(
   const [existing] = await db
     .select({
       id: assignmentsTable.id,
+      tenantId: assignmentsTable.tenantId,
       status: assignmentsTable.status,
       scheduledDate: assignmentsTable.scheduledDate,
       scheduledStart: assignmentsTable.scheduledStart,
@@ -2607,6 +2621,16 @@ export async function rescheduleAssignment(
     });
   }
 
+  await safeRefreshPlanningRoutesForAssignment({
+    tenantId: existing.tenantId,
+    assignmentId: id,
+    reason: "assignment_rescheduled",
+    previousScheduledDate: existing.scheduledDate,
+    status: existing.status,
+    personnelIds: assignedLinks.map((link) => link.personnelId),
+    source: "backoffice",
+  });
+
   revalidatePath("/planning");
 
   return warningParts.length > 0
@@ -2652,6 +2676,7 @@ export async function reshiftAssignment(
   const [existing] = await db
     .select({
       id: assignmentsTable.id,
+      tenantId: assignmentsTable.tenantId,
       status: assignmentsTable.status,
       scheduledDate: assignmentsTable.scheduledDate,
       scheduledStart: assignmentsTable.scheduledStart,
@@ -2868,6 +2893,15 @@ export async function reshiftAssignment(
     });
   }
 
+  await safeRefreshPlanningRoutesForAssignment({
+    tenantId: existing.tenantId,
+    assignmentId: id,
+    reason: "assignment_reshifted",
+    status: existing.status,
+    personnelIds: assignedLinks.map((link) => link.personnelId),
+    source: "backoffice",
+  });
+
   revalidatePath("/planning");
 
   return warningParts.length > 0
@@ -2983,6 +3017,15 @@ export async function applyRouteTimeSuggestion(input: {
       to,
       warning: result.warning,
     },
+  });
+
+  await safeRefreshPlanningRoutesForAssignment({
+    tenantId,
+    assignmentId,
+    reason: "route_time_suggestion_applied",
+    status: context.currentStatus as AssignmentStatus,
+    personnelIds: [context.personnelId],
+    source: "backoffice",
   });
 
   revalidatePath("/planning");
@@ -3210,6 +3253,18 @@ export async function setAssignmentStatus(
     metadata: { from: current.status, to: newStatus, title: current.title },
   });
 
+  const routeRefreshReason = ROUTE_REFRESH_STATUS_REASONS[newStatus];
+  if (routeRefreshReason) {
+    await safeRefreshPlanningRoutesForAssignment({
+      tenantId,
+      assignmentId: id,
+      reason: routeRefreshReason,
+      previousStatus: current.status,
+      status: newStatus,
+      source: "backoffice",
+    });
+  }
+
   revalidatePath("/assignments");
   revalidatePath(`/assignments/${id}`);
   return { success: true };
@@ -3295,6 +3350,7 @@ export async function assignPersonnel(
       .from(assignmentsTable)
       .where(eq(assignmentsTable.id, assignmentId))
       .limit(1);
+    let routeRefreshStatus = assignmentRow?.status ?? assignment.status;
 
     if (
       assignmentRow?.status === "plannable" &&
@@ -3317,6 +3373,7 @@ export async function assignPersonnel(
           trigger: "personnel_slots_filled",
         },
       });
+      routeRefreshStatus = "scheduled";
     }
 
     // ── Availability warning (non-blocking) ───────────────────────────────
@@ -3346,6 +3403,15 @@ export async function assignPersonnel(
     });
 
     await triggerNotificationWorker({ channels: ["push"], limit: 25 });
+
+    await safeRefreshPlanningRoutesForAssignment({
+      tenantId,
+      assignmentId,
+      reason: "assignment_assigned",
+      status: routeRefreshStatus,
+      personnelIds: [personnelId],
+      source: "backoffice",
+    });
 
     revalidatePath(`/assignments/${assignmentId}`);
     revalidatePath("/planning");
@@ -3422,6 +3488,7 @@ export async function removePersonnel(
   linkId: string,
 ): Promise<ActionResult> {
   await requirePermission("assignments", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -3446,7 +3513,15 @@ export async function removePersonnel(
     metadata: { linkId },
   });
 
+  await safeRefreshPlanningRoutesForAssignment({
+    tenantId,
+    assignmentId,
+    reason: "assignment_unassigned",
+    source: "backoffice",
+  });
+
   revalidatePath(`/assignments/${assignmentId}`);
+  revalidatePath("/planning");
   return { success: true };
 }
 
