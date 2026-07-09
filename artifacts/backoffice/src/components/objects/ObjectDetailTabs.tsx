@@ -2,26 +2,7 @@
 
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useCallback } from "react";
-
-export const OBJECT_TAB_KEYS = [
-  "overzicht",
-  "diensten",
-  "materiaal",
-  "inventaris",
-  "details",
-  "contacten",
-] as const;
-
-export type ObjectTabKey = (typeof OBJECT_TAB_KEYS)[number];
-
-const TAB_LABELS: Record<ObjectTabKey, string> = {
-  overzicht:  "Overzicht",
-  diensten:   "Diensten",
-  materiaal:  "Materiaal",
-  inventaris: "Inventaris",
-  details:    "Details",
-  contacten:  "Contacten",
-};
+import { OBJECT_TAB_KEYS, OBJECT_TAB_LABELS, type ObjectTabKey } from "@/components/objects/object-tabs";
 
 interface Props {
   activeTab: ObjectTabKey;
@@ -59,7 +40,7 @@ export function ObjectDetailTabs({ activeTab, counts }: Props) {
               backgroundColor:   "transparent",
             }}
           >
-            {TAB_LABELS[tab]}
+            {OBJECT_TAB_LABELS[tab]}
             {count !== undefined && count > 0 && (
               <span
                 className="inline-flex items-center justify-center rounded-full text-xs px-1.5 min-w-[18px] h-[18px]"
