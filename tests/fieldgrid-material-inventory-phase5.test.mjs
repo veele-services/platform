@@ -58,7 +58,7 @@ test("phase 5 inventory routes and UI are wired", () => {
 });
 
 test("phase 5 object and personnel dossiers show inventory", () => {
-  const objectTabs = read("artifacts/backoffice/src/components/objects/ObjectDetailTabs.tsx");
+  const objectTabs = read("artifacts/backoffice/src/components/objects/object-tabs.ts");
   const objectPage = read("artifacts/backoffice/src/app/(dashboard)/objects/[id]/page.tsx");
   const personnelPage = read("artifacts/backoffice/src/app/(dashboard)/personnel/[id]/page.tsx");
   const panel = read("artifacts/backoffice/src/components/inventory/InventoryItemsPanel.tsx");

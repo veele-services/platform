@@ -20,7 +20,7 @@ import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { InventoryItemsPanel } from "@/components/inventory/InventoryItemsPanel";
 import { MaterialStockPanel } from "@/components/materials/MaterialStockPanel";
 import { ObjectDetailActions } from "@/components/objects/ObjectDetailActions";
-import { OBJECT_TAB_KEYS, type ObjectTabKey } from "@/components/objects/ObjectDetailTabs";
+import { OBJECT_TAB_KEYS, OBJECT_TAB_LABELS, type ObjectTabKey } from "@/components/objects/object-tabs";
 import { ObjectContactsTab } from "@/components/objects/tabs/ObjectContactsTab";
 import { ObjectDetailsTab } from "@/components/objects/tabs/ObjectDetailsTab";
 import { ObjectOverviewTab } from "@/components/objects/tabs/ObjectOverviewTab";
@@ -35,15 +35,6 @@ import {
 } from "@/components/tenant-ui";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { hasPermission } from "@/lib/auth/permissions";
-
-const OBJECT_TAB_LABELS: Record<ObjectTabKey, string> = {
-  overzicht: "Overzicht",
-  diensten: "Diensten",
-  materiaal: "Materiaal",
-  inventaris: "Inventaris",
-  details: "Details",
-  contacten: "Contacten",
-};
 
 async function safeOptional<T>(
   label: string,
