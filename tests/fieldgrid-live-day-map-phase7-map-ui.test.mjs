@@ -47,12 +47,15 @@ test("phase 7 map UI exposes marker, route, warning and detail surfaces", () => 
   assert.match(mapView, /mouseenter/);
   assert.match(mapView, /pointerenter/);
   assert.match(mapView, /dateLabel/);
-  assert.match(mapView, /min-h-\[520px\]/);
+  assert.match(mapView, /min-h-\[620px\]/);
   assert.match(mapView, /Adresgegevens/);
   assert.match(mapView, /Opdrachtinformatie/);
   assert.doesNotMatch(mapView, />Routecontext</);
-  assert.match(mapView, /Routepaneel/);
-  assert.match(mapView, /Warnings/);
+  assert.match(mapView, /OverlayChip/);
+  assert.match(mapView, /werkbonnen/);
+  assert.match(mapView, /waarschuwingen/);
+  assert.match(mapView, /routes/);
+  assert.doesNotMatch(mapView, /Routepaneel/);
   assert.match(mapView, /SheetContent/);
   assert.match(mapView, /Geen werkbonnen met bruikbare coordinaten/);
   assert.match(mapView, /Kaart kon niet laden/);
