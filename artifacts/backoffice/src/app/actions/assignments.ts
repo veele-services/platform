@@ -145,8 +145,27 @@ export type AssignmentDetail = {
   isActive: boolean;
   customerId: string;
   customerName: string;
+  customerCode: string | null;
+  customerContactName: string | null;
+  customerContactEmail: string | null;
+  customerContactPhone: string | null;
+  customerAddress: string | null;
+  customerPostalCode: string | null;
+  customerCity: string | null;
+  customerNotes: string | null;
   objectId: string | null;
   objectName: string | null;
+  objectAddress: string | null;
+  objectPostalCode: string | null;
+  objectCity: string | null;
+  objectContactName: string | null;
+  objectContactPhone: string | null;
+  objectContactEmail: string | null;
+  objectAccessInfo: string | null;
+  objectKeyInfo: string | null;
+  objectAlarmInfo: string | null;
+  objectFixedInstructions: string | null;
+  objectSpecialNotes: string | null;
   createdAt: string;
   updatedAt: string;
   personnel: Array<{
@@ -404,8 +423,27 @@ export async function getAssignment(
       isActive: assignmentsTable.isActive,
       customerId: assignmentsTable.customerId,
       customerName: customersTable.name,
+      customerCode: customersTable.code,
+      customerContactName: customersTable.contactName,
+      customerContactEmail: customersTable.contactEmail,
+      customerContactPhone: customersTable.contactPhone,
+      customerAddress: customersTable.address,
+      customerPostalCode: customersTable.postalCode,
+      customerCity: customersTable.city,
+      customerNotes: customersTable.notes,
       objectId: assignmentsTable.objectId,
       objectName: objectsTable.name,
+      objectAddress: objectsTable.address,
+      objectPostalCode: objectsTable.postalCode,
+      objectCity: objectsTable.city,
+      objectContactName: objectsTable.contactName,
+      objectContactPhone: objectsTable.contactPhone,
+      objectContactEmail: objectsTable.contactEmail,
+      objectAccessInfo: objectsTable.accessInfo,
+      objectKeyInfo: objectsTable.keyInfo,
+      objectAlarmInfo: objectsTable.alarmInfo,
+      objectFixedInstructions: objectsTable.fixedInstructions,
+      objectSpecialNotes: objectsTable.specialNotes,
       createdAt: assignmentsTable.createdAt,
       updatedAt: assignmentsTable.updatedAt,
     })
@@ -470,8 +508,27 @@ export async function getAssignment(
     status: row.status as AssignmentStatus,
     priority: row.priority as AssignmentPriority,
     customerName: row.customerName ?? "",
+    customerCode: row.customerCode ?? null,
+    customerContactName: row.customerContactName ?? null,
+    customerContactEmail: row.customerContactEmail ?? null,
+    customerContactPhone: row.customerContactPhone ?? null,
+    customerAddress: row.customerAddress ?? null,
+    customerPostalCode: row.customerPostalCode ?? null,
+    customerCity: row.customerCity ?? null,
+    customerNotes: row.customerNotes ?? null,
     objectId: row.objectId ?? null,
     objectName: row.objectName ?? null,
+    objectAddress: row.objectAddress ?? null,
+    objectPostalCode: row.objectPostalCode ?? null,
+    objectCity: row.objectCity ?? null,
+    objectContactName: row.objectContactName ?? null,
+    objectContactPhone: row.objectContactPhone ?? null,
+    objectContactEmail: row.objectContactEmail ?? null,
+    objectAccessInfo: row.objectAccessInfo ?? null,
+    objectKeyInfo: row.objectKeyInfo ?? null,
+    objectAlarmInfo: row.objectAlarmInfo ?? null,
+    objectFixedInstructions: row.objectFixedInstructions ?? null,
+    objectSpecialNotes: row.objectSpecialNotes ?? null,
     scheduledDate: row.scheduledDate ?? null,
     scheduledStart: row.scheduledStart ?? null,
     scheduledEnd: row.scheduledEnd ?? null,
