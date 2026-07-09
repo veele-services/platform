@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import {
   AlertTriangle,
   Car,
@@ -15,7 +16,18 @@ import {
   UserRound,
 } from "lucide-react";
 
+import { applyRouteTimeSuggestion } from "@/app/actions/assignments";
 import { AssignmentPriorityBadge, AssignmentStatusBadge, statusLabel } from "./AssignmentStatusBadge";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -127,6 +139,13 @@ type PlanningMapData = {
 
 type PlanningMapViewProps = {
   data: PlanningMapData;
+  canApplySuggestions?: boolean;
+};
+
+type PendingSuggestion = {
+  marker: MapMarker;
+  context: MapRouteContext;
+  personnelName: string;
 };
 
 const STATUS_COLORS: Record<string, { color: string; bg: string; border: string }> = {
@@ -155,6 +174,11 @@ function formatTimeRange(marker: Pick<MapMarker, "scheduledStart" | "scheduledEn
     return `${marker.scheduledStart} - ${marker.scheduledEnd}`;
   }
   return marker.scheduledStart ?? marker.scheduledEnd ?? "Geen tijd";
+}
+
+function formatTimeWindow(start: string | null, end: string | null): string {
+  if (start && end) return `${start} - ${end}`;
+  return start ?? end ?? "Geen tijd";
 }
 
 function formatDistance(meters: number): string {
@@ -187,6 +211,11 @@ function snapStatusLabel(value: string | null): string {
     provider_error: "Routeprovider",
   };
   return value ? labels[value] ?? value : "Geen routecontext";
+}
+
+function routeContextCanApply(context: MapRouteContext): boolean {
+  if (!context.id || !context.snapSuggestedStart) return false;
+  return context.warningCode !== "missing_location" && context.warningCode !== "provider_error";
 }
 
 function mapCenter(markers: MapMarker[]): [number, number] {
@@ -226,13 +255,17 @@ function createRouteFeatures(markers: MapMarker[], routes: PersonnelRoute[]) {
     .filter((feature): feature is NonNullable<typeof feature> => Boolean(feature));
 }
 
-export function PlanningMapView({ data }: PlanningMapViewProps) {
+export function PlanningMapView({ data, canApplySuggestions = false }: PlanningMapViewProps) {
+  const router = useRouter();
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<unknown>(null);
   const markerCleanupRef = useRef<(() => void)[]>([]);
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(data.markers[0]?.id ?? null);
   const [mapError, setMapError] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [pendingSuggestion, setPendingSuggestion] = useState<PendingSuggestion | null>(null);
+  const [suggestionMessage, setSuggestionMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [isApplyingSuggestion, startApplySuggestionTransition] = useTransition();
 
   const selectedMarker = data.markers.find((marker) => marker.id === selectedMarkerId) ?? null;
   const visibleMarkers = useMemo(
@@ -243,6 +276,39 @@ export function PlanningMapView({ data }: PlanningMapViewProps) {
     () => createRouteFeatures(data.markers, data.personnelRoutes),
     [data.markers, data.personnelRoutes],
   );
+
+  function personnelNameForContext(marker: MapMarker, context: MapRouteContext): string {
+    return marker.assignedPersonnel.find((person) => person.id === context.personnelId)?.name ?? "Gekoppeld personeel";
+  }
+
+  function openSuggestionDialog(marker: MapMarker, context: MapRouteContext) {
+    setSuggestionMessage(null);
+    setPendingSuggestion({
+      marker,
+      context,
+      personnelName: personnelNameForContext(marker, context),
+    });
+  }
+
+  function handleApplySuggestion() {
+    if (!pendingSuggestion?.context.id) return;
+    const routeContextId = pendingSuggestion.context.id;
+    const assignmentId = pendingSuggestion.marker.id;
+
+    startApplySuggestionTransition(async () => {
+      const result = await applyRouteTimeSuggestion({ routeContextId, assignmentId });
+      if (!result.success) {
+        setSuggestionMessage({ tone: "error", text: result.message });
+        return;
+      }
+      setSuggestionMessage({
+        tone: "success",
+        text: result.warning ?? "Tijdvoorstel toegepast. De planning is bijgewerkt.",
+      });
+      setPendingSuggestion(null);
+      router.refresh();
+    });
+  }
 
   useEffect(() => {
     let cancelled = false;
@@ -605,6 +671,17 @@ export function PlanningMapView({ data }: PlanningMapViewProps) {
                     <p className="mt-1">{selectedMarker.primaryWarningMessage}</p>
                   </div>
                 )}
+                {suggestionMessage && (
+                  <div
+                    className={
+                      suggestionMessage.tone === "success"
+                        ? "rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900"
+                        : "rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900"
+                    }
+                  >
+                    {suggestionMessage.text}
+                  </div>
+                )}
 
                 <section>
                   <h3 className="text-sm font-semibold text-slate-950">Gekoppeld personeel</h3>
@@ -640,6 +717,43 @@ export function PlanningMapView({ data }: PlanningMapViewProps) {
                               <Badge variant="secondary">{context.snapSuggestedStart} voorstel</Badge>
                             )}
                           </div>
+                          {context.snapSuggestedStart && (
+                            <div className="mt-3 rounded-lg border border-cyan-100 bg-cyan-50 p-3">
+                              <div className="grid gap-2 text-xs text-slate-700 sm:grid-cols-2">
+                                <div>
+                                  <p className="font-medium uppercase text-slate-500">Huidig</p>
+                                  <p className="mt-1 font-semibold text-slate-950">
+                                    {formatTimeWindow(selectedMarker.scheduledStart, selectedMarker.scheduledEnd)}
+                                  </p>
+                                </div>
+                                <div>
+                                  <p className="font-medium uppercase text-slate-500">Voorstel</p>
+                                  <p className="mt-1 font-semibold text-slate-950">
+                                    {formatTimeWindow(context.snapSuggestedStart, context.snapSuggestedEnd)}
+                                  </p>
+                                </div>
+                              </div>
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="outline"
+                                className="mt-3 w-full bg-white"
+                                disabled={!canApplySuggestions || !routeContextCanApply(context)}
+                                onClick={() => openSuggestionDialog(selectedMarker, context)}
+                              >
+                                Voorstel toepassen
+                              </Button>
+                              {!canApplySuggestions ? (
+                                <p className="mt-2 text-xs text-slate-500">
+                                  Alleen planners met schrijfrecht kunnen routevoorstellen toepassen.
+                                </p>
+                              ) : !routeContextCanApply(context) && (
+                                <p className="mt-2 text-xs text-slate-500">
+                                  Dit voorstel kan pas worden toegepast als de routecontext compleet is.
+                                </p>
+                              )}
+                            </div>
+                          )}
                           {context.warningMessage && (
                             <p className="mt-2 rounded-md bg-amber-50 p-2 text-xs text-amber-900">{context.warningMessage}</p>
                           )}
@@ -657,6 +771,59 @@ export function PlanningMapView({ data }: PlanningMapViewProps) {
           )}
         </SheetContent>
       </Sheet>
+
+      <AlertDialog open={Boolean(pendingSuggestion)} onOpenChange={(open) => !open && setPendingSuggestion(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Tijdvoorstel toepassen?</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm text-slate-600">
+                <p>
+                  Fieldgrid past routevoorstellen nooit automatisch toe. Controleer de wijziging voordat u de planning bijwerkt.
+                </p>
+                {pendingSuggestion && (
+                  <div className="rounded-lg border bg-slate-50 p-3 text-slate-900">
+                    <p className="font-semibold">{pendingSuggestion.marker.code} - {pendingSuggestion.marker.title}</p>
+                    <p className="mt-1 text-xs text-slate-500">{pendingSuggestion.personnelName}</p>
+                    <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                      <div className="rounded-md bg-white p-2">
+                        <p className="text-xs font-medium uppercase text-slate-500">Van</p>
+                        <p className="font-semibold">
+                          {formatTimeWindow(pendingSuggestion.marker.scheduledStart, pendingSuggestion.marker.scheduledEnd)}
+                        </p>
+                      </div>
+                      <div className="rounded-md bg-white p-2">
+                        <p className="text-xs font-medium uppercase text-slate-500">Naar</p>
+                        <p className="font-semibold">
+                          {formatTimeWindow(
+                            pendingSuggestion.context.snapSuggestedStart,
+                            pendingSuggestion.context.snapSuggestedEnd,
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                {suggestionMessage?.tone === "error" && (
+                  <p className="rounded-md border border-red-200 bg-red-50 p-2 text-red-800">{suggestionMessage.text}</p>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isApplyingSuggestion}>Annuleren</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={isApplyingSuggestion}
+              onClick={(event) => {
+                event.preventDefault();
+                handleApplySuggestion();
+              }}
+            >
+              {isApplyingSuggestion ? "Toepassen..." : "Tijd aanpassen"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

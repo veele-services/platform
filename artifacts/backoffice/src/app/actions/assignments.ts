@@ -8,6 +8,7 @@ import {
   customersTable,
   objectsTable,
   personnelTable,
+  assignmentRouteContextsTable,
   assignmentCandidatesTable,
   assignmentInterestResponsesTable,
   assignmentInterestRoundsTable,
@@ -2344,6 +2345,20 @@ export type RescheduleResult =
   | { success: true; warning?: string }
   | { success: false; message: string };
 
+export type ApplyRouteTimeSuggestionResult =
+  | {
+      success: true;
+      warning?: string;
+      applied: {
+        routeContextId: string;
+        assignmentId: string;
+        personnelId: string;
+        from: { start: string | null; end: string | null };
+        to: { start: string; end: string | null };
+      };
+    }
+  | { success: false; message: string };
+
 /**
  * Move an assignment to a different date (drag-to-reschedule in week planning).
  *
@@ -2858,6 +2873,132 @@ export async function reshiftAssignment(
   return warningParts.length > 0
     ? { success: true, warning: `Let op: ${warningParts.join(" ")}` }
     : { success: true };
+}
+
+export async function applyRouteTimeSuggestion(input: {
+  routeContextId: string;
+  assignmentId: string;
+}): Promise<ApplyRouteTimeSuggestionResult> {
+  await requirePermission("planning", "write");
+
+  const routeContextId = input.routeContextId.trim();
+  const assignmentId = input.assignmentId.trim();
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(routeContextId) || !UUID_RE.test(assignmentId)) {
+    return { success: false, message: "Ongeldig routevoorstel." };
+  }
+
+  const tenantId = await requireCurrentTenantId();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [context] = await db
+    .select({
+      routeContextId: assignmentRouteContextsTable.id,
+      assignmentId: assignmentRouteContextsTable.assignmentId,
+      personnelId: assignmentRouteContextsTable.personnelId,
+      scheduledDate: assignmentRouteContextsTable.scheduledDate,
+      snapStatus: assignmentRouteContextsTable.snapStatus,
+      snapSuggestedStart: assignmentRouteContextsTable.snapSuggestedStart,
+      snapSuggestedEnd: assignmentRouteContextsTable.snapSuggestedEnd,
+      warningCode: assignmentRouteContextsTable.warningCode,
+      warningMessage: assignmentRouteContextsTable.warningMessage,
+      currentStart: assignmentsTable.scheduledStart,
+      currentEnd: assignmentsTable.scheduledEnd,
+      currentStatus: assignmentsTable.status,
+    })
+    .from(assignmentRouteContextsTable)
+    .innerJoin(
+      assignmentsTable,
+      and(
+        eq(assignmentsTable.id, assignmentRouteContextsTable.assignmentId),
+        eq(assignmentsTable.tenantId, tenantId),
+        eq(assignmentsTable.isActive, true),
+      ),
+    )
+    .where(
+      and(
+        eq(assignmentRouteContextsTable.id, routeContextId),
+        eq(assignmentRouteContextsTable.tenantId, tenantId),
+        eq(assignmentRouteContextsTable.assignmentId, assignmentId),
+      ),
+    )
+    .limit(1);
+
+  if (!context) {
+    return { success: false, message: "Routevoorstel niet gevonden." };
+  }
+  if (!context.snapSuggestedStart) {
+    return { success: false, message: "Deze routecontext heeft geen toepasbaar tijdvoorstel." };
+  }
+  if (context.warningCode === "missing_location" || context.warningCode === "provider_error") {
+    return {
+      success: false,
+      message: context.warningMessage ?? "Dit routevoorstel kan nog niet worden toegepast.",
+    };
+  }
+
+  const to = {
+    start: context.snapSuggestedStart,
+    end: context.snapSuggestedEnd,
+  };
+  const from = {
+    start: context.currentStart,
+    end: context.currentEnd,
+  };
+
+  if (from.start === to.start && from.end === to.end) {
+    return {
+      success: true,
+      applied: {
+        routeContextId,
+        assignmentId,
+        personnelId: context.personnelId,
+        from,
+        to,
+      },
+    };
+  }
+
+  const result = await reshiftAssignment(assignmentId, to.start, to.end);
+  if (!result.success) return result;
+
+  await db.insert(auditLogTable).values({
+    tenantId,
+    userId: user.id,
+    action: "apply_route_time_suggestion",
+    resource: "assignments",
+    resourceId: assignmentId,
+    metadata: {
+      action: "apply_route_time_suggestion",
+      routeContextId,
+      personnelId: context.personnelId,
+      scheduledDate: context.scheduledDate,
+      snapStatus: context.snapStatus,
+      assignmentStatus: context.currentStatus,
+      from,
+      to,
+      warning: result.warning,
+    },
+  });
+
+  revalidatePath("/planning");
+  revalidatePath(`/assignments/${assignmentId}`);
+
+  return {
+    success: true,
+    warning: result.warning,
+    applied: {
+      routeContextId,
+      assignmentId,
+      personnelId: context.personnelId,
+      from,
+      to,
+    },
+  };
 }
 
 export async function getTaskCodeOptions(): Promise<TaskCodeOption[]> {

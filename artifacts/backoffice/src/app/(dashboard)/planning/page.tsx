@@ -204,7 +204,7 @@ export default async function PlanningPage({ searchParams }: Props) {
           ]}
         />
         <TenantWorkbenchPanel className="border-0 bg-transparent shadow-none">
-          <PlanningMapView data={mapData} />
+          <PlanningMapView data={mapData} canApplySuggestions={canWrite} />
         </TenantWorkbenchPanel>
       </TenantPageShell>
     );
