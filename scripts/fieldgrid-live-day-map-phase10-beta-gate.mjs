@@ -135,7 +135,9 @@ mustContain("mapView", "overflow-hidden", "map shell clips map canvas");
 mustContain("mapView", "w-full overflow-y-auto sm:max-w-xl", "mobile-safe drawer width");
 mustContain("mapView", "max-h-80", "bounded overlay lists");
 mustContain("mapView", "min-h-[620px]", "stable map height");
-mustContain("mapView", "await import(\"maplibre-gl\")", "lazy map dependency");
+mustContain("mapView", "basemaps.cartocdn.com/light_all", "static raster map tiles");
+mustContain("mapView", "tile.openstreetmap.org", "fallback raster map tiles");
+mustNotContain("mapView", "maplibre-gl", "MapLibre dependency");
 mustNotContain("mapView", "min-w-[", "no fixed minimum width causing mobile overflow");
 
 mustContain("mapData", "new Map<string, PlanningDayMapMarker>()", "single-pass marker grouping");

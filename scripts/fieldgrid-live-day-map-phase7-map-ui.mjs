@@ -44,8 +44,8 @@ function mustNotContain(key, needle, label = needle) {
   }
 }
 
-mustContain("packageJson", '"maplibre-gl"', "MapLibre dependency");
-mustContain("lockfile", "maplibre-gl@5.24.0", "MapLibre lockfile entry");
+mustNotContain("packageJson", '"maplibre-gl"', "MapLibre dependency");
+mustNotContain("lockfile", "maplibre-gl@", "MapLibre lockfile entry");
 
 mustContain("featureFlag", "PLANNING_DAY_MAP_FEATURE_KEY", "feature flag key");
 mustContain("featureFlag", "PLANNING_DAY_MAP_ENABLED_BY_DEFAULT = false", "flag default uit");
@@ -59,10 +59,11 @@ mustNotContain("planningPage", "Tenant planning", "duplicated planning eyebrow")
 mustNotContain("planningPage", "TenantConflictStrip", "duplicated planning summary strip");
 
 mustContain("mapView", '"use client";', "client component");
-mustContain("mapView", 'await import("maplibre-gl")', "lazy MapLibre import");
 mustContain("mapView", "PlanningMapView", "exported map component");
 mustContain("mapView", "markerTone", "marker status colors");
-mustContain("mapView", "createRouteFeatures", "route line features");
+mustContain("mapView", "projectLngLat", "static tile projection");
+mustContain("mapView", "basemaps.cartocdn.com/light_all", "keyless CARTO raster map source");
+mustContain("mapView", "tile.openstreetmap.org", "OpenStreetMap fallback tiles");
 mustContain("mapView", "OverlayChip", "overlay chips");
 mustContain("mapView", "werkbonnen", "work order overlay");
 mustContain("mapView", "waarschuwingen", "warning overlay");
@@ -70,21 +71,19 @@ mustContain("mapView", "routes", "route overlay");
 mustNotContain("mapView", "Routepaneel", "legacy route side panel");
 mustContain("mapView", "SheetContent", "detail drawer");
 mustContain("mapView", "Geen werkbonnen met bruikbare coordinaten", "missing coordinate state");
-mustContain("mapView", "Kaart kon niet laden", "provider/map load warning state");
 mustContain("mapView", "OpenStreetMap", "keyless raster map source");
-mustNotContain("mapView", 'from "maplibre-gl"', "static MapLibre import");
+mustNotContain("mapView", "maplibre-gl", "MapLibre dependency");
 mustNotContain("mapView", "NEXT_PUBLIC", "client-side provider/config");
 mustNotContain("mapView", "GOOGLE", "provider key leakage");
 mustNotContain("mapView", "MAPBOX", "provider key leakage");
 
 mustContain("docs", "Fase 7", "fase-7 documenttitel");
 mustContain("docs", "feature flag", "feature flag documentatie");
-mustContain("docs", "MapLibre", "MapLibre documentatie");
-mustContain("docs", "lazy", "lazy-loading documentatie");
+mustContain("docs", "rasterkaart", "rasterkaart documentatie");
 mustContain("docs", "rollback", "rollback documentatie");
 
 mustContain("test", "mapEnabled && view === \"map\"", "flag route test");
-mustContain("test", 'await import\\("maplibre-gl"\\)', "lazy import test");
+mustContain("test", "basemaps\\.cartocdn\\.com", "static raster test");
 mustContain("test", "Geen werkbonnen met bruikbare coordinaten", "missing location UI test");
 
 mustContain("rootPackageJson", "fieldgrid:live-day-map-phase7", "package script");

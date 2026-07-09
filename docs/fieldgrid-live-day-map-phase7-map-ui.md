@@ -4,30 +4,21 @@
 
 Fase 7 voegt de eerste kaartweergave toe aan de tenant planning, maar alleen achter de bestaande feature flag `FIELDGRID_PLANNING_DAY_MAP_ENABLED`.
 
-Standaard blijft de flag uit. Zonder flag ziet een gebruiker alleen de bestaande Bord-, Dag- en Maandweergave. Er wordt dan geen mapdata opgehaald en de MapLibre-bundle wordt niet geladen.
+Standaard blijft de flag uit. Zonder flag ziet een gebruiker alleen de bestaande Bord-, Dag- en Maandweergave. Er wordt dan geen mapdata opgehaald en de kaartcomponent wordt niet geladen.
 
 ## Wat Is Toegevoegd
 
-- `maplibre-gl` als dependency van `@workspace/backoffice`.
 - Nieuwe clientcomponent `PlanningMapView`.
 - Nieuwe planningroute `?view=map&date=YYYY-MM-DD`, alleen actief als `isPlanningDayMapEnabled()` true is.
 - Vierde headeractie `Kaart`, alleen zichtbaar wanneer de flag aan staat.
 - Markerstatuskleuren op basis van opdrachtstatus en waarschuwingen.
-- Routepaneel per personeelslid met stops, reistijd, afstand en warning count.
-- Detaildrawer per marker met status, prioriteit, locatiebron, gekoppeld personeel en routecontext.
-- Empty/warning states voor ontbrekende coordinaten, geen data en kaartlaadfouten.
+- Overlaychips voor werkbonnen, waarschuwingen en routes met compacte inline scroll.
+- Detaildrawer per marker met status, prioriteit, objectadres, gekoppeld personeel en opdrachtinformatie.
+- Empty/warning states voor ontbrekende coordinaten en geen data.
 
-## Lazy Loading En SSR
+## Client-side Rasterkaart En SSR
 
-Deze fase gebruikt expliciet lazy-loading voor MapLibre.
-
-`PlanningMapView` is een clientcomponent, maar MapLibre wordt niet statisch geimporteerd. De component gebruikt:
-
-```ts
-await import("maplibre-gl")
-```
-
-Daardoor blijft SSR veilig en wordt de zware kaartcode pas geladen wanneer de kaartcomponent daadwerkelijk gemount wordt.
+`PlanningMapView` is een clientcomponent en rendert een keyless rasterkaart met gewone image tiles. Daardoor is er geen WebGL- of MapLibre-runtime nodig en blijft SSR veilig.
 
 ## Security
 
@@ -35,7 +26,7 @@ Daardoor blijft SSR veilig en wordt de zware kaartcode pas geladen wanneer de ka
 - Alle data blijft server-side geautoriseerd via `planning:read`.
 - Tenantfiltering blijft in de server action zitten.
 - Er zijn geen `NEXT_PUBLIC` routeprovider keys toegevoegd.
-- De rasterkaart gebruikt een keyless OpenStreetMap-bron.
+- De rasterkaart gebruikt een keyless CARTO rasterbron met OpenStreetMap fallbacktiles.
 - Provider metadata en routeprovider secrets worden niet aan de client doorgegeven.
 
 ## UI Gedrag
@@ -43,9 +34,9 @@ Daardoor blijft SSR veilig en wordt de zware kaartcode pas geladen wanneer de ka
 De kaart toont:
 
 - markers met statuskleur;
-- markerlijst voor toetsenbord/muisnavigatie;
-- routepaneel met stops per medewerker;
-- warnings voor ontbrekende locaties en routecontextproblemen;
+- overlay met werkbonnen voor toetsenbord/muisnavigatie;
+- overlay met stops, reistijd en afstand per medewerker;
+- overlay met warnings voor ontbrekende locaties en routecontextproblemen;
 - detaildrawer voor de geselecteerde werkbon.
 
 Ontbrekende objectcoordinaten blokkeren de pagina niet. De gebruiker ziet een nette waarschuwing en kan de werkbon alsnog openen.
@@ -57,8 +48,7 @@ Directe rollback kan door `FIELDGRID_PLANNING_DAY_MAP_ENABLED` uit te zetten. Da
 Code rollback is beperkt tot:
 
 - `PlanningMapView` verwijderen;
-- de `view=map` branch en `Kaart` actie uit `planning/page.tsx` verwijderen;
-- `maplibre-gl` dependency verwijderen.
+- de `view=map` branch en `Kaart` actie uit `planning/page.tsx` verwijderen.
 
 ## Verificatie
 
