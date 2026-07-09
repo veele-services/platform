@@ -12,10 +12,19 @@ function read(relativePath) {
 test("phase 10 keeps live day map beta-gated and preserves planning views", () => {
   const page = read("artifacts/backoffice/src/app/(dashboard)/planning/page.tsx");
   const featureFlag = read("artifacts/backoffice/src/lib/planning/day-map-feature.ts");
+  const layout = read("artifacts/backoffice/src/app/(dashboard)/layout.tsx");
+  const sidebar = read("artifacts/backoffice/src/components/layout/Sidebar.tsx");
 
   assert.match(featureFlag, /FIELDGRID_PLANNING_DAY_MAP_ENABLED/);
   assert.match(page, /isPlanningDayMapEnabled/);
   assert.match(page, /mapEnabled\s*&&\s*view\s*===\s*"map"/);
+  assert.match(layout, /isPlanningDayMapEnabled/);
+  assert.match(layout, /planningMapEnabled=\{planningMapEnabled\}/);
+  assert.match(sidebar, /\/planning\?view=map/);
+  assert.match(sidebar, /label: "Kaart"/);
+  assert.match(sidebar, /feature: "planning-map"/);
+  assert.match(sidebar, /useSearchParams/);
+  assert.match(sidebar, /href === "\/planning" && searchParams\.get\("view"\) === "map"/);
   assert.match(page, /PlanningBoardView/);
   assert.match(page, /PlanningDayView/);
   assert.match(page, /PlanningMonthView/);

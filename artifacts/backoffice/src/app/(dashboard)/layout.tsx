@@ -22,6 +22,7 @@ import { getOutstandingInvoicesCount } from "@/app/actions/invoices";
 import { getPendingQuotesCount } from "@/app/actions/quotes";
 import { getPendingLeaveCount } from "@/app/actions/availability";
 import { exitSupportMode } from "@/app/actions/platform";
+import { isPlanningDayMapEnabled } from "@/lib/planning/day-map-feature";
 import {
   getActiveBackofficeTenantsForUser,
   getCurrentTenantId,
@@ -164,6 +165,7 @@ export default async function DashboardLayout({
   const userInitial = (userEmail[0] ?? "U").toUpperCase();
   const userRole    = roles[0] ?? "User";
   const brandingStyle = getTenantBrandingCssVariables(branding) as CSSProperties;
+  const planningMapEnabled = isPlanningDayMapEnabled();
 
   return (
     <PermissionsProvider permissions={[...permissions]} tenantId={tenantId}>
@@ -186,6 +188,7 @@ export default async function DashboardLayout({
               outstandingInvoicesCount={outstandingInvoicesCount}
               pendingQuotesCount={pendingQuotesCount}
               pendingLeaveCount={pendingLeaveCount}
+              planningMapEnabled={planningMapEnabled}
             />
 
             <SidebarOverlay />

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import type { CSSProperties } from "react";
 import {
   BarChart3,
@@ -16,6 +16,7 @@ import {
   HelpCircle,
   LayoutDashboard,
   Lightbulb,
+  Map,
   MessageSquare,
   Newspaper,
   PackageSearch,
@@ -31,6 +32,7 @@ import { useSidebar } from "@/providers/sidebar-provider";
 const NAV_ITEMS = [
   { href: "/", icon: LayoutDashboard, label: "Dashboard", permission: "dashboard:read" },
   { href: "/planning", icon: Calendar, label: "Planning", permission: "planning:read" },
+  { href: "/planning?view=map", icon: Map, label: "Kaart", permission: "planning:read", feature: "planning-map" },
   { href: "/assignments", icon: ClipboardList, label: "Opdrachten", permission: "assignments:read" },
   { href: "/quotes", icon: FileCheck2, label: "Offertes", permission: "quotes:read" },
   { href: "/customers", icon: Users, label: "Klanten", permission: "customers:read" },
@@ -50,8 +52,18 @@ const NAV_ITEMS = [
   { href: "/settings", icon: Settings, label: "Instellingen", permission: "settings:read" },
 ] as const;
 
-function isActive(pathname: string, href: string): boolean {
+function isActive(pathname: string, href: string, searchParams: URLSearchParams): boolean {
+  if (href.includes("?")) {
+    const [hrefPath, hrefSearch] = href.split("?");
+    const expected = new URLSearchParams(hrefSearch);
+    if (pathname !== hrefPath) return false;
+    for (const [key, value] of expected.entries()) {
+      if (searchParams.get(key) !== value) return false;
+    }
+    return true;
+  }
   if (href === "/") return pathname === "/";
+  if (href === "/planning" && searchParams.get("view") === "map") return false;
   if (href === "/settings") {
     return pathname.startsWith("/settings") || pathname.startsWith("/instellingen");
   }
@@ -71,6 +83,7 @@ interface SidebarProps {
   outstandingInvoicesCount?: number;
   pendingQuotesCount?: number;
   pendingLeaveCount?: number;
+  planningMapEnabled?: boolean;
 }
 
 function initialsFor(value: string): string {
@@ -88,11 +101,18 @@ export function Sidebar({
   outstandingInvoicesCount = 0,
   pendingQuotesCount = 0,
   pendingLeaveCount = 0,
+  planningMapEnabled = false,
 }: SidebarProps) {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
   const permissions = usePermissions();
   const { open, close, collapsed } = useSidebar();
-  const visibleItems = NAV_ITEMS.filter((item) => permissions.has(item.permission));
+  const visibleItems = NAV_ITEMS.filter((item) => {
+    if ("feature" in item && item.feature === "planning-map" && !planningMapEnabled) {
+      return false;
+    }
+    return permissions.has(item.permission);
+  });
   const whitelabel = Boolean(branding?.customBrandingEnabled);
   const sidebarBackgroundColor = branding?.sidebarBackgroundColor ?? "#081D3A";
   const sidebarTextColor = branding?.sidebarTextColor ?? "#FFFFFF";
@@ -201,7 +221,7 @@ export function Sidebar({
           </p>
         ) : (
           visibleItems.map(({ href, icon: Icon, label }) => {
-            const active = isActive(pathname, href);
+            const active = isActive(pathname, href, searchParams);
             const hasBadge =
               (href === "/reports" && pendingReportsCount > 0) ||
               (href === "/invoices" && outstandingInvoicesCount > 0) ||

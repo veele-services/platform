@@ -8,6 +8,8 @@ const strictEvidence = process.argv.includes("--strict-evidence");
 
 const files = {
   planningPage: "artifacts/backoffice/src/app/(dashboard)/planning/page.tsx",
+  dashboardLayout: "artifacts/backoffice/src/app/(dashboard)/layout.tsx",
+  sidebar: "artifacts/backoffice/src/components/layout/Sidebar.tsx",
   planningActions: "artifacts/backoffice/src/app/actions/planning.ts",
   mapView: "artifacts/backoffice/src/components/assignments/PlanningMapView.tsx",
   mapData: "artifacts/backoffice/src/lib/planning/map-data.ts",
@@ -89,6 +91,13 @@ mustContain("phase9Gate", "planning_refresh", "phase 9 realtime gate");
 mustContain("featureFlag", "FIELDGRID_PLANNING_DAY_MAP_ENABLED", "explicit beta feature flag");
 mustContain("planningPage", "isPlanningDayMapEnabled", "planning map gated by feature flag");
 mustMatch("planningPage", /mapEnabled\s*&&\s*view\s*===\s*"map"/, "map route is flag gated");
+mustContain("dashboardLayout", "isPlanningDayMapEnabled", "sidebar receives map feature flag");
+mustContain("dashboardLayout", "planningMapEnabled={planningMapEnabled}", "sidebar map flag prop");
+mustContain("sidebar", "/planning?view=map", "planning map sidebar navigation");
+mustContain("sidebar", "label: \"Kaart\"", "planning map sidebar label");
+mustContain("sidebar", "feature: \"planning-map\"", "planning map menu feature flag");
+mustContain("sidebar", "useSearchParams", "query-aware active state");
+mustContain("sidebar", "href === \"/planning\" && searchParams.get(\"view\") === \"map\"", "planning item inactive when map view active");
 
 mustContain("planningPage", "PlanningBoardView", "board planning view");
 mustContain("planningPage", "PlanningDayView", "day planning view");
@@ -137,6 +146,7 @@ mustContain("phase10Doc", "Fase 10", "phase 10 documentation");
 mustContain("phase10Doc", "Release notes", "release notes");
 mustContain("phase10Doc", "Beheerinstructies", "admin instructions");
 mustContain("phase10Doc", "FIELDGRID_PLANNING_DAY_MAP_ENABLED", "feature flag instructions");
+mustContain("phase10Doc", "Kaart", "map menu documentation");
 mustContain("phase10Doc", "Rollback", "rollback instructions");
 mustContain("phase10Doc", "50 opdrachten", "performance target");
 mustContain("phase10Doc", "20 personeelsleden", "performance target");
