@@ -79,6 +79,9 @@ type MapMarker = {
   customerName: string;
   objectId: string | null;
   objectName: string | null;
+  objectAddress: string | null;
+  objectPostalCode: string | null;
+  objectCity: string | null;
   requiredRegion: string | null;
   coordinate: Coordinate | null;
   missingLocation: boolean;
@@ -163,10 +166,16 @@ const STATUS_COLORS: Record<string, { color: string; bg: string; border: string 
 };
 
 function markerTone(marker: MapMarker) {
-  if (marker.missingLocation || marker.primaryWarningCode) {
-    return { color: "#D97706", bg: "#FEF3C7", border: "#F59E0B" };
-  }
   return STATUS_COLORS[marker.status] ?? STATUS_COLORS.scheduled;
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
 }
 
 function formatTimeRange(marker: Pick<MapMarker, "scheduledStart" | "scheduledEnd">): string {
@@ -202,6 +211,34 @@ function vehicleLabel(value: string): string {
   return labels[value] ?? value;
 }
 
+function formatObjectAddress(marker: Pick<MapMarker, "objectAddress" | "objectPostalCode" | "objectCity">): string {
+  return [
+    marker.objectAddress,
+    [marker.objectPostalCode, marker.objectCity].filter(Boolean).join(" "),
+  ]
+    .map((value) => value?.trim())
+    .filter(Boolean)
+    .join(", ") || "Geen adres bekend";
+}
+
+function personnelSummary(marker: Pick<MapMarker, "assignedPersonnel">): string {
+  return marker.assignedPersonnel.map((person) => person.name).join(", ") || "Geen personeel gekoppeld";
+}
+
+function markerPopupHtml(marker: MapMarker): string {
+  return `
+    <div class="text-sm" style="min-width:220px;max-width:280px">
+      <p class="font-semibold text-slate-950">${escapeHtml(marker.code)} - ${escapeHtml(marker.title)}</p>
+      <p class="mt-1 text-xs text-slate-500">${escapeHtml(formatTimeRange(marker))}</p>
+      <div class="mt-2 space-y-1 text-xs text-slate-700">
+        <p><span class="font-medium text-slate-900">Object:</span> ${escapeHtml(marker.objectName ?? "Geen object")}</p>
+        <p><span class="font-medium text-slate-900">Adres:</span> ${escapeHtml(formatObjectAddress(marker))}</p>
+        <p><span class="font-medium text-slate-900">Medewerkers:</span> ${escapeHtml(personnelSummary(marker))}</p>
+      </div>
+    </div>
+  `;
+}
+
 function snapStatusLabel(value: string | null): string {
   const labels: Record<string, string> = {
     ok: "OK",
@@ -210,7 +247,7 @@ function snapStatusLabel(value: string | null): string {
     missing_location: "Locatie ontbreekt",
     provider_error: "Routeprovider",
   };
-  return value ? labels[value] ?? value : "Geen routecontext";
+  return value ? labels[value] ?? value : "Geen route-info";
 }
 
 function routeContextCanApply(context: MapRouteContext): boolean {
@@ -413,19 +450,39 @@ export function PlanningMapView({ data, canApplySuggestions = false }: PlanningM
         const node = document.createElement("button");
         node.type = "button";
         node.className =
-          "flex h-9 w-9 items-center justify-center rounded-full border-2 text-xs font-bold shadow-lg transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-cyan-400";
-        node.style.background = tone.bg;
-        node.style.borderColor = tone.border;
+          "flex h-10 w-10 items-center justify-center rounded-full text-white shadow-lg transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-cyan-400";
         node.style.color = tone.color;
-        node.textContent = marker.code.replace(/^[^-]+-?/, "").slice(-2) || "M";
+        node.innerHTML = `
+          <svg viewBox="0 0 24 24" class="h-10 w-10 drop-shadow" fill="currentColor" aria-hidden="true">
+            <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7Z" />
+            <circle cx="12" cy="9" r="3.1" fill="white" />
+          </svg>
+        `;
         node.setAttribute("aria-label", `${marker.code} openen`);
         node.addEventListener("click", () => setSelectedMarkerId(marker.id));
 
         const mapMarker = new maplibre.Marker({ element: node, anchor: "center" })
           .setLngLat([marker.coordinate!.lng, marker.coordinate!.lat])
           .addTo(map as never);
+        const popup = new maplibre.Popup({
+          closeButton: false,
+          closeOnClick: false,
+          offset: 18,
+          className: "planning-marker-popup",
+        }).setHTML(markerPopupHtml(marker));
+        node.addEventListener("mouseenter", () => {
+          popup.setLngLat([marker.coordinate!.lng, marker.coordinate!.lat]).addTo(map as never);
+        });
+        node.addEventListener("mouseleave", () => popup.remove());
+        node.addEventListener("focus", () => {
+          popup.setLngLat([marker.coordinate!.lng, marker.coordinate!.lat]).addTo(map as never);
+        });
+        node.addEventListener("blur", () => popup.remove());
         bounds.extend([marker.coordinate!.lng, marker.coordinate!.lat]);
-        markerCleanupRef.current.push(() => mapMarker.remove());
+        markerCleanupRef.current.push(() => {
+          popup.remove();
+          mapMarker.remove();
+        });
       });
 
       if (visibleMarkers.length === 1) {
@@ -464,7 +521,7 @@ export function PlanningMapView({ data, canApplySuggestions = false }: PlanningM
               <h2 className="text-base font-semibold text-slate-950">Live dagkaart</h2>
             </div>
             <p className="mt-1 text-sm text-slate-500">
-              Markers, routecontext en ETA-waarschuwingen voor deze planningsdag.
+              Markers, opdrachtinformatie en ETA-waarschuwingen voor deze planningsdag.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -535,7 +592,7 @@ export function PlanningMapView({ data, canApplySuggestions = false }: PlanningM
                         </div>
                         <span
                           className="h-3 w-3 rounded-full border"
-                          style={{ background: tone.bg, borderColor: tone.border }}
+                          style={{ background: tone.color, borderColor: tone.border }}
                         />
                       </div>
                       <div className="mt-2 flex flex-wrap gap-1.5">
@@ -699,69 +756,66 @@ export function PlanningMapView({ data, canApplySuggestions = false }: PlanningM
                 </section>
 
                 <section>
-                  <h3 className="text-sm font-semibold text-slate-950">Routecontext</h3>
-                  <div className="mt-2 space-y-2">
-                    {selectedMarker.routeContexts.length === 0 ? (
-                      <p className="rounded-lg border border-dashed p-3 text-sm text-slate-500">Nog geen routecontext berekend.</p>
-                    ) : (
-                      selectedMarker.routeContexts.map((context) => (
-                        <div key={`${context.personnelId}-${context.id ?? "context"}`} className="rounded-lg border bg-white p-3 text-sm">
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <p className="font-medium text-slate-900">{snapStatusLabel(context.snapStatus)}</p>
-                              <p className="text-xs text-slate-500">
-                                Buffer {context.bufferMinutes} min - {formatDuration(context.travelDurationSeconds ?? 0)} - {formatDistance(context.travelDistanceMeters ?? 0)}
-                              </p>
-                            </div>
-                            {context.snapSuggestedStart && (
-                              <Badge variant="secondary">{context.snapSuggestedStart} voorstel</Badge>
-                            )}
-                          </div>
-                          {context.snapSuggestedStart && (
-                            <div className="mt-3 rounded-lg border border-cyan-100 bg-cyan-50 p-3">
-                              <div className="grid gap-2 text-xs text-slate-700 sm:grid-cols-2">
-                                <div>
-                                  <p className="font-medium uppercase text-slate-500">Huidig</p>
-                                  <p className="mt-1 font-semibold text-slate-950">
-                                    {formatTimeWindow(selectedMarker.scheduledStart, selectedMarker.scheduledEnd)}
-                                  </p>
-                                </div>
-                                <div>
-                                  <p className="font-medium uppercase text-slate-500">Voorstel</p>
-                                  <p className="mt-1 font-semibold text-slate-950">
-                                    {formatTimeWindow(context.snapSuggestedStart, context.snapSuggestedEnd)}
-                                  </p>
-                                </div>
-                              </div>
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="outline"
-                                className="mt-3 w-full bg-white"
-                                disabled={!canApplySuggestions || !routeContextCanApply(context)}
-                                onClick={() => openSuggestionDialog(selectedMarker, context)}
-                              >
-                                Voorstel toepassen
-                              </Button>
-                              {!canApplySuggestions ? (
-                                <p className="mt-2 text-xs text-slate-500">
-                                  Alleen planners met schrijfrecht kunnen routevoorstellen toepassen.
-                                </p>
-                              ) : !routeContextCanApply(context) && (
-                                <p className="mt-2 text-xs text-slate-500">
-                                  Dit voorstel kan pas worden toegepast als de routecontext compleet is.
-                                </p>
-                              )}
-                            </div>
-                          )}
-                          {context.warningMessage && (
-                            <p className="mt-2 rounded-md bg-amber-50 p-2 text-xs text-amber-900">{context.warningMessage}</p>
-                          )}
-                        </div>
-                      ))
-                    )}
+                  <h3 className="text-sm font-semibold text-slate-950">Opdrachtinformatie</h3>
+                  <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                    <InfoCard icon={<Info className="h-4 w-4" />} label="Titel" value={selectedMarker.title} />
+                    <InfoCard icon={<Clock className="h-4 w-4" />} label="Tijdvak" value={formatTimeRange(selectedMarker)} />
+                    <InfoCard icon={<Navigation className="h-4 w-4" />} label="Status" value={statusLabel(selectedMarker.status as never)} />
+                    <InfoCard icon={<Car className="h-4 w-4" />} label="Prioriteit" value={selectedMarker.priority} />
                   </div>
                 </section>
+
+                <section>
+                  <h3 className="text-sm font-semibold text-slate-950">Adresgegevens</h3>
+                  <div className="mt-2 rounded-lg border bg-slate-50 p-3">
+                    <div className="flex items-start gap-2">
+                      <MapPin className="mt-0.5 h-4 w-4 text-cyan-700" />
+                      <div className="min-w-0">
+                        <p className="font-semibold text-slate-950">{selectedMarker.objectName ?? "Geen object"}</p>
+                        <p className="mt-1 text-sm text-slate-700">{formatObjectAddress(selectedMarker)}</p>
+                        <p className="mt-1 text-xs text-slate-500">{selectedMarker.customerName || "Geen klant"}</p>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {selectedMarker.routeContexts.some((context) => context.snapSuggestedStart) && (
+                  <section>
+                    <h3 className="text-sm font-semibold text-slate-950">Tijdvoorstellen</h3>
+                    <div className="mt-2 space-y-2">
+                      {selectedMarker.routeContexts
+                        .filter((context) => context.snapSuggestedStart)
+                        .map((context) => (
+                          <div key={`${context.personnelId}-${context.id ?? "context"}`} className="rounded-lg border border-cyan-100 bg-cyan-50 p-3 text-sm">
+                            <div className="grid gap-2 text-xs text-slate-700 sm:grid-cols-2">
+                              <div>
+                                <p className="font-medium uppercase text-slate-500">Huidig</p>
+                                <p className="mt-1 font-semibold text-slate-950">
+                                  {formatTimeWindow(selectedMarker.scheduledStart, selectedMarker.scheduledEnd)}
+                                </p>
+                              </div>
+                              <div>
+                                <p className="font-medium uppercase text-slate-500">Voorstel</p>
+                                <p className="mt-1 font-semibold text-slate-950">
+                                  {formatTimeWindow(context.snapSuggestedStart, context.snapSuggestedEnd)}
+                                </p>
+                              </div>
+                            </div>
+                            <Button
+                              type="button"
+                              size="sm"
+                              variant="outline"
+                              className="mt-3 w-full bg-white"
+                              disabled={!canApplySuggestions || !routeContextCanApply(context)}
+                              onClick={() => openSuggestionDialog(selectedMarker, context)}
+                            >
+                              Voorstel toepassen
+                            </Button>
+                          </div>
+                        ))}
+                    </div>
+                  </section>
+                )}
 
                 <Button asChild className="w-full">
                   <Link href={`/assignments/${selectedMarker.id}`}>Werkbon openen</Link>

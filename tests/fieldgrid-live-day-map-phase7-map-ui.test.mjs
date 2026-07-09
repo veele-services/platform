@@ -38,6 +38,11 @@ test("phase 7 map UI exposes marker, route, warning and detail surfaces", () => 
 
   assert.match(mapView, /markerTone/);
   assert.match(mapView, /STATUS_COLORS/);
+  assert.match(mapView, /markerPopupHtml/);
+  assert.match(mapView, /mouseenter/);
+  assert.match(mapView, /Adresgegevens/);
+  assert.match(mapView, /Opdrachtinformatie/);
+  assert.doesNotMatch(mapView, />Routecontext</);
   assert.match(mapView, /Routepaneel/);
   assert.match(mapView, /Warnings/);
   assert.match(mapView, /SheetContent/);
