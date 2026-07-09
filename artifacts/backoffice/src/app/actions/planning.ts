@@ -55,6 +55,7 @@ import {
   type PlanningDayMapFilters,
   type PlanningDayMapRow,
 } from "@/lib/planning/map-data";
+import { recalculatePlanningRouteContexts } from "@/lib/planning/eta-engine";
 import { safeRefreshPlanningRoutesForAssignment } from "@/lib/planning/route-refresh";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -1245,6 +1246,84 @@ export async function getPlanningBoardData(
   };
 }
 
+function timestampValue(value: Date | string | null): number | null {
+  if (!value) return null;
+  const timestamp = value instanceof Date ? value.getTime() : Date.parse(value);
+  return Number.isFinite(timestamp) ? timestamp : null;
+}
+
+async function ensurePlanningDayRouteContextsFresh(input: {
+  tenantId: string;
+  date: string;
+  personnelId?: string | null;
+}): Promise<void> {
+  const conditions: SQL[] = [
+    eq(assignmentsTable.tenantId, input.tenantId),
+    eq(assignmentsTable.isActive, true),
+    eq(assignmentsTable.scheduledDate, input.date),
+    eq(assignmentPersonnelTable.status, "assigned"),
+  ];
+
+  if (input.personnelId) {
+    conditions.push(eq(assignmentPersonnelTable.personnelId, input.personnelId));
+  }
+
+  const rows = await db
+    .select({
+      personnelId: assignmentPersonnelTable.personnelId,
+      routeContextId: assignmentRouteContextsTable.id,
+      contextCalculatedAt: assignmentRouteContextsTable.calculatedAt,
+      addressGeocodedAt: personnelTable.addressGeocodedAt,
+    })
+    .from(assignmentsTable)
+    .innerJoin(
+      assignmentPersonnelTable,
+      eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id),
+    )
+    .innerJoin(
+      personnelTable,
+      and(
+        eq(assignmentPersonnelTable.personnelId, personnelTable.id),
+        eq(personnelTable.tenantId, input.tenantId),
+        eq(personnelTable.isActive, true),
+      ),
+    )
+    .leftJoin(
+      assignmentRouteContextsTable,
+      and(
+        eq(assignmentRouteContextsTable.tenantId, input.tenantId),
+        eq(assignmentRouteContextsTable.assignmentId, assignmentsTable.id),
+        eq(
+          assignmentRouteContextsTable.personnelId,
+          assignmentPersonnelTable.personnelId,
+        ),
+        eq(assignmentRouteContextsTable.scheduledDate, input.date),
+      ),
+    )
+    .where(and(...conditions));
+
+  const stalePersonnelIds = new Set<string>();
+  for (const row of rows) {
+    const contextCalculatedAt = timestampValue(row.contextCalculatedAt);
+    const addressGeocodedAt = timestampValue(row.addressGeocodedAt);
+    const addressIsNewer =
+      addressGeocodedAt !== null &&
+      (contextCalculatedAt === null || addressGeocodedAt > contextCalculatedAt);
+
+    if (!row.routeContextId || addressIsNewer) {
+      stalePersonnelIds.add(row.personnelId);
+    }
+  }
+
+  for (const personnelId of stalePersonnelIds) {
+    await recalculatePlanningRouteContexts({
+      tenantId: input.tenantId,
+      scheduledDate: input.date,
+      personnelId,
+    });
+  }
+}
+
 export async function getPlanningDayMapData(
   filters: PlanningDayMapFilters = {},
 ): Promise<PlanningDayMapData> {
@@ -1256,6 +1335,12 @@ export async function getPlanningDayMapData(
   }
 
   const tenantId = await requireCurrentTenantId();
+  await ensurePlanningDayRouteContextsFresh({
+    tenantId,
+    date,
+    personnelId: filters.personnelId,
+  });
+
   const conditions: SQL[] = [
     eq(assignmentsTable.tenantId, tenantId),
     eq(assignmentsTable.isActive, true),

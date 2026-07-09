@@ -62,3 +62,13 @@ test("first planning stop uses personnel home address as route origin", () => {
   assert.match(etaEngine, /originKind[\s\S]*"personnel_home"/);
   assert.match(etaEngine, /dateTimeForTime\(assignment\.scheduledDate,\s*input\.settings\.planningWorkdayStart\)/);
 });
+
+test("planning map refreshes missing or stale route contexts before rendering", () => {
+  const planningActions = read("artifacts/backoffice/src/app/actions/planning.ts");
+
+  assert.match(planningActions, /ensurePlanningDayRouteContextsFresh/);
+  assert.match(planningActions, /addressGeocodedAt:\s+personnelTable\.addressGeocodedAt/);
+  assert.match(planningActions, /!row\.routeContextId\s*\|\|\s*addressIsNewer/);
+  assert.match(planningActions, /recalculatePlanningRouteContexts\(\{/);
+  assert.match(planningActions, /await ensurePlanningDayRouteContextsFresh\(\{/);
+});
