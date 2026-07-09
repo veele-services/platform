@@ -7,6 +7,7 @@ Fase 10 maakt de live dagkaart beta-ready door de bestaande ETA-, snap-, provide
 ## Release notes
 
 - De planning kan optioneel een live dagkaart tonen via `FIELDGRID_PLANNING_DAY_MAP_ENABLED`.
+- Als de flag aan staat verschijnt in de tenant backoffice-sidebar direct onder Planning het menu-item `Kaart`.
 - De kaart toont werkbonmarkers, routecontexten, ontbrekende locaties, ETA-waarschuwingen en routepanelen per personeelslid.
 - Routevoorstellen blijven bewust handmatig: een planner moet het voorstel expliciet toepassen.
 - Bestaande planningweergaven blijven beschikbaar: bord, dag en maand.
