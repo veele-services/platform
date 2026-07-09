@@ -137,7 +137,7 @@ export function Sidebar({
     >
       <div
         className={cn(
-          "flex h-20 flex-shrink-0 items-center border-b border-white/10 px-5",
+          "flex h-20 flex-shrink-0 items-center px-5",
           collapsed ? "md:justify-center md:px-0" : "md:justify-center md:px-6",
         )}
       >
