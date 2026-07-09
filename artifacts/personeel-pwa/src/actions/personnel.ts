@@ -2,6 +2,7 @@
 
 import { requireCurrentPersonnelPortalTenantId as getCurrentPortalTenantId } from "@/lib/auth/tenant";
 import { db, personnelTable } from "@workspace/db";
+import { geocodeAddress, hasGeocodableAddress } from "@workspace/db/address-geocoding";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
@@ -97,6 +98,59 @@ function normalizeNameList(value: unknown): string[] {
       return null;
     })
     .filter((item): item is string => Boolean(item));
+}
+
+function coordinateNumericValue(value: number): string {
+  return value.toFixed(6);
+}
+
+async function buildAddressGeocodePatch(input: {
+  addressStreet: string | null;
+  addressPostalCode: string | null;
+  addressCity: string | null;
+  addressCountry: string;
+}) {
+  const addressInput = {
+    address: input.addressStreet,
+    postalCode: input.addressPostalCode,
+    city: input.addressCity,
+    country: input.addressCountry,
+  };
+
+  if (!hasGeocodableAddress(addressInput)) {
+    return {
+      addressLatitude: null,
+      addressLongitude: null,
+      addressGeocodedAt: null,
+      addressGeocodingProvider: null,
+      addressGeocodingStatus: "not_required",
+      addressGeocodingConfidence: null,
+      addressGeocodingError: null,
+    };
+  }
+
+  const result = await geocodeAddress(addressInput);
+  if (!result.success) {
+    return {
+      addressLatitude: null,
+      addressLongitude: null,
+      addressGeocodedAt: null,
+      addressGeocodingProvider: result.provider,
+      addressGeocodingStatus: "failed",
+      addressGeocodingConfidence: null,
+      addressGeocodingError: result.error,
+    };
+  }
+
+  return {
+    addressLatitude: coordinateNumericValue(result.latitude),
+    addressLongitude: coordinateNumericValue(result.longitude),
+    addressGeocodedAt: new Date(),
+    addressGeocodingProvider: result.provider,
+    addressGeocodingStatus: "geocoded",
+    addressGeocodingConfidence: result.confidence.toFixed(2),
+    addressGeocodingError: null,
+  };
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -251,6 +305,13 @@ export async function updateMyProfile(
     return { success: false, error: "Ongeldig telefoonnummer" };
   }
 
+  const addressGeocodePatch = await buildAddressGeocodePatch({
+    addressStreet,
+    addressPostalCode,
+    addressCity,
+    addressCountry,
+  });
+
   const [updated] = await db
     .update(personnelTable)
     .set({
@@ -261,6 +322,7 @@ export async function updateMyProfile(
       addressPostalCode,
       addressCity,
       addressCountry,
+      ...addressGeocodePatch,
       profileUpdatedAt: new Date(),
       updatedAt: new Date(),
     })

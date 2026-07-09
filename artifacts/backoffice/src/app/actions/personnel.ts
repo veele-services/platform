@@ -15,6 +15,7 @@ import {
   availabilityWindowsTable,
   leavePeriodsTable,
 } from "@workspace/db";
+import { geocodeAddress, hasGeocodableAddress } from "@workspace/db/address-geocoding";
 import { eq, ilike, or, and, asc, desc, inArray, sql } from "drizzle-orm";
 import { getBatchAvailabilityStatus } from "./availability";
 import { revalidatePath } from "next/cache";
@@ -33,6 +34,7 @@ import { toPlatformPersonnelMaskedDto } from "@/lib/security/safe-dtos";
 import type { ActionResult } from "./customers";
 import type { ContractInfo, CertificateEntry } from "@/types/personnel";
 import type { PersonnelVehicleType } from "@workspace/db";
+import { safeRefreshPlanningRoutesForPersonnel } from "@/lib/planning/route-refresh";
 
 // Extract just the names from a CertificateEntry[] (handles legacy string[] too)
 function extractCertNames(raw: unknown): string[] {
@@ -49,6 +51,64 @@ function normalizePersonnelVehicleType(value: unknown): PersonnelVehicleType | u
   return (PERSONNEL_VEHICLE_TYPES as readonly string[]).includes(value)
     ? (value as PersonnelVehicleType)
     : undefined;
+}
+
+function coordinateNumericValue(value: number): string {
+  return value.toFixed(6);
+}
+
+function normalizeOptionalText(value: string | undefined, maxLength: number): string | null {
+  const text = value?.trim() ?? "";
+  return text ? text.slice(0, maxLength) : null;
+}
+
+async function buildPersonnelAddressGeocodePatch(input: {
+  addressStreet: string | null;
+  addressPostalCode: string | null;
+  addressCity: string | null;
+  addressCountry: string;
+}) {
+  const addressInput = {
+    address: input.addressStreet,
+    postalCode: input.addressPostalCode,
+    city: input.addressCity,
+    country: input.addressCountry,
+  };
+
+  if (!hasGeocodableAddress(addressInput)) {
+    return {
+      addressLatitude: null,
+      addressLongitude: null,
+      addressGeocodedAt: null,
+      addressGeocodingProvider: null,
+      addressGeocodingStatus: "not_required",
+      addressGeocodingConfidence: null,
+      addressGeocodingError: null,
+    };
+  }
+
+  const result = await geocodeAddress(addressInput);
+  if (!result.success) {
+    return {
+      addressLatitude: null,
+      addressLongitude: null,
+      addressGeocodedAt: null,
+      addressGeocodingProvider: result.provider,
+      addressGeocodingStatus: "failed",
+      addressGeocodingConfidence: null,
+      addressGeocodingError: result.error,
+    };
+  }
+
+  return {
+    addressLatitude: coordinateNumericValue(result.latitude),
+    addressLongitude: coordinateNumericValue(result.longitude),
+    addressGeocodedAt: new Date(),
+    addressGeocodingProvider: result.provider,
+    addressGeocodingStatus: "geocoded",
+    addressGeocodingConfidence: result.confidence.toFixed(2),
+    addressGeocodingError: null,
+  };
 }
 
 export type { ActionResult };
@@ -81,6 +141,12 @@ export type PersonnelRow = {
   lastName:     string;
   email:        string;
   phone:        string | null;
+  addressStreet:     string | null;
+  addressPostalCode: string | null;
+  addressCity:       string | null;
+  addressCountry:    string;
+  addressGeocodingStatus: string;
+  addressGeocodingError: string | null;
   roleId:       string | null;
   roleName:     string | null;
   sectorId:     string | null;
@@ -107,6 +173,12 @@ export type PersonnelDetail = {
   lastName:     string;
   email:        string;
   phone:        string | null;
+  addressStreet:     string | null;
+  addressPostalCode: string | null;
+  addressCity:       string | null;
+  addressCountry:    string;
+  addressGeocodingStatus: string;
+  addressGeocodingError: string | null;
   roleId:       string | null;
   roleName:     string | null;
   sectorId:     string | null;
@@ -131,6 +203,10 @@ export type PersonnelFormInput = {
   lastName:     string;
   email:        string;
   phone?:       string;
+  addressStreet?:     string;
+  addressPostalCode?: string;
+  addressCity?:       string;
+  addressCountry?:    string;
   roleId?:      string;
   sectorId?:    string;
   region?:      string;
@@ -306,6 +382,12 @@ export async function listPersonnel(params: {
         lastName:           personnelTable.lastName,
         email:              personnelTable.email,
         phone:              personnelTable.phone,
+        addressStreet:      personnelTable.addressStreet,
+        addressPostalCode:  personnelTable.addressPostalCode,
+        addressCity:        personnelTable.addressCity,
+        addressCountry:     personnelTable.addressCountry,
+        addressGeocodingStatus: personnelTable.addressGeocodingStatus,
+        addressGeocodingError:  personnelTable.addressGeocodingError,
         roleId:             personnelTable.roleId,
         roleName:           rolesTable.name,
         sectorId:           personnelTable.sectorId,
@@ -373,6 +455,12 @@ export async function getPersonnel(id: string): Promise<PersonnelDetail | null> 
       lastName:           personnelTable.lastName,
       email:              personnelTable.email,
       phone:              personnelTable.phone,
+      addressStreet:      personnelTable.addressStreet,
+      addressPostalCode:  personnelTable.addressPostalCode,
+      addressCity:        personnelTable.addressCity,
+      addressCountry:     personnelTable.addressCountry,
+      addressGeocodingStatus: personnelTable.addressGeocodingStatus,
+      addressGeocodingError:  personnelTable.addressGeocodingError,
       roleId:             personnelTable.roleId,
       roleName:           rolesTable.name,
       sectorId:           personnelTable.sectorId,
@@ -641,6 +729,10 @@ export async function createPersonnel(
     lastName:           data.lastName.trim(),
     email:              data.email.trim().toLowerCase(),
     phone:              data.phone?.trim()  || null,
+    addressStreet:      normalizeOptionalText(data.addressStreet, 200),
+    addressPostalCode:  normalizeOptionalText(data.addressPostalCode, 20),
+    addressCity:        normalizeOptionalText(data.addressCity, 120),
+    addressCountry:     normalizeOptionalText(data.addressCountry, 80) ?? "Nederland",
     roleId:             data.roleId         || null,
     sectorId:           data.sectorId       || null,
     region:             data.region?.trim() || null,
@@ -671,9 +763,16 @@ export async function createPersonnel(
     if (parsedVehicleType && !vehicleType) {
       return { success: false, message: "Ongeldig vervoerstype." };
     }
+    const addressGeocodePatch = await buildPersonnelAddressGeocodePatch({
+      addressStreet: payload.addressStreet,
+      addressPostalCode: payload.addressPostalCode,
+      addressCity: payload.addressCity,
+      addressCountry: payload.addressCountry,
+    });
     const insertData = {
       ...parsedInsertData,
       ...(vehicleType ? { vehicleType } : {}),
+      ...addressGeocodePatch,
       // data.certificates is already CertificateEntry[] — preserve expires_at values
       certificates: data.certificates as unknown as { name: string; expires_at?: string }[],
       contractInfo: (parsed.data.contractInfo ?? null) as ContractInfo | null,
@@ -756,6 +855,10 @@ export async function updatePersonnel(
     lastName:           data.lastName.trim(),
     email:              data.email.trim().toLowerCase(),
     phone:              data.phone?.trim()  || null,
+    addressStreet:      normalizeOptionalText(data.addressStreet, 200),
+    addressPostalCode:  normalizeOptionalText(data.addressPostalCode, 20),
+    addressCity:        normalizeOptionalText(data.addressCity, 120),
+    addressCountry:     normalizeOptionalText(data.addressCountry, 80) ?? "Nederland",
     roleId:             data.roleId         || null,
     sectorId:           data.sectorId       || null,
     region:             data.region?.trim() || null,
@@ -786,9 +889,16 @@ export async function updatePersonnel(
     if (parsedVehicleType && !vehicleType) {
       return { success: false, message: "Ongeldig vervoerstype." };
     }
+    const addressGeocodePatch = await buildPersonnelAddressGeocodePatch({
+      addressStreet: payload.addressStreet,
+      addressPostalCode: payload.addressPostalCode,
+      addressCity: payload.addressCity,
+      addressCountry: payload.addressCountry,
+    });
     const updateData = {
       ...parsedUpdateData,
       ...(vehicleType ? { vehicleType } : {}),
+      ...addressGeocodePatch,
       // data.certificates is already CertificateEntry[] — preserve expires_at values
       certificates: data.certificates as unknown as { name: string; expires_at?: string }[],
       contractInfo: (parsed.data.contractInfo ?? null) as ContractInfo | null,
@@ -809,6 +919,12 @@ export async function updatePersonnel(
 
     revalidatePath("/personnel");
     revalidatePath(`/personnel/${id}`);
+    await safeRefreshPlanningRoutesForPersonnel({
+      tenantId,
+      personnelId: id,
+      reason: "personnel_home_address_updated",
+      source: "backoffice",
+    });
     return { success: true };
   } catch (err) {
     if (isUniqueViolation(err)) {

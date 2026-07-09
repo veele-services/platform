@@ -102,3 +102,68 @@ export async function safeRefreshPlanningRoutesForAssignment(input: Parameters<t
     });
   }
 }
+
+export async function refreshPlanningRoutesForPersonnel(input: {
+  tenantId: string;
+  personnelId: string;
+  reason: PlanningRouteRefreshReason;
+  source?: "backoffice" | "personnel-pwa" | "system";
+  fromDate?: string;
+}): Promise<void> {
+  const fromDate = input.fromDate ?? new Date().toISOString().slice(0, 10);
+  const rows = await db
+    .select({ scheduledDate: assignmentsTable.scheduledDate })
+    .from(assignmentPersonnelTable)
+    .innerJoin(
+      assignmentsTable,
+      and(
+        eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id),
+        eq(assignmentsTable.tenantId, input.tenantId),
+      ),
+    )
+    .where(
+      and(
+        eq(assignmentPersonnelTable.personnelId, input.personnelId),
+        eq(assignmentPersonnelTable.status, "assigned"),
+        eq(assignmentsTable.isActive, true),
+      ),
+    );
+
+  const scheduledDates = dateKeys(
+    rows
+      .map((row) => row.scheduledDate)
+      .filter((scheduledDate) => !scheduledDate || scheduledDate >= fromDate),
+  );
+
+  let recalculated = false;
+  for (const scheduledDate of scheduledDates) {
+    await recalculatePlanningRouteContexts({
+      tenantId: input.tenantId,
+      scheduledDate,
+      personnelId: input.personnelId,
+    });
+    recalculated = true;
+  }
+
+  await emitPlanningRouteRefreshEvent({
+    tenantId: input.tenantId,
+    assignmentId: null,
+    reason: input.reason,
+    scheduledDates,
+    personnelIds: [input.personnelId],
+    recalculated,
+    source: input.source ?? "system",
+  });
+}
+
+export async function safeRefreshPlanningRoutesForPersonnel(input: Parameters<typeof refreshPlanningRoutesForPersonnel>[0]): Promise<void> {
+  try {
+    await refreshPlanningRoutesForPersonnel(input);
+  } catch (error) {
+    console.error("planning personnel route refresh failed", {
+      personnelId: input.personnelId,
+      reason: input.reason,
+      error,
+    });
+  }
+}

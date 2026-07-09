@@ -6,6 +6,7 @@ import {
   timestamp,
   jsonb,
   text,
+  numeric,
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
@@ -52,6 +53,13 @@ export const personnelTable = pgTable("personnel", {
   addressPostalCode: varchar("address_postal_code", { length: 20 }),
   addressCity:       varchar("address_city", { length: 120 }),
   addressCountry:    varchar("address_country", { length: 80 }).notNull().default("Nederland"),
+  addressLatitude:   numeric("address_latitude", { precision: 9, scale: 6 }),
+  addressLongitude:  numeric("address_longitude", { precision: 9, scale: 6 }),
+  addressGeocodedAt: timestamp("address_geocoded_at", { withTimezone: true }),
+  addressGeocodingProvider: varchar("address_geocoding_provider", { length: 40 }),
+  addressGeocodingStatus:   varchar("address_geocoding_status", { length: 30 }).notNull().default("pending"),
+  addressGeocodingConfidence: numeric("address_geocoding_confidence", { precision: 5, scale: 2 }),
+  addressGeocodingError:      text("address_geocoding_error"),
   avatarUrl:         text("avatar_url"),
   avatarPath:        text("avatar_path"),
 
