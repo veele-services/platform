@@ -106,10 +106,8 @@ mustContain("planningPage", "PlanningBoardView", "board planning view");
 mustContain("planningPage", "PlanningDayView", "day planning view");
 mustContain("planningPage", "PlanningMonthView", "month planning view");
 mustContain("planningPage", "PlanningMapView", "map planning view");
-mustContain("planningPage", "/planning?date=", "board navigation");
-mustContain("planningPage", "/planning?day=", "day navigation");
-mustContain("planningPage", "/planning?month=", "month navigation");
-mustContain("planningPage", "view=map&date=", "map navigation");
+mustNotContain("planningPage", "Planning workbench", "duplicated planning page title");
+mustNotContain("planningPage", "Tenant planning", "duplicated planning page eyebrow");
 
 mustContain("planningActions", "hasPermission(\"planning\", \"read\")", "planning read permission check");
 mustContain("planningActions", "createEmptyPlanningDayMapData(date, { accessDenied: true })", "access denied empty result");

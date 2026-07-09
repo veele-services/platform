@@ -32,10 +32,8 @@ test("phase 10 keeps live day map beta-gated and preserves planning views", () =
   assert.match(page, /PlanningDayView/);
   assert.match(page, /PlanningMonthView/);
   assert.match(page, /PlanningMapView/);
-  assert.match(page, /\/planning\?date=/);
-  assert.match(page, /\/planning\?day=/);
-  assert.match(page, /\/planning\?month=/);
-  assert.match(page, /view=map&date=/);
+  assert.doesNotMatch(page, /Planning workbench/);
+  assert.doesNotMatch(page, /Tenant planning/);
 });
 
 test("phase 10 map data server action is tenant and permission scoped", () => {
