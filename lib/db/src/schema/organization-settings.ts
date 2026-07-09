@@ -31,6 +31,27 @@ export const organizationSettingsTable = pgTable("organization_settings", {
   planningTimeSlotMinutes: integer("planning_time_slot_minutes")
     .notNull()
     .default(90),
+  routeProvider: varchar("route_provider", { length: 40 })
+    .notNull()
+    .default("google"),
+  routeBufferMinutesCar: integer("route_buffer_minutes_car")
+    .notNull()
+    .default(10),
+  routeBufferMinutesBicycle: integer("route_buffer_minutes_bicycle")
+    .notNull()
+    .default(5),
+  routeBufferMinutesWalking: integer("route_buffer_minutes_walking")
+    .notNull()
+    .default(5),
+  routeBufferMinutesMopedOrScooter: integer("route_buffer_minutes_moped_or_scooter")
+    .notNull()
+    .default(8),
+  routeBufferMinutesPublicTransport: integer("route_buffer_minutes_public_transport")
+    .notNull()
+    .default(15),
+  routeCacheTtlHours: integer("route_cache_ttl_hours")
+    .notNull()
+    .default(24),
   emailAfzender: varchar("email_afzender", { length: 200 }),
   smtpEnabled: boolean("smtp_enabled").notNull().default(false),
   smtpHost: varchar("smtp_host", { length: 255 }),
@@ -121,6 +142,13 @@ export const updateOrganizationSettingsSchema = createInsertSchema(
       .default(60),
     planningWorkdayStart: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/).optional().default("08:00"),
     planningTimeSlotMinutes: z.number().int().min(15).max(240).optional().default(90),
+    routeProvider: z.enum(["google"]).optional(),
+    routeBufferMinutesCar: z.number().int().min(0).max(240).optional(),
+    routeBufferMinutesBicycle: z.number().int().min(0).max(240).optional(),
+    routeBufferMinutesWalking: z.number().int().min(0).max(240).optional(),
+    routeBufferMinutesMopedOrScooter: z.number().int().min(0).max(240).optional(),
+    routeBufferMinutesPublicTransport: z.number().int().min(0).max(240).optional(),
+    routeCacheTtlHours: z.number().int().min(1).max(720).optional(),
     emailAfzender: z.string().max(200).nullable().optional(),
     smtpEnabled: z.boolean().optional(),
     smtpHost: z.string().max(255).nullable().optional(),

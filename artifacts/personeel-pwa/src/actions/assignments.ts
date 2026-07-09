@@ -9,6 +9,7 @@ import {
   objectsTable,
 } from "@workspace/db";
 import { emitAssignmentWorkflowEvent } from "@workspace/db/workflow-events";
+import { safelyInvalidateAssignmentRouteContexts } from "@workspace/db/planning-realtime";
 import { and, eq, isNull } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
@@ -385,6 +386,11 @@ async function notifyAssignmentWorkflow(input: {
   }
 }
 
+const ROUTE_REFRESH_STATUS_REASONS = {
+  en_route: "status_en_route",
+  in_progress: "status_in_progress",
+} as const;
+
 export async function setAssignmentStatus(
   assignmentId: string,
   newStatus: string,
@@ -484,6 +490,22 @@ export async function setAssignmentStatus(
       assignmentId,
       actorUserId: user.id,
       audience: "management",
+    });
+  }
+
+  const routeRefreshReason =
+    ROUTE_REFRESH_STATUS_REASONS[
+      newStatus as keyof typeof ROUTE_REFRESH_STATUS_REASONS
+    ];
+  if (routeRefreshReason) {
+    await safelyInvalidateAssignmentRouteContexts({
+      tenantId: current.tenantId,
+      assignmentId,
+      reason: routeRefreshReason,
+      status: newStatus,
+      previousStatus: currentStatus,
+      personnelIds: [personnel.id],
+      source: "personnel-pwa",
     });
   }
 
@@ -603,6 +625,16 @@ export async function completeAssignment(
     audience: "mixed",
   });
 
+  await safelyInvalidateAssignmentRouteContexts({
+    tenantId: current.tenantId,
+    assignmentId,
+    reason: "status_completed",
+    status: "completed",
+    previousStatus: current.status,
+    personnelIds: [personnel.id],
+    source: "personnel-pwa",
+  });
+
   revalidateAssignmentPaths(assignmentId);
   return { success: true };
 }
@@ -657,6 +689,16 @@ export async function notCompleteAssignment(
     assignmentId,
     actorUserId: user.id,
     audience: "management",
+  });
+
+  await safelyInvalidateAssignmentRouteContexts({
+    tenantId: current.tenantId,
+    assignmentId,
+    reason: "status_not_completed",
+    status: "not_completed",
+    previousStatus: current.status,
+    personnelIds: [personnel.id],
+    source: "personnel-pwa",
   });
 
   revalidateAssignmentPaths(assignmentId);

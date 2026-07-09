@@ -10,6 +10,7 @@ import {
   assignmentTasksTable,
   taskCodesTable,
   assignmentPersonnelTable,
+  assignmentRouteContextsTable,
   assignmentsTable,
   auditLogTable,
   assignmentCandidatesTable,
@@ -34,6 +35,7 @@ import {
   ne,
   or,
   sql,
+  type SQL,
 } from "drizzle-orm";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
@@ -46,6 +48,14 @@ import {
 import type { ActionResult } from "./customers";
 import { emitAssignmentWorkflowEvent } from "@workspace/db/workflow-events";
 import { triggerNotificationWorker } from "@/lib/notification-worker";
+import {
+  buildPlanningDayMapDataFromRows,
+  createEmptyPlanningDayMapData,
+  type PlanningDayMapData,
+  type PlanningDayMapFilters,
+  type PlanningDayMapRow,
+} from "@/lib/planning/map-data";
+import { safeRefreshPlanningRoutesForAssignment } from "@/lib/planning/route-refresh";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1235,6 +1245,122 @@ export async function getPlanningBoardData(
   };
 }
 
+export async function getPlanningDayMapData(
+  filters: PlanningDayMapFilters = {},
+): Promise<PlanningDayMapData> {
+  const date =
+    filters.date && isDateKey(filters.date) ? filters.date : todayDateKey();
+  const canRead = await hasPermission("planning", "read");
+  if (!canRead) {
+    return createEmptyPlanningDayMapData(date, { accessDenied: true });
+  }
+
+  const tenantId = await requireCurrentTenantId();
+  const conditions: SQL[] = [
+    eq(assignmentsTable.tenantId, tenantId),
+    eq(assignmentsTable.isActive, true),
+    eq(assignmentsTable.scheduledDate, date),
+    eq(assignmentPersonnelTable.status, "assigned"),
+  ];
+
+  if (filters.personnelId) {
+    conditions.push(eq(assignmentPersonnelTable.personnelId, filters.personnelId));
+  }
+
+  if (filters.status && ASSIGNMENT_STATUSES.includes(filters.status)) {
+    conditions.push(eq(assignmentsTable.status, filters.status));
+  }
+
+  const rows = await db
+    .select({
+      assignmentId: assignmentsTable.id,
+      code: assignmentsTable.code,
+      title: assignmentsTable.title,
+      status: assignmentsTable.status,
+      priority: assignmentsTable.priority,
+      scheduledDate: assignmentsTable.scheduledDate,
+      scheduledStart: assignmentsTable.scheduledStart,
+      scheduledEnd: assignmentsTable.scheduledEnd,
+      customerId: assignmentsTable.customerId,
+      customerName: customersTable.name,
+      objectId: assignmentsTable.objectId,
+      objectName: objectsTable.name,
+      requiredRegion: assignmentsTable.requiredRegion,
+      objectLat: objectsTable.latitude,
+      objectLng: objectsTable.longitude,
+      customerLat: customersTable.latitude,
+      customerLng: customersTable.longitude,
+      personnelId: assignmentPersonnelTable.personnelId,
+      personnelFirstName: personnelTable.firstName,
+      personnelLastName: personnelTable.lastName,
+      personnelRegion: personnelTable.region,
+      personnelVehicleType: personnelTable.vehicleType,
+      routeContextId: assignmentRouteContextsTable.id,
+      previousAssignmentId: assignmentRouteContextsTable.previousAssignmentId,
+      sequenceIndex: assignmentRouteContextsTable.sequenceIndex,
+      originLat: assignmentRouteContextsTable.originLat,
+      originLng: assignmentRouteContextsTable.originLng,
+      destinationLat: assignmentRouteContextsTable.destinationLat,
+      destinationLng: assignmentRouteContextsTable.destinationLng,
+      travelDurationSeconds: assignmentRouteContextsTable.travelDurationSeconds,
+      travelDistanceMeters: assignmentRouteContextsTable.travelDistanceMeters,
+      bufferMinutes: assignmentRouteContextsTable.bufferMinutes,
+      computedEarliestStart: assignmentRouteContextsTable.computedEarliestStart,
+      customerWindowStart: assignmentRouteContextsTable.customerWindowStart,
+      customerWindowEnd: assignmentRouteContextsTable.customerWindowEnd,
+      snapStatus: assignmentRouteContextsTable.snapStatus,
+      snapSuggestedStart: assignmentRouteContextsTable.snapSuggestedStart,
+      snapSuggestedEnd: assignmentRouteContextsTable.snapSuggestedEnd,
+      warningCode: assignmentRouteContextsTable.warningCode,
+      warningMessage: assignmentRouteContextsTable.warningMessage,
+    })
+    .from(assignmentsTable)
+    .innerJoin(
+      assignmentPersonnelTable,
+      eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id),
+    )
+    .innerJoin(
+      personnelTable,
+      and(
+        eq(assignmentPersonnelTable.personnelId, personnelTable.id),
+        eq(personnelTable.tenantId, tenantId),
+        eq(personnelTable.isActive, true),
+      ),
+    )
+    .leftJoin(
+      customersTable,
+      and(
+        eq(assignmentsTable.customerId, customersTable.id),
+        eq(customersTable.tenantId, tenantId),
+      ),
+    )
+    .leftJoin(
+      objectsTable,
+      and(
+        eq(assignmentsTable.objectId, objectsTable.id),
+        eq(objectsTable.tenantId, tenantId),
+      ),
+    )
+    .leftJoin(
+      assignmentRouteContextsTable,
+      and(
+        eq(assignmentRouteContextsTable.tenantId, tenantId),
+        eq(assignmentRouteContextsTable.assignmentId, assignmentsTable.id),
+        eq(
+          assignmentRouteContextsTable.personnelId,
+          assignmentPersonnelTable.personnelId,
+        ),
+        eq(assignmentRouteContextsTable.scheduledDate, date),
+      ),
+    )
+    .where(and(...conditions));
+
+  return buildPlanningDayMapDataFromRows(rows as PlanningDayMapRow[], {
+    date,
+    filters,
+  });
+}
+
 /**
  * Returns the union of task-code requirements for the assignment,
  * all active personnel (with role and availability), and which are already assigned.
@@ -1647,6 +1773,7 @@ export async function scheduleAssignmentOnBoard(
           title: assignmentsTable.title,
           status: assignmentsTable.status,
           priority: assignmentsTable.priority,
+          scheduledDate: assignmentsTable.scheduledDate,
           customerId: assignmentsTable.customerId,
           customerName: customersTable.name,
           customerSectorId: customersTable.sectorId,
@@ -2168,6 +2295,16 @@ export async function scheduleAssignmentOnBoard(
   }
 
   warnings.push(...await rebalancePersonnelDaySchedule({ tenantId, personnelId, changedAssignmentId: assignmentId, date }));
+
+  await safeRefreshPlanningRoutesForAssignment({
+    tenantId,
+    assignmentId,
+    reason: "planning_board_schedule",
+    previousScheduledDate: assignment.scheduledDate,
+    status: nextStatus,
+    personnelIds: [personnelId, sourcePersonnelId].filter((value): value is string => Boolean(value)),
+    source: "backoffice",
+  });
 
   revalidatePath("/planning");
   revalidatePath(`/assignments/${assignmentId}`);

@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { MoreHorizontal, Pencil, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
+import { Loader2, MapPin, MoreHorizontal, Pencil, ToggleLeft, ToggleRight, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem,
@@ -17,7 +17,14 @@ import {
   Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription,
 } from "@/components/ui/sheet";
 import { ObjectForm } from "@/components/objects/ObjectForm";
-import { setObjectStatus, deleteObject, type ObjectDetail, type CustomerOption } from "@/app/actions/objects";
+import {
+  deleteObject,
+  geocodeObjectLocation,
+  setObjectStatus,
+  type CustomerOption,
+  type ObjectDetail,
+} from "@/app/actions/objects";
+import { GeocodeStatusSummary } from "@/components/geocoding/GeocodeStatus";
 import type { SectorOption } from "@/app/actions/customers";
 
 interface Props {
@@ -30,6 +37,7 @@ export function ObjectDetailActions({ object: obj, sectors, customers }: Props) 
   const router = useRouter();
   const [sheetOpen,  setSheetOpen]    = useState(false);
   const [deleteOpen, setDeleteOpen]   = useState(false);
+  const [geocodeError, setGeocodeError] = useState<string | null>(null);
   const [isPending,  startTransition] = useTransition();
 
   function handleToggleStatus() {
@@ -56,35 +64,67 @@ export function ObjectDetailActions({ object: obj, sectors, customers }: Props) 
     });
   }
 
+  function handleGeocode() {
+    setGeocodeError(null);
+    startTransition(async () => {
+      const result = await geocodeObjectLocation(obj.id);
+      if (result.success) {
+        toast.success(result.data?.message ?? "Objectlocatie bijgewerkt");
+      } else {
+        setGeocodeError(result.message);
+        toast.error(result.message);
+      }
+    });
+  }
+
   return (
     <>
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button variant="outline" size="sm">
-            <MoreHorizontal className="h-4 w-4" />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem onSelect={() => setSheetOpen(true)}>
-            <Pencil className="mr-2 h-4 w-4" /> Bewerken
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={handleToggleStatus} disabled={isPending}>
-            {obj.isActive ? (
-              <><ToggleLeft className="mr-2 h-4 w-4" /> Deactiveren</>
-            ) : (
-              <><ToggleRight className="mr-2 h-4 w-4" /> Activeren</>
-            )}
-          </DropdownMenuItem>
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            onSelect={() => setDeleteOpen(true)}
-            className="text-destructive focus:text-destructive"
-          >
-            <Trash2 className="mr-2 h-4 w-4" /> Verwijderen
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
+      <div className="space-y-3">
+        <GeocodeStatusSummary
+          status={obj.geocodingStatus}
+          latitude={obj.latitude}
+          longitude={obj.longitude}
+          geocodedAt={obj.geocodedAt}
+          provider={obj.geocodingProvider}
+          confidence={obj.geocodingConfidence}
+          error={geocodeError ?? obj.geocodingError}
+          compact
+        />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              {isPending ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <MoreHorizontal className="h-4 w-4" />
+              )}
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onSelect={() => setSheetOpen(true)}>
+              <Pencil className="mr-2 h-4 w-4" /> Bewerken
+            </DropdownMenuItem>
+            <DropdownMenuItem onSelect={handleGeocode} disabled={isPending}>
+              <MapPin className="mr-2 h-4 w-4" /> Locatie opnieuw geocoden
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onSelect={handleToggleStatus} disabled={isPending}>
+              {obj.isActive ? (
+                <><ToggleLeft className="mr-2 h-4 w-4" /> Deactiveren</>
+              ) : (
+                <><ToggleRight className="mr-2 h-4 w-4" /> Activeren</>
+              )}
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              onSelect={() => setDeleteOpen(true)}
+              className="text-destructive focus:text-destructive"
+            >
+              <Trash2 className="mr-2 h-4 w-4" /> Verwijderen
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
 
       {/* Edit sheet */}
       <Sheet open={sheetOpen} onOpenChange={setSheetOpen}>

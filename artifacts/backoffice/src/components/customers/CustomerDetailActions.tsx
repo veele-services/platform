@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Loader2, Mail, Pencil } from "lucide-react";
+import { Loader2, Mail, MapPin, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -22,7 +22,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { CustomerForm } from "@/components/customers/CustomerForm";
-import { inviteCustomerPortal } from "@/app/actions/customers";
+import { geocodeCustomerLocation, inviteCustomerPortal } from "@/app/actions/customers";
+import { GeocodeStatusSummary } from "@/components/geocoding/GeocodeStatus";
 import type {
   CustomerDetail,
   SectorOption,
@@ -48,6 +49,7 @@ export function CustomerDetailActions({
   const [sheetOpen, setSheetOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteError, setInviteError] = useState<string | null>(null);
+  const [geocodeError, setGeocodeError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const hasPortalEmail = Boolean(customer.contactEmail?.trim());
@@ -65,28 +67,67 @@ export function CustomerDetailActions({
     });
   }
 
+  function handleGeocode() {
+    setGeocodeError(null);
+    startTransition(async () => {
+      const result = await geocodeCustomerLocation(customer.id);
+      if (result.success) {
+        toast.success(result.data?.message ?? "Klantlocatie bijgewerkt");
+      } else {
+        setGeocodeError(result.message);
+        toast.error(result.message);
+      }
+    });
+  }
+
   return (
     <>
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          size="sm"
-          variant="outline"
-          onClick={() => setInviteOpen(true)}
-          disabled={isPending || !hasPortalEmail}
-          title={hasPortalEmail ? "Klantportaal-uitnodiging sturen" : "Contact-e-mailadres ontbreekt"}
-        >
-          {isPending ? (
-            <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
-          ) : (
-            <Mail className="mr-1.5 h-4 w-4" />
-          )}
-          Portaal uitnodigen
-        </Button>
+      <div className="space-y-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleGeocode}
+            disabled={isPending}
+          >
+            {isPending ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <MapPin className="mr-1.5 h-4 w-4" />
+            )}
+            Opnieuw geocoden
+          </Button>
 
-        <Button size="sm" onClick={() => setSheetOpen(true)}>
-          <Pencil className="mr-1.5 h-4 w-4" />
-          Bewerken
-        </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={() => setInviteOpen(true)}
+            disabled={isPending || !hasPortalEmail}
+            title={hasPortalEmail ? "Klantportaal-uitnodiging sturen" : "Contact-e-mailadres ontbreekt"}
+          >
+            {isPending ? (
+              <Loader2 className="mr-1.5 h-4 w-4 animate-spin" />
+            ) : (
+              <Mail className="mr-1.5 h-4 w-4" />
+            )}
+            Portaal uitnodigen
+          </Button>
+
+          <Button size="sm" onClick={() => setSheetOpen(true)}>
+            <Pencil className="mr-1.5 h-4 w-4" />
+            Bewerken
+          </Button>
+        </div>
+        <GeocodeStatusSummary
+          status={customer.geocodingStatus}
+          latitude={customer.latitude}
+          longitude={customer.longitude}
+          geocodedAt={customer.geocodedAt}
+          provider={customer.geocodingProvider}
+          confidence={customer.geocodingConfidence}
+          error={geocodeError ?? customer.geocodingError}
+          compact
+        />
       </div>
 
       <AlertDialog open={inviteOpen} onOpenChange={setInviteOpen}>

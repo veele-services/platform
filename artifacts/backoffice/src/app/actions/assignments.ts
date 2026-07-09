@@ -8,6 +8,7 @@ import {
   customersTable,
   objectsTable,
   personnelTable,
+  assignmentRouteContextsTable,
   assignmentCandidatesTable,
   assignmentInterestResponsesTable,
   assignmentInterestRoundsTable,
@@ -55,6 +56,7 @@ import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { triggerNotificationWorker } from "@/lib/notification-worker";
+import { safeRefreshPlanningRoutesForAssignment } from "@/lib/planning/route-refresh";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, AssignmentStatus, AssignmentPriority };
@@ -83,6 +85,18 @@ async function notifyAssignmentWorkflow(input: Parameters<typeof emitAssignmentW
     });
   }
 }
+
+const ROUTE_REFRESH_STATUS_REASONS: Partial<
+  Record<
+    AssignmentStatus,
+    Parameters<typeof safeRefreshPlanningRoutesForAssignment>[0]["reason"]
+  >
+> = {
+  en_route: "status_en_route",
+  in_progress: "status_in_progress",
+  completed: "status_completed",
+  not_completed: "status_not_completed",
+};
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -2344,6 +2358,20 @@ export type RescheduleResult =
   | { success: true; warning?: string }
   | { success: false; message: string };
 
+export type ApplyRouteTimeSuggestionResult =
+  | {
+      success: true;
+      warning?: string;
+      applied: {
+        routeContextId: string;
+        assignmentId: string;
+        personnelId: string;
+        from: { start: string | null; end: string | null };
+        to: { start: string; end: string | null };
+      };
+    }
+  | { success: false; message: string };
+
 /**
  * Move an assignment to a different date (drag-to-reschedule in week planning).
  *
@@ -2379,6 +2407,7 @@ export async function rescheduleAssignment(
   const [existing] = await db
     .select({
       id: assignmentsTable.id,
+      tenantId: assignmentsTable.tenantId,
       status: assignmentsTable.status,
       scheduledDate: assignmentsTable.scheduledDate,
       scheduledStart: assignmentsTable.scheduledStart,
@@ -2592,6 +2621,16 @@ export async function rescheduleAssignment(
     });
   }
 
+  await safeRefreshPlanningRoutesForAssignment({
+    tenantId: existing.tenantId,
+    assignmentId: id,
+    reason: "assignment_rescheduled",
+    previousScheduledDate: existing.scheduledDate,
+    status: existing.status,
+    personnelIds: assignedLinks.map((link) => link.personnelId),
+    source: "backoffice",
+  });
+
   revalidatePath("/planning");
 
   return warningParts.length > 0
@@ -2637,6 +2676,7 @@ export async function reshiftAssignment(
   const [existing] = await db
     .select({
       id: assignmentsTable.id,
+      tenantId: assignmentsTable.tenantId,
       status: assignmentsTable.status,
       scheduledDate: assignmentsTable.scheduledDate,
       scheduledStart: assignmentsTable.scheduledStart,
@@ -2853,11 +2893,155 @@ export async function reshiftAssignment(
     });
   }
 
+  await safeRefreshPlanningRoutesForAssignment({
+    tenantId: existing.tenantId,
+    assignmentId: id,
+    reason: "assignment_reshifted",
+    status: existing.status,
+    personnelIds: assignedLinks.map((link) => link.personnelId),
+    source: "backoffice",
+  });
+
   revalidatePath("/planning");
 
   return warningParts.length > 0
     ? { success: true, warning: `Let op: ${warningParts.join(" ")}` }
     : { success: true };
+}
+
+export async function applyRouteTimeSuggestion(input: {
+  routeContextId: string;
+  assignmentId: string;
+}): Promise<ApplyRouteTimeSuggestionResult> {
+  await requirePermission("planning", "write");
+
+  const routeContextId = input.routeContextId.trim();
+  const assignmentId = input.assignmentId.trim();
+  const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  if (!UUID_RE.test(routeContextId) || !UUID_RE.test(assignmentId)) {
+    return { success: false, message: "Ongeldig routevoorstel." };
+  }
+
+  const tenantId = await requireCurrentTenantId();
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [context] = await db
+    .select({
+      routeContextId: assignmentRouteContextsTable.id,
+      assignmentId: assignmentRouteContextsTable.assignmentId,
+      personnelId: assignmentRouteContextsTable.personnelId,
+      scheduledDate: assignmentRouteContextsTable.scheduledDate,
+      snapStatus: assignmentRouteContextsTable.snapStatus,
+      snapSuggestedStart: assignmentRouteContextsTable.snapSuggestedStart,
+      snapSuggestedEnd: assignmentRouteContextsTable.snapSuggestedEnd,
+      warningCode: assignmentRouteContextsTable.warningCode,
+      warningMessage: assignmentRouteContextsTable.warningMessage,
+      currentStart: assignmentsTable.scheduledStart,
+      currentEnd: assignmentsTable.scheduledEnd,
+      currentStatus: assignmentsTable.status,
+    })
+    .from(assignmentRouteContextsTable)
+    .innerJoin(
+      assignmentsTable,
+      and(
+        eq(assignmentsTable.id, assignmentRouteContextsTable.assignmentId),
+        eq(assignmentsTable.tenantId, tenantId),
+        eq(assignmentsTable.isActive, true),
+      ),
+    )
+    .where(
+      and(
+        eq(assignmentRouteContextsTable.id, routeContextId),
+        eq(assignmentRouteContextsTable.tenantId, tenantId),
+        eq(assignmentRouteContextsTable.assignmentId, assignmentId),
+      ),
+    )
+    .limit(1);
+
+  if (!context) {
+    return { success: false, message: "Routevoorstel niet gevonden." };
+  }
+  if (!context.snapSuggestedStart) {
+    return { success: false, message: "Deze routecontext heeft geen toepasbaar tijdvoorstel." };
+  }
+  if (context.warningCode === "missing_location" || context.warningCode === "provider_error") {
+    return {
+      success: false,
+      message: context.warningMessage ?? "Dit routevoorstel kan nog niet worden toegepast.",
+    };
+  }
+
+  const to = {
+    start: context.snapSuggestedStart,
+    end: context.snapSuggestedEnd,
+  };
+  const from = {
+    start: context.currentStart,
+    end: context.currentEnd,
+  };
+
+  if (from.start === to.start && from.end === to.end) {
+    return {
+      success: true,
+      applied: {
+        routeContextId,
+        assignmentId,
+        personnelId: context.personnelId,
+        from,
+        to,
+      },
+    };
+  }
+
+  const result = await reshiftAssignment(assignmentId, to.start, to.end);
+  if (!result.success) return result;
+
+  await db.insert(auditLogTable).values({
+    tenantId,
+    userId: user.id,
+    action: "apply_route_time_suggestion",
+    resource: "assignments",
+    resourceId: assignmentId,
+    metadata: {
+      action: "apply_route_time_suggestion",
+      routeContextId,
+      personnelId: context.personnelId,
+      scheduledDate: context.scheduledDate,
+      snapStatus: context.snapStatus,
+      assignmentStatus: context.currentStatus,
+      from,
+      to,
+      warning: result.warning,
+    },
+  });
+
+  await safeRefreshPlanningRoutesForAssignment({
+    tenantId,
+    assignmentId,
+    reason: "route_time_suggestion_applied",
+    status: context.currentStatus as AssignmentStatus,
+    personnelIds: [context.personnelId],
+    source: "backoffice",
+  });
+
+  revalidatePath("/planning");
+  revalidatePath(`/assignments/${assignmentId}`);
+
+  return {
+    success: true,
+    warning: result.warning,
+    applied: {
+      routeContextId,
+      assignmentId,
+      personnelId: context.personnelId,
+      from,
+      to,
+    },
+  };
 }
 
 export async function getTaskCodeOptions(): Promise<TaskCodeOption[]> {
@@ -3069,6 +3253,18 @@ export async function setAssignmentStatus(
     metadata: { from: current.status, to: newStatus, title: current.title },
   });
 
+  const routeRefreshReason = ROUTE_REFRESH_STATUS_REASONS[newStatus];
+  if (routeRefreshReason) {
+    await safeRefreshPlanningRoutesForAssignment({
+      tenantId,
+      assignmentId: id,
+      reason: routeRefreshReason,
+      previousStatus: current.status,
+      status: newStatus,
+      source: "backoffice",
+    });
+  }
+
   revalidatePath("/assignments");
   revalidatePath(`/assignments/${id}`);
   return { success: true };
@@ -3154,6 +3350,7 @@ export async function assignPersonnel(
       .from(assignmentsTable)
       .where(eq(assignmentsTable.id, assignmentId))
       .limit(1);
+    let routeRefreshStatus = assignmentRow?.status ?? assignment.status;
 
     if (
       assignmentRow?.status === "plannable" &&
@@ -3176,6 +3373,7 @@ export async function assignPersonnel(
           trigger: "personnel_slots_filled",
         },
       });
+      routeRefreshStatus = "scheduled";
     }
 
     // ── Availability warning (non-blocking) ───────────────────────────────
@@ -3205,6 +3403,15 @@ export async function assignPersonnel(
     });
 
     await triggerNotificationWorker({ channels: ["push"], limit: 25 });
+
+    await safeRefreshPlanningRoutesForAssignment({
+      tenantId,
+      assignmentId,
+      reason: "assignment_assigned",
+      status: routeRefreshStatus,
+      personnelIds: [personnelId],
+      source: "backoffice",
+    });
 
     revalidatePath(`/assignments/${assignmentId}`);
     revalidatePath("/planning");
@@ -3281,6 +3488,7 @@ export async function removePersonnel(
   linkId: string,
 ): Promise<ActionResult> {
   await requirePermission("assignments", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -3305,7 +3513,15 @@ export async function removePersonnel(
     metadata: { linkId },
   });
 
+  await safeRefreshPlanningRoutesForAssignment({
+    tenantId,
+    assignmentId,
+    reason: "assignment_unassigned",
+    source: "backoffice",
+  });
+
   revalidatePath(`/assignments/${assignmentId}`);
+  revalidatePath("/planning");
   return { success: true };
 }
 

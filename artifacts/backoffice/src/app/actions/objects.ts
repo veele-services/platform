@@ -26,6 +26,11 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
+import {
+  geocodeAddress,
+  hasGeocodableAddress,
+  type GeocodeAddressInput,
+} from "@/lib/planning/geocoding";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult };
@@ -66,6 +71,13 @@ export type ObjectDetail = {
   address: string | null;
   city: string | null;
   postalCode: string | null;
+  latitude: string | null;
+  longitude: string | null;
+  geocodedAt: string | null;
+  geocodingProvider: string | null;
+  geocodingStatus: string;
+  geocodingConfidence: string | null;
+  geocodingError: string | null;
   description: string | null;
   contactName: string | null;
   contactFunction: string | null;
@@ -201,6 +213,41 @@ function toIso(value: Date | string | null | undefined): string {
 
 function toNullableDate(value: string | null | undefined): string | null {
   return value || null;
+}
+
+function normalizeLocationPart(value: string | null | undefined): string {
+  return (value ?? "").trim().toLowerCase();
+}
+
+function geocodingResetForAddress(input: GeocodeAddressInput) {
+  return {
+    latitude: null,
+    longitude: null,
+    geocodedAt: null,
+    geocodingProvider: null,
+    geocodingStatus: hasGeocodableAddress(input) ? "pending" : "not_required",
+    geocodingConfidence: null,
+    geocodingError: null,
+  };
+}
+
+function locationChanged(
+  existing: GeocodeAddressInput,
+  next: GeocodeAddressInput,
+): boolean {
+  return (
+    normalizeLocationPart(existing.address) !== normalizeLocationPart(next.address) ||
+    normalizeLocationPart(existing.postalCode) !== normalizeLocationPart(next.postalCode) ||
+    normalizeLocationPart(existing.city) !== normalizeLocationPart(next.city)
+  );
+}
+
+function coordinateString(value: number): string {
+  return value.toFixed(6);
+}
+
+function confidenceString(value: number): string {
+  return value.toFixed(2);
 }
 
 async function getObjectScope(objectId: string): Promise<{
@@ -399,6 +446,13 @@ export async function getObject(id: string): Promise<ObjectDetail | null> {
       address:              objectsTable.address,
       city:                 objectsTable.city,
       postalCode:           objectsTable.postalCode,
+      latitude:             objectsTable.latitude,
+      longitude:            objectsTable.longitude,
+      geocodedAt:           objectsTable.geocodedAt,
+      geocodingProvider:    objectsTable.geocodingProvider,
+      geocodingStatus:      objectsTable.geocodingStatus,
+      geocodingConfidence:  objectsTable.geocodingConfidence,
+      geocodingError:       objectsTable.geocodingError,
       description:          objectsTable.description,
       contactName:          objectsTable.contactName,
       contactFunction:      objectsTable.contactFunction,
@@ -428,6 +482,13 @@ export async function getObject(id: string): Promise<ObjectDetail | null> {
     ...r,
     requiredRoles:        (r.requiredRoles as string[])        ?? [],
     requiredCertificates: (r.requiredCertificates as string[]) ?? [],
+    latitude: r.latitude ?? null,
+    longitude: r.longitude ?? null,
+    geocodedAt: r.geocodedAt?.toISOString() ?? null,
+    geocodingProvider: r.geocodingProvider,
+    geocodingStatus: r.geocodingStatus ?? "pending",
+    geocodingConfidence: r.geocodingConfidence ?? null,
+    geocodingError: r.geocodingError,
     createdAt: r.createdAt.toISOString(),
     updatedAt: r.updatedAt.toISOString(),
   };
@@ -1132,9 +1193,10 @@ export async function createObject(
   }
 
   try {
+    const geocodingState = geocodingResetForAddress(payload);
     const [created] = await db
       .insert(objectsTable)
-      .values({ ...parsed.data, tenantId })
+      .values({ ...parsed.data, ...geocodingState, tenantId })
       .returning({ id: objectsTable.id });
 
     await db.insert(auditLogTable).values({
@@ -1142,7 +1204,7 @@ export async function createObject(
       action:     "create",
       resource:   "objects",
       resourceId: created!.id,
-      metadata:   { name: payload.name, customerId: payload.customerId },
+      metadata:   { name: payload.name, customerId: payload.customerId, geocodingStatus: geocodingState.geocodingStatus },
     });
 
     revalidatePath("/objects");
@@ -1182,9 +1244,27 @@ export async function updateObject(
   }
 
   try {
+    const [existing] = await db
+      .select({
+        customerId:  objectsTable.customerId,
+        address:     objectsTable.address,
+        postalCode:  objectsTable.postalCode,
+        city:        objectsTable.city,
+      })
+      .from(objectsTable)
+      .where(and(eq(objectsTable.id, id), eq(objectsTable.tenantId, tenantId)))
+      .limit(1);
+
+    if (!existing) return { success: false, message: "Object niet gevonden." };
+
+    const shouldResetGeocoding = locationChanged(existing, payload);
+    const geocodingState = shouldResetGeocoding
+      ? geocodingResetForAddress(payload)
+      : {};
+
     await db
       .update(objectsTable)
-      .set({ ...parsed.data, updatedAt: new Date() })
+      .set({ ...parsed.data, ...geocodingState, updatedAt: new Date() })
       .where(and(eq(objectsTable.id, id), eq(objectsTable.tenantId, tenantId)));
 
     await db.insert(auditLogTable).values({
@@ -1192,12 +1272,15 @@ export async function updateObject(
       action:     "update",
       resource:   "objects",
       resourceId: id,
-      metadata:   { name: payload.name },
+      metadata:   { name: payload.name, geocodingReset: shouldResetGeocoding },
     });
 
     revalidatePath("/objects");
     revalidatePath(`/objects/${id}`);
     revalidatePath(`/customers/${payload.customerId}`);
+    if (existing.customerId !== payload.customerId) {
+      revalidatePath(`/customers/${existing.customerId}`);
+    }
     return { success: true };
   } catch (err) {
     if (isUniqueViolation(err)) {
@@ -1205,6 +1288,128 @@ export async function updateObject(
     }
     return { success: false, message: "Object bijwerken mislukt." };
   }
+}
+
+export async function geocodeObjectLocation(
+  id: string,
+): Promise<ActionResult<{
+  status: string;
+  latitude: string | null;
+  longitude: string | null;
+  message: string;
+}>> {
+  await requirePermission("objects", "write");
+  const tenantId = await requireCurrentTenantId();
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [object] = await db
+    .select({
+      id:         objectsTable.id,
+      name:       objectsTable.name,
+      customerId: objectsTable.customerId,
+      address:    objectsTable.address,
+      postalCode: objectsTable.postalCode,
+      city:       objectsTable.city,
+    })
+    .from(objectsTable)
+    .where(and(eq(objectsTable.id, id), eq(objectsTable.tenantId, tenantId)))
+    .limit(1);
+
+  if (!object) return { success: false, message: "Object niet gevonden." };
+
+  const addressInput = { ...object, country: "NL" };
+  if (!hasGeocodableAddress(addressInput)) {
+    await db
+      .update(objectsTable)
+      .set({
+        ...geocodingResetForAddress(addressInput),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(objectsTable.id, id), eq(objectsTable.tenantId, tenantId)));
+
+    revalidatePath("/objects");
+    revalidatePath(`/objects/${id}`);
+    revalidatePath(`/customers/${object.customerId}`);
+    return {
+      success: false,
+      message: "Adresgegevens ontbreken. Vul straat, postcode of plaats in.",
+    };
+  }
+
+  const result = await geocodeAddress(addressInput);
+  if (!result.success) {
+    await db
+      .update(objectsTable)
+      .set({
+        geocodingProvider: result.provider,
+        geocodingStatus: "failed",
+        geocodingConfidence: null,
+        geocodingError: result.error,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(objectsTable.id, id), eq(objectsTable.tenantId, tenantId)));
+
+    await db.insert(auditLogTable).values({
+      tenantId,
+      userId:     user.id,
+      action:     "geocode_object_location_failed",
+      resource:   "objects",
+      resourceId: id,
+      metadata:   { name: object.name, error: result.error, retryable: result.retryable },
+    });
+
+    revalidatePath("/objects");
+    revalidatePath(`/objects/${id}`);
+    revalidatePath(`/customers/${object.customerId}`);
+    return { success: false, message: result.error };
+  }
+
+  const latitude = coordinateString(result.latitude);
+  const longitude = coordinateString(result.longitude);
+
+  await db
+    .update(objectsTable)
+    .set({
+      latitude,
+      longitude,
+      geocodedAt: new Date(),
+      geocodingProvider: result.provider,
+      geocodingStatus: "geocoded",
+      geocodingConfidence: confidenceString(result.confidence),
+      geocodingError: null,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(objectsTable.id, id), eq(objectsTable.tenantId, tenantId)));
+
+  await db.insert(auditLogTable).values({
+    tenantId,
+    userId:     user.id,
+    action:     "geocode_object_location",
+    resource:   "objects",
+    resourceId: id,
+    metadata:   {
+      name: object.name,
+      provider: result.provider,
+      label: result.label,
+      confidence: result.confidence,
+    },
+  });
+
+  revalidatePath("/objects");
+  revalidatePath(`/objects/${id}`);
+  revalidatePath(`/customers/${object.customerId}`);
+  return {
+    success: true,
+    data: {
+      status: "geocoded",
+      latitude,
+      longitude,
+      message: "Objectlocatie is bijgewerkt.",
+    },
+  };
 }
 
 export async function setObjectStatus(

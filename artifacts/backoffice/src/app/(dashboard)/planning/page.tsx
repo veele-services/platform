@@ -1,16 +1,21 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
 import Link from "next/link";
-import { CalendarDays, LayoutGrid, ListChecks } from "lucide-react";
+import { CalendarDays, LayoutGrid, ListChecks, Map } from "lucide-react";
 
 import {
   getAssignmentsForMonth,
   getCustomerOptions,
   getDayTimelineData,
 } from "@/app/actions/assignments";
-import { getPlanningBoardData, type PlanningBoardFilters } from "@/app/actions/planning";
+import {
+  getPlanningBoardData,
+  getPlanningDayMapData,
+  type PlanningBoardFilters,
+} from "@/app/actions/planning";
 import { PlanningBoardView } from "@/components/assignments/PlanningBoardView";
 import { PlanningDayView } from "@/components/assignments/PlanningDayView";
+import { PlanningMapView } from "@/components/assignments/PlanningMapView";
 import { PlanningMonthView } from "@/components/assignments/PlanningMonthView";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { ResolvedFeatureHelp } from "@/components/knowledgebase/ResolvedFeatureHelp";
@@ -22,6 +27,7 @@ import {
   TenantWorkbenchPanel,
 } from "@/components/tenant-ui";
 import { hasPermission } from "@/lib/auth/permissions";
+import { isPlanningDayMapEnabled } from "@/lib/planning/day-map-feature";
 
 export const metadata: Metadata = {
   title: "Planning",
@@ -77,6 +83,7 @@ interface Props {
     region?: string;
     priority?: string;
     status?: string;
+    view?: string;
   }>;
 }
 
@@ -95,7 +102,9 @@ export default async function PlanningPage({ searchParams }: Props) {
     region,
     priority,
     status,
+    view,
   } = await searchParams;
+  const mapEnabled = isPlanningDayMapEnabled();
 
   const [canWrite, customers] = await Promise.all([
     hasPermission("planning", "write"),
@@ -117,6 +126,7 @@ export default async function PlanningPage({ searchParams }: Props) {
           description="Sleep werkbonnen naar een tijdslot, bewaak conflicten en stuur de dagplanning vanuit een rustige workbench."
           currentLabel={formatDate(day)}
           date={day}
+          mapEnabled={mapEnabled}
           helpSlot={<ResolvedFeatureHelp featureKey="tenant.planning" moduleKey="planning" />}
         />
         <TenantConflictStrip
@@ -147,6 +157,7 @@ export default async function PlanningPage({ searchParams }: Props) {
           description="Gebruik de maandweergave om bezetting, drukte en conflicten per dag snel te scannen."
           currentLabel={formatMonth(month)}
           date={`${month}-01`}
+          mapEnabled={mapEnabled}
           helpSlot={<ResolvedFeatureHelp featureKey="tenant.planning" moduleKey="planning" />}
         />
         <TenantConflictStrip
@@ -165,6 +176,40 @@ export default async function PlanningPage({ searchParams }: Props) {
   }
 
   const boardDate = date && isValidDate(date) ? date : week && isValidDate(week) ? week : undefined;
+  if (mapEnabled && view === "map") {
+    const mapDate = boardDate ?? todayKey();
+    const mapData = await getPlanningDayMapData({
+      date: mapDate,
+      region: region === "all" ? null : region,
+      status: status as NonNullable<PlanningBoardFilters["statuses"]>[number],
+    });
+
+    return (
+      <TenantPageShell size="wide" className="max-w-[1800px]">
+        <PlanningHeader
+          mode="map"
+          title="Planningkaart"
+          description="Bekijk werkbonnen, routecontexten, ETA-waarschuwingen en ontbrekende locaties op de dagkaart."
+          currentLabel={formatDate(mapData.date)}
+          date={mapData.date}
+          mapEnabled={mapEnabled}
+          helpSlot={<ResolvedFeatureHelp featureKey="tenant.planning" moduleKey="planning" />}
+        />
+        <TenantConflictStrip
+          items={[
+            { label: "Markers", value: mapData.markers.length, description: "werkbonnen op kaartdata", tone: "info" },
+            { label: "Routes", value: mapData.personnelRoutes.length, description: "medewerkers met stops", tone: "success" },
+            { label: "Warnings", value: mapData.warnings.length, description: mapData.warnings.length > 0 ? "controle nodig" : "geen blokkades", tone: mapData.warnings.length > 0 ? "warning" : "success" },
+            { label: "Geen locatie", value: mapData.missingLocationCount, description: "object/klant coordinaten", tone: mapData.missingLocationCount > 0 ? "warning" : "neutral" },
+          ]}
+        />
+        <TenantWorkbenchPanel className="border-0 bg-transparent shadow-none">
+          <PlanningMapView data={mapData} canApplySuggestions={canWrite} />
+        </TenantWorkbenchPanel>
+      </TenantPageShell>
+    );
+  }
+
   const boardData = await getPlanningBoardData({
     date: boardDate,
     search,
@@ -191,6 +236,7 @@ export default async function PlanningPage({ searchParams }: Props) {
         description="Plan open werkbonnen met drag-and-drop, matchscores, detaildrawer en conflictbewaking."
         currentLabel={formatDate(boardData.date)}
         date={boardData.date}
+        mapEnabled={mapEnabled}
         helpSlot={<ResolvedFeatureHelp featureKey="tenant.planning" moduleKey="planning" />}
       />
       <TenantConflictStrip
@@ -214,13 +260,15 @@ function PlanningHeader({
   description,
   currentLabel,
   date,
+  mapEnabled,
   helpSlot,
 }: {
-  mode: "board" | "day" | "month";
+  mode: "board" | "day" | "month" | "map";
   title: string;
   description: string;
   currentLabel: string;
   date: string;
+  mapEnabled?: boolean;
   helpSlot?: ReactNode;
 }) {
   return (
@@ -255,6 +303,14 @@ function PlanningHeader({
               Maand
             </Link>
           </Button>
+          {mapEnabled && (
+            <Button variant={mode === "map" ? "default" : "outline"} size="sm" asChild>
+              <Link href={`/planning?view=map&date=${date}`}>
+                <Map className="h-4 w-4" />
+                Kaart
+              </Link>
+            </Button>
+          )}
         </>
       }
     />

@@ -10,6 +10,7 @@ import {
   objectsTable,
   customersTable,
   insertPersonnelSchema,
+  PERSONNEL_VEHICLE_TYPES,
   updatePersonnelSchema,
   availabilityWindowsTable,
   leavePeriodsTable,
@@ -31,6 +32,7 @@ import { requireSensitiveRuntimeAccess } from "@/lib/security/sensitive-runtime"
 import { toPlatformPersonnelMaskedDto } from "@/lib/security/safe-dtos";
 import type { ActionResult } from "./customers";
 import type { ContractInfo, CertificateEntry } from "@/types/personnel";
+import type { PersonnelVehicleType } from "@workspace/db";
 
 // Extract just the names from a CertificateEntry[] (handles legacy string[] too)
 function extractCertNames(raw: unknown): string[] {
@@ -40,6 +42,13 @@ function extractCertNames(raw: unknown): string[] {
     if (c && typeof c === "object" && "name" in c) return [String((c as CertificateEntry).name)];
     return [];
   });
+}
+
+function normalizePersonnelVehicleType(value: unknown): PersonnelVehicleType | undefined {
+  if (typeof value !== "string") return undefined;
+  return (PERSONNEL_VEHICLE_TYPES as readonly string[]).includes(value)
+    ? (value as PersonnelVehicleType)
+    : undefined;
 }
 
 export type { ActionResult };
@@ -657,8 +666,14 @@ export async function createPersonnel(
   }
 
   try {
+    const { vehicleType: parsedVehicleType, ...parsedInsertData } = parsed.data;
+    const vehicleType = normalizePersonnelVehicleType(parsedVehicleType);
+    if (parsedVehicleType && !vehicleType) {
+      return { success: false, message: "Ongeldig vervoerstype." };
+    }
     const insertData = {
-      ...parsed.data,
+      ...parsedInsertData,
+      ...(vehicleType ? { vehicleType } : {}),
       // data.certificates is already CertificateEntry[] — preserve expires_at values
       certificates: data.certificates as unknown as { name: string; expires_at?: string }[],
       contractInfo: (parsed.data.contractInfo ?? null) as ContractInfo | null,
@@ -766,8 +781,14 @@ export async function updatePersonnel(
   }
 
   try {
+    const { vehicleType: parsedVehicleType, ...parsedUpdateData } = parsed.data;
+    const vehicleType = normalizePersonnelVehicleType(parsedVehicleType);
+    if (parsedVehicleType && !vehicleType) {
+      return { success: false, message: "Ongeldig vervoerstype." };
+    }
     const updateData = {
-      ...parsed.data,
+      ...parsedUpdateData,
+      ...(vehicleType ? { vehicleType } : {}),
       // data.certificates is already CertificateEntry[] — preserve expires_at values
       certificates: data.certificates as unknown as { name: string; expires_at?: string }[],
       contractInfo: (parsed.data.contractInfo ?? null) as ContractInfo | null,

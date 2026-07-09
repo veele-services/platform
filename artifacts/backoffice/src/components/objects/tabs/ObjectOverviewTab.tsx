@@ -14,6 +14,7 @@ import {
   Users,
 } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { GeocodeStatusBadge } from "@/components/geocoding/GeocodeStatus";
 import type { ObjectDetail, ObjectHistoryEntry, ObjectPerformance } from "@/app/actions/objects";
 
 interface Props {
@@ -131,6 +132,10 @@ export function ObjectOverviewTab({ object: obj, performance, history }: Props) 
 
           <InfoRow icon={MapPin} label="Adres">
             {fullAddress || <span style={{ color: "#94A3B8" }}>-</span>}
+          </InfoRow>
+
+          <InfoRow icon={MapPin} label="Geocode">
+            <GeocodeStatusBadge status={obj.geocodingStatus} />
           </InfoRow>
 
           <InfoRow icon={Layers} label="Diensttype">

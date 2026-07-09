@@ -41,6 +41,11 @@ import {
   toPlatformCustomerContactMaskedDto,
   toPlatformCustomerMaskedDto,
 } from "@/lib/security/safe-dtos";
+import {
+  geocodeAddress,
+  hasGeocodableAddress,
+  type GeocodeAddressInput,
+} from "@/lib/planning/geocoding";
 
 // ─── Shared Types ─────────────────────────────────────────────────────────────
 
@@ -75,6 +80,13 @@ export type CustomerDetail = {
   city: string | null;
   postalCode: string | null;
   country: string;
+  latitude: string | null;
+  longitude: string | null;
+  geocodedAt: string | null;
+  geocodingProvider: string | null;
+  geocodingStatus: string;
+  geocodingConfidence: string | null;
+  geocodingError: string | null;
   contactName: string | null;
   contactEmail: string | null;
   contactPhone: string | null;
@@ -216,6 +228,42 @@ function isUniqueViolation(err: unknown): boolean {
 
 function pgConstraint(err: unknown): string | null {
   return (err as { constraint?: string })?.constraint ?? null;
+}
+
+function normalizeLocationPart(value: string | null | undefined): string {
+  return (value ?? "").trim().toLowerCase();
+}
+
+function geocodingResetForAddress(input: GeocodeAddressInput) {
+  return {
+    latitude: null,
+    longitude: null,
+    geocodedAt: null,
+    geocodingProvider: null,
+    geocodingStatus: hasGeocodableAddress(input) ? "pending" : "not_required",
+    geocodingConfidence: null,
+    geocodingError: null,
+  };
+}
+
+function locationChanged(
+  existing: GeocodeAddressInput,
+  next: GeocodeAddressInput,
+): boolean {
+  return (
+    normalizeLocationPart(existing.address) !== normalizeLocationPart(next.address) ||
+    normalizeLocationPart(existing.postalCode) !== normalizeLocationPart(next.postalCode) ||
+    normalizeLocationPart(existing.city) !== normalizeLocationPart(next.city) ||
+    normalizeLocationPart(existing.country) !== normalizeLocationPart(next.country)
+  );
+}
+
+function coordinateString(value: number): string {
+  return value.toFixed(6);
+}
+
+function confidenceString(value: number): string {
+  return value.toFixed(2);
 }
 
 function customerCreateError(err: unknown): ActionResult {
@@ -696,6 +744,13 @@ export async function getCustomer(id: string): Promise<CustomerDetail | null> {
       city:                    customersTable.city,
       postalCode:              customersTable.postalCode,
       country:                 customersTable.country,
+      latitude:                customersTable.latitude,
+      longitude:               customersTable.longitude,
+      geocodedAt:              customersTable.geocodedAt,
+      geocodingProvider:       customersTable.geocodingProvider,
+      geocodingStatus:         customersTable.geocodingStatus,
+      geocodingConfidence:     customersTable.geocodingConfidence,
+      geocodingError:          customersTable.geocodingError,
       contactName:             customersTable.contactName,
       contactEmail:            customersTable.contactEmail,
       contactPhone:            customersTable.contactPhone,
@@ -744,6 +799,13 @@ export async function getCustomer(id: string): Promise<CustomerDetail | null> {
     city:                    r.city,
     postalCode:              r.postalCode,
     country:                 r.country,
+    latitude:                r.latitude ?? null,
+    longitude:               r.longitude ?? null,
+    geocodedAt:              r.geocodedAt?.toISOString() ?? null,
+    geocodingProvider:       r.geocodingProvider,
+    geocodingStatus:         r.geocodingStatus ?? "pending",
+    geocodingConfidence:     r.geocodingConfidence ?? null,
+    geocodingError:          r.geocodingError,
     contactName:             r.contactName,
     contactEmail:            r.contactEmail,
     contactPhone:            r.contactPhone,
@@ -1387,9 +1449,10 @@ export async function createCustomer(
   }
 
   try {
+    const geocodingState = geocodingResetForAddress(payload);
     const [created] = await db
       .insert(customersTable)
-      .values({ ...parsed.data, tenantId })
+      .values({ ...parsed.data, ...geocodingState, tenantId })
       .returning({ id: customersTable.id });
 
     // Sync isActive with status
@@ -1403,7 +1466,7 @@ export async function createCustomer(
       action:     "create",
       resource:   "customers",
       resourceId: created!.id,
-      metadata:   { name: payload.name },
+      metadata:   { name: payload.name, geocodingStatus: geocodingState.geocodingStatus },
     });
 
     let inviteResult: CustomerCreateResult["invite"];
@@ -1505,9 +1568,27 @@ export async function updateCustomer(
   }
 
   try {
+    const [existing] = await db
+      .select({
+        address:    customersTable.address,
+        postalCode: customersTable.postalCode,
+        city:       customersTable.city,
+        country:    customersTable.country,
+      })
+      .from(customersTable)
+      .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)))
+      .limit(1);
+
+    if (!existing) return { success: false, message: "Klant niet gevonden." };
+
+    const shouldResetGeocoding = locationChanged(existing, payload);
+    const geocodingState = shouldResetGeocoding
+      ? geocodingResetForAddress(payload)
+      : {};
+
     await db
       .update(customersTable)
-      .set({ ...parsed.data, updatedAt: new Date() })
+      .set({ ...parsed.data, ...geocodingState, updatedAt: new Date() })
       .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)));
 
     await db.insert(auditLogTable).values({
@@ -1515,7 +1596,7 @@ export async function updateCustomer(
       action:     "update",
       resource:   "customers",
       resourceId: id,
-      metadata:   { name: payload.name },
+      metadata:   { name: payload.name, geocodingReset: shouldResetGeocoding },
     });
 
     revalidatePath("/customers");
@@ -1531,6 +1612,124 @@ export async function updateCustomer(
     }
     return { success: false, message: "Klant bijwerken mislukt." };
   }
+}
+
+export async function geocodeCustomerLocation(
+  id: string,
+): Promise<ActionResult<{
+  status: string;
+  latitude: string | null;
+  longitude: string | null;
+  message: string;
+}>> {
+  await requirePermission("customers", "write");
+  const tenantId = await requireCurrentTenantId();
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [customer] = await db
+    .select({
+      id:         customersTable.id,
+      name:       customersTable.name,
+      address:    customersTable.address,
+      postalCode: customersTable.postalCode,
+      city:       customersTable.city,
+      country:    customersTable.country,
+    })
+    .from(customersTable)
+    .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)))
+    .limit(1);
+
+  if (!customer) return { success: false, message: "Klant niet gevonden." };
+
+  if (!hasGeocodableAddress(customer)) {
+    await db
+      .update(customersTable)
+      .set({
+        ...geocodingResetForAddress(customer),
+        updatedAt: new Date(),
+      })
+      .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)));
+
+    revalidatePath("/customers");
+    revalidatePath(`/customers/${id}`);
+    return {
+      success: false,
+      message: "Adresgegevens ontbreken. Vul straat, postcode of plaats in.",
+    };
+  }
+
+  const result = await geocodeAddress(customer);
+  if (!result.success) {
+    await db
+      .update(customersTable)
+      .set({
+        geocodingProvider: result.provider,
+        geocodingStatus: "failed",
+        geocodingConfidence: null,
+        geocodingError: result.error,
+        updatedAt: new Date(),
+      })
+      .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)));
+
+    await db.insert(auditLogTable).values({
+      tenantId,
+      userId:     user.id,
+      action:     "geocode_customer_location_failed",
+      resource:   "customers",
+      resourceId: id,
+      metadata:   { name: customer.name, error: result.error, retryable: result.retryable },
+    });
+
+    revalidatePath("/customers");
+    revalidatePath(`/customers/${id}`);
+    return { success: false, message: result.error };
+  }
+
+  const latitude = coordinateString(result.latitude);
+  const longitude = coordinateString(result.longitude);
+
+  await db
+    .update(customersTable)
+    .set({
+      latitude,
+      longitude,
+      geocodedAt: new Date(),
+      geocodingProvider: result.provider,
+      geocodingStatus: "geocoded",
+      geocodingConfidence: confidenceString(result.confidence),
+      geocodingError: null,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(customersTable.id, id), eq(customersTable.tenantId, tenantId)));
+
+  await db.insert(auditLogTable).values({
+    tenantId,
+    userId:     user.id,
+    action:     "geocode_customer_location",
+    resource:   "customers",
+    resourceId: id,
+    metadata:   {
+      name: customer.name,
+      provider: result.provider,
+      label: result.label,
+      confidence: result.confidence,
+    },
+  });
+
+  revalidatePath("/customers");
+  revalidatePath(`/customers/${id}`);
+  return {
+    success: true,
+    data: {
+      status: "geocoded",
+      latitude,
+      longitude,
+      message: "Klantlocatie is bijgewerkt.",
+    },
+  };
 }
 
 export async function setCustomerStatus(

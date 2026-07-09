@@ -14,6 +14,15 @@ import { rolesTable } from "./roles";
 import { sectorsTable } from "./sectors";
 import { tenantsTable } from "./tenants";
 
+export const PERSONNEL_VEHICLE_TYPES = [
+  "car",
+  "bicycle",
+  "walking",
+  "moped_or_scooter",
+  "public_transport",
+] as const;
+export type PersonnelVehicleType = (typeof PERSONNEL_VEHICLE_TYPES)[number];
+
 /**
  * Field worker / employee profile.
  *
@@ -51,6 +60,10 @@ export const personnelTable = pgTable("personnel", {
   /** Primary operational sector used for planning eligibility checks. */
   sectorId:     uuid("sector_id").references(() => sectorsTable.id, { onDelete: "set null" }),
   region:       varchar("region", { length: 100 }),
+  vehicleType:  varchar("vehicle_type", { length: 40 })
+    .notNull()
+    .default("car")
+    .$type<PersonnelVehicleType>(),
 
   /**
    * Certificates with optional expiry date.
