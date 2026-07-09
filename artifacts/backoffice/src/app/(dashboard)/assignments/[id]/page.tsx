@@ -16,6 +16,10 @@ import {
   FileCheck2,
   AlertTriangle,
   TrendingUp,
+  ClipboardList,
+  Mail,
+  Phone,
+  KeyRound,
 } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
@@ -31,6 +35,7 @@ import {
   getPersonnelEligibilityForAssignment,
   getTaskCodeOptions,
   listAssignmentInterestRounds,
+  type AssignmentStatus,
 } from "@/app/actions/assignments";
 import { getReportForAssignment } from "@/app/actions/reports";
 import { SubmitReportForm } from "@/components/reports/SubmitReportForm";
@@ -121,6 +126,38 @@ function capacityStyle(status: "green" | "orange" | "red") {
   };
 }
 
+function formatAddress(parts: Array<string | null | undefined>): string {
+  return parts
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(", ") || "Geen adres bekend";
+}
+
+function DetailCard({
+  title,
+  children,
+  icon: Icon,
+}: {
+  title: string;
+  children: React.ReactNode;
+  icon: React.ElementType;
+}) {
+  return (
+    <div className="rounded-2xl border bg-white p-4" style={{ borderColor: "#E2E8F0" }}>
+      <h3 className="mb-3 flex items-center gap-2 font-heading text-sm font-semibold" style={{ color: "#081D3A" }}>
+        <Icon className="h-4 w-4" style={{ color: "#00B7B3" }} />
+        {title}
+      </h3>
+      {children}
+    </div>
+  );
+}
+
+function EmptyText({ children }: { children: React.ReactNode }) {
+  return <p className="text-sm" style={{ color: "#94A3B8" }}>{children}</p>;
+}
+
+type AssignmentDetail = NonNullable<Awaited<ReturnType<typeof getAssignment>>>;
 type PlanningReadiness = NonNullable<Awaited<ReturnType<typeof getAssignmentPlanningReadiness>>>;
 type InterestRounds = Awaited<ReturnType<typeof listAssignmentInterestRounds>>;
 
@@ -401,6 +438,149 @@ function CapacityMatchingSection({
   );
 }
 
+function WorkOrderOverviewSection({
+  assignment,
+  canWrite,
+}: {
+  assignment: AssignmentDetail;
+  canWrite: boolean;
+}) {
+  const objectAddress = formatAddress([
+    assignment.objectAddress,
+    [assignment.objectPostalCode, assignment.objectCity].filter(Boolean).join(" "),
+  ]);
+  const customerAddress = formatAddress([
+    assignment.customerAddress,
+    [assignment.customerPostalCode, assignment.customerCity].filter(Boolean).join(" "),
+  ]);
+  const objectNotes = [
+    assignment.objectFixedInstructions && { label: "Vaste instructies", value: assignment.objectFixedInstructions },
+    assignment.objectSpecialNotes && { label: "Bijzonderheden object", value: assignment.objectSpecialNotes },
+    assignment.description && { label: "Opdrachtomschrijving", value: assignment.description },
+    canWrite && assignment.notes && { label: "Interne opdrachtnotities", value: assignment.notes },
+    canWrite && assignment.customerNotes && { label: "Interne klantnotities", value: assignment.customerNotes },
+  ].filter(Boolean) as Array<{ label: string; value: string }>;
+
+  return (
+    <section className="veele-card">
+      <div className="flex flex-col gap-2 border-b pb-4 md:flex-row md:items-start md:justify-between" style={{ borderColor: "#E2E8F0" }}>
+        <div>
+          <h2 className="font-heading text-lg font-semibold" style={{ color: "#081D3A" }}>
+            Werkboninformatie
+          </h2>
+          <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
+            Klant, object, adres, opmerkingen en checklist voor uitvoering en backoffice-afhandeling.
+          </p>
+        </div>
+        <span className="w-fit rounded-full border px-3 py-1 text-xs font-semibold" style={{ background: "#EFF6FF", borderColor: "#BFDBFE", color: "#1D4ED8" }}>
+          {assignment.personnel.length} / {assignment.requiredPersonnelCount} medewerker(s)
+        </span>
+      </div>
+
+      <div className="mt-5 grid gap-4 xl:grid-cols-3">
+        <DetailCard title="Klantdata" icon={Building2}>
+          <div className="space-y-2 text-sm" style={{ color: "#081D3A" }}>
+            <p className="font-semibold">{assignment.customerName}</p>
+            {assignment.customerCode && <p className="text-xs" style={{ color: "#64748B" }}>{assignment.customerCode}</p>}
+            {customerAddress !== "Geen adres bekend" && <p>{customerAddress}</p>}
+            {assignment.customerContactName && <p>Contact: {assignment.customerContactName}</p>}
+            {assignment.customerContactEmail && (
+              <p className="flex items-center gap-1.5">
+                <Mail className="h-3.5 w-3.5" style={{ color: "#94A3B8" }} />
+                {assignment.customerContactEmail}
+              </p>
+            )}
+            {assignment.customerContactPhone && (
+              <p className="flex items-center gap-1.5">
+                <Phone className="h-3.5 w-3.5" style={{ color: "#94A3B8" }} />
+                {assignment.customerContactPhone}
+              </p>
+            )}
+          </div>
+        </DetailCard>
+
+        <DetailCard title="Object & adres" icon={MapPin}>
+          <div className="space-y-2 text-sm" style={{ color: "#081D3A" }}>
+            <p className="font-semibold">{assignment.objectName ?? "Geen object gekoppeld"}</p>
+            <p>{objectAddress}</p>
+            {assignment.objectContactName && <p>Contact: {assignment.objectContactName}</p>}
+            {assignment.objectContactPhone && (
+              <p className="flex items-center gap-1.5">
+                <Phone className="h-3.5 w-3.5" style={{ color: "#94A3B8" }} />
+                {assignment.objectContactPhone}
+              </p>
+            )}
+            {assignment.objectContactEmail && (
+              <p className="flex items-center gap-1.5">
+                <Mail className="h-3.5 w-3.5" style={{ color: "#94A3B8" }} />
+                {assignment.objectContactEmail}
+              </p>
+            )}
+          </div>
+        </DetailCard>
+
+        <DetailCard title="Toegang & aandachtspunten" icon={KeyRound}>
+          <div className="space-y-2 text-sm" style={{ color: "#081D3A" }}>
+            {assignment.objectAccessInfo && <p><span className="font-medium">Toegang:</span> {assignment.objectAccessInfo}</p>}
+            {assignment.objectKeyInfo && <p><span className="font-medium">Sleutel:</span> {assignment.objectKeyInfo}</p>}
+            {assignment.objectAlarmInfo && <p><span className="font-medium">Alarm:</span> {assignment.objectAlarmInfo}</p>}
+            {!assignment.objectAccessInfo && !assignment.objectKeyInfo && !assignment.objectAlarmInfo && (
+              <EmptyText>Geen toegangsinformatie vastgelegd.</EmptyText>
+            )}
+          </div>
+        </DetailCard>
+      </div>
+
+      <div className="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1fr)_360px]">
+        <DetailCard title="Opmerkingen klant/object" icon={StickyNote}>
+          {objectNotes.length > 0 ? (
+            <div className="space-y-3">
+              {objectNotes.map((note) => (
+                <div key={note.label} className="rounded-xl bg-slate-50 p-3">
+                  <p className="text-xs font-semibold uppercase tracking-wide" style={{ color: "#64748B" }}>{note.label}</p>
+                  <p className="mt-1 whitespace-pre-wrap text-sm" style={{ color: "#081D3A" }}>{note.value}</p>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <EmptyText>Geen opmerkingen of instructies vastgelegd.</EmptyText>
+          )}
+        </DetailCard>
+
+        <DetailCard title="Checklist & taken" icon={ClipboardList}>
+          {assignment.tasks.length > 0 ? (
+            <ul className="space-y-2">
+              {assignment.tasks.map((task) => (
+                <li key={task.id} className="flex items-start gap-2 rounded-xl bg-slate-50 p-3">
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 flex-shrink-0" style={{ color: "#00B7B3" }} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium" style={{ color: "#081D3A" }}>
+                      {task.taskCodeCode && (
+                        <span className="mr-1.5 rounded bg-white px-1.5 py-0.5 font-mono text-xs" style={{ color: "#64748B" }}>
+                          {task.taskCodeCode}
+                        </span>
+                      )}
+                      {task.taskCodeName ?? "Taak"}
+                    </p>
+                    {task.notes && <p className="mt-1 text-xs" style={{ color: "#64748B" }}>{task.notes}</p>}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <EmptyText>Nog geen taken gekoppeld.</EmptyText>
+          )}
+          {canWrite && (
+            <p className="mt-3 text-xs" style={{ color: "#64748B" }}>
+              Taken toevoegen of verwijderen kan in het rechter workflowpaneel.
+            </p>
+          )}
+        </DetailCard>
+      </div>
+    </section>
+  );
+}
+
 async function safeOptional<T>(
   label: string,
   assignmentId: string,
@@ -556,6 +736,19 @@ export default async function AssignmentDetailPage({ params }: Props) {
       : assignment.scheduledStart;
   }
 
+  const planningFirstStatuses: AssignmentStatus[] = [
+    "requested",
+    "review",
+    "quote_preparation",
+    "awaiting_approval",
+    "approved",
+    "plannable",
+  ];
+  const needsPlanning =
+    planningFirstStatuses.includes(assignment.status) ||
+    assignment.personnel.length < assignment.requiredPersonnelCount;
+  const showPlanningFirst = Boolean(planningReadiness && needsPlanning);
+
   return (
     <TenantPageShell>
       <TenantDetailHeader
@@ -582,8 +775,11 @@ export default async function AssignmentDetailPage({ params }: Props) {
 
       <TenantDetailSectionNav
         items={[
-          { label: "Workflow", href: "#workflow", active: true },
+          { label: showPlanningFirst ? "Workflow" : "Werkbon", href: "#workflow", active: true },
           { label: "Gegevens", href: "#details" },
+          ...(planningReadiness && !showPlanningFirst
+            ? [{ label: "Planning", href: "#planning", count: planningReadiness.candidates.length }]
+            : []),
           { label: "Offerte", href: "#quote", count: existingQuote ? 1 : 0 },
           { label: "Rapport", href: "#report", count: existingReport ? 1 : 0 },
           { label: "Factuur", href: "#invoice", count: existingInvoice ? 1 : 0 },
@@ -628,7 +824,7 @@ export default async function AssignmentDetailPage({ params }: Props) {
       </div>
 
       {/* ── Two-column layout ─────────────────────────── */}
-      {planningReadiness && (
+      {showPlanningFirst && planningReadiness && (
         <div id="workflow" className="mb-6 scroll-mt-24">
           <CapacityMatchingSection
             assignmentId={assignment.id}
@@ -638,10 +834,19 @@ export default async function AssignmentDetailPage({ params }: Props) {
         </div>
       )}
 
+      {!showPlanningFirst && (
+        <div id="workflow" className="mb-6 scroll-mt-24">
+          <WorkOrderOverviewSection assignment={assignment} canWrite={canWrite} />
+        </div>
+      )}
+
       <div id="details" className="grid scroll-mt-24 grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_390px]">
 
         {/* Left: static details */}
         <div className="flex flex-col gap-6">
+          {showPlanningFirst && (
+            <WorkOrderOverviewSection assignment={assignment} canWrite={canWrite} />
+          )}
 
           {/* General info */}
           <div className="veele-card">
@@ -928,6 +1133,16 @@ export default async function AssignmentDetailPage({ params }: Props) {
           )}
         </TenantDetailActionPanel>
       </div>
+
+      {!showPlanningFirst && planningReadiness && (
+        <div id="planning" className="mt-6 scroll-mt-24">
+          <CapacityMatchingSection
+            assignmentId={assignment.id}
+            planningReadiness={planningReadiness}
+            interestRounds={interestRounds}
+          />
+        </div>
+      )}
 
       {/* ── Bijlagen ─────────────────────────────────────── */}
       {canReadDocuments && (

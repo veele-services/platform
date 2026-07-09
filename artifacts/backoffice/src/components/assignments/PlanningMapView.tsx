@@ -41,7 +41,7 @@ import {
 type Coordinate = {
   lat: number;
   lng: number;
-  source: "object" | "customer";
+  source: "object";
 };
 
 type MapRouteContext = {
@@ -450,10 +450,17 @@ export function PlanningMapView({ data, canApplySuggestions = false }: PlanningM
         const node = document.createElement("button");
         node.type = "button";
         node.className =
-          "flex h-10 w-10 items-center justify-center rounded-full text-white shadow-lg transition hover:scale-105 focus:outline-none focus:ring-2 focus:ring-cyan-400";
+          "planning-waypoint-marker flex h-11 w-11 items-center justify-center rounded-full transition hover:scale-110 focus:outline-none focus:ring-2 focus:ring-cyan-400";
+        node.style.position = "relative";
+        node.style.zIndex = "20";
+        node.style.border = "0";
+        node.style.background = "transparent";
+        node.style.padding = "0";
+        node.style.cursor = "pointer";
+        node.style.filter = "drop-shadow(0 4px 8px rgba(8,29,58,0.25))";
         node.style.color = tone.color;
         node.innerHTML = `
-          <svg viewBox="0 0 24 24" class="h-10 w-10 drop-shadow" fill="currentColor" aria-hidden="true">
+          <svg viewBox="0 0 24 24" style="width:44px;height:44px;display:block" fill="currentColor" aria-hidden="true">
             <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7Z" />
             <circle cx="12" cy="9" r="3.1" fill="white" />
           </svg>

@@ -56,3 +56,16 @@ test("assignment detail UI refreshes and removes already-linked personnel from c
   assert.match(component, /router\.refresh\(\)/u);
   assert.match(component, /\.filter\(\(p\) => !optimisticAssignedPersonnelIds\.has\(p\.id\)\)/u);
 });
+
+test("assignment detail prioritizes work-order information after personnel is linked", () => {
+  const page = read("artifacts/backoffice/src/app/(dashboard)/assignments/[id]/page.tsx");
+
+  assert.match(page, /WorkOrderOverviewSection/u);
+  assert.match(page, /Werkboninformatie/u);
+  assert.match(page, /Klantdata/u);
+  assert.match(page, /Adresgegevens|Object & adres/u);
+  assert.match(page, /Checklist & taken/u);
+  assert.match(page, /showPlanningFirst/u);
+  assert.match(page, /label: showPlanningFirst \? "Workflow" : "Werkbon"/u);
+  assert.match(page, /id="planning"/u);
+});
