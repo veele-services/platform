@@ -89,6 +89,9 @@ mustContain("phase8Gate", "applyRouteTimeSuggestion", "phase 8 suggestion gate")
 mustContain("phase9Gate", "planning_refresh", "phase 9 realtime gate");
 
 mustContain("featureFlag", "FIELDGRID_PLANNING_DAY_MAP_ENABLED", "explicit beta feature flag");
+mustContain("featureFlag", "betaEnvironmentValues", "staging/preview beta fallback");
+mustContain("featureFlag", "APP_ENV", "staging app env fallback");
+mustContain("featureFlag", "VERCEL_ENV", "preview env fallback");
 mustContain("planningPage", "isPlanningDayMapEnabled", "planning map gated by feature flag");
 mustMatch("planningPage", /mapEnabled\s*&&\s*view\s*===\s*"map"/, "map route is flag gated");
 mustContain("dashboardLayout", "isPlanningDayMapEnabled", "sidebar receives map feature flag");
@@ -146,6 +149,7 @@ mustContain("phase10Doc", "Fase 10", "phase 10 documentation");
 mustContain("phase10Doc", "Release notes", "release notes");
 mustContain("phase10Doc", "Beheerinstructies", "admin instructions");
 mustContain("phase10Doc", "FIELDGRID_PLANNING_DAY_MAP_ENABLED", "feature flag instructions");
+mustContain("phase10Doc", "APP_ENV=staging", "staging fallback documentation");
 mustContain("phase10Doc", "Kaart", "map menu documentation");
 mustContain("phase10Doc", "Rollback", "rollback instructions");
 mustContain("phase10Doc", "50 opdrachten", "performance target");
