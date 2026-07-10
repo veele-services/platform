@@ -249,6 +249,15 @@ export function GoogleMapCanvas({
     () => markers.filter((marker) => isValidPosition(marker.position)),
     [markers],
   );
+  const validPolylinePositions = useMemo(
+    () =>
+      polylines
+        .flatMap((polyline) => polyline.path)
+        .filter((position): position is GoogleMapPosition =>
+          isValidPosition(position),
+        ),
+    [polylines],
+  );
 
   const canLoad =
     visible &&
@@ -389,12 +398,17 @@ export function GoogleMapCanvas({
       markerRefs.current.set(marker.id, advancedMarker);
     });
 
-    if (validMarkers.length > 1) {
+    const boundsPositions = [
+      ...validMarkers.map((marker) => marker.position),
+      ...validPolylinePositions,
+    ];
+
+    if (boundsPositions.length > 1) {
       const bounds = new (window.google as GoogleMapsApi).maps.LatLngBounds();
-      validMarkers.forEach((marker) => bounds.extend(marker.position));
+      boundsPositions.forEach((position) => bounds.extend(position));
       map.fitBounds(bounds, fitBoundsPadding);
-    } else if (validMarkers.length === 1) {
-      map.setCenter(validMarkers[0]!.position);
+    } else if (boundsPositions.length === 1) {
+      map.setCenter(boundsPositions[0]!);
       map.setZoom(Math.max(12, defaultZoom));
     } else {
       map.setCenter(defaultCenter);
@@ -408,6 +422,7 @@ export function GoogleMapCanvas({
     selectedMarkerId,
     state,
     validMarkers,
+    validPolylinePositions,
   ]);
 
   useEffect(() => {

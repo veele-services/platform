@@ -1,19 +1,31 @@
 "use client";
 
-import { useMemo, useState, useTransition, type ReactNode } from "react";
+import { useEffect, useMemo, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
+  AlertTriangle,
+  Bike,
   Car,
   Clock,
+  Footprints,
   Info,
   LocateFixed,
+  Loader2,
   MapPin,
   Navigation,
+  RefreshCcw,
+  Route,
+  TrainFront,
   UserRound,
 } from "lucide-react";
 
 import { applyRouteTimeSuggestion } from "@/app/actions/assignments";
+import {
+  calculatePlanningMapRoute,
+  type PlanningMapRouteCalculationResult,
+  type PlanningRouteTravelMode,
+} from "@/app/actions/planning";
 import { GoogleMapCanvas, type GoogleMapCanvasConfig, type GoogleMapMarker, type GoogleMapPolyline } from "@/components/google-maps/GoogleMapCanvas";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -157,6 +169,96 @@ type PendingSuggestion = {
   personnelName: string;
 };
 
+const ROUTE_MODE_OPTIONS: Array<{
+  value: PlanningRouteTravelMode;
+  label: string;
+  icon: ReactNode;
+}> = [
+  { value: "DRIVE", label: "Auto", icon: <Car className="h-4 w-4" /> },
+  { value: "BICYCLE", label: "Fiets", icon: <Bike className="h-4 w-4" /> },
+  { value: "WALK", label: "Lopen", icon: <Footprints className="h-4 w-4" /> },
+  { value: "TRANSIT", label: "Openbaar vervoer", icon: <TrainFront className="h-4 w-4" /> },
+];
+
+function canonicalTravelMode(value: string | null | undefined): PlanningRouteTravelMode {
+  switch (value) {
+    case "BICYCLE":
+    case "bicycle":
+      return "BICYCLE";
+    case "WALK":
+    case "walking":
+      return "WALK";
+    case "TRANSIT":
+    case "public_transport":
+      return "TRANSIT";
+    case "DRIVE":
+    case "car":
+    case "moped_or_scooter":
+    default:
+      return "DRIVE";
+  }
+}
+
+function routeModeLabel(value: PlanningRouteTravelMode): string {
+  return ROUTE_MODE_OPTIONS.find((option) => option.value === value)?.label ?? value;
+}
+
+function routeModeWarning(value: PlanningRouteTravelMode): string | null {
+  if (value === "BICYCLE" || value === "WALK") {
+    return "Fiets- en wandelroutes kunnen onvolledige paden bevatten. Controleer de route voor vertrek.";
+  }
+  return null;
+}
+
+function routeResultBelongsToMarker(
+  result: PlanningMapRouteCalculationResult | null,
+  marker: MapMarker | null,
+  personnelId: string,
+): boolean {
+  return Boolean(
+    result &&
+      marker &&
+      result.assignmentId === marker.id &&
+      result.personnelId === personnelId,
+  );
+}
+
+function decodeEncodedPolyline(encoded: string): Coordinate[] {
+  let index = 0;
+  let lat = 0;
+  let lng = 0;
+  const coordinates: Coordinate[] = [];
+
+  while (index < encoded.length) {
+    let result = 0;
+    let shift = 0;
+    let byte: number;
+    do {
+      byte = encoded.charCodeAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20 && index < encoded.length);
+    lat += result & 1 ? ~(result >> 1) : result >> 1;
+
+    result = 0;
+    shift = 0;
+    do {
+      byte = encoded.charCodeAt(index++) - 63;
+      result |= (byte & 0x1f) << shift;
+      shift += 5;
+    } while (byte >= 0x20 && index < encoded.length);
+    lng += result & 1 ? ~(result >> 1) : result >> 1;
+
+    coordinates.push({
+      lat: lat / 1e5,
+      lng: lng / 1e5,
+      source: "object",
+    });
+  }
+
+  return coordinates;
+}
+
 function markerTone(marker: MapMarker) {
   const status = markerStatusForAssignment({
     status: marker.status,
@@ -232,19 +334,6 @@ function routeContextCanApply(context: MapRouteContext): boolean {
   return context.warningCode !== "missing_location" && context.warningCode !== "provider_error";
 }
 
-function externalRouteUrl(marker: MapMarker): string | null {
-  const destination = marker.coordinate
-    ? `${marker.coordinate.lat},${marker.coordinate.lng}`
-    : formatObjectAddress(marker);
-  if (!destination || destination === "Geen adres bekend") return null;
-  const params = new URLSearchParams({
-    api: "1",
-    destination,
-    travelmode: "driving",
-  });
-  return `https://www.google.com/maps/dir/?${params.toString()}`;
-}
-
 function OverlayChip({
   label,
   count,
@@ -308,9 +397,22 @@ export function PlanningMapView({
   const [highlightedMarkerId, setHighlightedMarkerId] = useState<string | null>(null);
   const [pendingSuggestion, setPendingSuggestion] = useState<PendingSuggestion | null>(null);
   const [suggestionMessage, setSuggestionMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
+  const [routePersonnelId, setRoutePersonnelId] = useState<string>("");
+  const [routeTravelMode, setRouteTravelMode] = useState<PlanningRouteTravelMode>("DRIVE");
+  const [routeResult, setRouteResult] = useState<PlanningMapRouteCalculationResult | null>(null);
   const [isApplyingSuggestion, startApplySuggestionTransition] = useTransition();
+  const [isCalculatingRoute, startCalculateRouteTransition] = useTransition();
 
   const selectedMarker = data.markers.find((marker) => marker.id === selectedMarkerId) ?? null;
+  const selectedRoutePersonnel =
+    selectedMarker?.assignedPersonnel.find((person) => person.id === routePersonnelId) ?? null;
+  const activeRouteResult = routeResultBelongsToMarker(
+    routeResult,
+    selectedMarker,
+    routePersonnelId,
+  )
+    ? routeResult
+    : null;
   const visibleMarkers = useMemo(
     () => data.markers.filter((marker) => marker.coordinate),
     [data.markers],
@@ -319,6 +421,30 @@ export function PlanningMapView({
     () => new Map(data.markers.map((marker) => [marker.id, marker])),
     [data.markers],
   );
+
+  useEffect(() => {
+    if (!selectedMarker) {
+      setRoutePersonnelId("");
+      setRouteResult(null);
+      return;
+    }
+
+    const currentPersonnel = selectedMarker.assignedPersonnel.find(
+      (person) => person.id === routePersonnelId,
+    );
+    const nextPersonnel = currentPersonnel ?? selectedMarker.assignedPersonnel[0] ?? null;
+    if (!nextPersonnel) {
+      setRoutePersonnelId("");
+      setRouteResult(null);
+      return;
+    }
+
+    if (nextPersonnel.id !== routePersonnelId) {
+      setRoutePersonnelId(nextPersonnel.id);
+      setRouteTravelMode(canonicalTravelMode(nextPersonnel.vehicleType));
+      setRouteResult(null);
+    }
+  }, [routePersonnelId, selectedMarker]);
 
   const googleMarkers: GoogleMapMarker[] = useMemo(
     () =>
@@ -340,25 +466,77 @@ export function PlanningMapView({
     [highlightedMarkerId, selectedMarkerId, visibleMarkers],
   );
 
-  const googleRouteLines: GoogleMapPolyline[] = useMemo(
-    () =>
-      data.personnelRoutes
-        .map((route) => {
-          const path = route.stops
-            .map((stop) => markerById.get(stop.assignmentId)?.coordinate ?? null)
-            .filter((position): position is Coordinate => Boolean(position));
-          return {
-            id: route.personnelId,
-            path,
-            color: "#00B7B3",
-          };
-        })
-        .filter((polyline) => polyline.path.length > 1),
-    [data.personnelRoutes, markerById],
-  );
+  const activeRoutePolyline: GoogleMapPolyline | null = useMemo(() => {
+    if (!activeRouteResult?.success) return null;
+    const decodedPath = activeRouteResult.encodedPolyline
+      ? decodeEncodedPolyline(activeRouteResult.encodedPolyline)
+      : [];
+    const path =
+      decodedPath.length > 1
+        ? decodedPath
+        : [
+            { ...activeRouteResult.origin, source: "object" as const },
+            { ...activeRouteResult.destination, source: "object" as const },
+          ];
+    return {
+      id: `explicit-route-${activeRouteResult.assignmentId}-${activeRouteResult.personnelId}`,
+      path,
+      color: "#f59e0b",
+    };
+  }, [activeRouteResult]);
+
+  const googleRouteLines: GoogleMapPolyline[] = useMemo(() => {
+    const scheduledRouteLines = data.personnelRoutes
+      .map((route) => {
+        const path = route.stops
+          .map((stop) => markerById.get(stop.assignmentId)?.coordinate ?? null)
+          .filter((position): position is Coordinate => Boolean(position));
+        return {
+          id: route.personnelId,
+          path,
+          color: "#00B7B3",
+        };
+      })
+      .filter((polyline) => polyline.path.length > 1);
+
+    return activeRoutePolyline
+      ? [...scheduledRouteLines, activeRoutePolyline]
+      : scheduledRouteLines;
+  }, [activeRoutePolyline, data.personnelRoutes, markerById]);
 
   function personnelNameForContext(marker: MapMarker, context: MapRouteContext): string {
     return marker.assignedPersonnel.find((person) => person.id === context.personnelId)?.name ?? "Gekoppeld personeel";
+  }
+
+  function handleRoutePersonnelChange(personnelId: string) {
+    const person = selectedMarker?.assignedPersonnel.find((item) => item.id === personnelId);
+    setRoutePersonnelId(personnelId);
+    setRouteTravelMode(canonicalTravelMode(person?.vehicleType));
+    setRouteResult(null);
+  }
+
+  function handleTravelModeChange(value: string) {
+    setRouteTravelMode(canonicalTravelMode(value));
+    setRouteResult(null);
+  }
+
+  function handleCalculateRoute() {
+    if (!selectedMarker || !routePersonnelId) return;
+    const assignmentId = selectedMarker.id;
+    const personnelId = routePersonnelId;
+    const travelMode = routeTravelMode;
+
+    startCalculateRouteTransition(async () => {
+      const result = await calculatePlanningMapRoute({
+        assignmentId,
+        personnelId,
+        travelMode,
+      });
+      setRouteResult(result);
+      if (result.success) {
+        setHighlightedMarkerId(result.assignmentId);
+      }
+    });
   }
 
   function focusMarker(marker: MapMarker, options: { openDrawer?: boolean } = {}) {
@@ -633,6 +811,173 @@ export function PlanningMapView({
                   </div>
                 </section>
 
+                <section className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <Route className="h-4 w-4 text-cyan-700" />
+                        <h3 className="text-sm font-semibold text-slate-950">Route bekijken</h3>
+                      </div>
+                      <p className="mt-1 text-xs text-slate-500">
+                        Routes worden alleen berekend wanneer u expliciet op Route bekijken klikt.
+                      </p>
+                    </div>
+                    {activeRouteResult?.success ? (
+                      <Badge variant="outline">{routeModeLabel(activeRouteResult.travelMode)}</Badge>
+                    ) : null}
+                  </div>
+
+                  {selectedMarker.assignedPersonnel.length > 0 ? (
+                    <div className="mt-4 space-y-3">
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        <label className="grid gap-1 text-sm">
+                          <span className="font-medium text-slate-700">Medewerker</span>
+                          <select
+                            value={routePersonnelId}
+                            onChange={(event) => handleRoutePersonnelChange(event.target.value)}
+                            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm shadow-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                          >
+                            {selectedMarker.assignedPersonnel.map((person) => (
+                              <option key={person.id} value={person.id}>
+                                {person.name}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="grid gap-1 text-sm">
+                          <span className="font-medium text-slate-700">Vervoersmiddel</span>
+                          <select
+                            value={routeTravelMode}
+                            onChange={(event) => handleTravelModeChange(event.target.value)}
+                            className="h-10 rounded-md border border-slate-300 bg-white px-3 text-sm shadow-sm outline-none transition focus:border-cyan-500 focus:ring-2 focus:ring-cyan-100"
+                          >
+                            {ROUTE_MODE_OPTIONS.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                      </div>
+
+                      {selectedRoutePersonnel ? (
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                          Profielvoorkeur: {vehicleLabel(selectedRoutePersonnel.vehicleType)}. De gekozen route hier wijzigt het medewerkerprofiel niet.
+                        </div>
+                      ) : null}
+
+                      {routeModeWarning(routeTravelMode) ? (
+                        <div className="flex gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-950">
+                          <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                          <p>{routeModeWarning(routeTravelMode)}</p>
+                        </div>
+                      ) : null}
+
+                      <Button
+                        type="button"
+                        className="w-full"
+                        disabled={isCalculatingRoute || !routePersonnelId}
+                        onClick={handleCalculateRoute}
+                      >
+                        {isCalculatingRoute ? (
+                          <>
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            Route berekenen...
+                          </>
+                        ) : (
+                          "Route bekijken"
+                        )}
+                      </Button>
+
+                      {isCalculatingRoute ? (
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <div className="h-16 animate-pulse rounded-lg bg-slate-100" />
+                          <div className="h-16 animate-pulse rounded-lg bg-slate-100" />
+                        </div>
+                      ) : null}
+
+                      {activeRouteResult?.success ? (
+                        <div className="space-y-3">
+                          <div className="grid gap-2 sm:grid-cols-2">
+                            <InfoCard
+                              icon={<MapPin className="h-4 w-4" />}
+                              label="Afstand"
+                              value={activeRouteResult.distanceMeters === null ? "Onbekend" : formatDistance(activeRouteResult.distanceMeters)}
+                            />
+                            <InfoCard
+                              icon={<Clock className="h-4 w-4" />}
+                              label="Reistijd"
+                              value={formatDuration(activeRouteResult.durationSeconds)}
+                            />
+                            <InfoCard
+                              icon={<Clock className="h-4 w-4" />}
+                              label="Zonder verkeer"
+                              value={
+                                activeRouteResult.staticDurationSeconds === null
+                                  ? "Niet beschikbaar"
+                                  : formatDuration(activeRouteResult.staticDurationSeconds)
+                              }
+                            />
+                            {activeRouteResult.travelMode === "DRIVE" ? (
+                              <InfoCard
+                                icon={<Car className="h-4 w-4" />}
+                                label="Vertraging"
+                                value={
+                                  activeRouteResult.trafficDelaySeconds === null
+                                    ? "Niet beschikbaar"
+                                    : formatDuration(activeRouteResult.trafficDelaySeconds)
+                                }
+                              />
+                            ) : null}
+                          </div>
+                          <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm">
+                            <p className="font-medium text-slate-950">Van</p>
+                            <p className="mt-1 text-slate-600">{activeRouteResult.originLabel}</p>
+                            <p className="mt-3 font-medium text-slate-950">Naar</p>
+                            <p className="mt-1 text-slate-600">{activeRouteResult.destinationLabel}</p>
+                            {activeRouteResult.warnings.length > 0 ? (
+                              <ul className="mt-3 list-disc space-y-1 pl-5 text-xs text-amber-800">
+                                {activeRouteResult.warnings.map((warning) => (
+                                  <li key={warning}>{warning}</li>
+                                ))}
+                              </ul>
+                            ) : null}
+                          </div>
+                          <Button asChild variant="outline" className="w-full">
+                            <a href={activeRouteResult.externalUrl} target="_blank" rel="noreferrer">
+                              Open in Google Maps
+                            </a>
+                          </Button>
+                        </div>
+                      ) : activeRouteResult && !activeRouteResult.success ? (
+                        <div className="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-900">
+                          <p className="font-semibold">
+                            {activeRouteResult.code === "transit_no_result"
+                              ? "Geen OV-route gevonden"
+                              : "Route kon niet worden berekend"}
+                          </p>
+                          <p className="mt-1">{activeRouteResult.message}</p>
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="mt-3 bg-white"
+                            onClick={handleCalculateRoute}
+                            disabled={isCalculatingRoute}
+                          >
+                            <RefreshCcw className="mr-2 h-4 w-4" />
+                            Opnieuw proberen
+                          </Button>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : (
+                    <p className="mt-3 rounded-lg border bg-slate-50 p-3 text-sm text-slate-500">
+                      Koppel eerst een medewerker aan deze werkbon om een route te berekenen.
+                    </p>
+                  )}
+                </section>
+
                 <section>
                   <h3 className="text-sm font-semibold text-slate-950">Opdrachtinformatie</h3>
                   <div className="mt-2 grid gap-3 sm:grid-cols-2">
@@ -722,13 +1067,6 @@ export function PlanningMapView({
                 )}
 
                 <div className="grid gap-2">
-                  {externalRouteUrl(selectedMarker) ? (
-                    <Button asChild variant="outline" className="w-full">
-                      <a href={externalRouteUrl(selectedMarker)!} target="_blank" rel="noreferrer">
-                        Route bekijken
-                      </a>
-                    </Button>
-                  ) : null}
                   <Button asChild className="w-full">
                     <Link href={`/assignments/${selectedMarker.id}`}>Werkbon openen</Link>
                   </Button>

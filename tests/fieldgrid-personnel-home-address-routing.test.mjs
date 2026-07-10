@@ -73,14 +73,28 @@ test("first planning stop uses personnel home address as route origin", () => {
   assert.match(etaEngine, /dateTimeForTime\(assignment\.scheduledDate,\s*input\.settings\.planningWorkdayStart\)/);
 });
 
-test("planning map refreshes missing or stale route contexts before rendering", () => {
+test("planning map uses personnel home address only after explicit route request", () => {
   const planningActions = read("artifacts/backoffice/src/app/actions/planning.ts");
+  const actionStart = planningActions.indexOf("export async function getPlanningDayMapData");
+  const actionEnd = planningActions.indexOf("\n/**", actionStart);
+  const mapDataAction = planningActions.slice(
+    actionStart,
+    actionEnd === -1 ? undefined : actionEnd,
+  );
 
+  assert.match(planningActions, /export async function calculatePlanningMapRoute/);
   assert.match(planningActions, /ensurePlanningDayRouteContextsFresh/);
   assert.match(planningActions, /addressGeocodedAt:\s+personnelTable\.addressGeocodedAt/);
   assert.match(planningActions, /!row\.routeContextId\s*\|\|\s*addressIsNewer/);
   assert.match(planningActions, /recalculatePlanningRouteContexts\(\{/);
-  assert.match(planningActions, /await ensurePlanningDayRouteContextsFresh\(\{/);
+  assert.match(planningActions, /personnelLat:\s+personnelTable\.addressLatitude/);
+  assert.match(planningActions, /personnelLng:\s+personnelTable\.addressLongitude/);
+  assert.match(planningActions, /const contextOrigin = coordinateFromValues/);
+  assert.match(planningActions, /const personnelOrigin = coordinateFromValues/);
+  assert.match(planningActions, /const origin = contextOrigin \?\? personnelOrigin/);
+  assert.match(planningActions, /getRouteWithCache\(\{/);
+  assert.match(mapDataAction, /Routecontext wordt hier bewust niet meer automatisch berekend/);
+  assert.doesNotMatch(mapDataAction, /await ensurePlanningDayRouteContextsFresh/);
 });
 
 test("object address updates geocode automatically and refresh route contexts", () => {

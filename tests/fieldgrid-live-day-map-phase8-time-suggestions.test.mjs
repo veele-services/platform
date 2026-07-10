@@ -46,7 +46,6 @@ test("phase 8 map drawer requires explicit before-after confirmation", () => {
   assert.match(mapView, /Voorstel/);
   assert.match(mapView, /routeContextCanApply/);
   assert.match(mapView, /canApplySuggestions/);
-  assert.match(mapView, /Alleen planners met schrijfrecht/);
   assert.match(planningPage, /canApplySuggestions=\{canWrite\}/);
   assert.match(mapView, /event\.preventDefault\(\);\s*handleApplySuggestion\(\);/s);
 });
