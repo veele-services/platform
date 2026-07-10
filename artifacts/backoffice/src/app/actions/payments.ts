@@ -71,6 +71,10 @@ function centsToMollieValue(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
+function displayInvoiceNumber(value: string | null | undefined, fallback = "Factuur"): string {
+  return value?.trim() || fallback;
+}
+
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
 export async function getPaymentHistory(invoiceId: string): Promise<PaymentRecord[]> {
@@ -189,13 +193,13 @@ export async function createMolliePayment(
           currency: "EUR",
           value:    centsToMollieValue(amountCents),
         },
-        description: `Factuur ${invoice.invoiceNumber}`,
+        description: `Factuur ${displayInvoiceNumber(invoice.invoiceNumber, invoice.id.slice(0, 8))}`,
         redirectUrl,
         webhookUrl,
         metadata: {
           tenantId,
           invoiceId,
-          invoiceNumber: invoice.invoiceNumber,
+          invoiceNumber: displayInvoiceNumber(invoice.invoiceNumber, invoice.id.slice(0, 8)),
         },
       }),
     });
@@ -387,7 +391,7 @@ export async function listPaymentsForCustomer(
   return rows.map((r) => toPlatformPaymentDiagnosticDto({
     id:              r.id,
     invoiceId:       r.invoiceId,
-    invoiceNumber:   r.invoiceNumber,
+    invoiceNumber:   displayInvoiceNumber(r.invoiceNumber),
     molliePaymentId: r.molliePaymentId,
     amountCents:     r.amountCents,
     currency:        r.currency,

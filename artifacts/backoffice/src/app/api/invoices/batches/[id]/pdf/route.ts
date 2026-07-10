@@ -32,6 +32,10 @@ import {
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+function displayInvoiceNumber(value: string | null | undefined, fallback = "Factuur"): string {
+  return value?.trim() || fallback;
+}
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -148,7 +152,12 @@ export async function GET(
     for (const item of items) {
       y = ensurePdfPage(doc, y, 46);
       doc.roundedRect(L, y, W, 40, 8).fill("#FFFFFF").strokeColor(PDF_BRAND.border).stroke();
-      doc.fillColor(PDF_BRAND.cyan).font("Helvetica-Bold").fontSize(8).text(item.invoiceNumber, L + 10, y + 12, { width: 80 });
+      doc.fillColor(PDF_BRAND.cyan).font("Helvetica-Bold").fontSize(8).text(
+        displayInvoiceNumber(item.invoiceNumber, item.invoiceId.slice(0, 8)),
+        L + 10,
+        y + 12,
+        { width: 80 },
+      );
       doc.fillColor(PDF_BRAND.ink).font("Helvetica-Bold").fontSize(8).text(item.assignmentCode, L + 95, y + 9, { width: 70 });
       doc.fillColor(PDF_BRAND.ink).font("Helvetica").fontSize(8).text(item.assignmentTitle, L + 166, y + 9, { width: 98 });
       doc.fillColor(PDF_BRAND.slate).text(formatPdfDate(item.scheduledDate), R - 190, y + 12, { width: 70 });

@@ -30,6 +30,10 @@ function parseMoney(value: string | null | undefined): number {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+function displayInvoiceNumber(value: string | null | undefined, fallback = "Factuur"): string {
+  return value?.trim() || fallback;
+}
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -148,10 +152,11 @@ export async function GET(
     }),
   ];
   const branding = await getTenantBranding(identity.tenantId);
+  const invoiceNumber = displayInvoiceNumber(invoice.invoiceNumber, invoice.id.slice(0, 8));
 
   const pdfBuffer = await generateCustomerInvoicePdf({
     brandName: branding.displayName,
-    invoiceNumber: invoice.invoiceNumber,
+    invoiceNumber,
     customerName: invoice.customerName ?? identity.customerName,
     customerAddress: invoice.customerAddress ?? null,
     customerPostalCode: invoice.customerPostalCode ?? null,
@@ -173,7 +178,7 @@ export async function GET(
     resource:   "invoices",
     resourceId: invoice.id,
     metadata: {
-      invoiceNumber: invoice.invoiceNumber,
+      invoiceNumber,
       assignmentId:  invoice.assignmentId,
       customerId:    identity.customerId,
       tenantId:      identity.tenantId,
@@ -183,7 +188,7 @@ export async function GET(
   return new NextResponse(new Uint8Array(pdfBuffer), {
     headers: {
       "Content-Type":        "application/pdf",
-      "Content-Disposition": `inline; filename="${sanitizePdfFilename(invoice.invoiceNumber, `factuur-${invoice.id.slice(0, 8)}`)}.pdf"`,
+      "Content-Disposition": `inline; filename="${sanitizePdfFilename(invoiceNumber, `factuur-${invoice.id.slice(0, 8)}`)}.pdf"`,
       "Content-Length":      String(pdfBuffer.byteLength),
     },
   });

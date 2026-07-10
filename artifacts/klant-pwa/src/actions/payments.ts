@@ -68,6 +68,10 @@ function parseAmountCents(value: string | null | undefined): number {
   return Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
 }
 
+function displayInvoiceNumber(value: string | null | undefined, fallback = "Factuur"): string {
+  return value?.trim() || fallback;
+}
+
 async function getAuthenticatedCustomer() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -195,12 +199,12 @@ export async function createCustomerInvoicePayment(invoiceId: string): Promise<A
 
   const payment = await createMolliePaymentRequest({
     amountCents,
-    description: `Factuur ${invoice.invoiceNumber}`,
+    description: `Factuur ${displayInvoiceNumber(invoice.invoiceNumber, invoice.id.slice(0, 8))}`,
     redirectUrl: `${getBaseUrl()}/klant/betalingen/succes?invoice=${invoice.id}`,
     metadata: {
       type:          "invoice",
       invoiceId:     invoice.id,
-      invoiceNumber: invoice.invoiceNumber,
+      invoiceNumber: displayInvoiceNumber(invoice.invoiceNumber, invoice.id.slice(0, 8)),
       customerId:    auth.customerId,
       tenantId:      auth.tenantId,
     },
@@ -376,7 +380,7 @@ export async function getMyPayments(): Promise<CustomerPaymentRecord[]> {
   return rows.map((row) => ({
     id:              row.id,
     invoiceId:       row.invoiceId,
-    invoiceNumber:   row.invoiceNumber,
+    invoiceNumber:   displayInvoiceNumber(row.invoiceNumber, row.invoiceId.slice(0, 8)),
     molliePaymentId: row.molliePaymentId,
     amountCents:     row.amountCents,
     currency:        row.currency,
@@ -438,7 +442,7 @@ export async function getMyPaymentBatches(): Promise<CustomerPaymentBatchRecord[
     const list = itemsByBatch.get(item.batchId) ?? [];
     list.push({
       id:            item.invoiceId,
-      invoiceNumber: item.invoiceNumber,
+      invoiceNumber: displayInvoiceNumber(item.invoiceNumber, item.invoiceId.slice(0, 8)),
       totalAmount:   item.totalAmount,
     });
     itemsByBatch.set(item.batchId, list);

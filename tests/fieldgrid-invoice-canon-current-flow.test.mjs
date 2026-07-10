@@ -88,7 +88,8 @@ test("current invoice email and Mollie flows stay behind sent invoices", () => {
   assert.match(mollie, /invoice\.status !== "sent"/u);
   assert.match(mollie, /fetch\("https:\/\/api\.mollie\.com\/v2\/payments"/u);
   assert.match(mollie, /tenantId,/u);
-  assert.match(mollie, /invoiceNumber: invoice\.invoiceNumber/u);
+  assert.match(mollie, /description: `Factuur \$\{displayInvoiceNumber\(invoice\.invoiceNumber, invoice\.id\.slice\(0, 8\)\)\}`/u);
+  assert.match(mollie, /invoiceNumber: displayInvoiceNumber\(invoice\.invoiceNumber, invoice\.id\.slice\(0, 8\)\)/u);
   assert.match(mollie, /db\.insert\(paymentsTable\)\.values/u);
   assert.match(mollie, /action:\s+"create_mollie_payment"/u);
 });

@@ -48,6 +48,10 @@ function csvCell(value: string | number | null | undefined): string {
   return text;
 }
 
+function displayInvoiceNumber(value: string | null | undefined, fallback = "Concept"): string {
+  return value?.trim() || fallback;
+}
+
 function exportStamp(): string {
   const now = new Date();
   return `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, "0")}${String(now.getDate()).padStart(2, "0")}`;
@@ -281,7 +285,7 @@ export async function listInvoices(params: {
   return {
     rows: rows.map((r) => ({
       id:             r.id,
-      invoiceNumber:  r.invoiceNumber,
+      invoiceNumber:  displayInvoiceNumber(r.invoiceNumber),
       customerId:     r.customerId,
       customerName:   r.customerName ?? "",
       assignmentId:   r.assignmentId,
@@ -454,7 +458,7 @@ export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
   const detail: InvoiceDetail = {
     id:                 row.id,
     brandName:          branding.displayName,
-    invoiceNumber:      row.invoiceNumber,
+    invoiceNumber:      displayInvoiceNumber(row.invoiceNumber, `Factuur-${row.id.slice(0, 8)}`),
     customerId:         row.customerId,
     customerName:       row.customerName ?? "",
     customerAddress:    row.customerAddress ?? null,
@@ -598,7 +602,7 @@ export async function sendPaymentReminders(): Promise<ActionResult<SendReminders
 
     const { subject, html } = buildPaymentReminderEmail({
       customerName:  row.customerName ?? "",
-      invoiceNumber: row.invoiceNumber,
+      invoiceNumber: displayInvoiceNumber(row.invoiceNumber, `Factuur-${row.id.slice(0, 8)}`),
       totalAmount:   row.totalAmount ?? "0",
       dueDate:       dueDateFormatted,
     });
@@ -743,7 +747,7 @@ export async function listCollectiveInvoiceCandidates(): Promise<{
       .filter((row) => !lockedInvoiceIds.has(row.id))
       .map((row) => ({
         id:             row.id,
-        invoiceNumber:  row.invoiceNumber,
+        invoiceNumber:  displayInvoiceNumber(row.invoiceNumber, `Factuur-${row.id.slice(0, 8)}`),
         assignmentId:   row.assignmentId,
         assignmentCode: row.assignmentCode,
         customerId:     row.customerId,
@@ -1362,7 +1366,7 @@ export async function getInvoiceForAssignment(assignmentId: string): Promise<Inv
 
   return {
     id:             row.id,
-    invoiceNumber:  row.invoiceNumber,
+    invoiceNumber:  displayInvoiceNumber(row.invoiceNumber),
     customerId:     row.customerId,
     customerName:   row.customerName ?? "",
     assignmentId:   row.assignmentId,
@@ -1414,7 +1418,7 @@ export async function listInvoicesForCustomer(
 
   return rows.map((r) => ({
     id:             r.id,
-    invoiceNumber:  r.invoiceNumber,
+    invoiceNumber:  displayInvoiceNumber(r.invoiceNumber),
     customerId:     r.customerId,
     customerName:   r.customerName ?? "",
     assignmentId:   r.assignmentId,
