@@ -3333,6 +3333,7 @@ export async function updateAssignment(
 export async function setAssignmentStatus(
   id: string,
   newStatus: AssignmentStatus,
+  options?: { allowAny?: boolean },
 ): Promise<ActionResult> {
   await requirePermission("assignments", "write");
   const tenantId = await requireCurrentTenantId();
@@ -3351,10 +3352,12 @@ export async function setAssignmentStatus(
     .limit(1);
 
   if (!current) return { success: false, message: "Opdracht niet gevonden." };
+  if (!ASSIGNMENT_STATUSES.includes(newStatus)) {
+    return { success: false, message: "Onbekende opdrachtstatus." };
+  }
 
-  const allowed =
-    ASSIGNMENT_STATUS_TRANSITIONS[current.status as AssignmentStatus];
-  if (!allowed.includes(newStatus)) {
+  const allowed = ASSIGNMENT_STATUS_TRANSITIONS[current.status as AssignmentStatus];
+  if (!options?.allowAny && !allowed.includes(newStatus)) {
     return {
       success: false,
       message: `Statuswijziging van "${current.status}" naar "${newStatus}" is niet toegestaan.`,
@@ -3368,10 +3371,10 @@ export async function setAssignmentStatus(
 
   await db.insert(auditLogTable).values({
     userId: user.id,
-    action: "status_change",
+    action: options?.allowAny ? "status_override" : "status_change",
     resource: "assignments",
     resourceId: id,
-    metadata: { from: current.status, to: newStatus, title: current.title },
+    metadata: { from: current.status, to: newStatus, title: current.title, allowAny: Boolean(options?.allowAny) },
   });
 
   const routeRefreshReason = ROUTE_REFRESH_STATUS_REASONS[newStatus];

@@ -101,3 +101,26 @@ test("assignment task options and mutations are scoped to the current tenant", (
   assert.match(removeBody, /const tenantId = await requireCurrentTenantId\(\)/u);
   assert.match(removeBody, /eq\(assignmentsTable\.tenantId,\s*tenantId\)/u);
 });
+
+test("assignment detail status ellipsis opens an all-status dropdown with confirmation", () => {
+  const page = read("artifacts/backoffice/src/app/(dashboard)/assignments/[id]/page.tsx");
+  const component = read("artifacts/backoffice/src/components/assignments/AssignmentStatusStepper.tsx");
+  const assignments = read("artifacts/backoffice/src/app/actions/assignments.ts");
+  const statusBody = functionBody(assignments, "setAssignmentStatus");
+
+  assert.match(page, /AssignmentStatusStepper/u);
+  assert.match(page, /assignmentId=\{assignment\.id\}/u);
+  assert.match(page, /canWrite=\{canWrite\}/u);
+  assert.match(component, /DropdownMenuTrigger/u);
+  assert.match(component, /DropdownMenuContent/u);
+  assert.match(component, /max-h-72/u);
+  assert.match(component, /overflow-y-auto/u);
+  assert.match(component, /const allStatuses = useMemo/u);
+  assert.match(component, /statuses=\{allStatuses\}/u);
+  assert.match(component, /AlertDialogTitle>Status wijzigen\?/u);
+  assert.match(component, /allowAny:\s*true/u);
+  assert.match(statusBody, /options\?: \{ allowAny\?: boolean \}/u);
+  assert.match(statusBody, /ASSIGNMENT_STATUSES\.includes\(newStatus\)/u);
+  assert.match(statusBody, /!options\?\.allowAny && !allowed\.includes\(newStatus\)/u);
+  assert.match(statusBody, /status_override/u);
+});
