@@ -126,6 +126,18 @@ export type CustomerFormInput = {
   accountManagerId?: string;
   notes?: string;
   invitePortal?: boolean;
+  googlePlace?: {
+    googlePlaceId: string;
+    formattedAddress: string | null;
+    addressLine1: string | null;
+    addressLine2: string | null;
+    postalCode: string | null;
+    city: string | null;
+    stateOrRegion: string | null;
+    countryCode: string;
+    latitude: number | null;
+    longitude: number | null;
+  };
 };
 
 export type ActionResult<T = undefined> =
@@ -246,6 +258,46 @@ function geocodingResetForAddress(input: GeocodeAddressInput) {
   };
 }
 
+function coordinateString(value: number): string {
+  return value.toFixed(6);
+}
+
+function googlePlaceGeocodingPatch(
+  input: GeocodeAddressInput & { googlePlace?: CustomerFormInput["googlePlace"] },
+) {
+  if (!input.googlePlace?.googlePlaceId) return null;
+  return {
+    addressLine1: input.googlePlace.addressLine1 ?? input.address,
+    addressLine2: input.googlePlace.addressLine2,
+    stateOrRegion: input.googlePlace.stateOrRegion,
+    countryCode: input.googlePlace.countryCode,
+    formattedAddress: input.googlePlace.formattedAddress,
+    googlePlaceId: input.googlePlace.googlePlaceId,
+    locationSource: "google_places",
+    locationVerifiedAt: new Date(),
+    locationUpdatedAt: new Date(),
+    latitude: input.googlePlace.latitude != null ? coordinateString(input.googlePlace.latitude) : null,
+    longitude: input.googlePlace.longitude != null ? coordinateString(input.googlePlace.longitude) : null,
+    geocodedAt: input.googlePlace.latitude != null && input.googlePlace.longitude != null ? new Date() : null,
+    geocodingProvider: "google_places",
+    geocodingStatus: input.googlePlace.latitude != null && input.googlePlace.longitude != null ? "geocoded" : "not_required",
+    geocodingConfidence: input.googlePlace.latitude != null && input.googlePlace.longitude != null ? "1.00" : null,
+    geocodingError: null,
+  };
+}
+
+function googlePlaceMatchesAddress(
+  input: GeocodeAddressInput,
+  googlePlace: CustomerFormInput["googlePlace"],
+): googlePlace is NonNullable<CustomerFormInput["googlePlace"]> {
+  if (!googlePlace?.googlePlaceId) return false;
+  return (
+    normalizeLocationPart(googlePlace.addressLine1) === normalizeLocationPart(input.address) &&
+    normalizeLocationPart(googlePlace.postalCode) === normalizeLocationPart(input.postalCode) &&
+    normalizeLocationPart(googlePlace.city) === normalizeLocationPart(input.city)
+  );
+}
+
 function locationChanged(
   existing: GeocodeAddressInput,
   next: GeocodeAddressInput,
@@ -256,10 +308,6 @@ function locationChanged(
     normalizeLocationPart(existing.city) !== normalizeLocationPart(next.city) ||
     normalizeLocationPart(existing.country) !== normalizeLocationPart(next.country)
   );
-}
-
-function coordinateString(value: number): string {
-  return value.toFixed(6);
 }
 
 function confidenceString(value: number): string {
@@ -1449,7 +1497,9 @@ export async function createCustomer(
   }
 
   try {
-    const geocodingState = geocodingResetForAddress(payload);
+    const googlePlace = googlePlaceMatchesAddress(payload, data.googlePlace) ? data.googlePlace : undefined;
+    const geocodingState = googlePlaceGeocodingPatch({ ...payload, googlePlace })
+      ?? geocodingResetForAddress(payload);
     const [created] = await db
       .insert(customersTable)
       .values({ ...parsed.data, ...geocodingState, tenantId })
@@ -1582,8 +1632,9 @@ export async function updateCustomer(
     if (!existing) return { success: false, message: "Klant niet gevonden." };
 
     const shouldResetGeocoding = locationChanged(existing, payload);
+    const googlePlace = googlePlaceMatchesAddress(payload, data.googlePlace) ? data.googlePlace : undefined;
     const geocodingState = shouldResetGeocoding
-      ? geocodingResetForAddress(payload)
+      ? (googlePlaceGeocodingPatch({ ...payload, googlePlace }) ?? geocodingResetForAddress(payload))
       : {};
 
     await db

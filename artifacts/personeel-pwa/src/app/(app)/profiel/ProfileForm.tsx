@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import type { HTMLAttributes, ReactNode } from "react";
 import { Home, MapPin, Phone, User } from "lucide-react";
 import {
@@ -11,6 +11,7 @@ import {
   PersonnelSettingsFeedback,
   PersonnelSettingsSaveBar,
 } from "@/components/SettingsShell";
+import { AddressAutocomplete, type AddressAutocompleteSelection } from "@/components/google-maps/AddressAutocomplete";
 
 export function ProfileForm({ profile }: { profile: PersonnelProfile }) {
   const [state, formAction, isPending] = useActionState(
@@ -21,89 +22,14 @@ export function ProfileForm({ profile }: { profile: PersonnelProfile }) {
   const [addressPostalCode, setAddressPostalCode] = useState(profile.addressPostalCode ?? "");
   const [addressCity, setAddressCity] = useState(profile.addressCity ?? "");
   const [addressCountry, setAddressCountry] = useState(profile.addressCountry);
-  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
-  const [addressLoading, setAddressLoading] = useState(false);
-  const [addressSessionToken, setAddressSessionToken] = useState(createPlacesSessionToken);
   const [selectedGooglePlace, setSelectedGooglePlace] = useState<SelectedGooglePlace | null>(null);
 
-  useEffect(() => {
-    const query = [addressStreet, addressPostalCode, addressCity]
-      .map((value) => value.trim())
-      .filter(Boolean)
-      .join(" ");
-
-    if (query.length < 3) {
-      setAddressSuggestions([]);
-      setAddressLoading(false);
-      return;
-    }
-
-    const controller = new AbortController();
-    const timeout = window.setTimeout(async () => {
-      setAddressLoading(true);
-      try {
-        const response = await fetch("/personeel/api/google-maps/places/autocomplete", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ input: query, sessionToken: addressSessionToken, limit: 6 }),
-          signal: controller.signal,
-        });
-        if (!response.ok) {
-          setAddressSuggestions([]);
-          return;
-        }
-        const payload = (await response.json()) as { suggestions?: AddressSuggestion[] };
-        setAddressSuggestions(payload.suggestions ?? []);
-      } catch (error) {
-        if (!(error instanceof DOMException && error.name === "AbortError")) {
-          setAddressSuggestions([]);
-        }
-      } finally {
-        setAddressLoading(false);
-      }
-    }, 350);
-
-    return () => {
-      controller.abort();
-      window.clearTimeout(timeout);
-    };
-  }, [addressStreet, addressPostalCode, addressCity, addressSessionToken]);
-
-  async function selectAddressSuggestion(suggestion: AddressSuggestion) {
-    if (!suggestion.placeId) {
-      setAddressStreet(suggestion.street ?? "");
-      setAddressPostalCode(suggestion.postalCode ?? "");
-      setAddressCity(suggestion.city ?? "");
-      setAddressCountry(suggestion.country);
-      setSelectedGooglePlace(null);
-      setAddressSuggestions([]);
-      setAddressSessionToken(createPlacesSessionToken());
-      return;
-    }
-
-    setAddressLoading(true);
-    try {
-      const response = await fetch("/personeel/api/google-maps/places/details", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          placeId: suggestion.placeId,
-          sessionToken: addressSessionToken,
-        }),
-      });
-      if (!response.ok) return;
-      const payload = (await response.json()) as { place?: SelectedGooglePlace };
-      if (!payload.place) return;
-      setAddressStreet(payload.place.addressLine1 ?? suggestion.mainText ?? suggestion.label);
-      setAddressPostalCode(payload.place.postalCode ?? "");
-      setAddressCity(payload.place.city ?? "");
-      setAddressCountry(payload.place.countryCode === "NL" ? "Nederland" : payload.place.countryCode);
-      setSelectedGooglePlace(payload.place);
-      setAddressSuggestions([]);
-      setAddressSessionToken(createPlacesSessionToken());
-    } finally {
-      setAddressLoading(false);
-    }
+  function applyAddressSelection({ suggestion, place }: AddressAutocompleteSelection) {
+    setAddressStreet(place.addressLine1 ?? suggestion.mainText ?? suggestion.label);
+    setAddressPostalCode(place.postalCode ?? "");
+    setAddressCity(place.city ?? "");
+    setAddressCountry(place.countryCode === "NL" ? "Nederland" : place.countryCode);
+    setSelectedGooglePlace(place);
   }
 
   const googlePlaceStillMatches = selectedGooglePlace && (
@@ -180,13 +106,9 @@ export function ProfileForm({ profile }: { profile: PersonnelProfile }) {
               Dit adres wordt gebruikt als vertrekpunt voor je eerste werkbon.
             </p>
           </div>
-          {addressLoading ? (
-            <span className="shrink-0 rounded-full bg-white px-2 py-1 text-xs font-black text-[#009E9A] shadow-sm">
-              Zoeken...
-            </span>
-          ) : null}
         </div>
         <div className="space-y-3">
+          <AddressAutocomplete onSelect={applyAddressSelection} />
           <TextField
             label="Straat en huisnummer"
             name="addressStreet"
@@ -219,30 +141,6 @@ export function ProfileForm({ profile }: { profile: PersonnelProfile }) {
             autoComplete="country-name"
           />
         </div>
-        {addressSuggestions.length > 0 ? (
-          <div className="mt-3 overflow-hidden rounded-2xl border border-[#D8E8F3] bg-white">
-            <p className="border-b border-[#E2E8F0] px-3 py-2 text-xs font-black uppercase tracking-wide text-slate-400">
-              Adres aanvullen
-            </p>
-            <div className="max-h-52 overflow-y-auto p-1">
-              {addressSuggestions.map((suggestion) => (
-                <button
-                  key={suggestion.id}
-                  type="button"
-                  className="block w-full rounded-xl px-3 py-2 text-left active:bg-[#E8FBFA]"
-                  onClick={() => { void selectAddressSuggestion(suggestion); }}
-                >
-                  <span className="block text-sm font-black text-[#081D3A]">
-                    {suggestion.mainText ?? suggestion.label}
-                  </span>
-                  <span className="text-xs font-bold text-slate-500">
-                    {suggestion.secondaryText ?? "Google Places"}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
       </div>
 
       {state?.error ? (
@@ -303,19 +201,6 @@ function TextField({
   );
 }
 
-type AddressSuggestion = {
-  id: string;
-  placeId?: string;
-  label: string;
-  mainText?: string;
-  secondaryText?: string | null;
-  street: string | null;
-  postalCode: string | null;
-  city: string | null;
-  country: string;
-  confidence: number;
-};
-
 type SelectedGooglePlace = {
   googlePlaceId: string;
   formattedAddress: string | null;
@@ -328,7 +213,3 @@ type SelectedGooglePlace = {
   latitude: number | null;
   longitude: number | null;
 };
-
-function createPlacesSessionToken(): string {
-  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
-}

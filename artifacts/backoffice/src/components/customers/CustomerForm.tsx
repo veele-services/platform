@@ -18,6 +18,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { AddressAutocomplete, type AddressAutocompleteSelection } from "@/components/google-maps/AddressAutocomplete";
 import {
   getCustomer,
   createCustomer,
@@ -56,6 +57,19 @@ const customerFormSchema = z.object({
 });
 
 type FormValues = z.infer<typeof customerFormSchema>;
+
+type SelectedGooglePlace = {
+  googlePlaceId: string;
+  formattedAddress: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  postalCode: string | null;
+  city: string | null;
+  stateOrRegion: string | null;
+  countryCode: string;
+  latitude: number | null;
+  longitude: number | null;
+};
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -106,6 +120,7 @@ export function CustomerForm({
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [invitePortal, setInvitePortal] = useState(false);
   const [invitePortalTouched, setInvitePortalTouched] = useState(false);
+  const [selectedGooglePlace, setSelectedGooglePlace] = useState<SelectedGooglePlace | null>(null);
 
   const form = useForm<FormValues>({ defaultValues: DEFAULTS });
   const {
@@ -164,6 +179,14 @@ export function CustomerForm({
     });
   }, [mode, customerId, setValue]);
 
+  function applyAddressSelection({ suggestion, place }: AddressAutocompleteSelection) {
+    setValue("address", place.addressLine1 ?? suggestion.mainText ?? suggestion.label);
+    setValue("postalCode", place.postalCode ?? "");
+    setValue("city", place.city ?? "");
+    setValue("country", place.countryCode || "NL");
+    setSelectedGooglePlace(place);
+  }
+
   const onSubmit = handleSubmit((data) => {
     const parsed = customerFormSchema.safeParse(data);
     if (!parsed.success) {
@@ -175,12 +198,18 @@ export function CustomerForm({
     }
 
     startTransition(async () => {
+      const googlePlaceStillMatches = selectedGooglePlace && (
+        (selectedGooglePlace.addressLine1 ?? "") === (parsed.data.address || "") &&
+        (selectedGooglePlace.postalCode ?? "") === (parsed.data.postalCode || "") &&
+        (selectedGooglePlace.city ?? "") === (parsed.data.city || "")
+      );
       const input: CustomerFormInput = {
         ...parsed.data,
         sectorId:        parsed.data.sectorId        === "NONE" ? undefined : parsed.data.sectorId        || undefined,
         customerTypeId:  parsed.data.customerTypeId  === "NONE" ? undefined : parsed.data.customerTypeId  || undefined,
         accountManagerId: parsed.data.accountManagerId === "NONE" ? undefined : parsed.data.accountManagerId || undefined,
         invitePortal:    mode === "create" ? invitePortal : undefined,
+        googlePlace:     googlePlaceStillMatches ? selectedGooglePlace : undefined,
       };
 
       const result =
@@ -417,6 +446,13 @@ export function CustomerForm({
           Adres
         </p>
         <div className="grid grid-cols-2 gap-3">
+          <div className="col-span-2">
+            <AddressAutocomplete
+              label="Adres zoeken"
+              description="Kies een adres om de velden automatisch te vullen."
+              onSelect={applyAddressSelection}
+            />
+          </div>
           <div className="col-span-2 space-y-1">
             <Label htmlFor="address">Straat &amp; Huisnummer</Label>
             <Input id="address" {...register("address")} placeholder="Hoofdstraat 1" />

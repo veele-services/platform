@@ -1,6 +1,6 @@
 "use client";
 
-import { useActionState, useEffect } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { AlertTriangle, Building2, Check, KeyRound, Loader2, MapPin, ShieldCheck, UserRound } from "lucide-react";
@@ -11,6 +11,7 @@ import {
   type CustomerSectorOption,
   type ObjectMutationState,
 } from "@/actions/objects";
+import { AddressAutocomplete, type AddressAutocompleteSelection } from "@/components/google-maps/AddressAutocomplete";
 
 const INITIAL_STATE: ObjectMutationState = { success: false, error: "" };
 
@@ -150,6 +151,8 @@ export function CustomerObjectForm({ mode, sectors, object }: Props) {
     action,
     INITIAL_STATE,
   );
+  const formRef = useRef<HTMLFormElement>(null);
+  const [selectedGooglePlace, setSelectedGooglePlace] = useState<SelectedGooglePlace | null>(null);
 
   useEffect(() => {
     if (!state.success) return;
@@ -164,8 +167,32 @@ export function CustomerObjectForm({ mode, sectors, object }: Props) {
 
   const errors = state.success ? undefined : state.fieldErrors;
 
+  function applyAddressSelection({ suggestion, place }: AddressAutocompleteSelection) {
+    setSelectedGooglePlace(place);
+    const address = formRef.current?.querySelector<HTMLInputElement>('input[name="address"]');
+    const postalCode = formRef.current?.querySelector<HTMLInputElement>('input[name="postalCode"]');
+    const city = formRef.current?.querySelector<HTMLInputElement>('input[name="city"]');
+    if (address) address.value = place.addressLine1 ?? suggestion.mainText ?? suggestion.label;
+    if (postalCode) postalCode.value = place.postalCode ?? "";
+    if (city) city.value = place.city ?? "";
+  }
+
   return (
-    <form action={formAction} className="space-y-4">
+    <form ref={formRef} action={formAction} className="space-y-4">
+      {selectedGooglePlace ? (
+        <>
+          <input type="hidden" name="googlePlaceId" value={selectedGooglePlace.googlePlaceId} />
+          <input type="hidden" name="googleFormattedAddress" value={selectedGooglePlace.formattedAddress ?? ""} />
+          <input type="hidden" name="googleAddressLine1" value={selectedGooglePlace.addressLine1 ?? ""} />
+          <input type="hidden" name="googleAddressLine2" value={selectedGooglePlace.addressLine2 ?? ""} />
+          <input type="hidden" name="googlePostalCode" value={selectedGooglePlace.postalCode ?? ""} />
+          <input type="hidden" name="googleCity" value={selectedGooglePlace.city ?? ""} />
+          <input type="hidden" name="googleStateOrRegion" value={selectedGooglePlace.stateOrRegion ?? ""} />
+          <input type="hidden" name="googleCountryCode" value={selectedGooglePlace.countryCode} />
+          <input type="hidden" name="googleLatitude" value={selectedGooglePlace.latitude ?? ""} />
+          <input type="hidden" name="googleLongitude" value={selectedGooglePlace.longitude ?? ""} />
+        </>
+      ) : null}
       {mode === "create" ? (
         <Section
           icon={<ShieldCheck size={20} />}
@@ -275,6 +302,9 @@ export function CustomerObjectForm({ mode, sectors, object }: Props) {
         title="Adresgegevens"
         description="Volledig bezoekadres zodat planning, personeel en rapportage hetzelfde object gebruiken."
       >
+        <div className="mb-4">
+          <AddressAutocomplete onSelect={applyAddressSelection} />
+        </div>
         <div className="grid gap-4 md:grid-cols-[1.4fr_0.6fr_1fr]">
           <Field
             label="Adres"
@@ -445,3 +475,16 @@ export function CustomerObjectForm({ mode, sectors, object }: Props) {
     </form>
   );
 }
+
+type SelectedGooglePlace = {
+  googlePlaceId: string;
+  formattedAddress: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  postalCode: string | null;
+  city: string | null;
+  stateOrRegion: string | null;
+  countryCode: string;
+  latitude: number | null;
+  longitude: number | null;
+};

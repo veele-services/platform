@@ -54,21 +54,30 @@ test("Places API New clients use server-side endpoints, minimum field masks and 
 });
 
 test("Address forms use autocomplete while typing and Place Details only after selection", () => {
+  const backofficeComponent = read("artifacts/backoffice/src/components/google-maps/AddressAutocomplete.tsx");
+  const personnelComponent = read("artifacts/personeel-pwa/src/components/google-maps/AddressAutocomplete.tsx");
+  const customerComponent = read("artifacts/klant-pwa/src/components/google-maps/AddressAutocomplete.tsx");
   const personnelForm = read("artifacts/backoffice/src/components/personnel/PersonnelForm.tsx");
   const objectForm = read("artifacts/backoffice/src/components/objects/ObjectForm.tsx");
+  const customerForm = read("artifacts/backoffice/src/components/customers/CustomerForm.tsx");
   const pwaProfileForm = read("artifacts/personeel-pwa/src/app/(app)/profiel/ProfileForm.tsx");
+  const customerObjectForm = read("artifacts/klant-pwa/src/components/CustomerObjectForm.tsx");
 
-  for (const form of [personnelForm, objectForm, pwaProfileForm]) {
-    assert.match(form, /sessionToken/);
-    assert.match(form, /places\/autocomplete/);
-    assert.match(form, /places\/details/);
-    assert.match(form, /query\.length < 3/);
-    assert.match(form, /setTimeout\(async \(\) =>/);
-    assert.match(form, /AbortController/);
-    assert.match(form, /selectAddressSuggestion/);
-    assert.match(form, /googlePlaceId/);
-    const effectBlock = form.match(/useEffect\(\(\) => \{[\s\S]*?return \(\) => \{/u)?.[0] ?? "";
+  for (const component of [backofficeComponent, personnelComponent, customerComponent]) {
+    assert.match(component, /sessionToken/);
+    assert.match(component, /endpointBase[^]*\/autocomplete/);
+    assert.match(component, /endpointBase[^]*\/details/);
+    assert.match(component, /trimmed\.length < 3/);
+    assert.match(component, /setTimeout\(async \(\) =>/);
+    assert.match(component, /AbortController/);
+    assert.match(component, /selectSuggestion/);
+    const effectBlock = component.match(/useEffect\(\(\) => \{[\s\S]*?return \(\) => \{/u)?.[0] ?? "";
     assert.doesNotMatch(effectBlock, /places\/details/);
+  }
+
+  for (const form of [personnelForm, objectForm, customerForm, pwaProfileForm, customerObjectForm]) {
+    assert.match(form, /AddressAutocomplete/);
+    assert.match(form, /googlePlaceId/);
   }
 });
 

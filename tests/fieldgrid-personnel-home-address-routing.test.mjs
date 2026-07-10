@@ -27,6 +27,8 @@ test("personnel home address geocoding is persisted and route-aware", () => {
 test("backoffice and personnel PWA offer secured address autocomplete", () => {
   const backofficeRoute = read("artifacts/backoffice/src/app/api/address-suggestions/route.ts");
   const personnelRoute = read("artifacts/personeel-pwa/src/app/api/address-suggestions/route.ts");
+  const backofficeAutocomplete = read("artifacts/backoffice/src/components/google-maps/AddressAutocomplete.tsx");
+  const personnelAutocomplete = read("artifacts/personeel-pwa/src/components/google-maps/AddressAutocomplete.tsx");
   const backofficeForm = read("artifacts/backoffice/src/components/personnel/PersonnelForm.tsx");
   const objectForm = read("artifacts/backoffice/src/components/objects/ObjectForm.tsx");
   const personnelForm = read("artifacts/personeel-pwa/src/app/(app)/profiel/ProfileForm.tsx");
@@ -36,13 +38,13 @@ test("backoffice and personnel PWA offer secured address autocomplete", () => {
   assert.match(backofficeRoute, /fetchGooglePlacesAutocomplete/);
   assert.match(personnelRoute, /getMyPersonnel\(\)/);
   assert.match(personnelRoute, /fetchGooglePlacesAutocomplete/);
-  assert.match(backofficeForm, /\/api\/google-maps\/places\/autocomplete/);
-  assert.match(backofficeForm, /absolute left-3 right-3/);
-  assert.match(backofficeForm, /z-\[80\]/);
-  assert.match(objectForm, /\/api\/google-maps\/places\/autocomplete/);
+  assert.match(backofficeAutocomplete, /\/api\/google-maps\/places/);
+  assert.match(backofficeAutocomplete, /z-\[80\]/);
+  assert.match(personnelAutocomplete, /\/personeel\/api\/google-maps\/places/);
+  assert.match(backofficeForm, /AddressAutocomplete/);
+  assert.match(objectForm, /AddressAutocomplete/);
   assert.match(objectForm, /Objectadres/);
-  assert.match(objectForm, /\/api\/google-maps\/places\/details/);
-  assert.match(personnelForm, /\/personeel\/api\/google-maps\/places\/autocomplete/);
+  assert.match(personnelForm, /AddressAutocomplete/);
   assert.match(personnelForm, /Dit adres wordt gebruikt als vertrekpunt voor je eerste werkbon/);
 });
 
