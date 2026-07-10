@@ -70,12 +70,12 @@ test("Sprint 2 claim is transaction safe and tenant scoped", () => {
 });
 
 test("Sprint 2 marks invoices as sent only after claiming an official number", () => {
-  assert.match(invoiceActions, /claimOfficialInvoiceNumber/u);
-  assert.match(invoiceActions, /const claimed = await claimOfficialInvoiceNumber\(\{ invoiceId, tenantId \}\)/u);
+  assert.match(invoiceActions, /finalizeOfficialInvoice/u);
+  assert.match(invoiceActions, /const finalized = await finalizeOfficialInvoice\(\{ invoiceId, tenantId, actorUserId: user\.id \}\)/u);
   assert.ok(
-    invoiceActions.indexOf("claimOfficialInvoiceNumber({ invoiceId, tenantId })") <
+    invoiceActions.indexOf("finalizeOfficialInvoice({ invoiceId, tenantId, actorUserId: user.id })") <
       invoiceActions.indexOf(".set({ status: \"sent\", updatedAt: new Date() })"),
-    "official number should be claimed before the invoice becomes sent",
+    "official number should be finalized before the invoice becomes sent",
   );
   assert.match(invoiceActions, /metadata:\s+\{ assignmentId: invoice\.assignmentId, invoiceNumber: claimedInvoiceNumber \}/u);
 });

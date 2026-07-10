@@ -11,7 +11,7 @@ import {
   objectsTable,
   paymentsTable,
   auditLogTable,
-  claimOfficialInvoiceNumber,
+  finalizeOfficialInvoice,
   ASSIGNMENT_STATUS_TRANSITIONS,
   type AssignmentStatus,
   type InvoiceStatus,
@@ -1149,12 +1149,12 @@ export async function markInvoiceSent(invoiceId: string): Promise<ActionResult> 
   const tenantId = await requireCurrentTenantId();
   let claimedInvoiceNumber: string;
   try {
-    const claimed = await claimOfficialInvoiceNumber({ invoiceId, tenantId });
-    claimedInvoiceNumber = claimed.invoiceNumber;
+    const finalized = await finalizeOfficialInvoice({ invoiceId, tenantId, actorUserId: user.id });
+    claimedInvoiceNumber = finalized.invoiceNumber;
   } catch (error) {
     return {
       success: false,
-      message: error instanceof Error ? error.message : "Factuurnummer claimen mislukt.",
+      message: error instanceof Error ? error.message : "Factuur finaliseren mislukt.",
     };
   }
 
