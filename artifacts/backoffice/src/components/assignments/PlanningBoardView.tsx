@@ -1320,7 +1320,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
             ) : (
               <div
                 ref={boardScrollRef}
-                className="max-h-[calc(100vh-300px)] min-h-[420px] max-w-full overflow-auto overscroll-contain"
+                className="h-[calc(100vh-300px)] min-h-[420px] max-w-full overflow-auto overscroll-contain"
                 style={{ opacity: isPending ? 0.82 : 1 }}
               >
                 <div style={{ width: BOARD_WIDTH, minWidth: "100%" }}>
