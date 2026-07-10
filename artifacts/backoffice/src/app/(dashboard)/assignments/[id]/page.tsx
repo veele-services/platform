@@ -31,6 +31,7 @@ import {
   AssignmentDetailActions,
   AssignmentTaskManager,
 } from "@/components/assignments/AssignmentDetailActions";
+import { AssignmentStatusStepper } from "@/components/assignments/AssignmentStatusStepper";
 import {
   getAssignment,
   getAssignmentPlanningReadiness,
@@ -915,7 +916,13 @@ export default async function AssignmentDetailPage({ params, searchParams }: Pro
             </div>
           </dl>
         }
-        summary={<ProcessStepper kind="assignment" status={assignment.status} />}
+        summary={
+          <AssignmentStatusStepper
+            assignmentId={assignment.id}
+            status={assignment.status}
+            canWrite={canWrite}
+          />
+        }
       />
 
       <TenantDetailSectionNav
