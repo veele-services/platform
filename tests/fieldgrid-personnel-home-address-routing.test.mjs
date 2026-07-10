@@ -91,7 +91,8 @@ test("planning map uses personnel home address only after explicit route request
   assert.match(planningActions, /personnelLng:\s+personnelTable\.addressLongitude/);
   assert.match(planningActions, /const contextOrigin = coordinateFromValues/);
   assert.match(planningActions, /const personnelOrigin = coordinateFromValues/);
-  assert.match(planningActions, /const origin = contextOrigin \?\? personnelOrigin/);
+  assert.match(planningActions, /const firstStopUsesHome = !row\.routePreviousAssignmentId/);
+  assert.match(planningActions, /firstStopUsesHome\s*\?\s*personnelOrigin \?\? contextOrigin\s*:\s*contextOrigin \?\? personnelOrigin/);
   assert.match(planningActions, /getRouteWithCache\(\{/);
   assert.match(mapDataAction, /Routecontext wordt hier bewust niet meer automatisch berekend/);
   assert.doesNotMatch(mapDataAction, /await ensurePlanningDayRouteContextsFresh/);

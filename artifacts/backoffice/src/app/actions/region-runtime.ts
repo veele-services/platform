@@ -169,6 +169,7 @@ export async function listPersonnelRegionAware(params: {
         sectorId: personnelTable.sectorId,
         sectorName: sectorsTable.name,
         region: personnelTable.region,
+        vehicleType: personnelTable.vehicleType,
         certificates: personnelTable.certificates,
         isActive: personnelTable.isActive,
         isAvailable: personnelTable.isAvailable,

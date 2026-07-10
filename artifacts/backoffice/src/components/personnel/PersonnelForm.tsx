@@ -62,6 +62,7 @@ const personnelFormSchema = z.object({
   roleId:             z.string(),
   sectorId:           z.string(),
   region:             z.string().max(100, "Max 100 tekens"),
+  vehicleType:        z.enum(["DRIVE", "BICYCLE", "WALK", "TRANSIT"]),
   contractStartDate:  z.string(),
   contractEndDate:    z.string(),
   contractType:       z.string().max(100, "Max 100 tekens"),
@@ -82,6 +83,13 @@ type SelectedGooglePlace = {
   latitude: number | null;
   longitude: number | null;
 };
+
+const VEHICLE_TYPE_OPTIONS = [
+  { value: "DRIVE", label: "Auto" },
+  { value: "BICYCLE", label: "Fiets" },
+  { value: "WALK", label: "Lopen" },
+  { value: "TRANSIT", label: "Openbaar vervoer" },
+] as const;
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
@@ -106,6 +114,7 @@ const TEXT_DEFAULTS: TextFormValues = {
   roleId:            "",
   sectorId:          "",
   region:            "",
+  vehicleType:       "DRIVE",
   contractStartDate: "",
   contractEndDate:   "",
   contractType:      "",
@@ -150,6 +159,7 @@ export function PersonnelForm({
 
   const roleIdValue = watch("roleId") || "NONE";
   const sectorIdValue = watch("sectorId") || "NONE";
+  const vehicleTypeValue = watch("vehicleType") || "DRIVE";
 
   useEffect(() => {
     listRegionOptions().then(setRegionOptions).catch(() => setRegionOptions([]));
@@ -173,6 +183,7 @@ export function PersonnelForm({
           setValue("roleId",            p.roleId    ?? "");
           setValue("sectorId",          p.sectorId  ?? "");
           setValue("region",            p.region    ?? "");
+          setValue("vehicleType",       p.vehicleType ?? "DRIVE");
           setValue("contractStartDate", p.contractInfo?.start_date    ?? "");
           setValue("contractEndDate",   p.contractInfo?.end_date      ?? "");
           setValue("contractType",      p.contractInfo?.contract_type ?? "");
@@ -239,6 +250,7 @@ export function PersonnelForm({
         roleId:             parsed.data.roleId === "NONE" ? undefined : parsed.data.roleId || undefined,
         sectorId:           parsed.data.sectorId === "NONE" ? undefined : parsed.data.sectorId || undefined,
         region:             regionNames[0] || parsed.data.region || undefined,
+        vehicleType:        parsed.data.vehicleType,
         certificates: certEntries,
         diplomas,
         knowledge,
@@ -408,6 +420,28 @@ export function PersonnelForm({
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="mt-3 space-y-1">
+          <Label htmlFor="vehicleType">Standaard vervoersmiddel</Label>
+          <Select
+            value={vehicleTypeValue}
+            onValueChange={(value) => setValue("vehicleType", value as TextFormValues["vehicleType"])}
+          >
+            <SelectTrigger id="vehicleType">
+              <SelectValue placeholder="Selecteer vervoersmiddel..." />
+            </SelectTrigger>
+            <SelectContent>
+              {VEHICLE_TYPE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs" style={{ color: "#94A3B8" }}>
+            Gebruikt als standaard bij routeberekening; planners kunnen per route tijdelijk afwijken.
+          </p>
         </div>
 
         <div className="mt-3 flex items-center justify-between rounded-lg border px-4 py-3" style={{ borderColor: "#E2E8F0" }}>

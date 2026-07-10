@@ -1,7 +1,15 @@
 "use server";
 
 import { requireCurrentPersonnelPortalTenantId as getCurrentPortalTenantId } from "@/lib/auth/tenant";
-import { db, personnelTable } from "@workspace/db";
+import {
+  auditLogTable,
+  assignmentRouteContextsTable,
+  db,
+  LEGACY_PERSONNEL_VEHICLE_TYPES,
+  personnelTable,
+  PERSONNEL_VEHICLE_TYPES,
+  type PersonnelVehicleType,
+} from "@workspace/db";
 import { geocodeAddress, hasGeocodableAddress } from "@workspace/db/address-geocoding";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -23,6 +31,7 @@ export type PersonnelProfile = {
   region: string | null;
   roleName: string | null;
   sectorName: string | null;
+  vehicleType: PersonnelVehicleType;
   certificates: string[];
   diplomas: string[];
   knowledge: string[];
@@ -47,6 +56,7 @@ const PERSONNEL_SELECT =
     "avatar_url",
     "avatar_path",
     "region",
+    "vehicle_type",
     "certificates",
     "diplomas",
     "knowledge",
@@ -102,6 +112,23 @@ function normalizeNameList(value: unknown): string[] {
 
 function coordinateNumericValue(value: number): string {
   return value.toFixed(6);
+}
+
+function normalizePersonnelVehicleType(value: unknown): PersonnelVehicleType | null {
+  if (typeof value !== "string") return null;
+  const legacyMapping: Record<string, PersonnelVehicleType> = {
+    car: "DRIVE",
+    bicycle: "BICYCLE",
+    walking: "WALK",
+    public_transport: "TRANSIT",
+    moped_or_scooter: "DRIVE",
+  };
+  if ((LEGACY_PERSONNEL_VEHICLE_TYPES as readonly string[]).includes(value)) {
+    return legacyMapping[value];
+  }
+  return (PERSONNEL_VEHICLE_TYPES as readonly string[]).includes(value)
+    ? (value as PersonnelVehicleType)
+    : null;
 }
 
 async function buildAddressGeocodePatch(input: {
@@ -201,6 +228,7 @@ function mapProfile(d: any): PersonnelProfile {
     region:       d.region ?? null,
     roleName:     d.roles?.name ?? null,
     sectorName:   d.sectors?.name ?? null,
+    vehicleType:  normalizePersonnelVehicleType(d.vehicle_type) ?? "DRIVE",
     certificates: normalizeNameList(d.certificates),
     diplomas:     normalizeNameList(d.diplomas),
     knowledge:    normalizeNameList(d.knowledge),
@@ -332,6 +360,8 @@ export async function updateMyProfile(
   const longitudeRaw = normalizeNullableText(formData.get("longitude"), 40);
   const latitude = latitudeRaw != null ? Number(latitudeRaw) : null;
   const longitude = longitudeRaw != null ? Number(longitudeRaw) : null;
+  const vehicleTypeRaw = formData.get("vehicleType");
+  const vehicleType = normalizePersonnelVehicleType(vehicleTypeRaw ?? "DRIVE");
   const googlePlaceId = normalizeNullableText(formData.get("googlePlaceId"), 255);
   const googlePlace = googlePlaceId
     ? {
@@ -352,6 +382,31 @@ export async function updateMyProfile(
   if (phone && !/^\+?[\d\s\-().]{7,20}$/.test(phone)) {
     return { success: false, error: "Ongeldig telefoonnummer" };
   }
+  if (!vehicleType) {
+    return { success: false, error: "Ongeldig vervoersmiddel" };
+  }
+
+  const [existing] = await db
+    .select({
+      id: personnelTable.id,
+      vehicleType: personnelTable.vehicleType,
+    })
+    .from(personnelTable)
+    .where(
+      and(
+        eq(personnelTable.userId, user.id),
+        eq(personnelTable.tenantId, tenantId),
+        eq(personnelTable.isActive, true),
+      ),
+    )
+    .limit(1);
+
+  if (!existing) {
+    return { success: false, error: "Personeelsprofiel niet gevonden" };
+  }
+
+  const previousVehicleType =
+    normalizePersonnelVehicleType(existing.vehicleType) ?? "DRIVE";
 
   const addressGeocodePatch = await buildAddressGeocodePatch({
     addressStreet,
@@ -371,6 +426,7 @@ export async function updateMyProfile(
       addressPostalCode,
       addressCity,
       addressCountry,
+      vehicleType,
       ...addressGeocodePatch,
       profileUpdatedAt: new Date(),
       updatedAt: new Date(),
@@ -387,6 +443,27 @@ export async function updateMyProfile(
   if (!updated) {
     return { success: false, error: "Personeelsprofiel niet gevonden" };
   }
+
+  await db.delete(assignmentRouteContextsTable).where(
+    and(
+      eq(assignmentRouteContextsTable.tenantId, tenantId),
+      eq(assignmentRouteContextsTable.personnelId, updated.id),
+    ),
+  );
+
+  await db.insert(auditLogTable).values({
+    tenantId,
+    userId: user.id,
+    action: "update_profile",
+    resource: "personnel",
+    resourceId: updated.id,
+    metadata: {
+      source: "personnel-pwa",
+      vehicleType,
+      previousVehicleType,
+      vehicleTypeChanged: vehicleType !== previousVehicleType,
+    },
+  });
 
   revalidatePath("/profiel");
   return { success: true };

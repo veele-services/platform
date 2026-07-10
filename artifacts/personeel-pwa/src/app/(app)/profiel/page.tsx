@@ -6,6 +6,7 @@ import {
   BriefcaseBusiness,
   Mail,
   MapPin,
+  Route,
   ShieldCheck,
 } from "lucide-react";
 import {
@@ -16,6 +17,20 @@ import {
 import { AvatarUploadForm } from "./AvatarUploadForm";
 import { ProfileForm } from "./ProfileForm";
 import { formatPersonnelRoleLabel } from "@/lib/personnel-labels";
+
+function vehicleTypeLabel(value: string | null | undefined): string {
+  switch (value) {
+    case "BICYCLE":
+      return "Fiets";
+    case "WALK":
+      return "Lopen";
+    case "TRANSIT":
+      return "Openbaar vervoer";
+    case "DRIVE":
+    default:
+      return "Auto";
+  }
+}
 
 export default async function ProfielPage() {
   const profile = await getMyPersonnel();
@@ -41,6 +56,7 @@ export default async function ProfielPage() {
     { label: "Rol", value: roleLabel, Icon: ShieldCheck },
     { label: "Sector", value: profile.sectorName, Icon: BriefcaseBusiness },
     { label: "Regio", value: profile.region, Icon: MapPin },
+    { label: "Standaard vervoer", value: vehicleTypeLabel(profile.vehicleType), Icon: Route },
   ].filter((field) => field.value);
   const hasQualifications =
     profile.certificates.length > 0 ||

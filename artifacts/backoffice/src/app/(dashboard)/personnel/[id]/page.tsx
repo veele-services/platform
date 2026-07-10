@@ -4,7 +4,7 @@ import { notFound } from "next/navigation";
 import {
   ArrowLeft, Mail, Phone, MapPin, Calendar,
   CheckCircle2, XCircle, ClipboardList, Building2,
-  Briefcase, AlertCircle, FileText,
+  Briefcase, AlertCircle, FileText, Route,
 } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
@@ -43,6 +43,20 @@ import {
 
 interface Props {
   params: Promise<{ id: string }>;
+}
+
+function vehicleTypeLabel(value: string | null | undefined): string {
+  switch (value) {
+    case "BICYCLE":
+      return "Fiets";
+    case "WALK":
+      return "Lopen";
+    case "TRANSIT":
+      return "Openbaar vervoer";
+    case "DRIVE":
+    default:
+      return "Auto";
+  }
 }
 
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
@@ -153,6 +167,7 @@ export default async function PersonnelDetailPage({ params }: Props) {
         meta={[
           { label: "Beschikbaar", value: person.isAvailable ? "Ja" : "Nee" },
           { label: "Branch/regio", value: person.region ?? "Geen primaire branch/regio" },
+          { label: "Standaard vervoer", value: vehicleTypeLabel(person.vehicleType) },
           { label: "Aangemaakt", value: new Date(person.createdAt).toLocaleDateString("nl-NL") },
         ]}
       />
@@ -312,6 +327,11 @@ export default async function PersonnelDetailPage({ params }: Props) {
               {person.sectorName && (
                 <InfoRow icon={<Briefcase className="h-4 w-4" />} label="Sector" value={person.sectorName} />
               )}
+              <InfoRow
+                icon={<Route className="h-4 w-4" />}
+                label="Standaard vervoersmiddel"
+                value={vehicleTypeLabel(person.vehicleType)}
+              />
               {person.preferredRegions.length > 0 && (
                 <InfoRow
                   icon={<MapPin className="h-4 w-4" />}

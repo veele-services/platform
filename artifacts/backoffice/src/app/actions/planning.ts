@@ -1658,7 +1658,13 @@ export async function calculatePlanningMapRoute(input: {
     row.personnelLat,
     row.personnelLng,
   );
-  const origin = contextOrigin ?? personnelOrigin;
+  const firstStopUsesHome = !row.routePreviousAssignmentId;
+  const origin = firstStopUsesHome
+    ? personnelOrigin ?? contextOrigin
+    : contextOrigin ?? personnelOrigin;
+  const originFromHome = Boolean(
+    personnelOrigin && (firstStopUsesHome || !contextOrigin),
+  );
   if (!origin) {
     return {
       success: false,
@@ -1765,11 +1771,11 @@ export async function calculatePlanningMapRoute(input: {
     providerMode,
     origin,
     destination,
-    originLabel: contextOrigin
-      ? row.routePreviousAssignmentId
+    originLabel: originFromHome
+      ? `Huisadres ${personnelName || "medewerker"}${personnelAddress ? ` - ${personnelAddress}` : ""}`
+      : row.routePreviousAssignmentId
         ? "Vorige werkbon"
-        : "Routecontext"
-      : `Huisadres ${personnelName || "medewerker"}${personnelAddress ? ` - ${personnelAddress}` : ""}`,
+        : "Routecontext",
     destinationLabel:
       row.objectName && (objectAddress || contextDestination)
         ? `${row.objectName}${objectAddress ? ` - ${objectAddress}` : ""}`

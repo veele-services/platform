@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { X, MapPin, AlertCircle, CheckCircle2, ExternalLink, Building2 } from "lucide-react";
+import { X, MapPin, AlertCircle, CheckCircle2, ExternalLink, Building2, Route } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   getAvailabilityWindows,
@@ -21,6 +21,20 @@ import {
 } from "@/types/personnel";
 
 const DAY_LABELS = ["Zo", "Ma", "Di", "Wo", "Do", "Vr", "Za"];
+
+function vehicleTypeLabel(value: string | null | undefined): string {
+  switch (value) {
+    case "BICYCLE":
+      return "Fiets";
+    case "WALK":
+      return "Lopen";
+    case "TRANSIT":
+      return "Openbaar vervoer";
+    case "DRIVE":
+    default:
+      return "Auto";
+  }
+}
 
 interface SlimProfielPanelProps {
   person:   PersonnelRow | null;
@@ -148,6 +162,12 @@ export function SlimProfielPanel({ person, onClose }: SlimProfielPanelProps) {
 
         {/* Emergency + Regions */}
         <div className="veele-card !p-3 flex flex-col gap-2">
+          <div className="flex items-center gap-2">
+            <Route className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#94A3B8" }} />
+            <span className="text-xs font-medium" style={{ color: "#64748B" }}>
+              Standaard vervoer: {vehicleTypeLabel(person.vehicleType)}
+            </span>
+          </div>
           {person.emergencyAvailable && (
             <div className="flex items-center gap-2">
               <AlertCircle className="h-3.5 w-3.5 flex-shrink-0" style={{ color: "#DC2626" }} />
