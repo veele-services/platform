@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
-import { Pencil, ChevronRight, Plus, X, Loader2, UserPlus, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
+import { Pencil, ChevronRight, Plus, X, Loader2, UserPlus, AlertTriangle, CheckCircle2, XCircle, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -44,7 +44,6 @@ import {
   addAssignmentTask,
   removeAssignmentTask,
   type AssignmentStatus,
-  type AssignmentPriority,
   type CustomerOption,
   type TaskCodeOption,
   type PersonnelEligibilityResult,
@@ -71,39 +70,30 @@ interface Task {
 
 interface AssignmentDetailActionsProps {
   assignmentId:  string;
-  title:         string;
   status:        AssignmentStatus;
-  priority:      AssignmentPriority;
   canWrite:      boolean;
   customers:     CustomerOption[];
   personnelList: PersonnelEligibilityResult[];
-  taskCodes:     TaskCodeOption[];
   personnel:     Personnel[];
-  tasks:         Task[];
 }
 
 export function AssignmentDetailActions({
   assignmentId,
-  title,
   status,
   canWrite,
   customers,
   personnelList,
-  taskCodes,
   personnel,
-  tasks,
 }: AssignmentDetailActionsProps) {
   const router = useRouter();
 
   const [editOpen,         setEditOpen]         = useState(false);
   const [selectedStatus,   setSelectedStatus]   = useState<AssignmentStatus>(status);
   const [selectedPersonnel, setSelectedPersonnel] = useState("");
-  const [selectedTaskCode, setSelectedTaskCode] = useState("");
   const [optimisticAssignedPersonnelIds, setOptimisticAssignedPersonnelIds] = useState<Set<string>>(
     () => new Set(personnel.map((p) => p.personnelId)),
   );
   const [removingPersonnel, setRemovingPersonnel] = useState<string | null>(null);
-  const [removingTask,      setRemovingTask]      = useState<string | null>(null);
   const [pending,           startTransition]      = useTransition();
 
   const nextStatuses = ASSIGNMENT_STATUS_TRANSITIONS[status] ?? [];
@@ -166,34 +156,6 @@ export function AssignmentDetailActions({
         toast.error(result.message);
       }
       setRemovingPersonnel(null);
-    });
-  }
-
-  function handleAddTask() {
-    if (!selectedTaskCode) return;
-    startTransition(async () => {
-      const result = await addAssignmentTask(assignmentId, selectedTaskCode);
-      if (result.success) {
-        toast.success("Taak toegevoegd");
-        setSelectedTaskCode("");
-        router.refresh();
-      } else {
-        toast.error(result.message);
-      }
-    });
-  }
-
-  function handleRemoveTask(taskId: string) {
-    setRemovingTask(taskId);
-    startTransition(async () => {
-      const result = await removeAssignmentTask(assignmentId, taskId);
-      if (result.success) {
-        toast.success("Taak verwijderd");
-        router.refresh();
-      } else {
-        toast.error(result.message);
-      }
-      setRemovingTask(null);
     });
   }
 
@@ -369,98 +331,6 @@ export function AssignmentDetailActions({
         )}
       </div>
 
-      {/* ── Tasks ─────────────────────────────────────── */}
-      <div className="veele-card">
-        <h3
-          className="font-heading text-sm font-semibold mb-4"
-          style={{ color: "#081D3A" }}
-        >
-          Taken
-        </h3>
-
-        {tasks.length === 0 ? (
-          <p className="text-sm mb-4" style={{ color: "#94A3B8" }}>
-            Nog geen taken gekoppeld.
-          </p>
-        ) : (
-          <ul className="divide-y mb-4" style={{ borderColor: "#F1F5F9" }}>
-            {tasks.map((t) => (
-              <li key={t.id} className="flex items-start justify-between py-2 gap-2">
-                <div>
-                  <span className="text-sm font-medium" style={{ color: "#081D3A" }}>
-                    {t.taskCodeCode ? (
-                      <>
-                        <span
-                          className="text-xs font-mono px-1.5 py-0.5 rounded mr-1.5"
-                          style={{ background: "#F1F5F9", color: "#64748B" }}
-                        >
-                          {t.taskCodeCode}
-                        </span>
-                        {t.taskCodeName}
-                      </>
-                    ) : (
-                      t.taskCodeName ?? "—"
-                    )}
-                  </span>
-                  {t.notes && (
-                    <p className="text-xs mt-0.5" style={{ color: "#94A3B8" }}>
-                      {t.notes}
-                    </p>
-                  )}
-                </div>
-                {canWrite && (
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="h-7 w-7 p-0 flex-shrink-0"
-                    disabled={pending && removingTask === t.id}
-                    onClick={() => handleRemoveTask(t.id)}
-                  >
-                    {pending && removingTask === t.id ? (
-                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    ) : (
-                      <X className="h-3.5 w-3.5" />
-                    )}
-                    <span className="sr-only">Verwijderen</span>
-                  </Button>
-                )}
-              </li>
-            ))}
-          </ul>
-        )}
-
-        {canWrite && (
-          <div className="flex items-center gap-2">
-            <Select
-              value={selectedTaskCode || "NONE"}
-              onValueChange={(v) => setSelectedTaskCode(v === "NONE" ? "" : v)}
-            >
-              <SelectTrigger className="flex-1 h-8 text-sm">
-                <SelectValue placeholder="Taakcode selecteren..." />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="NONE">— Selecteer taak —</SelectItem>
-                {taskCodes.map((tc) => (
-                  <SelectItem key={tc.id} value={tc.id}>
-                    <span className="font-mono text-xs mr-1">{tc.code}</span>
-                    {tc.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Button
-              size="sm"
-              variant="outline"
-              disabled={!selectedTaskCode || pending}
-              onClick={handleAddTask}
-              className="h-8"
-            >
-              <Plus className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        )}
-      </div>
-
       {/* Edit Sheet */}
       <Sheet open={editOpen} onOpenChange={setEditOpen}>
         <SheetContent side="right" className="w-[560px] sm:max-w-[560px] overflow-y-auto">
@@ -482,6 +352,170 @@ export function AssignmentDetailActions({
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
+
+export function AssignmentTaskManager({
+  assignmentId,
+  canWrite,
+  taskCodes,
+  tasks,
+}: {
+  assignmentId: string;
+  canWrite: boolean;
+  taskCodes: TaskCodeOption[];
+  tasks: Task[];
+}) {
+  const router = useRouter();
+  const [selectedTaskCode, setSelectedTaskCode] = useState("");
+  const [removingTask, setRemovingTask] = useState<string | null>(null);
+  const [pending, startTransition] = useTransition();
+
+  function handleAddTask() {
+    if (!selectedTaskCode) return;
+    startTransition(async () => {
+      const result = await addAssignmentTask(assignmentId, selectedTaskCode);
+      if (result.success) {
+        toast.success("Taak toegevoegd");
+        setSelectedTaskCode("");
+        router.refresh();
+      } else {
+        toast.error(result.message);
+      }
+    });
+  }
+
+  function handleRemoveTask(taskId: string) {
+    setRemovingTask(taskId);
+    startTransition(async () => {
+      const result = await removeAssignmentTask(assignmentId, taskId);
+      if (result.success) {
+        toast.success("Taak verwijderd");
+        router.refresh();
+      } else {
+        toast.error(result.message);
+      }
+      setRemovingTask(null);
+    });
+  }
+
+  return (
+    <div className="grid gap-5 xl:grid-cols-[minmax(0,2fr)_minmax(280px,1fr)]">
+      <section className="veele-card">
+        <div className="mb-4 flex items-start justify-between gap-3">
+          <div>
+            <h3 className="font-heading text-base font-semibold" style={{ color: "#081D3A" }}>
+              Takenoverzicht
+            </h3>
+            <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
+              Alle gekoppelde taken op deze werkbon.
+            </p>
+          </div>
+          <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold" style={{ color: "#475569" }}>
+            {tasks.length} taak{tasks.length === 1 ? "" : "en"}
+          </span>
+        </div>
+
+        {tasks.length === 0 ? (
+          <div className="rounded-2xl border border-dashed p-6 text-sm" style={{ borderColor: "#CBD5E1", color: "#64748B" }}>
+            Nog geen taken gekoppeld. Voeg rechts een taak toe om de werkbon compleet te maken.
+          </div>
+        ) : (
+          <ul className="divide-y" style={{ borderColor: "#F1F5F9" }}>
+            {tasks.map((task, index) => (
+              <li key={task.id} className="flex items-start justify-between gap-3 py-3">
+                <div className="flex min-w-0 items-start gap-3">
+                  <span className="mt-0.5 flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-full bg-cyan-50 text-xs font-semibold text-cyan-700">
+                    {index + 1}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="text-sm font-semibold" style={{ color: "#081D3A" }}>
+                      {task.taskCodeCode && (
+                        <span className="mr-1.5 rounded bg-slate-100 px-1.5 py-0.5 font-mono text-xs" style={{ color: "#64748B" }}>
+                          {task.taskCodeCode}
+                        </span>
+                      )}
+                      {task.taskCodeName ?? "Taak zonder naam"}
+                    </p>
+                    {task.notes && (
+                      <p className="mt-1 whitespace-pre-wrap text-xs" style={{ color: "#64748B" }}>
+                        {task.notes}
+                      </p>
+                    )}
+                  </div>
+                </div>
+                {canWrite && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 flex-shrink-0 p-0"
+                    disabled={pending && removingTask === task.id}
+                    onClick={() => handleRemoveTask(task.id)}
+                  >
+                    {pending && removingTask === task.id ? (
+                      <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    ) : (
+                      <X className="h-3.5 w-3.5" />
+                    )}
+                    <span className="sr-only">Taak verwijderen</span>
+                  </Button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+
+      <aside className="veele-card h-fit">
+        <h3 className="font-heading text-base font-semibold flex items-center gap-2" style={{ color: "#081D3A" }}>
+          <ClipboardList className="h-4 w-4" style={{ color: "#00B7B3" }} />
+          Taak toevoegen
+        </h3>
+        <p className="mt-1 text-sm" style={{ color: "#64748B" }}>
+          Kies een actieve taakcode voor deze organisatie.
+        </p>
+
+        {canWrite ? (
+          <div className="mt-4 space-y-3">
+            <Select
+              value={selectedTaskCode || "NONE"}
+              onValueChange={(value) => setSelectedTaskCode(value === "NONE" ? "" : value)}
+            >
+              <SelectTrigger className="h-10 w-full text-sm">
+                <SelectValue placeholder="Taakcode selecteren..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="NONE">Selecteer taak</SelectItem>
+                {taskCodes.map((taskCode) => (
+                  <SelectItem key={taskCode.id} value={taskCode.id}>
+                    <span className="mr-1 font-mono text-xs">{taskCode.code}</span>
+                    {taskCode.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              className="w-full"
+              disabled={!selectedTaskCode || pending}
+              onClick={handleAddTask}
+            >
+              {pending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+              <Plus className="mr-2 h-4 w-4" />
+              Toevoegen aan werkbon
+            </Button>
+            {taskCodes.length === 0 && (
+              <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-700">
+                Er zijn nog geen actieve taakcodes beschikbaar.
+              </p>
+            )}
+          </div>
+        ) : (
+          <p className="mt-4 rounded-xl bg-slate-50 p-3 text-sm" style={{ color: "#64748B" }}>
+            Je hebt alleen leesrechten voor deze werkbon.
+          </p>
+        )}
+      </aside>
+    </div>
+  );
+}
 
 const AVAIL_DOT_COLORS: Record<AvailabilityStatus, string> = {
   beschikbaar:      "#10B981",
