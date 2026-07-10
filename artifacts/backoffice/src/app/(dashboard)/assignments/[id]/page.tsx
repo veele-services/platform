@@ -27,7 +27,10 @@ import {
   AssignmentStatusBadge,
   AssignmentPriorityBadge,
 } from "@/components/assignments/AssignmentStatusBadge";
-import { AssignmentDetailActions } from "@/components/assignments/AssignmentDetailActions";
+import {
+  AssignmentDetailActions,
+  AssignmentTaskManager,
+} from "@/components/assignments/AssignmentDetailActions";
 import {
   getAssignment,
   getAssignmentPlanningReadiness,
@@ -977,8 +980,14 @@ export default async function AssignmentDetailPage({ params, searchParams }: Pro
       )}
 
       {activeTab === "werkbon" && (
-        <div className="scroll-mt-24">
+        <div className="scroll-mt-24 space-y-6">
           <WorkOrderOverviewSection assignment={assignment} canWrite={canWrite} />
+          <AssignmentTaskManager
+            assignmentId={assignment.id}
+            canWrite={canWrite}
+            taskCodes={taskCodes}
+            tasks={assignment.tasks}
+          />
         </div>
       )}
 
@@ -1213,15 +1222,11 @@ export default async function AssignmentDetailPage({ params, searchParams }: Pro
           {canWrite ? (
             <AssignmentDetailActions
               assignmentId={assignment.id}
-              title={assignment.title}
               status={assignment.status}
-              priority={assignment.priority}
               canWrite={canWrite}
               customers={customers}
               personnelList={personnelList}
-              taskCodes={taskCodes}
               personnel={assignment.personnel}
-              tasks={assignment.tasks}
             />
           ) : (
             <>

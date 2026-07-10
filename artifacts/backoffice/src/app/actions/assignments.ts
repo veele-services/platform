@@ -489,15 +489,18 @@ export async function getAssignment(
       .select({
         id: assignmentTasksTable.id,
         taskCodeId: assignmentTasksTable.taskCodeId,
-        taskCodeCode: taskCodesTable.code,
-        taskCodeName: taskCodesTable.name,
+        taskCodeCode: sql<string | null>`coalesce(${assignmentTasksTable.taskCodeCode}, ${taskCodesTable.code})`,
+        taskCodeName: sql<string | null>`coalesce(${assignmentTasksTable.taskCodeName}, ${taskCodesTable.name})`,
         notes: assignmentTasksTable.notes,
         sortOrder: assignmentTasksTable.sortOrder,
       })
       .from(assignmentTasksTable)
       .leftJoin(
         taskCodesTable,
-        eq(assignmentTasksTable.taskCodeId, taskCodesTable.id),
+        and(
+          eq(assignmentTasksTable.taskCodeId, taskCodesTable.id),
+          eq(taskCodesTable.tenantId, tenantId),
+        ),
       )
       .where(eq(assignmentTasksTable.assignmentId, id))
       .orderBy(asc(assignmentTasksTable.sortOrder)),
@@ -3162,6 +3165,7 @@ export async function applyRouteTimeSuggestion(input: {
 }
 
 export async function getTaskCodeOptions(): Promise<TaskCodeOption[]> {
+  const tenantId = await requireCurrentTenantId();
   const rows = await db
     .select({
       id: taskCodesTable.id,
@@ -3169,7 +3173,7 @@ export async function getTaskCodeOptions(): Promise<TaskCodeOption[]> {
       name: taskCodesTable.name,
     })
     .from(taskCodesTable)
-    .where(eq(taskCodesTable.isActive, true))
+    .where(and(eq(taskCodesTable.tenantId, tenantId), eq(taskCodesTable.isActive, true)))
     .orderBy(asc(taskCodesTable.code));
   return rows;
 }
@@ -3685,12 +3689,33 @@ export async function addAssignmentTask(
   notes?: string,
 ): Promise<ActionResult> {
   await requirePermission("assignments", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [assignment] = await db
+    .select({ id: assignmentsTable.id })
+    .from(assignmentsTable)
+    .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
+    .limit(1);
+  if (!assignment) return { success: false, message: "Werkbon niet gevonden binnen deze organisatie." };
+
+  const [taskCode] = await db
+    .select({
+      id: taskCodesTable.id,
+      code: taskCodesTable.code,
+      name: taskCodesTable.name,
+      price: taskCodesTable.price,
+      invoiceable: taskCodesTable.invoiceable,
+    })
+    .from(taskCodesTable)
+    .where(and(eq(taskCodesTable.id, taskCodeId), eq(taskCodesTable.tenantId, tenantId), eq(taskCodesTable.isActive, true)))
+    .limit(1);
+  if (!taskCode) return { success: false, message: "Taakcode niet gevonden binnen deze organisatie." };
 
   const [{ maxOrder }] = await db
     .select({ maxOrder: sql<number>`coalesce(max(sort_order), -1)::int` })
@@ -3701,7 +3726,11 @@ export async function addAssignmentTask(
     .insert(assignmentTasksTable)
     .values({
       assignmentId,
-      taskCodeId: taskCodeId || null,
+      taskCodeId: taskCode.id,
+      taskCodeCode: taskCode.code,
+      taskCodeName: taskCode.name,
+      taskCodePrice: taskCode.price,
+      taskCodeInvoiceable: taskCode.invoiceable,
       notes: notes ?? null,
       sortOrder: (maxOrder ?? -1) + 1,
     })
@@ -3729,12 +3758,20 @@ export async function removeAssignmentTask(
   taskId: string,
 ): Promise<ActionResult> {
   await requirePermission("assignments", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const [assignment] = await db
+    .select({ id: assignmentsTable.id })
+    .from(assignmentsTable)
+    .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
+    .limit(1);
+  if (!assignment) return { success: false, message: "Werkbon niet gevonden binnen deze organisatie." };
 
   await db
     .delete(assignmentTasksTable)
