@@ -27,6 +27,7 @@ function dateKeys(values: Array<string | null | undefined>): string[] {
 
 export async function refreshPlanningRoutesForAssignment(input: {
   tenantId: string;
+  userId?: string | null;
   assignmentId: string;
   reason: PlanningRouteRefreshReason;
   previousScheduledDate?: string | null;
@@ -73,6 +74,7 @@ export async function refreshPlanningRoutesForAssignment(input: {
   for (const scheduledDate of scheduledDates) {
     await recalculatePlanningRouteContexts({
       tenantId: input.tenantId,
+      userId: input.userId ?? null,
       scheduledDate,
     });
     recalculated = true;
@@ -105,6 +107,7 @@ export async function safeRefreshPlanningRoutesForAssignment(input: Parameters<t
 
 export async function refreshPlanningRoutesForPersonnel(input: {
   tenantId: string;
+  userId?: string | null;
   personnelId: string;
   reason: PlanningRouteRefreshReason;
   source?: "backoffice" | "personnel-pwa" | "system";
@@ -139,6 +142,7 @@ export async function refreshPlanningRoutesForPersonnel(input: {
   for (const scheduledDate of scheduledDates) {
     await recalculatePlanningRouteContexts({
       tenantId: input.tenantId,
+      userId: input.userId ?? null,
       scheduledDate,
       personnelId: input.personnelId,
     });
@@ -170,6 +174,7 @@ export async function safeRefreshPlanningRoutesForPersonnel(input: Parameters<ty
 
 export async function refreshPlanningRoutesForObject(input: {
   tenantId: string;
+  userId?: string | null;
   objectId: string;
   reason: PlanningRouteRefreshReason;
   source?: "backoffice" | "personnel-pwa" | "system";
@@ -212,6 +217,7 @@ export async function refreshPlanningRoutesForObject(input: {
   for (const combo of combos.values()) {
     await recalculatePlanningRouteContexts({
       tenantId: input.tenantId,
+      userId: input.userId ?? null,
       scheduledDate: combo.scheduledDate,
       personnelId: combo.personnelId,
     });

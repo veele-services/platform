@@ -54,16 +54,24 @@ test("phase 10 map data server action is tenant and permission scoped", () => {
 test("phase 10 route provider has deterministic fallback without external API keys", () => {
   const routeProvider = read("artifacts/backoffice/src/lib/planning/routes/route-provider.ts");
   const googleProvider = read("artifacts/backoffice/src/lib/planning/routes/google-routes-provider.ts");
+  const routesClient = read("artifacts/backoffice/src/lib/google-maps/routes-client.ts");
   const mockProvider = read("artifacts/backoffice/src/lib/planning/routes/mock-route-provider.ts");
 
   assert.match(routeProvider, /FIELDGRID_ROUTE_PROVIDER/);
   assert.match(routeProvider, /createMockRouteProvider/);
-  assert.match(routeProvider, /GOOGLE_ROUTES_API_KEY\s*\?\s*"google"\s*:\s*"mock"/);
-  assert.match(googleProvider, /GOOGLE_ROUTES_API_KEY is niet geconfigureerd\./);
+  assert.match(routeProvider, /GOOGLE_MAPS_SERVER_API_KEY[\s\S]*GOOGLE_ROUTES_API_KEY/);
+  assert.match(googleProvider, /GOOGLE_MAPS_SERVER_API_KEY is niet geconfigureerd\./);
   assert.match(
     googleProvider,
-    /return routeFailure\([\s\S]*?GOOGLE_ROUTES_API_KEY is niet geconfigureerd\.[\s\S]*?false/s,
+    /return routeFailure\([\s\S]*?GOOGLE_MAPS_SERVER_API_KEY is niet geconfigureerd\.[\s\S]*?false/s,
   );
+  assert.match(routesClient, /GOOGLE_ROUTES_FIELD_MASK/);
+  assert.match(routesClient, /routes\.duration/);
+  assert.match(routesClient, /routes\.staticDuration/);
+  assert.match(routesClient, /routes\.distanceMeters/);
+  assert.match(routesClient, /routes\.polyline\.encodedPolyline/);
+  assert.match(routesClient, /routingPreference = "TRAFFIC_AWARE"/);
+  assert.doesNotMatch(routesClient, /TRAFFIC_AWARE_OPTIMAL|computeRouteMatrix|optimizeWaypointOrder/);
   assert.match(mockProvider, /createMockRouteProvider/);
   assert.match(mockProvider, /durationSeconds/);
 });

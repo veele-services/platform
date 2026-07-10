@@ -10,6 +10,8 @@ const files = {
   utils: "artifacts/backoffice/src/lib/planning/routes/route-utils.ts",
   googleProvider:
     "artifacts/backoffice/src/lib/planning/routes/google-routes-provider.ts",
+  routesClient:
+    "artifacts/backoffice/src/lib/google-maps/routes-client.ts",
   mockProvider:
     "artifacts/backoffice/src/lib/planning/routes/mock-route-provider.ts",
   routeProvider:
@@ -53,6 +55,7 @@ function mustNotContain(key, needle, label = needle) {
 for (const key of [
   "utils",
   "googleProvider",
+  "routesClient",
   "mockProvider",
   "routeProvider",
   "routeCache",
@@ -76,12 +79,12 @@ mustNotContain("utils", "TWO_WHEELER", "TWO_WHEELER is out of Google Maps canon 
 mustContain("utils", "coordinateHash", "stable cache coordinate hash");
 mustContain("utils", "expiresAtFromTtl", "TTL calculation");
 
-mustContain("googleProvider", "GOOGLE_ROUTES_API_KEY", "server-only Google API key");
-mustContain("googleProvider", "routes.googleapis.com", "Google Routes endpoint");
-mustContain("googleProvider", "X-Goog-Api-Key", "Google key header");
-mustContain("googleProvider", "X-Goog-FieldMask", "field mask");
-mustContain("googleProvider", "AbortController", "provider timeout");
-mustContain("googleProvider", "parseGoogleDurationSeconds", "duration parser");
+mustContain("googleProvider", "GOOGLE_MAPS_SERVER_API_KEY", "server-only Google API key");
+mustContain("routesClient", "routes.googleapis.com", "Google Routes endpoint");
+mustContain("routesClient", "X-Goog-Api-Key", "Google key header");
+mustContain("routesClient", "X-Goog-FieldMask", "field mask");
+mustContain("routesClient", "AbortController", "provider timeout");
+mustContain("routesClient", "parseGoogleDurationSeconds", "duration parser");
 mustContain("googleProvider", "retryable", "retryable provider failures");
 
 mustContain("mockProvider", "createMockRouteProvider", "deterministic mock provider");
@@ -98,6 +101,10 @@ mustContain("routeCache", "organizationSettingsTable", "tenant route settings");
 mustContain("routeCache", "tenantId", "tenant-scoped cache key");
 mustContain("routeCache", "originHash", "origin cache hash");
 mustContain("routeCache", "destinationHash", "destination cache hash");
+mustContain("routeCache", "requestContextHash", "route request context hash");
+mustContain("routeCache", "dedupeGoogleMapsRequest", "in-flight route dedupe");
+mustContain("routeCache", "checkGoogleMapsRateLimit", "route rate limiting");
+mustContain("routeCache", "recordGoogleMapsUsageEvent", "route usage metrics");
 mustContain("routeCache", "expiresAt", "cache expiry");
 mustContain("routeCache", "getCachedRoute", "cache read helper");
 mustContain("routeCache", "upsertRouteCache", "cache write helper");
@@ -112,7 +119,7 @@ mustContain("settingsSchema", "routeProvider", "route provider setting");
 mustContain("settingsSchema", "routeCacheTtlHours", "route cache TTL setting");
 
 mustContain("docs", "Routeprovider en cache zonder UI", "phase 4 doc title");
-mustContain("docs", "GOOGLE_ROUTES_API_KEY", "server secret documentation");
+mustContain("docs", "GOOGLE_MAPS_SERVER_API_KEY", "server secret documentation");
 mustContain("docs", "server-only", "server-only documentation");
 mustContain("docs", "geen kaart-UI", "no UI guarantee");
 mustContain("docs", "tenant-scoped", "tenant scope documentation");

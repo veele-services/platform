@@ -10,7 +10,7 @@ const buckets = new Map<string, Bucket>();
 export function checkGoogleMapsRateLimit(input: {
   tenantId: string;
   userId: string | null;
-  action: "places_autocomplete" | "place_details";
+  action: "places_autocomplete" | "place_details" | "route_request";
   limit?: number;
   windowMs?: number;
   now?: number;
@@ -18,7 +18,12 @@ export function checkGoogleMapsRateLimit(input: {
   const now = input.now ?? Date.now();
   const windowMs = input.windowMs ?? 60_000;
   const limit =
-    input.limit ?? (input.action === "places_autocomplete" ? 120 : 60);
+    input.limit ??
+    (input.action === "places_autocomplete"
+      ? 120
+      : input.action === "route_request"
+        ? 90
+        : 60);
   const userScope = input.userId ?? "anonymous";
   const key = [
     input.tenantId,

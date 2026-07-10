@@ -17,7 +17,11 @@ export type CreateRouteProviderOptions = {
 function routeProviderKindFromEnv(googleApiKey?: string): RouteProviderKind {
   if (process.env.FIELDGRID_ROUTE_PROVIDER === "mock") return "mock";
   if (process.env.FIELDGRID_ROUTE_PROVIDER === "google") return "google";
-  return googleApiKey || process.env.GOOGLE_ROUTES_API_KEY ? "google" : "mock";
+  return googleApiKey ||
+    process.env.GOOGLE_MAPS_SERVER_API_KEY ||
+    process.env.GOOGLE_ROUTES_API_KEY
+    ? "google"
+    : "mock";
 }
 
 export function createRouteProvider(

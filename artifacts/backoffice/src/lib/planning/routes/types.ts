@@ -15,6 +15,7 @@ export type RouteProviderMode =
 
 export type RouteRequest = {
   tenantId: string;
+  userId?: string | null;
   origin: RouteCoordinate;
   destination: RouteCoordinate;
   vehicleType: RouteVehicleType;

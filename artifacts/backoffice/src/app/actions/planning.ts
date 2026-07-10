@@ -38,7 +38,7 @@ import {
   type SQL,
 } from "drizzle-orm";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
-import { requireCurrentTenantId } from "@/lib/auth/tenant";
+import { getCurrentBackofficeUser, requireCurrentTenantId } from "@/lib/auth/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import {
@@ -1254,6 +1254,7 @@ function timestampValue(value: Date | string | null): number | null {
 
 async function ensurePlanningDayRouteContextsFresh(input: {
   tenantId: string;
+  userId?: string | null;
   date: string;
   personnelId?: string | null;
 }): Promise<void> {
@@ -1334,6 +1335,7 @@ async function ensurePlanningDayRouteContextsFresh(input: {
   for (const personnelId of stalePersonnelIds) {
     await recalculatePlanningRouteContexts({
       tenantId: input.tenantId,
+      userId: input.userId ?? null,
       scheduledDate: input.date,
       personnelId,
     });
@@ -1351,8 +1353,10 @@ export async function getPlanningDayMapData(
   }
 
   const tenantId = await requireCurrentTenantId();
+  const user = await getCurrentBackofficeUser();
   await ensurePlanningDayRouteContextsFresh({
     tenantId,
+    userId: user?.id ?? null,
     date,
     personnelId: filters.personnelId,
   });

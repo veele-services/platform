@@ -15,6 +15,7 @@ const files = {
   mapData: "artifacts/backoffice/src/lib/planning/map-data.ts",
   routeProvider: "artifacts/backoffice/src/lib/planning/routes/route-provider.ts",
   googleProvider: "artifacts/backoffice/src/lib/planning/routes/google-routes-provider.ts",
+  routesClient: "artifacts/backoffice/src/lib/google-maps/routes-client.ts",
   mockProvider: "artifacts/backoffice/src/lib/planning/routes/mock-route-provider.ts",
   routeUtils: "artifacts/backoffice/src/lib/planning/routes/route-utils.ts",
   featureFlag: "artifacts/backoffice/src/lib/planning/day-map-feature.ts",
@@ -120,13 +121,18 @@ mustMatch("planningActions", /eq\(assignmentRouteContextsTable\.tenantId,\s*tena
 
 mustContain("routeProvider", "FIELDGRID_ROUTE_PROVIDER", "route provider env switch");
 mustContain("routeProvider", "mock", "mock provider fallback option");
-mustMatch("routeProvider", /GOOGLE_ROUTES_API_KEY[\s\S]*\?\s*"google"\s*:\s*"mock"/, "default mock provider without Google key");
-mustContain("googleProvider", "GOOGLE_ROUTES_API_KEY is niet geconfigureerd.", "safe no-api-key failure");
+mustMatch("routeProvider", /GOOGLE_MAPS_SERVER_API_KEY[\s\S]*GOOGLE_ROUTES_API_KEY[\s\S]*\?\s*"google"\s*:\s*"mock"/, "default mock provider without Google server key");
+mustContain("googleProvider", "GOOGLE_MAPS_SERVER_API_KEY is niet geconfigureerd.", "safe no-api-key failure");
 mustMatch(
   "googleProvider",
-  /return routeFailure\([\s\S]*?GOOGLE_ROUTES_API_KEY is niet geconfigureerd\.[\s\S]*?false/s,
+  /return routeFailure\([\s\S]*?GOOGLE_MAPS_SERVER_API_KEY is niet geconfigureerd\.[\s\S]*?false/s,
   "missing Google key is non-retryable and does not call network",
 );
+mustContain("routesClient", "GOOGLE_ROUTES_FIELD_MASK", "central Routes API field mask");
+mustContain("routesClient", "TRAFFIC_AWARE", "drive traffic preference");
+mustNotContain("routesClient", "TRAFFIC_AWARE_OPTIMAL", "no expensive optimized traffic mode");
+mustNotContain("routesClient", "computeRouteMatrix", "no matrix routing");
+mustNotContain("routesClient", "optimizeWaypointOrder", "no route optimization");
 mustContain("mockProvider", "createMockRouteProvider", "mock provider for CI/beta fallback");
 mustContain("routeUtils", "validateRouteCoordinates", "coordinate validation before provider call");
 

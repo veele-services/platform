@@ -3,6 +3,7 @@ export * from "./config";
 export * from "./travel-modes";
 export * from "./marker-status";
 export * from "./places-client";
+export * from "./routes-client";
 export * from "./rate-limit";
 export * from "./errors";
 export * from "./cache";

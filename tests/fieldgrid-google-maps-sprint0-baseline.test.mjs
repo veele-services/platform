@@ -6,14 +6,14 @@ function read(relativePath) {
   return readFileSync(new URL(`../${relativePath}`, import.meta.url), "utf8");
 }
 
-test("Sprint 0 baseline: planning map still uses current raster tiles pending Google migration", () => {
+test("Sprint 0 baseline: planning map uses the shared Google Maps canvas after migration", () => {
   const mapView = read("artifacts/backoffice/src/components/assignments/PlanningMapView.tsx");
+  const canvas = read("artifacts/backoffice/src/components/google-maps/GoogleMapCanvas.tsx");
 
-  assert.match(mapView, /basemaps\.cartocdn\.com\/light_all/u);
-  assert.match(mapView, /tile\.openstreetmap\.org/u);
-  assert.match(mapView, /OpenStreetMap & CARTO/u);
-  assert.match(mapView, /STATUS_COLORS/u);
-  assert.doesNotMatch(mapView, /@googlemaps\/js-api-loader|google\.maps\.Map/u);
+  assert.match(mapView, /GoogleMapCanvas/u);
+  assert.match(mapView, /GOOGLE_MAPS_MARKER_STATUS/u);
+  assert.match(canvas, /AdvancedMarkerElement/u);
+  assert.doesNotMatch(mapView, /basemaps\.cartocdn\.com|tile\.openstreetmap\.org|OpenStreetMap & CARTO/u);
 });
 
 test("Sprint 0 baseline: address suggestions have migrated to Google Places with PDOK kept as legacy geocoder", () => {
@@ -33,14 +33,20 @@ test("Sprint 0 baseline: address suggestions have migrated to Google Places with
 test("Sprint 0 baseline: route provider has Google Routes server adapter and mock fallback", () => {
   const routeProvider = read("artifacts/backoffice/src/lib/planning/routes/route-provider.ts");
   const googleProvider = read("artifacts/backoffice/src/lib/planning/routes/google-routes-provider.ts");
+  const routesClient = read("artifacts/backoffice/src/lib/google-maps/routes-client.ts");
   const mockProvider = read("artifacts/backoffice/src/lib/planning/routes/mock-route-provider.ts");
 
   assert.match(routeProvider, /FIELDGRID_ROUTE_PROVIDER/u);
+  assert.match(routeProvider, /GOOGLE_MAPS_SERVER_API_KEY/u);
   assert.match(routeProvider, /GOOGLE_ROUTES_API_KEY/u);
   assert.match(routeProvider, /createMockRouteProvider/u);
-  assert.match(googleProvider, /directions\/v2:computeRoutes/u);
-  assert.match(googleProvider, /TRAFFIC_AWARE/u);
-  assert.match(googleProvider, /routes\.duration,routes\.distanceMeters,routes\.warnings/u);
+  assert.match(routesClient, /directions\/v2:computeRoutes/u);
+  assert.match(routesClient, /TRAFFIC_AWARE/u);
+  assert.match(routesClient, /routes\.duration/u);
+  assert.match(routesClient, /routes\.staticDuration/u);
+  assert.match(routesClient, /routes\.distanceMeters/u);
+  assert.match(routesClient, /routes\.polyline\.encodedPolyline/u);
+  assert.match(googleProvider, /GOOGLE_MAPS_SERVER_API_KEY is niet geconfigureerd/u);
   assert.match(mockProvider, /ROUTE_PROVIDER_MOCK/u);
 });
 

@@ -71,8 +71,10 @@ export type GoogleMapsUsageMetricInput = {
   responseTimeMs: number | null;
   cacheOrDedupeStatus:
     | GoogleMapsDedupeStatus
+    | "hit"
     | "cache_hit"
     | "cache_miss"
+    | "negative_cache"
     | "bypass"
     | "rate_limited";
   provider: typeof GOOGLE_MAPS_PROVIDER;
