@@ -10,6 +10,7 @@
     "./email-templates": "./src/email-templates.ts",
     "./events": "./src/events.ts",
     "./address-geocoding": "./src/address-geocoding.ts",
+    "./google-places": "./src/google-places.ts",
     "./portal-routes": "./src/portal-routes.ts",
     "./invoice-numbering": "./src/invoice-numbering.ts",
     "./invoice-finalization": "./src/invoice-finalization.ts",

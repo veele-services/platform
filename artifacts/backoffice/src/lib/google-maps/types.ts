@@ -69,7 +69,12 @@ export type GoogleMapsUsageMetricInput = {
   environment: string;
   success: boolean;
   responseTimeMs: number | null;
-  cacheOrDedupeStatus: GoogleMapsDedupeStatus | "cache_hit" | "cache_miss" | "bypass";
+  cacheOrDedupeStatus:
+    | GoogleMapsDedupeStatus
+    | "cache_hit"
+    | "cache_miss"
+    | "bypass"
+    | "rate_limited";
   provider: typeof GOOGLE_MAPS_PROVIDER;
   estimatedSku: string | null;
   metadata?: Record<string, string | number | boolean | null>;

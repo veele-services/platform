@@ -109,7 +109,38 @@ async function buildAddressGeocodePatch(input: {
   addressPostalCode: string | null;
   addressCity: string | null;
   addressCountry: string;
+  googlePlace?: {
+    googlePlaceId: string;
+    formattedAddress: string | null;
+    addressLine1: string | null;
+    addressLine2: string | null;
+    stateOrRegion: string | null;
+    countryCode: string;
+    latitude: number | null;
+    longitude: number | null;
+  };
 }) {
+  if (input.googlePlace?.googlePlaceId) {
+    return {
+      addressLine1: input.googlePlace.addressLine1 ?? input.addressStreet,
+      addressLine2: input.googlePlace.addressLine2,
+      stateOrRegion: input.googlePlace.stateOrRegion,
+      countryCode: input.googlePlace.countryCode,
+      formattedAddress: input.googlePlace.formattedAddress,
+      googlePlaceId: input.googlePlace.googlePlaceId,
+      locationSource: "google_places",
+      locationVerifiedAt: new Date(),
+      locationUpdatedAt: new Date(),
+      addressLatitude: input.googlePlace.latitude != null ? coordinateNumericValue(input.googlePlace.latitude) : null,
+      addressLongitude: input.googlePlace.longitude != null ? coordinateNumericValue(input.googlePlace.longitude) : null,
+      addressGeocodedAt: input.googlePlace.latitude != null && input.googlePlace.longitude != null ? new Date() : null,
+      addressGeocodingProvider: "google_places",
+      addressGeocodingStatus: input.googlePlace.latitude != null && input.googlePlace.longitude != null ? "geocoded" : "not_required",
+      addressGeocodingConfidence: input.googlePlace.latitude != null && input.googlePlace.longitude != null ? "1.00" : null,
+      addressGeocodingError: null,
+    };
+  }
+
   const addressInput = {
     address: input.addressStreet,
     postalCode: input.addressPostalCode,
@@ -297,6 +328,23 @@ export async function updateMyProfile(
   const addressCity = normalizeNullableText(formData.get("addressCity"), 120);
   const addressCountry =
     normalizeNullableText(formData.get("addressCountry"), 80) ?? "Nederland";
+  const latitudeRaw = normalizeNullableText(formData.get("latitude"), 40);
+  const longitudeRaw = normalizeNullableText(formData.get("longitude"), 40);
+  const latitude = latitudeRaw != null ? Number(latitudeRaw) : null;
+  const longitude = longitudeRaw != null ? Number(longitudeRaw) : null;
+  const googlePlaceId = normalizeNullableText(formData.get("googlePlaceId"), 255);
+  const googlePlace = googlePlaceId
+    ? {
+        googlePlaceId,
+        formattedAddress: normalizeNullableText(formData.get("formattedAddress"), 500),
+        addressLine1: normalizeNullableText(formData.get("addressLine1"), 200),
+        addressLine2: normalizeNullableText(formData.get("addressLine2"), 200),
+        stateOrRegion: normalizeNullableText(formData.get("stateOrRegion"), 120),
+        countryCode: normalizeNullableText(formData.get("countryCode"), 2) ?? "NL",
+        latitude: Number.isFinite(latitude) ? latitude : null,
+        longitude: Number.isFinite(longitude) ? longitude : null,
+      }
+    : undefined;
 
   if (!firstName || !lastName) {
     return { success: false, error: "Voornaam en achternaam zijn verplicht" };
@@ -310,6 +358,7 @@ export async function updateMyProfile(
     addressPostalCode,
     addressCity,
     addressCountry,
+    googlePlace,
   });
 
   const [updated] = await db

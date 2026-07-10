@@ -16,7 +16,7 @@ test("Sprint 0 baseline: planning map still uses current raster tiles pending Go
   assert.doesNotMatch(mapView, /@googlemaps\/js-api-loader|google\.maps\.Map/u);
 });
 
-test("Sprint 0 baseline: address suggestions still use PDOK through shared helpers", () => {
+test("Sprint 0 baseline: address suggestions have migrated to Google Places with PDOK kept as legacy geocoder", () => {
   const dbGeocoding = read("lib/db/src/address-geocoding.ts");
   const backofficeAddressRoute = read("artifacts/backoffice/src/app/api/address-suggestions/route.ts");
   const personnelAddressRoute = read("artifacts/personeel-pwa/src/app/api/address-suggestions/route.ts");
@@ -24,8 +24,10 @@ test("Sprint 0 baseline: address suggestions still use PDOK through shared helpe
   assert.match(dbGeocoding, /api\.pdok\.nl\/bzk\/locatieserver\/search\/v3_1\/free/u);
   assert.match(dbGeocoding, /provider:\s*"pdok"/u);
   assert.match(dbGeocoding, /q\.length < 4/u);
-  assert.match(backofficeAddressRoute, /suggestDutchAddresses/u);
-  assert.match(personnelAddressRoute, /suggestDutchAddresses/u);
+  assert.match(backofficeAddressRoute, /fetchGooglePlacesAutocomplete/u);
+  assert.match(personnelAddressRoute, /fetchGooglePlacesAutocomplete/u);
+  assert.doesNotMatch(backofficeAddressRoute, /suggestDutchAddresses/u);
+  assert.doesNotMatch(personnelAddressRoute, /suggestDutchAddresses/u);
 });
 
 test("Sprint 0 baseline: route provider has Google Routes server adapter and mock fallback", () => {

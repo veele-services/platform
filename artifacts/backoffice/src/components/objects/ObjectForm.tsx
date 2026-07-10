@@ -75,13 +75,33 @@ type FormValues = z.infer<typeof objectFormSchema>;
 
 type AddressSuggestion = {
   id: string;
+  placeId?: string;
   label: string;
+  mainText?: string;
+  secondaryText?: string | null;
   street: string | null;
   postalCode: string | null;
   city: string | null;
   country: string;
   confidence: number;
 };
+
+type SelectedGooglePlace = {
+  googlePlaceId: string;
+  formattedAddress: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  postalCode: string | null;
+  city: string | null;
+  stateOrRegion: string | null;
+  countryCode: string;
+  latitude: number | null;
+  longitude: number | null;
+};
+
+function createPlacesSessionToken(): string {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;
+}
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
@@ -135,6 +155,8 @@ export function ObjectForm({
   const [regionNames, setRegionNames]     = useState<string[]>([]);
   const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
   const [addressLoading, setAddressLoading] = useState(false);
+  const [addressSessionToken, setAddressSessionToken] = useState(createPlacesSessionToken);
+  const [selectedGooglePlace, setSelectedGooglePlace] = useState<SelectedGooglePlace | null>(null);
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -199,7 +221,7 @@ export function ObjectForm({
       .filter(Boolean)
       .join(" ");
 
-    if (query.length < 4) {
+    if (query.length < 3) {
       setAddressSuggestions([]);
       setAddressLoading(false);
       return;
@@ -209,7 +231,10 @@ export function ObjectForm({
     const timeout = window.setTimeout(async () => {
       setAddressLoading(true);
       try {
-        const response = await fetch(`/api/address-suggestions?q=${encodeURIComponent(query)}`, {
+        const response = await fetch("/api/google-maps/places/autocomplete", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ input: query, sessionToken: addressSessionToken, limit: 6 }),
           signal: controller.signal,
         });
         if (!response.ok) {
@@ -231,7 +256,46 @@ export function ObjectForm({
       controller.abort();
       window.clearTimeout(timeout);
     };
-  }, [addressValue, postalCodeValue, cityValue]);
+  }, [addressValue, postalCodeValue, cityValue, addressSessionToken]);
+
+  async function selectAddressSuggestion(suggestion: AddressSuggestion) {
+    if (!suggestion.placeId) {
+      setValue("address", suggestion.street ?? "");
+      setValue("postalCode", suggestion.postalCode ?? "");
+      setValue("city", suggestion.city ?? "");
+      setAddressSuggestions([]);
+      setSelectedGooglePlace(null);
+      setAddressSessionToken(createPlacesSessionToken());
+      return;
+    }
+
+    setAddressLoading(true);
+    try {
+      const response = await fetch("/api/google-maps/places/details", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          placeId: suggestion.placeId,
+          sessionToken: addressSessionToken,
+        }),
+      });
+      if (!response.ok) {
+        toast.error("Adresdetails konden niet worden opgehaald. Handmatige invoer blijft mogelijk.");
+        return;
+      }
+      const payload = (await response.json()) as { place?: SelectedGooglePlace };
+      if (!payload.place) return;
+      const place = payload.place;
+      setValue("address", place.addressLine1 ?? suggestion.mainText ?? suggestion.label);
+      setValue("postalCode", place.postalCode ?? "");
+      setValue("city", place.city ?? "");
+      setSelectedGooglePlace(place);
+      setAddressSuggestions([]);
+      setAddressSessionToken(createPlacesSessionToken());
+    } finally {
+      setAddressLoading(false);
+    }
+  }
 
   const onSubmit = handleSubmit((data) => {
     const parsed = objectFormSchema.safeParse(data);
@@ -244,6 +308,11 @@ export function ObjectForm({
     }
 
     startTransition(async () => {
+      const googlePlaceStillMatches = selectedGooglePlace && (
+        (selectedGooglePlace.addressLine1 ?? "") === (parsed.data.address || "") &&
+        (selectedGooglePlace.postalCode ?? "") === (parsed.data.postalCode || "") &&
+        (selectedGooglePlace.city ?? "") === (parsed.data.city || "")
+      );
       const input: ObjectFormInput = {
         ...parsed.data,
         sectorId:             parsed.data.sectorId === "NONE" ? undefined : parsed.data.sectorId || undefined,
@@ -257,6 +326,7 @@ export function ObjectForm({
         alarmInfo:            parsed.data.alarmInfo            || undefined,
         fixedInstructions:    parsed.data.fixedInstructions    || undefined,
         specialNotes:         parsed.data.specialNotes         || undefined,
+        googlePlace:          googlePlaceStillMatches ? selectedGooglePlace : undefined,
       };
 
       const result =
@@ -519,16 +589,13 @@ export function ObjectForm({
                       key={suggestion.id}
                       type="button"
                       className="block w-full rounded px-3 py-2 text-left text-sm hover:bg-slate-50"
-                      onClick={() => {
-                        setValue("address", suggestion.street ?? "");
-                        setValue("postalCode", suggestion.postalCode ?? "");
-                        setValue("city", suggestion.city ?? "");
-                        setAddressSuggestions([]);
-                      }}
+                      onClick={() => { void selectAddressSuggestion(suggestion); }}
                     >
-                      <span className="block font-medium" style={{ color: "#081D3A" }}>{suggestion.label}</span>
+                      <span className="block font-medium" style={{ color: "#081D3A" }}>
+                        {suggestion.mainText ?? suggestion.label}
+                      </span>
                       <span className="text-xs" style={{ color: "#64748B" }}>
-                        PDOK - {Math.round(suggestion.confidence)}% match
+                        {suggestion.secondaryText ?? "Google Places"}
                       </span>
                     </button>
                   ))}

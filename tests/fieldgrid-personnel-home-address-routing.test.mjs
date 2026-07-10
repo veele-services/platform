@@ -33,16 +33,16 @@ test("backoffice and personnel PWA offer secured address autocomplete", () => {
 
   assert.match(backofficeRoute, /hasPermission\("personnel",\s*"read"\)/);
   assert.match(backofficeRoute, /hasPermission\("objects",\s*"read"\)/);
-  assert.match(backofficeRoute, /suggestDutchAddresses/);
+  assert.match(backofficeRoute, /fetchGooglePlacesAutocomplete/);
   assert.match(personnelRoute, /getMyPersonnel\(\)/);
-  assert.match(personnelRoute, /suggestDutchAddresses/);
-  assert.match(backofficeForm, /\/api\/address-suggestions\?q=/);
+  assert.match(personnelRoute, /fetchGooglePlacesAutocomplete/);
+  assert.match(backofficeForm, /\/api\/google-maps\/places\/autocomplete/);
   assert.match(backofficeForm, /absolute left-3 right-3/);
   assert.match(backofficeForm, /z-\[80\]/);
-  assert.match(objectForm, /\/api\/address-suggestions\?q=/);
+  assert.match(objectForm, /\/api\/google-maps\/places\/autocomplete/);
   assert.match(objectForm, /Objectadres/);
-  assert.match(objectForm, /setValue\("postalCode", suggestion\.postalCode/);
-  assert.match(personnelForm, /\/personeel\/api\/address-suggestions\?q=/);
+  assert.match(objectForm, /\/api\/google-maps\/places\/details/);
+  assert.match(personnelForm, /\/personeel\/api\/google-maps\/places\/autocomplete/);
   assert.match(personnelForm, /Dit adres wordt gebruikt als vertrekpunt voor je eerste werkbon/);
 });
 

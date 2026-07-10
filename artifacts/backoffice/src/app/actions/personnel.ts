@@ -78,7 +78,40 @@ async function buildPersonnelAddressGeocodePatch(input: {
   addressPostalCode: string | null;
   addressCity: string | null;
   addressCountry: string;
+  googlePlace?: {
+    googlePlaceId: string;
+    formattedAddress: string | null;
+    addressLine1: string | null;
+    addressLine2: string | null;
+    postalCode: string | null;
+    city: string | null;
+    stateOrRegion: string | null;
+    countryCode: string;
+    latitude: number | null;
+    longitude: number | null;
+  };
 }) {
+  if (input.googlePlace?.googlePlaceId) {
+    return {
+      addressLine1: input.googlePlace.addressLine1 ?? input.addressStreet,
+      addressLine2: input.googlePlace.addressLine2,
+      stateOrRegion: input.googlePlace.stateOrRegion,
+      countryCode: input.googlePlace.countryCode,
+      formattedAddress: input.googlePlace.formattedAddress,
+      googlePlaceId: input.googlePlace.googlePlaceId,
+      locationSource: "google_places",
+      locationVerifiedAt: new Date(),
+      locationUpdatedAt: new Date(),
+      addressLatitude: input.googlePlace.latitude != null ? coordinateNumericValue(input.googlePlace.latitude) : null,
+      addressLongitude: input.googlePlace.longitude != null ? coordinateNumericValue(input.googlePlace.longitude) : null,
+      addressGeocodedAt: input.googlePlace.latitude != null && input.googlePlace.longitude != null ? new Date() : null,
+      addressGeocodingProvider: "google_places",
+      addressGeocodingStatus: input.googlePlace.latitude != null && input.googlePlace.longitude != null ? "geocoded" : "not_required",
+      addressGeocodingConfidence: input.googlePlace.latitude != null && input.googlePlace.longitude != null ? "1.00" : null,
+      addressGeocodingError: null,
+    };
+  }
+
   const addressInput = {
     address: input.addressStreet,
     postalCode: input.addressPostalCode,
@@ -249,6 +282,18 @@ export type PersonnelFormInput = {
   emergencyAvailable?: boolean;
   preferredRegions?:   string[];
   contractInfo?:       ContractInfo | null;
+  googlePlace?: {
+    googlePlaceId: string;
+    formattedAddress: string | null;
+    addressLine1: string | null;
+    addressLine2: string | null;
+    postalCode: string | null;
+    city: string | null;
+    stateOrRegion: string | null;
+    countryCode: string;
+    latitude: number | null;
+    longitude: number | null;
+  };
 };
 
 export type PersonnelStats = {
@@ -795,6 +840,7 @@ export async function createPersonnel(
       addressPostalCode: payload.addressPostalCode,
       addressCity: payload.addressCity,
       addressCountry: payload.addressCountry,
+      googlePlace: data.googlePlace,
     });
     const insertData = {
       ...parsedInsertData,
@@ -921,6 +967,7 @@ export async function updatePersonnel(
       addressPostalCode: payload.addressPostalCode,
       addressCity: payload.addressCity,
       addressCountry: payload.addressCountry,
+      googlePlace: data.googlePlace,
     });
     const updateData = {
       ...parsedUpdateData,

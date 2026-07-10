@@ -13,6 +13,7 @@ export * from "./email-templates";
 export * from "./tenant-provisioning";
 export * from "./custom-domains";
 export * from "./address-geocoding";
+export * from "./google-places";
 export * from "./platform-access";
 export * from "./storage-paths";
 export * from "./security-data-classification";
