@@ -4,13 +4,14 @@ import { db } from "@workspace/db";
 import {
   auditLogTable,
   invoiceNumberingSettingsTable,
+  invoiceNumberSequencesTable,
   invoicePaymentSettingsTable,
   invoiceTemplateSettingsTable,
   tenantCompanySettingsTable,
 } from "@workspace/db";
 import {
-  formatInvoiceNumber,
   getInvoiceNumberPeriodKey,
+  previewInvoiceNumber,
   validateInvoiceNumberingConfig,
   type InvoiceNumberResetPeriod,
 } from "@workspace/db/invoice-number-formatting";
@@ -87,6 +88,8 @@ export type InvoiceSettingsBundle = {
     periodKey: string;
     sequenceValue: number;
     dueDateDays: number;
+    testPdfUrl: string;
+    warnings: string[];
   };
 };
 
@@ -160,6 +163,32 @@ function normalizeNumber(value: number, fallback: number, min: number, max: numb
   return Math.min(max, Math.max(min, Math.trunc(value)));
 }
 
+function invoiceSettingsWarnings(input: {
+  company: InvoiceCompanySettingsForm;
+  template: InvoiceTemplateSettingsForm;
+  payment: InvoicePaymentSettingsForm;
+}): string[] {
+  const warnings: string[] = [];
+  const { company, template, payment } = input;
+
+  if (!company.legalName.trim()) warnings.push("Bedrijfsnaam ontbreekt.");
+  if (!company.addressLine1?.trim() || !company.postalCode?.trim() || !company.city?.trim()) {
+    warnings.push("Adresgegevens zijn niet volledig.");
+  }
+  if (!company.kvkNumber?.trim()) warnings.push("KVK-nummer ontbreekt.");
+  if (!company.vatNumber?.trim()) warnings.push("BTW-nummer ontbreekt.");
+  if (!company.iban?.trim()) warnings.push("IBAN ontbreekt.");
+  if (!company.administrationEmail?.trim()) warnings.push("Administratie e-mail ontbreekt.");
+  if (template.showLogo && !(template.logoUrl?.trim() || company.logoUrl?.trim())) {
+    warnings.push("Logo staat aan, maar er is nog geen logo-URL ingesteld.");
+  }
+  if (payment.paymentProvider === "mollie" && !payment.mollieEnabled) {
+    warnings.push("Mollie is gekozen als provider, maar nog niet actief.");
+  }
+
+  return warnings;
+}
+
 async function requireActor() {
   const supabase = await createClient();
   const {
@@ -213,58 +242,82 @@ export async function getInvoiceSettings(): Promise<InvoiceSettingsBundle> {
     resetPeriod: numbering?.resetPeriod ?? DEFAULT_NUMBERING.resetPeriod,
     defaultStartNumber: numbering?.defaultStartNumber ?? DEFAULT_NUMBERING.defaultStartNumber,
   };
+  const companySettings: InvoiceCompanySettingsForm = {
+    legalName: company?.legalName ?? DEFAULT_COMPANY.legalName,
+    tradeName: company?.tradeName ?? DEFAULT_COMPANY.tradeName,
+    addressLine1: company?.addressLine1 ?? DEFAULT_COMPANY.addressLine1,
+    addressLine2: company?.addressLine2 ?? DEFAULT_COMPANY.addressLine2,
+    postalCode: company?.postalCode ?? DEFAULT_COMPANY.postalCode,
+    city: company?.city ?? DEFAULT_COMPANY.city,
+    country: company?.country ?? DEFAULT_COMPANY.country,
+    kvkNumber: company?.kvkNumber ?? DEFAULT_COMPANY.kvkNumber,
+    vatNumber: company?.vatNumber ?? DEFAULT_COMPANY.vatNumber,
+    iban: company?.iban ?? DEFAULT_COMPANY.iban,
+    bic: company?.bic ?? DEFAULT_COMPANY.bic,
+    administrationEmail: company?.administrationEmail ?? DEFAULT_COMPANY.administrationEmail,
+    phone: company?.phone ?? DEFAULT_COMPANY.phone,
+    website: company?.website ?? DEFAULT_COMPANY.website,
+    logoUrl: company?.logoUrl ?? DEFAULT_COMPANY.logoUrl,
+    primaryColor: company?.primaryColor ?? DEFAULT_COMPANY.primaryColor,
+    secondaryColor: company?.secondaryColor ?? DEFAULT_COMPANY.secondaryColor,
+    defaultPaymentTermDays: company?.defaultPaymentTermDays ?? DEFAULT_COMPANY.defaultPaymentTermDays,
+  };
+  const templateSettings: InvoiceTemplateSettingsForm = {
+    logoUrl: template?.logoUrl ?? DEFAULT_TEMPLATE.logoUrl,
+    primaryColor: template?.primaryColor ?? DEFAULT_TEMPLATE.primaryColor,
+    secondaryColor: template?.secondaryColor ?? DEFAULT_TEMPLATE.secondaryColor,
+    introText: template?.introText ?? DEFAULT_TEMPLATE.introText,
+    footerText: template?.footerText ?? DEFAULT_TEMPLATE.footerText,
+    paymentInstruction: template?.paymentInstruction ?? DEFAULT_TEMPLATE.paymentInstruction,
+    showLogo: template?.showLogo ?? DEFAULT_TEMPLATE.showLogo,
+    showCompanyFooter: template?.showCompanyFooter ?? DEFAULT_TEMPLATE.showCompanyFooter,
+    showKvkFooter: template?.showKvkFooter ?? DEFAULT_TEMPLATE.showKvkFooter,
+    showVatFooter: template?.showVatFooter ?? DEFAULT_TEMPLATE.showVatFooter,
+    showIbanFooter: template?.showIbanFooter ?? DEFAULT_TEMPLATE.showIbanFooter,
+  };
+  const paymentSettings: InvoicePaymentSettingsForm = {
+    paymentProvider: payment?.paymentProvider ?? DEFAULT_PAYMENT.paymentProvider,
+    mollieEnabled: payment?.mollieEnabled ?? DEFAULT_PAYMENT.mollieEnabled,
+    showPaymentLinkOnInvoice: payment?.showPaymentLinkOnInvoice ?? DEFAULT_PAYMENT.showPaymentLinkOnInvoice,
+    showPaymentQrOnInvoice: payment?.showPaymentQrOnInvoice ?? DEFAULT_PAYMENT.showPaymentQrOnInvoice,
+    paymentBlockTitle: payment?.paymentBlockTitle ?? DEFAULT_PAYMENT.paymentBlockTitle,
+    paymentBlockText: payment?.paymentBlockText ?? DEFAULT_PAYMENT.paymentBlockText,
+    paymentLinkLabel: payment?.paymentLinkLabel ?? DEFAULT_PAYMENT.paymentLinkLabel,
+  };
   const today = new Date();
+  const periodKey = getInvoiceNumberPeriodKey(numberingSettings.resetPeriod, today);
+  const [sequence] = numbering
+    ? await db
+        .select({ nextNumber: invoiceNumberSequencesTable.nextNumber })
+        .from(invoiceNumberSequencesTable)
+        .where(
+          and(
+            eq(invoiceNumberSequencesTable.tenantId, tenantId),
+            eq(invoiceNumberSequencesTable.numberingSettingsId, numbering.id),
+            eq(invoiceNumberSequencesTable.periodKey, periodKey),
+          ),
+        )
+        .limit(1)
+    : [];
+  const previewNumber = previewInvoiceNumber(numberingSettings, sequence?.nextNumber ?? numberingSettings.defaultStartNumber, today);
   const preview = {
-    invoiceNumber: formatInvoiceNumber(numberingSettings, numberingSettings.defaultStartNumber, today),
-    periodKey: getInvoiceNumberPeriodKey(numberingSettings.resetPeriod, today),
-    sequenceValue: numberingSettings.defaultStartNumber,
-    dueDateDays: company?.defaultPaymentTermDays ?? DEFAULT_COMPANY.defaultPaymentTermDays,
+    invoiceNumber: previewNumber.invoiceNumber,
+    periodKey: previewNumber.periodKey,
+    sequenceValue: previewNumber.sequenceValue,
+    dueDateDays: companySettings.defaultPaymentTermDays,
+    testPdfUrl: "/api/invoices/test-pdf",
+    warnings: invoiceSettingsWarnings({
+      company: companySettings,
+      template: templateSettings,
+      payment: paymentSettings,
+    }),
   };
 
   return {
-    company: {
-      legalName: company?.legalName ?? DEFAULT_COMPANY.legalName,
-      tradeName: company?.tradeName ?? DEFAULT_COMPANY.tradeName,
-      addressLine1: company?.addressLine1 ?? DEFAULT_COMPANY.addressLine1,
-      addressLine2: company?.addressLine2 ?? DEFAULT_COMPANY.addressLine2,
-      postalCode: company?.postalCode ?? DEFAULT_COMPANY.postalCode,
-      city: company?.city ?? DEFAULT_COMPANY.city,
-      country: company?.country ?? DEFAULT_COMPANY.country,
-      kvkNumber: company?.kvkNumber ?? DEFAULT_COMPANY.kvkNumber,
-      vatNumber: company?.vatNumber ?? DEFAULT_COMPANY.vatNumber,
-      iban: company?.iban ?? DEFAULT_COMPANY.iban,
-      bic: company?.bic ?? DEFAULT_COMPANY.bic,
-      administrationEmail: company?.administrationEmail ?? DEFAULT_COMPANY.administrationEmail,
-      phone: company?.phone ?? DEFAULT_COMPANY.phone,
-      website: company?.website ?? DEFAULT_COMPANY.website,
-      logoUrl: company?.logoUrl ?? DEFAULT_COMPANY.logoUrl,
-      primaryColor: company?.primaryColor ?? DEFAULT_COMPANY.primaryColor,
-      secondaryColor: company?.secondaryColor ?? DEFAULT_COMPANY.secondaryColor,
-      defaultPaymentTermDays: company?.defaultPaymentTermDays ?? DEFAULT_COMPANY.defaultPaymentTermDays,
-    },
+    company: companySettings,
     numbering: numberingSettings,
-    template: {
-      logoUrl: template?.logoUrl ?? DEFAULT_TEMPLATE.logoUrl,
-      primaryColor: template?.primaryColor ?? DEFAULT_TEMPLATE.primaryColor,
-      secondaryColor: template?.secondaryColor ?? DEFAULT_TEMPLATE.secondaryColor,
-      introText: template?.introText ?? DEFAULT_TEMPLATE.introText,
-      footerText: template?.footerText ?? DEFAULT_TEMPLATE.footerText,
-      paymentInstruction: template?.paymentInstruction ?? DEFAULT_TEMPLATE.paymentInstruction,
-      showLogo: template?.showLogo ?? DEFAULT_TEMPLATE.showLogo,
-      showCompanyFooter: template?.showCompanyFooter ?? DEFAULT_TEMPLATE.showCompanyFooter,
-      showKvkFooter: template?.showKvkFooter ?? DEFAULT_TEMPLATE.showKvkFooter,
-      showVatFooter: template?.showVatFooter ?? DEFAULT_TEMPLATE.showVatFooter,
-      showIbanFooter: template?.showIbanFooter ?? DEFAULT_TEMPLATE.showIbanFooter,
-    },
-    payment: {
-      paymentProvider: payment?.paymentProvider ?? DEFAULT_PAYMENT.paymentProvider,
-      mollieEnabled: payment?.mollieEnabled ?? DEFAULT_PAYMENT.mollieEnabled,
-      showPaymentLinkOnInvoice: payment?.showPaymentLinkOnInvoice ?? DEFAULT_PAYMENT.showPaymentLinkOnInvoice,
-      showPaymentQrOnInvoice: payment?.showPaymentQrOnInvoice ?? DEFAULT_PAYMENT.showPaymentQrOnInvoice,
-      paymentBlockTitle: payment?.paymentBlockTitle ?? DEFAULT_PAYMENT.paymentBlockTitle,
-      paymentBlockText: payment?.paymentBlockText ?? DEFAULT_PAYMENT.paymentBlockText,
-      paymentLinkLabel: payment?.paymentLinkLabel ?? DEFAULT_PAYMENT.paymentLinkLabel,
-    },
+    template: templateSettings,
+    payment: paymentSettings,
     preview,
   };
 }

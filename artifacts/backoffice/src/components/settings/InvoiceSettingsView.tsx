@@ -1,10 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useState, useTransition } from "react";
 import {
+  AlertTriangle,
   Building2,
   Calculator,
   CreditCard,
+  Download,
   Eye,
   FileText,
   Palette,
@@ -76,7 +79,7 @@ export function InvoiceSettingsView({ settings, canWrite }: Props) {
       {activeTab === "template" && <TemplateCard settings={settings} canWrite={canWrite} />}
       {activeTab === "payment" && <PaymentCard settings={settings} canWrite={canWrite} />}
       {activeTab === "mollie" && <MollieCard settings={settings} canWrite={canWrite} />}
-      {activeTab === "preview" && <PreviewCard settings={settings} />}
+      {activeTab === "preview" && <InvoicePreviewCard settings={settings} />}
     </div>
   );
 }
@@ -430,7 +433,7 @@ function PreviewCard({ settings }: { settings: InvoiceSettingsBundle }) {
             </div>
             <div className="grid grid-cols-[1fr_120px] px-4 py-4 text-sm">
               <span>Voorbeeldregel definitieve factuur</span>
-              <span className="text-right">€ 100,00</span>
+              <span className="text-right">EUR 100,00</span>
             </div>
           </div>
           <p className="mt-6 text-sm text-slate-600">{settings.template.paymentInstruction}</p>
@@ -440,6 +443,91 @@ function PreviewCard({ settings }: { settings: InvoiceSettingsBundle }) {
           <InfoBlock label="Start sequence" value={String(settings.preview.sequenceValue)} />
           <InfoBlock label="Betaaltermijn" value={`${settings.preview.dueDateDays} dagen`} />
           <InfoBlock label="Reset" value={settings.numbering.resetPeriod} />
+        </div>
+      </div>
+    </SectionCard>
+  );
+}
+
+function InvoicePreviewCard({ settings }: { settings: InvoiceSettingsBundle }) {
+  const primaryColor = settings.template.primaryColor || settings.company.primaryColor;
+  const accentColor = settings.template.secondaryColor || settings.company.secondaryColor;
+  const logoUrl = settings.template.logoUrl || settings.company.logoUrl;
+
+  return (
+    <SectionCard icon={<FileText className="h-5 w-5" />} title="Preview en testfactuur" description="Voorbeeld van de huidige canon-instellingen zonder een officieel factuurnummer te claimen.">
+      {settings.preview.warnings.length > 0 && (
+        <div className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+          <div className="mb-2 flex items-center gap-2 font-semibold">
+            <AlertTriangle className="h-4 w-4" />
+            Controleer deze instellingen voor u definitief factureert
+          </div>
+          <ul className="list-disc space-y-1 pl-5">
+            {settings.preview.warnings.map((warning) => (
+              <li key={warning}>{warning}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+      <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+        <div className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+          <div className="flex items-center justify-between gap-4 px-6 py-5 text-white" style={{ backgroundColor: primaryColor }}>
+            <div className="flex min-w-0 items-center gap-3">
+              {logoUrl ? (
+                <span className="flex h-12 w-16 shrink-0 items-center justify-center rounded-lg bg-white/95 p-2">
+                  <img src={logoUrl} alt="" className="max-h-full max-w-full object-contain" />
+                </span>
+              ) : (
+                <span className="h-10 w-10 rounded-lg" style={{ backgroundColor: accentColor }} />
+              )}
+              <div className="min-w-0">
+                <p className="text-xs font-semibold uppercase opacity-75">Testfactuur</p>
+                <h3 className="truncate text-xl font-bold">{settings.company.tradeName || settings.company.legalName || "Uw organisatie"}</h3>
+              </div>
+            </div>
+            <span className="rounded-full bg-white/15 px-3 py-1 text-xs font-semibold">Geen sequence claim</span>
+          </div>
+          <div className="p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-xs font-semibold uppercase text-slate-500">Afzender</p>
+                <h4 className="mt-2 text-2xl font-bold text-slate-950">{settings.company.legalName || "Uw organisatie"}</h4>
+                <p className="mt-1 text-sm text-slate-500">{settings.company.addressLine1 || "Adresregel"} {settings.company.city || ""}</p>
+              </div>
+              <div className="rounded-lg bg-slate-50 px-4 py-3 text-right">
+                <p className="text-xs uppercase text-slate-500">Preview nummer</p>
+                <p className="font-mono text-lg font-semibold text-slate-950">{settings.preview.invoiceNumber}</p>
+              </div>
+            </div>
+            <div className="mt-8 rounded-lg border border-slate-200">
+              <div className="grid grid-cols-[1fr_120px] border-b border-slate-200 bg-slate-50 px-4 py-2 text-xs font-semibold uppercase text-slate-500">
+                <span>Omschrijving</span>
+                <span className="text-right">Bedrag</span>
+              </div>
+              <div className="grid grid-cols-[1fr_120px] px-4 py-4 text-sm">
+                <span>Voorbeeldregel definitieve factuur</span>
+                <span className="text-right">EUR 100,00</span>
+              </div>
+            </div>
+            <p className="mt-6 text-sm text-slate-600">{settings.template.paymentInstruction}</p>
+          </div>
+        </div>
+        <div className="space-y-3">
+          <InfoBlock label="Periode" value={settings.preview.periodKey} />
+          <InfoBlock label="Preview sequence" value={String(settings.preview.sequenceValue)} />
+          <InfoBlock label="Betaaltermijn" value={`${settings.preview.dueDateDays} dagen`} />
+          <InfoBlock label="Reset" value={settings.numbering.resetPeriod} />
+          <Link
+            href={settings.preview.testPdfUrl}
+            target="_blank"
+            className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-slate-950 px-4 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-slate-800"
+          >
+            <Download className="h-4 w-4" />
+            Test-PDF downloaden
+          </Link>
+          <p className="text-xs leading-relaxed text-slate-500">
+            Deze download gebruikt dezelfde logo-, kleur- en template-instellingen, maar schrijft geen factuur weg en claimt geen officieel nummer.
+          </p>
         </div>
       </div>
     </SectionCard>
