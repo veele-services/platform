@@ -1,4 +1,4 @@
-import type { PersonnelVehicleType } from "@workspace/db";
+import type { LegacyPersonnelVehicleType, PersonnelVehicleType } from "@workspace/db";
 import type { GoogleMapsTravelMode } from "./types";
 
 export const GOOGLE_TRAVEL_MODE_LABELS: Record<GoogleMapsTravelMode, string> = {
@@ -9,7 +9,12 @@ export const GOOGLE_TRAVEL_MODE_LABELS: Record<GoogleMapsTravelMode, string> = {
 };
 
 export function googleTravelModeForPersonnelVehicle(
-  vehicleType: PersonnelVehicleType | GoogleMapsTravelMode | null | undefined,
+  vehicleType:
+    | PersonnelVehicleType
+    | LegacyPersonnelVehicleType
+    | GoogleMapsTravelMode
+    | null
+    | undefined,
 ): GoogleMapsTravelMode {
   switch (vehicleType) {
     case "BICYCLE":

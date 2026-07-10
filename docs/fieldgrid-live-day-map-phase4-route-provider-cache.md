@@ -22,7 +22,7 @@ Ondersteunde vervoerstypes volgen `PersonnelVehicleType`:
 - `car` -> `DRIVE`
 - `bicycle` -> `BICYCLE`
 - `walking` -> `WALK`
-- `moped_or_scooter` -> `TWO_WHEELER`
+- `moped_or_scooter` -> `DRIVE` als gecontroleerde legacy fallback; `TWO_WHEELER` valt buiten de Google Maps-canonfase.
 - `public_transport` -> `TRANSIT`
 
 Providerfouten zijn expliciet retryable of niet-retryable. HTTP 429 en 5xx worden retryable gemarkeerd. Ongeldige coördinaten en ontbrekende configuratie zijn niet retryable.

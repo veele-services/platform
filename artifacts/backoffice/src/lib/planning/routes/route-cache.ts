@@ -8,6 +8,7 @@ import {
 import { and, eq, gt } from "drizzle-orm";
 import { getDefaultRouteProvider } from "./route-provider";
 import {
+  canonicalVehicleTypeForRoute,
   coordinateHash,
   coordinateNumericValue,
   expiresAtFromTtl,
@@ -51,10 +52,11 @@ function routeCacheWhere(
   provider: string,
   now: Date,
 ) {
+  const vehicleType = canonicalVehicleTypeForRoute(request.vehicleType);
   return and(
     eq(assignmentRouteCacheTable.tenantId, request.tenantId),
     eq(assignmentRouteCacheTable.provider, provider),
-    eq(assignmentRouteCacheTable.vehicleType, request.vehicleType),
+    eq(assignmentRouteCacheTable.vehicleType, vehicleType),
     eq(assignmentRouteCacheTable.originHash, coordinateHash(request.origin)),
     eq(
       assignmentRouteCacheTable.destinationHash,
@@ -65,10 +67,11 @@ function routeCacheWhere(
 }
 
 function routeCacheIdentityWhere(request: RouteRequest, provider: string) {
+  const vehicleType = canonicalVehicleTypeForRoute(request.vehicleType);
   return and(
     eq(assignmentRouteCacheTable.tenantId, request.tenantId),
     eq(assignmentRouteCacheTable.provider, provider),
-    eq(assignmentRouteCacheTable.vehicleType, request.vehicleType),
+    eq(assignmentRouteCacheTable.vehicleType, vehicleType),
     eq(assignmentRouteCacheTable.originHash, coordinateHash(request.origin)),
     eq(
       assignmentRouteCacheTable.destinationHash,
@@ -142,7 +145,7 @@ export async function upsertRouteCache(
   const values = {
     tenantId: request.tenantId,
     provider: result.provider,
-    vehicleType: request.vehicleType,
+    vehicleType: canonicalVehicleTypeForRoute(request.vehicleType),
     originLat: coordinateNumericValue(request.origin.lat),
     originLng: coordinateNumericValue(request.origin.lng),
     destinationLat: coordinateNumericValue(request.destination.lat),

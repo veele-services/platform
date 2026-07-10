@@ -70,7 +70,9 @@ mustContain("types", "RouteResult", "route result contract");
 mustContain("types", "RouteVehicleType", "vehicle type reuse");
 
 mustContain("utils", "providerModeForVehicle", "vehicle mode mapping");
-mustContain("utils", "TWO_WHEELER", "moped/scooter provider mode");
+mustContain("utils", 'case "moped_or_scooter"', "legacy moped/scooter mapping");
+mustContain("utils", 'return "DRIVE"', "moped/scooter maps to DRIVE");
+mustNotContain("utils", "TWO_WHEELER", "TWO_WHEELER is out of Google Maps canon scope");
 mustContain("utils", "coordinateHash", "stable cache coordinate hash");
 mustContain("utils", "expiresAtFromTtl", "TTL calculation");
 

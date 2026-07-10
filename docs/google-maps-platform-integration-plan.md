@@ -1,8 +1,10 @@
 # Google Maps Platform Integration Plan
 
-Status: Sprint 0 baseline en regressiebescherming.
+Status: Sprint 2 datamodel, usage metrics en vervoersmodus afgerond.
 
 Sprint 1 vult de centrale modulebasis, env-documentatie en secret guards aan zonder de actieve kaart-, Places- of Routes-flow al te migreren.
+
+Sprint 2 legt de canonieke locatievelden, assignment execution snapshots, provider-onafhankelijke usage metrics en `DRIVE | BICYCLE | WALK | TRANSIT`-vervoersmodus veilig vast in schema en migratie.
 
 Laatste baseline: main branch, na `git fetch origin main` en `git pull --ff-only origin main`.
 
@@ -201,7 +203,7 @@ Ontbrekende of te normaliseren canon-velden:
 
 Belangrijk aandachtspunt:
 
-- opdrachten hebben nog geen expliciete uitvoeringadres-snapshot voor historische integriteit. Een volgende sprint moet bepalen of dit nodig is voor werkbonnen, facturen en routehistorie.
+- sprint 2 voegt `execution_*` locatie-snapshotvelden toe op opdrachten en backfillt deze eenmalig uit objecten met klantfallback. Latere wijzigingen aan klant- of objectadressen muteren historische opdrachtlocaties niet automatisch.
 
 ### Medewerker Vervoerstype
 
@@ -227,6 +229,12 @@ Te migreren:
 - `walking` -> `WALK`
 - `public_transport` -> `TRANSIT`
 - `moped_or_scooter` -> geen canon support in deze fase; moet worden gemigreerd naar `DRIVE` of expliciet als legacy/unsupported worden behandeld zonder `TWO_WHEELER`.
+
+Sprint 2 status:
+
+- `personnel.vehicle_type`, `assignment_route_cache.vehicle_type` en `assignment_route_contexts.vehicle_type` worden naar de canonieke waarden gemigreerd.
+- `moped_or_scooter` wordt gecontroleerd naar `DRIVE` gemapt en bij personeel bewaard in `legacy_vehicle_type`.
+- Routeprovider-types bevatten geen `TWO_WHEELER` meer; legacy waarden blijven in applicatielogica backwards-compatible gemapt.
 
 ### Environmentconfiguratie
 
@@ -426,12 +434,16 @@ Te bewaren metadata:
 
 Sprint 0 voegt geen migratie toe.
 
+Sprint 2 migratie:
+
+- `lib/db/migrations/20260710210000_google_maps_location_metrics.sql`
+- voegt canonieke locatievelden toe op `customers`, `objects` en `personnel`;
+- voegt execution location snapshots toe op `assignments`;
+- normaliseert vervoersmodus naar `DRIVE | BICYCLE | WALK | TRANSIT`;
+- voegt `google_maps_usage_events` toe met tenant-scope, RLS, ingetrokken directe grants en metadata-checks tegen adressen/secrets/payloads.
+
 Verwachte latere migraties:
 
-- Google-locatievelden op klanten, objecten en personeel.
-- Eventueel execution address snapshot op opdrachten.
-- Travel mode enum of getypeerde setting normaliseren naar `DRIVE`, `BICYCLE`, `WALK`, `TRANSIT`.
-- Usage metrics tabel, provider-onafhankelijk.
 - Rate-limit/audit uitbreidingen indien bestaande infrastructuur onvoldoende is.
 - Mogelijk routecache schema uitbreiden met provider, field mask versie, traffic preference, departure bucket en legal TTL metadata.
 

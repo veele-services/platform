@@ -196,6 +196,10 @@ function formatDuration(seconds: number): string {
 
 function vehicleLabel(value: string): string {
   const labels: Record<string, string> = {
+    DRIVE: "Auto",
+    BICYCLE: "Fiets",
+    WALK: "Lopend",
+    TRANSIT: "OV",
     car: "Auto",
     bicycle: "Fiets",
     walking: "Lopend",

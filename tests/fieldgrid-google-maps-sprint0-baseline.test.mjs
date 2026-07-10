@@ -54,24 +54,29 @@ test("Sprint 0 baseline: planning map data is tenant-scoped and permission-gated
   assert.match(planningActions, /eq\(assignmentRouteContextsTable\.tenantId,\s*tenantId\)/u);
 });
 
-test("Sprint 0 baseline: personnel vehicle types are current legacy values", () => {
+test("Sprint 0 baseline: personnel vehicle types are normalized with legacy mapping", () => {
   const personnelSchema = read("lib/db/src/schema/personnel.ts");
   const routeUtils = read("artifacts/backoffice/src/lib/planning/routes/route-utils.ts");
 
-  for (const vehicleType of [
+  for (const vehicleType of ["DRIVE", "BICYCLE", "WALK", "TRANSIT"]) {
+    assert.match(personnelSchema, new RegExp(`"${vehicleType}"`, "u"));
+  }
+
+  for (const legacyVehicleType of [
     "car",
     "bicycle",
     "walking",
     "moped_or_scooter",
     "public_transport",
   ]) {
-    assert.match(personnelSchema, new RegExp(`"${vehicleType}"`, "u"));
+    assert.match(personnelSchema, new RegExp(`"${legacyVehicleType}"`, "u"));
   }
 
   assert.match(routeUtils, /case "bicycle":[\s\S]*?return "BICYCLE"/u);
   assert.match(routeUtils, /case "walking":[\s\S]*?return "WALK"/u);
-  assert.match(routeUtils, /case "moped_or_scooter":[\s\S]*?return "TWO_WHEELER"/u);
+  assert.match(routeUtils, /case "moped_or_scooter":[\s\S]*?return "DRIVE"/u);
   assert.match(routeUtils, /case "public_transport":[\s\S]*?return "TRANSIT"/u);
+  assert.doesNotMatch(routeUtils, /TWO_WHEELER/u);
 });
 
 test("Sprint 0 baseline: planning map feature flag and sidebar entry exist", () => {

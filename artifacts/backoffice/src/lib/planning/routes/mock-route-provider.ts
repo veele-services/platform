@@ -18,6 +18,10 @@ type MockRouteProviderOptions = {
 };
 
 const DEFAULT_SPEED_KILOMETERS_PER_HOUR: Record<RouteVehicleType, number> = {
+  DRIVE: 45,
+  BICYCLE: 15,
+  WALK: 5,
+  TRANSIT: 25,
   car: 45,
   bicycle: 15,
   walking: 5,
@@ -52,7 +56,7 @@ function durationSecondsForDistance(
   vehicleType: RouteVehicleType,
   speeds: Record<RouteVehicleType, number>,
 ): number {
-  const speedMetersPerSecond = (speeds[vehicleType] * 1000) / 3600;
+  const speedMetersPerSecond = ((speeds[vehicleType] ?? speeds.DRIVE) * 1000) / 3600;
   return Math.max(60, Math.round(distanceMeters / speedMetersPerSecond));
 }
 

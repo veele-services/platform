@@ -10,6 +10,7 @@ import {
   objectsTable,
   customersTable,
   insertPersonnelSchema,
+  LEGACY_PERSONNEL_VEHICLE_TYPES,
   PERSONNEL_VEHICLE_TYPES,
   updatePersonnelSchema,
   availabilityWindowsTable,
@@ -48,6 +49,16 @@ function extractCertNames(raw: unknown): string[] {
 
 function normalizePersonnelVehicleType(value: unknown): PersonnelVehicleType | undefined {
   if (typeof value !== "string") return undefined;
+  const legacyMapping: Record<string, PersonnelVehicleType> = {
+    car: "DRIVE",
+    bicycle: "BICYCLE",
+    walking: "WALK",
+    public_transport: "TRANSIT",
+    moped_or_scooter: "DRIVE",
+  };
+  if ((LEGACY_PERSONNEL_VEHICLE_TYPES as readonly string[]).includes(value)) {
+    return legacyMapping[value];
+  }
   return (PERSONNEL_VEHICLE_TYPES as readonly string[]).includes(value)
     ? (value as PersonnelVehicleType)
     : undefined;
@@ -77,6 +88,11 @@ async function buildPersonnelAddressGeocodePatch(input: {
 
   if (!hasGeocodableAddress(addressInput)) {
     return {
+      addressLine1: input.addressStreet,
+      countryCode: input.addressCountry.toUpperCase().startsWith("NL") || input.addressCountry.toLowerCase().includes("nederland") ? "NL" : null,
+      formattedAddress: [input.addressStreet, [input.addressPostalCode, input.addressCity].filter(Boolean).join(" "), input.addressCountry].filter(Boolean).join(", ") || null,
+      locationSource: input.addressStreet || input.addressPostalCode || input.addressCity ? "manual" : null,
+      locationUpdatedAt: new Date(),
       addressLatitude: null,
       addressLongitude: null,
       addressGeocodedAt: null,
@@ -90,6 +106,11 @@ async function buildPersonnelAddressGeocodePatch(input: {
   const result = await geocodeAddress(addressInput);
   if (!result.success) {
     return {
+      addressLine1: input.addressStreet,
+      countryCode: input.addressCountry.toUpperCase().startsWith("NL") || input.addressCountry.toLowerCase().includes("nederland") ? "NL" : null,
+      formattedAddress: [input.addressStreet, [input.addressPostalCode, input.addressCity].filter(Boolean).join(" "), input.addressCountry].filter(Boolean).join(", ") || null,
+      locationSource: "manual",
+      locationUpdatedAt: new Date(),
       addressLatitude: null,
       addressLongitude: null,
       addressGeocodedAt: null,
@@ -101,6 +122,12 @@ async function buildPersonnelAddressGeocodePatch(input: {
   }
 
   return {
+    addressLine1: input.addressStreet,
+    countryCode: input.addressCountry.toUpperCase().startsWith("NL") || input.addressCountry.toLowerCase().includes("nederland") ? "NL" : null,
+    formattedAddress: [input.addressStreet, [input.addressPostalCode, input.addressCity].filter(Boolean).join(" "), input.addressCountry].filter(Boolean).join(", ") || null,
+    locationSource: "legacy",
+    locationVerifiedAt: new Date(),
+    locationUpdatedAt: new Date(),
     addressLatitude: coordinateNumericValue(result.latitude),
     addressLongitude: coordinateNumericValue(result.longitude),
     addressGeocodedAt: new Date(),

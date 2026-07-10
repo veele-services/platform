@@ -1,5 +1,6 @@
 import "server-only";
 
+import type { PersonnelVehicleType } from "@workspace/db";
 import type {
   RouteCoordinate,
   RouteProviderMode,
@@ -39,14 +40,38 @@ export function providerModeForVehicle(
   vehicleType: RouteVehicleType,
 ): RouteProviderMode {
   switch (vehicleType) {
+    case "BICYCLE":
     case "bicycle":
       return "BICYCLE";
+    case "WALK":
     case "walking":
       return "WALK";
-    case "moped_or_scooter":
-      return "TWO_WHEELER";
+    case "TRANSIT":
     case "public_transport":
       return "TRANSIT";
+    case "moped_or_scooter":
+    case "DRIVE":
+    case "car":
+    default:
+      return "DRIVE";
+  }
+}
+
+export function canonicalVehicleTypeForRoute(
+  vehicleType: RouteVehicleType,
+): PersonnelVehicleType {
+  switch (vehicleType) {
+    case "BICYCLE":
+    case "bicycle":
+      return "BICYCLE";
+    case "WALK":
+    case "walking":
+      return "WALK";
+    case "TRANSIT":
+    case "public_transport":
+      return "TRANSIT";
+    case "moped_or_scooter":
+    case "DRIVE":
     case "car":
     default:
       return "DRIVE";
@@ -58,7 +83,7 @@ export function routeWarningsForVehicle(
 ): string[] {
   if (vehicleType === "moped_or_scooter") {
     return [
-      "Google Routes ondersteunt tweewieler-routering niet in iedere regio; fallback kan nodig zijn.",
+      "Scooter/brommer is naar autoroutering gemigreerd omdat tweewieler-routering buiten deze Google Maps-fase valt.",
     ];
   }
 
