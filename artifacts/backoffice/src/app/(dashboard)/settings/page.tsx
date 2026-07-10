@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Bell, Building2, Shield, Users, ClipboardList, ChevronRight, History, Tag, Layers3, Mail, SlidersHorizontal, Sparkles } from "lucide-react";
+import { Bell, Building2, Shield, Users, ClipboardList, ChevronRight, History, Tag, Layers3, Mail, SlidersHorizontal, Sparkles, ReceiptText } from "lucide-react";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
 import { SettingsTabs } from "@/components/settings/SettingsTabs";
@@ -44,6 +44,14 @@ export default async function SettingsPage() {
             icon={<Mail className="h-6 w-6" style={{ color: "#00B7B3" }} strokeWidth={1.5} />}
             title="Mail"
             description="SMTP-host, poort, beveiliging, afzender, reply-to en testmail voor platform e-mail."
+          />
+        )}
+        {canWriteSettings && (
+          <SettingsCard
+            href="/instellingen/facturen"
+            icon={<ReceiptText className="h-6 w-6" style={{ color: "#00B7B3" }} strokeWidth={1.5} />}
+            title="Facturen"
+            description="Bedrijfsgegevens, nummering, PDF-opmaak, betaling en Mollie voor definitieve facturen."
           />
         )}
         {canWriteSettings && (
