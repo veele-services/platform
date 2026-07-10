@@ -101,6 +101,22 @@ test("support is masked by default while tenant finance can export own finance",
   }).allowed, true);
 
   assert.equal(authorizeFieldgridAccess({
+    role: "tenant_admin",
+    scope: "tenant_invoices",
+    accessLevel: "masked_read",
+    actorTenantId: "tenant-a",
+    resourceTenantId: "tenant-a",
+  }).allowed, true);
+
+  assert.equal(authorizeFieldgridAccess({
+    role: "tenant_admin",
+    scope: "tenant_payments",
+    accessLevel: "masked_read",
+    actorTenantId: "tenant-a",
+    resourceTenantId: "tenant-a",
+  }).allowed, true);
+
+  assert.equal(authorizeFieldgridAccess({
     role: "tenant_staff",
     scope: "tenant_invoices",
     accessLevel: "export",
