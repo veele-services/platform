@@ -17,6 +17,7 @@ export async function GET(
     .where(
       and(
         eq(paymentsTable.invoiceId, id),
+        eq(paymentsTable.tenantId, invoicesTable.tenantId),
         eq(paymentsTable.status, "open"),
         eq(invoicesTable.status, "sent"),
       ),

@@ -1235,6 +1235,7 @@ export async function createInvoice(
     .from(invoicesTable)
     .where(
       and(
+        eq(invoicesTable.tenantId, tenantId),
         eq(invoicesTable.assignmentId, assignmentId),
         inArray(invoicesTable.status, ["draft", "sent", "paid"]),
       ),
@@ -1277,9 +1278,10 @@ export async function createInvoice(
     await db
       .update(assignmentsTable)
       .set({ status: "invoice_ready", updatedAt: new Date() })
-      .where(eq(assignmentsTable.id, assignmentId));
+      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)));
 
     await db.insert(auditLogTable).values({
+      tenantId,
       userId:     user.id,
       action:     "create_invoice",
       resource:   "invoices",
@@ -1575,15 +1577,16 @@ export async function markInvoiceSent(invoiceId: string): Promise<ActionResult> 
   await db
     .update(invoicesTable)
     .set({ status: "sent", updatedAt: new Date() })
-    .where(eq(invoicesTable.id, invoiceId));
+    .where(and(eq(invoicesTable.id, invoiceId), eq(invoicesTable.tenantId, tenantId)));
 
   // Advance assignment status → invoiced
   await db
     .update(assignmentsTable)
     .set({ status: "invoiced", updatedAt: new Date() })
-    .where(eq(assignmentsTable.id, invoice.assignmentId));
+    .where(and(eq(assignmentsTable.id, invoice.assignmentId), eq(assignmentsTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
+    tenantId,
     userId:     user.id,
     action:     "mark_invoice_sent",
     resource:   "invoices",
@@ -1618,24 +1621,26 @@ export async function markInvoicePaid(invoiceId: string): Promise<ActionResult> 
   }
 
   const today = new Date().toISOString().slice(0, 10);
+  const tenantId = await requireCurrentTenantId();
 
   await db
     .update(invoicesTable)
     .set({ status: "paid", paidDate: today, updatedAt: new Date() })
-    .where(eq(invoicesTable.id, invoiceId));
+    .where(and(eq(invoicesTable.id, invoiceId), eq(invoicesTable.tenantId, tenantId)));
 
   // Advance assignment: invoiced → paid → closed (auto-advance the full sequence)
   await db
     .update(assignmentsTable)
     .set({ status: "paid", updatedAt: new Date() })
-    .where(eq(assignmentsTable.id, invoice.assignmentId));
+    .where(and(eq(assignmentsTable.id, invoice.assignmentId), eq(assignmentsTable.tenantId, tenantId)));
 
   await db
     .update(assignmentsTable)
     .set({ status: "closed", updatedAt: new Date() })
-    .where(eq(assignmentsTable.id, invoice.assignmentId));
+    .where(and(eq(assignmentsTable.id, invoice.assignmentId), eq(assignmentsTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
+    tenantId,
     userId:     user.id,
     action:     "mark_invoice_paid",
     resource:   "invoices",
@@ -1668,19 +1673,21 @@ export async function cancelInvoice(invoiceId: string): Promise<ActionResult> {
   if (!["draft", "sent"].includes(invoice.status)) {
     return { success: false, message: "Alleen concept- of verzonden facturen kunnen worden geannuleerd." };
   }
+  const tenantId = await requireCurrentTenantId();
 
   await db
     .update(invoicesTable)
     .set({ status: "cancelled", updatedAt: new Date() })
-    .where(eq(invoicesTable.id, invoiceId));
+    .where(and(eq(invoicesTable.id, invoiceId), eq(invoicesTable.tenantId, tenantId)));
 
   // Revert assignment to report_approved so a new invoice can be created
   await db
     .update(assignmentsTable)
     .set({ status: "report_approved", updatedAt: new Date() })
-    .where(eq(assignmentsTable.id, invoice.assignmentId));
+    .where(and(eq(assignmentsTable.id, invoice.assignmentId), eq(assignmentsTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
+    tenantId,
     userId:     user.id,
     action:     "cancel_invoice",
     resource:   "invoices",
@@ -1749,6 +1756,7 @@ export async function emailInvoice(invoiceId: string): Promise<ActionResult> {
   }
 
   await db.insert(auditLogTable).values({
+    tenantId,
     userId:     user.id,
     action:     "email_invoice",
     resource:   "invoices",
