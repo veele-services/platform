@@ -2,6 +2,8 @@
 
 Status: Sprint 0 baseline en regressiebescherming.
 
+Sprint 1 vult de centrale modulebasis, env-documentatie en secret guards aan zonder de actieve kaart-, Places- of Routes-flow al te migreren.
+
 Laatste baseline: main branch, na `git fetch origin main` en `git pull --ff-only origin main`.
 
 Lokale werkboom bij start:
@@ -260,6 +262,12 @@ Te raken documenten:
 - production docs;
 - bestaande live day map docs.
 
+Sprint 1 documentatie:
+
+- `docs/deployment/google-maps-platform.md`
+- root `.env.example`
+- `artifacts/backoffice/.env.example`
+
 ## 3. Canon Eisen Checklist
 
 ### Credentials En Security
@@ -280,8 +288,8 @@ Gewenste module, passend bij repositoryconventies:
 - `artifacts/backoffice/src/lib/google-maps/config.ts`
 - `artifacts/backoffice/src/lib/google-maps/client-loader.ts`
 - `artifacts/backoffice/src/lib/google-maps/types.ts`
-- `artifacts/backoffice/src/lib/google-maps/places-client.ts`
-- `artifacts/backoffice/src/lib/google-maps/routes-client.ts`
+- `artifacts/backoffice/src/lib/google-maps/places-client.ts` (latere sprint)
+- `artifacts/backoffice/src/lib/google-maps/routes-client.ts` (latere sprint)
 - `artifacts/backoffice/src/lib/google-maps/travel-modes.ts`
 - `artifacts/backoffice/src/lib/google-maps/marker-status.ts`
 - `artifacts/backoffice/src/lib/google-maps/errors.ts`
