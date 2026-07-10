@@ -67,6 +67,7 @@ test("Sprint 3 existing send flow finalizes before sending and keeps current UI 
   const sent = functionBlock(invoices, "markInvoiceSent");
 
   assert.match(sent, /invoice\.status !== "draft"/u);
+  assert.match(sent, /if \(!invoice\.finalizedAt \|\| !invoice\.invoiceNumber\?\.trim\(\)\)/u);
   assert.match(sent, /const finalized = await finalizeOfficialInvoice\(\{ invoiceId, tenantId, actorUserId: user\.id \}\)/u);
   assert.ok(
     sent.indexOf("finalizeOfficialInvoice({ invoiceId, tenantId, actorUserId: user.id })") <

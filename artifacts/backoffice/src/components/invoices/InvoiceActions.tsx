@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, Send, CheckCircle2, XCircle, Link as LinkIcon, Copy, Check, Mail } from "lucide-react";
-import { markInvoiceSent, markInvoicePaid, cancelInvoice, emailInvoice } from "@/app/actions/invoices";
+import { Loader2, Send, CheckCircle2, XCircle, Link as LinkIcon, Copy, Check, Mail, FileCheck2 } from "lucide-react";
+import { finalizeInvoiceDraft, markInvoiceSent, markInvoicePaid, cancelInvoice, emailInvoice } from "@/app/actions/invoices";
 import { createMolliePayment, type PaymentRecord } from "@/app/actions/payments";
 import type { InvoiceStatus } from "@/app/actions/invoices";
 import {
@@ -31,11 +31,13 @@ function formatDate(iso: string): string {
 interface Props {
   invoiceId:      string;
   status:         InvoiceStatus;
+  finalizedAt?:   string | null;
+  invoiceNumber?: string | null;
   paymentHistory: PaymentRecord[];
   customerEmail:  string | null;
 }
 
-export function InvoiceActions({ invoiceId, status, paymentHistory, customerEmail }: Props) {
+export function InvoiceActions({ invoiceId, status, finalizedAt, invoiceNumber, paymentHistory, customerEmail }: Props) {
   const router     = useRouter();
   const [, startT] = useTransition();
 
@@ -46,11 +48,12 @@ export function InvoiceActions({ invoiceId, status, paymentHistory, customerEmai
   const [emailOpen, setEmailOpen]     = useState(false);
   const [emailSent, setEmailSent]     = useState(false);
 
-  async function handleAction(action: "sent" | "paid" | "cancel") {
+  async function handleAction(action: "finalize" | "sent" | "paid" | "cancel") {
     setError(null);
     setLoading(action);
 
     const result =
+      action === "finalize" ? await finalizeInvoiceDraft(invoiceId) :
       action === "sent"   ? await markInvoiceSent(invoiceId)  :
       action === "paid"   ? await markInvoicePaid(invoiceId)  :
                              await cancelInvoice(invoiceId);
@@ -95,6 +98,7 @@ export function InvoiceActions({ invoiceId, status, paymentHistory, customerEmai
   const hasPaidPayment    = paymentHistory.some((p) => p.status === "paid");
   const hasOpenPayment    = paymentHistory.some((p) => p.status === "open");
   const latestCheckoutUrl = checkoutUrl ?? paymentHistory.find((p) => p.status === "open")?.checkoutUrl;
+  const isFinalized       = Boolean(finalizedAt || invoiceNumber?.trim());
 
   if (status === "paid" || status === "cancelled") {
     // Only show payment history (no action buttons)
@@ -124,15 +128,28 @@ export function InvoiceActions({ invoiceId, status, paymentHistory, customerEmai
         )}
 
         {status === "draft" && (
-          <button
-            disabled={loading !== null}
-            onClick={() => handleAction("sent")}
-            className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60"
-            style={{ backgroundColor: "#00B7B3", color: "#FFFFFF" }}
-          >
-            {loading === "sent" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-            Voorstel controleren en verzenden
-          </button>
+          <>
+            {!isFinalized && (
+              <button
+                disabled={loading !== null}
+                onClick={() => handleAction("finalize")}
+                className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60"
+                style={{ backgroundColor: "#081D3A", color: "#FFFFFF" }}
+              >
+                {loading === "finalize" ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileCheck2 className="h-4 w-4" />}
+                Finaliseren
+              </button>
+            )}
+            <button
+              disabled={loading !== null}
+              onClick={() => handleAction("sent")}
+              className="flex items-center justify-center gap-2 px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors disabled:opacity-60"
+              style={{ backgroundColor: "#00B7B3", color: "#FFFFFF" }}
+            >
+              {loading === "sent" ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+              {isFinalized ? "Verzenden" : "Finaliseren en verzenden"}
+            </button>
+          </>
         )}
 
         {status === "sent" && !hasPaidPayment && (
@@ -192,7 +209,7 @@ export function InvoiceActions({ invoiceId, status, paymentHistory, customerEmai
               style={{ borderColor: "#10B981", color: "#065F46", backgroundColor: "transparent" }}
             >
               {loading === "paid" ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-              Handmatig als betaald markeren
+              Betaald markeren
             </button>
           </>
         )}

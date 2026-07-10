@@ -26,7 +26,8 @@ test("current createInvoice baseline creates a tenant-scoped draft and advances 
   assert.match(body, /requireCurrentTenantId\(\)/u);
   assert.match(body, /parseFloat\(data\.amount/u);
   assert.match(body, /parseFloat\(data\.vatPercentage/u);
-  assert.match(body, /if \(!data\.dueDate\)/u);
+  assert.match(body, /getDefaultInvoiceDueDate\(tenantId\)/u);
+  assert.match(body, /defaultPaymentTermDays: defaultDueDate\?\.paymentTermDays/u);
   assert.match(body, /eq\(assignmentsTable\.id, assignmentId\), eq\(assignmentsTable\.tenantId, tenantId\)/u);
   assert.match(body, /inArray\(invoicesTable\.status, \["draft", "sent", "paid"\]\)/u);
   assert.match(body, /allowedNext\.includes\("invoice_ready"\)/u);
@@ -95,13 +96,16 @@ test("current invoice email and Mollie flows stay behind sent invoices", () => {
 });
 
 test("current invoice UI exposes the expected action entry points", () => {
-  assert.match(createInvoiceForm, /defaultDueDate\(\)/u);
-  assert.match(createInvoiceForm, /d\.setDate\(d\.getDate\(\) \+ 30\)/u);
+  assert.match(createInvoiceForm, /function defaultDueDate\(paymentTermDays = 30\)/u);
+  assert.match(createInvoiceForm, /defaultPaymentTermDays = 30/u);
+  assert.match(createInvoiceForm, /d\.setDate\(d\.getDate\(\) \+ days\)/u);
   assert.match(createInvoiceForm, /createInvoice\(assignmentId, \{ amount, vatPercentage, dueDate, notes \}\)/u);
   assert.match(createInvoiceForm, /router\.push\(`\/invoices\/\$\{invoiceId\}`\)/u);
 
   assert.match(invoiceActions, /status === "draft"/u);
-  assert.match(invoiceActions, /Voorstel controleren en verzenden/u);
+  assert.match(invoiceActions, /finalizeInvoiceDraft\(invoiceId\)/u);
+  assert.match(invoiceActions, /Finaliseren/u);
+  assert.match(invoiceActions, /Verzenden/u);
   assert.match(invoiceActions, /markInvoiceSent\(invoiceId\)/u);
   assert.match(invoiceActions, /status === "sent"/u);
   assert.match(invoiceActions, /createMolliePayment\(invoiceId\)/u);

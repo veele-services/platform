@@ -39,7 +39,7 @@ import {
 } from "@/app/actions/assignments";
 import { getReportForAssignment } from "@/app/actions/reports";
 import { SubmitReportForm } from "@/components/reports/SubmitReportForm";
-import { getInvoiceForAssignment, getAssignmentInvoiceData } from "@/app/actions/invoices";
+import { getInvoiceForAssignment, getAssignmentInvoiceData, getInvoiceDefaultPaymentTermDays } from "@/app/actions/invoices";
 import { CreateInvoiceForm } from "@/components/invoices/CreateInvoiceForm";
 import { getQuoteForAssignment, getAssignmentQuoteData } from "@/app/actions/quotes";
 import { CreateQuoteForm } from "@/components/quotes/CreateQuoteForm";
@@ -776,7 +776,7 @@ export default async function AssignmentDetailPage({ params, searchParams }: Pro
     ? await safeOptional("report", id, () => getReportForAssignment(id), null)
     : null;
 
-  const [existingInvoice, invoicePrefill] = canReadInvoices
+  const [existingInvoice, invoicePrefill, invoiceDefaultPaymentTermDays] = canReadInvoices
     ? await safeOptional(
         "invoice",
         id,
@@ -788,10 +788,11 @@ export default async function AssignmentDetailPage({ params, searchParams }: Pro
             assignment.status === "report_approved" && canWriteInvoices
               ? getAssignmentInvoiceData(id)
               : Promise.resolve(null),
+            canWriteInvoices ? getInvoiceDefaultPaymentTermDays() : Promise.resolve(30),
           ]),
-        [null, null] as const,
+        [null, null, 30] as const,
       )
-    : [null, null];
+    : [null, null, 30];
 
   const [existingQuote, quotePrefill] = canReadQuotes
     ? await safeOptional(
@@ -1160,7 +1161,11 @@ export default async function AssignmentDetailPage({ params, searchParams }: Pro
 
           {/* ── Invoice section ───────────────────────────── */}
           {activeTab === "factuur" && invoicePrefill && (
-            <CreateInvoiceForm assignmentId={assignment.id} prefill={invoicePrefill} />
+            <CreateInvoiceForm
+              assignmentId={assignment.id}
+              prefill={invoicePrefill}
+              defaultPaymentTermDays={invoiceDefaultPaymentTermDays}
+            />
           )}
 
           {activeTab === "factuur" && existingInvoice && (

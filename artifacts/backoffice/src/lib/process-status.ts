@@ -72,10 +72,10 @@ const report: ProcessStatusConfig[] = [
 ];
 
 const invoice: ProcessStatusConfig[] = [
-  { value: "draft", label: "Concept", description: "Factuurvoorstel is in voorbereiding.", tone: "neutral", order: 10 },
-  { value: "sent", label: "Verzonden", description: "Factuur is verstuurd naar de klant.", tone: "warning", order: 20 },
+  { value: "draft", label: "Concept", description: "Factuur is bewerkbaar tot finaliseren of verzenden.", tone: "neutral", order: 10 },
+  { value: "sent", label: "Verzonden", description: "Factuur is officieel en naar de klant verstuurd.", tone: "warning", order: 20 },
   { value: "paid", label: "Betaald", description: "Factuur is betaald.", tone: "success", order: 30 },
-  { value: "cancelled", label: "Geannuleerd", description: "Factuur is geannuleerd.", tone: "danger", order: 40 },
+  { value: "cancelled", label: "Geannuleerd", description: "Factuur is geannuleerd.", tone: "closed", order: 40 },
 ];
 
 const payment: ProcessStatusConfig[] = [
