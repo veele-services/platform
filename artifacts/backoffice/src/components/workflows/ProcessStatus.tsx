@@ -6,6 +6,14 @@ import {
 } from "@/lib/process-status";
 
 type BadgeSize = "xs" | "sm" | "md";
+type ProcessStatusItem = ReturnType<typeof getProcessStatuses>[number];
+
+type ProcessStepperWindow = {
+  visibleStatuses: ProcessStatusItem[];
+  windowStart: number;
+  windowEnd: number;
+  windowed: boolean;
+};
 
 export function ProcessStatusBadge({
   kind,
@@ -43,6 +51,112 @@ export function ProcessStatusBadge({
   );
 }
 
+function getProcessStepperWindow(
+  statuses: ProcessStatusItem[],
+  activeIndex: number,
+  windowSize: number,
+  enabled: boolean,
+): ProcessStepperWindow {
+  if (!enabled) {
+    return {
+      visibleStatuses: statuses,
+      windowStart: 0,
+      windowEnd: statuses.length,
+      windowed: false,
+    };
+  }
+
+  const windowed = statuses.length > windowSize;
+  const windowStart = windowed
+    ? Math.max(
+        0,
+        Math.min(
+          activeIndex - Math.floor(windowSize / 2),
+          Math.max(statuses.length - windowSize, 0),
+        ),
+      )
+    : 0;
+  const visibleStatuses = windowed
+    ? statuses.slice(windowStart, windowStart + windowSize)
+    : statuses;
+
+  return {
+    visibleStatuses,
+    windowStart,
+    windowEnd: windowStart + visibleStatuses.length,
+    windowed,
+  };
+}
+
+function ProcessStepperTrack({
+  kind,
+  window,
+  statuses,
+  active,
+  compact,
+}: {
+  kind: ProcessKind;
+  window: ProcessStepperWindow;
+  statuses: ProcessStatusItem[];
+  active: ProcessStatusItem;
+  compact: boolean;
+}) {
+  return (
+    <div className="flex items-center gap-2 overflow-x-auto pb-1">
+      {window.windowed && window.windowStart > 0 && (
+        <div className="flex shrink-0 items-center gap-2" title={`${window.windowStart} eerdere statussen`}>
+          <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-400">
+            ...
+          </span>
+          <span className="h-px w-4 shrink-0 bg-slate-200" />
+        </div>
+      )}
+      {window.visibleStatuses.map((item, index) => {
+        const style = processStatusStyle(kind, item.value);
+        const current = item.value === active.value;
+        const done = item.order < active.order && active.tone !== "danger";
+        const pending = !current && !done;
+
+        return (
+          <div key={item.value} className="flex min-w-0 items-center gap-2">
+            <div
+              className="flex items-center gap-2 rounded-full border px-2.5 py-1"
+              title={item.description}
+              style={{
+                backgroundColor: current ? style.bg : done ? "#ECFDF5" : "#FFFFFF",
+                borderColor: current ? style.border : done ? "#A7F3D0" : "#E2E8F0",
+                color: current ? style.text : done ? "#047857" : "#94A3B8",
+              }}
+            >
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: current ? style.dot : done ? "#10B981" : "#CBD5E1" }}
+              />
+              <span className={`whitespace-nowrap font-semibold ${compact ? "text-[11px]" : "text-xs"}`}>
+                {item.shortLabel ?? item.label}
+              </span>
+            </div>
+            {index < window.visibleStatuses.length - 1 && (
+              <span
+                className="h-px w-4 shrink-0"
+                style={{ backgroundColor: pending ? "#E2E8F0" : "#A7F3D0" }}
+              />
+            )}
+          </div>
+        );
+      })}
+      {window.windowed && window.windowEnd < statuses.length && (
+        <div className="flex shrink-0 items-center gap-2" title={`${statuses.length - window.windowEnd} volgende statussen`}>
+          <span className="h-px w-4 shrink-0 bg-slate-200" />
+          <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-400">
+            ...
+          </span>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function ProcessStepper({
   kind,
   status,
@@ -60,18 +174,26 @@ export function ProcessStepper({
     .sort((a, b) => a.order - b.order);
   const activeStatusIndex = statuses.findIndex((item) => item.value === active.value);
   const activeIndex = activeStatusIndex >= 0 ? activeStatusIndex : 0;
-  const windowed = kind === "assignment" && statuses.length > (compact ? 5 : 7);
-  const windowSize = compact ? 3 : 5;
-  const windowStart = windowed
-    ? Math.max(0, Math.min(activeIndex - Math.floor(windowSize / 2), Math.max(statuses.length - windowSize, 0)))
-    : 0;
-  const visibleStatuses = windowed ? statuses.slice(windowStart, windowStart + windowSize) : statuses;
-  const windowEnd = windowStart + visibleStatuses.length;
+  const desktopWindow = getProcessStepperWindow(
+    statuses,
+    activeIndex,
+    compact ? 3 : 5,
+    kind === "assignment" && statuses.length > (compact ? 5 : 7),
+  );
+  const mobileWindow = getProcessStepperWindow(
+    statuses,
+    activeIndex,
+    3,
+    kind === "assignment" && !compact,
+  );
+  const responsiveMobileWindow = kind === "assignment" && !compact;
+  const showMobileSummary = responsiveMobileWindow && mobileWindow.windowed;
+  const showDesktopSummary = desktopWindow.windowed;
 
   return (
     <div className={className}>
-      {windowed && (
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs">
+      {showMobileSummary && (
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-xs sm:hidden">
           <span className="font-semibold" style={{ color: "#081D3A" }}>
             Actuele status: {active.shortLabel ?? active.label}
           </span>
@@ -80,60 +202,53 @@ export function ProcessStepper({
           </span>
         </div>
       )}
-      <div className="flex items-center gap-2 overflow-x-auto pb-1">
-        {windowed && windowStart > 0 && (
-          <div className="flex shrink-0 items-center gap-2" title={`${windowStart} eerdere statussen`}>
-            <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-400">
-              ...
-            </span>
-            <span className="h-px w-4 shrink-0 bg-slate-200" />
+      {showDesktopSummary && (
+        <div className="mb-2 hidden flex-wrap items-center justify-between gap-2 text-xs sm:flex">
+          <span className="font-semibold" style={{ color: "#081D3A" }}>
+            Actuele status: {active.shortLabel ?? active.label}
+          </span>
+          <span style={{ color: "#64748B" }}>
+            Stap {activeIndex + 1} van {statuses.length}
+          </span>
+        </div>
+      )}
+      {responsiveMobileWindow ? (
+        <>
+          <div className="sm:hidden">
+            <ProcessStepperTrack
+              kind={kind}
+              window={mobileWindow}
+              statuses={statuses}
+              active={active}
+              compact
+            />
           </div>
-        )}
-        {visibleStatuses.map((item, index) => {
-          const style = processStatusStyle(kind, item.value);
-          const current = item.value === active.value;
-          const done = item.order < active.order && active.tone !== "danger";
-          const pending = !current && !done;
-
-          return (
-            <div key={item.value} className="flex min-w-0 items-center gap-2">
-              <div
-                className="flex items-center gap-2 rounded-full border px-2.5 py-1"
-                title={item.description}
-                style={{
-                  backgroundColor: current ? style.bg : done ? "#ECFDF5" : "#FFFFFF",
-                  borderColor: current ? style.border : done ? "#A7F3D0" : "#E2E8F0",
-                  color: current ? style.text : done ? "#047857" : "#94A3B8",
-                }}
-              >
-                <span
-                  className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: current ? style.dot : done ? "#10B981" : "#CBD5E1" }}
-                />
-                <span className={`whitespace-nowrap font-semibold ${compact ? "text-[11px]" : "text-xs"}`}>
-                  {item.shortLabel ?? item.label}
-                </span>
-              </div>
-              {index < visibleStatuses.length - 1 && (
-                <span
-                  className="h-px w-4 shrink-0"
-                  style={{ backgroundColor: pending ? "#E2E8F0" : "#A7F3D0" }}
-                />
-              )}
-            </div>
-          );
-        })}
-        {windowed && windowEnd < statuses.length && (
-          <div className="flex shrink-0 items-center gap-2" title={`${statuses.length - windowEnd} volgende statussen`}>
-            <span className="h-px w-4 shrink-0 bg-slate-200" />
-            <span className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-400">
-              ...
-            </span>
+          <div className="hidden sm:block">
+            <ProcessStepperTrack
+              kind={kind}
+              window={desktopWindow}
+              statuses={statuses}
+              active={active}
+              compact={compact}
+            />
           </div>
-        )}
-      </div>
-      {windowed && (
-        <p className="mt-1 text-xs leading-5" style={{ color: "#64748B" }}>
+        </>
+      ) : (
+        <ProcessStepperTrack
+          kind={kind}
+          window={desktopWindow}
+          statuses={statuses}
+          active={active}
+          compact={compact}
+        />
+      )}
+      {showMobileSummary && (
+        <p className="mt-1 text-xs leading-5 sm:hidden" style={{ color: "#64748B" }}>
+          {active.description}
+        </p>
+      )}
+      {showDesktopSummary && (
+        <p className="mt-1 hidden text-xs leading-5 sm:block" style={{ color: "#64748B" }}>
           {active.description}
         </p>
       )}
