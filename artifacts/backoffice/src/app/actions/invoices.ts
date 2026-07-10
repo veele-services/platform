@@ -11,6 +11,7 @@ import {
   objectsTable,
   paymentsTable,
   auditLogTable,
+  claimOfficialInvoiceNumber,
   ASSIGNMENT_STATUS_TRANSITIONS,
   type AssignmentStatus,
   type InvoiceStatus,
@@ -1145,6 +1146,18 @@ export async function markInvoiceSent(invoiceId: string): Promise<ActionResult> 
     return { success: false, message: "Alleen conceptfacturen kunnen als verzonden worden gemarkeerd." };
   }
 
+  const tenantId = await requireCurrentTenantId();
+  let claimedInvoiceNumber: string;
+  try {
+    const claimed = await claimOfficialInvoiceNumber({ invoiceId, tenantId });
+    claimedInvoiceNumber = claimed.invoiceNumber;
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Factuurnummer claimen mislukt.",
+    };
+  }
+
   await db
     .update(invoicesTable)
     .set({ status: "sent", updatedAt: new Date() })
@@ -1161,7 +1174,7 @@ export async function markInvoiceSent(invoiceId: string): Promise<ActionResult> 
     action:     "mark_invoice_sent",
     resource:   "invoices",
     resourceId: invoiceId,
-    metadata:   { assignmentId: invoice.assignmentId },
+    metadata:   { assignmentId: invoice.assignmentId, invoiceNumber: claimedInvoiceNumber },
   });
 
   await notifyInvoiceWorkflow({
