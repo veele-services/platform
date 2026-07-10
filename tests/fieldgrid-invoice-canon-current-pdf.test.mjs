@@ -46,7 +46,7 @@ test("current backoffice invoice PDF route is permissioned, tenant sensitive and
   order(body, "const invoice = await getInvoice(id);", "const pdfBuffer = await generateInvoicePdf(invoice, { paymentQrUrl });", "PDF should only generate after invoice lookup");
 });
 
-test("current customer invoice PDF route is customer scoped and uses live line data", () => {
+test("current customer invoice PDF route is customer scoped and prefers immutable snapshots", () => {
   const body = functionBlock(customerPdfRoute, "GET");
 
   assert.match(body, /getMyCustomerIdentity\(\)/u);
@@ -58,37 +58,59 @@ test("current customer invoice PDF route is customer scoped and uses live line d
   assert.match(body, /from\(assignmentTasksTable\)/u);
   assert.match(body, /from\(assignmentExtraWorkTable\)/u);
   assert.match(body, /from\(assignmentMaterialUsageTable\)/u);
+  assert.match(body, /invoiceLineItemSnapshotsTable/u);
+  assert.match(body, /companySnapshotJson/u);
+  assert.match(body, /paymentSettingsSnapshotJson/u);
+  assert.match(body, /templateSnapshotJson/u);
+  assert.match(body, /snapshotRows\.length > 0/u);
+  assert.match(body, /paymentQrUrl/u);
+  assert.match(body, /\/api\/factuur\/\$\{invoice\.id\}\/pay/u);
   assert.match(body, /generateCustomerInvoicePdf\(\{/u);
   assert.match(body, /db\.insert\(auditLogTable\)\.values/u);
 
-  order(body, "if (!invoice) return new NextResponse", "const [taskRows, extraRows, materialRows] = await Promise.all", "line data should load after scoped invoice lookup");
+  order(body, "if (!invoice) return new NextResponse", "const [snapshotRows, taskRows, extraRows, materialRows", "line data should load after scoped invoice lookup");
   order(body, "const pdfBuffer = await generateCustomerInvoicePdf({", "await db.insert(auditLogTable).values", "audit should log successful PDF generation");
 });
 
-test("current PDF renderers use tenant brand name and backoffice payment block configuration", () => {
+test("current PDF renderers use tenant-branded snapshots and payment blocks", () => {
   for (const source of [backofficePdf, customerPdf]) {
-    assert.match(source, /const brandName = invoice\.brandName\?\.trim\(\) \|\| "Fieldgrid"/u);
+    assert.match(source, /companyDisplayName/u);
+    assert.match(source, /companySnapshot/u);
+    assert.match(source, /templateSettings/u);
+    assert.match(source, /safePdfColor/u);
     assert.match(source, /drawPdfHeader\(doc, \{/u);
     assert.match(source, /title:\s+"FACTUUR"/u);
     assert.match(source, /reference:\s+invoice\.invoiceNumber/u);
+    assert.match(source, /drawCompanyPanel/u);
     assert.match(source, /drawPdfRecipientPanel/u);
     assert.match(source, /drawPdfTotalPanel/u);
+    assert.match(source, /renderPaymentInstruction/u);
+    assert.match(source, /footerText/u);
     assert.match(source, /lineItems\.filter\(\(item\) => item\.invoiceable\)/u);
-    assert.doesNotMatch(source, /companySnapshot/u);
     assert.doesNotMatch(source, /lineItemsSnapshot/u);
+    assert.doesNotMatch(source, /dangerouslySetInnerHTML|innerHTML|<script|DOMParser/u);
   }
 
   assert.match(backofficePdf, /createQrMatrix/u);
   assert.match(backofficePdf, /drawPaymentBlock/u);
   assert.match(backofficePdf, /showPaymentLinkOnInvoice/u);
   assert.match(backofficePdf, /showPaymentQrOnInvoice/u);
-  assert.doesNotMatch(customerPdf, /createQrMatrix/u);
+  assert.match(customerPdf, /createQrMatrix/u);
+  assert.match(customerPdf, /drawPaymentBlock/u);
+  assert.match(customerPdf, /showPaymentLinkOnInvoice/u);
+  assert.match(customerPdf, /showPaymentQrOnInvoice/u);
 
   const getInvoice = functionBlock(invoices, "getInvoice");
+  assert.match(getInvoice, /companySnapshotJson/u);
+  assert.match(getInvoice, /templateSnapshotJson/u);
   assert.match(getInvoice, /paymentSettingsSnapshotJson/u);
+  assert.match(getInvoice, /getInvoicePdfLineItems/u);
+  assert.match(getInvoice, /getInvoiceCompanySettingsForTenant\(tenantId\)/u);
+  assert.match(getInvoice, /getInvoiceTemplateSettingsForTenant\(tenantId\)/u);
   assert.match(getInvoice, /getInvoicePaymentSettingsForTenant\(tenantId\)/u);
   assert.match(getInvoice, /paymentUrl/u);
-  assert.match(getInvoice, /calculateInvoiceProposalForAssignment\(row\.assignmentId/u);
   assert.match(getInvoice, /getTenantBranding\(tenantId\)/u);
-  assert.match(getInvoice, /lineItems:\s+proposal\.lineItems/u);
+  assert.match(getInvoice, /companySnapshot,/u);
+  assert.match(getInvoice, /templateSettings,/u);
+  assert.match(getInvoice, /lineItems,/u);
 });

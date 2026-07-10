@@ -12,6 +12,8 @@ import {
   paymentsTable,
   auditLogTable,
   invoicePaymentSettingsTable,
+  invoiceTemplateSettingsTable,
+  invoiceLineItemSnapshotsTable,
   tenantCompanySettingsTable,
   finalizeOfficialInvoice,
   ASSIGNMENT_STATUS_TRANSITIONS,
@@ -44,6 +46,76 @@ export type InvoicePdfPaymentSettings = {
   paymentBlockTitle: string;
   paymentBlockText: string;
   paymentLinkLabel: string;
+};
+
+export type InvoicePdfCompanySnapshot = {
+  legalName: string;
+  tradeName: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  postalCode: string | null;
+  city: string | null;
+  country: string;
+  kvkNumber: string | null;
+  vatNumber: string | null;
+  iban: string | null;
+  bic: string | null;
+  administrationEmail: string | null;
+  phone: string | null;
+  website: string | null;
+  logoUrl: string | null;
+  primaryColor: string;
+  secondaryColor: string;
+  defaultPaymentTermDays: number;
+};
+
+export type InvoicePdfTemplateSettings = {
+  logoUrl: string | null;
+  primaryColor: string;
+  secondaryColor: string;
+  introText: string | null;
+  footerText: string | null;
+  paymentInstruction: string;
+  showLogo: boolean;
+  showCompanyFooter: boolean;
+  showKvkFooter: boolean;
+  showVatFooter: boolean;
+  showIbanFooter: boolean;
+};
+
+const DEFAULT_INVOICE_PDF_COMPANY: InvoicePdfCompanySnapshot = {
+  legalName: "",
+  tradeName: null,
+  addressLine1: null,
+  addressLine2: null,
+  postalCode: null,
+  city: null,
+  country: "Nederland",
+  kvkNumber: null,
+  vatNumber: null,
+  iban: null,
+  bic: null,
+  administrationEmail: null,
+  phone: null,
+  website: null,
+  logoUrl: null,
+  primaryColor: "#081D3A",
+  secondaryColor: "#00B7B3",
+  defaultPaymentTermDays: 30,
+};
+
+const DEFAULT_INVOICE_PDF_TEMPLATE: InvoicePdfTemplateSettings = {
+  logoUrl: null,
+  primaryColor: "#081D3A",
+  secondaryColor: "#00B7B3",
+  introText: null,
+  footerText: null,
+  paymentInstruction: "Gelieve het bedrag binnen {{payment_term_days}} dagen te voldoen onder vermelding van factuurnummer {{invoice_number}}.",
+  showLogo: true,
+  showCompanyFooter: true,
+  showKvkFooter: true,
+  showVatFooter: true,
+  showIbanFooter: true,
 };
 
 const DEFAULT_INVOICE_PDF_PAYMENT_SETTINGS: InvoicePdfPaymentSettings = {
@@ -86,6 +158,57 @@ function normalizePaymentTermDays(value: number | null | undefined): number {
   return Math.min(365, Math.max(1, Math.round(value!)));
 }
 
+function nullableString(value: unknown): string | null {
+  return typeof value === "string" && value.trim() ? value.trim() : null;
+}
+
+function safeHexColor(value: unknown, fallback: string): string {
+  return typeof value === "string" && /^#[0-9A-Fa-f]{6}$/u.test(value.trim()) ? value.trim() : fallback;
+}
+
+function normalizeInvoicePdfCompany(value: Record<string, unknown> | null | undefined): InvoicePdfCompanySnapshot {
+  return {
+    legalName: nullableString(value?.legalName) ?? DEFAULT_INVOICE_PDF_COMPANY.legalName,
+    tradeName: nullableString(value?.tradeName),
+    addressLine1: nullableString(value?.addressLine1),
+    addressLine2: nullableString(value?.addressLine2),
+    postalCode: nullableString(value?.postalCode),
+    city: nullableString(value?.city),
+    country: nullableString(value?.country) ?? DEFAULT_INVOICE_PDF_COMPANY.country,
+    kvkNumber: nullableString(value?.kvkNumber),
+    vatNumber: nullableString(value?.vatNumber),
+    iban: nullableString(value?.iban),
+    bic: nullableString(value?.bic),
+    administrationEmail: nullableString(value?.administrationEmail),
+    phone: nullableString(value?.phone),
+    website: nullableString(value?.website),
+    logoUrl: nullableString(value?.logoUrl),
+    primaryColor: safeHexColor(value?.primaryColor, DEFAULT_INVOICE_PDF_COMPANY.primaryColor),
+    secondaryColor: safeHexColor(value?.secondaryColor, DEFAULT_INVOICE_PDF_COMPANY.secondaryColor),
+    defaultPaymentTermDays: normalizePaymentTermDays(
+      typeof value?.defaultPaymentTermDays === "number"
+        ? value.defaultPaymentTermDays
+        : Number(value?.defaultPaymentTermDays),
+    ),
+  };
+}
+
+function normalizeInvoicePdfTemplate(value: Record<string, unknown> | null | undefined): InvoicePdfTemplateSettings {
+  return {
+    logoUrl: nullableString(value?.logoUrl),
+    primaryColor: safeHexColor(value?.primaryColor, DEFAULT_INVOICE_PDF_TEMPLATE.primaryColor),
+    secondaryColor: safeHexColor(value?.secondaryColor, DEFAULT_INVOICE_PDF_TEMPLATE.secondaryColor),
+    introText: nullableString(value?.introText),
+    footerText: nullableString(value?.footerText),
+    paymentInstruction: nullableString(value?.paymentInstruction) ?? DEFAULT_INVOICE_PDF_TEMPLATE.paymentInstruction,
+    showLogo: value?.showLogo !== false,
+    showCompanyFooter: value?.showCompanyFooter !== false,
+    showKvkFooter: value?.showKvkFooter !== false,
+    showVatFooter: value?.showVatFooter !== false,
+    showIbanFooter: value?.showIbanFooter !== false,
+  };
+}
+
 async function getDefaultInvoiceDueDate(tenantId: string): Promise<{ dueDate: string; paymentTermDays: number }> {
   const [settings] = await db
     .select({ defaultPaymentTermDays: tenantCompanySettingsTable.defaultPaymentTermDays })
@@ -95,6 +218,57 @@ async function getDefaultInvoiceDueDate(tenantId: string): Promise<{ dueDate: st
 
   const paymentTermDays = normalizePaymentTermDays(settings?.defaultPaymentTermDays);
   return { dueDate: addDaysAsIsoDate(paymentTermDays), paymentTermDays };
+}
+
+async function getInvoiceCompanySettingsForTenant(tenantId: string): Promise<InvoicePdfCompanySnapshot> {
+  const [settings] = await db
+    .select({
+      legalName: tenantCompanySettingsTable.legalName,
+      tradeName: tenantCompanySettingsTable.tradeName,
+      addressLine1: tenantCompanySettingsTable.addressLine1,
+      addressLine2: tenantCompanySettingsTable.addressLine2,
+      postalCode: tenantCompanySettingsTable.postalCode,
+      city: tenantCompanySettingsTable.city,
+      country: tenantCompanySettingsTable.country,
+      kvkNumber: tenantCompanySettingsTable.kvkNumber,
+      vatNumber: tenantCompanySettingsTable.vatNumber,
+      iban: tenantCompanySettingsTable.iban,
+      bic: tenantCompanySettingsTable.bic,
+      administrationEmail: tenantCompanySettingsTable.administrationEmail,
+      phone: tenantCompanySettingsTable.phone,
+      website: tenantCompanySettingsTable.website,
+      logoUrl: tenantCompanySettingsTable.logoUrl,
+      primaryColor: tenantCompanySettingsTable.primaryColor,
+      secondaryColor: tenantCompanySettingsTable.secondaryColor,
+      defaultPaymentTermDays: tenantCompanySettingsTable.defaultPaymentTermDays,
+    })
+    .from(tenantCompanySettingsTable)
+    .where(eq(tenantCompanySettingsTable.tenantId, tenantId))
+    .limit(1);
+
+  return normalizeInvoicePdfCompany(settings ?? null);
+}
+
+async function getInvoiceTemplateSettingsForTenant(tenantId: string): Promise<InvoicePdfTemplateSettings> {
+  const [settings] = await db
+    .select({
+      logoUrl: invoiceTemplateSettingsTable.logoUrl,
+      primaryColor: invoiceTemplateSettingsTable.primaryColor,
+      secondaryColor: invoiceTemplateSettingsTable.secondaryColor,
+      introText: invoiceTemplateSettingsTable.introText,
+      footerText: invoiceTemplateSettingsTable.footerText,
+      paymentInstruction: invoiceTemplateSettingsTable.paymentInstruction,
+      showLogo: invoiceTemplateSettingsTable.showLogo,
+      showCompanyFooter: invoiceTemplateSettingsTable.showCompanyFooter,
+      showKvkFooter: invoiceTemplateSettingsTable.showKvkFooter,
+      showVatFooter: invoiceTemplateSettingsTable.showVatFooter,
+      showIbanFooter: invoiceTemplateSettingsTable.showIbanFooter,
+    })
+    .from(invoiceTemplateSettingsTable)
+    .where(eq(invoiceTemplateSettingsTable.tenantId, tenantId))
+    .limit(1);
+
+  return normalizeInvoicePdfTemplate(settings ?? null);
 }
 
 function normalizeInvoicePdfPaymentSettings(value: Record<string, unknown> | null | undefined): InvoicePdfPaymentSettings {
@@ -215,6 +389,50 @@ async function getOpenPaymentCheckoutUrlForCurrentTenant(invoiceId: string): Pro
   return payment?.checkoutUrl ?? null;
 }
 
+async function getInvoicePdfLineItems(input: {
+  tenantId: string;
+  invoiceId: string;
+  assignmentId: string;
+  vatPercentage: string;
+}): Promise<InvoiceProposalLineItem[]> {
+  const snapshotRows = await db
+    .select({
+      category: invoiceLineItemSnapshotsTable.category,
+      description: invoiceLineItemSnapshotsTable.description,
+      taskCodeCode: invoiceLineItemSnapshotsTable.taskCodeCode,
+      quantity: invoiceLineItemSnapshotsTable.quantity,
+      unitPrice: invoiceLineItemSnapshotsTable.unitPrice,
+      totalPrice: invoiceLineItemSnapshotsTable.totalPrice,
+      invoiceable: invoiceLineItemSnapshotsTable.invoiceable,
+    })
+    .from(invoiceLineItemSnapshotsTable)
+    .where(
+      and(
+        eq(invoiceLineItemSnapshotsTable.tenantId, input.tenantId),
+        eq(invoiceLineItemSnapshotsTable.invoiceId, input.invoiceId),
+      ),
+    )
+    .orderBy(asc(invoiceLineItemSnapshotsTable.sortOrder));
+
+  if (snapshotRows.length > 0) {
+    return snapshotRows.map((row) => ({
+      category: row.category === "extra_work" || row.category === "material" || row.category === "inventory"
+        ? row.category
+        : "task",
+      taskCodeCode: row.taskCodeCode ?? null,
+      taskCodeName: row.description,
+      description: row.description,
+      quantity: row.quantity ?? "1",
+      unitPrice: row.unitPrice ?? "0",
+      price: row.totalPrice ?? "0",
+      invoiceable: row.invoiceable,
+    }));
+  }
+
+  const proposal = await calculateInvoiceProposalForAssignment(input.assignmentId, parseFloat(input.vatPercentage ?? "21"));
+  return proposal.lineItems;
+}
+
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export type InvoiceRow = {
@@ -263,6 +481,8 @@ export type InvoiceDetail = {
   updatedAt:           string;
   paymentUrl:          string | null;
   paymentSettings:     InvoicePdfPaymentSettings;
+  companySnapshot:     InvoicePdfCompanySnapshot;
+  templateSettings:    InvoicePdfTemplateSettings;
   lineItems: InvoiceProposalLineItem[];
 };
 
@@ -538,7 +758,9 @@ export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
       notes:              invoicesTable.notes,
       createdAt:          invoicesTable.createdAt,
       updatedAt:          invoicesTable.updatedAt,
+      companySnapshotJson: invoicesTable.companySnapshotJson,
       paymentSettingsSnapshotJson: invoicesTable.paymentSettingsSnapshotJson,
+      templateSnapshotJson: invoicesTable.templateSnapshotJson,
     })
     .from(invoicesTable)
     .innerJoin(customersTable,   eq(invoicesTable.customerId,   customersTable.id))
@@ -557,19 +779,33 @@ export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
     resourceId: id,
   });
 
-  const [proposal, branding, currentPaymentSettings, paymentUrl] = await Promise.all([
-    calculateInvoiceProposalForAssignment(row.assignmentId, parseFloat(row.vatPercentage ?? "21")),
+  const [lineItems, branding, currentCompanySettings, currentTemplateSettings, currentPaymentSettings, paymentUrl] = await Promise.all([
+    getInvoicePdfLineItems({
+      tenantId,
+      invoiceId: row.id,
+      assignmentId: row.assignmentId,
+      vatPercentage: row.vatPercentage ?? "21",
+    }),
     getTenantBranding(tenantId),
+    getInvoiceCompanySettingsForTenant(tenantId),
+    getInvoiceTemplateSettingsForTenant(tenantId),
     getInvoicePaymentSettingsForTenant(tenantId),
     getOpenPaymentCheckoutUrlForCurrentTenant(id),
   ]);
+  const companySnapshot = row.companySnapshotJson
+    ? normalizeInvoicePdfCompany(row.companySnapshotJson)
+    : currentCompanySettings;
+  const templateSettings = row.templateSnapshotJson
+    ? normalizeInvoicePdfTemplate(row.templateSnapshotJson)
+    : currentTemplateSettings;
   const paymentSettings = row.paymentSettingsSnapshotJson
     ? normalizeInvoicePdfPaymentSettings(row.paymentSettingsSnapshotJson)
     : currentPaymentSettings;
+  const brandName = companySnapshot.tradeName || companySnapshot.legalName || branding.displayName;
 
   const detail: InvoiceDetail = {
     id:                 row.id,
-    brandName:          branding.displayName,
+    brandName,
     invoiceNumber:      displayInvoiceNumber(row.invoiceNumber, `Factuur-${row.id.slice(0, 8)}`),
     officialInvoiceNumber: row.invoiceNumber ?? null,
     finalizedAt:        row.finalizedAt?.toISOString() ?? null,
@@ -596,7 +832,9 @@ export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
     updatedAt:          row.updatedAt.toISOString(),
     paymentUrl,
     paymentSettings,
-    lineItems: proposal.lineItems,
+    companySnapshot,
+    templateSettings,
+    lineItems,
   };
   return toPlatformInvoiceMetadataDto(detail, sensitiveDecision);
 }

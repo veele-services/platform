@@ -1,4 +1,5 @@
 import PDFDocument from "pdfkit";
+import { createQrMatrix } from "@/lib/qr-code";
 import {
   PDF_BRAND,
   PDF_PAGE,
@@ -13,6 +14,55 @@ import {
   formatPdfEuro,
   parsePdfMoney,
 } from "@/lib/pdf-style";
+
+export type CustomerInvoicePdfPaymentSettings = {
+  paymentProvider: "none" | "mollie";
+  mollieEnabled: boolean;
+  showPaymentLinkOnInvoice: boolean;
+  showPaymentQrOnInvoice: boolean;
+  paymentBlockTitle: string;
+  paymentBlockText: string;
+  paymentLinkLabel: string;
+};
+
+export type CustomerInvoicePdfCompanySnapshot = {
+  legalName: string;
+  tradeName: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  postalCode: string | null;
+  city: string | null;
+  country: string;
+  kvkNumber: string | null;
+  vatNumber: string | null;
+  iban: string | null;
+  bic: string | null;
+  administrationEmail: string | null;
+  phone: string | null;
+  website: string | null;
+  logoUrl: string | null;
+  primaryColor: string;
+  secondaryColor: string;
+  defaultPaymentTermDays: number;
+};
+
+export type CustomerInvoicePdfTemplateSettings = {
+  logoUrl: string | null;
+  primaryColor: string;
+  secondaryColor: string;
+  introText: string | null;
+  footerText: string | null;
+  paymentInstruction: string;
+  showLogo: boolean;
+  showCompanyFooter: boolean;
+  showKvkFooter: boolean;
+  showVatFooter: boolean;
+  showIbanFooter: boolean;
+};
+
+export type CustomerInvoicePdfOptions = {
+  paymentQrUrl?: string | null;
+};
 
 export type CustomerInvoicePdfLineItem = {
   category: "task" | "extra_work" | "material";
@@ -39,6 +89,10 @@ export type CustomerInvoicePdfData = {
   totalAmount: string;
   dueDate: string;
   createdAt: string;
+  paymentUrl?: string | null;
+  paymentSettings: CustomerInvoicePdfPaymentSettings;
+  companySnapshot: CustomerInvoicePdfCompanySnapshot;
+  templateSettings: CustomerInvoicePdfTemplateSettings;
   lineItems: CustomerInvoicePdfLineItem[];
 };
 
@@ -48,9 +102,192 @@ function categoryLabel(category: string): string {
   return "Werkzaamheden";
 }
 
-export async function generateCustomerInvoicePdf(invoice: CustomerInvoicePdfData): Promise<Buffer> {
-  const brandName = invoice.brandName?.trim() || "Fieldgrid";
+function safePdfColor(value: string | null | undefined, fallback: string): string {
+  return /^#[0-9A-Fa-f]{6}$/u.test(value ?? "") ? value! : fallback;
+}
+
+function companyDisplayName(invoice: CustomerInvoicePdfData): string {
+  return invoice.companySnapshot.tradeName || invoice.companySnapshot.legalName || invoice.brandName || "Fieldgrid";
+}
+
+function companyLines(invoice: CustomerInvoicePdfData): string[] {
+  const company = invoice.companySnapshot;
+  return [
+    company.legalName,
+    company.addressLine1,
+    company.addressLine2,
+    [company.postalCode, company.city].filter(Boolean).join(" "),
+    company.country,
+  ].filter((line): line is string => Boolean(line?.trim()));
+}
+
+function renderPaymentInstruction(invoice: CustomerInvoicePdfData): string {
+  return invoice.templateSettings.paymentInstruction
+    .replace(/\{\{payment_term_days\}\}/gu, String(invoice.companySnapshot.defaultPaymentTermDays))
+    .replace(/\{\{invoice_number\}\}/gu, invoice.invoiceNumber);
+}
+
+function footerText(invoice: CustomerInvoicePdfData): string {
+  const template = invoice.templateSettings;
+  const company = invoice.companySnapshot;
+  if (template.footerText?.trim()) return template.footerText.trim();
+  const parts = [companyDisplayName(invoice)];
+  if (template.showKvkFooter && company.kvkNumber) parts.push(`KVK ${company.kvkNumber}`);
+  if (template.showVatFooter && company.vatNumber) parts.push(`BTW ${company.vatNumber}`);
+  if (template.showIbanFooter && company.iban) parts.push(`IBAN ${company.iban}`);
+  return parts.filter(Boolean).join(" - ") || `${companyDisplayName(invoice)} - Factuur gegenereerd.`;
+}
+
+function logoUrl(invoice: CustomerInvoicePdfData): string | null {
+  return invoice.templateSettings.logoUrl || invoice.companySnapshot.logoUrl;
+}
+
+async function fetchPdfLogoBuffer(url: string | null): Promise<Buffer | null> {
+  if (!url) return null;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  if (!["https:", "http:"].includes(parsed.protocol)) return null;
+
+  try {
+    const response = await fetch(parsed, { signal: AbortSignal.timeout(5000) });
+    if (!response.ok) return null;
+    const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+    if (!contentType.startsWith("image/png") && !contentType.startsWith("image/jpeg")) return null;
+    const contentLength = Number(response.headers.get("content-length") ?? "0");
+    if (contentLength > 1_500_000) return null;
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (bytes.byteLength > 1_500_000) return null;
+    return bytes;
+  } catch {
+    return null;
+  }
+}
+
+function drawCompanyPanel(doc: PDFKit.PDFDocument, invoice: CustomerInvoicePdfData, y: number, logoBuffer: Buffer | null): number {
+  const L = PDF_PAGE.left;
+  const R = PDF_PAGE.right;
+  const W = R - L;
+  const company = invoice.companySnapshot;
+  const template = invoice.templateSettings;
+  const primary = safePdfColor(template.primaryColor || company.primaryColor, PDF_BRAND.blue);
+  const accent = safePdfColor(template.secondaryColor || company.secondaryColor, PDF_BRAND.cyan);
+
+  doc.roundedRect(L, y, W, 76, 10).fill("#FFFFFF").strokeColor(PDF_BRAND.border).stroke();
+  doc.fillColor(PDF_BRAND.slate).font("Helvetica-Bold").fontSize(8).text("AFZENDER", L + 18, y + 14);
+  const textWidth = template.showLogo && logoBuffer ? 190 : 220;
+  doc.fillColor(primary).font("Helvetica-Bold").fontSize(13).text(companyDisplayName(invoice), L + 18, y + 30, { width: textWidth });
+  doc.fillColor(PDF_BRAND.ink).font("Helvetica").fontSize(8).text(companyLines(invoice).slice(1).join(" - "), L + 18, y + 50, { width: 250 });
+
+  const metaRows: Array<[string, string | null]> = [
+    ["E-mail", company.administrationEmail],
+    ["Telefoon", company.phone],
+    ["Website", company.website],
+    ["IBAN", company.iban],
+  ];
+  let metaY = y + 14;
+  for (const [label, value] of metaRows.filter(([, value]) => Boolean(value))) {
+    doc.fillColor(PDF_BRAND.slate).font("Helvetica").fontSize(7).text(label, R - 170, metaY, { width: 52 });
+    doc.fillColor(PDF_BRAND.ink).font("Helvetica-Bold").fontSize(7).text(value ?? "-", R - 112, metaY, { width: 112, align: "right" });
+    metaY += 13;
+  }
+
+  if (template.showLogo && logoBuffer) {
+    try {
+      doc.image(logoBuffer, R - 86, y + 18, { fit: [68, 36], align: "center", valign: "center" });
+    } catch {
+      doc.roundedRect(R - 62, y + 48, 44, 10, 5).fill(accent);
+    }
+  } else if (template.showLogo) {
+    doc.roundedRect(R - 62, y + 48, 44, 10, 5).fill(accent);
+  }
+  return y + 96;
+}
+
+function drawPaymentQr(doc: PDFKit.PDFDocument, value: string, x: number, y: number, size: number): boolean {
+  let matrix: boolean[][];
+  try {
+    matrix = createQrMatrix(value);
+  } catch {
+    return false;
+  }
+
+  const quietZone = 4;
+  const moduleSize = size / (matrix.length + quietZone * 2);
+  doc.save();
+  doc.roundedRect(x, y, size, size, 8).fill("#FFFFFF").strokeColor(PDF_BRAND.border).stroke();
+  doc.fillColor(PDF_BRAND.ink);
+  matrix.forEach((row, rowIndex) => {
+    row.forEach((dark, columnIndex) => {
+      if (!dark) return;
+      doc.rect(
+        x + (columnIndex + quietZone) * moduleSize,
+        y + (rowIndex + quietZone) * moduleSize,
+        Math.ceil(moduleSize * 100) / 100,
+        Math.ceil(moduleSize * 100) / 100,
+      ).fill();
+    });
+  });
+  doc.restore();
+  return true;
+}
+
+function drawPaymentBlock(doc: PDFKit.PDFDocument, invoice: CustomerInvoicePdfData, y: number, paymentQrUrl: string | null | undefined): number {
+  const settings = invoice.paymentSettings;
+  const paymentUrl = invoice.paymentUrl?.trim();
+  if (!paymentUrl || !settings) return y;
+  const showLink = settings.showPaymentLinkOnInvoice;
+  const showQr = settings.showPaymentQrOnInvoice;
+  if (!showLink && !showQr) return y;
+
+  const L = PDF_PAGE.left;
+  const R = PDF_PAGE.right;
+  const W = R - L;
+  const qrSize = 82;
+  const blockHeight = showQr ? 124 : 88;
+  y = ensurePdfPage(doc, y, blockHeight + 18);
+
+  doc.roundedRect(L, y, W, blockHeight, 10).fill("#F8FAFC").strokeColor(PDF_BRAND.border).stroke();
+  doc.fillColor(PDF_BRAND.ink).font("Helvetica-Bold").fontSize(12).text(settings.paymentBlockTitle, L + 18, y + 16);
+  doc.fillColor(PDF_BRAND.slate).font("Helvetica").fontSize(9).text(settings.paymentBlockText, L + 18, y + 36, {
+    width: showQr ? W - qrSize - 56 : W - 36,
+    lineGap: 2,
+  });
+
+  if (showLink) {
+    doc.fillColor(PDF_BRAND.cyan).font("Helvetica-Bold").fontSize(9).text(settings.paymentLinkLabel, L + 18, y + 68, {
+      width: 120,
+      link: paymentUrl,
+      underline: true,
+    });
+    doc.fillColor(PDF_BRAND.ink).font("Helvetica").fontSize(7).text(paymentUrl, L + 18, y + 84, {
+      width: showQr ? W - qrSize - 56 : W - 36,
+      lineGap: 1,
+    });
+  }
+
+  if (showQr) {
+    const qrRendered = drawPaymentQr(doc, paymentQrUrl?.trim() || paymentUrl, R - qrSize - 18, y + 18, qrSize);
+    doc.fillColor(PDF_BRAND.slate).font("Helvetica").fontSize(7).text(
+      qrRendered ? "Scan om te betalen" : "QR-code niet beschikbaar",
+      R - qrSize - 18,
+      y + qrSize + 24,
+      { width: qrSize, align: "center" },
+    );
+  }
+
+  return y + blockHeight + 14;
+}
+
+export async function generateCustomerInvoicePdf(invoice: CustomerInvoicePdfData, options: CustomerInvoicePdfOptions = {}): Promise<Buffer> {
+  const brandName = companyDisplayName(invoice);
   const isFieldgridBrand = brandName.toLowerCase() === "fieldgrid";
+  const primary = safePdfColor(invoice.templateSettings.primaryColor || invoice.companySnapshot.primaryColor, PDF_BRAND.blue);
+  const accent = safePdfColor(invoice.templateSettings.secondaryColor || invoice.companySnapshot.secondaryColor, PDF_BRAND.cyan);
+  const logoBuffer = await fetchPdfLogoBuffer(logoUrl(invoice));
   const doc = new PDFDocument({ size: "A4", margin: 55, bufferPages: true });
   const chunks: Buffer[] = [];
   doc.on("data", (chunk: Buffer) => chunks.push(chunk));
@@ -63,12 +300,22 @@ export async function generateCustomerInvoicePdf(invoice: CustomerInvoicePdfData
       reference: invoice.invoiceNumber,
       brandTitle: brandName.toUpperCase(),
       brandSubtitle: isFieldgridBrand ? "PLATFORM" : "",
+      primaryColor: primary,
+      accentColor: accent,
     });
 
     const L = PDF_PAGE.left;
     const R = PDF_PAGE.right;
     const W = R - L;
-    let y = 148;
+    let y = 142;
+
+    y = drawCompanyPanel(doc, invoice, y, logoBuffer);
+
+    if (invoice.templateSettings.introText) {
+      y = ensurePdfPage(doc, y, 52);
+      doc.fillColor(PDF_BRAND.ink).font("Helvetica").fontSize(9).text(invoice.templateSettings.introText, L, y, { width: W, lineGap: 2 });
+      y += Math.min(56, doc.heightOfString(invoice.templateSettings.introText, { width: W }) + 22);
+    }
 
     const cityLine = [invoice.customerPostalCode, invoice.customerCity].filter(Boolean).join(" ");
     y = drawPdfRecipientPanel(doc, {
@@ -122,6 +369,12 @@ export async function generateCustomerInvoicePdf(invoice: CustomerInvoicePdfData
       { label: "Totaal incl. BTW", value: formatPdfEuro(invoice.totalAmount), strong: true },
     ]);
 
+    y = ensurePdfPage(doc, y, 48);
+    doc.fillColor(PDF_BRAND.slate).font("Helvetica").fontSize(8).text(renderPaymentInstruction(invoice), L, y, { width: W, lineGap: 2 });
+    y += Math.min(54, doc.heightOfString(renderPaymentInstruction(invoice), { width: W }) + 18);
+
+    y = drawPaymentBlock(doc, invoice, y, options.paymentQrUrl);
+
     if (Math.abs(lineTotal - parsePdfMoney(invoice.amount)) > 0.01) {
       y = ensurePdfPage(doc, y, 48);
       doc.fillColor(PDF_BRAND.slate).font("Helvetica").fontSize(8).text(
@@ -132,7 +385,7 @@ export async function generateCustomerInvoicePdf(invoice: CustomerInvoicePdfData
       );
     }
 
-    drawPdfFooter(doc, `${brandName} - Factuur gegenereerd.`);
+    drawPdfFooter(doc, footerText(invoice));
     doc.end();
   });
 

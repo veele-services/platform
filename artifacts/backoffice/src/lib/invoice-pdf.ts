@@ -26,6 +26,111 @@ function categoryLabel(category: string): string {
   return "Werkzaamheden";
 }
 
+function safePdfColor(value: string | null | undefined, fallback: string): string {
+  return /^#[0-9A-Fa-f]{6}$/u.test(value ?? "") ? value! : fallback;
+}
+
+function companyDisplayName(invoice: InvoiceDetail): string {
+  return invoice.companySnapshot.tradeName || invoice.companySnapshot.legalName || invoice.brandName || "Fieldgrid";
+}
+
+function companyLines(invoice: InvoiceDetail): string[] {
+  const company = invoice.companySnapshot;
+  return [
+    company.legalName,
+    company.addressLine1,
+    company.addressLine2,
+    [company.postalCode, company.city].filter(Boolean).join(" "),
+    company.country,
+  ].filter((line): line is string => Boolean(line?.trim()));
+}
+
+function renderPaymentInstruction(invoice: InvoiceDetail): string {
+  return invoice.templateSettings.paymentInstruction
+    .replace(/\{\{payment_term_days\}\}/gu, String(invoice.companySnapshot.defaultPaymentTermDays))
+    .replace(/\{\{invoice_number\}\}/gu, invoice.invoiceNumber);
+}
+
+function footerText(invoice: InvoiceDetail): string {
+  const template = invoice.templateSettings;
+  const company = invoice.companySnapshot;
+  if (template.footerText?.trim()) return template.footerText.trim();
+  const parts = [companyDisplayName(invoice)];
+  if (template.showKvkFooter && company.kvkNumber) parts.push(`KVK ${company.kvkNumber}`);
+  if (template.showVatFooter && company.vatNumber) parts.push(`BTW ${company.vatNumber}`);
+  if (template.showIbanFooter && company.iban) parts.push(`IBAN ${company.iban}`);
+  return parts.filter(Boolean).join(" - ") || `${companyDisplayName(invoice)} - Factuur gegenereerd.`;
+}
+
+function logoUrl(invoice: InvoiceDetail): string | null {
+  return invoice.templateSettings.logoUrl || invoice.companySnapshot.logoUrl;
+}
+
+async function fetchPdfLogoBuffer(url: string | null): Promise<Buffer | null> {
+  if (!url) return null;
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  if (!["https:", "http:"].includes(parsed.protocol)) return null;
+
+  try {
+    const response = await fetch(parsed, { signal: AbortSignal.timeout(5000) });
+    if (!response.ok) return null;
+    const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";
+    if (!contentType.startsWith("image/png") && !contentType.startsWith("image/jpeg")) return null;
+    const contentLength = Number(response.headers.get("content-length") ?? "0");
+    if (contentLength > 1_500_000) return null;
+    const bytes = Buffer.from(await response.arrayBuffer());
+    if (bytes.byteLength > 1_500_000) return null;
+    return bytes;
+  } catch {
+    return null;
+  }
+}
+
+function drawCompanyPanel(doc: PDFKit.PDFDocument, invoice: InvoiceDetail, y: number, logoBuffer: Buffer | null): number {
+  const L = PDF_PAGE.left;
+  const R = PDF_PAGE.right;
+  const W = R - L;
+  const company = invoice.companySnapshot;
+  const template = invoice.templateSettings;
+  const primary = safePdfColor(template.primaryColor || company.primaryColor, PDF_BRAND.blue);
+  const accent = safePdfColor(template.secondaryColor || company.secondaryColor, PDF_BRAND.cyan);
+
+  doc.roundedRect(L, y, W, 76, 10).fill("#FFFFFF").strokeColor(PDF_BRAND.border).stroke();
+  doc.fillColor(PDF_BRAND.slate).font("Helvetica-Bold").fontSize(8).text("AFZENDER", L + 18, y + 14);
+  const textWidth = template.showLogo && logoBuffer ? 190 : 220;
+  doc.fillColor(primary).font("Helvetica-Bold").fontSize(13).text(companyDisplayName(invoice), L + 18, y + 30, { width: textWidth });
+  doc.fillColor(PDF_BRAND.ink).font("Helvetica").fontSize(8).text(companyLines(invoice).slice(1).join(" - "), L + 18, y + 50, { width: 250 });
+
+  const metaRows: Array<[string, string | null]> = [
+    ["E-mail", company.administrationEmail],
+    ["Telefoon", company.phone],
+    ["Website", company.website],
+    ["IBAN", company.iban],
+  ];
+  let metaY = y + 14;
+  for (const [label, value] of metaRows.filter(([, value]) => Boolean(value))) {
+    doc.fillColor(PDF_BRAND.slate).font("Helvetica").fontSize(7).text(label, R - 170, metaY, { width: 52 });
+    doc.fillColor(PDF_BRAND.ink).font("Helvetica-Bold").fontSize(7).text(value ?? "-", R - 112, metaY, { width: 112, align: "right" });
+    metaY += 13;
+  }
+
+  if (template.showLogo && logoBuffer) {
+    try {
+      doc.image(logoBuffer, R - 86, y + 18, { fit: [68, 36], align: "center", valign: "center" });
+    } catch {
+      doc.roundedRect(R - 62, y + 48, 44, 10, 5).fill(accent);
+    }
+  } else if (template.showLogo) {
+    doc.roundedRect(R - 62, y + 48, 44, 10, 5).fill(accent);
+  }
+  return y + 96;
+}
+
 function drawPaymentQr(doc: PDFKit.PDFDocument, value: string, x: number, y: number, size: number): boolean {
   let matrix: boolean[][];
   try {
@@ -102,8 +207,11 @@ function drawPaymentBlock(doc: PDFKit.PDFDocument, invoice: InvoiceDetail, y: nu
 }
 
 export async function generateInvoicePdf(invoice: InvoiceDetail, options: InvoicePdfOptions = {}): Promise<Buffer> {
-  const brandName = invoice.brandName?.trim() || "Fieldgrid";
+  const brandName = companyDisplayName(invoice);
   const isFieldgridBrand = brandName.toLowerCase() === "fieldgrid";
+  const primary = safePdfColor(invoice.templateSettings.primaryColor || invoice.companySnapshot.primaryColor, PDF_BRAND.blue);
+  const accent = safePdfColor(invoice.templateSettings.secondaryColor || invoice.companySnapshot.secondaryColor, PDF_BRAND.cyan);
+  const logoBuffer = await fetchPdfLogoBuffer(logoUrl(invoice));
   const doc = new PDFDocument({ size: "A4", margin: 55, bufferPages: true });
   const chunks: Buffer[] = [];
 
@@ -117,12 +225,22 @@ export async function generateInvoicePdf(invoice: InvoiceDetail, options: Invoic
       reference: invoice.invoiceNumber,
       brandTitle: brandName.toUpperCase(),
       brandSubtitle: isFieldgridBrand ? "PLATFORM" : "",
+      primaryColor: primary,
+      accentColor: accent,
     });
 
     const L = PDF_PAGE.left;
     const R = PDF_PAGE.right;
     const W = R - L;
-    let y = 148;
+    let y = 142;
+
+    y = drawCompanyPanel(doc, invoice, y, logoBuffer);
+
+    if (invoice.templateSettings.introText) {
+      y = ensurePdfPage(doc, y, 52);
+      doc.fillColor(PDF_BRAND.ink).font("Helvetica").fontSize(9).text(invoice.templateSettings.introText, L, y, { width: W, lineGap: 2 });
+      y += Math.min(56, doc.heightOfString(invoice.templateSettings.introText, { width: W }) + 22);
+    }
 
     y = drawPdfRecipientPanel(doc, {
       y,
@@ -187,6 +305,10 @@ export async function generateInvoicePdf(invoice: InvoiceDetail, options: Invoic
       { label: "Totaal incl. BTW", value: formatPdfEuro(invoice.totalAmount), strong: true },
     ]);
 
+    y = ensurePdfPage(doc, y, 48);
+    doc.fillColor(PDF_BRAND.slate).font("Helvetica").fontSize(8).text(renderPaymentInstruction(invoice), L, y, { width: W, lineGap: 2 });
+    y += Math.min(54, doc.heightOfString(renderPaymentInstruction(invoice), { width: W }) + 18);
+
     y = drawPaymentBlock(doc, invoice, y, options.paymentQrUrl);
 
     if (invoice.notes) {
@@ -195,7 +317,7 @@ export async function generateInvoicePdf(invoice: InvoiceDetail, options: Invoic
       doc.fillColor(PDF_BRAND.ink).font("Helvetica").fontSize(9).text(invoice.notes, L, y + 18, { width: W, lineGap: 2 });
     }
 
-    drawPdfFooter(doc, `${brandName} - Factuur gegenereerd.`);
+    drawPdfFooter(doc, footerText(invoice));
     doc.end();
   });
 
