@@ -103,6 +103,7 @@ export function toPlatformInvoiceMetadataDto<T extends AnyRecord>(
     notes: row.notes ? "[REDACTED]" : row.notes,
     molliePaymentId: row.molliePaymentId ? maskPaymentProviderId(String(row.molliePaymentId)) : row.molliePaymentId,
     checkoutUrl: row.checkoutUrl ? null : row.checkoutUrl,
+    paymentUrl: row.paymentUrl ? null : row.paymentUrl,
   } as T;
 }
 

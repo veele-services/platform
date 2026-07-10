@@ -6,6 +6,7 @@ import {
   invoicesTable,
   assignmentsTable,
   auditLogTable,
+  invoicePaymentSettingsTable,
   maskPaymentProviderId,
   type PaymentStatus,
 } from "@workspace/db";
@@ -75,6 +76,22 @@ function displayInvoiceNumber(value: string | null | undefined, fallback = "Fact
   return value?.trim() || fallback;
 }
 
+async function requireMolliePaymentsEnabled(tenantId: string): Promise<ActionResult | null> {
+  const [settings] = await db
+    .select({
+      paymentProvider: invoicePaymentSettingsTable.paymentProvider,
+      mollieEnabled: invoicePaymentSettingsTable.mollieEnabled,
+    })
+    .from(invoicePaymentSettingsTable)
+    .where(eq(invoicePaymentSettingsTable.tenantId, tenantId))
+    .limit(1);
+
+  if (settings?.paymentProvider !== "mollie" || settings.mollieEnabled !== true) {
+    return { success: false, message: "Mollie is niet actief in factuurinstellingen." };
+  }
+  return null;
+}
+
 // ─── Queries ──────────────────────────────────────────────────────────────────
 
 export async function getPaymentHistory(invoiceId: string): Promise<PaymentRecord[]> {
@@ -136,6 +153,14 @@ export async function createMolliePayment(
 ): Promise<ActionResult<{ checkoutUrl: string; molliePaymentId: string }>> {
   await requirePermission("invoices", "write");
 
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const tenantId = await requireCurrentTenantId();
+  const mollieDisabled = await requireMolliePaymentsEnabled(tenantId);
+  if (mollieDisabled) return mollieDisabled;
+
   const mollieKey = process.env.MOLLIE_API_KEY;
   if (!mollieKey) {
     return {
@@ -143,12 +168,6 @@ export async function createMolliePayment(
       message: "Mollie API-sleutel niet geconfigureerd. Stel MOLLIE_API_KEY in als omgevingsvariabele.",
     };
   }
-
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Niet geauthenticeerd." };
-
-  const tenantId = await requireCurrentTenantId();
 
   // Fetch invoice
   const [invoice] = await db

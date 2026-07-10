@@ -10,7 +10,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const canRead = await hasPermission("invoices", "read");
@@ -30,7 +30,10 @@ export async function GET(
   const invoice = await getInvoice(id);
   if (!invoice) return new NextResponse("Not found", { status: 404 });
 
-  const pdfBuffer = await generateInvoicePdf(invoice);
+  const paymentQrUrl = invoice.paymentUrl
+    ? new URL(`/api/invoices/${invoice.id}/pay`, request.url).toString()
+    : null;
+  const pdfBuffer = await generateInvoicePdf(invoice, { paymentQrUrl });
   const filename = `${sanitizePdfFilename(invoice.invoiceNumber, `factuur-${invoice.id.slice(0, 8)}`)}.pdf`;
 
   return new NextResponse(new Uint8Array(pdfBuffer), {

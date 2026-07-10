@@ -1,5 +1,6 @@
 import PDFDocument from "pdfkit";
 import type { InvoiceDetail } from "@/app/actions/invoices";
+import { createQrMatrix } from "@/lib/qr-code";
 import {
   PDF_BRAND,
   PDF_PAGE,
@@ -15,13 +16,92 @@ import {
   parsePdfMoney,
 } from "@/lib/pdf-style";
 
+export type InvoicePdfOptions = {
+  paymentQrUrl?: string | null;
+};
+
 function categoryLabel(category: string): string {
   if (category === "extra_work") return "Meerwerk";
   if (category === "material") return "Materiaal/verbruik";
   return "Werkzaamheden";
 }
 
-export async function generateInvoicePdf(invoice: InvoiceDetail): Promise<Buffer> {
+function drawPaymentQr(doc: PDFKit.PDFDocument, value: string, x: number, y: number, size: number): boolean {
+  let matrix: boolean[][];
+  try {
+    matrix = createQrMatrix(value);
+  } catch {
+    return false;
+  }
+
+  const quietZone = 4;
+  const moduleSize = size / (matrix.length + quietZone * 2);
+  doc.save();
+  doc.roundedRect(x, y, size, size, 8).fill("#FFFFFF").strokeColor(PDF_BRAND.border).stroke();
+  doc.fillColor(PDF_BRAND.ink);
+  matrix.forEach((row, rowIndex) => {
+    row.forEach((dark, columnIndex) => {
+      if (!dark) return;
+      doc.rect(
+        x + (columnIndex + quietZone) * moduleSize,
+        y + (rowIndex + quietZone) * moduleSize,
+        Math.ceil(moduleSize * 100) / 100,
+        Math.ceil(moduleSize * 100) / 100,
+      ).fill();
+    });
+  });
+  doc.restore();
+  return true;
+}
+
+function drawPaymentBlock(doc: PDFKit.PDFDocument, invoice: InvoiceDetail, y: number, paymentQrUrl: string | null | undefined): number {
+  const settings = invoice.paymentSettings;
+  const paymentUrl = invoice.paymentUrl?.trim();
+  if (!paymentUrl || !settings) return y;
+  const showLink = settings.showPaymentLinkOnInvoice;
+  const showQr = settings.showPaymentQrOnInvoice;
+  if (!showLink && !showQr) return y;
+
+  const L = PDF_PAGE.left;
+  const R = PDF_PAGE.right;
+  const W = R - L;
+  const qrSize = 82;
+  const blockHeight = showQr ? 124 : 88;
+  y = ensurePdfPage(doc, y, blockHeight + 18);
+
+  doc.roundedRect(L, y, W, blockHeight, 10).fill("#F8FAFC").strokeColor(PDF_BRAND.border).stroke();
+  doc.fillColor(PDF_BRAND.ink).font("Helvetica-Bold").fontSize(12).text(settings.paymentBlockTitle, L + 18, y + 16);
+  doc.fillColor(PDF_BRAND.slate).font("Helvetica").fontSize(9).text(settings.paymentBlockText, L + 18, y + 36, {
+    width: showQr ? W - qrSize - 56 : W - 36,
+    lineGap: 2,
+  });
+
+  if (showLink) {
+    doc.fillColor(PDF_BRAND.cyan).font("Helvetica-Bold").fontSize(9).text(settings.paymentLinkLabel, L + 18, y + 68, {
+      width: 120,
+      link: paymentUrl,
+      underline: true,
+    });
+    doc.fillColor(PDF_BRAND.ink).font("Helvetica").fontSize(7).text(paymentUrl, L + 18, y + 84, {
+      width: showQr ? W - qrSize - 56 : W - 36,
+      lineGap: 1,
+    });
+  }
+
+  if (showQr) {
+    const qrRendered = drawPaymentQr(doc, paymentQrUrl?.trim() || paymentUrl, R - qrSize - 18, y + 18, qrSize);
+    doc.fillColor(PDF_BRAND.slate).font("Helvetica").fontSize(7).text(
+      qrRendered ? "Scan om te betalen" : "QR-code niet beschikbaar",
+      R - qrSize - 18,
+      y + qrSize + 24,
+      { width: qrSize, align: "center" },
+    );
+  }
+
+  return y + blockHeight + 14;
+}
+
+export async function generateInvoicePdf(invoice: InvoiceDetail, options: InvoicePdfOptions = {}): Promise<Buffer> {
   const brandName = invoice.brandName?.trim() || "Fieldgrid";
   const isFieldgridBrand = brandName.toLowerCase() === "fieldgrid";
   const doc = new PDFDocument({ size: "A4", margin: 55, bufferPages: true });
@@ -106,6 +186,8 @@ export async function generateInvoicePdf(invoice: InvoiceDetail): Promise<Buffer
       { label: `BTW ${invoice.vatPercentage ?? "21"}%`, value: formatPdfEuro(invoice.vatAmount) },
       { label: "Totaal incl. BTW", value: formatPdfEuro(invoice.totalAmount), strong: true },
     ]);
+
+    y = drawPaymentBlock(doc, invoice, y, options.paymentQrUrl);
 
     if (invoice.notes) {
       y = ensurePdfPage(doc, y, 80);

@@ -11,6 +11,7 @@ import {
   objectsTable,
   paymentsTable,
   auditLogTable,
+  invoicePaymentSettingsTable,
   tenantCompanySettingsTable,
   finalizeOfficialInvoice,
   ASSIGNMENT_STATUS_TRANSITIONS,
@@ -34,6 +35,26 @@ export type { ActionResult, InvoiceStatus };
 
 const PAGE_SIZE = 25;
 const EXPORT_LIMIT = 5000;
+
+export type InvoicePdfPaymentSettings = {
+  paymentProvider: "none" | "mollie";
+  mollieEnabled: boolean;
+  showPaymentLinkOnInvoice: boolean;
+  showPaymentQrOnInvoice: boolean;
+  paymentBlockTitle: string;
+  paymentBlockText: string;
+  paymentLinkLabel: string;
+};
+
+const DEFAULT_INVOICE_PDF_PAYMENT_SETTINGS: InvoicePdfPaymentSettings = {
+  paymentProvider: "none",
+  mollieEnabled: false,
+  showPaymentLinkOnInvoice: false,
+  showPaymentQrOnInvoice: false,
+  paymentBlockTitle: "Online betalen",
+  paymentBlockText: "Betaal deze factuur veilig via de betaallink.",
+  paymentLinkLabel: "Betaal factuur",
+};
 
 function parseAmountCents(value: string | null | undefined): number {
   const parsed = Number.parseFloat(value ?? "0");
@@ -74,6 +95,50 @@ async function getDefaultInvoiceDueDate(tenantId: string): Promise<{ dueDate: st
 
   const paymentTermDays = normalizePaymentTermDays(settings?.defaultPaymentTermDays);
   return { dueDate: addDaysAsIsoDate(paymentTermDays), paymentTermDays };
+}
+
+function normalizeInvoicePdfPaymentSettings(value: Record<string, unknown> | null | undefined): InvoicePdfPaymentSettings {
+  return {
+    paymentProvider: value?.paymentProvider === "mollie" ? "mollie" : "none",
+    mollieEnabled: value?.mollieEnabled === true,
+    showPaymentLinkOnInvoice: value?.showPaymentLinkOnInvoice === true,
+    showPaymentQrOnInvoice: value?.showPaymentQrOnInvoice === true,
+    paymentBlockTitle: typeof value?.paymentBlockTitle === "string" && value.paymentBlockTitle.trim()
+      ? value.paymentBlockTitle.trim()
+      : DEFAULT_INVOICE_PDF_PAYMENT_SETTINGS.paymentBlockTitle,
+    paymentBlockText: typeof value?.paymentBlockText === "string" && value.paymentBlockText.trim()
+      ? value.paymentBlockText.trim()
+      : DEFAULT_INVOICE_PDF_PAYMENT_SETTINGS.paymentBlockText,
+    paymentLinkLabel: typeof value?.paymentLinkLabel === "string" && value.paymentLinkLabel.trim()
+      ? value.paymentLinkLabel.trim()
+      : DEFAULT_INVOICE_PDF_PAYMENT_SETTINGS.paymentLinkLabel,
+  };
+}
+
+async function getInvoicePaymentSettingsForTenant(tenantId: string): Promise<InvoicePdfPaymentSettings> {
+  const [settings] = await db
+    .select({
+      paymentProvider: invoicePaymentSettingsTable.paymentProvider,
+      mollieEnabled: invoicePaymentSettingsTable.mollieEnabled,
+      showPaymentLinkOnInvoice: invoicePaymentSettingsTable.showPaymentLinkOnInvoice,
+      showPaymentQrOnInvoice: invoicePaymentSettingsTable.showPaymentQrOnInvoice,
+      paymentBlockTitle: invoicePaymentSettingsTable.paymentBlockTitle,
+      paymentBlockText: invoicePaymentSettingsTable.paymentBlockText,
+      paymentLinkLabel: invoicePaymentSettingsTable.paymentLinkLabel,
+    })
+    .from(invoicePaymentSettingsTable)
+    .where(eq(invoicePaymentSettingsTable.tenantId, tenantId))
+    .limit(1);
+
+  return normalizeInvoicePdfPaymentSettings(settings ?? null);
+}
+
+async function requireMolliePaymentsEnabled(tenantId: string): Promise<ActionResult | null> {
+  const settings = await getInvoicePaymentSettingsForTenant(tenantId);
+  if (settings.paymentProvider !== "mollie" || !settings.mollieEnabled) {
+    return { success: false, message: "Mollie is niet actief in factuurinstellingen." };
+  }
+  return null;
 }
 
 function exportStamp(): string {
@@ -196,6 +261,8 @@ export type InvoiceDetail = {
   notes:               string | null;
   createdAt:           string;
   updatedAt:           string;
+  paymentUrl:          string | null;
+  paymentSettings:     InvoicePdfPaymentSettings;
   lineItems: InvoiceProposalLineItem[];
 };
 
@@ -471,6 +538,7 @@ export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
       notes:              invoicesTable.notes,
       createdAt:          invoicesTable.createdAt,
       updatedAt:          invoicesTable.updatedAt,
+      paymentSettingsSnapshotJson: invoicesTable.paymentSettingsSnapshotJson,
     })
     .from(invoicesTable)
     .innerJoin(customersTable,   eq(invoicesTable.customerId,   customersTable.id))
@@ -489,10 +557,15 @@ export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
     resourceId: id,
   });
 
-  const [proposal, branding] = await Promise.all([
+  const [proposal, branding, currentPaymentSettings, paymentUrl] = await Promise.all([
     calculateInvoiceProposalForAssignment(row.assignmentId, parseFloat(row.vatPercentage ?? "21")),
     getTenantBranding(tenantId),
+    getInvoicePaymentSettingsForTenant(tenantId),
+    getOpenPaymentCheckoutUrlForCurrentTenant(id),
   ]);
+  const paymentSettings = row.paymentSettingsSnapshotJson
+    ? normalizeInvoicePdfPaymentSettings(row.paymentSettingsSnapshotJson)
+    : currentPaymentSettings;
 
   const detail: InvoiceDetail = {
     id:                 row.id,
@@ -521,6 +594,8 @@ export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
     notes:              row.notes ?? null,
     createdAt:          row.createdAt.toISOString(),
     updatedAt:          row.updatedAt.toISOString(),
+    paymentUrl,
+    paymentSettings,
     lineItems: proposal.lineItems,
   };
   return toPlatformInvoiceMetadataDto(detail, sensitiveDecision);
@@ -998,16 +1073,19 @@ export async function createCollectiveInvoicePayment(input: {
 }): Promise<ActionResult<{ id: string; checkoutUrl: string }>> {
   await requirePermission("invoices", "write");
 
-  const mollieKey = process.env.MOLLIE_API_KEY;
-  if (!mollieKey) {
-    return { success: false, message: "Mollie API-sleutel niet geconfigureerd. Stel MOLLIE_API_KEY in." };
-  }
-
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const tenantId = await requireCurrentTenantId();
+  const mollieDisabled = await requireMolliePaymentsEnabled(tenantId);
+  if (mollieDisabled) return mollieDisabled;
+
+  const mollieKey = process.env.MOLLIE_API_KEY;
+  if (!mollieKey) {
+    return { success: false, message: "Mollie API-sleutel niet geconfigureerd. Stel MOLLIE_API_KEY in." };
+  }
+
   const invoiceIds = [...new Set(input.invoiceIds)].filter(Boolean);
   if (invoiceIds.length < 2) {
     return { success: false, message: "Selecteer minimaal twee facturen voor een verzamelfactuur." };
