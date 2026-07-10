@@ -8,6 +8,8 @@ type GoogleMapsLoaderOptions = {
   libraries?: string[];
 };
 
+export const FIELDGRID_GOOGLE_MAPS_SCRIPT_ID = "fieldgrid-google-maps-js";
+
 declare global {
   interface Window {
     google?: { maps?: unknown } & Record<string, unknown>;
@@ -39,7 +41,18 @@ export function loadGoogleMapsJavaScriptApi(
   if (window.__fieldgridGoogleMapsLoader) return window.__fieldgridGoogleMapsLoader;
 
   window.__fieldgridGoogleMapsLoader = new Promise((resolve, reject) => {
+    const existingScript = document.getElementById(FIELDGRID_GOOGLE_MAPS_SCRIPT_ID);
+    if (existingScript) {
+      existingScript.addEventListener("load", () => resolve(window.google));
+      existingScript.addEventListener("error", () => {
+        window.__fieldgridGoogleMapsLoader = undefined;
+        reject(new Error("Google Maps kon niet worden geladen."));
+      });
+      return;
+    }
+
     const script = document.createElement("script");
+    script.id = FIELDGRID_GOOGLE_MAPS_SCRIPT_ID;
     script.src = buildGoogleMapsScriptUrl(options);
     script.async = true;
     script.defer = true;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition, type ReactNode } from "react";
+import { useMemo, useState, useTransition, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -14,7 +14,9 @@ import {
 } from "lucide-react";
 
 import { applyRouteTimeSuggestion } from "@/app/actions/assignments";
-import { AssignmentPriorityBadge, AssignmentStatusBadge, statusLabel } from "./AssignmentStatusBadge";
+import { GoogleMapCanvas, type GoogleMapCanvasConfig, type GoogleMapMarker, type GoogleMapPolyline } from "@/components/google-maps/GoogleMapCanvas";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -25,8 +27,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import {
   Popover,
   PopoverContent,
@@ -39,6 +39,8 @@ import {
   SheetHeader,
   SheetTitle,
 } from "@/components/ui/sheet";
+import { GOOGLE_MAPS_MARKER_STATUS, markerStatusForAssignment } from "@/lib/google-maps/marker-status";
+import { AssignmentPriorityBadge, AssignmentStatusBadge, statusLabel } from "./AssignmentStatusBadge";
 
 type Coordinate = {
   lat: number;
@@ -144,6 +146,7 @@ type PlanningMapData = {
 
 type PlanningMapViewProps = {
   data: PlanningMapData;
+  googleMapsConfig: GoogleMapCanvasConfig;
   canApplySuggestions?: boolean;
   dateLabel?: string;
 };
@@ -154,22 +157,12 @@ type PendingSuggestion = {
   personnelName: string;
 };
 
-const STATUS_COLORS: Record<string, { color: string; bg: string; border: string }> = {
-  draft: { color: "#64748B", bg: "#F8FAFC", border: "#CBD5E1" },
-  requested: { color: "#7C3AED", bg: "#F5F3FF", border: "#C4B5FD" },
-  accepted: { color: "#0891B2", bg: "#ECFEFF", border: "#67E8F9" },
-  scheduled: { color: "#0284C7", bg: "#E0F2FE", border: "#7DD3FC" },
-  assigned: { color: "#2563EB", bg: "#EFF6FF", border: "#93C5FD" },
-  en_route: { color: "#D97706", bg: "#FEF3C7", border: "#FBBF24" },
-  in_progress: { color: "#0D9488", bg: "#CCFBF1", border: "#5EEAD4" },
-  completed: { color: "#16A34A", bg: "#DCFCE7", border: "#86EFAC" },
-  closed: { color: "#334155", bg: "#F1F5F9", border: "#CBD5E1" },
-  cancelled: { color: "#DC2626", bg: "#FEE2E2", border: "#FCA5A5" },
-  not_completed: { color: "#B91C1C", bg: "#FEF2F2", border: "#FCA5A5" },
-};
-
 function markerTone(marker: MapMarker) {
-  return STATUS_COLORS[marker.status] ?? STATUS_COLORS.scheduled;
+  const status = markerStatusForAssignment({
+    status: marker.status,
+    priority: marker.priority,
+  });
+  return GOOGLE_MAPS_MARKER_STATUS[status];
 }
 
 function formatTimeRange(marker: Pick<MapMarker, "scheduledStart" | "scheduledEnd">): string {
@@ -239,124 +232,17 @@ function routeContextCanApply(context: MapRouteContext): boolean {
   return context.warningCode !== "missing_location" && context.warningCode !== "provider_error";
 }
 
-function mapCenter(markers: MapMarker[]): [number, number] {
-  const visible = markers.filter((marker) => marker.coordinate);
-  if (visible.length === 0) return [5.2913, 52.1326];
-  const totals = visible.reduce(
-    (acc, marker) => ({
-      lng: acc.lng + marker.coordinate!.lng,
-      lat: acc.lat + marker.coordinate!.lat,
-    }),
-    { lat: 0, lng: 0 },
-  );
-  return [totals.lng / visible.length, totals.lat / visible.length];
-}
-
-type MapSize = {
-  width: number;
-  height: number;
-};
-
-type StaticMapView = {
-  center: { lat: number; lng: number };
-  zoom: number;
-  topLeft: { x: number; y: number };
-};
-
-const TILE_SIZE = 256;
-const DEFAULT_MAP_SIZE: MapSize = { width: 1200, height: 620 };
-
-function projectLngLat(coordinate: { lat: number; lng: number }, zoom: number): { x: number; y: number } {
-  const scale = TILE_SIZE * 2 ** zoom;
-  const sinLat = Math.sin((coordinate.lat * Math.PI) / 180);
-  return {
-    x: ((coordinate.lng + 180) / 360) * scale,
-    y: (0.5 - Math.log((1 + sinLat) / (1 - sinLat)) / (4 * Math.PI)) * scale,
-  };
-}
-
-function unprojectLngLat(point: { x: number; y: number }, zoom: number): { lat: number; lng: number } {
-  const scale = TILE_SIZE * 2 ** zoom;
-  const lng = (point.x / scale) * 360 - 180;
-  const n = Math.PI - (2 * Math.PI * point.y) / scale;
-  const lat = (180 / Math.PI) * Math.atan(0.5 * (Math.exp(n) - Math.exp(-n)));
-  return { lat, lng };
-}
-
-function chooseStaticMapView(markers: MapMarker[], size: MapSize): StaticMapView {
-  const visible = markers.filter((marker) => marker.coordinate);
-  const safeSize = {
-    width: Math.max(320, size.width || DEFAULT_MAP_SIZE.width),
-    height: Math.max(320, size.height || DEFAULT_MAP_SIZE.height),
-  };
-
-  if (visible.length === 0) {
-    const center = { lat: 52.1326, lng: 5.2913 };
-    const centerPoint = projectLngLat(center, 7);
-    return {
-      center,
-      zoom: 7,
-      topLeft: {
-        x: centerPoint.x - safeSize.width / 2,
-        y: centerPoint.y - safeSize.height / 2,
-      },
-    };
-  }
-
-  if (visible.length === 1) {
-    const center = visible[0]!.coordinate!;
-    const zoom = 15;
-    const centerPoint = projectLngLat(center, zoom);
-    return {
-      center,
-      zoom,
-      topLeft: {
-        x: centerPoint.x - safeSize.width / 2,
-        y: centerPoint.y - safeSize.height / 2,
-      },
-    };
-  }
-
-  for (let zoom = 16; zoom >= 6; zoom -= 1) {
-    const points = visible.map((marker) => projectLngLat(marker.coordinate!, zoom));
-    const minX = Math.min(...points.map((point) => point.x));
-    const maxX = Math.max(...points.map((point) => point.x));
-    const minY = Math.min(...points.map((point) => point.y));
-    const maxY = Math.max(...points.map((point) => point.y));
-    const padding = 96;
-    if (maxX - minX <= safeSize.width - padding && maxY - minY <= safeSize.height - padding) {
-      const centerPoint = { x: (minX + maxX) / 2, y: (minY + maxY) / 2 };
-      return {
-        center: unprojectLngLat(centerPoint, zoom),
-        zoom,
-        topLeft: {
-          x: centerPoint.x - safeSize.width / 2,
-          y: centerPoint.y - safeSize.height / 2,
-        },
-      };
-    }
-  }
-
-  const center = mapCenter(markers);
-  const normalizedCenter = { lng: center[0], lat: center[1] };
-  const zoom = 6;
-  const centerPoint = projectLngLat(normalizedCenter, zoom);
-  return {
-    center: normalizedCenter,
-    zoom,
-    topLeft: {
-      x: centerPoint.x - safeSize.width / 2,
-      y: centerPoint.y - safeSize.height / 2,
-    },
-  };
-}
-
-function tileUrl(x: number, y: number, z: number): string {
-  return `https://basemaps.cartocdn.com/light_all/${z}/${x}/${y}.png`;
-}
-
-function fallbackTileUrl(x: number, y: number, z: number): string {
-  return `https://tile.openstreetmap.org/${z}/${x}/${y}.png`;
+function externalRouteUrl(marker: MapMarker): string | null {
+  const destination = marker.coordinate
+    ? `${marker.coordinate.lat},${marker.coordinate.lng}`
+    : formatObjectAddress(marker);
+  if (!destination || destination === "Geen adres bekend") return null;
+  const params = new URLSearchParams({
+    api: "1",
+    destination,
+    travelmode: "driving",
+  });
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
 }
 
 function OverlayChip({
@@ -391,13 +277,35 @@ function OverlayChip({
   );
 }
 
-export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }: PlanningMapViewProps) {
+function InfoCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-lg border bg-slate-50 p-3">
+      <div className="flex items-center gap-2 text-xs font-medium uppercase text-slate-500">
+        {icon}
+        {label}
+      </div>
+      <p className="mt-1 truncate font-semibold text-slate-950">{value}</p>
+    </div>
+  );
+}
+
+export function PlanningMapView({
+  data,
+  googleMapsConfig,
+  canApplySuggestions = false,
+  dateLabel,
+}: PlanningMapViewProps) {
   const router = useRouter();
-  const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
   const [highlightedMarkerId, setHighlightedMarkerId] = useState<string | null>(null);
-  const [hoveredMarkerId, setHoveredMarkerId] = useState<string | null>(null);
-  const [mapSize, setMapSize] = useState<MapSize>(DEFAULT_MAP_SIZE);
   const [pendingSuggestion, setPendingSuggestion] = useState<PendingSuggestion | null>(null);
   const [suggestionMessage, setSuggestionMessage] = useState<{ tone: "success" | "error"; text: string } | null>(null);
   const [isApplyingSuggestion, startApplySuggestionTransition] = useTransition();
@@ -407,60 +315,47 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
     () => data.markers.filter((marker) => marker.coordinate),
     [data.markers],
   );
-  const staticMapView = useMemo(
-    () => chooseStaticMapView(data.markers, mapSize),
-    [data.markers, mapSize],
+  const markerById = useMemo(
+    () => new Map(data.markers.map((marker) => [marker.id, marker])),
+    [data.markers],
   );
-  const tiles = useMemo(() => {
-    const startX = Math.floor(staticMapView.topLeft.x / TILE_SIZE);
-    const endX = Math.floor((staticMapView.topLeft.x + mapSize.width) / TILE_SIZE);
-    const startY = Math.floor(staticMapView.topLeft.y / TILE_SIZE);
-    const endY = Math.floor((staticMapView.topLeft.y + mapSize.height) / TILE_SIZE);
-    const maxTile = 2 ** staticMapView.zoom;
-    const nextTiles: Array<{ key: string; x: number; y: number; wrappedX: number; left: number; top: number }> = [];
-    for (let x = startX; x <= endX; x += 1) {
-      for (let y = startY; y <= endY; y += 1) {
-        if (y < 0 || y >= maxTile) continue;
-        const wrappedX = ((x % maxTile) + maxTile) % maxTile;
-        nextTiles.push({
-          key: `${staticMapView.zoom}-${x}-${y}`,
-          x,
-          y,
-          wrappedX,
-          left: x * TILE_SIZE - staticMapView.topLeft.x,
-          top: y * TILE_SIZE - staticMapView.topLeft.y,
-        });
-      }
-    }
-    return nextTiles;
-  }, [mapSize.height, mapSize.width, staticMapView.topLeft.x, staticMapView.topLeft.y, staticMapView.zoom]);
-  const markerPositions = useMemo(() => {
-    return new Map(
+
+  const googleMarkers: GoogleMapMarker[] = useMemo(
+    () =>
       visibleMarkers.map((marker) => {
-        const projected = projectLngLat(marker.coordinate!, staticMapView.zoom);
-        return [
-          marker.id,
-          {
-            x: projected.x - staticMapView.topLeft.x,
-            y: projected.y - staticMapView.topLeft.y,
-          },
-        ] as const;
+        const status = markerStatusForAssignment({
+          status: marker.status,
+          priority: marker.priority,
+        });
+        const definition = GOOGLE_MAPS_MARKER_STATUS[status];
+        return {
+          id: marker.id,
+          position: marker.coordinate!,
+          status,
+          selected: marker.id === highlightedMarkerId || marker.id === selectedMarkerId,
+          title: `${marker.code} - ${marker.title}`,
+          ariaLabel: `${marker.code}, ${definition.label}, ${formatObjectAddress(marker)}, ${personnelSummary(marker)}`,
+        };
       }),
-    );
-  }, [staticMapView.topLeft.x, staticMapView.topLeft.y, staticMapView.zoom, visibleMarkers]);
-  const routeLines = useMemo(() => {
-    const markerById = new Map(data.markers.map((marker) => [marker.id, marker]));
-    return data.personnelRoutes
-      .map((route) => {
-        const points = route.stops
-          .map((stop) => markerById.get(stop.assignmentId))
-          .filter((marker): marker is MapMarker => Boolean(marker?.coordinate))
-          .map((marker) => markerPositions.get(marker.id))
-          .filter((point): point is { x: number; y: number } => Boolean(point));
-        return points.length > 1 ? points.map((point) => `${point.x},${point.y}`).join(" ") : null;
-      })
-      .filter((points): points is string => Boolean(points));
-  }, [data.markers, data.personnelRoutes, markerPositions]);
+    [highlightedMarkerId, selectedMarkerId, visibleMarkers],
+  );
+
+  const googleRouteLines: GoogleMapPolyline[] = useMemo(
+    () =>
+      data.personnelRoutes
+        .map((route) => {
+          const path = route.stops
+            .map((stop) => markerById.get(stop.assignmentId)?.coordinate ?? null)
+            .filter((position): position is Coordinate => Boolean(position));
+          return {
+            id: route.personnelId,
+            path,
+            color: "#00B7B3",
+          };
+        })
+        .filter((polyline) => polyline.path.length > 1),
+    [data.personnelRoutes, markerById],
+  );
 
   function personnelNameForContext(marker: MapMarker, context: MapRouteContext): string {
     return marker.assignedPersonnel.find((person) => person.id === context.personnelId)?.name ?? "Gekoppeld personeel";
@@ -500,22 +395,6 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
     });
   }
 
-  useEffect(() => {
-    if (!mapContainerRef.current) return;
-    const resize = () => {
-      if (!mapContainerRef.current) return;
-      const rect = mapContainerRef.current.getBoundingClientRect();
-      setMapSize({
-        width: Math.max(320, Math.round(rect.width)),
-        height: Math.max(320, Math.round(rect.height)),
-      });
-    };
-    resize();
-    const observer = new ResizeObserver(resize);
-    observer.observe(mapContainerRef.current);
-    return () => observer.disconnect();
-  }, []);
-
   if (data.accessDenied) {
     return (
       <div className="rounded-xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-900">
@@ -545,16 +424,18 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
             <OverlayChip label="werkbonnen" count={data.markers.length}>
               <div className="border-b px-3 py-2">
                 <p className="text-sm font-semibold text-slate-950">Werkbonnen deze dag</p>
-                <p className="text-xs text-slate-500">Klik een werkbon om de waypoint uit te lichten.</p>
+                <p className="text-xs text-slate-500">Klik een werkbon om de marker uit te lichten.</p>
               </div>
               <div className="max-h-80 overflow-y-auto p-2">
                 {data.markers.length > 0 ? (
-                  data.markers.map((marker) => (
-                    <div key={marker.id} className="rounded-md p-2 hover:bg-slate-50">
+                  data.markers.map((marker) => {
+                    const tone = markerTone(marker);
+                    return (
                       <button
                         type="button"
-                        onClick={() => focusMarker(marker)}
-                        className="w-full text-left"
+                        key={marker.id}
+                        onClick={() => focusMarker(marker, { openDrawer: true })}
+                        className="w-full rounded-md p-2 text-left hover:bg-slate-50"
                       >
                         <div className="flex items-start justify-between gap-3">
                           <div className="min-w-0">
@@ -564,20 +445,15 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
                           </div>
                           <span
                             className="mt-1 h-3 w-3 shrink-0 rounded-full"
-                            style={{ background: markerTone(marker).color }}
+                            style={{ background: tone.color }}
+                            aria-label={tone.label}
                           />
                         </div>
                       </button>
-                      <div className="mt-2 flex items-center justify-between gap-2">
-                        <AssignmentStatusBadge status={marker.status as never} />
-                        <Button asChild variant="outline" size="sm" className="h-7 px-2 text-xs">
-                          <Link href={`/assignments/${marker.id}`}>Openen</Link>
-                        </Button>
-                      </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
-                  <p className="p-3 text-sm text-slate-500">Geen werkbonnen voor deze dag.</p>
+                  <p className="p-3 text-sm text-slate-500">Geen werkbonnen voor deze selectie.</p>
                 )}
               </div>
             </OverlayChip>
@@ -585,9 +461,9 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
             <OverlayChip label="waarschuwingen" count={data.warnings.length}>
               <div className="border-b px-3 py-2">
                 <p className="text-sm font-semibold text-slate-950">Waarschuwingen</p>
-                <p className="text-xs text-slate-500">Route- en locatieblokkades voor deze dag.</p>
+                <p className="text-xs text-slate-500">Locaties, routeprovider en tijdvakcontrole.</p>
               </div>
-              <div className="max-h-72 overflow-y-auto p-2">
+              <div className="max-h-80 overflow-y-auto p-2">
                 {data.warnings.length > 0 ? (
                   data.warnings.map((warning) => (
                     <button
@@ -595,9 +471,9 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
                       type="button"
                       onClick={() => {
                         const marker = data.markers.find((item) => item.id === warning.assignmentId);
-                        if (marker) focusMarker(marker);
+                        if (marker) focusMarker(marker, { openDrawer: true });
                       }}
-                      className="block w-full rounded-md border border-amber-200 bg-amber-50 p-3 text-left text-sm text-amber-950"
+                      className="w-full rounded-md border border-amber-200 bg-amber-50 p-2 text-left text-sm text-amber-950 hover:bg-amber-100"
                     >
                       <span className="font-semibold">{warning.code}</span>
                       <span className="mt-1 block text-xs">{warning.warningMessage}</span>
@@ -647,7 +523,7 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
                               type="button"
                               onClick={() => {
                                 const marker = data.markers.find((item) => item.id === stop.assignmentId);
-                                if (marker) focusMarker(marker);
+                                if (marker) focusMarker(marker, { openDrawer: true });
                               }}
                               className="min-w-0 text-left hover:underline"
                             >
@@ -667,108 +543,25 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
           </div>
         </div>
 
-        <div>
-          <div ref={mapContainerRef} className="relative h-[calc(100vh-13rem)] min-h-[620px] overflow-hidden bg-slate-100">
-            {tiles.map((tile) => (
-              <img
-                key={tile.key}
-                alt=""
-                src={tileUrl(tile.wrappedX, tile.y, staticMapView.zoom)}
-                className="absolute select-none"
-                draggable={false}
-                loading="eager"
-                onError={(event) => {
-                  const image = event.currentTarget;
-                  if (image.dataset.fallback) return;
-                  image.dataset.fallback = "1";
-                  image.src = fallbackTileUrl(tile.wrappedX, tile.y, staticMapView.zoom);
-                }}
-                style={{
-                  left: tile.left,
-                  top: tile.top,
-                  width: TILE_SIZE,
-                  height: TILE_SIZE,
-                }}
-              />
-            ))}
-
-            {routeLines.length > 0 && (
-              <svg className="pointer-events-none absolute inset-0 h-full w-full">
-                {routeLines.map((points, index) => (
-                  <polyline
-                    key={`${points}-${index}`}
-                    points={points}
-                    fill="none"
-                    stroke="#00B7B3"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeOpacity="0.75"
-                    strokeWidth="4"
-                  />
-                ))}
-              </svg>
-            )}
-
-            {visibleMarkers.map((marker) => {
-              const position = markerPositions.get(marker.id);
-              if (!position) return null;
-              const tone = markerTone(marker);
-              const highlighted = marker.id === highlightedMarkerId;
-              const hovered = marker.id === hoveredMarkerId;
-
-              return (
-                <div
-                  key={marker.id}
-                  className="absolute z-20"
-                  style={{ left: position.x, top: position.y, transform: "translate(-50%, -100%)" }}
-                >
-                  <button
-                    type="button"
-                    className="planning-waypoint-marker flex h-11 w-11 items-center justify-center rounded-full transition hover:scale-110 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                    onClick={() => focusMarker(marker, { openDrawer: true })}
-                    onMouseEnter={() => setHoveredMarkerId(marker.id)}
-                    onMouseLeave={() => setHoveredMarkerId(null)}
-                    onFocus={() => setHoveredMarkerId(marker.id)}
-                    onBlur={() => setHoveredMarkerId(null)}
-                    title={`${marker.code} - ${marker.title}\n${formatObjectAddress(marker)}\n${personnelSummary(marker)}`}
-                    style={{
-                      color: tone.color,
-                      transform: highlighted ? "scale(1.25)" : "scale(1)",
-                      filter: highlighted
-                        ? "drop-shadow(0 0 12px rgba(0,183,179,0.65))"
-                        : "drop-shadow(0 4px 8px rgba(8,29,58,0.25))",
-                    }}
-                  >
-                    <svg viewBox="0 0 24 24" className="h-11 w-11" fill="currentColor" aria-hidden="true">
-                      <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7Z" />
-                      <circle cx="12" cy="9" r="3.1" fill="white" />
-                    </svg>
-                  </button>
-                  {hovered && (
-                    <div className="absolute left-1/2 top-[-0.5rem] z-30 w-72 -translate-x-1/2 -translate-y-full rounded-lg border border-slate-200 bg-white p-3 text-sm shadow-xl">
-                      <p className="font-semibold text-slate-950">{marker.code} - {marker.title}</p>
-                      <p className="mt-1 text-xs text-slate-500">{formatTimeRange(marker)}</p>
-                      <div className="mt-2 space-y-1 text-xs text-slate-700">
-                        <p><span className="font-medium text-slate-900">Object:</span> {marker.objectName ?? "Geen object"}</p>
-                        <p><span className="font-medium text-slate-900">Adres:</span> {formatObjectAddress(marker)}</p>
-                        <p><span className="font-medium text-slate-900">Medewerkers:</span> {personnelSummary(marker)}</p>
-                      </div>
-                    </div>
-                  )}
-                </div>
-              );
-            })}
-
-            <div className="absolute bottom-2 right-2 rounded bg-white/90 px-2 py-1 text-[11px] text-slate-600 shadow-sm">
-              &copy; OpenStreetMap & CARTO
+        <div className="relative">
+          {data.missingLocationCount > 0 ? (
+            <div className="absolute inset-x-4 top-4 z-10 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 shadow-sm">
+              {data.missingLocationCount} werkbon{data.missingLocationCount === 1 ? "" : "nen"} zonder bruikbare locatie. Vul object- of klantlocaties aan om alle markers te tonen.
             </div>
-
-            {visibleMarkers.length === 0 && (
-              <div className="absolute inset-x-4 top-4 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 shadow-sm">
-                Geen werkbonnen met bruikbare coordinaten. Vul objectlocaties aan om markers te tonen.
-              </div>
-            )}
-          </div>
+          ) : null}
+          <GoogleMapCanvas
+            config={googleMapsConfig}
+            markers={googleMarkers}
+            polylines={googleRouteLines}
+            selectedMarkerId={selectedMarkerId}
+            onMarkerSelect={(markerId) => {
+              setHighlightedMarkerId(markerId);
+              setSelectedMarkerId(markerId);
+            }}
+            className="h-[calc(100vh-13rem)] min-h-[620px]"
+            emptyTitle="Geen werkbonnen met bruikbare coordinaten"
+            emptyDescription="Vul objectlocaties aan om markers op de Google planningkaart te tonen."
+          />
         </div>
       </section>
 
@@ -824,15 +617,19 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
                 <section>
                   <h3 className="text-sm font-semibold text-slate-950">Gekoppeld personeel</h3>
                   <div className="mt-2 space-y-2">
-                    {selectedMarker.assignedPersonnel.map((person) => (
-                      <div key={person.id} className="rounded-lg border bg-slate-50 p-3">
-                        <div className="flex items-center gap-2">
-                          <UserRound className="h-4 w-4 text-cyan-700" />
-                          <p className="font-medium text-slate-900">{person.name}</p>
+                    {selectedMarker.assignedPersonnel.length > 0 ? (
+                      selectedMarker.assignedPersonnel.map((person) => (
+                        <div key={person.id} className="rounded-lg border bg-slate-50 p-3">
+                          <div className="flex items-center gap-2">
+                            <UserRound className="h-4 w-4 text-cyan-700" />
+                            <p className="font-medium text-slate-900">{person.name}</p>
+                          </div>
+                          <p className="mt-1 text-xs text-slate-500">{vehicleLabel(person.vehicleType)} - {person.region ?? "Geen regio"}</p>
                         </div>
-                        <p className="mt-1 text-xs text-slate-500">{vehicleLabel(person.vehicleType)} - {person.region ?? "Geen regio"}</p>
-                      </div>
-                    ))}
+                      ))
+                    ) : (
+                      <p className="rounded-lg border bg-slate-50 p-3 text-sm text-slate-500">Geen personeel gekoppeld.</p>
+                    )}
                   </div>
                 </section>
 
@@ -860,6 +657,32 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
                   </div>
                 </section>
 
+                {selectedMarker.routeContexts.length > 0 && (
+                  <section>
+                    <h3 className="text-sm font-semibold text-slate-950">Routecontext</h3>
+                    <div className="mt-2 space-y-2">
+                      {selectedMarker.routeContexts.map((context) => (
+                        <div key={`${context.personnelId}-${context.id ?? "context"}`} className="rounded-lg border bg-slate-50 p-3 text-sm">
+                          <div className="flex items-start justify-between gap-3">
+                            <div>
+                              <p className="font-semibold text-slate-950">{personnelNameForContext(selectedMarker, context)}</p>
+                              <p className="mt-1 text-xs text-slate-500">
+                                {vehicleLabel(context.vehicleType)} - {formatDuration(context.travelDurationSeconds ?? 0)} - {formatDistance(context.travelDistanceMeters ?? 0)}
+                              </p>
+                            </div>
+                            <Badge variant={context.warningCode ? "secondary" : "outline"}>
+                              {snapStatusLabel(context.snapStatus)}
+                            </Badge>
+                          </div>
+                          {context.warningMessage ? (
+                            <p className="mt-2 rounded-md bg-amber-50 p-2 text-xs text-amber-900">{context.warningMessage}</p>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  </section>
+                )}
+
                 {selectedMarker.routeContexts.some((context) => context.snapSuggestedStart) && (
                   <section>
                     <h3 className="text-sm font-semibold text-slate-950">Tijdvoorstellen</h3>
@@ -867,7 +690,7 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
                       {selectedMarker.routeContexts
                         .filter((context) => context.snapSuggestedStart)
                         .map((context) => (
-                          <div key={`${context.personnelId}-${context.id ?? "context"}`} className="rounded-lg border border-cyan-100 bg-cyan-50 p-3 text-sm">
+                          <div key={`${context.personnelId}-${context.id ?? "context"}-suggestion`} className="rounded-lg border border-cyan-100 bg-cyan-50 p-3 text-sm">
                             <div className="grid gap-2 text-xs text-slate-700 sm:grid-cols-2">
                               <div>
                                 <p className="font-medium uppercase text-slate-500">Huidig</p>
@@ -898,9 +721,18 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
                   </section>
                 )}
 
-                <Button asChild className="w-full">
-                  <Link href={`/assignments/${selectedMarker.id}`}>Werkbon openen</Link>
-                </Button>
+                <div className="grid gap-2">
+                  {externalRouteUrl(selectedMarker) ? (
+                    <Button asChild variant="outline" className="w-full">
+                      <a href={externalRouteUrl(selectedMarker)!} target="_blank" rel="noreferrer">
+                        Route bekijken
+                      </a>
+                    </Button>
+                  ) : null}
+                  <Button asChild className="w-full">
+                    <Link href={`/assignments/${selectedMarker.id}`}>Werkbon openen</Link>
+                  </Button>
+                </div>
               </div>
             </>
           )}
@@ -959,26 +791,6 @@ export function PlanningMapView({ data, canApplySuggestions = false, dateLabel }
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  );
-}
-
-function InfoCard({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode;
-  label: string;
-  value: string;
-}) {
-  return (
-    <div className="rounded-lg border bg-slate-50 p-3">
-      <div className="flex items-center gap-2 text-xs font-medium uppercase text-slate-500">
-        {icon}
-        {label}
-      </div>
-      <p className="mt-1 truncate font-semibold text-slate-950">{value}</p>
     </div>
   );
 }

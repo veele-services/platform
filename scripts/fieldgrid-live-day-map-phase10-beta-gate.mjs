@@ -131,12 +131,12 @@ mustContain("mockProvider", "createMockRouteProvider", "mock provider for CI/bet
 mustContain("routeUtils", "validateRouteCoordinates", "coordinate validation before provider call");
 
 mustContain("mapView", "OverlayChip", "compact map overlays");
-mustContain("mapView", "overflow-hidden", "map shell clips map canvas");
+mustContain("mapView", "GoogleMapCanvas", "shared Google Maps canvas");
 mustContain("mapView", "w-full overflow-y-auto sm:max-w-xl", "mobile-safe drawer width");
 mustContain("mapView", "max-h-80", "bounded overlay lists");
 mustContain("mapView", "min-h-[620px]", "stable map height");
-mustContain("mapView", "basemaps.cartocdn.com/light_all", "static raster map tiles");
-mustContain("mapView", "tile.openstreetmap.org", "fallback raster map tiles");
+mustNotContain("mapView", "basemaps.cartocdn.com/light_all", "legacy CARTO raster map tiles");
+mustNotContain("mapView", "tile.openstreetmap.org", "legacy OpenStreetMap raster map tiles");
 mustNotContain("mapView", "maplibre-gl", "MapLibre dependency");
 mustNotContain("mapView", "min-w-[", "no fixed minimum width causing mobile overflow");
 

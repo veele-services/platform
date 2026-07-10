@@ -68,16 +68,20 @@ test("phase 10 route provider has deterministic fallback without external API ke
   assert.match(mockProvider, /durationSeconds/);
 });
 
-test("phase 10 map UI avoids fixed-width overflow and renders static raster tiles", () => {
+test("phase 10 map UI avoids fixed-width overflow and renders through Google Maps", () => {
   const mapView = read("artifacts/backoffice/src/components/assignments/PlanningMapView.tsx");
+  const canvas = read("artifacts/backoffice/src/components/google-maps/GoogleMapCanvas.tsx");
 
   assert.match(mapView, /OverlayChip/);
-  assert.match(mapView, /overflow-hidden/);
+  assert.match(canvas, /overflow-hidden/);
   assert.match(mapView, /w-full overflow-y-auto sm:max-w-xl/);
   assert.match(mapView, /max-h-80/);
   assert.match(mapView, /min-h-\[620px\]/);
-  assert.match(mapView, /basemaps\.cartocdn\.com\/light_all/);
-  assert.match(mapView, /tile\.openstreetmap\.org/);
+  assert.match(mapView, /GoogleMapCanvas/);
+  assert.match(canvas, /AdvancedMarkerElement/);
+  assert.match(canvas, /IntersectionObserver/);
+  assert.doesNotMatch(mapView, /basemaps\.cartocdn\.com\/light_all/);
+  assert.doesNotMatch(mapView, /tile\.openstreetmap\.org/);
   assert.doesNotMatch(mapView, /maplibre-gl/);
   assert.doesNotMatch(mapView, /min-w-\[/);
 });

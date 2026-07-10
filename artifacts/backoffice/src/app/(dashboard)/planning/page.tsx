@@ -20,6 +20,7 @@ import {
   TenantWorkbenchPanel,
 } from "@/components/tenant-ui";
 import { hasPermission } from "@/lib/auth/permissions";
+import { getGoogleMapsClientBootstrapConfig } from "@/lib/google-maps/config";
 import { isPlanningDayMapEnabled } from "@/lib/planning/day-map-feature";
 
 export const metadata: Metadata = {
@@ -124,6 +125,7 @@ export default async function PlanningPage({ searchParams }: Props) {
   const boardDate = date && isValidDate(date) ? date : week && isValidDate(week) ? week : undefined;
   if (mapEnabled && view === "map") {
     const mapDate = boardDate ?? todayKey();
+    const googleMapsConfig = getGoogleMapsClientBootstrapConfig();
     const mapData = await getPlanningDayMapData({
       date: mapDate,
       region: region === "all" ? null : region,
@@ -133,7 +135,12 @@ export default async function PlanningPage({ searchParams }: Props) {
     return (
       <TenantPageShell size="wide" className="max-w-[1800px]">
         <TenantWorkbenchPanel className="border-0 bg-transparent shadow-none">
-          <PlanningMapView data={mapData} canApplySuggestions={canWrite} dateLabel={formatDate(mapData.date)} />
+          <PlanningMapView
+            data={mapData}
+            googleMapsConfig={googleMapsConfig}
+            canApplySuggestions={canWrite}
+            dateLabel={formatDate(mapData.date)}
+          />
         </TenantWorkbenchPanel>
       </TenantPageShell>
     );
