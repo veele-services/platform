@@ -73,7 +73,7 @@ test("customer single invoice payment rejects invoices locked in a batch before 
   assert.match(body, /innerJoin\(customerPaymentBatchesTable, eq\(customerPaymentBatchItemsTable\.batchId, customerPaymentBatchesTable\.id\)\)/u);
   assert.match(body, /eq\(customerPaymentBatchItemsTable\.invoiceId, invoice\.id\)/u);
   assert.match(body, /eq\(customerPaymentBatchesTable\.customerId, auth\.customerId\)/u);
-  assert.match(body, /inArray\(customerPaymentBatchesTable\.status, \["open", "paid"\]\)/u);
+  assert.match(body, /inArray\(customerPaymentBatchesTable\.status, \["open", "active", "paid"\]\)/u);
   assert.match(body, /if \(activeBatchItem\)/u);
 
   assert.ok(
@@ -97,7 +97,7 @@ test("customer batch payment creation rejects already locked invoices before Mol
   assert.match(body, /innerJoin\(customerPaymentBatchesTable, eq\(customerPaymentBatchItemsTable\.batchId, customerPaymentBatchesTable\.id\)\)/u);
   assert.match(body, /inArray\(customerPaymentBatchItemsTable\.invoiceId, uniqueInvoiceIds\)/u);
   assert.match(body, /eq\(customerPaymentBatchesTable\.customerId, auth\.customerId\)/u);
-  assert.match(body, /inArray\(customerPaymentBatchesTable\.status, \["open", "paid"\]\)/u);
+  assert.match(body, /inArray\(customerPaymentBatchesTable\.status, \["open", "active", "paid"\]\)/u);
   assert.match(body, /if \(activeBatchItems\.length > 0\)/u);
 
   assert.ok(

@@ -54,9 +54,9 @@ test("Sprint 2 claim is transaction safe and tenant scoped", () => {
   assert.match(engineSource, /await client\.query\("BEGIN"\)/u);
   assert.match(engineSource, /pg_advisory_xact_lock\(hashtext\(\$1\), 710201\)/u);
   assert.match(engineSource, /WHERE id = \$1 AND tenant_id = \$2\s+FOR UPDATE/u);
-  assert.match(engineSource, /WHERE tenant_id = \$1 AND is_active = true[\s\S]*FOR UPDATE/u);
-  assert.match(engineSource, /ON CONFLICT \(tenant_id, numbering_settings_id, period_key\) DO NOTHING/u);
-  assert.match(engineSource, /WHERE tenant_id = \$1[\s\S]*numbering_settings_id = \$2[\s\S]*period_key = \$3[\s\S]*FOR UPDATE/u);
+  assert.match(engineSource, /WHERE tenant_id = \$1 AND document_type = \$2 AND is_active = true[\s\S]*FOR UPDATE/u);
+  assert.match(engineSource, /ON CONFLICT \(tenant_id, numbering_settings_id, document_type, period_key\) DO NOTHING/u);
+  assert.match(engineSource, /WHERE tenant_id = \$1[\s\S]*numbering_settings_id = \$2[\s\S]*document_type = \$3[\s\S]*period_key = \$4[\s\S]*FOR UPDATE/u);
   assert.match(engineSource, /SET next_number = next_number \+ 1/u);
   assert.match(engineSource, /SET invoice_number = \$1/u);
   assert.match(engineSource, /invoice_numbering_settings_id = \$2/u);
