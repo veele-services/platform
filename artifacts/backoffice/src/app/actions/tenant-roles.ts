@@ -53,6 +53,7 @@ export type TenantUserRoleRow = {
   roleIds: string[];
   status: "actief" | "uitgenodigd" | "inactief";
   createdAt: string;
+  lastSignInAt: string | null;
 };
 
 async function requireCustomRolesEnabled(): Promise<ActionResult | null> {
@@ -427,6 +428,18 @@ export async function listTenantUsersWithRoles(): Promise<TenantUserRoleRow[]> {
   const userIds = authUsers.map((user) => user.id);
   if (userIds.length === 0) return [];
 
+  const tenantUsers = await db
+    .select({
+      userId: tenantUsersTable.userId,
+      tenantStatus: tenantUsersTable.status,
+      createdAt: tenantUsersTable.createdAt,
+    })
+    .from(tenantUsersTable)
+    .where(and(eq(tenantUsersTable.tenantId, tenantId), inArray(tenantUsersTable.userId, userIds)));
+
+  const visibleUserIds = tenantUsers.map((tenantUser) => tenantUser.userId);
+  if (visibleUserIds.length === 0) return [];
+
   const roleRows = await db
     .select({
       userId: tenantUserRolesTable.userId,
@@ -435,7 +448,11 @@ export async function listTenantUsersWithRoles(): Promise<TenantUserRoleRow[]> {
     })
     .from(tenantUserRolesTable)
     .innerJoin(tenantRolesTable, eq(tenantUserRolesTable.tenantRoleId, tenantRolesTable.id))
-    .where(and(eq(tenantUserRolesTable.tenantId, tenantId), inArray(tenantUserRolesTable.userId, userIds)));
+    .where(and(eq(tenantUserRolesTable.tenantId, tenantId), inArray(tenantUserRolesTable.userId, visibleUserIds)));
+
+  const tenantUserById = new Map(
+    tenantUsers.map((tenantUser) => [tenantUser.userId, tenantUser]),
+  );
 
   const rolesByUser = new Map<string, { names: string[]; ids: string[] }>();
   for (const row of roleRows) {
@@ -445,10 +462,18 @@ export async function listTenantUsersWithRoles(): Promise<TenantUserRoleRow[]> {
     rolesByUser.set(row.userId, existing);
   }
 
-  return authUsers.map((authUser) => {
+  return authUsers
+    .filter((authUser) => tenantUserById.has(authUser.id))
+    .map((authUser) => {
+    const tenantUser = tenantUserById.get(authUser.id);
     let status: TenantUserRoleRow["status"] = "actief";
-    if (!authUser.confirmed_at) status = "uitgenodigd";
-    else if (authUser.banned_until && new Date(authUser.banned_until) > new Date()) status = "inactief";
+    if (tenantUser?.tenantStatus && tenantUser.tenantStatus !== "active") {
+      status = "inactief";
+    } else if (!authUser.confirmed_at) {
+      status = "uitgenodigd";
+    } else if (authUser.banned_until && new Date(authUser.banned_until) > new Date()) {
+      status = "inactief";
+    }
 
     const meta = authUser.user_metadata as Record<string, unknown> | undefined;
     const name = (meta?.["full_name"] ?? meta?.["name"] ?? null) as string | null;
@@ -460,9 +485,15 @@ export async function listTenantUsersWithRoles(): Promise<TenantUserRoleRow[]> {
       roles: rolesByUser.get(authUser.id)?.names ?? [],
       roleIds: rolesByUser.get(authUser.id)?.ids ?? [],
       status,
-      createdAt: authUser.created_at,
+      createdAt: tenantUser?.createdAt?.toISOString() ?? authUser.created_at,
+      lastSignInAt: authUser.last_sign_in_at ?? null,
     };
-  });
+  })
+    .sort((a, b) => {
+      const nameA = (a.name ?? a.email).toLocaleLowerCase("nl-NL");
+      const nameB = (b.name ?? b.email).toLocaleLowerCase("nl-NL");
+      return nameA.localeCompare(nameB, "nl-NL");
+    });
 }
 
 export async function updateTenantUserRoles(userId: string, roleIds: string[]): Promise<ActionResult> {

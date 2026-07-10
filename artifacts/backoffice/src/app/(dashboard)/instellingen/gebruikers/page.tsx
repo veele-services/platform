@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { hasPermission } from "@/lib/auth/permissions";
 import { ForbiddenPage } from "@/components/layout/ForbiddenPage";
-import { listUsersWithRoles, listRoles } from "@/app/actions/settings";
+import { listTenantRoles, listTenantUsersWithRoles } from "@/app/actions/tenant-roles";
 import { GebruikersView } from "@/components/settings/GebruikersView";
 import { SettingsSectionShell } from "@/components/settings/SettingsSectionShell";
 
@@ -16,14 +16,14 @@ export default async function GebruikersPage() {
   if (!canRead) return <ForbiddenPage resource="gebruikers" action="read" />;
 
   const [users, roles] = await Promise.all([
-    listUsersWithRoles(),
-    listRoles(),
+    listTenantUsersWithRoles(),
+    listTenantRoles(),
   ]);
 
   return (
     <SettingsSectionShell
       title="Gebruikers"
-      description={`${users.length} ${users.length === 1 ? "gebruiker" : "gebruikers"} - beheer toegang tot het platform.`}
+      description={`${users.length} ${users.length === 1 ? "gebruiker" : "gebruikers"} - beheer toegang tot deze tenant.`}
     >
       <GebruikersView users={users} roles={roles} canWrite={canWrite} />
     </SettingsSectionShell>
