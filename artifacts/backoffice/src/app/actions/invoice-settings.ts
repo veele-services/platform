@@ -224,7 +224,11 @@ export async function getInvoiceSettings(): Promise<InvoiceSettingsBundle> {
     db
       .select()
       .from(invoiceNumberingSettingsTable)
-      .where(and(eq(invoiceNumberingSettingsTable.tenantId, tenantId), eq(invoiceNumberingSettingsTable.isActive, true)))
+      .where(and(
+        eq(invoiceNumberingSettingsTable.tenantId, tenantId),
+        eq(invoiceNumberingSettingsTable.documentType, "invoice"),
+        eq(invoiceNumberingSettingsTable.isActive, true),
+      ))
       .limit(1),
     db.select().from(invoiceTemplateSettingsTable).where(eq(invoiceTemplateSettingsTable.tenantId, tenantId)).limit(1),
     db.select().from(invoicePaymentSettingsTable).where(eq(invoicePaymentSettingsTable.tenantId, tenantId)).limit(1),
@@ -294,6 +298,7 @@ export async function getInvoiceSettings(): Promise<InvoiceSettingsBundle> {
           and(
             eq(invoiceNumberSequencesTable.tenantId, tenantId),
             eq(invoiceNumberSequencesTable.numberingSettingsId, numbering.id),
+            eq(invoiceNumberSequencesTable.documentType, "invoice"),
             eq(invoiceNumberSequencesTable.periodKey, periodKey),
           ),
         )
@@ -386,7 +391,11 @@ export async function updateInvoiceNumberingSettings(data: InvoiceNumberingSetti
   const [active] = await db
     .select({ id: invoiceNumberingSettingsTable.id })
     .from(invoiceNumberingSettingsTable)
-    .where(and(eq(invoiceNumberingSettingsTable.tenantId, tenantId), eq(invoiceNumberingSettingsTable.isActive, true)))
+    .where(and(
+      eq(invoiceNumberingSettingsTable.tenantId, tenantId),
+      eq(invoiceNumberingSettingsTable.documentType, "invoice"),
+      eq(invoiceNumberingSettingsTable.isActive, true),
+    ))
     .limit(1);
 
   if (active) {
@@ -395,7 +404,7 @@ export async function updateInvoiceNumberingSettings(data: InvoiceNumberingSetti
       .set({ ...settings, updatedAt: new Date() })
       .where(eq(invoiceNumberingSettingsTable.id, active.id));
   } else {
-    await db.insert(invoiceNumberingSettingsTable).values({ tenantId, ...settings, isActive: true });
+    await db.insert(invoiceNumberingSettingsTable).values({ tenantId, documentType: "invoice", ...settings, isActive: true });
   }
 
   await writeAudit({

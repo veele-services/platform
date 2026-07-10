@@ -216,6 +216,7 @@ export async function finalizeOfficialInvoice(input: FinalizeOfficialInvoiceInpu
       invoice_number_sequence_value: number | null;
       invoice_date: string | null;
       status: string;
+      type: string | null;
       amount: string;
       vat_percentage: string;
       finalized_at: Date | null;
@@ -235,6 +236,7 @@ export async function finalizeOfficialInvoice(input: FinalizeOfficialInvoiceInpu
           invoice_number_sequence_value,
           invoice_date,
           status,
+          type,
           amount,
           vat_percentage,
           finalized_at,
@@ -281,6 +283,7 @@ export async function finalizeOfficialInvoice(input: FinalizeOfficialInvoiceInpu
       invoiceId: input.invoiceId,
       tenantId: input.tenantId,
       invoiceDate: input.invoiceDate ?? invoice.invoice_date ?? new Date(),
+      documentType: invoice.type === "credit_note" ? "credit_note" : "invoice",
     });
 
     const companySnapshot = await readSnapshot(

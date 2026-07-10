@@ -23,14 +23,32 @@ import { tenantsTable } from "./tenants";
 export const INVOICE_STATUSES = ["draft", "sent", "paid", "cancelled"] as const;
 export type InvoiceStatus = (typeof INVOICE_STATUSES)[number];
 
+export const INVOICE_DOCUMENT_TYPES = ["invoice", "credit_note"] as const;
+export type InvoiceDocumentType = (typeof INVOICE_DOCUMENT_TYPES)[number];
+
+export const INVOICE_DOCUMENT_STATUSES = ["draft", "finalized", "sent", "cancelled", "credited"] as const;
+export type InvoiceDocumentStatus = (typeof INVOICE_DOCUMENT_STATUSES)[number];
+
 export const INVOICE_NUMBER_RESET_PERIODS = ["never", "yearly", "monthly"] as const;
 export type InvoiceNumberResetPeriod = (typeof INVOICE_NUMBER_RESET_PERIODS)[number];
+
+export const INVOICE_NUMBER_DOCUMENT_TYPES = ["invoice", "credit_note", "invoice_collection"] as const;
+export type InvoiceNumberDocumentType = (typeof INVOICE_NUMBER_DOCUMENT_TYPES)[number];
 
 export const INVOICE_PAYMENT_PROVIDERS = ["none", "mollie"] as const;
 export type InvoicePaymentProvider = (typeof INVOICE_PAYMENT_PROVIDERS)[number];
 
-export const INVOICE_PAYMENT_STATUSES = ["unpaid", "open", "paid", "cancelled", "expired", "failed"] as const;
+export const INVOICE_PAYMENT_STATUSES = ["unpaid", "open", "partially_paid", "paid", "overdue", "cancelled", "expired", "failed"] as const;
 export type InvoicePaymentStatus = (typeof INVOICE_PAYMENT_STATUSES)[number];
+
+export const INVOICE_COLLECTION_STATUSES = [
+  "none",
+  "collected",
+  "collection_partially_paid",
+  "collection_paid",
+  "collection_cancelled",
+] as const;
+export type InvoiceCollectionStatus = (typeof INVOICE_COLLECTION_STATUSES)[number];
 
 export const tenantCompanySettingsTable = pgTable(
   "tenant_company_settings",
@@ -74,6 +92,7 @@ export const invoiceNumberingSettingsTable = pgTable(
       .notNull()
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
     prefix: varchar("prefix", { length: 3 }).notNull().default("FAK"),
+    documentType: varchar("document_type", { length: 40 }).notNull().default("invoice").$type<InvoiceNumberDocumentType>(),
     format: varchar("format", { length: 120 }).notNull().default("{PREFIX}-{YYYY}-{NUMBER}"),
     separator: varchar("separator", { length: 8 }).notNull().default("-"),
     numberPadding: integer("number_padding").notNull().default(4),
@@ -86,7 +105,7 @@ export const invoiceNumberingSettingsTable = pgTable(
   (table) => [
     index("invoice_numbering_settings_tenant_idx").on(table.tenantId),
     uniqueIndex("invoice_numbering_settings_one_active_per_tenant_idx")
-      .on(table.tenantId)
+      .on(table.tenantId, table.documentType)
       .where(sql`${table.isActive} = true`),
   ],
 );
@@ -98,6 +117,7 @@ export const invoiceNumberSequencesTable = pgTable(
     tenantId: uuid("tenant_id")
       .notNull()
       .references(() => tenantsTable.id, { onDelete: "cascade" }),
+    documentType: varchar("document_type", { length: 40 }).notNull().default("invoice").$type<InvoiceNumberDocumentType>(),
     numberingSettingsId: uuid("numbering_settings_id")
       .notNull()
       .references(() => invoiceNumberingSettingsTable.id, { onDelete: "cascade" }),
@@ -110,6 +130,7 @@ export const invoiceNumberSequencesTable = pgTable(
     uniqueIndex("invoice_number_sequences_tenant_settings_period_idx").on(
       table.tenantId,
       table.numberingSettingsId,
+      table.documentType,
       table.periodKey,
     ),
     index("invoice_number_sequences_tenant_idx").on(table.tenantId),
@@ -186,6 +207,10 @@ export const invoicesTable = pgTable(
       .references(() => invoiceNumberingSettingsTable.id, { onDelete: "set null" }),
     invoiceNumberPeriodKey: varchar("invoice_number_period_key", { length: 20 }),
     invoiceNumberSequenceValue: integer("invoice_number_sequence_value"),
+    type: varchar("type", { length: 40 }).notNull().default("invoice").$type<InvoiceDocumentType>(),
+    creditedInvoiceId: uuid("credited_invoice_id"),
+    creditReason: text("credit_reason"),
+    originalInvoiceNumberSnapshot: varchar("original_invoice_number_snapshot", { length: 30 }),
 
     customerId: uuid("customer_id")
       .notNull()
@@ -209,6 +234,9 @@ export const invoicesTable = pgTable(
     notes: text("notes"),
 
     paymentStatus: varchar("payment_status", { length: 20 }).notNull().default("unpaid").$type<InvoicePaymentStatus>(),
+    collectionStatus: varchar("collection_status", { length: 40 }).notNull().default("none").$type<InvoiceCollectionStatus>(),
+    paidAmount: numeric("paid_amount", { precision: 12, scale: 2 }).notNull().default("0"),
+    outstandingAmount: numeric("outstanding_amount", { precision: 12, scale: 2 }).notNull().default("0"),
     molliePaymentId: varchar("mollie_payment_id", { length: 80 }),
     paymentUrl: text("payment_url"),
     companySnapshotJson: jsonb("company_snapshot_json").$type<Record<string, unknown> | null>(),
@@ -216,6 +244,9 @@ export const invoicesTable = pgTable(
     paymentSettingsSnapshotJson: jsonb("payment_settings_snapshot_json").$type<Record<string, unknown> | null>(),
     templateSnapshotJson: jsonb("template_snapshot_json").$type<Record<string, unknown> | null>(),
     finalizedAt: timestamp("finalized_at", { withTimezone: true }),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    cancelledBy: uuid("cancelled_by"),
+    cancellationReason: text("cancellation_reason"),
 
     lastReminderSentAt: timestamp("last_reminder_sent_at", { withTimezone: true }),
 
@@ -228,6 +259,9 @@ export const invoicesTable = pgTable(
     index("invoices_tenant_assignment_idx").on(table.tenantId, table.assignmentId),
     index("invoices_tenant_customer_idx").on(table.tenantId, table.customerId),
     index("invoices_tenant_status_idx").on(table.tenantId, table.status),
+    index("invoices_tenant_type_status_idx").on(table.tenantId, table.type, table.status),
+    index("invoices_tenant_payment_status_idx").on(table.tenantId, table.paymentStatus),
+    index("invoices_credited_invoice_idx").on(table.creditedInvoiceId),
     uniqueIndex("invoices_tenant_invoice_number_unique_idx")
       .on(table.tenantId, table.invoiceNumber)
       .where(sql`${table.invoiceNumber} IS NOT NULL AND ${table.invoiceNumber} <> ''`),
@@ -270,6 +304,10 @@ export const invoiceLineItemSnapshotsTable = pgTable(
 export const insertInvoiceSchema = createInsertSchema(invoicesTable).omit({
   id: true,
   tenantId: true,
+  type: true,
+  creditedInvoiceId: true,
+  creditReason: true,
+  originalInvoiceNumberSnapshot: true,
   invoiceNumber: true,
   invoiceNumberingSettingsId: true,
   invoiceNumberPeriodKey: true,
@@ -277,6 +315,9 @@ export const insertInvoiceSchema = createInsertSchema(invoicesTable).omit({
   invoiceDate: true,
   currency: true,
   paymentStatus: true,
+  collectionStatus: true,
+  paidAmount: true,
+  outstandingAmount: true,
   molliePaymentId: true,
   paymentUrl: true,
   companySnapshotJson: true,
@@ -284,6 +325,9 @@ export const insertInvoiceSchema = createInsertSchema(invoicesTable).omit({
   paymentSettingsSnapshotJson: true,
   templateSnapshotJson: true,
   finalizedAt: true,
+  cancelledAt: true,
+  cancelledBy: true,
+  cancellationReason: true,
   vatAmount: true,
   totalAmount: true,
   createdAt: true,

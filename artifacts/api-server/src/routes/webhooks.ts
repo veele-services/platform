@@ -1,7 +1,8 @@
-import { Router } from "express";
+﻿import { Router } from "express";
 import { db } from "@workspace/db";
 import {
   paymentsTable,
+  paymentAllocationsTable,
   invoicesTable,
   assignmentsTable,
   auditLogTable,
@@ -23,28 +24,28 @@ const router = Router();
  *
  * Security layer (in priority order):
  *   1. HMAC-SHA256 signature via `x-mollie-signature` header when MOLLIE_WEBHOOK_SECRET is set.
- *   2. Fallback: query-string secret (`?secret=…`) for existing deployments without the header.
+ *   2. Fallback: query-string secret (`?secret=â€¦`) for existing deployments without the header.
  *   3. If MOLLIE_WEBHOOK_SECRET is not configured at all: accept with a warning (dev fallback).
  *
  * Spec: https://docs.mollie.com/docs/webhooks
  */
 router.post("/webhooks/mollie", async (req: Request, res: Response) => {
-  // ── Signature / secret guard ─────────────────────────────────────────────────
+  // â”€â”€ Signature / secret guard â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const webhookSecret = process.env.MOLLIE_WEBHOOK_SECRET;
 
   if (!webhookSecret) {
-    // Dev fallback: no secret configured — accept but warn
+    // Dev fallback: no secret configured â€” accept but warn
     req.log.warn(
-      "MOLLIE_WEBHOOK_SECRET is not configured — accepting Mollie webhook without validation. " +
+      "MOLLIE_WEBHOOK_SECRET is not configured â€” accepting Mollie webhook without validation. " +
       "Set this env var in production to enable request verification.",
     );
   } else {
-    // Secret is configured — x-mollie-signature is required; no fallback
+    // Secret is configured â€” x-mollie-signature is required; no fallback
     const hmacSignature = req.headers["x-mollie-signature"] as string | undefined;
     if (!hmacSignature) {
       req.log.warn(
         { ip: req.ip },
-        "Mollie webhook rejected — x-mollie-signature header missing",
+        "Mollie webhook rejected â€” x-mollie-signature header missing",
       );
       res.status(400).send("Missing signature");
       return;
@@ -54,17 +55,17 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
     if (!verifyMollieSignature(rawBody, hmacSignature, webhookSecret)) {
       req.log.warn(
         { ip: req.ip },
-        "Mollie webhook rejected — invalid x-mollie-signature",
+        "Mollie webhook rejected â€” invalid x-mollie-signature",
       );
       res.status(400).send("Invalid signature");
       return;
     }
   }
 
-  // ── API key check ─────────────────────────────────────────────────────────────
+  // â”€â”€ API key check â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const mollieKey = process.env.MOLLIE_API_KEY;
   if (!mollieKey) {
-    req.log.error("MOLLIE_API_KEY not configured — cannot process webhook");
+    req.log.error("MOLLIE_API_KEY not configured â€” cannot process webhook");
     res.status(200).send("ok"); // 200 so Mollie does not retry on our config error
     return;
   }
@@ -97,10 +98,27 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
     mollieStatus = data.status;
 
     req.log.info({ molliePaymentReference, mollieStatus }, "Fetched payment status from Mollie");
+    const localPaymentStatus = (["open", "paid", "canceled", "expired", "failed"].includes(mollieStatus)
+      ? mollieStatus
+      : "failed") as "open" | "paid" | "canceled" | "expired" | "failed";
+    const localBatchStatus = (mollieStatus === "paid"
+      ? "paid"
+      : ["open", "canceled", "expired", "failed"].includes(mollieStatus)
+        ? mollieStatus
+        : "failed") as "open" | "paid" | "canceled" | "expired" | "failed";
 
     // Find local single-invoice payment record first.
     const [payment] = await db
-      .select({ id: paymentsTable.id, invoiceId: paymentsTable.invoiceId, status: paymentsTable.status })
+      .select({
+        id: paymentsTable.id,
+        invoiceId: paymentsTable.invoiceId,
+        tenantId: paymentsTable.tenantId,
+        customerId: paymentsTable.customerId,
+        sourceType: paymentsTable.sourceType,
+        sourceId: paymentsTable.sourceId,
+        amountCents: paymentsTable.amountCents,
+        status: paymentsTable.status,
+      })
       .from(paymentsTable)
       .where(eq(paymentsTable.molliePaymentId, molliePaymentId))
       .limit(1);
@@ -115,7 +133,9 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
       const [batch] = await db
         .select({
           id:         customerPaymentBatchesTable.id,
+          tenantId:   customerPaymentBatchesTable.tenantId,
           customerId: customerPaymentBatchesTable.customerId,
+          amountCents: customerPaymentBatchesTable.amountCents,
           status:     customerPaymentBatchesTable.status,
         })
         .from(customerPaymentBatchesTable)
@@ -133,7 +153,9 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
       await db
         .update(customerPaymentBatchesTable)
         .set({
-          status: mollieStatus,
+          status: localBatchStatus,
+          paidAmountCents: mollieStatus === "paid" ? batch.amountCents : undefined,
+          outstandingAmountCents: mollieStatus === "paid" ? 0 : undefined,
           paidAt: mollieStatus === "paid" ? paidAt : undefined,
         })
         .where(eq(customerPaymentBatchesTable.molliePaymentId, molliePaymentId));
@@ -147,13 +169,17 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
           paymentReference: molliePaymentReference,
           customerId: batch.customerId,
           previousStatus,
-          newStatus: mollieStatus,
+          newstatus: localBatchStatus,
         },
       });
 
       if (mollieStatus === "paid") {
         const items = await db
-          .select({ invoiceId: customerPaymentBatchItemsTable.invoiceId })
+          .select({
+            invoiceId: customerPaymentBatchItemsTable.invoiceId,
+            amountCents: customerPaymentBatchItemsTable.amountCents,
+            tenantId: customerPaymentBatchItemsTable.tenantId,
+          })
           .from(customerPaymentBatchItemsTable)
           .where(eq(customerPaymentBatchItemsTable.batchId, batch.id));
 
@@ -161,16 +187,24 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
 
         for (const item of items) {
           const [invoice] = await db
-            .select({ id: invoicesTable.id, status: invoicesTable.status, assignmentId: invoicesTable.assignmentId })
+            .select({ id: invoicesTable.id, tenantId: invoicesTable.tenantId, status: invoicesTable.status, assignmentId: invoicesTable.assignmentId })
             .from(invoicesTable)
             .where(eq(invoicesTable.id, item.invoiceId))
             .limit(1);
 
-          if (!invoice || invoice.status !== "sent") continue;
+          if (!invoice || !invoice.tenantId || invoice.status !== "sent") continue;
 
           await db
             .update(invoicesTable)
-            .set({ status: "paid", paidDate: paidDateStr, updatedAt: new Date() })
+            .set({
+              status: "paid",
+              paymentStatus: "paid",
+              collectionStatus: "collection_paid",
+              paidAmount: (item.amountCents / 100).toFixed(2),
+              outstandingAmount: "0",
+              paidDate: paidDateStr,
+              updatedAt: new Date(),
+            })
             .where(eq(invoicesTable.id, invoice.id));
 
           await db
@@ -203,12 +237,95 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
     await db
       .update(paymentsTable)
       .set({
-        status: mollieStatus,
+        status: localPaymentStatus,
         paidAt: mollieStatus === "paid" ? paidAt : undefined,
       })
       .where(eq(paymentsTable.molliePaymentId, molliePaymentId));
 
-    // Log every status transition (open, paid, canceled, expired, failed, …)
+    if (payment.sourceType === "invoice_collection" && payment.sourceId) {
+      const [batch] = await db
+        .select({
+          id: customerPaymentBatchesTable.id,
+          tenantId: customerPaymentBatchesTable.tenantId,
+          customerId: customerPaymentBatchesTable.customerId,
+          amountCents: customerPaymentBatchesTable.amountCents,
+          status: customerPaymentBatchesTable.status,
+        })
+        .from(customerPaymentBatchesTable)
+        .where(eq(customerPaymentBatchesTable.id, payment.sourceId))
+        .limit(1);
+
+      if (batch) {
+        await db
+          .update(customerPaymentBatchesTable)
+          .set({
+            status: localBatchStatus,
+            paidAmountCents: mollieStatus === "paid" ? batch.amountCents : undefined,
+            outstandingAmountCents: mollieStatus === "paid" ? 0 : undefined,
+            paidAt: mollieStatus === "paid" ? paidAt : undefined,
+          })
+          .where(eq(customerPaymentBatchesTable.id, batch.id));
+
+        if (mollieStatus === "paid") {
+          const items = await db
+            .select({
+              invoiceId: customerPaymentBatchItemsTable.invoiceId,
+              amountCents: customerPaymentBatchItemsTable.amountCents,
+            })
+            .from(customerPaymentBatchItemsTable)
+            .where(eq(customerPaymentBatchItemsTable.batchId, batch.id));
+
+          const paidDateStr = paidAt.toISOString().slice(0, 10);
+          for (const item of items) {
+            const [invoice] = await db
+              .select({ id: invoicesTable.id, tenantId: invoicesTable.tenantId, status: invoicesTable.status, assignmentId: invoicesTable.assignmentId })
+              .from(invoicesTable)
+              .where(eq(invoicesTable.id, item.invoiceId))
+              .limit(1);
+
+            if (!invoice || !invoice.tenantId || invoice.status !== "sent") continue;
+
+            await db
+              .update(invoicesTable)
+              .set({
+                status: "paid",
+                paymentStatus: "paid",
+                collectionStatus: "collection_paid",
+                paidAmount: (item.amountCents / 100).toFixed(2),
+                outstandingAmount: "0",
+                paidDate: paidDateStr,
+                updatedAt: new Date(),
+              })
+              .where(eq(invoicesTable.id, invoice.id));
+
+            await db.insert(paymentAllocationsTable).values({
+              tenantId: invoice.tenantId,
+              paymentId: payment.id,
+              invoiceId: invoice.id,
+              amountCents: item.amountCents,
+              amount: (item.amountCents / 100).toFixed(2),
+              note: "Mollie verzamelbetaling automatisch toegewezen",
+            });
+
+            await db
+              .update(assignmentsTable)
+              .set({ status: "closed", updatedAt: new Date() })
+              .where(eq(assignmentsTable.id, invoice.assignmentId));
+          }
+        }
+      }
+
+      res.status(200).send("ok");
+      return;
+    }
+
+    if (!payment.invoiceId) {
+      req.log.warn({ molliePaymentReference }, "Mollie payment has no invoice or collection source");
+      res.status(200).send("ok");
+      return;
+    }
+
+    // Log every status transition (open, paid, canceled, expired, failed, â€¦)
     await db.insert(auditLogTable).values({
       userId:     SYSTEM_ACTOR_UUID,
       action:     "mollie_payment_status_changed",
@@ -218,14 +335,14 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
         paymentReference: molliePaymentReference,
         invoiceId: payment.invoiceId,
         previousStatus,
-        newStatus: mollieStatus,
+        newstatus: localBatchStatus,
       },
     });
 
     // If paid: advance invoice and assignment
     if (mollieStatus === "paid") {
       const [invoice] = await db
-        .select({ id: invoicesTable.id, status: invoicesTable.status, assignmentId: invoicesTable.assignmentId })
+        .select({ id: invoicesTable.id, tenantId: invoicesTable.tenantId, status: invoicesTable.status, assignmentId: invoicesTable.assignmentId })
         .from(invoicesTable)
         .where(eq(invoicesTable.id, payment.invoiceId))
         .limit(1);
@@ -235,10 +352,28 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
 
         await db
           .update(invoicesTable)
-          .set({ status: "paid", paidDate: paidDateStr, updatedAt: new Date() })
+          .set({
+            status: "paid",
+            paymentStatus: "paid",
+            paidAmount: (payment.amountCents / 100).toFixed(2),
+            outstandingAmount: "0",
+            paidDate: paidDateStr,
+            updatedAt: new Date(),
+          })
           .where(eq(invoicesTable.id, invoice.id));
 
-        // Advance assignment: invoiced → paid → closed
+        if (payment.tenantId) {
+          await db.insert(paymentAllocationsTable).values({
+            tenantId: payment.tenantId,
+            paymentId: payment.id,
+            invoiceId: invoice.id,
+            amountCents: payment.amountCents,
+            amount: (payment.amountCents / 100).toFixed(2),
+            note: "Mollie betaling automatisch toegewezen",
+          });
+        }
+
+        // Advance assignment: invoiced â†’ paid â†’ closed
         await db
           .update(assignmentsTable)
           .set({ status: "paid", updatedAt: new Date() })
@@ -264,7 +399,7 @@ router.post("/webhooks/mollie", async (req: Request, res: Response) => {
     req.log.error({ err, molliePaymentReference }, "Unexpected error in Mollie webhook handler");
   }
 
-  // Always return 200 — Mollie will retry on non-200
+  // Always return 200 â€” Mollie will retry on non-200
   res.status(200).send("ok");
 });
 

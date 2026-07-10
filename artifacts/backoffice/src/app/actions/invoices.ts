@@ -16,6 +16,7 @@ import {
   invoiceLineItemSnapshotsTable,
   tenantCompanySettingsTable,
   finalizeOfficialInvoice,
+  claimOfficialInvoiceCollectionNumberInTransaction,
   ASSIGNMENT_STATUS_TRANSITIONS,
   type AssignmentStatus,
   type InvoiceStatus,
@@ -1302,6 +1303,124 @@ export async function createInvoice(
   }
 }
 
+export async function createCreditNoteForInvoice(
+  invoiceId: string,
+  input: {
+    reason: string;
+    amount?: string;
+    vatPercentage?: string;
+    notes?: string;
+  },
+): Promise<ActionResult<{ id: string }>> {
+  await requirePermission("invoices", "write");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const tenantId = await requireCurrentTenantId();
+  const reason = input.reason.trim();
+  if (reason.length < 3) {
+    return { success: false, message: "Geef een duidelijke reden voor de creditnota op." };
+  }
+
+  const [original] = await db
+    .select({
+      id: invoicesTable.id,
+      tenantId: invoicesTable.tenantId,
+      customerId: invoicesTable.customerId,
+      assignmentId: invoicesTable.assignmentId,
+      invoiceNumber: invoicesTable.invoiceNumber,
+      status: invoicesTable.status,
+      amount: invoicesTable.amount,
+      vatPercentage: invoicesTable.vatPercentage,
+      vatAmount: invoicesTable.vatAmount,
+      totalAmount: invoicesTable.totalAmount,
+      dueDate: invoicesTable.dueDate,
+    })
+    .from(invoicesTable)
+    .where(and(eq(invoicesTable.id, invoiceId), eq(invoicesTable.tenantId, tenantId)))
+    .limit(1);
+
+  if (!original) return { success: false, message: "Originele factuur niet gevonden." };
+  if (original.status === "draft" || original.status === "cancelled") {
+    return { success: false, message: "Alleen definitieve of verzonden facturen kunnen worden gecrediteerd." };
+  }
+
+  const [existingCredit] = await db
+    .select({ id: invoicesTable.id })
+    .from(invoicesTable)
+    .where(
+      and(
+        eq(invoicesTable.tenantId, tenantId),
+        eq(invoicesTable.creditedInvoiceId, original.id),
+        inArray(invoicesTable.status, ["draft", "sent", "paid"]),
+      ),
+    )
+    .limit(1);
+
+  if (existingCredit) {
+    return { success: false, message: "Er bestaat al een actieve creditnota voor deze factuur." };
+  }
+
+  const sourceAmount = Number.parseFloat(input.amount ?? original.amount ?? "0");
+  const sourceVat = Number.parseFloat(input.vatPercentage ?? original.vatPercentage ?? "21");
+  if (!Number.isFinite(sourceAmount) || sourceAmount <= 0) {
+    return { success: false, message: "Creditbedrag is ongeldig." };
+  }
+  if (!Number.isFinite(sourceVat) || sourceVat < 0 || sourceVat > 100) {
+    return { success: false, message: "BTW-percentage is ongeldig." };
+  }
+
+  const creditAmount = -Math.abs(sourceAmount);
+  const creditVatAmount = creditAmount * sourceVat / 100;
+  const creditTotalAmount = creditAmount + creditVatAmount;
+
+  const [created] = await db
+    .insert(invoicesTable)
+    .values({
+      type: "credit_note",
+      customerId: original.customerId,
+      assignmentId: original.assignmentId,
+      creditedInvoiceId: original.id,
+      creditReason: reason,
+      originalInvoiceNumberSnapshot: original.invoiceNumber,
+      amount: creditAmount.toFixed(2),
+      vatPercentage: sourceVat.toFixed(2),
+      vatAmount: creditVatAmount.toFixed(2),
+      totalAmount: creditTotalAmount.toFixed(2),
+      status: "draft",
+      paymentStatus: "unpaid",
+      collectionStatus: "none",
+      dueDate: original.dueDate,
+      notes: input.notes?.trim() || null,
+      createdBy: user.id,
+    })
+    .returning({ id: invoicesTable.id });
+
+  if (!created) return { success: false, message: "Creditnota kon niet worden aangemaakt." };
+
+  await db.insert(auditLogTable).values({
+    tenantId,
+    userId: user.id,
+    action: "create_credit_note",
+    resource: "invoices",
+    resourceId: created.id,
+    metadata: {
+      tenantId,
+      creditedInvoiceId: original.id,
+      originalInvoiceNumber: original.invoiceNumber,
+      creditReason: reason,
+      totalAmount: creditTotalAmount.toFixed(2),
+    },
+  });
+
+  revalidatePath(`/invoices/${original.id}`);
+  revalidatePath("/invoices");
+
+  return { success: true, data: { id: created.id } };
+}
+
 export async function createCollectiveInvoicePayment(input: {
   invoiceIds: string[];
   periodStart?: string;
@@ -1390,7 +1509,7 @@ export async function createCollectiveInvoicePayment(input: {
       and(
         eq(assignmentsTable.tenantId, tenantId),
         inArray(customerPaymentBatchItemsTable.invoiceId, invoiceIds),
-        inArray(customerPaymentBatchesTable.status, ["open", "paid"]),
+        inArray(customerPaymentBatchesTable.status, ["open", "active", "paid"]),
       ),
     );
 
@@ -1464,9 +1583,11 @@ export async function createCollectiveInvoicePayment(input: {
       customerId,
       molliePaymentId: molliePayment.id,
       amountCents,
+      outstandingAmountCents: amountCents,
       currency: "EUR",
       status: "open",
       checkoutUrl,
+      paymentProvider: "mollie",
       periodStart: input.periodStart || null,
       periodEnd: input.periodEnd || null,
       objectId: input.objectId || null,
@@ -1476,19 +1597,62 @@ export async function createCollectiveInvoicePayment(input: {
       surchargeCents,
       notes: input.notes?.trim() || null,
       createdBy: user.id,
+      createdByActorType: "tenant_user",
     })
     .returning({ id: customerPaymentBatchesTable.id });
 
   if (!batch) return { success: false, message: "Verzamelfactuur opslaan mislukt." };
 
+  await db.insert(paymentsTable).values({
+    tenantId,
+    customerId,
+    invoiceId: null,
+    sourceType: "invoice_collection",
+    sourceId: batch.id,
+    molliePaymentId: molliePayment.id,
+    amountCents,
+    amount: centsToMollieValue(amountCents),
+    currency: "EUR",
+    paymentMethod: "mollie",
+    status: "open",
+    checkoutUrl,
+    registeredByUserId: user.id,
+  });
+
   await db.insert(customerPaymentBatchItemsTable).values(
-    invoices.map((invoice) => ({
+    invoices.map((invoice, index) => ({
       tenantId,
       batchId: batch.id,
       invoiceId: invoice.id,
       amountCents: parseAmountCents(invoice.totalAmount),
+      invoiceNumberSnapshot: invoice.invoiceNumber,
+      originalTotalAmountCents: parseAmountCents(invoice.totalAmount),
+      outstandingAmountAtCollectionCents: parseAmountCents(invoice.totalAmount),
+      includedAmountCents: parseAmountCents(invoice.totalAmount),
+      sortOrder: index,
     })),
   );
+
+  try {
+    const { pool } = await import("@workspace/db");
+    const client = await pool.connect();
+    try {
+      await client.query("BEGIN");
+      await claimOfficialInvoiceCollectionNumberInTransaction(client, {
+        batchId: batch.id,
+        tenantId,
+      });
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK").catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  } catch (error) {
+    console.error("collective invoice number claim failed", { batchId: batch.id, error });
+    return { success: false, message: "Verzamelfactuurnummer kon niet worden gereserveerd." };
+  }
 
   await db.insert(auditLogTable).values({
     tenantId,
