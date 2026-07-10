@@ -31,6 +31,10 @@ import {
 
 export const runtime = "nodejs";
 
+function displayInvoiceNumber(value: string | null | undefined, fallback = "Factuur"): string {
+  return value?.trim() || fallback;
+}
+
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
@@ -142,7 +146,12 @@ export async function GET(
     for (const item of items) {
       y = ensurePdfPage(doc, y, 48);
       doc.roundedRect(L, y, W, 42, 8).fill("#FFFFFF").strokeColor(PDF_BRAND.border).stroke();
-      doc.fillColor(PDF_BRAND.cyan).font("Helvetica-Bold").fontSize(8).text(item.invoiceNumber, L + 10, y + 12, { width: 84 });
+      doc.fillColor(PDF_BRAND.cyan).font("Helvetica-Bold").fontSize(8).text(
+        displayInvoiceNumber(item.invoiceNumber, "Concept"),
+        L + 10,
+        y + 12,
+        { width: 84 },
+      );
       doc.fillColor(PDF_BRAND.ink).font("Helvetica-Bold").fontSize(8).text(item.assignmentCode, L + 100, y + 8, { width: 80 });
       doc.fillColor(PDF_BRAND.ink).font("Helvetica").fontSize(8).text(item.assignmentTitle, L + 182, y + 8, { width: 96 });
       doc.fillColor(PDF_BRAND.slate).text(formatPdfDate(item.scheduledDate), R - 145, y + 12, { width: 82 });

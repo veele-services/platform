@@ -23,7 +23,7 @@ export type CustomerPaymentRecord = {
   id:              string;
   invoiceId:       string;
   invoiceNumber:   string;
-  molliePaymentId: string;
+  molliePaymentId: string | null;
   amountCents:     number;
   currency:        string;
   status:          PaymentStatus;
@@ -34,7 +34,7 @@ export type CustomerPaymentRecord = {
 
 export type CustomerPaymentBatchRecord = {
   id:              string;
-  molliePaymentId: string;
+  molliePaymentId: string | null;
   amountCents:     number;
   currency:        string;
   status:          CustomerPaymentBatchStatus;
@@ -63,9 +63,17 @@ function centsToMollieValue(cents: number): string {
   return (cents / 100).toFixed(2);
 }
 
+function centsToAmount(cents: number): string {
+  return (cents / 100).toFixed(2);
+}
+
 function parseAmountCents(value: string | null | undefined): number {
   const parsed = Number.parseFloat(value ?? "0");
   return Number.isFinite(parsed) ? Math.round(parsed * 100) : 0;
+}
+
+function displayInvoiceNumber(value: string | null | undefined, fallback = "Factuur"): string {
+  return value?.trim() || fallback;
 }
 
 async function getAuthenticatedCustomer() {
@@ -170,7 +178,7 @@ export async function createCustomerInvoicePayment(invoiceId: string): Promise<A
         eq(customerPaymentBatchesTable.customerId, auth.customerId),
         eq(invoicesTable.customerId, auth.customerId),
         eq(customersTable.tenantId, auth.tenantId),
-        inArray(customerPaymentBatchesTable.status, ["open", "paid"]),
+        inArray(customerPaymentBatchesTable.status, ["open", "active", "paid"]),
       ),
     )
     .limit(1);
@@ -195,12 +203,12 @@ export async function createCustomerInvoicePayment(invoiceId: string): Promise<A
 
   const payment = await createMolliePaymentRequest({
     amountCents,
-    description: `Factuur ${invoice.invoiceNumber}`,
+    description: `Factuur ${displayInvoiceNumber(invoice.invoiceNumber, invoice.id.slice(0, 8))}`,
     redirectUrl: `${getBaseUrl()}/klant/betalingen/succes?invoice=${invoice.id}`,
     metadata: {
       type:          "invoice",
       invoiceId:     invoice.id,
-      invoiceNumber: invoice.invoiceNumber,
+      invoiceNumber: displayInvoiceNumber(invoice.invoiceNumber, invoice.id.slice(0, 8)),
       customerId:    auth.customerId,
       tenantId:      auth.tenantId,
     },
@@ -209,12 +217,19 @@ export async function createCustomerInvoicePayment(invoiceId: string): Promise<A
   if (!payment.success) return { success: false, message: payment.message };
 
   await db.insert(paymentsTable).values({
+    tenantId:         auth.tenantId,
+    customerId:       auth.customerId,
     invoiceId:        invoice.id,
+    sourceType:       "invoice",
+    sourceId:         invoice.id,
     molliePaymentId:  payment.data.molliePaymentId,
     amountCents,
+    amount:           centsToAmount(amountCents),
     currency:         "EUR",
+    paymentMethod:    "mollie",
     status:           "open",
     checkoutUrl:      payment.data.checkoutUrl,
+    registeredByUserId: auth.userId,
   });
 
   await db.insert(auditLogTable).values({
@@ -222,7 +237,7 @@ export async function createCustomerInvoicePayment(invoiceId: string): Promise<A
     action:     "customer_create_mollie_payment",
     resource:   "invoices",
     resourceId: invoice.id,
-    metadata:   { molliePaymentId: payment.data.molliePaymentId, amountCents },
+    metadata:   { tenantId: auth.tenantId, molliePaymentId: payment.data.molliePaymentId, amountCents },
   });
 
   revalidatePath("/facturen");
@@ -280,7 +295,7 @@ export async function createCustomerBatchPayment(invoiceIds: string[]): Promise<
         eq(customerPaymentBatchesTable.customerId, auth.customerId),
         eq(invoicesTable.customerId, auth.customerId),
         eq(customersTable.tenantId, auth.tenantId),
-        inArray(customerPaymentBatchesTable.status, ["open", "paid"]),
+        inArray(customerPaymentBatchesTable.status, ["open", "active", "paid"]),
       ),
     );
 
@@ -312,22 +327,48 @@ export async function createCustomerBatchPayment(invoiceIds: string[]): Promise<
     .insert(customerPaymentBatchesTable)
     .values({
       customerId:       auth.customerId,
+      tenantId:         auth.tenantId,
       molliePaymentId:  payment.data.molliePaymentId,
       amountCents,
+      outstandingAmountCents: amountCents,
       currency:         "EUR",
       status:           "open",
       checkoutUrl:      payment.data.checkoutUrl,
+      paymentProvider:  "mollie",
       createdBy:        auth.userId,
+      createdByActorType: "customer_user",
     })
     .returning({ id: customerPaymentBatchesTable.id });
 
   if (!batch) return { success: false, message: "Verzamelbetaling opslaan mislukt." };
 
+  await db.insert(paymentsTable).values({
+    tenantId: auth.tenantId,
+    customerId: auth.customerId,
+    invoiceId: null,
+    sourceType: "invoice_collection",
+    sourceId: batch.id,
+    molliePaymentId: payment.data.molliePaymentId,
+    amountCents,
+    amount: centsToAmount(amountCents),
+    currency: "EUR",
+    paymentMethod: "mollie",
+    status: "open",
+    checkoutUrl: payment.data.checkoutUrl,
+    registeredByUserId: auth.userId,
+  });
+
   await db.insert(customerPaymentBatchItemsTable).values(
-    invoices.map((invoice) => ({
-      batchId:     batch.id,
-      invoiceId:   invoice.id,
+    invoices.map((invoice, index) => ({
+      tenantId: auth.tenantId,
+      batchId: batch.id,
+      invoiceId: invoice.id,
       amountCents: parseAmountCents(invoice.totalAmount),
+      invoiceNumberSnapshot: invoice.invoiceNumber,
+      originalTotalAmountCents: parseAmountCents(invoice.totalAmount),
+      outstandingAmountAtCollectionCents: parseAmountCents(invoice.totalAmount),
+      includedAmountCents: parseAmountCents(invoice.totalAmount),
+      sortOrder: index,
     })),
   );
 
@@ -336,7 +377,7 @@ export async function createCustomerBatchPayment(invoiceIds: string[]): Promise<
     action:     "customer_create_mollie_payment_batch",
     resource:   "customer_payment_batches",
     resourceId: batch.id,
-    metadata:   { molliePaymentId: payment.data.molliePaymentId, amountCents, invoiceIds: invoices.map((i) => i.id) },
+    metadata:   { tenantId: auth.tenantId, molliePaymentId: payment.data.molliePaymentId, amountCents, invoiceIds: invoices.map((i) => i.id) },
   });
 
   revalidatePath("/facturen");
@@ -375,8 +416,8 @@ export async function getMyPayments(): Promise<CustomerPaymentRecord[]> {
 
   return rows.map((row) => ({
     id:              row.id,
-    invoiceId:       row.invoiceId,
-    invoiceNumber:   row.invoiceNumber,
+    invoiceId:       row.invoiceId ?? "",
+    invoiceNumber:   displayInvoiceNumber(row.invoiceNumber, (row.invoiceId ?? row.id).slice(0, 8)),
     molliePaymentId: row.molliePaymentId,
     amountCents:     row.amountCents,
     currency:        row.currency,
@@ -438,7 +479,7 @@ export async function getMyPaymentBatches(): Promise<CustomerPaymentBatchRecord[
     const list = itemsByBatch.get(item.batchId) ?? [];
     list.push({
       id:            item.invoiceId,
-      invoiceNumber: item.invoiceNumber,
+      invoiceNumber: displayInvoiceNumber(item.invoiceNumber, item.invoiceId.slice(0, 8)),
       totalAmount:   item.totalAmount,
     });
     itemsByBatch.set(item.batchId, list);

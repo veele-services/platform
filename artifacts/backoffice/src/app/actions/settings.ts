@@ -18,6 +18,7 @@ import {
   personnelTable,
   personnelNotificationsTable,
   sectorsTable,
+  tenantUsersTable,
   toSafeStorageSegment,
 } from "@workspace/db";
 import {
@@ -1619,6 +1620,30 @@ export async function updateRolePermissions(
 
 // ─── Users ────────────────────────────────────────────────────────────────────
 
+async function assertTenantUserAccess(userId: string): Promise<ActionResult | null> {
+  const tenantId = await requireCurrentTenantId();
+  const [tenantUser] = await db
+    .select({ id: tenantUsersTable.id })
+    .from(tenantUsersTable)
+    .where(
+      and(
+        eq(tenantUsersTable.tenantId, tenantId),
+        eq(tenantUsersTable.userId, userId),
+        eq(tenantUsersTable.status, "active"),
+      ),
+    )
+    .limit(1);
+
+  if (!tenantUser) {
+    return {
+      success: false,
+      message: "Gebruiker hoort niet bij deze tenant of is niet actief.",
+    };
+  }
+
+  return null;
+}
+
 export async function listUsersWithRoles(): Promise<UserRow[]> {
   await requirePermission("users", "read");
 
@@ -1746,7 +1771,6 @@ export async function deactivateUser(userId: string): Promise<ActionResult> {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
-  const tenantId = await requireCurrentTenantId();
 
   if (userId === user.id) {
     return {
@@ -1754,6 +1778,9 @@ export async function deactivateUser(userId: string): Promise<ActionResult> {
       message: "U kunt uw eigen account niet deactiveren.",
     };
   }
+
+  const tenantUserGuard = await assertTenantUserAccess(userId);
+  if (tenantUserGuard) return tenantUserGuard;
 
   const admin = createAdminClient();
   const { error } = await admin.auth.admin.updateUserById(userId, {
@@ -1788,6 +1815,9 @@ export async function resendInvite(userId: string): Promise<ActionResult> {
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
   const tenantId = await requireCurrentTenantId();
+
+  const tenantUserGuard = await assertTenantUserAccess(userId);
+  if (tenantUserGuard) return tenantUserGuard;
 
   const admin = createAdminClient();
   const { data: targetUser, error: fetchError } =
@@ -1851,6 +1881,9 @@ export async function sendUserPasswordReset(userId: string): Promise<ActionResul
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
   const tenantId = await requireCurrentTenantId();
+
+  const tenantUserGuard = await assertTenantUserAccess(userId);
+  if (tenantUserGuard) return tenantUserGuard;
 
   const admin = createAdminClient();
   const { data: targetUser, error: fetchError } = await admin.auth.admin.getUserById(userId);

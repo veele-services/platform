@@ -3,9 +3,11 @@
 import { db } from "@workspace/db";
 import {
   paymentsTable,
+  paymentAllocationsTable,
   invoicesTable,
   assignmentsTable,
   auditLogTable,
+  invoicePaymentSettingsTable,
   maskPaymentProviderId,
   type PaymentStatus,
 } from "@workspace/db";
@@ -37,7 +39,7 @@ async function notifyInvoiceWorkflow(input: Parameters<typeof emitInvoiceWorkflo
 
 export type PaymentRecord = {
   id:              string;
-  molliePaymentId: string;
+  molliePaymentId: string | null;
   amountCents:     number;
   currency:        string;
   status:          PaymentStatus;
@@ -69,6 +71,30 @@ function getBaseUrl(): string {
  */
 function centsToMollieValue(cents: number): string {
   return (cents / 100).toFixed(2);
+}
+
+function centsToAmount(cents: number): string {
+  return (cents / 100).toFixed(2);
+}
+
+function displayInvoiceNumber(value: string | null | undefined, fallback = "Factuur"): string {
+  return value?.trim() || fallback;
+}
+
+async function requireMolliePaymentsEnabled(tenantId: string): Promise<ActionResult | null> {
+  const [settings] = await db
+    .select({
+      paymentProvider: invoicePaymentSettingsTable.paymentProvider,
+      mollieEnabled: invoicePaymentSettingsTable.mollieEnabled,
+    })
+    .from(invoicePaymentSettingsTable)
+    .where(eq(invoicePaymentSettingsTable.tenantId, tenantId))
+    .limit(1);
+
+  if (settings?.paymentProvider !== "mollie" || settings.mollieEnabled !== true) {
+    return { success: false, message: "Mollie is niet actief in factuurinstellingen." };
+  }
+  return null;
 }
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
@@ -132,6 +158,14 @@ export async function createMolliePayment(
 ): Promise<ActionResult<{ checkoutUrl: string; molliePaymentId: string }>> {
   await requirePermission("invoices", "write");
 
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const tenantId = await requireCurrentTenantId();
+  const mollieDisabled = await requireMolliePaymentsEnabled(tenantId);
+  if (mollieDisabled) return mollieDisabled;
+
   const mollieKey = process.env.MOLLIE_API_KEY;
   if (!mollieKey) {
     return {
@@ -139,12 +173,6 @@ export async function createMolliePayment(
       message: "Mollie API-sleutel niet geconfigureerd. Stel MOLLIE_API_KEY in als omgevingsvariabele.",
     };
   }
-
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, message: "Niet geauthenticeerd." };
-
-  const tenantId = await requireCurrentTenantId();
 
   // Fetch invoice
   const [invoice] = await db
@@ -155,6 +183,7 @@ export async function createMolliePayment(
       totalAmount:   invoicesTable.totalAmount,
       status:        invoicesTable.status,
       assignmentId:  invoicesTable.assignmentId,
+      customerId:     invoicesTable.customerId,
     })
     .from(invoicesTable)
     .where(and(eq(invoicesTable.id, invoiceId), eq(invoicesTable.tenantId, tenantId)))
@@ -189,13 +218,13 @@ export async function createMolliePayment(
           currency: "EUR",
           value:    centsToMollieValue(amountCents),
         },
-        description: `Factuur ${invoice.invoiceNumber}`,
+        description: `Factuur ${displayInvoiceNumber(invoice.invoiceNumber, invoice.id.slice(0, 8))}`,
         redirectUrl,
         webhookUrl,
         metadata: {
           tenantId,
           invoiceId,
-          invoiceNumber: invoice.invoiceNumber,
+          invoiceNumber: displayInvoiceNumber(invoice.invoiceNumber, invoice.id.slice(0, 8)),
         },
       }),
     });
@@ -224,11 +253,17 @@ export async function createMolliePayment(
     await db.insert(paymentsTable).values({
       tenantId,
       invoiceId,
+      customerId: invoice.customerId,
+      sourceType: "invoice",
+      sourceId: invoiceId,
       molliePaymentId,
       amountCents,
+      amount: centsToAmount(amountCents),
       currency:    "EUR",
+      paymentMethod: "mollie",
       status:      "open",
       checkoutUrl,
+      registeredByUserId: user.id,
     });
   } catch {
     return { success: false, message: "Betaling aanmaken in database mislukt." };
@@ -259,13 +294,20 @@ export async function markInvoicePaidByMollie(
 ): Promise<{ success: boolean; message?: string }> {
   // Find payment record
   const [payment] = await db
-    .select({ id: paymentsTable.id, invoiceId: paymentsTable.invoiceId, tenantId: paymentsTable.tenantId })
+    .select({
+      id: paymentsTable.id,
+      invoiceId: paymentsTable.invoiceId,
+      tenantId: paymentsTable.tenantId,
+      customerId: paymentsTable.customerId,
+      amountCents: paymentsTable.amountCents,
+    })
     .from(paymentsTable)
     .where(eq(paymentsTable.molliePaymentId, molliePaymentId))
     .limit(1);
 
   if (!payment) return { success: false, message: "Betaling niet gevonden." };
   if (!payment.tenantId) return { success: false, message: "Betaling heeft geen tenantcontext." };
+  if (!payment.invoiceId) return { success: false, message: "Betaling is niet aan een factuur gekoppeld." };
 
   // Update payment status
   await db
@@ -284,6 +326,7 @@ export async function markInvoicePaidByMollie(
       tenantId: invoicesTable.tenantId,
       status: invoicesTable.status,
       assignmentId: invoicesTable.assignmentId,
+      totalAmount: invoicesTable.totalAmount,
     })
     .from(invoicesTable)
     .where(and(eq(invoicesTable.id, payment.invoiceId), eq(invoicesTable.tenantId, payment.tenantId)))
@@ -293,8 +336,24 @@ export async function markInvoicePaidByMollie(
     const paidDateStr = paidAt.toISOString().slice(0, 10);
     await db
       .update(invoicesTable)
-      .set({ status: "paid", paidDate: paidDateStr, updatedAt: new Date() })
+      .set({
+        status: "paid",
+        paymentStatus: "paid",
+        paidAmount: centsToAmount(payment.amountCents),
+        outstandingAmount: "0",
+        paidDate: paidDateStr,
+        updatedAt: new Date(),
+      })
       .where(and(eq(invoicesTable.id, invoice.id), eq(invoicesTable.tenantId, payment.tenantId)));
+
+    await db.insert(paymentAllocationsTable).values({
+      tenantId: payment.tenantId,
+      paymentId: payment.id,
+      invoiceId: invoice.id,
+      amountCents: payment.amountCents,
+      amount: centsToAmount(payment.amountCents),
+      note: "Mollie betaling automatisch toegewezen",
+    });
 
     // Advance assignment: invoiced → paid → closed
     await db
@@ -333,11 +392,127 @@ export async function markInvoicePaidByMollie(
 
 // ─── Customer-scoped query ─────────────────────────────────────────────────────
 
+export async function registerManualInvoicePayment(
+  invoiceId: string,
+  input: {
+    amountCents: number;
+    paymentMethod?: "manual_bank" | "cash" | "correction" | "settlement" | "other";
+    reference?: string;
+    note?: string;
+  },
+): Promise<ActionResult<{ paymentId: string }>> {
+  await requirePermission("invoices", "write");
+
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { success: false, message: "Niet geauthenticeerd." };
+
+  const tenantId = await requireCurrentTenantId();
+  const amountCents = Math.round(input.amountCents);
+  if (!Number.isFinite(amountCents) || amountCents <= 0) {
+    return { success: false, message: "Voer een geldig betaald bedrag in." };
+  }
+
+  const [invoice] = await db
+    .select({
+      id: invoicesTable.id,
+      tenantId: invoicesTable.tenantId,
+      customerId: invoicesTable.customerId,
+      totalAmount: invoicesTable.totalAmount,
+      paidAmount: invoicesTable.paidAmount,
+      status: invoicesTable.status,
+      assignmentId: invoicesTable.assignmentId,
+    })
+    .from(invoicesTable)
+    .where(and(eq(invoicesTable.id, invoiceId), eq(invoicesTable.tenantId, tenantId)))
+    .limit(1);
+
+  if (!invoice) return { success: false, message: "Factuur niet gevonden." };
+  if (invoice.status === "cancelled") return { success: false, message: "Een geannuleerde factuur kan niet betaald worden." };
+
+  const totalCents = Math.round(Number.parseFloat(invoice.totalAmount ?? "0") * 100);
+  const paidCents = Math.round(Number.parseFloat(invoice.paidAmount ?? "0") * 100);
+  const nextPaidCents = Math.min(totalCents, paidCents + amountCents);
+  const nextOutstandingCents = Math.max(totalCents - nextPaidCents, 0);
+  const nextPaymentStatus = nextOutstandingCents === 0 ? "paid" : "partially_paid";
+
+  const [payment] = await db
+    .insert(paymentsTable)
+    .values({
+      tenantId,
+      customerId: invoice.customerId,
+      invoiceId: invoice.id,
+      sourceType: "invoice",
+      sourceId: invoice.id,
+      amountCents,
+      amount: centsToAmount(amountCents),
+      currency: "EUR",
+      paymentMethod: input.paymentMethod ?? "manual_bank",
+      status: "paid",
+      reference: input.reference?.trim() || null,
+      note: input.note?.trim() || null,
+      registeredByUserId: user.id,
+      paidAt: new Date(),
+    })
+    .returning({ id: paymentsTable.id });
+
+  if (!payment) return { success: false, message: "Betaling kon niet worden opgeslagen." };
+
+  await db.insert(paymentAllocationsTable).values({
+    tenantId,
+    paymentId: payment.id,
+    invoiceId: invoice.id,
+    amountCents,
+    amount: centsToAmount(amountCents),
+    allocatedByUserId: user.id,
+    note: input.note?.trim() || "Handmatige betaling toegewezen",
+  });
+
+  await db
+    .update(invoicesTable)
+    .set({
+      status: nextPaymentStatus === "paid" ? "paid" : invoice.status,
+      paymentStatus: nextPaymentStatus,
+      paidAmount: centsToAmount(nextPaidCents),
+      outstandingAmount: centsToAmount(nextOutstandingCents),
+      paidDate: nextPaymentStatus === "paid" ? new Date().toISOString().slice(0, 10) : null,
+      updatedAt: new Date(),
+    })
+    .where(and(eq(invoicesTable.id, invoice.id), eq(invoicesTable.tenantId, tenantId)));
+
+  if (nextPaymentStatus === "paid") {
+    await db
+      .update(assignmentsTable)
+      .set({ status: "closed", updatedAt: new Date() })
+      .where(and(eq(assignmentsTable.id, invoice.assignmentId), eq(assignmentsTable.tenantId, tenantId)));
+  }
+
+  await db.insert(auditLogTable).values({
+    tenantId,
+    userId: user.id,
+    action: "register_manual_invoice_payment",
+    resource: "invoices",
+    resourceId: invoice.id,
+    metadata: {
+      tenantId,
+      amountCents,
+      paymentId: payment.id,
+      paymentMethod: input.paymentMethod ?? "manual_bank",
+      paymentStatus: nextPaymentStatus,
+    },
+  });
+
+  revalidatePath(`/invoices/${invoice.id}`);
+  revalidatePath("/invoices");
+
+  return { success: true, data: { paymentId: payment.id } };
+}
+
 export type CustomerPaymentRow = {
   id:              string;
   invoiceId:       string;
   invoiceNumber:   string;
-  molliePaymentId: string;
+  molliePaymentId: string | null;
   amountCents:     number;
   currency:        string;
   status:          string;
@@ -386,8 +561,8 @@ export async function listPaymentsForCustomer(
 
   return rows.map((r) => toPlatformPaymentDiagnosticDto({
     id:              r.id,
-    invoiceId:       r.invoiceId,
-    invoiceNumber:   r.invoiceNumber,
+    invoiceId:       r.invoiceId ?? r.id,
+    invoiceNumber:   displayInvoiceNumber(r.invoiceNumber),
     molliePaymentId: r.molliePaymentId,
     amountCents:     r.amountCents,
     currency:        r.currency,

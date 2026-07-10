@@ -10,6 +10,10 @@ const router = Router();
 
 const SYSTEM_ACTOR_UUID = "00000000-0000-0000-0000-000000000001";
 
+function displayInvoiceNumber(value: string | null | undefined, fallback = "Factuur"): string {
+  return value?.trim() || fallback;
+}
+
 /**
  * POST /api/admin/payment-reminders
  *
@@ -121,9 +125,10 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
         continue;
       }
 
+      const invoiceNumber = displayInvoiceNumber(invoice.invoiceNumber, invoice.id.slice(0, 8));
       const { subject, html } = buildPaymentReminderEmail({
         customerName:  invoice.customerName ?? "",
-        invoiceNumber: invoice.invoiceNumber,
+        invoiceNumber,
         totalAmount:   invoice.totalAmount ?? "0",
         dueDate:       invoice.dueDate,
         invoiceId:     invoice.id,
@@ -139,7 +144,7 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
 
       if (!emailResult.success) {
         req.log.warn(
-          { invoiceId: invoice.id, invoiceNumber: invoice.invoiceNumber, error: emailResult.error },
+          { invoiceId: invoice.id, invoiceNumber, error: emailResult.error },
           "payment-reminders: e-mail verzenden mislukt — factuur overgeslagen",
         );
         skipped++;
@@ -159,7 +164,7 @@ router.post("/admin/payment-reminders", async (req: Request, res: Response) => {
         resource:   "invoices",
         resourceId: invoice.id,
         metadata:   {
-          invoiceNumber:   invoice.invoiceNumber,
+          invoiceNumber,
           customerEmail:   invoice.customerEmail,
           dueDate:         invoice.dueDate,
           herinneringDagen,

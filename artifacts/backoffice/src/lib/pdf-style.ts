@@ -56,23 +56,27 @@ export function drawPdfHeader(
     reference: string;
     brandTitle?: string;
     brandSubtitle?: string;
+    primaryColor?: string;
+    accentColor?: string;
   },
 ) {
+  const primaryColor = /^#[0-9A-Fa-f]{6}$/u.test(input.primaryColor ?? "") ? input.primaryColor! : PDF_BRAND.navy;
+  const accentColor = /^#[0-9A-Fa-f]{6}$/u.test(input.accentColor ?? "") ? input.accentColor! : PDF_BRAND.cyan;
   const rawBrandTitle = (input.brandTitle ?? "FIELDGRID").trim() || "FIELDGRID";
   const brandTitle = rawBrandTitle.length > 14 ? `${rawBrandTitle.slice(0, 13)}.` : rawBrandTitle;
   const brandSubtitle = input.brandSubtitle === undefined ? "PLATFORM" : input.brandSubtitle.trim();
   const titleFontSize = brandTitle.length > 10 ? 11 : brandTitle.length > 8 ? 13 : 16;
 
-  doc.rect(0, 0, PDF_PAGE.width, 122).fill(PDF_BRAND.navy);
+  doc.rect(0, 0, PDF_PAGE.width, 122).fill(primaryColor);
   doc.roundedRect(PDF_PAGE.left, 30, 96, 54, 8).fill("#FFFFFF");
-  doc.fillColor(PDF_BRAND.blue).font("Helvetica-Bold").fontSize(titleFontSize).text(brandTitle, PDF_PAGE.left + 14, 43, {
+  doc.fillColor(primaryColor).font("Helvetica-Bold").fontSize(titleFontSize).text(brandTitle, PDF_PAGE.left + 14, 43, {
     width: 68,
     align: "center",
     height: 16,
     ellipsis: true,
   });
   if (brandSubtitle) {
-    doc.fillColor(PDF_BRAND.cyan).font("Helvetica-Bold").fontSize(6).text(brandSubtitle, PDF_PAGE.left + 14, 62, {
+    doc.fillColor(accentColor).font("Helvetica-Bold").fontSize(6).text(brandSubtitle, PDF_PAGE.left + 14, 62, {
       width: 68,
       align: "center",
       characterSpacing: 1.8,
@@ -87,7 +91,7 @@ export function drawPdfHeader(
     width: 185,
     align: "right",
   });
-  doc.roundedRect(PDF_PAGE.left, 104, 90, 4, 2).fill(PDF_BRAND.cyan);
+  doc.roundedRect(PDF_PAGE.left, 104, 90, 4, 2).fill(accentColor);
 }
 
 export function drawPdfFooter(doc: PDFKit.PDFDocument, text: string) {

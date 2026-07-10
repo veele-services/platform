@@ -5,7 +5,7 @@ export type CustomerPaymentRow = {
   id:              string;
   invoiceId:       string;
   invoiceNumber:   string;
-  molliePaymentId: string;
+  molliePaymentId: string | null;
   amountCents:     number;
   currency:        string;
   status:          string;
@@ -62,7 +62,7 @@ export function CustomerPaymentsTab({ customerId, payments }: Props) {
                       className="transition-colors hover:bg-slate-50/60"
                       style={{ borderBottom: i < payments.length - 1 ? "1px solid #F1F5F9" : undefined }}
                     >
-                      <td className="px-5 py-3 text-xs font-mono" style={{ color: "#64748B" }}>{p.molliePaymentId}</td>
+                      <td className="px-5 py-3 text-xs font-mono" style={{ color: "#64748B" }}>{p.molliePaymentId ?? "-"}</td>
                       <td className="px-5 py-3 text-sm font-medium" style={{ color: "#081D3A" }}>{amount}</td>
                       <td className="px-5 py-3">
                         <ProcessStatusBadge kind="payment" status={p.status} />

@@ -20,6 +20,10 @@ export type CustomerInvoice = {
   createdAt:     string;
 };
 
+function displayInvoiceNumber(value: string | null | undefined, fallback = "Factuur"): string {
+  return value?.trim() || fallback;
+}
+
 export async function getMyInvoices(): Promise<CustomerInvoice[]> {
   const identity = await getMyCustomerIdentity();
   if (!identity) return [];
@@ -58,7 +62,7 @@ export async function getMyInvoices(): Promise<CustomerInvoice[]> {
 
   return rows.map((r) => ({
     id:            r.id,
-    invoiceNumber: r.invoiceNumber,
+    invoiceNumber: displayInvoiceNumber(r.invoiceNumber, r.id.slice(0, 8)),
     assignmentId:  r.assignmentId,
     amount:        r.amount,
     vatAmount:     r.vatAmount,
@@ -113,7 +117,7 @@ export async function getMyInvoice(invoiceId: string): Promise<CustomerInvoice |
 
   return {
     id:            r.id,
-    invoiceNumber: r.invoiceNumber,
+    invoiceNumber: displayInvoiceNumber(r.invoiceNumber, r.id.slice(0, 8)),
     assignmentId:  r.assignmentId,
     amount:        r.amount,
     vatAmount:     r.vatAmount,

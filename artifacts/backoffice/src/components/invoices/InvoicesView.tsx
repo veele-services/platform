@@ -233,9 +233,9 @@ export function InvoicesView({
       <TenantConflictStrip
         items={[
           {
-            label: "Voorstellen",
+            label: "Concepten",
             value: formatEur(summary.draftAmount),
-            description: `${summary.draftCount} ter controle`,
+            description: `${summary.draftCount} nog niet verzonden`,
             tone: summary.draftCount > 0 ? "warning" : "neutral",
             href: "/invoices?status=draft",
           },

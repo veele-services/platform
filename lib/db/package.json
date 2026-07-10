@@ -11,6 +11,9 @@
     "./events": "./src/events.ts",
     "./address-geocoding": "./src/address-geocoding.ts",
     "./portal-routes": "./src/portal-routes.ts",
+    "./invoice-numbering": "./src/invoice-numbering.ts",
+    "./invoice-finalization": "./src/invoice-finalization.ts",
+    "./invoice-number-formatting": "./src/invoice-number-formatting.ts",
     "./planning-realtime": "./src/planning-realtime.ts",
     "./workflow-events": "./src/workflow-events.ts",
     "./planning-intelligence": "./src/planning-intelligence.ts"

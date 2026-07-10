@@ -9,19 +9,21 @@ import type { AssignmentInvoiceData } from "@/app/actions/invoices";
 interface Props {
   assignmentId: string;
   prefill:      AssignmentInvoiceData;
+  defaultPaymentTermDays?: number;
 }
 
 function formatEur(value: string): string {
   return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(parseFloat(value) || 0);
 }
 
-function defaultDueDate(): string {
+function defaultDueDate(paymentTermDays = 30): string {
   const d = new Date();
-  d.setDate(d.getDate() + 30);
+  const days = Number.isFinite(paymentTermDays) ? Math.min(365, Math.max(1, Math.round(paymentTermDays))) : 30;
+  d.setDate(d.getDate() + days);
   return d.toISOString().slice(0, 10);
 }
 
-export function CreateInvoiceForm({ assignmentId, prefill }: Props) {
+export function CreateInvoiceForm({ assignmentId, prefill, defaultPaymentTermDays = 30 }: Props) {
   const router     = useRouter();
   const [, startT] = useTransition();
 
@@ -30,7 +32,7 @@ export function CreateInvoiceForm({ assignmentId, prefill }: Props) {
   const [fieldErrors, setFieldErrors]       = useState<Record<string, string>>({});
   const [amount, setAmount]                 = useState(prefill.suggestedAmount);
   const [vatPercentage, setVat]             = useState("21");
-  const [dueDate, setDueDate]               = useState(defaultDueDate());
+  const [dueDate, setDueDate]               = useState(defaultDueDate(defaultPaymentTermDays));
   const [notes, setNotes]                   = useState("");
   const [goToPayment, setGoToPayment] = useState(true);
 
@@ -72,7 +74,7 @@ export function CreateInvoiceForm({ assignmentId, prefill }: Props) {
         style={{ color: "#081D3A" }}
       >
         <Receipt className="h-4 w-4" style={{ color: "#00B7B3" }} />
-        Factuur aanmaken
+        Factuurconcept
       </h3>
 
       {/* Line items preview */}
@@ -214,7 +216,7 @@ export function CreateInvoiceForm({ assignmentId, prefill }: Props) {
               Direct doorsturen naar factuurpagina
             </span>
             <span className="text-xs" style={{ color: "#94A3B8" }}>
-              Na aanmaken wordt u doorgestuurd naar de factuurpagina om een betaallink aan te maken en te versturen.
+              Na bewaren wordt u doorgestuurd naar de factuurpagina om de factuur te finaliseren en te versturen.
             </span>
           </span>
         </label>
@@ -230,7 +232,7 @@ export function CreateInvoiceForm({ assignmentId, prefill }: Props) {
           ) : (
             <FileText className="h-4 w-4" />
           )}
-          Factuur aanmaken
+          Concept bewaren
         </button>
       </form>
     </div>

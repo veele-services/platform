@@ -12,13 +12,18 @@ import {
   Users,
 } from "lucide-react";
 import {
-  inviteUser,
+  inviteTenantUser as inviteUser,
+  updateTenantUserRoles as updateUserRoles,
+} from "@/app/actions/tenant-roles";
+import {
   deactivateUser,
   resendInvite,
   sendUserPasswordReset,
-  updateUserRoles,
 } from "@/app/actions/settings";
-import type { UserRow, RoleRow } from "@/app/actions/settings";
+import type {
+  TenantRoleRow as RoleRow,
+  TenantUserRoleRow as UserRow,
+} from "@/app/actions/tenant-roles";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -36,6 +41,25 @@ const STATUS_LABELS: Record<UserRow["status"], { label: string; bg: string; colo
   uitgenodigd: { label: "Uitgenodigd", bg: "#EFF6FF", color: "#1D4ED8" },
   inactief: { label: "Inactief", bg: "#FEE2E2", color: "#991B1B" },
 };
+
+function formatDate(value: string): string {
+  return new Date(value).toLocaleDateString("nl-NL", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+}
+
+function formatDateTime(value: string | null): string {
+  if (!value) return "Nog niet ingelogd";
+  return new Date(value).toLocaleString("nl-NL", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
 
 interface Props {
   users: UserRow[];
@@ -191,7 +215,7 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
         <table className="w-full text-sm">
           <thead>
             <tr style={{ borderBottom: "1px solid #F1F5F9" }}>
-              {["Naam", "E-mail", "Rollen", "Status", "Aangemeld", ""].map((header) => (
+              {["Naam", "E-mail", "Rollen", "Status", "Toegevoegd", "Laatste login", ""].map((header) => (
                 <th
                   key={header}
                   className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-wide"
@@ -245,11 +269,10 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
                     </span>
                   </td>
                   <td className="px-4 py-3 text-xs" style={{ color: "#64748B" }}>
-                    {new Date(user.createdAt).toLocaleDateString("nl-NL", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}
+                    {formatDate(user.createdAt)}
+                  </td>
+                  <td className="px-4 py-3 text-xs" style={{ color: "#64748B" }}>
+                    {formatDateTime(user.lastSignInAt)}
                   </td>
                   <td className="px-4 py-3 text-right">
                     {canWrite && (
