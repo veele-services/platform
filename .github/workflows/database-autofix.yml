@@ -2,44 +2,28 @@ name: Database Autofix
 
 on:
   workflow_dispatch:
-    inputs:
-      target_environment:
-        description: GitHub environment to migrate
-        required: true
-        default: staging
-        type: choice
-        options:
-          - main
-          - staging
-  push:
-    branches:
-      - main
-      - staging
-    paths:
-      - "lib/db/**"
-      - "package.json"
-      - "pnpm-lock.yaml"
-      - ".github/workflows/database-autofix.yml"
 
 permissions:
   contents: read
 
 concurrency:
-  group: veele-${{ github.event_name == 'workflow_dispatch' && inputs.target_environment || github.ref_name }}
+  group: veele-staging
   cancel-in-progress: false
 
 jobs:
   migrate:
-    name: Autofix ${{ github.event_name == 'workflow_dispatch' && inputs.target_environment || github.ref_name }} database
-    if: github.event_name == 'workflow_dispatch' || github.ref_name == 'main' || github.ref_name == 'staging'
+    name: Migrate staging database
+    if: github.ref_name == 'staging'
     runs-on: [self-hosted, linux, x64, veele]
     timeout-minutes: 30
-    environment:
-      name: ${{ github.event_name == 'workflow_dispatch' && inputs.target_environment || github.ref_name }}
+    environment: staging
+
     env:
-      TARGET_ENVIRONMENT: ${{ github.event_name == 'workflow_dispatch' && inputs.target_environment || github.ref_name }}
-      APP_ENV: ${{ github.event_name == 'workflow_dispatch' && inputs.target_environment || github.ref_name }}
+      TARGET_ENVIRONMENT: staging
+      EXPECTED_SUPABASE_PROJECT_REF: olyfmekyqozxrbrwwszu
+      APP_ENV: staging
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
 
     steps:
       - name: Checkout
@@ -52,26 +36,49 @@ jobs:
           node -v
           pnpm -v
 
-      - name: Validate database environment
+      - name: Validate staging database environment
         shell: bash
         run: |
           set -euo pipefail
 
-          case "$TARGET_ENVIRONMENT" in
-            main|staging)
-              ;;
+          if [ "${GITHUB_REF_NAME}" != "staging" ]; then
+            echo "::error::Database Autofix must be dispatched from the staging branch."
+            exit 1
+          fi
+
+          if [ "${TARGET_ENVIRONMENT}" != "staging" ] || [ "${APP_ENV}" != "staging" ]; then
+            echo "::error::Database Autofix is restricted to the staging environment."
+            exit 1
+          fi
+
+          if [ -z "${DATABASE_URL:-}" ]; then
+            echo "::error::DATABASE_URL is not configured for the staging GitHub environment."
+            exit 1
+          fi
+
+          if [ -z "${NEXT_PUBLIC_SUPABASE_URL:-}" ]; then
+            echo "::error::NEXT_PUBLIC_SUPABASE_URL is not configured for the staging GitHub environment."
+            exit 1
+          fi
+
+          case "$DATABASE_URL" in
+            *"$EXPECTED_SUPABASE_PROJECT_REF"*) ;;
             *)
-              echo "::error::Database Autofix only supports the main and staging environments."
+              echo "::error::DATABASE_URL does not target the expected staging Supabase project."
               exit 1
               ;;
           esac
 
-          if [ -z "${DATABASE_URL:-}" ]; then
-            echo "::error::DATABASE_URL is not configured for the '$TARGET_ENVIRONMENT' GitHub environment."
-            exit 1
-          fi
+          case "$NEXT_PUBLIC_SUPABASE_URL" in
+            *"$EXPECTED_SUPABASE_PROJECT_REF"*) ;;
+            *)
+              echo "::error::NEXT_PUBLIC_SUPABASE_URL does not target the expected staging Supabase project."
+              exit 1
+              ;;
+          esac
 
-          echo "Database Autofix target: $TARGET_ENVIRONMENT"
+          echo "Database Autofix target: staging"
+          echo "Expected Supabase project ref: $EXPECTED_SUPABASE_PROJECT_REF"
 
       - name: Install dependencies
         run: |
