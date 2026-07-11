@@ -23,6 +23,7 @@ import {
   ASSIGNMENT_STATUSES,
   type AssignmentPriority,
   type AssignmentStatus,
+  type PersonnelVehicleType,
 } from "@workspace/db";
 import {
   asc,
@@ -38,7 +39,7 @@ import {
   type SQL,
 } from "drizzle-orm";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
-import { requireCurrentTenantId } from "@/lib/auth/tenant";
+import { getCurrentBackofficeUser, requireCurrentTenantId } from "@/lib/auth/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
 import {
@@ -57,6 +58,12 @@ import {
 } from "@/lib/planning/map-data";
 import { recalculatePlanningRouteContexts } from "@/lib/planning/eta-engine";
 import { safeRefreshPlanningRoutesForAssignment } from "@/lib/planning/route-refresh";
+import { getRouteWithCache } from "@/lib/planning/routes/route-cache";
+import {
+  providerModeForVehicle,
+  validateRouteCoordinates,
+} from "@/lib/planning/routes/route-utils";
+import type { RouteCoordinate } from "@/lib/planning/routes/types";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -92,6 +99,56 @@ export type PersonnelForAssignmentResult = {
   requirements: AssignmentRequirements;
   personnel: PersonnelEligibilityEntry[];
 };
+
+export const PLANNING_ROUTE_TRAVEL_MODES = [
+  "DRIVE",
+  "BICYCLE",
+  "WALK",
+  "TRANSIT",
+] as const satisfies readonly PersonnelVehicleType[];
+
+export type PlanningRouteTravelMode =
+  (typeof PLANNING_ROUTE_TRAVEL_MODES)[number];
+
+export type PlanningMapRouteCalculationResult =
+  | {
+      success: true;
+      assignmentId: string;
+      personnelId: string;
+      travelMode: PlanningRouteTravelMode;
+      providerMode: PlanningRouteTravelMode;
+      origin: RouteCoordinate;
+      destination: RouteCoordinate;
+      originLabel: string;
+      destinationLabel: string;
+      distanceMeters: number | null;
+      durationSeconds: number;
+      staticDurationSeconds: number | null;
+      trafficDelaySeconds: number | null;
+      encodedPolyline: string | null;
+      externalUrl: string;
+      warnings: string[];
+      cacheStatus: string;
+      provider: string;
+    }
+  | {
+      success: false;
+      assignmentId: string;
+      personnelId: string;
+      travelMode: PlanningRouteTravelMode;
+      providerMode: PlanningRouteTravelMode;
+      code:
+        | "forbidden"
+        | "invalid_input"
+        | "not_found"
+        | "missing_origin"
+        | "missing_destination"
+        | "invalid_coordinates"
+        | "transit_no_result"
+        | "provider_error";
+      message: string;
+      retryable: boolean;
+    };
 
 export type PlanningBoardMatchSeverity = "ok" | "warning" | "block";
 
@@ -1254,6 +1311,7 @@ function timestampValue(value: Date | string | null): number | null {
 
 async function ensurePlanningDayRouteContextsFresh(input: {
   tenantId: string;
+  userId?: string | null;
   date: string;
   personnelId?: string | null;
 }): Promise<void> {
@@ -1334,10 +1392,408 @@ async function ensurePlanningDayRouteContextsFresh(input: {
   for (const personnelId of stalePersonnelIds) {
     await recalculatePlanningRouteContexts({
       tenantId: input.tenantId,
+      userId: input.userId ?? null,
       scheduledDate: input.date,
       personnelId,
     });
   }
+}
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function parsePlanningRouteTravelMode(
+  value: unknown,
+): PlanningRouteTravelMode | null {
+  if (typeof value !== "string") return null;
+  return PLANNING_ROUTE_TRAVEL_MODES.includes(
+    value as PlanningRouteTravelMode,
+  )
+    ? (value as PlanningRouteTravelMode)
+    : null;
+}
+
+function numericCoordinateValue(value: unknown): number | null {
+  if (typeof value === "number") {
+    return Number.isFinite(value) ? value : null;
+  }
+  if (typeof value === "string" && value.trim()) {
+    const parsed = Number.parseFloat(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function coordinateFromValues(
+  lat: unknown,
+  lng: unknown,
+): RouteCoordinate | null {
+  const parsedLat = numericCoordinateValue(lat);
+  const parsedLng = numericCoordinateValue(lng);
+  if (parsedLat === null || parsedLng === null) return null;
+  return { lat: parsedLat, lng: parsedLng };
+}
+
+function joinAddressParts(...parts: Array<string | null | undefined>): string {
+  return parts
+    .map((part) => part?.trim())
+    .filter((part): part is string => Boolean(part))
+    .join(", ");
+}
+
+function buildRouteDepartureTime(
+  date: string | null,
+  time: string | null,
+): Date | undefined {
+  if (!date || !time) return undefined;
+  const candidate = new Date(`${date}T${time}:00`);
+  return Number.isFinite(candidate.getTime()) ? candidate : undefined;
+}
+
+function mapsTravelMode(mode: PlanningRouteTravelMode): string {
+  switch (mode) {
+    case "BICYCLE":
+      return "bicycling";
+    case "WALK":
+      return "walking";
+    case "TRANSIT":
+      return "transit";
+    case "DRIVE":
+    default:
+      return "driving";
+  }
+}
+
+function buildGoogleMapsDirectionsUrl(input: {
+  origin: RouteCoordinate;
+  destination: RouteCoordinate;
+  travelMode: PlanningRouteTravelMode;
+}): string {
+  const params = new URLSearchParams({
+    api: "1",
+    origin: `${input.origin.lat},${input.origin.lng}`,
+    destination: `${input.destination.lat},${input.destination.lng}`,
+    travelmode: mapsTravelMode(input.travelMode),
+  });
+  return `https://www.google.com/maps/dir/?${params.toString()}`;
+}
+
+function routeMetaNumber(
+  meta: Record<string, unknown> | undefined,
+  key: string,
+): number | null {
+  const value = meta?.[key];
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+export async function calculatePlanningMapRoute(input: {
+  assignmentId: string;
+  personnelId: string;
+  travelMode?: PlanningRouteTravelMode | string;
+}): Promise<PlanningMapRouteCalculationResult> {
+  const requestedMode = parsePlanningRouteTravelMode(input.travelMode);
+  const fallbackMode = requestedMode ?? "DRIVE";
+
+  if (!UUID_RE.test(input.assignmentId) || !UUID_RE.test(input.personnelId)) {
+    return {
+      success: false,
+      assignmentId: input.assignmentId,
+      personnelId: input.personnelId,
+      travelMode: fallbackMode,
+      providerMode: fallbackMode,
+      code: "invalid_input",
+      message: "Werkbon of medewerker is ongeldig.",
+      retryable: false,
+    };
+  }
+
+  const canRead = await hasPermission("planning", "read");
+  if (!canRead) {
+    return {
+      success: false,
+      assignmentId: input.assignmentId,
+      personnelId: input.personnelId,
+      travelMode: fallbackMode,
+      providerMode: fallbackMode,
+      code: "forbidden",
+      message: "U heeft geen planningrechten om routes te berekenen.",
+      retryable: false,
+    };
+  }
+
+  const tenantId = await requireCurrentTenantId();
+  const user = await getCurrentBackofficeUser();
+
+  const [row] = await db
+    .select({
+      assignmentId: assignmentsTable.id,
+      code: assignmentsTable.code,
+      title: assignmentsTable.title,
+      scheduledDate: assignmentsTable.scheduledDate,
+      scheduledStart: assignmentsTable.scheduledStart,
+      customerName: customersTable.name,
+      customerAddress: customersTable.address,
+      customerPostalCode: customersTable.postalCode,
+      customerCity: customersTable.city,
+      customerFormattedAddress: customersTable.formattedAddress,
+      customerLat: customersTable.latitude,
+      customerLng: customersTable.longitude,
+      objectName: objectsTable.name,
+      objectAddress: objectsTable.address,
+      objectPostalCode: objectsTable.postalCode,
+      objectCity: objectsTable.city,
+      objectFormattedAddress: objectsTable.formattedAddress,
+      objectLat: objectsTable.latitude,
+      objectLng: objectsTable.longitude,
+      personnelFirstName: personnelTable.firstName,
+      personnelLastName: personnelTable.lastName,
+      personnelVehicleType: personnelTable.vehicleType,
+      personnelAddressStreet: personnelTable.addressStreet,
+      personnelAddressPostalCode: personnelTable.addressPostalCode,
+      personnelAddressCity: personnelTable.addressCity,
+      personnelFormattedAddress: personnelTable.formattedAddress,
+      personnelLat: personnelTable.addressLatitude,
+      personnelLng: personnelTable.addressLongitude,
+      routeOriginLat: assignmentRouteContextsTable.originLat,
+      routeOriginLng: assignmentRouteContextsTable.originLng,
+      routeDestinationLat: assignmentRouteContextsTable.destinationLat,
+      routeDestinationLng: assignmentRouteContextsTable.destinationLng,
+      routePreviousAssignmentId: assignmentRouteContextsTable.previousAssignmentId,
+    })
+    .from(assignmentsTable)
+    .innerJoin(
+      assignmentPersonnelTable,
+      and(
+        eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id),
+        eq(assignmentPersonnelTable.personnelId, input.personnelId),
+        eq(assignmentPersonnelTable.status, "assigned"),
+      ),
+    )
+    .innerJoin(
+      personnelTable,
+      and(
+        eq(personnelTable.id, assignmentPersonnelTable.personnelId),
+        eq(personnelTable.tenantId, tenantId),
+        eq(personnelTable.isActive, true),
+      ),
+    )
+    .innerJoin(
+      customersTable,
+      and(
+        eq(customersTable.id, assignmentsTable.customerId),
+        eq(customersTable.tenantId, tenantId),
+      ),
+    )
+    .leftJoin(
+      objectsTable,
+      and(
+        eq(objectsTable.id, assignmentsTable.objectId),
+        eq(objectsTable.tenantId, tenantId),
+      ),
+    )
+    .leftJoin(
+      assignmentRouteContextsTable,
+      and(
+        eq(assignmentRouteContextsTable.tenantId, tenantId),
+        eq(assignmentRouteContextsTable.assignmentId, assignmentsTable.id),
+        eq(assignmentRouteContextsTable.personnelId, input.personnelId),
+        eq(assignmentRouteContextsTable.scheduledDate, assignmentsTable.scheduledDate),
+      ),
+    )
+    .where(
+      and(
+        eq(assignmentsTable.id, input.assignmentId),
+        eq(assignmentsTable.tenantId, tenantId),
+        eq(assignmentsTable.isActive, true),
+      ),
+    )
+    .limit(1);
+
+  const travelMode =
+    requestedMode ??
+    parsePlanningRouteTravelMode(row?.personnelVehicleType) ??
+    "DRIVE";
+  const providerMode = providerModeForVehicle(travelMode) as PlanningRouteTravelMode;
+
+  if (!row) {
+    return {
+      success: false,
+      assignmentId: input.assignmentId,
+      personnelId: input.personnelId,
+      travelMode,
+      providerMode,
+      code: "not_found",
+      message: "Werkbon of gekoppelde medewerker is niet gevonden.",
+      retryable: false,
+    };
+  }
+
+  const personnelName = `${row.personnelFirstName} ${row.personnelLastName}`.trim();
+  const personnelAddress =
+    row.personnelFormattedAddress ??
+    joinAddressParts(
+      row.personnelAddressStreet,
+      [row.personnelAddressPostalCode, row.personnelAddressCity]
+        .filter(Boolean)
+        .join(" "),
+    );
+  const objectAddress =
+    row.objectFormattedAddress ??
+    joinAddressParts(
+      row.objectAddress,
+      [row.objectPostalCode, row.objectCity].filter(Boolean).join(" "),
+    );
+  const customerAddress =
+    row.customerFormattedAddress ??
+    joinAddressParts(
+      row.customerAddress,
+      [row.customerPostalCode, row.customerCity].filter(Boolean).join(" "),
+    );
+
+  const contextOrigin = coordinateFromValues(
+    row.routeOriginLat,
+    row.routeOriginLng,
+  );
+  const personnelOrigin = coordinateFromValues(
+    row.personnelLat,
+    row.personnelLng,
+  );
+  const firstStopUsesHome = !row.routePreviousAssignmentId;
+  const origin = firstStopUsesHome
+    ? personnelOrigin ?? contextOrigin
+    : contextOrigin ?? personnelOrigin;
+  const originFromHome = Boolean(
+    personnelOrigin && (firstStopUsesHome || !contextOrigin),
+  );
+  if (!origin) {
+    return {
+      success: false,
+      assignmentId: row.assignmentId,
+      personnelId: input.personnelId,
+      travelMode,
+      providerMode,
+      code: "missing_origin",
+      message:
+        "Vertreklocatie ontbreekt. Vul het huisadres van de medewerker aan of bereken routecontext vanuit een vorige werkbon.",
+      retryable: false,
+    };
+  }
+
+  const contextDestination = coordinateFromValues(
+    row.routeDestinationLat,
+    row.routeDestinationLng,
+  );
+  const objectDestination = coordinateFromValues(row.objectLat, row.objectLng);
+  const customerDestination = coordinateFromValues(
+    row.customerLat,
+    row.customerLng,
+  );
+  const destination =
+    contextDestination ?? objectDestination ?? customerDestination;
+  if (!destination) {
+    return {
+      success: false,
+      assignmentId: row.assignmentId,
+      personnelId: input.personnelId,
+      travelMode,
+      providerMode,
+      code: "missing_destination",
+      message:
+        "Bestemmingslocatie ontbreekt. Vul de locatie van het object of de klant aan.",
+      retryable: false,
+    };
+  }
+
+  const coordinateError = validateRouteCoordinates(origin, destination);
+  if (coordinateError) {
+    return {
+      success: false,
+      assignmentId: row.assignmentId,
+      personnelId: input.personnelId,
+      travelMode,
+      providerMode,
+      code: "invalid_coordinates",
+      message: coordinateError,
+      retryable: false,
+    };
+  }
+
+  const route = await getRouteWithCache({
+    tenantId,
+    userId: user?.id ?? null,
+    origin,
+    destination,
+    vehicleType: travelMode,
+    departureTime: buildRouteDepartureTime(
+      row.scheduledDate,
+      row.scheduledStart,
+    ),
+  });
+
+  if (!route.success) {
+    return {
+      success: false,
+      assignmentId: row.assignmentId,
+      personnelId: input.personnelId,
+      travelMode,
+      providerMode,
+      code: providerMode === "TRANSIT" ? "transit_no_result" : "provider_error",
+      message:
+        providerMode === "TRANSIT"
+          ? "Geen OV-route gevonden voor deze medewerker en werkbon. Kies handmatig een ander vervoersmiddel als u toch wilt vergelijken."
+          : route.error,
+      retryable: route.retryable,
+    };
+  }
+
+  const providerMeta = route.providerMeta ?? {};
+  const staticDurationSeconds = routeMetaNumber(
+    providerMeta,
+    "staticDurationSeconds",
+  );
+  const trafficDelaySeconds =
+    providerMode === "DRIVE"
+      ? routeMetaNumber(providerMeta, "trafficDelaySeconds") ??
+        (staticDurationSeconds === null
+          ? null
+          : Math.max(0, route.durationSeconds - staticDurationSeconds))
+      : null;
+  const encodedPolyline =
+    typeof providerMeta.encodedPolyline === "string"
+      ? providerMeta.encodedPolyline
+      : null;
+
+  return {
+    success: true,
+    assignmentId: row.assignmentId,
+    personnelId: input.personnelId,
+    travelMode,
+    providerMode,
+    origin,
+    destination,
+    originLabel: originFromHome
+      ? `Huisadres ${personnelName || "medewerker"}${personnelAddress ? ` - ${personnelAddress}` : ""}`
+      : row.routePreviousAssignmentId
+        ? "Vorige werkbon"
+        : "Routecontext",
+    destinationLabel:
+      row.objectName && (objectAddress || contextDestination)
+        ? `${row.objectName}${objectAddress ? ` - ${objectAddress}` : ""}`
+        : `${row.customerName}${customerAddress ? ` - ${customerAddress}` : ""}`,
+    distanceMeters: route.distanceMeters,
+    durationSeconds: route.durationSeconds,
+    staticDurationSeconds,
+    trafficDelaySeconds,
+    encodedPolyline,
+    externalUrl: buildGoogleMapsDirectionsUrl({
+      origin,
+      destination,
+      travelMode,
+    }),
+    warnings: route.warnings,
+    cacheStatus: route.cacheStatus,
+    provider: route.provider,
+  };
 }
 
 export async function getPlanningDayMapData(
@@ -1351,11 +1807,8 @@ export async function getPlanningDayMapData(
   }
 
   const tenantId = await requireCurrentTenantId();
-  await ensurePlanningDayRouteContextsFresh({
-    tenantId,
-    date,
-    personnelId: filters.personnelId,
-  });
+  // Routecontext wordt hier bewust niet meer automatisch berekend.
+  // Google Routes-calls lopen uitsluitend via expliciete gebruikersactie in de kaart.
 
   const conditions: SQL[] = [
     eq(assignmentsTable.tenantId, tenantId),

@@ -106,9 +106,68 @@ const objectFormSchema = z.object({
 
 type ObjectFormValues = z.infer<typeof objectFormSchema>;
 
+type SelectedGooglePlace = {
+  googlePlaceId: string;
+  formattedAddress: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
+  postalCode: string | null;
+  city: string | null;
+  stateOrRegion: string | null;
+  countryCode: string;
+  latitude: number | null;
+  longitude: number | null;
+};
+
 function formValue(formData: FormData, name: string): string {
   const value = formData.get(name);
   return typeof value === "string" ? value : "";
+}
+
+function optionalFormValue(formData: FormData, name: string): string | null {
+  const value = formValue(formData, name).trim();
+  return value.length > 0 ? value : null;
+}
+
+function optionalNumberFormValue(formData: FormData, name: string): number | null {
+  const value = optionalFormValue(formData, name);
+  if (!value) return null;
+  const parsed = Number(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function coordinateString(value: number): string {
+  return value.toFixed(6);
+}
+
+function parseSelectedGooglePlace(formData: FormData, data: ObjectFormValues): SelectedGooglePlace | null {
+  const googlePlaceId = optionalFormValue(formData, "googlePlaceId");
+  if (!googlePlaceId) return null;
+
+  const addressLine1 = optionalFormValue(formData, "googleAddressLine1");
+  const postalCode = optionalFormValue(formData, "googlePostalCode");
+  const city = optionalFormValue(formData, "googleCity");
+
+  if (
+    (addressLine1 ?? "") !== data.address ||
+    (postalCode ?? "") !== data.postalCode ||
+    (city ?? "") !== data.city
+  ) {
+    return null;
+  }
+
+  return {
+    googlePlaceId,
+    formattedAddress: optionalFormValue(formData, "googleFormattedAddress"),
+    addressLine1,
+    addressLine2: optionalFormValue(formData, "googleAddressLine2"),
+    postalCode,
+    city,
+    stateOrRegion: optionalFormValue(formData, "googleStateOrRegion"),
+    countryCode: optionalFormValue(formData, "googleCountryCode") ?? "NL",
+    latitude: optionalNumberFormValue(formData, "googleLatitude"),
+    longitude: optionalNumberFormValue(formData, "googleLongitude"),
+  };
 }
 
 function firstFieldErrors(error: z.ZodError): Record<string, string> {
@@ -162,7 +221,37 @@ async function getAuthenticatedContext() {
   return { userId: user.id, customerId: identity.customerId, tenantId: identity.tenantId };
 }
 
-function buildObjectPayload(data: ObjectFormValues, customerId: string, tenantId: string, userId?: string) {
+function googlePlaceLocationPatch(googlePlace: SelectedGooglePlace | null, data: ObjectFormValues) {
+  if (!googlePlace) return {};
+  const hasCoordinates = googlePlace.latitude != null && googlePlace.longitude != null;
+
+  return {
+    addressLine1: googlePlace.addressLine1 ?? data.address,
+    addressLine2: googlePlace.addressLine2,
+    stateOrRegion: googlePlace.stateOrRegion,
+    countryCode: googlePlace.countryCode,
+    formattedAddress: googlePlace.formattedAddress,
+    googlePlaceId: googlePlace.googlePlaceId,
+    locationSource: "google_places",
+    locationVerifiedAt: new Date(),
+    locationUpdatedAt: new Date(),
+    latitude: googlePlace.latitude != null ? coordinateString(googlePlace.latitude) : null,
+    longitude: googlePlace.longitude != null ? coordinateString(googlePlace.longitude) : null,
+    geocodedAt: hasCoordinates ? new Date() : null,
+    geocodingProvider: "google_places",
+    geocodingStatus: hasCoordinates ? "geocoded" : "not_required",
+    geocodingConfidence: hasCoordinates ? "1.00" : null,
+    geocodingError: null,
+  };
+}
+
+function buildObjectPayload(
+  data: ObjectFormValues,
+  customerId: string,
+  tenantId: string,
+  userId?: string,
+  googlePlace: SelectedGooglePlace | null = null,
+) {
   return {
     tenantId,
     customerId,
@@ -182,6 +271,7 @@ function buildObjectPayload(data: ObjectFormValues, customerId: string, tenantId
     alarmInfo:         data.alarmInfo,
     fixedInstructions: data.fixedInstructions,
     specialNotes:      data.specialNotes,
+    ...googlePlaceLocationPatch(googlePlace, data),
     ...(data.reviewMode ? { isActive: data.reviewMode === "approved" } : {}),
     ...(userId ? { createdBy: userId } : {}),
   };
@@ -345,9 +435,10 @@ export async function createCustomerObject(
   }
 
   try {
+    const googlePlace = parseSelectedGooglePlace(formData, parsed.data);
     const [created] = await db
       .insert(objectsTable)
-      .values(buildObjectPayload(parsed.data, context.customerId, context.tenantId, context.userId))
+      .values(buildObjectPayload(parsed.data, context.customerId, context.tenantId, context.userId, googlePlace))
       .returning({ id: objectsTable.id });
 
     if (!created) {
@@ -416,9 +507,10 @@ export async function updateCustomerObject(
   }
 
   try {
+    const googlePlace = parseSelectedGooglePlace(formData, parsed.data);
     const [updated] = await db
       .update(objectsTable)
-      .set(buildObjectPayload(parsed.data, context.customerId, context.tenantId))
+      .set(buildObjectPayload(parsed.data, context.customerId, context.tenantId, undefined, googlePlace))
       .where(
         and(
           eq(objectsTable.id, objectId),

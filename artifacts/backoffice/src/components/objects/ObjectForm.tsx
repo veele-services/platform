@@ -32,6 +32,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { TagInput } from "@/components/ui/tag-input";
 import { RegionMultiSelect } from "@/components/regions/RegionMultiSelect";
+import { AddressAutocomplete, type AddressAutocompleteSelection } from "@/components/google-maps/AddressAutocomplete";
 import { cn } from "@/lib/utils";
 import {
   getObject,
@@ -73,14 +74,17 @@ const objectFormSchema = z.object({
 
 type FormValues = z.infer<typeof objectFormSchema>;
 
-type AddressSuggestion = {
-  id: string;
-  label: string;
-  street: string | null;
+type SelectedGooglePlace = {
+  googlePlaceId: string;
+  formattedAddress: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
   postalCode: string | null;
   city: string | null;
-  country: string;
-  confidence: number;
+  stateOrRegion: string | null;
+  countryCode: string;
+  latitude: number | null;
+  longitude: number | null;
 };
 
 // ─── Component ────────────────────────────────────────────────────────────────
@@ -133,8 +137,7 @@ export function ObjectForm({
   const [customerOpen, setCustomerOpen]   = useState(false);
   const [generatedCode, setGeneratedCode] = useState<string | null>(null);
   const [regionNames, setRegionNames]     = useState<string[]>([]);
-  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
-  const [addressLoading, setAddressLoading] = useState(false);
+  const [selectedGooglePlace, setSelectedGooglePlace] = useState<SelectedGooglePlace | null>(null);
 
   const form = useForm<FormValues>({
     defaultValues: {
@@ -155,9 +158,6 @@ export function ObjectForm({
   const sectorIdValue        = watch("sectorId") || "NONE";
   const requiredRoles        = watch("requiredRoles");
   const requiredCertificates = watch("requiredCertificates");
-  const addressValue         = watch("address");
-  const postalCodeValue      = watch("postalCode");
-  const cityValue            = watch("city");
 
   const selectedCustomer = customers.find((c) => c.id === customerIdValue);
 
@@ -193,45 +193,12 @@ export function ObjectForm({
       .finally(() => setLoading(false));
   }, [mode, objectId, setValue]);
 
-  useEffect(() => {
-    const query = [addressValue, postalCodeValue, cityValue]
-      .map((value) => value?.trim())
-      .filter(Boolean)
-      .join(" ");
-
-    if (query.length < 4) {
-      setAddressSuggestions([]);
-      setAddressLoading(false);
-      return;
-    }
-
-    const controller = new AbortController();
-    const timeout = window.setTimeout(async () => {
-      setAddressLoading(true);
-      try {
-        const response = await fetch(`/api/address-suggestions?q=${encodeURIComponent(query)}`, {
-          signal: controller.signal,
-        });
-        if (!response.ok) {
-          setAddressSuggestions([]);
-          return;
-        }
-        const payload = (await response.json()) as { suggestions?: AddressSuggestion[] };
-        setAddressSuggestions(payload.suggestions ?? []);
-      } catch (error) {
-        if (!(error instanceof DOMException && error.name === "AbortError")) {
-          setAddressSuggestions([]);
-        }
-      } finally {
-        setAddressLoading(false);
-      }
-    }, 350);
-
-    return () => {
-      controller.abort();
-      window.clearTimeout(timeout);
-    };
-  }, [addressValue, postalCodeValue, cityValue]);
+  function applyAddressSelection({ suggestion, place }: AddressAutocompleteSelection) {
+    setValue("address", place.addressLine1 ?? suggestion.mainText ?? suggestion.label);
+    setValue("postalCode", place.postalCode ?? "");
+    setValue("city", place.city ?? "");
+    setSelectedGooglePlace(place);
+  }
 
   const onSubmit = handleSubmit((data) => {
     const parsed = objectFormSchema.safeParse(data);
@@ -244,6 +211,11 @@ export function ObjectForm({
     }
 
     startTransition(async () => {
+      const googlePlaceStillMatches = selectedGooglePlace && (
+        (selectedGooglePlace.addressLine1 ?? "") === (parsed.data.address || "") &&
+        (selectedGooglePlace.postalCode ?? "") === (parsed.data.postalCode || "") &&
+        (selectedGooglePlace.city ?? "") === (parsed.data.city || "")
+      );
       const input: ObjectFormInput = {
         ...parsed.data,
         sectorId:             parsed.data.sectorId === "NONE" ? undefined : parsed.data.sectorId || undefined,
@@ -257,6 +229,7 @@ export function ObjectForm({
         alarmInfo:            parsed.data.alarmInfo            || undefined,
         fixedInstructions:    parsed.data.fixedInstructions    || undefined,
         specialNotes:         parsed.data.specialNotes         || undefined,
+        googlePlace:          googlePlaceStillMatches ? selectedGooglePlace : undefined,
       };
 
       const result =
@@ -470,8 +443,13 @@ export function ObjectForm({
                   Wordt gebruikt voor kaartweergave en reistijd vanaf het huisadres van de medewerker.
                 </p>
               </div>
-              {addressLoading ? <Loader2 className="h-4 w-4 animate-spin" style={{ color: "#00B7B3" }} /> : null}
             </div>
+            <AddressAutocomplete
+              className="mb-3"
+              label="Adres zoeken"
+              description="Kies een adres om de velden automatisch te vullen."
+              onSelect={applyAddressSelection}
+            />
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2 space-y-1">
                 <Label htmlFor="objectAddress">Straat &amp; huisnummer</Label>
@@ -505,36 +483,6 @@ export function ObjectForm({
                 {errors.postalCode && <p className="text-xs text-destructive">{errors.postalCode.message}</p>}
               </div>
             </div>
-            {addressSuggestions.length > 0 ? (
-              <div
-                className="absolute left-3 right-3 top-[calc(100%-0.75rem)] z-[80] rounded-md border bg-white shadow-xl"
-                style={{ borderColor: "#D8E8F3" }}
-              >
-                <p className="border-b px-3 py-2 text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B", borderColor: "#E2E8F0" }}>
-                  Adres aanvullen
-                </p>
-                <div className="max-h-44 overflow-y-auto p-1">
-                  {addressSuggestions.map((suggestion) => (
-                    <button
-                      key={suggestion.id}
-                      type="button"
-                      className="block w-full rounded px-3 py-2 text-left text-sm hover:bg-slate-50"
-                      onClick={() => {
-                        setValue("address", suggestion.street ?? "");
-                        setValue("postalCode", suggestion.postalCode ?? "");
-                        setValue("city", suggestion.city ?? "");
-                        setAddressSuggestions([]);
-                      }}
-                    >
-                      <span className="block font-medium" style={{ color: "#081D3A" }}>{suggestion.label}</span>
-                      <span className="text-xs" style={{ color: "#64748B" }}>
-                        PDOK - {Math.round(suggestion.confidence)}% match
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : null}
           </div>
         </div>
       </section>

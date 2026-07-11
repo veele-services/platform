@@ -5,6 +5,10 @@ import { auditLogTable } from "@workspace/db";
 import { getPlatformEmailProviderSettings } from "@workspace/db/email-service";
 import { revalidatePath } from "next/cache";
 import { requirePlatformAdmin } from "@/lib/auth/platform";
+import {
+  getPlatformGoogleMapsUsageDashboard,
+  type GoogleMapsUsageDashboard,
+} from "./google-maps-usage";
 import { getPlatformStagingSmokeDashboard } from "./platform-smoke";
 import type {
   PlatformSmokeRunHistoryEntry,
@@ -73,6 +77,7 @@ export type PlatformOperationsDashboard = {
   healthChecks: PlatformOperationsHealthCheck[];
   stagingSmoke: PlatformStagingSmokeDashboard;
   manualRuns: PlatformOperationsManualRun[];
+  googleMapsUsage: GoogleMapsUsageDashboard;
 };
 
 function envValue(name: string): string | null {
@@ -357,7 +362,11 @@ function buildDeployment(): PlatformOperationsDeployment {
 }
 
 export async function getPlatformOperationsDashboard(): Promise<PlatformOperationsDashboard> {
-  const stagingSmoke = await getPlatformStagingSmokeDashboard();
+  await requirePlatformAdmin();
+  const [stagingSmoke, googleMapsUsage] = await Promise.all([
+    getPlatformStagingSmokeDashboard(),
+    getPlatformGoogleMapsUsageDashboard(),
+  ]);
   const healthChecks = await buildHealthChecks(stagingSmoke);
   const manualRuns = buildManualRuns(stagingSmoke);
   const summary = statusCounts([...healthChecks, ...stagingSmoke.checks, ...manualRuns]);
@@ -370,6 +379,7 @@ export async function getPlatformOperationsDashboard(): Promise<PlatformOperatio
     healthChecks,
     stagingSmoke,
     manualRuns,
+    googleMapsUsage,
   };
 }
 

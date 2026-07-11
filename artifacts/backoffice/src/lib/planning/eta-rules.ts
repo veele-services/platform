@@ -2,6 +2,7 @@ import "server-only";
 
 import type {
   AssignmentStatus,
+  LegacyPersonnelVehicleType,
   PersonnelVehicleType,
   PlanningRouteSnapStatus,
 } from "@workspace/db";
@@ -114,17 +115,21 @@ export function roundMinutesUpToPlanningSlot(
 
 export function getRouteBufferMinutes(
   settings: EtaPlanningSettings,
-  vehicleType: PersonnelVehicleType,
+  vehicleType: PersonnelVehicleType | LegacyPersonnelVehicleType,
 ): number {
   switch (vehicleType) {
+    case "BICYCLE":
     case "bicycle":
       return settings.routeBufferMinutesBicycle;
+    case "WALK":
     case "walking":
       return settings.routeBufferMinutesWalking;
     case "moped_or_scooter":
       return settings.routeBufferMinutesMopedOrScooter;
+    case "TRANSIT":
     case "public_transport":
       return settings.routeBufferMinutesPublicTransport;
+    case "DRIVE":
     case "car":
     default:
       return settings.routeBufferMinutesCar;

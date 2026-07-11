@@ -1,21 +1,21 @@
-import type { PersonnelVehicleType } from "@workspace/db";
+import type { LegacyPersonnelVehicleType, PersonnelVehicleType } from "@workspace/db";
 
 export type RouteCoordinate = {
   lat: number;
   lng: number;
 };
 
-export type RouteVehicleType = PersonnelVehicleType;
+export type RouteVehicleType = PersonnelVehicleType | LegacyPersonnelVehicleType;
 
 export type RouteProviderMode =
   | "DRIVE"
   | "BICYCLE"
   | "WALK"
-  | "TWO_WHEELER"
   | "TRANSIT";
 
 export type RouteRequest = {
   tenantId: string;
+  userId?: string | null;
   origin: RouteCoordinate;
   destination: RouteCoordinate;
   vehicleType: RouteVehicleType;

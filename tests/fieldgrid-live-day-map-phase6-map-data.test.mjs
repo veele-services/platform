@@ -239,18 +239,28 @@ test("phase 6 map data action has tenant boundary and read-only contract", () =>
     path.join(root, "artifacts/backoffice/src/app/actions/planning.ts"),
     "utf8",
   );
+  const actionStart = planningSource.indexOf("export async function getPlanningDayMapData");
+  const actionEnd = planningSource.indexOf(
+    "\n/**",
+    actionStart,
+  );
+  const mapDataAction = planningSource.slice(
+    actionStart,
+    actionEnd === -1 ? undefined : actionEnd,
+  );
 
-  assert.match(planningSource, /export async function getPlanningDayMapData/);
-  assert.match(planningSource, /hasPermission\("planning", "read"\)/);
-  assert.match(planningSource, /requireCurrentTenantId\(\)/);
-  assert.match(planningSource, /eq\(assignmentsTable\.tenantId, tenantId\)/);
-  assert.match(planningSource, /eq\(personnelTable\.tenantId, tenantId\)/);
-  assert.match(planningSource, /eq\(customersTable\.tenantId, tenantId\)/);
-  assert.match(planningSource, /eq\(objectsTable\.tenantId, tenantId\)/);
+  assert.match(mapDataAction, /export async function getPlanningDayMapData/);
+  assert.match(mapDataAction, /hasPermission\("planning", "read"\)/);
+  assert.match(mapDataAction, /requireCurrentTenantId\(\)/);
+  assert.match(mapDataAction, /eq\(assignmentsTable\.tenantId, tenantId\)/);
+  assert.match(mapDataAction, /eq\(personnelTable\.tenantId, tenantId\)/);
+  assert.match(mapDataAction, /eq\(customersTable\.tenantId, tenantId\)/);
+  assert.match(mapDataAction, /eq\(objectsTable\.tenantId, tenantId\)/);
   assert.match(
-    planningSource,
+    mapDataAction,
     /eq\(assignmentRouteContextsTable\.tenantId, tenantId\)/,
   );
-  assert.match(planningSource, /buildPlanningDayMapDataFromRows/);
-  assert.doesNotMatch(planningSource, /providerMeta/);
+  assert.match(mapDataAction, /buildPlanningDayMapDataFromRows/);
+  assert.doesNotMatch(mapDataAction, /providerMeta/);
+  assert.doesNotMatch(mapDataAction, /getRouteWithCache/);
 });

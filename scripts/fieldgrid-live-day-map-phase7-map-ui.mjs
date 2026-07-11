@@ -61,20 +61,20 @@ mustNotContain("planningPage", "TenantConflictStrip", "duplicated planning summa
 mustContain("mapView", '"use client";', "client component");
 mustContain("mapView", "PlanningMapView", "exported map component");
 mustContain("mapView", "markerTone", "marker status colors");
-mustContain("mapView", "projectLngLat", "static tile projection");
-mustContain("mapView", "basemaps.cartocdn.com/light_all", "keyless CARTO raster map source");
-mustContain("mapView", "tile.openstreetmap.org", "OpenStreetMap fallback tiles");
+mustContain("mapView", "GoogleMapCanvas", "shared Google map component");
+mustContain("mapView", "markerStatusForAssignment", "central marker status mapping");
 mustContain("mapView", "OverlayChip", "overlay chips");
 mustContain("mapView", "werkbonnen", "work order overlay");
 mustContain("mapView", "waarschuwingen", "warning overlay");
 mustContain("mapView", "routes", "route overlay");
-mustNotContain("mapView", "Routepaneel", "legacy route side panel");
 mustContain("mapView", "SheetContent", "detail drawer");
 mustContain("mapView", "Geen werkbonnen met bruikbare coordinaten", "missing coordinate state");
-mustContain("mapView", "OpenStreetMap", "keyless raster map source");
+mustContain("mapView", "Route bekijken", "external route action");
+mustNotContain("mapView", "basemaps.cartocdn.com/light_all", "legacy CARTO raster map source");
+mustNotContain("mapView", "tile.openstreetmap.org", "legacy OpenStreetMap fallback tiles");
 mustNotContain("mapView", "maplibre-gl", "MapLibre dependency");
 mustNotContain("mapView", "NEXT_PUBLIC", "client-side provider/config");
-mustNotContain("mapView", "GOOGLE", "provider key leakage");
+mustNotContain("mapView", "GOOGLE_MAPS_SERVER_API_KEY", "server key leakage");
 mustNotContain("mapView", "MAPBOX", "provider key leakage");
 
 mustContain("docs", "Fase 7", "fase-7 documenttitel");
@@ -83,7 +83,7 @@ mustContain("docs", "rasterkaart", "rasterkaart documentatie");
 mustContain("docs", "rollback", "rollback documentatie");
 
 mustContain("test", "mapEnabled && view === \"map\"", "flag route test");
-mustContain("test", "basemaps\\.cartocdn\\.com", "static raster test");
+mustContain("test", "GoogleMapCanvas", "Google map component test");
 mustContain("test", "Geen werkbonnen met bruikbare coordinaten", "missing location UI test");
 
 mustContain("rootPackageJson", "fieldgrid:live-day-map-phase7", "package script");

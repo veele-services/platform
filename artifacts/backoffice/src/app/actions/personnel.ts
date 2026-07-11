@@ -10,6 +10,7 @@ import {
   objectsTable,
   customersTable,
   insertPersonnelSchema,
+  LEGACY_PERSONNEL_VEHICLE_TYPES,
   PERSONNEL_VEHICLE_TYPES,
   updatePersonnelSchema,
   availabilityWindowsTable,
@@ -48,6 +49,16 @@ function extractCertNames(raw: unknown): string[] {
 
 function normalizePersonnelVehicleType(value: unknown): PersonnelVehicleType | undefined {
   if (typeof value !== "string") return undefined;
+  const legacyMapping: Record<string, PersonnelVehicleType> = {
+    car: "DRIVE",
+    bicycle: "BICYCLE",
+    walking: "WALK",
+    public_transport: "TRANSIT",
+    moped_or_scooter: "DRIVE",
+  };
+  if ((LEGACY_PERSONNEL_VEHICLE_TYPES as readonly string[]).includes(value)) {
+    return legacyMapping[value];
+  }
   return (PERSONNEL_VEHICLE_TYPES as readonly string[]).includes(value)
     ? (value as PersonnelVehicleType)
     : undefined;
@@ -67,7 +78,40 @@ async function buildPersonnelAddressGeocodePatch(input: {
   addressPostalCode: string | null;
   addressCity: string | null;
   addressCountry: string;
+  googlePlace?: {
+    googlePlaceId: string;
+    formattedAddress: string | null;
+    addressLine1: string | null;
+    addressLine2: string | null;
+    postalCode: string | null;
+    city: string | null;
+    stateOrRegion: string | null;
+    countryCode: string;
+    latitude: number | null;
+    longitude: number | null;
+  };
 }) {
+  if (input.googlePlace?.googlePlaceId) {
+    return {
+      addressLine1: input.googlePlace.addressLine1 ?? input.addressStreet,
+      addressLine2: input.googlePlace.addressLine2,
+      stateOrRegion: input.googlePlace.stateOrRegion,
+      countryCode: input.googlePlace.countryCode,
+      formattedAddress: input.googlePlace.formattedAddress,
+      googlePlaceId: input.googlePlace.googlePlaceId,
+      locationSource: "google_places",
+      locationVerifiedAt: new Date(),
+      locationUpdatedAt: new Date(),
+      addressLatitude: input.googlePlace.latitude != null ? coordinateNumericValue(input.googlePlace.latitude) : null,
+      addressLongitude: input.googlePlace.longitude != null ? coordinateNumericValue(input.googlePlace.longitude) : null,
+      addressGeocodedAt: input.googlePlace.latitude != null && input.googlePlace.longitude != null ? new Date() : null,
+      addressGeocodingProvider: "google_places",
+      addressGeocodingStatus: input.googlePlace.latitude != null && input.googlePlace.longitude != null ? "geocoded" : "not_required",
+      addressGeocodingConfidence: input.googlePlace.latitude != null && input.googlePlace.longitude != null ? "1.00" : null,
+      addressGeocodingError: null,
+    };
+  }
+
   const addressInput = {
     address: input.addressStreet,
     postalCode: input.addressPostalCode,
@@ -77,6 +121,11 @@ async function buildPersonnelAddressGeocodePatch(input: {
 
   if (!hasGeocodableAddress(addressInput)) {
     return {
+      addressLine1: input.addressStreet,
+      countryCode: input.addressCountry.toUpperCase().startsWith("NL") || input.addressCountry.toLowerCase().includes("nederland") ? "NL" : null,
+      formattedAddress: [input.addressStreet, [input.addressPostalCode, input.addressCity].filter(Boolean).join(" "), input.addressCountry].filter(Boolean).join(", ") || null,
+      locationSource: input.addressStreet || input.addressPostalCode || input.addressCity ? "manual" : null,
+      locationUpdatedAt: new Date(),
       addressLatitude: null,
       addressLongitude: null,
       addressGeocodedAt: null,
@@ -90,6 +139,11 @@ async function buildPersonnelAddressGeocodePatch(input: {
   const result = await geocodeAddress(addressInput);
   if (!result.success) {
     return {
+      addressLine1: input.addressStreet,
+      countryCode: input.addressCountry.toUpperCase().startsWith("NL") || input.addressCountry.toLowerCase().includes("nederland") ? "NL" : null,
+      formattedAddress: [input.addressStreet, [input.addressPostalCode, input.addressCity].filter(Boolean).join(" "), input.addressCountry].filter(Boolean).join(", ") || null,
+      locationSource: "manual",
+      locationUpdatedAt: new Date(),
       addressLatitude: null,
       addressLongitude: null,
       addressGeocodedAt: null,
@@ -101,6 +155,12 @@ async function buildPersonnelAddressGeocodePatch(input: {
   }
 
   return {
+    addressLine1: input.addressStreet,
+    countryCode: input.addressCountry.toUpperCase().startsWith("NL") || input.addressCountry.toLowerCase().includes("nederland") ? "NL" : null,
+    formattedAddress: [input.addressStreet, [input.addressPostalCode, input.addressCity].filter(Boolean).join(" "), input.addressCountry].filter(Boolean).join(", ") || null,
+    locationSource: "legacy",
+    locationVerifiedAt: new Date(),
+    locationUpdatedAt: new Date(),
     addressLatitude: coordinateNumericValue(result.latitude),
     addressLongitude: coordinateNumericValue(result.longitude),
     addressGeocodedAt: new Date(),
@@ -152,6 +212,7 @@ export type PersonnelRow = {
   sectorId:     string | null;
   sectorName:   string | null;
   region:       string | null;
+  vehicleType:  PersonnelVehicleType;
   certificates: string[];
   isActive:           boolean;
   isAvailable:        boolean;
@@ -185,6 +246,7 @@ export type PersonnelDetail = {
   sectorName:   string | null;
   region:       string | null;
   /** Full certificate entries — preserves expires_at for the edit form */
+  vehicleType:  PersonnelVehicleType;
   certificates: CertificateEntry[];
   diplomas:     string[];
   knowledge:    string[];
@@ -210,6 +272,7 @@ export type PersonnelFormInput = {
   roleId?:      string;
   sectorId?:    string;
   region?:      string;
+  vehicleType?: PersonnelVehicleType | string;
   /** Full certificate entries — preserves expires_at on round-trip edits */
   certificates: CertificateEntry[];
   diplomas:     string[];
@@ -222,6 +285,18 @@ export type PersonnelFormInput = {
   emergencyAvailable?: boolean;
   preferredRegions?:   string[];
   contractInfo?:       ContractInfo | null;
+  googlePlace?: {
+    googlePlaceId: string;
+    formattedAddress: string | null;
+    addressLine1: string | null;
+    addressLine2: string | null;
+    postalCode: string | null;
+    city: string | null;
+    stateOrRegion: string | null;
+    countryCode: string;
+    latitude: number | null;
+    longitude: number | null;
+  };
 };
 
 export type PersonnelStats = {
@@ -393,6 +468,7 @@ export async function listPersonnel(params: {
         sectorId:           personnelTable.sectorId,
         sectorName:         sectorsTable.name,
         region:             personnelTable.region,
+        vehicleType:        personnelTable.vehicleType,
         certificates:       personnelTable.certificates,
         isActive:           personnelTable.isActive,
         isAvailable:        personnelTable.isAvailable,
@@ -428,6 +504,7 @@ export async function listPersonnel(params: {
       inviteSentAt:       r.inviteSentAt ? r.inviteSentAt.toISOString() : null,
       availabilityStatus: statusMap[r.id] ?? "niet_ingesteld",
       certificates:       extractCertNames(r.certificates),
+      vehicleType:        normalizePersonnelVehicleType(r.vehicleType) ?? "DRIVE",
       preferredRegions:   (r.preferredRegions as string[]) ?? [],
     }, sensitiveDecision)),
     total: countRows[0]?.total ?? 0,
@@ -466,6 +543,7 @@ export async function getPersonnel(id: string): Promise<PersonnelDetail | null> 
       sectorId:           personnelTable.sectorId,
       sectorName:         sectorsTable.name,
       region:             personnelTable.region,
+      vehicleType:        personnelTable.vehicleType,
       certificates:       personnelTable.certificates,
       diplomas:           personnelTable.diplomas,
       knowledge:          personnelTable.knowledge,
@@ -491,6 +569,7 @@ export async function getPersonnel(id: string): Promise<PersonnelDetail | null> 
     inviteSentAt:     r.inviteSentAt ? r.inviteSentAt.toISOString() : null,
     createdAt:        r.createdAt.toISOString(),
     updatedAt:        r.updatedAt.toISOString(),
+    vehicleType:      normalizePersonnelVehicleType(r.vehicleType) ?? "DRIVE",
     // Return full CertificateEntry[] so the edit form can preserve expires_at
     certificates:     ((r.certificates ?? []) as CertificateEntry[]),
     diplomas:         (r.diplomas  as string[]) ?? [],
@@ -736,6 +815,7 @@ export async function createPersonnel(
     roleId:             data.roleId         || null,
     sectorId:           data.sectorId       || null,
     region:             data.region?.trim() || null,
+    vehicleType:        data.vehicleType || "DRIVE",
     certificates:       data.certificates,
     diplomas:           data.diplomas,
     knowledge:          data.knowledge,
@@ -768,6 +848,7 @@ export async function createPersonnel(
       addressPostalCode: payload.addressPostalCode,
       addressCity: payload.addressCity,
       addressCountry: payload.addressCountry,
+      googlePlace: data.googlePlace,
     });
     const insertData = {
       ...parsedInsertData,
@@ -785,11 +866,15 @@ export async function createPersonnel(
     const createdId = created!.id;
 
     await db.insert(auditLogTable).values({
+      tenantId,
       userId:     user.id,
       action:     "create",
       resource:   "personnel",
       resourceId: createdId,
-      metadata:   { name: `${payload.firstName} ${payload.lastName}` },
+      metadata:   {
+        name: `${payload.firstName} ${payload.lastName}`,
+        vehicleType: insertData.vehicleType ?? "DRIVE",
+      },
     });
 
     // Auto-invite: send the portal invite immediately after creating the record
@@ -807,6 +892,7 @@ export async function createPersonnel(
           .where(eq(personnelTable.id, createdId));
 
         await db.insert(auditLogTable).values({
+          tenantId,
           userId:     user.id,
           action:     "auto_invite_personnel",
           resource:   "personnel",
@@ -862,6 +948,7 @@ export async function updatePersonnel(
     roleId:             data.roleId         || null,
     sectorId:           data.sectorId       || null,
     region:             data.region?.trim() || null,
+    vehicleType:        data.vehicleType || "DRIVE",
     certificates:       data.certificates,
     diplomas:           data.diplomas,
     knowledge:          data.knowledge,
@@ -894,7 +981,24 @@ export async function updatePersonnel(
       addressPostalCode: payload.addressPostalCode,
       addressCity: payload.addressCity,
       addressCountry: payload.addressCountry,
+      googlePlace: data.googlePlace,
     });
+
+    const [existing] = await db
+      .select({
+        id:          personnelTable.id,
+        vehicleType: personnelTable.vehicleType,
+      })
+      .from(personnelTable)
+      .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)))
+      .limit(1);
+
+    if (!existing) {
+      return { success: false, message: "Personeelsrecord niet gevonden." };
+    }
+
+    const previousVehicleType =
+      normalizePersonnelVehicleType(existing.vehicleType) ?? "DRIVE";
     const updateData = {
       ...parsedUpdateData,
       ...(vehicleType ? { vehicleType } : {}),
@@ -910,11 +1014,17 @@ export async function updatePersonnel(
       .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)));
 
     await db.insert(auditLogTable).values({
+      tenantId,
       userId:     user.id,
       action:     "update",
       resource:   "personnel",
       resourceId: id,
-      metadata:   { name: `${payload.firstName} ${payload.lastName}` },
+      metadata:   {
+        name: `${payload.firstName} ${payload.lastName}`,
+        previousVehicleType,
+        vehicleType: updateData.vehicleType ?? previousVehicleType,
+        vehicleTypeChanged: (updateData.vehicleType ?? previousVehicleType) !== previousVehicleType,
+      },
     });
 
     revalidatePath("/personnel");

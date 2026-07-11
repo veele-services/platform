@@ -54,30 +54,43 @@ test("phase 10 map data server action is tenant and permission scoped", () => {
 test("phase 10 route provider has deterministic fallback without external API keys", () => {
   const routeProvider = read("artifacts/backoffice/src/lib/planning/routes/route-provider.ts");
   const googleProvider = read("artifacts/backoffice/src/lib/planning/routes/google-routes-provider.ts");
+  const routesClient = read("artifacts/backoffice/src/lib/google-maps/routes-client.ts");
   const mockProvider = read("artifacts/backoffice/src/lib/planning/routes/mock-route-provider.ts");
 
   assert.match(routeProvider, /FIELDGRID_ROUTE_PROVIDER/);
   assert.match(routeProvider, /createMockRouteProvider/);
-  assert.match(routeProvider, /GOOGLE_ROUTES_API_KEY\s*\?\s*"google"\s*:\s*"mock"/);
-  assert.match(googleProvider, /GOOGLE_ROUTES_API_KEY is niet geconfigureerd\./);
+  assert.match(routeProvider, /GOOGLE_MAPS_SERVER_API_KEY/);
+  assert.doesNotMatch(routeProvider, /GOOGLE_ROUTES_API_KEY/);
+  assert.match(googleProvider, /GOOGLE_MAPS_SERVER_API_KEY is niet geconfigureerd\./);
   assert.match(
     googleProvider,
-    /return routeFailure\([\s\S]*?GOOGLE_ROUTES_API_KEY is niet geconfigureerd\.[\s\S]*?false/s,
+    /return routeFailure\([\s\S]*?GOOGLE_MAPS_SERVER_API_KEY is niet geconfigureerd\.[\s\S]*?false/s,
   );
+  assert.match(routesClient, /GOOGLE_ROUTES_FIELD_MASK/);
+  assert.match(routesClient, /routes\.duration/);
+  assert.match(routesClient, /routes\.staticDuration/);
+  assert.match(routesClient, /routes\.distanceMeters/);
+  assert.match(routesClient, /routes\.polyline\.encodedPolyline/);
+  assert.match(routesClient, /routingPreference = "TRAFFIC_AWARE"/);
+  assert.doesNotMatch(routesClient, /TRAFFIC_AWARE_OPTIMAL|computeRouteMatrix|optimizeWaypointOrder/);
   assert.match(mockProvider, /createMockRouteProvider/);
   assert.match(mockProvider, /durationSeconds/);
 });
 
-test("phase 10 map UI avoids fixed-width overflow and renders static raster tiles", () => {
+test("phase 10 map UI avoids fixed-width overflow and renders through Google Maps", () => {
   const mapView = read("artifacts/backoffice/src/components/assignments/PlanningMapView.tsx");
+  const canvas = read("artifacts/backoffice/src/components/google-maps/GoogleMapCanvas.tsx");
 
   assert.match(mapView, /OverlayChip/);
-  assert.match(mapView, /overflow-hidden/);
+  assert.match(canvas, /overflow-hidden/);
   assert.match(mapView, /w-full overflow-y-auto sm:max-w-xl/);
   assert.match(mapView, /max-h-80/);
   assert.match(mapView, /min-h-\[620px\]/);
-  assert.match(mapView, /basemaps\.cartocdn\.com\/light_all/);
-  assert.match(mapView, /tile\.openstreetmap\.org/);
+  assert.match(mapView, /GoogleMapCanvas/);
+  assert.match(canvas, /AdvancedMarkerElement/);
+  assert.match(canvas, /IntersectionObserver/);
+  assert.doesNotMatch(mapView, /basemaps\.cartocdn\.com\/light_all/);
+  assert.doesNotMatch(mapView, /tile\.openstreetmap\.org/);
   assert.doesNotMatch(mapView, /maplibre-gl/);
   assert.doesNotMatch(mapView, /min-w-\[/);
 });

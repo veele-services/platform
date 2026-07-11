@@ -16,13 +16,22 @@ import { sectorsTable } from "./sectors";
 import { tenantsTable } from "./tenants";
 
 export const PERSONNEL_VEHICLE_TYPES = [
+  "DRIVE",
+  "BICYCLE",
+  "WALK",
+  "TRANSIT",
+] as const;
+export type PersonnelVehicleType = (typeof PERSONNEL_VEHICLE_TYPES)[number];
+
+export const LEGACY_PERSONNEL_VEHICLE_TYPES = [
   "car",
   "bicycle",
   "walking",
   "moped_or_scooter",
   "public_transport",
 ] as const;
-export type PersonnelVehicleType = (typeof PERSONNEL_VEHICLE_TYPES)[number];
+export type LegacyPersonnelVehicleType =
+  (typeof LEGACY_PERSONNEL_VEHICLE_TYPES)[number];
 
 /**
  * Field worker / employee profile.
@@ -53,6 +62,15 @@ export const personnelTable = pgTable("personnel", {
   addressPostalCode: varchar("address_postal_code", { length: 20 }),
   addressCity:       varchar("address_city", { length: 120 }),
   addressCountry:    varchar("address_country", { length: 80 }).notNull().default("Nederland"),
+  addressLine1:      text("address_line_1"),
+  addressLine2:      text("address_line_2"),
+  stateOrRegion:     varchar("state_or_region", { length: 120 }),
+  countryCode:       varchar("country_code", { length: 2 }).default("NL"),
+  formattedAddress:  text("formatted_address"),
+  googlePlaceId:     varchar("google_place_id", { length: 255 }),
+  locationSource:    varchar("location_source", { length: 40 }),
+  locationVerifiedAt: timestamp("location_verified_at", { withTimezone: true }),
+  locationUpdatedAt: timestamp("location_updated_at", { withTimezone: true }),
   addressLatitude:   numeric("address_latitude", { precision: 9, scale: 6 }),
   addressLongitude:  numeric("address_longitude", { precision: 9, scale: 6 }),
   addressGeocodedAt: timestamp("address_geocoded_at", { withTimezone: true }),
@@ -70,8 +88,10 @@ export const personnelTable = pgTable("personnel", {
   region:       varchar("region", { length: 100 }),
   vehicleType:  varchar("vehicle_type", { length: 40 })
     .notNull()
-    .default("car")
+    .default("DRIVE")
     .$type<PersonnelVehicleType>(),
+  /** Original pre-Google-migration value when canonicalized from a legacy transport mode. */
+  legacyVehicleType: varchar("legacy_vehicle_type", { length: 40 }),
 
   /**
    * Certificates with optional expiry date.

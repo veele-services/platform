@@ -1,5 +1,7 @@
 # Fieldgrid live dagkaart en reistijdbuffer - onderzoek en implementatieplan
 
+> Historisch document: dit onderzoek is vervangen door de Google Maps Platform-canon en de centrale Google Maps Platform-integratie. Verwijzingen naar oude kaartbibliotheken, PDOK/Google-keuzes of oude route-keynamen zijn alleen historische context en geen actuele implementatie-instructie.
+
 ## 1. Samenvatting
 
 Dit document beschrijft hoe Fieldgrid een eerste productieklare versie kan krijgen van een live dagkaart voor planning. De kaart toont werkbonnen/opdrachten op een kaart, toont de actuele status per marker en berekent per personeelslid de reistijd van de vorige werkbon naar de volgende werkbon. Op basis daarvan kan Fieldgrid automatisch een buffer voorstellen en geplande tijden naar voren schuiven wanneer een werkbon buiten het klanttijdvak dreigt te vallen.

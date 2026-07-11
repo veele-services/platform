@@ -117,6 +117,18 @@ export type ObjectFormInput = {
   specialNotes?: string;
   requiredRoles?: string[];
   requiredCertificates?: string[];
+  googlePlace?: {
+    googlePlaceId: string;
+    formattedAddress: string | null;
+    addressLine1: string | null;
+    addressLine2: string | null;
+    postalCode: string | null;
+    city: string | null;
+    stateOrRegion: string | null;
+    countryCode: string;
+    latitude: number | null;
+    longitude: number | null;
+  };
 };
 
 export type ObjectContactRow = {
@@ -251,7 +263,30 @@ function confidenceString(value: number): string {
   return value.toFixed(2);
 }
 
-async function buildObjectAddressGeocodePatch(input: GeocodeAddressInput) {
+async function buildObjectAddressGeocodePatch(
+  input: GeocodeAddressInput & { googlePlace?: ObjectFormInput["googlePlace"] },
+) {
+  if (input.googlePlace?.googlePlaceId) {
+    return {
+      addressLine1: input.googlePlace.addressLine1 ?? input.address,
+      addressLine2: input.googlePlace.addressLine2,
+      stateOrRegion: input.googlePlace.stateOrRegion,
+      countryCode: input.googlePlace.countryCode,
+      formattedAddress: input.googlePlace.formattedAddress,
+      googlePlaceId: input.googlePlace.googlePlaceId,
+      locationSource: "google_places",
+      locationVerifiedAt: new Date(),
+      locationUpdatedAt: new Date(),
+      latitude: input.googlePlace.latitude != null ? coordinateString(input.googlePlace.latitude) : null,
+      longitude: input.googlePlace.longitude != null ? coordinateString(input.googlePlace.longitude) : null,
+      geocodedAt: input.googlePlace.latitude != null && input.googlePlace.longitude != null ? new Date() : null,
+      geocodingProvider: "google_places",
+      geocodingStatus: input.googlePlace.latitude != null && input.googlePlace.longitude != null ? "geocoded" : "not_required",
+      geocodingConfidence: input.googlePlace.latitude != null && input.googlePlace.longitude != null ? "1.00" : null,
+      geocodingError: null,
+    };
+  }
+
   const addressInput = { ...input, country: input.country ?? "NL" };
 
   if (!hasGeocodableAddress(addressInput)) {
@@ -1189,6 +1224,7 @@ function buildObjectPayload(data: ObjectFormInput, extra?: { createdBy?: string;
     specialNotes:         data.specialNotes?.trim()      || null,
     requiredRoles:        data.requiredRoles         ?? [],
     requiredCertificates: data.requiredCertificates  ?? [],
+    googlePlace:          data.googlePlace,
     ...(extra ?? {}),
   };
 }

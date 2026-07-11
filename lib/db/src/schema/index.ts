@@ -53,4 +53,5 @@ export * from "./notifications";
 export * from "./domain-events";
 export * from "./planning-intelligence";
 export * from "./planning-routes";
+export * from "./google-maps-usage";
 export * from "./sensitive-access";

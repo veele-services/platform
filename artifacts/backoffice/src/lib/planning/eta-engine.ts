@@ -51,6 +51,7 @@ const DEFAULT_PLANNING_SETTINGS: EtaPlanningSettings & {
 
 type RecalculatePlanningRouteContextsInput = {
   tenantId: string;
+  userId?: string | null;
   scheduledDate: string;
   personnelId?: string | null;
   now?: Date;
@@ -331,6 +332,7 @@ async function buildRouteContexts(input: {
   assignments: RouteAssignment[];
   settings: EtaPlanningSettings & { routeCacheTtlHours: number };
   now: Date;
+  userId?: string | null;
   routeProvider?: RouteProvider;
 }): Promise<InsertAssignmentRouteContext[]> {
   const byPersonnel = new Map<string, RouteAssignment[]>();
@@ -407,6 +409,7 @@ async function buildRouteContexts(input: {
       const route = await getRouteWithCache(
         {
           tenantId: input.tenantId,
+          userId: input.userId ?? null,
           origin,
           destination,
           vehicleType,
@@ -511,6 +514,7 @@ export async function recalculatePlanningRouteContexts(
     assignments,
     settings,
     now,
+    userId: input.userId ?? null,
     routeProvider: input.routeProvider,
   });
 

@@ -42,6 +42,9 @@ export const assignmentRouteCacheTable = pgTable(
     destinationLng: numeric("destination_lng", { precision: 9, scale: 6 }).notNull(),
     originHash: varchar("origin_hash", { length: 80 }).notNull(),
     destinationHash: varchar("destination_hash", { length: 80 }).notNull(),
+    requestContextHash: varchar("request_context_hash", { length: 80 })
+      .notNull()
+      .default("legacy"),
     durationSeconds: integer("duration_seconds").notNull(),
     distanceMeters: integer("distance_meters"),
     providerMeta: jsonb("provider_meta").$type<Record<string, unknown>>().notNull().default(sql`'{}'::jsonb`),
@@ -55,6 +58,7 @@ export const assignmentRouteCacheTable = pgTable(
       table.vehicleType,
       table.originHash,
       table.destinationHash,
+      table.requestContextHash,
     ),
     index("assignment_route_cache_tenant_expires_idx").on(table.tenantId, table.expiresAt),
   ],

@@ -117,6 +117,21 @@ export const assignmentsTable = pgTable("assignments", {
   /** HH:MM */
   scheduledEnd:   varchar("scheduled_end", { length: 5 }),
 
+  /** Historical execution address snapshot used for map/routes and work order integrity. */
+  executionAddressLine1: text("execution_address_line_1"),
+  executionAddressLine2: text("execution_address_line_2"),
+  executionPostalCode: varchar("execution_postal_code", { length: 20 }),
+  executionCity: varchar("execution_city", { length: 120 }),
+  executionStateOrRegion: varchar("execution_state_or_region", { length: 120 }),
+  executionCountryCode: varchar("execution_country_code", { length: 2 }),
+  executionFormattedAddress: text("execution_formatted_address"),
+  executionLatitude: numeric("execution_latitude", { precision: 9, scale: 6 }),
+  executionLongitude: numeric("execution_longitude", { precision: 9, scale: 6 }),
+  executionGooglePlaceId: varchar("execution_google_place_id", { length: 255 }),
+  executionLocationSource: varchar("execution_location_source", { length: 40 }),
+  executionLocationSnapshotAt: timestamp("execution_location_snapshot_at", { withTimezone: true }),
+  executionLocationUpdatedAt: timestamp("execution_location_updated_at", { withTimezone: true }),
+
   /** When the assigned personnel member first opened the work order. */
   seenAt:          timestamp("seen_at", { withTimezone: true }),
   /** First timestamp at which any assigned personnel member marked the work order as en route. */

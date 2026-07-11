@@ -23,38 +23,41 @@ test("phase 7 planning map tab is guarded by the feature flag", () => {
   assert.doesNotMatch(page, /TenantConflictStrip/);
 });
 
-test("phase 7 map component renders keyless static raster tiles client-side only", () => {
+test("phase 7 map component is now backed by the shared lazy Google map", () => {
   const mapView = read("artifacts/backoffice/src/components/assignments/PlanningMapView.tsx");
+  const canvas = read("artifacts/backoffice/src/components/google-maps/GoogleMapCanvas.tsx");
 
   assert.match(mapView, /"use client";/);
-  assert.match(mapView, /basemaps\.cartocdn\.com\/light_all/);
-  assert.match(mapView, /tile\.openstreetmap\.org/);
-  assert.match(mapView, /ResizeObserver/);
+  assert.match(mapView, /GoogleMapCanvas/);
+  assert.match(canvas, /IntersectionObserver/);
+  assert.match(canvas, /loadGoogleMapsJavaScriptApi/);
+  assert.match(canvas, /AdvancedMarkerElement/);
+  assert.doesNotMatch(mapView, /basemaps\.cartocdn\.com\/light_all/);
+  assert.doesNotMatch(mapView, /tile\.openstreetmap\.org/);
   assert.doesNotMatch(mapView, /maplibre-gl/);
   assert.doesNotMatch(mapView, /NEXT_PUBLIC/);
-  assert.doesNotMatch(mapView, /MAPBOX|GOOGLE/);
+  assert.doesNotMatch(mapView, /MAPBOX|GOOGLE_ROUTES_API_KEY|GOOGLE_MAPS_SERVER_API_KEY/);
 });
 
 test("phase 7 map UI exposes marker, route, warning and detail surfaces", () => {
   const mapView = read("artifacts/backoffice/src/components/assignments/PlanningMapView.tsx");
 
   assert.match(mapView, /markerTone/);
-  assert.match(mapView, /STATUS_COLORS/);
-  assert.match(mapView, /planning-waypoint-marker/);
-  assert.match(mapView, /<svg viewBox="0 0 24 24"/);
-  assert.match(mapView, /hoveredMarkerId/);
+  assert.match(mapView, /GOOGLE_MAPS_MARKER_STATUS/);
+  assert.match(mapView, /markerStatusForAssignment/);
+  assert.match(mapView, /GoogleMapCanvas/);
   assert.match(mapView, /dateLabel/);
   assert.match(mapView, /min-h-\[620px\]/);
   assert.match(mapView, /Adresgegevens/);
   assert.match(mapView, /Opdrachtinformatie/);
-  assert.doesNotMatch(mapView, />Routecontext</);
+  assert.match(mapView, />Routecontext</);
   assert.match(mapView, /OverlayChip/);
   assert.match(mapView, /werkbonnen/);
   assert.match(mapView, /waarschuwingen/);
   assert.match(mapView, /routes/);
-  assert.doesNotMatch(mapView, /Routepaneel/);
   assert.match(mapView, /SheetContent/);
   assert.match(mapView, /Geen werkbonnen met bruikbare coordinaten/);
+  assert.match(mapView, /Route bekijken/);
   assert.match(mapView, /Werkbon openen/);
 });
 

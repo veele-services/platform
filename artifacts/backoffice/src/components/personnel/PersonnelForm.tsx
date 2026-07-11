@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Separator } from "@/components/ui/separator";
+import { AddressAutocomplete, type AddressAutocompleteSelection } from "@/components/google-maps/AddressAutocomplete";
 import {
   Select,
   SelectContent,
@@ -61,6 +62,7 @@ const personnelFormSchema = z.object({
   roleId:             z.string(),
   sectorId:           z.string(),
   region:             z.string().max(100, "Max 100 tekens"),
+  vehicleType:        z.enum(["DRIVE", "BICYCLE", "WALK", "TRANSIT"]),
   contractStartDate:  z.string(),
   contractEndDate:    z.string(),
   contractType:       z.string().max(100, "Max 100 tekens"),
@@ -69,15 +71,25 @@ const personnelFormSchema = z.object({
 
 type TextFormValues = z.infer<typeof personnelFormSchema>;
 
-type AddressSuggestion = {
-  id: string;
-  label: string;
-  street: string | null;
+type SelectedGooglePlace = {
+  googlePlaceId: string;
+  formattedAddress: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
   postalCode: string | null;
   city: string | null;
-  country: string;
-  confidence: number;
+  stateOrRegion: string | null;
+  countryCode: string;
+  latitude: number | null;
+  longitude: number | null;
 };
+
+const VEHICLE_TYPE_OPTIONS = [
+  { value: "DRIVE", label: "Auto" },
+  { value: "BICYCLE", label: "Fiets" },
+  { value: "WALK", label: "Lopen" },
+  { value: "TRANSIT", label: "Openbaar vervoer" },
+] as const;
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 
@@ -102,6 +114,7 @@ const TEXT_DEFAULTS: TextFormValues = {
   roleId:            "",
   sectorId:          "",
   region:            "",
+  vehicleType:       "DRIVE",
   contractStartDate: "",
   contractEndDate:   "",
   contractType:      "",
@@ -132,8 +145,7 @@ export function PersonnelForm({
   const [personnelType,     setPersonnelType]     = useState<string>("");
   // Create-mode only: send invite email immediately after creating the record
   const [autoInvite,        setAutoInvite]        = useState(false);
-  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
-  const [addressLoading, setAddressLoading] = useState(false);
+  const [selectedGooglePlace, setSelectedGooglePlace] = useState<SelectedGooglePlace | null>(null);
 
   const form = useForm<TextFormValues>({ defaultValues: TEXT_DEFAULTS });
   const {
@@ -147,9 +159,7 @@ export function PersonnelForm({
 
   const roleIdValue = watch("roleId") || "NONE";
   const sectorIdValue = watch("sectorId") || "NONE";
-  const addressStreetValue = watch("addressStreet");
-  const addressPostalCodeValue = watch("addressPostalCode");
-  const addressCityValue = watch("addressCity");
+  const vehicleTypeValue = watch("vehicleType") || "DRIVE";
 
   useEffect(() => {
     listRegionOptions().then(setRegionOptions).catch(() => setRegionOptions([]));
@@ -173,6 +183,7 @@ export function PersonnelForm({
           setValue("roleId",            p.roleId    ?? "");
           setValue("sectorId",          p.sectorId  ?? "");
           setValue("region",            p.region    ?? "");
+          setValue("vehicleType",       p.vehicleType ?? "DRIVE");
           setValue("contractStartDate", p.contractInfo?.start_date    ?? "");
           setValue("contractEndDate",   p.contractInfo?.end_date      ?? "");
           setValue("contractType",      p.contractInfo?.contract_type ?? "");
@@ -191,45 +202,13 @@ export function PersonnelForm({
       .finally(() => setLoading(false));
   }, [mode, personnelId, setValue]);
 
-  useEffect(() => {
-    const query = [addressStreetValue, addressPostalCodeValue, addressCityValue]
-      .map((value) => value?.trim())
-      .filter(Boolean)
-      .join(" ");
-
-    if (query.length < 4) {
-      setAddressSuggestions([]);
-      setAddressLoading(false);
-      return;
-    }
-
-    const controller = new AbortController();
-    const timeout = window.setTimeout(async () => {
-      setAddressLoading(true);
-      try {
-        const response = await fetch(`/api/address-suggestions?q=${encodeURIComponent(query)}`, {
-          signal: controller.signal,
-        });
-        if (!response.ok) {
-          setAddressSuggestions([]);
-          return;
-        }
-        const payload = (await response.json()) as { suggestions?: AddressSuggestion[] };
-        setAddressSuggestions(payload.suggestions ?? []);
-      } catch (error) {
-        if (!(error instanceof DOMException && error.name === "AbortError")) {
-          setAddressSuggestions([]);
-        }
-      } finally {
-        setAddressLoading(false);
-      }
-    }, 350);
-
-    return () => {
-      controller.abort();
-      window.clearTimeout(timeout);
-    };
-  }, [addressStreetValue, addressPostalCodeValue, addressCityValue]);
+  function applyAddressSelection({ suggestion, place }: AddressAutocompleteSelection) {
+    setValue("addressStreet", place.addressLine1 ?? suggestion.mainText ?? suggestion.label);
+    setValue("addressPostalCode", place.postalCode ?? "");
+    setValue("addressCity", place.city ?? "");
+    setValue("addressCountry", place.countryCode === "NL" ? "Nederland" : place.countryCode);
+    setSelectedGooglePlace(place);
+  }
 
   const onSubmit = handleSubmit((data) => {
     const parsed = personnelFormSchema.safeParse(data);
@@ -254,6 +233,11 @@ export function PersonnelForm({
     } : null;
 
     startTransition(async () => {
+      const googlePlaceStillMatches = selectedGooglePlace && (
+        (selectedGooglePlace.addressLine1 ?? "") === (parsed.data.addressStreet || "") &&
+        (selectedGooglePlace.postalCode ?? "") === (parsed.data.addressPostalCode || "") &&
+        (selectedGooglePlace.city ?? "") === (parsed.data.addressCity || "")
+      );
       const input: PersonnelFormInput = {
         firstName:          parsed.data.firstName,
         lastName:           parsed.data.lastName,
@@ -266,6 +250,7 @@ export function PersonnelForm({
         roleId:             parsed.data.roleId === "NONE" ? undefined : parsed.data.roleId || undefined,
         sectorId:           parsed.data.sectorId === "NONE" ? undefined : parsed.data.sectorId || undefined,
         region:             regionNames[0] || parsed.data.region || undefined,
+        vehicleType:        parsed.data.vehicleType,
         certificates: certEntries,
         diplomas,
         knowledge,
@@ -276,6 +261,7 @@ export function PersonnelForm({
         emergencyAvailable,
         preferredRegions:   regionNames.slice(1),
         contractInfo,
+        googlePlace: googlePlaceStillMatches ? selectedGooglePlace : undefined,
       };
 
       const result =
@@ -362,8 +348,13 @@ export function PersonnelForm({
                   Wordt gebruikt als vertrekpunt voor de eerste werkbon op de planningskaart.
                 </p>
               </div>
-              {addressLoading ? <Loader2 className="h-4 w-4 animate-spin" style={{ color: "#00B7B3" }} /> : null}
             </div>
+            <AddressAutocomplete
+              className="mb-3"
+              label="Adres zoeken"
+              description="Kies een adres om de velden automatisch te vullen."
+              onSelect={applyAddressSelection}
+            />
             <div className="grid grid-cols-2 gap-3">
               <div className="col-span-2 space-y-1">
                 <Label htmlFor="addressStreet">Straat en huisnummer</Label>
@@ -402,37 +393,6 @@ export function PersonnelForm({
                 />
               </div>
             </div>
-            {addressSuggestions.length > 0 ? (
-              <div
-                className="absolute left-3 right-3 top-[calc(100%-0.75rem)] z-[80] rounded-md border bg-white shadow-xl"
-                style={{ borderColor: "#D8E8F3" }}
-              >
-                <p className="border-b px-3 py-2 text-xs font-semibold uppercase tracking-wider" style={{ color: "#64748B", borderColor: "#E2E8F0" }}>
-                  Adres aanvullen
-                </p>
-                <div className="max-h-44 overflow-y-auto p-1">
-                  {addressSuggestions.map((suggestion) => (
-                    <button
-                      key={suggestion.id}
-                      type="button"
-                      className="block w-full rounded px-3 py-2 text-left text-sm hover:bg-slate-50"
-                      onClick={() => {
-                        setValue("addressStreet", suggestion.street ?? "");
-                        setValue("addressPostalCode", suggestion.postalCode ?? "");
-                        setValue("addressCity", suggestion.city ?? "");
-                        setValue("addressCountry", suggestion.country);
-                        setAddressSuggestions([]);
-                      }}
-                    >
-                      <span className="block font-medium" style={{ color: "#081D3A" }}>{suggestion.label}</span>
-                      <span className="text-xs" style={{ color: "#64748B" }}>
-                        PDOK - {Math.round(suggestion.confidence)}% match
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : null}
           </div>
         </div>
       </section>
@@ -460,6 +420,28 @@ export function PersonnelForm({
               ))}
             </SelectContent>
           </Select>
+        </div>
+
+        <div className="mt-3 space-y-1">
+          <Label htmlFor="vehicleType">Standaard vervoersmiddel</Label>
+          <Select
+            value={vehicleTypeValue}
+            onValueChange={(value) => setValue("vehicleType", value as TextFormValues["vehicleType"])}
+          >
+            <SelectTrigger id="vehicleType">
+              <SelectValue placeholder="Selecteer vervoersmiddel..." />
+            </SelectTrigger>
+            <SelectContent>
+              {VEHICLE_TYPE_OPTIONS.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <p className="text-xs" style={{ color: "#94A3B8" }}>
+            Gebruikt als standaard bij routeberekening; planners kunnen per route tijdelijk afwijken.
+          </p>
         </div>
 
         <div className="mt-3 flex items-center justify-between rounded-lg border px-4 py-3" style={{ borderColor: "#E2E8F0" }}>

@@ -1,8 +1,8 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useState } from "react";
 import type { HTMLAttributes, ReactNode } from "react";
-import { Home, MapPin, Phone, User } from "lucide-react";
+import { Home, MapPin, Phone, Route, User } from "lucide-react";
 import {
   updateMyProfile,
   type PersonnelProfile,
@@ -11,6 +11,14 @@ import {
   PersonnelSettingsFeedback,
   PersonnelSettingsSaveBar,
 } from "@/components/SettingsShell";
+import { AddressAutocomplete, type AddressAutocompleteSelection } from "@/components/google-maps/AddressAutocomplete";
+
+const VEHICLE_TYPE_OPTIONS = [
+  { value: "DRIVE", label: "Auto" },
+  { value: "BICYCLE", label: "Fiets" },
+  { value: "WALK", label: "Lopen" },
+  { value: "TRANSIT", label: "Openbaar vervoer" },
+] as const;
 
 export function ProfileForm({ profile }: { profile: PersonnelProfile }) {
   const [state, formAction, isPending] = useActionState(
@@ -21,49 +29,22 @@ export function ProfileForm({ profile }: { profile: PersonnelProfile }) {
   const [addressPostalCode, setAddressPostalCode] = useState(profile.addressPostalCode ?? "");
   const [addressCity, setAddressCity] = useState(profile.addressCity ?? "");
   const [addressCountry, setAddressCountry] = useState(profile.addressCountry);
-  const [addressSuggestions, setAddressSuggestions] = useState<AddressSuggestion[]>([]);
-  const [addressLoading, setAddressLoading] = useState(false);
+  const [vehicleType, setVehicleType] = useState<string>(profile.vehicleType ?? "DRIVE");
+  const [selectedGooglePlace, setSelectedGooglePlace] = useState<SelectedGooglePlace | null>(null);
 
-  useEffect(() => {
-    const query = [addressStreet, addressPostalCode, addressCity]
-      .map((value) => value.trim())
-      .filter(Boolean)
-      .join(" ");
+  function applyAddressSelection({ suggestion, place }: AddressAutocompleteSelection) {
+    setAddressStreet(place.addressLine1 ?? suggestion.mainText ?? suggestion.label);
+    setAddressPostalCode(place.postalCode ?? "");
+    setAddressCity(place.city ?? "");
+    setAddressCountry(place.countryCode === "NL" ? "Nederland" : place.countryCode);
+    setSelectedGooglePlace(place);
+  }
 
-    if (query.length < 4) {
-      setAddressSuggestions([]);
-      setAddressLoading(false);
-      return;
-    }
-
-    const controller = new AbortController();
-    const timeout = window.setTimeout(async () => {
-      setAddressLoading(true);
-      try {
-        const response = await fetch(
-          `/personeel/api/address-suggestions?q=${encodeURIComponent(query)}`,
-          { signal: controller.signal },
-        );
-        if (!response.ok) {
-          setAddressSuggestions([]);
-          return;
-        }
-        const payload = (await response.json()) as { suggestions?: AddressSuggestion[] };
-        setAddressSuggestions(payload.suggestions ?? []);
-      } catch (error) {
-        if (!(error instanceof DOMException && error.name === "AbortError")) {
-          setAddressSuggestions([]);
-        }
-      } finally {
-        setAddressLoading(false);
-      }
-    }, 350);
-
-    return () => {
-      controller.abort();
-      window.clearTimeout(timeout);
-    };
-  }, [addressStreet, addressPostalCode, addressCity]);
+  const googlePlaceStillMatches = selectedGooglePlace && (
+    (selectedGooglePlace.addressLine1 ?? "") === addressStreet &&
+    (selectedGooglePlace.postalCode ?? "") === addressPostalCode &&
+    (selectedGooglePlace.city ?? "") === addressCity
+  );
 
   return (
     <form
@@ -98,6 +79,18 @@ export function ProfileForm({ profile }: { profile: PersonnelProfile }) {
           autoComplete="family-name"
         />
       </div>
+      {googlePlaceStillMatches ? (
+        <>
+          <input type="hidden" name="googlePlaceId" value={selectedGooglePlace.googlePlaceId} />
+          <input type="hidden" name="formattedAddress" value={selectedGooglePlace.formattedAddress ?? ""} />
+          <input type="hidden" name="addressLine1" value={selectedGooglePlace.addressLine1 ?? ""} />
+          <input type="hidden" name="addressLine2" value={selectedGooglePlace.addressLine2 ?? ""} />
+          <input type="hidden" name="stateOrRegion" value={selectedGooglePlace.stateOrRegion ?? ""} />
+          <input type="hidden" name="countryCode" value={selectedGooglePlace.countryCode} />
+          <input type="hidden" name="latitude" value={selectedGooglePlace.latitude ?? ""} />
+          <input type="hidden" name="longitude" value={selectedGooglePlace.longitude ?? ""} />
+        </>
+      ) : null}
 
       <div className="mt-3">
         <TextField
@@ -110,6 +103,32 @@ export function ProfileForm({ profile }: { profile: PersonnelProfile }) {
         />
       </div>
 
+      <label className="mt-3 block min-w-0 rounded-2xl border border-[#D8E8F3] bg-white px-3 py-2.5">
+        <span className="block text-xs font-bold uppercase tracking-wide text-slate-400">
+          Standaard vervoersmiddel
+        </span>
+        <span className="mt-1 flex min-w-0 items-center gap-2">
+          <span className="shrink-0 text-[#009E9A]">
+            <Route size={18} strokeWidth={2.4} />
+          </span>
+          <select
+            name="vehicleType"
+            value={vehicleType}
+            onChange={(event) => setVehicleType(event.currentTarget.value)}
+            className="min-w-0 flex-1 bg-transparent text-base font-bold text-[#081D3A] outline-none"
+          >
+            {VEHICLE_TYPE_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+        </span>
+        <span className="mt-1 block text-xs font-semibold text-slate-500">
+          Gebruikt als standaard bij routeberekening; planning kan per route tijdelijk afwijken.
+        </span>
+      </label>
+
       <div className="mt-4 rounded-[20px] border border-[#D8E8F3] bg-[#F8FBFE] p-3">
         <div className="mb-3 flex items-start justify-between gap-3">
           <div className="min-w-0">
@@ -121,13 +140,9 @@ export function ProfileForm({ profile }: { profile: PersonnelProfile }) {
               Dit adres wordt gebruikt als vertrekpunt voor je eerste werkbon.
             </p>
           </div>
-          {addressLoading ? (
-            <span className="shrink-0 rounded-full bg-white px-2 py-1 text-xs font-black text-[#009E9A] shadow-sm">
-              Zoeken...
-            </span>
-          ) : null}
         </div>
         <div className="space-y-3">
+          <AddressAutocomplete onSelect={applyAddressSelection} />
           <TextField
             label="Straat en huisnummer"
             name="addressStreet"
@@ -160,36 +175,6 @@ export function ProfileForm({ profile }: { profile: PersonnelProfile }) {
             autoComplete="country-name"
           />
         </div>
-        {addressSuggestions.length > 0 ? (
-          <div className="mt-3 overflow-hidden rounded-2xl border border-[#D8E8F3] bg-white">
-            <p className="border-b border-[#E2E8F0] px-3 py-2 text-xs font-black uppercase tracking-wide text-slate-400">
-              Adres aanvullen
-            </p>
-            <div className="max-h-52 overflow-y-auto p-1">
-              {addressSuggestions.map((suggestion) => (
-                <button
-                  key={suggestion.id}
-                  type="button"
-                  className="block w-full rounded-xl px-3 py-2 text-left active:bg-[#E8FBFA]"
-                  onClick={() => {
-                    setAddressStreet(suggestion.street ?? "");
-                    setAddressPostalCode(suggestion.postalCode ?? "");
-                    setAddressCity(suggestion.city ?? "");
-                    setAddressCountry(suggestion.country);
-                    setAddressSuggestions([]);
-                  }}
-                >
-                  <span className="block text-sm font-black text-[#081D3A]">
-                    {suggestion.label}
-                  </span>
-                  <span className="text-xs font-bold text-slate-500">
-                    PDOK - {Math.round(suggestion.confidence)}% match
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        ) : null}
       </div>
 
       {state?.error ? (
@@ -250,12 +235,15 @@ function TextField({
   );
 }
 
-type AddressSuggestion = {
-  id: string;
-  label: string;
-  street: string | null;
+type SelectedGooglePlace = {
+  googlePlaceId: string;
+  formattedAddress: string | null;
+  addressLine1: string | null;
+  addressLine2: string | null;
   postalCode: string | null;
   city: string | null;
-  country: string;
-  confidence: number;
+  stateOrRegion: string | null;
+  countryCode: string;
+  latitude: number | null;
+  longitude: number | null;
 };

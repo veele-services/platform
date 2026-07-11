@@ -6,16 +6,33 @@ import {
   organizationSettingsTable,
 } from "@workspace/db";
 import { and, eq, gt } from "drizzle-orm";
+import {
+  GOOGLE_MAPS_PROVIDER,
+  type GoogleMapsUsageMetricInput,
+} from "@/lib/google-maps";
+import {
+  dedupeGoogleMapsRequest,
+  stableGoogleMapsDedupeKey,
+} from "@/lib/google-maps/cache";
+import { checkGoogleMapsRateLimit } from "@/lib/google-maps/rate-limit";
+import { recordGoogleMapsUsageEvent } from "@/lib/google-maps/usage-recorder";
 import { getDefaultRouteProvider } from "./route-provider";
 import {
+  canonicalVehicleTypeForRoute,
   coordinateHash,
   coordinateNumericValue,
   expiresAtFromTtl,
   parseCoordinateNumeric,
   providerModeForVehicle,
+  routeCacheContextHash,
+  routeExpiresAtFromPolicy,
+  routeTrafficPreferenceForMode,
+  routeUsageEventForMode,
 } from "./route-utils";
 import type {
+  FailedRouteResult,
   RouteProvider,
+  RouteProviderMode,
   RouteRequest,
   RouteResult,
   SuccessfulRouteResult,
@@ -25,7 +42,10 @@ export type RouteCacheStatus =
   | "hit"
   | "miss"
   | "bypass"
-  | "write_failed";
+  | "write_failed"
+  | "deduped"
+  | "rate_limited"
+  | "negative_hit";
 
 export type RouteResultWithCacheStatus = RouteResult & {
   cacheStatus: RouteCacheStatus;
@@ -46,35 +66,138 @@ type RouteCacheMeta = Record<string, unknown> & {
   warnings?: string[];
 };
 
+type NegativeRouteCacheEntry = {
+  result: FailedRouteResult;
+  expiresAt: number;
+};
+
+const negativeRouteCache = new Map<string, NegativeRouteCacheEntry>();
+
 function routeCacheWhere(
   request: RouteRequest,
   provider: string,
   now: Date,
 ) {
+  const vehicleType = canonicalVehicleTypeForRoute(request.vehicleType);
   return and(
     eq(assignmentRouteCacheTable.tenantId, request.tenantId),
     eq(assignmentRouteCacheTable.provider, provider),
-    eq(assignmentRouteCacheTable.vehicleType, request.vehicleType),
+    eq(assignmentRouteCacheTable.vehicleType, vehicleType),
     eq(assignmentRouteCacheTable.originHash, coordinateHash(request.origin)),
     eq(
       assignmentRouteCacheTable.destinationHash,
       coordinateHash(request.destination),
     ),
+    eq(assignmentRouteCacheTable.requestContextHash, routeCacheContextHash(request)),
     gt(assignmentRouteCacheTable.expiresAt, now),
   );
 }
 
 function routeCacheIdentityWhere(request: RouteRequest, provider: string) {
+  const vehicleType = canonicalVehicleTypeForRoute(request.vehicleType);
   return and(
     eq(assignmentRouteCacheTable.tenantId, request.tenantId),
     eq(assignmentRouteCacheTable.provider, provider),
-    eq(assignmentRouteCacheTable.vehicleType, request.vehicleType),
+    eq(assignmentRouteCacheTable.vehicleType, vehicleType),
     eq(assignmentRouteCacheTable.originHash, coordinateHash(request.origin)),
     eq(
       assignmentRouteCacheTable.destinationHash,
       coordinateHash(request.destination),
     ),
+    eq(assignmentRouteCacheTable.requestContextHash, routeCacheContextHash(request)),
   );
+}
+
+function routeMetricEnvironment(): string {
+  return process.env.APP_ENV ?? process.env.VERCEL_ENV ?? process.env.NODE_ENV ?? "development";
+}
+
+function routeMetricMetadata(input: {
+  providerMode: RouteProviderMode;
+  cacheKey: string;
+  trafficPreference: "TRAFFIC_AWARE" | "NONE";
+  retryable?: boolean;
+  httpStatus?: number | null;
+}): GoogleMapsUsageMetricInput["metadata"] {
+  return {
+    providerMode: input.providerMode,
+    cacheKey: input.cacheKey,
+    trafficPreference: input.trafficPreference,
+    retryable: input.retryable ?? null,
+    httpStatus: input.httpStatus ?? null,
+  };
+}
+
+async function recordRouteUsage(input: {
+  request: RouteRequest;
+  providerMode: RouteProviderMode;
+  eventType?: GoogleMapsUsageMetricInput["eventType"];
+  success: boolean;
+  responseTimeMs: number | null;
+  cacheOrDedupeStatus: GoogleMapsUsageMetricInput["cacheOrDedupeStatus"];
+  retryable?: boolean;
+  httpStatus?: number | null;
+}): Promise<void> {
+  await recordGoogleMapsUsageEvent({
+    tenantId: input.request.tenantId,
+    userId: input.request.userId ?? null,
+    eventType: input.eventType ?? routeUsageEventForMode(input.providerMode),
+    environment: routeMetricEnvironment(),
+    success: input.success,
+    responseTimeMs: input.responseTimeMs,
+    cacheOrDedupeStatus: input.cacheOrDedupeStatus,
+    provider: GOOGLE_MAPS_PROVIDER,
+    estimatedSku: "routes_compute_routes",
+    metadata: routeMetricMetadata({
+      providerMode: input.providerMode,
+      cacheKey: routeCacheContextHash(input.request),
+      trafficPreference: routeTrafficPreferenceForMode(input.providerMode),
+      retryable: input.retryable,
+      httpStatus: input.httpStatus,
+    }),
+  });
+}
+
+function negativeRouteCacheKey(
+  request: RouteRequest,
+  providerName: string,
+): string {
+  return stableGoogleMapsDedupeKey([
+    "route_negative",
+    providerName,
+    request.tenantId,
+    coordinateHash(request.origin),
+    coordinateHash(request.destination),
+    providerModeForVehicle(request.vehicleType),
+    routeCacheContextHash(request),
+  ]);
+}
+
+function getNegativeCachedRoute(
+  request: RouteRequest,
+  providerName: string,
+  nowMs: number,
+): (FailedRouteResult & { cacheStatus: "negative_hit" }) | null {
+  const key = negativeRouteCacheKey(request, providerName);
+  const entry = negativeRouteCache.get(key);
+  if (!entry) return null;
+  if (entry.expiresAt <= nowMs) {
+    negativeRouteCache.delete(key);
+    return null;
+  }
+  return { ...entry.result, cacheStatus: "negative_hit" };
+}
+
+function setNegativeCachedRoute(
+  request: RouteRequest,
+  providerName: string,
+  result: FailedRouteResult,
+  nowMs: number,
+): void {
+  negativeRouteCache.set(negativeRouteCacheKey(request, providerName), {
+    result,
+    expiresAt: nowMs + 15_000,
+  });
 }
 
 export async function getRouteCacheTtlHours(
@@ -142,13 +265,14 @@ export async function upsertRouteCache(
   const values = {
     tenantId: request.tenantId,
     provider: result.provider,
-    vehicleType: request.vehicleType,
+    vehicleType: canonicalVehicleTypeForRoute(request.vehicleType),
     originLat: coordinateNumericValue(request.origin.lat),
     originLng: coordinateNumericValue(request.origin.lng),
     destinationLat: coordinateNumericValue(request.destination.lat),
     destinationLng: coordinateNumericValue(request.destination.lng),
     originHash: coordinateHash(request.origin),
     destinationHash: coordinateHash(request.destination),
+    requestContextHash: routeCacheContextHash(request),
     durationSeconds: result.durationSeconds,
     distanceMeters: result.distanceMeters,
     providerMeta: {
@@ -196,15 +320,88 @@ export async function getRouteWithCache(
   options: RouteCacheWriteOptions = {},
 ): Promise<RouteResultWithCacheStatus> {
   const now = options.now ?? new Date();
+  const nowMs = now.getTime();
+  const providerMode = providerModeForVehicle(request.vehicleType);
+  const isGoogleRoutesProvider = provider.name === "google_routes";
   const cached = await getCachedRoute(request, {
     provider: provider.name,
     now,
   });
-  if (cached) return cached;
+  if (cached) {
+    if (isGoogleRoutesProvider) {
+      await recordRouteUsage({
+        request,
+        providerMode,
+        success: true,
+        responseTimeMs: 0,
+        cacheOrDedupeStatus: "cache_hit",
+      });
+    }
+    return cached;
+  }
+
+  const negativeCached = getNegativeCachedRoute(request, provider.name, nowMs);
+  if (negativeCached) {
+    if (isGoogleRoutesProvider) {
+      await recordRouteUsage({
+        request,
+        providerMode,
+        success: false,
+        responseTimeMs: 0,
+        cacheOrDedupeStatus: "negative_cache",
+        retryable: negativeCached.retryable,
+      });
+    }
+    return negativeCached;
+  }
+
+  if (isGoogleRoutesProvider) {
+    const rateLimit = checkGoogleMapsRateLimit({
+      tenantId: request.tenantId,
+      userId: request.userId ?? null,
+      action: "route_request",
+    });
+    if (!rateLimit.allowed) {
+      await recordRouteUsage({
+        request,
+        providerMode,
+        eventType: "google_api_rate_limited",
+        success: false,
+        responseTimeMs: 0,
+        cacheOrDedupeStatus: "rate_limited",
+      });
+      return {
+        success: false,
+        provider: provider.name,
+        providerMode,
+        error: "Routeberekening is tijdelijk begrensd. Probeer het zo opnieuw.",
+        retryable: true,
+        warnings: [],
+        providerMeta: { rateLimitResetAt: rateLimit.resetAt },
+        cacheStatus: "rate_limited",
+      };
+    }
+  }
 
   let route: RouteResult;
+  let dedupeStatus: "miss" | "deduped" = "miss";
+  const startedAt = Date.now();
   try {
-    route = await provider.getRoute(request);
+    const deduped = await dedupeGoogleMapsRequest(
+      stableGoogleMapsDedupeKey([
+        "route",
+        provider.name,
+        request.tenantId,
+        coordinateHash(request.origin),
+        coordinateHash(request.destination),
+        providerMode,
+        routeCacheContextHash(request),
+      ]),
+      () => provider.getRoute(request),
+      { now: nowMs },
+    );
+    route = deduped.value;
+    dedupeStatus = deduped.status === "deduped" ? "deduped" : "miss";
   } catch {
     return {
       success: false,
@@ -216,17 +413,63 @@ export async function getRouteWithCache(
       cacheStatus: "miss",
     };
   }
+  const responseTimeMs = Math.max(0, Date.now() - startedAt);
 
   if (!route.success) {
+    setNegativeCachedRoute(request, provider.name, route, nowMs);
+    if (isGoogleRoutesProvider) {
+      await recordRouteUsage({
+        request,
+        providerMode,
+        eventType: route.providerMeta?.providerErrorCode
+          ? "google_api_error"
+          : routeUsageEventForMode(providerMode),
+        success: false,
+        responseTimeMs,
+        cacheOrDedupeStatus: dedupeStatus,
+        retryable: route.retryable,
+        httpStatus:
+          typeof route.providerMeta?.httpStatus === "number"
+            ? route.providerMeta.httpStatus
+            : null,
+      });
+    }
     return { ...route, cacheStatus: "miss" };
   }
 
   try {
     const ttlHours =
       options.ttlHours ?? (await getRouteCacheTtlHours(request.tenantId));
-    await upsertRouteCache(request, route, { ...options, now, ttlHours });
-    return { ...route, cacheStatus: "miss" };
+    await upsertRouteCache(request, route, {
+      ...options,
+      now,
+      ttlHours,
+      expiresAt: routeExpiresAtFromPolicy(now, providerMode, ttlHours),
+    });
+    if (isGoogleRoutesProvider) {
+      await recordRouteUsage({
+        request,
+        providerMode,
+        success: true,
+        responseTimeMs,
+        cacheOrDedupeStatus: dedupeStatus,
+      });
+    }
+    return { ...route, cacheStatus: dedupeStatus === "deduped" ? "deduped" : "miss" };
   } catch {
+    if (isGoogleRoutesProvider) {
+      await recordRouteUsage({
+        request,
+        providerMode,
+        success: true,
+        responseTimeMs,
+        cacheOrDedupeStatus: "cache_miss",
+      });
+    }
     return { ...route, cacheStatus: "write_failed" };
   }
+}
+
+export function clearRouteRuntimeCaches(): void {
+  negativeRouteCache.clear();
 }

@@ -1,0 +1,4 @@
+{
+  "status": "skipped",
+  "reason": "FIELDGRID_GOOGLE_MAPS_LIVE_SMOKE=1 is required for paid/live staging checks."
+}
