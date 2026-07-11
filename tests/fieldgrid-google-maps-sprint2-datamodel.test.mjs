@@ -66,6 +66,23 @@ test("Sprint 2: assignments receive execution location snapshots", () => {
   }
 });
 
+test("Sprint 2: assignment snapshot backfill avoids target aliases inside FROM joins", () => {
+  const migration = read(migrationPath);
+
+  assert.doesNotMatch(
+    migration,
+    /FROM public\.customers AS c\s+LEFT JOIN public\.objects AS o\s+ON[\s\S]*?\ba\./u,
+  );
+  assert.match(
+    migration,
+    /FROM public\.objects AS o, public\.customers AS c[\s\S]*?o\.id = a\.object_id/u,
+  );
+  assert.match(
+    migration,
+    /FROM public\.customers AS c[\s\S]*?AND a\.execution_location_snapshot_at IS NULL/u,
+  );
+});
+
 test("Sprint 2: travel modes are canonical and legacy values are migrated safely", () => {
   const migration = read(migrationPath);
   const personnelSchema = read("lib/db/src/schema/personnel.ts");
