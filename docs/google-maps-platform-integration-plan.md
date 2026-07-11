@@ -1,10 +1,12 @@
 # Google Maps Platform Integration Plan
 
-Status: Sprint 12 legacy kaartcode en oude route-env opgeruimd.
+Status: Sprint 13 documentatie, privacy, Google Cloud setup en rollback afgerond.
 
 Sprint 1 vult de centrale modulebasis, env-documentatie en secret guards aan zonder de actieve kaart-, Places- of Routes-flow al te migreren.
 
 Sprint 2 legt de canonieke locatievelden, assignment execution snapshots, provider-onafhankelijke usage metrics en `DRIVE | BICYCLE | WALK | TRANSIT`-vervoersmodus veilig vast in schema en migratie.
+
+Sprint 13 maakt `docs/deployment/google-maps-platform.md` de canonieke operator-runbook voor Google Cloud setup, privacy/EEA, keyrestricties, cachebeleid, kostenbeheersing, usage-rapportage en rollback.
 
 Laatste baseline: main branch, na `git fetch origin main` en `git pull --ff-only origin main`.
 
@@ -267,6 +269,14 @@ Te raken documenten:
 - staging docs;
 - production docs;
 - bestaande live day map docs.
+
+Sprint 13 status:
+
+- `docs/deployment/google-maps-platform.md` beschrijft de Google Cloud services, keyrestricties per omgeving en operator-checklists voor staging en production.
+- Maps JavaScript API is expliciet client-side met `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY`.
+- Places API (New) en Routes API zijn expliciet server-side via Fieldgrid endpoints/services met `GOOGLE_MAPS_SERVER_API_KEY`.
+- `GOOGLE_MAPS_SERVER_API_KEY` mag nooit in browserbundles, props, HTML, hydrationdata, publieke JSON-responses, logs of client-side env terechtkomen.
+- Privacy/EEA, opgeslagen Google-data, field masks, attribution, rate limits, usage metrics, cachebeleid, kostenbeheersing en rollback zijn vastgelegd.
 
 Sprint 1 documentatie:
 

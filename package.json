@@ -97,6 +97,7 @@
     "fieldgrid:live-day-map-phase10:check": "node scripts/fieldgrid-live-day-map-phase10-beta-gate.mjs --check && node --test tests/fieldgrid-live-day-map-phase10-beta-gate.test.mjs tests/fieldgrid-live-day-map-phase10-performance.test.mjs",
     "fieldgrid:live-day-map-phase10:strict": "node scripts/fieldgrid-live-day-map-phase10-beta-gate.mjs --strict-evidence && node --test tests/fieldgrid-live-day-map-phase10-beta-gate.test.mjs tests/fieldgrid-live-day-map-phase10-performance.test.mjs",
     "fieldgrid:google-maps-sprint12:check": "node --test tests/fieldgrid-google-maps-sprint12-legacy-cleanup.test.mjs",
+    "fieldgrid:google-maps-sprint13:check": "node --test tests/fieldgrid-google-maps-sprint13-docs.test.mjs",
     "fieldgrid:invoice-sprint10-release-gate": "node scripts/fieldgrid-invoice-sprint10-release-gate.mjs && node --test tests/fieldgrid-invoice-canon-sprint10-release-gate.test.mjs",
     "fieldgrid:invoice-sprint10-release-gate:check": "node scripts/fieldgrid-invoice-sprint10-release-gate.mjs --check && node --test tests/fieldgrid-invoice-canon-sprint10-release-gate.test.mjs",
     "fieldgrid:invoice-sprint10-release-gate:strict": "node scripts/fieldgrid-invoice-sprint10-release-gate.mjs --strict-evidence && node --test tests/fieldgrid-invoice-canon-sprint10-release-gate.test.mjs",
