@@ -7,6 +7,11 @@ import {
   type PlatformOperationsManualRun,
 } from "@/app/actions/platform-operations";
 import type {
+  GoogleMapsUsageAggregateRow,
+  GoogleMapsUsageDashboard,
+  GoogleMapsUsageTenantRow,
+} from "@/app/actions/google-maps-usage";
+import type {
   PlatformFinalExternalTenantGate,
   PlatformMigrationSmokeStatus,
   PlatformSmokeRunHistoryEntry,
@@ -51,6 +56,164 @@ function Stat({ label, value, status }: { label: string; value: string | number;
       <div className="mt-1 flex items-end justify-between gap-3">
         <p className="text-2xl font-semibold text-slate-950">{value}</p>
         {status && <span className={`rounded border px-2 py-1 text-xs font-semibold ${statusClass(status)}`}>{STATUS_LABELS[status]}</span>}
+      </div>
+    </div>
+  );
+}
+
+function formatResponseMs(value: number | null): string {
+  return value === null ? "-" : `${value}ms`;
+}
+
+function GoogleMapsUsagePanel({ usage }: { usage: GoogleMapsUsageDashboard }) {
+  const cacheEfficiency =
+    usage.summary.totalEvents > 0
+      ? Math.round(((usage.summary.cacheHits + usage.summary.deduped) / usage.summary.totalEvents) * 100)
+      : 0;
+
+  return (
+    <section className="rounded border border-slate-200 bg-white p-5 shadow-sm">
+      <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <h2 className="text-lg font-semibold tracking-normal text-slate-950">Google Maps usage</h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Maandaggregatie per tenant voor Maps, Places en Routes zonder adressen, API-keys of routepayloads.
+          </p>
+          <p className="mt-2 text-xs text-slate-400">
+            Periode: {usage.periodStart} t/m {usage.periodEnd}. Gegenereerd: {formatDate(usage.generatedAt)}.
+          </p>
+        </div>
+        <span className={`w-fit rounded border px-2 py-1 text-xs font-semibold ${usage.anomalies.length > 0 ? statusClass("warning") : statusClass("ok")}`}>
+          {usage.anomalies.length > 0 ? `${usage.anomalies.length} afwijking(en)` : "Geen afwijkingen"}
+        </span>
+      </div>
+
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+        <Stat label="Events" value={usage.summary.totalEvents} />
+        <Stat label="Succesvol" value={usage.summary.successes} status={usage.summary.failures > 0 ? "warning" : "ok"} />
+        <Stat label="Fouten" value={usage.summary.failures} status={usage.summary.failures > 0 ? "warning" : "ok"} />
+        <Stat label="Rate limited" value={usage.summary.rateLimited} status={usage.summary.rateLimited > 0 ? "blocked" : "ok"} />
+        <Stat label="Cache/dedupe" value={`${cacheEfficiency}%`} />
+        <Stat label="Gem. responstijd" value={formatResponseMs(usage.summary.averageResponseMs)} />
+      </div>
+
+      <div className="mt-5 grid gap-5 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)]">
+        <GoogleMapsTenantUsageTable tenants={usage.tenants} />
+        <div className="grid gap-5">
+          <GoogleMapsAggregateList title="Events per type" rows={usage.byEvent} />
+          <GoogleMapsAggregateList title="Estimated SKU" rows={usage.bySku} />
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-5 lg:grid-cols-2">
+        <GoogleMapsAggregateList title="Provider" rows={usage.byProvider} />
+        <GoogleMapsAggregateList title="Cache en dedupe" rows={usage.byCacheStatus} />
+      </div>
+
+      <div className="mt-5 grid gap-5 lg:grid-cols-2">
+        <GoogleMapsAnomalyList tenants={usage.anomalies} />
+      </div>
+
+      <GoogleMapsFailureList failures={usage.recentFailures} />
+    </section>
+  );
+}
+
+function GoogleMapsTenantUsageTable({ tenants }: { tenants: GoogleMapsUsageTenantRow[] }) {
+  return (
+    <div className="overflow-hidden rounded border border-slate-200">
+      <div className="border-b border-slate-200 bg-slate-50 px-4 py-3">
+        <h3 className="font-semibold text-slate-950">Tenantgebruik</h3>
+        <p className="mt-1 text-xs text-slate-500">Top 20 tenants deze maand, inclusief failures, cache/dedupe en SKU-signalen.</p>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="min-w-full divide-y divide-slate-200 text-sm">
+          <thead className="bg-white text-left text-xs font-semibold uppercase text-slate-500">
+            <tr>
+              <th className="px-4 py-3">Tenant</th>
+              <th className="px-4 py-3 text-right">Events</th>
+              <th className="px-4 py-3 text-right">Fouten</th>
+              <th className="px-4 py-3 text-right">Rate limit</th>
+              <th className="px-4 py-3 text-right">Cache</th>
+              <th className="px-4 py-3">SKU</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 bg-white">
+            {tenants.map((tenant) => (
+              <tr key={tenant.tenantId}>
+                <td className="px-4 py-3 font-medium text-slate-950">{tenant.tenantName}</td>
+                <td className="px-4 py-3 text-right text-slate-700">{tenant.events}</td>
+                <td className="px-4 py-3 text-right text-slate-700">{tenant.failures}</td>
+                <td className="px-4 py-3 text-right text-slate-700">{tenant.rateLimited}</td>
+                <td className="px-4 py-3 text-right text-slate-700">{tenant.cacheHits + tenant.deduped}</td>
+                <td className="max-w-xs px-4 py-3 text-xs text-slate-500">{tenant.estimatedSkus.join(", ") || "-"}</td>
+              </tr>
+            ))}
+            {tenants.length === 0 && (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-sm text-slate-500">Nog geen Google Maps usage-events deze maand.</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function GoogleMapsAggregateList({ title, rows }: { title: string; rows: GoogleMapsUsageAggregateRow[] }) {
+  return (
+    <div className="rounded border border-slate-200 bg-slate-50 p-4">
+      <h3 className="font-semibold text-slate-950">{title}</h3>
+      <div className="mt-3 grid gap-2">
+        {rows.slice(0, 8).map((row) => (
+          <div key={`${title}-${row.key}`} className="flex items-center justify-between gap-3 rounded bg-white px-3 py-2 text-sm">
+            <div>
+              <p className="font-medium text-slate-900">{row.label}</p>
+              <p className="text-xs text-slate-500">{row.failures} fout(en), {row.rateLimited} rate-limited</p>
+            </div>
+            <div className="text-right">
+              <p className="font-semibold text-slate-950">{row.events}</p>
+              <p className="text-xs text-slate-500">{formatResponseMs(row.averageResponseMs)}</p>
+            </div>
+          </div>
+        ))}
+        {rows.length === 0 && <p className="text-sm text-slate-500">Nog geen events.</p>}
+      </div>
+    </div>
+  );
+}
+
+function GoogleMapsAnomalyList({ tenants }: { tenants: GoogleMapsUsageTenantRow[] }) {
+  return (
+    <div className="rounded border border-slate-200 bg-slate-50 p-4">
+      <h3 className="font-semibold text-slate-950">Afwijkend gebruik</h3>
+      <div className="mt-3 grid gap-2">
+        {tenants.map((tenant) => (
+          <div key={`anomaly-${tenant.tenantId}`} className="rounded border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-950">
+            <p className="font-semibold">{tenant.tenantName}</p>
+            <p className="mt-1 text-xs">{tenant.anomalyReasons.join(" / ")}</p>
+          </div>
+        ))}
+        {tenants.length === 0 && <p className="text-sm text-slate-500">Geen afwijkend gebruik gedetecteerd.</p>}
+      </div>
+    </div>
+  );
+}
+
+function GoogleMapsFailureList({ failures }: { failures: GoogleMapsUsageDashboard["recentFailures"] }) {
+  return (
+    <div className="mt-5 rounded border border-slate-200 bg-slate-50 p-4">
+      <h3 className="font-semibold text-slate-950">Recente fouten</h3>
+      <div className="mt-3 grid gap-2">
+        {failures.map((failure) => (
+          <div key={`${failure.tenantId}-${failure.createdAt}-${failure.eventType}`} className="grid gap-2 rounded bg-white px-3 py-2 text-sm lg:grid-cols-[1fr_1fr_auto]">
+            <p className="font-medium text-slate-950">{failure.tenantName}</p>
+            <p className="text-slate-600">{failure.eventType} / {failure.estimatedSku ?? "-"}</p>
+            <p className="text-xs text-slate-500 lg:text-right">{formatDate(failure.createdAt)} / {failure.cacheOrDedupeStatus}</p>
+          </div>
+        ))}
+        {failures.length === 0 && <p className="text-sm text-slate-500">Geen Google Maps fouten deze maand.</p>}
       </div>
     </div>
   );
@@ -266,6 +429,8 @@ export default async function PlatformOperationsPage() {
             {dashboard.healthChecks.map((check) => <HealthCard key={check.id} check={check} />)}
           </div>
         </section>
+
+        <GoogleMapsUsagePanel usage={dashboard.googleMapsUsage} />
 
         <div className="grid gap-5 xl:grid-cols-[minmax(0,1fr)_420px]">
           <section className="rounded border border-slate-200 bg-white p-5 shadow-sm">

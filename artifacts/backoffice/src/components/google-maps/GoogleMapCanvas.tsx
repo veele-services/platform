@@ -241,6 +241,7 @@ export function GoogleMapCanvas({
   const markerRefs = useRef<Map<string, GoogleAdvancedMarker>>(new Map());
   const polylineRefs = useRef<Map<string, GooglePolyline>>(new Map());
   const markerListenerCleanupRef = useRef<Array<() => void>>([]);
+  const usageRecordedRef = useRef(false);
   const [state, setState] = useState<LoadState>("idle");
   const [isInView, setIsInView] = useState(false);
   const [retryNonce, setRetryNonce] = useState(0);
@@ -446,6 +447,27 @@ export function GoogleMapCanvas({
         polylineRefs.current.set(polyline.id, line);
       });
   }, [polylines, state]);
+
+  useEffect(() => {
+    if (state !== "ready" || usageRecordedRef.current) return;
+    usageRecordedRef.current = true;
+    void fetch("/api/google-maps/usage", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        eventType: "maps_view_opened",
+        estimatedSku: "maps_javascript_api_dynamic_map",
+        metadata: {
+          surface: "planning_map",
+          markerCount: validMarkers.length,
+          polylineCount: polylines.length,
+        },
+      }),
+      keepalive: true,
+    }).catch(() => {
+      usageRecordedRef.current = false;
+    });
+  }, [polylines.length, state, validMarkers.length]);
 
   const showConfigError =
     visible &&

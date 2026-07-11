@@ -19,6 +19,23 @@ const autocompleteSchema = z.object({
   limit: z.number().int().min(1).max(10).optional(),
 });
 
+const seenAutocompleteSessions = new Map<string, number>();
+
+function shouldRecordAutocompleteSession(input: {
+  tenantId: string;
+  userId: string | null;
+  sessionToken: string;
+}): boolean {
+  const now = Date.now();
+  for (const [key, expiresAt] of seenAutocompleteSessions) {
+    if (expiresAt <= now) seenAutocompleteSessions.delete(key);
+  }
+  const key = `${input.tenantId}:${input.userId ?? "anonymous"}:${input.sessionToken}`;
+  if (seenAutocompleteSessions.has(key)) return false;
+  seenAutocompleteSessions.set(key, now + 30 * 60 * 1000);
+  return true;
+}
+
 async function canUseAddressSearch(): Promise<boolean> {
   const checks = await Promise.all([
     hasPermission("personnel", "read"),
@@ -101,6 +118,25 @@ export async function POST(request: Request) {
         { error: createSafeGoogleMapsError("configuration_error") },
         { status: 503 },
       );
+    }
+
+    if (shouldRecordAutocompleteSession({
+      tenantId,
+      userId,
+      sessionToken: parsed.data.sessionToken,
+    })) {
+      await recordGoogleMapsUsageEvent({
+        tenantId,
+        userId,
+        eventType: "autocomplete_session_started",
+        environment: process.env.APP_ENV ?? process.env.NODE_ENV ?? "development",
+        success: true,
+        responseTimeMs: Date.now() - startedAt,
+        cacheOrDedupeStatus: "bypass",
+        provider: "google_maps",
+        estimatedSku: "places_autocomplete_session",
+        metadata: { limit: parsed.data.limit ?? 6 },
+      });
     }
 
     const result = await fetchGooglePlacesAutocomplete({

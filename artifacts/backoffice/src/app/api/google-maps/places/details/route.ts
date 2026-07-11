@@ -110,6 +110,19 @@ export async function POST(request: Request) {
     await recordGoogleMapsUsageEvent({
       tenantId,
       userId,
+      eventType: "autocomplete_selection",
+      environment: process.env.APP_ENV ?? process.env.NODE_ENV ?? "development",
+      success: true,
+      responseTimeMs: Date.now() - startedAt,
+      cacheOrDedupeStatus: result.dedupeStatus,
+      provider: "google_maps",
+      estimatedSku: "places_autocomplete_new",
+      metadata: { selected: true },
+    });
+
+    await recordGoogleMapsUsageEvent({
+      tenantId,
+      userId,
       eventType: "place_details_request",
       environment: process.env.APP_ENV ?? process.env.NODE_ENV ?? "development",
       success: true,
@@ -117,7 +130,7 @@ export async function POST(request: Request) {
       cacheOrDedupeStatus: result.dedupeStatus,
       provider: "google_maps",
       estimatedSku: "places_details_new_essentials",
-      metadata: { hasCoordinates: Boolean(result.place.latitude && result.place.longitude) },
+      metadata: { locationResolved: Boolean(result.place.latitude && result.place.longitude) },
     });
 
     return NextResponse.json({ place: result.place });
