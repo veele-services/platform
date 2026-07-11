@@ -30,7 +30,7 @@ export function AddressAutocomplete({
   label = "Adres zoeken",
   description = "Zoek via Google Places of vul de adresvelden handmatig in.",
   placeholder = "Typ minimaal 3 tekens...",
-  endpointBase = "/api/google-maps/places",
+  endpointBase = "/backoffice-api/google-maps/places",
   limit = 6,
   disabled = false,
   className,

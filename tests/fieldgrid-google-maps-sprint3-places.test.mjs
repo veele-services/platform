@@ -55,6 +55,9 @@ test("Places API New clients use server-side endpoints, minimum field masks and 
 
 test("Address forms use autocomplete while typing and Place Details only after selection", () => {
   const backofficeComponent = read("artifacts/backoffice/src/components/google-maps/AddressAutocomplete.tsx");
+  const backofficeAutocompleteBridge = read("artifacts/backoffice/src/app/backoffice-api/google-maps/places/autocomplete/route.ts");
+  const backofficeDetailsBridge = read("artifacts/backoffice/src/app/backoffice-api/google-maps/places/details/route.ts");
+  const apiBackofficeProxy = read("artifacts/api-server/src/routes/platform-backoffice.ts");
   const personnelComponent = read("artifacts/personeel-pwa/src/components/google-maps/AddressAutocomplete.tsx");
   const customerComponent = read("artifacts/klant-pwa/src/components/google-maps/AddressAutocomplete.tsx");
   const personnelForm = read("artifacts/backoffice/src/components/personnel/PersonnelForm.tsx");
@@ -74,6 +77,11 @@ test("Address forms use autocomplete while typing and Place Details only after s
     const effectBlock = component.match(/useEffect\(\(\) => \{[\s\S]*?return \(\) => \{/u)?.[0] ?? "";
     assert.doesNotMatch(effectBlock, /places\/details/);
   }
+  assert.match(backofficeComponent, /endpointBase = "\/backoffice-api\/google-maps\/places"/u);
+  assert.match(backofficeAutocompleteBridge, /@\/app\/api\/google-maps\/places\/autocomplete\/route/u);
+  assert.match(backofficeDetailsBridge, /@\/app\/api\/google-maps\/places\/details\/route/u);
+  assert.match(apiBackofficeProxy, /\["\/invoices", "\/google-maps"\]/u);
+  assert.match(apiBackofficeProxy, /res\.redirect\(307, target\)/u);
 
   for (const form of [personnelForm, objectForm, customerForm, pwaProfileForm, customerObjectForm]) {
     assert.match(form, /AddressAutocomplete/);

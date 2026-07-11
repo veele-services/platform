@@ -165,6 +165,9 @@ function checkRouteSurface() {
     "artifacts/backoffice/src/app/api/invoices/[id]/pdf/route.ts",
     "artifacts/backoffice/src/app/api/invoices/[id]/pay/route.ts",
     "artifacts/backoffice/src/app/api/invoices/test-pdf/route.ts",
+    "artifacts/backoffice/src/app/backoffice-api/invoices/[id]/pdf/route.ts",
+    "artifacts/backoffice/src/app/backoffice-api/invoices/[id]/pay/route.ts",
+    "artifacts/backoffice/src/app/backoffice-api/invoices/test-pdf/route.ts",
     "artifacts/klant-pwa/src/app/api/factuur/[id]/pdf/route.ts",
     "artifacts/klant-pwa/src/app/api/factuur/[id]/pay/route.ts",
     "artifacts/klant-pwa/src/app/api/verzamelfactuur/[id]/pdf/route.ts",
@@ -245,6 +248,10 @@ function checkSnapshotPdfAndDownloads() {
     ]),
     ...expectFile("artifacts/backoffice/src/app/api/invoices/[id]/pdf/route.ts", [
       { pattern: /new NextResponse\(new Uint8Array\(pdfBuffer\)/u, message: "Backoffice PDF route must return a binary response." },
+      { pattern: /\/backoffice-api\/invoices\/\$\{invoice\.id\}\/pay/u, message: "Backoffice PDF payment QR must avoid the generic /api proxy path." },
+    ]),
+    ...expectFile("artifacts/backoffice/src/app/backoffice-api/invoices/[id]/pdf/route.ts", [
+      { pattern: /@\/app\/api\/invoices\/\[id\]\/pdf\/route/u, message: "Proxy-safe backoffice PDF route bridge missing." },
     ]),
     ...expectFile("artifacts/klant-pwa/src/app/api/factuur/[id]/pdf/route.ts", [
       { pattern: /getMyCustomerIdentity\(\)/u, message: "Customer PDF route must derive customer identity server-side." },
@@ -267,6 +274,9 @@ function checkPaymentMollieQrSurface() {
       { pattern: /eq\(paymentsTable\.status, "open"\)/u, message: "Payment redirect must only use open payments." },
       { pattern: /eq\(invoicesTable\.status, "sent"\)/u, message: "Payment redirect must require sent invoice status." },
       { pattern: /NextResponse\.redirect\(payment\.checkoutUrl, 302\)/u, message: "Payment redirect missing." },
+    ]),
+    ...expectFile("artifacts/backoffice/src/app/backoffice-api/invoices/[id]/pay/route.ts", [
+      { pattern: /@\/app\/api\/invoices\/\[id\]\/pay\/route/u, message: "Proxy-safe backoffice payment route bridge missing." },
     ]),
     ...expectFile("artifacts/klant-pwa/src/app/api/factuur/[id]/pay/route.ts", [
       { pattern: /getMyCustomerIdentity\(\)/u, message: "Customer pay route must derive identity server-side." },
@@ -303,6 +313,9 @@ function checkSettingsAndPreviewSurface() {
       { pattern: /getInvoiceSettings\(\)/u, message: "Test PDF route must use settings preview." },
       { pattern: /TEST-\$\{settings\.preview\.invoiceNumber\}/u, message: "Test PDF must be visibly non-official." },
       { pattern: /generateInvoicePdf\(sampleInvoice\(settings\)\)/u, message: "Test PDF must render from sample data." },
+    ]),
+    ...expectFile("artifacts/backoffice/src/app/backoffice-api/invoices/test-pdf/route.ts", [
+      { pattern: /@\/app\/api\/invoices\/test-pdf\/route/u, message: "Proxy-safe backoffice test PDF route bridge missing." },
     ]),
   ]);
 }
@@ -390,8 +403,8 @@ async function runOptionalPlaywrightSmoke() {
       }
       if (invoiceId) {
         results.push(await captureRoute(page, tenantBaseUrl, { id: "invoice-detail", path: `/invoices/${invoiceId}`, label: "Factuurdetail", expectations: ["invoice-detail", "payment", "pdf"] }));
-        results.push(await probeBinaryOrRedirect(context, `${tenantBaseUrl}/api/invoices/${invoiceId}/pdf`, "backoffice-invoice-pdf", [200]));
-        results.push(await probeBinaryOrRedirect(context, `${tenantBaseUrl}/api/invoices/${invoiceId}/pay`, "backoffice-invoice-pay", [302, 404]));
+        results.push(await probeBinaryOrRedirect(context, `${tenantBaseUrl}/backoffice-api/invoices/${invoiceId}/pdf`, "backoffice-invoice-pdf", [200]));
+        results.push(await probeBinaryOrRedirect(context, `${tenantBaseUrl}/backoffice-api/invoices/${invoiceId}/pay`, "backoffice-invoice-pay", [302, 404]));
       }
       await context.close();
     }

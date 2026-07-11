@@ -23,6 +23,9 @@ function order(source, first, second, message) {
 }
 
 const backofficePdfRoute = read("artifacts/backoffice/src/app/api/invoices/[id]/pdf/route.ts");
+const backofficePdfBridgeRoute = read("artifacts/backoffice/src/app/backoffice-api/invoices/[id]/pdf/route.ts");
+const backofficeInvoicesView = read("artifacts/backoffice/src/components/invoices/InvoicesView.tsx");
+const apiBackofficeProxy = read("artifacts/api-server/src/routes/platform-backoffice.ts");
 const customerPdfRoute = read("artifacts/klant-pwa/src/app/api/factuur/[id]/pdf/route.ts");
 const backofficePdf = read("artifacts/backoffice/src/lib/invoice-pdf.ts");
 const customerPdf = read("artifacts/klant-pwa/src/lib/invoice-pdf.ts");
@@ -31,19 +34,26 @@ const invoices = read("artifacts/backoffice/src/app/actions/invoices.ts");
 test("current backoffice invoice PDF route is permissioned, tenant sensitive and generated after scoped lookup", () => {
   const body = functionBlock(backofficePdfRoute, "GET");
 
-  assert.match(body, /hasPermission\("invoices", "read"\)/u);
-  assert.match(body, /requireCurrentTenantId\(\)/u);
-  assert.match(body, /requireSensitiveRuntimeAccess\(\{/u);
+  assert.match(body, /hasPermissionFromRequest\(request,\s*"invoices",\s*"read"\)/u);
+  assert.match(body, /requireCurrentTenantIdFromRequest\(request\)/u);
+  assert.match(body, /requireSensitiveRuntimeAccessFromRequest\(request,\s*\{/u);
   assert.match(body, /scope:\s+"tenant_invoices"/u);
   assert.match(body, /accessLevel:\s+"export"/u);
   assert.match(body, /resourceId:\s+id/u);
-  assert.match(body, /getInvoice\(id\)/u);
+  assert.match(body, /getInvoice\(id,\s*\{ request \}\)/u);
   assert.match(body, /paymentQrUrl/u);
-  assert.match(body, /\/api\/invoices\/\$\{invoice\.id\}\/pay/u);
+  assert.match(body, /\/backoffice-api\/invoices\/\$\{invoice\.id\}\/pay/u);
   assert.match(body, /generateInvoicePdf\(invoice, \{ paymentQrUrl \}\)/u);
   assert.match(body, /sanitizePdfFilename\(invoice\.invoiceNumber/u);
 
-  order(body, "const invoice = await getInvoice(id);", "const pdfBuffer = await generateInvoicePdf(invoice, { paymentQrUrl });", "PDF should only generate after invoice lookup");
+  order(body, "const invoice = await getInvoice(id, { request });", "const pdfBuffer = await generateInvoicePdf(invoice, { paymentQrUrl });", "PDF should only generate after invoice lookup");
+  assert.match(backofficePdfBridgeRoute, /@\/app\/api\/invoices\/\[id\]\/pdf\/route/u);
+  assert.match(backofficeInvoicesView, /\/backoffice-api\/invoices\/\$\{row\.id\}\/pdf/u);
+  assert.doesNotMatch(backofficeInvoicesView, /\/api\/invoices\/\$\{row\.id\}\/pdf/u);
+  assert.match(apiBackofficeProxy, /\["\/invoices", "\/google-maps"\]/u);
+  assert.match(apiBackofficeProxy, /replace\(\s*\/\^\\\/api\(\?=\\\/\)\/u,\s*"\/backoffice-api"\s*\)/u);
+  assert.match(apiBackofficeProxy, /"\/backoffice-api"/u);
+  assert.match(apiBackofficeProxy, /res\.redirect\(307, target\)/u);
 });
 
 test("current customer invoice PDF route is customer scoped and prefers immutable snapshots", () => {

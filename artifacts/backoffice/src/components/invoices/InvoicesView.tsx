@@ -438,7 +438,7 @@ function InvoiceRowActions({
       actions={[
         { id: "open", label: "Open details", href: `/invoices/${row.id}`, icon: <FileText className="h-4 w-4" /> },
         { id: "assignment", label: "Open opdracht", href: `/assignments/${row.assignmentId}`, icon: <TrendingUp className="h-4 w-4" /> },
-        { id: "pdf", label: "Download PDF", href: `/api/invoices/${row.id}/pdf`, icon: <Download className="h-4 w-4" /> },
+        { id: "pdf", label: "Download PDF", href: `/backoffice-api/invoices/${row.id}/pdf`, icon: <Download className="h-4 w-4" /> },
         ...(canCreatePayment
           ? [{
               id: "payment",

@@ -31,7 +31,7 @@ export async function GET(
   if (!invoice) return new NextResponse("Not found", { status: 404 });
 
   const paymentQrUrl = invoice.paymentUrl
-    ? new URL(`/api/invoices/${invoice.id}/pay`, request.url).toString()
+    ? new URL(`/backoffice-api/invoices/${invoice.id}/pay`, request.url).toString()
     : null;
   const pdfBuffer = await generateInvoicePdf(invoice, { paymentQrUrl });
   const filename = `${sanitizePdfFilename(invoice.invoiceNumber, `factuur-${invoice.id.slice(0, 8)}`)}.pdf`;

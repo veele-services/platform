@@ -100,17 +100,17 @@ test("Sprint 10 browser map views are recorded without secrets or location paylo
   const canvas = read("artifacts/backoffice/src/components/google-maps/GoogleMapCanvas.tsx");
   const route = read("artifacts/backoffice/src/app/api/google-maps/usage/route.ts");
 
-  assert.match(canvas, /\/api\/google-maps\/usage/u);
+  assert.match(canvas, /\/backoffice-api\/google-maps\/usage/u);
   assert.match(canvas, /maps_view_opened/u);
   assert.match(canvas, /maps_javascript_api_dynamic_map/u);
   assert.match(canvas, /usageRecordedRef/u);
   assert.doesNotMatch(canvas, /GOOGLE_MAPS_SERVER_API_KEY/u);
 
-  assert.match(route, /requireCurrentTenantId\(\)/u);
-  assert.match(route, /hasPermission\("planning", "read"\)/u);
-  assert.match(route, /hasPermission\("personnel", "read"\)/u);
-  assert.match(route, /hasPermission\("objects", "read"\)/u);
-  assert.match(route, /hasPermission\("customers", "read"\)/u);
+  assert.match(route, /requireCurrentTenantIdFromRequest\(request\)/u);
+  assert.match(route, /hasPermissionFromRequest\(request,\s*"planning", "read"\)/u);
+  assert.match(route, /hasPermissionFromRequest\(request,\s*"personnel", "read"\)/u);
+  assert.match(route, /hasPermissionFromRequest\(request,\s*"objects", "read"\)/u);
+  assert.match(route, /hasPermissionFromRequest\(request,\s*"customers", "read"\)/u);
   assert.match(route, /recordGoogleMapsUsageEvent/u);
   assert.match(route, /maps_view_opened/u);
   assert.match(route, /autocomplete_session_started/u);

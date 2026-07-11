@@ -451,7 +451,7 @@ export function GoogleMapCanvas({
   useEffect(() => {
     if (state !== "ready" || usageRecordedRef.current) return;
     usageRecordedRef.current = true;
-    void fetch("/api/google-maps/usage", {
+    void fetch("/backoffice-api/google-maps/usage", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
