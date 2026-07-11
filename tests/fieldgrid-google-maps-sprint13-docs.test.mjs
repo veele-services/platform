@@ -101,7 +101,7 @@ test("Environment examples expose canonical Google Maps variables without legacy
 });
 
 test("Integration plan records Sprint 13 documentation completion", () => {
-  assert.match(integrationPlan, /Status: Sprint 13 documentatie, privacy, Google Cloud setup en rollback afgerond\./);
+  assert.match(integrationPlan, /Sprint 13 maakt `docs\/deployment\/google-maps-platform\.md` de canonieke operator-runbook/);
   assert.match(integrationPlan, /docs\/deployment\/google-maps-platform\.md/);
   assert.match(integrationPlan, /Maps JavaScript API is expliciet client-side/);
   assert.match(integrationPlan, /Places API \(New\) en Routes API zijn expliciet server-side/);

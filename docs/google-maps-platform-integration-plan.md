@@ -1,12 +1,14 @@
 # Google Maps Platform Integration Plan
 
-Status: Sprint 13 documentatie, privacy, Google Cloud setup en rollback afgerond.
+Status: Sprint 14 volledige acceptatiegate en optionele live smoke afgerond.
 
 Sprint 1 vult de centrale modulebasis, env-documentatie en secret guards aan zonder de actieve kaart-, Places- of Routes-flow al te migreren.
 
 Sprint 2 legt de canonieke locatievelden, assignment execution snapshots, provider-onafhankelijke usage metrics en `DRIVE | BICYCLE | WALK | TRANSIT`-vervoersmodus veilig vast in schema en migratie.
 
 Sprint 13 maakt `docs/deployment/google-maps-platform.md` de canonieke operator-runbook voor Google Cloud setup, privacy/EEA, keyrestricties, cachebeleid, kostenbeheersing, usage-rapportage en rollback.
+
+Sprint 14 voegt de finale Google Maps Platform acceptatiegate toe met volledige sprinttestdekking, migratiecheck, gemockte Playwright UI-smoke, bewijsoutput en een expliciet optionele staging live smoke met beperkte live calls.
 
 Laatste baseline: main branch, na `git fetch origin main` en `git pull --ff-only origin main`.
 

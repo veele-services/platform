@@ -1,0 +1,80 @@
+{
+  "version": "fieldgrid-google-maps-sprint14-acceptance-v1",
+  "createdAt": "2026-07-11T01:32:57.135Z",
+  "mode": "check",
+  "strictEvidence": true,
+  "status": "passed",
+  "checks": [
+    {
+      "id": "package-scripts",
+      "label": "Package exposes sprint 14 acceptance gates",
+      "status": "passed",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "sprint-test-coverage",
+      "label": "All Google Maps sprints have regression coverage",
+      "status": "passed",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "maps-js-runtime",
+      "label": "Maps JS is lazy, client-only and marker-safe",
+      "status": "passed",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "places-new",
+      "label": "Places API New is server-side, session-tokened and cost-aware",
+      "status": "passed",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "routes-api",
+      "label": "Routes API uses computeRoutes safely for every canon mode",
+      "status": "passed",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "usage-rate-limit",
+      "label": "Usage reporting and rate limiting are tenant-safe",
+      "status": "passed",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "security-legacy-cleanup",
+      "label": "Secrets are guarded and legacy map systems are inactive",
+      "status": "passed",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "docs",
+      "label": "Docs cover setup, privacy, costs, live smoke and rollback",
+      "status": "passed",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "playwright-smoke",
+      "label": "Playwright smoke supports mocked CI and explicit live staging",
+      "status": "passed",
+      "failures": [],
+      "warnings": []
+    },
+    {
+      "id": "evidence",
+      "label": "Sprint 14 writes acceptance evidence output",
+      "status": "passed",
+      "failures": [],
+      "warnings": []
+    }
+  ],
+  "warnings": []
+}

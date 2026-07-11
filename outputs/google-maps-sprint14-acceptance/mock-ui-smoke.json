@@ -1,0 +1,98 @@
+{
+  "status": "passed",
+  "mode": "mock",
+  "evidence": {
+    "mapInstances": 1,
+    "autocompleteBeforeMinimumLength": 0,
+    "placeRequests": [
+      {
+        "type": "autocomplete",
+        "inputLength": 15,
+        "sessionToken": "session-0a8eu5aq6cpl",
+        "fieldMask": [
+          "suggestions.placePrediction.placeId",
+          "suggestions.placePrediction.text"
+        ]
+      },
+      {
+        "type": "details",
+        "placeId": "places/mock-den-haag",
+        "sessionToken": "session-0a8eu5aq6cpl",
+        "fieldMask": [
+          "id",
+          "formattedAddress",
+          "addressComponents",
+          "location",
+          "displayName",
+          "types"
+        ]
+      }
+    ],
+    "routeRequests": [
+      {
+        "travelMode": "DRIVE",
+        "routingPreference": "TRAFFIC_AWARE",
+        "optimizeWaypointOrder": false,
+        "computeRouteMatrix": false,
+        "fieldMask": [
+          "routes.duration",
+          "routes.staticDuration",
+          "routes.distanceMeters",
+          "routes.polyline.encodedPolyline",
+          "routes.viewport"
+        ]
+      },
+      {
+        "travelMode": "BICYCLE",
+        "routingPreference": null,
+        "optimizeWaypointOrder": false,
+        "computeRouteMatrix": false,
+        "fieldMask": [
+          "routes.duration",
+          "routes.staticDuration",
+          "routes.distanceMeters",
+          "routes.polyline.encodedPolyline",
+          "routes.viewport"
+        ]
+      },
+      {
+        "travelMode": "WALK",
+        "routingPreference": null,
+        "optimizeWaypointOrder": false,
+        "computeRouteMatrix": false,
+        "fieldMask": [
+          "routes.duration",
+          "routes.staticDuration",
+          "routes.distanceMeters",
+          "routes.polyline.encodedPolyline",
+          "routes.viewport"
+        ]
+      },
+      {
+        "travelMode": "TRANSIT",
+        "routingPreference": null,
+        "optimizeWaypointOrder": false,
+        "computeRouteMatrix": false,
+        "fieldMask": [
+          "routes.duration",
+          "routes.staticDuration",
+          "routes.distanceMeters",
+          "routes.polyline.encodedPolyline",
+          "routes.viewport"
+        ]
+      }
+    ],
+    "usageEvents": [
+      "maps_view_opened",
+      "route_request_drive_traffic",
+      "route_request_bicycle",
+      "route_request_walk",
+      "route_request_transit",
+      "google_api_error",
+      "autocomplete_request",
+      "place_details_request",
+      "autocomplete_selection"
+    ],
+    "secretLeak": false
+  }
+}

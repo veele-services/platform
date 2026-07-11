@@ -427,3 +427,36 @@ node node_modules/typescript/bin/tsc --build
 ```
 
 Builds via `pnpm` moeten in CI/Linux of een Windowsomgeving met de juiste pnpm/preinstall ondersteuning draaien.
+
+## Sprint 14 Acceptatiegate
+
+Standaard CI/check zonder betaalde Google-calls:
+
+```powershell
+pnpm fieldgrid:google-maps-sprint14:check
+```
+
+Deze gate draait:
+
+- alle Google Maps sprinttests;
+- personeels-home-address route regressietest;
+- migratievolgordecheck;
+- gemockte Playwright UI-smoke;
+- finale acceptatiecontrole met bewijsoutput in `outputs/google-maps-sprint14-acceptance/`.
+
+Strikte releasegate inclusief typecheck en workspace build:
+
+```powershell
+pnpm fieldgrid:google-maps-sprint14:strict
+```
+
+Optionele staging live smoke met zeer beperkte live calls:
+
+```powershell
+$env:FIELDGRID_GOOGLE_MAPS_LIVE_SMOKE="1"
+$env:FIELDGRID_GOOGLE_MAPS_STAGING_BASE_URL="https://veeleservices.fieldgrid.nl"
+$env:FIELDGRID_GOOGLE_MAPS_STAGING_STORAGE_STATE="outputs/google-maps-sprint14-acceptance/auth/tenant-admin.json"
+pnpm fieldgrid:google-maps-sprint14:staging-live
+```
+
+De live smoke is bewust opt-in. Zonder `FIELDGRID_GOOGLE_MAPS_LIVE_SMOKE=1` schrijft de smoke een `skipped` rapport en voert hij geen betaalde live check uit. De live variant opent alleen `/planning?view=map`; Places-selecties en Routes-berekeningen worden niet automatisch getriggerd.

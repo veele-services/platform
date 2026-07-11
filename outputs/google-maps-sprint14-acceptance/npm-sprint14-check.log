@@ -1,0 +1,494 @@
+﻿TAP version 13
+# Subtest: Sprint 0 baseline: planning map uses the shared Google Maps canvas after migration
+ok 1 - Sprint 0 baseline: planning map uses the shared Google Maps canvas after migration
+  ---
+  duration_ms: 4.3117
+  type: 'test'
+  ...
+# Subtest: Sprint 0 baseline: address suggestions have migrated to Google Places with PDOK kept as legacy geocoder
+ok 2 - Sprint 0 baseline: address suggestions have migrated to Google Places with PDOK kept as legacy geocoder
+  ---
+  duration_ms: 1.1555
+  type: 'test'
+  ...
+# Subtest: Sprint 0 baseline: route provider has Google Routes server adapter and mock fallback
+ok 3 - Sprint 0 baseline: route provider has Google Routes server adapter and mock fallback
+  ---
+  duration_ms: 1.8397
+  type: 'test'
+  ...
+# Subtest: Sprint 0 baseline: planning map data is tenant-scoped and permission-gated
+ok 4 - Sprint 0 baseline: planning map data is tenant-scoped and permission-gated
+  ---
+  duration_ms: 1.3192
+  type: 'test'
+  ...
+# Subtest: Sprint 0 baseline: personnel vehicle types are normalized with legacy mapping
+ok 5 - Sprint 0 baseline: personnel vehicle types are normalized with legacy mapping
+  ---
+  duration_ms: 1.3755
+  type: 'test'
+  ...
+# Subtest: Sprint 0 baseline: planning map feature flag and sidebar entry exist
+ok 6 - Sprint 0 baseline: planning map feature flag and sidebar entry exist
+  ---
+  duration_ms: 1.3693
+  type: 'test'
+  ...
+# Subtest: Sprint 0 baseline: integration plan tracks canon gaps and rollback
+ok 7 - Sprint 0 baseline: integration plan tracks canon gaps and rollback
+  ---
+  duration_ms: 1.7475
+  type: 'test'
+  ...
+# Subtest: Sprint 1: central Google Maps module files exist
+ok 8 - Sprint 1: central Google Maps module files exist
+  ---
+  duration_ms: 8.0512
+  type: 'test'
+  ...
+# Subtest: Sprint 1: server config has server-only guard and canon env names
+ok 9 - Sprint 1: server config has server-only guard and canon env names
+  ---
+  duration_ms: 0.7043
+  type: 'test'
+  ...
+# Subtest: Sprint 1: client loader never references server-only Google secrets
+ok 10 - Sprint 1: client loader never references server-only Google secrets
+  ---
+  duration_ms: 0.5829
+  type: 'test'
+  ...
+# Subtest: Sprint 1: no public env example exposes a Google server key
+ok 11 - Sprint 1: no public env example exposes a Google server key
+  ---
+  duration_ms: 0.885
+  type: 'test'
+  ...
+# Subtest: Sprint 1: travel modes and marker statuses are central and canon-safe
+ok 12 - Sprint 1: travel modes and marker statuses are central and canon-safe
+  ---
+  duration_ms: 1.0515
+  type: 'test'
+  ...
+# Subtest: Sprint 1: metrics and dedupe helpers avoid personal address payloads
+ok 13 - Sprint 1: metrics and dedupe helpers avoid personal address payloads
+  ---
+  duration_ms: 1.1421
+  type: 'test'
+  ...
+# Subtest: Sprint 1: deployment docs cover development, staging, production and test fallback
+ok 14 - Sprint 1: deployment docs cover development, staging, production and test fallback
+  ---
+  duration_ms: 1.1368
+  type: 'test'
+  ...
+# Subtest: Sprint 10 usage schema contains every canon Google Maps event
+ok 15 - Sprint 10 usage schema contains every canon Google Maps event
+  ---
+  duration_ms: 2.6292
+  type: 'test'
+  ...
+# Subtest: Sprint 10 metadata hardening rejects PII, addresses, route payloads and credentials
+ok 16 - Sprint 10 metadata hardening rejects PII, addresses, route payloads and credentials
+  ---
+  duration_ms: 1.9365
+  type: 'test'
+  ...
+# Subtest: Sprint 10 browser map views are recorded without secrets or location payloads
+ok 17 - Sprint 10 browser map views are recorded without secrets or location payloads
+  ---
+  duration_ms: 1.2349
+  type: 'test'
+  ...
+# Subtest: Sprint 10 Places endpoints record sessions, requests, selections, details, errors and rate limits
+ok 18 - Sprint 10 Places endpoints record sessions, requests, selections, details, errors and rate limits
+  ---
+  duration_ms: 8.2519
+  type: 'test'
+  ...
+# Subtest: Sprint 10 platform reporting aggregates by tenant, provider, SKU, cache status and anomalies
+ok 19 - Sprint 10 platform reporting aggregates by tenant, provider, SKU, cache status and anomalies
+  ---
+  duration_ms: 1.8774
+  type: 'test'
+  ...
+# Subtest: Sprint 11 DB hardening closes Maps usage and route tables to browser roles
+ok 20 - Sprint 11 DB hardening closes Maps usage and route tables to browser roles
+  ---
+  duration_ms: 3.0204
+  type: 'test'
+  ...
+# Subtest: Sprint 11 backoffice Places routes require auth, server tenant context, permissions, validation and rate limits
+ok 21 - Sprint 11 backoffice Places routes require auth, server tenant context, permissions, validation and rate limits
+  ---
+  duration_ms: 1.3766
+  type: 'test'
+  ...
+# Subtest: Sprint 11 PWA Places routes use portal identity tenant context and sanitize metrics
+ok 22 - Sprint 11 PWA Places routes use portal identity tenant context and sanitize metrics
+  ---
+  duration_ms: 1.9006
+  type: 'test'
+  ...
+# Subtest: Sprint 11 usage endpoint does not trust client SKUs or tenant IDs
+ok 23 - Sprint 11 usage endpoint does not trust client SKUs or tenant IDs
+  ---
+  duration_ms: 1.1329
+  type: 'test'
+  ...
+# Subtest: Sprint 11 route calculation remains server-side tenant scoped and permission checked
+ok 24 - Sprint 11 route calculation remains server-side tenant scoped and permission checked
+  ---
+  duration_ms: 2.0398
+  type: 'test'
+  ...
+# Subtest: Sprint 11 server API key is absent from client-facing Google Maps code
+ok 25 - Sprint 11 server API key is absent from client-facing Google Maps code
+  ---
+  duration_ms: 2.9628
+  type: 'test'
+  ...
+# Subtest: Sprint 12 active source no longer uses legacy map tile/rendering providers
+ok 26 - Sprint 12 active source no longer uses legacy map tile/rendering providers
+  ---
+  duration_ms: 416.1786
+  type: 'test'
+  ...
+# Subtest: Sprint 12 package dependencies do not include legacy map renderers
+ok 27 - Sprint 12 package dependencies do not include legacy map renderers
+  ---
+  duration_ms: 1.7125
+  type: 'test'
+  ...
+# Subtest: Sprint 12 route provider only accepts the canonical server key
+ok 28 - Sprint 12 route provider only accepts the canonical server key
+  ---
+  duration_ms: 1.415
+  type: 'test'
+  ...
+# Subtest: Sprint 12 Google Maps remains lazy-loaded and not app-shell loaded
+ok 29 - Sprint 12 Google Maps remains lazy-loaded and not app-shell loaded
+  ---
+  duration_ms: 0.9431
+  type: 'test'
+  ...
+# Subtest: Sprint 12 cleanup is tracked by package gate
+ok 30 - Sprint 12 cleanup is tracked by package gate
+  ---
+  duration_ms: 0.3816
+  type: 'test'
+  ...
+# Subtest: Sprint 13 deployment runbook covers Google setup, privacy, cost and rollback
+ok 31 - Sprint 13 deployment runbook covers Google setup, privacy, cost and rollback
+  ---
+  duration_ms: 1.5614
+  type: 'test'
+  ...
+# Subtest: Sprint 13 docs specify required environment variables and operator checklists
+ok 32 - Sprint 13 docs specify required environment variables and operator checklists
+  ---
+  duration_ms: 0.2666
+  type: 'test'
+  ...
+# Subtest: Environment examples expose canonical Google Maps variables without legacy route key
+ok 33 - Environment examples expose canonical Google Maps variables without legacy route key
+  ---
+  duration_ms: 0.3471
+  type: 'test'
+  ...
+# Subtest: Integration plan records Sprint 13 documentation completion
+ok 34 - Integration plan records Sprint 13 documentation completion
+  ---
+  duration_ms: 0.2061
+  type: 'test'
+  ...
+# Subtest: Package exposes the Sprint 13 docs gate
+ok 35 - Package exposes the Sprint 13 docs gate
+  ---
+  duration_ms: 0.3251
+  type: 'test'
+  ...
+# Subtest: Sprint 14 package scripts expose check, strict and optional live smoke gates
+ok 36 - Sprint 14 package scripts expose check, strict and optional live smoke gates
+  ---
+  duration_ms: 2.3234
+  type: 'test'
+  ...
+# Subtest: Sprint 14 acceptance script checks the full Google Maps canon
+ok 37 - Sprint 14 acceptance script checks the full Google Maps canon
+  ---
+  duration_ms: 1.1051
+  type: 'test'
+  ...
+# Subtest: Sprint 14 Playwright smoke is mocked by default and live staging is explicit opt-in
+ok 38 - Sprint 14 Playwright smoke is mocked by default and live staging is explicit opt-in
+  ---
+  duration_ms: 0.9881
+  type: 'test'
+  ...
+# Subtest: Sprint 14 docs record final gate commands and optional live smoke
+ok 39 - Sprint 14 docs record final gate commands and optional live smoke
+  ---
+  duration_ms: 1.1105
+  type: 'test'
+  ...
+# Subtest: Sprint 2: migration adds canonical location fields without removing legacy address columns
+ok 40 - Sprint 2: migration adds canonical location fields without removing legacy address columns
+  ---
+  duration_ms: 3.9215
+  type: 'test'
+  ...
+# Subtest: Sprint 2: assignments receive execution location snapshots
+ok 41 - Sprint 2: assignments receive execution location snapshots
+  ---
+  duration_ms: 1.2316
+  type: 'test'
+  ...
+# Subtest: Sprint 2: travel modes are canonical and legacy values are migrated safely
+ok 42 - Sprint 2: travel modes are canonical and legacy values are migrated safely
+  ---
+  duration_ms: 1.7016
+  type: 'test'
+  ...
+# Subtest: Sprint 2: provider-neutral usage metrics are tenant-scoped and payload-safe
+ok 43 - Sprint 2: provider-neutral usage metrics are tenant-scoped and payload-safe
+  ---
+  duration_ms: 1.4563
+  type: 'test'
+  ...
+# Subtest: Sprint 2: Drizzle schemas expose canonical location properties
+ok 44 - Sprint 2: Drizzle schemas expose canonical location properties
+  ---
+  duration_ms: 1.3162
+  type: 'test'
+  ...
+# Subtest: Places API New clients use server-side endpoints, minimum field masks and no expensive fields
+ok 45 - Places API New clients use server-side endpoints, minimum field masks and no expensive fields
+  ---
+  duration_ms: 5.6173
+  type: 'test'
+  ...
+# Subtest: Address forms use autocomplete while typing and Place Details only after selection
+ok 46 - Address forms use autocomplete while typing and Place Details only after selection
+  ---
+  duration_ms: 3.6631
+  type: 'test'
+  ...
+# Subtest: Selected Google address data is saved as confirmed Fieldgrid data without leaking server keys
+ok 47 - Selected Google address data is saved as confirmed Fieldgrid data without leaking server keys
+  ---
+  duration_ms: 4.1426
+  type: 'test'
+  ...
+# Subtest: Sprint 4 autocomplete components enforce cost-aware request UX
+ok 48 - Sprint 4 autocomplete components enforce cost-aware request UX
+  ---
+  duration_ms: 3.6031
+  type: 'test'
+  ...
+# Subtest: Sprint 4 address UX is shared across backoffice and PWA address forms
+ok 49 - Sprint 4 address UX is shared across backoffice and PWA address forms
+  ---
+  duration_ms: 2.7305
+  type: 'test'
+  ...
+# Subtest: Sprint 4 customer portal objects save only confirmed selected Google addresses
+ok 50 - Sprint 4 customer portal objects save only confirmed selected Google addresses
+  ---
+  duration_ms: 1.2282
+  type: 'test'
+  ...
+# Subtest: Sprint 5 loader is singleton, lazy and browser-key only
+ok 51 - Sprint 5 loader is singleton, lazy and browser-key only
+  ---
+  duration_ms: 2.0967
+  type: 'test'
+  ...
+# Subtest: Sprint 5 map component handles advanced markers, status semantics and fallback states
+ok 52 - Sprint 5 map component handles advanced markers, status semantics and fallback states
+  ---
+  duration_ms: 1.8209
+  type: 'test'
+  ...
+# Subtest: Sprint 5 map updates markers and polylines without recreating the map instance
+ok 53 - Sprint 5 map updates markers and polylines without recreating the map instance
+  ---
+  duration_ms: 0.8309
+  type: 'test'
+  ...
+# Subtest: Sprint 6 planning page passes safe Google Maps bootstrap config into the map view
+ok 54 - Sprint 6 planning page passes safe Google Maps bootstrap config into the map view
+  ---
+  duration_ms: 3.2247
+  type: 'test'
+  ...
+# Subtest: Sprint 6 planning map uses the shared lazy Google map and no active CARTO/OSM tiles
+ok 55 - Sprint 6 planning map uses the shared lazy Google map and no active CARTO/OSM tiles
+  ---
+  duration_ms: 1.3653
+  type: 'test'
+  ...
+# Subtest: Sprint 6 marker data exposes status, labels, aria and detail panel route actions
+ok 56 - Sprint 6 marker data exposes status, labels, aria and detail panel route actions
+  ---
+  duration_ms: 1.7127
+  type: 'test'
+  ...
+# Subtest: Sprint 6 keeps permission, no-data and missing-location states explicit
+ok 57 - Sprint 6 keeps permission, no-data and missing-location states explicit
+  ---
+  duration_ms: 1.6058
+  type: 'test'
+  ...
+# Subtest: Sprint 6 marker updates do not remount the map instance
+ok 58 - Sprint 6 marker updates do not remount the map instance
+  ---
+  duration_ms: 0.5684
+  type: 'test'
+  ...
+# Subtest: Sprint 7 central Routes API client uses safe computeRoutes field masks
+ok 59 - Sprint 7 central Routes API client uses safe computeRoutes field masks
+  ---
+  duration_ms: 2.5572
+  type: 'test'
+  ...
+# Subtest: Sprint 7 Routes API supports only canon modes and DRIVE traffic aware
+ok 60 - Sprint 7 Routes API supports only canon modes and DRIVE traffic aware
+  ---
+  duration_ms: 1.1608
+  type: 'test'
+  ...
+# Subtest: Sprint 7 provider uses GOOGLE_MAPS_SERVER_API_KEY without legacy route key fallback
+ok 61 - Sprint 7 provider uses GOOGLE_MAPS_SERVER_API_KEY without legacy route key fallback
+  ---
+  duration_ms: 0.7393
+  type: 'test'
+  ...
+# Subtest: Sprint 7 cache identity includes route request context and short policy TTL
+ok 62 - Sprint 7 cache identity includes route request context and short policy TTL
+  ---
+  duration_ms: 1.5694
+  type: 'test'
+  ...
+# Subtest: Sprint 7 route orchestration has dedupe, negative cache, metrics and rate limiting
+ok 63 - Sprint 7 route orchestration has dedupe, negative cache, metrics and rate limiting
+  ---
+  duration_ms: 1.4718
+  type: 'test'
+  ...
+# Subtest: Sprint 7 route metrics and errors avoid secrets and personal payloads
+ok 64 - Sprint 7 route metrics and errors avoid secrets and personal payloads
+  ---
+  duration_ms: 0.9808
+  type: 'test'
+  ...
+# Subtest: Sprint 8 map data read does not trigger route provider calls
+ok 65 - Sprint 8 map data read does not trigger route provider calls
+  ---
+  duration_ms: 3.3844
+  type: 'test'
+  ...
+# Subtest: Sprint 8 explicit route action is tenant-scoped and permission-checked
+ok 66 - Sprint 8 explicit route action is tenant-scoped and permission-checked
+  ---
+  duration_ms: 1.1358
+  type: 'test'
+  ...
+# Subtest: Sprint 8 route action supports explicit modes without transit auto fallback
+ok 67 - Sprint 8 route action supports explicit modes without transit auto fallback
+  ---
+  duration_ms: 1.1282
+  type: 'test'
+  ...
+# Subtest: Sprint 8 route pane calls server action only from explicit button handler
+ok 68 - Sprint 8 route pane calls server action only from explicit button handler
+  ---
+  duration_ms: 0.7692
+  type: 'test'
+  ...
+# Subtest: Sprint 8 route pane has personnel, override, warnings, retry and external link
+ok 69 - Sprint 8 route pane has personnel, override, warnings, retry and external link
+  ---
+  duration_ms: 0.5269
+  type: 'test'
+  ...
+# Subtest: Sprint 8 explicit route polyline renders without replacing scheduled route lines
+ok 70 - Sprint 8 explicit route polyline renders without replacing scheduled route lines
+  ---
+  duration_ms: 0.7461
+  type: 'test'
+  ...
+# Subtest: backoffice personnel form persists the canonical default travel mode
+ok 71 - backoffice personnel form persists the canonical default travel mode
+  ---
+  duration_ms: 3.3762
+  type: 'test'
+  ...
+# Subtest: backoffice personnel queries and details expose the canonical travel mode
+ok 72 - backoffice personnel queries and details expose the canonical travel mode
+  ---
+  duration_ms: 1.7343
+  type: 'test'
+  ...
+# Subtest: personnel PWA profile can edit travel mode with audit and tenant scope
+ok 73 - personnel PWA profile can edit travel mode with audit and tenant scope
+  ---
+  duration_ms: 1.2334
+  type: 'test'
+  ...
+# Subtest: planning route calculation uses profile default, supports override and prefers home for first stop
+ok 74 - planning route calculation uses profile default, supports override and prefers home for first stop
+  ---
+  duration_ms: 2.2107
+  type: 'test'
+  ...
+# Subtest: personnel home address geocoding is persisted and route-aware
+ok 75 - personnel home address geocoding is persisted and route-aware
+  ---
+  duration_ms: 2.9059
+  type: 'test'
+  ...
+# Subtest: backoffice and personnel PWA offer secured address autocomplete
+ok 76 - backoffice and personnel PWA offer secured address autocomplete
+  ---
+  duration_ms: 2.1645
+  type: 'test'
+  ...
+# Subtest: personnel address updates geocode and refresh planning route contexts
+ok 77 - personnel address updates geocode and refresh planning route contexts
+  ---
+  duration_ms: 1.5636
+  type: 'test'
+  ...
+# Subtest: first planning stop uses personnel home address as route origin
+ok 78 - first planning stop uses personnel home address as route origin
+  ---
+  duration_ms: 0.7433
+  type: 'test'
+  ...
+# Subtest: planning map uses personnel home address only after explicit route request
+ok 79 - planning map uses personnel home address only after explicit route request
+  ---
+  duration_ms: 1.4752
+  type: 'test'
+  ...
+# Subtest: object address updates geocode automatically and refresh route contexts
+ok 80 - object address updates geocode automatically and refresh route contexts
+  ---
+  duration_ms: 2.4478
+  type: 'test'
+  ...
+1..80
+# tests 80
+# suites 0
+# pass 80
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 648.8115
+Fieldgrid migration order check is valid.
+warning: Historische numerieke gaten blijven bestaan: 003..003, 005..022.
+Google Maps mocked Playwright smoke passed. Output: C:\Users\danny\Documents\Veele Lokaal\platform-work\outputs\google-maps-sprint14-acceptance
+Fieldgrid Google Maps sprint 14 acceptance passed. Report: C:\Users\danny\Documents\Veele Lokaal\platform-work\outputs\google-maps-sprint14-acceptance\sprint14-acceptance.json
