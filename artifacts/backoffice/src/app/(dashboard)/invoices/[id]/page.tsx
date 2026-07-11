@@ -152,7 +152,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
         ]}
         actions={
           <Link
-            href={`/api/invoices/${invoice.id}/pdf`}
+            href={`/backoffice-api/invoices/${invoice.id}/pdf`}
             target="_blank"
             className="inline-flex items-center gap-2 rounded-lg border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-muted"
           >
@@ -213,7 +213,7 @@ export default async function InvoiceDetailPage({ params }: Props) {
             <ProcessStepper kind="invoice" status={invoice.status} className="mt-4" />
           </div>
           <Link
-            href={`/api/invoices/${invoice.id}/pdf`}
+            href={`/backoffice-api/invoices/${invoice.id}/pdf`}
             target="_blank"
             className="inline-flex items-center gap-2 rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
             style={{ borderColor: "#CBD5E1", color: "#081D3A", background: "#FFFFFF" }}

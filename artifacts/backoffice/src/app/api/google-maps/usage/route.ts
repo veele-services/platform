@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod/v4";
-import { createClient } from "@/lib/supabase/server";
-import { hasPermission } from "@/lib/auth/permissions";
-import { requireCurrentTenantId } from "@/lib/auth/tenant";
+import { createClientFromRequest } from "@/lib/supabase/server";
+import { hasPermissionFromRequest } from "@/lib/auth/permissions";
+import { requireCurrentTenantIdFromRequest } from "@/lib/auth/tenant";
 import {
   GOOGLE_MAPS_PROVIDER,
   checkGoogleMapsRateLimit,
@@ -19,12 +19,12 @@ const usageSchema = z.object({
   metadata: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.null()])).optional(),
 });
 
-async function canRecordGoogleMapsUsage(): Promise<boolean> {
+async function canRecordGoogleMapsUsage(request: Request): Promise<boolean> {
   const checks = await Promise.all([
-    hasPermission("planning", "read"),
-    hasPermission("personnel", "read"),
-    hasPermission("objects", "read"),
-    hasPermission("customers", "read"),
+    hasPermissionFromRequest(request, "planning", "read"),
+    hasPermissionFromRequest(request, "personnel", "read"),
+    hasPermissionFromRequest(request, "objects", "read"),
+    hasPermissionFromRequest(request, "customers", "read"),
   ]);
   return checks.some(Boolean);
 }
@@ -58,8 +58,8 @@ export async function POST(request: Request) {
   let userId: string | null = null;
 
   try {
-    tenantId = await requireCurrentTenantId();
-    const supabase = await createClient();
+    tenantId = await requireCurrentTenantIdFromRequest(request);
+    const supabase = createClientFromRequest(request);
     const { data: { user } } = await supabase.auth.getUser();
     userId = user?.id ?? null;
 
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
         { status: 401 },
       );
     }
-    if (!(await canRecordGoogleMapsUsage())) {
+    if (!(await canRecordGoogleMapsUsage(request))) {
       return NextResponse.json(
         { error: createSafeGoogleMapsError("permission_denied") },
         { status: 403 },

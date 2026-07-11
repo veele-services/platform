@@ -310,7 +310,7 @@ export async function getInvoiceSettings(): Promise<InvoiceSettingsBundle> {
     periodKey: previewNumber.periodKey,
     sequenceValue: previewNumber.sequenceValue,
     dueDateDays: companySettings.defaultPaymentTermDays,
-    testPdfUrl: "/api/invoices/test-pdf",
+    testPdfUrl: "/backoffice-api/invoices/test-pdf",
     warnings: invoiceSettingsWarnings({
       company: companySettings,
       template: templateSettings,

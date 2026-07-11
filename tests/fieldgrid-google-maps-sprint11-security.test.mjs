@@ -86,10 +86,10 @@ test("Sprint 11 usage endpoint does not trust client SKUs or tenant IDs", () => 
   const route = read("artifacts/backoffice/src/app/api/google-maps/usage/route.ts");
   const limiter = read("artifacts/backoffice/src/lib/google-maps/rate-limit.ts");
 
-  assert.match(route, /requireCurrentTenantId\(\)/u);
+  assert.match(route, /requireCurrentTenantIdFromRequest\(request\)/u);
   assert.match(route, /supabase\.auth\.getUser\(\)/u);
   assert.match(route, /canRecordGoogleMapsUsage/u);
-  assert.match(route, /hasPermission\("planning", "read"\)/u);
+  assert.match(route, /hasPermissionFromRequest\(request,\s*"planning", "read"\)/u);
   assert.match(route, /checkGoogleMapsRateLimit/u);
   assert.match(route, /action: "usage_event"/u);
   assert.match(route, /estimatedSkuForEvent\(parsed\.data\.eventType\)/u);

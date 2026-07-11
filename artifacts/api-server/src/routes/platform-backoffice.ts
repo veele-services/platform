@@ -75,6 +75,19 @@ function setResponseHeaders(res: Response, headers: Headers): void {
   }
 }
 
+function backofficeApiRedirectTarget(req: Request): string {
+  return req.originalUrl.replace(/^\/api(?=\/)/u, "/backoffice-api");
+}
+
+router.use(["/invoices", "/google-maps"], (req, res): void => {
+  const target = backofficeApiRedirectTarget(req);
+  req.log.info(
+    { target },
+    "Redirecting tenant backoffice API request to proxy-safe backoffice route",
+  );
+  res.redirect(307, target);
+});
+
 router.use("/platform", async (req, res): Promise<void> => {
   if (req.method !== "GET" && req.method !== "HEAD") {
     res.setHeader("Allow", "GET, HEAD");

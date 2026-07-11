@@ -229,6 +229,12 @@ function checkPlacesContract() {
       { pattern: "google_api_rate_limited", message: "Rate limits must be measured." },
       { pattern: "sessionToken", message: "Autocomplete endpoint must require/use session tokens." },
     ]),
+    ...expectFileContains("artifacts/backoffice/src/app/backoffice-api/google-maps/places/autocomplete/route.ts", [
+      { pattern: "@/app/api/google-maps/places/autocomplete/route", message: "Proxy-safe backoffice autocomplete route bridge missing." },
+    ]),
+    ...expectFileContains("artifacts/backoffice/src/components/google-maps/AddressAutocomplete.tsx", [
+      { pattern: "/backoffice-api/google-maps/places", message: "Backoffice autocomplete must avoid the generic /api proxy path." },
+    ]),
     ...expectFileContains("artifacts/backoffice/src/app/api/google-maps/places/details/route.ts", [
       { pattern: "supabase.auth.getUser", message: "Details endpoint must require auth." },
       { pattern: "requireCurrentTenantId", message: "Details endpoint must derive tenant server-side." },
