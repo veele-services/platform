@@ -23,7 +23,6 @@ import {
   ASSIGNMENT_STATUSES,
   type AssignmentPriority,
   type AssignmentStatus,
-  type PersonnelVehicleType,
 } from "@workspace/db";
 import {
   asc,
@@ -64,6 +63,10 @@ import {
   validateRouteCoordinates,
 } from "@/lib/planning/routes/route-utils";
 import type { RouteCoordinate } from "@/lib/planning/routes/types";
+import {
+  PLANNING_ROUTE_TRAVEL_MODES,
+  type PlanningRouteTravelMode,
+} from "@/lib/google-maps/planning-travel-modes";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -99,16 +102,6 @@ export type PersonnelForAssignmentResult = {
   requirements: AssignmentRequirements;
   personnel: PersonnelEligibilityEntry[];
 };
-
-export const PLANNING_ROUTE_TRAVEL_MODES = [
-  "DRIVE",
-  "BICYCLE",
-  "WALK",
-  "TRANSIT",
-] as const satisfies readonly PersonnelVehicleType[];
-
-export type PlanningRouteTravelMode =
-  (typeof PLANNING_ROUTE_TRAVEL_MODES)[number];
 
 export type PlanningMapRouteCalculationResult =
   | {

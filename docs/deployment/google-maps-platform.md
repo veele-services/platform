@@ -9,6 +9,10 @@ De architectuur is strikt gescheiden:
 - Routes API draait alleen server-side via Fieldgrid services/endpoints.
 - `GOOGLE_MAPS_SERVER_API_KEY` mag nooit in browserbundles, props, HTML, hydrationdata, publieke JSON-responses, logs of client-side environmentvariabelen terechtkomen.
 
+## GitHub Environment Namen
+
+De deployworkflow leest voor staging en production de browserkey uit het GitHub environment secret `GOOGLE_MAPS_BROWSER_API_KEY` en schrijft die tijdens de release-build naar de runtimevariabele `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY`. Dat is bewust: alleen de browserkey mag in de Next.js browserbundle terechtkomen. De serverkey blijft `GOOGLE_MAPS_SERVER_API_KEY` en wordt uitsluitend server-side gebruikt. `GOOGLE_MAPS_MAP_ID` komt uit een GitHub environment variable.
+
 ## Google Cloud Services
 
 Schakel uitsluitend deze APIs in op het Google Cloud project:
@@ -94,7 +98,7 @@ Map ID:
 GitHub Environment `staging`:
 
 - secret: `GOOGLE_MAPS_SERVER_API_KEY`;
-- variable of secret: `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY`;
+- secret: `GOOGLE_MAPS_BROWSER_API_KEY` (workflow schrijft deze naar `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY`);
 - variable: `GOOGLE_MAPS_MAP_ID`;
 - variable: `GOOGLE_MAPS_ENABLED=true`;
 - variable: `GOOGLE_MAPS_DEFAULT_COUNTRY=NL`;
@@ -116,7 +120,7 @@ Staging quota:
 GitHub Environment `production`:
 
 - secret: `GOOGLE_MAPS_SERVER_API_KEY`;
-- variable of secret: `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY`;
+- secret: `GOOGLE_MAPS_BROWSER_API_KEY` (workflow schrijft deze naar `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY`);
 - variable: `GOOGLE_MAPS_MAP_ID`;
 - dezelfde defaults als staging, tenzij tijdelijk rollback nodig is.
 
@@ -370,7 +374,8 @@ Rollback-effecten:
 Voor deploy:
 
 - [ ] `GOOGLE_MAPS_SERVER_API_KEY` staat als staging secret.
-- [ ] `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY` staat als staging variable/secret.
+- [ ] `GOOGLE_MAPS_BROWSER_API_KEY` staat als staging secret.
+- [ ] Deploy schrijft `NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY` naar de release `.env`.
 - [ ] `GOOGLE_MAPS_MAP_ID` staat als staging variable.
 - [ ] Browserkey heeft staging HTTP-referrers.
 - [ ] Serverkey is beperkt tot Places API (New) en Routes API.
