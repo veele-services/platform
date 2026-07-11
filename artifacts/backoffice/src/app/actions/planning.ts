@@ -1532,12 +1532,12 @@ export async function calculatePlanningMapRoute(input: {
       customerLat: customersTable.latitude,
       customerLng: customersTable.longitude,
       objectName: objectsTable.name,
-      objectAddress: objectsTable.address,
-      objectPostalCode: objectsTable.postalCode,
-      objectCity: objectsTable.city,
-      objectFormattedAddress: objectsTable.formattedAddress,
-      objectLat: objectsTable.latitude,
-      objectLng: objectsTable.longitude,
+      objectAddress: sql<string | null>`coalesce(${assignmentsTable.executionAddressLine1}, ${objectsTable.address})`,
+      objectPostalCode: sql<string | null>`coalesce(${assignmentsTable.executionPostalCode}, ${objectsTable.postalCode})`,
+      objectCity: sql<string | null>`coalesce(${assignmentsTable.executionCity}, ${objectsTable.city})`,
+      objectFormattedAddress: sql<string | null>`coalesce(${assignmentsTable.executionFormattedAddress}, ${objectsTable.formattedAddress})`,
+      objectLat: sql<string | null>`coalesce(${assignmentsTable.executionLatitude}, ${objectsTable.latitude})`,
+      objectLng: sql<string | null>`coalesce(${assignmentsTable.executionLongitude}, ${objectsTable.longitude})`,
       personnelFirstName: personnelTable.firstName,
       personnelLastName: personnelTable.lastName,
       personnelVehicleType: personnelTable.vehicleType,
@@ -1677,12 +1677,7 @@ export async function calculatePlanningMapRoute(input: {
     row.routeDestinationLng,
   );
   const objectDestination = coordinateFromValues(row.objectLat, row.objectLng);
-  const customerDestination = coordinateFromValues(
-    row.customerLat,
-    row.customerLng,
-  );
-  const destination =
-    contextDestination ?? objectDestination ?? customerDestination;
+  const destination = contextDestination ?? objectDestination;
   if (!destination) {
     return {
       success: false,
@@ -1692,7 +1687,7 @@ export async function calculatePlanningMapRoute(input: {
       providerMode,
       code: "missing_destination",
       message:
-        "Bestemmingslocatie ontbreekt. Vul de locatie van het object of de klant aan.",
+        "Bestemmingslocatie ontbreekt. Vul de objectlocatie aan voordat de route kan worden berekend.",
       retryable: false,
     };
   }
@@ -1832,12 +1827,13 @@ export async function getPlanningDayMapData(
       customerName: customersTable.name,
       objectId: assignmentsTable.objectId,
       objectName: objectsTable.name,
-      objectAddress: objectsTable.address,
-      objectPostalCode: objectsTable.postalCode,
-      objectCity: objectsTable.city,
+      objectAddress: sql<string | null>`coalesce(${assignmentsTable.executionAddressLine1}, ${objectsTable.address})`,
+      objectPostalCode: sql<string | null>`coalesce(${assignmentsTable.executionPostalCode}, ${objectsTable.postalCode})`,
+      objectCity: sql<string | null>`coalesce(${assignmentsTable.executionCity}, ${objectsTable.city})`,
+      objectFormattedAddress: sql<string | null>`coalesce(${assignmentsTable.executionFormattedAddress}, ${objectsTable.formattedAddress})`,
       requiredRegion: assignmentsTable.requiredRegion,
-      objectLat: objectsTable.latitude,
-      objectLng: objectsTable.longitude,
+      objectLat: sql<string | null>`coalesce(${assignmentsTable.executionLatitude}, ${objectsTable.latitude})`,
+      objectLng: sql<string | null>`coalesce(${assignmentsTable.executionLongitude}, ${objectsTable.longitude})`,
       customerLat: customersTable.latitude,
       customerLng: customersTable.longitude,
       personnelId: assignmentPersonnelTable.personnelId,

@@ -14,10 +14,14 @@ import {
   type InsertAuditLog,
 } from "@workspace/db";
 import { and, eq, inArray } from "drizzle-orm";
-import { createClient } from "@/lib/supabase/server";
-import { getCurrentTenantId } from "@/lib/auth/tenant";
+import { createClient, createClientFromRequest } from "@/lib/supabase/server";
+import {
+  getCurrentTenantId,
+  getCurrentTenantIdFromRequest,
+} from "@/lib/auth/tenant";
 import {
   getCurrentSupportMode,
+  getCurrentSupportModeFromRequest,
   writeSupportAccessAuditLog,
 } from "@/lib/auth/platform";
 
@@ -55,6 +59,16 @@ async function hasEnabledPermissionModule(resource: string): Promise<boolean> {
 
   const tenantId = await getCurrentTenantId();
   if (!tenantId) return false;
+
+  return isTenantModuleEnabled(tenantId, moduleKey);
+}
+
+async function hasEnabledPermissionModuleForTenant(
+  resource: string,
+  tenantId: string,
+): Promise<boolean> {
+  const moduleKey = moduleForPermissionResource(resource);
+  if (!moduleKey) return true;
 
   return isTenantModuleEnabled(tenantId, moduleKey);
 }
@@ -204,6 +218,26 @@ export async function getCurrentUserPermissions(): Promise<Set<string>> {
   return getUserPermissions(user.id, tenantId);
 }
 
+export async function getCurrentUserPermissionsFromRequest(
+  request: Request,
+): Promise<Set<string>> {
+  const supabase = createClientFromRequest(request);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return new Set();
+
+  const tenantId = await getCurrentTenantIdFromRequest(request);
+  if (!tenantId) return new Set();
+
+  const supportMode = await getCurrentSupportModeFromRequest(request);
+  if (supportMode?.tenantId === tenantId) {
+    return getSupportRuntimePermissions();
+  }
+
+  return getUserPermissions(user.id, tenantId);
+}
+
 export async function getCurrentEffectiveUserPermissions(): Promise<
   Set<string>
 > {
@@ -241,6 +275,21 @@ export async function hasPermission(
     (await hasEnabledPermissionModule(resource));
   await auditCurrentSupportPermission(resource, action, allowed);
   return allowed;
+}
+
+export async function hasPermissionFromRequest(
+  request: Request,
+  resource: string,
+  action: string,
+): Promise<boolean> {
+  const tenantId = await getCurrentTenantIdFromRequest(request);
+  if (!tenantId) return false;
+
+  const permissions = await getCurrentUserPermissionsFromRequest(request);
+  return (
+    permissions.has(`${resource}:${action}`) &&
+    (await hasEnabledPermissionModuleForTenant(resource, tenantId))
+  );
 }
 
 /**

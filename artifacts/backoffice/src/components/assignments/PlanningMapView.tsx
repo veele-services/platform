@@ -98,6 +98,7 @@ type MapMarker = {
   objectAddress: string | null;
   objectPostalCode: string | null;
   objectCity: string | null;
+  objectFormattedAddress: string | null;
   requiredRegion: string | null;
   coordinate: Coordinate | null;
   missingLocation: boolean;
@@ -304,7 +305,11 @@ function vehicleLabel(value: string): string {
   return labels[value] ?? value;
 }
 
-function formatObjectAddress(marker: Pick<MapMarker, "objectAddress" | "objectPostalCode" | "objectCity">): string {
+function formatObjectAddress(marker: Pick<MapMarker, "objectAddress" | "objectPostalCode" | "objectCity" | "objectFormattedAddress">): string {
+  if (marker.objectFormattedAddress?.trim()) {
+    return marker.objectFormattedAddress.trim();
+  }
+
   return [
     marker.objectAddress,
     [marker.objectPostalCode, marker.objectCity].filter(Boolean).join(" "),

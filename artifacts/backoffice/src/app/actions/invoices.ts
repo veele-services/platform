@@ -25,12 +25,22 @@ import { eq, ilike, or, and, asc, desc, sql, inArray, lt, type SQL } from "drizz
 import { emitInvoiceWorkflowEvent } from "@workspace/db/workflow-events";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { requirePermission, hasPermission } from "@/lib/auth/permissions";
-import { requireCurrentTenantId } from "@/lib/auth/tenant";
+import {
+  requirePermission,
+  hasPermission,
+  hasPermissionFromRequest,
+} from "@/lib/auth/permissions";
+import {
+  requireCurrentTenantId,
+  requireCurrentTenantIdFromRequest,
+} from "@/lib/auth/tenant";
 import { sendEmailWithResult, buildInvoiceEmail, buildPaymentReminderEmail, klantPortalUrl } from "@/lib/email";
 import { generateInvoicePdf } from "@/lib/invoice-pdf";
 import { calculateInvoiceProposalForAssignment, type InvoiceProposalLineItem } from "@/lib/invoice-proposals";
-import { requireSensitiveRuntimeAccess } from "@/lib/security/sensitive-runtime";
+import {
+  requireSensitiveRuntimeAccess,
+  requireSensitiveRuntimeAccessFromRequest,
+} from "@/lib/security/sensitive-runtime";
 import { toPlatformInvoiceMetadataDto } from "@/lib/security/safe-dtos";
 import type { ActionResult } from "./customers";
 
@@ -370,8 +380,11 @@ async function getInvoiceAssignmentForCurrentTenant(
     : null;
 }
 
-async function getOpenPaymentCheckoutUrlForCurrentTenant(invoiceId: string): Promise<string | null> {
-  const tenantId = await requireCurrentTenantId();
+async function getOpenPaymentCheckoutUrlForCurrentTenant(
+  invoiceId: string,
+  tenantIdOverride?: string,
+): Promise<string | null> {
+  const tenantId = tenantIdOverride ?? await requireCurrentTenantId();
   const [payment] = await db
     .select({ checkoutUrl: paymentsTable.checkoutUrl })
     .from(paymentsTable)
@@ -728,11 +741,18 @@ export async function exportInvoices(params: {
   };
 }
 
-export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
-  const canRead = await hasPermission("invoices", "read");
+export async function getInvoice(
+  id: string,
+  options: { request?: Request } = {},
+): Promise<InvoiceDetail | null> {
+  const canRead = options.request
+    ? await hasPermissionFromRequest(options.request, "invoices", "read")
+    : await hasPermission("invoices", "read");
   if (!canRead) return null;
 
-  const tenantId = await requireCurrentTenantId();
+  const tenantId = options.request
+    ? await requireCurrentTenantIdFromRequest(options.request)
+    : await requireCurrentTenantId();
   const [row] = await db
     .select({
       id:                 invoicesTable.id,
@@ -772,13 +792,21 @@ export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
 
   if (!row) return null;
 
-  const sensitiveDecision = await requireSensitiveRuntimeAccess({
-    tenantId,
-    scope: "tenant_invoices",
-    accessLevel: "masked_read",
-    resourceType: "invoices",
-    resourceId: id,
-  });
+  const sensitiveDecision = options.request
+    ? await requireSensitiveRuntimeAccessFromRequest(options.request, {
+        tenantId,
+        scope: "tenant_invoices",
+        accessLevel: "masked_read",
+        resourceType: "invoices",
+        resourceId: id,
+      })
+    : await requireSensitiveRuntimeAccess({
+        tenantId,
+        scope: "tenant_invoices",
+        accessLevel: "masked_read",
+        resourceType: "invoices",
+        resourceId: id,
+      });
 
   const [lineItems, branding, currentCompanySettings, currentTemplateSettings, currentPaymentSettings, paymentUrl] = await Promise.all([
     getInvoicePdfLineItems({
@@ -791,7 +819,7 @@ export async function getInvoice(id: string): Promise<InvoiceDetail | null> {
     getInvoiceCompanySettingsForTenant(tenantId),
     getInvoiceTemplateSettingsForTenant(tenantId),
     getInvoicePaymentSettingsForTenant(tenantId),
-    getOpenPaymentCheckoutUrlForCurrentTenant(id),
+    getOpenPaymentCheckoutUrlForCurrentTenant(id, tenantId),
   ]);
   const companySnapshot = row.companySnapshotJson
     ? normalizeInvoicePdfCompany(row.companySnapshotJson)

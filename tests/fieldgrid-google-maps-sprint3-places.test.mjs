@@ -36,12 +36,12 @@ test("Places API New clients use server-side endpoints, minimum field masks and 
     );
     assert.doesNotMatch(runtimeClient, new RegExp(`"${forbidden}"`, "u"));
   }
-  assert.match(backofficeAutocomplete, /requireCurrentTenantId\(\)/);
-  assert.match(backofficeAutocomplete, /hasPermission\("personnel",\s*"read"\)/);
+  assert.match(backofficeAutocomplete, /requireCurrentTenantIdFromRequest\(request\)/);
+  assert.match(backofficeAutocomplete, /hasPermissionFromRequest\(request,\s*"personnel",\s*"read"\)/);
   assert.match(backofficeAutocomplete, /z\.object/);
   assert.match(backofficeAutocomplete, /input\.trim\(\)\.length < 3/);
   assert.match(backofficeAutocomplete, /checkGoogleMapsRateLimit/);
-  assert.match(backofficeDetails, /requireCurrentTenantId\(\)/);
+  assert.match(backofficeDetails, /requireCurrentTenantIdFromRequest\(request\)/);
   assert.match(backofficeDetails, /checkGoogleMapsRateLimit/);
   assert.match(personnelAutocomplete, /getMyPersonnel\(\)/);
   assert.match(personnelAutocomplete, /checkPersonnelGoogleMapsRateLimit/);

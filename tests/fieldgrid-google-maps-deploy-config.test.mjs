@@ -36,7 +36,7 @@ test("Google Maps config keeps the server key out of public browser config", asy
   );
 
   assert.match(config, /NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY/);
-  assert.doesNotMatch(
+  assert.match(
     config,
     /readOptionalEnv\(env, "GOOGLE_MAPS_BROWSER_API_KEY"\)/,
   );

@@ -232,8 +232,43 @@ function normalizeLocationPart(value: string | null | undefined): string {
   return (value ?? "").trim().toLowerCase();
 }
 
+function normalizeCountryCode(value: string | null | undefined): string {
+  const normalized = (value ?? "NL").trim().toUpperCase();
+  return /^[A-Z]{2}$/u.test(normalized) ? normalized : "NL";
+}
+
+function formatManualObjectAddress(input: GeocodeAddressInput): string | null {
+  const cityLine = [input.postalCode, input.city]
+    .map((part) => part?.trim())
+    .filter(Boolean)
+    .join(" ");
+  const parts = [
+    input.address?.trim(),
+    cityLine || null,
+    normalizeCountryCode(input.country) === "NL" ? "Nederland" : input.country?.trim(),
+  ].filter(Boolean);
+
+  return parts.length > 0 ? parts.join(", ") : null;
+}
+
+function manualObjectLocationFields(input: GeocodeAddressInput) {
+  const formattedAddress = formatManualObjectAddress(input);
+  return {
+    addressLine1: input.address?.trim() || null,
+    addressLine2: null,
+    stateOrRegion: null,
+    countryCode: normalizeCountryCode(input.country),
+    formattedAddress,
+    googlePlaceId: null,
+    locationSource: formattedAddress ? "manual" : null,
+    locationVerifiedAt: null,
+    locationUpdatedAt: new Date(),
+  };
+}
+
 function geocodingResetForAddress(input: GeocodeAddressInput) {
   return {
+    ...manualObjectLocationFields(input),
     latitude: null,
     longitude: null,
     geocodedAt: null,
@@ -267,12 +302,13 @@ async function buildObjectAddressGeocodePatch(
   input: GeocodeAddressInput & { googlePlace?: ObjectFormInput["googlePlace"] },
 ) {
   if (input.googlePlace?.googlePlaceId) {
+    const fallbackAddress = formatManualObjectAddress(input);
     return {
       addressLine1: input.googlePlace.addressLine1 ?? input.address,
       addressLine2: input.googlePlace.addressLine2,
       stateOrRegion: input.googlePlace.stateOrRegion,
       countryCode: input.googlePlace.countryCode,
-      formattedAddress: input.googlePlace.formattedAddress,
+      formattedAddress: input.googlePlace.formattedAddress ?? fallbackAddress,
       googlePlaceId: input.googlePlace.googlePlaceId,
       locationSource: "google_places",
       locationVerifiedAt: new Date(),
@@ -288,6 +324,7 @@ async function buildObjectAddressGeocodePatch(
   }
 
   const addressInput = { ...input, country: input.country ?? "NL" };
+  const manualLocation = manualObjectLocationFields(addressInput);
 
   if (!hasGeocodableAddress(addressInput)) {
     return geocodingResetForAddress(addressInput);
@@ -296,6 +333,7 @@ async function buildObjectAddressGeocodePatch(
   const result = await geocodeAddress(addressInput);
   if (!result.success) {
     return {
+      ...manualLocation,
       latitude: null,
       longitude: null,
       geocodedAt: null,
@@ -307,6 +345,8 @@ async function buildObjectAddressGeocodePatch(
   }
 
   return {
+    ...manualLocation,
+    locationVerifiedAt: new Date(),
     latitude: coordinateString(result.latitude),
     longitude: coordinateString(result.longitude),
     geocodedAt: new Date(),
@@ -1314,10 +1354,15 @@ export async function updateObject(
   try {
     const [existing] = await db
       .select({
-        customerId:  objectsTable.customerId,
-        address:     objectsTable.address,
-        postalCode:  objectsTable.postalCode,
-        city:        objectsTable.city,
+        customerId:        objectsTable.customerId,
+        address:           objectsTable.address,
+        postalCode:        objectsTable.postalCode,
+        city:              objectsTable.city,
+        formattedAddress:  objectsTable.formattedAddress,
+        locationSource:    objectsTable.locationSource,
+        geocodingStatus:   objectsTable.geocodingStatus,
+        latitude:          objectsTable.latitude,
+        longitude:         objectsTable.longitude,
       })
       .from(objectsTable)
       .where(and(eq(objectsTable.id, id), eq(objectsTable.tenantId, tenantId)))
@@ -1325,7 +1370,18 @@ export async function updateObject(
 
     if (!existing) return { success: false, message: "Object niet gevonden." };
 
-    const shouldResetGeocoding = locationChanged(existing, payload);
+    const hasAddressInput = Boolean(
+      payload.address?.trim() || payload.postalCode?.trim() || payload.city?.trim(),
+    );
+    const shouldRepairCanonicalLocation =
+      hasAddressInput &&
+      (!existing.formattedAddress ||
+        !existing.locationSource ||
+        existing.geocodingStatus === "failed" ||
+        !existing.latitude ||
+        !existing.longitude);
+    const shouldResetGeocoding =
+      locationChanged(existing, payload) || shouldRepairCanonicalLocation;
     const geocodingState = shouldResetGeocoding
       ? await buildObjectAddressGeocodePatch(payload)
       : {};

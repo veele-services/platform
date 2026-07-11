@@ -1,10 +1,10 @@
 import { NextResponse } from "next/server";
-import { hasPermission } from "@/lib/auth/permissions";
+import { hasPermissionFromRequest } from "@/lib/auth/permissions";
 import { getInvoice } from "@/app/actions/invoices";
 import { generateInvoicePdf } from "@/lib/invoice-pdf";
 import { sanitizePdfFilename } from "@/lib/pdf-style";
-import { requireCurrentTenantId } from "@/lib/auth/tenant";
-import { requireSensitiveRuntimeAccess } from "@/lib/security/sensitive-runtime";
+import { requireCurrentTenantIdFromRequest } from "@/lib/auth/tenant";
+import { requireSensitiveRuntimeAccessFromRequest } from "@/lib/security/sensitive-runtime";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -13,12 +13,12 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
-  const canRead = await hasPermission("invoices", "read");
+  const canRead = await hasPermissionFromRequest(request, "invoices", "read");
   if (!canRead) return new NextResponse("Forbidden", { status: 403 });
 
   const { id } = await params;
-  const tenantId = await requireCurrentTenantId();
-  await requireSensitiveRuntimeAccess({
+  const tenantId = await requireCurrentTenantIdFromRequest(request);
+  await requireSensitiveRuntimeAccessFromRequest(request, {
     tenantId,
     scope: "tenant_invoices",
     accessLevel: "export",
@@ -27,7 +27,7 @@ export async function GET(
     exportDownload: true,
     metadata: { format: "pdf" },
   });
-  const invoice = await getInvoice(id);
+  const invoice = await getInvoice(id, { request });
   if (!invoice) return new NextResponse("Not found", { status: 404 });
 
   const paymentQrUrl = invoice.paymentUrl
