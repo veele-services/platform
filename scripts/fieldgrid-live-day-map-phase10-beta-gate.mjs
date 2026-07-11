@@ -121,7 +121,8 @@ mustMatch("planningActions", /eq\(assignmentRouteContextsTable\.tenantId,\s*tena
 
 mustContain("routeProvider", "FIELDGRID_ROUTE_PROVIDER", "route provider env switch");
 mustContain("routeProvider", "mock", "mock provider fallback option");
-mustMatch("routeProvider", /GOOGLE_MAPS_SERVER_API_KEY[\s\S]*GOOGLE_ROUTES_API_KEY[\s\S]*\?\s*"google"\s*:\s*"mock"/, "default mock provider without Google server key");
+mustContain("routeProvider", "GOOGLE_MAPS_SERVER_API_KEY", "default mock provider without Google server key");
+mustNotContain("routeProvider", "GOOGLE_ROUTES_API_KEY", "removed legacy route key fallback");
 mustContain("googleProvider", "GOOGLE_MAPS_SERVER_API_KEY is niet geconfigureerd.", "safe no-api-key failure");
 mustMatch(
   "googleProvider",

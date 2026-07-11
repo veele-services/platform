@@ -1,6 +1,6 @@
 # Google Maps Platform Configuratie
 
-Dit document hoort bij de centrale Fieldgrid Google Maps-module. De huidige live dagkaart gebruikt nog legacy kaart- en routecode; nieuwe Google Maps Platform-implementaties gebruiken uitsluitend de variabelen hieronder.
+Dit document hoort bij de centrale Fieldgrid Google Maps-module. De live dagkaart gebruikt de centrale Google Maps Platform-laag; legacy kaart- en routeproviders zijn vervangen of alleen nog als expliciete testfallback aanwezig.
 
 ## Variabelen
 
@@ -24,14 +24,13 @@ GOOGLE_ROUTES_ENABLED="true"
 GOOGLE_ROUTES_TRAFFIC_ENABLED="true"
 ```
 
-Legacy:
+Testfallback:
 
 ```env
-GOOGLE_ROUTES_API_KEY=""
-FIELDGRID_ROUTE_PROVIDER=""
+FIELDGRID_ROUTE_PROVIDER="mock"
 ```
 
-`GOOGLE_ROUTES_API_KEY` blijft alleen bestaan voor de oude live-day-map routeprovider. Nieuwe code gebruikt `GOOGLE_MAPS_SERVER_API_KEY`.
+`FIELDGRID_ROUTE_PROVIDER=mock` is alleen bedoeld voor CI/lokaal zonder live Google-calls. Productie gebruikt `GOOGLE_MAPS_SERVER_API_KEY`; de oude routespecifieke keynaam wordt niet meer gelezen.
 
 ## Key-scheiding
 

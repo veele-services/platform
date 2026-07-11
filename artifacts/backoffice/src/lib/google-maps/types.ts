@@ -39,7 +39,6 @@ export type GoogleMapsRuntimeConfig = GoogleMapsEnvironmentDefaults & {
   browserApiKey: string | null;
   serverApiKey: string | null;
   mapId: string | null;
-  legacyGoogleRoutesApiKeyConfigured: boolean;
 };
 
 export type GoogleMapsClientBootstrapConfig = {

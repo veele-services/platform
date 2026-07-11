@@ -37,13 +37,14 @@ test("Sprint 7 Routes API supports only canon modes and DRIVE traffic aware", ()
   assert.doesNotMatch(client, /TRAFFIC_AWARE_OPTIMAL|TWO_WHEELER|computeRouteMatrix|optimizeWaypointOrder|routeOptimization|fleet/u);
 });
 
-test("Sprint 7 provider prefers GOOGLE_MAPS_SERVER_API_KEY with legacy fallback only", () => {
+test("Sprint 7 provider uses GOOGLE_MAPS_SERVER_API_KEY without legacy route key fallback", () => {
   const provider = read("artifacts/backoffice/src/lib/planning/routes/route-provider.ts");
   const googleProvider = read("artifacts/backoffice/src/lib/planning/routes/google-routes-provider.ts");
 
   assert.match(provider, /process\.env\.GOOGLE_MAPS_SERVER_API_KEY/u);
-  assert.match(provider, /process\.env\.GOOGLE_ROUTES_API_KEY/u);
-  assert.match(googleProvider, /process\.env\.GOOGLE_MAPS_SERVER_API_KEY[\s\S]*process\.env\.GOOGLE_ROUTES_API_KEY/u);
+  assert.doesNotMatch(provider, /process\.env\.GOOGLE_ROUTES_API_KEY/u);
+  assert.match(googleProvider, /process\.env\.GOOGLE_MAPS_SERVER_API_KEY/u);
+  assert.doesNotMatch(googleProvider, /process\.env\.GOOGLE_ROUTES_API_KEY/u);
   assert.match(googleProvider, /GOOGLE_MAPS_SERVER_API_KEY is niet geconfigureerd/u);
   assert.doesNotMatch(googleProvider, /NEXT_PUBLIC/u);
 });

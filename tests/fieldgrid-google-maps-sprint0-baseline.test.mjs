@@ -38,7 +38,7 @@ test("Sprint 0 baseline: route provider has Google Routes server adapter and moc
 
   assert.match(routeProvider, /FIELDGRID_ROUTE_PROVIDER/u);
   assert.match(routeProvider, /GOOGLE_MAPS_SERVER_API_KEY/u);
-  assert.match(routeProvider, /GOOGLE_ROUTES_API_KEY/u);
+  assert.doesNotMatch(routeProvider, /GOOGLE_ROUTES_API_KEY/u);
   assert.match(routeProvider, /createMockRouteProvider/u);
   assert.match(routesClient, /directions\/v2:computeRoutes/u);
   assert.match(routesClient, /TRAFFIC_AWARE/u);
@@ -107,7 +107,6 @@ test("Sprint 0 baseline: integration plan tracks canon gaps and rollback", () =>
     "CARTO",
     "OpenStreetMap",
     "PDOK",
-    "GOOGLE_ROUTES_API_KEY",
     "NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY",
     "GOOGLE_MAPS_SERVER_API_KEY",
     "GOOGLE_MAPS_MAP_ID",

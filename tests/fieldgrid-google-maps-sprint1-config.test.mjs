@@ -62,7 +62,6 @@ test("Sprint 1: no public env example exposes a Google server key", () => {
     assert.match(content, /GOOGLE_MAPS_MAP_ID/u);
     assert.match(content, /GOOGLE_MAPS_DEFAULT_COUNTRY="NL"/u);
     assert.doesNotMatch(content, /NEXT_PUBLIC_GOOGLE_MAPS_SERVER_API_KEY/u);
-    assert.doesNotMatch(content, /NEXT_PUBLIC_GOOGLE_ROUTES_API_KEY/u);
   }
 });
 
@@ -111,7 +110,7 @@ test("Sprint 1: metrics and dedupe helpers avoid personal address payloads", () 
   assert.match(types, /google_api_rate_limited/u);
 });
 
-test("Sprint 1: deployment docs cover development, staging, production and legacy env", () => {
+test("Sprint 1: deployment docs cover development, staging, production and test fallback", () => {
   const docs = read("docs/deployment/google-maps-platform.md");
 
   for (const expected of [
@@ -121,8 +120,8 @@ test("Sprint 1: deployment docs cover development, staging, production and legac
     "NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY",
     "GOOGLE_MAPS_SERVER_API_KEY",
     "GOOGLE_MAPS_MAP_ID",
-    "GOOGLE_ROUTES_API_KEY",
-    "legacy",
+    "FIELDGRID_ROUTE_PROVIDER",
+    "testfallback",
     "Rollback",
   ]) {
     assert.match(docs, new RegExp(expected, "iu"));

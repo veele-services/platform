@@ -16,9 +16,9 @@ Standaard blijft de flag uit. Zonder flag ziet een gebruiker alleen de bestaande
 - Detaildrawer per marker met status, prioriteit, objectadres, gekoppeld personeel en opdrachtinformatie.
 - Empty/warning states voor ontbrekende coordinaten en geen data.
 
-## Client-side Rasterkaart En SSR
+## Google Maps Canvas En SSR
 
-`PlanningMapView` is een clientcomponent en rendert een keyless rasterkaart met gewone image tiles. Daardoor is er geen WebGL- of MapLibre-runtime nodig en blijft SSR veilig.
+`PlanningMapView` is een clientcomponent en rendert via de gedeelde `GoogleMapCanvas`. De Maps JavaScript API wordt lazy geladen zodra de kaart zichtbaar is; de app-shell laadt geen kaartscript. De eerdere keyless rasterkaart is vervangen.
 
 ## Security
 
@@ -26,7 +26,7 @@ Standaard blijft de flag uit. Zonder flag ziet een gebruiker alleen de bestaande
 - Alle data blijft server-side geautoriseerd via `planning:read`.
 - Tenantfiltering blijft in de server action zitten.
 - Er zijn geen `NEXT_PUBLIC` routeprovider keys toegevoegd.
-- De rasterkaart gebruikt een keyless CARTO rasterbron met OpenStreetMap fallbacktiles.
+- De oude rastertileprovider is vervangen door de centrale Google Maps Platform-laag.
 - Provider metadata en routeprovider secrets worden niet aan de client doorgegeven.
 
 ## UI Gedrag

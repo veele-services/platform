@@ -14,7 +14,6 @@ const FALSE_VALUES = new Set(["0", "false", "no", "off", "disabled"]);
 
 const PUBLIC_SECRET_ENV_NAMES = [
   "NEXT_PUBLIC_GOOGLE_MAPS_SERVER_API_KEY",
-  "NEXT_PUBLIC_GOOGLE_ROUTES_API_KEY",
   "NEXT_PUBLIC_GOOGLE_PLACES_API_KEY",
 ] as const;
 
@@ -63,9 +62,6 @@ export function getGoogleMapsRuntimeConfig(
     browserApiKey: readOptionalEnv(env, "NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY"),
     serverApiKey: readOptionalEnv(env, "GOOGLE_MAPS_SERVER_API_KEY"),
     mapId: readOptionalEnv(env, "GOOGLE_MAPS_MAP_ID"),
-    legacyGoogleRoutesApiKeyConfigured: Boolean(
-      readOptionalEnv(env, "GOOGLE_ROUTES_API_KEY"),
-    ),
   };
 }
 

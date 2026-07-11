@@ -45,10 +45,7 @@ function routeFailure(
 export function createGoogleRoutesProvider(
   options: GoogleRouteProviderOptions = {},
 ): RouteProvider {
-  const apiKey =
-    options.apiKey ??
-    process.env.GOOGLE_MAPS_SERVER_API_KEY ??
-    process.env.GOOGLE_ROUTES_API_KEY;
+  const apiKey = options.apiKey ?? process.env.GOOGLE_MAPS_SERVER_API_KEY;
   const fetchImpl = options.fetchImpl ?? fetch;
   const timeoutMs = options.timeoutMs ?? 5500;
 

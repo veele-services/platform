@@ -7,7 +7,7 @@ Fase 4 implementeert de routeprovider en routecache zonder UI. Er is bewust nog 
 ## Wat Is Toegevoegd
 
 - Server-only routeprovidercontracten in `artifacts/backoffice/src/lib/planning/routes`.
-- Google Routes adapter met `GOOGLE_MAPS_SERVER_API_KEY`; `GOOGLE_ROUTES_API_KEY` blijft alleen een tijdelijke legacy fallback.
+- Google Routes adapter met `GOOGLE_MAPS_SERVER_API_KEY`; de oude routespecifieke keynaam is vervangen.
 - Deterministic mock routeprovider voor tests en lokale verificatie.
 - Tenant-scoped cache helpers rond `assignment_route_cache`.
 - Cache TTL helper via `organization_settings.route_cache_ttl_hours`.
@@ -15,7 +15,7 @@ Fase 4 implementeert de routeprovider en routecache zonder UI. Er is bewust nog 
 
 ## Routeprovider
 
-De default provider is de deterministische mockprovider zolang `GOOGLE_MAPS_SERVER_API_KEY` ontbreekt. Google Routes wordt alleen gebruikt wanneer `FIELDGRID_ROUTE_PROVIDER=google` is gezet of wanneer er een server-only `GOOGLE_MAPS_SERVER_API_KEY` beschikbaar is. `GOOGLE_ROUTES_API_KEY` wordt nog herkend als tijdelijke backward-compatible fallback, maar is niet leidend. De API-key mag nooit als `NEXT_PUBLIC_*` worden geconfigureerd.
+De default provider is de deterministische mockprovider zolang `GOOGLE_MAPS_SERVER_API_KEY` ontbreekt. Google Routes wordt alleen gebruikt wanneer `FIELDGRID_ROUTE_PROVIDER=google` is gezet of wanneer er een server-only `GOOGLE_MAPS_SERVER_API_KEY` beschikbaar is. De API-key mag nooit als `NEXT_PUBLIC_*` worden geconfigureerd.
 
 Ondersteunde vervoerstypes volgen `PersonnelVehicleType`:
 

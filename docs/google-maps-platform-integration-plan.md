@@ -1,6 +1,6 @@
 # Google Maps Platform Integration Plan
 
-Status: Sprint 2 datamodel, usage metrics en vervoersmodus afgerond.
+Status: Sprint 12 legacy kaartcode en oude route-env opgeruimd.
 
 Sprint 1 vult de centrale modulebasis, env-documentatie en secret guards aan zonder de actieve kaart-, Places- of Routes-flow al te migreren.
 
@@ -20,11 +20,11 @@ Deze sprint voert geen functionele migratie uit. Dit document legt de huidige si
 
 ## 1. Samenvatting
 
-Fieldgrid heeft al een planningkaart en routecontexten, maar de huidige implementatie is een mix van:
+Fieldgrid had bij de start van deze canon al een planningkaart en routecontexten, maar die implementatie was een mix van:
 
 - een eigen rasterkaart in React met CARTO-tiles en OpenStreetMap fallback;
 - PDOK-adreszoeker/geocoding voor Nederlandse adressen;
-- server-side Google Routes `computeRoutes` als optionele provider via `GOOGLE_ROUTES_API_KEY`;
+- server-side Google Routes `computeRoutes` als optionele provider via een oude routespecifieke keynaam;
 - een deterministische mock routeprovider als fallback;
 - tenant-scoped planningqueries en routecontextopslag;
 - medewerkervervoerstypes in legacy-vorm: `car`, `bicycle`, `walking`, `moped_or_scooter`, `public_transport`.
@@ -52,14 +52,12 @@ Belangrijkste bestand:
 
 - `artifacts/backoffice/src/components/assignments/PlanningMapView.tsx`
 
-Huidige eigenschappen:
+Historische eigenschappen bij Sprint 0:
 
 - client component;
 - bouwt een kaart op met handmatige projectie, tile grid en CSS transforms;
-- gebruikt CARTO als primaire rastertile provider:
-  - `https://basemaps.cartocdn.com/light_all/${z}/${x}/${y}.png`
-- gebruikt OpenStreetMap als fallback:
-  - `https://tile.openstreetmap.org/${z}/${x}/${y}.png`
+- gebruikte CARTO als primaire rastertile provider;
+- gebruikte OpenStreetMap als fallback;
 - toont OSM/CARTO-attribution;
 - gebruikt lokale `STATUS_COLORS`;
 - heeft eigen marker-rendering, popup/selectie en pan/zoom;
@@ -103,10 +101,10 @@ Belangrijkste bestanden:
 - `artifacts/backoffice/src/lib/planning/routes/route-utils.ts`
 - `artifacts/backoffice/src/lib/planning/routes/route-cache.ts`
 
-Huidige eigenschappen:
+Historische eigenschappen bij Sprint 0:
 
 - providerselectie via `FIELDGRID_ROUTE_PROVIDER`;
-- Google wordt automatisch gekozen als `GOOGLE_ROUTES_API_KEY` aanwezig is;
+- Google werd automatisch gekozen als de oude routespecifieke keynaam aanwezig was;
 - fallback naar mock provider wanneer Google ontbreekt;
 - Google provider gebruikt server-side endpoint:
   - `https://routes.googleapis.com/directions/v2:computeRoutes`
@@ -118,9 +116,9 @@ Huidige eigenschappen:
 - vehicle mapping gebruikt legacy waarden;
 - `moped_or_scooter` wordt gemapt naar `TWO_WHEELER`, terwijl de canon dit in deze fase uitsluit.
 
-Risico:
+Sprint 12 status:
 
-- env-naam wijkt af van canon: `GOOGLE_ROUTES_API_KEY` in plaats van `GOOGLE_MAPS_SERVER_API_KEY`;
+- actieve code gebruikt `GOOGLE_MAPS_SERVER_API_KEY` en leest de oude routespecifieke keynaam niet meer;
 - routeservice is nog niet provider-onafhankelijk gecentraliseerd onder een Google Maps module;
 - routecachebeleid moet worden herzien op Google-voorwaarden en traffic-aware TTL;
 - response mist `staticDuration`, `polyline`, `viewport` en richer route metadata.
@@ -238,12 +236,12 @@ Sprint 2 status:
 
 ### Environmentconfiguratie
 
-Bestaande live-day-map docs noemen:
+Historische live-day-map docs noemden:
 
 - `FIELDGRID_PLANNING_DAY_MAP_ENABLED`
 - `FIELDGRID_ROUTE_PROVIDER`
-- `GOOGLE_ROUTES_API_KEY`
-- historisch ook `NEXT_PUBLIC_GOOGLE_ROUTES_API_KEY` in onderzoekstekst.
+- een oude routespecifieke Google keynaam;
+- historisch ook een publieke variant daarvan in onderzoekstekst.
 
 Canon vereist:
 
@@ -491,11 +489,11 @@ Te borgen:
 
 ## 8. Rollbackstrategie
 
-Huidige rollback:
+Huidige rollback na Sprint 12:
 
 - `FIELDGRID_PLANNING_DAY_MAP_ENABLED=false` verbergt de kaarttab.
 - `FIELDGRID_ROUTE_PROVIDER=mock` schakelt externe routeprovider uit.
-- Zonder Google routes key valt provider terug naar mock.
+- Zonder `GOOGLE_MAPS_SERVER_API_KEY` valt provider terug naar mock.
 
 Nieuwe rollback na migratie:
 
@@ -507,11 +505,11 @@ Nieuwe rollback na migratie:
 
 ## 9. Teststrategie
 
-Sprint 0 baseline-tests leggen vast wat nu bestaat:
+Sprint 12 gates leggen vast dat het volgende niet meer actief is:
 
 - CARTO/OSM kaartprovider;
 - PDOK adreszoeker;
-- Google Routes oude serverkey;
+- oude Google Routes keynaam;
 - mock route fallback;
 - tenant-scope in planningkaartquery;
 - huidige vervoerstype mapping;
@@ -553,6 +551,6 @@ De volledige Google Maps Platform-integratie is pas klaar wanneer:
 - usage per tenant meetbaar is;
 - rate limiting aanwezig is;
 - fallbackstates Nederlands en bruikbaar zijn;
-- oude CARTO/OSM/PDOK/mock-only code gecontroleerd gemigreerd of verwijderd is;
+- oude CARTO/OSM/PDOK/mock-only code gecontroleerd gemigreerd, verwijderd of als expliciete testfallback gedocumenteerd is;
 - tests, typecheck, build en migratiecheck groen zijn;
 - documentatie en `.env.example` zijn bijgewerkt.
