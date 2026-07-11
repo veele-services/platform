@@ -22,6 +22,13 @@ function readOptionalEnv(env: NodeJS.ProcessEnv, name: string): string | null {
   return value ? value : null;
 }
 
+function readBrowserApiKey(env: NodeJS.ProcessEnv): string | null {
+  return (
+    readOptionalEnv(env, "NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY") ??
+    readOptionalEnv(env, "GOOGLE_MAPS_BROWSER_API_KEY")
+  );
+}
+
 function readBooleanEnv(
   env: NodeJS.ProcessEnv,
   name: string,
@@ -59,7 +66,7 @@ export function getGoogleMapsRuntimeConfig(
       "GOOGLE_ROUTES_TRAFFIC_ENABLED",
       true,
     ),
-    browserApiKey: readOptionalEnv(env, "NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY"),
+    browserApiKey: readBrowserApiKey(env),
     serverApiKey: readOptionalEnv(env, "GOOGLE_MAPS_SERVER_API_KEY"),
     mapId: readOptionalEnv(env, "GOOGLE_MAPS_MAP_ID"),
   };
@@ -92,10 +99,10 @@ export function assertGoogleMapsServerSecretsSafe(
   }
 
   const serverKey = readOptionalEnv(env, "GOOGLE_MAPS_SERVER_API_KEY");
-  const browserKey = readOptionalEnv(env, "NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY");
+  const browserKey = readBrowserApiKey(env);
   if (serverKey && browserKey && serverKey === browserKey) {
     errors.push(
-      "GOOGLE_MAPS_SERVER_API_KEY en NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY moeten gescheiden keys zijn.",
+      "GOOGLE_MAPS_SERVER_API_KEY en de Google Maps browserkey moeten gescheiden keys zijn.",
     );
   }
 
@@ -126,7 +133,7 @@ export function validateGoogleMapsRuntimeConfig(
 
   if (config.enabled && !config.browserApiKey) {
     errors.push(
-      "NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY ontbreekt terwijl Google Maps aan staat.",
+      "NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_API_KEY of GOOGLE_MAPS_BROWSER_API_KEY ontbreekt terwijl Google Maps aan staat.",
     );
   }
 

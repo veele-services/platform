@@ -13,7 +13,7 @@ import {
   type InsertAssignmentRouteContext,
   type PersonnelVehicleType,
 } from "@workspace/db";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import {
   computeEtaSnapSuggestion,
   dateTimeForTime,
@@ -254,8 +254,8 @@ async function loadRoutePlanningRows(input: {
       assignedAt: assignmentPersonnelTable.assignedAt,
       personnelId: assignmentPersonnelTable.personnelId,
       personnelVehicleType: personnelTable.vehicleType,
-      objectLat: objectsTable.latitude,
-      objectLng: objectsTable.longitude,
+      objectLat: sql<string | null>`coalesce(${assignmentsTable.executionLatitude}, ${objectsTable.latitude})`,
+      objectLng: sql<string | null>`coalesce(${assignmentsTable.executionLongitude}, ${objectsTable.longitude})`,
       customerLat: customersTable.latitude,
       customerLng: customersTable.longitude,
       personnelAddressLat: personnelTable.addressLatitude,

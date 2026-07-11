@@ -68,6 +68,7 @@ export type PlanningDayMapMarker = {
   objectAddress: string | null;
   objectPostalCode: string | null;
   objectCity: string | null;
+  objectFormattedAddress: string | null;
   requiredRegion: string | null;
   coordinate: PlanningDayMapCoordinate | null;
   missingLocation: boolean;
@@ -141,6 +142,7 @@ export type PlanningDayMapRow = {
   objectAddress: string | null;
   objectPostalCode: string | null;
   objectCity: string | null;
+  objectFormattedAddress: string | null;
   requiredRegion: string | null;
   objectLat: CoordinateValue;
   objectLng: CoordinateValue;
@@ -336,6 +338,7 @@ export function buildPlanningDayMapDataFromRows(
         objectAddress: row.objectAddress,
         objectPostalCode: row.objectPostalCode,
         objectCity: row.objectCity,
+        objectFormattedAddress: row.objectFormattedAddress,
         requiredRegion: row.requiredRegion,
         coordinate,
         missingLocation: !coordinate,

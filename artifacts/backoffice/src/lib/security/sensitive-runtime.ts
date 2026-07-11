@@ -11,9 +11,17 @@ import {
   type FieldgridRole,
   type SensitiveAccessGrant,
 } from "@workspace/db";
-import { createClient } from "@/lib/supabase/server";
-import { getCurrentTenantId } from "@/lib/auth/tenant";
-import { getCurrentPlatformUser, getCurrentSupportMode } from "@/lib/auth/platform";
+import { createClient, createClientFromRequest } from "@/lib/supabase/server";
+import {
+  getCurrentTenantId,
+  getCurrentTenantIdFromRequest,
+} from "@/lib/auth/tenant";
+import {
+  getCurrentPlatformUser,
+  getCurrentPlatformUserFromRequest,
+  getCurrentSupportMode,
+  getCurrentSupportModeFromRequest,
+} from "@/lib/auth/platform";
 import { getUserRoles } from "@/lib/auth/permissions";
 
 export type SensitiveRuntimeDecision = {
@@ -48,6 +56,14 @@ async function currentUserId(): Promise<string | null> {
   return user?.id ?? null;
 }
 
+async function currentUserIdFromRequest(request: Request): Promise<string | null> {
+  const supabase = createClientFromRequest(request);
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  return user?.id ?? null;
+}
+
 async function requestMetadata(): Promise<{ ipAddress: string | null; userAgent: string | null }> {
   try {
     const requestHeaders = await headers();
@@ -72,6 +88,35 @@ async function actorRolesForTenant(userId: string, tenantId: string): Promise<Fi
     getCurrentPlatformUser(),
     getCurrentSupportMode(),
     getCurrentTenantId(),
+  ]);
+
+  const isTenantRuntimeContext = currentTenantId === tenantId;
+  if (platformUser && (supportMode?.tenantId === tenantId || !isTenantRuntimeContext)) {
+    const role = normalizePlatformRole(platformUser.role);
+    if (role) roles.push(role);
+  }
+
+  if (currentTenantId === tenantId) {
+    const tenantRoles = await getUserRoles(userId, tenantId);
+    for (const roleName of tenantRoles) {
+      const role = normalizeTenantRole(roleName);
+      if (role) roles.push(role);
+    }
+  }
+
+  return [...new Set(roles)];
+}
+
+async function actorRolesForTenantFromRequest(
+  request: Request,
+  userId: string,
+  tenantId: string,
+): Promise<FieldgridRole[]> {
+  const roles: FieldgridRole[] = [];
+  const [platformUser, supportMode, currentTenantId] = await Promise.all([
+    getCurrentPlatformUserFromRequest(request),
+    getCurrentSupportModeFromRequest(request),
+    getCurrentTenantIdFromRequest(request),
   ]);
 
   const isTenantRuntimeContext = currentTenantId === tenantId;
@@ -217,10 +262,115 @@ export async function getSensitiveRuntimeAccess(
   return finalDecision;
 }
 
+export async function getSensitiveRuntimeAccessFromRequest(
+  request: Request,
+  input: SensitiveRuntimeAccessInput,
+): Promise<SensitiveRuntimeDecision> {
+  const userId = await currentUserIdFromRequest(request);
+  if (!userId) {
+    return {
+      allowed: false,
+      reason: "authentication_required",
+      masked: true,
+      auditRequired: true,
+      role: "unknown",
+      userId: "00000000-0000-0000-0000-000000000000",
+      tenantId: input.tenantId,
+      scope: input.scope,
+      accessLevel: input.accessLevel,
+      grantId: null,
+    };
+  }
+
+  const roles = await actorRolesForTenantFromRequest(request, userId, input.tenantId);
+  if (roles.length === 0) {
+    const decision: SensitiveRuntimeDecision = {
+      allowed: false,
+      reason: "role_not_found",
+      masked: true,
+      auditRequired: true,
+      role: "unknown",
+      userId,
+      tenantId: input.tenantId,
+      scope: input.scope,
+      accessLevel: input.accessLevel,
+      grantId: null,
+    };
+    await auditRuntimeDecision({ decision, runtimeInput: input });
+    return decision;
+  }
+
+  let denial: SensitiveRuntimeDecision | null = null;
+  for (const role of roles) {
+    for (const accessLevel of accessCandidates(input.accessLevel)) {
+      let grant: SensitiveAccessGrant | null = null;
+      if (role.startsWith("platform_")) {
+        grant = await getActiveSensitiveAccessGrant({
+          userId,
+          tenantId: input.tenantId,
+          scope: input.scope,
+          permission: accessLevel,
+        });
+      }
+
+      const rawDecision = authorizeFieldgridAccess({
+        role,
+        scope: input.scope,
+        accessLevel,
+        actorTenantId: role.startsWith("tenant_") ? input.tenantId : null,
+        resourceTenantId: input.tenantId,
+        hasActiveSensitiveGrant: Boolean(grant),
+        breakGlassReason: input.reason ?? null,
+      });
+      const decision: SensitiveRuntimeDecision = {
+        ...rawDecision,
+        role,
+        userId,
+        tenantId: input.tenantId,
+        scope: input.scope,
+        accessLevel,
+        grantId: grant?.id ?? null,
+      };
+
+      if (decision.allowed) {
+        await auditRuntimeDecision({ decision, runtimeInput: input });
+        return decision;
+      }
+      denial = denial ?? decision;
+    }
+  }
+
+  const finalDecision = denial ?? {
+    allowed: false,
+    reason: "permission_denied",
+    masked: true,
+    auditRequired: true,
+    role: "unknown" as const,
+    userId,
+    tenantId: input.tenantId,
+    scope: input.scope,
+    accessLevel: input.accessLevel,
+    grantId: null,
+  };
+  await auditRuntimeDecision({ decision: finalDecision, runtimeInput: input });
+  return finalDecision;
+}
+
 export async function requireSensitiveRuntimeAccess(
   input: SensitiveRuntimeAccessInput,
 ): Promise<SensitiveRuntimeDecision> {
   const decision = await getSensitiveRuntimeAccess(input);
+  if (!decision.allowed) {
+    throw new Error(`Forbidden: ${decision.reason}`);
+  }
+  return decision;
+}
+
+export async function requireSensitiveRuntimeAccessFromRequest(
+  request: Request,
+  input: SensitiveRuntimeAccessInput,
+): Promise<SensitiveRuntimeDecision> {
+  const decision = await getSensitiveRuntimeAccessFromRequest(request, input);
   if (!decision.allowed) {
     throw new Error(`Forbidden: ${decision.reason}`);
   }

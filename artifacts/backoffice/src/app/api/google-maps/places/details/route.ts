@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod/v4";
-import { createClient } from "@/lib/supabase/server";
-import { hasPermission } from "@/lib/auth/permissions";
-import { requireCurrentTenantId } from "@/lib/auth/tenant";
+import { createClientFromRequest } from "@/lib/supabase/server";
+import { hasPermissionFromRequest } from "@/lib/auth/permissions";
+import { requireCurrentTenantIdFromRequest } from "@/lib/auth/tenant";
 import {
   GooglePlacesClientError,
   assertGoogleMapsServerSecretsSafe,
@@ -18,14 +18,14 @@ const detailsSchema = z.object({
   sessionToken: z.string().min(8).max(128),
 });
 
-async function canUseAddressSearch(): Promise<boolean> {
+async function canUseAddressSearch(request: Request): Promise<boolean> {
   const checks = await Promise.all([
-    hasPermission("personnel", "read"),
-    hasPermission("personnel", "write"),
-    hasPermission("objects", "read"),
-    hasPermission("objects", "write"),
-    hasPermission("customers", "read"),
-    hasPermission("customers", "write"),
+    hasPermissionFromRequest(request, "personnel", "read"),
+    hasPermissionFromRequest(request, "personnel", "write"),
+    hasPermissionFromRequest(request, "objects", "read"),
+    hasPermissionFromRequest(request, "objects", "write"),
+    hasPermissionFromRequest(request, "customers", "read"),
+    hasPermissionFromRequest(request, "customers", "write"),
   ]);
   return checks.some(Boolean);
 }
@@ -36,8 +36,8 @@ export async function POST(request: Request) {
   let userId: string | null = null;
 
   try {
-    tenantId = await requireCurrentTenantId();
-    const supabase = await createClient();
+    tenantId = await requireCurrentTenantIdFromRequest(request);
+    const supabase = createClientFromRequest(request);
     const { data: { user } } = await supabase.auth.getUser();
     userId = user?.id ?? null;
     if (!user) {
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
         { status: 401 },
       );
     }
-    if (!(await canUseAddressSearch())) {
+    if (!(await canUseAddressSearch(request))) {
       return NextResponse.json(
         { error: createSafeGoogleMapsError("permission_denied") },
         { status: 403 },

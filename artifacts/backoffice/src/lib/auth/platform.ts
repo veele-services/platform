@@ -53,6 +53,32 @@ async function isCurrentHostPlatformHost(): Promise<boolean> {
   return isPlatformHost(normalizeHost(host));
 }
 
+function getCookieValueFromRequest(request: Request, name: string): string | null {
+  const cookieHeader = request.headers.get("cookie");
+  if (!cookieHeader) return null;
+
+  for (const rawCookie of cookieHeader.split(";")) {
+    const cookie = rawCookie.trim();
+    const separatorIndex = cookie.indexOf("=");
+    if (separatorIndex === -1) continue;
+    const cookieName = cookie.slice(0, separatorIndex).trim();
+    if (cookieName !== name) continue;
+
+    try {
+      return decodeURIComponent(cookie.slice(separatorIndex + 1));
+    } catch {
+      return cookie.slice(separatorIndex + 1);
+    }
+  }
+
+  return null;
+}
+
+function isRequestHostPlatformHost(request: Request): boolean {
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "";
+  return isPlatformHost(normalizeHost(host));
+}
+
 export async function getCurrentPlatformUser(): Promise<CurrentPlatformUser | null> {
   const userId = await getCurrentUserId();
   return getPlatformUserForUserId(userId);
@@ -120,6 +146,35 @@ export async function getCurrentSupportMode(): Promise<CurrentSupportMode | null
 
   const cookieStore = await cookies();
   const tenantId = cookieStore.get(FIELDGRID_SUPPORT_TENANT_COOKIE)?.value;
+  if (!tenantId) return null;
+
+  const supportAccess = await getActiveSupportAccessForUser(userId, tenantId);
+  if (!supportAccess) return null;
+
+  const expiresAt = supportAccess.grant.expiresAt;
+  return {
+    tenantId,
+    grantId: supportAccess.grant.id,
+    platformUserId: supportAccess.platformUser.id,
+    reason: supportAccess.grant.reason,
+    expiresAt: expiresAt.toISOString(),
+    ttlSeconds: Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000)),
+    priority: FIELDGRID_RUNTIME_ACCESS_PRIORITY[1],
+  };
+}
+
+export async function getCurrentSupportModeFromRequest(
+  request: Request,
+): Promise<CurrentSupportMode | null> {
+  if (!isRequestHostPlatformHost(request)) return null;
+
+  const userId = await getCurrentUserIdFromRequest(request);
+  if (!userId) return null;
+
+  const tenantId = getCookieValueFromRequest(
+    request,
+    FIELDGRID_SUPPORT_TENANT_COOKIE,
+  );
   if (!tenantId) return null;
 
   const supportAccess = await getActiveSupportAccessForUser(userId, tenantId);

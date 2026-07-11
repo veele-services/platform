@@ -46,9 +46,9 @@ test("Sprint 11 DB hardening closes Maps usage and route tables to browser roles
 test("Sprint 11 backoffice Places routes require auth, server tenant context, permissions, validation and rate limits", () => {
   for (const file of backofficePlaceRoutes) {
     const route = read(file);
-    assert.match(route, /requireCurrentTenantId\(\)/u, `${file} resolves tenant server-side`);
+    assert.match(route, /requireCurrentTenantIdFromRequest\(request\)/u, `${file} resolves tenant server-side from the route request`);
     assert.match(route, /supabase\.auth\.getUser\(\)/u, `${file} requires an authenticated user`);
-    assert.match(route, /hasPermission/u, `${file} checks permissions`);
+    assert.match(route, /hasPermissionFromRequest/u, `${file} checks request-scoped permissions`);
     assert.match(route, /\.safeParse\(await request\.json\(\)\)/u, `${file} validates input schema`);
     assert.match(route, /checkGoogleMapsRateLimit/u, `${file} applies rate limiting`);
     assert.match(route, /createSafeGoogleMapsError/u, `${file} returns safe generic errors`);
