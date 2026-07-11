@@ -101,6 +101,31 @@ test("Sprint 2: travel modes are canonical and legacy values are migrated safely
   assert.doesNotMatch(routeUtils, /TWO_WHEELER/u);
 });
 
+test("Sprint 2: old vehicle type constraints are dropped before canonical updates", () => {
+  const migration = read(migrationPath);
+  const dropIndex = migration.indexOf(
+    "DROP CONSTRAINT IF EXISTS personnel_vehicle_type_check",
+  );
+  const updateIndex = migration.indexOf("SET vehicle_type = CASE vehicle_type");
+  const defaultIndex = migration.indexOf(
+    "ALTER COLUMN vehicle_type SET DEFAULT 'DRIVE'",
+  );
+
+  assert.notEqual(dropIndex, -1);
+  assert.notEqual(updateIndex, -1);
+  assert.notEqual(defaultIndex, -1);
+  assert.ok(dropIndex < defaultIndex);
+  assert.ok(dropIndex < updateIndex);
+  assert.match(
+    migration,
+    /ALTER TABLE IF EXISTS public\.assignment_route_cache DROP CONSTRAINT IF EXISTS assignment_route_cache_vehicle_type_check/u,
+  );
+  assert.match(
+    migration,
+    /ALTER TABLE IF EXISTS public\.assignment_route_contexts DROP CONSTRAINT IF EXISTS assignment_route_contexts_vehicle_type_check/u,
+  );
+});
+
 test("Sprint 2: provider-neutral usage metrics are tenant-scoped and payload-safe", () => {
   const migration = read(migrationPath);
   const usageSchema = read("lib/db/src/schema/google-maps-usage.ts");

@@ -218,6 +218,13 @@ WHERE
 -- Normalize personnel and route vehicle types to the canonical Google Routes
 -- mapping. moped_or_scooter is explicitly preserved in legacy_vehicle_type /
 -- provider_meta and mapped to DRIVE because TWO_WHEELER is out of scope.
+DO $$
+BEGIN
+  ALTER TABLE IF EXISTS public.personnel DROP CONSTRAINT IF EXISTS personnel_vehicle_type_check;
+  ALTER TABLE IF EXISTS public.assignment_route_cache DROP CONSTRAINT IF EXISTS assignment_route_cache_vehicle_type_check;
+  ALTER TABLE IF EXISTS public.assignment_route_contexts DROP CONSTRAINT IF EXISTS assignment_route_contexts_vehicle_type_check;
+END $$;
+
 ALTER TABLE public.personnel
   ALTER COLUMN vehicle_type SET DEFAULT 'DRIVE';
 
@@ -270,10 +277,6 @@ WHERE vehicle_type IN ('car', 'bicycle', 'walking', 'moped_or_scooter', 'public_
 
 DO $$
 BEGIN
-  ALTER TABLE public.personnel DROP CONSTRAINT IF EXISTS personnel_vehicle_type_check;
-  ALTER TABLE public.assignment_route_cache DROP CONSTRAINT IF EXISTS assignment_route_cache_vehicle_type_check;
-  ALTER TABLE public.assignment_route_contexts DROP CONSTRAINT IF EXISTS assignment_route_contexts_vehicle_type_check;
-
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'customers_location_source_check') THEN
     ALTER TABLE public.customers
       ADD CONSTRAINT customers_location_source_check
