@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod/v4";
 import { getMyCustomerIdentity } from "@/actions/customer";
 import { checkCustomerGoogleMapsRateLimit } from "@/lib/google-maps/rate-limit";
-import { db, googleMapsUsageEventsTable } from "@workspace/db";
+import { db, googleMapsUsageEventsTable, sanitizeGoogleMapsMetricMetadata } from "@workspace/db";
 import { fetchGooglePlacesAutocomplete, GooglePlacesClientError } from "@workspace/db/google-places";
 
 const schema = z.object({
@@ -48,10 +48,10 @@ async function recordUsage(input: {
     cacheOrDedupeStatus: input.cacheOrDedupeStatus,
     provider: "google_maps",
     estimatedSku: input.estimatedSku,
-    metadata: {
+    metadata: sanitizeGoogleMapsMetricMetadata({
       ...(input.metadata ?? {}),
       portal: "customer",
-    },
+    }),
   }).catch(() => {});
 }
 
@@ -124,6 +124,13 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({ suggestions: result.suggestions });
   } catch (error) {
+    console.error("[google-maps] places autocomplete failed", {
+      surface: "customer",
+      tenantId,
+      userId,
+      code: error instanceof GooglePlacesClientError ? error.code : "unknown",
+      status: error instanceof GooglePlacesClientError ? error.status ?? null : null,
+    });
     if (tenantId) {
       await recordUsage({
         tenantId,

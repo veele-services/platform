@@ -3,7 +3,7 @@ import { z } from "zod/v4";
 import { getMyPersonnel } from "@/actions/personnel";
 import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
 import { checkPersonnelGoogleMapsRateLimit } from "@/lib/google-maps/rate-limit";
-import { db, googleMapsUsageEventsTable } from "@workspace/db";
+import { db, googleMapsUsageEventsTable, sanitizeGoogleMapsMetricMetadata } from "@workspace/db";
 import { fetchGooglePlaceDetails, GooglePlacesClientError } from "@workspace/db/google-places";
 
 const schema = z.object({
@@ -31,11 +31,11 @@ async function recordUsage(input: {
     cacheOrDedupeStatus: input.cacheOrDedupeStatus,
     provider: "google_maps",
     estimatedSku: input.estimatedSku,
-    metadata: {
+    metadata: sanitizeGoogleMapsMetricMetadata({
       ...(input.metadata ?? {}),
       portal: "personnel",
       actorPresent: Boolean(input.personnelId),
-    },
+    }),
   }).catch(() => {});
 }
 
@@ -69,7 +69,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Te veel adresverzoeken" }, { status: 429 });
     }
     const apiKey = process.env.GOOGLE_MAPS_SERVER_API_KEY;
-    if (!apiKey) return NextResponse.json({ error: "Google Places is niet geconfigureerd" }, { status: 503 });
+    if (!apiKey) return NextResponse.json({ error: "Adresdetails konden niet worden opgehaald" }, { status: 503 });
     const result = await fetchGooglePlaceDetails({
       placeId: parsed.data.placeId,
       sessionToken: parsed.data.sessionToken,
@@ -99,6 +99,13 @@ export async function POST(request: Request) {
     });
     return NextResponse.json({ place: result.place });
   } catch (error) {
+    console.error("[google-maps] place details failed", {
+      surface: "personnel",
+      tenantId,
+      personnelId,
+      code: error instanceof GooglePlacesClientError ? error.code : "unknown",
+      status: error instanceof GooglePlacesClientError ? error.status ?? null : null,
+    });
     if (tenantId) {
       await recordUsage({
         tenantId,

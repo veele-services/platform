@@ -164,6 +164,13 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ suggestions: result.suggestions });
   } catch (error) {
+    console.error("[google-maps] places autocomplete failed", {
+      surface: "backoffice",
+      tenantId,
+      userId,
+      code: error instanceof GooglePlacesClientError ? error.code : "unknown",
+      status: error instanceof GooglePlacesClientError ? error.status ?? null : null,
+    });
     if (tenantId) {
       await recordGoogleMapsUsageEvent({
         tenantId,

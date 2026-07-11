@@ -135,6 +135,13 @@ export async function POST(request: Request) {
 
     return NextResponse.json({ place: result.place });
   } catch (error) {
+    console.error("[google-maps] place details failed", {
+      surface: "backoffice",
+      tenantId,
+      userId,
+      code: error instanceof GooglePlacesClientError ? error.code : "unknown",
+      status: error instanceof GooglePlacesClientError ? error.status ?? null : null,
+    });
     if (tenantId) {
       await recordGoogleMapsUsageEvent({
         tenantId,
