@@ -186,10 +186,30 @@ SET
   execution_location_source = COALESCE(a.execution_location_source, o.location_source, c.location_source, 'legacy'),
   execution_location_snapshot_at = COALESCE(a.execution_location_snapshot_at, now()),
   execution_location_updated_at = COALESCE(a.execution_location_updated_at, o.location_updated_at, c.location_updated_at, a.updated_at, now())
-FROM public.customers AS c
-LEFT JOIN public.objects AS o
-  ON o.id = a.object_id
+FROM public.objects AS o, public.customers AS c
+WHERE
+  o.id = a.object_id
   AND o.tenant_id = a.tenant_id
+  AND c.id = a.customer_id
+  AND c.tenant_id = a.tenant_id
+  AND a.execution_location_snapshot_at IS NULL;
+
+UPDATE public.assignments AS a
+SET
+  execution_address_line_1 = COALESCE(a.execution_address_line_1, c.address_line_1, c.address),
+  execution_address_line_2 = COALESCE(a.execution_address_line_2, c.address_line_2),
+  execution_postal_code = COALESCE(a.execution_postal_code, c.postal_code),
+  execution_city = COALESCE(a.execution_city, c.city),
+  execution_state_or_region = COALESCE(a.execution_state_or_region, c.state_or_region),
+  execution_country_code = COALESCE(a.execution_country_code, c.country_code, 'NL'),
+  execution_formatted_address = COALESCE(a.execution_formatted_address, c.formatted_address),
+  execution_latitude = COALESCE(a.execution_latitude, c.latitude),
+  execution_longitude = COALESCE(a.execution_longitude, c.longitude),
+  execution_google_place_id = COALESCE(a.execution_google_place_id, c.google_place_id),
+  execution_location_source = COALESCE(a.execution_location_source, c.location_source, 'legacy'),
+  execution_location_snapshot_at = COALESCE(a.execution_location_snapshot_at, now()),
+  execution_location_updated_at = COALESCE(a.execution_location_updated_at, c.location_updated_at, a.updated_at, now())
+FROM public.customers AS c
 WHERE
   c.id = a.customer_id
   AND c.tenant_id = a.tenant_id
