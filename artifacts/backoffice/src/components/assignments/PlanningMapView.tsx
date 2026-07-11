@@ -24,7 +24,6 @@ import { applyRouteTimeSuggestion } from "@/app/actions/assignments";
 import {
   calculatePlanningMapRoute,
   type PlanningMapRouteCalculationResult,
-  type PlanningRouteTravelMode,
 } from "@/app/actions/planning";
 import { GoogleMapCanvas, type GoogleMapCanvasConfig, type GoogleMapMarker, type GoogleMapPolyline } from "@/components/google-maps/GoogleMapCanvas";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +51,7 @@ import {
   SheetTitle,
 } from "@/components/ui/sheet";
 import { GOOGLE_MAPS_MARKER_STATUS, markerStatusForAssignment } from "@/lib/google-maps/marker-status";
+import type { PlanningRouteTravelMode } from "@/lib/google-maps/planning-travel-modes";
 import { AssignmentPriorityBadge, AssignmentStatusBadge, statusLabel } from "./AssignmentStatusBadge";
 
 type Coordinate = {
