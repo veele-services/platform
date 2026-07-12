@@ -1,0 +1,292 @@
+{
+  "schemaVersion": 1,
+  "generatedFor": "Fieldgrid authentication provider boundary ADR",
+  "canonicalBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
+  "evidenceLevel": "static source and documentation inspection only; no live services, database, RLS, Storage or browser runtime evidence",
+  "applications": {
+    "backoffice": {
+      "package": "artifacts/backoffice/package.json",
+      "supabaseDependencies": [
+        "@supabase/ssr",
+        "@supabase/supabase-js"
+      ],
+      "authSurfaces": [
+        "server and browser Supabase clients",
+        "middleware session refresh and forced-password redirects",
+        "login, logout, password change and managed reset actions",
+        "platform, tenant, customer and personnel admin actions",
+        "server-only Supabase admin API and Storage calls",
+        "realtime subscriptions"
+      ]
+    },
+    "klant-pwa": {
+      "package": "artifacts/klant-pwa/package.json",
+      "supabaseDependencies": [
+        "@supabase/ssr",
+        "@supabase/supabase-js"
+      ],
+      "authSurfaces": [
+        "server and browser Supabase clients",
+        "middleware session refresh and forced-password redirects",
+        "client login",
+        "managed reset-code routes/actions",
+        "customer_users identity resolution and one-time email claim",
+        "server-only Supabase admin API and Storage calls",
+        "realtime subscriptions"
+      ]
+    },
+    "personeel-pwa": {
+      "package": "artifacts/personeel-pwa/package.json",
+      "supabaseDependencies": [
+        "@supabase/ssr",
+        "@supabase/supabase-js"
+      ],
+      "authSurfaces": [
+        "server and browser Supabase clients",
+        "middleware session refresh and forced-password redirects",
+        "server-action login",
+        "managed reset-code actions",
+        "personnel.user_id identity resolution and one-time email claim",
+        "feature-flagged Supabase MFA/TOTP UI",
+        "server-only Supabase admin API and Storage calls",
+        "realtime subscriptions"
+      ]
+    },
+    "api-server": {
+      "package": "artifacts/api-server/package.json",
+      "supabaseDependencies": [],
+      "authSurfaces": [
+        "direct Supabase Bearer JWT verification with jose",
+        "tenant scope resolution after JWT verification",
+        "admin/background routes protected by ADMIN_API_SECRET"
+      ]
+    }
+  },
+  "dependencyInventory": [
+    {
+      "id": "auth-users",
+      "requiredByTask": "auth.users",
+      "currentUse": "Early migrations add cross-schema FKs to auth.users and invite triggers run after auth.users inserts. Staging seed code may read auth.users for nullable actor values.",
+      "representativeFiles": [
+        "lib/db/migrations/002_sprint1_rls.sql:31-37",
+        "lib/db/migrations/023_invite_trigger.sql:20-39",
+        "lib/db/migrations/024_harden_invite_trigger.sql:29-34",
+        "lib/db/src/seed/staging-demo.ts:98-114"
+      ],
+      "optionAConsequence": "Keep auth.users as the canonical provider user table.",
+      "optionBConsequence": "Replace or retire FKs/triggers in forward-only migrations and preserve rollback mapping to legacy Supabase IDs."
+    },
+    {
+      "id": "supabase-admin-api",
+      "requiredByTask": "Supabase admin API",
+      "currentUse": "Server-only admin clients call listUsers, createUser, updateUserById and getUserById for invites, resets, user status snapshots and account linking. Admin clients disable session persistence and refresh.",
+      "representativeFiles": [
+        "artifacts/backoffice/src/lib/supabase/admin.ts:11-24",
+        "artifacts/klant-pwa/src/lib/supabase/admin.ts:3-14",
+        "artifacts/personeel-pwa/src/lib/supabase/admin.ts:3-14",
+        "artifacts/backoffice/src/lib/auth/portal-invites.ts:75-227",
+        "artifacts/backoffice/src/app/actions/platform.ts:284-285",
+        "artifacts/backoffice/src/app/actions/platform-tenants.ts:862-884"
+      ],
+      "optionAConsequence": "Keep as server-only provider boundary with Fieldgrid authorization and audit before use.",
+      "optionBConsequence": "Replace with first-party account administration APIs, password/recovery stores and user search endpoints."
+    },
+    {
+      "id": "get-user-session-helpers",
+      "requiredByTask": "getUser/session helpers",
+      "currentUse": "The current trusted session read is auth.getUser through Supabase SSR clients. The inspected code does not use getSession as the authorization boundary.",
+      "representativeFiles": [
+        "artifacts/backoffice/src/lib/supabase/server.ts:14-44",
+        "artifacts/klant-pwa/src/lib/supabase/server.ts:8-38",
+        "artifacts/personeel-pwa/src/lib/supabase/server.ts:8-38",
+        "artifacts/backoffice/src/middleware.ts:88-108",
+        "artifacts/klant-pwa/src/middleware.ts:84-98",
+        "artifacts/personeel-pwa/src/middleware.ts:79-93"
+      ],
+      "optionAConsequence": "Continue using Supabase getUser as identity proof, followed by Fieldgrid tenant/profile authorization.",
+      "optionBConsequence": "Replace every getUser call with a first-party session resolver and preserve server-side tenant binding."
+    },
+    {
+      "id": "jwt-validation",
+      "requiredByTask": "JWT validation",
+      "currentUse": "API server reads Authorization Bearer tokens, verifies with Supabase JWKS when SUPABASE_URL is set or SUPABASE_JWT_SECRET otherwise, then requires a sub claim. No explicit issuer/audience constraints are visible.",
+      "representativeFiles": [
+        "artifacts/api-server/src/middleware/auth.ts:25-37",
+        "artifacts/api-server/src/middleware/auth.ts:65-107",
+        "artifacts/api-server/src/middleware/auth.ts:397-461",
+        "docs/deployment/self-hosted-runner.md:87"
+      ],
+      "optionAConsequence": "Document and harden Supabase JWT contract, including issuer/audience expectations and revocation tolerance.",
+      "optionBConsequence": "Create Fieldgrid JWT issuer/JWKS or opaque API token verification with audience, scope, tenant and revocation semantics."
+    },
+    {
+      "id": "cookies",
+      "requiredByTask": "cookies",
+      "currentUse": "Supabase auth cookies are host-keyed as fieldgrid-auth-{host}, path /, SameSite=Lax, production Secure and host-only by stripping domain. Backoffice tenant/support cookies are separate host-only cookies.",
+      "representativeFiles": [
+        "artifacts/backoffice/src/lib/supabase/session-cookies.ts:3-46",
+        "artifacts/klant-pwa/src/lib/supabase/session-cookies.ts:3-46",
+        "artifacts/personeel-pwa/src/lib/supabase/session-cookies.ts:3-46",
+        "artifacts/backoffice/src/app/actions/tenant-switcher.ts:36-47",
+        "artifacts/backoffice/src/app/actions/platform.ts:924-980"
+      ],
+      "optionAConsequence": "Keep host-only Supabase cookies and document trusted proxy/header requirements.",
+      "optionBConsequence": "Replace with Fieldgrid session cookies, CSRF binding and server-side session storage."
+    },
+    {
+      "id": "rls-auth-uid",
+      "requiredByTask": "RLS auth.uid()",
+      "currentUse": "RLS and helper policies use auth.uid() to resolve tenant users, customer users, personnel, management users, report authors and Storage-linked personnel.",
+      "representativeFiles": [
+        "lib/db/migrations/001_rbac_rls.sql:31-33",
+        "lib/db/migrations/002_sprint1_rls.sql:77-79",
+        "lib/db/migrations/037_tenant_customer_users_events_hardening.sql:257-263",
+        "lib/db/migrations/051_final_security_boundaries.sql:13-17",
+        "lib/db/migrations/051_final_security_boundaries.sql:32-37"
+      ],
+      "optionAConsequence": "Keep Supabase auth.uid() semantics and add runtime DB/RLS evidence.",
+      "optionBConsequence": "Introduce a principal mapping and rewrite policies/helpers or keep Supabase-compatible JWT claims during transition."
+    },
+    {
+      "id": "storage-policies",
+      "requiredByTask": "Storage policies",
+      "currentUse": "Document Storage is management-policy plus app-mediated portal access. Assignment media Storage policies still bind storage.objects to assigned personnel through personnel.user_id = auth.uid() and path parsing.",
+      "representativeFiles": [
+        "lib/db/migrations/050_storage_upload_hardening.sql:22-47",
+        "lib/db/migrations/050_storage_upload_hardening.sql:101-107",
+        "lib/db/migrations/064_assignment_storage_policy_guards.sql:66-83",
+        "lib/db/migrations/064_assignment_storage_policy_guards.sql:90-173",
+        "lib/db/src/storage-paths.ts:134"
+      ],
+      "optionAConsequence": "Keep Supabase Storage policy semantics and add runtime Storage tests.",
+      "optionBConsequence": "Bridge Supabase JWT semantics, rewrite Storage policies or move Storage access behind server-side service-role routes."
+    },
+    {
+      "id": "user-and-app-metadata",
+      "requiredByTask": "user metadata/app metadata",
+      "currentUse": "Fieldgrid stores forced-password/reset metadata in Supabase app_metadata. Platform seed code writes app_metadata and user_metadata.",
+      "representativeFiles": [
+        "artifacts/backoffice/src/lib/auth/portal-invites.ts:92-101",
+        "artifacts/backoffice/src/lib/auth/portal-invites.ts:141-195",
+        "artifacts/backoffice/src/lib/auth/portal-invites.ts:227-236",
+        "lib/db/src/seed/platform-admin.ts:149-193"
+      ],
+      "optionAConsequence": "Keep metadata use but document policy, expiry and audit expectations.",
+      "optionBConsequence": "Move metadata into first-party credential, recovery, invite and audit tables."
+    },
+    {
+      "id": "invites",
+      "requiredByTask": "invites",
+      "currentUse": "Fieldgrid-owned invite flows create or update Supabase users with temporary passwords, send Fieldgrid email and link platform, tenant, customer or personnel records to Supabase user IDs.",
+      "representativeFiles": [
+        "artifacts/backoffice/src/lib/auth/portal-invites.ts:116-207",
+        "artifacts/backoffice/src/app/actions/platform.ts:578-642",
+        "artifacts/backoffice/src/app/actions/platform-tenants.ts:910-921",
+        "artifacts/backoffice/src/app/actions/personnel.ts:348-365",
+        "artifacts/backoffice/src/app/actions/customers.ts:545-602"
+      ],
+      "optionAConsequence": "Keep Fieldgrid-owned invite policy while Supabase verifies credentials.",
+      "optionBConsequence": "Create first-party invite acceptance, verification and credential setup flows."
+    },
+    {
+      "id": "platform-users",
+      "requiredByTask": "platform_users",
+      "currentUse": "Platform users store Supabase user UUIDs, roles, status and support grants. Platform screens enrich rows with Supabase admin snapshots.",
+      "representativeFiles": [
+        "lib/db/src/schema/platform-users.ts:14-30",
+        "artifacts/backoffice/src/app/actions/platform.ts:280-295",
+        "artifacts/backoffice/src/app/actions/platform.ts:508-522",
+        "artifacts/backoffice/src/app/actions/platform.ts:578-642"
+      ],
+      "optionAConsequence": "Keep Supabase UUID as platform principal foreign subject.",
+      "optionBConsequence": "Backfill platform_users to Fieldgrid principal IDs while preserving legacy Supabase subject mapping."
+    },
+    {
+      "id": "tenant-users",
+      "requiredByTask": "tenant users",
+      "currentUse": "Tenant users store Supabase user UUIDs and tenant memberships; RLS and app actions resolve active tenant membership from these rows.",
+      "representativeFiles": [
+        "lib/db/src/schema/tenants.ts:61-79",
+        "lib/db/migrations/037_tenant_customer_users_events_hardening.sql:257-263",
+        "artifacts/backoffice/src/app/actions/platform-tenants.ts:1291-1571",
+        "artifacts/backoffice/src/app/actions/tenant-roles.ts:551-624"
+      ],
+      "optionAConsequence": "Keep tenant_users.user_id as Supabase UUID.",
+      "optionBConsequence": "Backfill to Fieldgrid principal IDs and update RLS helpers before cutover."
+    },
+    {
+      "id": "personnel-user-id",
+      "requiredByTask": "personnel user_id mappings",
+      "currentUse": "personnel.user_id is a nullable unique Supabase Auth UUID. Invited personnel can be linked on first login by verified email when user_id is null.",
+      "representativeFiles": [
+        "lib/db/src/schema/personnel.ts:39-52",
+        "lib/db/src/schema/personnel.ts:109-114",
+        "artifacts/personeel-pwa/src/actions/personnel.ts:251-295",
+        "artifacts/personeel-pwa/src/lib/auth/tenant.ts:57-109"
+      ],
+      "optionAConsequence": "Keep personnel.user_id as Supabase UUID and document one-time email claim risk.",
+      "optionBConsequence": "Replace claim path with explicit Fieldgrid invite/identity mapping and migrate every personnel-bound RLS policy."
+    },
+    {
+      "id": "customer-users-user-id",
+      "requiredByTask": "customer user_id mappings",
+      "currentUse": "customer_users.user_id links a customer portal account to Supabase Auth. Customer identity resolution is tenant and customer scoped, with a one-time email claim when user_id is null.",
+      "representativeFiles": [
+        "lib/db/src/schema/customer-users.ts:39",
+        "artifacts/klant-pwa/src/actions/customer.ts:43-99",
+        "artifacts/backoffice/src/app/actions/customers.ts:392-468",
+        "artifacts/backoffice/src/app/actions/customers.ts:545-602"
+      ],
+      "optionAConsequence": "Keep customer_users.user_id as Supabase UUID and preserve tenant-bound app checks.",
+      "optionBConsequence": "Migrate customer portal identity to Fieldgrid principal IDs and retire unsafe email-claim behavior after dual-run."
+    },
+    {
+      "id": "api-client-react-token",
+      "requiredByTask": "API authentication",
+      "currentUse": "React API client can attach Authorization Bearer tokens via setAuthTokenGetter. It does not read browser cookies or inject tenant headers automatically.",
+      "representativeFiles": [
+        "lib/api-client-react/src/custom-fetch.ts:32-45",
+        "lib/api-client-react/src/custom-fetch.ts:352-358",
+        "lib/api-client-react/src/index.ts:3"
+      ],
+      "optionAConsequence": "Continue requiring Supabase access tokens for native/API client calls.",
+      "optionBConsequence": "Replace token getter input with Fieldgrid-issued access tokens and document mobile storage/refresh rules."
+    },
+    {
+      "id": "mfa",
+      "requiredByTask": "MFA/WebAuthn/TOTP",
+      "currentUse": "Only the personnel app has a feature-flagged Supabase TOTP enroll/challenge/verify/unenroll UI. Customer security exposes password change only. Platform user MFA status is currently a later/not-active field.",
+      "representativeFiles": [
+        "artifacts/personeel-pwa/src/app/(app)/beveiliging/page.tsx:11-55",
+        "artifacts/personeel-pwa/src/app/(app)/beveiliging/MfaSettings.tsx:47-153",
+        "artifacts/klant-pwa/src/app/(app)/beveiliging/page.tsx:1-18",
+        "artifacts/backoffice/src/app/actions/platform.ts:46-57"
+      ],
+      "optionAConsequence": "Use Supabase MFA where enabled and define Fieldgrid policy separately.",
+      "optionBConsequence": "Implement first-party TOTP, WebAuthn/passkeys, recovery codes, step-up and admin reset policy."
+    }
+  ],
+  "testLayerSummary": {
+    "existing": [
+      {
+        "layer": "static source guard",
+        "files": [
+          "tests/fieldgrid-auth-cookie-scope.test.mjs",
+          "tests/fieldgrid-auth-password-policy.test.mjs",
+          "tests/fieldgrid-customer-portal-invite-email.test.mjs",
+          "tests/fieldgrid-sprint-6-documents-storage.test.mjs",
+          "tests/fieldgrid-sprint-9-storage-hardening.test.mjs"
+        ]
+      }
+    ],
+    "missingRuntimeEvidence": [
+      "Supabase Auth login, reset, updateUser, signOut and PKCE confirm integration",
+      "Browser cross-host cookie isolation",
+      "API JWT issuer, audience, expiry, revocation and missing-sub behavior",
+      "DB/RLS runtime tenant isolation for platform, tenant, customer and personnel actors",
+      "Supabase Storage runtime SELECT/INSERT/UPDATE/DELETE policies",
+      "CSRF/origin behavior for cookie-authenticated mutations",
+      "MFA enrollment and enforcement runtime behavior"
+    ]
+  }
+}
