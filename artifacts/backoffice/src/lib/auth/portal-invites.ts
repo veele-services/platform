@@ -1,4 +1,4 @@
-import { randomInt } from "node:crypto";
+import { randomBytes, randomInt } from "node:crypto";
 import type { User } from "@supabase/supabase-js";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -40,10 +40,14 @@ export function generateTemporaryPassword(): string {
 
 export function generatePasswordResetCode(): string {
   let code = "";
-  for (let i = 0; i < 6; i += 1) {
+  for (let i = 0; i < 8; i += 1) {
     code += String(randomInt(10));
   }
   return code;
+}
+
+function generateInternalAuthPassword(): string {
+  return randomBytes(32).toString("base64url");
 }
 
 export function passwordResetCodeExpiresAt(now = new Date()): string {
@@ -124,7 +128,8 @@ export async function provisionPortalUserWithTemporaryPassword(opts: {
 }): Promise<{ user: User; temporaryPassword: string; created: boolean }> {
   const admin = createAdminClient();
   const email = opts.email.trim().toLowerCase();
-  const temporaryPassword = opts.temporaryPassword ?? generateTemporaryPassword();
+  const temporaryPassword = opts.temporaryPassword ?? generatePasswordResetCode();
+  const internalAuthPassword = generateInternalAuthPassword();
   const issuedAt = new Date().toISOString();
 
   const appMetadata = temporaryPasswordAppMetadata({
@@ -140,7 +145,7 @@ export async function provisionPortalUserWithTemporaryPassword(opts: {
 
   const { data: createdData, error: createError } = await admin.auth.admin.createUser({
     email,
-    password: temporaryPassword,
+    password: internalAuthPassword,
     email_confirm: true,
     app_metadata: appMetadata,
     user_metadata: userMetadata,
@@ -184,7 +189,6 @@ export async function provisionPortalUserWithTemporaryPassword(opts: {
   const { data: updatedData, error: updateError } = await admin.auth.admin.updateUserById(
     existingUser.id,
     {
-      password: temporaryPassword,
       email_confirm: true,
       app_metadata: temporaryPasswordAppMetadata({
         existing: existingUser.app_metadata,
@@ -225,7 +229,6 @@ export async function setExistingAuthUserTemporaryPassword(opts: {
   const issuedAt = new Date().toISOString();
   const fullName = opts.fullName?.trim() || current.user.user_metadata?.["full_name"] || current.user.email || opts.email;
   const { data, error } = await admin.auth.admin.updateUserById(opts.userId, {
-    password: opts.temporaryPassword,
     email_confirm: true,
     app_metadata: temporaryPasswordAppMetadata({
       existing: current.user.app_metadata,

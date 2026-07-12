@@ -55,3 +55,4 @@ export * from "./planning-intelligence";
 export * from "./planning-routes";
 export * from "./google-maps-usage";
 export * from "./sensitive-access";
+export * from "./credential-challenges";

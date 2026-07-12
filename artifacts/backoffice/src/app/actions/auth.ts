@@ -2,19 +2,13 @@
 
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/auth/permissions";
+import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { COOKIE_NAME } from "@/lib/auth/session-permissions";
-import {
-  findAuthUserByEmail,
-  generatePasswordResetCode,
-  isTemporaryPasswordExpired,
-  passwordResetCodeExpiresAt,
-  setExistingAuthUserTemporaryPassword,
-  type PortalInviteType,
-} from "@/lib/auth/portal-invites";
+import { findAuthUserByEmail, isTemporaryPasswordExpired, type PortalInviteType } from "@/lib/auth/portal-invites";
 import {
   backofficeUrl,
   buildPasswordResetCodeEmail,
@@ -22,7 +16,7 @@ import {
   sendEmailWithResult,
 } from "@/lib/email";
 import { evaluatePasswordStrength, mediumPasswordMessage } from "@/lib/password-strength";
-import { db } from "@workspace/db";
+import { createCredentialChallenge, db } from "@workspace/db";
 import { auditLogTable, personnelTable } from "@workspace/db";
 import type { ActionResult } from "./customers";
 
@@ -226,6 +220,7 @@ async function sendManagedPasswordResetCode(opts: {
   portal: PortalInviteType;
   portalName: string;
   resetUrl: string;
+  tenantId?: string | null;
   revealMissingUser?: boolean;
 }): Promise<ActionResult<{ userId: string | null }>> {
   const email = opts.email.trim().toLowerCase();
@@ -238,16 +233,16 @@ async function sendManagedPasswordResetCode(opts: {
     return { success: true, data: { userId: null } };
   }
 
-  const code = generatePasswordResetCode();
-  await setExistingAuthUserTemporaryPassword({
+  const challenge = await createCredentialChallenge({
+    purpose: opts.revealMissingUser ? "admin_initiated_reset" : "password_reset",
     userId: authUser.id,
     email,
-    fullName: opts.recipientName,
     portal: opts.portal,
-    temporaryPassword: code,
-    temporaryPasswordKind: "reset_code",
-    expiresAt: passwordResetCodeExpiresAt(),
+    tenantId: opts.tenantId ?? null,
+    hostClass: opts.resetUrl,
+    metadata: { transportPurpose: "backoffice_password_reset" },
   });
+  const code = challenge.code;
 
   const { subject, html } = buildPasswordResetCodeEmail({
     recipientName: opts.recipientName?.trim() || authUser.user_metadata?.["full_name"] || email,
@@ -290,6 +285,7 @@ export async function requestPasswordResetCode(email: string): Promise<ActionRes
  */
 export async function sendPasswordReset(personnelId: string): Promise<ActionResult> {
   await requirePermission("personnel", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -298,7 +294,7 @@ export async function sendPasswordReset(personnelId: string): Promise<ActionResu
   const [person] = await db
     .select({ email: personnelTable.email, userId: personnelTable.userId })
     .from(personnelTable)
-    .where(eq(personnelTable.id, personnelId))
+    .where(and(eq(personnelTable.id, personnelId), eq(personnelTable.tenantId, tenantId)))
     .limit(1);
 
   if (!person) return { success: false, message: "Medewerker niet gevonden." };
@@ -311,6 +307,7 @@ export async function sendPasswordReset(personnelId: string): Promise<ActionResu
     portal: "personnel",
     portalName: "Personeelsportaal",
     resetUrl: `${personeelPortalUrl()}/wachtwoord-vergeten`,
+    tenantId,
     revealMissingUser: true,
   });
   if (!result.success) return result;

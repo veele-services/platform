@@ -1,11 +1,10 @@
 "use server";
 
-import { randomInt } from "node:crypto";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { and, eq, sql } from "drizzle-orm";
-import { db, personnelTable } from "@workspace/db";
+import { createCredentialChallenge, db, personnelTable } from "@workspace/db";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
@@ -18,16 +17,6 @@ type AuthUserRecord = {
   app_metadata?: Record<string, unknown>;
   user_metadata?: Record<string, unknown>;
 };
-
-function generatePasswordResetCode(): string {
-  let code = "";
-  for (let i = 0; i < 6; i += 1) code += String(randomInt(10));
-  return code;
-}
-
-function passwordResetCodeExpiresAt(now = new Date()): string {
-  return new Date(now.getTime() + 30 * 60 * 1000).toISOString();
-}
 
 function firstForwardedValue(value: string | null): string {
   return (value ?? "").split(",")[0]?.trim() ?? "";
@@ -262,22 +251,16 @@ export async function requestPasswordResetCode(email: string): Promise<{ success
     const account = await findPersonnelResetAccount(tenantId, normalizedEmail);
     if (!account) return { success: true };
 
-    const code = generatePasswordResetCode();
-    const admin = createAdminClient();
-    const { error } = await admin.auth.admin.updateUserById(account.authUser.id, {
-      password: code,
-      email_confirm: true,
-      app_metadata: {
-        ...(account.authUser.app_metadata ?? {}),
-        force_password_change: true,
-        portal: "personnel",
-        tenant_id: tenantId,
-        temporary_password_issued_at: new Date().toISOString(),
-        temporary_password_expires_at: passwordResetCodeExpiresAt(),
-        temporary_password_kind: "reset_code",
-      },
+    const challenge = await createCredentialChallenge({
+      purpose: "password_reset",
+      userId: account.authUser.id,
+      email: normalizedEmail,
+      portal: "personnel",
+      tenantId,
+      hostClass: await currentPersoneelPortalUrl(),
+      metadata: { transportPurpose: "personnel_portal_password_reset", tenant_id: tenantId },
     });
-    if (error) throw error;
+    const code = challenge.code;
 
     const { subject, html } = buildPasswordResetCodeEmail({
       recipientName: account.recipientName,
