@@ -1,0 +1,155 @@
+name: Runtime Safety Harness
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  contract-static:
+    name: contract-static
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+
+      - name: Migration order
+        run: pnpm fieldgrid:migration-order-check:check
+
+      - name: Test-layer contract
+        run: pnpm fieldgrid:test-layers:check
+
+  postgres17-migration-smoke:
+    name: postgres17-migration-smoke
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: fieldgrid_runtime_safety
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fieldgrid_runtime_safety"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/fieldgrid_runtime_safety
+      DB_SSL: "false"
+      PGSSLMODE: disable
+      FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+
+      - name: Empty database migrations
+        run: pnpm fieldgrid:runtime-safety:setup
+
+      - name: Upload migration artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-safety-migration-smoke
+          path: |
+            artifacts/runtime-safety-harness/**/*.json
+            artifacts/runtime-safety-harness/**/*.log
+          if-no-files-found: error
+
+  runtime-security-tests:
+    name: runtime-security-tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: fieldgrid_runtime_safety
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fieldgrid_runtime_safety"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/fieldgrid_runtime_safety
+      DB_SSL: "false"
+      PGSSLMODE: disable
+      FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+
+      - name: Bootstrap empty database
+        run: pnpm fieldgrid:runtime-safety:setup
+
+      - name: Load deterministic fixtures
+        run: pnpm fieldgrid:runtime-safety:fixtures
+
+      - name: Database runtime safety checks
+        run: pnpm fieldgrid:runtime-safety:db
+
+      - name: Build API server
+        run: pnpm --filter @workspace/api-server run build
+
+      - name: API runtime safety checks
+        run: pnpm fieldgrid:runtime-safety:api
+
+      - name: Upload runtime safety artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-safety-security-tests
+          path: |
+            artifacts/runtime-safety-harness/**/*.json
+            artifacts/runtime-safety-harness/**/*.log
+          if-no-files-found: error
