@@ -43,7 +43,7 @@ export function SmartCandidateActions({
           action === "reserve"
             ? "Medewerker als reserve gemarkeerd."
             : action === "selected"
-              ? "Medewerker geselecteerd."
+              ? "Medewerker bevestigd en ingepland."
               : "Medewerker gekoppeld.",
         );
       }
@@ -63,7 +63,7 @@ export function SmartCandidateActions({
         className="h-7 px-2 text-[11px]"
       >
         {pending ? <Loader2 className="h-3 w-3 animate-spin" /> : <UserCheck className="h-3 w-3" />}
-        Selecteer
+        Plan in
       </Button>
       <Button
         type="button"

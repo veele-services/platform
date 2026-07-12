@@ -23,6 +23,8 @@ import {
   ASSIGNMENT_STATUSES,
   ASSIGNMENT_PRIORITIES,
   ASSIGNMENT_STATUS_TRANSITIONS,
+  prepareAssignmentForInterestRound,
+  selectInterestCandidateForScheduling,
   type AssignmentStatus,
   type AssignmentPriority,
   type SmartPlanningInterestResponseStatus,
@@ -83,6 +85,26 @@ async function notifyAssignmentWorkflow(input: Parameters<typeof emitAssignmentW
       assignmentId: input.assignmentId,
       error,
     });
+  }
+}
+
+async function safeEmitDomainEvent(input: Parameters<typeof emitDomainEvent>[0]) {
+  try {
+    await emitDomainEvent(input);
+  } catch (error) {
+    console.error("assignment domain notification failed", {
+      eventKey: input.eventKey,
+      aggregateId: input.aggregate?.id ?? null,
+      error,
+    });
+  }
+}
+
+async function safeTriggerNotificationWorker(input: Parameters<typeof triggerNotificationWorker>[0]) {
+  try {
+    await triggerNotificationWorker(input);
+  } catch (error) {
+    console.error("assignment notification worker trigger failed", { error });
   }
 }
 
@@ -1578,6 +1600,7 @@ export async function getAssignmentPlanningReadiness(
       candidates: [],
     };
   }
+  const tenantId = await requireCurrentTenantId();
 
   const [[assignment], capacity, links, interestResponses] = await Promise.all([
     db
@@ -1588,16 +1611,17 @@ export async function getAssignmentPlanningReadiness(
         scheduledEnd: assignmentsTable.scheduledEnd,
       })
       .from(assignmentsTable)
-      .where(eq(assignmentsTable.id, assignmentId))
+      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
       .limit(1),
-    calculateAssignmentCapacity(assignmentId, { persist: true }),
+    calculateAssignmentCapacity(assignmentId, { persist: true, tenantId }),
     db
       .select({
         personnelId: assignmentPersonnelTable.personnelId,
         status: assignmentPersonnelTable.status,
       })
       .from(assignmentPersonnelTable)
-      .where(eq(assignmentPersonnelTable.assignmentId, assignmentId)),
+      .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
+      .where(and(eq(assignmentPersonnelTable.assignmentId, assignmentId), eq(assignmentsTable.tenantId, tenantId))),
     db
       .select({
         personnelId: assignmentInterestResponsesTable.personnelId,
@@ -1605,7 +1629,12 @@ export async function getAssignmentPlanningReadiness(
         createdAt: assignmentInterestResponsesTable.createdAt,
       })
       .from(assignmentInterestResponsesTable)
-      .where(eq(assignmentInterestResponsesTable.assignmentId, assignmentId))
+      .where(
+        and(
+          eq(assignmentInterestResponsesTable.assignmentId, assignmentId),
+          eq(assignmentInterestResponsesTable.tenantId, tenantId),
+        ),
+      )
       .orderBy(desc(assignmentInterestResponsesTable.createdAt)),
   ]);
 
@@ -1720,6 +1749,7 @@ export async function recalculateAssignmentCapacity(
   assignmentId: string,
 ): Promise<ActionResult<{ status: "green" | "orange" | "red"; available: number }>> {
   await requirePermission("planning", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -1730,6 +1760,7 @@ export async function recalculateAssignmentCapacity(
   const result = await calculateAssignmentCapacity(assignmentId, {
     persist: true,
     actorUserId: user.id,
+    tenantId,
   });
 
   if (!result) {
@@ -1737,6 +1768,7 @@ export async function recalculateAssignmentCapacity(
   }
 
   await db.insert(auditLogTable).values({
+    tenantId,
     userId: user.id,
     action: "assignment_capacity_recalculate",
     resource: "assignments",
@@ -1771,25 +1803,25 @@ export async function sendAssignmentInterestPoll(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
+  const tenantId = await requireCurrentTenantId();
 
-  const [assignment] = await db
-    .select({
-      id: assignmentsTable.id,
-      tenantId: assignmentsTable.tenantId,
-      code: assignmentsTable.code,
-      title: assignmentsTable.title,
-      priority: assignmentsTable.priority,
-      scheduledDate: assignmentsTable.scheduledDate,
-      scheduledStart: assignmentsTable.scheduledStart,
-      scheduledEnd: assignmentsTable.scheduledEnd,
-      status: assignmentsTable.status,
-    })
-    .from(assignmentsTable)
-    .where(eq(assignmentsTable.id, assignmentId))
-    .limit(1);
-
-  if (!assignment) return { success: false, message: "Opdracht niet gevonden." };
-  if (!assignment.scheduledDate || !assignment.scheduledStart || !assignment.scheduledEnd) {
+  let assignment: Awaited<ReturnType<typeof prepareAssignmentForInterestRound>>;
+  try {
+    assignment = await prepareAssignmentForInterestRound({
+      assignmentId,
+      tenantId,
+      actorUserId: user.id,
+    });
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Opdracht niet gevonden.",
+    };
+  }
+  const scheduledDate = assignment.scheduledDate;
+  const scheduledStart = assignment.scheduledStart;
+  const scheduledEnd = assignment.scheduledEnd;
+  if (!scheduledDate || !scheduledStart || !scheduledEnd) {
     return {
       success: false,
       message: "Vul eerst een datum en tijdvak in voordat je een interessepeiling verstuurt.",
@@ -1799,10 +1831,11 @@ export async function sendAssignmentInterestPoll(
   const capacity = await calculateAssignmentCapacity(assignmentId, {
     persist: true,
     actorUserId: user.id,
+    tenantId,
   });
   if (!capacity) return { success: false, message: "Opdracht niet gevonden." };
 
-  const defaults = await getSmartPlanningRoundDefaults(assignmentId);
+  const defaults = await getSmartPlanningRoundDefaults(assignmentId, { tenantId });
   const audienceType = input?.audienceType ?? "top_matches";
   const limit = Math.max(1, Math.min(input?.limit ?? defaults.roundSize, 50));
   const candidates = capacity.candidates
@@ -1845,9 +1878,11 @@ export async function sendAssignmentInterestPoll(
     db
       .select({ personnelId: assignmentPersonnelTable.personnelId })
       .from(assignmentPersonnelTable)
+      .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
       .where(
         and(
           eq(assignmentPersonnelTable.assignmentId, assignmentId),
+          eq(assignmentsTable.tenantId, tenantId),
           inArray(assignmentPersonnelTable.personnelId, candidateIds),
         ),
       ),
@@ -1856,6 +1891,7 @@ export async function sendAssignmentInterestPoll(
       .from(assignmentInterestResponsesTable)
       .where(
         and(
+          eq(assignmentInterestResponsesTable.tenantId, tenantId),
           eq(assignmentInterestResponsesTable.assignmentId, assignmentId),
           inArray(assignmentInterestResponsesTable.personnelId, candidateIds),
         ),
@@ -1868,6 +1904,7 @@ export async function sendAssignmentInterestPoll(
       .from(assignmentInterestResponsesTable)
       .where(
         and(
+          eq(assignmentInterestResponsesTable.tenantId, tenantId),
           inArray(assignmentInterestResponsesTable.personnelId, candidateIds),
           gte(assignmentInterestResponsesTable.createdAt, today),
         ),
@@ -1878,6 +1915,7 @@ export async function sendAssignmentInterestPoll(
       .from(assignmentInterestResponsesTable)
       .where(
         and(
+          eq(assignmentInterestResponsesTable.tenantId, tenantId),
           inArray(assignmentInterestResponsesTable.personnelId, candidateIds),
           gte(assignmentInterestResponsesTable.createdAt, cooldownSince),
         ),
@@ -1891,21 +1929,28 @@ export async function sendAssignmentInterestPoll(
       )
       .where(
         and(
+          eq(assignmentInterestResponsesTable.tenantId, tenantId),
           inArray(assignmentInterestResponsesTable.personnelId, candidateIds),
           ne(assignmentInterestResponsesTable.assignmentId, assignmentId),
           inArray(assignmentInterestResponsesTable.status, [...ACTIVE_INTEREST_RESPONSE_STATUSES]),
-          eq(assignmentsTable.scheduledDate, assignment.scheduledDate),
+          eq(assignmentsTable.tenantId, tenantId),
+          eq(assignmentsTable.scheduledDate, scheduledDate),
           or(
             isNull(assignmentInterestResponsesTable.expiresAt),
             gte(assignmentInterestResponsesTable.expiresAt, now),
           ),
-          sql<boolean>`${assignmentsTable.scheduledStart} < ${assignment.scheduledEnd} AND ${assignmentsTable.scheduledEnd} > ${assignment.scheduledStart}`,
+          sql<boolean>`${assignmentsTable.scheduledStart} < ${scheduledEnd} AND ${assignmentsTable.scheduledEnd} > ${scheduledStart}`,
         ),
       ),
     db
       .select({ roundNumber: assignmentInterestRoundsTable.roundNumber })
       .from(assignmentInterestRoundsTable)
-      .where(eq(assignmentInterestRoundsTable.assignmentId, assignmentId))
+      .where(
+        and(
+          eq(assignmentInterestRoundsTable.tenantId, tenantId),
+          eq(assignmentInterestRoundsTable.assignmentId, assignmentId),
+        ),
+      )
       .orderBy(desc(assignmentInterestRoundsTable.roundNumber))
       .limit(1),
   ]);
@@ -2018,6 +2063,7 @@ export async function sendAssignmentInterestPoll(
     );
 
     await tx.insert(auditLogTable).values({
+      tenantId: assignment.tenantId,
       userId: user.id,
       action: "assignment_interest_poll",
       resource: "assignments",
@@ -2040,7 +2086,7 @@ export async function sendAssignmentInterestPoll(
 
   await Promise.all(
     recipients.map((person) =>
-      emitDomainEvent({
+      safeEmitDomainEvent({
         eventKey: "assignment_interest_invited",
         tenantId: assignment.tenantId,
         actorUserId: user.id,
@@ -2088,7 +2134,7 @@ export async function sendAssignmentInterestPoll(
       }),
     ),
   );
-  await triggerNotificationWorker({ channels: ["push"], limit: Math.max(25, recipients.length) });
+  await safeTriggerNotificationWorker({ channels: ["push"], limit: Math.max(25, recipients.length) });
 
   revalidatePath(`/assignments/${assignmentId}`);
   revalidatePath("/planning");
@@ -2102,12 +2148,18 @@ export async function listAssignmentInterestRounds(
   assignmentId: string,
 ): Promise<AssignmentInterestRoundHistory[]> {
   await requirePermission("assignments", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const [rounds, responses] = await Promise.all([
     db
       .select()
       .from(assignmentInterestRoundsTable)
-      .where(eq(assignmentInterestRoundsTable.assignmentId, assignmentId))
+      .where(
+        and(
+          eq(assignmentInterestRoundsTable.tenantId, tenantId),
+          eq(assignmentInterestRoundsTable.assignmentId, assignmentId),
+        ),
+      )
       .orderBy(desc(assignmentInterestRoundsTable.roundNumber)),
     db
       .select({
@@ -2129,11 +2181,18 @@ export async function listAssignmentInterestRounds(
       .leftJoin(
         assignmentCandidatesTable,
         and(
+          eq(assignmentCandidatesTable.tenantId, tenantId),
           eq(assignmentCandidatesTable.assignmentId, assignmentInterestResponsesTable.assignmentId),
           eq(assignmentCandidatesTable.personnelId, assignmentInterestResponsesTable.personnelId),
         ),
       )
-      .where(eq(assignmentInterestResponsesTable.assignmentId, assignmentId))
+      .where(
+        and(
+          eq(assignmentInterestResponsesTable.tenantId, tenantId),
+          eq(assignmentInterestResponsesTable.assignmentId, assignmentId),
+          eq(personnelTable.tenantId, tenantId),
+        ),
+      )
       .orderBy(
         desc(assignmentInterestResponsesTable.createdAt),
         asc(personnelTable.lastName),
@@ -2210,12 +2269,14 @@ export async function sendAssignmentInterestReminder(
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
+  const tenantId = await requireCurrentTenantId();
 
   const [round] = await db
     .select()
     .from(assignmentInterestRoundsTable)
     .where(
       and(
+        eq(assignmentInterestRoundsTable.tenantId, tenantId),
         eq(assignmentInterestRoundsTable.id, roundId),
         eq(assignmentInterestRoundsTable.assignmentId, assignmentId),
       ),
@@ -2245,7 +2306,7 @@ export async function sendAssignmentInterestReminder(
       })
       .from(assignmentsTable)
       .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
-      .where(eq(assignmentsTable.id, assignmentId))
+      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
       .limit(1),
     db
       .select({
@@ -2257,7 +2318,9 @@ export async function sendAssignmentInterestReminder(
       .innerJoin(personnelTable, eq(assignmentInterestResponsesTable.personnelId, personnelTable.id))
       .where(
         and(
+          eq(assignmentInterestResponsesTable.tenantId, tenantId),
           eq(assignmentInterestResponsesTable.roundId, roundId),
+          eq(personnelTable.tenantId, tenantId),
           inArray(assignmentInterestResponsesTable.status, ["invited", "viewed"]),
           or(
             isNull(assignmentInterestResponsesTable.expiresAt),
@@ -2273,12 +2336,23 @@ export async function sendAssignmentInterestReminder(
   }
 
   await db.transaction(async (tx) => {
-    await tx
+    const [updatedRound] = await tx
       .update(assignmentInterestRoundsTable)
       .set({ reminderSentAt: new Date() })
-      .where(eq(assignmentInterestRoundsTable.id, roundId));
+      .where(
+        and(
+          eq(assignmentInterestRoundsTable.tenantId, tenantId),
+          eq(assignmentInterestRoundsTable.id, roundId),
+          eq(assignmentInterestRoundsTable.assignmentId, assignmentId),
+          eq(assignmentInterestRoundsTable.status, "sent"),
+          isNull(assignmentInterestRoundsTable.reminderSentAt),
+        ),
+      )
+      .returning({ id: assignmentInterestRoundsTable.id });
+    if (!updatedRound) throw new Error("Ronde kon niet worden bijgewerkt.");
 
     await tx.insert(auditLogTable).values({
+      tenantId,
       userId: user.id,
       action: "assignment_interest_reminder",
       resource: "assignments",
@@ -2293,7 +2367,7 @@ export async function sendAssignmentInterestReminder(
 
   await Promise.all(
     responses.map((person) =>
-      emitDomainEvent({
+      safeEmitDomainEvent({
         eventKey: "assignment_interest_reminder",
         tenantId: assignment.tenantId,
         actorUserId: user.id,
@@ -2333,7 +2407,7 @@ export async function sendAssignmentInterestReminder(
       }),
     ),
   );
-  await triggerNotificationWorker({ channels: ["push"], limit: Math.max(25, responses.length) });
+  await safeTriggerNotificationWorker({ channels: ["push"], limit: Math.max(25, responses.length) });
 
   revalidatePath(`/assignments/${assignmentId}`);
   return { success: true, data: { reminded: responses.length } };
@@ -2354,27 +2428,19 @@ export async function markInterestCandidate(
 
   const tenantId = await requireCurrentTenantId();
 
-  const [response] = await db
-    .select({
-      id: assignmentInterestResponsesTable.id,
-      personnelId: assignmentInterestResponsesTable.personnelId,
-    })
-    .from(assignmentInterestResponsesTable)
-    .innerJoin(assignmentsTable, eq(assignmentInterestResponsesTable.assignmentId, assignmentsTable.id))
-    .where(
-      and(
-        eq(assignmentInterestResponsesTable.assignmentId, assignmentId),
-        eq(assignmentInterestResponsesTable.personnelId, personnelId),
-        eq(assignmentsTable.tenantId, tenantId),
-      ),
-    )
-    .orderBy(desc(assignmentInterestResponsesTable.createdAt))
-    .limit(1);
-
-  if (!response) {
+  let result: Awaited<ReturnType<typeof selectInterestCandidateForScheduling>>;
+  try {
+    result = await selectInterestCandidateForScheduling({
+      assignmentId,
+      personnelId,
+      tenantId,
+      actorUserId: user.id,
+      decision: status,
+    });
+  } catch (error) {
     return {
       success: false,
-      message: "Deze medewerker heeft nog geen interesse-uitnodiging voor deze opdracht.",
+      message: error instanceof Error ? error.message : "Kandidaat kon niet worden verwerkt.",
     };
   }
 
@@ -2384,6 +2450,9 @@ export async function markInterestCandidate(
         tenantId: assignmentsTable.tenantId,
         code: assignmentsTable.code,
         title: assignmentsTable.title,
+        scheduledDate: assignmentsTable.scheduledDate,
+        scheduledStart: assignmentsTable.scheduledStart,
+        scheduledEnd: assignmentsTable.scheduledEnd,
       })
       .from(assignmentsTable)
       .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
@@ -2394,40 +2463,31 @@ export async function markInterestCandidate(
         lastName: personnelTable.lastName,
       })
       .from(personnelTable)
-      .where(eq(personnelTable.id, personnelId))
+      .where(and(eq(personnelTable.id, personnelId), eq(personnelTable.tenantId, tenantId)))
       .limit(1),
   ]);
 
-  await db.transaction(async (tx) => {
-    await tx
-      .update(assignmentInterestResponsesTable)
-      .set({
-        status,
-        selectedAt: status === "selected" || status === "reserve" ? new Date() : null,
-        updatedAt: new Date(),
-      })
-      .where(eq(assignmentInterestResponsesTable.id, response.id));
-
-    await tx.insert(auditLogTable).values({
-      tenantId,
-      userId: user.id,
-      action: `assignment_interest_${status}`,
-      resource: "assignments",
-      resourceId: assignmentId,
-      metadata: {
-        personnelId,
-        responseId: response.id,
+  if (result.notification.eventKey === "assignment_assigned" && assignment) {
+    await notifyAssignmentWorkflow({
+      eventKey: "assignment_assigned",
+      assignmentId,
+      actorUserId: user.id,
+      audience: "personnel",
+      recipients: { personnelIds: [personnelId] },
+      fallback: {
+        title: result.notification.title ?? `Werkbon ${assignment.code} ingepland`,
+        body:
+          result.notification.body ??
+          `Je bent ingepland op ${assignment.scheduledDate} van ${assignment.scheduledStart} tot ${assignment.scheduledEnd}.`,
+        pushTitle: result.notification.title ?? `Werkbon ${assignment.code} ingepland`,
+        pushBody: `${assignment.scheduledDate ?? ""} ${assignment.scheduledStart ?? ""}-${assignment.scheduledEnd ?? ""}. Bekijk je planning.`,
+        priority: assignment.scheduledDate === new Date().toISOString().slice(0, 10) ? "high" : "normal",
       },
     });
-  });
-
-  if (status !== "cancelled" && assignment && personnel) {
-    await emitDomainEvent({
-      eventKey:
-        status === "reserve"
-          ? "assignment_interest_reserve"
-          : "assignment_interest_selected",
-      tenantId: assignment.tenantId,
+  } else if (result.notification.eventKey === "assignment_interest_reserve" && assignment && personnel) {
+    await safeEmitDomainEvent({
+      eventKey: "assignment_interest_reserve",
+      tenantId,
       actorUserId: user.id,
       audience: "personnel",
       aggregate: { type: "assignment", id: assignmentId },
@@ -2444,21 +2504,29 @@ export async function markInterestCandidate(
         href: "/openstaand",
       },
       fallback: {
-        title:
-          status === "reserve"
-            ? `Reserve voor ${assignment.code}`
-            : `Geselecteerd voor ${assignment.code}`,
-        body:
-          status === "reserve"
-            ? "Je staat als reserve voor deze opdracht."
-            : "Planning heeft je geselecteerd voor deze opdracht.",
+        title: result.notification.title ?? `Reserve voor ${assignment.code}`,
+        body: result.notification.body ?? "Je staat als reserve voor deze opdracht.",
         category: "planning",
         priority: "normal",
         href: "/openstaand",
       },
       audit: false,
     });
-    await triggerNotificationWorker({ channels: ["push"], limit: 25 });
+  }
+
+  if (result.notification.eventKey) {
+    await safeTriggerNotificationWorker({ channels: ["push"], limit: 25 });
+  }
+
+  if (result.notification.eventKey === "assignment_assigned") {
+    await safeRefreshPlanningRoutesForAssignment({
+      tenantId,
+      assignmentId,
+      reason: "assignment_assigned",
+      status: result.assignmentStatus,
+      personnelIds: result.assignedPersonnelIds,
+      source: "backoffice",
+    });
   }
 
   revalidatePath(`/assignments/${assignmentId}`);

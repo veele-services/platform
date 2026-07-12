@@ -207,7 +207,7 @@ function adviceFor(input: {
 
 export async function calculateAssignmentCapacity(
   assignmentId: string,
-  options: { persist?: boolean; actorUserId?: string | null } = {},
+  options: { persist?: boolean; actorUserId?: string | null; tenantId?: string } = {},
 ): Promise<SmartPlanningCapacityResult | null> {
   const [assignment] = await db
     .select({
@@ -232,7 +232,12 @@ export async function calculateAssignmentCapacity(
     .from(assignmentsTable)
     .innerJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
-    .where(eq(assignmentsTable.id, assignmentId))
+    .where(
+      and(
+        eq(assignmentsTable.id, assignmentId),
+        options.tenantId ? eq(assignmentsTable.tenantId, options.tenantId) : undefined,
+      ),
+    )
     .limit(1);
 
   if (!assignment) return null;
@@ -320,10 +325,14 @@ export async function calculateAssignmentCapacity(
       .where(
         sectorId
           ? and(
+              eq(planningSectorRulesTable.tenantId, assignment.tenantId),
               eq(planningSectorRulesTable.sectorId, sectorId),
               eq(planningSectorRulesTable.isActive, true),
             )
-          : eq(planningSectorRulesTable.isActive, true),
+          : and(
+              eq(planningSectorRulesTable.tenantId, assignment.tenantId),
+              eq(planningSectorRulesTable.isActive, true),
+            ),
       )
       .limit(1),
     db
@@ -446,6 +455,7 @@ export async function calculateAssignmentCapacity(
             and(
               inArray(assignmentPersonnelTable.personnelId, personnelIds),
               eq(assignmentPersonnelTable.status, "assigned"),
+              eq(assignmentsTable.tenantId, assignment.tenantId),
               ne(assignmentPersonnelTable.assignmentId, assignmentId),
               eq(assignmentsTable.scheduledDate, scheduledDate),
               hasFullMoment
@@ -469,6 +479,7 @@ export async function calculateAssignmentCapacity(
             and(
               inArray(assignmentPersonnelTable.personnelId, personnelIds),
               eq(assignmentPersonnelTable.status, "assigned"),
+              eq(assignmentsTable.tenantId, assignment.tenantId),
               ne(assignmentsTable.id, assignmentId),
               or(
                 assignment.objectId
@@ -523,6 +534,7 @@ export async function calculateAssignmentCapacity(
             and(
               inArray(assignmentPersonnelTable.personnelId, personnelIds),
               eq(assignmentPersonnelTable.status, "assigned"),
+              eq(assignmentsTable.tenantId, assignment.tenantId),
               gte(assignmentsTable.scheduledDate, week.start),
               lte(assignmentsTable.scheduledDate, week.end),
             ),
@@ -538,6 +550,7 @@ export async function calculateAssignmentCapacity(
       .where(
         and(
           eq(assignmentInterestResponsesTable.assignmentId, assignmentId),
+          eq(assignmentInterestResponsesTable.tenantId, assignment.tenantId),
           inArray(assignmentInterestResponsesTable.status, [
             "interested",
             "selected",
@@ -1038,6 +1051,7 @@ export async function getLatestAssignmentCapacity(
 
 export async function getSmartPlanningRoundDefaults(
   assignmentId: string,
+  options: { tenantId?: string } = {},
 ): Promise<{
   roundSize: number;
   expiresAt: Date;
@@ -1049,13 +1063,19 @@ export async function getSmartPlanningRoundDefaults(
 }> {
   const [assignment] = await db
     .select({
+      tenantId: assignmentsTable.tenantId,
       objectSectorId: objectsTable.sectorId,
       customerSectorId: customersTable.sectorId,
     })
     .from(assignmentsTable)
     .innerJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
-    .where(eq(assignmentsTable.id, assignmentId))
+    .where(
+      and(
+        eq(assignmentsTable.id, assignmentId),
+        options.tenantId ? eq(assignmentsTable.tenantId, options.tenantId) : undefined,
+      ),
+    )
     .limit(1);
 
   const sectorId = assignment?.objectSectorId ?? assignment?.customerSectorId ?? null;
@@ -1065,10 +1085,20 @@ export async function getSmartPlanningRoundDefaults(
     .where(
       sectorId
         ? and(
+            assignment
+              ? eq(planningSectorRulesTable.tenantId, options.tenantId ?? assignment.tenantId)
+              : undefined,
             eq(planningSectorRulesTable.sectorId, sectorId),
             eq(planningSectorRulesTable.isActive, true),
           )
-        : eq(planningSectorRulesTable.isActive, true),
+        : and(
+            options.tenantId
+              ? eq(planningSectorRulesTable.tenantId, options.tenantId)
+              : assignment
+                ? eq(planningSectorRulesTable.tenantId, assignment.tenantId)
+              : undefined,
+            eq(planningSectorRulesTable.isActive, true),
+          ),
     )
     .limit(1);
 
