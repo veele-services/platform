@@ -1,0 +1,468 @@
+#!/usr/bin/env sh
+set -eu
+
+usage() {
+  cat <<'USAGE'
+Usage:
+  fieldgrid-deploy-health-gate.sh --environment staging --base-dir DIR --release-path DIR --expected-sha SHA [options]
+
+Options:
+  --previous-release DIR       Previous current symlink target for rollback.
+  --rollback-on-failure        Restore previous symlink, restart services, reload Caddy and verify rollback health.
+  --evidence-file PATH         Write structured JSON evidence.
+  --help                       Show this help.
+
+Configuration:
+  FIELDGRID_DEPLOY_SERVICES          Space or comma separated systemd services. Defaults to deploy service env vars.
+  FIELDGRID_DEPLOY_PORTS             Space or comma separated localhost ports. Defaults to deploy port env vars.
+  FIELDGRID_DEPLOY_LOCAL_ENDPOINTS   Newline separated name|url|mode entries.
+  FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS  Newline separated name|url|mode entries.
+  FIELDGRID_DEPLOY_HEALTH_ATTEMPTS   Retry attempts per endpoint/service/port. Default: 12.
+  FIELDGRID_DEPLOY_HEALTH_RETRY_SECONDS  Sleep between attempts. Default: 5.
+  FIELDGRID_DEPLOY_CURL_MAX_TIME_SECONDS Curl per-request timeout. Default: 5.
+
+Endpoint modes:
+  strict    2xx/3xx is healthy.
+  api-root  2xx/3xx is healthy and 404 is recorded as the expected API-root response.
+USAGE
+}
+
+ENVIRONMENT=""
+BASE_DIR=""
+RELEASE_PATH=""
+EXPECTED_SHA=""
+PREVIOUS_RELEASE=""
+ROLLBACK_ON_FAILURE="0"
+EVIDENCE_FILE=""
+CHECK_EXPECTED_SHA="1"
+
+while [ "$#" -gt 0 ]; do
+  case "$1" in
+    --environment) ENVIRONMENT="${2:-}"; shift 2 ;;
+    --base-dir) BASE_DIR="${2:-}"; shift 2 ;;
+    --release-path) RELEASE_PATH="${2:-}"; shift 2 ;;
+    --expected-sha) EXPECTED_SHA="${2:-}"; shift 2 ;;
+    --previous-release) PREVIOUS_RELEASE="${2:-}"; shift 2 ;;
+    --rollback-on-failure) ROLLBACK_ON_FAILURE="1"; shift ;;
+    --evidence-file) EVIDENCE_FILE="${2:-}"; shift 2 ;;
+    --help|-h) usage; exit 0 ;;
+    *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
+  esac
+done
+
+SYSTEMCTL_BIN="${SYSTEMCTL_BIN:-systemctl}"
+SYSTEMCTL_SUDO="${SYSTEMCTL_SUDO:-}"
+CURL_BIN="${CURL_BIN:-curl}"
+SS_BIN="${SS_BIN:-ss}"
+SLEEP_BIN="${SLEEP_BIN:-sleep}"
+ATTEMPTS="${FIELDGRID_DEPLOY_HEALTH_ATTEMPTS:-12}"
+RETRY_SECONDS="${FIELDGRID_DEPLOY_HEALTH_RETRY_SECONDS:-5}"
+CURL_MAX_TIME="${FIELDGRID_DEPLOY_CURL_MAX_TIME_SECONDS:-5}"
+CHECKS_FILE="$(mktemp)"
+trap 'rm -f "$CHECKS_FILE"' EXIT HUP INT TERM
+
+json_escape() {
+  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g'
+}
+
+sanitize_url() {
+  printf '%s' "$1" | sed -E 's#(https?://)[^/@]+@#\1***@#; s#[?].*$##'
+}
+
+record_check() {
+  name="$1"
+  status="$2"
+  detail="$3"
+  printf '{"name":"%s","status":"%s","detail":"%s"}\n' \
+    "$(json_escape "$name")" \
+    "$(json_escape "$status")" \
+    "$(json_escape "$detail")" >> "$CHECKS_FILE"
+}
+
+join_json_checks() {
+  awk 'BEGIN { first=1 } { if (!first) printf ",\n"; first=0; printf "    %s", $0 } END { if (first) printf "" }' "$CHECKS_FILE"
+}
+
+write_evidence() {
+  status="$1"
+  detail="$2"
+  rollback_status="${3:-not-requested}"
+  if [ -z "$EVIDENCE_FILE" ]; then
+    return 0
+  fi
+
+  mkdir -p "$(dirname "$EVIDENCE_FILE")"
+  current_target=""
+  if [ -n "$BASE_DIR" ] && [ -L "$BASE_DIR/current" ]; then
+    current_target="$(readlink "$BASE_DIR/current" || true)"
+  fi
+
+  attempts_number="$(printf '%s' "$ATTEMPTS" | sed 's/[^0-9].*$//')"
+  retry_number="$(printf '%s' "$RETRY_SECONDS" | sed 's/[^0-9].*$//')"
+  [ -n "$attempts_number" ] || attempts_number=0
+  [ -n "$retry_number" ] || retry_number=0
+
+  {
+    cat <<JSON
+{
+  "tool": "fieldgrid-deploy-health-gate",
+  "environment": "$(json_escape "$ENVIRONMENT")",
+  "status": "$(json_escape "$status")",
+  "detail": "$(json_escape "$detail")",
+  "rollbackStatus": "$(json_escape "$rollback_status")",
+  "baseDir": "$(json_escape "$BASE_DIR")",
+  "releasePath": "$(json_escape "$RELEASE_PATH")",
+  "expectedSha": "$(json_escape "$EXPECTED_SHA")",
+  "previousRelease": "$(json_escape "$PREVIOUS_RELEASE")",
+  "currentTarget": "$(json_escape "$current_target")",
+  "attempts": $attempts_number,
+  "retrySeconds": $retry_number,
+  "checks": [
+JSON
+    join_json_checks
+    cat <<'JSON'
+  ]
+}
+JSON
+  } > "$EVIDENCE_FILE"
+}
+
+fail_now() {
+  write_evidence "fail" "$1" "${2:-not-requested}"
+  echo "fieldgrid-deploy-health-gate: $1" >&2
+  exit 1
+}
+
+split_words() {
+  printf '%s' "$1" | tr ',\n' '  '
+}
+
+append_endpoint() {
+  name="$1"
+  url="$2"
+  mode="$3"
+  if [ -n "$url" ]; then
+    printf '%s|%s|%s\n' "$name" "$url" "$mode"
+  fi
+}
+
+with_path() {
+  base="$1"
+  path="$2"
+  trimmed="$(printf '%s' "$base" | sed 's#/*$##')"
+  printf '%s%s' "$trimmed" "$path"
+}
+
+default_services() {
+  if [ -n "${FIELDGRID_DEPLOY_SERVICES:-}" ]; then
+    split_words "$FIELDGRID_DEPLOY_SERVICES"
+  else
+    split_words "${BACKOFFICE_SERVICE_NAME:-${SERVICE_NAME:-}} ${PERSONEEL_SERVICE_NAME:-} ${KLANT_SERVICE_NAME:-} ${API_SERVICE_NAME:-}"
+  fi
+}
+
+default_ports() {
+  if [ -n "${FIELDGRID_DEPLOY_PORTS:-}" ]; then
+    split_words "$FIELDGRID_DEPLOY_PORTS"
+  else
+    split_words "${BACKOFFICE_PORT:-${PORT:-}} ${PERSONEEL_PORT:-} ${KLANT_PORT:-} ${API_PORT:-}"
+  fi
+}
+
+default_local_endpoints() {
+  if [ -n "${FIELDGRID_DEPLOY_LOCAL_ENDPOINTS:-}" ]; then
+    printf '%s\n' "$FIELDGRID_DEPLOY_LOCAL_ENDPOINTS"
+    return 0
+  fi
+
+  if [ -n "${BACKOFFICE_PORT:-${PORT:-}}" ]; then
+    append_endpoint "local-backoffice" "http://127.0.0.1:${BACKOFFICE_PORT:-$PORT}/login" "strict"
+  fi
+  if [ -n "${PERSONEEL_PORT:-}" ]; then
+    append_endpoint "local-personnel" "http://127.0.0.1:${PERSONEEL_PORT}/personeel/healthz" "strict"
+  fi
+  if [ -n "${KLANT_PORT:-}" ]; then
+    append_endpoint "local-customer" "http://127.0.0.1:${KLANT_PORT}/klant/healthz" "strict"
+  fi
+  if [ -n "${API_PORT:-}" ]; then
+    append_endpoint "local-api-health" "http://127.0.0.1:${API_PORT}/api/healthz" "strict"
+    append_endpoint "local-api-root" "http://127.0.0.1:${API_PORT}/" "api-root"
+  fi
+}
+
+default_public_endpoints() {
+  if [ -n "${FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS:-}" ]; then
+    printf '%s\n' "$FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS"
+    return 0
+  fi
+
+  if [ -n "${BACKOFFICE_PUBLIC_URL:-${APP_URL:-}}" ]; then
+    append_endpoint "public-backoffice" "$(with_path "${BACKOFFICE_PUBLIC_URL:-$APP_URL}" "/login")" "strict"
+  fi
+  if [ -n "${PERSONEEL_PUBLIC_URL:-}" ]; then
+    append_endpoint "public-personnel" "$(with_path "$PERSONEEL_PUBLIC_URL" "/personeel/healthz")" "strict"
+  fi
+  if [ -n "${KLANT_PUBLIC_URL:-}" ]; then
+    append_endpoint "public-customer" "$(with_path "$KLANT_PUBLIC_URL" "/klant/healthz")" "strict"
+  fi
+  if [ -n "${API_PUBLIC_URL:-}" ]; then
+    append_endpoint "public-api-health" "$(with_path "$API_PUBLIC_URL" "/api/healthz")" "strict"
+    append_endpoint "public-api-root" "$API_PUBLIC_URL" "api-root"
+  fi
+}
+
+retry() {
+  attempt=1
+  while [ "$attempt" -le "$ATTEMPTS" ]; do
+    if "$@"; then
+      return 0
+    fi
+    if [ "$attempt" -lt "$ATTEMPTS" ]; then
+      "$SLEEP_BIN" "$RETRY_SECONDS"
+    fi
+    attempt=$((attempt + 1))
+  done
+  return 1
+}
+
+run_systemctl() {
+  if [ -n "$SYSTEMCTL_SUDO" ]; then
+    "$SYSTEMCTL_SUDO" "$SYSTEMCTL_BIN" "$@"
+  else
+    "$SYSTEMCTL_BIN" "$@"
+  fi
+}
+
+service_is_active() {
+  run_systemctl is-active --quiet "$1"
+}
+
+check_services() {
+  count=0
+  failed=0
+  for service in $(default_services); do
+    [ -n "$service" ] || continue
+    count=$((count + 1))
+    if retry service_is_active "$service"; then
+      record_check "service:$service" "pass" "systemd service is active"
+    else
+      record_check "service:$service" "fail" "systemd service is not active"
+      failed=1
+    fi
+  done
+
+  if [ "$count" -lt 4 ]; then
+    record_check "services:configured-count" "fail" "expected four configured services; found $count"
+    failed=1
+  else
+    record_check "services:configured-count" "pass" "found $count configured services"
+  fi
+  return "$failed"
+}
+
+port_is_listening() {
+  port="$1"
+  "$SS_BIN" -ltn 2>/dev/null | grep -Eq "[:.]${port}[[:space:]]"
+}
+
+check_ports() {
+  count=0
+  failed=0
+  for port in $(default_ports); do
+    [ -n "$port" ] || continue
+    count=$((count + 1))
+    if retry port_is_listening "$port"; then
+      record_check "port:$port" "pass" "localhost port is listening"
+    else
+      record_check "port:$port" "fail" "localhost port is not listening"
+      failed=1
+    fi
+  done
+
+  if [ "$count" -lt 4 ]; then
+    record_check "ports:configured-count" "fail" "expected four configured ports; found $count"
+    failed=1
+  else
+    record_check "ports:configured-count" "pass" "found $count configured ports"
+  fi
+  return "$failed"
+}
+
+http_status() {
+  "$CURL_BIN" -sS -o /dev/null -w '%{http_code}' --max-time "$CURL_MAX_TIME" "$1"
+}
+
+endpoint_is_healthy() {
+  spec="$1"
+  name="$(printf '%s' "$spec" | awk -F'|' '{ print $1 }')"
+  url="$(printf '%s' "$spec" | awk -F'|' '{ print $2 }')"
+  mode="$(printf '%s' "$spec" | awk -F'|' '{ print $3 }')"
+  status="$(http_status "$url" 2>/dev/null || printf '000')"
+
+  case "$status" in
+    2*|3*) record_check "endpoint:$name" "pass" "HTTP $status $(sanitize_url "$url")"; return 0 ;;
+    404)
+      if [ "$mode" = "api-root" ]; then
+        record_check "endpoint:$name" "pass" "HTTP 404 accepted for API root $(sanitize_url "$url")"
+        return 0
+      fi
+      ;;
+  esac
+
+  record_check "endpoint:$name" "fail" "HTTP $status $(sanitize_url "$url")"
+  return 1
+}
+
+check_endpoint_group() {
+  group_name="$1"
+  specs="$2"
+  required_count="$3"
+  failed=0
+
+  set +e
+  printf '%s\n' "$specs" | while IFS= read -r spec; do
+    [ -n "$spec" ] || continue
+    name="$(printf '%s' "$spec" | awk -F'|' '{ print $1 }')"
+    url="$(printf '%s' "$spec" | awk -F'|' '{ print $2 }')"
+    if [ -z "$name" ] || [ -z "$url" ]; then
+      record_check "endpoint:$group_name" "fail" "invalid endpoint spec"
+      exit 9
+    fi
+    retry endpoint_is_healthy "$spec" || exit 8
+  done
+  rc=$?
+  set -e
+
+  count="$(printf '%s\n' "$specs" | sed '/^[[:space:]]*$/d' | wc -l | tr -d ' ')"
+  if [ "$count" -lt "$required_count" ]; then
+    record_check "endpoints:$group_name-count" "fail" "expected at least $required_count endpoint(s); found $count"
+    failed=1
+  else
+    record_check "endpoints:$group_name-count" "pass" "found $count endpoint(s)"
+  fi
+
+  if [ "$rc" -ne 0 ]; then
+    failed=1
+  fi
+  return "$failed"
+}
+
+verify_release_metadata() {
+  failed=0
+
+  if [ ! -L "$BASE_DIR/current" ]; then
+    record_check "symlink:current" "fail" "current is not a symlink"
+    failed=1
+  else
+    current_target="$(readlink "$BASE_DIR/current" || true)"
+    if [ "$current_target" = "$RELEASE_PATH" ]; then
+      record_check "symlink:current" "pass" "current points at release path"
+    else
+      record_check "symlink:current" "fail" "current points at $current_target"
+      failed=1
+    fi
+  fi
+
+  if [ ! -d "$RELEASE_PATH" ]; then
+    record_check "release:path" "fail" "release path does not exist"
+    failed=1
+  else
+    record_check "release:path" "pass" "release path exists"
+  fi
+
+  sha_file="$RELEASE_PATH/.fieldgrid-release-sha"
+  if [ ! -f "$sha_file" ]; then
+    record_check "release:sha" "fail" "release SHA marker is missing"
+    failed=1
+  else
+    actual_sha="$(sed -n '1p' "$sha_file" | tr -d '[:space:]')"
+    if [ "$CHECK_EXPECTED_SHA" != "1" ]; then
+      record_check "release:sha" "pass" "release SHA marker exists for rollback release"
+    elif [ "$actual_sha" = "$EXPECTED_SHA" ]; then
+      record_check "release:sha" "pass" "release SHA marker matches expected SHA"
+    else
+      record_check "release:sha" "fail" "release SHA marker does not match expected SHA"
+      failed=1
+    fi
+  fi
+  return "$failed"
+}
+
+run_health_checks() {
+  failed=0
+  verify_release_metadata || failed=1
+  check_services || failed=1
+  check_ports || failed=1
+  check_endpoint_group "local" "$(default_local_endpoints)" 4 || failed=1
+  check_endpoint_group "public" "$(default_public_endpoints)" 3 || failed=1
+  return "$failed"
+}
+
+restart_services_and_reload_caddy() {
+  for service in $(default_services); do
+    [ -n "$service" ] || continue
+    run_systemctl restart "$service"
+  done
+  run_systemctl reload caddy
+}
+
+rollback() {
+  if [ -z "$PREVIOUS_RELEASE" ]; then
+    record_check "rollback:previous-release" "fail" "no previous release was recorded"
+    write_evidence "fail" "health gate failed and no previous release was available" "unavailable"
+    return 1
+  fi
+
+  if [ ! -d "$PREVIOUS_RELEASE" ]; then
+    record_check "rollback:previous-release" "fail" "previous release path does not exist"
+    write_evidence "fail" "health gate failed and previous release path is missing" "unavailable"
+    return 1
+  fi
+
+  ln -sfn "$PREVIOUS_RELEASE" "$BASE_DIR/current.rollback"
+  mv -Tf "$BASE_DIR/current.rollback" "$BASE_DIR/current"
+  record_check "rollback:symlink" "pass" "current symlink restored to previous release"
+
+  if restart_services_and_reload_caddy; then
+    record_check "rollback:restart" "pass" "services restarted and Caddy reloaded after rollback"
+  else
+    record_check "rollback:restart" "fail" "service restart or Caddy reload failed during rollback"
+    write_evidence "fail" "rollback restart failed" "failed"
+    return 1
+  fi
+
+  saved_release="$RELEASE_PATH"
+  RELEASE_PATH="$PREVIOUS_RELEASE"
+  CHECK_EXPECTED_SHA="0"
+  if run_health_checks; then
+    RELEASE_PATH="$saved_release"
+    CHECK_EXPECTED_SHA="1"
+    write_evidence "fail" "new release failed health gate; rollback health passed" "pass"
+    return 0
+  fi
+  RELEASE_PATH="$saved_release"
+  CHECK_EXPECTED_SHA="1"
+  write_evidence "fail" "new release failed health gate and rollback health failed" "failed"
+  return 1
+}
+
+[ -n "$ENVIRONMENT" ] || fail_now "--environment is required"
+[ -n "$BASE_DIR" ] || fail_now "--base-dir is required"
+[ -n "$RELEASE_PATH" ] || fail_now "--release-path is required"
+[ -n "$EXPECTED_SHA" ] || fail_now "--expected-sha is required"
+
+if run_health_checks; then
+  write_evidence "pass" "release health gate passed" "not-needed"
+  echo "fieldgrid-deploy-health-gate: release health gate passed"
+  exit 0
+fi
+
+if [ "$ROLLBACK_ON_FAILURE" = "1" ]; then
+  if rollback; then
+    echo "fieldgrid-deploy-health-gate: release failed; rollback succeeded" >&2
+  else
+    echo "fieldgrid-deploy-health-gate: release failed; rollback failed or unavailable" >&2
+  fi
+fi
+
+exit 1

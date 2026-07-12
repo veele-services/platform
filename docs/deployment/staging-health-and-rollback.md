@@ -1,0 +1,59 @@
+# Staging Health Gate And Symlink Rollback
+
+This runbook defines the staging-only post-deploy health gate added to the deploy workflow. It does not dispatch a workflow, access staging, read live secrets or run down migrations.
+
+## Activation Contract
+
+1. The release directory is prepared, dependencies are installed and static release checks pass.
+2. Build and database migrations must succeed before activation.
+3. The activation script records the previous `current` symlink target.
+4. The new release writes `.fieldgrid-release-sha` with the expected Git SHA.
+5. `scripts/fieldgrid-atomic-release-activate.sh` atomically moves `current` to the new release.
+6. The deploy workflow restarts the four configured services and reloads Caddy.
+7. `scripts/fieldgrid-deploy-health-gate.sh` verifies symlink state, SHA marker, services, ports, local endpoints and public endpoints.
+8. On health failure, the health gate restores the previous symlink, restarts the same services, reloads Caddy and verifies rollback health.
+9. The failed release directory and health evidence JSON are preserved under the release/shared artifact path.
+10. The workflow fails after rollback so the deployment is visibly blocked.
+
+## Required Staging Configuration
+
+The workflow passes these values from GitHub environment variables:
+
+| Variable | Purpose |
+| --- | --- |
+| `BACKOFFICE_SERVICE_NAME`, `PERSONEEL_SERVICE_NAME`, `KLANT_SERVICE_NAME`, `API_SERVICE_NAME` | The four systemd services to verify and restart. |
+| `BACKOFFICE_PORT`, `PERSONEEL_PORT`, `KLANT_PORT`, `API_PORT` | Local listening ports to verify. |
+| `BACKOFFICE_PUBLIC_URL`, `PERSONEEL_PUBLIC_URL`, `KLANT_PUBLIC_URL`, `API_PUBLIC_URL` | Public endpoints for post-activation checks. |
+| `FIELDGRID_DEPLOY_HEALTH_ATTEMPTS` | Retry attempts per health check. |
+| `FIELDGRID_DEPLOY_HEALTH_RETRY_SECONDS` | Delay between retries. |
+| `FIELDGRID_DEPLOY_CURL_MAX_TIME_SECONDS` | Per-request curl timeout. |
+
+Endpoint lists can be overridden with newline-separated `name|url|mode` entries via `FIELDGRID_DEPLOY_LOCAL_ENDPOINTS` and `FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS`. Modes are `strict` for 2xx/3xx only and `api-root` for the API root, where HTTP 404 is accepted and recorded separately from connection failures or 5xx responses.
+
+Default local probes are:
+
+| Surface | Local probe |
+| --- | --- |
+| Backoffice | `http://127.0.0.1:${BACKOFFICE_PORT}/login` |
+| Personnel PWA | `http://127.0.0.1:${PERSONEEL_PORT}/personeel/healthz` |
+| Customer PWA | `http://127.0.0.1:${KLANT_PORT}/klant/healthz` |
+| API | `http://127.0.0.1:${API_PORT}/api/healthz` and API-root 404 classification |
+
+## Rollback Boundaries
+
+Rollback is application-level only:
+
+- The gate restores the previous release symlink.
+- The gate restarts the configured services and reloads Caddy.
+- The gate never runs a down migration automatically.
+- If a database migration is not backward compatible, the previous app release may be incompatible with the migrated schema. Treat that as a release blocker and use a database restore plan or a forward fix.
+
+Migration failures before activation leave the existing `current` symlink untouched. Health failures after activation preserve the failed release and evidence logs for diagnosis.
+
+## Local Test Command
+
+```bash
+node --test tests/fieldgrid-deploy-health-gate.test.mjs
+```
+
+The test suite uses temporary release directories and mocked `systemctl`, `ss`, `curl` and `sleep` commands. It covers healthy activation, service failure, missing port, public 502, allowed API-root 404, rollback success, rollback health failure, missing previous release and migration failure before activation.
