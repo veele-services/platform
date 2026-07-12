@@ -1,0 +1,258 @@
+{
+  "metadata": {
+    "audit": "personnel-pwa-functional-audit",
+    "date": "2026-07-12",
+    "canonicalBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
+    "branch": "codex/personnel-pwa-functional-audit-20260712T134234Z-9812",
+    "taskType": "audit-only",
+    "testLayerAdded": "static source contract",
+    "liveServicesAccessed": false,
+    "migrationsChanged": false,
+    "workflowFilesChanged": false
+  },
+  "gaps": [
+    {
+      "id": "PPWA-GAP-001",
+      "severity": "critical",
+      "area": "interest-to-work-order",
+      "title": "Selected interest response can trap a worker outside work orders",
+      "currentBehavior": "Planner selection updates assignment_interest_responses to selected or reserve without creating assignment_personnel. getMyAssignments only returns assignment_personnel rows with status assigned, while selected/reserve/confirmed block reapply.",
+      "evidence": [
+        "artifacts/backoffice/src/app/actions/assignments.ts:2342",
+        "artifacts/backoffice/src/app/actions/assignments.ts:2401",
+        "artifacts/personeel-pwa/src/actions/assignments.ts:228",
+        "artifacts/personeel-pwa/src/actions/assignments.ts:234",
+        "artifacts/personeel-pwa/src/actions/open-assignments.ts:384",
+        "artifacts/personeel-pwa/src/actions/open-assignments.ts:448"
+      ],
+      "risk": "Worker sees selected/applied state, cannot reapply, and still has no visible work order.",
+      "missingEvidence": ["database integration", "server-action runtime", "browser/E2E"],
+      "recommendedChange": "Define selected as non-final or make final confirmation atomically update interest status, upsert assignment_personnel.status assigned, and schedule when slots are filled."
+    },
+    {
+      "id": "PPWA-GAP-002",
+      "severity": "critical",
+      "area": "assignment-scheduling",
+      "title": "Selected status does not schedule the assignment",
+      "currentBehavior": "Assignment status transitions to scheduled only inside assignPersonnel, not when markInterestCandidate sets selected.",
+      "evidence": [
+        "artifacts/backoffice/src/app/actions/assignments.ts:3516",
+        "artifacts/backoffice/src/app/actions/assignments.ts:3521",
+        "artifacts/backoffice/src/components/assignments/SmartCandidateActions.tsx:27"
+      ],
+      "risk": "Planning can show selected workers while canonical assignment status remains plannable or otherwise unscheduled.",
+      "missingEvidence": ["database integration", "server-action runtime"],
+      "recommendedChange": "Move scheduling transition into an atomic confirmed-selection/linking path or make UI labels explicit that selected is not scheduled."
+    },
+    {
+      "id": "PPWA-GAP-003",
+      "severity": "high",
+      "area": "tenant-identity",
+      "title": "Many personnel actions resolve identity by first active user row",
+      "currentBehavior": "Several actions select personnel by user_id and is_active only, bypassing the host-bound portal tenant resolver.",
+      "evidence": [
+        "artifacts/personeel-pwa/src/actions/reports.ts:99",
+        "artifacts/personeel-pwa/src/actions/hours.ts:14",
+        "artifacts/personeel-pwa/src/actions/extra-work.ts:93",
+        "artifacts/personeel-pwa/src/actions/materials.ts:107",
+        "artifacts/personeel-pwa/src/actions/inventory.ts:94",
+        "artifacts/personeel-pwa/src/actions/notifications.ts:39",
+        "artifacts/personeel-pwa/src/actions/messages.ts:71",
+        "artifacts/personeel-pwa/src/actions/documents.ts:22"
+      ],
+      "risk": "Wrong tenant can be selected for multi-tenant or ambiguous users; module entitlement checks can evaluate the wrong tenant.",
+      "missingEvidence": ["database integration", "RLS runtime", "API/server-action runtime"],
+      "recommendedChange": "Centralize a current personnel identity helper that requires current host tenant and tenant-bound personnel row, then use it everywhere."
+    },
+    {
+      "id": "PPWA-GAP-004",
+      "severity": "high",
+      "area": "rls-rpc",
+      "title": "Legacy RLS/RPC helpers use auth.uid first-row personnel semantics",
+      "currentBehavior": "auth_personnel_id and assignment status RPCs select the first personnel row for auth.uid with LIMIT 1.",
+      "evidence": [
+        "migrations/015_pwa_rls_policies.sql:21",
+        "migrations/016_assignment_personnel_status.sql:51",
+        "migrations/016_assignment_personnel_status.sql:115"
+      ],
+      "risk": "Database policies can authorize the wrong personnel row even if app code is later tenant-bound.",
+      "missingEvidence": ["RLS runtime", "database integration"],
+      "recommendedChange": "Replace first-row helpers with tenant/assignment-bound policy predicates or tenant-scoped helper functions."
+    },
+    {
+      "id": "PPWA-GAP-005",
+      "severity": "high",
+      "area": "work-execution",
+      "title": "One worker can change global team assignment status",
+      "currentBehavior": "Seen, en route, in progress, completed, not completed, timestamps, notes, and signature are assignment-level state, not per-worker link state.",
+      "evidence": [
+        "artifacts/personeel-pwa/src/actions/assignments.ts:394",
+        "artifacts/personeel-pwa/src/actions/assignments.ts:416",
+        "artifacts/personeel-pwa/src/actions/assignments.ts:580",
+        "artifacts/personeel-pwa/src/actions/assignments.ts:642",
+        "lib/db/src/schema/assignments.ts:135"
+      ],
+      "risk": "Any assigned worker can advance or close the work order for the whole team.",
+      "missingEvidence": ["database integration", "server-action runtime", "browser/E2E"],
+      "recommendedChange": "Introduce per-worker execution state or execution events, then aggregate assignment status intentionally."
+    },
+    {
+      "id": "PPWA-GAP-006",
+      "severity": "high",
+      "area": "concurrency",
+      "title": "Completion and report submission have race windows",
+      "currentBehavior": "Closeout reads status before update and updates by assignment id/tenant. Report submission uses check-then-insert and separately advances assignment status.",
+      "evidence": [
+        "artifacts/personeel-pwa/src/actions/assignments.ts:580",
+        "artifacts/personeel-pwa/src/actions/assignments.ts:642",
+        "artifacts/personeel-pwa/src/actions/reports.ts:705",
+        "artifacts/personeel-pwa/src/actions/reports.ts:723",
+        "artifacts/personeel-pwa/src/actions/reports.ts:735"
+      ],
+      "risk": "Concurrent workers can produce last-write-wins closeouts or duplicate/partially committed reports.",
+      "missingEvidence": ["database integration", "concurrency test"],
+      "recommendedChange": "Use transactions, unique constraints where appropriate, and compare-and-set status predicates."
+    },
+    {
+      "id": "PPWA-GAP-007",
+      "severity": "high",
+      "area": "availability",
+      "title": "Weekly availability save is destructive and non-atomic",
+      "currentBehavior": "Weekly windows are deleted before replacements are inserted.",
+      "evidence": [
+        "artifacts/personeel-pwa/src/actions/availability.ts:242",
+        "artifacts/personeel-pwa/src/actions/availability.ts:250",
+        "artifacts/backoffice/src/app/actions/availability.ts:123"
+      ],
+      "risk": "Insert failure after delete can erase the weekly schedule.",
+      "missingEvidence": ["database integration", "server-action runtime"],
+      "recommendedChange": "Validate duplicate days before deletion and perform replacement in a transaction."
+    },
+    {
+      "id": "PPWA-GAP-008",
+      "severity": "medium",
+      "area": "leave-settings",
+      "title": "Leave and organization settings are weakly tenant-bound",
+      "currentBehavior": "Leave and settings paths resolve personnel by user only and read organization_settings with limit 1.",
+      "evidence": [
+        "artifacts/personeel-pwa/src/actions/leave.ts:20",
+        "artifacts/personeel-pwa/src/actions/leave.ts:96",
+        "artifacts/personeel-pwa/src/actions/availability.ts:115"
+      ],
+      "risk": "Leave notification routing and availability advance settings can use another tenant's settings.",
+      "missingEvidence": ["database integration", "server-action runtime"],
+      "recommendedChange": "Tenant-filter organization settings and use host-bound personnel identity."
+    },
+    {
+      "id": "PPWA-GAP-009",
+      "severity": "medium",
+      "area": "documents",
+      "title": "Personnel documents omit explicit tenant/module predicates",
+      "currentBehavior": "Document list/download filters by personnel entity only while documents have tenant_id.",
+      "evidence": [
+        "artifacts/personeel-pwa/src/actions/documents.ts:22",
+        "artifacts/personeel-pwa/src/actions/documents.ts:57",
+        "artifacts/personeel-pwa/src/actions/documents.ts:90",
+        "lib/db/src/schema/documents.ts:32"
+      ],
+      "risk": "Wrong identity resolution can expose or download documents outside the intended tenant context.",
+      "missingEvidence": ["database integration", "Storage runtime", "browser/E2E"],
+      "recommendedChange": "Require host-bound tenant identity, include documents.tenant_id predicates, and enforce module access server-side."
+    },
+    {
+      "id": "PPWA-GAP-010",
+      "severity": "high",
+      "area": "offline",
+      "title": "Offline queue is not tenant/user scoped",
+      "currentBehavior": "All queued work-order actions use one localStorage key and action payloads do not include tenant, personnel, or user binding.",
+      "evidence": [
+        "artifacts/personeel-pwa/src/lib/offline/work-order-queue.ts:121",
+        "artifacts/personeel-pwa/src/lib/offline/work-order-queue.ts:206",
+        "artifacts/personeel-pwa/src/lib/offline/work-order-queue.ts:217"
+      ],
+      "risk": "Queued private data can be replayed or remain visible after logout, login, host switch, or shared-device use.",
+      "missingEvidence": ["browser/E2E", "server-action runtime"],
+      "recommendedChange": "Scope queue keys and records by tenantId, personnelId, and user/session; refuse replay if identity changes."
+    },
+    {
+      "id": "PPWA-GAP-011",
+      "severity": "high",
+      "area": "offline-idempotency",
+      "title": "Duplicate offline replay is not consistently idempotent",
+      "currentBehavior": "Replay locking is tab-local. Extra work, report notes, and inventory movements can duplicate, while material usage has stronger clientMutationId handling.",
+      "evidence": [
+        "artifacts/personeel-pwa/src/components/PersonnelRealtimeOfflineProvider.tsx:121",
+        "artifacts/personeel-pwa/src/components/PersonnelRealtimeOfflineProvider.tsx:150",
+        "artifacts/personeel-pwa/src/actions/extra-work.ts:231",
+        "artifacts/personeel-pwa/src/actions/reports.ts:558",
+        "artifacts/personeel-pwa/src/actions/inventory.ts:272",
+        "artifacts/personeel-pwa/src/actions/materials.ts:166",
+        "lib/db/migrations/068_assignment_material_usage_client_mutation.sql:8"
+      ],
+      "risk": "Two tabs or retry-after-timeout can duplicate extra work, notes, and inventory ledger rows.",
+      "missingEvidence": ["browser/E2E", "database integration", "concurrency test"],
+      "recommendedChange": "Add durable mutation IDs, DB unique constraints, and a cross-tab queue lock."
+    },
+    {
+      "id": "PPWA-GAP-012",
+      "severity": "medium",
+      "area": "notifications-tickets",
+      "title": "Notification links are sanitized but not recipient-access validated",
+      "currentBehavior": "Notification hrefs are constrained to local prefixes, but assignment/ticket access is not validated before display or click.",
+      "evidence": [
+        "lib/db/src/portal-routes.ts:127",
+        "lib/db/src/portal-routes.ts:178",
+        "artifacts/personeel-pwa/src/actions/notifications.ts:48",
+        "lib/db/src/events.ts:197"
+      ],
+      "risk": "Stale or wrongly generated notification links can send users to inaccessible records.",
+      "missingEvidence": ["server-action runtime", "browser/E2E"],
+      "recommendedChange": "Validate target access or fall back to the inbox/messages route for inaccessible targets."
+    },
+    {
+      "id": "PPWA-GAP-013",
+      "severity": "medium",
+      "area": "push",
+      "title": "Service-worker notification click allows absolute HTTP(S) hrefs",
+      "currentBehavior": "The service worker preserves absolute HTTP(S) targets and opens them on notification click.",
+      "evidence": [
+        "artifacts/personeel-pwa/public/sw.js:199",
+        "artifacts/personeel-pwa/public/sw.js:272"
+      ],
+      "risk": "Malformed or compromised push payloads can navigate outside the app.",
+      "missingEvidence": ["browser/E2E", "push provider evidence"],
+      "recommendedChange": "Reject external absolute hrefs in the service worker, matching foreground toast behavior."
+    },
+    {
+      "id": "PPWA-GAP-014",
+      "severity": "medium",
+      "area": "media",
+      "title": "Upload-first DB-registration flows can orphan media",
+      "currentBehavior": "Client uploads files first and then records DB rows; DB failure can leave unattached storage objects.",
+      "evidence": [
+        "artifacts/personeel-pwa/src/actions/reports.ts:596",
+        "artifacts/personeel-pwa/src/actions/reports.ts:670",
+        "artifacts/personeel-pwa/src/actions/extra-work.ts:477"
+      ],
+      "risk": "Storage can accumulate inaccessible or unaudited files after partial failures.",
+      "missingEvidence": ["Storage runtime", "database integration"],
+      "recommendedChange": "Add pending-upload registry, server-side cleanup, or compensating cleanup jobs."
+    },
+    {
+      "id": "PPWA-GAP-015",
+      "severity": "medium",
+      "area": "notification-delivery",
+      "title": "Notification queue idempotency support is not used by event enqueue",
+      "currentBehavior": "Queue tables have idempotency support, but emitDomainEvent inserts without meaningful idempotency keys.",
+      "evidence": [
+        "lib/db/migrations/042_notification_worker_queue.sql:90",
+        "artifacts/api-server/src/lib/notification-worker.ts:224",
+        "lib/db/src/events.ts:160",
+        "lib/db/src/events.ts:226"
+      ],
+      "risk": "Retried domain event emission can duplicate in-app notifications and push/email queue rows.",
+      "missingEvidence": ["database integration", "worker runtime"],
+      "recommendedChange": "Set deterministic idempotency keys for domain events and notification delivery rows."
+    }
+  ]
+}
