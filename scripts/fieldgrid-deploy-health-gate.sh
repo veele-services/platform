@@ -76,9 +76,9 @@ sanitize_url() {
 }
 
 record_check() {
-  name="$1"
-  status="$2"
-  detail="$3"
+  local name="$1"
+  local status="$2"
+  local detail="$3"
   printf '{"name":"%s","status":"%s","detail":"%s"}\n' \
     "$(json_escape "$name")" \
     "$(json_escape "$status")" \
@@ -150,17 +150,18 @@ split_words() {
 }
 
 append_endpoint() {
-  name="$1"
-  url="$2"
-  mode="$3"
+  local name="$1"
+  local url="$2"
+  local mode="$3"
   if [ -n "$url" ]; then
     printf '%s|%s|%s\n' "$name" "$url" "$mode"
   fi
 }
 
 with_path() {
-  base="$1"
-  path="$2"
+  local base="$1"
+  local path="$2"
+  local trimmed
   trimmed="$(printf '%s' "$base" | sed 's#/*$##')"
   printf '%s%s' "$trimmed" "$path"
 }
@@ -237,7 +238,7 @@ default_public_endpoints() {
 }
 
 retry() {
-  attempt=1
+  local attempt=1
   while [ "$attempt" -le "$ATTEMPTS" ]; do
     if "$@"; then
       return 0
@@ -263,8 +264,9 @@ service_is_active() {
 }
 
 check_services() {
-  count=0
-  failed=0
+  local count=0
+  local failed=0
+  local service
   for service in $(default_services); do
     [ -n "$service" ] || continue
     count=$((count + 1))
@@ -286,13 +288,14 @@ check_services() {
 }
 
 port_is_listening() {
-  port="$1"
+  local port="$1"
   "$SS_BIN" -ltn 2>/dev/null | grep -Eq "[:.]${port}[[:space:]]"
 }
 
 check_ports() {
-  count=0
-  failed=0
+  local count=0
+  local failed=0
+  local port
   for port in $(default_ports); do
     [ -n "$port" ] || continue
     count=$((count + 1))
@@ -318,7 +321,11 @@ http_status() {
 }
 
 endpoint_is_healthy() {
-  spec="$1"
+  local spec="$1"
+  local name
+  local url
+  local mode
+  local status
   name="$(printf '%s' "$spec" | awk -F'|' '{ print $1 }')"
   url="$(printf '%s' "$spec" | awk -F'|' '{ print $2 }')"
   mode="$(printf '%s' "$spec" | awk -F'|' '{ print $3 }')"
@@ -339,11 +346,13 @@ endpoint_is_healthy() {
 }
 
 check_endpoint_group() {
-  group_name="$1"
-  specs="$2"
-  required_count="$3"
-  count_mode="${4:-minimum}"
-  failed=0
+  local group_name="$1"
+  local specs="$2"
+  local required_count="$3"
+  local count_mode="${4:-minimum}"
+  local failed=0
+  local rc
+  local count
 
   set +e
   printf '%s\n' "$specs" | while IFS= read -r spec; do
@@ -383,7 +392,10 @@ check_endpoint_group() {
 }
 
 verify_release_metadata() {
-  failed=0
+  local failed=0
+  local current_target
+  local sha_file
+  local actual_sha
 
   if [ ! -L "$BASE_DIR/current" ]; then
     record_check "symlink:current" "fail" "current is not a symlink"
@@ -424,7 +436,7 @@ verify_release_metadata() {
 }
 
 run_health_checks() {
-  failed=0
+  local failed=0
   verify_release_metadata || failed=1
   check_services || failed=1
   check_ports || failed=1
@@ -435,6 +447,7 @@ run_health_checks() {
 }
 
 restart_services_and_reload_caddy() {
+  local service
   for service in $(default_services); do
     [ -n "$service" ] || continue
     run_systemctl restart "$service"
@@ -443,6 +456,9 @@ restart_services_and_reload_caddy() {
 }
 
 rollback() {
+  local current_before_rollback
+  local temp_link
+  local saved_release
   if [ -z "$PREVIOUS_RELEASE" ]; then
     record_check "rollback:previous-release" "fail" "no previous release was recorded"
     write_evidence "fail" "health gate failed and no previous release was available" "unavailable"
@@ -558,6 +574,8 @@ if [ "$ROLLBACK_ON_FAILURE" = "1" ]; then
   else
     echo "fieldgrid-deploy-health-gate: release failed; rollback failed or unavailable" >&2
   fi
+else
+  write_evidence "fail" "release health gate failed" "not-requested"
 fi
 
 exit 1
