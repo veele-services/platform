@@ -29,6 +29,15 @@ function extractTenantDomainFixtureLiterals(source) {
   return { type, verificationStatus, verificationMethod, tlsStatus };
 }
 
+function extractCustomerUserFixtureLiterals(source) {
+  const valuesMatch = source.match(
+    /customer@tenant-a\.runtime\.fieldgrid\.test',\s*'([^']+)',\s*'([^']+)'/iu,
+  );
+  assert.ok(valuesMatch, "runtime fixture should insert explicit customer_users literals");
+  const [, role, status] = valuesMatch;
+  return { role, status };
+}
+
 test("runtime tenant domain fixtures use schema-valid check constraint values", () => {
   const migration055 = readRepoFile("lib/db/migrations/055_tenant_domains.sql");
   const migration073 = readRepoFile("lib/db/migrations/073_platform_custom_domains.sql");
@@ -50,4 +59,16 @@ test("runtime tenant domain fixtures use schema-valid check constraint values", 
     `tenant_domains.verification_method fixture value is invalid: ${fixture.verificationMethod}`,
   );
   assert.ok(tlsStatusValues.has(fixture.tlsStatus), `tenant_domains.tls_status fixture value is invalid: ${fixture.tlsStatus}`);
+});
+
+test("runtime customer user fixtures use schema-valid check constraint values", () => {
+  const migration037 = readRepoFile("lib/db/migrations/037_tenant_customer_users_events_hardening.sql");
+  const fixtureSource = readRepoFile("scripts/fieldgrid-runtime-safety-fixtures.mjs");
+  const fixture = extractCustomerUserFixtureLiterals(fixtureSource);
+
+  const roleValues = extractAllowedValues(migration037, "customer_users_role_check");
+  const statusValues = extractAllowedValues(migration037, "customer_users_status_check");
+
+  assert.ok(roleValues.has(fixture.role), `customer_users.role fixture value is invalid: ${fixture.role}`);
+  assert.ok(statusValues.has(fixture.status), `customer_users.status fixture value is invalid: ${fixture.status}`);
 });

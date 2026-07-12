@@ -308,8 +308,8 @@ async function insertBusinessRows(client) {
       `
         insert into customer_users (tenant_id, customer_id, user_id, email, role, status, invite_sent_at)
         values
-          ($1, $2, $3, 'customer@tenant-a.runtime.fieldgrid.test', 'owner', 'active', now()),
-          ($4, $5, $6, 'customer@tenant-b.runtime.fieldgrid.test', 'owner', 'active', now())
+          ($1, $2, $3, 'customer@tenant-a.runtime.fieldgrid.test', 'primary', 'active', now()),
+          ($4, $5, $6, 'customer@tenant-b.runtime.fieldgrid.test', 'primary', 'active', now())
         on conflict do nothing
       `,
       [
