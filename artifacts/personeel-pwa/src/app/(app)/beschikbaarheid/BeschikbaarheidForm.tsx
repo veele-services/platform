@@ -226,7 +226,11 @@ export function BeschikbaarheidForm({
     setEditorOpen(true);
   }
 
-  function applyLocalEntries(savedDates: string[], values: EditorState) {
+  function applyLocalEntries(
+    savedDates: string[],
+    values: EditorState,
+    updatedAt: string,
+  ) {
     setEntries((current) => {
       const next = new Map(current.map((entry) => [entry.date, entry]));
       for (const date of savedDates) {
@@ -239,6 +243,7 @@ export function BeschikbaarheidForm({
           isEmergencyAvailable: values.isEmergencyAvailable,
           repeatType: values.repeatType,
           repeatGroupId: existing?.repeatGroupId ?? null,
+          updatedAt,
         });
       }
       return [...next.values()].sort((a, b) => a.date.localeCompare(b.date));
@@ -257,6 +262,7 @@ export function BeschikbaarheidForm({
         endTime: values.endTime,
         repeatType: values.repeatType,
         isEmergencyAvailable: values.isEmergencyAvailable,
+        expectedUpdatedAt: selectedEntry?.updatedAt ?? null,
       });
 
       if (!result.success) {
@@ -269,7 +275,11 @@ export function BeschikbaarheidForm({
         values.repeatType,
         data.maxDate,
       );
-      applyLocalEntries(savedDates, values);
+      applyLocalEntries(
+        savedDates,
+        values,
+        result.updatedAt ?? new Date().toISOString(),
+      );
       setFeedback(
         savedDates.length > 1
           ? `${savedDates.length} dagen bijgewerkt`
@@ -284,7 +294,9 @@ export function BeschikbaarheidForm({
     setFeedback(null);
     setError(null);
     startTransition(async () => {
-      const result = await deleteAvailabilityDay(selectedDate);
+      const result = await deleteAvailabilityDay(selectedDate, {
+        expectedUpdatedAt: selectedEntry?.updatedAt ?? null,
+      });
       if (!result.success) {
         setError(result.error ?? "Verwijderen mislukt");
         return;
