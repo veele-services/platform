@@ -1,0 +1,133 @@
+{
+  "audit": {
+    "title": "Customer PWA functional audit",
+    "date": "2026-07-12",
+    "taskType": "audit-only",
+    "evidenceLayer": "static source inspection plus executable source-contract tests",
+    "runtimeEvidenceUsed": false,
+    "canonicalBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576"
+  },
+  "gaps": [
+    {
+      "id": "CPWA-AUTH-001",
+      "severity": "high",
+      "area": "authentication",
+      "title": "Wrong-host login creates a valid session before tenant/customer rejection",
+      "currentBehavior": "Login accepts global Supabase credentials; customer tenant binding happens later via getMyCustomerIdentity.",
+      "risk": "A valid user can hold a confusing session on a tenant host where they have no customer link.",
+      "evidence": ["artifacts/klant-pwa/src/app/(auth)/login/LoginForm.tsx", "artifacts/klant-pwa/src/middleware.ts", "artifacts/klant-pwa/src/actions/customer.ts"],
+      "recommendedChange": "Define and enforce a host-bound login contract before or immediately after session creation.",
+      "missingTests": ["API or browser runtime test for valid credentials on the wrong tenant host", "API or browser runtime test for valid cookie on the wrong tenant host"]
+    },
+    {
+      "id": "CPWA-AUTH-002",
+      "severity": "high",
+      "area": "customer identity",
+      "title": "Multiple customer_users rows for one auth user are resolved by first row",
+      "currentBehavior": "Identity query uses .limit(1) without ordering, selection, or ambiguity failure.",
+      "risk": "A customer user linked to more than one customer in the same tenant can receive arbitrary customer context.",
+      "evidence": ["artifacts/klant-pwa/src/actions/customer.ts", "lib/db/src/schema/customer-users.ts", "lib/db/migrations/037_tenant_customer_users_events_hardening.sql"],
+      "recommendedChange": "Choose one supported product model: unique active customer context per auth user per tenant, or explicit customer context selection.",
+      "missingTests": ["Static and database integration test for same auth user linked to two customers in one tenant", "Runtime test for duplicate unclaimed invite claim behavior"]
+    },
+    {
+      "id": "CPWA-MODULE-001",
+      "severity": "high",
+      "area": "module gates",
+      "title": "Feature module-off behavior is UI-only for several customer PWA surfaces",
+      "currentBehavior": "customer_portal is server-gated, but finance, documents, reporting, quotes, payments, and PDFs are not consistently gated in server actions/routes.",
+      "risk": "Direct URLs or server actions can expose data while a feature module is disabled.",
+      "evidence": ["artifacts/klant-pwa/src/lib/auth/tenant.ts", "artifacts/klant-pwa/src/app/(app)/meer/page.tsx", "artifacts/klant-pwa/src/actions/invoices.ts", "artifacts/klant-pwa/src/actions/payments.ts", "artifacts/klant-pwa/src/actions/reports.ts", "artifacts/klant-pwa/src/actions/quotes.ts", "artifacts/klant-pwa/src/actions/documents.ts"],
+      "recommendedChange": "Require module entitlements server-side for every feature action, API route, and page loader.",
+      "missingTests": ["Contract and runtime tests for disabled finance, reporting, documents, notifications, help, and releases modules", "Direct route and server-action denial tests"]
+    },
+    {
+      "id": "CPWA-ASSIGN-001",
+      "severity": "high",
+      "area": "assignments",
+      "title": "Backoffice assignment mutations can create object/customer mismatches",
+      "currentBehavior": "Customer assignment requests validate object/customer/tenant, but backoffice assignment create/update paths need equivalent object/customer/tenant consistency checks.",
+      "risk": "A stale or forged backoffice form can attach an assignment to an object from another customer or tenant.",
+      "evidence": ["artifacts/klant-pwa/src/actions/assignments.ts", "artifacts/backoffice/src/app/actions/assignments.ts", "lib/db/src/schema/assignments.ts"],
+      "recommendedChange": "Reject object/customer/tenant mismatches at the backoffice mutation boundary and consider database constraints.",
+      "missingTests": ["Server-action runtime test for cross-customer object id in assignment create/update", "Database integration test for assignment object/customer/tenant consistency"]
+    },
+    {
+      "id": "CPWA-QUOTE-001",
+      "severity": "medium",
+      "area": "quotes",
+      "title": "Quote approval sets assignment to plannable, not scheduled",
+      "currentBehavior": "approveQuote updates the quote to approved and the assignment to plannable.",
+      "risk": "Customer-facing status can be misleading if product expects scheduled immediately after approval.",
+      "evidence": ["artifacts/klant-pwa/src/actions/assignments.ts", "lib/db/src/schema/assignments.ts", "artifacts/klant-pwa/src/types/assignments.ts"],
+      "recommendedChange": "Clarify product contract, then either document plannable as correct or change the workflow in a future implementation PR.",
+      "missingTests": ["Lifecycle test for quote sent, approve, expected next assignment status, schedule, and customer status display"]
+    },
+    {
+      "id": "CPWA-PAY-001",
+      "severity": "high",
+      "area": "payments",
+      "title": "Payment initiation lacks finance/payment-settings enforcement and server-side idempotency",
+      "currentBehavior": "Customer payment actions check invoice ownership and status, then create Mollie payments without finance module or tenant payment-setting checks.",
+      "risk": "Disabled payment features can still create provider payments; duplicate clicks can create duplicate provider payments.",
+      "evidence": ["artifacts/klant-pwa/src/actions/payments.ts", "artifacts/klant-pwa/src/components/PaymentActionButton.tsx", "lib/db/src/schema/customer-payment-batches.ts"],
+      "recommendedChange": "Check finance entitlement, tenant payment settings, and introduce provider/local idempotency before creating Mollie payments.",
+      "missingTests": ["Runtime test for finance module disabled", "Runtime test for Mollie disabled", "Concurrent duplicate-click/payment idempotency test"]
+    },
+    {
+      "id": "CPWA-PAY-002",
+      "severity": "high",
+      "area": "payments",
+      "title": "Batch payment local persistence may fail after provider checkout creation",
+      "currentBehavior": "Batch payments insert a payment row with invoice_id null; older tenant trigger resolves tenant from invoice_id.",
+      "risk": "A provider checkout can be created before local payment persistence fails, creating an orphan provider payment.",
+      "evidence": ["artifacts/klant-pwa/src/actions/payments.ts", "lib/db/migrations/063_payments_batches_audit_tenant_scope.sql", "lib/db/migrations/20260710200000_invoice_canon_credit_collection_payments.sql"],
+      "recommendedChange": "Update batch-payment trigger compatibility in a future migration and make provider creation recoverable.",
+      "missingTests": ["Database integration test for invoice_collection payment with invoice_id null", "Provider orphan recovery test"]
+    },
+    {
+      "id": "CPWA-PAY-003",
+      "severity": "high",
+      "area": "webhooks",
+      "title": "Webhook reconciliation trusts local Mollie id without metadata tenant/customer comparison",
+      "currentBehavior": "Webhook refetches Mollie status, then updates local records by molliePaymentId; unsigned calls are accepted if webhook secret is absent.",
+      "risk": "Provider metadata mismatch and orphan payment cases are not durable recovery events.",
+      "evidence": ["artifacts/api-server/src/routes/webhooks.ts"],
+      "recommendedChange": "Require webhook verification outside local dev, compare provider metadata to local tenant/customer/invoice, and persist orphan reconciliation events.",
+      "missingTests": ["API runtime test for metadata mismatch", "API runtime test for orphan provider payment", "Signature-required test for production-like configuration"]
+    },
+    {
+      "id": "CPWA-TICKET-001",
+      "severity": "medium",
+      "area": "tickets",
+      "title": "Customer-origin ticket events do not name recipients and are not audited",
+      "currentBehavior": "Ticket create/reply are tenant/customer scoped but emit management events with no recipients and audit false.",
+      "risk": "Backoffice may not receive reliable in-app/email/push notification and ticket activity is less auditable.",
+      "evidence": ["artifacts/klant-pwa/src/actions/tickets.ts", "lib/db/src/events.ts", "artifacts/backoffice/src/app/actions/tickets.ts"],
+      "recommendedChange": "Define management recipients for customer-origin ticket events and audit ticket create/reply/close/reopen.",
+      "missingTests": ["Notification queue/runtime test for customer-created ticket", "Audit contract test for ticket actions"]
+    },
+    {
+      "id": "CPWA-NOTIFY-001",
+      "severity": "medium",
+      "area": "notifications",
+      "title": "Customer notification preferences are saved but not consumed by emitDomainEvent",
+      "currentBehavior": "Preferences are stored in customer_portal_preferences, while emitDomainEvent queues based on event settings and recipient contact data.",
+      "risk": "Customer opt-outs may not affect operational email or push delivery.",
+      "evidence": ["artifacts/klant-pwa/src/actions/preferences.ts", "lib/db/src/schema/customer-portal-preferences.ts", "lib/db/src/events.ts"],
+      "recommendedChange": "Either document preferences as UI-only or enforce them in the central notification emitter.",
+      "missingTests": ["Notification delivery contract for opted-out customer preferences", "Audit contract for preference changes"]
+    },
+    {
+      "id": "CPWA-MEDIA-001",
+      "severity": "medium",
+      "area": "photos and reports",
+      "title": "Approved media/report visibility relies on parent-scope contracts and static tests",
+      "currentBehavior": "Customer assignment detail signs only approved photos and reports only approved report content, but runtime Storage/RLS proof is absent.",
+      "risk": "Future child routes could bypass parent authorization; report content may contain internal prose if review process is not explicit.",
+      "evidence": ["artifacts/klant-pwa/src/actions/assignments.ts", "artifacts/klant-pwa/src/actions/reports.ts", "lib/db/src/storage-paths.ts", "docs/customer-visibility-audit-v1.md"],
+      "recommendedChange": "Add runtime Storage/RLS tests and consider a separate customer-visible report summary field.",
+      "missingTests": ["Storage runtime test for unapproved and cross-tenant photo paths", "Report approval/browser test for customer-visible content only"]
+    }
+  ]
+}
