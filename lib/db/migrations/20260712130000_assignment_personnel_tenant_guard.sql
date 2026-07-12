@@ -171,6 +171,7 @@ CREATE POLICY assignment_personnel_own_select
     )
   );
 
+GRANT SELECT ON public.assignments, public.personnel TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.assignment_personnel TO authenticated;
 GRANT EXECUTE ON FUNCTION public.assignment_personnel_tenant_match(uuid, uuid) TO authenticated, service_role;
 GRANT EXECUTE ON FUNCTION public.can_manage_assignment_personnel(uuid, uuid) TO authenticated;

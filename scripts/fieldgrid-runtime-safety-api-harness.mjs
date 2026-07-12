@@ -116,14 +116,14 @@ async function runApiChecks() {
   assertStatus(checks, "server-action-api-health-contract", health.status, 200);
 
   const noAuth = await request(`/api/customers/${FIXTURE.customers.a}`, {
-    headers: { host: "fieldgrid.nl" },
+    headers: { "x-forwarded-host": "fieldgrid.nl" },
   });
   assertStatus(checks, "server-action-api-no-auth-denied", noAuth.status, 401);
 
   const unknownHost = await request(`/api/customers/${FIXTURE.customers.a}`, {
     headers: {
       authorization: `Bearer ${tenantAToken}`,
-      host: "unknown.runtime.fieldgrid.nl",
+      "x-forwarded-host": "unknown.runtime.fieldgrid.nl",
     },
   });
   assertStatus(checks, "server-action-api-unknown-host-denied", unknownHost.status, 404);
@@ -131,7 +131,7 @@ async function runApiChecks() {
   const crossTenant = await request(`/api/customers/${FIXTURE.customers.b}`, {
     headers: {
       authorization: `Bearer ${tenantAToken}`,
-      host: "fieldgrid.nl",
+      "x-forwarded-host": "fieldgrid.nl",
       "x-fieldgrid-tenant-id": FIXTURE.tenants.b,
     },
   });
@@ -140,7 +140,7 @@ async function runApiChecks() {
   const suspended = await request(`/api/customers/${FIXTURE.customers.a}`, {
     headers: {
       authorization: `Bearer ${suspendedToken}`,
-      host: "fieldgrid.nl",
+      "x-forwarded-host": "fieldgrid.nl",
       "x-fieldgrid-tenant-id": FIXTURE.tenants.suspended,
     },
   });
@@ -149,7 +149,7 @@ async function runApiChecks() {
   const moduleOff = await request(`/api/customers/${FIXTURE.customers.a}`, {
     headers: {
       authorization: `Bearer ${moduleOffToken}`,
-      host: "fieldgrid.nl",
+      "x-forwarded-host": "fieldgrid.nl",
       "x-fieldgrid-tenant-id": FIXTURE.tenants.moduleOff,
     },
   });
@@ -158,7 +158,7 @@ async function runApiChecks() {
   const validTenantA = await request(`/api/customers/${FIXTURE.customers.a}`, {
     headers: {
       authorization: `Bearer ${tenantAToken}`,
-      host: "fieldgrid.nl",
+      "x-forwarded-host": "fieldgrid.nl",
       "x-fieldgrid-tenant-id": FIXTURE.tenants.a,
     },
   });
