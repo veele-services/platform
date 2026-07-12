@@ -448,11 +448,13 @@ run_health_checks() {
 
 restart_services_and_reload_caddy() {
   local service
+  local failed=0
   for service in $(default_services); do
     [ -n "$service" ] || continue
-    run_systemctl restart "$service"
+    run_systemctl restart "$service" || failed=1
   done
-  run_systemctl reload caddy
+  run_systemctl reload caddy || failed=1
+  return "$failed"
 }
 
 rollback() {
