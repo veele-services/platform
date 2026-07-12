@@ -1,0 +1,1122 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-07-13",
+  "scope": "documentation/evidence only",
+  "statusPolicy": "No item is fixed by static source evidence alone; every canonical item remains status=open until runtime acceptance tests pass in the required layer.",
+  "base": {
+    "selectedStartBranch": "main",
+    "originalTaskHead": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
+    "originMainSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
+    "mergeBase": "f36e84dad5d1c595e4dd349ff5ce6bd439722576"
+  },
+  "canonicalCategories": [
+    "P0 security",
+    "P0 data/finance",
+    "P1 reliability",
+    "P1 product contract",
+    "P2 hardening"
+  ],
+  "sourcePrs": [
+    {
+      "pr": 279,
+      "title": "Documentation-only: Fieldgrid cross-surface functional flow map",
+      "url": "https://github.com/veele-services/platform/pull/279",
+      "sourceFiles": [
+        "docs/readiness/fieldgrid-functional-gap-register.json",
+        "docs/readiness/fieldgrid-cross-surface-dependency-plan.md"
+      ],
+      "runtimeEvidence": false,
+      "sourceGapIds": [
+        "FG-FLOW-PLATFORM-001",
+        "FG-FLOW-PLATFORM-002",
+        "FG-FLOW-PLATFORM-003",
+        "FG-FLOW-PLATFORM-004",
+        "FG-FLOW-BACKOFFICE-001",
+        "FG-FLOW-BACKOFFICE-002",
+        "FG-FLOW-BACKOFFICE-003",
+        "FG-FLOW-BACKOFFICE-004",
+        "FG-FLOW-PERSONNEL-001",
+        "FG-FLOW-PERSONNEL-002",
+        "FG-FLOW-PERSONNEL-003",
+        "FG-FLOW-PERSONNEL-004",
+        "FG-FLOW-CUSTOMER-001",
+        "FG-FLOW-CUSTOMER-002",
+        "FG-FLOW-CUSTOMER-003",
+        "FG-FLOW-CUSTOMER-004",
+        "FG-FLOW-CROSS-001",
+        "FG-FLOW-CROSS-002",
+        "FG-FLOW-CROSS-003",
+        "FG-FLOW-CROSS-004",
+        "FG-FLOW-PLATFORM-005",
+        "FG-FLOW-PLATFORM-006",
+        "FG-FLOW-BACKOFFICE-005",
+        "FG-FLOW-BACKOFFICE-006",
+        "FG-FLOW-PERSONNEL-005",
+        "FG-FLOW-CUSTOMER-005",
+        "FG-FLOW-CUSTOMER-006",
+        "FG-FLOW-CROSS-005",
+        "FG-FLOW-CROSS-006"
+      ]
+    },
+    {
+      "pr": 281,
+      "title": "documentation-only: Record auth provider boundary decision",
+      "url": "https://github.com/veele-services/platform/pull/281",
+      "sourceFiles": [
+        "docs/architecture/adr-auth-provider-boundary.md",
+        "docs/architecture/auth-provider-dependency-inventory.json",
+        "docs/architecture/auth-provider-migration-plan.md"
+      ],
+      "runtimeEvidence": false,
+      "sourceGapIds": [
+        "AUTH-ADR-OPTION-A",
+        "auth-users",
+        "supabase-admin-api",
+        "get-user-session-helpers",
+        "jwt-validation",
+        "cookies",
+        "rls-auth-uid",
+        "storage-policies",
+        "user-and-app-metadata",
+        "invites",
+        "platform-users",
+        "tenant-users",
+        "personnel-user-id",
+        "customer-users-user-id",
+        "api-client-react-token",
+        "mfa"
+      ]
+    },
+    {
+      "pr": 282,
+      "title": "audit: platform administration functional readiness",
+      "url": "https://github.com/veele-services/platform/pull/282",
+      "sourceFiles": [
+        "docs/readiness/platform-functional-gap-register.json",
+        "docs/readiness/platform-functional-audit.md",
+        "tests/security/platform-functional-contracts.test.mjs"
+      ],
+      "runtimeEvidence": false,
+      "sourceGapIds": [
+        "PF-001",
+        "PF-002",
+        "PF-003",
+        "PF-004",
+        "PF-005",
+        "PF-006",
+        "PF-007",
+        "PF-008",
+        "PF-009",
+        "PF-010",
+        "PF-011",
+        "PF-012",
+        "PF-013",
+        "PF-014",
+        "PF-015",
+        "PF-016",
+        "PF-017",
+        "PF-018",
+        "PF-019",
+        "PF-020",
+        "PF-021",
+        "PF-022"
+      ]
+    },
+    {
+      "pr": 283,
+      "title": "audit: customer PWA functional contracts",
+      "url": "https://github.com/veele-services/platform/pull/283",
+      "sourceFiles": [
+        "docs/readiness/customer-pwa-gap-register.json",
+        "docs/readiness/customer-pwa-functional-audit.md",
+        "tests/security/customer-pwa-functional-contracts.test.mjs"
+      ],
+      "runtimeEvidence": false,
+      "sourceGapIds": [
+        "CPWA-AUTH-001",
+        "CPWA-AUTH-002",
+        "CPWA-MODULE-001",
+        "CPWA-ASSIGN-001",
+        "CPWA-QUOTE-001",
+        "CPWA-PAY-001",
+        "CPWA-PAY-002",
+        "CPWA-PAY-003",
+        "CPWA-TICKET-001",
+        "CPWA-NOTIFY-001",
+        "CPWA-MEDIA-001"
+      ]
+    },
+    {
+      "pr": 285,
+      "title": "audit: tenant backoffice functional audit contracts",
+      "url": "https://github.com/veele-services/platform/pull/285",
+      "sourceFiles": [
+        "docs/readiness/backoffice-functional-gap-register.json",
+        "docs/readiness/backoffice-functional-audit.md",
+        "tests/security/backoffice-functional-contracts.test.mjs"
+      ],
+      "runtimeEvidence": false,
+      "sourceGapIds": [
+        "BFA-P0-001",
+        "BFA-P0-002",
+        "BFA-P0-003",
+        "BFA-P0-004",
+        "BFA-P0-005",
+        "BFA-P1-006",
+        "BFA-P1-007",
+        "BFA-P1-008",
+        "BFA-P1-009",
+        "BFA-P1-010",
+        "BFA-P1-011",
+        "BFA-P1-012",
+        "BFA-P1-013",
+        "BFA-P1-014",
+        "BFA-P1-015",
+        "BFA-P1-016",
+        "BFA-P1-017",
+        "BFA-P1-018",
+        "BFA-P1-019",
+        "BFA-P1-020",
+        "BFA-P1-021",
+        "BFA-P1-022",
+        "BFA-P1-023",
+        "BFA-P1-024",
+        "BFA-P2-025",
+        "BFA-P2-026",
+        "BFA-P2-027"
+      ]
+    },
+    {
+      "pr": 287,
+      "title": "audit: personnel PWA functional workflow readiness",
+      "url": "https://github.com/veele-services/platform/pull/287",
+      "sourceFiles": [
+        "docs/readiness/personnel-pwa-gap-register.json",
+        "docs/readiness/personnel-pwa-functional-audit.md",
+        "tests/security/personnel-pwa-functional-contracts.test.mjs"
+      ],
+      "runtimeEvidence": false,
+      "sourceGapIds": [
+        "PPWA-GAP-001",
+        "PPWA-GAP-002",
+        "PPWA-GAP-003",
+        "PPWA-GAP-004",
+        "PPWA-GAP-005",
+        "PPWA-GAP-006",
+        "PPWA-GAP-007",
+        "PPWA-GAP-008",
+        "PPWA-GAP-009",
+        "PPWA-GAP-010",
+        "PPWA-GAP-011",
+        "PPWA-GAP-012",
+        "PPWA-GAP-013",
+        "PPWA-GAP-014",
+        "PPWA-GAP-015"
+      ]
+    },
+    {
+      "pr": 288,
+      "title": "Reproduction-only: assignment P0 evidence",
+      "url": "https://github.com/veele-services/platform/pull/288",
+      "sourceFiles": [
+        "security/repros/assignments/source-evidence.mjs",
+        "security/repros/assignments/reproduction-matrix.mjs",
+        "docs/security/assignment-p0-reproduction.md"
+      ],
+      "runtimeEvidence": false,
+      "sourceGapIds": [
+        "P0-A",
+        "P0-B",
+        "P0-C",
+        "P0-D",
+        "P0-A-allowAny-status-override",
+        "P0-A-generic-edit-status-payload",
+        "P0-A-assignment-form-all-statuses",
+        "P0-A-status-stepper-all-statuses",
+        "P0-A-normal-status-action-fixed-control",
+        "P0-B-removePersonnel",
+        "P0-B-approveDirectly",
+        "P0-B-deleteAssignment",
+        "P0-B-history-helpers",
+        "P0-B-reschedule",
+        "P0-B-reshift",
+        "P0-B-task-personnel-child-fixed-controls",
+        "P0-C-updateAssignment-capacity-side-effect",
+        "P0-D-planning-readiness",
+        "P0-D-recalculate-capacity-action",
+        "P0-D-interest-round-send",
+        "P0-D-interest-reminder",
+        "P0-D-interest-history",
+        "P0-D-capacity-defaults-latest",
+        "P0-D-mark-interest-candidate-fixed-control",
+        "P0-D-personnel-interest-actions-fixed-controls",
+        "P0-D-planning-board-stale-candidates-blocked"
+      ]
+    },
+    {
+      "pr": 290,
+      "title": "Reproduction-only: finance and async integrity audit pack",
+      "url": "https://github.com/veele-services/platform/pull/290",
+      "sourceFiles": [
+        "docs/finance/payment-integrity-threat-model.md",
+        "docs/finance/payment-inbox-ledger-design.md",
+        "docs/finance/async-worker-integrity-audit.md",
+        "tests/security/payment-integrity-reproduction.test.mjs",
+        "tests/security/worker-lifecycle-reproduction.test.mjs"
+      ],
+      "runtimeEvidence": false,
+      "sourceGapIds": [
+        "FIN-001",
+        "FIN-002",
+        "FIN-003",
+        "FIN-004",
+        "FIN-005",
+        "FIN-006",
+        "FIN-007",
+        "FIN-008",
+        "FIN-009",
+        "FIN-010",
+        "FIN-011",
+        "FIN-012",
+        "FIN-013",
+        "FIN-014",
+        "ASYNC-001",
+        "ASYNC-002",
+        "ASYNC-003",
+        "ASYNC-004",
+        "ASYNC-005",
+        "ASYNC-006",
+        "ASYNC-007",
+        "ASYNC-008",
+        "ASYNC-009"
+      ]
+    },
+    {
+      "pr": 292,
+      "title": "architecture-only: Task 15 team assignment execution model",
+      "url": "https://github.com/veele-services/platform/pull/292",
+      "sourceFiles": [
+        "docs/architecture/team-assignment-execution-model.md",
+        "docs/architecture/team-execution-migration-plan.md",
+        "tests/domain/team-assignment-execution-policy.test.mjs"
+      ],
+      "runtimeEvidence": false,
+      "sourceGapIds": [
+        "TEAM-EXECUTION-MODEL",
+        "TEAM-EXECUTION-MIGRATION-PLAN"
+      ]
+    }
+  ],
+  "candidateImplementationPrs": [
+    {
+      "pr": 278,
+      "title": "implementation: Add Fieldgrid runtime safety harness",
+      "status": "candidate implementation only; not treated as a solution"
+    },
+    {
+      "pr": 284,
+      "title": "implementation: repair interest poll selection scheduling",
+      "status": "candidate implementation only; not treated as a solution"
+    },
+    {
+      "pr": 286,
+      "title": "implementation: add credential challenge reset protocol",
+      "status": "candidate implementation only; not treated as a solution"
+    },
+    {
+      "pr": 289,
+      "title": "Make personnel availability persistence atomic and idempotent",
+      "status": "candidate implementation only; not treated as a solution"
+    },
+    {
+      "pr": 291,
+      "title": "Implementation: add staging post-deploy health gate and rollback",
+      "status": "candidate implementation only; not treated as a solution"
+    }
+  ],
+  "authDecision": {
+    "decision": "Fieldgrid owns invite/recovery/challenge/e-mail/tenant/host/audit/rate limit; no magic links; no mailed or temporary password before proof; Supabase may temporarily remain only the credential/session backend; full auth replacement is a separate program.",
+    "sourcePrs": [281, 282, 279],
+    "dependencies": [
+      "Runtime cookie/PKCE/cross-host proof",
+      "JWT issuer/audience/revocation policy",
+      "RLS and Storage proof for auth.uid dependent policies",
+      "Credential challenge state model and rate limits"
+    ]
+  },
+  "architectureDependencies": [
+    {
+      "id": "TEAM-EXECUTION",
+      "sourcePr": 292,
+      "status": "architecture dependency; not implemented behavior",
+      "summary": "Team assignments require participant-owned execution rows, versioned events, aggregate parent status projection, participant reports/signatures, and offline replay idempotency before team closeout can be called production-safe."
+    }
+  ],
+  "canonicalItems": [
+    {
+      "canonicalId": "FG-HARD-P0-SEC-001",
+      "title": "Fieldgrid-owned auth challenge and recovery boundary",
+      "severity": "P0 security",
+      "affectedSurfaces": ["backoffice auth", "platform admin", "tenant provisioning", "customer PWA", "personnel PWA", "Supabase Auth boundary"],
+      "sourcePrs": [279, 281, 282, 283],
+      "sourceEvidence": [
+        "PR #281 docs/architecture/adr-auth-provider-boundary.md:104",
+        "PR #282 docs/readiness/platform-functional-gap-register.json PF-001/PF-002/PF-005",
+        "PR #279 docs/readiness/fieldgrid-functional-gap-register.json FG-FLOW-PLATFORM-005/006"
+      ],
+      "currentProofLayer": ["static source guard"],
+      "runtimeEvidenceMissing": ["API/server-action runtime", "browser/Playwright E2E", "provider mock", "authenticated RLS"],
+      "dependencies": ["AUTH-DECISION", "tenant-host binding", "audit/rate-limit model"],
+      "recommendedImplementationPhase": "Phase 1 - security boundary",
+      "acceptanceTests": [
+        "Recovery completion fails without matching challenge context.",
+        "Invite activation never mails or stores a temporary password before proof.",
+        "Existing active accounts cannot be overwritten by privileged onboarding without verified linking.",
+        "Wrong-host and cross-tenant recovery attempts emit audit and denial events."
+      ],
+      "migrationImpact": "Possible additive credential_challenges, invite_challenges, rate-limit and audit tables; no destructive auth user rewrite.",
+      "rollback": "Disable new challenge issuance and keep Supabase credential/session backend; do not delete challenge/audit rows.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P0-SEC-002",
+      "title": "Host-bound identity, platform AAL and tenant profile resolution",
+      "severity": "P0 security",
+      "affectedSurfaces": ["platform admin", "customer PWA", "personnel PWA", "API JWT", "RLS helpers", "Storage policies"],
+      "sourcePrs": [281, 282, 283, 287],
+      "sourceEvidence": [
+        "PR #281 docs/architecture/auth-provider-dependency-inventory.json jwt-validation/cookies/rls-auth-uid/storage-policies",
+        "PR #282 PF-003/PF-004/PF-016",
+        "PR #283 CPWA-AUTH-001/002",
+        "PR #287 PPWA-GAP-003/004/008/009"
+      ],
+      "currentProofLayer": ["static source guard", "unit/domain"],
+      "runtimeEvidenceMissing": ["browser/Playwright E2E", "authenticated RLS", "Storage runtime", "API/server-action runtime"],
+      "dependencies": ["FG-HARD-P0-SEC-001"],
+      "recommendedImplementationPhase": "Phase 1 - security boundary",
+      "acceptanceTests": [
+        "Every portal action resolves identity through current host tenant.",
+        "Platform terminal guards enforce platform host and required AAL/MFA policy.",
+        "RLS helpers cannot authorize first-row personnel/customer matches across tenants.",
+        "API JWT validation enforces issuer/audience and tenant authorization separately."
+      ],
+      "migrationImpact": "Possible forward-only RLS helper replacement; no auth provider replacement in this phase.",
+      "rollback": "Keep old helper functions only as compatibility fallback until new RLS proof passes.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P0-SEC-003",
+      "title": "Assignment and planning cross-tenant IDOR closure",
+      "severity": "P0 security",
+      "affectedSurfaces": ["tenant backoffice", "planning", "assignment interest rounds", "capacity helpers", "personnel PWA"],
+      "sourcePrs": [279, 285, 288],
+      "sourceEvidence": [
+        "PR #279 FG-FLOW-BACKOFFICE-001",
+        "PR #285 BFA-P0-002",
+        "PR #288 P0-B/P0-C/P0-D reproduction rows"
+      ],
+      "currentProofLayer": ["static source guard"],
+      "runtimeEvidenceMissing": ["API/server-action runtime", "database integration", "authenticated RLS"],
+      "dependencies": ["tenant-bound parent lookup pattern"],
+      "recommendedImplementationPhase": "Phase 1 - security boundary",
+      "acceptanceTests": [
+        "Cross-tenant UUIDs are denied for assignment, round, history, capacity, reschedule, re-shift, approval and deletion paths.",
+        "Zero-parent-row updates cannot trigger tenantless recalculation or audit side effects.",
+        "Denials are audited without leaking resource existence."
+      ],
+      "migrationImpact": "No migration expected unless DB constraints are added for child ownership.",
+      "rollback": "Revert action-scope predicates; no data rollback expected.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P0-SEC-004",
+      "title": "Assignment status transition bypass removal",
+      "severity": "P0 security",
+      "affectedSurfaces": ["backoffice assignments", "customer assignment status", "personnel execution", "finance/report workflow"],
+      "sourcePrs": [279, 285, 288],
+      "sourceEvidence": [
+        "PR #279 FG-FLOW-BACKOFFICE-004",
+        "PR #285 BFA-P0-003",
+        "PR #288 P0-A reproduction rows"
+      ],
+      "currentProofLayer": ["static source guard"],
+      "runtimeEvidenceMissing": ["API/server-action runtime", "browser/Playwright E2E", "database integration"],
+      "dependencies": ["workflow transition service", "audit override policy"],
+      "recommendedImplementationPhase": "Phase 1 - security boundary",
+      "acceptanceTests": [
+        "Generic edit cannot set terminal or finance-sensitive status.",
+        "Every transition passes through a command with allowed previous state and side-effect matrix.",
+        "Privileged override requires explicit authority, reason and audit row."
+      ],
+      "migrationImpact": "No migration expected for command routing; possible audit reason columns later.",
+      "rollback": "Restore old UI/action routing only if no partial side-effect data was produced.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P0-SEC-005",
+      "title": "Tenant-bound document and media signed URL enforcement",
+      "severity": "P0 security",
+      "affectedSurfaces": ["customer documents", "personnel documents", "assignment photos", "reports", "Storage"],
+      "sourcePrs": [279, 283, 285, 287],
+      "sourceEvidence": [
+        "PR #279 FG-FLOW-CUSTOMER-005",
+        "PR #283 CPWA-MEDIA-001",
+        "PR #285 BFA-P0-005",
+        "PR #287 PPWA-GAP-009"
+      ],
+      "currentProofLayer": ["static source guard"],
+      "runtimeEvidenceMissing": ["Storage runtime", "API/server-action runtime", "authenticated RLS", "browser/Playwright E2E"],
+      "dependencies": ["canonical tenant storage path helper", "host-bound portal identity"],
+      "recommendedImplementationPhase": "Phase 1 - security boundary",
+      "acceptanceTests": [
+        "Corrupt current-tenant rows with foreign storage_path are denied before signing.",
+        "Personnel and customer document actions require tenant and module predicates.",
+        "Path guessing and cross-tenant object requests do not produce signed URLs."
+      ],
+      "migrationImpact": "Possible additive cleanup registry for legacy paths; no automatic object deletion.",
+      "rollback": "Keep legacy paths readable only through audited server-side compatibility branch.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P0-SEC-006",
+      "title": "Support, sensitive access and audit isolation",
+      "severity": "P0 security",
+      "affectedSurfaces": ["platform support", "sensitive access", "audit log", "platform tickets", "exports"],
+      "sourcePrs": [279, 282, 285],
+      "sourceEvidence": [
+        "PR #282 PF-019/PF-020/PF-021/PF-022",
+        "PR #279 FG-FLOW-BACKOFFICE-005/FG-FLOW-PLATFORM-001",
+        "PR #285 BFA-P1-008/BFA-P2-025"
+      ],
+      "currentProofLayer": ["static source guard"],
+      "runtimeEvidenceMissing": ["database integration", "authenticated RLS", "API/server-action runtime"],
+      "dependencies": ["active support grant model", "tenant-audit policy"],
+      "recommendedImplementationPhase": "Phase 1 - security boundary",
+      "acceptanceTests": [
+        "Sensitive access requests require active support grants.",
+        "Tenant audit log cannot show other tenant rows.",
+        "Request-route support decisions write audit rows.",
+        "Platform ticket child references belong to the selected tenant."
+      ],
+      "migrationImpact": "Forward-only RLS/revoke hardening for support grant tables may be required.",
+      "rollback": "Disable sensitive access creation if grant binding is inconclusive; preserve audit rows.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P1-PROD-001",
+      "title": "Tenant entitlement, RBAC, module and sector enforcement",
+      "severity": "P1 product contract",
+      "affectedSurfaces": ["platform admin", "tenant backoffice", "customer PWA", "personnel PWA", "tickets", "sectors", "roles"],
+      "sourcePrs": [279, 282, 283, 285],
+      "sourceEvidence": [
+        "PR #282 PF-011/PF-012/PF-013/PF-014",
+        "PR #285 BFA-P0-001/BFA-P1-012/BFA-P1-021",
+        "PR #283 CPWA-MODULE-001",
+        "PR #279 FG-FLOW-CROSS-003"
+      ],
+      "currentProofLayer": ["static source guard"],
+      "runtimeEvidenceMissing": ["API/server-action runtime", "database integration", "browser/Playwright E2E"],
+      "dependencies": ["canonical entitlement helper", "tenant RBAC table ownership"],
+      "recommendedImplementationPhase": "Phase 2 - product contracts",
+      "acceptanceTests": [
+        "Role management UI mutates tenant RBAC observed by runtime permission checks.",
+        "Module-off direct routes/actions are denied for documents, finance, tickets, reports and notifications.",
+        "Sector writes validate tenant allow-lists across customers, objects, personnel and task codes."
+      ],
+      "migrationImpact": "Possible migration if legacy global roles or tenant-scoped customer types must be copied.",
+      "rollback": "Keep platform-only legacy role management separate from tenant RBAC rollout.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P0-DATA-001",
+      "title": "Payment intent, webhook inbox and ledger integrity",
+      "severity": "P0 data/finance",
+      "affectedSurfaces": ["customer payments", "batch payments", "Mollie webhook", "backoffice finance", "invoice allocation"],
+      "sourcePrs": [279, 283, 290],
+      "sourceEvidence": [
+        "PR #290 docs/finance/payment-integrity-threat-model.md FIN-001..FIN-014",
+        "PR #283 CPWA-PAY-001/002/003",
+        "PR #279 FG-FLOW-CROSS-001/005"
+      ],
+      "currentProofLayer": ["static source guard", "provider mock"],
+      "runtimeEvidenceMissing": ["database integration", "API/server-action runtime", "provider mock concurrency", "service-role/database invariant"],
+      "dependencies": ["payment_intents", "provider event inbox", "append-only ledger", "monotonic state machine"],
+      "recommendedImplementationPhase": "Phase 1 - finance safety",
+      "acceptanceTests": [
+        "Provider calls happen only after durable local intent commit.",
+        "Duplicate payment clicks and duplicate paid webhooks are idempotent under concurrent DB tests.",
+        "Webhook fails closed for missing production secret and verifies amount/currency/tenant/customer/invoice metadata.",
+        "Manual mark-paid, partial, overpayment, refunds and collection payments reconcile through the same ledger."
+      ],
+      "migrationImpact": "Likely additive payment_intents, provider_event_inbox, ledger, allocation uniqueness and collection trigger migrations.",
+      "rollback": "Dual-read legacy payment state until ledger parity is proven; do not delete provider events.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P0-DATA-002",
+      "title": "Report approval, proposal and invoice atomicity",
+      "severity": "P0 data/finance",
+      "affectedSurfaces": ["personnel reports", "backoffice report approval", "invoice proposal", "customer report visibility"],
+      "sourcePrs": [279, 285, 287],
+      "sourceEvidence": [
+        "PR #279 FG-FLOW-BACKOFFICE-002/003/FG-FLOW-PERSONNEL-001/005",
+        "PR #285 BFA-P0-004/BFA-P1-020",
+        "PR #287 PPWA-GAP-006"
+      ],
+      "currentProofLayer": ["static source guard"],
+      "runtimeEvidenceMissing": ["database integration", "API/server-action runtime", "browser/Playwright E2E"],
+      "dependencies": ["transactional workflow commands", "invoice uniqueness guard"],
+      "recommendedImplementationPhase": "Phase 2 - finance workflow",
+      "acceptanceTests": [
+        "Report approval rolls back or compensates when proposal creation fails.",
+        "Personnel report insert sets tenant_id and emits durable workflow event.",
+        "Concurrent approval/rejection/proposal attempts produce one canonical outcome."
+      ],
+      "migrationImpact": "Possible report tenant backfill and partial unique active invoice/proposal index.",
+      "rollback": "Forward-fix partial approved reports; do not downmigrate workflow rows.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P1-PROD-002",
+      "title": "Team assignment execution participant model",
+      "severity": "P1 product contract",
+      "affectedSurfaces": ["personnel PWA", "backoffice planning", "customer status", "reports", "offline replay"],
+      "sourcePrs": [285, 287, 292],
+      "sourceEvidence": [
+        "PR #292 docs/architecture/team-assignment-execution-model.md",
+        "PR #287 PPWA-GAP-005/006",
+        "PR #285 BFA-P1-016/BFA-P1-018"
+      ],
+      "currentProofLayer": ["unit/domain", "static source guard"],
+      "runtimeEvidenceMissing": ["database integration", "authenticated RLS", "browser/Playwright E2E", "API/server-action runtime"],
+      "dependencies": ["TEAM-EXECUTION architecture dependency", "offline idempotency"],
+      "recommendedImplementationPhase": "Phase 3 - execution model",
+      "acceptanceTests": [
+        "A single worker cannot complete or fail a team assignment unless aggregate policy allows it.",
+        "Participant-owned reports/signatures survive offline replay and concurrency.",
+        "Parent assignment status is projected only by aggregate policy."
+      ],
+      "migrationImpact": "Add assignment_execution_participants and versioned participant events; dual-read/dual-write migration required.",
+      "rollback": "Keep parent status compatibility during dual-run; rollback by disabling participant writes before projection cutover.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P1-PROD-003",
+      "title": "Interest selection, scheduling and capacity candidate contract",
+      "severity": "P1 product contract",
+      "affectedSurfaces": ["backoffice planning", "personnel open assignments", "assignment_personnel", "capacity candidates"],
+      "sourcePrs": [285, 287, 288],
+      "sourceEvidence": [
+        "PR #287 PPWA-GAP-001/002",
+        "PR #285 BFA-P1-016/BFA-P1-017/BFA-P1-019",
+        "PR #288 P0-D fixed/blocked controls"
+      ],
+      "currentProofLayer": ["static source guard"],
+      "runtimeEvidenceMissing": ["API/server-action runtime", "database integration", "browser/Playwright E2E"],
+      "dependencies": ["assignment transition commands", "team execution model if selected means executable work"],
+      "recommendedImplementationPhase": "Phase 2 - planning contract",
+      "acceptanceTests": [
+        "Selected interest cannot trap a worker outside executable assignments.",
+        "Scheduling only succeeds when required worker count and role constraints are satisfied.",
+        "Stale capacity candidates disappear after recalculation."
+      ],
+      "migrationImpact": "Possible uniqueness/upsert constraints for assignment_personnel promotion.",
+      "rollback": "Feature-flag selection promotion if planner wording changes first.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P1-REL-001",
+      "title": "Domain events, recipients, preferences and transactional outbox",
+      "severity": "P1 reliability",
+      "affectedSurfaces": ["notifications", "tickets", "events", "customer preferences", "personnel messages", "platform notifications"],
+      "sourcePrs": [279, 282, 283, 285, 287],
+      "sourceEvidence": [
+        "PR #282 PF-015/PF-017",
+        "PR #279 FG-FLOW-CROSS-004/006/FG-FLOW-CUSTOMER-006",
+        "PR #283 CPWA-TICKET-001/CPWA-NOTIFY-001",
+        "PR #285 BFA-P1-022/023/024",
+        "PR #287 PPWA-GAP-012/015"
+      ],
+      "currentProofLayer": ["static source guard"],
+      "runtimeEvidenceMissing": ["database integration", "worker/runtime", "provider mock", "browser/Playwright E2E"],
+      "dependencies": ["tenant-bound recipient filters", "outbox transaction model"],
+      "recommendedImplementationPhase": "Phase 3 - event reliability",
+      "acceptanceTests": [
+        "emitDomainEvent filters every recipient by event tenant.",
+        "Customer preferences suppress delivery when product contract says opt-out.",
+        "Ticket writes and event/audit/queue rows commit atomically or enter repairable state.",
+        "Platform notification dispatch has provider-backed delivery outcomes."
+      ],
+      "migrationImpact": "Possible outbox/delivery state migration and idempotency keys.",
+      "rollback": "Keep legacy direct sends while outbox is shadow-written and compared.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P1-REL-002",
+      "title": "Async worker tenant lifecycle, retry, DLQ and provider idempotency",
+      "severity": "P1 reliability",
+      "affectedSurfaces": ["notification worker", "payment reminders", "email/push delivery", "background jobs"],
+      "sourcePrs": [279, 290],
+      "sourceEvidence": [
+        "PR #290 docs/finance/async-worker-integrity-audit.md ASYNC-001..ASYNC-009",
+        "PR #279 FG-FLOW-CROSS-002"
+      ],
+      "currentProofLayer": ["static source guard"],
+      "runtimeEvidenceMissing": ["database integration", "provider mock", "worker/runtime"],
+      "dependencies": ["domain outbox", "tenant runtime guard", "module entitlement guard"],
+      "recommendedImplementationPhase": "Phase 3 - event reliability",
+      "acceptanceTests": [
+        "Workers re-check tenant active status and module entitlement after claim and before delivery.",
+        "Retryable delivery failure returns retry semantics and records attempts atomically.",
+        "Final failure enters explicit DLQ or repair queue.",
+        "Outbound provider calls receive idempotency keys where supported."
+      ],
+      "migrationImpact": "Possible DLQ/final failure state and attempt transaction changes.",
+      "rollback": "Preserve queue rows and stop workers if lifecycle checks misclassify tenants.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P1-REL-003",
+      "title": "Zero-row, stale-row and tenant settings mutation integrity",
+      "severity": "P1 reliability",
+      "affectedSurfaces": ["organization settings", "customer/object/contact actions", "audit", "notification audiences", "SMTP"],
+      "sourcePrs": [279, 282, 285, 287],
+      "sourceEvidence": [
+        "PR #285 BFA-P1-006/007/009/010",
+        "PR #282 PF-018",
+        "PR #279 FG-FLOW-CROSS-004",
+        "PR #287 PPWA-GAP-008"
+      ],
+      "currentProofLayer": ["static source guard"],
+      "runtimeEvidenceMissing": ["database integration", "API/server-action runtime", "provider mock"],
+      "dependencies": ["returning-row mutation helpers", "tenant-scoped organization settings"],
+      "recommendedImplementationPhase": "Phase 4 - operational hardening",
+      "acceptanceTests": [
+        "Settings updates fail on zero rows or intentionally upsert.",
+        "SMTP secrets are encrypted and tenant-scoped; no global tenant SMTP fallback is used.",
+        "Notification audience options never include other tenant personnel/customers.",
+        "Primary contact and type/catalog writes have an explicit tenant/global contract."
+      ],
+      "migrationImpact": "Likely encrypted SMTP secret migration; possible tenant-scoped customer type migration.",
+      "rollback": "Retain legacy SMTP readability until encrypted secret cutover is proven.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P1-REL-004",
+      "title": "Availability, leave and schedule replacement atomicity",
+      "severity": "P1 reliability",
+      "affectedSurfaces": ["personnel PWA availability", "backoffice availability", "leave decisions", "organization settings"],
+      "sourcePrs": [285, 287],
+      "sourceEvidence": [
+        "PR #287 PPWA-GAP-007/008",
+        "PR #285 BFA-P1-013/BFA-P1-015"
+      ],
+      "currentProofLayer": ["static source guard"],
+      "runtimeEvidenceMissing": ["database integration", "API/server-action runtime"],
+      "dependencies": ["host-bound personnel identity", "transactional replacement helper"],
+      "recommendedImplementationPhase": "Phase 4 - operational hardening",
+      "acceptanceTests": [
+        "Weekly availability replacement cannot delete existing windows unless replacement insert succeeds.",
+        "Concurrent approve/reject uses expected-status predicates.",
+        "Leave and availability read settings from the current portal tenant."
+      ],
+      "migrationImpact": "Possible validation/uniqueness constraints for weekly windows.",
+      "rollback": "Keep old rows untouched on failed replacement attempts.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P1-REL-005",
+      "title": "Personnel offline queue scope and idempotent replay",
+      "severity": "P1 reliability",
+      "affectedSurfaces": ["personnel PWA offline", "localStorage queue", "extra work", "inventory", "materials", "reports", "push service worker"],
+      "sourcePrs": [279, 287, 292],
+      "sourceEvidence": [
+        "PR #287 PPWA-GAP-010/011/013",
+        "PR #279 FG-FLOW-PERSONNEL-004",
+        "PR #292 team execution model offline replay implications"
+      ],
+      "currentProofLayer": ["static source guard", "unit/domain"],
+      "runtimeEvidenceMissing": ["browser/Playwright E2E", "database integration", "API/server-action runtime", "provider mock"],
+      "dependencies": ["team execution participant events", "durable mutation IDs"],
+      "recommendedImplementationPhase": "Phase 3 - execution model",
+      "acceptanceTests": [
+        "Offline queue keys and payloads are tenant/personnel/user scoped.",
+        "Replay is refused after logout, host switch or identity change.",
+        "Duplicate extra work, report notes and inventory movements are blocked by durable mutation IDs.",
+        "Service worker rejects external absolute notification targets."
+      ],
+      "migrationImpact": "Likely additive client mutation IDs and unique constraints.",
+      "rollback": "Disable offline replay for affected action types if idempotency proof fails.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P1-REL-006",
+      "title": "Upload-first media and document orphan cleanup",
+      "severity": "P1 reliability",
+      "affectedSurfaces": ["personnel uploads", "backoffice documents", "Storage cleanup", "reports", "extra work"],
+      "sourcePrs": [285, 287],
+      "sourceEvidence": [
+        "PR #287 PPWA-GAP-014",
+        "PR #285 BFA-P1-011"
+      ],
+      "currentProofLayer": ["static source guard"],
+      "runtimeEvidenceMissing": ["Storage runtime", "database integration", "API/server-action runtime"],
+      "dependencies": ["pending-upload registry", "tenant-bound storage helper"],
+      "recommendedImplementationPhase": "Phase 4 - operational hardening",
+      "acceptanceTests": [
+        "DB registration failure after upload creates repairable cleanup record or deletes uploaded object.",
+        "Document delete and parent delete handle Storage failures without silently losing auditability.",
+        "No automatic business-record deletion is required for cleanup."
+      ],
+      "migrationImpact": "Possible additive pending_uploads/cleanup table.",
+      "rollback": "Stop cleanup worker and preserve registry rows for manual repair.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P1-PROD-004",
+      "title": "Tenant lifecycle, provisioning, domain and offboarding contract",
+      "severity": "P1 product contract",
+      "affectedSurfaces": ["platform tenants", "tenant provisioning", "domains", "first-run", "offboarding"],
+      "sourcePrs": [279, 282],
+      "sourceEvidence": [
+        "PR #282 PF-006/PF-007/PF-008/PF-009/PF-010/PF-013/PF-014",
+        "PR #279 FG-FLOW-PLATFORM-002/003"
+      ],
+      "currentProofLayer": ["static source guard"],
+      "runtimeEvidenceMissing": ["database integration", "API/server-action runtime", "browser/Playwright E2E"],
+      "dependencies": ["tenant state machine", "reserved host policy", "provisionTenant canonical path"],
+      "recommendedImplementationPhase": "Phase 2 - product contracts",
+      "acceptanceTests": [
+        "Archived tenants cannot be reactivated by generic direct action.",
+        "Lifecycle mutation and audit are transactionally coupled with affected-row proof.",
+        "Legacy tenant creation delegates to canonical provisioning or is removed.",
+        "Offboarding has retention, dependency and rollback semantics."
+      ],
+      "migrationImpact": "Possible additive offboarding/deletion state; no destructive tenant cleanup.",
+      "rollback": "Keep archived tenants terminal until explicit restore program exists.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P1-PROD-005",
+      "title": "Customer visible workflow and quote/invoice contracts",
+      "severity": "P1 product contract",
+      "affectedSurfaces": ["customer PWA", "quotes", "invoices", "payments", "synthetic notifications"],
+      "sourcePrs": [279, 283],
+      "sourceEvidence": [
+        "PR #279 FG-FLOW-CUSTOMER-001/002/003/004",
+        "PR #283 CPWA-QUOTE-001/CPWA-PAY-001"
+      ],
+      "currentProofLayer": ["static source guard"],
+      "runtimeEvidenceMissing": ["API/server-action runtime", "browser/Playwright E2E", "database integration", "provider mock"],
+      "dependencies": ["payment ledger", "module gates", "customer-visible status contract"],
+      "recommendedImplementationPhase": "Phase 2 - product contracts",
+      "acceptanceTests": [
+        "Expired sent quotes cannot be accepted unless product policy explicitly allows extension.",
+        "Quote approval next assignment state is documented and tested.",
+        "Customer-visible invoice/payment data uses shared visibility predicates.",
+        "Synthetic notifications have persisted read/delete state or are clearly display-only."
+      ],
+      "migrationImpact": "Possible customer notification state or report summary fields.",
+      "rollback": "Keep old status labels until customer copy and backend transition agree.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P1-PROD-006",
+      "title": "Tenant-scoped reference integrity for customer, object, personnel and qualification links",
+      "severity": "P1 product contract",
+      "affectedSurfaces": ["customers", "objects", "assignments", "qualifications", "platform tickets", "extra work task codes"],
+      "sourcePrs": [279, 283, 285],
+      "sourceEvidence": [
+        "PR #283 CPWA-ASSIGN-001",
+        "PR #285 BFA-P1-010/BFA-P1-014",
+        "PR #279 FG-FLOW-PLATFORM-001/FG-FLOW-PERSONNEL-003"
+      ],
+      "currentProofLayer": ["static source guard"],
+      "runtimeEvidenceMissing": ["database integration", "API/server-action runtime"],
+      "dependencies": ["tenant-bound reference validators", "global-vs-tenant catalog decisions"],
+      "recommendedImplementationPhase": "Phase 2 - product contracts",
+      "acceptanceTests": [
+        "Backoffice assignment create/update rejects object/customer/tenant mismatch.",
+        "Qualification role/task-code links prove all referenced records belong to current tenant.",
+        "Extra work task-code catalog is tenant scoped.",
+        "Platform ticket child refs are ownership-validated."
+      ],
+      "migrationImpact": "Possible composite FK/unique constraints or tenant-scoped catalog migration.",
+      "rollback": "Use forward-fix validators; avoid destructive recategorization of existing business records.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P2-001",
+      "title": "Route, map and realtime side-effect observability",
+      "severity": "P2 hardening",
+      "affectedSurfaces": ["planning board", "route refresh", "maps", "realtime invalidation"],
+      "sourcePrs": [285],
+      "sourceEvidence": ["PR #285 BFA-P2-027"],
+      "currentProofLayer": ["static source guard"],
+      "runtimeEvidenceMissing": ["browser/Playwright E2E", "database integration"],
+      "dependencies": ["assignment-personnel mutation hooks"],
+      "recommendedImplementationPhase": "Phase 5 - hardening",
+      "acceptanceTests": [
+        "Every assign/unassign mutation refreshes route/map contexts or records a non-blocking warning.",
+        "Realtime invalidation failure is observable."
+      ],
+      "migrationImpact": "No migration expected.",
+      "rollback": "Revert side-effect additions without changing canonical assignment rows.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P2-002",
+      "title": "Personnel invite feedback and retry semantics",
+      "severity": "P2 hardening",
+      "affectedSurfaces": ["backoffice personnel", "invite email", "personnel activation"],
+      "sourcePrs": [285],
+      "sourceEvidence": ["PR #285 BFA-P2-026"],
+      "currentProofLayer": ["static source guard"],
+      "runtimeEvidenceMissing": ["API/server-action runtime", "browser/Playwright E2E", "provider mock"],
+      "dependencies": ["auth challenge boundary"],
+      "recommendedImplementationPhase": "Phase 5 - hardening",
+      "acceptanceTests": [
+        "Personnel create response separates row creation from invite delivery.",
+        "Invite failure shows retry state and does not imply a password was sent."
+      ],
+      "migrationImpact": "No migration expected unless invite status is persisted.",
+      "rollback": "Keep invite status as UI-only until challenge protocol persists delivery state.",
+      "status": "open"
+    },
+    {
+      "canonicalId": "FG-HARD-P2-003",
+      "title": "Runtime evidence program and release-gate classification",
+      "severity": "P2 hardening",
+      "affectedSurfaces": ["all Fieldgrid surfaces", "CI/source contracts", "runtime test harness"],
+      "sourcePrs": [279, 282, 283, 285, 287, 288, 290, 292],
+      "sourceEvidence": [
+        "All audit PRs classify their tests as static/source-level except #292 domain policy tests and #290 source-level provider/worker reproductions.",
+        "PR #278 is candidate implementation only for runtime harness, not a completed solution."
+      ],
+      "currentProofLayer": ["static source guard", "unit/domain", "provider mock"],
+      "runtimeEvidenceMissing": ["database integration", "authenticated RLS", "service-role/database invariant", "API/server-action runtime", "browser/Playwright E2E", "live staging evidence"],
+      "dependencies": ["ephemeral local DB fixtures", "mock provider adapters", "test-layer classification"],
+      "recommendedImplementationPhase": "Phase 0 - evidence foundations",
+      "acceptanceTests": [
+        "Every critical security item has a runtime test lane, not only regex/source inspection.",
+        "Test-layer labels distinguish static, DB, RLS, API, browser and provider evidence.",
+        "Skipped critical tests fail the gate.",
+        "Candidate implementation PRs are not counted as closure until their required runtime evidence passes."
+      ],
+      "migrationImpact": "No product migration; possible local test fixture setup only.",
+      "rollback": "Remove only documentation/test harness changes; no production behavior changes.",
+      "status": "open"
+    }
+  ],
+  "oldGapToCanonicalId": {
+    "FG-FLOW-PLATFORM-001": "FG-HARD-P1-PROD-006",
+    "FG-FLOW-PLATFORM-002": "FG-HARD-P1-PROD-004",
+    "FG-FLOW-PLATFORM-003": "FG-HARD-P1-PROD-004",
+    "FG-FLOW-PLATFORM-004": "FG-HARD-P1-REL-001",
+    "FG-FLOW-BACKOFFICE-001": "FG-HARD-P0-SEC-003",
+    "FG-FLOW-BACKOFFICE-002": "FG-HARD-P0-DATA-002",
+    "FG-FLOW-BACKOFFICE-003": "FG-HARD-P0-DATA-002",
+    "FG-FLOW-BACKOFFICE-004": "FG-HARD-P0-SEC-004",
+    "FG-FLOW-PERSONNEL-001": "FG-HARD-P0-DATA-002",
+    "FG-FLOW-PERSONNEL-002": "FG-HARD-P0-SEC-002",
+    "FG-FLOW-PERSONNEL-003": "FG-HARD-P1-PROD-006",
+    "FG-FLOW-PERSONNEL-004": "FG-HARD-P1-REL-005",
+    "FG-FLOW-CUSTOMER-001": "FG-HARD-P1-PROD-005",
+    "FG-FLOW-CUSTOMER-002": "FG-HARD-P1-PROD-005",
+    "FG-FLOW-CUSTOMER-003": "FG-HARD-P1-PROD-005",
+    "FG-FLOW-CUSTOMER-004": "FG-HARD-P1-PROD-005",
+    "FG-FLOW-CROSS-001": "FG-HARD-P0-DATA-001",
+    "FG-FLOW-CROSS-002": "FG-HARD-P1-REL-002",
+    "FG-FLOW-CROSS-003": "FG-HARD-P1-PROD-001",
+    "FG-FLOW-CROSS-004": "FG-HARD-P1-REL-003",
+    "FG-FLOW-PLATFORM-005": "FG-HARD-P0-SEC-001",
+    "FG-FLOW-PLATFORM-006": "FG-HARD-P0-SEC-001",
+    "FG-FLOW-BACKOFFICE-005": "FG-HARD-P0-SEC-006",
+    "FG-FLOW-BACKOFFICE-006": "FG-HARD-P0-SEC-001",
+    "FG-FLOW-PERSONNEL-005": "FG-HARD-P0-DATA-002",
+    "FG-FLOW-CUSTOMER-005": "FG-HARD-P0-SEC-005",
+    "FG-FLOW-CUSTOMER-006": "FG-HARD-P1-REL-001",
+    "FG-FLOW-CROSS-005": "FG-HARD-P0-DATA-001",
+    "FG-FLOW-CROSS-006": "FG-HARD-P1-REL-001",
+    "AUTH-ADR-OPTION-A": "FG-HARD-P0-SEC-001",
+    "auth-users": "FG-HARD-P0-SEC-002",
+    "supabase-admin-api": "FG-HARD-P0-SEC-001",
+    "get-user-session-helpers": "FG-HARD-P0-SEC-002",
+    "jwt-validation": "FG-HARD-P0-SEC-002",
+    "cookies": "FG-HARD-P0-SEC-002",
+    "rls-auth-uid": "FG-HARD-P0-SEC-002",
+    "storage-policies": "FG-HARD-P0-SEC-005",
+    "user-and-app-metadata": "FG-HARD-P0-SEC-001",
+    "invites": "FG-HARD-P0-SEC-001",
+    "platform-users": "FG-HARD-P0-SEC-002",
+    "tenant-users": "FG-HARD-P0-SEC-002",
+    "personnel-user-id": "FG-HARD-P0-SEC-002",
+    "customer-users-user-id": "FG-HARD-P0-SEC-002",
+    "api-client-react-token": "FG-HARD-P0-SEC-002",
+    "mfa": "FG-HARD-P0-SEC-002",
+    "PF-001": "FG-HARD-P0-SEC-001",
+    "PF-002": "FG-HARD-P0-SEC-001",
+    "PF-003": "FG-HARD-P0-SEC-002",
+    "PF-004": "FG-HARD-P0-SEC-002",
+    "PF-005": "FG-HARD-P0-SEC-001",
+    "PF-006": "FG-HARD-P1-PROD-004",
+    "PF-007": "FG-HARD-P1-PROD-004",
+    "PF-008": "FG-HARD-P1-PROD-004",
+    "PF-009": "FG-HARD-P1-PROD-004",
+    "PF-010": "FG-HARD-P1-PROD-004",
+    "PF-011": "FG-HARD-P1-PROD-001",
+    "PF-012": "FG-HARD-P1-PROD-001",
+    "PF-013": "FG-HARD-P1-PROD-004",
+    "PF-014": "FG-HARD-P1-PROD-004",
+    "PF-015": "FG-HARD-P1-REL-001",
+    "PF-016": "FG-HARD-P0-SEC-002",
+    "PF-017": "FG-HARD-P1-REL-001",
+    "PF-018": "FG-HARD-P1-REL-003",
+    "PF-019": "FG-HARD-P0-SEC-006",
+    "PF-020": "FG-HARD-P0-SEC-006",
+    "PF-021": "FG-HARD-P0-SEC-006",
+    "PF-022": "FG-HARD-P0-SEC-006",
+    "CPWA-AUTH-001": "FG-HARD-P0-SEC-002",
+    "CPWA-AUTH-002": "FG-HARD-P0-SEC-002",
+    "CPWA-MODULE-001": "FG-HARD-P1-PROD-001",
+    "CPWA-ASSIGN-001": "FG-HARD-P1-PROD-006",
+    "CPWA-QUOTE-001": "FG-HARD-P1-PROD-005",
+    "CPWA-PAY-001": "FG-HARD-P0-DATA-001",
+    "CPWA-PAY-002": "FG-HARD-P0-DATA-001",
+    "CPWA-PAY-003": "FG-HARD-P0-DATA-001",
+    "CPWA-TICKET-001": "FG-HARD-P1-REL-001",
+    "CPWA-NOTIFY-001": "FG-HARD-P1-REL-001",
+    "CPWA-MEDIA-001": "FG-HARD-P0-SEC-005",
+    "BFA-P0-001": "FG-HARD-P1-PROD-001",
+    "BFA-P0-002": "FG-HARD-P0-SEC-003",
+    "BFA-P0-003": "FG-HARD-P0-SEC-004",
+    "BFA-P0-004": "FG-HARD-P0-DATA-002",
+    "BFA-P0-005": "FG-HARD-P0-SEC-005",
+    "BFA-P1-006": "FG-HARD-P1-REL-003",
+    "BFA-P1-007": "FG-HARD-P1-REL-003",
+    "BFA-P1-008": "FG-HARD-P0-SEC-006",
+    "BFA-P1-009": "FG-HARD-P1-REL-003",
+    "BFA-P1-010": "FG-HARD-P1-PROD-006",
+    "BFA-P1-011": "FG-HARD-P1-REL-006",
+    "BFA-P1-012": "FG-HARD-P1-PROD-001",
+    "BFA-P1-013": "FG-HARD-P1-REL-004",
+    "BFA-P1-014": "FG-HARD-P1-PROD-006",
+    "BFA-P1-015": "FG-HARD-P1-REL-004",
+    "BFA-P1-016": "FG-HARD-P1-PROD-003",
+    "BFA-P1-017": "FG-HARD-P1-PROD-003",
+    "BFA-P1-018": "FG-HARD-P1-PROD-002",
+    "BFA-P1-019": "FG-HARD-P1-PROD-003",
+    "BFA-P1-020": "FG-HARD-P0-DATA-002",
+    "BFA-P1-021": "FG-HARD-P1-PROD-001",
+    "BFA-P1-022": "FG-HARD-P1-REL-001",
+    "BFA-P1-023": "FG-HARD-P1-REL-001",
+    "BFA-P1-024": "FG-HARD-P1-REL-001",
+    "BFA-P2-025": "FG-HARD-P0-SEC-006",
+    "BFA-P2-026": "FG-HARD-P2-002",
+    "BFA-P2-027": "FG-HARD-P2-001",
+    "PPWA-GAP-001": "FG-HARD-P1-PROD-003",
+    "PPWA-GAP-002": "FG-HARD-P1-PROD-003",
+    "PPWA-GAP-003": "FG-HARD-P0-SEC-002",
+    "PPWA-GAP-004": "FG-HARD-P0-SEC-002",
+    "PPWA-GAP-005": "FG-HARD-P1-PROD-002",
+    "PPWA-GAP-006": "FG-HARD-P0-DATA-002",
+    "PPWA-GAP-007": "FG-HARD-P1-REL-004",
+    "PPWA-GAP-008": "FG-HARD-P1-REL-004",
+    "PPWA-GAP-009": "FG-HARD-P0-SEC-005",
+    "PPWA-GAP-010": "FG-HARD-P1-REL-005",
+    "PPWA-GAP-011": "FG-HARD-P1-REL-005",
+    "PPWA-GAP-012": "FG-HARD-P1-REL-001",
+    "PPWA-GAP-013": "FG-HARD-P1-REL-005",
+    "PPWA-GAP-014": "FG-HARD-P1-REL-006",
+    "PPWA-GAP-015": "FG-HARD-P1-REL-001",
+    "P0-A": "FG-HARD-P0-SEC-004",
+    "P0-B": "FG-HARD-P0-SEC-003",
+    "P0-C": "FG-HARD-P0-SEC-003",
+    "P0-D": "FG-HARD-P0-SEC-003",
+    "P0-A-allowAny-status-override": "FG-HARD-P0-SEC-004",
+    "P0-A-generic-edit-status-payload": "FG-HARD-P0-SEC-004",
+    "P0-A-assignment-form-all-statuses": "FG-HARD-P0-SEC-004",
+    "P0-A-status-stepper-all-statuses": "FG-HARD-P0-SEC-004",
+    "P0-A-normal-status-action-fixed-control": "FG-HARD-P0-SEC-004",
+    "P0-B-removePersonnel": "FG-HARD-P0-SEC-003",
+    "P0-B-approveDirectly": "FG-HARD-P0-SEC-003",
+    "P0-B-deleteAssignment": "FG-HARD-P0-SEC-003",
+    "P0-B-history-helpers": "FG-HARD-P0-SEC-003",
+    "P0-B-reschedule": "FG-HARD-P0-SEC-003",
+    "P0-B-reshift": "FG-HARD-P0-SEC-003",
+    "P0-B-task-personnel-child-fixed-controls": "FG-HARD-P0-SEC-003",
+    "P0-C-updateAssignment-capacity-side-effect": "FG-HARD-P0-SEC-003",
+    "P0-D-planning-readiness": "FG-HARD-P0-SEC-003",
+    "P0-D-recalculate-capacity-action": "FG-HARD-P0-SEC-003",
+    "P0-D-interest-round-send": "FG-HARD-P0-SEC-003",
+    "P0-D-interest-reminder": "FG-HARD-P0-SEC-003",
+    "P0-D-interest-history": "FG-HARD-P0-SEC-003",
+    "P0-D-capacity-defaults-latest": "FG-HARD-P0-SEC-003",
+    "P0-D-mark-interest-candidate-fixed-control": "FG-HARD-P0-SEC-003",
+    "P0-D-personnel-interest-actions-fixed-controls": "FG-HARD-P0-SEC-003",
+    "P0-D-planning-board-stale-candidates-blocked": "FG-HARD-P1-PROD-003",
+    "FIN-001": "FG-HARD-P0-DATA-001",
+    "FIN-002": "FG-HARD-P0-DATA-001",
+    "FIN-003": "FG-HARD-P0-DATA-001",
+    "FIN-004": "FG-HARD-P0-DATA-001",
+    "FIN-005": "FG-HARD-P0-DATA-001",
+    "FIN-006": "FG-HARD-P0-DATA-001",
+    "FIN-007": "FG-HARD-P0-DATA-001",
+    "FIN-008": "FG-HARD-P0-DATA-001",
+    "FIN-009": "FG-HARD-P0-DATA-001",
+    "FIN-010": "FG-HARD-P0-DATA-001",
+    "FIN-011": "FG-HARD-P0-DATA-001",
+    "FIN-012": "FG-HARD-P0-DATA-001",
+    "FIN-013": "FG-HARD-P0-DATA-001",
+    "FIN-014": "FG-HARD-P0-DATA-001",
+    "ASYNC-001": "FG-HARD-P1-REL-002",
+    "ASYNC-002": "FG-HARD-P1-REL-002",
+    "ASYNC-003": "FG-HARD-P1-REL-002",
+    "ASYNC-004": "FG-HARD-P1-REL-002",
+    "ASYNC-005": "FG-HARD-P1-REL-002",
+    "ASYNC-006": "FG-HARD-P1-REL-002",
+    "ASYNC-007": "FG-HARD-P1-REL-002",
+    "ASYNC-008": "FG-HARD-P1-REL-002",
+    "ASYNC-009": "FG-HARD-P1-REL-002",
+    "TEAM-EXECUTION-MODEL": "FG-HARD-P1-PROD-002",
+    "TEAM-EXECUTION-MIGRATION-PLAN": "FG-HARD-P1-PROD-002"
+  },
+  "proposedIssueOrder": [
+    "FG-HARD-P2-003",
+    "FG-HARD-P0-SEC-001",
+    "FG-HARD-P0-SEC-002",
+    "FG-HARD-P0-SEC-003",
+    "FG-HARD-P0-SEC-004",
+    "FG-HARD-P0-SEC-005",
+    "FG-HARD-P0-SEC-006",
+    "FG-HARD-P0-DATA-001",
+    "FG-HARD-P0-DATA-002",
+    "FG-HARD-P1-PROD-001",
+    "FG-HARD-P1-PROD-004",
+    "FG-HARD-P1-PROD-006",
+    "FG-HARD-P1-PROD-003",
+    "FG-HARD-P1-PROD-002",
+    "FG-HARD-P1-REL-001",
+    "FG-HARD-P1-REL-002",
+    "FG-HARD-P1-REL-005",
+    "FG-HARD-P1-REL-004",
+    "FG-HARD-P1-REL-003",
+    "FG-HARD-P1-REL-006",
+    "FG-HARD-P1-PROD-005",
+    "FG-HARD-P2-001",
+    "FG-HARD-P2-002"
+  ],
+  "proposedLabels": [
+    "fieldgrid-hardening",
+    "evidence-required",
+    "P0-security",
+    "P0-data-finance",
+    "P1-reliability",
+    "P1-product-contract",
+    "P2-hardening",
+    "needs-db-integration",
+    "needs-authenticated-rls",
+    "needs-browser-e2e",
+    "candidate-implementation"
+  ]
+}
