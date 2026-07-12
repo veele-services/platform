@@ -30,22 +30,39 @@ async function schemaInvariantChecks(client) {
   }
   assert(missingTables.length === 0, "Required runtime tables are missing.", { missingTables });
 
+  const requiredTenantScopedTables = [
+    "tenant_users",
+    "tenant_domains",
+    "tenant_modules",
+    "support_access_grants",
+    "customers",
+    "personnel",
+    "objects",
+    "assignments",
+    "customer_users",
+  ];
+  const tenantBoundByParentTables = ["assignment_personnel"];
   const tenantColumns = await client.query(
     `
       select table_name, is_nullable
       from information_schema.columns
       where table_schema = 'public'
         and column_name = 'tenant_id'
+        and table_name = any($1::text[])
       order by table_name
     `,
+    [requiredTenantScopedTables],
   );
-  const nullableTenantColumns = tenantColumns.rows
+  const seenTenantColumns = new Set(tenantColumns.rows.map((row) => row.table_name));
+  const missingTenantColumns = requiredTenantScopedTables.filter((table) => !seenTenantColumns.has(table));
+  assert(missingTenantColumns.length === 0, "Required tenant-bound tables are missing tenant_id columns.", {
+    missingTenantColumns,
+  });
+  const nullableRequiredTenantColumns = tenantColumns.rows
     .filter((row) => row.is_nullable === "YES")
     .map((row) => row.table_name);
-  const nullableAllowlist = new Set(["tenant_provisioning_runs", "tenant_roles"]);
-  const unexpectedNullable = nullableTenantColumns.filter((table) => !nullableAllowlist.has(table));
-  assert(unexpectedNullable.length === 0, "Tenant-bound tables have nullable tenant_id columns.", {
-    unexpectedNullable,
+  assert(nullableRequiredTenantColumns.length === 0, "Required tenant-bound tables have nullable tenant_id columns.", {
+    nullableRequiredTenantColumns,
   });
 
   const policies = await client.query(
@@ -60,6 +77,8 @@ async function schemaInvariantChecks(client) {
 
   return result("schema-invariant-checks", "passed", {
     requiredTables,
+    requiredTenantScopedTables,
+    tenantBoundByParentTables,
     tenantScopedColumns: tenantColumns.rows.length,
     policies: policies.rows.length,
   });
