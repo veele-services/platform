@@ -1,5 +1,6 @@
-#!/usr/bin/env sh
-set -eu
+#!/usr/bin/env bash
+set -euo pipefail
+umask 027
 
 usage() {
   cat <<'USAGE'
@@ -9,6 +10,7 @@ Usage:
 Options:
   --previous-release DIR       Previous current symlink target for rollback.
   --rollback-on-failure        Restore previous symlink, restart services, reload Caddy and verify rollback health.
+  --restart-before-check       Restart services and reload Caddy before the new-release health check.
   --evidence-file PATH         Write structured JSON evidence.
   --help                       Show this help.
 
@@ -34,7 +36,9 @@ EXPECTED_SHA=""
 PREVIOUS_RELEASE=""
 ROLLBACK_ON_FAILURE="0"
 EVIDENCE_FILE=""
+EVIDENCE_GROUP="${FIELDGRID_DEPLOY_EVIDENCE_GROUP:-}"
 CHECK_EXPECTED_SHA="1"
+RESTART_BEFORE_CHECK="0"
 
 while [ "$#" -gt 0 ]; do
   case "$1" in
@@ -44,6 +48,7 @@ while [ "$#" -gt 0 ]; do
     --expected-sha) EXPECTED_SHA="${2:-}"; shift 2 ;;
     --previous-release) PREVIOUS_RELEASE="${2:-}"; shift 2 ;;
     --rollback-on-failure) ROLLBACK_ON_FAILURE="1"; shift ;;
+    --restart-before-check) RESTART_BEFORE_CHECK="1"; shift ;;
     --evidence-file) EVIDENCE_FILE="${2:-}"; shift 2 ;;
     --help|-h) usage; exit 0 ;;
     *) echo "Unknown argument: $1" >&2; usage >&2; exit 2 ;;
@@ -62,11 +67,11 @@ CHECKS_FILE="$(mktemp)"
 trap 'rm -f "$CHECKS_FILE"' EXIT HUP INT TERM
 
 json_escape() {
-  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g'
+  printf '%s' "$1" | tr '\r\n' '  ' | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g'
 }
 
 sanitize_url() {
-  printf '%s' "$1" | sed -E 's#(https?://)[^/@]+@#\1***@#; s#[?].*$##'
+  printf '%s' "$1" | sed -E 's#(https?://)([^/@]+@)?([^/?#]+).*#\1\3#'
 }
 
 record_check() {
@@ -102,6 +107,7 @@ write_evidence() {
   [ -n "$attempts_number" ] || attempts_number=0
   [ -n "$retry_number" ] || retry_number=0
 
+  evidence_temp="${EVIDENCE_FILE}.$$"
   {
     cat <<JSON
 {
@@ -124,7 +130,12 @@ JSON
   ]
 }
 JSON
-  } > "$EVIDENCE_FILE"
+  } > "$evidence_temp"
+  chmod 640 "$evidence_temp"
+  if [ -n "$EVIDENCE_GROUP" ]; then
+    chgrp "$EVIDENCE_GROUP" "$evidence_temp"
+  fi
+  mv -f "$evidence_temp" "$EVIDENCE_FILE"
 }
 
 fail_now() {
@@ -186,7 +197,20 @@ default_local_endpoints() {
   fi
   if [ -n "${API_PORT:-}" ]; then
     append_endpoint "local-api-health" "http://127.0.0.1:${API_PORT}/api/healthz" "strict"
+  fi
+}
+
+default_api_root_endpoints() {
+  if [ -n "${FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS:-}" ]; then
+    printf '%s\n' "$FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS"
+    return 0
+  fi
+
+  if [ -n "${API_PORT:-}" ]; then
     append_endpoint "local-api-root" "http://127.0.0.1:${API_PORT}/" "api-root"
+  fi
+  if [ -n "${API_PUBLIC_URL:-}" ]; then
+    append_endpoint "public-api-root" "$API_PUBLIC_URL" "api-root"
   fi
 }
 
@@ -251,11 +275,11 @@ check_services() {
     fi
   done
 
-  if [ "$count" -lt 4 ]; then
-    record_check "services:configured-count" "fail" "expected four configured services; found $count"
+  if [ "$count" -ne 4 ]; then
+    record_check "services:configured-count" "fail" "expected exactly four configured services; found $count"
     failed=1
   else
-    record_check "services:configured-count" "pass" "found $count configured services"
+    record_check "services:configured-count" "pass" "found exactly $count configured services"
   fi
   return "$failed"
 }
@@ -279,11 +303,11 @@ check_ports() {
     fi
   done
 
-  if [ "$count" -lt 4 ]; then
-    record_check "ports:configured-count" "fail" "expected four configured ports; found $count"
+  if [ "$count" -ne 4 ]; then
+    record_check "ports:configured-count" "fail" "expected exactly four configured ports; found $count"
     failed=1
   else
-    record_check "ports:configured-count" "pass" "found $count configured ports"
+    record_check "ports:configured-count" "pass" "found exactly $count configured ports"
   fi
   return "$failed"
 }
@@ -317,6 +341,7 @@ check_endpoint_group() {
   group_name="$1"
   specs="$2"
   required_count="$3"
+  count_mode="${4:-minimum}"
   failed=0
 
   set +e
@@ -334,11 +359,20 @@ check_endpoint_group() {
   set -e
 
   count="$(printf '%s\n' "$specs" | sed '/^[[:space:]]*$/d' | wc -l | tr -d ' ')"
-  if [ "$count" -lt "$required_count" ]; then
-    record_check "endpoints:$group_name-count" "fail" "expected at least $required_count endpoint(s); found $count"
-    failed=1
+  if [ "$count_mode" = "exact" ]; then
+    if [ "$count" -ne "$required_count" ]; then
+      record_check "endpoints:$group_name-count" "fail" "expected exactly $required_count endpoint(s); found $count"
+      failed=1
+    else
+      record_check "endpoints:$group_name-count" "pass" "found exactly $count endpoint(s)"
+    fi
   else
-    record_check "endpoints:$group_name-count" "pass" "found $count endpoint(s)"
+    if [ "$count" -lt "$required_count" ]; then
+      record_check "endpoints:$group_name-count" "fail" "expected at least $required_count endpoint(s); found $count"
+      failed=1
+    else
+      record_check "endpoints:$group_name-count" "pass" "found $count endpoint(s)"
+    fi
   fi
 
   if [ "$rc" -ne 0 ]; then
@@ -393,7 +427,8 @@ run_health_checks() {
   verify_release_metadata || failed=1
   check_services || failed=1
   check_ports || failed=1
-  check_endpoint_group "local" "$(default_local_endpoints)" 4 || failed=1
+  check_endpoint_group "local" "$(default_local_endpoints)" 4 exact || failed=1
+  check_endpoint_group "api-root" "$(default_api_root_endpoints)" 1 || failed=1
   check_endpoint_group "public" "$(default_public_endpoints)" 3 || failed=1
   return "$failed"
 }
@@ -419,8 +454,44 @@ rollback() {
     return 1
   fi
 
-  ln -sfn "$PREVIOUS_RELEASE" "$BASE_DIR/current.rollback"
-  mv -Tf "$BASE_DIR/current.rollback" "$BASE_DIR/current"
+  case "$PREVIOUS_RELEASE" in
+    "$BASE_DIR"/releases/*) ;;
+    *)
+      record_check "rollback:previous-release" "fail" "previous release is outside the release root"
+      write_evidence "fail" "health gate failed and previous release path is outside release root" "unavailable"
+      return 1
+      ;;
+  esac
+
+  if [ ! -f "$PREVIOUS_RELEASE/.fieldgrid-release-sha" ]; then
+    record_check "rollback:previous-release" "fail" "previous release SHA marker is missing"
+    write_evidence "fail" "health gate failed and previous release SHA marker is missing" "unavailable"
+    return 1
+  fi
+
+  current_before_rollback=""
+  if [ -L "$BASE_DIR/current" ]; then
+    current_before_rollback="$(readlink "$BASE_DIR/current" || true)"
+  fi
+  if [ "$current_before_rollback" != "$RELEASE_PATH" ]; then
+    record_check "rollback:current" "fail" "current symlink changed before rollback"
+    write_evidence "fail" "health gate failed but current no longer points at the failed release" "blocked"
+    return 1
+  fi
+
+  temp_link="$BASE_DIR/.current.rollback.$$"
+  rm -f "$temp_link"
+  if ! ln -s "$PREVIOUS_RELEASE" "$temp_link"; then
+    record_check "rollback:symlink" "fail" "failed to create temporary rollback symlink"
+    write_evidence "fail" "rollback symlink creation failed" "failed"
+    return 1
+  fi
+  if ! mv -Tf "$temp_link" "$BASE_DIR/current"; then
+    rm -f "$temp_link"
+    record_check "rollback:symlink" "fail" "failed to atomically restore previous release"
+    write_evidence "fail" "rollback symlink replacement failed" "failed"
+    return 1
+  fi
   record_check "rollback:symlink" "pass" "current symlink restored to previous release"
 
   if restart_services_and_reload_caddy; then
@@ -437,19 +508,42 @@ rollback() {
   if run_health_checks; then
     RELEASE_PATH="$saved_release"
     CHECK_EXPECTED_SHA="1"
+    record_check "rollback:health" "pass" "rollback release passed health checks"
     write_evidence "fail" "new release failed health gate; rollback health passed" "pass"
     return 0
   fi
   RELEASE_PATH="$saved_release"
   CHECK_EXPECTED_SHA="1"
+  record_check "rollback:health" "fail" "rollback release failed health checks"
   write_evidence "fail" "new release failed health gate and rollback health failed" "failed"
   return 1
 }
 
 [ -n "$ENVIRONMENT" ] || fail_now "--environment is required"
+if [ "$ENVIRONMENT" != "staging" ]; then
+  fail_now "only the staging environment may use the deploy health gate"
+fi
 [ -n "$BASE_DIR" ] || fail_now "--base-dir is required"
 [ -n "$RELEASE_PATH" ] || fail_now "--release-path is required"
 [ -n "$EXPECTED_SHA" ] || fail_now "--expected-sha is required"
+
+if [ "$RESTART_BEFORE_CHECK" = "1" ]; then
+  if restart_services_and_reload_caddy; then
+    record_check "activation:restart" "pass" "services restarted and Caddy reloaded before health gate"
+  else
+    record_check "activation:restart" "fail" "service restart or Caddy reload failed before health gate"
+    if [ "$ROLLBACK_ON_FAILURE" = "1" ]; then
+      if rollback; then
+        echo "fieldgrid-deploy-health-gate: activation restart failed; rollback succeeded" >&2
+      else
+        echo "fieldgrid-deploy-health-gate: activation restart failed; rollback failed or unavailable" >&2
+      fi
+    else
+      write_evidence "fail" "activation restart failed" "not-requested"
+    fi
+    exit 1
+  fi
+fi
 
 if run_health_checks; then
   write_evidence "pass" "release health gate passed" "not-needed"

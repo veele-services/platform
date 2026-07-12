@@ -1,5 +1,6 @@
-#!/usr/bin/env sh
-set -eu
+#!/usr/bin/env bash
+set -euo pipefail
+umask 027
 
 usage() {
   cat <<'USAGE'
@@ -19,6 +20,7 @@ RELEASE_PATH=""
 EXPECTED_SHA=""
 MIGRATION_STATUS="success"
 EVIDENCE_FILE=""
+EVIDENCE_GROUP="${FIELDGRID_DEPLOY_EVIDENCE_GROUP:-}"
 PREVIOUS_CURRENT=""
 
 while [ "$#" -gt 0 ]; do
@@ -35,7 +37,7 @@ while [ "$#" -gt 0 ]; do
 done
 
 json_escape() {
-  printf '%s' "$1" | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g'
+  printf '%s' "$1" | tr '\r\n' '  ' | sed 's/\\/\\\\/g; s/"/\\"/g; s/	/\\t/g'
 }
 
 write_evidence() {
@@ -51,7 +53,8 @@ write_evidence() {
     current_target="$(readlink "$BASE_DIR/current" || true)"
   fi
 
-  cat > "$EVIDENCE_FILE" <<JSON
+  evidence_temp="${EVIDENCE_FILE}.$$"
+  cat > "$evidence_temp" <<JSON
 {
   "tool": "fieldgrid-atomic-release-activate",
   "environment": "$(json_escape "$ENVIRONMENT")",
@@ -65,6 +68,11 @@ write_evidence() {
   "migrationStatus": "$(json_escape "$MIGRATION_STATUS")"
 }
 JSON
+  chmod 640 "$evidence_temp"
+  if [ -n "$EVIDENCE_GROUP" ]; then
+    chgrp "$EVIDENCE_GROUP" "$evidence_temp"
+  fi
+  mv -f "$evidence_temp" "$EVIDENCE_FILE"
 }
 
 fail() {
@@ -73,7 +81,23 @@ fail() {
   exit 1
 }
 
+switch_current() {
+  target="$1"
+  temp_link="$BASE_DIR/.current.new.$$"
+  rm -f "$temp_link"
+  if ! ln -s "$target" "$temp_link"; then
+    fail "failed to create temporary current symlink"
+  fi
+  if ! mv -Tf "$temp_link" "$BASE_DIR/current"; then
+    rm -f "$temp_link"
+    fail "failed to atomically replace current symlink"
+  fi
+}
+
 [ -n "$ENVIRONMENT" ] || fail "--environment is required"
+if [ "$ENVIRONMENT" != "staging" ]; then
+  fail "only the staging environment may use atomic release activation"
+fi
 [ -n "$BASE_DIR" ] || fail "--base-dir is required"
 [ -n "$RELEASE_PATH" ] || fail "--release-path is required"
 [ -n "$EXPECTED_SHA" ] || fail "--expected-sha is required"
@@ -99,8 +123,7 @@ if [ "$ACTUAL_SHA" != "$EXPECTED_SHA" ]; then
   fail "release SHA marker mismatch"
 fi
 
-ln -sfn "$RELEASE_PATH" "$BASE_DIR/current.new"
-mv -Tf "$BASE_DIR/current.new" "$BASE_DIR/current"
+switch_current "$RELEASE_PATH"
 
 CURRENT_TARGET="$(readlink "$BASE_DIR/current" || true)"
 if [ "$CURRENT_TARGET" != "$RELEASE_PATH" ]; then

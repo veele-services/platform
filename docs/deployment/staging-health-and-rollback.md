@@ -1,6 +1,8 @@
 # Staging Health Gate And Symlink Rollback
 
-This runbook defines the staging-only post-deploy health gate added to the deploy workflow. It does not dispatch a workflow, access staging, read live secrets or run down migrations.
+This runbook defines the staging-only post-deploy health gate added to the deploy workflow. It does not dispatch a workflow, access staging, read live secrets or run down migrations. The production deploy path remains the existing direct symlink activation and service restart path from `origin/main`; the new activation script and health gate are guarded to reject non-staging use.
+
+The scripts are Linux deployment tooling. They run under `bash` on the self-hosted Linux runner and use GNU `mv -T` for atomic symlink replacement.
 
 ## Activation Contract
 
@@ -9,7 +11,7 @@ This runbook defines the staging-only post-deploy health gate added to the deplo
 3. The activation script records the previous `current` symlink target.
 4. The new release writes `.fieldgrid-release-sha` with the expected Git SHA.
 5. `scripts/fieldgrid-atomic-release-activate.sh` atomically moves `current` to the new release.
-6. The deploy workflow restarts the four configured services and reloads Caddy.
+6. The health gate restarts exactly the four configured services and reloads Caddy before checking the new release.
 7. `scripts/fieldgrid-deploy-health-gate.sh` verifies symlink state, SHA marker, services, ports, local endpoints and public endpoints.
 8. On health failure, the health gate restores the previous symlink, restarts the same services, reloads Caddy and verifies rollback health.
 9. The failed release directory and health evidence JSON are preserved under the release/shared artifact path.
@@ -30,14 +32,18 @@ The workflow passes these values from GitHub environment variables:
 
 Endpoint lists can be overridden with newline-separated `name|url|mode` entries via `FIELDGRID_DEPLOY_LOCAL_ENDPOINTS` and `FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS`. Modes are `strict` for 2xx/3xx only and `api-root` for the API root, where HTTP 404 is accepted and recorded separately from connection failures or 5xx responses.
 
-Default local probes are:
+Default local probes are exactly four service endpoints:
 
 | Surface | Local probe |
 | --- | --- |
 | Backoffice | `http://127.0.0.1:${BACKOFFICE_PORT}/login` |
 | Personnel PWA | `http://127.0.0.1:${PERSONEEL_PORT}/personeel/healthz` |
 | Customer PWA | `http://127.0.0.1:${KLANT_PORT}/klant/healthz` |
-| API | `http://127.0.0.1:${API_PORT}/api/healthz` and API-root 404 classification |
+| API | `http://127.0.0.1:${API_PORT}/api/healthz` |
+
+API-root is checked as a separate classification probe. HTTP 404 is accepted only for endpoints whose mode is `api-root`; 404 remains a failure for strict service endpoints.
+
+The gate requires exactly four services, exactly four ports, exactly four local service endpoints and at least three public endpoints. Evidence JSON is machine-readable, written with mode `0640`, and records only URL origins in endpoint details.
 
 ## Rollback Boundaries
 
@@ -49,6 +55,16 @@ Rollback is application-level only:
 - If a database migration is not backward compatible, the previous app release may be incompatible with the migrated schema. Treat that as a release blocker and use a database restore plan or a forward fix.
 
 Migration failures before activation leave the existing `current` symlink untouched. Health failures after activation preserve the failed release and evidence logs for diagnosis.
+
+## Operator Stop Rules
+
+Stop the deploy before activation when any of these are true:
+
+- The release contains a forward-only schema change that has not been proven backward compatible with the previous app release.
+- The previous `current` target is missing, outside `$BASE_DIR/releases`, or lacks `.fieldgrid-release-sha`.
+- Fewer or more than four service names, ports or local service endpoints are configured.
+- Public endpoint variables contain signed or tokenized paths instead of plain service origins.
+- Any service restart, Caddy reload, health check or rollback health check fails.
 
 ## Local Test Command
 

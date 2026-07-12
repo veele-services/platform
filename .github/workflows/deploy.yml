@@ -42,13 +42,6 @@ jobs:
       PERSONEEL_PORT: ${{ vars.PERSONEEL_PORT }}
       KLANT_PORT: ${{ vars.KLANT_PORT }}
       API_PORT: ${{ vars.API_PORT }}
-      BACKOFFICE_PUBLIC_URL: ${{ vars.BACKOFFICE_PUBLIC_URL || vars.APP_URL }}
-      PERSONEEL_PUBLIC_URL: ${{ vars.PERSONEEL_PUBLIC_URL }}
-      KLANT_PUBLIC_URL: ${{ vars.KLANT_PUBLIC_URL }}
-      API_PUBLIC_URL: ${{ vars.API_PUBLIC_URL }}
-      FIELDGRID_DEPLOY_HEALTH_ATTEMPTS: ${{ vars.FIELDGRID_DEPLOY_HEALTH_ATTEMPTS || '12' }}
-      FIELDGRID_DEPLOY_HEALTH_RETRY_SECONDS: ${{ vars.FIELDGRID_DEPLOY_HEALTH_RETRY_SECONDS || '5' }}
-      FIELDGRID_DEPLOY_CURL_MAX_TIME_SECONDS: ${{ vars.FIELDGRID_DEPLOY_CURL_MAX_TIME_SECONDS || '5' }}
 
       DATABASE_URL: ${{ secrets.DATABASE_URL }}
       SESSION_SECRET: ${{ secrets.SESSION_SECRET }}
@@ -169,8 +162,13 @@ jobs:
             --exclude='.env' \
             ./ "$RELEASE/"
 
-          printf '%s\n' "$GITHUB_SHA" > "$RELEASE/.fieldgrid-release-sha"
           echo "RELEASE=$RELEASE" >> "$GITHUB_ENV"
+
+      - name: Write staging release SHA marker
+        if: env.TARGET == 'staging'
+        run: |
+          set -euo pipefail
+          printf '%s\n' "$GITHUB_SHA" > "$RELEASE/.fieldgrid-release-sha"
 
       - name: Write environment file
         run: |
@@ -268,25 +266,15 @@ jobs:
           pnpm run db:migrate
 
       - name: Activate release
+        if: env.TARGET == 'production'
         run: |
           set -euo pipefail
-
-          PREVIOUS_CURRENT=""
-          if [ -L "$BASE_DIR/current" ]; then
-            PREVIOUS_CURRENT="$(readlink "$BASE_DIR/current")"
-          fi
-          echo "PREVIOUS_CURRENT=$PREVIOUS_CURRENT" >> "$GITHUB_ENV"
 
           chown -R github-runner:veele-deploy "$RELEASE"
           chmod -R u+rwX,g+rX,o-rwx "$RELEASE"
 
-          sh "$RELEASE/scripts/fieldgrid-atomic-release-activate.sh" \
-            --environment "$TARGET" \
-            --base-dir "$BASE_DIR" \
-            --release-path "$RELEASE" \
-            --expected-sha "$GITHUB_SHA" \
-            --migration-status success \
-            --evidence-file "$BASE_DIR/shared/atomic-activation-${GITHUB_RUN_ID:-manual}-${GITHUB_SHA::7}.json"
+          ln -sfn "$RELEASE" "$BASE_DIR/current.new"
+          mv -Tf "$BASE_DIR/current.new" "$BASE_DIR/current"
 
           services=("${BACKOFFICE_SERVICE_NAME:-$SERVICE_NAME}")
 
@@ -308,17 +296,52 @@ jobs:
 
           sudo systemctl reload caddy
 
-      - name: Run deploy health gate
+      - name: Activate staging release
+        if: env.TARGET == 'staging'
+        env:
+          FIELDGRID_DEPLOY_EVIDENCE_GROUP: veele-deploy
         run: |
           set -euo pipefail
 
-          SYSTEMCTL_SUDO=sudo sh "$RELEASE/scripts/fieldgrid-deploy-health-gate.sh" \
+          PREVIOUS_CURRENT=""
+          if [ -L "$BASE_DIR/current" ]; then
+            PREVIOUS_CURRENT="$(readlink "$BASE_DIR/current")"
+          fi
+          echo "PREVIOUS_CURRENT=$PREVIOUS_CURRENT" >> "$GITHUB_ENV"
+
+          chown -R github-runner:veele-deploy "$RELEASE"
+          chmod -R u+rwX,g+rX,o-rwx "$RELEASE"
+
+          bash "$RELEASE/scripts/fieldgrid-atomic-release-activate.sh" \
+            --environment "$TARGET" \
+            --base-dir "$BASE_DIR" \
+            --release-path "$RELEASE" \
+            --expected-sha "$GITHUB_SHA" \
+            --migration-status success \
+            --evidence-file "$BASE_DIR/shared/atomic-activation-${GITHUB_RUN_ID:-manual}-${GITHUB_SHA::7}.json"
+
+      - name: Run staging deploy health gate
+        if: env.TARGET == 'staging'
+        env:
+          BACKOFFICE_PUBLIC_URL: ${{ vars.BACKOFFICE_PUBLIC_URL || vars.APP_URL }}
+          PERSONEEL_PUBLIC_URL: ${{ vars.PERSONEEL_PUBLIC_URL }}
+          KLANT_PUBLIC_URL: ${{ vars.KLANT_PUBLIC_URL }}
+          API_PUBLIC_URL: ${{ vars.API_PUBLIC_URL }}
+          FIELDGRID_DEPLOY_EVIDENCE_GROUP: veele-deploy
+          FIELDGRID_DEPLOY_HEALTH_ATTEMPTS: ${{ vars.FIELDGRID_DEPLOY_HEALTH_ATTEMPTS || '12' }}
+          FIELDGRID_DEPLOY_HEALTH_RETRY_SECONDS: ${{ vars.FIELDGRID_DEPLOY_HEALTH_RETRY_SECONDS || '5' }}
+          FIELDGRID_DEPLOY_CURL_MAX_TIME_SECONDS: ${{ vars.FIELDGRID_DEPLOY_CURL_MAX_TIME_SECONDS || '5' }}
+        run: |
+          set -euo pipefail
+
+          SYSTEMCTL_SUDO=sudo bash "$RELEASE/scripts/fieldgrid-deploy-health-gate.sh" \
             --environment "$TARGET" \
             --base-dir "$BASE_DIR" \
             --release-path "$RELEASE" \
             --expected-sha "$GITHUB_SHA" \
             --previous-release "${PREVIOUS_CURRENT:-}" \
             --rollback-on-failure \
+            --restart-before-check \
             --evidence-file "$BASE_DIR/shared/deploy-health-${GITHUB_RUN_ID:-manual}-${GITHUB_SHA::7}.json"
 
       - name: Cleanup old releases
