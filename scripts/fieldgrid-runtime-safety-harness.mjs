@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   FIXTURE,
@@ -9,6 +10,14 @@ import {
   writeJsonArtifact,
   writeTextArtifact,
 } from "./fieldgrid-runtime-safety-lib.mjs";
+
+async function loadTenantlessClassification() {
+  const raw = await readFile(
+    join("docs", "testing", "tenantless-write-invariants.json"),
+    "utf8",
+  );
+  return JSON.parse(raw);
+}
 
 async function schemaInvariantChecks(client) {
   const requiredTables = [
@@ -124,53 +133,145 @@ async function tenantDatabaseIntegration(client) {
   });
 }
 
+async function expectDatabaseInvariantRejection(operation) {
+  try {
+    await operation();
+  } catch (error) {
+    assert(error?.code === "23514", "Unexpected database invariant rejection code.", {
+      code: error?.code,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return {
+      code: error.code,
+      message: error instanceof Error ? error.message : String(error),
+    };
+  }
+  throw new Error("Expected database invariant rejection, but the write was accepted.");
+}
+
 async function assignmentExploitTests(client) {
-  let accepted = false;
+  const outcomes = {};
+
   await client.query("begin");
   try {
-    const insert = await client.query(
+    const sameTenant = await client.query(
       `
         insert into assignment_personnel (assignment_id, personnel_id, status, assigned_by)
         values ($1, $2, 'assigned', $3)
-        on conflict do nothing
         returning id
       `,
-      [FIXTURE.assignments.a, FIXTURE.personnel.b, FIXTURE.users.tenantAPlanner],
+      [FIXTURE.assignments.a, FIXTURE.personnel.a, FIXTURE.users.tenantAPlanner],
     );
-    accepted = insert.rows.length > 0;
+    assert(sameTenant.rows.length === 1, "Same-tenant assignment_personnel insert was not accepted.");
+    outcomes.sameTenantInsert = "accepted";
     await client.query("rollback");
-  } catch {
+  } catch (error) {
     await client.query("rollback").catch(() => {});
+    throw error;
   }
 
-  assert(!accepted, "Cross-tenant assignment_personnel insert was accepted by the database.", {
-    assignmentId: FIXTURE.assignments.a,
-    foreignTenantPersonnelId: FIXTURE.personnel.b,
-  });
+  await client.query("begin");
+  try {
+    outcomes.crossTenantInsert = await expectDatabaseInvariantRejection(() =>
+      client.query(
+        `
+          insert into assignment_personnel (assignment_id, personnel_id, status, assigned_by)
+          values ($1, $2, 'assigned', $3)
+          returning id
+        `,
+        [FIXTURE.assignments.a, FIXTURE.personnel.b, FIXTURE.users.tenantAPlanner],
+      ),
+    );
+    await client.query("rollback");
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    throw error;
+  }
+
+  await client.query("begin");
+  try {
+    const inserted = await client.query(
+      `
+        insert into assignment_personnel (assignment_id, personnel_id, status, assigned_by)
+        values ($1, $2, 'assigned', $3)
+        returning id
+      `,
+      [FIXTURE.assignments.a, FIXTURE.personnel.a, FIXTURE.users.tenantAPlanner],
+    );
+    outcomes.updateToForeignPersonnel = await expectDatabaseInvariantRejection(() =>
+      client.query(
+        `update assignment_personnel set personnel_id = $1 where id = $2`,
+        [FIXTURE.personnel.b, inserted.rows[0].id],
+      ),
+    );
+    await client.query("rollback");
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    throw error;
+  }
+
+  await client.query("begin");
+  try {
+    outcomes.upsertCrossTenant = await expectDatabaseInvariantRejection(() =>
+      client.query(
+      `
+        insert into assignment_personnel (assignment_id, personnel_id, status, assigned_by)
+        values ($1, $2, 'assigned', $3)
+        on conflict (assignment_id, personnel_id)
+        do update set status = excluded.status
+      `,
+      [FIXTURE.assignments.a, FIXTURE.personnel.b, FIXTURE.users.tenantAPlanner],
+      ),
+    );
+    await client.query("rollback");
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    throw error;
+  }
 
   return result("assignment-exploit-tests", "passed", {
     attempted: "Tenant A assignment linked to Tenant B personnel",
-    expected: "database rejects or ignores the write",
+    expected: "database rejects cross-tenant writes before commit, including update and upsert paths",
+    outcomes,
   });
 }
 
 async function tenantlessWriteInvariants(client) {
+  const classification = await loadTenantlessClassification();
+  const tableClassifications = classification.tables ?? {};
   const rows = await client.query(
     `
-      select table_name
+      select table_name, is_nullable
       from information_schema.columns
       where table_schema = 'public'
         and column_name = 'tenant_id'
       order by table_name
     `,
   );
+  const unclassifiedNullableTables = rows.rows
+    .filter((row) => row.is_nullable === "YES" && !tableClassifications[row.table_name])
+    .map((row) => row.table_name);
+  assert(
+    unclassifiedNullableTables.length === 0,
+    "Nullable tenant_id tables must be explicitly classified before tenantless writes are allowed.",
+    { unclassifiedNullableTables },
+  );
+
   const violations = [];
   for (const row of rows.rows) {
+    const classificationEntry = tableClassifications[row.table_name];
+    const tableClass = classificationEntry?.classification ?? "tenant-required";
+    if (row.is_nullable === "YES" && tableClass !== "tenant-required") continue;
+
     const count = await client.query(`select count(*)::int as count from ${row.table_name} where tenant_id is null`);
     if (count.rows[0].count > 0) violations.push({ table: row.table_name, rows: count.rows[0].count });
   }
   assert(violations.length === 0, "Tenantless rows exist in tenant-bound tables.", { violations });
-  return result("tenantless-write-invariants", "passed", { checkedTables: rows.rows.length });
+  return result("tenantless-write-invariants", "passed", {
+    checkedTables: rows.rows.length,
+    classificationVersion: classification.version,
+    nullableClassifiedTables: Object.keys(tableClassifications).length,
+  });
 }
 
 async function passwordResetExploitScaffold(client) {
@@ -305,10 +406,10 @@ async function main() {
     testLayerClassification: {
       "schema-invariant-checks": "database integration",
       "tenant-a-b-database-integration": "database integration",
-      "assignment-exploit-tests": "database integration",
-      "password-reset-exploit-tests": "database integration scaffold",
+      "assignment-exploit-tests": "service-role/database invariant",
+      "password-reset-exploit-tests": "provider mock",
       "tenantless-write-invariants": "database integration",
-      "rls-storage-test-scaffolding": "RLS or Storage runtime scaffold",
+      "rls-storage-test-scaffolding": "provider mock",
       "test-result-and-schema-artifacts": "artifact generation",
     },
   });

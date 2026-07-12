@@ -12,6 +12,80 @@ export const FIELDGRID_TEST_LAYERS_VERSION = "fieldgrid-test-layers-v1";
 
 export const fieldgridTestLayers = [
   {
+    id: "contract-static",
+    label: "Contract/static",
+    owner: "Platform engineering",
+    purpose:
+      "Migratievolgorde, testlagenmanifest en runtime fixturecontract blijven expliciet bewaakt.",
+    ciCommand:
+      "pnpm fieldgrid:migration-order-check:check && pnpm fieldgrid:test-layers:check && pnpm fieldgrid:runtime-safety:fixture-contract",
+    requiredTestFiles: ["tests/fieldgrid-runtime-safety-fixtures-contract.test.mjs"],
+    requiredSignals: ["FG-MIG-ORDER", "FG-TEST-LAYERS", "FG-RUNTIME-FIXTURES"],
+  },
+  {
+    id: "unit-domain",
+    label: "Unit/domain",
+    owner: "Platform engineering",
+    purpose:
+      "Pure domein- en contractregels draaien zonder database, browser of provider.",
+    ciCommand: "pnpm fieldgrid:test:domain-recursive",
+    requiredTestFiles: ["tests/domain/tenantless-write-invariants-classification.test.mjs"],
+    requiredSignals: ["FG-DOMAIN-CLASSIFICATION"],
+  },
+  {
+    id: "security-source",
+    label: "Security source",
+    owner: "Platform security",
+    purpose:
+      "Source guards voor security-invarianten bewaken dat kritieke checks niet uit de harness verdwijnen.",
+    ciCommand: "pnpm fieldgrid:test:security-recursive",
+    requiredTestFiles: ["tests/security/assignment-personnel-tenant-guard-source.test.mjs"],
+    requiredSignals: ["FG-ASSIGNMENT-PERSONNEL-GUARD", "FG-RLS-ACTOR-MODEL"],
+  },
+  {
+    id: "postgres17-migration-smoke",
+    label: "PostgreSQL 17 migration smoke",
+    owner: "Platform engineering",
+    purpose:
+      "Alle migraties draaien op een lege lokale PostgreSQL 17 database met Supabase-compatibiliteitsshims.",
+    ciCommand: "pnpm fieldgrid:runtime-safety:setup",
+    requiredTestFiles: ["tests/fieldgrid-runtime-safety-fixtures-contract.test.mjs"],
+    requiredSignals: ["FG-PG17-MIGRATION-SMOKE"],
+  },
+  {
+    id: "db-integration-tenant-ab",
+    label: "DB integration Tenant A/B",
+    owner: "Platform security",
+    purpose:
+      "Tenant A/B fixtures en database-invarianten bewijzen parent-scope en privileged write guards.",
+    ciCommand:
+      "pnpm fieldgrid:runtime-safety:setup && pnpm fieldgrid:runtime-safety:fixtures && pnpm fieldgrid:runtime-safety:db",
+    requiredTestFiles: ["tests/security/assignment-personnel-tenant-guard-source.test.mjs"],
+    requiredSignals: ["FG-DB-INVARIANT", "FG-TENANT-A-B"],
+  },
+  {
+    id: "rls-security",
+    label: "Authenticated RLS",
+    owner: "Platform security",
+    purpose:
+      "Authenticated actors gebruiken SET LOCAL ROLE, row_security en JWT GUCs voor tenantgebonden RLS bewijs.",
+    ciCommand:
+      "pnpm fieldgrid:runtime-safety:setup && pnpm fieldgrid:runtime-safety:fixtures && pnpm fieldgrid:runtime-safety:rls",
+    requiredTestFiles: ["tests/security/assignment-personnel-tenant-guard-source.test.mjs"],
+    requiredSignals: ["FG-AUTHENTICATED-RLS", "FG-MULTI-TENANT-CONTEXT"],
+  },
+  {
+    id: "api-runtime",
+    label: "API runtime",
+    owner: "Platform engineering",
+    purpose:
+      "Lokale API runtime bewijst middleware/routegedrag zonder live providers of staging.",
+    ciCommand:
+      "pnpm fieldgrid:runtime-safety:setup && pnpm fieldgrid:runtime-safety:fixtures && pnpm --filter @workspace/api-server run build && pnpm fieldgrid:runtime-safety:api",
+    requiredTestFiles: ["tests/fieldgrid-runtime-safety-fixtures-contract.test.mjs"],
+    requiredSignals: ["FG-API-RUNTIME"],
+  },
+  {
     id: "security-guards",
     label: "Security guards",
     owner: "Platform engineering",
@@ -154,15 +228,35 @@ export async function buildFieldgridTestLayersPlan() {
     noTenantMutation: true,
     layers,
     requiredLayerIds: [
-      "security-guards",
-      "ui-contracttests",
-      "db-migration-smoke",
-      "live-e2e",
+      "contract-static",
+      "unit-domain",
+      "security-source",
+      "postgres17-migration-smoke",
+      "db-integration-tenant-ab",
+      "rls-security",
+      "api-runtime",
     ],
     packageScripts: {
+      "fieldgrid:test:contract-static": fieldgridTestLayers.find(
+        (layer) => layer.id === "contract-static",
+      )?.ciCommand,
+      "fieldgrid:test:unit-domain": "pnpm fieldgrid:test:domain-recursive",
+      "fieldgrid:test:security-source": "pnpm fieldgrid:test:security-recursive",
+      "fieldgrid:test:postgres17-migration-smoke": "pnpm fieldgrid:runtime-safety:setup",
+      "fieldgrid:test:db-integration-tenant-ab": fieldgridTestLayers.find(
+        (layer) => layer.id === "db-integration-tenant-ab",
+      )?.ciCommand,
+      "fieldgrid:test:rls-security": fieldgridTestLayers.find(
+        (layer) => layer.id === "rls-security",
+      )?.ciCommand,
+      "fieldgrid:test:api-runtime": fieldgridTestLayers.find(
+        (layer) => layer.id === "api-runtime",
+      )?.ciCommand,
       "fieldgrid:test-layers": "node scripts/fieldgrid-test-layers.mjs",
       "fieldgrid:test-layers:check":
         "node scripts/fieldgrid-test-layers.mjs --check",
+      "fieldgrid:test:security-recursive": "node --test $(find tests/security -name '*.test.mjs' -print | sort)",
+      "fieldgrid:test:domain-recursive": "node --test $(find tests/domain -name '*.test.mjs' -print | sort)",
       "fieldgrid:test:security": fieldgridTestLayers.find(
         (layer) => layer.id === "security-guards",
       )?.ciCommand,

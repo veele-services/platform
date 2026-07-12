@@ -26,7 +26,8 @@ Layer commands:
 - `pnpm fieldgrid:migration-order-check:check`: static migration order policy.
 - `pnpm fieldgrid:runtime-safety:setup`: installs local shims and runs empty database migrations.
 - `pnpm fieldgrid:runtime-safety:fixtures`: loads deterministic platform, Tenant A/B, suspended, module-off, multi-tenant, expired invite/recovery/support fixtures.
-- `pnpm fieldgrid:runtime-safety:db`: database integration, schema invariant, assignment exploit, tenantless-write, and RLS/storage scaffold checks.
+- `pnpm fieldgrid:runtime-safety:db`: database integration, schema invariant, privileged assignment invariant, tenantless-write, and storage/password-reset scaffold checks.
+- `pnpm fieldgrid:runtime-safety:rls`: authenticated RLS checks using `SET LOCAL ROLE authenticated`, `row_security = on`, and local JWT GUC shims.
 - `pnpm --filter @workspace/api-server run build`: API build for runtime checks.
 - `pnpm fieldgrid:runtime-safety:api`: local API runtime checks.
 - `pnpm fieldgrid:runtime-safety:teardown`: guarded cleanup; destructive reset only happens with `FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET=1`.
@@ -60,11 +61,15 @@ The fixture loader creates:
 Until GitHub required checks can be enforced for this private repository, humans must treat these as required before merging to `main`:
 
 - `Runtime Safety Harness / contract-static`
+- `Runtime Safety Harness / unit-domain`
+- `Runtime Safety Harness / security-source`
 - `Runtime Safety Harness / postgres17-migration-smoke`
-- `Runtime Safety Harness / runtime-security-tests`
+- `Runtime Safety Harness / db-integration-tenant-ab`
+- `Runtime Safety Harness / rls-security`
+- `Runtime Safety Harness / api-runtime`
 
 Do not merge a PR when one of these checks is missing, skipped, cancelled, or red. Do not substitute static source inspection for a failed database, API, RLS, or storage scaffold layer.
 
 ## Rollback
 
-This change is harness-only. Rollback is a normal revert of the workflow, scripts, package commands, and docs. No migration is added and no staging or production state is modified.
+Rollback is a normal app/code revert of the workflow, scripts, package commands, and docs. The forward-only `assignment_personnel` databaseguard is intentionally safe to leave in place after an app revert because it only rejects invalid cross-tenant links and does not rewrite business data. No automatic downmigration is provided, and no staging or production state is modified by this PR.

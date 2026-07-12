@@ -34,13 +34,23 @@
     },
     "assignment-exploit-tests": {
       "command": "pnpm fieldgrid:runtime-safety:db",
-      "classification": "database integration",
+      "classification": "service-role/database invariant",
       "runtime_evidence": true
+    },
+    "authenticated-rls-assignment-personnel": {
+      "command": "pnpm fieldgrid:runtime-safety:rls",
+      "classification": "authenticated RLS",
+      "runtime_evidence": true,
+      "compatibility_limitations": [
+        "PostgreSQL 17 plus local Supabase auth.uid()/auth.jwt() GUC shims",
+        "not Supabase GoTrue",
+        "not staging"
+      ]
     },
     "password-reset-exploit-tests": {
       "command": "pnpm fieldgrid:runtime-safety:db",
-      "classification": "database integration scaffold",
-      "runtime_evidence": true,
+      "classification": "provider mock",
+      "runtime_evidence": false,
       "claims_still_requiring_provider_evidence": [
         "Supabase password reset token issuance",
         "Supabase password reset token expiry",
@@ -54,8 +64,8 @@
     },
     "rls-storage-test-scaffolding": {
       "command": "pnpm fieldgrid:runtime-safety:db",
-      "classification": "RLS or Storage runtime scaffold",
-      "runtime_evidence": true,
+      "classification": "provider mock",
+      "runtime_evidence": false,
       "claims_still_requiring_supabase_evidence": [
         "Supabase Storage object API behavior",
         "signed URL behavior",
@@ -91,7 +101,11 @@
   "future_required_checks": [
     "Runtime Safety Harness / contract-static",
     "Runtime Safety Harness / postgres17-migration-smoke",
-    "Runtime Safety Harness / runtime-security-tests"
+    "Runtime Safety Harness / unit-domain",
+    "Runtime Safety Harness / security-source",
+    "Runtime Safety Harness / db-integration-tenant-ab",
+    "Runtime Safety Harness / rls-security",
+    "Runtime Safety Harness / api-runtime"
   ],
   "manual_merge_gate": "Do not merge to main unless all future_required_checks are present and passing."
 }

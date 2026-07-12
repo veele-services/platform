@@ -74,6 +74,10 @@ export function databaseUrl() {
 
   const parsed = new URL(value);
   const allowedHosts = new Set(["localhost", "127.0.0.1", "::1", "postgres"]);
+  const blockedHostPattern = /(?:supabase|fieldgrid\.nl|staging|production|prod)/iu;
+  if (blockedHostPattern.test(parsed.hostname)) {
+    throw new Error(`Refusing live-like DATABASE_URL host "${parsed.hostname}" for the runtime safety harness.`);
+  }
   if (
     process.env.FIELDGRID_RUNTIME_SAFETY_ALLOW_NONLOCAL !== "1" &&
     !allowedHosts.has(parsed.hostname)
@@ -84,6 +88,21 @@ export function databaseUrl() {
   }
 
   return value;
+}
+
+export async function assertDisposableDatabaseForReset(client) {
+  const database = await client.query(`select current_database() as database_name`);
+  const databaseName = database.rows[0]?.database_name ?? "";
+  const confirm = process.env.FIELDGRID_RUNTIME_SAFETY_RESET_CONFIRM;
+  if (
+    databaseName !== "fieldgrid_runtime_safety" &&
+    databaseName !== "fieldgrid_runtime_safety_test" &&
+    confirm !== databaseName
+  ) {
+    throw new Error(
+      `Refusing destructive reset for database "${databaseName}". Use a fieldgrid_runtime_safety database or set FIELDGRID_RUNTIME_SAFETY_RESET_CONFIRM to the exact local disposable database name.`,
+    );
+  }
 }
 
 export async function connect() {
@@ -105,14 +124,29 @@ export async function writeJsonArtifact(relativePath, payload) {
   await ensureArtifactDirs();
   const path = join(runtimeArtifactDir, relativePath);
   await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, `${JSON.stringify(payload, null, 2)}\n`);
+  await writeFile(path, `${redactArtifactText(JSON.stringify(payload, null, 2))}\n`);
 }
 
 export async function writeTextArtifact(relativePath, text) {
   await ensureArtifactDirs();
   const path = join(runtimeArtifactDir, relativePath);
   await mkdir(dirname(path), { recursive: true });
-  await writeFile(path, text);
+  await writeFile(path, redactArtifactText(text));
+}
+
+export function redactArtifactText(text) {
+  return String(text)
+    .replace(/postgres(?:ql)?:\/\/[^\s"'<>]+/giu, "postgresql://[redacted]")
+    .replace(/\bBearer\s+[A-Za-z0-9._~+/=-]+/gu, "Bearer [redacted]")
+    .replace(/\beyJ[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\b/gu, "[redacted-jwt]")
+    .replace(
+      /("(?:service_role|api[_-]?key|webhook[_-]?secret|smtp[_-]?password|admin[_-]?secret|jwt[_-]?secret|vapid[_-]?(?:public|private)?[_-]?key)"\s*:\s*)"[^"]*"/giu,
+      '$1"[redacted]"',
+    )
+    .replace(
+      /\b((?:SERVICE_ROLE|API_KEY|WEBHOOK_SECRET|SMTP_PASSWORD|ADMIN_SECRET|JWT_SECRET|VAPID_PUBLIC_KEY|VAPID_PRIVATE_KEY)=)[^\s]+/giu,
+      "$1[redacted]",
+    );
 }
 
 export async function tableExists(client, schemaName, tableName) {

@@ -2,6 +2,7 @@
 import { spawn } from "node:child_process";
 import { join } from "node:path";
 import {
+  assertDisposableDatabaseForReset,
   connect,
   databaseUrl,
   ensureArtifactDirs,
@@ -33,6 +34,7 @@ function run(command, args, env) {
 
 async function resetIfAllowed(client) {
   if (process.env.FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET !== "1") return false;
+  await assertDisposableDatabaseForReset(client);
   await client.query(`
     drop schema if exists public cascade;
     drop schema if exists drizzle cascade;

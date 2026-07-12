@@ -1,0 +1,139 @@
+{
+  "version": "fieldgrid-tenantless-write-invariants-v1",
+  "updated_at": "2026-07-13",
+  "tables": {
+    "assignment_material_usage": {
+      "classification": "tenant-required",
+      "reason": "Operational assignment usage rows must resolve to a tenant; nullable schema is transitional and runtime rows may not be tenantless."
+    },
+    "assignment_photos": {
+      "classification": "tenant-required",
+      "reason": "Assignment media rows must resolve to a tenant; nullable schema is transitional and runtime rows may not be tenantless."
+    },
+    "assignment_report_note_attachments": {
+      "classification": "tenant-required",
+      "reason": "Report note attachments are tenant data; nullable schema is transitional and runtime rows may not be tenantless."
+    },
+    "audit_log": {
+      "classification": "hybrid",
+      "reason": "Can contain platform-level audit events and tenant-scoped audit events."
+    },
+    "customer_payment_batch_items": {
+      "classification": "tenant-required",
+      "reason": "Payment batch items are tenant financial data; nullable schema is transitional and runtime rows may not be tenantless."
+    },
+    "customer_payment_batches": {
+      "classification": "tenant-required",
+      "reason": "Payment batches are tenant financial data; nullable schema is transitional and runtime rows may not be tenantless."
+    },
+    "customer_types": {
+      "classification": "platform-global",
+      "reason": "Customer type defaults can be platform-global."
+    },
+    "documents": {
+      "classification": "tenant-required",
+      "reason": "Documents are tenant data; nullable schema is transitional and runtime rows may not be tenantless."
+    },
+    "email_delivery_log": {
+      "classification": "hybrid",
+      "reason": "Delivery events can be provider/platform events or tenant-scoped messages."
+    },
+    "invoices": {
+      "classification": "tenant-required",
+      "reason": "Invoices are tenant financial data; nullable schema is transitional and runtime rows may not be tenantless."
+    },
+    "kb_article_feedback": {
+      "classification": "hybrid",
+      "reason": "Knowledgebase feedback can be platform-wide or tenant contextual."
+    },
+    "kb_article_media": {
+      "classification": "parent-bound",
+      "parent": "kb_articles",
+      "reason": "Media inherits tenant/global scope from the article."
+    },
+    "kb_articles": {
+      "classification": "hybrid",
+      "reason": "Knowledgebase articles can be platform-global or tenant-specific."
+    },
+    "kb_categories": {
+      "classification": "hybrid",
+      "reason": "Knowledgebase categories can be platform-global or tenant-specific."
+    },
+    "kb_search_events": {
+      "classification": "hybrid",
+      "reason": "Search telemetry can be platform-level or tenant-contextual."
+    },
+    "news_posts": {
+      "classification": "platform-global",
+      "reason": "News posts are currently platform-scoped and enforce tenant_id null in SQL."
+    },
+    "notification_event_settings": {
+      "classification": "hybrid",
+      "reason": "Notification defaults can be global, with tenant overrides."
+    },
+    "payments": {
+      "classification": "tenant-required",
+      "reason": "Payments are tenant financial data; nullable schema is transitional and runtime rows may not be tenantless."
+    },
+    "platform_notification_recipients": {
+      "classification": "hybrid",
+      "reason": "Recipients can be platform actors or tenant-scoped actors."
+    },
+    "platform_notifications": {
+      "classification": "platform-global",
+      "reason": "Platform notifications may not belong to a tenant."
+    },
+    "platform_tickets": {
+      "classification": "hybrid",
+      "reason": "Platform tickets can exist outside a tenant or be associated with a tenant."
+    },
+    "quotes": {
+      "classification": "tenant-required",
+      "reason": "Quotes are tenant financial data; nullable schema is transitional and runtime rows may not be tenantless."
+    },
+    "release_dismissals": {
+      "classification": "hybrid",
+      "reason": "Release dismissals can be platform-level or tenant-contextual."
+    },
+    "release_read_receipts": {
+      "classification": "hybrid",
+      "reason": "Read receipts can be platform-level or tenant-contextual."
+    },
+    "release_ticket_links": {
+      "classification": "parent-bound",
+      "parent": "platform_tickets",
+      "reason": "Release ticket links inherit scope from linked ticket/release context."
+    },
+    "reports": {
+      "classification": "tenant-required",
+      "reason": "Reports are tenant operational data; nullable schema is transitional and runtime rows may not be tenantless."
+    },
+    "roadmap_item_comments": {
+      "classification": "parent-bound",
+      "parent": "roadmap_items",
+      "reason": "Roadmap comments inherit scope from their parent item."
+    },
+    "roadmap_item_ticket_links": {
+      "classification": "parent-bound",
+      "parent": "roadmap_items",
+      "reason": "Roadmap ticket links inherit scope from their parent item and ticket."
+    },
+    "roadmap_item_votes": {
+      "classification": "parent-bound",
+      "parent": "roadmap_items",
+      "reason": "Roadmap votes inherit scope from their parent item."
+    },
+    "roadmap_items": {
+      "classification": "hybrid",
+      "reason": "Roadmap items can be platform-wide or tenant-contextual."
+    },
+    "tenant_provisioning_runs": {
+      "classification": "hybrid",
+      "reason": "Provisioning runs may start before a tenant row is finalized."
+    },
+    "tenant_roles": {
+      "classification": "tenant-required",
+      "reason": "Canonical tenant RBAC roles are tenant-scoped; nullable legacy schema declarations are not allowed to create tenantless runtime rows."
+    }
+  }
+}

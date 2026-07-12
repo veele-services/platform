@@ -1,6 +1,12 @@
 #!/usr/bin/env node
 import { join } from "node:path";
-import { connect, databaseUrl, writeJsonArtifact, writeTextArtifact } from "./fieldgrid-runtime-safety-lib.mjs";
+import {
+  assertDisposableDatabaseForReset,
+  connect,
+  databaseUrl,
+  writeJsonArtifact,
+  writeTextArtifact,
+} from "./fieldgrid-runtime-safety-lib.mjs";
 
 async function main() {
   const startedAt = new Date().toISOString();
@@ -8,6 +14,7 @@ async function main() {
   const client = await connect();
   try {
     if (shouldReset) {
+      await assertDisposableDatabaseForReset(client);
       await client.query(`
         drop schema if exists public cascade;
         drop schema if exists drizzle cascade;
