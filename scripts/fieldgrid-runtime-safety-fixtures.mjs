@@ -95,7 +95,7 @@ async function insertTenants(client) {
     await client.query(
       `
         insert into tenant_domains (tenant_id, domain, type, is_primary, verification_status, verification_method, tls_status, activated_at, verified_at)
-        values ($1, $2, 'runtime_test', true, 'active', 'runtime', 'active', now(), now())
+        values ($1, $2, 'fieldgrid_subdomain', true, 'verified', 'dns_txt', 'active', now(), now())
         on conflict (domain) do update set tenant_id = excluded.tenant_id, verification_status = excluded.verification_status
       `,
       [tenantId, domain],

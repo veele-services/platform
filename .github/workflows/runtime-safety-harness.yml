@@ -35,6 +35,8 @@ jobs:
 
       - name: Test-layer contract
         run: pnpm fieldgrid:test-layers:check
+      - name: Runtime fixture contract
+        run: pnpm fieldgrid:runtime-safety:fixture-contract
 
   postgres17-migration-smoke:
     name: postgres17-migration-smoke
