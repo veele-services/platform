@@ -46,3 +46,15 @@ jobs:
 
       - name: Run deploy health gate shell tests
         run: pnpm fieldgrid:deploy-health-gate:test
+
+      - name: Run Fieldgrid static guard checks
+        run: |
+          set -euo pipefail
+          pnpm fieldgrid:migration-order-check:check
+          pnpm fieldgrid:test-layers:check
+
+      - name: Run typecheck
+        run: pnpm run typecheck
+
+      - name: Run root test lane
+        run: pnpm test
