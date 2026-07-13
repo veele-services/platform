@@ -7,8 +7,11 @@ import { test } from "node:test";
 const repoRoot = process.cwd();
 const phaseAMigrationPath = "lib/db/migrations/20260712130000_assignment_personnel_tenant_guard.sql";
 const phaseAAclMigrationPath = "lib/db/migrations/20260713120000_assignment_personnel_phase_a_acl_hardening.sql";
+const phaseBMigrationPath = "lib/db/migrations/20260714120000_assignment_personnel_phase_b_direct_access_close.sql";
 const phaseAMigrationCanonicalSha256 = "0933b6ca61e19b7db04d6a53c0aa03642803f2d07035f1e8c4d5a6aabd7c4a65";
-const rollbackPolicyNames = [
+const phaseAAclMigrationCanonicalSha256 = "a14b31c26fcd000eb4a0f67fbc3b3b94854a2f61716a92f66df6f25131220c09";
+
+const removedAssignmentPersonnelPolicies = [
   "assignment_personnel_management_all",
   "assignment_personnel_tenant_management_all",
   "assignment_personnel_own_select",
@@ -31,146 +34,133 @@ function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
 }
 
-test("assignment_personnel phase-A migration keeps SELECT rollback compatibility and closes direct DML", () => {
-  const migration = read(phaseAMigrationPath);
+function sqlStatements(sql) {
+  return sql
+    .split(";")
+    .map((statement) => normalizeSql(statement))
+    .filter(Boolean)
+    .map((statement) => `${statement};`);
+}
 
-  assert.match(migration, /assignment_personnel tenant invariant preflight failed/u);
-  assert.match(migration, /LEFT JOIN public\.assignments/u);
-  assert.match(migration, /LEFT JOIN public\.personnel/u);
-  assert.match(migration, /CREATE OR REPLACE FUNCTION public\.trg_assignment_personnel_tenant_guard/u);
-  assert.match(migration, /SET search_path = pg_catalog, public/u);
-  assert.match(migration, /BEFORE INSERT OR UPDATE ON public\.assignment_personnel/u);
-  assert.match(migration, /USING ERRCODE = '23514'/u);
-  assert.match(
-    migration,
-    /REVOKE INSERT, UPDATE, DELETE ON public\.assignment_personnel FROM PUBLIC, anon, authenticated/u,
-  );
-  assert.match(
-    migration,
-    /GRANT SELECT, INSERT, UPDATE, DELETE ON public\.assignment_personnel TO service_role/u,
-  );
-  assert.doesNotMatch(migration, /REVOKE ALL ON TABLE public\.assignment_personnel FROM PUBLIC, anon, authenticated/u);
-  assert.doesNotMatch(migration, /REVOKE SELECT ON public\.assignment_personnel FROM .*authenticated/u);
-  assert.doesNotMatch(migration, /GRANT SELECT ON public\.assignment_personnel TO authenticated/u);
-  assert.doesNotMatch(migration, /DROP POLICY IF EXISTS assignment_personnel_management_all/u);
-  assert.doesNotMatch(migration, /DROP POLICY IF EXISTS assignment_personnel_tenant_management_all/u);
-  assert.doesNotMatch(migration, /DROP POLICY IF EXISTS assignment_personnel_own_select/u);
-  assert.doesNotMatch(migration, /GRANT EXECUTE ON FUNCTION public\.can_select_own_assignment_personnel/u);
-  assert.doesNotMatch(migration, /CREATE OR REPLACE FUNCTION public\.can_manage_assignment_personnel/u);
-  assert.doesNotMatch(migration, /CREATE OR REPLACE FUNCTION public\.can_select_own_assignment_personnel/u);
-  assert.doesNotMatch(migration, /DROP FUNCTION IF EXISTS public\.can_manage_assignment_personnel\(uuid, uuid\)/u);
-  assert.doesNotMatch(migration, /DROP FUNCTION IF EXISTS public\.can_select_own_assignment_personnel\(uuid, uuid\)/u);
-});
-
-test("assignment_personnel phase-A migration is unchanged in this ACL hardening PR", () => {
+test("assignment_personnel Phase-A migration remains unchanged", () => {
   assert.equal(sha256(canonicalizeLineEndings(read(phaseAMigrationPath))), phaseAMigrationCanonicalSha256);
 });
 
-test("assignment_personnel phase-A.1 migration revokes broad table ACL and grants back only authenticated SELECT plus service-role CRUD", () => {
-  const migration = read(phaseAAclMigrationPath);
+test("assignment_personnel Phase-A.1 migration remains unchanged", () => {
+  assert.equal(sha256(canonicalizeLineEndings(read(phaseAAclMigrationPath))), phaseAAclMigrationCanonicalSha256);
+});
+
+test("assignment_personnel Phase-B migration is forward-only and closes direct table ACL", () => {
+  const migration = read(phaseBMigrationPath);
   const normalized = normalizeSql(migration);
 
-  assert.match(migration, /Phase A\.1: least-privilege ACL hardening\./u);
-  assert.match(migration, /Keep authenticated SELECT temporarily for rollback compatibility\./u);
+  assert.match(migration, /Assignment personnel Phase B direct access closure/u);
   assert.match(
     normalized,
     /REVOKE ALL ON TABLE public\.assignment_personnel FROM PUBLIC, anon, authenticated, service_role;/u,
   );
   assert.match(
     normalized,
-    /GRANT SELECT ON TABLE public\.assignment_personnel TO authenticated;/u,
-  );
-  assert.match(
-    normalized,
     /GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public\.assignment_personnel TO service_role;/u,
   );
 
-  const grantStatements = migration.match(/\bGRANT\b[\s\S]*?;/giu)?.map(normalizeSql) ?? [];
+  for (const policyName of removedAssignmentPersonnelPolicies) {
+    assert.match(
+      normalized,
+      new RegExp(`DROP POLICY IF EXISTS ${policyName} ON public\\.assignment_personnel;`, "u"),
+    );
+  }
+
+  const grantStatements = sqlStatements(migration).filter((statement) => /^\bGRANT\b/iu.test(statement));
   assert.deepEqual(grantStatements, [
-    "GRANT SELECT ON TABLE public.assignment_personnel TO authenticated;",
+    "GRANT EXECUTE ON FUNCTION public.personnel_assigned_to_assignment(uuid) TO authenticated;",
     "GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.assignment_personnel TO service_role;",
   ]);
-  assert.doesNotMatch(migration, /\bGRANT\b[\s\S]*?\bTO\b[\s\S]*?\banon\b[\s\S]*?;/iu);
-  assert.doesNotMatch(migration, /\bGRANT\b[\s\S]*?\bTO\b[\s\S]*?\bPUBLIC\b[\s\S]*?;/u);
-  assert.doesNotMatch(
-    migration,
-    /\bGRANT\b[\s\S]*?\b(INSERT|UPDATE|DELETE|TRUNCATE|REFERENCES|TRIGGER|MAINTAIN)\b[\s\S]*?\bTO\b[\s\S]*?\bauthenticated\b[\s\S]*?;/iu,
-  );
-  assert.doesNotMatch(
-    migration,
-    /\bGRANT\b[\s\S]*?\b(TRUNCATE|REFERENCES|TRIGGER|MAINTAIN)\b[\s\S]*?\bTO\b[\s\S]*?\bservice_role\b[\s\S]*?;/iu,
-  );
-  assert.doesNotMatch(migration, /\b(CREATE|DROP)\s+(POLICY|TRIGGER|FUNCTION)\b/iu);
   assert.doesNotMatch(migration, /\b(INSERT\s+INTO|UPDATE|DELETE\s+FROM|TRUNCATE)\s+public\.assignment_personnel\b/iu);
-
-  for (const policyName of rollbackPolicyNames) {
-    assert.doesNotMatch(migration, new RegExp(`DROP POLICY IF EXISTS ${policyName}`, "u"));
-  }
 });
 
-test("security definer helpers have explicit revokes and minimal grants", () => {
-  const migration = read(phaseAMigrationPath);
+test("personnel_assigned_to_assignment is a minimal hardened SECURITY DEFINER helper", () => {
+  const migration = read(phaseBMigrationPath);
+  const helper = migration.slice(
+    migration.indexOf("CREATE OR REPLACE FUNCTION public.personnel_assigned_to_assignment"),
+    migration.indexOf("REVOKE ALL ON FUNCTION public.personnel_assigned_to_assignment"),
+  );
+
+  assert.match(helper, /SECURITY DEFINER/u);
+  assert.match(helper, /SET search_path = pg_catalog, public, auth/u);
+  assert.match(helper, /FROM public\.assignment_personnel ap/u);
+  assert.match(helper, /JOIN public\.assignments a/u);
+  assert.match(helper, /JOIN public\.personnel p/u);
+  assert.match(helper, /v_auth_uid := auth\.uid\(\)/u);
+  assert.match(helper, /auth\.jwt\(\) ->> 'tenant_id'/u);
+  assert.match(helper, /WHEN invalid_text_representation THEN\s+RETURN false;/u);
+  assert.match(helper, /p\.is_active = true/u);
+  assert.match(helper, /p\.tenant_id = a\.tenant_id/u);
+  assert.match(helper, /a\.tenant_id = v_claim_tenant_id/u);
+
+  assert.doesNotMatch(helper, /\bEXECUTE\b/iu);
+  assert.doesNotMatch(helper, /\bformat\s*\(/iu);
+  assert.doesNotMatch(helper, /claim\s+IS\s+NULL\s+OR/iu);
 
   assert.match(
     migration,
-    /REVOKE ALL ON FUNCTION public\.trg_assignment_personnel_tenant_guard\(\) FROM PUBLIC, anon, authenticated/u,
+    /REVOKE ALL ON FUNCTION public\.personnel_assigned_to_assignment\(uuid\)\s+FROM PUBLIC, anon, authenticated, service_role;/u,
   );
-
-  assert.doesNotMatch(migration, /GRANT EXECUTE ON FUNCTION public\.trg_assignment_personnel_tenant_guard\(\) TO/u);
-  assert.doesNotMatch(
+  assert.match(
     migration,
-    /GRANT EXECUTE ON FUNCTION public\.can_manage_assignment_personnel\(uuid, uuid\) TO/u,
+    /GRANT EXECUTE ON FUNCTION public\.personnel_assigned_to_assignment\(uuid\)\s+TO authenticated;/u,
   );
-  assert.doesNotMatch(
-    migration,
-    /GRANT EXECUTE ON FUNCTION public\.can_select_own_assignment_personnel\(uuid, uuid\) TO/u,
-  );
+  assert.doesNotMatch(migration, /GRANT EXECUTE ON FUNCTION public\.personnel_assigned_to_assignment\(uuid\)\s+TO anon/u);
 });
 
-test("authenticated RLS harness proves phase-A server-only DML without claiming SELECT closure", () => {
+test("Phase-B migration removes obsolete helpers when present and keeps legacy RPC revoked", () => {
+  const phaseA = read(phaseAMigrationPath);
+  const phaseB = read(phaseBMigrationPath);
+
+  assert.match(phaseA, /to_regprocedure\('public\.pwa_apply_for_assignment\(uuid\)'\)/u);
+  assert.match(
+    phaseA,
+    /REVOKE ALL ON FUNCTION public\.pwa_apply_for_assignment\(uuid\) FROM PUBLIC, anon, authenticated/u,
+  );
+  assert.match(phaseB, /DROP FUNCTION IF EXISTS\s+public\.can_manage_assignment_personnel\(uuid, uuid\);/u);
+  assert.match(phaseB, /DROP FUNCTION IF EXISTS\s+public\.can_select_own_assignment_personnel\(uuid, uuid\);/u);
+  assert.match(phaseB, /DROP FUNCTION IF EXISTS\s+public\.assignment_personnel_tenant_match\(uuid, uuid\);/u);
+});
+
+test("Phase-B source guards cover direct access, RLS runtime, service-role invariant, and rollback compatibility", () => {
   const harness = read("scripts/fieldgrid-runtime-safety-rls-harness.mjs");
+  const compatibility = read("scripts/fieldgrid-runtime-safety-previous-release-compatibility.mjs");
+  const workflow = read(".github/workflows/runtime-safety-harness.yml");
 
-  assert.match(harness, /asRole\(client, "authenticated"/u);
-  assert.match(harness, /set local row_security = on/u);
-  assert.match(harness, /request\.jwt\.claim\.sub/u);
-  assert.match(harness, /request\.jwt\.claims/u);
-  assert.match(harness, /rls-assignment-personnel-table-acl-least-privilege/u);
-  assert.match(harness, /rls-assignment-personnel-historical-broad-acl-drift-cleaned/u);
-  assert.match(harness, /GRANT ALL ON TABLE public\.assignment_personnel TO anon, authenticated, service_role/u);
-  assert.match(harness, /20260713120000_assignment_personnel_phase_a_acl_hardening\.sql/u);
-  assert.match(harness, /aclexplode\(coalesce\(c\.relacl, acldefault\('r', c\.relowner\)\)\)/u);
-  assert.match(harness, /has_table_privilege\(role_name::name, 'public\.assignment_personnel', privilege_name\)/u);
-  assert.match(harness, /rls-authenticated-own-select-rollback-compatibility/u);
-  assert.match(harness, /Temporary Phase-A rollback compatibility only; cross-tenant SELECT closure remains Phase B\./u);
+  assert.match(harness, /rls-authenticated-direct-assignment-personnel-crud-revoked/u);
   assert.match(harness, /rls-anon-assignment-personnel-select-permission-denied/u);
-  assert.match(harness, /SELECT count\(\*\) FROM public\.assignment_personnel/u);
-  assert.match(harness, /rls-tenant-context-does-not-open-direct-dml/u);
-  assert.match(harness, /rls-legacy-global-management-without-tenant-role-denied/u);
-  assert.match(harness, /rls-authenticated-direct-dml-revoked/u);
-  assert.match(harness, /rls-anon-direct-dml-revoked/u);
-  assert.match(harness, /rls-service-role-server-command-and-trigger-invariant/u);
-  assert.match(harness, /rls-selected-tenant-claim-does-not-open-assignment-personnel-dml/u);
-  assert.match(harness, /rls-security-definer-execute-privileges-minimal/u);
-  assert.doesNotMatch(harness, /rls-authenticated-direct-select-revoked/u);
-  assert.doesNotMatch(harness, /has_function_privilege\('PUBLIC'/u);
-  assert.match(harness, /codex\/assignment-personnel-direct-access-close-phase2-prep/u);
-  assert.match(harness, /Close authenticated assignment_personnel SELECT after phase-A is live on staging/u);
+  assert.match(harness, /rls-service-role-crud-and-trigger-invariant/u);
+  assert.match(harness, /rls-personnel-policy-mediated-legitimate-data-access/u);
+  assert.match(harness, /rls-tenant-a-b-isolation-and-selected-tenant-fail-closed/u);
+  assert.match(harness, /rls-customer-policy-regression-assignments-tasks-photos-reports/u);
+  assert.match(harness, /rls-database-function-policy-dependency-audit/u);
+  assert.match(harness, /set local role \$\{role\}/u);
+  assert.match(harness, /asAuthenticated\(client/u);
+  assert.match(harness, /set local row_security = on/u);
+  assert.doesNotMatch(harness, /rls-authenticated-own-select-rollback-compatibility/u);
+
+  assert.match(compatibility, /132e7d0705f0192d6ec4a28195f192850574447d/u);
+  assert.match(compatibility, /phase-b-previous-release-database-compatibility/u);
+  assert.match(compatibility, /previousReleaseServerSideQueriesStillWork/u);
+  assert.match(compatibility, /previousReleaseRlsContractStillWorksWithSelectedTenant/u);
+  assert.match(workflow, /phase-b-previous-release-database-compatibility/u);
 });
 
-test("phase-B direct SELECT closure is classified and documented as deferred acceptance", () => {
+test("Phase-B documentation classifies evidence layers without treating regex as runtime proof", () => {
   const classification = read("docs/testing/test-layer-classification.json");
   const docs = read("docs/testing/runtime-safety-harness.md");
 
   assert.match(classification, /phase-b-assignment-personnel-select-closure/u);
-  assert.match(classification, /phase-B acceptance criteria/u);
-  assert.match(classification, /codex\/assignment-personnel-direct-access-close-phase2-prep/u);
-  assert.match(classification, /Close authenticated assignment_personnel SELECT after phase-A is live on staging/u);
-  assert.match(classification, /assignment_personnel_management_all is removed/u);
-  assert.match(classification, /personnel_read_own_assignment_personnel is removed/u);
-  assert.match(docs, /Phase A\.1 deliberately keeps authenticated SELECT/u);
-  assert.match(docs, /codex\/assignment-personnel-direct-access-close-phase2-prep/u);
-  assert.match(docs, /reference snapshot only/u);
-  assert.match(docs, /must not be merged directly/u);
-  assert.match(docs, /rewrites the already-applied migration `20260712130000_assignment_personnel_tenant_guard\.sql`/u);
-  assert.match(docs, /new forward-only migration from current main/u);
+  assert.match(classification, /authenticated RLS plus database ACL runtime evidence/u);
+  assert.match(classification, /phase-b-previous-release-database-compatibility/u);
+  assert.match(classification, /deployment compatibility layer/u);
+  assert.match(docs, /Phase B closes authenticated direct SELECT/u);
+  assert.match(docs, /static callsite audit/u);
+  assert.match(docs, /real PostgreSQL queries/u);
+  assert.match(docs, /source regex checks are not runtime proof|Do not substitute static source inspection/u);
 });

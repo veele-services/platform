@@ -24,6 +24,7 @@ test("runtime safety workflow exposes required Linux PR jobs", () => {
     "postgres17-migration-smoke",
     "db-integration-tenant-ab",
     "rls-security",
+    "phase-b-previous-release-database-compatibility",
     "api-runtime",
   ]) {
     assert.match(workflow, new RegExp(`\\n  ${job}:\\n    name: ${job}\\n    runs-on: ubuntu-latest`, "u"));
@@ -44,6 +45,7 @@ test("runtime safety workflow runs the required gate commands", () => {
     "pnpm fieldgrid:test:postgres17-migration-smoke",
     "pnpm fieldgrid:test:db-integration-tenant-ab",
     "pnpm fieldgrid:test:rls-security",
+    "pnpm fieldgrid:test:phase-b-previous-release-database-compatibility",
     "pnpm fieldgrid:test:api-runtime",
   ]) {
     assert.match(workflow, new RegExp(command.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"));
