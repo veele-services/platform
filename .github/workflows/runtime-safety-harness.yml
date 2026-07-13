@@ -134,6 +134,9 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BASE_PATH: "/"
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/fieldgrid_runtime_safety
+      DB_SSL: "false"
+      PGSSLMODE: disable
       PORT: "3000"
     steps:
       - name: Checkout
