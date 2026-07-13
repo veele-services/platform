@@ -36,7 +36,7 @@ RETURNS boolean
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path = public
+SET search_path = pg_catalog, public
 AS $$
   SELECT EXISTS (
     SELECT 1
@@ -110,11 +110,20 @@ RETURNS boolean
 LANGUAGE sql
 STABLE
 SECURITY DEFINER
-SET search_path = public, auth
+SET search_path = pg_catalog, public, auth
 AS $$
+  WITH jwt_context AS (
+    SELECT CASE
+      WHEN NULLIF(auth.jwt() ->> 'tenant_id', '') ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+        THEN NULLIF(auth.jwt() ->> 'tenant_id', '')::uuid
+      ELSE NULL::uuid
+    END AS tenant_id
+  )
   SELECT EXISTS (
     SELECT 1
     FROM public.assignments a
+    JOIN jwt_context ctx
+      ON ctx.tenant_id = a.tenant_id
     JOIN public.personnel p
       ON p.id = p_personnel_id
      AND p.tenant_id = a.tenant_id
@@ -122,26 +131,41 @@ AS $$
       ON tu.tenant_id = a.tenant_id
      AND tu.user_id = auth.uid()
      AND tu.status = 'active'
+    JOIN public.tenant_user_roles tur
+      ON tur.tenant_id = a.tenant_id
+     AND tur.user_id = auth.uid()
+    JOIN public.tenant_roles tr
+      ON tr.id = tur.tenant_role_id
+     AND tr.tenant_id = a.tenant_id
+    JOIN public.tenant_role_permissions trp
+      ON trp.tenant_role_id = tr.id
+    JOIN public.permissions perm
+      ON perm.id = trp.permission_id
     WHERE a.id = p_assignment_id
-      AND (
-        NULLIF(auth.jwt() ->> 'tenant_id', '') IS NULL
-        OR NULLIF(auth.jwt() ->> 'tenant_id', '')::uuid = a.tenant_id
-      )
-      AND (
-        public.is_management()
-        OR EXISTS (
-          SELECT 1
-          FROM public.tenant_user_roles tur
-          JOIN public.tenant_role_permissions trp
-            ON trp.tenant_role_id = tur.tenant_role_id
-          JOIN public.permissions perm
-            ON perm.id = trp.permission_id
-          WHERE tur.tenant_id = a.tenant_id
-            AND tur.user_id = auth.uid()
-            AND perm.resource = 'assignments'
-            AND perm.action = 'write'
-        )
-      )
+      AND perm.resource = 'assignments'
+      AND perm.action = 'write'
+  );
+$$;
+
+CREATE OR REPLACE FUNCTION public.can_select_own_assignment_personnel(
+  p_assignment_id uuid,
+  p_personnel_id uuid
+)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public, auth
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.assignments a
+    JOIN public.personnel p
+      ON p.id = p_personnel_id
+     AND p.tenant_id = a.tenant_id
+    WHERE a.id = p_assignment_id
+      AND p.user_id = auth.uid()
+      AND p.is_active = true
   );
 $$;
 
@@ -149,11 +173,6 @@ ALTER TABLE public.assignment_personnel ENABLE ROW LEVEL SECURITY;
 
 DROP POLICY IF EXISTS assignment_personnel_management_all ON public.assignment_personnel;
 DROP POLICY IF EXISTS assignment_personnel_tenant_management_all ON public.assignment_personnel;
-CREATE POLICY assignment_personnel_tenant_management_all
-  ON public.assignment_personnel
-  TO authenticated
-  USING (public.can_manage_assignment_personnel(assignment_id, personnel_id))
-  WITH CHECK (public.can_manage_assignment_personnel(assignment_id, personnel_id));
 
 DROP POLICY IF EXISTS assignment_personnel_own_select ON public.assignment_personnel;
 CREATE POLICY assignment_personnel_own_select
@@ -161,17 +180,24 @@ CREATE POLICY assignment_personnel_own_select
   FOR SELECT
   TO authenticated
   USING (
-    public.assignment_personnel_tenant_match(assignment_id, personnel_id)
-    AND EXISTS (
-      SELECT 1
-      FROM public.personnel p
-      WHERE p.id = assignment_personnel.personnel_id
-        AND p.user_id = (SELECT auth.uid())
-        AND p.is_active = true
-    )
+    public.can_select_own_assignment_personnel(assignment_id, personnel_id)
   );
 
-GRANT SELECT ON public.assignments, public.personnel TO authenticated;
-GRANT SELECT, INSERT, UPDATE, DELETE ON public.assignment_personnel TO authenticated;
-GRANT EXECUTE ON FUNCTION public.assignment_personnel_tenant_match(uuid, uuid) TO authenticated, service_role;
-GRANT EXECUTE ON FUNCTION public.can_manage_assignment_personnel(uuid, uuid) TO authenticated;
+REVOKE ALL ON FUNCTION public.assignment_personnel_tenant_match(uuid, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.trg_assignment_personnel_tenant_guard() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.can_manage_assignment_personnel(uuid, uuid) FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.can_select_own_assignment_personnel(uuid, uuid) FROM PUBLIC;
+
+REVOKE INSERT, UPDATE, DELETE ON public.assignment_personnel FROM PUBLIC, anon, authenticated;
+GRANT SELECT ON public.assignment_personnel TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.assignment_personnel TO service_role;
+
+GRANT EXECUTE ON FUNCTION public.can_manage_assignment_personnel(uuid, uuid) TO service_role;
+GRANT EXECUTE ON FUNCTION public.can_select_own_assignment_personnel(uuid, uuid) TO authenticated;
+
+DO $$
+BEGIN
+  IF to_regprocedure('public.pwa_apply_for_assignment(uuid)') IS NOT NULL THEN
+    REVOKE ALL ON FUNCTION public.pwa_apply_for_assignment(uuid) FROM PUBLIC, anon, authenticated;
+  END IF;
+END $$;

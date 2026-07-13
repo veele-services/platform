@@ -46,6 +46,7 @@ const ACTORS = [
   ["personnel@tenant-b.runtime.fieldgrid.test", FIXTURE.users.tenantBPersonnel],
   ["customer@tenant-b.runtime.fieldgrid.test", FIXTURE.users.tenantBCustomer],
   ["multi@runtime.fieldgrid.test", FIXTURE.users.multiTenant],
+  ["legacy-management-only@runtime.fieldgrid.test", FIXTURE.users.legacyGlobalManagementOnly],
   ["owner@suspended.runtime.fieldgrid.test", FIXTURE.users.suspendedOwner],
   ["owner@module-off.runtime.fieldgrid.test", FIXTURE.users.moduleOffOwner],
 ];
@@ -242,6 +243,41 @@ async function insertTenantUsersAndRoles(client) {
   ]);
 }
 
+async function insertLegacyGlobalManagementOnlyUser(client) {
+  const role = await client.query(
+    `
+      insert into roles (name, description, is_system)
+      values ('Management', 'Legacy global management role', true)
+      on conflict (name) do update set description = excluded.description
+      returning id
+    `,
+  );
+
+  await client.query(
+    `
+      insert into user_roles (user_id, role_id)
+      values ($1, $2)
+      on conflict do nothing
+    `,
+    [FIXTURE.users.legacyGlobalManagementOnly, role.rows[0].id],
+  );
+
+  await client.query(
+    `
+      delete from tenant_user_roles
+      where user_id = $1
+    `,
+    [FIXTURE.users.legacyGlobalManagementOnly],
+  );
+  await client.query(
+    `
+      delete from tenant_users
+      where user_id = $1
+    `,
+    [FIXTURE.users.legacyGlobalManagementOnly],
+  );
+}
+
 async function insertBusinessRows(client) {
   const customers = [
     [FIXTURE.customers.a, FIXTURE.tenants.a, "Runtime Customer A", "RTA-C001", "customer@tenant-a.runtime.fieldgrid.test"],
@@ -376,6 +412,7 @@ async function main() {
     await insertPlatformUsers(client);
     await insertModulesAndPermissions(client);
     await insertTenantUsersAndRoles(client);
+    await insertLegacyGlobalManagementOnlyUser(client);
     await insertBusinessRows(client);
     await insertExpiredInviteFixtures(client);
     const integrity = await assertFixtureIntegrity(client);

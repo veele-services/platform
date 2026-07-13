@@ -12,6 +12,21 @@
       "classification": "static source guard",
       "runtime_evidence": false
     },
+    "typecheck": {
+      "command": "pnpm run typecheck",
+      "classification": "TypeScript compile",
+      "runtime_evidence": false
+    },
+    "build": {
+      "command": "pnpm build",
+      "classification": "build",
+      "runtime_evidence": false
+    },
+    "diff-check": {
+      "command": "git diff --check origin/${{ github.base_ref }}...HEAD",
+      "classification": "static source guard",
+      "runtime_evidence": false
+    },
     "empty-database-migrations": {
       "command": "pnpm fieldgrid:runtime-safety:setup",
       "classification": "database integration",
@@ -103,6 +118,10 @@
     "Runtime Safety Harness / postgres17-migration-smoke",
     "Runtime Safety Harness / unit-domain",
     "Runtime Safety Harness / security-source",
+    "Runtime Safety Harness / migration-order",
+    "Runtime Safety Harness / typecheck",
+    "Runtime Safety Harness / build",
+    "Runtime Safety Harness / diff-check",
     "Runtime Safety Harness / db-integration-tenant-ab",
     "Runtime Safety Harness / rls-security",
     "Runtime Safety Harness / api-runtime"

@@ -81,6 +81,90 @@ jobs:
       - name: Security source lane
         run: pnpm fieldgrid:test:security-source
 
+  migration-order:
+    name: migration-order
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+
+      - name: Migration order
+        run: pnpm fieldgrid:migration-order-check:check
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+  diff-check:
+    name: diff-check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Git diff check
+        run: git diff --check origin/${{ github.base_ref }}...HEAD
+
   postgres17-migration-smoke:
     name: postgres17-migration-smoke
     runs-on: ubuntu-latest
