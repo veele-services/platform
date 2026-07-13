@@ -81,6 +81,7 @@ test("phase 4 test layers define runtime safety, security, UI, DB and live E2E l
       "postgres17-migration-smoke",
       "db-integration-tenant-ab",
       "rls-security",
+      "phase-b-previous-release-database-compatibility",
       "api-runtime",
       "security-guards",
       "ui-contracttests",
@@ -95,6 +96,7 @@ test("phase 4 test layers define runtime safety, security, UI, DB and live E2E l
     "postgres17-migration-smoke",
     "db-integration-tenant-ab",
     "rls-security",
+    "phase-b-previous-release-database-compatibility",
     "api-runtime",
   ]);
   assert.ok(
@@ -116,6 +118,11 @@ test("phase 4 test layers define runtime safety, security, UI, DB and live E2E l
     plan.layers
       .find((layer) => layer.id === "api-runtime")
       ?.ciCommand.includes("fieldgrid:runtime-safety:api"),
+  );
+  assert.ok(
+    plan.layers
+      .find((layer) => layer.id === "phase-b-previous-release-database-compatibility")
+      ?.ciCommand.includes("fieldgrid:runtime-safety:previous-release-compatibility"),
   );
   assert.ok(
     plan.layers
