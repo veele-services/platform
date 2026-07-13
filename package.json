@@ -11,7 +11,7 @@
     "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_execpath\" in *pnpm*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "test": "node --test tests/*.test.mjs",
-    "fieldgrid:deploy-health-gate:test": "bash -n scripts/fieldgrid-atomic-release-activate.sh scripts/fieldgrid-deploy-health-gate.sh && shellcheck scripts/fieldgrid-atomic-release-activate.sh scripts/fieldgrid-deploy-health-gate.sh && node --test tests/fieldgrid-deploy-health-gate.test.mjs",
+    "fieldgrid:deploy-health-gate:test": "bash -n scripts/fieldgrid-atomic-release-activate.sh scripts/fieldgrid-deploy-health-gate.sh scripts/fieldgrid-backfill-release-sha-marker.sh && shellcheck scripts/fieldgrid-atomic-release-activate.sh scripts/fieldgrid-deploy-health-gate.sh scripts/fieldgrid-backfill-release-sha-marker.sh && node --test tests/fieldgrid-deploy-health-gate.test.mjs",
     "fieldgrid:test:baseline-differential": "node scripts/fieldgrid-test-baseline-differential.mjs",
     "fieldgrid:phase1-fixtures": "node scripts/fieldgrid-phase1-demo-data.mjs",
     "fieldgrid:sprint1-fixtures": "node scripts/fieldgrid-phase1-demo-data.mjs",

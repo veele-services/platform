@@ -323,6 +323,11 @@ jobs:
       - name: Run staging deploy health gate
         if: env.TARGET == 'staging'
         env:
+          BACKOFFICE_PUBLIC_LOGIN_URL: ${{ vars.BACKOFFICE_PUBLIC_LOGIN_URL }}
+          PERSONEEL_PUBLIC_HEALTH_URL: ${{ vars.PERSONEEL_PUBLIC_HEALTH_URL }}
+          KLANT_PUBLIC_HEALTH_URL: ${{ vars.KLANT_PUBLIC_HEALTH_URL }}
+          API_PUBLIC_HEALTH_URL: ${{ vars.API_PUBLIC_HEALTH_URL }}
+          API_PUBLIC_ROOT_URL: ${{ vars.API_PUBLIC_ROOT_URL }}
           BACKOFFICE_PUBLIC_URL: ${{ vars.BACKOFFICE_PUBLIC_URL || vars.APP_URL }}
           PERSONEEL_PUBLIC_URL: ${{ vars.PERSONEEL_PUBLIC_URL }}
           KLANT_PUBLIC_URL: ${{ vars.KLANT_PUBLIC_URL }}
@@ -343,6 +348,35 @@ jobs:
             --rollback-on-failure \
             --restart-before-check \
             --evidence-file "$BASE_DIR/shared/deploy-health-${GITHUB_RUN_ID:-manual}-${GITHUB_SHA::7}.json"
+
+          echo "FIELDGRID_HEALTH_EVIDENCE=$BASE_DIR/shared/deploy-health-${GITHUB_RUN_ID:-manual}-${GITHUB_SHA::7}.json" >> "$GITHUB_ENV"
+
+      - name: Collect staging deploy diagnostics
+        if: always() && env.TARGET == 'staging'
+        run: |
+          set -euo pipefail
+          mkdir -p "$GITHUB_WORKSPACE/fieldgrid-deploy-diagnostics"
+          evidence="${FIELDGRID_HEALTH_EVIDENCE:-$BASE_DIR/shared/deploy-health-${GITHUB_RUN_ID:-manual}-${GITHUB_SHA::7}.json}"
+          echo "Evidence path: $evidence"
+          if [ -f "$evidence" ]; then
+            cp "$evidence" "$GITHUB_WORKSPACE/fieldgrid-deploy-diagnostics/deploy-health.json"
+            node -e 'const fs=require("fs"); const p=process.argv[1]; const e=JSON.parse(fs.readFileSync(p,"utf8")); console.log("Rollback status:", e.rollbackStatus||"unknown"); console.log("Failed checks:"); for (const c of e.checks||[]) if (c.status!=="pass") console.log(`- ${c.name}: ${c.detail}`);' "$evidence"
+          else
+            echo "No health evidence file found."
+          fi
+          if [ -L "$BASE_DIR/current" ]; then
+            echo "Current symlink: $(readlink "$BASE_DIR/current")"
+          else
+            echo "Current symlink: <missing>"
+          fi
+
+      - name: Upload staging deploy diagnostics
+        if: always() && env.TARGET == 'staging'
+        uses: actions/upload-artifact@v4
+        with:
+          name: fieldgrid-staging-deploy-diagnostics-${{ github.run_id }}
+          path: fieldgrid-deploy-diagnostics/
+          if-no-files-found: ignore
 
       - name: Cleanup old releases
         run: |
