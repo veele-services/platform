@@ -30,7 +30,11 @@ The workflow passes these values from GitHub environment variables:
 | `FIELDGRID_DEPLOY_HEALTH_RETRY_SECONDS` | Delay between retries. |
 | `FIELDGRID_DEPLOY_CURL_MAX_TIME_SECONDS` | Per-request curl timeout. |
 
-Endpoint lists can be overridden with newline-separated `name|url|mode` entries via `FIELDGRID_DEPLOY_LOCAL_ENDPOINTS` and `FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS`. Modes are `strict` for 2xx/3xx only and `api-root` for the API root, where HTTP 404 is accepted and recorded separately from connection failures or 5xx responses.
+Endpoint lists can be overridden with newline-separated `name|url|mode` entries via `FIELDGRID_DEPLOY_LOCAL_ENDPOINTS`, `FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS` and `FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS`. Supported modes are:
+
+- `exact-200`: only HTTP 200 is healthy. Personnel, customer and API healthz probes use this mode locally and publicly.
+- `login`: HTTP 200 and the explicitly documented login-safe redirects 301, 302, 303, 307 and 308 are healthy. Backoffice `/login` uses this mode locally and publicly.
+- `api-root-404`: only the deliberately expected API-root HTTP 404 is healthy.
 
 Default local probes are exactly four service endpoints:
 
@@ -41,7 +45,7 @@ Default local probes are exactly four service endpoints:
 | Customer PWA | `http://127.0.0.1:${KLANT_PORT}/klant/healthz` |
 | API | `http://127.0.0.1:${API_PORT}/api/healthz` |
 
-API-root is checked as a separate classification probe. HTTP 404 is accepted only for endpoints whose mode is `api-root`; 404 remains a failure for strict service endpoints.
+API-root is checked as a separate classification probe. HTTP 404 is accepted only for endpoints whose mode is `api-root-404`; 404 remains a failure for `exact-200` service endpoints. Public API root is not also added to the public healthz endpoint group, so the API root contract is checked once.
 
 The gate requires exactly four services, exactly four ports, exactly four local service endpoints and at least three public endpoints. Evidence JSON is machine-readable, written with mode `0640`, and records only URL origins in endpoint details.
 
@@ -69,7 +73,9 @@ Stop the deploy before activation when any of these are true:
 ## Local Test Command
 
 ```bash
-node --test tests/fieldgrid-deploy-health-gate.test.mjs
+pnpm fieldgrid:deploy-health-gate:test
 ```
 
-The test suite uses temporary release directories and mocked `systemctl`, `ss`, `curl` and `sleep` commands. It covers healthy activation, service failure, missing port, public 502, allowed API-root 404, rollback success, rollback health failure, missing previous release and migration failure before activation.
+The test suite uses temporary release directories and mocked `systemctl`, `ss`, `curl` and `sleep` commands. It covers healthy activation, service failure, missing port, public 502, exact healthz HTTP status handling, allowed API-root 404, API-root 200 rejection, rollback success, rollback health failure, missing previous release and migration failure before activation.
+
+The PR-only CI workflow also runs `pnpm fieldgrid:test:baseline-differential`. That gate checks out the current `origin/main` SHA in a separate clean worktree, runs the same Node 24, pnpm 11.5.2, frozen install and `pnpm test` lane for main and the candidate, then reports main failures, candidate failures, common failures and candidate-only failures. It may pass with proven identical baseline failures, but that is reported as `baseline differential`; it is not evidence that the full root test suite is green.

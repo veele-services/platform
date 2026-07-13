@@ -154,6 +154,10 @@ case "$url" in
   *curl-dead*) exit 7 ;;
   *public-bad*) if printf '%s' "$current" | grep -q '/new$'; then printf '502'; else printf '200'; fi; exit 0 ;;
   *rollback-bad*) printf '502'; exit 0 ;;
+  *status-301*) printf '301'; exit 0 ;;
+  *status-302*) printf '302'; exit 0 ;;
+  *status-200*) printf '200'; exit 0 ;;
+  *api-root-200*) printf '200'; exit 0 ;;
   *api-root*) printf '404'; exit 0 ;;
   *) printf '200'; exit 0 ;;
 esac
@@ -182,16 +186,16 @@ esac
     FIELDGRID_DEPLOY_SERVICES: "backoffice personeel klant api",
     FIELDGRID_DEPLOY_PORTS: "3100 3200 3300 3400",
     FIELDGRID_DEPLOY_LOCAL_ENDPOINTS: [
-      "local-backoffice|http://127.0.0.1:3100/login|strict",
-      "local-personnel|http://127.0.0.1:3200/personeel/healthz|strict",
-      "local-customer|http://127.0.0.1:3300/klant/healthz|strict",
-      "local-api-health|http://127.0.0.1:3400/api/healthz|strict",
+      "local-backoffice|http://127.0.0.1:3100/login|login",
+      "local-personnel|http://127.0.0.1:3200/personeel/healthz|exact-200",
+      "local-customer|http://127.0.0.1:3300/klant/healthz|exact-200",
+      "local-api-health|http://127.0.0.1:3400/api/healthz|exact-200",
     ].join("\n"),
-    FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS: "local-api-root|http://127.0.0.1:3400/api-root|api-root",
+    FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS: "local-api-root|http://127.0.0.1:3400/api-root|api-root-404",
     FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
-      "public-backoffice|https://platform-staging.example.test/login|strict",
-      "public-personnel|https://personnel-staging.example.test/personeel/healthz|strict",
-      "public-customer|https://customer-staging.example.test/klant/healthz|strict",
+      "public-backoffice|https://platform-staging.example.test/login|login",
+      "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
+      "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
     ].join("\n"),
   };
 
@@ -299,9 +303,9 @@ test("public 502 fails health evidence", async (t) => {
     env: {
       ...f.commonEnv,
       FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
-        "public-backoffice|https://platform-staging.example.test/login|strict",
-        "public-personnel|https://public-bad.example.test/personeel/healthz|strict",
-        "public-customer|https://customer-staging.example.test/klant/healthz|strict",
+        "public-backoffice|https://platform-staging.example.test/login|login",
+        "public-personnel|https://public-bad.example.test/personeel/healthz|exact-200",
+        "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
       ].join("\n"),
     },
     allowFailure: true,
@@ -319,10 +323,10 @@ test("local 5xx fails health evidence", async (t) => {
     env: {
       ...f.commonEnv,
       FIELDGRID_DEPLOY_LOCAL_ENDPOINTS: [
-        "local-backoffice|http://127.0.0.1:3100/login|strict",
-        "local-personnel|http://127.0.0.1:3200/personeel/healthz|strict",
-        "local-customer|http://public-bad.example.test/klant/healthz|strict",
-        "local-api-health|http://127.0.0.1:3400/api/healthz|strict",
+        "local-backoffice|http://127.0.0.1:3100/login|login",
+        "local-personnel|http://127.0.0.1:3200/personeel/healthz|exact-200",
+        "local-customer|http://public-bad.example.test/klant/healthz|exact-200",
+        "local-api-health|http://127.0.0.1:3400/api/healthz|exact-200",
       ].join("\n"),
     },
     allowFailure: true,
@@ -340,9 +344,9 @@ test("curl transport failure records HTTP 000 failure", async (t) => {
     env: {
       ...f.commonEnv,
       FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
-        "public-backoffice|https://platform-staging.example.test/login|strict",
-        "public-personnel|https://curl-dead.example.test/personeel/healthz|strict",
-        "public-customer|https://customer-staging.example.test/klant/healthz|strict",
+        "public-backoffice|https://platform-staging.example.test/login|login",
+        "public-personnel|https://curl-dead.example.test/personeel/healthz|exact-200",
+        "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
       ].join("\n"),
     },
     allowFailure: true,
@@ -354,7 +358,7 @@ test("curl transport failure records HTTP 000 failure", async (t) => {
   assert.match(failed.detail, /HTTP 000/);
 });
 
-test("API root 404 is allowed while API health remains strict", async (t) => {
+test("API root HTTP 404 is allowed while API health requires exact 200", async (t) => {
   const f = await fixture(t);
   await run(f.bash, f.activateArgs, { env: f.commonEnv });
 
@@ -375,11 +379,11 @@ test("health gate requires exactly four services, ports, and local endpoints", a
       FIELDGRID_DEPLOY_SERVICES: "backoffice personeel klant api extra",
       FIELDGRID_DEPLOY_PORTS: "3100 3200 3300 3400 3500",
       FIELDGRID_DEPLOY_LOCAL_ENDPOINTS: [
-        "local-backoffice|http://127.0.0.1:3100/login|strict",
-        "local-personnel|http://127.0.0.1:3200/personeel/healthz|strict",
-        "local-customer|http://127.0.0.1:3300/klant/healthz|strict",
-        "local-api-health|http://127.0.0.1:3400/api/healthz|strict",
-        "local-extra|http://127.0.0.1:3500/healthz|strict",
+        "local-backoffice|http://127.0.0.1:3100/login|login",
+        "local-personnel|http://127.0.0.1:3200/personeel/healthz|exact-200",
+        "local-customer|http://127.0.0.1:3300/klant/healthz|exact-200",
+        "local-api-health|http://127.0.0.1:3400/api/healthz|exact-200",
+        "local-extra|http://127.0.0.1:3500/healthz|exact-200",
       ].join("\n"),
     },
     allowFailure: true,
@@ -392,7 +396,7 @@ test("health gate requires exactly four services, ports, and local endpoints", a
   assert.equal(evidence.checks.find((check) => check.name === "endpoints:local-count")?.status, "fail");
 });
 
-test("HTTP 404 is rejected for strict endpoints", async (t) => {
+test("HTTP 404 is rejected for exact-200 endpoints", async (t) => {
   const f = await fixture(t);
   await run(f.bash, f.activateArgs, { env: f.commonEnv });
 
@@ -400,9 +404,9 @@ test("HTTP 404 is rejected for strict endpoints", async (t) => {
     env: {
       ...f.commonEnv,
       FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
-        "public-backoffice|https://platform-staging.example.test/login|strict",
-        "public-personnel|https://personnel-staging.example.test/personeel/healthz|strict",
-        "public-customer|https://customer-staging.example.test/api-root|strict",
+        "public-backoffice|https://platform-staging.example.test/login|login",
+        "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
+        "public-customer|https://customer-staging.example.test/api-root|exact-200",
       ].join("\n"),
     },
     allowFailure: true,
@@ -410,6 +414,88 @@ test("HTTP 404 is rejected for strict endpoints", async (t) => {
   assert.notEqual(result.status, 0);
   const evidence = await readJson(join(f.root, "health.json"));
   assert.equal(evidence.checks.find((check) => check.name === "endpoint:public-customer")?.status, "fail");
+});
+
+test("HTTP 301 on healthz is failure", async (t) => {
+  const f = await fixture(t);
+  await run(f.bash, f.activateArgs, { env: f.commonEnv });
+
+  const result = await run(f.bash, f.healthArgs, {
+    env: {
+      ...f.commonEnv,
+      FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
+        "public-backoffice|https://platform-staging.example.test/login|login",
+        "public-personnel|https://personnel-staging.example.test/status-301|exact-200",
+        "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
+      ].join("\n"),
+    },
+    allowFailure: true,
+  });
+  assert.notEqual(result.status, 0);
+  const evidence = await readJson(join(f.root, "health.json"));
+  const failed = evidence.checks.find((check) => check.name === "endpoint:public-personnel");
+  assert.equal(failed?.status, "fail");
+  assert.match(failed.detail, /HTTP 301/);
+});
+
+test("HTTP 302 on healthz is failure", async (t) => {
+  const f = await fixture(t);
+  await run(f.bash, f.activateArgs, { env: f.commonEnv });
+
+  const result = await run(f.bash, f.healthArgs, {
+    env: {
+      ...f.commonEnv,
+      FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
+        "public-backoffice|https://platform-staging.example.test/login|login",
+        "public-personnel|https://personnel-staging.example.test/status-302|exact-200",
+        "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
+      ].join("\n"),
+    },
+    allowFailure: true,
+  });
+  assert.notEqual(result.status, 0);
+  const evidence = await readJson(join(f.root, "health.json"));
+  const failed = evidence.checks.find((check) => check.name === "endpoint:public-personnel");
+  assert.equal(failed?.status, "fail");
+  assert.match(failed.detail, /HTTP 302/);
+});
+
+test("HTTP 200 on healthz is pass", async (t) => {
+  const f = await fixture(t);
+  await run(f.bash, f.activateArgs, { env: f.commonEnv });
+
+  await run(f.bash, f.healthArgs, {
+    env: {
+      ...f.commonEnv,
+      FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
+        "public-backoffice|https://platform-staging.example.test/login|login",
+        "public-personnel|https://personnel-staging.example.test/status-200|exact-200",
+        "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
+      ].join("\n"),
+    },
+  });
+  const evidence = await readJson(join(f.root, "health.json"));
+  const passed = evidence.checks.find((check) => check.name === "endpoint:public-personnel");
+  assert.equal(passed?.status, "pass");
+  assert.match(passed.detail, /HTTP 200/);
+});
+
+test("API-root HTTP 200 is failure when the contract requires exact 404", async (t) => {
+  const f = await fixture(t);
+  await run(f.bash, f.activateArgs, { env: f.commonEnv });
+
+  const result = await run(f.bash, f.healthArgs, {
+    env: {
+      ...f.commonEnv,
+      FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS: "local-api-root|http://127.0.0.1:3400/api-root-200|api-root-404",
+    },
+    allowFailure: true,
+  });
+  assert.notEqual(result.status, 0);
+  const evidence = await readJson(join(f.root, "health.json"));
+  const failed = evidence.checks.find((check) => check.name === "endpoint:local-api-root");
+  assert.equal(failed?.status, "fail");
+  assert.match(failed.detail, /HTTP 200/);
 });
 
 test("rollback succeeds after a failed new release health check", async (t) => {
@@ -423,9 +509,9 @@ test("rollback succeeds after a failed new release health check", async (t) => {
       env: {
         ...f.commonEnv,
         FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
-          "public-backoffice|https://public-bad.example.test/login|strict",
-          "public-personnel|https://personnel-staging.example.test/personeel/healthz|strict",
-          "public-customer|https://customer-staging.example.test/klant/healthz|strict",
+          "public-backoffice|https://public-bad.example.test/login|login",
+          "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
+          "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
         ].join("\n"),
       },
       allowFailure: true,
@@ -451,9 +537,9 @@ test("rollback itself fails when restored release health remains bad", async (t)
       env: {
         ...f.commonEnv,
         FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
-          "public-backoffice|https://rollback-bad.example.test/login|strict",
-          "public-personnel|https://personnel-staging.example.test/personeel/healthz|strict",
-          "public-customer|https://customer-staging.example.test/klant/healthz|strict",
+          "public-backoffice|https://rollback-bad.example.test/login|login",
+          "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
+          "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
         ].join("\n"),
       },
       allowFailure: true,
@@ -477,9 +563,9 @@ test("rollback fails closed when previous release path is missing", async (t) =>
       env: {
         ...f.commonEnv,
         FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
-          "public-backoffice|https://public-bad.example.test/login|strict",
-          "public-personnel|https://personnel-staging.example.test/personeel/healthz|strict",
-          "public-customer|https://customer-staging.example.test/klant/healthz|strict",
+          "public-backoffice|https://public-bad.example.test/login|login",
+          "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
+          "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
         ].join("\n"),
       },
       allowFailure: true,
@@ -500,9 +586,9 @@ test("no previous release reports rollback unavailable", async (t) => {
     env: {
       ...f.commonEnv,
       FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
-        "public-backoffice|https://public-bad.example.test/login|strict",
-        "public-personnel|https://personnel-staging.example.test/personeel/healthz|strict",
-        "public-customer|https://customer-staging.example.test/klant/healthz|strict",
+        "public-backoffice|https://public-bad.example.test/login|login",
+        "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
+        "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
       ].join("\n"),
     },
     allowFailure: true,
@@ -589,9 +675,9 @@ test("rollback restarts all four services, reloads Caddy, and rechecks rollback 
       env: {
         ...f.commonEnv,
         FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
-          "public-backoffice|https://public-bad.example.test/login|strict",
-          "public-personnel|https://personnel-staging.example.test/personeel/healthz|strict",
-          "public-customer|https://customer-staging.example.test/klant/healthz|strict",
+          "public-backoffice|https://public-bad.example.test/login|login",
+          "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
+          "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
         ].join("\n"),
       },
       allowFailure: true,
@@ -639,9 +725,9 @@ test("rollback service restart failure marks rollback failed", async (t) => {
         ...f.commonEnv,
         MOCK_RESTART_FAIL: "klant",
         FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
-          "public-backoffice|https://public-bad.example.test/login|strict",
-          "public-personnel|https://personnel-staging.example.test/personeel/healthz|strict",
-          "public-customer|https://customer-staging.example.test/klant/healthz|strict",
+          "public-backoffice|https://public-bad.example.test/login|login",
+          "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
+          "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
         ].join("\n"),
       },
       allowFailure: true,
@@ -667,9 +753,9 @@ test("Caddy reload failure during rollback marks rollback failed", async (t) => 
         ...f.commonEnv,
         MOCK_RELOAD_FAIL: "1",
         FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
-          "public-backoffice|https://public-bad.example.test/login|strict",
-          "public-personnel|https://personnel-staging.example.test/personeel/healthz|strict",
-          "public-customer|https://customer-staging.example.test/klant/healthz|strict",
+          "public-backoffice|https://public-bad.example.test/login|login",
+          "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
+          "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
         ].join("\n"),
       },
       allowFailure: true,
@@ -695,9 +781,9 @@ test("rollback is blocked if current no longer points at the failed release", as
       env: {
         ...f.commonEnv,
         FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
-          "public-backoffice|https://public-bad.example.test/login|strict",
-          "public-personnel|https://personnel-staging.example.test/personeel/healthz|strict",
-          "public-customer|https://customer-staging.example.test/klant/healthz|strict",
+          "public-backoffice|https://public-bad.example.test/login|login",
+          "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
+          "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
         ].join("\n"),
       },
       allowFailure: true,
@@ -718,9 +804,9 @@ test("evidence files are machine-readable, mode 0640, and redact URL paths and c
     env: {
       ...f.commonEnv,
       FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
-        "public-backoffice|https://user:pass@platform-staging.example.test/login?token=secret#frag|strict",
-        "public-personnel|https://personnel-staging.example.test/personeel/healthz|strict",
-        "public-customer|https://customer-staging.example.test/klant/healthz|strict",
+        "public-backoffice|https://user:pass@platform-staging.example.test/login?token=secret#frag|login",
+        "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
+        "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
       ].join("\n"),
     },
   });
@@ -758,4 +844,19 @@ test("deploy cleanup remains after staging health gate and is unreachable before
   assert.ok(cleanupIndex > healthIndex, "cleanup must run after the staging health gate step");
   const cleanupBlock = workflow.slice(cleanupIndex);
   assert.doesNotMatch(cleanupBlock, /always\(\)/);
+});
+
+test("public API root is checked only in the API-root endpoint group", async () => {
+  const script = await readFile(healthScript, "utf8");
+  const apiRootBlock = script.slice(
+    script.indexOf("default_api_root_endpoints()"),
+    script.indexOf("default_public_endpoints()"),
+  );
+  const publicBlock = script.slice(
+    script.indexOf("default_public_endpoints()"),
+    script.indexOf("http_status()"),
+  );
+
+  assert.match(apiRootBlock, /append_endpoint "public-api-root" "\$API_PUBLIC_URL" "api-root-404"/);
+  assert.doesNotMatch(publicBlock, /public-api-root/);
 });

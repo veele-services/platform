@@ -9,7 +9,9 @@ on:
       - ".github/workflows/fieldgrid-deploy-health-gate.yml"
       - "scripts/fieldgrid-atomic-release-activate.sh"
       - "scripts/fieldgrid-deploy-health-gate.sh"
+      - "scripts/fieldgrid-test-baseline-differential.mjs"
       - "tests/fieldgrid-deploy-health-gate.test.mjs"
+      - "tests/fieldgrid-test-baseline-differential.test.mjs"
       - "package.json"
       - "pnpm-lock.yaml"
   workflow_dispatch:
@@ -18,12 +20,15 @@ permissions:
   contents: read
 
 jobs:
-  shell-health-gate:
+  baseline-differential-health-gate:
+    name: Baseline differential health gate
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -56,5 +61,13 @@ jobs:
       - name: Run typecheck
         run: pnpm run typecheck
 
-      - name: Run root test lane
-        run: pnpm test
+      - name: Run baseline differential root test lane
+        run: pnpm fieldgrid:test:baseline-differential
+
+      - name: Upload baseline differential artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fieldgrid-test-baseline-differential
+          path: outputs/fieldgrid-test-baseline-differential/**
+          if-no-files-found: error

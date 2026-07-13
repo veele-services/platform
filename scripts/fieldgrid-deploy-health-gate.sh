@@ -25,8 +25,9 @@ Configuration:
   FIELDGRID_DEPLOY_CURL_MAX_TIME_SECONDS Curl per-request timeout. Default: 5.
 
 Endpoint modes:
-  strict    2xx/3xx is healthy.
-  api-root  2xx/3xx is healthy and 404 is recorded as the expected API-root response.
+  exact-200     Only HTTP 200 is healthy.
+  login         HTTP 200 and explicit login-safe redirects 301, 302, 303, 307 and 308 are healthy.
+  api-root-404  Only the expected API-root HTTP 404 is healthy.
 USAGE
 }
 
@@ -189,16 +190,16 @@ default_local_endpoints() {
   fi
 
   if [ -n "${BACKOFFICE_PORT:-${PORT:-}}" ]; then
-    append_endpoint "local-backoffice" "http://127.0.0.1:${BACKOFFICE_PORT:-$PORT}/login" "strict"
+    append_endpoint "local-backoffice" "http://127.0.0.1:${BACKOFFICE_PORT:-$PORT}/login" "login"
   fi
   if [ -n "${PERSONEEL_PORT:-}" ]; then
-    append_endpoint "local-personnel" "http://127.0.0.1:${PERSONEEL_PORT}/personeel/healthz" "strict"
+    append_endpoint "local-personnel" "http://127.0.0.1:${PERSONEEL_PORT}/personeel/healthz" "exact-200"
   fi
   if [ -n "${KLANT_PORT:-}" ]; then
-    append_endpoint "local-customer" "http://127.0.0.1:${KLANT_PORT}/klant/healthz" "strict"
+    append_endpoint "local-customer" "http://127.0.0.1:${KLANT_PORT}/klant/healthz" "exact-200"
   fi
   if [ -n "${API_PORT:-}" ]; then
-    append_endpoint "local-api-health" "http://127.0.0.1:${API_PORT}/api/healthz" "strict"
+    append_endpoint "local-api-health" "http://127.0.0.1:${API_PORT}/api/healthz" "exact-200"
   fi
 }
 
@@ -209,10 +210,10 @@ default_api_root_endpoints() {
   fi
 
   if [ -n "${API_PORT:-}" ]; then
-    append_endpoint "local-api-root" "http://127.0.0.1:${API_PORT}/" "api-root"
+    append_endpoint "local-api-root" "http://127.0.0.1:${API_PORT}/" "api-root-404"
   fi
   if [ -n "${API_PUBLIC_URL:-}" ]; then
-    append_endpoint "public-api-root" "$API_PUBLIC_URL" "api-root"
+    append_endpoint "public-api-root" "$API_PUBLIC_URL" "api-root-404"
   fi
 }
 
@@ -223,17 +224,16 @@ default_public_endpoints() {
   fi
 
   if [ -n "${BACKOFFICE_PUBLIC_URL:-${APP_URL:-}}" ]; then
-    append_endpoint "public-backoffice" "$(with_path "${BACKOFFICE_PUBLIC_URL:-$APP_URL}" "/login")" "strict"
+    append_endpoint "public-backoffice" "$(with_path "${BACKOFFICE_PUBLIC_URL:-$APP_URL}" "/login")" "login"
   fi
   if [ -n "${PERSONEEL_PUBLIC_URL:-}" ]; then
-    append_endpoint "public-personnel" "$(with_path "$PERSONEEL_PUBLIC_URL" "/personeel/healthz")" "strict"
+    append_endpoint "public-personnel" "$(with_path "$PERSONEEL_PUBLIC_URL" "/personeel/healthz")" "exact-200"
   fi
   if [ -n "${KLANT_PUBLIC_URL:-}" ]; then
-    append_endpoint "public-customer" "$(with_path "$KLANT_PUBLIC_URL" "/klant/healthz")" "strict"
+    append_endpoint "public-customer" "$(with_path "$KLANT_PUBLIC_URL" "/klant/healthz")" "exact-200"
   fi
   if [ -n "${API_PUBLIC_URL:-}" ]; then
-    append_endpoint "public-api-health" "$(with_path "$API_PUBLIC_URL" "/api/healthz")" "strict"
-    append_endpoint "public-api-root" "$API_PUBLIC_URL" "api-root"
+    append_endpoint "public-api-health" "$(with_path "$API_PUBLIC_URL" "/api/healthz")" "exact-200"
   fi
 }
 
@@ -331,15 +331,24 @@ endpoint_is_healthy() {
   mode="$(printf '%s' "$spec" | awk -F'|' '{ print $3 }')"
   status="$(http_status "$url" 2>/dev/null || printf '000')"
 
-  case "$status" in
-    2*|3*) record_check "endpoint:$name" "pass" "HTTP $status $(sanitize_url "$url")"; return 0 ;;
-    404)
-      if [ "$mode" = "api-root" ]; then
-        record_check "endpoint:$name" "pass" "HTTP 404 accepted for API root $(sanitize_url "$url")"
+  if [ "$mode" = "exact-200" ] && [ "$status" = "200" ]; then
+    record_check "endpoint:$name" "pass" "HTTP 200 $(sanitize_url "$url")"
+    return 0
+  fi
+
+  if [ "$mode" = "login" ]; then
+    case "$status" in
+      200|301|302|303|307|308)
+        record_check "endpoint:$name" "pass" "HTTP $status accepted for login $(sanitize_url "$url")"
         return 0
-      fi
-      ;;
-  esac
+        ;;
+    esac
+  fi
+
+  if [ "$mode" = "api-root-404" ] && [ "$status" = "404" ]; then
+    record_check "endpoint:$name" "pass" "HTTP 404 accepted for API root $(sanitize_url "$url")"
+    return 0
+  fi
 
   record_check "endpoint:$name" "fail" "HTTP $status $(sanitize_url "$url")"
   return 1
