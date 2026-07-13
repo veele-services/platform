@@ -40,6 +40,7 @@ test("normalized failure extraction is stable", () => {
   const log = [
     "2026-07-13T12:00:00.000Z ✖ tenant isolation rejects cross-tenant reads (12.34ms)",
     "✖ tenant isolation rejects cross-tenant reads (10ms)",
+    "✖ failing tests:",
     "not ok 14 - notification contract rejects missing role # time=3.2ms",
     "\u001b[31m✖ Windows path C:\\repo\\tests\\sample.test.mjs (1ms)\u001b[0m",
   ].join("\n");

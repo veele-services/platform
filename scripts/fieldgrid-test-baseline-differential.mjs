@@ -36,13 +36,15 @@ export function extractFailureNames(logText) {
 
     const crossMatch = line.match(/(?:^|\s)✖\s+(.+)$/u);
     if (crossMatch) {
-      failures.push(normalizeFailureName(crossMatch[1]));
+      const failure = normalizeFailureName(crossMatch[1]);
+      if (failure.toLowerCase() !== "failing tests:") failures.push(failure);
       continue;
     }
 
     const tapMatch = line.match(/^not ok\s+\d+\s+-\s+(.+)$/u);
     if (tapMatch) {
-      failures.push(normalizeFailureName(tapMatch[1]));
+      const failure = normalizeFailureName(tapMatch[1]);
+      if (failure.toLowerCase() !== "failing tests:") failures.push(failure);
     }
   }
 
