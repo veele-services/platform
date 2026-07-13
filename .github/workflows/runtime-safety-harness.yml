@@ -133,6 +133,7 @@ jobs:
     name: build
     runs-on: ubuntu-latest
     env:
+      BASE_PATH: "/"
       PORT: "3000"
     steps:
       - name: Checkout
