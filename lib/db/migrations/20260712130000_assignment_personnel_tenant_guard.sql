@@ -85,17 +85,11 @@ CREATE TRIGGER assignment_personnel_tenant_guard
 
 ALTER TABLE public.assignment_personnel ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS assignment_personnel_management_all ON public.assignment_personnel;
-DROP POLICY IF EXISTS assignment_personnel_tenant_management_all ON public.assignment_personnel;
-DROP POLICY IF EXISTS assignment_personnel_own_select ON public.assignment_personnel;
-
-DROP FUNCTION IF EXISTS public.assignment_personnel_tenant_match(uuid, uuid);
-DROP FUNCTION IF EXISTS public.can_manage_assignment_personnel(uuid, uuid);
-DROP FUNCTION IF EXISTS public.can_select_own_assignment_personnel(uuid, uuid);
-
 REVOKE ALL ON FUNCTION public.trg_assignment_personnel_tenant_guard() FROM PUBLIC, anon, authenticated;
 
-REVOKE ALL ON TABLE public.assignment_personnel FROM PUBLIC, anon, authenticated;
+-- Phase A is rollback-safe: keep the existing SELECT grants/policies/helpers
+-- intact so an app rollback to the previous release can still read this table.
+REVOKE INSERT, UPDATE, DELETE ON public.assignment_personnel FROM PUBLIC, anon, authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.assignment_personnel TO service_role;
 
 DO $$

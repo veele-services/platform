@@ -25,7 +25,7 @@ function filesUnder(path) {
   return files;
 }
 
-test("no browser/client Supabase SELECT, DML, or RPC surface remains for assignment_personnel", () => {
+test("phase-A app source has no browser/client Supabase table SELECT, DML, or RPC callsite for assignment_personnel", () => {
   const offenders = [];
   for (const file of filesUnder("artifacts")) {
     const source = read(file);

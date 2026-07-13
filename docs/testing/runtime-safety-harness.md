@@ -27,7 +27,7 @@ Layer commands:
 - `pnpm fieldgrid:runtime-safety:setup`: installs local shims and runs empty database migrations.
 - `pnpm fieldgrid:runtime-safety:fixtures`: loads deterministic platform, Tenant A/B, suspended, module-off, multi-tenant, expired invite/recovery/support fixtures.
 - `pnpm fieldgrid:runtime-safety:db`: database integration, schema invariant, privileged assignment invariant, tenantless-write, and storage/password-reset scaffold checks.
-- `pnpm fieldgrid:runtime-safety:rls`: authenticated RLS checks using `SET LOCAL ROLE authenticated`, `row_security = on`, and local JWT GUC shims. Direct anon/authenticated `SELECT` and DML on `assignment_personnel` are expected to be denied; reads stay host/server-action scoped and writes are server/service-role commands plus the database trigger invariant.
+- `pnpm fieldgrid:runtime-safety:rls`: authenticated RLS checks using `SET LOCAL ROLE authenticated`, `row_security = on`, and local JWT GUC shims. In phase A, direct anon/authenticated DML on `assignment_personnel` is expected to be denied while existing authenticated SELECT grants/policies stay intact for rollback compatibility. Reads in the new app are host/server-action scoped, and writes are server/service-role commands plus the database trigger invariant.
 - `pnpm --filter @workspace/api-server run build`: API build for runtime checks.
 - `pnpm fieldgrid:runtime-safety:api`: local API runtime checks.
 - `pnpm fieldgrid:runtime-safety:teardown`: guarded cleanup; destructive reset only happens with `FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET=1`.
@@ -77,4 +77,8 @@ Do not merge a PR when one of these checks is missing, skipped, cancelled, or re
 
 ## Rollback
 
-Rollback is a normal app/code revert of the workflow, scripts, package commands, and docs. The forward-only `assignment_personnel` databaseguard is intentionally safe to leave in place after an app revert because it only rejects invalid cross-tenant links and does not rewrite business data. No automatic downmigration is provided, and no staging or production state is modified by this PR.
+Rollback is a normal app/code revert of the workflow, scripts, package commands, and docs. The forward-only `assignment_personnel` databaseguard is intentionally safe to leave in place after an app revert because it only rejects invalid cross-tenant links and does not rewrite business data.
+
+Phase A deliberately does not revoke authenticated SELECT on `assignment_personnel`, does not drop `assignment_personnel_own_select`, and does not drop existing SELECT helpers. Staging runs migrations before app activation, and the health gate can roll back to the previous app release; that previous release still uses the old direct SELECT path. The complete direct-access closure has been preserved on `codex/assignment-personnel-direct-access-close-phase2-prep`.
+
+Required phase-B follow-up: Close authenticated assignment_personnel SELECT after phase-A is live on staging.

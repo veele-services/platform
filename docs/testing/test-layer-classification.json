@@ -62,6 +62,18 @@
         "not staging"
       ]
     },
+    "phase-b-assignment-personnel-select-closure": {
+      "command": "Close authenticated assignment_personnel SELECT after phase-A is live on staging.",
+      "classification": "phase-B acceptance criteria",
+      "runtime_evidence": false,
+      "deferred_by": "phase-A rollback compatibility: staging migrations run before app activation and may roll back to the previous release",
+      "safety_branch": "codex/assignment-personnel-direct-access-close-phase2-prep",
+      "acceptance_criteria": [
+        "authenticated SELECT on assignment_personnel is revoked",
+        "assignment_personnel_own_select is removed",
+        "can_select_own_assignment_personnel is removed"
+      ]
+    },
     "password-reset-exploit-tests": {
       "command": "pnpm fieldgrid:runtime-safety:db",
       "classification": "provider mock",
