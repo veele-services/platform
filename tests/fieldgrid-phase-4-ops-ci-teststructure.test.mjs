@@ -67,14 +67,55 @@ test("phase 4 migration order check blocks new numeric migrations after timestam
   );
 });
 
-test("phase 4 test layers define security, UI, DB and live E2E lanes", async () => {
+test("phase 4 test layers define runtime safety, security, UI, DB and live E2E lanes", async () => {
   const plan = await buildFieldgridTestLayersPlan();
   const errors = await validateFieldgridTestLayersPlan(plan);
 
   assert.deepEqual(errors, []);
   assert.deepEqual(
     plan.layers.map((layer) => layer.id),
-    ["security-guards", "ui-contracttests", "db-migration-smoke", "live-e2e"],
+    [
+      "contract-static",
+      "unit-domain",
+      "security-source",
+      "postgres17-migration-smoke",
+      "db-integration-tenant-ab",
+      "rls-security",
+      "api-runtime",
+      "security-guards",
+      "ui-contracttests",
+      "db-migration-smoke",
+      "live-e2e",
+    ],
+  );
+  assert.deepEqual(plan.requiredLayerIds, [
+    "contract-static",
+    "unit-domain",
+    "security-source",
+    "postgres17-migration-smoke",
+    "db-integration-tenant-ab",
+    "rls-security",
+    "api-runtime",
+  ]);
+  assert.ok(
+    plan.layers
+      .find((layer) => layer.id === "contract-static")
+      ?.ciCommand.includes("fieldgrid:runtime-safety:fixture-contract"),
+  );
+  assert.ok(
+    plan.layers
+      .find((layer) => layer.id === "security-source")
+      ?.ciCommand.includes("fieldgrid:test:security-recursive"),
+  );
+  assert.ok(
+    plan.layers
+      .find((layer) => layer.id === "rls-security")
+      ?.ciCommand.includes("fieldgrid:runtime-safety:rls"),
+  );
+  assert.ok(
+    plan.layers
+      .find((layer) => layer.id === "api-runtime")
+      ?.ciCommand.includes("fieldgrid:runtime-safety:api"),
   );
   assert.ok(
     plan.layers

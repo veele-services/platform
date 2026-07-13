@@ -1,0 +1,402 @@
+name: Runtime Safety Harness
+
+on:
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  contract-static:
+    name: contract-static
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+
+      - name: Contract/static lane
+        run: pnpm fieldgrid:test:contract-static
+
+  unit-domain:
+    name: unit-domain
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+
+      - name: Unit/domain lane
+        run: pnpm fieldgrid:test:unit-domain
+
+  security-source:
+    name: security-source
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+
+      - name: Security source lane
+        run: pnpm fieldgrid:test:security-source
+
+  migration-order:
+    name: migration-order
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+
+      - name: Migration order
+        run: pnpm fieldgrid:migration-order-check:check
+
+  typecheck:
+    name: typecheck
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+
+      - name: Typecheck
+        run: pnpm run typecheck
+
+  build:
+    name: build
+    runs-on: ubuntu-latest
+    env:
+      BASE_PATH: "/"
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/fieldgrid_runtime_safety
+      DB_SSL: "false"
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: local-runtime-safety-anon-key
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      PGSSLMODE: disable
+      PORT: "3000"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+
+      - name: Build
+        run: pnpm build
+
+  diff-check:
+    name: diff-check
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Git diff check
+        run: git diff --check origin/${{ github.base_ref }}...HEAD
+
+  postgres17-migration-smoke:
+    name: postgres17-migration-smoke
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: fieldgrid_runtime_safety
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fieldgrid_runtime_safety"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/fieldgrid_runtime_safety
+      DB_SSL: "false"
+      PGSSLMODE: disable
+      FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+
+      - name: Empty database migrations
+        run: pnpm fieldgrid:test:postgres17-migration-smoke
+
+      - name: Teardown local runtime database
+        if: always()
+        run: pnpm fieldgrid:runtime-safety:teardown
+
+      - name: Upload migration artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-safety-postgres17-migration-smoke
+          path: |
+            artifacts/runtime-safety-harness/**/*.json
+            artifacts/runtime-safety-harness/**/*.log
+          if-no-files-found: error
+
+  db-integration-tenant-ab:
+    name: db-integration-tenant-ab
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: fieldgrid_runtime_safety
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fieldgrid_runtime_safety"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/fieldgrid_runtime_safety
+      DB_SSL: "false"
+      PGSSLMODE: disable
+      FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+
+      - name: DB integration Tenant A/B lane
+        run: pnpm fieldgrid:test:db-integration-tenant-ab
+
+      - name: Teardown local runtime database
+        if: always()
+        run: pnpm fieldgrid:runtime-safety:teardown
+
+      - name: Upload DB integration artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-safety-db-integration-tenant-ab
+          path: |
+            artifacts/runtime-safety-harness/**/*.json
+            artifacts/runtime-safety-harness/**/*.log
+          if-no-files-found: error
+
+  rls-security:
+    name: rls-security
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: fieldgrid_runtime_safety
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fieldgrid_runtime_safety"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/fieldgrid_runtime_safety
+      DB_SSL: "false"
+      PGSSLMODE: disable
+      FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+
+      - name: Authenticated RLS lane
+        run: pnpm fieldgrid:test:rls-security
+
+      - name: Teardown local runtime database
+        if: always()
+        run: pnpm fieldgrid:runtime-safety:teardown
+
+      - name: Upload RLS artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-safety-rls-security
+          path: |
+            artifacts/runtime-safety-harness/**/*.json
+            artifacts/runtime-safety-harness/**/*.log
+          if-no-files-found: error
+
+  api-runtime:
+    name: api-runtime
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: fieldgrid_runtime_safety
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fieldgrid_runtime_safety"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/fieldgrid_runtime_safety
+      DB_SSL: "false"
+      PGSSLMODE: disable
+      FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+
+      - name: API runtime lane
+        run: pnpm fieldgrid:test:api-runtime
+
+      - name: Teardown local runtime database
+        if: always()
+        run: pnpm fieldgrid:runtime-safety:teardown
+
+      - name: Upload API artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-safety-api-runtime
+          path: |
+            artifacts/runtime-safety-harness/**/*.json
+            artifacts/runtime-safety-harness/**/*.log
+          if-no-files-found: error

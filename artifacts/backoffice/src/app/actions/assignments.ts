@@ -3657,14 +3657,26 @@ export async function removePersonnel(
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  await db
-    .delete(assignmentPersonnelTable)
+  const [link] = await db
+    .select({ id: assignmentPersonnelTable.id })
+    .from(assignmentPersonnelTable)
+    .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
     .where(
       and(
         eq(assignmentPersonnelTable.id, linkId),
         eq(assignmentPersonnelTable.assignmentId, assignmentId),
+        eq(assignmentsTable.tenantId, tenantId),
       ),
-    );
+    )
+    .limit(1);
+
+  if (!link) {
+    return { success: false, message: "Koppeling niet gevonden binnen deze organisatie." };
+  }
+
+  await db
+    .delete(assignmentPersonnelTable)
+    .where(eq(assignmentPersonnelTable.id, link.id));
 
   await db.insert(auditLogTable).values({
     userId: user.id,
@@ -3852,6 +3864,7 @@ export async function approveDirectly(id: string): Promise<ActionResult> {
 
 export async function deleteAssignment(id: string): Promise<ActionResult> {
   await requirePermission("assignments", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -3862,14 +3875,16 @@ export async function deleteAssignment(id: string): Promise<ActionResult> {
   const [assignment] = await db
     .select({ title: assignmentsTable.title })
     .from(assignmentsTable)
-    .where(eq(assignmentsTable.id, id))
+    .where(and(eq(assignmentsTable.id, id), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
 
   if (!assignment)
     return { success: false, message: "Opdracht niet gevonden." };
 
   // Cascade deletes assignment_personnel and assignment_tasks via FK
-  await db.delete(assignmentsTable).where(eq(assignmentsTable.id, id));
+  await db
+    .delete(assignmentsTable)
+    .where(and(eq(assignmentsTable.id, id), eq(assignmentsTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
     userId: user.id,

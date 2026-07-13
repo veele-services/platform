@@ -489,32 +489,33 @@ export async function getMyAssignmentsAwaitingReport(): Promise<AssignmentAwaiti
   const identity = await getPersonnelIdentity();
   if (!identity) return [];
 
-  // Fetch assignments linked to this worker that are awaiting a report
-  const { data: apRows } = await supabase
-    .from("assignment_personnel")
-    .select(`
-      assignments!inner(
-        id, code, title, scheduled_date, status, tenant_id
-      )
-    `)
-    .eq("personnel_id", identity.personnelId)
-    .eq("status", "assigned")
-    .eq("assignments.tenant_id", identity.tenantId)
-    .in("assignments.status", ["completed", "not_completed"]);
-
-  if (!apRows || apRows.length === 0) return [];
-
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const candidates = (apRows as any[]).map((row) => {
-    const a = row.assignments;
-    return {
-      id:            a.id as string,
-      code:          (a.code ?? "") as string,
-      title:         a.title as string,
-      scheduledDate: (a.scheduled_date ?? null) as string | null,
-      status:        a.status as "completed" | "not_completed",
-    };
-  });
+  const candidates = await db
+    .select({
+      id:            assignmentsTable.id,
+      code:          assignmentsTable.code,
+      title:         assignmentsTable.title,
+      scheduledDate: assignmentsTable.scheduledDate,
+      status:        assignmentsTable.status,
+    })
+    .from(assignmentPersonnelTable)
+    .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
+    .where(
+      and(
+        eq(assignmentPersonnelTable.personnelId, identity.personnelId),
+        eq(assignmentPersonnelTable.status, "assigned"),
+        eq(assignmentsTable.tenantId, identity.tenantId),
+        inArray(assignmentsTable.status, ["completed", "not_completed"]),
+      ),
+    )
+    .then((rows) =>
+      rows.map((row) => ({
+        id:            row.id,
+        code:          row.code ?? "",
+        title:         row.title,
+        scheduledDate: row.scheduledDate ?? null,
+        status:        row.status as "completed" | "not_completed",
+      })),
+    );
 
   if (candidates.length === 0) return [];
 

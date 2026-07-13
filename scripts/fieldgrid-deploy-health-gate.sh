@@ -317,7 +317,10 @@ check_services() {
 
 port_is_listening() {
   local port="$1"
-  "$SS_BIN" -ltn 2>/dev/null | grep -Eq "[:.]${port}[[:space:]]"
+  "$SS_BIN" -ltn 2>/dev/null | awk -v port="$port" '
+    $0 ~ ("[:.]" port "[[:space:]]") { found = 1 }
+    END { exit found ? 0 : 1 }
+  '
 }
 
 check_ports() {

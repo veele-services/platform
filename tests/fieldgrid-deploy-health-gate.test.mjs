@@ -63,6 +63,10 @@ function countOccurrences(value, pattern) {
   return value.split("\n").filter((line) => pattern.test(line)).length;
 }
 
+function normalizeLineEndings(value) {
+  return value.replace(/\r\n/gu, "\n");
+}
+
 async function findBash() {
   for (const candidate of bashCandidates) {
     const result = await run(candidate, ["--version"], { allowFailure: true });
@@ -865,7 +869,7 @@ test("evidence files are machine-readable, mode 0640, and redact URL paths and c
 });
 
 test("deploy workflow keeps production activation body free of staging health scripts", async () => {
-  const workflow = await readFile(deployWorkflow, "utf8");
+  const workflow = normalizeLineEndings(await readFile(deployWorkflow, "utf8"));
   assert.match(workflow, /- name: Activate release\n\s+if: env\.TARGET == 'production'/);
   assert.match(workflow, /- name: Activate staging release\n\s+if: env\.TARGET == 'staging'/);
   assert.match(workflow, /- name: Run staging deploy health gate\n\s+if: env\.TARGET == 'staging'/);
@@ -880,7 +884,7 @@ test("deploy workflow keeps production activation body free of staging health sc
 });
 
 test("deploy cleanup remains after staging health gate and is unreachable before green health", async () => {
-  const workflow = await readFile(deployWorkflow, "utf8");
+  const workflow = normalizeLineEndings(await readFile(deployWorkflow, "utf8"));
   const healthIndex = workflow.indexOf("- name: Run staging deploy health gate");
   const cleanupIndex = workflow.indexOf("- name: Cleanup old releases");
   assert.ok(healthIndex > -1, "staging health gate step must exist");

@@ -1,0 +1,142 @@
+{
+  "version": "fieldgrid-test-layer-classification-v1",
+  "updated_at": "2026-07-12",
+  "layers": {
+    "frozen-install": {
+      "command": "pnpm install --frozen-lockfile",
+      "classification": "dependency installation",
+      "runtime_evidence": false
+    },
+    "migration-order": {
+      "command": "pnpm fieldgrid:migration-order-check:check",
+      "classification": "static source guard",
+      "runtime_evidence": false
+    },
+    "typecheck": {
+      "command": "pnpm run typecheck",
+      "classification": "TypeScript compile",
+      "runtime_evidence": false
+    },
+    "build": {
+      "command": "pnpm build",
+      "classification": "build",
+      "runtime_evidence": false
+    },
+    "diff-check": {
+      "command": "git diff --check origin/${{ github.base_ref }}...HEAD",
+      "classification": "static source guard",
+      "runtime_evidence": false
+    },
+    "empty-database-migrations": {
+      "command": "pnpm fieldgrid:runtime-safety:setup",
+      "classification": "database integration",
+      "runtime_evidence": true,
+      "compatibility_limitations": [
+        "PostgreSQL 17 plus local Supabase compatibility shims",
+        "not a live Supabase project",
+        "not staging"
+      ]
+    },
+    "schema-invariant-checks": {
+      "command": "pnpm fieldgrid:runtime-safety:db",
+      "classification": "database integration",
+      "runtime_evidence": true
+    },
+    "tenant-a-b-database-integration": {
+      "command": "pnpm fieldgrid:runtime-safety:fixtures && pnpm fieldgrid:runtime-safety:db",
+      "classification": "database integration",
+      "runtime_evidence": true
+    },
+    "assignment-exploit-tests": {
+      "command": "pnpm fieldgrid:runtime-safety:db",
+      "classification": "service-role/database invariant",
+      "runtime_evidence": true
+    },
+    "authenticated-rls-assignment-personnel": {
+      "command": "pnpm fieldgrid:runtime-safety:rls",
+      "classification": "authenticated RLS",
+      "runtime_evidence": true,
+      "compatibility_limitations": [
+        "PostgreSQL 17 plus local Supabase auth.uid()/auth.jwt() GUC shims",
+        "not Supabase GoTrue",
+        "not staging"
+      ]
+    },
+    "phase-b-assignment-personnel-select-closure": {
+      "command": "Close authenticated assignment_personnel SELECT after phase-A is live on staging.",
+      "classification": "phase-B acceptance criteria",
+      "runtime_evidence": false,
+      "deferred_by": "phase-A rollback compatibility: staging migrations run before app activation and may roll back to the previous release",
+      "safety_branch": "codex/assignment-personnel-direct-access-close-phase2-prep",
+      "acceptance_criteria": [
+        "authenticated SELECT on assignment_personnel is revoked",
+        "assignment_personnel_own_select is removed",
+        "can_select_own_assignment_personnel is removed"
+      ]
+    },
+    "password-reset-exploit-tests": {
+      "command": "pnpm fieldgrid:runtime-safety:db",
+      "classification": "provider mock",
+      "runtime_evidence": false,
+      "claims_still_requiring_provider_evidence": [
+        "Supabase password reset token issuance",
+        "Supabase password reset token expiry",
+        "e-mail delivery"
+      ]
+    },
+    "tenantless-write-invariants": {
+      "command": "pnpm fieldgrid:runtime-safety:db",
+      "classification": "database integration",
+      "runtime_evidence": true
+    },
+    "rls-storage-test-scaffolding": {
+      "command": "pnpm fieldgrid:runtime-safety:db",
+      "classification": "provider mock",
+      "runtime_evidence": false,
+      "claims_still_requiring_supabase_evidence": [
+        "Supabase Storage object API behavior",
+        "signed URL behavior",
+        "live project role configuration"
+      ]
+    },
+    "server-action-api-test-harness": {
+      "command": "pnpm --filter @workspace/api-server run build && pnpm fieldgrid:runtime-safety:api",
+      "classification": "API or server-action runtime",
+      "runtime_evidence": true,
+      "limitations": [
+        "covers the local Express API server",
+        "does not cover Next.js server actions",
+        "does not cover browser flows"
+      ]
+    },
+    "playwright-environment-contract": {
+      "command": "Runtime Safety Harness workflow service and artifact contract",
+      "classification": "browser or E2E scaffold",
+      "runtime_evidence": false,
+      "claims_still_requiring_browser_evidence": [
+        "real browser session cookies",
+        "PWA route behavior",
+        "visual or end-to-end flows"
+      ]
+    },
+    "test-result-and-schema-artifacts": {
+      "command": "pnpm fieldgrid:runtime-safety:db",
+      "classification": "artifact generation",
+      "runtime_evidence": true
+    }
+  },
+  "future_required_checks": [
+    "Runtime Safety Harness / contract-static",
+    "Runtime Safety Harness / postgres17-migration-smoke",
+    "Runtime Safety Harness / unit-domain",
+    "Runtime Safety Harness / security-source",
+    "Runtime Safety Harness / migration-order",
+    "Runtime Safety Harness / typecheck",
+    "Runtime Safety Harness / build",
+    "Runtime Safety Harness / diff-check",
+    "Runtime Safety Harness / db-integration-tenant-ab",
+    "Runtime Safety Harness / rls-security",
+    "Runtime Safety Harness / api-runtime"
+  ],
+  "manual_merge_gate": "Do not merge to main unless all future_required_checks are present and passing."
+}
