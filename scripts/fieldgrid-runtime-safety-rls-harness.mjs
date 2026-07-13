@@ -829,17 +829,27 @@ async function securityDefinerPrivilegesAreMinimal(client) {
 async function databaseDependencyAudit(client) {
   const functions = await client.query(
     `
+      WITH candidate_functions AS MATERIALIZED (
+        SELECT
+          n.nspname,
+          p.proname,
+          p.oid,
+          p.prosecdef,
+          p.proconfig
+        FROM pg_proc p
+        JOIN pg_namespace n
+          ON n.oid = p.pronamespace
+        WHERE p.prokind IN ('f', 'p')
+      )
       SELECT
-        n.nspname,
-        p.proname,
-        pg_get_function_identity_arguments(p.oid) as arguments,
-        p.prosecdef,
-        p.proconfig
-      FROM pg_proc p
-      JOIN pg_namespace n
-        ON n.oid = p.pronamespace
-      WHERE pg_get_functiondef(p.oid) ILIKE '%assignment_personnel%'
-      ORDER BY n.nspname, p.proname, arguments
+        nspname,
+        proname,
+        pg_get_function_identity_arguments(oid) as arguments,
+        prosecdef,
+        proconfig
+      FROM candidate_functions
+      WHERE pg_get_functiondef(oid) ILIKE '%assignment_personnel%'
+      ORDER BY nspname, proname, arguments
     `,
   );
   const policies = await client.query(
