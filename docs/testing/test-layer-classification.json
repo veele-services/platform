@@ -1,6 +1,6 @@
 {
   "version": "fieldgrid-test-layer-classification-v1",
-  "updated_at": "2026-07-12",
+  "updated_at": "2026-07-13",
   "layers": {
     "frozen-install": {
       "command": "pnpm install --frozen-lockfile",
@@ -54,7 +54,7 @@
     },
     "authenticated-rls-assignment-personnel": {
       "command": "pnpm fieldgrid:runtime-safety:rls",
-      "classification": "authenticated RLS",
+      "classification": "authenticated RLS plus table ACL inspection",
       "runtime_evidence": true,
       "compatibility_limitations": [
         "PostgreSQL 17 plus local Supabase auth.uid()/auth.jwt() GUC shims",
@@ -67,10 +67,18 @@
       "classification": "phase-B acceptance criteria",
       "runtime_evidence": false,
       "deferred_by": "phase-A rollback compatibility: staging migrations run before app activation and may roll back to the previous release",
-      "safety_branch": "codex/assignment-personnel-direct-access-close-phase2-prep",
+      "reference_snapshot_branch": "codex/assignment-personnel-direct-access-close-phase2-prep",
+      "merge_policy": "reference snapshot only; must not be merged directly because it rewrites 20260712130000_assignment_personnel_tenant_guard.sql",
+      "implementation_policy": "Phase B must be built later as a new forward-only migration from current main.",
       "acceptance_criteria": [
-        "authenticated SELECT on assignment_personnel is revoked",
+        "assignment_personnel_management_all is removed",
+        "assignment_personnel_tenant_management_all is removed",
         "assignment_personnel_own_select is removed",
+        "personnel_read_own_assignment_personnel is removed",
+        "authenticated SELECT on assignment_personnel is revoked",
+        "PUBLIC direct access to assignment_personnel is closed",
+        "anon direct access to assignment_personnel is closed",
+        "authenticated direct access to assignment_personnel is closed",
         "can_select_own_assignment_personnel is removed"
       ]
     },

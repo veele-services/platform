@@ -132,6 +132,17 @@ async function installCompatibilityShims(client) {
   `);
 }
 
+async function installPostMigrationCompatibilityGrants() {
+  const client = await connect();
+  try {
+    await client.query(`
+      grant select on table public.personnel to authenticated;
+    `);
+  } finally {
+    await client.end();
+  }
+}
+
 async function main() {
   await ensureArtifactDirs();
   const startedAt = new Date().toISOString();
@@ -152,6 +163,7 @@ async function main() {
     PGSSLMODE: "disable",
   };
   const migration = await run("pnpm", ["--filter", "@workspace/db", "run", "db:migrate"], env);
+  if (migration.code === 0) await installPostMigrationCompatibilityGrants();
 
   await writeTextArtifact(
     join("logs", "migration.log"),
@@ -170,6 +182,9 @@ async function main() {
         "auth.uid() and auth.jwt() are local GUC-backed shims, not Supabase GoTrue.",
         "storage.buckets and storage.objects are schema-compatible tables only; object storage and signed URL behavior are not exercised.",
         "RLS policies can be inspected and exercised through PostgreSQL roles, but this is not Supabase Storage runtime evidence.",
+      ],
+      postMigrationGrants: [
+        "GRANT SELECT ON TABLE public.personnel TO authenticated; required for local evaluation of existing assignment_personnel_own_select rollback policy.",
       ],
     },
     migrationExitCode: migration.code,

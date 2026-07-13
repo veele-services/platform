@@ -1,9 +1,11 @@
 #!/usr/bin/env node
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   FIXTURE,
   assert,
   connect,
+  repoRoot,
   result,
   writeJsonArtifact,
   writeTextArtifact,
@@ -42,6 +44,53 @@ const ACTORS = {
   },
 };
 
+const ASSIGNMENT_PERSONNEL_TABLE_PRIVILEGES = [
+  "SELECT",
+  "INSERT",
+  "UPDATE",
+  "DELETE",
+  "TRUNCATE",
+  "REFERENCES",
+  "TRIGGER",
+  "MAINTAIN",
+];
+
+const ASSIGNMENT_PERSONNEL_EXPECTED_TABLE_PRIVILEGES = {
+  anon: {
+    SELECT: false,
+    INSERT: false,
+    UPDATE: false,
+    DELETE: false,
+    TRUNCATE: false,
+    REFERENCES: false,
+    TRIGGER: false,
+    MAINTAIN: false,
+  },
+  authenticated: {
+    SELECT: true,
+    INSERT: false,
+    UPDATE: false,
+    DELETE: false,
+    TRUNCATE: false,
+    REFERENCES: false,
+    TRIGGER: false,
+    MAINTAIN: false,
+  },
+  service_role: {
+    SELECT: true,
+    INSERT: true,
+    UPDATE: true,
+    DELETE: true,
+    TRUNCATE: false,
+    REFERENCES: false,
+    TRIGGER: false,
+    MAINTAIN: false,
+  },
+};
+
+const PHASE_A1_ACL_MIGRATION_PATH =
+  "lib/db/migrations/20260713120000_assignment_personnel_phase_a_acl_hardening.sql";
+
 function claimsFor(actor, tenantClaim = actor.tenantId) {
   const claims = {
     sub: actor.userId,
@@ -53,13 +102,17 @@ function claimsFor(actor, tenantClaim = actor.tenantId) {
   return claims;
 }
 
+async function setLocalRoleContext(client, role, actor, claims) {
+  await client.query(`set local role ${role}`);
+  await client.query("set local row_security = on");
+  await client.query("select set_config('request.jwt.claim.sub', $1, true)", [actor.userId]);
+  await client.query("select set_config('request.jwt.claims', $1, true)", [JSON.stringify(claims)]);
+}
+
 async function asRole(client, role, actor, claims, callback) {
   await client.query("begin");
   try {
-    await client.query(`set local role ${role}`);
-    await client.query("set local row_security = on");
-    await client.query("select set_config('request.jwt.claim.sub', $1, true)", [actor.userId]);
-    await client.query("select set_config('request.jwt.claims', $1, true)", [JSON.stringify(claims)]);
+    await setLocalRoleContext(client, role, actor, claims);
     const value = await callback();
     await client.query("rollback");
     return value;
@@ -116,6 +169,195 @@ function directUpdate(client, linkId = "00000000-0000-4000-8000-000000000000") {
 
 function directDelete(client, linkId = "00000000-0000-4000-8000-000000000000") {
   return client.query(`delete from assignment_personnel where id = $1`, [linkId]);
+}
+
+async function createSameTenantAssignmentPersonnelLinkAsServiceRole(client) {
+  const actor = ACTORS.tenantAPlanner;
+  await client.query("begin");
+  try {
+    await setLocalRoleContext(client, "service_role", actor, claimsFor(actor));
+    await client.query(
+      `
+        delete from public.assignment_personnel
+        where assignment_id = $1
+          and personnel_id = $2
+      `,
+      [FIXTURE.assignments.a, FIXTURE.personnel.a],
+    );
+    const link = await directInsert(client, FIXTURE.assignments.a, FIXTURE.personnel.a, actor.userId);
+    await client.query("commit");
+    assert(link.rows.length === 1, "Service-role same-tenant assignment_personnel link was not created.");
+    return link.rows[0].id;
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    throw error;
+  }
+}
+
+async function deleteAssignmentPersonnelLinkAsServiceRole(client, linkId) {
+  const actor = ACTORS.tenantAPlanner;
+  await client.query("begin");
+  try {
+    await setLocalRoleContext(client, "service_role", actor, claimsFor(actor));
+    await client.query(`delete from public.assignment_personnel where id = $1`, [linkId]);
+    await client.query("commit");
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    throw error;
+  }
+}
+
+async function readAssignmentPersonnelTableAclSnapshot(client) {
+  const acl = await client.query(
+    `
+      select
+        acl.grantee::int as grantee,
+        coalesce(r.rolname, 'PUBLIC') as grantee_name,
+        acl.privilege_type,
+        acl.is_grantable
+      from pg_class c
+      join pg_namespace n on n.oid = c.relnamespace
+      left join lateral aclexplode(coalesce(c.relacl, acldefault('r', c.relowner))) acl on true
+      left join pg_roles r on r.oid = acl.grantee
+      where n.nspname = 'public'
+        and c.relname = 'assignment_personnel'
+      order by grantee_name, acl.privilege_type
+    `,
+  );
+  const expectedRows = Object.entries(ASSIGNMENT_PERSONNEL_EXPECTED_TABLE_PRIVILEGES).flatMap(
+    ([roleName, privileges]) =>
+      ASSIGNMENT_PERSONNEL_TABLE_PRIVILEGES.map((privilegeName) => ({
+        role_name: roleName,
+        privilege_name: privilegeName,
+        expected: privileges[privilegeName],
+      })),
+  );
+  const rows = await client.query(
+    `
+      with expected(role_name, privilege_name, expected) as (
+        select role_name, privilege_name, expected
+        from jsonb_to_recordset($1::jsonb) as x(role_name text, privilege_name text, expected boolean)
+      )
+      select
+        role_name,
+        privilege_name,
+        expected,
+        has_table_privilege(role_name::name, 'public.assignment_personnel', privilege_name) as actual
+      from expected
+      order by role_name, privilege_name
+    `,
+    [JSON.stringify(expectedRows)],
+  );
+
+  const publicPrivileges = acl.rows
+    .filter((row) => row.grantee === 0)
+    .map((row) => row.privilege_type);
+  const privileges = {};
+  for (const row of rows.rows) {
+    privileges[row.role_name] ??= {};
+    privileges[row.role_name][row.privilege_name] = row.actual;
+  }
+
+  return {
+    publicPrivileges,
+    privileges,
+    aclRows: acl.rows,
+    expectedPrivilegeRows: rows.rows,
+  };
+}
+
+function assertAssignmentPersonnelTableAclLeastPrivilege(snapshot) {
+  assert(snapshot.publicPrivileges.length === 0, "PUBLIC has assignment_personnel table privileges.", {
+    publicPrivileges: snapshot.publicPrivileges,
+  });
+
+  for (const row of snapshot.expectedPrivilegeRows) {
+    assert(row.actual === row.expected, "Unexpected assignment_personnel table privilege.", row);
+  }
+}
+
+async function assignmentPersonnelTableAclIsLeastPrivilege(client) {
+  const snapshot = await readAssignmentPersonnelTableAclSnapshot(client);
+  assertAssignmentPersonnelTableAclLeastPrivilege(snapshot);
+
+  return result("rls-assignment-personnel-table-acl-least-privilege", "passed", {
+    publicPrivileges: snapshot.publicPrivileges,
+    privileges: snapshot.privileges,
+    aclRows: snapshot.aclRows,
+  });
+}
+
+async function historicalBroadAclDriftIsCleanedByPhaseA1Migration(client) {
+  await client.query("GRANT ALL ON TABLE public.assignment_personnel TO anon, authenticated, service_role");
+  const drift = await readAssignmentPersonnelTableAclSnapshot(client);
+
+  for (const roleName of ["anon", "authenticated", "service_role"]) {
+    for (const privilegeName of ASSIGNMENT_PERSONNEL_TABLE_PRIVILEGES) {
+      assert(drift.privileges[roleName]?.[privilegeName] === true, "Historical broad ACL drift was not simulated.", {
+        roleName,
+        privilegeName,
+        actual: drift.privileges[roleName]?.[privilegeName],
+      });
+    }
+  }
+
+  const migration = await readFile(join(repoRoot, PHASE_A1_ACL_MIGRATION_PATH), "utf8");
+  await client.query(migration);
+  const cleaned = await readAssignmentPersonnelTableAclSnapshot(client);
+  assertAssignmentPersonnelTableAclLeastPrivilege(cleaned);
+
+  return result("rls-assignment-personnel-historical-broad-acl-drift-cleaned", "passed", {
+    migration: PHASE_A1_ACL_MIGRATION_PATH,
+    driftPrivileges: drift.privileges,
+    cleanedPublicPrivileges: cleaned.publicPrivileges,
+    cleanedPrivileges: cleaned.privileges,
+  });
+}
+
+async function authenticatedOwnSelectRollbackCompatibility(client) {
+  let linkId = null;
+  try {
+    linkId = await createSameTenantAssignmentPersonnelLinkAsServiceRole(client);
+    const selected = await asAuthenticated(
+      client,
+      ACTORS.tenantAPersonnel,
+      claimsFor(ACTORS.tenantAPersonnel),
+      async () => directSelect(client, linkId),
+    );
+    assert(selected.rows.length === 1, "Authenticated personnel user cannot SELECT their own assignment_personnel link.");
+    assert(selected.rows[0]?.id === linkId, "Authenticated personnel SELECT returned the wrong assignment_personnel link.");
+
+    return result("rls-authenticated-own-select-rollback-compatibility", "passed", {
+      createdBy: "service_role",
+      selectedBy: "authenticated personnel user",
+      linkVisible: true,
+      note: "Temporary Phase-A rollback compatibility only; cross-tenant SELECT closure remains Phase B.",
+    });
+  } finally {
+    if (linkId) await deleteAssignmentPersonnelLinkAsServiceRole(client, linkId);
+  }
+}
+
+async function anonSelectCountIsPermissionDenied(client) {
+  await client.query("begin");
+  try {
+    await client.query("set local role anon");
+    await client.query("set local row_security = on");
+    await client.query("SELECT count(*) FROM public.assignment_personnel");
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    const code = error?.code ?? "unknown";
+    assert(code === "42501", "Anon SELECT count must be permission denied, not zero rows.", {
+      code,
+      message: error instanceof Error ? error.message : String(error),
+    });
+    return result("rls-anon-assignment-personnel-select-permission-denied", "passed", {
+      rejectionCode: code,
+      message: error instanceof Error ? error.message : String(error),
+    });
+  }
+  await client.query("rollback").catch(() => {});
+  throw new Error("Expected anon SELECT count on assignment_personnel to be permission denied.");
 }
 
 async function tenantContextDoesNotOpenDirectDml(client) {
@@ -270,6 +512,7 @@ async function securityDefinerPrivilegesAreMinimal(client) {
     assert(row.rows[0]?.public_execute === false, `${signature} is executable by PUBLIC.`);
     assert(row.rows[0]?.anon_execute === false, `${signature} is executable by anon.`);
     assert(row.rows[0]?.authenticated_execute === false, `${signature} is executable by authenticated.`);
+    assert(typeof row.rows[0]?.service_role_execute === "boolean", `${signature} service_role execute state was not measured.`);
   }
 
   const phaseBHelpers = await client.query(
@@ -314,6 +557,10 @@ async function runChecks() {
   const client = await connect();
   try {
     return [
+      await historicalBroadAclDriftIsCleanedByPhaseA1Migration(client),
+      await assignmentPersonnelTableAclIsLeastPrivilege(client),
+      await authenticatedOwnSelectRollbackCompatibility(client),
+      await anonSelectCountIsPermissionDenied(client),
       await tenantContextDoesNotOpenDirectDml(client),
       await legacyGlobalManagementCannotManage(client),
       await authenticatedDirectDmlIsRevoked(client),
@@ -356,11 +603,15 @@ async function main() {
       rowSecurity: "on",
       claims: ["request.jwt.claim.sub", "request.jwt.claims.tenant_id"],
       directDml: "revoked for anon/authenticated; writes are server/service-role commands plus database trigger invariant",
-      directReads: "existing authenticated SELECT grants/policies are intentionally retained in phase A for app rollback compatibility; new app code no longer uses browser/client table SELECT",
+      directReads: "authenticated SELECT on own assignment_personnel links is intentionally retained in phase A for app rollback compatibility; anon table SELECT is permission denied",
       excludedEvidence: ["postgres/superuser checks are not RLS evidence", "source regex checks are not runtime proof"],
     },
     checks,
     testLayerClassification: {
+      "rls-assignment-personnel-historical-broad-acl-drift-cleaned": "database ACL drift cleanup",
+      "rls-assignment-personnel-table-acl-least-privilege": "database ACL inspection",
+      "rls-authenticated-own-select-rollback-compatibility": "authenticated RLS rollback compatibility",
+      "rls-anon-assignment-personnel-select-permission-denied": "database ACL enforcement",
       "rls-tenant-context-does-not-open-direct-dml": "authenticated RLS",
       "rls-legacy-global-management-without-tenant-role-denied": "authenticated RLS",
       "rls-authenticated-direct-dml-revoked": "authenticated RLS",
@@ -375,7 +626,11 @@ async function main() {
       requiredFollowUp: "Close authenticated assignment_personnel SELECT after phase-A is live on staging.",
       deferredClaims: [
         "authenticated SELECT on assignment_personnel is revoked",
+        "PUBLIC, anon, and authenticated direct table access are fully closed",
+        "assignment_personnel_management_all is removed",
+        "assignment_personnel_tenant_management_all is removed",
         "assignment_personnel_own_select is removed",
+        "personnel_read_own_assignment_personnel is removed",
         "can_select_own_assignment_personnel is removed",
       ],
     },

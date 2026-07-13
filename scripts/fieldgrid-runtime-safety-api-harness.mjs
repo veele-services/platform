@@ -36,9 +36,8 @@ function signJwt(userId, email) {
 }
 
 function startServer() {
-  const child = spawn("node", ["--enable-source-maps", "./artifacts/api-server/dist/index.mjs"], {
+  const child = spawn(process.execPath, ["--enable-source-maps", "./artifacts/api-server/dist/index.mjs"], {
     cwd: repoRoot,
-    shell: process.platform === "win32",
     env: {
       ...process.env,
       NODE_ENV: "test",

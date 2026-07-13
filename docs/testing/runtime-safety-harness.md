@@ -10,6 +10,8 @@ It runs against an ephemeral PostgreSQL 17 database with explicit local compatib
 
 Compatibility limits are intentional and reported in `artifacts/runtime-safety-harness/reports/setup.json`. The local shims are enough to compile and exercise SQL migrations, PostgreSQL RLS policies, tenant fixtures, and the local Express API middleware. They are not proof of Supabase GoTrue, Supabase Storage object runtime, signed URLs, JWKS, provider webhooks, e-mail delivery, Mollie, DNS, or staging behavior.
 
+After migrations, the local harness grants `authenticated` SELECT on `public.personnel` so PostgreSQL can evaluate the existing `assignment_personnel_own_select` rollback policy in the local shim environment. This is not an application migration and does not grant any additional `assignment_personnel` privilege.
+
 ## Commands
 
 Run the full harness only with a disposable local database:
@@ -27,7 +29,7 @@ Layer commands:
 - `pnpm fieldgrid:runtime-safety:setup`: installs local shims and runs empty database migrations.
 - `pnpm fieldgrid:runtime-safety:fixtures`: loads deterministic platform, Tenant A/B, suspended, module-off, multi-tenant, expired invite/recovery/support fixtures.
 - `pnpm fieldgrid:runtime-safety:db`: database integration, schema invariant, privileged assignment invariant, tenantless-write, and storage/password-reset scaffold checks.
-- `pnpm fieldgrid:runtime-safety:rls`: authenticated RLS checks using `SET LOCAL ROLE authenticated`, `row_security = on`, and local JWT GUC shims. In phase A, direct anon/authenticated DML on `assignment_personnel` is expected to be denied while existing authenticated SELECT grants/policies stay intact for rollback compatibility. Reads in the new app are host/server-action scoped, and writes are server/service-role commands plus the database trigger invariant.
+- `pnpm fieldgrid:runtime-safety:rls`: authenticated RLS checks using `SET LOCAL ROLE authenticated`, `row_security = on`, local JWT GUC shims, `aclexplode`, and `has_table_privilege`. In Phase A.1, `PUBLIC` and `anon` have no direct `assignment_personnel` table privileges, `authenticated` keeps only temporary SELECT for rollback compatibility, and direct authenticated DML remains denied. The RLS harness first simulates historical broad ACL drift with `GRANT ALL ON TABLE public.assignment_personnel TO anon, authenticated, service_role`, reruns the forward-only Phase-A.1 ACL migration, and proves only authenticated SELECT plus service-role CRUD remain. Reads in the new app are host/server-action scoped, and writes are server/service-role commands plus the database trigger invariant.
 - `pnpm --filter @workspace/api-server run build`: API build for runtime checks.
 - `pnpm fieldgrid:runtime-safety:api`: local API runtime checks.
 - `pnpm fieldgrid:runtime-safety:teardown`: guarded cleanup; destructive reset only happens with `FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET=1`.
@@ -79,6 +81,26 @@ Do not merge a PR when one of these checks is missing, skipped, cancelled, or re
 
 Rollback is a normal app/code revert of the workflow, scripts, package commands, and docs. The forward-only `assignment_personnel` databaseguard is intentionally safe to leave in place after an app revert because it only rejects invalid cross-tenant links and does not rewrite business data.
 
-Phase A deliberately does not revoke authenticated SELECT on `assignment_personnel`, does not drop `assignment_personnel_own_select`, and does not drop existing SELECT helpers. Staging runs migrations before app activation, and the health gate can roll back to the previous app release; that previous release still uses the old direct SELECT path. The complete direct-access closure has been preserved on `codex/assignment-personnel-direct-access-close-phase2-prep`.
+Phase A.1 deliberately keeps authenticated SELECT on `assignment_personnel`, does not drop `assignment_personnel_management_all`, does not drop `assignment_personnel_own_select`, and does not drop `personnel_read_own_assignment_personnel` when present. Staging runs migrations before app activation, and the health gate can roll back to the previous app release; that previous release still uses the old direct SELECT path. This compatibility does not claim that the cross-tenant SELECT surface is fully closed.
+
+The branch `codex/assignment-personnel-direct-access-close-phase2-prep` is a reference snapshot only. It must not be merged directly because it rewrites the already-applied migration `20260712130000_assignment_personnel_tenant_guard.sql`. Phase B must be rebuilt later as a new forward-only migration from current main.
+
+Required Phase-B minimum policy cleanup:
+
+```sql
+DROP POLICY IF EXISTS assignment_personnel_management_all
+ON public.assignment_personnel;
+
+DROP POLICY IF EXISTS assignment_personnel_tenant_management_all
+ON public.assignment_personnel;
+
+DROP POLICY IF EXISTS assignment_personnel_own_select
+ON public.assignment_personnel;
+
+DROP POLICY IF EXISTS personnel_read_own_assignment_personnel
+ON public.assignment_personnel;
+```
+
+After that cleanup, Phase B must close all direct access for `PUBLIC`, `anon`, and `authenticated`.
 
 Required phase-B follow-up: Close authenticated assignment_personnel SELECT after phase-A is live on staging.
