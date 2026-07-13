@@ -49,7 +49,7 @@ function claimsFor(actor, tenantClaim = actor.tenantId) {
     role: "authenticated",
     aud: "authenticated",
   };
-  if (tenantClaim !== undefined) claims.tenant_id = tenantClaim;
+  if (tenantClaim !== null) claims.tenant_id = tenantClaim;
   return claims;
 }
 
@@ -116,7 +116,7 @@ function directInsert(client, assignmentId, personnelId, assignedBy) {
 async function tenantContextIsFailClosed(client) {
   const actor = ACTORS.tenantAPlanner;
   const outcomes = {
-    absent: await canManage(client, actor, undefined, FIXTURE.assignments.a, FIXTURE.personnel.a),
+    absent: await canManage(client, actor, null, FIXTURE.assignments.a, FIXTURE.personnel.a),
     malformed: await canManage(client, actor, "not-a-uuid", FIXTURE.assignments.a, FIXTURE.personnel.a),
     wrong: await canManage(client, actor, FIXTURE.tenants.b, FIXTURE.assignments.a, FIXTURE.personnel.a),
     correct: await canManage(client, actor, FIXTURE.tenants.a, FIXTURE.assignments.a, FIXTURE.personnel.a),
@@ -213,7 +213,7 @@ async function ownPersonnelSelectRemainsCorrect(client) {
   const ownVisible = await asAuthenticated(
     client,
     ACTORS.tenantAPersonnel,
-    claimsFor(ACTORS.tenantAPersonnel, undefined),
+    claimsFor(ACTORS.tenantAPersonnel, null),
     async () => client.query(`select id from assignment_personnel where id = $1`, [inserted.rows[0].id]),
   );
   const tenantBVisible = await asAuthenticated(
