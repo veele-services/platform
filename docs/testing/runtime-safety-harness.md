@@ -29,7 +29,7 @@ Layer commands:
 - `pnpm fieldgrid:runtime-safety:setup`: installs local shims and runs empty database migrations.
 - `pnpm fieldgrid:runtime-safety:fixtures`: loads deterministic platform, Tenant A/B, suspended, module-off, multi-tenant, expired invite/recovery/support fixtures.
 - `pnpm fieldgrid:runtime-safety:db`: database integration, schema invariant, privileged assignment invariant, tenantless-write, and storage/password-reset scaffold checks.
-- `pnpm fieldgrid:runtime-safety:rls`: authenticated RLS checks using `SET LOCAL ROLE authenticated`, `row_security = on`, local JWT GUC shims, `aclexplode`, and `has_table_privilege`. In Phase B, `PUBLIC`, `anon`, and `authenticated` have no direct `assignment_personnel` table privileges. `service_role` keeps only SELECT/INSERT/UPDATE/DELETE. The RLS harness simulates historical broad ACL drift, reruns Phase-A.1 plus Phase-B migrations, proves direct table access is closed, proves service-role CRUD plus trigger invariants, and exercises assignments, tasks, extra work, photos, reports, report notes, attachments, material usage, objects, Tenant A/B isolation, selected tenant fail-closed behavior, and customer policy regressions.
+- `pnpm fieldgrid:runtime-safety:rls`: authenticated RLS checks using `SET LOCAL ROLE authenticated`, `row_security = on`, local JWT GUC shims, `aclexplode`, and `has_table_privilege`. In Phase B, `PUBLIC`, `anon`, and `authenticated` have no direct `assignment_personnel` table privileges. `service_role` keeps only SELECT/INSERT/UPDATE/DELETE. The RLS harness simulates historical broad ACL drift, reruns Phase-A.1 plus Phase-B migrations, proves direct table access is closed, proves service-role CRUD plus trigger invariants, and exercises assignments, tasks, extra work, photos, reports, report notes, attachments, material usage, objects, Tenant A/B isolation, selected tenant fail-closed behavior, customer policy regressions, and the current schema invariant that one auth user cannot have multiple `personnel` rows across tenants because `personnel.user_id` is unique.
 - `pnpm fieldgrid:runtime-safety:previous-release-compatibility`: deployment compatibility checks for rollbackrelease `132e7d0705f0192d6ec4a28195f192850574447d`. This lane includes a static callsite audit, but its pass/fail signal also runs real PostgreSQL queries for the previous release server-action patterns and authenticated RLS queries for assignments, tasks, photos, and reports.
 - `pnpm --filter @workspace/api-server run build`: API build for runtime checks.
 - `pnpm fieldgrid:runtime-safety:api`: local API runtime checks.
@@ -52,7 +52,8 @@ The fixture loader creates:
 - platform owner, admin, and support users;
 - Tenant A owner, admin, planner, personnel, and customer;
 - Tenant B owner, admin, planner, personnel, and customer;
-- a multi-tenant user linked to Tenant A and Tenant B;
+- a multi-tenant user linked to Tenant A and Tenant B through tenant membership fixtures;
+- a separate Phase-B RLS assertion that duplicate `personnel.user_id` rows across tenants are schema-blocked;
 - a legacy global Management-only user with no tenant membership or tenant role;
 - a suspended tenant and owner;
 - a module-off tenant with `customers` disabled;

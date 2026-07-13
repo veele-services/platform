@@ -51,15 +51,9 @@ const ACTORS = {
 };
 
 const RLS_FIXTURE = {
-  personnel: {
-    multiA: "60000000-0000-4000-8000-000000000003",
-    multiB: "60000000-0000-4000-8000-000000000004",
-  },
   assignmentPersonnel: {
     a: "61000000-0000-4000-8000-000000000001",
     b: "61000000-0000-4000-8000-000000000002",
-    multiA: "61000000-0000-4000-8000-000000000003",
-    multiB: "61000000-0000-4000-8000-000000000004",
   },
   tasks: {
     a: "71000000-0000-4000-8000-000000000001",
@@ -331,33 +325,10 @@ async function assignmentPersonnelTableAclIsLeastPrivilege(client) {
 async function ensurePersonnelRlsFixtureRows(client) {
   await client.query(
     `
-      insert into public.personnel (id, tenant_id, user_id, code, first_name, last_name, email, is_active, is_available)
-      values
-        ($1, $2, $3, 'RTA-M001', 'Runtime', 'Multi A', 'multi-a@runtime.fieldgrid.test', true, true),
-        ($4, $5, $3, 'RTB-M001', 'Runtime', 'Multi B', 'multi-b@runtime.fieldgrid.test', true, true)
-      on conflict (id) do update set
-        tenant_id = excluded.tenant_id,
-        user_id = excluded.user_id,
-        email = excluded.email,
-        is_active = excluded.is_active
-    `,
-    [
-      RLS_FIXTURE.personnel.multiA,
-      FIXTURE.tenants.a,
-      FIXTURE.users.multiTenant,
-      RLS_FIXTURE.personnel.multiB,
-      FIXTURE.tenants.b,
-    ],
-  );
-
-  await client.query(
-    `
       insert into public.assignment_personnel (id, assignment_id, personnel_id, status, assigned_by)
       values
         ($1, $2, $3, 'assigned', $4),
-        ($5, $6, $7, 'assigned', $8),
-        ($9, $2, $10, 'assigned', $4),
-        ($11, $6, $12, 'assigned', $8)
+        ($5, $6, $7, 'assigned', $8)
       on conflict (assignment_id, personnel_id) do update set
         status = excluded.status,
         assigned_by = excluded.assigned_by
@@ -371,10 +342,6 @@ async function ensurePersonnelRlsFixtureRows(client) {
       FIXTURE.assignments.b,
       FIXTURE.personnel.b,
       FIXTURE.users.tenantBPlanner,
-      RLS_FIXTURE.assignmentPersonnel.multiA,
-      RLS_FIXTURE.personnel.multiA,
-      RLS_FIXTURE.assignmentPersonnel.multiB,
-      RLS_FIXTURE.personnel.multiB,
     ],
   );
 
@@ -647,8 +614,51 @@ async function personnelRlsPoliciesAllowLegitimateData(client) {
   return result("rls-personnel-policy-mediated-legitimate-data-access", "passed", checks);
 }
 
+async function duplicatePersonnelUserIdIsRejected(client) {
+  await client.query("begin");
+  try {
+    await client.query(
+      `
+        insert into public.personnel (id, tenant_id, user_id, code, first_name, last_name, email, is_active, is_available)
+        values ($1, $2, $3, 'RT-MA', 'Runtime', 'Multi A', 'multi-a@runtime.fieldgrid.test', true, true)
+      `,
+      [
+        "60000000-0000-4000-8000-000000000003",
+        FIXTURE.tenants.a,
+        FIXTURE.users.multiTenant,
+      ],
+    );
+    const duplicate = await expectRejected(
+      () =>
+        client.query(
+          `
+            insert into public.personnel (id, tenant_id, user_id, code, first_name, last_name, email, is_active, is_available)
+            values ($1, $2, $3, 'RT-MB', 'Runtime', 'Multi B', 'multi-b@runtime.fieldgrid.test', true, true)
+          `,
+          [
+            "60000000-0000-4000-8000-000000000004",
+            FIXTURE.tenants.b,
+            FIXTURE.users.multiTenant,
+          ],
+        ),
+      ["23505"],
+    );
+    await client.query("rollback");
+    return {
+      status: "schema-blocked",
+      code: duplicate.code,
+      constraint: "personnel_user_id_unique",
+      note: "The current schema does not allow one auth user to have personnel rows in multiple tenants.",
+    };
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    throw error;
+  }
+}
+
 async function tenantABIsolationAndTenantClaimFailClosed(client) {
   await ensurePersonnelRlsFixtureRows(client);
+  const duplicateMultiTenantPersonnel = await duplicatePersonnelUserIdIsRejected(client);
 
   const tenantA = await asAuthenticated(client, ACTORS.tenantAPersonnel, claimsFor(ACTORS.tenantAPersonnel), async () =>
     selectIds(client, `select id from public.assignments where id = any($1::uuid[])`, [
@@ -660,23 +670,13 @@ async function tenantABIsolationAndTenantClaimFailClosed(client) {
       [FIXTURE.assignments.a, FIXTURE.assignments.b],
     ]),
   );
-  const multiA = await asAuthenticated(client, ACTORS.multiTenantInA, claimsFor(ACTORS.multiTenantInA), async () =>
-    selectIds(client, `select id from public.assignments where id = any($1::uuid[])`, [
-      [FIXTURE.assignments.a, FIXTURE.assignments.b],
-    ]),
-  );
-  const multiB = await asAuthenticated(client, ACTORS.multiTenantInB, claimsFor(ACTORS.multiTenantInB), async () =>
-    selectIds(client, `select id from public.assignments where id = any($1::uuid[])`, [
-      [FIXTURE.assignments.a, FIXTURE.assignments.b],
-    ]),
-  );
 
-  const absent = await asAuthenticated(client, ACTORS.multiTenantInA, claimsFor(ACTORS.multiTenantInA, null), async () =>
+  const absent = await asAuthenticated(client, ACTORS.tenantAPersonnel, claimsFor(ACTORS.tenantAPersonnel, null), async () =>
     selectIds(client, `select id from public.assignments where id = any($1::uuid[])`, [
       [FIXTURE.assignments.a, FIXTURE.assignments.b],
     ]),
   );
-  const malformed = await asAuthenticated(client, ACTORS.multiTenantInA, claimsFor(ACTORS.multiTenantInA, "not-a-uuid"), async () =>
+  const malformed = await asAuthenticated(client, ACTORS.tenantAPersonnel, claimsFor(ACTORS.tenantAPersonnel, "not-a-uuid"), async () =>
     selectIds(client, `select id from public.assignments where id = any($1::uuid[])`, [
       [FIXTURE.assignments.a, FIXTURE.assignments.b],
     ]),
@@ -689,8 +689,6 @@ async function tenantABIsolationAndTenantClaimFailClosed(client) {
 
   nodeAssert.deepEqual(tenantA, [FIXTURE.assignments.a]);
   nodeAssert.deepEqual(tenantB, [FIXTURE.assignments.b]);
-  nodeAssert.deepEqual(multiA, [FIXTURE.assignments.a]);
-  nodeAssert.deepEqual(multiB, [FIXTURE.assignments.b]);
   nodeAssert.deepEqual(absent, []);
   nodeAssert.deepEqual(malformed, []);
   nodeAssert.deepEqual(wrong, []);
@@ -698,11 +696,10 @@ async function tenantABIsolationAndTenantClaimFailClosed(client) {
   return result("rls-tenant-a-b-isolation-and-selected-tenant-fail-closed", "passed", {
     tenantA,
     tenantB,
-    multiA,
-    multiB,
     absent,
     malformed,
     wrong,
+    duplicateMultiTenantPersonnel,
   });
 }
 
