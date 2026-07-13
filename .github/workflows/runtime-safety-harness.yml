@@ -136,6 +136,8 @@ jobs:
       BASE_PATH: "/"
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/fieldgrid_runtime_safety
       DB_SSL: "false"
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: local-runtime-safety-anon-key
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
       PGSSLMODE: disable
       PORT: "3000"
     steps:
