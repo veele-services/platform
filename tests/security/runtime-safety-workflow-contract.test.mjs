@@ -6,7 +6,7 @@ import { test } from "node:test";
 const repoRoot = process.cwd();
 
 function read(path) {
-  return readFileSync(join(repoRoot, path), "utf8");
+  return readFileSync(join(repoRoot, path), "utf8").replace(/\r\n/gu, "\n");
 }
 
 test("runtime safety workflow exposes required Linux PR jobs", () => {

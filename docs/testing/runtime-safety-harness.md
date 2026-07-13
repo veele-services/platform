@@ -27,7 +27,7 @@ Layer commands:
 - `pnpm fieldgrid:runtime-safety:setup`: installs local shims and runs empty database migrations.
 - `pnpm fieldgrid:runtime-safety:fixtures`: loads deterministic platform, Tenant A/B, suspended, module-off, multi-tenant, expired invite/recovery/support fixtures.
 - `pnpm fieldgrid:runtime-safety:db`: database integration, schema invariant, privileged assignment invariant, tenantless-write, and storage/password-reset scaffold checks.
-- `pnpm fieldgrid:runtime-safety:rls`: authenticated RLS checks using `SET LOCAL ROLE authenticated`, `row_security = on`, and local JWT GUC shims. Direct authenticated DML on `assignment_personnel` is expected to be denied; writes are server/service-role commands plus the database trigger invariant.
+- `pnpm fieldgrid:runtime-safety:rls`: authenticated RLS checks using `SET LOCAL ROLE authenticated`, `row_security = on`, and local JWT GUC shims. Direct anon/authenticated `SELECT` and DML on `assignment_personnel` are expected to be denied; reads stay host/server-action scoped and writes are server/service-role commands plus the database trigger invariant.
 - `pnpm --filter @workspace/api-server run build`: API build for runtime checks.
 - `pnpm fieldgrid:runtime-safety:api`: local API runtime checks.
 - `pnpm fieldgrid:runtime-safety:teardown`: guarded cleanup; destructive reset only happens with `FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET=1`.

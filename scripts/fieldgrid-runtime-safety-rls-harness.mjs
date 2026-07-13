@@ -92,16 +92,6 @@ async function expectRejected(operation, expectedCodes) {
   throw new Error("Expected operation to be rejected.");
 }
 
-async function canManage(client, actor, tenantClaim, assignmentId, personnelId) {
-  return asServiceRole(client, actor, claimsFor(actor, tenantClaim), async () => {
-    const probe = await client.query(
-      `select public.can_manage_assignment_personnel($1, $2) as allowed`,
-      [assignmentId, personnelId],
-    );
-    return probe.rows[0]?.allowed === true;
-  });
-}
-
 function directInsert(client, assignmentId, personnelId, assignedBy) {
   return client.query(
     `
@@ -113,34 +103,43 @@ function directInsert(client, assignmentId, personnelId, assignedBy) {
   );
 }
 
+function directSelect(client, linkId = "00000000-0000-4000-8000-000000000000") {
+  return client.query(`select id from assignment_personnel where id = $1`, [linkId]);
+}
+
+function directUpdate(client, linkId = "00000000-0000-4000-8000-000000000000") {
+  return client.query(
+    `update assignment_personnel set status = 'assigned' where id = $1`,
+    [linkId],
+  );
+}
+
+function directDelete(client, linkId = "00000000-0000-4000-8000-000000000000") {
+  return client.query(`delete from assignment_personnel where id = $1`, [linkId]);
+}
+
 async function tenantContextIsFailClosed(client) {
   const actor = ACTORS.tenantAPlanner;
   const outcomes = {
-    absent: await canManage(client, actor, null, FIXTURE.assignments.a, FIXTURE.personnel.a),
-    malformed: await canManage(client, actor, "not-a-uuid", FIXTURE.assignments.a, FIXTURE.personnel.a),
-    wrong: await canManage(client, actor, FIXTURE.tenants.b, FIXTURE.assignments.a, FIXTURE.personnel.a),
-    correct: await canManage(client, actor, FIXTURE.tenants.a, FIXTURE.assignments.a, FIXTURE.personnel.a),
+    absent: await asAuthenticated(client, actor, claimsFor(actor, null), async () =>
+      expectRejected(() => directSelect(client), ["42501"]),
+    ),
+    malformed: await asAuthenticated(client, actor, claimsFor(actor, "not-a-uuid"), async () =>
+      expectRejected(() => directSelect(client), ["42501"]),
+    ),
+    wrong: await asAuthenticated(client, actor, claimsFor(actor, FIXTURE.tenants.b), async () =>
+      expectRejected(() => directSelect(client), ["42501"]),
+    ),
+    correct: await asAuthenticated(client, actor, claimsFor(actor, FIXTURE.tenants.a), async () =>
+      expectRejected(() => directSelect(client), ["42501"]),
+    ),
   };
-
-  assert(outcomes.absent === false, "Missing tenant claim was accepted.");
-  assert(outcomes.malformed === false, "Malformed tenant claim was accepted.");
-  assert(outcomes.wrong === false, "Wrong tenant claim was accepted.");
-  assert(outcomes.correct === true, "Correct tenant claim and tenant role were rejected.");
 
   return result("rls-tenant-context-fail-closed", "passed", outcomes);
 }
 
 async function legacyGlobalManagementCannotManage(client) {
-  const allowed = await canManage(
-    client,
-    ACTORS.legacyGlobalManagementOnly,
-    FIXTURE.tenants.a,
-    FIXTURE.assignments.a,
-    FIXTURE.personnel.a,
-  );
-  assert(allowed === false, "Legacy global Management role was accepted without tenant RBAC.");
-
-  const rejection = await asAuthenticated(
+  const writeRejection = await asAuthenticated(
     client,
     ACTORS.legacyGlobalManagementOnly,
     claimsFor(ACTORS.legacyGlobalManagementOnly),
@@ -150,31 +149,70 @@ async function legacyGlobalManagementCannotManage(client) {
         ["42501"],
       ),
   );
+  const readRejection = await asAuthenticated(
+    client,
+    ACTORS.legacyGlobalManagementOnly,
+    claimsFor(ACTORS.legacyGlobalManagementOnly),
+    async () => expectRejected(() => directSelect(client), ["42501"]),
+  );
 
   return result("rls-legacy-global-management-without-tenant-role-denied", "passed", {
-    canManage: allowed,
-    directWriteRejectionCode: rejection.code,
+    directReadRejectionCode: readRejection.code,
+    directWriteRejectionCode: writeRejection.code,
   });
 }
 
-async function authenticatedDirectWritesAreRevoked(client) {
+async function authenticatedDirectTableAccessIsRevoked(client) {
   const actor = ACTORS.tenantAPlanner;
-  const sameTenant = await asAuthenticated(client, actor, claimsFor(actor), async () =>
+  const insert = await asAuthenticated(client, actor, claimsFor(actor), async () =>
     expectRejected(
       () => directInsert(client, FIXTURE.assignments.a, FIXTURE.personnel.a, actor.userId),
       ["42501"],
     ),
   );
-  const foreignTenant = await asAuthenticated(client, actor, claimsFor(actor), async () =>
+  const update = await asAuthenticated(client, actor, claimsFor(actor), async () =>
     expectRejected(
-      () => directInsert(client, FIXTURE.assignments.a, FIXTURE.personnel.b, actor.userId),
+      () => directUpdate(client),
+      ["42501"],
+    ),
+  );
+  const deleteResult = await asAuthenticated(client, actor, claimsFor(actor), async () =>
+    expectRejected(
+      () => directDelete(client),
       ["42501"],
     ),
   );
 
-  return result("rls-authenticated-direct-dml-revoked", "passed", {
-    sameTenantRejectionCode: sameTenant.code,
-    foreignTenantRejectionCode: foreignTenant.code,
+  return result("rls-authenticated-direct-table-access-revoked", "passed", {
+    insertRejectionCode: insert.code,
+    updateRejectionCode: update.code,
+    deleteRejectionCode: deleteResult.code,
+  });
+}
+
+async function anonDirectTableAccessIsRevoked(client) {
+  const actor = ACTORS.tenantAPlanner;
+  const insert = await asRole(client, "anon", actor, claimsFor(actor), async () =>
+    expectRejected(
+      () => directInsert(client, FIXTURE.assignments.a, FIXTURE.personnel.a, actor.userId),
+      ["42501"],
+    ),
+  );
+  const select = await asRole(client, "anon", actor, claimsFor(actor), async () =>
+    expectRejected(() => directSelect(client), ["42501"]),
+  );
+  const update = await asRole(client, "anon", actor, claimsFor(actor), async () =>
+    expectRejected(() => directUpdate(client), ["42501"]),
+  );
+  const deleteResult = await asRole(client, "anon", actor, claimsFor(actor), async () =>
+    expectRejected(() => directDelete(client), ["42501"]),
+  );
+
+  return result("rls-anon-direct-table-access-revoked", "passed", {
+    insertRejectionCode: insert.code,
+    selectRejectionCode: select.code,
+    updateRejectionCode: update.code,
+    deleteRejectionCode: deleteResult.code,
   });
 }
 
@@ -200,89 +238,58 @@ async function serviceRoleServerCommandAndTriggerInvariant(client) {
   });
 }
 
-async function ownPersonnelSelectRemainsCorrect(client) {
+async function authenticatedDirectSelectIsRevoked(client) {
   const inserted = await client.query(
     `
       insert into assignment_personnel (assignment_id, personnel_id, status, assigned_by)
       values ($1, $2, 'assigned', $3)
+      on conflict (assignment_id, personnel_id)
+      do update set status = excluded.status
       returning id
     `,
     [FIXTURE.assignments.a, FIXTURE.personnel.a, FIXTURE.users.tenantAPlanner],
   );
 
-  const ownVisible = await asAuthenticated(
-    client,
-    ACTORS.tenantAPersonnel,
-    claimsFor(ACTORS.tenantAPersonnel, null),
-    async () => client.query(`select id from assignment_personnel where id = $1`, [inserted.rows[0].id]),
-  );
-  const tenantBVisible = await asAuthenticated(
-    client,
-    ACTORS.tenantBPersonnel,
-    claimsFor(ACTORS.tenantBPersonnel),
-    async () => client.query(`select id from assignment_personnel where id = $1`, [inserted.rows[0].id]),
-  );
+  try {
+    const ownRejection = await asAuthenticated(
+      client,
+      ACTORS.tenantAPersonnel,
+      claimsFor(ACTORS.tenantAPersonnel, null),
+      async () => expectRejected(() => directSelect(client, inserted.rows[0].id), ["42501"]),
+    );
+    const tenantBRejection = await asAuthenticated(
+      client,
+      ACTORS.tenantBPersonnel,
+      claimsFor(ACTORS.tenantBPersonnel),
+      async () => expectRejected(() => directSelect(client, inserted.rows[0].id), ["42501"]),
+    );
 
-  assert(ownVisible.rows.length === 1, "Own personnel assignment_personnel SELECT was denied.");
-  assert(tenantBVisible.rows.length === 0, "Tenant B personnel could read a Tenant A assignment_personnel link.");
-
-  return result("rls-own-personnel-select-and-cross-tenant-read-denied", "passed", {
-    ownRows: ownVisible.rows.length,
-    tenantBRows: tenantBVisible.rows.length,
-  });
+    return result("rls-authenticated-direct-select-revoked", "passed", {
+      ownPersonnelRejectionCode: ownRejection.code,
+      tenantBPersonnelRejectionCode: tenantBRejection.code,
+    });
+  } finally {
+    await client.query(`delete from assignment_personnel where id = $1`, [inserted.rows[0].id]).catch(() => {});
+  }
 }
 
-async function multiTenantUserHonorsSelectedTenantContext(client) {
-  const tenantAContext = {
-    canManageA: await canManage(
-      client,
-      ACTORS.multiTenantInA,
-      FIXTURE.tenants.a,
-      FIXTURE.assignments.a,
-      FIXTURE.personnel.a,
-    ),
-    canManageB: await canManage(
-      client,
-      ACTORS.multiTenantInA,
-      FIXTURE.tenants.a,
-      FIXTURE.assignments.b,
-      FIXTURE.personnel.b,
-    ),
-  };
-  const tenantBContext = {
-    canManageA: await canManage(
-      client,
-      ACTORS.multiTenantInB,
-      FIXTURE.tenants.b,
-      FIXTURE.assignments.a,
-      FIXTURE.personnel.a,
-    ),
-    canManageB: await canManage(
-      client,
-      ACTORS.multiTenantInB,
-      FIXTURE.tenants.b,
-      FIXTURE.assignments.b,
-      FIXTURE.personnel.b,
-    ),
-  };
+async function selectedTenantClaimsDoNotOpenDirectTableAccess(client) {
+  const tenantAContext = await asAuthenticated(client, ACTORS.multiTenantInA, claimsFor(ACTORS.multiTenantInA), async () =>
+    expectRejected(() => directSelect(client), ["42501"]),
+  );
+  const tenantBContext = await asAuthenticated(client, ACTORS.multiTenantInB, claimsFor(ACTORS.multiTenantInB), async () =>
+    expectRejected(() => directSelect(client), ["42501"]),
+  );
 
-  assert(tenantAContext.canManageA === true, "Multi-tenant actor in Tenant A context cannot manage Tenant A.");
-  assert(tenantAContext.canManageB === false, "Multi-tenant actor in Tenant A context can manage Tenant B.");
-  assert(tenantBContext.canManageA === false, "Multi-tenant actor in Tenant B context can manage Tenant A.");
-  assert(tenantBContext.canManageB === true, "Multi-tenant actor in Tenant B context cannot manage Tenant B.");
-
-  return result("rls-multi-tenant-selected-context-boundary", "passed", {
-    tenantAContext,
-    tenantBContext,
+  return result("rls-selected-tenant-claim-does-not-open-assignment-personnel", "passed", {
+    tenantAContextRejectionCode: tenantAContext.code,
+    tenantBContextRejectionCode: tenantBContext.code,
   });
 }
 
 async function securityDefinerPrivilegesAreMinimal(client) {
   const functions = [
-    "public.assignment_personnel_tenant_match(uuid, uuid)",
     "public.trg_assignment_personnel_tenant_guard()",
-    "public.can_manage_assignment_personnel(uuid, uuid)",
-    "public.can_select_own_assignment_personnel(uuid, uuid)",
   ];
   const privileges = {};
   for (const signature of functions) {
@@ -303,20 +310,20 @@ async function securityDefinerPrivilegesAreMinimal(client) {
     privileges[signature] = row.rows[0];
     assert(row.rows[0]?.public_execute === false, `${signature} is executable by PUBLIC.`);
     assert(row.rows[0]?.anon_execute === false, `${signature} is executable by anon.`);
+    assert(row.rows[0]?.authenticated_execute === false, `${signature} is executable by authenticated.`);
   }
 
-  assert(
-    privileges["public.can_select_own_assignment_personnel(uuid, uuid)"]?.authenticated_execute === true,
-    "Authenticated cannot execute the helper required by the own SELECT policy.",
+  const removedHelpers = await client.query(
+    `
+      select
+        to_regprocedure('public.can_manage_assignment_personnel(uuid, uuid)') is null as can_manage_absent,
+        to_regprocedure('public.can_select_own_assignment_personnel(uuid, uuid)') is null as can_select_own_absent,
+        to_regprocedure('public.assignment_personnel_tenant_match(uuid, uuid)') is null as tenant_match_absent
+    `,
   );
-  assert(
-    privileges["public.can_manage_assignment_personnel(uuid, uuid)"]?.authenticated_execute === false,
-    "Authenticated can execute can_manage_assignment_personnel even though direct DML is server-only.",
-  );
-  assert(
-    privileges["public.trg_assignment_personnel_tenant_guard()"]?.authenticated_execute === false,
-    "Authenticated can directly execute the trigger function.",
-  );
+  assert(removedHelpers.rows[0]?.can_manage_absent === true, "Server-only management helper still exists.");
+  assert(removedHelpers.rows[0]?.can_select_own_absent === true, "Own SELECT helper still exists.");
+  assert(removedHelpers.rows[0]?.tenant_match_absent === true, "Unused tenant-match helper still exists.");
 
   const anonRejection = await asRole(client, "anon", ACTORS.tenantAPlanner, claimsFor(ACTORS.tenantAPlanner), async () =>
     expectRejected(
@@ -324,7 +331,7 @@ async function securityDefinerPrivilegesAreMinimal(client) {
         FIXTURE.assignments.a,
         FIXTURE.personnel.a,
       ]),
-      ["42501"],
+      ["42883"],
     ),
   );
   const authenticatedRejection = await asAuthenticated(client, ACTORS.tenantAPlanner, claimsFor(ACTORS.tenantAPlanner), async () =>
@@ -333,7 +340,7 @@ async function securityDefinerPrivilegesAreMinimal(client) {
         FIXTURE.assignments.a,
         FIXTURE.personnel.a,
       ]),
-      ["42501"],
+      ["42883"],
     ),
   );
   const legacyRpc = await client.query(
@@ -361,6 +368,7 @@ async function securityDefinerPrivilegesAreMinimal(client) {
 
   return result("rls-security-definer-execute-privileges-minimal", "passed", {
     privileges,
+    removedHelpers: removedHelpers.rows[0],
     legacyRpcPrivileges,
     anonRejectionCode: anonRejection.code,
     authenticatedCanManageRejectionCode: authenticatedRejection.code,
@@ -373,10 +381,11 @@ async function runChecks() {
     return [
       await tenantContextIsFailClosed(client),
       await legacyGlobalManagementCannotManage(client),
-      await authenticatedDirectWritesAreRevoked(client),
+      await authenticatedDirectTableAccessIsRevoked(client),
+      await anonDirectTableAccessIsRevoked(client),
       await serviceRoleServerCommandAndTriggerInvariant(client),
-      await ownPersonnelSelectRemainsCorrect(client),
-      await multiTenantUserHonorsSelectedTenantContext(client),
+      await authenticatedDirectSelectIsRevoked(client),
+      await selectedTenantClaimsDoNotOpenDirectTableAccess(client),
       await securityDefinerPrivilegesAreMinimal(client),
     ];
   } finally {
@@ -409,20 +418,22 @@ async function main() {
     startedAt,
     completedAt: new Date().toISOString(),
     actorModel: {
-      authenticatedRole: "SELECT-only own personnel assignment links",
+      authenticatedRole: "no direct SELECT/DML on assignment_personnel",
       rowSecurity: "on",
       claims: ["request.jwt.claim.sub", "request.jwt.claims.tenant_id"],
-      directDml: "revoked for authenticated; writes are server/service-role commands plus database trigger invariant",
-      excludedEvidence: ["postgres/superuser checks are not RLS evidence"],
+      directDml: "revoked for anon/authenticated; writes are server/service-role commands plus database trigger invariant",
+      directReads: "revoked for anon/authenticated; reads are host/server-action scoped",
+      excludedEvidence: ["postgres/superuser checks are not RLS evidence", "source regex checks are not runtime proof"],
     },
     checks,
     testLayerClassification: {
       "rls-tenant-context-fail-closed": "authenticated RLS",
       "rls-legacy-global-management-without-tenant-role-denied": "authenticated RLS",
-      "rls-authenticated-direct-dml-revoked": "authenticated RLS",
+      "rls-authenticated-direct-table-access-revoked": "authenticated RLS",
+      "rls-anon-direct-table-access-revoked": "authenticated RLS",
       "rls-service-role-server-command-and-trigger-invariant": "service-role/database invariant",
-      "rls-own-personnel-select-and-cross-tenant-read-denied": "authenticated RLS",
-      "rls-multi-tenant-selected-context-boundary": "authenticated RLS",
+      "rls-authenticated-direct-select-revoked": "authenticated RLS",
+      "rls-selected-tenant-claim-does-not-open-assignment-personnel": "authenticated RLS",
       "rls-security-definer-execute-privileges-minimal": "service-role/database invariant",
     },
     limitations: [

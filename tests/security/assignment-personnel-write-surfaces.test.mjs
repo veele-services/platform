@@ -25,12 +25,12 @@ function filesUnder(path) {
   return files;
 }
 
-test("no browser/client Supabase DML or RPC write surface remains for assignment_personnel", () => {
+test("no browser/client Supabase SELECT, DML, or RPC surface remains for assignment_personnel", () => {
   const offenders = [];
   for (const file of filesUnder("artifacts")) {
     const source = read(file);
-    if (/\.from\(["']assignment_personnel["']\)\s*\.\s*(insert|update|delete|upsert)\b/u.test(source)) {
-      offenders.push(`${file}: direct table DML`);
+    if (/\.from\(["']assignment_personnel["']\)\s*\.\s*(select|insert|update|delete|upsert)\b/u.test(source)) {
+      offenders.push(`${file}: direct table SELECT/DML`);
     }
     if (/\.rpc\(["']pwa_apply_for_assignment["']/u.test(source)) {
       offenders.push(`${file}: legacy assignment_personnel RPC`);
