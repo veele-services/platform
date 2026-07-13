@@ -339,7 +339,7 @@ endpoint_is_healthy() {
   if [ "$mode" = "login" ]; then
     case "$status" in
       200|301|302|303|307|308)
-        record_check "endpoint:$name" "pass" "HTTP $status accepted for login $(sanitize_url "$url")"
+        record_check "endpoint:$name" "pass" "HTTP $status accepted for auth endpoint $(sanitize_url "$url")"
         return 0
         ;;
     esac

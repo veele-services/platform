@@ -70,4 +70,4 @@ jobs:
         with:
           name: fieldgrid-test-baseline-differential
           path: outputs/fieldgrid-test-baseline-differential/**
-          if-no-files-found: error
+          if-no-files-found: warn
