@@ -263,8 +263,17 @@ test("healthy activation switches current and passes the health gate", async (t)
   await run(f.bash, f.activateArgs, { env: f.commonEnv });
   assert.equal(await readCurrentTarget(f.bash, f.base), f.newReleaseBash);
 
-  await run(f.bash, f.healthArgsWithRestart, { env: f.commonEnv });
+  const healthResult = await run(f.bash, f.healthArgsWithRestart, { env: f.commonEnv, allowFailure: true });
   const evidence = await readJson(join(f.root, "health.json"));
+  assert.equal(
+    healthResult.status,
+    0,
+    JSON.stringify(
+      evidence.checks.filter((check) => check.status !== "pass"),
+      null,
+      2,
+    ),
+  );
   assert.equal(evidence.status, "pass");
   assert.equal(evidence.checks.find((check) => check.name === "activation:restart")?.status, "pass");
 });
