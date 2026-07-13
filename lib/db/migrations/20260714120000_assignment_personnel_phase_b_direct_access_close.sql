@@ -192,6 +192,9 @@ ON public.assignment_material_usage;
 DROP POLICY IF EXISTS assignment_material_usage_personnel_delete_own
 ON public.assignment_material_usage;
 
+DROP POLICY IF EXISTS assignment_material_usage_backoffice_all
+ON public.assignment_material_usage;
+
 DO $$
 BEGIN
   IF to_regclass('storage.objects') IS NULL THEN
