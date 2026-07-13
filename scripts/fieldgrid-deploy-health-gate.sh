@@ -59,6 +59,7 @@ done
 
 SYSTEMCTL_BIN="${SYSTEMCTL_BIN:-systemctl}"
 SYSTEMCTL_SUDO="${SYSTEMCTL_SUDO:-}"
+SYSTEMCTL_READ_SUDO="${SYSTEMCTL_READ_SUDO:-}"
 CURL_BIN="${CURL_BIN:-curl}"
 SS_BIN="${SS_BIN:-ss}"
 SLEEP_BIN="${SLEEP_BIN:-sleep}"
@@ -212,8 +213,8 @@ default_api_root_endpoints() {
   if [ -n "${API_PORT:-}" ]; then
     append_endpoint "local-api-root" "http://127.0.0.1:${API_PORT}/" "api-root-404"
   fi
-  if [ -n "${API_PUBLIC_URL:-}" ]; then
-    append_endpoint "public-api-root" "$API_PUBLIC_URL" "api-root-404"
+  if [ -n "${API_PUBLIC_ROOT_URL:-}" ]; then
+    append_endpoint "public-api-root" "$API_PUBLIC_ROOT_URL" "api-root-404"
   fi
 }
 
@@ -223,16 +224,24 @@ default_public_endpoints() {
     return 0
   fi
 
-  if [ -n "${BACKOFFICE_PUBLIC_URL:-${APP_URL:-}}" ]; then
+  if [ -n "${BACKOFFICE_PUBLIC_LOGIN_URL:-}" ]; then
+    append_endpoint "public-backoffice" "$BACKOFFICE_PUBLIC_LOGIN_URL" "login"
+  elif [ -n "${BACKOFFICE_PUBLIC_URL:-${APP_URL:-}}" ]; then
     append_endpoint "public-backoffice" "$(with_path "${BACKOFFICE_PUBLIC_URL:-$APP_URL}" "/login")" "login"
   fi
-  if [ -n "${PERSONEEL_PUBLIC_URL:-}" ]; then
+  if [ -n "${PERSONEEL_PUBLIC_HEALTH_URL:-}" ]; then
+    append_endpoint "public-personnel" "$PERSONEEL_PUBLIC_HEALTH_URL" "exact-200"
+  elif [ -n "${PERSONEEL_PUBLIC_URL:-}" ]; then
     append_endpoint "public-personnel" "$(with_path "$PERSONEEL_PUBLIC_URL" "/personeel/healthz")" "exact-200"
   fi
-  if [ -n "${KLANT_PUBLIC_URL:-}" ]; then
+  if [ -n "${KLANT_PUBLIC_HEALTH_URL:-}" ]; then
+    append_endpoint "public-customer" "$KLANT_PUBLIC_HEALTH_URL" "exact-200"
+  elif [ -n "${KLANT_PUBLIC_URL:-}" ]; then
     append_endpoint "public-customer" "$(with_path "$KLANT_PUBLIC_URL" "/klant/healthz")" "exact-200"
   fi
-  if [ -n "${API_PUBLIC_URL:-}" ]; then
+  if [ -n "${API_PUBLIC_HEALTH_URL:-}" ]; then
+    append_endpoint "public-api-health" "$API_PUBLIC_HEALTH_URL" "exact-200"
+  elif [ -n "${API_PUBLIC_URL:-}" ]; then
     append_endpoint "public-api-health" "$(with_path "$API_PUBLIC_URL" "/api/healthz")" "exact-200"
   fi
 }
@@ -251,7 +260,7 @@ retry() {
   return 1
 }
 
-run_systemctl() {
+run_systemctl_write() {
   if [ -n "$SYSTEMCTL_SUDO" ]; then
     "$SYSTEMCTL_SUDO" "$SYSTEMCTL_BIN" "$@"
   else
@@ -259,8 +268,27 @@ run_systemctl() {
   fi
 }
 
+run_systemctl_read() {
+  if [ -n "$SYSTEMCTL_READ_SUDO" ]; then
+    "$SYSTEMCTL_READ_SUDO" "$SYSTEMCTL_BIN" "$@"
+  else
+    "$SYSTEMCTL_BIN" "$@"
+  fi
+}
+
 service_is_active() {
-  run_systemctl is-active --quiet "$1"
+  run_systemctl_read is-active --quiet "$1"
+}
+
+service_status_detail() {
+  local service="$1"
+  local output
+  local rc
+  set +e
+  output="$(run_systemctl_read is-active --quiet "$service" 2>&1)"
+  rc=$?
+  set -e
+  printf 'exit=%s stderr=%s' "$rc" "$(json_escape "$output")"
 }
 
 check_services() {
@@ -273,7 +301,7 @@ check_services() {
     if retry service_is_active "$service"; then
       record_check "service:$service" "pass" "systemd service is active"
     else
-      record_check "service:$service" "fail" "systemd service is not active"
+      record_check "service:$service" "fail" "systemd service is not active; $(service_status_detail "$service")"
       failed=1
     fi
   done
@@ -360,22 +388,26 @@ check_endpoint_group() {
   local required_count="$3"
   local count_mode="${4:-minimum}"
   local failed=0
-  local rc
   local count
+  local spec
+  local name
+  local url
+  local mode
 
-  set +e
-  printf '%s\n' "$specs" | while IFS= read -r spec; do
+  while IFS= read -r spec; do
     [ -n "$spec" ] || continue
     name="$(printf '%s' "$spec" | awk -F'|' '{ print $1 }')"
     url="$(printf '%s' "$spec" | awk -F'|' '{ print $2 }')"
-    if [ -z "$name" ] || [ -z "$url" ]; then
+    mode="$(printf '%s' "$spec" | awk -F'|' '{ print $3 }')"
+    if [ -z "$name" ] || [ -z "$url" ] || [ -z "$mode" ]; then
       record_check "endpoint:$group_name" "fail" "invalid endpoint spec"
-      exit 9
+      failed=1
+      continue
     fi
-    retry endpoint_is_healthy "$spec" || exit 8
-  done
-  rc=$?
-  set -e
+    retry endpoint_is_healthy "$spec" || failed=1
+  done <<EOF
+$specs
+EOF
 
   count="$(printf '%s\n' "$specs" | sed '/^[[:space:]]*$/d' | wc -l | tr -d ' ')"
   if [ "$count_mode" = "exact" ]; then
@@ -394,9 +426,6 @@ check_endpoint_group() {
     fi
   fi
 
-  if [ "$rc" -ne 0 ]; then
-    failed=1
-  fi
   return "$failed"
 }
 
@@ -450,8 +479,8 @@ run_health_checks() {
   check_services || failed=1
   check_ports || failed=1
   check_endpoint_group "local" "$(default_local_endpoints)" 4 exact || failed=1
-  check_endpoint_group "api-root" "$(default_api_root_endpoints)" 1 || failed=1
-  check_endpoint_group "public" "$(default_public_endpoints)" 3 || failed=1
+  check_endpoint_group "api-root" "$(default_api_root_endpoints)" 0 || failed=1
+  check_endpoint_group "public" "$(default_public_endpoints)" 4 exact || failed=1
   return "$failed"
 }
 
@@ -460,9 +489,9 @@ restart_services_and_reload_caddy() {
   local failed=0
   for service in $(default_services); do
     [ -n "$service" ] || continue
-    run_systemctl restart "$service" || failed=1
+    run_systemctl_write restart "$service" || failed=1
   done
-  run_systemctl reload caddy || failed=1
+  run_systemctl_write reload caddy || failed=1
   return "$failed"
 }
 

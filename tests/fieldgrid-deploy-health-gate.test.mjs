@@ -11,6 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const repoRoot = resolve(dirname(__filename), "..");
 const activateScript = join(repoRoot, "scripts", "fieldgrid-atomic-release-activate.sh");
 const healthScript = join(repoRoot, "scripts", "fieldgrid-deploy-health-gate.sh");
+const backfillScript = join(repoRoot, "scripts", "fieldgrid-backfill-release-sha-marker.sh");
 const deployWorkflow = join(repoRoot, ".github", "workflows", "deploy.yml");
 const expectedSha = "f36e84dad5d1c595e4dd349ff5ce6bd439722576";
 
@@ -125,10 +126,21 @@ async function fixture(t) {
   await makeExecutable(
     join(mockbin, "systemctl"),
     `#!/usr/bin/env sh
-echo "$@" >> "$MOCK_LOG"
+echo "systemctl $@" >> "$MOCK_LOG"
 if [ "$1" = "is-active" ]; then
   service="$3"
-  if [ "$service" = "$MOCK_DEAD_SERVICE" ]; then exit 3; fi
+  state_file="$MOCK_BASE/service-$service-state"
+  if [ -f "$state_file" ]; then
+    state="$(cat "$state_file")"
+    if [ "$state" = "activating" ]; then
+      echo active > "$state_file"
+      exit 3
+    fi
+    [ "$state" = "active" ] && exit 0
+    printf '%s' "$state" >&2
+    exit 3
+  fi
+  if [ "$service" = "$MOCK_DEAD_SERVICE" ]; then printf inactive >&2; exit 3; fi
   exit 0
 fi
 if [ "$1" = "restart" ] && [ "$2" = "$MOCK_RESTART_FAIL" ]; then exit 1; fi
@@ -136,6 +148,10 @@ if [ "$1" = "reload" ] && [ "$2" = "caddy" ] && [ "$MOCK_RELOAD_FAIL" = "1" ]; t
 exit 0
 `,
   );
+  await makeExecutable(join(mockbin, "sudo"), `#!/usr/bin/env sh
+echo "sudo $@" >> "$MOCK_LOG"
+exec "$@"
+`);
   await makeExecutable(
     join(mockbin, "ss"),
     `#!/usr/bin/env sh
@@ -169,6 +185,7 @@ esac
   const ssBin = await toBashPath(bash, join(mockbin, "ss"));
   const curlBin = await toBashPath(bash, join(mockbin, "curl"));
   const sleepBin = await toBashPath(bash, join(mockbin, "sleep"));
+  const sudoBin = await toBashPath(bash, join(mockbin, "sudo"));
   const commonEnv = {
     MOCK_BASE: baseBash,
     MOCK_LOG: mockLogBash,
@@ -179,6 +196,7 @@ esac
     SS_BIN: ssBin,
     CURL_BIN: curlBin,
     SLEEP_BIN: sleepBin,
+    SYSTEMCTL_SUDO: sudoBin,
     MOCK_LISTEN_PORTS: "3100 3200 3300 3400",
     FIELDGRID_DEPLOY_HEALTH_ATTEMPTS: "1",
     FIELDGRID_DEPLOY_HEALTH_RETRY_SECONDS: "0",
@@ -196,6 +214,7 @@ esac
       "public-backoffice|https://platform-staging.example.test/login|login",
       "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
       "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
+      "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
     ].join("\n"),
   };
 
@@ -315,6 +334,7 @@ test("public 502 fails health evidence", async (t) => {
         "public-backoffice|https://platform-staging.example.test/login|login",
         "public-personnel|https://public-bad.example.test/personeel/healthz|exact-200",
         "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
+        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
       ].join("\n"),
     },
     allowFailure: true,
@@ -356,6 +376,7 @@ test("curl transport failure records HTTP 000 failure", async (t) => {
         "public-backoffice|https://platform-staging.example.test/login|login",
         "public-personnel|https://curl-dead.example.test/personeel/healthz|exact-200",
         "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
+        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
       ].join("\n"),
     },
     allowFailure: true,
@@ -416,6 +437,7 @@ test("HTTP 404 is rejected for exact-200 endpoints", async (t) => {
         "public-backoffice|https://platform-staging.example.test/login|login",
         "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
         "public-customer|https://customer-staging.example.test/api-root|exact-200",
+        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
       ].join("\n"),
     },
     allowFailure: true,
@@ -436,6 +458,7 @@ test("HTTP 301 on healthz is failure", async (t) => {
         "public-backoffice|https://platform-staging.example.test/login|login",
         "public-personnel|https://personnel-staging.example.test/status-301|exact-200",
         "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
+        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
       ].join("\n"),
     },
     allowFailure: true,
@@ -458,6 +481,7 @@ test("HTTP 302 on healthz is failure", async (t) => {
         "public-backoffice|https://platform-staging.example.test/login|login",
         "public-personnel|https://personnel-staging.example.test/status-302|exact-200",
         "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
+        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
       ].join("\n"),
     },
     allowFailure: true,
@@ -480,6 +504,7 @@ test("HTTP 200 on healthz is pass", async (t) => {
         "public-backoffice|https://platform-staging.example.test/login|login",
         "public-personnel|https://personnel-staging.example.test/status-200|exact-200",
         "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
+        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
       ].join("\n"),
     },
   });
@@ -521,6 +546,7 @@ test("rollback succeeds after a failed new release health check", async (t) => {
           "public-backoffice|https://public-bad.example.test/login|login",
           "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
           "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
+        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
         ].join("\n"),
       },
       allowFailure: true,
@@ -549,6 +575,7 @@ test("rollback itself fails when restored release health remains bad", async (t)
           "public-backoffice|https://rollback-bad.example.test/login|login",
           "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
           "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
+        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
         ].join("\n"),
       },
       allowFailure: true,
@@ -575,6 +602,7 @@ test("rollback fails closed when previous release path is missing", async (t) =>
           "public-backoffice|https://public-bad.example.test/login|login",
           "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
           "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
+        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
         ].join("\n"),
       },
       allowFailure: true,
@@ -598,6 +626,7 @@ test("no previous release reports rollback unavailable", async (t) => {
         "public-backoffice|https://public-bad.example.test/login|login",
         "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
         "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
+        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
       ].join("\n"),
     },
     allowFailure: true,
@@ -687,6 +716,7 @@ test("rollback restarts all four services, reloads Caddy, and rechecks rollback 
           "public-backoffice|https://public-bad.example.test/login|login",
           "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
           "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
+        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
         ].join("\n"),
       },
       allowFailure: true,
@@ -696,9 +726,9 @@ test("rollback restarts all four services, reloads Caddy, and rechecks rollback 
   assert.notEqual(result.status, 0);
   const log = await readSystemctlLog(f.root);
   for (const service of ["backoffice", "personeel", "klant", "api"]) {
-    assert.equal(countOccurrences(log, new RegExp(`^restart ${service}$`)), 2);
+    assert.equal(countOccurrences(log, new RegExp(`^(sudo )?systemctl restart ${service}$`)), 2);
   }
-  assert.equal(countOccurrences(log, /^reload caddy$/), 2);
+  assert.equal(countOccurrences(log, /^(sudo )?systemctl reload caddy$/), 2);
   const evidence = await readJson(join(f.root, "health.json"));
   assert.equal(evidence.checks.find((check) => check.name === "rollback:health")?.status, "pass");
 });
@@ -737,6 +767,7 @@ test("rollback service restart failure marks rollback failed", async (t) => {
           "public-backoffice|https://public-bad.example.test/login|login",
           "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
           "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
+        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
         ].join("\n"),
       },
       allowFailure: true,
@@ -765,6 +796,7 @@ test("Caddy reload failure during rollback marks rollback failed", async (t) => 
           "public-backoffice|https://public-bad.example.test/login|login",
           "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
           "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
+        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
         ].join("\n"),
       },
       allowFailure: true,
@@ -793,6 +825,7 @@ test("rollback is blocked if current no longer points at the failed release", as
           "public-backoffice|https://public-bad.example.test/login|login",
           "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
           "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
+        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
         ].join("\n"),
       },
       allowFailure: true,
@@ -816,6 +849,7 @@ test("evidence files are machine-readable, mode 0640, and redact URL paths and c
         "public-backoffice|https://user:pass@platform-staging.example.test/login?token=secret#frag|login",
         "public-personnel|https://personnel-staging.example.test/personeel/healthz|exact-200",
         "public-customer|https://customer-staging.example.test/klant/healthz|exact-200",
+        "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
       ].join("\n"),
     },
   });
@@ -866,6 +900,130 @@ test("public API root is checked only in the API-root endpoint group", async () 
     script.indexOf("http_status()"),
   );
 
-  assert.match(apiRootBlock, /append_endpoint "public-api-root" "\$API_PUBLIC_URL" "api-root-404"/);
+  assert.match(apiRootBlock, /append_endpoint "public-api-root" "\$API_PUBLIC_ROOT_URL" "api-root-404"/);
   assert.doesNotMatch(publicBlock, /public-api-root/);
+});
+
+test("service reads do not use sudo while restart and reload do", async (t) => {
+  const f = await fixture(t);
+  await run(f.bash, f.activateArgs, { env: f.commonEnv });
+  await run(f.bash, f.healthArgsWithRestart, { env: f.commonEnv });
+  const log = await readSystemctlLog(f.root);
+  assert.match(log, /^systemctl is-active --quiet backoffice$/m);
+  assert.doesNotMatch(log, /^sudo .*is-active/m);
+  assert.match(log, /^sudo .*systemctl restart backoffice$/m);
+  assert.match(log, /^sudo .*systemctl reload caddy$/m);
+});
+
+test("activating service can become active within retries", async (t) => {
+  const f = await fixture(t);
+  await run(f.bash, f.activateArgs, { env: f.commonEnv });
+  await writeFile(join(f.base, "service-klant-state"), "activating");
+  await run(f.bash, f.healthArgs, { env: { ...f.commonEnv, FIELDGRID_DEPLOY_HEALTH_ATTEMPTS: "2" } });
+  const evidence = await readJson(join(f.root, "health.json"));
+  assert.equal(evidence.checks.find((check) => check.name === "service:klant")?.status, "pass");
+});
+
+test("permanently inactive service fails with exit diagnostics", async (t) => {
+  const f = await fixture(t);
+  await run(f.bash, f.activateArgs, { env: f.commonEnv });
+  await writeFile(join(f.base, "service-klant-state"), "inactive");
+  const result = await run(f.bash, f.healthArgs, { env: f.commonEnv, allowFailure: true });
+  assert.notEqual(result.status, 0);
+  const evidence = await readJson(join(f.root, "health.json"));
+  const failed = evidence.checks.find((check) => check.name === "service:klant");
+  assert.equal(failed?.status, "fail");
+  assert.match(failed.detail, /exit=3/);
+});
+
+test("exact public health URL variables have precedence and API root is optional", async (t) => {
+  const f = await fixture(t);
+  await run(f.bash, f.activateArgs, { env: f.commonEnv });
+  await run(f.bash, f.healthArgs, {
+    env: {
+      ...f.commonEnv,
+      FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: "",
+      FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS: "",
+      BACKOFFICE_PUBLIC_LOGIN_URL: "https://staging.fieldgrid.nl/login",
+      PERSONEEL_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/personeel/healthz",
+      KLANT_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/klant/healthz",
+      API_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/api/healthz",
+      API_PUBLIC_ROOT_URL: "",
+    },
+  });
+  const evidence = await readJson(join(f.root, "health.json"));
+  assert.equal(evidence.checks.find((check) => check.name === "endpoints:api-root-count")?.status, "pass");
+  assert.equal(evidence.checks.find((check) => check.name === "endpoints:public-count")?.status, "pass");
+});
+
+test("missing required public personnel customer or API health URL fails clearly", async (t) => {
+  for (const missing of ["PERSONEEL_PUBLIC_HEALTH_URL", "KLANT_PUBLIC_HEALTH_URL", "API_PUBLIC_HEALTH_URL"]) {
+    const f = await fixture(t);
+    await run(f.bash, f.activateArgs, { env: f.commonEnv });
+    const env = {
+      ...f.commonEnv,
+      FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: "",
+      FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS: "",
+      BACKOFFICE_PUBLIC_LOGIN_URL: "https://staging.fieldgrid.nl/login",
+      PERSONEEL_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/personeel/healthz",
+      KLANT_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/klant/healthz",
+      API_PUBLIC_HEALTH_URL: "https://staging.fieldgrid.nl/api/healthz",
+    };
+    delete env[missing];
+    const result = await run(f.bash, f.healthArgs, { env, allowFailure: true });
+    assert.notEqual(result.status, 0, missing);
+    const evidence = await readJson(join(f.root, "health.json"));
+    assert.equal(evidence.checks.find((check) => check.name === "endpoints:public-count")?.status, "fail", missing);
+  }
+});
+
+test("API root 404 passes and 200 fails when explicitly configured", async (t) => {
+  const f = await fixture(t);
+  await run(f.bash, f.activateArgs, { env: f.commonEnv });
+  await run(f.bash, f.healthArgs, { env: { ...f.commonEnv, FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS: "public-api-root|https://staging.fieldgrid.nl/api-root|api-root-404" } });
+  let evidence = await readJson(join(f.root, "health.json"));
+  assert.equal(evidence.checks.find((check) => check.name === "endpoint:public-api-root")?.status, "pass");
+  const result = await run(f.bash, f.healthArgs, { env: { ...f.commonEnv, FIELDGRID_DEPLOY_API_ROOT_ENDPOINTS: "public-api-root|https://staging.fieldgrid.nl/api-root-200|api-root-404" }, allowFailure: true });
+  assert.notEqual(result.status, 0);
+  evidence = await readJson(join(f.root, "health.json"));
+  assert.equal(evidence.checks.find((check) => check.name === "endpoint:public-api-root")?.status, "fail");
+});
+
+test("endpoint group records multiple failures and invalid specs without blocking diagnostics", async (t) => {
+  const f = await fixture(t);
+  await run(f.bash, f.activateArgs, { env: f.commonEnv });
+  const result = await run(f.bash, f.healthArgs, {
+    env: { ...f.commonEnv, FIELDGRID_DEPLOY_PUBLIC_ENDPOINTS: [
+      "public-backoffice|https://platform-staging.example.test/login|login",
+      "public-personnel|https://personnel-staging.example.test/status-301|exact-200",
+      "invalid|https://invalid.example.test",
+      "public-customer|https://customer-staging.example.test/status-302|exact-200",
+      "public-api-health|https://api-staging.example.test/api/healthz|exact-200",
+    ].join("\n") },
+    allowFailure: true,
+  });
+  assert.notEqual(result.status, 0);
+  const evidence = await readJson(join(f.root, "health.json"));
+  assert.equal(evidence.checks.filter((check) => check.status === "fail" && check.name.startsWith("endpoint:")).length >= 3, true);
+});
+
+test("markerbackfill writes marker and rejects unsafe paths or mismatches", async (t) => {
+  const f = await fixture(t);
+  const release = join(f.base, "releases", `20260713000000-${expectedSha.slice(0, 7)}`);
+  await mkdir(release, { recursive: true });
+  const releaseBash = await toBashPath(f.bash, release);
+  const scriptBash = await toBashPath(f.bash, backfillScript);
+  await run(f.bash, [scriptBash, "--environment", "staging", "--base-dir", f.baseBash, "--release-path", releaseBash, "--expected-sha", expectedSha]);
+  assert.equal((await readFile(join(release, ".fieldgrid-release-sha"), "utf8")).trim(), expectedSha);
+
+  const badPath = await run(f.bash, [scriptBash, "--environment", "staging", "--base-dir", f.baseBash, "--release-path", f.baseBash, "--expected-sha", expectedSha], { allowFailure: true });
+  assert.notEqual(badPath.status, 0);
+  const mismatch = join(f.base, "releases", "20260713000000-deadbee");
+  await mkdir(mismatch, { recursive: true });
+  const mismatchBash = await toBashPath(f.bash, mismatch);
+  const badName = await run(f.bash, [scriptBash, "--environment", "staging", "--base-dir", f.baseBash, "--release-path", mismatchBash, "--expected-sha", expectedSha], { allowFailure: true });
+  assert.notEqual(badName.status, 0);
+  await writeFile(join(release, ".fieldgrid-release-sha"), "0000000000000000000000000000000000000000\n");
+  const existing = await run(f.bash, [scriptBash, "--environment", "staging", "--base-dir", f.baseBash, "--release-path", releaseBash, "--expected-sha", expectedSha], { allowFailure: true });
+  assert.notEqual(existing.status, 0);
 });
