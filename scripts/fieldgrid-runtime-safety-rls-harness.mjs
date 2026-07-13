@@ -1,9 +1,11 @@
 #!/usr/bin/env node
+import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
   FIXTURE,
   assert,
   connect,
+  repoRoot,
   result,
   writeJsonArtifact,
   writeTextArtifact,
@@ -85,6 +87,9 @@ const ASSIGNMENT_PERSONNEL_EXPECTED_TABLE_PRIVILEGES = {
     MAINTAIN: false,
   },
 };
+
+const PHASE_A1_ACL_MIGRATION_PATH =
+  "lib/db/migrations/20260713120000_assignment_personnel_phase_a_acl_hardening.sql";
 
 function claimsFor(actor, tenantClaim = actor.tenantId) {
   const claims = {
@@ -202,7 +207,7 @@ async function deleteAssignmentPersonnelLinkAsServiceRole(client, linkId) {
   }
 }
 
-async function assignmentPersonnelTableAclIsLeastPrivilege(client) {
+async function readAssignmentPersonnelTableAclSnapshot(client) {
   const acl = await client.query(
     `
       select
@@ -219,13 +224,6 @@ async function assignmentPersonnelTableAclIsLeastPrivilege(client) {
       order by grantee_name, acl.privilege_type
     `,
   );
-  const publicPrivileges = acl.rows
-    .filter((row) => row.grantee === 0)
-    .map((row) => row.privilege_type);
-  assert(publicPrivileges.length === 0, "PUBLIC has assignment_personnel table privileges.", {
-    publicPrivileges,
-  });
-
   const expectedRows = Object.entries(ASSIGNMENT_PERSONNEL_EXPECTED_TABLE_PRIVILEGES).flatMap(
     ([roleName, privileges]) =>
       ASSIGNMENT_PERSONNEL_TABLE_PRIVILEGES.map((privilegeName) => ({
@@ -251,17 +249,68 @@ async function assignmentPersonnelTableAclIsLeastPrivilege(client) {
     [JSON.stringify(expectedRows)],
   );
 
+  const publicPrivileges = acl.rows
+    .filter((row) => row.grantee === 0)
+    .map((row) => row.privilege_type);
   const privileges = {};
   for (const row of rows.rows) {
     privileges[row.role_name] ??= {};
     privileges[row.role_name][row.privilege_name] = row.actual;
-    assert(row.actual === row.expected, "Unexpected assignment_personnel table privilege.", row);
   }
 
-  return result("rls-assignment-personnel-table-acl-least-privilege", "passed", {
+  return {
     publicPrivileges,
     privileges,
     aclRows: acl.rows,
+    expectedPrivilegeRows: rows.rows,
+  };
+}
+
+function assertAssignmentPersonnelTableAclLeastPrivilege(snapshot) {
+  assert(snapshot.publicPrivileges.length === 0, "PUBLIC has assignment_personnel table privileges.", {
+    publicPrivileges: snapshot.publicPrivileges,
+  });
+
+  for (const row of snapshot.expectedPrivilegeRows) {
+    assert(row.actual === row.expected, "Unexpected assignment_personnel table privilege.", row);
+  }
+}
+
+async function assignmentPersonnelTableAclIsLeastPrivilege(client) {
+  const snapshot = await readAssignmentPersonnelTableAclSnapshot(client);
+  assertAssignmentPersonnelTableAclLeastPrivilege(snapshot);
+
+  return result("rls-assignment-personnel-table-acl-least-privilege", "passed", {
+    publicPrivileges: snapshot.publicPrivileges,
+    privileges: snapshot.privileges,
+    aclRows: snapshot.aclRows,
+  });
+}
+
+async function historicalBroadAclDriftIsCleanedByPhaseA1Migration(client) {
+  await client.query("GRANT ALL ON TABLE public.assignment_personnel TO anon, authenticated, service_role");
+  const drift = await readAssignmentPersonnelTableAclSnapshot(client);
+
+  for (const roleName of ["anon", "authenticated", "service_role"]) {
+    for (const privilegeName of ASSIGNMENT_PERSONNEL_TABLE_PRIVILEGES) {
+      assert(drift.privileges[roleName]?.[privilegeName] === true, "Historical broad ACL drift was not simulated.", {
+        roleName,
+        privilegeName,
+        actual: drift.privileges[roleName]?.[privilegeName],
+      });
+    }
+  }
+
+  const migration = await readFile(join(repoRoot, PHASE_A1_ACL_MIGRATION_PATH), "utf8");
+  await client.query(migration);
+  const cleaned = await readAssignmentPersonnelTableAclSnapshot(client);
+  assertAssignmentPersonnelTableAclLeastPrivilege(cleaned);
+
+  return result("rls-assignment-personnel-historical-broad-acl-drift-cleaned", "passed", {
+    migration: PHASE_A1_ACL_MIGRATION_PATH,
+    driftPrivileges: drift.privileges,
+    cleanedPublicPrivileges: cleaned.publicPrivileges,
+    cleanedPrivileges: cleaned.privileges,
   });
 }
 
@@ -508,6 +557,7 @@ async function runChecks() {
   const client = await connect();
   try {
     return [
+      await historicalBroadAclDriftIsCleanedByPhaseA1Migration(client),
       await assignmentPersonnelTableAclIsLeastPrivilege(client),
       await authenticatedOwnSelectRollbackCompatibility(client),
       await anonSelectCountIsPermissionDenied(client),
@@ -558,6 +608,7 @@ async function main() {
     },
     checks,
     testLayerClassification: {
+      "rls-assignment-personnel-historical-broad-acl-drift-cleaned": "database ACL drift cleanup",
       "rls-assignment-personnel-table-acl-least-privilege": "database ACL inspection",
       "rls-authenticated-own-select-rollback-compatibility": "authenticated RLS rollback compatibility",
       "rls-anon-assignment-personnel-select-permission-denied": "database ACL enforcement",

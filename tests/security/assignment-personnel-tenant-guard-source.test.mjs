@@ -7,7 +7,7 @@ import { test } from "node:test";
 const repoRoot = process.cwd();
 const phaseAMigrationPath = "lib/db/migrations/20260712130000_assignment_personnel_tenant_guard.sql";
 const phaseAAclMigrationPath = "lib/db/migrations/20260713120000_assignment_personnel_phase_a_acl_hardening.sql";
-const phaseAMigrationSha256 = "a421f26d21834f6ecc4f9f6ea0849edeb8cc7a80ebc51c49e7524beb8c8a9079";
+const phaseAMigrationCanonicalSha256 = "0933b6ca61e19b7db04d6a53c0aa03642803f2d07035f1e8c4d5a6aabd7c4a65";
 const rollbackPolicyNames = [
   "assignment_personnel_management_all",
   "assignment_personnel_tenant_management_all",
@@ -21,6 +21,10 @@ function read(path) {
 
 function normalizeSql(sql) {
   return sql.replace(/\s+/gu, " ").trim();
+}
+
+function canonicalizeLineEndings(value) {
+  return value.replace(/\r\n/g, "\n");
 }
 
 function sha256(value) {
@@ -59,10 +63,10 @@ test("assignment_personnel phase-A migration keeps SELECT rollback compatibility
 });
 
 test("assignment_personnel phase-A migration is unchanged in this ACL hardening PR", () => {
-  assert.equal(sha256(read(phaseAMigrationPath)), phaseAMigrationSha256);
+  assert.equal(sha256(canonicalizeLineEndings(read(phaseAMigrationPath))), phaseAMigrationCanonicalSha256);
 });
 
-test("assignment_personnel phase-A.1 migration revokes broad table ACL and grants back only authenticated SELECT", () => {
+test("assignment_personnel phase-A.1 migration revokes broad table ACL and grants back only authenticated SELECT plus service-role CRUD", () => {
   const migration = read(phaseAAclMigrationPath);
   const normalized = normalizeSql(migration);
 
@@ -70,23 +74,32 @@ test("assignment_personnel phase-A.1 migration revokes broad table ACL and grant
   assert.match(migration, /Keep authenticated SELECT temporarily for rollback compatibility\./u);
   assert.match(
     normalized,
-    /REVOKE ALL ON TABLE public\.assignment_personnel FROM PUBLIC, anon, authenticated;/u,
+    /REVOKE ALL ON TABLE public\.assignment_personnel FROM PUBLIC, anon, authenticated, service_role;/u,
   );
   assert.match(
     normalized,
     /GRANT SELECT ON TABLE public\.assignment_personnel TO authenticated;/u,
   );
+  assert.match(
+    normalized,
+    /GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public\.assignment_personnel TO service_role;/u,
+  );
 
   const grantStatements = migration.match(/\bGRANT\b[\s\S]*?;/giu)?.map(normalizeSql) ?? [];
   assert.deepEqual(grantStatements, [
     "GRANT SELECT ON TABLE public.assignment_personnel TO authenticated;",
+    "GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.assignment_personnel TO service_role;",
   ]);
   assert.doesNotMatch(migration, /\bGRANT\b[\s\S]*?\bTO\b[\s\S]*?\banon\b[\s\S]*?;/iu);
+  assert.doesNotMatch(migration, /\bGRANT\b[\s\S]*?\bTO\b[\s\S]*?\bPUBLIC\b[\s\S]*?;/u);
   assert.doesNotMatch(
     migration,
     /\bGRANT\b[\s\S]*?\b(INSERT|UPDATE|DELETE|TRUNCATE|REFERENCES|TRIGGER|MAINTAIN)\b[\s\S]*?\bTO\b[\s\S]*?\bauthenticated\b[\s\S]*?;/iu,
   );
-  assert.doesNotMatch(migration, /\b(REVOKE|GRANT)\b[\s\S]*?\bservice_role\b[\s\S]*?;/iu);
+  assert.doesNotMatch(
+    migration,
+    /\bGRANT\b[\s\S]*?\b(TRUNCATE|REFERENCES|TRIGGER|MAINTAIN)\b[\s\S]*?\bTO\b[\s\S]*?\bservice_role\b[\s\S]*?;/iu,
+  );
   assert.doesNotMatch(migration, /\b(CREATE|DROP)\s+(POLICY|TRIGGER|FUNCTION)\b/iu);
   assert.doesNotMatch(migration, /\b(INSERT\s+INTO|UPDATE|DELETE\s+FROM|TRUNCATE)\s+public\.assignment_personnel\b/iu);
 
@@ -122,6 +135,9 @@ test("authenticated RLS harness proves phase-A server-only DML without claiming 
   assert.match(harness, /request\.jwt\.claim\.sub/u);
   assert.match(harness, /request\.jwt\.claims/u);
   assert.match(harness, /rls-assignment-personnel-table-acl-least-privilege/u);
+  assert.match(harness, /rls-assignment-personnel-historical-broad-acl-drift-cleaned/u);
+  assert.match(harness, /GRANT ALL ON TABLE public\.assignment_personnel TO anon, authenticated, service_role/u);
+  assert.match(harness, /20260713120000_assignment_personnel_phase_a_acl_hardening\.sql/u);
   assert.match(harness, /aclexplode\(coalesce\(c\.relacl, acldefault\('r', c\.relowner\)\)\)/u);
   assert.match(harness, /has_table_privilege\(role_name::name, 'public\.assignment_personnel', privilege_name\)/u);
   assert.match(harness, /rls-authenticated-own-select-rollback-compatibility/u);
