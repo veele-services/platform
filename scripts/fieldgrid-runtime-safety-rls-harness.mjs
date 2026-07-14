@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import nodeAssert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -17,14 +18,24 @@ const ACTORS = {
     email: "planner@tenant-a.runtime.fieldgrid.test",
     tenantId: FIXTURE.tenants.a,
   },
+  tenantAAdmin: {
+    userId: FIXTURE.users.tenantAAdmin,
+    email: "admin@tenant-a.runtime.fieldgrid.test",
+    tenantId: FIXTURE.tenants.a,
+  },
+  tenantAPersonnel: {
+    userId: FIXTURE.users.tenantAPersonnel,
+    email: "personnel@tenant-a.runtime.fieldgrid.test",
+    tenantId: FIXTURE.tenants.a,
+  },
   tenantBPersonnel: {
     userId: FIXTURE.users.tenantBPersonnel,
     email: "personnel@tenant-b.runtime.fieldgrid.test",
     tenantId: FIXTURE.tenants.b,
   },
-  tenantAPersonnel: {
-    userId: FIXTURE.users.tenantAPersonnel,
-    email: "personnel@tenant-a.runtime.fieldgrid.test",
+  tenantACustomer: {
+    userId: FIXTURE.users.tenantACustomer,
+    email: "customer@tenant-a.runtime.fieldgrid.test",
     tenantId: FIXTURE.tenants.a,
   },
   multiTenantInA: {
@@ -37,11 +48,66 @@ const ACTORS = {
     email: "multi@runtime.fieldgrid.test",
     tenantId: FIXTURE.tenants.b,
   },
+  inactivePersonnel: {
+    userId: FIXTURE.users.multiTenant,
+    email: "multi@runtime.fieldgrid.test",
+    tenantId: FIXTURE.tenants.a,
+  },
   legacyGlobalManagementOnly: {
     userId: FIXTURE.users.legacyGlobalManagementOnly,
     email: "legacy-management-only@runtime.fieldgrid.test",
     tenantId: FIXTURE.tenants.a,
   },
+};
+
+const RLS_FIXTURE = {
+  assignmentPersonnel: {
+    a: "61000000-0000-4000-8000-000000000001",
+    b: "61000000-0000-4000-8000-000000000002",
+    inactive: "61000000-0000-4000-8000-000000000003",
+  },
+  personnel: {
+    inactive: "60000000-0000-4000-8000-000000000005",
+  },
+  tasks: {
+    a: "71000000-0000-4000-8000-000000000001",
+    b: "71000000-0000-4000-8000-000000000002",
+  },
+  extraWork: {
+    a: "72000000-0000-4000-8000-000000000001",
+  },
+  photos: {
+    a: "73000000-0000-4000-8000-000000000001",
+    b: "73000000-0000-4000-8000-000000000002",
+  },
+  reports: {
+    a: "74000000-0000-4000-8000-000000000001",
+    b: "74000000-0000-4000-8000-000000000002",
+  },
+  reportNotes: {
+    a: "75000000-0000-4000-8000-000000000001",
+  },
+  reportNoteAttachments: {
+    a: "76000000-0000-4000-8000-000000000001",
+  },
+  materialUsage: {
+    a: "77000000-0000-4000-8000-000000000001",
+  },
+  storageObjects: {
+    validTenantA: "78000000-0000-4000-8000-000000000001",
+    tenantB: "78000000-0000-4000-8000-000000000002",
+    tenantBPrefixForAssignmentA: "78000000-0000-4000-8000-000000000003",
+    malformedAssignment: "78000000-0000-4000-8000-000000000004",
+    missingAssignment: "78000000-0000-4000-8000-000000000005",
+  },
+};
+
+const STORAGE_OBJECT_NAMES = {
+  validTenantA: `tenant/${FIXTURE.tenants.a}/assignments/${FIXTURE.assignments.a}/photo-a.jpg`,
+  tenantB: `tenant/${FIXTURE.tenants.b}/assignments/${FIXTURE.assignments.b}/photo-b.jpg`,
+  tenantBPrefixForAssignmentA: `tenant/${FIXTURE.tenants.b}/assignments/${FIXTURE.assignments.a}/cross-prefix.jpg`,
+  malformedAssignment: `tenant/${FIXTURE.tenants.a}/assignments/not-a-uuid/malformed.jpg`,
+  missingAssignment: `tenant/${FIXTURE.tenants.a}/objects/no-assignment/missing.jpg`,
 };
 
 const ASSIGNMENT_PERSONNEL_TABLE_PRIVILEGES = [
@@ -67,7 +133,7 @@ const ASSIGNMENT_PERSONNEL_EXPECTED_TABLE_PRIVILEGES = {
     MAINTAIN: false,
   },
   authenticated: {
-    SELECT: true,
+    SELECT: false,
     INSERT: false,
     UPDATE: false,
     DELETE: false,
@@ -90,15 +156,17 @@ const ASSIGNMENT_PERSONNEL_EXPECTED_TABLE_PRIVILEGES = {
 
 const PHASE_A1_ACL_MIGRATION_PATH =
   "lib/db/migrations/20260713120000_assignment_personnel_phase_a_acl_hardening.sql";
+const PHASE_B_ACL_MIGRATION_PATH =
+  "lib/db/migrations/20260714120000_assignment_personnel_phase_b_direct_access_close.sql";
 
-function claimsFor(actor, tenantClaim = actor.tenantId) {
+function claimsFor(actor, tenantClaim) {
   const claims = {
     sub: actor.userId,
     email: actor.email,
     role: "authenticated",
     aud: "authenticated",
   };
-  if (tenantClaim !== null) claims.tenant_id = tenantClaim;
+  if (tenantClaim !== undefined) claims.tenant_id = tenantClaim;
   return claims;
 }
 
@@ -148,7 +216,7 @@ async function expectRejected(operation, expectedCodes) {
 function directInsert(client, assignmentId, personnelId, assignedBy) {
   return client.query(
     `
-      insert into assignment_personnel (assignment_id, personnel_id, status, assigned_by)
+      insert into public.assignment_personnel (assignment_id, personnel_id, status, assigned_by)
       values ($1, $2, 'assigned', $3)
       returning id
     `,
@@ -156,55 +224,19 @@ function directInsert(client, assignmentId, personnelId, assignedBy) {
   );
 }
 
-function directSelect(client, linkId = "00000000-0000-4000-8000-000000000000") {
-  return client.query(`select id from assignment_personnel where id = $1`, [linkId]);
+function directSelect(client, linkId = RLS_FIXTURE.assignmentPersonnel.a) {
+  return client.query(`select id from public.assignment_personnel where id = $1`, [linkId]);
 }
 
-function directUpdate(client, linkId = "00000000-0000-4000-8000-000000000000") {
+function directUpdate(client, linkId = RLS_FIXTURE.assignmentPersonnel.a) {
   return client.query(
-    `update assignment_personnel set status = 'assigned' where id = $1`,
+    `update public.assignment_personnel set assigned_by = assigned_by where id = $1`,
     [linkId],
   );
 }
 
-function directDelete(client, linkId = "00000000-0000-4000-8000-000000000000") {
-  return client.query(`delete from assignment_personnel where id = $1`, [linkId]);
-}
-
-async function createSameTenantAssignmentPersonnelLinkAsServiceRole(client) {
-  const actor = ACTORS.tenantAPlanner;
-  await client.query("begin");
-  try {
-    await setLocalRoleContext(client, "service_role", actor, claimsFor(actor));
-    await client.query(
-      `
-        delete from public.assignment_personnel
-        where assignment_id = $1
-          and personnel_id = $2
-      `,
-      [FIXTURE.assignments.a, FIXTURE.personnel.a],
-    );
-    const link = await directInsert(client, FIXTURE.assignments.a, FIXTURE.personnel.a, actor.userId);
-    await client.query("commit");
-    assert(link.rows.length === 1, "Service-role same-tenant assignment_personnel link was not created.");
-    return link.rows[0].id;
-  } catch (error) {
-    await client.query("rollback").catch(() => {});
-    throw error;
-  }
-}
-
-async function deleteAssignmentPersonnelLinkAsServiceRole(client, linkId) {
-  const actor = ACTORS.tenantAPlanner;
-  await client.query("begin");
-  try {
-    await setLocalRoleContext(client, "service_role", actor, claimsFor(actor));
-    await client.query(`delete from public.assignment_personnel where id = $1`, [linkId]);
-    await client.query("commit");
-  } catch (error) {
-    await client.query("rollback").catch(() => {});
-    throw error;
-  }
+function directDelete(client, linkId = RLS_FIXTURE.assignmentPersonnel.a) {
+  return client.query(`delete from public.assignment_personnel where id = $1`, [linkId]);
 }
 
 async function readAssignmentPersonnelTableAclSnapshot(client) {
@@ -276,18 +308,12 @@ function assertAssignmentPersonnelTableAclLeastPrivilege(snapshot) {
   }
 }
 
-async function assignmentPersonnelTableAclIsLeastPrivilege(client) {
-  const snapshot = await readAssignmentPersonnelTableAclSnapshot(client);
-  assertAssignmentPersonnelTableAclLeastPrivilege(snapshot);
-
-  return result("rls-assignment-personnel-table-acl-least-privilege", "passed", {
-    publicPrivileges: snapshot.publicPrivileges,
-    privileges: snapshot.privileges,
-    aclRows: snapshot.aclRows,
-  });
+async function applySqlMigration(client, relativePath) {
+  const migration = await readFile(join(repoRoot, relativePath), "utf8");
+  await client.query(migration);
 }
 
-async function historicalBroadAclDriftIsCleanedByPhaseA1Migration(client) {
+async function historicalBroadAclDriftIsCleanedByPhaseBMigrations(client) {
   await client.query("GRANT ALL ON TABLE public.assignment_personnel TO anon, authenticated, service_role");
   const drift = await readAssignmentPersonnelTableAclSnapshot(client);
 
@@ -301,41 +327,224 @@ async function historicalBroadAclDriftIsCleanedByPhaseA1Migration(client) {
     }
   }
 
-  const migration = await readFile(join(repoRoot, PHASE_A1_ACL_MIGRATION_PATH), "utf8");
-  await client.query(migration);
+  await applySqlMigration(client, PHASE_A1_ACL_MIGRATION_PATH);
+  await applySqlMigration(client, PHASE_B_ACL_MIGRATION_PATH);
   const cleaned = await readAssignmentPersonnelTableAclSnapshot(client);
   assertAssignmentPersonnelTableAclLeastPrivilege(cleaned);
 
-  return result("rls-assignment-personnel-historical-broad-acl-drift-cleaned", "passed", {
-    migration: PHASE_A1_ACL_MIGRATION_PATH,
+  return result("rls-assignment-personnel-historical-broad-acl-drift-cleaned-by-phase-b", "passed", {
+    migrations: [PHASE_A1_ACL_MIGRATION_PATH, PHASE_B_ACL_MIGRATION_PATH],
     driftPrivileges: drift.privileges,
     cleanedPublicPrivileges: cleaned.publicPrivileges,
     cleanedPrivileges: cleaned.privileges,
   });
 }
 
-async function authenticatedOwnSelectRollbackCompatibility(client) {
-  let linkId = null;
-  try {
-    linkId = await createSameTenantAssignmentPersonnelLinkAsServiceRole(client);
-    const selected = await asAuthenticated(
-      client,
-      ACTORS.tenantAPersonnel,
-      claimsFor(ACTORS.tenantAPersonnel),
-      async () => directSelect(client, linkId),
-    );
-    assert(selected.rows.length === 1, "Authenticated personnel user cannot SELECT their own assignment_personnel link.");
-    assert(selected.rows[0]?.id === linkId, "Authenticated personnel SELECT returned the wrong assignment_personnel link.");
+async function assignmentPersonnelTableAclIsLeastPrivilege(client) {
+  const snapshot = await readAssignmentPersonnelTableAclSnapshot(client);
+  assertAssignmentPersonnelTableAclLeastPrivilege(snapshot);
 
-    return result("rls-authenticated-own-select-rollback-compatibility", "passed", {
-      createdBy: "service_role",
-      selectedBy: "authenticated personnel user",
-      linkVisible: true,
-      note: "Temporary Phase-A rollback compatibility only; cross-tenant SELECT closure remains Phase B.",
-    });
-  } finally {
-    if (linkId) await deleteAssignmentPersonnelLinkAsServiceRole(client, linkId);
-  }
+  return result("rls-assignment-personnel-table-acl-phase-b-least-privilege", "passed", {
+    publicPrivileges: snapshot.publicPrivileges,
+    privileges: snapshot.privileges,
+    aclRows: snapshot.aclRows,
+  });
+}
+
+async function ensurePersonnelRlsFixtureRows(client) {
+  await client.query(
+    `
+      insert into public.personnel (
+        id, tenant_id, user_id, code, first_name, last_name, email, is_active, is_available
+      )
+      values ($1, $2, $3, 'RT-INACTIVE', 'Runtime', 'Inactive', 'multi@runtime.fieldgrid.test', false, true)
+      on conflict (id) do update set
+        tenant_id = excluded.tenant_id,
+        user_id = excluded.user_id,
+        is_active = excluded.is_active
+    `,
+    [
+      RLS_FIXTURE.personnel.inactive,
+      FIXTURE.tenants.a,
+      FIXTURE.users.multiTenant,
+    ],
+  );
+
+  await client.query(
+    `
+      insert into public.assignment_personnel (id, assignment_id, personnel_id, status, assigned_by)
+      values
+        ($1, $2, $3, 'assigned', $4),
+        ($5, $6, $7, 'assigned', $8),
+        ($9, $10, $11, 'assigned', $12)
+      on conflict (assignment_id, personnel_id) do update set
+        status = excluded.status,
+        assigned_by = excluded.assigned_by
+    `,
+    [
+      RLS_FIXTURE.assignmentPersonnel.a,
+      FIXTURE.assignments.a,
+      FIXTURE.personnel.a,
+      FIXTURE.users.tenantAPlanner,
+      RLS_FIXTURE.assignmentPersonnel.b,
+      FIXTURE.assignments.b,
+      FIXTURE.personnel.b,
+      FIXTURE.users.tenantBPlanner,
+      RLS_FIXTURE.assignmentPersonnel.inactive,
+      FIXTURE.assignments.a,
+      RLS_FIXTURE.personnel.inactive,
+      FIXTURE.users.tenantAPlanner,
+    ],
+  );
+
+  await client.query(
+    `
+      insert into public.assignment_tasks (id, assignment_id, notes, sort_order)
+      values
+        ($1, $2, 'Runtime task A', 1),
+        ($3, $4, 'Runtime task B', 1)
+      on conflict (id) do update set notes = excluded.notes
+    `,
+    [RLS_FIXTURE.tasks.a, FIXTURE.assignments.a, RLS_FIXTURE.tasks.b, FIXTURE.assignments.b],
+  );
+
+  await client.query(
+    `
+      insert into public.assignment_extra_work (id, assignment_id, description, created_by)
+      values ($1, $2, 'Runtime extra work A', $3)
+      on conflict (id) do update set description = excluded.description
+    `,
+    [RLS_FIXTURE.extraWork.a, FIXTURE.assignments.a, FIXTURE.users.tenantAPersonnel],
+  );
+
+  await client.query(
+    `
+      insert into public.assignment_photos (id, tenant_id, assignment_id, storage_path, uploaded_by, is_approved)
+      values
+        ($1, $2, $3, $4, $5, true),
+        ($6, $7, $8, $9, $10, true)
+      on conflict (id) do update set
+        tenant_id = excluded.tenant_id,
+        storage_path = excluded.storage_path,
+        is_approved = excluded.is_approved
+    `,
+    [
+      RLS_FIXTURE.photos.a,
+      FIXTURE.tenants.a,
+      FIXTURE.assignments.a,
+      `tenant/${FIXTURE.tenants.a}/assignments/${FIXTURE.assignments.a}/extra-work/${RLS_FIXTURE.extraWork.a}/photo-a.jpg`,
+      FIXTURE.users.tenantAPersonnel,
+      RLS_FIXTURE.photos.b,
+      FIXTURE.tenants.b,
+      FIXTURE.assignments.b,
+      `tenant/${FIXTURE.tenants.b}/assignments/${FIXTURE.assignments.b}/photo-b.jpg`,
+      FIXTURE.users.tenantBPersonnel,
+    ],
+  );
+
+  await client.query(
+    `
+      insert into public.reports (id, tenant_id, assignment_id, submitted_by, status, content, hours_worked)
+      values
+        ($1, $2, $3, $4, 'approved', 'Runtime report A', 1),
+        ($5, $6, $7, $8, 'approved', 'Runtime report B', 1)
+      on conflict (id) do update set status = excluded.status, content = excluded.content
+    `,
+    [
+      RLS_FIXTURE.reports.a,
+      FIXTURE.tenants.a,
+      FIXTURE.assignments.a,
+      FIXTURE.users.tenantAPersonnel,
+      RLS_FIXTURE.reports.b,
+      FIXTURE.tenants.b,
+      FIXTURE.assignments.b,
+      FIXTURE.users.tenantBPersonnel,
+    ],
+  );
+
+  await client.query(
+    `
+      insert into public.assignment_report_notes (id, assignment_id, body, created_by)
+      values ($1, $2, 'Runtime note A', $3)
+      on conflict (id) do update set body = excluded.body
+    `,
+    [RLS_FIXTURE.reportNotes.a, FIXTURE.assignments.a, FIXTURE.users.tenantAPersonnel],
+  );
+
+  await client.query(
+    `
+      insert into public.assignment_report_note_attachments (
+        id, tenant_id, note_id, assignment_id, storage_path, file_name, mime_type, file_size, uploaded_by
+      )
+      values ($1, $2, $3, $4, $5, 'note-a.jpg', 'image/jpeg', 128, $6)
+      on conflict (id) do update set storage_path = excluded.storage_path
+    `,
+    [
+      RLS_FIXTURE.reportNoteAttachments.a,
+      FIXTURE.tenants.a,
+      RLS_FIXTURE.reportNotes.a,
+      FIXTURE.assignments.a,
+      `tenant/${FIXTURE.tenants.a}/assignments/${FIXTURE.assignments.a}/report-notes/note-a.jpg`,
+      FIXTURE.users.tenantAPersonnel,
+    ],
+  );
+
+  await client.query(
+    `
+      insert into public.assignment_material_usage (
+        id, tenant_id, assignment_id, name, quantity, unit_price, created_by, approval_status
+      )
+      values ($1, $2, $3, 'Runtime material A', 1, 0, $4, 'pending')
+      on conflict (id) do update set name = excluded.name
+    `,
+    [
+      RLS_FIXTURE.materialUsage.a,
+      FIXTURE.tenants.a,
+      FIXTURE.assignments.a,
+      FIXTURE.users.tenantAPersonnel,
+    ],
+  );
+
+  await client.query(
+    `
+      insert into storage.buckets (id, name, public)
+      values ('assignment-photos', 'assignment-photos', false)
+      on conflict (id) do update set name = excluded.name, public = excluded.public
+    `,
+  );
+
+  await client.query(
+    `
+      insert into storage.objects (id, bucket_id, name, owner, metadata)
+      values
+        ($1, 'assignment-photos', $2, $3, '{}'::jsonb),
+        ($4, 'assignment-photos', $5, $6, '{}'::jsonb),
+        ($7, 'assignment-photos', $8, $9, '{}'::jsonb),
+        ($10, 'assignment-photos', $11, $12, '{}'::jsonb),
+        ($13, 'assignment-photos', $14, $15, '{}'::jsonb)
+      on conflict (id) do update set
+        bucket_id = excluded.bucket_id,
+        name = excluded.name,
+        owner = excluded.owner
+    `,
+    [
+      RLS_FIXTURE.storageObjects.validTenantA,
+      STORAGE_OBJECT_NAMES.validTenantA,
+      FIXTURE.users.tenantAPersonnel,
+      RLS_FIXTURE.storageObjects.tenantB,
+      STORAGE_OBJECT_NAMES.tenantB,
+      FIXTURE.users.tenantBPersonnel,
+      RLS_FIXTURE.storageObjects.tenantBPrefixForAssignmentA,
+      STORAGE_OBJECT_NAMES.tenantBPrefixForAssignmentA,
+      FIXTURE.users.tenantAPersonnel,
+      RLS_FIXTURE.storageObjects.malformedAssignment,
+      STORAGE_OBJECT_NAMES.malformedAssignment,
+      FIXTURE.users.tenantAPersonnel,
+      RLS_FIXTURE.storageObjects.missingAssignment,
+      STORAGE_OBJECT_NAMES.missingAssignment,
+      FIXTURE.users.tenantAPersonnel,
+    ],
+  );
 }
 
 async function anonSelectCountIsPermissionDenied(client) {
@@ -360,24 +569,316 @@ async function anonSelectCountIsPermissionDenied(client) {
   throw new Error("Expected anon SELECT count on assignment_personnel to be permission denied.");
 }
 
-async function tenantContextDoesNotOpenDirectDml(client) {
+async function authenticatedDirectCrudIsRevoked(client) {
   const actor = ACTORS.tenantAPlanner;
-  const outcomes = {
-    absent: await asAuthenticated(client, actor, claimsFor(actor, null), async () =>
-      expectRejected(() => directInsert(client, FIXTURE.assignments.a, FIXTURE.personnel.a, actor.userId), ["42501"]),
-    ),
-    malformed: await asAuthenticated(client, actor, claimsFor(actor, "not-a-uuid"), async () =>
-      expectRejected(() => directInsert(client, FIXTURE.assignments.a, FIXTURE.personnel.a, actor.userId), ["42501"]),
-    ),
-    wrong: await asAuthenticated(client, actor, claimsFor(actor, FIXTURE.tenants.b), async () =>
-      expectRejected(() => directInsert(client, FIXTURE.assignments.a, FIXTURE.personnel.a, actor.userId), ["42501"]),
-    ),
-    correct: await asAuthenticated(client, actor, claimsFor(actor, FIXTURE.tenants.a), async () =>
-      expectRejected(() => directInsert(client, FIXTURE.assignments.a, FIXTURE.personnel.a, actor.userId), ["42501"]),
-    ),
-  };
+  const select = await asAuthenticated(client, actor, claimsFor(actor), async () =>
+    expectRejected(() => directSelect(client), ["42501"]),
+  );
+  const insert = await asAuthenticated(client, actor, claimsFor(actor), async () =>
+    expectRejected(() => directInsert(client, FIXTURE.assignments.a, FIXTURE.personnel.a, actor.userId), ["42501"]),
+  );
+  const update = await asAuthenticated(client, actor, claimsFor(actor), async () =>
+    expectRejected(() => directUpdate(client), ["42501"]),
+  );
+  const deleteResult = await asAuthenticated(client, actor, claimsFor(actor), async () =>
+    expectRejected(() => directDelete(client), ["42501"]),
+  );
 
-  return result("rls-tenant-context-does-not-open-direct-dml", "passed", outcomes);
+  return result("rls-authenticated-direct-assignment-personnel-crud-revoked", "passed", {
+    selectRejectionCode: select.code,
+    insertRejectionCode: insert.code,
+    updateRejectionCode: update.code,
+    deleteRejectionCode: deleteResult.code,
+  });
+}
+
+async function anonDirectDmlIsRevoked(client) {
+  const actor = ACTORS.tenantAPlanner;
+  const insert = await asRole(client, "anon", actor, claimsFor(actor), async () =>
+    expectRejected(() => directInsert(client, FIXTURE.assignments.a, FIXTURE.personnel.a, actor.userId), ["42501"]),
+  );
+  const update = await asRole(client, "anon", actor, claimsFor(actor), async () =>
+    expectRejected(() => directUpdate(client), ["42501"]),
+  );
+  const deleteResult = await asRole(client, "anon", actor, claimsFor(actor), async () =>
+    expectRejected(() => directDelete(client), ["42501"]),
+  );
+
+  return result("rls-anon-direct-assignment-personnel-dml-revoked", "passed", {
+    insertRejectionCode: insert.code,
+    updateRejectionCode: update.code,
+    deleteRejectionCode: deleteResult.code,
+  });
+}
+
+async function serviceRoleCrudWorksAndTriggerInvariantHolds(client) {
+  const actor = ACTORS.tenantAPlanner;
+  const sameTenant = await asServiceRole(client, actor, claimsFor(actor), async () => {
+    const inserted = await directInsert(client, FIXTURE.assignments.a, FIXTURE.personnel.a, actor.userId);
+    assert(inserted.rows.length === 1, "Service-role same-tenant insert was rejected.");
+    const linkId = inserted.rows[0].id;
+    const selected = await directSelect(client, linkId);
+    assert(selected.rows.length === 1, "Service-role same-tenant SELECT did not find inserted link.");
+    const updated = await client.query(
+      `update public.assignment_personnel set assigned_by = $1 where id = $2 returning id`,
+      [actor.userId, linkId],
+    );
+    assert(updated.rows.length === 1, "Service-role same-tenant UPDATE did not affect inserted link.");
+    const deleted = await client.query(
+      `delete from public.assignment_personnel where id = $1 returning id`,
+      [linkId],
+    );
+    assert(deleted.rows.length === 1, "Service-role same-tenant DELETE did not remove inserted link.");
+    return { insert: true, select: true, update: true, delete: true };
+  });
+
+  const crossTenantInsert = await asServiceRole(client, actor, claimsFor(actor), async () =>
+    expectRejected(() => directInsert(client, FIXTURE.assignments.a, FIXTURE.personnel.b, actor.userId), ["23514"]),
+  );
+
+  const crossTenantUpdate = await asServiceRole(client, actor, claimsFor(actor), async () => {
+    const inserted = await directInsert(client, FIXTURE.assignments.a, FIXTURE.personnel.a, actor.userId);
+    return expectRejected(
+      () =>
+        client.query(`update public.assignment_personnel set personnel_id = $1 where id = $2`, [
+          FIXTURE.personnel.b,
+          inserted.rows[0].id,
+        ]),
+      ["23514"],
+    );
+  });
+
+  const crossTenantUpsert = await asServiceRole(client, actor, claimsFor(actor), async () =>
+    expectRejected(
+      () =>
+        client.query(
+          `
+            insert into public.assignment_personnel (assignment_id, personnel_id, status, assigned_by)
+            values ($1, $2, 'assigned', $3)
+            on conflict (assignment_id, personnel_id)
+            do update set status = excluded.status
+          `,
+          [FIXTURE.assignments.a, FIXTURE.personnel.b, actor.userId],
+        ),
+      ["23514"],
+    ),
+  );
+
+  return result("rls-service-role-crud-and-trigger-invariant", "passed", {
+    sameTenant,
+    crossTenantInsertRejectionCode: crossTenantInsert.code,
+    crossTenantUpdateRejectionCode: crossTenantUpdate.code,
+    crossTenantUpsertRejectionCode: crossTenantUpsert.code,
+  });
+}
+
+async function selectIds(client, query, params = []) {
+  const rows = await client.query(query, params);
+  return rows.rows.map((row) => row.id).sort();
+}
+
+async function selectNames(client, query, params = []) {
+  const rows = await client.query(query, params);
+  return rows.rows.map((row) => row.name).sort();
+}
+
+async function personnelRlsPoliciesAllowLegitimateData(client) {
+  await ensurePersonnelRlsFixtureRows(client);
+  const actor = ACTORS.tenantAPersonnel;
+  const claims = claimsFor(actor);
+
+  const checks = await asAuthenticated(client, actor, claims, async () => ({
+    assignments: await selectIds(client, `select id from public.assignments where id = $1`, [FIXTURE.assignments.a]),
+    tasks: await selectIds(client, `select id from public.assignment_tasks where assignment_id = $1`, [FIXTURE.assignments.a]),
+    extraWork: await selectIds(client, `select id from public.assignment_extra_work where assignment_id = $1`, [FIXTURE.assignments.a]),
+    photos: await selectIds(client, `select id from public.assignment_photos where assignment_id = $1`, [FIXTURE.assignments.a]),
+    reports: await selectIds(client, `select id from public.reports where assignment_id = $1`, [FIXTURE.assignments.a]),
+    reportNotes: await selectIds(client, `select id from public.assignment_report_notes where assignment_id = $1`, [FIXTURE.assignments.a]),
+    reportNoteAttachments: await selectIds(client, `select id from public.assignment_report_note_attachments where assignment_id = $1`, [FIXTURE.assignments.a]),
+    materialUsage: await selectIds(client, `select id from public.assignment_material_usage where assignment_id = $1`, [FIXTURE.assignments.a]),
+    objects: await selectIds(client, `select id from public.objects where id = $1`, [FIXTURE.objects.a]),
+  }));
+
+  nodeAssert.deepEqual(checks.assignments, [FIXTURE.assignments.a]);
+  nodeAssert.deepEqual(checks.tasks, [RLS_FIXTURE.tasks.a]);
+  nodeAssert.deepEqual(checks.extraWork, [RLS_FIXTURE.extraWork.a]);
+  nodeAssert.deepEqual(checks.photos, [RLS_FIXTURE.photos.a]);
+  nodeAssert.deepEqual(checks.reports, [RLS_FIXTURE.reports.a]);
+  nodeAssert.deepEqual(checks.reportNotes, [RLS_FIXTURE.reportNotes.a]);
+  nodeAssert.deepEqual(checks.reportNoteAttachments, [RLS_FIXTURE.reportNoteAttachments.a]);
+  nodeAssert.deepEqual(checks.materialUsage, [RLS_FIXTURE.materialUsage.a]);
+  nodeAssert.deepEqual(checks.objects, [FIXTURE.objects.a]);
+
+  return result("rls-personnel-policy-mediated-legitimate-data-access", "passed", checks);
+}
+
+async function duplicatePersonnelUserIdIsRejected(client) {
+  await client.query("begin");
+  try {
+    const duplicateUserId = FIXTURE.users.moduleOffOwner;
+    await client.query(
+      `
+        insert into public.personnel (id, tenant_id, user_id, code, first_name, last_name, email, is_active, is_available)
+        values ($1, $2, $3, 'RT-MA', 'Runtime', 'Multi A', 'multi-a@runtime.fieldgrid.test', true, true)
+      `,
+      [
+        "60000000-0000-4000-8000-000000000003",
+        FIXTURE.tenants.a,
+        duplicateUserId,
+      ],
+    );
+    const duplicate = await expectRejected(
+      () =>
+        client.query(
+          `
+            insert into public.personnel (id, tenant_id, user_id, code, first_name, last_name, email, is_active, is_available)
+            values ($1, $2, $3, 'RT-MB', 'Runtime', 'Multi B', 'multi-b@runtime.fieldgrid.test', true, true)
+          `,
+          [
+            "60000000-0000-4000-8000-000000000004",
+            FIXTURE.tenants.b,
+            duplicateUserId,
+          ],
+        ),
+      ["23505"],
+    );
+    await client.query("rollback");
+    return {
+      status: "schema-blocked",
+      code: duplicate.code,
+      constraint: "personnel_user_id_unique",
+      note: "The current schema does not allow one auth user to have personnel rows in multiple tenants.",
+    };
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    throw error;
+  }
+}
+
+async function tenantABIsolationAndJwtTenantClaimIgnored(client) {
+  await ensurePersonnelRlsFixtureRows(client);
+  const duplicateMultiTenantPersonnel = await duplicatePersonnelUserIdIsRejected(client);
+
+  const tenantA = await asAuthenticated(client, ACTORS.tenantAPersonnel, claimsFor(ACTORS.tenantAPersonnel), async () =>
+    selectIds(client, `select id from public.assignments where id = any($1::uuid[])`, [
+      [FIXTURE.assignments.a, FIXTURE.assignments.b],
+    ]),
+  );
+  const tenantB = await asAuthenticated(client, ACTORS.tenantBPersonnel, claimsFor(ACTORS.tenantBPersonnel), async () =>
+    selectIds(client, `select id from public.assignments where id = any($1::uuid[])`, [
+      [FIXTURE.assignments.a, FIXTURE.assignments.b],
+    ]),
+  );
+
+  const wrongUser = await asAuthenticated(client, ACTORS.tenantAAdmin, claimsFor(ACTORS.tenantAAdmin), async () =>
+    selectIds(client, `select id from public.assignments where id = any($1::uuid[])`, [
+      [FIXTURE.assignments.a, FIXTURE.assignments.b],
+    ]),
+  );
+  const inactivePersonnel = await asAuthenticated(client, ACTORS.inactivePersonnel, claimsFor(ACTORS.inactivePersonnel), async () =>
+    selectIds(client, `select id from public.assignments where id = any($1::uuid[])`, [
+      [FIXTURE.assignments.a, FIXTURE.assignments.b],
+    ]),
+  );
+  const wrongTenantClaim = await asAuthenticated(client, ACTORS.tenantAPersonnel, claimsFor(ACTORS.tenantAPersonnel, FIXTURE.tenants.b), async () =>
+    selectIds(client, `select id from public.assignments where id = any($1::uuid[])`, [
+      [FIXTURE.assignments.a, FIXTURE.assignments.b],
+    ]),
+  );
+  const malformedTenantClaim = await asAuthenticated(client, ACTORS.tenantAPersonnel, claimsFor(ACTORS.tenantAPersonnel, "not-a-uuid"), async () =>
+    selectIds(client, `select id from public.assignments where id = any($1::uuid[])`, [
+      [FIXTURE.assignments.a, FIXTURE.assignments.b],
+    ]),
+  );
+
+  nodeAssert.deepEqual(tenantA, [FIXTURE.assignments.a]);
+  nodeAssert.deepEqual(tenantB, [FIXTURE.assignments.b]);
+  nodeAssert.deepEqual(wrongUser, []);
+  nodeAssert.deepEqual(inactivePersonnel, []);
+  nodeAssert.deepEqual(wrongTenantClaim, [FIXTURE.assignments.a]);
+  nodeAssert.deepEqual(malformedTenantClaim, [FIXTURE.assignments.a]);
+
+  return result("rls-tenant-a-b-isolation-and-jwt-tenant-claim-ignored", "passed", {
+    tenantA,
+    tenantB,
+    wrongUser,
+    inactivePersonnel,
+    wrongTenantClaim,
+    malformedTenantClaim,
+    duplicateMultiTenantPersonnel,
+    note: "The personnel helper ignores JWT tenant_id and derives tenant access from active personnel, assigned link, and same-tenant assignment/personnel rows.",
+  });
+}
+
+async function storagePathTenantIsolationWithoutTenantClaim(client) {
+  await ensurePersonnelRlsFixtureRows(client);
+  const actor = ACTORS.tenantAPersonnel;
+  const probedNames = Object.values(STORAGE_OBJECT_NAMES);
+
+  const visibleWithoutTenantClaim = await asAuthenticated(client, actor, claimsFor(actor), async () =>
+    selectNames(client, `select name from storage.objects where bucket_id = 'assignment-photos' and name = any($1::text[])`, [
+      probedNames,
+    ]),
+  );
+  const visibleWithWrongTenantClaim = await asAuthenticated(client, actor, claimsFor(actor, FIXTURE.tenants.b), async () =>
+    selectNames(client, `select name from storage.objects where bucket_id = 'assignment-photos' and name = any($1::text[])`, [
+      probedNames,
+    ]),
+  );
+
+  nodeAssert.deepEqual(visibleWithoutTenantClaim, [STORAGE_OBJECT_NAMES.validTenantA]);
+  nodeAssert.deepEqual(visibleWithWrongTenantClaim, [STORAGE_OBJECT_NAMES.validTenantA]);
+
+  const deniedByCase = Object.fromEntries(
+    Object.entries(STORAGE_OBJECT_NAMES)
+      .filter(([key]) => key !== "validTenantA")
+      .map(([key, name]) => [key, !visibleWithoutTenantClaim.includes(name)]),
+  );
+  for (const [key, denied] of Object.entries(deniedByCase)) {
+    assert(denied === true, `Storage path case ${key} was unexpectedly visible.`, {
+      key,
+      visibleWithoutTenantClaim,
+    });
+  }
+
+  const directDenied = await asAuthenticated(client, actor, claimsFor(actor), async () =>
+    expectRejected(() => client.query(`select id from public.assignment_personnel limit 1`), ["42501"]),
+  );
+
+  return result("rls-storage-assignment-photo-path-tenant-isolation-without-tenant-claim", "passed", {
+    visibleWithoutTenantClaim,
+    visibleWithWrongTenantClaim,
+    deniedByCase,
+    directAssignmentPersonnelSelect: directDenied,
+    limitation: "storage.objects is a local PostgreSQL shim; this is policy runtime evidence, not live Supabase Storage provider evidence.",
+  });
+}
+
+async function customerPortalPoliciesAreNotRegressed(client) {
+  await ensurePersonnelRlsFixtureRows(client);
+  const actor = ACTORS.tenantACustomer;
+  const claims = claimsFor(actor);
+  const visible = await asAuthenticated(client, actor, claims, async () => ({
+    assignments: await selectIds(client, `select id from public.assignments where id = any($1::uuid[])`, [
+      [FIXTURE.assignments.a, FIXTURE.assignments.b],
+    ]),
+    tasks: await selectIds(client, `select id from public.assignment_tasks where assignment_id = any($1::uuid[])`, [
+      [FIXTURE.assignments.a, FIXTURE.assignments.b],
+    ]),
+    photos: await selectIds(client, `select id from public.assignment_photos where assignment_id = any($1::uuid[])`, [
+      [FIXTURE.assignments.a, FIXTURE.assignments.b],
+    ]),
+    reports: await selectIds(client, `select id from public.reports where assignment_id = any($1::uuid[])`, [
+      [FIXTURE.assignments.a, FIXTURE.assignments.b],
+    ]),
+  }));
+
+  nodeAssert.deepEqual(visible.assignments, [FIXTURE.assignments.a]);
+  nodeAssert.deepEqual(visible.tasks, [RLS_FIXTURE.tasks.a]);
+  nodeAssert.deepEqual(visible.photos, [RLS_FIXTURE.photos.a]);
+  nodeAssert.deepEqual(visible.reports, [RLS_FIXTURE.reports.a]);
+
+  return result("rls-customer-policy-regression-assignments-tasks-photos-reports", "passed", visible);
 }
 
 async function legacyGlobalManagementCannotManage(client) {
@@ -396,111 +897,35 @@ async function legacyGlobalManagementCannotManage(client) {
   });
 }
 
-async function authenticatedDirectDmlIsRevoked(client) {
-  const actor = ACTORS.tenantAPlanner;
-  const insert = await asAuthenticated(client, actor, claimsFor(actor), async () =>
-    expectRejected(
-      () => directInsert(client, FIXTURE.assignments.a, FIXTURE.personnel.a, actor.userId),
-      ["42501"],
-    ),
-  );
-  const update = await asAuthenticated(client, actor, claimsFor(actor), async () =>
-    expectRejected(
-      () => directUpdate(client),
-      ["42501"],
-    ),
-  );
-  const deleteResult = await asAuthenticated(client, actor, claimsFor(actor), async () =>
-    expectRejected(
-      () => directDelete(client),
-      ["42501"],
-    ),
-  );
-
-  return result("rls-authenticated-direct-dml-revoked", "passed", {
-    insertRejectionCode: insert.code,
-    updateRejectionCode: update.code,
-    deleteRejectionCode: deleteResult.code,
-  });
-}
-
-async function anonDirectDmlIsRevoked(client) {
-  const actor = ACTORS.tenantAPlanner;
-  const insert = await asRole(client, "anon", actor, claimsFor(actor), async () =>
-    expectRejected(
-      () => directInsert(client, FIXTURE.assignments.a, FIXTURE.personnel.a, actor.userId),
-      ["42501"],
-    ),
-  );
-  const update = await asRole(client, "anon", actor, claimsFor(actor), async () =>
-    expectRejected(() => directUpdate(client), ["42501"]),
-  );
-  const deleteResult = await asRole(client, "anon", actor, claimsFor(actor), async () =>
-    expectRejected(() => directDelete(client), ["42501"]),
-  );
-
-  return result("rls-anon-direct-dml-revoked", "passed", {
-    insertRejectionCode: insert.code,
-    updateRejectionCode: update.code,
-    deleteRejectionCode: deleteResult.code,
-  });
-}
-
-async function serviceRoleServerCommandAndTriggerInvariant(client) {
-  const sameTenant = await asServiceRole(
-    client,
-    ACTORS.tenantAPlanner,
-    claimsFor(ACTORS.tenantAPlanner),
-    async () => directInsert(client, FIXTURE.assignments.a, FIXTURE.personnel.a, ACTORS.tenantAPlanner.userId),
-  );
-  assert(sameTenant.rows.length === 1, "Service-role same-tenant server command was rejected.");
-
-  const mismatch = await asServiceRole(client, ACTORS.tenantAPlanner, claimsFor(ACTORS.tenantAPlanner), async () =>
-    expectRejected(
-      () => directInsert(client, FIXTURE.assignments.a, FIXTURE.personnel.b, ACTORS.tenantAPlanner.userId),
-      ["23514"],
-    ),
-  );
-
-  return result("rls-service-role-server-command-and-trigger-invariant", "passed", {
-    sameTenant: "accepted",
-    mismatchRejectionCode: mismatch.code,
-  });
-}
-
-async function selectedTenantClaimsDoNotOpenDirectDml(client) {
-  const tenantAContext = await asAuthenticated(client, ACTORS.multiTenantInA, claimsFor(ACTORS.multiTenantInA), async () =>
-    expectRejected(
-      () => directInsert(client, FIXTURE.assignments.a, FIXTURE.personnel.a, ACTORS.multiTenantInA.userId),
-      ["42501"],
-    ),
-  );
-  const tenantBContext = await asAuthenticated(client, ACTORS.multiTenantInB, claimsFor(ACTORS.multiTenantInB), async () =>
-    expectRejected(
-      () => directInsert(client, FIXTURE.assignments.b, FIXTURE.personnel.b, ACTORS.multiTenantInB.userId),
-      ["42501"],
-    ),
-  );
-
-  return result("rls-selected-tenant-claim-does-not-open-assignment-personnel-dml", "passed", {
-    tenantAContextRejectionCode: tenantAContext.code,
-    tenantBContextRejectionCode: tenantBContext.code,
-  });
-}
-
 async function securityDefinerPrivilegesAreMinimal(client) {
   const functions = [
-    "public.trg_assignment_personnel_tenant_guard()",
+    {
+      signature: "public.trg_assignment_personnel_tenant_guard()",
+      expectedAuthenticatedExecute: false,
+      expectedServiceRoleExecute: false,
+    },
+    {
+      signature: "public.personnel_assigned_to_assignment(uuid)",
+      expectedAuthenticatedExecute: true,
+      expectedServiceRoleExecute: false,
+    },
+    {
+      signature: "public.personnel_can_access_assignment_storage(uuid, uuid)",
+      expectedAuthenticatedExecute: true,
+      expectedServiceRoleExecute: false,
+    },
   ];
   const privileges = {};
-  for (const signature of functions) {
+  for (const { signature, expectedAuthenticatedExecute, expectedServiceRoleExecute } of functions) {
     const row = await client.query(
       `
         select
           coalesce(bool_or(acl.grantee = 0 and acl.privilege_type = 'EXECUTE'), false) as public_execute,
           has_function_privilege('anon', p.oid, 'execute') as anon_execute,
           has_function_privilege('authenticated', p.oid, 'execute') as authenticated_execute,
-          has_function_privilege('service_role', p.oid, 'execute') as service_role_execute
+          has_function_privilege('service_role', p.oid, 'execute') as service_role_execute,
+          p.prosecdef as security_definer,
+          p.proconfig as config
         from pg_proc p
         left join lateral aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) acl on true
         where p.oid = $1::regprocedure
@@ -511,8 +936,8 @@ async function securityDefinerPrivilegesAreMinimal(client) {
     privileges[signature] = row.rows[0];
     assert(row.rows[0]?.public_execute === false, `${signature} is executable by PUBLIC.`);
     assert(row.rows[0]?.anon_execute === false, `${signature} is executable by anon.`);
-    assert(row.rows[0]?.authenticated_execute === false, `${signature} is executable by authenticated.`);
-    assert(typeof row.rows[0]?.service_role_execute === "boolean", `${signature} service_role execute state was not measured.`);
+    assert(row.rows[0]?.authenticated_execute === expectedAuthenticatedExecute, `${signature} authenticated EXECUTE mismatch.`);
+    assert(row.rows[0]?.service_role_execute === expectedServiceRoleExecute, `${signature} service_role EXECUTE mismatch.`);
   }
 
   const phaseBHelpers = await client.query(
@@ -523,6 +948,10 @@ async function securityDefinerPrivilegesAreMinimal(client) {
         to_regprocedure('public.assignment_personnel_tenant_match(uuid, uuid)') is not null as tenant_match_exists
     `,
   );
+  assert(phaseBHelpers.rows[0]?.can_manage_exists === false, "can_manage_assignment_personnel still exists.");
+  assert(phaseBHelpers.rows[0]?.can_select_own_exists === false, "can_select_own_assignment_personnel still exists.");
+  assert(phaseBHelpers.rows[0]?.tenant_match_exists === false, "assignment_personnel_tenant_match still exists.");
+
   const legacyRpc = await client.query(
     `select to_regprocedure('public.pwa_apply_for_assignment(uuid)') is not null as exists`,
   );
@@ -548,8 +977,68 @@ async function securityDefinerPrivilegesAreMinimal(client) {
 
   return result("rls-security-definer-execute-privileges-minimal", "passed", {
     privileges,
-    phaseBHelperPresenceOnly: phaseBHelpers.rows[0],
+    removedHelpers: phaseBHelpers.rows[0],
     legacyRpcPrivileges,
+  });
+}
+
+async function databaseDependencyAudit(client) {
+  const functions = await client.query(
+    `
+      WITH candidate_functions AS MATERIALIZED (
+        SELECT
+          n.nspname,
+          p.proname,
+          p.oid,
+          p.prosecdef,
+          p.proconfig
+        FROM pg_proc p
+        JOIN pg_namespace n
+          ON n.oid = p.pronamespace
+        WHERE p.prokind IN ('f', 'p')
+      )
+      SELECT
+        nspname,
+        proname,
+        pg_get_function_identity_arguments(oid) as arguments,
+        prosecdef,
+        proconfig
+      FROM candidate_functions
+      WHERE pg_get_functiondef(oid) ILIKE '%assignment_personnel%'
+      ORDER BY nspname, proname, arguments
+    `,
+  );
+  const policies = await client.query(
+    `
+      SELECT
+        schemaname,
+        tablename,
+        policyname,
+        cmd,
+        roles,
+        qual,
+        with_check
+      FROM pg_policies
+      WHERE coalesce(qual, '') ILIKE '%assignment_personnel%'
+         OR coalesce(with_check, '') ILIKE '%assignment_personnel%'
+         OR coalesce(qual, '') ILIKE '%personnel_assigned_to_assignment%'
+         OR coalesce(with_check, '') ILIKE '%personnel_assigned_to_assignment%'
+      ORDER BY tablename, policyname
+    `,
+  );
+
+  const invokerAssignmentPersonnelReaders = functions.rows.filter(
+    (row) => row.prosecdef === false && row.proname !== "fieldgrid_storage_assignment_id_from_path",
+  );
+  assert(
+    invokerAssignmentPersonnelReaders.length === 0,
+    "SECURITY INVOKER functions still read assignment_personnel.",
+    { invokerAssignmentPersonnelReaders },
+  );
+
+  return result("rls-database-function-policy-dependency-audit", "passed", {
+    functions: functions.rows,
+    policies: policies.rows,
   });
 }
 
@@ -557,17 +1046,19 @@ async function runChecks() {
   const client = await connect();
   try {
     return [
-      await historicalBroadAclDriftIsCleanedByPhaseA1Migration(client),
+      await historicalBroadAclDriftIsCleanedByPhaseBMigrations(client),
       await assignmentPersonnelTableAclIsLeastPrivilege(client),
-      await authenticatedOwnSelectRollbackCompatibility(client),
       await anonSelectCountIsPermissionDenied(client),
-      await tenantContextDoesNotOpenDirectDml(client),
-      await legacyGlobalManagementCannotManage(client),
-      await authenticatedDirectDmlIsRevoked(client),
+      await authenticatedDirectCrudIsRevoked(client),
       await anonDirectDmlIsRevoked(client),
-      await serviceRoleServerCommandAndTriggerInvariant(client),
-      await selectedTenantClaimsDoNotOpenDirectDml(client),
+      await serviceRoleCrudWorksAndTriggerInvariantHolds(client),
+      await personnelRlsPoliciesAllowLegitimateData(client),
+      await tenantABIsolationAndJwtTenantClaimIgnored(client),
+      await storagePathTenantIsolationWithoutTenantClaim(client),
+      await customerPortalPoliciesAreNotRegressed(client),
+      await legacyGlobalManagementCannotManage(client),
       await securityDefinerPrivilegesAreMinimal(client),
+      await databaseDependencyAudit(client),
     ];
   } finally {
     await client.end();
@@ -599,44 +1090,38 @@ async function main() {
     startedAt,
     completedAt: new Date().toISOString(),
     actorModel: {
-      authenticatedRole: "phase A denies direct DML on assignment_personnel and keeps existing SELECT compatibility for rollback",
+      authenticatedRole: "phase B denies direct CRUD on assignment_personnel and keeps personnel RLS through a hardened helper",
       rowSecurity: "on",
-      claims: ["request.jwt.claim.sub", "request.jwt.claims.tenant_id"],
-      directDml: "revoked for anon/authenticated; writes are server/service-role commands plus database trigger invariant",
-      directReads: "authenticated SELECT on own assignment_personnel links is intentionally retained in phase A for app rollback compatibility; anon table SELECT is permission denied",
+      claims: ["request.jwt.claim.sub", "request.jwt.claims without tenant_id"],
+      realFieldgridJwtContract: {
+        role: "authenticated",
+        sub: "present",
+        tenant_id_valid: false,
+      },
+      directAssignmentPersonnelAccess: "PUBLIC, anon and authenticated have no direct table privileges",
+      serviceRole: "direct SELECT/INSERT/UPDATE/DELETE only; no TRUNCATE/REFERENCES/TRIGGER/MAINTAIN",
       excludedEvidence: ["postgres/superuser checks are not RLS evidence", "source regex checks are not runtime proof"],
     },
     checks,
     testLayerClassification: {
-      "rls-assignment-personnel-historical-broad-acl-drift-cleaned": "database ACL drift cleanup",
-      "rls-assignment-personnel-table-acl-least-privilege": "database ACL inspection",
-      "rls-authenticated-own-select-rollback-compatibility": "authenticated RLS rollback compatibility",
+      "rls-assignment-personnel-historical-broad-acl-drift-cleaned-by-phase-b": "database ACL drift cleanup",
+      "rls-assignment-personnel-table-acl-phase-b-least-privilege": "database ACL inspection",
       "rls-anon-assignment-personnel-select-permission-denied": "database ACL enforcement",
-      "rls-tenant-context-does-not-open-direct-dml": "authenticated RLS",
+      "rls-authenticated-direct-assignment-personnel-crud-revoked": "authenticated RLS/direct table denial",
+      "rls-anon-direct-assignment-personnel-dml-revoked": "database ACL enforcement",
+      "rls-service-role-crud-and-trigger-invariant": "service-role/database invariant",
+      "rls-personnel-policy-mediated-legitimate-data-access": "authenticated RLS-runtime evidence",
+      "rls-tenant-a-b-isolation-and-jwt-tenant-claim-ignored": "authenticated RLS-runtime evidence",
+      "rls-storage-assignment-photo-path-tenant-isolation-without-tenant-claim": "storage.objects PostgreSQL policy runtime evidence",
+      "rls-customer-policy-regression-assignments-tasks-photos-reports": "customer RLS-runtime evidence",
       "rls-legacy-global-management-without-tenant-role-denied": "authenticated RLS",
-      "rls-authenticated-direct-dml-revoked": "authenticated RLS",
-      "rls-anon-direct-dml-revoked": "authenticated RLS",
-      "rls-service-role-server-command-and-trigger-invariant": "service-role/database invariant",
-      "rls-selected-tenant-claim-does-not-open-assignment-personnel-dml": "authenticated RLS",
-      "rls-security-definer-execute-privileges-minimal": "service-role/database invariant",
-    },
-    phaseBAcceptanceCriteria: {
-      deferredReason: "Staging applies migrations before app activation and may roll back to the previous release, which still reads assignment_personnel directly.",
-      safetyBranch: "codex/assignment-personnel-direct-access-close-phase2-prep",
-      requiredFollowUp: "Close authenticated assignment_personnel SELECT after phase-A is live on staging.",
-      deferredClaims: [
-        "authenticated SELECT on assignment_personnel is revoked",
-        "PUBLIC, anon, and authenticated direct table access are fully closed",
-        "assignment_personnel_management_all is removed",
-        "assignment_personnel_tenant_management_all is removed",
-        "assignment_personnel_own_select is removed",
-        "personnel_read_own_assignment_personnel is removed",
-        "can_select_own_assignment_personnel is removed",
-      ],
+      "rls-security-definer-execute-privileges-minimal": "database function ACL invariant",
+      "rls-database-function-policy-dependency-audit": "database dependency audit",
     },
     limitations: [
       "Uses local PostgreSQL 17 and GUC-backed auth.uid()/auth.jwt() Supabase shims.",
       "Does not prove Supabase GoTrue, JWT signing infrastructure, or live project role configuration.",
+      "storage.objects checks are PostgreSQL policy evidence only; live Supabase Storage provider behavior still requires post-deployment validation.",
     ],
   });
 

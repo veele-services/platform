@@ -75,6 +75,17 @@ export const fieldgridTestLayers = [
     requiredSignals: ["FG-AUTHENTICATED-RLS", "FG-MULTI-TENANT-CONTEXT"],
   },
   {
+    id: "phase-b-previous-release-database-compatibility",
+    label: "Phase-B previous release DB compatibility",
+    owner: "Platform security",
+    purpose:
+      "Rollbackrelease 132e7d0 blijft bruikbaar tegen het post-Phase-B schema via echte lokale PostgreSQL/RLS contractqueries.",
+    ciCommand:
+      "pnpm fieldgrid:runtime-safety:setup && pnpm fieldgrid:runtime-safety:fixtures && pnpm fieldgrid:runtime-safety:previous-release-compatibility",
+    requiredTestFiles: ["scripts/fieldgrid-runtime-safety-previous-release-compatibility.mjs"],
+    requiredSignals: ["FG-PHASE-B-PREVIOUS-RELEASE-COMPATIBILITY"],
+  },
+  {
     id: "api-runtime",
     label: "API runtime",
     owner: "Platform engineering",
@@ -234,6 +245,7 @@ export async function buildFieldgridTestLayersPlan() {
       "postgres17-migration-smoke",
       "db-integration-tenant-ab",
       "rls-security",
+      "phase-b-previous-release-database-compatibility",
       "api-runtime",
     ],
     packageScripts: {
@@ -248,6 +260,9 @@ export async function buildFieldgridTestLayersPlan() {
       )?.ciCommand,
       "fieldgrid:test:rls-security": fieldgridTestLayers.find(
         (layer) => layer.id === "rls-security",
+      )?.ciCommand,
+      "fieldgrid:test:phase-b-previous-release-database-compatibility": fieldgridTestLayers.find(
+        (layer) => layer.id === "phase-b-previous-release-database-compatibility",
       )?.ciCommand,
       "fieldgrid:test:api-runtime": fieldgridTestLayers.find(
         (layer) => layer.id === "api-runtime",

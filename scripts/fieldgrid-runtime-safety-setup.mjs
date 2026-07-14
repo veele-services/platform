@@ -137,6 +137,19 @@ async function installPostMigrationCompatibilityGrants() {
   try {
     await client.query(`
       grant select on table public.personnel to authenticated;
+      grant select on table
+        public.assignments,
+        public.assignment_tasks,
+        public.assignment_extra_work,
+        public.assignment_photos,
+        public.assignment_report_notes,
+        public.assignment_report_note_attachments,
+        public.assignment_material_usage,
+        public.reports,
+        public.objects,
+        public.customers,
+        public.customer_users
+      to authenticated;
     `);
   } finally {
     await client.end();
@@ -184,7 +197,8 @@ async function main() {
         "RLS policies can be inspected and exercised through PostgreSQL roles, but this is not Supabase Storage runtime evidence.",
       ],
       postMigrationGrants: [
-        "GRANT SELECT ON TABLE public.personnel TO authenticated; required for local evaluation of existing assignment_personnel_own_select rollback policy.",
+        "GRANT SELECT ON TABLE public.personnel TO authenticated; required for local auth.uid() personnel resolution in RLS tests.",
+        "GRANT SELECT on non-assignment_personnel assignment/customer workflow tables to authenticated; local shim only so PostgreSQL can exercise RLS policies after Phase B.",
       ],
     },
     migrationExitCode: migration.code,

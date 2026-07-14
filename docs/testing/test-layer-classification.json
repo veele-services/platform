@@ -1,6 +1,6 @@
 {
   "version": "fieldgrid-test-layer-classification-v1",
-  "updated_at": "2026-07-13",
+  "updated_at": "2026-07-14",
   "layers": {
     "frozen-install": {
       "command": "pnpm install --frozen-lockfile",
@@ -63,13 +63,12 @@
       ]
     },
     "phase-b-assignment-personnel-select-closure": {
-      "command": "Close authenticated assignment_personnel SELECT after phase-A is live on staging.",
-      "classification": "phase-B acceptance criteria",
-      "runtime_evidence": false,
-      "deferred_by": "phase-A rollback compatibility: staging migrations run before app activation and may roll back to the previous release",
+      "command": "pnpm fieldgrid:runtime-safety:rls",
+      "classification": "authenticated RLS plus database ACL runtime evidence",
+      "runtime_evidence": true,
       "reference_snapshot_branch": "codex/assignment-personnel-direct-access-close-phase2-prep",
       "merge_policy": "reference snapshot only; must not be merged directly because it rewrites 20260712130000_assignment_personnel_tenant_guard.sql",
-      "implementation_policy": "Phase B must be built later as a new forward-only migration from current main.",
+      "implementation_policy": "Phase B is implemented as a new forward-only migration from current main.",
       "acceptance_criteria": [
         "assignment_personnel_management_all is removed",
         "assignment_personnel_tenant_management_all is removed",
@@ -79,7 +78,29 @@
         "PUBLIC direct access to assignment_personnel is closed",
         "anon direct access to assignment_personnel is closed",
         "authenticated direct access to assignment_personnel is closed",
-        "can_select_own_assignment_personnel is removed"
+        "service_role keeps only SELECT, INSERT, UPDATE and DELETE",
+        "can_manage_assignment_personnel is removed when present",
+        "can_select_own_assignment_personnel is removed when present",
+        "assignment_personnel_tenant_match is removed when present",
+        "personnel_assigned_to_assignment is SECURITY DEFINER and derives tenant access from active assigned personnel rows",
+        "personnel_can_access_assignment_storage is SECURITY DEFINER and binds storage path tenant to assignment tenant without JWT tenant claims"
+      ]
+    },
+    "phase-b-previous-release-database-compatibility": {
+      "command": "pnpm fieldgrid:test:phase-b-previous-release-database-compatibility",
+      "classification": "deployment compatibility layer",
+      "runtime_evidence": true,
+      "base_sha": "132e7d0705f0192d6ec4a28195f192850574447d",
+      "evidence": [
+        "static callsite audit classifies previous release assignment_personnel references",
+        "real PostgreSQL queries exercise previous release server-action query shapes",
+        "authenticated RLS queries exercise assignments, tasks, photos and reports without a tenant_id JWT claim",
+        "authenticated direct assignment_personnel SELECT remains permission denied"
+      ],
+      "limitations": [
+        "local PostgreSQL 17 with auth.uid()/auth.jwt() shims",
+        "not a live Supabase project",
+        "not staging"
       ]
     },
     "password-reset-exploit-tests": {
@@ -144,6 +165,7 @@
     "Runtime Safety Harness / diff-check",
     "Runtime Safety Harness / db-integration-tenant-ab",
     "Runtime Safety Harness / rls-security",
+    "Runtime Safety Harness / phase-b-previous-release-database-compatibility",
     "Runtime Safety Harness / api-runtime"
   ],
   "manual_merge_gate": "Do not merge to main unless all future_required_checks are present and passing."
