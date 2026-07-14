@@ -60,3 +60,4 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+/artifacts/runtime-entrypoints/*.full.json

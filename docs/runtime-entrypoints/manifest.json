@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "artifactName": "fieldgrid-runtime-entrypoint-inventory-full",
+  "artifactPath": "artifacts/runtime-entrypoints/fieldgrid-runtime-entrypoint-inventory.full.json",
+  "inventoryHash": "sha256:227bbbf0d91220483e07d3f2c3e5a549bfd9275d8e8d88f4c7fc062de995d1ee",
+  "counts": {
+    "total": 891,
+    "highRisk": 776,
+    "byKind": {
+      "server-action": 94,
+      "route-handler": 114,
+      "middleware": 3,
+      "rpc-callsite": 0,
+      "supabase-table-call": 61,
+      "raw-sql-entrypoint": 490,
+      "provider-webhook": 1,
+      "storage-signed-url-issuance": 82,
+      "auth-reset-handler": 40,
+      "background-worker": 4,
+      "cron-scheduled-handler": 2
+    },
+    "bySeverity": {
+      "high": 776,
+      "low": 30,
+      "medium": 85
+    }
+  },
+  "kindHashes": {
+    "auth-reset-handler": "sha256:3afc003909e1587fa79dd29d2851af496b06a19a5ae8261ef99dcc7d8fbc0224",
+    "background-worker": "sha256:1dd57a3944e1998aa18a3b10983452577ddd7daccafefc01d60d12ff62225fbd",
+    "cron-scheduled-handler": "sha256:fa9a7c84e4ba7a154e136f8a35ec02dd88abefdd7769bc0a8293672e12a1d92f",
+    "middleware": "sha256:c6fdb222bf6357d69357a3faa3d22c71ceeca6fb1896086a01b62cffe21804af",
+    "provider-webhook": "sha256:3aa7f2d5fed32c3d9008f505a8856231f7a6b86265f70030cd8ae0b6e00bcbf3",
+    "raw-sql-entrypoint": "sha256:c38409a31bac26b5f1ce82ae43194d873263432e8ab4baae220e1050ce1dc8d2",
+    "route-handler": "sha256:81d45aa06300d56df9020e11335d458ace5eecc31634b8f5b965a66003ced89c",
+    "rpc-callsite": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "server-action": "sha256:468aea7ac326924e19ccd1e027ee71ba920288e79d9ebfee04cd4689c394047f",
+    "storage-signed-url-issuance": "sha256:686ae9a3b5332e4cf6827ded0dde3dec82bb217416d9ec1ca9ee6dd4b5b3f8f8",
+    "supabase-table-call": "sha256:c5a24bff519fbcad850c553fb5a07e3b11c71817484ceaef8bfa0c999430b3a1"
+  },
+  "riskDimensions": [
+    "tenantSource",
+    "authSource",
+    "hostBinding",
+    "permissionCheck",
+    "moduleGate",
+    "parentRowBinding",
+    "audit",
+    "idempotency",
+    "providerBoundary",
+    "evidenceLayer"
+  ],
+  "requiredKinds": [
+    "server-action",
+    "route-handler",
+    "middleware",
+    "rpc-callsite",
+    "supabase-table-call",
+    "raw-sql-entrypoint",
+    "provider-webhook",
+    "storage-signed-url-issuance",
+    "auth-reset-handler",
+    "background-worker",
+    "cron-scheduled-handler"
+  ]
+}
