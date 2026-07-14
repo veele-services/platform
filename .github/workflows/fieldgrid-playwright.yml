@@ -1,0 +1,42 @@
+name: Fieldgrid Playwright Golden Paths
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  golden-paths:
+    name: Local mocked Playwright golden paths
+    runs-on: ubuntu-latest
+    env:
+      FIELDGRID_E2E_NO_LIVE_PROVIDERS: "true"
+      FIELDGRID_E2E_RUN_ID: fieldgrid-ci-${{ github.run_id }}-${{ github.run_attempt }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Enable corepack
+        run: corepack enable
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Install Playwright Chromium
+        run: pnpm exec playwright install --with-deps chromium
+      - name: Run local mocked golden paths
+        run: pnpm fieldgrid:playwright
+      - name: Upload Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: fieldgrid-playwright-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            artifacts/playwright/html-report
+            artifacts/playwright/test-results
+            artifacts/playwright/test-summary.json
+          if-no-files-found: warn
+          retention-days: 14

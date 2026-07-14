@@ -60,3 +60,6 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Playwright E2E outputs
+/artifacts/playwright/
