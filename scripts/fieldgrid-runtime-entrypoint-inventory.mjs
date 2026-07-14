@@ -19,7 +19,7 @@ const EXCLUDED_SEGMENTS = new Set([
 ]);
 const REQUIRED_KINDS = [
   'server-action', 'route-handler', 'middleware', 'webhook-handler',
-  'worker-entrypoint', 'scheduled-entrypoint', 'internal-privileged-command',
+  'worker-entrypoint', 'scheduled-entrypoint',
   'database-callsite', 'rpc-callsite', 'raw-sql-callsite', 'provider-boundary',
   'storage-signed-url-issuance',
 ];
@@ -39,7 +39,6 @@ const CONTROL_REQUIREMENTS = {
   'webhook-handler': ['providerBoundary', 'providerAuthentication', 'idempotency'],
   'worker-entrypoint': ['idempotency', 'audit'],
   'scheduled-entrypoint': ['idempotency', 'audit'],
-  'internal-privileged-command': ['authSource', 'permissionCheck', 'audit'],
   'database-callsite': ['tenantSource'],
   'rpc-callsite': ['tenantSource'],
   'raw-sql-callsite': ['tenantSource'],
@@ -157,6 +156,8 @@ function collectClientIdentifiers(sourceFile) {
   const supabase = new Set(['supabase']);
   const sql = new Set(['sql']);
   const db = new Set(['db']);
+  const providers = new Set();
+  const providerAdapters = new Set();
   function remember(name, bucket) { if (name) bucket.add(name); }
   function visit(node) {
     if (ts.isImportDeclaration(node) && node.importClause) {
@@ -169,18 +170,23 @@ function collectClientIdentifiers(sourceFile) {
           if (/supabase|client/i.test(imported) && /supabase/i.test(spec)) remember(local, supabase);
           if (imported === 'sql' || /drizzle|postgres/i.test(spec)) remember(local, sql);
           if (/db|database/i.test(imported)) remember(local, db);
+          if (isKnownProviderModule(spec) || isProviderClientName(imported)) remember(local, providers);
+          if (isProviderAdapterModule(spec)) remember(local, providerAdapters);
         }
       }
+      const defaultImport = node.importClause.name?.text;
+      if (defaultImport && (isKnownProviderModule(spec) || isProviderClientName(defaultImport))) remember(defaultImport, providers);
     }
     if (ts.isVariableDeclaration(node) && ts.isIdentifier(node.name) && node.initializer) {
       const init = node.initializer.getText(sourceFile);
       if (/create.*Supabase|supabase|serviceRole/i.test(init)) remember(node.name.text, supabase);
       if (/drizzle|database|dbClient|getDb/i.test(init)) remember(node.name.text, db);
+      if (isKnownProviderConstructor(init) || isProviderClientName(node.name.text)) remember(node.name.text, providers);
     }
     ts.forEachChild(node, visit);
   }
   visit(sourceFile);
-  return { supabase, sql, db };
+  return { supabase, sql, db, providers, providerAdapters };
 }
 
 function scanCallExpression(node, sourceFile, file, identifiers, entries) {
@@ -198,8 +204,8 @@ function scanCallExpression(node, sourceFile, file, identifiers, entries) {
   if (/createSignedUrls?/.test(property ?? '') || /signedUrl/i.test(property ?? '')) {
     addEntry(entries, sourceFile, 'storage-signed-url-issuance', property, node, text, 'Storage signed URL issuance');
   }
-  if (/stripe|mollie|firebase|google|resend|twilio/i.test(text)) {
-    addEntry(entries, sourceFile, 'provider-boundary', property ?? 'provider-call', node, text, 'Provider SDK/API boundary');
+  if (isProviderBoundaryCall(node, sourceFile, identifiers)) {
+    addEntry(entries, sourceFile, 'provider-boundary', property ?? providerCallName(expression), node, text, 'Provider SDK/API boundary');
   }
   if (/sql`/.test(text) || (ts.isTaggedTemplateExpression(node.parent) && identifiers.sql.has(node.parent.tag.getText(sourceFile)))) {
     addEntry(entries, sourceFile, 'raw-sql-callsite', 'sql', node, text, 'SQL tagged template');
@@ -244,7 +250,7 @@ function inferControls(text, kind) {
     parentRowBinding: /assignmentId|customerId|objectId|invoiceId|quoteId|parent|where\(/i.test(text),
     audit: /audit|log.*event|event.*log|activity|track/i.test(text),
     idempotency: /idempot|dedupe|unique|upsert|conflict|already|once/i.test(text),
-    providerBoundary: /stripe|mollie|webhook|firebase|google|resend|twilio|provider/i.test(text) || kind === 'webhook-handler',
+    providerBoundary: kind === 'provider-boundary' || kind === 'webhook-handler',
     evidenceLayer: /evidence|artifact|receipt|signature|trace|metadata/i.test(text),
     providerAuthentication: /signature|verify|secret|token|hmac|webhook.*auth/i.test(text),
     visibilityBinding: /visibility|public|private|signed|download|owner/i.test(text),
@@ -257,7 +263,7 @@ function inferSeverity(kind, controls) {
   const required = CONTROL_REQUIREMENTS[kind] ?? [];
   const missing = required.filter((control) => !controls[control]);
   if (missing.length === 0) return controls.mutationIntent ? 'medium' : 'low';
-  if (['webhook-handler', 'storage-signed-url-issuance', 'internal-privileged-command'].includes(kind)) return 'review-required';
+  if (['webhook-handler', 'storage-signed-url-issuance'].includes(kind)) return 'review-required';
   if (missing.length >= 2 && EXTERNAL_ENTRYPOINT_KINDS.has(kind)) return 'high';
   if (missing.length >= 2) return 'medium';
   return 'low';
@@ -266,8 +272,12 @@ function inferSeverity(kind, controls) {
 function countEntries(entries) {
   const counts = {
     total: entries.length,
+    uniqueRuntimeNodes: new Set(entries.map(nodeKey)).size,
+    classifications: entries.length,
     externalEntrypoints: entries.filter((entry) => EXTERNAL_ENTRYPOINT_KINDS.has(entry.kind)).length,
     internalDbCallsites: entries.filter((entry) => INTERNAL_DBCALL_KINDS.has(entry.kind)).length,
+    providerBoundaries: entries.filter((entry) => entry.kind === 'provider-boundary').length,
+    signedUrlCallsites: entries.filter((entry) => entry.kind === 'storage-signed-url-issuance').length,
     byKind: Object.fromEntries(REQUIRED_KINDS.map((kind) => [kind, 0])),
     bySeverity: { 'review-required': 0, high: 0, medium: 0, low: 0, informational: 0 },
   };
@@ -316,7 +326,6 @@ function buildSummary(manifest) {
 
 function conceptForKind(kind) {
   if (EXTERNAL_ENTRYPOINT_KINDS.has(kind)) return 'externally invokable entrypoint';
-  if (kind === 'internal-privileged-command') return 'internal privileged command';
   if (INTERNAL_DBCALL_KINDS.has(kind)) return 'database callsite';
   if (kind === 'provider-boundary') return 'provider boundary';
   if (kind === 'storage-signed-url-issuance') return 'storage URL issuance';
@@ -333,3 +342,57 @@ function normalizePath(value) { return value.replaceAll('\\', '/').replace(/^\.\
 function writeFile(root, relative, content) { const target = path.join(root, relative); fs.mkdirSync(path.dirname(target), { recursive: true }); fs.writeFileSync(target, content); }
 function readMaybe(root, relative) { const target = path.join(root, relative); return fs.existsSync(target) ? fs.readFileSync(target, 'utf8') : ''; }
 function assertSame(actual, expected, label) { if (actual !== expected) { console.error(`Runtime entrypoint ${label} is stale. Run pnpm fieldgrid:runtime-entrypoints:write.`); process.exit(1); } }
+
+function isKnownProviderModule(spec) {
+  return /(^|[/@-])(mollie|stripe|resend|firebase-admin|firebase|twilio|googleapis|@googlemaps|google-maps)([/@-]|$)/i.test(spec);
+}
+
+function isProviderAdapterModule(spec) {
+  return /(^|[/_-])(provider|providers|integrations?)([/_-].*(mollie|stripe|resend|firebase|twilio|google)|$)/i.test(spec)
+    || /(mollie|stripe|resend|firebase|twilio|google).*(adapter|provider|integration)/i.test(spec);
+}
+
+function isProviderClientName(name) {
+  return /^(mollieClient|stripeClient|resend|resendClient|googleMapsClient|firebaseAdmin|twilioClient)$/i.test(name);
+}
+
+function isKnownProviderConstructor(text) {
+  return /new\s+(Mollie|Stripe|Twilio)|createMollieClient|new\s+Resend|initializeApp|firebaseAdmin|googleMapsClient/i.test(text);
+}
+
+function rootIdentifier(expression) {
+  if (ts.isIdentifier(expression)) return expression.text;
+  if (ts.isPropertyAccessExpression(expression)) return rootIdentifier(expression.expression);
+  if (ts.isCallExpression(expression)) return rootIdentifier(expression.expression);
+  return undefined;
+}
+
+function providerCallName(expression) {
+  if (ts.isPropertyAccessExpression(expression)) return expression.name.text;
+  if (ts.isIdentifier(expression)) return expression.text;
+  return 'provider-call';
+}
+
+function isProviderBoundaryCall(node, sourceFile, identifiers) {
+  const expression = node.expression;
+  const root = rootIdentifier(expression);
+  if (root && (identifiers.providers.has(root) || identifiers.providerAdapters.has(root))) return true;
+
+  const callText = expression.getText(sourceFile);
+  if (/^(mollieClient\.payments\.create|resend\.emails\.send|googleMapsClient\.|firebaseAdmin\.|twilioClient\.)/.test(callText)) return true;
+  if (ts.isIdentifier(expression) && identifiers.providerAdapters.has(expression.text)) return true;
+
+  const isFetch = ts.isIdentifier(expression) && expression.text === 'fetch';
+  const isHttpClient = ts.isPropertyAccessExpression(expression) && /^(get|post|put|patch|delete|request)$/i.test(expression.name.text);
+  if (isFetch || isHttpClient) {
+    const first = node.arguments[0];
+    const url = first && ts.isStringLiteralLike(first) ? first.text : '';
+    return /(^https?:\/\/[^/]*(api\.mollie\.com|api\.stripe\.com|api\.resend\.com|firebase|googleapis\.com|maps\.googleapis\.com|api\.twilio\.com))/i.test(url);
+  }
+
+  return false;
+}
+
+function nodeKey(entry) {
+  return `${entry.file}:${entry.location.line}:${entry.location.column}`;
+}

@@ -55,6 +55,14 @@ function fixtureInventory() {
       await aliased.rpc('refresh_customer_rollup', { tenant_id: tenantId });
       await database.execute(sql\`SELECT * FROM customers WHERE tenant_id = \${tenantId}\`);
       await mollieClient.payments.create({ metadata: { tenantId } });
+      await resend.emails.send({ to: 'ops@example.test', subject: 'Hi' });
+      await fetch('https://api.mollie.com/v2/payments', { method: 'POST' });
+      await googleMapsClient.routes.computeRoutes({ origin: 'A', destination: 'B' });
+      logger.info('Mollie webhook ontvangen');
+      metrics.increment('google_maps_request');
+      providerNames.includes('resend');
+      metadata.set('twilio', true);
+      formatMollieStatus(status);
       await aliased.storage.from('documents').createSignedUrl(
         tenantId + '/' + customerId + '/invoice.pdf',
         60,
@@ -88,6 +96,8 @@ test('runtime entrypoint manifest stays compact and separates runtime concepts',
   assert.ok(manifest.counts.total > 0);
   assert.ok(manifest.counts.externalEntrypoints > 0);
   assert.ok(manifest.counts.internalDbCallsites > 0);
+  assert.equal(manifest.counts.total, manifest.counts.classifications);
+  assert.ok(manifest.counts.uniqueRuntimeNodes <= manifest.counts.classifications);
   assert.ok(Buffer.byteLength(JSON.stringify(manifest, null, 2)) < 30000);
   for (const root of ['artifacts/backoffice/src', 'artifacts/personeel-pwa/src', 'artifacts/klant-pwa/src', 'artifacts/api-server/src', 'lib/db/src']) {
     assert.ok(manifest.runtimeRoots.includes(root), `missing runtime root ${root}`);
@@ -107,14 +117,26 @@ test('scanner fixtures prove representative detections and exclusions', () => {
   assert.ok(pairs.some((pair) => pair.includes('scheduled-entrypoint:app/src/cron/nightly-scheduler.ts:nightly-scheduler.ts')));
   assert.ok(pairs.some((pair) => pair.includes('raw-sql-callsite:app/src/lib/data.ts:database.execute')));
   assert.ok(pairs.some((pair) => pair.includes('provider-boundary:app/src/lib/data.ts:create')));
+  assert.ok(pairs.some((pair) => pair.includes('provider-boundary:app/src/lib/data.ts:send')));
+  assert.ok(pairs.some((pair) => pair.includes('provider-boundary:app/src/lib/data.ts:fetch')));
+  assert.ok(pairs.some((pair) => pair.includes('provider-boundary:app/src/lib/data.ts:computeRoutes')));
+  assert.ok(!pairs.some((pair) => pair.includes('provider-boundary:app/src/lib/data.ts:info')));
+  assert.ok(!pairs.some((pair) => pair.includes('provider-boundary:app/src/lib/data.ts:increment')));
+  assert.ok(!pairs.some((pair) => pair.includes('provider-boundary:app/src/lib/data.ts:includes')));
+  assert.ok(!pairs.some((pair) => pair.includes('provider-boundary:app/src/lib/data.ts:set')));
+  assert.ok(!pairs.some((pair) => pair.includes('provider-boundary:app/src/lib/data.ts:formatMollieStatus')));
   assert.ok(!pairs.some((pair) => pair.includes('tests/')));
   assert.ok(!pairs.some((pair) => pair.includes('docs/')));
   assert.ok(!pairs.some((pair) => pair.includes('scripts/')));
+  assert.ok(!pairs.some((pair) => pair.includes('migrations/')));
   assert.ok(!pairs.some((pair) => pair.includes('names-only')));
 });
 
 test('scanner fixtures prove kind-specific risk severity', () => {
   const inventory = fixtureInventory();
+  assert.equal(inventory.counts.total, inventory.counts.classifications);
+  assert.ok(inventory.counts.uniqueRuntimeNodes <= inventory.counts.classifications);
+  assert.equal(inventory.counts.providerBoundaries, inventory.entries.filter((entry) => entry.kind === 'provider-boundary').length);
   const byKind = new Map(inventory.entries.map((entry) => [`${entry.kind}:${entry.name}`, entry]));
   assert.equal(byKind.get('webhook-handler:POST').risk.severity, 'medium');
   assert.equal(byKind.get('storage-signed-url-issuance:createSignedUrl').risk.severity, 'medium');
