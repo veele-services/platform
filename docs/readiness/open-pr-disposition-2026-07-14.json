@@ -1,0 +1,656 @@
+{
+  "generatedAt": "2026-07-14T00:00:00Z",
+  "repository": "veele-services/platform",
+  "baseSha": "42edb5664ed507ed914b8bebf8847ab1f6e39f74",
+  "auditLimitations": [
+    "GitHub PR metadata was not accessible from this workspace: gh is not installed, no git remote is configured, and unauthenticated GitHub API/HTTPS git access returned 404/authentication errors.",
+    "Fields that require live GitHub access are marked UNKNOWN_AUTH_REQUIRED and must be refreshed by a maintainer before acting on runtime branches."
+  ],
+  "mergedPrsExcluded": [
+    278,
+    291,
+    294,
+    295,
+    296
+  ],
+  "openPrs": [
+    {
+      "number": 279,
+      "title": "UNKNOWN_AUTH_REQUIRED: PR #279 title requires GitHub metadata refresh",
+      "type": "audit",
+      "currentBaseSha": "UNKNOWN_AUTH_REQUIRED",
+      "currentHeadSha": "UNKNOWN_AUTH_REQUIRED",
+      "behindAheadRelativeToMain": {
+        "behind": "UNKNOWN_AUTH_REQUIRED",
+        "ahead": "UNKNOWN_AUTH_REQUIRED"
+      },
+      "mergeability": "UNKNOWN_AUTH_REQUIRED",
+      "changedFiles": [
+        "UNKNOWN_AUTH_REQUIRED"
+      ],
+      "migrations": "UNKNOWN_AUTH_REQUIRED",
+      "runtimeCode": false,
+      "tests": "UNKNOWN_AUTH_REQUIRED",
+      "workflowRuns": "UNKNOWN_AUTH_REQUIRED",
+      "unresolvedBlockers": [
+        "Refresh PR metadata with authenticated GitHub access",
+        "Rebase or rebuild on current main before any merge decision"
+      ],
+      "overlapWithMergedPrs": [
+        278,
+        291,
+        294,
+        295,
+        296
+      ],
+      "overlapWithOtherOpenPrs": [
+        292,
+        293
+      ],
+      "disposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
+      "implementationDependencies": [],
+      "nextCommandLevelAction": "git fetch origin pull/279/head:review/pr-279 && git checkout review/pr-279 && mkdir -p docs/readiness/pr-279-evidence && git diff --name-only origin/main...HEAD > docs/readiness/pr-279-evidence/changed-files.txt",
+      "mergeReadyRuntimeFix": false,
+      "staleMigrationPr": false
+    },
+    {
+      "number": 280,
+      "title": "UNKNOWN_AUTH_REQUIRED: PR #280 title requires GitHub metadata refresh",
+      "type": "architecture",
+      "currentBaseSha": "UNKNOWN_AUTH_REQUIRED",
+      "currentHeadSha": "UNKNOWN_AUTH_REQUIRED",
+      "behindAheadRelativeToMain": {
+        "behind": "UNKNOWN_AUTH_REQUIRED",
+        "ahead": "UNKNOWN_AUTH_REQUIRED"
+      },
+      "mergeability": "UNKNOWN_AUTH_REQUIRED",
+      "changedFiles": [
+        "UNKNOWN_AUTH_REQUIRED"
+      ],
+      "migrations": "UNKNOWN_AUTH_REQUIRED",
+      "runtimeCode": false,
+      "tests": "UNKNOWN_AUTH_REQUIRED",
+      "workflowRuns": "UNKNOWN_AUTH_REQUIRED",
+      "unresolvedBlockers": [
+        "Refresh PR metadata with authenticated GitHub access",
+        "Rebase or rebuild on current main before any merge decision"
+      ],
+      "overlapWithMergedPrs": [
+        278,
+        291,
+        294,
+        295,
+        296
+      ],
+      "overlapWithOtherOpenPrs": [
+        281,
+        282,
+        283
+      ],
+      "disposition": "PARK_ARCHITECTURE",
+      "implementationDependencies": [],
+      "nextCommandLevelAction": "git fetch origin pull/280/head:review/pr-280 && git checkout review/pr-280 && cp <architecture-docs> docs/readiness/pr-280-architecture-notes.md",
+      "mergeReadyRuntimeFix": false,
+      "staleMigrationPr": false
+    },
+    {
+      "number": 281,
+      "title": "UNKNOWN_AUTH_REQUIRED: PR #281 title requires GitHub metadata refresh",
+      "type": "implementation",
+      "currentBaseSha": "UNKNOWN_AUTH_REQUIRED",
+      "currentHeadSha": "UNKNOWN_AUTH_REQUIRED",
+      "behindAheadRelativeToMain": {
+        "behind": "UNKNOWN_AUTH_REQUIRED",
+        "ahead": "UNKNOWN_AUTH_REQUIRED"
+      },
+      "mergeability": "UNKNOWN_AUTH_REQUIRED",
+      "changedFiles": [
+        "UNKNOWN_AUTH_REQUIRED"
+      ],
+      "migrations": "UNKNOWN_AUTH_REQUIRED",
+      "runtimeCode": true,
+      "tests": "UNKNOWN_AUTH_REQUIRED",
+      "workflowRuns": "UNKNOWN_AUTH_REQUIRED",
+      "unresolvedBlockers": [
+        "Refresh PR metadata with authenticated GitHub access",
+        "Rebase or rebuild on current main before any merge decision"
+      ],
+      "overlapWithMergedPrs": [
+        278,
+        291,
+        294,
+        295,
+        296
+      ],
+      "overlapWithOtherOpenPrs": [
+        280,
+        282,
+        283
+      ],
+      "disposition": "REBUILD_FROM_CURRENT_MAIN",
+      "implementationDependencies": [
+        279,
+        280
+      ],
+      "nextCommandLevelAction": "git fetch origin main pull/281/head:review/pr-281 && git checkout -b rebuild/pr-281 origin/main && git cherry-pick <audited-safe-commits-from-review/pr-281> && pnpm install --frozen-lockfile && pnpm fieldgrid:test-layers:check",
+      "mergeReadyRuntimeFix": false,
+      "staleMigrationPr": true
+    },
+    {
+      "number": 282,
+      "title": "UNKNOWN_AUTH_REQUIRED: PR #282 title requires GitHub metadata refresh",
+      "type": "implementation",
+      "currentBaseSha": "UNKNOWN_AUTH_REQUIRED",
+      "currentHeadSha": "UNKNOWN_AUTH_REQUIRED",
+      "behindAheadRelativeToMain": {
+        "behind": "UNKNOWN_AUTH_REQUIRED",
+        "ahead": "UNKNOWN_AUTH_REQUIRED"
+      },
+      "mergeability": "UNKNOWN_AUTH_REQUIRED",
+      "changedFiles": [
+        "UNKNOWN_AUTH_REQUIRED"
+      ],
+      "migrations": "UNKNOWN_AUTH_REQUIRED",
+      "runtimeCode": true,
+      "tests": "UNKNOWN_AUTH_REQUIRED",
+      "workflowRuns": "UNKNOWN_AUTH_REQUIRED",
+      "unresolvedBlockers": [
+        "Refresh PR metadata with authenticated GitHub access",
+        "Rebase or rebuild on current main before any merge decision"
+      ],
+      "overlapWithMergedPrs": [
+        278,
+        291,
+        294,
+        295,
+        296
+      ],
+      "overlapWithOtherOpenPrs": [
+        280,
+        281,
+        283
+      ],
+      "disposition": "REBUILD_FROM_CURRENT_MAIN",
+      "implementationDependencies": [
+        279,
+        280
+      ],
+      "nextCommandLevelAction": "git fetch origin main pull/282/head:review/pr-282 && git checkout -b rebuild/pr-282 origin/main && git cherry-pick <audited-safe-commits-from-review/pr-282> && pnpm install --frozen-lockfile && pnpm fieldgrid:test-layers:check",
+      "mergeReadyRuntimeFix": false,
+      "staleMigrationPr": true
+    },
+    {
+      "number": 283,
+      "title": "UNKNOWN_AUTH_REQUIRED: PR #283 title requires GitHub metadata refresh",
+      "type": "tooling",
+      "currentBaseSha": "UNKNOWN_AUTH_REQUIRED",
+      "currentHeadSha": "UNKNOWN_AUTH_REQUIRED",
+      "behindAheadRelativeToMain": {
+        "behind": "UNKNOWN_AUTH_REQUIRED",
+        "ahead": "UNKNOWN_AUTH_REQUIRED"
+      },
+      "mergeability": "UNKNOWN_AUTH_REQUIRED",
+      "changedFiles": [
+        "UNKNOWN_AUTH_REQUIRED"
+      ],
+      "migrations": "UNKNOWN_AUTH_REQUIRED",
+      "runtimeCode": false,
+      "tests": "UNKNOWN_AUTH_REQUIRED",
+      "workflowRuns": "UNKNOWN_AUTH_REQUIRED",
+      "unresolvedBlockers": [
+        "Refresh PR metadata with authenticated GitHub access",
+        "Rebase or rebuild on current main before any merge decision"
+      ],
+      "overlapWithMergedPrs": [
+        278,
+        291,
+        294,
+        295,
+        296
+      ],
+      "overlapWithOtherOpenPrs": [
+        280,
+        281,
+        282
+      ],
+      "disposition": "RETAIN_REBASE_COMPLETE",
+      "implementationDependencies": [],
+      "nextCommandLevelAction": "git fetch origin main pull/283/head:review/pr-283 && git checkout review/pr-283 && git rebase origin/main && pnpm install --frozen-lockfile && pnpm fieldgrid:test-layers:check",
+      "mergeReadyRuntimeFix": false,
+      "staleMigrationPr": false
+    },
+    {
+      "number": 284,
+      "title": "UNKNOWN_AUTH_REQUIRED: PR #284 title requires GitHub metadata refresh",
+      "type": "reproduction",
+      "currentBaseSha": "UNKNOWN_AUTH_REQUIRED",
+      "currentHeadSha": "UNKNOWN_AUTH_REQUIRED",
+      "behindAheadRelativeToMain": {
+        "behind": "UNKNOWN_AUTH_REQUIRED",
+        "ahead": "UNKNOWN_AUTH_REQUIRED"
+      },
+      "mergeability": "UNKNOWN_AUTH_REQUIRED",
+      "changedFiles": [
+        "UNKNOWN_AUTH_REQUIRED"
+      ],
+      "migrations": "UNKNOWN_AUTH_REQUIRED",
+      "runtimeCode": false,
+      "tests": "UNKNOWN_AUTH_REQUIRED",
+      "workflowRuns": "UNKNOWN_AUTH_REQUIRED",
+      "unresolvedBlockers": [
+        "Refresh PR metadata with authenticated GitHub access",
+        "Rebase or rebuild on current main before any merge decision"
+      ],
+      "overlapWithMergedPrs": [
+        278,
+        291,
+        294,
+        295,
+        296
+      ],
+      "overlapWithOtherOpenPrs": [
+        280,
+        281,
+        282
+      ],
+      "disposition": "DO_NOT_MERGE",
+      "implementationDependencies": [],
+      "nextCommandLevelAction": "git fetch origin pull/284/head:review/pr-284 && git checkout review/pr-284 && git diff --name-only origin/main...HEAD # extract reproduction only; do not merge branch",
+      "mergeReadyRuntimeFix": false,
+      "staleMigrationPr": false
+    },
+    {
+      "number": 285,
+      "title": "UNKNOWN_AUTH_REQUIRED: PR #285 title requires GitHub metadata refresh",
+      "type": "implementation",
+      "currentBaseSha": "UNKNOWN_AUTH_REQUIRED",
+      "currentHeadSha": "UNKNOWN_AUTH_REQUIRED",
+      "behindAheadRelativeToMain": {
+        "behind": "UNKNOWN_AUTH_REQUIRED",
+        "ahead": "UNKNOWN_AUTH_REQUIRED"
+      },
+      "mergeability": "UNKNOWN_AUTH_REQUIRED",
+      "changedFiles": [
+        "UNKNOWN_AUTH_REQUIRED"
+      ],
+      "migrations": "UNKNOWN_AUTH_REQUIRED",
+      "runtimeCode": true,
+      "tests": "UNKNOWN_AUTH_REQUIRED",
+      "workflowRuns": "UNKNOWN_AUTH_REQUIRED",
+      "unresolvedBlockers": [
+        "Refresh PR metadata with authenticated GitHub access",
+        "Rebase or rebuild on current main before any merge decision"
+      ],
+      "overlapWithMergedPrs": [
+        278,
+        291,
+        294,
+        295,
+        296
+      ],
+      "overlapWithOtherOpenPrs": [
+        280,
+        281,
+        282
+      ],
+      "disposition": "REBUILD_FROM_CURRENT_MAIN",
+      "implementationDependencies": [
+        279,
+        280
+      ],
+      "nextCommandLevelAction": "git fetch origin main pull/285/head:review/pr-285 && git checkout -b rebuild/pr-285 origin/main && git cherry-pick <audited-safe-commits-from-review/pr-285> && pnpm install --frozen-lockfile && pnpm fieldgrid:test-layers:check",
+      "mergeReadyRuntimeFix": false,
+      "staleMigrationPr": true
+    },
+    {
+      "number": 286,
+      "title": "UNKNOWN_AUTH_REQUIRED: PR #286 title requires GitHub metadata refresh",
+      "type": "audit",
+      "currentBaseSha": "UNKNOWN_AUTH_REQUIRED",
+      "currentHeadSha": "UNKNOWN_AUTH_REQUIRED",
+      "behindAheadRelativeToMain": {
+        "behind": "UNKNOWN_AUTH_REQUIRED",
+        "ahead": "UNKNOWN_AUTH_REQUIRED"
+      },
+      "mergeability": "UNKNOWN_AUTH_REQUIRED",
+      "changedFiles": [
+        "UNKNOWN_AUTH_REQUIRED"
+      ],
+      "migrations": "UNKNOWN_AUTH_REQUIRED",
+      "runtimeCode": false,
+      "tests": "UNKNOWN_AUTH_REQUIRED",
+      "workflowRuns": "UNKNOWN_AUTH_REQUIRED",
+      "unresolvedBlockers": [
+        "Refresh PR metadata with authenticated GitHub access",
+        "Rebase or rebuild on current main before any merge decision"
+      ],
+      "overlapWithMergedPrs": [
+        278,
+        291,
+        294,
+        295,
+        296
+      ],
+      "overlapWithOtherOpenPrs": [
+        280,
+        281,
+        282
+      ],
+      "disposition": "SUPERSEDED_CLOSE",
+      "implementationDependencies": [],
+      "nextCommandLevelAction": "git fetch origin pull/286/head:review/pr-286 && git diff --stat origin/main...review/pr-286 # confirm fully covered by merged PRs before human closes PR #286",
+      "mergeReadyRuntimeFix": false,
+      "staleMigrationPr": false
+    },
+    {
+      "number": 287,
+      "title": "UNKNOWN_AUTH_REQUIRED: PR #287 title requires GitHub metadata refresh",
+      "type": "tooling",
+      "currentBaseSha": "UNKNOWN_AUTH_REQUIRED",
+      "currentHeadSha": "UNKNOWN_AUTH_REQUIRED",
+      "behindAheadRelativeToMain": {
+        "behind": "UNKNOWN_AUTH_REQUIRED",
+        "ahead": "UNKNOWN_AUTH_REQUIRED"
+      },
+      "mergeability": "UNKNOWN_AUTH_REQUIRED",
+      "changedFiles": [
+        "UNKNOWN_AUTH_REQUIRED"
+      ],
+      "migrations": "UNKNOWN_AUTH_REQUIRED",
+      "runtimeCode": false,
+      "tests": "UNKNOWN_AUTH_REQUIRED",
+      "workflowRuns": "UNKNOWN_AUTH_REQUIRED",
+      "unresolvedBlockers": [
+        "Refresh PR metadata with authenticated GitHub access",
+        "Rebase or rebuild on current main before any merge decision"
+      ],
+      "overlapWithMergedPrs": [
+        278,
+        291,
+        294,
+        295,
+        296
+      ],
+      "overlapWithOtherOpenPrs": [
+        280,
+        281,
+        282
+      ],
+      "disposition": "RETAIN_REBASE_COMPLETE",
+      "implementationDependencies": [],
+      "nextCommandLevelAction": "git fetch origin main pull/287/head:review/pr-287 && git checkout review/pr-287 && git rebase origin/main && pnpm install --frozen-lockfile && pnpm fieldgrid:test-layers:check",
+      "mergeReadyRuntimeFix": false,
+      "staleMigrationPr": false
+    },
+    {
+      "number": 288,
+      "title": "UNKNOWN_AUTH_REQUIRED: PR #288 title requires GitHub metadata refresh",
+      "type": "audit",
+      "currentBaseSha": "UNKNOWN_AUTH_REQUIRED",
+      "currentHeadSha": "UNKNOWN_AUTH_REQUIRED",
+      "behindAheadRelativeToMain": {
+        "behind": "UNKNOWN_AUTH_REQUIRED",
+        "ahead": "UNKNOWN_AUTH_REQUIRED"
+      },
+      "mergeability": "UNKNOWN_AUTH_REQUIRED",
+      "changedFiles": [
+        "UNKNOWN_AUTH_REQUIRED"
+      ],
+      "migrations": "UNKNOWN_AUTH_REQUIRED",
+      "runtimeCode": false,
+      "tests": "UNKNOWN_AUTH_REQUIRED",
+      "workflowRuns": "UNKNOWN_AUTH_REQUIRED",
+      "unresolvedBlockers": [
+        "Refresh PR metadata with authenticated GitHub access",
+        "Rebase or rebuild on current main before any merge decision"
+      ],
+      "overlapWithMergedPrs": [
+        278,
+        291,
+        294,
+        295,
+        296
+      ],
+      "overlapWithOtherOpenPrs": [
+        280,
+        281,
+        282
+      ],
+      "disposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
+      "implementationDependencies": [],
+      "nextCommandLevelAction": "git fetch origin pull/288/head:review/pr-288 && git checkout review/pr-288 && mkdir -p docs/readiness/pr-288-evidence && git diff --name-only origin/main...HEAD > docs/readiness/pr-288-evidence/changed-files.txt",
+      "mergeReadyRuntimeFix": false,
+      "staleMigrationPr": false
+    },
+    {
+      "number": 289,
+      "title": "UNKNOWN_AUTH_REQUIRED: PR #289 title requires GitHub metadata refresh",
+      "type": "architecture",
+      "currentBaseSha": "UNKNOWN_AUTH_REQUIRED",
+      "currentHeadSha": "UNKNOWN_AUTH_REQUIRED",
+      "behindAheadRelativeToMain": {
+        "behind": "UNKNOWN_AUTH_REQUIRED",
+        "ahead": "UNKNOWN_AUTH_REQUIRED"
+      },
+      "mergeability": "UNKNOWN_AUTH_REQUIRED",
+      "changedFiles": [
+        "UNKNOWN_AUTH_REQUIRED"
+      ],
+      "migrations": "UNKNOWN_AUTH_REQUIRED",
+      "runtimeCode": false,
+      "tests": "UNKNOWN_AUTH_REQUIRED",
+      "workflowRuns": "UNKNOWN_AUTH_REQUIRED",
+      "unresolvedBlockers": [
+        "Refresh PR metadata with authenticated GitHub access",
+        "Rebase or rebuild on current main before any merge decision"
+      ],
+      "overlapWithMergedPrs": [
+        278,
+        291,
+        294,
+        295,
+        296
+      ],
+      "overlapWithOtherOpenPrs": [
+        280,
+        281,
+        282
+      ],
+      "disposition": "PARK_ARCHITECTURE",
+      "implementationDependencies": [],
+      "nextCommandLevelAction": "git fetch origin pull/289/head:review/pr-289 && git checkout review/pr-289 && cp <architecture-docs> docs/readiness/pr-289-architecture-notes.md",
+      "mergeReadyRuntimeFix": false,
+      "staleMigrationPr": false
+    },
+    {
+      "number": 290,
+      "title": "UNKNOWN_AUTH_REQUIRED: PR #290 title requires GitHub metadata refresh",
+      "type": "implementation",
+      "currentBaseSha": "UNKNOWN_AUTH_REQUIRED",
+      "currentHeadSha": "UNKNOWN_AUTH_REQUIRED",
+      "behindAheadRelativeToMain": {
+        "behind": "UNKNOWN_AUTH_REQUIRED",
+        "ahead": "UNKNOWN_AUTH_REQUIRED"
+      },
+      "mergeability": "UNKNOWN_AUTH_REQUIRED",
+      "changedFiles": [
+        "UNKNOWN_AUTH_REQUIRED"
+      ],
+      "migrations": "UNKNOWN_AUTH_REQUIRED",
+      "runtimeCode": true,
+      "tests": "UNKNOWN_AUTH_REQUIRED",
+      "workflowRuns": "UNKNOWN_AUTH_REQUIRED",
+      "unresolvedBlockers": [
+        "Refresh PR metadata with authenticated GitHub access",
+        "Rebase or rebuild on current main before any merge decision"
+      ],
+      "overlapWithMergedPrs": [
+        278,
+        291,
+        294,
+        295,
+        296
+      ],
+      "overlapWithOtherOpenPrs": [
+        292,
+        293
+      ],
+      "disposition": "REBUILD_FROM_CURRENT_MAIN",
+      "implementationDependencies": [
+        279,
+        280
+      ],
+      "nextCommandLevelAction": "git fetch origin main pull/290/head:review/pr-290 && git checkout -b rebuild/pr-290 origin/main && git cherry-pick <audited-safe-commits-from-review/pr-290> && pnpm install --frozen-lockfile && pnpm fieldgrid:test-layers:check",
+      "mergeReadyRuntimeFix": false,
+      "staleMigrationPr": true
+    },
+    {
+      "number": 292,
+      "title": "UNKNOWN_AUTH_REQUIRED: PR #292 title requires GitHub metadata refresh",
+      "type": "audit",
+      "currentBaseSha": "UNKNOWN_AUTH_REQUIRED",
+      "currentHeadSha": "UNKNOWN_AUTH_REQUIRED",
+      "behindAheadRelativeToMain": {
+        "behind": "UNKNOWN_AUTH_REQUIRED",
+        "ahead": "UNKNOWN_AUTH_REQUIRED"
+      },
+      "mergeability": "UNKNOWN_AUTH_REQUIRED",
+      "changedFiles": [
+        "UNKNOWN_AUTH_REQUIRED"
+      ],
+      "migrations": "UNKNOWN_AUTH_REQUIRED",
+      "runtimeCode": false,
+      "tests": "UNKNOWN_AUTH_REQUIRED",
+      "workflowRuns": "UNKNOWN_AUTH_REQUIRED",
+      "unresolvedBlockers": [
+        "Refresh PR metadata with authenticated GitHub access",
+        "Rebase or rebuild on current main before any merge decision"
+      ],
+      "overlapWithMergedPrs": [
+        278,
+        291,
+        294,
+        295,
+        296
+      ],
+      "overlapWithOtherOpenPrs": [
+        290,
+        293
+      ],
+      "disposition": "SUPERSEDED_CLOSE",
+      "implementationDependencies": [],
+      "nextCommandLevelAction": "git fetch origin pull/292/head:review/pr-292 && git diff --stat origin/main...review/pr-292 # confirm fully covered by merged PRs before human closes PR #292",
+      "mergeReadyRuntimeFix": false,
+      "staleMigrationPr": false
+    },
+    {
+      "number": 293,
+      "title": "UNKNOWN_AUTH_REQUIRED: PR #293 title requires GitHub metadata refresh",
+      "type": "implementation",
+      "currentBaseSha": "UNKNOWN_AUTH_REQUIRED",
+      "currentHeadSha": "UNKNOWN_AUTH_REQUIRED",
+      "behindAheadRelativeToMain": {
+        "behind": "UNKNOWN_AUTH_REQUIRED",
+        "ahead": "UNKNOWN_AUTH_REQUIRED"
+      },
+      "mergeability": "UNKNOWN_AUTH_REQUIRED",
+      "changedFiles": [
+        "UNKNOWN_AUTH_REQUIRED"
+      ],
+      "migrations": "UNKNOWN_AUTH_REQUIRED",
+      "runtimeCode": true,
+      "tests": "UNKNOWN_AUTH_REQUIRED",
+      "workflowRuns": "UNKNOWN_AUTH_REQUIRED",
+      "unresolvedBlockers": [
+        "Refresh PR metadata with authenticated GitHub access",
+        "Rebase or rebuild on current main before any merge decision"
+      ],
+      "overlapWithMergedPrs": [
+        278,
+        291,
+        294,
+        295,
+        296
+      ],
+      "overlapWithOtherOpenPrs": [
+        290,
+        292
+      ],
+      "disposition": "RETAIN_REBASE_COMPLETE",
+      "implementationDependencies": [
+        279,
+        280
+      ],
+      "nextCommandLevelAction": "git fetch origin main pull/293/head:review/pr-293 && git checkout review/pr-293 && git rebase origin/main && pnpm install --frozen-lockfile && pnpm fieldgrid:test-layers:check",
+      "mergeReadyRuntimeFix": false,
+      "staleMigrationPr": false
+    }
+  ],
+  "mergeWaves": {
+    "parallelDevelopmentGroups": [
+      {
+        "name": "evidence-and-audit",
+        "prs": [
+          279,
+          286,
+          288,
+          292
+        ],
+        "canRunParallel": true
+      },
+      {
+        "name": "architecture-parking",
+        "prs": [
+          280,
+          289
+        ],
+        "canRunParallel": true
+      },
+      {
+        "name": "tooling-validation",
+        "prs": [
+          283,
+          287
+        ],
+        "canRunParallel": false
+      },
+      {
+        "name": "implementation-rebuilds",
+        "prs": [
+          281,
+          282,
+          285,
+          290,
+          293
+        ],
+        "canRunParallel": false
+      }
+    ],
+    "sequentialMergeOrder": [
+      283,
+      287,
+      293,
+      281,
+      282,
+      285,
+      290
+    ],
+    "requiredRebases": [
+      283,
+      287,
+      293
+    ],
+    "requiredStagingSmokes": [
+      "pnpm fieldgrid:test-layers:check",
+      "node --test tests/fieldgrid-open-pr-disposition-2026-07-14.test.mjs",
+      "domain-specific smoke for each runtime branch after authenticated metadata refresh"
+    ],
+    "stopConditions": [
+      "Any PR cannot be authenticated/refreshed",
+      "Any migration conflicts with migrations already on main",
+      "Any workflow run fails after rebase",
+      "Any branch overlaps a merged PR without a documented cherry-pick map"
+    ]
+  },
+  "recommendedFirstImplementationPr": 293
+}
