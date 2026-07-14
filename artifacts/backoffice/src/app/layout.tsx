@@ -1,9 +1,21 @@
 import type { Metadata, Viewport } from "next";
+import { Inter, Poppins } from "next/font/google";
 import { Toaster } from "@/components/ui/sonner";
 import { DevNav } from "@/components/DevNav";
 import "./globals.css";
 
-const fontVariables = "font-sans";
+const inter = Inter({
+  subsets: ["latin"],
+  variable: "--font-inter",
+  display: "swap",
+});
+
+const poppins = Poppins({
+  weight: ["600", "700"],
+  subsets: ["latin"],
+  variable: "--font-poppins",
+  display: "swap",
+});
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -26,7 +38,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={fontVariables}>
+      <body className={`${inter.variable} ${poppins.variable}`}>
         <DevNav current="backoffice" />
         {children}
         <Toaster position="bottom-right" richColors />

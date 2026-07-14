@@ -63,5 +63,3 @@ Thumbs.db
 
 # Playwright E2E outputs
 /artifacts/playwright/
-
-/artifacts/current-main-baseline/
