@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "decisionDate": "2026-07-14",
+  "adrStatus": "Accepted by owner on 2026-07-14",
+  "authBackendDecision": "Supabase Auth remains the credential and session backend for now; Fieldgrid owns the application authentication boundary.",
+  "fieldgridOwnedControls": [
+    "tenant/host resolution",
+    "invite orchestration",
+    "recovery challenges",
+    "reset verification",
+    "password policy",
+    "rate limits",
+    "audit",
+    "e-mail delivery",
+    "support/admin reset policy",
+    "portal cookie isolation",
+    "post-login profile resolution"
+  ],
+  "providerOwnedControls": [
+    "credential verification",
+    "password hash storage",
+    "refresh token issuance",
+    "access token issuance",
+    "provider session lifecycle primitives"
+  ],
+  "mandatoryDecisions": {
+    "hostOnlyFieldgridAuthCookies": "accepted; current host-only SameSite=Lax production-Secure behavior verified, HttpOnly not proven or configured",
+    "noMagicLinksAsCanonicalFlow": "accepted",
+    "noTemporaryPasswordByEmail": "accepted",
+    "challengeCodeFlow": "accepted",
+    "resetGrantFlow": "accepted",
+    "sessionRevocationRequirements": "accepted target; current repository may not expose complete all-session provider revocation seam",
+    "administratorResetStepUpMfa": "accepted",
+    "wrongHostSessionDenial": "accepted",
+    "suspendedTenantDenial": "accepted",
+    "personnelCustomerProfileUniqueness": "accepted",
+    "platformAssuranceLevel": "accepted",
+    "csrfSessionCookieModel": "accepted",
+    "jwtCustomClaimsNoTenantDependency": "accepted",
+    "databaseDerivedTenantIdentity": "accepted",
+    "supabaseReplacementMigrationPath": "accepted"
+  },
+  "runtimeDependencies": [
+    {
+      "name": "Supabase Auth",
+      "status": "current backend",
+      "fieldgridAbstractionRequired": true,
+      "allowedUses": ["sign-in credential check", "session refresh", "password update", "provider token revocation"],
+      "forbiddenUses": ["canonical tenant authorization", "canonical portal selection", "canonical reset e-mail delivery", "canonical invite e-mail delivery"]
+    },
+    {
+      "name": "Fieldgrid tenant database",
+      "status": "canonical authority",
+      "fieldgridAbstractionRequired": false,
+      "allowedUses": ["host to tenant mapping", "profile status", "tenant status", "tenant membership", "audit evidence", "reset challenge and grant state"]
+    },
+    {
+      "name": "Fieldgrid mailer",
+      "status": "canonical delivery path",
+      "fieldgridAbstractionRequired": true,
+      "allowedUses": ["invite code delivery", "recovery challenge delivery", "reset status notifications"]
+    }
+  ],
+  "jwtTenantClaimDependency": "Do not depend on tenant_id JWT claims for personnel tenant binding; derive tenant identity from Fieldgrid host and database records.",
+  "resetModel": "Challenge-code verification creates a short-lived reset grant; the grant authorizes password update and is invalidated after use, expiry, rate-limit lockout, profile disablement, tenant suspension, or session revocation.",
+  "currentCookieBehavior": "Verified in artifacts/*/src/lib/supabase/session-cookies.ts: host-derived cookie name, no Domain attribute, path=/, SameSite=Lax, Secure only when NODE_ENV=production, no shared parent-domain cookie; HttpOnly is not currently proven or configured and @supabase/ssr browser/session behavior remains in use.",
+  "targetCookieRequirement": "Move toward a server-only/HttpOnly session boundary where compatible; first prove refresh/login/logout behavior with browser E2E, document XSS and CSRF tradeoffs while cookies are browser-readable, and never claim HttpOnly until implemented and browser-tested.",
+  "currentRevocationCapability": "Fieldgrid can require local cookie clearing and provider revocation calls through an adapter, but the current repository capability may not yet expose a complete all-session provider refresh-session revocation seam.",
+  "sessionRevocationRequirement": "Password reset, admin reset, credential compromise, tenant suspension, profile inactivation, wrong-host detection, and support security action must revoke Fieldgrid cookies and provider refresh sessions as a mandatory target capability and acceptance requirement, not as a current full-implementation claim.",
+  "stepUpRequirement": "Administrator and support reset operations require recent step-up/MFA before reset initiation, grant issuance, or session revocation changes."
+}
