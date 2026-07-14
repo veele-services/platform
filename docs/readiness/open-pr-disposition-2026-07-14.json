@@ -2,705 +2,313 @@
   "generatedAt": "2026-07-14T00:00:00Z",
   "repository": "veele-services/platform",
   "existingPr": 299,
-  "previousHeadSha": "380974c0ac6eb8e18c313ec39193311e80dfe7de",
-  "baseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-  "currentMainSha": "42edb5664ed507ed914b8bebf8847ab1f6e39f74",
-  "metadataSource": "User-supplied verified metadata in PR #299 continuation request; remote fetch attempted but failed because this workspace has no GitHub credentials.",
-  "fetchAttempt": "git fetch origin --prune exited 128: could not read Username for https://github.com",
-  "mergedPrsExcluded": [
-    278,
-    291,
-    294,
-    295,
-    296
-  ],
+  "reviewedHeadSha": "dcf1c2b5616c8d012b341d91f133061f4b77b865",
+  "canonicalMainBeforeStart": "42edb5664ed507ed914b8bebf8847ab1f6e39f74",
+  "auditedBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
+  "schema": "durable-open-pr-disposition-v1",
   "openPrs": [
     {
       "number": 279,
       "title": "cross-surface functional flow map",
-      "type": "audit/documentation",
-      "subject": "cross-surface functional flow map",
-      "remoteBranch": "refs/pull/279/head",
-      "currentBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-      "currentHeadSha": "f3717074f3547c5a26d08e297c2d9fb885f16e00",
-      "behindAheadRelativeToMain": {
-        "command": "git rev-list --left-right --count origin/main...review/pr-279",
-        "behind": "requires authenticated fetch of refs/pull/279/head",
-        "ahead": "requires authenticated fetch of refs/pull/279/head"
-      },
-      "mergeability": "stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild",
-      "changedFiles": "requires authenticated fetch of refs/pull/279/head",
-      "migrations": "none verified in supplied metadata",
-      "runtimeCode": false,
-      "tests": "requires branch test run after authenticated fetch",
-      "workflowRuns": "wait for new Runtime Safety Harness run on PR #299 after push",
-      "unresolvedBlockers": [
-        "Remote fetch requires repository credentials in this workspace",
-        "Branch is based on old base f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-        "Refresh changed files and workflow runs before closing or retaining"
-      ],
-      "overlapWithMergedPrs": [
-        278,
-        291,
-        294,
-        295,
-        296
-      ],
-      "overlapWithOtherOpenPrs": [],
+      "actualType": "audit/documentation",
+      "actualSubject": "cross-surface functional flow map",
+      "auditedBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
+      "auditedHeadSha": "f3717074f3547c5a26d08e297c2d9fb885f16e00",
+      "staleAgainstCurrentMain": true,
+      "containsRuntimeCode": false,
+      "containsMigration": false,
+      "scopeSummary": "End-to-end functional flow audit across surfaces.",
       "disposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
-      "safeDisposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
-      "dependencies": [],
       "replacementPr": null,
-      "implementationDependencies": [],
-      "nextCommandLevelAction": "git fetch origin refs/pull/279/head:review/pr-279 && git rev-list --left-right --count origin/main...review/pr-279 && git checkout review/pr-279 && echo \"PR #279: extract evidence then close after human confirmation; dependencies: none\" && mkdir -p docs/readiness/pr-279-evidence && git diff --name-only origin/main...review/pr-279 | tee docs/readiness/pr-279-evidence/changed-files.txt",
-      "mergeReadyRuntimeFix": false,
-      "staleMigrationPr": false
+      "dependencies": [],
+      "reason": "Audit value is evidentiary; preserve useful findings in the current register/backlog before closure.",
+      "exactHumanAction": "Extract useful evidence into the current register or implementation backlog, then close PR #279 after reviewer confirmation.",
+      "deleteBranchAfterCompletion": true
     },
     {
       "number": 280,
       "title": "old runtime entrypoint inventory",
-      "type": "tooling",
-      "subject": "old runtime entrypoint inventory",
-      "remoteBranch": "refs/pull/280/head",
-      "currentBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-      "currentHeadSha": "3bfc31d95983cf058464af573775e2a6b77c5271",
-      "behindAheadRelativeToMain": {
-        "command": "git rev-list --left-right --count origin/main...review/pr-280",
-        "behind": "requires authenticated fetch of refs/pull/280/head",
-        "ahead": "requires authenticated fetch of refs/pull/280/head"
-      },
-      "mergeability": "stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild",
-      "changedFiles": "requires authenticated fetch of refs/pull/280/head",
-      "migrations": "none verified in supplied metadata",
-      "runtimeCode": false,
-      "tests": "requires branch test run after authenticated fetch",
-      "workflowRuns": "wait for new Runtime Safety Harness run on PR #299 after push",
-      "unresolvedBlockers": [
-        "Remote fetch requires repository credentials in this workspace",
-        "Branch is based on old base f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-        "Refresh changed files and workflow runs before closing or retaining"
-      ],
-      "overlapWithMergedPrs": [
-        278,
-        291,
-        294,
-        295,
-        296
-      ],
-      "overlapWithOtherOpenPrs": [
-        302
-      ],
+      "actualType": "tooling",
+      "actualSubject": "old runtime entrypoint inventory",
+      "auditedBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
+      "auditedHeadSha": "3bfc31d95983cf058464af573775e2a6b77c5271",
+      "staleAgainstCurrentMain": true,
+      "containsRuntimeCode": false,
+      "containsMigration": false,
+      "scopeSummary": "Legacy runtime entrypoint inventory superseded by the replacement tooling track.",
       "disposition": "SUPERSEDED_CLOSE",
-      "safeDisposition": "SUPERSEDED_CLOSE after #302",
+      "replacementPr": 302,
       "dependencies": [
         302
       ],
-      "replacementPr": 302,
-      "implementationDependencies": [],
-      "nextCommandLevelAction": "git fetch origin refs/pull/280/head:review/pr-280 && git rev-list --left-right --count origin/main...review/pr-280 && git checkout review/pr-280 && echo \"PR #280: close as superseded after dependency lands; dependencies: #302\" && mkdir -p docs/readiness/pr-280-evidence && git diff --name-only origin/main...review/pr-280 | tee docs/readiness/pr-280-evidence/changed-files.txt",
-      "mergeReadyRuntimeFix": false,
-      "staleMigrationPr": false
+      "reason": "The durable replacement is PR #302; do not retain the old inventory branch after #302 lands.",
+      "exactHumanAction": "After PR #302 is merged, close PR #280 as superseded and link to #302.",
+      "deleteBranchAfterCompletion": true
     },
     {
       "number": 281,
       "title": "auth provider boundary ADR",
-      "type": "architecture/documentation",
-      "subject": "auth provider boundary ADR",
-      "remoteBranch": "refs/pull/281/head",
-      "currentBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-      "currentHeadSha": "9514e926b8449b6a0c8cc871ed7bd2aa2b994f4c",
-      "behindAheadRelativeToMain": {
-        "command": "git rev-list --left-right --count origin/main...review/pr-281",
-        "behind": "requires authenticated fetch of refs/pull/281/head",
-        "ahead": "requires authenticated fetch of refs/pull/281/head"
-      },
-      "mergeability": "stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild",
-      "changedFiles": "requires authenticated fetch of refs/pull/281/head",
-      "migrations": "none verified in supplied metadata",
-      "runtimeCode": false,
-      "tests": "requires branch test run after authenticated fetch",
-      "workflowRuns": "wait for new Runtime Safety Harness run on PR #299 after push",
-      "unresolvedBlockers": [
-        "Remote fetch requires repository credentials in this workspace",
-        "Branch is based on old base f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-        "Refresh changed files and workflow runs before closing or retaining"
-      ],
-      "overlapWithMergedPrs": [
-        278,
-        291,
-        294,
-        295,
-        296
-      ],
-      "overlapWithOtherOpenPrs": [
-        298
-      ],
+      "actualType": "architecture/documentation",
+      "actualSubject": "auth provider boundary ADR",
+      "auditedBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
+      "auditedHeadSha": "9514e926b8449b6a0c8cc871ed7bd2aa2b994f4c",
+      "staleAgainstCurrentMain": true,
+      "containsRuntimeCode": false,
+      "containsMigration": false,
+      "scopeSummary": "Old auth-provider boundary ADR superseded by the newer architecture record.",
       "disposition": "SUPERSEDED_CLOSE",
-      "safeDisposition": "SUPERSEDED_CLOSE after #298",
+      "replacementPr": 298,
       "dependencies": [
         298
       ],
-      "replacementPr": 298,
-      "implementationDependencies": [],
-      "nextCommandLevelAction": "git fetch origin refs/pull/281/head:review/pr-281 && git rev-list --left-right --count origin/main...review/pr-281 && git checkout review/pr-281 && echo \"PR #281: close as superseded after dependency lands; dependencies: #298\" && mkdir -p docs/readiness/pr-281-evidence && git diff --name-only origin/main...review/pr-281 | tee docs/readiness/pr-281-evidence/changed-files.txt",
-      "mergeReadyRuntimeFix": false,
-      "staleMigrationPr": false
+      "reason": "The durable replacement is PR #298; the old ADR should not be merged separately.",
+      "exactHumanAction": "After PR #298 is merged, close PR #281 as superseded and link to #298.",
+      "deleteBranchAfterCompletion": true
     },
     {
       "number": 282,
       "title": "platform administration audit",
-      "type": "audit/documentation",
-      "subject": "platform administration audit",
-      "remoteBranch": "refs/pull/282/head",
-      "currentBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-      "currentHeadSha": "5ed1bc48893cb1ec05ee0dd572ad7c76b64bb850",
-      "behindAheadRelativeToMain": {
-        "command": "git rev-list --left-right --count origin/main...review/pr-282",
-        "behind": "requires authenticated fetch of refs/pull/282/head",
-        "ahead": "requires authenticated fetch of refs/pull/282/head"
-      },
-      "mergeability": "stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild",
-      "changedFiles": "requires authenticated fetch of refs/pull/282/head",
-      "migrations": "none verified in supplied metadata",
-      "runtimeCode": false,
-      "tests": "requires branch test run after authenticated fetch",
-      "workflowRuns": "wait for new Runtime Safety Harness run on PR #299 after push",
-      "unresolvedBlockers": [
-        "Remote fetch requires repository credentials in this workspace",
-        "Branch is based on old base f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-        "Refresh changed files and workflow runs before closing or retaining"
-      ],
-      "overlapWithMergedPrs": [
-        278,
-        291,
-        294,
-        295,
-        296
-      ],
-      "overlapWithOtherOpenPrs": [],
+      "actualType": "audit/documentation",
+      "actualSubject": "platform administration audit",
+      "auditedBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
+      "auditedHeadSha": "5ed1bc48893cb1ec05ee0dd572ad7c76b64bb850",
+      "staleAgainstCurrentMain": true,
+      "containsRuntimeCode": false,
+      "containsMigration": false,
+      "scopeSummary": "Platform administration audit evidence.",
       "disposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
-      "safeDisposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
-      "dependencies": [],
       "replacementPr": null,
-      "implementationDependencies": [],
-      "nextCommandLevelAction": "git fetch origin refs/pull/282/head:review/pr-282 && git rev-list --left-right --count origin/main...review/pr-282 && git checkout review/pr-282 && echo \"PR #282: extract evidence then close after human confirmation; dependencies: none\" && mkdir -p docs/readiness/pr-282-evidence && git diff --name-only origin/main...review/pr-282 | tee docs/readiness/pr-282-evidence/changed-files.txt",
-      "mergeReadyRuntimeFix": false,
-      "staleMigrationPr": false
+      "dependencies": [],
+      "reason": "Audit-only content should feed the register/backlog, not runtime.",
+      "exactHumanAction": "Extract useful findings into the current register or implementation backlog, then close PR #282 after reviewer confirmation.",
+      "deleteBranchAfterCompletion": true
     },
     {
       "number": 283,
       "title": "customer PWA audit",
-      "type": "audit/documentation",
-      "subject": "customer PWA audit",
-      "remoteBranch": "refs/pull/283/head",
-      "currentBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-      "currentHeadSha": "86867013c1082b7377e99195dfadabd48acb1419",
-      "behindAheadRelativeToMain": {
-        "command": "git rev-list --left-right --count origin/main...review/pr-283",
-        "behind": "requires authenticated fetch of refs/pull/283/head",
-        "ahead": "requires authenticated fetch of refs/pull/283/head"
-      },
-      "mergeability": "stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild",
-      "changedFiles": "requires authenticated fetch of refs/pull/283/head",
-      "migrations": "none verified in supplied metadata",
-      "runtimeCode": false,
-      "tests": "requires branch test run after authenticated fetch",
-      "workflowRuns": "wait for new Runtime Safety Harness run on PR #299 after push",
-      "unresolvedBlockers": [
-        "Remote fetch requires repository credentials in this workspace",
-        "Branch is based on old base f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-        "Refresh changed files and workflow runs before closing or retaining"
-      ],
-      "overlapWithMergedPrs": [
-        278,
-        291,
-        294,
-        295,
-        296
-      ],
-      "overlapWithOtherOpenPrs": [],
+      "actualType": "audit/documentation",
+      "actualSubject": "customer PWA audit",
+      "auditedBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
+      "auditedHeadSha": "86867013c1082b7377e99195dfadabd48acb1419",
+      "staleAgainstCurrentMain": true,
+      "containsRuntimeCode": false,
+      "containsMigration": false,
+      "scopeSummary": "Customer PWA audit evidence.",
       "disposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
-      "safeDisposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
-      "dependencies": [],
       "replacementPr": null,
-      "implementationDependencies": [],
-      "nextCommandLevelAction": "git fetch origin refs/pull/283/head:review/pr-283 && git rev-list --left-right --count origin/main...review/pr-283 && git checkout review/pr-283 && echo \"PR #283: extract evidence then close after human confirmation; dependencies: none\" && mkdir -p docs/readiness/pr-283-evidence && git diff --name-only origin/main...review/pr-283 | tee docs/readiness/pr-283-evidence/changed-files.txt",
-      "mergeReadyRuntimeFix": false,
-      "staleMigrationPr": false
+      "dependencies": [],
+      "reason": "Audit-only content should feed the register/backlog, not runtime.",
+      "exactHumanAction": "Extract useful findings into the current register or implementation backlog, then close PR #283 after reviewer confirmation.",
+      "deleteBranchAfterCompletion": true
     },
     {
       "number": 284,
       "title": "interest selection/scheduling",
-      "type": "implementation",
-      "subject": "interest selection/scheduling",
-      "remoteBranch": "refs/pull/284/head",
-      "currentBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-      "currentHeadSha": "920fd658a0d4612086d508174574721c6b80b8ef",
-      "behindAheadRelativeToMain": {
-        "command": "git rev-list --left-right --count origin/main...review/pr-284",
-        "behind": "requires authenticated fetch of refs/pull/284/head",
-        "ahead": "requires authenticated fetch of refs/pull/284/head"
-      },
-      "mergeability": "stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild",
-      "changedFiles": "requires authenticated fetch of refs/pull/284/head",
-      "migrations": "none verified in supplied metadata",
-      "runtimeCode": true,
-      "tests": "requires branch test run after authenticated fetch",
-      "workflowRuns": "wait for new Runtime Safety Harness run on PR #299 after push",
-      "unresolvedBlockers": [
-        "Remote fetch requires repository credentials in this workspace",
-        "Branch is based on old base f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-        "Refresh changed files and workflow runs before closing or retaining"
-      ],
-      "overlapWithMergedPrs": [
-        278,
-        291,
-        294,
-        295,
-        296
-      ],
-      "overlapWithOtherOpenPrs": [
-        279,
-        283
-      ],
+      "actualType": "implementation",
+      "actualSubject": "interest selection/scheduling",
+      "auditedBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
+      "auditedHeadSha": "920fd658a0d4612086d508174574721c6b80b8ef",
+      "staleAgainstCurrentMain": true,
+      "containsRuntimeCode": true,
+      "containsMigration": false,
+      "scopeSummary": "Runtime implementation for interest selection and scheduling.",
       "disposition": "RETAIN_REBASE_COMPLETE",
-      "safeDisposition": "RETAIN_REBASE_COMPLETE",
+      "replacementPr": null,
       "dependencies": [
         279,
         283
       ],
-      "replacementPr": null,
-      "implementationDependencies": [
-        279,
-        283
-      ],
-      "nextCommandLevelAction": "git fetch origin refs/pull/284/head:review/pr-284 && git rev-list --left-right --count origin/main...review/pr-284 && git checkout review/pr-284 && echo \"PR #284: retain and rebase to completion; dependencies: #279, #283\" && git rebase origin/main && pnpm install --frozen-lockfile && pnpm fieldgrid:test-layers:check",
-      "mergeReadyRuntimeFix": false,
-      "staleMigrationPr": false
+      "reason": "This is a runtime implementation branch worth retaining, but it must be rebased and completed against current main before review.",
+      "exactHumanAction": "Retain PR #284, rebase it onto current main, resolve conflicts, run domain smokes, and complete review before merge consideration.",
+      "deleteBranchAfterCompletion": false
     },
     {
       "number": 285,
       "title": "tenant backoffice audit",
-      "type": "audit/documentation",
-      "subject": "tenant backoffice audit",
-      "remoteBranch": "refs/pull/285/head",
-      "currentBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-      "currentHeadSha": "7511251b702599517a48fe25bb819bcccce1a2c0",
-      "behindAheadRelativeToMain": {
-        "command": "git rev-list --left-right --count origin/main...review/pr-285",
-        "behind": "requires authenticated fetch of refs/pull/285/head",
-        "ahead": "requires authenticated fetch of refs/pull/285/head"
-      },
-      "mergeability": "stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild",
-      "changedFiles": "requires authenticated fetch of refs/pull/285/head",
-      "migrations": "none verified in supplied metadata",
-      "runtimeCode": false,
-      "tests": "requires branch test run after authenticated fetch",
-      "workflowRuns": "wait for new Runtime Safety Harness run on PR #299 after push",
-      "unresolvedBlockers": [
-        "Remote fetch requires repository credentials in this workspace",
-        "Branch is based on old base f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-        "Refresh changed files and workflow runs before closing or retaining"
-      ],
-      "overlapWithMergedPrs": [
-        278,
-        291,
-        294,
-        295,
-        296
-      ],
-      "overlapWithOtherOpenPrs": [],
+      "actualType": "audit/documentation",
+      "actualSubject": "tenant backoffice audit",
+      "auditedBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
+      "auditedHeadSha": "7511251b702599517a48fe25bb819bcccce1a2c0",
+      "staleAgainstCurrentMain": true,
+      "containsRuntimeCode": false,
+      "containsMigration": false,
+      "scopeSummary": "Tenant backoffice audit evidence.",
       "disposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
-      "safeDisposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
-      "dependencies": [],
       "replacementPr": null,
-      "implementationDependencies": [],
-      "nextCommandLevelAction": "git fetch origin refs/pull/285/head:review/pr-285 && git rev-list --left-right --count origin/main...review/pr-285 && git checkout review/pr-285 && echo \"PR #285: extract evidence then close after human confirmation; dependencies: none\" && mkdir -p docs/readiness/pr-285-evidence && git diff --name-only origin/main...review/pr-285 | tee docs/readiness/pr-285-evidence/changed-files.txt",
-      "mergeReadyRuntimeFix": false,
-      "staleMigrationPr": false
+      "dependencies": [],
+      "reason": "Audit-only content should feed the register/backlog, not runtime.",
+      "exactHumanAction": "Extract useful findings into the current register or implementation backlog, then close PR #285 after reviewer confirmation.",
+      "deleteBranchAfterCompletion": true
     },
     {
       "number": 286,
       "title": "credential challenge/reset",
-      "type": "implementation with migration",
-      "subject": "credential challenge/reset",
-      "remoteBranch": "refs/pull/286/head",
-      "currentBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-      "currentHeadSha": "1810a20b9092623c420a23e1c6363694e63148bc",
-      "behindAheadRelativeToMain": {
-        "command": "git rev-list --left-right --count origin/main...review/pr-286",
-        "behind": "requires authenticated fetch of refs/pull/286/head",
-        "ahead": "requires authenticated fetch of refs/pull/286/head"
-      },
-      "mergeability": "stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild",
-      "changedFiles": "requires authenticated fetch of refs/pull/286/head",
-      "migrations": "yes; stale migration branch; rebuild only",
-      "runtimeCode": true,
-      "tests": "requires branch test run after authenticated fetch",
-      "workflowRuns": "wait for new Runtime Safety Harness run on PR #299 after push",
-      "unresolvedBlockers": [
-        "Remote fetch requires repository credentials in this workspace",
-        "Branch is based on old base f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-        "Refresh changed files and workflow runs before closing or retaining"
-      ],
-      "overlapWithMergedPrs": [
-        278,
-        291,
-        294,
-        295,
-        296
-      ],
-      "overlapWithOtherOpenPrs": [
-        281,
-        298
-      ],
+      "actualType": "implementation with migration",
+      "actualSubject": "credential challenge/reset",
+      "auditedBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
+      "auditedHeadSha": "1810a20b9092623c420a23e1c6363694e63148bc",
+      "staleAgainstCurrentMain": true,
+      "containsRuntimeCode": true,
+      "containsMigration": true,
+      "scopeSummary": "Runtime credential challenge/reset implementation including a migration.",
       "disposition": "REBUILD_FROM_CURRENT_MAIN",
-      "safeDisposition": "REBUILD_FROM_CURRENT_MAIN",
+      "replacementPr": null,
       "dependencies": [
         281,
         298
       ],
-      "replacementPr": null,
-      "implementationDependencies": [
-        281,
-        298
-      ],
-      "nextCommandLevelAction": "git fetch origin refs/pull/286/head:review/pr-286 && git rev-list --left-right --count origin/main...review/pr-286 && git checkout review/pr-286 && echo \"PR #286: rebuild from current main; dependencies: #281, #298\" && git checkout -b rebuild/pr-286 origin/main && git cherry-pick 1810a20b9092623c420a23e1c6363694e63148bc && pnpm install --frozen-lockfile && pnpm fieldgrid:test-layers:check",
-      "mergeReadyRuntimeFix": false,
-      "staleMigrationPr": true
+      "reason": "The branch contains migration work on an old base; rebuild from current main and re-create the migration in current order.",
+      "exactHumanAction": "Rebuild PR #286 from current main, recreate the migration in current migration order, rerun database and runtime smokes, and only then open/continue the rebuilt implementation path.",
+      "deleteBranchAfterCompletion": false
     },
     {
       "number": 287,
       "title": "personnel PWA audit",
-      "type": "audit/documentation",
-      "subject": "personnel PWA audit",
-      "remoteBranch": "refs/pull/287/head",
-      "currentBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-      "currentHeadSha": "bb2772eb8e9e586eaedec1f14a993f77cb62cd68",
-      "behindAheadRelativeToMain": {
-        "command": "git rev-list --left-right --count origin/main...review/pr-287",
-        "behind": "requires authenticated fetch of refs/pull/287/head",
-        "ahead": "requires authenticated fetch of refs/pull/287/head"
-      },
-      "mergeability": "stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild",
-      "changedFiles": "requires authenticated fetch of refs/pull/287/head",
-      "migrations": "none verified in supplied metadata",
-      "runtimeCode": false,
-      "tests": "requires branch test run after authenticated fetch",
-      "workflowRuns": "wait for new Runtime Safety Harness run on PR #299 after push",
-      "unresolvedBlockers": [
-        "Remote fetch requires repository credentials in this workspace",
-        "Branch is based on old base f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-        "Refresh changed files and workflow runs before closing or retaining"
-      ],
-      "overlapWithMergedPrs": [
-        278,
-        291,
-        294,
-        295,
-        296
-      ],
-      "overlapWithOtherOpenPrs": [],
+      "actualType": "audit/documentation",
+      "actualSubject": "personnel PWA audit",
+      "auditedBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
+      "auditedHeadSha": "bb2772eb8e9e586eaedec1f14a993f77cb62cd68",
+      "staleAgainstCurrentMain": true,
+      "containsRuntimeCode": false,
+      "containsMigration": false,
+      "scopeSummary": "Personnel PWA audit evidence.",
       "disposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
-      "safeDisposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
-      "dependencies": [],
       "replacementPr": null,
-      "implementationDependencies": [],
-      "nextCommandLevelAction": "git fetch origin refs/pull/287/head:review/pr-287 && git rev-list --left-right --count origin/main...review/pr-287 && git checkout review/pr-287 && echo \"PR #287: extract evidence then close after human confirmation; dependencies: none\" && mkdir -p docs/readiness/pr-287-evidence && git diff --name-only origin/main...review/pr-287 | tee docs/readiness/pr-287-evidence/changed-files.txt",
-      "mergeReadyRuntimeFix": false,
-      "staleMigrationPr": false
+      "dependencies": [],
+      "reason": "Audit-only content should feed the register/backlog, not runtime.",
+      "exactHumanAction": "Extract useful findings into the current register or implementation backlog, then close PR #287 after reviewer confirmation.",
+      "deleteBranchAfterCompletion": true
     },
     {
       "number": 288,
       "title": "assignment P0 evidence",
-      "type": "reproduction",
-      "subject": "assignment P0 evidence",
-      "remoteBranch": "refs/pull/288/head",
-      "currentBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-      "currentHeadSha": "2253f4bf857cc1e33112ac2c0ad0268e6d08a700",
-      "behindAheadRelativeToMain": {
-        "command": "git rev-list --left-right --count origin/main...review/pr-288",
-        "behind": "requires authenticated fetch of refs/pull/288/head",
-        "ahead": "requires authenticated fetch of refs/pull/288/head"
-      },
-      "mergeability": "stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild",
-      "changedFiles": "requires authenticated fetch of refs/pull/288/head",
-      "migrations": "none verified in supplied metadata",
-      "runtimeCode": false,
-      "tests": "requires branch test run after authenticated fetch",
-      "workflowRuns": "wait for new Runtime Safety Harness run on PR #299 after push",
-      "unresolvedBlockers": [
-        "Remote fetch requires repository credentials in this workspace",
-        "Branch is based on old base f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-        "Refresh changed files and workflow runs before closing or retaining"
-      ],
-      "overlapWithMergedPrs": [
-        278,
-        291,
-        294,
-        295,
-        296
-      ],
-      "overlapWithOtherOpenPrs": [],
+      "actualType": "reproduction",
+      "actualSubject": "assignment P0 evidence",
+      "auditedBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
+      "auditedHeadSha": "2253f4bf857cc1e33112ac2c0ad0268e6d08a700",
+      "staleAgainstCurrentMain": true,
+      "containsRuntimeCode": false,
+      "containsMigration": false,
+      "scopeSummary": "Assignment P0 reproduction/evidence branch.",
       "disposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
-      "safeDisposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
-      "dependencies": [],
       "replacementPr": null,
-      "implementationDependencies": [],
-      "nextCommandLevelAction": "git fetch origin refs/pull/288/head:review/pr-288 && git rev-list --left-right --count origin/main...review/pr-288 && git checkout review/pr-288 && echo \"PR #288: extract evidence then close after human confirmation; dependencies: none\" && mkdir -p docs/readiness/pr-288-evidence && git diff --name-only origin/main...review/pr-288 | tee docs/readiness/pr-288-evidence/changed-files.txt",
-      "mergeReadyRuntimeFix": false,
-      "staleMigrationPr": false
+      "dependencies": [],
+      "reason": "Reproduction value is evidentiary; do not merge as runtime.",
+      "exactHumanAction": "Extract the reproduction evidence into the current register or implementation backlog, then close PR #288 after reviewer confirmation.",
+      "deleteBranchAfterCompletion": true
     },
     {
       "number": 289,
       "title": "atomic personnel availability",
-      "type": "implementation",
-      "subject": "atomic personnel availability",
-      "remoteBranch": "refs/pull/289/head",
-      "currentBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-      "currentHeadSha": "cb9a92ab2fbf57a9f7fdc883dc86ff9d1ade890d",
-      "behindAheadRelativeToMain": {
-        "command": "git rev-list --left-right --count origin/main...review/pr-289",
-        "behind": "requires authenticated fetch of refs/pull/289/head",
-        "ahead": "requires authenticated fetch of refs/pull/289/head"
-      },
-      "mergeability": "stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild",
-      "changedFiles": "requires authenticated fetch of refs/pull/289/head",
-      "migrations": "none verified in supplied metadata",
-      "runtimeCode": true,
-      "tests": "requires branch test run after authenticated fetch",
-      "workflowRuns": "wait for new Runtime Safety Harness run on PR #299 after push",
-      "unresolvedBlockers": [
-        "Remote fetch requires repository credentials in this workspace",
-        "Branch is based on old base f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-        "Refresh changed files and workflow runs before closing or retaining"
-      ],
-      "overlapWithMergedPrs": [
-        278,
-        291,
-        294,
-        295,
-        296
-      ],
-      "overlapWithOtherOpenPrs": [
-        287,
-        288
-      ],
+      "actualType": "implementation",
+      "actualSubject": "atomic personnel availability",
+      "auditedBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
+      "auditedHeadSha": "cb9a92ab2fbf57a9f7fdc883dc86ff9d1ade890d",
+      "staleAgainstCurrentMain": true,
+      "containsRuntimeCode": true,
+      "containsMigration": false,
+      "scopeSummary": "Runtime implementation for atomic personnel availability.",
       "disposition": "RETAIN_REBASE_COMPLETE",
-      "safeDisposition": "RETAIN_REBASE_COMPLETE",
+      "replacementPr": null,
       "dependencies": [
         287,
         288
       ],
-      "replacementPr": null,
-      "implementationDependencies": [
-        287,
-        288
-      ],
-      "nextCommandLevelAction": "git fetch origin refs/pull/289/head:review/pr-289 && git rev-list --left-right --count origin/main...review/pr-289 && git checkout review/pr-289 && echo \"PR #289: retain and rebase to completion; dependencies: #287, #288\" && git rebase origin/main && pnpm install --frozen-lockfile && pnpm fieldgrid:test-layers:check",
-      "mergeReadyRuntimeFix": false,
-      "staleMigrationPr": false
+      "reason": "This runtime implementation remains valuable, but must be rebased and verified against current main.",
+      "exactHumanAction": "Retain PR #289, rebase it onto current main, resolve conflicts, run personnel availability smokes, and complete review before merge consideration.",
+      "deleteBranchAfterCompletion": false
     },
     {
       "number": 290,
       "title": "finance/webhook/worker integrity",
-      "type": "reproduction",
-      "subject": "finance/webhook/worker integrity",
-      "remoteBranch": "refs/pull/290/head",
-      "currentBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-      "currentHeadSha": "cde9bc640598ff3febd561bb97c4a4ed2374a4a6",
-      "behindAheadRelativeToMain": {
-        "command": "git rev-list --left-right --count origin/main...review/pr-290",
-        "behind": "requires authenticated fetch of refs/pull/290/head",
-        "ahead": "requires authenticated fetch of refs/pull/290/head"
-      },
-      "mergeability": "stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild",
-      "changedFiles": "requires authenticated fetch of refs/pull/290/head",
-      "migrations": "none verified in supplied metadata",
-      "runtimeCode": false,
-      "tests": "requires branch test run after authenticated fetch",
-      "workflowRuns": "wait for new Runtime Safety Harness run on PR #299 after push",
-      "unresolvedBlockers": [
-        "Remote fetch requires repository credentials in this workspace",
-        "Branch is based on old base f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-        "Refresh changed files and workflow runs before closing or retaining"
-      ],
-      "overlapWithMergedPrs": [
-        278,
-        291,
-        294,
-        295,
-        296
-      ],
-      "overlapWithOtherOpenPrs": [],
+      "actualType": "reproduction",
+      "actualSubject": "finance/webhook/worker integrity",
+      "auditedBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
+      "auditedHeadSha": "cde9bc640598ff3febd561bb97c4a4ed2374a4a6",
+      "staleAgainstCurrentMain": true,
+      "containsRuntimeCode": false,
+      "containsMigration": false,
+      "scopeSummary": "Finance/webhook/worker integrity reproduction evidence.",
       "disposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
-      "safeDisposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
-      "dependencies": [],
       "replacementPr": null,
-      "implementationDependencies": [],
-      "nextCommandLevelAction": "git fetch origin refs/pull/290/head:review/pr-290 && git rev-list --left-right --count origin/main...review/pr-290 && git checkout review/pr-290 && echo \"PR #290: extract evidence then close after human confirmation; dependencies: none\" && mkdir -p docs/readiness/pr-290-evidence && git diff --name-only origin/main...review/pr-290 | tee docs/readiness/pr-290-evidence/changed-files.txt",
-      "mergeReadyRuntimeFix": false,
-      "staleMigrationPr": false
+      "dependencies": [],
+      "reason": "Reproduction value is evidentiary; do not merge as runtime.",
+      "exactHumanAction": "Extract useful evidence into the current register or implementation backlog, then close PR #290 after reviewer confirmation.",
+      "deleteBranchAfterCompletion": true
     },
     {
       "number": 292,
       "title": "multi-person execution model",
-      "type": "architecture",
-      "subject": "multi-person execution model",
-      "remoteBranch": "refs/pull/292/head",
-      "currentBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-      "currentHeadSha": "ce9055f007117d5e938e0af202f8b99c00a82022",
-      "behindAheadRelativeToMain": {
-        "command": "git rev-list --left-right --count origin/main...review/pr-292",
-        "behind": "requires authenticated fetch of refs/pull/292/head",
-        "ahead": "requires authenticated fetch of refs/pull/292/head"
-      },
-      "mergeability": "stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild",
-      "changedFiles": "requires authenticated fetch of refs/pull/292/head",
-      "migrations": "none verified in supplied metadata",
-      "runtimeCode": false,
-      "tests": "requires branch test run after authenticated fetch",
-      "workflowRuns": "wait for new Runtime Safety Harness run on PR #299 after push",
-      "unresolvedBlockers": [
-        "Remote fetch requires repository credentials in this workspace",
-        "Branch is based on old base f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-        "Refresh changed files and workflow runs before closing or retaining"
-      ],
-      "overlapWithMergedPrs": [
-        278,
-        291,
-        294,
-        295,
-        296
-      ],
-      "overlapWithOtherOpenPrs": [],
+      "actualType": "architecture",
+      "actualSubject": "multi-person execution model",
+      "auditedBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
+      "auditedHeadSha": "ce9055f007117d5e938e0af202f8b99c00a82022",
+      "staleAgainstCurrentMain": true,
+      "containsRuntimeCode": false,
+      "containsMigration": false,
+      "scopeSummary": "Architecture model for multi-person execution.",
       "disposition": "PARK_ARCHITECTURE",
-      "safeDisposition": "PARK_ARCHITECTURE",
-      "dependencies": [],
       "replacementPr": null,
-      "implementationDependencies": [],
-      "nextCommandLevelAction": "git fetch origin refs/pull/292/head:review/pr-292 && git rev-list --left-right --count origin/main...review/pr-292 && git checkout review/pr-292 && echo \"PR #292: park architecture; dependencies: none\" && mkdir -p docs/readiness/pr-292-architecture && git diff --name-only origin/main...review/pr-292 | tee docs/readiness/pr-292-architecture/changed-files.txt",
-      "mergeReadyRuntimeFix": false,
-      "staleMigrationPr": false
+      "dependencies": [],
+      "reason": "Architecture material should be parked for later design review, not merged as runtime.",
+      "exactHumanAction": "Park PR #292 as architecture reference material and revisit during the multi-person execution design review.",
+      "deleteBranchAfterCompletion": false
     },
     {
       "number": 293,
       "title": "old pre-Phase-B register",
-      "type": "documentation/register",
-      "subject": "old pre-Phase-B register",
-      "remoteBranch": "refs/pull/293/head",
-      "currentBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-      "currentHeadSha": "9e2e708eee1c3c684b6bdb8ac22f2945540dbc2b",
-      "behindAheadRelativeToMain": {
-        "command": "git rev-list --left-right --count origin/main...review/pr-293",
-        "behind": "requires authenticated fetch of refs/pull/293/head",
-        "ahead": "requires authenticated fetch of refs/pull/293/head"
-      },
-      "mergeability": "stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild",
-      "changedFiles": "requires authenticated fetch of refs/pull/293/head",
-      "migrations": "none verified in supplied metadata",
-      "runtimeCode": false,
-      "tests": "requires branch test run after authenticated fetch",
-      "workflowRuns": "wait for new Runtime Safety Harness run on PR #299 after push",
-      "unresolvedBlockers": [
-        "Remote fetch requires repository credentials in this workspace",
-        "Branch is based on old base f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-        "Refresh changed files and workflow runs before closing or retaining"
-      ],
-      "overlapWithMergedPrs": [
-        278,
-        291,
-        294,
-        295,
-        296
-      ],
-      "overlapWithOtherOpenPrs": [
-        297
-      ],
+      "actualType": "documentation/register",
+      "actualSubject": "old pre-Phase-B register",
+      "auditedBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
+      "auditedHeadSha": "9e2e708eee1c3c684b6bdb8ac22f2945540dbc2b",
+      "staleAgainstCurrentMain": true,
+      "containsRuntimeCode": false,
+      "containsMigration": false,
+      "scopeSummary": "Old pre-Phase-B register superseded by the current register path.",
       "disposition": "SUPERSEDED_CLOSE",
-      "safeDisposition": "SUPERSEDED_CLOSE after #297",
+      "replacementPr": 297,
       "dependencies": [
         297
       ],
-      "replacementPr": 297,
-      "implementationDependencies": [],
-      "nextCommandLevelAction": "git fetch origin refs/pull/293/head:review/pr-293 && git rev-list --left-right --count origin/main...review/pr-293 && git checkout review/pr-293 && echo \"PR #293: close as superseded after dependency lands; dependencies: #297\" && mkdir -p docs/readiness/pr-293-evidence && git diff --name-only origin/main...review/pr-293 | tee docs/readiness/pr-293-evidence/changed-files.txt",
-      "mergeReadyRuntimeFix": false,
-      "staleMigrationPr": false
+      "reason": "The durable replacement is PR #297; the old register should close after #297 lands.",
+      "exactHumanAction": "After PR #297 is merged, close PR #293 as superseded and link to #297.",
+      "deleteBranchAfterCompletion": true
     }
   ],
-  "mergeWaves": {
-    "parallelDevelopmentGroups": [
-      {
-        "name": "evidence-extraction",
-        "prs": [
-          279,
-          282,
-          283,
-          285,
-          287,
-          288,
-          290
-        ],
-        "canRunParallel": true
-      },
-      {
-        "name": "superseded-cleanup-after-replacements",
-        "prs": [
-          280,
-          281,
-          293
-        ],
-        "canRunParallel": true,
-        "dependencies": [
-          302,
-          298,
-          297
-        ]
-      },
-      {
-        "name": "architecture-parking",
-        "prs": [
-          292
-        ],
-        "canRunParallel": true
-      },
-      {
-        "name": "implementation-retain-or-rebuild",
-        "prs": [
-          284,
-          286,
-          289
-        ],
-        "canRunParallel": false
-      }
-    ],
-    "sequentialMergeOrder": [
-      284,
-      289,
-      286
-    ],
-    "requiredRebases": [
-      284,
-      289
-    ],
-    "requiredRebuilds": [
-      286
-    ],
-    "requiredStagingSmokes": [
-      "pnpm install --frozen-lockfile",
-      "pnpm fieldgrid:test-layers:check",
-      "node --test tests/fieldgrid-open-pr-disposition-2026-07-14.test.mjs",
-      "Runtime Safety Harness on PR #299 after push",
-      "domain-specific smoke for PRs #284, #286, #289 after authenticated fetch"
-    ],
-    "stopConditions": [
-      "Any legacy auth placeholder string or angle-bracket placeholder appears in disposition files",
-      "Any audit documentation is labeled as a runtime fix",
-      "Any stale migration PR is recommended for direct merge",
-      "Runtime Safety Harness fails",
-      "Authenticated diff shows overlap with merged #278/#291/#294/#295/#296 without an extraction map"
-    ]
-  },
-  "recommendedFirstImplementationPr": 284
+  "integrationWaves": [
+    {
+      "wave": 1,
+      "actions": [
+        "merge #300",
+        "merge #302",
+        "merge #298"
+      ]
+    },
+    {
+      "wave": 2,
+      "actions": [
+        "merge #299"
+      ]
+    },
+    {
+      "wave": 3,
+      "actions": [
+        "rebase #297 onto current main",
+        "verify #297 mapping against merged #299",
+        "merge #297"
+      ]
+    },
+    {
+      "wave": 4,
+      "actions": [
+        "merge #301 after its dedicated Playwright workflow is green"
+      ]
+    }
+  ],
+  "postReplacementClosures": [
+    "close #280 after #302",
+    "close #281 after #298",
+    "close #293 after #297"
+  ],
+  "evidenceClosureRule": "Audit and reproduction PRs may be closed only after useful evidence is represented in the current register or implementation backlog."
 }
