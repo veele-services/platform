@@ -18,4 +18,4 @@ All hard gates below must be satisfied before exiting feature freeze. Do not mer
 | browser golden paths | automated portal golden paths closed | Playwright or equivalent customer/personnel/backoffice paths |
 | test baseline | current branch validation green | install, migration order, layer check, register tests, typecheck, build, diff check |
 | staging proof | staging post-deploy smoke accepted | release SHA marker, health gate, diagnostics, rollback readiness |
-| production go/no-go | human release decision recorded | go/no-go packet, blocker count zero, rollback plan |
+| production go/no-go | human release decision recorded; release blocker only, not a feature-freeze blocker | go/no-go packet, feature-freeze blockers zero, production release blockers zero, rollback plan |
