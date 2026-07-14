@@ -1,0 +1,1879 @@
+$ node --test tests/*.test.mjs
+✔ smart planning capacity only considers active personnel from the assignment tenant (2.511016ms)
+✔ assignment detail eligibility excludes already assigned and non-tenant personnel (6.203885ms)
+✔ assignment personnel linking is tenant-scoped, active-only and idempotent (5.185245ms)
+✔ assignment detail UI refreshes and removes already-linked personnel from candidate picker (0.849184ms)
+✔ assignment detail prioritizes work-order information after personnel is linked (1.434651ms)
+✔ assignment tasks are managed from the work-order tab with a 2/3 overview and 1/3 create panel (0.567521ms)
+✔ assignment task options and mutations are scoped to the current tenant (3.397828ms)
+✔ assignment detail status ellipsis opens an all-status dropdown with confirmation (3.834366ms)
+✔ Supabase auth cookies are host-keyed and host-only per Fieldgrid app (2.870909ms)
+✔ Backoffice tenant selection cookies are host-only (6.163869ms)
+✔ platform superadmin bootstrap creates a temporary owner login (2.07873ms)
+✔ temporary password invite helper supports all account surfaces (0.44011ms)
+✔ global password policy is aligned to 8 characters (5.755027ms)
+✔ backoffice forces temporary password users through reset (0.524608ms)
+✔ password fields provide visibility toggles on login and reset screens (0.901419ms)
+✔ forgot password screens support recovery code verification (0.561889ms)
+✔ klant PWA password reset avoids deployment-stale server action ids (1.140798ms)
+✔ portal password reset and logged-out routes are tenant-aware behind /klant and /personeel prefixes (0.633485ms)
+✔ backoffice exposes a tenant-scoped module guard helper (2.198129ms)
+✔ permission checks enforce module gates for sensitive backoffice domains (1.305153ms)
+✔ dashboard layout gives client UI module-filtered permissions (0.740031ms)
+✔ document server actions enforce the documents module entitlement (4.575543ms)
+✔ finance and reporting actions flow through the guarded permission gate (2.888181ms)
+✔ dashboard and legacy assignment planning helpers are tenant scoped (6.351752ms)
+✔ planning workbench reads and writes cannot cross tenant boundaries (2.250405ms)
+✔ ticket inbox, detail, reply and status actions are tenant scoped (0.587791ms)
+✔ object document counters and history are tenant scoped (3.997724ms)
+✔ availability and leave actions validate personnel tenant scope (1.013634ms)
+✔ Fieldgrid canon docs exist (7.027258ms)
+✔ Fieldgrid governance docs exist (0.521469ms)
+✔ sprint 0 canon refresh removes stale current PR 125 status (1.421443ms)
+✔ canon uses the sprint 0 status taxonomy (4.381168ms)
+✔ data classification contains canonical tenant strategies and priorities (0.446941ms)
+✔ data classification keeps sensitive SaaS hardening points explicit (0.393684ms)
+✔ data classification captures tenant regions as tenant config (0.430582ms)
+✔ cross-tenant matrix covers required security boundaries (0.478462ms)
+✔ cross-tenant matrix includes region proof scenarios (0.630578ms)
+✔ masterplan captures the sprint 0 SaaS backlog (3.933703ms)
+✔ masterplan captures tenant region canon (0.430592ms)
+✔ sprint plan defines complete execution through final gate (0.501694ms)
+✔ sprint 7 migration smoke canon is executable and staging-safe (0.571914ms)
+✔ next major update plan points to the sprint canon (0.259403ms)
+✔ staging promotion checklist defines phase-safe promotion rules (0.327742ms)
+✔ pull request template enforces Fieldgrid canon discipline (0.545066ms)
+✔ masterplan and recovery docs point to the canon sources (0.710133ms)
+✔ User X heeft Management in tenant A (1.531788ms)
+✔ User X heeft Alleen-lezen in tenant B (0.282411ms)
+✔ In tenant A mag user X schrijven (0.227744ms)
+✔ In tenant B mag user X niet schrijven (0.221415ms)
+✔ API-permissies respecteren tenant (1.369342ms)
+✔ Backoffice server actions respecteren tenant (5.5668ms)
+✔ Tenant switcher verandert permissions correct (0.332084ms)
+✔ customer assignment photo signed URLs require scoped storage paths (2.095029ms)
+✔ customer invoice PDF route is customer and tenant scoped (1.681459ms)
+✔ customer invoice PDF downloads are audited before response (0.841494ms)
+✔ phase 1 exposes env-free portal route helpers (2.233688ms)
+✔ customer producers use explicit backoffice hrefs and sanitize persisted notifications (10.545662ms)
+✔ personnel producers use explicit backoffice hrefs and sanitize persisted notifications (1.074494ms)
+✔ domain events and push worker sanitize recipient hrefs by audience (1.042126ms)
+✔ phase 10 adds explicit governance to customer object creation (2.610696ms)
+✔ phase 10 makes customer object and assignment detail section based (0.76506ms)
+✔ phase 10 exposes object and assignment context in customer documents and reports (3.682572ms)
+✔ phase 11 exposes personnel main modules in the desktop sidebar (2.194177ms)
+✔ phase 11 keeps mobile bottom navigation compact and work-floor focused (1.645608ms)
+✔ phase 11 makes news, notifications and settings reachable from more (0.751032ms)
+✔ phase 11 shares mobile header chrome and gives tablet more width (5.31162ms)
+✔ phase 12 adds a personnel planning command bar with filters and view modes (2.166424ms)
+✔ phase 12 keeps planning cards compact and status-led on tablet and desktop (0.50774ms)
+✔ phase 12 builds the work order detail as a tablet desktop workbench (0.496291ms)
+✔ phase 12 keeps risky work order status changes behind a shared confirmation dialog (0.548862ms)
+✔ phase 13 makes open assignments filterable and scanable (2.26829ms)
+✔ phase 13 replaces open assignment confirmations with bottom sheets and feedback (0.652892ms)
+✔ phase 13 makes personnel messages read as an inbox (0.535773ms)
+✔ phase 13 normalizes message detail into a conversation timeline (0.534999ms)
+✔ phase 13 keeps personnel notification links sanitized for the messages route (0.823416ms)
+✔ phase 14 extends the offline work order queue to inventory usage (2.45299ms)
+✔ phase 14 makes inventory registration offline safe (0.68417ms)
+✔ phase 14 blocks online-only deletes and cancels local queued rows (3.285652ms)
+✔ phase 14 makes report attachments explicitly online only (0.585545ms)
+✔ phase 14 documents offline coverage decisions (0.514852ms)
+✔ phase 15 adds coherent settings shells for customer and personnel portals (2.36751ms)
+✔ phase 15 groups customer profile preferences and security in the settings shell (0.834276ms)
+✔ phase 15 groups personnel profile notifications and security in the settings shell (7.433741ms)
+✔ phase 15 keeps unfinished security functionality behind flags and production copy (0.661229ms)
+✔ phase 16 adds executable customer/personnel releasegate (2.502549ms)
+✔ phase 16 documents screenshot evidence inputs and route coverage (0.452795ms)
+✔ phase 16 releasegate enforces acceptance risks from the roadmap (0.557347ms)
+✔ phase 2 removes raw browser dialogs from customer and personnel production source (37.216243ms)
+✔ phase 2 provides an accessible personnel confirm dialog pattern (0.464768ms)
+✔ phase 2 replaces risky personnel actions with app confirm dialogs (0.341626ms)
+✔ phase 2 replaces payment alert with inline customer feedback (0.244016ms)
+✔ phase 3 gates personnel MFA behind an explicit production feature flag (2.332631ms)
+✔ phase 3 removes unfinished customer security placeholders from production UI (0.414565ms)
+✔ phase 3 uses basePath-safe auth links (0.790945ms)
+✔ phase 3 keeps quick login accounts development-only (4.25205ms)
+✔ phase 4 defines the customer desktop navigation around daily tasks (3.365974ms)
+✔ phase 4 keeps mobile navigation compact and moves secondary areas to Meer (0.897226ms)
+✔ phase 4 adds a finance hub for invoices payments and quotes (0.670654ms)
+✔ phase 4 sends contact actions directly to support and documents module decisions (3.600734ms)
+✔ phase 5 turns the customer dashboard into summary action and focus sections (2.02631ms)
+✔ phase 5 keeps action inbox bounded and pushes secondary widgets lower (0.611787ms)
+✔ phase 5 uses tenant branding and removes hardcoded vendor dashboard copy (5.219586ms)
+✔ phase 5 makes urgent assignment requests explicit (0.852203ms)
+✔ phase 6 adds customer portal shared primitives (2.112481ms)
+✔ phase 6 primitives use existing portal styling tokens and responsive list pattern (0.904728ms)
+✔ phase 6 migrates documents as low-risk reference page without changing data flow (5.460999ms)
+✔ phase 7 migrates customer core lists to shared portal primitives (6.98127ms)
+✔ phase 7 keeps existing customer actions in the migrated lists (1.665488ms)
+✔ phase 7 removes known legacy mojibake from migrated list pages (1.571323ms)
+✔ phase 8 turns customer tickets into a contextual support inbox (2.034201ms)
+✔ phase 8 pre-fills the new ticket flow and explains attachment handling (3.558918ms)
+✔ phase 8 makes ticket detail read as a support conversation (0.602834ms)
+✔ phase 8 keeps customer notifications mapped to ticket detail routes (0.563264ms)
+✔ phase 9 adds shared customer finance workspace primitives (1.820542ms)
+✔ phase 9 makes the customer finance landing page action oriented (0.539081ms)
+✔ phase 9 keeps invoice payment and PDF flows while compacting batch payment (0.756697ms)
+✔ phase 9 aligns customer payments and quotes with the finance pattern (3.047628ms)
+✔ customer portal invite sends Fieldgrid temporary-password mail and persists portal access (4.037446ms)
+✔ customer portal invite reuses existing auth users across tenants (1.843378ms)
+✔ creating a customer can immediately invite the primary contact (8.518092ms)
+✔ customer contact email uniqueness is tenant scoped (0.975587ms)
+✔ customer portal activates invited links after a valid first login (0.617808ms)
+✔ system mailer uses the central platform email service (0.713197ms)
+✔ playwright authentication state output is ignored (0.338222ms)
+✔ customer quote list hides draft quotes (1.730893ms)
+✔ customer assignment list hides draft quote joins (0.519314ms)
+✔ customer assignment detail hides draft quote joins (0.457863ms)
+✔ customer quote actions still require a sent quote awaiting approval (0.47486ms)
+✔ centralized access model defines future platform and tenant roles (1.632577ms)
+✔ platform admin full financial access requires sensitive grant (0.312434ms)
+✔ tenant isolation and export/audit decisions are server-side primitives (0.37202ms)
+✔ masking utilities cover personal, bank and payment identifiers (5.022211ms)
+✔ classification model marks financial and secrets scopes as sensitive (0.312271ms)
+✔ sensitive access requests and grants are represented in schema and migration (0.318455ms)
+✔ audit helper records required sensitive access metadata without raw sensitive logs (0.394772ms)
+✔ database mutations are manual and staging-only (2.846333ms)
+✔ db package and cli entrypoints load deployment env before DATABASE_URL (2.990078ms)
+✔ migration runner installs legacy updated-at helper before SQL migrations (1.064062ms)
+✔ healthy activation switches current and passes the health gate (8042.672678ms)
+✔ one dead service fails health evidence (6017.146291ms)
+✔ one absent port fails health evidence (6073.53828ms)
+✔ public 502 fails health evidence (5996.305129ms)
+✔ local 5xx fails health evidence (5941.518993ms)
+✔ curl transport failure records HTTP 000 failure (5815.931635ms)
+✔ API root HTTP 404 is allowed while API health requires exact 200 (5926.186745ms)
+✔ health gate requires exactly four services, ports, and local endpoints (6109.052381ms)
+✔ HTTP 404 is rejected for exact-200 endpoints (5717.856314ms)
+✔ HTTP 301 on healthz is failure (5915.435017ms)
+✔ HTTP 302 on healthz is failure (5835.081356ms)
+✔ HTTP 200 on healthz is pass (5855.786481ms)
+✔ API-root HTTP 200 is failure when the contract requires exact 404 (5817.226186ms)
+✔ rollback succeeds after a failed new release health check (11314.148106ms)
+✔ rollback itself fails when restored release health remains bad (11545.993205ms)
+✔ rollback fails closed when previous release path is missing (5997.105116ms)
+✔ no previous release reports rollback unavailable (6464.261327ms)
+✔ build or migration failure before activation leaves current symlink untouched (4013.75515ms)
+✔ SHA marker mismatch before activation leaves current symlink untouched (3948.437216ms)
+✔ missing SHA marker before activation leaves current symlink untouched (3819.714781ms)
+✔ production is rejected by staging-only shell scripts before symlink changes (4179.307795ms)
+✔ rollback restarts all four services, reloads Caddy, and rechecks rollback health (9576.625127ms)
+✔ Caddy reload failure before health gate triggers rollback (4630.48896ms)
+✔ rollback service restart failure marks rollback failed (8423.795902ms)
+✔ Caddy reload failure during rollback marks rollback failed (8118.645204ms)
+✔ rollback is blocked if current no longer points at the failed release (7639.797665ms)
+✔ evidence files are machine-readable, mode 0640, and redact URL paths and credentials (5788.873368ms)
+✔ deploy workflow keeps production activation body free of staging health scripts (2.583012ms)
+✔ deploy cleanup remains after staging health gate and is unreachable before green health (3.652637ms)
+✔ public API root is checked only in the API-root endpoint group (2.518533ms)
+✔ service reads do not use sudo while restart and reload do (5975.324666ms)
+✔ activating service can become active within retries (6064.833184ms)
+✔ permanently inactive service fails with exit diagnostics (5870.835714ms)
+✔ exact public health URL variables have precedence and API root is optional (5421.938515ms)
+✔ missing required public personnel customer or API health URL fails clearly (15897.703913ms)
+✔ API root 404 passes and 200 fails when explicitly configured (9687.328854ms)
+✔ endpoint group records multiple failures and invalid specs without blocking diagnostics (6329.039402ms)
+✔ markerbackfill writes marker and rejects unsafe paths or mismatches (2333.406275ms)
+✔ document storage helper requires tenant-prefixed safe paths (1.579726ms)
+✔ document downloads sign only tenant-validated storage paths (0.815995ms)
+✔ document deletes remove only tenant-validated storage paths (0.43938ms)
+✔ document upload audit includes tenant context (6.194606ms)
+✔ new document storage paths are prefixed by current tenant (1.967014ms)
+✔ document list and upload validate entity membership before exposing storage-backed rows (0.461239ms)
+✔ document delete checks tenant membership before storage removal (6.26255ms)
+✔ document download checks tenant membership before creating signed URL (0.493609ms)
+✔ document download writes an audit log after signed URL creation (0.577715ms)
+✔ central email template registry validates variables, escaping, text and CTA safety (2.51267ms)
+✔ tenant email template overrides are private and tenant scoped (3.577025ms)
+✔ application email builders use the central template renderer (2.947816ms)
+✔ tenant-aware mail callsites pass tenant context into the provider service (2.801683ms)
+✔ email template documentation is present (0.594809ms)
+✖ tenant backoffice finance PDF and CSV downloads are wired (10.82188ms)
+✔ customer portal quote and invoice PDFs use secured enterprise styling (1.704855ms)
+✔ deploy workflow maps the GitHub browser secret to Next public runtime config (12.4829ms)
+✔ Google Maps config keeps the server key out of public browser config (3.141872ms)
+✔ planning travel modes are not exported from the server action module (5.872216ms)
+✔ Sprint 0 baseline: planning map uses the shared Google Maps canvas after migration (2.873916ms)
+✔ Sprint 0 baseline: address suggestions have migrated to Google Places with PDOK kept as legacy geocoder (5.749515ms)
+✔ Sprint 0 baseline: route provider has Google Routes server adapter and mock fallback (0.72125ms)
+✔ Sprint 0 baseline: planning map data is tenant-scoped and permission-gated (2.700056ms)
+✔ Sprint 0 baseline: personnel vehicle types are normalized with legacy mapping (0.785605ms)
+✔ Sprint 0 baseline: planning map feature flag and sidebar entry exist (0.573317ms)
+✔ Sprint 0 baseline: integration plan tracks canon gaps and rollback (1.067852ms)
+✔ Sprint 1: central Google Maps module files exist (2.366714ms)
+✔ Sprint 1: server config has server-only guard and canon env names (0.555086ms)
+✔ Sprint 1: client loader never references server-only Google secrets (0.421383ms)
+✔ Sprint 1: no public env example exposes a Google server key (5.960055ms)
+✔ Sprint 1: travel modes and marker statuses are central and canon-safe (0.888993ms)
+✔ Sprint 1: metrics and dedupe helpers avoid personal address payloads (0.51739ms)
+✔ Sprint 1: deployment docs cover development, staging, production and test fallback (0.952947ms)
+✔ Sprint 10 usage schema contains every canon Google Maps event (1.839344ms)
+✔ Sprint 10 metadata hardening rejects PII, addresses, route payloads and credentials (1.574169ms)
+✔ Sprint 10 browser map views are recorded without secrets or location payloads (5.411479ms)
+✔ Sprint 10 Places endpoints record sessions, requests, selections, details, errors and rate limits (4.320007ms)
+✔ Sprint 10 platform reporting aggregates by tenant, provider, SKU, cache status and anomalies (0.896945ms)
+✔ Sprint 11 DB hardening closes Maps usage and route tables to browser roles (1.959725ms)
+✔ Sprint 11 backoffice Places routes require auth, server tenant context, permissions, validation and rate limits (0.874471ms)
+✔ Sprint 11 PWA Places routes use portal identity tenant context and sanitize metrics (3.505829ms)
+✔ Sprint 11 usage endpoint does not trust client SKUs or tenant IDs (0.581346ms)
+✔ Sprint 11 route calculation remains server-side tenant scoped and permission checked (2.763912ms)
+✔ Sprint 11 server API key is absent from client-facing Google Maps code (0.913742ms)
+✔ Sprint 12 active source no longer uses legacy map tile/rendering providers (97.786943ms)
+✔ Sprint 12 package dependencies do not include legacy map renderers (1.766714ms)
+✔ Sprint 12 route provider only accepts the canonical server key (0.650685ms)
+✔ Sprint 12 Google Maps remains lazy-loaded and not app-shell loaded (0.520744ms)
+✔ Sprint 12 cleanup is tracked by package gate (0.314913ms)
+✔ Sprint 13 deployment runbook covers Google setup, privacy, cost and rollback (6.551416ms)
+✔ Sprint 13 docs specify required environment variables and operator checklists (0.381384ms)
+✔ Environment examples expose canonical Google Maps variables without legacy route key (0.457162ms)
+✔ Integration plan records Sprint 13 documentation completion (0.274456ms)
+✔ Package exposes the Sprint 13 docs gate (0.293261ms)
+✔ Sprint 14 package scripts expose check, strict and optional live smoke gates (1.34797ms)
+✔ Sprint 14 acceptance script checks the full Google Maps canon (0.950491ms)
+✔ Sprint 14 Playwright smoke is mocked by default and live staging is explicit opt-in (5.485963ms)
+✔ Sprint 14 docs record final gate commands and optional live smoke (0.650981ms)
+✔ Sprint 2: migration adds canonical location fields without removing legacy address columns (2.754939ms)
+✔ Sprint 2: assignments receive execution location snapshots (6.641643ms)
+✔ Sprint 2: assignment snapshot backfill avoids target aliases inside FROM joins (0.79269ms)
+✔ Sprint 2: travel modes are canonical and legacy values are migrated safely (0.916086ms)
+✔ Sprint 2: old vehicle type constraints are dropped before canonical updates (0.794886ms)
+✔ Sprint 2: provider-neutral usage metrics are tenant-scoped and payload-safe (0.942291ms)
+✔ Sprint 2: Drizzle schemas expose canonical location properties (0.828397ms)
+✔ Places API New clients use server-side endpoints, minimum field masks and no expensive fields (6.058376ms)
+✔ Address forms use autocomplete while typing and Place Details only after selection (2.176668ms)
+✔ Selected Google address data is saved as confirmed Fieldgrid data without leaking server keys (5.58332ms)
+✔ Sprint 4 autocomplete components enforce cost-aware request UX (2.670488ms)
+✔ Sprint 4 address UX is shared across backoffice and PWA address forms (7.112665ms)
+✔ Sprint 4 customer portal objects save only confirmed selected Google addresses (0.801439ms)
+✔ Sprint 5 loader is singleton, lazy and browser-key only (2.045455ms)
+✔ Sprint 5 map component handles advanced markers, status semantics and fallback states (0.627275ms)
+✔ Sprint 5 map updates markers and polylines without recreating the map instance (0.614881ms)
+✔ Sprint 6 planning page passes safe Google Maps bootstrap config into the map view (1.875424ms)
+✔ Sprint 6 planning map uses the shared lazy Google map and no active CARTO/OSM tiles (7.071271ms)
+✔ Sprint 6 marker data exposes status, labels, aria and detail panel route actions (1.113501ms)
+✔ Sprint 6 keeps permission, no-data and missing-location states explicit (2.770124ms)
+✔ Sprint 6 marker updates do not remount the map instance (0.727294ms)
+✔ Sprint 7 central Routes API client uses safe computeRoutes field masks (1.775217ms)
+✔ Sprint 7 Routes API supports only canon modes and DRIVE traffic aware (0.724155ms)
+✔ Sprint 7 provider uses GOOGLE_MAPS_SERVER_API_KEY without legacy route key fallback (0.460431ms)
+✔ Sprint 7 cache identity includes route request context and short policy TTL (0.637599ms)
+✔ Sprint 7 route orchestration has dedupe, negative cache, metrics and rate limiting (0.568973ms)
+✔ Sprint 7 route metrics and errors avoid secrets and personal payloads (0.556571ms)
+✔ Sprint 8 map data read does not trigger route provider calls (3.66407ms)
+✔ Sprint 8 explicit route action is tenant-scoped and permission-checked (1.766897ms)
+✔ Sprint 8 route action supports explicit modes without transit auto fallback (1.965458ms)
+✔ Sprint 8 route pane calls server action only from explicit button handler (8.05295ms)
+✔ Sprint 8 route pane has personnel, override, warnings, retry and external link (0.897848ms)
+✔ Sprint 8 explicit route polyline renders without replacing scheduled route lines (1.018698ms)
+✔ backoffice personnel form persists the canonical default travel mode (8.274334ms)
+✔ backoffice personnel queries and details expose the canonical travel mode (1.894909ms)
+✔ personnel PWA profile can edit travel mode with audit and tenant scope (1.041746ms)
+✔ planning route calculation uses profile default, supports override and prefers home for first stop (6.769596ms)
+✔ canon document numbering supports invoices, credit notes and collections (1.929896ms)
+✔ credit notes are tenant-scoped drafts with immutable original invoice context (0.650231ms)
+✔ payments support manual and provider flows through canonical allocations (0.467941ms)
+✔ collection invoices carry VZF numbers, tenant metadata and line snapshots (0.619269ms)
+✔ migration is ordered and backfills without renumbering existing invoices (0.45896ms)
+✔ current createInvoice baseline creates a tenant-scoped draft and advances the assignment (2.131141ms)
+✔ current status actions preserve the existing draft to sent to paid/cancelled workflow (6.253211ms)
+✔ current invoice email and Mollie flows stay behind sent invoices (0.944219ms)
+✔ current invoice UI exposes the expected action entry points (0.4256ms)
+✔ invoice schema keeps statuses and exposes Sprint 1 canon numbering datamodel (2.29475ms)
+✔ Sprint 1 migration replaces global invoice uniqueness with tenant-scoped nullable numbering (0.598363ms)
+✔ Sprint 1 migration creates canonical settings, sequence and snapshot foundations (0.506124ms)
+✔ current backoffice invoice PDF route is permissioned, tenant sensitive and generated after scoped lookup (2.231214ms)
+✔ current customer invoice PDF route is customer scoped and prefers immutable snapshots (0.48421ms)
+✔ current PDF renderers use tenant-branded snapshots and payment blocks (3.722096ms)
+✔ Sprint 1 schema exposes all canonical invoice settings tables (1.909126ms)
+✔ Sprint 1 migration safely removes old global numbering and keeps tenant uniqueness (0.34256ms)
+✔ Sprint 1 migration backfills settings and sequence metadata without rewriting numbers (0.56824ms)
+✔ Sprint 1 constraints protect invoice settings values (5.446491ms)
+✔ Sprint 10 exposes an invoice release gate script and package commands (2.729823ms)
+✔ Sprint 10 release gate covers the complete invoice canon surface (3.369322ms)
+✔ Sprint 10 release gate passes in static check mode (141.10099ms)
+✔ Sprint 2 numbering validates prefixes, tokens, padding and start numbers (1.566208ms)
+✔ Sprint 2 numbering computes reset periods and previews without claiming (0.476265ms)
+✔ Sprint 2 database guards mirror the numbering engine (0.411586ms)
+✔ Sprint 2 claim is transaction safe and tenant scoped (5.750858ms)
+✔ Sprint 2 marks invoices as sent only after claiming an official number (0.724373ms)
+✔ Sprint 3 keeps drafts numberless until finalization (1.691609ms)
+✔ Sprint 3 finalization claims exactly once and captures immutable snapshots (0.657505ms)
+✔ Sprint 3 number claim can run inside finalization without finalizing early (0.346395ms)
+✔ Sprint 3 existing send flow finalizes before sending and keeps current UI workflow (3.159912ms)
+✔ Sprint 3 database migration protects finalized invoice data and line snapshots (0.410053ms)
+✔ Sprint 4 exposes tenant invoice settings route and settings navigation (1.525652ms)
+✔ Sprint 4 invoice settings UI has required cards and preview (0.389611ms)
+✔ Sprint 4 server actions validate invoice numbering and reject invalid formats (3.11057ms)
+✔ Sprint 4 writes audit rows for every invoice settings change (0.351599ms)
+✔ Sprint 5 uses tenant invoice payment terms while keeping draft numbers empty (2.153453ms)
+✔ Sprint 5 separates finalization from sending and keeps send backwards compatible (0.641577ms)
+✔ Sprint 5 exposes calm canon actions and preserves old invoice visibility (0.540044ms)
+✔ Sprint 6 gates Mollie payment creation behind tenant invoice payment settings (8.7774ms)
+✖ Sprint 6 renders configured payment link and server-side QR in backoffice PDFs (2.344548ms)
+✔ Sprint 6 keeps Mollie secrets out of client-facing invoice files (0.571047ms)
+✔ backoffice invoice detail uses invoice snapshots before live tenant settings (2.247084ms)
+✔ PDF renderers are tenant branded, snapshot driven and do not render arbitrary HTML (0.991676ms)
+✔ customer PDF route uses immutable snapshots, audited download and customer scoped payment QR (0.528486ms)
+✔ PDF download and payment redirect routes return binary/redirect responses (0.605873ms)
+✖ Sprint 8 invoice settings preview reads the next sequence without claiming a number (3.640105ms)
+✔ Sprint 8 preview UI shows warnings, branding and a test PDF download (6.48308ms)
+✔ Sprint 8 test PDF route generates a preview PDF without writing invoices (0.493604ms)
+✔ Sprint 8 missing invoice settings warnings are explicit (0.455232ms)
+✔ Sprint 9 invoice settings actions derive tenant scope server-side only (2.302585ms)
+✔ Sprint 9 invoice write actions require finance permission and keep writes tenant-scoped (1.063563ms)
+✔ Sprint 9 invoice lifecycle and payment actions are audit logged with tenant context (14.652459ms)
+✔ Sprint 9 direct database exposure is closed and tenant consistency is guarded (0.519312ms)
+✔ Sprint 9 public payment redirect cannot cross tenant/payment rows (0.35436ms)
+✔ backoffice invoice actions expose a tenant-scoped invoice helper (1.69195ms)
+✔ invoice read paths include tenant filters (0.694984ms)
+✔ direct invoice-id actions verify tenant scope before writes (0.475388ms)
+✔ collective invoice payments stay tenant-scoped (0.332783ms)
+✔ phase 12 exposes an executable Playwright acceptance harness (2.402351ms)
+✔ phase 12 covers required runtime flows (0.687087ms)
+✔ phase 12 documentation describes strict evidence and artifacts (0.798278ms)
+✔ phase 10 keeps live day map beta-gated and preserves planning views (2.302359ms)
+✔ phase 10 map data server action is tenant and permission scoped (2.642296ms)
+✔ phase 10 route provider has deterministic fallback without external API keys (3.77361ms)
+✔ phase 10 map UI avoids fixed-width overflow and renders through Google Maps (0.944541ms)
+✔ phase 10 exposes package gates and beta documentation (1.06009ms)
+✔ phase 10 performance fixture covers at least 50 assignments and 20 personnel (2.690583ms)
+✔ phase 10 performance fixture keeps filters tenant-server-side friendly (0.722261ms)
+✔ phase 10 fixture stays comfortably below local beta latency budget (11.974017ms)
+✔ phase 5 ETA rules keep first assignment read-only and ok (2.630858ms)
+✔ phase 5 ETA rules suggest rounded time inside customer window (0.745426ms)
+✔ phase 5 ETA rules report outside customer window (0.446987ms)
+✔ phase 5 ETA rules expose missing location and provider failures (0.386362ms)
+✔ phase 5 ETA rules sort personnel day sequence deterministically (11.823807ms)
+✔ phase 5 ETA rules prefer actual completion and in-progress max now (0.407593ms)
+✔ phase 5 ETA rules apply buffer per vehicle type (0.318917ms)
+✔ phase 6 map data uses object coordinates and does not fall back to customer coordinates (3.190193ms)
+✔ phase 6 map data normalizes markers, routes and missing-location warnings (26.519583ms)
+✔ phase 6 map data keeps multiple personnel contexts on the same assignment (0.686694ms)
+✔ phase 6 map data filters by personnel, status, region and warnings only (0.802655ms)
+✔ phase 6 map data omits providerMeta and supports accessDenied empty response (11.732583ms)
+✔ phase 6 map data action has tenant boundary and read-only contract (2.716935ms)
+✔ phase 7 planning map tab is guarded by the feature flag (2.780822ms)
+✔ phase 7 map component is now backed by the shared lazy Google map (1.484044ms)
+✔ phase 7 map UI exposes marker, route, warning and detail surfaces (1.264068ms)
+✔ phase 7 avoids MapLibre dependency for the map surface (8.051544ms)
+✔ phase 8 applies route time suggestions through guarded server action (8.529533ms)
+✔ phase 8 writes tenant-aware audit when a suggestion is applied (4.39674ms)
+✔ phase 8 map drawer requires explicit before-after confirmation (5.216688ms)
+✔ phase 8 gate is exposed through package scripts (1.226783ms)
+✔ phase 9 exposes a shared planning realtime helper (2.056807ms)
+✔ phase 9 recalculates ETA contexts in backoffice mutations (6.777684ms)
+✔ phase 9 keeps en-route customer messaging one-shot while refreshing PWA planning (7.242598ms)
+✔ phase 9 gate is exposed through package scripts (0.966645ms)
+✔ material and inventory modules are registered (1.958384ms)
+✔ material and inventory schemas are exported (0.385071ms)
+✔ tenant sequences support material and inventory codes (3.219451ms)
+✔ assignment material usage has phase 1 transition fields (1.174668ms)
+✔ material and inventory foundation migrations create required tables and RLS (0.687264ms)
+✔ document entity types include material and inventory targets (0.522742ms)
+✔ phase 10 material and inventory dashboard actions are tenant-scoped (1.969028ms)
+✔ phase 10 exports cover stock, customer-visible material and inventory usage (0.825636ms)
+✔ phase 10 routes and overview links expose management dashboards (3.539484ms)
+✔ phase 10 migration adds dashboard performance indexes only (0.405771ms)
+✔ phase 11 fixtures cover demo-a, demo-b and veele as ordinary tenants (9.538738ms)
+✔ phase 11 hardening plan includes migration, storage, QR, billing and audit gates (3.240191ms)
+✔ phase 11 workflow is manual and runs the safe contract checks (0.666781ms)
+✔ phase 11 documentation names the minimum staging gates (0.652532ms)
+✔ package scripts expose the phase 11 check (2.029051ms)
+✔ phase 12 readiness plan is non-destructive and depends on phase 11 (7.080841ms)
+✔ phase 12 monitors the required production-readiness signals (0.64019ms)
+✔ phase 12 production gates include migration, security, PWA, storage and rollback (0.519584ms)
+✔ phase 12 documentation covers legacy, nullable columns, monitoring and rollout (0.72758ms)
+✔ phase 12 workflow runs readiness, tests, typecheck and build (0.358128ms)
+✔ package scripts expose the phase 12 readiness check (0.946909ms)
+✔ phase 2 exposes backoffice material catalog routes (2.486787ms)
+✔ phase 2 actions generate tenant material codes and write stock movements (0.758354ms)
+✖ phase 2 stock locations support object and personnel dossiers (8.284263ms)
+✔ phase 2 enforces module permissions and tenant-aware audit logging (0.539698ms)
+✔ phase 3 material usage migration is idempotent for offline retries (2.226157ms)
+✔ phase 3 personnel material action uses tenant catalog and stock movement (0.614229ms)
+✔ phase 3 material editor supports catalog, other and stock usage without personnel prices (5.675384ms)
+✔ phase 3 work order material summary shows usage, not financial totals (0.455326ms)
+✔ phase 3 material page and offline queue pass catalog-safe payloads (0.935043ms)
+✔ phase 4 exposes tenant-safe material approval actions (2.280314ms)
+✔ phase 4 approval panel supports management financial decisions (0.671242ms)
+✔ phase 4 report approval is gated by pending material review (4.233714ms)
+✔ phase 4 invoice proposal only includes approved invoiceable material (0.499066ms)
+✔ phase 5 exposes tenant-scoped inventory management actions (2.138996ms)
+✔ phase 5 inventory routes and UI are wired (3.928031ms)
+✔ phase 5 object and personnel dossiers show inventory (1.26197ms)
+✔ phase 5 navigation exposes inventory through RBAC (0.37394ms)
+✔ phase 6 exposes tenant-scoped assignment inventory actions (2.025944ms)
+✔ phase 6 backoffice work order route and panel support inventory review (0.642982ms)
+✔ phase 6 report approval blocks pending inventory review (4.653946ms)
+✔ phase 6 invoice proposal includes only approved invoiceable inventory (0.518935ms)
+✔ phase 6 personnel PWA can link inventory without financial fields (1.345781ms)
+✔ phase 7 backoffice renders printable QR labels without exposing database ids (2.213553ms)
+✔ phase 7 PWA scan route resolves opaque tokens with login redirect and field-level authorization (0.748177ms)
+✖ phase 7 manual code fallback and login form keep redirects safe (4.468915ms)
+✔ phase 8 backoffice exposes issue status and maintenance followup (2.778219ms)
+✔ phase 8 personnel PWA can report scoped inventory issues (0.661478ms)
+✔ phase 8 inventory detail shows followup health (6.825385ms)
+✔ phase 9 document entity types cover material and inventory contexts (2.278349ms)
+✔ phase 9 document action keeps storage, signed URLs and audits tenant-scoped (0.685774ms)
+✔ phase 9 detail pages expose scoped uploads for material, inventory and issue media (3.289604ms)
+✔ phase 9 notification settings include material and inventory followup events (0.545526ms)
+✔ tenant module defaults enable all modules for every tenant (2.207129ms)
+✔ schema keeps new modules enabled by default (0.524583ms)
+✔ module entitlement schema exposes canonical tables and keys (2.723207ms)
+✔ module entitlement migration is staging safe (1.182339ms)
+✔ module entitlement docs are kept in the SaaS canon (0.575509ms)
+✔ MVP Sprint 2 runtime proof defines the field-demo read-only gate (27.236228ms)
+✔ MVP Sprint 2 runtime proof script validates from the command line (141.522004ms)
+✔ MVP Sprint 2 docs and package scripts expose the runtime gate (1.10367ms)
+✔ fieldgrid notification content v1 seeds every requested event and current runtime alias (8.54536ms)
+✔ customer and personnel notification copy avoids technical terms (4.417777ms)
+✔ direct email templates use refreshed Fieldgrid copy and no old generic branding (0.781883ms)
+✔ notification settings UI exposes friendly shortcode labels and avoids technical delivery words (0.691715ms)
+✔ object detail tabs normalize legacy qualification values before rendering (2.228834ms)
+✔ object detail page uses staging-safe object loader (0.983755ms)
+✔ open payment checkout lookup is tenant-scoped through invoice assignment (1.826867ms)
+✔ email invoice reuses tenant-scoped payment lookup (0.504504ms)
+✔ collective payment batches stay scoped by tenant-owned invoices and customers (0.510326ms)
+✔ collective payment creation rejects cross-tenant invoice ids before Mollie payment creation (5.044954ms)
+✔ customer single invoice payment rejects invoices locked in a batch before creating a payment (0.602634ms)
+✔ customer batch payment creation rejects already locked invoices before Mollie payment creation (0.542033ms)
+✔ personnel home address geocoding is persisted and route-aware (2.016612ms)
+✖ backoffice and personnel PWA offer secured address autocomplete (10.480782ms)
+✔ personnel address updates geocode and refresh planning route contexts (1.478648ms)
+✔ first planning stop uses personnel home address as route origin (0.757881ms)
+✔ planning map uses personnel home address only after explicit route request (2.797658ms)
+✔ object address updates geocode automatically and refresh route contexts (3.707703ms)
+✔ personnel PWA resolves platform hosts through authenticated personnel only (1.730218ms)
+✔ personnel work orders are resolved inside the current portal tenant (2.024276ms)
+✔ personnel work order list uses the canonical assignment link query (0.497922ms)
+✔ personnel home shows legacy assigned plannable rows as upcoming services (5.72284ms)
+✔ open personnel assignments also use the host-bound tenant context (0.618141ms)
+✔ personnel planning refreshes live and on every visible minute (0.502013ms)
+✔ sprint 1 runtime fixture manifest is complete and staging safe (8.698897ms)
+✔ sprint 1 demo-data plan remains plan-only and cleanup scoped (0.406004ms)
+✔ sprint 1 seed batches are idempotent and ordered (0.564685ms)
+✔ sprint 1 cleanup batches are marker scoped and non destructive (0.47018ms)
+✔ phase 1 fixtures treat Veele as a normal tenant (0.444471ms)
+✔ tenant domains are explicit and tenant-owned (0.319298ms)
+✔ host-first resolver contract ignores switcher override (0.554446ms)
+✔ membership and support access contract has happy and denial paths (0.610905ms)
+✔ direct id, module, sector and storage denial contracts are executable (0.74105ms)
+✔ runtime assertions cover the sprint 1 required proof boundaries (0.546329ms)
+✔ security cases cover the phase 1 required boundaries (0.521536ms)
+✔ migration smoke contract defines empty db, staging copy and compatibility targets (0.468483ms)
+✔ phase 2 migration is staging-safe and additive-first (2.654537ms)
+✔ phase 2 migration helper parameters avoid PL/pgSQL table_name ambiguity (0.478343ms)
+✔ phase 2 migration covers sensitive tenant tables (2.991794ms)
+✔ assignments schema no longer declares DEFAULT_TENANT_ID fallback (0.773112ms)
+✔ phase 2 hardening report is read-only and checks unresolved rows (0.907784ms)
+✔ phase 2 documentation and package scripts are wired (0.680398ms)
+✔ phase 3 migrations are staging-safe and additive-first (6.342008ms)
+✔ phase 3 temporary helpers avoid cross-migration pg_temp collisions (0.815519ms)
+✔ phase 3 media migration derives tenant context from assignments (0.668623ms)
+✔ phase 3 news decision is platform-only (0.796207ms)
+✔ phase 3 storage policy helpers parse legacy and canonical paths safely (0.5064ms)
+✔ phase 3 assignment schema exposes tenant-aware media (1.022051ms)
+✔ phase 3 storage report and docs are wired (0.996141ms)
+✔ phase 4 migration order check accepts current legacy state and documents the cutover (39.842487ms)
+✔ phase 4 migration order check blocks new numeric migrations after timestamp cutover (0.504639ms)
+✔ phase 4 test layers define runtime safety, security, UI, DB and live E2E lanes (9.503433ms)
+✔ phase 4 staging promotion gate validates static CI contracts (13.366479ms)
+✔ phase 4 staging promotion gate can validate workflow contracts from GitHub workspace (4.587048ms)
+✔ phase 4 package scripts and workflows expose the release signals (2.183938ms)
+✔ phase 4 dashboard surfaces staging promotion evidence (2.482703ms)
+✔ phase 4 docs record the promotion gate and docs cleanup policy (0.925016ms)
+✔ phase 4 command-line contracts validate (480.650281ms)
+✔ phase 4 exposes one canonical permission module map (1.887852ms)
+✔ API and backoffice use the shared module map instead of local copies (0.7635ms)
+✔ phase 4 documentation links module guards to the cross-tenant testmatrix (0.377961ms)
+✔ phase 5 adds a platform accelerator surface with auditable actions (6.397765ms)
+✔ phase 5 exports cover platform tenant health and billing (1.298311ms)
+✔ phase 5 visual regression plan covers backoffice and portals (2.502811ms)
+✔ phase 5 scripts and docs publish the accelerator contract (0.713498ms)
+✔ phase 5 visual regression check command validates its contract (135.598316ms)
+✔ phase 5 defines a central support break-glass TTL policy (1.903472ms)
+✔ support grant creation applies break-glass validation and audit metadata (0.872841ms)
+✔ platform security dashboard is read-only and categorized (3.419939ms)
+✔ phase 5 documentation captures staging-safe support security scope (0.39326ms)
+✔ phase 6 extends platform tenant detail with first-run and branding data (6.141105ms)
+✔ phase 6 tenant detail renders first-run, usage and branding preview (0.885201ms)
+✔ phase 6 platform page exposes onboarding wizard structure (0.669859ms)
+✔ phase 6 documentation captures staging-safe productization scope (0.425662ms)
+✔ phase 7 exposes a read-only staging smoke action (2.334993ms)
+✔ phase 7 renders the platform staging smoke dashboard (6.310322ms)
+✔ phase 7 exposes a protected JSON smoke endpoint (0.427785ms)
+✔ phase 7 smoke script is plan-only and wired into package scripts (0.571389ms)
+✔ phase 7 operation docs capture smoke, rollback and first tenant readiness (0.615818ms)
+✔ plan entitlement schema exposes canonical tables (2.289146ms)
+✔ plan entitlement migration is staging safe (1.225981ms)
+✔ tenant entitlement helpers provide plan and module gates (0.60359ms)
+✔ backoffice custom role gating is database-backed (5.954834ms)
+✔ plan entitlement docs are reflected in data classification (0.581445ms)
+✔ phase 10 extends the canonical security audit contract (2.081367ms)
+✔ platform actions enforce break-glass scope and expose security filters (0.840858ms)
+✔ security dashboard 2.0 is mobile friendly and includes support controls (5.22207ms)
+✔ security export route serves filtered CSV audit rows (0.420816ms)
+✔ phase 11 exposes a platform operations dashboard action (1.9865ms)
+✔ phase 11 operations page covers health, migration smoke, final gate and reruns (0.535254ms)
+✔ phase 11 adds API and navigation for operations (3.628759ms)
+✔ phase 11 documentation records the non-destructive rerun contract (0.419274ms)
+✔ phase 12 adds platform user invite and management policies (2.090014ms)
+✔ phase 12 platform users page supports invite, role/status edits and last seen (0.525947ms)
+✔ phase 12 adds platform settings dashboard and audit requests (5.700893ms)
+✔ phase 12 documentation records rollout and audit behavior (0.388129ms)
+✔ phase 13 adds shared platform mobile polish utilities (2.099475ms)
+✔ phase 13 improves the platform shell drawer and touch navigation (0.523438ms)
+✔ phase 13 activates mobile polish on platform surfaces (6.173209ms)
+✔ phase 13 covers tenant list, tenant detail tabs, domains, tickets and audit (4.371557ms)
+✔ phase 13 adds executable screenshot smoke contract (0.331728ms)
+✔ phase 14 defines an executable read-only platform-admin final gate (2.249501ms)
+✔ phase 14 is visible through the platform staging-smoke dashboard and JSON model (9.874914ms)
+✔ phase 14 documentation records the go/no-go checklist with owners and exceptions (0.471247ms)
+✔ phase 14 final gate check command validates its contract (146.307183ms)
+✔ platform onboarding v2 adds preflight, workspace and rollback actions (2.285643ms)
+✔ platform onboarding v2 has a dedicated mobile-safe platform route (4.012515ms)
+✔ platform onboarding v2 docs capture acceptance and runtime boundary (0.446065ms)
+✔ phase 8 creates platform-scoped ticket tables with links, notes, SLA and RLS (2.097756ms)
+✔ phase 8 exposes ticket actions with platform audit and domain failure automation (4.614405ms)
+✔ phase 8 renders mobile-friendly ticket list and detail surfaces (0.720873ms)
+✔ phase 9 stores platform notification dispatches and recipient snapshots (2.205444ms)
+✔ phase 9 action materializes recipients from platform data and writes audit (0.534992ms)
+✔ phase 9 renders notification compose, visible recipient selection and history (3.259335ms)
+✔ phase 6 migration adds auditable Enterprise custom-domain state (2.183426ms)
+✔ phase 6 platform actions enforce Enterprise gating and DNS verification (7.547422ms)
+✔ phase 6 tenant detail renders DNS instructions and operator actions (0.869823ms)
+✔ phase 6 runtime accepts verified and active tenant domains (0.862462ms)
+✔ phase 6 Caddy ask endpoint is deny-by-default (0.626397ms)
+✔ phase 6 roadmap documents the first custom-domain PR scope (0.546125ms)
+✔ platform email service centralizes providers, encrypted config and delivery logging (3.165148ms)
+✔ deploy workflow passes platform email encryption key to runtime env (0.768494ms)
+✔ application surfaces no longer call mail providers directly (1.328058ms)
+✔ platform admin exposes provider-agnostic email settings and testmail (1.01056ms)
+✔ tenant mail settings support platform, SMTP and Resend API transports (2.630397ms)
+✔ tenant provisioning writes explicit organization settings defaults (1.980612ms)
+✔ organization settings hardening migration repairs default drift (0.807704ms)
+✔ platform onboarding maps provisioning timestamps defensively (6.149291ms)
+✔ tenant provisioning records useful database error details (0.507912ms)
+✔ platform onboarding actions return to run history after failed provisioning (0.625624ms)
+✔ platform layout handles missing platform role without server error (1.880477ms)
+✔ platform last-seen tracking is non-blocking (0.425261ms)
+✔ platform login preserves next destination through first-login password reset (0.790585ms)
+✔ phase 7 migration adds subscription productization fields safely (2.770981ms)
+✖ phase 7 keeps active subscription status leading for entitlements (1.366944ms)
+✔ phase 7 platform actions expose subscriptions dashboard and audited updates (7.15622ms)
+✔ phase 7 subscriptions page is functional and mobile-card based (0.927483ms)
+✔ phase 7 tenant detail shows downgrade impact and billing fields (1.199893ms)
+✔ platform tenant actions support tenant admin CRUD and owner invite resend (3.569677ms)
+✔ platform tenant detail exposes tenant admin and owner invite management forms (3.582737ms)
+✔ customer and personnel portals resolve tenant context from the request host (2.03479ms)
+✔ customer portal identity is scoped to the host tenant (0.431297ms)
+✔ personnel portal profile and mutations are scoped to the host tenant (0.719622ms)
+✔ backoffice quote actions expose a tenant-scoped quote helper (1.781466ms)
+✔ quote read paths include tenant filters (0.547396ms)
+✔ direct quote-id actions verify tenant scope before writes (5.115496ms)
+✔ quote creation and expiry processing stay tenant-scoped (0.377618ms)
+✔ quote summary uses qualified quote columns after tenant join (0.34194ms)
+✔ schema index exports only canonical tenant RBAC tables (2.09817ms)
+✔ runtime permission helpers use tenant role ids, not global role ids (4.603572ms)
+✔ platform admin bootstrap is explicit (2.921133ms)
+✔ tenant sector enforcement is database-backed (0.711928ms)
+✔ legacy scoped RBAC migration can be compatibility-skipped (0.410669ms)
+✔ root package has one test script (0.568475ms)
+✔ backoffice report actions are parent-scoped through assignments (2.980569ms)
+✔ report list and detail reads include tenant filters (12.375151ms)
+✔ report mutations verify assignment tenant before writes (2.172755ms)
+✔ report timeline attachments are gated by the tenant-scoped report (1.351683ms)
+✔ report attachment signed URLs use the assignment media bucket with a short TTL (1.215015ms)
+✔ report attachment signed URLs bind paths to tenant and assignment before signing (1.229488ms)
+✔ platform roadmap board is collapsible, draggable and inline editable (2.334432ms)
+✔ platform roadmap audiences can be added and removed from the board (3.540995ms)
+✔ runtime tenant domain fixtures use schema-valid check constraint values (2.352693ms)
+✔ runtime customer user fixtures use schema-valid check constraint values (0.933157ms)
+✔ sensitive permission behavior denies platform full access without grant (1.43788ms)
+✔ sensitive grant elevates non-developer platform roles only (0.22051ms)
+✔ support is masked by default while tenant finance can export own finance (0.256876ms)
+✔ cross-tenant resources are rejected before role permission (0.156622ms)
+✔ break-glass requires a reason (0.248275ms)
+✔ platform DTO helpers mask payment and contact data (0.794485ms)
+✔ runtime resolver does not count platform roles on tenant host without support mode (0.552783ms)
+✔ Sprint 1 fixtures define Tenant A/B/Veele, hosts and actors (1.744604ms)
+✖ dashboard layout has no DEFAULT_TENANT_ID or first-tenant fallback (9.723563ms)
+✔ backoffice tenant selection is host-first before switcher cookie (0.603254ms)
+✔ default tenant fallback remains non-production opt-in only (0.805201ms)
+✔ host resolver only returns routable runtime-active tenant domains (0.444927ms)
+✔ shared tenant context keeps platform and unknown subdomain semantics (0.401019ms)
+✔ tenant lifecycle statuses distinguish runtime-active and blocked states (0.470808ms)
+✔ Sprint 1 contract maps to canonical host and lifecycle test IDs (0.80741ms)
+✔ Sprint 10 defines the central security audit contract (2.071501ms)
+✔ Sprint 10 dashboard combines support, tenant and platform audit sources (0.764012ms)
+✔ Sprint 10 dashboard filters by tenant, actor, event type and scope (4.54082ms)
+✔ Sprint 10 contract maps audit dashboard work to canonical test IDs (0.66622ms)
+✖ sprint 10 centralizes tenant branding with Fieldgrid defaults and plan gating (2.959789ms)
+✔ sprint 10 keeps organization branding defaults Fieldgrid-first (0.984378ms)
+✖ sprint 10 gates customer and personnel portal shells by host-bound tenant context (0.630792ms)
+✔ sprint 10 applies branding props and module-aware navigation in both portal shells (0.844599ms)
+✖ sprint 10 uses Fieldgrid as static PWA default instead of Veele tenant branding (0.462525ms)
+✔ sprint 10 canon doc links portal branding to required testmatrix coverage (0.45611ms)
+✔ Sprint 11 keeps one canonical module permission map (2.591413ms)
+✔ Sprint 11 applies module-off behavior across UI, direct URL, server action and portals (6.618665ms)
+✔ Sprint 11 gives background jobs the shared module guard (0.620314ms)
+✔ Sprint 11 exposes module dependency inspection in platform-admin (1.891944ms)
+✔ Sprint 11 canon maps module harmonization to test IDs (0.536957ms)
+✔ sprint 11 adds additive provisioning and first-run schema (2.178445ms)
+✔ sprint 11 exports transaction-safe provisioning service contracts (0.588016ms)
+✔ sprint 11 platform flow requires owner invite and exposes run status (6.309684ms)
+✔ sprint 11 adds tenant first-run checklist foundation (0.766255ms)
+✔ sprint 11 canon doc maps implementation to cross-tenant acceptance (0.444554ms)
+✔ sprint 12 platform provisioning actions support catalog, draft, resume and retry (2.474494ms)
+✔ sprint 12 platform page renders the full onboarding wizard and run controls (4.20711ms)
+✔ sprint 12 provisioning service seeds modules, sectors, regions and branding safely (0.92777ms)
+✔ sprint 12 docs update canon status and acceptance mapping (3.051598ms)
+✔ sprint 13 promotes first-run from checklist to wizard status (2.691584ms)
+✔ sprint 13 wizard covers tenant setup domains and save resume controls (0.632955ms)
+✔ sprint 13 readiness uses existing tenant data without new migrations (6.911145ms)
+✔ sprint 14 extends platform tenant detail with operational readiness data (8.375558ms)
+✔ sprint 14 tenant detail renders readiness, channel previews and limits (0.961103ms)
+✔ sprint 14 docs capture operational readiness scope and runtime proof status (0.972142ms)
+✔ sprint 15 extends staging smoke data with run history and live smoke contracts (5.456372ms)
+✔ sprint 15 staging smoke page renders run history, live smokes and cleanup (0.576892ms)
+✔ sprint 15 script is plan-only by default and supports read-only snapshots (0.563178ms)
+✔ sprint 15 JSON API uses route-handler platform auth (1.129791ms)
+✔ sprint 15 API server passes platform API routes to backoffice before tenant auth (0.574695ms)
+✔ sprint 15 docs capture staging smoke dashboard delivery (0.799522ms)
+✔ sprint 16 script defines a read-only final gate contract (2.728611ms)
+✔ sprint 16 extends the staging smoke dashboard with the external tenant gate (4.88042ms)
+✔ sprint 16 canon captures final gate and post-launch acceptance (2.038992ms)
+✔ API permission middleware enforces module entitlements after tenant RBAC (2.484306ms)
+✔ customer portal identity requires the customer_portal module (0.671061ms)
+✔ personnel portal identity and assignment actions require the personnel_portal module (5.771145ms)
+✔ finance background jobs skip tenants without the finance module (0.733357ms)
+✔ Sprint 2 contract is tied to canonical module test IDs (0.666873ms)
+✔ sprint 2 migration creates the tenant region model (7.212586ms)
+✔ sprint 2 migration backfills from legacy region fields without removing them (1.216066ms)
+✔ sprint 2 migration enables RLS and tenant-scope trigger guards (0.750836ms)
+✔ sprint 2 schema exports tenant region tables (0.290637ms)
+✔ sprint 2 documentation captures compatibility and next steps (0.368147ms)
+✖ sprint 3 has a reusable region multiselect with autocomplete and create-on-type (2.805357ms)
+✔ region server actions keep region links tenant scoped (0.674804ms)
+✔ personnel form uses multi-region UI and preserves legacy region fields (3.241459ms)
+✔ object form uses tenant region links (0.726313ms)
+✔ assignment form uses multi-region UI while preserving requiredRegion (0.611957ms)
+✔ object and assignment pages pass tenant region options into their forms (1.634444ms)
+✔ sprint plan records sprint 3 region UI delivery (0.570711ms)
+✔ tenant sector settings schema defines policy mode, default sector and enforcement flag (1.909838ms)
+✔ sector policy migration is staging-safe and installs policy-aware triggers (0.579803ms)
+✔ shared tenant sector helpers expose default-sector and enforcement-aware write policy (0.386007ms)
+✔ tenant sector settings actions block unsafe disable and validate policy updates (5.3331ms)
+✔ task code actions are tenant-scoped and use tenant sector policy (0.899853ms)
+✔ Sprint 3 contract maps to canonical sector test IDs (1.055551ms)
+✔ shared platform access helper codifies RBAC and support priority (2.19227ms)
+✔ API support access is explicit, audited and checked before tenant RBAC (0.860352ms)
+✔ backoffice support mode is platform-host bound and visible in the dashboard shell (4.503355ms)
+✔ backoffice permission runtime remains tenant-role first unless explicit support mode is active (0.708198ms)
+✔ Sprint 4 docs bind RBAC and support work to canonical test IDs (0.769275ms)
+✔ sprint 4 runtime queries use tenant-scoped region link tables (2.228223ms)
+✔ backoffice list pages use the region-aware server actions (0.836397ms)
+✔ assignment list exposes a region filter backed by tenant region options (3.630429ms)
+✔ assignment create flow can prefill regions from the selected object (0.746193ms)
+✔ sprint 4 canon records runtime scope and remaining runtime proof (0.482644ms)
+✔ Sprint 5 platform tenant actions cover lifecycle, domains, plans, modules and sectors (9.819115ms)
+✔ Sprint 5 support form actions expose create and revoke safely (0.738828ms)
+✔ platform overview has tenant creation and tenant detail navigation (0.818561ms)
+✔ tenant detail page exposes the platform-admin MVP sections (0.863244ms)
+✔ Sprint 5 contract maps platform-admin MVP to canonical test IDs (0.669677ms)
+✔ sprint 5 runtime proof cases all pass (10.553221ms)
+✔ sprint 5 covers happy and denial paths for each required security boundary (6.517108ms)
+✔ sprint 5 cases include API and backoffice entrypoints where runtime boundaries need both (0.405435ms)
+✔ sprint 5 proves Veele is an ordinary tenant and host beats switcher (0.792827ms)
+✔ sprint 5 proves core cross-tenant denials (0.344432ms)
+✔ sprint 5 runner validates from the command line (133.890101ms)
+✔ Sprint 6 documents schema exposes tenant scope (2.153237ms)
+✔ Sprint 6 migration backfills documents tenant ids safely (0.496536ms)
+✔ Sprint 6 shared storage validator enforces tenant-bound paths (0.392497ms)
+✔ Sprint 6 document actions use tenant id and shared storage guards (3.450976ms)
+✔ Sprint 6 contract maps documents/storage work to canonical test IDs (0.948652ms)
+✔ sprint 6 portal acceptance cases all pass (5.997083ms)
+✔ sprint 6 covers happy and denial paths for each portal surface (3.292128ms)
+✔ sprint 6 includes every required cross-tenant matrix flow (4.985803ms)
+✔ sprint 6 customer portal covers documents, invoices, reports, tickets, wrong host and module denial (0.967134ms)
+✔ sprint 6 personnel app covers assignments, media, notifications, wrong host, module denial and planning freshness (0.800859ms)
+✔ sprint 6 cases are promotable to Playwright (0.406933ms)
+✔ sprint 6 runner validates from the command line (123.526191ms)
+✔ Sprint 7 report, quote and invoice schemas expose tenant scope (2.916659ms)
+✔ Sprint 7 migration backfills and guards finance/report tenant ids safely (0.780919ms)
+✔ Sprint 7 contract maps finance/report work to canonical test IDs (6.94804ms)
+✔ sprint 7 migration smoke contract has empty and staging-copy targets (10.111881ms)
+✔ sprint 7 targets map to required migration test ids (0.396932ms)
+✔ migration log parser reports applied, skipped, compatibility skipped and unresolved rows (1.84363ms)
+✔ migration smoke safety blocks unconfirmed production-looking urls (0.708687ms)
+✔ migration smoke safety allows explicit target confirmation (0.523706ms)
+✔ migration smoke env parser supports quoted values (0.519029ms)
+✔ migration smoke result formatter prints failed target reason (0.636889ms)
+✔ sprint 7 runner validates from the command line (135.286743ms)
+✔ sprint 7 documentation and PR template require migration smoke evidence (3.679549ms)
+✔ Sprint 8 payment and batch schemas expose tenant scope (2.849648ms)
+✔ Sprint 8 audit schema separates tenant audit from platform audit (0.64261ms)
+✔ Sprint 8 migration backfills and guards payments, batches and audit safely (0.665232ms)
+✔ Sprint 8 payment actions use direct tenant scope (7.635529ms)
+✔ Sprint 8 contract maps payments/audit work to canonical test IDs (0.909203ms)
+✔ Sprint 8 removes DEFAULT_TENANT_ID schema defaults from tenantdata (7.102241ms)
+✔ Sprint 8 migration drops tenant_id defaults for tenant-scoped tables (0.578079ms)
+✔ Sprint 8 domain events require explicit tenant context (0.404104ms)
+✔ Sprint 8 runtime writes pass tenant context explicitly (10.256331ms)
+✔ Sprint 8 docs and report include default fallback hardening (0.677197ms)
+✔ Sprint 9 exposes canonical tenant assignment-media storage helpers (1.878934ms)
+✔ Sprint 9 personnel uploads create tenant-prefixed assignment media paths (6.797935ms)
+✔ Sprint 9 signed URLs are bound to tenant and assignment before signing (1.847692ms)
+✔ Sprint 9 storage docs describe copy-first legacy cleanup (1.467049ms)
+✔ Sprint 9 schemas expose tenant task codes and price history (1.99765ms)
+✔ Sprint 9 assignment tasks store task-code snapshots (0.615517ms)
+✔ Sprint 9 migration backfills and guards tenant task-code pricing safely (2.875645ms)
+✔ Sprint 9 invoice and quote flows prefer assignment task snapshots (0.856568ms)
+✔ Sprint 9 contract maps task-code pricing work to canonical test IDs (0.691931ms)
+✔ reconstructs missing clean-install database objects (1.97133ms)
+✔ restores active customer personnel and quote numbering (5.608065ms)
+✔ keeps one canonical object code generator (0.33157ms)
+✔ removes legacy invoice numbering trigger (0.457794ms)
+✔ normalizes the current database column contracts (0.271396ms)
+✔ application schemas still require the repaired objects (0.257158ms)
+✔ historical SQL migrations with recorded staging hashes stay immutable (4.652753ms)
+✔ Fieldgrid copy changes live in a timestamp repair migration (0.637143ms)
+✔ tenant schema exposes lifecycle and plan fields (2.197515ms)
+✔ tenant lifecycle migration is staging safe (0.758708ms)
+✔ shared tenant context helpers are exported from db package (0.697397ms)
+✔ canonical Fieldgrid platform hosts are platform hosts (0.448295ms)
+✔ backoffice and API use host-first lifecycle-aware tenant context (3.600457ms)
+✔ candidate with the same baseline failures is differential pass (17.353391ms)
+✔ one candidate-only failure is differential fail (0.72218ms)
+✔ candidate with more failures than main is fail (3.160029ms)
+✔ normalized failure extraction is stable (1.300733ms)
+✔ theme settings have platform and tenant schema plus locked-down migration (2.227062ms)
+✔ central resolver follows default to platform to tenant override and keeps old exports (0.554024ms)
+✖ branding asset uploads are tenant-scoped and reject svg (8.178257ms)
+✖ platform and tenant admin expose Branding & Thema management (1.146957ms)
+✔ effective theme is applied to backoffice shell, portals and styled email (2.590417ms)
+✔ theming docs capture audit and operating contract (0.641135ms)
+✔ backoffice permissions resolves permissions by user and tenant (2.280211ms)
+✔ api auth middleware resolves permissions by user and tenant (0.531255ms)
+✔ permissions provider binds permissions to the tenant they were fetched for (0.413186ms)
+✔ same user can have different permission sets per tenant (0.404488ms)
+ℹ tests 759
+ℹ suites 0
+ℹ pass 745
+ℹ fail 14
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 264148.11688
+
+✖ failing tests:
+
+test at tests/fieldgrid-finance-downloads.test.mjs:9:1
+✖ tenant backoffice finance PDF and CSV downloads are wired (10.82188ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /const brandName = invoice\.brandName\?\.trim\(\) \|\| "Fieldgrid"/u. Input:
+  
+  'import PDFDocument from "pdfkit";\n' +
+    'import type { InvoiceDetail } from "@/app/actions/invoices";\n' +
+    'import { createQrMatrix } from "@/lib/qr-code";\n' +
+    'import {\n' +
+    '  PDF_BRAND,\n' +
+    '  PDF_PAGE,\n' +
+    '  drawPdfFooter,\n' +
+    '  drawPdfHeader,\n' +
+    '  drawPdfRecipientPanel,\n' +
+    '  drawPdfSectionTitle,\n' +
+    '  drawPdfTableHeader,\n' +
+    '  drawPdfTotalPanel,\n' +
+    '  ensurePdfPage,\n' +
+    '  formatPdfDate,\n' +
+    '  formatPdfEuro,\n' +
+    '  parsePdfMoney,\n' +
+    '} from "@/lib/pdf-style";\n' +
+    '\n' +
+    'export type InvoicePdfOptions = {\n' +
+    '  paymentQrUrl?: string | null;\n' +
+    '};\n' +
+    '\n' +
+    'function categoryLabel(category: string): string {\n' +
+    '  if (category === "extra_work") return "Meerwerk";\n' +
+    '  if (category === "material") return "Materiaal/verbruik";\n' +
+    '  return "Werkzaamheden";\n' +
+    '}\n' +
+    '\n' +
+    'function safePdfColor(value: string | null | undefined, fallback: string): string {\n' +
+    '  return /^#[0-9A-Fa-f]{6}$/u.test(value ?? "") ? value! : fallback;\n' +
+    '}\n' +
+    '\n' +
+    'function companyDisplayName(invoice: InvoiceDetail): string {\n' +
+    '  return invoice.companySnapshot.tradeName || invoice.companySnapshot.legalName || invoice.brandName || "Fieldgrid";\n' +
+    '}\n' +
+    '\n' +
+    'function companyLines(invoice: InvoiceDetail): string[] {\n' +
+    '  const company = invoice.companySnapshot;\n' +
+    '  return [\n' +
+    '    company.legalName,\n' +
+    '    company.addressLine1,\n' +
+    '    company.addressLine2,\n' +
+    '    [company.postalCode, company.city].filter(Boolean).join(" "),\n' +
+    '    company.country,\n' +
+    '  ].filter((line): line is string => Boolean(line?.trim()));\n' +
+    '}\n' +
+    '\n' +
+    'function renderPaymentInstruction(invoice: InvoiceDetail): string {\n' +
+    '  return invoice.templateSettings.paymentInstruction\n' +
+    '    .replace(/\\{\\{payment_term_days\\}\\}/gu, String(invoice.companySnapshot.defaultPaymentTermDays))\n' +
+    '    .replace(/\\{\\{invoice_number\\}\\}/gu, invoice.invoiceNumber);\n' +
+    '}\n' +
+    '\n' +
+    'function footerText(invoice: InvoiceDetail): string {\n' +
+    '  const template = invoice.templateSettings;\n' +
+    '  const company = invoice.companySnapshot;\n' +
+    '  if (template.footerText?.trim()) return template.footerText.trim();\n' +
+    '  const parts = [companyDisplayName(invoice)];\n' +
+    '  if (template.showKvkFooter && company.kvkNumber) parts.push(`KVK ${company.kvkNumber}`);\n' +
+    '  if (template.showVatFooter && company.vatNumber) parts.push(`BTW ${company.vatNumber}`);\n' +
+    '  if (template.showIbanFooter && company.iban) parts.push(`IBAN ${company.iban}`);\n' +
+    '  return parts.filter(Boolean).join(" - ") || `${companyDisplayName(invoice)} - Factuur gegenereerd.`;\n' +
+    '}\n' +
+    '\n' +
+    'function logoUrl(invoice: InvoiceDetail): string | null {\n' +
+    '  return invoice.templateSettings.logoUrl || invoice.companySnapshot.logoUrl;\n' +
+    '}\n' +
+    '\n' +
+    'async function fetchPdfLogoBuffer(url: string | null): Promise<Buffer | null> {\n' +
+    '  if (!url) return null;\n' +
+    '  let parsed: URL;\n' +
+    '  try {\n' +
+    '    parsed = new URL(url);\n' +
+    '  } catch {\n' +
+    '    return null;\n' +
+    '  }\n' +
+    '  if (!["https:", "http:"].includes(parsed.protocol)) return null;\n' +
+    '\n' +
+    '  try {\n' +
+    '    const response = await fetch(parsed, { signal: AbortSignal.timeout(5000) });\n' +
+    '    if (!response.ok) return null;\n' +
+    '    const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";\n' +
+    '    if (!contentType.startsWith("image/png") && !contentType.startsWith("image/jpeg")) return null;\n' +
+    '    const contentLength = Number(response.headers.get("content-length") ?? "0");\n' +
+    '    if (contentLength > 1_500_000) return null;\n' +
+    '    const bytes = Buffer.from(await response.arrayBuffer());\n' +
+    '    if (bytes.byteLength > 1_500_000) return null;\n' +
+    '    return bytes;\n' +
+    '  } catch {\n' +
+    '    return null;\n' +
+    '  }\n' +
+    '}\n' +
+    '\n' +
+    'function drawCompanyPanel(doc: PDFKit.PDFDocument, invoice: InvoiceDetail, y: number, logoBuffer: Buffer | null): number {\n' +
+    '  const L = PDF_PAGE.left;\n' +
+    '  const R = PDF_PAGE.right;\n' +
+    '  const W = R - L;\n' +
+    '  const company = invoice.companySnapshot;\n' +
+    '  const template = invoice.templateSettings;\n' +
+    '  const primary = safePdfColor(template.primaryColor || company.primaryColor, PDF_BRAND.blue);\n' +
+    '  const accent = safePdfColor(template.secondaryColor || company.secondaryColor, PDF_BRAND.cyan);\n' +
+    '\n' +
+    '  doc.roundedRect(L, y, W, 76, 10).fill("#FFFFFF").strokeColor(PDF_BRAND.border).stroke();\n' +
+    '  doc.fillColor(PDF_BRAND.slate).font("Helvetica-Bold").fontSize(8).text("AFZENDER", L + 18, y + 14);\n' +
+    '  const textWidth = template.showLogo && logoBuffer ? 190 : 220;\n' +
+    '  doc.fillColor(primary).font("Helvetica-Bold").fontSize(13).text(companyDisplayName(invoice), L + 18, y + 30, { width: textWidth });\n' +
+    '  doc.fillColor(PDF_BRAND.ink).font("Helvetica").fontSize(8).text(companyLines(invoice).slice(1).join(" - "), L + 18, y + 50, { width: 250 });\n' +
+    '\n' +
+    '  const metaRows: Array<[string, string | null]> = [\n' +
+    '    ["E-mail", company.administrationEmail],\n' +
+    '    ["Telefoon", company.phone],\n' +
+    '    ["Website", company.website],\n' +
+    '    ["IBAN", company.iban],\n' +
+    '  ];\n' +
+    '  let metaY = y + 14;\n' +
+    '  for (const [label, value] of metaRows.filter(([, value]) => Boolean(value))) {\n' +
+    '    doc.fillColor(PDF_BRAND.slate).font("Helvetica").fontSize(7).text(label, R - 170, metaY, { width: 52 });\n' +
+    '    doc.fillColor(PDF_BRAND.ink).font("Helvetica-Bold").fontSize(7).text(value ?? "-", R - 112, metaY, { width: 112, align: "right" });\n' +
+    '    metaY += 13;\n' +
+    '  }\n' +
+    '\n' +
+    '  if (template.showLogo && logoBuffer) {\n' +
+    '    try {\n' +
+    '      doc.image(logoBuffer, R - 86, y + 18, { fit: [68, 36], align: "center", valign: "center" });\n' +
+    '    } catch {\n' +
+    '      doc.roundedRect(R - 62, y + 48, 44, 10, 5).fill(accent);\n' +
+    '    }\n' +
+    '  } else if (template.showLogo) {\n' +
+    '    doc.roundedRect(R - 62, y + 48, 44, 10, 5).fill(accent);\n' +
+    '  }\n' +
+    '  return y + 96;\n' +
+    '}\n' +
+    '\n' +
+    'function drawPaymentQr(doc: PDFKit.PDFDocument, value: string, x: number, y: number, size: number): boolean {\n' +
+    '  let matrix: boolean[][];\n' +
+    '  try {\n' +
+    '    matrix = createQrMatrix(value);\n' +
+    '  } catch {\n' +
+    '    return false;\n' +
+    '  }\n' +
+    '\n' +
+    '  const quietZone = 4;\n' +
+    '  const moduleSize = size / (matrix.length + quietZone * 2);\n' +
+    '  doc.save();\n' +
+    '  doc.roundedRect(x, y, size, size, 8).fill("#FFFFFF").strokeColor(PDF_BRAND.border).stroke();\n' +
+    '  doc.fillColor(PDF_BRAND.ink);\n' +
+    '  matrix.forEach((row, rowIndex) => {\n' +
+    '    row.forEach((dark, columnIndex) => {\n' +
+    '      if (!dark) return;\n' +
+    '      doc.rect(\n' +
+    '        x + (columnIndex + quietZone) * moduleSize,\n' +
+    '        y + (rowIndex + quietZone) * moduleSize,\n' +
+    '        Math.ceil(moduleSize * 100) / 100,\n' +
+    '        Math.ceil(moduleSize * 100) / 100,\n' +
+    '      ).fill();\n' +
+    '    });\n' +
+    '  });\n' +
+    '  doc.restore();\n' +
+    '  return true;\n' +
+    '}\n' +
+    '\n' +
+    'function drawPaymentBlock(doc: PDFKit.PDFDocument, invoice: InvoiceDetail, y: number, paymentQrUrl: string | null | undefined): number {\n' +
+    '  const settings = invoice.paymentSettings;\n' +
+    '  const paymentUrl = invoice.paymentUrl?.trim();\n' +
+    '  if (!paymentUrl || !settings) return y;\n' +
+    '  const showLink = settings.showPaymentLinkOnInvoice;\n' +
+    '  const showQr = settings.showPaymentQrOnInvoice;\n' +
+    '  if (!showLink && !showQr) return y;\n' +
+    '\n' +
+    '  const L = PDF_PAGE.left;\n' +
+    '  const R = PDF_PAGE.right;\n' +
+    '  const W = R - L;\n' +
+    '  const qrSize = 82;\n' +
+    '  const blockHeight = showQr ? 124 : 88;\n' +
+    '  y = ensurePdfPage(doc, y, blockHeight + 18);\n' +
+    '\n' +
+    '  doc.roundedRect(L, y, W, blockHeight, 10).fill("#F8FAFC").strokeColor(PDF_BRAND.border).stroke();\n' +
+    '  doc.fillColor(PDF_BRAND.ink).font("Helvetica-Bold").fontSize(12).text(settings.paymentBlockTitle, L + 18, y + 16);\n' +
+    '  doc.fillColor(PDF_BRAND.slate).font("Helvetica").fontSize(9).text(settings.paymentBlockText, L + 18, y + 36, {\n' +
+    '    width: showQr ? W - qrSize - 56 : W - 36,\n' +
+    '    lineGap: 2,\n' +
+    '  });\n' +
+    '\n' +
+    '  if (showLink) {\n' +
+    '    doc.fillColor(PDF_BRAND.cyan).font("Helvetica-Bold").fontSize(9).text(settings.paymentLinkLabel, L + 18, y + 68, {\n' +
+    '      width: 120,\n' +
+    '      link: paymentUrl,\n' +
+    '      underline: true,\n' +
+    '    });\n' +
+    '    doc.fillColor(PDF_BRAND.ink).font("Helvetica").fontSize(7).text(paymentUrl, L + 18, y + 84, {\n' +
+    '      width: showQr ? W - qrSize - 56 : W - 36,\n' +
+    '      lineGap: 1,\n' +
+    '    });\n' +
+    '  }\n' +
+    '\n' +
+    '  if (showQr) {\n' +
+    '    const qrRendered = drawPaymentQr(doc, paymentQrUrl?.trim() || paymentUrl, R - qrSize - 18, y + 18, qrSize);\n' +
+    '    doc.fillColor(PDF_BRAND.slate).font("Helvetica").fontSize(7).text(\n' +
+    '      qrRendered ? "Scan om te betalen" : "QR-code niet beschikbaar",\n' +
+    '      R - qrSize - 18,\n' +
+    '      y + qrSize + 24,\n' +
+    '      { width: qrSize, align: "center" },\n' +
+    '    );\n' +
+    '  }\n' +
+    '\n' +
+    '  return y + blockHeight + 14;\n' +
+    '}\n' +
+    '\n' +
+    'export async function generateInvoicePdf(invoice: InvoiceDetail, options: InvoicePdfOptions = {}): Promise<Buffer> {\n' +
+    '  const brandName = companyDisplayName(invoice);\n' +
+    '  const isFieldgridBrand = brandName.toLowerCase() === "fieldgrid";\n' +
+    '  const primary = safePdfColor(invoice.templateSettings.primaryColor || invoice.companySnapshot.primaryColor, PDF_BRAND.blue);\n' +
+    '  const accent = safePdfColor(invoice.templateSettings.secondaryColor || invoice.companySnapshot.secondaryColor, PDF_BRAND.cyan);\n' +
+    '  const logoBuffer = await fetchPdfLogoBuffer(logoUrl(invoice));\n' +
+    '  const doc = new PDFDocument({ size: "A4", margin: 55, bufferPages: true });\n' +
+    '  const chunks: Buffer[] = [];\n' +
+    '\n' +
+    '  doc.on("data", (chunk: Buffer) => chunks.push(chunk));\n' +
+    '\n' +
+    '  await new Promise<void>((resolve) => {\n' +
+    '    doc.on("end", resolve);\n' +
+    '\n' +
+    '    drawPdfHeader(doc, {\n' +
+    '      title: "FACTUUR",\n' +
+    '      reference: invoice.invoiceNumber,\n' +
+    '      brandTitle: brandName.toUpperCase(),\n' +
+    '      brandSubtitle: isFieldgridBrand ? "PLATFORM" : "",\n' +
+    '      primaryColor: primary,\n' +
+    '      accentColor: accent,\n' +
+    '    });\n' +
+    '\n' +
+    '    const L = PDF_PAGE.left;\n' +
+    '    const R = PDF_PAGE.right;\n' +
+    '    const W = R - L;\n' +
+    '    let y = 142;\n' +
+    '\n' +
+    '    y = drawCompanyPanel(doc, invoice, y, logoBuffer);\n' +
+    '\n' +
+    '    if (invoice.templateSettings.introText) {\n' +
+    '      y = ensurePdfPage(doc, y, 52);\n' +
+    '      doc.fillColor(PDF_BRAND.ink).font("Helvetica").fontSize(9).text(invoice.templateSettings.introText, L, y, { width: W, lineGap: 2 });\n' +
+    '      y += Math.min(56, doc.heightOfString(invoice.templateSettings.introText, { width: W }) + 22);\n' +
+    '    }\n' +
+    '\n' +
+    '    y = drawPdfRecipientPanel(doc, {\n' +
+    '      y,\n' +
+    '      label: "Factureren aan",\n' +
+    '      name: invoice.customerName,\n' +
+    '      lines: [\n' +
+    '        invoice.customerAddress ?? "",\n' +
+    '        [invoice.customerPostalCode, invoice.customerCity].filter(Boolean).join(" "),\n' +
+    '      ],\n' +
+    '      meta: [\n' +
+    '      ["Factuurdatum", formatPdfDate(invoice.createdAt)],\n' +
+    '      ["Vervaldatum", formatPdfDate(invoice.dueDate)],\n' +
+    '      ["Opdracht", invoice.assignmentCode],\n' +
+    '      ["Object", invoice.objectName ?? "-"],\n' +
+    '      ],\n' +
+    '    });\n' +
+    '\n' +
+    '    y = drawPdfSectionTitle(doc, "Factuurregels", y);\n' +
+    '\n' +
+    '    const columns = {\n' +
+    '      category: L,\n' +
+    '      description: L + 88,\n' +
+    '      quantity: R - 190,\n' +
+    '      unit: R - 130,\n' +
+    '      total: R '... 3084 more characters
+  
+      at TestContext.<anonymous> (file:///workspace/platform/tests/fieldgrid-finance-downloads.test.mjs:22:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.start (node:internal/test_runner/test:1096:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'import PDFDocument from "pdfkit";\nimport type { InvoiceDetail } from "@/app/actions/invoices";\nimport { createQrMatrix } from "@/lib/qr-code";\nimport {\n  PDF_BRAND,\n  PDF_PAGE,\n  drawPdfFooter,\n  drawPdfHeader,\n  drawPdfRecipientPanel,\n  drawPdfSectionTitle,\n  drawPdfTableHeader,\n  drawPdfTotalPanel,\n  ensurePdfPage,\n  formatPdfDate,\n  formatPdfEuro,\n  parsePdfMoney,\n} from "@/lib/pdf-style";\n\nexport type InvoicePdfOptions = {\n  paymentQrUrl?: string | null;\n};\n\nfunction categoryLabel(category: string): string {\n  if (category === "extra_work") return "Meerwerk";\n  if (category === "material") return "Materiaal/verbruik";\n  return "Werkzaamheden";\n}\n\nfunction safePdfColor(value: string | null | undefined, fallback: string): string {\n  return /^#[0-9A-Fa-f]{6}$/u.test(value ?? "") ? value! : fallback;\n}\n\nfunction companyDisplayName(invoice: InvoiceDetail): string {\n  return invoice.companySnapshot.tradeName || invoice.companySnapshot.legalName || invoice.brandName || "Fieldgrid";\n}\n\nfunction companyLines(invoice: InvoiceDetail): string[] {\n  const company = invoice.companySnapshot;\n  return [\n    company.legalName,\n    company.addressLine1,\n    company.addressLine2,\n    [company.postalCode, company.city].filter(Boolean).join(" "),\n    company.country,\n  ].filter((line): line is string => Boolean(line?.trim()));\n}\n\nfunction renderPaymentInstruction(invoice: InvoiceDetail): string {\n  return invoice.templateSettings.paymentInstruction\n    .replace(/\\{\\{payment_term_days\\}\\}/gu, String(invoice.companySnapshot.defaultPaymentTermDays))\n    .replace(/\\{\\{invoice_number\\}\\}/gu, invoice.invoiceNumber);\n}\n\nfunction footerText(invoice: InvoiceDetail): string {\n  const template = invoice.templateSettings;\n  const company = invoice.companySnapshot;\n  if (template.footerText?.trim()) return template.footerText.trim();\n  const parts = [companyDisplayName(invoice)];\n  if (template.showKvkFooter && company.kvkNumber) parts.push(`KVK ${company.kvkNumber}`);\n  if (template.showVatFooter && company.vatNumber) parts.push(`BTW ${company.vatNumber}`);\n  if (template.showIbanFooter && company.iban) parts.push(`IBAN ${company.iban}`);\n  return parts.filter(Boolean).join(" - ") || `${companyDisplayName(invoice)} - Factuur gegenereerd.`;\n}\n\nfunction logoUrl(invoice: InvoiceDetail): string | null {\n  return invoice.templateSettings.logoUrl || invoice.companySnapshot.logoUrl;\n}\n\nasync function fetchPdfLogoBuffer(url: string | null): Promise<Buffer | null> {\n  if (!url) return null;\n  let parsed: URL;\n  try {\n    parsed = new URL(url);\n  } catch {\n    return null;\n  }\n  if (!["https:", "http:"].includes(parsed.protocol)) return null;\n\n  try {\n    const response = await fetch(parsed, { signal: AbortSignal.timeout(5000) });\n    if (!response.ok) return null;\n    const contentType = response.headers.get("content-type")?.toLowerCase() ?? "";\n    if (!contentType.startsWith("image/png") && !contentType.startsWith("image/jpeg")) return null;\n    const contentLength = Number(response.headers.get("content-length") ?? "0");\n    if (contentLength > 1_500_000) return null;\n    const bytes = Buffer.from(await response.arrayBuffer());\n    if (bytes.byteLength > 1_500_000) return null;\n    return bytes;\n  } catch {\n    return null;\n  }\n}\n\nfunction drawCompanyPanel(doc: PDFKit.PDFDocument, invoice: InvoiceDetail, y: number, logoBuffer: Buffer | null): number {\n  const L = PDF_PAGE.left;\n  const R = PDF_PAGE.right;\n  const W = R - L;\n  const company = invoice.companySnapshot;\n  const template = invoice.templateSettings;\n  const primary = safePdfColor(template.primaryColor || company.primaryColor, PDF_BRAND.blue);\n  const accent = safePdfColor(template.secondaryColor || company.secondaryColor, PDF_BRAND.cyan);\n\n  doc.roundedRect(L, y, W, 76, 10).fill("#FFFFFF").strokeColor(PDF_BRAND.border).stroke();\n  doc.fillColor(PDF_BRAND.slate).font("Helvetica-Bold").fontSize(8).text("AFZENDER", L + 18, y + 14);\n  const textWidth = template.showLogo && logoBuffer ? 190 : 220;\n  doc.fillColor(primary).font("Helvetica-Bold").fontSize(13).text(companyDisplayName(invoice), L + 18, y + 30, { width: textWidth });\n  doc.fillColor(PDF_BRAND.ink).font("Helvetica").fontSize(8).text(companyLines(invoice).slice(1).join(" - "), L + 18, y + 50, { width: 250 });\n\n  const metaRows: Array<[string, string | null]> = [\n    ["E-mail", company.administrationEmail],\n    ["Telefoon", company.phone],\n    ["Website", company.website],\n    ["IBAN", company.iban],\n  ];\n  let metaY = y + 14;\n  for (const [label, value] of metaRows.filter(([, value]) => Boolean(value))) {\n    doc.fillColor(PDF_BRAND.slate).font("Helvetica").fontSize(7).text(label, R - 170, metaY, { width: 52 });\n    doc.fillColor(PDF_BRAND.ink).font("Helvetica-Bold").fontSize(7).text(value ?? "-", R - 112, metaY, { width: 112, align: "right" });\n    metaY += 13;\n  }\n\n  if (template.showLogo && logoBuffer) {\n    try {\n      doc.image(logoBuffer, R - 86, y + 18, { fit: [68, 36], align: "center", valign: "center" });\n    } catch {\n      doc.roundedRect(R - 62, y + 48, 44, 10, 5).fill(accent);\n    }\n  } else if (template.showLogo) {\n    doc.roundedRect(R - 62, y + 48, 44, 10, 5).fill(accent);\n  }\n  return y + 96;\n}\n\nfunction drawPaymentQr(doc: PDFKit.PDFDocument, value: string, x: number, y: number, size: number): boolean {\n  let matrix: boolean[][];\n  try {\n    matrix = createQrMatrix(value);\n  } catch {\n    return false;\n  }\n\n  const quietZone = 4;\n  const moduleSize = size / (matrix.length + quietZone * 2);\n  doc.save();\n  doc.roundedRect(x, y, size, size, 8).fill("#FFFFFF").strokeColor(PDF_BRAND.border).stroke();\n  doc.fillColor(PDF_BRAND.ink);\n  matrix.forEach((row, rowIndex) => {\n    row.forEach((dark, columnIndex) => {\n      if (!dark) return;\n      doc.rect(\n        x + (columnIndex + quietZone) * moduleSize,\n        y + (rowIndex + quietZone) * moduleSize,\n        Math.ceil(moduleSize * 100) / 100,\n        Math.ceil(moduleSize * 100) / 100,\n      ).fill();\n    });\n  });\n  doc.restore();\n  return true;\n}\n\nfunction drawPaymentBlock(doc: PDFKit.PDFDocument, invoice: InvoiceDetail, y: number, paymentQrUrl: string | null | undefined): number {\n  const settings = invoice.paymentSettings;\n  const paymentUrl = invoice.paymentUrl?.trim();\n  if (!paymentUrl || !settings) return y;\n  const showLink = settings.showPaymentLinkOnInvoice;\n  const showQr = settings.showPaymentQrOnInvoice;\n  if (!showLink && !showQr) return y;\n\n  const L = PDF_PAGE.left;\n  const R = PDF_PAGE.right;\n  const W = R - L;\n  const qrSize = 82;\n  const blockHeight = showQr ? 124 : 88;\n  y = ensurePdfPage(doc, y, blockHeight + 18);\n\n  doc.roundedRect(L, y, W, blockHeight, 10).fill("#F8FAFC").strokeColor(PDF_BRAND.border).stroke();\n  doc.fillColor(PDF_BRAND.ink).font("Helvetica-Bold").fontSize(12).text(settings.paymentBlockTitle, L + 18, y + 16);\n  doc.fillColor(PDF_BRAND.slate).font("Helvetica").fontSize(9).text(settings.paymentBlockText, L + 18, y + 36, {\n    width: showQr ? W - qrSize - 56 : W - 36,\n    lineGap: 2,\n  });\n\n  if (showLink) {\n    doc.fillColor(PDF_BRAND.cyan).font("Helvetica-Bold").fontSize(9).text(settings.paymentLinkLabel, L + 18, y + 68, {\n      width: 120,\n      link: paymentUrl,\n      underline: true,\n    });\n    doc.fillColor(PDF_BRAND.ink).font("Helvetica").fontSize(7).text(paymentUrl, L + 18, y + 84, {\n      width: showQr ? W - qrSize - 56 : W - 36,\n      lineGap: 1,\n    });\n  }\n\n  if (showQr) {\n    const qrRendered = drawPaymentQr(doc, paymentQrUrl?.trim() || paymentUrl, R - qrSize - 18, y + 18, qrSize);\n    doc.fillColor(PDF_BRAND.slate).font("Helvetica").fontSize(7).text(\n      qrRendered ? "Scan om te betalen" : "QR-code niet beschikbaar",\n      R - qrSize - 18,\n      y + qrSize + 24,\n      { width: qrSize, align: "center" },\n    );\n  }\n\n  return y + blockHeight + 14;\n}\n\nexport async function generateInvoicePdf(invoice: InvoiceDetail, options: InvoicePdfOptions = {}): Promise<Buffer> {\n  const brandName = companyDisplayName(invoice);\n  const isFieldgridBrand = brandName.toLowerCase() === "fieldgrid";\n  const primary = safePdfColor(invoice.templateSettings.primaryColor || invoice.companySnapshot.primaryColor, PDF_BRAND.blue);\n  const accent = safePdfColor(invoice.templateSettings.secondaryColor || invoice.companySnapshot.secondaryColor, PDF_BRAND.cyan);\n  const logoBuffer = await fetchPdfLogoBuffer(logoUrl(invoice));\n  const doc = new PDFDocument({ size: "A4", margin: 55, bufferPages: true });\n  const chunks: Buffer[] = [];\n\n  doc.on("data", (chunk: Buffer) => chunks.push(chunk));\n\n  await new Promise<void>((resolve) => {\n    doc.on("end", resolve);\n\n    drawPdfHeader(doc, {\n      title: "FACTUUR",\n      reference: invoice.invoiceNumber,\n      brandTitle: brandName.toUpperCase(),\n      brandSubtitle: isFieldgridBrand ? "PLATFORM" : "",\n      primaryColor: primary,\n      accentColor: accent,\n    });\n\n    const L = PDF_PAGE.left;\n    const R = PDF_PAGE.right;\n    const W = R - L;\n    let y = 142;\n\n    y = drawCompanyPanel(doc, invoice, y, logoBuffer);\n\n    if (invoice.templateSettings.introText) {\n      y = ensurePdfPage(doc, y, 52);\n      doc.fillColor(PDF_BRAND.ink).font("Helvetica").fontSize(9).text(invoice.templateSettings.introText, L, y, { width: W, lineGap: 2 });\n      y += Math.min(56, doc.heightOfString(invoice.templateSettings.introText, { width: W }) + 22);\n    }\n\n    y = drawPdfRecipientPanel(doc, {\n      y,\n      label: "Factureren aan",\n      name: invoice.customerName,\n      lines: [\n        invoice.customerAddress ?? "",\n        [invoice.customerPostalCode, invoice.customerCity].filter(Boolean).join(" "),\n      ],\n      meta: [\n      ["Factuurdatum", formatPdfDate(invoice.createdAt)],\n      ["Vervaldatum", formatPdfDate(invoice.dueDate)],\n      ["Opdracht", invoice.assignmentCode],\n      ["Object", invoice.objectName ?? "-"],\n      ],\n    });\n\n    y = drawPdfSectionTitle(doc, "Factuurregels", y);\n\n    const columns = {\n      category: L,\n      description: L + 88,\n      quantity: R - 190,\n      unit: R - 130,\n      total: R '... 3084 more characters,
+    expected: /const brandName = invoice\.brandName\?\.trim\(\) \|\| "Fieldgrid"/u,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at tests/fieldgrid-invoice-canon-sprint6-payments-qr.test.mjs:49:1
+✖ Sprint 6 renders configured payment link and server-side QR in backoffice PDFs (2.344548ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /\/api\/invoices\/\$\{invoice\.id\}\/pay/u. Input:
+  
+  'export async function GET(\n' +
+    '  request: Request,\n' +
+    '  { params }: { params: Promise<{ id: string }> },\n' +
+    ') {\n' +
+    '  const canRead = await hasPermissionFromRequest(request, "invoices", "read");\n' +
+    '  if (!canRead) return new NextResponse("Forbidden", { status: 403 });\n' +
+    '\n' +
+    '  const { id } = await params;\n' +
+    '  const tenantId = await requireCurrentTenantIdFromRequest(request);\n' +
+    '  await requireSensitiveRuntimeAccessFromRequest(request, {\n' +
+    '    tenantId,\n' +
+    '    scope: "tenant_invoices",\n' +
+    '    accessLevel: "export",\n' +
+    '    resourceType: "invoices",\n' +
+    '    resourceId: id,\n' +
+    '    exportDownload: true,\n' +
+    '    metadata: { format: "pdf" },\n' +
+    '  });\n' +
+    '  const invoice = await getInvoice(id, { request });\n' +
+    '  if (!invoice) return new NextResponse("Not found", { status: 404 });\n' +
+    '\n' +
+    '  const paymentQrUrl = invoice.paymentUrl\n' +
+    '    ? new URL(`/backoffice-api/invoices/${invoice.id}/pay`, request.url).toString()\n' +
+    '    : null;\n' +
+    '  const pdfBuffer = await generateInvoicePdf(invoice, { paymentQrUrl });\n' +
+    '  const filename = `${sanitizePdfFilename(invoice.invoiceNumber, `factuur-${invoice.id.slice(0, 8)}`)}.pdf`;\n' +
+    '\n' +
+    '  return new NextResponse(new Uint8Array(pdfBuffer), {\n' +
+    '    headers: {\n' +
+    '      "Content-Type":        "application/pdf",\n' +
+    '      "Content-Disposition": `inline; filename="${filename}"`,\n' +
+    '      "Content-Length":      String(pdfBuffer.byteLength),\n' +
+    '    },\n' +
+    '  });\n' +
+    '}\n'
+  
+      at TestContext.<anonymous> (file:///workspace/platform/tests/fieldgrid-invoice-canon-sprint6-payments-qr.test.mjs:62:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'export async function GET(\n  request: Request,\n  { params }: { params: Promise<{ id: string }> },\n) {\n  const canRead = await hasPermissionFromRequest(request, "invoices", "read");\n  if (!canRead) return new NextResponse("Forbidden", { status: 403 });\n\n  const { id } = await params;\n  const tenantId = await requireCurrentTenantIdFromRequest(request);\n  await requireSensitiveRuntimeAccessFromRequest(request, {\n    tenantId,\n    scope: "tenant_invoices",\n    accessLevel: "export",\n    resourceType: "invoices",\n    resourceId: id,\n    exportDownload: true,\n    metadata: { format: "pdf" },\n  });\n  const invoice = await getInvoice(id, { request });\n  if (!invoice) return new NextResponse("Not found", { status: 404 });\n\n  const paymentQrUrl = invoice.paymentUrl\n    ? new URL(`/backoffice-api/invoices/${invoice.id}/pay`, request.url).toString()\n    : null;\n  const pdfBuffer = await generateInvoicePdf(invoice, { paymentQrUrl });\n  const filename = `${sanitizePdfFilename(invoice.invoiceNumber, `factuur-${invoice.id.slice(0, 8)}`)}.pdf`;\n\n  return new NextResponse(new Uint8Array(pdfBuffer), {\n    headers: {\n      "Content-Type":        "application/pdf",\n      "Content-Disposition": `inline; filename="${filename}"`,\n      "Content-Length":      String(pdfBuffer.byteLength),\n    },\n  });\n}\n',
+    expected: /\/api\/invoices\/\$\{invoice\.id\}\/pay/u,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at tests/fieldgrid-invoice-canon-sprint8-preview-test-pdf.test.mjs:21:1
+✖ Sprint 8 invoice settings preview reads the next sequence without claiming a number (3.640105ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /testPdfUrl:\s+"\/api\/invoices\/test-pdf"/u. Input:
+  
+  'export async function getInvoiceSettings(): Promise<InvoiceSettingsBundle> {\n' +
+    '  await requirePermission("settings", "read");\n' +
+    '  const tenantId = await requireCurrentTenantId();\n' +
+    '\n' +
+    '  const [companyRows, numberingRows, templateRows, paymentRows] = await Promise.all([\n' +
+    '    db.select().from(tenantCompanySettingsTable).where(eq(tenantCompanySettingsTable.tenantId, tenantId)).limit(1),\n' +
+    '    db\n' +
+    '      .select()\n' +
+    '      .from(invoiceNumberingSettingsTable)\n' +
+    '      .where(and(\n' +
+    '        eq(invoiceNumberingSettingsTable.tenantId, tenantId),\n' +
+    '        eq(invoiceNumberingSettingsTable.documentType, "invoice"),\n' +
+    '        eq(invoiceNumberingSettingsTable.isActive, true),\n' +
+    '      ))\n' +
+    '      .limit(1),\n' +
+    '    db.select().from(invoiceTemplateSettingsTable).where(eq(invoiceTemplateSettingsTable.tenantId, tenantId)).limit(1),\n' +
+    '    db.select().from(invoicePaymentSettingsTable).where(eq(invoicePaymentSettingsTable.tenantId, tenantId)).limit(1),\n' +
+    '  ]);\n' +
+    '\n' +
+    '  const company = companyRows[0];\n' +
+    '  const numbering = numberingRows[0];\n' +
+    '  const template = templateRows[0];\n' +
+    '  const payment = paymentRows[0];\n' +
+    '  const numberingSettings: InvoiceNumberingSettingsForm = {\n' +
+    '    prefix: numbering?.prefix ?? DEFAULT_NUMBERING.prefix,\n' +
+    '    format: numbering?.format ?? DEFAULT_NUMBERING.format,\n' +
+    '    separator: numbering?.separator ?? DEFAULT_NUMBERING.separator,\n' +
+    '    numberPadding: numbering?.numberPadding ?? DEFAULT_NUMBERING.numberPadding,\n' +
+    '    resetPeriod: numbering?.resetPeriod ?? DEFAULT_NUMBERING.resetPeriod,\n' +
+    '    defaultStartNumber: numbering?.defaultStartNumber ?? DEFAULT_NUMBERING.defaultStartNumber,\n' +
+    '  };\n' +
+    '  const companySettings: InvoiceCompanySettingsForm = {\n' +
+    '    legalName: company?.legalName ?? DEFAULT_COMPANY.legalName,\n' +
+    '    tradeName: company?.tradeName ?? DEFAULT_COMPANY.tradeName,\n' +
+    '    addressLine1: company?.addressLine1 ?? DEFAULT_COMPANY.addressLine1,\n' +
+    '    addressLine2: company?.addressLine2 ?? DEFAULT_COMPANY.addressLine2,\n' +
+    '    postalCode: company?.postalCode ?? DEFAULT_COMPANY.postalCode,\n' +
+    '    city: company?.city ?? DEFAULT_COMPANY.city,\n' +
+    '    country: company?.country ?? DEFAULT_COMPANY.country,\n' +
+    '    kvkNumber: company?.kvkNumber ?? DEFAULT_COMPANY.kvkNumber,\n' +
+    '    vatNumber: company?.vatNumber ?? DEFAULT_COMPANY.vatNumber,\n' +
+    '    iban: company?.iban ?? DEFAULT_COMPANY.iban,\n' +
+    '    bic: company?.bic ?? DEFAULT_COMPANY.bic,\n' +
+    '    administrationEmail: company?.administrationEmail ?? DEFAULT_COMPANY.administrationEmail,\n' +
+    '    phone: company?.phone ?? DEFAULT_COMPANY.phone,\n' +
+    '    website: company?.website ?? DEFAULT_COMPANY.website,\n' +
+    '    logoUrl: company?.logoUrl ?? DEFAULT_COMPANY.logoUrl,\n' +
+    '    primaryColor: company?.primaryColor ?? DEFAULT_COMPANY.primaryColor,\n' +
+    '    secondaryColor: company?.secondaryColor ?? DEFAULT_COMPANY.secondaryColor,\n' +
+    '    defaultPaymentTermDays: company?.defaultPaymentTermDays ?? DEFAULT_COMPANY.defaultPaymentTermDays,\n' +
+    '  };\n' +
+    '  const templateSettings: InvoiceTemplateSettingsForm = {\n' +
+    '    logoUrl: template?.logoUrl ?? DEFAULT_TEMPLATE.logoUrl,\n' +
+    '    primaryColor: template?.primaryColor ?? DEFAULT_TEMPLATE.primaryColor,\n' +
+    '    secondaryColor: template?.secondaryColor ?? DEFAULT_TEMPLATE.secondaryColor,\n' +
+    '    introText: template?.introText ?? DEFAULT_TEMPLATE.introText,\n' +
+    '    footerText: template?.footerText ?? DEFAULT_TEMPLATE.footerText,\n' +
+    '    paymentInstruction: template?.paymentInstruction ?? DEFAULT_TEMPLATE.paymentInstruction,\n' +
+    '    showLogo: template?.showLogo ?? DEFAULT_TEMPLATE.showLogo,\n' +
+    '    showCompanyFooter: template?.showCompanyFooter ?? DEFAULT_TEMPLATE.showCompanyFooter,\n' +
+    '    showKvkFooter: template?.showKvkFooter ?? DEFAULT_TEMPLATE.showKvkFooter,\n' +
+    '    showVatFooter: template?.showVatFooter ?? DEFAULT_TEMPLATE.showVatFooter,\n' +
+    '    showIbanFooter: template?.showIbanFooter ?? DEFAULT_TEMPLATE.showIbanFooter,\n' +
+    '  };\n' +
+    '  const paymentSettings: InvoicePaymentSettingsForm = {\n' +
+    '    paymentProvider: payment?.paymentProvider ?? DEFAULT_PAYMENT.paymentProvider,\n' +
+    '    mollieEnabled: payment?.mollieEnabled ?? DEFAULT_PAYMENT.mollieEnabled,\n' +
+    '    showPaymentLinkOnInvoice: payment?.showPaymentLinkOnInvoice ?? DEFAULT_PAYMENT.showPaymentLinkOnInvoice,\n' +
+    '    showPaymentQrOnInvoice: payment?.showPaymentQrOnInvoice ?? DEFAULT_PAYMENT.showPaymentQrOnInvoice,\n' +
+    '    paymentBlockTitle: payment?.paymentBlockTitle ?? DEFAULT_PAYMENT.paymentBlockTitle,\n' +
+    '    paymentBlockText: payment?.paymentBlockText ?? DEFAULT_PAYMENT.paymentBlockText,\n' +
+    '    paymentLinkLabel: payment?.paymentLinkLabel ?? DEFAULT_PAYMENT.paymentLinkLabel,\n' +
+    '  };\n' +
+    '  const today = new Date();\n' +
+    '  const periodKey = getInvoiceNumberPeriodKey(numberingSettings.resetPeriod, today);\n' +
+    '  const [sequence] = numbering\n' +
+    '    ? await db\n' +
+    '        .select({ nextNumber: invoiceNumberSequencesTable.nextNumber })\n' +
+    '        .from(invoiceNumberSequencesTable)\n' +
+    '        .where(\n' +
+    '          and(\n' +
+    '            eq(invoiceNumberSequencesTable.tenantId, tenantId),\n' +
+    '            eq(invoiceNumberSequencesTable.numberingSettingsId, numbering.id),\n' +
+    '            eq(invoiceNumberSequencesTable.documentType, "invoice"),\n' +
+    '            eq(invoiceNumberSequencesTable.periodKey, periodKey),\n' +
+    '          ),\n' +
+    '        )\n' +
+    '        .limit(1)\n' +
+    '    : [];\n' +
+    '  const previewNumber = previewInvoiceNumber(numberingSettings, sequence?.nextNumber ?? numberingSettings.defaultStartNumber, today);\n' +
+    '  const preview = {\n' +
+    '    invoiceNumber: previewNumber.invoiceNumber,\n' +
+    '    periodKey: previewNumber.periodKey,\n' +
+    '    sequenceValue: previewNumber.sequenceValue,\n' +
+    '    dueDateDays: companySettings.defaultPaymentTermDays,\n' +
+    '    testPdfUrl: "/backoffice-api/invoices/test-pdf",\n' +
+    '    warnings: invoiceSettingsWarnings({\n' +
+    '      company: companySettings,\n' +
+    '      template: templateSettings,\n' +
+    '      payment: paymentSettings,\n' +
+    '    }),\n' +
+    '  };\n' +
+    '\n' +
+    '  return {\n' +
+    '    company: companySettings,\n' +
+    '    numbering: numberingSettings,\n' +
+    '    template: templateSettings,\n' +
+    '    payment: paymentSettings,\n' +
+    '    preview,\n' +
+    '  };\n' +
+    '}\n'
+  
+      at TestContext.<anonymous> (file:///workspace/platform/tests/fieldgrid-invoice-canon-sprint8-preview-test-pdf.test.mjs:27:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.start (node:internal/test_runner/test:1096:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'export async function getInvoiceSettings(): Promise<InvoiceSettingsBundle> {\n  await requirePermission("settings", "read");\n  const tenantId = await requireCurrentTenantId();\n\n  const [companyRows, numberingRows, templateRows, paymentRows] = await Promise.all([\n    db.select().from(tenantCompanySettingsTable).where(eq(tenantCompanySettingsTable.tenantId, tenantId)).limit(1),\n    db\n      .select()\n      .from(invoiceNumberingSettingsTable)\n      .where(and(\n        eq(invoiceNumberingSettingsTable.tenantId, tenantId),\n        eq(invoiceNumberingSettingsTable.documentType, "invoice"),\n        eq(invoiceNumberingSettingsTable.isActive, true),\n      ))\n      .limit(1),\n    db.select().from(invoiceTemplateSettingsTable).where(eq(invoiceTemplateSettingsTable.tenantId, tenantId)).limit(1),\n    db.select().from(invoicePaymentSettingsTable).where(eq(invoicePaymentSettingsTable.tenantId, tenantId)).limit(1),\n  ]);\n\n  const company = companyRows[0];\n  const numbering = numberingRows[0];\n  const template = templateRows[0];\n  const payment = paymentRows[0];\n  const numberingSettings: InvoiceNumberingSettingsForm = {\n    prefix: numbering?.prefix ?? DEFAULT_NUMBERING.prefix,\n    format: numbering?.format ?? DEFAULT_NUMBERING.format,\n    separator: numbering?.separator ?? DEFAULT_NUMBERING.separator,\n    numberPadding: numbering?.numberPadding ?? DEFAULT_NUMBERING.numberPadding,\n    resetPeriod: numbering?.resetPeriod ?? DEFAULT_NUMBERING.resetPeriod,\n    defaultStartNumber: numbering?.defaultStartNumber ?? DEFAULT_NUMBERING.defaultStartNumber,\n  };\n  const companySettings: InvoiceCompanySettingsForm = {\n    legalName: company?.legalName ?? DEFAULT_COMPANY.legalName,\n    tradeName: company?.tradeName ?? DEFAULT_COMPANY.tradeName,\n    addressLine1: company?.addressLine1 ?? DEFAULT_COMPANY.addressLine1,\n    addressLine2: company?.addressLine2 ?? DEFAULT_COMPANY.addressLine2,\n    postalCode: company?.postalCode ?? DEFAULT_COMPANY.postalCode,\n    city: company?.city ?? DEFAULT_COMPANY.city,\n    country: company?.country ?? DEFAULT_COMPANY.country,\n    kvkNumber: company?.kvkNumber ?? DEFAULT_COMPANY.kvkNumber,\n    vatNumber: company?.vatNumber ?? DEFAULT_COMPANY.vatNumber,\n    iban: company?.iban ?? DEFAULT_COMPANY.iban,\n    bic: company?.bic ?? DEFAULT_COMPANY.bic,\n    administrationEmail: company?.administrationEmail ?? DEFAULT_COMPANY.administrationEmail,\n    phone: company?.phone ?? DEFAULT_COMPANY.phone,\n    website: company?.website ?? DEFAULT_COMPANY.website,\n    logoUrl: company?.logoUrl ?? DEFAULT_COMPANY.logoUrl,\n    primaryColor: company?.primaryColor ?? DEFAULT_COMPANY.primaryColor,\n    secondaryColor: company?.secondaryColor ?? DEFAULT_COMPANY.secondaryColor,\n    defaultPaymentTermDays: company?.defaultPaymentTermDays ?? DEFAULT_COMPANY.defaultPaymentTermDays,\n  };\n  const templateSettings: InvoiceTemplateSettingsForm = {\n    logoUrl: template?.logoUrl ?? DEFAULT_TEMPLATE.logoUrl,\n    primaryColor: template?.primaryColor ?? DEFAULT_TEMPLATE.primaryColor,\n    secondaryColor: template?.secondaryColor ?? DEFAULT_TEMPLATE.secondaryColor,\n    introText: template?.introText ?? DEFAULT_TEMPLATE.introText,\n    footerText: template?.footerText ?? DEFAULT_TEMPLATE.footerText,\n    paymentInstruction: template?.paymentInstruction ?? DEFAULT_TEMPLATE.paymentInstruction,\n    showLogo: template?.showLogo ?? DEFAULT_TEMPLATE.showLogo,\n    showCompanyFooter: template?.showCompanyFooter ?? DEFAULT_TEMPLATE.showCompanyFooter,\n    showKvkFooter: template?.showKvkFooter ?? DEFAULT_TEMPLATE.showKvkFooter,\n    showVatFooter: template?.showVatFooter ?? DEFAULT_TEMPLATE.showVatFooter,\n    showIbanFooter: template?.showIbanFooter ?? DEFAULT_TEMPLATE.showIbanFooter,\n  };\n  const paymentSettings: InvoicePaymentSettingsForm = {\n    paymentProvider: payment?.paymentProvider ?? DEFAULT_PAYMENT.paymentProvider,\n    mollieEnabled: payment?.mollieEnabled ?? DEFAULT_PAYMENT.mollieEnabled,\n    showPaymentLinkOnInvoice: payment?.showPaymentLinkOnInvoice ?? DEFAULT_PAYMENT.showPaymentLinkOnInvoice,\n    showPaymentQrOnInvoice: payment?.showPaymentQrOnInvoice ?? DEFAULT_PAYMENT.showPaymentQrOnInvoice,\n    paymentBlockTitle: payment?.paymentBlockTitle ?? DEFAULT_PAYMENT.paymentBlockTitle,\n    paymentBlockText: payment?.paymentBlockText ?? DEFAULT_PAYMENT.paymentBlockText,\n    paymentLinkLabel: payment?.paymentLinkLabel ?? DEFAULT_PAYMENT.paymentLinkLabel,\n  };\n  const today = new Date();\n  const periodKey = getInvoiceNumberPeriodKey(numberingSettings.resetPeriod, today);\n  const [sequence] = numbering\n    ? await db\n        .select({ nextNumber: invoiceNumberSequencesTable.nextNumber })\n        .from(invoiceNumberSequencesTable)\n        .where(\n          and(\n            eq(invoiceNumberSequencesTable.tenantId, tenantId),\n            eq(invoiceNumberSequencesTable.numberingSettingsId, numbering.id),\n            eq(invoiceNumberSequencesTable.documentType, "invoice"),\n            eq(invoiceNumberSequencesTable.periodKey, periodKey),\n          ),\n        )\n        .limit(1)\n    : [];\n  const previewNumber = previewInvoiceNumber(numberingSettings, sequence?.nextNumber ?? numberingSettings.defaultStartNumber, today);\n  const preview = {\n    invoiceNumber: previewNumber.invoiceNumber,\n    periodKey: previewNumber.periodKey,\n    sequenceValue: previewNumber.sequenceValue,\n    dueDateDays: companySettings.defaultPaymentTermDays,\n    testPdfUrl: "/backoffice-api/invoices/test-pdf",\n    warnings: invoiceSettingsWarnings({\n      company: companySettings,\n      template: templateSettings,\n      payment: paymentSettings,\n    }),\n  };\n\n  return {\n    company: companySettings,\n    numbering: numberingSettings,\n    template: templateSettings,\n    payment: paymentSettings,\n    preview,\n  };\n}\n',
+    expected: /testPdfUrl:\s+"\/api\/invoices\/test-pdf"/u,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at tests/fieldgrid-material-inventory-phase2.test.mjs:43:1
+✖ phase 2 stock locations support object and personnel dossiers (8.284263ms)
+  AssertionError [ERR_ASSERTION]: object material tab should contain materiaal
+      at assertContains (file:///workspace/platform/tests/fieldgrid-material-inventory-phase2.test.mjs:11:12)
+      at TestContext.<anonymous> (file:///workspace/platform/tests/fieldgrid-material-inventory-phase2.test.mjs:59:3)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/fieldgrid-material-inventory-phase7.test.mjs:49:1
+✖ phase 7 manual code fallback and login form keep redirects safe (4.468915ms)
+  AssertionError [ERR_ASSERTION]: auth redirect sanitization should contain startsWith("/login")
+      at assertContains (file:///workspace/platform/tests/fieldgrid-material-inventory-phase7.test.mjs:11:12)
+      at TestContext.<anonymous> (file:///workspace/platform/tests/fieldgrid-material-inventory-phase7.test.mjs:56:3)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/fieldgrid-personnel-home-address-routing.test.mjs:27:1
+✖ backoffice and personnel PWA offer secured address autocomplete (10.480782ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /\/api\/google-maps\/places/. Input:
+  
+  '"use client";\n' +
+    '\n' +
+    'import { useEffect, useId, useRef, useState } from "react";\n' +
+    'import type { KeyboardEvent } from "react";\n' +
+    'import { Loader2, MapPin, Search } from "lucide-react";\n' +
+    'import type { GooglePlaceAddress, GooglePlacesSuggestion } from "@workspace/db/google-places";\n' +
+    'import { Input } from "@/components/ui/input";\n' +
+    '\n' +
+    'export type AddressAutocompleteSelection = {\n' +
+    '  suggestion: GooglePlacesSuggestion;\n' +
+    '  place: GooglePlaceAddress;\n' +
+    '};\n' +
+    '\n' +
+    'type AddressAutocompleteProps = {\n' +
+    '  label?: string;\n' +
+    '  description?: string;\n' +
+    '  placeholder?: string;\n' +
+    '  endpointBase?: string;\n' +
+    '  limit?: number;\n' +
+    '  disabled?: boolean;\n' +
+    '  className?: string;\n' +
+    '  onSelect: (selection: AddressAutocompleteSelection) => void;\n' +
+    '};\n' +
+    '\n' +
+    'function createPlacesSessionToken(): string {\n' +
+    '  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;\n' +
+    '}\n' +
+    '\n' +
+    'export function AddressAutocomplete({\n' +
+    '  label = "Adres zoeken",\n' +
+    '  description = "Zoek via Google Places of vul de adresvelden handmatig in.",\n' +
+    '  placeholder = "Typ minimaal 3 tekens...",\n' +
+    '  endpointBase = "/backoffice-api/google-maps/places",\n' +
+    '  limit = 6,\n' +
+    '  disabled = false,\n' +
+    '  className,\n' +
+    '  onSelect,\n' +
+    '}: AddressAutocompleteProps) {\n' +
+    '  const inputId = useId();\n' +
+    '  const listId = `${inputId}-list`;\n' +
+    '  const blurTimer = useRef<number | null>(null);\n' +
+    '  const [query, setQuery] = useState("");\n' +
+    '  const [sessionToken, setSessionToken] = useState(createPlacesSessionToken);\n' +
+    '  const [suggestions, setSuggestions] = useState<GooglePlacesSuggestion[]>([]);\n' +
+    '  const [loading, setLoading] = useState(false);\n' +
+    '  const [error, setError] = useState<string | null>(null);\n' +
+    '  const [activeIndex, setActiveIndex] = useState(-1);\n' +
+    '  const [hasSearched, setHasSearched] = useState(false);\n' +
+    '\n' +
+    '  useEffect(() => {\n' +
+    '    const trimmed = query.trim();\n' +
+    '    setActiveIndex(-1);\n' +
+    '    setError(null);\n' +
+    '\n' +
+    '    if (trimmed.length < 3) {\n' +
+    '      setSuggestions([]);\n' +
+    '      setLoading(false);\n' +
+    '      setHasSearched(false);\n' +
+    '      return;\n' +
+    '    }\n' +
+    '\n' +
+    '    const controller = new AbortController();\n' +
+    '    const timeout = window.setTimeout(async () => {\n' +
+    '      setLoading(true);\n' +
+    '      try {\n' +
+    '        const response = await fetch(`${endpointBase}/autocomplete`, {\n' +
+    '          method: "POST",\n' +
+    '          headers: { "Content-Type": "application/json" },\n' +
+    '          body: JSON.stringify({ input: trimmed, sessionToken, limit }),\n' +
+    '          signal: controller.signal,\n' +
+    '        });\n' +
+    '        if (!response.ok) {\n' +
+    '          setSuggestions([]);\n' +
+    '          setError("Adres zoeken is tijdelijk niet beschikbaar. Handmatig invullen kan altijd.");\n' +
+    '          return;\n' +
+    '        }\n' +
+    '        const payload = (await response.json()) as { suggestions?: GooglePlacesSuggestion[] };\n' +
+    '        setSuggestions(payload.suggestions ?? []);\n' +
+    '        setHasSearched(true);\n' +
+    '      } catch (err) {\n' +
+    '        if (!(err instanceof DOMException && err.name === "AbortError")) {\n' +
+    '          setSuggestions([]);\n' +
+    '          setHasSearched(true);\n' +
+    '          setError("Adres zoeken is tijdelijk niet beschikbaar. Handmatig invullen kan altijd.");\n' +
+    '        }\n' +
+    '      } finally {\n' +
+    '        setLoading(false);\n' +
+    '      }\n' +
+    '    }, 350);\n' +
+    '\n' +
+    '    return () => {\n' +
+    '      controller.abort();\n' +
+    '      window.clearTimeout(timeout);\n' +
+    '    };\n' +
+    '  }, [endpointBase, limit, query, sessionToken]);\n' +
+    '\n' +
+    '  async function selectSuggestion(suggestion: GooglePlacesSuggestion) {\n' +
+    '    if (!suggestion.placeId) return;\n' +
+    '    setLoading(true);\n' +
+    '    setError(null);\n' +
+    '    try {\n' +
+    '      const response = await fetch(`${endpointBase}/details`, {\n' +
+    '        method: "POST",\n' +
+    '        headers: { "Content-Type": "application/json" },\n' +
+    '        body: JSON.stringify({ placeId: suggestion.placeId, sessionToken }),\n' +
+    '      });\n' +
+    '      if (!response.ok) {\n' +
+    '        setError("Adresdetails konden niet worden opgehaald. Handmatig invullen kan altijd.");\n' +
+    '        return;\n' +
+    '      }\n' +
+    '      const payload = (await response.json()) as { place?: GooglePlaceAddress };\n' +
+    '      if (!payload.place) {\n' +
+    '        setError("Adresdetails konden niet worden opgehaald. Handmatig invullen kan altijd.");\n' +
+    '        return;\n' +
+    '      }\n' +
+    '      onSelect({ suggestion, place: payload.place });\n' +
+    '      setQuery(payload.place.formattedAddress ?? suggestion.label);\n' +
+    '      setSuggestions([]);\n' +
+    '      setHasSearched(false);\n' +
+    '      setSessionToken(createPlacesSessionToken());\n' +
+    '    } catch {\n' +
+    '      setError("Adresdetails konden niet worden opgehaald. Handmatig invullen kan altijd.");\n' +
+    '    } finally {\n' +
+    '      setLoading(false);\n' +
+    '    }\n' +
+    '  }\n' +
+    '\n' +
+    '  function onBlur() {\n' +
+    '    blurTimer.current = window.setTimeout(() => {\n' +
+    '      setSuggestions([]);\n' +
+    '      setActiveIndex(-1);\n' +
+    '      setHasSearched(false);\n' +
+    '      if (query.trim().length > 0) setSessionToken(createPlacesSessionToken());\n' +
+    '    }, 150);\n' +
+    '  }\n' +
+    '\n' +
+    '  function onFocus() {\n' +
+    '    if (blurTimer.current) window.clearTimeout(blurTimer.current);\n' +
+    '  }\n' +
+    '\n' +
+    '  function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {\n' +
+    '    if (event.key === "ArrowDown") {\n' +
+    '      event.preventDefault();\n' +
+    '      setActiveIndex((current) => Math.min(current + 1, suggestions.length - 1));\n' +
+    '    } else if (event.key === "ArrowUp") {\n' +
+    '      event.preventDefault();\n' +
+    '      setActiveIndex((current) => Math.max(current - 1, 0));\n' +
+    '    } else if (event.key === "Enter" && activeIndex >= 0 && suggestions[activeIndex]) {\n' +
+    '      event.preventDefault();\n' +
+    '      void selectSuggestion(suggestions[activeIndex]);\n' +
+    '    } else if (event.key === "Escape") {\n' +
+    '      setSuggestions([]);\n' +
+    '      setActiveIndex(-1);\n' +
+    '      setHasSearched(false);\n' +
+    '      setSessionToken(createPlacesSessionToken());\n' +
+    '    }\n' +
+    '  }\n' +
+    '\n' +
+    '  const showPanel = query.trim().length >= 3 && (loading || Boolean(error) || suggestions.length > 0 || hasSearched);\n' +
+    '\n' +
+    '  return (\n' +
+    '    <div className={className}>\n' +
+    '      <label htmlFor={inputId} className="mb-1 block text-sm font-medium text-slate-900">{label}</label>\n' +
+    '      {description ? <p className="mb-2 text-xs text-slate-500">{description}</p> : null}\n' +
+    '      <div className="relative">\n' +
+    '        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />\n' +
+    '        <Input\n' +
+    '          id={inputId}\n' +
+    '          type="search"\n' +
+    '          value={query}\n' +
+    '          disabled={disabled}\n' +
+    '          onChange={(event) => setQuery(event.target.value)}\n' +
+    '          onKeyDown={onKeyDown}\n' +
+    '          onBlur={onBlur}\n' +
+    '          onFocus={onFocus}\n' +
+    '          role="combobox"\n' +
+    '          aria-expanded={showPanel}\n' +
+    '          aria-controls={listId}\n' +
+    '          aria-activedescendant={activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined}\n' +
+    '          placeholder={placeholder}\n' +
+    '          className="pl-9"\n' +
+    '        />\n' +
+    '        {loading ? <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-teal-600" /> : null}\n' +
+    '        {showPanel ? (\n' +
+    '          <div id={listId} role="listbox" className="absolute left-0 right-0 top-[calc(100%+0.35rem)] z-[80] overflow-hidden rounded-md border border-slate-200 bg-white shadow-xl">\n' +
+    '            {error ? (\n' +
+    '              <div className="px-3 py-3 text-sm text-amber-700">{error}</div>\n' +
+    '            ) : suggestions.length > 0 ? (\n' +
+    '              <div className="max-h-56 overflow-y-auto p-1">\n' +
+    '                {suggestions.map((suggestion, index) => (\n' +
+    '                  <button\n' +
+    '                    key={suggestion.id}\n' +
+    '                    id={`${listId}-${index}`}\n' +
+    '                    type="button"\n' +
+    '                    role="option"\n' +
+    '                    aria-selected={activeIndex === index}\n' +
+    '                    className={`flex w-full gap-2 rounded px-3 py-2 text-left text-sm ${activeIndex === index ? "bg-teal-50" : "hover:bg-slate-50"}`}\n' +
+    '                    onMouseEnter={() => setActiveIndex(index)}\n' +
+    '                    onMouseDown={(event) => event.preventDefault()}\n' +
+    '                    onClick={() => { void selectSuggestion(suggestion); }}\n' +
+    '                  >\n' +
+    '                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-teal-600" />\n' +
+    '                    <span>\n' +
+    '                      <span className="block font-medium text-slate-950">{suggestion.mainText ?? suggestion.label}</span>\n' +
+    '                      <span className="text-xs text-slate-500">{suggestion.secondaryText ?? "Google Places"}</span>\n' +
+    '                    </span>\n' +
+    '                  </button>\n' +
+    '                ))}\n' +
+    '              </div>\n' +
+    '            ) : (\n' +
+    '              <div className="px-3 py-3 text-sm text-slate-500">Geen adressen gevonden. Vul het adres handmatig in.</div>\n' +
+    '            )}\n' +
+    '          </div>\n' +
+    '        ) : null}\n' +
+    '      </div>\n' +
+    '      <p className="mt-2 text-xs text-slate-500">Geen passend resultaat? Gebruik de handmatige velden hieronder.</p>\n' +
+    '    </div>\n' +
+    '  );\n' +
+    '}\n'
+  
+      at TestContext.<anonymous> (file:///workspace/platform/tests/fieldgrid-personnel-home-address-routing.test.mjs:41:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: '"use client";\n\nimport { useEffect, useId, useRef, useState } from "react";\nimport type { KeyboardEvent } from "react";\nimport { Loader2, MapPin, Search } from "lucide-react";\nimport type { GooglePlaceAddress, GooglePlacesSuggestion } from "@workspace/db/google-places";\nimport { Input } from "@/components/ui/input";\n\nexport type AddressAutocompleteSelection = {\n  suggestion: GooglePlacesSuggestion;\n  place: GooglePlaceAddress;\n};\n\ntype AddressAutocompleteProps = {\n  label?: string;\n  description?: string;\n  placeholder?: string;\n  endpointBase?: string;\n  limit?: number;\n  disabled?: boolean;\n  className?: string;\n  onSelect: (selection: AddressAutocompleteSelection) => void;\n};\n\nfunction createPlacesSessionToken(): string {\n  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random()}`;\n}\n\nexport function AddressAutocomplete({\n  label = "Adres zoeken",\n  description = "Zoek via Google Places of vul de adresvelden handmatig in.",\n  placeholder = "Typ minimaal 3 tekens...",\n  endpointBase = "/backoffice-api/google-maps/places",\n  limit = 6,\n  disabled = false,\n  className,\n  onSelect,\n}: AddressAutocompleteProps) {\n  const inputId = useId();\n  const listId = `${inputId}-list`;\n  const blurTimer = useRef<number | null>(null);\n  const [query, setQuery] = useState("");\n  const [sessionToken, setSessionToken] = useState(createPlacesSessionToken);\n  const [suggestions, setSuggestions] = useState<GooglePlacesSuggestion[]>([]);\n  const [loading, setLoading] = useState(false);\n  const [error, setError] = useState<string | null>(null);\n  const [activeIndex, setActiveIndex] = useState(-1);\n  const [hasSearched, setHasSearched] = useState(false);\n\n  useEffect(() => {\n    const trimmed = query.trim();\n    setActiveIndex(-1);\n    setError(null);\n\n    if (trimmed.length < 3) {\n      setSuggestions([]);\n      setLoading(false);\n      setHasSearched(false);\n      return;\n    }\n\n    const controller = new AbortController();\n    const timeout = window.setTimeout(async () => {\n      setLoading(true);\n      try {\n        const response = await fetch(`${endpointBase}/autocomplete`, {\n          method: "POST",\n          headers: { "Content-Type": "application/json" },\n          body: JSON.stringify({ input: trimmed, sessionToken, limit }),\n          signal: controller.signal,\n        });\n        if (!response.ok) {\n          setSuggestions([]);\n          setError("Adres zoeken is tijdelijk niet beschikbaar. Handmatig invullen kan altijd.");\n          return;\n        }\n        const payload = (await response.json()) as { suggestions?: GooglePlacesSuggestion[] };\n        setSuggestions(payload.suggestions ?? []);\n        setHasSearched(true);\n      } catch (err) {\n        if (!(err instanceof DOMException && err.name === "AbortError")) {\n          setSuggestions([]);\n          setHasSearched(true);\n          setError("Adres zoeken is tijdelijk niet beschikbaar. Handmatig invullen kan altijd.");\n        }\n      } finally {\n        setLoading(false);\n      }\n    }, 350);\n\n    return () => {\n      controller.abort();\n      window.clearTimeout(timeout);\n    };\n  }, [endpointBase, limit, query, sessionToken]);\n\n  async function selectSuggestion(suggestion: GooglePlacesSuggestion) {\n    if (!suggestion.placeId) return;\n    setLoading(true);\n    setError(null);\n    try {\n      const response = await fetch(`${endpointBase}/details`, {\n        method: "POST",\n        headers: { "Content-Type": "application/json" },\n        body: JSON.stringify({ placeId: suggestion.placeId, sessionToken }),\n      });\n      if (!response.ok) {\n        setError("Adresdetails konden niet worden opgehaald. Handmatig invullen kan altijd.");\n        return;\n      }\n      const payload = (await response.json()) as { place?: GooglePlaceAddress };\n      if (!payload.place) {\n        setError("Adresdetails konden niet worden opgehaald. Handmatig invullen kan altijd.");\n        return;\n      }\n      onSelect({ suggestion, place: payload.place });\n      setQuery(payload.place.formattedAddress ?? suggestion.label);\n      setSuggestions([]);\n      setHasSearched(false);\n      setSessionToken(createPlacesSessionToken());\n    } catch {\n      setError("Adresdetails konden niet worden opgehaald. Handmatig invullen kan altijd.");\n    } finally {\n      setLoading(false);\n    }\n  }\n\n  function onBlur() {\n    blurTimer.current = window.setTimeout(() => {\n      setSuggestions([]);\n      setActiveIndex(-1);\n      setHasSearched(false);\n      if (query.trim().length > 0) setSessionToken(createPlacesSessionToken());\n    }, 150);\n  }\n\n  function onFocus() {\n    if (blurTimer.current) window.clearTimeout(blurTimer.current);\n  }\n\n  function onKeyDown(event: KeyboardEvent<HTMLInputElement>) {\n    if (event.key === "ArrowDown") {\n      event.preventDefault();\n      setActiveIndex((current) => Math.min(current + 1, suggestions.length - 1));\n    } else if (event.key === "ArrowUp") {\n      event.preventDefault();\n      setActiveIndex((current) => Math.max(current - 1, 0));\n    } else if (event.key === "Enter" && activeIndex >= 0 && suggestions[activeIndex]) {\n      event.preventDefault();\n      void selectSuggestion(suggestions[activeIndex]);\n    } else if (event.key === "Escape") {\n      setSuggestions([]);\n      setActiveIndex(-1);\n      setHasSearched(false);\n      setSessionToken(createPlacesSessionToken());\n    }\n  }\n\n  const showPanel = query.trim().length >= 3 && (loading || Boolean(error) || suggestions.length > 0 || hasSearched);\n\n  return (\n    <div className={className}>\n      <label htmlFor={inputId} className="mb-1 block text-sm font-medium text-slate-900">{label}</label>\n      {description ? <p className="mb-2 text-xs text-slate-500">{description}</p> : null}\n      <div className="relative">\n        <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />\n        <Input\n          id={inputId}\n          type="search"\n          value={query}\n          disabled={disabled}\n          onChange={(event) => setQuery(event.target.value)}\n          onKeyDown={onKeyDown}\n          onBlur={onBlur}\n          onFocus={onFocus}\n          role="combobox"\n          aria-expanded={showPanel}\n          aria-controls={listId}\n          aria-activedescendant={activeIndex >= 0 ? `${listId}-${activeIndex}` : undefined}\n          placeholder={placeholder}\n          className="pl-9"\n        />\n        {loading ? <Loader2 className="absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 animate-spin text-teal-600" /> : null}\n        {showPanel ? (\n          <div id={listId} role="listbox" className="absolute left-0 right-0 top-[calc(100%+0.35rem)] z-[80] overflow-hidden rounded-md border border-slate-200 bg-white shadow-xl">\n            {error ? (\n              <div className="px-3 py-3 text-sm text-amber-700">{error}</div>\n            ) : suggestions.length > 0 ? (\n              <div className="max-h-56 overflow-y-auto p-1">\n                {suggestions.map((suggestion, index) => (\n                  <button\n                    key={suggestion.id}\n                    id={`${listId}-${index}`}\n                    type="button"\n                    role="option"\n                    aria-selected={activeIndex === index}\n                    className={`flex w-full gap-2 rounded px-3 py-2 text-left text-sm ${activeIndex === index ? "bg-teal-50" : "hover:bg-slate-50"}`}\n                    onMouseEnter={() => setActiveIndex(index)}\n                    onMouseDown={(event) => event.preventDefault()}\n                    onClick={() => { void selectSuggestion(suggestion); }}\n                  >\n                    <MapPin className="mt-0.5 h-4 w-4 shrink-0 text-teal-600" />\n                    <span>\n                      <span className="block font-medium text-slate-950">{suggestion.mainText ?? suggestion.label}</span>\n                      <span className="text-xs text-slate-500">{suggestion.secondaryText ?? "Google Places"}</span>\n                    </span>\n                  </button>\n                ))}\n              </div>\n            ) : (\n              <div className="px-3 py-3 text-sm text-slate-500">Geen adressen gevonden. Vul het adres handmatig in.</div>\n            )}\n          </div>\n        ) : null}\n      </div>\n      <p className="mt-2 text-xs text-slate-500">Geen passend resultaat? Gebruik de handmatige velden hieronder.</p>\n    </div>\n  );\n}\n',
+    expected: /\/api\/google-maps\/places/,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at tests/fieldgrid-platform-subscriptions-v1.test.mjs:49:1
+✖ phase 7 keeps active subscription status leading for entitlements (1.366944ms)
+  AssertionError [ERR_ASSERTION]: tenant entitlement helper should contain latestSubscription
+      at assertContains (file:///workspace/platform/tests/fieldgrid-platform-subscriptions-v1.test.mjs:11:12)
+      at TestContext.<anonymous> (file:///workspace/platform/tests/fieldgrid-platform-subscriptions-v1.test.mjs:52:3)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/fieldgrid-sprint-1-tenant-context.test.mjs:44:1
+✖ dashboard layout has no DEFAULT_TENANT_ID or first-tenant fallback (9.723563ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Geen actieve tenanttoegang/u. Input:
+  
+  'export const dynamic = "force-dynamic";\n' +
+    '\n' +
+    'import { redirect } from "next/navigation";\n' +
+    'import Link from "next/link";\n' +
+    'import type { ReleaseHighlightSummary } from "@workspace/db";\n' +
+    'import {\n' +
+    '  getTenantBranding,\n' +
+    '  getTenantBrandingCssVariables,\n' +
+    '} from "@workspace/db";\n' +
+    'import { dismissTenantReleaseHighlight, getTenantReleaseHighlight } from "@/app/actions/releases";\n' +
+    'import { createClient } from "@/lib/supabase/server";\n' +
+    'import { getCurrentEffectiveUserPermissions, getUserRoles } from "@/lib/auth/permissions";\n' +
+    'import { getCurrentSupportMode, type CurrentSupportMode } from "@/lib/auth/platform";\n' +
+    'import { PermissionsProvider } from "@/providers/permissions-provider";\n' +
+    'import { SidebarProvider } from "@/providers/sidebar-provider";\n' +
+    'import { Sidebar } from "@/components/layout/Sidebar";\n' +
+    'import { DashboardHeader } from "@/components/layout/DashboardHeader";\n' +
+    'import { SidebarOverlay } from "@/components/layout/SidebarOverlay";\n' +
+    'import { BackofficeRealtimeProvider } from "@/components/realtime/BackofficeRealtimeProvider";\n' +
+    'import { getPendingReportsCount } from "@/app/actions/reports";\n' +
+    'import { getOutstandingInvoicesCount } from "@/app/actions/invoices";\n' +
+    'import { getPendingQuotesCount } from "@/app/actions/quotes";\n' +
+    'import { getPendingLeaveCount } from "@/app/actions/availability";\n' +
+    'import { exitSupportMode } from "@/app/actions/platform";\n' +
+    'import { isPlanningDayMapEnabled } from "@/lib/planning/day-map-feature";\n' +
+    'import {\n' +
+    '  getActiveBackofficeTenantsForUser,\n' +
+    '  getCurrentTenantId,\n' +
+    '} from "@/lib/auth/tenant";\n' +
+    'import type { CSSProperties } from "react";\n' +
+    '\n' +
+    'function NoActiveTenantAccess() {\n' +
+    '  return (\n' +
+    '    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6">\n' +
+    '      <section className="max-w-lg rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">\n' +
+    '        <h1 className="font-heading text-2xl font-semibold" style={{ color: "#081D3A" }}>\n' +
+    '          Geen actieve organisatietoegang\n' +
+    '        </h1>\n' +
+    '        <p className="mt-3 text-sm leading-6" style={{ color: "#64748B" }}>\n' +
+    '          Deze gebruiker heeft geen actieve organisatiekoppeling voor deze host. Controleer de organisatiestatus,\n' +
+    '          domeinkoppeling of gebruikerskoppeling in platformbeheer.\n' +
+    '        </p>\n' +
+    '      </section>\n' +
+    '    </main>\n' +
+    '  );\n' +
+    '}\n' +
+    '\n' +
+    'function formatSupportTtl(ttlSeconds: number): string {\n' +
+    '  if (ttlSeconds <= 0) return "verlopen";\n' +
+    '  const minutes = Math.floor(ttlSeconds / 60);\n' +
+    '  if (minutes < 1) return "minder dan 1 minuut";\n' +
+    '  if (minutes < 60) return `${minutes} min`;\n' +
+    '  const hours = Math.floor(minutes / 60);\n' +
+    '  const remainingMinutes = minutes % 60;\n' +
+    '  return remainingMinutes > 0 ? `${hours}u ${remainingMinutes}m` : `${hours}u`;\n' +
+    '}\n' +
+    '\n' +
+    'function SupportModeBanner({ supportMode }: { supportMode: CurrentSupportMode }) {\n' +
+    '  return (\n' +
+    '    <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-950">\n' +
+    '      <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-3 md:flex-row md:items-center md:justify-between">\n' +
+    '        <div className="min-w-0">\n' +
+    '          <p className="font-semibold">Supportmodus actief</p>\n' +
+    '          <p className="mt-0.5 truncate text-xs text-amber-900">\n' +
+    '            Organisatie {supportMode.tenantId} · TTL {formatSupportTtl(supportMode.ttlSeconds)} · Reden: {supportMode.reason}\n' +
+    '          </p>\n' +
+    '          <p className="mt-0.5 truncate text-xs text-amber-800">\n' +
+    '            Auditcontext: grant {supportMode.grantId} · prioriteit {supportMode.priority}\n' +
+    '          </p>\n' +
+    '        </div>\n' +
+    '        <form action={exitSupportMode}>\n' +
+    '          <button\n' +
+    '            type="submit"\n' +
+    '            className="rounded border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-950 transition hover:bg-amber-100"\n' +
+    '          >\n' +
+    '            Stop supportmodus\n' +
+    '          </button>\n' +
+    '        </form>\n' +
+    '      </div>\n' +
+    '    </div>\n' +
+    '  );\n' +
+    '}\n' +
+    '\n' +
+    'function ReleaseHighlightBanner({ highlight }: { highlight: ReleaseHighlightSummary | null }) {\n' +
+    '  if (!highlight) return null;\n' +
+    '\n' +
+    '  return (\n' +
+    '    <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-950">\n' +
+    '      <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-3 md:flex-row md:items-center md:justify-between">\n' +
+    '        <div className="min-w-0">\n' +
+    '          <p className="font-semibold">{highlight.title}</p>\n' +
+    '          <p className="mt-0.5 text-xs leading-5 text-amber-900">\n' +
+    '            {highlight.message}\n' +
+    '          </p>\n' +
+    '        </div>\n' +
+    '        <div className="flex shrink-0 flex-wrap items-center gap-2">\n' +
+    '          <Link\n' +
+    '            href={`/releases/${highlight.releaseSlug}`}\n' +
+    '            className="rounded border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-950 transition hover:bg-amber-100"\n' +
+    '          >\n' +
+    '            Lees meer\n' +
+    '          </Link>\n' +
+    '          <form action={dismissTenantReleaseHighlight}>\n' +
+    '            <input type="hidden" name="highlightId" value={highlight.id} />\n' +
+    '            <button\n' +
+    '              type="submit"\n' +
+    '              className="rounded border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100"\n' +
+    '            >\n' +
+    '              Sluiten\n' +
+    '            </button>\n' +
+    '          </form>\n' +
+    '        </div>\n' +
+    '      </div>\n' +
+    '    </div>\n' +
+    '  );\n' +
+    '}\n' +
+    '\n' +
+    'export default async function DashboardLayout({\n' +
+    '  children,\n' +
+    '}: {\n' +
+    '  children: React.ReactNode;\n' +
+    '}) {\n' +
+    '  const supabase = await createClient();\n' +
+    '  const {\n' +
+    '    data: { user },\n' +
+    '  } = await supabase.auth.getUser();\n' +
+    '\n' +
+    '  if (!user) {\n' +
+    '    redirect("/login");\n' +
+    '  }\n' +
+    '\n' +
+    '  const [tenantOptions, currentTenantId] = await Promise.all([\n' +
+    '    getActiveBackofficeTenantsForUser(user.id),\n' +
+    '    getCurrentTenantId(),\n' +
+    '  ]);\n' +
+    '\n' +
+    '  const tenantId = currentTenantId;\n' +
+    '  if (!tenantId) {\n' +
+    '    return <NoActiveTenantAccess />;\n' +
+    '  }\n' +
+    '\n' +
+    '  const supportMode = await getCurrentSupportMode();\n' +
+    '  const [permissions, roles, branding] = await Promise.all([\n' +
+    '    getCurrentEffectiveUserPermissions(),\n' +
+    '    supportMode ? Promise.resolve(["Supportmodus"]) : getUserRoles(user.id, tenantId),\n' +
+    '    getTenantBranding(tenantId),\n' +
+    '  ]);\n' +
+    '\n' +
+    '  const canReadReports   = permissions.has("reports:read");\n' +
+    '  const canReadInvoices  = permissions.has("invoices:read");\n' +
+    '  const canReadQuotes    = permissions.has("quotes:read");\n' +
+    '  const canReadPersonnel = permissions.has("personnel:read");\n' +
+    '\n' +
+    '  const canViewReleases = permissions.has("releases:view");\n' +
+    '\n' +
+    '  const [pendingReportsCount, outstandingInvoicesCount, pendingQuotesCount, pendingLeaveCount, releaseHighlight] = await Promise.all([\n' +
+    '    canReadReports   ? getPendingReportsCount()      : Promise.resolve(0),\n' +
+    '    canReadInvoices  ? getOutstandingInvoicesCount() : Promise.resolve(0),\n' +
+    '    canReadQuotes    ? getPendingQuotesCount()        : Promise.resolve(0),\n' +
+    '    canReadPersonnel ? getPendingLeaveCount()         : Promise.resolve(0),\n' +
+    '    canViewReleases  ? getTenantReleaseHighlight()    : Promise.resolve(null),\n' +
+    '  ]);\n' +
+    '\n' +
+    '  const userEmail   = user.email ?? "";\n' +
+    '  const userInitial = (userEmail[0] ?? "U").toUpperCase();\n' +
+    '  const userRole    = roles[0] ?? "User";\n' +
+    '  const brandingStyle = getTenantBrandingCssVariables(branding) as CSSProperties;\n' +
+    '  const planningMapEnabled = isPlanningDayMapEnabled();\n' +
+    '\n' +
+    '  return (\n' +
+    '    <PermissionsProvider permissions={[...permissions]} tenantId={tenantId}>\n' +
+    '      <BackofficeRealtimeProvider realtimeKey={`management_${tenantId}`}>\n' +
+    '        <SidebarProvider>\n' +
+    '          <div\n' +
+    '            className="flex h-screen overflow-hidden"\n' +
+    '            style={{ ...brandingStyle, backgroundColor: "var(--color-background)" }}\n' +
+    '          >\n' +
+    '            <Sidebar\n' +
+    '              branding={{\n' +
+    '                displayName: branding.displayName,\n' +
+    '                logoUrl: branding.logoUrl,\n' +
+    '                customBrandingEnabled: branding.customBrandingEnabled,\n' +
+    '                sidebarBackgroundColor: branding.sidebarBackgroundColor,\n' +
+    '                sidebarTextColor: branding.sidebarTextColor,\n' +
+    '                sidebarAccentColor: branding.sidebarAccentColor,\n' +
+    '              }}\n' +
+    '              pendingReportsCount={pendingReportsCount}\n' +
+    '              outstandingInvoicesCount={outstandingInvoicesCount}\n' +
+    '              pendingQuotesCount={pendingQuotesCount}\n' +
+    '              pendingLeaveCount={pendingLeaveCount}\n' +
+    '              planningMapEnabled={planningMapEnabled}\n' +
+    '            />\n' +
+    '\n' +
+    '            <SidebarOverlay />\n' +
+    '\n' +
+    '            <div className="flex flex-col flex-1 overflow-hidden min-w-0">\n' +
+    '              <DashboardHeader\n' +
+    '                userEmail={userEmail}\n' +
+    '                userInitial={userInitial}\n' +
+    '                userRole={userRole}\n' +
+    '                currentTenantId={tenantId}\n' +
+    '                tenantOptions={tenantOptions}\n' +
+    '              />\n' +
+    '              {supportMode && <SupportModeBanner supportMode={supportMode} />}\n' +
+    '              <ReleaseHighlightBanner highlight={releaseHighlight} />\n' +
+    '              <main className="flex-1 overflow-y-auto">{children}</main>\n' +
+    '            </div>\n' +
+    '          </div>\n' +
+    '        </SidebarProvider>\n' +
+    '      </BackofficeRealtimeProvider>\n' +
+    '    </PermissionsProvider>\n' +
+    '  );\n' +
+    '}\n'
+  
+      at TestContext.<anonymous> (file:///workspace/platform/tests/fieldgrid-sprint-1-tenant-context.test.mjs:51:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'export const dynamic = "force-dynamic";\n\nimport { redirect } from "next/navigation";\nimport Link from "next/link";\nimport type { ReleaseHighlightSummary } from "@workspace/db";\nimport {\n  getTenantBranding,\n  getTenantBrandingCssVariables,\n} from "@workspace/db";\nimport { dismissTenantReleaseHighlight, getTenantReleaseHighlight } from "@/app/actions/releases";\nimport { createClient } from "@/lib/supabase/server";\nimport { getCurrentEffectiveUserPermissions, getUserRoles } from "@/lib/auth/permissions";\nimport { getCurrentSupportMode, type CurrentSupportMode } from "@/lib/auth/platform";\nimport { PermissionsProvider } from "@/providers/permissions-provider";\nimport { SidebarProvider } from "@/providers/sidebar-provider";\nimport { Sidebar } from "@/components/layout/Sidebar";\nimport { DashboardHeader } from "@/components/layout/DashboardHeader";\nimport { SidebarOverlay } from "@/components/layout/SidebarOverlay";\nimport { BackofficeRealtimeProvider } from "@/components/realtime/BackofficeRealtimeProvider";\nimport { getPendingReportsCount } from "@/app/actions/reports";\nimport { getOutstandingInvoicesCount } from "@/app/actions/invoices";\nimport { getPendingQuotesCount } from "@/app/actions/quotes";\nimport { getPendingLeaveCount } from "@/app/actions/availability";\nimport { exitSupportMode } from "@/app/actions/platform";\nimport { isPlanningDayMapEnabled } from "@/lib/planning/day-map-feature";\nimport {\n  getActiveBackofficeTenantsForUser,\n  getCurrentTenantId,\n} from "@/lib/auth/tenant";\nimport type { CSSProperties } from "react";\n\nfunction NoActiveTenantAccess() {\n  return (\n    <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6">\n      <section className="max-w-lg rounded-lg border border-slate-200 bg-white p-8 text-center shadow-sm">\n        <h1 className="font-heading text-2xl font-semibold" style={{ color: "#081D3A" }}>\n          Geen actieve organisatietoegang\n        </h1>\n        <p className="mt-3 text-sm leading-6" style={{ color: "#64748B" }}>\n          Deze gebruiker heeft geen actieve organisatiekoppeling voor deze host. Controleer de organisatiestatus,\n          domeinkoppeling of gebruikerskoppeling in platformbeheer.\n        </p>\n      </section>\n    </main>\n  );\n}\n\nfunction formatSupportTtl(ttlSeconds: number): string {\n  if (ttlSeconds <= 0) return "verlopen";\n  const minutes = Math.floor(ttlSeconds / 60);\n  if (minutes < 1) return "minder dan 1 minuut";\n  if (minutes < 60) return `${minutes} min`;\n  const hours = Math.floor(minutes / 60);\n  const remainingMinutes = minutes % 60;\n  return remainingMinutes > 0 ? `${hours}u ${remainingMinutes}m` : `${hours}u`;\n}\n\nfunction SupportModeBanner({ supportMode }: { supportMode: CurrentSupportMode }) {\n  return (\n    <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-950">\n      <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-3 md:flex-row md:items-center md:justify-between">\n        <div className="min-w-0">\n          <p className="font-semibold">Supportmodus actief</p>\n          <p className="mt-0.5 truncate text-xs text-amber-900">\n            Organisatie {supportMode.tenantId} · TTL {formatSupportTtl(supportMode.ttlSeconds)} · Reden: {supportMode.reason}\n          </p>\n          <p className="mt-0.5 truncate text-xs text-amber-800">\n            Auditcontext: grant {supportMode.grantId} · prioriteit {supportMode.priority}\n          </p>\n        </div>\n        <form action={exitSupportMode}>\n          <button\n            type="submit"\n            className="rounded border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-950 transition hover:bg-amber-100"\n          >\n            Stop supportmodus\n          </button>\n        </form>\n      </div>\n    </div>\n  );\n}\n\nfunction ReleaseHighlightBanner({ highlight }: { highlight: ReleaseHighlightSummary | null }) {\n  if (!highlight) return null;\n\n  return (\n    <div className="border-b border-amber-200 bg-amber-50 px-5 py-3 text-sm text-amber-950">\n      <div className="mx-auto flex w-full max-w-[1800px] flex-col gap-3 md:flex-row md:items-center md:justify-between">\n        <div className="min-w-0">\n          <p className="font-semibold">{highlight.title}</p>\n          <p className="mt-0.5 text-xs leading-5 text-amber-900">\n            {highlight.message}\n          </p>\n        </div>\n        <div className="flex shrink-0 flex-wrap items-center gap-2">\n          <Link\n            href={`/releases/${highlight.releaseSlug}`}\n            className="rounded border border-amber-300 bg-white px-3 py-1.5 text-xs font-semibold text-amber-950 transition hover:bg-amber-100"\n          >\n            Lees meer\n          </Link>\n          <form action={dismissTenantReleaseHighlight}>\n            <input type="hidden" name="highlightId" value={highlight.id} />\n            <button\n              type="submit"\n              className="rounded border border-amber-200 px-3 py-1.5 text-xs font-semibold text-amber-900 transition hover:bg-amber-100"\n            >\n              Sluiten\n            </button>\n          </form>\n        </div>\n      </div>\n    </div>\n  );\n}\n\nexport default async function DashboardLayout({\n  children,\n}: {\n  children: React.ReactNode;\n}) {\n  const supabase = await createClient();\n  const {\n    data: { user },\n  } = await supabase.auth.getUser();\n\n  if (!user) {\n    redirect("/login");\n  }\n\n  const [tenantOptions, currentTenantId] = await Promise.all([\n    getActiveBackofficeTenantsForUser(user.id),\n    getCurrentTenantId(),\n  ]);\n\n  const tenantId = currentTenantId;\n  if (!tenantId) {\n    return <NoActiveTenantAccess />;\n  }\n\n  const supportMode = await getCurrentSupportMode();\n  const [permissions, roles, branding] = await Promise.all([\n    getCurrentEffectiveUserPermissions(),\n    supportMode ? Promise.resolve(["Supportmodus"]) : getUserRoles(user.id, tenantId),\n    getTenantBranding(tenantId),\n  ]);\n\n  const canReadReports   = permissions.has("reports:read");\n  const canReadInvoices  = permissions.has("invoices:read");\n  const canReadQuotes    = permissions.has("quotes:read");\n  const canReadPersonnel = permissions.has("personnel:read");\n\n  const canViewReleases = permissions.has("releases:view");\n\n  const [pendingReportsCount, outstandingInvoicesCount, pendingQuotesCount, pendingLeaveCount, releaseHighlight] = await Promise.all([\n    canReadReports   ? getPendingReportsCount()      : Promise.resolve(0),\n    canReadInvoices  ? getOutstandingInvoicesCount() : Promise.resolve(0),\n    canReadQuotes    ? getPendingQuotesCount()        : Promise.resolve(0),\n    canReadPersonnel ? getPendingLeaveCount()         : Promise.resolve(0),\n    canViewReleases  ? getTenantReleaseHighlight()    : Promise.resolve(null),\n  ]);\n\n  const userEmail   = user.email ?? "";\n  const userInitial = (userEmail[0] ?? "U").toUpperCase();\n  const userRole    = roles[0] ?? "User";\n  const brandingStyle = getTenantBrandingCssVariables(branding) as CSSProperties;\n  const planningMapEnabled = isPlanningDayMapEnabled();\n\n  return (\n    <PermissionsProvider permissions={[...permissions]} tenantId={tenantId}>\n      <BackofficeRealtimeProvider realtimeKey={`management_${tenantId}`}>\n        <SidebarProvider>\n          <div\n            className="flex h-screen overflow-hidden"\n            style={{ ...brandingStyle, backgroundColor: "var(--color-background)" }}\n          >\n            <Sidebar\n              branding={{\n                displayName: branding.displayName,\n                logoUrl: branding.logoUrl,\n                customBrandingEnabled: branding.customBrandingEnabled,\n                sidebarBackgroundColor: branding.sidebarBackgroundColor,\n                sidebarTextColor: branding.sidebarTextColor,\n                sidebarAccentColor: branding.sidebarAccentColor,\n              }}\n              pendingReportsCount={pendingReportsCount}\n              outstandingInvoicesCount={outstandingInvoicesCount}\n              pendingQuotesCount={pendingQuotesCount}\n              pendingLeaveCount={pendingLeaveCount}\n              planningMapEnabled={planningMapEnabled}\n            />\n\n            <SidebarOverlay />\n\n            <div className="flex flex-col flex-1 overflow-hidden min-w-0">\n              <DashboardHeader\n                userEmail={userEmail}\n                userInitial={userInitial}\n                userRole={userRole}\n                currentTenantId={tenantId}\n                tenantOptions={tenantOptions}\n              />\n              {supportMode && <SupportModeBanner supportMode={supportMode} />}\n              <ReleaseHighlightBanner highlight={releaseHighlight} />\n              <main className="flex-1 overflow-y-auto">{children}</main>\n            </div>\n          </div>\n        </SidebarProvider>\n      </BackofficeRealtimeProvider>\n    </PermissionsProvider>\n  );\n}\n',
+    expected: /Geen actieve tenanttoegang/u,
+    operator: 'match',
+    diff: 'simple'
+  }
+
+test at tests/fieldgrid-sprint-10-portals-branding.test.mjs:15:1
+✖ sprint 10 centralizes tenant branding with Fieldgrid defaults and plan gating (2.959789ms)
+  AssertionError [ERR_ASSERTION]: tenant branding helper should include professional
+      at assertIncludes (file:///workspace/platform/tests/fieldgrid-sprint-10-portals-branding.test.mjs:11:12)
+      at TestContext.<anonymous> (file:///workspace/platform/tests/fieldgrid-sprint-10-portals-branding.test.mjs:19:3)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.start (node:internal/test_runner/test:1096:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/fieldgrid-sprint-10-portals-branding.test.mjs:55:1
+✖ sprint 10 gates customer and personnel portal shells by host-bound tenant context (0.630792ms)
+  AssertionError [ERR_ASSERTION]: customer portal layout should include Het klantportaal is niet beschikbaar voor deze tenant.
+      at assertIncludes (file:///workspace/platform/tests/fieldgrid-sprint-10-portals-branding.test.mjs:11:12)
+      at TestContext.<anonymous> (file:///workspace/platform/tests/fieldgrid-sprint-10-portals-branding.test.mjs:59:3)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/fieldgrid-sprint-10-portals-branding.test.mjs:111:1
+✖ sprint 10 uses Fieldgrid as static PWA default instead of Veele tenant branding (0.462525ms)
+  AssertionError [ERR_ASSERTION]: artifacts/klant-pwa/src/app/layout.tsx should include Fieldgrid
+      at TestContext.<anonymous> (file:///workspace/platform/tests/fieldgrid-sprint-10-portals-branding.test.mjs:121:12)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/fieldgrid-sprint-3-region-ui.test.mjs:27:1
+✖ sprint 3 has a reusable region multiselect with autocomplete and create-on-type (2.805357ms)
+  AssertionError [ERR_ASSERTION]: region multiselect should contain Nieuwe regio:
+      at assertContains (file:///workspace/platform/tests/fieldgrid-sprint-3-region-ui.test.mjs:11:12)
+      at TestContext.<anonymous> (file:///workspace/platform/tests/fieldgrid-sprint-3-region-ui.test.mjs:30:3)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.start (node:internal/test_runner/test:1096:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:385:17) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/fieldgrid-theme-branding-system.test.mjs:58:1
+✖ branding asset uploads are tenant-scoped and reject svg (8.178257ms)
+  AssertionError [ERR_ASSERTION]: theme upload actions should include SVG-bestanden zijn voor branding nog niet toegestaan
+      at assertIncludes (file:///workspace/platform/tests/fieldgrid-theme-branding-system.test.mjs:11:12)
+      at TestContext.<anonymous> (file:///workspace/platform/tests/fieldgrid-theme-branding-system.test.mjs:70:3)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+
+test at tests/fieldgrid-theme-branding-system.test.mjs:86:1
+✖ platform and tenant admin expose Branding & Thema management (1.146957ms)
+  AssertionError [ERR_ASSERTION]: brand theme form should include accept="image/png,image/jpeg,image/webp"
+      at assertIncludes (file:///workspace/platform/tests/fieldgrid-theme-branding-system.test.mjs:11:12)
+      at TestContext.<anonymous> (file:///workspace/platform/tests/fieldgrid-theme-branding-system.test.mjs:95:3)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1201:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:831:18)
+      at Test.postRun (node:internal/test_runner/test:1330:19)
+      at Test.run (node:internal/test_runner/test:1258:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:831:7) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: false,
+    expected: true,
+    operator: '==',
+    diff: 'simple'
+  }
+[ELIFECYCLE] Test failed. See above for more details.

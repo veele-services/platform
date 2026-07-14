@@ -1,0 +1,3 @@
+$ node scripts/fieldgrid-migration-order-check.mjs --check
+Fieldgrid migration order check is valid.
+warning: Historische numerieke gaten blijven bestaan: 003..003, 005..022.

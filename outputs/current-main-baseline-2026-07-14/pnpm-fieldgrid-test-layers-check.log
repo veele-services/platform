@@ -1,0 +1,2 @@
+$ node scripts/fieldgrid-test-layers.mjs --check
+Fieldgrid test layers contract is valid.
