@@ -132,7 +132,9 @@
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
     "fieldgrid:playwright": "node --test tests/fieldgrid-playwright-e2e-auth-sourceguard.test.mjs && playwright test",
-    "fieldgrid:playwright:install": "playwright install --with-deps chromium"
+    "fieldgrid:playwright:install": "playwright install --with-deps chromium",
+    "fieldgrid:runtime-entrypoints:check": "node scripts/fieldgrid-runtime-entrypoints-check.mjs",
+    "fieldgrid:current-main-baseline-report": "node scripts/fieldgrid-current-main-baseline-report.mjs"
   },
   "private": true,
   "devDependencies": {

@@ -21,7 +21,7 @@ test('local E2E auth seam is explicit, centralized, and fails closed in producti
   assert.match(adapterSource, /FIELDGRID_E2E_AUTH_USERS/u, 'adapter must centralize the deterministic allowlist');
   assert.match(adapterSource, /fieldgrid_e2e_user_id/u, 'adapter must define the narrow E2E auth cookie');
   assert.match(adapterSource, /fallbackClient/u, 'adapter must preserve the real Supabase client surface');
-  assert.match(adapterSource, /from: e2eFrom/u, 'adapter must expose a PostgreSQL-backed from() implementation for exercised routes');
+  assert.match(adapterSource, /from: fallbackClient\.from\?\.bind\(fallbackClient\)/u, 'adapter must preserve the real Supabase from() implementation for exercised routes');
   assert.match(adapterSource, /rpc:/u, 'adapter must preserve rpc on the client surface');
   assert.match(adapterSource, /storage:/u, 'adapter must preserve storage on the client surface');
 
