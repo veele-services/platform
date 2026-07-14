@@ -134,6 +134,7 @@
     "fieldgrid:runtime-entrypoints": "node scripts/fieldgrid-runtime-entrypoint-inventory.mjs",
     "fieldgrid:runtime-entrypoints:write": "node scripts/fieldgrid-runtime-entrypoint-inventory.mjs --write",
     "fieldgrid:runtime-entrypoints:check": "node scripts/fieldgrid-runtime-entrypoint-inventory.mjs --check"
+    "fieldgrid:current-main-baseline-report": "node scripts/fieldgrid-current-main-baseline-report.mjs && node --test tests/tooling/current-main-baseline-report.test.mjs"
   },
   "private": true,
   "devDependencies": {

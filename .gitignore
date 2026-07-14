@@ -44,6 +44,7 @@ node_modules
 /artifacts/staging-smoke/
 /artifacts/visual-regression/
 /outputs/**/auth/
+/outputs/current-main-baseline-2026-07-14/
 /libpeerconnection.log
 npm-debug.log
 yarn-error.log
