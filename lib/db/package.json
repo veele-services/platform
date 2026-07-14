@@ -17,7 +17,8 @@
     "./invoice-number-formatting": "./src/invoice-number-formatting.ts",
     "./planning-realtime": "./src/planning-realtime.ts",
     "./workflow-events": "./src/workflow-events.ts",
-    "./planning-intelligence": "./src/planning-intelligence.ts"
+    "./planning-intelligence": "./src/planning-intelligence.ts",
+    "./e2e-auth-adapter": "./src/e2e-auth-adapter.ts"
   },
   "scripts": {
     "push": "drizzle-kit push --config ./drizzle.config.ts",

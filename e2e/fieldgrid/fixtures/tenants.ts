@@ -11,7 +11,8 @@ export const users = {
   backofficeB: { id: '20000000-0000-4000-8000-000000000202', email: 'admin@tenant-b.runtime.fieldgrid.test' },
   personnelB: { id: '20000000-0000-4000-8000-000000000204', email: 'personnel@tenant-b.runtime.fieldgrid.test' },
   customerB: { id: '20000000-0000-4000-8000-000000000205', email: 'customer@tenant-b.runtime.fieldgrid.test' },
-  inactiveProfile: { id: '20000000-0000-4000-8000-000000000401', email: 'owner@suspended.runtime.fieldgrid.test' },
+  inactivePersonnel: { id: '20000000-0000-4000-8000-000000000106', email: 'inactive-personnel@tenant-a.runtime.fieldgrid.test' },
+  suspendedOwner: { id: '20000000-0000-4000-8000-000000000401', email: 'owner@suspended.runtime.fieldgrid.test' },
 } as const;
 
 export const assignments = {

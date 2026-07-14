@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { FIELDGRID_E2E_AUTH_COOKIE, resolveFieldgridE2eAuthUser } from "@workspace/db/e2e-auth-adapter";
 import { NextResponse, type NextRequest } from "next/server";
 import {
   createSupabaseCookieOptions,
@@ -25,9 +26,6 @@ function proxyAwareUrl(pathname: string, request: NextRequest): URL {
 }
 
 export async function middleware(request: NextRequest) {
-  if (process.env.NODE_ENV !== "production" && process.env.FIELDGRID_E2E_AUTH_ENABLED === "true" && request.cookies.get("fieldgrid_e2e_user_id")?.value) {
-    return NextResponse.next({ request });
-  }
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -84,9 +82,11 @@ export async function middleware(request: NextRequest) {
     },
   });
 
+  const e2eUser = resolveFieldgridE2eAuthUser(request.cookies.get(FIELDGRID_E2E_AUTH_COOKIE)?.value);
   const {
-    data: { user },
-  } = await supabase.auth.getUser();
+    data: { user: supabaseUser },
+  } = e2eUser ? { data: { user: e2eUser } } : await supabase.auth.getUser();
+  const user = supabaseUser;
 
   const mustChangePassword = user?.app_metadata?.force_password_change === true;
 

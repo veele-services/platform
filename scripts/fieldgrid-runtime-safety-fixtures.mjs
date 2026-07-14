@@ -40,6 +40,7 @@ const ACTORS = [
   ["planner@tenant-a.runtime.fieldgrid.test", FIXTURE.users.tenantAPlanner],
   ["personnel@tenant-a.runtime.fieldgrid.test", FIXTURE.users.tenantAPersonnel],
   ["customer@tenant-a.runtime.fieldgrid.test", FIXTURE.users.tenantACustomer],
+  ["inactive-personnel@tenant-a.runtime.fieldgrid.test", FIXTURE.users.tenantAInactivePersonnel],
   ["owner@tenant-b.runtime.fieldgrid.test", FIXTURE.users.tenantBOwner],
   ["admin@tenant-b.runtime.fieldgrid.test", FIXTURE.users.tenantBAdmin],
   ["planner@tenant-b.runtime.fieldgrid.test", FIXTURE.users.tenantBPlanner],
@@ -310,14 +311,15 @@ async function insertBusinessRows(client) {
   }
 
   const personnel = [
-    [FIXTURE.personnel.a, FIXTURE.tenants.a, FIXTURE.users.tenantAPersonnel, "RTA-P001", "Runtime", "Personnel A", "personnel@tenant-a.runtime.fieldgrid.test"],
-    [FIXTURE.personnel.b, FIXTURE.tenants.b, FIXTURE.users.tenantBPersonnel, "RTB-P001", "Runtime", "Personnel B", "personnel@tenant-b.runtime.fieldgrid.test"],
+    [FIXTURE.personnel.a, FIXTURE.tenants.a, FIXTURE.users.tenantAPersonnel, "RTA-P001", "Runtime", "Personnel A", "personnel@tenant-a.runtime.fieldgrid.test", true],
+    [FIXTURE.personnel.inactiveA, FIXTURE.tenants.a, FIXTURE.users.tenantAInactivePersonnel, "RTA-P999", "Inactive", "Personnel A", "inactive-personnel@tenant-a.runtime.fieldgrid.test", false],
+    [FIXTURE.personnel.b, FIXTURE.tenants.b, FIXTURE.users.tenantBPersonnel, "RTB-P001", "Runtime", "Personnel B", "personnel@tenant-b.runtime.fieldgrid.test", true],
   ];
   for (const row of personnel) {
     await client.query(
       `
         insert into personnel (id, tenant_id, user_id, code, first_name, last_name, email, is_active, is_available)
-        values ($1, $2, $3, $4, $5, $6, $7, true, true)
+        values ($1, $2, $3, $4, $5, $6, $7, $8, $8)
         on conflict (id) do update set tenant_id = excluded.tenant_id, user_id = excluded.user_id, email = excluded.email
       `,
       row,

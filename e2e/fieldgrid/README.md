@@ -21,12 +21,12 @@ Playwright runs `start-real-apps.mjs`, which starts:
 
 ## Auth test seam
 
-The apps include a narrow local E2E Supabase-auth adapter keyed by the `fieldgrid_e2e_user_id` cookie. It is enabled only when both conditions are true:
+The apps include a shared narrow local E2E Supabase-auth adapter in `@workspace/db/e2e-auth-adapter`, keyed by the `fieldgrid_e2e_user_id` cookie. It replaces only Supabase provider identity verification; middleware and application code still execute normal host resolution, tenant resolution, suspended/active-profile checks, module gates, permissions, and route authorization. It is enabled only when both conditions are true:
 
 1. `FIELDGRID_E2E_AUTH_ENABLED=true`;
 2. `NODE_ENV !== "production"`.
 
-The seam returns seeded Runtime Safety auth users but still leaves the normal host, tenant, profile, module, permission, and route guards in the real applications. A sourceguard test verifies that each seam checks the explicit env flag, rejects production, and uses only the E2E cookie.
+The seam returns seeded Runtime Safety auth users from a central allowlist. A sourceguard test verifies that each app uses the shared adapter, the adapter checks the explicit env flag, production is rejected, and middleware does not short-circuit to `NextResponse.next()` before normal guards.
 
 ## Covered smoke paths
 
@@ -37,4 +37,4 @@ The seam returns seeded Runtime Safety auth users but still leaves the normal ho
 
 ## Artifacts
 
-Playwright retains screenshot, video, and trace on failure, emits an HTML report, and writes JSON summary output under `artifacts/playwright/`.
+Playwright retains screenshot, video, and trace on failure, emits an HTML report, writes JSON summary output, and records per-process app startup logs under `artifacts/playwright/app-logs/`.
