@@ -39,13 +39,13 @@ const expectedMetadata = new Map([
   [293, ['old pre-Phase-B register', 'documentation/register', '9e2e708eee1c3c684b6bdb8ac22f2945540dbc2b']],
 ]);
 
-test('all fourteen PRs occur exactly once', () => {
+test('all fourteen old PRs appear exactly once', () => {
   const numbers = data.openPrs.map((pr) => pr.number).sort((a, b) => a - b);
   assert.deepEqual(numbers, requiredOpenPrs);
   assert.equal(new Set(numbers).size, 14);
 });
 
-test('exact canonical disposition mapping is durable', () => {
+test('exact dispositions and canonical metadata remain correct', () => {
   for (const pr of data.openPrs) {
     assert.equal(pr.disposition, expectedDisposition.get(pr.number), `PR #${pr.number} disposition`);
     const [title, actualType, auditedHeadSha] = expectedMetadata.get(pr.number);
@@ -56,16 +56,49 @@ test('exact canonical disposition mapping is durable', () => {
   }
 });
 
-test('canonical schema contains no placeholder or volatile metadata strings', () => {
+test('every implementation PR has runtime requirements', () => {
+  for (const number of [284, 286, 289]) {
+    const pr = data.openPrs.find((entry) => entry.number === number);
+    assert.equal(pr.containsRuntimeCode, true, `PR #${number} contains runtime code`);
+    assert.ok(Array.isArray(pr.runtimeRequirements), `PR #${number} has runtimeRequirements`);
+    assert.ok(pr.runtimeRequirements.length > 0, `PR #${number} has explicit runtime requirements`);
+  }
+});
+
+test('only real PR ordering dependencies appear in prDependencies', () => {
+  for (const pr of data.openPrs) {
+    assert.ok(Array.isArray(pr.prDependencies), `PR #${pr.number} has prDependencies`);
+    for (const dependency of pr.prDependencies) {
+      assert.ok([297, 298, 302].includes(dependency), `PR #${pr.number} dependency #${dependency} is a real ordering dependency`);
+    }
+  }
+});
+
+test('implementation dependency corrections are enforced', () => {
+  const pr284 = data.openPrs.find((pr) => pr.number === 284);
+  const pr286 = data.openPrs.find((pr) => pr.number === 286);
+  const pr289 = data.openPrs.find((pr) => pr.number === 289);
+  assert.deepEqual(pr284.prDependencies, [], 'PR #284 does not depend on audit PRs #279/#283');
+  assert.deepEqual(pr286.prDependencies, [298], 'PR #286 depends on #298 only');
+  assert.equal(pr286.prDependencies.includes(281), false, 'PR #286 does not depend on superseded #281');
+  assert.deepEqual(pr289.prDependencies, [], 'PR #289 does not depend on audit/reproduction PRs #287/#288');
+});
+
+test('superseded PRs point to canonical replacements', () => {
+  assert.equal(data.openPrs.find((pr) => pr.number === 280).replacementPr, 302);
+  assert.equal(data.openPrs.find((pr) => pr.number === 281).replacementPr, 298);
+  assert.equal(data.openPrs.find((pr) => pr.number === 293).replacementPr, 297);
+});
+
+test('canonical schema contains no placeholder, review-head, or pending workflow text', () => {
   const forbidden = [
     ['UNKNOWN', 'AUTH', 'REQUIRED'].join('_'),
     ['requires', 'authenticated'].join(' '),
-    ['requires', 'branch', 'test'].join(' '),
-    ['current', ['merge', 'ability'].join('')].join(' '),
-    ['ahead', 'behind'].join('/'),
-    ['changed', 'Files'].join(''),
-    ['workflow', 'Runs'].join(''),
-    ['next', 'Command', 'Level', 'Action'].join(''),
+    ['reviewed', 'Head', 'Sha'].join(''),
+    ['previous', 'head'].join(' '),
+    ['new', 'head'].join(' '),
+    ['pending', 'workflow'].join(' '),
+    ['pending', 'after', 'push'].join(' '),
   ];
   for (const token of forbidden) {
     assert.equal(canonicalText.includes(token), false, `forbidden token remains: ${token}`);
@@ -85,20 +118,6 @@ test('human actions contain no placeholder angle-bracket commands', () => {
   for (const pr of data.openPrs) {
     assert.equal(/[<>]/.test(pr.exactHumanAction), false, `PR #${pr.number} human action has no placeholder angle brackets`);
   }
-});
-
-test('implementation PRs #284, #286 and #289 have explicit runtime dependencies', () => {
-  for (const number of [284, 286, 289]) {
-    const pr = data.openPrs.find((entry) => entry.number === number);
-    assert.equal(pr.containsRuntimeCode, true, `PR #${number} contains runtime code`);
-    assert.ok(pr.dependencies.length > 0, `PR #${number} has runtime dependencies`);
-  }
-});
-
-test('superseded PRs point to canonical replacements', () => {
-  assert.equal(data.openPrs.find((pr) => pr.number === 280).replacementPr, 302);
-  assert.equal(data.openPrs.find((pr) => pr.number === 281).replacementPr, 298);
-  assert.equal(data.openPrs.find((pr) => pr.number === 293).replacementPr, 297);
 });
 
 test('audit-only PRs are never runtime fixes and migration PR #286 is not direct-merge-ready', () => {

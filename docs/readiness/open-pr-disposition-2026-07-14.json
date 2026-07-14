@@ -2,7 +2,6 @@
   "generatedAt": "2026-07-14T00:00:00Z",
   "repository": "veele-services/platform",
   "existingPr": 299,
-  "reviewedHeadSha": "dcf1c2b5616c8d012b341d91f133061f4b77b865",
   "canonicalMainBeforeStart": "42edb5664ed507ed914b8bebf8847ab1f6e39f74",
   "auditedBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
   "schema": "durable-open-pr-disposition-v1",
@@ -20,10 +19,11 @@
       "scopeSummary": "End-to-end functional flow audit across surfaces.",
       "disposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
       "replacementPr": null,
-      "dependencies": [],
       "reason": "Audit value is evidentiary; preserve useful findings in the current register/backlog before closure.",
       "exactHumanAction": "Extract useful evidence into the current register or implementation backlog, then close PR #279 after reviewer confirmation.",
-      "deleteBranchAfterCompletion": true
+      "deleteBranchAfterCompletion": true,
+      "prDependencies": [],
+      "runtimeRequirements": []
     },
     {
       "number": 280,
@@ -38,12 +38,13 @@
       "scopeSummary": "Legacy runtime entrypoint inventory superseded by the replacement tooling track.",
       "disposition": "SUPERSEDED_CLOSE",
       "replacementPr": 302,
-      "dependencies": [
-        302
-      ],
       "reason": "The durable replacement is PR #302; do not retain the old inventory branch after #302 lands.",
       "exactHumanAction": "After PR #302 is merged, close PR #280 as superseded and link to #302.",
-      "deleteBranchAfterCompletion": true
+      "deleteBranchAfterCompletion": true,
+      "prDependencies": [
+        302
+      ],
+      "runtimeRequirements": []
     },
     {
       "number": 281,
@@ -58,12 +59,13 @@
       "scopeSummary": "Old auth-provider boundary ADR superseded by the newer architecture record.",
       "disposition": "SUPERSEDED_CLOSE",
       "replacementPr": 298,
-      "dependencies": [
-        298
-      ],
       "reason": "The durable replacement is PR #298; the old ADR should not be merged separately.",
       "exactHumanAction": "After PR #298 is merged, close PR #281 as superseded and link to #298.",
-      "deleteBranchAfterCompletion": true
+      "deleteBranchAfterCompletion": true,
+      "prDependencies": [
+        298
+      ],
+      "runtimeRequirements": []
     },
     {
       "number": 282,
@@ -78,10 +80,11 @@
       "scopeSummary": "Platform administration audit evidence.",
       "disposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
       "replacementPr": null,
-      "dependencies": [],
       "reason": "Audit-only content should feed the register/backlog, not runtime.",
       "exactHumanAction": "Extract useful findings into the current register or implementation backlog, then close PR #282 after reviewer confirmation.",
-      "deleteBranchAfterCompletion": true
+      "deleteBranchAfterCompletion": true,
+      "prDependencies": [],
+      "runtimeRequirements": []
     },
     {
       "number": 283,
@@ -96,10 +99,11 @@
       "scopeSummary": "Customer PWA audit evidence.",
       "disposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
       "replacementPr": null,
-      "dependencies": [],
       "reason": "Audit-only content should feed the register/backlog, not runtime.",
       "exactHumanAction": "Extract useful findings into the current register or implementation backlog, then close PR #283 after reviewer confirmation.",
-      "deleteBranchAfterCompletion": true
+      "deleteBranchAfterCompletion": true,
+      "prDependencies": [],
+      "runtimeRequirements": []
     },
     {
       "number": 284,
@@ -114,13 +118,20 @@
       "scopeSummary": "Runtime implementation for interest selection and scheduling.",
       "disposition": "RETAIN_REBASE_COMPLETE",
       "replacementPr": null,
-      "dependencies": [
-        279,
-        283
-      ],
       "reason": "This is a runtime implementation branch worth retaining, but it must be rebased and completed against current main before review.",
-      "exactHumanAction": "Retain PR #284, rebase it onto current main, resolve conflicts, run domain smokes, and complete review before merge consideration.",
-      "deleteBranchAfterCompletion": false
+      "exactHumanAction": "Retain PR #284, rebase it onto current main, satisfy the listed runtime requirements, and complete review before merge consideration.",
+      "deleteBranchAfterCompletion": false,
+      "prDependencies": [],
+      "runtimeRequirements": [
+        "rebase onto current main",
+        "reconcile with the canonical tenant-bound assignment command layer",
+        "PostgreSQL concurrency proof for simultaneous final-slot selection",
+        "Tenant A/B database isolation",
+        "API/server-action runtime proof",
+        "browser proof for planning, personnel and customer visibility",
+        "idempotent retry and no duplicate assigned link",
+        "notification/outbox behavior proven separately"
+      ]
     },
     {
       "number": 285,
@@ -135,10 +146,11 @@
       "scopeSummary": "Tenant backoffice audit evidence.",
       "disposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
       "replacementPr": null,
-      "dependencies": [],
       "reason": "Audit-only content should feed the register/backlog, not runtime.",
       "exactHumanAction": "Extract useful findings into the current register or implementation backlog, then close PR #285 after reviewer confirmation.",
-      "deleteBranchAfterCompletion": true
+      "deleteBranchAfterCompletion": true,
+      "prDependencies": [],
+      "runtimeRequirements": []
     },
     {
       "number": 286,
@@ -153,13 +165,24 @@
       "scopeSummary": "Runtime credential challenge/reset implementation including a migration.",
       "disposition": "REBUILD_FROM_CURRENT_MAIN",
       "replacementPr": null,
-      "dependencies": [
-        281,
+      "reason": "The branch contains migration work on an old base; rebuild from current main and re-create the migration in current order.",
+      "exactHumanAction": "Rebuild PR #286 from current main, recreate the migration in current forward-only order, satisfy the listed runtime requirements, and continue only through the rebuilt implementation path.",
+      "deleteBranchAfterCompletion": false,
+      "prDependencies": [
         298
       ],
-      "reason": "The branch contains migration work on an old base; rebuild from current main and re-create the migration in current order.",
-      "exactHumanAction": "Rebuild PR #286 from current main, recreate the migration in current migration order, rerun database and runtime smokes, and only then open/continue the rebuilt implementation path.",
-      "deleteBranchAfterCompletion": false
+      "runtimeRequirements": [
+        "rebuild from current main",
+        "recreate migration in current forward-only migration order",
+        "challenge and reset-grant database concurrency",
+        "RLS and ACL proof",
+        "per-IP, per-account and per-tenant rate limits",
+        "complete session revocation",
+        "admin step-up or MFA",
+        "provider mock",
+        "browser E2E",
+        "staging smoke"
+      ]
     },
     {
       "number": 287,
@@ -174,10 +197,11 @@
       "scopeSummary": "Personnel PWA audit evidence.",
       "disposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
       "replacementPr": null,
-      "dependencies": [],
       "reason": "Audit-only content should feed the register/backlog, not runtime.",
       "exactHumanAction": "Extract useful findings into the current register or implementation backlog, then close PR #287 after reviewer confirmation.",
-      "deleteBranchAfterCompletion": true
+      "deleteBranchAfterCompletion": true,
+      "prDependencies": [],
+      "runtimeRequirements": []
     },
     {
       "number": 288,
@@ -192,10 +216,11 @@
       "scopeSummary": "Assignment P0 reproduction/evidence branch.",
       "disposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
       "replacementPr": null,
-      "dependencies": [],
       "reason": "Reproduction value is evidentiary; do not merge as runtime.",
       "exactHumanAction": "Extract the reproduction evidence into the current register or implementation backlog, then close PR #288 after reviewer confirmation.",
-      "deleteBranchAfterCompletion": true
+      "deleteBranchAfterCompletion": true,
+      "prDependencies": [],
+      "runtimeRequirements": []
     },
     {
       "number": 289,
@@ -210,13 +235,20 @@
       "scopeSummary": "Runtime implementation for atomic personnel availability.",
       "disposition": "RETAIN_REBASE_COMPLETE",
       "replacementPr": null,
-      "dependencies": [
-        287,
-        288
-      ],
       "reason": "This runtime implementation remains valuable, but must be rebased and verified against current main.",
-      "exactHumanAction": "Retain PR #289, rebase it onto current main, resolve conflicts, run personnel availability smokes, and complete review before merge consideration.",
-      "deleteBranchAfterCompletion": false
+      "exactHumanAction": "Retain PR #289, rebase it onto current main, satisfy the listed runtime requirements, and complete review before merge consideration.",
+      "deleteBranchAfterCompletion": false,
+      "prDependencies": [],
+      "runtimeRequirements": [
+        "rebase onto current main",
+        "atomic PostgreSQL transaction proof",
+        "simultaneous save concurrency",
+        "stale updatedAt conflict",
+        "overlap validation",
+        "Tenant A/B isolation",
+        "API/server-action runtime",
+        "browser E2E"
+      ]
     },
     {
       "number": 290,
@@ -231,10 +263,11 @@
       "scopeSummary": "Finance/webhook/worker integrity reproduction evidence.",
       "disposition": "EXTRACT_EVIDENCE_THEN_CLOSE",
       "replacementPr": null,
-      "dependencies": [],
       "reason": "Reproduction value is evidentiary; do not merge as runtime.",
       "exactHumanAction": "Extract useful evidence into the current register or implementation backlog, then close PR #290 after reviewer confirmation.",
-      "deleteBranchAfterCompletion": true
+      "deleteBranchAfterCompletion": true,
+      "prDependencies": [],
+      "runtimeRequirements": []
     },
     {
       "number": 292,
@@ -249,10 +282,11 @@
       "scopeSummary": "Architecture model for multi-person execution.",
       "disposition": "PARK_ARCHITECTURE",
       "replacementPr": null,
-      "dependencies": [],
       "reason": "Architecture material should be parked for later design review, not merged as runtime.",
       "exactHumanAction": "Park PR #292 as architecture reference material and revisit during the multi-person execution design review.",
-      "deleteBranchAfterCompletion": false
+      "deleteBranchAfterCompletion": false,
+      "prDependencies": [],
+      "runtimeRequirements": []
     },
     {
       "number": 293,
@@ -267,12 +301,13 @@
       "scopeSummary": "Old pre-Phase-B register superseded by the current register path.",
       "disposition": "SUPERSEDED_CLOSE",
       "replacementPr": 297,
-      "dependencies": [
-        297
-      ],
       "reason": "The durable replacement is PR #297; the old register should close after #297 lands.",
       "exactHumanAction": "After PR #297 is merged, close PR #293 as superseded and link to #297.",
-      "deleteBranchAfterCompletion": true
+      "deleteBranchAfterCompletion": true,
+      "prDependencies": [
+        297
+      ],
+      "runtimeRequirements": []
     }
   ],
   "integrationWaves": [
@@ -293,15 +328,15 @@
     {
       "wave": 3,
       "actions": [
-        "rebase #297 onto current main",
-        "verify #297 mapping against merged #299",
+        "rebase #297",
+        "validate #297 against merged #299",
         "merge #297"
       ]
     },
     {
       "wave": 4,
       "actions": [
-        "merge #301 after its dedicated Playwright workflow is green"
+        "merge #301 only after all its workflows are green"
       ]
     }
   ],
@@ -310,5 +345,6 @@
     "close #281 after #298",
     "close #293 after #297"
   ],
-  "evidenceClosureRule": "Audit and reproduction PRs may be closed only after useful evidence is represented in the current register or implementation backlog."
+  "evidenceClosureRule": "Audit and reproduction PRs may be closed only after useful evidence is represented in the current register or implementation backlog.",
+  "existingBranch": "feature/audit-open-prs-and-create-disposition-plan"
 }
