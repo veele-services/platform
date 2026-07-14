@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 2,
+  "artifactName": "fieldgrid-runtime-entrypoint-inventory-full",
+  "artifactPath": "artifacts/runtime-entrypoints/fieldgrid-runtime-entrypoint-inventory.full.json",
+  "inventoryHash": "sha256:ded19f68ac676201e283c4280148c74541e8a2bd3a37c4904d195fc37684395a",
+  "runtimeRoots": [
+    "artifacts/backoffice/src",
+    "artifacts/personeel-pwa/src",
+    "artifacts/klant-pwa/src",
+    "artifacts/api-server/src",
+    "lib/db/src"
+  ],
+  "excludedRoots": [
+    ".generated",
+    ".next",
+    "__tests__",
+    "build",
+    "coverage",
+    "dist",
+    "docs",
+    "e2e",
+    "fixtures",
+    "generated",
+    "migrations",
+    "native",
+    "node_modules",
+    "out",
+    "out-tsc",
+    "playwright-report",
+    "scripts",
+    "test",
+    "tests",
+    "www"
+  ],
+  "counts": {
+    "total": 682,
+    "uniqueRuntimeNodes": 586,
+    "classifications": 682,
+    "externalEntrypoints": 99,
+    "internalDbCallsites": 486,
+    "providerBoundaries": 75,
+    "signedUrlCallsites": 19,
+    "byKind": {
+      "server-action": 37,
+      "route-handler": 58,
+      "middleware": 3,
+      "webhook-handler": 1,
+      "worker-entrypoint": 3,
+      "scheduled-entrypoint": 0,
+      "database-callsite": 10,
+      "rpc-callsite": 0,
+      "raw-sql-callsite": 476,
+      "provider-boundary": 75,
+      "storage-signed-url-issuance": 19
+    },
+    "bySeverity": {
+      "review-required": 20,
+      "high": 5,
+      "medium": 310,
+      "low": 272,
+      "informational": 75
+    }
+  },
+  "kindHashes": {
+    "server-action": "sha256:c6d2069dee853bf7f86e51b9f676d1441f344de1b7f3fff3cc48f7669ac7ee41",
+    "route-handler": "sha256:4e11dcf129118957afe417448528e842c8a2c47e6b06fabad8e8337d49f6a978",
+    "middleware": "sha256:04251a5d79ac5c2866204fe54a602f64ded57855b03bbfbf0b113c2d58c602d0",
+    "webhook-handler": "sha256:f96816dc938acc730f7e56e796e49c90eed5f94fd6f04640e9edf8d3912fe235",
+    "worker-entrypoint": "sha256:a89218c8aee687b05a31dd1add0f0ec40552d9ff1fadf7d2e0726e6455f14629",
+    "scheduled-entrypoint": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "database-callsite": "sha256:1d406e4cc617bb647794ffd6c87f229363459849219f574c4f0f088bc0018fb6",
+    "rpc-callsite": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "raw-sql-callsite": "sha256:a992f361e214474e2875e2c7f3ebd57bde6da1e9ba119f489983fd7f394c0fb9",
+    "provider-boundary": "sha256:2f7073db8b7e5fcc793293d2b89850f1973c1ff5348abb063fff8a24c6cfb973",
+    "storage-signed-url-issuance": "sha256:4571fcafb49604b6606781d3f02e67061bdf5a00110ab04190d4987926a75d4d"
+  },
+  "riskDimensions": [
+    "tenantSource",
+    "authSource",
+    "hostBinding",
+    "permissionCheck",
+    "moduleGate",
+    "parentRowBinding",
+    "audit",
+    "idempotency",
+    "providerBoundary",
+    "evidenceLayer",
+    "providerAuthentication",
+    "visibilityBinding",
+    "mutationIntent"
+  ],
+  "controlRequirements": {
+    "server-action": [
+      "tenantSource",
+      "authSource",
+      "permissionCheck"
+    ],
+    "route-handler": [
+      "authSource"
+    ],
+    "middleware": [
+      "hostBinding",
+      "authSource"
+    ],
+    "webhook-handler": [
+      "providerBoundary",
+      "providerAuthentication",
+      "idempotency"
+    ],
+    "worker-entrypoint": [
+      "idempotency",
+      "audit"
+    ],
+    "scheduled-entrypoint": [
+      "idempotency",
+      "audit"
+    ],
+    "database-callsite": [
+      "tenantSource"
+    ],
+    "rpc-callsite": [
+      "tenantSource"
+    ],
+    "raw-sql-callsite": [
+      "tenantSource"
+    ],
+    "provider-boundary": [
+      "providerBoundary"
+    ],
+    "storage-signed-url-issuance": [
+      "tenantSource",
+      "parentRowBinding",
+      "visibilityBinding"
+    ]
+  },
+  "requiredKinds": [
+    "server-action",
+    "route-handler",
+    "middleware",
+    "webhook-handler",
+    "worker-entrypoint",
+    "scheduled-entrypoint",
+    "database-callsite",
+    "rpc-callsite",
+    "raw-sql-callsite",
+    "provider-boundary",
+    "storage-signed-url-issuance"
+  ]
+}
