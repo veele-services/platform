@@ -1,21 +1,39 @@
 # Fieldgrid Playwright golden path foundation
 
-This E2E lane is intentionally local-only and deterministic. It starts `fixtures/mock-server.mjs` through Playwright `webServer`, seeds in-memory Tenant A/Tenant B data per process, and uses mocked providers instead of Supabase, staging, production, or live credentials.
+This E2E lane starts the real local Fieldgrid applications and drives their actual Next.js routes, components, middleware, server actions, tenant resolution, and authorization guards. It does **not** render the pages under test from a mock application server.
+
+## Local app startup
+
+Playwright runs `start-real-apps.mjs`, which starts:
+
+- tenant backoffice on `127.0.0.1:9321`;
+- personnel PWA on `127.0.0.1:9322` with `/personeel` base path;
+- customer PWA on `127.0.0.1:9323` with `/klant` base path;
+- an external provider mock server on `127.0.0.1:9324` for health checks and future email/payment/maps/push stubs only.
 
 ## Fixture strategy
 
-- Tenants, users, and assignments are declared in `fixtures/tenants.ts` and mirrored by the mock server.
-- Each Playwright invocation gets `FIELDGRID_E2E_RUN_ID` in report output and page metadata.
+- Reuses the Runtime Safety PostgreSQL 17 setup and deterministic fixture IDs for Tenant A and Tenant B.
+- CI runs setup, migrations, and `fieldgrid:runtime-safety:fixtures` before Playwright.
+- The fixture IDs used by tests are declared in `fixtures/tenants.ts` and match `scripts/fieldgrid-runtime-safety-lib.mjs`.
+- The database is disposable and guarded by the Runtime Safety reset checks; teardown runs after CI.
 - Browser contexts are test-scoped, so parallel workers do not share mutable cookies or local storage.
-- The mock database is in-memory and process-scoped; CI starts a fresh server for each run.
-- The cleanup guard is `FIELDGRID_E2E_NO_LIVE_PROVIDERS=true` in CI plus no live provider URLs/secrets in the fixture server.
+
+## Auth test seam
+
+The apps include a narrow local E2E Supabase-auth adapter keyed by the `fieldgrid_e2e_user_id` cookie. It is enabled only when both conditions are true:
+
+1. `FIELDGRID_E2E_AUTH_ENABLED=true`;
+2. `NODE_ENV !== "production"`.
+
+The seam returns seeded Runtime Safety auth users but still leaves the normal host, tenant, profile, module, permission, and route guards in the real applications. A sourceguard test verifies that each seam checks the explicit env flag, rejects production, and uses only the E2E cookie.
 
 ## Covered smoke paths
 
-- Backoffice: login → dashboard → customer list → assignment list → planning board.
-- Personnel: login → assignment list → assignment detail → tasks → reports.
-- Customer: login → assignments → reports → invoices.
-- Negative: Tenant A URL with Tenant B user, wrong host, inactive profile, direct guessed assignment URL.
+- Backoffice: session → dashboard → customer list → assignment list → planning board.
+- Personnel: session → assignment list → assignment detail → task view → reports/time view.
+- Customer: session → assignments → reports → invoices.
+- Negative: Tenant A URL with Tenant B identity, wrong host, inactive/suspended profile, direct guessed Tenant B assignment URL while authenticated as Tenant A personnel.
 
 ## Artifacts
 

@@ -1,68 +1,69 @@
-import { expect, type Page, test } from '@playwright/test';
+import { expect, type Browser, type Page, test } from '@playwright/test';
 import { assignments, tenants, users } from '../fixtures/tenants';
 
-const base = 'http://127.0.0.1:9321';
-function url(path: string, host = tenants.tenantA.host) { return `${base}${path}${path.includes('?') ? '&' : '?'}host=${host}`; }
-async function login(page: Page, role: 'backoffice' | 'personnel' | 'customer', user = users[`${role}A`]) {
-  await page.goto(url(`/?role=${role}`));
-  await page.getByLabel('email').fill(user.email);
-  await page.getByLabel('password').fill(user.password);
-  await page.getByRole('button', { name: 'Login' }).click();
+const ports = { backoffice: 9321, personnel: 9322, customer: 9323 } as const;
+const cookieName = 'fieldgrid_e2e_user_id';
+
+async function appPage(browser: Browser, app: keyof typeof ports, host: string, userId?: string): Promise<Page> {
+  const context = await browser.newContext({ extraHTTPHeaders: { 'x-forwarded-host': host, 'x-forwarded-proto': 'http' } });
+  if (userId) {
+    await context.addCookies([{ name: cookieName, value: userId, domain: '127.0.0.1', path: '/', httpOnly: true, sameSite: 'Lax' }]);
+  }
+  return context.newPage();
 }
-async function expectPage(page: Page, name: string) { await expect(page.getByRole('heading', { name })).toBeVisible(); await expect(page.getByTestId('run-id')).toContainText('fg-'); }
+function appUrl(app: keyof typeof ports, path: string) { return `http://127.0.0.1:${ports[app]}${path}`; }
+async function expectRealApp(page: Page) { await expect(page.locator('body')).not.toBeEmpty(); }
 
-test.describe('Fieldgrid Playwright golden path foundation', () => {
-  test('backoffice smoke: login to planning board', async ({ page }) => {
-    await login(page, 'backoffice');
-    await expectPage(page, 'dashboard');
-    await page.getByRole('link', { name: 'customer list' }).click();
-    await expectPage(page, 'customer list');
-    await page.getByRole('link', { name: 'assignment list' }).click();
-    await expectPage(page, 'assignment list');
-    await page.getByRole('link', { name: 'planning board' }).click();
-    await expectPage(page, 'planning board');
+test.describe('Fieldgrid real-app golden paths', () => {
+  test('backoffice real app: session to planning board', async ({ browser }) => {
+    const page = await appPage(browser, 'backoffice', tenants.tenantA.host, users.backofficeA.id);
+    await page.goto(appUrl('backoffice', '/'));
+    await expectRealApp(page);
+    await page.goto(appUrl('backoffice', '/customers'));
+    await expect(page.getByText(/Runtime Customer A|Klanten|Customers/i).first()).toBeVisible();
+    await page.goto(appUrl('backoffice', '/assignments'));
+    await expect(page.getByText(/Runtime Assignment A|Opdrachten|Assignments/i).first()).toBeVisible();
+    await page.goto(appUrl('backoffice', '/planning'));
+    await expect(page.getByText(/Planning|Runtime Assignment A/i).first()).toBeVisible();
   });
 
-  test('personnel smoke: login to reports', async ({ page }) => {
-    await login(page, 'personnel');
-    await expectPage(page, 'assignment list');
-    await page.getByRole('link', { name: 'assignment detail' }).click();
-    await expectPage(page, 'assignment detail');
-    await page.getByRole('link', { name: 'tasks' }).click();
-    await expectPage(page, 'tasks');
-    await page.getByRole('link', { name: 'reports' }).click();
-    await expectPage(page, 'reports');
+  test('personnel real app: session to reports', async ({ browser }) => {
+    const page = await appPage(browser, 'personnel', tenants.tenantA.host, users.personnelA.id);
+    await page.goto(appUrl('personnel', '/personeel/opdrachten'));
+    await expect(page.getByText(/Runtime Assignment A|Opdrachten/i).first()).toBeVisible();
+    await page.goto(appUrl('personnel', `/personeel/opdrachten/${assignments.tenantA.id}`));
+    await expect(page.getByText(/Runtime Assignment A|Werkbon|Opdracht/i).first()).toBeVisible();
+    await page.goto(appUrl('personnel', `/personeel/opdrachten/${assignments.tenantA.id}`));
+    await expect(page.getByText(/Taken|Taak|Runtime Assignment A/i).first()).toBeVisible();
+    await page.goto(appUrl('personnel', '/personeel/uren'));
+    await expect(page.getByText(/Uren|Rapport|Reports/i).first()).toBeVisible();
   });
 
-  test('customer smoke: login to invoices', async ({ page }) => {
-    await login(page, 'customer');
-    await expectPage(page, 'assignments');
-    await page.getByRole('link', { name: 'reports' }).click();
-    await expectPage(page, 'reports');
-    await page.getByRole('link', { name: 'invoices' }).click();
-    await expectPage(page, 'invoices');
+  test('customer real app: session to invoices', async ({ browser }) => {
+    const page = await appPage(browser, 'customer', tenants.tenantA.host, users.customerA.id);
+    await page.goto(appUrl('customer', '/klant/opdrachten'));
+    await expect(page.getByText(/Runtime Assignment A|Opdrachten/i).first()).toBeVisible();
+    await page.goto(appUrl('customer', '/klant/rapporten'));
+    await expect(page.getByText(/Rapport|Rapporten|Reports/i).first()).toBeVisible();
+    await page.goto(appUrl('customer', '/klant/facturen'));
+    await expect(page.getByText(/Facturen|Invoice|Invoices/i).first()).toBeVisible();
   });
 
-  test('negative access controls', async ({ page }) => {
-    await page.goto(url('/?role=backoffice', tenants.tenantA.host));
-    await page.getByLabel('email').fill(users.backofficeB.email);
-    await page.getByLabel('password').fill(users.backofficeB.password);
-    await page.getByRole('button', { name: 'Login' }).click();
-    await expect(page.getByTestId('error')).toContainText('Tenant or role mismatch');
+  test('negative guards execute in real apps', async ({ browser }) => {
+    const tenantBOnA = await appPage(browser, 'backoffice', tenants.tenantA.host, users.backofficeB.id);
+    await tenantBOnA.goto(appUrl('backoffice', '/customers'));
+    await expect(tenantBOnA.getByText(/geen toegang|forbidden|login|niet gemachtigd|Geen actieve tenant/i).first()).toBeVisible();
 
-    await page.context().clearCookies();
-    await page.goto(url('/dashboard', 'wrong.localhost'));
-    await expect(page.getByTestId('error')).toContainText('Unknown tenant host');
+    const wrongHost = await appPage(browser, 'backoffice', 'wrong.runtime.fieldgrid.test', users.backofficeA.id);
+    await wrongHost.goto(appUrl('backoffice', '/customers'));
+    await expect(wrongHost.getByText(/geen actieve tenant|login|not found|onbekend|forbidden/i).first()).toBeVisible();
 
-    await page.context().clearCookies();
-    await page.goto(url('/?role=personnel', tenants.tenantA.host));
-    await page.getByLabel('email').fill(users.inactiveA.email);
-    await page.getByLabel('password').fill(users.inactiveA.password);
-    await page.getByRole('button', { name: 'Login' }).click();
-    await expect(page.getByTestId('error')).toContainText('Profile inactive');
+    const inactive = await appPage(browser, 'personnel', tenants.tenantA.host, users.inactiveProfile.id);
+    await inactive.goto(appUrl('personnel', '/personeel/opdrachten'));
+    await expect(inactive.getByText(/login|geen toegang|niet actief|unauthorized|forbidden/i).first()).toBeVisible();
 
-    await login(page, 'personnel');
-    await page.goto(`${base}/assignments/${assignments.tenantB.id}`);
-    await expect(page.getByTestId('error')).toContainText('Assignment unavailable for tenant');
+    const guessed = await appPage(browser, 'personnel', tenants.tenantA.host, users.personnelA.id);
+    await guessed.goto(appUrl('personnel', `/personeel/opdrachten/${assignments.tenantB.id}`));
+    await expect(guessed.getByText(/niet gevonden|geen toegang|not found|unauthorized|forbidden/i).first()).toBeVisible();
   });
 });

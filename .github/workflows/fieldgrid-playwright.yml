@@ -9,11 +9,35 @@ permissions:
 
 jobs:
   golden-paths:
-    name: Local mocked Playwright golden paths
+    name: Real local app Playwright golden paths
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fieldgrid_runtime_safety
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fieldgrid_runtime_safety"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
     env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/fieldgrid_runtime_safety
+      DB_SSL: "false"
+      PGSSLMODE: disable
+      FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET: "1"
+      FIELDGRID_RUNTIME_SAFETY_RESET_CONFIRM: fieldgrid_runtime_safety
+      FIELDGRID_E2E_AUTH_ENABLED: "true"
       FIELDGRID_E2E_NO_LIVE_PROVIDERS: "true"
       FIELDGRID_E2E_RUN_ID: fieldgrid-ci-${{ github.run_id }}-${{ github.run_attempt }}
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:9324/supabase
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: fieldgrid-local-e2e-anon-key
+      SUPABASE_SERVICE_ROLE_KEY: fieldgrid-local-e2e-service-key
+      SESSION_SECRET: fieldgrid-local-e2e-session-secret-minimum-32-bytes
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -27,8 +51,15 @@ jobs:
         run: pnpm install --frozen-lockfile
       - name: Install Playwright Chromium
         run: pnpm exec playwright install --with-deps chromium
-      - name: Run local mocked golden paths
+      - name: Initialize isolated PostgreSQL schema
+        run: pnpm fieldgrid:runtime-safety:setup
+      - name: Seed deterministic runtime fixtures
+        run: pnpm fieldgrid:runtime-safety:fixtures
+      - name: Run real-app golden paths
         run: pnpm fieldgrid:playwright
+      - name: Teardown runtime safety database
+        if: always()
+        run: pnpm fieldgrid:runtime-safety:teardown
       - name: Upload Playwright artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -38,5 +69,7 @@ jobs:
             artifacts/playwright/html-report
             artifacts/playwright/test-results
             artifacts/playwright/test-summary.json
+            artifacts/runtime-safety-harness/**/*.json
+            artifacts/runtime-safety-harness/**/*.log
           if-no-files-found: warn
           retention-days: 14

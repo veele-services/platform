@@ -45,6 +45,9 @@ function resetPasswordUrlWithNext(request: NextRequest): URL {
 }
 
 export async function middleware(request: NextRequest) {
+  if (process.env.NODE_ENV !== "production" && process.env.FIELDGRID_E2E_AUTH_ENABLED === "true" && request.cookies.get("fieldgrid_e2e_user_id")?.value) {
+    return NextResponse.next({ request });
+  }
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 

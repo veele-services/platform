@@ -131,7 +131,7 @@
     "db:baseline": "pnpm --filter @workspace/db run db:baseline",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
-    "fieldgrid:playwright": "playwright test",
+    "fieldgrid:playwright": "node --test tests/fieldgrid-playwright-e2e-auth-sourceguard.test.mjs && playwright test",
     "fieldgrid:playwright:install": "playwright install --with-deps chromium"
   },
   "private": true,
