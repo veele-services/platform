@@ -1,42 +1,76 @@
 {
-  "schemaVersion": 1,
+  "schemaVersion": 2,
   "artifactName": "fieldgrid-runtime-entrypoint-inventory-full",
   "artifactPath": "artifacts/runtime-entrypoints/fieldgrid-runtime-entrypoint-inventory.full.json",
-  "inventoryHash": "sha256:227bbbf0d91220483e07d3f2c3e5a549bfd9275d8e8d88f4c7fc062de995d1ee",
+  "inventoryHash": "sha256:e619b9b3fc3cc4f2cbb5ea9f0fc7cb4a9d417c36db9591da51ae12d2cd1b4001",
+  "runtimeRoots": [
+    "artifacts/backoffice/src",
+    "artifacts/personeel-pwa/src",
+    "artifacts/klant-pwa/src",
+    "artifacts/api-server/src",
+    "lib/db/src"
+  ],
+  "excludedRoots": [
+    ".generated",
+    ".next",
+    "__tests__",
+    "build",
+    "coverage",
+    "dist",
+    "docs",
+    "e2e",
+    "fixtures",
+    "generated",
+    "migrations",
+    "native",
+    "node_modules",
+    "out",
+    "out-tsc",
+    "playwright-report",
+    "scripts",
+    "test",
+    "tests",
+    "www"
+  ],
   "counts": {
-    "total": 891,
-    "highRisk": 776,
+    "total": 1103,
+    "externalEntrypoints": 99,
+    "internalDbCallsites": 486,
     "byKind": {
-      "server-action": 94,
-      "route-handler": 114,
+      "server-action": 37,
+      "route-handler": 58,
       "middleware": 3,
+      "webhook-handler": 1,
+      "worker-entrypoint": 3,
+      "scheduled-entrypoint": 0,
+      "internal-privileged-command": 0,
+      "database-callsite": 10,
       "rpc-callsite": 0,
-      "supabase-table-call": 61,
-      "raw-sql-entrypoint": 490,
-      "provider-webhook": 1,
-      "storage-signed-url-issuance": 82,
-      "auth-reset-handler": 40,
-      "background-worker": 4,
-      "cron-scheduled-handler": 2
+      "raw-sql-callsite": 476,
+      "provider-boundary": 496,
+      "storage-signed-url-issuance": 19
     },
     "bySeverity": {
-      "high": 776,
-      "low": 30,
-      "medium": 85
+      "review-required": 20,
+      "high": 5,
+      "medium": 310,
+      "low": 272,
+      "informational": 496
     }
   },
   "kindHashes": {
-    "auth-reset-handler": "sha256:3afc003909e1587fa79dd29d2851af496b06a19a5ae8261ef99dcc7d8fbc0224",
-    "background-worker": "sha256:1dd57a3944e1998aa18a3b10983452577ddd7daccafefc01d60d12ff62225fbd",
-    "cron-scheduled-handler": "sha256:fa9a7c84e4ba7a154e136f8a35ec02dd88abefdd7769bc0a8293672e12a1d92f",
-    "middleware": "sha256:c6fdb222bf6357d69357a3faa3d22c71ceeca6fb1896086a01b62cffe21804af",
-    "provider-webhook": "sha256:3aa7f2d5fed32c3d9008f505a8856231f7a6b86265f70030cd8ae0b6e00bcbf3",
-    "raw-sql-entrypoint": "sha256:c38409a31bac26b5f1ce82ae43194d873263432e8ab4baae220e1050ce1dc8d2",
-    "route-handler": "sha256:81d45aa06300d56df9020e11335d458ace5eecc31634b8f5b965a66003ced89c",
+    "server-action": "sha256:c6d2069dee853bf7f86e51b9f676d1441f344de1b7f3fff3cc48f7669ac7ee41",
+    "route-handler": "sha256:4e11dcf129118957afe417448528e842c8a2c47e6b06fabad8e8337d49f6a978",
+    "middleware": "sha256:04251a5d79ac5c2866204fe54a602f64ded57855b03bbfbf0b113c2d58c602d0",
+    "webhook-handler": "sha256:f96816dc938acc730f7e56e796e49c90eed5f94fd6f04640e9edf8d3912fe235",
+    "worker-entrypoint": "sha256:a89218c8aee687b05a31dd1add0f0ec40552d9ff1fadf7d2e0726e6455f14629",
+    "scheduled-entrypoint": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "internal-privileged-command": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+    "database-callsite": "sha256:1d406e4cc617bb647794ffd6c87f229363459849219f574c4f0f088bc0018fb6",
     "rpc-callsite": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-    "server-action": "sha256:468aea7ac326924e19ccd1e027ee71ba920288e79d9ebfee04cd4689c394047f",
-    "storage-signed-url-issuance": "sha256:686ae9a3b5332e4cf6827ded0dde3dec82bb217416d9ec1ca9ee6dd4b5b3f8f8",
-    "supabase-table-call": "sha256:c5a24bff519fbcad850c553fb5a07e3b11c71817484ceaef8bfa0c999430b3a1"
+    "raw-sql-callsite": "sha256:a992f361e214474e2875e2c7f3ebd57bde6da1e9ba119f489983fd7f394c0fb9",
+    "provider-boundary": "sha256:e9a836f291232268f03f003e8dad3dd21c969f2483feae20584ddeea31fd8f8c",
+    "storage-signed-url-issuance": "sha256:4571fcafb49604b6606781d3f02e67061bdf5a00110ab04190d4987926a75d4d"
   },
   "riskDimensions": [
     "tenantSource",
@@ -48,19 +82,72 @@
     "audit",
     "idempotency",
     "providerBoundary",
-    "evidenceLayer"
+    "evidenceLayer",
+    "providerAuthentication",
+    "visibilityBinding",
+    "mutationIntent"
   ],
+  "controlRequirements": {
+    "server-action": [
+      "tenantSource",
+      "authSource",
+      "permissionCheck"
+    ],
+    "route-handler": [
+      "authSource"
+    ],
+    "middleware": [
+      "hostBinding",
+      "authSource"
+    ],
+    "webhook-handler": [
+      "providerBoundary",
+      "providerAuthentication",
+      "idempotency"
+    ],
+    "worker-entrypoint": [
+      "idempotency",
+      "audit"
+    ],
+    "scheduled-entrypoint": [
+      "idempotency",
+      "audit"
+    ],
+    "internal-privileged-command": [
+      "authSource",
+      "permissionCheck",
+      "audit"
+    ],
+    "database-callsite": [
+      "tenantSource"
+    ],
+    "rpc-callsite": [
+      "tenantSource"
+    ],
+    "raw-sql-callsite": [
+      "tenantSource"
+    ],
+    "provider-boundary": [
+      "providerBoundary"
+    ],
+    "storage-signed-url-issuance": [
+      "tenantSource",
+      "parentRowBinding",
+      "visibilityBinding"
+    ]
+  },
   "requiredKinds": [
     "server-action",
     "route-handler",
     "middleware",
+    "webhook-handler",
+    "worker-entrypoint",
+    "scheduled-entrypoint",
+    "internal-privileged-command",
+    "database-callsite",
     "rpc-callsite",
-    "supabase-table-call",
-    "raw-sql-entrypoint",
-    "provider-webhook",
-    "storage-signed-url-issuance",
-    "auth-reset-handler",
-    "background-worker",
-    "cron-scheduled-handler"
+    "raw-sql-callsite",
+    "provider-boundary",
+    "storage-signed-url-issuance"
   ]
 }

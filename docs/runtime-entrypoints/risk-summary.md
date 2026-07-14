@@ -1,22 +1,58 @@
 # Fieldgrid runtime entrypoint risk summary
 
-Generated from the compact manifest. Full inventory is a CI artifact named `fieldgrid-runtime-entrypoint-inventory-full`.
+Full inventory is uploaded as CI artifact `fieldgrid-runtime-entrypoint-inventory-full`.
 
-- Entrypoints: 891
-- High risk: 776
+- Runtime entrypoints and callsites: 1103
+- External entrypoints: 99
+- Internal DB callsites: 486
+- Review required: 20
+- High: 5
+- Medium: 310
+- Low: 272
+- Informational: 496
+
+## Runtime roots
+- artifacts/backoffice/src
+- artifacts/personeel-pwa/src
+- artifacts/klant-pwa/src
+- artifacts/api-server/src
+- lib/db/src
+
+## Excluded roots
+- .generated
+- .next
+- __tests__
+- build
+- coverage
+- dist
+- docs
+- e2e
+- fixtures
+- generated
+- migrations
+- native
+- node_modules
+- out
+- out-tsc
+- playwright-report
+- scripts
+- test
+- tests
+- www
 
 ## Counts by kind
-- auth-reset-handler: 40
-- background-worker: 4
-- cron-scheduled-handler: 2
+- server-action: 37
+- route-handler: 58
 - middleware: 3
-- provider-webhook: 1
-- raw-sql-entrypoint: 490
-- route-handler: 114
+- webhook-handler: 1
+- worker-entrypoint: 3
+- scheduled-entrypoint: 0
+- internal-privileged-command: 0
+- database-callsite: 10
 - rpc-callsite: 0
-- server-action: 94
-- storage-signed-url-issuance: 82
-- supabase-table-call: 61
+- raw-sql-callsite: 476
+- provider-boundary: 496
+- storage-signed-url-issuance: 19
 
 ## Risk dimensions
 - tenantSource
@@ -29,3 +65,6 @@ Generated from the compact manifest. Full inventory is a CI artifact named `fiel
 - idempotency
 - providerBoundary
 - evidenceLayer
+- providerAuthentication
+- visibilityBinding
+- mutationIntent
