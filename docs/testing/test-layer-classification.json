@@ -82,7 +82,8 @@
         "can_manage_assignment_personnel is removed when present",
         "can_select_own_assignment_personnel is removed when present",
         "assignment_personnel_tenant_match is removed when present",
-        "personnel_assigned_to_assignment is SECURITY DEFINER and tenant-claim fail-closed"
+        "personnel_assigned_to_assignment is SECURITY DEFINER and derives tenant access from active assigned personnel rows",
+        "personnel_can_access_assignment_storage is SECURITY DEFINER and binds storage path tenant to assignment tenant without JWT tenant claims"
       ]
     },
     "phase-b-previous-release-database-compatibility": {
@@ -93,7 +94,7 @@
       "evidence": [
         "static callsite audit classifies previous release assignment_personnel references",
         "real PostgreSQL queries exercise previous release server-action query shapes",
-        "authenticated RLS queries exercise assignments, tasks, photos and reports with selected tenant claim",
+        "authenticated RLS queries exercise assignments, tasks, photos and reports without a tenant_id JWT claim",
         "authenticated direct assignment_personnel SELECT remains permission denied"
       ],
       "limitations": [

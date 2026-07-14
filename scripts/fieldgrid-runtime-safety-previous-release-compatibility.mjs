@@ -29,14 +29,14 @@ const COMPAT_FIXTURE = {
   report: "79000000-0000-4000-8000-000000000003",
 };
 
-function claimsFor(actor, tenantClaim = actor.tenantId) {
+function claimsFor(actor, tenantClaim) {
   const claims = {
     sub: actor.userId,
     email: actor.email,
     role: "authenticated",
     aud: "authenticated",
   };
-  if (tenantClaim !== null) claims.tenant_id = tenantClaim;
+  if (tenantClaim !== undefined) claims.tenant_id = tenantClaim;
   return claims;
 }
 
@@ -224,7 +224,7 @@ async function previousReleaseServerSideQueriesStillWork(client) {
   });
 }
 
-async function previousReleaseRlsContractStillWorksWithSelectedTenant(client) {
+async function previousReleaseRlsContractStillWorksWithoutTenantClaim(client) {
   await ensureCompatibilityFixtureRows(client);
   const visible = await asAuthenticated(client, ACTOR, claimsFor(ACTOR), async () => ({
     assignments: (await client.query(`select id from public.assignments where id = $1`, [FIXTURE.assignments.a])).rows.map((row) => row.id),
@@ -241,9 +241,14 @@ async function previousReleaseRlsContractStillWorksWithSelectedTenant(client) {
     expectRejected(() => client.query(`select id from public.assignment_personnel limit 1`), ["42501"]),
   );
 
-  return result("phase-b-previous-release-rls-contract-with-selected-tenant", "passed", {
+  return result("phase-b-previous-release-rls-contract-without-tenant-claim", "passed", {
     visible,
     directAssignmentPersonnelSelect: directDenied,
+    jwtContract: {
+      role: "authenticated",
+      sub: "present",
+      tenant_id: "absent",
+    },
   });
 }
 
@@ -253,7 +258,7 @@ async function runChecks() {
     return [
       await previousReleaseCallsiteAudit(),
       await previousReleaseServerSideQueriesStillWork(client),
-      await previousReleaseRlsContractStillWorksWithSelectedTenant(client),
+      await previousReleaseRlsContractStillWorksWithoutTenantClaim(client),
     ];
   } finally {
     await client.end();
@@ -291,6 +296,7 @@ async function main() {
     limitations: [
       "Uses local PostgreSQL 17 with auth.uid()/auth.jwt() shims.",
       "The callsite audit is static evidence; the server-side and RLS contract checks are runtime database evidence.",
+      "Authenticated RLS compatibility is tested without a tenant_id JWT claim, matching the observed real Fieldgrid personnel session contract.",
       "No live database, live Supabase, staging, production, secrets, deploy or merge are used.",
     ],
   });

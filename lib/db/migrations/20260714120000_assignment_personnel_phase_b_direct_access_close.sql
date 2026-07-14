@@ -8,55 +8,74 @@
 
 CREATE OR REPLACE FUNCTION public.personnel_assigned_to_assignment(p_assignment_id uuid)
 RETURNS boolean
-LANGUAGE plpgsql
+LANGUAGE sql
 STABLE
 SECURITY DEFINER
 SET search_path = pg_catalog, public, auth
 AS $$
-DECLARE
-  v_auth_uid uuid;
-  v_claim_tenant_text text;
-  v_claim_tenant_id uuid;
-BEGIN
-  v_auth_uid := auth.uid();
-  IF v_auth_uid IS NULL THEN
-    RETURN false;
-  END IF;
-
-  v_claim_tenant_text := nullif(auth.jwt() ->> 'tenant_id', '');
-  IF v_claim_tenant_text IS NULL THEN
-    RETURN false;
-  END IF;
-
-  BEGIN
-    v_claim_tenant_id := v_claim_tenant_text::uuid;
-  EXCEPTION
-    WHEN invalid_text_representation THEN
-      RETURN false;
-  END;
-
-  RETURN EXISTS (
-    SELECT 1
-    FROM public.assignment_personnel ap
-    JOIN public.assignments a
-      ON a.id = ap.assignment_id
-    JOIN public.personnel p
-      ON p.id = ap.personnel_id
-    WHERE ap.assignment_id = p_assignment_id
-      AND ap.status = 'assigned'
-      AND p.user_id = v_auth_uid
-      AND p.is_active = true
-      AND a.tenant_id IS NOT NULL
-      AND p.tenant_id = a.tenant_id
-      AND a.tenant_id = v_claim_tenant_id
-  );
-END;
+  SELECT
+    (SELECT auth.uid()) IS NOT NULL
+    AND EXISTS (
+      SELECT 1
+      FROM public.assignment_personnel ap
+      JOIN public.assignments a
+        ON a.id = ap.assignment_id
+      JOIN public.personnel p
+        ON p.id = ap.personnel_id
+      WHERE ap.assignment_id = p_assignment_id
+        AND ap.status = 'assigned'
+        AND p.user_id = (SELECT auth.uid())
+        AND p.is_active = true
+        AND p.tenant_id IS NOT NULL
+        AND a.tenant_id IS NOT NULL
+        AND p.tenant_id = a.tenant_id
+    );
 $$;
 
 REVOKE ALL ON FUNCTION public.personnel_assigned_to_assignment(uuid)
 FROM PUBLIC, anon, authenticated, service_role;
 
 GRANT EXECUTE ON FUNCTION public.personnel_assigned_to_assignment(uuid)
+TO authenticated;
+
+CREATE OR REPLACE FUNCTION public.personnel_can_access_assignment_storage(
+  p_assignment_id uuid,
+  p_path_tenant_id uuid
+)
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = pg_catalog, public, auth
+AS $$
+  SELECT
+    p_assignment_id IS NOT NULL
+    AND (SELECT auth.uid()) IS NOT NULL
+    AND EXISTS (
+      SELECT 1
+      FROM public.assignment_personnel ap
+      JOIN public.assignments a
+        ON a.id = ap.assignment_id
+      JOIN public.personnel p
+        ON p.id = ap.personnel_id
+      WHERE ap.assignment_id = p_assignment_id
+        AND ap.status = 'assigned'
+        AND p.user_id = (SELECT auth.uid())
+        AND p.is_active = true
+        AND p.tenant_id IS NOT NULL
+        AND a.tenant_id IS NOT NULL
+        AND p.tenant_id = a.tenant_id
+        AND (
+          p_path_tenant_id IS NULL
+          OR p_path_tenant_id = a.tenant_id
+        )
+    );
+$$;
+
+REVOKE ALL ON FUNCTION public.personnel_can_access_assignment_storage(uuid, uuid)
+FROM PUBLIC, anon, authenticated, service_role;
+
+GRANT EXECUTE ON FUNCTION public.personnel_can_access_assignment_storage(uuid, uuid)
 TO authenticated;
 
 -- Remove assignment_personnel policies before revoking table SELECT.
@@ -207,10 +226,9 @@ BEGIN
     FOR SELECT TO authenticated
     USING (
       bucket_id = ''assignment-photos''
-      AND public.personnel_assigned_to_assignment(public.fieldgrid_storage_assignment_id_from_path(name))
-      AND (
-        public.fieldgrid_storage_tenant_id_from_path(name) IS NULL
-        OR public.fieldgrid_storage_tenant_id_from_path(name)::text = nullif(auth.jwt() ->> ''tenant_id'', '''')
+      AND public.personnel_can_access_assignment_storage(
+        public.fieldgrid_storage_assignment_id_from_path(name),
+        public.fieldgrid_storage_tenant_id_from_path(name)
       )
     )
   ';
@@ -221,10 +239,9 @@ BEGIN
     FOR INSERT TO authenticated
     WITH CHECK (
       bucket_id = ''assignment-photos''
-      AND public.personnel_assigned_to_assignment(public.fieldgrid_storage_assignment_id_from_path(name))
-      AND (
-        public.fieldgrid_storage_tenant_id_from_path(name) IS NULL
-        OR public.fieldgrid_storage_tenant_id_from_path(name)::text = nullif(auth.jwt() ->> ''tenant_id'', '''')
+      AND public.personnel_can_access_assignment_storage(
+        public.fieldgrid_storage_assignment_id_from_path(name),
+        public.fieldgrid_storage_tenant_id_from_path(name)
       )
     )
   ';
@@ -235,18 +252,16 @@ BEGIN
     FOR UPDATE TO authenticated
     USING (
       bucket_id = ''assignment-photos''
-      AND public.personnel_assigned_to_assignment(public.fieldgrid_storage_assignment_id_from_path(name))
-      AND (
-        public.fieldgrid_storage_tenant_id_from_path(name) IS NULL
-        OR public.fieldgrid_storage_tenant_id_from_path(name)::text = nullif(auth.jwt() ->> ''tenant_id'', '''')
+      AND public.personnel_can_access_assignment_storage(
+        public.fieldgrid_storage_assignment_id_from_path(name),
+        public.fieldgrid_storage_tenant_id_from_path(name)
       )
     )
     WITH CHECK (
       bucket_id = ''assignment-photos''
-      AND public.personnel_assigned_to_assignment(public.fieldgrid_storage_assignment_id_from_path(name))
-      AND (
-        public.fieldgrid_storage_tenant_id_from_path(name) IS NULL
-        OR public.fieldgrid_storage_tenant_id_from_path(name)::text = nullif(auth.jwt() ->> ''tenant_id'', '''')
+      AND public.personnel_can_access_assignment_storage(
+        public.fieldgrid_storage_assignment_id_from_path(name),
+        public.fieldgrid_storage_tenant_id_from_path(name)
       )
     )
   ';
@@ -257,10 +272,9 @@ BEGIN
     FOR DELETE TO authenticated
     USING (
       bucket_id = ''assignment-photos''
-      AND public.personnel_assigned_to_assignment(public.fieldgrid_storage_assignment_id_from_path(name))
-      AND (
-        public.fieldgrid_storage_tenant_id_from_path(name) IS NULL
-        OR public.fieldgrid_storage_tenant_id_from_path(name)::text = nullif(auth.jwt() ->> ''tenant_id'', '''')
+      AND public.personnel_can_access_assignment_storage(
+        public.fieldgrid_storage_assignment_id_from_path(name),
+        public.fieldgrid_storage_tenant_id_from_path(name)
       )
     )
   ';

@@ -18,6 +18,11 @@ const ACTORS = {
     email: "planner@tenant-a.runtime.fieldgrid.test",
     tenantId: FIXTURE.tenants.a,
   },
+  tenantAAdmin: {
+    userId: FIXTURE.users.tenantAAdmin,
+    email: "admin@tenant-a.runtime.fieldgrid.test",
+    tenantId: FIXTURE.tenants.a,
+  },
   tenantAPersonnel: {
     userId: FIXTURE.users.tenantAPersonnel,
     email: "personnel@tenant-a.runtime.fieldgrid.test",
@@ -43,6 +48,11 @@ const ACTORS = {
     email: "multi@runtime.fieldgrid.test",
     tenantId: FIXTURE.tenants.b,
   },
+  inactivePersonnel: {
+    userId: FIXTURE.users.multiTenant,
+    email: "multi@runtime.fieldgrid.test",
+    tenantId: FIXTURE.tenants.a,
+  },
   legacyGlobalManagementOnly: {
     userId: FIXTURE.users.legacyGlobalManagementOnly,
     email: "legacy-management-only@runtime.fieldgrid.test",
@@ -54,6 +64,10 @@ const RLS_FIXTURE = {
   assignmentPersonnel: {
     a: "61000000-0000-4000-8000-000000000001",
     b: "61000000-0000-4000-8000-000000000002",
+    inactive: "61000000-0000-4000-8000-000000000003",
+  },
+  personnel: {
+    inactive: "60000000-0000-4000-8000-000000000005",
   },
   tasks: {
     a: "71000000-0000-4000-8000-000000000001",
@@ -79,6 +93,21 @@ const RLS_FIXTURE = {
   materialUsage: {
     a: "77000000-0000-4000-8000-000000000001",
   },
+  storageObjects: {
+    validTenantA: "78000000-0000-4000-8000-000000000001",
+    tenantB: "78000000-0000-4000-8000-000000000002",
+    tenantBPrefixForAssignmentA: "78000000-0000-4000-8000-000000000003",
+    malformedAssignment: "78000000-0000-4000-8000-000000000004",
+    missingAssignment: "78000000-0000-4000-8000-000000000005",
+  },
+};
+
+const STORAGE_OBJECT_NAMES = {
+  validTenantA: `tenant/${FIXTURE.tenants.a}/assignments/${FIXTURE.assignments.a}/photo-a.jpg`,
+  tenantB: `tenant/${FIXTURE.tenants.b}/assignments/${FIXTURE.assignments.b}/photo-b.jpg`,
+  tenantBPrefixForAssignmentA: `tenant/${FIXTURE.tenants.b}/assignments/${FIXTURE.assignments.a}/cross-prefix.jpg`,
+  malformedAssignment: `tenant/${FIXTURE.tenants.a}/assignments/not-a-uuid/malformed.jpg`,
+  missingAssignment: `tenant/${FIXTURE.tenants.a}/objects/no-assignment/missing.jpg`,
 };
 
 const ASSIGNMENT_PERSONNEL_TABLE_PRIVILEGES = [
@@ -130,14 +159,14 @@ const PHASE_A1_ACL_MIGRATION_PATH =
 const PHASE_B_ACL_MIGRATION_PATH =
   "lib/db/migrations/20260714120000_assignment_personnel_phase_b_direct_access_close.sql";
 
-function claimsFor(actor, tenantClaim = actor.tenantId) {
+function claimsFor(actor, tenantClaim) {
   const claims = {
     sub: actor.userId,
     email: actor.email,
     role: "authenticated",
     aud: "authenticated",
   };
-  if (tenantClaim !== null) claims.tenant_id = tenantClaim;
+  if (tenantClaim !== undefined) claims.tenant_id = tenantClaim;
   return claims;
 }
 
@@ -325,10 +354,29 @@ async function assignmentPersonnelTableAclIsLeastPrivilege(client) {
 async function ensurePersonnelRlsFixtureRows(client) {
   await client.query(
     `
+      insert into public.personnel (
+        id, tenant_id, user_id, code, first_name, last_name, email, is_active, is_available
+      )
+      values ($1, $2, $3, 'RT-INACTIVE', 'Runtime', 'Inactive', 'multi@runtime.fieldgrid.test', false, true)
+      on conflict (id) do update set
+        tenant_id = excluded.tenant_id,
+        user_id = excluded.user_id,
+        is_active = excluded.is_active
+    `,
+    [
+      RLS_FIXTURE.personnel.inactive,
+      FIXTURE.tenants.a,
+      FIXTURE.users.multiTenant,
+    ],
+  );
+
+  await client.query(
+    `
       insert into public.assignment_personnel (id, assignment_id, personnel_id, status, assigned_by)
       values
         ($1, $2, $3, 'assigned', $4),
-        ($5, $6, $7, 'assigned', $8)
+        ($5, $6, $7, 'assigned', $8),
+        ($9, $10, $11, 'assigned', $12)
       on conflict (assignment_id, personnel_id) do update set
         status = excluded.status,
         assigned_by = excluded.assigned_by
@@ -342,6 +390,10 @@ async function ensurePersonnelRlsFixtureRows(client) {
       FIXTURE.assignments.b,
       FIXTURE.personnel.b,
       FIXTURE.users.tenantBPlanner,
+      RLS_FIXTURE.assignmentPersonnel.inactive,
+      FIXTURE.assignments.a,
+      RLS_FIXTURE.personnel.inactive,
+      FIXTURE.users.tenantAPlanner,
     ],
   );
 
@@ -449,6 +501,47 @@ async function ensurePersonnelRlsFixtureRows(client) {
       RLS_FIXTURE.materialUsage.a,
       FIXTURE.tenants.a,
       FIXTURE.assignments.a,
+      FIXTURE.users.tenantAPersonnel,
+    ],
+  );
+
+  await client.query(
+    `
+      insert into storage.buckets (id, name, public)
+      values ('assignment-photos', 'assignment-photos', false)
+      on conflict (id) do update set name = excluded.name, public = excluded.public
+    `,
+  );
+
+  await client.query(
+    `
+      insert into storage.objects (id, bucket_id, name, owner, metadata)
+      values
+        ($1, 'assignment-photos', $2, $3, '{}'::jsonb),
+        ($4, 'assignment-photos', $5, $6, '{}'::jsonb),
+        ($7, 'assignment-photos', $8, $9, '{}'::jsonb),
+        ($10, 'assignment-photos', $11, $12, '{}'::jsonb),
+        ($13, 'assignment-photos', $14, $15, '{}'::jsonb)
+      on conflict (id) do update set
+        bucket_id = excluded.bucket_id,
+        name = excluded.name,
+        owner = excluded.owner
+    `,
+    [
+      RLS_FIXTURE.storageObjects.validTenantA,
+      STORAGE_OBJECT_NAMES.validTenantA,
+      FIXTURE.users.tenantAPersonnel,
+      RLS_FIXTURE.storageObjects.tenantB,
+      STORAGE_OBJECT_NAMES.tenantB,
+      FIXTURE.users.tenantBPersonnel,
+      RLS_FIXTURE.storageObjects.tenantBPrefixForAssignmentA,
+      STORAGE_OBJECT_NAMES.tenantBPrefixForAssignmentA,
+      FIXTURE.users.tenantAPersonnel,
+      RLS_FIXTURE.storageObjects.malformedAssignment,
+      STORAGE_OBJECT_NAMES.malformedAssignment,
+      FIXTURE.users.tenantAPersonnel,
+      RLS_FIXTURE.storageObjects.missingAssignment,
+      STORAGE_OBJECT_NAMES.missingAssignment,
       FIXTURE.users.tenantAPersonnel,
     ],
   );
@@ -584,6 +677,11 @@ async function selectIds(client, query, params = []) {
   return rows.rows.map((row) => row.id).sort();
 }
 
+async function selectNames(client, query, params = []) {
+  const rows = await client.query(query, params);
+  return rows.rows.map((row) => row.name).sort();
+}
+
 async function personnelRlsPoliciesAllowLegitimateData(client) {
   await ensurePersonnelRlsFixtureRows(client);
   const actor = ACTORS.tenantAPersonnel;
@@ -617,6 +715,7 @@ async function personnelRlsPoliciesAllowLegitimateData(client) {
 async function duplicatePersonnelUserIdIsRejected(client) {
   await client.query("begin");
   try {
+    const duplicateUserId = FIXTURE.users.moduleOffOwner;
     await client.query(
       `
         insert into public.personnel (id, tenant_id, user_id, code, first_name, last_name, email, is_active, is_available)
@@ -625,7 +724,7 @@ async function duplicatePersonnelUserIdIsRejected(client) {
       [
         "60000000-0000-4000-8000-000000000003",
         FIXTURE.tenants.a,
-        FIXTURE.users.multiTenant,
+        duplicateUserId,
       ],
     );
     const duplicate = await expectRejected(
@@ -638,7 +737,7 @@ async function duplicatePersonnelUserIdIsRejected(client) {
           [
             "60000000-0000-4000-8000-000000000004",
             FIXTURE.tenants.b,
-            FIXTURE.users.multiTenant,
+            duplicateUserId,
           ],
         ),
       ["23505"],
@@ -656,7 +755,7 @@ async function duplicatePersonnelUserIdIsRejected(client) {
   }
 }
 
-async function tenantABIsolationAndTenantClaimFailClosed(client) {
+async function tenantABIsolationAndJwtTenantClaimIgnored(client) {
   await ensurePersonnelRlsFixtureRows(client);
   const duplicateMultiTenantPersonnel = await duplicatePersonnelUserIdIsRejected(client);
 
@@ -671,17 +770,22 @@ async function tenantABIsolationAndTenantClaimFailClosed(client) {
     ]),
   );
 
-  const absent = await asAuthenticated(client, ACTORS.tenantAPersonnel, claimsFor(ACTORS.tenantAPersonnel, null), async () =>
+  const wrongUser = await asAuthenticated(client, ACTORS.tenantAAdmin, claimsFor(ACTORS.tenantAAdmin), async () =>
     selectIds(client, `select id from public.assignments where id = any($1::uuid[])`, [
       [FIXTURE.assignments.a, FIXTURE.assignments.b],
     ]),
   );
-  const malformed = await asAuthenticated(client, ACTORS.tenantAPersonnel, claimsFor(ACTORS.tenantAPersonnel, "not-a-uuid"), async () =>
+  const inactivePersonnel = await asAuthenticated(client, ACTORS.inactivePersonnel, claimsFor(ACTORS.inactivePersonnel), async () =>
     selectIds(client, `select id from public.assignments where id = any($1::uuid[])`, [
       [FIXTURE.assignments.a, FIXTURE.assignments.b],
     ]),
   );
-  const wrong = await asAuthenticated(client, ACTORS.tenantAPersonnel, claimsFor(ACTORS.tenantAPersonnel, FIXTURE.tenants.b), async () =>
+  const wrongTenantClaim = await asAuthenticated(client, ACTORS.tenantAPersonnel, claimsFor(ACTORS.tenantAPersonnel, FIXTURE.tenants.b), async () =>
+    selectIds(client, `select id from public.assignments where id = any($1::uuid[])`, [
+      [FIXTURE.assignments.a, FIXTURE.assignments.b],
+    ]),
+  );
+  const malformedTenantClaim = await asAuthenticated(client, ACTORS.tenantAPersonnel, claimsFor(ACTORS.tenantAPersonnel, "not-a-uuid"), async () =>
     selectIds(client, `select id from public.assignments where id = any($1::uuid[])`, [
       [FIXTURE.assignments.a, FIXTURE.assignments.b],
     ]),
@@ -689,17 +793,64 @@ async function tenantABIsolationAndTenantClaimFailClosed(client) {
 
   nodeAssert.deepEqual(tenantA, [FIXTURE.assignments.a]);
   nodeAssert.deepEqual(tenantB, [FIXTURE.assignments.b]);
-  nodeAssert.deepEqual(absent, []);
-  nodeAssert.deepEqual(malformed, []);
-  nodeAssert.deepEqual(wrong, []);
+  nodeAssert.deepEqual(wrongUser, []);
+  nodeAssert.deepEqual(inactivePersonnel, []);
+  nodeAssert.deepEqual(wrongTenantClaim, [FIXTURE.assignments.a]);
+  nodeAssert.deepEqual(malformedTenantClaim, [FIXTURE.assignments.a]);
 
-  return result("rls-tenant-a-b-isolation-and-selected-tenant-fail-closed", "passed", {
+  return result("rls-tenant-a-b-isolation-and-jwt-tenant-claim-ignored", "passed", {
     tenantA,
     tenantB,
-    absent,
-    malformed,
-    wrong,
+    wrongUser,
+    inactivePersonnel,
+    wrongTenantClaim,
+    malformedTenantClaim,
     duplicateMultiTenantPersonnel,
+    note: "The personnel helper ignores JWT tenant_id and derives tenant access from active personnel, assigned link, and same-tenant assignment/personnel rows.",
+  });
+}
+
+async function storagePathTenantIsolationWithoutTenantClaim(client) {
+  await ensurePersonnelRlsFixtureRows(client);
+  const actor = ACTORS.tenantAPersonnel;
+  const probedNames = Object.values(STORAGE_OBJECT_NAMES);
+
+  const visibleWithoutTenantClaim = await asAuthenticated(client, actor, claimsFor(actor), async () =>
+    selectNames(client, `select name from storage.objects where bucket_id = 'assignment-photos' and name = any($1::text[])`, [
+      probedNames,
+    ]),
+  );
+  const visibleWithWrongTenantClaim = await asAuthenticated(client, actor, claimsFor(actor, FIXTURE.tenants.b), async () =>
+    selectNames(client, `select name from storage.objects where bucket_id = 'assignment-photos' and name = any($1::text[])`, [
+      probedNames,
+    ]),
+  );
+
+  nodeAssert.deepEqual(visibleWithoutTenantClaim, [STORAGE_OBJECT_NAMES.validTenantA]);
+  nodeAssert.deepEqual(visibleWithWrongTenantClaim, [STORAGE_OBJECT_NAMES.validTenantA]);
+
+  const deniedByCase = Object.fromEntries(
+    Object.entries(STORAGE_OBJECT_NAMES)
+      .filter(([key]) => key !== "validTenantA")
+      .map(([key, name]) => [key, !visibleWithoutTenantClaim.includes(name)]),
+  );
+  for (const [key, denied] of Object.entries(deniedByCase)) {
+    assert(denied === true, `Storage path case ${key} was unexpectedly visible.`, {
+      key,
+      visibleWithoutTenantClaim,
+    });
+  }
+
+  const directDenied = await asAuthenticated(client, actor, claimsFor(actor), async () =>
+    expectRejected(() => client.query(`select id from public.assignment_personnel limit 1`), ["42501"]),
+  );
+
+  return result("rls-storage-assignment-photo-path-tenant-isolation-without-tenant-claim", "passed", {
+    visibleWithoutTenantClaim,
+    visibleWithWrongTenantClaim,
+    deniedByCase,
+    directAssignmentPersonnelSelect: directDenied,
+    limitation: "storage.objects is a local PostgreSQL shim; this is policy runtime evidence, not live Supabase Storage provider evidence.",
   });
 }
 
@@ -755,6 +906,11 @@ async function securityDefinerPrivilegesAreMinimal(client) {
     },
     {
       signature: "public.personnel_assigned_to_assignment(uuid)",
+      expectedAuthenticatedExecute: true,
+      expectedServiceRoleExecute: false,
+    },
+    {
+      signature: "public.personnel_can_access_assignment_storage(uuid, uuid)",
       expectedAuthenticatedExecute: true,
       expectedServiceRoleExecute: false,
     },
@@ -897,7 +1053,8 @@ async function runChecks() {
       await anonDirectDmlIsRevoked(client),
       await serviceRoleCrudWorksAndTriggerInvariantHolds(client),
       await personnelRlsPoliciesAllowLegitimateData(client),
-      await tenantABIsolationAndTenantClaimFailClosed(client),
+      await tenantABIsolationAndJwtTenantClaimIgnored(client),
+      await storagePathTenantIsolationWithoutTenantClaim(client),
       await customerPortalPoliciesAreNotRegressed(client),
       await legacyGlobalManagementCannotManage(client),
       await securityDefinerPrivilegesAreMinimal(client),
@@ -935,7 +1092,12 @@ async function main() {
     actorModel: {
       authenticatedRole: "phase B denies direct CRUD on assignment_personnel and keeps personnel RLS through a hardened helper",
       rowSecurity: "on",
-      claims: ["request.jwt.claim.sub", "request.jwt.claims.tenant_id"],
+      claims: ["request.jwt.claim.sub", "request.jwt.claims without tenant_id"],
+      realFieldgridJwtContract: {
+        role: "authenticated",
+        sub: "present",
+        tenant_id_valid: false,
+      },
       directAssignmentPersonnelAccess: "PUBLIC, anon and authenticated have no direct table privileges",
       serviceRole: "direct SELECT/INSERT/UPDATE/DELETE only; no TRUNCATE/REFERENCES/TRIGGER/MAINTAIN",
       excludedEvidence: ["postgres/superuser checks are not RLS evidence", "source regex checks are not runtime proof"],
@@ -949,7 +1111,8 @@ async function main() {
       "rls-anon-direct-assignment-personnel-dml-revoked": "database ACL enforcement",
       "rls-service-role-crud-and-trigger-invariant": "service-role/database invariant",
       "rls-personnel-policy-mediated-legitimate-data-access": "authenticated RLS-runtime evidence",
-      "rls-tenant-a-b-isolation-and-selected-tenant-fail-closed": "authenticated RLS-runtime evidence",
+      "rls-tenant-a-b-isolation-and-jwt-tenant-claim-ignored": "authenticated RLS-runtime evidence",
+      "rls-storage-assignment-photo-path-tenant-isolation-without-tenant-claim": "storage.objects PostgreSQL policy runtime evidence",
       "rls-customer-policy-regression-assignments-tasks-photos-reports": "customer RLS-runtime evidence",
       "rls-legacy-global-management-without-tenant-role-denied": "authenticated RLS",
       "rls-security-definer-execute-privileges-minimal": "database function ACL invariant",
@@ -958,7 +1121,7 @@ async function main() {
     limitations: [
       "Uses local PostgreSQL 17 and GUC-backed auth.uid()/auth.jwt() Supabase shims.",
       "Does not prove Supabase GoTrue, JWT signing infrastructure, or live project role configuration.",
-      "Selected tenant enforcement is proven for direct RLS/PostgREST only when a tenant_id claim is present; normal app personnel reads are server-side.",
+      "storage.objects checks are PostgreSQL policy evidence only; live Supabase Storage provider behavior still requires post-deployment validation.",
     ],
   });
 

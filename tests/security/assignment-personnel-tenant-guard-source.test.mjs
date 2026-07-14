@@ -74,6 +74,7 @@ test("assignment_personnel Phase-B migration is forward-only and closes direct t
   const grantStatements = sqlStatements(migration).filter((statement) => /^\bGRANT\b/iu.test(statement));
   assert.deepEqual(grantStatements, [
     "GRANT EXECUTE ON FUNCTION public.personnel_assigned_to_assignment(uuid) TO authenticated;",
+    "GRANT EXECUTE ON FUNCTION public.personnel_can_access_assignment_storage(uuid, uuid) TO authenticated;",
     "GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.assignment_personnel TO service_role;",
   ]);
   assert.doesNotMatch(migration, /\b(INSERT\s+INTO|UPDATE|DELETE\s+FROM|TRUNCATE)\s+public\.assignment_personnel\b/iu);
@@ -88,18 +89,20 @@ test("personnel_assigned_to_assignment is a minimal hardened SECURITY DEFINER he
 
   assert.match(helper, /SECURITY DEFINER/u);
   assert.match(helper, /SET search_path = pg_catalog, public, auth/u);
+  assert.match(helper, /LANGUAGE sql/u);
   assert.match(helper, /FROM public\.assignment_personnel ap/u);
   assert.match(helper, /JOIN public\.assignments a/u);
   assert.match(helper, /JOIN public\.personnel p/u);
-  assert.match(helper, /v_auth_uid := auth\.uid\(\)/u);
-  assert.match(helper, /auth\.jwt\(\) ->> 'tenant_id'/u);
-  assert.match(helper, /WHEN invalid_text_representation THEN\s+RETURN false;/u);
+  assert.match(helper, /\(SELECT auth\.uid\(\)\) IS NOT NULL/u);
+  assert.match(helper, /p\.user_id = \(SELECT auth\.uid\(\)\)/u);
   assert.match(helper, /p\.is_active = true/u);
+  assert.match(helper, /p\.tenant_id IS NOT NULL/u);
+  assert.match(helper, /a\.tenant_id IS NOT NULL/u);
   assert.match(helper, /p\.tenant_id = a\.tenant_id/u);
-  assert.match(helper, /a\.tenant_id = v_claim_tenant_id/u);
 
   assert.doesNotMatch(helper, /\bEXECUTE\b/iu);
   assert.doesNotMatch(helper, /\bformat\s*\(/iu);
+  assert.doesNotMatch(helper, /auth\.jwt\(\)\s*->>\s*['"]tenant_id['"]/u);
   assert.doesNotMatch(helper, /claim\s+IS\s+NULL\s+OR/iu);
 
   assert.match(
@@ -111,6 +114,54 @@ test("personnel_assigned_to_assignment is a minimal hardened SECURITY DEFINER he
     /GRANT EXECUTE ON FUNCTION public\.personnel_assigned_to_assignment\(uuid\)\s+TO authenticated;/u,
   );
   assert.doesNotMatch(migration, /GRANT EXECUTE ON FUNCTION public\.personnel_assigned_to_assignment\(uuid\)\s+TO anon/u);
+});
+
+test("personnel storage policies use database-derived tenant binding, not JWT tenant claims", () => {
+  const migration = read(phaseBMigrationPath);
+  const storageHelper = migration.slice(
+    migration.indexOf("CREATE OR REPLACE FUNCTION public.personnel_can_access_assignment_storage"),
+    migration.indexOf("REVOKE ALL ON FUNCTION public.personnel_can_access_assignment_storage"),
+  );
+  const storagePolicies = migration.slice(
+    migration.indexOf("DO $$"),
+    migration.indexOf("REVOKE ALL ON TABLE public.assignment_personnel"),
+  );
+
+  assert.match(storageHelper, /SECURITY DEFINER/u);
+  assert.match(storageHelper, /SET search_path = pg_catalog, public, auth/u);
+  assert.match(storageHelper, /p_assignment_id IS NOT NULL/u);
+  assert.match(storageHelper, /FROM public\.assignment_personnel ap/u);
+  assert.match(storageHelper, /JOIN public\.assignments a/u);
+  assert.match(storageHelper, /JOIN public\.personnel p/u);
+  assert.match(storageHelper, /p\.user_id = \(SELECT auth\.uid\(\)\)/u);
+  assert.match(storageHelper, /p\.is_active = true/u);
+  assert.match(storageHelper, /p\.tenant_id = a\.tenant_id/u);
+  assert.match(storageHelper, /p_path_tenant_id IS NULL\s+OR p_path_tenant_id = a\.tenant_id/u);
+  assert.doesNotMatch(storageHelper, /auth\.jwt\(\)\s*->>\s*['"]tenant_id['"]/u);
+  assert.doesNotMatch(storageHelper, /\bEXECUTE\b/iu);
+  assert.doesNotMatch(storageHelper, /\bformat\s*\(/iu);
+
+  assert.match(
+    migration,
+    /REVOKE ALL ON FUNCTION public\.personnel_can_access_assignment_storage\(uuid, uuid\)\s+FROM PUBLIC, anon, authenticated, service_role;/u,
+  );
+  assert.match(
+    migration,
+    /GRANT EXECUTE ON FUNCTION public\.personnel_can_access_assignment_storage\(uuid, uuid\)\s+TO authenticated;/u,
+  );
+
+  for (const policyName of [
+    "assignment_photos_assigned_personnel",
+    "assignment_photos_assigned_personnel_insert",
+    "assignment_photos_assigned_personnel_update",
+    "assignment_photos_assigned_personnel_delete",
+  ]) {
+    assert.match(storagePolicies, new RegExp(policyName, "u"));
+  }
+  assert.match(storagePolicies, /personnel_can_access_assignment_storage/u);
+  assert.match(storagePolicies, /fieldgrid_storage_assignment_id_from_path\(name\)/u);
+  assert.match(storagePolicies, /fieldgrid_storage_tenant_id_from_path\(name\)/u);
+  assert.doesNotMatch(storagePolicies, /auth\.jwt\(\)\s*->>\s*['"]tenant_id['"]/u);
 });
 
 test("Phase-B migration removes obsolete helpers when present and keeps legacy RPC revoked", () => {
@@ -136,7 +187,8 @@ test("Phase-B source guards cover direct access, RLS runtime, service-role invar
   assert.match(harness, /rls-anon-assignment-personnel-select-permission-denied/u);
   assert.match(harness, /rls-service-role-crud-and-trigger-invariant/u);
   assert.match(harness, /rls-personnel-policy-mediated-legitimate-data-access/u);
-  assert.match(harness, /rls-tenant-a-b-isolation-and-selected-tenant-fail-closed/u);
+  assert.match(harness, /rls-tenant-a-b-isolation-and-jwt-tenant-claim-ignored/u);
+  assert.match(harness, /rls-storage-assignment-photo-path-tenant-isolation-without-tenant-claim/u);
   assert.match(harness, /rls-customer-policy-regression-assignments-tasks-photos-reports/u);
   assert.match(harness, /rls-database-function-policy-dependency-audit/u);
   assert.match(harness, /set local role \$\{role\}/u);
@@ -147,7 +199,8 @@ test("Phase-B source guards cover direct access, RLS runtime, service-role invar
   assert.match(compatibility, /132e7d0705f0192d6ec4a28195f192850574447d/u);
   assert.match(compatibility, /phase-b-previous-release-database-compatibility/u);
   assert.match(compatibility, /previousReleaseServerSideQueriesStillWork/u);
-  assert.match(compatibility, /previousReleaseRlsContractStillWorksWithSelectedTenant/u);
+  assert.match(compatibility, /previousReleaseRlsContractStillWorksWithoutTenantClaim/u);
+  assert.match(compatibility, /phase-b-previous-release-rls-contract-without-tenant-claim/u);
   assert.match(workflow, /phase-b-previous-release-database-compatibility/u);
 });
 
