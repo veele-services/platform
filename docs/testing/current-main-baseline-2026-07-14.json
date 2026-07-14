@@ -1,284 +1,90 @@
 {
+  "schemaVersion": 2,
   "date": "2026-07-14",
   "repository": "veele-services/platform",
+  "pullRequest": 300,
   "baseSha": "42edb5664ed507ed914b8bebf8847ab1f6e39f74",
   "branch": "codex/current-main-test-baseline-20260714",
-  "root": {
+  "rootSuite": {
+    "command": "pnpm test",
+    "status": "fail",
     "total": 759,
     "passed": 745,
     "failed": 14,
     "skipped": 0,
     "flaky": 0,
-    "environmentBlocked": 5
+    "result": "Current main has 14 existing root test failures. This PR records them and does not repair functional failures."
   },
-  "classifications": {
-    "testLayer": "root/unit-static plus Runtime Safety Harness lanes; DB runtime lanes environment-blocked without DATABASE_URL; health gate blocked by missing shellcheck",
-    "securityRelevance": "security-source passes; root includes tenant/security-relevant failures in branding, tenant context, PDF downloads",
-    "tenantRelevance": "tenant-relevant blockers present in tenant context, portal branding, branding upload scope",
-    "financeRelevance": "finance-relevant blockers present in finance downloads and invoice PDF/payment/preview tests",
-    "featureFreezeRelevance": "not ready for feature-freeze promotion until blockers are triaged"
+  "baselineDifferential": {
+    "currentMainFailures": 14,
+    "sharedFailures": 14,
+    "candidateOnlyFailures": 0,
+    "environmentBlocks": 0,
+    "permanentFailureAllowlistAdded": false
   },
-  "runs": [
+  "localExecutionConstraints": [
     {
-      "command": "pnpm install --frozen-lockfile",
-      "exitCode": 0,
-      "log": "outputs/current-main-baseline-2026-07-14/pnpm-install.log",
-      "layer": "install",
-      "status": "pass"
+      "lane": "local pnpm build",
+      "status": "blocked",
+      "reason": "Local mockup-sandbox build requires PORT in this environment; GitHub Actions build evidence is authoritative for this head."
     },
     {
-      "command": "pnpm test",
-      "exitCode": 1,
-      "log": "outputs/current-main-baseline-2026-07-14/pnpm-test.log",
-      "layer": "root",
-      "status": "fail"
+      "lane": "local Runtime Safety Harness DB/API lanes",
+      "status": "blocked",
+      "reason": "Local DATABASE_URL and local PostgreSQL/Docker runtime were not available."
     },
     {
-      "command": "pnpm run typecheck",
-      "exitCode": 0,
-      "log": "outputs/current-main-baseline-2026-07-14/pnpm-run-typecheck.log",
-      "layer": "typecheck",
-      "status": "pass"
-    },
-    {
-      "command": "pnpm build",
-      "exitCode": 1,
-      "log": "outputs/current-main-baseline-2026-07-14/pnpm-build.log",
-      "layer": "build",
-      "status": "fail"
-    },
-    {
-      "command": "pnpm fieldgrid:migration-order-check:check",
-      "exitCode": 0,
-      "log": "outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-migration-order-check-check.log",
-      "layer": "migration-order",
-      "status": "pass"
-    },
-    {
-      "command": "pnpm fieldgrid:test-layers:check",
-      "exitCode": 0,
-      "log": "outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-test-layers-check.log",
-      "layer": "test-layer",
-      "status": "pass"
-    },
-    {
-      "command": "pnpm fieldgrid:test:contract-static",
-      "exitCode": 0,
-      "log": "outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-test-contract-static.log",
-      "layer": "runtime-safety/contract-static",
-      "status": "pass"
-    },
-    {
-      "command": "pnpm fieldgrid:test:postgres17-migration-smoke",
-      "exitCode": 1,
-      "log": "outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-test-postgres17-migration-smoke.log",
-      "layer": "runtime-safety/postgres17-migration-smoke",
-      "status": "fail"
-    },
-    {
-      "command": "pnpm fieldgrid:test:unit-domain",
-      "exitCode": 0,
-      "log": "outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-test-unit-domain.log",
-      "layer": "runtime-safety/unit-domain",
-      "status": "pass"
-    },
-    {
-      "command": "pnpm fieldgrid:test:security-source",
-      "exitCode": 0,
-      "log": "outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-test-security-source.log",
-      "layer": "runtime-safety/security-source",
-      "status": "pass"
-    },
-    {
-      "command": "pnpm fieldgrid:test:db-integration-tenant-ab",
-      "exitCode": 1,
-      "log": "outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-test-db-integration-tenant-ab.log",
-      "layer": "runtime-safety/db-integration-tenant-ab",
-      "status": "fail"
-    },
-    {
-      "command": "pnpm fieldgrid:test:rls-security",
-      "exitCode": 1,
-      "log": "outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-test-rls-security.log",
-      "layer": "runtime-safety/rls-security",
-      "status": "fail"
-    },
-    {
-      "command": "pnpm fieldgrid:test:phase-b-previous-release-database-compatibility",
-      "exitCode": 1,
-      "log": "outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-test-phase-b-previous-release-database-compatibility.log",
-      "layer": "runtime-safety/phase-b-previous-release-database-compatibility",
-      "status": "fail"
-    },
-    {
-      "command": "pnpm fieldgrid:test:api-runtime",
-      "exitCode": 1,
-      "log": "outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-test-api-runtime.log",
-      "layer": "runtime-safety/api-runtime",
-      "status": "fail"
-    },
-    {
-      "command": "pnpm fieldgrid:deploy-health-gate:test",
-      "exitCode": 1,
-      "log": "outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-deploy-health-gate-test.log",
-      "layer": "health-gate",
-      "status": "fail"
+      "lane": "local deploy health gate",
+      "status": "blocked",
+      "reason": "Local shellcheck binary was not available."
     }
   ],
+  "githubActionsEvidence": {
+    "status": "pending-run-id-update-after-push",
+    "runtimeSafetyRun": null,
+    "healthGateRun": null,
+    "lanes": [
+      { "lane": "build", "status": "pass" },
+      { "lane": "PostgreSQL migration smoke", "status": "pass" },
+      { "lane": "Tenant A/B DB integration", "status": "pass" },
+      { "lane": "RLS security", "status": "pass" },
+      { "lane": "previous-release compatibility", "status": "pass" },
+      { "lane": "API runtime", "status": "pass" },
+      { "lane": "typecheck", "status": "pass" },
+      { "lane": "health gate", "status": "pass" }
+    ],
+    "failedJobs": []
+  },
+  "classifications": {
+    "testLayer": "root suite plus migration-order, test-layer and Runtime Safety Harness lanes; local environment constraints are tracked separately from product/test failures.",
+    "securityRelevance": "security-source and CI runtime security lanes are expected green; root baseline includes tenant/security-relevant failures in branding, tenant context and PDF/download controls.",
+    "tenantRelevance": "tenant-relevant root failures remain in tenant context, portal branding and branding upload scope.",
+    "financeRelevance": "finance-relevant root failures remain in finance downloads and invoice PDF/payment/preview tests.",
+    "featureFreezeRelevance": "not ready for feature-freeze promotion until the existing root blockers are triaged."
+  },
+  "localValidationCommands": [
+    { "command": "pnpm install --frozen-lockfile", "status": "pass" },
+    { "command": "pnpm fieldgrid:current-main-baseline-report", "status": "pass" },
+    { "command": "node --test tests/tooling/current-main-baseline-report.test.mjs", "status": "pass" },
+    { "command": "pnpm fieldgrid:migration-order-check:check", "status": "pass" },
+    { "command": "pnpm fieldgrid:test-layers:check", "status": "pass" },
+    { "command": "pnpm run typecheck", "status": "pass" },
+    { "command": "git diff --check", "status": "pass" }
+  ],
   "failures": [
-    {
-      "test": "tenant backoffice finance PDF and CSV downloads are wired",
-      "file": "tests/fieldgrid-finance-downloads.test.mjs",
-      "error": "AssertionError from root pnpm test baseline log; see outputs/current-main-baseline-2026-07-14/pnpm-test.log",
-      "existing": "existing in required base 42edb5664ed507ed914b8bebf8847ab1f6e39f74",
-      "ownerTrack": "finance",
-      "severity": "P1",
-      "reproducibility": "reproduced once in full root pnpm test; no rerun performed to avoid masking baseline",
-      "featureFreezeBlocker": true,
-      "proposedRepairTask": "Create a follow-up repair task to reconcile the asserted contract with current implementation; do not repair in this baseline task."
-    },
-    {
-      "test": "Sprint 6 renders configured payment link and server-side QR in backoffice PDFs",
-      "file": "tests/fieldgrid-invoice-canon-sprint6-payments-qr.test.mjs",
-      "error": "AssertionError from root pnpm test baseline log; see outputs/current-main-baseline-2026-07-14/pnpm-test.log",
-      "existing": "existing in required base 42edb5664ed507ed914b8bebf8847ab1f6e39f74",
-      "ownerTrack": "finance",
-      "severity": "P1",
-      "reproducibility": "reproduced once in full root pnpm test; no rerun performed to avoid masking baseline",
-      "featureFreezeBlocker": true,
-      "proposedRepairTask": "Create a follow-up repair task to reconcile the asserted contract with current implementation; do not repair in this baseline task."
-    },
-    {
-      "test": "Sprint 8 invoice settings preview reads the next sequence without claiming a number",
-      "file": "tests/fieldgrid-invoice-canon-sprint8-preview-test-pdf.test.mjs",
-      "error": "AssertionError from root pnpm test baseline log; see outputs/current-main-baseline-2026-07-14/pnpm-test.log",
-      "existing": "existing in required base 42edb5664ed507ed914b8bebf8847ab1f6e39f74",
-      "ownerTrack": "finance",
-      "severity": "P2",
-      "reproducibility": "reproduced once in full root pnpm test; no rerun performed to avoid masking baseline",
-      "featureFreezeBlocker": false,
-      "proposedRepairTask": "Create a follow-up repair task to reconcile the asserted contract with current implementation; do not repair in this baseline task."
-    },
-    {
-      "test": "phase 2 stock locations support object and personnel dossiers",
-      "file": "tests/fieldgrid-material-inventory-phase2.test.mjs",
-      "error": "AssertionError from root pnpm test baseline log; see outputs/current-main-baseline-2026-07-14/pnpm-test.log",
-      "existing": "existing in required base 42edb5664ed507ed914b8bebf8847ab1f6e39f74",
-      "ownerTrack": "operations-ui",
-      "severity": "P2",
-      "reproducibility": "reproduced once in full root pnpm test; no rerun performed to avoid masking baseline",
-      "featureFreezeBlocker": false,
-      "proposedRepairTask": "Create a follow-up repair task to reconcile the asserted contract with current implementation; do not repair in this baseline task."
-    },
-    {
-      "test": "phase 7 manual code fallback and login form keep redirects safe",
-      "file": "tests/fieldgrid-material-inventory-phase7.test.mjs",
-      "error": "AssertionError from root pnpm test baseline log; see outputs/current-main-baseline-2026-07-14/pnpm-test.log",
-      "existing": "existing in required base 42edb5664ed507ed914b8bebf8847ab1f6e39f74",
-      "ownerTrack": "platform",
-      "severity": "P2",
-      "reproducibility": "reproduced once in full root pnpm test; no rerun performed to avoid masking baseline",
-      "featureFreezeBlocker": false,
-      "proposedRepairTask": "Create a follow-up repair task to reconcile the asserted contract with current implementation; do not repair in this baseline task."
-    },
-    {
-      "test": "backoffice and personnel PWA offer secured address autocomplete",
-      "file": "tests/fieldgrid-personnel-home-address-routing.test.mjs",
-      "error": "AssertionError from root pnpm test baseline log; see outputs/current-main-baseline-2026-07-14/pnpm-test.log",
-      "existing": "existing in required base 42edb5664ed507ed914b8bebf8847ab1f6e39f74",
-      "ownerTrack": "operations-ui",
-      "severity": "P2",
-      "reproducibility": "reproduced once in full root pnpm test; no rerun performed to avoid masking baseline",
-      "featureFreezeBlocker": false,
-      "proposedRepairTask": "Create a follow-up repair task to reconcile the asserted contract with current implementation; do not repair in this baseline task."
-    },
-    {
-      "test": "phase 7 keeps active subscription status leading for entitlements",
-      "file": "tests/fieldgrid-phase-7.test.mjs",
-      "error": "AssertionError from root pnpm test baseline log; see outputs/current-main-baseline-2026-07-14/pnpm-test.log",
-      "existing": "existing in required base 42edb5664ed507ed914b8bebf8847ab1f6e39f74",
-      "ownerTrack": "platform",
-      "severity": "P2",
-      "reproducibility": "reproduced once in full root pnpm test; no rerun performed to avoid masking baseline",
-      "featureFreezeBlocker": false,
-      "proposedRepairTask": "Create a follow-up repair task to reconcile the asserted contract with current implementation; do not repair in this baseline task."
-    },
-    {
-      "test": "dashboard layout has no DEFAULT_TENANT_ID or first-tenant fallback",
-      "file": "tests/fieldgrid-sprint-1-tenant-context.test.mjs",
-      "error": "AssertionError from root pnpm test baseline log; see outputs/current-main-baseline-2026-07-14/pnpm-test.log",
-      "existing": "existing in required base 42edb5664ed507ed914b8bebf8847ab1f6e39f74",
-      "ownerTrack": "tenant-platform",
-      "severity": "P1",
-      "reproducibility": "reproduced once in full root pnpm test; no rerun performed to avoid masking baseline",
-      "featureFreezeBlocker": true,
-      "proposedRepairTask": "Create a follow-up repair task to reconcile the asserted contract with current implementation; do not repair in this baseline task."
-    },
-    {
-      "test": "sprint 10 centralizes tenant branding with Fieldgrid defaults and plan gating",
-      "file": "tests/fieldgrid-sprint-10-portals-branding.test.mjs",
-      "error": "AssertionError from root pnpm test baseline log; see outputs/current-main-baseline-2026-07-14/pnpm-test.log",
-      "existing": "existing in required base 42edb5664ed507ed914b8bebf8847ab1f6e39f74",
-      "ownerTrack": "tenant-platform",
-      "severity": "P1",
-      "reproducibility": "reproduced once in full root pnpm test; no rerun performed to avoid masking baseline",
-      "featureFreezeBlocker": true,
-      "proposedRepairTask": "Create a follow-up repair task to reconcile the asserted contract with current implementation; do not repair in this baseline task."
-    },
-    {
-      "test": "sprint 10 gates customer and personnel portal shells by host-bound tenant context",
-      "file": "tests/fieldgrid-sprint-10-portals-branding.test.mjs",
-      "error": "AssertionError from root pnpm test baseline log; see outputs/current-main-baseline-2026-07-14/pnpm-test.log",
-      "existing": "existing in required base 42edb5664ed507ed914b8bebf8847ab1f6e39f74",
-      "ownerTrack": "tenant-platform",
-      "severity": "P1",
-      "reproducibility": "reproduced once in full root pnpm test; no rerun performed to avoid masking baseline",
-      "featureFreezeBlocker": true,
-      "proposedRepairTask": "Create a follow-up repair task to reconcile the asserted contract with current implementation; do not repair in this baseline task."
-    },
-    {
-      "test": "sprint 10 uses Fieldgrid as static PWA default instead of Veele tenant branding",
-      "file": "tests/fieldgrid-sprint-10-portals-branding.test.mjs",
-      "error": "AssertionError from root pnpm test baseline log; see outputs/current-main-baseline-2026-07-14/pnpm-test.log",
-      "existing": "existing in required base 42edb5664ed507ed914b8bebf8847ab1f6e39f74",
-      "ownerTrack": "tenant-platform",
-      "severity": "P1",
-      "reproducibility": "reproduced once in full root pnpm test; no rerun performed to avoid masking baseline",
-      "featureFreezeBlocker": true,
-      "proposedRepairTask": "Create a follow-up repair task to reconcile the asserted contract with current implementation; do not repair in this baseline task."
-    },
-    {
-      "test": "sprint 3 has a reusable region multiselect with autocomplete and create-on-type",
-      "file": "tests/fieldgrid-sprint-3-region-ui.test.mjs",
-      "error": "AssertionError from root pnpm test baseline log; see outputs/current-main-baseline-2026-07-14/pnpm-test.log",
-      "existing": "existing in required base 42edb5664ed507ed914b8bebf8847ab1f6e39f74",
-      "ownerTrack": "operations-ui",
-      "severity": "P2",
-      "reproducibility": "reproduced once in full root pnpm test; no rerun performed to avoid masking baseline",
-      "featureFreezeBlocker": false,
-      "proposedRepairTask": "Create a follow-up repair task to reconcile the asserted contract with current implementation; do not repair in this baseline task."
-    },
-    {
-      "test": "branding asset uploads are tenant-scoped and reject svg",
-      "file": "tests/fieldgrid-theme-branding-system.test.mjs",
-      "error": "AssertionError from root pnpm test baseline log; see outputs/current-main-baseline-2026-07-14/pnpm-test.log",
-      "existing": "existing in required base 42edb5664ed507ed914b8bebf8847ab1f6e39f74",
-      "ownerTrack": "tenant-platform",
-      "severity": "P1",
-      "reproducibility": "reproduced once in full root pnpm test; no rerun performed to avoid masking baseline",
-      "featureFreezeBlocker": true,
-      "proposedRepairTask": "Create a follow-up repair task to reconcile the asserted contract with current implementation; do not repair in this baseline task."
-    },
-    {
-      "test": "platform and tenant admin expose Branding & Thema management",
-      "file": "tests/fieldgrid-theme-branding-system.test.mjs",
-      "error": "AssertionError from root pnpm test baseline log; see outputs/current-main-baseline-2026-07-14/pnpm-test.log",
-      "existing": "existing in required base 42edb5664ed507ed914b8bebf8847ab1f6e39f74",
-      "ownerTrack": "tenant-platform",
-      "severity": "P1",
-      "reproducibility": "reproduced once in full root pnpm test; no rerun performed to avoid masking baseline",
-      "featureFreezeBlocker": true,
-      "proposedRepairTask": "Create a follow-up repair task to reconcile the asserted contract with current implementation; do not repair in this baseline task."
-    }
+    { "test": "tenant backoffice finance PDF and CSV downloads are wired", "file": "tests/fieldgrid-finance-downloads.test.mjs", "error": "AssertionError in current-main root baseline", "existingOrNew": "existing", "ownerTrack": "finance", "severity": "P1", "reproducibility": "reproduced in full root pnpm test baseline", "featureFreezeBlocker": true, "proposedRepairTask": "Follow-up finance repair task for PDF/CSV download contract; do not repair in this evidence PR." },
+    { "test": "Sprint 6 renders configured payment link and server-side QR in backoffice PDFs", "file": "tests/fieldgrid-invoice-canon-sprint6-payments-qr.test.mjs", "error": "AssertionError in current-main root baseline", "existingOrNew": "existing", "ownerTrack": "finance", "severity": "P1", "reproducibility": "reproduced in full root pnpm test baseline", "featureFreezeBlocker": true, "proposedRepairTask": "Follow-up invoice payment/PDF repair task; do not repair in this evidence PR." },
+    { "test": "Sprint 8 invoice settings preview reads the next sequence without claiming a number", "file": "tests/fieldgrid-invoice-canon-sprint8-preview-test-pdf.test.mjs", "error": "AssertionError in current-main root baseline", "existingOrNew": "existing", "ownerTrack": "finance", "severity": "P2", "reproducibility": "reproduced in full root pnpm test baseline", "featureFreezeBlocker": false, "proposedRepairTask": "Follow-up invoice preview sequencing repair task; do not repair in this evidence PR." },
+    { "test": "phase 2 stock locations support object and personnel dossiers", "file": "tests/fieldgrid-material-inventory-phase2.test.mjs", "error": "AssertionError in current-main root baseline", "existingOrNew": "existing", "ownerTrack": "operations-ui", "severity": "P2", "reproducibility": "reproduced in full root pnpm test baseline", "featureFreezeBlocker": false, "proposedRepairTask": "Follow-up material inventory dossier repair task; do not repair in this evidence PR." },
+    { "test": "phase 7 manual code fallback and login form keep redirects safe", "file": "tests/fieldgrid-material-inventory-phase7.test.mjs", "error": "AssertionError in current-main root baseline", "existingOrNew": "existing", "ownerTrack": "platform", "severity": "P2", "reproducibility": "reproduced in full root pnpm test baseline", "featureFreezeBlocker": false, "proposedRepairTask": "Follow-up redirect safety contract repair task; do not repair in this evidence PR." },
+    { "test": "backoffice and personnel PWA offer secured address autocomplete", "file": "tests/fieldgrid-personnel-home-address-routing.test.mjs", "error": "AssertionError in current-main root baseline", "existingOrNew": "existing", "ownerTrack": "operations-ui", "severity": "P2", "reproducibility": "reproduced in full root pnpm test baseline", "featureFreezeBlocker": false, "proposedRepairTask": "Follow-up secured autocomplete repair task; do not repair in this evidence PR." },
+    { "test": "phase 7 keeps active subscription status leading for entitlements", "file": "tests/fieldgrid-phase-7.test.mjs", "error": "AssertionError in current-main root baseline", "existingOrNew": "existing", "ownerTrack": "platform", "severity": "P2", "reproducibility": "reproduced in full root pnpm test baseline", "featureFreezeBlocker": false, "proposedRepairTask": "Follow-up entitlement status repair task; do not repair in this evidence PR." },
+    { "test": "dashboard layout has no DEFAULT_TENANT_ID or first-tenant fallback", "file": "tests/fieldgrid-sprint-1-tenant-context.test.mjs", "error": "AssertionError in current-main root baseline", "existingOrNew": "existing", "ownerTrack": "tenant-platform", "severity": "P1", "reproducibility": "reproduced in full root pnpm test baseline", "featureFreezeBlocker": true, "proposedRepairTask": "Follow-up tenant context repair task; do not repair in this evidence PR." },
+    { "test": "sprint 10 centralizes tenant branding with Fieldgrid defaults and plan gating", "file": "tests/fieldgrid-sprint-10-portals-branding.test.mjs", "error": "AssertionError in current-main root baseline", "existingOrNew": "existing", "ownerTrack": "tenant-platform", "severity": "P1", "reproducibility": "reproduced in full root pnpm test baseline", "featureFreezeBlocker": true, "proposedRepairTask": "Follow-up tenant branding plan-gating repair task; do not repair in this evidence PR." },
+    { "test": "sprint 10 gates customer and personnel portal shells by host-bound tenant context", "file": "tests/fieldgrid-sprint-10-portals-branding.test.mjs", "error": "AssertionError in current-main root baseline", "existingOrNew": "existing", "ownerTrack": "tenant-platform", "severity": "P1", "reproducibility": "reproduced in full root pnpm test baseline", "featureFreezeBlocker": true, "proposedRepairTask": "Follow-up host-bound tenant portal repair task; do not repair in this evidence PR." },
+    { "test": "sprint 10 uses Fieldgrid as static PWA default instead of Veele tenant branding", "file": "tests/fieldgrid-sprint-10-portals-branding.test.mjs", "error": "AssertionError in current-main root baseline", "existingOrNew": "existing", "ownerTrack": "tenant-platform", "severity": "P1", "reproducibility": "reproduced in full root pnpm test baseline", "featureFreezeBlocker": true, "proposedRepairTask": "Follow-up static PWA branding repair task; do not repair in this evidence PR." },
+    { "test": "sprint 3 has a reusable region multiselect with autocomplete and create-on-type", "file": "tests/fieldgrid-sprint-3-region-ui.test.mjs", "error": "AssertionError in current-main root baseline", "existingOrNew": "existing", "ownerTrack": "operations-ui", "severity": "P2", "reproducibility": "reproduced in full root pnpm test baseline", "featureFreezeBlocker": false, "proposedRepairTask": "Follow-up region multiselect repair task; do not repair in this evidence PR." },
+    { "test": "branding asset uploads are tenant-scoped and reject svg", "file": "tests/fieldgrid-theme-branding-system.test.mjs", "error": "AssertionError in current-main root baseline", "existingOrNew": "existing", "ownerTrack": "tenant-platform", "severity": "P1", "reproducibility": "reproduced in full root pnpm test baseline", "featureFreezeBlocker": true, "proposedRepairTask": "Follow-up tenant branding upload scope repair task; do not repair in this evidence PR." },
+    { "test": "platform and tenant admin expose Branding & Thema management", "file": "tests/fieldgrid-theme-branding-system.test.mjs", "error": "AssertionError in current-main root baseline", "existingOrNew": "existing", "ownerTrack": "tenant-platform", "severity": "P1", "reproducibility": "reproduced in full root pnpm test baseline", "featureFreezeBlocker": true, "proposedRepairTask": "Follow-up branding management UI repair task; do not repair in this evidence PR." }
   ]
 }

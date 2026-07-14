@@ -1,3 +1,0 @@
-$ bash -n scripts/fieldgrid-atomic-release-activate.sh scripts/fieldgrid-deploy-health-gate.sh scripts/fieldgrid-backfill-release-sha-marker.sh && shellcheck scripts/fieldgrid-atomic-release-activate.sh scripts/fieldgrid-deploy-health-gate.sh scripts/fieldgrid-backfill-release-sha-marker.sh && node --test tests/fieldgrid-deploy-health-gate.test.mjs
-sh: 1: shellcheck: not found
-[ELIFECYCLE] Command failed.

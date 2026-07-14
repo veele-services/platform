@@ -1,5 +1,0 @@
-$ pnpm fieldgrid:runtime-safety:setup && pnpm fieldgrid:runtime-safety:fixtures && pnpm --filter @workspace/api-server run build && pnpm fieldgrid:runtime-safety:api
-$ node scripts/fieldgrid-runtime-safety-setup.mjs
-DATABASE_URL is required for the runtime safety harness.
-[ELIFECYCLE] Command failed with exit code 1.
-[ELIFECYCLE] Command failed with exit code 1.

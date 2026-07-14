@@ -131,7 +131,7 @@
     "db:baseline": "pnpm --filter @workspace/db run db:baseline",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
-    "fieldgrid:current-main-baseline-report": "node scripts/fieldgrid-current-main-baseline-report.mjs"
+    "fieldgrid:current-main-baseline-report": "node scripts/fieldgrid-current-main-baseline-report.mjs && node --test tests/tooling/current-main-baseline-report.test.mjs"
   },
   "private": true,
   "devDependencies": {

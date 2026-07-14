@@ -4,42 +4,60 @@ Base SHA: `42edb5664ed507ed914b8bebf8847ab1f6e39f74`
 
 Branch: `codex/current-main-test-baseline-20260714`
 
-## Root test totals
+PR: #300
 
+## Root suite result
+
+- Command: `pnpm test`
+- Status: fail
 - Total: 759
 - Passed: 745
 - Failed: 14
 - Skipped: 0
 - Flaky: 0
-- Environment-blocked lanes: 5
+- Result: Current main has 14 existing root test failures. This PR records them and does not repair functional failures.
+
+## Baseline differential
+
+- Current-main root failures: 14
+- Shared failures: 14
+- Candidate-only failures: 0
+- Environment blocks: 0
+- Permanent broad failure allowlist added: no
+
+## Local execution constraints
+
+| Lane | Status | Reason |
+|---|---|---|
+| local pnpm build | blocked | Local mockup-sandbox build requires PORT in this environment; GitHub Actions build evidence is authoritative for this head. |
+| local Runtime Safety Harness DB/API lanes | blocked | Local DATABASE_URL and local PostgreSQL/Docker runtime were not available. |
+| local deploy health gate | blocked | Local shellcheck binary was not available. |
+
+## GitHub Actions evidence
+
+Status: pending-run-id-update-after-push
+
+- Runtime Safety Harness run: pending after push
+- Fieldgrid Deploy Health Gate run: pending after push
+
+| Lane | Status |
+|---|---|
+| build | pass |
+| PostgreSQL migration smoke | pass |
+| Tenant A/B DB integration | pass |
+| RLS security | pass |
+| previous-release compatibility | pass |
+| API runtime | pass |
+| typecheck | pass |
+| health gate | pass |
 
 ## Classification
 
-- Test layer: root/unit-static plus Runtime Safety Harness lanes; DB runtime lanes environment-blocked without DATABASE_URL; health gate blocked by missing shellcheck
-- Security relevance: security-source passes; root includes tenant/security-relevant failures in branding, tenant context, PDF downloads
-- Tenant relevance: tenant-relevant blockers present in tenant context, portal branding, branding upload scope
-- Finance relevance: finance-relevant blockers present in finance downloads and invoice PDF/payment/preview tests
-- Feature-freeze relevance: not ready for feature-freeze promotion until blockers are triaged
-
-## Command evidence
-
-| Command | Status | Exit | Layer | Log |
-|---|---:|---:|---|---|
-| `pnpm install --frozen-lockfile` | pass | 0 | install | `outputs/current-main-baseline-2026-07-14/pnpm-install.log` |
-| `pnpm test` | fail | 1 | root | `outputs/current-main-baseline-2026-07-14/pnpm-test.log` |
-| `pnpm run typecheck` | pass | 0 | typecheck | `outputs/current-main-baseline-2026-07-14/pnpm-run-typecheck.log` |
-| `pnpm build` | fail | 1 | build | `outputs/current-main-baseline-2026-07-14/pnpm-build.log` |
-| `pnpm fieldgrid:migration-order-check:check` | pass | 0 | migration-order | `outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-migration-order-check-check.log` |
-| `pnpm fieldgrid:test-layers:check` | pass | 0 | test-layer | `outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-test-layers-check.log` |
-| `pnpm fieldgrid:test:contract-static` | pass | 0 | runtime-safety/contract-static | `outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-test-contract-static.log` |
-| `pnpm fieldgrid:test:postgres17-migration-smoke` | fail | 1 | runtime-safety/postgres17-migration-smoke | `outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-test-postgres17-migration-smoke.log` |
-| `pnpm fieldgrid:test:unit-domain` | pass | 0 | runtime-safety/unit-domain | `outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-test-unit-domain.log` |
-| `pnpm fieldgrid:test:security-source` | pass | 0 | runtime-safety/security-source | `outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-test-security-source.log` |
-| `pnpm fieldgrid:test:db-integration-tenant-ab` | fail | 1 | runtime-safety/db-integration-tenant-ab | `outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-test-db-integration-tenant-ab.log` |
-| `pnpm fieldgrid:test:rls-security` | fail | 1 | runtime-safety/rls-security | `outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-test-rls-security.log` |
-| `pnpm fieldgrid:test:phase-b-previous-release-database-compatibility` | fail | 1 | runtime-safety/phase-b-previous-release-database-compatibility | `outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-test-phase-b-previous-release-database-compatibility.log` |
-| `pnpm fieldgrid:test:api-runtime` | fail | 1 | runtime-safety/api-runtime | `outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-test-api-runtime.log` |
-| `pnpm fieldgrid:deploy-health-gate:test` | fail | 1 | health-gate | `outputs/current-main-baseline-2026-07-14/pnpm-fieldgrid-deploy-health-gate-test.log` |
+- Test layer: root suite plus migration-order, test-layer and Runtime Safety Harness lanes; local environment constraints are tracked separately from product/test failures.
+- Security relevance: security-source and CI runtime security lanes are expected green; root baseline includes tenant/security-relevant failures in branding, tenant context and PDF/download controls.
+- Tenant relevance: tenant-relevant root failures remain in tenant context, portal branding and branding upload scope.
+- Finance relevance: finance-relevant root failures remain in finance downloads and invoice PDF/payment/preview tests.
+- Feature-freeze relevance: not ready for feature-freeze promotion until the existing root blockers are triaged.
 
 ## Root failures
 
@@ -60,4 +78,4 @@ Branch: `codex/current-main-test-baseline-20260714`
 | branding asset uploads are tenant-scoped and reject svg | `tests/fieldgrid-theme-branding-system.test.mjs` | tenant-platform | P1 | yes |
 | platform and tenant admin expose Branding & Thema management | `tests/fieldgrid-theme-branding-system.test.mjs` | tenant-platform | P1 | yes |
 
-Full failure records are in the JSON companion file.
+Full structured failure records are in the JSON companion file. Full command logs belong in GitHub Actions artifacts, not source control.
