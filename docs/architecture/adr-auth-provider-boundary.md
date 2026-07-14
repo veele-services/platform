@@ -1,9 +1,10 @@
 # ADR: Current Authentication Provider Boundary
 
-- Status: Proposed, pending owner acceptance
+- Status: Accepted by owner on 2026-07-14
 - Date: 2026-07-14
 - Base: `42edb5664ed507ed914b8bebf8847ab1f6e39f74`
 - Source: PR #281, rebuilt against the current Fieldgrid architecture
+- Acceptance: Human owner replied `Accepted` on PR #298 follow-up, confirming this ADR decision without changing the current-versus-target implementation distinctions.
 
 ## Context
 

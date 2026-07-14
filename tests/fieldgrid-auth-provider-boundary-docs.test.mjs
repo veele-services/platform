@@ -60,7 +60,7 @@ const evidenceClasses = [
 
 test("auth boundary ADR records every mandatory decision", () => {
   for (const key of mandatoryDecisionKeys) {
-    assert.match(inventory.mandatoryDecisions[key], /accepted|proposed/, `${key} inventory decision`);
+    assert.match(inventory.mandatoryDecisions[key], /accepted/, `${key} inventory decision`);
   }
 
   for (const snippet of [
@@ -89,7 +89,8 @@ test("auth boundary ADR records every mandatory decision", () => {
 });
 
 test("inventory and migration plan preserve provider boundary invariants", () => {
-  assert.match(adr, /Status: Proposed, pending owner acceptance/);
+  assert.match(adr, /Status: Accepted by owner on 2026-07-14/);
+  assert.match(inventory.adrStatus, /Accepted by owner on 2026-07-14/);
   assert.match(inventory.currentCookieBehavior, /HttpOnly is not currently proven or configured/);
   assert.match(inventory.targetCookieRequirement, /server-only\/HttpOnly session boundary/);
   assert.match(inventory.currentRevocationCapability, /may not yet expose a complete all-session provider refresh-session revocation seam/);

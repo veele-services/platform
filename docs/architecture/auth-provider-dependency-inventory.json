@@ -1,6 +1,7 @@
 {
   "schemaVersion": 1,
   "decisionDate": "2026-07-14",
+  "adrStatus": "Accepted by owner on 2026-07-14",
   "authBackendDecision": "Supabase Auth remains the credential and session backend for now; Fieldgrid owns the application authentication boundary.",
   "fieldgridOwnedControls": [
     "tenant/host resolution",
@@ -23,12 +24,12 @@
     "provider session lifecycle primitives"
   ],
   "mandatoryDecisions": {
-    "hostOnlyFieldgridAuthCookies": "proposed; current host-only SameSite=Lax production-Secure behavior verified, HttpOnly not proven or configured",
+    "hostOnlyFieldgridAuthCookies": "accepted; current host-only SameSite=Lax production-Secure behavior verified, HttpOnly not proven or configured",
     "noMagicLinksAsCanonicalFlow": "accepted",
     "noTemporaryPasswordByEmail": "accepted",
     "challengeCodeFlow": "accepted",
     "resetGrantFlow": "accepted",
-    "sessionRevocationRequirements": "proposed target; current repository may not expose complete all-session provider revocation seam",
+    "sessionRevocationRequirements": "accepted target; current repository may not expose complete all-session provider revocation seam",
     "administratorResetStepUpMfa": "accepted",
     "wrongHostSessionDenial": "accepted",
     "suspendedTenantDenial": "accepted",
