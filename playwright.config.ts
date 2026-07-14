@@ -23,9 +23,9 @@ export default defineConfig({
   },
   webServer: {
     command: `FIELDGRID_E2E_RUN_ID=${runId} node e2e/fieldgrid/start-real-apps.mjs`,
-    url: 'http://127.0.0.1:9321/login',
+    url: 'http://127.0.0.1:9325/healthz',
     reuseExistingServer: !process.env.CI,
-    timeout: 120_000,
+    timeout: 240_000,
   },
   projects: [
     { name: 'chromium', use: { ...devices['Desktop Chrome'] } },
