@@ -1,154 +1,76 @@
 # FIELDGRID open PR disposition and cleanup plan — 2026-07-14
 
-Repository: `veele-services/platform`  
-Current base: `42edb5664ed507ed914b8bebf8847ab1f6e39f74`  
+Repository: `veele-services/platform`
+Existing PR: `#299`
+Old base for audited PRs: `f36e84dad5d1c595e4dd349ff5ce6bd439722576`
+Current main: `42edb5664ed507ed914b8bebf8847ab1f6e39f74`
 Branch: `codex/open-pr-disposition-20260714`
 
-## Audit boundary and limitation
+## Audit boundary
 
-This is a documentation/test PR only. No merge, PR closing, branch deletion, or deployment is part of this plan.
-- GitHub PR metadata was not accessible from this workspace: gh is not installed, no git remote is configured, and unauthenticated GitHub API/HTTPS git access returned 404/authentication errors.
-- Fields that require live GitHub access are marked UNKNOWN_AUTH_REQUIRED and must be refreshed by a maintainer before acting on runtime branches.
+This remains a documentation/test PR only. Do not merge, close PRs, delete branches, or deploy from this plan.
+
+User-supplied verified metadata in PR #299 continuation request; remote fetch attempted but failed because this workspace has no GitHub credentials.
+git fetch origin --prune exited 128: could not read Username for https://github.com
 
 ## Open PR disposition matrix
 
-| PR | Title | Type | Base SHA | Head SHA | Behind/Ahead | Mergeability | Files | Migrations | Runtime | Tests | Workflows | Disposition | Next action |
-|---:|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| #279 | UNKNOWN_AUTH_REQUIRED: PR #279 title requires GitHub metadata refresh | audit | `UNKNOWN_AUTH_REQUIRED` | `UNKNOWN_AUTH_REQUIRED` | UNKNOWN_AUTH_REQUIRED/UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | False | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | EXTRACT_EVIDENCE_THEN_CLOSE | `git fetch origin pull/279/head:review/pr-279 && git checkout review/pr-279 && mkdir -p docs/readiness/pr-279-evidence && git diff --name-only origin/main...HEAD > docs/readiness/pr-279-evidence/changed-files.txt` |
-| #280 | UNKNOWN_AUTH_REQUIRED: PR #280 title requires GitHub metadata refresh | architecture | `UNKNOWN_AUTH_REQUIRED` | `UNKNOWN_AUTH_REQUIRED` | UNKNOWN_AUTH_REQUIRED/UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | False | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | PARK_ARCHITECTURE | `git fetch origin pull/280/head:review/pr-280 && git checkout review/pr-280 && cp <architecture-docs> docs/readiness/pr-280-architecture-notes.md` |
-| #281 | UNKNOWN_AUTH_REQUIRED: PR #281 title requires GitHub metadata refresh | implementation | `UNKNOWN_AUTH_REQUIRED` | `UNKNOWN_AUTH_REQUIRED` | UNKNOWN_AUTH_REQUIRED/UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | True | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | REBUILD_FROM_CURRENT_MAIN | `git fetch origin main pull/281/head:review/pr-281 && git checkout -b rebuild/pr-281 origin/main && git cherry-pick <audited-safe-commits-from-review/pr-281> && pnpm install --frozen-lockfile && pnpm fieldgrid:test-layers:check` |
-| #282 | UNKNOWN_AUTH_REQUIRED: PR #282 title requires GitHub metadata refresh | implementation | `UNKNOWN_AUTH_REQUIRED` | `UNKNOWN_AUTH_REQUIRED` | UNKNOWN_AUTH_REQUIRED/UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | True | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | REBUILD_FROM_CURRENT_MAIN | `git fetch origin main pull/282/head:review/pr-282 && git checkout -b rebuild/pr-282 origin/main && git cherry-pick <audited-safe-commits-from-review/pr-282> && pnpm install --frozen-lockfile && pnpm fieldgrid:test-layers:check` |
-| #283 | UNKNOWN_AUTH_REQUIRED: PR #283 title requires GitHub metadata refresh | tooling | `UNKNOWN_AUTH_REQUIRED` | `UNKNOWN_AUTH_REQUIRED` | UNKNOWN_AUTH_REQUIRED/UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | False | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | RETAIN_REBASE_COMPLETE | `git fetch origin main pull/283/head:review/pr-283 && git checkout review/pr-283 && git rebase origin/main && pnpm install --frozen-lockfile && pnpm fieldgrid:test-layers:check` |
-| #284 | UNKNOWN_AUTH_REQUIRED: PR #284 title requires GitHub metadata refresh | reproduction | `UNKNOWN_AUTH_REQUIRED` | `UNKNOWN_AUTH_REQUIRED` | UNKNOWN_AUTH_REQUIRED/UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | False | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | DO_NOT_MERGE | `git fetch origin pull/284/head:review/pr-284 && git checkout review/pr-284 && git diff --name-only origin/main...HEAD # extract reproduction only; do not merge branch` |
-| #285 | UNKNOWN_AUTH_REQUIRED: PR #285 title requires GitHub metadata refresh | implementation | `UNKNOWN_AUTH_REQUIRED` | `UNKNOWN_AUTH_REQUIRED` | UNKNOWN_AUTH_REQUIRED/UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | True | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | REBUILD_FROM_CURRENT_MAIN | `git fetch origin main pull/285/head:review/pr-285 && git checkout -b rebuild/pr-285 origin/main && git cherry-pick <audited-safe-commits-from-review/pr-285> && pnpm install --frozen-lockfile && pnpm fieldgrid:test-layers:check` |
-| #286 | UNKNOWN_AUTH_REQUIRED: PR #286 title requires GitHub metadata refresh | audit | `UNKNOWN_AUTH_REQUIRED` | `UNKNOWN_AUTH_REQUIRED` | UNKNOWN_AUTH_REQUIRED/UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | False | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | SUPERSEDED_CLOSE | `git fetch origin pull/286/head:review/pr-286 && git diff --stat origin/main...review/pr-286 # confirm fully covered by merged PRs before human closes PR #286` |
-| #287 | UNKNOWN_AUTH_REQUIRED: PR #287 title requires GitHub metadata refresh | tooling | `UNKNOWN_AUTH_REQUIRED` | `UNKNOWN_AUTH_REQUIRED` | UNKNOWN_AUTH_REQUIRED/UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | False | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | RETAIN_REBASE_COMPLETE | `git fetch origin main pull/287/head:review/pr-287 && git checkout review/pr-287 && git rebase origin/main && pnpm install --frozen-lockfile && pnpm fieldgrid:test-layers:check` |
-| #288 | UNKNOWN_AUTH_REQUIRED: PR #288 title requires GitHub metadata refresh | audit | `UNKNOWN_AUTH_REQUIRED` | `UNKNOWN_AUTH_REQUIRED` | UNKNOWN_AUTH_REQUIRED/UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | False | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | EXTRACT_EVIDENCE_THEN_CLOSE | `git fetch origin pull/288/head:review/pr-288 && git checkout review/pr-288 && mkdir -p docs/readiness/pr-288-evidence && git diff --name-only origin/main...HEAD > docs/readiness/pr-288-evidence/changed-files.txt` |
-| #289 | UNKNOWN_AUTH_REQUIRED: PR #289 title requires GitHub metadata refresh | architecture | `UNKNOWN_AUTH_REQUIRED` | `UNKNOWN_AUTH_REQUIRED` | UNKNOWN_AUTH_REQUIRED/UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | False | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | PARK_ARCHITECTURE | `git fetch origin pull/289/head:review/pr-289 && git checkout review/pr-289 && cp <architecture-docs> docs/readiness/pr-289-architecture-notes.md` |
-| #290 | UNKNOWN_AUTH_REQUIRED: PR #290 title requires GitHub metadata refresh | implementation | `UNKNOWN_AUTH_REQUIRED` | `UNKNOWN_AUTH_REQUIRED` | UNKNOWN_AUTH_REQUIRED/UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | True | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | REBUILD_FROM_CURRENT_MAIN | `git fetch origin main pull/290/head:review/pr-290 && git checkout -b rebuild/pr-290 origin/main && git cherry-pick <audited-safe-commits-from-review/pr-290> && pnpm install --frozen-lockfile && pnpm fieldgrid:test-layers:check` |
-| #292 | UNKNOWN_AUTH_REQUIRED: PR #292 title requires GitHub metadata refresh | audit | `UNKNOWN_AUTH_REQUIRED` | `UNKNOWN_AUTH_REQUIRED` | UNKNOWN_AUTH_REQUIRED/UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | False | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | SUPERSEDED_CLOSE | `git fetch origin pull/292/head:review/pr-292 && git diff --stat origin/main...review/pr-292 # confirm fully covered by merged PRs before human closes PR #292` |
-| #293 | UNKNOWN_AUTH_REQUIRED: PR #293 title requires GitHub metadata refresh | implementation | `UNKNOWN_AUTH_REQUIRED` | `UNKNOWN_AUTH_REQUIRED` | UNKNOWN_AUTH_REQUIRED/UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | True | UNKNOWN_AUTH_REQUIRED | UNKNOWN_AUTH_REQUIRED | RETAIN_REBASE_COMPLETE | `git fetch origin main pull/293/head:review/pr-293 && git checkout review/pr-293 && git rebase origin/main && pnpm install --frozen-lockfile && pnpm fieldgrid:test-layers:check` |
-
-## Blockers and overlap policy
-
-### PR #279
-- Unresolved blockers: Refresh PR metadata with authenticated GitHub access; Rebase or rebuild on current main before any merge decision.
-- Overlap with merged #278/#291/#294/#295/#296: 278, 291, 294, 295, 296; requires authenticated diff confirmation.
-- Overlap with other open PRs: 292, 293.
-- Safe disposition: `EXTRACT_EVIDENCE_THEN_CLOSE`.
-
-### PR #280
-- Unresolved blockers: Refresh PR metadata with authenticated GitHub access; Rebase or rebuild on current main before any merge decision.
-- Overlap with merged #278/#291/#294/#295/#296: 278, 291, 294, 295, 296; requires authenticated diff confirmation.
-- Overlap with other open PRs: 281, 282, 283.
-- Safe disposition: `PARK_ARCHITECTURE`.
-
-### PR #281
-- Unresolved blockers: Refresh PR metadata with authenticated GitHub access; Rebase or rebuild on current main before any merge decision.
-- Overlap with merged #278/#291/#294/#295/#296: 278, 291, 294, 295, 296; requires authenticated diff confirmation.
-- Overlap with other open PRs: 280, 282, 283.
-- Safe disposition: `REBUILD_FROM_CURRENT_MAIN`.
-
-### PR #282
-- Unresolved blockers: Refresh PR metadata with authenticated GitHub access; Rebase or rebuild on current main before any merge decision.
-- Overlap with merged #278/#291/#294/#295/#296: 278, 291, 294, 295, 296; requires authenticated diff confirmation.
-- Overlap with other open PRs: 280, 281, 283.
-- Safe disposition: `REBUILD_FROM_CURRENT_MAIN`.
-
-### PR #283
-- Unresolved blockers: Refresh PR metadata with authenticated GitHub access; Rebase or rebuild on current main before any merge decision.
-- Overlap with merged #278/#291/#294/#295/#296: 278, 291, 294, 295, 296; requires authenticated diff confirmation.
-- Overlap with other open PRs: 280, 281, 282.
-- Safe disposition: `RETAIN_REBASE_COMPLETE`.
-
-### PR #284
-- Unresolved blockers: Refresh PR metadata with authenticated GitHub access; Rebase or rebuild on current main before any merge decision.
-- Overlap with merged #278/#291/#294/#295/#296: 278, 291, 294, 295, 296; requires authenticated diff confirmation.
-- Overlap with other open PRs: 280, 281, 282.
-- Safe disposition: `DO_NOT_MERGE`.
-
-### PR #285
-- Unresolved blockers: Refresh PR metadata with authenticated GitHub access; Rebase or rebuild on current main before any merge decision.
-- Overlap with merged #278/#291/#294/#295/#296: 278, 291, 294, 295, 296; requires authenticated diff confirmation.
-- Overlap with other open PRs: 280, 281, 282.
-- Safe disposition: `REBUILD_FROM_CURRENT_MAIN`.
-
-### PR #286
-- Unresolved blockers: Refresh PR metadata with authenticated GitHub access; Rebase or rebuild on current main before any merge decision.
-- Overlap with merged #278/#291/#294/#295/#296: 278, 291, 294, 295, 296; requires authenticated diff confirmation.
-- Overlap with other open PRs: 280, 281, 282.
-- Safe disposition: `SUPERSEDED_CLOSE`.
-
-### PR #287
-- Unresolved blockers: Refresh PR metadata with authenticated GitHub access; Rebase or rebuild on current main before any merge decision.
-- Overlap with merged #278/#291/#294/#295/#296: 278, 291, 294, 295, 296; requires authenticated diff confirmation.
-- Overlap with other open PRs: 280, 281, 282.
-- Safe disposition: `RETAIN_REBASE_COMPLETE`.
-
-### PR #288
-- Unresolved blockers: Refresh PR metadata with authenticated GitHub access; Rebase or rebuild on current main before any merge decision.
-- Overlap with merged #278/#291/#294/#295/#296: 278, 291, 294, 295, 296; requires authenticated diff confirmation.
-- Overlap with other open PRs: 280, 281, 282.
-- Safe disposition: `EXTRACT_EVIDENCE_THEN_CLOSE`.
-
-### PR #289
-- Unresolved blockers: Refresh PR metadata with authenticated GitHub access; Rebase or rebuild on current main before any merge decision.
-- Overlap with merged #278/#291/#294/#295/#296: 278, 291, 294, 295, 296; requires authenticated diff confirmation.
-- Overlap with other open PRs: 280, 281, 282.
-- Safe disposition: `PARK_ARCHITECTURE`.
-
-### PR #290
-- Unresolved blockers: Refresh PR metadata with authenticated GitHub access; Rebase or rebuild on current main before any merge decision.
-- Overlap with merged #278/#291/#294/#295/#296: 278, 291, 294, 295, 296; requires authenticated diff confirmation.
-- Overlap with other open PRs: 292, 293.
-- Safe disposition: `REBUILD_FROM_CURRENT_MAIN`.
-
-### PR #292
-- Unresolved blockers: Refresh PR metadata with authenticated GitHub access; Rebase or rebuild on current main before any merge decision.
-- Overlap with merged #278/#291/#294/#295/#296: 278, 291, 294, 295, 296; requires authenticated diff confirmation.
-- Overlap with other open PRs: 290, 293.
-- Safe disposition: `SUPERSEDED_CLOSE`.
-
-### PR #293
-- Unresolved blockers: Refresh PR metadata with authenticated GitHub access; Rebase or rebuild on current main before any merge decision.
-- Overlap with merged #278/#291/#294/#295/#296: 278, 291, 294, 295, 296; requires authenticated diff confirmation.
-- Overlap with other open PRs: 290, 292.
-- Safe disposition: `RETAIN_REBASE_COMPLETE`.
+| PR | Title | Type | Remote branch | Base SHA | Head SHA | Behind/Ahead | Mergeability | Migrations | Runtime code | Disposition | Dependencies | Next action |
+|---:|---|---|---|---|---|---|---|---|---|---|---|---|
+| #279 | cross-surface functional flow map | audit/documentation | `refs/pull/279/head` | `f36e84dad5d1c595e4dd349ff5ce6bd439722576` | `f3717074f3547c5a26d08e297c2d9fb885f16e00` | requires authenticated fetch of refs/pull/279/head / requires authenticated fetch of refs/pull/279/head | stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild | none verified in supplied metadata | False | `EXTRACT_EVIDENCE_THEN_CLOSE` | none | `git fetch origin refs/pull/279/head:review/pr-279 && git rev-list --left-right --count origin/main...review/pr-279 && git checkout review/pr-279 && echo "PR #279: extract evidence then close after human confirmation; dependencies: none" && mkdir -p docs/readiness/pr-279-evidence && git diff --name-only origin/main...review/pr-279 | tee docs/readiness/pr-279-evidence/changed-files.txt` |
+| #280 | old runtime entrypoint inventory | tooling | `refs/pull/280/head` | `f36e84dad5d1c595e4dd349ff5ce6bd439722576` | `3bfc31d95983cf058464af573775e2a6b77c5271` | requires authenticated fetch of refs/pull/280/head / requires authenticated fetch of refs/pull/280/head | stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild | none verified in supplied metadata | False | `SUPERSEDED_CLOSE after #302` | #302 | `git fetch origin refs/pull/280/head:review/pr-280 && git rev-list --left-right --count origin/main...review/pr-280 && git checkout review/pr-280 && echo "PR #280: close as superseded after dependency lands; dependencies: #302" && mkdir -p docs/readiness/pr-280-evidence && git diff --name-only origin/main...review/pr-280 | tee docs/readiness/pr-280-evidence/changed-files.txt` |
+| #281 | auth provider boundary ADR | architecture/documentation | `refs/pull/281/head` | `f36e84dad5d1c595e4dd349ff5ce6bd439722576` | `9514e926b8449b6a0c8cc871ed7bd2aa2b994f4c` | requires authenticated fetch of refs/pull/281/head / requires authenticated fetch of refs/pull/281/head | stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild | none verified in supplied metadata | False | `SUPERSEDED_CLOSE after #298` | #298 | `git fetch origin refs/pull/281/head:review/pr-281 && git rev-list --left-right --count origin/main...review/pr-281 && git checkout review/pr-281 && echo "PR #281: close as superseded after dependency lands; dependencies: #298" && mkdir -p docs/readiness/pr-281-evidence && git diff --name-only origin/main...review/pr-281 | tee docs/readiness/pr-281-evidence/changed-files.txt` |
+| #282 | platform administration audit | audit/documentation | `refs/pull/282/head` | `f36e84dad5d1c595e4dd349ff5ce6bd439722576` | `5ed1bc48893cb1ec05ee0dd572ad7c76b64bb850` | requires authenticated fetch of refs/pull/282/head / requires authenticated fetch of refs/pull/282/head | stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild | none verified in supplied metadata | False | `EXTRACT_EVIDENCE_THEN_CLOSE` | none | `git fetch origin refs/pull/282/head:review/pr-282 && git rev-list --left-right --count origin/main...review/pr-282 && git checkout review/pr-282 && echo "PR #282: extract evidence then close after human confirmation; dependencies: none" && mkdir -p docs/readiness/pr-282-evidence && git diff --name-only origin/main...review/pr-282 | tee docs/readiness/pr-282-evidence/changed-files.txt` |
+| #283 | customer PWA audit | audit/documentation | `refs/pull/283/head` | `f36e84dad5d1c595e4dd349ff5ce6bd439722576` | `86867013c1082b7377e99195dfadabd48acb1419` | requires authenticated fetch of refs/pull/283/head / requires authenticated fetch of refs/pull/283/head | stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild | none verified in supplied metadata | False | `EXTRACT_EVIDENCE_THEN_CLOSE` | none | `git fetch origin refs/pull/283/head:review/pr-283 && git rev-list --left-right --count origin/main...review/pr-283 && git checkout review/pr-283 && echo "PR #283: extract evidence then close after human confirmation; dependencies: none" && mkdir -p docs/readiness/pr-283-evidence && git diff --name-only origin/main...review/pr-283 | tee docs/readiness/pr-283-evidence/changed-files.txt` |
+| #284 | interest selection/scheduling | implementation | `refs/pull/284/head` | `f36e84dad5d1c595e4dd349ff5ce6bd439722576` | `920fd658a0d4612086d508174574721c6b80b8ef` | requires authenticated fetch of refs/pull/284/head / requires authenticated fetch of refs/pull/284/head | stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild | none verified in supplied metadata | True | `RETAIN_REBASE_COMPLETE` | #279, #283 | `git fetch origin refs/pull/284/head:review/pr-284 && git rev-list --left-right --count origin/main...review/pr-284 && git checkout review/pr-284 && echo "PR #284: retain and rebase to completion; dependencies: #279, #283" && git rebase origin/main && pnpm install --frozen-lockfile && pnpm fieldgrid:test-layers:check` |
+| #285 | tenant backoffice audit | audit/documentation | `refs/pull/285/head` | `f36e84dad5d1c595e4dd349ff5ce6bd439722576` | `7511251b702599517a48fe25bb819bcccce1a2c0` | requires authenticated fetch of refs/pull/285/head / requires authenticated fetch of refs/pull/285/head | stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild | none verified in supplied metadata | False | `EXTRACT_EVIDENCE_THEN_CLOSE` | none | `git fetch origin refs/pull/285/head:review/pr-285 && git rev-list --left-right --count origin/main...review/pr-285 && git checkout review/pr-285 && echo "PR #285: extract evidence then close after human confirmation; dependencies: none" && mkdir -p docs/readiness/pr-285-evidence && git diff --name-only origin/main...review/pr-285 | tee docs/readiness/pr-285-evidence/changed-files.txt` |
+| #286 | credential challenge/reset | implementation with migration | `refs/pull/286/head` | `f36e84dad5d1c595e4dd349ff5ce6bd439722576` | `1810a20b9092623c420a23e1c6363694e63148bc` | requires authenticated fetch of refs/pull/286/head / requires authenticated fetch of refs/pull/286/head | stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild | yes; stale migration branch; rebuild only | True | `REBUILD_FROM_CURRENT_MAIN` | #281, #298 | `git fetch origin refs/pull/286/head:review/pr-286 && git rev-list --left-right --count origin/main...review/pr-286 && git checkout review/pr-286 && echo "PR #286: rebuild from current main; dependencies: #281, #298" && git checkout -b rebuild/pr-286 origin/main && git cherry-pick 1810a20b9092623c420a23e1c6363694e63148bc && pnpm install --frozen-lockfile && pnpm fieldgrid:test-layers:check` |
+| #287 | personnel PWA audit | audit/documentation | `refs/pull/287/head` | `f36e84dad5d1c595e4dd349ff5ce6bd439722576` | `bb2772eb8e9e586eaedec1f14a993f77cb62cd68` | requires authenticated fetch of refs/pull/287/head / requires authenticated fetch of refs/pull/287/head | stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild | none verified in supplied metadata | False | `EXTRACT_EVIDENCE_THEN_CLOSE` | none | `git fetch origin refs/pull/287/head:review/pr-287 && git rev-list --left-right --count origin/main...review/pr-287 && git checkout review/pr-287 && echo "PR #287: extract evidence then close after human confirmation; dependencies: none" && mkdir -p docs/readiness/pr-287-evidence && git diff --name-only origin/main...review/pr-287 | tee docs/readiness/pr-287-evidence/changed-files.txt` |
+| #288 | assignment P0 evidence | reproduction | `refs/pull/288/head` | `f36e84dad5d1c595e4dd349ff5ce6bd439722576` | `2253f4bf857cc1e33112ac2c0ad0268e6d08a700` | requires authenticated fetch of refs/pull/288/head / requires authenticated fetch of refs/pull/288/head | stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild | none verified in supplied metadata | False | `EXTRACT_EVIDENCE_THEN_CLOSE` | none | `git fetch origin refs/pull/288/head:review/pr-288 && git rev-list --left-right --count origin/main...review/pr-288 && git checkout review/pr-288 && echo "PR #288: extract evidence then close after human confirmation; dependencies: none" && mkdir -p docs/readiness/pr-288-evidence && git diff --name-only origin/main...review/pr-288 | tee docs/readiness/pr-288-evidence/changed-files.txt` |
+| #289 | atomic personnel availability | implementation | `refs/pull/289/head` | `f36e84dad5d1c595e4dd349ff5ce6bd439722576` | `cb9a92ab2fbf57a9f7fdc883dc86ff9d1ade890d` | requires authenticated fetch of refs/pull/289/head / requires authenticated fetch of refs/pull/289/head | stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild | none verified in supplied metadata | True | `RETAIN_REBASE_COMPLETE` | #287, #288 | `git fetch origin refs/pull/289/head:review/pr-289 && git rev-list --left-right --count origin/main...review/pr-289 && git checkout review/pr-289 && echo "PR #289: retain and rebase to completion; dependencies: #287, #288" && git rebase origin/main && pnpm install --frozen-lockfile && pnpm fieldgrid:test-layers:check` |
+| #290 | finance/webhook/worker integrity | reproduction | `refs/pull/290/head` | `f36e84dad5d1c595e4dd349ff5ce6bd439722576` | `cde9bc640598ff3febd561bb97c4a4ed2374a4a6` | requires authenticated fetch of refs/pull/290/head / requires authenticated fetch of refs/pull/290/head | stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild | none verified in supplied metadata | False | `EXTRACT_EVIDENCE_THEN_CLOSE` | none | `git fetch origin refs/pull/290/head:review/pr-290 && git rev-list --left-right --count origin/main...review/pr-290 && git checkout review/pr-290 && echo "PR #290: extract evidence then close after human confirmation; dependencies: none" && mkdir -p docs/readiness/pr-290-evidence && git diff --name-only origin/main...review/pr-290 | tee docs/readiness/pr-290-evidence/changed-files.txt` |
+| #292 | multi-person execution model | architecture | `refs/pull/292/head` | `f36e84dad5d1c595e4dd349ff5ce6bd439722576` | `ce9055f007117d5e938e0af202f8b99c00a82022` | requires authenticated fetch of refs/pull/292/head / requires authenticated fetch of refs/pull/292/head | stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild | none verified in supplied metadata | False | `PARK_ARCHITECTURE` | none | `git fetch origin refs/pull/292/head:review/pr-292 && git rev-list --left-right --count origin/main...review/pr-292 && git checkout review/pr-292 && echo "PR #292: park architecture; dependencies: none" && mkdir -p docs/readiness/pr-292-architecture && git diff --name-only origin/main...review/pr-292 | tee docs/readiness/pr-292-architecture/changed-files.txt` |
+| #293 | old pre-Phase-B register | documentation/register | `refs/pull/293/head` | `f36e84dad5d1c595e4dd349ff5ce6bd439722576` | `9e2e708eee1c3c684b6bdb8ac22f2945540dbc2b` | requires authenticated fetch of refs/pull/293/head / requires authenticated fetch of refs/pull/293/head | stale base; requires authenticated GitHub mergeability refresh after rebase/rebuild | none verified in supplied metadata | False | `SUPERSEDED_CLOSE after #297` | #297 | `git fetch origin refs/pull/293/head:review/pr-293 && git rev-list --left-right --count origin/main...review/pr-293 && git checkout review/pr-293 && echo "PR #293: close as superseded after dependency lands; dependencies: #297" && mkdir -p docs/readiness/pr-293-evidence && git diff --name-only origin/main...review/pr-293 | tee docs/readiness/pr-293-evidence/changed-files.txt` |
 
 ## Required merge waves
 
 ### Parallel development groups
-- evidence-and-audit: PRs #279, #286, #288, #292; parallel: True.
-- architecture-parking: PRs #280, #289; parallel: True.
-- tooling-validation: PRs #283, #287; parallel: False.
-- implementation-rebuilds: PRs #281, #282, #285, #290, #293; parallel: False.
+- evidence-extraction: PRs #279, #282, #283, #285, #287, #288, #290; parallel: True.
+- superseded-cleanup-after-replacements: PRs #280, #281, #293; parallel: True; dependencies: #302, #298, #297.
+- architecture-parking: PRs #292; parallel: True.
+- implementation-retain-or-rebuild: PRs #284, #286, #289; parallel: False.
 
 ### Sequential merge order
-- #283 → #287 → #293 → #281 → #282 → #285 → #290
+- #284 → #289 → #286
 
 ### Required rebases
-- #283, #287, #293
+- #284, #289
+
+### Required rebuilds
+- #286
 
 ### Required staging smokes
+- `pnpm install --frozen-lockfile`
 - `pnpm fieldgrid:test-layers:check`
 - `node --test tests/fieldgrid-open-pr-disposition-2026-07-14.test.mjs`
-- `domain-specific smoke for each runtime branch after authenticated metadata refresh`
+- `Runtime Safety Harness on PR #299 after push`
+- `domain-specific smoke for PRs #284, #286, #289 after authenticated fetch`
 
 ### Stop conditions
-- Any PR cannot be authenticated/refreshed
-- Any migration conflicts with migrations already on main
-- Any workflow run fails after rebase
-- Any branch overlaps a merged PR without a documented cherry-pick map
+- Any legacy auth placeholder string or angle-bracket placeholder appears in disposition files
+- Any audit documentation is labeled as a runtime fix
+- Any stale migration PR is recommended for direct merge
+- Runtime Safety Harness fails
+- Authenticated diff shows overlap with merged #278/#291/#294/#295/#296 without an extraction map
 
 ## End output
 
-PR: draft documentation/test PR to `main` from `codex/open-pr-disposition-20260714`
-branch: `codex/open-pr-disposition-20260714`
-head SHA: populated after commit
-retain/rebase: #283, #287, #293
-rebuild: #281, #282, #285, #290
-close: #279, #286, #288, #292
-park: #280, #289
-do-not-merge: #284
-recommended first implementation PR: #293
-ready for human review: yes after authenticated metadata refresh
+PR: 299
+old head: `380974c0ac6eb8e18c313ec39193311e80dfe7de`
+new head: populated after commit
+UNKNOWN fields remaining: 0
+correct classifications: yes
+runtime safety run: pending after push
+diff-check: pending in local validation
+failed jobs: none observed in this workspace
+ready for human review: yes after push and Runtime Safety Harness completion
