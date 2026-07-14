@@ -8,8 +8,7 @@ import {
 
 export async function createClient() {
   const cookieStore = await cookies();
-  const e2eClient = createFieldgridE2eSupabaseClient(cookieStore.get(FIELDGRID_E2E_AUTH_COOKIE)?.value);
-  if (e2eClient) return e2eClient;
+  const e2eUserId = cookieStore.get(FIELDGRID_E2E_AUTH_COOKIE)?.value;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -23,7 +22,7 @@ export async function createClient() {
   const requestHeaders = await headers();
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
 
-  return createServerClient(url, key, {
+  const supabase = createServerClient(url, key, {
     cookieOptions: createSupabaseCookieOptions(host),
     cookies: {
       getAll() {
@@ -40,4 +39,6 @@ export async function createClient() {
       },
     },
   });
+
+  return createFieldgridE2eSupabaseClient(e2eUserId, supabase) ?? supabase;
 }

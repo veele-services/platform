@@ -14,8 +14,7 @@ import {
  */
 export async function createClient() {
   const cookieStore = await cookies();
-  const e2eClient = createFieldgridE2eSupabaseClient(cookieStore.get(FIELDGRID_E2E_AUTH_COOKIE)?.value);
-  if (e2eClient) return e2eClient;
+  const e2eUserId = cookieStore.get(FIELDGRID_E2E_AUTH_COOKIE)?.value;
 
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -29,7 +28,7 @@ export async function createClient() {
   const requestHeaders = await headers();
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
 
-  return createServerClient(url, key, {
+  const supabase = createServerClient(url, key, {
     cookieOptions: createSupabaseCookieOptions(host),
     cookies: {
       getAll() {
@@ -46,6 +45,8 @@ export async function createClient() {
       },
     },
   });
+
+  return createFieldgridE2eSupabaseClient(e2eUserId, supabase) ?? supabase;
 }
 
 function cookieHeaderToPairs(cookieHeader: string | null): Array<{ name: string; value: string }> {
@@ -79,9 +80,6 @@ function cookieHeaderToPairs(cookieHeader: string | null): Array<{ name: string;
  */
 export function createClientFromRequest(request: Request) {
   const e2eUserId = cookieHeaderToPairs(request.headers.get("cookie")).find((cookie) => cookie.name === FIELDGRID_E2E_AUTH_COOKIE)?.value;
-  const e2eClient = createFieldgridE2eSupabaseClient(e2eUserId);
-  if (e2eClient) return e2eClient;
-
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
@@ -93,7 +91,7 @@ export function createClientFromRequest(request: Request) {
 
   const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
 
-  return createServerClient(url, key, {
+  const supabase = createServerClient(url, key, {
     cookieOptions: createSupabaseCookieOptions(host),
     cookies: {
       getAll() {
@@ -104,4 +102,6 @@ export function createClientFromRequest(request: Request) {
       },
     },
   });
+
+  return createFieldgridE2eSupabaseClient(e2eUserId, supabase) ?? supabase;
 }
