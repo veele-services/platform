@@ -2,7 +2,7 @@
 
 Base SHA: `42edb5664ed507ed914b8bebf8847ab1f6e39f74`
 
-Branch: `codex/current-main-test-baseline-20260714`
+Branch: `feature/run-full-current-test-baseline`
 
 PR: #300
 
@@ -22,10 +22,11 @@ PR: #300
 - Current-main root failures: 14
 - Shared failures: 14
 - Candidate-only failures: 0
-- Environment blocks: 0
 - Permanent broad failure allowlist added: no
 
 ## Local execution constraints
+
+Local execution constraints are separate from product failures and separate from GitHub Actions evidence.
 
 | Lane | Status | Reason |
 |---|---|---|
@@ -33,23 +34,29 @@ PR: #300
 | local Runtime Safety Harness DB/API lanes | blocked | Local DATABASE_URL and local PostgreSQL/Docker runtime were not available. |
 | local deploy health gate | blocked | Local shellcheck binary was not available. |
 
-## GitHub Actions evidence
+## GitHub Actions evidence contract
 
-Status: pending-run-id-update-after-push
+Status: required-on-reviewed-head
 
-- Runtime Safety Harness run: pending after push
-- Fieldgrid Deploy Health Gate run: pending after push
+Source: GitHub pull-request checks for the reviewed head
 
-| Lane | Status |
+Concrete workflow run IDs belong in the PR body or review evidence, not this durable baseline schema.
+
+| Required workflow | Requirement |
 |---|---|
-| build | pass |
-| PostgreSQL migration smoke | pass |
-| Tenant A/B DB integration | pass |
-| RLS security | pass |
-| previous-release compatibility | pass |
-| API runtime | pass |
-| typecheck | pass |
-| health gate | pass |
+| Runtime Safety Harness | required on reviewed head |
+| Fieldgrid Deploy Health Gate | required on reviewed head |
+
+| Required lane | Requirement |
+|---|---|
+| build | required on reviewed head |
+| PostgreSQL migration smoke | required on reviewed head |
+| Tenant A/B DB integration | required on reviewed head |
+| RLS security | required on reviewed head |
+| previous-release compatibility | required on reviewed head |
+| API runtime | required on reviewed head |
+| typecheck | required on reviewed head |
+| health gate | required on reviewed head |
 
 ## Classification
 

@@ -2,7 +2,18 @@ import { readFileSync, writeFileSync } from "node:fs";
 
 const reportUrl = new URL("../docs/testing/current-main-baseline-2026-07-14.json", import.meta.url);
 const markdownUrl = new URL("../docs/testing/current-main-baseline-2026-07-14.md", import.meta.url);
-const allowedStatuses = new Set(["pass", "fail", "blocked", "notRun", "pending-run-id-update-after-push"]);
+const allowedStatuses = new Set(["pass", "fail", "blocked", "notRun", "required-on-reviewed-head"]);
+const requiredWorkflowNames = ["Runtime Safety Harness", "Fieldgrid Deploy Health Gate"];
+const requiredLaneNames = [
+  "build",
+  "PostgreSQL migration smoke",
+  "Tenant A/B DB integration",
+  "RLS security",
+  "previous-release compatibility",
+  "API runtime",
+  "typecheck",
+  "health gate",
+];
 
 export function loadBaselineReport() {
   return JSON.parse(readFileSync(reportUrl, "utf8"));
@@ -14,19 +25,35 @@ export function validateBaselineReport(report) {
   if (report.baseSha !== "42edb5664ed507ed914b8bebf8847ab1f6e39f74") errors.push("unexpected base SHA");
   if (report.pullRequest !== 300) errors.push("pullRequest must be 300");
   if (report.rootSuite.total !== report.rootSuite.passed + report.rootSuite.failed + report.rootSuite.skipped) errors.push("root totals do not add up");
+  if (report.rootSuite.total !== 759 || report.rootSuite.passed !== 745 || report.rootSuite.failed !== 14 || report.rootSuite.skipped !== 0 || report.rootSuite.flaky !== 0) errors.push("root baseline totals changed");
   if (report.rootSuite.failed !== report.failures.length) errors.push("failure count does not match failure records");
-  if (report.rootSuite.flaky !== 0) errors.push("flaky count must remain 0");
   if (report.baselineDifferential.candidateOnlyFailures !== 0) errors.push("candidate-only failures must remain 0");
   if (report.baselineDifferential.permanentFailureAllowlistAdded !== false) errors.push("no permanent broad allowlist may be added");
+  if (Object.hasOwn(report.baselineDifferential, "environmentBlocks")) errors.push("baselineDifferential.environmentBlocks must not duplicate local constraints");
+
+  const serialized = JSON.stringify(report);
+  const stalePendingMarker = ["pending", "run", "id", "update", "after", "push"].join("-");
+  const runtimeRunField = ["runtime", "Safety", "Run"].join("");
+  const healthRunField = ["health", "Gate", "Run"].join("");
+  const rawOutputPath = ["outputs", "current-main-baseline-2026-07-14"].join("/");
+  if (serialized.includes(stalePendingMarker)) errors.push("pending workflow marker must not be committed");
+  if (Object.hasOwn(report.githubActionsEvidence, runtimeRunField)) errors.push("runtime safety run ID must not be a durable schema field");
+  if (Object.hasOwn(report.githubActionsEvidence, healthRunField)) errors.push("health gate run ID must not be a durable schema field");
+  if (serialized.includes(rawOutputPath)) errors.push("raw output path must not be committed in the compact report");
+  if (!allowedStatuses.has(report.githubActionsEvidence.status)) errors.push("invalid GitHub Actions evidence status");
+  if (report.githubActionsEvidence.source !== "GitHub pull-request checks for the reviewed head") errors.push("GitHub Actions evidence source is not durable");
+  for (const workflow of requiredWorkflowNames) {
+    if (!report.githubActionsEvidence.requiredWorkflows.includes(workflow)) errors.push(`missing required workflow: ${workflow}`);
+  }
+  for (const lane of requiredLaneNames) {
+    if (!report.githubActionsEvidence.requiredLanes.includes(lane)) errors.push(`missing required lane: ${lane}`);
+  }
 
   for (const run of report.localValidationCommands) {
     if (!allowedStatuses.has(run.status)) errors.push(`invalid local command status: ${run.command}`);
   }
   for (const block of report.localExecutionConstraints) {
     if (block.status !== "blocked") errors.push(`local constraint must be blocked: ${block.lane}`);
-  }
-  for (const lane of report.githubActionsEvidence.lanes) {
-    if (!allowedStatuses.has(lane.status)) errors.push(`invalid GitHub Actions lane status: ${lane.lane}`);
   }
   for (const failure of report.failures) {
     const complete = failure.test && failure.file && failure.error && failure.existingOrNew && failure.ownerTrack && failure.severity && failure.reproducibility && typeof failure.featureFreezeBlocker === "boolean" && failure.proposedRepairTask;
@@ -36,7 +63,8 @@ export function validateBaselineReport(report) {
 }
 
 export function renderMarkdown(report) {
-  const rows = report.githubActionsEvidence.lanes.map((lane) => `| ${lane.lane} | ${lane.status} |`).join("\n");
+  const workflowRows = report.githubActionsEvidence.requiredWorkflows.map((workflow) => `| ${workflow} | required on reviewed head |`).join("\n");
+  const laneRows = report.githubActionsEvidence.requiredLanes.map((lane) => `| ${lane} | required on reviewed head |`).join("\n");
   const failureRows = report.failures.map((failure) => `| ${failure.test} | \`${failure.file}\` | ${failure.ownerTrack} | ${failure.severity} | ${failure.featureFreezeBlocker ? "yes" : "no"} |`).join("\n");
   const localRows = report.localExecutionConstraints.map((block) => `| ${block.lane} | ${block.status} | ${block.reason} |`).join("\n");
   return `# Current main full test baseline — ${report.date}
@@ -63,25 +91,31 @@ PR: #${report.pullRequest}
 - Current-main root failures: ${report.baselineDifferential.currentMainFailures}
 - Shared failures: ${report.baselineDifferential.sharedFailures}
 - Candidate-only failures: ${report.baselineDifferential.candidateOnlyFailures}
-- Environment blocks: ${report.baselineDifferential.environmentBlocks}
 - Permanent broad failure allowlist added: ${report.baselineDifferential.permanentFailureAllowlistAdded ? "yes" : "no"}
 
 ## Local execution constraints
+
+Local execution constraints are separate from product failures and separate from GitHub Actions evidence.
 
 | Lane | Status | Reason |
 |---|---|---|
 ${localRows}
 
-## GitHub Actions evidence
+## GitHub Actions evidence contract
 
 Status: ${report.githubActionsEvidence.status}
 
-- Runtime Safety Harness run: ${report.githubActionsEvidence.runtimeSafetyRun ?? "pending after push"}
-- Fieldgrid Deploy Health Gate run: ${report.githubActionsEvidence.healthGateRun ?? "pending after push"}
+Source: ${report.githubActionsEvidence.source}
 
-| Lane | Status |
+Concrete workflow run IDs belong in the PR body or review evidence, not this durable baseline schema.
+
+| Required workflow | Requirement |
 |---|---|
-${rows}
+${workflowRows}
+
+| Required lane | Requirement |
+|---|---|
+${laneRows}
 
 ## Classification
 
