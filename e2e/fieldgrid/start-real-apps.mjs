@@ -165,14 +165,18 @@ async function proveDataPath() {
 }
 
 async function probeApp(name, port, path, host, acceptedStatuses) {
-  const response = await fetchWithTimeout(`http://127.0.0.1:${port}${path}`, { headers: { host, 'x-forwarded-host': host, 'x-forwarded-proto': 'http' }, redirect: 'manual' });
-  return { name, ok: acceptedStatuses.includes(response.status), status: response.status, checkedAt: new Date().toISOString() };
+  try {
+    const response = await fetchWithTimeout(`http://127.0.0.1:${port}${path}`, { headers: { host, 'x-forwarded-host': host, 'x-forwarded-proto': 'http' }, redirect: 'manual' });
+    return { name, ok: acceptedStatuses.includes(response.status), status: response.status, checkedAt: new Date().toISOString() };
+  } catch (error) {
+    return { name, ok: false, error: error instanceof Error ? error.message : String(error), checkedAt: new Date().toISOString() };
+  }
 }
 
 async function readiness() {
   const checks = [];
   checks.push({ name: 'postgresql', ok: await tcpReachable(5432), checkedAt: new Date().toISOString() });
-  checks.push({ name: 'postgrest', ok: await fetchWithTimeout(`http://127.0.0.1:${ports.postgrest}/`, {}, 1000).then((r) => r.status < 500).catch(() => false), checkedAt: new Date().toISOString() });
+  checks.push({ name: 'postgrest', ok: await fetchWithTimeout(`http://127.0.0.1:${ports.postgrest}/`, {}, 1000).then((r) => r.status >= 200 && r.status < 300).catch(() => false), checkedAt: new Date().toISOString() });
   checks.push({ name: 'gateway', ok: await fetchWithTimeout(`http://127.0.0.1:${ports.gateway}/healthz`).then((r) => r.status === 200).catch(() => false), checkedAt: new Date().toISOString() });
   checks.push(await probeApp('backoffice', ports.backoffice, '/', 'tenant-a.runtime.fieldgrid.test', [200, 302, 307]));
   checks.push(await probeApp('personnel', ports.personnel, '/personeel', 'tenant-a.runtime.fieldgrid.test', [200, 302, 307]));

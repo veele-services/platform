@@ -80,3 +80,16 @@ test('exactly five browser scenarios exist and forbidden files/tooling are absen
   assert.equal(existsSync('scripts/fieldgrid-runtime-entrypoints-check.mjs'), false);
   assert.doesNotMatch(spec, /Fieldgrid E2E.*toContainText|Backoffice dashboard|Customer Tenant A assignments/);
 });
+
+
+test('Playwright uses explicit stack runner instead of config.webServer recursion', () => {
+  const config = read('playwright.config.ts');
+  const pkg = JSON.parse(read('package.json'));
+  const runner = read('e2e/fieldgrid/run-playwright.mjs');
+  assert.doesNotMatch(config, /webServer/);
+  assert.equal(pkg.scripts['fieldgrid:playwright'], 'node --test tests/fieldgrid-playwright-e2e-auth-sourceguard.test.mjs && node e2e/fieldgrid/run-playwright.mjs');
+  assert.match(runner, /pnpm', \['exec', 'playwright', 'test'\]/);
+  assert.doesNotMatch(runner, /fieldgrid:playwright/);
+  assert.match(runner, /startupTimeoutMs = 180_000/);
+  assert.match(runner, /orchestrator\.stderr\.log/);
+});
