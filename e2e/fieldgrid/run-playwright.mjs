@@ -7,6 +7,7 @@ import { join } from 'node:path';
 const artifactDir = join(process.cwd(), 'artifacts', 'fieldgrid-playwright');
 const logsDir = join(artifactDir, 'logs');
 const statusPath = join(artifactDir, 'startup-status.json');
+const preflightPath = join(artifactDir, 'preflight.json');
 const startupTimeoutMs = 180_000;
 const pollIntervalMs = 2_000;
 const stack = { process: undefined };
@@ -37,6 +38,7 @@ async function printDiagnostics(reason, latest = {}) {
   console.error(`\n[fieldgrid-playwright] ${reason}`);
   console.error(`\n[health probe]\n${JSON.stringify(latest, null, 2)}`);
   console.error(`\n[startup-status.json]\n${await readText(statusPath)}`);
+  console.error(`\n[preflight.json]\n${await readText(preflightPath)}`);
   for (const file of [
     'orchestrator.stderr.log',
     'backoffice.stderr.log',
@@ -74,6 +76,25 @@ async function waitForHealth() {
   throw new Error('Fieldgrid Playwright stack did not become healthy.');
 }
 
+async function runAuthenticatedPreflight() {
+  let response;
+  try {
+    response = await fetch('http://127.0.0.1:9325/preflight', { signal: AbortSignal.timeout(90_000) });
+  } catch (error) {
+    await printDiagnostics('Authenticated preflight request failed.', {
+      error: error instanceof Error ? error.message : String(error),
+    });
+    throw new Error('Fieldgrid Playwright authenticated preflight could not be reached.');
+  }
+
+  if (response.status === 200) return;
+
+  await printDiagnostics('Authenticated preflight failed without retrying application authorization.', {
+    status: response.status,
+  });
+  throw new Error('Fieldgrid Playwright authenticated preflight failed.');
+}
+
 async function terminateStack() {
   if (shuttingDown) return;
   shuttingDown = true;
@@ -87,7 +108,7 @@ async function terminateStack() {
 }
 
 async function runPlaywright() {
-  const child = spawn('pnpm', ['exec', 'playwright', 'test'], { stdio: 'inherit', shell: false });
+  const child = spawn('pnpm', ['exec', 'playwright', 'test'], { stdio: 'inherit', shell: process.platform === 'win32' });
   return await new Promise((resolve) => child.once('exit', (code, signal) => resolve(signal ? 1 : code ?? 1)));
 }
 
@@ -96,6 +117,7 @@ async function main() {
   stack.process = spawnLogged('orchestrator', 'node', ['e2e/fieldgrid/start-real-apps.mjs'], { env: process.env });
   try {
     await waitForHealth();
+    await runAuthenticatedPreflight();
     process.exitCode = await runPlaywright();
   } finally {
     await terminateStack();

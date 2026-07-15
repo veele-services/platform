@@ -38,6 +38,7 @@ async function resetIfAllowed(client) {
   await client.query(`
     drop schema if exists public cascade;
     drop schema if exists drizzle cascade;
+    drop schema if exists app_private cascade;
     drop schema if exists auth cascade;
     drop schema if exists storage cascade;
     create schema public;
@@ -83,7 +84,13 @@ async function installCompatibilityShims(client) {
     language sql
     stable
     as $$
-      select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid
+      select nullif(
+        coalesce(
+          nullif(current_setting('request.jwt.claim.sub', true), ''),
+          nullif(current_setting('request.jwt.claims', true), '')::jsonb ->> 'sub'
+        ),
+        ''
+      )::uuid
     $$;
 
     create or replace function auth.jwt()
@@ -136,7 +143,11 @@ async function installPostMigrationCompatibilityGrants() {
   const client = await connect();
   try {
     await client.query(`
-      grant select on table public.personnel to authenticated;
+      grant select on table
+        public.personnel,
+        public.roles,
+        public.sectors
+      to authenticated;
       grant select on table
         public.assignments,
         public.assignment_tasks,
@@ -192,12 +203,13 @@ async function main() {
     compatibility: {
       engine: "PostgreSQL 17 with local Supabase compatibility shims",
       limitations: [
-        "auth.uid() and auth.jwt() are local GUC-backed shims, not Supabase GoTrue.",
+        "auth.uid() and auth.jwt() are local GUC-backed shims, not Supabase GoTrue; auth.uid() accepts both direct request.jwt.claim.sub and PostgREST request.jwt.claims JSON.",
         "storage.buckets and storage.objects are schema-compatible tables only; object storage and signed URL behavior are not exercised.",
         "RLS policies can be inspected and exercised through PostgreSQL roles, but this is not Supabase Storage runtime evidence.",
       ],
       postMigrationGrants: [
         "GRANT SELECT ON TABLE public.personnel TO authenticated; required for local auth.uid() personnel resolution in RLS tests.",
+        "GRANT SELECT ON TABLE public.roles, public.sectors TO authenticated; required for local PostgREST embedded personnel profile lookups through RLS-filtered clients.",
         "GRANT SELECT on non-assignment_personnel assignment/customer workflow tables to authenticated; local shim only so PostgreSQL can exercise RLS policies after Phase B.",
       ],
     },

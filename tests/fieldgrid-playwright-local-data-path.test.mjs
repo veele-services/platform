@@ -9,10 +9,15 @@ test('contract: runtime data-path evidence is produced by gateway to real PostgR
   assert.match(source, /gatewayJson\(`\/rest\/v1\/assignments\?id=eq\.\$\{tenantAAssignment\}/);
   assert.match(source, /gatewayJson\(`\/rest\/v1\/assignments\?id=eq\.\$\{tenantBAssignment\}/);
   assert.match(source, /data-path-proof\.json/);
-  assert.match(source, /tenantAAllowedRowCount/);
-  assert.match(source, /tenantBDeniedRowCount/);
+  assert.match(source, /\/rest\/v1\/rpc\/personnel_assigned_to_assignment/);
+  assert.match(source, /customerTenantAAllowedAssignmentCount/);
+  assert.match(source, /customerTenantADeniedTenantBAssignmentCount/);
+  assert.match(source, /customerTenantBDeniedTenantAAssignmentCount/);
+  assert.match(source, /personnelTenantAAssignmentAllowed/);
+  assert.match(source, /personnelTenantATenantBAssignmentDenied/);
+  assert.match(source, /personnelTenantBTenantAAssignmentDenied/);
   assert.match(source, /invalidJwtStatus/);
-  assert.match(source, /unknownRouteStatus/);
+  assert.doesNotMatch(source, /\/rest\/v1\/assignment_personnel/);
 });
 
 test('contract: gateway preserves method, body, query, headers and PostgREST response details', () => {
@@ -31,7 +36,8 @@ test('contract: gateway preserves method, body, query, headers and PostgREST res
 
 test('contract: local JWT is HS256, short-lived and never logged as a secret', () => {
   assert.match(source, /alg: 'HS256'/);
+  assert.match(source, /email: identity\.email/);
   assert.match(source, /jwtMaxLifetimeSeconds = 15 \* 60/);
   assert.match(source, /replaceAll\(localJwtSecret, '\[redacted-jwt-secret\]'\)/);
-  assert.doesNotMatch(source, /service_role/);
+  assert.doesNotMatch(source, /tenant_id/);
 });

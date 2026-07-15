@@ -46,6 +46,8 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       - run: pnpm fieldgrid:playwright:install
+      - name: Confirm browser processes have no service-role credential
+        run: test -z "${SUPABASE_SERVICE_ROLE_KEY:-}"
       - name: Wait for PostgreSQL 17
         run: |
           for attempt in {1..30}; do
@@ -87,9 +89,19 @@ jobs:
           done
           docker logs fieldgrid-e2e-postgrest > artifacts/fieldgrid-playwright/logs/postgrest.log 2>&1 || true
           exit 1
+      - name: Check for conflict markers before static tests
+        run: |
+          if git grep -n -E '^(<<<<<<<|=======|>>>>>>>)' -- ':!pnpm-lock.yaml'; then
+            exit 1
+          fi
       - run: node --test tests/fieldgrid-playwright-e2e-auth-sourceguard.test.mjs
       - run: node --test tests/fieldgrid-playwright-local-data-path.test.mjs
-      - run: pnpm fieldgrid:playwright
+      - name: Run Playwright after conflict-marker guard
+        run: |
+          if git grep -n -E '^(<<<<<<<|=======|>>>>>>>)' -- ':!pnpm-lock.yaml'; then
+            exit 1
+          fi
+          pnpm fieldgrid:playwright
       - run: pnpm fieldgrid:playwright:evidence
       - name: Capture PostgREST logs
         if: always()

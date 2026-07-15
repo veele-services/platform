@@ -6,15 +6,29 @@ const read = (file) => readFileSync(file, 'utf8');
 const start = () => read('e2e/fieldgrid/start-real-apps.mjs');
 const seam = () => read('lib/db/src/e2e-auth-adapter.ts');
 const workflow = () => read('.github/workflows/fieldgrid-playwright.yml');
+const browserSpec = () => read('e2e/fieldgrid/tests/golden-path.spec.ts');
+const playwrightConfig = () => read('playwright.config.ts');
 
 test('runner starts real Fieldgrid apps and does not serve mock application HTML', () => {
   const source = start();
   assert.doesNotMatch(source, /<!doctype html>|Backoffice dashboard|Personnel assigned Tenant A work visible|Customer Tenant A assignments|Runtime Tenant A Customer/);
-  assert.match(source, /'pnpm', \['--filter', '@workspace\/backoffice', 'dev'\]/);
-  assert.match(source, /'pnpm', \['--filter', '@workspace\/personeel-pwa', 'dev'\]/);
-  assert.match(source, /'pnpm', \['--filter', '@workspace\/klant-pwa', 'dev'\]/);
+  assert.match(source, /'pnpm', \['--filter', '@workspace\/backoffice', 'exec', 'next', 'dev', '-H', '127\.0\.0\.1', '-p', String\(ports\.backoffice\)\]/);
+  assert.match(source, /'pnpm', \['--filter', '@workspace\/personeel-pwa', 'exec', 'next', 'dev', '--turbopack', '-H', '0\.0\.0\.0', '-p', String\(ports\.personnel\)\]/);
+  assert.match(source, /'pnpm', \['--filter', '@workspace\/klant-pwa', 'exec', 'next', 'dev', '--turbopack', '-H', '0\.0\.0\.0', '-p', String\(ports\.customer\)\]/);
   assert.doesNotMatch(source, /fixture\s*:/);
   assert.doesNotMatch(source, /listen\(ports\.postgrest/);
+  assert.match(source, /delete appBaseEnvironment\.SUPABASE_SERVICE_ROLE_KEY/);
+});
+
+test('browser scenarios use real runtime hostnames instead of forbidden Host header spoofing', () => {
+  const spec = browserSpec();
+  const config = playwrightConfig();
+  assert.match(config, /--host-resolver-rules=MAP tenant-a\.runtime\.fieldgrid\.test 127\.0\.0\.1/);
+  assert.match(config, /MAP platform\.fieldgrid\.nl 127\.0\.0\.1/);
+  assert.match(spec, /http:\/\/\$\{host\}:9321/);
+  assert.match(spec, /domain: host/);
+  assert.doesNotMatch(spec, /setExtraHTTPHeaders\(\{[\s\S]*host/);
+  assert.doesNotMatch(spec, /http:\/\/127\.0\.0\.1:932[123]/);
 });
 
 test('gateway is strict and strips /rest/v1 before proxying to real PostgREST', () => {
@@ -45,7 +59,20 @@ test('E2E auth seam is production-disabled, identity-only, and delegates bound c
   const source = seam();
   assert.match(source, /NODE_ENV === "production"/);
   assert.match(source, /FIELDGRID_E2E_AUTH_ENABLED !== "true"/);
+  assert.match(source, /FIELDGRID_E2E_FIXTURE_IDENTITIES/);
   assert.match(source, /FIELDGRID_E2E_FIXTURE_USERS = new Set/);
+  for (const email of [
+    'admin@tenant-a.runtime.fieldgrid.test',
+    'admin@tenant-b.runtime.fieldgrid.test',
+    'personnel@tenant-a.runtime.fieldgrid.test',
+    'personnel@tenant-b.runtime.fieldgrid.test',
+    'customer@tenant-a.runtime.fieldgrid.test',
+    'customer@tenant-b.runtime.fieldgrid.test',
+  ]) {
+    assert.match(source, new RegExp(email));
+  }
+  assert.match(source, /email: identity\.email/);
+  assert.doesNotMatch(source, /tenant_id/);
   assert.match(source, /property === "getUser"/);
   assert.match(source, /value\.bind\(target\)/);
   assert.doesNotMatch(source, /property === "from"|property === "rpc"|property === "storage"|if \(table ===/);
@@ -88,11 +115,82 @@ test('Playwright fixture loader reuses customer_users natural key and proves ide
   assert.equal([...workflowSource.matchAll(/pnpm fieldgrid:playwright:fixtures/g)].length, 2);
 });
 
+test('Playwright fixtures seed only canonical tenant Admin roles and exact permissions', () => {
+  const fixtureSource = read('e2e/fieldgrid/fixtures/seed-e2e-fixtures.mjs');
+  assert.match(fixtureSource, /const CANONICAL_ADMIN_ROLE = 'Admin'/);
+  assert.match(fixtureSource, /seedCanonicalAdminRoles/);
+  assert.match(fixtureSource, /\['planning', 'read'\]/);
+  assert.match(fixtureSource, /\['planning', 'write'\]/);
+  assert.match(fixtureSource, /delete from tenant_user_roles\s+where user_id = any\(\$1::uuid\[\]\)/s);
+  assert.match(fixtureSource, /canonicalAdminPermissionCountTenantA === CANONICAL_ADMIN_PERMISSIONS\.length/);
+  assert.match(fixtureSource, /canonicalAdminPermissionCountTenantB === CANONICAL_ADMIN_PERMISSIONS\.length/);
+  assert.match(fixtureSource, /tenantAAdminAllRoleLinkCount === 1/);
+  assert.match(fixtureSource, /tenantBAdminAllRoleLinkCount === 1/);
+  assert.match(fixtureSource, /crossTenantRoleLeakCount === 0/);
+});
+
+test('personnel profile lookup treats query errors as denials before first-login linking', () => {
+  const source = read('artifacts/personeel-pwa/src/actions/personnel.ts');
+  const primaryLookup = source.indexOf('error: primaryLookupError');
+  const adminClient = source.indexOf('const admin = createAdminClient()');
+  assert.ok(primaryLookup >= 0 && adminClient > primaryLookup, 'primary lookup must happen before the privileged first-login client');
+  assert.match(source, /\.maybeSingle\(\)/);
+  assert.match(source, /if \(primaryLookupError\) \{[\s\S]*personnelLookupDiagnostic\(primaryLookupError\)[\s\S]*return null;/);
+  assert.match(source, /"is_active"/);
+  assert.match(source, /if \(byId\) \{[\s\S]*const linkedProfile = byId as \{ is_active\?: boolean \| null \};[\s\S]*if \(!linkedProfile\.is_active\) return null;[\s\S]*return mapProfile\(byId\);[\s\S]*\}/);
+  assert.match(source, /if \(firstLoginLookupError\) \{[\s\S]*return null;/);
+  assert.match(source, /if \(linkedLookupError\) \{[\s\S]*return null;/);
+  assert.match(source, /Active, already-linked personnel return above and never require a service/);
+});
+
+test('runtime safety setup grants embedded personnel profile lookup tables to authenticated', () => {
+  const source = read('scripts/fieldgrid-runtime-safety-setup.mjs');
+  assert.match(source, /drop schema if exists app_private cascade;/);
+  assert.match(source, /current_setting\('request\.jwt\.claim\.sub', true\)/);
+  assert.match(source, /current_setting\('request\.jwt\.claims', true\), ''\)::jsonb ->> 'sub'/);
+  assert.match(source, /public\.personnel,\s+public\.roles,\s+public\.sectors\s+to authenticated;/);
+  assert.match(source, /PostgREST embedded personnel profile lookups/);
+});
+
+test('liveness is unauthenticated and authenticated acceptance runs exactly once before browser execution', () => {
+  const stack = start();
+  const runner = read('e2e/fieldgrid/run-playwright.mjs');
+  const livenessBlock = stack.slice(stack.indexOf('async function liveness()'), stack.indexOf('async function authenticatedPreflight()'));
+  assert.match(livenessBlock, /probeLivenessApp/);
+  assert.doesNotMatch(livenessBlock, /proveDataPath|fieldgrid_e2e_auth_user/);
+  assert.match(stack, /preflight\.json/);
+  assert.match(stack, /async function authenticatedPreflight\(\)/);
+  assert.match(stack, /tenant-a-admin-backoffice/);
+  assert.match(stack, /tenant-a-personnel/);
+  assert.match(stack, /tenant-a-customer/);
+  assert.match(stack, /if \(!check\.ok\) \{/);
+  assert.match(stack, /error: redact\(error instanceof Error \? error\.message : String\(error\)\)/);
+  assert.match(runner, /await runAuthenticatedPreflight\(\);/);
+  assert.ok(runner.indexOf('await runAuthenticatedPreflight()') < runner.indexOf('await runPlaywright()'), 'browser execution must follow preflight');
+});
+
+test('E2E source files are conflict-marker free', () => {
+  for (const file of [
+    'e2e/fieldgrid/fixtures/seed-e2e-fixtures.mjs',
+    'e2e/fieldgrid/start-real-apps.mjs',
+    'e2e/fieldgrid/run-playwright.mjs',
+    'e2e/fieldgrid/validate-runtime-evidence.mjs',
+    'e2e/fieldgrid/tests/golden-path.spec.ts',
+    'lib/db/src/e2e-auth-adapter.ts',
+  ]) {
+    assert.doesNotMatch(read(file), /^(<<<<<<<|=======|>>>>>>>)/m, file);
+  }
+});
+
 test('workflow provisions PostgreSQL 17, Runtime Safety fixtures, real PostgREST, cleanup, and artifacts', () => {
   const source = workflow();
   assert.match(source, /image: postgres:17/);
   assert.match(source, /fieldgrid:runtime-safety:setup/);
   assert.match(source, /fieldgrid:runtime-safety:fixtures/);
+  assert.match(source, /test -z "\$\{SUPABASE_SERVICE_ROLE_KEY:-\}"/);
+  assert.match(source, /Check for conflict markers before static tests/);
+  assert.match(source, /Run Playwright after conflict-marker guard/);
+  assert.match(source, /git grep -n -E '\^\(<<<<<<<\|=======\|>>>>>>>\)'/);
   assert.match(source, /Seed Playwright fixtures/);
   assert.match(source, /Prove Playwright fixture idempotency/);
   assert.match(source, /fieldgrid:playwright:evidence/);

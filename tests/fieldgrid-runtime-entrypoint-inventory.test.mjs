@@ -153,5 +153,10 @@ test('runtime entrypoint risk summary lists all classified dimensions', () => {
 });
 
 test('runtime entrypoint stale-manifest check passes for committed files', () => {
+  if (process.platform === 'win32') {
+    execFileSync(process.env.ComSpec ?? 'cmd.exe', ['/d', '/s', '/c', 'pnpm fieldgrid:runtime-entrypoints:check'], { stdio: 'pipe' });
+    return;
+  }
+
   execFileSync('pnpm', ['fieldgrid:runtime-entrypoints:check'], { stdio: 'pipe' });
 });
