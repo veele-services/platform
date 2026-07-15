@@ -39,6 +39,7 @@ const ACTORS = [
   ["admin@tenant-a.runtime.fieldgrid.test", FIXTURE.users.tenantAAdmin],
   ["planner@tenant-a.runtime.fieldgrid.test", FIXTURE.users.tenantAPlanner],
   ["personnel@tenant-a.runtime.fieldgrid.test", FIXTURE.users.tenantAPersonnel],
+  ["inactive-personnel@tenant-a.runtime.fieldgrid.test", FIXTURE.users.tenantAInactivePersonnel],
   ["customer@tenant-a.runtime.fieldgrid.test", FIXTURE.users.tenantACustomer],
   ["owner@tenant-b.runtime.fieldgrid.test", FIXTURE.users.tenantBOwner],
   ["admin@tenant-b.runtime.fieldgrid.test", FIXTURE.users.tenantBAdmin],

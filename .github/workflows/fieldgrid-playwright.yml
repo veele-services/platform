@@ -1,0 +1,26 @@
+name: Fieldgrid Playwright
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  fieldgrid-playwright:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm fieldgrid:playwright:install
+      - run: pnpm fieldgrid:playwright
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fieldgrid-playwright-artifacts
+          path: artifacts/fieldgrid-playwright
