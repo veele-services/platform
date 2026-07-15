@@ -16,7 +16,10 @@ test('contract: runtime data-path evidence is produced by gateway to real PostgR
 });
 
 test('contract: gateway preserves method, body, query, headers and PostgREST response details', () => {
-  assert.match(source, /new URL\(req\.url, `http:\/\/127\.0\.0\.1:\$\{ports\.postgrest\}`\)/);
+  assert.match(source, /const incoming = new URL\(requestUrl, 'http:\/\/fieldgrid-e2e\.local'\)/);
+  assert.match(source, /incoming\.pathname\.slice\('\/rest\/v1'\.length\)/);
+  assert.match(source, /incoming\.search/);
+  assert.doesNotMatch(source, /new URL\(req\.url, `http:\/\/127\.0\.0\.1:\$\{ports\.postgrest\}`\)/);
   assert.match(source, /method: req\.method/);
   assert.match(source, /body, duplex: 'half'/);
   for (const header of ['authorization', 'apikey', 'accept', 'content-type', 'prefer', 'range', 'content-range', 'accept-profile', 'content-profile']) {

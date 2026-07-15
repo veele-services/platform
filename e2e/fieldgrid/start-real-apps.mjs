@@ -16,7 +16,9 @@ const proofPath = join(artifactDir, 'data-path-proof.json');
 const jwtMaxLifetimeSeconds = 15 * 60;
 const localJwtSecret = process.env.FIELDGRID_E2E_JWT_SECRET ?? 'fieldgrid-e2e-only-jwt-secret-minimum-32-bytes-not-for-production';
 const localAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'fieldgrid-e2e-local-anon-key-not-for-production';
+const tenantAAdminUser = '20000000-0000-4000-8000-000000000102';
 const tenantAPersonnelUser = '20000000-0000-4000-8000-000000000104';
+const tenantACustomerUser = '20000000-0000-4000-8000-000000000105';
 const tenantBAdminUser = '20000000-0000-4000-8000-000000000202';
 const tenantAAssignment = '70000000-0000-4000-8000-000000000001';
 const tenantBAssignment = '70000000-0000-4000-8000-000000000002';
@@ -98,6 +100,12 @@ async function fetchWithTimeout(url, options = {}, timeoutMs = 3000) {
   finally { clearTimeout(timeout); }
 }
 
+export function postgrestUrlForGatewayRequest(requestUrl) {
+  const incoming = new URL(requestUrl, 'http://fieldgrid-e2e.local');
+  const postgrestPath = incoming.pathname.slice('/rest/v1'.length) || '/';
+  return new URL(`${postgrestPath}${incoming.search}`, `http://127.0.0.1:${ports.postgrest}`);
+}
+
 function startGateway() {
   gatewayServer = http.createServer(async (req, res) => {
     try {
@@ -106,7 +114,7 @@ function startGateway() {
         return json(res, postgrest ? 200 : 503, { status: postgrest ? 'ok' : 'postgrest_unreachable' });
       }
       if (!req.url?.startsWith('/rest/v1/')) return json(res, 404, { error: 'unknown route' });
-      const upstream = new URL(req.url, `http://127.0.0.1:${ports.postgrest}`);
+      const upstream = postgrestUrlForGatewayRequest(req.url);
       const headers = new Headers();
       for (const name of ['authorization', 'apikey', 'accept', 'content-type', 'prefer', 'range', 'content-range', 'accept-profile', 'content-profile']) {
         const value = req.headers[name];
@@ -160,13 +168,25 @@ async function proveDataPath() {
     unknownRouteStatus: unknown.status,
     serviceRoleBrowserBypassDetected: false,
   };
+  const ok = dataPathProof.tenantAAllowedRowCount > 0 && dataPathProof.tenantBDeniedRowCount === 0 && dataPathProof.tenantBIdentityDeniedTenantARowCount === 0 && dataPathProof.invalidJwtStatus >= 400 && dataPathProof.unknownRouteStatus === 404;
   await writeAtomicJson(proofPath, dataPathProof);
-  return dataPathProof.tenantAAllowedRowCount > 0 && dataPathProof.tenantBDeniedRowCount === 0 && dataPathProof.tenantBIdentityDeniedTenantARowCount === 0 && dataPathProof.invalidJwtStatus >= 400 && dataPathProof.unknownRouteStatus === 404;
+  return { ok, details: dataPathProof };
 }
 
-async function probeApp(name, port, path, host, acceptedStatuses) {
+async function probeApp(name, port, path, host, userId, acceptedStatuses) {
   try {
-    const response = await fetchWithTimeout(`http://127.0.0.1:${port}${path}`, { headers: { host, 'x-forwarded-host': host, 'x-forwarded-proto': 'http' }, redirect: 'manual' });
+    const response = await fetchWithTimeout(
+      `http://127.0.0.1:${port}${path}`,
+      {
+        headers: {
+          host,
+          'x-forwarded-host': host,
+          'x-forwarded-proto': 'http',
+          cookie: `fieldgrid_e2e_auth_user=${encodeURIComponent(userId)}`,
+        },
+        redirect: 'manual',
+      },
+    );
     return { name, ok: acceptedStatuses.includes(response.status), status: response.status, checkedAt: new Date().toISOString() };
   } catch (error) {
     return { name, ok: false, error: error instanceof Error ? error.message : String(error), checkedAt: new Date().toISOString() };
@@ -178,12 +198,15 @@ async function readiness() {
   checks.push({ name: 'postgresql', ok: await tcpReachable(5432), checkedAt: new Date().toISOString() });
   checks.push({ name: 'postgrest', ok: await fetchWithTimeout(`http://127.0.0.1:${ports.postgrest}/`, {}, 1000).then((r) => r.status >= 200 && r.status < 300).catch(() => false), checkedAt: new Date().toISOString() });
   checks.push({ name: 'gateway', ok: await fetchWithTimeout(`http://127.0.0.1:${ports.gateway}/healthz`).then((r) => r.status === 200).catch(() => false), checkedAt: new Date().toISOString() });
-  checks.push(await probeApp('backoffice', ports.backoffice, '/', 'tenant-a.runtime.fieldgrid.test', [200, 302, 307]));
-  checks.push(await probeApp('personnel', ports.personnel, '/personeel', 'tenant-a.runtime.fieldgrid.test', [200, 302, 307]));
-  checks.push(await probeApp('customer', ports.customer, '/klant', 'tenant-a.runtime.fieldgrid.test', [200, 302, 307]));
-  let proofOk = false;
-  try { proofOk = await proveDataPath(); } catch (error) { checks.push({ name: 'data-path-proof', ok: false, error: error instanceof Error ? error.message : String(error), checkedAt: new Date().toISOString() }); }
-  if (proofOk) checks.push({ name: 'data-path-proof', ok: true, checkedAt: new Date().toISOString() });
+  checks.push(await probeApp('backoffice', ports.backoffice, '/customers', 'tenant-a.runtime.fieldgrid.test', tenantAAdminUser, [200, 302, 307]));
+  checks.push(await probeApp('personnel', ports.personnel, '/personeel/opdrachten', 'tenant-a.runtime.fieldgrid.test', tenantAPersonnelUser, [200, 302, 307]));
+  checks.push(await probeApp('customer', ports.customer, '/klant/opdrachten', 'tenant-a.runtime.fieldgrid.test', tenantACustomerUser, [200, 302, 307]));
+  try {
+    const proof = await proveDataPath();
+    checks.push({ name: 'data-path-proof', ok: proof.ok, details: proof.details, checkedAt: new Date().toISOString() });
+  } catch (error) {
+    checks.push({ name: 'data-path-proof', ok: false, error: error instanceof Error ? error.message : String(error), checkedAt: new Date().toISOString() });
+  }
   latestProbe = { ready: checks.every((check) => check.ok), checks };
   await writeAtomicJson(statusPath, { ...latestProbe, ports, artifactDir });
   return latestProbe;
@@ -199,8 +222,11 @@ function startOrchestrator() {
 }
 
 export async function start() {
-  await rm(artifactDir, { recursive: true, force: true });
   await mkdir(logsDir, { recursive: true });
+  await Promise.allSettled([
+    rm(statusPath, { force: true }),
+    rm(proofPath, { force: true }),
+  ]);
   startGateway();
   startOrchestrator();
   spawnLogged('backoffice', 'pnpm', ['--filter', '@workspace/backoffice', 'dev'], appEnv(ports.backoffice));

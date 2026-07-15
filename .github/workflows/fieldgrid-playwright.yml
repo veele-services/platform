@@ -54,8 +54,12 @@ jobs:
           done
           exit 1
       - run: pnpm fieldgrid:runtime-safety:setup
+      - name: Mark Runtime Safety setup complete
+        run: |
+          mkdir -p artifacts/fieldgrid-playwright
+          touch artifacts/fieldgrid-playwright/runtime-safety-setup-complete
       - run: pnpm fieldgrid:runtime-safety:fixtures
-      - run: node e2e/fieldgrid/fixtures/seed-e2e-fixtures.mjs
+      - run: pnpm fieldgrid:playwright:fixtures
       - name: Start real PostgREST v12.2.8
         run: |
           mkdir -p artifacts/fieldgrid-playwright/logs
@@ -83,15 +87,7 @@ jobs:
       - run: node --test tests/fieldgrid-playwright-e2e-auth-sourceguard.test.mjs
       - run: node --test tests/fieldgrid-playwright-local-data-path.test.mjs
       - run: pnpm fieldgrid:playwright
-      - name: Upload Fieldgrid Playwright artifacts
-        uses: actions/upload-artifact@v4
-        if: always()
-        with:
-          name: fieldgrid-playwright-artifacts
-          path: |
-            artifacts/fieldgrid-playwright/**
-            artifacts/runtime-safety-harness/**/*.json
-            artifacts/runtime-safety-harness/**/*.log
+      - run: pnpm fieldgrid:playwright:evidence
       - name: Capture PostgREST logs
         if: always()
         run: |
@@ -102,4 +98,16 @@ jobs:
         run: docker rm -f fieldgrid-e2e-postgrest || true
       - name: Tear down disposable database
         if: always()
-        run: pnpm fieldgrid:runtime-safety:teardown
+        run: |
+          if test -f artifacts/fieldgrid-playwright/runtime-safety-setup-complete; then
+            pnpm fieldgrid:runtime-safety:teardown
+          fi
+      - name: Upload Fieldgrid Playwright artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: fieldgrid-playwright-artifacts
+          path: |
+            artifacts/fieldgrid-playwright/**
+            artifacts/runtime-safety-harness/**/*.json
+            artifacts/runtime-safety-harness/**/*.log

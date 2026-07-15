@@ -14,19 +14,31 @@ test('runner starts real Fieldgrid apps and does not serve mock application HTML
   assert.match(source, /'pnpm', \['--filter', '@workspace\/personeel-pwa', 'dev'\]/);
   assert.match(source, /'pnpm', \['--filter', '@workspace\/klant-pwa', 'dev'\]/);
   assert.doesNotMatch(source, /fixture\s*:/);
-  assert.doesNotMatch(source, /ports\.postgrest[\s\S]{0,120}http\.createServer/);
+  assert.doesNotMatch(source, /listen\(ports\.postgrest/);
 });
 
-test('gateway is strict and proxies real PostgREST without hardcoded application data', () => {
+test('gateway is strict and strips /rest/v1 before proxying to real PostgREST', () => {
   const source = start();
   assert.match(source, /req\.url\?\.startsWith\('\/rest\/v1\/'\)/);
-  assert.match(source, /new URL\(req\.url, `http:\/\/127\.0\.0\.1:\$\{ports\.postgrest\}`\)/);
+  assert.match(source, /const incoming = new URL\(requestUrl, 'http:\/\/fieldgrid-e2e\.local'\)/);
+  assert.match(source, /incoming\.pathname\.slice\('\/rest\/v1'\.length\)/);
+  assert.match(source, /`\$\{postgrestPath\}\$\{incoming\.search\}`/);
+  assert.match(source, /postgrestUrlForGatewayRequest\(req\.url\)/);
+  assert.doesNotMatch(source, /new URL\(req\.url, `http:\/\/127\.0\.0\.1:\$\{ports\.postgrest\}`\)/);
   assert.match(source, /method: req\.method/);
+  assert.match(source, /const body = \[\'GET\', \'HEAD\'\]\.includes/);
   assert.match(source, /authorization/);
+  assert.match(source, /apikey/);
   assert.match(source, /content-range/);
   assert.match(source, /json\(res, 404, \{ error: 'unknown route' \}\)/);
   assert.doesNotMatch(source, /\{\s*fixture\s*[,}]/);
   assert.doesNotMatch(source, /\{\s*ok:\s*true\s*\}/);
+});
+
+test('gateway translation contract maps Supabase /rest/v1 requests to PostgREST table paths', async () => {
+  const { postgrestUrlForGatewayRequest } = await import('../e2e/fieldgrid/start-real-apps.mjs');
+  const upstream = postgrestUrlForGatewayRequest('/rest/v1/assignments?id=eq.abc&select=id');
+  assert.equal(`${upstream.pathname}${upstream.search}`, '/assignments?id=eq.abc&select=id');
 });
 
 test('E2E auth seam is production-disabled, identity-only, and delegates bound client methods', () => {
@@ -63,7 +75,8 @@ test('workflow provisions PostgreSQL 17, Runtime Safety fixtures, real PostgREST
   assert.match(source, /image: postgres:17/);
   assert.match(source, /fieldgrid:runtime-safety:setup/);
   assert.match(source, /fieldgrid:runtime-safety:fixtures/);
-  assert.match(source, /node e2e\/fieldgrid\/fixtures\/seed-e2e-fixtures\.mjs/);
+  assert.match(source, /fieldgrid:playwright:fixtures/);
+  assert.match(source, /fieldgrid:playwright:evidence/);
   assert.match(source, /postgrest\/postgrest:v12\.2\.8/);
   assert.doesNotMatch(source, /postgrest\/postgrest:latest/);
   assert.match(source, /docker logs fieldgrid-e2e-postgrest/);
@@ -72,6 +85,7 @@ test('workflow provisions PostgreSQL 17, Runtime Safety fixtures, real PostgREST
   assert.match(source, /artifacts\/runtime-safety-harness\/\*\*\/\*\.json/);
   assert.match(source, /artifacts\/runtime-safety-harness\/\*\*\/\*\.log/);
   assert.ok(source.indexOf('pnpm/action-setup@v4') < source.indexOf('actions/setup-node@v4'), 'pnpm must be installed before setup-node cache: pnpm');
+  assert.ok(source.indexOf('Tear down disposable database') < source.indexOf('Upload Fieldgrid Playwright artifacts'), 'artifact upload must run after teardown and log capture');
 });
 
 test('exactly five browser scenarios exist and forbidden files/tooling are absent', () => {
