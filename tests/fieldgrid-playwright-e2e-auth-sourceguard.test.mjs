@@ -70,12 +70,31 @@ test('middleware continues normal guard flow and does not E2E short-circuit', ()
   }
 });
 
+
+test('Playwright fixture loader reuses customer_users natural key and proves idempotency', () => {
+  const fixtureSource = read('e2e/fieldgrid/fixtures/seed-e2e-fixtures.mjs');
+  const workflowSource = workflow();
+  assert.match(fixtureSource, /where customer_id = \$1\s+and lower\(email\) = lower\(\$2\)\s+for update/s);
+  assert.match(fixtureSource, /where customer_id = \$1\s+and user_id = \$2\s+for update/s);
+  assert.match(fixtureSource, /update customer_users\s+set tenant_id = \$2/s);
+  assert.match(fixtureSource, /where id = \$1/);
+  assert.match(fixtureSource, /actualId: naturalKeyRow\.id/);
+  assert.match(fixtureSource, /actualId: userCustomerRow\.id/);
+  assert.match(fixtureSource, /customerUserFinalRow\.id === customerUserByUserFinalRow\.id/);
+  assert.match(fixtureSource, /customerUserCount === 1/);
+  assert.match(fixtureSource, /customerUserByUserCount === 1/);
+  assert.doesNotMatch(fixtureSource, /insert into customer_users[\s\S]{0,220}on conflict \(id\)/i);
+  assert.ok(workflowSource.indexOf('Seed Playwright fixtures') < workflowSource.indexOf('Prove Playwright fixture idempotency'), 'workflow must seed fixtures once before the idempotency proof');
+  assert.equal([...workflowSource.matchAll(/pnpm fieldgrid:playwright:fixtures/g)].length, 2);
+});
+
 test('workflow provisions PostgreSQL 17, Runtime Safety fixtures, real PostgREST, cleanup, and artifacts', () => {
   const source = workflow();
   assert.match(source, /image: postgres:17/);
   assert.match(source, /fieldgrid:runtime-safety:setup/);
   assert.match(source, /fieldgrid:runtime-safety:fixtures/);
-  assert.match(source, /fieldgrid:playwright:fixtures/);
+  assert.match(source, /Seed Playwright fixtures/);
+  assert.match(source, /Prove Playwright fixture idempotency/);
   assert.match(source, /fieldgrid:playwright:evidence/);
   assert.match(source, /postgrest\/postgrest:v12\.2\.8/);
   assert.doesNotMatch(source, /postgrest\/postgrest:latest/);

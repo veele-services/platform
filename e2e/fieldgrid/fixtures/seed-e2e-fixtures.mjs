@@ -82,28 +82,104 @@ async function insertInvoice(client) {
   );
 }
 
-async function upsertCustomerUser(client) {
-  if (!(await tableExists(client, 'public', 'customer_users'))) return;
-  const hasId = await columnExists(client, 'customer_users', 'id');
-  if (hasId) {
-    await client.query(
-      `
-        insert into customer_users (id, tenant_id, customer_id, user_id, email, role, status, invite_sent_at)
-        values ($1, $2, $3, $4, 'customer@tenant-a.runtime.fieldgrid.test', 'primary', 'active', now())
-        on conflict (id) do update set tenant_id = excluded.tenant_id, customer_id = excluded.customer_id, user_id = excluded.user_id, email = excluded.email, role = excluded.role, status = excluded.status
-      `,
-      [E2E.customerUsers.tenantA, FIXTURE.tenants.a, FIXTURE.customers.a, FIXTURE.users.tenantACustomer],
-    );
-    return;
+async function fetchAtMostOne(client, sql, params, description) {
+  const result = await client.query(sql, params);
+  if (result.rows.length > 1) {
+    throw new Error(`${description} expected at most one row, found ${result.rows.length}`);
   }
+  return result.rows[0] ?? null;
+}
+
+async function updateCustomerUserById(client, id, hasUpdatedAt) {
   await client.query(
     `
-      insert into customer_users (tenant_id, customer_id, user_id, email, role, status, invite_sent_at)
-      values ($1, $2, $3, 'customer@tenant-a.runtime.fieldgrid.test', 'primary', 'active', now())
-      on conflict do nothing
+      update customer_users
+      set tenant_id = $2,
+          customer_id = $3,
+          user_id = $4,
+          email = $5,
+          role = 'primary',
+          status = 'active'${hasUpdatedAt ? ', updated_at = now()' : ''}
+      where id = $1
     `,
-    [FIXTURE.tenants.a, FIXTURE.customers.a, FIXTURE.users.tenantACustomer],
+    [id, FIXTURE.tenants.a, FIXTURE.customers.a, FIXTURE.users.tenantACustomer, 'customer@tenant-a.runtime.fieldgrid.test'],
   );
+}
+
+async function upsertCustomerUser(client) {
+  if (!(await tableExists(client, 'public', 'customer_users'))) throw new Error('customer_users table is required for Playwright E2E fixtures');
+
+  const hasId = await columnExists(client, 'customer_users', 'id');
+  const hasUpdatedAt = await columnExists(client, 'customer_users', 'updated_at');
+  if (!hasId) throw new Error('customer_users.id is required for deterministic E2E fixture resolution');
+
+  const naturalKey = { customerId: FIXTURE.customers.a, email: 'customer@tenant-a.runtime.fieldgrid.test' };
+  const naturalKeyRow = await fetchAtMostOne(
+    client,
+    `
+      select id, tenant_id, customer_id, user_id, email, role, status
+      from customer_users
+      where customer_id = $1
+        and lower(email) = lower($2)
+      for update
+    `,
+    [naturalKey.customerId, naturalKey.email],
+    'customer_users natural-key lookup',
+  );
+  const userCustomerRow = await fetchAtMostOne(
+    client,
+    `
+      select id, tenant_id, customer_id, user_id, email, role, status
+      from customer_users
+      where customer_id = $1
+        and user_id = $2
+      for update
+    `,
+    [FIXTURE.customers.a, FIXTURE.users.tenantACustomer],
+    'customer_users user/customer lookup',
+  );
+
+  if (naturalKeyRow && userCustomerRow && naturalKeyRow.id !== userCustomerRow.id) {
+    throw new Error(`customer_users fixture natural key and user/customer key resolve to different rows: natural=${naturalKeyRow.id} userCustomer=${userCustomerRow.id}`);
+  }
+
+  if (naturalKeyRow) {
+    await updateCustomerUserById(client, naturalKeyRow.id, hasUpdatedAt);
+    return {
+      actualId: naturalKeyRow.id,
+      naturalKey,
+      matchStrategy: 'existing-natural-key',
+      reusedExisting: true,
+      insertedFallback: false,
+    };
+  }
+
+  if (userCustomerRow) {
+    await updateCustomerUserById(client, userCustomerRow.id, hasUpdatedAt);
+    return {
+      actualId: userCustomerRow.id,
+      naturalKey,
+      matchStrategy: 'existing-user-customer',
+      reusedExisting: true,
+      insertedFallback: false,
+    };
+  }
+
+  await client.query(
+    `
+      insert into customer_users (id, tenant_id, customer_id, user_id, email, role, status, invite_sent_at)
+      values ($1, $2, $3, $4, $5, 'primary', 'active', now())
+    `,
+    [E2E.customerUsers.tenantA, FIXTURE.tenants.a, FIXTURE.customers.a, FIXTURE.users.tenantACustomer, naturalKey.email],
+  );
+
+  return {
+    actualId: E2E.customerUsers.tenantA,
+    naturalKey,
+    matchStrategy: 'inserted-fallback',
+    reusedExisting: false,
+    insertedFallback: true,
+  };
 }
 
 async function count(client, sql, params = []) {
@@ -111,16 +187,54 @@ async function count(client, sql, params = []) {
   return Number(result.rows[0]?.count ?? 0);
 }
 
-async function verifyFixtures(client) {
+async function verifyFixtures(client, customerUserResult) {
   const assignmentPersonnelLinkCount = await count(client, 'select count(*) from assignment_personnel where assignment_id = $1 and personnel_id = $2', [FIXTURE.assignments.a, FIXTURE.personnel.a]);
   const inactivePersonnelCount = await count(client, 'select count(*) from personnel where id = $1 and user_id = $2 and is_active = false', [E2E.personnel.tenantAInactive, E2E.users.tenantAInactivePersonnel]);
   const reportCount = await count(client, 'select count(*) from reports where id = $1 and tenant_id = $2 and assignment_id = $3 and status = $4', [E2E.reports.tenantAApproved, FIXTURE.tenants.a, FIXTURE.assignments.a, 'approved']);
   const invoiceCount = await count(client, 'select count(*) from invoices where id = $1 and tenant_id = $2 and assignment_id = $3 and status = $4', [E2E.invoices.tenantAVisible, FIXTURE.tenants.a, FIXTURE.assignments.a, 'sent']);
-  const customerUserCount = await tableExists(client, 'public', 'customer_users')
-    ? await count(client, 'select count(*) from customer_users where tenant_id = $1 and customer_id = $2 and user_id = $3 and status = $4', [FIXTURE.tenants.a, FIXTURE.customers.a, FIXTURE.users.tenantACustomer, 'active'])
-    : 0;
+  const customerUserCount = await count(client, 'select count(*) from customer_users where customer_id = $1 and lower(email) = lower($2)', [FIXTURE.customers.a, 'customer@tenant-a.runtime.fieldgrid.test']);
+  const customerUserByUserCount = await count(client, 'select count(*) from customer_users where customer_id = $1 and user_id = $2', [FIXTURE.customers.a, FIXTURE.users.tenantACustomer]);
+  const customerUserFinalRow = await fetchAtMostOne(
+    client,
+    `
+      select id, tenant_id, customer_id, user_id, email, role, status
+      from customer_users
+      where customer_id = $1
+        and lower(email) = lower($2)
+    `,
+    [FIXTURE.customers.a, 'customer@tenant-a.runtime.fieldgrid.test'],
+    'customer_users final natural-key verification',
+  );
+  const customerUserByUserFinalRow = await fetchAtMostOne(
+    client,
+    `
+      select id, tenant_id, customer_id, user_id, email, role, status
+      from customer_users
+      where customer_id = $1
+        and user_id = $2
+    `,
+    [FIXTURE.customers.a, FIXTURE.users.tenantACustomer],
+    'customer_users final user/customer verification',
+  );
   const crossTenantAssignmentLeakCount = await count(client, 'select count(*) from assignments where id = $1 and tenant_id = $2', [FIXTURE.assignments.b, FIXTURE.tenants.a]);
-  const passed = assignmentPersonnelLinkCount > 0 && inactivePersonnelCount === 1 && reportCount === 1 && invoiceCount === 1 && customerUserCount > 0 && crossTenantAssignmentLeakCount === 0;
+  const customerUserValid = customerUserFinalRow
+    && customerUserByUserFinalRow
+    && customerUserFinalRow.id === customerUserByUserFinalRow.id
+    && customerUserFinalRow.id === customerUserResult.actualId
+    && customerUserFinalRow.tenant_id === FIXTURE.tenants.a
+    && customerUserFinalRow.customer_id === FIXTURE.customers.a
+    && customerUserFinalRow.user_id === FIXTURE.users.tenantACustomer
+    && String(customerUserFinalRow.email).toLowerCase() === 'customer@tenant-a.runtime.fieldgrid.test'
+    && customerUserFinalRow.role === 'primary'
+    && customerUserFinalRow.status === 'active';
+  const passed = assignmentPersonnelLinkCount === 1
+    && inactivePersonnelCount === 1
+    && reportCount === 1
+    && invoiceCount === 1
+    && customerUserCount === 1
+    && customerUserByUserCount === 1
+    && crossTenantAssignmentLeakCount === 0
+    && customerUserValid;
   return {
     status: passed ? 'passed' : 'failed',
     deterministicIds: E2E,
@@ -130,8 +244,13 @@ async function verifyFixtures(client) {
     reportCount,
     invoiceId: E2E.invoices.tenantAVisible,
     invoiceCount,
-    customerUserId: E2E.customerUsers.tenantA,
+    customerUserNaturalKey: customerUserResult.naturalKey,
+    customerUserRowId: customerUserResult.actualId,
+    customerUserMatchStrategy: customerUserResult.matchStrategy,
+    customerUserReusedExisting: customerUserResult.reusedExisting,
+    customerUserInsertedFallback: customerUserResult.insertedFallback,
     customerUserCount,
+    customerUserByUserCount,
     crossTenantValidation: { tenantBAssignmentInTenantACount: crossTenantAssignmentLeakCount },
   };
 }
@@ -149,10 +268,10 @@ async function main() {
     await insertE2EAuthUsers(client);
     await insertInactivePersonnel(client);
     await insertAssignmentPersonnel(client);
-    await upsertCustomerUser(client);
+    const customerUserResult = await upsertCustomerUser(client);
     await insertApprovedReport(client);
     await insertInvoice(client);
-    const verification = await verifyFixtures(client);
+    const verification = await verifyFixtures(client, customerUserResult);
     if (verification.status !== 'passed') throw new Error(`Playwright E2E fixture verification failed: ${JSON.stringify(verification)}`);
     await client.query('commit');
     await writeArtifact(join(process.cwd(), 'artifacts', 'fieldgrid-playwright', 'e2e-fixtures.json'), {

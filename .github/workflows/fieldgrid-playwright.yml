@@ -59,7 +59,10 @@ jobs:
           mkdir -p artifacts/fieldgrid-playwright
           touch artifacts/fieldgrid-playwright/runtime-safety-setup-complete
       - run: pnpm fieldgrid:runtime-safety:fixtures
-      - run: pnpm fieldgrid:playwright:fixtures
+      - name: Seed Playwright fixtures
+        run: pnpm fieldgrid:playwright:fixtures
+      - name: Prove Playwright fixture idempotency
+        run: pnpm fieldgrid:playwright:fixtures
       - name: Start real PostgREST v12.2.8
         run: |
           mkdir -p artifacts/fieldgrid-playwright/logs
