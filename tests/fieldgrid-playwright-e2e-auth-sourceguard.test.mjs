@@ -63,6 +63,7 @@ test('workflow provisions PostgreSQL 17, Runtime Safety fixtures, real PostgREST
   assert.match(source, /image: postgres:17/);
   assert.match(source, /fieldgrid:runtime-safety:setup/);
   assert.match(source, /fieldgrid:runtime-safety:fixtures/);
+  assert.match(source, /node e2e\/fieldgrid\/fixtures\/seed-e2e-fixtures\.mjs/);
   assert.match(source, /postgrest\/postgrest:v12\.2\.8/);
   assert.doesNotMatch(source, /postgrest\/postgrest:latest/);
   assert.match(source, /docker logs fieldgrid-e2e-postgrest/);
@@ -70,6 +71,7 @@ test('workflow provisions PostgreSQL 17, Runtime Safety fixtures, real PostgREST
   assert.match(source, /artifacts\/fieldgrid-playwright\/\*\*/);
   assert.match(source, /artifacts\/runtime-safety-harness\/\*\*\/\*\.json/);
   assert.match(source, /artifacts\/runtime-safety-harness\/\*\*\/\*\.log/);
+  assert.ok(source.indexOf('pnpm/action-setup@v4') < source.indexOf('actions/setup-node@v4'), 'pnpm must be installed before setup-node cache: pnpm');
 });
 
 test('exactly five browser scenarios exist and forbidden files/tooling are absent', () => {

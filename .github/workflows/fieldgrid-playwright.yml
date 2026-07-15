@@ -34,13 +34,16 @@ jobs:
       SESSION_SECRET: fieldgrid-e2e-local-session-secret-minimum-32-bytes
     steps:
       - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11.5.2
+
       - run: pnpm install --frozen-lockfile
       - run: pnpm fieldgrid:playwright:install
       - name: Wait for PostgreSQL 17
@@ -52,6 +55,7 @@ jobs:
           exit 1
       - run: pnpm fieldgrid:runtime-safety:setup
       - run: pnpm fieldgrid:runtime-safety:fixtures
+      - run: node e2e/fieldgrid/fixtures/seed-e2e-fixtures.mjs
       - name: Start real PostgREST v12.2.8
         run: |
           mkdir -p artifacts/fieldgrid-playwright/logs
