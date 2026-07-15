@@ -13,13 +13,30 @@ const artifactDir = join(process.cwd(), 'artifacts', 'fieldgrid-playwright');
 const logsDir = join(artifactDir, 'logs');
 const statusPath = join(artifactDir, 'startup-status.json');
 const proofPath = join(artifactDir, 'data-path-proof.json');
+const preflightPath = join(artifactDir, 'preflight.json');
+const failureSummaryPath = join(artifactDir, 'failure-summary.json');
 const jwtMaxLifetimeSeconds = 15 * 60;
 const localJwtSecret = process.env.FIELDGRID_E2E_JWT_SECRET ?? 'fieldgrid-e2e-only-jwt-secret-minimum-32-bytes-not-for-production';
 const localAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'fieldgrid-e2e-local-anon-key-not-for-production';
-const tenantAAdminUser = '20000000-0000-4000-8000-000000000102';
-const tenantAPersonnelUser = '20000000-0000-4000-8000-000000000104';
-const tenantACustomerUser = '20000000-0000-4000-8000-000000000105';
-const tenantBAdminUser = '20000000-0000-4000-8000-000000000202';
+const fixtureIdentities = {
+  tenantAAdmin: { userId: '20000000-0000-4000-8000-000000000102', email: 'admin@tenant-a.runtime.fieldgrid.test', surface: 'backoffice', tenant: 'tenant-a' },
+  tenantAPersonnel: { userId: '20000000-0000-4000-8000-000000000104', email: 'personnel@tenant-a.runtime.fieldgrid.test', surface: 'personnel', tenant: 'tenant-a' },
+  tenantACustomer: { userId: '20000000-0000-4000-8000-000000000105', email: 'customer@tenant-a.runtime.fieldgrid.test', surface: 'customer', tenant: 'tenant-a' },
+  tenantBAdmin: { userId: '20000000-0000-4000-8000-000000000202', email: 'admin@tenant-b.runtime.fieldgrid.test', surface: 'backoffice', tenant: 'tenant-b' },
+  tenantBPersonnel: { userId: '20000000-0000-4000-8000-000000000204', email: 'personnel@tenant-b.runtime.fieldgrid.test', surface: 'personnel', tenant: 'tenant-b' },
+  tenantBCustomer: { userId: '20000000-0000-4000-8000-000000000205', email: 'customer@tenant-b.runtime.fieldgrid.test', surface: 'customer', tenant: 'tenant-b' },
+  platformOwner: { userId: '20000000-0000-4000-8000-000000000001', email: 'platform-owner@runtime.fieldgrid.test', surface: 'platform', tenant: null },
+  platformAdmin: { userId: '20000000-0000-4000-8000-000000000002', email: 'platform-admin@runtime.fieldgrid.test', surface: 'platform', tenant: null },
+  inactivePersonnel: { userId: '20000000-0000-4000-8000-000000000106', email: 'inactive-personnel@tenant-a.runtime.fieldgrid.test', surface: 'personnel', tenant: 'tenant-a' },
+  suspendedTenantActor: { userId: '20000000-0000-4000-8000-000000000401', email: 'owner@suspended.runtime.fieldgrid.test', surface: 'backoffice', tenant: 'suspended' },
+};
+const identityByUserId = new Map(Object.values(fixtureIdentities).map((identity) => [identity.userId, identity]));
+const tenantAAdminUser = fixtureIdentities.tenantAAdmin.userId;
+const tenantAPersonnelUser = fixtureIdentities.tenantAPersonnel.userId;
+const tenantACustomerUser = fixtureIdentities.tenantACustomer.userId;
+const tenantBAdminUser = fixtureIdentities.tenantBAdmin.userId;
+const tenantBPersonnelUser = fixtureIdentities.tenantBPersonnel.userId;
+const tenantBCustomerUser = fixtureIdentities.tenantBCustomer.userId;
 const tenantAAssignment = '70000000-0000-4000-8000-000000000001';
 const tenantBAssignment = '70000000-0000-4000-8000-000000000002';
 const children = new Map();
@@ -49,8 +66,11 @@ function b64(value) {
 }
 
 export function createJwt(sub, offsetSeconds = 0, lifetimeSeconds = jwtMaxLifetimeSeconds) {
+  const identity = identityByUserId.get(sub);
+  if (!identity) throw new Error('Cannot create local E2E JWT for unknown fixture identity.');
   const now = Math.floor(Date.now() / 1000) + offsetSeconds;
-  const unsigned = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub, role: 'authenticated', aud: 'authenticated', iat: now, exp: now + lifetimeSeconds })}`;
+  const exp = now + Math.min(lifetimeSeconds, jwtMaxLifetimeSeconds);
+  const unsigned = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub, email: identity.email, role: 'authenticated', aud: 'authenticated', iat: now, exp })}`;
   const signature = createHmac('sha256', localJwtSecret).update(unsigned).digest('base64url');
   return `${unsigned}.${signature}`;
 }
@@ -136,39 +156,53 @@ function startGateway() {
   gatewayServer.listen(ports.gateway, '127.0.0.1');
 }
 
-async function gatewayJson(path, jwt) {
+async function gatewayJson(path, jwt, options = {}) {
   return fetchWithTimeout(`http://127.0.0.1:${ports.gateway}${path}`, {
-    headers: { Authorization: `Bearer ${jwt}`, apikey: localAnonKey, Accept: 'application/json' },
+    method: options.method ?? 'GET',
+    body: options.body,
+    headers: { Authorization: `Bearer ${jwt}`, apikey: localAnonKey, Accept: 'application/json', ...(options.body ? { 'Content-Type': 'application/json' } : {}) },
   });
 }
 
 async function proveDataPath() {
-  const validJwt = createJwt(tenantAPersonnelUser);
-  const tenantBJwt = createJwt(tenantBAdminUser);
-  const expiredJwt = createJwt(tenantAPersonnelUser, -3600, -60);
-  const allowed = await gatewayJson(`/rest/v1/assignments?id=eq.${tenantAAssignment}&select=id`, validJwt);
-  const denied = await gatewayJson(`/rest/v1/assignments?id=eq.${tenantBAssignment}&select=id`, validJwt);
-  const tenantBDenied = await gatewayJson(`/rest/v1/assignments?id=eq.${tenantAAssignment}&select=id`, tenantBJwt);
+  const tenantACustomerJwt = createJwt(tenantACustomerUser);
+  const tenantBCustomerJwt = createJwt(tenantBCustomerUser);
+  const tenantAPersonnelJwt = createJwt(tenantAPersonnelUser);
+  const tenantBPersonnelJwt = createJwt(tenantBPersonnelUser);
+  const expiredJwt = createJwt(tenantACustomerUser, -3600, -60);
+  const allowed = await gatewayJson(`/rest/v1/assignments?id=eq.${tenantAAssignment}&select=id`, tenantACustomerJwt);
+  const denied = await gatewayJson(`/rest/v1/assignments?id=eq.${tenantBAssignment}&select=id`, tenantACustomerJwt);
+  const tenantBDenied = await gatewayJson(`/rest/v1/assignments?id=eq.${tenantAAssignment}&select=id`, tenantBCustomerJwt);
   const invalid = await gatewayJson(`/rest/v1/assignments?id=eq.${tenantAAssignment}&select=id`, expiredJwt);
+  const rpcAAllowed = await gatewayJson(`/rest/v1/rpc/personnel_assigned_to_assignment`, tenantAPersonnelJwt, { method: 'POST', body: JSON.stringify({ assignment_id: tenantAAssignment }) });
+  const rpcADeniedB = await gatewayJson(`/rest/v1/rpc/personnel_assigned_to_assignment`, tenantAPersonnelJwt, { method: 'POST', body: JSON.stringify({ assignment_id: tenantBAssignment }) });
+  const rpcBDeniedA = await gatewayJson(`/rest/v1/rpc/personnel_assigned_to_assignment`, tenantBPersonnelJwt, { method: 'POST', body: JSON.stringify({ assignment_id: tenantAAssignment }) });
   const unknown = await fetchWithTimeout(`http://127.0.0.1:${ports.gateway}/unknown-route`);
   const allowedRows = allowed.ok ? await allowed.json() : [];
   const deniedRows = denied.ok ? await denied.json() : [];
   const tenantBDeniedRows = tenantBDenied.ok ? await tenantBDenied.json() : [];
+  const rpcAAllowedBody = rpcAAllowed.ok ? await rpcAAllowed.json() : null;
+  const rpcADeniedBBody = rpcADeniedB.ok ? await rpcADeniedB.json() : null;
+  const rpcBDeniedABody = rpcBDeniedA.ok ? await rpcBDeniedA.json() : null;
   dataPathProof = {
     timestamp: new Date().toISOString(),
     postgrestVersion: postgrestImage,
     jwtAlgorithm: 'HS256',
     jwtRole: 'authenticated',
-    jwtSub: tenantAPersonnelUser,
+    jwtSub: tenantACustomerUser,
     jwtMaximumLifetimeSeconds: jwtMaxLifetimeSeconds,
-    tenantAAllowedRowCount: Array.isArray(allowedRows) ? allowedRows.length : 0,
-    tenantBDeniedRowCount: Array.isArray(deniedRows) ? deniedRows.length : 0,
-    tenantBIdentityDeniedTenantARowCount: Array.isArray(tenantBDeniedRows) ? tenantBDeniedRows.length : 0,
-    invalidJwtStatus: invalid.status,
+    customerTenantAAllowedRowCount: Array.isArray(allowedRows) ? allowedRows.length : 0,
+    customerTenantADeniedTenantBRowCount: Array.isArray(deniedRows) ? deniedRows.length : 0,
+    customerTenantBDeniedTenantARowCount: Array.isArray(tenantBDeniedRows) ? tenantBDeniedRows.length : 0,
+    expiredJwtStatus: invalid.status,
+    personnelTenantAAssignedTenantA: rpcAAllowedBody === true,
+    personnelTenantAAssignedTenantB: rpcADeniedBBody === true,
+    personnelTenantBAssignedTenantA: rpcBDeniedABody === true,
+    directAssignmentPersonnelBrowserAccess: false,
     unknownRouteStatus: unknown.status,
     serviceRoleBrowserBypassDetected: false,
   };
-  const ok = dataPathProof.tenantAAllowedRowCount > 0 && dataPathProof.tenantBDeniedRowCount === 0 && dataPathProof.tenantBIdentityDeniedTenantARowCount === 0 && dataPathProof.invalidJwtStatus >= 400 && dataPathProof.unknownRouteStatus === 404;
+  const ok = dataPathProof.customerTenantAAllowedRowCount === 1 && dataPathProof.customerTenantADeniedTenantBRowCount === 0 && dataPathProof.customerTenantBDeniedTenantARowCount === 0 && dataPathProof.expiredJwtStatus >= 400 && dataPathProof.personnelTenantAAssignedTenantA === true && dataPathProof.personnelTenantAAssignedTenantB === false && dataPathProof.personnelTenantBAssignedTenantA === false && dataPathProof.unknownRouteStatus === 404;
   await writeAtomicJson(proofPath, dataPathProof);
   return { ok, details: dataPathProof };
 }
@@ -193,21 +227,74 @@ async function probeApp(name, port, path, host, userId, acceptedStatuses) {
   }
 }
 
+
+async function tailLog(name, maxBytes = 8000) {
+  const path = join(logsDir, `${name}.stderr.log`);
+  try {
+    const { readFile } = await import('node:fs/promises');
+    const text = await readFile(path, 'utf8');
+    return redact(text.slice(-maxBytes));
+  } catch {
+    return '[log unavailable]';
+  }
+}
+
+async function preflightPage(app, port, route, host, userId) {
+  const response = await fetchWithTimeout(
+    `http://127.0.0.1:${port}${route}`,
+    {
+      headers: {
+        host,
+        'x-forwarded-host': host,
+        'x-forwarded-proto': 'http',
+        cookie: `fieldgrid_e2e_auth_user=${encodeURIComponent(userId)}`,
+      },
+      redirect: 'manual',
+    },
+    8000,
+  );
+  const summary = redact((await response.text()).slice(0, 1200));
+  return {
+    app,
+    route,
+    status: response.status,
+    ok: response.status >= 200 && response.status < 400,
+    sanitizedResponseSummary: summary,
+    logTail: await tailLog(app),
+    timestamp: new Date().toISOString(),
+  };
+}
+
+async function runPreflight() {
+  const checks = [];
+  checks.push(await preflightPage('backoffice', ports.backoffice, '/customers', 'tenant-a.runtime.fieldgrid.test', tenantAAdminUser));
+  checks.push(await preflightPage('personnel', ports.personnel, '/personeel/opdrachten', 'tenant-a.runtime.fieldgrid.test', tenantAPersonnelUser));
+  checks.push(await preflightPage('customer', ports.customer, '/klant/opdrachten', 'tenant-a.runtime.fieldgrid.test', tenantACustomerUser));
+  const proof = await proveDataPath();
+  checks.push({ app: 'postgrest', route: 'customer-rls-and-personnel-rpc-proof', status: proof.ok ? 200 : 500, ok: proof.ok, sanitizedResponseSummary: proof.details, logTail: await tailLog('orchestrator'), timestamp: new Date().toISOString() });
+  const preflight = { ready: checks.every((check) => check.ok), checks, timestamp: new Date().toISOString() };
+  await writeAtomicJson(preflightPath, preflight);
+  if (!preflight.ready) await writeAtomicJson(failureSummaryPath, { phase: 'preflight', checks, timestamp: new Date().toISOString() });
+  return preflight;
+}
+
 async function readiness() {
   const checks = [];
   checks.push({ name: 'postgresql', ok: await tcpReachable(5432), checkedAt: new Date().toISOString() });
   checks.push({ name: 'postgrest', ok: await fetchWithTimeout(`http://127.0.0.1:${ports.postgrest}/`, {}, 1000).then((r) => r.status >= 200 && r.status < 300).catch(() => false), checkedAt: new Date().toISOString() });
   checks.push({ name: 'gateway', ok: await fetchWithTimeout(`http://127.0.0.1:${ports.gateway}/healthz`).then((r) => r.status === 200).catch(() => false), checkedAt: new Date().toISOString() });
-  checks.push(await probeApp('backoffice', ports.backoffice, '/customers', 'tenant-a.runtime.fieldgrid.test', tenantAAdminUser, [200, 302, 307]));
-  checks.push(await probeApp('personnel', ports.personnel, '/personeel/opdrachten', 'tenant-a.runtime.fieldgrid.test', tenantAPersonnelUser, [200, 302, 307]));
-  checks.push(await probeApp('customer', ports.customer, '/klant/opdrachten', 'tenant-a.runtime.fieldgrid.test', tenantACustomerUser, [200, 302, 307]));
-  try {
-    const proof = await proveDataPath();
-    checks.push({ name: 'data-path-proof', ok: proof.ok, details: proof.details, checkedAt: new Date().toISOString() });
-  } catch (error) {
-    checks.push({ name: 'data-path-proof', ok: false, error: error instanceof Error ? error.message : String(error), checkedAt: new Date().toISOString() });
+  checks.push(await probeApp('backoffice', ports.backoffice, '/login', 'tenant-a.runtime.fieldgrid.test', tenantAAdminUser, [200, 302, 307]));
+  checks.push(await probeApp('personnel', ports.personnel, '/login', 'tenant-a.runtime.fieldgrid.test', tenantAPersonnelUser, [200, 302, 307]));
+  checks.push(await probeApp('customer', ports.customer, '/login', 'tenant-a.runtime.fieldgrid.test', tenantACustomerUser, [200, 302, 307]));
+  if (checks.every((check) => check.ok)) {
+    try {
+      const preflight = await runPreflight();
+      checks.push({ name: 'data-path-proof', ok: preflight.ready, details: preflight, checkedAt: new Date().toISOString() });
+    } catch (error) {
+      checks.push({ name: 'data-path-proof', ok: false, error: error instanceof Error ? error.message : String(error), checkedAt: new Date().toISOString() });
+    }
   }
-  latestProbe = { ready: checks.every((check) => check.ok), checks };
+  latestProbe = { ready: checks.every((check) => check.ok), checks, phases: ['liveness', 'preflight', 'browser-acceptance'] };
   await writeAtomicJson(statusPath, { ...latestProbe, ports, artifactDir });
   return latestProbe;
 }
@@ -226,6 +313,8 @@ export async function start() {
   await Promise.allSettled([
     rm(statusPath, { force: true }),
     rm(proofPath, { force: true }),
+    rm(preflightPath, { force: true }),
+    rm(failureSummaryPath, { force: true }),
   ]);
   startGateway();
   startOrchestrator();

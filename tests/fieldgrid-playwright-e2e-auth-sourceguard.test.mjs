@@ -45,10 +45,13 @@ test('E2E auth seam is production-disabled, identity-only, and delegates bound c
   const source = seam();
   assert.match(source, /NODE_ENV === "production"/);
   assert.match(source, /FIELDGRID_E2E_AUTH_ENABLED !== "true"/);
-  assert.match(source, /FIELDGRID_E2E_FIXTURE_USERS = new Set/);
+  assert.match(source, /FIELDGRID_E2E_FIXTURE_IDENTITIES/);
+  assert.match(source, /email: identity.email/);
+  assert.doesNotMatch(source, /`\$\{userId\}@e2e\.fieldgrid\.test`/);
   assert.match(source, /property === "getUser"/);
   assert.match(source, /value\.bind\(target\)/);
   assert.doesNotMatch(source, /property === "from"|property === "rpc"|property === "storage"|if \(table ===/);
+  assert.match(source, /email: identity.email/);
   assert.doesNotMatch(source, /about:blank|generic fake RPC|global\.fetch|globalThis\.fetch/);
 });
 
@@ -83,6 +86,10 @@ test('Playwright fixture loader reuses customer_users natural key and proves ide
   assert.match(fixtureSource, /customerUserFinalRow\.id === customerUserByUserFinalRow\.id/);
   assert.match(fixtureSource, /customerUserCount === 1/);
   assert.match(fixtureSource, /customerUserByUserCount === 1/);
+  assert.match(fixtureSource, /upsertCanonicalAdminRole/);
+  assert.match(fixtureSource, /tenantAAdminCanonicalRoleCount === 1/);
+  assert.match(fixtureSource, /tenantBAdminCanonicalRoleCount === 1/);
+  assert.match(fixtureSource, /crossTenantAdminRoleLeakCount === 0/);
   assert.doesNotMatch(fixtureSource, /insert into customer_users[\s\S]{0,220}on conflict \(id\)/i);
   assert.ok(workflowSource.indexOf('Seed Playwright fixtures') < workflowSource.indexOf('Prove Playwright fixture idempotency'), 'workflow must seed fixtures once before the idempotency proof');
   assert.equal([...workflowSource.matchAll(/pnpm fieldgrid:playwright:fixtures/g)].length, 2);
@@ -125,4 +132,7 @@ test('Playwright uses explicit stack runner instead of config.webServer recursio
   assert.doesNotMatch(runner, /fieldgrid:playwright/);
   assert.match(runner, /startupTimeoutMs = 180_000/);
   assert.match(runner, /orchestrator\.stderr\.log/);
+  assert.match(start(), /runPreflight/);
+  assert.match(start(), /preflight\.json/);
+  assert.match(start(), /\/login/);
 });

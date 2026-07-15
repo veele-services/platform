@@ -46,6 +46,52 @@ async function insertInactivePersonnel(client) {
   );
 }
 
+
+async function upsertCanonicalAdminRole(client, tenantId, userId) {
+  const role = await client.query(
+    `
+      insert into tenant_roles (tenant_id, name, description, is_system, is_custom)
+      values ($1, 'Admin', 'Canonical Fieldgrid E2E tenant admin role', true, false)
+      on conflict (tenant_id, name) do update set description = excluded.description, is_system = true, is_custom = false
+      returning id
+    `,
+    [tenantId],
+  );
+  const roleId = role.rows[0].id;
+  await client.query(
+    `
+      insert into tenant_role_permissions (tenant_role_id, permission_id)
+      select $1::uuid, id
+      from permissions
+      where (resource, action) in (('customers', 'read'), ('customers', 'write'), ('assignments', 'read'), ('assignments', 'write'), ('personnel', 'read'), ('personnel', 'write'))
+      on conflict do nothing
+    `,
+    [roleId],
+  );
+  await client.query(
+    `
+      insert into tenant_users (tenant_id, user_id, role, status)
+      values ($1, $2, 'admin', 'active')
+      on conflict (tenant_id, user_id) do update set role = excluded.role, status = excluded.status
+    `,
+    [tenantId, userId],
+  );
+  await client.query(
+    `
+      insert into tenant_user_roles (tenant_id, user_id, tenant_role_id)
+      values ($1, $2, $3)
+      on conflict do nothing
+    `,
+    [tenantId, userId, roleId],
+  );
+  return roleId;
+}
+
+async function insertCanonicalAdminRoles(client) {
+  await upsertCanonicalAdminRole(client, FIXTURE.tenants.a, FIXTURE.users.tenantAAdmin);
+  await upsertCanonicalAdminRole(client, FIXTURE.tenants.b, FIXTURE.users.tenantBAdmin);
+}
+
 async function insertAssignmentPersonnel(client) {
   if (!(await tableExists(client, 'public', 'assignment_personnel'))) return;
   await client.query(
@@ -217,6 +263,11 @@ async function verifyFixtures(client, customerUserResult) {
     'customer_users final user/customer verification',
   );
   const crossTenantAssignmentLeakCount = await count(client, 'select count(*) from assignments where id = $1 and tenant_id = $2', [FIXTURE.assignments.b, FIXTURE.tenants.a]);
+  const tenantAAdminCanonicalRoleCount = await count(client, "select count(*) from tenant_user_roles tur join tenant_roles tr on tr.id = tur.tenant_role_id where tur.tenant_id = $1 and tur.user_id = $2 and lower(tr.name) = 'admin'", [FIXTURE.tenants.a, FIXTURE.users.tenantAAdmin]);
+  const tenantBAdminCanonicalRoleCount = await count(client, "select count(*) from tenant_user_roles tur join tenant_roles tr on tr.id = tur.tenant_role_id where tur.tenant_id = $1 and tur.user_id = $2 and lower(tr.name) = 'admin'", [FIXTURE.tenants.b, FIXTURE.users.tenantBAdmin]);
+  const tenantAAdminPermissionCount = await count(client, "select count(*) from tenant_user_roles tur join tenant_role_permissions trp on trp.tenant_role_id = tur.tenant_role_id join tenant_roles tr on tr.id = tur.tenant_role_id where tur.tenant_id = $1 and tur.user_id = $2 and lower(tr.name) = 'admin'", [FIXTURE.tenants.a, FIXTURE.users.tenantAAdmin]);
+  const tenantAAdminRoleNamesResult = await client.query("select tr.name from tenant_user_roles tur join tenant_roles tr on tr.id = tur.tenant_role_id where tur.tenant_id = $1 and tur.user_id = $2 and lower(tr.name) = 'admin' order by tr.name", [FIXTURE.tenants.a, FIXTURE.users.tenantAAdmin]);
+  const crossTenantAdminRoleLeakCount = await count(client, "select count(*) from tenant_user_roles tur join tenant_roles tr on tr.id = tur.tenant_role_id where tur.user_id = $1 and tur.tenant_id <> $2 and lower(tr.name) = 'admin'", [FIXTURE.users.tenantAAdmin, FIXTURE.tenants.a]);
   const customerUserValid = customerUserFinalRow
     && customerUserByUserFinalRow
     && customerUserFinalRow.id === customerUserByUserFinalRow.id
@@ -234,6 +285,9 @@ async function verifyFixtures(client, customerUserResult) {
     && customerUserCount === 1
     && customerUserByUserCount === 1
     && crossTenantAssignmentLeakCount === 0
+    && tenantAAdminCanonicalRoleCount === 1
+    && tenantBAdminCanonicalRoleCount === 1
+    && crossTenantAdminRoleLeakCount === 0
     && customerUserValid;
   return {
     status: passed ? 'passed' : 'failed',
@@ -251,6 +305,11 @@ async function verifyFixtures(client, customerUserResult) {
     customerUserInsertedFallback: customerUserResult.insertedFallback,
     customerUserCount,
     customerUserByUserCount,
+    tenantAAdminCanonicalRoleCount,
+    tenantAAdminCanonicalRoleNames: tenantAAdminRoleNamesResult.rows.map((row) => row.name),
+    tenantAAdminPermissionCount,
+    tenantBAdminCanonicalRoleCount,
+    crossTenantAdminRoleLeakCount,
     crossTenantValidation: { tenantBAssignmentInTenantACount: crossTenantAssignmentLeakCount },
   };
 }
@@ -267,6 +326,7 @@ async function main() {
     await client.query('begin');
     await insertE2EAuthUsers(client);
     await insertInactivePersonnel(client);
+    await insertCanonicalAdminRoles(client);
     await insertAssignmentPersonnel(client);
     const customerUserResult = await upsertCustomerUser(client);
     await insertApprovedReport(client);

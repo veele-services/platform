@@ -249,13 +249,23 @@ export async function getMyPersonnel(): Promise<PersonnelProfile | null> {
   if (!tenantId) return null;
 
   // ── Primary lookup: by user_id (RLS-filtered) ─────────────────────────────
-  const { data: byId } = await supabase
+  const { data: byId, error: byIdError } = await supabase
     .from("personnel")
     .select(PERSONNEL_SELECT)
     .eq("tenant_id", tenantId)
     .eq("user_id", user.id)
     .eq("is_active", true)
-    .single();
+    .maybeSingle();
+
+  if (byIdError) {
+    console.error("getMyPersonnel primary query failed", {
+      code: byIdError.code,
+      message: byIdError.message,
+      details: byIdError.details,
+      hint: byIdError.hint,
+    });
+    throw new Error("Personeelsprofiel kon niet veilig worden geladen.");
+  }
 
   if (byId) return mapProfile(byId);
 
@@ -287,13 +297,18 @@ export async function getMyPersonnel(): Promise<PersonnelProfile | null> {
   if (linkError) return null;
 
   // Fetch via RLS-filtered client now that user_id is set.
-  const { data: linked } = await supabase
+  const { data: linked, error: linkedError } = await supabase
     .from("personnel")
     .select(PERSONNEL_SELECT)
     .eq("tenant_id", tenantId)
     .eq("user_id", user.id)
     .eq("is_active", true)
-    .single();
+    .maybeSingle();
+
+  if (linkedError) {
+    console.error("getMyPersonnel linked query failed", { code: linkedError.code, message: linkedError.message });
+    throw new Error("Personeelsprofiel kon niet veilig worden geladen.");
+  }
 
   return linked ? mapProfile(linked) : null;
 }
