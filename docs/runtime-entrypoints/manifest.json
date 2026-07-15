@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "artifactName": "fieldgrid-runtime-entrypoint-inventory-full",
   "artifactPath": "artifacts/runtime-entrypoints/fieldgrid-runtime-entrypoint-inventory.full.json",
-  "inventoryHash": "sha256:ded19f68ac676201e283c4280148c74541e8a2bd3a37c4904d195fc37684395a",
+  "inventoryHash": "sha256:9a5d44ceb18e689f772b0dc537b309d7de9f833714153a861db1fd808ecc9610",
   "runtimeRoots": [
     "artifacts/backoffice/src",
     "artifacts/personeel-pwa/src",

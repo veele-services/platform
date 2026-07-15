@@ -7,20 +7,95 @@ on:
 jobs:
   fieldgrid-playwright:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fieldgrid_runtime_safety
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fieldgrid_runtime_safety"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/fieldgrid_runtime_safety
+      DB_SSL: "false"
+      PGSSLMODE: disable
+      FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET: "1"
+      FIELDGRID_RUNTIME_SAFETY_RESET_CONFIRM: fieldgrid_runtime_safety
+      FIELDGRID_E2E_AUTH_ENABLED: "true"
+      FIELDGRID_E2E_JWT_SECRET: fieldgrid-e2e-only-jwt-secret-minimum-32-bytes-not-for-production
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:9324
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: fieldgrid-e2e-local-anon-key-not-for-production
+      SESSION_SECRET: fieldgrid-e2e-local-session-secret-minimum-32-bytes
     steps:
       - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-        with:
-          version: 11.5.2
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: pnpm
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
       - run: pnpm install --frozen-lockfile
       - run: pnpm fieldgrid:playwright:install
+      - name: Wait for PostgreSQL 17
+        run: |
+          for attempt in {1..30}; do
+            pg_isready -h 127.0.0.1 -U postgres -d fieldgrid_runtime_safety && exit 0
+            sleep 2
+          done
+          exit 1
+      - run: pnpm fieldgrid:runtime-safety:setup
+      - run: pnpm fieldgrid:runtime-safety:fixtures
+      - name: Start real PostgREST v12.2.8
+        run: |
+          mkdir -p artifacts/fieldgrid-playwright/logs
+          docker run --rm --detach \
+            --name fieldgrid-e2e-postgrest \
+            --network host \
+            -e PGRST_DB_URI="$DATABASE_URL" \
+            -e PGRST_DB_SCHEMAS="public" \
+            -e PGRST_DB_ANON_ROLE="anon" \
+            -e PGRST_JWT_SECRET="$FIELDGRID_E2E_JWT_SECRET" \
+            -e PGRST_SERVER_PORT="9326" \
+            postgrest/postgrest:v12.2.8
+      - name: Prove real PostgREST health
+        run: |
+          for attempt in {1..60}; do
+            if curl --fail --silent --show-error http://127.0.0.1:9326/ > /dev/null; then
+              docker logs fieldgrid-e2e-postgrest > artifacts/fieldgrid-playwright/logs/postgrest.log 2>&1 || true
+              exit 0
+            fi
+            docker logs fieldgrid-e2e-postgrest > artifacts/fieldgrid-playwright/logs/postgrest.log 2>&1 || true
+            sleep 2
+          done
+          docker logs fieldgrid-e2e-postgrest > artifacts/fieldgrid-playwright/logs/postgrest.log 2>&1 || true
+          exit 1
+      - run: node --test tests/fieldgrid-playwright-e2e-auth-sourceguard.test.mjs
+      - run: node --test tests/fieldgrid-playwright-local-data-path.test.mjs
       - run: pnpm fieldgrid:playwright
-      - uses: actions/upload-artifact@v4
+      - name: Upload Fieldgrid Playwright artifacts
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: fieldgrid-playwright-artifacts
-          path: artifacts/fieldgrid-playwright
+          path: |
+            artifacts/fieldgrid-playwright/**
+            artifacts/runtime-safety-harness/**/*.json
+            artifacts/runtime-safety-harness/**/*.log
+      - name: Capture PostgREST logs
+        if: always()
+        run: |
+          mkdir -p artifacts/fieldgrid-playwright/logs
+          docker logs fieldgrid-e2e-postgrest > artifacts/fieldgrid-playwright/logs/postgrest.log 2>&1 || true
+      - name: Stop PostgREST
+        if: always()
+        run: docker rm -f fieldgrid-e2e-postgrest || true
+      - name: Tear down disposable database
+        if: always()
+        run: pnpm fieldgrid:runtime-safety:teardown

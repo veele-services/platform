@@ -2,58 +2,79 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import test from 'node:test';
 
-const files = {
-  seam: 'lib/db/src/e2e-auth-adapter.ts',
-  start: 'e2e/fieldgrid/start-real-apps.mjs',
-  spec: 'e2e/fieldgrid/tests/golden-path.spec.ts',
-  workflow: '.github/workflows/fieldgrid-playwright.yml',
-};
-const read = (f) => readFileSync(f, 'utf8');
+const read = (file) => readFileSync(file, 'utf8');
+const start = () => read('e2e/fieldgrid/start-real-apps.mjs');
+const seam = () => read('lib/db/src/e2e-auth-adapter.ts');
+const workflow = () => read('.github/workflows/fieldgrid-playwright.yml');
 
-test('E2E auth seam is flag-gated, allowlisted, production-disabled, and identity-only', () => {
-  const seam = read(files.seam);
-  assert.match(seam, /FIELDGRID_E2E_AUTH_ENABLED !== "true"/);
-  assert.match(seam, /NODE_ENV === "production"/);
-  assert.match(seam, /FIELDGRID_E2E_FIXTURE_USERS = new Set/);
-  assert.match(seam, /prop === "getUser"/);
-  assert.doesNotMatch(seam, /prop === "from"|\.from\s*=|from\(/);
-  assert.doesNotMatch(seam, /prop === "rpc"|\.rpc\s*=|generic fake RPC/i);
-  assert.doesNotMatch(seam, /prop === "storage"|fake Storage URL/i);
-  assert.match(seam, /Reflect\.get\(target, prop, receiver\)/);
+test('runner starts real Fieldgrid apps and does not serve mock application HTML', () => {
+  const source = start();
+  assert.doesNotMatch(source, /<!doctype html>|Backoffice dashboard|Personnel assigned Tenant A work visible|Customer Tenant A assignments|Runtime Tenant A Customer/);
+  assert.match(source, /'pnpm', \['--filter', '@workspace\/backoffice', 'dev'\]/);
+  assert.match(source, /'pnpm', \['--filter', '@workspace\/personeel-pwa', 'dev'\]/);
+  assert.match(source, /'pnpm', \['--filter', '@workspace\/klant-pwa', 'dev'\]/);
+  assert.doesNotMatch(source, /fixture\s*:/);
+  assert.doesNotMatch(source, /ports\.postgrest[\s\S]{0,120}http\.createServer/);
 });
 
-test('middleware uses seam only for getUser and does not early-bypass normal guards', () => {
+test('gateway is strict and proxies real PostgREST without hardcoded application data', () => {
+  const source = start();
+  assert.match(source, /req\.url\?\.startsWith\('\/rest\/v1\/'\)/);
+  assert.match(source, /new URL\(req\.url, `http:\/\/127\.0\.0\.1:\$\{ports\.postgrest\}`\)/);
+  assert.match(source, /method: req\.method/);
+  assert.match(source, /authorization/);
+  assert.match(source, /content-range/);
+  assert.match(source, /json\(res, 404, \{ error: 'unknown route' \}\)/);
+  assert.doesNotMatch(source, /\{\s*fixture\s*[,}]/);
+  assert.doesNotMatch(source, /\{\s*ok:\s*true\s*\}/);
+});
+
+test('E2E auth seam is production-disabled, identity-only, and delegates bound client methods', () => {
+  const source = seam();
+  assert.match(source, /NODE_ENV === "production"/);
+  assert.match(source, /FIELDGRID_E2E_AUTH_ENABLED !== "true"/);
+  assert.match(source, /FIELDGRID_E2E_FIXTURE_USERS = new Set/);
+  assert.match(source, /property === "getUser"/);
+  assert.match(source, /value\.bind\(target\)/);
+  assert.doesNotMatch(source, /property === "from"|property === "rpc"|property === "storage"|if \(table ===/);
+  assert.doesNotMatch(source, /about:blank|generic fake RPC|global\.fetch|globalThis\.fetch/);
+});
+
+test('authenticated data fetch injects local JWT only for local gateway requests', () => {
+  const source = seam();
+  assert.match(source, /createFieldgridE2EFetch/);
+  assert.match(source, /Authorization", `Bearer \$\{await createFieldgridE2EJwt\(userId\)\}`/);
+  assert.match(source, /LOCAL_GATEWAY_ORIGIN/);
+  assert.match(source, /apikey/);
+  assert.doesNotMatch(source, /service_role/);
+});
+
+test('middleware continues normal guard flow and does not E2E short-circuit', () => {
   for (const file of ['artifacts/backoffice/src/middleware.ts','artifacts/klant-pwa/src/middleware.ts','artifacts/personeel-pwa/src/middleware.ts']) {
     const source = read(file);
     assert.match(source, /createFieldgridE2EAuthClient/);
     assert.match(source, /authClient\.auth\.getUser\(\)/);
-    assert.doesNotMatch(source, /FIELDGRID_E2E_AUTH_ENABLED[\s\S]{0,120}NextResponse\.next\(\)/);
+    assert.doesNotMatch(source, /FIELDGRID_E2E_AUTH_ENABLED[\s\S]{0,160}NextResponse\.next\(\)/);
   }
 });
 
-test('local data path keeps PostgREST and gateway strict', () => {
-  const start = read(files.start);
-  assert.match(start, /postgrest\/postgrest:v12\.2\.8/);
-  assert.match(start, /disposable PostgreSQL 17/);
-  assert.match(start, /\/healthz/);
-  assert.match(start, /\/rest\/v1\//);
-  assert.match(start, /authorization:Boolean\(req\.headers\.authorization\)/);
-  assert.match(start, /json\(res,404/);
+test('workflow provisions PostgreSQL 17, Runtime Safety fixtures, real PostgREST, cleanup, and artifacts', () => {
+  const source = workflow();
+  assert.match(source, /image: postgres:17/);
+  assert.match(source, /fieldgrid:runtime-safety:setup/);
+  assert.match(source, /fieldgrid:runtime-safety:fixtures/);
+  assert.match(source, /postgrest\/postgrest:v12\.2\.8/);
+  assert.doesNotMatch(source, /postgrest\/postgrest:latest/);
+  assert.match(source, /docker logs fieldgrid-e2e-postgrest/);
+  assert.match(source, /if: always\(\)/);
+  assert.match(source, /artifacts\/fieldgrid-playwright\/\*\*/);
+  assert.match(source, /artifacts\/runtime-safety-harness\/\*\*\/\*\.json/);
+  assert.match(source, /artifacts\/runtime-safety-harness\/\*\*\/\*\.log/);
 });
 
-test('five scenario groups exist and CI publishes artifacts', () => {
-  const spec = read(files.spec);
-  const count = [...spec.matchAll(/test\('/g)].length;
-  assert.equal(count, 5);
-  assert.ok(existsSync(files.workflow));
-  const workflow = read(files.workflow);
-  assert.match(workflow, /fieldgrid:playwright/);
-  assert.match(workflow, /artifacts\/fieldgrid-playwright/);
-});
-
-test('service-role browser bypass and historical forbidden tooling are absent', () => {
-  for (const file of [files.start, files.spec, files.seam]) {
-    assert.doesNotMatch(read(file), /service_role/);
-  }
+test('exactly five browser scenarios exist and forbidden files/tooling are absent', () => {
+  const spec = read('e2e/fieldgrid/tests/golden-path.spec.ts');
+  assert.equal([...spec.matchAll(/\ntest\('/g)].length, 5);
   assert.equal(existsSync('scripts/fieldgrid-runtime-entrypoints-check.mjs'), false);
+  assert.doesNotMatch(spec, /Fieldgrid E2E.*toContainText|Backoffice dashboard|Customer Tenant A assignments/);
 });

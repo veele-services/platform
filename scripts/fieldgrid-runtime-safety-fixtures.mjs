@@ -311,15 +311,16 @@ async function insertBusinessRows(client) {
   }
 
   const personnel = [
-    [FIXTURE.personnel.a, FIXTURE.tenants.a, FIXTURE.users.tenantAPersonnel, "RTA-P001", "Runtime", "Personnel A", "personnel@tenant-a.runtime.fieldgrid.test"],
-    [FIXTURE.personnel.b, FIXTURE.tenants.b, FIXTURE.users.tenantBPersonnel, "RTB-P001", "Runtime", "Personnel B", "personnel@tenant-b.runtime.fieldgrid.test"],
+    [FIXTURE.personnel.a, FIXTURE.tenants.a, FIXTURE.users.tenantAPersonnel, "RTA-P001", "Runtime", "Personnel A", "personnel@tenant-a.runtime.fieldgrid.test", true],
+    [FIXTURE.personnel.inactiveA, FIXTURE.tenants.a, FIXTURE.users.tenantAInactivePersonnel, "RTA-P106", "Inactive", "Personnel A", "inactive-personnel@tenant-a.runtime.fieldgrid.test", false],
+    [FIXTURE.personnel.b, FIXTURE.tenants.b, FIXTURE.users.tenantBPersonnel, "RTB-P001", "Runtime", "Personnel B", "personnel@tenant-b.runtime.fieldgrid.test", true],
   ];
   for (const row of personnel) {
     await client.query(
       `
         insert into personnel (id, tenant_id, user_id, code, first_name, last_name, email, is_active, is_available)
-        values ($1, $2, $3, $4, $5, $6, $7, true, true)
-        on conflict (id) do update set tenant_id = excluded.tenant_id, user_id = excluded.user_id, email = excluded.email
+        values ($1, $2, $3, $4, $5, $6, $7, $8, $8)
+        on conflict (id) do update set tenant_id = excluded.tenant_id, user_id = excluded.user_id, email = excluded.email, is_active = excluded.is_active
       `,
       row,
     );
@@ -337,6 +338,51 @@ async function insertBusinessRows(client) {
         on conflict (id) do update set tenant_id = excluded.tenant_id, customer_id = excluded.customer_id, object_id = excluded.object_id
       `,
       row,
+    );
+  }
+
+
+  if (await tableExists(client, "public", "assignment_personnel")) {
+    await client.query(
+      `
+        insert into assignment_personnel (assignment_id, personnel_id, status, assigned_by)
+        values ($1, $2, 'assigned', $3)
+        on conflict do nothing
+      `,
+      [FIXTURE.assignments.a, FIXTURE.personnel.a, FIXTURE.users.tenantAAdmin],
+    );
+  }
+
+  if (await tableExists(client, "public", "assignment_tasks")) {
+    await client.query(
+      `
+        insert into assignment_tasks (assignment_id, notes, sort_order)
+        values ($1, 'Runtime Task A - inspect fixture installation', 1)
+        on conflict do nothing
+      `,
+      [FIXTURE.assignments.a],
+    );
+  }
+
+  if (await tableExists(client, "public", "reports")) {
+    await client.query(
+      `
+        insert into reports (tenant_id, assignment_id, submitted_by, status, content, hours_worked, submitter_notes, notes, reviewed_by, reviewed_at)
+        values ($1, $2, $3, 'approved', 'Runtime approved report A', '2.50', 'Runtime customer-visible report note', 'Runtime approved report A', $4, now())
+        on conflict do nothing
+      `,
+      [FIXTURE.tenants.a, FIXTURE.assignments.a, FIXTURE.users.tenantAPersonnel, FIXTURE.users.tenantAAdmin],
+    );
+  }
+
+  if (await tableExists(client, "public", "invoices")) {
+    await client.query(
+      `
+        insert into invoices (customer_id, assignment_id, amount, vat_percentage, vat_amount, total_amount, status, due_date, notes, created_by)
+        values ($1, $2, '100.00', '21.00', '21.00', '121.00', 'sent', current_date + 14, 'RTA-INV-001 Runtime invoice A', $3)
+        on conflict do nothing
+      `,
+      [FIXTURE.customers.a, FIXTURE.assignments.a, FIXTURE.users.tenantAAdmin],
     );
   }
 
