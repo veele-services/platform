@@ -134,12 +134,17 @@
     "fieldgrid:runtime-entrypoints": "node scripts/fieldgrid-runtime-entrypoint-inventory.mjs",
     "fieldgrid:runtime-entrypoints:write": "node scripts/fieldgrid-runtime-entrypoint-inventory.mjs --write",
     "fieldgrid:runtime-entrypoints:check": "node scripts/fieldgrid-runtime-entrypoint-inventory.mjs --check",
-    "fieldgrid:current-main-baseline-report": "node scripts/fieldgrid-current-main-baseline-report.mjs && node --test tests/tooling/current-main-baseline-report.test.mjs"
+    "fieldgrid:current-main-baseline-report": "node scripts/fieldgrid-current-main-baseline-report.mjs && node --test tests/tooling/current-main-baseline-report.test.mjs",
+    "fieldgrid:playwright": "node --test tests/fieldgrid-playwright-e2e-auth-sourceguard.test.mjs && node e2e/fieldgrid/run-playwright.mjs",
+    "fieldgrid:playwright:install": "playwright install --with-deps chromium",
+    "fieldgrid:playwright:fixtures": "node e2e/fieldgrid/fixtures/seed-e2e-fixtures.mjs",
+    "fieldgrid:playwright:evidence": "node e2e/fieldgrid/validate-runtime-evidence.mjs"
   },
   "private": true,
   "devDependencies": {
     "playwright": "1.51.1",
     "prettier": "^3.8.3",
-    "typescript": "~5.9.3"
+    "typescript": "~5.9.3",
+    "@playwright/test": "1.51.1"
   }
 }

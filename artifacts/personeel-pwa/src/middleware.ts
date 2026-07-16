@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { createFieldgridE2EAuthClient } from "@workspace/db/e2e-auth-adapter";
 import { NextResponse, type NextRequest } from "next/server";
 import {
   createSupabaseCookieOptions,
@@ -76,9 +77,13 @@ export async function middleware(request: NextRequest) {
     },
   });
 
+  const authClient = process.env.FIELDGRID_E2E_AUTH_ENABLED === "true"
+    ? createFieldgridE2EAuthClient(supabase, { cookies: request.cookies, headers: request.headers })
+    : supabase;
+
   const {
     data: { user },
-  } = await supabase.auth.getUser();
+  } = await authClient.auth.getUser();
 
   const mustChangePassword = user?.app_metadata?.force_password_change === true;
 

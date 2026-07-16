@@ -62,3 +62,7 @@ Thumbs.db
 .cache/
 .local/
 /artifacts/runtime-entrypoints/*.full.json
+
+# Fieldgrid Playwright local artifacts
+/artifacts/fieldgrid-playwright/
+/test-results/

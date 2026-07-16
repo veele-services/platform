@@ -65,6 +65,7 @@ const PERSONNEL_SELECT =
     "notification_planning_enabled",
     "notification_news_enabled",
     "notification_hours_enabled",
+    "is_active",
     "roles(name)",
     "sectors(name)",
   ].join(", ");
@@ -240,6 +241,13 @@ function mapProfile(d: any): PersonnelProfile {
   };
 }
 
+function personnelLookupDiagnostic(error: { code?: string; status?: number | string | null } | null) {
+  return {
+    code: error?.code ?? "unknown",
+    status: error?.status ?? null,
+  };
+}
+
 export async function getMyPersonnel(): Promise<PersonnelProfile | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -249,31 +257,51 @@ export async function getMyPersonnel(): Promise<PersonnelProfile | null> {
   if (!tenantId) return null;
 
   // ── Primary lookup: by user_id (RLS-filtered) ─────────────────────────────
-  const { data: byId } = await supabase
+  // maybeSingle makes a no-row response an explicit first-login case.
+  // A PostgREST, RLS, or embedded-relation error is never a reason to fall
+  // through to the privileged account-linking path.
+  const { data: byId, error: primaryLookupError } = await supabase
     .from("personnel")
     .select(PERSONNEL_SELECT)
     .eq("tenant_id", tenantId)
     .eq("user_id", user.id)
-    .eq("is_active", true)
-    .single();
+    .maybeSingle();
 
-  if (byId) return mapProfile(byId);
+  if (primaryLookupError) {
+    console.warn("[personnel] primary profile lookup failed", personnelLookupDiagnostic(primaryLookupError));
+    return null;
+  }
+
+  if (byId) {
+    const linkedProfile = byId as { is_active?: boolean | null };
+    if (!linkedProfile.is_active) return null;
+    return mapProfile(byId);
+  }
 
   // ── First-login account-linking ───────────────────────────────────────────
   // The employee was invited (invite_sent_at NOT NULL) but user_id is still null
   // because we don't set it at invite time — we set it here on first PWA login.
   // Requires invite_sent_at IS NOT NULL to ensure only genuinely invited personnel
   // can self-link; anonymous sign-ups or unrelated accounts cannot claim records.
+  // Active, already-linked personnel return above and never require a service
+  // role. This branch is reserved for a genuine first-login no-row result.
+  if (!user.email) return null;
+
   const admin = createAdminClient();
-  const { data: byEmail } = await admin
+  const { data: byEmail, error: firstLoginLookupError } = await admin
     .from("personnel")
     .select("id, user_id, invite_sent_at")
     .eq("tenant_id", tenantId)
-    .eq("email", user.email!)
+    .eq("email", user.email)
     .eq("is_active", true)
     .is("user_id", null)
     .not("invite_sent_at", "is", null)
-    .single();
+    .maybeSingle();
+
+  if (firstLoginLookupError) {
+    console.warn("[personnel] first-login profile lookup failed", personnelLookupDiagnostic(firstLoginLookupError));
+    return null;
+  }
 
   if (!byEmail) return null;
 
@@ -284,16 +312,24 @@ export async function getMyPersonnel(): Promise<PersonnelProfile | null> {
     .eq("id", byEmail.id)
     .eq("tenant_id", tenantId);
 
-  if (linkError) return null;
+  if (linkError) {
+    console.warn("[personnel] first-login profile link failed", personnelLookupDiagnostic(linkError));
+    return null;
+  }
 
   // Fetch via RLS-filtered client now that user_id is set.
-  const { data: linked } = await supabase
+  const { data: linked, error: linkedLookupError } = await supabase
     .from("personnel")
     .select(PERSONNEL_SELECT)
     .eq("tenant_id", tenantId)
     .eq("user_id", user.id)
     .eq("is_active", true)
-    .single();
+    .maybeSingle();
+
+  if (linkedLookupError) {
+    console.warn("[personnel] linked profile lookup failed", personnelLookupDiagnostic(linkedLookupError));
+    return null;
+  }
 
   return linked ? mapProfile(linked) : null;
 }

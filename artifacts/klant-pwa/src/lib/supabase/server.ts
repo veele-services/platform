@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { createFieldgridE2EAuthClient, createFieldgridE2EFetch } from "@workspace/db/e2e-auth-adapter";
 import { cookies, headers } from "next/headers";
 import {
   createSupabaseCookieOptions,
@@ -19,7 +20,8 @@ export async function createClient() {
   const requestHeaders = await headers();
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
 
-  return createServerClient(url, key, {
+  const supabase = createServerClient(url, key, {
+    global: process.env.FIELDGRID_E2E_AUTH_ENABLED === "true" ? { fetch: createFieldgridE2EFetch({ cookies: cookieStore, headers: requestHeaders }) } : undefined,
     cookieOptions: createSupabaseCookieOptions(host),
     cookies: {
       getAll() {
@@ -36,4 +38,10 @@ export async function createClient() {
       },
     },
   });
+
+  if (process.env.FIELDGRID_E2E_AUTH_ENABLED === "true") {
+    return createFieldgridE2EAuthClient(supabase, { cookies: cookieStore, headers: requestHeaders });
+  }
+
+  return supabase;
 }

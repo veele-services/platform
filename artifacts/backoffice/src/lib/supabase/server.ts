@@ -1,4 +1,5 @@
 import { createServerClient } from "@supabase/ssr";
+import { createFieldgridE2EAuthClient, createFieldgridE2EFetch } from "@workspace/db/e2e-auth-adapter";
 import { cookies, headers } from "next/headers";
 import {
   createSupabaseCookieOptions,
@@ -25,7 +26,8 @@ export async function createClient() {
   const requestHeaders = await headers();
   const host = requestHeaders.get("x-forwarded-host") ?? requestHeaders.get("host");
 
-  return createServerClient(url, key, {
+  const supabase = createServerClient(url, key, {
+    global: process.env.FIELDGRID_E2E_AUTH_ENABLED === "true" ? { fetch: createFieldgridE2EFetch({ cookies: cookieStore, headers: requestHeaders }) } : undefined,
     cookieOptions: createSupabaseCookieOptions(host),
     cookies: {
       getAll() {
@@ -42,6 +44,12 @@ export async function createClient() {
       },
     },
   });
+
+  if (process.env.FIELDGRID_E2E_AUTH_ENABLED === "true") {
+    return createFieldgridE2EAuthClient(supabase, { cookies: cookieStore, headers: requestHeaders });
+  }
+
+  return supabase;
 }
 
 function cookieHeaderToPairs(cookieHeader: string | null): Array<{ name: string; value: string }> {
@@ -85,7 +93,8 @@ export function createClientFromRequest(request: Request) {
 
   const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
 
-  return createServerClient(url, key, {
+  const supabase = createServerClient(url, key, {
+    global: process.env.FIELDGRID_E2E_AUTH_ENABLED === "true" ? { fetch: createFieldgridE2EFetch({ headers: request.headers }) } : undefined,
     cookieOptions: createSupabaseCookieOptions(host),
     cookies: {
       getAll() {
@@ -96,4 +105,10 @@ export function createClientFromRequest(request: Request) {
       },
     },
   });
+
+  if (process.env.FIELDGRID_E2E_AUTH_ENABLED === "true") {
+    return createFieldgridE2EAuthClient(supabase, { headers: request.headers });
+  }
+
+  return supabase;
 }
