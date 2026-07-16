@@ -5,6 +5,7 @@ import {
   reportsTable,
   assignmentsTable,
   assignmentPersonnelTable,
+  assignmentParticipantExecutionsTable,
   assignmentReportNoteAttachmentsTable,
   assignmentReportNotesTable,
   personnelTable,
@@ -122,15 +123,16 @@ async function getAuthAndPersonnel(): Promise<{ userId: string; personnelId: str
  * Verify that this personnel member has a confirmed (status='assigned') link
  * to the given assignment. Returns true if linked.
  */
-async function isLinkedToAssignment(
+async function getLinkedAssignmentExecution(
   personnelId: string,
   tenantId: string,
   assignmentId: string,
-): Promise<boolean> {
+): Promise<{ assignmentPersonnelId: string; executionId: string | null } | null> {
   const [row] = await db
-    .select({ id: assignmentPersonnelTable.id })
+    .select({ assignmentPersonnelId: assignmentPersonnelTable.id, executionId: assignmentParticipantExecutionsTable.id })
     .from(assignmentPersonnelTable)
     .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
+    .leftJoin(assignmentParticipantExecutionsTable, eq(assignmentParticipantExecutionsTable.assignmentPersonnelId, assignmentPersonnelTable.id))
     .where(
       and(
         eq(assignmentPersonnelTable.personnelId, personnelId),
@@ -141,7 +143,15 @@ async function isLinkedToAssignment(
     )
     .limit(1);
 
-  return !!row;
+  return row ?? null;
+}
+
+async function isLinkedToAssignment(
+  personnelId: string,
+  tenantId: string,
+  assignmentId: string,
+): Promise<boolean> {
+  return Boolean(await getLinkedAssignmentExecution(personnelId, tenantId, assignmentId));
 }
 
 async function createSignedAttachmentUrl(
@@ -684,7 +694,7 @@ export async function submitMyReport(
   const identity = await getPersonnelIdentity();
   if (!identity) return { success: false, error: "Personeelsprofiel niet gevonden" };
 
-  const linked = await isLinkedToAssignment(identity.personnelId, identity.tenantId, assignmentId);
+  const linked = await getLinkedAssignmentExecution(identity.personnelId, identity.tenantId, assignmentId);
   if (!linked) return { success: false, error: "U bent niet gekoppeld aan deze opdracht" };
 
   // Validate content
@@ -724,6 +734,10 @@ export async function submitMyReport(
     await db.insert(reportsTable).values({
       assignmentId,
       submittedBy:   user.id,
+      assignmentParticipantExecutionId: linked.executionId,
+      assignmentPersonnelId: linked.assignmentPersonnelId,
+      personnelId: identity.personnelId,
+      visibilityScope: "internal_until_approved",
       status:        "submitted",
       content,
       hoursWorked,

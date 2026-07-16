@@ -8,10 +8,11 @@ import {
   db,
   objectsTable,
   buildAssignmentTimeProjection,
+  executeAssignmentParticipantAction,
 } from "@workspace/db";
 import { emitAssignmentWorkflowEvent } from "@workspace/db/workflow-events";
 import { safelyInvalidateAssignmentRouteContexts } from "@workspace/db/planning-realtime";
-import { and, eq, isNull } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
 import { revalidatePath } from "next/cache";
@@ -428,61 +429,25 @@ export async function setAssignmentStatus(
     return { success: false, error: "Status-overgang niet toegestaan" };
   }
 
-  const now = new Date();
-  const updateValues: Partial<typeof assignmentsTable.$inferInsert> = {
-    status:    newStatus,
-    updatedAt: now,
-  };
+  const action = newStatus === "in_progress" ? "start" : newStatus === "en_route" ? "en_route" : newStatus === "seen" ? "seen" : null;
+  if (!action) return { success: false, error: "Gebruik de afrond-actie voor deze status" };
 
-  if (newStatus === "seen") {
-    updateValues.seenAt = current.seenAt ?? now;
-  }
-  if (newStatus === "en_route") {
-    updateValues.seenAt = current.seenAt ?? now;
-    updateValues.enRouteAt = current.enRouteAt ?? now;
-  }
-  if (newStatus === "in_progress") {
-    updateValues.seenAt = current.seenAt ?? now;
-    updateValues.enRouteAt = current.enRouteAt ?? now;
-    updateValues.actualStartedAt = current.actualStartedAt ?? now;
-  }
-  if (newStatus === "completed" || newStatus === "not_completed") {
-    updateValues.actualCompletedAt = current.actualCompletedAt ?? now;
-  }
-
-  let firstEnRouteTrigger = false;
   try {
-    if (newStatus === "en_route") {
-      const rows = await db
-        .update(assignmentsTable)
-        .set(updateValues)
-        .where(and(
-          eq(assignmentsTable.id, assignmentId),
-          eq(assignmentsTable.tenantId, current.tenantId),
-          isNull(assignmentsTable.enRouteAt),
-        ))
-        .returning({ id: assignmentsTable.id });
-      firstEnRouteTrigger = rows.length > 0;
-
-      if (!firstEnRouteTrigger) {
-        await db
-          .update(assignmentsTable)
-          .set({
-            status:    newStatus,
-            seenAt:   current.seenAt ?? now,
-            updatedAt: now,
-          })
-          .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)));
-      }
-    } else {
-      await db
-        .update(assignmentsTable)
-        .set(updateValues)
-        .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)));
-    }
+    await executeAssignmentParticipantAction({
+      assignmentId,
+      personnelId: personnel.id,
+      actorUserId: user.id,
+      action,
+      idempotencyKey: `${action}:${assignmentId}:${personnel.id}`,
+      auditMetadata: { source: "personnel-pwa", previousStatus: currentStatus },
+    });
   } catch {
     return { success: false, error: "Bijwerken mislukt" };
   }
+
+  // Legacy one-shot guard was isNull(assignmentsTable.enRouteAt); the participant RPC now serializes the write.
+  let firstEnRouteTrigger = false;
+  firstEnRouteTrigger = newStatus === "en_route" && current.enRouteAt == null;
 
   if (newStatus === "seen") {
     await notifyAssignmentWorkflow({
@@ -620,22 +585,33 @@ export async function completeAssignment(
   }
 
   const now = new Date();
+  let executionResult: Awaited<ReturnType<typeof executeAssignmentParticipantAction>>;
 
   try {
-    const completedRows = await db
-      .update(assignmentsTable)
-      .set({
-        status:                   "completed",
-        actualCompletedAt:        current.actualCompletedAt ?? now,
-        completionReason:         null,
-        completionNotes:          input.notes?.trim() || null,
-        customerSignatureDataUrl: isSignatureDataUrl(signature) ? signature : null,
-        customerSignedAt:         isSignatureDataUrl(signature) ? now : null,
-        updatedAt:                now,
-      })
-      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)))
-      .returning({ id: assignmentsTable.id });
-    if (completedRows.length === 0) return { success: false, error: "Afronden mislukt" };
+    executionResult = await executeAssignmentParticipantAction({
+      assignmentId,
+      personnelId: personnel.id,
+      actorUserId: user.id,
+      action: "complete",
+      idempotencyKey: `complete:${assignmentId}:${personnel.id}`,
+      completionNotes: input.notes?.trim() || null,
+      auditMetadata: {
+        source: "personnel-pwa",
+        signatureProvided: isSignatureDataUrl(signature),
+      },
+    });
+    if (executionResult.aggregateCompleted) {
+      await db
+        .update(assignmentsTable)
+        .set({
+          completionReason:         null,
+          completionNotes:          input.notes?.trim() || null,
+          customerSignatureDataUrl: isSignatureDataUrl(signature) ? signature : null,
+          customerSignedAt:         isSignatureDataUrl(signature) ? now : null,
+          updatedAt:                now,
+        })
+        .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)));
+    }
   } catch {
     return { success: false, error: "Afronden mislukt" };
   }
@@ -691,23 +667,27 @@ export async function notCompleteAssignment(
     return { success: false, error: "Vul een toelichting in bij Overig" };
   }
 
-  const now = new Date();
-
   try {
-    const notCompletedRows = await db
+    await executeAssignmentParticipantAction({
+      assignmentId,
+      personnelId: personnel.id,
+      actorUserId: user.id,
+      action: "not_complete",
+      idempotencyKey: `not_complete:${assignmentId}:${personnel.id}`,
+      completionReason: reason,
+      completionNotes: notes || null,
+      auditMetadata: { source: "personnel-pwa" },
+    });
+    await db
       .update(assignmentsTable)
       .set({
-        status:                   "not_completed",
-        actualCompletedAt:        current.actualCompletedAt ?? now,
         completionReason:         reason,
         completionNotes:          notes || null,
         customerSignatureDataUrl: null,
         customerSignedAt:         null,
-        updatedAt:                now,
+        updatedAt:                new Date(),
       })
-      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)))
-      .returning({ id: assignmentsTable.id });
-    if (notCompletedRows.length === 0) return { success: false, error: "Afmelden mislukt" };
+      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)));
   } catch {
     return { success: false, error: "Afmelden mislukt" };
   }
