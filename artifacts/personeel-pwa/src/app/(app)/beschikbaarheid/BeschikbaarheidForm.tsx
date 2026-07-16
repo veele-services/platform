@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  useEffect,
   useMemo,
   useState,
   useTransition,
@@ -195,6 +196,8 @@ export function BeschikbaarheidForm({
   const [editor, setEditor] = useState<EditorState>(() => defaultEditor(null));
   const [feedback, setFeedback] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [conflict, setConflict] = useState(false);
+  const [editorInitial, setEditorInitial] = useState<EditorState | null>(null);
   const [isPending, startTransition] = useTransition();
 
   const entryByDate = useMemo(
@@ -207,6 +210,17 @@ export function BeschikbaarheidForm({
   const canGoNext = monthKey(viewMonth) < monthKey(data.maxDate);
   const selectedIsEditable =
     selectedDate >= data.today && selectedDate <= data.maxDate;
+  const editorIsDirty = Boolean(editorInitial) && JSON.stringify(editorInitial) !== JSON.stringify(editor);
+
+  useEffect(() => {
+    if (!editorOpen || !editorIsDirty) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [editorOpen, editorIsDirty]);
 
   function selectMonth(nextMonth: string) {
     const first = firstOfMonth(nextMonth);
@@ -222,7 +236,10 @@ export function BeschikbaarheidForm({
   function openEditor() {
     setFeedback(null);
     setError(null);
-    setEditor(defaultEditor(selectedEntry));
+    setConflict(false);
+    const nextEditor = defaultEditor(selectedEntry);
+    setEditorInitial(nextEditor);
+    setEditor(nextEditor);
     setEditorOpen(true);
   }
 
@@ -239,10 +256,16 @@ export function BeschikbaarheidForm({
           isEmergencyAvailable: values.isEmergencyAvailable,
           repeatType: values.repeatType,
           repeatGroupId: existing?.repeatGroupId ?? null,
+          updatedAt: existing?.updatedAt ?? null,
         });
       }
       return [...next.values()].sort((a, b) => a.date.localeCompare(b.date));
     });
+  }
+
+  function closeEditor() {
+    if (editorIsDirty && !confirm("Je hebt niet-opgeslagen wijzigingen. Sluiten zonder opslaan?")) return;
+    setEditorOpen(false);
   }
 
   function handleSave() {
@@ -257,9 +280,11 @@ export function BeschikbaarheidForm({
         endTime: values.endTime,
         repeatType: values.repeatType,
         isEmergencyAvailable: values.isEmergencyAvailable,
+        expectedUpdatedAt: selectedEntry?.updatedAt ?? null,
       });
 
       if (!result.success) {
+        if (result.code === "conflict") setConflict(true);
         setError(result.error ?? "Opslaan mislukt");
         return;
       }
@@ -275,6 +300,7 @@ export function BeschikbaarheidForm({
           ? `${savedDates.length} dagen bijgewerkt`
           : "Beschikbaarheid opgeslagen",
       );
+      setEditorInitial(null);
       setEditorOpen(false);
       router.refresh();
     });
@@ -294,6 +320,7 @@ export function BeschikbaarheidForm({
         current.filter((entry) => entry.date !== selectedDate),
       );
       setFeedback("Beschikbaarheid verwijderd");
+      setEditorInitial(null);
       setEditorOpen(false);
       router.refresh();
     });
@@ -496,7 +523,10 @@ export function BeschikbaarheidForm({
             className="mt-3 rounded-2xl px-3 py-2.5 text-sm font-bold"
             style={{ backgroundColor: "#FEF2F2", color: "#DC2626" }}
           >
-            {error}
+{error}
+            {conflict ? (
+              <button type="button" onClick={() => router.refresh()} className="ml-2 underline">Vernieuw en probeer opnieuw</button>
+            ) : null}
           </p>
         ) : null}
       </section>
@@ -513,7 +543,11 @@ export function BeschikbaarheidForm({
               hasEntry={Boolean(selectedEntry)}
               onSave={handleSave}
               onDelete={handleDelete}
-              onClose={() => setEditorOpen(false)}
+              error={error}
+              conflict={conflict}
+              isDirty={editorIsDirty}
+              onRefresh={() => router.refresh()}
+              onClose={closeEditor}
             />
           </div>
         </div>
@@ -530,7 +564,11 @@ export function BeschikbaarheidForm({
               hasEntry={Boolean(selectedEntry)}
               onSave={handleSave}
               onDelete={handleDelete}
-              onClose={() => setEditorOpen(false)}
+              error={error}
+              conflict={conflict}
+              isDirty={editorIsDirty}
+              onRefresh={() => router.refresh()}
+              onClose={closeEditor}
             />
           </div>
         </div>
@@ -564,6 +602,10 @@ function EditorBody({
   hasEntry,
   onSave,
   onDelete,
+  error,
+  conflict,
+  isDirty,
+  onRefresh,
   onClose,
 }: {
   selectedDate: string;
@@ -573,6 +615,10 @@ function EditorBody({
   hasEntry: boolean;
   onSave: () => void;
   onDelete: () => void;
+  error: string | null;
+  conflict: boolean;
+  isDirty: boolean;
+  onRefresh: () => void;
   onClose: () => void;
 }) {
   return (
@@ -701,6 +747,18 @@ function EditorBody({
           />
         </span>
       </button>
+
+      {isDirty ? (
+        <p className="mt-4 rounded-2xl bg-amber-50 px-3 py-2 text-sm font-bold text-amber-700">Niet-opgeslagen wijzigingen</p>
+      ) : null}
+      {error ? (
+        <div className="mt-4 rounded-2xl bg-red-50 px-3 py-2 text-sm font-bold text-red-600">
+          {error}
+          {conflict ? (
+            <button type="button" onClick={onRefresh} className="ml-2 underline">Vernieuw/retry</button>
+          ) : null}
+        </div>
+      ) : null}
 
       <button
         type="button"

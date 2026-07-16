@@ -1,15 +1,15 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
 import { db } from "@workspace/db";
 import {
   availabilityDayEntriesTable,
-  availabilityWindowsTable,
   organizationSettingsTable,
+  saveDateAvailabilityExceptions,
+  saveWeeklyAvailability,
 } from "@workspace/db";
 import { createClient } from "@/lib/supabase/server";
 import { revalidatePath } from "next/cache";
-import { and, eq, gte, lte, sql } from "drizzle-orm";
+import { and, eq, gte, lte } from "drizzle-orm";
 
 export type AvailabilityWindow = {
   dayOfWeek: number;
@@ -27,6 +27,7 @@ export type AvailabilityDayEntry = {
   isEmergencyAvailable: boolean;
   repeatType: AvailabilityRepeat;
   repeatGroupId: string | null;
+  updatedAt: string | null;
 };
 
 export type AvailabilityCalendarData = {
@@ -34,6 +35,7 @@ export type AvailabilityCalendarData = {
   maxDate: string;
   advanceDays: number;
   entries: AvailabilityDayEntry[];
+  weeklyVersion: string | null;
 };
 
 const TIME_RE = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -112,13 +114,14 @@ function validateTimeRange(startTime: string, endTime: string): string | null {
   return null;
 }
 
-async function getAvailabilityAdvanceDays(): Promise<number> {
+async function getAvailabilityAdvanceDays(tenantId?: string): Promise<number> {
   const [settings] = await db
     .select({
       availabilityAdvanceDays:
         organizationSettingsTable.availabilityAdvanceDays,
     })
     .from(organizationSettingsTable)
+    .where(tenantId ? eq(organizationSettingsTable.tenantId, tenantId) : undefined)
     .limit(1);
 
   return settings?.availabilityAdvanceDays ?? 60;
@@ -127,14 +130,14 @@ async function getAvailabilityAdvanceDays(): Promise<number> {
 async function getPersonnelId(
   supabase: Awaited<ReturnType<typeof createClient>>,
   userId: string,
-): Promise<string | null> {
+): Promise<{ id: string; tenantId: string } | null> {
   const { data } = await supabase
     .from("personnel")
-    .select("id")
+    .select("id, tenant_id")
     .eq("user_id", userId)
     .eq("is_active", true)
     .single();
-  return data?.id ?? null;
+  return data ? { id: data.id, tenantId: data.tenant_id } : null;
 }
 
 export async function getMyAvailabilityWindows(): Promise<
@@ -146,8 +149,9 @@ export async function getMyAvailabilityWindows(): Promise<
   } = await supabase.auth.getUser();
   if (!user) return [];
 
-  const personnelId = await getPersonnelId(supabase, user.id);
-  if (!personnelId) return [];
+  const personnel = await getPersonnelId(supabase, user.id);
+  if (!personnel) return [];
+  const personnelId = personnel.id;
 
   const { data } = await supabase
     .from("availability_windows")
@@ -170,24 +174,26 @@ export async function getMyAvailabilityCalendar(): Promise<AvailabilityCalendarD
     data: { user },
   } = await supabase.auth.getUser();
   const today = todayDateKey();
-  const advanceDays = await getAvailabilityAdvanceDays();
-  const maxDate = addDays(today, advanceDays);
+  let advanceDays = await getAvailabilityAdvanceDays();
+  let maxDate = addDays(today, advanceDays);
 
   if (!user) {
-    return { today, maxDate, advanceDays, entries: [] };
+    return { today, maxDate, advanceDays, entries: [], weeklyVersion: null };
   }
 
-  const personnelId = await getPersonnelId(supabase, user.id);
-  if (!personnelId) {
-    return { today, maxDate, advanceDays, entries: [] };
+  const personnel = await getPersonnelId(supabase, user.id);
+  if (!personnel) {
+    return { today, maxDate, advanceDays, entries: [], weeklyVersion: null };
   }
+  advanceDays = await getAvailabilityAdvanceDays(personnel.tenantId);
+  maxDate = addDays(today, advanceDays);
 
   const rows = await db
     .select()
     .from(availabilityDayEntriesTable)
     .where(
       and(
-        eq(availabilityDayEntriesTable.personnelId, personnelId),
+        eq(availabilityDayEntriesTable.personnelId, personnel.id),
         gte(availabilityDayEntriesTable.date, today),
         lte(availabilityDayEntriesTable.date, maxDate),
       ),
@@ -198,6 +204,7 @@ export async function getMyAvailabilityCalendar(): Promise<AvailabilityCalendarD
     today,
     maxDate,
     advanceDays,
+    weeklyVersion: null,
     entries: rows.map((row) => ({
       id: row.id,
       date: row.date,
@@ -206,6 +213,7 @@ export async function getMyAvailabilityCalendar(): Promise<AvailabilityCalendarD
       isEmergencyAvailable: row.isEmergencyAvailable,
       repeatType: row.repeatType as AvailabilityRepeat,
       repeatGroupId: row.repeatGroupId,
+      updatedAt: row.updatedAt?.toISOString() ?? null,
     })),
   };
 }
@@ -235,30 +243,16 @@ export async function saveAvailabilityWindows(
     }
   }
 
-  const personnelId = await getPersonnelId(supabase, user.id);
-  if (!personnelId)
+  const personnel = await getPersonnelId(supabase, user.id);
+  if (!personnel)
     return { success: false, error: "Personeelsprofiel niet gevonden" };
 
-  const { error: deleteError } = await supabase
-    .from("availability_windows")
-    .delete()
-    .eq("personnel_id", personnelId);
-
-  if (deleteError) return { success: false, error: "Opslaan mislukt" };
-
-  if (windows.length > 0) {
-    const { error: insertError } = await supabase
-      .from("availability_windows")
-      .insert(
-        windows.map((w) => ({
-          personnel_id: personnelId,
-          day_of_week: w.dayOfWeek,
-          start_time: w.startTime,
-          end_time: w.endTime,
-        })),
-      );
-    if (insertError) return { success: false, error: "Opslaan mislukt" };
-  }
+  const result = await saveWeeklyAvailability({
+    tenantId: personnel.tenantId,
+    userId: user.id,
+    windows,
+  });
+  if (!result.ok) return { success: false, error: result.message };
 
   revalidatePath("/beschikbaarheid");
   return { success: true };
@@ -270,7 +264,8 @@ export async function saveAvailabilityDay(input: {
   endTime: string;
   repeatType: AvailabilityRepeat;
   isEmergencyAvailable: boolean;
-}): Promise<{ success: boolean; error?: string; savedDates?: number }> {
+  expectedUpdatedAt?: string | null;
+}): Promise<{ success: boolean; error?: string; code?: "conflict"; savedDates?: number }> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -287,12 +282,12 @@ export async function saveAvailabilityDay(input: {
   const timeError = validateTimeRange(input.startTime, input.endTime);
   if (timeError) return { success: false, error: timeError };
 
-  const personnelId = await getPersonnelId(supabase, user.id);
-  if (!personnelId)
+  const personnel = await getPersonnelId(supabase, user.id);
+  if (!personnel)
     return { success: false, error: "Personeelsprofiel niet gevonden" };
 
   const today = todayDateKey();
-  const advanceDays = await getAvailabilityAdvanceDays();
+  const advanceDays = await getAvailabilityAdvanceDays(personnel.tenantId);
   const maxDate = addDays(today, advanceDays);
   if (input.date < today) {
     return {
@@ -307,40 +302,23 @@ export async function saveAvailabilityDay(input: {
     };
   }
 
-  const dates = buildRepeatDates(input.date, input.repeatType, maxDate);
-  const repeatGroupId = input.repeatType === "none" ? null : randomUUID();
-
-  await db
-    .insert(availabilityDayEntriesTable)
-    .values(
-      dates.map((date) => ({
-        personnelId,
-        date,
-        startTime: input.startTime,
-        endTime: input.endTime,
-        isEmergencyAvailable: input.isEmergencyAvailable,
-        repeatType: input.repeatType,
-        repeatGroupId,
-        updatedAt: new Date(),
-      })),
-    )
-    .onConflictDoUpdate({
-      target: [
-        availabilityDayEntriesTable.personnelId,
-        availabilityDayEntriesTable.date,
-      ],
-      set: {
-        startTime: sql`excluded.start_time`,
-        endTime: sql`excluded.end_time`,
-        isEmergencyAvailable: sql`excluded.is_emergency_available`,
-        repeatType: sql`excluded.repeat_type`,
-        repeatGroupId: sql`excluded.repeat_group_id`,
-        updatedAt: new Date(),
-      },
-    });
+  const result = await saveDateAvailabilityExceptions({
+    tenantId: personnel.tenantId,
+    userId: user.id,
+    maxDate,
+    exception: {
+      date: input.date,
+      startTime: input.startTime,
+      endTime: input.endTime,
+      repeatType: input.repeatType,
+      isEmergencyAvailable: input.isEmergencyAvailable,
+      expectedUpdatedAt: input.expectedUpdatedAt ?? null,
+    },
+  });
+  if (!result.ok) return { success: false, code: result.code === "conflict" ? "conflict" : undefined, error: result.message };
 
   revalidatePath("/beschikbaarheid");
-  return { success: true, savedDates: dates.length };
+  return { success: true, savedDates: result.savedDates.length };
 }
 
 export async function deleteAvailabilityDay(
@@ -353,15 +331,15 @@ export async function deleteAvailabilityDay(
   if (!user) return { success: false, error: "Niet ingelogd" };
   if (!DATE_RE.test(date)) return { success: false, error: "Ongeldige datum" };
 
-  const personnelId = await getPersonnelId(supabase, user.id);
-  if (!personnelId)
+  const personnel = await getPersonnelId(supabase, user.id);
+  if (!personnel)
     return { success: false, error: "Personeelsprofiel niet gevonden" };
 
   await db
     .delete(availabilityDayEntriesTable)
     .where(
       and(
-        eq(availabilityDayEntriesTable.personnelId, personnelId),
+        eq(availabilityDayEntriesTable.personnelId, personnel.id),
         eq(availabilityDayEntriesTable.date, date),
       ),
     );
