@@ -23,6 +23,7 @@ import {
   ASSIGNMENT_STATUSES,
   type AssignmentPriority,
   type AssignmentStatus,
+  buildAssignmentTimeProjection,
 } from "@workspace/db";
 import {
   asc,
@@ -192,6 +193,10 @@ export type PlanningBoardAssignment = {
   scheduledDate: string | null;
   scheduledStart: string | null;
   scheduledEnd: string | null;
+  actualStartedAt: string | null;
+  actualCompletedAt: string | null;
+  effectiveStart: string | null;
+  effectiveEnd: string | null;
   customerId: string;
   customerName: string;
   objectId: string | null;
@@ -218,6 +223,10 @@ export type PlanningBoardPersonnelAssignment = {
   sectorName: string | null;
   scheduledStart: string | null;
   scheduledEnd: string | null;
+  actualStartedAt: string | null;
+  actualCompletedAt: string | null;
+  effectiveStart: string | null;
+  effectiveEnd: string | null;
   estimatedDurationMinutes: number;
   requiredSlots: number;
   filledSlots: number;
@@ -732,6 +741,8 @@ export async function getPlanningBoardData(
           scheduledDate: assignmentsTable.scheduledDate,
           scheduledStart: assignmentsTable.scheduledStart,
           scheduledEnd: assignmentsTable.scheduledEnd,
+          actualStartedAt: assignmentsTable.actualStartedAt,
+          actualCompletedAt: assignmentsTable.actualCompletedAt,
           requiredRegion: assignmentsTable.requiredRegion,
           requiredPersonnelCount: assignmentsTable.requiredPersonnelCount,
           customerId: assignmentsTable.customerId,
@@ -1081,6 +1092,13 @@ export async function getPlanningBoardData(
       const assignedPersonnelIds = personnelIdsByAssignment.get(row.id) ?? [];
       const requiredSlots = Math.max(row.requiredPersonnelCount ?? 1, requiredRoleIds.length, 1);
 
+      const timeProjection = buildAssignmentTimeProjection({
+        scheduledStart: row.scheduledStart ?? null,
+        scheduledEnd: row.scheduledEnd ?? null,
+        actualStartedAt: row.actualStartedAt ?? null,
+        actualCompletedAt: row.actualCompletedAt ?? null,
+      });
+
       return {
         id: row.id,
         code: row.code,
@@ -1088,8 +1106,12 @@ export async function getPlanningBoardData(
         status: row.status as AssignmentStatus,
         priority: row.priority as AssignmentPriority,
         scheduledDate: row.scheduledDate ?? null,
-        scheduledStart: row.scheduledStart ?? null,
-        scheduledEnd: row.scheduledEnd ?? null,
+        scheduledStart: timeProjection.plannedStart,
+        scheduledEnd: timeProjection.plannedEnd,
+        actualStartedAt: timeProjection.actualStart,
+        actualCompletedAt: timeProjection.actualEnd,
+        effectiveStart: timeProjection.effectiveStart,
+        effectiveEnd: timeProjection.effectiveEnd,
         customerId: row.customerId,
         customerName: row.customerName ?? "",
         objectId: row.objectId ?? null,
@@ -1141,6 +1163,10 @@ export async function getPlanningBoardData(
       sectorName: assignment.sectorName,
       scheduledStart: assignment.scheduledStart,
       scheduledEnd: assignment.scheduledEnd,
+      actualStartedAt: assignment.actualStartedAt,
+      actualCompletedAt: assignment.actualCompletedAt,
+      effectiveStart: assignment.effectiveStart,
+      effectiveEnd: assignment.effectiveEnd,
       estimatedDurationMinutes:
         assignment.requirements.estimatedDurationMinutes,
       requiredSlots: assignment.requiredSlots,
@@ -1171,7 +1197,7 @@ export async function getPlanningBoardData(
     const scheduledAssignments = (
       scheduledBlocksByPersonnel.get(row.id) ?? []
     ).sort((a, b) =>
-      (a.scheduledStart ?? "").localeCompare(b.scheduledStart ?? ""),
+      (a.effectiveStart ?? a.scheduledStart ?? "").localeCompare(b.effectiveStart ?? b.scheduledStart ?? ""),
     );
     return {
       id: row.id,
@@ -1193,8 +1219,8 @@ export async function getPlanningBoardData(
         (total, assignment) =>
           total +
           durationMinutes(
-            assignment.scheduledStart,
-            assignment.scheduledEnd,
+            assignment.effectiveStart,
+            assignment.effectiveEnd,
             assignment.estimatedDurationMinutes,
           ),
         0,
@@ -2637,6 +2663,10 @@ export async function scheduleAssignmentOnBoard(
     scheduledDate: date,
     scheduledStart: start,
     scheduledEnd: end,
+    actualStartedAt: null,
+    actualCompletedAt: null,
+    effectiveStart: start,
+    effectiveEnd: end,
     customerId: assignment.customerId,
     customerName: assignment.customerName ?? "",
     objectId: assignment.objectId ?? null,
@@ -2690,6 +2720,10 @@ export async function scheduleAssignmentOnBoard(
       sectorName: null,
       scheduledStart: row.scheduledStart ?? null,
       scheduledEnd: row.scheduledEnd ?? null,
+      actualStartedAt: null,
+      actualCompletedAt: null,
+      effectiveStart: row.scheduledStart ?? null,
+      effectiveEnd: row.scheduledEnd ?? null,
       estimatedDurationMinutes: durationMinutes(
         row.scheduledStart ?? null,
         row.scheduledEnd ?? null,

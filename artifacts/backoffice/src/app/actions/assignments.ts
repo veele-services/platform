@@ -23,6 +23,7 @@ import {
   ASSIGNMENT_STATUSES,
   ASSIGNMENT_PRIORITIES,
   ASSIGNMENT_STATUS_TRANSITIONS,
+  assertGenericAssignmentEditDoesNotTouchLifecycle,
   type AssignmentStatus,
   type AssignmentPriority,
   type SmartPlanningInterestResponseStatus,
@@ -3287,6 +3288,12 @@ export async function updateAssignment(
     customerSignatureRequired: Boolean(data.customerSignatureRequired),
   };
 
+  try {
+    assertGenericAssignmentEditDoesNotTouchLifecycle(data as unknown as Record<string, unknown>);
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : "Lifecycle velden vereisen expliciete acties." };
+  }
+
   const parsed = updateAssignmentSchema.safeParse(payload);
   if (!parsed.success) {
     const fieldErrors: Record<string, string> = {};
@@ -3298,10 +3305,15 @@ export async function updateAssignment(
   }
 
   try {
-    await db
+    const updatedRows = await db
       .update(assignmentsTable)
       .set({ ...parsed.data, updatedAt: new Date() })
-      .where(and(eq(assignmentsTable.id, id), eq(assignmentsTable.tenantId, tenantId)));
+      .where(and(eq(assignmentsTable.id, id), eq(assignmentsTable.tenantId, tenantId)))
+      .returning({ id: assignmentsTable.id });
+
+    if (updatedRows.length === 0) {
+      return { success: false, message: "Opdracht niet gevonden binnen deze organisatie." };
+    }
 
     await db.insert(auditLogTable).values({
       userId: user.id,

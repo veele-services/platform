@@ -7,6 +7,7 @@ import {
   customersTable,
   db,
   objectsTable,
+  buildAssignmentTimeProjection,
 } from "@workspace/db";
 import { emitAssignmentWorkflowEvent } from "@workspace/db/workflow-events";
 import { safelyInvalidateAssignmentRouteContexts } from "@workspace/db/planning-realtime";
@@ -22,6 +23,10 @@ export type MyAssignment = {
   scheduledDate:    string | null;
   scheduledStart:   string | null;
   scheduledEnd:     string | null;
+  actualStart:      string | null;
+  actualEnd:        string | null;
+  effectiveStart:   string | null;
+  effectiveEnd:     string | null;
   seenAt:           string | null;
   enRouteAt:        string | null;
   actualStartedAt:  string | null;
@@ -150,13 +155,24 @@ function todayKey(): string {
 }
 
 function mapAssignmentRow(row: AssignmentRow): MyAssignment {
+  const timeProjection = buildAssignmentTimeProjection({
+    scheduledStart: row.scheduledStart ?? null,
+    scheduledEnd: row.scheduledEnd ?? null,
+    actualStartedAt: row.actualStartedAt,
+    actualCompletedAt: row.actualCompletedAt,
+  });
+
   return {
     id:               row.id,
     code:             row.code ?? "",
     title:            row.title,
     scheduledDate:    row.scheduledDate ?? null,
-    scheduledStart:   row.scheduledStart ?? null,
-    scheduledEnd:     row.scheduledEnd ?? null,
+    scheduledStart:   timeProjection.plannedStart,
+    scheduledEnd:     timeProjection.plannedEnd,
+    actualStart:      timeProjection.actualStart,
+    actualEnd:        timeProjection.actualEnd,
+    effectiveStart:   timeProjection.effectiveStart,
+    effectiveEnd:     timeProjection.effectiveEnd,
     seenAt:           toIsoString(row.seenAt),
     enRouteAt:        toIsoString(row.enRouteAt),
     actualStartedAt:  toIsoString(row.actualStartedAt),
@@ -186,7 +202,7 @@ function sortAssignments(a: MyAssignment, b: MyAssignment): number {
   if (aFuture && bFuture) {
     const byDate = (a.scheduledDate ?? "").localeCompare(b.scheduledDate ?? "");
     if (byDate !== 0) return byDate;
-    return (a.scheduledStart ?? "99:99").localeCompare(b.scheduledStart ?? "99:99");
+    return (a.effectiveStart ?? a.scheduledStart ?? "99:99").localeCompare(b.effectiveStart ?? b.scheduledStart ?? "99:99");
   }
   return (b.scheduledDate ?? "").localeCompare(a.scheduledDate ?? "");
 }
@@ -590,6 +606,10 @@ export async function completeAssignment(
 
   const current = await getLinkedAssignment(personnel.id, personnel.tenantId, assignmentId);
   if (!current) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
+  if (current.status === "completed" && current.actualCompletedAt) {
+    revalidateAssignmentPaths(assignmentId);
+    return { success: true };
+  }
   if (current.status !== "in_progress") {
     return { success: false, error: "Start de werkbon voordat je deze afrondt" };
   }
@@ -602,18 +622,20 @@ export async function completeAssignment(
   const now = new Date();
 
   try {
-    await db
+    const completedRows = await db
       .update(assignmentsTable)
       .set({
         status:                   "completed",
-        actualCompletedAt:        now,
+        actualCompletedAt:        current.actualCompletedAt ?? now,
         completionReason:         null,
         completionNotes:          input.notes?.trim() || null,
         customerSignatureDataUrl: isSignatureDataUrl(signature) ? signature : null,
         customerSignedAt:         isSignatureDataUrl(signature) ? now : null,
         updatedAt:                now,
       })
-      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)));
+      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)))
+      .returning({ id: assignmentsTable.id });
+    if (completedRows.length === 0) return { success: false, error: "Afronden mislukt" };
   } catch {
     return { success: false, error: "Afronden mislukt" };
   }
@@ -652,6 +674,10 @@ export async function notCompleteAssignment(
 
   const current = await getLinkedAssignment(personnel.id, personnel.tenantId, assignmentId);
   if (!current) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
+  if (current.status === "not_completed" && current.actualCompletedAt) {
+    revalidateAssignmentPaths(assignmentId);
+    return { success: true };
+  }
   if (current.status !== "in_progress") {
     return { success: false, error: "Start de werkbon voordat je deze afmeldt" };
   }
@@ -668,18 +694,20 @@ export async function notCompleteAssignment(
   const now = new Date();
 
   try {
-    await db
+    const notCompletedRows = await db
       .update(assignmentsTable)
       .set({
         status:                   "not_completed",
-        actualCompletedAt:        now,
+        actualCompletedAt:        current.actualCompletedAt ?? now,
         completionReason:         reason,
         completionNotes:          notes || null,
         customerSignatureDataUrl: null,
         customerSignedAt:         null,
         updatedAt:                now,
       })
-      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)));
+      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)))
+      .returning({ id: assignmentsTable.id });
+    if (notCompletedRows.length === 0) return { success: false, error: "Afmelden mislukt" };
   } catch {
     return { success: false, error: "Afmelden mislukt" };
   }
