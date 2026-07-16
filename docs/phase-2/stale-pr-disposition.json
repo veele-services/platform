@@ -1,0 +1,15 @@
+{
+  "repository": "veele-services/platform",
+  "dispositions": [
+    { "number": 282, "title": "platform functional audit", "classification": "reference-only", "rationale": "Use audit findings as discovery input; do not merge because Phase 2 starts from a new authoritative contract." },
+    { "number": 283, "title": "customer PWA functional audit", "classification": "reference-only", "rationale": "Preserve customer visibility and privacy observations as requirements evidence." },
+    { "number": 284, "title": "interest selection scheduling", "classification": "concept to reimplement", "rationale": "Interest selection belongs in Phase 2 staffing semantics, but implementation must be rebuilt against the canonical lifecycle." },
+    { "number": 285, "title": "backoffice functional audit", "classification": "reference-only", "rationale": "Backoffice findings inform planboard and status contracts without carrying forward runtime changes." },
+    { "number": 286, "title": "credential challenge protocol", "classification": "tests/docs to port", "rationale": "Account recovery protocol evidence is in Phase 2 scope; port compatible docs/tests after contract approval." },
+    { "number": 287, "title": "personnel PWA functional audit", "classification": "reference-only", "rationale": "Use personnel workflow findings to shape execution/offline acceptance." },
+    { "number": 288, "title": "assignment P0 reproduction", "classification": "tests/docs to port", "rationale": "P0 reproduction should become deterministic acceptance coverage for generic overrides and zero-row updates." },
+    { "number": 289, "title": "availability atomicity", "classification": "concept to reimplement", "rationale": "Atomic availability semantics are required, but runtime code must wait for Phase 2 implementation workstreams." },
+    { "number": 290, "title": "finance/worker audit", "classification": "later-phase scope", "rationale": "Finance observations matter downstream, but Phase 2 only defines assignment-to-invoice visibility boundaries." },
+    { "number": 292, "title": "team execution architecture", "classification": "concept to reimplement", "rationale": "Multi-person execution is core Phase 2 scope and must be reimplemented under the participant aggregation contract." }
+  ]
+}
