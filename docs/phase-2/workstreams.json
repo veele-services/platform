@@ -1,0 +1,24 @@
+{
+  "phase": "fieldgrid-phase-2",
+  "startingSha": {
+    "main": "c13327593599e78abb266b0e6a231feac4aaa8f2",
+    "staging": "c13327593599e78abb266b0e6a231feac4aaa8f2"
+  },
+  "branch": "phase2/w00-program-bootstrap",
+  "target": "main",
+  "draftPrTitle": "Phase 2: define product-correctness and UX execution contracts",
+  "runtimeImplementationAllowed": false,
+  "workstreams": [
+    { "id": "w01-assignment-lifecycle", "name": "Assignment lifecycle and planning correctness", "owners": ["backoffice", "db"], "dependsOn": [], "outputs": ["canonical status reducer", "compatibility mapping", "zero-row update guards"] },
+    { "id": "w02-time-semantics", "name": "Planned versus actual execution time", "owners": ["backoffice", "personnel-pwa", "db"], "dependsOn": ["w01-assignment-lifecycle"], "outputs": ["planned/actual field contract", "display-window rules", "duration aggregation rules"] },
+    { "id": "w03-staffing-interest", "name": "Staffing, interest selection and readiness", "owners": ["backoffice", "personnel-pwa", "db"], "dependsOn": ["w01-assignment-lifecycle", "w02-time-semantics"], "outputs": ["required/assigned/reserve counts", "interest selection rules", "full-staffing transition"] },
+    { "id": "w04-availability-eligibility", "name": "Availability, leave, sickness and eligibility", "owners": ["backoffice", "personnel-pwa", "db"], "dependsOn": ["w02-time-semantics"], "outputs": ["conflict model", "eligibility predicates", "atomic availability writes"] },
+    { "id": "w05-multi-person-execution", "name": "Personnel execution and multi-person aggregation", "owners": ["personnel-pwa", "backoffice", "db"], "dependsOn": ["w03-staffing-interest", "w04-availability-eligibility"], "outputs": ["participant state machine", "assignment aggregate execution rules", "offline replay idempotency"] },
+    { "id": "w06-cross-surface-realtime", "name": "Realtime cross-surface projection contract", "owners": ["backoffice", "customer-portal", "personnel-pwa"], "dependsOn": ["w05-multi-person-execution"], "outputs": ["event names", "payload privacy boundary", "projection refresh rules"] },
+    { "id": "w07-planboard-ux", "name": "Planboard UX and responsive shared foundations", "owners": ["backoffice", "shared-ui"], "dependsOn": ["w03-staffing-interest", "w06-cross-surface-realtime"], "outputs": ["responsive shell", "accessible planning interactions", "shared tokens"] },
+    { "id": "w08-personnel-offline-pwa", "name": "Personnel PWA workflow and offline behavior", "owners": ["personnel-pwa"], "dependsOn": ["w05-multi-person-execution", "w06-cross-surface-realtime"], "outputs": ["offline queue contract", "media/report replay", "conflict resolution evidence"] },
+    { "id": "w09-customer-visibility", "name": "Customer portal downstream visibility", "owners": ["customer-portal", "backoffice"], "dependsOn": ["w06-cross-surface-realtime"], "outputs": ["customer projection matrix", "approved report visibility", "quotes/invoices/support boundaries"] },
+    { "id": "w10-account-recovery", "name": "Account activation and credential recovery", "owners": ["customer-portal", "personnel-pwa", "auth"], "dependsOn": [], "outputs": ["activation evidence", "credential recovery challenge contract", "responsive auth screens"] },
+    { "id": "w11-acceptance-evidence", "name": "Deterministic cross-surface acceptance evidence", "owners": ["qa", "release"], "dependsOn": ["w06-cross-surface-realtime", "w07-planboard-ux", "w08-personnel-offline-pwa", "w09-customer-visibility", "w10-account-recovery"], "outputs": ["Playwright scenarios", "static release gates", "runtime inventory non-regression"] }
+  ]
+}
