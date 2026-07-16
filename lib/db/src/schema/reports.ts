@@ -9,7 +9,8 @@ import {
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
-import { assignmentsTable } from "./assignments";
+import { assignmentParticipantExecutionsTable, assignmentPersonnelTable, assignmentsTable } from "./assignments";
+import { personnelTable } from "./personnel";
 import { tenantsTable } from "./tenants";
 
 export const REPORT_STATUSES = ["draft", "submitted", "approved", "rejected"] as const;
@@ -30,6 +31,13 @@ export const reportsTable = pgTable(
 
     /** Supabase Auth UUID of the staff member who submitted the report. */
     submittedBy:  uuid("submitted_by").notNull(),
+    assignmentParticipantExecutionId: uuid("assignment_participant_execution_id")
+      .references(() => assignmentParticipantExecutionsTable.id, { onDelete: "set null" }),
+    assignmentPersonnelId: uuid("assignment_personnel_id")
+      .references(() => assignmentPersonnelTable.id, { onDelete: "set null" }),
+    personnelId: uuid("personnel_id")
+      .references(() => personnelTable.id, { onDelete: "set null" }),
+    visibilityScope: varchar("visibility_scope", { length: 32 }).notNull().default("internal_until_approved"),
     submittedAt:  timestamp("submitted_at", { withTimezone: true }).notNull().defaultNow(),
 
     /** Current review status of this report. */
@@ -57,6 +65,8 @@ export const reportsTable = pgTable(
   (table) => [
     index("reports_tenant_idx").on(table.tenantId),
     index("reports_tenant_assignment_idx").on(table.tenantId, table.assignmentId),
+    index("reports_participant_execution_idx").on(table.tenantId, table.assignmentParticipantExecutionId),
+    index("reports_personnel_owner_idx").on(table.tenantId, table.personnelId, table.assignmentPersonnelId),
   ],
 );
 

@@ -8,7 +8,9 @@ import {
   integer,
   numeric,
   bigint,
+  jsonb,
   uniqueIndex,
+  index,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
@@ -53,6 +55,26 @@ export const ASSIGNMENT_MATERIAL_APPROVAL_STATUSES = [
 ] as const;
 export type AssignmentMaterialApprovalStatus =
   (typeof ASSIGNMENT_MATERIAL_APPROVAL_STATUSES)[number];
+
+
+export const ASSIGNMENT_PARTICIPANT_STATUSES = [
+  "assigned",
+  "seen",
+  "en_route",
+  "in_progress",
+  "paused",
+  "completed",
+  "not_completed",
+  "removed",
+] as const;
+export type AssignmentParticipantStatus = (typeof ASSIGNMENT_PARTICIPANT_STATUSES)[number];
+
+export const ASSIGNMENT_COMPLETION_POLICIES = [
+  "all_required_participants",
+  "any_participant",
+  "first_final_outcome",
+] as const;
+export type AssignmentCompletionPolicy = (typeof ASSIGNMENT_COMPLETION_POLICIES)[number];
 
 // ─── Allowed status transitions ────────────────────────────────────────────────
 
@@ -196,6 +218,50 @@ export const assignmentPersonnelTable = pgTable(
   ],
 );
 
+/** Canonical per-person execution record for one assigned participant. */
+export const assignmentParticipantExecutionsTable = pgTable(
+  "assignment_participant_executions",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    tenantId: uuid("tenant_id")
+      .notNull()
+      .references(() => tenantsTable.id, { onDelete: "cascade" }),
+    assignmentId: uuid("assignment_id")
+      .notNull()
+      .references(() => assignmentsTable.id, { onDelete: "cascade" }),
+    personnelId: uuid("personnel_id")
+      .notNull()
+      .references(() => personnelTable.id, { onDelete: "restrict" }),
+    assignmentPersonnelId: uuid("assignment_personnel_id")
+      .notNull()
+      .references(() => assignmentPersonnelTable.id, { onDelete: "restrict" }),
+    participantStatus: varchar("participant_status", { length: 32 }).notNull().default("assigned"),
+    seenAt: timestamp("seen_at", { withTimezone: true }),
+    actualStartedAt: timestamp("actual_started_at", { withTimezone: true }),
+    pausedAt: timestamp("paused_at", { withTimezone: true }),
+    resumedAt: timestamp("resumed_at", { withTimezone: true }),
+    actualCompletedAt: timestamp("actual_completed_at", { withTimezone: true }),
+    completionOutcome: varchar("completion_outcome", { length: 32 }),
+    completionReason: varchar("completion_reason", { length: 160 }),
+    completionNotes: text("completion_notes"),
+    completionPolicy: varchar("completion_policy", { length: 32 }).notNull().default("all_required_participants"),
+    idempotencyKey: text("idempotency_key"),
+    version: bigint("version", { mode: "number" }).notNull().default(1),
+    lastActorUserId: uuid("last_actor_user_id"),
+    lastActorPersonnelId: uuid("last_actor_personnel_id"),
+    auditMetadata: jsonb("audit_metadata").notNull().default({}),
+    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
+  },
+  (t) => [
+    uniqueIndex("assignment_participant_execution_link_unique").on(t.assignmentPersonnelId),
+    uniqueIndex("assignment_participant_execution_assignment_personnel_unique").on(t.assignmentId, t.personnelId),
+    index("assignment_participant_execution_assignment_idx").on(t.tenantId, t.assignmentId, t.participantStatus),
+    index("assignment_participant_execution_personnel_idx").on(t.tenantId, t.personnelId, t.participantStatus),
+  ],
+);
+
+
 /** Task codes scoped to an assignment (the actual work to be performed). */
 export const assignmentTasksTable = pgTable("assignment_tasks", {
   id:           uuid("id").primaryKey().defaultRandom(),
@@ -248,6 +314,13 @@ export const assignmentPhotosTable = pgTable("assignment_photos", {
     .references(() => assignmentExtraWorkTable.id, { onDelete: "set null" }),
   storagePath:  text("storage_path").notNull(),
   uploadedBy:   uuid("uploaded_by").notNull(),
+  assignmentParticipantExecutionId: uuid("assignment_participant_execution_id")
+    .references(() => assignmentParticipantExecutionsTable.id, { onDelete: "set null" }),
+  assignmentPersonnelId: uuid("assignment_personnel_id")
+    .references(() => assignmentPersonnelTable.id, { onDelete: "set null" }),
+  personnelId: uuid("personnel_id")
+    .references(() => personnelTable.id, { onDelete: "set null" }),
+  visibilityScope: varchar("visibility_scope", { length: 32 }).notNull().default("internal_until_approved"),
   /** Set to true by management (backoffice) to make the photo visible to the customer. */
   isApproved:   boolean("is_approved").notNull().default(false),
   createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
