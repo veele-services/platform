@@ -32,6 +32,7 @@ import {
   calculateAssignmentCapacity,
   getSmartPlanningRoundDefaults,
 } from "@workspace/db/planning-intelligence";
+import { selectInterestCandidateCanonically } from "@workspace/db/interest-selection-staffing";
 import {
   eq,
   ilike,
@@ -2355,27 +2356,19 @@ export async function markInterestCandidate(
 
   const tenantId = await requireCurrentTenantId();
 
-  const [response] = await db
-    .select({
-      id: assignmentInterestResponsesTable.id,
-      personnelId: assignmentInterestResponsesTable.personnelId,
-    })
-    .from(assignmentInterestResponsesTable)
-    .innerJoin(assignmentsTable, eq(assignmentInterestResponsesTable.assignmentId, assignmentsTable.id))
-    .where(
-      and(
-        eq(assignmentInterestResponsesTable.assignmentId, assignmentId),
-        eq(assignmentInterestResponsesTable.personnelId, personnelId),
-        eq(assignmentsTable.tenantId, tenantId),
-      ),
-    )
-    .orderBy(desc(assignmentInterestResponsesTable.createdAt))
-    .limit(1);
-
-  if (!response) {
+  let selection;
+  try {
+    selection = await selectInterestCandidateCanonically({
+      tenantId,
+      assignmentId: assignmentId.trim(),
+      personnelId: personnelId.trim(),
+      status,
+      actorUserId: user.id,
+    });
+  } catch (error) {
     return {
       success: false,
-      message: "Deze medewerker heeft nog geen interesse-uitnodiging voor deze opdracht.",
+      message: error instanceof Error ? error.message : "Selectie kon niet worden verwerkt.",
     };
   }
 
@@ -2395,31 +2388,18 @@ export async function markInterestCandidate(
         lastName: personnelTable.lastName,
       })
       .from(personnelTable)
-      .where(eq(personnelTable.id, personnelId))
+      .where(and(eq(personnelTable.id, personnelId), eq(personnelTable.tenantId, tenantId)))
       .limit(1),
   ]);
 
-  await db.transaction(async (tx) => {
-    await tx
-      .update(assignmentInterestResponsesTable)
-      .set({
-        status,
-        selectedAt: status === "selected" || status === "reserve" ? new Date() : null,
-        updatedAt: new Date(),
-      })
-      .where(eq(assignmentInterestResponsesTable.id, response.id));
-
-    await tx.insert(auditLogTable).values({
-      tenantId,
-      userId: user.id,
-      action: `assignment_interest_${status}`,
-      resource: "assignments",
-      resourceId: assignmentId,
-      metadata: {
-        personnelId,
-        responseId: response.id,
-      },
-    });
+  await safeRefreshPlanningRoutesForAssignment({
+    tenantId,
+    userId: user.id,
+    assignmentId,
+    reason: "assignment_assigned",
+    status: selection.assignmentStatus,
+    personnelIds: [personnelId],
+    source: "backoffice",
   });
 
   if (status !== "cancelled" && assignment && personnel) {
@@ -2438,11 +2418,14 @@ export async function markInterestCandidate(
           id: assignmentId,
           code: assignment.code,
           title: assignment.title,
+          status: selection.assignmentStatus,
+          assignedCount: selection.assignedCount,
+          requiredPersonnelCount: selection.requiredPersonnelCount,
         },
         recipient: {
           name: `${personnel.firstName} ${personnel.lastName}`.trim(),
         },
-        href: "/openstaand",
+        href: selection.canonicalAssignmentLinked ? "/opdrachten" : "/openstaand",
       },
       fallback: {
         title:
@@ -2455,7 +2438,7 @@ export async function markInterestCandidate(
             : "Planning heeft je geselecteerd voor deze opdracht.",
         category: "planning",
         priority: "normal",
-        href: "/openstaand",
+        href: selection.canonicalAssignmentLinked ? "/opdrachten" : "/openstaand",
       },
       audit: false,
     });
@@ -2464,6 +2447,8 @@ export async function markInterestCandidate(
 
   revalidatePath(`/assignments/${assignmentId}`);
   revalidatePath("/planning");
+  revalidatePath("/personeel/opdrachten");
+  revalidatePath("/personeel/openstaand");
   return { success: true };
 }
 

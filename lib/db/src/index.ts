@@ -28,3 +28,4 @@ export * from "./assignment-time-projection";
 export * from "./credential-recovery";
 export * from "./personnel-availability";
 export * from "./planning-eligibility";
+export * from "./interest-selection-staffing";
