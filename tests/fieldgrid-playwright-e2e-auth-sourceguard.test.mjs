@@ -332,6 +332,10 @@ test('liveness is unauthenticated and authenticated acceptance runs exactly once
   const stack = start();
   const runner = read('e2e/fieldgrid/run-playwright.mjs');
   const livenessBlock = stack.slice(stack.indexOf('async function liveness()'), stack.indexOf('async function authenticatedPreflight()'));
+  assert.match(stack, /let pendingLiveness/);
+  assert.match(livenessBlock, /if \(pendingLiveness\) return pendingLiveness/);
+  assert.match(livenessBlock, /pendingLiveness = \(async \(\) => \{/);
+  assert.match(livenessBlock, /finally\(\(\) => \{\s+pendingLiveness = null;\s+\}\)/);
   assert.match(livenessBlock, /probeLivenessApp/);
   assert.doesNotMatch(livenessBlock, /proveDataPath|fieldgrid_e2e_auth_user/);
   assert.match(stack, /preflight\.json/);

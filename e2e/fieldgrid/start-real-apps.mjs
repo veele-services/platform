@@ -38,6 +38,7 @@ const children = new Map();
 let gatewayServer;
 let orchestratorServer;
 let latestLiveness = { ready: false, checks: [] };
+let pendingLiveness;
 let latestPreflight;
 let dataPathProof;
 
@@ -285,17 +286,23 @@ async function probeLivenessApp(name, port, host, path = '/login') {
 }
 
 async function liveness() {
-  const checks = [];
-  const databaseEndpoint = new URL(configuredDatabaseUrl);
-  checks.push({ name: 'postgresql', ok: await tcpReachable(databaseEndpoint.hostname, Number(databaseEndpoint.port || 5432)), checkedAt: new Date().toISOString() });
-  checks.push({ name: 'postgrest', ok: await fetchWithTimeout(new URL('/', postgrestOrigin), {}, 1000).then((r) => r.status >= 200 && r.status < 300).catch(() => false), checkedAt: new Date().toISOString() });
-  checks.push({ name: 'gateway', ok: await fetchWithTimeout(`http://127.0.0.1:${ports.gateway}/healthz`).then((r) => r.status === 200).catch(() => false), checkedAt: new Date().toISOString() });
-  checks.push(await probeLivenessApp('backoffice-login', ports.backoffice, 'tenant-a.runtime.fieldgrid.test'));
-  checks.push(await probeLivenessApp('personnel-login', ports.personnel, 'tenant-a.runtime.fieldgrid.test', '/personeel/login'));
-  checks.push(await probeLivenessApp('customer-login', ports.customer, 'tenant-a.runtime.fieldgrid.test', '/klant/login'));
-  latestLiveness = { ready: checks.every((check) => check.ok), checks };
-  await writeAtomicJson(statusPath, { ...latestLiveness, ports, artifactDir });
-  return latestLiveness;
+  if (pendingLiveness) return pendingLiveness;
+  pendingLiveness = (async () => {
+    const checks = [];
+    const databaseEndpoint = new URL(configuredDatabaseUrl);
+    checks.push({ name: 'postgresql', ok: await tcpReachable(databaseEndpoint.hostname, Number(databaseEndpoint.port || 5432)), checkedAt: new Date().toISOString() });
+    checks.push({ name: 'postgrest', ok: await fetchWithTimeout(new URL('/', postgrestOrigin), {}, 1000).then((r) => r.status >= 200 && r.status < 300).catch(() => false), checkedAt: new Date().toISOString() });
+    checks.push({ name: 'gateway', ok: await fetchWithTimeout(`http://127.0.0.1:${ports.gateway}/healthz`).then((r) => r.status === 200).catch(() => false), checkedAt: new Date().toISOString() });
+    checks.push(await probeLivenessApp('backoffice-login', ports.backoffice, 'tenant-a.runtime.fieldgrid.test'));
+    checks.push(await probeLivenessApp('personnel-login', ports.personnel, 'tenant-a.runtime.fieldgrid.test', '/personeel/login'));
+    checks.push(await probeLivenessApp('customer-login', ports.customer, 'tenant-a.runtime.fieldgrid.test', '/klant/login'));
+    latestLiveness = { ready: checks.every((check) => check.ok), checks };
+    await writeAtomicJson(statusPath, { ...latestLiveness, ports, artifactDir });
+    return latestLiveness;
+  })().finally(() => {
+    pendingLiveness = null;
+  });
+  return pendingLiveness;
 }
 
 async function authenticatedPreflight() {
