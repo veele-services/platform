@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "artifactName": "fieldgrid-runtime-entrypoint-inventory-full",
   "artifactPath": "artifacts/runtime-entrypoints/fieldgrid-runtime-entrypoint-inventory.full.json",
-  "inventoryHash": "sha256:a5112baf929c65f3fbaacd5f4d1912b99fbb21b33c313db6ecfe902899c285c0",
+  "inventoryHash": "sha256:eeab7b179736123b86276a001d07363aee5a86d6252ea11f9ab4fd6cf289ae06",
   "runtimeRoots": [
     "artifacts/backoffice/src",
     "artifacts/personeel-pwa/src",
@@ -68,7 +68,7 @@
     "webhook-handler": "sha256:f96816dc938acc730f7e56e796e49c90eed5f94fd6f04640e9edf8d3912fe235",
     "worker-entrypoint": "sha256:a89218c8aee687b05a31dd1add0f0ec40552d9ff1fadf7d2e0726e6455f14629",
     "scheduled-entrypoint": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-    "database-callsite": "sha256:60e48ba9188611bd8743561c23a1024e1d1e714ddbd9f99d75d644af75948392",
+    "database-callsite": "sha256:6daf2b5f590a4826f27f7a5f971189ff87e2fee1ca404a143abe08de7f8be989",
     "rpc-callsite": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
     "raw-sql-callsite": "sha256:a992f361e214474e2875e2c7f3ebd57bde6da1e9ba119f489983fd7f394c0fb9",
     "provider-boundary": "sha256:2f7073db8b7e5fcc793293d2b89850f1973c1ff5348abb063fff8a24c6cfb973",
