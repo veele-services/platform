@@ -1,0 +1,22 @@
+@theme {
+  --color-status-info: #3b82f6;
+  --color-status-info-foreground: #1d4ed8;
+  --color-status-pending: #f59e0b;
+  --color-status-pending-foreground: #92400e;
+  --color-status-success: #10b981;
+  --color-status-success-foreground: #047857;
+  --color-status-warning: #f59e0b;
+  --color-status-warning-foreground: #92400e;
+  --color-status-danger: #ef4444;
+  --color-status-danger-foreground: #b91c1c;
+}
+@layer base {
+  :where(a, button, input, select, textarea, summary, [tabindex]:not([tabindex="-1"])):focus-visible {
+    outline: 2px solid var(--color-ring, var(--color-accent, #00b7b3));
+    outline-offset: 2px;
+  }
+  :where(button, [role="button"], input, select, textarea) { min-height: 44px; }
+  @media (prefers-reduced-motion: reduce) {
+    *, ::before, ::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+  }
+}
