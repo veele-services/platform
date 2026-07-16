@@ -25,3 +25,4 @@ export * from "./sensitive-access";
 export * from "./invoice-numbering";
 export * from "./invoice-finalization";
 export * from "./assignment-time-projection";
+export * from "./credential-recovery";
