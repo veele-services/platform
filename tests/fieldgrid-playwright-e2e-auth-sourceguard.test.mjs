@@ -1,6 +1,9 @@
 import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
+import path from 'node:path';
 import test from 'node:test';
+import vm from 'node:vm';
+import ts from 'typescript';
 
 const read = (file) => readFileSync(file, 'utf8');
 const start = () => read('e2e/fieldgrid/start-real-apps.mjs');
@@ -8,6 +11,93 @@ const seam = () => read('lib/db/src/e2e-auth-adapter.ts');
 const workflow = () => read('.github/workflows/fieldgrid-playwright.yml');
 const browserSpec = () => read('e2e/fieldgrid/tests/golden-path.spec.ts');
 const playwrightConfig = () => read('playwright.config.ts');
+const root = process.cwd();
+const ALLOWLISTED_E2E_USER_ID = '20000000-0000-4000-8000-000000000101';
+const UNKNOWN_E2E_USER_ID = '20000000-0000-4000-8000-000000009999';
+const E2E_ENV = {
+  FIELDGRID_E2E_AUTH_ENABLED: 'true',
+  FIELDGRID_E2E_JWT_SECRET: 'fieldgrid-e2e-local-secret-with-at-least-32-bytes',
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: 'fieldgrid-e2e-anon-key',
+  NODE_ENV: 'test',
+};
+
+function extractFunction(source, name) {
+  const signature = `export function ${name}`;
+  const startIndex = source.indexOf(signature);
+  assert.notEqual(startIndex, -1, `${name} must exist`);
+  const braceStart = source.indexOf('{', startIndex);
+  assert.notEqual(braceStart, -1, `${name} must have a body`);
+  let depth = 0;
+  for (let index = braceStart; index < source.length; index += 1) {
+    if (source[index] === '{') depth += 1;
+    if (source[index] === '}') depth -= 1;
+    if (depth === 0) return source.slice(startIndex, index + 1);
+  }
+  throw new Error(`Could not extract ${name}`);
+}
+
+function loadE2EAuthAdapter() {
+  const filename = path.join(root, 'lib/db/src/e2e-auth-adapter.ts');
+  const js = ts.transpileModule(read('lib/db/src/e2e-auth-adapter.ts'), {
+    compilerOptions: {
+      module: ts.ModuleKind.CommonJS,
+      target: ts.ScriptTarget.ES2022,
+      esModuleInterop: true,
+    },
+  }).outputText;
+  const module = { exports: {} };
+  let fetchImpl = async () => new Response(null, { status: 204 });
+  vm.runInNewContext(js, {
+    module,
+    exports: module.exports,
+    process,
+    URL,
+    Request,
+    Headers,
+    Response,
+    TextEncoder,
+    crypto: globalThis.crypto,
+    btoa: globalThis.btoa,
+    fetch: (...args) => fetchImpl(...args),
+  }, { filename });
+  return {
+    exports: module.exports,
+    setFetchImpl(nextFetchImpl) {
+      fetchImpl = nextFetchImpl;
+    },
+  };
+}
+
+async function withEnv(env, callback) {
+  const previous = new Map();
+  for (const [key, value] of Object.entries(env)) {
+    previous.set(key, Object.hasOwn(process.env, key) ? process.env[key] : undefined);
+    if (value === undefined) delete process.env[key];
+    else process.env[key] = value;
+  }
+  try {
+    return await callback();
+  } finally {
+    for (const [key, value] of previous) {
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+    }
+  }
+}
+
+function cookieContext(userId) {
+  return {
+    headers: {
+      get(name) {
+        return name.toLowerCase() === 'cookie' ? `fieldgrid_e2e_auth_user=${encodeURIComponent(userId)}` : null;
+      },
+    },
+  };
+}
+
+function jwtPayload(token) {
+  return JSON.parse(Buffer.from(token.split('.')[1], 'base64url').toString('utf8'));
+}
 
 test('runner starts real Fieldgrid apps and does not serve mock application HTML', () => {
   const source = start();
@@ -86,6 +176,92 @@ test('authenticated data fetch injects local JWT only for local gateway requests
   assert.match(source, /LOCAL_GATEWAY_ORIGIN/);
   assert.match(source, /apikey/);
   assert.doesNotMatch(source, /service_role/);
+});
+
+test('E2E data fetch defers fixture identity lookup and keeps real data access fail-closed', async () => {
+  const source = seam();
+  const fetchFunction = extractFunction(source, 'createFieldgridE2EFetch');
+  const returnIndex = fetchFunction.indexOf('return async');
+  const lookupIndex = fetchFunction.indexOf('fieldgridE2EFixtureUserId(context)');
+  assert.ok(returnIndex >= 0, 'createFieldgridE2EFetch must return an async fetch function');
+  assert.ok(lookupIndex > returnIndex, 'fixture identity lookup must happen inside the returned fetch');
+  assert.doesNotMatch(fetchFunction.slice(0, returnIndex), /fieldgridE2EFixtureUserId\(context\)/);
+  assert.match(fetchFunction, /return async \(input, init = \{\}\) => \{\s+const userId = fieldgridE2EFixtureUserId\(context\);/);
+
+  const { exports: adapter, setFetchImpl } = loadE2EAuthAdapter();
+  const { createFieldgridE2EAuthClient, createFieldgridE2EFetch } = adapter;
+
+  await withEnv(E2E_ENV, async () => {
+    let noCookieFetch;
+    assert.doesNotThrow(() => {
+      noCookieFetch = createFieldgridE2EFetch({});
+    });
+
+    let noCookieClient;
+    assert.doesNotThrow(() => {
+      noCookieClient = createFieldgridE2EAuthClient({ auth: { getUser: async () => ({ data: { user: { id: 'unexpected' } }, error: null }) } }, {});
+    });
+    const noCookieUser = await noCookieClient.auth.getUser();
+    assert.equal(noCookieUser.data.user, null);
+    assert.equal(noCookieUser.error, null);
+
+    await assert.rejects(
+      () => noCookieFetch('http://127.0.0.1:9324/rest/v1/assignments?select=id'),
+      /explicit allowlisted fixture user cookie/,
+    );
+
+    let unknownUserFetch;
+    assert.doesNotThrow(() => {
+      unknownUserFetch = createFieldgridE2EFetch(cookieContext(UNKNOWN_E2E_USER_ID));
+    });
+    await assert.rejects(
+      () => unknownUserFetch('http://127.0.0.1:9324/rest/v1/assignments?select=id'),
+      /explicit allowlisted fixture user cookie/,
+    );
+
+    let capturedRequest;
+    setFetchImpl(async (request) => {
+      capturedRequest = request;
+      return new Response(null, { status: 204 });
+    });
+    const allowlistedFetch = createFieldgridE2EFetch(cookieContext(ALLOWLISTED_E2E_USER_ID));
+    const response = await allowlistedFetch('http://127.0.0.1:9324/rest/v1/assignments?select=id');
+    assert.equal(response.status, 204);
+    assert.equal(capturedRequest.url, 'http://127.0.0.1:9324/rest/v1/assignments?select=id');
+    assert.equal(capturedRequest.headers.get('apikey'), 'fieldgrid-e2e-anon-key');
+    const authorization = capturedRequest.headers.get('Authorization');
+    assert.match(authorization, /^Bearer /);
+    const payload = jwtPayload(authorization.slice('Bearer '.length));
+    assert.equal(payload.sub, ALLOWLISTED_E2E_USER_ID);
+    assert.equal(payload.email, 'owner@tenant-a.runtime.fieldgrid.test');
+    assert.equal(payload.role, 'authenticated');
+    assert.equal(payload.aud, 'authenticated');
+    assert.equal(payload.exp - payload.iat, 900);
+    assert.equal(payload.tenant_id, undefined);
+
+    let upstreamCalled = false;
+    setFetchImpl(async () => {
+      upstreamCalled = true;
+      return new Response(null, { status: 204 });
+    });
+    await assert.rejects(
+      () => allowlistedFetch('http://localhost:9324/rest/v1/assignments?select=id'),
+      /must stay on http:\/\/127\.0\.0\.1:9324/,
+    );
+    assert.equal(upstreamCalled, false);
+  });
+
+  await withEnv({ ...E2E_ENV, NODE_ENV: 'production' }, async () => {
+    const productionFetch = createFieldgridE2EFetch(cookieContext(ALLOWLISTED_E2E_USER_ID));
+    await assert.rejects(
+      () => productionFetch('http://127.0.0.1:9324/rest/v1/assignments?select=id'),
+      /forbidden in production/,
+    );
+    assert.throws(
+      () => createFieldgridE2EAuthClient({ auth: {} }, cookieContext(ALLOWLISTED_E2E_USER_ID)),
+      /forbidden in production/,
+    );
+  });
 });
 
 test('middleware continues normal guard flow and does not E2E short-circuit', () => {

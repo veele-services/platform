@@ -137,8 +137,8 @@ function boundGet(target: object, property: string | symbol, receiver: unknown) 
 }
 
 export function createFieldgridE2EFetch(context: E2EContext): typeof fetch {
-  const userId = fieldgridE2EFixtureUserId(context);
   return async (input, init = {}) => {
+    const userId = fieldgridE2EFixtureUserId(context);
     const original = new Request(input, init);
     const url = new URL(original.url);
     if (url.origin !== LOCAL_GATEWAY_ORIGIN) {
