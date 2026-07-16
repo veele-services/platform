@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { createPortalRefreshScheduler, subscribeToPortalRealtimeEvents } from "@/lib/realtime/portal-realtime-client";
 import { createClient } from "@/lib/supabase/client";
 
 type Props = {
@@ -12,45 +13,30 @@ type Props = {
 export function BackofficeRealtimeProvider({ realtimeKey, children }: Props) {
   const router = useRouter();
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastRefreshAtRef = useRef(0);
 
-  const scheduleRefresh = useCallback(() => {
-    if (refreshTimerRef.current) {
-      clearTimeout(refreshTimerRef.current);
-    }
-
-    refreshTimerRef.current = setTimeout(() => {
-      router.refresh();
-      refreshTimerRef.current = null;
-    }, 220);
-  }, [router]);
+  const scheduleRefresh = useCallback(
+    createPortalRefreshScheduler({
+      router,
+      timerRef: refreshTimerRef,
+      lastRefreshAtRef,
+      debounceMs: 220,
+      minRefreshIntervalMs: 15_000,
+    }),
+    [router],
+  );
 
   useEffect(() => {
     if (!realtimeKey) return;
 
-    let closed = false;
-
     try {
       const supabase = createClient();
-      const channel = supabase
-        .channel(`backoffice-live:${realtimeKey}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "portal_realtime_events",
-            filter: `realtime_key=eq.${realtimeKey}`,
-          },
-          () => {
-            if (!closed) scheduleRefresh();
-          },
-        )
-        .subscribe();
-
-      return () => {
-        closed = true;
-        void supabase.removeChannel(channel);
-      };
+      return subscribeToPortalRealtimeEvents({
+        client: supabase,
+        realtimeKey,
+        channelPrefix: "backoffice-live",
+        scheduleRefresh,
+      });
     } catch {
       return;
     }

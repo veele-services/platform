@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
+import { createPortalRefreshScheduler, subscribeToPortalRealtimeEvents } from "@/lib/realtime/portal-realtime-client";
 import { createClient } from "@/lib/supabase/client";
 
 type Props = {
@@ -19,51 +20,29 @@ export function CustomerRealtimeProvider({ customerId, children }: Props) {
   const lastRefreshAtRef = useRef(0);
   const hiddenAtRef = useRef<number | null>(null);
 
-  const scheduleRefresh = useCallback((force = false) => {
-    const now = Date.now();
-    if (!force && now - lastRefreshAtRef.current < MIN_REFRESH_INTERVAL_MS) {
-      return;
-    }
-
-    if (refreshTimerRef.current) {
-      clearTimeout(refreshTimerRef.current);
-    }
-
-    refreshTimerRef.current = setTimeout(() => {
-      lastRefreshAtRef.current = Date.now();
-      router.refresh();
-      refreshTimerRef.current = null;
-    }, REFRESH_DEBOUNCE_MS);
-  }, [router]);
+  const scheduleRefresh = useCallback(
+    createPortalRefreshScheduler({
+      router,
+      timerRef: refreshTimerRef,
+      lastRefreshAtRef,
+      debounceMs: REFRESH_DEBOUNCE_MS,
+      minRefreshIntervalMs: MIN_REFRESH_INTERVAL_MS,
+    }),
+    [router],
+  );
 
   useEffect(() => {
     if (!customerId) return;
 
     const realtimeKey = `customer_${customerId}`;
-    let closed = false;
-
     try {
       const supabase = createClient();
-      const channel = supabase
-        .channel(`customer-live:${realtimeKey}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "portal_realtime_events",
-            filter: `realtime_key=eq.${realtimeKey}`,
-          },
-          () => {
-            if (!closed) scheduleRefresh(true);
-          },
-        )
-        .subscribe();
-
-      return () => {
-        closed = true;
-        void supabase.removeChannel(channel);
-      };
+      return subscribeToPortalRealtimeEvents({
+        client: supabase,
+        realtimeKey,
+        channelPrefix: "customer-live",
+        scheduleRefresh,
+      });
     } catch {
       return;
     }
