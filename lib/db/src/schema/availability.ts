@@ -46,6 +46,9 @@ export const availabilityWindowsTable = pgTable(
     createdAt: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (t) => [
     uniqueIndex("avail_windows_personnel_dow_idx").on(
