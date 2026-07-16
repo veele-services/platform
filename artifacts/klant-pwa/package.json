@@ -21,7 +21,8 @@
     "react": "catalog:",
     "react-dom": "catalog:",
     "tailwind-merge": "catalog:",
-    "zod": "catalog:"
+    "zod": "catalog:",
+    "@workspace/shared-ui": "workspace:*"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.14",
