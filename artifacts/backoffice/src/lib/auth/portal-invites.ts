@@ -224,8 +224,12 @@ export async function setExistingAuthUserTemporaryPassword(opts: {
 
   const issuedAt = new Date().toISOString();
   const fullName = opts.fullName?.trim() || current.user.user_metadata?.["full_name"] || current.user.email || opts.email;
+  const internalAuthPassword = opts.temporaryPasswordKind === "reset_code"
+    ? generateTemporaryPassword()
+    : opts.temporaryPassword;
+
   const { data, error } = await admin.auth.admin.updateUserById(opts.userId, {
-    password: opts.temporaryPassword,
+    password: internalAuthPassword,
     email_confirm: true,
     app_metadata: temporaryPasswordAppMetadata({
       existing: current.user.app_metadata,
