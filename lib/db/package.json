@@ -18,6 +18,7 @@
     "./planning-realtime": "./src/planning-realtime.ts",
     "./workflow-events": "./src/workflow-events.ts",
     "./planning-intelligence": "./src/planning-intelligence.ts",
+    "./interest-selection-staffing": "./src/interest-selection-staffing.ts",
     "./e2e-auth-adapter": "./src/e2e-auth-adapter.ts"
   },
   "scripts": {
