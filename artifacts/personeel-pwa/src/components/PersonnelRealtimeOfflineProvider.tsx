@@ -19,6 +19,7 @@ import {
   updateOfflineWorkOrderAction,
   type OfflineWorkOrderAction,
 } from "@/lib/offline/work-order-queue";
+import { createPortalRefreshScheduler, subscribeToPortalRealtimeEvents } from "@/lib/realtime/portal-realtime-client";
 import { createClient } from "@/lib/supabase/client";
 
 type Props = {
@@ -125,22 +126,16 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
   const lastRefreshAtRef = useRef(0);
   const hiddenAtRef = useRef<number | null>(null);
 
-  const scheduleRefresh = useCallback((force = false) => {
-    const now = Date.now();
-    if (!force && now - lastRefreshAtRef.current < MIN_REFRESH_INTERVAL_MS) {
-      return;
-    }
-
-    if (refreshTimerRef.current) {
-      clearTimeout(refreshTimerRef.current);
-    }
-
-    refreshTimerRef.current = setTimeout(() => {
-      lastRefreshAtRef.current = Date.now();
-      router.refresh();
-      refreshTimerRef.current = null;
-    }, REFRESH_DEBOUNCE_MS);
-  }, [router]);
+  const scheduleRefresh = useCallback(
+    createPortalRefreshScheduler({
+      router,
+      timerRef: refreshTimerRef,
+      lastRefreshAtRef,
+      debounceMs: REFRESH_DEBOUNCE_MS,
+      minRefreshIntervalMs: MIN_REFRESH_INTERVAL_MS,
+    }),
+    [router],
+  );
 
   const updateQueueCount = useCallback(() => {
     setPendingCount(getOfflineWorkOrderQueueCount());
@@ -307,36 +302,16 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
       return;
     }
 
-    let closed = false;
-    setRealtimeState("connecting");
-
     try {
       const realtimeKey = `personnel_${personnelId}`;
       const supabase = createClient();
-      const channel = supabase
-        .channel(`portal-live:${realtimeKey}`)
-        .on(
-          "postgres_changes",
-          {
-            event: "INSERT",
-            schema: "public",
-            table: "portal_realtime_events",
-            filter: `realtime_key=eq.${realtimeKey}`,
-          },
-          () => scheduleRefresh(true),
-        )
-        .subscribe((status) => {
-          if (closed) return;
-          if (status === "SUBSCRIBED") setRealtimeState("active");
-          if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
-            setRealtimeState("error");
-          }
-        });
-
-      return () => {
-        closed = true;
-        void supabase.removeChannel(channel);
-      };
+      return subscribeToPortalRealtimeEvents({
+        client: supabase,
+        realtimeKey,
+        channelPrefix: "portal-live",
+        scheduleRefresh,
+        onStatus: setRealtimeState,
+      });
     } catch {
       setRealtimeState("error");
       return;
