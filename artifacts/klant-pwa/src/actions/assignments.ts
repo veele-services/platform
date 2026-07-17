@@ -29,26 +29,32 @@ import { revalidatePath } from "next/cache";
 import { getMyCustomerIdentity } from "./customer";
 import { createClient } from "@/lib/supabase/server";
 
-const CUSTOMER_VISIBLE_QUOTE_STATUSES: QuoteStatus[] = ["sent", "approved", "rejected", "expired"];
+// Customer-visible quote states: ["sent", "approved", "rejected", "expired"]
+const CUSTOMER_VISIBLE_QUOTE_STATUSES = [
+  "sent",
+  "approved",
+  "rejected",
+  "expired",
+] satisfies QuoteStatus[];
 
 export type CustomerAssignment = {
-  id:               string;
-  objectId:         string | null;
-  code:             string;
-  title:            string;
-  status:           AssignmentStatus;
-  scheduledDate:    string | null;
-  scheduledStart:   string | null;
-  scheduledEnd:     string | null;
-  objectName:       string | null;
-  objectAddress:    string | null;
-  objectCity:       string | null;
-  createdAt:        string;
+  id: string;
+  objectId: string | null;
+  code: string;
+  title: string;
+  status: AssignmentStatus;
+  scheduledDate: string | null;
+  scheduledStart: string | null;
+  scheduledEnd: string | null;
+  objectName: string | null;
+  objectAddress: string | null;
+  objectCity: string | null;
+  createdAt: string;
   /** Linked quote (if any). */
-  quoteId:          string | null;
-  quoteNumber:      string | null;
-  quoteAmount:      string | null;
-  quoteStatus:      QuoteStatus | null;
+  quoteId: string | null;
+  quoteNumber: string | null;
+  quoteAmount: string | null;
+  quoteStatus: QuoteStatus | null;
   quoteValidityDate: string | null;
 };
 
@@ -58,22 +64,22 @@ export async function getMyAssignments(): Promise<CustomerAssignment[]> {
 
   const rows = await db
     .select({
-      id:               assignmentsTable.id,
-      objectId:         assignmentsTable.objectId,
-      code:             assignmentsTable.code,
-      title:            assignmentsTable.title,
-      status:           assignmentsTable.status,
-      scheduledDate:    assignmentsTable.scheduledDate,
-      scheduledStart:   assignmentsTable.scheduledStart,
-      scheduledEnd:     assignmentsTable.scheduledEnd,
-      createdAt:        assignmentsTable.createdAt,
-      objectName:       objectsTable.name,
-      objectAddress:    objectsTable.address,
-      objectCity:       objectsTable.city,
-      quoteId:          quotesTable.id,
-      quoteNumber:      quotesTable.quoteNumber,
-      quoteAmount:      quotesTable.amount,
-      quoteStatus:      quotesTable.status,
+      id: assignmentsTable.id,
+      objectId: assignmentsTable.objectId,
+      code: assignmentsTable.code,
+      title: assignmentsTable.title,
+      status: assignmentsTable.status,
+      scheduledDate: assignmentsTable.scheduledDate,
+      scheduledStart: assignmentsTable.scheduledStart,
+      scheduledEnd: assignmentsTable.scheduledEnd,
+      createdAt: assignmentsTable.createdAt,
+      objectName: objectsTable.name,
+      objectAddress: objectsTable.address,
+      objectCity: objectsTable.city,
+      quoteId: quotesTable.id,
+      quoteNumber: quotesTable.quoteNumber,
+      quoteAmount: quotesTable.amount,
+      quoteStatus: quotesTable.status,
       quoteValidityDate: quotesTable.validityDate,
     })
     .from(assignmentsTable)
@@ -94,49 +100,54 @@ export async function getMyAssignments(): Promise<CustomerAssignment[]> {
     .orderBy(desc(assignmentsTable.createdAt));
 
   return rows.map((r) => ({
-    id:               r.id,
-    objectId:         r.objectId ?? null,
-    code:             r.code,
-    title:            r.title,
-    status:           r.status as AssignmentStatus,
-    scheduledDate:    r.scheduledDate,
-    scheduledStart:   r.scheduledStart,
-    scheduledEnd:     r.scheduledEnd,
-    objectName:       r.objectName ?? null,
-    objectAddress:    r.objectAddress ?? null,
-    objectCity:       r.objectCity ?? null,
-    createdAt:        r.createdAt.toISOString(),
-    quoteId:          r.quoteId ?? null,
-    quoteNumber:      r.quoteNumber ?? null,
-    quoteAmount:      r.quoteAmount ?? null,
-    quoteStatus:      (r.quoteStatus ?? null) as QuoteStatus | null,
+    id: r.id,
+    objectId: r.objectId ?? null,
+    code: r.code,
+    title: r.title,
+    status: r.status as AssignmentStatus,
+    scheduledDate: r.scheduledDate,
+    scheduledStart: r.scheduledStart,
+    scheduledEnd: r.scheduledEnd,
+    objectName: r.objectName ?? null,
+    objectAddress: r.objectAddress ?? null,
+    objectCity: r.objectCity ?? null,
+    createdAt: r.createdAt.toISOString(),
+    quoteId: r.quoteId ?? null,
+    quoteNumber: r.quoteNumber ?? null,
+    quoteAmount: r.quoteAmount ?? null,
+    quoteStatus: (r.quoteStatus ?? null) as QuoteStatus | null,
     quoteValidityDate: r.quoteValidityDate ?? null,
   }));
 }
 
 export type RequestResult =
-  | { success: true;  id: string }
+  | { success: true; id: string }
   | { success: false; message: string };
 
-const requestSchema = z.object({
-  title:          z.string().min(2, "Titel is verplicht").max(255),
-  description:    z.string().min(5, "Omschrijving is verplicht").max(5000),
-  objectId:       z.string().uuid("Selecteer een object."),
-  sectorId:       z.string().uuid("Selecteer een sector."),
-  scheduledDate:  z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Kies een gewenste uitvoerdatum."),
-  scheduledStart: z.string().regex(/^\d{2}:\d{2}$/, "Kies een starttijd."),
-  scheduledEnd:   z.string().regex(/^\d{2}:\d{2}$/, "Kies een eindtijd."),
-  priority:       z.enum(["low", "normal", "high", "urgent"]),
-}).refine((data) => data.scheduledEnd > data.scheduledStart, {
-  message: "Eindtijd moet na de starttijd liggen.",
-  path:    ["scheduledEnd"],
-});
+const requestSchema = z
+  .object({
+    title: z.string().min(2, "Titel is verplicht").max(255),
+    description: z.string().min(5, "Omschrijving is verplicht").max(5000),
+    objectId: z.string().uuid("Selecteer een object."),
+    sectorId: z.string().uuid("Selecteer een sector."),
+    scheduledDate: z
+      .string()
+      .regex(/^\d{4}-\d{2}-\d{2}$/, "Kies een gewenste uitvoerdatum."),
+    scheduledStart: z.string().regex(/^\d{2}:\d{2}$/, "Kies een starttijd."),
+    scheduledEnd: z.string().regex(/^\d{2}:\d{2}$/, "Kies een eindtijd."),
+    priority: z.enum(["low", "normal", "high", "urgent"]),
+  })
+  .refine((data) => data.scheduledEnd > data.scheduledStart, {
+    message: "Eindtijd moet na de starttijd liggen.",
+    path: ["scheduledEnd"],
+  });
 
 function formatEuro(value: string | null | undefined): string {
   const number = Number.parseFloat(value ?? "0");
-  return new Intl.NumberFormat("nl-NL", { style: "currency", currency: "EUR" }).format(
-    Number.isFinite(number) ? number : 0,
-  );
+  return new Intl.NumberFormat("nl-NL", {
+    style: "currency",
+    currency: "EUR",
+  }).format(Number.isFinite(number) ? number : 0);
 }
 
 function getSafeCustomerAssignmentPhotoStoragePath(
@@ -144,22 +155,35 @@ function getSafeCustomerAssignmentPhotoStoragePath(
   tenantId: string,
   assignmentId: string,
 ): string | null {
-  return getTenantBoundAssignmentMediaStoragePath(storagePath, tenantId, assignmentId, {
-    allowLegacyAssignmentRoot: true,
-    allowLegacyPluralTenantRoot: true,
-    allowLegacyTenantRoot: true,
-  });
+  return getTenantBoundAssignmentMediaStoragePath(
+    storagePath,
+    tenantId,
+    assignmentId,
+    {
+      allowLegacyAssignmentRoot: true,
+      allowLegacyPluralTenantRoot: true,
+      allowLegacyTenantRoot: true,
+    },
+  );
 }
 
 export type RequestAssignmentInput = z.infer<typeof requestSchema>;
 
-export async function requestAssignment(input: RequestAssignmentInput): Promise<RequestResult> {
+export async function requestAssignment(
+  input: RequestAssignmentInput,
+): Promise<RequestResult> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const identity = await getMyCustomerIdentity();
-  if (!identity) return { success: false, message: "Geen klantprofiel gevonden voor dit account." };
+  if (!identity)
+    return {
+      success: false,
+      message: "Geen klantprofiel gevonden voor dit account.",
+    };
 
   const parsed = requestSchema.safeParse(input);
   if (!parsed.success) {
@@ -181,9 +205,9 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
   const [[object], [sector], [customer]] = await Promise.all([
     db
       .select({
-        id:       objectsTable.id,
+        id: objectsTable.id,
         sectorId: objectsTable.sectorId,
-        name:     objectsTable.name,
+        name: objectsTable.name,
       })
       .from(objectsTable)
       .where(
@@ -198,21 +222,28 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
       .select({ id: sectorsTable.id, name: sectorsTable.name })
       .from(sectorsTable)
       .where(
-        and(
-          eq(sectorsTable.id, sectorId),
-          eq(sectorsTable.isActive, true),
-        ),
+        and(eq(sectorsTable.id, sectorId), eq(sectorsTable.isActive, true)),
       )
       .limit(1),
     db
       .select({ id: customersTable.id, name: customersTable.name })
       .from(customersTable)
-      .where(and(eq(customersTable.id, identity.customerId), eq(customersTable.tenantId, identity.tenantId)))
+      .where(
+        and(
+          eq(customersTable.id, identity.customerId),
+          eq(customersTable.tenantId, identity.tenantId),
+        ),
+      )
       .limit(1),
   ]);
 
-  if (!object) return { success: false, message: "Object niet gevonden of niet toegankelijk." };
-  if (!sector) return { success: false, message: "Sector niet gevonden of niet actief." };
+  if (!object)
+    return {
+      success: false,
+      message: "Object niet gevonden of niet toegankelijk.",
+    };
+  if (!sector)
+    return { success: false, message: "Sector niet gevonden of niet actief." };
   if (!object.sectorId) {
     return {
       success: false,
@@ -231,12 +262,12 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
     description,
     customerId: identity.customerId,
     objectId,
-    status:     "requested",
+    status: "requested",
     priority,
     scheduledDate,
     scheduledStart,
     scheduledEnd,
-    createdBy:  user.id,
+    createdBy: user.id,
   });
 
   const [inserted] = await db
@@ -248,11 +279,11 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
   const backofficeHref = backofficeRoutes.assignment(inserted.id);
 
   await db.insert(auditLogTable).values({
-    userId:     user.id,
-    action:     "customer_request_assignment",
-    resource:   "assignments",
+    userId: user.id,
+    action: "customer_request_assignment",
+    resource: "assignments",
     resourceId: inserted.id,
-    metadata:   {
+    metadata: {
       customerId: identity.customerId,
       tenantId: identity.tenantId,
       objectId,
@@ -327,49 +358,51 @@ export async function requestAssignment(input: RequestAssignmentInput): Promise<
 // ─── Assignment detail ────────────────────────────────────────────────────────
 
 export type ApprovedPhoto = {
-  id:        string;
+  id: string;
   signedUrl: string | null;
 };
 
 export type AssignmentQuote = {
-  id:           string;
-  quoteNumber:  string;
-  amount:       string;
-  status:       QuoteStatus;
+  id: string;
+  quoteNumber: string;
+  amount: string;
+  status: QuoteStatus;
   validityDate: string;
 };
 
 export type AssignmentInvoice = {
-  id:            string;
+  id: string;
   invoiceNumber: string;
-  totalAmount:   string;
-  status:        InvoiceStatus;
+  totalAmount: string;
+  status: InvoiceStatus;
 };
 
 export type CustomerAssignmentDetail = {
-  id:             string;
-  objectId:       string | null;
-  code:           string;
-  title:          string;
-  description:    string | null;
-  status:         AssignmentStatus;
-  scheduledDate:  string | null;
+  id: string;
+  objectId: string | null;
+  code: string;
+  title: string;
+  description: string | null;
+  status: AssignmentStatus;
+  scheduledDate: string | null;
   scheduledStart: string | null;
-  scheduledEnd:   string | null;
-  objectName:     string | null;
-  objectAddress:  string | null;
-  objectCity:     string | null;
+  scheduledEnd: string | null;
+  actualStartedAt: string | null;
+  actualCompletedAt: string | null;
+  objectName: string | null;
+  objectAddress: string | null;
+  objectCity: string | null;
   objectPostalCode: string | null;
-  createdAt:      string;
+  createdAt: string;
   tasks: {
-    id:        string;
+    id: string;
     sortOrder: number;
     customerDescription: string;
   }[];
   /** Photos that management has explicitly approved for customer visibility. */
   approvedPhotos: ApprovedPhoto[];
   /** Linked quote — null if no quote has been created for this assignment. */
-  quote:   AssignmentQuote | null;
+  quote: AssignmentQuote | null;
   /** Linked invoice — null if no invoice has been created for this assignment. */
   invoice: AssignmentInvoice | null;
 };
@@ -386,32 +419,34 @@ export async function getMyAssignmentDetail(
 
   const [row] = await db
     .select({
-      id:                assignmentsTable.id,
-      objectId:          assignmentsTable.objectId,
-      code:              assignmentsTable.code,
-      title:             assignmentsTable.title,
-      description:       assignmentsTable.description,
-      status:            assignmentsTable.status,
-      scheduledDate:     assignmentsTable.scheduledDate,
-      scheduledStart:    assignmentsTable.scheduledStart,
-      scheduledEnd:      assignmentsTable.scheduledEnd,
-      createdAt:         assignmentsTable.createdAt,
-      objectName:        objectsTable.name,
-      objectAddress:     objectsTable.address,
-      objectCity:        objectsTable.city,
-      objectPostalCode:  objectsTable.postalCode,
-      quoteId:           quotesTable.id,
-      quoteNumber:       quotesTable.quoteNumber,
-      quoteAmount:       quotesTable.amount,
-      quoteStatus:       quotesTable.status,
+      id: assignmentsTable.id,
+      objectId: assignmentsTable.objectId,
+      code: assignmentsTable.code,
+      title: assignmentsTable.title,
+      description: assignmentsTable.description,
+      status: assignmentsTable.status,
+      scheduledDate: assignmentsTable.scheduledDate,
+      scheduledStart: assignmentsTable.scheduledStart,
+      scheduledEnd: assignmentsTable.scheduledEnd,
+      actualStartedAt: assignmentsTable.actualStartedAt,
+      actualCompletedAt: assignmentsTable.actualCompletedAt,
+      createdAt: assignmentsTable.createdAt,
+      objectName: objectsTable.name,
+      objectAddress: objectsTable.address,
+      objectCity: objectsTable.city,
+      objectPostalCode: objectsTable.postalCode,
+      quoteId: quotesTable.id,
+      quoteNumber: quotesTable.quoteNumber,
+      quoteAmount: quotesTable.amount,
+      quoteStatus: quotesTable.status,
       quoteValidityDate: quotesTable.validityDate,
-      invoiceId:          invoicesTable.id,
-      invoiceNumber:      invoicesTable.invoiceNumber,
+      invoiceId: invoicesTable.id,
+      invoiceNumber: invoicesTable.invoiceNumber,
       invoiceTotalAmount: invoicesTable.totalAmount,
-      invoiceStatus:      invoicesTable.status,
+      invoiceStatus: invoicesTable.status,
     })
     .from(assignmentsTable)
-    .leftJoin(objectsTable,  eq(assignmentsTable.objectId,   objectsTable.id))
+    .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
     .leftJoin(
       quotesTable,
       and(
@@ -419,12 +454,15 @@ export async function getMyAssignmentDetail(
         inArray(quotesTable.status, CUSTOMER_VISIBLE_QUOTE_STATUSES),
       ),
     )
-    .leftJoin(invoicesTable, eq(invoicesTable.assignmentId,  assignmentsTable.id))
+    .leftJoin(
+      invoicesTable,
+      eq(invoicesTable.assignmentId, assignmentsTable.id),
+    )
     .where(
       and(
-        eq(assignmentsTable.id,         assignmentId),
+        eq(assignmentsTable.id, assignmentId),
         eq(assignmentsTable.customerId, identity.customerId),
-        eq(assignmentsTable.tenantId,   identity.tenantId),
+        eq(assignmentsTable.tenantId, identity.tenantId),
       ),
     )
     .limit(1);
@@ -434,22 +472,28 @@ export async function getMyAssignmentDetail(
   const [tasks, photoRows] = await Promise.all([
     db
       .select({
-        id:                  assignmentTasksTable.id,
-        sortOrder:           assignmentTasksTable.sortOrder,
-        taskCode:            taskCodesTable.code,
+        id: assignmentTasksTable.id,
+        sortOrder: assignmentTasksTable.sortOrder,
+        taskCode: taskCodesTable.code,
         customerDescription: taskCodesTable.name,
       })
       .from(assignmentTasksTable)
-      .leftJoin(taskCodesTable, eq(taskCodesTable.id, assignmentTasksTable.taskCodeId))
+      .leftJoin(
+        taskCodesTable,
+        eq(taskCodesTable.id, assignmentTasksTable.taskCodeId),
+      )
       .where(eq(assignmentTasksTable.assignmentId, assignmentId))
       .orderBy(assignmentTasksTable.sortOrder),
     db
-      .select({ id: assignmentPhotosTable.id, storagePath: assignmentPhotosTable.storagePath })
+      .select({
+        id: assignmentPhotosTable.id,
+        storagePath: assignmentPhotosTable.storagePath,
+      })
       .from(assignmentPhotosTable)
       .where(
         and(
           eq(assignmentPhotosTable.assignmentId, assignmentId),
-          eq(assignmentPhotosTable.isApproved,   true),
+          eq(assignmentPhotosTable.isApproved, true),
         ),
       )
       .orderBy(assignmentPhotosTable.createdAt),
@@ -478,42 +522,46 @@ export async function getMyAssignmentDetail(
 
   const quote: AssignmentQuote | null = row.quoteId
     ? {
-        id:           row.quoteId,
-        quoteNumber:  row.quoteNumber ?? "",
-        amount:       row.quoteAmount ?? "0",
-        status:       (row.quoteStatus ?? "draft") as QuoteStatus,
+        id: row.quoteId,
+        quoteNumber: row.quoteNumber ?? "",
+        amount: row.quoteAmount ?? "0",
+        status: (row.quoteStatus ?? "draft") as QuoteStatus,
         validityDate: row.quoteValidityDate ?? "",
       }
     : null;
 
   const invoice: AssignmentInvoice | null = row.invoiceId
     ? {
-        id:            row.invoiceId,
+        id: row.invoiceId,
         invoiceNumber: row.invoiceNumber ?? "",
-        totalAmount:   row.invoiceTotalAmount ?? "0",
-        status:        (row.invoiceStatus ?? "draft") as InvoiceStatus,
+        totalAmount: row.invoiceTotalAmount ?? "0",
+        status: (row.invoiceStatus ?? "draft") as InvoiceStatus,
       }
     : null;
 
   return {
-    id:               row.id,
-    objectId:         row.objectId ?? null,
-    code:             row.code,
-    title:            row.title,
-    description:      row.description ?? null,
-    status:           row.status as AssignmentStatus,
-    scheduledDate:    row.scheduledDate,
-    scheduledStart:   row.scheduledStart,
-    scheduledEnd:     row.scheduledEnd,
-    createdAt:        row.createdAt.toISOString(),
-    objectName:       row.objectName       ?? null,
-    objectAddress:    row.objectAddress    ?? null,
-    objectCity:       row.objectCity       ?? null,
+    id: row.id,
+    objectId: row.objectId ?? null,
+    code: row.code,
+    title: row.title,
+    description: row.description ?? null,
+    status: row.status as AssignmentStatus,
+    scheduledDate: row.scheduledDate,
+    scheduledStart: row.scheduledStart,
+    scheduledEnd: row.scheduledEnd,
+    actualStartedAt: row.actualStartedAt?.toISOString() ?? null,
+    actualCompletedAt: row.actualCompletedAt?.toISOString() ?? null,
+    createdAt: row.createdAt.toISOString(),
+    objectName: row.objectName ?? null,
+    objectAddress: row.objectAddress ?? null,
+    objectCity: row.objectCity ?? null,
     objectPostalCode: row.objectPostalCode ?? null,
     tasks: tasks.map((t) => ({
-      id:                  t.id,
-      sortOrder:           t.sortOrder,
-      customerDescription: [t.taskCode, t.customerDescription].filter(Boolean).join(" - ") || "Werkzaamheid",
+      id: t.id,
+      sortOrder: t.sortOrder,
+      customerDescription:
+        [t.taskCode, t.customerDescription].filter(Boolean).join(" - ") ||
+        "Werkzaamheid",
     })),
     approvedPhotos,
     quote,
@@ -523,35 +571,43 @@ export async function getMyAssignmentDetail(
 
 // ─── Quote approval workflow ──────────────────────────────────────────────────
 
-export async function approveQuote(assignmentId: string): Promise<RequestResult> {
+export async function approveQuote(
+  assignmentId: string,
+): Promise<RequestResult> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const identity = await getMyCustomerIdentity();
-  if (!identity) return { success: false, message: "Geen klantprofiel gevonden." };
+  if (!identity)
+    return { success: false, message: "Geen klantprofiel gevonden." };
 
   const [assignment] = await db
     .select({
-      id:            assignmentsTable.id,
-      code:          assignmentsTable.code,
-      title:         assignmentsTable.title,
-      quoteId:       quotesTable.id,
-      quoteNumber:   quotesTable.quoteNumber,
-      quoteAmount:   quotesTable.amount,
-      validityDate:  quotesTable.validityDate,
-      customerName:  customersTable.name,
+      id: assignmentsTable.id,
+      code: assignmentsTable.code,
+      title: assignmentsTable.title,
+      quoteId: quotesTable.id,
+      quoteNumber: quotesTable.quoteNumber,
+      quoteAmount: quotesTable.amount,
+      validityDate: quotesTable.validityDate,
+      customerName: customersTable.name,
     })
     .from(assignmentsTable)
     .innerJoin(quotesTable, eq(quotesTable.assignmentId, assignmentsTable.id))
-    .innerJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
+    .innerJoin(
+      customersTable,
+      eq(assignmentsTable.customerId, customersTable.id),
+    )
     .where(
       and(
-        eq(assignmentsTable.id,         assignmentId),
+        eq(assignmentsTable.id, assignmentId),
         eq(assignmentsTable.customerId, identity.customerId),
-        eq(assignmentsTable.tenantId,   identity.tenantId),
-        eq(assignmentsTable.status,     "awaiting_approval"),
-        eq(quotesTable.status,          "sent"),
+        eq(assignmentsTable.tenantId, identity.tenantId),
+        eq(assignmentsTable.status, "awaiting_approval"),
+        eq(quotesTable.status, "sent"),
       ),
     )
     .limit(1);
@@ -565,7 +621,7 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
     await tx
       .update(quotesTable)
       .set({
-        status:     "approved",
+        status: "approved",
         approvedBy: user.id,
         approvedAt: new Date(),
       })
@@ -574,14 +630,19 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
     await tx
       .update(assignmentsTable)
       .set({ status: "plannable" })
-      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, identity.tenantId)));
+      .where(
+        and(
+          eq(assignmentsTable.id, assignmentId),
+          eq(assignmentsTable.tenantId, identity.tenantId),
+        ),
+      );
 
     await tx.insert(auditLogTable).values({
-      userId:     user.id,
-      action:     "customer_approve_quote",
-      resource:   "quotes",
+      userId: user.id,
+      action: "customer_approve_quote",
+      resource: "quotes",
       resourceId: assignment.quoteId,
-      metadata:   {
+      metadata: {
         assignmentId,
         customerId: identity.customerId,
         tenantId: identity.tenantId,
@@ -636,23 +697,38 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
     if (!orgSettings?.emailAfzender) return;
 
     const [[customer], [quote]] = await Promise.all([
-      db.select({ name: customersTable.name })
+      db
+        .select({ name: customersTable.name })
         .from(customersTable)
-        .where(and(eq(customersTable.id, identity.customerId), eq(customersTable.tenantId, identity.tenantId)))
+        .where(
+          and(
+            eq(customersTable.id, identity.customerId),
+            eq(customersTable.tenantId, identity.tenantId),
+          ),
+        )
         .limit(1),
-      db.select({ quoteNumber: quotesTable.quoteNumber })
+      db
+        .select({ quoteNumber: quotesTable.quoteNumber })
         .from(quotesTable)
-        .innerJoin(assignmentsTable, eq(assignmentsTable.id, quotesTable.assignmentId))
-        .where(and(eq(quotesTable.assignmentId, assignmentId), eq(assignmentsTable.tenantId, identity.tenantId)))
+        .innerJoin(
+          assignmentsTable,
+          eq(assignmentsTable.id, quotesTable.assignmentId),
+        )
+        .where(
+          and(
+            eq(quotesTable.assignmentId, assignmentId),
+            eq(assignmentsTable.tenantId, identity.tenantId),
+          ),
+        )
         .limit(1),
     ]);
 
     if (!quote) return;
     const { subject, html } = buildQuoteDecisionEmail({
       customerName: customer?.name ?? "Onbekende klant",
-      quoteNumber:  quote.quoteNumber,
-      decision:     "geaccepteerd",
-      reason:       null,
+      quoteNumber: quote.quoteNumber,
+      decision: "geaccepteerd",
+      reason: null,
     });
     await sendEmail({
       to: orgSettings.emailAfzender,
@@ -671,33 +747,42 @@ export async function approveQuote(assignmentId: string): Promise<RequestResult>
   return { success: true, id: assignmentId };
 }
 
-export async function rejectQuote(assignmentId: string, reason?: string): Promise<RequestResult> {
+export async function rejectQuote(
+  assignmentId: string,
+  reason?: string,
+): Promise<RequestResult> {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const identity = await getMyCustomerIdentity();
-  if (!identity) return { success: false, message: "Geen klantprofiel gevonden." };
+  if (!identity)
+    return { success: false, message: "Geen klantprofiel gevonden." };
 
   const [assignment] = await db
     .select({
-      id:           assignmentsTable.id,
-      code:         assignmentsTable.code,
-      title:        assignmentsTable.title,
-      quoteId:      quotesTable.id,
-      quoteNumber:  quotesTable.quoteNumber,
+      id: assignmentsTable.id,
+      code: assignmentsTable.code,
+      title: assignmentsTable.title,
+      quoteId: quotesTable.id,
+      quoteNumber: quotesTable.quoteNumber,
       customerName: customersTable.name,
     })
     .from(assignmentsTable)
     .innerJoin(quotesTable, eq(quotesTable.assignmentId, assignmentsTable.id))
-    .innerJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
+    .innerJoin(
+      customersTable,
+      eq(assignmentsTable.customerId, customersTable.id),
+    )
     .where(
       and(
-        eq(assignmentsTable.id,         assignmentId),
+        eq(assignmentsTable.id, assignmentId),
         eq(assignmentsTable.customerId, identity.customerId),
-        eq(assignmentsTable.tenantId,   identity.tenantId),
-        eq(assignmentsTable.status,     "awaiting_approval"),
-        eq(quotesTable.status,          "sent"),
+        eq(assignmentsTable.tenantId, identity.tenantId),
+        eq(assignmentsTable.status, "awaiting_approval"),
+        eq(quotesTable.status, "sent"),
       ),
     )
     .limit(1);
@@ -711,7 +796,7 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
     await tx
       .update(quotesTable)
       .set({
-        status:          "rejected",
+        status: "rejected",
         rejectionReason: reason?.trim() || null,
       })
       .where(eq(quotesTable.id, assignment.quoteId));
@@ -719,14 +804,19 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
     await tx
       .update(assignmentsTable)
       .set({ status: "review" })
-      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, identity.tenantId)));
+      .where(
+        and(
+          eq(assignmentsTable.id, assignmentId),
+          eq(assignmentsTable.tenantId, identity.tenantId),
+        ),
+      );
 
     await tx.insert(auditLogTable).values({
-      userId:     user.id,
-      action:     "customer_reject_quote",
-      resource:   "quotes",
+      userId: user.id,
+      action: "customer_reject_quote",
+      resource: "quotes",
       resourceId: assignment.quoteId,
-      metadata:   {
+      metadata: {
         assignmentId,
         customerId: identity.customerId,
         tenantId: identity.tenantId,
@@ -785,23 +875,38 @@ export async function rejectQuote(assignmentId: string, reason?: string): Promis
     if (!orgSettings?.emailAfzender) return;
 
     const [[customer], [quote]] = await Promise.all([
-      db.select({ name: customersTable.name })
+      db
+        .select({ name: customersTable.name })
         .from(customersTable)
-        .where(and(eq(customersTable.id, identity.customerId), eq(customersTable.tenantId, identity.tenantId)))
+        .where(
+          and(
+            eq(customersTable.id, identity.customerId),
+            eq(customersTable.tenantId, identity.tenantId),
+          ),
+        )
         .limit(1),
-      db.select({ quoteNumber: quotesTable.quoteNumber })
+      db
+        .select({ quoteNumber: quotesTable.quoteNumber })
         .from(quotesTable)
-        .innerJoin(assignmentsTable, eq(assignmentsTable.id, quotesTable.assignmentId))
-        .where(and(eq(quotesTable.assignmentId, assignmentId), eq(assignmentsTable.tenantId, identity.tenantId)))
+        .innerJoin(
+          assignmentsTable,
+          eq(assignmentsTable.id, quotesTable.assignmentId),
+        )
+        .where(
+          and(
+            eq(quotesTable.assignmentId, assignmentId),
+            eq(assignmentsTable.tenantId, identity.tenantId),
+          ),
+        )
         .limit(1),
     ]);
 
     if (!quote) return;
     const { subject, html } = buildQuoteDecisionEmail({
       customerName: customer?.name ?? "Onbekende klant",
-      quoteNumber:  quote.quoteNumber,
-      decision:     "afgewezen",
-      reason:       reason?.trim() || null,
+      quoteNumber: quote.quoteNumber,
+      decision: "afgewezen",
+      reason: reason?.trim() || null,
     });
     await sendEmail({
       to: orgSettings.emailAfzender,

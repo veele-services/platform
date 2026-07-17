@@ -12,7 +12,6 @@ import {
   Headphones,
   Home,
   LogOut,
-  Megaphone,
   Settings,
   WalletCards,
 } from "lucide-react";
@@ -34,15 +33,47 @@ type NavIcon = ComponentType<{
 }>;
 
 const NAV_ITEMS = [
-  { href: "/", label: "Home", Icon: Home },
+  { href: "/", label: "Overzicht", Icon: Home },
   { href: "/opdrachten", label: "Opdrachten", Icon: CalendarDays },
   { href: "/objecten", label: "Objecten", Icon: Building2 },
-  { href: "/meldingen/tickets", label: "Support", Icon: Headphones, match: ["/meldingen"] },
-  { href: "/rapporten", label: "Rapportages", Icon: FileCheck2, moduleKey: "reporting" },
-  { href: "/financieel", label: "Financieel", Icon: WalletCards, moduleKey: "finance", match: ["/financieel", "/facturen", "/betalingen", "/offertes"] },
-  { href: "/documenten", label: "Documenten", Icon: FileText, moduleKey: "documents" },
-  { href: "/help", label: "Help", Icon: HelpCircle, moduleKey: "knowledgebase" },
-  { href: "/releases", label: "Releases", Icon: Megaphone, moduleKey: "releases" },
+  {
+    href: "/meldingen/tickets",
+    label: "Support",
+    Icon: Headphones,
+    match: ["/meldingen"],
+  },
+  {
+    href: "/rapporten",
+    label: "Rapportages",
+    Icon: FileCheck2,
+    moduleKey: "reporting",
+  },
+  {
+    href: "/offertes",
+    label: "Offertes",
+    Icon: FileText,
+    moduleKey: "finance",
+    match: ["/offertes"],
+  },
+  {
+    href: "/facturen",
+    label: "Facturen",
+    Icon: WalletCards,
+    moduleKey: "finance",
+    match: ["/financieel", "/facturen", "/betalingen"],
+  },
+  {
+    href: "/documenten",
+    label: "Documenten",
+    Icon: FileText,
+    moduleKey: "documents",
+  },
+  {
+    href: "/help",
+    label: "Support",
+    Icon: HelpCircle,
+    moduleKey: "knowledgebase",
+  },
 ] satisfies Array<{
   href: string;
   label: string;
@@ -60,19 +91,28 @@ function isVisible(
 
 export function DesktopSidebar({
   branding,
-  featureFlags = { documents: true, finance: true, reporting: true, knowledgebase: true, releases: true },
+  featureFlags = {
+    documents: true,
+    finance: true,
+    reporting: true,
+    knowledgebase: true,
+    releases: true,
+  },
 }: {
   branding?: PortalBrandingProps;
   featureFlags?: CustomerPortalFeatureFlags;
 }) {
   const pathname = usePathname();
-  const visibleItems = NAV_ITEMS.filter((item) => isVisible(item.moduleKey, featureFlags));
+  const visibleItems = NAV_ITEMS.filter((item) =>
+    isVisible(item.moduleKey, featureFlags),
+  );
 
   return (
     <aside
       className="hidden h-screen w-[260px] shrink-0 flex-col md:flex"
       style={{
-        background: "linear-gradient(180deg, var(--color-primary) 0%, #061F44 100%)",
+        background:
+          "linear-gradient(180deg, var(--color-primary) 0%, #061F44 100%)",
         color: "white",
       }}
     >
@@ -93,7 +133,9 @@ export function DesktopSidebar({
               href={href}
               className="flex items-center gap-3 rounded-xl px-4 py-3 text-sm font-bold transition"
               style={{
-                backgroundColor: isActive ? "rgba(0,183,179,0.18)" : "transparent",
+                backgroundColor: isActive
+                  ? "rgba(0,183,179,0.18)"
+                  : "transparent",
                 color: isActive ? "#FFFFFF" : "rgba(255,255,255,0.72)",
               }}
             >
