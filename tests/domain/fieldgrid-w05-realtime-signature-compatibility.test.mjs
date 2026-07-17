@@ -44,32 +44,27 @@ test("W05 portal_realtime_emit preserves the established positional signature", 
   const originalArgs = extractFunctionArgs(originalMigration, "portal_realtime_emit");
   const w05Args = extractFunctionArgs(w05Migration, "portal_realtime_emit");
 
-  assert.deepEqual(
-    w05Args.map(({ name, type }) => [name, type]),
-    [
-      ["p_tenant_id", "uuid"],
-      ["p_recipient_type", "text"],
-      ["p_realtime_key", "text"],
-      ["p_personnel_id", "uuid"],
-      ["p_customer_id", "uuid"],
-      ["p_topic", "text"],
-      ["p_resource_type", "text"],
-      ["p_resource_id", "text"],
-      ["p_action", "text"],
-      ["p_payload", "jsonb"],
-    ],
-  );
+  const establishedSignature = [
+    ["p_tenant_id", "uuid"],
+    ["p_recipient_type", "text"],
+    ["p_realtime_key", "text"],
+    ["p_personnel_id", "uuid"],
+    ["p_customer_id", "uuid"],
+    ["p_topic", "text"],
+    ["p_entity_type", "text"],
+    ["p_entity_id", "text"],
+    ["p_event_type", "text"],
+    ["p_payload", "jsonb"],
+  ];
 
-  assert.deepEqual(
-    w05Args.slice(0, 6).map(({ name, type }) => [name, type]),
-    originalArgs.slice(0, 6).map(({ name, type }) => [name, type]),
-  );
-  assert.equal(originalArgs[6].type, w05Args[6].type, "resource/entity type remains same positional type");
-  assert.equal(originalArgs[7].type, w05Args[7].type, "resource/entity id remains same positional type");
-  assert.equal(originalArgs[8].type, w05Args[8].type, "action/event type remains same positional type");
-  assert.equal(originalArgs[1].name, "p_recipient_type", "guard catches swapping same-typed recipient/key arguments");
-  assert.equal(w05Args[1].name, "p_recipient_type", "W05 keeps recipient type before realtime key");
+  assert.deepEqual(originalArgs.map(({ name, type }) => [name, type]), establishedSignature);
+  assert.deepEqual(w05Args.map(({ name, type }) => [name, type]), establishedSignature);
+  assert.equal(w05Args[1].name, "p_recipient_type", "guard catches swapping same-typed recipient/key arguments");
   assert.equal(w05Args[2].name, "p_realtime_key", "W05 keeps realtime key after recipient type");
+  assert.equal(w05Args[5].name, "p_topic", "W05 preserves topic name");
+  assert.equal(w05Args[6].name, "p_entity_type", "W05 preserves entity type name");
+  assert.equal(w05Args[7].name, "p_entity_id", "W05 preserves entity id name");
+  assert.equal(w05Args[8].name, "p_event_type", "W05 preserves event type name");
 });
 
 test("W05 wrappers keep positional portal_realtime_emit call semantics", () => {
@@ -89,5 +84,6 @@ test("W05 wrappers keep positional portal_realtime_emit call semantics", () => {
     "p_customer_id",
   ]);
   assert.doesNotMatch(w05Migration, /=>/u, "migration does not mix in named-argument calls");
-  assert.doesNotMatch(w05Migration, /DROP FUNCTION\s+public\.portal_realtime_emit[\s\S]*CASCADE/iu);
+  assert.doesNotMatch(w05Migration, /DROP\s+FUNCTION\s+(?:IF\s+EXISTS\s+)?public\.portal_realtime_emit/iu, "W05 does not drop portal_realtime_emit");
+  assert.doesNotMatch(w05Migration, /DROP\s+FUNCTION[\s\S]*CASCADE/iu, "W05 never uses DROP FUNCTION CASCADE");
 });
