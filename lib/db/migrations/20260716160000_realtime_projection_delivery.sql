@@ -5,13 +5,43 @@
 -- on (re)subscription/visibility.
 
 ALTER TABLE public.portal_realtime_events
-  ADD COLUMN IF NOT EXISTS correlation_id uuid DEFAULT gen_random_uuid() NOT NULL;
+  ADD COLUMN IF NOT EXISTS correlation_id uuid DEFAULT gen_random_uuid() NOT NULL,
+  ADD COLUMN IF NOT EXISTS resource_type varchar(80),
+  ADD COLUMN IF NOT EXISTS resource_id text,
+  ADD COLUMN IF NOT EXISTS action varchar(80);
+
+ALTER TABLE public.portal_realtime_events
+  DROP CONSTRAINT IF EXISTS portal_realtime_events_event_type_check;
+
+ALTER TABLE public.portal_realtime_events
+  ADD CONSTRAINT portal_realtime_events_event_type_check
+  CHECK (event_type IN (
+    'insert',
+    'update',
+    'delete',
+    'changed',
+    'assignment_planning_changed',
+    'staffing_changed',
+    'assignment_scheduled',
+    'participant_started',
+    'participant_completed',
+    'aggregate_assignment_completed',
+    'availability_changed',
+    'report_approved',
+    'customer_visible_projection_changed'
+  ) OR event_type ~ '^[a-z0-9_]+_changed$');
 
 CREATE INDEX IF NOT EXISTS portal_realtime_events_tenant_correlation_idx
   ON public.portal_realtime_events(tenant_id, correlation_id, created_at DESC);
 
 COMMENT ON COLUMN public.portal_realtime_events.correlation_id IS
   'Audit correlation id for the canonical business transaction that produced this projection event.';
+COMMENT ON COLUMN public.portal_realtime_events.resource_type IS
+  'Canonical resource/table family for projection event classification; mirrors legacy entity_type semantics.';
+COMMENT ON COLUMN public.portal_realtime_events.resource_id IS
+  'Canonical resource identifier for projection event classification; mirrors legacy entity_id semantics.';
+COMMENT ON COLUMN public.portal_realtime_events.action IS
+  'Canonical business action used to derive event_type.';
 
 CREATE OR REPLACE FUNCTION public.fieldgrid_realtime_event_name(
   p_topic text,
@@ -41,8 +71,8 @@ REVOKE ALL ON FUNCTION public.fieldgrid_realtime_event_name(text, text, text) FR
 
 CREATE OR REPLACE FUNCTION public.portal_realtime_emit(
   p_tenant_id uuid,
-  p_realtime_key text,
   p_recipient_type text,
+  p_realtime_key text,
   p_personnel_id uuid,
   p_customer_id uuid,
   p_topic text,
