@@ -103,6 +103,12 @@ jobs:
           fi
           pnpm fieldgrid:playwright
       - run: pnpm fieldgrid:playwright:evidence
+      - name: Validate Phase 2 W11 exact-head acceptance artifacts
+        env:
+          FIELDGRID_EXACT_HEAD: ${{ github.sha }}
+        run: |
+          pnpm fieldgrid:phase2-w11
+          pnpm fieldgrid:phase2-w11:check
       - name: Capture PostgREST logs
         if: always()
         run: |
@@ -124,5 +130,6 @@ jobs:
           name: fieldgrid-playwright-artifacts
           path: |
             artifacts/fieldgrid-playwright/**
+            artifacts/fieldgrid-phase2-w11/**
             artifacts/runtime-safety-harness/**/*.json
             artifacts/runtime-safety-harness/**/*.log
