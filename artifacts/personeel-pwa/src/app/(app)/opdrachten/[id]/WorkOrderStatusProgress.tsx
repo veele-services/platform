@@ -156,6 +156,7 @@ export function InteractiveStatusProgress({ assignment }: Props) {
       enqueueOfflineWorkOrderAction({
         type: "mark-assignment-en-route",
         assignmentId: assignment.id,
+        expectedParticipantVersion: assignment.participantVersion ?? null,
       });
       setEnRouteDialogOpen(false);
       setNotice("Onderweg melden is offline opgeslagen en wordt automatisch gesynchroniseerd.");
@@ -163,7 +164,7 @@ export function InteractiveStatusProgress({ assignment }: Props) {
     }
 
     startTransition(async () => {
-      const result = await markAssignmentEnRoute(assignment.id);
+      const result = await markAssignmentEnRoute(assignment.id, { expectedParticipantVersion: assignment.participantVersion ?? null });
       if (!result.success) {
         setEnRouteDialogOpen(false);
         setError(result.error ?? "Onderweg melden mislukt");
@@ -190,6 +191,7 @@ export function InteractiveStatusProgress({ assignment }: Props) {
       enqueueOfflineWorkOrderAction({
         type: "start-assignment",
         assignmentId: assignment.id,
+        expectedParticipantVersion: assignment.participantVersion ?? null,
       });
       setStartDialogOpen(false);
       setNotice("Starten is offline opgeslagen en wordt automatisch gesynchroniseerd.");
@@ -197,7 +199,7 @@ export function InteractiveStatusProgress({ assignment }: Props) {
     }
 
     startTransition(async () => {
-      const result = await startAssignment(assignment.id);
+      const result = await startAssignment(assignment.id, { expectedParticipantVersion: assignment.participantVersion ?? null });
       if (!result.success) {
         setStartDialogOpen(false);
         setError(result.error ?? "Starten mislukt");

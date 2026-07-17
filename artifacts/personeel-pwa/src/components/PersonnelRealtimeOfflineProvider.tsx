@@ -49,19 +49,33 @@ function msUntilNextMinute(): number {
 
 async function runQueuedAction(action: OfflineWorkOrderAction) {
   if (action.type === "start-assignment") {
-    return startAssignment(action.assignmentId);
+    return startAssignment(action.assignmentId, {
+      expectedParticipantVersion: action.expectedParticipantVersion ?? null,
+      clientMutationId: action.idempotencyKey,
+    });
   }
 
   if (action.type === "mark-assignment-en-route") {
-    return markAssignmentEnRoute(action.assignmentId);
+    return markAssignmentEnRoute(action.assignmentId, {
+      expectedParticipantVersion: action.expectedParticipantVersion ?? null,
+      clientMutationId: action.idempotencyKey,
+    });
   }
 
   if (action.type === "complete-assignment") {
-    return completeAssignment(action.assignmentId, action.payload);
+    return completeAssignment(action.assignmentId, {
+      ...action.payload,
+      expectedParticipantVersion: action.expectedParticipantVersion ?? null,
+      clientMutationId: action.idempotencyKey,
+    });
   }
 
   if (action.type === "not-complete-assignment") {
-    return notCompleteAssignment(action.assignmentId, action.payload);
+    return notCompleteAssignment(action.assignmentId, {
+      ...action.payload,
+      expectedParticipantVersion: action.expectedParticipantVersion ?? null,
+      clientMutationId: action.idempotencyKey,
+    });
   }
 
   if (action.type === "set-task-completion") {
@@ -170,7 +184,7 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
         if (!result.success) {
           const error = result.error ?? "Synchronisatie mislukt";
           updateOfflineWorkOrderAction(action.id, {
-            status: "failed",
+            status: error.toLowerCase().includes("conflict") ? "conflict" : "failed",
             lastError: error,
           });
           setSyncError(error);
