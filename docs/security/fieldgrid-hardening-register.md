@@ -53,7 +53,7 @@ The following evidence was manually supplied as operator/staging evidence, not a
 | FG-HARD-022 | support access least privilege | P0 | support/security | open | — | — | Define and implement audited support access model with tenant-scoped tests. | support/security | true | true |
 | FG-HARD-023 | test baseline and CI green lane on current main | P0 | quality/ci | open | — | — | Make required static, runtime, typecheck, and build validation green on the current branch. | quality | true | true |
 | FG-HARD-024 | production go/no-go evidence pack | P0 | release/production | open | — | — | After blockers close, assemble production go/no-go packet without accessing live DBs or secrets from this PR. | release | false | true |
-| FG-HARD-025 | legacy customer reset code must not become auth password | P0 | auth/reset | closed | Phase 2.1 | Source guard blocks reset-code-as-password paths; credential recovery challenge table has RLS/ACL hardening; W11 runtime evidence covers activation/reset, invalid/expired/exhausted/replayed denial and portal/tenant binding. | Keep exact-head browser and source-guard lanes required before release. | auth/customer-portal | false | false |
+| FG-HARD-025 | legacy customer reset code must not become auth password | P0 | auth/reset | open | — | W11 deterministic credential-recovery artifact covers activation/reset success and invalid/expired/replayed denial, but legacy customer artifact path removal still needs proof | Remove or gate the legacy customer reset-code-as-password path and prove the Phase 2 challenge/grant flow end to end. | auth/customer-portal | true | true |
 
 ## Open PR disposition
 
