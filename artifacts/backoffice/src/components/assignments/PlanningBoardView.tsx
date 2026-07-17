@@ -46,14 +46,26 @@ import {
   type PlanningBoardPersonnel,
   type PlanningBoardPersonnelAssignment,
 } from "@/app/actions/planning";
+import {
+  compactPlanboardDisplayWindow,
+  planboardDisplayWindow,
+  formatPlanboardTimeRange,
+  planboardInterestAsAssignedIndicator,
+  planboardStaffingLabel,
+  planboardStaffingState,
+  planboardStaffingStateLabel,
+} from "./planboard-assignment-states";
 
 const DAY_START_MIN = 0;
 const DAY_END_MIN = 24 * 60;
 const DAY_SPAN = DAY_END_MIN - DAY_START_MIN;
 const PERSONNEL_COL_WIDTH = 216;
-const HOUR_WIDTH = 80;
-const TIMELINE_WIDTH = 24 * HOUR_WIDTH;
-const BOARD_WIDTH = PERSONNEL_COL_WIDTH + TIMELINE_WIDTH;
+const HOUR_WIDTH_DEFAULT = 80;
+const ZOOM_LEVELS = [
+  { id: "compact", label: "Compact", hourWidth: 56 },
+  { id: "comfort", label: "Comfort", hourWidth: HOUR_WIDTH_DEFAULT },
+  { id: "detail", label: "Detail", hourWidth: 120 },
+] as const;
 
 const NL_MONTHS = [
   "januari",
@@ -305,6 +317,39 @@ function minuteToTimelinePct(minutes: number): number {
   return ((Math.max(DAY_START_MIN, Math.min(DAY_END_MIN, minutes)) - DAY_START_MIN) / DAY_SPAN) * 100;
 }
 
+
+function isoTimeToBoardMinute(value: string | null, boardDate: string): number | null {
+  if (!value) return null;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime()) || dateKey(d) !== boardDate) return null;
+  return d.getHours() * 60 + d.getMinutes();
+}
+
+function minuteBlock(startMin: number | null, endMin: number | null): { left: number; width: number } | null {
+  if (startMin === null) return null;
+  const safeEnd = endMin ?? Math.min(DAY_END_MIN, startMin + 60);
+  const clampedStart = Math.max(DAY_START_MIN, Math.min(DAY_END_MIN, startMin));
+  const clampedEnd = Math.max(DAY_START_MIN, Math.min(DAY_END_MIN, safeEnd));
+  if (clampedStart >= clampedEnd) return null;
+  return {
+    left: minuteToTimelinePct(clampedStart),
+    width: ((clampedEnd - clampedStart) / DAY_SPAN) * 100,
+  };
+}
+
+function actualTimeBlock(assignment: PlanningBoardPersonnelAssignment, boardDate: string): { left: number; width: number } | null {
+  const actualStart = isoTimeToBoardMinute(assignment.actualStartedAt, boardDate);
+  const actualEnd = isoTimeToBoardMinute(assignment.actualCompletedAt, boardDate);
+  if (actualStart !== null) return minuteBlock(actualStart, actualEnd ?? currentMinuteOfDay());
+
+  const effectiveStart = parseTimeMin(assignment.effectiveStart);
+  const effectiveEnd = parseTimeMin(assignment.effectiveEnd);
+  if (effectiveStart === null || (effectiveStart === parseTimeMin(assignment.scheduledStart) && effectiveEnd === parseTimeMin(assignment.scheduledEnd))) {
+    return null;
+  }
+  return minuteBlock(effectiveStart, effectiveEnd);
+}
+
 function suggestedStartForAssignment(assignment: PlanningBoardAssignment, boardDate: string): string {
   const scheduled = parseTimeMin(assignment.scheduledStart);
   if (scheduled !== null) {
@@ -407,19 +452,38 @@ function availabilityConfig(status: string): {
   return { label: "Niet beschikbaar", bg: "#F8FAFC", text: "#64748B", border: "#E2E8F0" };
 }
 
+
 function compactTimeRange(start: string | null, end: string | null): string {
   if (!start && !end) return "Geen tijd";
   if (start && end) return `${start}-${end}`;
   return start ?? end ?? "";
 }
 
+function formatDateTimeForLabel(value: string | null): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return value;
+  return date.toLocaleString("nl-NL", {
+    day: "2-digit",
+    month: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function appointmentTimingLabel(assignment: Pick<PlanningBoardPersonnelAssignment, "scheduledStart" | "scheduledEnd" | "actualStartedAt" | "actualCompletedAt">): string {
+  const planned = `Gepland ${formatPlanboardTimeRange(assignment.scheduledStart, assignment.scheduledEnd)}`;
+  const actualStarted = formatDateTimeForLabel(assignment.actualStartedAt);
+  const actualCompleted = formatDateTimeForLabel(assignment.actualCompletedAt);
+  const actual = [
+    actualStarted ? `Werkelijk gestart ${actualStarted}` : null,
+    actualCompleted ? `Werkelijk gereed ${actualCompleted}` : null,
+  ].filter(Boolean);
+  return actual.length > 0 ? `${planned}; ${actual.join("; ")}` : planned;
+}
+
 function workOrderTimeLabel(assignment: PlanningBoardAssignment): string {
-  if (assignment.scheduledStart && assignment.scheduledEnd) {
-    return `${assignment.scheduledStart}-${assignment.scheduledEnd}`;
-  }
-  if (assignment.scheduledStart) return `Vanaf ${assignment.scheduledStart}`;
-  if (assignment.scheduledEnd) return `Tot ${assignment.scheduledEnd}`;
-  return "Tijd kiezen";
+  return planboardDisplayWindow(assignment).label;
 }
 
 function displayWorkOrderTitle(title: string): string {
@@ -427,7 +491,7 @@ function displayWorkOrderTitle(title: string): string {
 }
 
 function slotLabel(filledSlots: number, requiredSlots: number): string {
-  return `${filledSlots}/${requiredSlots}`;
+  return planboardStaffingLabel({ filledSlots, requiredSlots });
 }
 
 function personnelSortName(person: PlanningBoardPersonnel): string {
@@ -506,6 +570,12 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
   const [dragging, setDragging] = useState<DragState | null>(null);
   const [ghostInfo, setGhostInfo] = useState<GhostInfo | null>(null);
   const [isPending, startTransition] = useTransition();
+  const [plannerInteracting, setPlannerInteracting] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState<(typeof ZOOM_LEVELS)[number]["id"]>("comfort");
+
+  const hourWidth = ZOOM_LEVELS.find((level) => level.id === zoomLevel)?.hourWidth ?? HOUR_WIDTH_DEFAULT;
+  const timelineWidth = 24 * hourWidth;
+  const boardWidth = PERSONNEL_COL_WIDTH + timelineWidth;
 
   const assignmentById = useMemo(() => {
     return new Map(
@@ -621,10 +691,10 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
 
   useEffect(() => {
     const scrollEl = boardScrollRef.current;
-    if (!scrollEl) return;
+    if (!scrollEl || plannerInteracting) return;
 
     const centerMinute = isToday ? currentMinuteOfDay() : 8 * 60;
-    const timelineX = PERSONNEL_COL_WIDTH + (centerMinute / DAY_SPAN) * TIMELINE_WIDTH;
+    const timelineX = PERSONNEL_COL_WIDTH + (centerMinute / DAY_SPAN) * timelineWidth;
     const frame = window.requestAnimationFrame(() => {
       const maxLeft = Math.max(0, scrollEl.scrollWidth - scrollEl.clientWidth);
       const nextLeft = Math.min(maxLeft, Math.max(0, timelineX - scrollEl.clientWidth / 2));
@@ -632,7 +702,26 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
     });
 
     return () => window.cancelAnimationFrame(frame);
-  }, [data.date, isToday]);
+  }, [data.date, isToday, timelineWidth]);
+
+  function scrollToMinute(minute: number, behavior: ScrollBehavior = "smooth") {
+    const scrollEl = boardScrollRef.current;
+    if (!scrollEl) return;
+    const timelineX = PERSONNEL_COL_WIDTH + (minute / DAY_SPAN) * timelineWidth;
+    const maxLeft = Math.max(0, scrollEl.scrollWidth - scrollEl.clientWidth);
+    scrollEl.scrollTo({
+      left: Math.min(maxLeft, Math.max(0, timelineX - scrollEl.clientWidth / 2)),
+      behavior,
+    });
+  }
+
+  function jumpToNow() {
+    if (!isToday) {
+      updateQuery({ date: today });
+      return;
+    }
+    scrollToMinute(currentMinuteOfDay());
+  }
 
   function updateQuery(updates: Record<string, string | null>) {
     const params = new URLSearchParams(searchParams.toString());
@@ -803,6 +892,27 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
       setSelectedAssignmentId(null);
       router.refresh();
     });
+  }
+
+
+  function handleAssignmentCardKeyDown(
+    e: React.KeyboardEvent<HTMLElement>,
+    assignment: PlanningBoardAssignment,
+    selected: boolean,
+  ) {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      const nextId = selected ? null : assignment.id;
+      setSelectedAssignmentId(nextId);
+      setDetailAssignmentId(nextId);
+      if (openQueueOpen) setOpenQueueOpen(false);
+    }
+    if (e.key === "Escape") {
+      e.preventDefault();
+      setSelectedAssignmentId(null);
+      setDetailAssignmentId(null);
+      setOpenQueueOpen(false);
+    }
   }
 
   function submitSearch(e: React.FormEvent<HTMLFormElement>) {
@@ -1040,11 +1150,19 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                   const title = displayWorkOrderTitle(assignment.title);
                   const sectorStyle = sectorBadgeStyle(assignment.sectorName);
                   const sectorShort = sectorShortLabel(assignment.sectorName);
+                  const staffingState = planboardStaffingState(assignment);
+                  const staffingStateText = planboardStaffingStateLabel(staffingState);
 
                   return (
                     <article
                       key={assignment.id}
+                      role="button"
+                      tabIndex={0}
+                      aria-pressed={selected}
+                      aria-grabbed={canWrite && dragging?.assignmentId === assignment.id}
+                      aria-label={`Selecteer open werkbon ${assignment.code}: ${title}`}
                       draggable={canWrite}
+                      onKeyDown={(e) => handleAssignmentCardKeyDown(e, assignment, selected)}
                       onDragStart={(e) => handleDragStart(e, assignment)}
                       onDragEnd={handleDragEnd}
                       onClick={() => {
@@ -1135,7 +1253,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                           </span>
                           <span className="inline-flex items-center gap-1">
                             <Users className="h-3 w-3" />
-                            {slotLabel(assignment.filledSlots, assignment.requiredSlots)}
+                            <span title={staffingStateText}>{slotLabel(assignment.filledSlots, assignment.requiredSlots)}</span>
                           </span>
                           {assignment.requiredRegion && (
                             <span className="inline-flex min-w-0 items-center gap-1 truncate">
@@ -1155,7 +1273,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                         {assignment.requiredSlots > 1 && (
                           <span className="inline-flex items-center gap-1 rounded border px-1.5 py-0.5 text-[10px] font-medium" style={{ borderColor: "#BFDBFE", background: "#EFF6FF", color: "#1D4ED8" }}>
                             <Users className="h-3 w-3" />
-                            Team {slotLabel(assignment.filledSlots, assignment.requiredSlots)}
+                            Team {slotLabel(assignment.filledSlots, assignment.requiredSlots)} · {staffingStateText}
                           </span>
                         )}
                       </div>
@@ -1195,7 +1313,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                 ) : (
                   <span className="inline-flex items-center gap-2 font-medium" style={{ color: "#081D3A" }}>
                     <Activity className="h-4 w-4" style={{ color: "#00B7B3" }} />
-                    Planbord met {data.personnel.length} medewerkers zichtbaar
+                    Live planbord met {data.personnel.length} medewerkers zichtbaar
                   </span>
                 )}
               </div>
@@ -1212,12 +1330,19 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                     size="sm"
                     className="h-8"
                     onClick={() => setOpenQueueOpen((value) => !value)}
+                    aria-label="Openstaande werkbonnen"
+                    aria-expanded={openQueueOpen}
+                    aria-controls="planning-board-open-queue"
                   >
                     <Layers3 className="h-3.5 w-3.5" />
                     Openstaand ({data.openAssignments.length})
                   </Button>
                   {openQueueOpen && (
                     <div
+                      id="planning-board-open-queue"
+                      role="dialog"
+                      aria-modal="false"
+                      aria-label="Openstaande werkbonnen"
                       className="absolute right-0 top-10 z-40 w-[390px] max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border bg-white shadow-2xl"
                       style={{ borderColor: "#DDE7F0" }}
                     >
@@ -1246,7 +1371,13 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                             return (
                               <article
                                 key={assignment.id}
+                                role="button"
+                                tabIndex={0}
+                                aria-pressed={selected}
+                                aria-grabbed={canWrite && dragging?.assignmentId === assignment.id}
+                                aria-label={`Selecteer open werkbon ${assignment.code}: ${title}`}
                                 draggable={canWrite}
+                                onKeyDown={(e) => handleAssignmentCardKeyDown(e, assignment, selected)}
                                 onDragStart={(e) => handleDragStart(e, assignment)}
                                 onDragEnd={handleDragEnd}
                                 onClick={() => {
@@ -1298,9 +1429,25 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                     </div>
                   )}
                 </div>
-                <span className="hidden rounded-full border px-2.5 py-1 text-xs font-medium sm:inline-flex" style={{ borderColor: "#DDE7F0", color: "#64748B" }}>
-                  24-uurs bord - actuele tijd gecentreerd
-                </span>
+                <div className="inline-flex overflow-hidden rounded-lg border" style={{ borderColor: "#DDE7F0" }} aria-label="Zoomniveau planbord">
+                  {ZOOM_LEVELS.map((level) => (
+                    <button
+                      key={level.id}
+                      type="button"
+                      onClick={() => setZoomLevel(level.id)}
+                      className="px-2.5 py-1 text-xs font-semibold transition"
+                      style={zoomLevel === level.id ? { background: "#081D3A", color: "#FFFFFF" } : { background: "#FFFFFF", color: "#64748B" }}
+                    >
+                      {level.label}
+                    </button>
+                  ))}
+                </div>
+                <Button type="button" variant="outline" size="sm" className="h-8" onClick={() => scrollToMinute(8 * 60)}>
+                  08:00
+                </Button>
+                <Button type="button" variant={isToday ? "default" : "outline"} size="sm" className="h-8" onClick={jumpToNow}>
+                  Nu
+                </Button>
                 {isPending && (
                   <span className="inline-flex items-center gap-1 text-xs" style={{ color: "#64748B" }}>
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
@@ -1321,9 +1468,13 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
               <div
                 ref={boardScrollRef}
                 className="h-[calc(100vh-300px)] min-h-[420px] max-w-full overflow-auto overscroll-contain"
+                onPointerDown={() => setPlannerInteracting(true)}
+                onWheel={() => setPlannerInteracting(true)}
+                role="region"
+                aria-label="Live planbord tijdlijn"
                 style={{ opacity: isPending ? 0.82 : 1 }}
               >
-                <div style={{ width: BOARD_WIDTH, minWidth: "100%" }}>
+                <div style={{ width: boardWidth, minWidth: "100%" }}>
                   <div className="sticky top-0 z-30 h-10 border-b bg-white" style={{ borderColor: "#E2E8F0" }}>
                     <div
                       className="sticky left-0 top-0 z-30 flex h-full items-center border-r bg-white px-3 text-[11px] font-semibold uppercase tracking-wide"
@@ -1331,7 +1482,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                     >
                       Medewerker
                     </div>
-                    <div className="absolute bottom-0 top-0" style={{ left: PERSONNEL_COL_WIDTH, width: TIMELINE_WIDTH }}>
+                    <div className="absolute bottom-0 top-0" style={{ left: PERSONNEL_COL_WIDTH, width: timelineWidth }}>
                       {HOUR_LABELS.map((hour) => (
                         <div
                           key={hour.label}
@@ -1347,13 +1498,16 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                           style={{ left: `${currentTimePct}%` }}
                         >
                           <span className="absolute left-1/2 top-1/2 h-3 w-3 -translate-x-1/2 -translate-y-1/2 rounded-full shadow" style={{ background: "#00B7B3" }} />
+                          <span className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full px-1.5 py-0.5 text-[10px] font-bold shadow-sm" style={{ background: "#00B7B3", color: "#FFFFFF" }}>
+                            Nu {minutesToTime(currentMinuteOfDay())}
+                          </span>
                         </div>
                       )}
                     </div>
                   </div>
 
                   <div className="relative">
-                    <div className="pointer-events-none absolute inset-y-0" style={{ left: PERSONNEL_COL_WIDTH, width: TIMELINE_WIDTH }}>
+                    <div className="pointer-events-none absolute inset-y-0" style={{ left: PERSONNEL_COL_WIDTH, width: timelineWidth }}>
                       {HOUR_LABELS.map((hour) => (
                         <div
                           key={hour.label}
@@ -1390,6 +1544,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                       const matchStyles = matchConfig(match);
                       const isGhostRow = ghostInfo?.rowId === person.id;
                       const alreadyAssigned = isAlreadyAssigned(activeAssignmentId, person.id);
+                      const interestIndicator = planboardInterestAsAssignedIndicator((match as { interestStatus?: string | null } | undefined)?.interestStatus);
                       const canPlaceSelected = Boolean(activeAssignment && canWrite && match?.level !== "blocked" && !alreadyAssigned);
                       const availabilityBlock = person.availabilityWindow
                         ? timeBlock(person.availabilityWindow.startTime, person.availabilityWindow.endTime)
@@ -1400,7 +1555,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                           key={person.id}
                           className="relative grid min-h-[78px] border-b"
                           style={{
-                            gridTemplateColumns: `${PERSONNEL_COL_WIDTH}px ${TIMELINE_WIDTH}px`,
+                            gridTemplateColumns: `${PERSONNEL_COL_WIDTH}px ${timelineWidth}px`,
                             borderColor: "#F1F5F9",
                             background: rowBg,
                           }}
@@ -1471,7 +1626,12 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                 )}
                                 {activeAssignment && alreadyAssigned && (
                                   <span className="rounded border px-1.5 py-0.5 text-[10px] font-medium" style={{ borderColor: "#BFDBFE", background: "#EFF6FF", color: "#1D4ED8" }}>
-                                    Gekoppeld
+                                    {interestIndicator.countsAsAssigned && interestIndicator.label ? interestIndicator.label : "Gekoppeld"}
+                                  </span>
+                                )}
+                                {activeAssignment && !alreadyAssigned && interestIndicator.label && (
+                                  <span className="rounded border px-1.5 py-0.5 text-[10px] font-medium" style={{ borderColor: "#A7F3D0", background: "#ECFDF5", color: "#047857" }}>
+                                    {interestIndicator.label}
                                   </span>
                                 )}
                               </div>
@@ -1487,6 +1647,10 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                               background: isGhostRow ? matchStyles.bg : undefined,
                               transition: "background 0.12s ease, outline 0.12s ease",
                             }}
+                            role="region"
+                            tabIndex={0}
+                            aria-label={`Planningtijdlijn voor ${person.firstName} ${person.lastName}`}
+                            aria-dropeffect={canWrite && dragging ? "move" : undefined}
                             onDragOver={canWrite ? (e) => handleTimelineDragOver(e, person) : undefined}
                             onDragLeave={canWrite ? () => setGhostInfo(null) : undefined}
                             onDrop={canWrite ? (e) => handleTimelineDrop(e, person) : undefined}
@@ -1528,9 +1692,18 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                             )}
 
                             {person.scheduledAssignments.map((assignment) => {
-                              const block = timeBlock(assignment.scheduledStart, assignment.scheduledEnd);
+                              const block = timeBlock(assignment.effectiveStart ?? assignment.scheduledStart, assignment.effectiveEnd ?? assignment.scheduledEnd);
+                              const plannedBlock = timeBlock(assignment.scheduledStart, assignment.scheduledEnd);
+                              const staffingState = planboardStaffingState(assignment);
+                              const staffingIndicator = {
+                                empty: { bg: "rgba(248,250,252,0.78)", border: "#CBD5E1", color: "#475569", label: "Geen bezetting" },
+                                partial: { bg: "rgba(239,246,255,0.86)", border: "#BFDBFE", color: "#1D4ED8", label: "Deels bezet" },
+                                filled: { bg: "rgba(236,253,245,0.86)", border: "#A7F3D0", color: "#047857", label: "Volledig bezet" },
+                                overfilled: { bg: "rgba(255,251,235,0.9)", border: "#FCD34D", color: "#B45309", label: "Overbezet" },
+                              }[staffingState];
                               const late = isLateAppointment(assignment, data.date);
                               const pastel = late ? { bg: "#FFEDD5", border: "#FB923C", text: "#7C2D12", rail: "#F97316" } : pastelForAppointment(assignment);
+                              const actualBlock = actualTimeBlock(assignment, data.date);
                               const isMovable = canWrite && isPlanboardMovableStatus(assignment.status);
                               if (!block) {
                                 return (
@@ -1565,6 +1738,8 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                       draggable={isMovable}
                                       onDragStart={isMovable ? (e) => handleScheduledDragStart(e, assignment, person.id) : undefined}
                                       onDragEnd={isMovable ? handleDragEnd : undefined}
+                                      title={appointmentTimingLabel(assignment)}
+                                      aria-label={`${assignment.code}: ${displayWorkOrderTitle(assignment.title)}. ${appointmentTimingLabel(assignment)}`}
                                       className="absolute top-3 bottom-3 z-10 flex min-w-[96px] items-center overflow-hidden rounded-lg border text-[11px] font-medium shadow-sm transition hover:brightness-[0.98]"
                                       style={{
                                         left: `${block.left}%`,
@@ -1575,7 +1750,13 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                         cursor: isMovable ? "grab" : undefined,
                                       }}
                                     >
-                                      <span className="h-full w-1.5 flex-shrink-0" style={{ background: assignment.hasConflict ? "#F59E0B" : pastel.rail }} />
+                                      {plannedBlock && (
+                                        <span aria-hidden="true" className="absolute inset-y-1 rounded-md border border-dashed" style={{ left: 0, right: 0, borderColor: "rgba(8,29,58,0.32)" }} />
+                                      )}
+                                      {actualBlock && (assignment.actualStartedAt || assignment.actualCompletedAt) && (
+                                        <span aria-hidden="true" className="absolute bottom-0 top-0 rounded-md" style={{ left: 0, right: 0, background: "rgba(59,130,246,0.10)" }} />
+                                      )}
+                                      <span className="relative h-full w-1.5 flex-shrink-0" style={{ background: assignment.hasConflict ? "#F59E0B" : pastel.rail }} />
                                       <span className="min-w-0 flex-1 px-2">
                                         <span className="flex min-w-0 items-center gap-1">
                                           <span className="truncate font-mono text-[10px] opacity-80">{assignment.code}</span>
@@ -1585,18 +1766,16 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                         </span>
                                         <span className="mt-0.5 block truncate font-semibold">{displayWorkOrderTitle(assignment.title)}</span>
                                         <span className="mt-0.5 block truncate text-[10px] opacity-75">
-                                          {late ? "Te laat · " : ""}{compactTimeRange(assignment.scheduledStart, assignment.scheduledEnd)}
+                                          {late ? "Te laat · " : ""}{compactPlanboardDisplayWindow(assignment)}
                                           {assignment.sectorName ? ` - ${assignment.sectorName}` : ""}
                                         </span>
                                       </span>
-                                      {assignment.requiredSlots > 1 && (
-                                        <span className="mr-1 inline-flex flex-shrink-0 items-center gap-0.5 rounded px-1 py-0.5 text-[10px]" style={{ background: "rgba(255,255,255,0.58)" }}>
-                                          <Users className="h-2.5 w-2.5" />
-                                          {slotLabel(assignment.filledSlots, assignment.requiredSlots)}
-                                        </span>
-                                      )}
+                                      <span className="mr-1 inline-flex flex-shrink-0 items-center gap-0.5 rounded border px-1 py-0.5 text-[10px]" style={{ background: staffingIndicator.bg, borderColor: staffingIndicator.border, color: staffingIndicator.color }} aria-label={staffingIndicator.label}>
+                                        <Users className="h-2.5 w-2.5" />
+                                        {slotLabel(assignment.filledSlots, assignment.requiredSlots)}
+                                      </span>
                                       {assignment.hasConflict && (
-                                        <AlertTriangle className="mr-1.5 h-3.5 w-3.5 flex-shrink-0" style={{ color: "#B45309" }} />
+                                        <AlertTriangle className="relative z-10 mr-1.5 h-3.5 w-3.5 flex-shrink-0" style={{ color: "#B45309" }} />
                                       )}
                                     </Link>
                                   </TooltipTrigger>
@@ -1606,7 +1785,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                       <p>{assignment.customerName}</p>
                                       {assignment.objectName && <p>{assignment.objectName}</p>}
                                       {assignment.sectorName && <p>Sector: {assignment.sectorName}</p>}
-                                      <p>{late ? "Te laat · " : ""}{compactTimeRange(assignment.scheduledStart, assignment.scheduledEnd)}</p>
+                                      <p>{late ? "Te laat · " : ""}{appointmentTimingLabel(assignment)}</p>
                                       {assignment.requiredSlots > 1 && (
                                         <p>Team {slotLabel(assignment.filledSlots, assignment.requiredSlots)}</p>
                                       )}

@@ -286,13 +286,54 @@ export type PlanningBoardScheduleInput = {
   date: string;
   start: string;
   end?: string | null;
+  expectedUpdatedAt?: string | null;
 };
 
-export type PlanningBoardScheduleResult = ActionResult<{
-  warnings: PlanningBoardMatchReason[];
-}>;
+export type PlanningBoardSaveMetadata = {
+  status: "saved";
+  mode: "schedule" | "move";
+  requested: { date: string; start: string; end: string | null };
+  saved: { date: string; start: string; end: string };
+  autoAdjusted: boolean;
+};
+
+export type PlanningBoardStaleConflictMetadata = {
+  code: "stale_assignment" | "stale_assignment_personnel";
+  assignmentId: string;
+  attempted: {
+    personnelId: string;
+    sourcePersonnelId: string | null;
+    date: string;
+    start: string;
+    end: string;
+  };
+  current?: {
+    assignedPersonnelIds?: string[];
+  };
+};
+
+export type PlanningBoardScheduleResult =
+  | {
+      success: true;
+      data: {
+        warnings: PlanningBoardMatchReason[];
+        save: PlanningBoardSaveMetadata;
+      };
+    }
+  | {
+      success: false;
+      message: string;
+      fieldErrors?: Record<string, string>;
+      conflict?: PlanningBoardStaleConflictMetadata;
+    };
 
 const OPEN_ASSIGNMENT_STATUSES: AssignmentStatus[] = ["plannable"];
+
+class PlanningBoardSaveConflictError extends Error {
+  constructor(readonly conflict: PlanningBoardStaleConflictMetadata) {
+    super("Planning board save conflict");
+  }
+}
 
 function todayDateKey(): string {
   const d = new Date();
@@ -744,6 +785,7 @@ export async function getPlanningBoardData(
           actualStartedAt: assignmentsTable.actualStartedAt,
           actualCompletedAt: assignmentsTable.actualCompletedAt,
           requiredRegion: assignmentsTable.requiredRegion,
+          updatedAt: assignmentsTable.updatedAt,
           requiredPersonnelCount: assignmentsTable.requiredPersonnelCount,
           customerId: assignmentsTable.customerId,
           customerName: customersTable.name,
@@ -2125,6 +2167,7 @@ export async function unassignPersonnel(
   await requirePermission("assignments", "write");
   const tenantId = await requireCurrentTenantId();
 
+
   const supabase = await createClient();
   const {
     data: { user },
@@ -2353,6 +2396,7 @@ export async function scheduleAssignmentOnBoard(
           objectName: objectsTable.name,
           objectSectorId: objectsTable.sectorId,
           requiredRegion: assignmentsTable.requiredRegion,
+          updatedAt: assignmentsTable.updatedAt,
         })
         .from(assignmentsTable)
         .leftJoin(
@@ -2621,8 +2665,12 @@ export async function scheduleAssignmentOnBoard(
 
   const planningSlotMinutes = Math.max(15, Math.min(240, settingsRow?.slotMinutes ?? 90));
   const planningWorkdayStart = settingsRow?.workdayStart ?? "08:00";
-  const requestedDuration = input.end?.trim() && isTimeKey(input.end.trim())
-    ? timeToMinutes(input.end.trim()) - timeToMinutes(start)
+  const requestedStart = start;
+  const requestedEnd = input.end?.trim() && isTimeKey(input.end.trim())
+    ? input.end.trim()
+    : null;
+  const requestedDuration = requestedEnd
+    ? timeToMinutes(requestedEnd) - timeToMinutes(start)
     : estimatedDurationMinutes;
   const duration = Math.max(15, requestedDuration);
   start = nextNonOverlappingStart({
@@ -2753,7 +2801,7 @@ export async function scheduleAssignmentOnBoard(
 
   try {
     await db.transaction(async (tx) => {
-      await tx
+      const [updatedAssignment] = await tx
         .update(assignmentsTable)
         .set({
           scheduledDate: date,
@@ -2766,8 +2814,78 @@ export async function scheduleAssignmentOnBoard(
           and(
             eq(assignmentsTable.id, assignmentId),
             eq(assignmentsTable.tenantId, tenantId),
+            eq(assignmentsTable.updatedAt, assignment.updatedAt),
+          ),
+        )
+        .returning({ id: assignmentsTable.id });
+
+      if (!updatedAssignment) {
+        throw new PlanningBoardSaveConflictError({
+          code: "stale_assignment",
+          assignmentId,
+          attempted: {
+            personnelId,
+            sourcePersonnelId,
+            date,
+            start,
+            end,
+          },
+        });
+      }
+
+      const currentLinks = await tx
+        .select({
+          id: assignmentPersonnelTable.id,
+          personnelId: assignmentPersonnelTable.personnelId,
+        })
+        .from(assignmentPersonnelTable)
+        .where(
+          and(
+            eq(assignmentPersonnelTable.assignmentId, assignmentId),
+            eq(assignmentPersonnelTable.status, "assigned"),
           ),
         );
+      const currentPersonnelIds = currentLinks.map((row) => row.personnelId);
+      const currentTargetLink = currentLinks.find(
+        (row) => row.personnelId === personnelId,
+      );
+      const currentSourceLink = sourcePersonnelId
+        ? currentLinks.find((row) => row.personnelId === sourcePersonnelId)
+        : null;
+
+      if (sourcePersonnelId && !currentSourceLink) {
+        throw new PlanningBoardSaveConflictError({
+          code: "stale_assignment_personnel",
+          assignmentId,
+          attempted: {
+            personnelId,
+            sourcePersonnelId,
+            date,
+            start,
+            end,
+          },
+          current: { assignedPersonnelIds: currentPersonnelIds },
+        });
+      }
+
+      if (
+        !sourcePersonnelId &&
+        !currentTargetLink &&
+        currentLinks.length >= requiredSlots
+      ) {
+        throw new PlanningBoardSaveConflictError({
+          code: "stale_assignment_personnel",
+          assignmentId,
+          attempted: {
+            personnelId,
+            sourcePersonnelId,
+            date,
+            start,
+            end,
+          },
+          current: { assignedPersonnelIds: currentPersonnelIds },
+        });
+      }
 
       const [existingLink] = await tx
         .select({
@@ -2800,7 +2918,7 @@ export async function scheduleAssignmentOnBoard(
 
           await tx
             .delete(assignmentPersonnelTable)
-            .where(eq(assignmentPersonnelTable.id, sourceLinkBeforeMove.id));
+            .where(eq(assignmentPersonnelTable.id, currentSourceLink!.id));
         } else {
           await tx
             .update(assignmentPersonnelTable)
@@ -2810,7 +2928,7 @@ export async function scheduleAssignmentOnBoard(
               assignedBy: user.id,
               assignedAt: new Date(),
             })
-            .where(eq(assignmentPersonnelTable.id, sourceLinkBeforeMove.id));
+            .where(eq(assignmentPersonnelTable.id, currentSourceLink!.id));
         }
       } else if (existingLink) {
         await tx
@@ -2844,6 +2962,12 @@ export async function scheduleAssignmentOnBoard(
           fromStatus: assignment.status,
           toStatus: nextStatus,
           warnings: warnings.map((warning) => warning.label),
+          save: {
+            status: "saved",
+            requested: { date, start: requestedStart, end: requestedEnd },
+            saved: { date, start, end },
+            autoAdjusted: requestedStart !== start || (requestedEnd !== null && requestedEnd !== end),
+          },
         },
       });
 
@@ -2862,6 +2986,14 @@ export async function scheduleAssignmentOnBoard(
       }
     });
   } catch (err) {
+    if (err instanceof PlanningBoardSaveConflictError) {
+      return {
+        success: false,
+        message:
+          "Deze planning is ondertussen gewijzigd. Vernieuw het planbord en probeer opnieuw.",
+        conflict: err.conflict,
+      };
+    }
     if (isUniqueViolation(err)) {
       return {
         success: false,
@@ -2917,5 +3049,17 @@ export async function scheduleAssignmentOnBoard(
     });
   }
 
-  return { success: true, data: { warnings } };
+  return {
+    success: true,
+    data: {
+      warnings,
+      save: {
+        status: "saved",
+        mode: sourcePersonnelId ? "move" : "schedule",
+        requested: { date, start: requestedStart, end: requestedEnd },
+        saved: { date, start, end },
+        autoAdjusted: requestedStart !== start || (requestedEnd !== null && requestedEnd !== end),
+      },
+    },
+  };
 }
