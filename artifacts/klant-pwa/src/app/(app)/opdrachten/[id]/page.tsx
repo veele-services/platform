@@ -89,6 +89,7 @@ function formatDateTime(dateStr: string | null): string {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    timeZone: "Europe/Amsterdam",
   });
 }
 
@@ -96,7 +97,11 @@ function formatTimelineTime(dateStr: string | null): string | null {
   if (!dateStr) return null;
   const d = new Date(dateStr);
   if (Number.isNaN(d.getTime())) return null;
-  return d.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" });
+  return d.toLocaleTimeString("nl-NL", {
+    hour: "2-digit",
+    minute: "2-digit",
+    timeZone: "Europe/Amsterdam",
+  });
 }
 
 function formatDate(dateStr: string | null): string {
@@ -140,7 +145,8 @@ function StatusPill({ status }: { status: AssignmentStatus }) {
 
 function customerTimelinePhase(
   status: AssignmentStatus,
-): "scheduled" | "in_progress" | "completed" {
+  scheduledDate: string | null,
+): "pre_scheduled" | "scheduled" | "in_progress" | "completed" {
   if (
     [
       "completed",
@@ -157,7 +163,10 @@ function customerTimelinePhase(
   if (["seen", "en_route", "in_progress", "not_completed"].includes(status)) {
     return "in_progress";
   }
-  return "scheduled";
+  if (status === "scheduled" && scheduledDate) {
+    return "scheduled";
+  }
+  return "pre_scheduled";
 }
 
 function AssignmentTimeline({
@@ -166,7 +175,10 @@ function AssignmentTimeline({
   assignment: Awaited<ReturnType<typeof getMyAssignmentDetail>> & {};
 }) {
   if (!assignment) return null;
-  const phase = customerTimelinePhase(assignment.status);
+  const phase = customerTimelinePhase(
+    assignment.status,
+    assignment.scheduledDate,
+  );
   const plannedWindow = [assignment.scheduledStart, assignment.scheduledEnd]
     .filter(Boolean)
     .join(" - ");
@@ -183,7 +195,7 @@ function AssignmentTimeline({
       description: assignment.scheduledDate
         ? `${formatDate(assignment.scheduledDate)}${plannedWindow ? `, ${plannedWindow}` : ""}`
         : "We delen het tijdvenster zodra de planning definitief is.",
-      state: "done",
+      state: phase === "pre_scheduled" ? "upcoming" : "done",
     },
     {
       key: "in_progress",
@@ -193,7 +205,8 @@ function AssignmentTimeline({
         : phase === "in_progress"
           ? "De uitvoering is gestart of de medewerker is onderweg."
           : "Nog niet gestart.",
-      state: phase === "scheduled" ? "upcoming" : "done",
+      state:
+        phase === "in_progress" || phase === "completed" ? "done" : "upcoming",
     },
     {
       key: "completed",
@@ -231,7 +244,9 @@ function AssignmentTimeline({
             ? "Afgerond"
             : phase === "in_progress"
               ? "In uitvoering"
-              : "Ingepland"}
+              : phase === "scheduled"
+                ? "Ingepland"
+                : "Nog niet ingepland"}
         </span>
       </div>
       <ol className="grid gap-3 md:grid-cols-3">
