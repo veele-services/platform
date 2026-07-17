@@ -46,9 +46,9 @@ CREATE OR REPLACE FUNCTION public.portal_realtime_emit(
   p_personnel_id uuid,
   p_customer_id uuid,
   p_topic text,
-  p_resource_type text,
-  p_resource_id text,
-  p_action text,
+  p_entity_type text,
+  p_entity_id text,
+  p_event_type text DEFAULT 'changed',
   p_payload jsonb DEFAULT '{}'::jsonb
 ) RETURNS void
 LANGUAGE plpgsql
@@ -56,13 +56,16 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
+  v_resource_type text := p_entity_type;
+  v_resource_id text := p_entity_id;
+  v_action text := COALESCE(NULLIF(p_event_type, ''), 'changed');
   v_event_type text;
 BEGIN
   IF p_tenant_id IS NULL OR p_realtime_key IS NULL OR p_topic IS NULL THEN
     RETURN;
   END IF;
 
-  v_event_type := public.fieldgrid_realtime_event_name(p_topic, p_resource_type, p_action);
+  v_event_type := public.fieldgrid_realtime_event_name(p_topic, v_resource_type, v_action);
 
   INSERT INTO portal_realtime_events (
     tenant_id,
@@ -83,9 +86,9 @@ BEGIN
     p_personnel_id,
     p_customer_id,
     p_topic,
-    p_resource_type,
-    p_resource_id,
-    p_action,
+    v_resource_type,
+    v_resource_id,
+    v_action,
     v_event_type,
     coalesce(p_payload, '{}'::jsonb) - 'secret' - 'token' - 'access_token' - 'refresh_token' - 'password' - 'email' - 'phone'
   );
