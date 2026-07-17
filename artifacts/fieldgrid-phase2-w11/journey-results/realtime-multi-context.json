@@ -1,0 +1,19 @@
+{
+  "id": "realtime-multi-context",
+  "status": "passed",
+  "critical": true,
+  "skipped": false,
+  "commit": "353896682eb34750cfccf976ba51da730fe79cdf",
+  "fixtureIds": {
+    "tenantA": "tenant-a",
+    "tenantB": "tenant-b",
+    "assignment": "phase2-a-assignment"
+  },
+  "observedAt": "2026-07-17T12:00:00.000Z",
+  "observedStates": {
+    "separateBrowserContexts": true,
+    "planboardUpdatedWithoutReload": true,
+    "customerUpdatedWithoutReload": true,
+    "reconnectCaughtUp": true
+  }
+}
