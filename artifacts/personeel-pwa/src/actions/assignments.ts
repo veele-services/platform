@@ -4,6 +4,7 @@ import {
   assignmentPersonnelTable,
   assignmentsTable,
   assignmentTasksTable,
+  assignmentParticipantExecutionsTable,
   customersTable,
   db,
   objectsTable,
@@ -37,6 +38,8 @@ export type MyAssignment = {
   customerSignatureRequired: boolean;
   customerSignatureDataUrl: string | null;
   status:           string;
+  participantStatus: string | null;
+  participantVersion: number | null;
   customerName:     string | null;
   contactName:      string | null;
   phone:            string | null;
@@ -63,6 +66,8 @@ type PersonnelBasic = { id: string; tenantId: string; region: string | null };
 type LinkedAssignment = {
   tenantId:                   string;
   status:                    string;
+  participantStatus:         string | null;
+  participantVersion:        number | null;
   seenAt:                    Date | null;
   enRouteAt:                 Date | null;
   actualStartedAt:           Date | null;
@@ -86,6 +91,8 @@ type AssignmentRow = {
   customerSignatureRequired: boolean;
   customerSignatureDataUrl: string | null;
   status: string;
+  participantStatus: string | null;
+  participantVersion: number | null;
   customerName: string | null;
   contactName: string | null;
   phone: string | null;
@@ -183,6 +190,8 @@ function mapAssignmentRow(row: AssignmentRow): MyAssignment {
     customerSignatureRequired: Boolean(row.customerSignatureRequired),
     customerSignatureDataUrl: row.customerSignatureDataUrl ?? null,
     status:           row.status,
+    participantStatus: row.participantStatus ?? null,
+    participantVersion: row.participantVersion ?? null,
     customerName:     row.customerName ?? null,
     contactName:      row.contactName ?? null,
     phone:            row.phone ?? null,
@@ -233,6 +242,8 @@ export async function getMyAssignments(): Promise<MyAssignment[]> {
       customerSignatureRequired: assignmentsTable.customerSignatureRequired,
       customerSignatureDataUrl: assignmentsTable.customerSignatureDataUrl,
       status: assignmentsTable.status,
+      participantStatus: assignmentParticipantExecutionsTable.participantStatus,
+      participantVersion: assignmentParticipantExecutionsTable.version,
       requiredRegion: assignmentsTable.requiredRegion,
       customerName: customersTable.name,
       contactName: objectsTable.contactName,
@@ -244,6 +255,7 @@ export async function getMyAssignments(): Promise<MyAssignment[]> {
     })
     .from(assignmentPersonnelTable)
     .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
+    .leftJoin(assignmentParticipantExecutionsTable, eq(assignmentParticipantExecutionsTable.assignmentPersonnelId, assignmentPersonnelTable.id))
     .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
     .where(
@@ -284,6 +296,8 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
       customerSignatureRequired: assignmentsTable.customerSignatureRequired,
       customerSignatureDataUrl: assignmentsTable.customerSignatureDataUrl,
       status: assignmentsTable.status,
+      participantStatus: assignmentParticipantExecutionsTable.participantStatus,
+      participantVersion: assignmentParticipantExecutionsTable.version,
       requiredRegion: assignmentsTable.requiredRegion,
       customerName: customersTable.name,
       contactName: objectsTable.contactName,
@@ -295,6 +309,7 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
     })
     .from(assignmentPersonnelTable)
     .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
+    .leftJoin(assignmentParticipantExecutionsTable, eq(assignmentParticipantExecutionsTable.assignmentPersonnelId, assignmentPersonnelTable.id))
     .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
     .where(
@@ -352,6 +367,8 @@ async function getLinkedAssignment(
     .select({
       tenantId:                   assignmentsTable.tenantId,
       status:                    assignmentsTable.status,
+      participantStatus:         assignmentParticipantExecutionsTable.participantStatus,
+      participantVersion:        assignmentParticipantExecutionsTable.version,
       seenAt:                    assignmentsTable.seenAt,
       enRouteAt:                 assignmentsTable.enRouteAt,
       actualStartedAt:           assignmentsTable.actualStartedAt,
@@ -360,6 +377,7 @@ async function getLinkedAssignment(
     })
     .from(assignmentPersonnelTable)
     .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
+    .leftJoin(assignmentParticipantExecutionsTable, eq(assignmentParticipantExecutionsTable.assignmentPersonnelId, assignmentPersonnelTable.id))
     .where(
       and(
         eq(assignmentPersonnelTable.personnelId, personnelId),
@@ -411,6 +429,7 @@ const ROUTE_REFRESH_STATUS_REASONS = {
 export async function setAssignmentStatus(
   assignmentId: string,
   newStatus: string,
+  options: { expectedParticipantVersion?: number | null; clientMutationId?: string | null } = {},
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -421,6 +440,10 @@ export async function setAssignmentStatus(
 
   const current = await getLinkedAssignment(personnel.id, personnel.tenantId, assignmentId);
   if (!current) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
+
+  if (typeof options.expectedParticipantVersion === "number" && current.participantVersion !== null && current.participantVersion !== options.expectedParticipantVersion) {
+    return { success: false, error: "Conflict: deze werkbon is aangepast. Ververs en probeer opnieuw." };
+  }
 
   const currentStatus = current.status;
   const allowed = STATUS_TRANSITIONS[currentStatus] ?? [];
@@ -439,7 +462,12 @@ export async function setAssignmentStatus(
       actorUserId: user.id,
       action,
       idempotencyKey: `${action}:${assignmentId}:${personnel.id}`,
-      auditMetadata: { source: "personnel-pwa", previousStatus: currentStatus },
+      auditMetadata: {
+        source: "personnel-pwa",
+        previousStatus: currentStatus,
+        expectedParticipantVersion: options.expectedParticipantVersion ?? null,
+        clientMutationId: options.clientMutationId ?? null,
+      },
     });
   } catch {
     return { success: false, error: "Bijwerken mislukt" };
@@ -496,14 +524,16 @@ export async function setAssignmentStatus(
 
 export async function startAssignment(
   assignmentId: string,
+  options: { expectedParticipantVersion?: number | null; clientMutationId?: string | null } = {},
 ): Promise<{ success: boolean; error?: string }> {
-  return setAssignmentStatus(assignmentId, "in_progress");
+  return setAssignmentStatus(assignmentId, "in_progress", options);
 }
 
 export async function markAssignmentEnRoute(
   assignmentId: string,
+  options: { expectedParticipantVersion?: number | null; clientMutationId?: string | null } = {},
 ): Promise<{ success: boolean; error?: string }> {
-  return setAssignmentStatus(assignmentId, "en_route");
+  return setAssignmentStatus(assignmentId, "en_route", options);
 }
 
 export async function setAssignmentTaskCompletion(
@@ -560,7 +590,7 @@ export async function setAssignmentTaskCompletion(
 
 export async function completeAssignment(
   assignmentId: string,
-  input: { customerSignatureDataUrl?: string | null; notes?: string | null } = {},
+  input: { customerSignatureDataUrl?: string | null; notes?: string | null; expectedParticipantVersion?: number | null; clientMutationId?: string | null } = {},
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -571,6 +601,9 @@ export async function completeAssignment(
 
   const current = await getLinkedAssignment(personnel.id, personnel.tenantId, assignmentId);
   if (!current) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
+  if (typeof input.expectedParticipantVersion === "number" && current.participantVersion !== null && current.participantVersion !== input.expectedParticipantVersion) {
+    return { success: false, error: "Conflict: deze werkbon is aangepast. Ververs en probeer opnieuw." };
+  }
   if (current.status === "completed" && current.actualCompletedAt) {
     revalidateAssignmentPaths(assignmentId);
     return { success: true };
@@ -598,6 +631,8 @@ export async function completeAssignment(
       auditMetadata: {
         source: "personnel-pwa",
         signatureProvided: isSignatureDataUrl(signature),
+        expectedParticipantVersion: input.expectedParticipantVersion ?? null,
+        clientMutationId: input.clientMutationId ?? null,
       },
     });
     if (executionResult.aggregateCompleted) {
@@ -639,7 +674,7 @@ export async function completeAssignment(
 
 export async function notCompleteAssignment(
   assignmentId: string,
-  input: { reason: string; notes?: string | null },
+  input: { reason: string; notes?: string | null; expectedParticipantVersion?: number | null; clientMutationId?: string | null },
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -650,6 +685,9 @@ export async function notCompleteAssignment(
 
   const current = await getLinkedAssignment(personnel.id, personnel.tenantId, assignmentId);
   if (!current) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
+  if (typeof input.expectedParticipantVersion === "number" && current.participantVersion !== null && current.participantVersion !== input.expectedParticipantVersion) {
+    return { success: false, error: "Conflict: deze werkbon is aangepast. Ververs en probeer opnieuw." };
+  }
   if (current.status === "not_completed" && current.actualCompletedAt) {
     revalidateAssignmentPaths(assignmentId);
     return { success: true };
@@ -676,7 +714,11 @@ export async function notCompleteAssignment(
       idempotencyKey: `not_complete:${assignmentId}:${personnel.id}`,
       completionReason: reason,
       completionNotes: notes || null,
-      auditMetadata: { source: "personnel-pwa" },
+      auditMetadata: {
+        source: "personnel-pwa",
+        expectedParticipantVersion: input.expectedParticipantVersion ?? null,
+        clientMutationId: input.clientMutationId ?? null,
+      },
     });
     await db
       .update(assignmentsTable)

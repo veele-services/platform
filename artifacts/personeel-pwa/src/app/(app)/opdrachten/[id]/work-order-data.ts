@@ -21,6 +21,8 @@ export type AssignmentView = Pick<
   | "customerSignatureRequired"
   | "customerSignatureDataUrl"
   | "status"
+  | "participantStatus"
+  | "participantVersion"
   | "customerName"
   | "contactName"
   | "phone"

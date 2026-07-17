@@ -1,6 +1,6 @@
 "use client";
 
-export type OfflineActionStatus = "pending" | "syncing" | "failed";
+export type OfflineActionStatus = "pending" | "syncing" | "synced" | "failed" | "conflict";
 
 type OfflineActionBase = {
   id: string;
@@ -15,6 +15,8 @@ type OfflineActionBase = {
     | "add-material-usage"
     | "add-inventory-usage";
   assignmentId: string;
+  expectedParticipantVersion?: number | null;
+  idempotencyKey: string;
   createdAt: string;
   updatedAt: string;
   status: OfflineActionStatus;
@@ -98,25 +100,27 @@ export type OfflineWorkOrderAction =
       };
     });
 
+type OfflineQueueOwnershipInput = { expectedParticipantVersion?: number | null };
+
 export type OfflineWorkOrderActionInput =
   | Omit<Extract<OfflineWorkOrderAction, { type: "mark-assignment-en-route" }>, keyof OfflineActionBase>
-    & Pick<Extract<OfflineWorkOrderAction, { type: "mark-assignment-en-route" }>, "type" | "assignmentId">
+    & Pick<Extract<OfflineWorkOrderAction, { type: "mark-assignment-en-route" }>, "type" | "assignmentId"> & OfflineQueueOwnershipInput
   | Omit<Extract<OfflineWorkOrderAction, { type: "start-assignment" }>, keyof OfflineActionBase>
-    & Pick<Extract<OfflineWorkOrderAction, { type: "start-assignment" }>, "type" | "assignmentId">
+    & Pick<Extract<OfflineWorkOrderAction, { type: "start-assignment" }>, "type" | "assignmentId"> & OfflineQueueOwnershipInput
   | Omit<Extract<OfflineWorkOrderAction, { type: "complete-assignment" }>, keyof OfflineActionBase>
-    & Pick<Extract<OfflineWorkOrderAction, { type: "complete-assignment" }>, "type" | "assignmentId" | "payload">
+    & Pick<Extract<OfflineWorkOrderAction, { type: "complete-assignment" }>, "type" | "assignmentId" | "payload"> & OfflineQueueOwnershipInput
   | Omit<Extract<OfflineWorkOrderAction, { type: "not-complete-assignment" }>, keyof OfflineActionBase>
-    & Pick<Extract<OfflineWorkOrderAction, { type: "not-complete-assignment" }>, "type" | "assignmentId" | "payload">
+    & Pick<Extract<OfflineWorkOrderAction, { type: "not-complete-assignment" }>, "type" | "assignmentId" | "payload"> & OfflineQueueOwnershipInput
   | Omit<Extract<OfflineWorkOrderAction, { type: "set-task-completion" }>, keyof OfflineActionBase>
-    & Pick<Extract<OfflineWorkOrderAction, { type: "set-task-completion" }>, "type" | "assignmentId" | "taskId" | "payload">
+    & Pick<Extract<OfflineWorkOrderAction, { type: "set-task-completion" }>, "type" | "assignmentId" | "taskId" | "payload"> & OfflineQueueOwnershipInput
   | Omit<Extract<OfflineWorkOrderAction, { type: "add-report-note" }>, keyof OfflineActionBase>
-    & Pick<Extract<OfflineWorkOrderAction, { type: "add-report-note" }>, "type" | "assignmentId" | "payload">
+    & Pick<Extract<OfflineWorkOrderAction, { type: "add-report-note" }>, "type" | "assignmentId" | "payload"> & OfflineQueueOwnershipInput
   | Omit<Extract<OfflineWorkOrderAction, { type: "add-extra-work" }>, keyof OfflineActionBase>
-    & Pick<Extract<OfflineWorkOrderAction, { type: "add-extra-work" }>, "type" | "assignmentId" | "payload">
+    & Pick<Extract<OfflineWorkOrderAction, { type: "add-extra-work" }>, "type" | "assignmentId" | "payload"> & OfflineQueueOwnershipInput
   | Omit<Extract<OfflineWorkOrderAction, { type: "add-material-usage" }>, keyof OfflineActionBase>
-    & Pick<Extract<OfflineWorkOrderAction, { type: "add-material-usage" }>, "type" | "assignmentId" | "payload">
+    & Pick<Extract<OfflineWorkOrderAction, { type: "add-material-usage" }>, "type" | "assignmentId" | "payload"> & OfflineQueueOwnershipInput
   | Omit<Extract<OfflineWorkOrderAction, { type: "add-inventory-usage" }>, keyof OfflineActionBase>
-    & Pick<Extract<OfflineWorkOrderAction, { type: "add-inventory-usage" }>, "type" | "assignmentId" | "payload">;
+    & Pick<Extract<OfflineWorkOrderAction, { type: "add-inventory-usage" }>, "type" | "assignmentId" | "payload"> & OfflineQueueOwnershipInput;
 
 const QUEUE_KEY = "veele-personeel-offline-work-order-actions-v1";
 const QUEUE_EVENT = "veele:offline-work-order-queue";
@@ -124,6 +128,12 @@ const SYNC_TAG = "veele-personeel-work-order-sync";
 
 function canUseStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+}
+
+function createDeterministicIdempotencyKey(action: OfflineWorkOrderActionInput, now: string) {
+  const payload = "payload" in action ? JSON.stringify(action.payload) : "";
+  const task = "taskId" in action ? action.taskId : "";
+  return `personnel-pwa:${action.type}:${action.assignmentId}:${task}:${payload}:${now}`;
 }
 
 function createActionId() {
@@ -160,7 +170,7 @@ function normalizeAction(item: unknown): OfflineWorkOrderAction | null {
   if (!isActionType(action.type)) return null;
 
   const status: OfflineActionStatus =
-    action.status === "syncing" || action.status === "failed" ? action.status : "pending";
+    ["syncing", "synced", "failed", "conflict"].includes(String(action.status)) ? action.status as OfflineActionStatus : "pending";
   const base = {
     ...action,
     updatedAt: typeof action.updatedAt === "string" ? action.updatedAt : action.createdAt,
@@ -169,6 +179,8 @@ function normalizeAction(item: unknown): OfflineWorkOrderAction | null {
       ? Math.max(0, action.attempts)
       : 0,
     lastError: typeof action.lastError === "string" ? action.lastError : null,
+    expectedParticipantVersion: typeof action.expectedParticipantVersion === "number" ? action.expectedParticipantVersion : null,
+    idempotencyKey: typeof action.idempotencyKey === "string" ? action.idempotencyKey : `${action.type}:${action.assignmentId}:${action.id}`,
   } as OfflineActionBase & Record<string, unknown>;
 
   if (base.type === "set-task-completion") {
@@ -222,6 +234,7 @@ export function enqueueOfflineWorkOrderAction(
   const nextAction = {
     ...action,
     id: createActionId(),
+    idempotencyKey: createDeterministicIdempotencyKey(action, now),
     createdAt: now,
     updatedAt: now,
     status: "pending",
@@ -285,7 +298,7 @@ export function updateOfflineWorkOrderAction(
 export function retryOfflineWorkOrderFailures() {
   const queue = readOfflineWorkOrderQueue();
   writeOfflineWorkOrderQueue(queue.map((action) => (
-    action.status === "failed"
+    action.status === "failed" || action.status === "conflict"
       ? { ...action, status: "pending", lastError: null, updatedAt: new Date().toISOString() } as OfflineWorkOrderAction
       : action
   )));
@@ -297,7 +310,7 @@ export function getOfflineWorkOrderQueueCount() {
 }
 
 export function getOfflineWorkOrderFailureCount() {
-  return readOfflineWorkOrderQueue().filter((action) => action.status === "failed").length;
+  return readOfflineWorkOrderQueue().filter((action) => action.status === "failed" || action.status === "conflict").length;
 }
 
 export function subscribeOfflineWorkOrderQueue(listener: () => void) {
