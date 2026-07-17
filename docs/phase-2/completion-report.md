@@ -1,8 +1,8 @@
 # Fieldgrid Phase 2 completion report
 
-Date: 2026-07-17  
-Branch: `phase2/w12-closeout`  
-Target: draft PR to `main`  
+Date: 2026-07-17
+Branch: `phase2/w12-closeout`
+Target: draft PR to `main`
 Production action: none
 
 ## Closeout decision
