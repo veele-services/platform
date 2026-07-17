@@ -2,20 +2,47 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  Building2,
-  CalendarDays,
-  Headphones,
-  Home,
-  Menu,
-} from "lucide-react";
+import { Building2, CalendarDays, Headphones, Home, Menu } from "lucide-react";
 
 const NAV_ITEMS = [
-  { href: "/",                  icon: Home,         label: "Home",       match: ["/"] },
-  { href: "/opdrachten",        icon: CalendarDays, label: "Opdrachten", match: ["/opdrachten"] },
-  { href: "/objecten",          icon: Building2,    label: "Objecten",   match: ["/objecten"] },
-  { href: "/meldingen/tickets", icon: Headphones,   label: "Support",    match: ["/meldingen"] },
-  { href: "/meer",              icon: Menu,         label: "Meer",       match: ["/meer", "/profiel", "/beveiliging", "/instellingen", "/financieel", "/facturen", "/rapporten", "/documenten", "/betalingen", "/offertes", "/help", "/releases"] },
+  { href: "/", icon: Home, label: "Overzicht", match: ["/"] },
+  {
+    href: "/opdrachten",
+    icon: CalendarDays,
+    label: "Opdrachten",
+    match: ["/opdrachten"],
+  },
+  {
+    href: "/objecten",
+    icon: Building2,
+    label: "Objecten",
+    match: ["/objecten"],
+  },
+  {
+    href: "/meldingen/tickets",
+    icon: Headphones,
+    label: "Support",
+    match: ["/meldingen"],
+  },
+  {
+    href: "/meer",
+    icon: Menu,
+    label: "Meer",
+    match: [
+      "/meer",
+      "/profiel",
+      "/beveiliging",
+      "/instellingen",
+      "/financieel",
+      "/facturen",
+      "/rapporten",
+      "/documenten",
+      "/betalingen",
+      "/offertes",
+      "/help",
+      "/releases",
+    ],
+  },
 ];
 
 export function BottomNav() {
@@ -25,7 +52,10 @@ export function BottomNav() {
     <nav className="fixed inset-x-0 bottom-0 z-50 md:hidden">
       <div
         className="mx-2.5 mb-[calc(0.45rem+var(--safe-bottom))] flex items-stretch rounded-[20px] px-1.5 py-1 shadow-2xl"
-        style={{ backgroundColor: "#061F44", boxShadow: "0 18px 44px rgba(6,31,68,0.28)" }}
+        style={{
+          backgroundColor: "#061F44",
+          boxShadow: "0 18px 44px rgba(6,31,68,0.28)",
+        }}
       >
         {NAV_ITEMS.map((item) => {
           const isActive = item.match.some((path) =>
@@ -43,9 +73,11 @@ export function BottomNav() {
               <span
                 className="relative flex items-center justify-center rounded-2xl transition-all"
                 style={{
-                  width:           "38px",
-                  height:          "25px",
-                  backgroundColor: isActive ? "rgba(255,255,255,0.12)" : "transparent",
+                  width: "38px",
+                  height: "25px",
+                  backgroundColor: isActive
+                    ? "rgba(255,255,255,0.12)"
+                    : "transparent",
                 }}
               >
                 <Icon size={18} strokeWidth={isActive ? 2.5 : 1.75} />
@@ -53,7 +85,12 @@ export function BottomNav() {
 
               <span
                 className="font-semibold leading-none"
-                style={{ fontSize: "9.5px", color: isActive ? "var(--color-accent)" : "rgba(255,255,255,0.72)" }}
+                style={{
+                  fontSize: "9.5px",
+                  color: isActive
+                    ? "var(--color-accent)"
+                    : "rgba(255,255,255,0.72)",
+                }}
               >
                 {item.label}
               </span>

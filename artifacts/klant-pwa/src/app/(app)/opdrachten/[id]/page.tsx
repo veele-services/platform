@@ -69,12 +69,35 @@ const INVOICE_STATUS_LABEL: Record<InvoiceStatus, string> = {
   cancelled: "Geannuleerd",
 };
 
-const INVOICE_STATUS_COLOR: Record<InvoiceStatus, { bg: string; color: string }> = {
+const INVOICE_STATUS_COLOR: Record<
+  InvoiceStatus,
+  { bg: string; color: string }
+> = {
   draft: { bg: "#F1F5F9", color: "#64748B" },
   sent: { bg: "#EDE9FE", color: "#6D28D9" },
   paid: { bg: "#DCFCE7", color: "#15803D" },
   cancelled: { bg: "#FEE2E2", color: "#DC2626" },
 };
+
+function formatDateTime(dateStr: string | null): string {
+  if (!dateStr) return "Nog niet bekend";
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return "Nog niet bekend";
+  return d.toLocaleString("nl-NL", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatTimelineTime(dateStr: string | null): string | null {
+  if (!dateStr) return null;
+  const d = new Date(dateStr);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleTimeString("nl-NL", { hour: "2-digit", minute: "2-digit" });
+}
 
 function formatDate(dateStr: string | null): string {
   if (!dateStr) return "Geen datum";
@@ -115,6 +138,172 @@ function StatusPill({ status }: { status: AssignmentStatus }) {
   );
 }
 
+function customerTimelinePhase(
+  status: AssignmentStatus,
+): "scheduled" | "in_progress" | "completed" {
+  if (
+    [
+      "completed",
+      "report_submitted",
+      "report_approved",
+      "invoice_ready",
+      "invoiced",
+      "paid",
+      "closed",
+    ].includes(status)
+  ) {
+    return "completed";
+  }
+  if (["seen", "en_route", "in_progress", "not_completed"].includes(status)) {
+    return "in_progress";
+  }
+  return "scheduled";
+}
+
+function AssignmentTimeline({
+  assignment,
+}: {
+  assignment: Awaited<ReturnType<typeof getMyAssignmentDetail>> & {};
+}) {
+  if (!assignment) return null;
+  const phase = customerTimelinePhase(assignment.status);
+  const plannedWindow = [assignment.scheduledStart, assignment.scheduledEnd]
+    .filter(Boolean)
+    .join(" - ");
+  const actualWindow = [
+    formatTimelineTime(assignment.actualStartedAt),
+    formatTimelineTime(assignment.actualCompletedAt),
+  ]
+    .filter(Boolean)
+    .join(" - ");
+  const steps = [
+    {
+      key: "scheduled",
+      label: "Ingepland",
+      description: assignment.scheduledDate
+        ? `${formatDate(assignment.scheduledDate)}${plannedWindow ? `, ${plannedWindow}` : ""}`
+        : "We delen het tijdvenster zodra de planning definitief is.",
+      state: "done",
+    },
+    {
+      key: "in_progress",
+      label: "Uitvoering",
+      description: assignment.actualStartedAt
+        ? `Gestart op ${formatDateTime(assignment.actualStartedAt)}${assignment.actualCompletedAt ? `, afgerond om ${formatTimelineTime(assignment.actualCompletedAt)}` : ""}`
+        : phase === "in_progress"
+          ? "De uitvoering is gestart of de medewerker is onderweg."
+          : "Nog niet gestart.",
+      state: phase === "scheduled" ? "upcoming" : "done",
+    },
+    {
+      key: "completed",
+      label: "Afgerond",
+      description: assignment.actualCompletedAt
+        ? `Werk afgerond op ${formatDateTime(assignment.actualCompletedAt)}`
+        : "Na afronding ziet u hier het goedgekeurde rapport en zichtbare documenten.",
+      state: phase === "completed" ? "done" : "upcoming",
+    },
+  ] as const;
+
+  return (
+    <div
+      className="rounded-2xl border bg-white p-4"
+      style={{ borderColor: "var(--color-border)" }}
+    >
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h3
+            className="text-base font-black"
+            style={{ color: "var(--color-primary)" }}
+          >
+            Tijdlijn voor de klant
+          </h3>
+          <p
+            className="mt-1 text-sm font-semibold leading-5"
+            style={{ color: "var(--color-secondary)" }}
+          >
+            Rustige weergave van planning, uitvoering en afronding zonder
+            interne planningsdetails.
+          </p>
+        </div>
+        <span className="inline-flex w-fit rounded-full bg-[#E8FBFA] px-3 py-1 text-xs font-black text-[#087C79]">
+          {phase === "completed"
+            ? "Afgerond"
+            : phase === "in_progress"
+              ? "In uitvoering"
+              : "Ingepland"}
+        </span>
+      </div>
+      <ol className="grid gap-3 md:grid-cols-3">
+        {steps.map((step, index) => {
+          const done = step.state === "done";
+          return (
+            <li key={step.key} className="relative rounded-2xl bg-slate-50 p-4">
+              <span
+                className="mb-3 flex h-8 w-8 items-center justify-center rounded-full text-xs font-black"
+                style={{
+                  backgroundColor: done ? "var(--color-accent)" : "#E2E8F0",
+                  color: done ? "white" : "#64748B",
+                }}
+              >
+                {index + 1}
+              </span>
+              <p
+                className="text-sm font-black"
+                style={{ color: "var(--color-primary)" }}
+              >
+                {step.label}
+              </p>
+              <p
+                className="mt-1 text-xs font-semibold leading-5"
+                style={{ color: "var(--color-secondary)" }}
+              >
+                {step.description}
+              </p>
+            </li>
+          );
+        })}
+      </ol>
+      <div className="mt-4 grid gap-3 md:grid-cols-2">
+        <div
+          className="rounded-2xl border border-dashed px-4 py-3"
+          style={{ borderColor: "var(--color-border)" }}
+        >
+          <p
+            className="text-xs font-black uppercase"
+            style={{ color: "var(--color-muted-fg)" }}
+          >
+            Gepland tijdvenster
+          </p>
+          <p
+            className="mt-1 text-sm font-black"
+            style={{ color: "var(--color-primary)" }}
+          >
+            {plannedWindow || "Nog geen tijdvenster"}
+          </p>
+        </div>
+        <div
+          className="rounded-2xl border border-dashed px-4 py-3"
+          style={{ borderColor: "var(--color-border)" }}
+        >
+          <p
+            className="text-xs font-black uppercase"
+            style={{ color: "var(--color-muted-fg)" }}
+          >
+            Werkelijke uitvoering
+          </p>
+          <p
+            className="mt-1 text-sm font-black"
+            style={{ color: "var(--color-primary)" }}
+          >
+            {actualWindow || "Nog niet gestart"}
+          </p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Section({
   id,
   icon,
@@ -129,16 +318,26 @@ function Section({
   children: ReactNode;
 }) {
   return (
-    <section id={id} className="scroll-mt-24 rounded-2xl border bg-white p-5 shadow-sm" style={{ borderColor: "var(--color-border)" }}>
+    <section
+      id={id}
+      className="scroll-mt-24 rounded-2xl border bg-white p-5 shadow-sm"
+      style={{ borderColor: "var(--color-border)" }}
+    >
       <div className="mb-4 flex items-start gap-3">
         <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-[#E8FBFA] text-[#087C79]">
           {icon}
         </span>
         <div className="min-w-0">
-          <h2 className="text-lg font-black" style={{ color: "var(--color-primary)" }}>
+          <h2
+            className="text-lg font-black"
+            style={{ color: "var(--color-primary)" }}
+          >
             {title}
           </h2>
-          <p className="mt-1 text-sm font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
+          <p
+            className="mt-1 text-sm font-semibold leading-5"
+            style={{ color: "var(--color-secondary)" }}
+          >
             {subtitle}
           </p>
         </div>
@@ -148,13 +347,28 @@ function Section({
   );
 }
 
-function EmptyState({ title, description }: { title: string; description: string }) {
+function EmptyState({
+  title,
+  description,
+}: {
+  title: string;
+  description: string;
+}) {
   return (
-    <div className="rounded-2xl border border-dashed px-4 py-6 text-center" style={{ borderColor: "var(--color-border)" }}>
-      <p className="text-sm font-black" style={{ color: "var(--color-primary)" }}>
+    <div
+      className="rounded-2xl border border-dashed px-4 py-6 text-center"
+      style={{ borderColor: "var(--color-border)" }}
+    >
+      <p
+        className="text-sm font-black"
+        style={{ color: "var(--color-primary)" }}
+      >
         {title}
       </p>
-      <p className="mx-auto mt-1 max-w-md text-xs font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
+      <p
+        className="mx-auto mt-1 max-w-md text-xs font-semibold leading-5"
+        style={{ color: "var(--color-secondary)" }}
+      >
         {description}
       </p>
     </div>
@@ -171,7 +385,10 @@ function SectionNav() {
   ] as const;
 
   return (
-    <nav className="flex gap-2 overflow-x-auto rounded-2xl border bg-white p-2 shadow-sm" style={{ borderColor: "var(--color-border)" }}>
+    <nav
+      className="flex gap-2 overflow-x-auto rounded-2xl border bg-white p-2 shadow-sm"
+      style={{ borderColor: "var(--color-border)" }}
+    >
       {items.map(([href, label]) => (
         <a
           key={href}
@@ -198,20 +415,37 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
   if (!assignment) notFound();
 
   const report = reports.find((item) => item.assignmentId === assignment.id);
-  const assignmentDocuments = documents.filter((document) => document.assignmentId === assignment.id || document.entityId === assignment.id);
-  const showTasks = SHOW_TASKS_STATUSES.has(assignment.status) && assignment.tasks.length > 0;
-  const timeSlot = [assignment.scheduledStart, assignment.scheduledEnd].filter(Boolean).join(" - ");
-  const addressLine = [assignment.objectAddress, assignment.objectPostalCode, assignment.objectCity]
+  const assignmentDocuments = documents.filter(
+    (document) =>
+      document.assignmentId === assignment.id ||
+      document.entityId === assignment.id,
+  );
+  const showTasks =
+    SHOW_TASKS_STATUSES.has(assignment.status) && assignment.tasks.length > 0;
+  const timeSlot = [assignment.scheduledStart, assignment.scheduledEnd]
+    .filter(Boolean)
+    .join(" - ");
+  const addressLine = [
+    assignment.objectAddress,
+    assignment.objectPostalCode,
+    assignment.objectCity,
+  ]
     .filter(Boolean)
     .join(", ");
-  const supportHref = supportHrefForAssignment(assignment.code, assignment.title);
+  const supportHref = supportHrefForAssignment(
+    assignment.code,
+    assignment.title,
+  );
   const { quote, invoice } = assignment;
 
   return (
     <PortalPageShell
       title={assignment.title}
       subtitle={`${assignment.code} - status, planning, documenten en support`}
-      status={{ label: STATUS_LABEL[assignment.status] ?? assignment.status, tone: "accent" }}
+      status={{
+        label: STATUS_LABEL[assignment.status] ?? assignment.status,
+        tone: "accent",
+      }}
       actions={
         <>
           <Link
@@ -224,7 +458,10 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
           <Link
             href="/opdrachten"
             className="inline-flex items-center gap-2 rounded-xl border px-4 py-2 text-sm font-black"
-            style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+            style={{
+              borderColor: "var(--color-border)",
+              color: "var(--color-primary)",
+            }}
           >
             <ChevronLeft size={16} />
             Opdrachten
@@ -242,7 +479,10 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
       >
         <div className="grid gap-3 md:grid-cols-3">
           <div className="rounded-2xl bg-slate-50 p-4">
-            <p className="text-xs font-black uppercase" style={{ color: "var(--color-muted-fg)" }}>
+            <p
+              className="text-xs font-black uppercase"
+              style={{ color: "var(--color-muted-fg)" }}
+            >
               Opdrachtstatus
             </p>
             <div className="mt-2">
@@ -250,52 +490,92 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
             </div>
           </div>
           <div className="rounded-2xl bg-slate-50 p-4">
-            <p className="text-xs font-black uppercase" style={{ color: "var(--color-muted-fg)" }}>
+            <p
+              className="text-xs font-black uppercase"
+              style={{ color: "var(--color-muted-fg)" }}
+            >
               Object
             </p>
-            <p className="mt-2 text-sm font-black" style={{ color: "var(--color-primary)" }}>
+            <p
+              className="mt-2 text-sm font-black"
+              style={{ color: "var(--color-primary)" }}
+            >
               {assignment.objectName ?? "Geen object"}
             </p>
           </div>
           <div className="rounded-2xl bg-slate-50 p-4">
-            <p className="text-xs font-black uppercase" style={{ color: "var(--color-muted-fg)" }}>
+            <p
+              className="text-xs font-black uppercase"
+              style={{ color: "var(--color-muted-fg)" }}
+            >
               Documenten
             </p>
-            <p className="mt-2 text-sm font-black" style={{ color: "var(--color-primary)" }}>
+            <p
+              className="mt-2 text-sm font-black"
+              style={{ color: "var(--color-primary)" }}
+            >
               {assignmentDocuments.length} gekoppeld
             </p>
           </div>
         </div>
 
         {assignment.description ? (
-          <div className="mt-4 rounded-2xl border p-4" style={{ borderColor: "var(--color-border)" }}>
-            <p className="text-xs font-black uppercase" style={{ color: "var(--color-muted-fg)" }}>
+          <div
+            className="mt-4 rounded-2xl border p-4"
+            style={{ borderColor: "var(--color-border)" }}
+          >
+            <p
+              className="text-xs font-black uppercase"
+              style={{ color: "var(--color-muted-fg)" }}
+            >
               Omschrijving
             </p>
-            <p className="mt-2 whitespace-pre-wrap text-sm font-semibold leading-6" style={{ color: "var(--color-primary)" }}>
+            <p
+              className="mt-2 whitespace-pre-wrap text-sm font-semibold leading-6"
+              style={{ color: "var(--color-primary)" }}
+            >
               {assignment.description}
             </p>
           </div>
         ) : null}
 
-        {(quote || invoice) ? (
+        {quote || invoice ? (
           <div className="mt-4 grid gap-3 md:grid-cols-2">
             {quote ? (
-              <div className="rounded-2xl border p-4" style={{ borderColor: "var(--color-border)" }}>
+              <div
+                className="rounded-2xl border p-4"
+                style={{ borderColor: "var(--color-border)" }}
+              >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="flex items-center gap-2 text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                  <span
+                    className="flex items-center gap-2 text-sm font-black"
+                    style={{ color: "var(--color-primary)" }}
+                  >
                     <FileText size={16} />
                     Offerte {quote.quoteNumber}
                   </span>
-                  <span className="rounded-full px-2.5 py-1 text-xs font-black" style={{ backgroundColor: QUOTE_STATUS_COLOR[quote.status].bg, color: QUOTE_STATUS_COLOR[quote.status].color }}>
+                  <span
+                    className="rounded-full px-2.5 py-1 text-xs font-black"
+                    style={{
+                      backgroundColor: QUOTE_STATUS_COLOR[quote.status].bg,
+                      color: QUOTE_STATUS_COLOR[quote.status].color,
+                    }}
+                  >
                     {QUOTE_STATUS_LABEL[quote.status]}
                   </span>
                 </div>
-                <p className="mt-3 text-xl font-black" style={{ color: "var(--color-primary)" }}>
+                <p
+                  className="mt-3 text-xl font-black"
+                  style={{ color: "var(--color-primary)" }}
+                >
                   {formatAmount(quote.amount)}
                 </p>
                 <div className="mt-3 flex flex-wrap gap-3">
-                  <Link href="/offertes" className="inline-flex text-xs font-black" style={{ color: "var(--color-accent)" }}>
+                  <Link
+                    href="/offertes"
+                    className="inline-flex text-xs font-black"
+                    style={{ color: "var(--color-accent)" }}
+                  >
                     Offertes bekijken
                   </Link>
                   <Link
@@ -312,20 +592,39 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
               </div>
             ) : null}
             {invoice ? (
-              <div className="rounded-2xl border p-4" style={{ borderColor: "var(--color-border)" }}>
+              <div
+                className="rounded-2xl border p-4"
+                style={{ borderColor: "var(--color-border)" }}
+              >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="flex items-center gap-2 text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                  <span
+                    className="flex items-center gap-2 text-sm font-black"
+                    style={{ color: "var(--color-primary)" }}
+                  >
                     <Receipt size={16} />
                     Factuur {invoice.invoiceNumber}
                   </span>
-                  <span className="rounded-full px-2.5 py-1 text-xs font-black" style={{ backgroundColor: INVOICE_STATUS_COLOR[invoice.status].bg, color: INVOICE_STATUS_COLOR[invoice.status].color }}>
+                  <span
+                    className="rounded-full px-2.5 py-1 text-xs font-black"
+                    style={{
+                      backgroundColor: INVOICE_STATUS_COLOR[invoice.status].bg,
+                      color: INVOICE_STATUS_COLOR[invoice.status].color,
+                    }}
+                  >
                     {INVOICE_STATUS_LABEL[invoice.status]}
                   </span>
                 </div>
-                <p className="mt-3 text-xl font-black" style={{ color: "var(--color-primary)" }}>
+                <p
+                  className="mt-3 text-xl font-black"
+                  style={{ color: "var(--color-primary)" }}
+                >
                   {formatAmount(invoice.totalAmount)}
                 </p>
-                <Link href="/facturen" className="mt-2 inline-flex text-xs font-black" style={{ color: "var(--color-accent)" }}>
+                <Link
+                  href="/facturen"
+                  className="mt-2 inline-flex text-xs font-black"
+                  style={{ color: "var(--color-accent)" }}
+                >
                   Facturen bekijken
                 </Link>
               </div>
@@ -338,31 +637,51 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
         id="planning"
         icon={<Calendar size={20} />}
         title="Planning"
-        subtitle="Geplande datum, tijdvenster, locatie en werkzaamheden."
+        subtitle="Geplande en werkelijke tijdlijn, locatie en werkzaamheden."
       >
-        <div className="grid gap-3 md:grid-cols-3">
+        <AssignmentTimeline assignment={assignment} />
+
+        <div className="mt-4 grid gap-3 md:grid-cols-3">
           <div className="rounded-2xl bg-slate-50 p-4">
-            <p className="text-xs font-black uppercase" style={{ color: "var(--color-muted-fg)" }}>
+            <p
+              className="text-xs font-black uppercase"
+              style={{ color: "var(--color-muted-fg)" }}
+            >
               Datum
             </p>
-            <p className="mt-2 text-sm font-black" style={{ color: "var(--color-primary)" }}>
+            <p
+              className="mt-2 text-sm font-black"
+              style={{ color: "var(--color-primary)" }}
+            >
               {formatDate(assignment.scheduledDate)}
             </p>
           </div>
           <div className="rounded-2xl bg-slate-50 p-4">
-            <p className="text-xs font-black uppercase" style={{ color: "var(--color-muted-fg)" }}>
+            <p
+              className="text-xs font-black uppercase"
+              style={{ color: "var(--color-muted-fg)" }}
+            >
               Tijd
             </p>
-            <p className="mt-2 flex items-center gap-2 text-sm font-black" style={{ color: "var(--color-primary)" }}>
+            <p
+              className="mt-2 flex items-center gap-2 text-sm font-black"
+              style={{ color: "var(--color-primary)" }}
+            >
               <Clock size={15} />
               {timeSlot || "Geen tijdvenster"}
             </p>
           </div>
           <div className="rounded-2xl bg-slate-50 p-4">
-            <p className="text-xs font-black uppercase" style={{ color: "var(--color-muted-fg)" }}>
+            <p
+              className="text-xs font-black uppercase"
+              style={{ color: "var(--color-muted-fg)" }}
+            >
               Locatie
             </p>
-            <p className="mt-2 flex items-start gap-2 text-sm font-black" style={{ color: "var(--color-primary)" }}>
+            <p
+              className="mt-2 flex items-start gap-2 text-sm font-black"
+              style={{ color: "var(--color-primary)" }}
+            >
               <MapPin size={15} className="mt-0.5 shrink-0" />
               {addressLine || "Geen adres"}
             </p>
@@ -374,18 +693,31 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
             {assignment.tasks
               .sort((a, b) => a.sortOrder - b.sortOrder)
               .map((task, index) => (
-                <div key={task.id} className="flex items-start gap-3 rounded-xl border px-4 py-3" style={{ borderColor: "var(--color-border)" }}>
-                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-black text-white" style={{ backgroundColor: "var(--color-accent)" }}>
+                <div
+                  key={task.id}
+                  className="flex items-start gap-3 rounded-xl border px-4 py-3"
+                  style={{ borderColor: "var(--color-border)" }}
+                >
+                  <span
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-xs font-black text-white"
+                    style={{ backgroundColor: "var(--color-accent)" }}
+                  >
                     {index + 1}
                   </span>
-                  <p className="text-sm font-semibold leading-5" style={{ color: "var(--color-primary)" }}>
+                  <p
+                    className="text-sm font-semibold leading-5"
+                    style={{ color: "var(--color-primary)" }}
+                  >
                     {task.customerDescription}
                   </p>
                 </div>
               ))}
           </div>
         ) : (
-          <EmptyState title="Werkzaamheden nog niet beschikbaar" description="De werkzaamheden worden zichtbaar zodra de opdracht verder in de uitvoering is." />
+          <EmptyState
+            title="Werkzaamheden nog niet beschikbaar"
+            description="De werkzaamheden worden zichtbaar zodra de opdracht verder in de uitvoering is."
+          />
         )}
       </Section>
 
@@ -396,29 +728,48 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
         subtitle="Goedgekeurd werkrapport en zichtbare foto's vanuit de uitvoering."
       >
         {report ? (
-          <div className="rounded-2xl border p-4" style={{ borderColor: "var(--color-border)" }}>
-            <p className="whitespace-pre-wrap text-sm font-semibold leading-6" style={{ color: "var(--color-primary)" }}>
+          <div
+            className="rounded-2xl border p-4"
+            style={{ borderColor: "var(--color-border)" }}
+          >
+            <p
+              className="whitespace-pre-wrap text-sm font-semibold leading-6"
+              style={{ color: "var(--color-primary)" }}
+            >
               {report.customerVisibleSummary}
             </p>
-            <div className="mt-4 flex flex-wrap gap-2 text-xs font-black" style={{ color: "var(--color-secondary)" }}>
-              <span className="rounded-full bg-slate-100 px-3 py-1.5">{formatDate(report.submittedAt)}</span>
+            <div
+              className="mt-4 flex flex-wrap gap-2 text-xs font-black"
+              style={{ color: "var(--color-secondary)" }}
+            >
               <span className="rounded-full bg-slate-100 px-3 py-1.5">
-                {report.hoursWorked ? `${Number.parseFloat(report.hoursWorked).toLocaleString("nl-NL")} uur` : "Geen uren"}
+                {formatDate(report.submittedAt)}
+              </span>
+              <span className="rounded-full bg-slate-100 px-3 py-1.5">
+                {report.hoursWorked
+                  ? `${Number.parseFloat(report.hoursWorked).toLocaleString("nl-NL")} uur`
+                  : "Geen uren"}
               </span>
             </div>
           </div>
         ) : (
           <EmptyState
             title="Rapport nog niet beschikbaar"
-            description={FINAL_REPORT_STATUSES.has(assignment.status)
-              ? "Er is nog geen klantzichtbaar rapport gekoppeld."
-              : "Het werkrapport verschijnt zodra de opdracht uitgevoerd en goedgekeurd is."}
+            description={
+              FINAL_REPORT_STATUSES.has(assignment.status)
+                ? "Er is nog geen klantzichtbaar rapport gekoppeld."
+                : "Het werkrapport verschijnt zodra de opdracht uitgevoerd en goedgekeurd is."
+            }
           />
         )}
 
-        {assignment.approvedPhotos.length > 0 && FINAL_REPORT_STATUSES.has(assignment.status) ? (
+        {assignment.approvedPhotos.length > 0 &&
+        FINAL_REPORT_STATUSES.has(assignment.status) ? (
           <div className="mt-4">
-            <h3 className="mb-3 flex items-center gap-2 text-sm font-black" style={{ color: "var(--color-primary)" }}>
+            <h3
+              className="mb-3 flex items-center gap-2 text-sm font-black"
+              style={{ color: "var(--color-primary)" }}
+            >
               <Camera size={16} />
               Foto's werkbon
             </h3>
@@ -433,8 +784,14 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
                     className="h-24 w-24 rounded-xl object-cover"
                   />
                 ) : (
-                  <div key={photo.id} className="flex h-24 w-24 items-center justify-center rounded-xl bg-slate-100">
-                    <Camera size={20} style={{ color: "var(--color-muted-fg)" }} />
+                  <div
+                    key={photo.id}
+                    className="flex h-24 w-24 items-center justify-center rounded-xl bg-slate-100"
+                  >
+                    <Camera
+                      size={20}
+                      style={{ color: "var(--color-muted-fg)" }}
+                    />
                   </div>
                 ),
               )}
@@ -458,19 +815,31 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
                 style={{ borderColor: "var(--color-border)" }}
               >
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                  <span
+                    className="block truncate text-sm font-black"
+                    style={{ color: "var(--color-primary)" }}
+                  >
                     {document.name}
                   </span>
-                  <span className="mt-0.5 block truncate text-xs font-semibold" style={{ color: "var(--color-muted-fg)" }}>
+                  <span
+                    className="mt-0.5 block truncate text-xs font-semibold"
+                    style={{ color: "var(--color-muted-fg)" }}
+                  >
                     {document.filename}
                   </span>
                 </span>
-                <DocumentDownloadButton documentId={document.id} filename={document.filename} />
+                <DocumentDownloadButton
+                  documentId={document.id}
+                  filename={document.filename}
+                />
               </div>
             ))}
           </div>
         ) : (
-          <EmptyState title="Geen opdrachtdocumenten" description="Documenten voor deze opdracht verschijnen hier zodra ze gedeeld zijn." />
+          <EmptyState
+            title="Geen opdrachtdocumenten"
+            description="Documenten voor deze opdracht verschijnen hier zodra ze gedeeld zijn."
+          />
         )}
       </Section>
 
@@ -482,11 +851,18 @@ export default async function KlantWerkbonDetailPage({ params }: Props) {
       >
         <div className="flex flex-col gap-3 rounded-2xl bg-slate-50 p-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-sm font-black" style={{ color: "var(--color-primary)" }}>
+            <p
+              className="text-sm font-black"
+              style={{ color: "var(--color-primary)" }}
+            >
               Vraag over deze opdracht
             </p>
-            <p className="mt-1 text-sm font-semibold leading-5" style={{ color: "var(--color-secondary)" }}>
-              Het opdrachtnummer en de titel worden automatisch in het ticket gezet.
+            <p
+              className="mt-1 text-sm font-semibold leading-5"
+              style={{ color: "var(--color-secondary)" }}
+            >
+              Het opdrachtnummer en de titel worden automatisch in het ticket
+              gezet.
             </p>
           </div>
           <Link

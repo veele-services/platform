@@ -10,7 +10,6 @@ import {
   Headphones,
   Lightbulb,
   MailOpen,
-  Megaphone,
   Settings,
   ShieldCheck,
   UserCircle,
@@ -19,19 +18,84 @@ import {
 import { PageShell } from "@/components/PageShell";
 
 const ITEMS = [
-  { href: "/opdrachten",        label: "Opdrachten",   description: "Status, planning en opdrachtgeschiedenis.", Icon: CalendarDays },
-  { href: "/objecten",          label: "Objecten",     description: "Uw locaties en objectinformatie.", Icon: Building2 },
-  { href: "/meldingen/tickets", label: "Support",      description: "Tickets bekijken of een vraag stellen.", Icon: Headphones },
-  { href: "/financieel",        label: "Financieel",   description: "Facturen, betalingen en offertes.", Icon: WalletCards },
-  { href: "/documenten",        label: "Documenten",   description: "Gedeelde documenten downloaden.", Icon: FileText },
-  { href: "/rapporten",         label: "Rapportages",  description: "Goedgekeurde werkrapportages.", Icon: FileCheck2 },
-  { href: "/help",              label: "Help",         description: "Handleidingen en uitleg bij functies.", Icon: HelpCircle },
-  { href: "/releases",          label: "Releases",     description: "Nieuwste updates voor het klantportaal.", Icon: Megaphone },
-  { href: "/roadmap/new",       label: "Featurewens",  description: "Dien een productwens in bij uw leverancier.", Icon: Lightbulb },
-  { href: "/meldingen",         label: "Meldingen",    description: "Actuele meldingen en acties.", Icon: MailOpen },
-  { href: "/profiel",           label: "Profiel",      description: "Contactgegevens en bedrijfsprofiel.", Icon: UserCircle },
-  { href: "/beveiliging",       label: "Beveiliging",  description: "Wachtwoord en toegang beveiligen.", Icon: ShieldCheck },
-  { href: "/instellingen",      label: "Instellingen", description: "E-mail- en notificatievoorkeuren.", Icon: Settings },
+  {
+    href: "/opdrachten",
+    label: "Opdrachten",
+    description: "Status, planning en opdrachtgeschiedenis.",
+    Icon: CalendarDays,
+  },
+  {
+    href: "/objecten",
+    label: "Objecten",
+    description: "Uw locaties en objectinformatie.",
+    Icon: Building2,
+  },
+  {
+    href: "/meldingen/tickets",
+    label: "Support",
+    description: "Tickets bekijken of een vraag stellen.",
+    Icon: Headphones,
+  },
+  {
+    href: "/offertes",
+    label: "Offertes",
+    description: "Offertes en akkoordstatus bekijken.",
+    Icon: FileText,
+  },
+  {
+    href: "/facturen",
+    label: "Facturen",
+    description: "Facturen, status en bestaande betaalopties.",
+    Icon: WalletCards,
+  },
+  {
+    href: "/documenten",
+    label: "Documenten",
+    description: "Gedeelde documenten downloaden.",
+    Icon: FileText,
+  },
+  {
+    href: "/rapporten",
+    label: "Rapportages",
+    description: "Goedgekeurde werkrapportages.",
+    Icon: FileCheck2,
+  },
+  {
+    href: "/help",
+    label: "Support",
+    description: "Handleidingen en uitleg bij functies.",
+    Icon: HelpCircle,
+  },
+  {
+    href: "/roadmap/new",
+    label: "Featurewens",
+    description: "Dien een productwens in bij uw leverancier.",
+    Icon: Lightbulb,
+  },
+  {
+    href: "/meldingen",
+    label: "Meldingen",
+    description: "Actuele meldingen en acties.",
+    Icon: MailOpen,
+  },
+  {
+    href: "/profiel",
+    label: "Profiel",
+    description: "Contactgegevens en bedrijfsprofiel.",
+    Icon: UserCircle,
+  },
+  {
+    href: "/beveiliging",
+    label: "Beveiliging",
+    description: "Wachtwoord en toegang beveiligen.",
+    Icon: ShieldCheck,
+  },
+  {
+    href: "/instellingen",
+    label: "Instellingen",
+    description: "E-mail- en notificatievoorkeuren.",
+    Icon: Settings,
+  },
 ];
 
 type Props = {
@@ -42,7 +106,10 @@ export default async function MeerPage({ searchParams }: Props) {
   const params = searchParams ? await searchParams : {};
 
   return (
-    <PageShell title="Meer" subtitle="Alle klantportaalfuncties op een vaste plek.">
+    <PageShell
+      title="Meer"
+      subtitle="Alle klantportaalfuncties op een vaste plek."
+    >
       {params.featureRequest === "sent" && (
         <div className="rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800">
           Featurewens ontvangen. Bedankt voor uw input.
@@ -62,10 +129,16 @@ export default async function MeerPage({ searchParams }: Props) {
                 <Icon size={21} />
               </span>
               <span className="min-w-0">
-                <span className="block text-sm font-black" style={{ color: "var(--color-primary)" }}>
+                <span
+                  className="block text-sm font-black"
+                  style={{ color: "var(--color-primary)" }}
+                >
                   {label}
                 </span>
-                <span className="mt-1 block text-sm font-semibold leading-6" style={{ color: "var(--color-secondary)" }}>
+                <span
+                  className="mt-1 block text-sm font-semibold leading-6"
+                  style={{ color: "var(--color-secondary)" }}
+                >
                   {description}
                 </span>
               </span>
@@ -80,11 +153,18 @@ export default async function MeerPage({ searchParams }: Props) {
             <Headphones size={21} />
           </span>
           <div>
-            <h2 className="text-lg font-black" style={{ color: "var(--color-primary)" }}>
+            <h2
+              className="text-lg font-black"
+              style={{ color: "var(--color-primary)" }}
+            >
               Hulp & contact
             </h2>
-            <p className="mt-1 text-sm font-semibold leading-6" style={{ color: "var(--color-secondary)" }}>
-              Stel een vraag over een object, opdracht, factuur of algemeen onderwerp via Support.
+            <p
+              className="mt-1 text-sm font-semibold leading-6"
+              style={{ color: "var(--color-secondary)" }}
+            >
+              Stel een vraag over een object, opdracht, factuur of algemeen
+              onderwerp via Support.
             </p>
             <Link
               href="/meldingen/tickets"
