@@ -7,6 +7,8 @@ const planningAction = readFileSync("artifacts/backoffice/src/app/actions/planni
 const personnelAction = readFileSync("artifacts/personeel-pwa/src/actions/assignments.ts", "utf8");
 const backofficeAssignmentAction = readFileSync("artifacts/backoffice/src/app/actions/assignments.ts", "utf8");
 const lifecycleMigration = readFileSync("lib/db/migrations/20260716120000_assignment_lifecycle_time_guards.sql", "utf8");
+const participantExecutionMigration = readFileSync("lib/db/migrations/20260716143000_assignment_participant_execution.sql", "utf8");
+const participantExecutionSource = readFileSync("lib/db/src/assignment-participant-execution.ts", "utf8");
 
 test("W01 projection preserves planned values while preferring actual display values", () => {
   assert.match(projectionSource, /plannedStart:\s*input\.scheduledStart/u);
@@ -27,11 +29,23 @@ test("W01 lifecycle guards prevent generic edit bypass and preserve first comple
   assert.match(backofficeAssignmentAction, /assertGenericAssignmentEditDoesNotTouchLifecycle/u);
   assert.match(backofficeAssignmentAction, /updatedRows\.length === 0/u);
   assert.match(personnelAction, /current\.status === "completed" && current\.actualCompletedAt/u);
-  assert.match(personnelAction, /current\.actualCompletedAt \?\? now/u);
-  assert.match(personnelAction, /completedRows\.length === 0/u);
+  assert.match(personnelAction, /executeAssignmentParticipantAction\(\{[\s\S]*assignmentId,[\s\S]*personnelId: personnel\.id,[\s\S]*action: "complete"/u);
+  assert.match(personnelAction, /idempotencyKey: `complete:\$\{assignmentId\}:\$\{personnel\.id\}`/u);
+  assert.match(personnelAction, /aggregateCompleted[\s\S]*db[\s\S]*\.update\(assignmentsTable\)[\s\S]*completionNotes/u);
+  const completeAssignmentBody = personnelAction.slice(personnelAction.indexOf("export async function completeAssignment"), personnelAction.indexOf("export async function notCompleteAssignment"));
+  assert.doesNotMatch(completeAssignmentBody, /\.set\(\{[\s\S]{0,240}status:\s*"completed"/u);
+  assert.doesNotMatch(completeAssignmentBody, /actualCompletedAt:\s*current\.actualCompletedAt \?\? now/u);
 });
 
 test("W01 migration adds planned and actual time integrity guards", () => {
   assert.match(lifecycleMigration, /assignments_scheduled_window_order_chk/u);
   assert.match(lifecycleMigration, /actual_completed_at >= actual_started_at/u);
+});
+
+
+test("W01 participant execution preserves replay timestamps and drives aggregate completion", () => {
+  assert.match(participantExecutionMigration, /IF p_idempotency_key IS NOT NULL AND exec_row\.idempotency_key = p_idempotency_key[\s\S]*RETURN QUERY SELECT exec_row\.id/u);
+  assert.match(participantExecutionMigration, /actual_completed_at = CASE WHEN p_action IN \('complete','not_complete'\) THEN COALESCE\(actual_completed_at, now_value\) ELSE actual_completed_at END/u);
+  assert.match(participantExecutionMigration, /PERFORM public\.recompute_assignment_execution_projection\(p_assignment_id\)/u);
+  assert.match(participantExecutionSource, /actualCompletedAt = unfinishedRequiredCount === 0 && \(completedCount > 0 \|\| notCompletedCount > 0\)[\s\S]*maxDate\(required\.map\(\(participant\) => participant\.actualCompletedAt\)\)/u);
 });

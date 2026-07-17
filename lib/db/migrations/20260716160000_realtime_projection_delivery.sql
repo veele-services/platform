@@ -41,8 +41,8 @@ REVOKE ALL ON FUNCTION public.fieldgrid_realtime_event_name(text, text, text) FR
 
 CREATE OR REPLACE FUNCTION public.portal_realtime_emit(
   p_tenant_id uuid,
-  p_realtime_key text,
   p_recipient_type text,
+  p_realtime_key text,
   p_personnel_id uuid,
   p_customer_id uuid,
   p_topic text,
@@ -66,8 +66,8 @@ BEGIN
 
   INSERT INTO portal_realtime_events (
     tenant_id,
-    realtime_key,
     recipient_type,
+    realtime_key,
     personnel_id,
     customer_id,
     topic,
@@ -78,8 +78,8 @@ BEGIN
     payload
   ) VALUES (
     p_tenant_id,
-    p_realtime_key,
     p_recipient_type,
+    p_realtime_key,
     p_personnel_id,
     p_customer_id,
     p_topic,
