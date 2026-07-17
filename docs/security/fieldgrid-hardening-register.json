@@ -13,10 +13,10 @@
   "counts": {
     "closed": 15,
     "partial": 3,
-    "open": 6,
+    "open": 7,
     "deferred": 0,
-    "featureFreezeBlocking": 8,
-    "productionReleaseBlocking": 9
+    "featureFreezeBlocking": 9,
+    "productionReleaseBlocking": 10
   },
   "items": [
     {
@@ -608,6 +608,36 @@
       "nextAction": "After blockers close, assemble production go/no-go packet without accessing live DBs or secrets from this PR.",
       "ownerTrack": "release",
       "featureFreezeBlocking": false,
+      "productionReleaseBlocking": true
+    },
+    {
+      "id": "FG-HARD-025",
+      "title": "legacy customer reset code must not become auth password",
+      "severity": "P0",
+      "category": "auth/reset",
+      "status": "open",
+      "currentEvidence": [
+        "lib/db/migrations/20260716123000_credential_recovery_challenges.sql",
+        "lib/db/src/credential-recovery.ts",
+        "artifacts/klant-pwa/src/actions/auth.ts"
+      ],
+      "missingEvidence": [
+        "replace legacy customer reset action with Phase 2 credential recovery grant flow",
+        "browser E2E proves reset code is never set as provider password",
+        "provider/session revocation proof for customer reset"
+      ],
+      "implementationPRs": [],
+      "runtimeProof": [
+        "W11 deterministic credential-recovery artifact covers activation/reset success and invalid/expired/replayed denial, but does not by itself prove the legacy customer artifact path is removed"
+      ],
+      "dependencies": [
+        "W10 credential recovery foundation",
+        "customer portal auth action migration",
+        "provider mock/browser E2E"
+      ],
+      "nextAction": "Before production release, remove or gate the legacy customer reset-code-as-password path and prove the Phase 2 challenge/grant flow end to end.",
+      "ownerTrack": "auth/customer-portal",
+      "featureFreezeBlocking": true,
       "productionReleaseBlocking": true
     }
   ],
