@@ -72,12 +72,24 @@ test("W09 assignment detail presents planned versus actual customer timeline", (
       "In uitvoering",
       "Afgerond",
       "Rustige weergave van planning, uitvoering en afronding zonder",
+      "timeZone: \"Europe/Amsterdam\"",
+      "pre_scheduled",
+      "Nog niet ingepland",
+      "status === \"scheduled\" && scheduledDate",
     ],
     "assignment detail",
   );
   assert.doesNotMatch(
     detail,
     /participant_status|route_context|planning overload/u,
+  );
+  const phaseFunction = detail.slice(
+    detail.indexOf("function customerTimelinePhase"),
+    detail.indexOf("function AssignmentTimeline"),
+  );
+  assert.ok(
+    !phaseFunction.trimEnd().endsWith('return "scheduled";\n}'),
+    "assignment detail should not fall through to scheduled for pre-planning statuses",
   );
 });
 
