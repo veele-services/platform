@@ -491,7 +491,6 @@ export function CompletionSummary({ assignment, mode, extraWork, materials, repo
       }
 
       router.push(`/opdrachten/${assignment.id}`);
-      router.refresh();
     });
   }
 
