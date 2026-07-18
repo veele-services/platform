@@ -2103,6 +2103,7 @@ export async function listAuditLog(
   } = {},
 ): Promise<{ entries: AuditLogEntry[]; total: number }> {
   await requirePermission("settings", "read");
+  const tenantId = await requireCurrentTenantId();
 
   const {
     page = 1,
@@ -2114,6 +2115,7 @@ export async function listAuditLog(
   } = params;
 
   const conditions = [];
+  conditions.push(eq(auditLogTable.tenantId, tenantId));
 
   if (search.trim()) {
     const q = `%${search.trim()}%`;

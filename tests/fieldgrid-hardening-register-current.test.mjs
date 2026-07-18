@@ -26,19 +26,15 @@ const requiredItemFields = [
 
 const canonicalPrMap = new Map([
   [279, ["audit/documentation", "cross-surface functional flow map", "EXTRACT_EVIDENCE_THEN_CLOSE"]],
-  [280, ["tooling", "old large runtime entrypoint inventory", "SUPERSEDED_CLOSE after #302 is accepted"]],
-  [281, ["architecture/documentation", "auth provider boundary ADR", "SUPERSEDED_CLOSE after #298 is accepted"]],
   [282, ["audit/documentation", "platform administration audit", "EXTRACT_EVIDENCE_THEN_CLOSE"]],
   [283, ["audit/documentation", "customer PWA audit", "EXTRACT_EVIDENCE_THEN_CLOSE"]],
   [284, ["implementation", "interest selection and scheduling", "RETAIN_REBASE_COMPLETE"]],
   [285, ["audit/documentation", "tenant backoffice audit", "EXTRACT_EVIDENCE_THEN_CLOSE"]],
-  [286, ["implementation with migration", "credential challenge/reset protocol", "REBUILD_FROM_CURRENT_MAIN"]],
   [287, ["audit/documentation", "personnel PWA audit", "EXTRACT_EVIDENCE_THEN_CLOSE"]],
   [288, ["reproduction", "assignment P0 evidence", "EXTRACT_EVIDENCE_THEN_CLOSE"]],
   [289, ["implementation", "atomic personnel availability", "RETAIN_REBASE_COMPLETE"]],
   [290, ["reproduction", "finance/webhook/worker integrity pack", "EXTRACT_EVIDENCE_THEN_CLOSE"]],
   [292, ["architecture", "multi-person execution model", "PARK_ARCHITECTURE"]],
-  [293, ["old register/documentation", "pre-Phase-B hardening register", "SUPERSEDED_CLOSE after #297"]],
 ]);
 
 test("all canonical register items use the required status model", () => {
@@ -81,29 +77,26 @@ test("all open PR numbers are represented exactly once with canonical title/type
 
 test("implementation PRs are not classified as audit-only and specific historical PR meanings are preserved", () => {
   const byPr = new Map(register.openPrDispositions.map((entry) => [entry.pr, entry]));
-  for (const pr of [284, 286, 289]) {
+  for (const pr of [284, 289]) {
     assert.ok(byPr.get(pr).runtimeCodeExists, `PR #${pr} has runtime code`);
     assert.doesNotMatch(byPr.get(pr).actualType, /audit/u, `PR #${pr} is not audit-only`);
   }
-  assert.equal(byPr.get(280).actualType, "tooling");
-  assert.equal(byPr.get(280).actualSubject, "old large runtime entrypoint inventory");
-  assert.notEqual(byPr.get(280).actualSubject, "finance/webhook/worker integrity pack");
   assert.equal(byPr.get(290).actualType, "reproduction");
   assert.equal(byPr.get(290).actualSubject, "finance/webhook/worker integrity pack");
   assert.notEqual(byPr.get(290).actualSubject, "test baseline work");
   assert.equal(byPr.get(292).disposition, "PARK_ARCHITECTURE");
 });
 
-test("merged Phase-B PRs are represented", () => {
-  assert.deepEqual(register.mergedImplementationPRs, [278, 291, 294, 295, 296]);
+test("merged Phase-B and Phase 2 foundation PRs are represented", () => {
+  assert.deepEqual(register.mergedImplementationPRs, [278, 291, 294, 295, 296, 326, 327, 328]);
   for (const pr of register.mergedImplementationPRs) {
     assert.ok(register.items.some((item) => item.implementationPRs.includes(pr)), `PR ${pr} represented by item`);
   }
 });
 
 test("obsolete base SHA is not presented as current and current main SHA is recorded", () => {
-  assert.equal(register.currentMainSha, "4956d6d9c00d64260b0ed29a90bd0361d19f6408");
-  assert.match(markdown, /4956d6d9c00d64260b0ed29a90bd0361d19f6408/u);
+  assert.equal(register.currentMainSha, "7f57c5a93ec1af6d5553abf190cfd0c3ac300bda");
+  assert.match(markdown, /7f57c5a93ec1af6d5553abf190cfd0c3ac300bda/u);
   assert.doesNotMatch(markdown, /Current main SHA: `f36e84d/u);
   assert.doesNotMatch(JSON.stringify({ currentMainSha: register.currentMainSha }), /f36e84d/u);
 });

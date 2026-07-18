@@ -120,30 +120,34 @@ export async function setAvailabilityWindows(
     }
   }
 
-  await db
-    .delete(availabilityWindowsTable)
-    .where(eq(availabilityWindowsTable.personnelId, personnelId));
+  const tenantId = await requireCurrentTenantId();
+  await db.transaction(async (tx) => {
+    await tx
+      .delete(availabilityWindowsTable)
+      .where(eq(availabilityWindowsTable.personnelId, personnelId));
 
-  if (windows.length > 0) {
-    await db.insert(availabilityWindowsTable).values(
-      windows.map((w) => ({
-        personnelId,
-        dayOfWeek: w.dayOfWeek,
-        startTime: w.startTime,
-        endTime: w.endTime,
-      })),
-    );
-  }
+    if (windows.length > 0) {
+      await tx.insert(availabilityWindowsTable).values(
+        windows.map((w) => ({
+          personnelId,
+          dayOfWeek: w.dayOfWeek,
+          startTime: w.startTime,
+          endTime: w.endTime,
+        })),
+      );
+    }
 
-  await db.insert(auditLogTable).values({
-    userId: user.id,
-    action: "update",
-    resource: "personnel",
-    resourceId: personnelId,
-    metadata: {
-      action: "set_availability_windows",
-      windowCount: windows.length,
-    },
+    await tx.insert(auditLogTable).values({
+      tenantId,
+      userId: user.id,
+      action: "update",
+      resource: "personnel",
+      resourceId: personnelId,
+      metadata: {
+        action: "set_availability_windows",
+        windowCount: windows.length,
+      },
+    });
   });
 
   revalidatePath(`/personnel/${personnelId}`);

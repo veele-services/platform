@@ -253,14 +253,20 @@ async function insertLegacyGlobalManagementOnlyUser(client) {
     `,
   );
 
-  await client.query(
-    `
-      insert into user_roles (user_id, role_id)
-      values ($1, $2)
-      on conflict do nothing
-    `,
-    [FIXTURE.users.legacyGlobalManagementOnly, role.rows[0].id],
-  );
+  for (const userId of [
+    FIXTURE.users.tenantAAdmin,
+    FIXTURE.users.tenantBAdmin,
+    FIXTURE.users.legacyGlobalManagementOnly,
+  ]) {
+    await client.query(
+      `
+        insert into user_roles (user_id, role_id)
+        values ($1, $2)
+        on conflict do nothing
+      `,
+      [userId, role.rows[0].id],
+    );
+  }
 
   await client.query(
     `

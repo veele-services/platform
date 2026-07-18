@@ -7,7 +7,7 @@ import { test } from "node:test";
 const repoRoot = process.cwd();
 const migrationPath = join(
   repoRoot,
-  "lib/db/migrations/20260716160000_realtime_projection_delivery.sql",
+  "lib/db/migrations/20260718190000_phase2_security_reconciliation.sql",
 );
 const migration = readFileSync(migrationPath, "utf8");
 const dbRequire = createRequire(
@@ -15,16 +15,15 @@ const dbRequire = createRequire(
 );
 const { Client } = dbRequire("pg");
 
-test("customer realtime policy uses the supported JWT email claim", () => {
+test("customer realtime policy rejects JWT email fallback", () => {
   assert.doesNotMatch(migration, /auth\.email\s*\(\)/iu);
-  assert.match(
-    migration,
-    /lower\(cu\.email\)\s*=\s*lower\(COALESCE\(auth\.jwt\(\)\s*->>\s*'email',\s*''\)\)/u,
-  );
+  assert.doesNotMatch(migration, /auth\.jwt\(\)\s*->>\s*'email'/u);
+  assert.match(migration, /cu\.status = 'active'/u);
+  assert.match(migration, /cu\.user_id = auth\.uid\(\)/u);
 });
 
 test(
-  "installed customer realtime policy parses the JWT email claim",
+  "installed customer realtime policy requires an active linked user",
   { skip: !process.env.DATABASE_URL },
   async () => {
     const client = new Client({
@@ -45,25 +44,10 @@ test(
       );
 
       assert.equal(policy.rows.length, 1);
-      assert.match(policy.rows[0].qual, /auth\.jwt\(\)/u);
-      assert.match(policy.rows[0].qual, /->>\s*'email'/u);
-      assert.doesNotMatch(policy.rows[0].qual, /auth\.email\s*\(\)/iu);
-
-      const claim = await client.query(
-        "select auth.jwt() ->> 'email' as email",
-      );
-      assert.equal(claim.rows[0].email, null);
-
-      const configuredClaim = await client.query(
-        "select set_config('request.jwt.claims', $1, false)",
-        [JSON.stringify({ email: "customer@example.test" })],
-      );
-      assert.equal(configuredClaim.rows.length, 1);
-
-      const email = await client.query(
-        "select auth.jwt() ->> 'email' as email",
-      );
-      assert.equal(email.rows[0].email, "customer@example.test");
+      assert.doesNotMatch(policy.rows[0].qual, /auth\.jwt\(\)/u);
+      assert.match(policy.rows[0].qual, /cu\.user_id = auth\.uid\(\)/u);
+      assert.match(policy.rows[0].qual, /cu\.status.*active/u);
+      assert.match(policy.rows[0].qual, /c\.is_active IS TRUE/u);
     } finally {
       await client.end();
     }
@@ -85,24 +69,29 @@ test(
         [
           "00000000-0000-0000-0000-000000000010",
           "management",
-          "runtime-regression-realtime-key",
+          "management_00000000-0000-0000-0000-000000000010",
           "assignments",
           "assignment",
           "assignment-regression",
           "insert",
-          JSON.stringify({ email: "secret@example.test", safe: "retained" }),
+          JSON.stringify({
+            email: "secret@example.test",
+            safe: "retained",
+            nested: { accessToken: "secret", label: "retained" },
+            rows: [{ Authorization: "Bearer secret", value: 1 }],
+          }),
         ],
       );
       const event = await client.query(
         "select resource_type, resource_id, action, event_type, payload from public.portal_realtime_events where realtime_key = $1 order by created_at desc limit 1",
-        ["runtime-regression-realtime-key"],
+        ["management_00000000-0000-0000-0000-000000000010"],
       );
       assert.deepEqual(event.rows[0], {
         resource_type: "assignment",
         resource_id: "assignment-regression",
         action: "insert",
         event_type: "customer_visible_projection_changed",
-        payload: { safe: "retained" },
+        payload: { nested: { label: "retained" }, rows: [{ value: 1 }], safe: "retained" },
       });
     } finally {
       await client.end();

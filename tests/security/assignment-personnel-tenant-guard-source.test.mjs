@@ -189,7 +189,8 @@ test("Phase-B source guards cover direct access, RLS runtime, service-role invar
   assert.match(harness, /rls-personnel-policy-mediated-legitimate-data-access/u);
   assert.match(harness, /rls-tenant-a-b-isolation-and-jwt-tenant-claim-ignored/u);
   assert.match(harness, /rls-storage-assignment-photo-path-tenant-isolation-without-tenant-claim/u);
-  assert.match(harness, /rls-customer-policy-regression-assignments-tasks-photos-reports/u);
+  assert.match(harness, /rls-customer-safe-realtime-projection-and-deactivation/u);
+  assert.match(harness, /rls-personnel-approval-and-evidence-mutation-escalation-denied/u);
   assert.match(harness, /rls-database-function-policy-dependency-audit/u);
   assert.match(harness, /set local role \$\{role\}/u);
   assert.match(harness, /asAuthenticated\(client/u);

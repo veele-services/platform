@@ -1,6 +1,6 @@
 {
   "version": "fieldgrid-hardening-register-phase-b-current",
-  "currentMainSha": "4956d6d9c00d64260b0ed29a90bd0361d19f6408",
+  "currentMainSha": "7f57c5a93ec1af6d5553abf190cfd0c3ac300bda",
   "sourceDraftPr": 293,
   "sourceDraftPrUse": "evidence source only; rebuilt from current main after merged Phase-B PRs",
   "mergedImplementationPRs": [
@@ -8,15 +8,18 @@
     291,
     294,
     295,
-    296
+    296,
+    326,
+    327,
+    328
   ],
   "counts": {
-    "closed": 16,
-    "partial": 3,
-    "open": 6,
+    "closed": 17,
+    "partial": 9,
+    "open": 8,
     "deferred": 0,
-    "featureFreezeBlocking": 8,
-    "productionReleaseBlocking": 9
+    "featureFreezeBlocking": 16,
+    "productionReleaseBlocking": 17
   },
   "items": [
     {
@@ -456,23 +459,26 @@
       "category": "test/browser-e2e",
       "status": "partial",
       "currentEvidence": [
-        "manual staging smoke exists for the Phase-B flow"
+        "PR #328 exact-head workflow runs real backoffice, platform, personnel, customer, credential-recovery and staffing browser scenarios",
+        "Phase 2C local Playwright rerun passed 9 scenarios with the optional planning-board collaboration scenario skipped"
       ],
       "missingEvidence": [
-        "broad automated customer/personnel/backoffice portal golden paths"
+        "browser coverage for invite acceptance, report approval/customer visibility and invoice/payment journeys"
       ],
       "implementationPRs": [
         291,
-        294
+        294,
+        328
       ],
       "runtimeProof": [
-        "manual staging smoke evidence only; no broad automated browser lane"
+        "exact-main runs 29653351657 and 29653565851 completed the Playwright lane successfully on 7f57c5a93ec1af6d5553abf190cfd0c3ac300bda",
+        "Phase 2C local Playwright evidence validates the safe customer assignment projection through real PostgREST"
       ],
       "dependencies": [
         "stable seeded test users",
         "non-live staging-safe environment"
       ],
-      "nextAction": "Add automated Playwright golden paths for invite/login/assignment/report/invoice flows.",
+      "nextAction": "Extend the automated lane with invite acceptance, report approval/customer visibility and invoice/payment golden paths.",
       "ownerTrack": "quality/browser",
       "featureFreezeBlocking": true,
       "productionReleaseBlocking": true
@@ -482,20 +488,27 @@
       "title": "auth/invite/reset end-to-end flow",
       "severity": "P0",
       "category": "auth/reset",
-      "status": "open",
+      "status": "partial",
       "currentEvidence": [
-        "architecture/audit/reproduction evidence exists in backlog PRs only"
+        "PR #327 closes hash-only challenge/grant issuance and completion across all surfaces",
+        "Phase 2C removes email-only personnel signup linking and enforces active linked customer identities"
       ],
       "missingEvidence": [
-        "complete Supabase reset token issuance, delivery, expiry, and browser completion proof"
+        "provider-failure saga can consume a grant before the external password update succeeds",
+        "broad invite/login browser coverage remains incomplete"
       ],
-      "implementationPRs": [],
-      "runtimeProof": [],
+      "implementationPRs": [
+        327
+      ],
+      "runtimeProof": [
+        "credential-recovery PostgreSQL 17 and Playwright lanes from PR #327",
+        "Phase 2C source and RLS runtime regressions"
+      ],
       "dependencies": [
         "auth provider test environment",
         "browser golden path lane"
       ],
-      "nextAction": "Retain/rebase auth reset implementation branch and prove full invite/reset flow end to end.",
+      "nextAction": "Make grant consumption/provider update a recoverable saga and complete invite/login browser coverage.",
       "ownerTrack": "auth",
       "featureFreezeBlocking": true,
       "productionReleaseBlocking": true
@@ -529,13 +542,19 @@
       "severity": "P0",
       "category": "workflow/data-integrity",
       "status": "open",
-      "currentEvidence": [],
+      "currentEvidence": [
+        "lib/db/migrations/20260718120000_durable_staffing_lifecycle.sql"
+      ],
       "missingEvidence": [
         "centralized status transition model",
         "runtime tests for invalid transitions"
       ],
-      "implementationPRs": [],
-      "runtimeProof": [],
+      "implementationPRs": [
+        326
+      ],
+      "runtimeProof": [
+        "PR #326 exact-head staffing and participant lifecycle runtime checks"
+      ],
       "dependencies": [
         "workflow inventory"
       ],
@@ -571,21 +590,27 @@
       "title": "test baseline and CI green lane on current main",
       "severity": "P0",
       "category": "quality/ci",
-      "status": "open",
-      "currentEvidence": [],
-      "missingEvidence": [
-        "all required validation commands green on current head"
+      "status": "closed",
+      "currentEvidence": [
+        "docs/phase-2/main-exact-head-validation.md",
+        ".github/workflows/runtime-safety-harness.yml"
       ],
-      "implementationPRs": [],
-      "runtimeProof": [],
+      "missingEvidence": [],
+      "implementationPRs": [
+        328
+      ],
+      "runtimeProof": [
+        "automatic exact-main run 29653351657 succeeded on 7f57c5a93ec1af6d5553abf190cfd0c3ac300bda",
+        "workflow-dispatch run 29653565851 succeeded on the same exact main head with zero failed, cancelled or pending checks"
+      ],
       "dependencies": [
         "dependency install",
         "current CI"
       ],
-      "nextAction": "Make required static, runtime, typecheck, and build validation green on the current branch.",
+      "nextAction": "Keep exact-head validation mandatory under the documented human-controlled merge process.",
       "ownerTrack": "quality",
-      "featureFreezeBlocking": true,
-      "productionReleaseBlocking": true
+      "featureFreezeBlocking": false,
+      "productionReleaseBlocking": false
     },
     {
       "id": "FG-HARD-024",
@@ -640,6 +665,232 @@
       "ownerTrack": "auth/customer-portal",
       "featureFreezeBlocking": false,
       "productionReleaseBlocking": false
+    },
+    {
+      "id": "FG-HARD-026",
+      "title": "tenant-scoped legacy Management RLS",
+      "severity": "P0",
+      "category": "security/tenant-isolation",
+      "status": "partial",
+      "currentEvidence": [
+        "lib/db/migrations/20260718190000_phase2_security_reconciliation.sql",
+        "scripts/fieldgrid-runtime-safety-rls-harness.mjs",
+        "tests/fieldgrid-phase2c-security-reconciliation.test.mjs"
+      ],
+      "missingEvidence": [
+        "legacy is_management policies outside the Phase 2 workflow inventory still require tenant-by-tenant replacement"
+      ],
+      "implementationPRs": [],
+      "runtimeProof": [
+        "Phase 2C RLS harness proves Tenant A/B management isolation and zero rows for tenantless legacy Management"
+      ],
+      "dependencies": [
+        "remaining legacy policy inventory"
+      ],
+      "nextAction": "Replace remaining non-Phase-2 global Management policies with resource-specific tenant permission helpers.",
+      "ownerTrack": "security/database",
+      "featureFreezeBlocking": true,
+      "productionReleaseBlocking": true
+    },
+    {
+      "id": "FG-HARD-027",
+      "title": "realtime recipient, payload and deactivation isolation",
+      "severity": "P0",
+      "category": "security/realtime",
+      "status": "partial",
+      "currentEvidence": [
+        "lib/db/migrations/20260718190000_phase2_security_reconciliation.sql",
+        "tests/fieldgrid-realtime-projection-migration.test.mjs",
+        "scripts/fieldgrid-runtime-safety-rls-harness.mjs"
+      ],
+      "missingEvidence": [
+        "recipient-specific trigger fanout for staffing and internal report artifacts",
+        "monotonic projection versions and shared transaction correlation",
+        "live Supabase Realtime reconnect and out-of-order browser evidence"
+      ],
+      "implementationPRs": [],
+      "runtimeProof": [
+        "PostgreSQL regression proves linked active customer/tenant enforcement, deactivation denial, tuple validation and recursive payload redaction"
+      ],
+      "dependencies": [
+        "versioned projection contract",
+        "realtime browser test environment"
+      ],
+      "nextAction": "Split customer and internal trigger fanout, add monotonic versions, and run live reconnect/out-of-order tests.",
+      "ownerTrack": "security/realtime",
+      "featureFreezeBlocking": true,
+      "productionReleaseBlocking": true
+    },
+    {
+      "id": "FG-HARD-028",
+      "title": "durable offline operation idempotency",
+      "severity": "P0",
+      "category": "workflow/offline",
+      "status": "open",
+      "currentEvidence": [
+        "docs/phase-2/phase-2c-integrated-security-review.md"
+      ],
+      "missingEvidence": [
+        "append-only operation receipt ledger",
+        "atomic expected-version checks inside participant RPC",
+        "commit-then-client-crash replay tests for notes, extra work and inventory"
+      ],
+      "implementationPRs": [],
+      "runtimeProof": [],
+      "dependencies": [
+        "offline operation contract"
+      ],
+      "nextAction": "Add immutable operation IDs, transactional receipts and atomic stale-version rejection for every queued mutation.",
+      "ownerTrack": "workflow/offline",
+      "featureFreezeBlocking": true,
+      "productionReleaseBlocking": true
+    },
+    {
+      "id": "FG-HARD-029",
+      "title": "atomic staffing eligibility enforcement",
+      "severity": "P0",
+      "category": "workflow/staffing",
+      "status": "open",
+      "currentEvidence": [
+        "docs/phase-2/phase-2c-migration-compatibility.md"
+      ],
+      "missingEvidence": [
+        "availability, leave, overlap and qualification checks under canonical staffing locks",
+        "audited explicit override path"
+      ],
+      "implementationPRs": [],
+      "runtimeProof": [],
+      "dependencies": [
+        "canonical eligibility decision"
+      ],
+      "nextAction": "Move eligibility checks into the locked staffing transaction and require complete schedule times before scheduled status.",
+      "ownerTrack": "workflow/staffing",
+      "featureFreezeBlocking": true,
+      "productionReleaseBlocking": true
+    },
+    {
+      "id": "FG-HARD-030",
+      "title": "API JWT issuer, audience and live deactivation validation",
+      "severity": "P0",
+      "category": "security/api-auth",
+      "status": "open",
+      "currentEvidence": [
+        "docs/phase-2/phase-2c-integrated-security-review.md"
+      ],
+      "missingEvidence": [
+        "issuer, audience and token-class enforcement",
+        "stale token denial after provider deactivation"
+      ],
+      "implementationPRs": [],
+      "runtimeProof": [],
+      "dependencies": [
+        "provider JWT configuration",
+        "revocation contract"
+      ],
+      "nextAction": "Validate issuer/audience/role and add live or timestamp-based revocation for sensitive API requests.",
+      "ownerTrack": "security/api",
+      "featureFreezeBlocking": true,
+      "productionReleaseBlocking": true
+    },
+    {
+      "id": "FG-HARD-031",
+      "title": "SECURITY DEFINER ownership and complete ACL contract",
+      "severity": "P0",
+      "category": "security/database-functions",
+      "status": "partial",
+      "currentEvidence": [
+        "docs/phase-2/phase-2c-function-acl-inventory.md",
+        "tests/fieldgrid-phase2c-security-reconciliation.test.mjs"
+      ],
+      "missingEvidence": [
+        "portable approved NOLOGIN owner role in deployment infrastructure",
+        "actor authorization inside service-only staffing RPCs"
+      ],
+      "implementationPRs": [],
+      "runtimeProof": [
+        "fresh PostgreSQL 17 catalog inventory proves 35 relevant definers owned by postgres, no PUBLIC execute, explicit paths and exact runtime-role grants"
+      ],
+      "dependencies": [
+        "deployment role design"
+      ],
+      "nextAction": "Introduce an approved NOLOGIN definer owner role in deployment infrastructure, then pin ownership without assuming postgres.",
+      "ownerTrack": "security/database",
+      "featureFreezeBlocking": true,
+      "productionReleaseBlocking": true
+    },
+    {
+      "id": "FG-HARD-032",
+      "title": "populated previous-release migration compatibility",
+      "severity": "P0",
+      "category": "release/database",
+      "status": "partial",
+      "currentEvidence": [
+        "docs/phase-2/phase-2c-migration-compatibility.md"
+      ],
+      "missingEvidence": [
+        "migration from an actual populated previous-release schema snapshot",
+        "preflight counts for malformed timing, staffing and recovery rows"
+      ],
+      "implementationPRs": [],
+      "runtimeProof": [
+        "fresh PostgreSQL 17 succeeds and current-main-to-fixup upgrade succeeds on disposable fixtures"
+      ],
+      "dependencies": [
+        "sanitized previous-release database fixture"
+      ],
+      "nextAction": "Build a sanitized populated previous-release fixture and migrate it forward without resetting to current schema first.",
+      "ownerTrack": "release/database",
+      "featureFreezeBlocking": true,
+      "productionReleaseBlocking": true
+    },
+    {
+      "id": "FG-HARD-033",
+      "title": "tenant-scoped audit log reads and inserts",
+      "severity": "P0",
+      "category": "security/audit",
+      "status": "partial",
+      "currentEvidence": [
+        "lib/db/migrations/20260718190000_phase2_security_reconciliation.sql",
+        "artifacts/backoffice/src/app/actions/settings.ts"
+      ],
+      "missingEvidence": [
+        "exact-head CI and merged-PR evidence",
+        "platform-admin tenantless audit projection contract"
+      ],
+      "implementationPRs": [],
+      "runtimeProof": [
+        "Phase 2C RLS matrix denies tenantless/global Management audit reads and application query always filters current tenant"
+      ],
+      "dependencies": [
+        "platform audit API design"
+      ],
+      "nextAction": "Retain tenant isolation in exact-head CI and define a separate platform-only audit projection.",
+      "ownerTrack": "security/audit",
+      "featureFreezeBlocking": true,
+      "productionReleaseBlocking": true
+    },
+    {
+      "id": "FG-HARD-034",
+      "title": "recoverable credential provider update saga",
+      "severity": "P1",
+      "category": "auth/recovery-availability",
+      "status": "open",
+      "currentEvidence": [
+        "docs/phase-2/phase-2c-integrated-security-review.md"
+      ],
+      "missingEvidence": [
+        "expiring consuming claim",
+        "provider-failure retry/finalization tests"
+      ],
+      "implementationPRs": [],
+      "runtimeProof": [],
+      "dependencies": [
+        "auth provider failure simulation"
+      ],
+      "nextAction": "Claim a grant, update the provider, and finalize used_at only after success; safely expire failed claims.",
+      "ownerTrack": "auth/recovery",
+      "featureFreezeBlocking": true,
+      "productionReleaseBlocking": true
     }
   ],
   "openPrDispositions": [
@@ -655,36 +906,6 @@
       "recommendedAction": "Extract flow-map evidence into current register/backlog, then close.",
       "dependenciesBeforeMerge": [
         "evidence extraction only; do not merge audit branch"
-      ],
-      "deleteBranchLater": true
-    },
-    {
-      "pr": 280,
-      "actualType": "tooling",
-      "actualSubject": "old large runtime entrypoint inventory",
-      "currentBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-      "staleness": "obsolete pre-Phase-B base",
-      "runtimeCodeExists": false,
-      "ciExistsOnCurrentHead": false,
-      "disposition": "SUPERSEDED_CLOSE after #302 is accepted",
-      "recommendedAction": "Close after #302 replaces the old runtime entrypoint inventory.",
-      "dependenciesBeforeMerge": [
-        "#302 accepted"
-      ],
-      "deleteBranchLater": true
-    },
-    {
-      "pr": 281,
-      "actualType": "architecture/documentation",
-      "actualSubject": "auth provider boundary ADR",
-      "currentBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-      "staleness": "obsolete pre-Phase-B base",
-      "runtimeCodeExists": false,
-      "ciExistsOnCurrentHead": false,
-      "disposition": "SUPERSEDED_CLOSE after #298 is accepted",
-      "recommendedAction": "Close after #298 supersedes the ADR.",
-      "dependenciesBeforeMerge": [
-        "#298 accepted"
       ],
       "deleteBranchLater": true
     },
@@ -747,23 +968,6 @@
       "recommendedAction": "Extract tenant backoffice audit evidence, then close.",
       "dependenciesBeforeMerge": [
         "evidence extraction"
-      ],
-      "deleteBranchLater": true
-    },
-    {
-      "pr": 286,
-      "actualType": "implementation with migration",
-      "actualSubject": "credential challenge/reset protocol",
-      "currentBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-      "staleness": "obsolete pre-Phase-B base",
-      "runtimeCodeExists": true,
-      "ciExistsOnCurrentHead": false,
-      "disposition": "REBUILD_FROM_CURRENT_MAIN",
-      "recommendedAction": "Rebuild credential challenge/reset implementation from current main.",
-      "dependenciesBeforeMerge": [
-        "current-main rebuild",
-        "provider end-to-end reset proof",
-        "migration review"
       ],
       "deleteBranchLater": true
     },
@@ -845,21 +1049,6 @@
         "implementation PR"
       ],
       "deleteBranchLater": false
-    },
-    {
-      "pr": 293,
-      "actualType": "old register/documentation",
-      "actualSubject": "pre-Phase-B hardening register",
-      "currentBaseSha": "f36e84dad5d1c595e4dd349ff5ce6bd439722576",
-      "staleness": "obsolete pre-Phase-B register",
-      "runtimeCodeExists": false,
-      "ciExistsOnCurrentHead": false,
-      "disposition": "SUPERSEDED_CLOSE after #297",
-      "recommendedAction": "Close after #297 is accepted.",
-      "dependenciesBeforeMerge": [
-        "#297 accepted"
-      ],
-      "deleteBranchLater": true
     }
   ],
   "operationalEvidence": {

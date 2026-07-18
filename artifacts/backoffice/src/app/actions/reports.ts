@@ -684,7 +684,13 @@ export async function approveReport(reportId: string): Promise<ActionResult> {
 
   await db
     .update(reportsTable)
-    .set({ status: "approved", reviewedBy: user.id, reviewedAt: new Date(), updatedAt: new Date() })
+    .set({
+      status: "approved",
+      visibilityScope: "customer_approved",
+      reviewedBy: user.id,
+      reviewedAt: new Date(),
+      updatedAt: new Date(),
+    })
     .where(eq(reportsTable.id, reportId));
 
   // Advance assignment status to report_approved first; the invoice proposal helper

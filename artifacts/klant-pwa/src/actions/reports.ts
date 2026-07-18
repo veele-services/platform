@@ -20,7 +20,7 @@ export type CustomerReport = {
 
 /**
  * Returns all approved reports for assignments belonging to the logged-in customer.
- * Filters strictly by: status = 'approved' AND assignment.customer_id = caller's customer ID.
+ * Filters strictly by approved customer visibility and caller customer/tenant.
  * Draft / submitted / rejected reports are never returned.
  */
 export async function getMyReports(): Promise<CustomerReport[]> {
@@ -47,6 +47,7 @@ export async function getMyReports(): Promise<CustomerReport[]> {
         eq(assignmentsTable.customerId, identity.customerId),
         eq(assignmentsTable.tenantId, identity.tenantId),
         eq(reportsTable.status, "approved"),
+        eq(reportsTable.visibilityScope, "customer_approved"),
       ),
     )
     .orderBy(desc(reportsTable.submittedAt));

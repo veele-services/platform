@@ -1,8 +1,8 @@
-# Fieldgrid hardening register — Phase B current
+# Fieldgrid hardening register — Phase 2C reconciliation
 
-Current main SHA: `4956d6d9c00d64260b0ed29a90bd0361d19f6408`.
+Current main SHA: `7f57c5a93ec1af6d5553abf190cfd0c3ac300bda`.
 
-Old draft PR #293 is acknowledged as a source only. This register is rebuilt from current main after merged PRs #278, #291, #294, #295, and #296.
+This register is reconciled after merged PRs #326, #327 and #328 and the two successful exact-main runs `29653351657` and `29653565851`. Phase 2C local evidence is explicitly marked partial until its PR is reviewed and merged.
 
 ## Operator/staging evidence
 
@@ -18,12 +18,12 @@ The following evidence was manually supplied as operator/staging evidence, not a
 
 | status | count |
 |---|---:|
-| closed | 16 |
-| partial | 3 |
-| open | 6 |
+| closed | 17 |
+| partial | 9 |
+| open | 8 |
 | deferred | 0 |
-| feature-freeze blockers | 8 |
-| production release blockers | 9 |
+| feature-freeze blockers | 16 |
+| production release blockers | 17 |
 
 ## Canonical items
 
@@ -46,30 +46,35 @@ The following evidence was manually supplied as operator/staging evidence, not a
 | FG-HARD-015 | previous-release database compatibility lane | P0 | release/compatibility | closed | #296 | previous release server query shapes run against post-Phase-B database contract | Refresh compatibility base after each production release. | release/database | false | false |
 | FG-HARD-016 | assignment/planning IDOR hardening beyond assignment_personnel | P0 | security/idor | partial | #295, #296 | assignment_personnel path has runtime proof; remaining bare-ID actions do not; operator/staging evidence: personnel assignment app smoke passed for Phase-B surface | Rebuild current implementation PR for remaining bare-ID assignment/planning actions and add Tenant A/B runtime tests. | security/application | true | true |
 | FG-HARD-017 | Storage/document access beyond assignment photos | P0 | storage/signed-urls | partial | #296 | assignment-photo storage helper runtime evidence only | Implement document/attachment/PDF/signed URL tenant checks with source and runtime tests. | storage/security | true | true |
-| FG-HARD-018 | browser E2E portal golden paths | P0 | test/browser-e2e | partial | #291, #294 | manual staging smoke evidence only; no broad automated browser lane | Add automated Playwright golden paths for invite/login/assignment/report/invoice flows. | quality/browser | true | true |
-| FG-HARD-019 | auth/invite/reset end-to-end flow | P0 | auth/reset | open | — | — | Retain/rebase auth reset implementation branch and prove full invite/reset flow end to end. | auth | true | true |
+| FG-HARD-018 | browser E2E portal golden paths | P0 | test/browser-e2e | partial | #291, #294, #328 | exact-main runs 29653351657 and 29653565851 completed the Playwright lane; Phase 2C locally validates the safe customer projection through real PostgREST | Extend the automated lane with invite acceptance, report approval/customer visibility and invoice/payment golden paths. | quality/browser | true | true |
+| FG-HARD-019 | auth/invite/reset end-to-end flow | P0 | auth/reset | partial | #327 | credential recovery runtime/Playwright plus Phase 2C source and RLS regressions | Make provider update recoverable after a claimed grant and complete invite/login browser coverage. | auth | true | true |
 | FG-HARD-020 | finance/payment/report-to-invoice correctness | P0 | finance/data-integrity | open | — | — | Build implementation PR for payment ledger and report-to-invoice atomic transaction tests. | finance | true | true |
-| FG-HARD-021 | status state machine enforcement | P0 | workflow/data-integrity | open | — | — | Implement canonical status state machine and negative tests for invalid transitions. | workflow | true | true |
+| FG-HARD-021 | status state machine enforcement | P0 | workflow/data-integrity | open | #326 | durable staffing/participant lifecycle runtime checks; broader state model remains incomplete | Implement the remaining canonical state machine and negative transitions. | workflow | true | true |
 | FG-HARD-022 | support access least privilege | P0 | support/security | open | — | — | Define and implement audited support access model with tenant-scoped tests. | support/security | true | true |
-| FG-HARD-023 | test baseline and CI green lane on current main | P0 | quality/ci | open | — | — | Make required static, runtime, typecheck, and build validation green on the current branch. | quality | true | true |
+| FG-HARD-023 | test baseline and CI green lane on current main | P0 | quality/ci | closed | #328 | exact-main runs 29653351657 and 29653565851 succeeded on `7f57c5a9...` with zero failed/cancelled/pending | Keep exact-head validation mandatory in the human merge process. | quality | false | false |
 | FG-HARD-024 | production go/no-go evidence pack | P0 | release/production | open | — | — | After blockers close, assemble production go/no-go packet without accessing live DBs or secrets from this PR. | release | false | true |
 | FG-HARD-025 | legacy customer reset code must not become auth password | P0 | auth/reset | closed | #327 | PostgreSQL 17 credential-recovery runtime proves hash-only expiry/replay/concurrency/rate-limit/RLS behavior; Playwright proves customer and personnel completion, provider session invalidation and no code-as-password; security-source regression covers all surfaces | Keep PR #327 runtime, browser and source regressions in required CI and monitor provider session behavior after deployment. | auth/customer-portal | false | false |
+| FG-HARD-026 | tenant-scoped legacy Management RLS | P0 | security/tenant-isolation | partial | Phase 2C | Tenant A/B matrix and tenantless legacy actor denial | Replace remaining non-Phase-2 global Management policies. | security/database | true | true |
+| FG-HARD-027 | realtime recipient, payload and deactivation isolation | P0 | security/realtime | partial | Phase 2C | linked-active actor matrix, tuple validation and recursive redaction | Split internal/customer fanout and add monotonic/live reconnect evidence. | security/realtime | true | true |
+| FG-HARD-028 | durable offline operation idempotency | P0 | workflow/offline | open | — | — | Add operation receipts and atomic stale-version rejection. | workflow/offline | true | true |
+| FG-HARD-029 | atomic staffing eligibility enforcement | P0 | workflow/staffing | open | — | — | Recheck eligibility under staffing locks and add audited overrides. | workflow/staffing | true | true |
+| FG-HARD-030 | API JWT issuer, audience and live deactivation validation | P0 | security/api-auth | open | — | — | Enforce issuer/audience/token class and revocation. | security/api | true | true |
+| FG-HARD-031 | SECURITY DEFINER ownership and complete ACL contract | P0 | security/database-functions | partial | Phase 2C | 35-function PostgreSQL 17 catalog inventory | Provision and pin a portable approved NOLOGIN owner. | security/database | true | true |
+| FG-HARD-032 | populated previous-release migration compatibility | P0 | release/database | partial | Phase 2C | fresh PG17 and current-main fixture upgrade | Add a sanitized populated previous-release upgrade fixture. | release/database | true | true |
+| FG-HARD-033 | tenant-scoped audit log reads and inserts | P0 | security/audit | partial | Phase 2C | application tenant filter and RLS actor denial | Preserve in exact-head CI and define platform audit projection. | security/audit | true | true |
+| FG-HARD-034 | recoverable credential provider update saga | P1 | auth/recovery-availability | open | — | — | Finalize `used_at` only after provider success and safely expire failed claims. | auth/recovery | true | true |
 
 ## Open PR disposition
 
 | PR | actual type | actual subject | disposition | runtime code exists | action | delete later |
 |---:|---|---|---|---|---|---|
 | #279 | audit/documentation | cross-surface functional flow map | EXTRACT_EVIDENCE_THEN_CLOSE | false | Extract flow-map evidence into current register/backlog, then close. | true |
-| #280 | tooling | old large runtime entrypoint inventory | SUPERSEDED_CLOSE after #302 is accepted | false | Close after #302 replaces the old runtime entrypoint inventory. | true |
-| #281 | architecture/documentation | auth provider boundary ADR | SUPERSEDED_CLOSE after #298 is accepted | false | Close after #298 supersedes the ADR. | true |
 | #282 | audit/documentation | platform administration audit | EXTRACT_EVIDENCE_THEN_CLOSE | false | Extract platform administration audit evidence, then close. | true |
 | #283 | audit/documentation | customer PWA audit | EXTRACT_EVIDENCE_THEN_CLOSE | false | Extract customer PWA audit evidence, then close. | true |
 | #284 | implementation | interest selection and scheduling | RETAIN_REBASE_COMPLETE | true | Retain, rebase on current main, complete implementation and current CI. | false |
 | #285 | audit/documentation | tenant backoffice audit | EXTRACT_EVIDENCE_THEN_CLOSE | false | Extract tenant backoffice audit evidence, then close. | true |
-| #286 | implementation with migration | credential challenge/reset protocol | REBUILD_FROM_CURRENT_MAIN | true | Rebuild credential challenge/reset implementation from current main. | true |
 | #287 | audit/documentation | personnel PWA audit | EXTRACT_EVIDENCE_THEN_CLOSE | false | Extract personnel PWA audit evidence, then close. | true |
 | #288 | reproduction | assignment P0 evidence | EXTRACT_EVIDENCE_THEN_CLOSE | false | Extract assignment P0 reproduction evidence, then close. | true |
 | #289 | implementation | atomic personnel availability | RETAIN_REBASE_COMPLETE | true | Retain, rebase, and complete atomic personnel availability implementation. | false |
 | #290 | reproduction | finance/webhook/worker integrity pack | EXTRACT_EVIDENCE_THEN_CLOSE | false | Extract finance reproduction evidence; build implementation separately. | true |
 | #292 | architecture | multi-person execution model | PARK_ARCHITECTURE | false | Park as architecture reference; do not classify as superseded implementation. | false |
-| #293 | old register/documentation | pre-Phase-B hardening register | SUPERSEDED_CLOSE after #297 | false | Close after #297 is accepted. | true |

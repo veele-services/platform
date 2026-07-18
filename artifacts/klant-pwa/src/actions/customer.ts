@@ -4,7 +4,7 @@ import { requireCurrentCustomerPortalTenantId } from "@/lib/auth/tenant";
 import { createClient } from "@/lib/supabase/server";
 import { db } from "@workspace/db";
 import { customerUsersTable, customersTable, customerTypesTable } from "@workspace/db";
-import { and, eq, inArray, isNull, or } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod/v4";
 
 export type CustomerProfile = {
@@ -41,12 +41,10 @@ export type CustomerScope = CustomerIdentity;
 export async function getMyCustomerIdentity(): Promise<CustomerIdentity | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user?.email) return null;
+  if (!user) return null;
 
   const tenantId = await requireCurrentCustomerPortalTenantId();
   if (!tenantId) return null;
-
-  const email = user.email.toLowerCase();
 
   const [linked] = await db
     .select({
@@ -54,6 +52,7 @@ export async function getMyCustomerIdentity(): Promise<CustomerIdentity | null> 
       customerId: customerUsersTable.customerId,
       userId: customerUsersTable.userId,
       tenantId: customerUsersTable.tenantId,
+      email: customerUsersTable.email,
       firstName: customerUsersTable.firstName,
       lastName: customerUsersTable.lastName,
       customerName: customersTable.name,
@@ -64,38 +63,20 @@ export async function getMyCustomerIdentity(): Promise<CustomerIdentity | null> 
     .where(
       and(
         eq(customerUsersTable.tenantId, tenantId),
-        inArray(customerUsersTable.status, ["active", "invited"]),
+        eq(customerUsersTable.status, "active"),
+        eq(customerUsersTable.userId, user.id),
         eq(customersTable.tenantId, tenantId),
         eq(customersTable.tenantId, customerUsersTable.tenantId),
-        or(
-          eq(customerUsersTable.userId, user.id),
-          and(
-            isNull(customerUsersTable.userId),
-            eq(customerUsersTable.email, email),
-          ),
-        ),
+        eq(customersTable.isActive, true),
       ),
     )
     .limit(1);
 
   if (linked) {
-    if (!linked.userId) {
-      await db
-        .update(customerUsersTable)
-        .set({ userId: user.id, status: "active", lastLoginAt: new Date() })
-        .where(
-          and(
-            eq(customerUsersTable.id, linked.id),
-            eq(customerUsersTable.tenantId, tenantId),
-            isNull(customerUsersTable.userId),
-          ),
-        );
-    } else {
-      await db
-        .update(customerUsersTable)
-        .set({ status: "active", lastLoginAt: new Date() })
-        .where(and(eq(customerUsersTable.id, linked.id), eq(customerUsersTable.tenantId, tenantId)));
-    }
+    await db
+      .update(customerUsersTable)
+      .set({ lastLoginAt: new Date() })
+      .where(and(eq(customerUsersTable.id, linked.id), eq(customerUsersTable.tenantId, tenantId)));
 
     const linkedName = [linked.firstName, linked.lastName].filter(Boolean).join(" ").trim();
     return {
@@ -104,7 +85,7 @@ export async function getMyCustomerIdentity(): Promise<CustomerIdentity | null> 
       tenantId: linked.tenantId,
       customerName: linked.customerName,
       contactName: linkedName || linked.contactName,
-      email,
+      email: linked.email,
       userId: user.id,
     };
   }

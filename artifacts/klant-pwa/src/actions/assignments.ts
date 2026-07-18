@@ -500,6 +500,7 @@ export async function getMyAssignmentDetail(
         and(
           eq(assignmentPhotosTable.assignmentId, assignmentId),
           eq(assignmentPhotosTable.isApproved, true),
+          eq(assignmentPhotosTable.visibilityScope, "customer_approved"),
         ),
       )
       .orderBy(assignmentPhotosTable.createdAt),
