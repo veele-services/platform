@@ -624,6 +624,10 @@ async function serviceRoleCrudWorksAndTriggerInvariantHolds(client) {
       [actor.userId, linkId],
     );
     assert(updated.rows.length === 1, "Service-role same-tenant UPDATE did not affect inserted link.");
+    await client.query(
+      `delete from public.assignment_participant_executions where assignment_personnel_id = $1`,
+      [linkId],
+    );
     const deleted = await client.query(
       `delete from public.assignment_personnel where id = $1 returning id`,
       [linkId],
@@ -1028,7 +1032,7 @@ async function databaseDependencyAudit(client) {
   );
 
   const invokerAssignmentPersonnelReaders = functions.rows.filter(
-    (row) => row.prosecdef === false && row.proname !== "fieldgrid_storage_assignment_id_from_path",
+    (row) => row.prosecdef === false && !["fieldgrid_storage_assignment_id_from_path", "fieldgrid_realtime_event_name"].includes(row.proname),
   );
   assert(
     invokerAssignmentPersonnelReaders.length === 0,

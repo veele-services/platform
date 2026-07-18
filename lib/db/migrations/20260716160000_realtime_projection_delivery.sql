@@ -7,6 +7,19 @@
 ALTER TABLE public.portal_realtime_events
   ADD COLUMN IF NOT EXISTS correlation_id uuid DEFAULT gen_random_uuid() NOT NULL;
 
+ALTER TABLE public.portal_realtime_events
+  ADD COLUMN IF NOT EXISTS resource_type varchar(80),
+  ADD COLUMN IF NOT EXISTS resource_id text,
+  ADD COLUMN IF NOT EXISTS action varchar(80);
+
+ALTER TABLE public.portal_realtime_events
+  ALTER COLUMN event_type TYPE varchar(120);
+
+ALTER TABLE public.portal_realtime_events
+  DROP CONSTRAINT IF EXISTS portal_realtime_events_event_type_check,
+  ADD CONSTRAINT portal_realtime_events_event_type_check
+    CHECK (event_type ~ '^[a-z][a-z0-9_]*$');
+
 CREATE INDEX IF NOT EXISTS portal_realtime_events_tenant_correlation_idx
   ON public.portal_realtime_events(tenant_id, correlation_id, created_at DESC);
 
@@ -191,6 +204,6 @@ CREATE POLICY portal_realtime_events_customer_read
       WHERE cu.customer_id = portal_realtime_events.customer_id
         AND cu.tenant_id = portal_realtime_events.tenant_id
         AND cu.status IN ('active', 'invited')
-        AND (cu.user_id = auth.uid() OR lower(cu.email) = lower(auth.email()))
+        AND (cu.user_id = auth.uid() OR lower(cu.email) = lower(COALESCE(auth.jwt() ->> 'email', '')))
     )
   );
