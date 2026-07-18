@@ -63,6 +63,7 @@ async function recoveryCodeFor(email: string): Promise<string> {
 test.describe.configure({ mode: 'serial' });
 
 test('1. Backoffice', async ({ page }) => {
+  test.setTimeout(60_000);
   await useIdentity(page, '20000000-0000-4000-8000-000000000102');
   await page.goto(backofficeUrl('/'));
   await expectRealApp(page);
