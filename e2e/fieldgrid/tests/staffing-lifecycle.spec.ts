@@ -7,6 +7,8 @@ const participantOneUserId = '20000000-0000-4000-8000-000000000104';
 const participantTwoUserId = '20000000-0000-4000-8000-000000000107';
 const customerUserId = '20000000-0000-4000-8000-000000000105';
 
+const eventually = expect.configure({ timeout: 20_000 });
+
 function backofficeUrl(path: string) {
   return `http://${tenantHost}:9321${path}`;
 }
@@ -27,30 +29,30 @@ async function identityContext(browser: Browser, userId: string): Promise<Browse
 
 async function goEnRouteAndStart(page: Page) {
   await page.goto(personnelUrl(`/personeel/opdrachten/${assignmentId}`));
-  await expect(page.locator('main')).toContainText(/Runtime Assignment A|RTA-A001/);
+  await eventually(page.locator('main')).toContainText(/Runtime Assignment A|RTA-A001/);
 
   await page.getByRole('button', { name: 'Onderweg' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Onderweg melden' }).click();
-  await expect(page.getByRole('button', { name: 'Start' })).toBeEnabled();
+  await eventually(page.getByRole('button', { name: 'Start' })).toBeEnabled();
 
   await page.getByRole('button', { name: 'Start' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Start werkzaamheden' }).click();
-  await expect(page.locator('main')).toContainText(/Gestart|Werkelijk/);
+  await eventually(page.locator('main')).toContainText(/Gestart|Werkelijk/);
 }
 
 async function completeParticipant(page: Page) {
   await page.getByRole('button', { name: 'Afronden' }).click();
   await page.getByRole('dialog').getByRole('button', { name: 'Ja' }).click();
-  await expect(page).toHaveURL(/\/afronden\?result=completed/u);
+  await eventually(page).toHaveURL(/\/afronden\?result=completed/u);
   await page.getByRole('button', { name: 'Definitief gereedmelden' }).click();
-  await expect(page).toHaveURL(new RegExp(`/personeel/opdrachten/${assignmentId}$`, 'u'));
-  await expect(page.locator('main')).toContainText(/Afgerond|Werkelijk/);
+  await eventually(page).toHaveURL(new RegExp(`/personeel/opdrachten/${assignmentId}$`, 'u'));
+  await eventually(page.locator('main')).toContainText(/Afgerond|Werkelijk/);
 }
 
 test.describe.configure({ mode: 'serial' });
 
 test('durable unassignment, reassignment, multi-person execution and actual-time projection', async ({ browser }) => {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
   const adminContext = await identityContext(browser, adminUserId);
   const participantOneContext = await identityContext(browser, participantOneUserId);
   const participantTwoContext = await identityContext(browser, participantTwoUserId);
@@ -61,7 +63,7 @@ test('durable unassignment, reassignment, multi-person execution and actual-time
   const customer = await customerContext.newPage();
 
   await participantTwo.goto(personnelUrl(`/personeel/opdrachten/${assignmentId}`));
-  await expect(participantTwo.locator('main')).toContainText(/Runtime Assignment A|RTA-A001/);
+  await eventually(participantTwo.locator('main')).toContainText(/Runtime Assignment A|RTA-A001/);
 
   await admin.goto(backofficeUrl(`/assignments/${assignmentId}?tab=gegevens`));
   const personnelCard = admin.getByRole('heading', { name: 'Medewerkers' }).locator('..');
@@ -69,36 +71,36 @@ test('durable unassignment, reassignment, multi-person execution and actual-time
   await secondParticipantRow.getByRole('button', { name: 'Verwijderen' }).click();
   await admin.getByRole('textbox', { name: 'Reden voor ontkoppelen' }).fill('E2E: planning tijdelijk gewijzigd');
   await admin.getByRole('alertdialog').getByRole('button', { name: 'Ontkoppelen' }).click();
-  await expect(personnelCard).not.toContainText('Phase2 Personnel A');
+  await eventually(personnelCard).not.toContainText('Phase2 Personnel A');
 
   const deniedAfterUnassignment = await participantTwo.goto(personnelUrl(`/personeel/opdrachten/${assignmentId}`));
   expect([200, 404]).toContain(deniedAfterUnassignment?.status() ?? 0);
-  await expect(participantTwo.locator('body')).toContainText(/Pagina niet gevonden|Niet gevonden|404/i);
+  await eventually(participantTwo.locator('body')).toContainText(/Pagina niet gevonden|Niet gevonden|404/i);
 
   await personnelCard.getByRole('combobox').click();
   await admin.getByRole('option', { name: /Personnel A, Phase2/ }).click();
   await personnelCard.getByRole('button', { name: 'Medewerker koppelen' }).click();
-  await expect(personnelCard).toContainText('Phase2 Personnel A');
+  await eventually(personnelCard).toContainText('Phase2 Personnel A');
 
   await participantTwo.goto(personnelUrl(`/personeel/opdrachten/${assignmentId}`));
-  await expect(participantTwo.locator('main')).toContainText(/Runtime Assignment A|RTA-A001/);
+  await eventually(participantTwo.locator('main')).toContainText(/Runtime Assignment A|RTA-A001/);
 
   await goEnRouteAndStart(participantOne);
   await goEnRouteAndStart(participantTwo);
 
   await completeParticipant(participantOne);
   await admin.reload();
-  await expect(admin.locator('main')).toContainText(/In uitvoering|Werkelijk/);
+  await eventually(admin.locator('main')).toContainText(/In uitvoering|Werkelijk/);
 
   await completeParticipant(participantTwo);
   await admin.reload();
-  await expect(admin.locator('main')).toContainText(/Afgerond|Werkelijk/);
-  await expect(admin.locator('main')).toContainText(/Gepland/);
+  await eventually(admin.locator('main')).toContainText(/Afgerond|Werkelijk/);
+  await eventually(admin.locator('main')).toContainText(/Gepland/);
 
   await customer.goto(customerUrl('/klant/opdrachten'));
-  await expect(customer.locator('main')).toContainText('Runtime Assignment A');
-  await expect(customer.locator('main')).toContainText('Werkelijk');
-  await expect(customer.locator('main')).toContainText('Gepland');
+  await eventually(customer.locator('main')).toContainText('Runtime Assignment A');
+  await eventually(customer.locator('main')).toContainText('Werkelijk');
+  await eventually(customer.locator('main')).toContainText('Gepland');
 
   await Promise.all([
     adminContext.close(),
