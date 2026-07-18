@@ -2,6 +2,26 @@ import { pool } from "./connection";
 
 export type StaffingLifecycleAction = "assign" | "unassign";
 
+export async function transitionAssignmentStatus(input: {
+  tenantId: string;
+  assignmentId: string;
+  actorUserId: string;
+  newStatus: string;
+  expectedVersion: number;
+}): Promise<{ status: string; lifecycleVersion: number; idempotent: boolean }> {
+  const result = await pool.query(
+    `select * from public.transition_assignment_status($1, $2, $3, $4, $5)`,
+    [input.tenantId, input.assignmentId, input.actorUserId, input.newStatus, input.expectedVersion],
+  );
+  const row = result.rows[0];
+  if (!row) throw new Error("Assignment status transition returned no result");
+  return {
+    status: row.status,
+    lifecycleVersion: Number(row.lifecycle_version),
+    idempotent: Boolean(row.idempotent),
+  };
+}
+
 export type StaffingLifecycleResult = {
   assignmentPersonnelId: string;
   staffingStatus: string;

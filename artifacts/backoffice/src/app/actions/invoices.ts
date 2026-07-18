@@ -10,6 +10,7 @@ import {
   customerPaymentBatchesTable,
   objectsTable,
   paymentsTable,
+  paymentAllocationsTable,
   auditLogTable,
   invoicePaymentSettingsTable,
   invoiceTemplateSettingsTable,
@@ -1814,31 +1815,55 @@ export async function markInvoicePaid(invoiceId: string): Promise<ActionResult> 
 
   const today = new Date().toISOString().slice(0, 10);
   const tenantId = await requireCurrentTenantId();
-
-  await db
-    .update(invoicesTable)
-    .set({ status: "paid", paidDate: today, updatedAt: new Date() })
-    .where(and(eq(invoicesTable.id, invoiceId), eq(invoicesTable.tenantId, tenantId)));
-
-  // Advance assignment: invoiced → paid → closed (auto-advance the full sequence)
-  await db
-    .update(assignmentsTable)
-    .set({ status: "paid", updatedAt: new Date() })
-    .where(and(eq(assignmentsTable.id, invoice.assignmentId), eq(assignmentsTable.tenantId, tenantId)));
-
-  await db
-    .update(assignmentsTable)
-    .set({ status: "closed", updatedAt: new Date() })
-    .where(and(eq(assignmentsTable.id, invoice.assignmentId), eq(assignmentsTable.tenantId, tenantId)));
-
-  await db.insert(auditLogTable).values({
-    tenantId,
-    userId:     user.id,
-    action:     "mark_invoice_paid",
-    resource:   "invoices",
-    resourceId: invoiceId,
-    metadata:   { assignmentId: invoice.assignmentId, paidDate: today },
-  });
+  try {
+    await db.transaction(async (tx) => {
+      await tx.execute(sql`SELECT id FROM public.invoices WHERE id = ${invoiceId}::uuid AND tenant_id = ${tenantId}::uuid FOR UPDATE`);
+      const [lockedInvoice] = await tx.select({
+        totalAmount: invoicesTable.totalAmount,
+        customerId: invoicesTable.customerId,
+        assignmentId: invoicesTable.assignmentId,
+        status: invoicesTable.status,
+      }).from(invoicesTable).where(and(eq(invoicesTable.id, invoiceId), eq(invoicesTable.tenantId, tenantId))).limit(1);
+      if (!lockedInvoice || lockedInvoice.status !== "sent") throw new Error("Factuur is gelijktijdig gewijzigd.");
+      const [allocated] = await tx.select({
+        cents: sql<number>`coalesce(sum(${paymentAllocationsTable.amountCents}), 0)::int`,
+      }).from(paymentAllocationsTable).where(and(
+        eq(paymentAllocationsTable.invoiceId, invoiceId),
+        eq(paymentAllocationsTable.tenantId, tenantId),
+      ));
+      const totalCents = Math.round(Number.parseFloat(lockedInvoice.totalAmount ?? "0") * 100);
+      const outstandingCents = totalCents - Number(allocated?.cents ?? 0);
+      if (outstandingCents <= 0) throw new Error("Factuur heeft geen positief openstaand bedrag.");
+      const [payment] = await tx.insert(paymentsTable).values({
+        tenantId, customerId: lockedInvoice.customerId, invoiceId,
+        sourceType: "invoice", sourceId: invoiceId, amountCents: outstandingCents,
+        amount: (outstandingCents / 100).toFixed(2), currency: "EUR",
+        paymentMethod: "manual_bank", status: "paid", registeredByUserId: user.id,
+        paidAt: new Date(), note: "Volledige handmatige betaling",
+      }).returning({ id: paymentsTable.id });
+      if (!payment) throw new Error("Betalingsboeking ontbreekt.");
+      await tx.insert(paymentAllocationsTable).values({
+        tenantId, paymentId: payment.id, invoiceId, amountCents: outstandingCents,
+        amount: (outstandingCents / 100).toFixed(2), allocatedByUserId: user.id,
+        note: "Volledige handmatige betaling toegewezen",
+      });
+      await tx.update(invoicesTable).set({
+        status: "paid", paymentStatus: "paid", paidAmount: (totalCents / 100).toFixed(2),
+        outstandingAmount: "0.00", paidDate: today, updatedAt: new Date(),
+      }).where(and(eq(invoicesTable.id, invoiceId), eq(invoicesTable.tenantId, tenantId)));
+      await tx.update(assignmentsTable).set({ status: "paid", updatedAt: new Date() })
+        .where(and(eq(assignmentsTable.id, lockedInvoice.assignmentId), eq(assignmentsTable.tenantId, tenantId)));
+      await tx.update(assignmentsTable).set({ status: "closed", updatedAt: new Date() })
+        .where(and(eq(assignmentsTable.id, lockedInvoice.assignmentId), eq(assignmentsTable.tenantId, tenantId)));
+      await tx.insert(auditLogTable).values({
+        tenantId, userId: user.id, action: "mark_invoice_paid", resource: "invoices",
+        resourceId: invoiceId,
+        metadata: { assignmentId: lockedInvoice.assignmentId, paidDate: today, paymentId: payment.id, amountCents: outstandingCents },
+      });
+    });
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : "Betaling boeken mislukt." };
+  }
 
   await notifyInvoiceWorkflow({
     eventKey: "invoice_paid",

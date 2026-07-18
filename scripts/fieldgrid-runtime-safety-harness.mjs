@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+import nodeAssert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import {
@@ -311,6 +312,77 @@ async function passwordResetExploitScaffold(client) {
   });
 }
 
+async function phase2cTransactionalInvariants(client) {
+  const policyScan = await client.query(`
+    select count(*)::int as count from pg_policies
+    where schemaname in ('public', 'storage')
+      and (coalesce(qual, '') like '%is_management()%' or coalesce(with_check, '') like '%is_management()%')
+  `);
+  assert(policyScan.rows[0]?.count === 0, "Legacy global Management policies remain active.", policyScan.rows[0]);
+
+  const catalog = await client.query(`
+    select
+      to_regclass('public.offline_operation_receipts') is not null as offline_receipts,
+      to_regclass('public.payment_allocations_payment_invoice_idx') is not null as allocation_unique,
+      to_regclass('public.invoices_assignment_active_unique_idx') is not null as invoice_unique,
+      exists(select 1 from pg_trigger where tgname = 'fieldgrid_staffing_eligibility' and not tgisinternal) as staffing_guard,
+      exists(select 1 from pg_trigger where tgname = 'payment_allocations_guard' and not tgisinternal) as allocation_guard,
+      public.fieldgrid_assignment_transition_allowed('seen', 'plannable') as seen_staffing_rollback_allowed,
+      not public.fieldgrid_assignment_transition_allowed('completed', 'in_progress') as terminal_regression_denied
+  `);
+  assert(Object.values(catalog.rows[0] ?? {}).every(Boolean), "Phase 2C transactional catalog is incomplete.", catalog.rows[0]);
+
+  let replayVersion;
+  await client.query("begin");
+  try {
+    await client.query(`
+      insert into assignment_personnel (assignment_id, personnel_id, status, assigned_by)
+      values ($1, $2, 'assigned', $3)
+    `, [FIXTURE.assignments.a, FIXTURE.personnel.a, FIXTURE.users.tenantAPlanner]);
+    const first = await client.query(`
+      select * from public.execute_assignment_participant_action_v2(
+        $1, $2, $3, 'en_route', 'runtime-offline-operation-0001', 1, null, null, '{}'::jsonb
+      )
+    `, [FIXTURE.assignments.a, FIXTURE.personnel.a, FIXTURE.users.tenantAPersonnel]);
+    const replay = await client.query(`
+      select * from public.execute_assignment_participant_action_v2(
+        $1, $2, $3, 'en_route', 'runtime-offline-operation-0001', 1, null, null, '{}'::jsonb
+      )
+    `, [FIXTURE.assignments.a, FIXTURE.personnel.a, FIXTURE.users.tenantAPersonnel]);
+    nodeAssert.deepEqual(replay.rows, first.rows);
+    replayVersion = first.rows[0]?.version;
+
+    await client.query("savepoint altered_operation");
+    try {
+      await client.query(`select * from public.execute_assignment_participant_action_v2($1,$2,$3,'start','runtime-offline-operation-0001',1,null,null,'{}'::jsonb)`,
+        [FIXTURE.assignments.a, FIXTURE.personnel.a, FIXTURE.users.tenantAPersonnel]);
+      throw new Error("Altered offline replay was accepted.");
+    } catch (error) {
+      assert(error?.code === "23505", "Altered offline replay returned an unexpected error.", { code: error?.code });
+      await client.query("rollback to savepoint altered_operation");
+    }
+
+    await client.query("savepoint stale_operation");
+    try {
+      await client.query(`select * from public.execute_assignment_participant_action_v2($1,$2,$3,'start','runtime-offline-operation-0002',1,null,null,'{}'::jsonb)`,
+        [FIXTURE.assignments.a, FIXTURE.personnel.a, FIXTURE.users.tenantAPersonnel]);
+      throw new Error("Stale offline operation was accepted.");
+    } catch (error) {
+      assert(error?.code === "40001", "Stale offline operation returned an unexpected error.", { code: error?.code });
+      await client.query("rollback to savepoint stale_operation");
+    }
+    await client.query("rollback");
+  } catch (error) {
+    await client.query("rollback").catch(() => {});
+    throw error;
+  }
+
+  return result("phase2c-transactional-invariants", "passed", {
+    catalog: catalog.rows[0], legacyGlobalManagementPolicies: policyScan.rows[0]?.count,
+    offlineReplayVersion: replayVersion, alteredReplay: "23505", staleReplay: "40001",
+  });
+}
+
 async function rlsStorageScaffold(client) {
   const storageObjects = await tableExists(client, "storage", "objects");
   const storagePolicies = storageObjects
@@ -374,6 +446,7 @@ async function runChecks() {
     checks.push(await tenantDatabaseIntegration(client));
     checks.push(await assignmentExploitTests(client));
     checks.push(await passwordResetExploitScaffold(client));
+    checks.push(await phase2cTransactionalInvariants(client));
     checks.push(await tenantlessWriteInvariants(client));
     checks.push(await rlsStorageScaffold(client));
     checks.push(await writeSchemaArtifacts(client));
@@ -412,6 +485,7 @@ async function main() {
       "tenant-a-b-database-integration": "database integration",
       "assignment-exploit-tests": "service-role/database invariant",
       "password-reset-exploit-tests": "provider mock",
+      "phase2c-transactional-invariants": "database integration",
       "tenantless-write-invariants": "database integration",
       "rls-storage-test-scaffolding": "provider mock",
       "test-result-and-schema-artifacts": "artifact generation",

@@ -1,9 +1,11 @@
-import { and, eq, gt, isNull, lte } from "drizzle-orm";
+import { and, eq, gt, inArray, isNull, lte } from "drizzle-orm";
 import { db } from "./index";
 import {
   platformUsersTable,
   supportAccessAuditLogTable,
   supportAccessGrantsTable,
+  TENANT_RUNTIME_ACTIVE_STATUSES,
+  tenantsTable,
   type SupportAccessGrant,
 } from "./schema";
 
@@ -173,12 +175,28 @@ export function isPlatformSupportRole(role: string): role is PlatformSupportRole
   return FIELDGRID_PLATFORM_SUPPORT_ROLES.includes(role as PlatformSupportRole);
 }
 
-export function isSupportRuntimePermission(resource: string, action: string): boolean {
-  return FIELDGRID_SUPPORT_RUNTIME_PERMISSION_SET.has(`${resource}:${action}`);
+function normalizedGrantPermissionKeys(
+  grant: Pick<SupportAccessGrant, "permissionKeys">,
+): string[] {
+  if (!Array.isArray(grant.permissionKeys)) return [];
+  return grant.permissionKeys.filter(
+    (permission): permission is string =>
+      typeof permission === "string" && FIELDGRID_SUPPORT_RUNTIME_PERMISSION_SET.has(permission),
+  );
 }
 
-export function getSupportRuntimePermissions(): Set<string> {
-  return new Set(FIELDGRID_SUPPORT_RUNTIME_PERMISSION_KEYS);
+export function isSupportRuntimePermission(
+  resource: string,
+  action: string,
+  grant: Pick<SupportAccessGrant, "permissionKeys">,
+): boolean {
+  return normalizedGrantPermissionKeys(grant).includes(`${resource}:${action}`);
+}
+
+export function getSupportRuntimePermissions(
+  grant: Pick<SupportAccessGrant, "permissionKeys">,
+): Set<string> {
+  return new Set(normalizedGrantPermissionKeys(grant));
 }
 
 export async function getActivePlatformUserForUser(userId: string): Promise<ActivePlatformUser | null> {
@@ -204,9 +222,10 @@ export async function getActiveSupportAccessForUser(
   const platformUser = await getActivePlatformUserForUser(userId);
   if (!platformUser || !isPlatformSupportRole(platformUser.role)) return null;
 
-  const [grant] = await db
-    .select()
+  const [row] = await db
+    .select({ grant: supportAccessGrantsTable })
     .from(supportAccessGrantsTable)
+    .innerJoin(tenantsTable, eq(supportAccessGrantsTable.tenantId, tenantsTable.id))
     .where(
       and(
         eq(supportAccessGrantsTable.tenantId, tenantId),
@@ -214,12 +233,14 @@ export async function getActiveSupportAccessForUser(
         lte(supportAccessGrantsTable.startsAt, now),
         gt(supportAccessGrantsTable.expiresAt, now),
         isNull(supportAccessGrantsTable.revokedAt),
+        eq(tenantsTable.isActive, true),
+        inArray(tenantsTable.status, [...TENANT_RUNTIME_ACTIVE_STATUSES]),
       ),
     )
     .limit(1);
 
-  if (!grant) return null;
-  return { platformUser, grant };
+  if (!row) return null;
+  return { platformUser, grant: row.grant };
 }
 
 export async function writeSupportAccessAuditLogForUser(input: {
@@ -231,21 +252,19 @@ export async function writeSupportAccessAuditLogForUser(input: {
   metadata?: Record<string, unknown> | null;
   grantId?: string | null;
 }): Promise<void> {
-  try {
-    const supportAccess = await getActiveSupportAccessForUser(input.userId, input.tenantId);
-    const platformUser = supportAccess?.platformUser ?? await getActivePlatformUserForUser(input.userId);
-    if (!platformUser) return;
-
-    await db.insert(supportAccessAuditLogTable).values({
-      grantId: input.grantId ?? supportAccess?.grant.id ?? null,
-      tenantId: input.tenantId,
-      platformUserId: platformUser.id,
-      action: input.action,
-      resource: input.resource ?? null,
-      resourceId: input.resourceId ?? null,
-      metadata: input.metadata ?? null,
-    });
-  } catch (error) {
-    console.error("[support_access] Failed to write audit log", input, error);
+  const supportAccess = await getActiveSupportAccessForUser(input.userId, input.tenantId);
+  const platformUser = supportAccess?.platformUser ?? await getActivePlatformUserForUser(input.userId);
+  if (!platformUser) {
+    throw new Error("Support audit geweigerd: actieve platformgebruiker ontbreekt");
   }
+
+  await db.insert(supportAccessAuditLogTable).values({
+    grantId: input.grantId ?? supportAccess?.grant.id ?? null,
+    tenantId: input.tenantId,
+    platformUserId: platformUser.id,
+    action: input.action,
+    resource: input.resource ?? null,
+    resourceId: input.resourceId ?? null,
+    metadata: input.metadata ?? null,
+  });
 }

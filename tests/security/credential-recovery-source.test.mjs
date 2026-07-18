@@ -23,6 +23,8 @@ test("FG-HARD-025: no surface treats a reset or activation code as a password", 
     assert.doesNotMatch(source, /password:\s*(?:code|resetCode|challenge\.code)/u, path);
     assert.match(source, /consumeCredentialRecoveryGrant/u, path);
     assert.match(source, /admin\.auth\.admin\.updateUserById/u, path);
+    assert.match(source, /credential_recovery_challenge_id/u, path);
+    assert.match(source, /providerAlreadyApplied/u, path);
   }
 });
 
@@ -78,12 +80,17 @@ test("challenge lifecycle stores hashes only and is atomic under concurrency", (
     "grant_expires_at",
     "AND used_at IS NULL",
     "RETURNING id",
+    "provider_claim_id",
+    "provider_claim_expires_at",
+    "provider_claim_duplicate",
+    "provider_password_update_failed",
     "challenge_superseded",
     "request_limited",
     "grant_context_mismatch",
   ]) {
     assert.ok(service.includes(fragment), `service must contain ${fragment}`);
   }
+  assert.ok(service.indexOf("provider_claim_id") < service.indexOf("SET used_at = CASE WHEN"));
   assert.doesNotMatch(service, /console\.(?:log|info|warn|error)\([^\n]*(?:code|grant)/u);
 });
 

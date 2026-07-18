@@ -44,6 +44,9 @@ export const supportAccessGrantsTable = pgTable(
       .notNull()
       .references(() => platformUsersTable.id, { onDelete: "cascade" }),
     reason: text("reason").notNull(),
+    scope: varchar("scope", { length: 30 }).notNull().default("tenant"),
+    permissionKeys: jsonb("permission_keys").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
+    moduleKeys: jsonb("module_keys").$type<string[]>().notNull().default(sql`'[]'::jsonb`),
     startsAt: timestamp("starts_at", { withTimezone: true }).notNull().defaultNow(),
     expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
     revokedAt: timestamp("revoked_at", { withTimezone: true }),

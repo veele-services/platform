@@ -385,7 +385,7 @@ async function ensurePersonnelRlsFixtureRows(client) {
       values
         ($1, $2, $3, 'assigned', $4),
         ($5, $6, $7, 'assigned', $8),
-        ($9, $10, $11, 'assigned', $12)
+        ($9, $10, $11, 'suggested', $12)
       on conflict (assignment_id, personnel_id) do update set
         status = excluded.status,
         assigned_by = excluded.assigned_by
@@ -955,6 +955,11 @@ async function personnelCannotSelfApproveOrMutateCoworkerEvidence(client) {
     `,
     [RLS_FIXTURE.personnel.tenantASecond, FIXTURE.tenants.a, ACTORS.tenantASecondPersonnel.userId, ACTORS.tenantASecondPersonnel.email],
   );
+  await client.query(`
+    insert into public.availability_day_entries(personnel_id, date, start_time, end_time)
+    values ($1, '2026-07-21', '08:00', '17:00')
+    on conflict (personnel_id, date) do update set start_time = excluded.start_time, end_time = excluded.end_time
+  `, [RLS_FIXTURE.personnel.tenantASecond]);
   await client.query(
     `
       insert into public.assignment_personnel (assignment_id, personnel_id, status, assigned_by)

@@ -40,6 +40,8 @@ export type InvoiceProposalData = InvoiceProposalTotals & {
   inventorySubtotal: string;
 };
 
+type InvoiceProposalExecutor = Pick<typeof db, "select" | "insert" | "update">;
+
 function money(value: number): string {
   return (Math.round((value + Number.EPSILON) * 100) / 100).toFixed(2);
 }
@@ -71,9 +73,10 @@ function inventoryUsageLabel(value: string | null | undefined): string {
 export async function calculateInvoiceProposalForAssignment(
   assignmentId: string,
   vatPercentage = 21,
+  executor: InvoiceProposalExecutor = db,
 ): Promise<InvoiceProposalData> {
   const [taskRows, extraWorkRows, materialRows, inventoryRows] = await Promise.all([
-    db
+    executor
       .select({
         snapshotCode:        assignmentTasksTable.taskCodeCode,
         snapshotName:        assignmentTasksTable.taskCodeName,
@@ -89,7 +92,7 @@ export async function calculateInvoiceProposalForAssignment(
       .where(eq(assignmentTasksTable.assignmentId, assignmentId))
       .orderBy(asc(assignmentTasksTable.sortOrder)),
 
-    db
+    executor
       .select({
         code:         taskCodesTable.code,
         taskCodeName: assignmentExtraWorkTable.taskCodeName,
@@ -102,7 +105,7 @@ export async function calculateInvoiceProposalForAssignment(
       .where(eq(assignmentExtraWorkTable.assignmentId, assignmentId))
       .orderBy(asc(assignmentExtraWorkTable.createdAt)),
 
-    db
+    executor
       .select({
         materialCode: assignmentMaterialUsageTable.materialCodeSnapshot,
         name:         assignmentMaterialUsageTable.approvedName,
@@ -121,7 +124,7 @@ export async function calculateInvoiceProposalForAssignment(
       )
       .orderBy(asc(assignmentMaterialUsageTable.createdAt)),
 
-    db
+    executor
       .select({
         inventoryCode: inventoryItemsTable.code,
         name:          inventoryItemsTable.name,
@@ -240,8 +243,10 @@ export async function createInvoiceProposalForAssignment(input: {
   assignmentId: string;
   actorUserId: string;
   source: "report_approval" | "manual";
+  executor?: InvoiceProposalExecutor;
 }): Promise<{ id: string; created: boolean; totals: InvoiceProposalTotals }> {
-  const [assignment] = await db
+  const executor = input.executor ?? db;
+  const [assignment] = await executor
     .select({
       status:     assignmentsTable.status,
       customerId: assignmentsTable.customerId,
@@ -255,7 +260,7 @@ export async function createInvoiceProposalForAssignment(input: {
     throw new Error("Opdracht niet gevonden.");
   }
 
-  const [existing] = await db
+  const [existing] = await executor
     .select({
       id:            invoicesTable.id,
       amount:        invoicesTable.amount,
@@ -275,7 +280,7 @@ export async function createInvoiceProposalForAssignment(input: {
 
   if (existing) {
     if (assignment.status !== "invoice_ready") {
-      await db
+      await executor
         .update(assignmentsTable)
         .set({ status: "invoice_ready", updatedAt: new Date() })
         .where(eq(assignmentsTable.id, input.assignmentId));
@@ -299,11 +304,11 @@ export async function createInvoiceProposalForAssignment(input: {
     throw new Error(`Factuurvoorstel aanmaken is niet mogelijk vanuit status "${currentStatus}".`);
   }
 
-  const proposal = await calculateInvoiceProposalForAssignment(input.assignmentId);
+  const proposal = await calculateInvoiceProposalForAssignment(input.assignmentId, 21, executor);
   const dueDate = new Date();
   dueDate.setDate(dueDate.getDate() + 30);
 
-  const [created] = await db
+  const [created] = await executor
     .insert(invoicesTable)
     .values({
       customerId:     assignment.customerId,
@@ -329,12 +334,12 @@ export async function createInvoiceProposalForAssignment(input: {
     throw new Error("Factuurvoorstel aanmaken mislukt.");
   }
 
-  await db
+  await executor
     .update(assignmentsTable)
     .set({ status: "invoice_ready", updatedAt: new Date() })
     .where(eq(assignmentsTable.id, input.assignmentId));
 
-  await db.insert(auditLogTable).values({
+  await executor.insert(auditLogTable).values({
     userId:     input.actorUserId,
     action:     "create_invoice_proposal",
     resource:   "invoices",

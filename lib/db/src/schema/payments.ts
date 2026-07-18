@@ -5,6 +5,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
   varchar,
 } from "drizzle-orm/pg-core";
@@ -35,6 +36,7 @@ export const paymentsTable = pgTable(
     sourceId: uuid("source_id"),
 
     molliePaymentId: varchar("mollie_payment_id", { length: 50 }).unique(),
+    providerRequestKey: uuid("provider_request_key").unique(),
     amountCents: integer("amount_cents").notNull(),
     amount: numeric("amount", { precision: 12, scale: 2 }),
     currency: varchar("currency", { length: 3 }).notNull().default("EUR"),
@@ -80,6 +82,7 @@ export const paymentAllocationsTable = pgTable(
     index("payment_allocations_tenant_idx").on(table.tenantId),
     index("payment_allocations_tenant_payment_idx").on(table.tenantId, table.paymentId),
     index("payment_allocations_tenant_invoice_idx").on(table.tenantId, table.invoiceId),
+    uniqueIndex("payment_allocations_payment_invoice_idx").on(table.paymentId, table.invoiceId),
   ],
 );
 

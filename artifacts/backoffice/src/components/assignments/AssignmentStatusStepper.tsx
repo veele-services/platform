@@ -272,7 +272,7 @@ export function AssignmentStatusStepper({
     const nextStatus = targetStatus;
 
     startTransition(async () => {
-      const result = await setAssignmentStatus(assignmentId, nextStatus.value as AssignmentStatus, { allowAny: true });
+      const result = await setAssignmentStatus(assignmentId, nextStatus.value as AssignmentStatus);
       if (result.success) {
         toast.success(`Status gewijzigd naar "${nextStatus.label}"`);
         setTargetStatus(null);

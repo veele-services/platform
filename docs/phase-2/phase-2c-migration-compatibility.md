@@ -28,14 +28,15 @@ No input-name replacement error, return-type drift, undeclared dependency drop, 
 ## Compatibility evidence
 
 - Fresh PostgreSQL 17: all migrations apply through `20260718190000`.
-- Upgrade: a current-main database with Tenant A/B fixtures upgrades through the fixup without history edits or data loss.
+- Populated exact-previous-release upgrade: a disposable PostgreSQL 17 database is migrated only through `20260718180000_complete_credential_recovery.sql`, populated with two tenants, staffing, participant execution actuals, reports, realtime rows and recovery state, then migrated forward through the Phase 2C fixup without reset, history edits, row loss or cross-tenant visibility.
 - Function signatures: existing realtime, staffing, participant and cleanup signatures are preserved.
 - Existing approved reports/photos are backfilled to the canonical `customer_approved` scope before reads require it.
 - Indexes exist for assignment/personnel links, availability day/window uniqueness, interest responses, recovery active challenge/grant and tenant audit lookup.
-- Constraints remain aligned with direct lifecycle and credential recovery services.
+- Constraints remain aligned with lifecycle, staffing, offline receipt, payment allocation and credential recovery services.
+- Fresh and populated-upgrade SECURITY DEFINER identities, search paths, PUBLIC execute posture and runtime-role ACLs match exactly.
 
-## Compatibility limits
+## Compatibility boundary
 
-The repository’s previous-release lane resets and migrates a current schema, then checks previous call shapes. It is useful API compatibility evidence, but it is not a populated previous-release database upgrade. Historical malformed timing values, inconsistent staffing reasons/versions, orphan recovery references and duplicate NULL-tenant recovery challenges therefore still require a sanitized previous-release fixture and preflight count/repair path (FG-HARD-032).
+The populated lane is synthetic and sanitized, but it is an actual previous-release schema migrated forward rather than current-schema fixtures relabeled as compatibility proof. Its cutoff is explicit in `FIELDGRID_SQL_MIGRATION_MAX_NAME`; CI fails if setup accidentally crosses the previous-release boundary.
 
-Canonical staffing also does not yet lock and re-evaluate availability/leave/overlap/qualification state, and participant/offline actions lack a durable operation ledger. These are runtime contract blockers, not migration-order or signature failures.
+Live or production database access is deliberately excluded. Historical data outside the represented tenant, staffing, execution, report, realtime and recovery shapes must still be assessed in the eventual staging/go-no-go packet; that operational evidence is FG-HARD-024, not a Phase 2C feature-freeze blocker.

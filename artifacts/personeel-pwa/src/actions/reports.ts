@@ -1,5 +1,7 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+
 import { db } from "@workspace/db";
 import {
   reportsTable,
@@ -11,6 +13,8 @@ import {
   personnelTable,
   organizationSettingsTable,
   tenantsTable,
+  beginOfflineOperation,
+  completeOfflineOperation,
 } from "@workspace/db";
 import { eq, and, inArray, desc, asc, ne } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
@@ -70,6 +74,8 @@ export type PreparedReportNoteUpload = {
 export type ReportNoteInput = {
   body:         string;
   attachments?: ReportNoteAttachmentInput[];
+  expectedParticipantVersion?: number | null;
+  clientMutationId?: string | null;
 };
 
 const LOCKED_REPORT_NOTE_STATUSES = new Set([
@@ -279,6 +285,18 @@ export async function prepareReportNoteAttachmentUploads(
   if (LOCKED_REPORT_NOTE_STATUSES.has(assignment.status)) {
     return { success: false, error: "Deze werkbon is afgesloten voor rapportage" };
   }
+
+  const [execution] = await db
+    .select({ version: assignmentParticipantExecutionsTable.version })
+    .from(assignmentParticipantExecutionsTable)
+    .where(and(
+      eq(assignmentParticipantExecutionsTable.tenantId, auth.tenantId),
+      eq(assignmentParticipantExecutionsTable.assignmentId, assignmentId),
+      eq(assignmentParticipantExecutionsTable.personnelId, auth.personnelId),
+      ne(assignmentParticipantExecutionsTable.participantStatus, "removed"),
+    ))
+    .limit(1);
+  if (!execution) return { success: false, error: "Uitvoering niet gevonden" };
 
   const admin = createAdminClient();
   const uploads: PreparedReportNoteUpload[] = [];
@@ -588,6 +606,18 @@ export async function addReportNote(
     return { success: false, error: "Deze werkbon is afgesloten voor rapportage" };
   }
 
+  const [execution] = await db
+    .select({ version: assignmentParticipantExecutionsTable.version })
+    .from(assignmentParticipantExecutionsTable)
+    .where(and(
+      eq(assignmentParticipantExecutionsTable.tenantId, auth.tenantId),
+      eq(assignmentParticipantExecutionsTable.assignmentId, assignmentId),
+      eq(assignmentParticipantExecutionsTable.personnelId, auth.personnelId),
+      ne(assignmentParticipantExecutionsTable.participantStatus, "removed"),
+    ))
+    .limit(1);
+  if (!execution) return { success: false, error: "Uitvoering niet gevonden" };
+
   const attachmentInput = input.attachments ?? [];
   if (attachmentInput.length > MAX_REPORT_NOTE_ATTACHMENTS) {
     return { success: false, error: `Maximaal ${MAX_REPORT_NOTE_ATTACHMENTS} bijlagen per notitie toegestaan` };
@@ -614,12 +644,41 @@ export async function addReportNote(
 
   try {
     const { note, attachments } = await db.transaction(async (tx) => {
+      const operationId = input.clientMutationId?.trim() || randomUUID();
+      const replay = await beginOfflineOperation<{ noteId: string }>(tx, {
+        tenantId: auth.tenantId,
+        assignmentId,
+        personnelId: auth.personnelId,
+        actorUserId: auth.userId,
+        operationId,
+        operationType: "add-report-note",
+        expectedVersion: input.expectedParticipantVersion ?? Number(execution.version),
+        payload: { body, attachments: normalizedAttachments },
+      });
+      if (replay) {
+        const [existingNote] = await tx.select({
+          id: assignmentReportNotesTable.id,
+          body: assignmentReportNotesTable.body,
+          createdAt: assignmentReportNotesTable.createdAt,
+        }).from(assignmentReportNotesTable).where(eq(assignmentReportNotesTable.id, replay.noteId)).limit(1);
+        const existingAttachments = await tx.select({
+          id: assignmentReportNoteAttachmentsTable.id,
+          storagePath: assignmentReportNoteAttachmentsTable.storagePath,
+          fileName: assignmentReportNoteAttachmentsTable.fileName,
+          mimeType: assignmentReportNoteAttachmentsTable.mimeType,
+          fileSize: assignmentReportNoteAttachmentsTable.fileSize,
+          createdAt: assignmentReportNoteAttachmentsTable.createdAt,
+        }).from(assignmentReportNoteAttachmentsTable).where(eq(assignmentReportNoteAttachmentsTable.noteId, replay.noteId));
+        if (!existingNote) throw new Error("Canonical offline note ontbreekt");
+        return { note: existingNote, attachments: existingAttachments };
+      }
       const [createdNote] = await tx
         .insert(assignmentReportNotesTable)
         .values({
           assignmentId,
           body,
           createdBy: auth.userId,
+          clientMutationId: operationId,
         })
         .returning({
           id:        assignmentReportNotesTable.id,
@@ -648,6 +707,13 @@ export async function addReportNote(
               createdAt:   assignmentReportNoteAttachmentsTable.createdAt,
             })
         : [];
+
+      await completeOfflineOperation(tx, {
+        tenantId: auth.tenantId,
+        actorUserId: auth.userId,
+        operationId,
+        response: { noteId: createdNote!.id },
+      });
 
       return { note: createdNote!, attachments: createdAttachments };
     });

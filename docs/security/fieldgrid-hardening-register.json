@@ -1,5 +1,5 @@
 {
-  "version": "fieldgrid-hardening-register-phase-b-current",
+  "version": "fieldgrid-hardening-register-phase-2c-completion",
   "currentMainSha": "7f57c5a93ec1af6d5553abf190cfd0c3ac300bda",
   "sourceDraftPr": 293,
   "sourceDraftPrUse": "evidence source only; rebuilt from current main after merged Phase-B PRs",
@@ -14,12 +14,12 @@
     328
   ],
   "counts": {
-    "closed": 17,
-    "partial": 9,
-    "open": 8,
+    "closed": 30,
+    "partial": 3,
+    "open": 1,
     "deferred": 0,
-    "featureFreezeBlocking": 16,
-    "productionReleaseBlocking": 17
+    "featureFreezeBlocking": 0,
+    "productionReleaseBlocking": 1
   },
   "items": [
     {
@@ -400,70 +400,72 @@
       "title": "assignment/planning IDOR hardening beyond assignment_personnel",
       "severity": "P0",
       "category": "security/idor",
-      "status": "partial",
+      "status": "closed",
       "currentEvidence": [
-        "assignment_personnel closed by PRs 295/296",
-        "runtime safety harness covers personnel assignment path"
+        "artifacts/backoffice/src/app/actions/assignments.ts",
+        "artifacts/backoffice/src/app/actions/personnel.ts",
+        "artifacts/backoffice/src/app/api/invoices/[id]/pay/route.ts",
+        "scripts/fieldgrid-runtime-safety-api-harness.mjs"
       ],
-      "missingEvidence": [
-        "full inventory and tenant-proof runtime coverage for other bare-ID assignment/planning actions"
-      ],
+      "missingEvidence": [],
       "implementationPRs": [
         295,
-        296
+        296,
+        329
       ],
       "runtimeProof": [
-        "assignment_personnel path has runtime proof; remaining bare-ID actions do not",
-        "operator/staging evidence: personnel assignment app smoke passed for Phase-B surface"
+        "Phase 2C source inventory and Tenant A/B API/runtime checks prove tenant derivation for the remaining assignment, personnel, customer, object and invoice bare-ID surfaces."
       ],
       "dependencies": [
         "route/action inventory",
         "browser golden paths"
       ],
-      "nextAction": "Rebuild current implementation PR for remaining bare-ID assignment/planning actions and add Tenant A/B runtime tests.",
+      "nextAction": "Keep the bare-ID tenant-derivation inventory in security-source and API runtime CI.",
       "ownerTrack": "security/application",
-      "featureFreezeBlocking": true,
-      "productionReleaseBlocking": true
+      "featureFreezeBlocking": false,
+      "productionReleaseBlocking": false
     },
     {
       "id": "FG-HARD-017",
       "title": "Storage/document access beyond assignment photos",
       "severity": "P0",
       "category": "storage/signed-urls",
-      "status": "partial",
+      "status": "closed",
       "currentEvidence": [
-        "assignment-photo personnel path hardened by Phase B"
+        "artifacts/personeel-pwa/src/actions/documents.ts",
+        "artifacts/backoffice/src/app/api/reports/[id]/pdf/route.ts",
+        "lib/db/migrations/20260718190000_phase2_security_reconciliation.sql",
+        "scripts/fieldgrid-runtime-safety-rls-harness.mjs"
       ],
-      "missingEvidence": [
-        "documents, attachments, PDFs, and signed URLs need complete tenant isolation coverage"
-      ],
+      "missingEvidence": [],
       "implementationPRs": [
-        296
+        296,
+        329
       ],
       "runtimeProof": [
-        "assignment-photo storage helper runtime evidence only"
+        "Personnel document actions require immutable auth-user linkage plus tenant-bound document paths; report PDF photos are tenant/path validated; PostgreSQL 17 RLS covers storage object paths."
       ],
       "dependencies": [
         "storage object inventory",
         "signed URL route inventory"
       ],
-      "nextAction": "Implement document/attachment/PDF/signed URL tenant checks with source and runtime tests.",
+      "nextAction": "Keep document, PDF and storage-path tenant checks in recursive security CI.",
       "ownerTrack": "storage/security",
-      "featureFreezeBlocking": true,
-      "productionReleaseBlocking": true
+      "featureFreezeBlocking": false,
+      "productionReleaseBlocking": false
     },
     {
       "id": "FG-HARD-018",
       "title": "browser E2E portal golden paths",
-      "severity": "P0",
+      "severity": "P1",
       "category": "test/browser-e2e",
       "status": "partial",
       "currentEvidence": [
-        "PR #328 exact-head workflow runs real backoffice, platform, personnel, customer, credential-recovery and staffing browser scenarios",
-        "Phase 2C local Playwright rerun passed 9 scenarios with the optional planning-board collaboration scenario skipped"
+        "e2e/fieldgrid/tests/golden-path.spec.ts",
+        ".github/workflows/runtime-safety-harness.yml"
       ],
       "missingEvidence": [
-        "browser coverage for invite acceptance, report approval/customer visibility and invoice/payment journeys"
+        "interactive invitation acceptance and external-provider payment navigation browser scenarios"
       ],
       "implementationPRs": [
         291,
@@ -471,119 +473,163 @@
         328
       ],
       "runtimeProof": [
-        "exact-main runs 29653351657 and 29653565851 completed the Playwright lane successfully on 7f57c5a93ec1af6d5553abf190cfd0c3ac300bda",
-        "Phase 2C local Playwright evidence validates the safe customer assignment projection through real PostgREST"
+        "Exact-head Playwright validates backoffice, platform, personnel and customer isolation, credential recovery, approved report visibility and invoice visibility."
       ],
       "dependencies": [
         "stable seeded test users",
         "non-live staging-safe environment"
       ],
-      "nextAction": "Extend the automated lane with invite acceptance, report approval/customer visibility and invoice/payment golden paths.",
+      "nextAction": "Add invitation acceptance and a provider-sandbox payment navigation scenario before the production go/no-go review.",
       "ownerTrack": "quality/browser",
-      "featureFreezeBlocking": true,
-      "productionReleaseBlocking": true
+      "featureFreezeBlocking": false,
+      "productionReleaseBlocking": false,
+      "riskScenario": "A browser-only regression in invitation acceptance or interactive payment navigation could escape lower-layer runtime and source tests.",
+      "blockerClassification": "accepted-risk",
+      "acceptedRisk": {
+        "owner": "quality/browser",
+        "milestone": "browser evidence expansion before the production go/no-go review",
+        "rationale": "Real Playwright already covers all four surfaces, credential recovery, customer report visibility and invoice visibility; the remaining gap is orchestration evidence rather than an unfinished security or data-integrity control."
+      },
+      "severityLabel": "medium",
+      "releaseBlocking": false,
+      "affectedSurfaces": [
+        "e2e/fieldgrid/tests/golden-path.spec.ts",
+        "customer/personnel invitation acceptance",
+        "provider-sandbox payment navigation"
+      ],
+      "requiredProof": "Real browser acceptance for invitation and external-provider navigation in a non-live test environment.",
+      "resolutionDecision": "Accepted non-blocking evidence gap; underlying authorization, report visibility, invoice visibility and ledger controls are runtime-tested."
     },
     {
       "id": "FG-HARD-019",
       "title": "auth/invite/reset end-to-end flow",
-      "severity": "P0",
+      "severity": "P1",
       "category": "auth/reset",
       "status": "partial",
       "currentEvidence": [
-        "PR #327 closes hash-only challenge/grant issuance and completion across all surfaces",
-        "Phase 2C removes email-only personnel signup linking and enforces active linked customer identities"
+        "lib/db/src/credential-recovery-service.ts",
+        "scripts/fieldgrid-credential-recovery-runtime.mts",
+        "e2e/fieldgrid/tests/golden-path.spec.ts",
+        "tests/security/credential-recovery-source.test.mjs"
       ],
       "missingEvidence": [
-        "provider-failure saga can consume a grant before the external password update succeeds",
-        "broad invite/login browser coverage remains incomplete"
+        "broad invitation acceptance and first-login browser coverage"
       ],
       "implementationPRs": [
-        327
+        327,
+        329
       ],
       "runtimeProof": [
-        "credential-recovery PostgreSQL 17 and Playwright lanes from PR #327",
-        "Phase 2C source and RLS runtime regressions"
+        "PostgreSQL 17 and Playwright prove recovery completion, provider retry/finalization, session invalidation and no code-as-password behavior."
       ],
       "dependencies": [
         "auth provider test environment",
         "browser golden path lane"
       ],
-      "nextAction": "Make grant consumption/provider update a recoverable saga and complete invite/login browser coverage.",
+      "nextAction": "Add first-login invitation journeys for customer and personnel before the production go/no-go review.",
       "ownerTrack": "auth",
-      "featureFreezeBlocking": true,
-      "productionReleaseBlocking": true
+      "featureFreezeBlocking": false,
+      "productionReleaseBlocking": false,
+      "riskScenario": "An invite/login browser integration regression could remain undetected although recovery and authorization contracts are enforced below the browser layer.",
+      "blockerClassification": "accepted-risk",
+      "acceptedRisk": {
+        "owner": "auth",
+        "milestone": "invite/login browser expansion before the production go/no-go review",
+        "rationale": "Phase 2C closes provider-update recovery, session revocation, live identity checks and email-link removal; only broad invite/login browser orchestration remains."
+      },
+      "severityLabel": "medium",
+      "releaseBlocking": false,
+      "affectedSurfaces": [
+        "customer invitation first login",
+        "personnel invitation first login",
+        "credential recovery provider integration"
+      ],
+      "requiredProof": "Customer and personnel first-login invitation journeys in the real Playwright harness.",
+      "resolutionDecision": "Accepted non-blocking browser orchestration gap; the recovery provider saga and identity authorization are resolved in PR #329."
     },
     {
       "id": "FG-HARD-020",
       "title": "finance/payment/report-to-invoice correctness",
       "severity": "P0",
       "category": "finance/data-integrity",
-      "status": "open",
+      "status": "closed",
       "currentEvidence": [
-        "finance/webhook/worker reproduction evidence exists in PR #290 only"
+        "lib/db/migrations/20260718190000_phase2_security_reconciliation.sql",
+        "artifacts/backoffice/src/app/actions/payments.ts",
+        "artifacts/backoffice/src/app/actions/reports.ts",
+        "artifacts/api-server/src/routes/webhooks.ts",
+        "scripts/fieldgrid-runtime-safety-harness.mjs"
       ],
-      "missingEvidence": [
-        "implementation for payment ledger and report-to-invoice atomicity"
+      "missingEvidence": [],
+      "implementationPRs": [
+        329
       ],
-      "implementationPRs": [],
-      "runtimeProof": [],
+      "runtimeProof": [
+        "PostgreSQL 17 enforces unique active invoices, provider request idempotency, one allocation per payment/invoice, positive tenant-matched allocations and locked overpayment denial; report approval and webhook settlement are atomic transactions."
+      ],
       "dependencies": [
         "ledger design",
         "transactional invoice generation"
       ],
-      "nextAction": "Build implementation PR for payment ledger and report-to-invoice atomic transaction tests.",
+      "nextAction": "Retain ledger constraints, webhook retry semantics and transaction source guards in exact-head CI.",
       "ownerTrack": "finance",
-      "featureFreezeBlocking": true,
-      "productionReleaseBlocking": true
+      "featureFreezeBlocking": false,
+      "productionReleaseBlocking": false
     },
     {
       "id": "FG-HARD-021",
       "title": "status state machine enforcement",
       "severity": "P0",
       "category": "workflow/data-integrity",
-      "status": "open",
+      "status": "closed",
       "currentEvidence": [
-        "lib/db/migrations/20260718120000_durable_staffing_lifecycle.sql"
+        "lib/db/migrations/20260718190000_phase2_security_reconciliation.sql",
+        "lib/db/src/staffing-lifecycle.ts",
+        "artifacts/backoffice/src/components/assignments/AssignmentStatusStepper.tsx",
+        "scripts/fieldgrid-runtime-safety-harness.mjs"
       ],
-      "missingEvidence": [
-        "centralized status transition model",
-        "runtime tests for invalid transitions"
-      ],
+      "missingEvidence": [],
       "implementationPRs": [
-        326
+        326,
+        329
       ],
       "runtimeProof": [
-        "PR #326 exact-head staffing and participant lifecycle runtime checks"
+        "The database rejects direct status mutation and invalid edges, requires expected lifecycle versions and advances the monotonic lifecycle version atomically."
       ],
       "dependencies": [
         "workflow inventory"
       ],
-      "nextAction": "Implement canonical status state machine and negative tests for invalid transitions.",
+      "nextAction": "Add new lifecycle edges only through the canonical database transition contract.",
       "ownerTrack": "workflow",
-      "featureFreezeBlocking": true,
-      "productionReleaseBlocking": true
+      "featureFreezeBlocking": false,
+      "productionReleaseBlocking": false
     },
     {
       "id": "FG-HARD-022",
       "title": "support access least privilege",
       "severity": "P0",
       "category": "support/security",
-      "status": "open",
-      "currentEvidence": [],
-      "missingEvidence": [
-        "support impersonation/access policy",
-        "auditing",
-        "tenant-scoped runtime tests"
+      "status": "closed",
+      "currentEvidence": [
+        "lib/db/src/platform-access.ts",
+        "lib/db/src/schema/platform-users.ts",
+        "artifacts/backoffice/src/app/actions/platform.ts",
+        "tests/fieldgrid-sprint-4-rbac-support.test.mjs"
       ],
-      "implementationPRs": [],
-      "runtimeProof": [],
+      "missingEvidence": [],
+      "implementationPRs": [
+        329
+      ],
+      "runtimeProof": [
+        "Support access requires an active tenant-bound grant with explicit permission and module allowlists; legacy grants receive zero rights; activation and use are audit fail-closed."
+      ],
       "dependencies": [
         "support role policy"
       ],
-      "nextAction": "Define and implement audited support access model with tenant-scoped tests.",
+      "nextAction": "Review the strict support permission allowlist whenever a new support-capable module is introduced.",
       "ownerTrack": "support/security",
-      "featureFreezeBlocking": true,
-      "productionReleaseBlocking": true
+      "featureFreezeBlocking": false,
+      "productionReleaseBlocking": false
     },
     {
       "id": "FG-HARD-023",
@@ -618,22 +664,39 @@
       "severity": "P0",
       "category": "release/production",
       "status": "open",
-      "currentEvidence": [],
+      "currentEvidence": [
+        "docs/phase-2/main-exact-head-validation.md"
+      ],
       "missingEvidence": [
-        "staging proof",
-        "rollback proof",
-        "production release decision log"
+        "staging proof for the eventual release SHA",
+        "rollback rehearsal for the eventual release SHA",
+        "signed production release decision log"
       ],
       "implementationPRs": [],
-      "runtimeProof": [],
+      "runtimeProof": [
+        "No deployment was performed by Phase 2C; this gate intentionally remains open."
+      ],
       "dependencies": [
         "all P0 blockers closed",
         "staging proof complete"
       ],
-      "nextAction": "After blockers close, assemble production go/no-go packet without accessing live DBs or secrets from this PR.",
+      "nextAction": "Release owner must assemble and approve the staging, rollback and go/no-go packet for the eventual release SHA before production promotion.",
       "ownerTrack": "release",
       "featureFreezeBlocking": false,
-      "productionReleaseBlocking": true
+      "productionReleaseBlocking": true,
+      "riskScenario": "Production could be promoted without staging, rollback and exact release decision evidence.",
+      "blockerClassification": "production-release-blocking-only",
+      "acceptedRisk": null,
+      "severityLabel": "medium",
+      "releaseBlocking": true,
+      "affectedSurfaces": [
+        "eventual release SHA",
+        "staging promotion",
+        "rollback procedure",
+        "production go/no-go"
+      ],
+      "requiredProof": "Staging validation, rollback rehearsal and signed go/no-go decision for the exact eventual release SHA.",
+      "resolutionDecision": "Not accepted; deliberately deferred as a production-only release gate because PR #329 must not deploy."
     },
     {
       "id": "FG-HARD-025",
@@ -671,226 +734,259 @@
       "title": "tenant-scoped legacy Management RLS",
       "severity": "P0",
       "category": "security/tenant-isolation",
-      "status": "partial",
+      "status": "closed",
       "currentEvidence": [
         "lib/db/migrations/20260718190000_phase2_security_reconciliation.sql",
         "scripts/fieldgrid-runtime-safety-rls-harness.mjs",
-        "tests/fieldgrid-phase2c-security-reconciliation.test.mjs"
+        "scripts/fieldgrid-runtime-safety-previous-release-compatibility.mjs"
       ],
-      "missingEvidence": [
-        "legacy is_management policies outside the Phase 2 workflow inventory still require tenant-by-tenant replacement"
+      "missingEvidence": [],
+      "implementationPRs": [
+        329
       ],
-      "implementationPRs": [],
       "runtimeProof": [
-        "Phase 2C RLS harness proves Tenant A/B management isolation and zero rows for tenantless legacy Management"
+        "Fresh and populated-upgrade PostgreSQL 17 runs find zero active global is_management policies; Tenant A/B stays isolated and a legacy tenantless Management actor reads zero rows."
       ],
       "dependencies": [
         "remaining legacy policy inventory"
       ],
-      "nextAction": "Replace remaining non-Phase-2 global Management policies with resource-specific tenant permission helpers.",
+      "nextAction": "Fail CI if a new global is_management policy appears.",
       "ownerTrack": "security/database",
-      "featureFreezeBlocking": true,
-      "productionReleaseBlocking": true
+      "featureFreezeBlocking": false,
+      "productionReleaseBlocking": false
     },
     {
       "id": "FG-HARD-027",
       "title": "realtime recipient, payload and deactivation isolation",
       "severity": "P0",
       "category": "security/realtime",
-      "status": "partial",
+      "status": "closed",
       "currentEvidence": [
         "lib/db/migrations/20260718190000_phase2_security_reconciliation.sql",
-        "tests/fieldgrid-realtime-projection-migration.test.mjs",
-        "scripts/fieldgrid-runtime-safety-rls-harness.mjs"
+        "artifacts/backoffice/src/lib/realtime/portal-realtime-client.ts",
+        "artifacts/klant-pwa/src/lib/realtime/portal-realtime-client.ts",
+        "artifacts/personeel-pwa/src/lib/realtime/portal-realtime-client.ts",
+        "tests/domain/realtime-monotone-replay.test.mjs"
       ],
-      "missingEvidence": [
-        "recipient-specific trigger fanout for staffing and internal report artifacts",
-        "monotonic projection versions and shared transaction correlation",
-        "live Supabase Realtime reconnect and out-of-order browser evidence"
+      "missingEvidence": [],
+      "implementationPRs": [
+        329
       ],
-      "implementationPRs": [],
       "runtimeProof": [
-        "PostgreSQL regression proves linked active customer/tenant enforcement, deactivation denial, tuple validation and recursive payload redaction"
+        "Recipient-specific projections carry monotonic sequence/version and transaction correlation; customer payloads are recursively redacted; all portal clients discard invalid, duplicate and out-of-order messages."
       ],
       "dependencies": [
         "versioned projection contract",
         "realtime browser test environment"
       ],
-      "nextAction": "Split customer and internal trigger fanout, add monotonic versions, and run live reconnect/out-of-order tests.",
+      "nextAction": "Keep monotonic replay and recursive-redaction tests in exact-head CI.",
       "ownerTrack": "security/realtime",
-      "featureFreezeBlocking": true,
-      "productionReleaseBlocking": true
+      "featureFreezeBlocking": false,
+      "productionReleaseBlocking": false
     },
     {
       "id": "FG-HARD-028",
       "title": "durable offline operation idempotency",
       "severity": "P0",
       "category": "workflow/offline",
-      "status": "open",
+      "status": "closed",
       "currentEvidence": [
-        "docs/phase-2/phase-2c-integrated-security-review.md"
+        "lib/db/src/offline-operations.ts",
+        "lib/db/migrations/20260718190000_phase2_security_reconciliation.sql",
+        "artifacts/personeel-pwa/src/lib/offline/work-order-queue.ts",
+        "e2e/fieldgrid/tests/golden-path.spec.ts",
+        "scripts/fieldgrid-runtime-safety-harness.mjs"
       ],
-      "missingEvidence": [
-        "append-only operation receipt ledger",
-        "atomic expected-version checks inside participant RPC",
-        "commit-then-client-crash replay tests for notes, extra work and inventory"
+      "missingEvidence": [],
+      "implementationPRs": [
+        329
       ],
-      "implementationPRs": [],
-      "runtimeProof": [],
+      "runtimeProof": [
+        "PostgreSQL 17 proves identical replay returns the canonical result, changed payload reuse is rejected, stale expected versions fail atomically and operation receipts remain tenant/actor bound; real Playwright proves an offline task mutation survives failed reconnect and refresh, then converges and is removed after successful idempotent replay."
+      ],
       "dependencies": [
         "offline operation contract"
       ],
-      "nextAction": "Add immutable operation IDs, transactional receipts and atomic stale-version rejection for every queued mutation.",
+      "nextAction": "Require operation IDs and expected versions for every future offline mutation.",
       "ownerTrack": "workflow/offline",
-      "featureFreezeBlocking": true,
-      "productionReleaseBlocking": true
+      "featureFreezeBlocking": false,
+      "productionReleaseBlocking": false
     },
     {
       "id": "FG-HARD-029",
       "title": "atomic staffing eligibility enforcement",
       "severity": "P0",
       "category": "workflow/staffing",
-      "status": "open",
+      "status": "closed",
       "currentEvidence": [
-        "docs/phase-2/phase-2c-migration-compatibility.md"
+        "lib/db/migrations/20260718190000_phase2_security_reconciliation.sql",
+        "lib/db/src/staffing-lifecycle.ts",
+        "scripts/fieldgrid-runtime-safety-harness.mjs",
+        "scripts/fieldgrid-runtime-safety-rls-harness.mjs"
       ],
-      "missingEvidence": [
-        "availability, leave, overlap and qualification checks under canonical staffing locks",
-        "audited explicit override path"
+      "missingEvidence": [],
+      "implementationPRs": [
+        329
       ],
-      "implementationPRs": [],
-      "runtimeProof": [],
+      "runtimeProof": [
+        "The locked staffing path rechecks active membership, complete schedule, availability, leave, overlap, region, sector, role and qualifications before assignment; negative runtime cases are denied."
+      ],
       "dependencies": [
         "canonical eligibility decision"
       ],
-      "nextAction": "Move eligibility checks into the locked staffing transaction and require complete schedule times before scheduled status.",
+      "nextAction": "Route future staffing writes through the locked eligibility contract.",
       "ownerTrack": "workflow/staffing",
-      "featureFreezeBlocking": true,
-      "productionReleaseBlocking": true
+      "featureFreezeBlocking": false,
+      "productionReleaseBlocking": false
     },
     {
       "id": "FG-HARD-030",
       "title": "API JWT issuer, audience and live deactivation validation",
       "severity": "P0",
       "category": "security/api-auth",
-      "status": "open",
+      "status": "closed",
       "currentEvidence": [
-        "docs/phase-2/phase-2c-integrated-security-review.md"
+        "artifacts/api-server/src/middleware/auth.ts",
+        "scripts/fieldgrid-runtime-safety-api-harness.mjs",
+        "tests/security/api-jwt-validation-source.test.mjs"
       ],
-      "missingEvidence": [
-        "issuer, audience and token-class enforcement",
-        "stale token denial after provider deactivation"
+      "missingEvidence": [],
+      "implementationPRs": [
+        329
       ],
-      "implementationPRs": [],
-      "runtimeProof": [],
+      "runtimeProof": [
+        "API runtime denies wrong issuer, audience, role, algorithm, malformed, expired, future-not-before and excessive-lifetime tokens, revoked or disabled users, wrong surfaces and writable-metadata escalation."
+      ],
       "dependencies": [
         "provider JWT configuration",
         "revocation contract"
       ],
-      "nextAction": "Validate issuer/audience/role and add live or timestamp-based revocation for sensitive API requests.",
+      "nextAction": "Keep issuer, audience, algorithm, lifetime and live-subject checks mandatory for all authenticated API routes.",
       "ownerTrack": "security/api",
-      "featureFreezeBlocking": true,
-      "productionReleaseBlocking": true
+      "featureFreezeBlocking": false,
+      "productionReleaseBlocking": false
     },
     {
       "id": "FG-HARD-031",
       "title": "SECURITY DEFINER ownership and complete ACL contract",
-      "severity": "P0",
+      "severity": "P1",
       "category": "security/database-functions",
       "status": "partial",
       "currentEvidence": [
         "docs/phase-2/phase-2c-function-acl-inventory.md",
-        "tests/fieldgrid-phase2c-security-reconciliation.test.mjs"
+        "scripts/fieldgrid-runtime-safety-harness.mjs",
+        "scripts/fieldgrid-runtime-safety-previous-release-compatibility.mjs"
       ],
       "missingEvidence": [
-        "portable approved NOLOGIN owner role in deployment infrastructure",
-        "actor authorization inside service-only staffing RPCs"
+        "deployment-managed dedicated NOLOGIN owner role"
       ],
       "implementationPRs": [],
       "runtimeProof": [
-        "fresh PostgreSQL 17 catalog inventory proves 35 relevant definers owned by postgres, no PUBLIC execute, explicit paths and exact runtime-role grants"
+        "Fresh and populated-upgrade PostgreSQL 17 catalogs match exactly for SECURITY DEFINER identities, pinned search paths and narrow ACL grants."
       ],
       "dependencies": [
         "deployment role design"
       ],
-      "nextAction": "Introduce an approved NOLOGIN definer owner role in deployment infrastructure, then pin ownership without assuming postgres.",
+      "nextAction": "Provision an approved NOLOGIN owner through managed database infrastructure and transfer definer ownership before production go/no-go.",
       "ownerTrack": "security/database",
-      "featureFreezeBlocking": true,
-      "productionReleaseBlocking": true
+      "featureFreezeBlocking": false,
+      "productionReleaseBlocking": false,
+      "riskScenario": "SECURITY DEFINER functions remain owned by the migration owner instead of a dedicated NOLOGIN role, increasing impact if that owner is misused.",
+      "blockerClassification": "accepted-risk",
+      "acceptedRisk": {
+        "owner": "security/database",
+        "milestone": "managed database role provisioning before production go/no-go",
+        "rationale": "Portable migrations cannot assume CREATEROLE or role membership. Every definer has a pinned trusted search_path, no PUBLIC execute and an exact runtime-role ACL; fresh and populated-upgrade catalogs match."
+      },
+      "severityLabel": "medium",
+      "releaseBlocking": false,
+      "affectedSurfaces": [
+        "40 public SECURITY DEFINER functions",
+        "migration owner",
+        "managed Supabase database roles"
+      ],
+      "requiredProof": "Managed target-environment provisioning of a dedicated NOLOGIN, non-superuser, least-privilege owner plus fresh/upgrade ACL parity.",
+      "resolutionDecision": "Accepted non-blocking infrastructure risk with pinned search paths, no PUBLIC execute, narrow grants and exact fresh/upgrade ACL parity as compensating controls."
     },
     {
       "id": "FG-HARD-032",
       "title": "populated previous-release migration compatibility",
       "severity": "P0",
       "category": "release/database",
-      "status": "partial",
+      "status": "closed",
       "currentEvidence": [
+        "scripts/fieldgrid-runtime-safety-previous-release-compatibility.mjs",
+        "lib/db/src/migrate.ts",
         "docs/phase-2/phase-2c-migration-compatibility.md"
       ],
-      "missingEvidence": [
-        "migration from an actual populated previous-release schema snapshot",
-        "preflight counts for malformed timing, staffing and recovery rows"
+      "missingEvidence": [],
+      "implementationPRs": [
+        329
       ],
-      "implementationPRs": [],
       "runtimeProof": [
-        "fresh PostgreSQL 17 succeeds and current-main-to-fixup upgrade succeeds on disposable fixtures"
+        "A disposable PostgreSQL 17 database is built only through migration 20260718180000, populated with two tenants, staffing, execution actuals, reports, realtime and recovery state, then upgraded forward with row counts and security catalogs preserved."
       ],
       "dependencies": [
         "sanitized previous-release database fixture"
       ],
-      "nextAction": "Build a sanitized populated previous-release fixture and migrate it forward without resetting to current schema first.",
+      "nextAction": "Advance the exact previous-release cutoff after each production release.",
       "ownerTrack": "release/database",
-      "featureFreezeBlocking": true,
-      "productionReleaseBlocking": true
+      "featureFreezeBlocking": false,
+      "productionReleaseBlocking": false
     },
     {
       "id": "FG-HARD-033",
       "title": "tenant-scoped audit log reads and inserts",
       "severity": "P0",
       "category": "security/audit",
-      "status": "partial",
+      "status": "closed",
       "currentEvidence": [
         "lib/db/migrations/20260718190000_phase2_security_reconciliation.sql",
-        "artifacts/backoffice/src/app/actions/settings.ts"
+        "artifacts/backoffice/src/app/actions/settings.ts",
+        "scripts/fieldgrid-runtime-safety-rls-harness.mjs"
       ],
-      "missingEvidence": [
-        "exact-head CI and merged-PR evidence",
-        "platform-admin tenantless audit projection contract"
+      "missingEvidence": [],
+      "implementationPRs": [
+        329
       ],
-      "implementationPRs": [],
       "runtimeProof": [
-        "Phase 2C RLS matrix denies tenantless/global Management audit reads and application query always filters current tenant"
+        "Tenant A/B runtime checks deny tenantless/global reads and cross-tenant audit access; all changed mutation surfaces write tenant context and the application read remains current-tenant filtered."
       ],
       "dependencies": [
         "platform audit API design"
       ],
-      "nextAction": "Retain tenant isolation in exact-head CI and define a separate platform-only audit projection.",
+      "nextAction": "Use a separate explicit platform projection if cross-tenant audit administration is later required.",
       "ownerTrack": "security/audit",
-      "featureFreezeBlocking": true,
-      "productionReleaseBlocking": true
+      "featureFreezeBlocking": false,
+      "productionReleaseBlocking": false
     },
     {
       "id": "FG-HARD-034",
       "title": "recoverable credential provider update saga",
       "severity": "P1",
       "category": "auth/recovery-availability",
-      "status": "open",
+      "status": "closed",
       "currentEvidence": [
-        "docs/phase-2/phase-2c-integrated-security-review.md"
+        "lib/db/src/credential-recovery-service.ts",
+        "lib/db/src/credential-recovery.ts",
+        "scripts/fieldgrid-credential-recovery-runtime.mts",
+        "tests/security/credential-recovery-source.test.mjs"
       ],
-      "missingEvidence": [
-        "expiring consuming claim",
-        "provider-failure retry/finalization tests"
+      "missingEvidence": [],
+      "implementationPRs": [
+        327,
+        329
       ],
-      "implementationPRs": [],
-      "runtimeProof": [],
+      "runtimeProof": [
+        "Recovery claims lease the grant, finalize used only after provider success, release safely after provider failure and persist a provider-applied claim marker so a local-finalization retry never changes the password twice."
+      ],
       "dependencies": [
         "auth provider failure simulation"
       ],
-      "nextAction": "Claim a grant, update the provider, and finalize used_at only after success; safely expire failed claims.",
+      "nextAction": "Keep provider-failure and provider-success/local-finalization-failure retries in runtime CI.",
       "ownerTrack": "auth/recovery",
-      "featureFreezeBlocking": true,
-      "productionReleaseBlocking": true
+      "featureFreezeBlocking": false,
+      "productionReleaseBlocking": false
     }
   ],
   "openPrDispositions": [

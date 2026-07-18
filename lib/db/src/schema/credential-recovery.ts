@@ -52,6 +52,12 @@ export const credentialRecoveryChallengesTable = pgTable(
     invalidatedReason: varchar("invalidated_reason", { length: 80 }),
     deliveryStatus: varchar("delivery_status", { length: 24 }).notNull().default("pending"),
     deliveredAt: timestamp("delivered_at", { withTimezone: true }),
+    providerClaimId: uuid("provider_claim_id"),
+    providerClaimedAt: timestamp("provider_claimed_at", { withTimezone: true }),
+    providerClaimExpiresAt: timestamp("provider_claim_expires_at", { withTimezone: true }),
+    providerAttemptCount: integer("provider_attempt_count").notNull().default(0),
+    providerStatus: varchar("provider_status", { length: 24 }).notNull().default("pending"),
+    providerFinalizedAt: timestamp("provider_finalized_at", { withTimezone: true }),
     requestedByUserId: uuid("requested_by_user_id"),
     createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
@@ -70,6 +76,7 @@ export const credentialRecoveryChallengesTable = pgTable(
       .where(sql`${table.grantHash} IS NOT NULL AND ${table.usedAt} IS NULL AND ${table.invalidatedAt} IS NULL`),
     index("credential_recovery_expiry_v2_idx").on(table.expiresAt),
     index("credential_recovery_subject_v2_idx").on(table.subjectUserId, table.createdAt),
+    index("credential_recovery_provider_claim_v2_idx").on(table.providerClaimExpiresAt),
   ],
 );
 

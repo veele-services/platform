@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { FIELDGRID_SUPPORT_BREAK_GLASS_MAX_TTL_MINUTES } from "@workspace/db";
+import {
+  FIELDGRID_SUPPORT_BREAK_GLASS_MAX_TTL_MINUTES,
+  FIELDGRID_SUPPORT_RUNTIME_PERMISSION_KEYS,
+} from "@workspace/db";
 import {
   createSupportAccessGrantFromForm,
   listPlatformSecurityDashboard,
@@ -323,6 +326,15 @@ function SupportGrantForm({
         <label className="grid gap-1 text-sm font-medium text-slate-700">
           Verloopt
           <input name="expiresAt" type="datetime-local" required className="h-10 rounded border border-slate-300 px-3 text-sm" />
+        </label>
+        <label className="grid gap-1 text-sm font-medium text-slate-700 sm:col-span-2">
+          Toegestane handelingen
+          <select name="permissions" required multiple size={7} className="rounded border border-slate-300 px-3 py-2 text-sm">
+            {FIELDGRID_SUPPORT_RUNTIME_PERMISSION_KEYS.map((permission) => (
+              <option key={permission} value={permission}>{permission}</option>
+            ))}
+          </select>
+          <span className="text-xs font-normal text-slate-500">Selecteer alleen wat voor deze interventie nodig is.</span>
         </label>
         <label className="grid gap-1 text-sm font-medium text-slate-700 sm:col-span-2">
           Reden

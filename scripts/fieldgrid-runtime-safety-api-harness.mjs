@@ -14,24 +14,29 @@ import {
 const API_PORT = Number(process.env.FIELDGRID_RUNTIME_SAFETY_API_PORT ?? "4177");
 const API_BASE_URL = `http://127.0.0.1:${API_PORT}`;
 const JWT_SECRET = process.env.FIELDGRID_RUNTIME_SAFETY_JWT_SECRET ?? "fieldgrid-runtime-safety-local-secret";
+const JWT_ISSUER = "https://auth.runtime.fieldgrid.test/auth/v1";
 
 function base64Url(input) {
   return Buffer.from(input).toString("base64url");
 }
 
-function signJwt(userId, email) {
-  const header = { alg: "HS256", typ: "JWT" };
+function signJwt(userId, email, overrides = {}) {
+  const algorithm = overrides.algorithm ?? "HS256";
+  const header = { alg: algorithm, typ: "JWT" };
   const now = Math.floor(Date.now() / 1000);
   const payload = {
     sub: userId,
     email,
     role: "authenticated",
     aud: "authenticated",
+    iss: JWT_ISSUER,
     iat: now,
     exp: now + 3600,
+    ...(overrides.payload ?? {}),
   };
   const unsigned = `${base64Url(JSON.stringify(header))}.${base64Url(JSON.stringify(payload))}`;
-  const signature = crypto.createHmac("sha256", JWT_SECRET).update(unsigned).digest("base64url");
+  const digest = algorithm === "HS512" ? "sha512" : "sha256";
+  const signature = crypto.createHmac(digest, JWT_SECRET).update(unsigned).digest("base64url");
   return `${unsigned}.${signature}`;
 }
 
@@ -46,6 +51,8 @@ function startServer() {
       DB_SSL: "false",
       PGSSLMODE: "disable",
       SUPABASE_JWT_SECRET: JWT_SECRET,
+      SUPABASE_JWT_ISSUER: JWT_ISSUER,
+      SUPABASE_JWT_AUDIENCE: "authenticated",
       SUPABASE_URL: "",
       MOLLIE_API_KEY: "runtime-safety-dummy-mollie-key",
       MOLLIE_WEBHOOK_SECRET: "runtime-safety-dummy-webhook-secret",
@@ -110,6 +117,7 @@ async function runApiChecks() {
   const tenantAToken = signJwt(FIXTURE.users.tenantAOwner, "owner@tenant-a.runtime.fieldgrid.test");
   const suspendedToken = signJwt(FIXTURE.users.suspendedOwner, "owner@suspended.runtime.fieldgrid.test");
   const moduleOffToken = signJwt(FIXTURE.users.moduleOffOwner, "owner@module-off.runtime.fieldgrid.test");
+  const now = Math.floor(Date.now() / 1000);
 
   const health = await request("/api/healthz");
   assertStatus(checks, "server-action-api-health-contract", health.status, 200);
@@ -118,6 +126,33 @@ async function runApiChecks() {
     headers: { "x-forwarded-host": "fieldgrid.nl" },
   });
   assertStatus(checks, "server-action-api-no-auth-denied", noAuth.status, 401);
+
+  for (const [name, token] of [
+    ["wrong-issuer", signJwt(FIXTURE.users.tenantAOwner, "owner@tenant-a.runtime.fieldgrid.test", { payload: { iss: "https://attacker.invalid/auth/v1" } })],
+    ["wrong-audience", signJwt(FIXTURE.users.tenantAOwner, "owner@tenant-a.runtime.fieldgrid.test", { payload: { aud: "service_role" } })],
+    ["wrong-role", signJwt(FIXTURE.users.tenantAOwner, "owner@tenant-a.runtime.fieldgrid.test", { payload: { role: "service_role" } })],
+    ["wrong-algorithm", signJwt(FIXTURE.users.tenantAOwner, "owner@tenant-a.runtime.fieldgrid.test", { algorithm: "HS512" })],
+    ["expired", signJwt(FIXTURE.users.tenantAOwner, "owner@tenant-a.runtime.fieldgrid.test", { payload: { iat: now - 3600, exp: now - 60 } })],
+    ["not-yet-valid", signJwt(FIXTURE.users.tenantAOwner, "owner@tenant-a.runtime.fieldgrid.test", { payload: { nbf: now + 600 } })],
+    ["malformed-claims", signJwt(FIXTURE.users.tenantAOwner, "owner@tenant-a.runtime.fieldgrid.test", { payload: { sub: null, iat: "invalid" } })],
+    ["excessive-lifetime", signJwt(FIXTURE.users.tenantAOwner, "owner@tenant-a.runtime.fieldgrid.test", { payload: { exp: now + 7200 } })],
+    ["revoked-session", signJwt(FIXTURE.users.legacyGlobalManagementOnly, "legacy-management-only@runtime.fieldgrid.test", { payload: { iat: now - 600 } })],
+  ]) {
+    const denied = await request(`/api/customers/${FIXTURE.customers.a}`, {
+      headers: { authorization: `Bearer ${token}`, "x-forwarded-host": "fieldgrid.nl" },
+    });
+    assertStatus(checks, `server-action-api-jwt-${name}-denied`, denied.status, 401);
+  }
+
+  for (const [name, token] of [
+    ["wrong-surface", signJwt(FIXTURE.users.platformOwner, "platform-owner@runtime.fieldgrid.test")],
+    ["writable-metadata-privilege", signJwt(FIXTURE.users.platformSupport, "platform-support@runtime.fieldgrid.test", { payload: { user_metadata: { role: "owner", tenant_id: FIXTURE.tenants.a } } })],
+  ]) {
+    const denied = await request(`/api/customers/${FIXTURE.customers.a}`, {
+      headers: { authorization: `Bearer ${token}`, "x-forwarded-host": "fieldgrid.nl", "x-fieldgrid-tenant-id": FIXTURE.tenants.a },
+    });
+    assertStatus(checks, `server-action-api-jwt-${name}-denied`, denied.status, 403);
+  }
 
   const unknownHost = await request(`/api/customers/${FIXTURE.customers.a}`, {
     headers: {

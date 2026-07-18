@@ -1,5 +1,7 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+
 import { db } from "@workspace/db";
 import {
   assignmentExtraWorkTable,
@@ -8,8 +10,11 @@ import {
   assignmentsTable,
   personnelTable,
   taskCodesTable,
+  assignmentParticipantExecutionsTable,
+  beginOfflineOperation,
+  completeOfflineOperation,
 } from "@workspace/db";
-import { eq, and, asc, count } from "drizzle-orm";
+import { eq, and, asc, count, ne } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
@@ -71,6 +76,8 @@ export type ExtraWorkInput = {
   description:   string;
   hours?:        string | null;
   price?:        string | null;
+  expectedParticipantVersion?: number | null;
+  clientMutationId?: string | null;
 };
 
 export type PrepareExtraWorkPhotoUploadInput = {
@@ -244,18 +251,36 @@ export async function addExtraWork(
   const description = input.description.trim();
   if (!description) return { success: false, error: "Omschrijving is verplicht" };
 
-  const [row] = await db
-    .insert(assignmentExtraWorkTable)
-    .values({
-      assignmentId,
-      taskCodeId:   input.taskCodeId ?? null,
-      taskCodeName: input.taskCodeName ?? null,
-      description,
-      hours:        input.hours?.trim() || null,
-      price:        input.price?.trim() || null,
-      createdBy:    auth.userId,
-    })
-    .returning({ id: assignmentExtraWorkTable.id });
+  const [execution] = await db.select({ version: assignmentParticipantExecutionsTable.version })
+    .from(assignmentParticipantExecutionsTable)
+    .where(and(
+      eq(assignmentParticipantExecutionsTable.tenantId, auth.tenantId),
+      eq(assignmentParticipantExecutionsTable.assignmentId, assignmentId),
+      eq(assignmentParticipantExecutionsTable.personnelId, auth.personnelId),
+      ne(assignmentParticipantExecutionsTable.participantStatus, "removed"),
+    )).limit(1);
+  if (!execution) return { success: false, error: "Uitvoering niet gevonden" };
+
+  const operationId = input.clientMutationId?.trim() || randomUUID();
+  const row = await db.transaction(async (tx) => {
+    const replay = await beginOfflineOperation<{ id: string }>(tx, {
+      tenantId: auth.tenantId, assignmentId, personnelId: auth.personnelId,
+      actorUserId: auth.userId, operationId, operationType: "add-extra-work",
+      expectedVersion: input.expectedParticipantVersion ?? Number(execution.version),
+      payload: { taskCodeId: input.taskCodeId ?? null, description, hours: input.hours ?? null, price: input.price ?? null },
+    });
+    if (replay) return replay;
+    const [created] = await tx.insert(assignmentExtraWorkTable).values({
+      assignmentId, taskCodeId: input.taskCodeId ?? null, taskCodeName: input.taskCodeName ?? null,
+      description, hours: input.hours?.trim() || null, price: input.price?.trim() || null,
+      createdBy: auth.userId, clientMutationId: operationId,
+    }).returning({ id: assignmentExtraWorkTable.id });
+    if (!created) throw new Error("Toevoegen mislukt");
+    await completeOfflineOperation(tx, {
+      tenantId: auth.tenantId, actorUserId: auth.userId, operationId, response: { id: created.id },
+    });
+    return created;
+  });
 
   if (!row) return { success: false, error: "Toevoegen mislukt" };
 

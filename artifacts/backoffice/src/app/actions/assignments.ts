@@ -25,6 +25,7 @@ import {
   ASSIGNMENT_STATUS_TRANSITIONS,
   assertGenericAssignmentEditDoesNotTouchLifecycle,
   transitionAssignmentStaffing,
+  transitionAssignmentStatus,
   cancelAssignmentStaffing,
   type AssignmentStatus,
   type AssignmentPriority,
@@ -1591,6 +1592,21 @@ export async function getAssignmentPlanningReadiness(
       candidates: [],
     };
   }
+  const tenantId = await requireCurrentTenantId();
+  const [scopedAssignment] = await db
+    .select({ id: assignmentsTable.id })
+    .from(assignmentsTable)
+    .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
+    .limit(1);
+  if (!scopedAssignment) {
+    return {
+      hasMoment: false, hasPlannedDate: false, requiredSlots: 1, eligibleCount: 0,
+      fullyAvailableCount: 0, suitableCount: 0, topMatchCount: 0, warningCount: 0,
+      blockedCount: 0, assignedCount: 0, suggestedCount: 0, interestedCount: 0,
+      highestMatchScore: 0, capacityStatus: "red", advice: "Opdracht niet gevonden.",
+      generatedAt: null, canPoll: false, topMatches: [], candidates: [],
+    };
+  }
 
   const [[assignment], capacity, links, interestResponses] = await Promise.all([
     db
@@ -1601,7 +1617,7 @@ export async function getAssignmentPlanningReadiness(
         scheduledEnd: assignmentsTable.scheduledEnd,
       })
       .from(assignmentsTable)
-      .where(eq(assignmentsTable.id, assignmentId))
+      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
       .limit(1),
     calculateAssignmentCapacity(assignmentId, { persist: true }),
     db
@@ -1733,12 +1749,16 @@ export async function recalculateAssignmentCapacity(
   assignmentId: string,
 ): Promise<ActionResult<{ status: "green" | "orange" | "red"; available: number }>> {
   await requirePermission("planning", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
+  const [scopedAssignment] = await db.select({ id: assignmentsTable.id }).from(assignmentsTable)
+    .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId))).limit(1);
+  if (!scopedAssignment) return { success: false, message: "Opdracht niet gevonden." };
 
   const result = await calculateAssignmentCapacity(assignmentId, {
     persist: true,
@@ -1778,6 +1798,7 @@ export async function sendAssignmentInterestPoll(
   },
 ): Promise<ActionResult<{ notified: number; roundNumber: number; skipped: number; blocked: number }>> {
   await requirePermission("planning", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -1798,7 +1819,7 @@ export async function sendAssignmentInterestPoll(
       status: assignmentsTable.status,
     })
     .from(assignmentsTable)
-    .where(eq(assignmentsTable.id, assignmentId))
+    .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
 
   if (!assignment) return { success: false, message: "Opdracht niet gevonden." };
@@ -2217,12 +2238,16 @@ export async function sendAssignmentInterestReminder(
   roundId: string,
 ): Promise<ActionResult<{ reminded: number }>> {
   await requirePermission("planning", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
+  const [scopedAssignment] = await db.select({ id: assignmentsTable.id }).from(assignmentsTable)
+    .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId))).limit(1);
+  if (!scopedAssignment) return { success: false, message: "Opdracht niet gevonden." };
 
   const [round] = await db
     .select()
@@ -2258,7 +2283,7 @@ export async function sendAssignmentInterestReminder(
       })
       .from(assignmentsTable)
       .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
-      .where(eq(assignmentsTable.id, assignmentId))
+      .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
       .limit(1),
     db
       .select({
@@ -2509,6 +2534,7 @@ export async function rescheduleAssignment(
   newDate: string,
 ): Promise<RescheduleResult> {
   await requirePermission("planning", "write");
+  const tenantId = await requireCurrentTenantId();
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(newDate)) {
     return { success: false, message: "Ongeldige datum." };
@@ -2531,7 +2557,7 @@ export async function rescheduleAssignment(
       scheduledEnd: assignmentsTable.scheduledEnd,
     })
     .from(assignmentsTable)
-    .where(eq(assignmentsTable.id, id))
+    .where(and(eq(assignmentsTable.id, id), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
 
   if (!existing) return { success: false, message: "Opdracht niet gevonden." };
@@ -2775,6 +2801,7 @@ export async function reshiftAssignment(
   newEnd: string | null,
 ): Promise<RescheduleResult> {
   await requirePermission("planning", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const TIME_RE = /^\d{2}:\d{2}$/;
   if (!TIME_RE.test(newStart)) {
@@ -2800,7 +2827,7 @@ export async function reshiftAssignment(
       scheduledEnd: assignmentsTable.scheduledEnd,
     })
     .from(assignmentsTable)
-    .where(eq(assignmentsTable.id, id))
+    .where(and(eq(assignmentsTable.id, id), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
 
   if (!existing) return { success: false, message: "Opdracht niet gevonden." };
@@ -3348,7 +3375,6 @@ export async function updateAssignment(
 export async function setAssignmentStatus(
   id: string,
   newStatus: AssignmentStatus,
-  options?: { allowAny?: boolean },
 ): Promise<ActionResult> {
   await requirePermission("assignments", "write");
   const tenantId = await requireCurrentTenantId();
@@ -3361,7 +3387,7 @@ export async function setAssignmentStatus(
 
   // Fetch current status to validate transition
   const [current] = await db
-    .select({ status: assignmentsTable.status, title: assignmentsTable.title })
+    .select({ status: assignmentsTable.status, title: assignmentsTable.title, lifecycleVersion: assignmentsTable.lifecycleVersion })
     .from(assignmentsTable)
     .where(and(eq(assignmentsTable.id, id), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
@@ -3379,25 +3405,24 @@ export async function setAssignmentStatus(
   }
 
   const allowed = ASSIGNMENT_STATUS_TRANSITIONS[current.status as AssignmentStatus];
-  if (!options?.allowAny && !allowed.includes(newStatus)) {
+  if (!allowed.includes(newStatus)) {
     return {
       success: false,
       message: `Statuswijziging van "${current.status}" naar "${newStatus}" is niet toegestaan.`,
     };
   }
 
-  await db
-    .update(assignmentsTable)
-    .set({ status: newStatus, updatedAt: new Date() })
-    .where(and(eq(assignmentsTable.id, id), eq(assignmentsTable.tenantId, tenantId)));
-
-  await db.insert(auditLogTable).values({
-    userId: user.id,
-    action: options?.allowAny ? "status_override" : "status_change",
-    resource: "assignments",
-    resourceId: id,
-    metadata: { from: current.status, to: newStatus, title: current.title, allowAny: Boolean(options?.allowAny) },
-  });
+  try {
+    await transitionAssignmentStatus({
+      tenantId,
+      assignmentId: id,
+      actorUserId: user.id,
+      newStatus,
+      expectedVersion: current.lifecycleVersion,
+    });
+  } catch (error) {
+    return { success: false, message: error instanceof Error ? error.message : "Statuswijziging mislukt." };
+  }
 
   const routeRefreshReason = ROUTE_REFRESH_STATUS_REASONS[newStatus];
   if (routeRefreshReason) {
@@ -3765,6 +3790,7 @@ export async function removeAssignmentTask(
 
 export async function approveDirectly(id: string): Promise<ActionResult> {
   await requirePermission("assignments", "write");
+  const tenantId = await requireCurrentTenantId();
 
   const supabase = await createClient();
   const {
@@ -3775,7 +3801,7 @@ export async function approveDirectly(id: string): Promise<ActionResult> {
   const [current] = await db
     .select({ status: assignmentsTable.status, title: assignmentsTable.title })
     .from(assignmentsTable)
-    .where(eq(assignmentsTable.id, id))
+    .where(and(eq(assignmentsTable.id, id), eq(assignmentsTable.tenantId, tenantId)))
     .limit(1);
 
   if (!current) return { success: false, message: "Opdracht niet gevonden." };
@@ -3791,12 +3817,12 @@ export async function approveDirectly(id: string): Promise<ActionResult> {
   await db
     .update(assignmentsTable)
     .set({ status: "approved", updatedAt: new Date() })
-    .where(eq(assignmentsTable.id, id));
+    .where(and(eq(assignmentsTable.id, id), eq(assignmentsTable.tenantId, tenantId)));
 
   await db
     .update(assignmentsTable)
     .set({ status: "plannable", updatedAt: new Date() })
-    .where(eq(assignmentsTable.id, id));
+    .where(and(eq(assignmentsTable.id, id), eq(assignmentsTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
     userId: user.id,
@@ -3892,6 +3918,7 @@ export async function listAssignmentsForCustomer(
 ): Promise<AssignmentHistoryRow[]> {
   const canRead = await hasPermission("assignments", "read");
   if (!canRead) return [];
+  const tenantId = await requireCurrentTenantId();
 
   const rows = await db
     .select({
@@ -3904,7 +3931,7 @@ export async function listAssignmentsForCustomer(
     })
     .from(assignmentsTable)
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
-    .where(eq(assignmentsTable.customerId, customerId))
+    .where(and(eq(assignmentsTable.customerId, customerId), eq(assignmentsTable.tenantId, tenantId)))
     .orderBy(desc(assignmentsTable.scheduledDate))
     .limit(limit);
 
@@ -3924,6 +3951,7 @@ export async function listAssignmentsForObject(
 ): Promise<AssignmentHistoryRow[]> {
   const canRead = await hasPermission("assignments", "read");
   if (!canRead) return [];
+  const tenantId = await requireCurrentTenantId();
 
   const rows = await db
     .select({
@@ -3936,7 +3964,7 @@ export async function listAssignmentsForObject(
     })
     .from(assignmentsTable)
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
-    .where(eq(assignmentsTable.objectId, objectId))
+    .where(and(eq(assignmentsTable.objectId, objectId), eq(assignmentsTable.tenantId, tenantId)))
     .orderBy(desc(assignmentsTable.scheduledDate))
     .limit(limit);
 
@@ -3956,6 +3984,7 @@ export async function listAssignmentsForPersonnel(
 ): Promise<AssignmentHistoryRow[]> {
   const canRead = await hasPermission("assignments", "read");
   if (!canRead) return [];
+  const tenantId = await requireCurrentTenantId();
 
   const rows = await db
     .select({
@@ -3972,7 +4001,10 @@ export async function listAssignmentsForPersonnel(
       eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id),
     )
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
-    .where(eq(assignmentPersonnelTable.personnelId, personnelId))
+    .where(and(
+      eq(assignmentPersonnelTable.personnelId, personnelId),
+      eq(assignmentsTable.tenantId, tenantId),
+    ))
     .orderBy(desc(assignmentsTable.scheduledDate))
     .limit(limit);
 

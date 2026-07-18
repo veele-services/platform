@@ -62,6 +62,11 @@ async function insertAuthUsers(client) {
       [id, email],
     );
   }
+  await client.query(`
+    update auth.users
+    set raw_app_meta_data = raw_app_meta_data || jsonb_build_object('session_revoked_at', now()::text)
+    where id = $1
+  `, [FIXTURE.users.legacyGlobalManagementOnly]);
 }
 
 async function insertTenants(client) {
@@ -337,11 +342,20 @@ async function insertBusinessRows(client) {
   for (const row of assignments) {
     await client.query(
       `
-        insert into assignments (id, tenant_id, code, title, customer_id, object_id, status, priority, is_active)
-        values ($1, $2, $3, $4, $5, $6, 'scheduled', 'normal', true)
+        insert into assignments (id, tenant_id, code, title, customer_id, object_id, status, priority, scheduled_date, scheduled_start, scheduled_end, is_active)
+        values ($1, $2, $3, $4, $5, $6, 'scheduled', 'normal', '2026-07-21', '09:00', '12:00', true)
         on conflict (id) do update set tenant_id = excluded.tenant_id, customer_id = excluded.customer_id, object_id = excluded.object_id
       `,
       row,
+    );
+  }
+
+  for (const personnelId of [FIXTURE.personnel.a, FIXTURE.personnel.b]) {
+    await client.query(
+      `insert into availability_day_entries (personnel_id, date, start_time, end_time)
+       values ($1, '2026-07-21', '08:00', '17:00')
+       on conflict (personnel_id, date) do update set start_time = excluded.start_time, end_time = excluded.end_time`,
+      [personnelId],
     );
   }
 

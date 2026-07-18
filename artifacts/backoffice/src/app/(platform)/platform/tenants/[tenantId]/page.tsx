@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { customDomainVerificationValue } from "@workspace/db";
+import { customDomainVerificationValue, FIELDGRID_SUPPORT_RUNTIME_PERMISSION_KEYS } from "@workspace/db";
 import {
   Activity,
   Bell,
@@ -1249,6 +1249,15 @@ function SupportTab({
           <label className="grid gap-1 text-sm font-medium text-slate-700">
             Verloopt
             <input name="expiresAt" type="datetime-local" required className="h-10 rounded border border-slate-300 px-3 text-sm" />
+          </label>
+          <label className="grid gap-1 text-sm font-medium text-slate-700 xl:col-span-2">
+            Toegestane handelingen
+            <select name="permissions" required multiple size={7} className="rounded border border-slate-300 px-3 py-2 text-sm">
+              {FIELDGRID_SUPPORT_RUNTIME_PERMISSION_KEYS.map((permission) => (
+                <option key={permission} value={permission}>{permission}</option>
+              ))}
+            </select>
+            <span className="text-xs font-normal text-slate-500">Selecteer alleen de noodzakelijke capabilities.</span>
           </label>
           <button type="submit" className="h-10 rounded bg-slate-950 px-4 text-sm font-semibold text-white">Grant maken</button>
         </form>

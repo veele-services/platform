@@ -24,15 +24,20 @@ The fix is forward-only (`20260718190000_phase2_security_reconciliation.sql`). D
 - Platform administration remains an application-layer boundary; no generic platform-admin RLS bypass was added.
 - Service-only staffing, participant and recovery functions remain unavailable to `anon` and `authenticated`.
 
-## Remaining blockers
+## Phase 2C completion closure
 
-1. Offline notes, extra work and inventory do not have a common durable operation receipt; the participant RPC also lacks atomic expected-version input.
-2. Staffing does not re-evaluate availability, leave, overlap and qualifications under its canonical row locks.
-3. Realtime trigger fanout still needs recipient-specific generation for staffing/internal report artifacts, monotonic projection versions and live reconnect/out-of-order browser proof.
-4. API JWT verification needs issuer, audience, token-class and live deactivation checks.
-5. The recovery provider update occurs after grant consumption and needs a recoverable saga.
-6. Legacy global `is_management()` policies outside the reviewed Phase 2 workflow remain for a later tenant-policy migration.
-7. A portable approved NOLOGIN owner for definer functions is not part of current deployment infrastructure; ownership was therefore inventoried, not guessed or reassigned.
-8. The existing “previous-release compatibility” lane validates old call shapes on the current schema, not a populated previous-release database migrated forward.
+- Durable offline receipts now bind tenant, actor, operation id, payload hash and expected lifecycle version. Identical commit-then-client-crash replay returns the canonical result; changed payload reuse and stale versions fail atomically. The browser queue binds its owner and quarantines mismatches.
+- Staffing eligibility is re-evaluated under canonical locks for active membership, complete schedule, day/weekly availability, leave, overlap, region, sector, role and qualifications.
+- Realtime projections are recipient-specific, recursively redacted for customer delivery and carry monotonic sequence/version plus transaction correlation. All three portal clients ignore malformed, duplicate and out-of-order projections.
+- API JWT validation pins issuer, audience, authenticated token class, algorithm, temporal bounds and maximum lifetime, then checks the live provider subject for disablement and revocation timestamps.
+- Credential recovery leases a grant before provider mutation, finalizes `used_at` only after success, releases failed claims and persists a provider-applied marker for safe retry after local finalization failure.
+- The policy inventory contains no active global `is_management()` policy. Tenant A/B remains isolated and a tenantless legacy Management actor reads zero rows after a populated previous-release upgrade.
+- Finance writes enforce provider request idempotency, unique active invoices and locked allocation/overpayment invariants. Report approval and Mollie webhook settlement update all local ledger/workflow/audit rows in one transaction.
+- Assignment lifecycle edges and expected versions are database-enforced; support grants carry explicit permission/module allowlists; changed IDOR, storage and audit surfaces derive tenant scope server-side.
+- A populated PostgreSQL 17 database built at exact migration `20260718180000_complete_credential_recovery.sql` upgrades forward without reset, row loss, tenant leakage or fresh/upgrade security-catalog drift.
 
-These are recorded as FG-HARD-026 through FG-HARD-034 in the hardening register. Synthetic W11 constants are not treated as runtime evidence.
+## Remaining decisions
+
+No P0 feature-freeze blocker remains. FG-HARD-018 and FG-HARD-019 retain P1 accepted browser-evidence gaps for interactive invitation acceptance and provider-sandbox payment navigation, owned by quality/browser and auth before the production go/no-go review. FG-HARD-031 retains the P1 accepted infrastructure gap for a dedicated NOLOGIN definer owner, owned by security/database before that review; pinned search paths, no PUBLIC execute and exact ACLs are enforced meanwhile.
+
+FG-HARD-024 intentionally remains the only production-release blocker because this PR does not deploy. The eventual release SHA still requires staging, rollback and a signed production go/no-go packet. Synthetic W11 constants are not treated as runtime evidence.

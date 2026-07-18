@@ -278,60 +278,10 @@ export async function getMyPersonnel(): Promise<PersonnelProfile | null> {
     return mapProfile(byId);
   }
 
-  // ── First-login account-linking ───────────────────────────────────────────
-  // The employee was invited (invite_sent_at NOT NULL) but user_id is still null
-  // because we don't set it at invite time — we set it here on first PWA login.
-  // Requires invite_sent_at IS NOT NULL to ensure only genuinely invited personnel
-  // can self-link; anonymous sign-ups or unrelated accounts cannot claim records.
-  // Active, already-linked personnel return above and never require a service
-  // role. This branch is reserved for a genuine first-login no-row result.
-  if (!user.email) return null;
-
-  const admin = createAdminClient();
-  const { data: byEmail, error: firstLoginLookupError } = await admin
-    .from("personnel")
-    .select("id, user_id, invite_sent_at")
-    .eq("tenant_id", tenantId)
-    .eq("email", user.email)
-    .eq("is_active", true)
-    .is("user_id", null)
-    .not("invite_sent_at", "is", null)
-    .maybeSingle();
-
-  if (firstLoginLookupError) {
-    console.warn("[personnel] first-login profile lookup failed", personnelLookupDiagnostic(firstLoginLookupError));
-    return null;
-  }
-
-  if (!byEmail) return null;
-
-  // Link the Supabase user to the personnel record.
-  const { error: linkError } = await admin
-    .from("personnel")
-    .update({ user_id: user.id })
-    .eq("id", byEmail.id)
-    .eq("tenant_id", tenantId);
-
-  if (linkError) {
-    console.warn("[personnel] first-login profile link failed", personnelLookupDiagnostic(linkError));
-    return null;
-  }
-
-  // Fetch via RLS-filtered client now that user_id is set.
-  const { data: linked, error: linkedLookupError } = await supabase
-    .from("personnel")
-    .select(PERSONNEL_SELECT)
-    .eq("tenant_id", tenantId)
-    .eq("user_id", user.id)
-    .eq("is_active", true)
-    .maybeSingle();
-
-  if (linkedLookupError) {
-    console.warn("[personnel] linked profile lookup failed", personnelLookupDiagnostic(linkedLookupError));
-    return null;
-  }
-
-  return linked ? mapProfile(linked) : null;
+  // Account ownership is established only by the invitation/activation flow,
+  // which writes the immutable Auth user id. An email match is not identity
+  // proof and must never claim a personnel record with service-role access.
+  return null;
 }
 
 export async function updateMyPhone(

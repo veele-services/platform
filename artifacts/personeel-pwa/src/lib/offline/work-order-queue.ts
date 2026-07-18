@@ -123,6 +123,8 @@ export type OfflineWorkOrderActionInput =
     & Pick<Extract<OfflineWorkOrderAction, { type: "add-inventory-usage" }>, "type" | "assignmentId" | "payload"> & OfflineQueueOwnershipInput;
 
 const QUEUE_KEY = "veele-personeel-offline-work-order-actions-v1";
+const QUEUE_OWNER_KEY = "veele-personeel-offline-work-order-owner-v1";
+const QUEUE_QUARANTINE_KEY = "veele-personeel-offline-work-order-quarantine-v1";
 const QUEUE_EVENT = "veele:offline-work-order-queue";
 const SYNC_TAG = "veele-personeel-work-order-sync";
 
@@ -218,6 +220,20 @@ function parseQueue(value: string | null): OfflineWorkOrderAction[] {
 export function readOfflineWorkOrderQueue(): OfflineWorkOrderAction[] {
   if (!canUseStorage()) return [];
   return parseQueue(window.localStorage.getItem(QUEUE_KEY));
+}
+
+export function bindOfflineWorkOrderQueueOwner(personnelId: string | null): void {
+  if (!canUseStorage()) return;
+  const normalizedOwner = personnelId?.trim() || null;
+  const previousOwner = window.localStorage.getItem(QUEUE_OWNER_KEY);
+  if (previousOwner && previousOwner !== normalizedOwner) {
+    const existing = window.localStorage.getItem(QUEUE_KEY);
+    if (existing) window.localStorage.setItem(QUEUE_QUARANTINE_KEY, existing);
+    window.localStorage.removeItem(QUEUE_KEY);
+  }
+  if (normalizedOwner) window.localStorage.setItem(QUEUE_OWNER_KEY, normalizedOwner);
+  else window.localStorage.removeItem(QUEUE_OWNER_KEY);
+  emitQueueChange();
 }
 
 function writeOfflineWorkOrderQueue(actions: OfflineWorkOrderAction[]) {

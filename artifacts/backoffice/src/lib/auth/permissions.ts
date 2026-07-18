@@ -212,7 +212,7 @@ export async function getCurrentUserPermissions(): Promise<Set<string>> {
 
   const supportMode = await getCurrentSupportMode();
   if (supportMode?.tenantId === tenantId) {
-    return getSupportRuntimePermissions();
+    return getSupportRuntimePermissions({ permissionKeys: supportMode.permissionKeys });
   }
 
   return getUserPermissions(user.id, tenantId);
@@ -232,7 +232,7 @@ export async function getCurrentUserPermissionsFromRequest(
 
   const supportMode = await getCurrentSupportModeFromRequest(request);
   if (supportMode?.tenantId === tenantId) {
-    return getSupportRuntimePermissions();
+    return getSupportRuntimePermissions({ permissionKeys: supportMode.permissionKeys });
   }
 
   return getUserPermissions(user.id, tenantId);

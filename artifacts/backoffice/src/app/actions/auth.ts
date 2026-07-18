@@ -303,32 +303,40 @@ export async function completePasswordReset(
       return Boolean(eligible);
     },
   });
-  cookieStore.delete(RECOVERY_COOKIE);
-  if (consumed.state !== "valid" || !consumed.subjectUserId || !consumed.challengeId) {
+  if (consumed.state !== "valid" || !consumed.subjectUserId || !consumed.challengeId || !consumed.claimId) {
+    if (consumed.state !== "processing") cookieStore.delete(RECOVERY_COOKIE);
     return { error: "Deze herstelsessie is ongeldig, verlopen of al gebruikt." };
   }
 
   const admin = createAdminClient();
   const { data: current } = await admin.auth.admin.getUserById(consumed.subjectUserId);
+  const providerAlreadyApplied =
+    current.user?.app_metadata?.["credential_recovery_challenge_id"] === consumed.challengeId;
   const appMetadata: Record<string, unknown> = {
     ...(current.user?.app_metadata ?? {}),
     force_password_change: false,
     password_changed_at: new Date().toISOString(),
+    credential_recovery_challenge_id: consumed.challengeId,
+    credential_recovery_claim_id: consumed.claimId,
   };
   delete appMetadata["temporary_password_issued_at"];
   delete appMetadata["temporary_password_expires_at"];
   delete appMetadata["temporary_password_kind"];
   delete appMetadata["credential_activation_pending"];
-  const { error } = await admin.auth.admin.updateUserById(consumed.subjectUserId, {
-    password,
-    app_metadata: appMetadata,
-  });
+  const { error } = providerAlreadyApplied
+    ? { error: null }
+    : await admin.auth.admin.updateUserById(consumed.subjectUserId, {
+        password,
+        app_metadata: appMetadata,
+      });
   await recordCredentialRecoveryProviderOutcome({
     challengeId: consumed.challengeId,
+    claimId: consumed.claimId,
     success: !error,
     sessionRevoked: !error,
   });
-  if (error) return { error: "Wachtwoord opslaan mislukt. Vraag een nieuwe herstellink aan." };
+  if (error) return { error: "Wachtwoord opslaan mislukt. Probeer deze herstelsessie opnieuw." };
+  cookieStore.delete(RECOVERY_COOKIE);
 
   await db.insert(auditLogTable).values({
     userId: consumed.subjectUserId,

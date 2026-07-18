@@ -29,6 +29,7 @@ export * from "./credential-recovery";
 export * from "./personnel-availability";
 export * from "./planning-eligibility";
 export * from "./credential-recovery-service";
+export * from "./offline-operations";
 export * from "./interest-selection-staffing";
 export * from "./assignment-participant-execution";
 export * from "./staffing-lifecycle";

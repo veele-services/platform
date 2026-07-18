@@ -1,6 +1,7 @@
 "use server";
 
-import { db, isTenantModuleEnabled } from "@workspace/db";
+import { beginOfflineOperation, completeOfflineOperation, db, isTenantModuleEnabled } from "@workspace/db";
+import { randomUUID } from "node:crypto";
 import {
   assignmentPersonnelTable,
   assignmentsTable,
@@ -38,6 +39,8 @@ export type InventoryUsageInput = {
   quantity?: string | number | null;
   periodLabel?: string | null;
   notes?: string | null;
+  expectedParticipantVersion?: number | null;
+  clientMutationId?: string | null;
 };
 
 type PersonnelBasic = { userId: string; personnelId: string; tenantId: string };
@@ -263,9 +266,25 @@ export async function addInventoryUsage(
   const periodLabel = cleanText(input.periodLabel)?.slice(0, 80) ?? null;
   const notes = cleanText(input.notes);
 
+  const [execution] = rowsFrom<{ version: number }>(await db.execute(sql`
+    SELECT version FROM assignment_participant_executions
+    WHERE tenant_id = ${auth.tenantId}::uuid AND assignment_id = ${assignmentId}::uuid
+      AND personnel_id = ${auth.personnelId}::uuid AND participant_status <> 'removed'
+    LIMIT 1
+  `));
+  if (!execution) return { success: false, error: "Uitvoering niet gevonden" };
+  const operationId = input.clientMutationId?.trim() || randomUUID();
+
   try {
     const row = await db.transaction(async (tx) => {
       const exec = tx as unknown as DbExecutor;
+      const replay = await beginOfflineOperation<{ id: string }>(exec, {
+        tenantId: auth.tenantId, assignmentId, personnelId: auth.personnelId,
+        actorUserId: auth.userId, operationId, operationType: "add-inventory-usage",
+        expectedVersion: input.expectedParticipantVersion ?? Number(execution.version),
+        payload: { inventoryItemId, usageType, quantity, periodLabel, notes },
+      });
+      if (replay) return replay;
       const item = await getInventoryForTenant(exec, auth.tenantId, inventoryItemId);
       if (!item) throw new Error("Inventarisitem niet gevonden");
 
@@ -334,6 +353,11 @@ export async function addInventoryUsage(
           ${notes}
         )
       `);
+
+      await completeOfflineOperation(exec, {
+        tenantId: auth.tenantId, actorUserId: auth.userId, operationId,
+        response: { id: created.id },
+      });
 
       return created;
     });

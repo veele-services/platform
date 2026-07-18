@@ -1045,6 +1045,7 @@ export async function setPersonnelStatus(
     .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
+    tenantId,
     userId:     user.id,
     action:     isActive ? "activate" : "deactivate",
     resource:   "personnel",
@@ -1075,6 +1076,7 @@ export async function bulkSetPersonnelStatus(
     .where(and(inArray(personnelTable.id, ids), eq(personnelTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
+    tenantId,
     userId:     user.id,
     action:     isActive ? "bulk_activate" : "bulk_deactivate",
     resource:   "personnel",
@@ -1130,6 +1132,7 @@ export async function invitePersonnel(id: string): Promise<ActionResult> {
     .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
+    tenantId,
     userId:     actor.id,
     action:     "invite",
     resource:   "personnel",
@@ -1230,6 +1233,7 @@ export async function updatePersonnelEmail(
       .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)));
 
     await db.insert(auditLogTable).values({
+      tenantId,
       userId:     user.id,
       action:     "update_email",
       resource:   "personnel",
@@ -1293,6 +1297,7 @@ export async function setPersonnelAuthBan(
   }
 
   await db.insert(auditLogTable).values({
+    tenantId,
     userId:     user.id,
     action:     banned ? "ban_personnel_account" : "unban_personnel_account",
     resource:   "personnel",
@@ -1323,6 +1328,7 @@ export async function deletePersonnel(id: string): Promise<ActionResult> {
   await db.delete(personnelTable).where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
+    tenantId,
     userId:     user.id,
     action:     "delete",
     resource:   "personnel",

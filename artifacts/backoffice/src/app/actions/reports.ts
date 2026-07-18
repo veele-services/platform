@@ -682,47 +682,57 @@ export async function approveReport(reportId: string): Promise<ActionResult> {
     return { success: false, message: "Alleen ingediende rapporten kunnen worden goedgekeurd." };
   }
 
-  await db
-    .update(reportsTable)
-    .set({
-      status: "approved",
-      visibilityScope: "customer_approved",
-      reviewedBy: user.id,
-      reviewedAt: new Date(),
-      updatedAt: new Date(),
-    })
-    .where(eq(reportsTable.id, reportId));
-
-  // Advance assignment status to report_approved first; the invoice proposal helper
-  // moves it to invoice_ready after creating the draft proposal for administration.
-  await db
-    .update(assignmentsTable)
-    .set({ status: "report_approved", updatedAt: new Date() })
-    .where(eq(assignmentsTable.id, report.assignmentId));
-
   let invoiceProposalId: string | null = null;
   try {
-    const proposal = await createInvoiceProposalForAssignment({
-      assignmentId: report.assignmentId,
-      actorUserId:  user.id,
-      source:       "report_approval",
+    invoiceProposalId = await db.transaction(async (tx) => {
+      const [approved] = await tx
+        .update(reportsTable)
+        .set({
+          status: "approved",
+          visibilityScope: "customer_approved",
+          reviewedBy: user.id,
+          reviewedAt: new Date(),
+          updatedAt: new Date(),
+        })
+        .where(and(eq(reportsTable.id, reportId), eq(reportsTable.status, "submitted")))
+        .returning({ assignmentId: reportsTable.assignmentId });
+      if (!approved || approved.assignmentId !== report.assignmentId) {
+        throw new Error("Rapport is gelijktijdig gewijzigd.");
+      }
+
+      await tx
+        .update(assignmentsTable)
+        .set({ status: "report_approved", updatedAt: new Date() })
+        .where(and(
+          eq(assignmentsTable.id, report.assignmentId),
+          eq(assignmentsTable.tenantId, tenantId),
+        ));
+
+      const proposal = await createInvoiceProposalForAssignment({
+        assignmentId: report.assignmentId,
+        actorUserId: user.id,
+        source: "report_approval",
+        executor: tx,
+      });
+
+      await tx.insert(auditLogTable).values({
+        tenantId,
+        userId: user.id,
+        action: "approve_report",
+        resource: "reports",
+        resourceId: reportId,
+        metadata: { assignmentId: report.assignmentId, invoiceProposalId: proposal.id },
+      });
+      return proposal.id;
     });
-    invoiceProposalId = proposal.id;
   } catch (error) {
-    console.error("invoice proposal creation after report approval failed", {
+    console.error("atomic report approval and invoice proposal failed", {
       reportId,
       assignmentId: report.assignmentId,
       error,
     });
+    return { success: false, message: "Rapportgoedkeuring en factuurvoorstel konden niet atomair worden opgeslagen." };
   }
-
-  await db.insert(auditLogTable).values({
-    userId:     user.id,
-    action:     "approve_report",
-    resource:   "reports",
-    resourceId: reportId,
-    metadata:   { assignmentId: report.assignmentId, invoiceProposalId },
-  });
 
   await notifyReportWorkflow({
     eventKey: "report_approved",

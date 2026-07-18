@@ -138,8 +138,10 @@ function readSqlMigrations(): SqlMigration[] {
     return [];
   }
 
+  const maximumMigrationName = process.env.FIELDGRID_SQL_MIGRATION_MAX_NAME?.trim() || null;
   return readdirSync(sqlMigrationsDir, { withFileTypes: true })
     .filter((entry) => entry.isFile() && /^\d+.*\.sql$/u.test(entry.name))
+    .filter((entry) => !maximumMigrationName || entry.name <= maximumMigrationName)
     .map((entry) => {
       const sql = readFileSync(path.join(sqlMigrationsDir, entry.name), "utf8");
       return {

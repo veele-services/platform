@@ -20,10 +20,23 @@ import {
   tenantsTable,
   writeSupportAccessAuditLogForUser,
 } from "@workspace/db";
-import { and, eq, inArray, ne } from "drizzle-orm";
+import { and, eq, inArray, ne, sql } from "drizzle-orm";
 
 const SUPABASE_URL = process.env["SUPABASE_URL"] ?? "";
 const SUPABASE_JWT_SECRET = process.env["SUPABASE_JWT_SECRET"] ?? "";
+const SUPABASE_JWT_ISSUER =
+  process.env["SUPABASE_JWT_ISSUER"] ??
+  (SUPABASE_URL ? `${SUPABASE_URL.replace(/\/$/u, "")}/auth/v1` : "");
+const SUPABASE_JWT_AUDIENCE = process.env["SUPABASE_JWT_AUDIENCE"] ?? "authenticated";
+const SUPABASE_JWT_MAX_LIFETIME_SECONDS = Number(
+  process.env["SUPABASE_JWT_MAX_LIFETIME_SECONDS"] ?? "3600",
+);
+const SUPABASE_JWT_ASYMMETRIC_ALGORITHMS = (
+  process.env["SUPABASE_JWT_ALGORITHMS"] ?? "ES256,RS256"
+)
+  .split(",")
+  .map((value) => value.trim())
+  .filter(Boolean);
 
 // ─── JWKS / HMAC key setup ─────────────────────────────────────────────────────
 
@@ -35,6 +48,47 @@ function getJwks(): ReturnType<typeof createRemoteJWKSet> {
     );
   }
   return _jwks;
+}
+
+type VerifiedAccessToken = {
+  sub: string;
+  issuedAt: number;
+};
+
+function rowsFrom<T>(result: unknown): T[] {
+  if (Array.isArray(result)) return result as T[];
+  if (result && typeof result === "object" && "rows" in result) {
+    const rows = (result as { rows?: T[] }).rows;
+    return Array.isArray(rows) ? rows : [];
+  }
+  return [];
+}
+
+async function validateLiveAuthSubject(token: VerifiedAccessToken): Promise<boolean> {
+  const [subject] = rowsFrom<{
+    raw_app_meta_data: Record<string, unknown> | null;
+  }>(await db.execute(sql`
+    SELECT raw_app_meta_data
+    FROM auth.users
+    WHERE id = ${token.sub}::uuid
+    LIMIT 1
+  `));
+  if (!subject) return false;
+
+  const metadata = subject.raw_app_meta_data ?? {};
+  if (metadata["disabled"] === true || metadata["status"] === "disabled") return false;
+
+  const invalidatedAt = [
+    metadata["password_changed_at"],
+    metadata["session_revoked_at"],
+    metadata["disabled_at"],
+  ]
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => Date.parse(value))
+    .filter(Number.isFinite)
+    .reduce((latest, value) => Math.max(latest, value), 0);
+
+  return invalidatedAt === 0 || token.issuedAt * 1000 >= invalidatedAt;
 }
 
 // ─── Request extension ────────────────────────────────────────────────────────
@@ -49,6 +103,8 @@ declare global {
         platformUserId: string;
         reason: string;
         expiresAt: string;
+        permissionKeys: string[];
+        moduleKeys: string[];
         priority: (typeof FIELDGRID_RUNTIME_ACCESS_PRIORITY)[number];
       };
     }
@@ -76,14 +132,32 @@ export async function requireAuth(
   }
 
   try {
+    if (!SUPABASE_JWT_ISSUER) {
+      req.log.error("SUPABASE_JWT_ISSUER is unset - auth validation incomplete");
+      res.status(503).json({ error: "Authenticatie niet geconfigureerd" });
+      return;
+    }
+
     let payload: Record<string, unknown>;
 
     if (SUPABASE_URL) {
-      const result = await jwtVerify(token, getJwks());
+      const result = await jwtVerify(token, getJwks(), {
+        issuer: SUPABASE_JWT_ISSUER,
+        audience: SUPABASE_JWT_AUDIENCE,
+        algorithms: SUPABASE_JWT_ASYMMETRIC_ALGORITHMS,
+        requiredClaims: ["sub", "iss", "aud", "iat", "exp"],
+        clockTolerance: 5,
+      });
       payload = result.payload as Record<string, unknown>;
     } else if (SUPABASE_JWT_SECRET) {
       const secret = new TextEncoder().encode(SUPABASE_JWT_SECRET);
-      const result = await jwtVerify(token, secret);
+      const result = await jwtVerify(token, secret, {
+        issuer: SUPABASE_JWT_ISSUER,
+        audience: SUPABASE_JWT_AUDIENCE,
+        algorithms: ["HS256"],
+        requiredClaims: ["sub", "iss", "aud", "iat", "exp"],
+        clockTolerance: 5,
+      });
       payload = result.payload as Record<string, unknown>;
     } else {
       req.log.error(
@@ -94,8 +168,18 @@ export async function requireAuth(
     }
 
     const sub = typeof payload["sub"] === "string" ? payload["sub"] : undefined;
-    if (!sub) {
-      res.status(401).json({ error: "Ongeldig token: ontbrekende sub claim" });
+    const issuedAt = typeof payload["iat"] === "number" ? payload["iat"] : undefined;
+    const expiresAt = typeof payload["exp"] === "number" ? payload["exp"] : undefined;
+    if (
+      !sub || issuedAt === undefined || expiresAt === undefined ||
+      expiresAt <= issuedAt || expiresAt - issuedAt > SUPABASE_JWT_MAX_LIFETIME_SECONDS ||
+      payload["role"] !== "authenticated"
+    ) {
+      res.status(401).json({ error: "Ongeldig toegangstoken" });
+      return;
+    }
+    if (!(await validateLiveAuthSubject({ sub, issuedAt }))) {
+      res.status(401).json({ error: "Sessie is ingetrokken of account is niet actief" });
       return;
     }
 
@@ -227,6 +311,7 @@ export function requirePermission(resource: string, action: string) {
       const allowedBySupportGrant = isSupportRuntimePermission(
         resource,
         action,
+        { permissionKeys: req.supportAccess.permissionKeys },
       );
       await auditApiSupportPermission({
         userId,
@@ -379,6 +464,12 @@ function attachSupportAccess(
     platformUserId: supportAccess.platformUser.id,
     reason: supportAccess.grant.reason,
     expiresAt: supportAccess.grant.expiresAt.toISOString(),
+    permissionKeys: Array.isArray(supportAccess.grant.permissionKeys)
+      ? supportAccess.grant.permissionKeys.filter((value): value is string => typeof value === "string")
+      : [],
+    moduleKeys: Array.isArray(supportAccess.grant.moduleKeys)
+      ? supportAccess.grant.moduleKeys.filter((value): value is string => typeof value === "string")
+      : [],
     priority: FIELDGRID_RUNTIME_ACCESS_PRIORITY[1],
   };
 }
