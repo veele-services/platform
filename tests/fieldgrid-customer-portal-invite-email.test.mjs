@@ -6,35 +6,33 @@ function read(path) {
   return readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
 }
 
-test("customer portal invite sends Fieldgrid temporary-password mail and persists portal access", () => {
+test("customer portal invite sends an activation challenge and persists portal access", () => {
   const action = read("artifacts/backoffice/src/app/actions/customers.ts");
 
   assert.match(action, /async function sendCustomerPortalInvite/u);
   assert.match(action, /findAuthUserByEmail/u);
   assert.match(action, /hasUsableExistingAccount/u);
-  assert.match(action, /provisionPortalUserWithTemporaryPassword/u);
+  assert.match(action, /provisionPortalUserForActivation/u);
   assert.match(action, /allowExistingActive:\s*true/u);
   assert.match(action, /portal:\s*"customer"/u);
-  assert.match(action, /buildTemporaryPasswordEmail/u);
-  assert.match(action, /buildStyledNotificationEmail/u);
+  assert.match(action, /activationUrl:/u);
+  assert.match(action, /delivery:\s*"activation_challenge"/u);
   assert.match(action, /delivery:\s*"existing_access"/u);
-  assert.match(action, /status:\s*"active"/u);
-  assert.match(action, /temporaryPassword:\s*invite\.delivery === "temporary_password"/u);
+  assert.match(action, /buildStyledNotificationEmail/u);
   assert.match(action, /sendEmailWithResult/u);
   assert.match(action, /customerPortalLoginUrl\(input\.tenantId\)/u);
   assert.match(action, /upsertCustomerPortalInviteLink/u);
   assert.match(action, /markCustomerPortalInviteSent/u);
-  assert.match(action, /insert\(customerUsersTable\)/u);
   assert.match(action, /status:\s*"invited"/u);
-  assert.match(action, /inviteSentAt:\s*new Date\(\)/u);
-  assert.match(action, /customerUserId:\s*invite\.customerUserId/u);
+  assert.match(action, /activationChallenge:\s*invite\.delivery === "activation_challenge"/u);
+  assert.doesNotMatch(action, /temporaryPassword|buildTemporaryPasswordEmail/u);
 });
 
 test("customer portal invite reuses existing auth users across tenants", () => {
   const action = read("artifacts/backoffice/src/app/actions/customers.ts");
 
   assert.match(action, /const existingAuthUser = await findAuthUserByEmail\(admin, email\)/u);
-  assert.match(action, /existingAuthUser\?\.app_metadata\?\.force_password_change !== true/u);
+  assert.match(action, /existingAuthUser\?\.app_metadata\?\.credential_activation_pending !== true/u);
   assert.match(action, /authUserId:\s*existingAuthUser\.id/u);
   assert.match(action, /Uw bestaande Fieldgrid-account heeft nu toegang tot het klantportaal/u);
   assert.match(action, /Log in met uw bestaande e-mailadres en wachtwoord/u);

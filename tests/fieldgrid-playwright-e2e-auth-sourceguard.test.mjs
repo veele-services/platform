@@ -385,9 +385,12 @@ test('workflow provisions PostgreSQL 17, Runtime Safety fixtures, real PostgREST
   assert.ok(source.indexOf('Tear down disposable database') < source.indexOf('Upload Fieldgrid Playwright artifacts'), 'artifact upload must run after teardown and log capture');
 });
 
-test('exactly five browser scenarios exist and forbidden files/tooling are absent', () => {
+test('exactly eight browser scenarios exist, including credential recovery, and forbidden files/tooling are absent', () => {
   const spec = read('e2e/fieldgrid/tests/golden-path.spec.ts');
-  assert.equal([...spec.matchAll(/\ntest\('/g)].length, 5);
+  assert.equal([...spec.matchAll(/\ntest\('/g)].length, 8);
+  assert.match(spec, /Customer credential recovery/);
+  assert.match(spec, /Personnel credential recovery/);
+  assert.match(spec, /Recovery provider invalidates sessions and never receives a code as password/);
   assert.equal(existsSync('scripts/fieldgrid-runtime-entrypoints-check.mjs'), false);
   assert.doesNotMatch(spec, /Fieldgrid E2E.*toContainText|Backoffice dashboard|Customer Tenant A assignments/);
 });
