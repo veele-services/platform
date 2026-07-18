@@ -28,7 +28,8 @@ test("W01 planboard and personnel consume the same canonical time projection", (
 test("W01 lifecycle guards prevent generic edit bypass and preserve first completion", () => {
   assert.match(backofficeAssignmentAction, /assertGenericAssignmentEditDoesNotTouchLifecycle/u);
   assert.match(backofficeAssignmentAction, /updatedRows\.length === 0/u);
-  assert.match(personnelAction, /current\.status === "completed" && current\.actualCompletedAt/u);
+  assert.match(personnelAction, /const currentStatus = current\.participantStatus \?\? current\.status/u);
+  assert.match(personnelAction, /currentStatus === "completed"/u);
   assert.match(personnelAction, /executeAssignmentParticipantAction\(\{[\s\S]*assignmentId,[\s\S]*personnelId: personnel\.id,[\s\S]*action: "complete"/u);
   assert.match(personnelAction, /idempotencyKey: `complete:\$\{assignmentId\}:\$\{personnel\.id\}`/u);
   assert.match(personnelAction, /aggregateCompleted[\s\S]*db[\s\S]*\.update\(assignmentsTable\)[\s\S]*completionNotes/u);

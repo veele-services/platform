@@ -50,7 +50,7 @@ test("legacy pwa_apply_for_assignment RPC execute is revoked by the guard migrat
   );
 });
 
-test("server assignment_personnel delete paths are tenant-aware", () => {
+test("server assignment_personnel lifecycle transitions are tenant-aware and non-destructive", () => {
   const actions = read("artifacts/backoffice/src/app/actions/assignments.ts");
   const removePersonnel = actions.slice(
     actions.indexOf("export async function removePersonnel"),
@@ -64,8 +64,13 @@ test("server assignment_personnel delete paths are tenant-aware", () => {
   assert.match(removePersonnel, /const tenantId = await requireCurrentTenantId\(\)/u);
   assert.match(removePersonnel, /innerJoin\(assignmentsTable,\s*eq\(assignmentPersonnelTable\.assignmentId,\s*assignmentsTable\.id\)\)/u);
   assert.match(removePersonnel, /eq\(assignmentsTable\.tenantId,\s*tenantId\)/u);
-  assert.match(removePersonnel, /\.where\(eq\(assignmentPersonnelTable\.id,\s*link\.id\)\)/u);
+  assert.match(removePersonnel, /eq\(assignmentPersonnelTable\.id,\s*linkId\)/u);
+  assert.match(removePersonnel, /transitionAssignmentStaffing\(\{[\s\S]*action:\s*"unassign"[\s\S]*expectedVersion:/u);
+  assert.doesNotMatch(removePersonnel, /\.delete\(assignmentPersonnelTable\)/u);
 
   assert.match(deleteAssignment, /const tenantId = await requireCurrentTenantId\(\)/u);
-  assert.match(deleteAssignment, /and\(eq\(assignmentsTable\.id,\s*id\),\s*eq\(assignmentsTable\.tenantId,\s*tenantId\)\)/u);
+  assert.match(deleteAssignment, /eq\(assignmentsTable\.tenantId,\s*tenantId\)/u);
+  assert.match(deleteAssignment, /eq\(assignmentPersonnelTable\.assignmentId,\s*id\)/u);
+  assert.match(deleteAssignment, /cancelAssignmentStaffing\(\{/u);
+  assert.doesNotMatch(deleteAssignment, /\.delete\(assignmentsTable\)/u);
 });
