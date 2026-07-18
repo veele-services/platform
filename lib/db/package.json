@@ -19,6 +19,7 @@
     "./workflow-events": "./src/workflow-events.ts",
     "./planning-intelligence": "./src/planning-intelligence.ts",
     "./interest-selection-staffing": "./src/interest-selection-staffing.ts",
+    "./staffing-lifecycle": "./src/staffing-lifecycle.ts",
     "./e2e-auth-adapter": "./src/e2e-auth-adapter.ts"
   },
   "scripts": {

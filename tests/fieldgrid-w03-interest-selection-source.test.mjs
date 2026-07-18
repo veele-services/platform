@@ -25,23 +25,22 @@ test("W03 interest selection uses a canonical tenant-bound staffing command", ()
 });
 
 test("W03 selected interest creates exactly one active assigned link and is idempotent", () => {
-  assert.match(service, /INSERT INTO public\.assignment_personnel/);
-  assert.match(service, /ON CONFLICT \(assignment_id, personnel_id\)/);
-  assert.match(service, /DO UPDATE SET status = 'assigned'/);
-  assert.match(service, /status = 'assigned'/);
-  assert.match(service, /response\.status === status \|\| \(status === "selected" && response\.status === "confirmed"\)/);
+  assert.ok(service.includes("transition_assignment_staffing"));
+  assert.ok(service.includes('transition?.staffing_status === "assigned"'));
+  assert.ok(service.includes("WHERE assignment_id = $1 AND status = 'assigned'"));
+  assert.match(service, /response\.status === status\s*\|\|\s*\(status === "selected" && response\.status === "confirmed"\)/);
   assert.match(service, /SET status = 'confirmed'/);
 });
 
 test("W03 capacity, reserve and final-slot transitions are protected transactionally", () => {
   assert.match(service, /BEGIN/);
   assert.match(service, /FOR UPDATE/);
-  assert.match(service, /assignedCountBefore >= assignment\.required_personnel_count/);
-  assert.match(service, /assignment_capacity_full/);
+  assert.match(service, /transition_assignment_staffing/);
+  assert.match(read("lib/db/migrations/20260718120000_durable_staffing_lifecycle.sql"), /active_count >= assignment_row\.required_personnel_count/);
   assert.match(service, /status === "reserve"/);
   assert.doesNotMatch(service, /status === "reserve"[\s\S]{0,500}INSERT INTO public\.assignment_personnel/);
-  assert.match(service, /assignedCount >= assignment\.required_personnel_count/);
-  assert.match(service, /\? "scheduled"/);
+  assert.match(service, /Naar de reservelijst verplaatst/);
+  assert.match(read("lib/db/migrations/20260718120000_durable_staffing_lifecycle.sql"), /THEN 'scheduled'[\s\S]*ELSE 'plannable'/);
 });
 
 test("W03 selection reuses canonical W02 eligibility and validates overlap/availability", () => {

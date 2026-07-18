@@ -12,6 +12,7 @@ import {
   uniqueIndex,
   index,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 import { customersTable } from "./customers";
@@ -41,6 +42,7 @@ export const ASSIGNMENT_STATUSES = [
   "invoiced",
   "paid",
   "closed",
+  "cancelled",
 ] as const;
 
 export type AssignmentStatus = (typeof ASSIGNMENT_STATUSES)[number];
@@ -79,15 +81,15 @@ export type AssignmentCompletionPolicy = (typeof ASSIGNMENT_COMPLETION_POLICIES)
 // ─── Allowed status transitions ────────────────────────────────────────────────
 
 export const ASSIGNMENT_STATUS_TRANSITIONS: Record<AssignmentStatus, AssignmentStatus[]> = {
-  requested:         ["review", "plannable"],
-  review:            ["quote_preparation", "approved", "plannable"],
-  quote_preparation: ["awaiting_approval"],
-  awaiting_approval: ["approved", "review"],
-  approved:          ["plannable"],
-  plannable:         ["scheduled"],
-  scheduled:         ["seen", "en_route", "in_progress", "plannable"],
-  seen:              ["en_route", "in_progress", "scheduled"],
-  en_route:          ["in_progress", "scheduled"],
+  requested:         ["review", "plannable", "cancelled"],
+  review:            ["quote_preparation", "approved", "plannable", "cancelled"],
+  quote_preparation: ["awaiting_approval", "cancelled"],
+  awaiting_approval: ["approved", "review", "cancelled"],
+  approved:          ["plannable", "cancelled"],
+  plannable:         ["scheduled", "cancelled"],
+  scheduled:         ["seen", "en_route", "in_progress", "plannable", "cancelled"],
+  seen:              ["en_route", "in_progress", "scheduled", "cancelled"],
+  en_route:          ["in_progress", "scheduled", "cancelled"],
   in_progress:       ["completed", "not_completed"],
   not_completed:     ["in_progress", "plannable", "report_submitted"],
   completed:         ["report_submitted"],
@@ -97,6 +99,7 @@ export const ASSIGNMENT_STATUS_TRANSITIONS: Record<AssignmentStatus, AssignmentS
   invoiced:          ["paid"],
   paid:              ["closed"],
   closed:            [],
+  cancelled:         [],
 };
 
 // ─── Tables ────────────────────────────────────────────────────────────────────
@@ -162,6 +165,9 @@ export const assignmentsTable = pgTable("assignments", {
   actualStartedAt: timestamp("actual_started_at", { withTimezone: true }),
   /** Actual completion or not-completed timestamp captured from the personnel PWA. */
   actualCompletedAt: timestamp("actual_completed_at", { withTimezone: true }),
+  cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+  cancelledBy: uuid("cancelled_by"),
+  cancellationReason: text("cancellation_reason"),
   /** Reason selected by personnel when the work order cannot be completed. */
   completionReason: varchar("completion_reason", { length: 160 }),
   /** Optional personnel notes for completed/not-completed closeout. */
@@ -199,10 +205,10 @@ export const assignmentPersonnelTable = pgTable(
     id:           uuid("id").primaryKey().defaultRandom(),
     assignmentId: uuid("assignment_id")
       .notNull()
-      .references(() => assignmentsTable.id, { onDelete: "cascade" }),
+      .references(() => assignmentsTable.id, { onDelete: "restrict" }),
     personnelId:  uuid("personnel_id")
       .notNull()
-      .references(() => personnelTable.id, { onDelete: "cascade" }),
+      .references(() => personnelTable.id, { onDelete: "restrict" }),
     /**
      * 'assigned'  — planned by the planner (default).
      * 'suggested' — self-applied by the field worker via the personeels-PWA.
@@ -212,13 +218,55 @@ export const assignmentPersonnelTable = pgTable(
     status:       varchar("status", { length: 20 }).notNull().default("assigned"),
     assignedAt:   timestamp("assigned_at", { withTimezone: true }).notNull().defaultNow(),
     assignedBy:   uuid("assigned_by"),
+    selectedAt: timestamp("selected_at", { withTimezone: true }),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+    unassignedAt: timestamp("unassigned_at", { withTimezone: true }),
+    unassignedBy: uuid("unassigned_by"),
+    unassignmentReason: text("unassignment_reason"),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    cancelledBy: uuid("cancelled_by"),
+    cancellationReason: text("cancellation_reason"),
+    lifecycleVersion: bigint("lifecycle_version", { mode: "number" }).notNull().default(1),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
   },
   (t) => [
     uniqueIndex("assignment_personnel_unique_idx").on(t.assignmentId, t.personnelId),
   ],
 );
 
-/** Canonical per-person execution record for one assigned participant. */
+/** Append-only snapshots of completed staffing lifecycle states. */
+export const assignmentPersonnelLifecycleHistoryTable = pgTable(
+  "assignment_personnel_lifecycle_history",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    assignmentPersonnelId: uuid("assignment_personnel_id")
+      .notNull()
+      .references(() => assignmentPersonnelTable.id, { onDelete: "restrict" }),
+    tenantId: uuid("tenant_id").notNull().references(() => tenantsTable.id, { onDelete: "restrict" }),
+    assignmentId: uuid("assignment_id").notNull().references(() => assignmentsTable.id, { onDelete: "restrict" }),
+    personnelId: uuid("personnel_id").notNull().references(() => personnelTable.id, { onDelete: "restrict" }),
+    status: varchar("status", { length: 20 }).notNull(),
+    assignedAt: timestamp("assigned_at", { withTimezone: true }).notNull(),
+    assignedBy: uuid("assigned_by"),
+    selectedAt: timestamp("selected_at", { withTimezone: true }),
+    scheduledAt: timestamp("scheduled_at", { withTimezone: true }),
+    unassignedAt: timestamp("unassigned_at", { withTimezone: true }),
+    unassignedBy: uuid("unassigned_by"),
+    unassignmentReason: text("unassignment_reason"),
+    cancelledAt: timestamp("cancelled_at", { withTimezone: true }),
+    cancelledBy: uuid("cancelled_by"),
+    cancellationReason: text("cancellation_reason"),
+    lifecycleVersion: bigint("lifecycle_version", { mode: "number" }).notNull(),
+    transition: varchar("transition", { length: 20 }).notNull(),
+    recordedAt: timestamp("recorded_at", { withTimezone: true }).notNull().defaultNow(),
+  },
+  (t) => [
+    uniqueIndex("assignment_personnel_lifecycle_history_version_unique").on(t.assignmentPersonnelId, t.lifecycleVersion),
+    index("assignment_personnel_lifecycle_history_lookup_idx").on(t.tenantId, t.assignmentId, t.personnelId, t.lifecycleVersion),
+  ],
+);
+
+/** Canonical per-person execution record for one assigned participant episode. */
 export const assignmentParticipantExecutionsTable = pgTable(
   "assignment_participant_executions",
   {
@@ -236,7 +284,9 @@ export const assignmentParticipantExecutionsTable = pgTable(
       .notNull()
       .references(() => assignmentPersonnelTable.id, { onDelete: "restrict" }),
     participantStatus: varchar("participant_status", { length: 32 }).notNull().default("assigned"),
+    isRequired: boolean("is_required").notNull().default(true),
     seenAt: timestamp("seen_at", { withTimezone: true }),
+    enRouteAt: timestamp("en_route_at", { withTimezone: true }),
     actualStartedAt: timestamp("actual_started_at", { withTimezone: true }),
     pausedAt: timestamp("paused_at", { withTimezone: true }),
     resumedAt: timestamp("resumed_at", { withTimezone: true }),
@@ -254,8 +304,8 @@ export const assignmentParticipantExecutionsTable = pgTable(
     updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
   },
   (t) => [
-    uniqueIndex("assignment_participant_execution_link_unique").on(t.assignmentPersonnelId),
-    uniqueIndex("assignment_participant_execution_assignment_personnel_unique").on(t.assignmentId, t.personnelId),
+    uniqueIndex("assignment_participant_execution_active_link_unique").on(t.assignmentPersonnelId).where(sql`${t.participantStatus} <> 'removed'`),
+    uniqueIndex("assignment_participant_execution_active_person_unique").on(t.assignmentId, t.personnelId).where(sql`${t.participantStatus} <> 'removed'`),
     index("assignment_participant_execution_assignment_idx").on(t.tenantId, t.assignmentId, t.participantStatus),
     index("assignment_participant_execution_personnel_idx").on(t.tenantId, t.personnelId, t.participantStatus),
   ],
