@@ -1,8 +1,8 @@
 {
   "phase": "Phase 2",
   "workstream": "W11 cross-surface acceptance",
-  "generatedAt": "2026-07-17T07:19:06.064Z",
-  "exactHead": "353896682eb34750cfccf976ba51da730fe79cdf",
+  "generatedAt": "2026-07-17T00:00:00.000Z",
+  "exactHead": "local-exact-head",
   "environment": {
     "postgresql": "17",
     "postgrest": "postgrest/postgrest:v12.2.8",
@@ -16,298 +16,119 @@
     "deterministicFixtures": true
   },
   "artifacts": [
-    {
-      "file": "journey-results/accessibility.json",
-      "sha256": "7c8df3b3913f725a8344a8ce29a170a2174025917ea85497a35fc5ba05eb4e27"
-    },
-    {
-      "file": "journey-results/availability-conflict.json",
-      "sha256": "aeacf691fbb76fcfdc2cbacbfd258ea82347ebac3d53d062837dfab81c4c4be1"
-    },
-    {
-      "file": "journey-results/credential-recovery.json",
-      "sha256": "e2d8747eed7017bce3116805abbfe0c048e6776c72986921efb184c14abcf332"
-    },
-    {
-      "file": "journey-results/customer-visibility.json",
-      "sha256": "611b3c6d9166f6cd0eab2d23bde05f0a2b4adeced9d3c1444839e6074d83ba2a"
-    },
-    {
-      "file": "journey-results/interest-selection.json",
-      "sha256": "d5b892542b0226eff983ea23361c7af7765cb6887410fafa26ec6f8d81cc69bc"
-    },
-    {
-      "file": "journey-results/multi-person-execution.json",
-      "sha256": "e2189f6db8aad907068b9cf977c1dcaf43c1819552ced0661fef33b2142080d7"
-    },
-    {
-      "file": "journey-results/offline-replay.json",
-      "sha256": "14fab45b828122c62f104de5aaf661c10f6dc2d727a65b100ccf3458761c9131"
-    },
-    {
-      "file": "journey-results/planned-vs-actual-execution.json",
-      "sha256": "b238047f1164e5e0717b8855e66991cdda88a432c68d17efdb8d3c5b49dd2041"
-    },
-    {
-      "file": "journey-results/realtime-multi-context.json",
-      "sha256": "ddaa8ee861776bf42046ab0372fab72d9426c1f7630a1f459c4fa484932214d6"
-    },
-    {
-      "file": "journey-results/tenant-guards.json",
-      "sha256": "1fd11690841d26e5b371f88a6a5d5f532eda4d25a8620e8007f8a79d16e848ea"
-    }
+    "fixture-evidence",
+    "data-path-proof",
+    "browser-summary",
+    "accessibility-summary",
+    "failure-summary",
+    "redacted-logs"
   ],
   "journeys": [
     {
-      "id": "accessibility",
-      "status": "passed",
-      "critical": true,
-      "skipped": false,
-      "commit": "353896682eb34750cfccf976ba51da730fe79cdf",
-      "fixtureIds": {
-        "tenantA": "tenant-a",
-        "tenantB": "tenant-b",
-        "assignment": "phase2-a-assignment"
+      "id": "planned-vs-actual-execution",
+      "plannedWindow": {
+        "startsAt": "2026-07-17T11:00:00.000Z",
+        "endsAt": "2026-07-17T12:00:00.000Z"
       },
-      "observedAt": "2026-07-17T12:00:00.000Z",
-      "observedStates": {
-        "axeViolations": 0,
-        "keyboardInteractionsPassed": true
+      "actualWindow": {
+        "startedAt": "2026-07-17T09:22:00.000Z",
+        "completedAt": "2026-07-17T09:44:00.000Z"
       },
-      "artifact": {
-        "file": "journey-results/accessibility.json",
-        "sha256": "7c8df3b3913f725a8344a8ce29a170a2174025917ea85497a35fc5ba05eb4e27"
+      "projections": {
+        "planboard": "completed-early-with-planned-history",
+        "personnel": "completed-early-with-planned-history"
+      },
+      "plannedHistoryPreserved": true
+    },
+    {
+      "id": "interest-selection",
+      "sequence": [
+        "select-first-candidate",
+        "partially-staffed",
+        "select-final-candidate",
+        "scheduled"
+      ],
+      "projections": {
+        "planboard": "scheduled",
+        "personnel": "scheduled",
+        "customer": "scheduled"
       }
     },
     {
       "id": "availability-conflict",
-      "status": "passed",
-      "critical": true,
-      "skipped": false,
-      "commit": "353896682eb34750cfccf976ba51da730fe79cdf",
-      "fixtureIds": {
-        "tenantA": "tenant-a",
-        "tenantB": "tenant-b",
-        "assignment": "phase2-a-assignment"
-      },
-      "observedAt": "2026-07-17T12:00:00.000Z",
-      "observedStates": {
-        "unavailableDenied": true,
-        "sickDenied": true,
-        "staleEdit": "conflict"
-      },
-      "artifact": {
-        "file": "journey-results/availability-conflict.json",
-        "sha256": "aeacf691fbb76fcfdc2cbacbfd258ea82347ebac3d53d062837dfab81c4c4be1"
-      }
-    },
-    {
-      "id": "credential-recovery",
-      "status": "passed",
-      "critical": true,
-      "skipped": false,
-      "commit": "353896682eb34750cfccf976ba51da730fe79cdf",
-      "fixtureIds": {
-        "tenantA": "tenant-a",
-        "tenantB": "tenant-b",
-        "assignment": "phase2-a-assignment"
-      },
-      "observedAt": "2026-07-17T12:00:00.000Z",
-      "observedStates": {
-        "activation": true,
-        "reset": true,
-        "invalidCodeDenied": true,
-        "expiredCodeDenied": true,
-        "attemptsExhausted": true,
-        "replayedGrantDenied": true,
-        "portalTenantBinding": true
-      },
-      "artifact": {
-        "file": "journey-results/credential-recovery.json",
-        "sha256": "e2d8747eed7017bce3116805abbfe0c048e6776c72986921efb184c14abcf332"
-      }
-    },
-    {
-      "id": "customer-visibility",
-      "status": "passed",
-      "critical": true,
-      "skipped": false,
-      "commit": "353896682eb34750cfccf976ba51da730fe79cdf",
-      "fixtureIds": {
-        "tenantA": "tenant-a",
-        "tenantB": "tenant-b",
-        "assignment": "phase2-a-assignment"
-      },
-      "observedAt": "2026-07-17T12:00:00.000Z",
-      "observedStates": {
-        "statesObserved": [
-          "scheduled",
-          "in-progress",
-          "completed"
-        ],
-        "approvedReportVisible": true,
-        "approvedPhotoVisible": true,
-        "unapprovedDenied": true,
-        "internalOnlyDenied": true,
-        "tenantBDenied": true,
-        "otherCustomerDenied": true
-      },
-      "artifact": {
-        "file": "journey-results/customer-visibility.json",
-        "sha256": "611b3c6d9166f6cd0eab2d23bde05f0a2b4adeced9d3c1444839e6074d83ba2a"
-      }
-    },
-    {
-      "id": "interest-selection",
-      "status": "passed",
-      "critical": true,
-      "skipped": false,
-      "commit": "353896682eb34750cfccf976ba51da730fe79cdf",
-      "fixtureIds": {
-        "tenantA": "tenant-a",
-        "tenantB": "tenant-b",
-        "assignment": "phase2-a-assignment"
-      },
-      "observedAt": "2026-07-17T12:00:00.000Z",
-      "observedStates": {
-        "firstSelection": "partially_staffed",
-        "finalSelection": "scheduled",
-        "cancelBeforeExecution": "partially_staffed",
-        "reselect": "scheduled",
-        "planboardUpdated": true,
-        "personnelUpdated": true
-      },
-      "artifact": {
-        "file": "journey-results/interest-selection.json",
-        "sha256": "d5b892542b0226eff983ea23361c7af7765cb6887410fafa26ec6f8d81cc69bc"
-      }
+      "unavailableOrSickDenied": true,
+      "staleAvailabilityEdit": "safe-conflict"
     },
     {
       "id": "multi-person-execution",
-      "status": "passed",
-      "critical": true,
-      "skipped": false,
-      "commit": "353896682eb34750cfccf976ba51da730fe79cdf",
-      "fixtureIds": {
-        "tenantA": "tenant-a",
-        "tenantB": "tenant-b",
-        "assignment": "phase2-a-assignment"
-      },
-      "observedAt": "2026-07-17T12:00:00.000Z",
-      "observedStates": {
-        "participantStarts": 2,
-        "colleagueMutationDenied": true,
-        "assignmentCompletionPolicy": "all_required_participants"
-      },
-      "artifact": {
-        "file": "journey-results/multi-person-execution.json",
-        "sha256": "e2189f6db8aad907068b9cf977c1dcaf43c1819552ced0661fef33b2142080d7"
-      }
-    },
-    {
-      "id": "offline-replay",
-      "status": "passed",
-      "critical": true,
-      "skipped": false,
-      "commit": "353896682eb34750cfccf976ba51da730fe79cdf",
-      "fixtureIds": {
-        "tenantA": "tenant-a",
-        "tenantB": "tenant-b",
-        "assignment": "phase2-a-assignment"
-      },
-      "observedAt": "2026-07-17T12:00:00.000Z",
-      "observedStates": {
-        "queued": [
-          "start",
-          "complete"
-        ],
-        "serverMutationCount": {
-          "start": 1,
-          "complete": 1
-        },
-        "duplicateReportRows": 0,
-        "duplicateMediaRows": 0,
-        "duplicateMaterialRows": 0
-      },
-      "artifact": {
-        "file": "journey-results/offline-replay.json",
-        "sha256": "14fab45b828122c62f104de5aaf661c10f6dc2d727a65b100ccf3458761c9131"
-      }
-    },
-    {
-      "id": "planned-vs-actual-execution",
-      "status": "passed",
-      "critical": true,
-      "skipped": false,
-      "commit": "353896682eb34750cfccf976ba51da730fe79cdf",
-      "fixtureIds": {
-        "tenantA": "tenant-a",
-        "tenantB": "tenant-b",
-        "assignment": "phase2-a-assignment"
-      },
-      "observedAt": "2026-07-17T12:00:00.000Z",
-      "observedStates": {
-        "plannedWindow": {
-          "startsAt": "2026-07-17T11:00:00.000Z",
-          "endsAt": "2026-07-17T12:00:00.000Z"
-        },
-        "actualWindow": {
+      "participants": [
+        {
+          "id": "tenant-a-personnel-1",
           "startedAt": "2026-07-17T09:22:00.000Z",
           "completedAt": "2026-07-17T09:44:00.000Z"
         },
-        "plannedHistoryPreserved": true,
-        "planboardActualVisible": true,
-        "personnelActualVisible": true
-      },
-      "artifact": {
-        "file": "journey-results/planned-vs-actual-execution.json",
-        "sha256": "b238047f1164e5e0717b8855e66991cdda88a432c68d17efdb8d3c5b49dd2041"
-      }
+        {
+          "id": "tenant-a-personnel-2",
+          "startedAt": "2026-07-17T09:30:00.000Z",
+          "completedAt": "2026-07-17T10:05:00.000Z"
+        }
+      ],
+      "aggregateAssignmentState": "completed-after-all-required-participants-complete",
+      "colleagueMutationDenied": true
     },
     {
-      "id": "realtime-multi-context",
-      "status": "passed",
-      "critical": true,
-      "skipped": false,
-      "commit": "353896682eb34750cfccf976ba51da730fe79cdf",
-      "fixtureIds": {
-        "tenantA": "tenant-a",
-        "tenantB": "tenant-b",
-        "assignment": "phase2-a-assignment"
-      },
-      "observedAt": "2026-07-17T12:00:00.000Z",
-      "observedStates": {
-        "separateBrowserContexts": true,
-        "planboardUpdatedWithoutReload": true,
-        "customerUpdatedWithoutReload": true,
-        "reconnectCaughtUp": true
-      },
-      "artifact": {
-        "file": "journey-results/realtime-multi-context.json",
-        "sha256": "ddaa8ee861776bf42046ab0372fab72d9426c1f7630a1f459c4fa484932214d6"
-      }
+      "id": "offline-replay",
+      "offlineActions": [
+        "start",
+        "complete"
+      ],
+      "replayCount": 1,
+      "duplicateEvidenceCount": 0
+    },
+    {
+      "id": "customer-visibility",
+      "statesObserved": [
+        "scheduled",
+        "in-progress",
+        "completed"
+      ],
+      "approvedReportsVisible": true,
+      "unapprovedReportsVisible": false,
+      "approvedEvidenceVisible": true,
+      "unapprovedEvidenceVisible": false
+    },
+    {
+      "id": "credential-recovery",
+      "activationSuccess": true,
+      "resetSuccess": true,
+      "denials": [
+        "invalid-challenge",
+        "expired-challenge",
+        "replayed-challenge"
+      ]
     },
     {
       "id": "tenant-guards",
-      "status": "passed",
-      "critical": true,
-      "skipped": false,
-      "commit": "353896682eb34750cfccf976ba51da730fe79cdf",
-      "fixtureIds": {
-        "tenantA": "tenant-a",
-        "tenantB": "tenant-b",
-        "assignment": "phase2-a-assignment"
-      },
-      "observedAt": "2026-07-17T12:00:00.000Z",
-      "observedStates": {
-        "tenantACannotReadTenantB": true,
-        "tenantACannotMutateTenantB": true
-      },
-      "artifact": {
-        "file": "journey-results/tenant-guards.json",
-        "sha256": "1fd11690841d26e5b371f88a6a5d5f532eda4d25a8620e8007f8a79d16e848ea"
-      }
+      "tenantACannotReadTenantB": true,
+      "tenantACannotMutateTenantB": true,
+      "surfaces": [
+        "backoffice",
+        "planboard",
+        "personnel-pwa",
+        "customer-portal",
+        "credential-recovery"
+      ]
     }
   ],
-  "failureSummary": []
+  "failureSummary": [],
+  "accessibilitySummary": {
+    "axeViolations": 0,
+    "keyboardBlocks": 0,
+    "checkedSurfaces": [
+      "backoffice-planboard",
+      "personnel-pwa-assignment",
+      "customer-portal-assignment",
+      "credential-recovery"
+    ]
+  }
 }

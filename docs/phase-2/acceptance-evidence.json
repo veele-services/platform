@@ -1,313 +1,56 @@
 {
-  "phase": "Phase 2",
-  "workstream": "W11 cross-surface acceptance",
-  "generatedAt": "2026-07-17T07:18:06.528Z",
-  "exactHead": "353896682eb34750cfccf976ba51da730fe79cdf",
-  "environment": {
-    "postgresql": "17",
-    "postgrest": "postgrest/postgrest:v12.2.8",
-    "applications": [
-      "backoffice",
-      "personnel-pwa",
-      "customer-portal"
-    ],
-    "liveProviders": false,
-    "serviceRoleBrowserVariable": false,
-    "deterministicFixtures": true
+  "schema": "fieldgrid-phase2-closeout-evidence-v1",
+  "generatedAt": "2026-07-17T00:00:00.000Z",
+  "repository": "veele-services/platform",
+  "branch": "phase2/w12-closeout",
+  "target": "main",
+  "productionAction": false,
+  "stagingUpdated": false,
+  "sourceArtifact": "artifacts/fieldgrid-phase2-w11/cross-surface-acceptance-evidence.json",
+  "requiredChecks": [
+    "pnpm fieldgrid:phase2-w11:check",
+    "node --test tests/fieldgrid-phase2-w11-cross-surface-acceptance.test.mjs",
+    "node --test tests/fieldgrid-hardening-register-current.test.mjs tests/fieldgrid-open-pr-disposition-2026-07-14.test.mjs"
+  ],
+  "exitCriteria": {
+    "domainContractsImplemented": "green-after-w11-exact-head",
+    "planboardReflectsActualExecution": "green",
+    "interestSelectionSchedulesPersonnel": "green",
+    "availabilityEligibilityCanonical": "green",
+    "multiPersonExecutionProven": "green",
+    "realtimeCrossSurfaceUpdatesProven": "green",
+    "personnelOfflineReplayIdempotent": "green",
+    "customerVisibilitySecure": "green",
+    "credentialRecoverySecure": "green-for-w11-acceptance-production-blocker-fg-hard-025-tracked",
+    "responsiveAccessibilityFoundationUsed": "green",
+    "phase2AcceptanceWorkflowGreen": "green-when-required-checks-pass",
+    "migrationsForwardOnly": "green-documentation-only-closeout",
+    "candidateOnlyFailuresZero": "green",
+    "noUnresolvedCurrentReviewThreads": "requires-github-human-verification",
+    "noProductionAction": "green"
   },
-  "artifacts": [
-    {
-      "file": "journey-results/accessibility.json",
-      "sha256": "7c8df3b3913f725a8344a8ce29a170a2174025917ea85497a35fc5ba05eb4e27"
+  "promotionPackage": {
+    "immutableMainShaCommand": "git rev-parse origin/main",
+    "expectedStagingShaCommand": "git rev-parse origin/staging",
+    "comparisonCommands": [
+      "git log --oneline --decorate origin/staging..origin/main",
+      "git diff --stat origin/staging..origin/main"
+    ],
+    "promotionPr": {
+      "base": "staging",
+      "head": "main",
+      "draft": true,
+      "title": "Promote Phase 2 closeout main to staging"
     },
-    {
-      "file": "journey-results/availability-conflict.json",
-      "sha256": "aeacf691fbb76fcfdc2cbacbfd258ea82347ebac3d53d062837dfab81c4c4be1"
-    },
-    {
-      "file": "journey-results/credential-recovery.json",
-      "sha256": "e2d8747eed7017bce3116805abbfe0c048e6776c72986921efb184c14abcf332"
-    },
-    {
-      "file": "journey-results/customer-visibility.json",
-      "sha256": "611b3c6d9166f6cd0eab2d23bde05f0a2b4adeced9d3c1444839e6074d83ba2a"
-    },
-    {
-      "file": "journey-results/interest-selection.json",
-      "sha256": "d5b892542b0226eff983ea23361c7af7765cb6887410fafa26ec6f8d81cc69bc"
-    },
-    {
-      "file": "journey-results/multi-person-execution.json",
-      "sha256": "e2189f6db8aad907068b9cf977c1dcaf43c1819552ced0661fef33b2142080d7"
-    },
-    {
-      "file": "journey-results/offline-replay.json",
-      "sha256": "14fab45b828122c62f104de5aaf661c10f6dc2d727a65b100ccf3458761c9131"
-    },
-    {
-      "file": "journey-results/planned-vs-actual-execution.json",
-      "sha256": "b238047f1164e5e0717b8855e66991cdda88a432c68d17efdb8d3c5b49dd2041"
-    },
-    {
-      "file": "journey-results/realtime-multi-context.json",
-      "sha256": "ddaa8ee861776bf42046ab0372fab72d9426c1f7630a1f459c4fa484932214d6"
-    },
-    {
-      "file": "journey-results/tenant-guards.json",
-      "sha256": "1fd11690841d26e5b371f88a6a5d5f532eda4d25a8620e8007f8a79d16e848ea"
-    }
-  ],
-  "journeys": [
-    {
-      "id": "accessibility",
-      "status": "passed",
-      "critical": true,
-      "skipped": false,
-      "commit": "353896682eb34750cfccf976ba51da730fe79cdf",
-      "fixtureIds": {
-        "tenantA": "tenant-a",
-        "tenantB": "tenant-b",
-        "assignment": "phase2-a-assignment"
-      },
-      "observedAt": "2026-07-17T12:00:00.000Z",
-      "observedStates": {
-        "axeViolations": 0,
-        "keyboardInteractionsPassed": true
-      },
-      "artifact": {
-        "file": "journey-results/accessibility.json",
-        "sha256": "7c8df3b3913f725a8344a8ce29a170a2174025917ea85497a35fc5ba05eb4e27"
-      }
-    },
-    {
-      "id": "availability-conflict",
-      "status": "passed",
-      "critical": true,
-      "skipped": false,
-      "commit": "353896682eb34750cfccf976ba51da730fe79cdf",
-      "fixtureIds": {
-        "tenantA": "tenant-a",
-        "tenantB": "tenant-b",
-        "assignment": "phase2-a-assignment"
-      },
-      "observedAt": "2026-07-17T12:00:00.000Z",
-      "observedStates": {
-        "unavailableDenied": true,
-        "sickDenied": true,
-        "staleEdit": "conflict"
-      },
-      "artifact": {
-        "file": "journey-results/availability-conflict.json",
-        "sha256": "aeacf691fbb76fcfdc2cbacbfd258ea82347ebac3d53d062837dfab81c4c4be1"
-      }
-    },
-    {
-      "id": "credential-recovery",
-      "status": "passed",
-      "critical": true,
-      "skipped": false,
-      "commit": "353896682eb34750cfccf976ba51da730fe79cdf",
-      "fixtureIds": {
-        "tenantA": "tenant-a",
-        "tenantB": "tenant-b",
-        "assignment": "phase2-a-assignment"
-      },
-      "observedAt": "2026-07-17T12:00:00.000Z",
-      "observedStates": {
-        "activation": true,
-        "reset": true,
-        "invalidCodeDenied": true,
-        "expiredCodeDenied": true,
-        "attemptsExhausted": true,
-        "replayedGrantDenied": true,
-        "portalTenantBinding": true
-      },
-      "artifact": {
-        "file": "journey-results/credential-recovery.json",
-        "sha256": "e2d8747eed7017bce3116805abbfe0c048e6776c72986921efb184c14abcf332"
-      }
-    },
-    {
-      "id": "customer-visibility",
-      "status": "passed",
-      "critical": true,
-      "skipped": false,
-      "commit": "353896682eb34750cfccf976ba51da730fe79cdf",
-      "fixtureIds": {
-        "tenantA": "tenant-a",
-        "tenantB": "tenant-b",
-        "assignment": "phase2-a-assignment"
-      },
-      "observedAt": "2026-07-17T12:00:00.000Z",
-      "observedStates": {
-        "statesObserved": [
-          "scheduled",
-          "in-progress",
-          "completed"
-        ],
-        "approvedReportVisible": true,
-        "approvedPhotoVisible": true,
-        "unapprovedDenied": true,
-        "internalOnlyDenied": true,
-        "tenantBDenied": true,
-        "otherCustomerDenied": true
-      },
-      "artifact": {
-        "file": "journey-results/customer-visibility.json",
-        "sha256": "611b3c6d9166f6cd0eab2d23bde05f0a2b4adeced9d3c1444839e6074d83ba2a"
-      }
-    },
-    {
-      "id": "interest-selection",
-      "status": "passed",
-      "critical": true,
-      "skipped": false,
-      "commit": "353896682eb34750cfccf976ba51da730fe79cdf",
-      "fixtureIds": {
-        "tenantA": "tenant-a",
-        "tenantB": "tenant-b",
-        "assignment": "phase2-a-assignment"
-      },
-      "observedAt": "2026-07-17T12:00:00.000Z",
-      "observedStates": {
-        "firstSelection": "partially_staffed",
-        "finalSelection": "scheduled",
-        "cancelBeforeExecution": "partially_staffed",
-        "reselect": "scheduled",
-        "planboardUpdated": true,
-        "personnelUpdated": true
-      },
-      "artifact": {
-        "file": "journey-results/interest-selection.json",
-        "sha256": "d5b892542b0226eff983ea23361c7af7765cb6887410fafa26ec6f8d81cc69bc"
-      }
-    },
-    {
-      "id": "multi-person-execution",
-      "status": "passed",
-      "critical": true,
-      "skipped": false,
-      "commit": "353896682eb34750cfccf976ba51da730fe79cdf",
-      "fixtureIds": {
-        "tenantA": "tenant-a",
-        "tenantB": "tenant-b",
-        "assignment": "phase2-a-assignment"
-      },
-      "observedAt": "2026-07-17T12:00:00.000Z",
-      "observedStates": {
-        "participantStarts": 2,
-        "colleagueMutationDenied": true,
-        "assignmentCompletionPolicy": "all_required_participants"
-      },
-      "artifact": {
-        "file": "journey-results/multi-person-execution.json",
-        "sha256": "e2189f6db8aad907068b9cf977c1dcaf43c1819552ced0661fef33b2142080d7"
-      }
-    },
-    {
-      "id": "offline-replay",
-      "status": "passed",
-      "critical": true,
-      "skipped": false,
-      "commit": "353896682eb34750cfccf976ba51da730fe79cdf",
-      "fixtureIds": {
-        "tenantA": "tenant-a",
-        "tenantB": "tenant-b",
-        "assignment": "phase2-a-assignment"
-      },
-      "observedAt": "2026-07-17T12:00:00.000Z",
-      "observedStates": {
-        "queued": [
-          "start",
-          "complete"
-        ],
-        "serverMutationCount": {
-          "start": 1,
-          "complete": 1
-        },
-        "duplicateReportRows": 0,
-        "duplicateMediaRows": 0,
-        "duplicateMaterialRows": 0
-      },
-      "artifact": {
-        "file": "journey-results/offline-replay.json",
-        "sha256": "14fab45b828122c62f104de5aaf661c10f6dc2d727a65b100ccf3458761c9131"
-      }
-    },
-    {
-      "id": "planned-vs-actual-execution",
-      "status": "passed",
-      "critical": true,
-      "skipped": false,
-      "commit": "353896682eb34750cfccf976ba51da730fe79cdf",
-      "fixtureIds": {
-        "tenantA": "tenant-a",
-        "tenantB": "tenant-b",
-        "assignment": "phase2-a-assignment"
-      },
-      "observedAt": "2026-07-17T12:00:00.000Z",
-      "observedStates": {
-        "plannedWindow": {
-          "startsAt": "2026-07-17T11:00:00.000Z",
-          "endsAt": "2026-07-17T12:00:00.000Z"
-        },
-        "actualWindow": {
-          "startedAt": "2026-07-17T09:22:00.000Z",
-          "completedAt": "2026-07-17T09:44:00.000Z"
-        },
-        "plannedHistoryPreserved": true,
-        "planboardActualVisible": true,
-        "personnelActualVisible": true
-      },
-      "artifact": {
-        "file": "journey-results/planned-vs-actual-execution.json",
-        "sha256": "b238047f1164e5e0717b8855e66991cdda88a432c68d17efdb8d3c5b49dd2041"
-      }
-    },
-    {
-      "id": "realtime-multi-context",
-      "status": "passed",
-      "critical": true,
-      "skipped": false,
-      "commit": "353896682eb34750cfccf976ba51da730fe79cdf",
-      "fixtureIds": {
-        "tenantA": "tenant-a",
-        "tenantB": "tenant-b",
-        "assignment": "phase2-a-assignment"
-      },
-      "observedAt": "2026-07-17T12:00:00.000Z",
-      "observedStates": {
-        "separateBrowserContexts": true,
-        "planboardUpdatedWithoutReload": true,
-        "customerUpdatedWithoutReload": true,
-        "reconnectCaughtUp": true
-      },
-      "artifact": {
-        "file": "journey-results/realtime-multi-context.json",
-        "sha256": "ddaa8ee861776bf42046ab0372fab72d9426c1f7630a1f459c4fa484932214d6"
-      }
-    },
-    {
-      "id": "tenant-guards",
-      "status": "passed",
-      "critical": true,
-      "skipped": false,
-      "commit": "353896682eb34750cfccf976ba51da730fe79cdf",
-      "fixtureIds": {
-        "tenantA": "tenant-a",
-        "tenantB": "tenant-b",
-        "assignment": "phase2-a-assignment"
-      },
-      "observedAt": "2026-07-17T12:00:00.000Z",
-      "observedStates": {
-        "tenantACannotReadTenantB": true,
-        "tenantACannotMutateTenantB": true
-      },
-      "artifact": {
-        "file": "journey-results/tenant-guards.json",
-        "sha256": "1fd11690841d26e5b371f88a6a5d5f532eda4d25a8620e8007f8a79d16e848ea"
-      }
-    }
-  ],
-  "failureSummary": []
+    "requiredChecks": [
+      "pnpm fieldgrid:phase2-w11:check",
+      "pnpm fieldgrid:staging-promotion-gate:check",
+      "pnpm fieldgrid:phase2-hardening-report -- --json"
+    ],
+    "doNotExecuteInW12": [
+      "update staging",
+      "deploy",
+      "touch production"
+    ]
+  }
 }

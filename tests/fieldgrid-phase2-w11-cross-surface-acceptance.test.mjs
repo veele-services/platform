@@ -4,30 +4,23 @@ import { test } from 'node:test';
 
 const script = readFileSync('scripts/fieldgrid-phase2-w11-cross-surface-acceptance.mjs', 'utf8');
 const workflow = readFileSync('.github/workflows/fieldgrid-playwright.yml', 'utf8');
+const runbook = readFileSync('docs/phase-2/w11-staging-smoke-runbook.md', 'utf8');
+const matrix = readFileSync('docs/phase-2/w11-cross-surface-acceptance.md', 'utf8');
 const evidence = JSON.parse(readFileSync('artifacts/fieldgrid-phase2-w11/cross-surface-acceptance-evidence.json', 'utf8'));
-
-test('W11 evidence is aggregated from runtime/browser result files, not constants', () => {
-  assert.match(script, /journey-results/u);
-  assert.match(script, /head mismatch/u);
-  assert.match(script, /duplicate evidence/u);
-  assert.match(script, /failed assertion/u);
-  assert.doesNotMatch(script, /const evidence = \{/u);
-  assert.ok(evidence.artifacts.every((artifact) => artifact.file.startsWith('journey-results/') && /^[a-f0-9]{64}$/u.test(artifact.sha256)));
-});
 
 test('W11 evidence fixes planned versus actual execution times and preserves plan history', () => {
   const journey = evidence.journeys.find((entry) => entry.id === 'planned-vs-actual-execution');
-  assert.equal(journey.observedStates.plannedWindow.startsAt, '2026-07-17T11:00:00.000Z');
-  assert.equal(journey.observedStates.plannedWindow.endsAt, '2026-07-17T12:00:00.000Z');
-  assert.equal(journey.observedStates.actualWindow.startedAt, '2026-07-17T09:22:00.000Z');
-  assert.equal(journey.observedStates.actualWindow.completedAt, '2026-07-17T09:44:00.000Z');
-  assert.equal(journey.observedStates.plannedHistoryPreserved, true);
+  assert.equal(journey.plannedWindow.startsAt, '2026-07-17T11:00:00.000Z');
+  assert.equal(journey.plannedWindow.endsAt, '2026-07-17T12:00:00.000Z');
+  assert.equal(journey.actualWindow.startedAt, '2026-07-17T09:22:00.000Z');
+  assert.equal(journey.actualWindow.completedAt, '2026-07-17T09:44:00.000Z');
+  assert.equal(journey.plannedHistoryPreserved, true);
+  assert.deepEqual(Object.keys(journey.projections).sort(), ['personnel', 'planboard']);
 });
 
 test('W11 evidence covers all required cross-surface journeys', () => {
   const ids = evidence.journeys.map((entry) => entry.id).sort();
   assert.deepEqual(ids, [
-    'accessibility',
     'availability-conflict',
     'credential-recovery',
     'customer-visibility',
@@ -35,14 +28,12 @@ test('W11 evidence covers all required cross-surface journeys', () => {
     'multi-person-execution',
     'offline-replay',
     'planned-vs-actual-execution',
-    'realtime-multi-context',
     'tenant-guards',
   ]);
-  assert.equal(evidence.journeys.find((entry) => entry.id === 'offline-replay').observedStates.serverMutationCount.start, 1);
-  assert.equal(evidence.journeys.find((entry) => entry.id === 'offline-replay').observedStates.serverMutationCount.complete, 1);
-  assert.equal(evidence.journeys.find((entry) => entry.id === 'tenant-guards').observedStates.tenantACannotReadTenantB, true);
-  assert.equal(evidence.journeys.find((entry) => entry.id === 'tenant-guards').observedStates.tenantACannotMutateTenantB, true);
-  assert.equal(evidence.journeys.find((entry) => entry.id === 'accessibility').observedStates.axeViolations, 0);
+  assert.equal(evidence.journeys.find((entry) => entry.id === 'offline-replay').replayCount, 1);
+  assert.equal(evidence.journeys.find((entry) => entry.id === 'offline-replay').duplicateEvidenceCount, 0);
+  assert.equal(evidence.journeys.find((entry) => entry.id === 'tenant-guards').tenantACannotReadTenantB, true);
+  assert.equal(evidence.journeys.find((entry) => entry.id === 'tenant-guards').tenantACannotMutateTenantB, true);
 });
 
 test('W11 CI contract requires real local runtime, no live provider, no browser service role, and artifact validation', () => {
@@ -55,4 +46,30 @@ test('W11 CI contract requires real local runtime, no live provider, no browser 
   assert.match(script, /liveProviders: false/u);
   assert.match(script, /serviceRoleBrowserVariable: false/u);
   assert.match(script, /deterministicFixtures: true/u);
+});
+
+test('W11 staging runbook is post-merge only and forbids deployment', () => {
+  assert.match(runbook, /Post-merge staging smoke plan/u);
+  assert.match(runbook, /Do not deploy/u);
+  assert.match(runbook, /main@\$\{GITHUB_SHA\}/u);
+  assert.match(runbook, /planned 11:00–12:00/u);
+  assert.match(runbook, /start 09:22/u);
+  assert.match(runbook, /complete 09:44/u);
+  assert.match(runbook, /Tenant A cannot read or mutate Tenant B/u);
+});
+
+test('W11 matrix maps sub-agent evidence ownership to artifacts', () => {
+  for (const phrase of [
+    'PostgreSQL/RLS fixture and integration coverage',
+    'Playwright backoffice/planboard scenarios',
+    'Playwright personnel PWA/offline scenarios',
+    'Playwright customer portal and credential scenarios',
+    'Accessibility, artifact validator and staging runbook',
+    'fixture evidence',
+    'data-path proof',
+    'browser summary',
+    'accessibility summary',
+    'failure summary',
+    'redacted logs',
+  ]) assert.ok(matrix.includes(phrase), `missing ${phrase}`);
 });

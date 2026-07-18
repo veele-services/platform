@@ -7,6 +7,19 @@
 ALTER TABLE public.portal_realtime_events
   ADD COLUMN IF NOT EXISTS correlation_id uuid DEFAULT gen_random_uuid() NOT NULL;
 
+ALTER TABLE public.portal_realtime_events
+  ADD COLUMN IF NOT EXISTS resource_type varchar(80),
+  ADD COLUMN IF NOT EXISTS resource_id text,
+  ADD COLUMN IF NOT EXISTS action varchar(80);
+
+ALTER TABLE public.portal_realtime_events
+  ALTER COLUMN event_type TYPE varchar(120);
+
+ALTER TABLE public.portal_realtime_events
+  DROP CONSTRAINT IF EXISTS portal_realtime_events_event_type_check,
+  ADD CONSTRAINT portal_realtime_events_event_type_check
+    CHECK (event_type ~ '^[a-z][a-z0-9_]*$');
+
 CREATE INDEX IF NOT EXISTS portal_realtime_events_tenant_correlation_idx
   ON public.portal_realtime_events(tenant_id, correlation_id, created_at DESC);
 
@@ -41,14 +54,14 @@ REVOKE ALL ON FUNCTION public.fieldgrid_realtime_event_name(text, text, text) FR
 
 CREATE OR REPLACE FUNCTION public.portal_realtime_emit(
   p_tenant_id uuid,
-  p_realtime_key text,
   p_recipient_type text,
+  p_realtime_key text,
   p_personnel_id uuid,
   p_customer_id uuid,
   p_topic text,
-  p_resource_type text,
-  p_resource_id text,
-  p_action text,
+  p_entity_type text,
+  p_entity_id text,
+  p_event_type text DEFAULT 'changed',
   p_payload jsonb DEFAULT '{}'::jsonb
 ) RETURNS void
 LANGUAGE plpgsql
@@ -56,18 +69,21 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 DECLARE
+  v_resource_type text := p_entity_type;
+  v_resource_id text := p_entity_id;
+  v_action text := COALESCE(NULLIF(p_event_type, ''), 'changed');
   v_event_type text;
 BEGIN
   IF p_tenant_id IS NULL OR p_realtime_key IS NULL OR p_topic IS NULL THEN
     RETURN;
   END IF;
 
-  v_event_type := public.fieldgrid_realtime_event_name(p_topic, p_resource_type, p_action);
+  v_event_type := public.fieldgrid_realtime_event_name(p_topic, v_resource_type, v_action);
 
   INSERT INTO portal_realtime_events (
     tenant_id,
-    realtime_key,
     recipient_type,
+    realtime_key,
     personnel_id,
     customer_id,
     topic,
@@ -78,14 +94,14 @@ BEGIN
     payload
   ) VALUES (
     p_tenant_id,
-    p_realtime_key,
     p_recipient_type,
+    p_realtime_key,
     p_personnel_id,
     p_customer_id,
     p_topic,
-    p_resource_type,
-    p_resource_id,
-    p_action,
+    v_resource_type,
+    v_resource_id,
+    v_action,
     v_event_type,
     coalesce(p_payload, '{}'::jsonb) - 'secret' - 'token' - 'access_token' - 'refresh_token' - 'password' - 'email' - 'phone'
   );
@@ -188,6 +204,6 @@ CREATE POLICY portal_realtime_events_customer_read
       WHERE cu.customer_id = portal_realtime_events.customer_id
         AND cu.tenant_id = portal_realtime_events.tenant_id
         AND cu.status IN ('active', 'invited')
-        AND (cu.user_id = auth.uid() OR lower(cu.email) = lower(auth.email()))
+        AND (cu.user_id = auth.uid() OR lower(cu.email) = lower(COALESCE(auth.jwt() ->> 'email', '')))
     )
   );

@@ -3,8 +3,6 @@ import { getCanonicalPlanningEligibility } from "./planning-eligibility";
 
 export type InterestSelectionStatus = "selected" | "reserve" | "cancelled";
 
-const ACTIVE_ASSIGNMENT_PERSONNEL_STATUSES = ["assigned"] as const;
-
 export type InterestSelectionStaffingResult = {
   assignmentId: string;
   personnelId: string;
@@ -116,37 +114,17 @@ export async function selectInterestCandidateCanonically(input: {
           WHERE id = $1`,
         [response.id],
       );
-      const executionResult = await client.query<{ id: string; participant_status: string }>(
-        `SELECT id, participant_status
-           FROM public.assignment_participant_executions
-          WHERE assignment_id = $1 AND personnel_id = $2 AND tenant_id = $3
-          FOR UPDATE`,
-        [assignmentId, personnelId, tenantId],
-      );
-      const execution = executionResult.rows[0];
-      if (execution && !["planned", "removed"].includes(execution.participant_status)) {
-        throw Object.assign(new Error("Medewerker kan niet worden afgemeld nadat uitvoering is gestart."), { code: "assignment_execution_started" });
-      }
-
       await client.query(
-        `UPDATE public.assignment_personnel
-            SET status = 'cancelled', updated_at = now()
+        `DELETE FROM public.assignment_personnel
           WHERE assignment_id = $1 AND personnel_id = $2 AND status = 'assigned'`,
         [assignmentId, personnelId],
-      );
-      await client.query(
-        `UPDATE public.assignment_participant_executions
-            SET participant_status = 'removed', removed_at = COALESCE(removed_at, now()), updated_at = now(),
-                audit_metadata = COALESCE(audit_metadata, '{}'::jsonb) || jsonb_build_object('removed_by', $4::text, 'reason', 'interest_cancelled_before_execution')
-          WHERE assignment_id = $1 AND personnel_id = $2 AND tenant_id = $3 AND participant_status = 'planned'`,
-        [assignmentId, personnelId, tenantId, actorUserId],
       );
     } else {
       const assignedCountResult = await client.query<{ count: string }>(
         `SELECT count(*)::int AS count
            FROM public.assignment_personnel
-          WHERE assignment_id = $1 AND status = ANY($2::text[])`,
-        [assignmentId, [...ACTIVE_ASSIGNMENT_PERSONNEL_STATUSES]],
+          WHERE assignment_id = $1 AND status = 'assigned'`,
+        [assignmentId],
       );
       const assignedCountBefore = Number(assignedCountResult.rows[0]?.count ?? 0);
       const alreadyLinkedResult = await client.query<{ id: string }>(
@@ -179,8 +157,8 @@ export async function selectInterestCandidateCanonically(input: {
     const finalCountResult = await client.query<{ count: string }>(
       `SELECT count(*)::int AS count
          FROM public.assignment_personnel
-        WHERE assignment_id = $1 AND status = ANY($2::text[])`,
-      [assignmentId, [...ACTIVE_ASSIGNMENT_PERSONNEL_STATUSES]],
+        WHERE assignment_id = $1 AND status = 'assigned'`,
+      [assignmentId],
     );
     const assignedCount = Number(finalCountResult.rows[0]?.count ?? 0);
     const shouldSchedule = assignedCount >= assignment.required_personnel_count;
