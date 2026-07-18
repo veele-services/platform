@@ -10,6 +10,7 @@ const customerAssignments = readFileSync("artifacts/klant-pwa/src/actions/assign
 const customerReports = readFileSync("artifacts/klant-pwa/src/actions/reports.ts", "utf8");
 const auditAction = readFileSync("artifacts/backoffice/src/app/actions/settings.ts", "utf8");
 const availabilityAction = readFileSync("artifacts/backoffice/src/app/actions/availability.ts", "utf8");
+const dbHarness = readFileSync("scripts/fieldgrid-runtime-safety-harness.mjs", "utf8");
 const dbRequire = createRequire(new URL("../lib/db/package.json", import.meta.url));
 const { Client } = dbRequire("pg");
 
@@ -78,6 +79,11 @@ test("audit reads and bulk availability writes are tenant-scoped and atomic", ()
   assert.match(auditAction, /eq\(auditLogTable\.tenantId, tenantId\)/u);
   assert.match(availabilityAction, /await db\.transaction\(async \(tx\)/u);
   assert.match(availabilityAction, /tenantId,[\s\S]*action: "update"/u);
+});
+
+test("tenantless write inventory excludes read-only projections", () => {
+  assert.match(dbHarness, /join information_schema\.tables tables_row/u);
+  assert.match(dbHarness, /tables_row\.table_type = 'BASE TABLE'/u);
 });
 
 test(

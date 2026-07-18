@@ -241,11 +241,15 @@ async function tenantlessWriteInvariants(client) {
   const tableClassifications = classification.tables ?? {};
   const rows = await client.query(
     `
-      select table_name, is_nullable
-      from information_schema.columns
-      where table_schema = 'public'
-        and column_name = 'tenant_id'
-      order by table_name
+      select columns_row.table_name, columns_row.is_nullable
+      from information_schema.columns columns_row
+      join information_schema.tables tables_row
+        on tables_row.table_schema = columns_row.table_schema
+       and tables_row.table_name = columns_row.table_name
+       and tables_row.table_type = 'BASE TABLE'
+      where columns_row.table_schema = 'public'
+        and columns_row.column_name = 'tenant_id'
+      order by columns_row.table_name
     `,
   );
   const unclassifiedNullableTables = rows.rows
