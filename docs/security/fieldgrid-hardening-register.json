@@ -1,6 +1,6 @@
 {
   "version": "fieldgrid-hardening-register-phase-b-current",
-  "currentMainSha": "42edb5664ed507ed914b8bebf8847ab1f6e39f74",
+  "currentMainSha": "4956d6d9c00d64260b0ed29a90bd0361d19f6408",
   "sourceDraftPr": 293,
   "sourceDraftPrUse": "evidence source only; rebuilt from current main after merged Phase-B PRs",
   "mergedImplementationPRs": [
@@ -11,12 +11,12 @@
     296
   ],
   "counts": {
-    "closed": 15,
+    "closed": 16,
     "partial": 3,
-    "open": 7,
+    "open": 6,
     "deferred": 0,
-    "featureFreezeBlocking": 9,
-    "productionReleaseBlocking": 10
+    "featureFreezeBlocking": 8,
+    "productionReleaseBlocking": 9
   },
   "items": [
     {
@@ -615,30 +615,31 @@
       "title": "legacy customer reset code must not become auth password",
       "severity": "P0",
       "category": "auth/reset",
-      "status": "open",
+      "status": "closed",
       "currentEvidence": [
-        "lib/db/migrations/20260716123000_credential_recovery_challenges.sql",
-        "lib/db/src/credential-recovery.ts",
-        "artifacts/klant-pwa/src/actions/auth.ts"
+        "lib/db/migrations/20260718180000_complete_credential_recovery.sql",
+        "lib/db/src/credential-recovery-service.ts",
+        "artifacts/klant-pwa/src/actions/auth.ts",
+        "artifacts/personeel-pwa/src/actions/auth.ts",
+        "artifacts/backoffice/src/app/actions/auth.ts",
+        "tests/security/credential-recovery-source.test.mjs",
+        "scripts/fieldgrid-credential-recovery-runtime.mts",
+        "e2e/fieldgrid/tests/golden-path.spec.ts"
       ],
-      "missingEvidence": [
-        "replace legacy customer reset action with Phase 2 credential recovery grant flow",
-        "browser E2E proves reset code is never set as provider password",
-        "provider/session revocation proof for customer reset"
+      "missingEvidence": [],
+      "implementationPRs": [
+        327
       ],
-      "implementationPRs": [],
       "runtimeProof": [
-        "W11 deterministic credential-recovery artifact covers activation/reset success and invalid/expired/replayed denial, but does not by itself prove the legacy customer artifact path is removed"
+        "pnpm fieldgrid:test:credential-recovery-runtime proves hash-only storage, expiry, replay denial, supersede/revoke, cross-context denial, concurrency, durable rate limits, audit redaction and RLS/ACL on PostgreSQL 17",
+        "pnpm fieldgrid:playwright proves real customer and personnel recovery journeys plus two provider password updates with session invalidation and no reset code used as a password",
+        "pnpm fieldgrid:test:security-source keeps the reset-code-as-password regression closed across every recovery surface"
       ],
-      "dependencies": [
-        "W10 credential recovery foundation",
-        "customer portal auth action migration",
-        "provider mock/browser E2E"
-      ],
-      "nextAction": "Before production release, remove or gate the legacy customer reset-code-as-password path and prove the Phase 2 challenge/grant flow end to end.",
+      "dependencies": [],
+      "nextAction": "Keep PR #327 runtime, browser and source regressions in the required CI lane and monitor provider session behavior after deployment.",
       "ownerTrack": "auth/customer-portal",
-      "featureFreezeBlocking": true,
-      "productionReleaseBlocking": true
+      "featureFreezeBlocking": false,
+      "productionReleaseBlocking": false
     }
   ],
   "openPrDispositions": [
