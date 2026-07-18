@@ -9,6 +9,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Tooltip,
   TooltipContent,
@@ -223,6 +224,8 @@ function PersonnelRow({
   onChanged,
 }: PersonnelRowProps) {
   const [isPending, startTransition] = useTransition();
+  const [showUnassignment, setShowUnassignment] = useState(false);
+  const [unassignmentReason, setUnassignmentReason] = useState("");
   const isAssigned = person.linkId !== null;
   const isEligible = missing.length === 0;
   const name       = `${person.firstName} ${person.lastName}`.trim();
@@ -247,10 +250,16 @@ function PersonnelRow({
   }
 
   function handleUnassign() {
+    if (!unassignmentReason.trim()) {
+      toast.error("Een reden voor ontkoppelen is verplicht.");
+      return;
+    }
     startTransition(async () => {
-      const result = await unassignPersonnel(assignmentId, person.personnelId);
+      const result = await unassignPersonnel(assignmentId, person.personnelId, unassignmentReason, person.lifecycleVersion ?? undefined);
       if (result.success) {
-        toast.success(`${name} verwijderd.`);
+        toast.success(`${name} ontkoppeld.`);
+        setShowUnassignment(false);
+        setUnassignmentReason("");
         onChanged();
       } else {
         toast.error(result.message ?? "Verwijderen mislukt.");
@@ -321,7 +330,7 @@ function PersonnelRow({
               size="sm"
               variant="ghost"
               disabled={isPending}
-              onClick={handleUnassign}
+              onClick={() => setShowUnassignment(true)}
               className="h-7 px-2 text-xs flex-shrink-0"
               style={{ color: "#DC2626" }}
             >
@@ -366,6 +375,37 @@ function PersonnelRow({
           </span>
         )}
       </div>
+      {showUnassignment && (
+        <div className="ml-6 space-y-2 rounded-md border border-red-200 bg-white p-2">
+          <Textarea
+            value={unassignmentReason}
+            onChange={(event) => setUnassignmentReason(event.target.value)}
+            placeholder="Reden voor ontkoppelen"
+            aria-label={`Reden voor ontkoppelen van ${name}`}
+            rows={2}
+          />
+          <div className="flex justify-end gap-2">
+            <Button
+              type="button"
+              size="sm"
+              variant="ghost"
+              disabled={isPending}
+              onClick={() => { setShowUnassignment(false); setUnassignmentReason(""); }}
+            >
+              Annuleren
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="destructive"
+              disabled={isPending || !unassignmentReason.trim()}
+              onClick={handleUnassign}
+            >
+              Ontkoppelen
+            </Button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

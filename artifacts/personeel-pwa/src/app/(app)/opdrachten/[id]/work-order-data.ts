@@ -95,9 +95,12 @@ export function formatDateTimeTime(value: string | null | undefined): string | n
 }
 
 export function getDisplayedTimeSlot(assignment: Pick<AssignmentView, "scheduledStart" | "scheduledEnd" | "actualStartedAt" | "actualCompletedAt">): string {
-  const start = formatDateTimeTime(assignment.actualStartedAt) ?? assignment.scheduledStart;
-  const end = formatDateTimeTime(assignment.actualCompletedAt) ?? assignment.scheduledEnd;
-  return formatTimeSlot(start ?? null, end ?? null);
+  const actualStart = formatDateTimeTime(assignment.actualStartedAt);
+  const actualEnd = formatDateTimeTime(assignment.actualCompletedAt);
+  const planned = formatTimeSlot(assignment.scheduledStart, assignment.scheduledEnd);
+
+  if (!actualStart && !actualEnd) return planned;
+  return ["Werkelijk", formatTimeSlot(actualStart, actualEnd), "· gepland", planned].join(" ");
 }
 
 export function getHeaderStatus(status: string): { label: string; background: string; color: string } {

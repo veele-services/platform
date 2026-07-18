@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { Pencil, ChevronRight, Plus, X, Loader2, UserPlus, AlertTriangle, CheckCircle2, XCircle, ClipboardList } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -57,6 +58,7 @@ interface Personnel {
   firstName: string;
   lastName: string;
   linkStatus?: string;
+  lifecycleVersion: number;
 }
 
 interface Task {
@@ -94,6 +96,8 @@ export function AssignmentDetailActions({
     () => new Set(personnel.map((p) => p.personnelId)),
   );
   const [removingPersonnel, setRemovingPersonnel] = useState<string | null>(null);
+  const [unassignTarget, setUnassignTarget] = useState<{ linkId: string; personnelId: string; name: string; lifecycleVersion: number } | null>(null);
+  const [unassignmentReason, setUnassignmentReason] = useState("");
   const [pending,           startTransition]      = useTransition();
 
   const nextStatuses = ASSIGNMENT_STATUS_TRANSITIONS[status] ?? [];
@@ -140,17 +144,30 @@ export function AssignmentDetailActions({
     });
   }
 
-  function handleRemovePersonnel(linkId: string, personnelId: string, name: string) {
-    setRemovingPersonnel(linkId);
+  function handleRemovePersonnel(linkId: string, personnelId: string, name: string, lifecycleVersion: number) {
+    setUnassignmentReason("");
+    setUnassignTarget({ linkId, personnelId, name, lifecycleVersion });
+  }
+
+  function confirmRemovePersonnel() {
+    if (!unassignTarget || !unassignmentReason.trim()) return;
+    setRemovingPersonnel(unassignTarget.linkId);
     startTransition(async () => {
-      const result = await removePersonnel(assignmentId, linkId);
+      const result = await removePersonnel(
+        assignmentId,
+        unassignTarget.linkId,
+        unassignmentReason,
+        unassignTarget.lifecycleVersion,
+      );
       if (result.success) {
         setOptimisticAssignedPersonnelIds((current) => {
           const next = new Set(current);
-          next.delete(personnelId);
+          next.delete(unassignTarget.personnelId);
           return next;
         });
-        toast.success(`${name} ontkoppeld`);
+        toast.success(`${unassignTarget.name} ontkoppeld`);
+        setUnassignTarget(null);
+        setUnassignmentReason("");
         router.refresh();
       } else {
         toast.error(result.message);
@@ -245,7 +262,7 @@ export function AssignmentDetailActions({
                     className="h-7 w-7 p-0"
                     disabled={pending && removingPersonnel === p.id}
                     onClick={() =>
-                      handleRemovePersonnel(p.id, p.personnelId, `${p.firstName} ${p.lastName}`)
+                      handleRemovePersonnel(p.id, p.personnelId, `${p.firstName} ${p.lastName}`, p.lifecycleVersion)
                     }
                   >
                     {pending && removingPersonnel === p.id ? (
@@ -322,6 +339,7 @@ export function AssignmentDetailActions({
               size="sm"
               variant="outline"
               disabled={!selectedPersonnel || pending}
+              aria-label="Medewerker koppelen"
               onClick={handleAddPersonnel}
               className="h-8"
             >
@@ -332,6 +350,33 @@ export function AssignmentDetailActions({
       </div>
 
       {/* Edit Sheet */}
+      <AlertDialog open={Boolean(unassignTarget)} onOpenChange={(open) => { if (!open) setUnassignTarget(null); }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Medewerker ontkoppelen?</AlertDialogTitle>
+            <AlertDialogDescription>
+              De inzet blijft in de historie staan. Na de echte start kan ontkoppelen niet meer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <Textarea
+            value={unassignmentReason}
+            onChange={(event) => setUnassignmentReason(event.target.value)}
+            placeholder="Reden voor ontkoppelen"
+            aria-label="Reden voor ontkoppelen"
+            rows={3}
+          />
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={pending}>Annuleren</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={pending || !unassignmentReason.trim()}
+              onClick={(event) => { event.preventDefault(); confirmRemovePersonnel(); }}
+              className="bg-destructive text-destructive-foreground"
+            >
+              {pending ? "Ontkoppelen..." : "Ontkoppelen"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <Sheet open={editOpen} onOpenChange={setEditOpen}>
         <SheetContent side="right" className="w-[560px] sm:max-w-[560px] overflow-y-auto">
           <SheetHeader>

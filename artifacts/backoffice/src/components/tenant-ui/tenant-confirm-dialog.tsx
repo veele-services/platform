@@ -23,6 +23,7 @@ export interface TenantConfirmDialogProps {
   confirmLabel?: React.ReactNode;
   cancelLabel?: React.ReactNode;
   destructive?: boolean;
+  confirmDisabled?: boolean;
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   onConfirm?: () => void | Promise<void>;
@@ -36,6 +37,7 @@ export function TenantConfirmDialog({
   confirmLabel = "Bevestigen",
   cancelLabel = "Annuleren",
   destructive = false,
+  confirmDisabled = false,
   open,
   onOpenChange,
   onConfirm,
@@ -71,7 +73,7 @@ export function TenantConfirmDialog({
         <AlertDialogFooter>
           <AlertDialogCancel disabled={pending}>{cancelLabel}</AlertDialogCancel>
           <AlertDialogAction
-            disabled={pending}
+            disabled={pending || confirmDisabled}
             onClick={handleConfirm}
             className={cn(destructive && "border-destructive-border bg-destructive text-destructive-foreground")}
           >

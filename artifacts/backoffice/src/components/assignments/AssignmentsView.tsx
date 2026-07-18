@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Select,
   SelectContent,
@@ -160,6 +161,7 @@ export function AssignmentsView({
   const [editingId,    setEditingId]    = useState<string | null>(null);
   const [searchInput,  setSearchInput]  = useState(initialSearch);
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
   const [pending,      startTransition] = useTransition();
 
   const totalPages = Math.ceil(total / PAGE_SIZE);
@@ -212,13 +214,14 @@ export function AssignmentsView({
     if (!deleteTarget) return;
     const { id, title } = deleteTarget;
     startTransition(async () => {
-      const result = await deleteAssignment(id);
+      const result = await deleteAssignment(id, deleteReason);
       if (result.success) {
-        toast.success(`Opdracht "${title}" verwijderd`);
+        toast.success(`Opdracht "${title}" geannuleerd`);
       } else {
         toast.error(result.message);
       }
       setDeleteTarget(null);
+      setDeleteReason("");
     });
   }
 
@@ -265,11 +268,11 @@ export function AssignmentsView({
                 },
                 {
                   id: "delete",
-                  label: "Verwijderen",
+                  label: "Annuleren",
                   icon: <Trash2 className="h-4 w-4" />,
                   destructive: true,
                   separatorBefore: true,
-                  onSelect: () => setDeleteTarget({ id: row.id, title: row.title }),
+                  onSelect: () => { setDeleteReason(""); setDeleteTarget({ id: row.id, title: row.title }); },
                 },
               ]
             : []),
@@ -573,18 +576,27 @@ export function AssignmentsView({
       <TenantConfirmDialog
         open={!!deleteTarget}
         onOpenChange={(open) => {
-          if (!open) setDeleteTarget(null);
+          if (!open) { setDeleteTarget(null); setDeleteReason(""); }
         }}
-        title="Opdracht verwijderen?"
+        title="Opdracht annuleren?"
         description={
           deleteTarget
-            ? `Dit verwijdert permanent ${deleteTarget.title}, inclusief alle gekoppelde medewerkers en taken. Deze actie kan niet ongedaan worden gemaakt.`
+            ? `De opdracht ${deleteTarget.title} en alle actieve inzetten worden geannuleerd. Historie, planning en uitvoering blijven bewaard.`
             : undefined
         }
-        confirmLabel={pending ? "Verwijderen..." : "Verwijderen"}
+        confirmLabel={pending ? "Annuleren..." : "Opdracht annuleren"}
+        confirmDisabled={!deleteReason.trim()}
         destructive
         onConfirm={handleConfirmDelete}
-      />
+      >
+        <Textarea
+          value={deleteReason}
+          onChange={(event) => setDeleteReason(event.target.value)}
+          placeholder="Reden voor annuleren"
+          aria-label="Reden voor annuleren"
+          rows={3}
+        />
+      </TenantConfirmDialog>
     </>
   );
 }

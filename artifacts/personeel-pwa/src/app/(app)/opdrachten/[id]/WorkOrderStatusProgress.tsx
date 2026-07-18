@@ -132,11 +132,11 @@ export function InteractiveStatusProgress({ assignment }: Props) {
   const [finishDialogOpen, setFinishDialogOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
 
-  const status = assignment.status;
+  const status = assignment.participantStatus ?? assignment.status;
   const activeStep = getActiveStep(status);
   const failedFinal = FAILED_FINAL_STATUSES.has(status);
   const finished = FINISHED_STATUSES.has(status);
-  const canMarkEnRoute = status === "scheduled" || status === "seen";
+  const canMarkEnRoute = status === "assigned" || status === "scheduled" || status === "seen";
   const canStart = status === "en_route";
   const canFinish = status === "in_progress";
 

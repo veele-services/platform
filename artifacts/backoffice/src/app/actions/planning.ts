@@ -24,6 +24,7 @@ import {
   type AssignmentPriority,
   type AssignmentStatus,
   buildAssignmentTimeProjection,
+  transitionAssignmentStaffing,
 } from "@workspace/db";
 import {
   asc,
@@ -85,6 +86,7 @@ export type AssignmentRequirements = {
 export type PersonnelEligibilityEntry = {
   personnelId: string;
   linkId: string | null;
+  lifecycleVersion: number | null;
   firstName: string;
   lastName: string;
   roleId: string | null;
@@ -2053,6 +2055,7 @@ export async function getPersonnelForAssignment(
         .select({
           linkId: assignmentPersonnelTable.id,
           personnelId: assignmentPersonnelTable.personnelId,
+          lifecycleVersion: assignmentPersonnelTable.lifecycleVersion,
         })
         .from(assignmentPersonnelTable)
         .innerJoin(
@@ -2071,7 +2074,7 @@ export async function getPersonnelForAssignment(
     ]);
 
   const assignedMap = new Map(
-    assignedRows.map((r) => [r.personnelId, r.linkId]),
+    assignedRows.map((r) => [r.personnelId, { linkId: r.linkId, lifecycleVersion: r.lifecycleVersion }]),
   );
   const scheduledDate = assignmentRow?.scheduledDate ?? null;
   const assignmentRegion = assignmentRow?.requiredRegion ?? null;
@@ -2138,7 +2141,8 @@ export async function getPersonnelForAssignment(
     },
     personnel: personnelRows.map((r) => ({
       personnelId: r.id,
-      linkId: assignedMap.get(r.id) ?? null,
+      linkId: assignedMap.get(r.id)?.linkId ?? null,
+      lifecycleVersion: assignedMap.get(r.id)?.lifecycleVersion ?? null,
       firstName: r.firstName,
       lastName: r.lastName,
       roleId: r.roleId ?? null,
@@ -2163,10 +2167,15 @@ export async function getPersonnelForAssignment(
 export async function unassignPersonnel(
   assignmentId: string,
   personnelId: string,
+  reason: string,
+  expectedVersion?: number,
 ): Promise<ActionResult> {
   await requirePermission("assignments", "write");
   const tenantId = await requireCurrentTenantId();
-
+  const normalizedReason = reason.trim();
+  if (!normalizedReason) {
+    return { success: false, message: "Een reden voor ontkoppelen is verplicht." };
+  }
 
   const supabase = await createClient();
   const {
@@ -2174,68 +2183,31 @@ export async function unassignPersonnel(
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  const [[link], [current]] = await Promise.all([
-    db
-      .select({ id: assignmentPersonnelTable.id })
-      .from(assignmentPersonnelTable)
-      .innerJoin(
-        assignmentsTable,
-        and(
-          eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id),
-          eq(assignmentsTable.tenantId, tenantId),
-        ),
-      )
-      .innerJoin(
-        personnelTable,
-        and(
-          eq(assignmentPersonnelTable.personnelId, personnelTable.id),
-          eq(personnelTable.tenantId, tenantId),
-        ),
-      )
-      .where(
-        and(
-          eq(assignmentPersonnelTable.assignmentId, assignmentId),
-          eq(assignmentPersonnelTable.personnelId, personnelId),
-        ),
-      )
-      .limit(1),
-    db
-      .select({ status: assignmentsTable.status })
-      .from(assignmentsTable)
-      .where(
-        and(
-          eq(assignmentsTable.id, assignmentId),
-          eq(assignmentsTable.tenantId, tenantId),
-        ),
-      )
-      .limit(1),
-  ]);
+  try {
+    const staffing = await transitionAssignmentStaffing({
+      tenantId,
+      assignmentId,
+      personnelId,
+      actorUserId: user.id,
+      action: "unassign",
+      reason: normalizedReason,
+      expectedVersion,
+    });
 
-  if (!link) return { success: false, message: "Koppeling niet gevonden." };
-
-  await db
-    .delete(assignmentPersonnelTable)
-    .where(eq(assignmentPersonnelTable.id, link.id));
-
-  if (current?.status === "scheduled") {
-    await db
-      .update(assignmentsTable)
-      .set({ status: "plannable", updatedAt: new Date() })
-      .where(
-        and(
-          eq(assignmentsTable.id, assignmentId),
-          eq(assignmentsTable.tenantId, tenantId),
-        ),
-      );
+    await safeRefreshPlanningRoutesForAssignment({
+      tenantId,
+      assignmentId,
+      reason: "assignment_unassigned",
+      status: staffing.assignmentStatus,
+      personnelIds: [personnelId],
+      source: "backoffice",
+    });
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Ontkoppelen mislukt.",
+    };
   }
-
-  await db.insert(auditLogTable).values({
-    userId: user.id,
-    action: "unassign_personnel",
-    resource: "assignments",
-    resourceId: assignmentId,
-    metadata: { personnelId },
-  });
 
   revalidatePath("/planning");
   revalidatePath(`/assignments/${assignmentId}`);
@@ -2245,6 +2217,7 @@ export async function unassignPersonnel(
 async function rebalancePersonnelDaySchedule(params: {
   tenantId: string;
   personnelId: string;
+  actorUserId: string;
   changedAssignmentId: string;
   date: string;
 }): Promise<PlanningBoardMatchReason[]> {
@@ -2290,32 +2263,28 @@ async function rebalancePersonnelDaySchedule(params: {
     const nextEnd: number = nextStart + duration;
 
     if (nextEnd > availableEnd + 30) {
-      await db.delete(assignmentPersonnelTable).where(and(
-        eq(assignmentPersonnelTable.assignmentId, row.assignmentId),
-        eq(assignmentPersonnelTable.personnelId, params.personnelId),
-      ));
+      try {
+        const staffing = await transitionAssignmentStaffing({
+          tenantId: params.tenantId,
+          assignmentId: row.assignmentId,
+          personnelId: params.personnelId,
+          actorUserId: params.actorUserId,
+          action: "unassign",
+          reason: "Automatische herplanning: inzet valt buiten het beschikbaarheidsvenster.",
+        });
 
-      const remaining = await db
-        .select({ id: assignmentPersonnelTable.id })
-        .from(assignmentPersonnelTable)
-        .where(and(
-          eq(assignmentPersonnelTable.assignmentId, row.assignmentId),
-          eq(assignmentPersonnelTable.status, "assigned"),
+        if (staffing.assignedCount === 0) {
+          warnings.push(buildReason("outside_availability_window", row.title + " is teruggezet naar planbaar: eindtijd valt meer dan 30 minuten buiten beschikbaarheid.", "warning"));
+        } else {
+          warnings.push(buildReason("outside_availability_window", row.title + " heeft te weinig personeel: deze medewerker valt buiten beschikbaarheid.", "warning"));
+        }
+      } catch (error) {
+        warnings.push(buildReason(
+          "outside_availability_window",
+          row.title + " blijft ingepland omdat de uitvoering al is gestart of de planning intussen is gewijzigd: " + (error instanceof Error ? error.message : "ontkoppelen mislukt"),
+          "warning",
         ));
-      if (remaining.length === 0) {
-        await db.update(assignmentsTable).set({
-          status: "plannable",
-          scheduledDate: null,
-          scheduledStart: null,
-          scheduledEnd: null,
-          updatedAt: new Date(),
-        }).where(and(
-          eq(assignmentsTable.id, row.assignmentId),
-          eq(assignmentsTable.tenantId, params.tenantId),
-        ));
-        warnings.push(buildReason("outside_availability_window", `${row.title} is teruggezet naar planbaar: eindtijd valt meer dan 30 minuten buiten beschikbaarheid.`, "warning"));
-      } else {
-        warnings.push(buildReason("outside_availability_window", `${row.title} heeft te weinig personeel: deze medewerker valt buiten beschikbaarheid.`, "warning"));
+        cursor = nextEnd;
       }
       continue;
     }
@@ -2796,8 +2765,7 @@ export async function scheduleAssignmentOnBoard(
   const warnings = match.reasons.filter(
     (reason) => reason.severity === "warning",
   );
-  const nextStatus =
-    assignment.status === "plannable" ? "scheduled" : assignment.status;
+  let nextStatus: AssignmentStatus = assignment.status as AssignmentStatus;
 
   try {
     await db.transaction(async (tx) => {
@@ -2887,64 +2855,32 @@ export async function scheduleAssignmentOnBoard(
         });
       }
 
-      const [existingLink] = await tx
-        .select({
-          id: assignmentPersonnelTable.id,
-          status: assignmentPersonnelTable.status,
-        })
-        .from(assignmentPersonnelTable)
-        .where(
-          and(
-            eq(assignmentPersonnelTable.assignmentId, assignmentId),
-            eq(assignmentPersonnelTable.personnelId, personnelId),
-          ),
-        )
-        .limit(1);
+      if (sourcePersonnelId && sourcePersonnelId !== personnelId && currentSourceLink) {
+        await tx.execute(sql`
+          SELECT * FROM public.transition_assignment_staffing(
+            ${tenantId}::uuid,
+            ${assignmentId}::uuid,
+            ${sourcePersonnelId}::uuid,
+            ${user.id}::uuid,
+            'unassign',
+            'Herplanning op het planbord: vervangen door een andere medewerker.',
+            NULL
+          )
+        `);
+      }
 
-      if (
-        sourcePersonnelId &&
-        sourcePersonnelId !== personnelId &&
-        sourceLinkBeforeMove
-      ) {
-        if (existingLink) {
-          await tx
-            .update(assignmentPersonnelTable)
-            .set({
-              status: "assigned",
-              assignedBy: user.id,
-              assignedAt: new Date(),
-            })
-            .where(eq(assignmentPersonnelTable.id, existingLink.id));
-
-          await tx
-            .delete(assignmentPersonnelTable)
-            .where(eq(assignmentPersonnelTable.id, currentSourceLink!.id));
-        } else {
-          await tx
-            .update(assignmentPersonnelTable)
-            .set({
-              personnelId,
-              status: "assigned",
-              assignedBy: user.id,
-              assignedAt: new Date(),
-            })
-            .where(eq(assignmentPersonnelTable.id, currentSourceLink!.id));
-        }
-      } else if (existingLink) {
-        await tx
-          .update(assignmentPersonnelTable)
-          .set({
-            status: "assigned",
-            assignedBy: user.id,
-            assignedAt: new Date(),
-          })
-          .where(eq(assignmentPersonnelTable.id, existingLink.id));
-      } else {
-        await tx.insert(assignmentPersonnelTable).values({
-          assignmentId,
-          personnelId,
-          assignedBy: user.id,
-        });
+      if (!currentTargetLink) {
+        await tx.execute(sql`
+          SELECT * FROM public.transition_assignment_staffing(
+            ${tenantId}::uuid,
+            ${assignmentId}::uuid,
+            ${personnelId}::uuid,
+            ${user.id}::uuid,
+            'assign',
+            NULL,
+            NULL
+          )
+        `);
       }
 
       await tx.insert(auditLogTable).values({
@@ -3006,7 +2942,14 @@ export async function scheduleAssignmentOnBoard(
     };
   }
 
-  warnings.push(...await rebalancePersonnelDaySchedule({ tenantId, personnelId, changedAssignmentId: assignmentId, date }));
+  warnings.push(...await rebalancePersonnelDaySchedule({ tenantId, personnelId, actorUserId: user.id, changedAssignmentId: assignmentId, date }));
+
+  const [projectedAssignment] = await db
+    .select({ status: assignmentsTable.status })
+    .from(assignmentsTable)
+    .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, tenantId)))
+    .limit(1);
+  nextStatus = (projectedAssignment?.status ?? assignment.status) as AssignmentStatus;
 
   await safeRefreshPlanningRoutesForAssignment({
     tenantId,

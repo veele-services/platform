@@ -13,7 +13,7 @@ import {
 } from "@workspace/db";
 import { emitAssignmentWorkflowEvent } from "@workspace/db/workflow-events";
 import { safelyInvalidateAssignmentRouteContexts } from "@workspace/db/planning-realtime";
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
 import { revalidatePath } from "next/cache";
@@ -255,7 +255,13 @@ export async function getMyAssignments(): Promise<MyAssignment[]> {
     })
     .from(assignmentPersonnelTable)
     .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
-    .leftJoin(assignmentParticipantExecutionsTable, eq(assignmentParticipantExecutionsTable.assignmentPersonnelId, assignmentPersonnelTable.id))
+    .leftJoin(
+      assignmentParticipantExecutionsTable,
+      and(
+        eq(assignmentParticipantExecutionsTable.assignmentPersonnelId, assignmentPersonnelTable.id),
+        ne(assignmentParticipantExecutionsTable.participantStatus, "removed"),
+      ),
+    )
     .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
     .where(
@@ -309,7 +315,13 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
     })
     .from(assignmentPersonnelTable)
     .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
-    .leftJoin(assignmentParticipantExecutionsTable, eq(assignmentParticipantExecutionsTable.assignmentPersonnelId, assignmentPersonnelTable.id))
+    .leftJoin(
+      assignmentParticipantExecutionsTable,
+      and(
+        eq(assignmentParticipantExecutionsTable.assignmentPersonnelId, assignmentPersonnelTable.id),
+        ne(assignmentParticipantExecutionsTable.participantStatus, "removed"),
+      ),
+    )
     .leftJoin(customersTable, eq(assignmentsTable.customerId, customersTable.id))
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
     .where(
@@ -351,6 +363,7 @@ export async function getMyAssignment(id: string): Promise<MyAssignmentDetail | 
 }
 
 const STATUS_TRANSITIONS: Record<string, string[]> = {
+  assigned:    ["seen", "en_route", "in_progress"],
   plannable:   ["scheduled", "en_route", "in_progress"],
   scheduled:   ["seen", "en_route", "in_progress"],
   seen:        ["en_route", "in_progress"],
@@ -377,7 +390,13 @@ async function getLinkedAssignment(
     })
     .from(assignmentPersonnelTable)
     .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
-    .leftJoin(assignmentParticipantExecutionsTable, eq(assignmentParticipantExecutionsTable.assignmentPersonnelId, assignmentPersonnelTable.id))
+    .leftJoin(
+      assignmentParticipantExecutionsTable,
+      and(
+        eq(assignmentParticipantExecutionsTable.assignmentPersonnelId, assignmentPersonnelTable.id),
+        ne(assignmentParticipantExecutionsTable.participantStatus, "removed"),
+      ),
+    )
     .where(
       and(
         eq(assignmentPersonnelTable.personnelId, personnelId),
@@ -445,7 +464,7 @@ export async function setAssignmentStatus(
     return { success: false, error: "Conflict: deze werkbon is aangepast. Ververs en probeer opnieuw." };
   }
 
-  const currentStatus = current.status;
+  const currentStatus = current.participantStatus ?? current.status;
   const allowed = STATUS_TRANSITIONS[currentStatus] ?? [];
 
   if (!allowed.includes(newStatus)) {
@@ -469,7 +488,8 @@ export async function setAssignmentStatus(
         clientMutationId: options.clientMutationId ?? null,
       },
     });
-  } catch {
+  } catch (error) {
+    console.error("assignment participant action failed", { assignmentId, personnelId: personnel.id, action, error });
     return { success: false, error: "Bijwerken mislukt" };
   }
 
@@ -604,11 +624,12 @@ export async function completeAssignment(
   if (typeof input.expectedParticipantVersion === "number" && current.participantVersion !== null && current.participantVersion !== input.expectedParticipantVersion) {
     return { success: false, error: "Conflict: deze werkbon is aangepast. Ververs en probeer opnieuw." };
   }
-  if (current.status === "completed" && current.actualCompletedAt) {
+  const currentStatus = current.participantStatus ?? current.status;
+  if (currentStatus === "completed") {
     revalidateAssignmentPaths(assignmentId);
     return { success: true };
   }
-  if (current.status !== "in_progress") {
+  if (currentStatus !== "in_progress") {
     return { success: false, error: "Start de werkbon voordat je deze afrondt" };
   }
 
@@ -663,7 +684,7 @@ export async function completeAssignment(
     assignmentId,
     reason: "status_completed",
     status: "completed",
-    previousStatus: current.status,
+    previousStatus: currentStatus,
     personnelIds: [personnel.id],
     source: "personnel-pwa",
   });
@@ -688,11 +709,12 @@ export async function notCompleteAssignment(
   if (typeof input.expectedParticipantVersion === "number" && current.participantVersion !== null && current.participantVersion !== input.expectedParticipantVersion) {
     return { success: false, error: "Conflict: deze werkbon is aangepast. Ververs en probeer opnieuw." };
   }
-  if (current.status === "not_completed" && current.actualCompletedAt) {
+  const currentStatus = current.participantStatus ?? current.status;
+  if (currentStatus === "not_completed") {
     revalidateAssignmentPaths(assignmentId);
     return { success: true };
   }
-  if (current.status !== "in_progress") {
+  if (currentStatus !== "in_progress") {
     return { success: false, error: "Start de werkbon voordat je deze afmeldt" };
   }
 
@@ -746,7 +768,7 @@ export async function notCompleteAssignment(
     assignmentId,
     reason: "status_not_completed",
     status: "not_completed",
-    previousStatus: current.status,
+    previousStatus: currentStatus,
     personnelIds: [personnel.id],
     source: "personnel-pwa",
   });

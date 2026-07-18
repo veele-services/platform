@@ -82,7 +82,7 @@ function getNextAssignment(assignments: MyAssignment[], today: string): MyAssign
     .sort((a, b) => {
       const byDate = dateValue(a.scheduledDate) - dateValue(b.scheduledDate);
       if (byDate !== 0) return byDate;
-      return timeValue(a.scheduledStart).localeCompare(timeValue(b.scheduledStart));
+      return timeValue(a.effectiveStart).localeCompare(timeValue(b.effectiveStart));
     })[0] ?? null;
 }
 
@@ -135,6 +135,7 @@ export default async function DashboardPage() {
   const nextAssignment = getNextAssignment(allAssignments, today);
   const openCount = openAssignments.filter((assignment) => !assignment.isAlreadyApplied).length;
   const objectName = nextAssignment?.objectName || nextAssignment?.title || "Object nog niet bekend";
+  const nextAssignmentHasActualTime = Boolean(nextAssignment?.actualStart || nextAssignment?.actualEnd);
   const objectCity = nextAssignment?.objectCity || "Plaats nog niet bekend";
 
   return (
@@ -185,7 +186,12 @@ export default async function DashboardPage() {
                         Tijd
                       </span>
                       <span className="block text-base font-black leading-tight sm:text-lg" style={{ color: "var(--color-primary)" }}>
-                        {formatTime(nextAssignment.scheduledStart, nextAssignment.scheduledEnd)}
+                        {nextAssignmentHasActualTime ? "Werkelijk " : ""}{formatTime(nextAssignment.effectiveStart, nextAssignment.effectiveEnd)}
+                        {nextAssignmentHasActualTime ? (
+                          <span className="mt-1 block text-xs font-bold" style={{ color: "var(--color-secondary)" }}>
+                            Gepland {formatTime(nextAssignment.scheduledStart, nextAssignment.scheduledEnd)}
+                          </span>
+                        ) : null}
                       </span>
                     </span>
 

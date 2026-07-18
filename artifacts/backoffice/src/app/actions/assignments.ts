@@ -24,6 +24,8 @@ import {
   ASSIGNMENT_PRIORITIES,
   ASSIGNMENT_STATUS_TRANSITIONS,
   assertGenericAssignmentEditDoesNotTouchLifecycle,
+  transitionAssignmentStaffing,
+  cancelAssignmentStaffing,
   type AssignmentStatus,
   type AssignmentPriority,
   type SmartPlanningInterestResponseStatus,
@@ -140,6 +142,8 @@ export type AssignmentDetail = {
   scheduledDate: string | null;
   scheduledStart: string | null;
   scheduledEnd: string | null;
+  actualStartedAt: string | null;
+  actualCompletedAt: string | null;
   notes: string | null;
   requiredRegion: string | null;
   requiredPersonnelCount: number;
@@ -177,6 +181,7 @@ export type AssignmentDetail = {
     lastName: string;
     /** Confirmed planner assignment. Suggested/self-applied candidates stay out of the work-order detail. */
     linkStatus: string;
+    lifecycleVersion: number;
   }>;
   tasks: Array<{
     id: string;
@@ -418,6 +423,8 @@ export async function getAssignment(
       scheduledDate: assignmentsTable.scheduledDate,
       scheduledStart: assignmentsTable.scheduledStart,
       scheduledEnd: assignmentsTable.scheduledEnd,
+      actualStartedAt: assignmentsTable.actualStartedAt,
+      actualCompletedAt: assignmentsTable.actualCompletedAt,
       notes: assignmentsTable.notes,
       requiredRegion: assignmentsTable.requiredRegion,
       requiredPersonnelCount: assignmentsTable.requiredPersonnelCount,
@@ -466,6 +473,7 @@ export async function getAssignment(
         id: assignmentPersonnelTable.id,
         personnelId: assignmentPersonnelTable.personnelId,
         linkStatus: assignmentPersonnelTable.status,
+        lifecycleVersion: assignmentPersonnelTable.lifecycleVersion,
         firstName: personnelTable.firstName,
         lastName: personnelTable.lastName,
       })
@@ -537,6 +545,8 @@ export async function getAssignment(
     scheduledDate: row.scheduledDate ?? null,
     scheduledStart: row.scheduledStart ?? null,
     scheduledEnd: row.scheduledEnd ?? null,
+    actualStartedAt: row.actualStartedAt?.toISOString() ?? null,
+    actualCompletedAt: row.actualCompletedAt?.toISOString() ?? null,
     requiredRegion: row.requiredRegion ?? null,
     requiredPersonnelCount: row.requiredPersonnelCount ?? 1,
     customerSignatureRequired: row.customerSignatureRequired,
@@ -548,6 +558,7 @@ export async function getAssignment(
       firstName: p.firstName ?? "",
       lastName: p.lastName ?? "",
       linkStatus: p.linkStatus,
+      lifecycleVersion: p.lifecycleVersion,
     })),
     tasks: tasks.map((t) => ({
       id: t.id,
@@ -3257,12 +3268,19 @@ export async function updateAssignment(
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
+  const [currentAssignment] = await db
+    .select({ status: assignmentsTable.status })
+    .from(assignmentsTable)
+    .where(and(eq(assignmentsTable.id, id), eq(assignmentsTable.tenantId, tenantId)))
+    .limit(1);
+  if (!currentAssignment) return { success: false, message: "Opdracht niet gevonden binnen deze organisatie." };
+
   const payload = {
     title: data.title.trim(),
     description: data.description?.trim() || null,
     customerId: data.customerId,
     objectId: data.objectId || null,
-    status: data.status,
+    status: currentAssignment.status,
     priority: data.priority,
     scheduledDate: data.scheduledDate || null,
     scheduledStart: data.scheduledStart || null,
@@ -3349,6 +3367,13 @@ export async function setAssignmentStatus(
     .limit(1);
 
   if (!current) return { success: false, message: "Opdracht niet gevonden." };
+  if (["seen", "en_route", "in_progress", "completed", "not_completed"].includes(newStatus)) {
+    return { success: false, message: "Uitvoeringsstatussen worden uitsluitend door medewerkeracties en werkelijke tijden bepaald." };
+  }
+  if (newStatus === "cancelled") {
+    return { success: false, message: "Annuleer de opdracht via de aparte annuleringsactie met verplichte reden." };
+  }
+
   if (!ASSIGNMENT_STATUSES.includes(newStatus)) {
     return { success: false, message: "Onbekende opdrachtstatus." };
   }
@@ -3434,105 +3459,15 @@ export async function assignPersonnel(
   }
 
   try {
-    const [existingLink] = await db
-      .select({ id: assignmentPersonnelTable.id, status: assignmentPersonnelTable.status })
-      .from(assignmentPersonnelTable)
-      .where(
-        and(
-          eq(assignmentPersonnelTable.assignmentId, assignmentId),
-          eq(assignmentPersonnelTable.personnelId, personnelId),
-        ),
-      )
-      .limit(1);
-
-    if (existingLink?.status === "assigned") {
-      revalidatePath(`/assignments/${assignmentId}`);
-      revalidatePath("/planning");
-      return {
-        success: true,
-        warning: "Deze medewerker was al gekoppeld aan deze werkbon.",
-      };
-    }
-
-    if (existingLink) {
-      await db
-        .update(assignmentPersonnelTable)
-        .set({
-          status: "assigned",
-          assignedAt: new Date(),
-          assignedBy: user.id,
-        })
-        .where(eq(assignmentPersonnelTable.id, existingLink.id));
-    } else {
-      await db.insert(assignmentPersonnelTable).values({
-        assignmentId,
-        personnelId,
-        assignedBy: user.id,
-      });
-    }
-
-    await db.insert(auditLogTable).values({
-      userId: user.id,
-      action: "assign_personnel",
-      resource: "assignments",
-      resourceId: assignmentId,
-      metadata: { personnelId, previousStatus: existingLink?.status ?? null },
+    const staffing = await transitionAssignmentStaffing({
+      tenantId,
+      assignmentId,
+      personnelId,
+      actorUserId: user.id,
+      action: "assign",
     });
+    const routeRefreshStatus = staffing.assignmentStatus;
 
-    // ── Auto-transition plannable → scheduled ─────────────────────────────
-    // Count required roles from task codes; transition when all slots are filled.
-    const [[{ requiredSlots }], [{ assignedCount }]] = await Promise.all([
-      db
-        .select({
-          requiredSlots: sql<number>`greatest(count(DISTINCT tc.required_role_id) FILTER (WHERE tc.required_role_id IS NOT NULL), 1)::int`,
-        })
-        .from(assignmentTasksTable)
-        .innerJoin(
-          taskCodesTable,
-          eq(assignmentTasksTable.taskCodeId, taskCodesTable.id),
-        )
-        .where(eq(assignmentTasksTable.assignmentId, assignmentId)),
-      db
-        .select({ assignedCount: sql<number>`count(*)::int` })
-        .from(assignmentPersonnelTable)
-        .where(
-          and(
-            eq(assignmentPersonnelTable.assignmentId, assignmentId),
-            eq(assignmentPersonnelTable.status, "assigned"),
-          ),
-        ),
-    ]);
-
-    const [assignmentRow] = await db
-      .select({ status: assignmentsTable.status })
-      .from(assignmentsTable)
-      .where(eq(assignmentsTable.id, assignmentId))
-      .limit(1);
-    let routeRefreshStatus = assignmentRow?.status ?? assignment.status;
-
-    if (
-      assignmentRow?.status === "plannable" &&
-      assignment.scheduledDate &&
-      (assignedCount ?? 0) >= (requiredSlots ?? 1)
-    ) {
-      await db
-        .update(assignmentsTable)
-        .set({ status: "scheduled", updatedAt: new Date() })
-        .where(eq(assignmentsTable.id, assignmentId));
-
-      await db.insert(auditLogTable).values({
-        userId: user.id,
-        action: "status_change",
-        resource: "assignments",
-        resourceId: assignmentId,
-        metadata: {
-          from: "plannable",
-          to: "scheduled",
-          trigger: "personnel_slots_filled",
-        },
-      });
-      routeRefreshStatus = "scheduled";
-    }
 
     // ── Availability warning (non-blocking) ───────────────────────────────
     const isScheduled = Boolean(assignment.scheduledDate);
@@ -3631,22 +3566,25 @@ export async function assignPersonnel(
 
     return { success: true, warning };
   } catch (err) {
-    if (isUniqueViolation(err)) {
-      return {
-        success: false,
-        message: "Deze medewerker is al gekoppeld aan deze opdracht.",
-      };
-    }
-    return { success: false, message: "Medewerker koppelen mislukt." };
+    return {
+      success: false,
+      message: err instanceof Error ? err.message : "Medewerker koppelen mislukt.",
+    };
   }
 }
 
 export async function removePersonnel(
   assignmentId: string,
   linkId: string,
+  reason: string,
+  expectedVersion?: number,
 ): Promise<ActionResult> {
   await requirePermission("assignments", "write");
   const tenantId = await requireCurrentTenantId();
+  const normalizedReason = reason.trim();
+  if (!normalizedReason) {
+    return { success: false, message: "Een reden voor ontkoppelen is verplicht." };
+  }
 
   const supabase = await createClient();
   const {
@@ -3655,38 +3593,52 @@ export async function removePersonnel(
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
   const [link] = await db
-    .select({ id: assignmentPersonnelTable.id })
+    .select({
+      id: assignmentPersonnelTable.id,
+      personnelId: assignmentPersonnelTable.personnelId,
+      status: assignmentPersonnelTable.status,
+      lifecycleVersion: assignmentPersonnelTable.lifecycleVersion,
+    })
     .from(assignmentPersonnelTable)
     .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
     .where(
       and(
         eq(assignmentPersonnelTable.id, linkId),
         eq(assignmentPersonnelTable.assignmentId, assignmentId),
+        eq(assignmentPersonnelTable.status, "assigned"),
         eq(assignmentsTable.tenantId, tenantId),
       ),
     )
     .limit(1);
 
   if (!link) {
-    return { success: false, message: "Koppeling niet gevonden binnen deze organisatie." };
+    return { success: false, message: "Actieve koppeling niet gevonden binnen deze organisatie." };
   }
 
-  await db
-    .delete(assignmentPersonnelTable)
-    .where(eq(assignmentPersonnelTable.id, link.id));
-
-  await db.insert(auditLogTable).values({
-    userId: user.id,
-    action: "remove_personnel",
-    resource: "assignments",
-    resourceId: assignmentId,
-    metadata: { linkId },
-  });
+  let staffing;
+  try {
+    staffing = await transitionAssignmentStaffing({
+      tenantId,
+      assignmentId,
+      personnelId: link.personnelId,
+      actorUserId: user.id,
+      action: "unassign",
+      reason: normalizedReason,
+      expectedVersion: expectedVersion ?? link.lifecycleVersion,
+    });
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Ontkoppelen mislukt.",
+    };
+  }
 
   await safeRefreshPlanningRoutesForAssignment({
     tenantId,
     assignmentId,
     reason: "assignment_unassigned",
+    status: staffing.assignmentStatus,
+    personnelIds: [link.personnelId],
     source: "backoffice",
   });
 
@@ -3859,9 +3811,13 @@ export async function approveDirectly(id: string): Promise<ActionResult> {
   return { success: true };
 }
 
-export async function deleteAssignment(id: string): Promise<ActionResult> {
+export async function deleteAssignment(id: string, reason: string): Promise<ActionResult> {
   await requirePermission("assignments", "write");
   const tenantId = await requireCurrentTenantId();
+  const normalizedReason = reason.trim();
+  if (!normalizedReason) {
+    return { success: false, message: "Een reden voor annuleren is verplicht." };
+  }
 
   const supabase = await createClient();
   const {
@@ -3869,29 +3825,53 @@ export async function deleteAssignment(id: string): Promise<ActionResult> {
   } = await supabase.auth.getUser();
   if (!user) return { success: false, message: "Niet geauthenticeerd." };
 
-  const [assignment] = await db
-    .select({ title: assignmentsTable.title })
-    .from(assignmentsTable)
-    .where(and(eq(assignmentsTable.id, id), eq(assignmentsTable.tenantId, tenantId)))
-    .limit(1);
+  const assignedLinks = await db
+    .select({ personnelId: assignmentPersonnelTable.personnelId })
+    .from(assignmentPersonnelTable)
+    .innerJoin(assignmentsTable, and(
+      eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id),
+      eq(assignmentsTable.tenantId, tenantId),
+    ))
+    .where(and(
+      eq(assignmentPersonnelTable.assignmentId, id),
+      eq(assignmentPersonnelTable.status, "assigned"),
+    ));
 
-  if (!assignment)
-    return { success: false, message: "Opdracht niet gevonden." };
+  try {
+    await cancelAssignmentStaffing({
+      tenantId,
+      assignmentId: id,
+      actorUserId: user.id,
+      reason: normalizedReason,
+    });
+  } catch (error) {
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Opdracht annuleren mislukt.",
+    };
+  }
 
-  // Cascade deletes assignment_personnel and assignment_tasks via FK
-  await db
-    .delete(assignmentsTable)
-    .where(and(eq(assignmentsTable.id, id), eq(assignmentsTable.tenantId, tenantId)));
+  if (assignedLinks.length > 0) {
+    await notifyAssignmentWorkflow({
+      eventKey: "assignment_cancelled_personnel",
+      assignmentId: id,
+      actorUserId: user.id,
+      audience: "personnel",
+      recipients: { personnelIds: assignedLinks.map((link) => link.personnelId) },
+    });
+    await triggerNotificationWorker({ channels: ["push"], limit: Math.max(25, assignedLinks.length) });
+  }
 
-  await db.insert(auditLogTable).values({
-    userId: user.id,
-    action: "delete",
-    resource: "assignments",
-    resourceId: id,
-    metadata: { title: assignment.title },
+  await safeRefreshPlanningRoutesForAssignment({
+    tenantId,
+    assignmentId: id,
+    reason: "assignment_unassigned",
+    status: "cancelled",
+    source: "backoffice",
   });
-
   revalidatePath("/assignments");
+  revalidatePath("/planning");
+  revalidatePath(`/assignments/${id}`);
   return { success: true };
 }
 
