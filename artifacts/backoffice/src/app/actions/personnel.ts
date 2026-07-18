@@ -24,12 +24,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requirePermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
-import { provisionPortalUserWithTemporaryPassword } from "@/lib/auth/portal-invites";
-import {
-  buildTemporaryPasswordEmail,
-  personeelPortalUrl,
-  sendEmailWithResult,
-} from "@/lib/email";
+import { provisionPortalUserForActivation } from "@/lib/auth/portal-invites";
+import { personeelPortalUrl } from "@/lib/email";
 import { requireSensitiveRuntimeAccess } from "@/lib/security/sensitive-runtime";
 import { toPlatformPersonnelMaskedDto } from "@/lib/security/safe-dtos";
 import type { ActionResult } from "./customers";
@@ -345,38 +341,21 @@ function isUniqueViolation(err: unknown): boolean {
   return (err as { code?: string })?.code === "23505";
 }
 
-async function sendPersonnelTemporaryPasswordInvite(person: {
+async function sendPersonnelActivationInvite(person: {
   firstName: string;
-  lastName:  string;
-  email:     string;
-  tenantId:  string;
+  lastName: string;
+  email: string;
+  tenantId: string;
 }): Promise<{ userId: string; created: boolean }> {
   const fullName = `${person.firstName} ${person.lastName}`.trim();
-  const invite = await provisionPortalUserWithTemporaryPassword({
+  const invite = await provisionPortalUserForActivation({
     email: person.email,
     fullName,
     portal: "personnel",
-  });
-
-  const { subject, html } = buildTemporaryPasswordEmail({
-    recipientName:     person.firstName || fullName,
-    portalName:        "Personeelsportaal",
-    loginUrl:          personeelPortalUrl(),
-    temporaryPassword: invite.temporaryPassword,
-  });
-
-  const sent = await sendEmailWithResult({
-    to: person.email,
-    subject,
-    html,
     tenantId: person.tenantId,
-    purpose: "personnel_portal_invite",
+    portalName: "Personeelsportaal",
+    activationUrl: `${personeelPortalUrl()}/wachtwoord-vergeten?doel=activatie`,
   });
-
-  if (!sent.success) {
-    throw new Error(sent.error ?? "Uitnodigingsmail versturen mislukt.");
-  }
-
   return { userId: invite.user.id, created: invite.created };
 }
 
@@ -880,7 +859,7 @@ export async function createPersonnel(
     // Auto-invite: send the portal invite immediately after creating the record
     if (data.autoInvite) {
       try {
-        const invite = await sendPersonnelTemporaryPasswordInvite({
+        const invite = await sendPersonnelActivationInvite({
           firstName: payload.firstName,
           lastName:  payload.lastName,
           email:     payload.email,
@@ -900,7 +879,7 @@ export async function createPersonnel(
           metadata:   {
             name: `${payload.firstName} ${payload.lastName}`,
             email: payload.email,
-            temporaryPassword: true,
+            activationChallenge: true,
             authUserCreated: invite.created,
           },
         });
@@ -1135,9 +1114,9 @@ export async function invitePersonnel(id: string): Promise<ActionResult> {
     }
   }
 
-  let temporaryInvite: { userId: string; created: boolean };
+  let activationInvite: { userId: string; created: boolean };
   try {
-    temporaryInvite = await sendPersonnelTemporaryPasswordInvite({ ...person, tenantId });
+    activationInvite = await sendPersonnelActivationInvite({ ...person, tenantId });
   } catch (error) {
     return {
       success: false,
@@ -1147,7 +1126,7 @@ export async function invitePersonnel(id: string): Promise<ActionResult> {
 
   await db
     .update(personnelTable)
-    .set({ userId: temporaryInvite.userId, inviteSentAt: new Date(), updatedAt: new Date() })
+    .set({ userId: activationInvite.userId, inviteSentAt: new Date(), updatedAt: new Date() })
     .where(and(eq(personnelTable.id, id), eq(personnelTable.tenantId, tenantId)));
 
   await db.insert(auditLogTable).values({
@@ -1158,8 +1137,8 @@ export async function invitePersonnel(id: string): Promise<ActionResult> {
     metadata:   {
       name: `${person.firstName} ${person.lastName}`,
       email: person.email,
-      temporaryPassword: true,
-      authUserCreated: temporaryInvite.created,
+      activationChallenge: true,
+      authUserCreated: activationInvite.created,
     },
   });
 
@@ -1201,7 +1180,7 @@ export async function getPersonnelAuthStatus(id: string): Promise<PersonnelAuthS
       return "disabled";
     }
     if (u.deleted_at) return "disabled";
-    if (data.user.app_metadata?.force_password_change === true) return "invited";
+    if (data.user.app_metadata?.credential_activation_pending === true) return "invited";
     return "active";
   } catch {
     return "active"; // safe fallback — never hide a potentially active account

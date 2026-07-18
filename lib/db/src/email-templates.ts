@@ -130,22 +130,22 @@ export const FIELDGRID_CLEAN_OPS_EMAIL_THEME: EmailTheme = {
 const EMAIL_TEMPLATES: Record<EmailTemplateKey, EmailTemplateDefinition> = {
   account_invite: {
     key: "account_invite",
-    name: "Accountuitnodiging",
+    name: "Accountactivatie",
     category: "account",
-    subject: "Toegang tot {{portalName}} van {{brandName}}",
-    preheader: "Uw account staat klaar. Log in met het tijdelijke wachtwoord en kies daarna uw eigen wachtwoord.",
+    subject: "Activeer uw toegang tot {{portalName}} van {{brandName}}",
+    preheader: "Activeer uw account met de eenmalige code en kies daarna uw eigen wachtwoord.",
     headline: "Uw account staat klaar",
     intro: [
       "Beste {{recipientName}},",
       "Er is een account voor u aangemaakt voor {{portalName}} van {{brandName}}.",
-      "Gebruik het tijdelijke wachtwoord hieronder om voor de eerste keer in te loggen. Daarna vragen wij u direct een eigen wachtwoord te kiezen.",
+      "Open de beveiligde activatiepagina en vul daar de eenmalige code in. Daarna kiest u uw eigen wachtwoord.",
     ],
     detailRows: [
-      { label: "Tijdelijk wachtwoord", value: "{{temporaryPassword}}", monospace: true },
+      { label: "Activatiecode", value: "{{code}}", monospace: true },
     ],
-    cta: { label: "Inloggen op {{portalName}}", href: "{{loginUrl}}" },
-    footerNote: "Bewaar dit tijdelijke wachtwoord niet. Het is alleen bedoeld voor de eerste login.",
-    requiredVariables: ["recipientName", "portalName", "loginUrl", "temporaryPassword"],
+    cta: { label: "Account activeren", href: "{{activationUrl}}" },
+    footerNote: "Deze code is 30 minuten geldig en kan één keer worden gebruikt. Deel de code niet.",
+    requiredVariables: ["recipientName", "portalName", "activationUrl", "code"],
     optionalVariables: [],
   },
   password_reset: {

@@ -4,7 +4,7 @@ Deze lijst komt overeen met de centrale registry in `lib/db/src/email-templates.
 
 | Template key | Verplicht | Optioneel |
 | --- | --- | --- |
-| `account_invite` | `recipientName`, `portalName`, `loginUrl`, `temporaryPassword` | - |
+| `account_invite` | `recipientName`, `portalName`, `activationUrl`, `code` | - |
 | `password_reset` | `recipientName`, `portalName`, `resetUrl`, `code` | - |
 | `report_submitted` | `assignmentTitle`, `reportUrl` | `reporterName`, `assignmentId`, `reportId` |
 | `leave_request_submitted` | `personnelName`, `leaveType`, `period`, `leaveUrl` | `reason` |
@@ -32,7 +32,7 @@ De renderer vult deze variabelen zelf:
 
 Deze variabelen worden als CTA of link gebruikt en moeten een veilige URL bevatten:
 
-- `loginUrl`
+- `activationUrl`
 - `resetUrl`
 - `reportUrl`
 - `leaveUrl`

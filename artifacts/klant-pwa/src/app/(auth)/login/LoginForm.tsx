@@ -42,18 +42,6 @@ export function LoginForm() {
         return;
       }
 
-      if (data.user?.app_metadata?.force_password_change === true) {
-        const expiresAt = data.user.app_metadata?.temporary_password_expires_at;
-        if (typeof expiresAt === "string" && new Date(expiresAt).getTime() <= Date.now()) {
-          await supabase.auth.signOut();
-          setError("De tijdelijke code is verlopen. Vraag een nieuwe herstelcode aan.");
-          return;
-        }
-        router.push("/reset-wachtwoord?force=1");
-        router.refresh();
-        return;
-      }
-
       router.push("/");
       router.refresh();
     });

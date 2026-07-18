@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Pencil, Mail, CheckCircle2, Loader2, KeyRound, RefreshCw, UserCheck } from "lucide-react";
+import { Pencil, Mail, CheckCircle2, Loader2, KeyRound, RefreshCw, UserCheck, XCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -23,7 +23,7 @@ import {
 import { toast } from "sonner";
 import { PersonnelForm } from "@/components/personnel/PersonnelForm";
 import { invitePersonnel, setPersonnelStatus } from "@/app/actions/personnel";
-import { sendPasswordReset } from "@/app/actions/auth";
+import { revokePasswordReset, sendPasswordReset } from "@/app/actions/auth";
 import type { PersonnelAuthStatus, RoleOption, SectorOption } from "@/app/actions/personnel";
 
 interface PersonnelDetailActionsProps {
@@ -57,6 +57,7 @@ export function PersonnelDetailActions({
   const [isActive,         setIsActive]          = useState(initialIsActive);
   const [errorMsg,         setErrorMsg]          = useState<string | null>(null);
   const [activateError,    setActivateError]     = useState<string | null>(null);
+  const [recoveryExpiry,   setRecoveryExpiry]    = useState<string | null>(null);
   const [isPending,        startTransition]      = useTransition();
 
   // ── Derived invite state ────────────────────────────────────────────────────
@@ -71,7 +72,7 @@ export function PersonnelDetailActions({
       if (result.success) {
         setLocalInviteSent(true);
         setInviteOpen(false);
-        toast.success("Tijdelijk wachtwoord verstuurd");
+        toast.success("Activatiemail verstuurd");
       } else {
         setErrorMsg(result.message ?? "Uitnodiging mislukt.");
       }
@@ -82,11 +83,26 @@ export function PersonnelDetailActions({
     startTransition(async () => {
       const result = await sendPasswordReset(personnelId);
       if (result.success) {
+        setRecoveryExpiry(result.data?.expiresAt ?? null);
         setResetOpen(false);
         toast.success("Herstelcode per e-mail verstuurd");
       } else {
         toast.error(result.message ?? "Wachtwoord-reset mislukt.");
         setResetOpen(false);
+      }
+    });
+  }
+
+  function handleRevokeRecovery() {
+    startTransition(async () => {
+      const result = await revokePasswordReset(personnelId);
+      if (result.success) {
+        setRecoveryExpiry(null);
+        toast.success(
+          result.data?.revoked ? "Open herstelcode ingetrokken" : "Er stond geen open herstelcode meer",
+        );
+      } else {
+        toast.error(result.message ?? "Herstelcode intrekken mislukt.");
       }
     });
   }
@@ -108,7 +124,7 @@ export function PersonnelDetailActions({
         const inviteResult = await invitePersonnel(personnelId);
         if (inviteResult.success) {
           setLocalInviteSent(true);
-          toast.success("Tijdelijk wachtwoord verstuurd");
+          toast.success("Activatiemail verstuurd");
         }
       }
     });
@@ -152,13 +168,33 @@ export function PersonnelDetailActions({
               <KeyRound className="mr-1.5 h-4 w-4" />
               Wachtwoord reset
             </Button>
+            {recoveryExpiry && (
+              <>
+                <span className="text-xs text-slate-500" role="status">
+                  Verzonden · geldig tot{" "}
+                  {new Date(recoveryExpiry).toLocaleTimeString("nl-NL", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={handleRevokeRecovery}
+                  disabled={isPending}
+                >
+                  <XCircle className="mr-1.5 h-4 w-4" />
+                  Intrekken
+                </Button>
+              </>
+            )}
           </div>
         ) : isInvited || localInviteSent ? (
           <div className="flex items-center gap-2">
             <div className="flex items-center gap-1.5 text-sm" style={{ color: "#92400E" }}>
               <Mail className="h-4 w-4" />
               <span>
-                Tijdelijk wachtwoord verstuurd
+                Activatiemail verstuurd
                 {inviteSentAt && !localInviteSent && (
                   <span className="ml-1 text-xs" style={{ color: "#94A3B8" }}>
                     ({new Date(inviteSentAt).toLocaleDateString("nl-NL", { day: "2-digit", month: "short" })})
@@ -211,7 +247,7 @@ export function PersonnelDetailActions({
             <AlertDialogDescription>
               <strong>{personnelName}</strong> wordt opnieuw ingesteld als actief.
               {!hasPortalAccount && (
-                <> Er wordt ook een tijdelijk wachtwoord gestuurd naar <strong>{personnelEmail}</strong>.</>
+                <> Er wordt ook een eenmalige activatiecode gestuurd naar <strong>{personnelEmail}</strong>.</>
               )}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -240,13 +276,13 @@ export function PersonnelDetailActions({
             <AlertDialogDescription>
               {isNone
                 ? <>
-                    Er wordt een tijdelijk wachtwoord gestuurd naar{" "}
-                    <strong>{personnelEmail}</strong>. De medewerker moet dit wachtwoord
-                    na de eerste login direct wijzigen.
+                    Er wordt een eenmalige activatiecode gestuurd naar{" "}
+                    <strong>{personnelEmail}</strong>. De medewerker kiest daarna zelf
+                    een wachtwoord op de beveiligde activatiepagina.
                   </>
                 : <>
-                    Er wordt een nieuw tijdelijk wachtwoord gestuurd naar{" "}
-                    <strong>{personnelEmail}</strong>. Het vorige tijdelijke wachtwoord
+                    Er wordt een nieuwe eenmalige activatiecode gestuurd naar{" "}
+                    <strong>{personnelEmail}</strong>. De vorige activatiecode
                     vervalt.
                   </>
               }

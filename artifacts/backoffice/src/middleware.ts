@@ -38,13 +38,6 @@ function loginUrlWithNext(request: NextRequest): URL {
   return url;
 }
 
-function resetPasswordUrlWithNext(request: NextRequest): URL {
-  const url = proxyAwareUrl("/reset-wachtwoord", request);
-  url.searchParams.set("force", "1");
-  url.searchParams.set("next", nextPathFromRequest(request));
-  return url;
-}
-
 export async function middleware(request: NextRequest) {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -54,6 +47,7 @@ export async function middleware(request: NextRequest) {
   const isPasswordResetPage = pathname === "/reset-wachtwoord";
   const isPublicPage =
     isLoginPage ||
+    isPasswordResetPage ||
     pathname === "/wachtwoord-vergeten" ||
     pathname.startsWith("/auth/confirm");
 
@@ -93,12 +87,6 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await authClient.auth.getUser();
-
-  const mustChangePassword = user?.app_metadata?.force_password_change === true;
-
-  if (user && mustChangePassword && !isPasswordResetPage && !pathname.startsWith("/auth/confirm")) {
-    return NextResponse.redirect(resetPasswordUrlWithNext(request));
-  }
 
   if (user && isLoginPage) {
     const next = request.nextUrl.searchParams.get("next");

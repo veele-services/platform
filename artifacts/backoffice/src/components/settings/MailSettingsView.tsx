@@ -52,7 +52,7 @@ export function MailSettingsView({ settings, canWrite }: Props) {
   const [smtpFromEmail, setSmtpFromEmail] = useState(settings?.smtpFromEmail ?? "");
   const [smtpReplyTo, setSmtpReplyTo] = useState(settings?.smtpReplyTo ?? "");
   const [testEmail, setTestEmail] = useState(settings?.emailAfzender ?? settings?.smtpFromEmail ?? "");
-  const [testTemplate, setTestTemplate] = useState<"basic" | "temporary_password">("temporary_password");
+  const [testTemplate, setTestTemplate] = useState<"basic" | "account_activation">("account_activation");
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [testStatus, setTestStatus] = useState<"idle" | "sending" | "ok" | "error">("idle");
@@ -436,11 +436,11 @@ export function MailSettingsView({ settings, canWrite }: Props) {
           />
           <select
             value={testTemplate}
-            onChange={(e) => setTestTemplate(e.target.value as "basic" | "temporary_password")}
+            onChange={(e) => setTestTemplate(e.target.value as "basic" | "account_activation")}
             disabled={!canWrite || testStatus === "sending"}
             className="veele-input"
           >
-            <option value="temporary_password">Tijdelijk wachtwoord</option>
+            <option value="account_activation">Accountactivatie</option>
             <option value="basic">Basis testmail</option>
           </select>
           <button

@@ -7,6 +7,9 @@ import {
   FIELDGRID_SUPPORT_BREAK_GLASS_MAX_TTL_MINUTES,
   FIELDGRID_SUPPORT_TENANT_COOKIE,
   platformUsersTable,
+  issueCredentialRecoveryChallenge,
+  markCredentialRecoveryDelivery,
+  resolveCredentialRecoveryOrigin,
   supportAccessAuditLogTable,
   supportAccessGrantsTable,
   tenantsTable,
@@ -18,15 +21,9 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
-import {
-  generatePasswordResetCode,
-  passwordResetCodeExpiresAt,
-  provisionPortalUserWithTemporaryPassword,
-  setExistingAuthUserTemporaryPassword,
-} from "@/lib/auth/portal-invites";
+import { provisionPortalUserForActivation } from "@/lib/auth/portal-invites";
 import {
   buildPasswordResetCodeEmail,
-  buildTemporaryPasswordEmail,
   platformAdminUrl,
   sendEmailWithResult,
 } from "@/lib/email";
@@ -595,22 +592,16 @@ export async function invitePlatformUserFromForm(formData: FormData): Promise<Ac
 
   let userId: string | null = null;
   try {
-    const invite = await provisionPortalUserWithTemporaryPassword({
+    const invite = await provisionPortalUserForActivation({
       email,
       fullName: email,
       portal: "platform-admin",
+      tenantId: null,
+      portalName: "Fieldgrid platformbeheer",
+      activationUrl: `${platformAdminUrl()}/wachtwoord-vergeten?doel=activatie`,
+      actorUserId: actor.userId,
       allowExistingActive: true,
     });
-    const { subject, html } = buildTemporaryPasswordEmail({
-      recipientName: email,
-      portalName: "Fieldgrid platformbeheer",
-      loginUrl: `${platformAdminUrl()}/login`,
-      temporaryPassword: invite.temporaryPassword,
-    });
-    const sent = await sendEmailWithResult({ to: email, subject, html });
-    if (!sent.success) {
-      return { success: false, message: sent.error ?? "Uitnodigingsmail versturen mislukt." };
-    }
     userId = invite.user.id;
   } catch (error) {
     return {
@@ -719,25 +710,42 @@ export async function sendPlatformUserPasswordResetFromForm(formData: FormData):
   if (error || !data.user?.email) throw new Error(error?.message ?? "Auth-gebruiker heeft geen e-mailadres.");
 
   const email = data.user.email;
-  const code = generatePasswordResetCode();
-  await setExistingAuthUserTemporaryPassword({
-    userId: target.userId,
-    email,
-    fullName: String(data.user.user_metadata?.["full_name"] ?? data.user.user_metadata?.["name"] ?? email),
-    portal: "platform-admin",
-    temporaryPassword: code,
-    temporaryPasswordKind: "reset_code",
-    expiresAt: passwordResetCodeExpiresAt(),
+  const resetUrl = `${platformAdminUrl()}/wachtwoord-vergeten`;
+  const configuredOrigin = new URL(resetUrl).origin;
+  const allowedOrigins = (process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? configuredOrigin)
+    .split(",").map((value) => value.trim()).filter(Boolean);
+  const challenge = await issueCredentialRecoveryChallenge({
+    surface: "platform-admin",
+    purpose: "password-reset",
+    tenantId: null,
+    accountIdentifier: email,
+    subjectUserId: target.userId,
+    redirectOrigin: resolveCredentialRecoveryOrigin({
+      configuredOrigin,
+      allowedOrigins,
+      allowHttpLocalhost: process.env.NODE_ENV !== "production",
+    }),
+    actorUserId: actor.userId,
+    networkSignal: `actor:${actor.userId}`,
+    clientSignal: "platform-user-reset",
   });
-
+  if (challenge.status !== "issued" || !challenge.challengeId || !challenge.code) {
+    throw new Error("Er is recent al een herstelmail verstuurd. Probeer het later opnieuw.");
+  }
   const { subject, html } = buildPasswordResetCodeEmail({
-    recipientName: email,
+    recipientName: String(data.user.user_metadata?.["full_name"] ?? data.user.user_metadata?.["name"] ?? email),
     portalName: "Fieldgrid platformbeheer",
-    resetUrl: `${platformAdminUrl()}/wachtwoord-vergeten`,
-    code,
+    resetUrl,
+    code: challenge.code,
   });
-  const sent = await sendEmailWithResult({ to: email, subject, html });
-  if (!sent.success) throw new Error(sent.error ?? "Resetmail versturen mislukt.");
+  const sent = await sendEmailWithResult({
+    to: email,
+    subject,
+    html,
+    purpose: "platform_admin_password_reset",
+  });
+  await markCredentialRecoveryDelivery(challenge.challengeId, sent.success);
+  if (!sent.success) throw new Error("Resetmail versturen mislukt.");
 
   await writePlatformAuditLog({
     actor,

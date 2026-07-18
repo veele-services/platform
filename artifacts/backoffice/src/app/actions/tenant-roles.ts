@@ -19,8 +19,8 @@ import { createClient } from "@/lib/supabase/server";
 import { requirePermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { getTenantPlanCapabilities } from "@/lib/tenant-plan";
-import { provisionPortalUserWithTemporaryPassword } from "@/lib/auth/portal-invites";
-import { backofficeUrl, buildTemporaryPasswordEmail, sendEmailWithResult } from "@/lib/email";
+import { provisionPortalUserForActivation } from "@/lib/auth/portal-invites";
+import { backofficeUrl } from "@/lib/email";
 import type { ActionResult } from "./customers";
 
 export type TenantPermissionItem = {
@@ -583,26 +583,16 @@ export async function inviteTenantUser(input: {
 
   let invitedUserId: string;
   try {
-    const invite = await provisionPortalUserWithTemporaryPassword({
+    const invite = await provisionPortalUserForActivation({
       email,
       fullName: email,
       portal: "tenant-admin",
+      tenantId,
+      portalName: "Tenant backoffice",
+      activationUrl: `${backofficeUrl()}/wachtwoord-vergeten?doel=activatie`,
+      actorUserId: user.id,
       allowExistingActive: true,
     });
-    const { subject, html } = buildTemporaryPasswordEmail({
-      recipientName: email,
-      portalName: "Tenant backoffice",
-      loginUrl: `${backofficeUrl()}/login`,
-      temporaryPassword: invite.temporaryPassword,
-    });
-    const sent = await sendEmailWithResult({
-      to: email,
-      subject,
-      html,
-      tenantId,
-      purpose: "account_invite",
-    });
-    if (!sent.success) return { success: false, message: sent.error ?? "Uitnodigingsmail versturen mislukt." };
     invitedUserId = invite.user.id;
   } catch (error) {
     return { success: false, message: error instanceof Error ? error.message : "Uitnodiging mislukt." };

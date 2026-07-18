@@ -114,7 +114,7 @@ export default async function PlatformUsersPage() {
           <div className="rounded border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="text-lg font-semibold tracking-normal text-slate-950">Uitnodigen</h2>
             <p className="mt-1 text-sm text-slate-500">
-              Verstuur een Fieldgrid tijdelijk wachtwoord en koppel de gebruiker direct aan een platformrol.
+              Verstuur een eenmalige Fieldgrid-activatiecode en koppel de gebruiker direct aan een platformrol.
             </p>
             <form action={invitePlatformUserAction} className="mt-4 grid gap-3 md:grid-cols-[minmax(0,1fr)_160px_160px_auto]">
               <label className="grid gap-1 text-sm font-medium text-slate-700">

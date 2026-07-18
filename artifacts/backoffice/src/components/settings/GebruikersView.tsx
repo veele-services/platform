@@ -128,7 +128,7 @@ export function GebruikersView({ users: initialUsers, roles, canWrite }: Props) 
     startTransition(async () => {
       const result = await resendInvite(userId);
       if (result.success) {
-        showFlash("Tijdelijk wachtwoord verstuurd.", false);
+        showFlash("Herstelmail verstuurd.", false);
       } else {
         showFlash((result as { message?: string }).message ?? "Opnieuw versturen mislukt.", true);
       }
@@ -491,7 +491,7 @@ function UserActionMenu({
           ...(user.status === "uitgenodigd"
             ? [{
                 id: "resend",
-                label: "Tijdelijk wachtwoord mailen",
+                label: "Herstelmail versturen",
                 icon: <RotateCcw className="h-3.5 w-3.5" />,
                 disabled: pending,
                 onSelect: () => onResend(),

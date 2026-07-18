@@ -15,6 +15,9 @@ import {
   notificationDeliveryQueueTable,
   notificationDispatchesTable,
   notificationEventSettingsTable,
+  issueCredentialRecoveryChallenge,
+  markCredentialRecoveryDelivery,
+  resolveCredentialRecoveryOrigin,
   personnelTable,
   personnelNotificationsTable,
   sectorsTable,
@@ -40,16 +43,10 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { hasPermission, requirePermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { getTenantPlanCapabilities } from "@/lib/tenant-plan";
-import {
-  generatePasswordResetCode,
-  passwordResetCodeExpiresAt,
-  provisionPortalUserWithTemporaryPassword,
-  setExistingAuthUserTemporaryPassword,
-} from "@/lib/auth/portal-invites";
+import { provisionPortalUserForActivation } from "@/lib/auth/portal-invites";
 import {
   backofficeUrl,
   buildPasswordResetCodeEmail,
-  buildTemporaryPasswordEmail,
   sendEmailWithResult,
 } from "@/lib/email";
 import {
@@ -1713,28 +1710,16 @@ export async function inviteUser(data: {
 
   let invitedUserId: string;
   try {
-    const invite = await provisionPortalUserWithTemporaryPassword({
+    const invite = await provisionPortalUserForActivation({
       email,
       fullName: email,
       portal: "tenant-admin",
+      tenantId,
+      portalName: "Tenant backoffice",
+      activationUrl: `${backofficeUrl()}/wachtwoord-vergeten?doel=activatie`,
+      actorUserId: user.id,
       allowExistingActive: true,
     });
-    const { subject, html } = buildTemporaryPasswordEmail({
-      recipientName: email,
-      portalName: "Tenant backoffice",
-      loginUrl: `${backofficeUrl()}/login`,
-      temporaryPassword: invite.temporaryPassword,
-    });
-    const sent = await sendEmailWithResult({
-      to: email,
-      subject,
-      html,
-      tenantId,
-      purpose: "account_invite",
-    });
-    if (!sent.success) {
-      return { success: false, message: sent.error ?? "Uitnodigingsmail versturen mislukt." };
-    }
     invitedUserId = invite.user.id;
   } catch (error) {
     return { success: false, message: error instanceof Error ? error.message : "Uitnodiging mislukt." };
@@ -1831,28 +1816,16 @@ export async function resendInvite(userId: string): Promise<ActionResult> {
 
   try {
     const email = targetUser.user.email;
-    const invite = await provisionPortalUserWithTemporaryPassword({
+    await provisionPortalUserForActivation({
       email,
       fullName: String(targetUser.user.user_metadata?.["full_name"] ?? targetUser.user.user_metadata?.["name"] ?? email),
       portal: "tenant-admin",
+      tenantId,
+      portalName: "Tenant backoffice",
+      activationUrl: `${backofficeUrl()}/wachtwoord-vergeten?doel=activatie`,
+      actorUserId: user.id,
       allowExistingActive: true,
     });
-    const { subject, html } = buildTemporaryPasswordEmail({
-      recipientName: email,
-      portalName: "Tenant backoffice",
-      loginUrl: `${backofficeUrl()}/login`,
-      temporaryPassword: invite.temporaryPassword,
-    });
-    const sent = await sendEmailWithResult({
-      to: email,
-      subject,
-      html,
-      tenantId,
-      purpose: "account_invite",
-    });
-    if (!sent.success) {
-      return { success: false, message: sent.error ?? "Tijdelijk wachtwoord versturen mislukt." };
-    }
   } catch (error) {
     return {
       success: false,
@@ -1895,39 +1868,42 @@ export async function sendUserPasswordReset(userId: string): Promise<ActionResul
   }
 
   const email = targetUser.user.email;
-  const code = generatePasswordResetCode();
-  try {
-    await setExistingAuthUserTemporaryPassword({
-      userId,
-      email,
-      fullName: String(targetUser.user.user_metadata?.["full_name"] ?? targetUser.user.user_metadata?.["name"] ?? email),
-      portal: "tenant-admin",
-      temporaryPassword: code,
-      temporaryPasswordKind: "reset_code",
-      expiresAt: passwordResetCodeExpiresAt(),
-    });
-    const { subject, html } = buildPasswordResetCodeEmail({
-      recipientName: email,
-      portalName: "Tenant backoffice",
-      resetUrl: `${backofficeUrl()}/wachtwoord-vergeten`,
-      code,
-    });
-    const sent = await sendEmailWithResult({
-      to: email,
-      subject,
-      html,
-      tenantId,
-      purpose: "password_reset",
-    });
-    if (!sent.success) {
-      return { success: false, message: sent.error ?? "Herstelcode versturen mislukt." };
-    }
-  } catch (error) {
-    return {
-      success: false,
-      message: error instanceof Error ? error.message : "Herstelcode versturen mislukt.",
-    };
+  const configuredOrigin = new URL(backofficeUrl()).origin;
+  const allowedOrigins = (process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? configuredOrigin)
+    .split(",").map((value) => value.trim()).filter(Boolean);
+  const challenge = await issueCredentialRecoveryChallenge({
+    surface: "tenant-backoffice",
+    purpose: "password-reset",
+    tenantId,
+    accountIdentifier: email,
+    subjectUserId: userId,
+    redirectOrigin: resolveCredentialRecoveryOrigin({
+      configuredOrigin,
+      allowedOrigins,
+      allowHttpLocalhost: process.env.NODE_ENV !== "production",
+    }),
+    actorUserId: user.id,
+    networkSignal: `actor:${user.id}`,
+    clientSignal: "backoffice-user-reset",
+  });
+  if (challenge.status !== "issued" || !challenge.challengeId || !challenge.code) {
+    return { success: false, message: "Er is recent al een herstelmail verstuurd. Probeer het later opnieuw." };
   }
+  const { subject, html } = buildPasswordResetCodeEmail({
+    recipientName: String(targetUser.user.user_metadata?.["full_name"] ?? targetUser.user.user_metadata?.["name"] ?? email),
+    portalName: "Tenant backoffice",
+    resetUrl: `${backofficeUrl()}/wachtwoord-vergeten`,
+    code: challenge.code,
+  });
+  const sent = await sendEmailWithResult({
+    to: email,
+    subject,
+    html,
+    tenantId,
+    purpose: "tenant_backoffice_password_reset",
+  });
+  await markCredentialRecoveryDelivery(challenge.challengeId, sent.success);
+  if (!sent.success) return { success: false, message: "Herstelmail versturen mislukt." };
 
   await db.insert(auditLogTable).values({
     userId: user.id,
@@ -2296,7 +2272,7 @@ export async function sendTestNotification(
 
 export async function sendTestMailSettings(
   recipientEmail: string,
-  template: "basic" | "temporary_password" = "basic",
+  template: "basic" | "account_activation" = "basic",
 ): Promise<ActionResult> {
   await requirePermission("settings", "write");
   const tenantId = await requireCurrentTenantId();
@@ -2308,18 +2284,18 @@ export async function sendTestMailSettings(
 
   const {
     buildTenantMailSettingsTestEmail,
-    buildTemporaryPasswordEmail,
+    buildAccountActivationEmail,
     personeelPortalUrl,
     sendEmailWithResult,
   } = await import("@/lib/email");
 
   const message =
-    template === "temporary_password"
-      ? buildTemporaryPasswordEmail({
+    template === "account_activation"
+      ? buildAccountActivationEmail({
           recipientName: "Testgebruiker",
           portalName: "Personeelsportaal",
-          loginUrl: personeelPortalUrl(),
-          temporaryPassword: "Testmail-2026!",
+          activationUrl: `${personeelPortalUrl()}/wachtwoord-vergeten?doel=activatie`,
+          code: "12345678",
         })
       : buildTenantMailSettingsTestEmail();
 

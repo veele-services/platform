@@ -291,7 +291,7 @@ export function PersonnelForm({
       }
 
       if (mode === "create" && autoInvite) {
-        toast.success("Personeelsrecord aangemaakt en tijdelijk wachtwoord verstuurd");
+        toast.success("Personeelsrecord aangemaakt en activatiemail verstuurd");
       } else {
         toast.success(mode === "create" ? "Personeelsrecord aangemaakt" : "Personeelsrecord bijgewerkt");
       }
@@ -651,7 +651,7 @@ export function PersonnelForm({
                   Direct uitnodigen na aanmaken
                 </label>
                 <p className="text-xs mt-0.5" style={{ color: "#94A3B8" }}>
-                  Het personeelslid ontvangt direct een tijdelijk wachtwoord voor de Personeels-PWA.
+                  Het personeelslid ontvangt direct een eenmalige activatiecode voor de Personeels-PWA.
                 </p>
               </div>
             </div>
