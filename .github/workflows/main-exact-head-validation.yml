@@ -1,0 +1,485 @@
+name: Main Exact Head Validation
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: main-exact-head-${{ github.event_name }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  exact-head:
+    name: Exact checked-out head
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout recorded run head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: Fail closed on checkout mismatch
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.sha }}
+          RECORDED_EVENT_NAME: ${{ github.event_name }}
+          RECORDED_REF: ${{ github.ref }}
+        run: |
+          set -euo pipefail
+          actual_head_sha="$(git rev-parse HEAD)"
+          test "$actual_head_sha" = "$EXPECTED_HEAD_SHA"
+          printf 'Validated %s at exact head %s for %s\n' "$RECORDED_REF" "$actual_head_sha" "$RECORDED_EVENT_NAME"
+
+  runtime-safety-static:
+    name: Runtime Safety / ${{ matrix.lane }}
+    needs: exact-head
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - lane: contract-static
+            command: pnpm fieldgrid:test:contract-static
+          - lane: unit-domain
+            command: pnpm fieldgrid:test:unit-domain
+          - lane: security-source
+            command: pnpm fieldgrid:test:security-source
+          - lane: migration-order
+            command: pnpm fieldgrid:migration-order-check:check
+          - lane: typecheck
+            command: pnpm run typecheck
+    steps:
+      - name: Checkout recorded run head
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: Verify exact checked-out head
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - name: Frozen install
+        run: pnpm install --frozen-lockfile
+
+      - name: Run ${{ matrix.lane }}
+        run: ${{ matrix.command }}
+
+  runtime-safety-build:
+    name: Runtime Safety / build
+    needs: exact-head
+    runs-on: ubuntu-latest
+    env:
+      BASE_PATH: "/"
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/fieldgrid_runtime_safety
+      DB_SSL: "false"
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: local-runtime-safety-anon-key
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:54321
+      PGSSLMODE: disable
+      PORT: "3000"
+    steps:
+      - name: Checkout recorded run head
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: Verify exact checked-out head
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm build
+
+  runtime-safety-diff:
+    name: Runtime Safety / diff-check
+    needs: exact-head
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout recorded run head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: Verify exact checked-out head
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+
+      - name: Check pull-request diff
+        if: github.event_name == 'pull_request'
+        run: git diff --check origin/${{ github.base_ref }}...HEAD
+
+      - name: Check exact branch-head diff
+        if: github.event_name != 'pull_request'
+        run: git diff --check HEAD^ HEAD
+
+  runtime-safety-database:
+    name: Runtime Safety / ${{ matrix.lane }}
+    needs: exact-head
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - lane: postgres17-migration-smoke
+            command: pnpm fieldgrid:test:postgres17-migration-smoke
+          - lane: db-integration-tenant-ab
+            command: pnpm fieldgrid:test:db-integration-tenant-ab
+          - lane: rls-security
+            command: pnpm fieldgrid:test:rls-security
+          - lane: api-runtime
+            command: pnpm fieldgrid:test:api-runtime
+          - lane: phase-b-previous-release-database-compatibility
+            command: pnpm fieldgrid:test:phase-b-previous-release-database-compatibility
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_DB: fieldgrid_runtime_safety
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fieldgrid_runtime_safety"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/fieldgrid_runtime_safety
+      DB_SSL: "false"
+      FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET: "1"
+      PGSSLMODE: disable
+    steps:
+      - name: Checkout recorded run head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: Verify exact checked-out head
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run ${{ matrix.lane }}
+        run: ${{ matrix.command }}
+
+      - name: Teardown local runtime database
+        if: always()
+        run: pnpm fieldgrid:runtime-safety:teardown
+
+      - name: Upload Runtime Safety artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exact-head-${{ matrix.lane }}
+          path: |
+            artifacts/runtime-safety-harness/**/*.json
+            artifacts/runtime-safety-harness/**/*.log
+          if-no-files-found: error
+
+  runtime-entrypoint:
+    name: Runtime Entrypoint Inventory
+    needs: exact-head
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout recorded run head
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: Verify exact checked-out head
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+
+      - run: corepack enable
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm fieldgrid:runtime-entrypoints:check
+
+      - name: Upload full runtime entrypoint inventory
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exact-head-runtime-entrypoint-inventory
+          path: artifacts/runtime-entrypoints/fieldgrid-runtime-entrypoint-inventory.full.json
+          if-no-files-found: error
+
+  deploy-health:
+    name: Deploy Health / validation only
+    needs: exact-head
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout recorded run head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: Verify exact checked-out head
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - name: Install ShellCheck
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y shellcheck
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm fieldgrid:deploy-health-gate:test
+      - run: pnpm fieldgrid:migration-order-check:check
+      - run: pnpm fieldgrid:test-layers:check
+      - run: pnpm run typecheck
+      - run: pnpm fieldgrid:test:baseline-differential
+
+      - name: Upload baseline differential artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exact-head-test-baseline-differential
+          path: outputs/fieldgrid-test-baseline-differential/**
+          if-no-files-found: warn
+
+  fieldgrid-playwright:
+    name: Fieldgrid Playwright
+    needs: exact-head
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: fieldgrid_runtime_safety
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fieldgrid_runtime_safety"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/fieldgrid_runtime_safety
+      DB_SSL: "false"
+      FIELDGRID_E2E_AUTH_ENABLED: "true"
+      FIELDGRID_E2E_JWT_SECRET: fieldgrid-e2e-only-jwt-secret-minimum-32-bytes-not-for-production
+      FIELDGRID_RUNTIME_SAFETY_ALLOW_RESET: "1"
+      FIELDGRID_RUNTIME_SAFETY_RESET_CONFIRM: fieldgrid_runtime_safety
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: fieldgrid-e2e-local-anon-key-not-for-production
+      NEXT_PUBLIC_SUPABASE_URL: http://127.0.0.1:9324
+      PGSSLMODE: disable
+      SESSION_SECRET: fieldgrid-e2e-local-session-secret-minimum-32-bytes
+    steps:
+      - name: Checkout recorded run head
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          ref: ${{ github.sha }}
+
+      - name: Verify exact checked-out head
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11.5.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm fieldgrid:playwright:install
+
+      - name: Confirm browser processes have no service-role credential
+        run: test -z "${SUPABASE_SERVICE_ROLE_KEY:-}"
+
+      - name: Wait for PostgreSQL 17
+        run: |
+          for _ in {1..30}; do
+            pg_isready -h 127.0.0.1 -U postgres -d fieldgrid_runtime_safety && exit 0
+            sleep 2
+          done
+          exit 1
+
+      - run: pnpm fieldgrid:runtime-safety:setup
+
+      - name: Mark Runtime Safety setup complete
+        run: |
+          mkdir -p artifacts/fieldgrid-playwright
+          touch artifacts/fieldgrid-playwright/runtime-safety-setup-complete
+
+      - run: pnpm fieldgrid:runtime-safety:fixtures
+      - run: pnpm fieldgrid:playwright:fixtures
+
+      - name: Prove Playwright fixture idempotency
+        run: pnpm fieldgrid:playwright:fixtures
+
+      - name: Start real PostgREST v12.2.8
+        run: |
+          mkdir -p artifacts/fieldgrid-playwright/logs
+          docker run --rm --detach \
+            --name fieldgrid-e2e-postgrest \
+            --network host \
+            -e PGRST_DB_URI="$DATABASE_URL" \
+            -e PGRST_DB_SCHEMAS="public" \
+            -e PGRST_DB_ANON_ROLE="anon" \
+            -e PGRST_JWT_SECRET="$FIELDGRID_E2E_JWT_SECRET" \
+            -e PGRST_SERVER_PORT="9326" \
+            postgrest/postgrest:v12.2.8
+
+      - name: Prove real PostgREST health
+        run: |
+          for _ in {1..60}; do
+            if curl --fail --silent --show-error http://127.0.0.1:9326/ > /dev/null; then
+              docker logs fieldgrid-e2e-postgrest > artifacts/fieldgrid-playwright/logs/postgrest.log 2>&1 || true
+              exit 0
+            fi
+            docker logs fieldgrid-e2e-postgrest > artifacts/fieldgrid-playwright/logs/postgrest.log 2>&1 || true
+            sleep 2
+          done
+          exit 1
+
+      - name: Check for conflict markers
+        run: |
+          if git grep -n -E '^(<<<<<<<|=======|>>>>>>>)' -- ':!pnpm-lock.yaml'; then
+            exit 1
+          fi
+
+      - run: node --test tests/fieldgrid-playwright-e2e-auth-sourceguard.test.mjs
+      - run: node --test tests/fieldgrid-playwright-local-data-path.test.mjs
+      - run: pnpm fieldgrid:playwright
+      - run: pnpm fieldgrid:playwright:evidence
+
+      - name: Validate exact-head acceptance artifacts
+        env:
+          FIELDGRID_EXACT_HEAD: ${{ github.sha }}
+        run: |
+          pnpm fieldgrid:phase2-w11
+          pnpm fieldgrid:phase2-w11:check
+
+      - name: Capture PostgREST logs
+        if: always()
+        run: |
+          mkdir -p artifacts/fieldgrid-playwright/logs
+          docker logs fieldgrid-e2e-postgrest > artifacts/fieldgrid-playwright/logs/postgrest.log 2>&1 || true
+
+      - name: Stop PostgREST
+        if: always()
+        run: docker rm -f fieldgrid-e2e-postgrest || true
+
+      - name: Tear down disposable database
+        if: always()
+        run: |
+          if test -f artifacts/fieldgrid-playwright/runtime-safety-setup-complete; then
+            pnpm fieldgrid:runtime-safety:teardown
+          fi
+
+      - name: Upload Fieldgrid Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: exact-head-fieldgrid-playwright
+          path: |
+            artifacts/fieldgrid-playwright/**
+            artifacts/fieldgrid-phase2-w11/**
+            artifacts/runtime-safety-harness/**/*.json
+            artifacts/runtime-safety-harness/**/*.log
+
+  required:
+    name: Main exact-head gate
+    if: always()
+    needs:
+      - exact-head
+      - runtime-safety-static
+      - runtime-safety-build
+      - runtime-safety-diff
+      - runtime-safety-database
+      - runtime-entrypoint
+      - deploy-health
+      - fieldgrid-playwright
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every authoritative validation group
+        env:
+          REQUIRED_RESULTS: ${{ toJSON(needs) }}
+        run: |
+          # shellcheck disable=SC2016
+          node -e '
+            const results = JSON.parse(process.env.REQUIRED_RESULTS);
+            const failed = Object.entries(results)
+              .filter(([, value]) => value.result !== "success")
+              .map(([name, value]) => `${name}=${value.result}`);
+            if (failed.length > 0) {
+              console.error(`Required validation groups did not all succeed: ${failed.join(", ")}`);
+              process.exit(1);
+            }
+            console.log(`All ${Object.keys(results).length} authoritative validation groups succeeded.`);
+          '
