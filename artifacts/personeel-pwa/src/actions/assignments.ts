@@ -449,6 +449,15 @@ const ROUTE_REFRESH_STATUS_REASONS = {
   in_progress: "status_in_progress",
 } as const;
 
+function participantMutationError(error: unknown, fallback: string): string {
+  const databaseError = error as { code?: unknown; message?: unknown };
+  const message = typeof databaseError?.message === "string" ? databaseError.message : "";
+  if (databaseError?.code === "40001" || /stale|version|gelijktijdig/i.test(message)) {
+    return "Conflict: deze werkbon is aangepast. Vernieuw en probeer opnieuw.";
+  }
+  return fallback;
+}
+
 export async function setAssignmentStatus(
   assignmentId: string,
   newStatus: string,
@@ -491,7 +500,7 @@ export async function setAssignmentStatus(
     });
   } catch (error) {
     console.error("assignment participant action failed", { assignmentId, personnelId: personnel.id, action, error });
-    return { success: false, error: "Bijwerken mislukt" };
+    return { success: false, error: participantMutationError(error, "Bijwerken mislukt") };
   }
 
   // Legacy one-shot guard was isNull(assignmentsTable.enRouteAt); the participant RPC now serializes the write.
@@ -614,8 +623,8 @@ export async function setAssignmentTaskCompletion(
         response: { success: true },
       });
     });
-  } catch {
-    return { success: false, error: "Taak bijwerken mislukt" };
+  } catch (error) {
+    return { success: false, error: participantMutationError(error, "Taak bijwerken mislukt") };
   }
 
   revalidateAssignmentPaths(assignmentId);
@@ -680,8 +689,8 @@ export async function completeAssignment(
         })
         .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)));
     }
-  } catch {
-    return { success: false, error: "Afronden mislukt" };
+  } catch (error) {
+    return { success: false, error: participantMutationError(error, "Afronden mislukt") };
   }
 
   await notifyAssignmentWorkflow({
@@ -762,8 +771,8 @@ export async function notCompleteAssignment(
         updatedAt:                new Date(),
       })
       .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)));
-  } catch {
-    return { success: false, error: "Afmelden mislukt" };
+  } catch (error) {
+    return { success: false, error: participantMutationError(error, "Afmelden mislukt") };
   }
 
   await notifyAssignmentWorkflow({

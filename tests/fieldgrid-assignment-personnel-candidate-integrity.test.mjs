@@ -118,9 +118,10 @@ test("assignment detail status ellipsis opens an all-status dropdown with confir
   assert.match(component, /const allStatuses = useMemo/u);
   assert.match(component, /statuses=\{allStatuses\}/u);
   assert.match(component, /AlertDialogTitle>Status wijzigen\?/u);
-  assert.match(component, /allowAny:\s*true/u);
-  assert.match(statusBody, /options\?: \{ allowAny\?: boolean \}/u);
+  assert.doesNotMatch(component, /allowAny/u);
+  assert.doesNotMatch(statusBody, /allowAny/u);
   assert.match(statusBody, /ASSIGNMENT_STATUSES\.includes\(newStatus\)/u);
-  assert.match(statusBody, /!options\?\.allowAny && !allowed\.includes\(newStatus\)/u);
-  assert.match(statusBody, /status_override/u);
+  assert.match(statusBody, /!allowed\.includes\(newStatus\)/u);
+  assert.match(statusBody, /transitionAssignmentStatus/u);
+  assert.match(statusBody, /expectedVersion: current\.lifecycleVersion/u);
 });

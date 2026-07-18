@@ -56,9 +56,12 @@ test("current status actions preserve the existing draft to sent to paid/cancell
   const paid = functionBlock(invoices, "markInvoicePaid");
   assert.match(paid, /getInvoiceAssignmentForCurrentTenant\(invoiceId\)/u);
   assert.match(paid, /invoice\.status !== "sent"/u);
-  assert.match(paid, /status: "paid", paidDate: today/u);
-  assert.match(paid, /\.set\(\{ status: "paid", updatedAt: new Date\(\) \}\)/u);
-  assert.match(paid, /\.set\(\{ status: "closed", updatedAt: new Date\(\) \}\)/u);
+  assert.match(paid, /db\.transaction/u);
+  assert.match(paid, /FOR UPDATE/u);
+  assert.match(paid, /tx\.insert\(paymentsTable\)/u);
+  assert.match(paid, /tx\.insert\(paymentAllocationsTable\)/u);
+  assert.match(paid, /status: "paid", paymentStatus: "paid"/u);
+  assert.match(paid, /tx\.update\(assignmentsTable\)\.set\(\{ status: "closed", updatedAt: new Date\(\) \}\)/u);
   assert.match(paid, /action:\s+"mark_invoice_paid"/u);
   assert.match(paid, /eventKey:\s+"invoice_paid"/u);
 
@@ -85,13 +88,20 @@ test("current invoice email and Mollie flows stay behind sent invoices", () => {
   const mollie = functionBlock(payments, "createMolliePayment");
   assert.match(mollie, /requirePermission\("invoices", "write"\)/u);
   assert.match(mollie, /process\.env\.MOLLIE_API_KEY/u);
-  assert.match(mollie, /eq\(invoicesTable\.id, invoiceId\), eq\(invoicesTable\.tenantId, tenantId\)/u);
+  assert.match(mollie, /eq\(invoicesTable\.id, invoiceId\),\s*eq\(invoicesTable\.tenantId, tenantId\)/u);
   assert.match(mollie, /invoice\.status !== "sent"/u);
   assert.match(mollie, /fetch\("https:\/\/api\.mollie\.com\/v2\/payments"/u);
+  assert.match(mollie, /"Idempotency-Key": pendingPayment\.providerRequestKey/u);
+  assert.match(mollie, /providerRequestKey: randomUUID\(\)/u);
   assert.match(mollie, /tenantId,/u);
   assert.match(mollie, /description: `Factuur \$\{displayInvoiceNumber\(invoice\.invoiceNumber, invoice\.id\.slice\(0, 8\)\)\}`/u);
-  assert.match(mollie, /invoiceNumber: displayInvoiceNumber\(invoice\.invoiceNumber, invoice\.id\.slice\(0, 8\)\)/u);
-  assert.match(mollie, /db\.insert\(paymentsTable\)\.values/u);
+  assert.match(mollie, /invoiceNumber: displayInvoiceNumber\(\s*invoice\.invoiceNumber,\s*invoice\.id\.slice\(0, 8\),?\s*\)/u);
+  assert.match(mollie, /\.insert\(paymentsTable\)\s+\.values/u);
+  assert.ok(
+    mollie.indexOf(".insert(paymentsTable)") <
+      mollie.indexOf('fetch("https://api.mollie.com/v2/payments"'),
+    "durable pending payment must exist before the provider call",
+  );
   assert.match(mollie, /action:\s+"create_mollie_payment"/u);
 });
 

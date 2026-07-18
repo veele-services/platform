@@ -104,7 +104,8 @@ test("W04 reporting and media ownership are explicit", () => {
 
 test("W04 Personnel PWA execution actions use canonical participant execution service", () => {
   assert.match(personnelActions, /executeAssignmentParticipantAction/u);
-  assert.match(personnelActions, /action,\n\s+idempotencyKey: `\$\{action\}:\$\{assignmentId\}:\$\{personnel\.id\}`/u);
+  assert.match(personnelActions, /idempotencyKey: options\.clientMutationId\?\.trim\(\) \|\| randomUUID\(\)/u);
+  assert.match(personnelActions, /expectedVersion: options\.expectedParticipantVersion \?\? current\.participantVersion \?\? 1/u);
   assert.match(personnelActions, /action: "complete"/u);
   assert.match(personnelActions, /action: "not_complete"/u);
   assert.doesNotMatch(personnelActions, /\.set\(\{\n\s+status:\s+newStatus/u);

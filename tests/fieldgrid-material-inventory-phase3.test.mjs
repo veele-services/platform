@@ -104,5 +104,14 @@ test("phase 3 material page and offline queue pass catalog-safe payloads", () =>
     ],
     "offline material queue",
   );
-  assertContains(provider, ["addMaterialUsage(action.assignmentId, action.payload)"], "offline material sync provider");
+  assertContains(
+    provider,
+    [
+      "addMaterialUsage(action.assignmentId, {",
+      "...action.payload",
+      "expectedParticipantVersion: action.expectedParticipantVersion ?? null",
+      "clientMutationId: action.idempotencyKey",
+    ],
+    "offline material sync provider",
+  );
 });
