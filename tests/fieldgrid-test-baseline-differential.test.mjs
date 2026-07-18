@@ -5,6 +5,7 @@ import {
   compareFailureSets,
   extractFailureNames,
   normalizeFailureName,
+  shouldFetchOriginMain,
 } from "../scripts/fieldgrid-test-baseline-differential.mjs";
 
 test("candidate with the same baseline failures is differential pass", () => {
@@ -51,4 +52,14 @@ test("normalized failure extraction is stable", () => {
     "tenant isolation rejects cross-tenant reads",
     "Windows path C:/repo/tests/sample.test.mjs",
   ]);
+});
+
+test("checkout-provided main mode is explicit and fail-closed", () => {
+  assert.equal(shouldFetchOriginMain({}), true);
+  assert.equal(shouldFetchOriginMain({ FIELDGRID_BASELINE_DIFF_USE_CHECKOUT_MAIN: "0" }), true);
+  assert.equal(shouldFetchOriginMain({ FIELDGRID_BASELINE_DIFF_USE_CHECKOUT_MAIN: "1" }), false);
+  assert.throws(
+    () => shouldFetchOriginMain({ FIELDGRID_BASELINE_DIFF_USE_CHECKOUT_MAIN: "yes" }),
+    /must be 0 or 1/u,
+  );
 });
