@@ -24,6 +24,7 @@ export const FIELDGRID_E2E_FIXTURE_IDENTITIES: Record<string, FieldgridE2EFixtur
   "20000000-0000-4000-8000-000000000104": { email: "personnel@tenant-a.runtime.fieldgrid.test", surface: "personnel", tenantId: "10000000-0000-4000-8000-000000000001" },
   "20000000-0000-4000-8000-000000000105": { email: "customer@tenant-a.runtime.fieldgrid.test", surface: "customer", tenantId: "10000000-0000-4000-8000-000000000001" },
   "20000000-0000-4000-8000-000000000106": { email: "inactive-personnel@tenant-a.runtime.fieldgrid.test", surface: "personnel", tenantId: "10000000-0000-4000-8000-000000000001" },
+  "20000000-0000-4000-8000-000000000107": { email: "phase2-personnel@tenant-a.runtime.fieldgrid.test", surface: "personnel", tenantId: "10000000-0000-4000-8000-000000000001" },
   "20000000-0000-4000-8000-000000000201": { email: "owner@tenant-b.runtime.fieldgrid.test", surface: "backoffice", tenantId: "10000000-0000-4000-8000-000000000002" },
   "20000000-0000-4000-8000-000000000202": { email: "admin@tenant-b.runtime.fieldgrid.test", surface: "backoffice", tenantId: "10000000-0000-4000-8000-000000000002" },
   "20000000-0000-4000-8000-000000000204": { email: "personnel@tenant-b.runtime.fieldgrid.test", surface: "personnel", tenantId: "10000000-0000-4000-8000-000000000002" },
