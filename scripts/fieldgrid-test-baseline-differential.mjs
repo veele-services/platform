@@ -161,22 +161,43 @@ function markdownList(values) {
   return values.length === 0 ? "- none" : values.map((value) => `- ${value}`).join("\n");
 }
 
+export function shouldFetchOriginMain(environment = process.env) {
+  const mode = environment.FIELDGRID_BASELINE_DIFF_USE_CHECKOUT_MAIN;
+  if (mode === undefined || mode === "" || mode === "0") return true;
+  if (mode === "1") return false;
+  throw new Error("FIELDGRID_BASELINE_DIFF_USE_CHECKOUT_MAIN must be 0 or 1.");
+}
+
 async function main() {
   const repoRoot = resolve(process.cwd());
   const defaultOutDir = join(repoRoot, "outputs", "fieldgrid-test-baseline-differential");
   const outDir = resolve(process.env.FIELDGRID_BASELINE_DIFF_OUT_DIR ?? defaultOutDir);
   await mkdir(outDir, { recursive: true });
 
-  const fetchResult = await runLogged(
-    "git",
-    ["fetch", "--no-tags", "origin", "+refs/heads/main:refs/remotes/origin/main"],
-    {
-      cwd: repoRoot,
-      logFile: join(outDir, "git-fetch-origin-main.log"),
-    },
-  );
-  if (fetchResult.status !== 0) {
-    throw new Error("Unable to fetch origin/main for baseline differential gate.");
+  if (shouldFetchOriginMain()) {
+    const fetchResult = await runLogged(
+      "git",
+      ["fetch", "--no-tags", "origin", "+refs/heads/main:refs/remotes/origin/main"],
+      {
+        cwd: repoRoot,
+        logFile: join(outDir, "git-fetch-origin-main.log"),
+      },
+    );
+    if (fetchResult.status !== 0) {
+      throw new Error("Unable to fetch origin/main for baseline differential gate.");
+    }
+  } else {
+    const verifyResult = await runLogged(
+      "git",
+      ["rev-parse", "--verify", "origin/main^{commit}"],
+      {
+        cwd: repoRoot,
+        logFile: join(outDir, "git-verify-origin-main.log"),
+      },
+    );
+    if (verifyResult.status !== 0) {
+      throw new Error("Checkout did not provide a valid origin/main baseline.");
+    }
   }
 
   const originMainSha = await gitOutput(["rev-parse", "origin/main"], repoRoot);

@@ -22,6 +22,7 @@ test("every validation group checks out and proves the recorded GitHub SHA", () 
   assert.equal(explicitRefs.length, checkoutGroups.length);
   assert.equal(headProofs.length, checkoutGroups.length);
   assert.match(workflow, /persist-credentials: false/u);
+  assert.match(workflow, /FIELDGRID_BASELINE_DIFF_USE_CHECKOUT_MAIN: "1"/u);
 });
 
 test("exact-head validation includes every authoritative gate", () => {

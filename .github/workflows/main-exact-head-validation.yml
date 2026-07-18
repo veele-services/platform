@@ -295,7 +295,10 @@ jobs:
       - run: pnpm fieldgrid:migration-order-check:check
       - run: pnpm fieldgrid:test-layers:check
       - run: pnpm run typecheck
-      - run: pnpm fieldgrid:test:baseline-differential
+      - name: Run baseline differential from checkout-provided main
+        env:
+          FIELDGRID_BASELINE_DIFF_USE_CHECKOUT_MAIN: "1"
+        run: pnpm fieldgrid:test:baseline-differential
 
       - name: Upload baseline differential artifacts
         if: always()
