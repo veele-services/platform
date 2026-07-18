@@ -411,21 +411,21 @@ test("Playwright fixture loader reuses customer_users natural key and proves ide
 
 test("Playwright fixtures seed only canonical tenant Admin roles and exact permissions", () => {
   const fixtureSource = read("e2e/fieldgrid/fixtures/seed-e2e-fixtures.mjs");
-  assert.match(fixtureSource, /const CANONICAL_ADMIN_ROLE = 'Admin'/);
+  assert.match(fixtureSource, /const CANONICAL_ADMIN_ROLE = ["']Admin["']/);
   assert.match(fixtureSource, /seedCanonicalAdminRoles/);
-  assert.match(fixtureSource, /\['planning', 'read'\]/);
-  assert.match(fixtureSource, /\['planning', 'write'\]/);
+  assert.match(fixtureSource, /\[["']planning["'], ["']read["']\]/);
+  assert.match(fixtureSource, /\[["']planning["'], ["']write["']\]/);
   assert.match(
     fixtureSource,
     /delete from tenant_user_roles\s+where user_id = any\(\$1::uuid\[\]\)/s,
   );
   assert.match(
     fixtureSource,
-    /canonicalAdminPermissionCountTenantA === CANONICAL_ADMIN_PERMISSIONS\.length/,
+    /canonicalAdminPermissionCountTenantA\s*===\s*CANONICAL_ADMIN_PERMISSIONS\.length/,
   );
   assert.match(
     fixtureSource,
-    /canonicalAdminPermissionCountTenantB === CANONICAL_ADMIN_PERMISSIONS\.length/,
+    /canonicalAdminPermissionCountTenantB\s*===\s*CANONICAL_ADMIN_PERMISSIONS\.length/,
   );
   assert.match(fixtureSource, /tenantAAdminAllRoleLinkCount === 1/);
   assert.match(fixtureSource, /tenantBAdminAllRoleLinkCount === 1/);
@@ -555,7 +555,7 @@ test("workflow provisions PostgreSQL 17, Runtime Safety fixtures, real PostgREST
 
 test("exactly nine browser scenarios exist, including recovery and offline reconnect, and forbidden files/tooling are absent", () => {
   const spec = read("e2e/fieldgrid/tests/golden-path.spec.ts");
-  assert.equal([...spec.matchAll(/\ntest\('/g)].length, 9);
+  assert.equal([...spec.matchAll(/\ntest\(["']/g)].length, 9);
   assert.match(spec, /Customer credential recovery/);
   assert.match(spec, /Personnel credential recovery/);
   assert.match(
