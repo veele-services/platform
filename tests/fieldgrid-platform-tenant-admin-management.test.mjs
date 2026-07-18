@@ -26,7 +26,7 @@ test("platform tenant actions support tenant admin CRUD and owner invite resend"
       "tenantUserRolesTable",
       "tenantProvisioningRunsTable",
       "createAdminClient",
-      "provisionPortalUserWithTemporaryPassword",
+      "provisionPortalUserForActivation",
       "sendEmailWithResult",
       "tenant_admin_added",
       "tenant_admin_updated",

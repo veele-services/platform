@@ -29,7 +29,7 @@ test("platform superadmin bootstrap creates a temporary owner login", () => {
   assertContains(pkg, ["seed:platform-admin"], "db package scripts");
 });
 
-test("temporary password invite helper supports all account surfaces", () => {
+test("activation invite helper supports all account surfaces without exposing a password", () => {
   const helper = read("artifacts/backoffice/src/lib/auth/portal-invites.ts");
 
   assertContains(helper, [
@@ -37,9 +37,13 @@ test("temporary password invite helper supports all account surfaces", () => {
     "personnel",
     "tenant-admin",
     "platform-admin",
-    "generateTemporaryPassword",
-    "force_password_change",
+    "provisionPortalUserForActivation",
+    "generateInternalAuthPassword",
+    "issueCredentialRecoveryChallenge",
+    "buildAccountActivationEmail",
+    "credential_activation_pending",
   ], "portal invite helper");
+  assert.doesNotMatch(helper, /temporaryPassword|generated password|buildTemporaryPasswordEmail/u);
 });
 
 test("global password policy is aligned to 8 characters", () => {
@@ -60,17 +64,20 @@ test("global password policy is aligned to 8 characters", () => {
   }
 });
 
-test("backoffice forces temporary password users through reset", () => {
+test("backoffice consumes a bound one-time grant before provider password update", () => {
   const middleware = read("artifacts/backoffice/src/middleware.ts");
   const actions = read("artifacts/backoffice/src/app/actions/auth.ts");
 
-  assertContains(middleware, ["force_password_change", "resetPasswordUrlWithNext", "url.searchParams.set(\"force\", \"1\")"], "backoffice middleware");
   assertContains(actions, [
     "completePasswordReset",
-    "force_password_change: false",
-    "password_changed_at",
-    "password_changed",
+    "consumeCredentialRecoveryGrant",
+    "assertSubjectEligible",
+    "updateUserById",
+    "recordCredentialRecoveryProviderOutcome",
+    "recovery.purpose",
   ], "backoffice auth actions");
+  assert.doesNotMatch(actions, /password:\s*(?:code|resetCode|challenge\.code)/u);
+  assert.doesNotMatch(middleware, /force_password_change|temporary_password/u);
 });
 
 test("password fields provide visibility toggles on login and reset screens", () => {
@@ -89,7 +96,7 @@ test("password fields provide visibility toggles on login and reset screens", ()
   }
 });
 
-test("forgot password screens support recovery code verification", () => {
+test("forgot password screens support server-side recovery code verification", () => {
   const files = [
     "artifacts/backoffice/src/app/(auth)/wachtwoord-vergeten/page.tsx",
     "artifacts/personeel-pwa/src/app/(auth)/wachtwoord-vergeten/page.tsx",
@@ -100,9 +107,10 @@ test("forgot password screens support recovery code verification", () => {
     const content = read(path);
     assertContains(content, ["Herstelcode", "Code controleren"], path);
     assert.ok(
-      content.includes("verifyOtp") || content.includes("signInWithPassword"),
-      `${path} should verify the recovery code before opening password reset`,
+      content.includes("verifyPasswordResetCode") || content.includes("/password-reset/verify"),
+      `${path} should verify the recovery code server-side`,
     );
+    assert.doesNotMatch(content, /verifyOtp|signInWithPassword/u);
   }
 });
 
@@ -134,10 +142,13 @@ test("klant PWA password reset avoids deployment-stale server action ids", () =>
     "requireCurrentCustomerPortalTenantId",
     "findCustomerResetAccount",
     "eq(customerUsersTable.tenantId, tenantId)",
-    "tenant_id: tenantId",
+    "issueCredentialRecoveryChallenge",
+    "verifyCredentialRecoveryChallenge",
+    "consumeCredentialRecoveryGrant",
     "sendEmailWithResult",
     "purpose: \"customer_portal_password_reset\"",
-    "if (!sent.success) throw new Error",
+    "markCredentialRecoveryDelivery",
+    "CREDENTIAL_RECOVERY_GENERIC_RESPONSE",
   ], "klant auth actions");
   assertContains(mailHelper, [
     "@workspace/db/email-service",
@@ -156,19 +167,19 @@ test("portal password reset and logged-out routes are tenant-aware behind /klant
   const personnelActions = read("artifacts/personeel-pwa/src/actions/auth.ts");
   const personnelMailHelper = read("artifacts/personeel-pwa/src/lib/email.ts");
 
+  assert.doesNotMatch(customerMiddleware, /force_password_change|mustChangePassword|canBypassForcedPasswordChange/u);
   assertContains(customerMiddleware, [
     "function routePath",
     "pathname.startsWith(`${BASE}/`)",
     "normalizedPathname === \"/login\"",
     "normalizedPathname === \"/wachtwoord-vergeten\"",
     "const isPasswordResetApi = normalizedPathname.startsWith(\"/api/auth/password-reset\")",
-    "const canBypassForcedPasswordChange",
     "normalizedPathname.startsWith(\"/api/auth/password-reset\")",
     "normalizedPathname === \"/sw.js\"",
     "normalizedPathname === \"/manifest.json\"",
-    "user && mustChangePassword && !canBypassForcedPasswordChange",
   ], "customer portal middleware");
 
+  assert.doesNotMatch(personnelMiddleware, /force_password_change|mustChangePassword/u);
   assertContains(personnelMiddleware, [
     "function routePath",
     "pathname.startsWith(`${BASE}/`)",
@@ -182,9 +193,11 @@ test("portal password reset and logged-out routes are tenant-aware behind /klant
     "requireCurrentPersonnelPortalTenantId",
     "findPersonnelResetAccount",
     "eq(personnelTable.tenantId, tenantId)",
-    "tenant_id: tenantId",
+    "issueCredentialRecoveryChallenge",
+    "verifyCredentialRecoveryChallenge",
+    "consumeCredentialRecoveryGrant",
     "purpose: \"personnel_portal_password_reset\"",
-    "if (!sent.success) throw new Error",
+    "CREDENTIAL_RECOVERY_GENERIC_RESPONSE",
   ], "personnel auth actions");
   assertContains(personnelMailHelper, [
     "sendEmailWithResult",

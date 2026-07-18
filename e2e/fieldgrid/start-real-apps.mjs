@@ -21,6 +21,8 @@ const postgrestOrigin = process.env.FIELDGRID_E2E_POSTGREST_ORIGIN ?? `http://12
 const jwtMaxLifetimeSeconds = 15 * 60;
 const localJwtSecret = process.env.FIELDGRID_E2E_JWT_SECRET ?? 'fieldgrid-e2e-only-jwt-secret-minimum-32-bytes-not-for-production';
 const localAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? 'fieldgrid-e2e-local-anon-key-not-for-production';
+const localServiceRoleKey = 'fieldgrid-e2e-local-service-role-not-for-production';
+const recoveryOutboxPath = '/tmp/fieldgrid-phase2b-playwright-outbox.jsonl';
 const appProbeTimeoutMs = 45_000;
 const localFixtureIdentities = {
   tenantAAdmin: { userId: '20000000-0000-4000-8000-000000000102', email: 'admin@tenant-a.runtime.fieldgrid.test' },
@@ -39,6 +41,12 @@ const children = new Map();
 let gatewayServer;
 let orchestratorServer;
 let latestLiveness = { ready: false, checks: [] };
+const authProviderProof = {
+  passwordUpdates: 0,
+  sessionInvalidations: 0,
+  legacyCodePasswordDetected: false,
+  updatedUsers: new Set(),
+};
 let pendingLiveness;
 let latestPreflight;
 let dataPathProof;
@@ -97,6 +105,12 @@ function appEnv(port) {
     FIELDGRID_E2E_JWT_SECRET: localJwtSecret,
     NEXT_PUBLIC_SUPABASE_URL: 'http://127.0.0.1:9324',
     NEXT_PUBLIC_SUPABASE_ANON_KEY: localAnonKey,
+    SUPABASE_SERVICE_ROLE_KEY: localServiceRoleKey,
+    FIELDGRID_CREDENTIAL_RECOVERY_SECRET: 'fieldgrid-e2e-credential-recovery-secret-minimum-32-bytes',
+    FIELDGRID_EMAIL_TEST_OUTBOX_PATH: recoveryOutboxPath,
+    FIELDGRID_RECOVERY_ALLOWED_ORIGINS: 'http://127.0.0.1:9322,http://127.0.0.1:9323',
+    PERSONEEL_PORTAL_URL: 'http://127.0.0.1:9322/personeel',
+    KLANT_PORTAL_URL: 'http://127.0.0.1:9323/klant',
     SESSION_SECRET: process.env.SESSION_SECRET ?? 'fieldgrid-e2e-local-session-secret-minimum-32-bytes',
     NODE_ENV: process.env.NODE_ENV === 'production' ? 'development' : (process.env.NODE_ENV ?? 'development'),
   };
@@ -142,12 +156,76 @@ export function postgrestUrlForGatewayRequest(requestUrl) {
   return new URL(`${postgrestPath}${incoming.search}`, postgrestOrigin);
 }
 
+function fixtureAuthUser(userId) {
+  const identity = Object.values(localFixtureIdentities).find((candidate) => candidate.userId === userId);
+  if (!identity) return null;
+  return {
+    id: identity.userId,
+    email: identity.email,
+    aud: 'authenticated',
+    role: 'authenticated',
+    email_confirmed_at: '2026-07-18T00:00:00.000Z',
+    created_at: '2026-07-18T00:00:00.000Z',
+    updated_at: '2026-07-18T00:00:00.000Z',
+    app_metadata: { provider: 'fieldgrid-e2e', providers: ['email'] },
+    user_metadata: { recovery_e2e: true },
+    identities: [],
+  };
+}
+
+async function requestJson(req) {
+  const chunks = [];
+  for await (const chunk of req) chunks.push(Buffer.from(chunk));
+  if (chunks.length === 0) return {};
+  return JSON.parse(Buffer.concat(chunks).toString('utf8'));
+}
+
+function recoveryProviderProof() {
+  return {
+    passwordUpdates: authProviderProof.passwordUpdates,
+    sessionInvalidations: authProviderProof.sessionInvalidations,
+    legacyCodePasswordDetected: authProviderProof.legacyCodePasswordDetected,
+    updatedUsers: [...authProviderProof.updatedUsers].sort(),
+  };
+}
+
 function startGateway() {
   gatewayServer = http.createServer(async (req, res) => {
     try {
       if (req.method === 'GET' && req.url === '/healthz') {
         const postgrest = await fetchWithTimeout(new URL('/', postgrestOrigin), {}, 1000).then((r) => r.status < 500).catch(() => false);
         return json(res, postgrest ? 200 : 503, { status: postgrest ? 'ok' : 'postgrest_unreachable' });
+      }
+      const incomingUrl = new URL(req.url ?? '/', 'http://fieldgrid-e2e.local');
+      if (incomingUrl.pathname.startsWith('/auth/v1/admin/users')) {
+        if (req.headers.apikey !== localServiceRoleKey) {
+          return json(res, 401, { message: 'invalid local service role' });
+        }
+        const userId = incomingUrl.pathname.split('/').at(-1);
+        if (req.method === 'GET' && userId === 'users') {
+          return json(res, 200, {
+            users: Object.values(localFixtureIdentities).map((identity) => fixtureAuthUser(identity.userId)),
+            aud: 'authenticated',
+          });
+        }
+        const user = fixtureAuthUser(userId);
+        if (!user) return json(res, 404, { message: 'fixture user not found' });
+        if (req.method === 'GET') return json(res, 200, user);
+        if (req.method === 'PUT') {
+          const body = await requestJson(req);
+          if (typeof body.password === 'string') {
+            authProviderProof.passwordUpdates += 1;
+            authProviderProof.sessionInvalidations += 1;
+            authProviderProof.legacyCodePasswordDetected ||= /^\d{8}$/u.test(body.password);
+            authProviderProof.updatedUsers.add(user.id);
+          }
+          return json(res, 200, {
+            ...user,
+            app_metadata: body.app_metadata ?? user.app_metadata,
+            user_metadata: body.user_metadata ?? user.user_metadata,
+          });
+        }
+        return json(res, 405, { message: 'method not allowed' });
       }
       if (!req.url?.startsWith('/rest/v1/')) return json(res, 404, { error: 'unknown route' });
       const upstream = postgrestUrlForGatewayRequest(req.url);
@@ -363,6 +441,9 @@ function startOrchestrator() {
         return json(res, 503, latestPreflight);
       }
     }
+    if (req.url === '/recovery-provider-proof') {
+      return json(res, 200, recoveryProviderProof());
+    }
     return json(res, 404, { error: 'unknown route' });
   });
   orchestratorServer.listen(ports.orchestrator, '127.0.0.1');
@@ -374,6 +455,7 @@ export async function start() {
     rm(statusPath, { force: true }),
     rm(preflightPath, { force: true }),
     rm(proofPath, { force: true }),
+    rm(recoveryOutboxPath, { force: true }),
   ]);
   startGateway();
   startOrchestrator();

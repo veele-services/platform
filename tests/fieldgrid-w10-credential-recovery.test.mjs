@@ -52,13 +52,15 @@ test("W10 shared recovery service provides HMAC lookup, hashed codes, grants and
   ], "credential recovery service");
 });
 
-test("W10 reset code is not set as the actual Supabase password", () => {
+test("Phase 2B activation code is never set or returned as the Supabase password", () => {
   const helper = read("artifacts/backoffice/src/lib/auth/portal-invites.ts");
+  const recovery = read("lib/db/src/credential-recovery-service.ts");
   assertContains(helper, [
-    "opts.temporaryPasswordKind === \"reset_code\"",
-    "internalAuthPassword",
-    "generateTemporaryPassword()",
-    "password: internalAuthPassword",
-  ], "portal invite helper reset password safety");
-  assert.doesNotMatch(helper, /password:\s*opts\.temporaryPassword,/u);
+    "generateInternalAuthPassword",
+    "password: generateInternalAuthPassword()",
+    "issueCredentialRecoveryChallenge",
+    "buildAccountActivationEmail",
+  ], "portal activation safety");
+  assertContains(recovery, ["code_hash", "grant_hash", "safeCompareRecoveryDigest"], "recovery lifecycle");
+  assert.doesNotMatch(helper, /temporaryPassword|password:\s*(?:code|challenge\.code|opts\.)/u);
 });

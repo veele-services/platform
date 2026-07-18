@@ -1,4 +1,5 @@
 import crypto from "node:crypto";
+import { appendFile } from "node:fs/promises";
 import { Resend } from "resend";
 import { desc, eq } from "drizzle-orm";
 import { db } from "./index";
@@ -17,7 +18,7 @@ import {
 } from "./email-templates";
 
 export type PlatformEmailProviderType = "resend_api" | "smtp";
-export type RuntimeEmailProviderType = PlatformEmailProviderType | "legacy_smtp" | "env_resend" | "none";
+export type RuntimeEmailProviderType = PlatformEmailProviderType | "legacy_smtp" | "env_resend" | "test_outbox" | "none";
 export type PlatformEmailProviderStatus = "draft" | "configured" | "disabled" | "error";
 export type PlatformEmailTestStatus = "success" | "failed";
 export type TenantEmailTransport = "platform" | "smtp" | "api";
@@ -504,6 +505,32 @@ export async function sendTransactionalEmail(input: TransactionalEmailInput): Pr
     const message = sanitizeError(error);
     await logDelivery(input, null, "failed", message);
     return { success: false, error: message, providerType: "none", providerId: null };
+  }
+
+  const testOutboxPath = process.env["FIELDGRID_EMAIL_TEST_OUTBOX_PATH"];
+  const testTransportAllowed =
+    process.env.NODE_ENV === "test" ||
+    process.env["FIELDGRID_E2E_AUTH_ENABLED"] === "true";
+  if (testOutboxPath && testTransportAllowed) {
+    const providerMessageId = `test-${crypto.randomUUID()}`;
+    const captured = {
+      id: providerMessageId,
+      capturedAt: new Date().toISOString(),
+      to: normalizeRecipients(normalizedInput.to),
+      subject: normalizedInput.subject,
+      html: normalizedInput.html,
+      text: normalizedInput.text ?? null,
+      tenantId: normalizedInput.tenantId ?? null,
+      templateKey: normalizedInput.templateKey ?? null,
+      purpose: normalizedInput.purpose ?? null,
+    };
+    await appendFile(testOutboxPath, `${JSON.stringify(captured)}\n`, { encoding: "utf8", mode: 0o600 });
+    return {
+      success: true,
+      providerType: "test_outbox",
+      providerId: "fieldgrid-test-outbox",
+      providerMessageId,
+    };
   }
 
   let provider: ResolvedProvider | null;

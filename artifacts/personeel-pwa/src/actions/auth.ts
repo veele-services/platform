@@ -1,11 +1,22 @@
 "use server";
 
-import { randomInt } from "node:crypto";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { and, eq, sql } from "drizzle-orm";
-import { db, personnelTable } from "@workspace/db";
+import {
+  CREDENTIAL_RECOVERY_GENERIC_RESPONSE,
+  consumeCredentialRecoveryGrant,
+  db,
+  issueCredentialRecoveryChallenge,
+  markCredentialRecoveryDelivery,
+  personnelTable,
+  recordCredentialRecoveryProviderOutcome,
+  resolveCredentialRecoveryOrigin,
+  verifyCredentialRecoveryChallenge,
+  type CredentialRecoveryPurpose,
+  type CredentialRecoveryState,
+} from "@workspace/db";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
@@ -19,42 +30,31 @@ type AuthUserRecord = {
   user_metadata?: Record<string, unknown>;
 };
 
-function generatePasswordResetCode(): string {
-  let code = "";
-  for (let i = 0; i < 6; i += 1) code += String(randomInt(10));
-  return code;
-}
-
-function passwordResetCodeExpiresAt(now = new Date()): string {
-  return new Date(now.getTime() + 30 * 60 * 1000).toISOString();
-}
+const RECOVERY_COOKIE = "fg_personnel_recovery_grant";
 
 function firstForwardedValue(value: string | null): string {
   return (value ?? "").split(",")[0]?.trim() ?? "";
 }
 
-async function currentPersoneelPortalUrl(): Promise<string> {
-  const requestHeaders = await headers();
-  const host =
-    firstForwardedValue(requestHeaders.get("x-forwarded-host")) ||
-    requestHeaders.get("host");
-  if (!host) return personeelPortalUrl();
-
-  const proto = firstForwardedValue(requestHeaders.get("x-forwarded-proto")) || "https";
-  return `${proto}://${host.replace(/\/$/, "")}/personeel`;
+function recoveryOrigin(): string {
+  const configured = new URL(personeelPortalUrl()).origin;
+  const allowedOrigins = (process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? configured)
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean);
+  return resolveCredentialRecoveryOrigin({
+    configuredOrigin: configured,
+    allowedOrigins,
+    allowHttpLocalhost: process.env.NODE_ENV !== "production",
+  });
 }
 
-async function findAuthUserByEmail(email: string): Promise<AuthUserRecord | null> {
-  const admin = createAdminClient();
-  const normalized = email.trim().toLowerCase();
-  for (let page = 1; page <= 20; page += 1) {
-    const { data, error } = await admin.auth.admin.listUsers({ page, perPage: 1000 });
-    if (error) throw new Error(error.message ?? "Auth-gebruiker zoeken mislukt.");
-    const user = data.users.find((candidate) => candidate.email?.toLowerCase() === normalized);
-    if (user) return user as AuthUserRecord;
-    if (data.users.length < 1000) return null;
-  }
-  return null;
+async function recoveryRequestSignals(): Promise<{ networkSignal: string; clientSignal: string }> {
+  const requestHeaders = await headers();
+  return {
+    networkSignal: firstForwardedValue(requestHeaders.get("x-forwarded-for")) || "unknown-network",
+    clientSignal: requestHeaders.get("user-agent") ?? "unknown-client",
+  };
 }
 
 function displayName(user: AuthUserRecord, fallbackEmail: string): string {
@@ -89,31 +89,19 @@ async function findPersonnelResetAccount(
     )
     .limit(1);
 
-  if (!personnel) return null;
+  if (!personnel?.userId) return null;
 
-  let authUser: AuthUserRecord | null = null;
-  if (personnel.userId) {
-    const admin = createAdminClient();
-    const { data, error } = await admin.auth.admin.getUserById(personnel.userId);
-    if (error) throw new Error(error.message ?? "Auth-gebruiker ophalen mislukt.");
-    authUser = data.user as AuthUserRecord | null;
-    if (authUser?.email?.toLowerCase() !== normalizedEmail) return null;
-  } else {
-    authUser = await findAuthUserByEmail(normalizedEmail);
-  }
+  const admin = createAdminClient();
+  const { data, error } = await admin.auth.admin.getUserById(personnel.userId);
+  if (error) throw new Error(error.message ?? "Auth-gebruiker ophalen mislukt.");
+  const authUser = data.user as AuthUserRecord | null;
+  if (authUser?.email?.toLowerCase() !== normalizedEmail) return null;
 
   if (!authUser) return null;
   return {
     authUser,
     recipientName: personnelDisplayName(personnel, displayName(authUser, normalizedEmail)),
   };
-}
-
-function isTemporaryPasswordExpired(appMetadata: Record<string, unknown> | null | undefined): boolean {
-  const expiresAt = appMetadata?.["temporary_password_expires_at"];
-  if (typeof expiresAt !== "string" || !expiresAt) return false;
-  const expiry = new Date(expiresAt).getTime();
-  return Number.isFinite(expiry) && expiry <= Date.now();
 }
 
 const PORTAL_BASE = "/personeel";
@@ -152,14 +140,6 @@ export async function signIn(formData: FormData) {
   if (error) {
     const nextQuery = next ? `&next=${encodeURIComponent(next)}` : "";
     redirect(`/login?error=Ongeldige+inloggegevens${nextQuery}`);
-  }
-
-  if (data.user?.app_metadata?.force_password_change === true) {
-    if (isTemporaryPasswordExpired(data.user.app_metadata as Record<string, unknown>)) {
-      await supabase.auth.signOut();
-      redirect(`/login?error=${encodeURIComponent("De tijdelijke code is verlopen. Vraag een nieuwe herstelcode aan.")}`);
-    }
-    redirect("/reset-wachtwoord?force=1");
   }
 
   redirect(next ?? "/");
@@ -210,93 +190,137 @@ export async function completePasswordReset(
     return { error: "Wachtwoorden komen niet overeen" };
   }
 
+  const tenantId = await requireCurrentPersonnelPortalTenantId();
+  const cookieStore = await cookies();
+  const [purposeValue, grant, extra] = (cookieStore.get(RECOVERY_COOKIE)?.value ?? "").split("|");
+  const purpose: CredentialRecoveryPurpose | null =
+    purposeValue === "activation" || purposeValue === "password-reset" ? purposeValue : null;
+  if (!tenantId || !purpose || !grant || extra !== undefined) {
+    return { error: "Deze herstelsessie is ongeldig, verlopen of al gebruikt." };
+  }
+
+  const consumed = await consumeCredentialRecoveryGrant({
+    surface: "personnel-portal",
+    purpose,
+    tenantId,
+    redirectOrigin: recoveryOrigin(),
+    grant,
+    ...(await recoveryRequestSignals()),
+    assertSubjectEligible: async (subjectUserId) => {
+      const [eligible] = await db
+        .select({ id: personnelTable.id })
+        .from(personnelTable)
+        .where(and(
+          eq(personnelTable.tenantId, tenantId),
+          eq(personnelTable.userId, subjectUserId),
+          eq(personnelTable.isActive, true),
+        ))
+        .limit(1);
+      return Boolean(eligible);
+    },
+  });
+  cookieStore.delete(RECOVERY_COOKIE);
+  if (consumed.state !== "valid" || !consumed.subjectUserId || !consumed.challengeId) {
+    return { error: "Deze herstelsessie is ongeldig, verlopen of al gebruikt." };
+  }
+
+  const admin = createAdminClient();
+  const { data: current } = await admin.auth.admin.getUserById(consumed.subjectUserId);
+  const appMetadata: Record<string, unknown> = {
+    ...(current.user?.app_metadata ?? {}),
+    force_password_change: false,
+    password_changed_at: new Date().toISOString(),
+  };
+  delete appMetadata["temporary_password_issued_at"];
+  delete appMetadata["temporary_password_expires_at"];
+  delete appMetadata["temporary_password_kind"];
+  delete appMetadata["credential_activation_pending"];
+  const { error } = await admin.auth.admin.updateUserById(consumed.subjectUserId, {
+    password,
+    app_metadata: appMetadata,
+  });
+  await recordCredentialRecoveryProviderOutcome({
+    challengeId: consumed.challengeId,
+    success: !error,
+    sessionRevoked: !error,
+  });
+  if (error) return { error: "Wachtwoord opslaan mislukt. Vraag een nieuwe herstellink aan." };
+
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) {
-    return { error: "Sessie verlopen. Log opnieuw in met het tijdelijke wachtwoord." };
-  }
-
-  const { error } = await supabase.auth.updateUser({ password });
-  if (error) {
-    return {
-      error: error.message.includes("same password")
-        ? "Het nieuwe wachtwoord mag niet gelijk zijn aan het huidige wachtwoord."
-        : "Wachtwoord opslaan mislukt. Vraag zo nodig een nieuw tijdelijk wachtwoord aan.",
-    };
-  }
-
-  if (user.app_metadata?.force_password_change === true) {
-    try {
-      const admin = createAdminClient();
-      const appMetadata: Record<string, unknown> = {
-        ...(user.app_metadata ?? {}),
-        force_password_change: false,
-        password_changed_at: new Date().toISOString(),
-      };
-      delete appMetadata["temporary_password_issued_at"];
-      delete appMetadata["temporary_password_expires_at"];
-      delete appMetadata["temporary_password_kind"];
-      const { error: metadataError } = await admin.auth.admin.updateUserById(user.id, {
-        app_metadata: appMetadata,
-      });
-      if (metadataError) throw metadataError;
-    } catch {
-      return { error: "Wachtwoord opgeslagen, maar de eerste-login status kon niet worden afgerond. Neem contact op met de beheerder." };
-    }
-  }
-
   await supabase.auth.signOut();
   return { success: true };
 }
 
-export async function requestPasswordResetCode(email: string): Promise<{ success: boolean; message?: string }> {
+export async function requestPasswordResetCode(email: string): Promise<{ success: boolean; message: string }> {
   const normalizedEmail = email.trim().toLowerCase();
-  if (!normalizedEmail) return { success: false, message: "E-mailadres is verplicht." };
+  const publicResult = { success: true, message: CREDENTIAL_RECOVERY_GENERIC_RESPONSE };
 
   try {
     const tenantId = await requireCurrentPersonnelPortalTenantId();
-    if (!tenantId) {
-      return { success: false, message: "Personeelsportaal voor deze host is niet beschikbaar." };
-    }
+    if (!tenantId || !normalizedEmail) return publicResult;
 
     const account = await findPersonnelResetAccount(tenantId, normalizedEmail);
-    if (!account) return { success: true };
-
-    const code = generatePasswordResetCode();
-    const admin = createAdminClient();
-    const { error } = await admin.auth.admin.updateUserById(account.authUser.id, {
-      password: code,
-      email_confirm: true,
-      app_metadata: {
-        ...(account.authUser.app_metadata ?? {}),
-        force_password_change: true,
-        portal: "personnel",
-        tenant_id: tenantId,
-        temporary_password_issued_at: new Date().toISOString(),
-        temporary_password_expires_at: passwordResetCodeExpiresAt(),
-        temporary_password_kind: "reset_code",
-      },
-    });
-    if (error) throw error;
-
-    const { subject, html } = buildPasswordResetCodeEmail({
-      recipientName: account.recipientName,
-      portalName: "Personeelsportaal",
-      resetUrl: `${await currentPersoneelPortalUrl()}/wachtwoord-vergeten`,
-      code,
-    });
-    const sent = await sendEmailWithResult({
-      to: normalizedEmail,
-      subject,
-      html,
+    const challenge = await issueCredentialRecoveryChallenge({
+      surface: "personnel-portal",
+      purpose: "password-reset",
       tenantId,
-      purpose: "personnel_portal_password_reset",
+      accountIdentifier: normalizedEmail,
+      subjectUserId: account?.authUser.id ?? null,
+      redirectOrigin: recoveryOrigin(),
+      ...(await recoveryRequestSignals()),
     });
-    if (!sent.success) throw new Error(sent.error ?? "Herstelmail versturen mislukt.");
+
+    if (account && challenge.status === "issued" && challenge.challengeId && challenge.code) {
+      const { subject, html } = buildPasswordResetCodeEmail({
+        recipientName: account.recipientName,
+        portalName: "Personeelsportaal",
+        resetUrl: `${personeelPortalUrl()}/wachtwoord-vergeten`,
+        code: challenge.code,
+      });
+      const sent = await sendEmailWithResult({
+        to: normalizedEmail,
+        subject,
+        html,
+        tenantId,
+        purpose: "personnel_portal_password_reset",
+      });
+      await markCredentialRecoveryDelivery(challenge.challengeId, sent.success);
+    }
   } catch (error) {
-    console.error("[auth] Personeel password reset mail failed:", error);
-    return { success: false, message: "Herstelmail versturen mislukt. Probeer het later opnieuw." };
+    console.error("[auth] Personeel password reset request failed:", error);
   }
 
-  return { success: true };
+  return publicResult;
+}
+
+export async function verifyPasswordResetCode(input: {
+  email: string;
+  code: string;
+  purpose?: CredentialRecoveryPurpose;
+}): Promise<{ success: boolean; state: CredentialRecoveryState }> {
+  const tenantId = await requireCurrentPersonnelPortalTenantId();
+  const purpose = input.purpose ?? "password-reset";
+  if (!tenantId) return { success: false, state: "invalid" };
+  const result = await verifyCredentialRecoveryChallenge({
+    surface: "personnel-portal",
+    purpose,
+    tenantId,
+    accountIdentifier: input.email,
+    code: input.code,
+    redirectOrigin: recoveryOrigin(),
+    ...(await recoveryRequestSignals()),
+  });
+  if (result.state !== "valid" || !result.grant || !result.grantExpiresAt) {
+    return { success: false, state: result.state };
+  }
+
+  const cookieStore = await cookies();
+  cookieStore.set(RECOVERY_COOKIE, `${purpose}|${result.grant}`, {
+    httpOnly: true,
+    secure: recoveryOrigin().startsWith("https://"),
+    sameSite: "strict",
+    path: "/personeel",
+    expires: result.grantExpiresAt,
+  });
+  return { success: true, state: "valid" };
 }

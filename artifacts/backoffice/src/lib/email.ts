@@ -139,11 +139,11 @@ export async function buildStyledNotificationEmail(
   });
 }
 
-export function buildTemporaryPasswordEmail(opts: {
+export function buildAccountActivationEmail(opts: {
   recipientName: string;
   portalName: string;
-  loginUrl: string;
-  temporaryPassword: string;
+  activationUrl: string;
+  code: string;
 }): RenderedEmail {
   return renderPreview("account_invite", opts);
 }

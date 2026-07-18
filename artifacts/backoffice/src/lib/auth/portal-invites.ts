@@ -1,62 +1,15 @@
-import { randomInt } from "node:crypto";
 import type { User } from "@supabase/supabase-js";
+import {
+  generateInternalAuthPassword,
+  issueCredentialRecoveryChallenge,
+  markCredentialRecoveryDelivery,
+  resolveCredentialRecoveryOrigin,
+  type CredentialRecoverySurface,
+} from "@workspace/db";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { buildAccountActivationEmail, sendEmailWithResult } from "@/lib/email";
 
 export type PortalInviteType = "customer" | "personnel" | "tenant-admin" | "platform-admin";
-export type TemporaryPasswordKind = "invite" | "reset_code";
-
-const LOWER = "abcdefghijkmnopqrstuvwxyz";
-const UPPER = "ABCDEFGHJKLMNPQRSTUVWXYZ";
-const DIGITS = "23456789";
-const SYMBOLS = "!@#$%*+-?";
-
-function pick(chars: string): string {
-  return chars[randomInt(chars.length)]!;
-}
-
-function shuffle(chars: string[]): string[] {
-  for (let i = chars.length - 1; i > 0; i -= 1) {
-    const j = randomInt(i + 1);
-    [chars[i], chars[j]] = [chars[j]!, chars[i]!];
-  }
-  return chars;
-}
-
-export function generateTemporaryPassword(): string {
-  const all = LOWER + UPPER + DIGITS + SYMBOLS;
-  const chars = [
-    pick(LOWER),
-    pick(UPPER),
-    pick(DIGITS),
-    pick(SYMBOLS),
-  ];
-
-  while (chars.length < 16) {
-    chars.push(pick(all));
-  }
-
-  return shuffle(chars).join("");
-}
-
-export function generatePasswordResetCode(): string {
-  let code = "";
-  for (let i = 0; i < 6; i += 1) {
-    code += String(randomInt(10));
-  }
-  return code;
-}
-
-export function passwordResetCodeExpiresAt(now = new Date()): string {
-  return new Date(now.getTime() + 30 * 60 * 1000).toISOString();
-}
-
-export function isTemporaryPasswordExpired(appMetadata: Record<string, unknown> | null | undefined): boolean {
-  const expiresAt = appMetadata?.["temporary_password_expires_at"];
-  if (typeof expiresAt !== "string" || !expiresAt) return false;
-  const expiry = new Date(expiresAt).getTime();
-  return Number.isFinite(expiry) && expiry <= Date.now();
-}
-
 function isEmailExistsError(error: { code?: string; message?: string } | null): boolean {
   const message = error?.message?.toLowerCase() ?? "";
   return error?.code === "email_exists" ||
@@ -89,165 +42,124 @@ export async function findAuthUserByEmail(
   return null;
 }
 
-function temporaryPasswordAppMetadata(opts: {
-  existing?: Record<string, unknown> | null;
-  portal: PortalInviteType;
-  kind: TemporaryPasswordKind;
-  issuedAt: string;
-  expiresAt?: string | null;
-}): Record<string, unknown> {
-  const appMetadata: Record<string, unknown> = {
-    ...(opts.existing ?? {}),
-    force_password_change: true,
-    portal: opts.portal,
-    temporary_password_issued_at: opts.issuedAt,
-    temporary_password_kind: opts.kind,
+function activationAppMetadata(existing: Record<string, unknown> | null | undefined, portal: PortalInviteType): Record<string, unknown> {
+  const metadata: Record<string, unknown> = {
+    ...(existing ?? {}),
+    portal,
+    credential_activation_pending: true,
   };
-
-  if (opts.expiresAt) {
-    appMetadata["temporary_password_expires_at"] = opts.expiresAt;
-  } else {
-    delete appMetadata["temporary_password_expires_at"];
-  }
-
-  return appMetadata;
+  delete metadata["force_password_change"];
+  delete metadata["temporary_password_issued_at"];
+  delete metadata["temporary_password_expires_at"];
+  delete metadata["temporary_password_kind"];
+  return metadata;
 }
 
-export async function provisionPortalUserWithTemporaryPassword(opts: {
+function surfaceForPortal(portal: PortalInviteType): CredentialRecoverySurface {
+  if (portal === "customer") return "customer-portal";
+  if (portal === "personnel") return "personnel-portal";
+  if (portal === "tenant-admin") return "tenant-backoffice";
+  return "platform-admin";
+}
+
+function trustedActivationOrigin(activationUrl: string): string {
+  const configuredOrigin = new URL(activationUrl).origin;
+  const allowedOrigins = (process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? configuredOrigin)
+    .split(",").map((value) => value.trim()).filter(Boolean);
+  return resolveCredentialRecoveryOrigin({
+    configuredOrigin,
+    allowedOrigins,
+    allowHttpLocalhost: process.env.NODE_ENV !== "production",
+  });
+}
+
+export async function provisionPortalUserForActivation(opts: {
   email: string;
   fullName: string;
   portal: PortalInviteType;
-  temporaryPassword?: string;
-  temporaryPasswordKind?: TemporaryPasswordKind;
-  expiresAt?: string | null;
+  tenantId: string | null;
+  portalName: string;
+  activationUrl: string;
+  actorUserId?: string | null;
   allowExistingActive?: boolean;
-}): Promise<{ user: User; temporaryPassword: string; created: boolean }> {
+}): Promise<{ user: User; created: boolean; challengeId: string; expiresAt: Date }> {
   const admin = createAdminClient();
   const email = opts.email.trim().toLowerCase();
-  const temporaryPassword = opts.temporaryPassword ?? generateTemporaryPassword();
-  const issuedAt = new Date().toISOString();
-
-  const appMetadata = temporaryPasswordAppMetadata({
-    portal: opts.portal,
-    kind: opts.temporaryPasswordKind ?? "invite",
-    issuedAt,
-    expiresAt: opts.expiresAt,
-  });
-  const userMetadata = {
-    full_name: opts.fullName,
-    name: opts.fullName,
-  };
-
+  const surface = surfaceForPortal(opts.portal);
+  if ((surface === "platform-admin") !== (opts.tenantId === null)) {
+    throw new Error("Ongeldige tenantbinding voor accountactivatie.");
+  }
+  const userMetadata = { full_name: opts.fullName, name: opts.fullName };
   const { data: createdData, error: createError } = await admin.auth.admin.createUser({
     email,
-    password: temporaryPassword,
+    password: generateInternalAuthPassword(),
     email_confirm: true,
-    app_metadata: appMetadata,
+    app_metadata: activationAppMetadata(null, opts.portal),
     user_metadata: userMetadata,
   });
 
+  let user: User;
+  let created = false;
   if (!createError && createdData.user) {
-    return { user: createdData.user, temporaryPassword, created: true };
+    user = createdData.user;
+    created = true;
+  } else {
+    if (!isEmailExistsError(createError)) {
+      throw new Error(createError?.message ?? "Portaalgebruiker aanmaken mislukt.");
+    }
+    const existingUser = await findAuthUserByEmail(admin, email);
+    if (!existingUser) {
+      throw new Error("Het bestaande auth-account kon niet veilig worden opgehaald.");
+    }
+    const existingPortal = existingUser.app_metadata?.portal;
+    if (existingPortal && existingPortal !== opts.portal && !opts.allowExistingActive) {
+      throw new Error("Dit e-mailadres is al gekoppeld aan een ander portaalaccount.");
+    }
+    const hasSignedIn = Boolean((existingUser as User & { last_sign_in_at?: string | null }).last_sign_in_at);
+    const activationPending = existingUser.app_metadata?.credential_activation_pending === true;
+    if (!opts.allowExistingActive && hasSignedIn && !activationPending) {
+      throw new Error("Er bestaat al een actief account voor dit e-mailadres. Gebruik wachtwoordherstel.");
+    }
+    const { data: updatedData, error: updateError } = await admin.auth.admin.updateUserById(existingUser.id, {
+      app_metadata: activationAppMetadata(existingUser.app_metadata, opts.portal),
+      user_metadata: { ...(existingUser.user_metadata ?? {}), ...userMetadata },
+    });
+    if (updateError || !updatedData.user) {
+      throw new Error(updateError?.message ?? "Portaalgebruiker bijwerken mislukt.");
+    }
+    user = updatedData.user;
   }
 
-  if (!isEmailExistsError(createError)) {
-    throw new Error(createError?.message ?? "Portaalgebruiker aanmaken mislukt.");
-  }
-
-  const existingUser = await findAuthUserByEmail(admin, email);
-  if (!existingUser) {
-    throw new Error("Er bestaat al een auth-account voor dit e-mailadres, maar deze kon niet worden opgehaald.");
-  }
-
-  const existingPortal = existingUser.app_metadata?.portal;
-  if (existingPortal && existingPortal !== opts.portal && !opts.allowExistingActive) {
-    throw new Error("Dit e-mailadres is al gekoppeld aan een ander portaalaccount.");
-  }
-
-  const existingAuthState = existingUser as User & {
-    confirmed_at?: string | null;
-    email_confirmed_at?: string | null;
-    last_sign_in_at?: string | null;
-  };
-  const hasSignedIn = Boolean(existingAuthState.last_sign_in_at);
-  const isPendingTemporaryPassword = existingUser.app_metadata?.force_password_change === true;
-  const isLegacyPendingInvite =
-    !existingPortal &&
-    !hasSignedIn &&
-    !existingAuthState.confirmed_at &&
-    !existingAuthState.email_confirmed_at;
-
-  if (!opts.allowExistingActive && !isPendingTemporaryPassword && !isLegacyPendingInvite) {
-    throw new Error("Er bestaat al een actief account voor dit e-mailadres. Gebruik daarvoor een wachtwoord-reset.");
-  }
-
-  const { data: updatedData, error: updateError } = await admin.auth.admin.updateUserById(
-    existingUser.id,
-    {
-      password: temporaryPassword,
-      email_confirm: true,
-      app_metadata: temporaryPasswordAppMetadata({
-        existing: existingUser.app_metadata,
-        portal: opts.portal,
-        kind: opts.temporaryPasswordKind ?? "invite",
-        issuedAt,
-        expiresAt: opts.expiresAt,
-      }),
-      user_metadata: {
-        ...(existingUser.user_metadata ?? {}),
-        ...userMetadata,
-      },
-    },
-  );
-
-  if (updateError || !updatedData.user) {
-    throw new Error(updateError?.message ?? "Portaalgebruiker bijwerken mislukt.");
-  }
-
-  return { user: updatedData.user, temporaryPassword, created: false };
-}
-
-export async function setExistingAuthUserTemporaryPassword(opts: {
-  userId: string;
-  email: string;
-  fullName?: string | null;
-  portal: PortalInviteType;
-  temporaryPassword: string;
-  temporaryPasswordKind: TemporaryPasswordKind;
-  expiresAt?: string | null;
-}): Promise<User> {
-  const admin = createAdminClient();
-  const { data: current, error: fetchError } = await admin.auth.admin.getUserById(opts.userId);
-  if (fetchError || !current.user) {
-    throw new Error(fetchError?.message ?? "Auth-gebruiker kon niet worden opgehaald.");
-  }
-
-  const issuedAt = new Date().toISOString();
-  const fullName = opts.fullName?.trim() || current.user.user_metadata?.["full_name"] || current.user.email || opts.email;
-  const internalAuthPassword = opts.temporaryPasswordKind === "reset_code"
-    ? generateTemporaryPassword()
-    : opts.temporaryPassword;
-
-  const { data, error } = await admin.auth.admin.updateUserById(opts.userId, {
-    password: internalAuthPassword,
-    email_confirm: true,
-    app_metadata: temporaryPasswordAppMetadata({
-      existing: current.user.app_metadata,
-      portal: opts.portal,
-      kind: opts.temporaryPasswordKind,
-      issuedAt,
-      expiresAt: opts.expiresAt,
-    }),
-    user_metadata: {
-      ...(current.user.user_metadata ?? {}),
-      full_name: fullName,
-      name: fullName,
-    },
+  const challenge = await issueCredentialRecoveryChallenge({
+    surface,
+    purpose: "activation",
+    tenantId: opts.tenantId,
+    accountIdentifier: email,
+    subjectUserId: user.id,
+    redirectOrigin: trustedActivationOrigin(opts.activationUrl),
+    actorUserId: opts.actorUserId ?? null,
+    networkSignal: opts.actorUserId ? `actor:${opts.actorUserId}` : "backoffice-issued",
+    clientSignal: "account-activation",
   });
-
-  if (error || !data.user) {
-    throw new Error(error?.message ?? "Tijdelijk wachtwoord instellen mislukt.");
+  if (challenge.status !== "issued" || !challenge.challengeId || !challenge.code || !challenge.expiresAt) {
+    throw new Error("Er is recent al een activatiemail verstuurd. Probeer het later opnieuw.");
   }
 
-  return data.user;
+  const { subject, html } = buildAccountActivationEmail({
+    recipientName: opts.fullName || email,
+    portalName: opts.portalName,
+    activationUrl: opts.activationUrl,
+    code: challenge.code,
+  });
+  const sent = await sendEmailWithResult({
+    to: email,
+    subject,
+    html,
+    tenantId: opts.tenantId,
+    purpose: `${surface}_account_activation`,
+  });
+  await markCredentialRecoveryDelivery(challenge.challengeId, sent.success);
+  if (!sent.success) throw new Error(sent.error ?? "Activatiemail versturen mislukt.");
+
+  return { user, created, challengeId: challenge.challengeId, expiresAt: challenge.expiresAt };
 }

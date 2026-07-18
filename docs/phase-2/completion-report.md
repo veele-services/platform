@@ -33,7 +33,7 @@ Phase 2 is complete for controlled human review once W01 through W11 are merged 
 | Realtime cross-surface updates proven | Green | W11 proves planboard, personnel and customer projections across scheduled, in-progress and completed states. |
 | Personnel offline replay idempotent | Green | `offline-replay` records one replay and zero duplicate evidence. |
 | Customer visibility secure | Green | `customer-visibility` exposes approved reports/evidence and withholds unapproved reports/evidence. |
-| Credential recovery secure | Green for W11 acceptance; production blocker tracked | `credential-recovery` succeeds for activation/reset and denies invalid, expired and replayed challenges. Legacy customer reset-code-as-password removal remains tracked as `FG-HARD-025` before production release. |
+| Credential recovery secure | Green; FG-HARD-025 closed in draft PR #327 | The Phase 2B runtime and browser evidence proves hash-only, expiring, single-use recovery for customer, personnel and backoffice surfaces; the legacy reset-code-as-password behavior is removed and regression guarded. |
 | Responsive/accessibility foundation used | Green | W11 accessibility summary has zero axe violations and zero keyboard blocks across checked surfaces. |
 | Phase 2 acceptance workflow green | Prepared | `pnpm fieldgrid:phase2-w11:check` validates the exact artifact; CI runs the same gate. |
 | Migrations forward-only | Green for this closeout | This W12 closeout is documentation-only; promotion checks require migration order validation before staging. |

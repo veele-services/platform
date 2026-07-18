@@ -33,7 +33,7 @@ const STATUS_CONFIG: Record<
   { Icon: React.ComponentType<{ className?: string }>; color: string; bg: string; label: string }
 > = {
   none:     { Icon: UserX,        color: "#94A3B8", bg: "#F1F5F9", label: "Nog geen account"      },
-  invited:  { Icon: Mail,         color: "#92400E", bg: "#FEF3C7", label: "Tijdelijk wachtwoord verstuurd" },
+  invited:  { Icon: Mail,         color: "#92400E", bg: "#FEF3C7", label: "Activatiemail verstuurd" },
   active:   { Icon: CheckCircle2, color: "#065F46", bg: "#D1FAE5", label: "Actief"                },
   disabled: { Icon: ShieldOff,    color: "#64748B", bg: "#F1F5F9", label: "Account gedeactiveerd" },
 };
@@ -97,7 +97,7 @@ export function PersonnelPortalAccessCard({
         setLocalInvitedAt(new Date().toISOString());
         setStatus((prev) => (prev === "none" ? "invited" : prev));
         setInviteOpen(false);
-        toast.success("Tijdelijk wachtwoord verstuurd");
+        toast.success("Activatiemail verstuurd");
       } else {
         setErrorMsg(result.message ?? "Uitnodiging mislukt.");
       }
@@ -305,8 +305,8 @@ export function PersonnelPortalAccessCard({
       {/* Explanation */}
       {effectiveStatus !== "active" && effectiveStatus !== "disabled" && (
         <p className="text-xs" style={{ color: "#94A3B8" }}>
-          Na uitnodiging ontvangt het personeelslid een tijdelijk wachtwoord. Bij de eerste login
-          moet dit direct worden gewijzigd.
+          Na uitnodiging ontvangt het personeelslid een eenmalige activatiecode en kiest daarna
+          zelf een wachtwoord op de beveiligde activatiepagina.
         </p>
       )}
 
@@ -327,13 +327,13 @@ export function PersonnelPortalAccessCard({
             <AlertDialogDescription>
               {effectiveStatus === "none" ? (
                 <>
-                  Er wordt een tijdelijk wachtwoord gestuurd naar <strong>{email}</strong>. Het
-                  personeelslid moet dit na de eerste login direct wijzigen.
+                  Er wordt een eenmalige activatiecode gestuurd naar <strong>{email}</strong>. Het
+                  personeelslid kiest daarna zelf een wachtwoord op de beveiligde activatiepagina.
                 </>
               ) : (
                 <>
-                  Er wordt een nieuw tijdelijk wachtwoord gestuurd naar <strong>{email}</strong>.
-                  Het vorige tijdelijke wachtwoord vervalt.
+                  Er wordt een nieuwe eenmalige activatiecode gestuurd naar <strong>{email}</strong>.
+                  De vorige activatiecode vervalt.
                 </>
               )}
             </AlertDialogDescription>

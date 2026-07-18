@@ -425,7 +425,7 @@ export function CustomerForm({
                 </label>
                 <p className="mt-0.5 text-xs" style={{ color: "#64748B" }}>
                   {canInvitePortal
-                    ? `Staat standaard aan. De klant ontvangt een tijdelijk wachtwoord op ${contactEmailValue.trim().toLowerCase()}.`
+                    ? `Staat standaard aan. De klant ontvangt een eenmalige activatiecode op ${contactEmailValue.trim().toLowerCase()}.`
                     : "Vul eerst een geldig e-mailadres in bij primair contact."}
                 </p>
               </div>

@@ -14,6 +14,9 @@ import {
   FIELDGRID_BRAND_DEFAULTS,
   getTenantBranding,
   getTenantPlanSnapshot,
+  issueCredentialRecoveryChallenge,
+  markCredentialRecoveryDelivery,
+  resolveCredentialRecoveryOrigin,
   isPlatformHost,
   isTenantRuntimeActive,
   isTenantModuleEnabled,
@@ -51,13 +54,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePlatformAdmin, writeSupportAccessAuditLog } from "@/lib/auth/platform";
 import { createAdminClient } from "@/lib/supabase/admin";
-import {
-  generatePasswordResetCode,
-  passwordResetCodeExpiresAt,
-  provisionPortalUserWithTemporaryPassword,
-  setExistingAuthUserTemporaryPassword,
-} from "@/lib/auth/portal-invites";
-import { buildPasswordResetCodeEmail, buildTemporaryPasswordEmail, sendEmailWithResult } from "@/lib/email";
+import { provisionPortalUserForActivation } from "@/lib/auth/portal-invites";
+import { buildPasswordResetCodeEmail, sendEmailWithResult } from "@/lib/email";
 import type { ActionResult } from "./customers";
 import { ensurePlatformTicketForDomainFailure } from "./platform-tickets";
 
@@ -906,35 +904,22 @@ async function tenantAdminLoginUrl(tenantId: string): Promise<string> {
   return `https://${host}/admin/login`;
 }
 
-async function inviteOrFindTenantAuthUser(email: string, tenantId: string): Promise<TenantAuthUserInviteResult> {
-  const invite = await provisionPortalUserWithTemporaryPassword({
+async function inviteOrFindTenantAuthUser(email: string, tenantId: string, actorUserId: string): Promise<TenantAuthUserInviteResult> {
+  const loginUrl = await tenantAdminLoginUrl(tenantId);
+  const invite = await provisionPortalUserForActivation({
     email,
     fullName: email,
     portal: "tenant-admin",
+    tenantId,
+    portalName: "Tenant backoffice",
+    activationUrl: loginUrl.replace(/\/admin\/login$/u, "/wachtwoord-vergeten?doel=activatie"),
+    actorUserId,
     allowExistingActive: true,
   });
-
-  const { subject, html } = buildTemporaryPasswordEmail({
-    recipientName: email,
-    portalName: "Tenant backoffice",
-    loginUrl: await tenantAdminLoginUrl(tenantId),
-    temporaryPassword: invite.temporaryPassword,
-  });
-  const sent = await sendEmailWithResult({
-    to: email,
-    subject,
-    html,
-    tenantId,
-    purpose: "account_invite",
-  });
-  if (!sent.success) {
-    throw new Error(sent.error ?? "Tenant admin-uitnodigingsmail versturen mislukt.");
-  }
-
   return {
     userId: invite.user.id,
     deliveryStatus: "sent",
-    deliveryMessage: invite.created ? null : "Nieuw tijdelijk wachtwoord verstuurd naar bestaand auth-account.",
+    deliveryMessage: invite.created ? null : "Nieuwe eenmalige activatiecode verstuurd naar bestaand auth-account.",
   };
 }
 
@@ -2072,7 +2057,7 @@ export async function addPlatformTenantAdmin(formData: FormData): Promise<void> 
 
   await assertTenantExists(tenantId);
   const roleSelection = await resolveTenantRoleSelection(tenantId, actionValues(formData, "tenantRoleIds"), TENANT_ADMIN_ROLE_NAMES);
-  const invite = await inviteOrFindTenantAuthUser(email, tenantId);
+  const invite = await inviteOrFindTenantAuthUser(email, tenantId, actor.userId);
   const accessRole = tenantAccessRoleFromRoleNames(roleSelection.roleNames);
 
   await db.transaction(async (tx) => {
@@ -2225,32 +2210,43 @@ export async function sendPlatformTenantAdminPasswordReset(formData: FormData): 
   if (error || !data.user?.email) throw new Error(error?.message ?? "Auth-gebruiker heeft geen e-mailadres.");
 
   const email = data.user.email;
-  const code = generatePasswordResetCode();
-  await setExistingAuthUserTemporaryPassword({
-    userId,
-    email,
-    fullName: String(data.user.user_metadata?.["full_name"] ?? data.user.user_metadata?.["name"] ?? email),
-    portal: "tenant-admin",
-    temporaryPassword: code,
-    temporaryPasswordKind: "reset_code",
-    expiresAt: passwordResetCodeExpiresAt(),
+  const resetUrl = (await tenantAdminLoginUrl(tenantId)).replace(/\/admin\/login$/u, "/wachtwoord-vergeten");
+  const configuredOrigin = new URL(resetUrl).origin;
+  const allowedOrigins = (process.env["FIELDGRID_RECOVERY_ALLOWED_ORIGINS"] ?? configuredOrigin)
+    .split(",").map((value) => value.trim()).filter(Boolean);
+  const challenge = await issueCredentialRecoveryChallenge({
+    surface: "tenant-backoffice",
+    purpose: "password-reset",
+    tenantId,
+    accountIdentifier: email,
+    subjectUserId: userId,
+    redirectOrigin: resolveCredentialRecoveryOrigin({
+      configuredOrigin,
+      allowedOrigins,
+      allowHttpLocalhost: process.env.NODE_ENV !== "production",
+    }),
+    actorUserId: actor.userId,
+    networkSignal: `actor:${actor.userId}`,
+    clientSignal: "platform-tenant-admin-reset",
   });
-
-  const resetUrl = (await tenantAdminLoginUrl(tenantId)).replace(/\/login$/u, "/wachtwoord-vergeten");
+  if (challenge.status !== "issued" || !challenge.challengeId || !challenge.code) {
+    throw new Error("Er is recent al een herstelmail verstuurd. Probeer het later opnieuw.");
+  }
   const { subject, html } = buildPasswordResetCodeEmail({
-    recipientName: email,
+    recipientName: String(data.user.user_metadata?.["full_name"] ?? data.user.user_metadata?.["name"] ?? email),
     portalName: "Tenant backoffice",
     resetUrl,
-    code,
+    code: challenge.code,
   });
   const sent = await sendEmailWithResult({
     to: email,
     subject,
     html,
     tenantId,
-    purpose: "password_reset",
+    purpose: "tenant_backoffice_password_reset",
   });
-  if (!sent.success) throw new Error(sent.error ?? "Resetmail versturen mislukt.");
+  await markCredentialRecoveryDelivery(challenge.challengeId, sent.success);
+  if (!sent.success) throw new Error("Resetmail versturen mislukt.");
 
   await auditPlatformTenantAction({
     tenantId,
@@ -2288,7 +2284,7 @@ export async function updatePlatformTenantOwnerInvite(formData: FormData): Promi
   if (inviteId && !existingInvite) throw new Error("Owner invite niet gevonden.");
 
   const roleSelection = await resolveTenantRoleSelection(tenantId, [], TENANT_OWNER_ROLE_NAMES);
-  const invite = await inviteOrFindTenantAuthUser(email, tenantId);
+  const invite = await inviteOrFindTenantAuthUser(email, tenantId, actor.userId);
   const now = new Date();
 
   await db.transaction(async (tx) => {

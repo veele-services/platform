@@ -1,6 +1,6 @@
 # Fieldgrid hardening register — Phase B current
 
-Current main SHA: `42edb5664ed507ed914b8bebf8847ab1f6e39f74`.
+Current main SHA: `4956d6d9c00d64260b0ed29a90bd0361d19f6408`.
 
 Old draft PR #293 is acknowledged as a source only. This register is rebuilt from current main after merged PRs #278, #291, #294, #295, and #296.
 
@@ -18,12 +18,12 @@ The following evidence was manually supplied as operator/staging evidence, not a
 
 | status | count |
 |---|---:|
-| closed | 15 |
+| closed | 16 |
 | partial | 3 |
-| open | 7 |
+| open | 6 |
 | deferred | 0 |
-| feature-freeze blockers | 9 |
-| production release blockers | 10 |
+| feature-freeze blockers | 8 |
+| production release blockers | 9 |
 
 ## Canonical items
 
@@ -53,7 +53,7 @@ The following evidence was manually supplied as operator/staging evidence, not a
 | FG-HARD-022 | support access least privilege | P0 | support/security | open | — | — | Define and implement audited support access model with tenant-scoped tests. | support/security | true | true |
 | FG-HARD-023 | test baseline and CI green lane on current main | P0 | quality/ci | open | — | — | Make required static, runtime, typecheck, and build validation green on the current branch. | quality | true | true |
 | FG-HARD-024 | production go/no-go evidence pack | P0 | release/production | open | — | — | After blockers close, assemble production go/no-go packet without accessing live DBs or secrets from this PR. | release | false | true |
-| FG-HARD-025 | legacy customer reset code must not become auth password | P0 | auth/reset | open | — | W11 deterministic credential-recovery artifact covers activation/reset success and invalid/expired/replayed denial, but legacy customer artifact path removal still needs proof | Remove or gate the legacy customer reset-code-as-password path and prove the Phase 2 challenge/grant flow end to end. | auth/customer-portal | true | true |
+| FG-HARD-025 | legacy customer reset code must not become auth password | P0 | auth/reset | closed | #327 | PostgreSQL 17 credential-recovery runtime proves hash-only expiry/replay/concurrency/rate-limit/RLS behavior; Playwright proves customer and personnel completion, provider session invalidation and no code-as-password; security-source regression covers all surfaces | Keep PR #327 runtime, browser and source regressions in required CI and monitor provider session behavior after deployment. | auth/customer-portal | false | false |
 
 ## Open PR disposition
 

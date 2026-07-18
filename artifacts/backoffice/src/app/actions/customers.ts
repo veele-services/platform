@@ -28,11 +28,10 @@ import { requirePermission, hasPermission } from "@/lib/auth/permissions";
 import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import {
   findAuthUserByEmail,
-  provisionPortalUserWithTemporaryPassword,
+  provisionPortalUserForActivation,
 } from "@/lib/auth/portal-invites";
 import {
   buildStyledNotificationEmail,
-  buildTemporaryPasswordEmail,
   klantPortalUrl,
   sendEmailWithResult,
 } from "@/lib/email";
@@ -477,7 +476,7 @@ async function sendCustomerPortalInvite(input: {
   created: boolean;
   email: string;
   customerName: string;
-  delivery: "temporary_password" | "existing_access";
+  delivery: "activation_challenge" | "existing_access";
 }> {
   const [customer] = await db
     .select({
@@ -505,7 +504,7 @@ async function sendCustomerPortalInvite(input: {
   };
   const hasUsableExistingAccount =
     Boolean(existingAuthUser) &&
-    existingAuthUser?.app_metadata?.force_password_change !== true &&
+    existingAuthUser?.app_metadata?.credential_activation_pending !== true &&
     (
       Boolean(existingAuthState?.last_sign_in_at) ||
       Boolean(existingAuthState?.confirmed_at) ||
@@ -561,10 +560,13 @@ async function sendCustomerPortalInvite(input: {
     };
   }
 
-  const provisioned = await provisionPortalUserWithTemporaryPassword({
+  const provisioned = await provisionPortalUserForActivation({
     email,
     fullName,
     portal: "customer",
+    tenantId: input.tenantId,
+    portalName: "Klantportaal",
+    activationUrl: loginUrl.replace(/\/login(?:\?.*)?$/u, "/wachtwoord-vergeten?doel=activatie"),
     allowExistingActive: true,
   });
 
@@ -577,25 +579,6 @@ async function sendCustomerPortalInvite(input: {
     status: "invited",
   });
 
-  const { subject, html } = buildTemporaryPasswordEmail({
-    recipientName:     fullName,
-    portalName:        "Klantportaal",
-    loginUrl,
-    temporaryPassword: provisioned.temporaryPassword,
-  });
-
-  const sent = await sendEmailWithResult({
-    to: email,
-    subject,
-    html,
-    tenantId: input.tenantId,
-    purpose: "customer_portal_invite",
-  });
-
-  if (!sent.success) {
-    throw new Error(sent.error ?? "Uitnodigingsmail versturen mislukt.");
-  }
-
   await markCustomerPortalInviteSent(input.tenantId, customerUserId);
 
   return {
@@ -604,7 +587,7 @@ async function sendCustomerPortalInvite(input: {
     created: provisioned.created,
     email,
     customerName: customer.name,
-    delivery: "temporary_password",
+    delivery: "activation_challenge",
   };
 }
 
@@ -938,7 +921,7 @@ export async function inviteCustomerPortal(id: string): Promise<ActionResult> {
     userId: string;
     customerUserId: string;
     created: boolean;
-    delivery: "temporary_password" | "existing_access";
+    delivery: "activation_challenge" | "existing_access";
   };
   let customerName = "";
   let email = "";
@@ -972,7 +955,7 @@ export async function inviteCustomerPortal(id: string): Promise<ActionResult> {
       email,
       authUserId: invite.userId,
       customerUserId: invite.customerUserId,
-      temporaryPassword: invite.delivery === "temporary_password",
+      activationChallenge: invite.delivery === "activation_challenge",
       authUserCreated: invite.created,
       delivery: invite.delivery,
     },
@@ -1537,7 +1520,7 @@ export async function createCustomer(
             email: invite.email,
             authUserId: invite.userId,
             customerUserId: invite.customerUserId,
-            temporaryPassword: invite.delivery === "temporary_password",
+            activationChallenge: invite.delivery === "activation_challenge",
             authUserCreated: invite.created,
             delivery: invite.delivery,
           },

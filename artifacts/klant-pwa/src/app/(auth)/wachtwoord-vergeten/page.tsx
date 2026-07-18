@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/client";
 
 type PasswordResetResponse = {
   success: boolean;
@@ -41,6 +40,13 @@ export default function WachtwoordVergetenPage() {
   const [sent,    setSent]    = useState(false);
   const [error,   setError]   = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
+  const [purpose, setPurpose] = useState<"activation" | "password-reset">("password-reset");
+
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("doel") === "activatie") {
+      setPurpose("activation");
+    }
+  }, []);
 
   function normalizedEmail(): string {
     return email.trim().toLowerCase();
@@ -49,6 +55,10 @@ export default function WachtwoordVergetenPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
+    if (purpose === "activation") {
+      setSent(true);
+      return;
+    }
 
     startTransition(async () => {
       const result = await requestResetCode(normalizedEmail());
@@ -66,26 +76,29 @@ export default function WachtwoordVergetenPage() {
     setError(null);
 
     startTransition(async () => {
-      const supabase = createClient();
-      const { data, error: verifyError } = await supabase.auth.signInWithPassword({
-        email: normalizedEmail(),
-        password: code.trim(),
-      });
+      try {
+        const response = await fetch("/klant/api/auth/password-reset/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          body: JSON.stringify({ email: normalizedEmail(), code: code.trim(), purpose }),
+        });
+        const result = await response.json().catch(() => null) as { state?: string } | null;
+        if (!response.ok) {
+          const message = result?.state === "expired"
+            ? "De herstelcode is verlopen. Vraag een nieuwe code aan."
+            : result?.state === "used"
+              ? "Deze herstelcode is al gebruikt. Vraag een nieuwe code aan."
+              : "De herstelcode is ongeldig. Controleer de code of vraag een nieuwe aan.";
+          setError(message);
+          return;
+        }
 
-      if (verifyError || data.user?.app_metadata?.force_password_change !== true) {
-        setError("De herstelcode is ongeldig of verlopen. Vraag eventueel een nieuwe code aan.");
-        return;
+        router.push("/reset-wachtwoord");
+        router.refresh();
+      } catch {
+        setError("Controleren mislukt. Controleer uw verbinding en probeer opnieuw.");
       }
-
-      const expiresAt = data.user.app_metadata?.temporary_password_expires_at;
-      if (typeof expiresAt === "string" && new Date(expiresAt).getTime() <= Date.now()) {
-        await supabase.auth.signOut();
-        setError("De herstelcode is verlopen. Vraag een nieuwe code aan.");
-        return;
-      }
-
-      router.push("/reset-wachtwoord?force=1");
-      router.refresh();
     });
   }
 

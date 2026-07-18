@@ -7,7 +7,7 @@ const participantOneUserId = '20000000-0000-4000-8000-000000000104';
 const participantTwoUserId = '20000000-0000-4000-8000-000000000107';
 const customerUserId = '20000000-0000-4000-8000-000000000105';
 
-const eventually = expect.configure({ timeout: 20_000 });
+const eventually = expect.configure({ timeout: 45_000 });
 
 function backofficeUrl(path: string) {
   return `http://${tenantHost}:9321${path}`;

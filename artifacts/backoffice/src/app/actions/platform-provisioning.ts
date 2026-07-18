@@ -25,8 +25,7 @@ import { asc, desc, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requirePlatformAdmin, writeSupportAccessAuditLog } from "@/lib/auth/platform";
-import { provisionPortalUserWithTemporaryPassword } from "@/lib/auth/portal-invites";
-import { buildTemporaryPasswordEmail, sendEmailWithResult } from "@/lib/email";
+import { provisionPortalUserForActivation } from "@/lib/auth/portal-invites";
 
 const TENANT_PLAN_KEYS = ["starter", "professional", "enterprise"] as const;
 const TENANT_SECTOR_POLICY_MODES = ["single", "multi"] as const;
@@ -564,22 +563,23 @@ async function readOnboardingPreflight(input: PlatformOnboardingInput): Promise<
   };
 }
 
-async function inviteOwnerByEmail(email: string, primaryDomain: string | null): Promise<string> {
-  const invite = await provisionPortalUserWithTemporaryPassword({
-    email,
-    fullName: email,
+async function inviteOwnerByEmail(input: {
+  email: string;
+  tenantId: string;
+  primaryDomain: string | null;
+  actorUserId: string;
+}): Promise<string> {
+  const host = normalizeHost(input.primaryDomain ?? "") || "admin.fieldgrid.nl";
+  const invite = await provisionPortalUserForActivation({
+    email: input.email,
+    fullName: input.email,
     portal: "tenant-admin",
+    tenantId: input.tenantId,
+    portalName: "Tenant backoffice",
+    activationUrl: `https://${host}/wachtwoord-vergeten?doel=activatie`,
+    actorUserId: input.actorUserId,
     allowExistingActive: true,
   });
-  const host = normalizeHost(primaryDomain ?? "") || "admin.fieldgrid.nl";
-  const { subject, html } = buildTemporaryPasswordEmail({
-    recipientName: email,
-    portalName: "Tenant backoffice",
-    loginUrl: `https://${host}/admin/login`,
-    temporaryPassword: invite.temporaryPassword,
-  });
-  const sent = await sendEmailWithResult({ to: email, subject, html });
-  if (!sent.success) throw new Error(sent.error ?? "Owner-uitnodigingsmail versturen mislukt.");
   return invite.user.id;
 }
 
@@ -663,7 +663,12 @@ async function runPlatformTenantProvisioning(
   });
 
   try {
-    const ownerUserId = await inviteOwnerByEmail(input.ownerEmail, result.primaryDomain ?? defaultTenantDomainForSlug(result.slug));
+    const ownerUserId = await inviteOwnerByEmail({
+      email: input.ownerEmail,
+      tenantId: result.tenantId,
+      primaryDomain: result.primaryDomain ?? defaultTenantDomainForSlug(result.slug),
+      actorUserId: actor.userId,
+    });
     await completeProvisionedTenantOwnerInvite({
       tenantId: result.tenantId,
       runId: result.runId,

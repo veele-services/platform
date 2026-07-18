@@ -22,6 +22,10 @@
       "classification": "hybrid",
       "reason": "Platform-admin recovery challenges are explicitly tenantless; all tenant-facing recovery challenges require tenant_id by the migration check constraint."
     },
+    "credential_recovery_events": {
+      "classification": "hybrid",
+      "reason": "Platform-admin recovery audit events are explicitly tenantless; all tenant-facing recovery events require tenant_id by the migration check constraint."
+    },
     "customer_payment_batch_items": {
       "classification": "tenant-required",
       "reason": "Payment batch items are tenant financial data; nullable schema is transitional and runtime rows may not be tenantless."

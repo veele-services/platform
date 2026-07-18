@@ -102,8 +102,8 @@ test("merged Phase-B PRs are represented", () => {
 });
 
 test("obsolete base SHA is not presented as current and current main SHA is recorded", () => {
-  assert.equal(register.currentMainSha, "42edb5664ed507ed914b8bebf8847ab1f6e39f74");
-  assert.match(markdown, /42edb5664ed507ed914b8bebf8847ab1f6e39f74/u);
+  assert.equal(register.currentMainSha, "4956d6d9c00d64260b0ed29a90bd0361d19f6408");
+  assert.match(markdown, /4956d6d9c00d64260b0ed29a90bd0361d19f6408/u);
   assert.doesNotMatch(markdown, /Current main SHA: `f36e84d/u);
   assert.doesNotMatch(JSON.stringify({ currentMainSha: register.currentMainSha }), /f36e84d/u);
 });

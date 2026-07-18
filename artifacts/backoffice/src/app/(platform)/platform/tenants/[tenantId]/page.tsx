@@ -1058,7 +1058,7 @@ function UsersTab({
         </div>
       </Section>
 
-      <Section title="Owner invites" helper="Corrigeer een verkeerd owner e-mailadres en verstuur opnieuw een Fieldgrid tijdelijk wachtwoord. De owner krijgt direct tenant owner-toegang.">
+      <Section title="Owner invites" helper="Corrigeer een verkeerd owner e-mailadres en verstuur opnieuw een eenmalige Fieldgrid-activatiecode. De owner krijgt direct tenant owner-toegang.">
         <div className="grid gap-3">
           {tenantUsersAndOwner.ownerInvites.map((invite) => (
             <div key={invite.id} className="rounded border border-slate-200 p-3 text-sm">

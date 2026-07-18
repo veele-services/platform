@@ -45,6 +45,7 @@ export async function middleware(request: NextRequest) {
   const isPublicPage =
     isPwaAsset ||
     isLoginPage ||
+    isPasswordResetPage ||
     normalizedPathname === "/wachtwoord-vergeten" ||
     normalizedPathname.startsWith("/auth/confirm");
 
@@ -84,12 +85,6 @@ export async function middleware(request: NextRequest) {
   const {
     data: { user },
   } = await authClient.auth.getUser();
-
-  const mustChangePassword = user?.app_metadata?.force_password_change === true;
-
-  if (user && mustChangePassword && !isPasswordResetPage && !normalizedPathname.startsWith("/auth/confirm")) {
-    return NextResponse.redirect(proxyAwareUrl(`${BASE}/reset-wachtwoord?force=1`, request));
-  }
 
   if (!user && !isPublicPage) {
     return NextResponse.redirect(proxyAwareUrl(`${BASE}/login`, request));

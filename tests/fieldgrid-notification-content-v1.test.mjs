@@ -46,7 +46,7 @@ test("customer and personnel notification copy avoids technical terms", () => {
 
 test("direct email templates use refreshed Fieldgrid copy and no old generic branding", () => {
   const templates = read("lib/db/src/email-templates.ts");
-  assert.match(templates, /Toegang tot \{\{portalName\}\} van \{\{brandName\}\}/u);
+  assert.match(templates, /Activeer uw toegang tot \{\{portalName\}\} van \{\{brandName\}\}/u);
   assert.match(templates, /Uw account staat klaar/u);
   assert.match(templates, /Wachtwoord opnieuw instellen/u);
   assert.match(templates, /Factuur \{\{invoiceNumber\}\} staat klaar/u);

@@ -135,9 +135,9 @@ export function CustomerDetailActions({
           <AlertDialogHeader>
             <AlertDialogTitle>Klantportaal-uitnodiging sturen?</AlertDialogTitle>
             <AlertDialogDescription>
-              Er wordt een tijdelijk wachtwoord gestuurd naar{" "}
-              <strong>{customer.contactEmail}</strong>. De klant moet dit wachtwoord na
-              de eerste login direct wijzigen.
+              Er wordt een eenmalige activatiecode gestuurd naar{" "}
+              <strong>{customer.contactEmail}</strong>. De klant kiest daarna zelf een
+              wachtwoord op de beveiligde activatiepagina.
             </AlertDialogDescription>
           </AlertDialogHeader>
           {inviteError && (
