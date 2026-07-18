@@ -170,14 +170,6 @@ export async function getMyWeeklyHours(weekStart?: string | null): Promise<Weekl
     })
     .from(reportsTable)
     .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
-    .innerJoin(
-      assignmentPersonnelTable,
-      and(
-        eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id),
-        eq(assignmentPersonnelTable.personnelId, identity.personnelId),
-        eq(assignmentPersonnelTable.status, "assigned"),
-      ),
-    )
     .leftJoin(objectsTable, eq(assignmentsTable.objectId, objectsTable.id))
     .where(
       and(
@@ -253,14 +245,6 @@ export async function getMyHours(): Promise<MonthSummary[]> {
     })
     .from(reportsTable)
     .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
-    .innerJoin(
-      assignmentPersonnelTable,
-      and(
-        eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id),
-        eq(assignmentPersonnelTable.personnelId, identity.personnelId),
-        eq(assignmentPersonnelTable.status, "assigned"),
-      ),
-    )
     .where(
       and(
         eq(reportsTable.submittedBy, identity.userId),

@@ -16,6 +16,16 @@ export type InterestSelectionStaffingResult = {
   idempotent: boolean;
 };
 
+type StaffingRpcRow = {
+  assignment_personnel_id: string;
+  staffing_status: string;
+  lifecycle_version: string | number;
+  assigned_count: string | number;
+  required_personnel_count: string | number;
+  assignment_status: string;
+  idempotent: boolean;
+};
+
 export async function selectInterestCandidateCanonically(input: {
   tenantId: string;
   assignmentId: string;
@@ -24,6 +34,19 @@ export async function selectInterestCandidateCanonically(input: {
   actorUserId: string;
 }): Promise<InterestSelectionStaffingResult> {
   const { tenantId, assignmentId, personnelId, status, actorUserId } = input;
+
+  const eligibility = status === "selected"
+    ? await getCanonicalPlanningEligibility(assignmentId)
+    : null;
+  if (status === "selected") {
+    const candidate = eligibility?.candidates.find((row) => row.personnelId === personnelId);
+    if (!candidate?.eligible) {
+      throw Object.assign(
+        new Error("Medewerker voldoet niet aan de canonieke beschikbaarheids- en geschiktheidscontrole."),
+        { code: "canonical_eligibility_failed" },
+      );
+    }
+  }
 
   const client = await pool.connect();
   try {
@@ -34,29 +57,16 @@ export async function selectInterestCandidateCanonically(input: {
       tenant_id: string;
       status: string;
       required_personnel_count: number;
-      scheduled_date: string | null;
-      scheduled_start: string | null;
-      scheduled_end: string | null;
     }>(
-      `SELECT id, tenant_id, status, required_personnel_count, scheduled_date, scheduled_start, scheduled_end
+      `SELECT id, tenant_id, status, required_personnel_count
          FROM public.assignments
         WHERE id = $1 AND tenant_id = $2 AND is_active = true
         FOR UPDATE`,
       [assignmentId, tenantId],
     );
     const assignment = assignmentResult.rows[0];
-    if (!assignment) throw Object.assign(new Error("Opdracht niet gevonden."), { code: "assignment_not_found" });
-
-    const eligibility = status === "selected"
-      ? await getCanonicalPlanningEligibility(assignmentId)
-      : null;
-    if (status === "selected") {
-      const candidate = eligibility?.candidates.find((row) => row.personnelId === personnelId);
-      if (!candidate?.eligible) {
-        throw Object.assign(new Error("Medewerker voldoet niet aan de canonieke beschikbaarheids- en geschiktheidscontrole."), {
-          code: "canonical_eligibility_failed",
-        });
-      }
+    if (!assignment) {
+      throw Object.assign(new Error("Opdracht niet gevonden."), { code: "assignment_not_found" });
     }
 
     const responseResult = await client.query<{
@@ -77,110 +87,149 @@ export async function selectInterestCandidateCanonically(input: {
       [assignmentId, personnelId, tenantId],
     );
     const response = responseResult.rows[0];
-    if (!response) throw Object.assign(new Error("Deze medewerker heeft nog geen interesse-uitnodiging voor deze opdracht."), { code: "response_not_found" });
+    if (!response) {
+      throw Object.assign(
+        new Error("Deze medewerker heeft nog geen interesse-uitnodiging voor deze opdracht."),
+        { code: "response_not_found" },
+      );
+    }
 
     const personnelResult = await client.query<{ id: string }>(
       `SELECT id
          FROM public.personnel
-        WHERE id = $1 AND tenant_id = $2 AND is_active = true
+        WHERE id = $1 AND tenant_id = $2
         FOR UPDATE`,
       [personnelId, tenantId],
     );
-    if (!personnelResult.rows[0]) throw Object.assign(new Error("Medewerker niet gevonden of inactief."), { code: "personnel_not_active" });
+    if (!personnelResult.rows[0]) {
+      throw Object.assign(new Error("Medewerker niet gevonden."), { code: "personnel_not_found" });
+    }
 
     await client.query(
-      `SELECT ap.id
-         FROM public.assignment_personnel ap
-         JOIN public.assignments a ON a.id = ap.assignment_id AND a.tenant_id = $2
-        WHERE ap.assignment_id = $1
+      `SELECT id
+         FROM public.assignment_personnel
+        WHERE assignment_id = $1
+        ORDER BY personnel_id, assigned_at, id
         FOR UPDATE`,
-      [assignmentId, tenantId],
+      [assignmentId],
     );
 
-    let canonicalAssignmentLinked = false;
-    const idempotent = response.status === status || (status === "selected" && response.status === "confirmed");
+    const responseAlreadyFinal =
+      response.status === status
+      || (status === "selected" && response.status === "confirmed");
+    let transition: StaffingRpcRow | null = null;
 
-    if (status === "reserve") {
+    if (status === "selected") {
+      const transitionResult = await client.query<StaffingRpcRow>(
+        `SELECT * FROM public.transition_assignment_staffing($1, $2, $3, $4, 'assign', NULL, NULL)`,
+        [tenantId, assignmentId, personnelId, actorUserId],
+      );
+      transition = transitionResult.rows[0] ?? null;
       await client.query(
         `UPDATE public.assignment_interest_responses
-            SET status = 'reserve', selected_at = COALESCE(selected_at, now()), updated_at = now()
+            SET status = 'confirmed',
+                selected_at = COALESCE(selected_at, now()),
+                updated_at = now()
           WHERE id = $1`,
         [response.id],
       );
-    } else if (status === "cancelled") {
-      await client.query(
-        `UPDATE public.assignment_interest_responses
-            SET status = 'cancelled', selected_at = NULL, updated_at = now()
-          WHERE id = $1`,
-        [response.id],
-      );
-      await client.query(
-        `DELETE FROM public.assignment_personnel
-          WHERE assignment_id = $1 AND personnel_id = $2 AND status = 'assigned'`,
-        [assignmentId, personnelId],
-      );
-    } else {
-      const assignedCountResult = await client.query<{ count: string }>(
-        `SELECT count(*)::int AS count
+    } else if (status === "reserve") {
+      const activeLink = await client.query<{ id: string }>(
+        `SELECT id
            FROM public.assignment_personnel
-          WHERE assignment_id = $1 AND status = 'assigned'`,
-        [assignmentId],
-      );
-      const assignedCountBefore = Number(assignedCountResult.rows[0]?.count ?? 0);
-      const alreadyLinkedResult = await client.query<{ id: string }>(
-        `SELECT id FROM public.assignment_personnel
-          WHERE assignment_id = $1 AND personnel_id = $2 AND status = 'assigned'
+          WHERE assignment_id = $1
+            AND personnel_id = $2
+            AND status IN ('assigned','suggested')
           LIMIT 1`,
         [assignmentId, personnelId],
       );
-      const alreadyLinked = Boolean(alreadyLinkedResult.rows[0]);
-      if (!alreadyLinked && assignedCountBefore >= assignment.required_personnel_count) {
-        throw Object.assign(new Error("Deze opdracht is al volledig bezet."), { code: "assignment_capacity_full" });
+      if (activeLink.rows[0]) {
+        const transitionResult = await client.query<StaffingRpcRow>(
+          `SELECT * FROM public.transition_assignment_staffing($1, $2, $3, $4, 'unassign', $5, NULL)`,
+          [tenantId, assignmentId, personnelId, actorUserId, "Naar de reservelijst verplaatst"],
+        );
+        transition = transitionResult.rows[0] ?? null;
       }
-
-      await client.query(
-        `INSERT INTO public.assignment_personnel (assignment_id, personnel_id, status, assigned_by)
-         VALUES ($1, $2, 'assigned', $3)
-         ON CONFLICT (assignment_id, personnel_id)
-         DO UPDATE SET status = 'assigned', assigned_by = EXCLUDED.assigned_by, assigned_at = COALESCE(public.assignment_personnel.assigned_at, now())`,
-        [assignmentId, personnelId, actorUserId],
-      );
-      canonicalAssignmentLinked = true;
       await client.query(
         `UPDATE public.assignment_interest_responses
-            SET status = 'confirmed', selected_at = COALESCE(selected_at, now()), updated_at = now()
+            SET status = 'reserve',
+                selected_at = COALESCE(selected_at, now()),
+                updated_at = now()
           WHERE id = $1`,
         [response.id],
       );
+    } else {
+      await client.query(
+        `UPDATE public.assignment_interest_responses
+            SET status = 'cancelled',
+                updated_at = now()
+          WHERE id = $1`,
+        [response.id],
+      );
+
+      const activeLink = await client.query<{ id: string }>(
+        `SELECT id
+           FROM public.assignment_personnel
+          WHERE assignment_id = $1
+            AND personnel_id = $2
+            AND status IN ('assigned','suggested')
+          LIMIT 1`,
+        [assignmentId, personnelId],
+      );
+      if (activeLink.rows[0]) {
+        const transitionResult = await client.query<StaffingRpcRow>(
+          `SELECT * FROM public.transition_assignment_staffing($1, $2, $3, $4, 'unassign', $5, NULL)`,
+          [tenantId, assignmentId, personnelId, actorUserId, "Interesseselectie geannuleerd"],
+        );
+        transition = transitionResult.rows[0] ?? null;
+      }
     }
 
-    const finalCountResult = await client.query<{ count: string }>(
-      `SELECT count(*)::int AS count
+    const countResult = await client.query<{ count: string }>(
+      `SELECT count(*)::integer AS count
          FROM public.assignment_personnel
         WHERE assignment_id = $1 AND status = 'assigned'`,
       [assignmentId],
     );
-    const assignedCount = Number(finalCountResult.rows[0]?.count ?? 0);
-    const shouldSchedule = assignedCount >= assignment.required_personnel_count;
-    const nextStatus = shouldSchedule && ["requested", "plannable"].includes(assignment.status)
-      ? "scheduled"
-      : (!shouldSchedule && assignment.status === "scheduled" ? "plannable" : assignment.status);
-
-    if (nextStatus !== assignment.status) {
-      await client.query(
-        `UPDATE public.assignments SET status = $3, updated_at = now() WHERE id = $1 AND tenant_id = $2`,
-        [assignmentId, tenantId, nextStatus],
-      );
-    }
+    const assignedCount = transition
+      ? Number(transition.assigned_count)
+      : Number(countResult.rows[0]?.count ?? 0);
+    const assignmentStatus = transition?.assignment_status ?? assignment.status;
+    const canonicalAssignmentLinked = transition?.staffing_status === "assigned";
+    const idempotent = responseAlreadyFinal && (transition?.idempotent ?? true);
 
     await client.query(
       `INSERT INTO public.audit_log (tenant_id, user_id, action, resource, resource_id, metadata)
        VALUES ($1, $2, $3, 'assignments', $4, $5::jsonb)`,
-      [tenantId, actorUserId, `assignment_interest_${status}`, assignmentId, JSON.stringify({ personnelId, responseId: response.id, assignedCount, requiredPersonnelCount: assignment.required_personnel_count, canonicalAssignmentLinked })],
+      [
+        tenantId,
+        actorUserId,
+        `assignment_interest_${status}`,
+        assignmentId,
+        JSON.stringify({
+          personnelId,
+          responseId: response.id,
+          assignmentPersonnelId: transition?.assignment_personnel_id ?? null,
+          assignedCount,
+          requiredPersonnelCount: assignment.required_personnel_count,
+          canonicalAssignmentLinked,
+        }),
+      ],
     );
 
     await client.query("COMMIT");
-    return { assignmentId, personnelId, responseId: response.id, tenantId, status, canonicalAssignmentLinked, assignedCount, requiredPersonnelCount: assignment.required_personnel_count, assignmentStatus: nextStatus, idempotent };
+    return {
+      assignmentId,
+      personnelId,
+      responseId: response.id,
+      tenantId,
+      status,
+      canonicalAssignmentLinked,
+      assignedCount,
+      requiredPersonnelCount: assignment.required_personnel_count,
+      assignmentStatus,
+      idempotent,
+    };
   } catch (error) {
     await client.query("ROLLBACK");
     throw error;

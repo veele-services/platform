@@ -131,6 +131,13 @@ function capacityStyle(status: "green" | "orange" | "red") {
   };
 }
 
+function formatActualTime(value: string | null): string | null {
+  if (!value) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return new Intl.DateTimeFormat("nl-NL", { timeZone: "Europe/Amsterdam", hour: "2-digit", minute: "2-digit", hour12: false }).format(parsed);
+}
+
 function formatAddress(parts: Array<string | null | undefined>): string {
   return parts
     .map((part) => part?.trim())
@@ -869,6 +876,12 @@ export default async function AssignmentDetailPage({ params, searchParams }: Pro
       : assignment.scheduledStart;
   }
 
+  const actualStartLabel = formatActualTime(assignment.actualStartedAt);
+  const actualEndLabel = formatActualTime(assignment.actualCompletedAt);
+  const actualTimeLabel = actualStartLabel
+    ? `${actualStartLabel} – ${actualEndLabel ?? "bezig"}`
+    : null;
+
   const planningFirstStatuses: AssignmentStatus[] = [
     "requested",
     "review",
@@ -901,16 +914,20 @@ export default async function AssignmentDetailPage({ params, searchParams }: Pro
           </>
         }
         actions={
-          <dl className="grid w-full grid-cols-2 gap-x-4 gap-y-2 text-left sm:w-auto sm:grid-cols-3 sm:text-right">
+          <dl className="grid w-full grid-cols-2 gap-x-4 gap-y-2 text-left sm:w-auto sm:grid-cols-4 sm:text-right">
             <div className="min-w-0">
               <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/80">Gepland</dt>
               <dd className="mt-0.5 text-sm font-medium text-foreground">{scheduledLabel}</dd>
             </div>
             <div className="min-w-0">
-              <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/80">Tijdslot</dt>
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/80">Gepland tijdslot</dt>
               <dd className="mt-0.5 text-sm font-medium text-foreground">{timeLabel ?? "Nog geen tijdslot"}</dd>
             </div>
             <div className="col-span-2 min-w-0 sm:col-span-1">
+              <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/80">Werkelijk</dt>
+              <dd className="mt-0.5 text-sm font-medium text-foreground">{actualTimeLabel ?? "Nog niet gestart"}</dd>
+            </div>
+            <div className="min-w-0">
               <dt className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground/80">Bijgewerkt</dt>
               <dd className="mt-0.5 text-sm font-medium text-foreground">{updatedAt}</dd>
             </div>
@@ -1051,6 +1068,14 @@ export default async function AssignmentDetailPage({ params, searchParams }: Pro
               label="Geplande datum"
               value={scheduledLabel}
             />
+
+            {actualTimeLabel && (
+              <InfoRow
+                icon={Clock3}
+                label="Werkelijke uitvoering"
+                value={actualTimeLabel}
+              />
+            )}
 
             {timeLabel && (
               <InfoRow

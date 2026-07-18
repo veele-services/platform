@@ -46,6 +46,8 @@ export type CustomerAssignment = {
   scheduledDate: string | null;
   scheduledStart: string | null;
   scheduledEnd: string | null;
+  actualStartedAt: string | null;
+  actualCompletedAt: string | null;
   objectName: string | null;
   objectAddress: string | null;
   objectCity: string | null;
@@ -72,6 +74,8 @@ export async function getMyAssignments(): Promise<CustomerAssignment[]> {
       scheduledDate: assignmentsTable.scheduledDate,
       scheduledStart: assignmentsTable.scheduledStart,
       scheduledEnd: assignmentsTable.scheduledEnd,
+      actualStartedAt: assignmentsTable.actualStartedAt,
+      actualCompletedAt: assignmentsTable.actualCompletedAt,
       createdAt: assignmentsTable.createdAt,
       objectName: objectsTable.name,
       objectAddress: objectsTable.address,
@@ -108,6 +112,8 @@ export async function getMyAssignments(): Promise<CustomerAssignment[]> {
     scheduledDate: r.scheduledDate,
     scheduledStart: r.scheduledStart,
     scheduledEnd: r.scheduledEnd,
+    actualStartedAt: r.actualStartedAt?.toISOString() ?? null,
+    actualCompletedAt: r.actualCompletedAt?.toISOString() ?? null,
     objectName: r.objectName ?? null,
     objectAddress: r.objectAddress ?? null,
     objectCity: r.objectCity ?? null,

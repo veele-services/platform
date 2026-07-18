@@ -183,7 +183,7 @@ function filterAssignments(
 
 function isAssignmentNow(assignment: MyAssignment, selectedDateKey: string): boolean {
   if (selectedDateKey !== todayKey()) return false;
-  if (!assignment.scheduledStart || !assignment.scheduledEnd) return false;
+  if (!assignment.effectiveStart || !assignment.effectiveEnd) return false;
 
   const now = new Intl.DateTimeFormat("nl-NL", {
     timeZone: "Europe/Amsterdam",
@@ -192,7 +192,7 @@ function isAssignmentNow(assignment: MyAssignment, selectedDateKey: string): boo
     hour12:   false,
   }).format(new Date());
 
-  return assignment.scheduledStart <= now && now <= assignment.scheduledEnd;
+  return assignment.effectiveStart <= now && now <= assignment.effectiveEnd;
 }
 
 function StatusPill({ status }: { status: PlanningStatus }) {
@@ -336,6 +336,7 @@ function PlanningCard({
   const address = assignment.objectAddress || "Adres niet bekend";
   const phone = assignment.phone || "Telefoonnummer niet bekend";
   const isCompact = viewMode === "compact";
+  const hasActualTime = Boolean(assignment.actualStart || assignment.actualEnd);
 
   return (
     <Link
@@ -351,8 +352,13 @@ function PlanningCard({
           </p>
           <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <p className="text-[21px] font-black leading-none tracking-tight" style={{ color: "var(--color-primary)" }}>
-              {formatTime(assignment.scheduledStart, assignment.scheduledEnd)}
+              {hasActualTime ? "Werkelijk " : ""}{formatTime(assignment.effectiveStart, assignment.effectiveEnd)}
             </p>
+            {hasActualTime ? (
+              <p className="w-full text-[11px] font-bold" style={{ color: "var(--color-secondary)" }}>
+                Gepland {formatTime(assignment.scheduledStart, assignment.scheduledEnd)}
+              </p>
+            ) : null}
             {isAssignmentNow(assignment, selectedDateKey) ? (
               <span className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase" style={{ color: "var(--color-accent)" }}>
                 <span className="h-2 w-2 rounded-full" style={{ backgroundColor: "var(--color-accent)" }} />
@@ -408,7 +414,7 @@ export default async function OpdrachtenPage({ searchParams }: Props) {
   const filteredAssignments = filterAssignments(assignments, query, statusFilter);
   const selectedAssignments = filteredAssignments
     .filter((assignment) => assignment.scheduledDate === selectedDateKey)
-    .sort((a, b) => timeValue(a.scheduledStart).localeCompare(timeValue(b.scheduledStart)));
+    .sort((a, b) => timeValue(a.effectiveStart).localeCompare(timeValue(b.effectiveStart)));
   const unscheduledAssignments = filteredAssignments
     .filter((assignment) => !assignment.scheduledDate)
     .sort((a, b) => a.code.localeCompare(b.code));

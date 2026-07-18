@@ -350,6 +350,25 @@ function actualTimeBlock(assignment: PlanningBoardPersonnelAssignment, boardDate
   return minuteBlock(effectiveStart, effectiveEnd);
 }
 
+function unionTimeBlocks(...blocks: Array<{ left: number; width: number } | null>): { left: number; width: number } | null {
+  const available = blocks.filter((block): block is { left: number; width: number } => block !== null);
+  if (available.length === 0) return null;
+  const left = Math.min(...available.map((block) => block.left));
+  const right = Math.max(...available.map((block) => block.left + block.width));
+  return { left, width: right - left };
+}
+
+function relativeTimeBlock(
+  child: { left: number; width: number } | null,
+  parent: { left: number; width: number },
+): { left: number; width: number } | null {
+  if (!child || parent.width <= 0) return null;
+  return {
+    left: ((child.left - parent.left) / parent.width) * 100,
+    width: (child.width / parent.width) * 100,
+  };
+}
+
 function suggestedStartForAssignment(assignment: PlanningBoardAssignment, boardDate: string): string {
   const scheduled = parseTimeMin(assignment.scheduledStart);
   if (scheduled !== null) {
@@ -1692,7 +1711,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                             )}
 
                             {person.scheduledAssignments.map((assignment) => {
-                              const block = timeBlock(assignment.effectiveStart ?? assignment.scheduledStart, assignment.effectiveEnd ?? assignment.scheduledEnd);
+                              const effectiveBlock = timeBlock(assignment.effectiveStart ?? assignment.scheduledStart, assignment.effectiveEnd ?? assignment.scheduledEnd);
                               const plannedBlock = timeBlock(assignment.scheduledStart, assignment.scheduledEnd);
                               const staffingState = planboardStaffingState(assignment);
                               const staffingIndicator = {
@@ -1704,6 +1723,9 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                               const late = isLateAppointment(assignment, data.date);
                               const pastel = late ? { bg: "#FFEDD5", border: "#FB923C", text: "#7C2D12", rail: "#F97316" } : pastelForAppointment(assignment);
                               const actualBlock = actualTimeBlock(assignment, data.date);
+                              const block = unionTimeBlocks(plannedBlock, actualBlock ?? effectiveBlock);
+                              const plannedOverlay = block ? relativeTimeBlock(plannedBlock, block) : null;
+                              const actualOverlay = block ? relativeTimeBlock(actualBlock, block) : null;
                               const isMovable = canWrite && isPlanboardMovableStatus(assignment.status);
                               if (!block) {
                                 return (
@@ -1750,11 +1772,11 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                         cursor: isMovable ? "grab" : undefined,
                                       }}
                                     >
-                                      {plannedBlock && (
-                                        <span aria-hidden="true" className="absolute inset-y-1 rounded-md border border-dashed" style={{ left: 0, right: 0, borderColor: "rgba(8,29,58,0.32)" }} />
+                                      {plannedOverlay && (
+                                        <span aria-hidden="true" className="absolute inset-y-1 rounded-md border border-dashed" style={{ left: String(plannedOverlay.left) + "%", width: String(plannedOverlay.width) + "%", borderColor: "rgba(8,29,58,0.32)" }} />
                                       )}
-                                      {actualBlock && (assignment.actualStartedAt || assignment.actualCompletedAt) && (
-                                        <span aria-hidden="true" className="absolute bottom-0 top-0 rounded-md" style={{ left: 0, right: 0, background: "rgba(59,130,246,0.10)" }} />
+                                      {actualOverlay && (assignment.actualStartedAt || assignment.actualCompletedAt) && (
+                                        <span aria-hidden="true" className="absolute bottom-0 top-0 rounded-md" style={{ left: String(actualOverlay.left) + "%", width: String(actualOverlay.width) + "%", background: "rgba(59,130,246,0.18)" }} />
                                       )}
                                       <span className="relative h-full w-1.5 flex-shrink-0" style={{ background: assignment.hasConflict ? "#F59E0B" : pastel.rail }} />
                                       <span className="min-w-0 flex-1 px-2">

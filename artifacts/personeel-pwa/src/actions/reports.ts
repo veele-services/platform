@@ -12,7 +12,7 @@ import {
   organizationSettingsTable,
   tenantsTable,
 } from "@workspace/db";
-import { eq, and, inArray, desc, asc } from "drizzle-orm";
+import { eq, and, inArray, desc, asc, ne } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { revalidatePath } from "next/cache";
@@ -132,7 +132,13 @@ async function getLinkedAssignmentExecution(
     .select({ assignmentPersonnelId: assignmentPersonnelTable.id, executionId: assignmentParticipantExecutionsTable.id })
     .from(assignmentPersonnelTable)
     .innerJoin(assignmentsTable, eq(assignmentPersonnelTable.assignmentId, assignmentsTable.id))
-    .leftJoin(assignmentParticipantExecutionsTable, eq(assignmentParticipantExecutionsTable.assignmentPersonnelId, assignmentPersonnelTable.id))
+    .leftJoin(
+      assignmentParticipantExecutionsTable,
+      and(
+        eq(assignmentParticipantExecutionsTable.assignmentPersonnelId, assignmentPersonnelTable.id),
+        ne(assignmentParticipantExecutionsTable.participantStatus, "removed"),
+      ),
+    )
     .where(
       and(
         eq(assignmentPersonnelTable.personnelId, personnelId),
@@ -457,14 +463,6 @@ export async function getMyReportStatusMap(
     })
     .from(reportsTable)
     .innerJoin(assignmentsTable, eq(reportsTable.assignmentId, assignmentsTable.id))
-    .innerJoin(
-      assignmentPersonnelTable,
-      and(
-        eq(assignmentPersonnelTable.assignmentId, reportsTable.assignmentId),
-        eq(assignmentPersonnelTable.personnelId, identity.personnelId),
-        eq(assignmentPersonnelTable.status, "assigned"),
-      ),
-    )
     .where(
       and(
         eq(reportsTable.submittedBy, identity.userId),

@@ -6,9 +6,11 @@ import { FIXTURE, connect, tableExists, columnExists } from '../../../scripts/fi
 const E2E = {
   users: {
     tenantAInactivePersonnel: '20000000-0000-4000-8000-000000000106',
+    tenantAPhase2Personnel: '20000000-0000-4000-8000-000000000107',
   },
   links: {
     assignmentPersonnelTenantA: '90000000-0000-4000-8000-000000000001',
+    assignmentPersonnelTenantA2: '90000000-0000-4000-8000-000000000005',
   },
   reports: {
     tenantAApproved: '90000000-0000-4000-8000-000000000002',
@@ -21,6 +23,7 @@ const E2E = {
   },
   personnel: {
     tenantAInactive: '60000000-0000-4000-8000-000000000106',
+    tenantAPhase2: '60000000-0000-4000-8000-000000000107',
   },
 };
 
@@ -45,10 +48,12 @@ async function insertE2EAuthUsers(client) {
   await client.query(
     `
       insert into auth.users (id, email, email_confirmed_at, raw_app_meta_data, raw_user_meta_data)
-      values ($1, 'inactive-personnel@tenant-a.runtime.fieldgrid.test', now(), '{"provider":"fieldgrid-e2e"}'::jsonb, '{"fixture":true}'::jsonb)
+      values
+        ($1, 'inactive-personnel@tenant-a.runtime.fieldgrid.test', now(), '{"provider":"fieldgrid-e2e"}'::jsonb, '{"fixture":true}'::jsonb),
+        ($2, 'phase2-personnel@tenant-a.runtime.fieldgrid.test', now(), '{"provider":"fieldgrid-e2e"}'::jsonb, '{"fixture":true,"phase2a":true}'::jsonb)
       on conflict (id) do update set email = excluded.email, raw_user_meta_data = excluded.raw_user_meta_data
     `,
-    [E2E.users.tenantAInactivePersonnel],
+    [E2E.users.tenantAInactivePersonnel, E2E.users.tenantAPhase2Personnel],
   );
 }
 
@@ -149,15 +154,51 @@ async function insertInactivePersonnel(client) {
   );
 }
 
+async function insertPhase2Personnel(client) {
+  await client.query(
+    `
+      insert into personnel (id, tenant_id, user_id, code, first_name, last_name, email, is_active, is_available)
+      values ($1, $2, $3, 'RTA-P107', 'Phase2', 'Personnel A', 'phase2-personnel@tenant-a.runtime.fieldgrid.test', true, true)
+      on conflict (id) do update set tenant_id = excluded.tenant_id, user_id = excluded.user_id, email = excluded.email, is_active = true, is_available = true
+    `,
+    [E2E.personnel.tenantAPhase2, FIXTURE.tenants.a, E2E.users.tenantAPhase2Personnel],
+  );
+}
+
 async function insertAssignmentPersonnel(client) {
   if (!(await tableExists(client, 'public', 'assignment_personnel'))) return;
+  if (await tableExists(client, 'public', 'assignment_personnel_lifecycle_history')) {
+    await client.query(
+      `delete from assignment_personnel_lifecycle_history
+        where assignment_personnel_id in (
+          select id from assignment_personnel where assignment_id = $1
+        )`,
+      [FIXTURE.assignments.a],
+    );
+  }
+  if (await tableExists(client, 'public', 'assignment_participant_executions')) {
+    await client.query('delete from assignment_participant_executions where assignment_id = $1', [FIXTURE.assignments.a]);
+  }
+  await client.query('delete from assignment_personnel where assignment_id = $1', [FIXTURE.assignments.a]);
+  await client.query(
+    `
+      update assignments
+      set required_personnel_count = 2, scheduled_date = current_date, scheduled_start = '08:00', scheduled_end = '12:00',
+          status = 'scheduled', seen_at = null, en_route_at = null, actual_started_at = null, actual_completed_at = null,\n          completion_reason = null, completion_notes = null, cancelled_at = null, cancelled_by = null, cancellation_reason = null
+      where id = $1 and tenant_id = $2
+    `,
+    [FIXTURE.assignments.a, FIXTURE.tenants.a],
+  );
   await client.query(
     `
       insert into assignment_personnel (id, assignment_id, personnel_id, status, assigned_by)
-      values ($1, $2, $3, 'assigned', $4)
-      on conflict (assignment_id, personnel_id) do update set status = excluded.status, assigned_by = excluded.assigned_by
+      values
+        ($1, $3, $4, 'assigned', $6),
+        ($2, $3, $5, 'assigned', $6)
+      on conflict (assignment_id, personnel_id) where status in ('assigned', 'suggested')
+      do update set status = excluded.status, assigned_by = excluded.assigned_by
     `,
-    [E2E.links.assignmentPersonnelTenantA, FIXTURE.assignments.a, FIXTURE.personnel.a, FIXTURE.users.tenantAAdmin],
+    [E2E.links.assignmentPersonnelTenantA, E2E.links.assignmentPersonnelTenantA2, FIXTURE.assignments.a, FIXTURE.personnel.a, E2E.personnel.tenantAPhase2, FIXTURE.users.tenantAAdmin],
   );
 }
 
@@ -291,7 +332,7 @@ async function count(client, sql, params = []) {
 }
 
 async function verifyFixtures(client, customerUserResult, canonicalAdminRoles) {
-  const assignmentPersonnelLinkCount = await count(client, 'select count(*) from assignment_personnel where assignment_id = $1 and personnel_id = $2', [FIXTURE.assignments.a, FIXTURE.personnel.a]);
+  const assignmentPersonnelLinkCount = await count(client, `select count(*) from assignment_personnel where assignment_id = $1 and personnel_id = any($2::uuid[]) and status = 'assigned'`, [FIXTURE.assignments.a, [FIXTURE.personnel.a, E2E.personnel.tenantAPhase2]]);
   const inactivePersonnelCount = await count(client, 'select count(*) from personnel where id = $1 and user_id = $2 and is_active = false', [E2E.personnel.tenantAInactive, E2E.users.tenantAInactivePersonnel]);
   const reportCount = await count(client, 'select count(*) from reports where id = $1 and tenant_id = $2 and assignment_id = $3 and status = $4', [E2E.reports.tenantAApproved, FIXTURE.tenants.a, FIXTURE.assignments.a, 'approved']);
   const invoiceCount = await count(client, 'select count(*) from invoices where id = $1 and tenant_id = $2 and assignment_id = $3 and status = $4', [E2E.invoices.tenantAVisible, FIXTURE.tenants.a, FIXTURE.assignments.a, 'sent']);
@@ -349,7 +390,7 @@ async function verifyFixtures(client, customerUserResult, canonicalAdminRoles) {
     && String(customerUserFinalRow.email).toLowerCase() === 'customer@tenant-a.runtime.fieldgrid.test'
     && customerUserFinalRow.role === 'primary'
     && customerUserFinalRow.status === 'active';
-  const passed = assignmentPersonnelLinkCount === 1
+  const passed = assignmentPersonnelLinkCount === 2
     && inactivePersonnelCount === 1
     && reportCount === 1
     && invoiceCount === 1
@@ -408,6 +449,7 @@ async function main() {
     await insertE2EAuthUsers(client);
     const canonicalAdminRoles = await seedCanonicalAdminRoles(client);
     await insertInactivePersonnel(client);
+    await insertPhase2Personnel(client);
     await insertAssignmentPersonnel(client);
     const customerUserResult = await upsertCustomerUser(client);
     await insertApprovedReport(client);

@@ -57,6 +57,45 @@ function formatDate(dateStr: string | null): string {
   });
 }
 
+function formatActualTime(value: string | null): string | null {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat("nl-NL", {
+    timeZone: "Europe/Amsterdam",
+    hour: "2-digit",
+    minute: "2-digit",
+  }).format(date);
+}
+
+function AssignmentTiming({ assignment }: { assignment: CustomerAssignment }) {
+  const actualWindow = [formatActualTime(assignment.actualStartedAt), formatActualTime(assignment.actualCompletedAt)]
+    .filter(Boolean)
+    .join(" - ");
+  const plannedWindow = [assignment.scheduledStart, assignment.scheduledEnd]
+    .filter(Boolean)
+    .map((value) => value?.slice(0, 5))
+    .join(" - ");
+
+  if (!assignment.scheduledDate) {
+    return <span style={{ color: "var(--color-muted-fg)" }}>Nog niet gepland</span>;
+  }
+
+  return (
+    <span className="block min-w-[10rem] text-sm font-semibold" style={{ color: "var(--color-primary)" }}>
+      <span className="block">{formatDate(assignment.scheduledDate)}</span>
+      {actualWindow ? (
+        <>
+          <span className="block font-black">Werkelijk {actualWindow}</span>
+          <span className="block text-xs" style={{ color: "var(--color-muted-fg)" }}>Gepland {plannedWindow || "tijd onbekend"}</span>
+        </>
+      ) : (
+        <span className="block">{plannedWindow || "Tijd nog niet bekend"}</span>
+      )}
+    </span>
+  );
+}
+
 function formatAmount(amount: string | null): string {
   if (!amount) return "";
   return parseFloat(amount).toLocaleString("nl-NL", {
@@ -169,22 +208,7 @@ function assignmentColumns(): Array<PortalDataColumn<CustomerAssignment>> {
     {
       key: "planning",
       header: "Planning",
-      render: (assignment) => (
-        <span
-          className="block min-w-[10rem] text-sm font-semibold"
-          style={{
-            color: assignment.scheduledDate
-              ? "var(--color-primary)"
-              : "var(--color-muted-fg)",
-          }}
-        >
-          {assignment.scheduledDate
-            ? `${formatDate(assignment.scheduledDate)}${
-                assignment.scheduledStart ? ` - ${assignment.scheduledStart}` : ""
-              }`
-            : "Nog niet gepland"}
-        </span>
-      ),
+      render: (assignment) => <AssignmentTiming assignment={assignment} />,
     },
     {
       key: "quote",
@@ -398,12 +422,9 @@ export default async function OpdrachtenPage({
                     {assignment.objectCity ? ` - ${assignment.objectCity}` : ""}
                   </p>
                 ) : null}
-                {assignment.scheduledDate ? (
-                  <p className="mt-1 text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>
-                    {formatDate(assignment.scheduledDate)}
-                    {assignment.scheduledStart ? ` - ${assignment.scheduledStart}` : ""}
-                  </p>
-                ) : null}
+                <span className="mt-1 block text-xs">
+                  <AssignmentTiming assignment={assignment} />
+                </span>
                 <div className="mt-2">
                   <QuoteCell assignment={assignment} />
                 </div>

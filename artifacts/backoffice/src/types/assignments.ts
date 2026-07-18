@@ -17,6 +17,7 @@ export const ASSIGNMENT_STATUSES = [
   "invoiced",
   "paid",
   "closed",
+  "cancelled",
 ] as const;
 
 export type AssignmentStatus = (typeof ASSIGNMENT_STATUSES)[number];
@@ -31,10 +32,10 @@ export const ASSIGNMENT_STATUS_TRANSITIONS: Record<AssignmentStatus, AssignmentS
   awaiting_approval: ["approved", "review"],
   approved:          ["plannable"],
   plannable:         ["scheduled"],
-  scheduled:         ["seen", "en_route", "in_progress", "plannable"],
-  seen:              ["en_route", "in_progress", "scheduled"],
-  en_route:          ["in_progress", "scheduled"],
-  in_progress:       ["completed", "not_completed"],
+  scheduled:         ["plannable"],
+  seen:              ["scheduled"],
+  en_route:          ["scheduled"],
+  in_progress:       [],
   not_completed:     ["in_progress", "plannable"],
   completed:         ["report_submitted"],
   report_submitted:  ["report_approved", "completed"],
@@ -43,4 +44,5 @@ export const ASSIGNMENT_STATUS_TRANSITIONS: Record<AssignmentStatus, AssignmentS
   invoiced:          ["paid"],
   paid:              ["closed"],
   closed:            [],
+  cancelled:         [],
 };

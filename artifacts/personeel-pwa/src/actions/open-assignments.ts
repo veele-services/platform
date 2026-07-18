@@ -291,7 +291,12 @@ export async function getOpenAssignments(): Promise<OpenAssignment[]> {
     db
       .select({ assignmentId: assignmentPersonnelTable.assignmentId })
       .from(assignmentPersonnelTable)
-      .where(eq(assignmentPersonnelTable.personnelId, personnel.id)),
+      .where(
+        and(
+          eq(assignmentPersonnelTable.personnelId, personnel.id),
+          inArray(assignmentPersonnelTable.status, ["assigned", "suggested"]),
+        ),
+      ),
   ]);
 
   const myIds = new Set(myLinks.map((l) => l.assignmentId));
@@ -540,7 +545,7 @@ export async function applyForAssignment(
 
   // Check for duplicate application
   const [existing] = await db
-    .select({ id: assignmentPersonnelTable.id })
+    .select({ id: assignmentPersonnelTable.id, status: assignmentPersonnelTable.status })
     .from(assignmentPersonnelTable)
     .where(
       and(
@@ -548,17 +553,25 @@ export async function applyForAssignment(
         eq(assignmentPersonnelTable.personnelId, personnel.id),
       ),
     )
+    .orderBy(desc(assignmentPersonnelTable.assignedAt), desc(assignmentPersonnelTable.id))
     .limit(1);
 
-  if (existing) {
+  if (existing && ["assigned", "suggested"].includes(existing.status)) {
     return { success: false, error: "U heeft zich al aangemeld voor deze opdracht" };
   }
 
-  await db.insert(assignmentPersonnelTable).values({
-    assignmentId,
-    personnelId: personnel.id,
-    status: "suggested",
-  });
+  if (existing) {
+    await db
+      .update(assignmentPersonnelTable)
+      .set({ status: "suggested", updatedAt: new Date() })
+      .where(eq(assignmentPersonnelTable.id, existing.id));
+  } else {
+    await db.insert(assignmentPersonnelTable).values({
+      assignmentId,
+      personnelId: personnel.id,
+      status: "suggested",
+    });
+  }
 
   revalidatePath("/openstaand");
   revalidatePath("/opdrachten");

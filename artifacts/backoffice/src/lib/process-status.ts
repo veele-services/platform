@@ -54,6 +54,7 @@ const assignment: ProcessStatusConfig[] = [
   { value: "invoiced", label: "Gefactureerd", description: "Factuur is aangemaakt/verzonden.", tone: "info", order: 160 },
   { value: "paid", label: "Betaald", description: "Betaling is ontvangen.", tone: "success", order: 170 },
   { value: "closed", label: "Afgehandeld", description: "Workflow is volledig afgesloten.", tone: "closed", order: 180 },
+  { value: "cancelled", label: "Geannuleerd", description: "Opdracht en actieve inzetten zijn geannuleerd; historie blijft bewaard.", tone: "closed", order: 190 },
 ];
 
 const quote: ProcessStatusConfig[] = [

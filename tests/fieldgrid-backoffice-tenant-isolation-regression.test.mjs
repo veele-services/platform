@@ -82,8 +82,11 @@ test("planning workbench reads and writes cannot cross tenant boundaries", () =>
 
   assertIncludesAll(functionBody(planning, "unassignPersonnel"), [
     "const tenantId = await requireCurrentTenantId();",
-    "eq(assignmentsTable.tenantId, tenantId)",
-    "eq(personnelTable.tenantId, tenantId)",
+    "transitionAssignmentStaffing({",
+    "tenantId,",
+    "assignmentId,",
+    "personnelId,",
+    "reason: normalizedReason,"
   ], "planning unassign action");
 
   assertIncludesAll(functionBody(planning, "scheduleAssignmentOnBoard"), [

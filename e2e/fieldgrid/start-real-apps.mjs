@@ -25,6 +25,7 @@ const appProbeTimeoutMs = 45_000;
 const localFixtureIdentities = {
   tenantAAdmin: { userId: '20000000-0000-4000-8000-000000000102', email: 'admin@tenant-a.runtime.fieldgrid.test' },
   tenantAPersonnel: { userId: '20000000-0000-4000-8000-000000000104', email: 'personnel@tenant-a.runtime.fieldgrid.test' },
+  tenantAPhase2Personnel: { userId: '20000000-0000-4000-8000-000000000107', email: 'phase2-personnel@tenant-a.runtime.fieldgrid.test' },
   tenantACustomer: { userId: '20000000-0000-4000-8000-000000000105', email: 'customer@tenant-a.runtime.fieldgrid.test' },
   tenantBAdmin: { userId: '20000000-0000-4000-8000-000000000202', email: 'admin@tenant-b.runtime.fieldgrid.test' },
   tenantBPersonnel: { userId: '20000000-0000-4000-8000-000000000204', email: 'personnel@tenant-b.runtime.fieldgrid.test' },

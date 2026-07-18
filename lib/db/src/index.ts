@@ -30,3 +30,4 @@ export * from "./personnel-availability";
 export * from "./planning-eligibility";
 export * from "./interest-selection-staffing";
 export * from "./assignment-participant-execution";
+export * from "./staffing-lifecycle";

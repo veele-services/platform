@@ -42,9 +42,9 @@ test("assignment personnel linking is tenant-scoped, active-only and idempotent"
   assert.match(body, /eq\(assignmentsTable\.tenantId,\s*tenantId\)/u);
   assert.match(body, /eq\(personnelTable\.tenantId,\s*tenantId\)/u);
   assert.match(body, /if \(!personnel\.isActive\)/u);
-  assert.match(body, /existingLink\?\.status === "assigned"/u);
-  assert.match(body, /\.update\(assignmentPersonnelTable\)/u);
-  assert.match(body, /previousStatus:\s*existingLink\?\.status/u);
+  assert.match(body, /transitionAssignmentStaffing\(\{/u);
+  assert.match(body, /tenantId,\s*assignmentId,\s*personnelId,\s*actorUserId: user\.id,\s*action: "assign"/u);
+  assert.match(body, /staffing\.assignmentStatus/u);
 });
 
 test("assignment detail UI refreshes and removes already-linked personnel from candidate picker", () => {

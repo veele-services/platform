@@ -15,6 +15,13 @@
       "when": 1780346486860,
       "tag": "0001_wandering_matthew_murdock",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1784369884571,
+      "tag": "0002_tan_franklin_storm",
+      "breakpoints": true
     }
   ]
 }
