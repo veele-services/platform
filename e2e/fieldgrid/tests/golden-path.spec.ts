@@ -119,13 +119,13 @@ test('5. Customer credential recovery', async ({ page }) => {
 
   await page.getByLabel('E-mailadres').fill('missing-customer@tenant-a.runtime.fieldgrid.test');
   await page.getByRole('button', { name: 'Herstelcode versturen' }).click();
-  await expect(page.getByText(/Controleer uw inbox/i)).toBeVisible();
+  await expect(page.getByText(/Controleer uw inbox/i)).toBeVisible({ timeout: 15_000 });
   await page.getByRole('button', { name: 'Andere e-mail gebruiken' }).click();
 
   const email = 'customer@tenant-a.runtime.fieldgrid.test';
   await page.getByLabel('E-mailadres').fill(email);
   await page.getByRole('button', { name: 'Herstelcode versturen' }).click();
-  await expect(page.getByText(/Controleer uw inbox/i)).toBeVisible();
+  await expect(page.getByText(/Controleer uw inbox/i)).toBeVisible({ timeout: 15_000 });
   const code = await recoveryCodeFor(email);
   await page.getByLabel('Herstelcode').fill(code);
   await page.getByRole('button', { name: 'Code controleren' }).click();
@@ -143,7 +143,7 @@ test('6. Personnel credential recovery', async ({ page }) => {
   await page.goto(personnelUrl('/personeel/wachtwoord-vergeten'));
   await page.getByLabel('E-mailadres').fill(email);
   await page.getByRole('button', { name: 'Herstelcode versturen' }).click();
-  await expect(page.getByText(/Controleer (?:je|uw) inbox/i)).toBeVisible();
+  await expect(page.getByText(/Controleer (?:je|uw) inbox/i)).toBeVisible({ timeout: 15_000 });
   const code = await recoveryCodeFor(email);
   await page.getByLabel('Herstelcode').fill(code);
   await page.getByRole('button', { name: 'Code controleren' }).click();

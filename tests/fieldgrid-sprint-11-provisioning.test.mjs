@@ -68,7 +68,7 @@ test("sprint 11 platform flow requires owner invite and exposes run status", () 
     action,
     [
       "inviteOwnerByEmail",
-      "provisionPortalUserWithTemporaryPassword",
+      "provisionPortalUserForActivation",
       "Owner e-mail is verplicht",
       "rollbackProvisionedTenant",
       "completeProvisionedTenantOwnerInvite",
