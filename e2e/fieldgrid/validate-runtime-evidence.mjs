@@ -35,6 +35,7 @@ const startup = readJson(join(artifactDir, 'startup-status.json'));
 const preflight = readJson(join(artifactDir, 'preflight.json'));
 const proof = readJson(join(artifactDir, 'data-path-proof.json'));
 const fixtures = readJson(join(artifactDir, 'e2e-fixtures.json'));
+const offline = readJson(join(artifactDir, 'offline-reconnect-evidence.json'));
 
 assert(startup.ready === true, 'Startup evidence is not ready', startup);
 for (const name of ['postgresql', 'postgrest', 'gateway', 'backoffice-login', 'personnel-login', 'customer-login']) {
@@ -78,6 +79,29 @@ assert(fixtures.tenantAAdminAllRoleLinkCount === 1, 'Tenant A admin must have on
 assert(fixtures.tenantBAdminAllRoleLinkCount === 1, 'Tenant B admin must have only its canonical role', fixtures);
 assert(fixtures.crossTenantRoleLeakCount === 0, 'Canonical admin roles must not leak across tenants', fixtures);
 assert(fixtures.crossTenantValidation?.tenantBAssignmentInTenantACount === 0, 'Cross-tenant fixture validation failed', fixtures);
+
+const exactGitHead = process.env.FIELDGRID_EXACT_HEAD || process.env.GITHUB_SHA;
+assert(/^[0-9a-f]{40}$/u.test(offline.exactGitHead), 'Offline reconnect evidence has no exact git head', offline);
+if (exactGitHead) assert(offline.exactGitHead === exactGitHead, 'Offline reconnect evidence is stale or belongs to another head', offline);
+assert(offline.status === 'passed', 'Offline reconnect runtime journey did not pass', offline);
+assert(offline.mandatoryJourneySkipped === false, 'Offline reconnect mandatory journey was skipped', offline);
+assert(offline.offlineTransitionObserved === true, 'Real offline transition was not observed', offline);
+assert(offline.queueBeforeReconnect === 1, 'Offline queue must contain exactly one mutation before reconnect', offline);
+assert(offline.activeAttemptHeld === true, 'Deterministic active synchronization barrier was not observed', offline);
+assert(offline.triggerDuringActiveSync === true, 'Reconnect trigger was not recorded during active synchronization', offline);
+assert(offline.coalescedFollowUpPass === true, 'Pending reconnect did not produce a coalesced follow-up pass', offline);
+assert(offline.synchronizationPassCount >= 2, 'Offline synchronization did not execute the required follow-up pass', offline);
+assert(offline.clientAttemptCount === 2, 'Transient attempt plus one successful replay were not observed', offline);
+assert(offline.maximumActiveClientAttempts === 1, 'Offline synchronization overlapped client mutation attempts', offline);
+assert(offline.queueAfterReconnect === 0, 'Offline queue did not drain after reconnect', offline);
+assert(/^[0-9a-f]{64}$/u.test(offline.mutationIdSha256), 'Offline mutation identifier was not safely hashed', offline);
+assert(offline.canonicalReceiptCount === 1, 'Offline mutation has no unique canonical server receipt', offline);
+assert(offline.completedCanonicalReceiptCount === 1, 'Canonical offline receipt was not durably completed', offline);
+assert(offline.serverMutationCount === 1, 'Offline mutation executed more or less than once on the server', offline);
+assert(offline.taskCompletionRowCount === 1, 'Offline task result did not converge to one canonical row', offline);
+assert(offline.reloadConverged === true, 'Reload did not converge to the canonical offline result', offline);
+assert(offline.duplicateExecutionCount === 0, 'Duplicate offline execution was observed', offline);
+assert(offline.duplicateReceiptCount === 0, 'Duplicate offline receipt was observed', offline);
 
 const requiredLogs = [
   'backoffice.stdout.log',

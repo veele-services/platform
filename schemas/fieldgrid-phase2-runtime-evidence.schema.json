@@ -78,7 +78,8 @@
             "rls",
             "api",
             "accessibility",
-            "data-path"
+            "data-path",
+            "offline-reconnect"
           ]
         },
         "artifact": { "$ref": "#/$defs/artifactReference" },

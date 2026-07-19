@@ -92,6 +92,13 @@ await writeFile(join(artifactDir, 'accessibility-summary.json'), `${JSON.stringi
 const exactGitHead = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
 const expectedGitHead = process.env.FIELDGRID_EXACT_HEAD || process.env.GITHUB_SHA || exactGitHead;
 if (exactGitHead !== expectedGitHead) throw new Error(`Evidence head ${exactGitHead} differs from expected ${expectedGitHead}.`);
+const offlineEvidencePath = join(artifactDir, 'offline-reconnect-evidence.json');
+if (!existsSync(offlineEvidencePath)) throw new Error(`Missing runtime-derived offline reconnect evidence: ${offlineEvidencePath}`);
+const offlineEvidence = JSON.parse(await readFile(offlineEvidencePath, 'utf8'));
+if (offlineEvidence.exactGitHead !== exactGitHead) throw new Error('Offline reconnect evidence belongs to another git head.');
+if (offlineEvidence.status !== 'passed' || offlineEvidence.mandatoryJourneySkipped !== false) {
+  throw new Error('Offline reconnect journey did not produce a mandatory runtime pass.');
+}
 const runBinding = {
   schemaVersion: '1.0.0',
   exactGitHead,
@@ -107,4 +114,13 @@ const runBinding = {
 };
 await writeFile(join(artifactDir, 'run-binding.json'), `${JSON.stringify(runBinding, null, 2)}\n`);
 
-console.log(JSON.stringify({ browser: browserSummary.counts, accessibility: { status: accessibilitySummary.status, results: accessibilityResults.length } }));
+console.log(JSON.stringify({
+  browser: browserSummary.counts,
+  accessibility: { status: accessibilitySummary.status, results: accessibilityResults.length },
+  offlineReconnect: {
+    status: offlineEvidence.status,
+    queueBefore: offlineEvidence.queueBeforeReconnect,
+    queueAfter: offlineEvidence.queueAfterReconnect,
+    serverMutationCount: offlineEvidence.serverMutationCount,
+  },
+}));

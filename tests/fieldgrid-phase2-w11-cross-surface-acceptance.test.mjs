@@ -55,6 +55,7 @@ test("runtime collector requires every mandatory journey and machine source", ()
     "accessibility-summary.json",
     "data-path-proof.json",
     "e2e-fixtures.json",
+    "offline-reconnect-evidence.json",
     "phase2d-runtime-journeys.json",
     "db-harness.json",
     "rls-harness.json",

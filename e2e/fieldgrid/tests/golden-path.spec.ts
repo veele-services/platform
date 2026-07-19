@@ -1,5 +1,8 @@
 import { expect, test, type Page, type Response } from "@playwright/test";
-import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 
 const tenantAHost = "tenant-a.runtime.fieldgrid.test";
 const tenantBHost = "tenant-b.runtime.fieldgrid.test";
@@ -12,6 +15,7 @@ const quoteAcceptanceAssignmentId = "91000000-0000-4000-8000-000000000001";
 const cancellationInvoiceId = "91000000-0000-4000-8000-000000000003";
 const partialPaymentInvoiceId = "90000000-0000-4000-8000-000000000003";
 const recoveryOutboxPath = "/tmp/fieldgrid-phase2b-playwright-outbox.jsonl";
+const offlineTaskId = "90000000-0000-4000-8000-000000000006";
 
 function backofficeUrl(path: string, host = tenantAHost) {
   return `http://${host}:9321${path}`;
@@ -388,6 +392,17 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
   context,
 }) => {
   test.setTimeout(60_000);
+  const startedAt = new Date().toISOString();
+  await page.addInitScript(() => {
+    const observations: unknown[] = [];
+    Object.defineProperty(window, "__fieldgridOfflineSyncObservations", {
+      configurable: true,
+      value: observations,
+    });
+    window.addEventListener("veele:offline-sync-observation", (event) => {
+      observations.push((event as CustomEvent).detail);
+    });
+  });
   await useIdentity(page, "20000000-0000-4000-8000-000000000104");
   await page.goto(
     personnelUrl(
@@ -398,6 +413,7 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
   await expect(
     page.getByRole("button", { name: "Runtime offline checklist task" }),
   ).toBeVisible();
+  await page.waitForLoadState("networkidle");
 
   await context.setOffline(true);
   await page
@@ -438,24 +454,176 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
   });
   expect(queued[0].idempotencyKey).toEqual(expect.any(String));
   expect(queued[0].expectedParticipantVersion).toEqual(expect.any(Number));
+  const mutationId = String(queued[0].idempotencyKey);
+  expect(mutationId).toMatch(/^personnel-pwa:[A-Za-z0-9-]{16,128}$/u);
+  const passCountBeforeReconnect = await page.evaluate(() => (
+    ((window as Window & { __fieldgridOfflineSyncObservations?: unknown[] })
+      .__fieldgridOfflineSyncObservations ?? []).filter((entry) => (
+      (entry as { type?: string }).type === "pass-started"
+    )).length
+  ));
 
-  // Reconnect while writes are unavailable, then reload the real app. The
-  // durable browser queue must survive the document lifecycle.
-  await page.route("**/*", async (route) => {
-    if (route.request().method() === "POST") await route.abort("failed");
-    else await route.continue();
+  let releaseFirstAttempt = () => undefined;
+  const firstAttemptRelease = new Promise<void>((resolve) => {
+    releaseFirstAttempt = resolve;
   });
+  let markFirstAttemptStarted = () => undefined;
+  const firstAttemptStarted = new Promise<void>((resolve) => {
+    markFirstAttemptStarted = resolve;
+  });
+  let clientAttemptCount = 0;
+  let activeClientAttempts = 0;
+  let maximumActiveClientAttempts = 0;
+  const requestBodies: string[] = [];
+
+  // The first real server-action request is held behind a deterministic
+  // barrier. Reconnect/focus/visibility/service-worker triggers are emitted
+  // while the synchronization pass is provably active, then that transport
+  // attempt fails transiently. The next pass is allowed through.
+  await page.route("**/*", async (route) => {
+    if (route.request().method() !== "POST") {
+      await route.continue();
+      return;
+    }
+    const body = route.request().postData() ?? "";
+    requestBodies.push(body);
+    clientAttemptCount += 1;
+    activeClientAttempts += 1;
+    maximumActiveClientAttempts = Math.max(
+      maximumActiveClientAttempts,
+      activeClientAttempts,
+    );
+    try {
+      if (clientAttemptCount === 1) {
+        markFirstAttemptStarted();
+        await firstAttemptRelease;
+        await route.abort("failed");
+        return;
+      }
+      await route.continue();
+    } finally {
+      activeClientAttempts -= 1;
+    }
+  });
+
   await context.setOffline(false);
-  await page.reload();
-  await expectRealApp(page);
+  await firstAttemptStarted;
   await expect.poll(queuedActionCount).toBe(1);
 
-  // Restore the network and emit a new reconnect event. The same mutation ID
-  // is replayed once, removed only after the canonical server result succeeds.
-  await page.unroute("**/*");
-  await context.setOffline(true);
-  await context.setOffline(false);
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("online"));
+    window.dispatchEvent(new Event("focus"));
+    document.dispatchEvent(new Event("visibilitychange"));
+  });
+  const observationsDuringAttempt = await page.evaluate(() => (
+    (window as Window & { __fieldgridOfflineSyncObservations?: unknown[] })
+      .__fieldgridOfflineSyncObservations ?? []
+  ));
+  const triggerWasRecordedDuringActivePass = observationsDuringAttempt.some(
+    (entry) => {
+      const observation = entry as {
+        type?: string;
+        requestedGeneration?: number;
+        completedGeneration?: number;
+      };
+      return observation.type === "requested"
+        && Number(observation.requestedGeneration) > Number(observation.completedGeneration);
+    },
+  );
+  expect(triggerWasRecordedDuringActivePass).toBe(true);
+
+  releaseFirstAttempt();
   await expect.poll(queuedActionCount, { timeout: 20_000 }).toBe(0);
+  await page.unroute("**/*");
+
+  expect(clientAttemptCount).toBe(2);
+  expect(maximumActiveClientAttempts).toBe(1);
+  expect(requestBodies).toHaveLength(2);
+  expect(requestBodies.every((body) => body.includes(mutationId))).toBe(true);
+
+  const observations = await page.evaluate(() => (
+    (window as Window & { __fieldgridOfflineSyncObservations?: unknown[] })
+      .__fieldgridOfflineSyncObservations ?? []
+  ));
+  const startedPasses = observations.filter((entry) => (
+    (entry as { type?: string }).type === "pass-started"
+  )) as Array<{ generation: number; triggers: string[] }>;
+  const reconnectPasses = startedPasses.slice(passCountBeforeReconnect);
+  expect(reconnectPasses.length).toBeGreaterThanOrEqual(2);
+  expect(reconnectPasses.at(-1)?.triggers).toEqual(expect.arrayContaining([
+    "online",
+    "focus",
+    "visibility",
+  ]));
+
+  const databaseUrl = process.env.DATABASE_URL;
+  expect(databaseUrl, "DATABASE_URL is required for canonical offline evidence").toBeTruthy();
+  const sql = `
+    select json_build_object(
+      'canonicalReceiptCount', count(*) filter (where operation_id = '${mutationId}'),
+      'completedCanonicalReceiptCount', count(*) filter (
+        where operation_id = '${mutationId}' and canonical_response is not null and completed_at is not null
+      ),
+      'taskCompletionRowCount', (
+        select count(*) from assignment_tasks
+        where id = '${offlineTaskId}' and completed_at is not null
+      )
+    )::text
+    from offline_operation_receipts;
+  `;
+  const databaseProof = JSON.parse(execFileSync(
+    "psql",
+    [databaseUrl!, "--no-psqlrc", "--tuples-only", "--no-align", "--command", sql],
+    { encoding: "utf8" },
+  ).trim()) as {
+    canonicalReceiptCount: number;
+    completedCanonicalReceiptCount: number;
+    taskCompletionRowCount: number;
+  };
+  expect(databaseProof).toEqual({
+    canonicalReceiptCount: 1,
+    completedCanonicalReceiptCount: 1,
+    taskCompletionRowCount: 1,
+  });
+
+  // A document reload must converge to the durable canonical result without
+  // recreating the queue or replaying the mutation.
   await page.reload();
   await expect(page.getByText(/^1 van \d+ afgerond$/u)).toBeVisible();
+  await expect.poll(queuedActionCount).toBe(0);
+
+  const exactGitHead = execFileSync("git", ["rev-parse", "HEAD"], {
+    encoding: "utf8",
+  }).trim();
+  const evidence = {
+    schemaVersion: "1.0.0",
+    exactGitHead,
+    startedAt,
+    finishedAt: new Date().toISOString(),
+    status: "passed",
+    mandatoryJourneySkipped: false,
+    offlineTransitionObserved: true,
+    queueBeforeReconnect: queued.length,
+    activeAttemptHeld: true,
+    triggerDuringActiveSync: triggerWasRecordedDuringActivePass,
+    coalescedFollowUpPass: reconnectPasses.length >= 2,
+    synchronizationPassCount: reconnectPasses.length,
+    clientAttemptCount,
+    maximumActiveClientAttempts,
+    queueAfterReconnect: await queuedActionCount(),
+    mutationIdSha256: createHash("sha256").update(mutationId).digest("hex"),
+    canonicalReceiptCount: databaseProof.canonicalReceiptCount,
+    completedCanonicalReceiptCount: databaseProof.completedCanonicalReceiptCount,
+    serverMutationCount: databaseProof.canonicalReceiptCount,
+    taskCompletionRowCount: databaseProof.taskCompletionRowCount,
+    reloadConverged: true,
+    duplicateExecutionCount: Math.max(databaseProof.taskCompletionRowCount - 1, 0),
+    duplicateReceiptCount: Math.max(databaseProof.canonicalReceiptCount - 1, 0),
+  };
+  const artifactDir = join(process.cwd(), "artifacts", "fieldgrid-playwright");
+  await mkdir(artifactDir, { recursive: true });
+  await writeFile(
+    join(artifactDir, "offline-reconnect-evidence.json"),
+    `${JSON.stringify(evidence, null, 2)}\n`,
+  );
 });
