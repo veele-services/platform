@@ -118,15 +118,15 @@ test("runner starts real Fieldgrid apps and does not serve mock application HTML
   );
   assert.match(
     source,
-    /'pnpm', \['--filter', '@workspace\/backoffice', 'exec', 'next', 'dev', '-H', '127\.0\.0\.1', '-p', String\(ports\.backoffice\)\]/,
+    /spawnLogged\(\s*"backoffice",\s*"pnpm",[\s\S]{0,300}"@workspace\/backoffice"[\s\S]{0,300}String\(ports\.backoffice\)/,
   );
   assert.match(
     source,
-    /'pnpm', \['--filter', '@workspace\/personeel-pwa', 'exec', 'next', 'dev', '--turbopack', '-H', '0\.0\.0\.0', '-p', String\(ports\.personnel\)\]/,
+    /spawnLogged\(\s*"personnel",\s*"pnpm",[\s\S]{0,350}"@workspace\/personeel-pwa"[\s\S]{0,350}String\(ports\.personnel\)/,
   );
   assert.match(
     source,
-    /'pnpm', \['--filter', '@workspace\/klant-pwa', 'exec', 'next', 'dev', '--turbopack', '-H', '0\.0\.0\.0', '-p', String\(ports\.customer\)\]/,
+    /spawnLogged\(\s*"customer",\s*"pnpm",[\s\S]{0,350}"@workspace\/klant-pwa"[\s\S]{0,350}String\(ports\.customer\)/,
   );
   assert.doesNotMatch(source, /fixture\s*:/);
   assert.doesNotMatch(source, /listen\(ports\.postgrest/);
@@ -148,12 +148,15 @@ test("browser scenarios use real runtime hostnames instead of forbidden Host hea
 
 test("gateway is strict and strips /rest/v1 before proxying to real PostgREST", () => {
   const source = start();
-  assert.match(source, /req\.url\?\.startsWith\('\/rest\/v1\/'\)/);
+  assert.match(source, /req\.url\?\.startsWith\(["']\/rest\/v1\/["']\)/);
   assert.match(
     source,
-    /const incoming = new URL\(requestUrl, 'http:\/\/fieldgrid-e2e\.local'\)/,
+    /const incoming = new URL\(requestUrl, ["']http:\/\/fieldgrid-e2e\.local["']\)/,
   );
-  assert.match(source, /incoming\.pathname\.slice\('\/rest\/v1'\.length\)/);
+  assert.match(
+    source,
+    /incoming\.pathname\.slice\(["']\/rest\/v1["']\.length\)/,
+  );
   assert.match(source, /`\$\{postgrestPath\}\$\{incoming\.search\}`/);
   assert.match(source, /postgrestUrlForGatewayRequest\(req\.url\)/);
   assert.doesNotMatch(
@@ -161,11 +164,11 @@ test("gateway is strict and strips /rest/v1 before proxying to real PostgREST", 
     /new URL\(req\.url, `http:\/\/127\.0\.0\.1:\$\{ports\.postgrest\}`\)/,
   );
   assert.match(source, /method: req\.method/);
-  assert.match(source, /const body = \[\'GET\', \'HEAD\'\]\.includes/);
+  assert.match(source, /const body = \[["']GET["'], ["']HEAD["']\]\.includes/);
   assert.match(source, /authorization/);
   assert.match(source, /apikey/);
   assert.match(source, /content-range/);
-  assert.match(source, /json\(res, 404, \{ error: 'unknown route' \}\)/);
+  assert.match(source, /json\(res, 404, \{ error: ["']unknown route["'] \}\)/);
   assert.doesNotMatch(source, /\{\s*fixture\s*[,}]/);
   assert.doesNotMatch(source, /\{\s*ok:\s*true\s*\}/);
 });
@@ -569,11 +572,25 @@ test("workflow provisions PostgreSQL 17, Runtime Safety fixtures, real PostgREST
   );
 });
 
-test("eleven browser scenarios include review remediation, recovery and offline reconnect, and forbidden files/tooling are absent", () => {
+test("browser scenarios include payment integrity, review remediation, recovery and offline reconnect", () => {
   const spec = read("e2e/fieldgrid/tests/golden-path.spec.ts");
-  assert.equal([...spec.matchAll(/\ntest\(["']/g)].length, 11);
-  assert.match(spec, /Customer accepts a sent quote through the canonical lifecycle/);
-  assert.match(spec, /Backoffice cancels a sent invoice and shows the durable result/);
+  assert.equal([...spec.matchAll(/\ntest\(["']/g)].length, 13);
+  assert.match(
+    spec,
+    /Customer payment journeys use exact outstanding and one durable provider request/,
+  );
+  assert.match(
+    spec,
+    /Customer collection journey sends the exact locked invoice balances/,
+  );
+  assert.match(
+    spec,
+    /Customer accepts a sent quote through the canonical lifecycle/,
+  );
+  assert.match(
+    spec,
+    /Backoffice cancels a sent invoice and shows the durable result/,
+  );
   assert.match(spec, /Customer credential recovery/);
   assert.match(spec, /Personnel credential recovery/);
   assert.match(

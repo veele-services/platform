@@ -2,6 +2,9 @@
 
 import { db } from "@workspace/db";
 import {
+  AmbiguousProviderResultError,
+  bindProviderPayment,
+  createMolliePayment as createProviderPayment,
   getTenantBranding,
   invoicesTable,
   assignmentsTable,
@@ -19,6 +22,9 @@ import {
   finalizeOfficialInvoice,
   claimOfficialInvoiceCollectionNumberInTransaction,
   cancelInvoiceAndReopenAssignment,
+  markPaymentForReconciliation,
+  markProviderAttempt,
+  prepareCollectionPaymentIntent,
   ASSIGNMENT_STATUS_TRANSITIONS,
   type AssignmentStatus,
   type InvoiceStatus,
@@ -1890,222 +1896,79 @@ export async function createCollectiveInvoicePayment(input: {
     }
   }
 
-  const activeBatchItems = await db
-    .select({ invoiceId: customerPaymentBatchItemsTable.invoiceId })
-    .from(customerPaymentBatchItemsTable)
-    .innerJoin(
-      customerPaymentBatchesTable,
-      eq(
-        customerPaymentBatchItemsTable.batchId,
-        customerPaymentBatchesTable.id,
-      ),
-    )
-    .innerJoin(
-      invoicesTable,
-      eq(customerPaymentBatchItemsTable.invoiceId, invoicesTable.id),
-    )
-    .innerJoin(
-      assignmentsTable,
-      eq(invoicesTable.assignmentId, assignmentsTable.id),
-    )
-    .where(
-      and(
-        eq(assignmentsTable.tenantId, tenantId),
-        inArray(customerPaymentBatchItemsTable.invoiceId, invoiceIds),
-        inArray(customerPaymentBatchesTable.status, ["open", "active", "paid"]),
-      ),
-    );
-
-  if (activeBatchItems.length > 0) {
-    return {
-      success: false,
-      message:
-        "Een of meer facturen zitten al in een open of betaalde verzamelbetaling.",
-    };
-  }
-
-  const subtotalCents = invoices.reduce(
-    (sum, invoice) => sum + parseAmountCents(invoice.amount),
-    0,
-  );
-  const vatCents = invoices.reduce(
-    (sum, invoice) => sum + parseAmountCents(invoice.vatAmount),
-    0,
-  );
-  const invoiceTotalCents = invoices.reduce(
-    (sum, invoice) => sum + parseAmountCents(invoice.totalAmount),
-    0,
-  );
-  const discountCents = Math.max(0, Math.round(input.discountCents ?? 0));
-  const surchargeCents = Math.max(0, Math.round(input.surchargeCents ?? 0));
-  const amountCents = invoiceTotalCents - discountCents + surchargeCents;
-
-  if (amountCents <= 0) {
-    return {
-      success: false,
-      message: "Totaalbedrag moet positief blijven na korting/toeslag.",
-    };
-  }
-
   const baseUrl = getBaseUrl();
   const webhookUrl =
     process.env.MOLLIE_WEBHOOK_URL ?? `${baseUrl}/api/webhooks/mollie`;
-  const invoiceNumbers = invoices
-    .map((invoice) => invoice.invoiceNumber)
-    .join(", ");
   const branding = await getTenantBranding(tenantId);
-
-  let mollieResp: Response;
+  let intent;
   try {
-    mollieResp = await fetch("https://api.mollie.com/v2/payments", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${mollieKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        amount: {
-          currency: "EUR",
-          value: centsToMollieValue(amountCents),
-        },
-        description: `Verzamelfactuur ${branding.displayName} (${invoices.length} facturen)`,
-        redirectUrl: `${baseUrl}/klant/betalingen/succes`,
-        webhookUrl,
-        metadata: {
-          type: "customer_payment_batch",
-          source: "backoffice",
-          customerId,
-          invoiceIds,
-          invoiceNumbers,
-          discountCents,
-          surchargeCents,
-        },
-      }),
-    });
-  } catch {
-    return { success: false, message: "Verbinding met Mollie mislukt." };
-  }
-
-  if (!mollieResp.ok) {
-    const body = await mollieResp.json().catch(() => ({}));
-    const detail =
-      (body as { detail?: string }).detail ?? mollieResp.statusText;
-    return { success: false, message: `Mollie fout: ${detail}` };
-  }
-
-  const molliePayment = (await mollieResp.json()) as {
-    id: string;
-    _links?: { checkout?: { href?: string } };
-  };
-  const checkoutUrl = molliePayment._links?.checkout?.href ?? "";
-
-  const [batch] = await db
-    .insert(customerPaymentBatchesTable)
-    .values({
+    intent = await prepareCollectionPaymentIntent({
       tenantId,
       customerId,
-      molliePaymentId: molliePayment.id,
-      amountCents,
-      outstandingAmountCents: amountCents,
-      currency: "EUR",
-      status: "open",
-      checkoutUrl,
-      paymentProvider: "mollie",
-      periodStart: input.periodStart || null,
-      periodEnd: input.periodEnd || null,
-      objectId: input.objectId || null,
-      subtotalCents,
-      vatCents,
-      discountCents,
-      surchargeCents,
-      notes: input.notes?.trim() || null,
-      createdBy: user.id,
-      createdByActorType: "tenant_user",
-    })
-    .returning({ id: customerPaymentBatchesTable.id });
-
-  if (!batch)
-    return { success: false, message: "Verzamelfactuur opslaan mislukt." };
-
-  await db.insert(paymentsTable).values({
-    tenantId,
-    customerId,
-    invoiceId: null,
-    sourceType: "invoice_collection",
-    sourceId: batch.id,
-    molliePaymentId: molliePayment.id,
-    amountCents,
-    amount: centsToMollieValue(amountCents),
-    currency: "EUR",
-    paymentMethod: "mollie",
-    status: "open",
-    checkoutUrl,
-    registeredByUserId: user.id,
-  });
-
-  await db.insert(customerPaymentBatchItemsTable).values(
-    invoices.map((invoice, index) => ({
-      tenantId,
-      batchId: batch.id,
-      invoiceId: invoice.id,
-      amountCents: parseAmountCents(invoice.totalAmount),
-      invoiceNumberSnapshot: invoice.invoiceNumber,
-      originalTotalAmountCents: parseAmountCents(invoice.totalAmount),
-      outstandingAmountAtCollectionCents: parseAmountCents(invoice.totalAmount),
-      includedAmountCents: parseAmountCents(invoice.totalAmount),
-      sortOrder: index,
-    })),
-  );
-
-  try {
-    const { pool } = await import("@workspace/db");
-    const client = await pool.connect();
-    try {
-      await client.query("BEGIN");
-      await claimOfficialInvoiceCollectionNumberInTransaction(client, {
-        batchId: batch.id,
-        tenantId,
-      });
-      await client.query("COMMIT");
-    } catch (error) {
-      await client.query("ROLLBACK").catch(() => undefined);
-      throw error;
-    } finally {
-      client.release();
-    }
-  } catch (error) {
-    console.error("collective invoice number claim failed", {
-      batchId: batch.id,
-      error,
-    });
-    return {
-      success: false,
-      message: "Verzamelfactuurnummer kon niet worden gereserveerd.",
-    };
-  }
-
-  await db.insert(auditLogTable).values({
-    tenantId,
-    userId: user.id,
-    action: "create_collective_invoice_payment",
-    resource: "customer_payment_batches",
-    resourceId: batch.id,
-    metadata: {
-      customerId,
-      invoiceCount: invoiceIds.length,
-      subtotalCents,
-      vatCents,
-      discountCents,
-      surchargeCents,
-      amountCents,
+      invoiceIds,
+      actorUserId: user.id,
+      actorType: "tenant_user",
       periodStart: input.periodStart ?? null,
       periodEnd: input.periodEnd ?? null,
       objectId: input.objectId ?? null,
-    },
-  });
+      notes: input.notes ?? null,
+      discountCents: input.discountCents,
+      surchargeCents: input.surchargeCents,
+    });
+    const { pool } = await import("@workspace/db");
+    const numberingClient = await pool.connect();
+    try {
+      await numberingClient.query("BEGIN");
+      await claimOfficialInvoiceCollectionNumberInTransaction(numberingClient, {
+        batchId: intent.sourceId,
+        tenantId,
+      });
+      await numberingClient.query("COMMIT");
+    } catch (error) {
+      await numberingClient.query("ROLLBACK").catch(() => undefined);
+      throw new Error("Verzamelfactuurnummer kon niet worden gereserveerd.", {
+        cause: error,
+      });
+    } finally {
+      numberingClient.release();
+    }
+    if (!intent.checkoutUrl) {
+      await markProviderAttempt(intent.id);
+      const snapshot = await createProviderPayment({
+        requestKey: intent.providerRequestKey,
+        amountCents: intent.amountCents,
+        currency: intent.currency,
+        description: `Verzamelfactuur ${branding.displayName} (${invoices.length} facturen)`,
+        redirectUrl: `${baseUrl}/klant/betalingen/succes`,
+        webhookUrl,
+        metadata: intent.metadata,
+      });
+      intent = await bindProviderPayment(intent.id, snapshot);
+    }
+    if (!intent.checkoutUrl)
+      throw new Error("Mollie gaf geen geldige checkout-link terug.");
+  } catch (error) {
+    if (intent)
+      await markPaymentForReconciliation(
+        intent.id,
+        error instanceof Error ? error.message : "Providerfout.",
+      );
+    return {
+      success: false,
+      message:
+        error instanceof AmbiguousProviderResultError
+          ? "De betaalprovider verwerkt de aanvraag nog. Probeer dezelfde aanvraag opnieuw."
+          : error instanceof Error
+            ? error.message
+            : "Verzamelbetaling mislukt.",
+    };
+  }
 
   revalidatePath("/invoices");
-  return { success: true, data: { id: batch.id, checkoutUrl } };
+  return {
+    success: true,
+    data: { id: intent.sourceId, checkoutUrl: intent.checkoutUrl },
+  };
 }
 
 export async function finalizeInvoiceDraft(

@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "artifactName": "fieldgrid-runtime-entrypoint-inventory-full",
   "artifactPath": "artifacts/runtime-entrypoints/fieldgrid-runtime-entrypoint-inventory.full.json",
-  "inventoryHash": "sha256:1bc1b8634c19c88c7e5f6ca46d76b7545c9ab11ae624ada136e2e70e8e15af8e",
+  "inventoryHash": "sha256:8597bcb6dc0ccc6a6d90b3f7f7548bd9cb000e88402e0ff1bbf7c945961ac8ef",
   "runtimeRoots": [
     "artifacts/backoffice/src",
     "artifacts/personeel-pwa/src",
@@ -33,12 +33,12 @@
     "www"
   ],
   "counts": {
-    "total": 754,
-    "uniqueRuntimeNodes": 653,
-    "classifications": 754,
+    "total": 749,
+    "uniqueRuntimeNodes": 648,
+    "classifications": 749,
     "externalEntrypoints": 100,
-    "internalDbCallsites": 557,
-    "providerBoundaries": 75,
+    "internalDbCallsites": 553,
+    "providerBoundaries": 74,
     "signedUrlCallsites": 19,
     "byKind": {
       "server-action": 37,
@@ -49,29 +49,29 @@
       "scheduled-entrypoint": 0,
       "database-callsite": 7,
       "rpc-callsite": 0,
-      "raw-sql-callsite": 550,
-      "provider-boundary": 75,
+      "raw-sql-callsite": 546,
+      "provider-boundary": 74,
       "storage-signed-url-issuance": 19
     },
     "bySeverity": {
-      "review-required": 20,
-      "high": 5,
-      "medium": 344,
-      "low": 310,
-      "informational": 75
+      "review-required": 19,
+      "high": 4,
+      "medium": 345,
+      "low": 307,
+      "informational": 74
     }
   },
   "kindHashes": {
-    "server-action": "sha256:c6d2069dee853bf7f86e51b9f676d1441f344de1b7f3fff3cc48f7669ac7ee41",
+    "server-action": "sha256:1a4cc9538911e9771e2f7a78f1fde94f86051c112fdcbc3ebb2057276e950729",
     "route-handler": "sha256:3e43bd2de0da156c00fd1190fe82c490419729612cb0e8b3f832fb77be1049f8",
     "middleware": "sha256:04251a5d79ac5c2866204fe54a602f64ded57855b03bbfbf0b113c2d58c602d0",
-    "webhook-handler": "sha256:f96816dc938acc730f7e56e796e49c90eed5f94fd6f04640e9edf8d3912fe235",
+    "webhook-handler": "sha256:be875e7535a89c59861d454ebdfd4690af127521f5898bda952385f85fc60c5c",
     "worker-entrypoint": "sha256:a89218c8aee687b05a31dd1add0f0ec40552d9ff1fadf7d2e0726e6455f14629",
     "scheduled-entrypoint": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
     "database-callsite": "sha256:39dfb6ac4ec8938f5a0b5017bc76e00a4d70a71391357788eae912f4234f7073",
     "rpc-callsite": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-    "raw-sql-callsite": "sha256:d2d30655a2e6a705861bec0ff05693399fed6d426d5b7a1ffc5ed1799d924b1b",
-    "provider-boundary": "sha256:129ba88830ac961e75dc5527a637ade573ccad2bb8c0918098ccf8c06c37f76e",
+    "raw-sql-callsite": "sha256:e31c890e5a0aecd33fdb83adaa76fd8673fc6a141876406637ebadbeaaeebce0",
+    "provider-boundary": "sha256:e84f233882466d30947d68d6ad05c0be9998ee9e9351c966a106442888b7948c",
     "storage-signed-url-issuance": "sha256:37d99e8d1e00c185584bf818a930df93985a77d73e52de09d52baaf2fae336fe"
   },
   "riskDimensions": [

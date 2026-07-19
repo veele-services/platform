@@ -317,7 +317,9 @@ async function phase2cReviewRemediationFlows(client) {
       approvedAggregate.rows[0]?.realtime_events >= 1,
       "Customer approval produced no realtime projection event.",
     );
-    await client.query(`select set_config('request.jwt.claim.sub',$1,true)`, [FIXTURE.users.tenantACustomer]);
+    await client.query(`select set_config('request.jwt.claim.sub',$1,true)`, [
+      FIXTURE.users.tenantACustomer,
+    ]);
     const projection = await client.query(
       `select status from public.customer_assignment_projection where id=$1`,
       [ids.quoteAssignment],
@@ -666,8 +668,23 @@ async function phase2cReviewRemediationFlows(client) {
       [FIXTURE.tenants.a, ids.directPayment, ids.unrelatedInvoice],
     );
     await client.query(
-      `insert into payments (id,tenant_id,customer_id,invoice_id,source_type,source_id,amount_cents,amount,status,payment_method)
-       values ($1,$2,$3,null,'invoice_collection',$4,24200,'242','paid','mollie')`,
+      `insert into payments (
+         id,tenant_id,customer_id,invoice_id,source_type,source_id,
+         provider_request_key,request_hash,expected_provider_metadata,
+         amount_cents,amount,status,payment_method
+       ) values (
+         $1,$2,$3,null,'invoice_collection',$4,gen_random_uuid(),
+         md5($1::uuid::text) || md5('runtime|' || $1::uuid::text),
+         jsonb_build_object(
+           'schemaVersion','fieldgrid-payment-v1',
+           'purpose','invoice_collection_payment',
+           'paymentIntentId',$1::uuid::text,
+           'tenantId',$2::uuid::text,
+           'customerId',$3::uuid::text,
+           'sourceType','invoice_collection',
+           'sourceId',$4::uuid::text
+         ),24200,'242','paid','mollie'
+       )`,
       [
         ids.collectionPayment,
         FIXTURE.tenants.a,

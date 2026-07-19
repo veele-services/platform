@@ -80,7 +80,10 @@ function daysUntil(dateStr: string): number {
 }
 
 function invoiceTotal(invoices: CustomerInvoice[]): string {
-  const total = invoices.reduce((sum, invoice) => sum + Number.parseFloat(invoice.totalAmount || "0"), 0);
+  const total = invoices.reduce(
+    (sum, invoice) => sum + Number.parseFloat(invoice.outstandingAmount || "0"),
+    0,
+  );
   return formatAmount(total.toFixed(2));
 }
 
@@ -89,7 +92,9 @@ function normalizeQuery(value?: string): string {
 }
 
 function normalizeStatus(value?: string): InvoiceStatusFilter {
-  return value === "sent" || value === "paid" || value === "other" ? value : "all";
+  return value === "sent" || value === "paid" || value === "other"
+    ? value
+    : "all";
 }
 
 function statusLabel(value: InvoiceStatusFilter) {
@@ -129,7 +134,8 @@ function filterInvoices(
   status: InvoiceStatusFilter,
 ) {
   return invoices.filter((invoice) => {
-    const matchesStatus = status === "all" || invoiceStatusGroup(invoice) === status;
+    const matchesStatus =
+      status === "all" || invoiceStatusGroup(invoice) === status;
     return matchesStatus && matchesInvoiceSearch(invoice, query);
   });
 }
@@ -159,7 +165,10 @@ function invoiceColumns(): Array<PortalDataColumn<CustomerInvoice>> {
       key: "invoice",
       header: "Factuur",
       render: (invoice) => (
-        <span className="font-mono text-xs font-black" style={{ color: "var(--color-primary)" }}>
+        <span
+          className="font-mono text-xs font-black"
+          style={{ color: "var(--color-primary)" }}
+        >
           {invoice.invoiceNumber}
         </span>
       ),
@@ -168,8 +177,15 @@ function invoiceColumns(): Array<PortalDataColumn<CustomerInvoice>> {
       key: "total",
       header: "Totaal",
       render: (invoice) => (
-        <span className="text-sm font-black" style={{ color: "var(--color-primary)" }}>
-          {formatAmount(invoice.totalAmount)}
+        <span
+          className="text-sm font-black"
+          style={{ color: "var(--color-primary)" }}
+        >
+          {formatAmount(
+            invoice.status === "sent"
+              ? invoice.outstandingAmount
+              : invoice.totalAmount,
+          )}
         </span>
       ),
     },
@@ -177,7 +193,10 @@ function invoiceColumns(): Array<PortalDataColumn<CustomerInvoice>> {
       key: "vat",
       header: "Btw",
       render: (invoice) => (
-        <span className="text-sm font-semibold" style={{ color: "var(--color-secondary)" }}>
+        <span
+          className="text-sm font-semibold"
+          style={{ color: "var(--color-secondary)" }}
+        >
           {formatAmount(invoice.vatAmount)}
         </span>
       ),
@@ -186,7 +205,10 @@ function invoiceColumns(): Array<PortalDataColumn<CustomerInvoice>> {
       key: "date",
       header: "Datum",
       render: (invoice) => (
-        <span className="block min-w-[10rem] text-sm font-semibold" style={{ color: "var(--color-secondary)" }}>
+        <span
+          className="block min-w-[10rem] text-sm font-semibold"
+          style={{ color: "var(--color-secondary)" }}
+        >
           {invoice.paidDate
             ? `Betaald ${formatDate(invoice.paidDate)}`
             : invoice.dueDate
@@ -220,7 +242,9 @@ export default async function FacturenPage({
   const status = normalizeStatus(params.status);
   const invoices = await getMyInvoices();
   const openInvoices = invoices.filter((invoice) => invoice.status === "sent");
-  const overdueInvoices = openInvoices.filter((invoice) => invoice.dueDate && daysUntil(invoice.dueDate) < 0);
+  const overdueInvoices = openInvoices.filter(
+    (invoice) => invoice.dueDate && daysUntil(invoice.dueDate) < 0,
+  );
   const dueSoonInvoices = openInvoices.filter((invoice) => {
     if (!invoice.dueDate) return false;
     const days = daysUntil(invoice.dueDate);
@@ -249,7 +273,10 @@ export default async function FacturenPage({
       title="Facturen"
       subtitle="Openstaande, betaalde en geannuleerde facturen."
       status={{
-        label: openInvoices.length > 0 ? `${openInvoices.length} te betalen` : `${invoices.length} facturen`,
+        label:
+          openInvoices.length > 0
+            ? `${openInvoices.length} te betalen`
+            : `${invoices.length} facturen`,
         tone: openInvoices.length > 0 ? "warning" : "accent",
       }}
     >
@@ -306,14 +333,21 @@ export default async function FacturenPage({
           </PortalFilterSheet>
         }
       >
-        <form action="/facturen" className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row">
+        <form
+          action="/facturen"
+          className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row"
+        >
           {paid ? <input type="hidden" name="paid" value={paid} /> : null}
           <PortalToolbarSearch
             name="q"
             defaultValue={query}
             placeholder="Zoek factuurnummer of status"
           />
-          <PortalToolbarSelect name="status" label="Status" defaultValue={status}>
+          <PortalToolbarSelect
+            name="status"
+            label="Status"
+            defaultValue={status}
+          >
             <option value="all">Alle facturen</option>
             <option value="sent">Te betalen</option>
             <option value="paid">Betaald</option>
@@ -337,8 +371,13 @@ export default async function FacturenPage({
         getItemKey={(invoice) => invoice.id}
         tableLabel="Facturen"
         emptyState={{
-          icon: <Receipt size={32} style={{ color: "var(--color-muted-fg)" }} />,
-          title: activeFilters.length > 0 ? "Geen facturen gevonden" : "Nog geen facturen",
+          icon: (
+            <Receipt size={32} style={{ color: "var(--color-muted-fg)" }} />
+          ),
+          title:
+            activeFilters.length > 0
+              ? "Geen facturen gevonden"
+              : "Nog geen facturen",
           description:
             activeFilters.length > 0
               ? "Pas uw zoekopdracht of filters aan om de facturen opnieuw te bekijken."
@@ -357,15 +396,33 @@ export default async function FacturenPage({
                 >
                   {invoice.invoiceNumber}
                 </span>
-                <p className="mt-2 text-2xl font-black" style={{ color: "var(--color-primary)" }}>
-                  {formatAmount(invoice.totalAmount)}
+                <p
+                  className="mt-2 text-2xl font-black"
+                  style={{ color: "var(--color-primary)" }}
+                >
+                  {formatAmount(
+                    invoice.status === "sent"
+                      ? invoice.outstandingAmount
+                      : invoice.totalAmount,
+                  )}
                 </p>
-                <div className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs" style={{ color: "var(--color-secondary)" }}>
-                  {invoice.dueDate ? <span>Vervaldatum: {formatDate(invoice.dueDate)}</span> : null}
-                  {invoice.paidDate ? <span>Betaald: {formatDate(invoice.paidDate)}</span> : null}
+                <div
+                  className="mt-1 flex flex-wrap gap-x-3 gap-y-0.5 text-xs"
+                  style={{ color: "var(--color-secondary)" }}
+                >
+                  {invoice.dueDate ? (
+                    <span>Vervaldatum: {formatDate(invoice.dueDate)}</span>
+                  ) : null}
+                  {invoice.paidDate ? (
+                    <span>Betaald: {formatDate(invoice.paidDate)}</span>
+                  ) : null}
                 </div>
-                <p className="mt-0.5 text-xs" style={{ color: "var(--color-muted-fg)" }}>
-                  Excl. btw: {formatAmount(invoice.amount)} - Btw: {formatAmount(invoice.vatAmount)}
+                <p
+                  className="mt-0.5 text-xs"
+                  style={{ color: "var(--color-muted-fg)" }}
+                >
+                  Excl. btw: {formatAmount(invoice.amount)} - Btw:{" "}
+                  {formatAmount(invoice.vatAmount)}
                 </p>
               </div>
               <InvoiceStatusBadge invoice={invoice} />
@@ -396,7 +453,11 @@ function InvoiceFilterForm({
     <form action="/facturen" className="space-y-4">
       {paid ? <input type="hidden" name="paid" value={paid} /> : null}
       <div>
-        <label htmlFor="invoice-filter-query" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+        <label
+          htmlFor="invoice-filter-query"
+          className="text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
           Zoeken
         </label>
         <input
@@ -406,11 +467,18 @@ function InvoiceFilterForm({
           defaultValue={query}
           placeholder="Factuurnummer of status"
           className="mt-1 h-11 w-full rounded-xl border px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         />
       </div>
       <div>
-        <label htmlFor="invoice-filter-status" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+        <label
+          htmlFor="invoice-filter-status"
+          className="text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
           Status
         </label>
         <select
@@ -418,7 +486,10 @@ function InvoiceFilterForm({
           name="status"
           defaultValue={status}
           className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           <option value="all">Alle facturen</option>
           <option value="sent">Te betalen</option>
@@ -430,7 +501,10 @@ function InvoiceFilterForm({
         <Link
           href={paid ? `/facturen?paid=${paid}` : "/facturen"}
           className="inline-flex h-10 items-center justify-center rounded-xl border text-sm font-black"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           Wissen
         </Link>
@@ -458,11 +532,18 @@ function InvoiceActions({
       <PortalActionMenu label={`Acties voor factuur ${invoice.invoiceNumber}`}>
         {invoice.status === "sent" ? (
           <div className="px-2 py-1">
-            <PaymentActionButton invoiceId={invoice.id} label="Betalen" variant="secondary" />
+            <PaymentActionButton
+              invoiceId={invoice.id}
+              label="Betalen"
+              variant="secondary"
+            />
           </div>
         ) : null}
         {invoice.status !== "draft" ? (
-          <PortalActionMenuLink href={`/api/factuur/${invoice.id}/pdf`} external>
+          <PortalActionMenuLink
+            href={`/api/factuur/${invoice.id}/pdf`}
+            external
+          >
             PDF downloaden
           </PortalActionMenuLink>
         ) : null}

@@ -10,6 +10,7 @@ const tenantAAssignmentId = "70000000-0000-4000-8000-000000000001";
 const tenantBAssignmentId = "70000000-0000-4000-8000-000000000002";
 const quoteAcceptanceAssignmentId = "91000000-0000-4000-8000-000000000001";
 const cancellationInvoiceId = "91000000-0000-4000-8000-000000000003";
+const partialPaymentInvoiceId = "90000000-0000-4000-8000-000000000003";
 const recoveryOutboxPath = "/tmp/fieldgrid-phase2b-playwright-outbox.jsonl";
 
 function backofficeUrl(path: string, host = tenantAHost) {
@@ -158,6 +159,69 @@ test("4. Customer PWA", async ({ page }) => {
   await expect(page.locator("main")).toContainText(
     /RTA-INV-001|Factuur|Invoice/,
   );
+});
+
+test("Customer payment journeys use exact outstanding and one durable provider request", async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(60_000);
+  await useIdentity(page, "20000000-0000-4000-8000-000000000105");
+  await page.goto(customerUrl(`/klant/facturen/${partialPaymentInvoiceId}`));
+  await expect(page.locator("main")).toContainText(/€\s*71,00/u);
+  await page.getByRole("button", { name: "Nu betalen" }).click();
+  await expect(page).toHaveURL(
+    /127\.0\.0\.1:9325\/checkout\/tr_fieldgrid_e2e_0001/u,
+  );
+  await expect(page.locator("body")).toContainText("Beveiligde testcheckout");
+
+  let proof = await (
+    await request.get("http://127.0.0.1:9325/payment-provider-proof")
+  ).json();
+  expect(proof.createAttempts).toBe(1);
+  expect(proof.uniquePayments).toBe(1);
+  expect(proof.payments[0].amount).toEqual({ currency: "EUR", value: "71.00" });
+  expect(proof.payments[0].metadata.sourceType).toBe("invoice");
+
+  await page.goto(customerUrl(`/klant/facturen/${partialPaymentInvoiceId}`));
+  await page.getByRole("button", { name: "Nu betalen" }).click();
+  await expect(page).toHaveURL(/tr_fieldgrid_e2e_0001/u);
+  proof = await (
+    await request.get("http://127.0.0.1:9325/payment-provider-proof")
+  ).json();
+  expect(proof.createAttempts).toBe(1);
+  expect(proof.uniquePayments).toBe(1);
+});
+
+test("Customer collection journey sends the exact locked invoice balances", async ({
+  page,
+  request,
+}) => {
+  test.setTimeout(60_000);
+  await useIdentity(page, "20000000-0000-4000-8000-000000000105");
+  await page.goto(customerUrl("/klant/facturen"));
+  await page.getByRole("button", { name: "Verzamelbetaling starten" }).click();
+  for (const invoiceNumber of ["RTA-INV-001", "RTA-CANCEL-INV-001"]) {
+    await page
+      .getByText(invoiceNumber, { exact: true })
+      .locator("xpath=ancestor::label")
+      .getByRole("checkbox")
+      .uncheck();
+  }
+  await page
+    .getByRole("button", { name: "Geselecteerde facturen betalen" })
+    .click();
+  await expect(page).toHaveURL(
+    /127\.0\.0\.1:9325\/checkout\/tr_fieldgrid_e2e_0002/u,
+  );
+
+  const proof = await (
+    await request.get("http://127.0.0.1:9325/payment-provider-proof")
+  ).json();
+  expect(proof.createAttempts).toBe(2);
+  expect(proof.uniquePayments).toBe(2);
+  expect(proof.payments[1].amount).toEqual({ currency: "EUR", value: "36.30" });
+  expect(proof.payments[1].metadata.sourceType).toBe("invoice_collection");
 });
 
 test("Customer accepts a sent quote through the canonical lifecycle", async ({
@@ -373,9 +437,7 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
   await page.unroute("**/*");
   await context.setOffline(true);
   await context.setOffline(false);
-  await expect
-    .poll(queuedActionCount, { timeout: 20_000 })
-    .toBe(0);
+  await expect.poll(queuedActionCount, { timeout: 20_000 }).toBe(0);
   await page.reload();
   await expect(page.getByText(/^1 van \d+ afgerond$/u)).toBeVisible();
 });

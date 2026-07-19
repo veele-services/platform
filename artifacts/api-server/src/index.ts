@@ -13,11 +13,21 @@ if (!process.env["MOLLIE_API_KEY"]) {
   process.exit(1);
 }
 
+if (!process.env["MOLLIE_WEBHOOK_SECRET"]) {
+  logger.error(
+    "MOLLIE_WEBHOOK_SECRET is not set — payment callbacks are fail-closed. Set the ingress HMAC secret and restart.",
+  );
+  process.exit(1);
+}
+
 // Outgoing email is configured through platform_email_providers in the database.
 // FIELDGRID_EMAIL_CONFIG_ENCRYPTION_KEY is required when saving provider secrets.
 
 if (
-  !(process.env["VAPID_PUBLIC_KEY"] ?? process.env["NEXT_PUBLIC_VAPID_PUBLIC_KEY"]) ||
+  !(
+    process.env["VAPID_PUBLIC_KEY"] ??
+    process.env["NEXT_PUBLIC_VAPID_PUBLIC_KEY"]
+  ) ||
   !process.env["VAPID_PRIVATE_KEY"] ||
   !process.env["VAPID_SUBJECT"]
 ) {
