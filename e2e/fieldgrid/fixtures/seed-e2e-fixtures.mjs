@@ -766,6 +766,7 @@ async function verifyFixtures(client, customerUserResult, canonicalAdminRoles) {
     customerUserByUserCount,
     canonicalAdminRoleCountTenantA,
     canonicalAdminRoleCountTenantB,
+    canonicalAdminPermissionExpectedCount: CANONICAL_ADMIN_PERMISSIONS.length,
     canonicalAdminPermissionCountTenantA,
     canonicalAdminPermissionCountTenantB,
     tenantAAdminRoleLinkCount,

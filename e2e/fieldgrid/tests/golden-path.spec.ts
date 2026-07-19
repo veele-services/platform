@@ -109,7 +109,6 @@ test("1. Backoffice", async ({ page }) => {
     /Runtime Assignment B|RTB-A001|Personnel B/i,
   );
 });
-
 test("2. Platform administration", async ({ page }) => {
   await useIdentity(page, "20000000-0000-4000-8000-000000000002", platformHost);
   await page.goto(backofficeUrl("/platform", platformHost));
@@ -327,6 +326,24 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
   ).toBeVisible();
 
   const queueKey = "veele-personeel-offline-work-order-actions-v1";
+  const queuedActionCount = async () => {
+    try {
+      return await page.evaluate(
+        (key) => JSON.parse(localStorage.getItem(key) ?? "[]").length,
+        queueKey,
+      );
+    } catch (error) {
+      if (
+        error instanceof Error &&
+        /execution context was destroyed|most likely because of a navigation/iu.test(
+          error.message,
+        )
+      ) {
+        return -1;
+      }
+      throw error;
+    }
+  };
   const queued = await page.evaluate(
     (key) => JSON.parse(localStorage.getItem(key) ?? "[]"),
     queueKey,
@@ -349,14 +366,7 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
   await context.setOffline(false);
   await page.reload();
   await expectRealApp(page);
-  await expect
-    .poll(async () =>
-      page.evaluate(
-        (key) => JSON.parse(localStorage.getItem(key) ?? "[]").length,
-        queueKey,
-      ),
-    )
-    .toBe(1);
+  await expect.poll(queuedActionCount).toBe(1);
 
   // Restore the network and emit a new reconnect event. The same mutation ID
   // is replayed once, removed only after the canonical server result succeeds.
@@ -364,16 +374,7 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
   await context.setOffline(true);
   await context.setOffline(false);
   await expect
-    .poll(
-      async () =>
-        page.evaluate(
-          (key) => JSON.parse(localStorage.getItem(key) ?? "[]").length,
-          queueKey,
-        ),
-      {
-        timeout: 20_000,
-      },
-    )
+    .poll(queuedActionCount, { timeout: 20_000 })
     .toBe(0);
   await page.reload();
   await expect(page.getByText(/^1 van \d+ afgerond$/u)).toBeVisible();

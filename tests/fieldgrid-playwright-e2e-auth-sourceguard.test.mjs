@@ -132,7 +132,6 @@ test("runner starts real Fieldgrid apps and does not serve mock application HTML
   assert.doesNotMatch(source, /listen\(ports\.postgrest/);
   assert.match(source, /delete appBaseEnvironment\.SUPABASE_SERVICE_ROLE_KEY/);
 });
-
 test("browser scenarios use real runtime hostnames instead of forbidden Host header spoofing", () => {
   const spec = browserSpec();
   const config = playwrightConfig();
@@ -411,6 +410,7 @@ test("Playwright fixture loader reuses customer_users natural key and proves ide
 
 test("Playwright fixtures seed only canonical tenant Admin roles and exact permissions", () => {
   const fixtureSource = read("e2e/fieldgrid/fixtures/seed-e2e-fixtures.mjs");
+  const evidenceSource = read("e2e/fieldgrid/validate-runtime-evidence.mjs");
   assert.match(fixtureSource, /const CANONICAL_ADMIN_ROLE = ["']Admin["']/);
   assert.match(fixtureSource, /seedCanonicalAdminRoles/);
   assert.match(fixtureSource, /\[["']planning["'], ["']read["']\]/);
@@ -430,6 +430,22 @@ test("Playwright fixtures seed only canonical tenant Admin roles and exact permi
   assert.match(fixtureSource, /tenantAAdminAllRoleLinkCount === 1/);
   assert.match(fixtureSource, /tenantBAdminAllRoleLinkCount === 1/);
   assert.match(fixtureSource, /crossTenantRoleLeakCount === 0/);
+  assert.match(
+    fixtureSource,
+    /canonicalAdminPermissionExpectedCount:\s*CANONICAL_ADMIN_PERMISSIONS\.length/,
+  );
+  assert.match(
+    evidenceSource,
+    /canonicalAdminPermissionCountTenantA\s*===\s*fixtures\.canonicalAdminPermissionExpectedCount/,
+  );
+  assert.match(
+    evidenceSource,
+    /canonicalAdminPermissionCountTenantB\s*===\s*fixtures\.canonicalAdminPermissionExpectedCount/,
+  );
+  assert.doesNotMatch(
+    evidenceSource,
+    /canonicalAdminPermissionCount\s*=\s*\d+/,
+  );
 });
 
 test("personnel profile lookup denies query errors and never performs email-based first-login linking", () => {

@@ -30,7 +30,6 @@ test("Sprint 3 keeps drafts numberless until finalization", () => {
   assert.doesNotMatch(insertValues, /invoiceDate/u);
   assert.doesNotMatch(insertValues, /finalizedAt/u);
 });
-
 test("Sprint 3 finalization claims exactly once and captures immutable snapshots", () => {
   const finalize = functionBlock(finalization, "finalizeOfficialInvoice");
 
@@ -68,9 +67,10 @@ test("Sprint 3 existing send flow finalizes before sending and keeps current UI 
 
   assert.match(sent, /invoice\.status !== "draft"/u);
   assert.match(sent, /if \(!invoice\.finalizedAt \|\| !invoice\.invoiceNumber\?\.trim\(\)\)/u);
-  assert.match(sent, /const finalized = await finalizeOfficialInvoice\(\{ invoiceId, tenantId, actorUserId: user\.id \}\)/u);
+  const finalizeCall = /const finalized = await finalizeOfficialInvoice\(\{\s*invoiceId,\s*tenantId,\s*actorUserId: user\.id,?\s*\}\)/u;
+  assert.match(sent, finalizeCall);
   assert.ok(
-    sent.indexOf("finalizeOfficialInvoice({ invoiceId, tenantId, actorUserId: user.id })") <
+    sent.search(finalizeCall) <
       sent.indexOf(".set({ status: \"sent\", updatedAt: new Date() })"),
     "finalization must happen before status changes to sent",
   );

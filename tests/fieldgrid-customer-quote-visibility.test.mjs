@@ -28,7 +28,6 @@ test("customer quote list hides draft quotes", () => {
   assert.match(body, /eq\(assignmentsTable\.tenantId, identity\.tenantId\)/u);
   assert.match(body, /inArray\(quotesTable\.status, CUSTOMER_VISIBLE_QUOTE_STATUSES\)/u);
 });
-
 test("customer assignment list hides draft quote joins", () => {
   const body = functionBlock(customerAssignments, "getMyAssignments");
 
@@ -54,12 +53,16 @@ test("customer assignment detail hides draft quote joins", () => {
 });
 
 test("customer quote actions still require a sent quote awaiting approval", () => {
-  for (const functionName of ["approveQuote", "rejectQuote"]) {
-    const body = functionBlock(customerAssignments, functionName);
+  const approve = functionBlock(customerAssignments, "approveQuote");
+  assert.match(approve, /acceptCustomerQuote\(\{\s*assignmentId,\s*actorUserId: user\.id,?\s*\}\)/u);
+  assert.match(approve, /acceptance\.tenantId !== identity\.tenantId/u);
+  assert.match(approve, /acceptance\.customerId !== identity\.customerId/u);
+  assert.match(approve, /acceptance\.assignmentStatus !== "plannable"/u);
+  assert.doesNotMatch(approve, /\.update\(quotesTable\)|\.update\(assignmentsTable\)/u);
 
-    assert.match(body, /eq\(assignmentsTable\.customerId, identity\.customerId\)/u);
-    assert.match(body, /eq\(assignmentsTable\.tenantId,\s+identity\.tenantId\)/u);
-    assert.match(body, /eq\(assignmentsTable\.status,\s+"awaiting_approval"\)/u);
-    assert.match(body, /eq\(quotesTable\.status,\s+"sent"\)/u);
-  }
+  const reject = functionBlock(customerAssignments, "rejectQuote");
+  assert.match(reject, /eq\(assignmentsTable\.customerId, identity\.customerId\)/u);
+  assert.match(reject, /eq\(assignmentsTable\.tenantId,\s*identity\.tenantId\)/u);
+  assert.match(reject, /eq\(assignmentsTable\.status,\s*"awaiting_approval"\)/u);
+  assert.match(reject, /eq\(quotesTable\.status,\s*"sent"\)/u);
 });

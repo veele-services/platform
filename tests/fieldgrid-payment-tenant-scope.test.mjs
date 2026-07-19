@@ -28,13 +28,12 @@ test("open payment checkout lookup is tenant-scoped through invoice assignment",
 
   assert.match(helper, /requireCurrentTenantId\(\)/u);
   assert.match(helper, /from\(paymentsTable\)/u);
-  assert.match(helper, /innerJoin\(invoicesTable, eq\(paymentsTable\.invoiceId, invoicesTable\.id\)\)/u);
-  assert.match(helper, /innerJoin\(assignmentsTable, eq\(invoicesTable\.assignmentId, assignmentsTable\.id\)\)/u);
+  assert.match(helper, /innerJoin\(\s*invoicesTable,\s*eq\(paymentsTable\.invoiceId, invoicesTable\.id\),?\s*\)/u);
+  assert.match(helper, /innerJoin\(\s*assignmentsTable,\s*eq\(invoicesTable\.assignmentId, assignmentsTable\.id\),?\s*\)/u);
   assert.match(helper, /eq\(paymentsTable\.invoiceId, invoiceId\)/u);
   assert.match(helper, /eq\(paymentsTable\.status, "open"\)/u);
   assert.match(helper, /eq\(assignmentsTable\.tenantId, tenantId\)/u);
 });
-
 test("email invoice reuses tenant-scoped payment lookup", () => {
   const body = functionBlock(invoices, "emailInvoice");
 
@@ -48,8 +47,8 @@ test("collective payment batches stay scoped by tenant-owned invoices and custom
 
   assert.match(body, /eq\(assignmentsTable\.tenantId, tenantId\)/u);
   assert.match(body, /eq\(customersTable\.tenantId, tenantId\)/u);
-  assert.match(body, /innerJoin\(invoicesTable, eq\(customerPaymentBatchItemsTable\.invoiceId, invoicesTable\.id\)\)/u);
-  assert.match(body, /innerJoin\(assignmentsTable, eq\(invoicesTable\.assignmentId, assignmentsTable\.id\)\)/u);
+  assert.match(body, /innerJoin\(\s*invoicesTable,\s*eq\(customerPaymentBatchItemsTable\.invoiceId, invoicesTable\.id\),?\s*\)/u);
+  assert.match(body, /innerJoin\(\s*assignmentsTable,\s*eq\(invoicesTable\.assignmentId, assignmentsTable\.id\),?\s*\)/u);
   assert.match(body, /inArray\(customerPaymentBatchesTable\.status, \["open", "paid"\]\)/u);
 });
 
@@ -57,7 +56,7 @@ test("collective payment creation rejects cross-tenant invoice ids before Mollie
   const body = functionBlock(invoices, "createCollectiveInvoicePayment");
 
   assert.match(body, /requireCurrentTenantId\(\)/u);
-  assert.match(body, /where\(and\(inArray\(invoicesTable\.id, invoiceIds\), eq\(assignmentsTable\.tenantId, tenantId\)\)\)/u);
+  assert.match(body, /where\(\s*and\(\s*inArray\(invoicesTable\.id, invoiceIds\),\s*eq\(assignmentsTable\.tenantId, tenantId\),?\s*\),?\s*\)/u);
   assert.match(body, /if \(invoices\.length !== invoiceIds\.length\)/u);
   assert.match(body, /customerPaymentBatchItemsTable\.invoiceId/u);
 });
@@ -70,7 +69,7 @@ test("customer single invoice payment rejects invoices locked in a batch before 
   assert.match(body, /eq\(invoicesTable\.customerId, auth\.customerId\)/u);
   assert.match(body, /eq\(customersTable\.tenantId, auth\.tenantId\)/u);
   assert.match(body, /const \[activeBatchItem\] = await db/u);
-  assert.match(body, /innerJoin\(customerPaymentBatchesTable, eq\(customerPaymentBatchItemsTable\.batchId, customerPaymentBatchesTable\.id\)\)/u);
+  assert.match(body, /innerJoin\(\s*customerPaymentBatchesTable,\s*eq\(customerPaymentBatchItemsTable\.batchId, customerPaymentBatchesTable\.id\),?\s*\)/u);
   assert.match(body, /eq\(customerPaymentBatchItemsTable\.invoiceId, invoice\.id\)/u);
   assert.match(body, /eq\(customerPaymentBatchesTable\.customerId, auth\.customerId\)/u);
   assert.match(body, /inArray\(customerPaymentBatchesTable\.status, \["open", "active", "paid"\]\)/u);
@@ -94,7 +93,7 @@ test("customer batch payment creation rejects already locked invoices before Mol
   assert.match(body, /eq\(invoicesTable\.customerId, auth\.customerId\)/u);
   assert.match(body, /eq\(customersTable\.tenantId, auth\.tenantId\)/u);
   assert.match(body, /const activeBatchItems = await db/u);
-  assert.match(body, /innerJoin\(customerPaymentBatchesTable, eq\(customerPaymentBatchItemsTable\.batchId, customerPaymentBatchesTable\.id\)\)/u);
+  assert.match(body, /innerJoin\(\s*customerPaymentBatchesTable,\s*eq\(customerPaymentBatchItemsTable\.batchId, customerPaymentBatchesTable\.id\),?\s*\)/u);
   assert.match(body, /inArray\(customerPaymentBatchItemsTable\.invoiceId, uniqueInvoiceIds\)/u);
   assert.match(body, /eq\(customerPaymentBatchesTable\.customerId, auth\.customerId\)/u);
   assert.match(body, /inArray\(customerPaymentBatchesTable\.status, \["open", "active", "paid"\]\)/u);

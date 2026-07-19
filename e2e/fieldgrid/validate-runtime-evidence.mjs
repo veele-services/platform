@@ -3,7 +3,6 @@ import { existsSync, statSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 const artifactDir = join(process.cwd(), 'artifacts', 'fieldgrid-playwright');
-const canonicalAdminPermissionCount = 8;
 const logsDir = join(artifactDir, 'logs');
 
 function readJson(path) {
@@ -71,8 +70,9 @@ assert(fixtures.customerUserCount > 0, 'Customer-user fixture count mismatch', f
 assert(fixtures.customerUserByUserCount === 1, 'Customer-user/user fixture count mismatch', fixtures);
 assert(fixtures.canonicalAdminRoleCountTenantA === 1, 'Tenant A canonical Admin role count mismatch', fixtures);
 assert(fixtures.canonicalAdminRoleCountTenantB === 1, 'Tenant B canonical Admin role count mismatch', fixtures);
-assert(fixtures.canonicalAdminPermissionCountTenantA === canonicalAdminPermissionCount, 'Tenant A canonical Admin permission count mismatch', fixtures);
-assert(fixtures.canonicalAdminPermissionCountTenantB === canonicalAdminPermissionCount, 'Tenant B canonical Admin permission count mismatch', fixtures);
+assert(Number.isSafeInteger(fixtures.canonicalAdminPermissionExpectedCount) && fixtures.canonicalAdminPermissionExpectedCount > 0, 'Canonical Admin permission contract count is missing', fixtures);
+assert(fixtures.canonicalAdminPermissionCountTenantA === fixtures.canonicalAdminPermissionExpectedCount, 'Tenant A canonical Admin permission count mismatch', fixtures);
+assert(fixtures.canonicalAdminPermissionCountTenantB === fixtures.canonicalAdminPermissionExpectedCount, 'Tenant B canonical Admin permission count mismatch', fixtures);
 assert(fixtures.tenantAAdminAllRoleLinkCount === 1, 'Tenant A admin must have only its canonical role', fixtures);
 assert(fixtures.tenantBAdminAllRoleLinkCount === 1, 'Tenant B admin must have only its canonical role', fixtures);
 assert(fixtures.crossTenantRoleLeakCount === 0, 'Canonical admin roles must not leak across tenants', fixtures);

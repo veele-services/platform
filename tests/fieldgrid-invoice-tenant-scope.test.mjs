@@ -19,13 +19,12 @@ const invoices = read("artifacts/backoffice/src/app/actions/invoices.ts");
 test("backoffice invoice actions expose a tenant-scoped invoice helper", () => {
   assert.match(invoices, /requireCurrentTenantId/u);
   assert.match(invoices, /getInvoiceAssignmentForCurrentTenant/u);
-  assert.match(invoices, /innerJoin\(assignmentsTable, eq\(invoicesTable\.assignmentId, assignmentsTable\.id\)\)/u);
-  assert.match(invoices, /where\(and\(eq\(invoicesTable\.id, invoiceId\), eq\(assignmentsTable\.tenantId, tenantId\)\)\)/u);
+  assert.match(invoices, /innerJoin\(\s*assignmentsTable,\s*eq\(invoicesTable\.assignmentId, assignmentsTable\.id\),?\s*\)/u);
+  assert.match(invoices, /where\(\s*and\(\s*eq\(invoicesTable\.id, invoiceId\),\s*eq\(assignmentsTable\.tenantId, tenantId\),?\s*\),?\s*\)/u);
 
   const tenantChecks = invoices.match(/eq\(assignmentsTable\.tenantId, tenantId\)/gu) ?? [];
   assert.ok(tenantChecks.length >= 14, "invoice reads and writes should filter through assignments.tenantId");
 });
-
 test("invoice read paths include tenant filters", () => {
   for (const functionName of [
     "listInvoices",
@@ -46,11 +45,16 @@ test("invoice read paths include tenant filters", () => {
 });
 
 test("direct invoice-id actions verify tenant scope before writes", () => {
-  for (const functionName of ["getInvoiceStatusHistory", "markInvoiceSent", "markInvoicePaid", "cancelInvoice"]) {
+  for (const functionName of ["getInvoiceStatusHistory", "markInvoiceSent", "markInvoicePaid"]) {
     const body = section(invoices, functionName);
     assert.match(body, /getInvoiceAssignmentForCurrentTenant\(invoiceId\)/u, `${functionName} should verify invoice tenant scope`);
     assert.match(body, /if \(!invoice\) return/u, `${functionName} should hide cross-tenant invoice ids`);
   }
+
+  const cancelBody = section(invoices, "cancelInvoice");
+  assert.match(cancelBody, /requireCurrentTenantId\(\)/u);
+  assert.match(cancelBody, /cancelInvoiceAndReopenAssignment\(\{/u);
+  assert.match(cancelBody, /tenantId,\s*invoiceId,\s*actorUserId: user\.id,\s*reason: normalizedReason/u);
 
   const emailBody = section(invoices, "emailInvoice");
   assert.match(emailBody, /getInvoice\(invoiceId\)/u, "emailInvoice should reuse tenant-scoped invoice lookup");
@@ -60,7 +64,7 @@ test("collective invoice payments stay tenant-scoped", () => {
   const body = section(invoices, "createCollectiveInvoicePayment");
 
   assert.match(body, /requireCurrentTenantId\(\)/u);
-  assert.match(body, /where\(and\(inArray\(invoicesTable\.id, invoiceIds\), eq\(assignmentsTable\.tenantId, tenantId\)\)\)/u);
-  assert.match(body, /innerJoin\(assignmentsTable, eq\(invoicesTable\.assignmentId, assignmentsTable\.id\)\)/u);
+  assert.match(body, /where\(\s*and\(\s*inArray\(invoicesTable\.id, invoiceIds\),\s*eq\(assignmentsTable\.tenantId, tenantId\),?\s*\),?\s*\)/u);
+  assert.match(body, /innerJoin\(\s*assignmentsTable,\s*eq\(invoicesTable\.assignmentId, assignmentsTable\.id\),?\s*\)/u);
   assert.match(body, /inArray\(customerPaymentBatchItemsTable\.invoiceId, invoiceIds\)/u);
 });
