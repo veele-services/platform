@@ -14,6 +14,7 @@ const sourcePaths = {
   accessibility: 'artifacts/fieldgrid-playwright/accessibility-summary.json',
   dataPath: 'artifacts/fieldgrid-playwright/data-path-proof.json',
   fixtures: 'artifacts/fieldgrid-playwright/e2e-fixtures.json',
+  offline: 'artifacts/fieldgrid-playwright/offline-reconnect-evidence.json',
   phase2d: 'artifacts/runtime-safety-harness/reports/phase2d-runtime-journeys.json',
   db: 'artifacts/runtime-safety-harness/reports/db-harness.json',
   rls: 'artifacts/runtime-safety-harness/reports/rls-harness.json',
@@ -68,8 +69,8 @@ const contracts = {
   },
   'offline-personnel-pwa': {
     testId: 'FG-P2D-OFFLINE',
-    assertions: ['offline-capable data loads', 'mutation queues while offline', 'reconnect synchronizes once', 'database replay is idempotent and stale replay conflicts safely'],
-    sources: [playwright('9. Offline work-order mutation survives refresh and converges after reconnect'), reportCheck('db', 'phase2c-transactional-invariants', 'postgresql'), runtime('planned-versus-actual-and-multi-person')],
+    assertions: ['offline-capable data loads', 'mutation queues while offline', 'trigger during active synchronization produces a coalesced follow-up pass', 'reconnect synchronizes once', 'database replay is idempotent and stale replay conflicts safely'],
+    sources: [playwright('9. Offline work-order mutation survives refresh and converges after reconnect'), offline(), reportCheck('db', 'phase2c-transactional-invariants', 'postgresql'), runtime('planned-versus-actual-and-multi-person')],
   },
   'customer-visibility': {
     testId: 'FG-P2D-CUSTOMER',
@@ -99,6 +100,7 @@ function reportCheck(key, check, kind) { return { resolver: 'report-check', key,
 function reportOverall(key, kind) { return { resolver: 'report-overall', key, kind }; }
 function dataPath() { return { resolver: 'data-path' }; }
 function accessibility() { return { resolver: 'accessibility' }; }
+function offline() { return { resolver: 'offline' }; }
 
 function assert(condition, message, details = undefined) {
   if (!condition) throw Object.assign(new Error(message), { details });
@@ -184,6 +186,35 @@ async function collect() {
     if (spec.resolver === 'accessibility') {
       const report = sources.accessibility.value;
       return { kind: 'accessibility', artifact: sources.accessibility.artifact, sourceId: 'axe-and-keyboard-summary', status: normalizedStatus(report.status), ...timeRange(report, fallbackTime), assertions: [`${report.results?.length ?? 0} runtime axe scans executed`, `${report.seriousOrCriticalViolations} serious/critical violations`, `${report.keyboardFailures} keyboard failures`], failure: report.status === 'passed' ? null : { seriousOrCriticalViolations: report.seriousOrCriticalViolations, keyboardFailures: report.keyboardFailures } };
+    }
+    if (spec.resolver === 'offline') {
+      const proof = sources.offline.value;
+      const passed = proof.status === 'passed'
+        && proof.exactGitHead === exactGitHead
+        && proof.mandatoryJourneySkipped === false
+        && proof.offlineTransitionObserved === true
+        && proof.queueBeforeReconnect === 1
+        && proof.triggerDuringActiveSync === true
+        && proof.coalescedFollowUpPass === true
+        && proof.maximumActiveClientAttempts === 1
+        && proof.queueAfterReconnect === 0
+        && proof.serverMutationCount === 1
+        && proof.canonicalReceiptCount === 1
+        && proof.reloadConverged === true;
+      return {
+        kind: 'offline-reconnect',
+        artifact: sources.offline.artifact,
+        sourceId: 'deterministic-offline-reconnect-race',
+        status: passed ? 'passed' : 'failed',
+        ...timeRange(proof, fallbackTime),
+        assertions: [
+          `queue ${proof.queueBeforeReconnect} → ${proof.queueAfterReconnect}`,
+          `synchronization passes ${proof.synchronizationPassCount}, maximum overlap ${proof.maximumActiveClientAttempts}`,
+          `canonical server mutations ${proof.serverMutationCount}, receipts ${proof.canonicalReceiptCount}`,
+          `reload convergence ${proof.reloadConverged}`,
+        ],
+        failure: passed ? null : { reason: 'Structured offline reconnect assertions failed.' },
+      };
     }
     throw new Error(`Unknown source resolver ${spec.resolver}`);
   }

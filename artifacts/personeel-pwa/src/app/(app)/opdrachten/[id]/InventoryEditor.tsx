@@ -16,6 +16,7 @@ import { formatQuantity } from "./work-order-data";
 
 type Props = {
   assignmentId: string;
+  expectedParticipantVersion: number | null;
   initialItems: InventoryUsageItem[];
   catalog: InventoryCatalogOption[];
   canEdit: boolean;
@@ -63,7 +64,7 @@ function usageLabel(value: string): string {
   return USAGE_LABELS[value as InventoryUsageType] ?? value;
 }
 
-export function InventoryEditor({ assignmentId, initialItems, catalog, canEdit }: Props) {
+export function InventoryEditor({ assignmentId, expectedParticipantVersion, initialItems, catalog, canEdit }: Props) {
   const [items, setItems] = useState<InventoryUsageItem[]>(initialItems);
   const [form, setForm] = useState<FormState>(() => createEmptyForm(catalog));
   const [error, setError] = useState<string | null>(null);
@@ -100,6 +101,7 @@ export function InventoryEditor({ assignmentId, initialItems, catalog, canEdit }
         enqueueOfflineWorkOrderAction({
           type: "add-inventory-usage",
           assignmentId,
+          expectedParticipantVersion,
           payload: input,
         });
         setItems((current) => [

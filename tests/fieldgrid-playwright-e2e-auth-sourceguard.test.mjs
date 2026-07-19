@@ -601,6 +601,10 @@ test("browser scenarios include payment integrity, review remediation, recovery 
     spec,
     /Offline work-order mutation survives refresh and converges after reconnect/,
   );
+  assert.match(spec, /firstAttemptRelease/);
+  assert.match(spec, /triggerWasRecordedDuringActivePass/);
+  assert.match(spec, /maximumActiveClientAttempts/);
+  assert.match(spec, /offline-reconnect-evidence\.json/);
   assert.match(spec, /FG-P2D-AVAILABILITY personnel update and backoffice consistency/);
   assert.match(read("e2e/fieldgrid/tests/accessibility.spec.ts"), /AxeBuilder/);
   assert.equal(
@@ -611,6 +615,38 @@ test("browser scenarios include payment integrity, review remediation, recovery 
     spec,
     /Fieldgrid E2E.*toContainText|Backoffice dashboard|Customer Tenant A assignments/,
   );
+});
+
+test("offline synchronization uses one observable generation coordinator and aligned service-worker messages", () => {
+  const provider = read("artifacts/personeel-pwa/src/components/PersonnelRealtimeOfflineProvider.tsx");
+  const coordinator = read("artifacts/personeel-pwa/src/lib/offline/offline-sync-coordinator.ts");
+  const queue = read("artifacts/personeel-pwa/src/lib/offline/work-order-queue.ts");
+  const worker = read("artifacts/personeel-pwa/public/sw.js");
+  const validator = read("e2e/fieldgrid/validate-runtime-evidence.mjs");
+
+  assert.doesNotMatch(provider, /syncingRef/);
+  assert.match(provider, /createOfflineSyncCoordinator/);
+  for (const trigger of [
+    "startup",
+    "online",
+    "focus",
+    "visibility",
+    "service-worker",
+    "enqueue",
+    "retry-timer",
+  ]) assert.match(
+    provider,
+    new RegExp(`(?:requestSync|requestSyncRef\\.current)\\(["']${trigger}["']\\)`, "u"),
+  );
+  assert.match(coordinator, /requestedGeneration/);
+  assert.match(coordinator, /completedGeneration/);
+  assert.match(coordinator, /pendingTriggers/);
+  assert.match(coordinator, /pass-completed/);
+  assert.match(queue, /FIELDGRID_REQUEST_OFFLINE_SYNC/);
+  assert.match(worker, /FIELDGRID_REQUEST_OFFLINE_SYNC/);
+  assert.match(validator, /triggerDuringActiveSync === true/);
+  assert.match(validator, /coalescedFollowUpPass === true/);
+  assert.match(validator, /serverMutationCount === 1/);
 });
 
 test("Playwright uses explicit stack runner instead of config.webServer recursion", () => {

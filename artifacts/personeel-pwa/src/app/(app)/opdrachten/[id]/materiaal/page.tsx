@@ -39,6 +39,7 @@ export default async function MateriaalPage({ params }: Props) {
       <WorkOrderHeader assignment={assignment} activeTab="werkzaamheden" />
       <MaterialEditor
         assignmentId={assignment.id}
+        expectedParticipantVersion={assignment.participantVersion ?? null}
         initialItems={items}
         catalog={catalog}
         canEdit={canEdit}
