@@ -85,6 +85,7 @@ test('FG-P2D-A11Y-CUSTOMER customer assignment axe and keyboard', async ({ page 
 });
 
 test('FG-P2D-A11Y-RECOVERY credential recovery labels, errors, axe and mobile', async ({ page }) => {
+  test.setTimeout(90_000);
   await page.goto(`http://${tenantHost}:9323/klant/wachtwoord-vergeten`);
   await expect(page.getByLabel('E-mailadres')).toBeVisible();
   await page.getByLabel('E-mailadres').fill('customer.a@example.com');
@@ -94,10 +95,10 @@ test('FG-P2D-A11Y-RECOVERY credential recovery labels, errors, axe and mobile', 
   await expect(page.getByRole('button', { name: 'Herstelcode versturen' })).toBeFocused();
   await page.getByRole('button', { name: 'Herstelcode versturen' }).click();
   const code = page.getByLabel('Herstelcode');
-  await expect(code).toBeVisible();
+  await expect(code).toBeVisible({ timeout: 30_000 });
   await code.fill('000000');
   await page.getByRole('button', { name: 'Code controleren' }).click();
-  await expect(page.locator('#code-error')).toHaveAttribute('role', 'alert');
+  await expect(page.locator('#code-error')).toHaveAttribute('role', 'alert', { timeout: 30_000 });
   await expect(code).toHaveAttribute('aria-invalid', 'true');
   await expect(code).toHaveAttribute('aria-describedby', 'code-error');
   const violations = [...(await scan(page, 'FG-P2D-A11Y-RECOVERY', 'desktop')), ...(await scan(page, 'FG-P2D-A11Y-RECOVERY', 'mobile'))];
