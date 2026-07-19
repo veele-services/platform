@@ -1,19 +1,22 @@
 "use server";
 
-import { randomUUID } from "node:crypto";
 import { db } from "@workspace/db";
 import {
+  AmbiguousProviderResultError,
+  bindProviderPayment,
+  createMolliePayment as createProviderPayment,
+  markPaymentForReconciliation,
+  markProviderAttempt,
+  prepareDirectPaymentIntent,
   paymentsTable,
   paymentAllocationsTable,
   invoicesTable,
   assignmentsTable,
   auditLogTable,
   invoicePaymentSettingsTable,
-  maskPaymentProviderId,
   type PaymentStatus,
 } from "@workspace/db";
-import { and, eq, desc, isNull, sql } from "drizzle-orm";
-import { emitInvoiceWorkflowEvent } from "@workspace/db/workflow-events";
+import { and, eq, desc, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { requirePermission, hasPermission } from "@/lib/auth/permissions";
@@ -23,20 +26,6 @@ import { toPlatformPaymentDiagnosticDto } from "@/lib/security/safe-dtos";
 import type { ActionResult } from "./customers";
 
 export type { ActionResult, PaymentStatus };
-
-async function notifyInvoiceWorkflow(
-  input: Parameters<typeof emitInvoiceWorkflowEvent>[0],
-) {
-  try {
-    await emitInvoiceWorkflowEvent(input);
-  } catch (error) {
-    console.error("invoice payment notification failed", {
-      eventKey: input.eventKey,
-      invoiceId: input.invoiceId,
-      error,
-    });
-  }
-}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -189,15 +178,6 @@ export async function createMolliePayment(
   const mollieDisabled = await requireMolliePaymentsEnabled(tenantId);
   if (mollieDisabled) return mollieDisabled;
 
-  const mollieKey = process.env.MOLLIE_API_KEY;
-  if (!mollieKey) {
-    return {
-      success: false,
-      message:
-        "Mollie API-sleutel niet geconfigureerd. Stel MOLLIE_API_KEY in als omgevingsvariabele.",
-    };
-  }
-
   // Fetch invoice
   const [invoice] = await db
     .select({
@@ -227,309 +207,65 @@ export async function createMolliePayment(
     };
   }
 
-  const totalAmount = parseFloat(invoice.totalAmount ?? "0");
-  if (isNaN(totalAmount) || totalAmount <= 0) {
-    return { success: false, message: "Ongeldig factuurbedrag." };
-  }
-
-  const amountCents = Math.round(totalAmount * 100);
   const baseUrl = getBaseUrl();
   const redirectUrl = `${baseUrl}/klant/betalingen/succes?invoice=${invoiceId}`;
   const webhookUrl =
     process.env.MOLLIE_WEBHOOK_URL ?? `${baseUrl}/api/webhooks/mollie`;
-
-  let [pendingPayment] = await db
-    .select({
-      id: paymentsTable.id,
-      providerRequestKey: paymentsTable.providerRequestKey,
-    })
-    .from(paymentsTable)
-    .where(
-      and(
-        eq(paymentsTable.tenantId, tenantId),
-        eq(paymentsTable.invoiceId, invoiceId),
-        eq(paymentsTable.paymentMethod, "mollie"),
-        eq(paymentsTable.status, "open"),
-        isNull(paymentsTable.molliePaymentId),
-      ),
-    )
-    .orderBy(desc(paymentsTable.createdAt))
-    .limit(1);
-  if (!pendingPayment) {
-    [pendingPayment] = await db
-      .insert(paymentsTable)
-      .values({
-        tenantId,
-        invoiceId,
-        customerId: invoice.customerId,
-        sourceType: "invoice",
-        sourceId: invoiceId,
-        providerRequestKey: randomUUID(),
-        amountCents,
-        amount: centsToAmount(amountCents),
-        currency: "EUR",
-        paymentMethod: "mollie",
-        status: "open",
-        registeredByUserId: user.id,
-      })
-      .returning({
-        id: paymentsTable.id,
-        providerRequestKey: paymentsTable.providerRequestKey,
-      });
-  }
-  if (!pendingPayment?.providerRequestKey) {
-    return {
-      success: false,
-      message: "Duurzame betalingsaanvraag kon niet worden vastgelegd.",
-    };
-  }
-
-  // Call Mollie API
-  let mollieResp: Response;
+  let intent;
   try {
-    mollieResp = await fetch("https://api.mollie.com/v2/payments", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${mollieKey}`,
-        "Content-Type": "application/json",
-        "Idempotency-Key": pendingPayment.providerRequestKey,
-      },
-      body: JSON.stringify({
-        amount: {
-          currency: "EUR",
-          value: centsToMollieValue(amountCents),
-        },
-        description: `Factuur ${displayInvoiceNumber(invoice.invoiceNumber, invoice.id.slice(0, 8))}`,
-        redirectUrl,
-        webhookUrl,
-        metadata: {
-          tenantId,
-          invoiceId,
-          invoiceNumber: displayInvoiceNumber(
-            invoice.invoiceNumber,
-            invoice.id.slice(0, 8),
-          ),
-        },
-      }),
+    intent = await prepareDirectPaymentIntent({
+      tenantId,
+      customerId: invoice.customerId,
+      invoiceId,
+      actorUserId: user.id,
     });
-  } catch (err) {
+    if (intent.checkoutUrl && intent.molliePaymentId) {
+      return {
+        success: true,
+        data: {
+          checkoutUrl: intent.checkoutUrl,
+          molliePaymentId: intent.molliePaymentId,
+        },
+      };
+    }
+    await markProviderAttempt(intent.id);
+    const snapshot = await createProviderPayment({
+      requestKey: intent.providerRequestKey,
+      amountCents: intent.amountCents,
+      currency: intent.currency,
+      description: `Factuur ${displayInvoiceNumber(invoice.invoiceNumber, invoice.id.slice(0, 8))}`,
+      redirectUrl,
+      webhookUrl,
+      metadata: intent.metadata,
+    });
+    const bound = await bindProviderPayment(intent.id, snapshot);
+    if (!bound.checkoutUrl || !bound.molliePaymentId)
+      throw new Error("Mollie gaf geen geldige checkout-link terug.");
+    revalidatePath(`/invoices/${invoiceId}`);
+    revalidatePath("/invoices");
+    return {
+      success: true,
+      data: {
+        checkoutUrl: bound.checkoutUrl,
+        molliePaymentId: bound.molliePaymentId,
+      },
+    };
+  } catch (error) {
+    if (intent)
+      await markPaymentForReconciliation(
+        intent.id,
+        error instanceof Error ? error.message : "Providerfout.",
+      );
     return {
       success: false,
       message:
-        "Verbinding met Mollie mislukt. Controleer de internetverbinding.",
+        error instanceof AmbiguousProviderResultError
+          ? "De betaalprovider verwerkt de aanvraag nog. Probeer dezelfde aanvraag opnieuw."
+          : error instanceof Error
+            ? error.message
+            : "Betaalaanvraag mislukt.",
     };
   }
-
-  if (!mollieResp.ok) {
-    const body = await mollieResp.json().catch(() => ({}));
-    const detail =
-      (body as { detail?: string }).detail ?? mollieResp.statusText;
-    return { success: false, message: `Mollie fout: ${detail}` };
-  }
-
-  type MolliePayment = {
-    id: string;
-    _links: { checkout: { href: string } };
-  };
-  const molliePayment = (await mollieResp.json()) as MolliePayment;
-
-  const molliePaymentId = molliePayment.id;
-  const checkoutUrl = molliePayment._links?.checkout?.href ?? null;
-  const paymentReference = maskPaymentProviderId(molliePaymentId);
-
-  // Bind the provider response to the durable request created before the call.
-  try {
-    await db
-      .update(paymentsTable)
-      .set({
-        molliePaymentId,
-        checkoutUrl,
-        updatedAt: new Date(),
-      })
-      .where(
-        and(
-          eq(paymentsTable.id, pendingPayment.id),
-          eq(paymentsTable.tenantId, tenantId),
-        ),
-      );
-  } catch {
-    return {
-      success: false,
-      message: "Betaling aanmaken in database mislukt.",
-    };
-  }
-
-  await db.insert(auditLogTable).values({
-    tenantId,
-    userId: user.id,
-    action: "create_mollie_payment",
-    resource: "invoices",
-    resourceId: invoiceId,
-    metadata: {
-      tenantId,
-      paymentReference,
-      amountCents,
-      checkoutIssued: Boolean(checkoutUrl),
-    },
-  });
-
-  revalidatePath(`/invoices/${invoiceId}`);
-  revalidatePath("/invoices");
-
-  return {
-    success: true,
-    data: { checkoutUrl: checkoutUrl ?? "", molliePaymentId },
-  };
-}
-
-/**
- * Marks an invoice as paid (called from the Mollie webhook handler).
- * This action can also be called directly by the webhook route in the API server.
- */
-export async function markInvoicePaidByMollie(
-  molliePaymentId: string,
-  paidAt: Date,
-): Promise<{ success: boolean; message?: string }> {
-  const result = await db.transaction(async (tx) => {
-    // Find payment record
-    const [payment] = await tx
-      .select({
-        id: paymentsTable.id,
-        invoiceId: paymentsTable.invoiceId,
-        tenantId: paymentsTable.tenantId,
-        customerId: paymentsTable.customerId,
-        amountCents: paymentsTable.amountCents,
-      })
-      .from(paymentsTable)
-      .where(eq(paymentsTable.molliePaymentId, molliePaymentId))
-      .limit(1);
-
-    if (!payment) return { success: false, message: "Betaling niet gevonden." };
-    if (!payment.tenantId)
-      return { success: false, message: "Betaling heeft geen tenantcontext." };
-    if (!payment.invoiceId)
-      return {
-        success: false,
-        message: "Betaling is niet aan een factuur gekoppeld.",
-      };
-
-    // Update payment status
-    await tx
-      .update(paymentsTable)
-      .set({ status: "paid", paidAt })
-      .where(
-        and(
-          eq(paymentsTable.molliePaymentId, molliePaymentId),
-          eq(paymentsTable.tenantId, payment.tenantId),
-        ),
-      );
-
-    const [invoice] = await tx
-      .select({
-        id: invoicesTable.id,
-        tenantId: invoicesTable.tenantId,
-        status: invoicesTable.status,
-        assignmentId: invoicesTable.assignmentId,
-        totalAmount: invoicesTable.totalAmount,
-      })
-      .from(invoicesTable)
-      .where(
-        and(
-          eq(invoicesTable.id, payment.invoiceId),
-          eq(invoicesTable.tenantId, payment.tenantId),
-        ),
-      )
-      .limit(1);
-
-    if (invoice && invoice.status === "sent") {
-      const paidDateStr = paidAt.toISOString().slice(0, 10);
-      await tx
-        .update(invoicesTable)
-        .set({
-          status: "paid",
-          paymentStatus: "paid",
-          paidAmount: centsToAmount(payment.amountCents),
-          outstandingAmount: "0",
-          paidDate: paidDateStr,
-          updatedAt: new Date(),
-        })
-        .where(
-          and(
-            eq(invoicesTable.id, invoice.id),
-            eq(invoicesTable.tenantId, payment.tenantId),
-          ),
-        );
-
-      await tx.insert(paymentAllocationsTable).values({
-        tenantId: payment.tenantId,
-        paymentId: payment.id,
-        invoiceId: invoice.id,
-        amountCents: payment.amountCents,
-        amount: centsToAmount(payment.amountCents),
-        note: "Mollie betaling automatisch toegewezen",
-      });
-
-      // Advance assignment: invoiced → paid → closed
-      await tx
-        .update(assignmentsTable)
-        .set({ status: "paid", updatedAt: new Date() })
-        .where(
-          and(
-            eq(assignmentsTable.id, invoice.assignmentId),
-            eq(assignmentsTable.tenantId, payment.tenantId),
-          ),
-        );
-      await tx
-        .update(assignmentsTable)
-        .set({ status: "closed", updatedAt: new Date() })
-        .where(
-          and(
-            eq(assignmentsTable.id, invoice.assignmentId),
-            eq(assignmentsTable.tenantId, payment.tenantId),
-          ),
-        );
-
-      // audit_log.user_id is UUID NOT NULL; use dedicated system actor UUID
-      // for webhook/background events that have no real Supabase auth user.
-      const SYSTEM_ACTOR_UUID = "00000000-0000-0000-0000-000000000001";
-      await tx.insert(auditLogTable).values({
-        tenantId: payment.tenantId,
-        userId: SYSTEM_ACTOR_UUID,
-        action: "mollie_payment_received",
-        resource: "invoices",
-        resourceId: invoice.id,
-        metadata: {
-          tenantId: payment.tenantId,
-          paymentReference: maskPaymentProviderId(molliePaymentId),
-          paidAt: paidAt.toISOString(),
-        },
-      });
-
-      return {
-        success: true as const,
-        invoiceId: invoice.id,
-        actorUserId: SYSTEM_ACTOR_UUID,
-      };
-    }
-
-    return { success: true as const };
-  });
-
-  if (
-    result.success &&
-    "invoiceId" in result &&
-    typeof result.invoiceId === "string" &&
-    typeof result.actorUserId === "string"
-  ) {
-    await notifyInvoiceWorkflow({
-      eventKey: "invoice_paid",
-      invoiceId: result.invoiceId,
-      actorUserId: result.actorUserId,
-    });
-    revalidatePath(`/invoices/${result.invoiceId}`);
-    revalidatePath("/invoices");
-  }
-  return result;
 }
 
 // ─── Customer-scoped query ─────────────────────────────────────────────────────
@@ -591,6 +327,30 @@ export async function registerManualInvoicePayment(
       if (!invoice) throw new Error("Factuur niet gevonden.");
       if (invoice.status === "cancelled")
         throw new Error("Een geannuleerde factuur kan niet betaald worden.");
+
+      const activeProviderReservation = await tx.execute(sql`
+        SELECT 1
+        FROM public.payments payment
+        WHERE payment.tenant_id = ${tenantId}::uuid
+          AND payment.payment_method = 'mollie'
+          AND payment.status IN ('created', 'provider_pending', 'open', 'pending', 'authorized', 'reconciliation_required')
+          AND (
+            (payment.source_type = 'invoice' AND payment.source_id = ${invoice.id}::uuid)
+            OR (
+              payment.source_type = 'invoice_collection'
+              AND EXISTS (
+                SELECT 1 FROM public.customer_payment_batch_items item
+                WHERE item.batch_id = payment.source_id AND item.invoice_id = ${invoice.id}::uuid
+              )
+            )
+          )
+        LIMIT 1
+      `);
+      if (activeProviderReservation.rows.length > 0) {
+        throw new Error(
+          "Deze factuur is gereserveerd door een actieve Mollie-betaling.",
+        );
+      }
 
       const [allocated] = await tx
         .select({

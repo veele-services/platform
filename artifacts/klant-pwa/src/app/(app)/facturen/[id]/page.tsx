@@ -161,7 +161,11 @@ export default async function FactuurDetailPage({ params }: Props) {
             className="text-4xl font-bold"
             style={{ color: "var(--color-primary)" }}
           >
-            {formatAmount(invoice.totalAmount)}
+            {formatAmount(
+              invoice.status === "sent"
+                ? invoice.outstandingAmount
+                : invoice.totalAmount,
+            )}
           </p>
           <p
             className="mt-1 text-xs"

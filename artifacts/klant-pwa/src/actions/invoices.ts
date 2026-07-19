@@ -7,20 +7,24 @@ import { getMyCustomerIdentity } from "./customer";
 import type { InvoiceStatus } from "@workspace/db";
 
 export type CustomerInvoice = {
-  id:            string;
+  id: string;
   invoiceNumber: string;
-  assignmentId:  string;
-  amount:        string;
-  vatAmount:     string;
-  totalAmount:   string;
-  status:        InvoiceStatus;
-  dueDate:       string;
-  paidDate:      string | null;
-  checkoutUrl:   string | null;
-  createdAt:     string;
+  assignmentId: string;
+  amount: string;
+  vatAmount: string;
+  totalAmount: string;
+  outstandingAmount: string;
+  status: InvoiceStatus;
+  dueDate: string;
+  paidDate: string | null;
+  checkoutUrl: string | null;
+  createdAt: string;
 };
 
-function displayInvoiceNumber(value: string | null | undefined, fallback = "Factuur"): string {
+function displayInvoiceNumber(
+  value: string | null | undefined,
+  fallback = "Factuur",
+): string {
   return value?.trim() || fallback;
 }
 
@@ -30,24 +34,32 @@ export async function getMyInvoices(): Promise<CustomerInvoice[]> {
 
   const rows = await db
     .select({
-      id:            invoicesTable.id,
+      id: invoicesTable.id,
       invoiceNumber: invoicesTable.invoiceNumber,
-      assignmentId:  invoicesTable.assignmentId,
-      amount:        invoicesTable.amount,
-      vatAmount:     invoicesTable.vatAmount,
-      totalAmount:   invoicesTable.totalAmount,
-      status:        invoicesTable.status,
-      dueDate:       invoicesTable.dueDate,
-      paidDate:      invoicesTable.paidDate,
-      checkoutUrl:   paymentsTable.checkoutUrl,
-      createdAt:     invoicesTable.createdAt,
+      assignmentId: invoicesTable.assignmentId,
+      amount: invoicesTable.amount,
+      vatAmount: invoicesTable.vatAmount,
+      totalAmount: invoicesTable.totalAmount,
+      outstandingAmount: invoicesTable.outstandingAmount,
+      status: invoicesTable.status,
+      dueDate: invoicesTable.dueDate,
+      paidDate: invoicesTable.paidDate,
+      checkoutUrl: paymentsTable.checkoutUrl,
+      createdAt: invoicesTable.createdAt,
     })
     .from(invoicesTable)
     .leftJoin(
       paymentsTable,
       and(
         eq(paymentsTable.invoiceId, invoicesTable.id),
-        eq(paymentsTable.status, "open"),
+        inArray(paymentsTable.status, [
+          "created",
+          "provider_pending",
+          "open",
+          "pending",
+          "authorized",
+          "reconciliation_required",
+        ]),
       ),
     )
     .innerJoin(customersTable, eq(customersTable.id, invoicesTable.customerId))
@@ -61,44 +73,55 @@ export async function getMyInvoices(): Promise<CustomerInvoice[]> {
     .orderBy(desc(invoicesTable.createdAt));
 
   return rows.map((r) => ({
-    id:            r.id,
+    id: r.id,
     invoiceNumber: displayInvoiceNumber(r.invoiceNumber, r.id.slice(0, 8)),
-    assignmentId:  r.assignmentId,
-    amount:        r.amount,
-    vatAmount:     r.vatAmount,
-    totalAmount:   r.totalAmount,
-    status:        r.status as InvoiceStatus,
-    dueDate:       r.dueDate,
-    paidDate:      r.paidDate ?? null,
-    checkoutUrl:   r.checkoutUrl ?? null,
-    createdAt:     r.createdAt.toISOString(),
+    assignmentId: r.assignmentId,
+    amount: r.amount,
+    vatAmount: r.vatAmount,
+    totalAmount: r.totalAmount,
+    outstandingAmount: r.outstandingAmount,
+    status: r.status as InvoiceStatus,
+    dueDate: r.dueDate,
+    paidDate: r.paidDate ?? null,
+    checkoutUrl: r.checkoutUrl ?? null,
+    createdAt: r.createdAt.toISOString(),
   }));
 }
 
-export async function getMyInvoice(invoiceId: string): Promise<CustomerInvoice | null> {
+export async function getMyInvoice(
+  invoiceId: string,
+): Promise<CustomerInvoice | null> {
   const identity = await getMyCustomerIdentity();
   if (!identity) return null;
 
   const rows = await db
     .select({
-      id:            invoicesTable.id,
+      id: invoicesTable.id,
       invoiceNumber: invoicesTable.invoiceNumber,
-      assignmentId:  invoicesTable.assignmentId,
-      amount:        invoicesTable.amount,
-      vatAmount:     invoicesTable.vatAmount,
-      totalAmount:   invoicesTable.totalAmount,
-      status:        invoicesTable.status,
-      dueDate:       invoicesTable.dueDate,
-      paidDate:      invoicesTable.paidDate,
-      checkoutUrl:   paymentsTable.checkoutUrl,
-      createdAt:     invoicesTable.createdAt,
+      assignmentId: invoicesTable.assignmentId,
+      amount: invoicesTable.amount,
+      vatAmount: invoicesTable.vatAmount,
+      totalAmount: invoicesTable.totalAmount,
+      outstandingAmount: invoicesTable.outstandingAmount,
+      status: invoicesTable.status,
+      dueDate: invoicesTable.dueDate,
+      paidDate: invoicesTable.paidDate,
+      checkoutUrl: paymentsTable.checkoutUrl,
+      createdAt: invoicesTable.createdAt,
     })
     .from(invoicesTable)
     .leftJoin(
       paymentsTable,
       and(
         eq(paymentsTable.invoiceId, invoicesTable.id),
-        eq(paymentsTable.status, "open"),
+        inArray(paymentsTable.status, [
+          "created",
+          "provider_pending",
+          "open",
+          "pending",
+          "authorized",
+          "reconciliation_required",
+        ]),
       ),
     )
     .innerJoin(customersTable, eq(customersTable.id, invoicesTable.customerId))
@@ -116,27 +139,31 @@ export async function getMyInvoice(invoiceId: string): Promise<CustomerInvoice |
   if (!r) return null;
 
   return {
-    id:            r.id,
+    id: r.id,
     invoiceNumber: displayInvoiceNumber(r.invoiceNumber, r.id.slice(0, 8)),
-    assignmentId:  r.assignmentId,
-    amount:        r.amount,
-    vatAmount:     r.vatAmount,
-    totalAmount:   r.totalAmount,
-    status:        r.status as InvoiceStatus,
-    dueDate:       r.dueDate,
-    paidDate:      r.paidDate ?? null,
-    checkoutUrl:   r.checkoutUrl ?? null,
-    createdAt:     r.createdAt.toISOString(),
+    assignmentId: r.assignmentId,
+    amount: r.amount,
+    vatAmount: r.vatAmount,
+    totalAmount: r.totalAmount,
+    outstandingAmount: r.outstandingAmount,
+    status: r.status as InvoiceStatus,
+    dueDate: r.dueDate,
+    paidDate: r.paidDate ?? null,
+    checkoutUrl: r.checkoutUrl ?? null,
+    createdAt: r.createdAt.toISOString(),
   };
 }
 
 export async function getMyInvoiceSummary(): Promise<{
-  openCount:  number;
-  openTotal:  string;
+  openCount: number;
+  openTotal: string;
 }> {
   const invoices = await getMyInvoices();
   const open = invoices.filter((i) => i.status === "sent");
-  const openTotal = open.reduce((sum, i) => sum + parseFloat(i.totalAmount || "0"), 0);
+  const openTotal = open.reduce(
+    (sum, i) => sum + parseFloat(i.outstandingAmount || "0"),
+    0,
+  );
   return {
     openCount: open.length,
     openTotal: openTotal.toFixed(2),
