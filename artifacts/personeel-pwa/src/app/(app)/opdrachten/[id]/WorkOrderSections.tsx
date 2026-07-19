@@ -154,7 +154,7 @@ export function AssignmentQuestionCard({
           type="button"
           onClick={() => setIsOpen((value) => !value)}
           className="rounded-2xl px-3 py-2 text-[12px] font-black text-white"
-          style={{ backgroundColor: "var(--color-accent)" }}
+          style={{ backgroundColor: "var(--color-accent-accessible)" }}
         >
           Vraag
         </button>

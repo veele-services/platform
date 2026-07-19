@@ -1,6 +1,6 @@
 # Fieldgrid Phase 2 rollback notes
 
-W12 performs no deployment and no production action. Rollback planning applies only to the later, separate main-to-staging promotion PR.
+Phase 2D performs no deployment and no production action. Rollback planning applies only to the later, separate main-to-staging promotion PR.
 
 ## Rollback principles
 
@@ -14,8 +14,8 @@ W12 performs no deployment and no production action. Rollback planning applies o
 
 | Evidence | Location |
 | --- | --- |
-| Exact W11 acceptance artifact | `artifacts/fieldgrid-phase2-w11/cross-surface-acceptance-evidence.json` |
-| W12 completion report | `docs/phase-2/completion-report.md` |
+| Exact-head runtime acceptance artifact | CI artifact `artifacts/fieldgrid-phase2-runtime/runtime-acceptance.json` |
+| Phase 2D completion report | `docs/phase-2/completion-report.md` |
 | Staging smoke runbook | `docs/phase-2/staging-smoke-runbook.md` |
 | Final stale PR disposition | `docs/phase-2/final-stale-pr-disposition.md` and `.json` |
 | Hardening register | `docs/security/fieldgrid-hardening-register.json` and `.md` |
@@ -23,7 +23,7 @@ W12 performs no deployment and no production action. Rollback planning applies o
 
 ## Prepared rollback commands
 
-Do not run these in W12. Use only after a failed staging promotion and maintainer approval.
+Do not run these in Phase 2D. Use only after a failed staging promotion and maintainer approval.
 
 ```bash
 git fetch origin main staging

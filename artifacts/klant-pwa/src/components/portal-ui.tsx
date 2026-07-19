@@ -27,7 +27,7 @@ const toneStyles: Record<PortalTone, CSSProperties> = {
   },
   accent: {
     backgroundColor: "rgba(0,183,179,0.10)",
-    color: "var(--color-accent)",
+    color: "var(--color-accent-accessible)",
   },
   success: {
     backgroundColor: "rgba(16,185,129,0.10)",
@@ -35,7 +35,7 @@ const toneStyles: Record<PortalTone, CSSProperties> = {
   },
   warning: {
     backgroundColor: "rgba(245,158,11,0.12)",
-    color: "var(--color-warning)",
+    color: "#92400E",
   },
   danger: {
     backgroundColor: "rgba(239,68,68,0.10)",
@@ -126,7 +126,7 @@ export function PortalPageHeader({
         <div className="mb-2 flex flex-wrap items-center gap-2">
           <p
             className="text-[11px] font-black uppercase"
-            style={{ color: "var(--color-accent)" }}
+            style={{ color: "var(--color-accent-accessible)" }}
           >
             {eyebrow}
           </p>
@@ -162,7 +162,7 @@ export function PortalPageHeader({
             <Link
               href={primaryAction.href}
               className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-black text-white shadow-sm transition-opacity hover:opacity-90"
-              style={{ backgroundColor: "var(--color-accent)" }}
+              style={{ backgroundColor: "var(--color-accent-accessible)" }}
             >
               {primaryAction.label}
             </Link>

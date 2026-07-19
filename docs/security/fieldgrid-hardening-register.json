@@ -1,6 +1,6 @@
 {
-  "version": "fieldgrid-hardening-register-phase-2c-completion",
-  "currentMainSha": "7f57c5a93ec1af6d5553abf190cfd0c3ac300bda",
+  "version": "fieldgrid-hardening-register-phase-2d-closeout",
+  "currentMainSha": "415c5531304091f043652b5fc3aaffca98d15c06",
   "sourceDraftPr": 293,
   "sourceDraftPrUse": "evidence source only; rebuilt from current main after merged Phase-B PRs",
   "mergedImplementationPRs": [
@@ -11,7 +11,9 @@
     296,
     326,
     327,
-    328
+    328,
+    329,
+    332
   ],
   "counts": {
     "closed": 30,
@@ -562,7 +564,8 @@
       ],
       "missingEvidence": [],
       "implementationPRs": [
-        329
+        329,
+        332
       ],
       "runtimeProof": [
         "PostgreSQL 17 enforces unique active invoices, provider request idempotency, one allocation per payment/invoice, positive tenant-matched allocations and locked overpayment denial; report approval and webhook settlement are atomic transactions."
@@ -665,7 +668,9 @@
       "category": "release/production",
       "status": "open",
       "currentEvidence": [
-        "docs/phase-2/main-exact-head-validation.md"
+        "docs/phase-2/main-exact-head-validation.md",
+        "docs/phase-2/completion-report.md",
+        "docs/phase-2/staging-smoke-runbook.md"
       ],
       "missingEvidence": [
         "staging proof for the eventual release SHA",
@@ -674,7 +679,7 @@
       ],
       "implementationPRs": [],
       "runtimeProof": [
-        "No deployment was performed by Phase 2C; this gate intentionally remains open."
+        "Phase 2D generates exact-head runtime acceptance from PostgreSQL, RLS, API, Playwright, accessibility, fixture and data-path sources; no staging or production deployment was performed, so this gate intentionally remains open."
       ],
       "dependencies": [
         "all P0 blockers closed",
@@ -696,7 +701,7 @@
         "production go/no-go"
       ],
       "requiredProof": "Staging validation, rollback rehearsal and signed go/no-go decision for the exact eventual release SHA.",
-      "resolutionDecision": "Not accepted; deliberately deferred as a production-only release gate because PR #329 must not deploy."
+      "resolutionDecision": "Not accepted; deliberately retained as a production-only release gate because Phase 2D does not validate staging or deploy production."
     },
     {
       "id": "FG-HARD-025",
@@ -989,7 +994,8 @@
       "productionReleaseBlocking": false
     }
   ],
-  "openPrDispositions": [
+  "openPrDispositions": [],
+  "historicalPrDispositions": [
     {
       "pr": 279,
       "actualType": "audit/documentation",

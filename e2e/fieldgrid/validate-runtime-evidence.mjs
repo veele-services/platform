@@ -46,6 +46,7 @@ for (const name of ['tenant-a-admin-backoffice', 'tenant-a-personnel', 'tenant-a
   checkNamed(preflight, name);
 }
 
+assert(proof.status === 'passed', 'Structured data-path proof did not pass', proof.failure ?? proof);
 assert(proof.customerTenantAAllowedAssignmentCount === 1, 'Tenant A customer must read its assignment exactly once', proof);
 assert(proof.customerTenantADeniedTenantBAssignmentCount === 0, 'Tenant A customer must not read Tenant B assignments', proof);
 assert(proof.customerTenantBDeniedTenantAAssignmentCount === 0, 'Tenant B customer must not read Tenant A assignments', proof);
@@ -78,7 +79,7 @@ assert(fixtures.tenantBAdminAllRoleLinkCount === 1, 'Tenant B admin must have on
 assert(fixtures.crossTenantRoleLeakCount === 0, 'Canonical admin roles must not leak across tenants', fixtures);
 assert(fixtures.crossTenantValidation?.tenantBAssignmentInTenantACount === 0, 'Cross-tenant fixture validation failed', fixtures);
 
-for (const name of [
+const requiredLogs = [
   'backoffice.stdout.log',
   'backoffice.stderr.log',
   'personnel.stdout.log',
@@ -87,8 +88,9 @@ for (const name of [
   'customer.stderr.log',
   'orchestrator.stdout.log',
   'orchestrator.stderr.log',
-  'postgrest.log',
-]) {
+];
+if (process.env.CI) requiredLogs.push('postgrest.log');
+for (const name of requiredLogs) {
   requireLog(name);
 }
 

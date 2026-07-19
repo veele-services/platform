@@ -574,7 +574,7 @@ test("workflow provisions PostgreSQL 17, Runtime Safety fixtures, real PostgREST
 
 test("browser scenarios include payment integrity, review remediation, recovery and offline reconnect", () => {
   const spec = read("e2e/fieldgrid/tests/golden-path.spec.ts");
-  assert.equal([...spec.matchAll(/\ntest\(["']/g)].length, 13);
+  assert.equal([...spec.matchAll(/\ntest\(["']/g)].length, 14);
   assert.match(
     spec,
     /Customer payment journeys use exact outstanding and one durable provider request/,
@@ -601,6 +601,8 @@ test("browser scenarios include payment integrity, review remediation, recovery 
     spec,
     /Offline work-order mutation survives refresh and converges after reconnect/,
   );
+  assert.match(spec, /FG-P2D-AVAILABILITY personnel update and backoffice consistency/);
+  assert.match(read("e2e/fieldgrid/tests/accessibility.spec.ts"), /AxeBuilder/);
   assert.equal(
     existsSync("scripts/fieldgrid-runtime-entrypoints-check.mjs"),
     false,

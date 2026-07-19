@@ -52,6 +52,17 @@ const NAV_ITEMS = [
   { href: "/settings", icon: Settings, label: "Instellingen", permission: "settings:read" },
 ] as const;
 
+function accessibleTextColor(background: string): "#081D3A" | "#FFFFFF" {
+  const match = /^#([0-9a-f]{6})$/iu.exec(background.trim());
+  if (!match) return "#081D3A";
+  const channels = [0, 2, 4].map((offset) => parseInt(match[1]!.slice(offset, offset + 2), 16) / 255);
+  const [red, green, blue] = channels.map((value) => value <= 0.04045 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+  const luminance = 0.2126 * red! + 0.7152 * green! + 0.0722 * blue!;
+  const navyContrast = (luminance + 0.05) / (0.0099 + 0.05);
+  const whiteContrast = 1.05 / (luminance + 0.05);
+  return navyContrast >= whiteContrast ? "#081D3A" : "#FFFFFF";
+}
+
 function isActive(pathname: string, href: string, searchParams: URLSearchParams): boolean {
   if (href.includes("?")) {
     const [hrefPath, hrefSearch] = href.split("?");
@@ -117,6 +128,7 @@ export function Sidebar({
   const sidebarBackgroundColor = branding?.sidebarBackgroundColor ?? "#081D3A";
   const sidebarTextColor = branding?.sidebarTextColor ?? "#FFFFFF";
   const sidebarAccentColor = branding?.sidebarAccentColor ?? "#00B7B3";
+  const sidebarActiveTextColor = accessibleTextColor(sidebarAccentColor);
   const displayName = whitelabel ? branding?.displayName?.trim() || "Organisatie" : "Fieldgrid";
   const compactInitials = whitelabel ? initialsFor(displayName) : "FG";
 
@@ -132,7 +144,7 @@ export function Sidebar({
         backgroundColor: sidebarBackgroundColor,
         "--sidebar-text": sidebarTextColor,
         "--sidebar-accent": sidebarAccentColor,
-        "--sidebar-active-text": "#FFFFFF",
+        "--sidebar-active-text": sidebarActiveTextColor,
       } as CSSProperties}
     >
       <div

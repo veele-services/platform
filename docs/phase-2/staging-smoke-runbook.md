@@ -1,10 +1,10 @@
 # Fieldgrid Phase 2 staging smoke runbook
 
-Purpose: prepare the post-merge main-to-staging smoke without executing it in W12.
+Purpose: prepare the post-merge main-to-staging smoke without executing it in Phase 2D.
 
 ## Preconditions
 
-1. W12 closeout PR is merged to `main`.
+1. Phase 2D closeout PR is squash-merged to `main` after exact-head CI and human review.
 2. Record immutable `main` SHA: `git rev-parse origin/main`.
 3. Record expected `staging` base SHA: `git rev-parse origin/staging`.
 4. Compare `main` to `staging`: `git log --oneline --decorate origin/staging..origin/main` and `git diff --stat origin/staging..origin/main`.
@@ -14,6 +14,7 @@ Purpose: prepare the post-merge main-to-staging smoke without executing it in W1
 ## Required checks before staging merge
 
 ```bash
+pnpm fieldgrid:phase2-w11
 pnpm fieldgrid:phase2-w11:check
 pnpm fieldgrid:staging-promotion-gate:check
 pnpm fieldgrid:phase2-hardening-report -- --json
@@ -52,7 +53,9 @@ Use tenant-scoped test users and never service-role browser credentials.
 
 ## Evidence to attach to promotion PR
 
-- W11 artifact: `artifacts/fieldgrid-phase2-w11/cross-surface-acceptance-evidence.json`.
+- Exact-head CI runtime acceptance artifact: `artifacts/fieldgrid-phase2-runtime/runtime-acceptance.json`.
+- Browser summary, JUnit, Playwright HTML report, failure traces, fixture evidence, data-path proof and accessibility summary from `artifacts/fieldgrid-playwright/**`.
+- Confirm issues #330, #331, #333 and #334 remain tracked in the production go/no packet.
 - Staging promotion gate output.
 - Hardening report JSON output.
 - Deployment logs for staging only.

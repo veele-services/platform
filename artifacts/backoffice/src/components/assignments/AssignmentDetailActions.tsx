@@ -359,6 +359,7 @@ export function AssignmentDetailActions({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <Textarea
+            autoFocus
             value={unassignmentReason}
             onChange={(event) => setUnassignmentReason(event.target.value)}
             placeholder="Reden voor ontkoppelen"

@@ -28,7 +28,7 @@ export function DevNav({ current }: { current: AppId }) {
         fontSize: "11px",
       }}
     >
-      <span style={{ color: "#475569", marginRight: "6px", letterSpacing: "0.05em" }}>
+      <span style={{ color: "#CBD5E1", marginRight: "6px", letterSpacing: "0.05em" }}>
         🔧 dev
       </span>
       {APPS.map((app) => {
@@ -38,7 +38,7 @@ export function DevNav({ current }: { current: AppId }) {
             key={app.id}
             href={app.href}
             style={{
-              color:          active ? "#00B7B3" : "#94a3b8",
+              color:          active ? "#5EEAD4" : "#CBD5E1",
               textDecoration: "none",
               padding:        "2px 10px",
               borderRadius:   "4px",

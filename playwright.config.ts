@@ -2,7 +2,14 @@ import { defineConfig } from '@playwright/test';
 
 export default defineConfig({
   testDir: './e2e/fieldgrid/tests',
-  reporter: [['list'], ['html', { outputFolder: 'artifacts/fieldgrid-playwright/playwright-report', open: 'never' }]],
+  forbidOnly: Boolean(process.env.CI),
+  outputDir: 'artifacts/fieldgrid-playwright/test-results',
+  reporter: [
+    ['list'],
+    ['json', { outputFile: 'artifacts/fieldgrid-playwright/playwright-results.json' }],
+    ['junit', { outputFile: 'artifacts/fieldgrid-playwright/junit/results.xml' }],
+    ['html', { outputFolder: 'artifacts/fieldgrid-playwright/playwright-report', open: 'never' }],
+  ],
   use: {
     browserName: 'chromium',
     launchOptions: {
@@ -17,6 +24,7 @@ export default defineConfig({
       ],
     },
     trace: 'retain-on-failure',
+    screenshot: 'only-on-failure',
   },
   workers: 1,
 });

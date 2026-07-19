@@ -1,0 +1,155 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fieldgrid.nl/schemas/phase2-runtime-evidence.schema.json",
+  "title": "Fieldgrid Phase 2 runtime acceptance evidence",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "exactGitHead",
+    "workflowRunId",
+    "environment",
+    "generatedAt",
+    "dataPathProof",
+    "fixtureEvidence",
+    "journeys",
+    "summary",
+    "sourceArtifacts"
+  ],
+  "properties": {
+    "schemaVersion": { "const": "2.0.0" },
+    "exactGitHead": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+    "workflowRunId": { "type": ["string", "null"] },
+    "environment": {
+      "enum": ["ci-disposable-postgresql-17", "local-disposable-postgresql-17"]
+    },
+    "generatedAt": { "type": "string", "format": "date-time" },
+    "dataPathProof": { "$ref": "#/$defs/artifactReference" },
+    "fixtureEvidence": { "$ref": "#/$defs/artifactReference" },
+    "journeys": {
+      "type": "array",
+      "minItems": 11,
+      "items": { "$ref": "#/$defs/journey" }
+    },
+    "summary": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["passed", "failed", "skipped", "mandatory"],
+      "properties": {
+        "passed": { "type": "integer", "minimum": 0 },
+        "failed": { "type": "integer", "minimum": 0 },
+        "skipped": { "type": "integer", "minimum": 0 },
+        "mandatory": { "type": "integer", "minimum": 11 }
+      }
+    },
+    "sourceArtifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/artifactReference" }
+    }
+  },
+  "$defs": {
+    "artifactReference": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "sha256"],
+      "properties": {
+        "path": { "type": "string", "minLength": 1 },
+        "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "source": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "kind",
+        "artifact",
+        "sourceId",
+        "status",
+        "startedAt",
+        "finishedAt",
+        "assertions"
+      ],
+      "properties": {
+        "kind": {
+          "enum": [
+            "playwright",
+            "postgresql",
+            "rls",
+            "api",
+            "accessibility",
+            "data-path"
+          ]
+        },
+        "artifact": { "$ref": "#/$defs/artifactReference" },
+        "sourceId": { "type": "string", "minLength": 1 },
+        "status": {
+          "enum": ["passed", "failed", "skipped", "timedOut", "interrupted"]
+        },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "finishedAt": { "type": "string", "format": "date-time" },
+        "assertions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "failure": { "type": ["object", "null"] }
+      }
+    },
+    "journey": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schemaVersion",
+        "exactGitHead",
+        "workflowRunId",
+        "journeyId",
+        "testId",
+        "startedAt",
+        "finishedAt",
+        "status",
+        "mandatory",
+        "environment",
+        "tenantFixtureIds",
+        "sources",
+        "assertions",
+        "failure"
+      ],
+      "properties": {
+        "schemaVersion": { "const": "2.0.0" },
+        "exactGitHead": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "workflowRunId": { "type": ["string", "null"] },
+        "journeyId": { "type": "string", "minLength": 1 },
+        "testId": { "type": "string", "pattern": "^FG-P2D-[A-Z0-9-]+$" },
+        "startedAt": { "type": "string", "format": "date-time" },
+        "finishedAt": { "type": "string", "format": "date-time" },
+        "status": {
+          "enum": ["passed", "failed", "skipped", "timedOut", "interrupted"]
+        },
+        "mandatory": { "const": true },
+        "environment": {
+          "enum": [
+            "ci-disposable-postgresql-17",
+            "local-disposable-postgresql-17"
+          ]
+        },
+        "tenantFixtureIds": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "sources": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/source" }
+        },
+        "assertions": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "failure": { "type": ["object", "null"] }
+      }
+    }
+  }
+}
