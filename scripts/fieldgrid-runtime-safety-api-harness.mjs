@@ -26,6 +26,7 @@ const MOLLIE_MOCK_PORT = Number(
 );
 const MOLLIE_MOCK_URL = `http://127.0.0.1:${MOLLIE_MOCK_PORT}`;
 const WEBHOOK_SECRET = "runtime-safety-dummy-webhook-secret";
+const providerOverrides = new Map();
 
 const WEBHOOK_FIXTURE = {
   valid: {
@@ -54,6 +55,13 @@ const WEBHOOK_FIXTURE = {
       "94000000-0000-4000-8000-000000000016",
     ],
   },
+};
+const DIRECT_WEBHOOK_FIXTURE = {
+  mollieId: "tr_runtime_direct_valid",
+  payment: "94000000-0000-4000-8000-000000000021",
+  assignment: "94000000-0000-4000-8000-000000000022",
+  invoice: "94000000-0000-4000-8000-000000000023",
+  manualPayment: "94000000-0000-4000-8000-000000000024",
 };
 
 function base64Url(input) {
@@ -124,6 +132,44 @@ function startServer() {
   return { child, output: () => ({ stdout, stderr }) };
 }
 
+async function verifyMissingWebhookSecretFailsStartup() {
+  const env = {
+    ...process.env,
+    NODE_ENV: "test",
+    PORT: String(API_PORT + 20),
+    DATABASE_URL: databaseUrl(),
+    DB_SSL: "false",
+    PGSSLMODE: "disable",
+    MOLLIE_API_KEY: "runtime-safety-dummy-mollie-key",
+    LOG_LEVEL: "silent",
+  };
+  delete env.MOLLIE_WEBHOOK_SECRET;
+  const child = spawn(
+    process.execPath,
+    ["--enable-source-maps", "./artifacts/api-server/dist/index.mjs"],
+    { cwd: repoRoot, env },
+  );
+  let stderr = "";
+  child.stderr.on("data", (chunk) => {
+    stderr += chunk.toString();
+  });
+  const exitCode = await Promise.race([
+    new Promise((resolve) => child.once("close", resolve)),
+    new Promise((_, reject) =>
+      setTimeout(
+        () =>
+          reject(
+            new Error("API did not fail closed without MOLLIE_WEBHOOK_SECRET."),
+          ),
+        5_000,
+      ),
+    ),
+  ]);
+  if (exitCode === 0)
+    throw new Error("API started successfully without MOLLIE_WEBHOOK_SECRET.");
+  return { exitCode, secretRedacted: !stderr.includes(WEBHOOK_SECRET) };
+}
+
 function startMollieMock() {
   const server = http.createServer((req, res) => {
     const paymentId = req.url?.match(
@@ -135,17 +181,56 @@ function startMollieMock() {
       ![
         WEBHOOK_FIXTURE.valid.mollieId,
         WEBHOOK_FIXTURE.invalid.mollieId,
+        DIRECT_WEBHOOK_FIXTURE.mollieId,
       ].includes(paymentId)
     ) {
       res.writeHead(404).end();
       return;
     }
 
+    const fixture = [
+      ...Object.values(WEBHOOK_FIXTURE),
+      DIRECT_WEBHOOK_FIXTURE,
+    ].find((candidate) => candidate.mollieId === paymentId);
+    const override = providerOverrides.get(paymentId) ?? {};
+    if (override.httpStatus) {
+      res.writeHead(override.httpStatus, {
+        "content-type": "application/json",
+      });
+      res.end(JSON.stringify({ detail: "deterministic provider failure" }));
+      return;
+    }
     res.writeHead(200, { "content-type": "application/json" });
     res.end(
       JSON.stringify({
-        id: paymentId,
-        status: "paid",
+        id: override.responseId ?? paymentId,
+        status: override.status ?? "paid",
+        amount: {
+          currency: override.currency ?? "EUR",
+          value:
+            override.amountValue ??
+            (paymentId === DIRECT_WEBHOOK_FIXTURE.mollieId ? "25.00" : "30.00"),
+        },
+        metadata: {
+          schemaVersion: override.schemaVersion ?? "fieldgrid-payment-v1",
+          purpose:
+            override.purpose ??
+            (paymentId === DIRECT_WEBHOOK_FIXTURE.mollieId
+              ? "invoice_payment"
+              : "invoice_collection_payment"),
+          paymentIntentId: override.paymentIntentId ?? fixture.payment,
+          tenantId: override.tenantId ?? FIXTURE.tenants.a,
+          customerId: override.customerId ?? FIXTURE.customers.a,
+          sourceType:
+            override.sourceType ??
+            (paymentId === DIRECT_WEBHOOK_FIXTURE.mollieId
+              ? "invoice"
+              : "invoice_collection"),
+          sourceId: override.sourceId ?? fixture.batch ?? fixture.invoice,
+        },
+        mode: override.mode ?? "test",
+        profileId: override.profileId ?? "pfl_runtime_safety",
+        createdAt: "2026-07-19T09:59:00.000Z",
         paidAt: "2026-07-19T10:00:00.000Z",
       }),
     );
@@ -165,16 +250,33 @@ async function seedWebhookFixture() {
     await client.query(
       `DELETE FROM public.audit_log
        WHERE resource_id = ANY($1::text[])`,
-      [all.map((fixture) => fixture.batch)],
+      [
+        [
+          ...all.flatMap((fixture) => [fixture.batch, fixture.payment]),
+          DIRECT_WEBHOOK_FIXTURE.payment,
+        ],
+      ],
     );
     await client.query(
       `DELETE FROM public.payment_allocations
        WHERE payment_id = ANY($1::uuid[])`,
-      [all.map((fixture) => fixture.payment)],
+      [
+        [
+          ...all.map((fixture) => fixture.payment),
+          DIRECT_WEBHOOK_FIXTURE.payment,
+          DIRECT_WEBHOOK_FIXTURE.manualPayment,
+        ],
+      ],
     );
     await client.query(
       `DELETE FROM public.payments WHERE id = ANY($1::uuid[])`,
-      [all.map((fixture) => fixture.payment)],
+      [
+        [
+          ...all.map((fixture) => fixture.payment),
+          DIRECT_WEBHOOK_FIXTURE.payment,
+          DIRECT_WEBHOOK_FIXTURE.manualPayment,
+        ],
+      ],
     );
     await client.query(
       `DELETE FROM public.customer_payment_batches WHERE id = ANY($1::uuid[])`,
@@ -182,11 +284,21 @@ async function seedWebhookFixture() {
     );
     await client.query(
       `DELETE FROM public.invoices WHERE id = ANY($1::uuid[])`,
-      [all.flatMap((fixture) => fixture.invoices)],
+      [
+        [
+          ...all.flatMap((fixture) => fixture.invoices),
+          DIRECT_WEBHOOK_FIXTURE.invoice,
+        ],
+      ],
     );
     await client.query(
       `DELETE FROM public.assignments WHERE id = ANY($1::uuid[])`,
-      [all.flatMap((fixture) => fixture.assignments)],
+      [
+        [
+          ...all.flatMap((fixture) => fixture.assignments),
+          DIRECT_WEBHOOK_FIXTURE.assignment,
+        ],
+      ],
     );
 
     for (const [fixtureName, fixture] of Object.entries(WEBHOOK_FIXTURE)) {
@@ -261,8 +373,21 @@ async function seedWebhookFixture() {
       await client.query(
         `INSERT INTO public.payments
            (id, tenant_id, customer_id, invoice_id, source_type, source_id,
-            mollie_payment_id, amount_cents, amount, status, payment_method)
-         VALUES ($1, $2, $3, NULL, 'invoice_collection', $4, $5, 3000, 30, 'open', 'mollie')`,
+            mollie_payment_id, provider_request_key, request_hash,
+            expected_provider_metadata, provider_status, provider_mode,
+            provider_profile_id, amount_cents, amount, status, payment_method)
+         VALUES ($1, $2, $3, NULL, 'invoice_collection', $4, $5, gen_random_uuid(),
+                 md5($1::uuid::text) || md5('fieldgrid|' || $1::uuid::text),
+                 jsonb_build_object(
+                   'schemaVersion', 'fieldgrid-payment-v1',
+                   'purpose', 'invoice_collection_payment',
+                   'paymentIntentId', $1::uuid::text,
+                   'tenantId', $2::uuid::text,
+                   'customerId', $3::uuid::text,
+                   'sourceType', 'invoice_collection',
+                   'sourceId', $4::uuid::text
+                 ), 'open', 'test', 'pfl_runtime_safety',
+                 3000, 30, 'open', 'mollie')`,
         [
           fixture.payment,
           FIXTURE.tenants.a,
@@ -272,6 +397,76 @@ async function seedWebhookFixture() {
         ],
       );
     }
+    await client.query(
+      `INSERT INTO public.assignments
+         (id, tenant_id, code, title, customer_id, object_id, status, created_by)
+       VALUES ($1, $2, 'RT-WH-DIRECT', 'Runtime direct partial payment', $3, $4, 'invoiced', $5)`,
+      [
+        DIRECT_WEBHOOK_FIXTURE.assignment,
+        FIXTURE.tenants.a,
+        FIXTURE.customers.a,
+        FIXTURE.objects.a,
+        FIXTURE.users.tenantAOwner,
+      ],
+    );
+    await client.query(
+      `INSERT INTO public.invoices
+         (id, tenant_id, invoice_number, customer_id, assignment_id, amount,
+          vat_percentage, vat_amount, total_amount, status, due_date,
+          payment_status, paid_amount, outstanding_amount, created_by)
+       VALUES ($1, $2, 'RT-WH-DIRECT-INV', $3, $4, 40, 0, 0, 40, 'sent', CURRENT_DATE + 14,
+               'partially_paid', 15, 25, $5)`,
+      [
+        DIRECT_WEBHOOK_FIXTURE.invoice,
+        FIXTURE.tenants.a,
+        FIXTURE.customers.a,
+        DIRECT_WEBHOOK_FIXTURE.assignment,
+        FIXTURE.users.tenantAOwner,
+      ],
+    );
+    await client.query(
+      `INSERT INTO public.payments
+         (id, tenant_id, customer_id, invoice_id, source_type, source_id,
+          amount_cents, amount, status, payment_method, paid_at)
+       VALUES ($1, $2, $3, $4, 'invoice', $4, 1500, 15, 'paid', 'manual_bank', now())`,
+      [
+        DIRECT_WEBHOOK_FIXTURE.manualPayment,
+        FIXTURE.tenants.a,
+        FIXTURE.customers.a,
+        DIRECT_WEBHOOK_FIXTURE.invoice,
+      ],
+    );
+    await client.query(
+      `INSERT INTO public.payment_allocations
+         (tenant_id, payment_id, invoice_id, amount_cents, amount, note)
+       VALUES ($1, $2, $3, 1500, 15, 'Runtime partial manual allocation')`,
+      [
+        FIXTURE.tenants.a,
+        DIRECT_WEBHOOK_FIXTURE.manualPayment,
+        DIRECT_WEBHOOK_FIXTURE.invoice,
+      ],
+    );
+    await client.query(
+      `INSERT INTO public.payments
+         (id, tenant_id, customer_id, invoice_id, source_type, source_id,
+          mollie_payment_id, provider_request_key, request_hash,
+          expected_provider_metadata, provider_status, provider_mode,
+          provider_profile_id, amount_cents, amount, status, payment_method)
+       VALUES ($1, $2, $3, $4, 'invoice', $4, $5, gen_random_uuid(),
+               md5($1::uuid::text) || md5('fieldgrid|' || $1::uuid::text),
+               jsonb_build_object('schemaVersion', 'fieldgrid-payment-v1',
+                 'purpose', 'invoice_payment', 'paymentIntentId', $1::uuid::text,
+                 'tenantId', $2::uuid::text, 'customerId', $3::uuid::text,
+                 'sourceType', 'invoice', 'sourceId', $4::uuid::text),
+               'open', 'test', 'pfl_runtime_safety', 2500, 25, 'open', 'mollie')`,
+      [
+        DIRECT_WEBHOOK_FIXTURE.payment,
+        FIXTURE.tenants.a,
+        FIXTURE.customers.a,
+        DIRECT_WEBHOOK_FIXTURE.invoice,
+        DIRECT_WEBHOOK_FIXTURE.mollieId,
+      ],
+    );
     await client.query("COMMIT");
   } catch (error) {
     await client.query("ROLLBACK").catch(() => {});
@@ -281,18 +476,19 @@ async function seedWebhookFixture() {
   }
 }
 
-async function webhookRequest(mollieId) {
-  const rawBody = `id=${encodeURIComponent(mollieId)}`;
-  const signature = crypto
-    .createHmac("sha256", WEBHOOK_SECRET)
-    .update(rawBody)
-    .digest("hex");
+async function webhookRequest(mollieId, options = {}) {
+  const rawBody = options.rawBody ?? `id=${encodeURIComponent(mollieId)}`;
+  const signature =
+    options.signature ??
+    crypto
+      .createHmac("sha256", options.secret ?? WEBHOOK_SECRET)
+      .update(rawBody)
+      .digest("hex");
+  const headers = { "content-type": "application/x-www-form-urlencoded" };
+  if (!options.omitSignature) headers["x-mollie-signature"] = signature;
   return request("/api/webhooks/mollie", {
     method: "POST",
-    headers: {
-      "content-type": "application/x-www-form-urlencoded",
-      "x-mollie-signature": signature,
-    },
+    headers,
     body: rawBody,
   });
 }
@@ -311,11 +507,59 @@ async function webhookState(fixture) {
          (SELECT array_agg(status ORDER BY id) FROM public.invoices WHERE id = ANY($3::uuid[])) AS invoice_statuses,
          (SELECT array_agg(status ORDER BY id) FROM public.assignments WHERE id = ANY($4::uuid[])) AS assignment_statuses,
          (SELECT count(*)::integer FROM public.audit_log
-            WHERE resource = 'customer_payment_batches' AND resource_id = $2::text
-              AND action = 'mollie_payment_batch_received') AS audit_count`,
+            WHERE resource = 'payments' AND resource_id = $1::text
+              AND action = 'apply_verified_provider_payment') AS audit_count,
+         (SELECT reconciliation_reason FROM public.payments WHERE id = $1) AS reconciliation_reason`,
       [fixture.payment, fixture.batch, fixture.invoices, fixture.assignments],
     );
     return state;
+  } finally {
+    await client.end();
+  }
+}
+
+async function directWebhookState() {
+  const client = await connect();
+  try {
+    const {
+      rows: [state],
+    } = await client.query(
+      `SELECT
+         (SELECT status FROM public.payments WHERE id = $1) AS payment_status,
+         (SELECT count(*)::integer FROM public.payment_allocations WHERE payment_id = $1) AS allocation_count,
+         (SELECT coalesce(sum(amount_cents), 0)::integer FROM public.payment_allocations WHERE payment_id = $1) AS allocation_total,
+         (SELECT paid_amount::text FROM public.invoices WHERE id = $2) AS paid_amount,
+         (SELECT outstanding_amount::text FROM public.invoices WHERE id = $2) AS outstanding_amount,
+         (SELECT status FROM public.invoices WHERE id = $2) AS invoice_status,
+         (SELECT status FROM public.assignments WHERE id = $3) AS assignment_status,
+         (SELECT count(*)::integer FROM public.audit_log
+            WHERE resource = 'payments' AND resource_id = $1::text
+              AND action = 'apply_verified_provider_payment') AS audit_count`,
+      [
+        DIRECT_WEBHOOK_FIXTURE.payment,
+        DIRECT_WEBHOOK_FIXTURE.invoice,
+        DIRECT_WEBHOOK_FIXTURE.assignment,
+      ],
+    );
+    return state;
+  } finally {
+    await client.end();
+  }
+}
+
+async function paymentAuditCount(paymentId, action, discriminator = null) {
+  const client = await connect();
+  try {
+    const {
+      rows: [row],
+    } = await client.query(
+      `SELECT count(*)::integer AS count
+       FROM public.audit_log
+       WHERE resource = 'payments' AND resource_id = $1::text AND action = $2
+         AND ($3::text IS NULL OR metadata->>'discriminator' = $3)`,
+      [paymentId, action, discriminator],
+    );
+    return Number(row?.count ?? 0);
   } finally {
     await client.end();
   }
@@ -591,6 +835,100 @@ async function runApiChecks() {
     200,
   );
 
+  const missingSignature = await webhookRequest(
+    DIRECT_WEBHOOK_FIXTURE.mollieId,
+    { omitSignature: true },
+  );
+  assertStatus(
+    checks,
+    "server-action-api-webhook-missing-signature-denied",
+    missingSignature.status,
+    400,
+  );
+  const invalidSignature = await webhookRequest(
+    DIRECT_WEBHOOK_FIXTURE.mollieId,
+    { signature: "0".repeat(64) },
+  );
+  assertStatus(
+    checks,
+    "server-action-api-webhook-invalid-signature-denied",
+    invalidSignature.status,
+    400,
+  );
+  const malformedReference = await webhookRequest("invalid-reference");
+  assertStatus(
+    checks,
+    "server-action-api-webhook-malformed-provider-id-denied",
+    malformedReference.status,
+    400,
+  );
+  const unknownReference = await webhookRequest("tr_runtime_unknown_payment");
+  assertStatus(
+    checks,
+    "server-action-api-webhook-unknown-provider-id-retryable",
+    unknownReference.status,
+    502,
+  );
+
+  providerOverrides.set(DIRECT_WEBHOOK_FIXTURE.mollieId, { httpStatus: 503 });
+  const fetchFailure = await webhookRequest(DIRECT_WEBHOOK_FIXTURE.mollieId);
+  assertStatus(
+    checks,
+    "server-action-api-webhook-provider-fetch-failure-retryable",
+    fetchFailure.status,
+    502,
+  );
+  assertWebhookState(
+    checks,
+    "server-action-api-provider-fetch-failure-no-financial-mutation",
+    await directWebhookState(),
+    {
+      payment_status: "open",
+      allocation_count: 0,
+      allocation_total: 0,
+      paid_amount: "15.00",
+      outstanding_amount: "25.00",
+      invoice_status: "sent",
+      assignment_status: "invoiced",
+      audit_count: 0,
+    },
+  );
+  providerOverrides.set(DIRECT_WEBHOOK_FIXTURE.mollieId, {
+    responseId: "tr_runtime_different_payment",
+  });
+  const wrongProviderId = await webhookRequest(DIRECT_WEBHOOK_FIXTURE.mollieId);
+  assertStatus(
+    checks,
+    "server-action-api-webhook-wrong-provider-id-retryable",
+    wrongProviderId.status,
+    502,
+  );
+  providerOverrides.delete(DIRECT_WEBHOOK_FIXTURE.mollieId);
+
+  const direct = await webhookRequest(DIRECT_WEBHOOK_FIXTURE.mollieId);
+  assertStatus(
+    checks,
+    "server-action-api-direct-partial-webhook",
+    direct.status,
+    200,
+    { body: direct.body },
+  );
+  assertWebhookState(
+    checks,
+    "server-action-api-direct-partial-exact-outstanding-settlement",
+    await directWebhookState(),
+    {
+      payment_status: "paid",
+      allocation_count: 1,
+      allocation_total: 2500,
+      paid_amount: "40.00",
+      outstanding_amount: "0.00",
+      invoice_status: "paid",
+      assignment_status: "closed",
+      audit_count: 1,
+    },
+  );
+
   const concurrentWebhookResponses = await Promise.all([
     webhookRequest(WEBHOOK_FIXTURE.valid.mollieId),
     webhookRequest(WEBHOOK_FIXTURE.valid.mollieId),
@@ -615,6 +953,7 @@ async function runApiChecks() {
       invoice_statuses: ["paid", "paid"],
       assignment_statuses: ["closed", "closed"],
       audit_count: 1,
+      reconciliation_reason: null,
     },
   );
 
@@ -637,29 +976,371 @@ async function runApiChecks() {
       invoice_statuses: ["paid", "paid"],
       assignment_statuses: ["closed", "closed"],
       audit_count: 1,
+      reconciliation_reason: null,
     },
   );
 
-  const invalid = await webhookRequest(WEBHOOK_FIXTURE.invalid.mollieId);
+  providerOverrides.set(WEBHOOK_FIXTURE.valid.mollieId, { status: "failed" });
+  const stale = await webhookRequest(WEBHOOK_FIXTURE.valid.mollieId);
   assertStatus(
     checks,
-    "server-action-api-collection-webhook-invalid-total-retry",
-    invalid.status,
-    500,
+    "server-action-api-paid-status-cannot-regress",
+    stale.status,
+    200,
   );
   assertWebhookState(
     checks,
-    "server-action-api-collection-webhook-invalid-total-rollback",
+    "server-action-api-paid-status-remains-terminal",
+    await webhookState(WEBHOOK_FIXTURE.valid),
+    {
+      payment_status: "paid",
+      batch_status: "paid",
+      allocation_count: 2,
+      allocation_total: 3000,
+      invoice_statuses: ["paid", "paid"],
+      assignment_statuses: ["closed", "closed"],
+      audit_count: 1,
+      reconciliation_reason: null,
+    },
+  );
+  providerOverrides.delete(WEBHOOK_FIXTURE.valid.mollieId);
+
+  providerOverrides.set(WEBHOOK_FIXTURE.invalid.mollieId, {
+    status: "pending",
+  });
+  const pending = await webhookRequest(WEBHOOK_FIXTURE.invalid.mollieId);
+  assertStatus(
+    checks,
+    "server-action-api-provider-open-to-pending",
+    pending.status,
+    200,
+  );
+  const duplicatePending = await webhookRequest(
+    WEBHOOK_FIXTURE.invalid.mollieId,
+  );
+  assertStatus(
+    checks,
+    "server-action-api-provider-pending-duplicate",
+    duplicatePending.status,
+    200,
+  );
+  if (
+    (await paymentAuditCount(
+      WEBHOOK_FIXTURE.invalid.payment,
+      "observe_provider_payment_status",
+      "pending",
+    )) !== 1
+  ) {
+    throw new Error(
+      "Duplicate pending provider callbacks produced a duplicate audit observation.",
+    );
+  }
+  checks.push(
+    result("server-action-api-provider-pending-audited-once", "passed"),
+  );
+
+  providerOverrides.set(WEBHOOK_FIXTURE.invalid.mollieId, {
+    status: "authorized",
+  });
+  const authorized = await webhookRequest(WEBHOOK_FIXTURE.invalid.mollieId);
+  assertStatus(
+    checks,
+    "server-action-api-provider-pending-to-authorized",
+    authorized.status,
+    200,
+  );
+  providerOverrides.set(WEBHOOK_FIXTURE.invalid.mollieId, { status: "open" });
+  const staleOpen = await webhookRequest(WEBHOOK_FIXTURE.invalid.mollieId);
+  assertStatus(
+    checks,
+    "server-action-api-provider-authorized-stale-open-ignored",
+    staleOpen.status,
+    200,
+  );
+  const afterStaleOpen = await webhookState(WEBHOOK_FIXTURE.invalid);
+  if (
+    afterStaleOpen.payment_status !== "authorized" ||
+    afterStaleOpen.allocation_count !== 0
+  ) {
+    throw Object.assign(
+      new Error("Stale open callback regressed an authorized payment."),
+      { details: afterStaleOpen },
+    );
+  }
+  checks.push(
+    result(
+      "server-action-api-provider-authorized-monotonic",
+      "passed",
+      afterStaleOpen,
+    ),
+  );
+
+  providerOverrides.set(WEBHOOK_FIXTURE.invalid.mollieId, {
+    status: "unexpected_provider_state",
+  });
+  const unknownStatus = await webhookRequest(WEBHOOK_FIXTURE.invalid.mollieId);
+  assertStatus(
+    checks,
+    "server-action-api-provider-unknown-status-acknowledged-without-mutation",
+    unknownStatus.status,
+    200,
+  );
+  const afterUnknownStatus = await webhookState(WEBHOOK_FIXTURE.invalid);
+  if (
+    afterUnknownStatus.payment_status !== "authorized" ||
+    afterUnknownStatus.allocation_count !== 0
+  ) {
+    throw Object.assign(
+      new Error("Unknown provider status mutated financial state."),
+      { details: afterUnknownStatus },
+    );
+  }
+  checks.push(
+    result(
+      "server-action-api-provider-unknown-status-no-mutation",
+      "passed",
+      afterUnknownStatus,
+    ),
+  );
+
+  providerOverrides.set(WEBHOOK_FIXTURE.invalid.mollieId, { mode: "live" });
+  await webhookRequest(WEBHOOK_FIXTURE.invalid.mollieId);
+  const modeMismatch = await webhookState(WEBHOOK_FIXTURE.invalid);
+  if (modeMismatch.reconciliation_reason !== "Provider mode mismatch.") {
+    throw Object.assign(
+      new Error("provider mode mismatch was not quarantined"),
+      { details: modeMismatch },
+    );
+  }
+  checks.push(
+    result(
+      "server-action-api-provider-mode-mismatch-quarantined",
+      "passed",
+      modeMismatch,
+    ),
+  );
+
+  providerOverrides.set(WEBHOOK_FIXTURE.invalid.mollieId, {
+    profileId: "pfl_wrong_profile",
+  });
+  await webhookRequest(WEBHOOK_FIXTURE.invalid.mollieId);
+  const profileMismatch = await webhookState(WEBHOOK_FIXTURE.invalid);
+  if (profileMismatch.reconciliation_reason !== "Provider profile mismatch.") {
+    throw Object.assign(
+      new Error("provider profile mismatch was not quarantined"),
+      { details: profileMismatch },
+    );
+  }
+  checks.push(
+    result(
+      "server-action-api-provider-profile-mismatch-quarantined",
+      "passed",
+      profileMismatch,
+    ),
+  );
+
+  providerOverrides.set(WEBHOOK_FIXTURE.invalid.mollieId, {
+    tenantId: FIXTURE.tenants.b,
+  });
+  await webhookRequest(WEBHOOK_FIXTURE.invalid.mollieId);
+  const tenantMismatch = await webhookState(WEBHOOK_FIXTURE.invalid);
+  if (
+    !tenantMismatch.reconciliation_reason?.includes(
+      "metadata mismatch for tenantId",
+    )
+  ) {
+    throw Object.assign(
+      new Error("provider tenant mismatch was not quarantined"),
+      { details: tenantMismatch },
+    );
+  }
+  checks.push(
+    result(
+      "server-action-api-provider-tenant-mismatch-quarantined",
+      "passed",
+      tenantMismatch,
+    ),
+  );
+
+  providerOverrides.set(WEBHOOK_FIXTURE.invalid.mollieId, {
+    customerId: FIXTURE.customers.b,
+  });
+  await webhookRequest(WEBHOOK_FIXTURE.invalid.mollieId);
+  const customerMismatch = await webhookState(WEBHOOK_FIXTURE.invalid);
+  if (
+    !customerMismatch.reconciliation_reason?.includes(
+      "metadata mismatch for customerId",
+    )
+  ) {
+    throw Object.assign(
+      new Error("provider customer mismatch was not quarantined"),
+      { details: customerMismatch },
+    );
+  }
+  checks.push(
+    result(
+      "server-action-api-provider-customer-mismatch-quarantined",
+      "passed",
+      customerMismatch,
+    ),
+  );
+
+  providerOverrides.set(WEBHOOK_FIXTURE.invalid.mollieId, {
+    amountValue: "31.00",
+  });
+  const invalid = await webhookRequest(WEBHOOK_FIXTURE.invalid.mollieId);
+  assertStatus(
+    checks,
+    "server-action-api-provider-amount-mismatch-quarantined",
+    invalid.status,
+    200,
+    { body: invalid.body },
+  );
+  assertWebhookState(
+    checks,
+    "server-action-api-provider-mismatch-no-financial-mutation",
     await webhookState(WEBHOOK_FIXTURE.invalid),
     {
-      payment_status: "open",
+      payment_status: "reconciliation_required",
       batch_status: "open",
       allocation_count: 0,
       allocation_total: 0,
       invoice_statuses: ["sent", "sent"],
       assignment_statuses: ["invoiced", "invoiced"],
       audit_count: 0,
+      reconciliation_reason: "Provider amount mismatch.",
     },
+  );
+
+  providerOverrides.set(WEBHOOK_FIXTURE.invalid.mollieId, { currency: "USD" });
+  await webhookRequest(WEBHOOK_FIXTURE.invalid.mollieId);
+  const currencyMismatch = await webhookState(WEBHOOK_FIXTURE.invalid);
+  if (
+    currencyMismatch.reconciliation_reason !== "Provider currency mismatch."
+  ) {
+    throw Object.assign(
+      new Error("provider currency mismatch was not quarantined"),
+      { details: currencyMismatch },
+    );
+  }
+  checks.push(
+    result(
+      "server-action-api-provider-currency-mismatch-quarantined",
+      "passed",
+      currencyMismatch,
+    ),
+  );
+
+  providerOverrides.set(WEBHOOK_FIXTURE.invalid.mollieId, {
+    sourceId: WEBHOOK_FIXTURE.valid.batch,
+  });
+  await webhookRequest(WEBHOOK_FIXTURE.invalid.mollieId);
+  const metadataMismatch = await webhookState(WEBHOOK_FIXTURE.invalid);
+  if (
+    !metadataMismatch.reconciliation_reason?.includes(
+      "Provider metadata mismatch",
+    )
+  ) {
+    throw Object.assign(
+      new Error("provider metadata mismatch was not quarantined"),
+      { details: metadataMismatch },
+    );
+  }
+  checks.push(
+    result(
+      "server-action-api-provider-metadata-mismatch-quarantined",
+      "passed",
+      metadataMismatch,
+    ),
+  );
+
+  providerOverrides.delete(WEBHOOK_FIXTURE.invalid.mollieId);
+  await webhookRequest(WEBHOOK_FIXTURE.invalid.mollieId);
+  const collectionMismatch = await webhookState(WEBHOOK_FIXTURE.invalid);
+  if (!collectionMismatch.reconciliation_reason?.includes("Collection items")) {
+    throw Object.assign(
+      new Error("collection total mismatch was not quarantined"),
+      { details: collectionMismatch },
+    );
+  }
+  checks.push(
+    result(
+      "server-action-api-collection-mismatch-no-partial-settlement",
+      "passed",
+      collectionMismatch,
+    ),
+  );
+
+  providerOverrides.set(WEBHOOK_FIXTURE.invalid.mollieId, {
+    status: "canceled",
+  });
+  const canceled = await webhookRequest(WEBHOOK_FIXTURE.invalid.mollieId);
+  assertStatus(
+    checks,
+    "server-action-api-provider-terminal-canceled",
+    canceled.status,
+    200,
+  );
+  const canceledState = await webhookState(WEBHOOK_FIXTURE.invalid);
+  if (
+    canceledState.payment_status !== "canceled" ||
+    canceledState.batch_status !== "canceled" ||
+    canceledState.allocation_count !== 0
+  ) {
+    throw Object.assign(
+      new Error("Canceled provider state was not applied atomically."),
+      { details: canceledState },
+    );
+  }
+  checks.push(
+    result(
+      "server-action-api-provider-canceled-terminal-applied",
+      "passed",
+      canceledState,
+    ),
+  );
+
+  providerOverrides.set(WEBHOOK_FIXTURE.invalid.mollieId, { status: "open" });
+  await webhookRequest(WEBHOOK_FIXTURE.invalid.mollieId);
+  const canceledReplay = await webhookState(WEBHOOK_FIXTURE.invalid);
+  if (
+    canceledReplay.payment_status !== "canceled" ||
+    canceledReplay.batch_status !== "canceled"
+  ) {
+    throw Object.assign(
+      new Error(
+        "A terminal canceled payment was reopened by a delayed callback.",
+      ),
+      { details: canceledReplay },
+    );
+  }
+  checks.push(
+    result(
+      "server-action-api-provider-terminal-cannot-reopen",
+      "passed",
+      canceledReplay,
+    ),
+  );
+  providerOverrides.delete(WEBHOOK_FIXTURE.invalid.mollieId);
+
+  const reconciliationAuditCount = await paymentAuditCount(
+    WEBHOOK_FIXTURE.invalid.payment,
+    "payment_reconciliation_required",
+  );
+  if (reconciliationAuditCount < 7) {
+    throw Object.assign(
+      new Error(
+        "Provider mismatches did not produce durable redacted reconciliation audits.",
+      ),
+      {
+        details: { reconciliationAuditCount },
+      },
+    );
+  }
+  checks.push(
+    result("server-action-api-provider-mismatches-durably-audited", "passed", {
+      reconciliationAuditCount,
+    }),
   );
 
   return checks;
@@ -679,6 +1360,13 @@ async function main() {
   const checks = [];
 
   try {
+    checks.push(
+      result(
+        "server-action-api-missing-webhook-secret-startup-fails-closed",
+        "passed",
+        await verifyMissingWebhookSecretFailsStartup(),
+      ),
+    );
     await seedWebhookFixture();
     mollieMock = await startMollieMock();
     server = startServer();

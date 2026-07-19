@@ -23,10 +23,17 @@ const E2E = {
   invoices: {
     tenantAVisible: "90000000-0000-4000-8000-000000000003",
     cancellation: "91000000-0000-4000-8000-000000000003",
+    collectionOne: "93000000-0000-4000-8000-000000000003",
+    collectionTwo: "93000000-0000-4000-8000-000000000004",
+  },
+  payments: {
+    tenantAPartialManual: "92000000-0000-4000-8000-000000000001",
   },
   assignments: {
     quoteAcceptance: "91000000-0000-4000-8000-000000000001",
     invoiceCancellation: "91000000-0000-4000-8000-000000000002",
+    collectionOne: "93000000-0000-4000-8000-000000000001",
+    collectionTwo: "93000000-0000-4000-8000-000000000002",
   },
   quotes: {
     acceptance: "91000000-0000-4000-8000-000000000004",
@@ -246,6 +253,23 @@ async function insertAssignmentPersonnel(client) {
     [FIXTURE.assignments.a, FIXTURE.tenants.a],
   );
   await client.query(
+    `insert into assignments
+       (id, tenant_id, code, title, customer_id, object_id, status, created_by)
+     values
+       ($1, $3, 'RTA-COLLECT-001', 'Runtime collection payment one', $4, $5, 'invoiced', $6),
+       ($2, $3, 'RTA-COLLECT-002', 'Runtime collection payment two', $4, $5, 'invoiced', $6)
+     on conflict (id) do update set status = 'invoiced', customer_id = excluded.customer_id,
+       tenant_id = excluded.tenant_id, object_id = excluded.object_id`,
+    [
+      E2E.assignments.collectionOne,
+      E2E.assignments.collectionTwo,
+      FIXTURE.tenants.a,
+      FIXTURE.customers.a,
+      FIXTURE.objects.a,
+      FIXTURE.users.tenantAAdmin,
+    ],
+  );
+  await client.query(
     "alter table assignments enable trigger fieldgrid_assignment_state_guard",
   );
   for (const personnelId of [
@@ -275,6 +299,29 @@ async function insertAssignmentPersonnel(client) {
       FIXTURE.assignments.a,
       FIXTURE.personnel.a,
       E2E.personnel.tenantAPhase2,
+      FIXTURE.users.tenantAAdmin,
+    ],
+  );
+  await client.query(
+    `insert into invoices
+       (id, tenant_id, invoice_number, customer_id, assignment_id, amount,
+        vat_percentage, vat_amount, total_amount, status, due_date, notes,
+        payment_status, collection_status, paid_amount, outstanding_amount, created_by)
+     values
+       ($1, $3, 'RTA-COLLECT-INV-001', $4, $5, 10, 21, 2.10, 12.10,
+        'sent', current_date + 14, 'Runtime collection journey one', 'unpaid', 'none', 0, 12.10, $7),
+       ($2, $3, 'RTA-COLLECT-INV-002', $4, $6, 20, 21, 4.20, 24.20,
+        'sent', current_date + 14, 'Runtime collection journey two', 'unpaid', 'none', 0, 24.20, $7)
+     on conflict (id) do update set status = 'sent', payment_status = 'unpaid',
+       collection_status = 'none', paid_amount = 0, outstanding_amount = excluded.outstanding_amount,
+       total_amount = excluded.total_amount, cancelled_at = null`,
+    [
+      E2E.invoices.collectionOne,
+      E2E.invoices.collectionTwo,
+      FIXTURE.tenants.a,
+      FIXTURE.customers.a,
+      E2E.assignments.collectionOne,
+      E2E.assignments.collectionTwo,
       FIXTURE.users.tenantAAdmin,
     ],
   );
@@ -324,6 +371,46 @@ async function insertInvoice(client) {
       FIXTURE.assignments.a,
       FIXTURE.users.tenantAAdmin,
     ],
+  );
+  await client.query(
+    `delete from payments
+     where invoice_id = $1 and id <> $2`,
+    [E2E.invoices.tenantAVisible, E2E.payments.tenantAPartialManual],
+  );
+  await client.query(
+    `insert into payments
+       (id, tenant_id, customer_id, invoice_id, source_type, source_id,
+        amount_cents, amount, currency, payment_method, status,
+        registered_by_user_id, paid_at)
+     values ($1, $2, $3, $4, 'invoice', $4, 5000, 50.00, 'EUR',
+             'manual_bank', 'paid', $5, now())
+     on conflict (id) do update set amount_cents = 5000, amount = 50.00,
+       status = 'paid', paid_at = excluded.paid_at`,
+    [
+      E2E.payments.tenantAPartialManual,
+      FIXTURE.tenants.a,
+      FIXTURE.customers.a,
+      E2E.invoices.tenantAVisible,
+      FIXTURE.users.tenantAAdmin,
+    ],
+  );
+  await client.query(
+    `insert into payment_allocations
+       (tenant_id, payment_id, invoice_id, amount_cents, amount, note)
+     values ($1, $2, $3, 5000, 50.00, 'Playwright partial manual payment')
+     on conflict (payment_id, invoice_id) do update
+       set amount_cents = 5000, amount = 50.00`,
+    [
+      FIXTURE.tenants.a,
+      E2E.payments.tenantAPartialManual,
+      E2E.invoices.tenantAVisible,
+    ],
+  );
+  await client.query(
+    `update invoices set payment_status = 'partially_paid', paid_amount = 50.00,
+       outstanding_amount = 71.00, paid_date = null
+     where id = $1`,
+    [E2E.invoices.tenantAVisible],
   );
 }
 

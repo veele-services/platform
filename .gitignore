@@ -45,6 +45,7 @@ node_modules
 /artifacts/visual-regression/
 /outputs/**/auth/
 /outputs/current-main-baseline-2026-07-14/
+/outputs/invoice-sprint10-release-gate/
 /libpeerconnection.log
 npm-debug.log
 yarn-error.log
@@ -65,4 +66,5 @@ Thumbs.db
 
 # Fieldgrid Playwright local artifacts
 /artifacts/fieldgrid-playwright/
+/artifacts/runtime-safety-harness/
 /test-results/

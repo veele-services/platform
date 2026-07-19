@@ -16,7 +16,9 @@ const paymentsSchema = "lib/db/src/schema/payments.ts";
 const batchesSchema = "lib/db/src/schema/customer-payment-batches.ts";
 const auditSchema = "lib/db/src/schema/audit-log.ts";
 const paymentsActions = "artifacts/backoffice/src/app/actions/payments.ts";
-const migration = "lib/db/migrations/063_payments_batches_audit_tenant_scope.sql";
+const paymentIntegrity = "lib/db/src/payment-integrity.ts";
+const migration =
+  "lib/db/migrations/063_payments_batches_audit_tenant_scope.sql";
 const sprintContract = "docs/fieldgrid-sprint-8-payments-audit.md";
 const testMatrix = "docs/fieldgrid-cross-tenant-testmatrix.md";
 
@@ -39,7 +41,7 @@ test("Sprint 8 payment and batch schemas expose tenant scope", () => {
     payments,
     [
       "tenantId:",
-      "uuid(\"tenant_id\")",
+      'uuid("tenant_id")',
       "references(() => tenantsTable.id",
       "payments_tenant_idx",
       "payments_tenant_invoice_idx",
@@ -54,7 +56,7 @@ test("Sprint 8 payment and batch schemas expose tenant scope", () => {
       "customer_payment_batches",
       "customer_payment_batch_items",
       "tenantId:",
-      "uuid(\"tenant_id\")",
+      'uuid("tenant_id")',
       "customer_payment_batches_tenant_idx",
       "customer_payment_batches_tenant_customer_idx",
       "customer_payment_batch_items_tenant_batch_idx",
@@ -71,7 +73,7 @@ test("Sprint 8 audit schema separates tenant audit from platform audit", () => {
     audit,
     [
       "tenantId:",
-      "uuid(\"tenant_id\")",
+      'uuid("tenant_id")',
       "references(() => tenantsTable.id",
       "Null remains valid for platform-only/global audit",
       "audit_log_tenant_idx",
@@ -121,6 +123,7 @@ test("Sprint 8 migration backfills and guards payments, batches and audit safely
 
 test("Sprint 8 payment actions use direct tenant scope", () => {
   const actions = read(paymentsActions);
+  const integrity = read(paymentIntegrity);
 
   assertContains(
     actions,
@@ -130,11 +133,19 @@ test("Sprint 8 payment actions use direct tenant scope", () => {
       "eq(invoicesTable.tenantId, tenantId)",
       "tenantId,",
       "metadata: {",
-      "eq(paymentsTable.tenantId, payment.tenantId)",
-      "eq(invoicesTable.tenantId, payment.tenantId)",
-      "eq(assignmentsTable.tenantId, payment.tenantId)",
+      "prepareDirectPaymentIntent",
     ],
     paymentsActions,
+  );
+  assertContains(
+    integrity,
+    [
+      "WHERE id = $1 AND tenant_id = $2 AND customer_id = $3",
+      "source_type = 'invoice' AND source_id = $2",
+      "SELECT pg_advisory_xact_lock",
+      "FOR UPDATE",
+    ],
+    paymentIntegrity,
   );
 });
 
