@@ -1,6 +1,8 @@
 import {
+  bigint,
   index,
   integer,
+  jsonb,
   numeric,
   pgTable,
   text,
@@ -15,13 +17,31 @@ import { customersTable } from "./customers";
 import { invoicesTable } from "./invoices";
 import { tenantsTable } from "./tenants";
 
-export const PAYMENT_STATUSES = ["open", "paid", "canceled", "expired", "failed"] as const;
+export const PAYMENT_STATUSES = [
+  "created",
+  "provider_pending",
+  "open",
+  "pending",
+  "authorized",
+  "paid",
+  "canceled",
+  "expired",
+  "failed",
+  "reconciliation_required",
+] as const;
 export type PaymentStatus = (typeof PAYMENT_STATUSES)[number];
 
 export const PAYMENT_SOURCE_TYPES = ["invoice", "invoice_collection"] as const;
 export type PaymentSourceType = (typeof PAYMENT_SOURCE_TYPES)[number];
 
-export const PAYMENT_METHODS = ["mollie", "manual_bank", "cash", "correction", "settlement", "other"] as const;
+export const PAYMENT_METHODS = [
+  "mollie",
+  "manual_bank",
+  "cash",
+  "correction",
+  "settlement",
+  "other",
+] as const;
 export type PaymentMethod = (typeof PAYMENT_METHODS)[number];
 
 export const paymentsTable = pgTable(
@@ -29,32 +49,68 @@ export const paymentsTable = pgTable(
   {
     id: uuid("id").primaryKey().defaultRandom(),
 
-    tenantId: uuid("tenant_id").references(() => tenantsTable.id, { onDelete: "cascade" }),
-    customerId: uuid("customer_id").references(() => customersTable.id, { onDelete: "cascade" }),
-    invoiceId: uuid("invoice_id").references(() => invoicesTable.id, { onDelete: "cascade" }),
-    sourceType: varchar("source_type", { length: 40 }).notNull().default("invoice").$type<PaymentSourceType>(),
+    tenantId: uuid("tenant_id").references(() => tenantsTable.id, {
+      onDelete: "cascade",
+    }),
+    customerId: uuid("customer_id").references(() => customersTable.id, {
+      onDelete: "cascade",
+    }),
+    invoiceId: uuid("invoice_id").references(() => invoicesTable.id, {
+      onDelete: "cascade",
+    }),
+    sourceType: varchar("source_type", { length: 40 })
+      .notNull()
+      .default("invoice")
+      .$type<PaymentSourceType>(),
     sourceId: uuid("source_id"),
 
     molliePaymentId: varchar("mollie_payment_id", { length: 50 }).unique(),
     providerRequestKey: uuid("provider_request_key").unique(),
+    requestHash: varchar("request_hash", { length: 64 }),
+    expectedProviderMetadata: jsonb("expected_provider_metadata").$type<
+      Record<string, string>
+    >(),
+    providerStatus: varchar("provider_status", { length: 30 }),
+    providerMode: varchar("provider_mode", { length: 20 }),
+    providerProfileId: varchar("provider_profile_id", { length: 50 }),
+    providerCreatedAt: timestamp("provider_created_at", { withTimezone: true }),
+    providerStatusAt: timestamp("provider_status_at", { withTimezone: true }),
+    providerFinalizedAt: timestamp("provider_finalized_at", {
+      withTimezone: true,
+    }),
+    reconciliationReason: text("reconciliation_reason"),
+    statusVersion: bigint("status_version", { mode: "number" })
+      .notNull()
+      .default(1),
     amountCents: integer("amount_cents").notNull(),
     amount: numeric("amount", { precision: 12, scale: 2 }),
     currency: varchar("currency", { length: 3 }).notNull().default("EUR"),
-    paymentMethod: varchar("payment_method", { length: 40 }).notNull().default("mollie").$type<PaymentMethod>(),
-    status: varchar("status", { length: 20 }).notNull().default("open"),
+    paymentMethod: varchar("payment_method", { length: 40 })
+      .notNull()
+      .default("mollie")
+      .$type<PaymentMethod>(),
+    status: varchar("status", { length: 40 }).notNull().default("open"),
     checkoutUrl: text("checkout_url"),
     reference: varchar("reference", { length: 120 }),
     note: text("note"),
     registeredByUserId: uuid("registered_by_user_id"),
     paidAt: timestamp("paid_at", { withTimezone: true }),
-    createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-    updatedAt: timestamp("updated_at", { withTimezone: true }).notNull().defaultNow(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
   },
   (table) => [
     index("payments_tenant_idx").on(table.tenantId),
     index("payments_tenant_invoice_idx").on(table.tenantId, table.invoiceId),
     index("payments_tenant_customer_idx").on(table.tenantId, table.customerId),
-    index("payments_tenant_source_idx").on(table.tenantId, table.sourceType, table.sourceId),
+    index("payments_tenant_source_idx").on(
+      table.tenantId,
+      table.sourceType,
+      table.sourceId,
+    ),
     index("payments_tenant_status_idx").on(table.tenantId, table.status),
   ],
 );
@@ -74,15 +130,26 @@ export const paymentAllocationsTable = pgTable(
       .references(() => invoicesTable.id, { onDelete: "cascade" }),
     amountCents: integer("amount_cents").notNull(),
     amount: numeric("amount", { precision: 12, scale: 2 }).notNull(),
-    allocatedAt: timestamp("allocated_at", { withTimezone: true }).notNull().defaultNow(),
+    allocatedAt: timestamp("allocated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
     allocatedByUserId: uuid("allocated_by_user_id"),
     note: text("note"),
   },
   (table) => [
     index("payment_allocations_tenant_idx").on(table.tenantId),
-    index("payment_allocations_tenant_payment_idx").on(table.tenantId, table.paymentId),
-    index("payment_allocations_tenant_invoice_idx").on(table.tenantId, table.invoiceId),
-    uniqueIndex("payment_allocations_payment_invoice_idx").on(table.paymentId, table.invoiceId),
+    index("payment_allocations_tenant_payment_idx").on(
+      table.tenantId,
+      table.paymentId,
+    ),
+    index("payment_allocations_tenant_invoice_idx").on(
+      table.tenantId,
+      table.invoiceId,
+    ),
+    uniqueIndex("payment_allocations_payment_invoice_idx").on(
+      table.paymentId,
+      table.invoiceId,
+    ),
   ],
 );
 
