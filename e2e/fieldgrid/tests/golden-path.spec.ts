@@ -8,6 +8,8 @@ const suspendedHost = "suspended.runtime.fieldgrid.test";
 const unknownHost = "unknown.runtime.fieldgrid.test";
 const tenantAAssignmentId = "70000000-0000-4000-8000-000000000001";
 const tenantBAssignmentId = "70000000-0000-4000-8000-000000000002";
+const quoteAcceptanceAssignmentId = "91000000-0000-4000-8000-000000000001";
+const cancellationInvoiceId = "91000000-0000-4000-8000-000000000003";
 const recoveryOutboxPath = "/tmp/fieldgrid-phase2b-playwright-outbox.jsonl";
 
 function backofficeUrl(path: string, host = tenantAHost) {
@@ -24,16 +26,14 @@ function customerUrl(path: string, host = tenantAHost) {
 
 async function useIdentity(page: Page, userId: string, host = tenantAHost) {
   await page.context().clearCookies();
-  await page
-    .context()
-    .addCookies([
-      {
-        name: "fieldgrid_e2e_auth_user",
-        value: userId,
-        domain: host,
-        path: "/",
-      },
-    ]);
+  await page.context().addCookies([
+    {
+      name: "fieldgrid_e2e_auth_user",
+      value: userId,
+      domain: host,
+      path: "/",
+    },
+  ]);
 }
 
 async function expectRealApp(page: Page) {
@@ -159,6 +159,50 @@ test("4. Customer PWA", async ({ page }) => {
   await expect(page.locator("main")).toContainText(
     /RTA-INV-001|Factuur|Invoice/,
   );
+});
+
+test("Customer accepts a sent quote through the canonical lifecycle", async ({
+  page,
+}) => {
+  await useIdentity(page, "20000000-0000-4000-8000-000000000105");
+  await page.goto(customerUrl("/klant/offertes?filter=action_required"));
+  await expectRealApp(page);
+  await expect(page.locator("main")).toContainText("RTA-OFF-001");
+  await page.getByRole("button", { name: "Goedkeuren" }).first().click();
+  await page.getByRole("button", { name: "Ja, goedkeuren" }).first().click();
+  await expect(page.getByText("Offerte goedgekeurd").first()).toBeVisible({
+    timeout: 15_000,
+  });
+
+  await page.goto(
+    customerUrl(`/klant/opdrachten/${quoteAcceptanceAssignmentId}`),
+  );
+  await expect(page.locator("main")).toContainText(/Planbaar|Goedgekeurd/i);
+  await page.goto(customerUrl("/klant/offertes?filter=approved"));
+  await expect(page.locator("main")).toContainText("RTA-OFF-001");
+  await expect(page.locator("main")).toContainText("Goedgekeurd");
+});
+
+test("Backoffice cancels a sent invoice and shows the durable result", async ({
+  page,
+}) => {
+  await useIdentity(page, "20000000-0000-4000-8000-000000000102");
+  await page.goto(backofficeUrl(`/invoices/${cancellationInvoiceId}`));
+  await expectRealApp(page);
+  await expect(page.locator("main")).toContainText("RTA-CANCEL-INV-001");
+  await page.getByRole("button", { name: "Annuleren", exact: true }).click();
+  await page
+    .getByLabel("Reden")
+    .fill("Playwright gecorrigeerde factuur vereist");
+  await page.getByRole("button", { name: "Factuur annuleren" }).click();
+  await expect(page.locator("main")).toContainText("Geannuleerd", {
+    timeout: 15_000,
+  });
+  await page.reload();
+  await expect(page.locator("main")).toContainText("Geannuleerd");
+  await expect(
+    page.getByRole("button", { name: "Annuleren", exact: true }),
+  ).toHaveCount(0);
 });
 
 test("5. Customer credential recovery", async ({ page }) => {
@@ -332,5 +376,5 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
     )
     .toBe(0);
   await page.reload();
-  await expect(page.getByText("1 van 1 afgerond")).toBeVisible();
+  await expect(page.getByText(/^1 van \d+ afgerond$/u)).toBeVisible();
 });

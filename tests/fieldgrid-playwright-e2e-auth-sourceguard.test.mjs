@@ -553,9 +553,11 @@ test("workflow provisions PostgreSQL 17, Runtime Safety fixtures, real PostgREST
   );
 });
 
-test("exactly nine browser scenarios exist, including recovery and offline reconnect, and forbidden files/tooling are absent", () => {
+test("eleven browser scenarios include review remediation, recovery and offline reconnect, and forbidden files/tooling are absent", () => {
   const spec = read("e2e/fieldgrid/tests/golden-path.spec.ts");
-  assert.equal([...spec.matchAll(/\ntest\(["']/g)].length, 9);
+  assert.equal([...spec.matchAll(/\ntest\(["']/g)].length, 11);
+  assert.match(spec, /Customer accepts a sent quote through the canonical lifecycle/);
+  assert.match(spec, /Backoffice cancels a sent invoice and shows the durable result/);
   assert.match(spec, /Customer credential recovery/);
   assert.match(spec, /Personnel credential recovery/);
   assert.match(

@@ -29,6 +29,8 @@ const PERMISSIONS = [
   ["assignments", "write"],
   ["personnel", "read"],
   ["personnel", "write"],
+  ["invoices", "read"],
+  ["invoices", "write"],
 ];
 
 const ACTORS = [
@@ -46,7 +48,10 @@ const ACTORS = [
   ["personnel@tenant-b.runtime.fieldgrid.test", FIXTURE.users.tenantBPersonnel],
   ["customer@tenant-b.runtime.fieldgrid.test", FIXTURE.users.tenantBCustomer],
   ["multi@runtime.fieldgrid.test", FIXTURE.users.multiTenant],
-  ["legacy-management-only@runtime.fieldgrid.test", FIXTURE.users.legacyGlobalManagementOnly],
+  [
+    "legacy-management-only@runtime.fieldgrid.test",
+    FIXTURE.users.legacyGlobalManagementOnly,
+  ],
   ["owner@suspended.runtime.fieldgrid.test", FIXTURE.users.suspendedOwner],
   ["owner@module-off.runtime.fieldgrid.test", FIXTURE.users.moduleOffOwner],
 ];
@@ -62,19 +67,50 @@ async function insertAuthUsers(client) {
       [id, email],
     );
   }
-  await client.query(`
+  await client.query(
+    `
     update auth.users
     set raw_app_meta_data = raw_app_meta_data || jsonb_build_object('session_revoked_at', now()::text)
     where id = $1
-  `, [FIXTURE.users.legacyGlobalManagementOnly]);
+  `,
+    [FIXTURE.users.legacyGlobalManagementOnly],
+  );
 }
 
 async function insertTenants(client) {
   const tenants = [
-    [FIXTURE.tenants.a, "runtime-tenant-a", "Runtime Tenant A", true, "active", "professional"],
-    [FIXTURE.tenants.b, "runtime-tenant-b", "Runtime Tenant B", true, "active", "professional"],
-    [FIXTURE.tenants.suspended, "runtime-suspended", "Runtime Suspended Tenant", false, "suspended", "professional"],
-    [FIXTURE.tenants.moduleOff, "runtime-module-off", "Runtime Module Off Tenant", true, "active", "professional"],
+    [
+      FIXTURE.tenants.a,
+      "runtime-tenant-a",
+      "Runtime Tenant A",
+      true,
+      "active",
+      "professional",
+    ],
+    [
+      FIXTURE.tenants.b,
+      "runtime-tenant-b",
+      "Runtime Tenant B",
+      true,
+      "active",
+      "professional",
+    ],
+    [
+      FIXTURE.tenants.suspended,
+      "runtime-suspended",
+      "Runtime Suspended Tenant",
+      false,
+      "suspended",
+      "professional",
+    ],
+    [
+      FIXTURE.tenants.moduleOff,
+      "runtime-module-off",
+      "Runtime Module Off Tenant",
+      true,
+      "active",
+      "professional",
+    ],
   ];
   for (const tenant of tenants) {
     await client.query(
@@ -164,10 +200,15 @@ async function insertModulesAndPermissions(client) {
     );
   }
 
-  const moduleRows = await client.query("select id, key from modules where key = any($1::text[])", [MODULES]);
+  const moduleRows = await client.query(
+    "select id, key from modules where key = any($1::text[])",
+    [MODULES],
+  );
   for (const tenantId of Object.values(FIXTURE.tenants)) {
     for (const row of moduleRows.rows) {
-      const enabled = !(tenantId === FIXTURE.tenants.moduleOff && row.key === "customers");
+      const enabled = !(
+        tenantId === FIXTURE.tenants.moduleOff && row.key === "customers"
+      );
       await client.query(
         `
           insert into tenant_modules (tenant_id, module_id, is_enabled, source, enabled_at, disabled_at)
@@ -197,7 +238,12 @@ async function insertTenantRoles(client, tenantId, roleName, userIds) {
       insert into tenant_role_permissions (tenant_role_id, permission_id)
       select $1::uuid, id
       from permissions
-      where (resource, action) in (('customers', 'read'), ('customers', 'write'), ('assignments', 'read'), ('assignments', 'write'), ('personnel', 'read'), ('personnel', 'write'))
+      where (resource, action) in (
+        ('customers', 'read'), ('customers', 'write'),
+        ('assignments', 'read'), ('assignments', 'write'),
+        ('personnel', 'read'), ('personnel', 'write'),
+        ('invoices', 'read'), ('invoices', 'write')
+      )
       on conflict do nothing
     `,
     [roleId],
@@ -240,12 +286,18 @@ async function insertTenantUsersAndRoles(client) {
     FIXTURE.users.tenantBCustomer,
     FIXTURE.users.multiTenant,
   ]);
-  await insertTenantRoles(client, FIXTURE.tenants.suspended, "runtime-suspended-all-access", [
-    FIXTURE.users.suspendedOwner,
-  ]);
-  await insertTenantRoles(client, FIXTURE.tenants.moduleOff, "runtime-module-off-all-access", [
-    FIXTURE.users.moduleOffOwner,
-  ]);
+  await insertTenantRoles(
+    client,
+    FIXTURE.tenants.suspended,
+    "runtime-suspended-all-access",
+    [FIXTURE.users.suspendedOwner],
+  );
+  await insertTenantRoles(
+    client,
+    FIXTURE.tenants.moduleOff,
+    "runtime-module-off-all-access",
+    [FIXTURE.users.moduleOffOwner],
+  );
 }
 
 async function insertLegacyGlobalManagementOnlyUser(client) {
@@ -291,8 +343,20 @@ async function insertLegacyGlobalManagementOnlyUser(client) {
 
 async function insertBusinessRows(client) {
   const customers = [
-    [FIXTURE.customers.a, FIXTURE.tenants.a, "Runtime Customer A", "RTA-C001", "customer@tenant-a.runtime.fieldgrid.test"],
-    [FIXTURE.customers.b, FIXTURE.tenants.b, "Runtime Customer B", "RTB-C001", "customer@tenant-b.runtime.fieldgrid.test"],
+    [
+      FIXTURE.customers.a,
+      FIXTURE.tenants.a,
+      "Runtime Customer A",
+      "RTA-C001",
+      "customer@tenant-a.runtime.fieldgrid.test",
+    ],
+    [
+      FIXTURE.customers.b,
+      FIXTURE.tenants.b,
+      "Runtime Customer B",
+      "RTB-C001",
+      "customer@tenant-b.runtime.fieldgrid.test",
+    ],
   ];
   for (const row of customers) {
     await client.query(
@@ -306,8 +370,20 @@ async function insertBusinessRows(client) {
   }
 
   const objects = [
-    [FIXTURE.objects.a, FIXTURE.tenants.a, FIXTURE.customers.a, "Runtime Object A", "RTA-O001"],
-    [FIXTURE.objects.b, FIXTURE.tenants.b, FIXTURE.customers.b, "Runtime Object B", "RTB-O001"],
+    [
+      FIXTURE.objects.a,
+      FIXTURE.tenants.a,
+      FIXTURE.customers.a,
+      "Runtime Object A",
+      "RTA-O001",
+    ],
+    [
+      FIXTURE.objects.b,
+      FIXTURE.tenants.b,
+      FIXTURE.customers.b,
+      "Runtime Object B",
+      "RTB-O001",
+    ],
   ];
   for (const row of objects) {
     await client.query(
@@ -321,8 +397,24 @@ async function insertBusinessRows(client) {
   }
 
   const personnel = [
-    [FIXTURE.personnel.a, FIXTURE.tenants.a, FIXTURE.users.tenantAPersonnel, "RTA-P001", "Runtime", "Personnel A", "personnel@tenant-a.runtime.fieldgrid.test"],
-    [FIXTURE.personnel.b, FIXTURE.tenants.b, FIXTURE.users.tenantBPersonnel, "RTB-P001", "Runtime", "Personnel B", "personnel@tenant-b.runtime.fieldgrid.test"],
+    [
+      FIXTURE.personnel.a,
+      FIXTURE.tenants.a,
+      FIXTURE.users.tenantAPersonnel,
+      "RTA-P001",
+      "Runtime",
+      "Personnel A",
+      "personnel@tenant-a.runtime.fieldgrid.test",
+    ],
+    [
+      FIXTURE.personnel.b,
+      FIXTURE.tenants.b,
+      FIXTURE.users.tenantBPersonnel,
+      "RTB-P001",
+      "Runtime",
+      "Personnel B",
+      "personnel@tenant-b.runtime.fieldgrid.test",
+    ],
   ];
   for (const row of personnel) {
     await client.query(
@@ -336,8 +428,22 @@ async function insertBusinessRows(client) {
   }
 
   const assignments = [
-    [FIXTURE.assignments.a, FIXTURE.tenants.a, "RTA-A001", "Runtime Assignment A", FIXTURE.customers.a, FIXTURE.objects.a],
-    [FIXTURE.assignments.b, FIXTURE.tenants.b, "RTB-A001", "Runtime Assignment B", FIXTURE.customers.b, FIXTURE.objects.b],
+    [
+      FIXTURE.assignments.a,
+      FIXTURE.tenants.a,
+      "RTA-A001",
+      "Runtime Assignment A",
+      FIXTURE.customers.a,
+      FIXTURE.objects.a,
+    ],
+    [
+      FIXTURE.assignments.b,
+      FIXTURE.tenants.b,
+      "RTB-A001",
+      "Runtime Assignment B",
+      FIXTURE.customers.b,
+      FIXTURE.objects.b,
+    ],
   ];
   for (const row of assignments) {
     await client.query(
@@ -388,7 +494,11 @@ async function insertExpiredInviteFixtures(client) {
         values ($1, $2, 'expired-owner@tenant-a.runtime.fieldgrid.test', null, 'sent', $3, now() - interval '30 days', '{"expired":true,"expires_at":"2026-01-01T00:00:00Z"}'::jsonb)
         on conflict (tenant_id, email) do update set invite_sent_at = excluded.invite_sent_at, metadata = excluded.metadata
       `,
-      [FIXTURE.tenantOwnerInviteExpired, FIXTURE.tenants.a, FIXTURE.users.platformAdmin],
+      [
+        FIXTURE.tenantOwnerInviteExpired,
+        FIXTURE.tenants.a,
+        FIXTURE.users.platformAdmin,
+      ],
     );
   }
 
@@ -405,11 +515,29 @@ async function insertExpiredInviteFixtures(client) {
 }
 
 async function assertFixtureIntegrity(client) {
-  const hasRoleId = await columnExists(client, "tenant_user_roles", "tenant_role_id");
-  const hasLegacyRoleId = await columnExists(client, "tenant_user_roles", "role_id");
+  const hasRoleId = await columnExists(
+    client,
+    "tenant_user_roles",
+    "tenant_role_id",
+  );
+  const hasLegacyRoleId = await columnExists(
+    client,
+    "tenant_user_roles",
+    "role_id",
+  );
   const counts = {};
-  for (const table of ["tenants", "tenant_users", "platform_users", "customers", "personnel", "assignments", "tenant_modules"]) {
-    const count = await client.query(`select count(*)::int as count from ${table}`);
+  for (const table of [
+    "tenants",
+    "tenant_users",
+    "platform_users",
+    "customers",
+    "personnel",
+    "assignments",
+    "tenant_modules",
+  ]) {
+    const count = await client.query(
+      `select count(*)::int as count from ${table}`,
+    );
     counts[table] = count.rows[0].count;
   }
   return {
@@ -454,7 +582,7 @@ async function main() {
     await client.query("rollback").catch(() => {});
     await writeTextArtifact(
       join("logs", "fixtures-error.log"),
-      `${error instanceof Error ? error.stack ?? error.message : String(error)}\n`,
+      `${error instanceof Error ? (error.stack ?? error.message) : String(error)}\n`,
     );
     throw error;
   } finally {

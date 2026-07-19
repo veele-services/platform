@@ -2,7 +2,7 @@
   "schemaVersion": 2,
   "artifactName": "fieldgrid-runtime-entrypoint-inventory-full",
   "artifactPath": "artifacts/runtime-entrypoints/fieldgrid-runtime-entrypoint-inventory.full.json",
-  "inventoryHash": "sha256:f268eb7ba7d48929523bc3a264168c4d59a0f98ad41299cd6faf1d771d9d0c6e",
+  "inventoryHash": "sha256:1bc1b8634c19c88c7e5f6ca46d76b7545c9ab11ae624ada136e2e70e8e15af8e",
   "runtimeRoots": [
     "artifacts/backoffice/src",
     "artifacts/personeel-pwa/src",
@@ -33,11 +33,11 @@
     "www"
   ],
   "counts": {
-    "total": 749,
-    "uniqueRuntimeNodes": 648,
-    "classifications": 749,
+    "total": 754,
+    "uniqueRuntimeNodes": 653,
+    "classifications": 754,
     "externalEntrypoints": 100,
-    "internalDbCallsites": 552,
+    "internalDbCallsites": 557,
     "providerBoundaries": 75,
     "signedUrlCallsites": 19,
     "byKind": {
@@ -49,15 +49,15 @@
       "scheduled-entrypoint": 0,
       "database-callsite": 7,
       "rpc-callsite": 0,
-      "raw-sql-callsite": 545,
+      "raw-sql-callsite": 550,
       "provider-boundary": 75,
       "storage-signed-url-issuance": 19
     },
     "bySeverity": {
       "review-required": 20,
       "high": 5,
-      "medium": 342,
-      "low": 307,
+      "medium": 344,
+      "low": 310,
       "informational": 75
     }
   },
@@ -70,9 +70,9 @@
     "scheduled-entrypoint": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
     "database-callsite": "sha256:39dfb6ac4ec8938f5a0b5017bc76e00a4d70a71391357788eae912f4234f7073",
     "rpc-callsite": "sha256:4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
-    "raw-sql-callsite": "sha256:89b777de9adf1e755fde57c95daf42d635440b244f253e6e0d5e868dc782a3bd",
-    "provider-boundary": "sha256:97a72eec780adf3b5c5bdd6042094988f077dd4fb075e4728345bdad246e285e",
-    "storage-signed-url-issuance": "sha256:2f3cb217eb22b702b99f0c3c879c45fdc391f186631e7c7041253603ca6757dd"
+    "raw-sql-callsite": "sha256:d2d30655a2e6a705861bec0ff05693399fed6d426d5b7a1ffc5ed1799d924b1b",
+    "provider-boundary": "sha256:129ba88830ac961e75dc5527a637ade573ccad2bb8c0918098ccf8c06c37f76e",
+    "storage-signed-url-issuance": "sha256:37d99e8d1e00c185584bf818a930df93985a77d73e52de09d52baaf2fae336fe"
   },
   "riskDimensions": [
     "tenantSource",

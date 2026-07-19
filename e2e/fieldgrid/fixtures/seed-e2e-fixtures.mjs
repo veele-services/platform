@@ -22,6 +22,14 @@ const E2E = {
   },
   invoices: {
     tenantAVisible: "90000000-0000-4000-8000-000000000003",
+    cancellation: "91000000-0000-4000-8000-000000000003",
+  },
+  assignments: {
+    quoteAcceptance: "91000000-0000-4000-8000-000000000001",
+    invoiceCancellation: "91000000-0000-4000-8000-000000000002",
+  },
+  quotes: {
+    acceptance: "91000000-0000-4000-8000-000000000004",
   },
   tasks: {
     tenantAOffline: "90000000-0000-4000-8000-000000000006",
@@ -45,6 +53,8 @@ const CANONICAL_ADMIN_PERMISSIONS = [
   ["planning", "write"],
   ["personnel", "read"],
   ["personnel", "write"],
+  ["invoices", "read"],
+  ["invoices", "write"],
 ];
 
 const CANONICAL_TENANT_ADMINS = [
@@ -142,7 +152,9 @@ async function seedCanonicalAdminRoles(client) {
           ('planning', 'read'),
           ('planning', 'write'),
           ('personnel', 'read'),
-          ('personnel', 'write')
+          ('personnel', 'write'),
+          ('invoices', 'read'),
+          ('invoices', 'write')
         )
       `,
       [roleId],
@@ -310,6 +322,101 @@ async function insertInvoice(client) {
       FIXTURE.tenants.a,
       FIXTURE.customers.a,
       FIXTURE.assignments.a,
+      FIXTURE.users.tenantAAdmin,
+    ],
+  );
+}
+
+async function insertReviewRemediationJourneys(client) {
+  await client.query(
+    "alter table assignments disable trigger fieldgrid_assignment_state_guard",
+  );
+  await client.query(
+    `insert into assignments
+       (id, tenant_id, code, title, customer_id, object_id, status, created_by)
+     values
+       ($1, $3, 'RTA-QUOTE-001', 'Runtime quote acceptance', $4, $5, 'awaiting_approval', $6),
+       ($2, $3, 'RTA-CANCEL-001', 'Runtime invoice cancellation', $4, $5, 'invoiced', $6)
+     on conflict (id) do update
+     set tenant_id = excluded.tenant_id,
+         code = excluded.code,
+         title = excluded.title,
+         customer_id = excluded.customer_id,
+         object_id = excluded.object_id,
+         status = excluded.status,
+         cancelled_at = null,
+         cancelled_by = null,
+         cancellation_reason = null`,
+    [
+      E2E.assignments.quoteAcceptance,
+      E2E.assignments.invoiceCancellation,
+      FIXTURE.tenants.a,
+      FIXTURE.customers.a,
+      FIXTURE.objects.a,
+      FIXTURE.users.tenantAAdmin,
+    ],
+  );
+  await client.query(
+    "alter table assignments enable trigger fieldgrid_assignment_state_guard",
+  );
+
+  await client.query(
+    `insert into quotes
+       (id, tenant_id, quote_number, assignment_id, customer_id, amount,
+        validity_date, status, notes, created_by)
+     values ($1, $2, 'RTA-OFF-001', $3, $4, 250, current_date + 14, 'sent',
+             'Runtime quote acceptance journey', $5)
+     on conflict (id) do update
+     set tenant_id = excluded.tenant_id,
+         quote_number = excluded.quote_number,
+         assignment_id = excluded.assignment_id,
+         customer_id = excluded.customer_id,
+         amount = excluded.amount,
+         validity_date = excluded.validity_date,
+         status = 'sent',
+         rejection_reason = null,
+         approved_by = null,
+         approved_at = null`,
+    [
+      E2E.quotes.acceptance,
+      FIXTURE.tenants.a,
+      E2E.assignments.quoteAcceptance,
+      FIXTURE.customers.a,
+      FIXTURE.users.tenantAAdmin,
+    ],
+  );
+
+  await client.query(
+    `insert into invoices
+       (id, tenant_id, invoice_number, customer_id, assignment_id, amount,
+        vat_percentage, vat_amount, total_amount, status, due_date, notes,
+        payment_status, collection_status, paid_amount, outstanding_amount,
+        created_by)
+     values ($1, $2, 'RTA-CANCEL-INV-001', $3, $4, 100, 21, 21, 121,
+             'sent', current_date + 14, 'Runtime cancellation journey',
+             'unpaid', 'none', 0, 121, $5)
+     on conflict (id) do update
+     set tenant_id = excluded.tenant_id,
+         invoice_number = excluded.invoice_number,
+         customer_id = excluded.customer_id,
+         assignment_id = excluded.assignment_id,
+         amount = excluded.amount,
+         vat_amount = excluded.vat_amount,
+         total_amount = excluded.total_amount,
+         status = 'sent',
+         payment_status = 'unpaid',
+         collection_status = 'none',
+         paid_amount = 0,
+         outstanding_amount = excluded.outstanding_amount,
+         paid_date = null,
+         cancelled_at = null,
+         cancelled_by = null,
+         cancellation_reason = null`,
+    [
+      E2E.invoices.cancellation,
+      FIXTURE.tenants.a,
+      FIXTURE.customers.a,
+      E2E.assignments.invoiceCancellation,
       FIXTURE.users.tenantAAdmin,
     ],
   );
@@ -489,6 +596,20 @@ async function verifyFixtures(client, customerUserResult, canonicalAdminRoles) {
       "sent",
     ],
   );
+  const reviewJourneyCount = await count(
+    client,
+    `select
+       (select count(*) from assignments
+          where (id, status) in (($1::uuid, 'awaiting_approval'), ($2::uuid, 'invoiced')))
+       + (select count(*) from quotes where id = $3 and status = 'sent')
+       + (select count(*) from invoices where id = $4 and status = 'sent') as count`,
+    [
+      E2E.assignments.quoteAcceptance,
+      E2E.assignments.invoiceCancellation,
+      E2E.quotes.acceptance,
+      E2E.invoices.cancellation,
+    ],
+  );
   const customerUserCount = await count(
     client,
     "select count(*) from customer_users where customer_id = $1 and lower(email) = lower($2)",
@@ -608,6 +729,7 @@ async function verifyFixtures(client, customerUserResult, canonicalAdminRoles) {
     reportCount === 1 &&
     offlineTaskCount === 1 &&
     invoiceCount === 1 &&
+    reviewJourneyCount === 4 &&
     customerUserCount === 1 &&
     customerUserByUserCount === 1 &&
     canonicalAdminRoleCountTenantA === 1 &&
@@ -634,6 +756,7 @@ async function verifyFixtures(client, customerUserResult, canonicalAdminRoles) {
     offlineTaskCount,
     invoiceId: E2E.invoices.tenantAVisible,
     invoiceCount,
+    reviewJourneyCount,
     customerUserNaturalKey: customerUserResult.naturalKey,
     customerUserRowId: customerUserResult.actualId,
     customerUserMatchStrategy: customerUserResult.matchStrategy,
@@ -678,6 +801,7 @@ async function main() {
     const customerUserResult = await upsertCustomerUser(client);
     await insertApprovedReport(client);
     await insertInvoice(client);
+    await insertReviewRemediationJourneys(client);
     const verification = await verifyFixtures(
       client,
       customerUserResult,
