@@ -27,6 +27,7 @@ import {
 
 type Props = {
   assignmentId: string;
+  expectedParticipantVersion: number | null;
   initialNotes: ReportNote[];
   canAdd:       boolean;
   canPersist:   boolean;
@@ -242,7 +243,7 @@ function ReportNoteCard({ note }: { note: ReportNote }) {
   );
 }
 
-export function RapportageTimeline({ assignmentId, initialNotes, canAdd, canPersist }: Props) {
+export function RapportageTimeline({ assignmentId, expectedParticipantVersion, initialNotes, canAdd, canPersist }: Props) {
   const [notes, setNotes] = useState<ReportNote[]>(initialNotes);
   const [showForm, setShowForm] = useState(false);
   const [body, setBody] = useState("");
@@ -470,6 +471,7 @@ export function RapportageTimeline({ assignmentId, initialNotes, canAdd, canPers
           enqueueOfflineWorkOrderAction({
             type: "add-report-note",
             assignmentId,
+            expectedParticipantVersion,
             payload: { body: trimmedBody },
           });
         }

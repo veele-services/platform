@@ -458,6 +458,7 @@ export function CompletionSummary({ assignment, mode, extraWork, materials, repo
         enqueueOfflineWorkOrderAction({
           type: "complete-assignment",
           assignmentId: assignment.id,
+          expectedParticipantVersion: assignment.participantVersion ?? null,
           payload: {
             customerSignatureDataUrl: signatureDataUrl,
           },
@@ -466,6 +467,7 @@ export function CompletionSummary({ assignment, mode, extraWork, materials, repo
         enqueueOfflineWorkOrderAction({
           type: "not-complete-assignment",
           assignmentId: assignment.id,
+          expectedParticipantVersion: assignment.participantVersion ?? null,
           payload: {
             reason,
             notes,

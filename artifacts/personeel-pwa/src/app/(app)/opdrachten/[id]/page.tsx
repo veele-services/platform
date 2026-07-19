@@ -322,6 +322,7 @@ export default async function WerkbonDetailPage({ params, searchParams }: Props)
           <div className="space-y-4">
             <RapportageTimeline
               assignmentId={assignment.id}
+              expectedParticipantVersion={assignment.participantVersion ?? null}
               initialNotes={timelineNotes}
               canAdd={canAddReportNote}
               canPersist={canAddReportNote}

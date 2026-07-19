@@ -1,8 +1,17 @@
 "use client";
 
-export type OfflineActionStatus = "pending" | "syncing" | "synced" | "failed" | "conflict";
+export type OfflineActionStatus = "pending" | "syncing" | "retry_wait" | "synced" | "failed" | "conflict";
+export type OfflineQueueEventReason = "enqueue" | "manual-retry" | "state" | "storage";
+export type OfflineErrorClassification = "transient" | "permanent" | "conflict";
+
+export type OfflineCanonicalReceipt = {
+  acknowledgedAt: string;
+  mutationId: string;
+  resultId?: string | null;
+};
 
 type OfflineActionBase = {
+  schemaVersion: 2;
   id: string;
   type:
     | "mark-assignment-en-route"
@@ -21,7 +30,13 @@ type OfflineActionBase = {
   updatedAt: string;
   status: OfflineActionStatus;
   attempts: number;
+  payloadHash: string;
+  lastAttemptAt?: string | null;
+  nextRetryAt?: string | null;
   lastError?: string | null;
+  lastErrorCode?: string | null;
+  lastErrorClassification?: OfflineErrorClassification | null;
+  canonicalReceipt?: OfflineCanonicalReceipt | null;
 };
 
 export type OfflineWorkOrderAction =
@@ -127,15 +142,14 @@ const QUEUE_OWNER_KEY = "veele-personeel-offline-work-order-owner-v1";
 const QUEUE_QUARANTINE_KEY = "veele-personeel-offline-work-order-quarantine-v1";
 const QUEUE_EVENT = "veele:offline-work-order-queue";
 const SYNC_TAG = "veele-personeel-work-order-sync";
+export const MAX_AUTOMATIC_OFFLINE_ATTEMPTS = 8;
 
 function canUseStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 }
 
-function createDeterministicIdempotencyKey(action: OfflineWorkOrderActionInput, now: string) {
-  const payload = "payload" in action ? JSON.stringify(action.payload) : "";
-  const task = "taskId" in action ? action.taskId : "";
-  return `personnel-pwa:${action.type}:${action.assignmentId}:${task}:${payload}:${now}`;
+function createDeterministicIdempotencyKey(actionId: string) {
+  return `personnel-pwa:${actionId}`;
 }
 
 function createActionId() {
@@ -145,8 +159,37 @@ function createActionId() {
   return `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-function emitQueueChange() {
-  window.dispatchEvent(new CustomEvent(QUEUE_EVENT));
+function stableSerialize(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(stableSerialize).join(",")}]`;
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>;
+    return `{${Object.keys(record).sort().map((key) => `${JSON.stringify(key)}:${stableSerialize(record[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value) ?? "null";
+}
+
+function payloadFingerprint(value: unknown): string {
+  const source = stableSerialize(value);
+  let hash = 0x811c9dc5;
+  for (let index = 0; index < source.length; index += 1) {
+    hash ^= source.charCodeAt(index);
+    hash = Math.imul(hash, 0x01000193);
+  }
+  return `fnv1a32:${(hash >>> 0).toString(16).padStart(8, "0")}`;
+}
+
+function actionPayload(value: Record<string, unknown>) {
+  return {
+    assignmentId: value.assignmentId,
+    expectedParticipantVersion: value.expectedParticipantVersion ?? null,
+    payload: value.payload ?? null,
+    taskId: value.taskId ?? null,
+    type: value.type,
+  };
+}
+
+function emitQueueChange(reason: OfflineQueueEventReason) {
+  window.dispatchEvent(new CustomEvent(QUEUE_EVENT, { detail: { reason } }));
 }
 
 function isActionType(value: unknown): value is OfflineWorkOrderAction["type"] {
@@ -171,18 +214,42 @@ function normalizeAction(item: unknown): OfflineWorkOrderAction | null {
   if (typeof action.createdAt !== "string") return null;
   if (!isActionType(action.type)) return null;
 
-  const status: OfflineActionStatus =
-    ["syncing", "synced", "failed", "conflict"].includes(String(action.status)) ? action.status as OfflineActionStatus : "pending";
+  const storedStatus = String(action.status);
+  const status: OfflineActionStatus = storedStatus === "syncing"
+    ? "pending"
+    : ["pending", "retry_wait", "synced", "failed", "conflict"].includes(storedStatus)
+      ? storedStatus as OfflineActionStatus
+      : "pending";
+  const receipt = action.canonicalReceipt && typeof action.canonicalReceipt === "object"
+    ? action.canonicalReceipt as Record<string, unknown>
+    : null;
   const base = {
     ...action,
+    schemaVersion: 2,
     updatedAt: typeof action.updatedAt === "string" ? action.updatedAt : action.createdAt,
     status,
     attempts: typeof action.attempts === "number" && Number.isFinite(action.attempts)
       ? Math.max(0, action.attempts)
       : 0,
     lastError: typeof action.lastError === "string" ? action.lastError : null,
+    lastAttemptAt: typeof action.lastAttemptAt === "string" ? action.lastAttemptAt : null,
+    nextRetryAt: typeof action.nextRetryAt === "string" ? action.nextRetryAt : null,
+    lastErrorCode: typeof action.lastErrorCode === "string" ? action.lastErrorCode : null,
+    lastErrorClassification: ["transient", "permanent", "conflict"].includes(String(action.lastErrorClassification))
+      ? action.lastErrorClassification as OfflineErrorClassification
+      : null,
+    canonicalReceipt: receipt
+      && typeof receipt.mutationId === "string"
+      && typeof receipt.acknowledgedAt === "string"
+      ? {
+          mutationId: receipt.mutationId,
+          acknowledgedAt: receipt.acknowledgedAt,
+          resultId: typeof receipt.resultId === "string" ? receipt.resultId : null,
+        }
+      : null,
     expectedParticipantVersion: typeof action.expectedParticipantVersion === "number" ? action.expectedParticipantVersion : null,
     idempotencyKey: typeof action.idempotencyKey === "string" ? action.idempotencyKey : `${action.type}:${action.assignmentId}:${action.id}`,
+    payloadHash: typeof action.payloadHash === "string" ? action.payloadHash : payloadFingerprint(actionPayload(action)),
   } as OfflineActionBase & Record<string, unknown>;
 
   if (base.type === "set-task-completion") {
@@ -222,6 +289,37 @@ export function readOfflineWorkOrderQueue(): OfflineWorkOrderAction[] {
   return parseQueue(window.localStorage.getItem(QUEUE_KEY));
 }
 
+export function isOfflineWorkOrderQueueOwnedBy(personnelId: string | null): boolean {
+  if (!canUseStorage()) return false;
+  const normalizedOwner = personnelId?.trim() || null;
+  return Boolean(normalizedOwner) && window.localStorage.getItem(QUEUE_OWNER_KEY) === normalizedOwner;
+}
+
+export function readNextEligibleOfflineWorkOrderAction({
+  accelerateRetry = false,
+  now = Date.now(),
+}: {
+  accelerateRetry?: boolean;
+  now?: number;
+} = {}): OfflineWorkOrderAction | null {
+  return readOfflineWorkOrderQueue().find((action) => {
+    if (action.status === "synced") return true;
+    if (action.status === "pending") return true;
+    if (action.status !== "retry_wait" || action.attempts >= MAX_AUTOMATIC_OFFLINE_ATTEMPTS) return false;
+    if (accelerateRetry) return true;
+    const nextRetryAt = Date.parse(action.nextRetryAt ?? "");
+    return Number.isFinite(nextRetryAt) && nextRetryAt <= now;
+  }) ?? null;
+}
+
+export function getNextOfflineWorkOrderRetryAt(): number | null {
+  const candidates = readOfflineWorkOrderQueue()
+    .filter((action) => action.status === "retry_wait" && action.attempts < MAX_AUTOMATIC_OFFLINE_ATTEMPTS)
+    .map((action) => Date.parse(action.nextRetryAt ?? ""))
+    .filter(Number.isFinite);
+  return candidates.length > 0 ? Math.min(...candidates) : null;
+}
+
 export function bindOfflineWorkOrderQueueOwner(personnelId: string | null): void {
   if (!canUseStorage()) return;
   const normalizedOwner = personnelId?.trim() || null;
@@ -233,13 +331,16 @@ export function bindOfflineWorkOrderQueueOwner(personnelId: string | null): void
   }
   if (normalizedOwner) window.localStorage.setItem(QUEUE_OWNER_KEY, normalizedOwner);
   else window.localStorage.removeItem(QUEUE_OWNER_KEY);
-  emitQueueChange();
+  emitQueueChange("state");
 }
 
-function writeOfflineWorkOrderQueue(actions: OfflineWorkOrderAction[]) {
+function writeOfflineWorkOrderQueue(
+  actions: OfflineWorkOrderAction[],
+  reason: OfflineQueueEventReason = "state",
+) {
   if (!canUseStorage()) return;
   window.localStorage.setItem(QUEUE_KEY, JSON.stringify(actions));
-  emitQueueChange();
+  emitQueueChange(reason);
 }
 
 export function enqueueOfflineWorkOrderAction(
@@ -247,15 +348,23 @@ export function enqueueOfflineWorkOrderAction(
 ) {
   const queue = readOfflineWorkOrderQueue();
   const now = new Date().toISOString();
+  const actionId = createActionId();
   const nextAction = {
     ...action,
-    id: createActionId(),
-    idempotencyKey: createDeterministicIdempotencyKey(action, now),
+    schemaVersion: 2,
+    id: actionId,
+    idempotencyKey: createDeterministicIdempotencyKey(actionId),
+    payloadHash: payloadFingerprint(actionPayload(action as unknown as Record<string, unknown>)),
     createdAt: now,
     updatedAt: now,
     status: "pending",
     attempts: 0,
+    lastAttemptAt: null,
+    nextRetryAt: null,
     lastError: null,
+    lastErrorCode: null,
+    lastErrorClassification: null,
+    canonicalReceipt: null,
   } as OfflineWorkOrderAction;
 
   const dedupedQueue = queue.filter((queued) => {
@@ -279,7 +388,7 @@ export function enqueueOfflineWorkOrderAction(
     return true;
   });
 
-  writeOfflineWorkOrderQueue([...dedupedQueue, nextAction]);
+  writeOfflineWorkOrderQueue([...dedupedQueue, nextAction], "enqueue");
   void requestOfflineWorkOrderSync();
   return nextAction;
 }
@@ -300,7 +409,17 @@ export function removeOfflineWorkOrderActionsByClientMutationId(clientMutationId
 
 export function updateOfflineWorkOrderAction(
   id: string,
-  patch: Partial<Pick<OfflineWorkOrderAction, "status" | "attempts" | "lastError" | "updatedAt">>,
+  patch: Partial<Pick<OfflineWorkOrderAction,
+    | "status"
+    | "attempts"
+    | "lastAttemptAt"
+    | "nextRetryAt"
+    | "lastError"
+    | "lastErrorCode"
+    | "lastErrorClassification"
+    | "canonicalReceipt"
+    | "updatedAt"
+  >>,
 ) {
   const queue = readOfflineWorkOrderQueue();
   const now = new Date().toISOString();
@@ -315,9 +434,17 @@ export function retryOfflineWorkOrderFailures() {
   const queue = readOfflineWorkOrderQueue();
   writeOfflineWorkOrderQueue(queue.map((action) => (
     action.status === "failed" || action.status === "conflict"
-      ? { ...action, status: "pending", lastError: null, updatedAt: new Date().toISOString() } as OfflineWorkOrderAction
+      ? {
+          ...action,
+          status: "pending",
+          nextRetryAt: null,
+          lastError: null,
+          lastErrorCode: null,
+          lastErrorClassification: null,
+          updatedAt: new Date().toISOString(),
+        } as OfflineWorkOrderAction
       : action
-  )));
+  )), "manual-retry");
   void requestOfflineWorkOrderSync();
 }
 
@@ -329,13 +456,22 @@ export function getOfflineWorkOrderFailureCount() {
   return readOfflineWorkOrderQueue().filter((action) => action.status === "failed" || action.status === "conflict").length;
 }
 
-export function subscribeOfflineWorkOrderQueue(listener: () => void) {
-  window.addEventListener(QUEUE_EVENT, listener);
-  window.addEventListener("storage", listener);
+export function subscribeOfflineWorkOrderQueue(
+  listener: (reason: OfflineQueueEventReason) => void,
+) {
+  const handleQueue = (event: Event) => {
+    const reason = (event as CustomEvent<{ reason?: OfflineQueueEventReason }>).detail?.reason;
+    listener(reason ?? "state");
+  };
+  const handleStorage = (event: StorageEvent) => {
+    if (event.key === QUEUE_KEY || event.key === QUEUE_OWNER_KEY) listener("storage");
+  };
+  window.addEventListener(QUEUE_EVENT, handleQueue);
+  window.addEventListener("storage", handleStorage);
 
   return () => {
-    window.removeEventListener(QUEUE_EVENT, listener);
-    window.removeEventListener("storage", listener);
+    window.removeEventListener(QUEUE_EVENT, handleQueue);
+    window.removeEventListener("storage", handleStorage);
   };
 }
 
@@ -355,7 +491,7 @@ export async function requestOfflineWorkOrderSync() {
       return;
     }
 
-    registration.active?.postMessage({ type: "FIELDGRID_PROCESS_OFFLINE_QUEUE" });
+    registration.active?.postMessage({ type: "FIELDGRID_REQUEST_OFFLINE_SYNC" });
   } catch {
     // Background sync is progressive enhancement; the provider also syncs on online/focus.
   }

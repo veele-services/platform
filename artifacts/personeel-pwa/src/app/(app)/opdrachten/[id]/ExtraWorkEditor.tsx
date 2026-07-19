@@ -22,6 +22,7 @@ import {
 
 type Props = {
   assignmentId: string;
+  expectedParticipantVersion: number | null;
   initialItems: ExtraWorkItem[];
   taskCodes:    TaskCodeOption[];
   canEdit:      boolean;
@@ -59,7 +60,7 @@ function subline(item: Pick<ExtraWorkItem, "hours" | "price">): string {
   return "Nog geen kosten";
 }
 
-export function ExtraWorkEditor({ assignmentId, initialItems, taskCodes, canEdit, canPersist }: Props) {
+export function ExtraWorkEditor({ assignmentId, expectedParticipantVersion, initialItems, taskCodes, canEdit, canPersist }: Props) {
   const [items, setItems] = useState<ExtraWorkItem[]>(initialItems);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
@@ -116,6 +117,7 @@ export function ExtraWorkEditor({ assignmentId, initialItems, taskCodes, canEdit
           enqueueOfflineWorkOrderAction({
             type: "add-extra-work",
             assignmentId,
+            expectedParticipantVersion,
             payload: input,
           });
         }

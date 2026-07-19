@@ -19,6 +19,7 @@ import {
 
 type Props = {
   assignmentId: string;
+  expectedParticipantVersion: number | null;
   initialItems: MaterialUsageItem[];
   catalog: MaterialCatalogOption[];
   canEdit: boolean;
@@ -63,7 +64,7 @@ function createClientMutationId(): string {
   return `material-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
-export function MaterialEditor({ assignmentId, initialItems, catalog, canEdit }: Props) {
+export function MaterialEditor({ assignmentId, expectedParticipantVersion, initialItems, catalog, canEdit }: Props) {
   const [items, setItems] = useState<MaterialUsageItem[]>(initialItems);
   const [form, setForm] = useState<MaterialFormState>(() => createEmptyForm(catalog));
   const [error, setError] = useState<string | null>(null);
@@ -157,6 +158,7 @@ export function MaterialEditor({ assignmentId, initialItems, catalog, canEdit }:
         enqueueOfflineWorkOrderAction({
           type: "add-material-usage",
           assignmentId,
+          expectedParticipantVersion,
           payload: input,
         });
         setItems((current) => [

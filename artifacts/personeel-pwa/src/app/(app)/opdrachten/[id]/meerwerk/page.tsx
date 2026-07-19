@@ -39,6 +39,7 @@ export default async function MeerwerkPage({ params }: Props) {
       <WorkOrderHeader assignment={assignment} activeTab="werkzaamheden" />
       <ExtraWorkEditor
         assignmentId={assignment.id}
+        expectedParticipantVersion={assignment.participantVersion ?? null}
         initialItems={items}
         taskCodes={taskCodes}
         canEdit={canEdit}

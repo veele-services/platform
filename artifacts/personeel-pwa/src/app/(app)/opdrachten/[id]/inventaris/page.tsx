@@ -38,6 +38,7 @@ export default async function InventarisPage({ params }: Props) {
       <WorkOrderHeader assignment={assignment} activeTab="werkzaamheden" />
       <InventoryEditor
         assignmentId={assignment.id}
+        expectedParticipantVersion={assignment.participantVersion ?? null}
         initialItems={items}
         catalog={catalog}
         canEdit={canEdit}

@@ -9,10 +9,13 @@ import { addInventoryUsage } from "@/actions/inventory";
 import { addMaterialUsage } from "@/actions/materials";
 import { addReportNote } from "@/actions/reports";
 import {
+  MAX_AUTOMATIC_OFFLINE_ATTEMPTS,
   getOfflineWorkOrderFailureCount,
   bindOfflineWorkOrderQueueOwner,
+  getNextOfflineWorkOrderRetryAt,
   getOfflineWorkOrderQueueCount,
-  readOfflineWorkOrderQueue,
+  isOfflineWorkOrderQueueOwnedBy,
+  readNextEligibleOfflineWorkOrderAction,
   removeOfflineWorkOrderAction,
   requestOfflineWorkOrderSync,
   retryOfflineWorkOrderFailures,
@@ -20,6 +23,16 @@ import {
   updateOfflineWorkOrderAction,
   type OfflineWorkOrderAction,
 } from "@/lib/offline/work-order-queue";
+import {
+  createOfflineSyncCoordinator,
+  type OfflineSyncCoordinator,
+  type OfflineSyncPassRequest,
+  type OfflineSyncTrigger,
+} from "@/lib/offline/offline-sync-coordinator";
+import {
+  classifyOfflineSyncFailure,
+  computeOfflineRetryDelayMs,
+} from "@/lib/offline/offline-sync-errors";
 import { createPortalRefreshScheduler, subscribeToPortalRealtimeEvents } from "@/lib/realtime/portal-realtime-client";
 import { createClient } from "@/lib/supabase/client";
 
@@ -153,12 +166,15 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
   const [syncedNotice, setSyncedNotice] = useState(false);
   const [realtimeState, setRealtimeState] = useState<RealtimeState>("idle");
   const [pushToast, setPushToast] = useState<ForegroundPushNotification | null>(null);
-  const syncingRef = useRef(false);
   const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const retryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const minuteTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const minuteIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastRefreshAtRef = useRef(0);
   const hiddenAtRef = useRef<number | null>(null);
+  const processQueuePassRef = useRef<(request: OfflineSyncPassRequest) => Promise<void>>(async () => undefined);
+  const coordinatorRef = useRef<OfflineSyncCoordinator | null>(null);
+  const requestSyncRef = useRef<(trigger: OfflineSyncTrigger) => Promise<void>>(async () => undefined);
 
   const scheduleRefresh = useCallback(
     createPortalRefreshScheduler({
@@ -176,89 +192,188 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
     setFailedCount(getOfflineWorkOrderFailureCount());
   }, []);
 
-  const processQueue = useCallback(async () => {
+  const scheduleRetryTimer = useCallback(() => {
+    if (retryTimerRef.current) clearTimeout(retryTimerRef.current);
+    retryTimerRef.current = null;
+    const nextRetryAt = getNextOfflineWorkOrderRetryAt();
+    if (nextRetryAt === null) return;
+    const delay = Math.max(0, Math.min(2_147_000_000, nextRetryAt - Date.now()));
+    retryTimerRef.current = setTimeout(() => {
+      retryTimerRef.current = null;
+      void requestSyncRef.current("retry-timer");
+    }, delay);
+  }, []);
+
+  const processQueuePass = useCallback(async (request: OfflineSyncPassRequest) => {
     if (typeof navigator !== "undefined" && navigator.onLine === false) return;
-    if (syncingRef.current) return;
+    if (!isOfflineWorkOrderQueueOwnedBy(personnelId)) return;
+    const accelerateRetry = request.triggers.some((trigger) => [
+      "online",
+      "focus",
+      "visibility",
+      "service-worker",
+      "manual-retry",
+    ].includes(trigger));
 
-    const queue = readOfflineWorkOrderQueue();
-    if (queue.length === 0) {
+    const executePass = async () => {
+      if (!isOfflineWorkOrderQueueOwnedBy(personnelId)) return;
+      setSyncing(true);
       setSyncError(null);
-      setPendingCount(0);
-      return;
-    }
+      setSyncedNotice(false);
+      let syncedAnyAction = false;
 
-    syncingRef.current = true;
-    setSyncing(true);
-    setSyncError(null);
-    setSyncedNotice(false);
-    let syncedAnyAction = false;
+      try {
+        while (typeof navigator === "undefined" || navigator.onLine) {
+          if (!isOfflineWorkOrderQueueOwnedBy(personnelId)) break;
+          const action = readNextEligibleOfflineWorkOrderAction({ accelerateRetry });
+          if (!action) break;
+          if (action.status === "synced") {
+            removeOfflineWorkOrderAction(action.id);
+            continue;
+          }
 
-    try {
-      for (const action of queue) {
-        updateOfflineWorkOrderAction(action.id, {
-          status: "syncing",
-          attempts: action.attempts + 1,
-          lastError: null,
-        });
-        const result = await runQueuedAction(action);
-        if (!result.success) {
-          const error = result.error ?? "Synchronisatie mislukt";
+          const attempt = action.attempts + 1;
+          const lastAttemptAt = new Date().toISOString();
           updateOfflineWorkOrderAction(action.id, {
-            status: error.toLowerCase().includes("conflict") ? "conflict" : "failed",
-            lastError: error,
+            status: "syncing",
+            attempts: attempt,
+            lastAttemptAt,
+            nextRetryAt: null,
+            lastError: null,
+            lastErrorCode: null,
+            lastErrorClassification: null,
           });
-          setSyncError(error);
+
+          let result: Awaited<ReturnType<typeof runQueuedAction>> | null = null;
+          let thrown: unknown = null;
+          try {
+            result = await runQueuedAction(action);
+          } catch (error) {
+            thrown = error;
+          }
+
+          if (result?.success) {
+            const resultId = "id" in result && typeof result.id === "string" ? result.id : null;
+            updateOfflineWorkOrderAction(action.id, {
+              status: "synced",
+              canonicalReceipt: {
+                acknowledgedAt: new Date().toISOString(),
+                mutationId: action.idempotencyKey,
+                resultId,
+              },
+            });
+            removeOfflineWorkOrderAction(action.id);
+            syncedAnyAction = true;
+            continue;
+          }
+
+          const classification = classifyOfflineSyncFailure(
+            thrown ?? result,
+            thrown !== null ? "exception" : "result",
+          );
+          const exhausted = attempt >= MAX_AUTOMATIC_OFFLINE_ATTEMPTS;
+          if (classification.kind === "transient" && !exhausted) {
+            const delay = computeOfflineRetryDelayMs({
+              attempt,
+              retryAfterMs: classification.retryAfterMs,
+              status: classification.status,
+            });
+            updateOfflineWorkOrderAction(action.id, {
+              status: "retry_wait",
+              nextRetryAt: new Date(Date.now() + delay).toISOString(),
+              lastError: classification.message,
+              lastErrorCode: classification.code,
+              lastErrorClassification: "transient",
+            });
+            setSyncError("Synchronisatie wordt automatisch opnieuw geprobeerd");
+          } else {
+            const status = classification.kind === "conflict" ? "conflict" : "failed";
+            updateOfflineWorkOrderAction(action.id, {
+              status,
+              nextRetryAt: null,
+              lastError: classification.message,
+              lastErrorCode: exhausted ? "retry_limit_reached" : classification.code,
+              lastErrorClassification: classification.kind,
+            });
+            setSyncError(classification.message);
+          }
           break;
         }
-        removeOfflineWorkOrderAction(action.id);
-        syncedAnyAction = true;
+      } finally {
+        setSyncing(false);
+        setPendingCount(getOfflineWorkOrderQueueCount());
+        setFailedCount(getOfflineWorkOrderFailureCount());
+        if (syncedAnyAction && getOfflineWorkOrderQueueCount() === 0) {
+          setSyncedNotice(true);
+          window.setTimeout(() => setSyncedNotice(false), 4500);
+        }
+        scheduleRetryTimer();
+        scheduleRefresh();
       }
-    } finally {
-      syncingRef.current = false;
-      setSyncing(false);
-      setPendingCount(getOfflineWorkOrderQueueCount());
-      setFailedCount(getOfflineWorkOrderFailureCount());
-      if (syncedAnyAction && getOfflineWorkOrderQueueCount() === 0) {
-        setSyncedNotice(true);
-        window.setTimeout(() => setSyncedNotice(false), 4500);
-      }
-      scheduleRefresh();
+    };
+
+    if (typeof navigator !== "undefined" && navigator.locks) {
+      await navigator.locks.request("fieldgrid-personnel-offline-sync-v1", executePass);
+      return;
     }
-  }, [scheduleRefresh]);
+    await executePass();
+  }, [personnelId, scheduleRefresh, scheduleRetryTimer]);
+
+  processQueuePassRef.current = processQueuePass;
+  if (!coordinatorRef.current) {
+    coordinatorRef.current = createOfflineSyncCoordinator({
+      isOnline: () => typeof navigator === "undefined" || navigator.onLine,
+      onObservation: (observation) => {
+        window.dispatchEvent(new CustomEvent("veele:offline-sync-observation", {
+          detail: observation,
+        }));
+      },
+      onUnexpectedError: (error) => {
+        console.error("offline synchronization coordinator failed", error);
+        setSyncError("Synchronisatiecoördinator is onverwacht gestopt");
+      },
+      runPass: (request) => processQueuePassRef.current(request),
+    });
+  }
+
+  const requestSync = useCallback((trigger: OfflineSyncTrigger) => (
+    coordinatorRef.current?.requestSync(trigger) ?? Promise.resolve()
+  ), []);
+  requestSyncRef.current = requestSync;
 
   const retryFailedQueue = useCallback(() => {
     retryOfflineWorkOrderFailures();
     setSyncError(null);
     updateQueueCount();
-    void processQueue();
-  }, [processQueue, updateQueueCount]);
+    void requestSync("manual-retry");
+  }, [requestSync, updateQueueCount]);
 
   useEffect(() => {
     bindOfflineWorkOrderQueueOwner(personnelId);
     setOnline(typeof navigator === "undefined" ? true : navigator.onLine);
     updateQueueCount();
 
-    const unsubscribeQueue = subscribeOfflineWorkOrderQueue(() => {
+    const unsubscribeQueue = subscribeOfflineWorkOrderQueue((reason) => {
       updateQueueCount();
-      if (typeof navigator === "undefined" || navigator.onLine) {
-        void processQueue();
-      }
+      if (reason === "enqueue") void requestSync("enqueue");
+      if (reason === "manual-retry") void requestSync("manual-retry");
+      if (reason === "storage") void requestSync("storage");
     });
 
     const handleOnline = () => {
       setOnline(true);
-      void processQueue();
+      void requestSync("online");
       void requestOfflineWorkOrderSync();
     };
     const handleOffline = () => setOnline(false);
     const handleFocus = () => {
+      void requestSync("focus");
       const hiddenAt = hiddenAtRef.current;
       if (!hiddenAt || Date.now() - hiddenAt < MIN_BACKGROUND_REFRESH_MS) {
         return;
       }
       hiddenAtRef.current = null;
       scheduleRefresh();
-      void processQueue();
     };
     const handleVisibility = () => {
       if (document.visibilityState === "hidden") {
@@ -267,18 +382,18 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
       }
 
       if (document.visibilityState === "visible") {
+        void requestSync("visibility");
         const hiddenAt = hiddenAtRef.current;
         hiddenAtRef.current = null;
         if (!hiddenAt || Date.now() - hiddenAt < MIN_BACKGROUND_REFRESH_MS) {
           return;
         }
         scheduleRefresh();
-        void processQueue();
       }
     };
     const handleServiceWorkerMessage = (event: MessageEvent) => {
       if (event.data?.type === "FIELDGRID_PROCESS_OFFLINE_QUEUE") {
-        void processQueue();
+        void requestSync("service-worker");
         return;
       }
 
@@ -317,7 +432,7 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
     navigator.serviceWorker?.addEventListener("message", handleServiceWorkerMessage);
 
     if (typeof navigator === "undefined" || navigator.onLine) {
-      void processQueue();
+      void requestSync("startup");
     }
 
     return () => {
@@ -329,7 +444,7 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
       document.removeEventListener("visibilitychange", handleVisibility);
       navigator.serviceWorker?.removeEventListener("message", handleServiceWorkerMessage);
     };
-  }, [personnelId, processQueue, scheduleRefresh, updateQueueCount]);
+  }, [personnelId, requestSync, scheduleRefresh, updateQueueCount]);
 
   useEffect(() => {
     if (!personnelId) {
@@ -381,6 +496,9 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
     return () => {
       if (refreshTimerRef.current) {
         clearTimeout(refreshTimerRef.current);
+      }
+      if (retryTimerRef.current) {
+        clearTimeout(retryTimerRef.current);
       }
     };
   }, []);
