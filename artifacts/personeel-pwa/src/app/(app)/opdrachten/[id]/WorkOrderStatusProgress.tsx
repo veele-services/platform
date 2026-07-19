@@ -302,7 +302,7 @@ export function InteractiveStatusProgress({ assignment }: Props) {
                   className="mt-2 text-[12px] font-bold"
                   style={{
                     color: step.state === "active" && !failedFinal
-                      ? "var(--color-accent)"
+                      ? "var(--color-accent-accessible)"
                       : step.state === "failed"
                         ? "#DC2626"
                         : "var(--color-secondary)",

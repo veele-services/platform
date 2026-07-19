@@ -1506,7 +1506,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                         <div
                           key={hour.label}
                           className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 text-[11px]"
-                          style={{ left: `${hour.pct}%`, color: "#94A3B8" }}
+                          style={{ left: `${hour.pct}%`, color: "#64748B" }}
                         >
                           {hour.label}
                         </div>
@@ -1585,7 +1585,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                           >
                             <div className="min-w-0 flex-1">
                               <div className="flex min-w-0 items-center gap-1.5">
-                                <span className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: person.availabilityStatus === "beschikbaar" ? "#22C55E" : "#EF4444" }} aria-label={availability.label} />
+                                <span role="img" className="h-2.5 w-2.5 flex-shrink-0 rounded-full" style={{ background: person.availabilityStatus === "beschikbaar" ? "#22C55E" : "#EF4444" }} aria-label={availability.label} />
                                 <div className="truncate text-[13px] font-semibold leading-tight" style={{ color: "#081D3A" }}>
                                   {person.lastName}, {person.firstName}
                                 </div>
@@ -1603,7 +1603,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
                                   </TooltipContent>
                                 </Tooltip>
                               </div>
-                              <div className="mt-1 flex items-center gap-2 text-[10px]" style={{ color: "#94A3B8" }}>
+                              <div className="mt-1 flex items-center gap-2 text-[10px]" style={{ color: "#64748B" }}>
                                 {person.region && (
                                   <span className="inline-flex min-w-0 items-center gap-1 truncate">
                                     <MapPin className="h-3 w-3" />

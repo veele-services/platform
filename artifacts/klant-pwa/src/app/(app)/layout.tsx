@@ -109,7 +109,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
             <div>
               <p
                 className="text-xs font-black uppercase tracking-[0.16em]"
-                style={{ color: "var(--color-accent)" }}
+                style={{ color: "var(--color-accent-accessible)" }}
               >
                 {branding.displayName}
               </p>

@@ -161,6 +161,24 @@ test("4. Customer PWA", async ({ page }) => {
   );
 });
 
+test("FG-P2D-AVAILABILITY personnel update and backoffice consistency", async ({ page }) => {
+  test.setTimeout(60_000);
+  await useIdentity(page, "20000000-0000-4000-8000-000000000104");
+  await page.goto(personnelUrl("/personeel/beschikbaarheid"));
+  await expectRealApp(page);
+  const edit = page.getByRole("button", { name: /Beschikbaarheid (?:bewerken|invullen)|Vul beschikbaarheid in/ });
+  await edit.click();
+  await page.getByLabel("Van").last().fill("08:00");
+  await page.getByLabel("Tot").last().fill("17:00");
+  await page.getByRole("button", { name: "Beschikbaarheid opslaan" }).click();
+  await expect(page.locator("main")).toContainText(/Beschikbaarheid opgeslagen|08:00 - 17:00/);
+
+  await useIdentity(page, "20000000-0000-4000-8000-000000000102");
+  await page.goto(backofficeUrl("/planning"));
+  await expect(page.locator("main")).toContainText(/Runtime Personnel A|Personnel A, Runtime/);
+  await expect(page.locator("main")).toContainText(/Beschikbaar|beschikbaar/);
+});
+
 test("Customer payment journeys use exact outstanding and one durable provider request", async ({
   page,
   request,

@@ -4,38 +4,39 @@
 
 @theme {
   /* ── Personeel-PWA Brand Colors ───────────────────────────────────── */
-  --color-primary:        #081D3A;
-  --color-primary-light:  #0F2E5C;
+  --color-primary: #081d3a;
+  --color-primary-light: #0f2e5c;
 
   /* Teal accent — navigatie, badges, links */
-  --color-accent:         #00B7B3;
-  --color-accent-dark:    #009E9A;
+  --color-accent: #00b7b3;
+  --color-accent-dark: #009e9a;
+  --color-accent-accessible: color-mix(in srgb, var(--color-accent) 45%, #000);
 
   /* Oranje-amber — call-to-action knoppen, urgente acties */
-  --color-action:         #F97316;
-  --color-action-dark:    #EA6C0A;
-  --color-action-muted:   rgba(249,115,22,0.12);
+  --color-action: #f97316;
+  --color-action-dark: #ea6c0a;
+  --color-action-muted: rgba(249, 115, 22, 0.12);
 
-  --color-secondary:      #64748B;
-  --color-muted:          #F8FAFC;
-  --color-muted-fg:       #94A3B8;
-  --color-border:         #E2E8F0;
-  --color-destructive:    #EF4444;
-  --color-warning:        #F59E0B;
-  --color-success:        #10B981;
+  --color-secondary: #64748b;
+  --color-muted: #f8fafc;
+  --color-muted-fg: #94a3b8;
+  --color-border: #e2e8f0;
+  --color-destructive: #ef4444;
+  --color-warning: #f59e0b;
+  --color-success: #10b981;
 
   /* ── Assignment Status Colors ─────────────────────────────────────── */
-  --color-status-aangevraagd:   #94A3B8;
-  --color-status-gepland:       #3B82F6;
-  --color-status-bezig:         #F59E0B;
-  --color-status-afgerond:      #10B981;
-  --color-status-gefactureerd:  #8B5CF6;
+  --color-status-aangevraagd: #94a3b8;
+  --color-status-gepland: #3b82f6;
+  --color-status-bezig: #f59e0b;
+  --color-status-afgerond: #10b981;
+  --color-status-gefactureerd: #8b5cf6;
 
   /* ── Typography ───────────────────────────────────────────────────── */
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
 
   /* ── Radius — rounder for field-worker mobile feel ───────────────── */
-  --radius:    0.625rem;
+  --radius: 0.625rem;
   --radius-sm: 0.375rem;
   --radius-lg: 1rem;
   --radius-xl: 1.25rem;
@@ -76,7 +77,10 @@
   }
 
   /* Better press feedback for touch targets */
-  a, button { -webkit-tap-highlight-color: transparent; }
+  a,
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
 @layer utilities {

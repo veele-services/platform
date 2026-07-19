@@ -33,7 +33,17 @@ jobs:
       NEXT_PUBLIC_SUPABASE_ANON_KEY: fieldgrid-e2e-local-anon-key-not-for-production
       SESSION_SECRET: fieldgrid-e2e-local-session-secret-minimum-32-bytes
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout recorded run head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
+
+      - name: Verify exact checked-out head
+        env:
+          EXPECTED_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD_SHA"
 
       - uses: pnpm/action-setup@v4
         with:
@@ -61,6 +71,18 @@ jobs:
           mkdir -p artifacts/fieldgrid-playwright
           touch artifacts/fieldgrid-playwright/runtime-safety-setup-complete
       - run: pnpm fieldgrid:runtime-safety:fixtures
+      - name: Produce runtime database, RLS, API and credential sources
+        run: |
+          pnpm fieldgrid:runtime-safety:db
+          pnpm fieldgrid:runtime-safety:rls
+          pnpm --filter @workspace/api-server run build
+          pnpm fieldgrid:runtime-safety:api
+          pnpm fieldgrid:test:credential-recovery-runtime
+          pnpm fieldgrid:phase2d:runtime-journeys
+      - name: Reset disposable database for deterministic browser fixtures
+        run: |
+          pnpm fieldgrid:runtime-safety:setup
+          pnpm fieldgrid:runtime-safety:fixtures
       - name: Seed Playwright fixtures
         run: pnpm fieldgrid:playwright:fixtures
       - name: Prove Playwright fixture idempotency
@@ -102,10 +124,16 @@ jobs:
             exit 1
           fi
           pnpm fieldgrid:playwright
-      - run: pnpm fieldgrid:playwright:evidence
-      - name: Validate Phase 2 W11 exact-head acceptance artifacts
+      - name: Finalize browser, accessibility and data-path evidence
+        if: always()
         env:
-          FIELDGRID_EXACT_HEAD: ${{ github.sha }}
+          FIELDGRID_EXACT_HEAD: ${{ github.event.pull_request.head.sha }}
+          GITHUB_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: pnpm fieldgrid:playwright:evidence
+      - name: Collect and validate Phase 2 exact-head runtime acceptance artifacts
+        if: always()
+        env:
+          FIELDGRID_EXACT_HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
           pnpm fieldgrid:phase2-w11
           pnpm fieldgrid:phase2-w11:check
@@ -130,6 +158,7 @@ jobs:
           name: fieldgrid-playwright-artifacts
           path: |
             artifacts/fieldgrid-playwright/**
-            artifacts/fieldgrid-phase2-w11/**
+            artifacts/fieldgrid-phase2-runtime/**
             artifacts/runtime-safety-harness/**/*.json
             artifacts/runtime-safety-harness/**/*.log
+          if-no-files-found: error

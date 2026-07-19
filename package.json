@@ -141,12 +141,14 @@
     "fieldgrid:playwright": "node --test tests/fieldgrid-playwright-e2e-auth-sourceguard.test.mjs && node e2e/fieldgrid/run-playwright.mjs",
     "fieldgrid:playwright:install": "playwright install --with-deps chromium",
     "fieldgrid:playwright:fixtures": "node e2e/fieldgrid/fixtures/seed-e2e-fixtures.mjs",
-    "fieldgrid:playwright:evidence": "node e2e/fieldgrid/validate-runtime-evidence.mjs",
+    "fieldgrid:playwright:evidence": "node e2e/fieldgrid/finalize-runtime-evidence.mjs && node e2e/fieldgrid/validate-runtime-evidence.mjs",
+    "fieldgrid:phase2d:runtime-journeys": "pnpm --filter @workspace/db exec tsx ../../scripts/fieldgrid-phase2d-runtime-journeys.mts",
     "fieldgrid:phase2-w11": "node scripts/fieldgrid-phase2-w11-cross-surface-acceptance.mjs",
     "fieldgrid:phase2-w11:check": "node scripts/fieldgrid-phase2-w11-cross-surface-acceptance.mjs --check && node --test tests/fieldgrid-phase2-w11-cross-surface-acceptance.test.mjs"
   },
   "private": true,
   "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
     "playwright": "1.51.1",
     "prettier": "^3.8.3",
     "typescript": "~5.9.3",

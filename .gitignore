@@ -66,5 +66,6 @@ Thumbs.db
 
 # Fieldgrid Playwright local artifacts
 /artifacts/fieldgrid-playwright/
+/artifacts/fieldgrid-phase2-runtime/
 /artifacts/runtime-safety-harness/
 /test-results/

@@ -134,6 +134,8 @@ export default function WachtwoordVergetenPage() {
 
                 {error && (
                   <div
+                    id="code-error"
+                    role="alert"
                     className="rounded-xl px-4 py-3 text-sm font-medium"
                     style={{ backgroundColor: "rgba(239,68,68,0.10)", color: "#B91C1C" }}
                   >
@@ -157,6 +159,8 @@ export default function WachtwoordVergetenPage() {
                     value={code}
                     onChange={(e) => setCode(e.target.value)}
                     required
+                    aria-invalid={Boolean(error)}
+                    aria-describedby={error ? "code-error" : undefined}
                     autoFocus
                     disabled={pending}
                     placeholder="Code uit e-mail"
@@ -194,6 +198,8 @@ export default function WachtwoordVergetenPage() {
               <form onSubmit={handleSubmit} className="space-y-4" noValidate>
                 {error && (
                   <div
+                    id="email-error"
+                    role="alert"
                     className="rounded-xl px-4 py-3 text-sm font-medium"
                     style={{ backgroundColor: "rgba(239,68,68,0.10)", color: "#B91C1C" }}
                   >
@@ -215,6 +221,8 @@ export default function WachtwoordVergetenPage() {
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     required
+                    aria-invalid={Boolean(error)}
+                    aria-describedby={error ? "email-error" : undefined}
                     autoComplete="email"
                     autoFocus
                     disabled={pending}

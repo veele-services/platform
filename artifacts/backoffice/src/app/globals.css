@@ -202,11 +202,11 @@
     background-color: rgba(255,255,255,0.08);
   }
   .sidebar-link.active {
-    color: var(--sidebar-active-text, #FFFFFF);
+    color: var(--sidebar-active-text, #081D3A);
     background-color: var(--sidebar-accent, var(--color-accent, #00B7B3));
   }
   .sidebar-link.active svg {
-    color: var(--sidebar-active-text, #FFFFFF);
+    color: var(--sidebar-active-text, #081D3A);
   }
 
   .news-editor .ProseMirror {

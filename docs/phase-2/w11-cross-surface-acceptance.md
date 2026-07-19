@@ -31,15 +31,17 @@ customer portal, credential recovery, PostgreSQL/RLS, and local PostgREST.
 - screenshots/traces only when useful;
 - redacted logs.
 
-The canonical deterministic evidence file is
-`artifacts/fieldgrid-phase2-w11/cross-surface-acceptance-evidence.json` and is
-validated by `pnpm fieldgrid:phase2-w11:check`.
+The generated per-run evidence file is
+`artifacts/fieldgrid-phase2-runtime/runtime-acceptance.json`. It is a CI artifact,
+not a committed result. `pnpm fieldgrid:phase2-w11` collects only observed
+runtime sources and `pnpm fieldgrid:phase2-w11:check` validates their exact-head
+provenance against `schemas/fieldgrid-phase2-runtime-evidence.schema.json`.
 
 ## Acceptance journeys
 
 | Journey | Required proof |
 | --- | --- |
-| Planned versus actual execution | planned 11:00–12:00, start 09:22, complete 09:44, planboard/personnel projections correct, planned history preserved |
+| Planned versus actual execution | planned values preserved, actual start/completion observed, planboard/personnel/customer projections correct |
 | Interest selection | select first candidate, partially staffed, select final candidate, scheduled, planboard/personnel/customer projections updated |
 | Availability conflict | unavailable/sick person cannot be selected, stale availability edit conflicts safely |
 | Multi-person execution | two participants start and complete independently, aggregate assignment state is correct, participant cannot mutate colleague execution |
@@ -47,6 +49,9 @@ validated by `pnpm fieldgrid:phase2-w11:check`.
 | Customer visibility | customer observes scheduled/in-progress/completed, only approved reports/evidence visible |
 | Credential recovery | activation/reset succeeds, invalid/expired/replayed challenges denied |
 | Tenant guards | Tenant A cannot read or mutate Tenant B across all journeys |
+| Durable unassignment | pre-start audit history/actor/reason retained, active count updated, post-start removal denied |
+| Realtime | management/personnel/customer events, monotonic versions, scrubbing and forbidden-recipient denial |
+| Accessibility | desktop/mobile axe scans, keyboard, focus, labels, associated errors and dialog behavior |
 
 ## CI runtime contract
 

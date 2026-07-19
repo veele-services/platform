@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import assert from "node:assert/strict";
-import { FIXTURE, connect, databaseUrl } from "./fieldgrid-runtime-safety-lib.mjs";
+import { FIXTURE, connect, databaseUrl, writeJsonArtifact } from "./fieldgrid-runtime-safety-lib.mjs";
 
 const parsedDatabase = new URL(databaseUrl());
 assert.ok(["127.0.0.1", "localhost", "::1", "postgres"].includes(parsedDatabase.hostname));
@@ -24,6 +24,7 @@ const customerA = FIXTURE.users.tenantACustomer;
 const personnelA = FIXTURE.users.tenantAPersonnel;
 const origin = "https://tenant-a.runtime.fieldgrid.test";
 const baseNow = new Date("2026-07-18T12:00:00.000Z");
+const runtimeStartedAt = new Date().toISOString();
 
 function context(overrides = {}) {
   return {
@@ -324,20 +325,29 @@ try {
     assert.equal(persistedAudit.includes(secret), false);
   }
 
-  console.log(JSON.stringify({
+  const runtimeResult = {
+    schemaVersion: "1.0.0",
+    name: "fieldgrid-credential-recovery-runtime",
     status: "passed",
-    checks: {
-      hashOnlyStorage: true,
-      expiryAndReplay: true,
-      supersedeAndRevoke: true,
-      purposeSurfaceTenantBinding: true,
-      deactivatedEligibility: true,
-      concurrentSingleUse: true,
-      durableRateLimit: true,
-      auditRedaction: true,
-      rlsAndAcl: true,
-    },
-  }));
+    startedAt: runtimeStartedAt,
+    completedAt: new Date().toISOString(),
+    checks: [
+      "generic-request-response",
+      "hash-only-storage",
+      "valid-token-and-successful-provider-update",
+      "invalid-expired-used-token",
+      "wrong-tenant-purpose-and-surface-token",
+      "supersede-and-revoke",
+      "deactivated-eligibility",
+      "concurrent-single-use",
+      "durable-rate-limit",
+      "audit-redaction",
+      "rls-and-acl",
+    ].map((name) => ({ name, status: "passed" })),
+    tenantFixtureIds: [tenantA, tenantB],
+  };
+  await writeJsonArtifact("reports/credential-recovery.json", runtimeResult);
+  console.log(JSON.stringify(runtimeResult));
 } finally {
   await client.end();
   await pool.end();

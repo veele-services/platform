@@ -89,6 +89,7 @@ let mollieCreateAttempts = 0;
 let pendingLiveness;
 let latestPreflight;
 let dataPathProof;
+let gatewayServiceRoleCredentialRequests = 0;
 
 function quoteForPosixShell(value) {
   return `'${String(value).replaceAll("'", "'\\''")}'`;
@@ -276,6 +277,15 @@ function recoveryProviderProof() {
 function startGateway() {
   gatewayServer = http.createServer(async (req, res) => {
     try {
+      const authorization = Array.isArray(req.headers.authorization)
+        ? req.headers.authorization.join(',')
+        : req.headers.authorization ?? '';
+      const apiKey = Array.isArray(req.headers.apikey)
+        ? req.headers.apikey.join(',')
+        : req.headers.apikey ?? '';
+      if (authorization.includes(localServiceRoleKey) || apiKey.includes(localServiceRoleKey)) {
+        gatewayServiceRoleCredentialRequests += 1;
+      }
       if (req.method === "GET" && req.url === "/healthz") {
         const postgrest = await fetchWithTimeout(
           new URL("/", postgrestOrigin),
@@ -391,6 +401,7 @@ async function gatewayJson(path, jwt, options = {}) {
 }
 
 async function proveDataPath() {
+  const proofStartedAt = new Date().toISOString();
   const tenantACustomerJwt = createJwt(
     localFixtureIdentities.tenantACustomer.userId,
   );
@@ -439,6 +450,16 @@ async function proveDataPath() {
     `/rest/v1/customer_assignment_projection?id=eq.${tenantAAssignment}&select=id`,
     expiredJwt,
   );
+  for (const [name, response] of [
+    ['tenant-a allowed customer query', customerTenantAAllowed],
+    ['tenant-a denied tenant-b customer query', customerTenantADeniedTenantB],
+    ['tenant-b denied tenant-a customer query', customerTenantBDeniedTenantA],
+    ['tenant-a personnel own assignment RPC', personnelTenantAAssignment],
+    ['tenant-a personnel tenant-b assignment RPC', personnelTenantATenantBAssignment],
+    ['tenant-b personnel tenant-a assignment RPC', personnelTenantBTenantAAssignment],
+  ]) {
+    if (response.status !== 200) throw new Error(`${name} returned HTTP ${response.status}; RLS denial must be a successful empty/false response.`);
+  }
   const customerTenantAAllowedRows = customerTenantAAllowed.ok
     ? await customerTenantAAllowed.json()
     : [];
@@ -459,8 +480,13 @@ async function proveDataPath() {
     personnelTenantBTenantAAssignment.ok
       ? await personnelTenantBTenantAAssignment.json()
       : null;
+  const completedAt = new Date().toISOString();
   dataPathProof = {
-    timestamp: new Date().toISOString(),
+    schemaVersion: "1.0.0",
+    name: "fieldgrid-browser-data-path-proof",
+    startedAt: proofStartedAt,
+    completedAt,
+    timestamp: completedAt,
     postgrestVersion: postgrestImage,
     jwtAlgorithm: "HS256",
     jwtRole: "authenticated",
@@ -488,7 +514,16 @@ async function proveDataPath() {
     personnelTenantBTenantAAssignmentDenied:
       personnelTenantBTenantAAssignmentValue === false,
     invalidJwtStatus: invalid.status,
-    serviceRoleBrowserBypassDetected: false,
+    responseStatuses: {
+      customerTenantAAllowed: customerTenantAAllowed.status,
+      customerTenantADeniedTenantB: customerTenantADeniedTenantB.status,
+      customerTenantBDeniedTenantA: customerTenantBDeniedTenantA.status,
+      personnelTenantAAssignment: personnelTenantAAssignment.status,
+      personnelTenantATenantBAssignment: personnelTenantATenantBAssignment.status,
+      personnelTenantBTenantAAssignment: personnelTenantBTenantAAssignment.status,
+    },
+    gatewayServiceRoleCredentialRequests,
+    serviceRoleBrowserBypassDetected: gatewayServiceRoleCredentialRequests > 0,
   };
   const ok =
     dataPathProof.customerTenantAAllowedAssignmentCount === 1 &&
@@ -497,7 +532,10 @@ async function proveDataPath() {
     dataPathProof.personnelTenantAAssignmentAllowed &&
     dataPathProof.personnelTenantATenantBAssignmentDenied &&
     dataPathProof.personnelTenantBTenantAAssignmentDenied &&
-    dataPathProof.invalidJwtStatus >= 400;
+    dataPathProof.invalidJwtStatus === 401 &&
+    dataPathProof.gatewayServiceRoleCredentialRequests === 0;
+  dataPathProof.status = ok ? "passed" : "failed";
+  dataPathProof.failure = ok ? null : { reason: "One or more data-path assertions failed." };
   await writeAtomicJson(proofPath, dataPathProof);
   return { ok, details: dataPathProof };
 }
@@ -685,10 +723,24 @@ async function authenticatedPreflight() {
       checkedAt: new Date().toISOString(),
     });
   } catch (error) {
+    const message = redact(error instanceof Error ? error.message : String(error));
+    dataPathProof = {
+      schemaVersion: "1.0.0",
+      name: "fieldgrid-browser-data-path-proof",
+      status: "failed",
+      startedAt: new Date().toISOString(),
+      completedAt: new Date().toISOString(),
+      timestamp: new Date().toISOString(),
+      postgrestVersion: postgrestImage,
+      gatewayServiceRoleCredentialRequests,
+      serviceRoleBrowserBypassDetected: gatewayServiceRoleCredentialRequests > 0,
+      failure: { reason: message },
+    };
+    await writeAtomicJson(proofPath, dataPathProof);
     checks.push({
       name: "data-path-proof",
       ok: false,
-      error: redact(error instanceof Error ? error.message : String(error)),
+      error: message,
       checkedAt: new Date().toISOString(),
     });
   }

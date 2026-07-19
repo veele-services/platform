@@ -31,7 +31,7 @@ export function OfferteActieButtons({ assignmentId, title }: Props) {
 
   if (done === "rejected") {
     return (
-      <div className="mt-3 flex items-center gap-1.5 text-xs font-medium" style={{ color: "#DC2626" }}>
+      <div className="mt-3 flex items-center gap-1.5 text-xs font-medium" style={{ color: "#B91C1C" }}>
         <XCircle size={14} />
         Offerte afgewezen
       </div>
@@ -125,7 +125,7 @@ export function OfferteActieButtons({ assignmentId, title }: Props) {
               onClick={handleConfirm}
               disabled={pending}
               className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold text-white transition-opacity disabled:opacity-50"
-              style={{ backgroundColor: isApprove ? "#16A34A" : "#DC2626" }}
+              style={{ backgroundColor: isApprove ? "#15803D" : "#B91C1C" }}
             >
               {pending ? "Bezig…" : isApprove ? "Ja, goedkeuren" : "Ja, afwijzen"}
             </button>
@@ -149,7 +149,7 @@ export function OfferteActieButtons({ assignmentId, title }: Props) {
           onClick={() => setConfirming("approve")}
           disabled={pending}
           className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold text-white transition-opacity disabled:opacity-50"
-          style={{ backgroundColor: "#16A34A" }}
+          style={{ backgroundColor: "#15803D" }}
         >
           <CheckCircle2 size={14} />
           Goedkeuren
@@ -159,7 +159,7 @@ export function OfferteActieButtons({ assignmentId, title }: Props) {
           onClick={() => setConfirming("reject")}
           disabled={pending}
           className="flex-1 inline-flex items-center justify-center gap-1.5 rounded-xl px-3 py-2 text-xs font-semibold transition-opacity disabled:opacity-50"
-          style={{ backgroundColor: "#FEE2E2", color: "#DC2626" }}
+          style={{ backgroundColor: "#FEE2E2", color: "#B91C1C" }}
         >
           <XCircle size={14} />
           Afwijzen

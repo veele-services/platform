@@ -43,7 +43,7 @@ const QUOTE_STATUS_BADGE: Partial<
 > = {
   sent: { label: "Offerte verstuurd", bg: "#FEF9C3", color: "#A16207" },
   approved: { label: "Offerte geaccepteerd", bg: "#DCFCE7", color: "#15803D" },
-  rejected: { label: "Offerte afgewezen", bg: "#FEE2E2", color: "#DC2626" },
+  rejected: { label: "Offerte afgewezen", bg: "#FEE2E2", color: "#B91C1C" },
   expired: { label: "Offerte verlopen", bg: "#F1F5F9", color: "#64748B" },
 };
 
@@ -311,7 +311,7 @@ export default async function OpdrachtenPage({
           <button
             type="submit"
             className="inline-flex h-10 items-center justify-center rounded-xl px-4 text-sm font-black text-white shadow-sm transition-opacity hover:opacity-90"
-            style={{ backgroundColor: "var(--color-accent)" }}
+            style={{ backgroundColor: "var(--color-accent-accessible)" }}
           >
             Toepassen
           </button>
@@ -393,7 +393,7 @@ export default async function OpdrachtenPage({
             <Link
               href="/opdrachten/aanvragen"
               className="inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-black text-white"
-              style={{ backgroundColor: "var(--color-accent)" }}
+              style={{ backgroundColor: "var(--color-accent-accessible)" }}
             >
               <PlusCircle size={16} />
               Opdracht aanvragen
@@ -441,7 +441,7 @@ export default async function OpdrachtenPage({
               <Link
                 href={`/opdrachten/${assignment.id}`}
                 className="text-xs font-black"
-                style={{ color: "var(--color-accent)" }}
+                style={{ color: "var(--color-accent-accessible)" }}
               >
                 Details bekijken
               </Link>
@@ -518,7 +518,7 @@ function AssignmentFilterForm({
         <button
           type="submit"
           className="inline-flex h-10 items-center justify-center rounded-xl text-sm font-black text-white"
-          style={{ backgroundColor: "var(--color-accent)" }}
+          style={{ backgroundColor: "var(--color-accent-accessible)" }}
         >
           Toepassen
         </button>

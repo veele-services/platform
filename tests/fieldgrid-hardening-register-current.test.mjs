@@ -211,7 +211,7 @@ test("every remaining open or partial item has an explicit blocker or accepted-r
   }
 });
 
-test("Phase 2C completion leaves no unresolved high-severity feature-freeze blocker", () => {
+test("Phase 2D closeout leaves no unresolved high-severity feature-freeze blocker", () => {
   const unresolved = register.items.filter(
     (item) =>
       item.status !== "closed" &&
@@ -222,17 +222,20 @@ test("Phase 2C completion leaves no unresolved high-severity feature-freeze bloc
   assert.equal(register.counts.featureFreezeBlocking, 0);
 });
 
-test("all open PR numbers are represented exactly once with canonical title/type/disposition mapping", () => {
+test("legacy PR triage is complete and historical dispositions remain auditable", () => {
+  assert.deepEqual(register.openPrDispositions, []);
   const actual = register.openPrDispositions
     .map((entry) => entry.pr)
     .sort((a, b) => a - b);
   assert.deepEqual(
     actual,
-    [...canonicalPrMap.keys()].sort((a, b) => a - b),
+    [],
   );
-  assert.equal(new Set(actual).size, canonicalPrMap.size);
+  assert.equal(new Set(actual).size, 0);
 
-  for (const entry of register.openPrDispositions) {
+  const historical = register.historicalPrDispositions;
+  assert.deepEqual(historical.map((entry) => entry.pr).sort((a, b) => a - b), [...canonicalPrMap.keys()].sort((a, b) => a - b));
+  for (const entry of historical) {
     const [actualType, actualSubject, disposition] = canonicalPrMap.get(
       entry.pr,
     );
@@ -249,7 +252,7 @@ test("all open PR numbers are represented exactly once with canonical title/type
 
 test("implementation PRs are not classified as audit-only and specific historical PR meanings are preserved", () => {
   const byPr = new Map(
-    register.openPrDispositions.map((entry) => [entry.pr, entry]),
+    register.historicalPrDispositions.map((entry) => [entry.pr, entry]),
   );
   for (const pr of [284, 289]) {
     assert.ok(byPr.get(pr).runtimeCodeExists, `PR #${pr} has runtime code`);
@@ -271,7 +274,7 @@ test("implementation PRs are not classified as audit-only and specific historica
 test("merged Phase-B and Phase 2 foundation PRs are represented", () => {
   assert.deepEqual(
     register.mergedImplementationPRs,
-    [278, 291, 294, 295, 296, 326, 327, 328],
+    [278, 291, 294, 295, 296, 326, 327, 328, 329, 332],
   );
   for (const pr of register.mergedImplementationPRs) {
     assert.ok(
@@ -284,9 +287,9 @@ test("merged Phase-B and Phase 2 foundation PRs are represented", () => {
 test("obsolete base SHA is not presented as current and current main SHA is recorded", () => {
   assert.equal(
     register.currentMainSha,
-    "7f57c5a93ec1af6d5553abf190cfd0c3ac300bda",
+    "415c5531304091f043652b5fc3aaffca98d15c06",
   );
-  assert.match(markdown, /7f57c5a93ec1af6d5553abf190cfd0c3ac300bda/u);
+  assert.match(markdown, /415c5531304091f043652b5fc3aaffca98d15c06/u);
   assert.doesNotMatch(markdown, /Current main SHA: `f36e84d/u);
   assert.doesNotMatch(
     JSON.stringify({ currentMainSha: register.currentMainSha }),
