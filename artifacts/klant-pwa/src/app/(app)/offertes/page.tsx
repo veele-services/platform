@@ -10,7 +10,10 @@ import {
   XCircle,
 } from "lucide-react";
 import { getMyQuotes } from "@/actions/quotes";
-import { FinanceActionPanel, FinanceSummaryStrip } from "@/components/FinanceWorkspace";
+import {
+  FinanceActionPanel,
+  FinanceSummaryStrip,
+} from "@/components/FinanceWorkspace";
 import { OfferteActieButtons } from "@/components/OfferteActieButtons";
 import { OfferteRegelitems } from "@/components/OfferteRegelitems";
 import {
@@ -29,7 +32,13 @@ import {
 } from "@/components/portal-ui";
 
 type CustomerQuote = Awaited<ReturnType<typeof getMyQuotes>>[number];
-type QuoteFilter = "all" | "action_required" | "sent" | "approved" | "rejected" | "expired";
+type QuoteFilter =
+  | "all"
+  | "action_required"
+  | "sent"
+  | "approved"
+  | "rejected"
+  | "expired";
 
 const STATUS_CONFIG: Record<
   string,
@@ -81,7 +90,10 @@ function formatAmount(amount: string): string {
 }
 
 function quoteTotal(quotes: CustomerQuote[]): string {
-  const total = quotes.reduce((sum, quote) => sum + Number.parseFloat(quote.amount || "0"), 0);
+  const total = quotes.reduce(
+    (sum, quote) => sum + Number.parseFloat(quote.amount || "0"),
+    0,
+  );
   return formatAmount(total.toFixed(2));
 }
 
@@ -90,7 +102,13 @@ function normalizeQuery(value?: string): string {
 }
 
 function normalizeFilter(value?: string): QuoteFilter {
-  return ["action_required", "sent", "approved", "rejected", "expired"].includes(value ?? "")
+  return [
+    "action_required",
+    "sent",
+    "approved",
+    "rejected",
+    "expired",
+  ].includes(value ?? "")
     ? (value as QuoteFilter)
     : "all";
 }
@@ -100,9 +118,11 @@ function effectiveStatus(quote: CustomerQuote) {
 }
 
 function quoteFilterFor(quote: CustomerQuote): QuoteFilter {
-  if (quote.assignmentStatus === "awaiting_approval") return "action_required";
   const status = effectiveStatus(quote);
-  if (status === "approved" || status === "rejected" || status === "expired") return status;
+  if (quote.assignmentStatus === "awaiting_approval" && status !== "expired")
+    return "action_required";
+  if (status === "approved" || status === "rejected" || status === "expired")
+    return status;
   return "sent";
 }
 
@@ -133,7 +153,11 @@ function matchesQuoteSearch(quote: CustomerQuote, query: string) {
   return haystack.includes(query.toLowerCase());
 }
 
-function filterQuotes(quotes: CustomerQuote[], query: string, filter: QuoteFilter) {
+function filterQuotes(
+  quotes: CustomerQuote[],
+  query: string,
+  filter: QuoteFilter,
+) {
   return quotes.filter((quote) => {
     const matchesFilter = filter === "all" || quoteFilterFor(quote) === filter;
     return matchesFilter && matchesQuoteSearch(quote, query);
@@ -162,7 +186,10 @@ function quoteColumns(): Array<PortalDataColumn<CustomerQuote>> {
       key: "quote",
       header: "Offerte",
       render: (quote) => (
-        <span className="font-mono text-xs font-black" style={{ color: "var(--color-primary)" }}>
+        <span
+          className="font-mono text-xs font-black"
+          style={{ color: "var(--color-primary)" }}
+        >
           {quote.quoteNumber}
         </span>
       ),
@@ -172,10 +199,14 @@ function quoteColumns(): Array<PortalDataColumn<CustomerQuote>> {
       header: "Opdracht",
       render: (quote) => (
         <span className="block min-w-[18rem]">
-          <span className="block truncate text-sm font-black" style={{ color: "var(--color-primary)" }}>
+          <span
+            className="block truncate text-sm font-black"
+            style={{ color: "var(--color-primary)" }}
+          >
             {quote.assignmentTitle}
           </span>
-          {quote.assignmentStatus === "awaiting_approval" ? (
+          {quote.assignmentStatus === "awaiting_approval" &&
+          !quote.isExpired ? (
             <span className="mt-1 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-black text-amber-700">
               Actie vereist
             </span>
@@ -187,7 +218,10 @@ function quoteColumns(): Array<PortalDataColumn<CustomerQuote>> {
       key: "amount",
       header: "Bedrag",
       render: (quote) => (
-        <span className="text-sm font-black" style={{ color: "var(--color-primary)" }}>
+        <span
+          className="text-sm font-black"
+          style={{ color: "var(--color-primary)" }}
+        >
           {formatAmount(quote.amount)}
         </span>
       ),
@@ -196,7 +230,10 @@ function quoteColumns(): Array<PortalDataColumn<CustomerQuote>> {
       key: "validity",
       header: "Geldig t/m",
       render: (quote) => (
-        <span className="text-sm font-semibold" style={{ color: "var(--color-secondary)" }}>
+        <span
+          className="text-sm font-semibold"
+          style={{ color: "var(--color-secondary)" }}
+        >
           {formatDate(quote.validityDate)}
         </span>
       ),
@@ -218,7 +255,8 @@ function quoteColumns(): Array<PortalDataColumn<CustomerQuote>> {
           <PortalActionMenuLink href={`/opdrachten/${quote.assignmentId}`}>
             Opdracht bekijken
           </PortalActionMenuLink>
-          {quote.assignmentStatus === "awaiting_approval" ? (
+          {quote.assignmentStatus === "awaiting_approval" &&
+          !quote.isExpired ? (
             <PortalActionMenuLink href="/offertes?filter=action_required">
               Acties tonen
             </PortalActionMenuLink>
@@ -239,10 +277,17 @@ export default async function OffertesPage({
   const filter = normalizeFilter(params.filter);
   const quotes = await getMyQuotes();
   const visibleQuotes = filterQuotes(quotes, query, filter);
-  const actionRequired = quotes.filter((quote) => quote.assignmentStatus === "awaiting_approval");
+  const actionRequired = quotes.filter(
+    (quote) =>
+      quote.assignmentStatus === "awaiting_approval" && !quote.isExpired,
+  );
   const sentQuotes = quotes.filter((quote) => quoteFilterFor(quote) === "sent");
-  const approvedQuotes = quotes.filter((quote) => quoteFilterFor(quote) === "approved");
-  const expiredQuotes = quotes.filter((quote) => quoteFilterFor(quote) === "expired");
+  const approvedQuotes = quotes.filter(
+    (quote) => quoteFilterFor(quote) === "approved",
+  );
+  const expiredQuotes = quotes.filter(
+    (quote) => quoteFilterFor(quote) === "expired",
+  );
 
   const activeFilters = [
     query
@@ -264,7 +309,10 @@ export default async function OffertesPage({
       title="Offertes"
       subtitle="Controleer en keur offertes digitaal goed of af."
       status={{
-        label: actionRequired.length > 0 ? `${actionRequired.length} actie vereist` : `${quotes.length} offertes`,
+        label:
+          actionRequired.length > 0
+            ? `${actionRequired.length} actie vereist`
+            : `${quotes.length} offertes`,
         tone: actionRequired.length > 0 ? "warning" : "accent",
       }}
     >
@@ -303,7 +351,12 @@ export default async function OffertesPage({
 
       <PortalToolbar
         resultLabel={`${visibleQuotes.length} van ${quotes.length} offertes`}
-        activeFilters={<PortalActiveFilterChips filters={activeFilters} clearHref="/offertes" />}
+        activeFilters={
+          <PortalActiveFilterChips
+            filters={activeFilters}
+            clearHref="/offertes"
+          />
+        }
         actions={
           <PortalFilterSheet
             title="Offertefilters"
@@ -314,13 +367,20 @@ export default async function OffertesPage({
           </PortalFilterSheet>
         }
       >
-        <form action="/offertes" className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row">
+        <form
+          action="/offertes"
+          className="flex min-w-0 flex-1 flex-col gap-2 sm:flex-row"
+        >
           <PortalToolbarSearch
             name="q"
             defaultValue={query}
             placeholder="Zoek offerte of opdracht"
           />
-          <PortalToolbarSelect name="filter" label="Status" defaultValue={filter}>
+          <PortalToolbarSelect
+            name="filter"
+            label="Status"
+            defaultValue={filter}
+          >
             <option value="all">Alle offertes</option>
             <option value="action_required">Actie vereist</option>
             <option value="sent">Ter beoordeling</option>
@@ -355,41 +415,61 @@ export default async function OffertesPage({
           }
         >
           <div className="grid gap-3 lg:grid-cols-2">
-          {actionRequired.map((quote) => (
-            <article
-              key={quote.id}
-              className="rounded-2xl border bg-white p-4 shadow-sm"
-              style={{ borderColor: "#FDE68A" }}
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="font-mono text-xs font-black" style={{ color: "var(--color-muted-fg)" }}>
-                    {quote.quoteNumber}
-                  </p>
-                  <h2 className="mt-1 truncate text-sm font-black" style={{ color: "var(--color-primary)" }}>
-                    {quote.assignmentTitle}
-                  </h2>
-                  <p className="mt-1 text-sm font-semibold" style={{ color: "var(--color-secondary)" }}>
-                    {formatAmount(quote.amount)}
-                    {quote.validityDate ? ` - geldig t/m ${formatDate(quote.validityDate)}` : ""}
-                  </p>
-                </div>
-                <QuoteStatusBadge quote={quote} />
-              </div>
-              <OfferteRegelitems lineItems={quote.lineItems} amount={quote.amount} />
-              <Link
-                href={`/api/offerte/${quote.id}/pdf`}
-                target="_blank"
-                rel="noreferrer"
-                className="mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-black shadow-sm"
-                style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+            {actionRequired.map((quote) => (
+              <article
+                key={quote.id}
+                className="rounded-2xl border bg-white p-4 shadow-sm"
+                style={{ borderColor: "#FDE68A" }}
               >
-                <Download size={16} />
-                PDF downloaden
-              </Link>
-              <OfferteActieButtons assignmentId={quote.assignmentId} title={quote.assignmentTitle} />
-            </article>
-          ))}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p
+                      className="font-mono text-xs font-black"
+                      style={{ color: "var(--color-muted-fg)" }}
+                    >
+                      {quote.quoteNumber}
+                    </p>
+                    <h2
+                      className="mt-1 truncate text-sm font-black"
+                      style={{ color: "var(--color-primary)" }}
+                    >
+                      {quote.assignmentTitle}
+                    </h2>
+                    <p
+                      className="mt-1 text-sm font-semibold"
+                      style={{ color: "var(--color-secondary)" }}
+                    >
+                      {formatAmount(quote.amount)}
+                      {quote.validityDate
+                        ? ` - geldig t/m ${formatDate(quote.validityDate)}`
+                        : ""}
+                    </p>
+                  </div>
+                  <QuoteStatusBadge quote={quote} />
+                </div>
+                <OfferteRegelitems
+                  lineItems={quote.lineItems}
+                  amount={quote.amount}
+                />
+                <Link
+                  href={`/api/offerte/${quote.id}/pdf`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="mt-3 inline-flex h-10 items-center justify-center gap-2 rounded-xl border px-4 text-sm font-black shadow-sm"
+                  style={{
+                    borderColor: "var(--color-border)",
+                    color: "var(--color-primary)",
+                  }}
+                >
+                  <Download size={16} />
+                  PDF downloaden
+                </Link>
+                <OfferteActieButtons
+                  assignmentId={quote.assignmentId}
+                  title={quote.assignmentTitle}
+                />
+              </article>
+            ))}
           </div>
         </FinanceActionPanel>
       ) : null}
@@ -400,8 +480,13 @@ export default async function OffertesPage({
         getItemKey={(quote) => quote.id}
         tableLabel="Offertes"
         emptyState={{
-          icon: <FileText size={32} style={{ color: "var(--color-muted-fg)" }} />,
-          title: activeFilters.length > 0 ? "Geen offertes gevonden" : "Nog geen offertes",
+          icon: (
+            <FileText size={32} style={{ color: "var(--color-muted-fg)" }} />
+          ),
+          title:
+            activeFilters.length > 0
+              ? "Geen offertes gevonden"
+              : "Nog geen offertes",
           description:
             activeFilters.length > 0
               ? "Pas uw zoekopdracht of filters aan om de offertes opnieuw te bekijken."
@@ -420,28 +505,51 @@ export default async function OffertesPage({
                 >
                   {quote.quoteNumber}
                 </span>
-                <h3 className="mt-2 truncate font-black" style={{ color: "var(--color-primary)" }}>
+                <h3
+                  className="mt-2 truncate font-black"
+                  style={{ color: "var(--color-primary)" }}
+                >
                   {quote.assignmentTitle}
                 </h3>
-                <p className="mt-1 text-2xl font-black" style={{ color: "var(--color-primary)" }}>
+                <p
+                  className="mt-1 text-2xl font-black"
+                  style={{ color: "var(--color-primary)" }}
+                >
                   {formatAmount(quote.amount)}
                 </p>
-                <p className="mt-0.5 text-xs font-semibold" style={{ color: "var(--color-secondary)" }}>
+                <p
+                  className="mt-0.5 text-xs font-semibold"
+                  style={{ color: "var(--color-secondary)" }}
+                >
                   Geldig t/m: {formatDate(quote.validityDate)}
                 </p>
               </div>
               <QuoteStatusBadge quote={quote} />
             </div>
-            <OfferteRegelitems lineItems={quote.lineItems} amount={quote.amount} />
-            {quote.assignmentStatus === "awaiting_approval" ? (
-              <OfferteActieButtons assignmentId={quote.assignmentId} title={quote.assignmentTitle} />
+            <OfferteRegelitems
+              lineItems={quote.lineItems}
+              amount={quote.amount}
+            />
+            {quote.assignmentStatus === "awaiting_approval" &&
+            !quote.isExpired ? (
+              <OfferteActieButtons
+                assignmentId={quote.assignmentId}
+                title={quote.assignmentTitle}
+              />
             ) : null}
             <div className="mt-3 flex justify-end">
-              <PortalActionMenu label={`Acties voor offerte ${quote.quoteNumber}`}>
-                <PortalActionMenuLink href={`/api/offerte/${quote.id}/pdf`} external>
+              <PortalActionMenu
+                label={`Acties voor offerte ${quote.quoteNumber}`}
+              >
+                <PortalActionMenuLink
+                  href={`/api/offerte/${quote.id}/pdf`}
+                  external
+                >
                   PDF downloaden
                 </PortalActionMenuLink>
-                <PortalActionMenuLink href={`/opdrachten/${quote.assignmentId}`}>
+                <PortalActionMenuLink
+                  href={`/opdrachten/${quote.assignmentId}`}
+                >
                   Opdracht bekijken
                 </PortalActionMenuLink>
               </PortalActionMenu>
@@ -453,11 +561,21 @@ export default async function OffertesPage({
   );
 }
 
-function QuoteFilterForm({ query, filter }: { query: string; filter: QuoteFilter }) {
+function QuoteFilterForm({
+  query,
+  filter,
+}: {
+  query: string;
+  filter: QuoteFilter;
+}) {
   return (
     <form action="/offertes" className="space-y-4">
       <div>
-        <label htmlFor="quote-filter-query" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+        <label
+          htmlFor="quote-filter-query"
+          className="text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
           Zoeken
         </label>
         <input
@@ -467,11 +585,18 @@ function QuoteFilterForm({ query, filter }: { query: string; filter: QuoteFilter
           defaultValue={query}
           placeholder="Offertenummer of opdracht"
           className="mt-1 h-11 w-full rounded-xl border px-3 text-sm font-semibold outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         />
       </div>
       <div>
-        <label htmlFor="quote-filter-status" className="text-xs font-black" style={{ color: "var(--color-secondary)" }}>
+        <label
+          htmlFor="quote-filter-status"
+          className="text-xs font-black"
+          style={{ color: "var(--color-secondary)" }}
+        >
           Status
         </label>
         <select
@@ -479,7 +604,10 @@ function QuoteFilterForm({ query, filter }: { query: string; filter: QuoteFilter
           name="filter"
           defaultValue={filter}
           className="mt-1 h-11 w-full rounded-xl border bg-white px-3 text-sm font-black outline-none transition-shadow focus:shadow-[0_0_0_3px_rgba(0,183,179,0.14)]"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           <option value="all">Alle offertes</option>
           <option value="action_required">Actie vereist</option>
@@ -493,7 +621,10 @@ function QuoteFilterForm({ query, filter }: { query: string; filter: QuoteFilter
         <Link
           href="/offertes"
           className="inline-flex h-10 items-center justify-center rounded-xl border text-sm font-black"
-          style={{ borderColor: "var(--color-border)", color: "var(--color-primary)" }}
+          style={{
+            borderColor: "var(--color-border)",
+            color: "var(--color-primary)",
+          }}
         >
           Wissen
         </Link>

@@ -812,14 +812,48 @@ AS $$
   );
 $$;
 
+CREATE TABLE IF NOT EXISTS app_private.invoice_cancellation_context (
+  transaction_id bigint NOT NULL,
+  backend_pid integer NOT NULL,
+  tenant_id uuid NOT NULL,
+  invoice_id uuid NOT NULL,
+  assignment_id uuid NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (transaction_id, backend_pid, assignment_id)
+);
+REVOKE ALL ON app_private.invoice_cancellation_context FROM PUBLIC, anon, authenticated, service_role;
+
 CREATE OR REPLACE FUNCTION public.trg_fieldgrid_assignment_state_guard()
 RETURNS trigger
 LANGUAGE plpgsql
+SECURITY DEFINER
 SET search_path = pg_catalog, public, pg_temp
 AS $$
+DECLARE
+  authorized_invoice_reopen boolean := false;
 BEGIN
   IF NEW.status IS DISTINCT FROM OLD.status THEN
-    IF NOT public.fieldgrid_assignment_transition_allowed(OLD.status, NEW.status) THEN
+    IF OLD.status IN ('invoice_ready', 'invoiced') AND NEW.status = 'report_approved' THEN
+      SELECT EXISTS (
+        SELECT 1
+        FROM app_private.invoice_cancellation_context context
+        JOIN public.invoices invoice
+          ON invoice.id = context.invoice_id
+         AND invoice.tenant_id = context.tenant_id
+         AND invoice.assignment_id = context.assignment_id
+         AND invoice.status = 'cancelled'
+         AND invoice.cancelled_at IS NOT NULL
+         AND invoice.cancelled_by IS NOT NULL
+         AND length(btrim(COALESCE(invoice.cancellation_reason, ''))) >= 3
+        WHERE context.transaction_id = txid_current()
+          AND context.backend_pid = pg_backend_pid()
+          AND context.tenant_id = OLD.tenant_id
+          AND context.assignment_id = OLD.id
+      ) INTO authorized_invoice_reopen;
+    END IF;
+
+    IF NOT public.fieldgrid_assignment_transition_allowed(OLD.status, NEW.status)
+       AND NOT authorized_invoice_reopen THEN
       RAISE EXCEPTION 'Ongeldige opdrachtstatus-overgang van % naar %.', OLD.status, NEW.status
         USING ERRCODE = '23514';
     END IF;
@@ -836,6 +870,122 @@ DROP TRIGGER IF EXISTS fieldgrid_assignment_state_guard ON public.assignments;
 CREATE TRIGGER fieldgrid_assignment_state_guard
   BEFORE UPDATE OF status, lifecycle_version ON public.assignments
   FOR EACH ROW EXECUTE FUNCTION public.trg_fieldgrid_assignment_state_guard();
+
+-- Customer quote acceptance is one aggregate command. The caller supplies only
+-- the authenticated actor and assignment; tenant/customer scope is derived from
+-- the active customer_users relationship while the assignment and quote are
+-- locked. Both canonical state edges commit together, so approved is never an
+-- externally observable stranded intermediate state.
+CREATE OR REPLACE FUNCTION public.accept_customer_quote(
+  p_assignment_id uuid,
+  p_actor_user_id uuid
+)
+RETURNS TABLE(
+  tenant_id uuid,
+  customer_id uuid,
+  quote_id uuid,
+  assignment_status text,
+  lifecycle_version bigint,
+  idempotent boolean
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $$
+DECLARE
+  assignment_row public.assignments%ROWTYPE;
+  quote_row public.quotes%ROWTYPE;
+BEGIN
+  IF p_assignment_id IS NULL OR p_actor_user_id IS NULL THEN
+    RAISE EXCEPTION 'Opdracht en gebruiker zijn vereist.' USING ERRCODE = '22023';
+  END IF;
+
+  SELECT assignment.* INTO assignment_row
+  FROM public.assignments assignment
+  JOIN public.customer_users customer_user
+    ON customer_user.tenant_id = assignment.tenant_id
+   AND customer_user.customer_id = assignment.customer_id
+   AND customer_user.user_id = p_actor_user_id
+   AND customer_user.status = 'active'
+  JOIN public.customers customer
+    ON customer.id = assignment.customer_id
+   AND customer.tenant_id = assignment.tenant_id
+   AND customer.is_active IS TRUE
+  WHERE assignment.id = p_assignment_id
+    AND assignment.is_active IS TRUE
+  FOR UPDATE OF assignment;
+
+  IF assignment_row.id IS NULL THEN
+    RAISE EXCEPTION 'Offerte niet gevonden of niet toegankelijk.' USING ERRCODE = '42501';
+  END IF;
+
+  SELECT quote.* INTO quote_row
+  FROM public.quotes quote
+  WHERE quote.assignment_id = assignment_row.id
+    AND quote.tenant_id = assignment_row.tenant_id
+    AND quote.customer_id = assignment_row.customer_id
+    AND quote.status IN ('sent', 'approved')
+  ORDER BY quote.created_at DESC, quote.id
+  LIMIT 1
+  FOR UPDATE;
+
+  IF quote_row.id IS NULL THEN
+    RAISE EXCEPTION 'Offerte is niet verzonden of kan niet meer worden goedgekeurd.' USING ERRCODE = '23514';
+  END IF;
+
+  IF quote_row.status = 'approved' AND assignment_row.status = 'plannable' THEN
+    RETURN QUERY SELECT assignment_row.tenant_id, assignment_row.customer_id,
+      quote_row.id, assignment_row.status::text, assignment_row.lifecycle_version, true;
+    RETURN;
+  END IF;
+
+  IF quote_row.status <> 'sent' OR assignment_row.status <> 'awaiting_approval' THEN
+    RAISE EXCEPTION 'Offerte is al verwerkt of de opdracht heeft geen geldige goedkeuringsstatus.'
+      USING ERRCODE = '23514';
+  END IF;
+  IF quote_row.validity_date < CURRENT_DATE THEN
+    RAISE EXCEPTION 'Deze offerte is verlopen en kan niet meer worden goedgekeurd.' USING ERRCODE = '23514';
+  END IF;
+
+  UPDATE public.quotes
+  SET status = 'approved', approved_by = p_actor_user_id,
+      approved_at = now(), updated_at = now()
+  WHERE id = quote_row.id;
+
+  UPDATE public.assignments
+  SET status = 'approved', updated_at = now()
+  WHERE id = assignment_row.id;
+  UPDATE public.assignments
+  SET status = 'plannable', updated_at = now()
+  WHERE id = assignment_row.id
+  RETURNING * INTO assignment_row;
+
+  INSERT INTO public.audit_log(tenant_id, user_id, action, resource, resource_id, metadata)
+  VALUES (
+    assignment_row.tenant_id,
+    p_actor_user_id,
+    'customer_approve_quote',
+    'quotes',
+    quote_row.id::text,
+    jsonb_build_object(
+      'assignmentId', assignment_row.id,
+      'customerId', assignment_row.customer_id,
+      'tenantId', assignment_row.tenant_id,
+      'transitions', jsonb_build_array('awaiting_approval->approved', 'approved->plannable'),
+      'nextAssignmentStatus', 'plannable',
+      'lifecycleVersion', assignment_row.lifecycle_version
+    )
+  );
+
+  RETURN QUERY SELECT assignment_row.tenant_id, assignment_row.customer_id,
+    quote_row.id, assignment_row.status::text, assignment_row.lifecycle_version, false;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.accept_customer_quote(uuid, uuid)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.accept_customer_quote(uuid, uuid)
+  TO service_role;
 
 CREATE OR REPLACE FUNCTION public.transition_assignment_status(
   p_tenant_id uuid,
@@ -1456,9 +1606,20 @@ CREATE UNIQUE INDEX IF NOT EXISTS payments_provider_request_key_idx
   WHERE provider_request_key IS NOT NULL;
 CREATE UNIQUE INDEX IF NOT EXISTS invoices_assignment_active_unique_idx
   ON public.invoices(assignment_id)
-  WHERE assignment_id IS NOT NULL AND status IN ('draft', 'sent', 'paid');
+  WHERE assignment_id IS NOT NULL AND type = 'invoice' AND status IN ('draft', 'sent', 'paid');
+CREATE UNIQUE INDEX IF NOT EXISTS invoices_active_credit_note_unique_idx
+  ON public.invoices(credited_invoice_id)
+  WHERE credited_invoice_id IS NOT NULL AND type = 'credit_note' AND status IN ('draft', 'sent', 'paid');
 CREATE UNIQUE INDEX IF NOT EXISTS payment_allocations_payment_invoice_idx
   ON public.payment_allocations(payment_id, invoice_id);
+CREATE UNIQUE INDEX IF NOT EXISTS payments_active_mollie_source_unique_idx
+  ON public.payments(tenant_id, source_type, source_id)
+  WHERE payment_method = 'mollie' AND status = 'open' AND source_id IS NOT NULL;
+
+UPDATE public.payments
+SET source_type = 'invoice', source_id = invoice_id
+WHERE invoice_id IS NOT NULL
+  AND (source_type IS DISTINCT FROM 'invoice' OR source_id IS DISTINCT FROM invoice_id);
 
 DO $finance_constraints$
 BEGIN
@@ -1471,8 +1632,255 @@ BEGIN
       ADD CONSTRAINT payment_allocations_amount_positive_check
       CHECK (amount_cents > 0 AND amount = amount_cents::numeric / 100);
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'payments_source_shape_check') THEN
+    ALTER TABLE public.payments
+      ADD CONSTRAINT payments_source_shape_check CHECK (
+        (source_type = 'invoice' AND invoice_id IS NOT NULL AND source_id = invoice_id)
+        OR
+        (source_type = 'invoice_collection' AND invoice_id IS NULL AND source_id IS NOT NULL)
+      );
+  END IF;
 END;
 $finance_constraints$;
+
+CREATE OR REPLACE FUNCTION public.fieldgrid_set_payment_tenant_id()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $$
+DECLARE
+  parent_tenant_id uuid;
+  parent_customer_id uuid;
+BEGIN
+  IF NEW.source_type = 'invoice' THEN
+    IF NEW.invoice_id IS NULL OR NEW.source_id IS DISTINCT FROM NEW.invoice_id THEN
+      RAISE EXCEPTION 'Directe betaling vereist dezelfde factuur als invoice_id en source_id.'
+        USING ERRCODE = '23514';
+    END IF;
+    SELECT invoice.tenant_id, invoice.customer_id
+      INTO parent_tenant_id, parent_customer_id
+    FROM public.invoices invoice
+    WHERE invoice.id = NEW.invoice_id
+    FOR KEY SHARE;
+  ELSIF NEW.source_type = 'invoice_collection' THEN
+    IF NEW.invoice_id IS NOT NULL OR NEW.source_id IS NULL THEN
+      RAISE EXCEPTION 'Verzamelbetaling vereist een lege invoice_id en een collection source_id.'
+        USING ERRCODE = '23514';
+    END IF;
+    SELECT batch.tenant_id, batch.customer_id
+      INTO parent_tenant_id, parent_customer_id
+    FROM public.customer_payment_batches batch
+    WHERE batch.id = NEW.source_id
+    FOR KEY SHARE;
+  ELSE
+    RAISE EXCEPTION 'Onbekend betalingstype %.', NEW.source_type USING ERRCODE = '23514';
+  END IF;
+
+  IF parent_tenant_id IS NULL OR parent_customer_id IS NULL THEN
+    RAISE EXCEPTION 'Betalingsbron bestaat niet of heeft geen tenantcontext.' USING ERRCODE = '23514';
+  END IF;
+  IF NEW.tenant_id IS NULL THEN
+    NEW.tenant_id := parent_tenant_id;
+  ELSIF NEW.tenant_id IS DISTINCT FROM parent_tenant_id THEN
+    RAISE EXCEPTION 'Betaling en bron horen niet bij dezelfde organisatie.' USING ERRCODE = '23514';
+  END IF;
+  IF NEW.customer_id IS NULL THEN
+    NEW.customer_id := parent_customer_id;
+  ELSIF NEW.customer_id IS DISTINCT FROM parent_customer_id THEN
+    RAISE EXCEPTION 'Betaling en bron horen niet bij dezelfde klant.' USING ERRCODE = '23514';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_payments_set_tenant_id ON public.payments;
+CREATE TRIGGER trg_payments_set_tenant_id
+  BEFORE INSERT OR UPDATE OF tenant_id, customer_id, invoice_id, source_type, source_id
+  ON public.payments
+  FOR EACH ROW EXECUTE FUNCTION public.fieldgrid_set_payment_tenant_id();
+
+REVOKE ALL ON FUNCTION public.fieldgrid_set_payment_tenant_id()
+  FROM PUBLIC, anon, authenticated, service_role;
+
+-- Cancelling an invoice is the sole command allowed to reopen an invoiced
+-- assignment. Authorization, financial checks, invoice cancellation, payment
+-- invalidation, assignment rollback and audit all share one transaction. The
+-- private context is consumed by the assignment trigger and cannot be created
+-- by application roles, so it is not a generic status-regression bypass.
+CREATE OR REPLACE FUNCTION public.cancel_invoice_and_reopen_assignment(
+  p_tenant_id uuid,
+  p_invoice_id uuid,
+  p_actor_user_id uuid,
+  p_reason text
+)
+RETURNS TABLE(
+  invoice_status text,
+  assignment_status text,
+  lifecycle_version bigint,
+  idempotent boolean
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = pg_catalog, public, pg_temp
+AS $$
+DECLARE
+  invoice_row public.invoices%ROWTYPE;
+  assignment_row public.assignments%ROWTYPE;
+  normalized_reason text := btrim(COALESCE(p_reason, ''));
+  cancelled_payments integer := 0;
+BEGIN
+  IF p_tenant_id IS NULL OR p_invoice_id IS NULL OR p_actor_user_id IS NULL THEN
+    RAISE EXCEPTION 'Organisatie, factuur en gebruiker zijn vereist.' USING ERRCODE = '22023';
+  END IF;
+  IF length(normalized_reason) < 3 OR length(normalized_reason) > 500 THEN
+    RAISE EXCEPTION 'Geef een annuleringsreden van 3 tot 500 tekens.' USING ERRCODE = '22023';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1
+    FROM public.tenant_users tenant_user
+    JOIN public.tenant_user_roles user_role
+      ON user_role.tenant_id = tenant_user.tenant_id
+     AND user_role.user_id = tenant_user.user_id
+    JOIN public.tenant_roles tenant_role
+      ON tenant_role.id = user_role.tenant_role_id
+     AND tenant_role.tenant_id = tenant_user.tenant_id
+    JOIN public.tenant_role_permissions role_permission
+      ON role_permission.tenant_role_id = tenant_role.id
+    JOIN public.permissions permission
+      ON permission.id = role_permission.permission_id
+     AND permission.resource = 'invoices'
+     AND permission.action = 'write'
+    JOIN public.tenants tenant
+      ON tenant.id = tenant_user.tenant_id
+     AND tenant.is_active IS TRUE
+     AND tenant.status = 'active'
+    WHERE tenant_user.tenant_id = p_tenant_id
+      AND tenant_user.user_id = p_actor_user_id
+      AND tenant_user.status = 'active'
+  ) THEN
+    RAISE EXCEPTION 'Geen bevoegdheid om deze factuur te annuleren.' USING ERRCODE = '42501';
+  END IF;
+
+  SELECT * INTO invoice_row
+  FROM public.invoices
+  WHERE id = p_invoice_id AND tenant_id = p_tenant_id
+  FOR UPDATE;
+  IF invoice_row.id IS NULL THEN
+    RAISE EXCEPTION 'Factuur niet gevonden binnen deze organisatie.' USING ERRCODE = '42501';
+  END IF;
+
+  SELECT * INTO assignment_row
+  FROM public.assignments
+  WHERE id = invoice_row.assignment_id AND tenant_id = p_tenant_id
+  FOR UPDATE;
+  IF assignment_row.id IS NULL OR invoice_row.customer_id IS DISTINCT FROM assignment_row.customer_id THEN
+    RAISE EXCEPTION 'Factuur en opdracht horen niet bij dezelfde organisatie of klant.' USING ERRCODE = '23514';
+  END IF;
+
+  IF invoice_row.status = 'cancelled' THEN
+    IF assignment_row.status <> 'report_approved' THEN
+      RAISE EXCEPTION 'Geannuleerde factuur heeft geen canonieke opdrachtstatus.' USING ERRCODE = '23514';
+    END IF;
+    RETURN QUERY SELECT invoice_row.status::text, assignment_row.status::text,
+      assignment_row.lifecycle_version, true;
+    RETURN;
+  END IF;
+
+  IF invoice_row.type <> 'invoice' OR invoice_row.status NOT IN ('draft', 'sent') THEN
+    RAISE EXCEPTION 'Alleen een concept- of verzonden factuur kan worden geannuleerd.' USING ERRCODE = '23514';
+  END IF;
+  IF (invoice_row.status = 'draft' AND assignment_row.status <> 'invoice_ready')
+     OR (invoice_row.status = 'sent' AND assignment_row.status <> 'invoiced') THEN
+    RAISE EXCEPTION 'Factuur en opdracht hebben geen bijpassende annuleerstatus.' USING ERRCODE = '23514';
+  END IF;
+  IF invoice_row.payment_status IN ('partially_paid', 'paid')
+     OR COALESCE(invoice_row.paid_amount, 0) > 0
+     OR EXISTS (
+       SELECT 1 FROM public.payment_allocations allocation
+       WHERE allocation.invoice_id = invoice_row.id
+     )
+     OR EXISTS (
+       SELECT 1 FROM public.payments payment
+       WHERE payment.invoice_id = invoice_row.id AND payment.status = 'paid'
+     ) THEN
+    RAISE EXCEPTION 'Een betaalde of gedeeltelijk betaalde factuur kan niet worden heropend.' USING ERRCODE = '23514';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM public.payments payment
+    WHERE payment.invoice_id = invoice_row.id AND payment.status = 'open'
+  ) THEN
+    RAISE EXCEPTION 'Annuleer eerst het openstaande betaalverzoek bij de betaalprovider.' USING ERRCODE = '23514';
+  END IF;
+  IF invoice_row.collection_status NOT IN ('none', 'collection_cancelled')
+     OR EXISTS (
+       SELECT 1
+       FROM public.customer_payment_batch_items item
+       JOIN public.customer_payment_batches batch ON batch.id = item.batch_id
+       WHERE item.invoice_id = invoice_row.id
+         AND batch.status IN ('active', 'sent', 'open', 'partially_paid', 'paid')
+     ) THEN
+    RAISE EXCEPTION 'Een factuur in een actieve of betaalde verzameling kan niet worden geannuleerd.' USING ERRCODE = '23514';
+  END IF;
+  IF EXISTS (
+    SELECT 1 FROM public.invoices credit_note
+    WHERE credit_note.tenant_id = p_tenant_id
+      AND credit_note.credited_invoice_id = invoice_row.id
+      AND credit_note.status IN ('draft', 'sent', 'paid')
+  ) THEN
+    RAISE EXCEPTION 'Een factuur met een actieve creditnota kan niet rechtstreeks worden heropend.' USING ERRCODE = '23514';
+  END IF;
+
+  UPDATE public.invoices
+  SET status = 'cancelled', payment_status = 'cancelled',
+      cancelled_at = now(), cancelled_by = p_actor_user_id,
+      cancellation_reason = normalized_reason, updated_at = now()
+  WHERE id = invoice_row.id
+  RETURNING * INTO invoice_row;
+
+  INSERT INTO app_private.invoice_cancellation_context(
+    transaction_id, backend_pid, tenant_id, invoice_id, assignment_id
+  ) VALUES (
+    txid_current(), pg_backend_pid(), p_tenant_id, invoice_row.id, assignment_row.id
+  );
+
+  UPDATE public.assignments
+  SET status = 'report_approved', updated_at = now()
+  WHERE id = assignment_row.id
+  RETURNING * INTO assignment_row;
+
+  DELETE FROM app_private.invoice_cancellation_context
+  WHERE transaction_id = txid_current()
+    AND backend_pid = pg_backend_pid()
+    AND assignment_id = assignment_row.id;
+
+  INSERT INTO public.audit_log(tenant_id, user_id, action, resource, resource_id, metadata)
+  VALUES (
+    p_tenant_id,
+    p_actor_user_id,
+    'cancel_invoice_and_reopen_assignment',
+    'invoices',
+    invoice_row.id::text,
+    jsonb_build_object(
+      'assignmentId', assignment_row.id,
+      'reason', normalized_reason,
+      'cancelledAt', invoice_row.cancelled_at,
+      'cancelledOpenPayments', cancelled_payments,
+      'nextAssignmentStatus', 'report_approved',
+      'lifecycleVersion', assignment_row.lifecycle_version
+    )
+  );
+
+  RETURN QUERY SELECT invoice_row.status::text, assignment_row.status::text,
+    assignment_row.lifecycle_version, false;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.cancel_invoice_and_reopen_assignment(uuid, uuid, uuid, text)
+  FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.cancel_invoice_and_reopen_assignment(uuid, uuid, uuid, text)
+  TO service_role;
 
 CREATE OR REPLACE FUNCTION public.fieldgrid_guard_payment_allocation()
 RETURNS trigger
@@ -1482,6 +1890,8 @@ AS $$
 DECLARE
   payment_row public.payments%ROWTYPE;
   invoice_row public.invoices%ROWTYPE;
+  batch_row public.customer_payment_batches%ROWTYPE;
+  existing_allocation public.payment_allocations%ROWTYPE;
   payment_allocated bigint;
   invoice_allocated bigint;
   invoice_total bigint;
@@ -1491,11 +1901,58 @@ BEGIN
   IF payment_row.id IS NULL OR invoice_row.id IS NULL
      OR payment_row.tenant_id IS DISTINCT FROM NEW.tenant_id
      OR invoice_row.tenant_id IS DISTINCT FROM NEW.tenant_id
-     OR payment_row.invoice_id IS DISTINCT FROM NEW.invoice_id THEN
-    RAISE EXCEPTION 'Payment allocation tenant/invoice mismatch.' USING ERRCODE = '23514';
+     OR payment_row.customer_id IS DISTINCT FROM invoice_row.customer_id THEN
+    RAISE EXCEPTION 'Payment allocation tenant/customer mismatch.' USING ERRCODE = '23514';
   END IF;
   IF payment_row.status <> 'paid' THEN
     RAISE EXCEPTION 'Only paid payments can be allocated.' USING ERRCODE = '23514';
+  END IF;
+
+  IF payment_row.source_type = 'invoice' THEN
+    IF payment_row.invoice_id IS NULL
+       OR payment_row.invoice_id IS DISTINCT FROM NEW.invoice_id
+       OR payment_row.source_id IS DISTINCT FROM NEW.invoice_id THEN
+      RAISE EXCEPTION 'Direct payment allocation does not match its invoice source.' USING ERRCODE = '23514';
+    END IF;
+  ELSIF payment_row.source_type = 'invoice_collection' THEN
+    IF payment_row.invoice_id IS NOT NULL OR payment_row.source_id IS NULL THEN
+      RAISE EXCEPTION 'Collection payment has an invalid source shape.' USING ERRCODE = '23514';
+    END IF;
+    SELECT * INTO batch_row
+    FROM public.customer_payment_batches
+    WHERE id = payment_row.source_id
+    FOR UPDATE;
+    IF batch_row.id IS NULL
+       OR batch_row.tenant_id IS DISTINCT FROM NEW.tenant_id
+       OR batch_row.customer_id IS DISTINCT FROM payment_row.customer_id
+       OR NOT EXISTS (
+         SELECT 1
+         FROM public.customer_payment_batch_items item
+         WHERE item.batch_id = batch_row.id
+           AND item.invoice_id = NEW.invoice_id
+           AND item.tenant_id = NEW.tenant_id
+       ) THEN
+      RAISE EXCEPTION 'Collection allocation invoice is not a tenant-matching collection member.'
+        USING ERRCODE = '23514';
+    END IF;
+  ELSE
+    RAISE EXCEPTION 'Unsupported payment allocation source type.' USING ERRCODE = '23514';
+  END IF;
+
+  IF TG_OP = 'INSERT' THEN
+    SELECT * INTO existing_allocation
+    FROM public.payment_allocations
+    WHERE payment_id = NEW.payment_id AND invoice_id = NEW.invoice_id
+    FOR UPDATE;
+    IF existing_allocation.id IS NOT NULL THEN
+      IF existing_allocation.tenant_id = NEW.tenant_id
+         AND existing_allocation.amount_cents = NEW.amount_cents
+         AND existing_allocation.amount = NEW.amount THEN
+        RETURN NULL;
+      END IF;
+      RAISE EXCEPTION 'Payment allocation replay payload differs from the canonical allocation.'
+        USING ERRCODE = '23505';
+    END IF;
   END IF;
 
   SELECT COALESCE(sum(amount_cents), 0) INTO payment_allocated

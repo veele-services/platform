@@ -15,6 +15,7 @@ import {
   sectorsTable,
   auditLogTable,
   organizationSettingsTable,
+  acceptCustomerQuote,
   type AssignmentStatus,
   type QuoteStatus,
   type InvoiceStatus,
@@ -591,6 +592,53 @@ export async function approveQuote(
   if (!identity)
     return { success: false, message: "Geen klantprofiel gevonden." };
 
+  let acceptance;
+  try {
+    acceptance = await acceptCustomerQuote({
+      assignmentId,
+      actorUserId: user.id,
+    });
+  } catch (error) {
+    const code = (error as { code?: string }).code;
+    const message = error instanceof Error ? error.message : "";
+    if (code === "42501") {
+      return {
+        success: false,
+        message: "Offerte niet gevonden of niet toegankelijk.",
+      };
+    }
+    if (code === "23514" && /verlopen/iu.test(message)) {
+      return {
+        success: false,
+        message:
+          "Deze offerte is verlopen en kan niet meer worden goedgekeurd.",
+      };
+    }
+    return {
+      success: false,
+      message:
+        "Offerte kon niet worden goedgekeurd. Vernieuw de pagina en probeer opnieuw.",
+    };
+  }
+
+  if (
+    acceptance.tenantId !== identity.tenantId ||
+    acceptance.customerId !== identity.customerId ||
+    acceptance.assignmentStatus !== "plannable"
+  ) {
+    return {
+      success: false,
+      message: "Offertegoedkeuring heeft geen geldige eindstatus opgeleverd.",
+    };
+  }
+
+  if (acceptance.idempotent) {
+    revalidatePath("/opdrachten");
+    revalidatePath(`/opdrachten/${assignmentId}`);
+    revalidatePath("/offertes");
+    return { success: true, id: assignmentId };
+  }
+
   const [assignment] = await db
     .select({
       id: assignmentsTable.id,
@@ -613,88 +661,66 @@ export async function approveQuote(
         eq(assignmentsTable.id, assignmentId),
         eq(assignmentsTable.customerId, identity.customerId),
         eq(assignmentsTable.tenantId, identity.tenantId),
-        eq(assignmentsTable.status, "awaiting_approval"),
-        eq(quotesTable.status, "sent"),
+        eq(quotesTable.id, acceptance.quoteId),
+        eq(assignmentsTable.status, "plannable"),
+        eq(quotesTable.status, "approved"),
       ),
     )
     .limit(1);
 
   if (!assignment) {
-    return { success: false, message: "Offerte niet gevonden of al verwerkt." };
+    return {
+      success: false,
+      message:
+        "Offerte is goedgekeurd, maar de bevestiging kon niet worden geladen.",
+    };
   }
   const backofficeHref = backofficeRoutes.assignment(assignmentId);
 
-  await db.transaction(async (tx) => {
-    await tx
-      .update(quotesTable)
-      .set({
-        status: "approved",
-        approvedBy: user.id,
-        approvedAt: new Date(),
-      })
-      .where(eq(quotesTable.id, assignment.quoteId));
-
-    await tx
-      .update(assignmentsTable)
-      .set({ status: "plannable" })
-      .where(
-        and(
-          eq(assignmentsTable.id, assignmentId),
-          eq(assignmentsTable.tenantId, identity.tenantId),
-        ),
-      );
-
-    await tx.insert(auditLogTable).values({
-      userId: user.id,
-      action: "customer_approve_quote",
-      resource: "quotes",
-      resourceId: assignment.quoteId,
-      metadata: {
+  try {
+    await emitDomainEvent({
+      eventKey: "quote_approved_by_customer",
+      tenantId: identity.tenantId,
+      actorUserId: user.id,
+      audience: "management",
+      aggregate: { type: "quote", id: assignment.quoteId },
+      payload: {
         assignmentId,
         customerId: identity.customerId,
-        tenantId: identity.tenantId,
+        quoteId: assignment.quoteId,
         nextAssignmentStatus: "plannable",
+        assignment: {
+          id: assignmentId,
+          code: assignment.code,
+          title: assignment.title,
+        },
+        customer: {
+          id: identity.customerId,
+          name: assignment.customerName ?? "klant",
+        },
+        quote: {
+          id: assignment.quoteId,
+          number: assignment.quoteNumber,
+          amount: formatEuro(assignment.quoteAmount),
+          valid_until: assignment.validityDate ?? "",
+        },
+        backofficeHref,
       },
+      fallback: {
+        title: "Offerte geaccepteerd",
+        body: "Een klant heeft een offerte geaccepteerd. De opdracht is nu planbaar.",
+        category: "quotes",
+        href: backofficeHref,
+        sourceLabel: "Klantportaal",
+      },
+      audit: false,
     });
-  });
-
-  await emitDomainEvent({
-    eventKey: "quote_approved_by_customer",
-    tenantId: identity.tenantId,
-    actorUserId: user.id,
-    audience: "management",
-    aggregate: { type: "quote", id: assignment.quoteId },
-    payload: {
-      assignmentId,
-      customerId: identity.customerId,
-      quoteId: assignment.quoteId,
-      nextAssignmentStatus: "plannable",
-      assignment: {
-        id: assignmentId,
-        code: assignment.code,
-        title: assignment.title,
-      },
-      customer: {
-        id: identity.customerId,
-        name: assignment.customerName ?? "klant",
-      },
-      quote: {
-        id: assignment.quoteId,
-        number: assignment.quoteNumber,
-        amount: formatEuro(assignment.quoteAmount),
-        valid_until: assignment.validityDate ?? "",
-      },
-      backofficeHref,
-    },
-    fallback: {
-      title: "Offerte geaccepteerd",
-      body: "Een klant heeft een offerte geaccepteerd. De opdracht is nu planbaar.",
-      category: "quotes",
-      href: backofficeHref,
-      sourceLabel: "Klantportaal",
-    },
-    audit: false,
-  });
+  } catch (error) {
+    // The authoritative acceptance and its audit/realtime projection are already
+    // committed. A notification outage must not turn that success into a false
+    // customer-facing failure or encourage a duplicate acceptance attempt.
+    console.error("Unable to emit quote acceptance notification", error);
+  }
 
   void (async () => {
     const [orgSettings] = await db
