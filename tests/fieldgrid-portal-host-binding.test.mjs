@@ -35,7 +35,9 @@ test("customer portal identity is scoped to the host tenant", () => {
   assert.match(customer, /eq\(customerUsersTable\.tenantId, tenantId\)/u);
   assert.match(customer, /eq\(customersTable\.tenantId, tenantId\)/u);
   assert.match(customer, /eq\(customersTable\.tenantId, customerUsersTable\.tenantId\)/u);
-  assert.match(customer, /isNull\(customerUsersTable\.userId\)/u);
+  assert.match(customer, /eq\(customerUsersTable\.userId, user\.id\)/u);
+  assert.match(customer, /eq\(customerUsersTable\.status, "active"\)/u);
+  assert.doesNotMatch(customer, /isNull\(customerUsersTable\.userId\)/u);
 });
 
 test("personnel portal profile and mutations are scoped to the host tenant", () => {
@@ -47,7 +49,9 @@ test("personnel portal profile and mutations are scoped to the host tenant", () 
   const supabaseTenantFilters = [...personnel.matchAll(/\.eq\("tenant_id", tenantId\)/gu)].length;
   const drizzleTenantFilters = [...personnel.matchAll(/eq\(personnelTable\.tenantId, tenantId\)/gu)].length;
 
-  assert.ok(supabaseTenantFilters >= 4, "Supabase personnel lookups should filter by host tenant");
+  assert.ok(supabaseTenantFilters >= 1, "Supabase personnel identity lookup should filter by host tenant");
   assert.ok(drizzleTenantFilters >= 5, "Drizzle personnel mutations should filter by host tenant");
+  assert.match(personnel, /\.eq\("user_id", user\.id\)/u);
+  assert.doesNotMatch(personnel, /\.eq\("email", user\.email/u);
   assert.match(personnel, /persistMyNotificationSettings\(user\.id, tenantId,/u);
 });

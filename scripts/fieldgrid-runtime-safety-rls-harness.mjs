@@ -33,6 +33,11 @@ const ACTORS = {
     email: "personnel@tenant-b.runtime.fieldgrid.test",
     tenantId: FIXTURE.tenants.b,
   },
+  tenantASecondPersonnel: {
+    userId: FIXTURE.users.tenantAOwner,
+    email: "owner@tenant-a.runtime.fieldgrid.test",
+    tenantId: FIXTURE.tenants.a,
+  },
   tenantACustomer: {
     userId: FIXTURE.users.tenantACustomer,
     email: "customer@tenant-a.runtime.fieldgrid.test",
@@ -68,6 +73,7 @@ const RLS_FIXTURE = {
   },
   personnel: {
     inactive: "60000000-0000-4000-8000-000000000005",
+    tenantASecond: "60000000-0000-4000-8000-000000000006",
   },
   tasks: {
     a: "71000000-0000-4000-8000-000000000001",
@@ -158,6 +164,8 @@ const PHASE_A1_ACL_MIGRATION_PATH =
   "lib/db/migrations/20260713120000_assignment_personnel_phase_a_acl_hardening.sql";
 const PHASE_B_ACL_MIGRATION_PATH =
   "lib/db/migrations/20260714120000_assignment_personnel_phase_b_direct_access_close.sql";
+const PHASE_2C_SECURITY_MIGRATION_PATH =
+  "lib/db/migrations/20260718190000_phase2_security_reconciliation.sql";
 
 function claimsFor(actor, tenantClaim) {
   const claims = {
@@ -329,11 +337,12 @@ async function historicalBroadAclDriftIsCleanedByPhaseBMigrations(client) {
 
   await applySqlMigration(client, PHASE_A1_ACL_MIGRATION_PATH);
   await applySqlMigration(client, PHASE_B_ACL_MIGRATION_PATH);
+  await applySqlMigration(client, PHASE_2C_SECURITY_MIGRATION_PATH);
   const cleaned = await readAssignmentPersonnelTableAclSnapshot(client);
   assertAssignmentPersonnelTableAclLeastPrivilege(cleaned);
 
   return result("rls-assignment-personnel-historical-broad-acl-drift-cleaned-by-phase-b", "passed", {
-    migrations: [PHASE_A1_ACL_MIGRATION_PATH, PHASE_B_ACL_MIGRATION_PATH],
+    migrations: [PHASE_A1_ACL_MIGRATION_PATH, PHASE_B_ACL_MIGRATION_PATH, PHASE_2C_SECURITY_MIGRATION_PATH],
     driftPrivileges: drift.privileges,
     cleanedPublicPrivileges: cleaned.publicPrivileges,
     cleanedPrivileges: cleaned.privileges,
@@ -376,7 +385,7 @@ async function ensurePersonnelRlsFixtureRows(client) {
       values
         ($1, $2, $3, 'assigned', $4),
         ($5, $6, $7, 'assigned', $8),
-        ($9, $10, $11, 'assigned', $12)
+        ($9, $10, $11, 'suggested', $12)
       on conflict (assignment_id, personnel_id) do update set
         status = excluded.status,
         assigned_by = excluded.assigned_by
@@ -774,7 +783,7 @@ async function tenantABIsolationAndJwtTenantClaimIgnored(client) {
     ]),
   );
 
-  const wrongUser = await asAuthenticated(client, ACTORS.tenantAAdmin, claimsFor(ACTORS.tenantAAdmin), async () =>
+  const tenantAManagement = await asAuthenticated(client, ACTORS.tenantAAdmin, claimsFor(ACTORS.tenantAAdmin), async () =>
     selectIds(client, `select id from public.assignments where id = any($1::uuid[])`, [
       [FIXTURE.assignments.a, FIXTURE.assignments.b],
     ]),
@@ -797,7 +806,7 @@ async function tenantABIsolationAndJwtTenantClaimIgnored(client) {
 
   nodeAssert.deepEqual(tenantA, [FIXTURE.assignments.a]);
   nodeAssert.deepEqual(tenantB, [FIXTURE.assignments.b]);
-  nodeAssert.deepEqual(wrongUser, []);
+  nodeAssert.deepEqual(tenantAManagement, [FIXTURE.assignments.a]);
   nodeAssert.deepEqual(inactivePersonnel, []);
   nodeAssert.deepEqual(wrongTenantClaim, [FIXTURE.assignments.a]);
   nodeAssert.deepEqual(malformedTenantClaim, [FIXTURE.assignments.a]);
@@ -805,7 +814,7 @@ async function tenantABIsolationAndJwtTenantClaimIgnored(client) {
   return result("rls-tenant-a-b-isolation-and-jwt-tenant-claim-ignored", "passed", {
     tenantA,
     tenantB,
-    wrongUser,
+    tenantAManagement,
     inactivePersonnel,
     wrongTenantClaim,
     malformedTenantClaim,
@@ -858,10 +867,22 @@ async function storagePathTenantIsolationWithoutTenantClaim(client) {
   });
 }
 
-async function customerPortalPoliciesAreNotRegressed(client) {
+async function customerPortalUsesOnlySafeRealtimeProjection(client) {
   await ensurePersonnelRlsFixtureRows(client);
   const actor = ACTORS.tenantACustomer;
   const claims = claimsFor(actor);
+  const realtimeId = "79000000-0000-4000-8000-000000000001";
+  await client.query(
+    `
+      insert into public.portal_realtime_events (
+        id, tenant_id, recipient_type, realtime_key, customer_id, topic,
+        resource_type, resource_id, action, event_type, payload
+      ) values ($1, $2, 'customer', $3, $4, 'assignments', 'assignments', $5, 'changed',
+        'customer_visible_projection_changed', '{"assignmentId":"safe-invalidation"}'::jsonb)
+      on conflict (id) do update set payload = excluded.payload
+    `,
+    [realtimeId, FIXTURE.tenants.a, `customer_${FIXTURE.customers.a}`, FIXTURE.customers.a, FIXTURE.assignments.a],
+  );
   const visible = await asAuthenticated(client, actor, claims, async () => ({
     assignments: await selectIds(client, `select id from public.assignments where id = any($1::uuid[])`, [
       [FIXTURE.assignments.a, FIXTURE.assignments.b],
@@ -875,29 +896,126 @@ async function customerPortalPoliciesAreNotRegressed(client) {
     reports: await selectIds(client, `select id from public.reports where assignment_id = any($1::uuid[])`, [
       [FIXTURE.assignments.a, FIXTURE.assignments.b],
     ]),
+    realtime: await selectIds(client, `select id from public.portal_realtime_events where id = $1`, [realtimeId]),
   }));
 
-  nodeAssert.deepEqual(visible.assignments, [FIXTURE.assignments.a]);
-  nodeAssert.deepEqual(visible.tasks, [RLS_FIXTURE.tasks.a]);
-  nodeAssert.deepEqual(visible.photos, [RLS_FIXTURE.photos.a]);
-  nodeAssert.deepEqual(visible.reports, [RLS_FIXTURE.reports.a]);
+  nodeAssert.deepEqual(visible.assignments, []);
+  nodeAssert.deepEqual(visible.tasks, []);
+  nodeAssert.deepEqual(visible.photos, []);
+  nodeAssert.deepEqual(visible.reports, []);
+  nodeAssert.deepEqual(visible.realtime, [realtimeId]);
 
-  return result("rls-customer-policy-regression-assignments-tasks-photos-reports", "passed", visible);
+  await client.query(`update public.customers set is_active = false where id = $1`, [FIXTURE.customers.a]);
+  let deactivatedRealtime;
+  try {
+    deactivatedRealtime = await asAuthenticated(client, actor, claims, async () =>
+      selectIds(client, `select id from public.portal_realtime_events where id = $1`, [realtimeId]),
+    );
+  } finally {
+    await client.query(`update public.customers set is_active = true where id = $1`, [FIXTURE.customers.a]);
+  }
+  nodeAssert.deepEqual(deactivatedRealtime, []);
+
+  return result("rls-customer-safe-realtime-projection-and-deactivation", "passed", {
+    ...visible,
+    deactivatedRealtime,
+  });
 }
 
 async function legacyGlobalManagementCannotManage(client) {
-  const writeRejection = await asAuthenticated(
+  const resultRows = await asAuthenticated(
     client,
     ACTORS.legacyGlobalManagementOnly,
     claimsFor(ACTORS.legacyGlobalManagementOnly),
-    async () =>
-      expectRejected(
-        () => directInsert(client, FIXTURE.assignments.a, FIXTURE.personnel.a, ACTORS.legacyGlobalManagementOnly.userId),
+    async () => ({
+      assignments: await selectIds(client, `select id from public.assignments where id = any($1::uuid[])`, [[FIXTURE.assignments.a, FIXTURE.assignments.b]]),
+      tenantAHelper: (await client.query(`select public.is_management_for_tenant($1) as allowed`, [FIXTURE.tenants.a])).rows[0].allowed,
+      auditRead: await expectRejected(
+        () => client.query(`select id from public.audit_log where tenant_id = $1 limit 5`, [FIXTURE.tenants.a]),
         ["42501"],
       ),
+    }),
   );
+  nodeAssert.deepEqual(resultRows.assignments, []);
+  nodeAssert.equal(resultRows.tenantAHelper, false);
+  nodeAssert.equal(resultRows.auditRead.code, "42501");
   return result("rls-legacy-global-management-without-tenant-role-denied", "passed", {
-    directWriteRejectionCode: writeRejection.code,
+    ...resultRows,
+  });
+}
+
+async function personnelCannotSelfApproveOrMutateCoworkerEvidence(client) {
+  await ensurePersonnelRlsFixtureRows(client);
+  await client.query(
+    `
+      insert into public.personnel (
+        id, tenant_id, user_id, code, first_name, last_name, email, is_active, is_available
+      ) values ($1, $2, $3, 'RT-SECOND', 'Runtime', 'Second', $4, true, true)
+      on conflict (id) do update set user_id = excluded.user_id, is_active = true
+    `,
+    [RLS_FIXTURE.personnel.tenantASecond, FIXTURE.tenants.a, ACTORS.tenantASecondPersonnel.userId, ACTORS.tenantASecondPersonnel.email],
+  );
+  await client.query(`
+    insert into public.availability_day_entries(personnel_id, date, start_time, end_time)
+    values ($1, '2026-07-21', '08:00', '17:00')
+    on conflict (personnel_id, date) do update set start_time = excluded.start_time, end_time = excluded.end_time
+  `, [RLS_FIXTURE.personnel.tenantASecond]);
+  await client.query(
+    `
+      insert into public.assignment_personnel (assignment_id, personnel_id, status, assigned_by)
+      values ($1, $2, 'assigned', $3)
+      on conflict (assignment_id, personnel_id) do update set status = 'assigned'
+    `,
+    [FIXTURE.assignments.a, RLS_FIXTURE.personnel.tenantASecond, FIXTURE.users.tenantAPlanner],
+  );
+
+  const photoEscalation = await asAuthenticated(client, ACTORS.tenantAPersonnel, claimsFor(ACTORS.tenantAPersonnel), async () =>
+    expectRejected(
+      () => client.query(
+        `insert into public.assignment_photos (
+          assignment_id, tenant_id, personnel_id, storage_path, uploaded_by, is_approved, visibility_scope
+        ) values ($1, $2, $3, 'runtime/self-approved.jpg', $4, true, 'customer_approved')`,
+        [FIXTURE.assignments.a, FIXTURE.tenants.a, FIXTURE.personnel.a, ACTORS.tenantAPersonnel.userId],
+      ),
+      ["42501"],
+    ),
+  );
+
+  const materialEscalation = await asAuthenticated(client, ACTORS.tenantAPersonnel, claimsFor(ACTORS.tenantAPersonnel), async () =>
+    expectRejected(
+      () => client.query(
+        `insert into public.assignment_material_usage (
+          assignment_id, tenant_id, name, quantity, unit_price, created_by,
+          approval_status, approved_by, approved_at, invoiceable, customer_visible
+        ) values ($1, $2, 'Self approved', 1, 999, $3, 'approved', $3, now(), true, true)`,
+        [FIXTURE.assignments.a, FIXTURE.tenants.a, ACTORS.tenantAPersonnel.userId],
+      ),
+      ["42501"],
+    ),
+  );
+
+  const coworkerMutation = await asAuthenticated(
+    client,
+    ACTORS.tenantASecondPersonnel,
+    claimsFor(ACTORS.tenantASecondPersonnel),
+    async () => {
+      const updated = await client.query(
+        `update storage.objects set metadata = '{"tampered":true}'::jsonb where id = $1 returning id`,
+        [RLS_FIXTURE.storageObjects.validTenantA],
+      );
+      const deleted = await client.query(
+        `delete from storage.objects where id = $1 returning id`,
+        [RLS_FIXTURE.storageObjects.validTenantA],
+      );
+      return { updated: updated.rowCount, deleted: deleted.rowCount };
+    },
+  );
+  nodeAssert.deepEqual(coworkerMutation, { updated: 0, deleted: 0 });
+
+  return result("rls-personnel-approval-and-evidence-mutation-escalation-denied", "passed", {
+    photoEscalationCode: photoEscalation.code,
+    materialEscalationCode: materialEscalation.code,
+    coworkerMutation,
   });
 }
 
@@ -1059,8 +1177,9 @@ async function runChecks() {
       await personnelRlsPoliciesAllowLegitimateData(client),
       await tenantABIsolationAndJwtTenantClaimIgnored(client),
       await storagePathTenantIsolationWithoutTenantClaim(client),
-      await customerPortalPoliciesAreNotRegressed(client),
+      await customerPortalUsesOnlySafeRealtimeProjection(client),
       await legacyGlobalManagementCannotManage(client),
+      await personnelCannotSelfApproveOrMutateCoworkerEvidence(client),
       await securityDefinerPrivilegesAreMinimal(client),
       await databaseDependencyAudit(client),
     ];
@@ -1117,7 +1236,8 @@ async function main() {
       "rls-personnel-policy-mediated-legitimate-data-access": "authenticated RLS-runtime evidence",
       "rls-tenant-a-b-isolation-and-jwt-tenant-claim-ignored": "authenticated RLS-runtime evidence",
       "rls-storage-assignment-photo-path-tenant-isolation-without-tenant-claim": "storage.objects PostgreSQL policy runtime evidence",
-      "rls-customer-policy-regression-assignments-tasks-photos-reports": "customer RLS-runtime evidence",
+      "rls-customer-safe-realtime-projection-and-deactivation": "customer RLS-runtime evidence",
+      "rls-personnel-approval-and-evidence-mutation-escalation-denied": "authenticated mutation-denial evidence",
       "rls-legacy-global-management-without-tenant-role-denied": "authenticated RLS",
       "rls-security-definer-execute-privileges-minimal": "database function ACL invariant",
       "rls-database-function-policy-dependency-audit": "database dependency audit",

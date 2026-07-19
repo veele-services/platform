@@ -39,7 +39,6 @@ if (!options.check) {
     liveError = error instanceof Error ? error.message : String(error);
   }
 }
-
 const report = {
   version: "fieldgrid-invoice-sprint10-release-gate-v1",
   createdAt: new Date().toISOString(),
@@ -181,7 +180,7 @@ function checkDraftFinalizeSentPaidFlow() {
       { pattern: /export async function createInvoice/u, message: "createInvoice action missing." },
       { pattern: /status:\s+"draft"/u, message: "Invoice creation must keep new invoices in draft status." },
       { pattern: /export async function finalizeInvoiceDraft/u, message: "Finalize action missing." },
-      { pattern: /finalizeOfficialInvoice\(\{ invoiceId, tenantId, actorUserId: user\.id \}\)/u, message: "Finalize action must call finalization service." },
+      { pattern: /finalizeOfficialInvoice\(\{\s*invoiceId,\s*tenantId,\s*actorUserId: user\.id,?\s*\}\)/u, message: "Finalize action must call finalization service." },
       { pattern: /export async function markInvoiceSent/u, message: "Send action missing." },
       { pattern: /export async function markInvoicePaid/u, message: "Paid action missing." },
       { pattern: /export async function cancelInvoice/u, message: "Cancel action missing." },

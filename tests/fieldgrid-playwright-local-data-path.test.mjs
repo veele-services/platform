@@ -6,8 +6,9 @@ const source = readFileSync('e2e/fieldgrid/start-real-apps.mjs', 'utf8');
 
 test('contract: runtime data-path evidence is produced by gateway to real PostgREST requests', () => {
   assert.match(source, /proveDataPath/);
-  assert.match(source, /gatewayJson\(`\/rest\/v1\/assignments\?id=eq\.\$\{tenantAAssignment\}/);
-  assert.match(source, /gatewayJson\(`\/rest\/v1\/assignments\?id=eq\.\$\{tenantBAssignment\}/);
+  assert.match(source, /gatewayJson\(`\/rest\/v1\/customer_assignment_projection\?id=eq\.\$\{tenantAAssignment\}/);
+  assert.match(source, /gatewayJson\(`\/rest\/v1\/customer_assignment_projection\?id=eq\.\$\{tenantBAssignment\}/);
+  assert.doesNotMatch(source, /gatewayJson\(`\/rest\/v1\/assignments\?id=eq\.\$\{tenant[AB]Assignment\}/);
   assert.match(source, /data-path-proof\.json/);
   assert.match(source, /\/rest\/v1\/rpc\/personnel_assigned_to_assignment/);
   assert.match(source, /customerTenantAAllowedAssignmentCount/);

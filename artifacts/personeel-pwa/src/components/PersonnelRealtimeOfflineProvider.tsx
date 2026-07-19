@@ -10,6 +10,7 @@ import { addMaterialUsage } from "@/actions/materials";
 import { addReportNote } from "@/actions/reports";
 import {
   getOfflineWorkOrderFailureCount,
+  bindOfflineWorkOrderQueueOwner,
   getOfflineWorkOrderQueueCount,
   readOfflineWorkOrderQueue,
   removeOfflineWorkOrderAction,
@@ -79,22 +80,41 @@ async function runQueuedAction(action: OfflineWorkOrderAction) {
   }
 
   if (action.type === "set-task-completion") {
-    return setAssignmentTaskCompletion(action.assignmentId, action.taskId, action.payload.completed);
+    return setAssignmentTaskCompletion(action.assignmentId, action.taskId, action.payload.completed, {
+      expectedParticipantVersion: action.expectedParticipantVersion ?? null,
+      clientMutationId: action.idempotencyKey,
+    });
   }
 
   if (action.type === "add-report-note") {
-    return addReportNote(action.assignmentId, { body: action.payload.body });
+    return addReportNote(action.assignmentId, {
+      body: action.payload.body,
+      expectedParticipantVersion: action.expectedParticipantVersion ?? null,
+      clientMutationId: action.idempotencyKey,
+    });
   }
 
   if (action.type === "add-extra-work") {
-    return addExtraWork(action.assignmentId, action.payload);
+    return addExtraWork(action.assignmentId, {
+      ...action.payload,
+      expectedParticipantVersion: action.expectedParticipantVersion ?? null,
+      clientMutationId: action.idempotencyKey,
+    });
   }
 
   if (action.type === "add-inventory-usage") {
-    return addInventoryUsage(action.assignmentId, action.payload);
+    return addInventoryUsage(action.assignmentId, {
+      ...action.payload,
+      expectedParticipantVersion: action.expectedParticipantVersion ?? null,
+      clientMutationId: action.idempotencyKey,
+    });
   }
 
-  return addMaterialUsage(action.assignmentId, action.payload);
+  return addMaterialUsage(action.assignmentId, {
+    ...action.payload,
+    expectedParticipantVersion: action.expectedParticipantVersion ?? null,
+    clientMutationId: action.idempotencyKey,
+  });
 }
 
 function normalizeClientHref(href: unknown): string | null {
@@ -214,6 +234,7 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
   }, [processQueue, updateQueueCount]);
 
   useEffect(() => {
+    bindOfflineWorkOrderQueueOwner(personnelId);
     setOnline(typeof navigator === "undefined" ? true : navigator.onLine);
     updateQueueCount();
 
@@ -308,7 +329,7 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
       document.removeEventListener("visibilitychange", handleVisibility);
       navigator.serviceWorker?.removeEventListener("message", handleServiceWorkerMessage);
     };
-  }, [processQueue, scheduleRefresh, updateQueueCount]);
+  }, [personnelId, processQueue, scheduleRefresh, updateQueueCount]);
 
   useEffect(() => {
     if (!personnelId) {

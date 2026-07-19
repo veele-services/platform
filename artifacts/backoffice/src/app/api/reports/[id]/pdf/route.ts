@@ -8,6 +8,7 @@ import { requireCurrentTenantId } from "@/lib/auth/tenant";
 import { requireSensitiveRuntimeAccess } from "@/lib/security/sensitive-runtime";
 import { db } from "@workspace/db";
 import {
+  getTenantBoundAssignmentMediaStoragePath,
   getTenantBranding,
   assignmentPhotosTable,
   assignmentsTable,
@@ -160,7 +161,14 @@ export async function GET(
   const admin = createAdminClient();
   const signed = await Promise.all(
     rawPhotos.map(async (photo) => {
-      const { data } = await admin.storage.from(PHOTO_BUCKET).createSignedUrl(photo.storagePath, 300);
+      const safeStoragePath = getTenantBoundAssignmentMediaStoragePath(
+        photo.storagePath,
+        tenantId,
+        row.assignmentId,
+        { allowLegacyAssignmentRoot: true, allowLegacyPluralTenantRoot: true, allowLegacyTenantRoot: true },
+      );
+      if (!safeStoragePath) return null;
+      const { data } = await admin.storage.from(PHOTO_BUCKET).createSignedUrl(safeStoragePath, 300);
       return data?.signedUrl ?? null;
     }),
   );

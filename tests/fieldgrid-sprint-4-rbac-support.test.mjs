@@ -92,7 +92,7 @@ test("API support access is explicit, audited and checked before tenant RBAC", (
   );
   assert.match(
     auth,
-    /isSupportRuntimePermission\(\s*resource,\s*action,\s*\)/u,
+    /isSupportRuntimePermission\(\s*resource,\s*action,\s*\{ permissionKeys: req\.supportAccess\.permissionKeys \},\s*\)/u,
   );
 
   const supportCheck = auth.indexOf("if (req.supportAccess)");

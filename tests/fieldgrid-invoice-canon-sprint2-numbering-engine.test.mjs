@@ -28,7 +28,6 @@ test("Sprint 2 numbering validates prefixes, tokens, padding and start numbers",
   assert.match(formattingSource, /\.replaceAll\("\{NUMBER\}", number\)/u);
   assert.match(formattingSource, /String\(sequenceValue\)\.padStart\(config\.numberPadding, "0"\)/u);
 });
-
 test("Sprint 2 numbering computes reset periods and previews without claiming", () => {
   assert.match(formattingSource, /case "never":\s+return "all"/u);
   assert.match(formattingSource, /case "yearly":\s+return parts\.yyyy/u);
@@ -71,11 +70,12 @@ test("Sprint 2 claim is transaction safe and tenant scoped", () => {
 
 test("Sprint 2 marks invoices as sent only after claiming an official number", () => {
   assert.match(invoiceActions, /finalizeOfficialInvoice/u);
-  assert.match(invoiceActions, /const finalized = await finalizeOfficialInvoice\(\{ invoiceId, tenantId, actorUserId: user\.id \}\)/u);
+  const finalizeCall = /const finalized = await finalizeOfficialInvoice\(\{\s*invoiceId,\s*tenantId,\s*actorUserId: user\.id,?\s*\}\)/u;
+  assert.match(invoiceActions, finalizeCall);
   assert.ok(
-    invoiceActions.indexOf("finalizeOfficialInvoice({ invoiceId, tenantId, actorUserId: user.id })") <
+    invoiceActions.search(finalizeCall) <
       invoiceActions.indexOf(".set({ status: \"sent\", updatedAt: new Date() })"),
     "official number should be finalized before the invoice becomes sent",
   );
-  assert.match(invoiceActions, /metadata:\s+\{ assignmentId: invoice\.assignmentId, invoiceNumber: claimedInvoiceNumber \}/u);
+  assert.match(invoiceActions, /metadata:\s*\{\s*assignmentId: invoice\.assignmentId,\s*invoiceNumber: claimedInvoiceNumber,?\s*\}/u);
 });

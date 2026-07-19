@@ -2,7 +2,7 @@ import { createHmac, randomBytes, randomInt, timingSafeEqual } from "node:crypto
 
 export type CredentialRecoverySurface = "tenant-backoffice" | "personnel-portal" | "customer-portal" | "platform-admin";
 export type CredentialRecoveryPurpose = "activation" | "password-reset";
-export type CredentialRecoveryState = "valid" | "expired" | "used" | "invalid" | "too-many-attempts" | "cooldown";
+export type CredentialRecoveryState = "valid" | "processing" | "expired" | "used" | "invalid" | "too-many-attempts" | "cooldown";
 
 export const CREDENTIAL_RECOVERY_CODE_TTL_MS = 30 * 60 * 1000;
 export const CREDENTIAL_RECOVERY_GRANT_TTL_MS = 10 * 60 * 1000;

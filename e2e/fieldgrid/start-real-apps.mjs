@@ -270,9 +270,9 @@ async function proveDataPath() {
   const tenantAPersonnelJwt = createJwt(localFixtureIdentities.tenantAPersonnel.userId);
   const tenantBPersonnelJwt = createJwt(localFixtureIdentities.tenantBPersonnel.userId);
   const expiredJwt = createJwt(localFixtureIdentities.tenantACustomer.userId, -3600, -60);
-  const customerTenantAAllowed = await gatewayJson(`/rest/v1/assignments?id=eq.${tenantAAssignment}&select=id`, tenantACustomerJwt);
-  const customerTenantADeniedTenantB = await gatewayJson(`/rest/v1/assignments?id=eq.${tenantBAssignment}&select=id`, tenantACustomerJwt);
-  const customerTenantBDeniedTenantA = await gatewayJson(`/rest/v1/assignments?id=eq.${tenantAAssignment}&select=id`, tenantBCustomerJwt);
+  const customerTenantAAllowed = await gatewayJson(`/rest/v1/customer_assignment_projection?id=eq.${tenantAAssignment}&select=id`, tenantACustomerJwt);
+  const customerTenantADeniedTenantB = await gatewayJson(`/rest/v1/customer_assignment_projection?id=eq.${tenantBAssignment}&select=id`, tenantACustomerJwt);
+  const customerTenantBDeniedTenantA = await gatewayJson(`/rest/v1/customer_assignment_projection?id=eq.${tenantAAssignment}&select=id`, tenantBCustomerJwt);
   const personnelTenantAAssignment = await gatewayJson(
     '/rest/v1/rpc/personnel_assigned_to_assignment',
     tenantAPersonnelJwt,
@@ -288,7 +288,7 @@ async function proveDataPath() {
     tenantBPersonnelJwt,
     { method: 'POST', body: { p_assignment_id: tenantAAssignment } },
   );
-  const invalid = await gatewayJson(`/rest/v1/assignments?id=eq.${tenantAAssignment}&select=id`, expiredJwt);
+  const invalid = await gatewayJson(`/rest/v1/customer_assignment_projection?id=eq.${tenantAAssignment}&select=id`, expiredJwt);
   const customerTenantAAllowedRows = customerTenantAAllowed.ok ? await customerTenantAAllowed.json() : [];
   const customerTenantADeniedTenantBRows = customerTenantADeniedTenantB.ok ? await customerTenantADeniedTenantB.json() : [];
   const customerTenantBDeniedTenantARows = customerTenantBDeniedTenantA.ok ? await customerTenantBDeniedTenantA.json() : [];

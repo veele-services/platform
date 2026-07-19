@@ -19,6 +19,7 @@ const invoiceSettingsActions = read("artifacts/backoffice/src/app/actions/invoic
 const invoicePayRoute = read("artifacts/backoffice/src/app/api/invoices/[id]/pay/route.ts");
 const finalization = read("lib/db/src/invoice-finalization.ts");
 const migration = read("lib/db/migrations/20260710190000_invoice_security_rbac_audit_hardening.sql");
+const reconciliationMigration = read("lib/db/migrations/20260718190000_phase2_security_reconciliation.sql");
 
 test("Sprint 9 invoice settings actions derive tenant scope server-side only", () => {
   for (const functionName of [
@@ -42,7 +43,6 @@ test("Sprint 9 invoice settings actions derive tenant scope server-side only", (
     assert.match(invoiceSettingsActions, new RegExp(`action:\\s+"${action}"`, "u"));
   }
 });
-
 test("Sprint 9 invoice write actions require finance permission and keep writes tenant-scoped", () => {
   for (const functionName of ["createInvoice", "finalizeInvoiceDraft", "markInvoiceSent", "markInvoicePaid", "cancelInvoice", "emailInvoice"]) {
     const body = functionBlock(invoiceActions, functionName);
@@ -50,12 +50,19 @@ test("Sprint 9 invoice write actions require finance permission and keep writes 
     assert.doesNotMatch(body, /data\.tenantId|input\.tenantId/u, `${functionName} must not trust tenantId from client input`);
   }
 
-  for (const functionName of ["markInvoiceSent", "markInvoicePaid", "cancelInvoice"]) {
+  for (const functionName of ["markInvoiceSent", "markInvoicePaid"]) {
     const body = functionBlock(invoiceActions, functionName);
     assert.match(body, /getInvoiceAssignmentForCurrentTenant\(invoiceId\)/u, `${functionName} should hide cross-tenant invoice ids`);
     assert.match(body, /eq\(invoicesTable\.tenantId, tenantId\)/u, `${functionName} should scope invoice update by tenant`);
     assert.match(body, /eq\(assignmentsTable\.tenantId, tenantId\)/u, `${functionName} should scope assignment update by tenant`);
   }
+
+  const cancel = functionBlock(invoiceActions, "cancelInvoice");
+  assert.match(cancel, /requireCurrentTenantId\(\)/u);
+  assert.match(cancel, /cancelInvoiceAndReopenAssignment\(\{\s*tenantId,\s*invoiceId,\s*actorUserId: user\.id,\s*reason: normalizedReason,?\s*\}\)/u);
+  assert.doesNotMatch(cancel, /\.update\(invoicesTable\)|\.update\(assignmentsTable\)/u);
+  assert.match(reconciliationMigration, /WHERE id = p_invoice_id AND tenant_id = p_tenant_id\s+FOR UPDATE/u);
+  assert.match(reconciliationMigration, /WHERE id = invoice_row\.assignment_id AND tenant_id = p_tenant_id\s+FOR UPDATE/u);
 
   assert.match(functionBlock(invoiceActions, "createInvoice"), /eq\(invoicesTable\.tenantId, tenantId\)/u);
   assert.match(finalization, /WHERE id = \$1 AND tenant_id = \$2\s+FOR UPDATE/u);
@@ -68,7 +75,6 @@ test("Sprint 9 invoice lifecycle and payment actions are audit logged with tenan
     "finalize_invoice",
     "mark_invoice_sent",
     "mark_invoice_paid",
-    "cancel_invoice",
     "email_invoice",
     "send_payment_reminder",
     "create_collective_invoice_payment",
@@ -76,11 +82,15 @@ test("Sprint 9 invoice lifecycle and payment actions are audit logged with tenan
     assert.match(`${invoiceActions}\n${finalization}`, new RegExp(`action:\\s+"${action}"|'${action}'`, "u"));
   }
 
-  for (const functionName of ["createInvoice", "markInvoiceSent", "markInvoicePaid", "cancelInvoice", "emailInvoice"]) {
+  assert.match(reconciliationMigration, /'cancel_invoice_and_reopen_assignment'/u);
+
+  for (const functionName of ["createInvoice", "markInvoiceSent", "markInvoicePaid", "emailInvoice"]) {
     const body = functionBlock(invoiceActions, functionName);
     assert.match(body, /auditLogTable/u, `${functionName} should write audit log`);
     assert.match(body, /tenantId,/u, `${functionName} audit row should include tenantId`);
   }
+  assert.match(reconciliationMigration, /INSERT INTO public\.audit_log/u);
+  assert.match(reconciliationMigration, /INSERT INTO public\.audit_log\(tenant_id[\s\S]*VALUES \(\s*p_tenant_id,/u);
 });
 
 test("Sprint 9 direct database exposure is closed and tenant consistency is guarded", () => {

@@ -95,6 +95,7 @@ export type ExecuteAssignmentParticipantInput = {
   actorUserId: string;
   action: AssignmentParticipantAction;
   idempotencyKey?: string | null;
+  expectedVersion: number;
   completionReason?: string | null;
   completionNotes?: string | null;
   auditMetadata?: Record<string, unknown>;
@@ -115,13 +116,14 @@ export async function executeAssignmentParticipantAction(
   input: ExecuteAssignmentParticipantInput,
 ): Promise<ExecuteAssignmentParticipantResult> {
   const result = await pool.query(
-    `select * from public.execute_assignment_participant_action($1, $2, $3, $4, $5, $6, $7, $8::jsonb)`,
+    `select * from public.execute_assignment_participant_action_v2($1, $2, $3, $4, $5, $6, $7, $8, $9::jsonb)`,
     [
       input.assignmentId,
       input.personnelId,
       input.actorUserId,
       input.action,
       input.idempotencyKey ?? null,
+      input.expectedVersion,
       input.completionReason ?? null,
       input.completionNotes ?? null,
       JSON.stringify(input.auditMetadata ?? {}),

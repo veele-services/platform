@@ -31,7 +31,8 @@ test("W01 lifecycle guards prevent generic edit bypass and preserve first comple
   assert.match(personnelAction, /const currentStatus = current\.participantStatus \?\? current\.status/u);
   assert.match(personnelAction, /currentStatus === "completed"/u);
   assert.match(personnelAction, /executeAssignmentParticipantAction\(\{[\s\S]*assignmentId,[\s\S]*personnelId: personnel\.id,[\s\S]*action: "complete"/u);
-  assert.match(personnelAction, /idempotencyKey: `complete:\$\{assignmentId\}:\$\{personnel\.id\}`/u);
+  assert.match(personnelAction, /idempotencyKey: input\.clientMutationId\?\.trim\(\) \|\| randomUUID\(\)/u);
+  assert.match(personnelAction, /expectedVersion: input\.expectedParticipantVersion \?\? current\.participantVersion \?\? 1/u);
   assert.match(personnelAction, /aggregateCompleted[\s\S]*db[\s\S]*\.update\(assignmentsTable\)[\s\S]*completionNotes/u);
   const completeAssignmentBody = personnelAction.slice(personnelAction.indexOf("export async function completeAssignment"), personnelAction.indexOf("export async function notCompleteAssignment"));
   assert.doesNotMatch(completeAssignmentBody, /\.set\(\{[\s\S]{0,240}status:\s*"completed"/u);

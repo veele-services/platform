@@ -43,6 +43,7 @@ export function createPortalRefreshScheduler(input: {
 
 export function subscribeToPortalRealtimeEvents(options: PortalRealtimeSubscriptionOptions) {
   let closed = false;
+  let projectionWatermark = 0;
   options.onStatus?.("connecting");
 
   const channel = options.client
@@ -55,8 +56,11 @@ export function subscribeToPortalRealtimeEvents(options: PortalRealtimeSubscript
         table: "portal_realtime_events",
         filter: `realtime_key=eq.${options.realtimeKey}`,
       },
-      () => {
-        if (!closed) options.scheduleRefresh(true);
+      (change: { new?: { projection_version?: number | string | null } }) => {
+        const version = Number(change.new?.projection_version ?? 0);
+        if (closed || !Number.isSafeInteger(version) || version <= projectionWatermark) return;
+        projectionWatermark = version;
+        options.scheduleRefresh(true);
       },
     )
     .subscribe((status: SubscribeStatus) => {

@@ -122,17 +122,43 @@ try {
   });
   assert.equal(consumed.state, "valid");
   assert.equal(consumed.subjectUserId, customerA);
+  assert.ok(consumed.claimId);
   const replayedGrant = await consumeCredentialRecoveryGrant({
     ...context(),
     grant: verified.grant,
   });
-  assert.equal(replayedGrant.state, "used");
+  assert.equal(replayedGrant.state, "processing");
   await recordCredentialRecoveryProviderOutcome({
     challengeId: consumed.challengeId,
+    claimId: consumed.claimId,
     success: true,
     sessionRevoked: true,
     now: baseNow,
   });
+  const finalizedReplay = await consumeCredentialRecoveryGrant({ ...context(), grant: verified.grant });
+  assert.equal(finalizedReplay.state, "used");
+
+  const retryable = await issue("provider-retry@example.test");
+  const retryableVerified = await verifyCredentialRecoveryChallenge({
+    ...context({ accountIdentifier: "provider-retry@example.test" }),
+    code: retryable.code,
+  });
+  const failedClaim = await consumeCredentialRecoveryGrant({ ...context(), grant: retryableVerified.grant });
+  assert.equal(failedClaim.state, "valid");
+  assert.ok(failedClaim.challengeId && failedClaim.claimId);
+  await recordCredentialRecoveryProviderOutcome({
+    challengeId: failedClaim.challengeId,
+    claimId: failedClaim.claimId,
+    success: false,
+    sessionRevoked: false,
+    now: baseNow,
+  });
+  const retriedClaim = await consumeCredentialRecoveryGrant({
+    ...context({ now: new Date(baseNow.getTime() + 1) }),
+    grant: retryableVerified.grant,
+  });
+  assert.equal(retriedClaim.state, "valid");
+  assert.notEqual(retriedClaim.claimId, failedClaim.claimId);
 
   const expired = await issue("expired@example.test", {
     now: new Date("2026-07-18T10:00:00.000Z"),
@@ -199,7 +225,7 @@ try {
   ]);
   assert.deepEqual(
     concurrentResults.map((result) => result.state).sort(),
-    ["used", "valid"],
+    ["processing", "valid"],
   );
 
   const tenantBound = await issue("tenant-bound@example.test");
@@ -277,8 +303,9 @@ try {
     "request_issued",
     "delivery_succeeded",
     "grant_issued",
-    "grant_consumed",
+    "provider_claimed",
     "provider_password_updated",
+    "provider_password_update_failed",
     "challenge_superseded",
     "verify_invalid",
     "verify_replayed",

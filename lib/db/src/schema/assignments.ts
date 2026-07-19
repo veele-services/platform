@@ -192,6 +192,7 @@ export const assignmentsTable = pgTable("assignments", {
   requiredPersonnelCount: integer("required_personnel_count").notNull().default(1),
 
   isActive:       boolean("is_active").notNull().default(true),
+  lifecycleVersion: bigint("lifecycle_version", { mode: "number" }).notNull().default(1),
   createdAt:      timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:      timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
   /** Supabase Auth UUID of the staff member who created the record. */
@@ -349,6 +350,7 @@ export const assignmentExtraWorkTable = pgTable("assignment_extra_work", {
   hours:        numeric("hours", { precision: 5, scale: 2 }),
   price:        numeric("price", { precision: 10, scale: 2 }),
   createdBy:    uuid("created_by").notNull(),
+  clientMutationId: varchar("client_mutation_id", { length: 512 }),
   createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
 
@@ -408,7 +410,7 @@ export const assignmentMaterialUsageTable = pgTable("assignment_material_usage",
   approvalReason: text("approval_reason"),
   invoiceId: uuid("invoice_id"),
   photoDocumentId: uuid("photo_document_id"),
-  clientMutationId: varchar("client_mutation_id", { length: 80 }),
+  clientMutationId: varchar("client_mutation_id", { length: 512 }),
   name:         text("name").notNull(),
   quantity:     numeric("quantity", { precision: 10, scale: 2 }).notNull().default("1"),
   unitPrice:    numeric("unit_price", { precision: 10, scale: 2 }).notNull().default("0"),
@@ -427,6 +429,7 @@ export const assignmentReportNotesTable = pgTable("assignment_report_notes", {
     .references(() => assignmentsTable.id, { onDelete: "cascade" }),
   body:         text("body").notNull(),
   createdBy:    uuid("created_by").notNull(),
+  clientMutationId: varchar("client_mutation_id", { length: 512 }),
   createdAt:    timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
   updatedAt:    timestamp("updated_at", { withTimezone: true }).notNull().defaultNow().$onUpdate(() => new Date()),
 });

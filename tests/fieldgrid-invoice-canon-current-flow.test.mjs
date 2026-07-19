@@ -28,7 +28,7 @@ test("current createInvoice baseline creates a tenant-scoped draft and advances 
   assert.match(body, /parseFloat\(data\.vatPercentage/u);
   assert.match(body, /getDefaultInvoiceDueDate\(tenantId\)/u);
   assert.match(body, /defaultPaymentTermDays: defaultDueDate\?\.paymentTermDays/u);
-  assert.match(body, /eq\(assignmentsTable\.id, assignmentId\), eq\(assignmentsTable\.tenantId, tenantId\)/u);
+  assert.match(body, /eq\(assignmentsTable\.id, assignmentId\),\s*eq\(assignmentsTable\.tenantId, tenantId\)/u);
   assert.match(body, /inArray\(invoicesTable\.status, \["draft", "sent", "paid"\]\)/u);
   assert.match(body, /allowedNext\.includes\("invoice_ready"\)/u);
   assert.match(body, /status:\s+"draft"/u);
@@ -43,7 +43,6 @@ test("current createInvoice baseline creates a tenant-scoped draft and advances 
   assert.doesNotMatch(insertValues, /invoiceNumber/u, "current create flow leaves invoice number to schema/database behavior");
   assert.doesNotMatch(insertValues, /tenantId/u, "current create flow relies on tenant trigger/server-side tenant derivation");
 });
-
 test("current status actions preserve the existing draft to sent to paid/cancelled workflow", () => {
   const sent = functionBlock(invoices, "markInvoiceSent");
   assert.match(sent, /getInvoiceAssignmentForCurrentTenant\(invoiceId\)/u);
@@ -56,18 +55,22 @@ test("current status actions preserve the existing draft to sent to paid/cancell
   const paid = functionBlock(invoices, "markInvoicePaid");
   assert.match(paid, /getInvoiceAssignmentForCurrentTenant\(invoiceId\)/u);
   assert.match(paid, /invoice\.status !== "sent"/u);
-  assert.match(paid, /status: "paid", paidDate: today/u);
-  assert.match(paid, /\.set\(\{ status: "paid", updatedAt: new Date\(\) \}\)/u);
-  assert.match(paid, /\.set\(\{ status: "closed", updatedAt: new Date\(\) \}\)/u);
+  assert.match(paid, /db\.transaction/u);
+  assert.match(paid, /FOR UPDATE/u);
+  assert.match(paid, /tx\s*\.insert\(paymentsTable\)/u);
+  assert.match(paid, /tx\s*\.insert\(paymentAllocationsTable\)/u);
+  assert.match(paid, /status:\s*"paid",\s*paymentStatus:\s*"paid"/u);
+  assert.match(paid, /tx\s*\.update\(assignmentsTable\)\s*\.set\(\{ status: "closed", updatedAt: new Date\(\) \}\)/u);
   assert.match(paid, /action:\s+"mark_invoice_paid"/u);
   assert.match(paid, /eventKey:\s+"invoice_paid"/u);
 
   const cancelled = functionBlock(invoices, "cancelInvoice");
-  assert.match(cancelled, /getInvoiceAssignmentForCurrentTenant\(invoiceId\)/u);
-  assert.match(cancelled, /\["draft", "sent"\]\.includes\(invoice\.status\)/u);
-  assert.match(cancelled, /\.set\(\{ status: "cancelled", updatedAt: new Date\(\) \}\)/u);
-  assert.match(cancelled, /\.set\(\{ status: "report_approved", updatedAt: new Date\(\) \}\)/u);
-  assert.match(cancelled, /action:\s+"cancel_invoice"/u);
+  assert.match(cancelled, /requireCurrentTenantId\(\)/u);
+  assert.match(cancelled, /cancelInvoiceAndReopenAssignment\(\{/u);
+  assert.match(cancelled, /tenantId,\s*invoiceId,\s*actorUserId: user\.id,\s*reason: normalizedReason/u);
+  assert.match(cancelled, /cancellation\.invoiceStatus !== "cancelled"/u);
+  assert.match(cancelled, /cancellation\.assignmentStatus !== "report_approved"/u);
+  assert.doesNotMatch(cancelled, /\.update\(invoicesTable\)|\.update\(assignmentsTable\)/u);
 });
 
 test("current invoice email and Mollie flows stay behind sent invoices", () => {
@@ -78,20 +81,27 @@ test("current invoice email and Mollie flows stay behind sent invoices", () => {
   assert.match(email, /generateInvoicePdf\(invoice\)/u);
   assert.match(email, /buildInvoiceEmail\(/u);
   assert.match(email, /sendEmailWithResult\(/u);
-  assert.match(email, /attachments:\s+\[\{ filename: `\$\{invoice\.invoiceNumber\}\.pdf`, content: pdfBuffer \}\]/u);
+  assert.match(email, /attachments:\s*\[\s*\{ filename: `\$\{invoice\.invoiceNumber\}\.pdf`, content: pdfBuffer \},?\s*\]/u);
   assert.match(email, /purpose:\s+"invoice_available"/u);
   assert.match(email, /action:\s+"email_invoice"/u);
 
   const mollie = functionBlock(payments, "createMolliePayment");
   assert.match(mollie, /requirePermission\("invoices", "write"\)/u);
   assert.match(mollie, /process\.env\.MOLLIE_API_KEY/u);
-  assert.match(mollie, /eq\(invoicesTable\.id, invoiceId\), eq\(invoicesTable\.tenantId, tenantId\)/u);
+  assert.match(mollie, /eq\(invoicesTable\.id, invoiceId\),\s*eq\(invoicesTable\.tenantId, tenantId\)/u);
   assert.match(mollie, /invoice\.status !== "sent"/u);
   assert.match(mollie, /fetch\("https:\/\/api\.mollie\.com\/v2\/payments"/u);
+  assert.match(mollie, /"Idempotency-Key": pendingPayment\.providerRequestKey/u);
+  assert.match(mollie, /providerRequestKey: randomUUID\(\)/u);
   assert.match(mollie, /tenantId,/u);
   assert.match(mollie, /description: `Factuur \$\{displayInvoiceNumber\(invoice\.invoiceNumber, invoice\.id\.slice\(0, 8\)\)\}`/u);
-  assert.match(mollie, /invoiceNumber: displayInvoiceNumber\(invoice\.invoiceNumber, invoice\.id\.slice\(0, 8\)\)/u);
-  assert.match(mollie, /db\.insert\(paymentsTable\)\.values/u);
+  assert.match(mollie, /invoiceNumber: displayInvoiceNumber\(\s*invoice\.invoiceNumber,\s*invoice\.id\.slice\(0, 8\),?\s*\)/u);
+  assert.match(mollie, /\.insert\(paymentsTable\)\s+\.values/u);
+  assert.ok(
+    mollie.indexOf(".insert(paymentsTable)") <
+      mollie.indexOf('fetch("https://api.mollie.com/v2/payments"'),
+    "durable pending payment must exist before the provider call",
+  );
   assert.match(mollie, /action:\s+"create_mollie_payment"/u);
 });
 
@@ -111,5 +121,5 @@ test("current invoice UI exposes the expected action entry points", () => {
   assert.match(invoiceActions, /createMolliePayment\(invoiceId\)/u);
   assert.match(invoiceActions, /markInvoicePaid\(invoiceId\)/u);
   assert.match(invoiceActions, /emailInvoice\(invoiceId\)/u);
-  assert.match(invoiceActions, /cancelInvoice\(invoiceId\)/u);
+  assert.match(invoiceActions, /cancelInvoice\(invoiceId, reason\)/u);
 });

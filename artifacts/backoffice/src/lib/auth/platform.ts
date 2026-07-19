@@ -26,6 +26,8 @@ export type CurrentSupportMode = {
   reason: string;
   expiresAt: string;
   ttlSeconds: number;
+  permissionKeys: string[];
+  moduleKeys: string[];
   priority: typeof FIELDGRID_RUNTIME_ACCESS_PRIORITY[number];
 };
 
@@ -159,6 +161,8 @@ export async function getCurrentSupportMode(): Promise<CurrentSupportMode | null
     reason: supportAccess.grant.reason,
     expiresAt: expiresAt.toISOString(),
     ttlSeconds: Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000)),
+    permissionKeys: Array.isArray(supportAccess.grant.permissionKeys) ? supportAccess.grant.permissionKeys : [],
+    moduleKeys: Array.isArray(supportAccess.grant.moduleKeys) ? supportAccess.grant.moduleKeys : [],
     priority: FIELDGRID_RUNTIME_ACCESS_PRIORITY[1],
   };
 }
@@ -188,6 +192,8 @@ export async function getCurrentSupportModeFromRequest(
     reason: supportAccess.grant.reason,
     expiresAt: expiresAt.toISOString(),
     ttlSeconds: Math.max(0, Math.floor((expiresAt.getTime() - Date.now()) / 1000)),
+    permissionKeys: Array.isArray(supportAccess.grant.permissionKeys) ? supportAccess.grant.permissionKeys : [],
+    moduleKeys: Array.isArray(supportAccess.grant.moduleKeys) ? supportAccess.grant.moduleKeys : [],
     priority: FIELDGRID_RUNTIME_ACCESS_PRIORITY[1],
   };
 }

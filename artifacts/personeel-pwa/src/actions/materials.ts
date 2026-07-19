@@ -1,6 +1,7 @@
 "use server";
 
-import { db, isTenantModuleEnabled } from "@workspace/db";
+import { beginOfflineOperation, completeOfflineOperation, db, isTenantModuleEnabled } from "@workspace/db";
+import { randomUUID } from "node:crypto";
 import {
   assignmentPersonnelTable,
   assignmentsTable,
@@ -52,6 +53,7 @@ export type MaterialUsageInput = {
   stockLocationId?: string | null;
   isOther?: boolean;
   clientMutationId?: string | null;
+  expectedParticipantVersion?: number | null;
   /** Legacy field is ignored for personnel safety; management prices material later. */
   unitPrice?: string | number | null;
 };
@@ -378,18 +380,30 @@ export async function addMaterialUsage(
   const access = await assertLinkedAndEditable(auth.personnelId, auth.tenantId, assignmentId);
   if (!access.ok) return { success: false, error: access.error };
 
-  const clientMutationId = cleanText(input.clientMutationId)?.slice(0, 80) ?? null;
-  const existingId = await findExistingMutation(auth.tenantId, assignmentId, auth.userId, clientMutationId);
-  if (existingId) return { success: true, id: existingId };
+  const clientMutationId = cleanText(input.clientMutationId)?.slice(0, 512) ?? randomUUID();
 
   const quantity = parsePositiveDecimal(input.quantity, 1);
   const materialId = cleanText(input.materialId);
   const wantsStock = input.usesStock === true;
   const isOther = input.isOther === true || !materialId;
+  const [execution] = rowsFrom<{ version: number }>(await db.execute(sql`
+    SELECT version FROM assignment_participant_executions
+    WHERE tenant_id = ${auth.tenantId}::uuid AND assignment_id = ${assignmentId}::uuid
+      AND personnel_id = ${auth.personnelId}::uuid AND participant_status <> 'removed'
+    LIMIT 1
+  `));
+  if (!execution) return { success: false, error: "Uitvoering niet gevonden" };
 
   try {
     const row = await db.transaction(async (tx) => {
       const exec = tx as unknown as DbExecutor;
+      const replay = await beginOfflineOperation<{ id: string }>(exec, {
+        tenantId: auth.tenantId, assignmentId, personnelId: auth.personnelId,
+        actorUserId: auth.userId, operationId: clientMutationId, operationType: "add-material-usage",
+        expectedVersion: input.expectedParticipantVersion ?? Number(execution.version),
+        payload: { materialId, quantity, wantsStock, isOther, name: input.name, stockLocationId: input.stockLocationId ?? null },
+      });
+      if (replay) return replay;
       const material = materialId ? await getMaterialForTenant(exec, auth.tenantId, materialId) : null;
       if (!isOther && !material) throw new Error("Materiaal niet gevonden");
       if (wantsStock && !material) throw new Error("Voorraadverbruik kan alleen met catalogusmateriaal");
@@ -489,6 +503,10 @@ export async function addMaterialUsage(
       `));
 
       if (!created) throw new Error("Materiaal opslaan mislukt");
+      await completeOfflineOperation(exec, {
+        tenantId: auth.tenantId, actorUserId: auth.userId,
+        operationId: clientMutationId, response: { id: created.id },
+      });
       return created;
     });
 

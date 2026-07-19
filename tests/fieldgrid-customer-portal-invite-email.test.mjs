@@ -72,13 +72,14 @@ test("customer contact email uniqueness is tenant scoped", () => {
   assert.match(migration, /ON public\.customers \(tenant_id, contact_email\)/u);
 });
 
-test("customer portal activates invited links after a valid first login", () => {
+test("customer portal accepts only already activated immutable user links", () => {
   const portal = read("artifacts/klant-pwa/src/actions/customer.ts");
 
-  assert.match(portal, /inArray\(customerUsersTable\.status,\s*\["active",\s*"invited"\]\)/u);
-  assert.match(portal, /isNull\(customerUsersTable\.userId\)/u);
-  assert.match(portal, /set\(\{\s*userId:\s*user\.id,\s*status:\s*"active",\s*lastLoginAt:\s*new Date\(\)\s*\}\)/u);
-  assert.match(portal, /set\(\{\s*status:\s*"active",\s*lastLoginAt:\s*new Date\(\)\s*\}\)/u);
+  assert.match(portal, /eq\(customerUsersTable\.status, "active"\)/u);
+  assert.match(portal, /eq\(customerUsersTable\.userId, user\.id\)/u);
+  assert.doesNotMatch(portal, /isNull\(customerUsersTable\.userId\)/u);
+  assert.doesNotMatch(portal, /\.set\(\{[^}]*userId:/u);
+  assert.match(portal, /set\(\{ lastLoginAt: new Date\(\) \}\)/u);
 });
 
 test("system mailer uses the central platform email service", () => {

@@ -5,7 +5,9 @@ import {
   auditLogTable,
   FIELDGRID_SUPPORT_BREAK_GLASS_GRANT_TYPE,
   FIELDGRID_SUPPORT_BREAK_GLASS_MAX_TTL_MINUTES,
+  FIELDGRID_SUPPORT_RUNTIME_PERMISSION_KEYS,
   FIELDGRID_SUPPORT_TENANT_COOKIE,
+  TENANT_RUNTIME_ACTIVE_STATUSES,
   platformUsersTable,
   issueCredentialRecoveryChallenge,
   markCredentialRecoveryDelivery,
@@ -13,9 +15,11 @@ import {
   supportAccessAuditLogTable,
   supportAccessGrantsTable,
   tenantsTable,
+  isPlatformSupportRole,
+  moduleForPermissionKey,
   validateSupportBreakGlassGrant,
 } from "@workspace/db";
-import { and, desc, eq, gt, gte, isNull, lte, ne, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, gt, gte, inArray, isNull, lte, ne, sql, type SQL } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
@@ -60,6 +64,8 @@ export type SupportAccessGrantRow = {
   platformUserId: string;
   reason: string;
   scope: "tenant";
+  permissionKeys: string[];
+  moduleKeys: string[];
   startsAt: string;
   expiresAt: string;
   revokedAt: string | null;
@@ -334,6 +340,8 @@ function mapSupportGrantRow(row: {
   tenantName: string;
   platformUserId: string;
   reason: string;
+  permissionKeys: string[];
+  moduleKeys: string[];
   startsAt: Date;
   expiresAt: Date;
   revokedAt: Date | null;
@@ -347,6 +355,8 @@ function mapSupportGrantRow(row: {
     platformUserId: row.platformUserId,
     reason: row.reason,
     scope: "tenant",
+    permissionKeys: row.permissionKeys,
+    moduleKeys: row.moduleKeys,
     startsAt: row.startsAt.toISOString(),
     expiresAt: row.expiresAt.toISOString(),
     revokedAt: row.revokedAt?.toISOString() ?? null,
@@ -768,6 +778,8 @@ export async function listSupportAccessGrants(): Promise<SupportAccessGrantRow[]
       tenantName: tenantsTable.name,
       platformUserId: supportAccessGrantsTable.platformUserId,
       reason: supportAccessGrantsTable.reason,
+      permissionKeys: supportAccessGrantsTable.permissionKeys,
+      moduleKeys: supportAccessGrantsTable.moduleKeys,
       startsAt: supportAccessGrantsTable.startsAt,
       expiresAt: supportAccessGrantsTable.expiresAt,
       revokedAt: supportAccessGrantsTable.revokedAt,
@@ -787,6 +799,7 @@ export async function createSupportAccessGrant(input: {
   expiresAt: string;
   startsAt?: string | null;
   scope?: string | null;
+  permissions?: string[];
 }): Promise<ActionResult<{ id: string }>> {
   const actor = await requirePlatformAdmin();
   const tenantId = input.tenantId.trim();
@@ -795,9 +808,35 @@ export async function createSupportAccessGrant(input: {
   const scope = input.scope?.trim() ?? "";
   const startsAt = input.startsAt ? new Date(input.startsAt) : new Date();
   const expiresAt = new Date(input.expiresAt);
+  const permissionKeys = Array.from(new Set(input.permissions ?? []))
+    .filter((permission) => FIELDGRID_SUPPORT_RUNTIME_PERMISSION_KEYS.includes(
+      permission as (typeof FIELDGRID_SUPPORT_RUNTIME_PERMISSION_KEYS)[number],
+    ));
+  const moduleKeys = Array.from(new Set(permissionKeys.map(moduleForPermissionKey).filter(
+    (moduleKey): moduleKey is NonNullable<typeof moduleKey> => moduleKey !== null,
+  )));
 
   if (!tenantId || !platformUserId) {
     return { success: false, message: "Tenant en platformgebruiker zijn verplicht." };
+  }
+
+  if (permissionKeys.length === 0 || permissionKeys.length !== new Set(input.permissions ?? []).size) {
+    return { success: false, message: "Kies minimaal één geldige, beperkte supportpermissie." };
+  }
+
+  const [[tenant], [targetPlatformUser]] = await Promise.all([
+    db.select({ id: tenantsTable.id }).from(tenantsTable).where(and(
+      eq(tenantsTable.id, tenantId),
+      eq(tenantsTable.isActive, true),
+      inArray(tenantsTable.status, [...TENANT_RUNTIME_ACTIVE_STATUSES]),
+    )).limit(1),
+    db.select({ role: platformUsersTable.role }).from(platformUsersTable).where(and(
+      eq(platformUsersTable.id, platformUserId),
+      eq(platformUsersTable.status, "active"),
+    )).limit(1),
+  ]);
+  if (!tenant || !targetPlatformUser || !isPlatformSupportRole(targetPlatformUser.role)) {
+    return { success: false, message: "Alleen een actieve supportgebruiker kan toegang krijgen tot een actieve tenant." };
   }
 
   if (scope !== "tenant") {
@@ -840,6 +879,9 @@ export async function createSupportAccessGrant(input: {
       tenantId,
       platformUserId,
       reason,
+      scope: "tenant",
+      permissionKeys,
+      moduleKeys,
       startsAt,
       expiresAt,
       createdBy: actor.userId,
@@ -858,6 +900,8 @@ export async function createSupportAccessGrant(input: {
       expiresAt: expiresAt.toISOString(),
       grantType: FIELDGRID_SUPPORT_BREAK_GLASS_GRANT_TYPE,
       scope,
+      permissionKeys,
+      moduleKeys,
       ttlMinutes: breakGlassValidation.ttlMinutes,
       maxTtlMinutes: FIELDGRID_SUPPORT_BREAK_GLASS_MAX_TTL_MINUTES,
     },
@@ -876,8 +920,9 @@ export async function createSupportAccessGrantFromForm(formData: FormData): Prom
   const scope = formValue(formData, "scope") || formValue(formData, "supportScope");
   const startsAt = formValue(formData, "startsAt") || null;
   const expiresAt = formValue(formData, "expiresAt");
+  const permissions = formData.getAll("permissions").map(String).map((value) => value.trim()).filter(Boolean);
 
-  const result = await createSupportAccessGrant({ tenantId, platformUserId, reason, scope, startsAt, expiresAt });
+  const result = await createSupportAccessGrant({ tenantId, platformUserId, reason, scope, startsAt, expiresAt, permissions });
   if (!result.success) return result;
 
   revalidatePlatformTenant(tenantId);
@@ -1104,6 +1149,8 @@ export async function listPlatformSecurityDashboard(
         tenantName: tenantsTable.name,
         platformUserId: supportAccessGrantsTable.platformUserId,
         reason: supportAccessGrantsTable.reason,
+        permissionKeys: supportAccessGrantsTable.permissionKeys,
+        moduleKeys: supportAccessGrantsTable.moduleKeys,
         startsAt: supportAccessGrantsTable.startsAt,
         expiresAt: supportAccessGrantsTable.expiresAt,
         revokedAt: supportAccessGrantsTable.revokedAt,
@@ -1245,6 +1292,8 @@ export async function listActiveSupportGrantsForTenant(tenantId: string): Promis
       tenantName: tenantsTable.name,
       platformUserId: supportAccessGrantsTable.platformUserId,
       reason: supportAccessGrantsTable.reason,
+      permissionKeys: supportAccessGrantsTable.permissionKeys,
+      moduleKeys: supportAccessGrantsTable.moduleKeys,
       startsAt: supportAccessGrantsTable.startsAt,
       expiresAt: supportAccessGrantsTable.expiresAt,
       revokedAt: supportAccessGrantsTable.revokedAt,

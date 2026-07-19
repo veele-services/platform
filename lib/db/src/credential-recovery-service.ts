@@ -1,4 +1,5 @@
 import { sql, type SQL } from "drizzle-orm";
+import { randomUUID } from "node:crypto";
 import { db } from "./connection";
 import {
   CREDENTIAL_RECOVERY_CODE_TTL_MS,
@@ -23,6 +24,7 @@ const FINGERPRINT_WINDOW_MS = 15 * 60 * 1000;
 const MAX_REQUESTS_PER_ACCOUNT_WINDOW = 5;
 const MAX_REQUESTS_PER_FINGERPRINT_WINDOW = 20;
 const MAX_VERIFY_ATTEMPTS_PER_FINGERPRINT_WINDOW = 30;
+const PROVIDER_CLAIM_TTL_MS = 2 * 60 * 1000;
 
 type RecoveryExecutor = {
   execute(query: SQL): Promise<unknown>;
@@ -55,6 +57,9 @@ type ChallengeRow = {
   invalidated_at: Date | string | null;
   invalidated_reason: string | null;
   delivery_status: string;
+  provider_claim_id: string | null;
+  provider_claim_expires_at: Date | string | null;
+  provider_status: string;
 };
 
 export type IssueCredentialRecoveryResult = {
@@ -74,6 +79,7 @@ export type ConsumeCredentialRecoveryResult = {
   state: CredentialRecoveryState;
   challengeId: string | null;
   subjectUserId: string | null;
+  claimId: string | null;
 };
 
 type SqlResult<T> = { rows?: T[] };
@@ -553,7 +559,7 @@ export async function consumeCredentialRecoveryGrant(
       LIMIT 1
       FOR UPDATE
     `));
-    if (!challenge) return { state: "invalid", challengeId: null, subjectUserId: null };
+    if (!challenge) return { state: "invalid", challengeId: null, subjectUserId: null, claimId: null };
 
     if (!safeCompareRecoveryDigest(digestHex(challenge.request_fingerprint_hmac), fingerprintHex)) {
       await writeEvent(tx, {
@@ -563,19 +569,19 @@ export async function consumeCredentialRecoveryGrant(
         accountLookupHmac: challenge.account_lookup_hmac,
         requestFingerprintHmac: fingerprint,
       });
-      return { state: "invalid", challengeId: challenge.id, subjectUserId: null };
+      return { state: "invalid", challengeId: challenge.id, subjectUserId: null, claimId: null };
     }
-    if (challenge.used_at) return { state: "used", challengeId: challenge.id, subjectUserId: null };
-    if (challenge.invalidated_at) return { state: "invalid", challengeId: challenge.id, subjectUserId: null };
+    if (challenge.used_at) return { state: "used", challengeId: challenge.id, subjectUserId: null, claimId: null };
+    if (challenge.invalidated_at) return { state: "invalid", challengeId: challenge.id, subjectUserId: null, claimId: null };
     if (!challenge.grant_expires_at || timestampMs(challenge.grant_expires_at) <= now.getTime()) {
       await tx.execute(sql`
         UPDATE public.credential_recovery_challenges
         SET invalidated_at = ${now}, invalidated_reason = 'grant_expired', updated_at = ${now}
         WHERE id = ${challenge.id}::uuid
       `);
-      return { state: "expired", challengeId: challenge.id, subjectUserId: null };
+      return { state: "expired", challengeId: challenge.id, subjectUserId: null, claimId: null };
     }
-    if (!challenge.subject_user_id) return { state: "invalid", challengeId: challenge.id, subjectUserId: null };
+    if (!challenge.subject_user_id) return { state: "invalid", challengeId: challenge.id, subjectUserId: null, claimId: null };
     if (context.assertSubjectEligible && !(await context.assertSubjectEligible(challenge.subject_user_id))) {
       await tx.execute(sql`
         UPDATE public.credential_recovery_challenges
@@ -589,30 +595,54 @@ export async function consumeCredentialRecoveryGrant(
         accountLookupHmac: challenge.account_lookup_hmac,
         requestFingerprintHmac: fingerprint,
       });
-      return { state: "invalid", challengeId: challenge.id, subjectUserId: null };
+      return { state: "invalid", challengeId: challenge.id, subjectUserId: null, claimId: null };
     }
 
-    const [consumed] = rowsFrom<{ id: string }>(await tx.execute(sql`
+    if (
+      challenge.provider_claim_id &&
+      challenge.provider_claim_expires_at &&
+      timestampMs(challenge.provider_claim_expires_at) > now.getTime()
+    ) {
+      await writeEvent(tx, {
+        ...context,
+        challengeId: challenge.id,
+        eventType: "provider_claim_duplicate",
+        accountLookupHmac: challenge.account_lookup_hmac,
+        requestFingerprintHmac: fingerprint,
+      });
+      return { state: "processing", challengeId: challenge.id, subjectUserId: null, claimId: null };
+    }
+
+    const claimId = randomUUID();
+    const claimExpiresAt = new Date(now.getTime() + PROVIDER_CLAIM_TTL_MS);
+    const [claimed] = rowsFrom<{ id: string }>(await tx.execute(sql`
       UPDATE public.credential_recovery_challenges
-      SET used_at = ${now}, updated_at = ${now}
+      SET provider_claim_id = ${claimId}::uuid,
+          provider_claimed_at = ${now},
+          provider_claim_expires_at = ${claimExpiresAt},
+          provider_attempt_count = provider_attempt_count + 1,
+          provider_status = 'claimed',
+          updated_at = ${now}
       WHERE id = ${challenge.id}::uuid
         AND used_at IS NULL
         AND invalidated_at IS NULL
       RETURNING id
     `));
-    if (!consumed) return { state: "used", challengeId: challenge.id, subjectUserId: null };
+    if (!claimed) return { state: "used", challengeId: challenge.id, subjectUserId: null, claimId: null };
 
     await writeEvent(tx, {
       ...context,
       challengeId: challenge.id,
-      eventType: "grant_consumed",
+      eventType: "provider_claimed",
       accountLookupHmac: challenge.account_lookup_hmac,
       requestFingerprintHmac: fingerprint,
+      metadata: { claimExpiresAt: claimExpiresAt.toISOString() },
     });
     return {
       state: "valid",
       challengeId: challenge.id,
       subjectUserId: challenge.subject_user_id,
+      claimId,
     };
   });
 }
@@ -647,6 +677,7 @@ export async function revokeCredentialRecoveryChallenges(input: {
 
 export async function recordCredentialRecoveryProviderOutcome(input: {
   challengeId: string;
+  claimId: string;
   success: boolean;
   sessionRevoked: boolean;
   now?: Date;
@@ -663,8 +694,29 @@ export async function recordCredentialRecoveryProviderOutcome(input: {
       FROM public.credential_recovery_challenges
       WHERE id = ${input.challengeId}::uuid
       LIMIT 1
+      FOR UPDATE
     `));
-    if (!challenge) return;
+    if (!challenge) throw new Error("Credential recovery provider claim not found.");
+    if (challenge.used_at && input.success && challenge.provider_claim_id === input.claimId) return;
+    if (challenge.invalidated_at || challenge.provider_claim_id !== input.claimId) {
+      throw new Error("Credential recovery provider claim is no longer current.");
+    }
+
+    const [finalized] = rowsFrom<{ id: string }>(await tx.execute(sql`
+      UPDATE public.credential_recovery_challenges
+      SET used_at = CASE WHEN ${input.success} THEN ${now} ELSE used_at END,
+          provider_status = CASE WHEN ${input.success} THEN 'succeeded' ELSE 'failed' END,
+          provider_finalized_at = ${now},
+          provider_claim_expires_at = CASE WHEN ${input.success} THEN provider_claim_expires_at ELSE ${now} END,
+          updated_at = ${now}
+      WHERE id = ${input.challengeId}::uuid
+        AND provider_claim_id = ${input.claimId}::uuid
+        AND used_at IS NULL
+        AND invalidated_at IS NULL
+      RETURNING id
+    `));
+    if (!finalized) throw new Error("Credential recovery provider claim could not be finalized.");
+
     await writeEvent(tx, {
       challengeId: challenge.id,
       tenantId: challenge.tenant_id,
@@ -673,7 +725,11 @@ export async function recordCredentialRecoveryProviderOutcome(input: {
       eventType: input.success ? "provider_password_updated" : "provider_password_update_failed",
       accountLookupHmac: challenge.account_lookup_hmac,
       requestFingerprintHmac: challenge.request_fingerprint_hmac,
-      metadata: { sessionRevoked: input.sessionRevoked, occurredAt: now.toISOString() },
+      metadata: {
+        sessionRevoked: input.sessionRevoked,
+        occurredAt: now.toISOString(),
+        retryable: !input.success,
+      },
     });
   });
 }

@@ -1,5 +1,7 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+
 import {
   assignmentPersonnelTable,
   assignmentsTable,
@@ -10,6 +12,8 @@ import {
   objectsTable,
   buildAssignmentTimeProjection,
   executeAssignmentParticipantAction,
+  beginOfflineOperation,
+  completeOfflineOperation,
 } from "@workspace/db";
 import { emitAssignmentWorkflowEvent } from "@workspace/db/workflow-events";
 import { safelyInvalidateAssignmentRouteContexts } from "@workspace/db/planning-realtime";
@@ -445,6 +449,15 @@ const ROUTE_REFRESH_STATUS_REASONS = {
   in_progress: "status_in_progress",
 } as const;
 
+function participantMutationError(error: unknown, fallback: string): string {
+  const databaseError = error as { code?: unknown; message?: unknown };
+  const message = typeof databaseError?.message === "string" ? databaseError.message : "";
+  if (databaseError?.code === "40001" || /stale|version|gelijktijdig/i.test(message)) {
+    return "Conflict: deze werkbon is aangepast. Vernieuw en probeer opnieuw.";
+  }
+  return fallback;
+}
+
 export async function setAssignmentStatus(
   assignmentId: string,
   newStatus: string,
@@ -459,10 +472,6 @@ export async function setAssignmentStatus(
 
   const current = await getLinkedAssignment(personnel.id, personnel.tenantId, assignmentId);
   if (!current) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
-
-  if (typeof options.expectedParticipantVersion === "number" && current.participantVersion !== null && current.participantVersion !== options.expectedParticipantVersion) {
-    return { success: false, error: "Conflict: deze werkbon is aangepast. Ververs en probeer opnieuw." };
-  }
 
   const currentStatus = current.participantStatus ?? current.status;
   const allowed = STATUS_TRANSITIONS[currentStatus] ?? [];
@@ -480,7 +489,8 @@ export async function setAssignmentStatus(
       personnelId: personnel.id,
       actorUserId: user.id,
       action,
-      idempotencyKey: `${action}:${assignmentId}:${personnel.id}`,
+      idempotencyKey: options.clientMutationId?.trim() || randomUUID(),
+      expectedVersion: options.expectedParticipantVersion ?? current.participantVersion ?? 1,
       auditMetadata: {
         source: "personnel-pwa",
         previousStatus: currentStatus,
@@ -490,7 +500,7 @@ export async function setAssignmentStatus(
     });
   } catch (error) {
     console.error("assignment participant action failed", { assignmentId, personnelId: personnel.id, action, error });
-    return { success: false, error: "Bijwerken mislukt" };
+    return { success: false, error: participantMutationError(error, "Bijwerken mislukt") };
   }
 
   // Legacy one-shot guard was isNull(assignmentsTable.enRouteAt); the participant RPC now serializes the write.
@@ -560,6 +570,7 @@ export async function setAssignmentTaskCompletion(
   assignmentId: string,
   taskId: string,
   completed: boolean,
+  options: { expectedParticipantVersion?: number | null; clientMutationId?: string | null } = {},
 ): Promise<{ success: boolean; error?: string }> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -588,20 +599,32 @@ export async function setAssignmentTaskCompletion(
   if (!task) return { success: false, error: "Taak niet gevonden" };
 
   try {
-    await db
-      .update(assignmentTasksTable)
-      .set({
-        completedAt: completed ? new Date() : null,
-        completedBy: completed ? user.id : null,
-      })
-      .where(
-        and(
-          eq(assignmentTasksTable.id, taskId),
-          eq(assignmentTasksTable.assignmentId, assignmentId),
-        ),
-      );
-  } catch {
-    return { success: false, error: "Taak bijwerken mislukt" };
+    const operationId = options.clientMutationId?.trim() || randomUUID();
+    await db.transaction(async (tx) => {
+      const replay = await beginOfflineOperation<{ success: boolean }>(tx, {
+        tenantId: current.tenantId,
+        assignmentId,
+        personnelId: personnel.id,
+        actorUserId: user.id,
+        operationId,
+        operationType: "set-task-completion",
+        expectedVersion: options.expectedParticipantVersion ?? current.participantVersion ?? 1,
+        payload: { taskId, completed },
+      });
+      if (replay) return;
+      await tx
+        .update(assignmentTasksTable)
+        .set({ completedAt: completed ? new Date() : null, completedBy: completed ? user.id : null })
+        .where(and(eq(assignmentTasksTable.id, taskId), eq(assignmentTasksTable.assignmentId, assignmentId)));
+      await completeOfflineOperation(tx, {
+        tenantId: current.tenantId,
+        actorUserId: user.id,
+        operationId,
+        response: { success: true },
+      });
+    });
+  } catch (error) {
+    return { success: false, error: participantMutationError(error, "Taak bijwerken mislukt") };
   }
 
   revalidateAssignmentPaths(assignmentId);
@@ -621,9 +644,6 @@ export async function completeAssignment(
 
   const current = await getLinkedAssignment(personnel.id, personnel.tenantId, assignmentId);
   if (!current) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
-  if (typeof input.expectedParticipantVersion === "number" && current.participantVersion !== null && current.participantVersion !== input.expectedParticipantVersion) {
-    return { success: false, error: "Conflict: deze werkbon is aangepast. Ververs en probeer opnieuw." };
-  }
   const currentStatus = current.participantStatus ?? current.status;
   if (currentStatus === "completed") {
     revalidateAssignmentPaths(assignmentId);
@@ -647,7 +667,8 @@ export async function completeAssignment(
       personnelId: personnel.id,
       actorUserId: user.id,
       action: "complete",
-      idempotencyKey: `complete:${assignmentId}:${personnel.id}`,
+      idempotencyKey: input.clientMutationId?.trim() || randomUUID(),
+      expectedVersion: input.expectedParticipantVersion ?? current.participantVersion ?? 1,
       completionNotes: input.notes?.trim() || null,
       auditMetadata: {
         source: "personnel-pwa",
@@ -668,8 +689,8 @@ export async function completeAssignment(
         })
         .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)));
     }
-  } catch {
-    return { success: false, error: "Afronden mislukt" };
+  } catch (error) {
+    return { success: false, error: participantMutationError(error, "Afronden mislukt") };
   }
 
   await notifyAssignmentWorkflow({
@@ -706,9 +727,6 @@ export async function notCompleteAssignment(
 
   const current = await getLinkedAssignment(personnel.id, personnel.tenantId, assignmentId);
   if (!current) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
-  if (typeof input.expectedParticipantVersion === "number" && current.participantVersion !== null && current.participantVersion !== input.expectedParticipantVersion) {
-    return { success: false, error: "Conflict: deze werkbon is aangepast. Ververs en probeer opnieuw." };
-  }
   const currentStatus = current.participantStatus ?? current.status;
   if (currentStatus === "not_completed") {
     revalidateAssignmentPaths(assignmentId);
@@ -733,7 +751,8 @@ export async function notCompleteAssignment(
       personnelId: personnel.id,
       actorUserId: user.id,
       action: "not_complete",
-      idempotencyKey: `not_complete:${assignmentId}:${personnel.id}`,
+      idempotencyKey: input.clientMutationId?.trim() || randomUUID(),
+      expectedVersion: input.expectedParticipantVersion ?? current.participantVersion ?? 1,
       completionReason: reason,
       completionNotes: notes || null,
       auditMetadata: {
@@ -752,8 +771,8 @@ export async function notCompleteAssignment(
         updatedAt:                new Date(),
       })
       .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)));
-  } catch {
-    return { success: false, error: "Afmelden mislukt" };
+  } catch (error) {
+    return { success: false, error: participantMutationError(error, "Afmelden mislukt") };
   }
 
   await notifyAssignmentWorkflow({

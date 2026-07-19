@@ -43,20 +43,19 @@ test("Sprint 5 uses tenant invoice payment terms while keeping draft numbers emp
   assert.match(createInvoiceForm, /defaultDueDate\(defaultPaymentTermDays\)/u);
   assert.match(createInvoiceForm, /Concept bewaren/u);
 });
-
 test("Sprint 5 separates finalization from sending and keeps send backwards compatible", () => {
   const finalize = functionBlock(invoices, "finalizeInvoiceDraft");
   const sent = functionBlock(invoices, "markInvoiceSent");
 
   assert.match(finalize, /requirePermission\("invoices", "write"\)/u);
   assert.match(finalize, /invoice\.status !== "draft"/u);
-  assert.match(finalize, /finalizeOfficialInvoice\(\{ invoiceId, tenantId, actorUserId: user\.id \}\)/u);
+  assert.match(finalize, /finalizeOfficialInvoice\(\{\s*invoiceId,\s*tenantId,\s*actorUserId: user\.id,?\s*\}\)/u);
   assert.match(finalize, /data: \{ invoiceNumber: finalized\.invoiceNumber \}/u);
 
   assert.match(sent, /invoice\.status !== "draft"/u);
   assert.match(sent, /let claimedInvoiceNumber = invoice\.invoiceNumber \?\? ""/u);
   assert.match(sent, /if \(!invoice\.finalizedAt \|\| !invoice\.invoiceNumber\?\.trim\(\)\)/u);
-  assert.match(sent, /finalizeOfficialInvoice\(\{ invoiceId, tenantId, actorUserId: user\.id \}\)/u);
+  assert.match(sent, /finalizeOfficialInvoice\(\{\s*invoiceId,\s*tenantId,\s*actorUserId: user\.id,?\s*\}\)/u);
   assert.match(sent, /\.set\(\{ status: "sent", updatedAt: new Date\(\) \}\)/u);
   assert.match(sent, /\.set\(\{ status: "invoiced", updatedAt: new Date\(\) \}\)/u);
   assert.match(sent, /eventKey:\s+"invoice_sent"/u);
@@ -70,7 +69,7 @@ test("Sprint 5 exposes calm canon actions and preserves old invoice visibility",
   assert.match(invoiceDetail, /finalizedAt=\{invoice\.finalizedAt\}/u);
   assert.match(invoiceDetail, /invoiceNumber=\{invoice\.officialInvoiceNumber\}/u);
 
-  assert.match(invoices, /displayInvoiceNumber\(row\.invoiceNumber, `Factuur-\$\{row\.id\.slice\(0, 8\)\}`\)/u);
+  assert.match(invoices, /displayInvoiceNumber\(\s*row\.invoiceNumber,\s*`Factuur-\$\{row\.id\.slice\(0, 8\)\}`,?\s*\)/u);
   assert.match(invoices, /officialInvoiceNumber: row\.invoiceNumber \?\? null/u);
   assert.match(invoicesView, /label: "Concepten"/u);
   assert.match(processStatus, /value: "draft", label: "Concept"/u);

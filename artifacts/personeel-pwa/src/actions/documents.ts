@@ -1,10 +1,11 @@
 "use server";
 
 import { db } from "@workspace/db";
-import { documentsTable, personnelTable } from "@workspace/db";
+import { documentsTable, getTenantBoundStoragePath, personnelTable } from "@workspace/db";
 import { eq, and, desc } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -19,18 +20,24 @@ export type PersonnelDocument = {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-async function getPersonnelId(): Promise<string | null> {
+async function getPersonnelIdentity(): Promise<{ personnelId: string; tenantId: string } | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
+  const tenantId = await requireCurrentPersonnelPortalTenantId();
+  if (!tenantId) return null;
 
   const [row] = await db
     .select({ id: personnelTable.id })
     .from(personnelTable)
-    .where(and(eq(personnelTable.userId, user.id), eq(personnelTable.isActive, true)))
+    .where(and(
+      eq(personnelTable.userId, user.id),
+      eq(personnelTable.tenantId, tenantId),
+      eq(personnelTable.isActive, true),
+    ))
     .limit(1);
 
-  return row?.id ?? null;
+  return row ? { personnelId: row.id, tenantId } : null;
 }
 
 // ─── Queries ──────────────────────────────────────────────────────────────────
@@ -41,8 +48,8 @@ async function getPersonnelId(): Promise<string | null> {
  * entity_id=personnelId (no RLS bypass needed beyond the personnel id check).
  */
 export async function getMyDocuments(): Promise<PersonnelDocument[]> {
-  const personnelId = await getPersonnelId();
-  if (!personnelId) return [];
+  const identity = await getPersonnelIdentity();
+  if (!identity) return [];
 
   const rows = await db
     .select({
@@ -57,7 +64,8 @@ export async function getMyDocuments(): Promise<PersonnelDocument[]> {
     .where(
       and(
         eq(documentsTable.entityType, "personnel"),
-        eq(documentsTable.entityId, personnelId),
+        eq(documentsTable.entityId, identity.personnelId),
+        eq(documentsTable.tenantId, identity.tenantId),
       ),
     )
     .orderBy(desc(documentsTable.createdAt));
@@ -80,8 +88,8 @@ export async function getMyDocuments(): Promise<PersonnelDocument[]> {
 export async function getMyDocumentDownloadUrl(
   documentId: string,
 ): Promise<{ success: true; url: string } | { success: false; message: string }> {
-  const personnelId = await getPersonnelId();
-  if (!personnelId) return { success: false, message: "Niet geauthenticeerd." };
+  const identity = await getPersonnelIdentity();
+  if (!identity) return { success: false, message: "Niet geauthenticeerd." };
 
   const [doc] = await db
     .select({ storagePath: documentsTable.storagePath })
@@ -90,17 +98,22 @@ export async function getMyDocumentDownloadUrl(
       and(
         eq(documentsTable.id, documentId),
         eq(documentsTable.entityType, "personnel"),
-        eq(documentsTable.entityId, personnelId),
+        eq(documentsTable.entityId, identity.personnelId),
+        eq(documentsTable.tenantId, identity.tenantId),
       ),
     )
     .limit(1);
 
   if (!doc) return { success: false, message: "Document niet gevonden." };
+  const safeStoragePath = getTenantBoundStoragePath(doc.storagePath, identity.tenantId, {
+    allowLegacyTenantRoot: true,
+  });
+  if (!safeStoragePath) return { success: false, message: "Ongeldig opslagpad." };
 
   const admin = createAdminClient();
   const { data, error } = await admin.storage
     .from("documents")
-    .createSignedUrl(doc.storagePath, 60);
+    .createSignedUrl(safeStoragePath, 60);
 
   if (error || !data?.signedUrl) {
     return { success: false, message: "Download-link aanmaken mislukt." };
