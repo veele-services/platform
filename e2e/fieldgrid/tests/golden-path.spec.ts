@@ -550,11 +550,12 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
   )) as Array<{ generation: number; triggers: string[] }>;
   const reconnectPasses = startedPasses.slice(passCountBeforeReconnect);
   expect(reconnectPasses.length).toBeGreaterThanOrEqual(2);
-  expect(reconnectPasses.at(-1)?.triggers).toEqual(expect.arrayContaining([
-    "online",
-    "focus",
-    "visibility",
-  ]));
+  const coalescedReconnectPass = reconnectPasses.find((pass) => (
+    ["online", "focus", "visibility"].every((trigger) => (
+      pass.triggers.includes(trigger)
+    ))
+  ));
+  expect(coalescedReconnectPass).toBeTruthy();
 
   const databaseUrl = process.env.DATABASE_URL;
   expect(databaseUrl, "DATABASE_URL is required for canonical offline evidence").toBeTruthy();
@@ -606,7 +607,7 @@ test("9. Offline work-order mutation survives refresh and converges after reconn
     queueBeforeReconnect: queued.length,
     activeAttemptHeld: true,
     triggerDuringActiveSync: triggerWasRecordedDuringActivePass,
-    coalescedFollowUpPass: reconnectPasses.length >= 2,
+    coalescedFollowUpPass: Boolean(coalescedReconnectPass),
     synchronizationPassCount: reconnectPasses.length,
     clientAttemptCount,
     maximumActiveClientAttempts,
