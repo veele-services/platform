@@ -146,6 +146,28 @@ test("browser scenarios use real runtime hostnames instead of forbidden Host hea
   assert.doesNotMatch(spec, /http:\/\/127\.0\.0\.1:932[123]/);
 });
 
+test("suspended-tenant navigation is bound to the denial DOM instead of full resource load", () => {
+  const spec = browserSpec();
+  assert.match(
+    spec,
+    /page\.goto\(backofficeUrl\("\/", suspendedHost\), \{\s+waitUntil: "domcontentloaded",\s+\}\)/,
+  );
+  assert.match(spec, /suspendedAssetPattern/);
+  assert.match(spec, /await suspendedAssetRelease/);
+  assert.match(spec, /releaseSuspendedAsset\(\)/);
+  assert.match(spec, /page\.unroute\(suspendedAssetPattern\)/);
+  assert.match(spec, /expect\(response\?\.status\(\)\)\.toBe\(200\)/);
+  assert.match(
+    spec,
+    /expect\(response\?\.request\(\)\.redirectedFrom\(\)\)\.toBeNull\(\)/,
+  );
+  assert.match(spec, /name: "Geen actieve organisatietoegang"/);
+  assert.match(
+    spec,
+    /Runtime Customer A\|Runtime Customer B\|Runtime Assignment A\|Runtime Assignment B/,
+  );
+});
+
 test("gateway is strict and strips /rest/v1 before proxying to real PostgREST", () => {
   const source = start();
   assert.match(source, /req\.url\?\.startsWith\(["']\/rest\/v1\/["']\)/);
