@@ -377,8 +377,45 @@ test("8. Negative guards", async ({ page }) => {
     "20000000-0000-4000-8000-000000000401",
     suspendedHost,
   );
-  response = await page.goto(backofficeUrl("/", suspendedHost));
-  await expectDeniedOrLogin(page, response);
+  const suspendedAssetPattern = `http://${suspendedHost}:9321/_next/static/chunks/main-app.js*`;
+  let suspendedAssetIntercepted = false;
+  let releaseSuspendedAsset = () => undefined;
+  const suspendedAssetRelease = new Promise<void>((resolve) => {
+    releaseSuspendedAsset = resolve;
+  });
+  let markSuspendedAssetHandled = () => undefined;
+  const suspendedAssetHandled = new Promise<void>((resolve) => {
+    markSuspendedAssetHandled = resolve;
+  });
+  await page.route(suspendedAssetPattern, async (route) => {
+    suspendedAssetIntercepted = true;
+    try {
+      await suspendedAssetRelease;
+      await route.continue();
+    } finally {
+      markSuspendedAssetHandled();
+    }
+  });
+  try {
+    response = await page.goto(backofficeUrl("/", suspendedHost), {
+      waitUntil: "domcontentloaded",
+    });
+    await expect.poll(() => suspendedAssetIntercepted).toBe(true);
+    expect(response?.status()).toBe(200);
+    expect(response?.request().redirectedFrom()).toBeNull();
+    await expect(page).toHaveURL(backofficeUrl("/", suspendedHost));
+    await expect(
+      page.getByRole("heading", { name: "Geen actieve organisatietoegang" }),
+    ).toBeVisible();
+    await expect(page.locator("body")).not.toContainText(
+      /Runtime Customer A|Runtime Customer B|Runtime Assignment A|Runtime Assignment B/u,
+    );
+    await expectDeniedOrLogin(page, response);
+  } finally {
+    releaseSuspendedAsset();
+    if (suspendedAssetIntercepted) await suspendedAssetHandled;
+    await page.unroute(suspendedAssetPattern);
+  }
   await useIdentity(page, "20000000-0000-4000-8000-000000000104", tenantAHost);
   response = await page.goto(
     personnelUrl(`/personeel/opdrachten/${tenantBAssignmentId}`),
