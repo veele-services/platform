@@ -281,7 +281,11 @@ export default async function WerkbonDetailPage({ params, searchParams }: Props)
       <WorkOrderHeader assignment={assignment} activeTab={activeTab} />
 
       {isScheduled ? (
-        <SeenMarker assignmentId={assignment.id} currentStatus={assignment.status} />
+        <SeenMarker
+          assignmentId={assignment.id}
+          currentStatus={assignment.status}
+          expectedParticipantVersion={assignment.participantVersion ?? null}
+        />
       ) : null}
 
       {activeTab === "home" ? (

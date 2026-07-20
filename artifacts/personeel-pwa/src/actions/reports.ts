@@ -28,6 +28,11 @@ import {
   isReportNoteAttachmentPath,
   validateAssignmentMediaDescriptor,
 } from "@/lib/uploads/assignment-media";
+import type { OfflineActionResult } from "@/lib/offline/offline-action-contract";
+import {
+  normalizeOfflineServerActionError,
+  permanentOfflineActionFailure,
+} from "@/lib/offline/offline-action-errors.server";
 
 export type ReportNoteAttachment = {
   id:          string;
@@ -585,15 +590,26 @@ export type SubmitReportData = {
 export async function addReportNote(
   assignmentId: string,
   input: ReportNoteInput,
-): Promise<{ success: boolean; note?: ReportNote; error?: string }> {
+): Promise<OfflineActionResult<{ note: ReportNote }>> {
+  try {
+    return await addReportNoteInternal(assignmentId, input);
+  } catch (error) {
+    return normalizeOfflineServerActionError(error, "Notitie opslaan mislukt. Probeer het later opnieuw.");
+  }
+}
+
+async function addReportNoteInternal(
+  assignmentId: string,
+  input: ReportNoteInput,
+): Promise<OfflineActionResult<{ note: ReportNote }>> {
   const auth = await getAuthAndPersonnel();
-  if (!auth) return { success: false, error: "Niet ingelogd" };
+  if (!auth) return permanentOfflineActionFailure("Niet ingelogd", "authentication_required");
 
   const linked = await isLinkedToAssignment(auth.personnelId, auth.tenantId, assignmentId);
-  if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
+  if (!linked) return permanentOfflineActionFailure("Niet gekoppeld aan deze opdracht", "assignment_not_available");
 
   const body = input.body.trim();
-  if (!body) return { success: false, error: "Notitie is verplicht" };
+  if (!body) return permanentOfflineActionFailure("Notitie is verplicht", "validation_failed");
 
   const [assignment] = await db
     .select({ status: assignmentsTable.status })
@@ -601,9 +617,9 @@ export async function addReportNote(
     .where(eq(assignmentsTable.id, assignmentId))
     .limit(1);
 
-  if (!assignment) return { success: false, error: "Opdracht niet gevonden" };
+  if (!assignment) return permanentOfflineActionFailure("Opdracht niet gevonden", "assignment_not_found");
   if (LOCKED_REPORT_NOTE_STATUSES.has(assignment.status)) {
-    return { success: false, error: "Deze werkbon is afgesloten voor rapportage" };
+    return permanentOfflineActionFailure("Deze werkbon is afgesloten voor rapportage", "business_rule_rejected");
   }
 
   const [execution] = await db
@@ -616,18 +632,19 @@ export async function addReportNote(
       ne(assignmentParticipantExecutionsTable.participantStatus, "removed"),
     ))
     .limit(1);
-  if (!execution) return { success: false, error: "Uitvoering niet gevonden" };
+  if (!execution) return permanentOfflineActionFailure("Uitvoering niet gevonden", "execution_not_found");
+  const expectedVersion = input.expectedParticipantVersion ?? Number(execution.version);
 
   const attachmentInput = input.attachments ?? [];
   if (attachmentInput.length > MAX_REPORT_NOTE_ATTACHMENTS) {
-    return { success: false, error: `Maximaal ${MAX_REPORT_NOTE_ATTACHMENTS} bijlagen per notitie toegestaan` };
+    return permanentOfflineActionFailure(`Maximaal ${MAX_REPORT_NOTE_ATTACHMENTS} bijlagen per notitie toegestaan`, "validation_failed");
   }
 
   const normalizedAttachments = attachmentInput.map((attachment) =>
     normalizeAttachmentInput(auth.tenantId, assignmentId, attachment),
   );
   if (normalizedAttachments.some((attachment) => attachment === null)) {
-    return { success: false, error: "Bijlage kon niet worden gekoppeld" };
+    return permanentOfflineActionFailure("Bijlage kon niet worden gekoppeld", "validation_failed");
   }
 
   for (const attachment of normalizedAttachments) {
@@ -638,21 +655,21 @@ export async function addReportNote(
       fileSize: attachment.fileSize ?? 0,
     });
     if (!exists) {
-      return { success: false, error: "Bijlage is nog niet correct geupload. Probeer opnieuw." };
+      return permanentOfflineActionFailure("Bijlage is nog niet correct geupload. Probeer opnieuw.", "validation_failed");
     }
   }
 
   try {
-    const { note, attachments } = await db.transaction(async (tx) => {
+    const { note, attachments, participantVersion } = await db.transaction(async (tx) => {
       const operationId = input.clientMutationId?.trim() || randomUUID();
-      const replay = await beginOfflineOperation<{ noteId: string }>(tx, {
+      const replay = await beginOfflineOperation<{ noteId: string; participantVersion?: number }>(tx, {
         tenantId: auth.tenantId,
         assignmentId,
         personnelId: auth.personnelId,
         actorUserId: auth.userId,
         operationId,
         operationType: "add-report-note",
-        expectedVersion: input.expectedParticipantVersion ?? Number(execution.version),
+        expectedVersion,
         payload: { body, attachments: normalizedAttachments },
       });
       if (replay) {
@@ -670,7 +687,7 @@ export async function addReportNote(
           createdAt: assignmentReportNoteAttachmentsTable.createdAt,
         }).from(assignmentReportNoteAttachmentsTable).where(eq(assignmentReportNoteAttachmentsTable.noteId, replay.noteId));
         if (!existingNote) throw new Error("Canonical offline note ontbreekt");
-        return { note: existingNote, attachments: existingAttachments };
+        return { note: existingNote, attachments: existingAttachments, participantVersion: replay.participantVersion ?? expectedVersion };
       }
       const [createdNote] = await tx
         .insert(assignmentReportNotesTable)
@@ -712,10 +729,10 @@ export async function addReportNote(
         tenantId: auth.tenantId,
         actorUserId: auth.userId,
         operationId,
-        response: { noteId: createdNote!.id },
+        response: { noteId: createdNote!.id, participantVersion: expectedVersion },
       });
 
-      return { note: createdNote!, attachments: createdAttachments };
+      return { note: createdNote!, attachments: createdAttachments, participantVersion: expectedVersion };
     });
 
     const signedAttachments = await Promise.all(
@@ -734,6 +751,7 @@ export async function addReportNote(
     revalidatePath(`/opdrachten/${assignmentId}`);
     return {
       success: true,
+      participantVersion,
       note:    {
         id:          note.id,
         body:        note.body,
@@ -742,8 +760,8 @@ export async function addReportNote(
         attachments: signedAttachments,
       },
     };
-  } catch {
-    return { success: false, error: "Notitie opslaan mislukt" };
+  } catch (error) {
+    return normalizeOfflineServerActionError(error, "Notitie opslaan mislukt. Probeer het later opnieuw.");
   }
 }
 

@@ -4,6 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import { mkdir, readFile, readdir, writeFile } from 'node:fs/promises';
 import { dirname, join, relative } from 'node:path';
+import { resolvePlaywrightJourneyEvidence } from './fieldgrid-playwright-journey-evidence.mjs';
 
 const root = process.cwd();
 const artifactDir = join(root, 'artifacts', 'fieldgrid-phase2-runtime');
@@ -67,10 +68,21 @@ const contracts = {
     assertions: ['management, personnel and customer projection events are emitted', 'forbidden tenant receives no event', 'payload is scrubbed', 'projection versions are monotonic', 'refresh shows the projected state'],
     sources: [runtime('realtime-projections'), reportCheck('rls', 'rls-customer-safe-realtime-projection-and-deactivation', 'rls'), playwright('durable unassignment, reassignment, multi-person execution and actual-time projection')],
   },
-  'offline-personnel-pwa': {
-    testId: 'FG-P2D-OFFLINE',
-    assertions: ['offline-capable data loads', 'mutation queues while offline', 'trigger during active synchronization produces a coalesced follow-up pass', 'reconnect synchronizes once', 'database replay is idempotent and stale replay conflicts safely'],
-    sources: [playwright('9. Offline work-order mutation survives refresh and converges after reconnect'), offline(), reportCheck('db', 'phase2c-transactional-invariants', 'postgresql'), runtime('planned-versus-actual-and-multi-person')],
+  "offline-personnel-pwa": {
+    testId: "FG-P2D-OFFLINE",
+    assertions: [
+      "offline-capable data loads",
+      "sequential mutations remain durable while offline",
+      "trigger during active synchronization produces a coalesced follow-up pass",
+      "transient retry preserves stable mutation identity",
+      "canonical versions advance monotonically without duplicate execution",
+    ],
+    sources: [
+      playwrightJourney("phase2.offline.mutation-chain"),
+      offline(),
+      reportCheck("db", "phase2c-transactional-invariants", "postgresql"),
+      runtime("planned-versus-actual-and-multi-person"),
+    ],
   },
   'customer-visibility': {
     testId: 'FG-P2D-CUSTOMER',
@@ -96,6 +108,7 @@ const contracts = {
 
 function runtime(journeyId) { return { resolver: 'runtime', journeyId }; }
 function playwright(title) { return { resolver: 'playwright', title }; }
+function playwrightJourney(journeyId) { return { resolver: 'playwright-journey', journeyId }; }
 function reportCheck(key, check, kind) { return { resolver: 'report-check', key, check, kind }; }
 function reportOverall(key, kind) { return { resolver: 'report-overall', key, kind }; }
 function dataPath() { return { resolver: 'data-path' }; }
@@ -152,6 +165,24 @@ async function collect() {
   const fallbackTime = binding.generatedAt;
 
   async function resolve(spec) {
+    if (spec.resolver === "playwright-journey") {
+      const test = resolvePlaywrightJourneyEvidence(
+        sources.browser.value,
+        spec.journeyId,
+        { expectedHead: exactGitHead },
+      );
+      return {
+        kind: "playwright",
+        artifact: sources.browser.artifact,
+        sourceId: `${spec.journeyId}:${test.testId}`,
+        status: normalizedStatus(test.status),
+        ...timeRange(test, fallbackTime),
+        assertions: [
+          `Stable journey ${spec.journeyId} expected ${test.expectedStatus} and observed ${test.status}`,
+        ],
+        failure: test.errors.length ? { errors: test.errors } : null,
+      };
+    }
     if (spec.resolver === 'playwright') {
       const matches = sources.browser.value.tests.filter((test) => test.title.endsWith(spec.title));
       assert(matches.length === 1, `Expected exactly one Playwright source for "${spec.title}", found ${matches.length}.`);
@@ -187,33 +218,61 @@ async function collect() {
       const report = sources.accessibility.value;
       return { kind: 'accessibility', artifact: sources.accessibility.artifact, sourceId: 'axe-and-keyboard-summary', status: normalizedStatus(report.status), ...timeRange(report, fallbackTime), assertions: [`${report.results?.length ?? 0} runtime axe scans executed`, `${report.seriousOrCriticalViolations} serious/critical violations`, `${report.keyboardFailures} keyboard failures`], failure: report.status === 'passed' ? null : { seriousOrCriticalViolations: report.seriousOrCriticalViolations, keyboardFailures: report.keyboardFailures } };
     }
-    if (spec.resolver === 'offline') {
+    if (spec.resolver === "offline") {
       const proof = sources.offline.value;
-      const passed = proof.status === 'passed'
-        && proof.exactGitHead === exactGitHead
-        && proof.mandatoryJourneySkipped === false
-        && proof.offlineTransitionObserved === true
-        && proof.queueBeforeReconnect === 1
-        && proof.triggerDuringActiveSync === true
-        && proof.coalescedFollowUpPass === true
-        && proof.maximumActiveClientAttempts === 1
-        && proof.queueAfterReconnect === 0
-        && proof.serverMutationCount === 1
-        && proof.canonicalReceiptCount === 1
-        && proof.reloadConverged === true;
+      const sequentialMutationIds = proof.sequentialMutationIdSha256 ?? [];
+      const canonicalVersions = proof.canonicalVersions ?? [];
+      const passed =
+        proof.status === "passed" &&
+        proof.exactGitHead === exactGitHead &&
+        proof.mandatoryJourneySkipped === false &&
+        proof.offlineTransitionObserved === true &&
+        proof.queueBeforeReconnect === 2 &&
+        proof.activeAttemptHeld === true &&
+        proof.firstStillDurable === true &&
+        proof.triggerDuringActiveSync === true &&
+        proof.coalescedFollowUpPass === true &&
+        proof.synchronizationPassCount >= 2 &&
+        proof.clientAttemptCount === 3 &&
+        proof.maximumActiveClientAttempts === 1 &&
+        proof.queueAfterReconnect === 0 &&
+        sequentialMutationIds.length === 2 &&
+        new Set(sequentialMutationIds).size === 2 &&
+        sequentialMutationIds.every((hash) => /^[0-9a-f]{64}$/u.test(hash)) &&
+        Number.isInteger(proof.initialVersion) &&
+        canonicalVersions.length === 2 &&
+        canonicalVersions[0] === proof.initialVersion + 1 &&
+        canonicalVersions[1] === canonicalVersions[0] &&
+        proof.dependencyAdvanced === true &&
+        proof.transientFailure?.sqlState === "40001" &&
+        proof.transientFailure?.classification === "transient" &&
+        proof.transientFailure?.retryable === true &&
+        proof.transientFailure?.retryAttempt === 1 &&
+        proof.transientFailure?.mutationIdSha256 === sequentialMutationIds[0] &&
+        proof.serverMutationCount === 2 &&
+        proof.canonicalReceiptCount === 2 &&
+        proof.completedCanonicalReceiptCount === 2 &&
+        proof.taskCompletionRowCount === 1 &&
+        proof.reloadConverged === true &&
+        proof.duplicateExecutionCount === 0 &&
+        proof.duplicateReceiptCount === 0;
       return {
-        kind: 'offline-reconnect',
+        kind: "offline-reconnect",
         artifact: sources.offline.artifact,
-        sourceId: 'deterministic-offline-reconnect-race',
-        status: passed ? 'passed' : 'failed',
+        sourceId: "deterministic-offline-reconnect-race",
+        status: passed ? "passed" : "failed",
         ...timeRange(proof, fallbackTime),
         assertions: [
           `queue ${proof.queueBeforeReconnect} → ${proof.queueAfterReconnect}`,
-          `synchronization passes ${proof.synchronizationPassCount}, maximum overlap ${proof.maximumActiveClientAttempts}`,
-          `canonical server mutations ${proof.serverMutationCount}, receipts ${proof.canonicalReceiptCount}`,
+          `sequential mutation identities ${sequentialMutationIds.length}, first action remained durable ${proof.firstStillDurable}`,
+          `synchronization passes ${proof.synchronizationPassCount}, client attempts ${proof.clientAttemptCount}, maximum overlap ${proof.maximumActiveClientAttempts}`,
+          `canonical version ${proof.initialVersion} → ${canonicalVersions.join(" → ")}, transient retry ${proof.transientFailure?.sqlState}`,
+          `canonical server mutations ${proof.serverMutationCount}, completed receipts ${proof.completedCanonicalReceiptCount}, duplicate executions ${proof.duplicateExecutionCount}`,
           `reload convergence ${proof.reloadConverged}`,
         ],
-        failure: passed ? null : { reason: 'Structured offline reconnect assertions failed.' },
+        failure: passed
+          ? null
+          : { reason: "Structured offline reconnect assertions failed." },
       };
     }
     throw new Error(`Unknown source resolver ${spec.resolver}`);

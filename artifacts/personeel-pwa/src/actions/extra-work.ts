@@ -25,6 +25,11 @@ import {
   isExtraWorkPhotoPath,
   validateAssignmentMediaDescriptor,
 } from "@/lib/uploads/assignment-media";
+import type { OfflineActionResult } from "@/lib/offline/offline-action-contract";
+import {
+  normalizeOfflineServerActionError,
+  permanentOfflineActionFailure,
+} from "@/lib/offline/offline-action-errors.server";
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
@@ -238,18 +243,29 @@ export async function getExtraWorkForAssignment(assignmentId: string): Promise<E
 export async function addExtraWork(
   assignmentId: string,
   input: ExtraWorkInput,
-): Promise<{ success: boolean; id?: string; error?: string }> {
+): Promise<OfflineActionResult<{ id: string }>> {
+  try {
+    return await addExtraWorkInternal(assignmentId, input);
+  } catch (error) {
+    return normalizeOfflineServerActionError(error, "Meerwerk opslaan mislukt. Probeer het later opnieuw.");
+  }
+}
+
+async function addExtraWorkInternal(
+  assignmentId: string,
+  input: ExtraWorkInput,
+): Promise<OfflineActionResult<{ id: string }>> {
   const auth = await getAuthAndPersonnel();
-  if (!auth) return { success: false, error: "Niet ingelogd" };
+  if (!auth) return permanentOfflineActionFailure("Niet ingelogd", "authentication_required");
 
   const linked = await isLinked(auth.personnelId, auth.tenantId, assignmentId);
-  if (!linked) return { success: false, error: "Niet gekoppeld aan deze opdracht" };
+  if (!linked) return permanentOfflineActionFailure("Niet gekoppeld aan deze opdracht", "assignment_not_available");
 
   const editable = await isAssignmentEditable(assignmentId);
-  if (!editable) return { success: false, error: "De opdracht is afgesloten voor verdere wijzigingen" };
+  if (!editable) return permanentOfflineActionFailure("De opdracht is afgesloten voor verdere wijzigingen", "business_rule_rejected");
 
   const description = input.description.trim();
-  if (!description) return { success: false, error: "Omschrijving is verplicht" };
+  if (!description) return permanentOfflineActionFailure("Omschrijving is verplicht", "validation_failed");
 
   const [execution] = await db.select({ version: assignmentParticipantExecutionsTable.version })
     .from(assignmentParticipantExecutionsTable)
@@ -259,17 +275,18 @@ export async function addExtraWork(
       eq(assignmentParticipantExecutionsTable.personnelId, auth.personnelId),
       ne(assignmentParticipantExecutionsTable.participantStatus, "removed"),
     )).limit(1);
-  if (!execution) return { success: false, error: "Uitvoering niet gevonden" };
+  if (!execution) return permanentOfflineActionFailure("Uitvoering niet gevonden", "execution_not_found");
+  const expectedVersion = input.expectedParticipantVersion ?? Number(execution.version);
 
   const operationId = input.clientMutationId?.trim() || randomUUID();
   const row = await db.transaction(async (tx) => {
-    const replay = await beginOfflineOperation<{ id: string }>(tx, {
+    const replay = await beginOfflineOperation<{ id: string; participantVersion?: number }>(tx, {
       tenantId: auth.tenantId, assignmentId, personnelId: auth.personnelId,
       actorUserId: auth.userId, operationId, operationType: "add-extra-work",
-      expectedVersion: input.expectedParticipantVersion ?? Number(execution.version),
+      expectedVersion,
       payload: { taskCodeId: input.taskCodeId ?? null, description, hours: input.hours ?? null, price: input.price ?? null },
     });
-    if (replay) return replay;
+    if (replay) return { ...replay, participantVersion: replay.participantVersion ?? expectedVersion };
     const [created] = await tx.insert(assignmentExtraWorkTable).values({
       assignmentId, taskCodeId: input.taskCodeId ?? null, taskCodeName: input.taskCodeName ?? null,
       description, hours: input.hours?.trim() || null, price: input.price?.trim() || null,
@@ -277,16 +294,17 @@ export async function addExtraWork(
     }).returning({ id: assignmentExtraWorkTable.id });
     if (!created) throw new Error("Toevoegen mislukt");
     await completeOfflineOperation(tx, {
-      tenantId: auth.tenantId, actorUserId: auth.userId, operationId, response: { id: created.id },
+      tenantId: auth.tenantId, actorUserId: auth.userId, operationId,
+      response: { id: created.id, participantVersion: expectedVersion },
     });
-    return created;
+    return { ...created, participantVersion: expectedVersion };
   });
 
-  if (!row) return { success: false, error: "Toevoegen mislukt" };
+  if (!row) return permanentOfflineActionFailure("Toevoegen mislukt", "database_failure");
 
   revalidatePath(`/opdrachten/${assignmentId}`);
   revalidatePath(`/opdrachten/${assignmentId}/meerwerk`);
-  return { success: true, id: row.id };
+  return { success: true, id: row.id, participantVersion: row.participantVersion };
 }
 
 export async function updateExtraWork(

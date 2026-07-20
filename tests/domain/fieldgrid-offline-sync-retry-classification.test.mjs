@@ -22,6 +22,35 @@ test("network, timeout and transient HTTP failures are retryable", () => {
   }
 });
 
+test("structured SQLSTATE failures survive the action boundary", () => {
+  for (const sqlState of ["40001", "40P01", "55P03", "08000", "08007", "08P01", "53300", "57P01", "57P02", "57P03"]) {
+    const classified = classifyOfflineSyncFailure({
+      success: false,
+      error: "Bijwerken mislukt. Probeer het later opnieuw.",
+      failure: {
+        category: "transient",
+        code: "database_temporarily_unavailable",
+        retryable: true,
+        sqlState,
+      },
+    });
+    assert.equal(classified.kind, "transient", sqlState);
+  }
+});
+
+test("structured conflict and permanent failures take precedence over message heuristics", () => {
+  assert.equal(classifyOfflineSyncFailure({
+    success: false,
+    error: "Veilige foutmelding",
+    failure: { category: "conflict", code: "expected_version_conflict", retryable: false },
+  }).kind, "conflict");
+  assert.equal(classifyOfflineSyncFailure({
+    success: false,
+    error: "Veilige foutmelding",
+    failure: { category: "permanent", code: "authorization_denied", retryable: false },
+  }).kind, "permanent");
+});
+
 test("authorization, validation, tenant and version failures are terminal", () => {
   for (const failure of [
     { success: false, status: 401, error: "Niet ingelogd" },

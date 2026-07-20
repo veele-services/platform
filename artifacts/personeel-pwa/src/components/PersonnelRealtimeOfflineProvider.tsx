@@ -10,13 +10,14 @@ import { addMaterialUsage } from "@/actions/materials";
 import { addReportNote } from "@/actions/reports";
 import {
   MAX_AUTOMATIC_OFFLINE_ATTEMPTS,
+  completeOfflineWorkOrderAction,
   getOfflineWorkOrderFailureCount,
   bindOfflineWorkOrderQueueOwner,
   getNextOfflineWorkOrderRetryAt,
   getOfflineWorkOrderQueueCount,
   isOfflineWorkOrderQueueOwnedBy,
   readNextEligibleOfflineWorkOrderAction,
-  removeOfflineWorkOrderAction,
+  recoverOfflineWorkOrderQueueAfterReload,
   requestOfflineWorkOrderSync,
   retryOfflineWorkOrderFailures,
   subscribeOfflineWorkOrderQueue,
@@ -217,21 +218,33 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
 
     const executePass = async () => {
       if (!isOfflineWorkOrderQueueOwnedBy(personnelId)) return;
+      // Recovery must run under the same cross-tab lock as claiming/draining.
+      // Otherwise a newly opened tab can reset another tab's live request.
+      recoverOfflineWorkOrderQueueAfterReload();
       setSyncing(true);
       setSyncError(null);
       setSyncedNotice(false);
       let syncedAnyAction = false;
+      const attemptedMutationIds = new Set<string>();
 
       try {
         while (typeof navigator === "undefined" || navigator.onLine) {
           if (!isOfflineWorkOrderQueueOwnedBy(personnelId)) break;
-          const action = readNextEligibleOfflineWorkOrderAction({ accelerateRetry });
+          const action = readNextEligibleOfflineWorkOrderAction({
+            accelerateRetry,
+            excludeMutationIds: attemptedMutationIds,
+          });
           if (!action) break;
           if (action.status === "synced") {
-            removeOfflineWorkOrderAction(action.id);
+            completeOfflineWorkOrderAction(action.id, action.canonicalReceipt ?? {
+              acknowledgedAt: new Date().toISOString(),
+              mutationId: action.idempotencyKey,
+              participantVersion: action.expectedParticipantVersion ?? 0,
+            });
             continue;
           }
 
+          attemptedMutationIds.add(action.idempotencyKey);
           const attempt = action.attempts + 1;
           const lastAttemptAt = new Date().toISOString();
           updateOfflineWorkOrderAction(action.id, {
@@ -242,6 +255,9 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
             lastError: null,
             lastErrorCode: null,
             lastErrorClassification: null,
+            lastErrorDiagnosticId: null,
+            lastErrorRetryable: null,
+            lastErrorSqlState: null,
           });
 
           let result: Awaited<ReturnType<typeof runQueuedAction>> | null = null;
@@ -254,15 +270,33 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
 
           if (result?.success) {
             const resultId = "id" in result && typeof result.id === "string" ? result.id : null;
-            updateOfflineWorkOrderAction(action.id, {
-              status: "synced",
-              canonicalReceipt: {
-                acknowledgedAt: new Date().toISOString(),
+            const participantVersion = Number(result.participantVersion);
+            if (!Number.isInteger(participantVersion) || participantVersion < 0) {
+              updateOfflineWorkOrderAction(action.id, {
+                status: "failed",
+                nextRetryAt: null,
+                lastError: "De server bevestigde de wijziging zonder geldige versie. Vernieuw de werkbon.",
+                lastErrorCode: "missing_canonical_participant_version",
+                lastErrorClassification: "permanent",
+                lastErrorRetryable: false,
+              });
+              setSyncError("De server bevestigde de wijziging zonder geldige versie. Vernieuw de werkbon.");
+              continue;
+            }
+            const receipt = {
+              acknowledgedAt: new Date().toISOString(),
+              mutationId: action.idempotencyKey,
+              participantVersion,
+              resultId,
+            };
+            const completion = completeOfflineWorkOrderAction(action.id, receipt);
+            window.dispatchEvent(new CustomEvent("veele:offline-mutation-receipt", {
+              detail: {
                 mutationId: action.idempotencyKey,
-                resultId,
+                participantVersion,
+                dependentMutationIds: completion.dependentMutationIds,
               },
-            });
-            removeOfflineWorkOrderAction(action.id);
+            }));
             syncedAnyAction = true;
             continue;
           }
@@ -284,6 +318,9 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
               lastError: classification.message,
               lastErrorCode: classification.code,
               lastErrorClassification: "transient",
+              lastErrorDiagnosticId: classification.diagnosticId,
+              lastErrorRetryable: true,
+              lastErrorSqlState: classification.sqlState,
             });
             setSyncError("Synchronisatie wordt automatisch opnieuw geprobeerd");
           } else {
@@ -294,10 +331,13 @@ export function PersonnelRealtimeOfflineProvider({ personnelId, children }: Prop
               lastError: classification.message,
               lastErrorCode: exhausted ? "retry_limit_reached" : classification.code,
               lastErrorClassification: classification.kind,
+              lastErrorDiagnosticId: classification.diagnosticId,
+              lastErrorRetryable: classification.kind === "transient",
+              lastErrorSqlState: classification.sqlState,
             });
             setSyncError(classification.message);
           }
-          break;
+          continue;
         }
       } finally {
         setSyncing(false);

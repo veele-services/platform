@@ -599,7 +599,7 @@ test("browser scenarios include payment integrity, review remediation, recovery 
   );
   assert.match(
     spec,
-    /Offline work-order mutation survives refresh and converges after reconnect/,
+    /Offline work-order mutation chain survives refresh and converges after reconnect/,
   );
   assert.match(spec, /firstAttemptRelease/);
   assert.match(spec, /triggerWasRecordedDuringActivePass/);
@@ -646,7 +646,9 @@ test("offline synchronization uses one observable generation coordinator and ali
   assert.match(worker, /FIELDGRID_REQUEST_OFFLINE_SYNC/);
   assert.match(validator, /triggerDuringActiveSync === true/);
   assert.match(validator, /coalescedFollowUpPass === true/);
-  assert.match(validator, /serverMutationCount === 1/);
+  assert.match(validator, /firstStillDurable === true/);
+  assert.match(validator, /dependencyAdvanced === true/);
+  assert.match(validator, /serverMutationCount === 2/);
 });
 
 test("Playwright uses explicit stack runner instead of config.webServer recursion", () => {

@@ -10,6 +10,10 @@ const finalizer = readFileSync(
   "e2e/fieldgrid/finalize-runtime-evidence.mjs",
   "utf8",
 );
+const journeyResolver = readFileSync(
+  "scripts/fieldgrid-playwright-journey-evidence.mjs",
+  "utf8",
+);
 const workflow = readFileSync(
   ".github/workflows/main-exact-head-validation.yml",
   "utf8",
@@ -66,6 +70,24 @@ test("runtime collector requires every mandatory journey and machine source", ()
       collector.includes(source) || finalizer.includes(source),
       `missing runtime source ${source}`,
     );
+});
+
+test("offline browser evidence uses stable reporter metadata instead of a title fallback", () => {
+  assert.match(
+    collector,
+    /playwrightJourney\(["']phase2\.offline\.mutation-chain["']\)/u,
+  );
+  assert.doesNotMatch(
+    collector,
+    /playwright\('9\. Offline work-order mutation survives refresh and converges after reconnect'\)/u,
+  );
+  assert.match(
+    journeyResolver,
+    /journeyIds = extractPlaywrightJourneyIds/u,
+  );
+  assert.match(finalizer, /exactGitHead/u);
+  assert.match(journeyResolver, /Expected exactly one Playwright journey/u);
+  assert.doesNotMatch(journeyResolver, /endsWith/u);
 });
 
 test("validator is fail-closed for provenance, duplicates, skips, environment, proof count and secrets", () => {

@@ -30,8 +30,10 @@ test("W08 offline queue has explicit states, deterministic replay keys and confl
     assert.match(queue, new RegExp(marker, "u"));
   }
   assert.match(queue, /createDeterministicIdempotencyKey/u);
-  assert.match(queue, /queued\.type !== "start-assignment"/u);
-  assert.match(queue, /queued\.type !== "complete-assignment"/u);
+  assert.match(queue, /dedupeFamily/u);
+  assert.match(queue, /intentHash/u);
+  assert.match(queue, /dependsOnMutationId/u);
+  assert.match(queue, /queued\.status !== "synced"/u);
   assert.match(queue, /clientMutationId/u);
   assert.match(provider, /clientMutationId: action\.idempotencyKey/u);
   assert.match(provider, /expectedParticipantVersion/u);
@@ -40,12 +42,15 @@ test("W08 offline queue has explicit states, deterministic replay keys and confl
 
 test("W08 server actions retain tenant ownership and reject stale participant versions", () => {
   const actions = read("artifacts/personeel-pwa/src/actions/assignments.ts");
+  const errors = read("artifacts/personeel-pwa/src/lib/offline/offline-action-errors.server.ts");
 
   assert.match(actions, /requireCurrentPersonnelPortalTenantId/u);
   assert.match(actions, /eq\(assignmentsTable\.tenantId, personnel\.tenantId\)/u);
   assert.doesNotMatch(actions, /service[_-]?role/iu);
   assert.match(actions, /participantVersion/u);
   assert.match(actions, /expectedParticipantVersion/u);
-  assert.match(actions, /Conflict: deze werkbon is aangepast/u);
+  assert.match(actions, /normalizeOfflineServerActionError/u);
+  assert.match(errors, /expected_version_conflict/u);
+  assert.match(errors, /Conflict: deze werkbon is aangepast/u);
   assert.match(actions, /executeAssignmentParticipantAction/u);
 });

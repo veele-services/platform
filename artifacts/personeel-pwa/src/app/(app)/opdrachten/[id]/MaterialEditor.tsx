@@ -212,7 +212,15 @@ export function MaterialEditor({ assignmentId, expectedParticipantVersion, initi
 
   function handleDelete(item: MaterialUsageItem) {
     if (item.id.startsWith("local-material-")) {
-      removeOfflineWorkOrderActionsByClientMutationId(item.id.replace("local-material-", ""));
+      const removal = removeOfflineWorkOrderActionsByClientMutationId(item.id.replace("local-material-", ""));
+      if (removal === "in_flight") {
+        setError("Dit materiaal wordt al gesynchroniseerd en kan niet meer lokaal worden verwijderd.");
+        return;
+      }
+      if (removal === "not_found") {
+        setError("Deze offline wijziging is niet meer lokaal beschikbaar. Vernieuw de werkbon.");
+        return;
+      }
       setItems((current) => current.filter((currentItem) => currentItem.id !== item.id));
       return;
     }
