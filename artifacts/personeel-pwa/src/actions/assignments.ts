@@ -17,6 +17,11 @@ import {
 } from "@workspace/db";
 import { emitAssignmentWorkflowEvent } from "@workspace/db/workflow-events";
 import { safelyInvalidateAssignmentRouteContexts } from "@workspace/db/planning-realtime";
+import type { OfflineActionResult } from "@/lib/offline/offline-action-contract";
+import {
+  normalizeOfflineServerActionError,
+  permanentOfflineActionFailure,
+} from "@/lib/offline/offline-action-errors.server";
 import { and, eq, ne } from "drizzle-orm";
 import { createClient } from "@/lib/supabase/server";
 import { requireCurrentPersonnelPortalTenantId } from "@/lib/auth/tenant";
@@ -449,42 +454,64 @@ const ROUTE_REFRESH_STATUS_REASONS = {
   in_progress: "status_in_progress",
 } as const;
 
-function participantMutationError(error: unknown, fallback: string): string {
-  const databaseError = error as { code?: unknown; message?: unknown };
-  const message = typeof databaseError?.message === "string" ? databaseError.message : "";
-  if (databaseError?.code === "40001" || /stale|version|gelijktijdig/i.test(message)) {
-    return "Conflict: deze werkbon is aangepast. Vernieuw en probeer opnieuw.";
-  }
-  return fallback;
+const injectedE2eOfflineFailures = new Set<string>();
+
+function injectE2eOfflineDatabaseFailureOnce(clientMutationId: string | null | undefined) {
+  const sqlState = process.env.FIELDGRID_E2E_OFFLINE_TRANSIENT_SQLSTATE;
+  if (
+    process.env.FIELDGRID_E2E_AUTH_ENABLED !== "true"
+    || sqlState !== "40001"
+    || !clientMutationId?.startsWith("personnel-pwa:")
+    || injectedE2eOfflineFailures.has(clientMutationId)
+  ) return;
+
+  injectedE2eOfflineFailures.add(clientMutationId);
+  throw Object.assign(new Error("Deterministic E2E transient database adapter failure"), {
+    code: sqlState,
+  });
 }
 
 export async function setAssignmentStatus(
   assignmentId: string,
   newStatus: string,
   options: { expectedParticipantVersion?: number | null; clientMutationId?: string | null } = {},
-): Promise<{ success: boolean; error?: string }> {
+): Promise<OfflineActionResult> {
+  try {
+    return await setAssignmentStatusInternal(assignmentId, newStatus, options);
+  } catch (error) {
+    return normalizeOfflineServerActionError(error);
+  }
+}
+
+async function setAssignmentStatusInternal(
+  assignmentId: string,
+  newStatus: string,
+  options: { expectedParticipantVersion?: number | null; clientMutationId?: string | null } = {},
+): Promise<OfflineActionResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Niet ingelogd" };
+  if (!user) return permanentOfflineActionFailure("Niet ingelogd", "authentication_required");
 
   const personnel = await getPersonnelBasic(supabase, user.id);
-  if (!personnel) return { success: false, error: "Personeelsprofiel niet gevonden" };
+  if (!personnel) return permanentOfflineActionFailure("Personeelsprofiel niet gevonden", "personnel_not_found");
 
   const current = await getLinkedAssignment(personnel.id, personnel.tenantId, assignmentId);
-  if (!current) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
+  if (!current) return permanentOfflineActionFailure("Opdracht niet gevonden of nog niet bevestigd door de planner", "assignment_not_available");
 
   const currentStatus = current.participantStatus ?? current.status;
   const allowed = STATUS_TRANSITIONS[currentStatus] ?? [];
 
-  if (!allowed.includes(newStatus)) {
-    return { success: false, error: "Status-overgang niet toegestaan" };
+  if (!allowed.includes(newStatus) && !options.clientMutationId) {
+    return permanentOfflineActionFailure("Status-overgang niet toegestaan", "business_rule_rejected");
   }
 
   const action = newStatus === "in_progress" ? "start" : newStatus === "en_route" ? "en_route" : newStatus === "seen" ? "seen" : null;
-  if (!action) return { success: false, error: "Gebruik de afrond-actie voor deze status" };
+  if (!action) return permanentOfflineActionFailure("Gebruik de afrond-actie voor deze status", "business_rule_rejected");
 
+  let executionResult: Awaited<ReturnType<typeof executeAssignmentParticipantAction>>;
   try {
-    await executeAssignmentParticipantAction({
+    injectE2eOfflineDatabaseFailureOnce(options.clientMutationId);
+    executionResult = await executeAssignmentParticipantAction({
       assignmentId,
       personnelId: personnel.id,
       actorUserId: user.id,
@@ -500,7 +527,7 @@ export async function setAssignmentStatus(
     });
   } catch (error) {
     console.error("assignment participant action failed", { assignmentId, personnelId: personnel.id, action, error });
-    return { success: false, error: participantMutationError(error, "Bijwerken mislukt") };
+    return normalizeOfflineServerActionError(error);
   }
 
   // Legacy one-shot guard was isNull(assignmentsTable.enRouteAt); the participant RPC now serializes the write.
@@ -549,20 +576,20 @@ export async function setAssignmentStatus(
   }
 
   revalidateAssignmentPaths(assignmentId);
-  return { success: true };
+  return { success: true, participantVersion: executionResult.version };
 }
 
 export async function startAssignment(
   assignmentId: string,
   options: { expectedParticipantVersion?: number | null; clientMutationId?: string | null } = {},
-): Promise<{ success: boolean; error?: string }> {
+): Promise<OfflineActionResult> {
   return setAssignmentStatus(assignmentId, "in_progress", options);
 }
 
 export async function markAssignmentEnRoute(
   assignmentId: string,
   options: { expectedParticipantVersion?: number | null; clientMutationId?: string | null } = {},
-): Promise<{ success: boolean; error?: string }> {
+): Promise<OfflineActionResult> {
   return setAssignmentStatus(assignmentId, "en_route", options);
 }
 
@@ -571,18 +598,31 @@ export async function setAssignmentTaskCompletion(
   taskId: string,
   completed: boolean,
   options: { expectedParticipantVersion?: number | null; clientMutationId?: string | null } = {},
-): Promise<{ success: boolean; error?: string }> {
+): Promise<OfflineActionResult> {
+  try {
+    return await setAssignmentTaskCompletionInternal(assignmentId, taskId, completed, options);
+  } catch (error) {
+    return normalizeOfflineServerActionError(error);
+  }
+}
+
+async function setAssignmentTaskCompletionInternal(
+  assignmentId: string,
+  taskId: string,
+  completed: boolean,
+  options: { expectedParticipantVersion?: number | null; clientMutationId?: string | null } = {},
+): Promise<OfflineActionResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Niet ingelogd" };
+  if (!user) return permanentOfflineActionFailure("Niet ingelogd", "authentication_required");
 
   const personnel = await getPersonnelBasic(supabase, user.id);
-  if (!personnel) return { success: false, error: "Personeelsprofiel niet gevonden" };
+  if (!personnel) return permanentOfflineActionFailure("Personeelsprofiel niet gevonden", "personnel_not_found");
 
   const current = await getLinkedAssignment(personnel.id, personnel.tenantId, assignmentId);
-  if (!current) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
+  if (!current) return permanentOfflineActionFailure("Opdracht niet gevonden of nog niet bevestigd door de planner", "assignment_not_available");
   if (["report_submitted", "report_approved", "invoice_ready", "invoiced", "paid", "closed"].includes(current.status)) {
-    return { success: false, error: "Deze werkbon is afgesloten voor wijzigingen" };
+    return permanentOfflineActionFailure("Deze werkbon is afgesloten voor wijzigingen", "business_rule_rejected");
   }
 
   const [task] = await db
@@ -596,22 +636,27 @@ export async function setAssignmentTaskCompletion(
     )
     .limit(1);
 
-  if (!task) return { success: false, error: "Taak niet gevonden" };
+  if (!task) return permanentOfflineActionFailure("Taak niet gevonden", "task_not_found");
 
+  const expectedVersion = options.expectedParticipantVersion ?? current.participantVersion ?? 1;
+  let participantVersion = expectedVersion;
   try {
     const operationId = options.clientMutationId?.trim() || randomUUID();
     await db.transaction(async (tx) => {
-      const replay = await beginOfflineOperation<{ success: boolean }>(tx, {
+      const replay = await beginOfflineOperation<{ success: boolean; participantVersion?: number }>(tx, {
         tenantId: current.tenantId,
         assignmentId,
         personnelId: personnel.id,
         actorUserId: user.id,
         operationId,
         operationType: "set-task-completion",
-        expectedVersion: options.expectedParticipantVersion ?? current.participantVersion ?? 1,
+        expectedVersion,
         payload: { taskId, completed },
       });
-      if (replay) return;
+      if (replay) {
+        participantVersion = replay.participantVersion ?? expectedVersion;
+        return;
+      }
       await tx
         .update(assignmentTasksTable)
         .set({ completedAt: completed ? new Date() : null, completedBy: completed ? user.id : null })
@@ -620,42 +665,53 @@ export async function setAssignmentTaskCompletion(
         tenantId: current.tenantId,
         actorUserId: user.id,
         operationId,
-        response: { success: true },
+        response: { success: true, participantVersion: expectedVersion },
       });
     });
   } catch (error) {
-    return { success: false, error: participantMutationError(error, "Taak bijwerken mislukt") };
+    return normalizeOfflineServerActionError(error);
   }
 
   revalidateAssignmentPaths(assignmentId);
-  return { success: true };
+  return { success: true, participantVersion };
 }
 
 export async function completeAssignment(
   assignmentId: string,
   input: { customerSignatureDataUrl?: string | null; notes?: string | null; expectedParticipantVersion?: number | null; clientMutationId?: string | null } = {},
-): Promise<{ success: boolean; error?: string }> {
+): Promise<OfflineActionResult> {
+  try {
+    return await completeAssignmentInternal(assignmentId, input);
+  } catch (error) {
+    return normalizeOfflineServerActionError(error);
+  }
+}
+
+async function completeAssignmentInternal(
+  assignmentId: string,
+  input: { customerSignatureDataUrl?: string | null; notes?: string | null; expectedParticipantVersion?: number | null; clientMutationId?: string | null } = {},
+): Promise<OfflineActionResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Niet ingelogd" };
+  if (!user) return permanentOfflineActionFailure("Niet ingelogd", "authentication_required");
 
   const personnel = await getPersonnelBasic(supabase, user.id);
-  if (!personnel) return { success: false, error: "Personeelsprofiel niet gevonden" };
+  if (!personnel) return permanentOfflineActionFailure("Personeelsprofiel niet gevonden", "personnel_not_found");
 
   const current = await getLinkedAssignment(personnel.id, personnel.tenantId, assignmentId);
-  if (!current) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
+  if (!current) return permanentOfflineActionFailure("Opdracht niet gevonden of nog niet bevestigd door de planner", "assignment_not_available");
   const currentStatus = current.participantStatus ?? current.status;
-  if (currentStatus === "completed") {
+  if (currentStatus === "completed" && !input.clientMutationId) {
     revalidateAssignmentPaths(assignmentId);
-    return { success: true };
+    return { success: true, participantVersion: current.participantVersion ?? 1 };
   }
-  if (currentStatus !== "in_progress") {
-    return { success: false, error: "Start de werkbon voordat je deze afrondt" };
+  if (currentStatus !== "in_progress" && !input.clientMutationId) {
+    return permanentOfflineActionFailure("Start de werkbon voordat je deze afrondt", "business_rule_rejected");
   }
 
   const signature = input.customerSignatureDataUrl ?? null;
   if (current.customerSignatureRequired && !isSignatureDataUrl(signature)) {
-    return { success: false, error: "Handtekening klant is verplicht" };
+    return permanentOfflineActionFailure("Handtekening klant is verplicht", "validation_failed");
   }
 
   const now = new Date();
@@ -690,7 +746,7 @@ export async function completeAssignment(
         .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)));
     }
   } catch (error) {
-    return { success: false, error: participantMutationError(error, "Afronden mislukt") };
+    return normalizeOfflineServerActionError(error);
   }
 
   await notifyAssignmentWorkflow({
@@ -711,42 +767,54 @@ export async function completeAssignment(
   });
 
   revalidateAssignmentPaths(assignmentId);
-  return { success: true };
+  return { success: true, participantVersion: executionResult.version };
 }
 
 export async function notCompleteAssignment(
   assignmentId: string,
   input: { reason: string; notes?: string | null; expectedParticipantVersion?: number | null; clientMutationId?: string | null },
-): Promise<{ success: boolean; error?: string }> {
+): Promise<OfflineActionResult> {
+  try {
+    return await notCompleteAssignmentInternal(assignmentId, input);
+  } catch (error) {
+    return normalizeOfflineServerActionError(error);
+  }
+}
+
+async function notCompleteAssignmentInternal(
+  assignmentId: string,
+  input: { reason: string; notes?: string | null; expectedParticipantVersion?: number | null; clientMutationId?: string | null },
+): Promise<OfflineActionResult> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { success: false, error: "Niet ingelogd" };
+  if (!user) return permanentOfflineActionFailure("Niet ingelogd", "authentication_required");
 
   const personnel = await getPersonnelBasic(supabase, user.id);
-  if (!personnel) return { success: false, error: "Personeelsprofiel niet gevonden" };
+  if (!personnel) return permanentOfflineActionFailure("Personeelsprofiel niet gevonden", "personnel_not_found");
 
   const current = await getLinkedAssignment(personnel.id, personnel.tenantId, assignmentId);
-  if (!current) return { success: false, error: "Opdracht niet gevonden of nog niet bevestigd door de planner" };
+  if (!current) return permanentOfflineActionFailure("Opdracht niet gevonden of nog niet bevestigd door de planner", "assignment_not_available");
   const currentStatus = current.participantStatus ?? current.status;
-  if (currentStatus === "not_completed") {
+  if (currentStatus === "not_completed" && !input.clientMutationId) {
     revalidateAssignmentPaths(assignmentId);
-    return { success: true };
+    return { success: true, participantVersion: current.participantVersion ?? 1 };
   }
-  if (currentStatus !== "in_progress") {
-    return { success: false, error: "Start de werkbon voordat je deze afmeldt" };
+  if (currentStatus !== "in_progress" && !input.clientMutationId) {
+    return permanentOfflineActionFailure("Start de werkbon voordat je deze afmeldt", "business_rule_rejected");
   }
 
   const reason = input.reason.trim();
   const notes = input.notes?.trim() ?? "";
   if (!NOT_COMPLETED_REASONS.has(reason)) {
-    return { success: false, error: "Kies een geldige reden" };
+    return permanentOfflineActionFailure("Kies een geldige reden", "validation_failed");
   }
   if (reason === "Overig" && !notes) {
-    return { success: false, error: "Vul een toelichting in bij Overig" };
+    return permanentOfflineActionFailure("Vul een toelichting in bij Overig", "validation_failed");
   }
 
+  let executionResult: Awaited<ReturnType<typeof executeAssignmentParticipantAction>>;
   try {
-    await executeAssignmentParticipantAction({
+    executionResult = await executeAssignmentParticipantAction({
       assignmentId,
       personnelId: personnel.id,
       actorUserId: user.id,
@@ -772,7 +840,7 @@ export async function notCompleteAssignment(
       })
       .where(and(eq(assignmentsTable.id, assignmentId), eq(assignmentsTable.tenantId, current.tenantId)));
   } catch (error) {
-    return { success: false, error: participantMutationError(error, "Afmelden mislukt") };
+    return normalizeOfflineServerActionError(error);
   }
 
   await notifyAssignmentWorkflow({
@@ -793,5 +861,5 @@ export async function notCompleteAssignment(
   });
 
   revalidateAssignmentPaths(assignmentId);
-  return { success: true };
+  return { success: true, participantVersion: executionResult.version };
 }

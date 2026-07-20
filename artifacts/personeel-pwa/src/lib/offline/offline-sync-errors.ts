@@ -2,9 +2,11 @@ export type OfflineFailureKind = "transient" | "permanent" | "conflict";
 
 export type OfflineFailureClassification = {
   code: string;
+  diagnosticId: string | null;
   kind: OfflineFailureKind;
   message: string;
   retryAfterMs: number | null;
+  sqlState: string | null;
   status: number | null;
 };
 
@@ -18,6 +20,8 @@ const TRANSIENT_CODES = new Set([
   "server_unavailable",
   "rate_limited",
   "40p01",
+  "55p03",
+  "53300",
   "53p01",
   "53p02",
   "53p03",
@@ -82,53 +86,65 @@ export function classifyOfflineSyncFailure(
 ): OfflineFailureClassification {
   const record = asRecord(value);
   const nested = asRecord(record.error);
-  const status = asStatus(record.status ?? record.statusCode ?? nested.status ?? nested.statusCode);
-  const rawCode = String(record.code ?? nested.code ?? "").trim().toLowerCase();
+  const structured = asRecord(record.failure);
+  const status = asStatus(
+    structured.status ?? record.status ?? record.statusCode ?? nested.status ?? nested.statusCode,
+  );
+  const rawCode = String(structured.code ?? record.code ?? nested.code ?? "").trim().toLowerCase();
+  const rawSqlState = String(structured.sqlState ?? "").trim().toUpperCase();
+  const sqlState = /^[0-9A-Z]{5}$/u.test(rawSqlState) ? rawSqlState : null;
+  const rawDiagnosticId = String(structured.diagnosticId ?? "").trim();
+  const diagnosticId = /^offline-[0-9a-f-]{36}$/iu.test(rawDiagnosticId) ? rawDiagnosticId : null;
   const message = sanitizeMessage(
     typeof record.error === "string"
       ? record.error
       : record.message ?? nested.message ?? (value instanceof Error ? value.message : value),
   );
   const normalizedMessage = message.toLowerCase();
-  const retryAfter = retryAfterMs(record) ?? retryAfterMs(nested);
+  const retryAfter = retryAfterMs(structured) ?? retryAfterMs(record) ?? retryAfterMs(nested);
 
   if (
-    status === 409
+    structured.category === "conflict"
+    || status === 409
     || CONFLICT_CODES.has(rawCode)
     || /\b(conflict|stale|expected[- ]?version|gelijktijdig|verouderde versie)\b/iu.test(message)
   ) {
-    return { code: rawCode || "expected_version_conflict", kind: "conflict", message, retryAfterMs: null, status };
+    return { code: rawCode || "expected_version_conflict", diagnosticId, kind: "conflict", message, retryAfterMs: null, sqlState, status };
   }
 
   if (
-    record.retryable === true
+    structured.retryable === true
+    || structured.category === "transient"
+    || record.retryable === true
     || nested.retryable === true
     || (status !== null && TRANSIENT_HTTP_STATUSES.has(status))
     || TRANSIENT_CODES.has(rawCode)
+    || rawCode.startsWith("08")
     || (rawCode === "40001" && !/stale|version/iu.test(message))
     || value instanceof TypeError
     || value instanceof DOMException && ["AbortError", "TimeoutError"].includes(value.name)
     || /network|fetch failed|failed to fetch|timeout|timed out|connection|temporar|tijdelijk|server unavailable|database unavailable|rate limit/iu.test(normalizedMessage)
   ) {
-    return { code: rawCode || (status ? `http_${status}` : "transport_failure"), kind: "transient", message, retryAfterMs: retryAfter, status };
+    return { code: rawCode || (status ? `http_${status}` : "transport_failure"), diagnosticId, kind: "transient", message, retryAfterMs: retryAfter, sqlState, status };
   }
 
   if (
-    record.retryable === false
+    structured.category === "permanent"
+    || record.retryable === false
     || nested.retryable === false
     || (status !== null && PERMANENT_HTTP_STATUSES.has(status))
     || PERMANENT_CODES.has(rawCode)
     || /niet ingelogd|authentication|authorization|geen toegang|ongeldig|invalid|niet gevonden|not found|afgesloten|business rule|tenant/iu.test(normalizedMessage)
   ) {
     const code = rawCode || (status ? `http_${status}` : "permanent_rejection");
-    return { code, kind: "permanent", message, retryAfterMs: null, status };
+    return { code, diagnosticId, kind: "permanent", message, retryAfterMs: null, sqlState, status };
   }
 
   if (source === "exception") {
-    return { code: rawCode || "unclassified_transport_failure", kind: "transient", message, retryAfterMs: retryAfter, status };
+    return { code: rawCode || "unclassified_transport_failure", diagnosticId, kind: "transient", message, retryAfterMs: retryAfter, sqlState, status };
   }
 
-  return { code: rawCode || "permanent_rejection", kind: "permanent", message, retryAfterMs: null, status };
+  return { code: rawCode || "permanent_rejection", diagnosticId, kind: "permanent", message, retryAfterMs: null, sqlState, status };
 }
 
 export function computeOfflineRetryDelayMs({

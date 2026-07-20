@@ -10,6 +10,11 @@ import {
 import { and, eq, sql, type SQL } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import type { OfflineActionResult } from "@/lib/offline/offline-action-contract";
+import {
+  normalizeOfflineServerActionError,
+  permanentOfflineActionFailure,
+} from "@/lib/offline/offline-action-errors.server";
 
 export type InventoryUsageType = "used" | "rented" | "issued" | "returned" | "defect_found";
 
@@ -251,15 +256,26 @@ export async function getInventoryUsageForAssignment(
 export async function addInventoryUsage(
   assignmentId: string,
   input: InventoryUsageInput,
-): Promise<{ success: boolean; id?: string; error?: string }> {
+): Promise<OfflineActionResult<{ id: string }>> {
+  try {
+    return await addInventoryUsageInternal(assignmentId, input);
+  } catch (error) {
+    return normalizeOfflineServerActionError(error, "Inventaris opslaan mislukt. Probeer het later opnieuw.");
+  }
+}
+
+async function addInventoryUsageInternal(
+  assignmentId: string,
+  input: InventoryUsageInput,
+): Promise<OfflineActionResult<{ id: string }>> {
   const auth = await getAuthAndPersonnel();
-  if (!auth) return { success: false, error: "Inventarismodule niet beschikbaar of niet ingelogd" };
+  if (!auth) return permanentOfflineActionFailure("Inventarismodule niet beschikbaar of niet ingelogd", "authentication_required");
 
   const access = await assertLinkedAndEditable(auth.personnelId, auth.tenantId, assignmentId);
-  if (!access.ok) return { success: false, error: access.error };
+  if (!access.ok) return permanentOfflineActionFailure(access.error, "business_rule_rejected");
 
   const inventoryItemId = cleanText(input.inventoryItemId);
-  if (!inventoryItemId) return { success: false, error: "Kies een inventarisitem" };
+  if (!inventoryItemId) return permanentOfflineActionFailure("Kies een inventarisitem", "validation_failed");
 
   const usageType = normalizeUsageType(input.usageType);
   const quantity = parsePositiveDecimal(input.quantity, 1);
@@ -272,19 +288,20 @@ export async function addInventoryUsage(
       AND personnel_id = ${auth.personnelId}::uuid AND participant_status <> 'removed'
     LIMIT 1
   `));
-  if (!execution) return { success: false, error: "Uitvoering niet gevonden" };
+  if (!execution) return permanentOfflineActionFailure("Uitvoering niet gevonden", "execution_not_found");
+  const expectedVersion = input.expectedParticipantVersion ?? Number(execution.version);
   const operationId = input.clientMutationId?.trim() || randomUUID();
 
   try {
     const row = await db.transaction(async (tx) => {
       const exec = tx as unknown as DbExecutor;
-      const replay = await beginOfflineOperation<{ id: string }>(exec, {
+      const replay = await beginOfflineOperation<{ id: string; participantVersion?: number }>(exec, {
         tenantId: auth.tenantId, assignmentId, personnelId: auth.personnelId,
         actorUserId: auth.userId, operationId, operationType: "add-inventory-usage",
-        expectedVersion: input.expectedParticipantVersion ?? Number(execution.version),
+        expectedVersion,
         payload: { inventoryItemId, usageType, quantity, periodLabel, notes },
       });
-      if (replay) return replay;
+      if (replay) return { ...replay, participantVersion: replay.participantVersion ?? expectedVersion };
       const item = await getInventoryForTenant(exec, auth.tenantId, inventoryItemId);
       if (!item) throw new Error("Inventarisitem niet gevonden");
 
@@ -356,15 +373,15 @@ export async function addInventoryUsage(
 
       await completeOfflineOperation(exec, {
         tenantId: auth.tenantId, actorUserId: auth.userId, operationId,
-        response: { id: created.id },
+        response: { id: created.id, participantVersion: expectedVersion },
       });
 
-      return created;
+      return { ...created, participantVersion: expectedVersion };
     });
 
     revalidateAssignmentPaths(assignmentId);
-    return { success: true, id: row.id };
+    return { success: true, id: row.id, participantVersion: row.participantVersion };
   } catch (error) {
-    return { success: false, error: (error as Error).message };
+    return normalizeOfflineServerActionError(error, "Inventaris opslaan mislukt. Probeer het later opnieuw.");
   }
 }

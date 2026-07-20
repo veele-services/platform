@@ -10,6 +10,11 @@ import {
 import { and, eq, sql, type SQL } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import type { OfflineActionResult } from "@/lib/offline/offline-action-contract";
+import {
+  normalizeOfflineServerActionError,
+  permanentOfflineActionFailure,
+} from "@/lib/offline/offline-action-errors.server";
 
 export type MaterialStockSourceOption = {
   id: string;
@@ -373,12 +378,23 @@ export async function getMaterialUsageForAssignment(
 export async function addMaterialUsage(
   assignmentId: string,
   input: MaterialUsageInput,
-): Promise<{ success: boolean; id?: string; error?: string }> {
+): Promise<OfflineActionResult<{ id: string }>> {
+  try {
+    return await addMaterialUsageInternal(assignmentId, input);
+  } catch (error) {
+    return normalizeOfflineServerActionError(error, "Materiaal opslaan mislukt. Probeer het later opnieuw.");
+  }
+}
+
+async function addMaterialUsageInternal(
+  assignmentId: string,
+  input: MaterialUsageInput,
+): Promise<OfflineActionResult<{ id: string }>> {
   const auth = await getAuthAndPersonnel();
-  if (!auth) return { success: false, error: "Materiaalmodule niet beschikbaar of niet ingelogd" };
+  if (!auth) return permanentOfflineActionFailure("Materiaalmodule niet beschikbaar of niet ingelogd", "authentication_required");
 
   const access = await assertLinkedAndEditable(auth.personnelId, auth.tenantId, assignmentId);
-  if (!access.ok) return { success: false, error: access.error };
+  if (!access.ok) return permanentOfflineActionFailure(access.error, "business_rule_rejected");
 
   const clientMutationId = cleanText(input.clientMutationId)?.slice(0, 512) ?? randomUUID();
 
@@ -392,18 +408,19 @@ export async function addMaterialUsage(
       AND personnel_id = ${auth.personnelId}::uuid AND participant_status <> 'removed'
     LIMIT 1
   `));
-  if (!execution) return { success: false, error: "Uitvoering niet gevonden" };
+  if (!execution) return permanentOfflineActionFailure("Uitvoering niet gevonden", "execution_not_found");
+  const expectedVersion = input.expectedParticipantVersion ?? Number(execution.version);
 
   try {
     const row = await db.transaction(async (tx) => {
       const exec = tx as unknown as DbExecutor;
-      const replay = await beginOfflineOperation<{ id: string }>(exec, {
+      const replay = await beginOfflineOperation<{ id: string; participantVersion?: number }>(exec, {
         tenantId: auth.tenantId, assignmentId, personnelId: auth.personnelId,
         actorUserId: auth.userId, operationId: clientMutationId, operationType: "add-material-usage",
-        expectedVersion: input.expectedParticipantVersion ?? Number(execution.version),
+        expectedVersion,
         payload: { materialId, quantity, wantsStock, isOther, name: input.name, stockLocationId: input.stockLocationId ?? null },
       });
-      if (replay) return replay;
+      if (replay) return { ...replay, participantVersion: replay.participantVersion ?? expectedVersion };
       const material = materialId ? await getMaterialForTenant(exec, auth.tenantId, materialId) : null;
       if (!isOther && !material) throw new Error("Materiaal niet gevonden");
       if (wantsStock && !material) throw new Error("Voorraadverbruik kan alleen met catalogusmateriaal");
@@ -505,17 +522,21 @@ export async function addMaterialUsage(
       if (!created) throw new Error("Materiaal opslaan mislukt");
       await completeOfflineOperation(exec, {
         tenantId: auth.tenantId, actorUserId: auth.userId,
-        operationId: clientMutationId, response: { id: created.id },
+        operationId: clientMutationId, response: { id: created.id, participantVersion: expectedVersion },
       });
-      return created;
+      return { ...created, participantVersion: expectedVersion };
     });
 
     revalidateAssignmentPaths(assignmentId);
-    return { success: true, id: row.id };
+    return { success: true, id: row.id, participantVersion: row.participantVersion };
   } catch (error) {
-    const retryId = await findExistingMutation(auth.tenantId, assignmentId, auth.userId, clientMutationId);
-    if (retryId) return { success: true, id: retryId };
-    return { success: false, error: (error as Error).message };
+    try {
+      const retryId = await findExistingMutation(auth.tenantId, assignmentId, auth.userId, clientMutationId);
+      if (retryId) return { success: true, id: retryId, participantVersion: expectedVersion };
+    } catch (diagnosticError) {
+      console.error("material mutation recovery lookup failed", { assignmentId, diagnosticError });
+    }
+    return normalizeOfflineServerActionError(error, "Materiaal opslaan mislukt. Probeer het later opnieuw.");
   }
 }
 
@@ -594,6 +615,6 @@ export async function deleteMaterialUsage(
     revalidateAssignmentPaths(assignmentId);
     return { success: true };
   } catch (error) {
-    return { success: false, error: (error as Error).message };
+    return normalizeOfflineServerActionError(error, "Materiaal verwijderen mislukt. Probeer het later opnieuw.");
   }
 }
