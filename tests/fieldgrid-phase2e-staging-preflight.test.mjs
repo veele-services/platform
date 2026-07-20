@@ -172,11 +172,18 @@ test("manual workflow is staging-only and never promotes or uploads the database
     "docker/setup-docker-action@6d7cfa65f60a9dda7b46e5513fa982536f3c9877",
   );
   const runtimeCheck = workflow.indexOf("Check staging preflight runtime");
+  const proofStep = workflow.indexOf(
+    "Prove backup, isolated restore, migrations, secrets, routes and rollback target",
+  );
   assert.ok(dockerSetup >= 0, "the self-hosted runner must provision Docker");
   assert.ok(
     dockerSetup < runtimeCheck,
     "Docker must be available before the preflight runtime check",
   );
+  for (const secretName of REQUIRED_SECRET_NAMES) {
+    const secretBinding = workflow.indexOf(`secrets.${secretName}`);
+    assert.ok(secretBinding > proofStep, `${secretName} must be step-scoped`);
+  }
   assert.doesNotMatch(workflow, /git push|refs\/heads\/staging|\.dump/u);
 
   const script = read("scripts/fieldgrid-phase2e-staging-preflight.mjs");
