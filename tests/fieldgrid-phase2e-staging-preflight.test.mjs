@@ -204,6 +204,14 @@ test("manual workflow is staging-only and never promotes or uploads the database
     script,
     /async function restoreBackup[\s\S]*?"--dbname",\s*target\.database/u,
   );
+  const dropDefaultPublic = script.indexOf(
+    'await psql(pgEnv, "drop schema public;")',
+  );
+  const createRestoreRoles = script.indexOf(
+    "await psql(pgEnv, restoreRoleSql())",
+  );
+  assert.ok(dropDefaultPublic >= 0);
+  assert.ok(dropDefaultPublic < createRestoreRoles);
   assert.doesNotMatch(script, /runCommand\("docker"|postgres:17/u);
   assert.match(script, /fieldgrid-backfill-release-sha-marker\.sh/u);
   assert.match(script, /FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_DATABASE_URL/u);
