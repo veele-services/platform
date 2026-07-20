@@ -12,6 +12,8 @@
     "content:verify": "node scripts/verify-content.mjs",
     "test:routes": "node --test tests/route-inventory.test.mjs",
     "test:e2e": "playwright test",
+    "test:visual:all": "playwright test tests/e2e/all-routes-visual-layout.spec.ts",
+    "visual:contact-sheets": "node scripts/build-visual-contact-sheets.mjs",
     "test:e2e:update": "playwright test --update-snapshots",
     "test:lighthouse": "lighthouse http://127.0.0.1:3000 --quiet --chrome-flags='--headless --no-sandbox' --preset=desktop --budget-path=lighthouse-budget.json --output=json --output-path=.lighthouse-report.json && node scripts/verify-lighthouse-report.mjs",
     "check": "pnpm content:verify && pnpm test:routes && pnpm lint && pnpm typecheck && pnpm build"

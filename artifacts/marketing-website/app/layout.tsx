@@ -75,8 +75,14 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="nl">
       <body>
+        <a
+          href="#main-content"
+          className="fixed left-4 top-4 z-[100] -translate-y-24 rounded-xl bg-[var(--aqua)] px-4 py-3 text-sm font-bold text-brand-navy shadow-xl transition-transform focus:translate-y-0"
+        >
+          Ga naar de hoofdinhoud
+        </a>
         <SiteHeader />
-        <main>{children}</main>
+        <main id="main-content" tabIndex={-1}>{children}</main>
         <SiteFooter />
         <script
           type="application/ld+json"
