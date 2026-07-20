@@ -1704,7 +1704,7 @@ export function PlanningBoardView({ data, canWrite }: PlanningBoardViewProps) {
 
                             {person.scheduledAssignments.length === 0 && (
                               <div className="absolute inset-y-0 left-2 right-2 flex items-center">
-                                <span className="rounded border px-2 py-1 text-xs" style={{ borderColor: "#E2E8F0", color: "#CBD5E1" }}>
+                                <span className="rounded border px-2 py-1 text-xs" style={{ borderColor: "#E2E8F0", color: "#475569" }}>
                                   Vrij
                                 </span>
                               </div>
