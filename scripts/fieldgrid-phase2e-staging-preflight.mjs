@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 import { spawn } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomBytes } from "node:crypto";
 import {
   chmod,
   mkdir,
@@ -627,11 +627,14 @@ function restoreRoleSql() {
 
 async function startRestoreTarget(tempDir) {
   const database = "fieldgrid_phase2e_staging_copy";
+  const password = randomBytes(32).toString("hex");
+  const passwordFile = join(tempDir, "restore-superuser-password");
   const dataDir = join(tempDir, "restore-data");
   const socketDir = join(tempDir, "restore-socket");
   const logPath = join(tempDir, "restore-postgresql.log");
   const port = await reserveEphemeralPort();
   await mkdir(socketDir, { mode: 0o700 });
+  await writeFile(passwordFile, `${password}\n`, { mode: 0o600 });
   const initdbArgs = [
     "--pgdata",
     dataDir,
@@ -640,15 +643,18 @@ async function startRestoreTarget(tempDir) {
     "--auth-local",
     "trust",
     "--auth-host",
-    "trust",
+    "scram-sha-256",
     "--encoding",
     "UTF8",
     "--no-locale",
+    "--pwfile",
+    passwordFile,
   ];
   if (process.env.FIELDGRID_POSTGRESQL_SHAREDIR) {
     initdbArgs.push("-L", process.env.FIELDGRID_POSTGRESQL_SHAREDIR);
   }
   await runCommand("initdb", initdbArgs);
+  await rm(passwordFile, { force: true });
   await runCommand("pg_ctl", [
     "--pgdata",
     dataDir,
@@ -663,6 +669,7 @@ async function startRestoreTarget(tempDir) {
     PGHOST: "127.0.0.1",
     PGPORT: String(port),
     PGUSER: "postgres",
+    PGPASSWORD: password,
     PGDATABASE: "postgres",
     PGSSLMODE: "disable",
   };
@@ -693,7 +700,7 @@ async function stopRestoreTarget(target) {
 }
 
 async function runMigrationRehearsal(target, outDir) {
-  const databaseUrl = `postgresql://postgres@127.0.0.1:${target.port}/${target.database}`;
+  const databaseUrl = `postgresql://postgres:${encodeURIComponent(target.pgEnv.PGPASSWORD)}@127.0.0.1:${target.port}/${target.database}`;
   const smokeOut = join(outDir, "migration-smoke");
   const result = await runCommand(
     "pnpm",
