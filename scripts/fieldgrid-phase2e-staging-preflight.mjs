@@ -685,7 +685,13 @@ async function startRestoreTarget(tempDir) {
 async function restoreBackup(target, backup) {
   await runCommand(
     "pg_restore",
-    ["--exit-on-error", "--no-owner", backup.backupPath],
+    [
+      "--exit-on-error",
+      "--no-owner",
+      "--dbname",
+      target.database,
+      backup.backupPath,
+    ],
     { env: postgresCommandEnv(target.pgEnv) },
   );
 }

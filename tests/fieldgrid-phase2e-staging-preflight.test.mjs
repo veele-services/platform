@@ -200,6 +200,10 @@ test("manual workflow is staging-only and never promotes or uploads the database
   assert.match(script, /pg_ctl/u);
   assert.match(script, /"--auth-host",\s*"scram-sha-256"/u);
   assert.match(script, /randomBytes\(32\)/u);
+  assert.match(
+    script,
+    /async function restoreBackup[\s\S]*?"--dbname",\s*target\.database/u,
+  );
   assert.doesNotMatch(script, /runCommand\("docker"|postgres:17/u);
   assert.match(script, /fieldgrid-backfill-release-sha-marker\.sh/u);
   assert.match(script, /FIELDGRID_MIGRATION_SMOKE_STAGING_COPY_DATABASE_URL/u);
