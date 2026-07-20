@@ -44,6 +44,26 @@ test("W01 migration adds planned and actual time integrity guards", () => {
   assert.match(lifecycleMigration, /actual_completed_at >= actual_started_at/u);
 });
 
+test("W01 migration preserves and clears invalid legacy schedule windows before enforcing the guard", () => {
+  const lockOffset = lifecycleMigration.indexOf("lock table public.assignments");
+  const auditOffset = lifecycleMigration.indexOf("insert into public.audit_log");
+  const updateOffset = lifecycleMigration.indexOf("update public.assignments");
+  const constraintOffset = lifecycleMigration.indexOf("alter table public.assignments");
+
+  assert.ok(lockOffset >= 0);
+  assert.ok(auditOffset > lockOffset);
+  assert.ok(updateOffset > auditOffset);
+  assert.ok(constraintOffset > updateOffset);
+  assert.match(lifecycleMigration, /'scheduledStart', assignment\.scheduled_start/u);
+  assert.match(lifecycleMigration, /'scheduledEnd', assignment\.scheduled_end/u);
+  assert.match(lifecycleMigration, /'status', assignment\.status/u);
+  assert.match(lifecycleMigration, /'requiresRescheduling', true/u);
+  assert.match(lifecycleMigration, /scheduled_start = null,[\s\S]*scheduled_end = null/u);
+  assert.match(lifecycleMigration, /scheduled_start >= scheduled_end/u);
+  assert.doesNotMatch(lifecycleMigration, /scheduled_start\s*=\s*scheduled_end/u);
+  assert.doesNotMatch(lifecycleMigration, /not valid/iu);
+});
+
 
 test("W01 participant execution preserves replay timestamps and drives aggregate completion", () => {
   assert.match(participantExecutionMigration, /IF p_idempotency_key IS NOT NULL AND exec_row\.idempotency_key = p_idempotency_key[\s\S]*RETURN QUERY SELECT exec_row\.id/u);
