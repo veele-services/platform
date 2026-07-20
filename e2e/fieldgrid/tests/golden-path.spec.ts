@@ -391,6 +391,10 @@ test("9. Offline work-order mutation chain survives refresh and converges after 
   page,
   context,
 }) => {
+  test.info().annotations.push({
+    type: "fieldgrid.journey-id",
+    description: "phase2.offline.mutation-chain",
+  });
   test.setTimeout(60_000);
   const startedAt = new Date().toISOString();
   await page.addInitScript(() => {
