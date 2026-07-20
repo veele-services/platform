@@ -168,6 +168,15 @@ test("manual workflow is staging-only and never promotes or uploads the database
       workflow,
       new RegExp(marker.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&"), "u"),
     );
+  const dockerSetup = workflow.indexOf(
+    "docker/setup-docker-action@6d7cfa65f60a9dda7b46e5513fa982536f3c9877",
+  );
+  const runtimeCheck = workflow.indexOf("Check staging preflight runtime");
+  assert.ok(dockerSetup >= 0, "the self-hosted runner must provision Docker");
+  assert.ok(
+    dockerSetup < runtimeCheck,
+    "Docker must be available before the preflight runtime check",
+  );
   assert.doesNotMatch(workflow, /git push|refs\/heads\/staging|\.dump/u);
 
   const script = read("scripts/fieldgrid-phase2e-staging-preflight.mjs");
