@@ -1,6 +1,14 @@
 {
-  "status": "placeholders_only",
+  "status": "prompt_library_ready",
   "rule": "Replace every placeholder with commissioned or properly licensed photography before production.",
+  "prompt_library": "docs/photo-prompts/README.md",
+  "prompt_coverage": {
+    "routes": 44,
+    "hero_placements": 44,
+    "section_placements": 179,
+    "total_placements": 223,
+    "logo_reference_required": true
+  },
   "required_shots": [
     {
       "id": "home-hero",
