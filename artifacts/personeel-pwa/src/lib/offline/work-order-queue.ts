@@ -3,15 +3,17 @@
 export type OfflineActionStatus = "pending" | "syncing" | "retry_wait" | "synced" | "failed" | "conflict";
 export type OfflineQueueEventReason = "enqueue" | "manual-retry" | "state" | "storage";
 export type OfflineErrorClassification = "transient" | "permanent" | "conflict";
+export type OfflineExpectedVersionSource = "authoritative" | "canonical-predecessor";
 
 export type OfflineCanonicalReceipt = {
   acknowledgedAt: string;
   mutationId: string;
+  participantVersion: number;
   resultId?: string | null;
 };
 
 type OfflineActionBase = {
-  schemaVersion: 2;
+  schemaVersion: 3;
   id: string;
   type:
     | "mark-assignment-en-route"
@@ -24,18 +26,26 @@ type OfflineActionBase = {
     | "add-material-usage"
     | "add-inventory-usage";
   assignmentId: string;
+  entityStreamKey: string;
+  dependsOnMutationId?: string | null;
+  chainedFromMutationId?: string | null;
   expectedParticipantVersion?: number | null;
+  expectedVersionSource: OfflineExpectedVersionSource;
   idempotencyKey: string;
   createdAt: string;
   updatedAt: string;
   status: OfflineActionStatus;
   attempts: number;
+  intentHash: string;
   payloadHash: string;
   lastAttemptAt?: string | null;
   nextRetryAt?: string | null;
   lastError?: string | null;
   lastErrorCode?: string | null;
   lastErrorClassification?: OfflineErrorClassification | null;
+  lastErrorDiagnosticId?: string | null;
+  lastErrorRetryable?: boolean | null;
+  lastErrorSqlState?: string | null;
   canonicalReceipt?: OfflineCanonicalReceipt | null;
 };
 
@@ -188,6 +198,39 @@ function actionPayload(value: Record<string, unknown>) {
   };
 }
 
+function actionIntent(value: Record<string, unknown>) {
+  const payload = value.payload && typeof value.payload === "object"
+    ? { ...(value.payload as Record<string, unknown>) }
+    : value.payload ?? null;
+  if (payload && typeof payload === "object") delete (payload as Record<string, unknown>).clientMutationId;
+  return {
+    assignmentId: value.assignmentId,
+    payload,
+    taskId: value.taskId ?? null,
+    type: value.type,
+  };
+}
+
+function entityStreamKey(assignmentId: string) {
+  return `assignment-participant:${assignmentId}`;
+}
+
+function dedupeFamily(action: OfflineWorkOrderAction) {
+  if (action.type === "start-assignment" || action.type === "mark-assignment-en-route") {
+    return `${action.assignmentId}:${action.type}`;
+  }
+  if (action.type === "complete-assignment" || action.type === "not-complete-assignment") {
+    return `${action.assignmentId}:terminal-assignment-outcome`;
+  }
+  if (action.type === "set-task-completion") {
+    return `${action.assignmentId}:set-task-completion:${action.taskId}`;
+  }
+  if (action.type === "add-inventory-usage") {
+    return `${action.assignmentId}:add-inventory-usage:${action.payload.inventoryItemId}`;
+  }
+  return null;
+}
+
 function emitQueueChange(reason: OfflineQueueEventReason) {
   window.dispatchEvent(new CustomEvent(QUEUE_EVENT, { detail: { reason } }));
 }
@@ -215,17 +258,23 @@ function normalizeAction(item: unknown): OfflineWorkOrderAction | null {
   if (!isActionType(action.type)) return null;
 
   const storedStatus = String(action.status);
-  const status: OfflineActionStatus = storedStatus === "syncing"
-    ? "pending"
-    : ["pending", "retry_wait", "synced", "failed", "conflict"].includes(storedStatus)
-      ? storedStatus as OfflineActionStatus
-      : "pending";
+  const status: OfflineActionStatus = ["pending", "syncing", "retry_wait", "synced", "failed", "conflict"].includes(storedStatus)
+    ? storedStatus as OfflineActionStatus
+    : "pending";
   const receipt = action.canonicalReceipt && typeof action.canonicalReceipt === "object"
     ? action.canonicalReceipt as Record<string, unknown>
     : null;
   const base = {
     ...action,
-    schemaVersion: 2,
+    schemaVersion: 3,
+    entityStreamKey: typeof action.entityStreamKey === "string"
+      ? action.entityStreamKey
+      : entityStreamKey(action.assignmentId),
+    dependsOnMutationId: typeof action.dependsOnMutationId === "string" ? action.dependsOnMutationId : null,
+    chainedFromMutationId: typeof action.chainedFromMutationId === "string" ? action.chainedFromMutationId : null,
+    expectedVersionSource: action.expectedVersionSource === "canonical-predecessor"
+      ? "canonical-predecessor"
+      : "authoritative",
     updatedAt: typeof action.updatedAt === "string" ? action.updatedAt : action.createdAt,
     status,
     attempts: typeof action.attempts === "number" && Number.isFinite(action.attempts)
@@ -235,6 +284,9 @@ function normalizeAction(item: unknown): OfflineWorkOrderAction | null {
     lastAttemptAt: typeof action.lastAttemptAt === "string" ? action.lastAttemptAt : null,
     nextRetryAt: typeof action.nextRetryAt === "string" ? action.nextRetryAt : null,
     lastErrorCode: typeof action.lastErrorCode === "string" ? action.lastErrorCode : null,
+    lastErrorDiagnosticId: typeof action.lastErrorDiagnosticId === "string" ? action.lastErrorDiagnosticId : null,
+    lastErrorRetryable: typeof action.lastErrorRetryable === "boolean" ? action.lastErrorRetryable : null,
+    lastErrorSqlState: typeof action.lastErrorSqlState === "string" ? action.lastErrorSqlState : null,
     lastErrorClassification: ["transient", "permanent", "conflict"].includes(String(action.lastErrorClassification))
       ? action.lastErrorClassification as OfflineErrorClassification
       : null,
@@ -244,11 +296,17 @@ function normalizeAction(item: unknown): OfflineWorkOrderAction | null {
       ? {
           mutationId: receipt.mutationId,
           acknowledgedAt: receipt.acknowledgedAt,
+          participantVersion: typeof receipt.participantVersion === "number"
+            ? receipt.participantVersion
+            : typeof action.expectedParticipantVersion === "number"
+              ? action.expectedParticipantVersion
+              : 0,
           resultId: typeof receipt.resultId === "string" ? receipt.resultId : null,
         }
       : null,
     expectedParticipantVersion: typeof action.expectedParticipantVersion === "number" ? action.expectedParticipantVersion : null,
     idempotencyKey: typeof action.idempotencyKey === "string" ? action.idempotencyKey : `${action.type}:${action.assignmentId}:${action.id}`,
+    intentHash: typeof action.intentHash === "string" ? action.intentHash : payloadFingerprint(actionIntent(action)),
     payloadHash: typeof action.payloadHash === "string" ? action.payloadHash : payloadFingerprint(actionPayload(action)),
   } as OfflineActionBase & Record<string, unknown>;
 
@@ -276,9 +334,22 @@ function parseQueue(value: string | null): OfflineWorkOrderAction[] {
   try {
     const parsed = JSON.parse(value);
     if (!Array.isArray(parsed)) return [];
-    return parsed
-      .map((item) => normalizeAction(item))
-      .filter((item): item is OfflineWorkOrderAction => item !== null);
+    const normalized = parsed.flatMap((stored) => {
+      const action = normalizeAction(stored);
+      return action ? [{ action, stored: stored as Record<string, unknown> }] : [];
+    });
+    const lastLegacyMutationByStream = new Map<string, string>();
+    return normalized.map(({ action, stored }) => {
+      const wasLegacy = Number(stored?.schemaVersion ?? 1) < 3;
+      const predecessor = lastLegacyMutationByStream.get(action.entityStreamKey) ?? null;
+      lastLegacyMutationByStream.set(action.entityStreamKey, action.idempotencyKey);
+      if (!wasLegacy || !predecessor) return action;
+      return {
+        ...action,
+        dependsOnMutationId: predecessor,
+        expectedVersionSource: "canonical-predecessor",
+      } as OfflineWorkOrderAction;
+    });
   } catch {
     return [];
   }
@@ -289,6 +360,16 @@ export function readOfflineWorkOrderQueue(): OfflineWorkOrderAction[] {
   return parseQueue(window.localStorage.getItem(QUEUE_KEY));
 }
 
+export function recoverOfflineWorkOrderQueueAfterReload(): OfflineWorkOrderAction[] {
+  const queue = readOfflineWorkOrderQueue().map((action) => (
+    action.status === "syncing"
+      ? { ...action, status: "pending", updatedAt: new Date().toISOString() } as OfflineWorkOrderAction
+      : action
+  ));
+  writeOfflineWorkOrderQueue(queue, "state");
+  return queue;
+}
+
 export function isOfflineWorkOrderQueueOwnedBy(personnelId: string | null): boolean {
   if (!canUseStorage()) return false;
   const normalizedOwner = personnelId?.trim() || null;
@@ -297,12 +378,16 @@ export function isOfflineWorkOrderQueueOwnedBy(personnelId: string | null): bool
 
 export function readNextEligibleOfflineWorkOrderAction({
   accelerateRetry = false,
+  excludeMutationIds = new Set<string>(),
   now = Date.now(),
 }: {
   accelerateRetry?: boolean;
+  excludeMutationIds?: ReadonlySet<string>;
   now?: number;
 } = {}): OfflineWorkOrderAction | null {
   return readOfflineWorkOrderQueue().find((action) => {
+    if (excludeMutationIds.has(action.idempotencyKey)) return false;
+    if (action.dependsOnMutationId) return false;
     if (action.status === "synced") return true;
     if (action.status === "pending") return true;
     if (action.status !== "retry_wait" || action.attempts >= MAX_AUTOMATIC_OFFLINE_ATTEMPTS) return false;
@@ -314,7 +399,7 @@ export function readNextEligibleOfflineWorkOrderAction({
 
 export function getNextOfflineWorkOrderRetryAt(): number | null {
   const candidates = readOfflineWorkOrderQueue()
-    .filter((action) => action.status === "retry_wait" && action.attempts < MAX_AUTOMATIC_OFFLINE_ATTEMPTS)
+    .filter((action) => !action.dependsOnMutationId && action.status === "retry_wait" && action.attempts < MAX_AUTOMATIC_OFFLINE_ATTEMPTS)
     .map((action) => Date.parse(action.nextRetryAt ?? ""))
     .filter(Number.isFinite);
   return candidates.length > 0 ? Math.min(...candidates) : null;
@@ -349,11 +434,20 @@ export function enqueueOfflineWorkOrderAction(
   const queue = readOfflineWorkOrderQueue();
   const now = new Date().toISOString();
   const actionId = createActionId();
+  const streamKey = entityStreamKey(action.assignmentId);
+  const predecessor = queue.findLast((queued) => (
+    queued.entityStreamKey === streamKey && queued.status !== "synced"
+  )) ?? null;
   const nextAction = {
     ...action,
-    schemaVersion: 2,
+    schemaVersion: 3,
     id: actionId,
+    entityStreamKey: streamKey,
+    dependsOnMutationId: predecessor?.idempotencyKey ?? null,
+    chainedFromMutationId: null,
+    expectedVersionSource: predecessor ? "canonical-predecessor" : "authoritative",
     idempotencyKey: createDeterministicIdempotencyKey(actionId),
+    intentHash: payloadFingerprint(actionIntent(action as unknown as Record<string, unknown>)),
     payloadHash: payloadFingerprint(actionPayload(action as unknown as Record<string, unknown>)),
     createdAt: now,
     updatedAt: now,
@@ -364,47 +458,126 @@ export function enqueueOfflineWorkOrderAction(
     lastError: null,
     lastErrorCode: null,
     lastErrorClassification: null,
+    lastErrorDiagnosticId: null,
+    lastErrorRetryable: null,
+    lastErrorSqlState: null,
     canonicalReceipt: null,
   } as OfflineWorkOrderAction;
 
-  const dedupedQueue = queue.filter((queued) => {
-    if (queued.assignmentId !== nextAction.assignmentId) return true;
-    if (nextAction.type === "start-assignment") {
-      return queued.type !== "start-assignment";
-    }
-    if (nextAction.type === "mark-assignment-en-route") {
-      return queued.type !== "mark-assignment-en-route";
-    }
-    if (nextAction.type === "complete-assignment" || nextAction.type === "not-complete-assignment") {
-      return queued.type !== "complete-assignment" && queued.type !== "not-complete-assignment";
-    }
-    if (nextAction.type === "set-task-completion") {
-      return queued.type !== "set-task-completion" || queued.taskId !== nextAction.taskId;
-    }
-    if (nextAction.type === "add-inventory-usage") {
-      return queued.type !== "add-inventory-usage"
-        || queued.payload.inventoryItemId !== nextAction.payload.inventoryItemId;
-    }
-    return true;
-  });
+  const family = dedupeFamily(nextAction);
+  const identical = family
+    ? queue.find((queued) => (
+        queued.status !== "synced"
+        && dedupeFamily(queued) === family
+        && queued.intentHash === nextAction.intentHash
+      ))
+    : null;
+  if (identical) {
+    emitQueueChange("enqueue");
+    void requestOfflineWorkOrderSync();
+    return identical;
+  }
 
-  writeOfflineWorkOrderQueue([...dedupedQueue, nextAction], "enqueue");
+  writeOfflineWorkOrderQueue([...queue, nextAction], "enqueue");
   void requestOfflineWorkOrderSync();
   return nextAction;
 }
 
 export function removeOfflineWorkOrderAction(id: string) {
   const queue = readOfflineWorkOrderQueue();
-  writeOfflineWorkOrderQueue(queue.filter((action) => action.id !== id));
+  const removed = queue.find((action) => action.id === id);
+  if (!removed || removed.status === "syncing" || removed.attempts > 0) return false;
+  writeOfflineWorkOrderQueue(queue
+    .filter((action) => action.id !== id)
+    .map((action) => (
+      action.dependsOnMutationId === removed.idempotencyKey
+        ? {
+            ...action,
+            dependsOnMutationId: removed.dependsOnMutationId ?? null,
+            expectedParticipantVersion: removed.dependsOnMutationId
+              ? action.expectedParticipantVersion
+              : removed.expectedParticipantVersion,
+            expectedVersionSource: removed.expectedVersionSource,
+          } as OfflineWorkOrderAction
+        : action
+    )));
+  return true;
 }
 
-export function removeOfflineWorkOrderActionsByClientMutationId(clientMutationId: string) {
+export function completeOfflineWorkOrderAction(
+  id: string,
+  receipt: OfflineCanonicalReceipt,
+): { completed: boolean; dependentMutationIds: string[] } {
   const queue = readOfflineWorkOrderQueue();
-  writeOfflineWorkOrderQueue(queue.filter((action) => {
-    if (!("payload" in action) || !action.payload || typeof action.payload !== "object") return true;
-    const payload = action.payload as Record<string, unknown>;
-    return payload["clientMutationId"] !== clientMutationId;
-  }));
+  const completed = queue.find((action) => action.id === id);
+  if (!completed) return { completed: false, dependentMutationIds: [] };
+  const now = new Date().toISOString();
+  let previousDependentMutationId: string | null = null;
+  const dependentMutationIds: string[] = [];
+  const nextQueue = queue.flatMap((action) => {
+    if (action.id === id) return [];
+    if (action.dependsOnMutationId !== completed.idempotencyKey) return [action];
+    dependentMutationIds.push(action.idempotencyKey);
+    if (previousDependentMutationId) {
+      const rewired = {
+        ...action,
+        dependsOnMutationId: previousDependentMutationId,
+        updatedAt: now,
+      } as OfflineWorkOrderAction;
+      previousDependentMutationId = action.idempotencyKey;
+      return [rewired];
+    }
+    previousDependentMutationId = action.idempotencyKey;
+    return [{
+      ...action,
+      chainedFromMutationId: completed.idempotencyKey,
+      dependsOnMutationId: null,
+      expectedParticipantVersion: receipt.participantVersion,
+      expectedVersionSource: "canonical-predecessor",
+      updatedAt: now,
+    } as OfflineWorkOrderAction];
+  });
+  writeOfflineWorkOrderQueue(nextQueue, "state");
+  return { completed: true, dependentMutationIds };
+}
+
+export type OfflineQueueRemovalResult = "removed" | "in_flight" | "not_found";
+
+export function removeOfflineWorkOrderActionsByClientMutationId(clientMutationId: string): OfflineQueueRemovalResult {
+  const queue = readOfflineWorkOrderQueue();
+  const matching = queue.filter((action) => {
+    if (!("payload" in action) || !action.payload || typeof action.payload !== "object") return false;
+    return (action.payload as Record<string, unknown>)["clientMutationId"] === clientMutationId;
+  });
+  if (matching.length === 0) return "not_found";
+  if (matching.some((action) => action.status === "syncing" || action.attempts > 0)) return "in_flight";
+
+  const removedIds = new Set(matching.map((action) => action.id));
+  const predecessorByMutationId = new Map(matching.map((action) => [
+    action.idempotencyKey,
+    action.dependsOnMutationId ?? null,
+  ]));
+  const resolvePredecessor = (mutationId: string | null | undefined) => {
+    let current = mutationId ?? null;
+    const visited = new Set<string>();
+    while (current && predecessorByMutationId.has(current) && !visited.has(current)) {
+      visited.add(current);
+      current = predecessorByMutationId.get(current) ?? null;
+    }
+    return current;
+  };
+  writeOfflineWorkOrderQueue(queue
+    .filter((action) => !removedIds.has(action.id))
+    .map((action) => {
+      const predecessor = resolvePredecessor(action.dependsOnMutationId);
+      if (predecessor === (action.dependsOnMutationId ?? null)) return action;
+      return {
+        ...action,
+        dependsOnMutationId: predecessor,
+        expectedVersionSource: predecessor ? "canonical-predecessor" : "authoritative",
+      } as OfflineWorkOrderAction;
+    }));
+  return "removed";
 }
 
 export function updateOfflineWorkOrderAction(
@@ -417,6 +590,9 @@ export function updateOfflineWorkOrderAction(
     | "lastError"
     | "lastErrorCode"
     | "lastErrorClassification"
+    | "lastErrorDiagnosticId"
+    | "lastErrorRetryable"
+    | "lastErrorSqlState"
     | "canonicalReceipt"
     | "updatedAt"
   >>,
@@ -441,6 +617,9 @@ export function retryOfflineWorkOrderFailures() {
           lastError: null,
           lastErrorCode: null,
           lastErrorClassification: null,
+          lastErrorDiagnosticId: null,
+          lastErrorRetryable: null,
+          lastErrorSqlState: null,
           updatedAt: new Date().toISOString(),
         } as OfflineWorkOrderAction
       : action

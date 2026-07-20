@@ -133,10 +133,16 @@ export function InteractiveStatusProgress({ assignment }: Props) {
   const [isPending, startTransition] = useTransition();
 
   const status = assignment.participantStatus ?? assignment.status;
+  // The automatic seen transition owns the rendered participant version until
+  // SeenMarker has refreshed the route with its canonical result. Letting a
+  // second action race it would turn our own transition into a false conflict.
+  const awaitingSeenRefresh = assignment.status === "scheduled"
+    && (status === "assigned" || status === "scheduled");
   const activeStep = getActiveStep(status);
   const failedFinal = FAILED_FINAL_STATUSES.has(status);
   const finished = FINISHED_STATUSES.has(status);
-  const canMarkEnRoute = status === "assigned" || status === "scheduled" || status === "seen";
+  const canMarkEnRoute = !awaitingSeenRefresh
+    && (status === "assigned" || status === "scheduled" || status === "seen");
   const canStart = status === "en_route";
   const canFinish = status === "in_progress";
 

@@ -164,7 +164,15 @@ export function ExtraWorkEditor({ assignmentId, expectedParticipantVersion, init
 
   function handleDelete(item: ExtraWorkItem) {
     if (item.id.startsWith("local-extra-work-")) {
-      removeOfflineWorkOrderActionsByClientMutationId(item.id.replace("local-extra-work-", ""));
+      const removal = removeOfflineWorkOrderActionsByClientMutationId(item.id.replace("local-extra-work-", ""));
+      if (removal === "in_flight") {
+        setError("Dit meerwerk wordt al gesynchroniseerd en kan niet meer lokaal worden verwijderd.");
+        return;
+      }
+      if (removal === "not_found") {
+        setError("Deze offline wijziging is niet meer lokaal beschikbaar. Vernieuw de werkbon.");
+        return;
+      }
       setItems((current) => current.filter((currentItem) => currentItem.id !== item.id));
       return;
     }
