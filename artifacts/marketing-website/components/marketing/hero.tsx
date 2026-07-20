@@ -34,7 +34,7 @@ export function Hero({ page }: { page: SitePage }) {
           : "Veele Services";
 
   return (
-    <section className="relative isolate overflow-hidden bg-[var(--navy-950)] pt-[5.25rem] text-white">
+    <section className="relative z-10 isolate overflow-x-clip overflow-y-visible bg-[var(--navy-950)] pt-[5.25rem] text-white">
       <div className="absolute inset-0 -z-10 opacity-90 [background:radial-gradient(circle_at_76%_32%,rgba(41,211,194,.16),transparent_24%),radial-gradient(circle_at_7%_12%,rgba(10,49,84,.96),transparent_39%)]" />
       <div className="absolute inset-0 -z-10 opacity-[.14] [background-image:linear-gradient(rgba(255,255,255,.08)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.08)_1px,transparent_1px)] [background-size:72px_72px] [mask-image:linear-gradient(100deg,black,transparent_72%)]" />
       <div className="pointer-events-none absolute left-[4%] top-40 -z-10 h-px w-24 bg-gradient-to-r from-transparent to-[var(--aqua)]/70" />
