@@ -30,49 +30,51 @@ concurrency:
 
 jobs:
   runtime-probe:
-    name: Secrets-free staging runner capability probe
+    name: Secrets-free PostgreSQL 17 runner proof
     if: inputs.runtime_probe_only
     runs-on: [self-hosted, linux, x64, veele]
-    timeout-minutes: 5
+    timeout-minutes: 10
     steps:
-      - name: Inspect rootless container prerequisites
+      - name: Checkout probe implementation
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - name: Set up pinned unprivileged PostgreSQL 17
+        run: scripts/fieldgrid-setup-postgresql17.sh
+
+      - name: Prove isolated PostgreSQL 17 startup
         run: |
           set -euo pipefail
-          id
-          uname -a
-          command -v curl
-          command -v tar
-          command -v sha256sum
-          command -v unshare
-          command -v newuidmap || true
-          command -v newgidmap || true
-          command -v slirp4netns || true
-          command -v pasta || true
-          command -v podman || true
-          command -v nerdctl || true
-          command -v psql || true
-          command -v pg_dump || true
-          command -v initdb || true
-          psql --version || true
-          pg_dump --version || true
-          command -v gcc || true
-          command -v make || true
-          command -v perl || true
-          command -v flex || true
-          command -v bison || true
-          command -v apt-get || true
-          command -v apt-cache || true
-          command -v dpkg-deb || true
-          lsb_release -a || true
-          apt-cache policy postgresql-17 || true
-          grep -F "$(id -un):" /etc/subuid || true
-          grep -F "$(id -un):" /etc/subgid || true
-          if [ -r /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
-            printf 'apparmor_restrict_unprivileged_userns='
-            tr -d '\n' < /proc/sys/kernel/apparmor_restrict_unprivileged_userns
-            printf '\n'
-          fi
-          unshare --user --map-root-user true
+          probe_root="$(mktemp -d "$RUNNER_TEMP/fieldgrid-postgresql-probe-XXXXXX")"
+          socket_dir="$probe_root/socket"
+          data_dir="$probe_root/data"
+          log_path="$probe_root/postgresql.log"
+          mkdir -m 700 "$socket_dir"
+          cleanup() {
+            pg_ctl --pgdata "$data_dir" --mode fast --wait stop >/dev/null 2>&1 || true
+            rm -rf "$probe_root"
+          }
+          trap cleanup EXIT
+          initdb \
+            --pgdata "$data_dir" \
+            --username postgres \
+            --auth-local trust \
+            --auth-host trust \
+            --encoding UTF8 \
+            --no-locale \
+            --waldir "$probe_root/wal" \
+            -L "$FIELDGRID_POSTGRESQL_SHAREDIR"
+          pg_ctl \
+            --pgdata "$data_dir" \
+            --log "$log_path" \
+            --wait \
+            start \
+            --options "-h '' -k '$socket_dir' -c fsync=off -c synchronous_commit=off -c full_page_writes=off"
+          PGHOST="$socket_dir" PGUSER=postgres PGDATABASE=postgres psql \
+            --no-psqlrc \
+            --set ON_ERROR_STOP=1 \
+            --command 'create extension pgcrypto; create extension "uuid-ossp"; select current_setting('\''server_version_num'\'');'
 
   preflight:
     name: Backup, restore and migration rehearsal
@@ -112,15 +114,17 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
-      - name: Set up isolated Docker engine
-        uses: docker/setup-docker-action@6d7cfa65f60a9dda7b46e5513fa982536f3c9877 # v5.3.0
+      - name: Set up pinned unprivileged PostgreSQL 17
+        run: scripts/fieldgrid-setup-postgresql17.sh
 
       - name: Check staging preflight runtime
         run: |
           set -euo pipefail
           node -v
           pnpm -v
-          docker version
+          postgres --version
+          initdb --version
+          pg_restore --version
           systemctl --version
 
       - name: Install locked dependencies
