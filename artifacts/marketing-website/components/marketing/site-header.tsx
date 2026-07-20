@@ -35,7 +35,7 @@ export function SiteHeader() {
   return (
     <header className="absolute inset-x-0 top-0 z-50 border-b border-white/10 bg-[var(--navy-950)]/72 text-white shadow-[0_1px_0_rgba(255,255,255,.025)] backdrop-blur-xl">
       <div className="container-shell flex h-[5.25rem] items-center justify-between gap-6">
-        <Logo />
+        <Logo priority />
         <nav className="hidden items-center gap-1 xl:flex" aria-label="Hoofdnavigatie">
           {navigation.map((item) => (
             <Link
