@@ -6,6 +6,7 @@ const projectionSource = readFileSync("lib/db/src/assignment-time-projection.ts"
 const planningAction = readFileSync("artifacts/backoffice/src/app/actions/planning.ts", "utf8");
 const personnelAction = readFileSync("artifacts/personeel-pwa/src/actions/assignments.ts", "utf8");
 const backofficeAssignmentAction = readFileSync("artifacts/backoffice/src/app/actions/assignments.ts", "utf8");
+const reconciliationMigration = readFileSync("lib/db/migrations/20260716115900_assignment_schedule_reconciliation.sql", "utf8");
 const lifecycleMigration = readFileSync("lib/db/migrations/20260716120000_assignment_lifecycle_time_guards.sql", "utf8");
 const participantExecutionMigration = readFileSync("lib/db/migrations/20260716143000_assignment_participant_execution.sql", "utf8");
 const participantExecutionSource = readFileSync("lib/db/src/assignment-participant-execution.ts", "utf8");
@@ -45,23 +46,23 @@ test("W01 migration adds planned and actual time integrity guards", () => {
 });
 
 test("W01 migration preserves and clears invalid legacy schedule windows before enforcing the guard", () => {
-  const lockOffset = lifecycleMigration.indexOf("lock table public.assignments");
-  const auditOffset = lifecycleMigration.indexOf("insert into public.audit_log");
-  const updateOffset = lifecycleMigration.indexOf("update public.assignments");
-  const constraintOffset = lifecycleMigration.indexOf("alter table public.assignments");
+  const lockOffset = reconciliationMigration.indexOf("lock table public.assignments");
+  const auditOffset = reconciliationMigration.indexOf("insert into public.audit_log");
+  const updateOffset = reconciliationMigration.indexOf("update public.assignments");
 
   assert.ok(lockOffset >= 0);
   assert.ok(auditOffset > lockOffset);
   assert.ok(updateOffset > auditOffset);
-  assert.ok(constraintOffset > updateOffset);
-  assert.match(lifecycleMigration, /'scheduledStart', assignment\.scheduled_start/u);
-  assert.match(lifecycleMigration, /'scheduledEnd', assignment\.scheduled_end/u);
-  assert.match(lifecycleMigration, /'status', assignment\.status/u);
-  assert.match(lifecycleMigration, /'requiresRescheduling', true/u);
-  assert.match(lifecycleMigration, /scheduled_start = null,[\s\S]*scheduled_end = null/u);
-  assert.match(lifecycleMigration, /scheduled_start >= scheduled_end/u);
-  assert.doesNotMatch(lifecycleMigration, /scheduled_start\s*=\s*scheduled_end/u);
-  assert.doesNotMatch(lifecycleMigration, /not valid/iu);
+  assert.match(reconciliationMigration, /'scheduledStart', assignment\.scheduled_start/u);
+  assert.match(reconciliationMigration, /'scheduledEnd', assignment\.scheduled_end/u);
+  assert.match(reconciliationMigration, /'status', assignment\.status/u);
+  assert.match(reconciliationMigration, /'requiresRescheduling', true/u);
+  assert.match(reconciliationMigration, /scheduled_start = null,[\s\S]*scheduled_end = null/u);
+  assert.match(reconciliationMigration, /scheduled_start >= scheduled_end/u);
+  assert.doesNotMatch(reconciliationMigration, /scheduled_start\s*=\s*scheduled_end/u);
+  assert.doesNotMatch(reconciliationMigration, /not valid/iu);
+  assert.doesNotMatch(lifecycleMigration, /migration_schedule_reconciled/u);
+  assert.ok("20260716115900_assignment_schedule_reconciliation.sql" < "20260716120000_assignment_lifecycle_time_guards.sql");
 });
 
 
