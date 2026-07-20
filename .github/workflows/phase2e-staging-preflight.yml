@@ -15,6 +15,11 @@ on:
         description: "Type phase2e-staging-only"
         required: true
         type: string
+      runtime_probe_only:
+        description: "Temporary secrets-free runner capability probe"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
@@ -24,9 +29,42 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  runtime-probe:
+    name: Secrets-free staging runner capability probe
+    if: inputs.runtime_probe_only
+    runs-on: [self-hosted, linux, x64, veele]
+    timeout-minutes: 5
+    steps:
+      - name: Inspect rootless container prerequisites
+        run: |
+          set -euo pipefail
+          id
+          uname -a
+          command -v curl
+          command -v tar
+          command -v sha256sum
+          command -v unshare
+          command -v newuidmap || true
+          command -v newgidmap || true
+          command -v slirp4netns || true
+          command -v pasta || true
+          command -v podman || true
+          command -v nerdctl || true
+          command -v psql || true
+          command -v pg_dump || true
+          command -v initdb || true
+          grep -F "$(id -un):" /etc/subuid || true
+          grep -F "$(id -un):" /etc/subgid || true
+          if [ -r /proc/sys/kernel/apparmor_restrict_unprivileged_userns ]; then
+            printf 'apparmor_restrict_unprivileged_userns='
+            tr -d '\n' < /proc/sys/kernel/apparmor_restrict_unprivileged_userns
+            printf '\n'
+          fi
+          unshare --user --map-root-user true
+
   preflight:
     name: Backup, restore and migration rehearsal
-    if: github.ref_name == 'main'
+    if: github.ref_name == 'main' && !inputs.runtime_probe_only
     runs-on: [self-hosted, linux, x64, veele]
     timeout-minutes: 60
     environment: staging
